@@ -21,6 +21,7 @@
    calc_dipole: Yes
    calc_pulay: old
    calculate_onsite_overlap: Yes
+   output_mat: 21
  lin_basis:
    nit: [0, 3]
    idsx: [5, 0]

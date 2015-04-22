@@ -225,6 +225,8 @@ module module_types
     !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
     real(kind=8) :: max_inversion_error
     logical :: calculate_onsite_overlap
+    integer :: output_mat_format     !< Output Matrices format
+    integer :: output_coeff_format   !< Output Coefficients format
   end type linearInputParameters
 
 
@@ -2583,6 +2585,10 @@ contains
           in%lin%order_taylor = val
        case (OUTPUT_WF)
           in%lin%plotBasisFunctions = val
+       case (OUTPUT_MAT)
+          in%lin%output_mat_format = val
+       case (OUTPUT_COEFF)
+          in%lin%output_coeff_format = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
        case (CALC_PULAY)

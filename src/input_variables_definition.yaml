@@ -1039,6 +1039,32 @@
          11: Wavelet and Interpolating Scaling Function, Plain text
          12: Wavelet and Interpolating Scaling Function, Fortran binary
          13: Wavelet and Interpolating Scaling Function, ETSF file format
+     output_mat:
+       COMMENT: output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 formatted both
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how the support functions should be written to disk at the end of the run:
+                     *  0 => None
+                     *  1 => Plain text in sparse format
+                     * 11 => Plain text in dense format
+                     * 21 => Plain text in both formats
+       default: 0
+       EXCLUSIVE:
+         0:  None
+         1:  Plain text sparse
+         11: Plain text dense
+         21: Plain text sparse and dense
+     output_coeff:
+       COMMENT: output KS coefficients; 0 no output, 1 formatted output
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how the support functions should be written to disk at the end of the run:
+                     *  0 => None
+                     *  1 => Plain text
+       default: 0
+       EXCLUSIVE:
+         0:  None
+         1:  Plain text
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical

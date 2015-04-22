@@ -33,6 +33,8 @@ module public_keys
   character(len = *), parameter :: DISPERSION = "dispersion"
   character(len = *), parameter :: INPUTPSIID = "inputpsiid"
   character(len = *), parameter :: OUTPUT_WF = "output_wf"
+  character(len = *), parameter :: OUTPUT_MAT = "output_mat"
+  character(len = *), parameter :: OUTPUT_COEFF = "output_coeff"
   character(len = *), parameter :: OUTPUT_DENSPOT = "output_denspot"
   character(len = *), parameter :: RBUF = "rbuf"
   character(len = *), parameter :: NCONGT = "ncongt"

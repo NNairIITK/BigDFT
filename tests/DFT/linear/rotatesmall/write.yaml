@@ -15,6 +15,7 @@
    conf_damping: 0.5
    output_wf: 1
    calculate_onsite_overlap: Yes
+   output_mat: 21
  lin_basis:
    nit: 2
    idsx: 0

@@ -459,7 +459,9 @@ subroutine check_for_data_writing_directory(iproc,in)
        bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
        mod(in%lin%plotBasisFunctions,10) > 0 .or. &    !dumping of basis functions for locreg runs
        in%inputPsiId == 102 .or. &                     !reading of basis functions
-       in%write_orbitals>0                             !writing the KS orbitals in the linear case
+       in%write_orbitals>0 .or. &                      !writing the KS orbitals in the linear case
+       mod(in%lin%output_mat_format,10)>0 .or. &       !writing the sparse linear matrices
+       mod(in%lin%output_coeff_format,10)>0            !writing the linear KS coefficients
 
   !here you can check whether the etsf format is compiled
 

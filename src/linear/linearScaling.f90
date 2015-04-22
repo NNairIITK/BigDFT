@@ -1368,7 +1368,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   deallocate(tmb%confdatarr, stat=istat)
 
 
-  !Write the linear wavefunctions to file if asked, also write Hamiltonian and overlap matrices
+  !Write the linear wavefunctions to file if asked
   if (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) then
      nelec=0
      do iat=1,at%astruct%nat
@@ -1378,10 +1378,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      if (write_full_system) then
         call writemywaves_linear(iproc,trim(input%dir_output) // 'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%linmat%l%nfvctr,tmb%coeff)
-        call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
-             mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz,input%lin%calculate_onsite_overlap)
-        call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
-             tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
+        !!call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
+        !!     mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz,input%lin%calculate_onsite_overlap)
+        !!call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
+        !!     tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
         if (input%lin%plotBasisFunctions>10) then
             call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFunDens', &
                  tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, tmb%lzd)
@@ -1393,6 +1393,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
              trim(input%dir_output),input%frag,ref_frags)
      end if
+  end if
+  ! Write the sparse matrices
+  if (mod(input%lin%output_mat_format,10) /= WF_FORMAT_NONE) then
+      call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
+           input%lin%output_mat_format,tmb,at,rxyz,input%lin%calculate_onsite_overlap)
+  end if
+  ! Write the KS coefficients
+  if (mod(input%lin%output_coeff_format,10) /= WF_FORMAT_NONE) then
+      call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
+           tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
   end if
 
        ! debug
