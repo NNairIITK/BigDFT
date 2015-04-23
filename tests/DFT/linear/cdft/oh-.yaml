@@ -12,6 +12,7 @@
  perf:
    ef_interpol_det: 0.10E-19
    adjust_kernel_iterations: No
+   correction_co_contra: No
  lin_general:
    nit: [2, 30]
    rpnrm_cv: [1.0000000000000001E-009, 1.0E-010]

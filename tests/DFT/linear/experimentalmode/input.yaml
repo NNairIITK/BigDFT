@@ -15,6 +15,7 @@
    mixing_after_inputguess: 2
    experimental_mode: Yes
    intermediate_forces: Yes
+   correction_co_contra: no
  lin_general:
    hybrid: Yes
    nit: 20

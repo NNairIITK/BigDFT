@@ -425,7 +425,7 @@ cleanup:
  D Tr: 1.1e-8
  ebs: 1.5e-9
  HOMO energy: 1.8e-10
- LUMO energy: 1.5e-10
+ LUMO energy: 1.6e-10
  HOMO-LUMO gap (eV): 3.5e-9
  HOMO-LUMO gap (Ha): 1.3e-10
  D eF: 1.1e-8
@@ -513,6 +513,10 @@ GEOPT-newIG:
   Energies: 1.1e-8
   etot: 2.62e-11
   EKS: 1.0e-8
+
+GEOPT-all_vssd:
+  Keys to ignore:
+  - WARNINGS
 
 rotatesmall_write:
   Keys to ignore:
@@ -655,7 +659,7 @@ fructose:
  ebs: 1.1e-8
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
- Energy (Hartree): 4.8e-11
+ Energy (Hartree): 4.9e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1347,7 +1351,7 @@ verysparse:
   - found warnings
 
 expfoegeopt:
- guess for new ef: 2.5e-8
+ guess for new ef: 4.2e-8
  eF: 2.5e-8
  D eF: 2.3e-8
  charge diff: 2.3e-8

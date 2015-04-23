@@ -13,6 +13,7 @@
    method: BFGS
    ncount_cluster_x: 3
    betax: NEB
+   correction_co_contra: no
  perf:
    ef_interpol_det: 0.10E-07
    mixing_after_inputguess: 2

@@ -15,6 +15,7 @@
    mixing_after_inputguess: 2
    check_sumrho: 1
    experimental_mode: Yes
+   correction_co_contra: no
  lin_general:
    hybrid: Yes
    nit: [4, 20]
