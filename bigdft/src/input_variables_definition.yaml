@@ -283,6 +283,7 @@
        NEB:    Nudged Elastic Band
        SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
        SQNM:   Stabilized quasi-Newton minimzer
+       LOOP:   Do nothing except looping, forces should be changed externally
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations

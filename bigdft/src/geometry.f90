@@ -159,6 +159,9 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   case('AB6MD')
      if (iproc ==0) call yaml_map('ENTERING Molecular Dynamics (ABINIT implementation)',ncount_bigdft)
      call ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
+  case('LOOP')
+     if (iproc ==0) call yaml_map('ENTERING LOOP mode',ncount_bigdft)
+     call loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   case default
      call f_err_throw('Geometry optimization method undefined ('//trim(parmin%approach)//')',&
           err_name='BIGDFT_RUNTIME_ERROR')
@@ -173,6 +176,52 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
 
 END SUBROUTINE geopt
 
+!> Loop mode
+subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
+  use module_base
+  use bigdft_run
+  use yaml_output
+  implicit none
+  !Arguments
+  integer, intent(in) :: nproc,iproc
+  integer, intent(inout) :: ncount_bigdft
+  type(run_objects), intent(inout) :: runObj
+  type(state_properties), intent(inout) :: outs
+  logical, intent(out) :: fail
+  !Local variables
+  real(gp) :: fnrm, fmax, fluct
+  integer :: check, infocode, it
+
+  fail=.false.
+  fluct=0.0_gp
+  check=0
+  it = 0
+
+  do
+     !calculate the max of the forces
+     call fnrmandforcemax(outs%fxyz,fnrm,fmax,outs%fdim)
+     if (fmax < 3.d-1) call updatefluctsum(outs%fnoise,fluct)
+
+     call convcheck(fmax,fluct*runObj%inputs%frac_fluct, &
+          & runObj%inputs%forcemax,check)
+     if (ncount_bigdft >= runObj%inputs%ncount_cluster_x-1) then
+        !Too many iterations
+        fail = .true.
+        return
+     end if
+
+     if(check > 0) then
+        if(iproc==0)  call yaml_map('Iterations when LOOP converged',it)
+        return
+     endif
+
+     runObj%inputs%inputPsiId=1
+     call bigdft_state(runObj, outs, infocode)
+     ncount_bigdft = ncount_bigdft + 1
+
+     it = it + 1
+  end do
+END SUBROUTINE loop
 
 !> Molecular Dynamics
 subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
