@@ -2152,19 +2152,20 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
  END SUBROUTINE evaltoocc
 
 !> find the gap once the fermi level has been found
- subroutine orbs_get_gap(orbs,ikpt_homo,ikpt_lumo,ispin_homo,ispin_lumo,homo,lumo)
+ subroutine orbs_get_gap(orbs,ikpt_homo,ikpt_lumo,ispin_homo,ispin_lumo,homo,lumo,occup_lumo)
    use module_defs, only: gp
    use module_types, only: orbitals_data
    use dictionaries, only: f_err_throw
    implicit none
    integer, intent(out) :: ikpt_lumo,ikpt_homo,ispin_homo,ispin_lumo
-   real(gp), intent(out) :: homo,lumo
+   real(gp), intent(out) :: homo,lumo,occup_lumo
    type(orbitals_data), intent(inout) :: orbs
    !local variables
    integer :: ikpt,iorb,jorb
 
    homo=-1.e100_gp
    lumo=1.e100_gp
+   occup_lumo=2.d0
    do ikpt=1,orbs%nkpts
       find_up: do iorb=1,orbs%norbu
          jorb=iorb+(ikpt-1)*orbs%norb
@@ -2179,6 +2180,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
             end if
             if (orbs%eval(jorb) < lumo) then
                lumo=orbs%eval(jorb)
+               occup_lumo=min(occup_lumo,orbs%occup(jorb))
                ikpt_lumo=ikpt
                ispin_lumo=1
             end if
@@ -2198,6 +2200,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
             end if
             if (orbs%eval(jorb) < lumo) then
                lumo=orbs%eval(jorb)
+               occup_lumo=min(occup_lumo,orbs%occup(jorb))
                ikpt_lumo=ikpt
                ispin_lumo=-1
             end if

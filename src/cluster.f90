@@ -1451,7 +1451,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
   logical :: endloop, scpot, endlooprp, lcs
   integer :: ndiis_sd_sw, idsx_actual_before, linflag, ierr,iter_for_diis
   integer :: ikpt_homo,ikpt_lumo,ispin_homo,ispin_lumo
-  real(gp) :: gnrm_zero,homo,lumo
+  real(gp) :: gnrm_zero,homo,lumo,occup_lumo
   character(len=5) :: final_out
   !temporary variables for PAPI computation
   ! real(kind=4) :: rtime, ptime,  mflops
@@ -1547,7 +1547,8 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
 
            !stop the partial timing counter if necessary
-           if (endloop .and. opt%itrpmax==1) call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
+           if (endloop .and. opt%itrpmax==1 .and. (opt%itrep == opt%nrepmax .or. opt%gnrm < opt%gnrm_cv)) &
+                call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
            !logical flag for the self-consistent potential
            scpot=((opt%iscf > SCF_KIND_DIRECT_MINIMIZATION .and. opt%iter==1 .and. opt%itrep==1) .or. & !mixing to be done
                 (opt%iscf <= SCF_KIND_DIRECT_MINIMIZATION)) .and. & !direct minimisation
@@ -1731,26 +1732,28 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
              KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f,&
              KSwfn%orbs,KSwfn%psi)
 
-        call orbs_get_gap(KSwfn%orbs,ikpt_homo,ikpt_lumo,ispin_homo,ispin_lumo,homo,lumo)
-
-        if (iproc==0) then
-           call yaml_mapping_open('Highest Occupied Orbital',flow=.true.)
-           call yaml_map('e',homo,fmt='(1pe15.7)')
-           call yaml_map('kpt',ikpt_homo)
-           call yaml_map('s',ispin_homo)
-           call yaml_mapping_close()
-           call yaml_mapping_open('Lowest Unoccupied Orbital',flow=.true.)
-           call yaml_map('e',lumo,fmt='(1pe15.7)')
-           call yaml_map('kpt',ikpt_lumo)
-           call yaml_map('s',ispin_lumo)
-           call yaml_mapping_close()
-           call yaml_map('Gap (Ha, eV)',(lumo-homo)*[1.0_gp,Ha_eV],fmt='(1pe15.7)')
-        end if
-
-        !if the gap is too high for the electronic temperature inform that Direct minimization is available
-        if (lumo-homo > 5.0_gp*in%Tel) then
-           if (iproc==0) call yaml_warning('The gap for this system is very high, consider to perform direct minimization')
-        end if
+!!$        !this section has to be improved to determine whether the system has a semiconductor-like occupation
+!!$        !or not
+!!$        call orbs_get_gap(KSwfn%orbs,ikpt_homo,ikpt_lumo,ispin_homo,ispin_lumo,homo,lumo,occup_lumo)
+!!$
+!!$        if (iproc==0) then
+!!$           call yaml_mapping_open('Highest Occupied Orbital',flow=.true.)
+!!$           call yaml_map('e',homo,fmt='(1pe15.7)')
+!!$           call yaml_map('kpt',ikpt_homo)
+!!$           call yaml_map('s',ispin_homo)
+!!$           call yaml_mapping_close()
+!!$           call yaml_mapping_open('Lowest Unoccupied Orbital',flow=.true.)
+!!$           call yaml_map('e',lumo,fmt='(1pe15.7)')
+!!$           call yaml_map('kpt',ikpt_lumo)
+!!$           call yaml_map('s',ispin_lumo)
+!!$           call yaml_mapping_close()
+!!$           call yaml_map('Gap (Ha, eV)',(lumo-homo)*[1.0_gp,Ha_eV],fmt='(1pe15.7)')
+!!$        end if
+!!$
+!!$        !if the gap is too high for the electronic temperature inform that Direct minimization is available
+!!$        if (occup_lumo < 1.d-6) then !lumo-homo > 5.0_gp*in%Tel) then
+!!$           if (iproc==0) call yaml_warning('The gap for this system is very high, consider to perform direct minimization')
+!!$        end if
         !stop the partial timing counter if necessary
         if (endlooprp) then
            call timing(bigdft_mpi%mpi_comm,'WFN_OPT','PR')
