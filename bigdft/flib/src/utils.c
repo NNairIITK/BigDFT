@@ -12,7 +12,6 @@
 #include <config.h>
 
 #define _GNU_SOURCE
-
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -55,6 +54,7 @@ void FC_FUNC(nanosec,NANOSEC)(unsigned long long int * t){
   *t *= 1000000000;
   *t += time.tv_nsec;
 }
+
 
 void FC_FUNC(getaddress, GETADDRESS)(void *ptr,char *address, int *lgaddress,
 			     int* status)

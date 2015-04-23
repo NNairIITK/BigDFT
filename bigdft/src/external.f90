@@ -130,10 +130,8 @@ subroutine bigdft_finalize(ierr)
   call mpibarrier() !over comm world
   !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   call mpi_environment_free(bigdft_mpi)
-  call mpibarrier() !over comm world
   !wait all processes before finalisation
-  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-  !call MPI_FINALIZE(ierr)
+  call mpibarrier() !over comm world
   call mpifinalize()
   
 end subroutine bigdft_finalize
@@ -228,7 +226,6 @@ subroutine bigdft_severe_abort()
   filename(1:len(filename))='bigdft-err-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//&
        '-'//trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.yaml'
   call f_malloc_dump_status(filename=filename)
-  !call f_dump_last_error()
   if (bigdft_mpi%iproc ==0) then
      call f_dump_all_errors(-1)
      call yaml_comment('Error raised!',hfill='^')
@@ -238,7 +235,7 @@ subroutine bigdft_severe_abort()
      call yaml_flush_document() !might help, sometimes..
   end if
   !call f_lib_finalize()
-  call f_pause(1) !< wait few seconds
+  call f_pause(1) !< wait one second
   call MPI_ABORT(MPI_COMM_WORLD,816437,ierr)
   if (ierr/=0) stop 'Problem in MPI_ABORT'
 

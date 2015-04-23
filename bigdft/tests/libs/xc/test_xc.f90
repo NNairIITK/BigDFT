@@ -28,19 +28,26 @@ program test_xc
 !!$  integer, parameter :: n_funcs = 1
 !!$  integer, dimension(n_funcs), parameter :: funcs = (/ -101130 /)
   integer :: ifunc, ixc_prev, ierr, iproc, nproc
-  real(dp) :: exc_(2, n_funcs), dt_(n_funcs)
+  real(dp) :: tt0
+  real(dp) :: exc_(2, n_funcs), dt_(n_funcs),tt(2)
   real(dp) :: exc(2, n_funcs), dt(n_funcs)
-  
 
-  call MPI_INIT(ierr)
-  call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
-  call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
-  
+  call f_lib_initialize()
+  call mpiinit()
+  iproc=mpirank()
+  nproc=mpisize()
+  !call MPI_INIT(ierr)
+  !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
+  !call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
   exc_ = 0.d0
   dt_  = 0.d0
   do ifunc = 1, n_funcs, 1
      if (modulo(ifunc, nproc) == iproc) then
-        call test(funcs(ifunc), exc_(:, ifunc), dt_(ifunc))
+        !print *,'exc',ifunc,funcs(ifunc)
+        call test(funcs(ifunc), tt, tt0)
+        exc_(1,ifunc)=tt(1)
+        exc_(2,ifunc)=tt(2)
+        dt_(ifunc)=tt0
      end if
 !!$     if (funcs(ifunc) < 0) then
 !!$        call test(funcs(ifunc), exc, dt, option = XC_LIBXC)
@@ -72,14 +79,13 @@ program test_xc
      write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
   end if
 
-  call MPI_FINALIZE(ierr)
-
+  call mpifinalize()
+  !call MPI_FINALIZE(ierr)
+  call f_lib_finalize()
 contains
 
   subroutine test(ixc, excs, dt, option)
-    use module_base
-    use module_xc
-
+    
     implicit none
 
     integer, intent(in) :: ixc
@@ -89,10 +95,16 @@ contains
     integer :: i, n, type
     type(xc_info) :: xc
     integer, parameter :: n_rho = 100000, n_runs = 2
-    real(dp), dimension(n_rho, 2) :: rho, vxc
-    real(dp), dimension(n_rho, 3) :: rhogr, vxcgr
-    real(dp), dimension(n_rho) :: exc
+    real(dp), dimension(:,:), allocatable :: rho, vxc
+    real(dp), dimension(:,:), allocatable :: rhogr, vxcgr
+    real(dp), dimension(:), allocatable :: exc
     integer :: start, end, countPerSecond
+
+    exc=f_malloc(n_rho,id='exc')
+    rho=f_malloc([n_rho,2],id='rho')
+    vxc=f_malloc([n_rho,2],id='vxc')
+    rhogr=f_malloc([n_rho,3],id='rhogr')
+    vxcgr=f_malloc([n_rho,3],id='vxcgr')
 
     if (present(option)) then
        type = option
@@ -121,6 +133,13 @@ contains
     call system_clock(end)
 
     dt = real(end - start) / real(countPerSecond) / real(n_runs)
+
+    call f_free(exc)
+    call f_free(rho)
+    call f_free(vxc)
+    call f_free(rhogr)
+    call f_free(vxcgr)
+
   end subroutine test
 
   subroutine gauss(xc, rho, n_rho, nspin, type)

@@ -1,8 +1,8 @@
 !> @file
-!!    Module fo minima hopping calculating the rmsd
+!!    Module calculating the rmsd
 !!
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    Copyright (C) 2004, 2005 Chaok Seok, Evangelos Coutsias
 !!                  and Ken Dill
 !!                  UCSF, Univeristy of New Mexico, Seoul National
@@ -17,7 +17,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Module Minima hopping calculating the rmsd
+!> Module MinimaGuided Path Sampling calculating the rmsd
 module module_ls_rmsd
 !---------------------------------------------------------------------
 
@@ -25,6 +25,7 @@ module module_ls_rmsd
   private
 
   public :: superimpose
+  public :: rmsd
 
 
 contains
@@ -42,13 +43,26 @@ subroutine superimpose(nat,rxyz1,rxyz2)
     real(gp) :: center1(3), center2(3), dmy
     real(gp) :: U(3,3)
 
-    call rmsd(nat, rxyz2, rxyz1, 1, U, center2, center1, dmy)
+    call rmsd_int(nat, rxyz2, rxyz1, 1, U, center2, center1, dmy)
     do iat=1, nat
         rxyz2(:,iat) = matmul(U, rxyz2(:,iat) - center2) + center1
     enddo
     !write(*,*)rmsdval,sqrt(sum((rxyz2-rxyz1)**2)/nat)
 end subroutine
 
+function rmsd(nat,rxyz1,rxyz2)
+    use module_base
+    implicit none
+    !parameters
+    integer, intent(in) :: nat
+    real(gp), intent(in) :: rxyz1(3,nat), rxyz2(3,nat)
+    real(gp) :: rmsd
+    !local
+    real(gp) :: U(3,3)
+    real(gp) :: center1(3), center2(3)
+
+    call rmsd_int(nat,rxyz2,rxyz1,0,U,center2,center1,rmsd)
+end function
 
 !> This subroutine calculates the least square rmsd of two coordinate
 !! sets coord1(3,n) and coord2(3,n) using a method based on
@@ -58,7 +72,7 @@ end subroutine
 !!
 !! if calc_g == .true., derivative of RMSD with respect to coord1
 !! is returned
-subroutine rmsd(n, coord1, coord2, option, U, x_center, y_center, & 
+subroutine rmsd_int(n, coord1, coord2, option, U, x_center, y_center, & 
      error)!, calc_g, g)
   use module_base
   integer, intent(in) :: n, option
@@ -147,7 +161,7 @@ subroutine rmsd(n, coord1, coord2, option, U, x_center, y_center, &
 !     end do
 !  end if
 
-end subroutine rmsd
+end subroutine rmsd_int
 
 
 !> This subroutine constructs rotation matrix U from quaternion q.

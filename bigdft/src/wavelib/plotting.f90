@@ -264,12 +264,14 @@ END SUBROUTINE read_density_cube_old
 
 
 !> Write a (sum of two) field in the ISF basis in the cube format
-subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s,n3s,hxh,hyh,hzh,&
-     a,x,nexpo,b,y)
+subroutine write_cube_fields(fileunit0,fileunitx,fileunity,fileunitz, &
+           message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s,n3s,hxh,hyh,hzh,&
+           a,x,nexpo,b,y)
   use module_defs, only: gp,wp,dp
   use module_types
   implicit none
-  character(len=*), intent(in) :: filename,message
+  integer,intent(in) :: fileunit0,fileunitx,fileunity,fileunitz
+  character(len=*), intent(in) :: message
   integer, intent(in) :: n1i,n2i,n3i,n1s,n2s,n3s,nexpo
   real(gp), intent(in) :: hxh,hyh,hzh,a,b,factor
   type(atoms_data), intent(in) :: at
@@ -314,24 +316,24 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
 
 ! A nonstandrd .CUBE file where the field is written with the maximum number of
 ! decimal places can be obtained by uncommenting the writes to unit 23
-  open(unit=22,file=trim(filename)//'.cube',status='unknown')
+  !open(unit=22,file=trim(filename)//'.cube',status='unknown')
 !  open(unit=23,file=trim(filename)//'.CUBE',status='unknown')
-  write(22,*)'CUBE file for ISF field'
-  write(22,*)'Case for '//trim(message)
-  write(22,'(i5,3(f12.6))') at%astruct%nat,0.0_gp,0.0_gp,0.0_gp
+  write(fileunit0,*)'CUBE file for ISF field'
+  write(fileunit0,*)'Case for '//trim(message)
+  write(fileunit0,'(i5,3(f12.6))') at%astruct%nat,0.0_gp,0.0_gp,0.0_gp
 !  write(23,*)'CUBE file for ISF field'
 !  write(23,*)'Case for '//trim(message)
 !  write(23,'(i5,3(f12.6))') at%astruct%nat,0.0_gp,0.0_gp,0.0_gp
   !grid and grid spacings
-  write(22,'(i5,3(f12.6))') nc1,hxh,0.0_gp,0.0_gp
-  write(22,'(i5,3(f12.6))') nc2,0.0_gp,hyh,0.0_gp
-  write(22,'(i5,3(f12.6))') nc3,0.0_gp,0.0_gp,hzh
+  write(fileunit0,'(i5,3(f12.6))') nc1,hxh,0.0_gp,0.0_gp
+  write(fileunit0,'(i5,3(f12.6))') nc2,0.0_gp,hyh,0.0_gp
+  write(fileunit0,'(i5,3(f12.6))') nc3,0.0_gp,0.0_gp,hzh
 !  write(23,'(i5,3(f12.6))') nc1,hxh,0.0_gp,0.0_gp
 !  write(23,'(i5,3(f12.6))') nc2,0.0_gp,hyh,0.0_gp
 !  write(23,'(i5,3(f12.6))') nc3,0.0_gp,0.0_gp,hzh
   !atomic number and positions
   do iat=1,at%astruct%nat
-     write(22,'(i5,4(f12.6))') at%nzatom(at%astruct%iatype(iat)), at%nelpsp(at%astruct%iatype(iat))*1. &
+     write(fileunit0,'(i5,4(f12.6))') at%nzatom(at%astruct%iatype(iat)), at%nelpsp(at%astruct%iatype(iat))*1. &
           ,(rxyz(j,iat),j=1,3)
 !     write(23,'(i5,f12.6,3(f19.12))') at%nzatom(at%astruct%iatype(iat)), at%nelpsp(at%astruct%iatype(iat))*1. &
 !          ,(rxyz(j,iat),j=1,3)
@@ -352,17 +354,18 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
               advancestring='no'
            end if
            !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-           write(22,'(1x,1pe13.6)',advance=advancestring)&
+           write(fileunit0,'(1x,1pe13.6)',advance=advancestring)&
                 a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
 !           write(23,'(1x,e24.17)',advance=advancestring)&
 !                a*x(i1+nl1,i2+nl2,i3+nl3)**nexpo+b*y(i1+nl1,i2+nl2,i3+nl3)
         end do
      end do
   end do
-  close(22)
+  !close(22)
 !  close(23)
   !average in x direction
-  open(unit=23,file=trim(filename)//'_avg_x',status='unknown')
+  !open(unit=23,file=trim(filename)//'_avg_x',status='unknown')
+  !open(unit=24,file=trim(filename)//'_centre_x',status='unknown')
   !  do i1=0,2*n1+1
   do i1=0,nc1 - 1
      later_avg=0.0_dp
@@ -374,11 +377,15 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      end do
      later_avg=later_avg/real(nc2*nc3,dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i1+n1s,at%astruct%cell_dim(1)/real(factor*nc1,dp)*(i1+2*n1s),later_avg
+     write(fileunitx,*)i1+n1s,at%astruct%cell_dim(1)/real(factor*nc1,dp)*(i1+2*n1s),later_avg
+     !write(24,*)i1+n1s,at%astruct%cell_dim(1)/real(factor*nc1,dp)*(i1+2*n1s),&
+     !     a*x(i1+nl1,nc2/2+nl2,nc3/2+nl3)**nexpo+b*y(i1+nl1,nc2/2+nl2,nc3/2+nl3)
   end do
-  close(23)
+  !close(23)
+  !close(24)
   !average in y direction
-  open(unit=23,file=trim(filename)//'_avg_y',status='unknown')
+  !open(unit=23,file=trim(filename)//'_avg_y',status='unknown')
+  !open(unit=24,file=trim(filename)//'_centre_y',status='unknown')
   do i2=0,nc2 - 1
      later_avg=0.0_dp
      do i3=0,nc3 - 1
@@ -389,11 +396,15 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      end do
      later_avg=later_avg/real(nc1*nc3,dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i2+n2s,at%astruct%cell_dim(2)/real(factor*nc2,dp)*(i2+n2s),later_avg
+     write(fileunity,*)i2+n2s,at%astruct%cell_dim(2)/real(factor*nc2,dp)*(i2+n2s),later_avg
+     !write(24,*)i2+n2s,at%astruct%cell_dim(2)/real(factor*nc2,dp)*(i2+n2s),&
+     !    a*x(nc1/2+nl1,i2+nl2,nc3/2+nl3)**nexpo+b*y(nc1/2+nl1,i2+nl2,nc3/2+nl3)
   end do
-  close(23)
+  !close(23)
+  !close(24)
   !average in z direction
-  open(unit=23,file=trim(filename)//'_avg_z',status='unknown')
+  !open(unit=23,file=trim(filename)//'_avg_z',status='unknown')
+  !open(unit=24,file=trim(filename)//'_centre_z',status='unknown')
   do i3=0,nc3 - 1
      later_avg=0.0_dp
      do i2=0,nc2 - 1
@@ -404,9 +415,12 @@ subroutine write_cube_fields(filename,message,at,factor,rxyz,n1i,n2i,n3i,n1s,n2s
      end do
      later_avg=later_avg/real(nc1*nc2,dp) !2D integration/2D Volume
      !to be checked with periodic/isolated BC
-     write(23,*)i3+n3s,at%astruct%cell_dim(3)/real(factor*nc3+2,dp)*(i3+n3s),later_avg
+     write(fileunitz,*)i3+n3s,at%astruct%cell_dim(3)/real(factor*nc3,dp)*(i3+n3s),later_avg
+     !write(24,*)i3+n3s,at%astruct%cell_dim(3)/real(factor*nc3,dp)*(i3+n3s),&
+     !     a*x(nc1/2+nl1,nc2/2+nl2,i3+nl3)**nexpo+b*y(nc1/2+nl1,nc2/2+nl2,i3+nl3)
   end do
-  close(23)
+  !close(23)
+  !close(24)
 END SUBROUTINE write_cube_fields
 
 
@@ -419,7 +433,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   type(denspot_distribution), intent(in) :: box
   character(len=*), intent(in) :: filename
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(dp), dimension(max(box%ndimpot,1),nspin), target, intent(in) :: rho
+  real(dp), dimension(max(box%ndimpot,1),nspin), intent(in) :: rho !, target,
   !local variables
   character(len=*), parameter :: subname='plot_density'
   character(len=5) :: suffix
@@ -428,6 +442,10 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   real(dp) :: a,b
   real(gp) :: hxh,hyh,hzh
   real(dp), dimension(:,:), pointer :: pot_ion
+  integer,parameter :: unit0 = 22
+  integer,parameter :: unitx = 23
+  integer,parameter :: unity = 24
+  integer,parameter :: unitz = 25
 
   n1i=box%ndims(1)
   n2i=box%ndims(2)
@@ -440,20 +458,28 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   if (nproc > 1) then
      !allocate full density in pot_ion array
      pot_ion = f_malloc_ptr((/ box%ndimgrid, nspin /),id='pot_ion')
-
-     call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
-          mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
-          box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
+     
+     call mpiallgather(sendbuf=rho(1,1),sendcount=box%ndimpot,&
+          recvbuf=pot_ion(1,1),recvcounts=box%ngatherarr(:,1),&
+          displs=box%ngatherarr(:,2),comm=box%mpi_env%mpi_comm)
+!!$     call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
+!!$          mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
+!!$          box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
 
      !case for npspin==2
      if (nspin==2) then
-        call MPI_ALLGATHERV(rho(1,2),box%ndimpot,&
-             mpidtypd,pot_ion(1,2),box%ngatherarr(0,1),&
-             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
+        call mpiallgather(sendbuf=rho(1,2),sendcount=box%ndimpot,&
+             recvbuf=pot_ion(1,2),recvcounts=box%ngatherarr(:,1),&
+             displs=box%ngatherarr(:,2),comm=box%mpi_env%mpi_comm)
+!!$        call MPI_ALLGATHERV(rho(1,2),box%ndimpot,&
+!!$             mpidtypd,pot_ion(1,2),box%ngatherarr(0,1),&
+!!$             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
      end if
 
   else
-     pot_ion => rho
+     !pot_ion => rho
+     pot_ion = f_malloc_ptr(shape(rho),id='pot_ion')
+     call f_memcpy(dest=pot_ion,src=rho)
   end if
 
   ! Format = 1 -> cube (default)
@@ -476,6 +502,12 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   end if
   if (iproc == 0) then
 
+
+     open(unit=unit0,file=trim(filename(:isuffix))//'.cube',status='unknown')
+     open(unit=unitx,file=trim(filename(:isuffix))//'_avg_x',status='unknown')
+     open(unit=unity,file=trim(filename(:isuffix))//'_avg_y',status='unknown')
+     open(unit=unitz,file=trim(filename(:isuffix))//'_avg_z',status='unknown')
+
      if (nspin /=2) then
         message='total spin'
         if (fformat == 1) then
@@ -484,7 +516,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
            ia=1
            b=0.0_dp
            ib=1
-           call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
+           call write_cube_fields(unit0,unitx,unity,unitz,message,&
                 at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
         else
@@ -500,7 +532,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
            ia=1
            b=0.0_dp
            ib=2
-           call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
+           call write_cube_fields(unit0,unitx,unity,unitz,message,&
                 at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
@@ -510,7 +542,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
            ia=1
            b=1.0_dp
            ib=2
-           call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
+           call write_cube_fields(unit0,unitx,unity,unitz,message,&
                 at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
@@ -520,7 +552,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
            ia=1
            b=-2.0_dp
            ib=2
-           call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
+           call write_cube_fields(unit0,unitx,unity,unitz,message,&
                 at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
 
@@ -530,7 +562,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
            ia=1
            b=-1.0_dp
            ib=2
-           call write_cube_fields(filename(:isuffix)//trim(suffix),message,&
+           call write_cube_fields(unit0,unitx,unity,unitz,message,&
                 at,1.d0,rxyz,n1i,n2i,n3i,0,0,0,hxh,hyh,hzh,&
                 a,pot_ion(1,ia),1,b,pot_ion(1,ib))
         else
@@ -542,12 +574,17 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
 
      end if
 
+     close(unit=unit0)
+     close(unit=unitx)
+     close(unit=unity)
+     close(unit=unitz)
+
   end if
 
 
-  if (nproc > 1) then
+  !if (nproc > 1) then
      call f_free_ptr(pot_ion)
-  end if
+  !end if
 
 END SUBROUTINE plot_density
 
@@ -620,12 +657,14 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
 END SUBROUTINE read_density
 
 
-subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
+subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, &
+           unit0_, unitx_, unity_, unitz_)
   use module_base
   use locregs, only: locreg_descriptors
   use module_types, only: atoms_data,workarr_sumrho
   implicit none
   !Arguments
+  logical,intent(in) :: units_provided
   character(len=*) :: orbname
   integer, intent(in) :: nexpo
   real(dp), intent(in) :: factor
@@ -634,11 +673,25 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
+  integer,intent(in),optional :: unit0_, unitx_, unity_, unitz_
   !Local variables
   character(len=*), parameter :: subname='plot_wf'
   integer :: n1i,n2i,n3i,n1,n2,n3,n1s,n2s,n3s
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: psir
+  integer :: iunit0, iunitx, iunity, iunitz
+  integer,parameter :: unit0 = 22
+  integer,parameter :: unitx = 23
+  integer,parameter :: unity = 24
+  integer,parameter :: unitz = 25
+
+  ! Check whether all units are present
+  if (units_provided) then
+      if (.not.present(unit0_)) call f_err_throw('unit0_ is not present',err_name='BIGDFT_RUNTIME_ERROR')
+      if (.not.present(unitx_)) call f_err_throw('unitx_ is not present',err_name='BIGDFT_RUNTIME_ERROR')
+      if (.not.present(unity_)) call f_err_throw('unity_ is not present',err_name='BIGDFT_RUNTIME_ERROR')
+      if (.not.present(unitz_)) call f_err_throw('unitz_ is not present',err_name='BIGDFT_RUNTIME_ERROR')
+  end if
 
   n1=lr%d%n1
   n2=lr%d%n2
@@ -658,9 +711,33 @@ subroutine plot_wf(orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi)
 
   call daub_to_isf(lr,w,psi,psir)
 
-  call write_cube_fields(orbname,' ',&
+  if (units_provided) then
+      iunit0 = unit0_
+      iunitx = unitx_
+      iunity = unity_
+      iunitz = unitz_
+  else
+      iunit0 = unit0
+      iunitx = unitx
+      iunity = unity
+      iunitz = unitz
+      open(unit=iunit0,file=trim(orbname)//'.cube',status='unknown')
+      open(unit=iunitx,file=trim(orbname)//'_avg_x',status='unknown')
+      open(unit=iunity,file=trim(orbname)//'_avg_y',status='unknown')
+      open(unit=iunitz,file=trim(orbname)//'_avg_z',status='unknown')
+  end if
+
+
+  call write_cube_fields(iunit0,iunitx,iunity,iunitz,' ',&
        at,factor,rxyz,n1i,n2i,n3i,n1s,n2s,n3s,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        1.0_gp,psir,nexpo,0.0_gp,psir)
+
+  if (units_provided) then
+      close(unit=iunit0)
+      close(unit=iunitx)
+      close(unit=iunity)
+      close(unit=iunitz)
+  end if
 
   call f_free(psir)
 
@@ -1223,7 +1300,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
   end if
 
-  if(box%mpi_env%iproc + box%mpi_env%igroup==0) then
+  if(box%mpi_env%iproc==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !write(*,*) 'dipole_cores', dipole_cores
@@ -1239,20 +1316,6 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
        call yaml_map('norm(P)',sqrt(sum(tmpdip**2)),fmt='(1pe14.6)')
      call yaml_mapping_close()
 
-!!$     write(*,'(1x,a)')repeat('-',61)//' Electric Dipole Moment'
-
-!!$     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (AU)       ", "(Px,Py,Pz)= " , tmpdip(1:3)  
-!!$     tmpdip=tmpdip/0.393430307_gp  ! au2debye              
-!!$     write(*,96) "|P| = ", sqrt(sum(tmpdip**2)), " (Debye)    ", "(Px,Py,Pz)= " , tmpdip(1:3) 
-!!$96   format (a8,Es14.6 ,a,a,3ES13.4)
-     !     write(*,'(a)') "  ================= Dipole moment in e.a0    (0.39343 e.a0 = 1 Debye) ================"  ! or [Debye] 
-     !     write(*,97) "    Px " ,"     Py ","     Pz ","   |P| " 
-     !     write(*,98) "electronic charge: ", dipole_el(1:3) , sqrt(sum(dipole_el**2))
-     !     write(*,98) "pseudo cores:      ", dipole_cores(1:3) , sqrt(sum(dipole_cores**2))
-     !     write(*,98) "Total (cores-el.): ", dipole_cores+dipole_el , sqrt(sum((dipole_cores+dipole_el)**2))
-     !97 format (20x,3a15  ,"    ==> ",a15)
-     !98 format (a20,3f15.7,"    ==> ",f15.5)
-
 
       if (calculate_quadropole) then
           !call yaml_sequence_open('core quadropole')
@@ -1267,7 +1330,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
           !end do
           !call yaml_sequence_close()
 
-          call yaml_sequence_open('Quadropole Moment (AU)')
+          call yaml_sequence_open('Quadrupole Moment (AU)')
           do i=1,3
              call yaml_sequence(trim(yaml_toa(tmpquadrop(i,1:3),fmt='(es15.8)')))
           end do
@@ -1281,12 +1344,8 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
   if (box%mpi_env%nproc > 1) then
      call f_free_ptr(ele_rho)
-!!$     i_all=-product(shape(rho_buf))*kind(rho_buf)
-!!$     deallocate(rho_buf,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'rho_buf',subname)
   else
      nullify(ele_rho)
-!!$     nullify(rho_buf)
   end if
 
 END SUBROUTINE calc_dipole

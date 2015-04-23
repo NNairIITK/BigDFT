@@ -411,6 +411,8 @@ contains
     real(dp), allocatable :: rho_(:,:), exc_(:), vxc_(:,:)
     !n(c) character(len=*), parameter :: subname='xc_getvxc'
 
+    call f_routine(id='xc_getvxc')
+
     if (xcObj%kind == XC_ABINIT) then
        ! ABINIT case, call drivexc
        ixc = xcObj%id(1)
@@ -614,6 +616,8 @@ contains
     else
        write(0,*) "ERROR: XC module not initialised."
     end if
+
+    call f_release_routine()
 
   end subroutine xc_getvxc
 

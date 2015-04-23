@@ -341,7 +341,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict
     !local variables
-    integer :: nres
+    !integer :: nres
 
     if (nfolder_size == 0) then
        !this is normal allocation, let the system do the allocation
@@ -370,7 +370,7 @@ contains
     implicit none
     type(dictionary), intent(in) :: dict !to copy the target
     !local variables
-    integer :: nres
+    !integer :: nres
     integer(kind=8), external :: f_loc
     !free a space in the library and let the allocation live
     call deallocate_file(f_loc(dict))
@@ -565,6 +565,18 @@ contains
     implicit none
     type(dictionary), target :: dict
     type(dictionary) :: child
+!!$    type(dictionary), pointer :: dict
+!!$    type(dictionary), pointer :: child
+
+    !local variables
+    type(dictionary), pointer :: iter
+
+!!$    !eliminate recursion
+!!$    iter => child
+!!$    do while(associated(iter))
+!!$       iter%parent=>dict
+!!$       iter => iter%next
+!!$    end do
 
     child%parent=>dict
     if (associated(child%next)) call define_parent(dict,child%next)
@@ -642,7 +654,6 @@ contains
        call set_elem(dict%child,key)
        subd_ptr => dict%child
     end if
-
   end function get_child_ptr
 
 
@@ -659,6 +670,7 @@ contains
     !local variables
     logical :: crt
     type(dictionary), pointer :: iter
+    integer(kind=8), external :: f_loc
 
     crt=.false.
     if (present(create)) crt=create

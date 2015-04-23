@@ -7,15 +7,18 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> Manage low-level operations (external files and basic memory operations)
 module f_utils
   use dictionaries, only: f_err_throw,f_err_define, &
        & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
-  use yaml_strings, only: yaml_toa,operator(.eqv.)
+  use yaml_strings, only: yaml_toa
   implicit none
 
   private
 
-  integer, save, private :: INPUT_OUTPUT_ERROR
+  integer, private, save :: INPUT_OUTPUT_ERROR
 
   integer, public, save :: TCAT_INIT_TO_ZERO
 
@@ -27,28 +30,21 @@ module f_utils
      integer :: iunit = 0
      type(dictionary), pointer :: lstring => null()
   end type io_stream
-  !> enumerator type, useful to define different modes
-  type, public :: f_enumerator
-     character(len=64) :: name
-     integer :: id
-  end type f_enumerator
-  integer, parameter, private :: NULL_INT=-1024
-  character(len=*), parameter, private :: null_name='nullified enumerator'
-
-  type(f_enumerator), parameter, private :: &
-       f_enum_null=f_enumerator(null_name,NULL_INT)
+  
 
   !>interface for difference between two intrinsic types
   interface f_diff
      module procedure f_diff_i,f_diff_r,f_diff_d,f_diff_li,f_diff_l
      module procedure f_diff_d2d3,f_diff_d2d1,f_diff_d1d2,f_diff_d2,f_diff_d1
      module procedure f_diff_i2i1,f_diff_i1,f_diff_i2,f_diff_i1i2
+     module procedure f_diff_li2li1,f_diff_li1,f_diff_li2,f_diff_li1li2
      module procedure f_diff_d0d1,f_diff_i0i1
      module procedure f_diff_c1i1,f_diff_li0li1
   end interface f_diff
 
   !> Initialize to zero an array (should be called f_memset)
   interface f_zero
+     module procedure zero_string,zero_li,zero_i,zero_r,zero_d,zero_l
      module procedure put_to_zero_simple
      module procedure put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2
      module procedure put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5
@@ -57,71 +53,22 @@ module f_utils
      module procedure put_to_zero_integer3
   end interface f_zero
 
+  !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
+  interface
+     pure subroutine nanosec(itime)
+       implicit none
+       integer(kind=8), intent(out) :: itime
+     end subroutine nanosec
+  end interface
 
-  interface operator(==)
-     module procedure enum_is_int,enum_is_enum,enum_is_char
-  end interface operator(==)
-
-  interface int
-     module procedure int_enum
-  end interface int
-
-  interface char
-     module procedure char_enum
-  end interface char
-
-  public :: f_diff,int,char,f_enumerator_null,operator(==),f_file_unit
+  public :: f_diff,f_file_unit
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
-  public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind
+  public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring
-  public :: f_iostream_get_line,f_iostream_release,f_pause
+  public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
 
 contains
-
-  pure function f_enumerator_null() result(en)
-    implicit none
-    type(f_enumerator) :: en
-    en=f_enum_null
-  end function f_enumerator_null
-
-  elemental pure function enum_is_enum(en,en1) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    type(f_enumerator), intent(in) :: en1
-    logical :: ok
-    ok = en == en1%id
-  end function enum_is_enum
-
-  elemental pure function enum_is_int(en,int) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    integer, intent(in) :: int
-    logical :: ok
-    ok = en%id == int
-  end function enum_is_int
-
-  elemental pure function enum_is_char(en,char) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    character(len=*), intent(in) :: char
-    logical :: ok
-    ok = trim(en%name) .eqv. trim(char)
-  end function enum_is_char
-
-  !>integer of f_enumerator type.
-  elemental pure function int_enum(en)
-    type(f_enumerator), intent(in) :: en
-    integer :: int_enum
-    int_enum=en%id
-  end function int_enum
-
-  !>char of f_enumerator type.
-  elemental pure function char_enum(en)
-    type(f_enumerator), intent(in) :: en
-    character(len=len(en%name)) :: char_enum
-    char_enum=en%name
-  end function char_enum
-  
+ 
   subroutine f_utils_errors()
 
     call f_err_define('INPUT_OUTPUT_ERROR',&
@@ -130,6 +77,42 @@ contains
          err_action='Check if you have correct file system permission in i/o library or check the fortan runtime library')
 
   end subroutine f_utils_errors
+
+  pure function f_time()
+    integer(kind=8) :: f_time
+    !local variables
+    integer(kind=8) :: itime
+    call nanosec(itime)
+    f_time=itime
+  end function f_time
+
+  !>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
+  subroutine f_pause(sec,verbose)
+    implicit none
+    integer, intent(in) :: sec !< seconds to be waited
+    logical, intent(in), optional :: verbose !<for debugging purposes, do not eliminate
+    !local variables
+    logical :: verb
+    integer(kind=8) :: t0,t1
+    integer :: count
+
+    verb=.false.
+    if (present(verbose)) verb=verbose
+
+    if (sec <=0) return
+    t0=f_time()
+    t1=t0
+    !this loop has to be modified to avoid the compiler to perform too agressive optimisations
+    count=0
+    do while(real(t1-t0,kind=8)*1.d-9 < real(sec,kind=8))
+       count=count+1
+       t1=f_time()
+    end do
+    !this output is needed to avoid the compiler to perform too agressive optimizations
+    !therefore having a infinie loop
+    if (verb) print *,'Paused for '//trim(yaml_toa(sec))//' seconds, counting:'//&
+         trim(yaml_toa(count))
+  end subroutine f_pause
 
   !> gives the maximum record length allowed for a given unit
   subroutine f_utils_recl(unt,recl_max,recl)
@@ -234,16 +217,16 @@ contains
     unit_is_open=.true.
     unt=7
     if (present(unit)) unt=unit
-    do while(unit_is_open)
+    inquire(unit=unt,opened=unit_is_open,iostat=ierr)
+    do while(unit_is_open .and. ierr==0)     
        unt=unt+1
        inquire(unit=unt,opened=unit_is_open,iostat=ierr)
-       if (ierr /=0) then
-          call f_err_throw('Error in inquiring unit='//&
-               trim(yaml_toa(unt))//', iostat='//trim(yaml_toa(ierr)),&
-               err_id=INPUT_OUTPUT_ERROR)
-          exit
-       end if
     end do
+    if (ierr /=0) then
+       call f_err_throw('Error in inquiring unit='//&
+            trim(yaml_toa(unt))//', iostat='//trim(yaml_toa(ierr)),&
+            err_id=INPUT_OUTPUT_ERROR)
+    end if
     unt2=unt
   end function f_get_free_unit
 
@@ -253,11 +236,14 @@ contains
     character(len=*), intent(in) :: file
     !local variables
     logical :: exists
-    integer :: ierr
+    integer :: ierr,unit
     external :: delete
 
     call f_file_exists(trim(file),exists)
     if (exists) then
+       !close the corresponding fortran unit if the file is connected to it
+       call f_file_unit(trim(file),unit)
+       call f_close(unit)
        !c-function in utils.c
        call delete(trim(file),len_trim(file),ierr)
        if (ierr /=0) call f_err_throw('Error in deleting file='//&
@@ -293,6 +279,71 @@ contains
          err_id=INPUT_OUTPUT_ERROR)
     
   end subroutine f_rewind
+  
+  !> open a filename and retrieve the unteger for the unit
+  subroutine f_open_file(unit,file,status,position,action,binary)
+    use yaml_strings, only: f_strcpy
+    implicit none
+    !> integer of the unit. On entry, it indicates the 
+    !! suggested unit number. On exit, it indicates the free unit
+    !! which has been used for the file opening
+    integer, intent(inout) :: unit
+    !> filename
+    character(len=*), intent(in) :: file
+    !> status
+    character(len=*), intent(in), optional :: status
+    !> position
+    character(len=*), intent(in), optional :: position
+    !> action
+    character(len=*), intent(in), optional :: action
+    !> if true, the file will be opened in the unformatted i/o
+    !! if false or absent, the file will be opened for formatted i/o
+    logical, intent(in), optional :: binary
+    !local variables
+    integer :: unt,ierror
+    character(len=7) :: f_status
+    character(len=11) :: f_form
+    character(len=6) :: f_position
+    character(len=9) :: f_action
+
+    !first, determine if the file is already opened.
+    call f_file_unit(file,unt)
+    if (unt /= -1) then
+       unit=unt
+    else
+       !find the first free unit
+       unt=f_get_free_unit(unit)
+
+       !useful open specifiers
+       call f_strcpy(src='unknown',dest=f_status)
+       if (present(status)) call f_strcpy(src=status,dest=f_status)
+
+       call f_strcpy(src='formatted',dest=f_form)
+       if (present(binary)) then
+          if (binary) call f_strcpy(src='unformatted',dest=f_form)
+       end if
+
+       call f_strcpy(src='asis',dest=f_position)
+       if (present(position)) call f_strcpy(src=position,dest=f_position)
+
+       call f_strcpy(src='readwrite',dest=f_action)
+       if (present(action)) call f_strcpy(src=action,dest=f_action)
+
+       !then open the file with the given unit
+       open(unit=unt,file=trim(file),status=f_status,form=f_form,&
+            position=f_position,action=f_action,iostat=ierror)
+       if (ierror /= 0) then
+          call f_err_throw('Error in opening file='//&
+               trim(file)//' with unit='//trim(yaml_toa(unt,fmt='(i0)'))//&
+               ', iostat='//trim(yaml_toa(ierror)),&
+               err_id=INPUT_OUTPUT_ERROR)
+       else
+          !when everything succeded, assign the unit
+          unit=unt
+       end if
+    end if
+
+  end subroutine f_open_file
 
   subroutine f_iostream_from_file(ios, filename)
     implicit none
@@ -363,64 +414,49 @@ contains
     nullify(ios%lstring)
   end subroutine f_iostream_release
 
-!>enter in a infinite loop for sec seconds. Use cpu_time as granularity is enough
-  subroutine f_pause(sec)
-    implicit none
-    integer, intent(in) :: sec !< seconds to be waited
-    !local variables
-    real :: t0,t1
-
-    call cpu_time(t0)
-    t1=t0
-    if (t0 < 0.e0) return ! no-clock case, according to specification
-    do while(nint(t1-t0) < sec)
-       call cpu_time(t1)
-    end do
-  end subroutine f_pause
-
   !>perform a difference of two objects (of similar kind)
   subroutine f_diff_i(n,a_add,b_add,diff)
     implicit none
     integer, intent(in) :: n
-    integer, intent(inout) :: a_add
-    integer, intent(inout) :: b_add
-    integer, intent(out) :: diff
+    integer(kind=4), intent(inout) :: a_add
+    integer(kind=4), intent(inout) :: b_add
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a_add,b_add,diff)
   end subroutine f_diff_i
   subroutine f_diff_i2i1(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
-    integer, dimension(:,:),   intent(in) :: a
-    integer, dimension(:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:,:),   intent(in) :: a
+    integer(kind=4), dimension(:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a(1,1),b(1),diff)
   end subroutine f_diff_i2i1
   subroutine f_diff_i2(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
-    integer, dimension(:,:),   intent(in) :: a
-    integer, dimension(:,:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:,:),   intent(in) :: a
+    integer(kind=4), dimension(:,:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a(1,1),b(1,1),diff)
   end subroutine f_diff_i2
   subroutine f_diff_i1(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
-    integer, dimension(:),   intent(in) :: a
-    integer, dimension(:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:),   intent(in) :: a
+    integer(kind=4), dimension(:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a(1),b(1),diff)
   end subroutine f_diff_i1
   subroutine f_diff_i1i2(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
-    integer, dimension(:),   intent(in) :: a
-    integer, dimension(:,:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:),   intent(in) :: a
+    integer(kind=4), dimension(:,:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a(1),b(1,1),diff)
   end subroutine f_diff_i1i2
@@ -435,6 +471,43 @@ contains
     external :: diff_li
     call diff_li(n,a_add,b_add,diff)
   end subroutine f_diff_li
+  subroutine f_diff_li2li1(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    integer(kind=8), dimension(:,:),   intent(in) :: a
+    integer(kind=8), dimension(:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_li
+    call diff_li(n,a(1,1),b(1),diff)
+  end subroutine f_diff_li2li1
+  subroutine f_diff_li2(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    integer(kind=8), dimension(:,:),   intent(in) :: a
+    integer(kind=8), dimension(:,:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_li
+    call diff_li(n,a(1,1),b(1,1),diff)
+  end subroutine f_diff_li2
+  subroutine f_diff_li1(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    integer(kind=8), dimension(:),   intent(in) :: a
+    integer(kind=8), dimension(:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_li
+    call diff_li(n,a(1),b(1),diff)
+  end subroutine f_diff_li1
+  subroutine f_diff_li1li2(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    integer(kind=8), dimension(:),   intent(in) :: a
+    integer(kind=8), dimension(:,:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_li
+    call diff_li(n,a(1),b(1,1),diff)
+  end subroutine f_diff_li1li2
+
 
   subroutine f_diff_r(n,a_add,b_add,diff)
     implicit none
@@ -545,12 +618,49 @@ contains
   subroutine f_diff_i0i1(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
-    integer, intent(inout) :: a
-    integer, dimension(:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), intent(inout) :: a
+    integer(kind=4), dimension(:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_i
     call diff_i(n,a,b(1),diff)
   end subroutine f_diff_i0i1
+
+  subroutine zero_string(str)
+    use yaml_strings, only: f_strcpy
+    implicit none
+    character(len=*), intent(out) :: str
+    call f_strcpy(src=' ',dest=str)
+  end subroutine zero_string
+
+  subroutine zero_li(val)
+    implicit none
+    integer(kind=8), intent(out) :: val
+    val=int(0,kind=8)
+  end subroutine zero_li
+
+  subroutine zero_i(val)
+    implicit none
+    integer, intent(out) :: val
+    val=0
+  end subroutine zero_i
+
+  subroutine zero_r(val)
+    implicit none
+    real, intent(out) :: val
+    val=0.e0
+  end subroutine zero_r
+
+  subroutine zero_d(val)
+    implicit none
+    double precision, intent(out) :: val
+    val=0.d0
+  end subroutine zero_d
+
+  subroutine zero_l(val)
+    implicit none
+    logical, intent(out) :: val
+    val=.false.
+  end subroutine zero_l
 
   subroutine put_to_zero_simple(n,da)
     implicit none
@@ -622,7 +732,6 @@ contains
   subroutine put_to_zero_double_7(da)
     implicit none
     double precision, dimension(:,:,:,:,:,:,:), intent(out) :: da
-    logical :: within_openmp
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
     call razero(size(da),da)
     call f_timer_resume() 

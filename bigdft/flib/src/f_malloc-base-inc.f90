@@ -23,7 +23,6 @@
 
   call nullify_malloc_information(m)
 
-
   if (present(id)) then
      lgt=min(len(id),f_malloc_namelen)
      m%array_id(1:lgt)=id(1:lgt)

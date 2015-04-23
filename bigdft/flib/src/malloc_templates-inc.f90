@@ -44,7 +44,7 @@
 !  if (size(shape(array))==m%rank) then
 !     call pad_array(array,m%put_to_zero,m%shape,ndebug)
 !     !also fill the array with the values of the source if the address is identified in the source
-!     if (m%srcdata_add /= 0) call c_memcopy(array,m%srcdata_add,product(shape(array))*kind(array))
+!     if (m%srcdata_add > int(0,kind=8)) call c_memcopy(array,m%srcdata_add,product(shape(array))*kind(array))
 !     !profile the array allocation
 !     iadd=int(0,kind=8)
 !        !write the address of the first element in the address string
@@ -126,7 +126,7 @@ subroutine i1_all(array,m)
   use metadata_interfaces, metadata_address => geti1
   implicit none
   type(malloc_information_all), intent(in) :: m
-  integer, dimension(:), allocatable, intent(inout) :: array
+  integer(kind=4), dimension(:), allocatable, intent(inout) :: array
   include 'allocate-profile-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
@@ -136,7 +136,7 @@ end subroutine i1_all
 subroutine i1_all_free(array)
   use metadata_interfaces, metadata_address => geti1
   implicit none
-  integer, dimension(:), allocatable, intent(inout) :: array
+  integer(kind=4), dimension(:), allocatable, intent(inout) :: array
   include 'deallocate-profile-inc.f90' 
   include 'deallocate-inc.f90' 
 end subroutine i1_all_free
@@ -145,7 +145,7 @@ subroutine i2_all(array,m)
   use metadata_interfaces, metadata_address => geti2
   implicit none
   type(malloc_information_all), intent(in) :: m
-  integer, dimension(:,:), allocatable, intent(inout) :: array
+  integer(kind=4), dimension(:,:), allocatable, intent(inout) :: array
   include 'allocate-profile-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
@@ -155,7 +155,7 @@ end subroutine i2_all
 subroutine i2_all_free(array)
   use metadata_interfaces, metadata_address => geti2
   implicit none
-  integer, dimension(:,:), allocatable, intent(inout) :: array
+  integer(kind=4), dimension(:,:), allocatable, intent(inout) :: array
   include 'deallocate-profile-inc.f90' 
   include 'deallocate-inc.f90' 
 end subroutine i2_all_free
@@ -164,7 +164,7 @@ subroutine i3_all(array,m)
   use metadata_interfaces, metadata_address => geti3
   implicit none
   type(malloc_information_all), intent(in) :: m
-  integer, dimension(:,:,:), allocatable, intent(inout) :: array
+  integer(kind=4), dimension(:,:,:), allocatable, intent(inout) :: array
   include 'allocate-profile-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
@@ -174,7 +174,7 @@ end subroutine i3_all
 subroutine i3_all_free(array)
   use metadata_interfaces, metadata_address => geti3
   implicit none
-  integer, dimension(:,:,:), allocatable, intent(inout) :: array
+  integer(kind=4), dimension(:,:,:), allocatable, intent(inout) :: array
   include 'deallocate-profile-inc.f90' 
   include 'deallocate-inc.f90' 
 end subroutine i3_all_free
@@ -183,7 +183,7 @@ subroutine i4_all(array,m)
   use metadata_interfaces, metadata_address => geti4
   implicit none
   type(malloc_information_all), intent(in) :: m
-  integer, dimension(:,:,:,:), allocatable, intent(inout) :: array
+  integer(kind=4), dimension(:,:,:,:), allocatable, intent(inout) :: array
   include 'allocate-profile-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
@@ -194,10 +194,49 @@ end subroutine i4_all
 subroutine i4_all_free(array)
   use metadata_interfaces, metadata_address => geti4
   implicit none
-  integer, dimension(:,:,:,:), allocatable, intent(inout) :: array
+  integer(kind=4), dimension(:,:,:,:), allocatable, intent(inout) :: array
   include 'deallocate-profile-inc.f90' 
   include 'deallocate-inc.f90' 
 end subroutine i4_all_free
+
+!!$! long integer arrays
+!!$subroutine il1_all(array,m)
+!!$  use metadata_interfaces, metadata_address => getil1
+!!$  implicit none
+!!$  type(malloc_information_all), intent(in) :: m
+!!$  integer(kind=8), dimension(:), allocatable, intent(inout) :: array
+!!$  include 'allocate-profile-inc.f90' 
+!!$  !allocate the array
+!!$  allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
+!!$  include 'allocate-inc.f90'
+!!$end subroutine il1_all
+!!$
+!!$subroutine il1_all_free(array)
+!!$  use metadata_interfaces, metadata_address => getil1
+!!$  implicit none
+!!$  integer(kind=8), dimension(:), allocatable, intent(inout) :: array
+!!$  include 'deallocate-profile-inc.f90' 
+!!$  include 'deallocate-inc.f90' 
+!!$end subroutine il1_all_free
+
+subroutine il2_all(array,m)
+  use metadata_interfaces, metadata_address => getil2
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  integer(kind=8), dimension(:,:), allocatable, intent(inout) :: array
+  include 'allocate-profile-inc.f90' 
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine il2_all
+
+subroutine il2_all_free(array)
+  use metadata_interfaces, metadata_address => getil2
+  implicit none
+  integer(kind=8), dimension(:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine il2_all_free
 
 !character arrays
 subroutine c1_all(array,m)
@@ -340,6 +379,28 @@ subroutine r3_all_free(array)
   include 'deallocate-profile-inc.f90' 
   include 'deallocate-inc.f90' 
 end subroutine r3_all_free
+
+subroutine r4_all(array,m)
+  use metadata_interfaces, metadata_address => getr4
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  real, dimension(:,:,:,:), allocatable, intent(inout) :: array
+  !local variables
+  include 'allocate-profile-inc.f90' 
+  allocate(array(m%lbounds(1):m%ubounds(1),&
+       m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3),&
+       m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine r4_all
+
+subroutine r4_all_free(array)
+  use metadata_interfaces, metadata_address => getr4
+  implicit none
+  real, dimension(:,:,:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90' 
+  include 'deallocate-inc.f90' 
+end subroutine r4_all_free
+
 
 subroutine d1_all(array,m)
   use metadata_interfaces, metadata_address => getdp1
@@ -505,7 +566,7 @@ subroutine li1_all_free(array)
 end subroutine li1_all_free
 
 subroutine li2_all(array,m)
-  use metadata_interfaces, metadata_address => geti1
+  use metadata_interfaces, metadata_address => geti2
   implicit none
   type(malloc_information_all), intent(in) :: m
   integer(kind=8), dimension(:,:), allocatable, intent(inout) :: array
@@ -516,12 +577,51 @@ subroutine li2_all(array,m)
 end subroutine li2_all
 
 subroutine li2_all_free(array)
-  use metadata_interfaces, metadata_address => geti1
+  use metadata_interfaces, metadata_address => geti2
   implicit none
   integer(kind=8), dimension(:,:), allocatable, intent(inout) :: array
   include 'deallocate-profile-inc.f90' 
   include 'deallocate-inc.f90' 
 end subroutine li2_all_free
+
+subroutine li3_all(array,m)
+  use metadata_interfaces, metadata_address => geti3
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  integer(kind=8), dimension(:,:,:), allocatable, intent(inout) :: array
+  include 'allocate-profile-inc.f90'
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine li3_all
+
+subroutine li3_all_free(array)
+  use metadata_interfaces, metadata_address => geti3
+  implicit none
+  integer(kind=8), dimension(:,:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90'
+  include 'deallocate-inc.f90'
+end subroutine li3_all_free
+
+subroutine li4_all(array,m)
+  use metadata_interfaces, metadata_address => geti4
+  implicit none
+  type(malloc_information_all), intent(in) :: m
+  integer(kind=8), dimension(:,:,:,:), allocatable, intent(inout) :: array
+  include 'allocate-profile-inc.f90'
+  !allocate the array
+  allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
+       m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
+  include 'allocate-inc.f90'
+end subroutine li4_all
+
+subroutine li4_all_free(array)
+  use metadata_interfaces, metadata_address => geti4
+  implicit none
+  integer(kind=8), dimension(:,:,:,:), allocatable, intent(inout) :: array
+  include 'deallocate-profile-inc.f90'
+  include 'deallocate-inc.f90'
+end subroutine li4_all_free
 
 !test to see if this is convenient
 subroutine d1_all_free_multi(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
@@ -601,9 +701,9 @@ subroutine d1_ptr(array,m)
   double precision, dimension(:), pointer, intent(inout) :: array
   !local variables
   include 'allocate-profile-inc.f90' 
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-
   include 'allocate-inc.f90'
 end subroutine d1_ptr
 
@@ -623,10 +723,10 @@ subroutine i1_ptr(array,m)
   type(malloc_information_ptr), intent(in) :: m
   integer, dimension(:), pointer, intent(inout) :: array
   !local variables
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-
   include 'allocate-inc.f90'
 end subroutine i1_ptr
 
@@ -661,7 +761,8 @@ subroutine d2_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
   include 'allocate-inc.f90'
@@ -682,7 +783,8 @@ subroutine i2_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   integer, dimension(:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
   include 'allocate-inc.f90'
@@ -704,7 +806,8 @@ subroutine d3_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
@@ -726,7 +829,8 @@ subroutine i3_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   integer, dimension(:,:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
@@ -748,7 +852,8 @@ subroutine i4_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   integer, dimension(:,:,:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
@@ -770,7 +875,8 @@ subroutine d4_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4)+ndebug),stat=ierror)
@@ -792,7 +898,8 @@ subroutine d5_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:,:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4),&
@@ -815,7 +922,8 @@ subroutine d6_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   double precision, dimension(:,:,:,:,:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3),m%lbounds(4):m%ubounds(4),&
@@ -838,7 +946,8 @@ subroutine l2_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   logical, dimension(:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2)+ndebug),stat=ierror)
   include 'allocate-inc.f90'
@@ -849,7 +958,8 @@ subroutine l3_ptr(array,m)
   implicit none
   type(malloc_information_ptr), intent(in) :: m
   logical, dimension(:,:,:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1),m%lbounds(2):m%ubounds(2),&
        m%lbounds(3):m%ubounds(3)+ndebug),stat=ierror)
@@ -878,7 +988,15 @@ subroutine c1_ptr(array,m)
   implicit none
   type(malloc_information_str_ptr), intent(in) :: m
   character(len=m%len), dimension(:), pointer, intent(inout) :: array
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  !include 'allocate-ptr-inc.f90'
+  if (m%srcdata_add == int(-1,kind=8)) then
+     call f_free_str_ptr(m%len,array) !to avoid memory leaks
+     !$ if (not_omp) then
+     call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
+     !$ end if
+     return
+  end if
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
   !include 'allocate-c-inc.f90'
@@ -904,10 +1022,10 @@ subroutine z1_ptr(array,m)
   type(malloc_information_ptr), intent(in) :: m
   double complex, dimension(:), pointer, intent(inout) :: array
   !local variables
-  include 'allocate-profile-inc.f90' 
+  include 'allocate-profile-inc.f90'
+  include 'allocate-ptr-inc.f90' 
   !allocate the array
   allocate(array(m%lbounds(1):m%ubounds(1)+ndebug),stat=ierror)
-
   include 'allocate-inc.f90'
 end subroutine z1_ptr
 

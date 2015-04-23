@@ -311,7 +311,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   !Local variables
   character(len=*), parameter :: subname='readmywaves'
   logical :: perx,pery,perz
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,nb1,nb2,nb3,iorb_out,ispinor
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,nb1,nb2,nb3,iorb_out,ispinor,unitwf
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
   real(wp), dimension(:,:,:), allocatable :: psifscf
@@ -319,6 +319,8 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
 
   call cpu_time(tr0)
   call system_clock(ncount1,ncount_rate,ncount_max)
+
+  unitwf=99
 
   if (iformat == WF_FORMAT_ETSF) then
      !construct the orblist or use the one in argument
@@ -347,16 +349,16 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
 
         do ispinor=1,orbs%nspinor
            if(present(orblist)) then
-              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+              call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out, orblist(iorb+orbs%isorb))
            else
-              call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+              call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                    & orbs,iorb,ispinor,iorb_out)
            end if           
-           call readonewave(99, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,n1,n2,n3, &
+           call readonewave(unitwf, (iformat == WF_FORMAT_PLAIN),iorb_out,iproc,n1,n2,n3, &
                 & hx,hy,hz,at,wfd,rxyz_old,rxyz,&
                 psi(1,ispinor,iorb),orbs%eval(orbs%isorb+iorb),psifscf)
-           close(99)
+           call f_close(unitwf)
         end do
 !!$        do i_all=1,wfd%nvctr_c+7*wfd%nvctr_f
 !!$            write(700+iorb,*) i_all, psi(i_all,1,iorb)
@@ -424,7 +426,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
      end do
   end do loop_plain
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,comm=bigdft_mpi%mpi_comm)
  
   if (allfiles) then
      iformat=WF_FORMAT_PLAIN
@@ -451,7 +453,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
      end do
   end do loop_binary
   !reduce the result among the other processors
-  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(allfiles,1,MPI_LAND,comm=bigdft_mpi%mpi_comm)
 
   if (allfiles) then
      iformat=WF_FORMAT_BINARY
@@ -549,8 +551,10 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   implicit none
   character(len=*), intent(in) :: filename
   logical, intent(in) :: lbin
-  integer, intent(in) :: iorb,ispinor,unitfile
+  integer, intent(in) :: iorb,ispinor
   type(orbitals_data), intent(in) :: orbs
+  !>on entry, it suggests the opening unit. On exit, returns the first valid value to which the unit can be associated
+  integer, intent(inout) :: unitfile 
   integer, intent(out) :: iorb_out
   integer, intent(in), optional :: iiorb
   !local variables
@@ -563,11 +567,12 @@ subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_o
   else
      call filename_of_iorb(lbin,filename,orbs,iorb,ispinor,filename_out,iorb_out)
   end if
-  if (lbin) then
-     open(unit=unitfile,file=trim(filename_out),status='unknown',form="unformatted")
-  else
-     open(unit=unitfile,file=trim(filename_out),status='unknown')
-  end if
+  call f_open_file(unitfile,file=filename_out,binary=lbin)
+!!$  if (lbin) then
+!!$     open(unit=unitfile,file=trim(filename_out),status='unknown',form="unformatted")
+!!$  else
+!!$     open(unit=unitfile,file=trim(filename_out),status='unknown')
+!!$  end if
 
 end subroutine open_filename_of_iorb
 
@@ -588,9 +593,11 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   real(wp), dimension(wfd%nvctr_c+7*wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   character(len=*), intent(in) :: filename
   !Local variables
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor
+  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,unitwf
   real(kind=4) :: tr0,tr1
   real(kind=8) :: tel
+
+  unitwf=99
 
   if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename) // '.*')
   !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
@@ -603,14 +610,14 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
      ! Plain BigDFT files.
      do iorb=1,orbs%norbp
         do ispinor=1,orbs%nspinor
-           call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
+           call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),filename, &
                 & orbs,iorb,ispinor,iorb_out)           
-           call writeonewave(99,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
+           call writeonewave(unitwf,(iformat == WF_FORMAT_PLAIN),iorb_out,n1,n2,n3,hx,hy,hz, &
                 at%astruct%nat,rxyz,wfd%nseg_c,wfd%nvctr_c,wfd%keygloc(1,1),wfd%keyvloc(1),  & 
                 wfd%nseg_f,wfd%nvctr_f,wfd%keygloc(1,wfd%nseg_c+1),wfd%keyvloc(wfd%nseg_c+1), & 
                 psi(1,ispinor,iorb),psi(wfd%nvctr_c+1,ispinor,iorb), &
                 orbs%eval(iorb+orbs%isorb))
-           close(99)
+           call f_close(unitwf)
         end do
      enddo
 
@@ -722,344 +729,26 @@ subroutine read_wave_descr(lstat, filename, ln, &
 END SUBROUTINE read_wave_descr
 
 
-subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,ns1,ns2,ns3,hx,hy,hz,locregCenter,&
-     locrad,confPotOrder,confPotprefac,nat,rxyz, nseg_c,nvctr_c,keyg_c,keyv_c,  &
-     nseg_f,nvctr_f,keyg_f,keyv_f, &
-     psi_c,psi_f,eval,onwhichatom)
-  use module_base
-  use yaml_output
-  implicit none
-  logical, intent(in) :: useFormattedOutput
-  integer, intent(in) :: unitwf,iorb,n1,n2,n3,ns1,ns2,ns3,nat,nseg_c,nvctr_c,nseg_f,nvctr_f,confPotOrder
-  real(gp), intent(in) :: hx,hy,hz,locrad,confPotprefac
-  real(wp), intent(in) :: eval
-  integer, dimension(nseg_c), intent(in) :: keyv_c
-  integer, dimension(nseg_f), intent(in) :: keyv_f
-  integer, dimension(2,nseg_c), intent(in) :: keyg_c
-  integer, dimension(2,nseg_f), intent(in) :: keyg_f
-  real(wp), dimension(nvctr_c), intent(in) :: psi_c
-  real(wp), dimension(7,nvctr_f), intent(in) :: psi_f
-  real(gp), dimension(3,nat), intent(in) :: rxyz
-  real(gp), dimension(3), intent(in) :: locregCenter
-  integer, intent(in) :: onwhichatom
-  !local variables
-  integer :: iat,jj,j0,j1,ii,i0,i1,i2,i3,i,iseg,j,np,n1p1
-  real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
 
-  if (useFormattedOutput) then
-     write(unitwf,*) iorb,eval
-     write(unitwf,*) hx,hy,hz
-     write(unitwf,*) n1,n2,n3
-     write(unitwf,*) ns1,ns2,ns3
-     write(unitwf,*) locregCenter(1),locregCenter(2),locregCenter(3),onwhichatom,locrad,&
-          confPotOrder,confPotprefac
-     write(unitwf,*) nat
-     do iat=1,nat
-        write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
-     enddo
-     write(unitwf,*) nvctr_c, nvctr_f
-  else
-     write(unitwf) iorb,eval
-     write(unitwf) hx,hy,hz
-     write(unitwf) n1,n2,n3
-     write(unitwf) ns1,ns2,ns3
-     write(unitwf) locregCenter(1),locregCenter(2),locregCenter(3),onwhichatom,locrad,&
-          confPotOrder,confPotprefac
-     write(unitwf) nat
-     do iat=1,nat
-        write(unitwf) (rxyz(j,iat),j=1,3)
-     enddo
-     write(unitwf) nvctr_c, nvctr_f
-  end if
-
-  n1p1=n1+1
-  np=n1p1*(n2+1)
-
-  ! coarse part
-  do iseg=1,nseg_c
-     jj=keyv_c(iseg)
-     j0=keyg_c(1,iseg)
-     j1=keyg_c(2,iseg)
-     ii=j0-1
-     i3=ii/np
-     ii=ii-i3*np
-     i2=ii/n1p1
-     i0=ii-i2*n1p1
-     i1=i0+j1-j0
-     do i=i0,i1
-        tt=psi_c(i-i0+jj)
-        if (useFormattedOutput) then
-           write(unitwf,'(3(i4),1x,e19.12)') i,i2,i3,tt
-        else
-           write(unitwf) i,i2,i3,tt
-        end if
-     enddo
-  enddo
-
-  ! fine part
-  do iseg=1,nseg_f
-     jj=keyv_f(iseg)
-     j0=keyg_f(1,iseg)
-     j1=keyg_f(2,iseg)
-     ii=j0-1
-     i3=ii/np
-     ii=ii-i3*np
-     i2=ii/n1p1
-     i0=ii-i2*n1p1
-     i1=i0+j1-j0
-     do i=i0,i1
-        t1=psi_f(1,i-i0+jj)
-        t2=psi_f(2,i-i0+jj)
-        t3=psi_f(3,i-i0+jj)
-        t4=psi_f(4,i-i0+jj)
-        t5=psi_f(5,i-i0+jj)
-        t6=psi_f(6,i-i0+jj)
-        t7=psi_f(7,i-i0+jj)
-        if (useFormattedOutput) then
-           write(unitwf,'(3(i4),7(1x,e17.10))') i,i2,i3,t1,t2,t3,t4,t5,t6,t7
-        else
-           write(unitwf) i,i2,i3,t1,t2,t3,t4,t5,t6,t7
-        end if
-     enddo
-  enddo
-
-  if (verbose >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction written No.',iorb)
-  !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
-
-END SUBROUTINE writeonewave_linear
-
-
-subroutine writeLinearCoefficients(unitwf,useFormattedOutput,nat,rxyz,&
-           ntmb,norb,coeff,eval)
-  use module_base
-  use yaml_output
-  implicit none
-  logical, intent(in) :: useFormattedOutput
-  integer, intent(in) :: unitwf,nat,ntmb,norb
-  real(wp), dimension(ntmb,ntmb), intent(in) :: coeff
-  real(wp), dimension(ntmb), intent(in) :: eval
-  real(gp), dimension(3,nat), intent(in) :: rxyz
-  !local variables
-  integer :: iat,i,j,iorb
-  real(wp) :: tt
-
-  ! Write the Header
-  if (useFormattedOutput) then
-     write(unitwf,*) ntmb,norb
-     write(unitwf,*) nat
-     do iat=1,nat
-     write(unitwf,'(3(1x,e24.17))') (rxyz(j,iat),j=1,3)
-     enddo
-     do iorb=1,ntmb
-     write(unitwf,*) iorb,eval(iorb)
-     enddo
-  else
-     write(unitwf) ntmb, norb
-     write(unitwf) nat
-     do iat=1,nat
-     write(unitwf) (rxyz(j,iat),j=1,3)
-     enddo
-     do iorb=1,ntmb
-     write(unitwf) iorb,eval(iorb)
-     enddo
-  end if
-
-  ! Now write the coefficients
-  do i = 1, ntmb
-     ! first element always positive, for consistency when using for transfer integrals
-     ! unless 1st element below some threshold, in which case first significant element
-     do j=1,ntmb
-        if (abs(coeff(j,i))>1.0e-1) then
-           if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
-           exit
-        end if
-     end do
-     if (j==ntmb+1) stop 'Error finding significant coefficient!'
-
-     do j = 1, ntmb
-          tt = coeff(j,i)
-          if (useFormattedOutput) then
-             write(unitwf,'(2(i6,1x),e19.12)') i,j,tt
-          else
-             write(unitwf) i,j,tt
-          end if
-     end do
-  end do  
-  if (verbose >= 2 .and. bigdft_mpi%iproc==0) call yaml_map('Wavefunction coefficients written',.true.)
-
-END SUBROUTINE writeLinearCoefficients
-
-
-!> Write Hamiltonian, overlap and kernel matrices in tmb basis
-subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tmb,at,rxyz)
-  use module_types
-  use module_base
-  use yaml_output
-  use module_interfaces, except_this_one => writeonewave
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-  use sparsematrix, only: uncompress_matrix
-  implicit none
-  integer, intent(in) :: iproc,nproc,imethod_overlap,iformat
-  character(len=*), intent(in) :: filename 
-  type(DFT_wavefunction), intent(inout) :: tmb
-  type(atoms_data), intent(in) :: at
-  real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
-
-  integer :: ispin, iorb, jorb, iat, jat
-  !!integer :: i_stat, i_all
-  character(len=*),parameter :: subname='write_linear_matrices'
-
-  if (iproc==0) then
-     if(iformat == WF_FORMAT_PLAIN) then
-        open(99, file=filename//'hamiltonian.bin', status='unknown',form='formatted')
-     else
-        open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
-     end if
-
-     tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, &
-                              iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
-
-     call uncompress_matrix(iproc, tmb%linmat%m, &
-          inmat=tmb%linmat%ham_%matrix_compr, outmat=tmb%linmat%ham_%matrix)
-
-     do ispin=1,tmb%linmat%m%nspin
-        do iorb=1,tmb%linmat%m%nfvctr
-           iat=tmb%orbs%onwhichatom(iorb)
-           do jorb=1,tmb%linmat%m%nfvctr
-              jat=tmb%orbs%onwhichatom(jorb)
-              if (iformat == WF_FORMAT_PLAIN) then
-                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
-              else
-                 write(99) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
-              end if
-           end do
-        end do
-     end do
-
-     call f_free_ptr(tmb%linmat%ham_%matrix)
-
-     close(99)
-
-     if(iformat == WF_FORMAT_PLAIN) then
-        open(99, file=filename//'overlap.bin', status='unknown',form='formatted')
-     else
-        open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
-     end if
-
-     !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
-     !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-     tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
-                                id='tmb%linmat%ovrlp_%matrix')
-
-     call uncompress_matrix(iproc, tmb%linmat%s, &
-          inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
-
-     do ispin=1,tmb%linmat%s%nspin
-        do iorb=1,tmb%linmat%s%nfvctr
-           iat=tmb%orbs%onwhichatom(iorb)
-           do jorb=1,tmb%linmat%s%nfvctr
-              jat=tmb%orbs%onwhichatom(jorb)
-              if (iformat == WF_FORMAT_PLAIN) then
-                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
-              else
-                 write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
-              end if
-           end do
-        end do
-     end do
-
-     !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-     !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-     !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
-     call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-
-
-     close(99)
-
-     if(iformat == WF_FORMAT_PLAIN) then
-        open(99, file=filename//'density_kernel.bin', status='unknown',form='formatted')
-     else
-        open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
-     end if
-
-     tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
-
-
-     call uncompress_matrix(iproc,tmb%linmat%l, &
-          inmat=tmb%linmat%kernel_%matrix_compr, outmat=tmb%linmat%kernel_%matrix)
-
-     do ispin=1,tmb%linmat%l%nspin
-        do iorb=1,tmb%linmat%l%nfvctr
-           iat=tmb%orbs%onwhichatom(iorb)
-           do jorb=1,tmb%linmat%l%nfvctr
-              jat=tmb%orbs%onwhichatom(jorb)
-              if (iformat == WF_FORMAT_PLAIN) then
-                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
-              else
-                 write(99) iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
-              end if
-           end do
-        end do
-     end do
-
-     call f_free_ptr(tmb%linmat%kernel_%matrix)
-
-     close(99)
-
-  end if
-
-  ! calculate 'onsite' overlap matrix as well - needs double checking
-
-  !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
-  !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-  tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
-                             id='tmb%linmat%ovrlp_%matrix')
-
-  call tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
-  !call tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
-
-  if (iproc==0) then
-     if(iformat == WF_FORMAT_PLAIN) then
-        open(99, file=filename//'overlap_onsite.bin', status='unknown',form='formatted')
-     else
-        open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
-     end if
-
-     do ispin=1,tmb%linmat%l%nspin
-        do iorb=1,tmb%linmat%l%nfvctr
-           iat=tmb%orbs%onwhichatom(iorb)
-           do jorb=1,tmb%linmat%l%nfvctr
-              jat=tmb%orbs%onwhichatom(jorb)
-              if (iformat == WF_FORMAT_PLAIN) then
-                 write(99,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
-              else
-                 write(99) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
-              end if
-           end do
-        end do
-     end do
-
-  end if
-
-  close(99)
-
-  !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-  !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-  !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
-  call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-
-end subroutine write_linear_matrices
 
 
 subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
   use module_base
   use module_types
+  use locregs, only: copy_locreg_descriptors,allocate_wfd,deallocate_wfd
   use module_interfaces
   use module_fragments
   use communications_base, only: comms_linear_null, deallocate_comms_linear, TRANSPOSE_FULL
   use communications_init, only: init_comms_linear
   use communications, only: transpose_localized
+  use sparsematrix, only: uncompress_matrix
+  use sparsematrix_base, only: matrices, sparse_matrix, &
+                               matrices_null, sparse_matrix_null, &
+                               deallocate_matrices, deallocate_sparse_matrix, &
+                               assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
+  use sparsematrix_init, only: init_sparse_matrix_wrapper, init_matrix_taskgroups, check_local_matrix_extents
+  use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   implicit none
 
   ! Calling arguments
@@ -1085,6 +774,9 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   type(fragment_transformation) :: frag_trans
   integer :: ierr, ncount, iroot, jproc
   integer,dimension(:),allocatable :: workarray
+  type(sparse_matrix) :: smat_tmp
+  type(matrices) :: mat_tmp
+  integer,dimension(2) :: irow, icol, iirow, iicol
 
   ! move all psi into psi_tmp all centred in the same place and calculate overlap matrix
   tol=1.d-3
@@ -1223,6 +915,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
   ! now that they are all in one lr, need to calculate overlap matrix
   ! make lzd_tmp contain all identical lrs
+  lzd_tmp = local_zone_descriptors_null()
   lzd_tmp%linear=tmb%lzd%linear
   lzd_tmp%nlr=tmb%lzd%nlr
   lzd_tmp%lintyp=tmb%lzd%lintyp
@@ -1241,10 +934,32 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
      call copy_locreg_descriptors(tmb%lzd%llr(ilr_tmp), lzd_tmp%llr(i1))
   end do
 
+
   !call nullify_comms_linear(collcom_tmp)
   collcom_tmp=comms_linear_null()
   call init_comms_linear(iproc, nproc, imethod_overlap, ndim_tmp, tmb%orbs, lzd_tmp, &
        tmb%linmat%m%nspin, collcom_tmp)
+
+  smat_tmp = sparse_matrix_null()
+  call init_sparse_matrix_wrapper(iproc, nproc, tmb%linmat%s%nspin, tmb%orbs, &
+       lzd_tmp, at%astruct, .false., imode=2, smat=smat_tmp)
+  call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+       collcom_tmp, collcom_tmp, collcom_tmp, smat_tmp)
+  iirow(1) = smat_tmp%nfvctr
+  iirow(2) = 1
+  iicol(1) = smat_tmp%nfvctr
+  iicol(2) = 1
+  call check_local_matrix_extents(iproc, nproc, collcom_tmp, collcom_tmp, smat_tmp, irow, icol)
+  iirow(1) = min(irow(1),iirow(1))
+  iirow(2) = max(irow(2),iirow(2))
+  iicol(1) = min(icol(1),iicol(1))
+  iicol(2) = max(icol(2),iicol(2))
+
+  call init_matrix_taskgroups(iproc, nproc, .false., &
+       collcom_tmp, collcom_tmp, smat_tmp, iirow, iicol)
+
+  mat_tmp = matrices_null()
+  mat_tmp%matrix_compr = sparsematrix_malloc_ptr(smat_tmp, iaction=SPARSE_TASKGROUP,id='mat_tmp%matrix_compr')
 
   psit_c_tmp = f_malloc_ptr(sum(collcom_tmp%nrecvcounts_c),id='psit_c_tmp')
   psit_f_tmp = f_malloc_ptr(7*sum(collcom_tmp%nrecvcounts_f),id='psit_f_tmp')
@@ -1257,8 +972,20 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   call normalize_transposed(iproc, nproc, tmb%orbs, tmb%linmat%s%nspin, collcom_tmp, psit_c_tmp, psit_f_tmp, norm)
   call f_free_ptr(norm)
 
-  call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
-       psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp_%matrix)
+  !!call calculate_pulay_overlap(iproc, nproc, tmb%orbs, tmb%orbs, collcom_tmp, collcom_tmp, &
+  !!     psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, tmb%linmat%ovrlp_%matrix)
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, collcom_tmp, &
+                 psit_c_tmp, psit_c_tmp, psit_f_tmp, psit_f_tmp, smat_tmp, mat_tmp)
+  call uncompress_matrix(iproc, tmb%linmat%s, mat_tmp%matrix_compr, tmb%linmat%ovrlp_%matrix)
+
+  call deallocate_matrices(mat_tmp)
+  call deallocate_sparse_matrix(smat_tmp)
+
+!!!# DEBUG #######
+!!call deallocate_local_zone_descriptors(lzd_tmp)
+!!call mpi_finalize(i1)
+!!stop
+!!!# END DEBUG ###
 
   call deallocate_comms_linear(collcom_tmp)
   call deallocate_local_zone_descriptors(lzd_tmp)
@@ -1548,113 +1275,17 @@ END SUBROUTINE tmb_overlap_onsite
 !!END SUBROUTINE tmb_overlap_onsite_rotate
 
 
-!> Write all my wavefunctions in files by calling writeonewave
-subroutine writemywaves_linear(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff)
-  use module_types
-  use module_base
-  use yaml_output
-  use module_interfaces, except_this_one => writeonewave
-  implicit none
-  integer, intent(in) :: iproc,iformat,npsidim,nelec
-  !integer, intent(in) :: norb   !< number of orbitals, not basis functions
-  type(atoms_data), intent(in) :: at
-  type(orbitals_data), intent(in) :: orbs         !< orbs describing the basis functions
-  type(local_zone_descriptors), intent(in) :: Lzd
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(wp), dimension(npsidim), intent(in) :: psi  ! Should be the real linear dimension and not the global
-  real(wp), dimension(orbs%norb,orbs%norb), intent(in) :: coeff
-  character(len=*), intent(in) :: filename
-  !Local variables
-  integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
-  integer :: jorb,jlr
-  real(kind=4) :: tr0,tr1
-  real(kind=8) :: tel
-
-  if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename)//'.*')
-  !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
-
-  if (iformat == WF_FORMAT_ETSF) then
-      stop 'Linear scaling with ETSF writing not implemented yet'
-!     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
-  else
-     call cpu_time(tr0)
-     call system_clock(ncount1,ncount_rate,ncount_max)
-
-     ! Write the TMBs in the Plain BigDFT files.
-     ! Use same ordering as posinp and llr generation
-     ii = 0
-     do iat = 1, at%astruct%nat
-        do iorb=1,orbs%norbp
-           if(iat == orbs%onwhichatom(iorb+orbs%isorb)) then
-              shift = 1
-              do jorb = 1, iorb-1 
-                 jlr = orbs%inwhichlocreg(jorb+orbs%isorb)
-                 shift = shift + Lzd%Llr(jlr)%wfd%nvctr_c+7*Lzd%Llr(jlr)%wfd%nvctr_f
-              end do
-              ii = ii + 1
-              ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-              do ispinor=1,orbs%nspinor
-                 call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),filename, &
-                    & orbs,iorb,ispinor,iorb_out)
-                 call writeonewave_linear(99,(iformat == WF_FORMAT_PLAIN),iorb_out,&
-                    & Lzd%Llr(ilr)%d%n1,Lzd%Llr(ilr)%d%n2,Lzd%Llr(ilr)%d%n3,&
-                    & Lzd%Llr(ilr)%ns1,Lzd%Llr(ilr)%ns2,Lzd%Llr(ilr)%ns3,& 
-                    & Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3), &
-                    & Lzd%Llr(ilr)%locregCenter,Lzd%Llr(ilr)%locrad, 4, 0.0d0, &  !put here the real potentialPrefac and Order
-                    & at%astruct%nat,rxyz,Lzd%Llr(ilr)%wfd%nseg_c,Lzd%Llr(ilr)%wfd%nvctr_c,&
-                    & Lzd%Llr(ilr)%wfd%keygloc,Lzd%Llr(ilr)%wfd%keyvloc, &
-                    & Lzd%Llr(ilr)%wfd%nseg_f,Lzd%Llr(ilr)%wfd%nvctr_f,&
-                    & Lzd%Llr(ilr)%wfd%keygloc(1,Lzd%Llr(ilr)%wfd%nseg_c+1), &
-                    & Lzd%Llr(ilr)%wfd%keyvloc(Lzd%Llr(ilr)%wfd%nseg_c+1), &
-                    & psi(shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+shift),orbs%eval(iorb+orbs%isorb),&
-                    & orbs%onwhichatom(iorb+orbs%isorb))
-                 close(99)
-              end do
-           end if
-        enddo
-     end do
-
-    ! Now write the coefficients to file
-    ! Must be careful, the orbs%norb is the number of basis functions
-    ! while the norb is the number of orbitals.
-    if(iproc == 0) then
-      if(iformat == WF_FORMAT_PLAIN) then
-         open(99, file=filename//'_coeff.bin', status='unknown',form='formatted')
-      else
-         open(99, file=filename//'_coeff.bin', status='unknown',form='unformatted')
-      end if
-      call writeLinearCoefficients(99,(iformat == WF_FORMAT_PLAIN),at%astruct%nat,rxyz,orbs%norb,&
-           nelec,coeff,orbs%eval)
-      close(99)
-    end if
-     call cpu_time(tr1)
-     call system_clock(ncount2,ncount_rate,ncount_max)
-     tel=dble(ncount2-ncount1)/dble(ncount_rate)
-     if (iproc == 0) then
-        call yaml_sequence_open('Write Waves Time')
-        call yaml_sequence(advance='no')
-        call yaml_mapping_open(flow=.true.)
-        call yaml_map('Process',iproc)
-        call yaml_map('Timing',(/ real(tr1-tr0,kind=8),tel /),fmt='(1pe10.3)')
-        call yaml_mapping_close()
-        call yaml_sequence_close()
-     end if
-     !write(*,'(a,i4,2(1x,1pe10.3))') '- WRITE WAVES TIME',iproc,tr1-tr0,tel
-     !write(*,'(a,1x,i0,a)') '- iproc',iproc,' finished writing waves'
-  end if
-
-END SUBROUTINE writemywaves_linear
-
 !possibly broken
 subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
      & hgrids,at,llr,rxyz_old,rxyz,locrad,locregCenter,confPotOrder,&
      & confPotprefac,psi,eval,onwhichatom,lr,glr,reformat_reason)
   use module_base
   use module_types
-  use internal_io
+  !use internal_io
   use module_interfaces
   use yaml_output
   use module_fragments
+  use io, only: io_read_descr_linear, io_error, read_psi_compress
   implicit none
   logical, intent(in) :: useFormattedInput
   integer, intent(in) :: unitwf,iorb,iproc
@@ -1770,266 +1401,8 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
 END SUBROUTINE readonewave_linear
 
 
-subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old1, n_old2, n_old3, &
-       & ns_old1, ns_old2, ns_old3, hgrids_old, lstat, error, onwhichatom, locrad, locregCenter, &
-       & confPotOrder, confPotprefac, nvctr_c_old, nvctr_f_old, nat, rxyz_old)
-    use module_base
-    use module_types
-    use internal_io
-    use yaml_output
-    implicit none
-
-    integer, intent(in) :: unitwf
-    logical, intent(in) :: formatted
-    integer, intent(out) :: iorb_old
-    integer, intent(out) :: n_old1, n_old2, n_old3, ns_old1, ns_old2, ns_old3
-    real(gp), dimension(3), intent(out) :: hgrids_old
-    logical, intent(out) :: lstat
-    real(wp), intent(out) :: eval
-    real(gp), intent(out) :: locrad
-    real(gp), dimension(3), intent(out) :: locregCenter
-    character(len =256), intent(out) :: error
-    integer, intent(out) :: onwhichatom
-    integer, intent(out) :: confPotOrder
-    real(gp), intent(out) :: confPotprefac
-    ! Optional arguments
-    integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
-    integer, intent(in), optional :: nat
-    real(gp), dimension(:,:), intent(out), optional :: rxyz_old
-
-    integer :: i, iat, i_stat, nat_
-    real(gp) :: rxyz(3)
-
-    lstat = .false.
-    write(error, "(A)") "cannot read psi description."
-    if (formatted) then
-       read(unitwf,*,iostat=i_stat) iorb_old,eval
-       if (i_stat /= 0) return
-       read(unitwf,*,iostat=i_stat) hgrids_old(1),hgrids_old(2),hgrids_old(3)
-       if (i_stat /= 0) return
-       read(unitwf,*,iostat=i_stat) n_old1,n_old2,n_old3
-       if (i_stat /= 0) return
-       read(unitwf,*,iostat=i_stat) ns_old1,ns_old2,ns_old3
-       if (i_stat /= 0) return
-       read(unitwf,*,iostat=i_stat) (locregCenter(i),i=1,3),onwhichatom,&
-            locrad,confPotOrder, confPotprefac
-       if (i_stat /= 0) return
-       !call yaml_map('Reading atomic positions',nat)
-       !write(*,*) 'reading ',nat,' atomic positions' !*
-       if (present(nat) .And. present(rxyz_old)) then
-          read(unitwf,*,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          ! Sanity check
-          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size."
-          if (nat_ /= nat) stop "Mismatch in coordinate array size."
-          do iat=1,nat
-             read(unitwf,*,iostat=i_stat) (rxyz_old(i,iat),i=1,3)
-             if (i_stat /= 0) return
-
-          enddo
-       else
-          read(unitwf,*,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          do iat=1,nat_
-             read(unitwf,*,iostat=i_stat)
-             if (i_stat /= 0) return
-          enddo
-       end if
-       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
-          read(unitwf,*,iostat=i_stat) nvctr_c_old, nvctr_f_old
-          if (i_stat /= 0) return
-       else
-          read(unitwf,*,iostat=i_stat) i, iat
-          if (i_stat /= 0) return
-       end if
-    else
-       read(unitwf,iostat=i_stat) iorb_old,eval
-       if (i_stat /= 0) return
-
-       read(unitwf,iostat=i_stat) hgrids_old(1),hgrids_old(2),hgrids_old(3)
-       if (i_stat /= 0) return
-       read(unitwf,iostat=i_stat) n_old1,n_old2,n_old3
-       if (i_stat /= 0) return
-       read(unitwf,iostat=i_stat) ns_old1,ns_old2,ns_old3
-       if (i_stat /= 0) return
-       read(unitwf,iostat=i_stat) (locregCenter(i),i=1,3),onwhichatom,&
-            locrad,confPotOrder, confPotprefac
-       if (i_stat /= 0) return
-       if (present(nat) .And. present(rxyz_old)) then
-          read(unitwf,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          ! Sanity check
-          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size." 
-          if (nat_ /= nat) stop "Mismatch in coordinate array size."
-          do iat=1,nat
-             read(unitwf,iostat=i_stat)(rxyz_old(i,iat),i=1,3)
-             if (i_stat /= 0) return
-          enddo
-       else
-          read(unitwf,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          do iat=1,nat_
-             read(unitwf,iostat=i_stat) rxyz
-             if (i_stat /= 0) return
-          enddo
-       end if
-       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
-          read(unitwf,iostat=i_stat) nvctr_c_old, nvctr_f_old
-          if (i_stat /= 0) return
-       else
-          read(unitwf,iostat=i_stat) i, iat
-          if (i_stat /= 0) return
-       end if
-    end if
-    lstat = .true.
-
-END SUBROUTINE io_read_descr_linear
 
 
-subroutine io_read_descr_coeff(unitwf, formatted, norb_old, ntmb_old, &
-       & lstat, error, nat, rxyz_old)
-    use module_base
-    use module_types
-    use internal_io
-    implicit none
-    integer, intent(in) :: unitwf
-    logical, intent(in) :: formatted
-    integer, intent(out) :: norb_old, ntmb_old
-    logical, intent(out) :: lstat
-    character(len =256), intent(out) :: error
-    ! Optional arguments
-    integer, intent(in), optional :: nat
-    real(gp), dimension(:,:), intent(out), optional :: rxyz_old
-
-    integer :: i, iat, i_stat, nat_
-    real(gp) :: rxyz(3)
-
-    lstat = .false.
-    write(error, "(A)") "cannot read coeff description."
-    if (formatted) then
-       read(unitwf,*,iostat=i_stat) ntmb_old, norb_old
-       if (i_stat /= 0) return
-       !write(*,*) 'reading ',nat,' atomic positions'
-       if (present(nat) .And. present(rxyz_old)) then
-          read(unitwf,*,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          ! Sanity check
-          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size."
-          if (nat_ /= nat) stop "Mismatch in coordinate array size."
-          do iat=1,nat
-             read(unitwf,*,iostat=i_stat) (rxyz_old(i,iat),i=1,3)
-             if (i_stat /= 0) return
-          enddo
-       else
-          read(unitwf,*,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          do iat=1,nat_
-             read(unitwf,*,iostat=i_stat)
-             if (i_stat /= 0) return
-          enddo
-       end if
-       !read(unitwf,*,iostat=i_stat) i, iat
-       !if (i_stat /= 0) return
-    else
-       read(unitwf,iostat=i_stat) ntmb_old, norb_old
-       if (i_stat /= 0) return
-       if (present(nat) .And. present(rxyz_old)) then
-          read(unitwf,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          ! Sanity check
-          if (size(rxyz_old, 2) /= nat) stop "Mismatch in coordinate array size." 
-          if (nat_ /= nat) stop "Mismatch in coordinate array size."
-          do iat=1,nat
-             read(unitwf,iostat=i_stat)(rxyz_old(i,iat),i=1,3)
-             if (i_stat /= 0) return
-          enddo
-       else
-          read(unitwf,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          do iat=1,nat_
-             read(unitwf,iostat=i_stat) rxyz
-             if (i_stat /= 0) return
-          enddo
-       end if
-       !read(unitwf,iostat=i_stat) i, iat
-       !if (i_stat /= 0) return
-    end if
-    lstat = .true.
-END SUBROUTINE io_read_descr_coeff
-
-
-subroutine read_coeff_minbasis(unitwf,useFormattedInput,iproc,ntmb,norb_old,coeff,eval,nat,rxyz_old)
-  use module_base
-  use module_types
-  use internal_io
-  use module_interfaces, except_this_one => read_coeff_minbasis
-  use yaml_output
-  implicit none
-  logical, intent(in) :: useFormattedInput
-  integer, intent(in) :: unitwf,iproc,ntmb
-  integer, intent(out) :: norb_old
-  real(wp), dimension(ntmb,ntmb), intent(out) :: coeff
-  real(wp), dimension(ntmb), intent(out) :: eval
-  integer, optional, intent(in) :: nat
-  real(gp), dimension(:,:), optional, intent(out) :: rxyz_old
-
-  !local variables
-  character(len = 256) :: error
-  logical :: lstat
-  integer :: i_stat
-  integer :: ntmb_old, i1, i2,i,j,iorb,iorb_old
-  real(wp) :: tt
-
-  call io_read_descr_coeff(unitwf, useFormattedInput, norb_old, ntmb_old, &
-       & lstat, error, nat, rxyz_old)
-  if (.not. lstat) call io_error(trim(error))
-
-  if (ntmb_old /= ntmb_old) then
-     if (iproc == 0) write(error,"(A)") 'error in read coeffs, ntmb_old/=ntmb'
-     call io_error(trim(error))
-  end if
-
-  ! read the eigenvalues
-  if (useFormattedInput) then
-     do iorb=1,ntmb
-        read(unitwf,*,iostat=i_stat) iorb_old,eval(iorb)
-        if (iorb_old /= iorb) stop 'read_coeff_minbasis'
-     enddo
-  else 
-     do iorb=1,ntmb
-        read(unitwf,iostat=i_stat) iorb_old,eval(iorb)
-        if (iorb_old /= iorb) stop 'read_coeff_minbasis'
-     enddo
-     if (i_stat /= 0) stop 'Problem reading the eigenvalues'
-  end if
-
-  !if (iproc == 0) write(*,*) 'coefficients need NO reformatting'
-
-  ! Now read the coefficients
-  do i = 1, ntmb
-     do j = 1, ntmb
-        if (useFormattedInput) then
-           read(unitwf,*,iostat=i_stat) i1,i2,tt
-        else
-           read(unitwf,iostat=i_stat) i1,i2,tt
-        end if
-        if (i_stat /= 0) stop 'Problem reading the coefficients'
-        coeff(j,i) = tt  
-     end do
-  end do
-
-  ! rescale so first significant element is +ve
-  do i = 1, ntmb
-     do j = 1, ntmb
-        if (abs(coeff(j,i))>1.0e-1) then
-           if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
-           exit
-        end if
-     end do
-     if (j==ntmb+1) stop 'Error finding significant coefficient!'
-  end do
-
-END SUBROUTINE read_coeff_minbasis
 
 
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
@@ -2040,8 +1413,9 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   use module_types
   use yaml_output
   use module_fragments
-  use internal_io
+  !use internal_io
   use module_interfaces, except_this_one => readmywaves_linear_new
+  use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error
   implicit none
   integer, intent(in) :: iproc, nproc
   integer, intent(in) :: iformat
@@ -2075,6 +1449,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   real(gp), dimension(:), allocatable :: dist
   integer, dimension(:), allocatable :: ipiv
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
+  real(gp) :: max_shift
 
   logical :: skip
 !!$ integer :: ierr
@@ -2405,7 +1780,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   call timing(iproc,'tmbrestart','OF')
   call reformat_supportfunctions(iproc,nproc,&
        at,rxyz_old,rxyz,.false.,tmb,ndim_old,lzd_old,frag_trans_orb,&
-       psi_old,trim(dir_output),input_frag,ref_frags,phi_array_old)
+       psi_old,trim(dir_output),input_frag,ref_frags,max_shift,phi_array_old)
   call timing(iproc,'tmbrestart','ON')
 
   deallocate(frag_trans_orb)
@@ -2452,17 +1827,18 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
      full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_coeff.bin'
 
-     if(iformat == WF_FORMAT_PLAIN) then
-        open(unitwf,file=trim(full_filename),status='unknown',form='formatted')
-     else if(iformat == WF_FORMAT_BINARY) then
-        open(unitwf,file=trim(full_filename),status='unknown',form='unformatted')
-     else
-        stop 'Coefficient format not implemented'
-     end if
+     call f_open_file(unitwf,file=trim(full_filename),binary=iformat == WF_FORMAT_BINARY)
+     !if(iformat == WF_FORMAT_PLAIN) then
+     !   open(unitwf,file=trim(full_filename),status='unknown',form='formatted')
+     !else if(iformat == WF_FORMAT_BINARY) then
+     !   open(unitwf,file=trim(full_filename),status='unknown',form='unformatted')
+     !else
+     !   stop 'Coefficient format not implemented'
+     !end if
 
      !if (input_frag%nfrag>1) then
         call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-             ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
+             ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
              !tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
              !tmb%orbs%eval(isforb+1)
         ! copying of coeffs from fragment to tmb%coeff now occurs after this routine
@@ -2470,7 +1846,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
      !   call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
      !        ref_frags(ifrag_ref)%nelec,tmb%coeff,tmb%orbs%eval)
      !end if
-     close(unitwf)
+     call f_close(unitwf)
 
      isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do
@@ -2505,6 +1881,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   use module_fragments
   use module_interfaces, except_this_one => initialize_linear_from_file
   use locregs, only: locreg_null
+  use io, only: io_read_descr_linear
   implicit none
   integer, intent(in) :: iproc, nproc, iformat
   type(fragmentInputParameters),intent(in) :: input_frag
@@ -2522,7 +1899,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   logical :: lstat
   integer :: ilr, iorb_old, iorb, ispinor, iorb_out, iforb, isforb, isfat, iiorb, iorbp, ifrag, ifrag_ref
   integer, dimension(3) :: n_old, ns_old
-  integer :: confPotOrder, iat
+  integer :: confPotOrder, iat,unitwf
   real(gp), dimension(3) :: hgrids_old
   real(kind=8) :: eval, confPotprefac
   real(gp), dimension(orbs%norb):: locrad
@@ -2531,6 +1908,8 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   real(gp), dimension(:,:), allocatable :: cxyz
   character(len=256) :: full_filename
 
+
+  unitwf=99
   ! to be fixed
   if (present(orblist)) then
      stop 'orblist no longer functional in initialize_linear_from_file due to addition of fragment calculation'
@@ -2565,13 +1944,13 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
                  ! bit of a hack to use orbs here not forbs, but different structures so this is necessary - to clean somehow
                  full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
 
-                 call open_filename_of_iorb(99,(iformat == WF_FORMAT_BINARY),full_filename, &
+                 call open_filename_of_iorb(unitwf,(iformat == WF_FORMAT_BINARY),full_filename, &
                       & orbs,iorbp,ispinor,iorb_out,iforb)
                       !& ref_frags(ifrag_ref)%fbasis%forbs,iforb,ispinor,iorb_out)
 
                  !print *,'before crash',iorbp,trim(full_filename),iiorb,iforb
   
-                 call io_read_descr_linear(99,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n_old(1), n_old(2), n_old(3), &
+                 call io_read_descr_linear(unitwf,(iformat == WF_FORMAT_PLAIN), iorb_old, eval, n_old(1), n_old(2), n_old(3), &
                       ns_old(1), ns_old(2), ns_old(3), hgrids_old, lstat, error, orbs%onwhichatom(iiorb), &
                       locrad(iiorb), locregCenter, confPotOrder, confPotprefac)
 
@@ -2585,7 +1964,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
                     call yaml_warning('Initialize_linear_from_file')
                     stop
                  end if
-                 close(99)
+                 call f_close(unitwf)
               
               end do
            end do loop_iorb
@@ -2601,8 +1980,8 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   Lzd%nlr = orbs%norb
 
   ! Communication of the quantities
-  if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
-  if (nproc > 1)  call mpiallred(locrad(1),orbs%norb,MPI_SUM,bigdft_mpi%mpi_comm)
+  if (nproc > 1)  call mpiallred(orbs%onwhichatom(1),orbs%norb,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+  if (nproc > 1)  call mpiallred(locrad,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
   cxyz = f_malloc((/ 3, Lzd%nlr /),id='cxyz')
   lrad = f_malloc(Lzd%nlr,id='lrad')
@@ -2642,6 +2021,7 @@ END SUBROUTINE initialize_linear_from_file
 subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   use module_base
   use module_types
+  use locregs, only: copy_locreg_descriptors
   use yaml_output
   implicit none
   integer,intent(in) :: iproc
@@ -2657,29 +2037,31 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
   ! First copy global quantities
   call nullify_locreg_descriptors(lzd_old%glr)
 
-  lzd_old%glr%wfd%nvctr_c = lzd%glr%wfd%nvctr_c
-  lzd_old%glr%wfd%nvctr_f = lzd%glr%wfd%nvctr_f
-  lzd_old%glr%wfd%nseg_c  = lzd%glr%wfd%nseg_c
-  lzd_old%glr%wfd%nseg_f  = lzd%glr%wfd%nseg_f
+  call copy_locreg_descriptors(lzd%glr,lzd_old%glr)
 
-  !allocations
-  call allocate_wfd(lzd_old%glr%wfd)
+!!$  lzd_old%glr%wfd%nvctr_c = lzd%glr%wfd%nvctr_c
+!!$  lzd_old%glr%wfd%nvctr_f = lzd%glr%wfd%nvctr_f
+!!$  lzd_old%glr%wfd%nseg_c  = lzd%glr%wfd%nseg_c
+!!$  lzd_old%glr%wfd%nseg_f  = lzd%glr%wfd%nseg_f
 
-  do iseg=1,lzd_old%glr%wfd%nseg_c+lzd_old%glr%wfd%nseg_f
-     lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg) 
-     lzd_old%glr%wfd%keyglob(2,iseg)    = lzd%glr%wfd%keyglob(2,iseg)
-     lzd_old%glr%wfd%keygloc(1,iseg)    = lzd%glr%wfd%keygloc(1,iseg)
-     lzd_old%glr%wfd%keygloc(2,iseg)    = lzd%glr%wfd%keygloc(2,iseg)
-     lzd_old%glr%wfd%keyvloc(iseg)      = lzd%glr%wfd%keyvloc(iseg)
-     lzd_old%glr%wfd%keyvglob(iseg)     = lzd%glr%wfd%keyvglob(iseg)
-  enddo
+!!$  !allocations
+!!$  call allocate_wfd(lzd_old%glr%wfd)
+!!$
+!!$  do iseg=1,lzd_old%glr%wfd%nseg_c+lzd_old%glr%wfd%nseg_f
+!!$     lzd_old%glr%wfd%keyglob(1,iseg)    = lzd%glr%wfd%keyglob(1,iseg) 
+!!$     lzd_old%glr%wfd%keyglob(2,iseg)    = lzd%glr%wfd%keyglob(2,iseg)
+!!$     lzd_old%glr%wfd%keygloc(1,iseg)    = lzd%glr%wfd%keygloc(1,iseg)
+!!$     lzd_old%glr%wfd%keygloc(2,iseg)    = lzd%glr%wfd%keygloc(2,iseg)
+!!$     lzd_old%glr%wfd%keyvloc(iseg)      = lzd%glr%wfd%keyvloc(iseg)
+!!$     lzd_old%glr%wfd%keyvglob(iseg)     = lzd%glr%wfd%keyvglob(iseg)
+!!$  enddo
   !!!deallocation
   !!call deallocate_wfd(lzd%glr%wfd,subname)
 
   !!lzd_old%glr%d%n1 = lzd%glr%d%n1
   !!lzd_old%glr%d%n2 = lzd%glr%d%n2
   !!lzd_old%glr%d%n3 = lzd%glr%d%n3
-  call copy_grid_dimensions(lzd%glr%d, lzd_old%glr%d)
+!!$  call copy_grid_dimensions(lzd%glr%d, lzd_old%glr%d)
 
 
   lzd_old%nlr=lzd%nlr
@@ -2765,21 +2147,21 @@ subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
 END SUBROUTINE copy_old_supportfunctions
 
 
-subroutine copy_old_coefficients(norb_tmb, coeff, coeff_old)
+subroutine copy_old_coefficients(norb_tmb, nfvctr, coeff, coeff_old)
   use module_base
   implicit none
 
   ! Calling arguments
-  integer,intent(in):: norb_tmb
+  integer,intent(in):: norb_tmb, nfvctr
   real(8),dimension(:,:),pointer:: coeff, coeff_old
 
   ! Local variables
   character(len=*),parameter:: subname='copy_old_coefficients'
 !  integer:: istat,iall
 
-  coeff_old = f_malloc_ptr((/ norb_tmb, norb_tmb /),id='coeff_old')
+  coeff_old = f_malloc_ptr((/ nfvctr, norb_tmb /),id='coeff_old')
 
-  call vcopy(norb_tmb*norb_tmb, coeff(1,1), 1, coeff_old(1,1), 1)
+  call vcopy(nfvctr*norb_tmb, coeff(1,1), 1, coeff_old(1,1), 1)
 
   !!iall=-product(shape(coeff))*kind(coeff)
   !!deallocate(coeff,stat=istat)
@@ -2819,11 +2201,12 @@ END SUBROUTINE copy_old_inwhichlocreg
 !> Reformat wavefunctions if the mesh have changed (in a restart)
 !! NB add_derivatives must be false if we are using phi_array_old instead of psi_old and don't have the keys
 subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivatives,tmb,ndim_old,lzd_old,&
-       frag_trans,psi_old,input_dir,input_frag,ref_frags,phi_array_old)
+       frag_trans,psi_old,input_dir,input_frag,ref_frags,max_shift,phi_array_old)
   use module_base
   use module_types
   use module_fragments
   use module_interfaces, except_this_one=>reformat_supportfunctions
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: ndim_old
@@ -2838,6 +2221,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   character(len=*), intent(in) :: input_dir
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(:), intent(in) :: ref_frags
+  real(gp),intent(out) :: max_shift
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
   logical :: reformat
@@ -2858,12 +2242,15 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   character(len=100) :: fragdir
   integer :: ifrag, ifrag_ref, iforb, isforb
   real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp 
+  logical :: gperx, gpery, gperz, lperx, lpery, lperz
+  integer :: gnbl1, gnbr1, gnbl2, gnbr2, gnbl3, gnbr3, lnbl1, lnbr1, lnbl2, lnbr2, lnbl3, lnbr3
 
   real(gp), external :: dnrm2
 !  integer :: iat
 
   reformat_reason=0
   tol=1.d-3
+  max_shift = 0.d0
 
   ! Get the derivatives of the support functions
   if (add_derivatives) then
@@ -2904,6 +2291,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
            lzd_old%llr(ilr_old)%wfd%nvctr_c,lzd_old%llr(ilr_old)%wfd%nvctr_f,&
            tmb%lzd%llr(ilr)%wfd%nvctr_c,tmb%lzd%llr(ilr)%wfd%nvctr_f,&
            n_old,n,ns_old,ns,frag_trans(iorb),centre_old_box,centre_new_box,da)  
+      max_shift = max(max_shift,sqrt(da(1)**2+da(2)**2+da(3)**2))
 !reformat=.true. !!!!temporary hack
       ! just copy psi from old to new as reformat not necessary
       if (.not. reformat) then 
@@ -3021,13 +2409,48 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
           !   call timing(iproc,'readisffiles','OF')
           !end if
 
-          lzd_old%llr(ilr_old)%nsi1=2*lzd_old%llr(ilr_old)%ns1
-          lzd_old%llr(ilr_old)%nsi2=2*lzd_old%llr(ilr_old)%ns2
-          lzd_old%llr(ilr_old)%nsi3=2*lzd_old%llr(ilr_old)%ns3
 
-          lzd_old%llr(ilr_old)%d%n1i=2*n_old(1)+31
-          lzd_old%llr(ilr_old)%d%n2i=2*n_old(2)+31
-          lzd_old%llr(ilr_old)%d%n3i=2*n_old(3)+31
+          ! Periodicity in the three directions
+          gperx=(tmb%lzd%glr%geocode /= 'F')
+          gpery=(tmb%lzd%glr%geocode == 'P')
+          gperz=(tmb%lzd%glr%geocode /= 'F')
+
+          ! Set the conditions for ext_buffers (conditions for buffer size)
+          lperx=(lzd_old%llr(ilr)%geocode /= 'F')
+          lpery=(lzd_old%llr(ilr)%geocode == 'P')
+          lperz=(lzd_old%llr(ilr)%geocode /= 'F')
+
+          !calculate the size of the buffers of interpolating function grid
+          call ext_buffers(gperx,gnbl1,gnbr1)
+          call ext_buffers(gpery,gnbl2,gnbr2)
+          call ext_buffers(gperz,gnbl3,gnbr3)
+          call ext_buffers(lperx,lnbl1,lnbr1)
+          call ext_buffers(lpery,lnbl2,lnbr2)
+          call ext_buffers(lperz,lnbl3,lnbr3)
+
+
+          lzd_old%llr(ilr_old)%nsi1=2*lzd_old%llr(ilr_old)%ns1 - (Lnbl1 - Gnbl1)
+          lzd_old%llr(ilr_old)%nsi2=2*lzd_old%llr(ilr_old)%ns2 - (Lnbl2 - Gnbl2)
+          lzd_old%llr(ilr_old)%nsi3=2*lzd_old%llr(ilr_old)%ns3 - (Lnbl3 - Gnbl3)
+
+          !lzd_old%llr(ilr_old)%d%n1i=2*n_old(1)+31
+          !lzd_old%llr(ilr_old)%d%n2i=2*n_old(2)+31
+          !lzd_old%llr(ilr_old)%d%n3i=2*n_old(3)+31
+          !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
+          if(lzd_old%llr(ilr)%geocode == 'F') then
+             lzd_old%llr(ilr)%d%n1i=2*n_old(1)+31
+             lzd_old%llr(ilr)%d%n2i=2*n_old(2)+31
+             lzd_old%llr(ilr)%d%n3i=2*n_old(3)+31
+          else if(lzd_old%llr(ilr)%geocode == 'S') then
+             lzd_old%llr(ilr)%d%n1i=2*n_old(1)+2
+             lzd_old%llr(ilr)%d%n2i=2*n_old(2)+31
+             lzd_old%llr(ilr)%d%n3i=2*n_old(3)+2
+          else
+             lzd_old%llr(ilr)%d%n1i=2*n_old(1)+2
+             lzd_old%llr(ilr)%d%n2i=2*n_old(2)+2
+             lzd_old%llr(ilr)%d%n3i=2*n_old(3)+2
+          end if
+
 
           psirold_ok=.true.
           workarraytmp=f_malloc((2*n_old+31),id='workarraytmp')
@@ -3087,6 +2510,19 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
       end if
 
   end do
+
+  ! Get the maximal shift among all tasks
+  if (nproc>1) then
+      call mpiallred(max_shift, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+  end if
+  if (iproc==0) call yaml_map('max shift of a locreg center',max_shift,fmt='(es9.2)')
+
+  ! Determine the dumping factor for the confinement. In the limit where the atoms 
+  ! have not moved, it goes to zero; in the limit where they have moved a lot, it goes to one.
+  tt = exp(max_shift*3.465735903d0) - 1.d0 !exponential which is 0 at 0.0 and 1 at 0.2
+  tt = min(tt,1.d0) !make sure that the value is not larger than 1.0
+  tmb%damping_factor_confinement = tt
+
 
   if (add_derivatives) then
      call f_free(phi_old_der)
@@ -3202,7 +2638,7 @@ subroutine print_reformat_summary(iproc,nproc,reformat_reason)
   integer, intent(in) :: iproc,nproc
   integer, dimension(0:6), intent(inout) :: reformat_reason ! array giving reasons for reformatting
 
-  if (nproc > 1) call mpiallred(reformat_reason(0), 7, mpi_sum, bigdft_mpi%mpi_comm)
+  if (nproc > 1) call mpiallred(reformat_reason, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
   if (iproc==0) then
         call yaml_mapping_open('Overview of the reformatting (several categories may apply)')

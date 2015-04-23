@@ -221,12 +221,12 @@ struct _BigDFT_Inputs
   gchar *dir_output;
   
   /* DFT file variables. */
-  int ixc, ncharge, nspin, mpol, ncong,
+  int ixc, nspin, mpol, ncong,
     dispersion, inputPsiId, output_wf_format, output_grid, ncongt, norbv, nvirt,
     nplot, disableSym;
   int last_run;
   guint itermax, nrepmax, idsx;
-  double crmult, frmult, gnrm_cv, rbuf;
+  double crmult, frmult, gnrm_cv, rbuf, qcharge;
   double h[3], elecfield[3];
 
   /* MIX file variables. */

@@ -13,6 +13,7 @@ subroutine test_yaml_output1()
   use yaml_output
   implicit none
   !local variables
+  character, dimension(5) :: totarr
 
   call yaml_mapping_open("Test")
    call yaml_map("Short sentence",.true.)
@@ -61,6 +62,21 @@ subroutine test_yaml_output1()
   call yaml_map('Is 0.000000000E+00 a real string',is_atof(' 0.0000000000000000'))
   call yaml_map('Is 0.000000000E+00 a integer string',is_atoi(' 0.0000000000000000'))
 
+  !check also side-effects of atoi and atof
+  call yaml_map('Is 1.5 a real string',is_atof('1.5'))
+  call yaml_map('Is 1.5 with spaces a real string',is_atof(' 1.5 '))
+  call yaml_map('Is 1.5 a integer string',is_atoi('1.5'))
+  call yaml_map('Is 1.5 with spaces a integer string',is_atoi(' 1.5 '))
+
+  call yaml_map('Is 1 a real string',is_atof('1'))
+  call yaml_map('Is 1 with spaces a real string',is_atof(' 1 '))
+  call yaml_map('Is 1 a integer string',is_atoi('1'))
+  call yaml_map('Is 1 with spaces a integer string',is_atoi(' 1 '))
+
+!!$  !f_strcpy might be generalized that way
+!!$  totarr='truncate'
+!!$  call yaml_map('Can we concatenate a string with a character array','toto'//totarr)
+
 end subroutine test_yaml_output1
 
 
@@ -104,6 +120,13 @@ subroutine test_yaml_output2()
            '-Wl,--end-group -openmp -lpthread -lm')
       call yaml_map('Long string array',(/('compiler',i=1,10)/))
    call yaml_mapping_close()
+
+   !test the definition of the warnings
+   call yaml_warning('Test warning 1')
+   call yaml_warning('Test warning 1, should not be repeated again')
+   call yaml_warning('Test warning 2')
+   call yaml_warning('Test warning 1, should not be repeated again')
+
 !stop
 end subroutine test_yaml_output2
 

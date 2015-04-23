@@ -31,6 +31,7 @@ module yaml_output
   integer, parameter :: SEQUENCE_ELEM          = -1010
   integer, parameter :: NEWLINE                = -1011
   integer, parameter :: COMMA_TO_BE_PUT        =  10
+  integer, parameter :: DEFAULT_STREAM_ID      =  0
 
   integer, parameter :: tot_max_record_length=95   !< Max record length by default
   integer, parameter :: tot_max_flow_events=500    !< Max flow events
@@ -171,7 +172,7 @@ module yaml_output
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
-  public :: is_atoi,is_atof,is_atol
+  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa
 
   !for internal f_lib usage
   public :: yaml_output_errors
@@ -249,21 +250,6 @@ contains
     call dict_init(stream_files)
     module_initialized=.true.
   end subroutine yaml_output_errors
-
-!!$  function stream_next_free_unit()
-!!$    integer :: stream_next_free_unit
-!!$    logical :: unit_is_open
-!!$    integer :: ierr
-!!$
-!!$    stream_next_free_unit = 75214
-!!$    unit_is_open = .true.
-!!$    do while (unit_is_open)
-!!$       stream_next_free_unit = stream_next_free_unit + 1
-!!$       inquire(unit=stream_next_free_unit,opened=unit_is_open,iostat=ierr)
-!!$       if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
-!!$            YAML_INVALID)) return
-!!$    end do
-!!$  end function stream_next_free_unit
   
   !> Set the default stream of the module. Return  a STREAM_ALREADY_PRESENT errcode if
   !! The stream has not be initialized.
@@ -281,7 +267,6 @@ contains
     end if
 
   end subroutine yaml_set_default_stream
-
 
   !> Get the default stream unit
   pure subroutine yaml_get_default_stream(unit)
@@ -307,7 +292,7 @@ contains
 
     if (present(istat)) istat = NO_ERRORS !so far
 
-    unit = 0
+    unit = DEFAULT_STREAM_ID
     if (has_key(stream_files, trim(filename))) then
        unit = stream_files // trim(filename)
     else
@@ -487,10 +472,10 @@ contains
     integer, dimension(tot_max_record_length/tab) :: linetab
 
     !writing unit
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     !stream to be analyzed
-    sunt=0
+    sunt=DEFAULT_STREAM_ID
     if (present(stream_unit)) sunt=unit
     call get_stream(sunt,strm)
 
@@ -575,7 +560,7 @@ contains
     !local variables
     integer :: unt,strm
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -600,7 +585,7 @@ contains
     !local variables
     integer :: unt,strm
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -619,7 +604,7 @@ contains
     !local variables
     integer :: unt,strm,unit_prev
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -648,7 +633,7 @@ contains
     integer :: unt,istatus,strm,funt
     type(dictionary), pointer :: iter
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm,istat=istatus)
 
@@ -750,7 +735,7 @@ contains
     integer :: idx
     type(dictionary), pointer :: dict_tmp
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -773,7 +758,6 @@ contains
        dict_tmp = streams(strm)%dict_warning .get. 'WARNINGS'
        idx=dict_tmp .index. trim(message)
        if (idx < 0) call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
-
     end if
     if (present(level)) then
        if (level <= streams(strm)%Wall) then
@@ -800,7 +784,7 @@ contains
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -880,7 +864,7 @@ contains
     integer :: unt,strm,hmax
     character(len=3) :: adv
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -935,7 +919,7 @@ contains
 !!$    character(len=3) :: adv
 !!$    character(len=tot_max_record_length) :: towrite
 !!$
-!!$    unt=0
+!!$    unt=DEFAULT_STREAM_ID
 !!$    if (present(unit)) unt=unit
 !!$    call get_stream(unt,strm)
 !!$
@@ -985,7 +969,7 @@ contains
     character(len=3) :: adv
     logical :: doflow
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1030,7 +1014,7 @@ contains
     character(len=3) :: adv
     logical :: doflow
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1058,7 +1042,7 @@ contains
     !local variables
     integer :: unt,strm
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1078,11 +1062,11 @@ contains
     character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
     integer, intent(in), optional :: padding            !<pad the seqvalue with blanks to have more readable output
     !local variables
-    integer :: msg_lgt,unt,strm,tb
+    integer :: msg_lgt,unt,strm,tb,istat,ipos,jpos,kpos
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1103,8 +1087,26 @@ contains
        tb=padding-len_trim(seqvalue)
        if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
     end if
-
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM)
+    !try to see if the line is too long
+    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM,istat=istat)
+    if (istat /=0 .and. .not. streams(strm)%flowrite) then
+       ipos=1
+       jpos=msg_lgt
+       kpos=jpos
+       loop_seq: do
+          call dump(streams(strm),towrite(ipos:kpos),advance=trim(adv),event=SCALAR,istat=istat)
+          if (istat /=0) then
+             !continue searching
+             kpos=index(towrite(ipos:jpos),' ',back=.true.)
+             if (kpos == 0) kpos=jpos-1
+          else
+             ipos=kpos+1
+             jpos=msg_lgt
+             kpos=jpos
+          end if
+          if (ipos > msg_lgt) exit loop_seq
+       end do loop_seq
+    end if
   end subroutine yaml_sequence
 
 
@@ -1124,7 +1126,7 @@ contains
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1176,6 +1178,8 @@ contains
           end if
        end if
 !       if (streams(strm)%flowrite) call yaml_newline(unit=unt)
+       !first, if the cursor is already gone, carriage return
+       if (streams(strm)%icursor >= streams(strm)%max_record_length) call dump(streams(strm),' ',advance='yes',event=SCALAR)
        icut=len_trim(mapvalue)
        istr=1
        cut=.true.
@@ -1183,8 +1187,9 @@ contains
        idbg=0
        cut_line: do while(cut)
           idbg=idbg+1
-          !print *,'hereOUTPU',cut,icut,idbg
+          !print *,'hereOUTPU',cut,icut,idbg,streams(strm)%icursor,streams(strm)%max_record_length
        !verify where the message can be cut
+          !print *,'test2',index(trim((mapvalue(istr:istr+icut-1))),' ',back=.true.)
           cut=.false.
           cut_message :do while(icut > streams(strm)%max_record_length - &
                max(streams(strm)%icursor,streams(strm)%indent))
@@ -1226,7 +1231,7 @@ contains
     integer :: strm,unt
     character(len=max_field_length) :: lbl
 
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
 
@@ -1255,7 +1260,7 @@ contains
 
   subroutine yaml_map_i(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    integer, intent(in) :: mapvalue
+    integer(kind=4), intent(in) :: mapvalue
     include 'yaml_map-inc.f90'
   end subroutine yaml_map_i
 
@@ -1311,7 +1316,7 @@ contains
 
   subroutine yaml_map_iv(mapname,mapvalue,label,advance,unit,fmt)
     implicit none
-    integer, dimension(:), intent(in) :: mapvalue
+    integer(kind=4), dimension(:), intent(in) :: mapvalue
     include 'yaml_map-arr-inc.f90'
   end subroutine yaml_map_iv
 
@@ -1356,7 +1361,7 @@ contains
 
     if (present(istat)) istat=0
 
-    if (unt==0) then
+    if (unt==DEFAULT_STREAM_ID) then
        !if there are no active streams activate them (to circumvent g95 bug)
        if (active_streams==0) call yaml_set_stream(record_length=92,istat=ierr)
        strm=default_stream
@@ -1623,6 +1628,7 @@ contains
           else
              !crop the writing
              towrite_lgt=stream%max_record_length
+             !print *,'towrite', repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt),' end'
              !stop 'ERROR (dump): writing exceeds record size'
           end if
        else
@@ -1975,7 +1981,7 @@ contains
        flowrite=flow
        default_flow=.false.
     end if
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     verb=.false.
     if (present(verbatim)) verb=verbatim
@@ -2203,7 +2209,7 @@ contains
 
     flowrite=.false.
     if (present(flow)) flowrite=flow
-    unt=0
+    unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     verb=.false.
     if (present(verbatim)) verb=verbatim
@@ -2220,5 +2226,53 @@ contains
     end do
 
   end subroutine yaml_dict_dump_all
+
+  !>get the string associated to walltime format 
+  function yaml_walltime_toa(walltime) result(timestamp)
+    implicit none
+    integer(kind=8), intent(in) :: walltime
+    character(len=tot_max_record_length) :: timestamp
+    !local variables
+    character(len=*), parameter :: fmt='(i2.2)'
+    integer(kind=8), parameter :: billion=int(1000000000,kind=8),sixty=int(60,kind=8)
+    integer(kind=8), parameter :: tsf=int(365,kind=8),tf=int(24,kind=8)
+    integer(kind=8) :: s,ns,m,h,d,y
+
+    !get the seconds
+    s=walltime/billion
+    !then get nanosecs
+    ns=walltime-s*billion
+    !then take minutes from seconds
+    m=s/sixty; s=s-m*sixty
+    !and hours from minutes
+    h=m/sixty; m=m-h*sixty   
+
+    !split the treatment in the case of multiple days
+    if (h > tf) then
+       !days
+       d=h/tf; h=h-d*tf
+       !years
+       y=d/tsf; d=d-y*tsf
+
+       !and the winner is...
+       call f_strcpy(dest=timestamp,src=&
+            trim(adjustl(yaml_toa(y)))//'y '//&
+            trim(adjustl(yaml_toa(d)))//'d '//&
+            trim(adjustl(yaml_toa(h,fmt=fmt)))//':'//&
+            trim(adjustl(yaml_toa(m,fmt=fmt)))//':'//&
+            trim(adjustl(yaml_toa(s,fmt=fmt)))//'.'//&
+            trim(adjustl(yaml_toa(ns,fmt='(i9.9)'))))
+
+    else
+       !then put everything in the same string
+       call f_strcpy(dest=timestamp,src=&
+            trim(adjustl(yaml_toa(h,fmt=fmt)))//':'//&
+            trim(adjustl(yaml_toa(m,fmt=fmt)))//':'//&
+            trim(adjustl(yaml_toa(s,fmt=fmt)))//'.'//&
+            trim(adjustl(yaml_toa(ns,fmt='(i9.9)'))))
+    end if
+
+  end function yaml_walltime_toa
+
 
 end module yaml_output

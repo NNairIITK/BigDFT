@@ -16,11 +16,13 @@ module module_atoms
   use m_pawrad, only: pawrad_type
   use m_pawtab, only: pawtab_type
   use m_pawang, only: pawang_type
-  use dynamic_memory, only: f_reference_counter,nullify_f_ref,f_ref_new
+  use f_refcnts, only: f_reference_counter,nullify_f_ref,f_ref_new
   use public_keys, only : ASTRUCT_CELL,ASTRUCT_POSITIONS, &
        & ASTRUCT_PROPERTIES,ASTRUCT_UNITS, ASTRUCT_ATT_FROZEN, &
        & ASTRUCT_ATT_IGSPIN, ASTRUCT_ATT_IGCHRG, ASTRUCT_ATT_IXYZ_1, &
-       & ASTRUCT_ATT_IXYZ_2, ASTRUCT_ATT_IXYZ_3, ASTRUCT_ATT_QMMM
+       & ASTRUCT_ATT_IXYZ_2, ASTRUCT_ATT_IXYZ_3, &
+       & ASTRUCT_ATT_RXYZ_INT_1, ASTRUCT_ATT_RXYZ_INT_2, &
+       & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_QMMM
   use public_enums, only : ATOM_MODE_QM, ATOM_MODE_MM
   use dictionaries, only: dictionary
   implicit none
@@ -44,7 +46,7 @@ module module_atoms
   !> Quantities used for the symmetry operators. To be used in atomic_structure derived type.
   type, public :: symmetry_data
      integer :: symObj                             !< The symmetry object from ABINIT
-     integer :: nSym                               !< Number of symmetry (0 if disable)
+     integer :: nSym                               !< Number ofsymmetry (0 if disable)
      character(len=15) :: spaceGroup               !< Space group (disabled if not useful)
      integer, dimension(:,:,:), pointer :: irrzon
      real(dp), dimension(:,:,:), pointer :: phnons
@@ -128,14 +130,14 @@ module module_atoms
      type(atomic_structure), pointer :: astruct_ptr
   end type atoms_iterator
 
-  public :: atoms_data_null,deallocate_atoms_data
+  public :: atoms_data_null,nullify_atoms_data,deallocate_atoms_data
   public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure
   public :: astruct_merge_to_dict, astruct_at_from_dict
   public :: deallocate_symmetry_data,set_symmetry_data
   public :: set_astruct_from_file,astruct_dump_to_file
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
-  public :: atomic_data_set_from_dict
+  public :: atomic_data_set_from_dict,atoms_iter,atoms_iter_next
   public :: nullify_atomic_neighbours, deallocate_atomic_neighbours
   public :: astruct_neighbours_iter, astruct_neighbours_next
 
@@ -266,6 +268,8 @@ contains
     nullify(astruct%atomnames)
     nullify(astruct%iatype)
     nullify(astruct%rxyz)
+    nullify(astruct%rxyz_int)
+    nullify(astruct%ixyz_int)
     call nullify_symmetry_data(astruct%sym)
     nullify(astruct%attributes)
   end subroutine nullify_atomic_structure
@@ -518,11 +522,9 @@ contains
 !!$      !fortran metod
 !!$      call increment_atoms_iter(it)
 !!$      do while(atoms_iter_is_valid(it))
-
          !only amu is extracted here
          call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
               amu=atoms%amu(it%ityp))
-
          !fill the atomic IG configuration from the input_polarization
          !standard form
          atoms%aoig(it%iat)=aoig_set(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
@@ -660,7 +662,7 @@ contains
 
 
     !> Read atomic file
-    subroutine set_astruct_from_file(file,iproc,astruct,comment,energy,fxyz)
+    subroutine set_astruct_from_file(file,iproc,astruct,comment,energy,fxyz,disableTrans)
       use module_base
       use dictionaries, only: set, dictionary
       use yaml_output, only : yaml_toa
@@ -673,6 +675,7 @@ contains
       real(gp), intent(out), optional :: energy
       real(gp), dimension(:,:), pointer, optional :: fxyz
       character(len = *), intent(out), optional :: comment
+      logical, intent(in), optional :: disableTrans
       !Local variables
       integer, parameter :: iunit=99
       integer :: l, extract
@@ -787,25 +790,25 @@ contains
       case("xyz")
          !read atomic positions
          if (.not.archive) then
-            call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine)
+            call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
          else
-            call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine)
+            call read_xyz_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine,disableTrans)
          end if
 
       case("ascii")
          !read atomic positions
          if (.not.archive) then
-            call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine)
+            call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
          else
-            call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine)
+            call read_ascii_positions(iunit,filename,astruct,comment_,energy_,fxyz_,archiveGetLine,disableTrans)
          end if
 
       case("int")
          !read atomic positions
          if (.not.archive) then
-            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine)
+            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,directGetLine,disableTrans)
          else
-            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine)
+            call read_int_positions(iproc,99,astruct,comment_,energy_,fxyz_,archiveGetLine,disableTrans)
          end if
          ! Fill the ordinary rxyz array
          !!! convert to rad
@@ -818,9 +821,6 @@ contains
          !!    write(*,'(3(i4,3x,f12.5))') astruct%ixyz_int(1,i_stat),astruct%rxyz_int(1,i_stat),&
          !!                                astruct%ixyz_int(2,i_stat),astruct%rxyz_int(2,i_stat),&
          !!                                astruct%ixyz_int(3,i_stat),astruct%rxyz_int(3,i_stat)
-         !!end do
-         !!do i_stat=1,astruct%nat
-         !!    write(*,*) astruct%rxyz(:,i_stat)
          !!end do
 
        case("yaml")
@@ -836,6 +836,8 @@ contains
          end if
 
       end select
+      !if an error has been produced return
+      if (f_err_check()) return
 
       !Check the number of atoms
       if (f_err_raise(astruct%nat < 0, &
@@ -1060,6 +1062,9 @@ contains
             call set(at // ASTRUCT_ATT_IXYZ_1, astruct%ixyz_int(1,iat))
             call set(at // ASTRUCT_ATT_IXYZ_2, astruct%ixyz_int(2,iat))
             call set(at // ASTRUCT_ATT_IXYZ_3, astruct%ixyz_int(3,iat))
+            call set(at // ASTRUCT_ATT_RXYZ_INT_1, astruct%rxyz_int(1,iat))
+            call set(at // ASTRUCT_ATT_RXYZ_INT_2, astruct%rxyz_int(2,iat))
+            call set(at // ASTRUCT_ATT_RXYZ_INT_3, astruct%rxyz_int(3,iat))
          end if
          call add(pos, at, last)
       end do
@@ -1073,8 +1078,8 @@ contains
            & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
     end subroutine astruct_merge_to_dict
 
-    subroutine astruct_at_from_dict(dict, symbol, rxyz, rxyz_add, ifrztyp, &
-         & igspin, igchrg, ixyz, ixyz_add, mode)
+    subroutine astruct_at_from_dict(dict, symbol, rxyz, rxyz_add, ifrztyp, igspin, igchrg, &
+               ixyz, ixyz_add, rxyz_int, rxyz_int_add, mode)
       use dictionaries
       use module_defs, only: UNINITIALIZED
       use dynamic_memory
@@ -1089,6 +1094,8 @@ contains
       integer, intent(out), optional :: ixyz_add !< Reference atom for internal coordinates address
       real(gp), dimension(3), intent(out), optional :: rxyz !< Coordinates.
       real(gp), intent(out), optional :: rxyz_add !< Coordinates address.
+      real(gp), dimension(3), intent(out), optional :: rxyz_int !< Internal coordinates.
+      real(gp), intent(out), optional :: rxyz_int_add !< Internal coordinates address.
       integer, intent(out), optional :: mode !< QM/MM treatment.
 
       type(dictionary), pointer :: atData
@@ -1096,6 +1103,7 @@ contains
       integer :: ierr
       integer, dimension(3) :: icoord
       real(gp), dimension(3) :: rcoord
+      real(gp), dimension(3) :: rcoord_int
 
       ! Default values.
       if (present(symbol)) symbol = 'X'
@@ -1145,6 +1153,27 @@ contains
                else if (ATOM_MODE_QM == trim(str)) then
                   mode = int(ATOM_MODE_QM)
                end if
+            end if
+         else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_1) then
+            if (present(rxyz_int)) rxyz_int(1) = atData
+            if (present(rxyz_int_add)) then
+               call f_memcpy(rcoord_int(1), rxyz_int_add, 3)
+               rcoord_int(1) = atData
+               call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
+            end if
+         else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_2) then
+            if (present(rxyz_int)) rxyz_int(2) = atData
+            if (present(rxyz_int_add)) then
+               call f_memcpy(rcoord_int(1), rxyz_int_add, 3)
+               rcoord_int(2) = atData
+               call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
+            end if
+         else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_3) then
+            if (present(rxyz_int)) rxyz_int(3) = atData
+            if (present(rxyz_int_add)) then
+               call f_memcpy(rcoord_int(1), rxyz_int_add, 3)
+               rcoord_int(3) = atData
+               call f_memcpy(rxyz_int_add, rcoord_int(1), 3)
             end if
          else if (dict_len(atData) == 3) then
             if (present(symbol)) symbol = str
@@ -1373,7 +1402,7 @@ subroutine allocate_atoms_ntypes(atoms)
 
   ! Allocate pseudo related stuff.
   ! store PSP parameters, modified to accept both GTH and HGHs pseudopotential types
-  atoms%amu = f_malloc_ptr(atoms%astruct%nat,id='atoms%amu')
+  atoms%amu = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%amu')
   atoms%psppar = f_malloc_ptr((/ 0.to.4 , 0.to.6 , 1.to.atoms%astruct%ntypes /),id='atoms%psppar')
   atoms%nelpsp = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%nelpsp')
   atoms%npspcode = f_malloc_ptr(atoms%astruct%ntypes,id='atoms%npspcode')
@@ -1392,15 +1421,14 @@ END SUBROUTINE allocate_atoms_ntypes
 
 !> Allocate a new atoms_data type, for bindings.
 subroutine atoms_new(atoms)
-  use module_atoms, only: atoms_data,atoms_data_null
+  use module_atoms, only: atoms_data,nullify_atoms_data
   use dynamic_memory
   implicit none
   type(atoms_data), pointer :: atoms
-
-  type(atoms_data), pointer :: intern
+  type(atoms_data), pointer, save :: intern
   
   allocate(intern)
-  intern = atoms_data_null()
+  call nullify_atoms_data(intern)! = atoms_data_null()
   atoms => intern
 END SUBROUTINE atoms_new
 
@@ -1408,7 +1436,7 @@ END SUBROUTINE atoms_new
 !> Free an allocated atoms_data type.
 subroutine atoms_free(atoms)
   use module_atoms, only: atoms_data,deallocate_atoms_data
-  use dynamic_memory, only: f_ref_count, f_ref_new
+  use f_refcnts, only: f_ref_count, f_ref_new
   implicit none
   type(atoms_data), pointer :: atoms
   

@@ -16,6 +16,21 @@ module communications_base
   private
 
 
+  ! Parameter to toggle between active or passive target communication
+  integer,parameter,public :: RMA_SYNC_ACTIVE = 51
+  integer,parameter,public :: RMA_SYNC_PASSIVE = 52
+  integer,parameter,public :: rma_sync = RMA_SYNC_ACTIVE
+
+  ! Parameter to toggle between nested or simple (1D) derived data types
+  integer,parameter,public :: TYPES_NESTED = 1001
+  integer,parameter,public :: TYPES_SIMPLE = 1002
+
+  ! Here are some parameters to be set at compile time
+  ! Parameter for changing the communication of the potential on IBM BlueGene Q
+  logical,parameter,public :: bgq = .false.
+  ! Choose the type strategy. Attention: OpenMPI has a bug for TYPES_SIMPLE
+  integer,parameter,public :: type_strategy = TYPES_NESTED
+
   !> Contains the information needed for communicating the wavefunctions
   !! between processors for the transposition
   type, public :: comms_cubic
@@ -50,15 +65,17 @@ module communications_base
     real(kind=8), dimension(:), pointer :: recvBuf
     integer, dimension(:,:), pointer :: comarr
     integer :: nrecvBuf
-    integer :: window
+    integer :: window, onedtypeovrlp
     integer, dimension(6) :: ise !< Starting / ending index of recvBuf in x,y,z dimension after communication (glocal coordinates)
     integer, dimension(:), pointer :: mpi_datatypes
+    integer,dimension(:,:),pointer :: onedtypearr
     logical :: communication_complete
     integer :: nspin !< spin polarization (this information is redundant, just for handyness)
   end type p2pComms
 
   type, public :: work_transpose
     real(kind=8),dimension(:),pointer :: psiwork, psitwork
+    real(kind=8),dimension(:),pointer :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
     integer,dimension(:),pointer :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
     integer :: request
   end type work_transpose
@@ -76,7 +93,7 @@ module communications_base
   public :: p2pComms_null
   public :: allocate_MPI_communication_arrays
   public :: allocate_local_comms_cubic
-  public :: allocate_MPI_comms_cubic_repartition
+  !!public :: allocate_MPI_comms_cubic_repartition
   public :: allocate_MPI_comms_cubic_repartitionp2p
   public :: deallocate_comms
   public :: deallocate_comms_linear
@@ -87,6 +104,8 @@ module communications_base
   public :: allocate_p2pComms_buffer
   public :: deallocate_p2pComms_buffer
   public :: work_transpose_null
+  public :: allocate_work_transpose
+  public :: deallocate_work_transpose
 
   !public :: check_array_consistency
 
@@ -179,6 +198,7 @@ contains
     nullify(comms%recvBuf)
     nullify(comms%comarr)
     nullify(comms%mpi_datatypes)
+    nullify(comms%onedtypearr)
   end subroutine nullify_p2pComms
 
   pure function work_transpose_null() result(wt)
@@ -194,6 +214,10 @@ contains
     type(work_transpose),intent(out):: wt
     nullify(wt%psiwork)
     nullify(wt%psitwork)
+    nullify(wt%psiwork_c)
+    nullify(wt%psiwork_f)
+    nullify(wt%psitwork_c)
+    nullify(wt%psitwork_f)
     nullify(wt%nsendcounts)
     nullify(wt%nsenddspls)
     nullify(wt%nrecvcounts)
@@ -253,15 +277,15 @@ contains
   end subroutine allocate_local_comms_cubic
 
 
-  subroutine allocate_MPI_comms_cubic_repartition(nproc, comms)
-    implicit none
-    integer,intent(in) :: nproc
-    type(comms_linear),intent(inout) :: comms
-    comms%nsendcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsendcounts_repartitionrho')
-    comms%nrecvcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvcounts_repartitionrho')
-    comms%nsenddspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsenddspls_repartitionrho')
-    comms%nrecvdspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvdspls_repartitionrho')
-  end subroutine allocate_MPI_comms_cubic_repartition
+  !!subroutine allocate_MPI_comms_cubic_repartition(nproc, comms)
+  !!  implicit none
+  !!  integer,intent(in) :: nproc
+  !!  type(comms_linear),intent(inout) :: comms
+  !!  comms%nsendcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsendcounts_repartitionrho')
+  !!  comms%nrecvcounts_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvcounts_repartitionrho')
+  !!  comms%nsenddspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nsenddspls_repartitionrho')
+  !!  comms%nrecvdspls_repartitionrho=f_malloc_ptr(0.to.nproc-1,id='comms%nrecvdspls_repartitionrho')
+  !!end subroutine allocate_MPI_comms_cubic_repartition
 
 
   subroutine allocate_MPI_comms_cubic_repartitionp2p(ncommunications, commarr_repartitionrho)
@@ -270,6 +294,24 @@ contains
     integer,dimension(:,:),pointer,intent(inout) :: commarr_repartitionrho
     commarr_repartitionrho=f_malloc_ptr((/4,ncommunications/),id='commarr_repartitionrho')
   end subroutine allocate_MPI_comms_cubic_repartitionp2p
+
+
+  subroutine allocate_work_transpose(nproc, comm, wt)
+    implicit none
+    integer,intent(in) :: nproc
+    type(comms_linear),intent(in) :: comm
+    type(work_transpose),intent(inout) :: wt
+    wt%psiwork_c = f_malloc_ptr(comm%ndimpsi_c,id='psiwork_c')
+    wt%psiwork_f = f_malloc_ptr(7*comm%ndimpsi_f,id='psiwork_f')
+    wt%psitwork_c = f_malloc_ptr(comm%ndimind_c,id='psitwork_c')
+    wt%psitwork_f = f_malloc_ptr(7*comm%ndimind_f,id='psitwork_f')
+    wt%psiwork = f_malloc_ptr(max(comm%ndimpsi_c+7*comm%ndimpsi_f,1),id='wt%psiwork')
+    wt%psitwork = f_malloc_ptr(max(sum(comm%nrecvcounts_c)+7*sum(comm%nrecvcounts_f),1),id='wt%psitwork')
+    wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+    wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+    wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+    wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
+  end subroutine allocate_work_transpose
 
 
   subroutine deallocate_comms_linear(comms)
@@ -343,6 +385,7 @@ contains
         stop 'cannot deallocate mpi data types if communication has not completed'
     end if
     call f_free_ptr(p2pcomm%mpi_datatypes)
+    call f_free_ptr(p2pcomm%onedtypearr)
   end subroutine deallocate_p2pComms
 
 
@@ -360,6 +403,21 @@ contains
     call f_free_ptr(comgp%recvBuf)
   end subroutine deallocate_p2pComms_buffer
 
+
+  subroutine deallocate_work_transpose(wt)
+    implicit none
+    type(work_transpose),intent(inout) :: wt
+    call f_free_ptr(wt%psiwork_c)
+    call f_free_ptr(wt%psiwork_f)
+    call f_free_ptr(wt%psitwork_c)
+    call f_free_ptr(wt%psitwork_f)
+    call f_free_ptr(wt%psiwork)
+    call f_free_ptr(wt%psitwork)
+    call f_free_ptr(wt%nsendcounts)
+    call f_free_ptr(wt%nsenddspls)
+    call f_free_ptr(wt%nrecvcounts)
+    call f_free_ptr(wt%nrecvdspls)
+  end subroutine deallocate_work_transpose
 
 !!$    !> Check the consistency of arrays after a gather (example: atomic coordinates)
 !!$    subroutine check_array_consistency0(maxdiff, nproc, array, ndims, mpi_comm)

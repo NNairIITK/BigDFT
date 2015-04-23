@@ -23,7 +23,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,xc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor), intent(in) :: psir
   type(xc_info), intent(in) :: xc
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   real(gp), intent(out) :: eSICi,eSIC_DCi
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspinor), intent(out) :: vpsir
   !local variables
@@ -198,7 +198,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
   real(gp), intent(in) :: hxh,hyh,hzh,fref
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   type(xc_info), intent(in) :: xc
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   real(wp), dimension((lr%d%n1i*lr%d%n2i*lr%d%n3i*((orbs%nspinor/3)*3+1)),max(orbs%norbp,orbs%nspin)), intent(inout) :: poti
@@ -465,7 +465,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
 
   if (.not. virtual) then
      !sum up the results of the off diagonal term
-     if (nproc >1) call mpiallred(wxd(1,1),lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspin,MPI_SUM,bigdft_mpi%mpi_comm)
+     if (nproc >1) call mpiallred(wxd,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
      if (.not. savewxd) then
         !add to the potential orbital per orbital

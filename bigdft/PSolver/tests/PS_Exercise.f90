@@ -123,7 +123,7 @@ program exercise
    call cpu_time(t0)
    kernel=pkernel_init(.true.,0,1,0,&
         solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order)
-   call pkernel_set(kernel,.true.)
+   call pkernel_set(kernel,verbose=.true.)
 
    !call createKernel(0,1,solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order,kernel,.true.)
    call cpu_time(t1)

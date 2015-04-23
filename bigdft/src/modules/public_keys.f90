@@ -23,10 +23,12 @@ module public_keys
   character(len = *), parameter :: HGRIDS = "hgrids"
   character(len = *), parameter :: RMULT = "rmult"
   character(len = *), parameter :: IXC = "ixc"
-  character(len = *), parameter :: NCHARGE = "ncharge"
+  character(len = *), parameter :: NCHARGE = "qcharge"
   character(len = *), parameter :: ELECFIELD = "elecfield"
   character(len = *), parameter :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter :: GNRM_CV = "gnrm_cv"
+  character(len = *), parameter :: GNRM_IG = "gnrm_ig"
+  character(len = *), parameter :: NIT_IG = "nit_ig"
   character(len = *), parameter :: ITERMAX = "itermax",ITERMIN = "itermin", NREPMAX = "nrepmax"
   character(len = *), parameter :: NCONG = "ncong", IDSX = "idsx"
   character(len = *), parameter :: DISPERSION = "dispersion"
@@ -38,6 +40,7 @@ module public_keys
   character(len = *), parameter :: NORBV = "norbv", NVIRT = "nvirt"
   character(len = *), parameter :: NPLOT = "nplot"
   character(len = *), parameter :: DISABLE_SYM = "disablesym"
+  character(len = *), parameter :: SOLVENT = "solvent"
 
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"
@@ -90,6 +93,10 @@ module public_keys
   character(len = *), parameter :: CUTOFFRATIO = "cutoffratio"
   character(len = *), parameter :: STEEPTHRESH = "steepthresh"
   character(len = *), parameter :: TRUSTR = "trustr"
+
+  !Force field parameter keyword
+  character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
+  character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
 
 
   character(len = *), parameter :: MIX_VARIABLES = "mix"
@@ -164,6 +171,8 @@ module public_keys
   character(len = *), parameter :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
   character(len = *), parameter :: CORRECTION_CO_CONTRA = "correction_co_contra"
+  character(len = *), parameter :: GPS_METHOD = "gps_method"
+  character(len = *), parameter :: FOE_GAP = "foe_gap"
 
   !keys for linear input variables
   !level keys
@@ -213,6 +222,10 @@ module public_keys
   character(len=*), parameter :: IMETHOD_OVERLAP = "imethod_overlap"
   character(len=*), parameter :: EXTRA_SHELLS_KEY='empty_shells'
   character(len=*), parameter :: ENABLE_MATRIX_TASKGROUPS='enable_matrix_taskgroups'
+  character(len=*), parameter :: HAMAPP_RADIUS_INCR='hamapp_radius_incr'
+  character(len=*), parameter :: ADJUST_KERNEL_ITERATIONS='adjust_kernel_iterations'
+  character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
+  character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
@@ -226,6 +239,9 @@ module public_keys
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2' 
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3' 
   character(len=*), parameter :: ASTRUCT_ATT_QMMM = 'mode' 
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_1 = 'rxyz_int_atoms_1' 
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_2 = 'rxyz_int_atoms_2' 
+  character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_3 = 'rxyz_int_atoms_3' 
 
   character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
   character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
@@ -249,16 +265,20 @@ end module public_keys
 !>module identifying constants that have to be used as enumerators
 !! they can be used to define f_enumerator types or directly as integers
 module public_enums
-  use f_utils
+  use f_enums
   implicit none
   
   public
   
-  type(f_enumerator), parameter :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000)
-  type(f_enumerator), parameter :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999)
-  type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998)
-  type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997)
-  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-996)
+  type(f_enumerator), parameter :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000,null())
+  type(f_enumerator), parameter :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999,null())
+  type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998,null())
+  type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997,null())
+  type(f_enumerator), parameter :: MORSE_BULK_RUN_MODE         =f_enumerator('MORSE_BULK_RUN_MODE',-996,null())
+  type(f_enumerator), parameter :: MORSE_SLAB_RUN_MODE         =f_enumerator('MORSE_SLAB_RUN_MODE',-995,null())
+  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994,null())
+  type(f_enumerator), parameter :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993,null())
+  type(f_enumerator), parameter :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992,null())
 
   type(f_enumerator), parameter :: ATOM_MODE_QM      = f_enumerator('QM', 0)
   type(f_enumerator), parameter :: ATOM_MODE_MM      = f_enumerator('MM', 1)

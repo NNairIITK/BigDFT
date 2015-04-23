@@ -263,9 +263,10 @@ END SUBROUTINE processor_id_per_node
 subroutine ensure_log_file(writing_directory, logfile, ierr)
   use yaml_output
   use yaml_strings
+  use f_utils, only: f_file_exists
   implicit none
   character(len = *), intent(in) :: writing_directory, logfile
-  integer, intent(out) :: ierr
+  integer(kind=4), intent(out) :: ierr
 
   logical :: exists
   integer :: lgt
@@ -274,11 +275,12 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
   ierr = 0
   filepath = writing_directory//logfile
   !inquire for the existence of a logfile
-  inquire(file=trim(filepath),exist=exists)
+  !inquire(file=trim(filepath),exist=exists)
+  call f_file_exists(trim(filepath),exists)
   if (exists) then
      logfile_old=writing_directory//'logfiles'
      call getdir(logfile_old,&
-          len_trim(logfile_old),logfile_dir,len(logfile_dir),ierr)
+          int(len_trim(logfile_old),kind=4),logfile_dir,int(len(logfile_dir),kind=4),ierr)
      if (ierr /= 0) then
         write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
         return
@@ -288,7 +290,7 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
      lgt=index(logfile_old,'.yaml')
      call buffer_string(logfile_old,len(logfile_old),&
           trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
-     call movefile(trim(filepath),len_trim(filepath),trim(logfile_old),len_trim(logfile_old),ierr)
+     call movefile(trim(filepath),int(len_trim(filepath),kind=4),trim(logfile_old),int(len_trim(logfile_old),kind=4),ierr)
      if (ierr /= 0) then
         write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
         write(*,*) '                      into '//trim(logfile_old)// "'."

@@ -18,6 +18,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
   use module_interfaces, fake_name => optimize_coeffs
   use diis_sd_optimization
   use yaml_output
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
 
   ! Calling arguments
@@ -50,9 +51,13 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
 
   if (ldiis_coeff%idsx == 0 .and. sd_fit_curve) then
      ! calculate initial energy for SD line fitting and printing (maybe don't need to (re)calculate kernel here?)
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
           tmb%linmat%kernel_, tmb%linmat%ham_, energy0,&
           tmb%coeff,orbs,tmb%orbs,.true.)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   else
      energy0=energy
@@ -140,7 +145,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      end if
 
      if (nproc > 1) then
-        call mpiallred(tt, 1, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(tt, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
      end if
      fnrm=2.0_gp*tt
 
@@ -329,9 +334,13 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      !!    end do
      !!end do
 
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
      call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m,&
           tmb%linmat%kernel_, tmb%linmat%ham_, energy,&
           tmb%coeff,orbs,tmb%orbs,.true.)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
 
      !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
      !write(127,*) ldiis_coeff%alpha_coeff,energy
@@ -444,7 +453,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use sparsematrix_base, only: sparse_matrix, matrices, sparse_matrix_null, deallocate_sparse_matrix, &
                                sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
-  use sparsematrix, only: uncompress_matrix
+  use sparsematrix, only: uncompress_matrix, uncompress_matrix2
+  use matrix_operations, only: overlapPowerGeneral
   implicit none
 
   ! Calling arguments
@@ -459,7 +469,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   !real(kind=8), dimension(:,:,:), allocatable :: weight_coeff
   real(kind=8), dimension(:,:), allocatable :: weight_coeff_diag
   real(kind=8), dimension(:,:), pointer :: ovrlp_half
-  real(kind=8) :: max_error, mean_error
+  real(kind=8), dimension(:), allocatable :: weight_sum
+  real(kind=8) :: max_error, mean_error, occsum
   type(sparse_matrix) :: weight_matrix
   type(matrices) :: weight_matrix_
   type(matrices),dimension(1) :: inv_ovrlp
@@ -477,15 +488,15 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   !weight_matrix_%matrix_compr=f_malloc_ptr(weight_matrix%nvctr,id='weight_matrix%matrix_compr')
   weight_matrix_%matrix_compr=sparsematrix_malloc_ptr(weight_matrix,iaction=SPARSE_FULL,id='weight_matrix%matrix_compr')
 
- inv_ovrlp(1) = matrices_null()
- call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+  inv_ovrlp(1) = matrices_null()
+  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
 
   !weight_coeff=f_malloc((/ksorbs%norb,ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   weight_coeff_diag=f_malloc((/ksorbs%norb,input%frag%nfrag/), id='weight_coeff')
   !ovrlp_half=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/), id='ovrlp_half')
   tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-  call uncompress_matrix(bigdft_mpi%iproc, tmb%linmat%s, &
-       inmat=tmb%linmat%ovrlp_%matrix_compr, outmat=tmb%linmat%ovrlp_%matrix)
+  call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
+       tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
   call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, input%lin%order_taylor, 1, (/2/), &
        tmb%orthpar%blocksize_pdsyev, imode=2, &
        ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
@@ -509,6 +520,8 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   if (iproc==0) call yaml_newline()
   if (iproc==0) call yaml_comment ('coeff, occ, eval, frac for each frag')
   ! only care about diagonal elements
+  weight_sum=f_malloc(input%frag%nfrag,id='weight_sum')
+  weight_sum=0.0d0
   do iorb=1,ksorbs%norb
      if (iproc==0) then
          call yaml_mapping_open(flow=.true.)
@@ -518,10 +531,25 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
      end if
      do ifrag=1,input%frag%nfrag
         if (iproc==0) call yaml_map('frac',weight_coeff_diag(iorb,ifrag),fmt='(f6.4)')
+        weight_sum(ifrag)=weight_sum(ifrag)+KSorbs%occup(iorb)*weight_coeff_diag(iorb,ifrag)
      end do
      if (iproc==0) call yaml_mapping_close()
      if (iproc==0) call yaml_newline()
   end do
+     
+  !sum for each fragment
+  occsum=sum(KSorbs%occup(1:ksorbs%norb))
+  if (iproc==0) then
+     call yaml_mapping_open(flow=.true.)
+     call yaml_map('sum',occsum,fmt='(f8.4)')
+  end if
+  do ifrag=1,input%frag%nfrag
+     if (iproc==0) call yaml_map('frac',weight_sum(ifrag),fmt='(f6.4)')
+  end do
+  if (iproc==0) call yaml_mapping_close()
+  if (iproc==0) call yaml_newline()
+  call f_free(weight_sum)
+
   if (iproc==0) call yaml_sequence_close()
 
   call deallocate_matrices(inv_ovrlp(1))
@@ -674,7 +702,7 @@ subroutine calculate_coeffMatcoeff(nproc,matrix,basis_orbs,ksorbs,coeff,mat_coef
   call f_free(coeff_tmp)
 
   if (nproc>1) then
-      call mpiallred(mat_coeff, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(mat_coeff, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
 end subroutine calculate_coeffMatcoeff
@@ -726,7 +754,7 @@ subroutine calculate_coeffMatcoeff_diag(matrix,basis_orbs,ksorbs,coeff,mat_coeff
         call mpi_allgatherv(mat_coeff_diagp, ksorbs%norbp, mpi_double_precision, mat_coeff_diag, &
              ksorbs%norb_par(:,0), ksorbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
      else
-        call mpiallred(mat_coeff_diag(1), ksorbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
+        call mpiallred(mat_coeff_diag, mpi_sum, comm=bigdft_mpi%mpi_comm)
      end if
   else
      if (allgather) then
@@ -972,6 +1000,7 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
   use module_base
   use module_types
   use module_interfaces
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
   integer, intent(in) :: iproc, nproc, taylor_order
   real(kind=gp), intent(inout) :: alpha
@@ -1010,9 +1039,13 @@ subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pre
        tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, coeff_tmp, orbs)
   !call reorthonormalize_coeff(iproc, nproc, orbs%norb, -8, -8, 1, tmb%orbs, &
   !     tmb%linmat%s, tmb%linmat%ks, tmb%linmat%ovrlp_, coeff_tmp, orbs)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+  !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
   call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m,&
        tmb%linmat%kernel_, tmb%linmat%ham_, energy1,&
        coeff_tmp,orbs,tmb%orbs,.true.)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
   !tmb%linmat%denskern_large%matrix_compr = tmb%linmat%kernel_%matrix_compr
   call f_free(coeff_tmp)
 
@@ -1044,6 +1077,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
   use module_interfaces, except_this_one => calculate_kernel_and_energy
   use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
   implicit none
   integer, intent(in) :: iproc, nproc
   type(sparse_matrix), intent(in) :: ham
@@ -1058,7 +1092,9 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
   integer :: iorb, jorb, ind_ham, ind_denskern, ierr, iorbp, is, ie, ispin
 
   if (calculate_kernel) then 
+     !!call extract_taskgroup_inplace(denskern, denskern_mat)
      call calculate_density_kernel(iproc, nproc, .true., orbs, tmb_orbs, coeff, denskern, denskern_mat)
+     !call gather_matrix_from_taskgroups_inplace(iproc, nproc, denskern, denskern_mat)
      !denskern%matrix_compr = denskern_mat%matrix_compr
   end if
 
@@ -1084,13 +1120,16 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
         ind_ham = matrixindex_in_compressed(ham,iorb,jorb)
         ind_denskern = matrixindex_in_compressed(denskern,jorb,iorb)
         if (ind_ham==0.or.ind_denskern==0) cycle
-        energy = energy + denskern_mat%matrix_compr(ind_denskern)*ham_mat%matrix_compr(ind_ham)
+        energy = energy + &
+            denskern_mat%matrix_compr(ind_denskern-denskern%isvctrp_tg)*ham_mat%matrix_compr(ind_ham-ham%isvctrp_tg)
+            !!write(*,'(a,5i8,2es16.7)') 'iorb, jorb, ispin, ind_denskern, ind_ham, val_denskern, val_ham', &
+            !!    iorb, jorb, ispin, mod(ind_denskern-denskern%isvctrp_tg-1,denskern%nvctr)+1, mod(ind_ham-ham%isvctrp_tg-1,ham%nvctr)+1, denskern_mat%matrix_compr(ind_denskern-denskern%isvctrp_tg), ham_mat%matrix_compr(ind_ham-ham%isvctrp_tg)
      end do
      !$omp end do
      !$omp end parallel
   end do
   if (nproc>1) then
-     call mpiallred(energy, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(energy, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
   call timing(iproc,'calc_energy','OF')
 
@@ -1105,6 +1144,9 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   use module_interfaces
   use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
+  use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
+  use matrix_operations, only: overlapPowerGeneral
+  use parallel_linalg, only: dgesv_parallel
   implicit none
 
   integer, intent(in) :: iproc, nproc
@@ -1163,8 +1205,10 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   !!end do
 
  !call uncompress_matrix(iproc,tmb%linmat%denskern)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call calculate_density_kernel(iproc, nproc, .false., KSorbs, tmb%orbs, &
        tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_, .true.)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
   sk=f_malloc0((/tmb%linmat%m%nfvctrp,tmb%linmat%m%nfvctr,tmb%linmat%m%nspin/), id='sk')
 
@@ -1222,7 +1266,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
 
   call f_free(sk)
 
-  skh=f_malloc((/tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,ispin/), id='skh')
+  skh=f_malloc((/tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,tmb%linmat%m%nspin/), id='skh')
 
   call timing(iproc,'dirmin_lagmat1','OF')
   call timing(iproc,'dirmin_lagmat2','ON')
@@ -1277,7 +1321,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
   end do
 
   call timing(iproc,'dirmin_lagmat1','OF')
-  call timing(iproc,'dirmin_dgesv','ON') !lr408t
+  call timing(iproc,'dirmin_dgesv','ON')
 
   ! Solve the linear system ovrlp*grad=grad_cov
   if(tmb%orthpar%blocksize_pdsyev<0) then
@@ -1479,7 +1523,7 @@ subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_e
 
   call deallocate_matrices(inv_ovrlp_(1))
 
-  call timing(iproc,'dirmin_dgesv','OF') !lr408t
+  call timing(iproc,'dirmin_dgesv','OF')
   call f_release_routine()
 
 end subroutine calculate_coeff_gradient
@@ -1493,6 +1537,9 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   use module_interfaces
   use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
+  use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
+  use matrix_operations, only: overlapPowerGeneral
+  use parallel_linalg, only: dgesv_parallel
   implicit none
 
   integer, intent(in) :: iproc, nproc, num_extra
@@ -1502,15 +1549,15 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   type(orbitals_data), intent(in) :: KSorbs
   real(gp), dimension(tmb%linmat%m%nfvctr,tmb%orbs%norbp), intent(out) :: grad_cov, grad  ! could make grad_cov KSorbs%norbp
 
-  integer :: iorb, iiorb, info, ierr
-  real(gp),dimension(:,:),allocatable :: sk, skh, skhp
+  integer :: iorb, iiorb, info, ierr, ispin
+  real(gp),dimension(:,:,:),allocatable :: sk, skhp, skh
   real(gp),dimension(:,:),pointer ::  inv_ovrlp
   real(kind=gp), dimension(:), allocatable:: occup_tmp
   real(kind=gp), dimension(:,:), allocatable:: grad_full
   real(kind=gp) :: max_error, mean_error
   type(matrices),dimension(1) :: inv_ovrlp_
 
-  if (tmb%linmat%m%nspin==2) stop 'ERROR: calculate_coeff_gradient_extra not yet implemented for npsin==2'
+  !!if (tmb%linmat%m%nspin==2) stop 'ERROR: calculate_coeff_gradient_extra not yet implemented for npsin==2'
 
   call f_routine(id='calculate_coeff_gradient_extra')
   call timing(iproc,'dirmin_lagmat1','ON')
@@ -1532,56 +1579,68 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=DENSE_FULL, id='tmb%linmat%kernel_%matrix')
   !call uncompress_matrix(iproc,tmb%linmat%denskern)
   !!call calculate_density_kernel_uncompressed (iproc, nproc, .true., tmb%orbs, tmb%orbs, tmb%coeff, tmb%linmat%kernel_%matrix)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
   call calculate_density_kernel(iproc, nproc, .true., tmb%orbs, tmb%orbs, &
        tmb%coeff, tmb%linmat%l, tmb%linmat%kernel_, .true.)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
 
   call vcopy(tmb%orbs%norb,occup_tmp(1),1,tmb%orbs%occup(1),1)
   call f_free(occup_tmp)
 
-  sk=f_malloc0((/tmb%linmat%l%nfvctrp,tmb%linmat%l%nfvctr/), id='sk')
+  sk=f_malloc0((/tmb%linmat%l%nfvctrp,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/), id='sk')
 
   ! calculate I-S*K - first set sk to identity
-  do iorb=1,tmb%linmat%l%nfvctrp
-     iiorb=tmb%linmat%l%isfvctr+iorb
-     sk(iorb,iiorb) = 1.d0
-  end do 
+  do ispin=1,tmb%linmat%l%nspin
+     do iorb=1,tmb%linmat%l%nfvctrp
+        iiorb=mod(tmb%linmat%l%isfvctr+iorb-1,tmb%linmat%l%nfvctr)+1
+        sk(iorb,iiorb,ispin) = 1.d0
+     end do 
+  end do
 
 
-  if (tmb%orbs%norbp>0) then
-     call dgemm('t', 'n', tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctr, -1.d0, &
-          tmb%linmat%ovrlp_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
-          tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr, 1.d0, sk, tmb%linmat%l%nfvctrp)
+  if (tmb%linmat%l%nfvctrp>0) then
+     do ispin=1,tmb%linmat%l%nspin
+        call dgemm('t', 'n', tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctr, -1.d0, &
+             tmb%linmat%ovrlp_%matrix(1,tmb%linmat%l%isfvctr+1,ispin), tmb%linmat%l%nfvctr, &
+             tmb%linmat%kernel_%matrix(1,1,ispin), tmb%linmat%l%nfvctr, 1.d0, sk(1,1,ispin), tmb%linmat%l%nfvctrp)
+      end do
   end if
 
 
   ! coeffs and therefore kernel will change, so no need to keep it
   call f_free_ptr(tmb%linmat%kernel_%matrix)
 
-  skhp=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp/), id='skhp')
+  skhp=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp,tmb%linmat%l%nspin/), id='skhp')
 
   ! multiply by H to get (I_ab - S_ag K^gb) H_bd, or in this case the transpose of the above
   if (tmb%linmat%l%nfvctrp>0) then
-     call dgemm('t', 't', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-          1.d0, tmb%linmat%ham_%matrix(1,1,1), &
-          tmb%linmat%l%nfvctr, sk(1,1), tmb%linmat%l%nfvctrp, 0.d0, skhp(1,1), tmb%linmat%l%nfvctr)
+     do ispin=1,tmb%linmat%l%nspin
+        call dgemm('t', 't', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
+             1.d0, tmb%linmat%ham_%matrix(1,1,ispin), &
+             tmb%linmat%l%nfvctr, sk(1,1,ispin), tmb%linmat%l%nfvctrp, 0.d0, skhp(1,1,ispin), tmb%linmat%l%nfvctr)
+      end do
   end if
 
 
   call f_free(sk)
 
-  skh=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/), id='skh')
+  skh=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr,tmb%linmat%l%nspin/), id='skh')
 
   call timing(iproc,'dirmin_lagmat1','OF')
   call timing(iproc,'dirmin_lagmat2','ON')
 
   ! gather together
   if(nproc > 1) then
-     call mpi_allgatherv(skhp, tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp, mpi_double_precision, skh, &
-        tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctr_par(:), tmb%linmat%l%nfvctr*tmb%linmat%l%isfvctr_par, &
-        mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+     do ispin=1,tmb%linmat%l%nspin
+        call mpi_allgatherv(skhp(1,1,ispin), tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctrp, &
+            mpi_double_precision, skh(1,1,ispin), &
+            tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctr_par(:), &
+            tmb%linmat%l%nfvctr*tmb%linmat%l%isfvctr_par, &
+            mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+     end do
   else
-     call vcopy(tmb%linmat%l%nfvctrp*tmb%linmat%l%nfvctr,skhp(1,1),1,skh(1,1),1)
+     call vcopy(tmb%linmat%l%nfvctrp*tmb%linmat%l%nfvctr*tmb%linmat%l%nspin,skhp(1,1,1),1,skh(1,1,1),1)
   end if
 
 
@@ -1591,9 +1650,18 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   call f_free(skhp)
 
   ! calc for i on this proc: (I_ab - S_ag K^gb) H_bg c_i^d
-  if (tmb%orbs%norbp>0) then
-     call dgemm('t', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, 1.d0, skh(1,1), &
-          tmb%linmat%l%nfvctr, tmb%coeff(1,tmb%linmat%l%isfvctr+1), tmb%linmat%l%nfvctr, 0.d0, grad_cov(1,1), tmb%linmat%l%nfvctr)
+  if (tmb%linmat%l%nfvctrp>0) then
+     do iorb=1,tmb%linmat%l%nfvctrp
+        iiorb=tmb%linmat%l%isfvctr+iorb
+        if (tmb%orbs%spinsgn(iiorb)>0.d0) then
+            ispin=1
+        else
+            ispin=2
+        end if
+        call dgemm('t', 'n', tmb%linmat%l%nfvctr, 1, tmb%linmat%l%nfvctr, 1.d0, skh(1,1,ispin), &
+             tmb%linmat%l%nfvctr, tmb%coeff(1,tmb%linmat%l%isfvctr+iorb), tmb%linmat%l%nfvctr, &
+             0.d0, grad_cov(1,iorb), tmb%linmat%l%nfvctr)
+      end do
   end if
 
   call f_free(skh)
@@ -1605,7 +1673,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
   end do
 
   call timing(iproc,'dirmin_lagmat1','OF')
-  call timing(iproc,'dirmin_dgesv','ON') !lr408t
+  call timing(iproc,'dirmin_dgesv','ON')
 
 
   info = 0 ! needed for when some processors have orbs%norbp=0
@@ -1661,7 +1729,7 @@ subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor
 
   call deallocate_matrices(inv_ovrlp_(1))
 
-  call timing(iproc,'dirmin_dgesv','OF') !lr408t
+  call timing(iproc,'dirmin_dgesv','OF')
   call f_release_routine()
 
 end subroutine calculate_coeff_gradient_extra

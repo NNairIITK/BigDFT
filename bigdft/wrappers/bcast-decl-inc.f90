@@ -21,6 +21,7 @@
   n=1
   if (present(count)) n=count
   if (present(maxdiff)) then
+     call f_zero(maxdiff)
      array_diff=f_malloc(n,id='array_diff')
      call f_memcpy(n=n,src=buffer,dest=array_diff)
   end if

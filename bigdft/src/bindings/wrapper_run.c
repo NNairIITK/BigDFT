@@ -527,6 +527,7 @@ gboolean bigdft_run_dump(BigDFT_Run *run, const gchar *filename, gboolean full)
   int userOnly = !full;
   int ln;
   ln=strlen(filename);
+  /*fprintf(stdout,"length %i\n",ln);*/
   FC_FUNC_(run_objects_dump_to_file, RUN_OBJECTS_DUMP_TO_FILE)
     (&iostat, &run->dict->root, filename, &userOnly, &ln, ln);
   return (iostat == 0);

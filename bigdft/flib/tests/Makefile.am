@@ -30,7 +30,7 @@ LIBS += @LIB_YAML_LIBS@
 endif
 endif
 
-yaml_test_SOURCES = yaml_test.f90 errs.f90 yamlout.f90 dicts.f90 dynmem.f90 yaml_invoice.f90 $(mpi_source)
+yaml_test_SOURCES = yaml_test.f90 errs.f90 yamlout.f90 dicts.f90 dynmem.f90 yaml_invoice.f90 utls.f90 $(mpi_source)
 yaml_test_LDADD = $(flib_libraries)
 
 CLEANFILES = yaml_test.out.yaml yaml_test.report.yaml

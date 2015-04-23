@@ -22,6 +22,7 @@ SUBDIRS = \
 	bindings \
 	art \
 	mhgps_files \
+	global_files \
 	$(sub_dirs_bin)
 
 EXTRA_DIST = \
@@ -57,7 +58,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld)
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -65,7 +66,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies global abscalc mhgps
+binaries_sources = bigdft memguess splsad NEB frequencies global globaltool abscalc mhgps mhgpstool
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -192,7 +193,6 @@ low_level = \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/linearScaling.f90 \
-	linear/energyAndForces.f90 \
 	linear/initAndUtils.f90 \
 	linear/sumrhoLinear.f90 \
 	linear/inputguessLinear.f90 \
@@ -202,13 +202,10 @@ low_level = \
 	linear/copyTypes.f90 \
 	linear/de-allocate.f90 \
 	linear/derivativeBasis.f90 \
-	linear/parallelLinAlg.f90 \
 	linear/locReg_linear.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/init_collective_comms.f90 \
 	linear/optimize_coeffs.f90 \
-	linear/foe.f90 \
-	linear/chebyshev.f90 \
 	linear/pulay.f90 \
 	linear/transferintegrals.f90 \
 	linear/cdft.f90 \
@@ -260,7 +257,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld)
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)
@@ -281,7 +278,7 @@ install-data-hook:
 #abscalc_additional= 
 
 bigdft_SOURCES = BigDFT.f90
-bigdft_LDADD = $(amber_ld) $(bigdft_library) @LIB_FLIB_LIBS@
+bigdft_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@
 
 NEB_images_SOURCES = BigDFT.f90
 NEB_images_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@
@@ -302,41 +299,45 @@ BigDFT2Wannier_SOURCES = BigDFT2Wannier.f90
 BigDFT2Wannier_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 WaCo_SOURCES = WaCo.f90
-WaCo_LDADD = $(amber_ld) $(bigdft_library) @LINALG_LIBS@
+WaCo_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 MDanalysis_SOURCES = distances.f90
-MDanalysis_LDADD = $(amber_ld) $(bigdft_library)
+MDanalysis_LDADD = $(bigdft_library)
 
 abscalc_SOURCES = abscalc.f90 
-abscalc_LDADD = $(amber_ld) libabscalc.a $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+abscalc_LDADD = libabscalc.a $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 test_forces_SOURCES = test_forces.f90
-test_forces_LDADD = $(amber_ld) $(bigdft_library) @LIB_FLIB_LIBS@
+test_forces_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@
 
 NEB_SOURCES = NEB.f90
-NEB_LDADD = $(amber_ld) $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+NEB_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
-memguess_LDADD = $(amber_ld) $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+memguess_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
-frequencies_LDADD = $(amber_ld) $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+frequencies_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 bart_SOURCES = art.f90
 bart_FCFLAGS = -Iart
-bart_LDADD = $(amber_ld) art/libart.a $(bigdft_library) @LINALG_LIBS@
+bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
 
-mhgps_SOURCES = mhgps.f90 fingerprint.f90
-
-##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
-##mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ mhgps_files/wrap.o
+mhgps_SOURCES = mhgps.f90
 mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
-##mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
-mhgps_LDADD = mhgps_files/libmhgps.a $(amber_ld) $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
-global_SOURCES = global.f90 fingerprint.f90
-global_LDADD = $(amber_ld) $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+mhgpstool_SOURCES = mhgpstool.f90
+mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
+mhgpstool_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
+
+global_SOURCES = global.f90
+global_LDADD = $(bigdft_library) @LINALG_LIBS@
+
+globaltool_SOURCES = globaltool.f90
+globaltool_FCFLAGS = -I. -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
+globaltool_LDADD = global_files/libglobalf.a $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:

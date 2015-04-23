@@ -41,7 +41,9 @@ module wrapper_MPI
   integer, public, save :: TCAT_ALLRED_SMALL=TIMING_UNINITIALIZED
   integer, public, save :: TCAT_ALLRED_LARGE=TIMING_UNINITIALIZED
   integer, public, save :: TCAT_ALLGATHERV  =TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLGATHER   =TIMING_UNINITIALIZED
   integer, public, save :: TCAT_GATHER      =TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_SCATTER     =TIMING_UNINITIALIZED
   
   !error codes
   integer, public, save :: ERR_MPI_WRAPPERS
@@ -49,8 +51,9 @@ module wrapper_MPI
   !> Interface for MPITYPE routine
   interface mpitype
      module procedure mpitype_i,mpitype_d,mpitype_r,mpitype_l,mpitype_c,mpitype_li
-     module procedure mpitype_i1,mpitype_i2
-     module procedure mpitype_d1,mpitype_d2
+     module procedure mpitype_i1,mpitype_i2,mpitype_i3
+     module procedure mpitype_r1,mpitype_r2,mpitype_r3,mpitype_r4
+     module procedure mpitype_d1,mpitype_d2,mpitype_d3,mpitype_d4
      module procedure mpitype_c1
      module procedure mpitype_li1,mpitype_li2
   end interface mpitype
@@ -67,21 +70,26 @@ module wrapper_MPI
           & mpiallred_double,&!,mpiallred_double_1,mpiallred_double_2,&
           & mpiallred_log
      module procedure mpiallred_long
-     module procedure mpiallred_d1,mpiallred_d2
-     module procedure mpiallred_i1
+     module procedure mpiallred_r1,mpiallred_r2,mpiallred_r3,mpiallred_r4
+     module procedure mpiallred_d1,mpiallred_d2,mpiallred_d3,mpiallred_d4
+     module procedure mpiallred_i1,mpiallred_i2,mpiallred_i3
   end interface mpiallred
 
   interface mpigather
      module procedure mpigather_d1d1,mpigather_d2d1,mpigather_d1d2,mpigather_d2
      module procedure mpigather_i0i2,mpigather_d0d2,mpigather_i1i2,mpigather_i2
-     module procedure mpigather_i1,mpigather_li1,mpigather_c1i2
-     module procedure mpigather_li0li2
+     module procedure mpigather_i1,mpigather_c1i2
+     module procedure mpigather_li1,mpigather_li0li2,mpigather_li1li2,mpigather_li2
   end interface mpigather
 
   interface mpibcast
      module procedure mpibcast_i0,mpibcast_li0,mpibcast_d0
      module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1
   end interface mpibcast
+
+  interface mpiscatter
+      module procedure mpiscatter_i1i1 
+  end interface mpiscatter
 
   interface mpi_get_to_allgatherv
      module procedure mpi_get_to_allgatherv_double
@@ -92,25 +100,33 @@ module wrapper_MPI
   end interface mpiget
 
   interface mpitypesize
-    module procedure mpitypesize_d0, mpitypesize_d1
+    module procedure mpitypesize_d0, mpitypesize_d1, mpitypesize_i0, mpitypesize_l0
   end interface mpitypesize
 
   interface mpiwindow
-    module procedure mpiwindow_d0
+    module procedure mpiwindow_d0, mpiwindow_i0, mpiwindow_l0
   end interface mpiwindow
 
   !> Interface for MPI_ALLGATHERV routine
-  interface mpiallgatherv
-     module procedure mpiallgatherv_double
-  end interface mpiallgatherv
+  interface mpiallgather
+     module procedure mpiallgatherv_d0,mpiallgatherv_d1,mpiallgatherv_d2d3
+  end interface mpiallgather
   
   interface mpiiallred
       module procedure mpiiallred_double
   end interface mpiiallred
 
+  interface mpialltoallv
+      module procedure mpialltoallv_int, mpialltoallv_long, mpialltoallv_double
+  end interface mpialltoallv
+
   interface mpiialltoallv
       module procedure mpiialltoallv_double
   end interface mpiialltoallv
+
+  interface mpiaccumulate
+      module procedure mpiaccumulate_double
+  end interface mpiaccumulate
 
   !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
@@ -475,6 +491,31 @@ contains
 #endif
   end subroutine wmpi_init_thread
 
+  !>initialization of the mpi library
+  subroutine mpiinit(inithread)
+    use dictionaries, only: f_err_throw
+    implicit none
+    !>if present, set the initialization to the 
+    !!mpi_init_thread case (mpi_thread_funneled is supported)
+    !! default is false, traditional mpi_init
+    logical, intent(in), optional :: inithread
+    !local variables
+    logical :: thd
+    integer :: ierr
+    external :: MPI_INIT
+
+    thd=.false.
+    if (present(inithread)) thd=inithread
+    
+    if (thd) then
+       call wmpi_init_thread(ierr)
+    else
+       call MPI_INIT(ierr)
+    end if
+    if (ierr /=0) call f_err_throw('An error in calling to MPI_INIT (THREAD) occured',&
+         err_id=ERR_MPI_WRAPPERS)
+
+  end subroutine mpiinit
 
   !> Finalization of the mpi
   subroutine mpifinalize()
@@ -485,7 +526,7 @@ contains
 
     call MPI_FINALIZE(ierr)
     if (ierr /= MPI_SUCCESS) then
-       call f_err_throw('An error in calling to MPI_INIT_THREAD occured',&
+       call f_err_throw('An error in calling to MPI_FINALIZE occured',&
             err_id=ERR_MPI_WRAPPERS)
     end if
   end subroutine mpifinalize
@@ -512,9 +553,15 @@ contains
     call f_timing_category('Allgatherv',tgrp_mpi_name,&
          'Variable allgather operations',&
          TCAT_ALLGATHERV)
+    call f_timing_category('Allgather',tgrp_mpi_name,&
+         'Allgather operations',&
+         TCAT_ALLGATHER)
     call f_timing_category('Gather',tgrp_mpi_name,&
          'Gather operations, in general moderate size arrays',&
          TCAT_GATHER)
+    call f_timing_category('Scatter',tgrp_mpi_name,&
+         'Scatter operations, in general moderate size arrays',&
+         TCAT_SCATTER)
 
     call f_err_define(err_name='ERR_MPI_WRAPPERS',err_msg='Error of MPI library',&
          err_id=ERR_MPI_WRAPPERS,&
@@ -524,22 +571,29 @@ contains
 
   pure function mpitype_i(data) result(mt)
     implicit none
-    integer, intent(in) :: data
+    integer(kind=4), intent(in) :: data
     integer :: mt
     mt=MPI_INTEGER
   end function mpitype_i
   pure function mpitype_i1(data) result(mt)
     implicit none
-    integer, dimension(:), intent(in) :: data
+    integer(kind=4), dimension(:), intent(in) :: data
     integer :: mt
     mt=MPI_INTEGER
   end function mpitype_i1
   pure function mpitype_i2(data) result(mt)
     implicit none
-    integer, dimension(:,:), intent(in) :: data
+    integer(kind=4), dimension(:,:), intent(in) :: data
     integer :: mt
     mt=MPI_INTEGER
   end function mpitype_i2
+  pure function mpitype_i3(data) result(mt)
+    implicit none
+    integer(kind=4), dimension(:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_INTEGER
+  end function mpitype_i3
+
 
   pure function mpitype_li(data) result(mt)
     implicit none
@@ -585,6 +639,44 @@ contains
     integer :: mt
     mt=MPI_DOUBLE_PRECISION
   end function mpitype_d2
+  pure function mpitype_d3(data) result(mt)
+    implicit none
+    double precision, dimension(:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_DOUBLE_PRECISION
+  end function mpitype_d3
+  pure function mpitype_d4(data) result(mt)
+    implicit none
+    double precision, dimension(:,:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_DOUBLE_PRECISION
+  end function mpitype_d4
+
+  pure function mpitype_r1(data) result(mt)
+    implicit none
+    real, dimension(:), intent(in) :: data
+    integer :: mt
+    mt=MPI_REAL
+  end function mpitype_r1
+  pure function mpitype_r2(data) result(mt)
+    implicit none
+    real, dimension(:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_REAL
+  end function mpitype_r2
+  pure function mpitype_r3(data) result(mt)
+    implicit none
+    real, dimension(:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_REAL
+  end function mpitype_r3
+  pure function mpitype_r4(data) result(mt)
+    implicit none
+    real, dimension(:,:,:,:), intent(in) :: data
+    integer :: mt
+    mt=MPI_REAL
+  end function mpitype_r4
+
   pure function mpitype_l(data) result(mt)
     implicit none
     logical, intent(in) :: data
@@ -608,12 +700,18 @@ contains
   function mpirank(comm)
     use dictionaries, only: f_err_throw
     implicit none
-    integer, intent(in) :: comm
+    integer, intent(in), optional :: comm
     integer :: mpirank
     !local variables
-    integer :: iproc,ierr
+    integer :: iproc,ierr,mpi_comm
 
-    call MPI_COMM_RANK(comm, iproc, ierr)
+    if (present(comm)) then
+       mpi_comm=comm
+    else
+       mpi_comm=MPI_COMM_WORLD
+    end if
+
+    call MPI_COMM_RANK(mpi_comm, iproc, ierr)
     if (ierr /=0) then
        iproc=-1
        mpirank=iproc
@@ -628,13 +726,19 @@ contains
   function mpisize(comm)
     use dictionaries, only: f_err_throw
     implicit none
-    integer, intent(in) :: comm
+    integer, intent(in), optional :: comm
     integer :: mpisize
     !local variables
-    integer :: nproc,ierr
+    integer :: nproc,ierr,mpi_comm
+
+    if (present(comm)) then
+       mpi_comm=comm
+    else
+       mpi_comm=MPI_COMM_WORLD
+    end if
 
     !verify the size of the receive buffer
-    call MPI_COMM_SIZE(comm,nproc,ierr)
+    call MPI_COMM_SIZE(mpi_comm,nproc,ierr)
     if (ierr /=0) then
        nproc=0
        mpisize=nproc
@@ -689,8 +793,8 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    integer, dimension(:), intent(in) :: sendbuf
-    integer, dimension(:,:), intent(inout) :: recvbuf
+    integer(kind=4), dimension(:), intent(in) :: sendbuf
+    integer(kind=4), dimension(:,:), intent(inout) :: recvbuf
     include 'gather-inc.f90'   
   end subroutine mpigather_i1i2
 
@@ -698,8 +802,8 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    integer, dimension(:,:), intent(in) :: sendbuf
-    integer, dimension(:,:), intent(inout) :: recvbuf
+    integer(kind=4), dimension(:,:), intent(in) :: sendbuf
+    integer(kind=4), dimension(:,:), intent(inout) :: recvbuf
     include 'gather-inc.f90'   
   end subroutine mpigather_i2
 
@@ -707,8 +811,8 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    integer, dimension(:), intent(in) :: sendbuf
-    integer, dimension(:), intent(inout) :: recvbuf
+    integer(kind=4), dimension(:), intent(in) :: sendbuf
+    integer(kind=4), dimension(:), intent(inout) :: recvbuf
     include 'gather-inc.f90'   
   end subroutine mpigather_i1
 
@@ -720,6 +824,24 @@ contains
     integer(kind=8), dimension(:), intent(inout) :: recvbuf
     include 'gather-inc.f90'   
   end subroutine mpigather_li1
+
+  subroutine mpigather_li1li2(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer(kind=8), dimension(:), intent(in) :: sendbuf
+    integer(kind=8), dimension(:,:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'
+  end subroutine mpigather_li1li2
+
+  subroutine mpigather_li2(sendbuf,recvbuf,root,comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer(kind=8), dimension(:,:), intent(in) :: sendbuf
+    integer(kind=8), dimension(:,:), intent(inout) :: recvbuf
+    include 'gather-inc.f90'
+  end subroutine mpigather_li2
 
 
   subroutine mpigather_d2d1(sendbuf,recvbuf,root,comm)
@@ -746,9 +868,9 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    integer, intent(inout) :: sendbuf
+    integer(kind=4), intent(inout) :: sendbuf
     integer, intent(in) :: sendcount
-    integer, dimension(:,:), intent(inout) :: recvbuf
+    integer(kind=4), dimension(:,:), intent(inout) :: recvbuf
     !---like gather-inc
     integer, intent(in), optional :: root !< 0 if absent
     integer, intent(in), optional :: comm !< MPI_COMM_WORLD if absent
@@ -830,50 +952,83 @@ contains
     !-end gather-inc
   end subroutine mpigather_d0d2
 
-
-  !> Interface for MPI_ALLGATHERV operations
-  subroutine mpiallgatherv_double(buffer,counts,displs,me,mpi_comm,ierr)
+  !>performs gathering of array portions into a receive buffer
+  !! the arguments can be provided such as to meet either allgather
+  !! or allgatherv APIs. The wrapper chooses the better routine to call
+  !! as a function of the arguments
+  subroutine mpiallgatherv_d0(sendbuf,sendcount,recvbuf,recvcount,&
+       recvcounts,displs,comm)
+    use yaml_strings, only: yaml_toa
+    use dictionaries, only: f_err_throw
     use dynamic_memory
     implicit none
-    integer, dimension(0:), intent(in) :: counts
-    integer, dimension(:), intent(in) :: displs
-    integer, intent(in) :: mpi_comm, me
-    real(kind=8), intent(inout) :: buffer
-    integer, intent(out) :: ierr
-#ifdef HAVE_MPI2
-    call f_timer_interrupt(TCAT_ALLGATHERV)
-    !case with MPI_IN_PLACE
-    call MPI_ALLGATHERV(MPI_IN_PLACE,counts(me),mpitype(buffer),&
-         buffer,counts,displs,mpitype(buffer),mpi_comm,ierr)
-    call f_timer_resume()
-#else
-    !local variables
-    real(kind=8), dimension(:), allocatable :: copybuf
+    double precision :: sendbuf
+    double precision, intent(inout), optional :: recvbuf
+    double precision, dimension(:), allocatable :: copybuf
+    include 'allgather-inc.f90'
+  end subroutine mpiallgatherv_d0
+  subroutine mpiallgatherv_d1(sendbuf,sendcount,recvbuf,recvcount,&
+       recvcounts,displs,comm)
+    use yaml_strings, only: yaml_toa
+    use dictionaries, only: f_err_throw
+    use dynamic_memory
+    implicit none
+    double precision, dimension(:), intent(inout) :: sendbuf
+    double precision, dimension(:), intent(inout), optional :: recvbuf
+    double precision, dimension(:), allocatable :: copybuf
+    include 'allgather-inc.f90'
+  end subroutine mpiallgatherv_d1
+  subroutine mpiallgatherv_d2d3(sendbuf,sendcount,recvbuf,recvcount,&
+       recvcounts,displs,comm)
+    use yaml_strings, only: yaml_toa
+    use dictionaries, only: f_err_throw
+    use dynamic_memory
+    implicit none
+    double precision, dimension(:,:), intent(inout) :: sendbuf
+    double precision, dimension(:,:,:), intent(inout), optional :: recvbuf
+    double precision, dimension(:), allocatable :: copybuf
+    include 'allgather-inc.f90'
+  end subroutine mpiallgatherv_d2d3
 
-    !Here we have a performance penalty by copying all buffer, instead of
-    !just the send part, but I don't see how to get buffer(displs(me))
-    copybuf = f_malloc(sum(counts),id='copybuf')
 
-    call dcopy(sum(counts),buffer,1,copybuf,1) 
-    ierr=0 !put just for MPIfake compatibility
-    call f_timer_interrupt(TCAT_ALLGATHERV)
-    call MPI_ALLGATHERV(copybuf(1+displs(me+1)),counts(me),mpitype(buffer),&
-         buffer,counts,displs,mpitype(buffer),mpi_comm,ierr)
-    call f_timer_resume()
-    call f_free(copybuf)
-#endif
 
-    if (ierr /=0) stop 'MPIALLGATHERV_DBL'
-  end subroutine mpiallgatherv_double
+  subroutine mpialltoallv_int(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
+    use dictionaries, only: f_err_throw
+    use dynamic_memory
+    implicit none
+    integer,intent(in) :: sendbuf
+    integer,intent(out) :: recvbuf
+    include 'alltoallv-inc.f90'
+  end subroutine mpialltoallv_int
+
+  subroutine mpialltoallv_long(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
+    implicit none
+    integer(kind=8),intent(in) :: sendbuf
+    integer(kind=8),intent(out) :: recvbuf
+    include 'alltoallv-inc.f90'
+  end subroutine mpialltoallv_long
+
+  subroutine mpialltoallv_double(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use dynamic_memory
+    implicit none
+    double precision,intent(in) :: sendbuf
+    double precision,intent(out) :: recvbuf
+    include 'alltoallv-inc.f90'
+  end subroutine mpialltoallv_double
+
+
 
   !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
     use dictionaries, only: f_err_throw,f_err_define
     use dynamic_memory
     implicit none
-    integer, intent(inout) :: sendbuf
-    integer, intent(inout), optional :: recvbuf
-    integer, dimension(:), allocatable :: copybuf
+    integer(kind=4), intent(inout) :: sendbuf
+    integer(kind=4), intent(inout), optional :: recvbuf
+    integer(kind=4), dimension(:), allocatable :: copybuf
     include 'allreduce-inc.f90'
   end subroutine mpiallred_int
 
@@ -898,7 +1053,7 @@ contains
     include 'allreduce-inc.f90'
   end subroutine mpiallred_real
 
-  subroutine mpiallred_double(sendbuf,count,op,comm,recvbuf)
+  subroutine mpiallred_double(sendbuf,count,op,recvbuf,comm)
     use dynamic_memory
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
@@ -929,6 +1084,72 @@ contains
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_i1
 
+  subroutine mpiallred_i2(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, dimension(:,:), intent(inout) :: sendbuf
+    integer, dimension(:,:), intent(inout), optional :: recvbuf
+    integer, dimension(:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_i2
+
+  subroutine mpiallred_i3(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer, dimension(:,:,:), intent(inout) :: sendbuf
+    integer, dimension(:,:,:), intent(inout), optional :: recvbuf
+    integer, dimension(:,:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_i3
+
+ 
+  subroutine mpiallred_r1(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_refine
+    use yaml_output, only: yaml_toa
+    implicit none
+    real, dimension(:), intent(inout) :: sendbuf
+    real, dimension(:), intent(inout), optional :: recvbuf
+    real, dimension(:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_r1
+
+  subroutine mpiallred_r2(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    real, dimension(:,:), intent(inout) :: sendbuf
+    real, dimension(:,:), intent(inout), optional :: recvbuf
+    real, dimension(:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_r2
+
+  subroutine mpiallred_r3(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    real, dimension(:,:,:), intent(inout) :: sendbuf
+    real, dimension(:,:,:), intent(inout), optional :: recvbuf
+    real, dimension(:,:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_r3
+
+  subroutine mpiallred_r4(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    real, dimension(:,:,:,:), intent(inout) :: sendbuf
+    real, dimension(:,:,:,:), intent(inout), optional :: recvbuf
+    real, dimension(:,:,:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_r4
 
   subroutine mpiallred_d1(sendbuf,op,comm,recvbuf)
     use dynamic_memory
@@ -952,14 +1173,37 @@ contains
     include 'allreduce-arr-inc.f90'
   end subroutine mpiallred_d2
 
+  subroutine mpiallred_d3(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:,:,:), intent(inout) :: sendbuf
+    double precision, dimension(:,:,:), intent(inout), optional :: recvbuf
+    double precision, dimension(:,:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_d3
+
+  subroutine mpiallred_d4(sendbuf,op,comm,recvbuf)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw!,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision, dimension(:,:,:,:), intent(inout) :: sendbuf
+    double precision, dimension(:,:,:,:), intent(inout), optional :: recvbuf
+    double precision, dimension(:,:,:,:), allocatable :: copybuf  
+    include 'allreduce-arr-inc.f90'
+  end subroutine mpiallred_d4
+
   recursive subroutine mpibcast_i0(buffer,count,root,comm,check,maxdiff)
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
-    integer, intent(inout) ::  buffer 
-    integer, intent(out), optional :: maxdiff
-    integer, dimension(:), allocatable :: array_diff
+    integer(kind=4), intent(inout) ::  buffer
+    integer(kind=4), intent(out), optional :: maxdiff
+    integer(kind=4), dimension(:), allocatable :: array_diff      
     include 'bcast-decl-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_i0
@@ -968,6 +1212,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     integer(kind=8), intent(inout) ::  buffer
     integer(kind=8), intent(out), optional :: maxdiff
@@ -980,6 +1225,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     double precision, intent(inout) ::  buffer
     double precision, intent(out), optional :: maxdiff
@@ -992,6 +1238,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     character, dimension(:), intent(inout) ::  buffer 
     integer, intent(out), optional :: maxdiff
@@ -1004,6 +1251,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     integer, dimension(:), intent(inout) ::  buffer
     integer, intent(out), optional :: maxdiff      
@@ -1016,6 +1264,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     double precision, dimension(:), intent(inout) ::  buffer      
     double precision, intent(out), optional :: maxdiff
@@ -1028,6 +1277,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw
     use yaml_output !for check=.true.
+    use f_utils, only: f_zero
     implicit none
     double precision, dimension(:,:), intent(inout) ::  buffer
     double precision, intent(out), optional :: maxdiff
@@ -1035,6 +1285,16 @@ contains
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_d2
+
+
+  subroutine mpiscatter_i1i1(sendbuf, recvbuf, root, comm)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    integer,dimension(:),intent(in) :: sendbuf
+    integer,dimension(:),intent(inout) :: recvbuf
+    include 'scatter-inc.f90'
+  end subroutine mpiscatter_i1i1
 
   !> Detect the maximum difference between arrays all over a given communicator
   function mpimaxdiff_i0(n,array,root,source,comm,bcast) result(maxdiff)
@@ -1193,6 +1453,32 @@ contains
       sizeof=mpitypesize(1.d0)
   end function mpitypesize_d1
 
+  function mpitypesize_i0(foo) result(sizeof)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer, intent(in) :: foo
+    integer :: sizeof, ierr
+    
+    call mpi_type_size(mpi_integer, sizeof, ierr)
+    if (ierr/=0) then
+        call f_err_throw('Error in mpi_type_size',&
+             err_id=ERR_MPI_WRAPPERS)
+    end if
+  end function mpitypesize_i0
+
+  function mpitypesize_l0(foo) result(sizeof)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    logical, intent(in) :: foo
+    integer :: sizeof, ierr
+    
+    call mpi_type_size(mpi_logical, sizeof, ierr)
+    if (ierr/=0) then
+        call f_err_throw('Error in mpi_type_size',&
+             err_id=ERR_MPI_WRAPPERS)
+    end if
+  end function mpitypesize_l0
+
   function mpiinfo(key,val) result(info)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
@@ -1244,6 +1530,7 @@ contains
 
     call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
          sizeof, info,comm, window, ierr)
+
     if (ierr/=0) then
        call f_err_throw('Error in mpi_win_create',&
             err_id=ERR_MPI_WRAPPERS)
@@ -1260,16 +1547,87 @@ contains
     
   end function mpiwindow_d0
 
-  subroutine mpi_fenceandfree(window)
+  function mpiwindow_i0(size,base,comm) result(window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer,intent(in) :: size
+    integer,intent(in) :: base
+    integer,intent(in) :: comm
+    !local variables
+    integer :: sizeof,info,ierr
+    integer :: window
+
+    sizeof=mpitypesize(base)
+    info=mpiinfo("no_locks", "true")
+
+    call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
+         sizeof, info,comm, window, ierr)
+
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_create',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    call mpiinfofree(info)
+
+    call mpi_win_fence(MPI_MODE_NOPRECEDE, window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    
+  end function mpiwindow_i0
+
+  function mpiwindow_l0(size,base,comm) result(window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    integer,intent(in) :: size
+    logical,intent(in) :: base
+    integer,intent(in) :: comm
+    !local variables
+    integer :: sizeof,info,ierr
+    integer :: window
+
+    sizeof=mpitypesize(base)
+    info=mpiinfo("no_locks", "true")
+
+    call mpi_win_create(base, int(size,kind=mpi_address_kind)*int(sizeof,kind=mpi_address_kind), &
+         sizeof, info,comm, window, ierr)
+
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_create',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    call mpiinfofree(info)
+
+    call mpi_win_fence(MPI_MODE_NOPRECEDE, window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    
+  end function mpiwindow_l0
+
+  subroutine mpi_fenceandfree(window, assert)
     use dictionaries, only: f_err_throw,f_err_define
     ! Calling arguments
     integer,intent(inout) :: window !<window to be synchronized and freed
+    integer,intent(in),optional :: assert
 
     ! Local variables
-    integer :: ierr
+    integer :: ierr, assert_
+
+    if (present(assert)) then
+        assert_ = assert
+    else
+        assert_ = 0
+    end if
 
     ! Synchronize the communication
-    call mpi_win_fence(0, window, ierr)
+    call mpi_win_fence(assert_, window, ierr)
     if (ierr/=0) then
        call f_err_throw('Error in mpi_win_fence',&
             err_id=ERR_MPI_WRAPPERS)  
@@ -1303,8 +1661,6 @@ contains
     use dictionaries, only: f_err_throw,f_err_define
     use yaml_output, only: yaml_toa
     implicit none
-    !!double precision,dimension(:),intent(in) :: sendbuf
-    !!double precision,dimension(:),intent(inout) :: recvbuf
     double precision,intent(in) :: sendbuf
     double precision,intent(inout) :: recvbuf
     integer,dimension(:),intent(in) :: recvcounts, displs
@@ -1336,40 +1692,52 @@ contains
        end if
     end if
 
-
     if (present(window_)) then
         window_ => window
     end if
-    !else
     window = mpiwindow(sendcount,sendbuf,comm)
-    !end if
 
 
     call getall_d(nproc,recvcounts,displs,window,nrecvbuf,recvbuf)
 
     if (.not. present(window_)) then
         call mpi_fenceandfree(window)
-       !!! Synchronize the communication
-       !!call mpi_win_fence(0, window, ierr)
-       !!if (ierr/=0) then
-       !!   call f_err_throw('Error in mpi_win_fence',&
-       !!        err_id=ERR_MPI_WRAPPERS)  
-       !!end if
-       !!call mpi_win_free(window, ierr)
-       !!if (ierr/=0) then
-       !!   call f_err_throw('Error in mpi_win_fence',&
-       !!        err_id=ERR_MPI_WRAPPERS)  
-       !!end if
     end if
 
   end subroutine mpi_get_to_allgatherv_double
 
+
+  subroutine mpiaccumulate_double(origin_addr, origin_count, target_rank, target_disp, target_count, op, wind)
+    use dictionaries, only: f_err_throw,f_err_define
+    use yaml_output, only: yaml_toa
+    implicit none
+    double precision,intent(in) :: origin_addr
+    integer,intent(in) :: origin_count, target_rank, target_count, op
+    integer(kind=mpi_address_kind),intent(in) :: target_disp
+    integer,intent(inout) :: wind
+    !local variables
+    integer :: nproc,jproc,nrecvbuf,ierr
+    external :: getall
+    logical :: check
+    integer,target:: window
+
+
+    call mpi_accumulate(origin_addr, origin_count, mpitype(origin_addr), &
+         target_rank, target_disp, target_count, mpitype(origin_addr), op, wind, ierr)
+    if (ierr/=0) then
+       call f_err_throw('An error in calling to MPI_ACCUMULATE occured',&
+            err_id=ERR_MPI_WRAPPERS)
+       return
+    end if
+
+  end subroutine mpiaccumulate_double
   
-  subroutine mpiiallred_double(sendbuf, recvbuf, ncount, datatype, op, comm, request)
+
+  subroutine mpiiallred_double(sendbuf, recvbuf, ncount, op, comm, request)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
     ! Calling arguments
-    integer,intent(in) :: ncount, datatype, op, comm
+    integer,intent(in) :: ncount, op, comm
     double precision,intent(in) :: sendbuf
     double precision,intent(out) :: recvbuf
     integer,intent(out) :: request
@@ -1377,14 +1745,14 @@ contains
     integer :: ierr
 
 #ifdef HAVE_MPI3
-    call mpi_iallreduce(sendbuf, recvbuf, ncount, datatype, op, comm, request, ierr)
+    call mpi_iallreduce(sendbuf, recvbuf, ncount, mpitype(sendbuf), op, comm, request, ierr)
     if (ierr/=0) then
        call f_err_throw('An error in calling to MPI_IALLREDUCE occured',&
             err_id=ERR_MPI_WRAPPERS)
        return
     end if
 #else
-    call mpi_allreduce(sendbuf, recvbuf, ncount, datatype, op, comm, ierr)
+    call mpi_allreduce(sendbuf, recvbuf, ncount, mpitype(sendbuf), op, comm, ierr)
     if (ierr/=0) then
        call f_err_throw('An error in calling to MPI_ALLREDUCE occured',&
             err_id=ERR_MPI_WRAPPERS)

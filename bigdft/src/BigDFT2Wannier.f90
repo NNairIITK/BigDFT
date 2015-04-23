@@ -11,7 +11,7 @@
 !> Program to calculate all quantities needed by Wannier90
 program BigDFT2Wannier
 
-   use BigDFT_API
+   use BigDFT_API, int_iter => int
    use bigdft_run
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_interfaces
@@ -108,12 +108,6 @@ program BigDFT2Wannier
    call dict_free(user_inputs)
    call dict_free(options)
 
-!!$   if (input%verbosity > 2) then
-!!$      nproctiming=-nproc !timing in debug mode
-!!$   else
-!!$      nproctiming=nproc
-!!$   end if
-
    !call timing(nproctiming,'b2w_time.prc','IN')
    call f_timing_reset(filename=trim(input%dir_output)//'b2w_time.yaml',&
         master=iproc==0,&
@@ -135,10 +129,6 @@ program BigDFT2Wannier
          call yaml_comment('is smaller than number of desired states' // trim(yaml_toa(n_virt)))
          call yaml_comment('CORRECTION: Increase total number of virtual states')
          call yaml_comment('or decrease the number of desired states')
-         !write(*,'(A,1x,I4)') 'ERROR: total number of virtual states :',n_virt_tot
-         !write(*,'(A,1x,I4)') 'smaller than number of desired states:',n_virt
-         !write(*,'(A)') 'CORRECTION: Increase total number of virtual states'
-         !write(*,'(A)') 'or decrease the number of desired states'
       end if
       call mpi_finalize(ierr)
       stop
@@ -205,7 +195,7 @@ program BigDFT2Wannier
    call read_nnkp_int_alloc(iproc,seedname, n_kpts, n_proj, n_nnkpts, n_excb)
    call allocate_initial()
    call orbitals_descriptors(iproc,nproc,n_proj,n_proj,0,1,1,&
-        1,(/ 0.0_dp,0.0_dp,0.0_dp /),(/0.0_dp/),orbsp,.false.) 
+        1,(/ 0.0_dp,0.0_dp,0.0_dp /),(/0.0_dp/),orbsp,LINEAR_PARTITION_NONE) 
    if(residentity) n_virt = n_proj
 
    ! Set-up number of virtual states
@@ -221,7 +211,7 @@ program BigDFT2Wannier
    end if
    if (input%nspin==2) nvirtd=nvirtu
    call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-      &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
+      & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,LINEAR_PARTITION_NONE)
 
    ! Read Wannier90 .nnkp file.
    ! The most important informations to be read are : 
@@ -488,7 +478,7 @@ program BigDFT2Wannier
 
       !Setup the description of the new subspace (they are similar to orbitals)
       call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb,.false.)
+           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb,LINEAR_PARTITION_NONE)
 
       ! Initialise the arrays n_bands_par, isband_par
       call split_vectors_for_parallel(iproc,nproc,n_virt,orbsv)

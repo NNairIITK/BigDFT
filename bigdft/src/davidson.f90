@@ -18,6 +18,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    use module_xc
    use yaml_output
    use communications, only: transpose_v, untranspose_v
+   use rhopotential, only: full_local_potential
    implicit none
    integer, intent(in) :: iproc,nproc,nvirt
    type(input_variables), intent(in) :: in
@@ -26,7 +27,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    type(denspot_distribution), intent(in) :: dpcom
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   type(coulomb_operator), intent(in) :: pkernel
+   type(coulomb_operator), intent(inout) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
    type(xc_info), intent(in) :: xc
@@ -404,6 +405,7 @@ subroutine davidson(iproc,nproc,in,at,&
    use yaml_output
    use communications_base, only: comms_cubic
    use communications, only: transpose_v, untranspose_v
+   use rhopotential, only: full_local_potential
    implicit none
    integer, intent(in) :: iproc,nproc
    integer, intent(in) :: nvirt
@@ -415,7 +417,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(comms_cubic), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   type(coulomb_operator), intent(in) :: pkernel
+   type(coulomb_operator), intent(inout) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
    type(GPU_pointers), intent(inout) :: GPU
@@ -650,7 +652,7 @@ subroutine davidson(iproc,nproc,in,at,&
    if(nproc > 1)then
       !sum up the contributions of nproc sets with 
       !commsv%nvctr_par(iproc,1) wavelet coefficients each
-      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+      call mpiallred(e,MPI_SUM,comm=bigdft_mpi%mpi_comm)
    end if
 
    !if(iproc==0)write(*,'(1x,a)')"done."
@@ -755,7 +757,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
       end if
 
       gnrm=0._dp
@@ -833,7 +835,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
          end if
 
          gnrm=0._dp
@@ -947,7 +949,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
          end if
 
          gnrm=0.0_dp
@@ -996,7 +998,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+         call mpiallred(hamovr,MPI_SUM,comm=bigdft_mpi%mpi_comm)
       end if
 
       !if(iproc==0)write(*,'(1x,a)')"done."
@@ -1846,8 +1848,12 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
   use module_base, only: gp,wp
   use locregs, only: locreg_descriptors
   use module_types, only: atoms_data,orbitals_data
+  use module_interfaces
   implicit none
-  integer, intent(in) :: nplot !<number of eigenfuncitions to be plotted close to the fermi level
+  !>number of eigenfuncitions to be plotted close to the fermi level
+  !! in the case of negative nplot, only the occupied orbitals are plotted
+  !! and the vitual orbitals are neglected
+  integer, intent(in) :: nplot 
   type(atoms_data), intent(in) :: at !<descriptor of atomic properties
   type(orbitals_data), intent(in) :: orbs,orbsv !<orbitals, occupied and virtual respectively
   type(locreg_descriptors), intent(in) :: lr !<localization regions of the wavefunctions
@@ -1867,7 +1873,7 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
   !add a modulo operator to get rid of the particular k-point
   do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
 
-     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot)) then
+     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot) .or. nplot < 0) then
         exit 
         !if(iproc == 0 .and. abs(nplot) > 0) write(*,'(A)')'No plots of occupied orbitals requested.'
      end if
@@ -1878,8 +1884,8 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
      write(denname,'(A,i4.4)')trim(dir_output)//'denvirt',iorb+orbsv%isorb
      !write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
 
-     call plot_wf(trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
-     call plot_wf(trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
+     call plot_wf(.false.,trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
+     call plot_wf(.false.,trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
 
   end do
 
@@ -1891,8 +1897,8 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
         write(denname,'(A,i4.4)')trim(dir_output)//'densocc',iorb+orbs%isorb
         !write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
 
-        call plot_wf(trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
-        call plot_wf(trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+        call plot_wf(.false.,trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+        call plot_wf(.false.,trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
 
      endif
   end do

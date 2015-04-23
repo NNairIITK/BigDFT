@@ -43,6 +43,19 @@ module metadata_interfaces
        integer(kind=8), intent(out) :: iadd
      end subroutine geti4
 
+     ! long integer arrays
+     subroutine getil1(array,iadd)
+       implicit none
+       integer(kind=8), dimension(:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getil1
+
+     subroutine getil2(array,iadd)
+       implicit none
+       integer(kind=8), dimension(:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getil2
+
      !character templates, not the length is added
      subroutine getc1(length,array,iadd)
        implicit none
@@ -86,6 +99,12 @@ module metadata_interfaces
        real, dimension(:,:,:), allocatable, intent(in) :: array
        integer(kind=8), intent(out) :: iadd
      end subroutine getr3
+
+     subroutine getr4(array,iadd)
+       implicit none
+       real, dimension(:,:,:,:), allocatable, intent(in) :: array
+       integer(kind=8), intent(out) :: iadd
+     end subroutine getr4
 
      subroutine getdp1(array,iadd)
        implicit none
@@ -231,12 +250,13 @@ module metadata_interfaces
 
 interface pad_array
   module procedure pad_i1,pad_i2,pad_i3,pad_i4
+!  module procedure pad_il1, pad_il2
   module procedure pad_c1
   module procedure pad_l1,pad_l2,pad_l3
-  module procedure pad_r1,pad_r2,pad_r3
+  module procedure pad_r1,pad_r2,pad_r3,pad_r4
   module procedure pad_dp1,pad_dp2,pad_dp3,pad_dp4,pad_dp5,pad_dp6,pad_dp7
   module procedure pad_z1,pad_z2,pad_z3 
-  module procedure pad_li1,pad_li2
+  module procedure pad_li1,pad_li2,pad_li3,pad_li4
 end interface
 
 !>procedure to retrieve the value of the address of the first element of an array
@@ -244,18 +264,21 @@ end interface
 !!not standard
 interface loc_arr
    module procedure la_i1,la_i2,la_i3,la_i4
-   module procedure la_r1,la_r2,la_r3
+!   module procedure la_il1, la_il2
+   module procedure la_r1,la_r2,la_r3,la_r4
    module procedure la_d1,la_d2,la_d3,la_d4,la_d5,la_d6,la_d7
    module procedure la_l1,la_l2,la_l3
    module procedure la_z1,la_z2,la_z3
    module procedure la_c1
-   module procedure la_li1,la_li2
+   module procedure la_li1,la_li2,la_li3,la_li4
 end interface
 
-public :: pad_array,geti1,geti2,geti3,geti4
+public :: pad_array
+public :: geti1,geti2,geti3,geti4
+public :: getil1, getil2
 public :: getc1
 public :: getl1,getl2,getl3
-public :: getr1,getr2,getr3
+public :: getr1,getr2,getr3,getr4
 public :: getdp1,getdp2,getdp3,getdp4,getdp5,getdp6,getdp7!,getlongaddress
 public :: getz2,getz3
 public :: getdp1ptr,getdp2ptr,getdp3ptr,getdp4ptr,getdp5ptr,getdp6ptr
@@ -272,7 +295,7 @@ contains
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
     integer, dimension(1), intent(in) :: shp
-    integer, dimension(shp(1)+ndebug), intent(out) :: array
+    integer(kind=4), dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,shp(1),shp(1)+ndebug)
 
@@ -283,7 +306,7 @@ contains
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
     integer, dimension(2), intent(in) :: shp
-    integer, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
+    integer(kind=4), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
 
@@ -294,7 +317,7 @@ contains
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
     integer, dimension(3), intent(in) :: shp
-    integer, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
+    integer(kind=4), dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
 
@@ -305,11 +328,33 @@ contains
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
     integer, dimension(4), intent(in) :: shp
-    integer, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
+    integer(kind=4), dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
 
   end subroutine pad_i4
+
+!!$  subroutine pad_il1(array,init_to_zero,shp,ndebug)
+!!$    implicit none
+!!$    logical, intent(in) :: init_to_zero
+!!$    integer, intent(in) :: ndebug
+!!$    integer, dimension(1), intent(in) :: shp
+!!$    integer(kind=8), dimension(shp(1)+ndebug), intent(out) :: array
+!!$    
+!!$    call pad_integerlong(array,init_to_zero,shp(1),shp(1)+ndebug)
+!!$
+!!$  end subroutine pad_il1
+!!$
+!!$  subroutine pad_il2(array,init_to_zero,shp,ndebug)
+!!$    implicit none
+!!$    logical, intent(in) :: init_to_zero
+!!$    integer, intent(in) :: ndebug
+!!$    integer, dimension(2), intent(in) :: shp
+!!$    integer(kind=8), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
+!!$    
+!!$    call pad_integerlong(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
+!!$
+!!$  end subroutine pad_il2
 
   subroutine pad_c1(array,init_to_zero,shp,ndebug)
     implicit none
@@ -389,6 +434,19 @@ contains
          product(shp(1:2))*(shp(3)+ndebug))
 
   end subroutine pad_r3
+
+  subroutine pad_r4(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(4), intent(in) :: shp
+    real, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
+
+    call pad_simple(array,init_to_zero,product(shp),&
+         product(shp(1:3))*(shp(4)+ndebug))
+
+  end subroutine pad_r4
+
 
   subroutine pad_dp1(array,init_to_zero,shp,ndebug)
     implicit none
@@ -522,6 +580,29 @@ contains
 
   end subroutine pad_li2
 
+  subroutine pad_li3(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(3), intent(in) :: shp
+    integer(kind=8), dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
+
+    call pad_longinteger(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
+
+  end subroutine pad_li3
+
+  subroutine pad_li4(array,init_to_zero,shp,ndebug)
+    implicit none
+    logical, intent(in) :: init_to_zero
+    integer, intent(in) :: ndebug
+    integer, dimension(4), intent(in) :: shp
+    integer(kind=8), dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
+
+    call pad_longinteger(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
+
+  end subroutine pad_li4
+
+
 
   subroutine pad_double(array,init,ndim_tot,ndim_extra)
     implicit none
@@ -589,7 +670,7 @@ contains
     implicit none
     logical, intent(in) :: init
     integer, intent(in) :: ndim_tot, ndim_extra
-    integer, dimension(ndim_extra), intent(out) :: array
+    integer(kind=4), dimension(ndim_extra), intent(out) :: array
     !local variables
     integer :: i
 
@@ -750,28 +831,40 @@ contains
   !loc array functions
   function la_i1(array) result(la)
     implicit none
-    integer, dimension(:), intent(in) :: array
+    integer(kind=4), dimension(:), intent(in) :: array
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1))
   end function la_i1
   function la_i2(array) result(la)
     implicit none
-    integer, dimension(:,:), intent(in) :: array
+    integer(kind=4), dimension(:,:), intent(in) :: array
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1))
   end function la_i2
   function la_i3(array) result(la)
     implicit none
-    integer, dimension(:,:,:), intent(in) :: array
+    integer(kind=4), dimension(:,:,:), intent(in) :: array
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1,1))
   end function la_i3
   function la_i4(array) result(la)
     implicit none
-    integer, dimension(:,:,:,:), intent(in) :: array
+    integer(kind=4), dimension(:,:,:,:), intent(in) :: array
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1,1,1))
   end function la_i4
+!!$  function la_il1(array) result(la)
+!!$    implicit none
+!!$    integer(kind=8), dimension(:), intent(in) :: array
+!!$    include 'getadd-c-inc.f90' 
+!!$    la=f_loc(array(1))
+!!$  end function la_il1
+!!$  function la_il2(array) result(la)
+!!$    implicit none
+!!$    integer(kind=8), dimension(:,:), intent(in) :: array
+!!$    include 'getadd-c-inc.f90' 
+!!$    la=f_loc(array(1,1))
+!!$  end function la_il2
   function la_r1(array) result(la)
     implicit none
     real, dimension(:), intent(in) :: array
@@ -790,6 +883,13 @@ contains
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1,1))
   end function la_r3
+  function la_r4(array) result(la)
+    implicit none
+    real, dimension(:,:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90' 
+    la=f_loc(array(1,1,1,1))
+  end function la_r4
+
   function la_d1(array) result(la)
     implicit none
     double precision, dimension(:), intent(in) :: array
@@ -886,6 +986,19 @@ contains
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1))
   end function la_li2
+  function la_li3(array) result(la)
+    implicit none
+    integer(kind=8), dimension(:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90'
+    la=f_loc(array(1,1,1))
+  end function la_li3
+  function la_li4(array) result(la)
+    implicit none
+    integer(kind=8), dimension(:,:,:,:), intent(in) :: array
+    include 'getadd-c-inc.f90'
+    la=f_loc(array(1,1,1,1))
+  end function la_li4
+
 
 
 end module metadata_interfaces

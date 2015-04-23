@@ -296,7 +296,7 @@ subroutine zero_work_arrays_locham(lr,nspinor,w)
   implicit none
   integer, intent(in) :: nspinor
   type(locreg_descriptors), intent(in) :: lr
-  type(workarr_locham), intent(out) :: w
+  type(workarr_locham), intent(inout) :: w
   !local variables
   integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
@@ -425,12 +425,12 @@ subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
 
         call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-             hgrids(1),&        !here the grid spacings are supposed to be equal
+             hgrids(1),hgrids(2),hgrids(3), &        !here the grid spacings are supposed to be equal. SM: not any more
              lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
              w%x_c(1,idx),w%x_f(1,idx),&
              w%y_c(1,idx),w%y_f(1,idx),ekino, &
-             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
+             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),111)
         ekin=ekin+ekino
 
         !new compression routine in standard form
@@ -650,6 +650,7 @@ subroutine daub_to_isf_locham(nspinor,lr,w,psi,psir)
   integer :: idx,i,i_f,iseg_f
   real(wp), dimension(0:3) :: scal
 
+
   do i=0,3
      scal(i)=1.0_wp
   enddo
@@ -799,12 +800,12 @@ subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_s
 
         call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
              lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-             hx,&        !here the grid spacings are supposed to be equal
+             hx,hy,hz,&      !here the grid spacings are supposed to be equal.  SM: not any more
              lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
              lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
              w%x_c(1,idx),w%x_f(1,idx),&
              w%y_c(1,idx),w%y_f(1,idx),ekino, &
-             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
+             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),111)
         ekin=ekin+ekino
 
         !new compression routine in standard form
@@ -1243,6 +1244,8 @@ subroutine daub_to_isf(lr,w,psi,psir)
   integer :: i,i_f,iseg_f
   real(wp), dimension(0:3) :: scal
 
+  call f_routine(id='daub_to_isf')
+
   i_f=min(lr%wfd%nvctr_f,1)
   iseg_f=min(lr%wfd%nseg_f,1)
 
@@ -1307,6 +1310,8 @@ subroutine daub_to_isf(lr,w,psi,psir)
           psir) 
 
   end select
+
+  call f_release_routine()
 
 END SUBROUTINE daub_to_isf
 

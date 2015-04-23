@@ -39,11 +39,18 @@ Keys to ignore:
  - Size of the global database
  - Total No. of Taskgroups created
  - sparse matmul load balancing naive / optimized
+ - preconditioning load balancing before
+ - preconditioning load balancing after
+ - preconditioning load balancing min/max before # to be deleted as soon as refs are updated
+ - preconditioning load balancing min/max after # to be deleted as soon as refs are updated
+ - task with max load
+ - nonlocal forces; maximal number of atoms per iteration, number of iterations
  - number of taskgroups
  - taskgroups overview
  - outdir
  - Atomic positions within the cell (Atomic and Grid Units)
  - Rigid Shift Applied (AU)
+ - Walltime since initialization
  #- number of tasks
  #- IDs
  #- start / end
@@ -77,6 +84,7 @@ yaml_test:
    - Elapsed time (ns)
    - Elapsed time (mus)
    - Test for pid
+   - loc of address and metadata
  Patterns to ignore:
    - errcode
    - Time
@@ -117,6 +125,7 @@ SiBulk:
  Optimization of virtual orbitals: 7.0101e-8
  e_occupied: 1.42e-11
  Orbitals: 1.42e-11	
+ GPa: 2.0e-9
  # Necessary for GPU runs, to be updated...
  Keys to ignore:
   - Residues per orbital
@@ -165,6 +174,7 @@ TiMix:
 
 GEOPT-BFGS: 
  Epsilon: 2.71e-10
+ Mg: 1.01e-9
 
 GEOPT-LBFGS: 
  Epsilon: 4.8e-10
@@ -175,6 +185,7 @@ GEOPT-LBFGS:
  Eion: 8.5e-10
  Enl: 1.33e-9
  DIIS weights: 1.1e-5
+ Mg: 1.01e-9
  
 NaCl:
  Epsilon: 2.e-9
@@ -213,6 +224,7 @@ ElecField:
 FeHyb:
  EKS: 6.e-11
  y: 1.51e-11
+ Energy (Hartree): 1.15e-11 
 
 
 Li+:
@@ -243,6 +255,7 @@ TiSmear:
 
 H2O-CP2K:
  Total energy with tail correction: 1.8e-11
+ Epot: 1.01e-10
 
 test.splsad.ref.yaml:
  Epsilon: 1.1e-10
@@ -250,7 +263,7 @@ test.splsad.ref.yaml:
 
 test.minhop.ref.yaml:
  Energies: &etol1 6.0e-9
- Eion: &eion1 4.1e-11
+ Eion: &eion1 5.1e-11
  EH: *etol1
  EXC: *etol1
  Ekin: *etol1
@@ -261,10 +274,11 @@ test.minhop.ref.yaml:
  Ion-Ion interaction energy: *eion1
  fluct: 1.2e-9
  maxval: 7.1e-11
- Atomic Forces (Ha/Bohr): 2.0e-11
- Average noise forces: 1.0e-10
+ Atomic Forces (Ha/Bohr): 5.1e-11
+ Average noise forces: 1.1e-10
  etot: 1.85e-11
  Orbitals: 6.1e-9
+ Positions: 1.1e-9
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -277,22 +291,34 @@ H2O-bader:
  Epsilon: 3.0e-11
  EKS: 6.0e-11
 
-H2O-CP2K:
- Total energy with tail correction: 1.8e-11
-
 N2:
  Epsilon: 1.2e-10
 
 mixpotential:
  Epot: 1.1e-10
- energy: 7.1e-11
- Omega: 6.7e-11
+ energy: 7.5e-11
+ Omega: 7.4e-11
  Ekin: 1.1e-10
  EXC: 1.1e-10
+ EvXC: 1.1e-10
  Enl: 2.1e-11
+ Energy (Hartree): 1.4e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
+ GPa: 1.8e-5
+
+IO-wf_plain:
+ GPa: 3.9e-5
+
+IO-wf_binary-read:
+ GPa: 1.8e-5
+
+IO-wf_binary:
+ GPa: 3.9e-5
+
+NEB.NEB.ref.yaml:
+  Energy (eV): 4.7e-9
 
 CH4-D3:
  EH: &ener 1.1e-10
@@ -304,12 +330,14 @@ CH4-D3:
  etot: 2.92e-11
  Etot: 2.9e-11
  Ion-Ion interaction energy: 9.0e-11
+ Energy (Hartree): 1.22e-11
 
 NLCC: &NLCCs
  Energies: 1.2e-10
  EKS: 5.9e-11
  Total electronic charge: 1.2e-11
  norm(P): 1.0e-10
+ GPa: 3.0e-11
 
 NLCC: &NLCCsnew
  EH: 5.1e-10
@@ -327,6 +355,7 @@ NLCC: &NLCCsnew
  PV (Ha): 5.9e-11
  Exc(rhoc): 3.8e-9
  norm(P): 1.0e-10
+ GPa: 1.6e-10
 
 #deepcopy of the above defined cases
 NLCC_free-O2: *NLCCs
@@ -347,10 +376,16 @@ base:
   Ekin: 1.1e-10
   energy: 1.4e-11
   Omega: 1.32e-11
+  charge diff: 1.4e-11
+  trace(KS): 4.1e-11
+  D Tr: 4.1e-11
 
 Davidson-SiH4:
   e_virtual: 1.7e-11
   Eigenvalues and eigenstate residue: 1.8e-10
+
+SIC_PZ:
+  EH: 1.001e-10
 
 TDDFT:
   Epsilon: 1.1e-10
@@ -381,6 +416,12 @@ cleanup:
  Omega: 2.12e-9
  Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.3e-9
+ Energy (Hartree): 1.8e-10
+ ebs_check: 3.4e-10
+ charge diff: 5.5e-9
+ Tr(K): 6.1e-9
+ guess for new ef: 1.0e-10
+ eF: 4.0e-11
 
 directmin:
  Patterns to ignore:
@@ -388,7 +429,8 @@ directmin:
  Epsilon: 3.5e-10
  mean alpha: 1.1e-04
  max alpha: 1.1e-04
- Ekin: 5.1e-10
+ Ekin: 6.1e-10
+ eBS: 6.1e-10
  norm(P): 1.1e-7
 
 experimentalmode:
@@ -425,6 +467,8 @@ H2-freq: &freq
  D: 1.e-10
  EKS: 2.6e-11
  (F) Vibrational entropy: 1.1e-8
+ (F) Frequencies (THz): 4.8e-3
+ (F) Frequencies (cm-1): 4.9e-3
 
 C6H6-freq: *freq
 
@@ -437,6 +481,7 @@ rotate_read1:
  energydiff: 8.3e-11
  Omega: 8.1e-11
  D: 1.1e-10
+ Energy (Hartree): 2.6e-11
 
 rotate_read2:
  eBS: 2.6e-11
@@ -445,6 +490,7 @@ rotate_read2:
  energy: 7.4e-11
  Omega: 7.1e-11
  Epot: 1.1e-9
+ Energy (Hartree): 3.3e-11
  
 rotate_write:
  EvXC: 1.1e-10
@@ -486,15 +532,16 @@ molecule_dmix:
  EvXC: 1.2e-9
  EH: 1.1e-08
  Ekin: 1.1e-8
- Epot: 7.1e-09
- energy: 3.6e-10
- Omega: 6.2e-9
+ Epot: 9.1e-09
+ energy: 5.5e-10
+ Omega: 1.4e-8
  Atomic Forces (Ha/Bohr): 4.7e-11
  Clean forces norm (Ha/Bohr): 5.1e-11
  Raw forces norm (Ha/Bohr): 6.2e-11
  Average noise forces: 1.1e-8
  e: 1.4e-10
  Total charge: 1.1e-08
+ Energy (Hartree): 8.4e-11
 
 molecule_pmix:
  EXC: 1.1e-9
@@ -502,15 +549,17 @@ molecule_pmix:
  EH: 1.1e-8
  Ekin: 1.1e-08
  Enl: 6.6e-09
- Epot: 7.1e-9
+ Epot: 9.1e-9
  Total charge: 1.1e-10
  energy: 8.9e-9
- Omega: 6.2e-9
- Epot: 7.1e-09
+ Omega: 1.4e-8
+ Epot: 9.1e-09
  Atomic Forces (Ha/Bohr): 4.6e-11
  Clean forces norm (Ha/Bohr): 5.0e-11
  e: 1.4e-10
  Raw forces norm (Ha/Bohr): 6.2e-11
+ Energy (Hartree): 8.3e-11
+ Average noise forces: 1.1e-10
 
 molecule_dmin:
  Enl: 6.6e-9
@@ -518,14 +567,15 @@ molecule_dmin:
  EvXC: 1.2e-9
  EH: 1.1e-08
  Ekin: 1.1e-08
- Epot: 7.1e-09
- energydiff: 2.2e-10
+ Epot: 9.1e-09
+ energydiff: 4.1e-10
  energy: 8.1e-9
- Omega: 6.2e-9
+ Omega: 1.4e-8
  Total charge: 1.1e-10
  eBS: 7.2e-9
  e: 1.4e-10
  Average noise forces: 4.1e-11
+ Energy (Hartree): 5.0e-11
 
 molecule_foe:
  Enl: 6.6e-9
@@ -538,12 +588,16 @@ molecule_foe:
  energy: 6.9e-10
  Omega: 8.6e-9
  Total charge: 2.5e-10
- eF: 3.0e-9
- guess for new ef: 3.0e-9
- D eF: 3.0e-9
+ eF: 5.0e-9
+ guess for new ef: 5.0e-9
+ D eF: 5.3e-9
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
+ ebs_check: 5.0e-10
+ ebs: 5.0e-10
+ Energy (Hartree): 5.1e-11
+ diff: 1.7e-11
 
 hybrid-directmin:
  Epsilon: 1.4e-11
@@ -561,6 +615,7 @@ hybrid-directmin:
  Clean forces norm (Ha/Bohr): 8.0e-11
  Raw forces norm (Ha/Bohr): 3.3e-11
  Average noise forces: 1.1e-10
+ Energy (Hartree): 2.3e-11
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -571,6 +626,7 @@ cdft_oh-:
 
 cdft_oh-a:
  EH: 1.1e-10
+ Epot: 1.01e-10
 
 fructose:
  Epot: 1.1e-09
@@ -585,8 +641,8 @@ fructose:
  guess for new ef: 5.4e-5
  EH: 1.01e-9
  EvXC: 1.1e-10
- energy: 1.43e-10
- Omega: 1.41e-10
+ energy: 1.44e-10
+ Omega: 1.44e-10
  Tr(K): 5.0e-06
  tr(KS) before purification: 1.9e-6
  Total charge: 2.1e-10
@@ -595,15 +651,19 @@ fructose:
  ebs: 1.1e-8
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
+ Energy (Hartree): 4.7e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
 
+GEOPT-all_lbfgs:
+ Epot: 2.01e-11
+
 geopt_foe:
  D eF: 7.1e-6
  D: 1.e-10
- eF: 2.4e-7
- guess for new ef: 2.4e-7
+ eF: 2.5e-7
+ guess for new ef: 2.5e-7
  Epot: 1.1e-10
  EH: 1.1e-10
  Ekin: 1.1e-10
@@ -636,11 +696,15 @@ water_foe:
  Omega: 1.7e-10
  etot: 1.6e-10
  D: 1.1e-9
- charge diff: 2.1e-9
+ charge diff: 3.9e-8
  eF: 2.4e-8
  D eF: 2.3e-8
  D Tr: 3.1e-11
- guess for new ef: 1.1e-9
+ guess for new ef: 4.1e-9
+ Tr(K): 1.1e-7
+ ebs_check: 1.6e-11
+ Energy (Hartree): 5.0e-11
+ diff: 1.4e-11
 
 water_dirmin:
  max alpha: 1.1e-04
@@ -654,6 +718,7 @@ water_dirmin:
  etot: 1.7e-10
  energydiff: 2.6e-11
  D: 1.1e-09
+ Energy (Hartree): 4.6e-11
  Keys to ignore:
   - WARNINGS
 
@@ -662,13 +727,14 @@ water_mixdens:
  EXC: 1.1e-10
  EH: 1.0e-9
  Epot: 1.1e-9
- D: 1.1e-10
+ D: 1.1e-9
  max alpha: 1.1e-4
  mean alpha: 1.1e-4
  energy: 1.8e-10
  energydiff: 2.5e-11
  etot: 1.7e-10
  Omega: 1.7e-10
+ Energy (Hartree): 4.8e-11
  Keys to ignore:
   - WARNINGS
 
@@ -682,6 +748,7 @@ water_mixpot:
  energy: 1.8e-10
  Omega: 1.8e-10
  etot: 1.8e-10
+ Energy (Hartree): 5.2e-11
  Keys to ignore:
   - WARNINGS
 
@@ -699,8 +766,9 @@ deltascf_read_charge:
  Clean forces norm (Ha/Bohr): 2.1e-10
  e: 3.8e-11
  Omega: 3.2e-10
- Raw forces norm (Ha/Bohr): 1.6e-10
+ Raw forces norm (Ha/Bohr): 2.1e-10
  EH: 1.1e-9
+ Energy (Hartree): 1.3e-10
 
 deltascf_write_neut:
  eBS: 6.1e-9
@@ -715,6 +783,7 @@ deltascf_write_neut:
  Enl: 4.1e-9
  energy: 2.4e-10
  D: 6.1e-9
+ Energy (Hartree): 4.6e-11
 
 foe:
  Epot: 1.1e-10
@@ -741,6 +810,8 @@ foe:
  diff: 7.1e-8
  ebs_check: 1.1e-10
  guess for new ef: 4.2e-8
+ D: 1.1e-10
+ Energy (Hartree): 2.7e-11
 
 onlyhigh:
  Energies: 2.1e-9
@@ -812,6 +883,8 @@ experimentalfoe_long:
  ebs: 6.0e-10
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
+ relative diff: 2.1e-11
+ Energy (Hartree): 9.8e-11
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -836,6 +909,7 @@ experimentalfoe_short:
  diff from idempotency: 3.1e-09
  D: 1.1e-4
  decay length of error function: 1.1e-5
+ Energy (Hartree): 1.4e-11
 
 experimentalfoe_medium:
  charge diff: 2.5e-7
@@ -854,6 +928,7 @@ experimentalfoe_medium:
  energy: 2.9e-10
  Omega: 8.1e-10
  decay length of error function: 1.1e-5
+ Energy (Hartree): 1.4e-10
 
 newpulay:
  EXC: 1.1e-10
@@ -884,27 +959,69 @@ paracetamol:
  ebs: 7.5e-7
  diff: 7.5e-7
  relative diff: 1.9e-6
-
-reformatcomplete_write:
- Epot: 1.1e-10
+ Energy (Hartree): 1.3e-11
 
 reformatcomplete_read35:
- energy: 5.4e-11
- Omega: 5.4e-11
+ energy: 8.7e-10
+ Omega: 4.7e-10
+ Atomic Forces (Ha/Bohr): 9.2e-9
+ e: 1.6e-8
+ value: 1.6e-8
+ Clean forces norm (Ha/Bohr): 6.8e-9
+ Raw forces norm (Ha/Bohr): 5.4e-9
+ Average noise forces: 8.8e-9
+ Epot: 2.1e-7
+ eBS: 3.6e-7
+ EXC: 6.4e-8
+ EvXC: 8.5e-8
+ EH: 3.8e-7
+ Energy (Hartree): 1.6e-8
 
 reformatcomplete_read36:
- energy: 5.4e-11
- Omega: 5.4e-11
- EvXC: 1.1e-10
+ energy: 8.6e-10
+ Omega: 4.6e-10
+ EvXC: 8.5e-8
+ Epot: 2.1e-7
+ Atomic Forces (Ha/Bohr): 9.2e-9
+ Clean forces norm (Ha/Bohr): 6.8e-9
+ Raw forces norm (Ha/Bohr): 5.4e-9
+ Average noise forces: 8.8e-9
+ e: 1.6e-8
+ value: 1.6e-8
+ Energy (Hartree): 8.6e-9
+ eBS: 3.6e-7
+ EXC: 6.4e-8
+ EH: 3.8e-7
 
 reformatcomplete_read45:
- energy: 2.5e-11
- Omega: 2.5e-11
- Atomic Forces (Ha/Bohr): 1.2e-11
+ energy: 8.8e-10
+ Omega: 4.0e-10
+ Atomic Forces (Ha/Bohr): 9.2e-9
+ e: 1.6e-8
+ Energy (Hartree): 8.8e-10
+ Clean forces norm (Ha/Bohr): 6.4e-9
+ Raw forces norm (Ha/Bohr): 4.8e-9
+ Average noise forces: 8.8e-9
+ Epot: 2.1e-7
+ eBS: 3.6e-7
+ EXC: 6.4e-8
+ EvXC: 8.5e-8
+ EH: 3.8e-7
+ value: 1.6e-8
 
 reformatcomplete_write:
- EH: 1.1e-10
- Epot: 1.1e-10
+ EH: 1.6e-7
+ Epot: 8.9e-8
+ EXC: 2.6e-8
+ EvXC: 3.4e-8
+ Atomic Forces (Ha/Bohr): 1.2e-8
+ Raw forces norm (Ha/Bohr): 1.4e-8
+ Average noise forces: 2.2e-8
+ Clean forces norm (Ha/Bohr): 2.5e-9
+ e: 1.6e-8
+ eBS: 1.5e-7
+ fnrm: 4.9e-8
+ D: 1.5e-7
 
 reformat_read:
  energy: 4.1e-9
@@ -914,17 +1031,18 @@ reformat_read:
  EXC: 4.1e-9
  EvXC: 4.1e-10
  Enl: 3.6e-9
- Epot: 4.1e-9
+ Epot: 6.1e-9
  Ekin: 1.1e-9
  Omega: 4.1e-9
  Atomic Forces (Ha/Bohr): 3.6e-9
- Average noise forces: 1.1e-10
- Clean forces norm (Ha/Bohr): 2.5e-9
+ Average noise forces: 2.0e-10
+ Clean forces norm (Ha/Bohr): 2.9e-9
  etot: 3.5e-9
- Ion-Ion interaction energy: 3.6e-9
+ Ion-Ion interaction energy: 4.3e-9
  Raw forces norm (Ha/Bohr): 3.6e-9
- e: 4.9e-10
+ e: 5.2e-10
  Positions: 3.5e-09
+ Energy (Hartree): 3.2e-11
 
 reformat_write:
  Kohn-Sham residue: 4.1e-4
@@ -938,6 +1056,8 @@ reformat_write:
  Clean forces norm (Ha/Bohr): 3.1e-10
  e: 1.3e-11
  EvXC: 1.1e-10
+ Energy (Hartree): 2.8e-11
+ Atomic Forces (Ha/Bohr): 1.2e-11
 
 explicit_locregcenters:
  EvXC: 1.1e-10
@@ -984,6 +1104,7 @@ DIIShistory:
  EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
+ Energy (Hartree): 4.4e-11
 
 sparsity:
  Total charge: 1.1e-10
@@ -996,12 +1117,15 @@ sparsity:
  EXC: 1.1e-10
  EvXC: 1.01e-9
  Epot: 1.1e-9
+ Enl: 1.01e-10
+ Ekin: 1.01e-9
  eF: 1.1e-9
  D eF: 1.1e-9
  ebs_check: 2.1e-10
  ebs: 2.1e-10
  diff: 1.1e-9
  D Tr: 1.1e-10
+ Energy (Hartree): 4.0e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -1012,11 +1136,13 @@ PBE_densmixlin:
  EXC: 1.01e-10
  EH: 1.0e-9
  Total charge: 2.1e-11
+ Energy (Hartree): 2.8e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
 
 PBE_potmixlin:
+ EH: 1.0e-9
  Ekin: 1.1e-10
  Epot: 1.1e-10
  EXC: 1.1e-10
@@ -1025,6 +1151,7 @@ PBE_potmixlin:
  Omega: 1.1e-10
  delta out: 1.1e-9
  Total charge: 2.1e-11
+ Energy (Hartree): 2.7-e1i
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1045,6 +1172,7 @@ PBE_potmixdiis:
  Enl: 2.2e-9
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
+ Energy (Hartree): 1.3e-9
 
 PBE_densmixdiis:
  Epot: 1.1e-10
@@ -1056,39 +1184,80 @@ PBE_densmixdiis:
  Ekin: 1.1e-9
  Total charge: 2.1e-11
  EH: 1.0e-9
+ Energy (Hartree): 3.0e-11
 
 test-bigdft-tool:
  positions: 5.1e-8
 
-geoptconstrained:
- eF: 1.1e-8
- guess for new ef: 1.1e-8
- D eF: 1.1e-8
- EH: 1.1e-10
- charge diff: 4.2e-11
+geoptconstrained_BFGS:
+ Ekin: 1.7e-9
+ EXC: 2.9e-10
+ Epot: 9.0e-9
+ EH: 2.1e-9
+ Enl: 9.1e-11
+ EvXC: 3.8e-10
+ eF: 2.8e-8
+ guess for new ef: 2.8e-8
+ D eF: 2.0e-8
+ charge diff: 1.1e-10
+ D Tr: 3.1e-11
+ D: 1.1e-10
+ Positions: 1.1e-9
+ Atomic Forces (Ha/Bohr): 3.4e-9
+ Average noise forces: 2.0e-9
+ Raw forces norm (Ha/Bohr): 8.5e-10
+ Clean forces norm (Ha/Bohr): 7.8e-10
+ ebs_check: 7.0e-10
+ ebs: 7.0e-10
+ Ion-Ion interaction energy: 2.2e-9
+ Positions: 1.1e-8
+ Omega: 1.6e-9
+ energy: 1.3e-11
+
+geoptconstrained_SDCG:
+ eF: 8.7e-8
+ guess for new ef: 8.7e-8
+ D eF: 1.0e-7
+ EH: 2.1e-10
+ Epot: 1.1e-10
+ Ekin: 2.1e-10
+ EXC: 3.1e-11
+ EvXC: 4.1e-11
+ charge diff: 7.2e-11
  D Tr: 1.1e-9
- Omega: 1.2e-11
+ Omega: 1.7e-10
+ D: 1.1e-10
+ tr(KS) before purification: 1.2e-11
+ Clean forces norm (Ha/Bohr): 2.1e-9
+ Atomic Forces (Ha/Bohr): 3.4e-9
+ Average noise forces: 2.0e-9
+ Raw forces norm (Ha/Bohr): 6.9e-11
+ ebs_check: 7.8e-11
+ ebs: 7.8e-11
+ Ion-Ion interaction energy: 2.3e-10
+ Atomic structure: 3.1e-9
 
 O2spin_diag:
- Atomic Forces (Ha/Bohr): 2.2e-7
- Average noise forces: 7.7e-8
- Clean forces norm (Ha/Bohr): 8.0e-7
- Raw forces norm (Ha/Bohr): 7.6e-7
+ Atomic Forces (Ha/Bohr): 2.8e-7
+ Average noise forces: 9.5e-8
+ Clean forces norm (Ha/Bohr): 9.9e-7
+ Raw forces norm (Ha/Bohr): 9.9e-7
  Orbitals: 2.7e-7
- EH: 1.5e-6
- EXC: 3.4e-7
- Ekin: 1.7e-6
+ EH: 1.9e-6
+ EXC: 3.5e-7
+ Ekin: 2.3e-6
  Enl: 1.4e-6
- Epot: 2.1e-6
+ Epot: 2.8e-6
  EvXC: 1.4e-6
- Omega: 2.0e-7
- energy: 5.9e-8
+ Omega: 2.8e-7
+ energy: 8.0e-8
+ Energy (Hartree): 8.0e-8
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
 
 O2spin_foe:
- Atomic Forces (Ha/Bohr): 1.3e-8
+ Atomic Forces (Ha/Bohr): 1.5e-8
  EH: 5.1e-8
  EXC: 6.55e-9
  Ekin: 4.8e-9
@@ -1104,15 +1273,16 @@ O2spin_foe:
  ebs_check: 1.7e-8
  Omega: 2.3e-9
  energy: 1.1e-7
- Raw forces norm (Ha/Bohr): 3.4e-8
- Clean forces norm (Ha/Bohr): 4.1e-8
+ Raw forces norm (Ha/Bohr): 7.5e-8
+ Clean forces norm (Ha/Bohr): 7.5e-8
  Average noise forces: 3.2e-8
- Total charge: 6.1e-8
+ Total charge: 7.5e-8
  decay length of error function: 1.1e-5
  diff: 4.8e-9
  D Tr: 2.1e-7
- relative diff: 2.7e-11
+ relative diff: 3.6e-11
  fnrm2: 4.19e-8
+ Energy (Hartree): 2.3e-10
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 1.1e-5
@@ -1124,14 +1294,15 @@ O2spin_dirmin:
  fnrm: 1.1e-5
  EH: 8.9e-6
  EXC: 5.6e-6
- Ekin: 6.8e-6
+ Ekin: 6.9e-6
  Enl: 1.9e-7
- Epot: 1.2e-5
+ Epot: 1.3e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
  energy: 1.1e-6
+ Energy (Hartree): 9.1e-7
  Omega: 6.1e-6
- Raw forces norm (Ha/Bohr): 4.8e-5
+ Raw forces norm (Ha/Bohr): 5.4e-5
  D: 2.1e-6
  DIIS weights: 1.5
  Max deviation from unity in reorthonormalize_coeff: 1.1e-6
@@ -1139,19 +1310,206 @@ O2spin_dirmin:
  delta: 1.1e-10
 
 verysparse:
- Total charge: 5.0e-10
- EH: 1.1e-8
- EXC: 1.1e-9
- Enl: 1.1e-10
- Epot: 1.1e-9
- ebs: 1.1e-9
- ebs_check: 1.1e-9
- Omega: 4.4e-9
+ Total charge: 2.3e-8
+ EH: 4.8e-7
+ EXC: 1.4e-8
+ Enl: 1.4e-9
+ Epot: 5.0e-7
+ Ekin: 1.8e-8
+ EvXC: 1.7e-8
+ ebs: 4.8e-7
+ ebs_check: 4.8e-7
+ eF: 3.8e-8
+ D eF: 4.1e-8
+ guess for new ef: 3.8e-8
+ Omega: 8.3e-8
  energy: 4.4e-9
+ D Tr: 3.1e-5
+ Tr(K): 2.8e-5
+ charge diff: 2.8e-5
+ relative diff: 2.6e-11
+ diff: 9.2e-10
  Total ionic charge: 1.1e-10
+ e: 1.2e-9
  decay length of error function: 1.1e-5
- Clean forces norm (Ha/Bohr): 2.1e-11
- Raw forces norm (Ha/Bohr): 1.1e-10
+ Clean forces norm (Ha/Bohr): 6.2e-10
+ Raw forces norm (Ha/Bohr): 7.8e-10
+ Atomic Forces (Ha/Bohr): 3.1e-9
+ Average noise forces: 1.0e-9
+ Energy (Hartree): 2.1e-9
  Keys to ignore:
-         - Calculating wavelets expansion of projectors, found warnings
-         - found warnings
+  - Calculating wavelets expansion of projectors, found warnings
+  - found warnings
+
+expfoegeopt:
+ guess for new ef: 2.5e-8
+ eF: 2.5e-8
+ D eF: 2.3e-8
+ charge diff: 2.3e-8
+ ebs: 2.3e-8
+ ebs_check: 1.5e-9
+ D Tr: 1.01e-6
+ Epot: 2.3e-8
+ EvXC: 2.3e-8
+ EXC: 2.3e-8
+ Ekin: 1.1e-10
+ Tr(K): 2.3e-8
+ decay length of error function: 1.1e-5
+ Omega: 2.4e-11
+ energy: 2.2e-11
+ epred: 1.9e-11
+ trace(KS): 3.3e-11
+ Total charge: 3.1e-11
+
+log_model:
+ System pseudo energy (Ha): 3.6e-11
+ Keys to ignore:
+  - Reference Paper
+
+FF_LENOSKY-vssd:
+  etot: 2.05e-7
+  last beta: 1.7
+  beta: 0.4
+  fnrm2: 1.9e-7
+  maxval: 3.5e-5
+  Forces: 5.01e-5
+  Keys to ignore:
+  - WARNINGS
+
+FF_LENOSKY-sdcg:
+  etot: 2.6e-11
+  maxval: 1.01e-9
+  Keys to ignore:
+  - WARNINGS
+
+FF_LENOSKY-sqnm:
+  Keys to ignore:
+  - WARNINGS
+
+FF_LENOSKY-lbfgs:
+  FORCES norm(Ha/Bohr): 9.01e-6
+  Forces: 1.e-4
+  etot: 4.9e-6
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-bfgs:
+  etot: 3.1e-5
+  Keys to ignore:
+  - WARNINGS
+
+FF_LENOSKY-bfgs:
+  etot: 2.4e-11
+  Keys to ignore:
+  - WARNINGS
+
+
+FF_LENOSKY-diis:
+  FORCES norm(Ha/Bohr): 1.01e-6
+  etot: 4.6e-8
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-diis:
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-fire:
+  epred: 1.2e-11
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-sdcg:
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-lbfgs:
+  Keys to ignore:
+  - WARNINGS
+
+FF_LJ-sqnm:
+  Geometry: 1.e-8
+  Keys to ignore:
+  - WARNINGS
+
+
+FF_LJ-vssd:
+  Keys to ignore:
+  - WARNINGS
+  
+periodic_silicon:
+ Epot: 3.0e-10
+ Enl: 1.1e-9
+ EXC: 1.1e-10
+ Omega: 5.91e-11
+ ebs_check: 1.1e-10
+ charge diff: 5.0e-10
+ ebs: 1.2e-10
+ Energy (Hartree): 2.9e-11
+ energy: 2.9e-11
+ Total ionic charge: 2.1e-11
+ Pressure: 1.5e-10
+
+periodic_wateredge:
+ Epot: 1.1e-9
+ Omega: 1.8e-10
+ Enl: 2.1e-10
+ EH: 1.0e-9
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ Ekin: 1.1e-9
+ energy: 1.6e-10
+ Total charge: 1.1e-10
+ PV (Ha): 2.7e-9
+ Energy (Hartree): 7.95e-11
+ Total ionic charge: 2.7e-11
+ Pressure: 7.4e-10
+
+periodic_water:
+ EH: 3.1e-9
+ Epot: 2.1e-9
+ EXC: 1.1e-9
+ EvXC: 1.0e-9
+ Ekin: 2.0e-9
+ Enl: 1.1e-9
+ Energy (Hartree): 7.3e-11
+ Omega: 2.7e-10
+ ebs_check: 2.5e-9
+ ebs: 2.5e-9
+ eF: 9.2e-9
+ D eF: 1.0e-8
+ energy: 2.8e-10
+ guess for new ef: 9.1e-9
+ number of corrected points: 1
+ charge diff: 5.2e-7
+ diff: 1.1e-10
+ Tr(K): 5.0e-7
+ D Tr: 2.1e-7
+ Total ionic charge: 6.0e-11
+ Pressure: 6.4e-10
+ Clean forces norm (Ha/Bohr): 1.8e-11
+
+surface_boronnitride:
+ Enl: 1.01e-9
+ Epot: 1.0e-9
+ Omega: 1.6e-10
+ energy: 3.2e-11
+ Energy (Hartree): 3.2e-11
+ Total charge: 1.0e-10
+ Total ionic charge: 2.4e-11
+ Keys to ignore:
+  - Calculating wavelets expansion of projectors, found warnings
+  - found warnings
+
+surface_graphene:
+ Energies: 1.01e-9
+ Omega: 2.21e-10
+ ebs_check: 2.8e-10
+ ebs: 2.8e-10
+ charge diff: 1.5e-7
+ Tr(K): 2.0e-7
+ guess for new ef: 1.1e-9
+ eF: 7.1e-10
+ D eF: 1.1e-9
+ diff: 2.1e-11
+ Total ionic charge: 1.2e-11

@@ -9,7 +9,7 @@
 !> MINHOP
 !!  Main program for the minima hopping
 program MINHOP
-  use module_base
+  use module_base, int_enum => int
   use bigdft_run
 !  use module_types, only: input_variables,bigdft_run_id_toa,BIGDFT_SUCCESS
 !  use module_interfaces
@@ -17,6 +17,7 @@ program MINHOP
 !  use m_ab6_symmetry
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,atoms_data,astruct_dump_to_file
+  use module_fingerprints
   !implicit real(kind=8) (a-h,o-z) !!!dangerous when using modules!!!
   implicit none
   logical :: newmin,CPUcheck,occured,exist_poslocm,exist_posacc,singlestep
@@ -40,7 +41,7 @@ program MINHOP
   integer :: n_unique,n_nonuni,nputback,ncount_bigdft,ngeopt,nid,nlmin,nlminx
   integer :: ilmin,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,nummax,nummin
   ! integer :: ierror,ixyz, nproc,natp
-  integer :: istepnext,istep
+  integer :: istepnext,istep,run_policy
   character(len=*), parameter :: subname='global'
   character(len=41) :: filename
   character(len=4) :: fn4
@@ -66,7 +67,10 @@ program MINHOP
   !type(dictionary), pointer :: user_inputs
   type(dictionary), pointer :: options,run
   integer:: nposacc=0
+  integer:: nposaccmax
   logical:: disable_hatrans
+  integer, save :: idum=0
+  real(kind=4) :: builtin_rand, rtmp
 
   call f_lib_initialize()
 
@@ -176,11 +180,19 @@ program MINHOP
   read(11,*) nrandoff
   !        write(*,*) 'nrandoff ',nrandoff
   close(11)
+  idum=nrandoff
   do i=1,nrandoff
      call random_number(ts)
+     rtmp = builtin_rand(idum)
   enddo
+  if(bigdft_mpi%iproc == 0)call yaml_map('(MH) First random number',rtmp)
 
   inquire(file='disable_hatrans',exist=disable_hatrans)
+  if(disable_hatrans)then
+    open(unit=137,file='disable_hatrans')
+        read(137,*)nposaccmax
+    close(137)
+  endif
   
   ! open output files
   if (bigdft_mpi%iproc==0) then 
@@ -217,7 +229,19 @@ program MINHOP
   count_md=0.d0
   nputback=0
 
-  run_opt%inputs%inputPsiId=0
+  call bigdft_get_input_policy(run_opt, run_policy)
+  if (run_policy/=INPUT_POLICY_SCRATCH) then
+      call f_err_throw('Wrong run policy ('//trim(yaml_toa(run_policy))//'), only '&
+          //trim(yaml_toa(INPUT_POLICY_SCRATCH,fmt='(i0)'))//' is possible',&
+          err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+  call bigdft_get_input_policy(run_md, run_policy)
+  if (run_policy/=INPUT_POLICY_SCRATCH) then
+      call f_err_throw('Wrong run policy ('//trim(yaml_toa(run_policy))//'), only '&
+          //trim(yaml_toa(INPUT_POLICY_SCRATCH,fmt='(i0)'))//' is possible',&
+          err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+  !run_opt%inputs%inputPsiId=0
 
 !!$  call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
 !!$  call nullify_run_objects(runObj)
@@ -316,13 +340,16 @@ program MINHOP
        rcov,pos,fp)
 
   !retrieve the eigenvalues from this run
-  nksevals=bigdft_norb(run_opt)
-  ksevals = f_malloc(nksevals,id='ksevals')
-  call bigdft_get_eval(run_opt,ksevals)
+  if(run_opt%run_mode=='QM_RUN_MODE') then
+      nksevals=bigdft_norb(run_opt)
+      ksevals = f_malloc(nksevals,id='ksevals')
+      call bigdft_get_eval(run_opt,ksevals)
+  endif  
 
-  if (bigdft_mpi%iproc == 0 .and. nposacc==0) then
+  if(nposacc==0)then
+    nposacc=nposacc+1
+  if (bigdft_mpi%iproc == 0) then
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     nposacc=nposacc+1
      write(fn4,'(i4.4)')nposacc
      if(disable_hatrans)then
          write(comment,'(a,1pe10.3)')'ha_trans disabled, fnrm= ',tt
@@ -336,6 +363,7 @@ program MINHOP
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
   endif
+  endif
 
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
@@ -348,11 +376,13 @@ program MINHOP
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
      !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
+    if(run_opt%run_mode=='QM_RUN_MODE') then
       open(unit=864,file='kseloc_'//fn4//trim(naming_id))
       do i=1,nksevals
       write(864,*) ksevals(i)
       enddo
       close(864)
+    endif
   endif
 
 ! Read previously found energies and properties
@@ -504,6 +534,7 @@ program MINHOP
 
   !for runs over the queing system with short run times quit after 1 accepted minimum
   if (accepted .ge. 1 .and. singlestep) exit hopping_loop
+  if (disable_hatrans .and. nposacc >= nposaccmax) exit hopping_loop
 
 5555 continue
 
@@ -534,7 +565,7 @@ program MINHOP
   !call run_objects_associate(runObj, inputs_md, atoms, rst, pos(1,1))
   call bigdft_set_rxyz(run_md,rxyz=pos) !one could write here also rxyz=bigdft_get_rxyz_ptr(run_opt)
   escape=escape+1.d0
-  call mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, run_md, outs, &
+  call mdescape(idum,nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, run_md, outs, &
                 ngeopt,bigdft_mpi%iproc)
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
@@ -595,13 +626,15 @@ program MINHOP
   if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Wvfnctn Opt. steps for accurate geo. rel of MD conf',ncount_bigdft)
   count_bfgs=count_bfgs+ncount_bigdft
   
-  call bigdft_get_eval(run_opt,ksevals)
-!!$  if (i_stat /= BIGDFT_SUCCESS) then
-!!$     write(*,*)'error(ksevals), i_stat',i_stat
-!!$     if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Number of Wvfnctn Opt. steps for accurate geo. rel of MD conf.', & 
-!!$          ncount_bigdft)
-!!$     stop
-!!$  end if
+  if(run_opt%run_mode=='QM_RUN_MODE') then 
+      call bigdft_get_eval(run_opt,ksevals)
+    !!$  if (i_stat /= BIGDFT_SUCCESS) then
+    !!$     write(*,*)'error(ksevals), i_stat',i_stat
+    !!$     if (bigdft_mpi%iproc == 0) call yaml_map('(MH) Number of Wvfnctn Opt. steps for accurate geo. rel of MD conf.', & 
+    !!$          ncount_bigdft)
+    !!$     stop
+    !!$  end if
+  endif    
 
 
   if (bigdft_mpi%iproc == 0) then 
@@ -615,12 +648,14 @@ program MINHOP
 
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
+    if(run_opt%run_mode=='QM_RUN_MODE') then
         !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
         open(unit=864,file='kseloc_'//fn4//trim(naming_id))
         do i=1,nksevals
           write(864,*) ksevals(i)
         enddo
         close(864)
+    endif
   endif
 
   if (bigdft_mpi%iproc == 0) then 
@@ -635,7 +670,7 @@ program MINHOP
 
      if (abs(outs%energy-e_pos).lt.en_delta) then
      call fpdistance(nid,wfp,fp,d)
-       if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checking fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
+       if (bigdft_mpi%iproc == 0) call yaml_map('(MH) checked fpdistance',(/outs%energy-e_pos,d/),fmt='(e11.4)')
      if (d.lt.fp_delta) then ! not escaped
        escape_sam=escape_sam+1.d0
         fp_sep=max(fp_sep,d)
@@ -670,19 +705,20 @@ program MINHOP
       nlmin=nlmin+1
       call insert(bigdft_mpi%iproc,nlminx,nlmin,nid,bigdft_nat(run_opt),k_e,outs%energy,wfp,&
            rxyz_opt,en_arr,ct_arr,fp_arr,pl_arr)
-! write intermediate results
-      if (bigdft_mpi%iproc == 0) call yaml_comment('(MH) WINTER')
-      if (bigdft_mpi%iproc == 0) call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),nid,&
-           nlminx,nlmin,singlestep,en_delta,fp_delta, &
-           en_arr,ct_arr,fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
+      ! write intermediate results
+
       if (bigdft_mpi%iproc == 0) then
-         !call yaml_stream_attributes()
+         call yaml_comment('(MH) WINTER')
+         call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),&
+                                 nid,nlminx,nlmin,singlestep,en_delta,fp_delta,en_arr,ct_arr,&
+                                 fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
+        !call yaml_stream_attributes()
         call yaml_mapping_open('(MH) New minimum',flow=.true.)
         call yaml_map('(MH) has energy',outs%energy,fmt='(e14.7)')
         !if (dmin < 1.e100_gp) 
            call yaml_map('(MH) distance',dmin,fmt='(e11.4)')
         call yaml_mapping_close(advance='yes')
-      endif
+      end if
       nvisit=1
    else
       escape_old=escape_old+1.d0
@@ -735,8 +771,8 @@ program MINHOP
      do i=1,nid
         fp(i)=fphop(i)
      enddo
+  nposacc=nposacc+1
   if (bigdft_mpi%iproc == 0) then
-     nposacc=nposacc+1
      write(fn4,'(i4.4)')nposacc
      if(disable_hatrans)then
          write(comment,'(a)')'ha_trans disabled'
@@ -771,7 +807,8 @@ program MINHOP
       ediff=ediff*alpha_A
   else
      !C          local minima rejected -------------------------------------------------------
-     run_opt%inputs%inputPsiId=0  !ALEX says: Better do an input guess for the next escape
+     !run_opt%inputs%inputPsiId=0  !ALEX says: Better do an input guess for the next escape
+     call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, run_opt)
      if (bigdft_mpi%iproc == 0) then 
           write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a,i5)')  &
           escape,outs%energy,ediff,ekinetic, &
@@ -837,6 +874,9 @@ end do hopping_loop
 !  if (iproc==0) write(*,*) 'quit 1'
   call release_run_objects(run_md)
 !  if (iproc==0) write(*,*) 'quit 2'
+  if(run_opt%run_mode=='QM_RUN_MODE') then
+   call f_free(ksevals) 
+  endif
   call free_run_objects(run_opt)
 !!$  call deallocate_atoms_data(atoms)
 
@@ -855,14 +895,13 @@ end do hopping_loop
   call f_free(poshop)
   call f_free(fphop)
   call f_free(rcov)
-  call f_free(ksevals)
 !  if (iproc==0) write(*,*) 'quit 4'
 
   call deallocate_state_properties(outs)
 !!$  call free_input_variables(inputs_md)
 !!$  call free_input_variables(inputs_opt)
 
-!  if (iproc==0) write(*,*) 'quit 5'
+!  if (iproc==0)idum, write(*,*) 'quit 5'
   call bigdft_finalize(ierr)
 
 !  if (iproc==0) write(*,*) 'quit 6'
@@ -873,7 +912,7 @@ contains
 
 
   !> Does a MD run with the atomic positions rxyz
-  subroutine mdescape(nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, &
+  subroutine mdescape(idum,nsoften,mdmin,ekinetic,gg,vxyz,dt,count_md, &
        runObj,outs,ngeopt,iproc)!  &
     use module_base
     use module_types
@@ -881,6 +920,7 @@ contains
     use m_ab6_symmetry
     implicit none !real*8 (a-h,o-z)
     integer :: nsoften,mdmin,ngeopt,iproc
+    integer, intent(inout) :: idum
     real(kind=8) :: ekinetic,dt,count_md
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
@@ -906,7 +946,7 @@ contains
   !        call expdist(nat,rxyz,vxyz)
   !! or localized velocities
   !        call localdist(nat,rxyz,vxyz)
-    call randdist(natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
+    call randdist(idum,natoms,bigdft_get_geocode(runObj),rxyz_run,vxyz)
 
     !!! Put to zero the velocities for all boron atoms
     !!do iat=1,natoms
@@ -949,7 +989,8 @@ contains
        enmin2=enmin1
        enmin1=en0000
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
-       runObj%inputs%inputPsiId=1
+       !runObj%inputs%inputPsiId=1
+       call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
        call bigdft_state(runObj, outs,infocode)
 
        if (iproc == 0) then
@@ -1078,7 +1119,8 @@ contains
     call bigdft_get_rxyz(runObj,rxyz_add=pos0(1))
     !call vcopy(3*natoms, atoms%astruct%rxyz(1,1), 1, pos0(1), 1)
 
-    runObj%inputs%inputPsiId=1
+    !runObj%inputs%inputPsiId=1
+    call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
     if(iproc==0) call yaml_comment('(MH) soften initial step ',hfill='~')
     call bigdft_state(runObj,outs,infocode)
     etot0 = outs%energy
@@ -1294,7 +1336,7 @@ END SUBROUTINE hunt_g
 
 !> Assigns initial velocities for the MD escape part
 subroutine velnorm(nat,ekinetic,vxyz)
-  use module_base
+  use module_base, int_enum => int
 !  use module_types
 !  use m_ab6_symmetry
   implicit none
@@ -1331,16 +1373,17 @@ END SUBROUTINE velnorm
 
 
 !> create a random displacement vector without translational and angular moment
-subroutine randdist(nat,geocode,rxyz,vxyz)
+subroutine randdist(idum,nat,geocode,rxyz,vxyz)
   use BigDFT_API !,only: gp !module_base
   use yaml_output
   implicit none
   integer, intent(in) :: nat
+  integer, intent(inout) :: idum
   real(gp), dimension(3*nat), intent(in) :: rxyz
   real(gp), dimension(3*nat), intent(out) :: vxyz
   character(len=1) :: geocode
   !local variables
-  integer :: i,idum=0
+  integer :: i
   real(kind=4) :: tt,builtin_rand
   do i=1,3*nat
      !call random_number(tt)
@@ -1647,7 +1690,7 @@ subroutine winter(naming_id,nat,astruct,nid,nlminx,nlmin,singlestep,en_delta,fp_
 
   ! write enarr file
   open(unit=12,file='enarr'//trim(naming_id),status='unknown')
-  write(12,'(2(i10),l1,a)') nlmin,nlmin+5,singlestep, & 
+  write(12,'(2(1x,i10),1x,l1,1x,a)') nlmin,nlmin+5,singlestep, & 
       ' # of minima already found, # of minima to be found in consecutive run, singlestep mode'
   write(12,'(2(e24.17,1x),a)') en_delta,fp_delta,' en_delta,fp_delta'
   do k=1,nlmin
@@ -1777,7 +1820,6 @@ function round(enerd,accur)
   ii=int(enerd/accur,kind=8)
   round=ii*accur
   !           write(*,'(a,1pe24.17,1x,i17,1x,1pe24.17)') 'enerd,ii,round',enerd,ii,round
-  return
 end function round
 
 
@@ -2534,6 +2576,7 @@ END SUBROUTINE print_logo_MH
 
 subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp_delta,newmin,kid,dmin,k_e_wpos,n_unique,n_nonuni)
   use yaml_output
+  use module_fingerprints
   implicit real*8 (a-h,o-z)
   dimension fp_arr(nid,nlminx),wfp(nid),en_arr(nlminx)
   logical newmin
@@ -2541,9 +2584,9 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   !C  check whether new minimum
   call hunt_g(en_arr,min(nlmin,nlminx),e_wpos,k_e_wpos)
   newmin=.true.
-  do i=1,nlmin
-     if (iproc.eq.0) write(*,'(a,i3,5(e24.17))') '(MH) enarr ',i,en_arr(i),(fp_arr(l,i),l=1,2)
-  enddo
+!  do i=1,nlmin
+!     if (iproc.eq.0) write(*,'(a,i3,5(e24.17))') '(MH) enarr ',i,en_arr(i),(fp_arr(l,i),l=1,2)
+!  enddo
   if (iproc.eq.0) write(*,'(a,e24.17,i3,5(e24.17))') '(MH) e_wpos,k_e_wpos ',e_wpos,k_e_wpos!,(wfp(l),l=1,2)
 
   ! find lowest configuration that might be identical
@@ -2566,9 +2609,11 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
   if (iproc.eq.0) write(*,*) '(MH) k bounds ',max(1,klow),min(nlmin,khigh)
   dmin=1.d100
   do k=max(1,klow),min(nlmin,khigh)
+  if (abs(e_wpos-en_arr(k)).le.en_delta) then
      call fpdistance(nid,wfp,fp_arr(1,k),d)
      if (iproc == 0) call yaml_map('(MH) Checking fpdistance',(/e_wpos-en_arr(k),d/),fmt='(e11.4)')
 !     if (iproc.eq.0) write(*,*) '(MH)  k,d',k,d
+!     if (iproc.eq.0) write(*,*) '(MH)  e_wpos,en_arr(k)', e_wpos,en_arr(k)
 !     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH)    wfp', (wfp(i),i=1,nid)
 !     if (iproc.eq.0) write(*,'(a,20(e10.3))') '(MH) fp_arr', (fp_arr(i,k),i=1,nid)
      if (d.lt.fp_delta) then
@@ -2580,6 +2625,8 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
            kid=k
         endif
      endif
+     dmin=min(dmin,d)
+  endif
   enddo
   if (iproc.eq.0) then
      write(*,*) '(MH)  newmin ',newmin
@@ -2917,17 +2964,17 @@ END subroutine hunt_orig
 !!$end subroutine fingerprint
 
 
-       subroutine fpdistance(nid,fp1,fp2,d)
-       implicit real*8 (a-h,o-z)
-       dimension fp1(nid),fp2(nid)
-
-       d=0.d0
-       do i=1,nid
-       d = d + (fp1(i)-fp2(i))**2
-       enddo
-       d=sqrt(d/nid)
-
-       end subroutine fpdistance
+!!$       subroutine fpdistance(nid,fp1,fp2,d)
+!!$       implicit real*8 (a-h,o-z)
+!!$       dimension fp1(nid),fp2(nid)
+!!$
+!!$       d=0.d0
+!!$       do i=1,nid
+!!$       d = d + (fp1(i)-fp2(i))**2
+!!$       enddo
+!!$       d=sqrt(d/nid)
+!!$
+!!$       end subroutine fpdistance
 
 
 
@@ -3070,6 +3117,7 @@ END SUBROUTINE ha_trans
 !> put velocities for frozen degrees of freedom to zero
 subroutine frozen_dof(astruct,vxyz,ndfree,ndfroz)
   use module_atoms, only: atomic_structure, move_this_coordinate
+  use module_fingerprints
   implicit none
   type(atomic_structure), intent(in) :: astruct
   integer, intent(out) :: ndfree,ndfroz

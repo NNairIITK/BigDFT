@@ -40,7 +40,7 @@ program PS_Integral
   logical :: timings_switch = .false. 
   real(dp), dimension(0:2048) :: fISF
 
-  integer :: n1,n1_old,n2,n2_old,n3,n3_old,nb1,nb2,nb3,itype,nd,i_all,nrange
+  integer :: n1,n1_old,n2,n2_old,n3,n3_old,nb1,nb2,nb3,itype,nd,nrange
   real(dp) :: hx,x,hy,y,hz,z,dy,dz,xgauss,ygauss,theta,sum,sum2,sumx,sumx2,sumy,sumy2,xmin,xmax,ymin,ymax,shift
   real(dp), dimension(:), allocatable :: x_phi
   real(dp), dimension(:,:), allocatable :: y_phi
@@ -1562,7 +1562,7 @@ subroutine my_interpolate_and_transpose(t0,nphi,nrange,phi,ndat,nin,psi_in,nout,
  real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
  !local variables
  character(len=*), parameter :: subname='interpolate_and_transpose'
- integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me
+ integer :: nunit,m_isf,ish,ipos,i,j,l,ms,me
  real(gp) :: dt, tt
  real(gp), dimension(:), allocatable :: shf !< shift filter
 
@@ -1648,7 +1648,7 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
    !Local variables
    character(len=*), parameter :: subname='scaling_function4b2B'
    real(kind=8), dimension(:), allocatable :: y
-   integer :: i,nt,ni,i_all,i_stat  
+   integer :: i,nt,ni  
 
    !Only itype=8,14,16,20,24,30,40,50,60,100
    select case(itype)

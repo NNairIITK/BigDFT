@@ -75,6 +75,15 @@ subroutine test_dictionaries0()
   !this had  a bug, now solved
   call set(dict1//'List',list_new((/.item. dict2,.item. '4',.item. '1.0'/)))
 
+  !search for a list element
+  call yaml_map('1.0 index',dict1//'List' .index. '1.0')
+
+  dict_tmp => list_new([.item. 'one',.item. '4',.item. '1.1'])
+  call yaml_map('1.1 index',dict_tmp .index. '1.1')
+  call dict_free(dict_tmp)
+  nullify(dict_tmp)
+
+
   !this works
 !!$  call add(dict1//'List',dict2)
 !!$  call add(dict1//'List',4)
@@ -143,6 +152,12 @@ subroutine test_dictionaries0()
 !stop
   dict1=>dict_new()
   call set(dict1//'hgrid',dict_new((/'test1' .is. '1','test2' .is. '2'/)))
+
+  !search for a dictionary item
+  call yaml_map('test2 index',dict1//'hgrid' .index. 'test2')
+  call yaml_map('hgrid index',dict1 .index. 'hgrid')
+  call yaml_comment('Improper testing of index function',hfill='TEST')
+
   call yaml_map('Length and size before',(/dict_len(dict1//'hgrid'),dict_size(dict1//'hgrid')/))
   call set(dict1//'hgrid'//0,'new')
 
@@ -165,7 +180,7 @@ subroutine test_dictionaries0()
 
   call dict_free(dict1)
 
-  !test the values of the loen after reaffectations
+  !test the values of the len after reaffectations
   call dict_init(dict1)
   call set(dict1//'key','scalar0')
   call yaml_map('Entered dict',dict1)
@@ -348,10 +363,14 @@ subroutine test_dictionaries1()
    call yaml_map('Values retrieved from the dict',tmp_arr,fmt='(1pg12.5)')
 
    dict2=>find_key(dictA,'Stack')
+   call yaml_map('Lenght zero',dict_len(dict2))
+   call yaml_map('Dict extracted',dict2)
    call dict_remove_last(dict2)
+   call yaml_map('Lenght first',dict_len(dict2))
 
 
    call dict_remove_last(dict2)
+   call yaml_map('Lenght second',dict_len(dict2))
 
    !  call push(dict2,'Element')
    !  call append(dictA,dictA2)
@@ -663,7 +682,8 @@ subroutine test_dictionary_for_atoms()
   implicit none
 
 !!$  character(len = 50) :: gu
-  character(len = 50) :: fmts
+  integer :: ierr
+  character(len = 50) :: fmts,tmp
   double precision, dimension(3) :: cell, xred, hgrids
   double precision :: tt
 
@@ -708,6 +728,28 @@ subroutine test_dictionary_for_atoms()
   call yaml_map('Real with format '//trim(fmts),clean_zeroes(yaml_toa(tt,fmt=fmts)))
   fmts(1:len(fmts))='(1pe24.16)'
   call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(1pe24.16)'
+  call yaml_map('Tiny with wrong format '//trim(fmts),tiny(tt),fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr)tiny(tt)
+  call yaml_map('Iostat for format',ierr)
+  fmts(1:len(fmts))='(1pe24.16)'
+  call yaml_map('Huge with wrong format '//trim(fmts),-huge(tt),fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr)-huge(tt)
+  call yaml_map('Iostat for format',ierr)
+  fmts(1:len(fmts))='(i3)'
+  call yaml_map('Integer with too little format '//trim(fmts),10000,fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr)10000
+  call yaml_map('Iostat for format',ierr)
+  fmts(1:len(fmts))='(f3.2)'
+  call yaml_map('Float with too little format '//trim(fmts),1000.4,fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr)1000.4
+  call yaml_map('Iostat for format',ierr)
+  fmts(1:len(fmts))='(f3.2)'
+  call yaml_map('Double with too little format '//trim(fmts),1000.4d0,fmt=fmts)
+  fmts(1:len(fmts))='(f3.2)'
+  call yaml_map('Float with too little format again '//trim(fmts),10.4456,fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr)10.4456
+  call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(es23.16)'
   call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
   fmts(1:len(fmts))='(es24.17)'
@@ -725,7 +767,6 @@ subroutine test_dictionary_for_atoms()
 
 
   contains
-
     subroutine print_one_atom(atomname,rxyz,hgrids,id)
       implicit none
       integer, intent(in) :: id
@@ -784,11 +825,32 @@ subroutine test_dictionary_for_atoms()
 
 end subroutine test_dictionary_for_atoms
 
+!> test the usage of the new f_trees structure
+subroutine test_f_trees()
+  use f_trees
+  use yaml_output
+  implicit none
+  type(f_tree) :: dict1,dict2
+
+  !initialization
+  dict1=f_tree_new()
+
+  call f_tree_push(dict1//'Key1','val1')
+  !to be updated with proper method for trees
+  call yaml_map('Initialized tree',dict1%d)
+
+  call yaml_mapping_open('Test of dump')
+  call f_tree_dump(dict1)
+  call yaml_mapping_close()
+
+  call f_tree_free(dict1)
+end subroutine test_f_trees
+
 !> this routine consider the usage of dictionaries for intensive data storage (of course to be avoided)
 !! and compares it to the usage of an array for doing similar things
 subroutine profile_dictionary_usage()
   use dictionaries
-  use dynamic_memory, only : f_time
+  use f_utils, only : f_time
   use yaml_output
   implicit none
   !local variables

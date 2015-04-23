@@ -180,6 +180,8 @@ contains
   subroutine dict_get_run_properties(run,run_id,input_id,posinp_id,naming_id, &
        & outdir_id,log_to_disk,run_from_files)
     use public_keys, only: POSINP
+    use f_utils, only: f_zero
+    use yaml_strings, only: f_strcpy
     implicit none
     type(dictionary), pointer :: run
     character(len=*), intent(out), optional :: run_id, naming_id
@@ -194,10 +196,11 @@ contains
        else if (RADICAL_NAME .in. run) then
           input_id = run // RADICAL_NAME
        else
-          input_id = " "
+          call f_zero(input_id)
+          !input_id = " "
        end if
-       if (len_trim(input_id) == 0) &
-            & input_id = "input" // trim(run_id_toa())
+       if (len_trim(input_id) == 0) call f_strcpy(src=&
+            "input" // trim(run_id_toa()),dest=input_id)
     end if
     if (present(posinp_id)) then 
        if (POSINP .in. run) then
@@ -205,28 +208,33 @@ contains
        else if (RADICAL_NAME .in. run) then
           posinp_id = run // RADICAL_NAME
        else
-          posinp_id = " "
+          call f_zero(posinp_id)
+          !posinp_id = " "
        end if
-       if (len_trim(posinp_id) == 0) &
-            & posinp_id = "posinp" // trim(run_id_toa())
+       if (len_trim(posinp_id) == 0) call f_strcpy(src=&
+            "posinp" // trim(run_id_toa()),dest=posinp_id)
     end if
     if (present(naming_id)) then
        if (RADICAL_NAME .in. run) then
           naming_id = run // RADICAL_NAME
        else
-          naming_id = " "
+          call f_zero(naming_id)
+          !naming_id = " "
        end if
        if (len_trim(naming_id) == 0) then
-          naming_id = trim(run_id_toa())
+          !naming_id = trim(run_id_toa())
+          call f_strcpy(src=trim(run_id_toa()),dest=naming_id)
        else
-          naming_id = "-" // trim(naming_id)
+          call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
+          !naming_id = "-" // trim(naming_id)
        end if
     end if
     if (present(run_id)) then
        if (RADICAL_NAME .in. run) then
           run_id = run // RADICAL_NAME
        else
-          run_id = " "
+          call f_zero(run_id)
+          !run_id = " "
        end if
     end if
     if (present(outdir_id) .and. has_key(run, OUTDIR)) outdir_id = run // OUTDIR
@@ -336,7 +344,7 @@ contains
 
 
   subroutine create_log_file(dict,dict_from_files)
-    use module_base
+    use module_base, enum_int => int
     use module_types
     use module_input
     use yaml_strings
@@ -346,7 +354,8 @@ contains
     type(dictionary), pointer :: dict
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
-    integer :: ierr,ierror,lgt,unit_log
+    integer :: ierror,lgt,unit_log,ierrr
+    integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
     character(len=500) :: logfilename,path
     integer :: iproc_node, nproc_node
@@ -361,7 +370,7 @@ contains
        !add the output directory in the directory name
        if (bigdft_mpi%iproc == 0 .and. trim(writing_directory) /= '.') then
           call getdir(writing_directory,&
-               len_trim(writing_directory),path,len(path),ierr)
+               int(len_trim(writing_directory),kind=4),path,int(len(path),kind=4),ierr)
           if (ierr /= 0) then
              write(*,*) "ERROR: cannot create writing directory '"&
                   //trim(writing_directory) // "'."
@@ -393,18 +402,18 @@ contains
           path = trim(writing_directory)//trim(logfilename)
           call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
           ! Check if logfile is already connected.
-          call yaml_stream_connected(trim(path), unit_log, ierr)
-          if (ierr /= 0) then
+          call yaml_stream_connected(trim(path), unit_log, ierrr)
+          if (ierrr /= 0) then
              ! Move possible existing log file.
              call ensure_log_file(trim(writing_directory), trim(logfilename), ierr)
              if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
              ! Close active stream and logfile if any. (TO BE MOVED IN RUN_UPDATE TO AVOID CLOSURE OF UPLEVEL INSTANCE)
              call yaml_get_default_stream(unit_log)
-             if (unit_log /= 6) call yaml_close_stream(unit_log, ierr)
+             if (unit_log /= 6) call yaml_close_stream(unit_log, ierrr)
              !Create stream and logfile
-             call yaml_set_stream(filename=trim(path),record_length=92,istat=ierr)
+             call yaml_set_stream(filename=trim(path),record_length=92,istat=ierrr)
              !create that only if the stream is not already present, otherwise print a warning
-             if (ierr == 0) then
+             if (ierrr == 0) then
                 call yaml_get_default_stream(unit_log)
                 call input_set_stdout(unit=unit_log)
              else
@@ -412,11 +421,11 @@ contains
              end if
           else
              call yaml_release_document(unit_log)
-             call yaml_set_default_stream(unit_log, ierr)
+             call yaml_set_default_stream(unit_log, ierrr)
           end if ! Logfile already connected
        else
           !use stdout, do not crash if unit is present
-          call yaml_set_stream(record_length=92,istat=ierr)
+          call yaml_set_stream(record_length=92,istat=ierrr)
        end if ! Need to create a named logfile.
 
        !start writing on logfile
@@ -608,6 +617,8 @@ contains
     real(gp), dimension(3) :: radii_cf
     character(len = max_field_length) :: source_val
 
+    call f_routine(id='psp_dict_fill_all')
+
     filename = 'psppar.' // atomname
     dict_psp => dict // filename !inquire for the key?
 
@@ -701,6 +712,8 @@ contains
     call set(radii // FINE, radii_cf(2))
     call set(radii // COARSE_PSP, radii_cf(3))
     call set(radii // SOURCE_KEY, source_val)
+
+    call f_release_routine()
     
   end subroutine psp_dict_fill_all
 
@@ -730,6 +743,8 @@ contains
     logical :: pawpatch, l
     integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
     character(len = max_field_length) :: fpaw
+
+    call f_routine(id='psp_dict_analyse')
 
     if (.not. associated(atoms%nzatom)) then
        call allocate_atoms_data(atoms)
@@ -797,6 +812,9 @@ contains
        nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
        nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
     end if
+
+    call f_release_routine()
+
   end subroutine psp_dict_analyse
 
 
@@ -1418,7 +1436,7 @@ contains
 
           call astruct_at_from_dict(at, str, rxyz_add = astruct%rxyz(1, iat), &
                & ifrztyp = astruct%ifrztyp(iat), igspin = igspin, igchrg = igchrg, &
-               & ixyz_add = astruct%ixyz_int(1,iat))
+               & ixyz_add = astruct%ixyz_int(1,iat), rxyz_int_add = astruct%rxyz_int(1,iat))
           astruct%iatype(iat) = types // str
           astruct%input_polarization(iat) = 1000 * igchrg + sign(1, igchrg) * 100 + igspin
 
@@ -1507,7 +1525,7 @@ contains
 
 
   subroutine occupation_set_from_dict(dict, key, norbu, norbd, occup, &
-       & nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max)
+       & nkpts, nspin, norbsempty, qelec_up, qelec_down, norb_max)
     use module_defs, only: gp
     use dynamic_memory
     use yaml_output
@@ -1515,33 +1533,46 @@ contains
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: key
     real(gp), dimension(:), pointer :: occup
-    integer, intent(in) :: nkpts, nspin, norbsempty, nelec_up, nelec_down, norb_max
+    integer, intent(in) :: nkpts, nspin, norbsempty, norb_max
+    real(gp), intent(in) :: qelec_up, qelec_down
     integer, intent(out) :: norbu, norbd
 
     integer :: norb
-    integer :: ikpt
+    integer :: ikpt,ne_up,ne_dwn
     type(dictionary), pointer :: occup_src
     character(len = 12) :: kpt_key
-
     call f_routine(id='occupation_set_from_dict')
-
     ! Default case.
+    !integer approximation of the number of electrons
+    ne_up=int_elec(qelec_up)
+    !the same for down case
+    ne_dwn=int_elec(qelec_down)
+
     if (nspin == 1) then
-       norb  = min((nelec_up + 1) / 2, norb_max)
+       !norb  = min((nelec_up + 1) / 2, norb_max)
+       norb  = min((ne_up + 1) / 2, norb_max)
        norbu = norb
     else
-       norb = min(nelec_up + nelec_down, 2 * norb_max)
+       !norb = min(nelec_up + nelec_down, 2 * norb_max)
+       norb = min(ne_up + ne_dwn, 2 * norb_max)
        if (nspin == 2) then
-          norbu = min(nelec_up, norb_max)
+          !norbu = min(nelec_up, norb_max)
+          norbu = min(ne_up, norb_max)
        else
-          norbu = min(nelec_up, 2 * norb_max)
+          !norbu = min(nelec_up, 2 * norb_max)
+          norbu = min(ne_up, 2 * norb_max)
        end if
     end if
     norbd = norb - norbu
+!!$    write(*,*) nelec_up, nelec_down, norbsempty, norb_max
+!!$    write(*,*) norbu, norbd, norb
+!!$    stop
     ! Modify the default with occupation
-    nullify(occup_src)
-    if (has_key(dict, key)) then
-       occup_src => dict //key
+    occup_src = dict .get. key
+    !nullify(occup_src)
+    !if (has_key(dict, key)) then
+    if (associated(occup_src)) then
+       !occup_src => dict //key
        ! Occupation is provided.
        if (has_key(occup_src, "K point 1")) then
           call count_for_kpt(occup_src // "K point 1")
@@ -1577,7 +1608,7 @@ contains
     ! Setup occupation
     if (nspin==1) then
        do ikpt = 1, nkpts, 1
-          call fill_default((ikpt - 1) * norb, 2, nelec_up, norb)
+          call fill_default((ikpt - 1) * norb, 2, qelec_up, norb)
           if (associated(occup_src)) then
              write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
              if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
@@ -1589,8 +1620,8 @@ contains
        end do
     else
        do ikpt = 0, nkpts - 1, 1
-          call fill_default(ikpt * norb, 1, nelec_up, norbu)
-          call fill_default(ikpt * norb + norbu, 1, nelec_down, norbd)
+          call fill_default(ikpt * norb, 1, qelec_up, norbu)
+          call fill_default(ikpt * norb + norbu, 1, qelec_down, norbd)
           if (associated(occup_src)) then
              write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
              if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
@@ -1605,16 +1636,26 @@ contains
     end if
 
     !Check if sum(occup)=nelec
-    if (abs(sum(occup) / nkpts - real(nelec_up + nelec_down,gp))>1.e-6_gp) then
-       call yaml_warning('the total number of electrons ' &
+    if (abs(sum(occup) / nkpts - (qelec_up + qelec_down))>1.e-6_gp) then
+       call f_err_throw('The total number of electrons ' &
             & // trim(yaml_toa(sum(occup) / nkpts,fmt='(f13.6)')) &
-            & // ' is not equal to' // trim(yaml_toa(nelec_up + nelec_down)))
-       stop
+            & // ' is not equal to' // trim(yaml_toa(qelec_up + qelec_down)),&
+            err_name='BIGDFT_INPUT_FILE_ERROR')
     end if
 
     call f_release_routine()
 
   contains
+
+    pure function int_elec(qelec) result(ne)
+      implicit none
+      real(gp), intent(in) :: qelec
+      integer :: ne
+      
+      ne=nint(qelec)
+      !if we have an excess of electrons, add one orbital
+      if (qelec - real(ne,gp) > 1.e-12_gp) ne=ne+1
+    end function int_elec
 
     subroutine count_for_kpt(occ)
       implicit none
@@ -1648,18 +1689,21 @@ contains
       end do
     end subroutine count_orbs
 
-    subroutine fill_default(isorb, nfill, nelec, norb)
+    subroutine fill_default(isorb, nfill, qelec, norb)
       implicit none
-      integer, intent(in) :: isorb, nfill, nelec, norb
+      integer, intent(in) :: isorb, nfill, norb
+      real(gp), intent(in) :: qelec
+      !local variables
+      integer :: iorb, ne
+      real(gp) :: rit,rnt
 
-      integer :: nt, it, iorb, ne
-
-      nt=0
-      ne = (nelec + 1) / nfill
+      rnt=0.0_gp
+      !ne = (nelec + 1) / nfill
+      ne = (int_elec(qelec) + 1) / nfill
       do iorb=isorb + 1, isorb + min(ne, norb)
-         it=min(nfill,nelec-nt)
-         occup(iorb)=real(it,gp)
-         nt=nt+it
+         rit=min(real(nfill,gp),qelec-rnt)
+         occup(iorb)=rit
+         rnt=rnt+rit
       enddo
       do iorb=isorb+min(ne, norb)+1,isorb+norb
          occup(iorb)=0._gp
@@ -1684,7 +1728,7 @@ contains
       end do
     end subroutine fill_for_kpt
   end subroutine occupation_set_from_dict
-!!$
+
 
   subroutine occupation_data_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED

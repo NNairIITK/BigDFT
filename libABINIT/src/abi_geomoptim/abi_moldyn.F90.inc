@@ -343,7 +343,6 @@ subroutine abi_moldyn(acell,amass,me,&
      end if
      call abi_xredxcart(natom,1,rprimd,xcart,xred)
   end if
-
 ! Output of acell and/or rprim ( and angles ! - should become a routine later)
   if(optcell/=0)then
    angle(1)=acos(rmet(2,3)/sqrt(rmet(2,2)*rmet(3,3)))/two_pi*360.0

@@ -481,7 +481,8 @@ for i in range(len(references)):
         print 'remarks',remarks,str(e)
         fatal_error(reports, message=str(e))
     try:
-        doctime = data["Timings for root process"]["Elapsed time (s)"]
+        #doctime = data["Timings for root process"]["Elapsed time (s)"]
+        doctime = data["Walltime since initialization"]
     except:
         doctime = 0
     try:

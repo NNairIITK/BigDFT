@@ -225,6 +225,7 @@ subroutine uncompress_forstandard_short(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, 
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
+
   ! coarse part
   do iseg=1,mseg_c
      jj=keyv_c(iseg)
@@ -449,6 +450,8 @@ subroutine compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
 
+  call f_routine(id='compress_forstandard')
+
   !$omp parallel default(private) &
   !$omp shared(scal,psig_c,psig_f) &
   !$omp shared(psi_c,psi_f,keyv_c,keyg_c,keyv_f,keyg_f,n1,n2,n3,mseg_c,mseg_f)
@@ -493,6 +496,8 @@ subroutine compress_forstandard(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
   enddo
   !$omp enddo
   !$omp end parallel
+
+  call f_release_routine()
 
 END SUBROUTINE compress_forstandard
 

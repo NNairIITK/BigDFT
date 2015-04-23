@@ -10,8 +10,9 @@
 
 !> Module containing variables used for the timing for BigDFT
 module time_profiling
+  use f_precisions
   use dictionaries
-  use dynamic_memory, only: f_time
+  use f_utils, only: f_time
   implicit none
 
   private 
@@ -19,7 +20,7 @@ module time_profiling
   !>maximum number of allowed categories
   integer, parameter :: ncat_max=200
   !>maximum number of partial counters active
-  integer, parameter :: nctr_max=10
+  integer, parameter :: nctr_max=20
   !>integer indicating the file unit
   integer, parameter :: timing_unit=60
   !>integer indicating the tabbing of the file unit
@@ -48,6 +49,7 @@ module time_profiling
      integer :: cat_paused !<id of paused category when interrupt action
      integer :: timing_ncat !<number of categories
      integer :: timing_nctr !<number of partial counters
+     integer(long) :: epoch !<time of the creation of the routine
      double precision :: time0 !<reference time since last checkpoint
      double precision :: t0 !<reference time since last opening action
      double precision, dimension(ncat_max+1) :: clocks !< timings of different categories
@@ -63,7 +65,7 @@ module time_profiling
 
   public :: f_timing_reset,f_timing,f_timing_checkpoint,f_timing_stop,timing_errors
   public :: f_timing_category,f_timing_category_group,f_timing_finalize,f_timing_initialize
-  public :: get_category_name
+  public :: get_category_name,f_clock
 
   contains
 
@@ -82,6 +84,7 @@ module time_profiling
       time%cat_paused=0 
       time%timing_ncat=0 
       time%timing_nctr=0
+      time%epoch=f_time() !take the initial time
       time%time0=0.d0
       time%t0=0.d0
       time%clocks=0.d0
@@ -232,14 +235,23 @@ module time_profiling
       times(ictrl)%timing_ncat=0
     end subroutine f_timing_initialize
 
+    !> get the walltime since most recent call of the f_timing initialize
+    function f_clock()
+      implicit none
+      integer(long) :: f_clock !< elapsed walltime since last call of the initialize
+      f_clock=f_time()-times(ictrl)%epoch
+    end function f_clock
+
     !finalize the timing by putting to zero all the chronometers
-    subroutine f_timing_finalize()
+    subroutine f_timing_finalize(walltime)
       use yaml_output
       implicit none
+      integer(long), intent(out), optional :: walltime !< elapsed walltime since last call of the initialize
       !create the general category for unspecified timings
       call dict_free(times(ictrl)%dict_timing_categories)
       call dict_free(times(ictrl)%dict_timing_groups)
       !put to zero the number of categories
+      if (present(walltime)) walltime=f_clock()
       times(ictrl)=time_ctrl_null()
       ictrl=ictrl-1
     end subroutine f_timing_finalize
@@ -530,7 +542,7 @@ module time_profiling
     !> The same timing routine but with system_clock (in case of a supported specs)
     subroutine f_timing(cat_id,action)
       use dictionaries, only: f_err_raise,f_err_throw
-      use dynamic_memory, only: f_time
+      use f_utils, only: f_time
       use yaml_output, only: yaml_toa
       implicit none
       !Variables

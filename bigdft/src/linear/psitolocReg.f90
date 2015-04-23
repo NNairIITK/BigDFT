@@ -34,6 +34,13 @@ subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
  integer :: shift(3)  !shift between the beginning of the segment in Blr and the origin of Alr
  integer ::  tmp
 
+
+ ! This routine is only intended for conversions between locregs with the same boundary conditions.
+ if (blr%geocode/='F') then
+     call f_err_throw('shift_locreg_indexes can only be used for locregs with free boundary conditions', &
+          err_name='BIGDFT_RUNTIME_ERROR')
+ end if
+
 !Big loop on all segments
 !$omp parallel do default(private) shared(Blr,nseg,Alr,keymask)
  do iseg=1,nseg
@@ -76,6 +83,86 @@ subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
 !$omp end parallel do
 
 END SUBROUTINE shift_locreg_indexes
+
+
+
+!!!!!!> Find the shift necessary for the indexes of every segment of Blr
+!!!!!!!   to make them compatible with the indexes of Alr. These shifts are
+!!!!!!!   returned in the array keymask(nseg), where nseg should be the number
+!!!!!!!   of segments in Blr.
+!!!!!!! @warning 
+!!!!!!!   This routine supposes that the region Blr is contained in the region Alr.
+!!!!!!!   This should always be the case, if we concentrate on the overlap between two regions.
+!!!!!subroutine shift_locreg_indexes_global(Alr,Blr,keymask,nseg)
+!!!!!
+!!!!!  use module_base
+!!!!!  use module_types
+!!!!! 
+!!!!! implicit none
+!!!!!
+!!!!!! Arguments
+!!!!! type(locreg_descriptors),intent(in) :: Alr,Blr   ! The two localization regions
+!!!!! integer,intent(in) :: nseg
+!!!!! integer,intent(out) :: keymask(2,nseg)
+!!!!!
+!!!!!! Local variable
+!!!!! integer :: iseg      !integer for the loop
+!!!!! integer :: Bindex    !starting index of segments in Blr
+!!!!! integer :: x,y,z     !coordinates of start of segments in Blr 
+!!!!! integer :: shift(3)  !shift between the beginning of the segment in Blr and the origin of Alr
+!!!!! integer ::  tmp
+!!!!!
+!!!!!
+!!!!! ! This routine is only intended for conversions between locregs with the same boundary conditions.
+!!!!! if (blr%geocode/='F') then
+!!!!!     call f_err_throw('shift_locreg_indexes can only be used for locregs with free boundary conditions', &
+!!!!!          err_name='BIGDFT_RUNTIME_ERROR')
+!!!!! end if
+!!!!!
+!!!!!!Big loop on all segments
+!!!!!!$omp parallel do default(private) shared(Blr,nseg,Alr,keymask)
+!!!!! do iseg=1,nseg
+!!!!!
+!!!!!!##########################################
+!!!!!! For the Starting index
+!!!!!    Bindex = Blr%wfd%keyglob(1,iseg)
+!!!!!    tmp = Bindex -1
+!!!!!    z   = tmp / ((Blr%d%n2+1)*(Blr%d%n1+1))
+!!!!!    tmp = tmp - z*((Blr%d%n2+1)*(Blr%d%n1+1))
+!!!!!    y   = tmp / (Blr%d%n1+1)
+!!!!!    x   = tmp - y * (Blr%d%n1+1)
+!!!!! 
+!!!!!! Shift between the beginning of the segment and the start of the Alr region
+!!!!!    shift(1) = x + Blr%ns1 - Alr%ns1
+!!!!!    shift(2) = y + Blr%ns2 - Alr%ns2
+!!!!!    shift(3) = z + Blr%ns3 - Alr%ns3
+!!!!!
+!!!!!! Write the shift in index form
+!!!!!    keymask(1,iseg) = shift(3)*(Alr%d%n1+1)*(Alr%d%n2+1) + shift(2)*(Alr%d%n1+1) + shift(1) + 1
+!!!!!
+!!!!!!######################################
+!!!!!! For the ending index
+!!!!!
+!!!!!    Bindex = Blr%wfd%keyglob(2,iseg)
+!!!!!    tmp = Bindex -1
+!!!!!    z   = tmp / ((Blr%d%n2+1)*(Blr%d%n1+1))
+!!!!!    tmp = tmp - z*((Blr%d%n2+1)*(Blr%d%n1+1))
+!!!!!    y   = tmp / (Blr%d%n1+1)
+!!!!!    x   = tmp - y * (Blr%d%n1+1)
+!!!!!
+!!!!!! Shift between the beginning of the segment and the start of the Alr region
+!!!!!    shift(1) = x + Blr%ns1 - Alr%ns1
+!!!!!    shift(2) = y + Blr%ns2 - Alr%ns2
+!!!!!    shift(3) = z + Blr%ns3 - Alr%ns3
+!!!!!
+!!!!!! Write the shift in index form
+!!!!!    keymask(2,iseg) = shift(3)*(Alr%d%n1+1)*(Alr%d%n2+1) + shift(2)*(Alr%d%n1+1) + shift(1) + 1
+!!!!! end do
+!!!!!!$omp end parallel do
+!!!!!
+!!!!!END SUBROUTINE shift_locreg_indexes_global
+
+
 
 
 !> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
@@ -349,66 +436,4 @@ subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
 
 END SUBROUTINE psi_to_locreg2
 
-
-!> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
-!! @warning       
-!!    The quantity must not be stored in a compressed form.
-subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2)
-
- use module_base
- use module_types
- 
- implicit none
-
- ! Arguments
- type(locreg_descriptors),intent(in) :: Llr   ! Local localization region
- type(locreg_descriptors),intent(in) :: Glr   ! Global localization region
- integer, intent(in) :: size_rho  ! size of rho array
- integer, intent(in) :: size_Lrho ! size of Lrho array
- integer, intent(in) :: nspin  !number of spins
- real(wp),dimension(size_rho),intent(in) :: rho  ! quantity in global region
- real(wp),dimension(size_Lrho),intent(out) :: Lrho ! piece of quantity in local region
- integer :: i1s, i1e, i2s, i2e
- integer,intent(in):: i3s, i3e ! starting and ending indices on z direction (related to distribution of rho when parallel)
- integer,intent(in) :: ni1, ni2 ! x and y extent of rho
-
-! Local variable
- integer :: ispin,i1,i2,i3,ii1,ii2,ii3  !integer for loops
- integer :: indSmall, indSpin, indLarge ! indexes for the arrays
- integer :: ist2S,ist3S, ist2L, ist3L, istsa, ists, istl
-
- 
- ! Cut out a piece of the quantity (rho) from the global region (rho) and
- ! store it in a local region (Lrho).
- indSmall=0
- indSpin=0
- ! Deactivate the spin for the moment
- do ispin=1,1!nspin
-     !$omp parallel do default(private) shared(Glr,Llr,Lrho,rho,indSpin,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2)
-     do ii3=i3s,i3e
-         i3 = mod(ii3-1,Glr%d%n3i)+1
-         ist3S = (ii3-i3s)*Llr%d%n2i*Llr%d%n1i
-         ist3L = (i3-1)*ni2*ni1
-         istsa=ist3S-i1s+1
-         do ii2=i2s,i2e
-             i2 = mod(ii2-1,Glr%d%n2i)+1
-             ist2S = (ii2-i2s)*Llr%d%n1i 
-             ist2L = (i2-1)*ni1
-             ists=istsa+ist2S
-             istl=ist3L+ist2L
-             do ii1=i1s,i1e
-                 i1 = mod(ii1-1,Glr%d%n1i)+1
-                 ! indSmall is the index in the local localization region
-                 indSmall=ists+ii1
-                 ! indLarge is the index in the global localization region. 
-                 indLarge= i1+istl
-                 Lrho(indSmall)=rho(indLarge+indSpin)
-             end do
-         end do
-     end do
-     !$omp end parallel do
-     indSpin=indSpin+Glr%d%n1i*Glr%d%n2i*Glr%d%n3i
- end do
-
-END SUBROUTINE global_to_local_parallel
 

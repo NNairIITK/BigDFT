@@ -11,7 +11,7 @@
 module module_defs
   use wrapper_MPI
   use wrapper_linalg
-
+  use f_precisions
   implicit none  
 
   include 'configure.inc' !< Include variables set from configure.
@@ -19,10 +19,10 @@ module module_defs
   integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
 
   ! General precision, density and the wavefunctions types
-  integer, parameter :: gp=kind(1.0d0)  !< general-type precision
-  integer, parameter :: dp=kind(1.0d0)  !< density-type precision
-  integer, parameter :: wp=kind(1.0d0)  !< wavefunction-type precision
-  integer, parameter :: tp=kind(1.0d0)  !< DIIS precision (single in this context, if double is only for non-regression)
+  integer, parameter :: gp=double!kind(1.0d0)  !< general-type precision
+  integer, parameter :: dp=double!kind(1.0d0)  !< density-type precision
+  integer, parameter :: wp=double!kind(1.0d0)  !< wavefunction-type precision
+  integer, parameter :: tp=double!kind(1.0d0)  !< DIIS precision (single in this context, if double is only for non-regression)
 
   !> Define type of data for MPI
   integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
@@ -48,7 +48,7 @@ module module_defs
   !> experimental variables to test the add of new functionalities
   logical :: experimental_modulebase_var_onlyfion=.false.
 
-  type(mpi_environment) :: bigdft_mpi !< Contains all data needed for MPI processes
+  type(mpi_environment), save :: bigdft_mpi !< Contains all data needed for MPI processes
 
   !> Physical constants.
   real(gp), parameter :: Bohr_Ang = 0.52917721092_gp                    !< 1 AU in angstroem
@@ -83,20 +83,12 @@ module module_defs
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
 
+  private :: double,simple,long,short,four
+
   !interface for uninitialized variable
   interface UNINITIALIZED
      module procedure uninitialized_dbl,uninitialized_int,uninitialized_real,uninitialized_long, uninitialized_logical
   end interface
-
-  interface safe_exp
-     module procedure safe_dexp
-  end interface safe_exp
-
-!!$  interface
-!!$     subroutine bigdft_utils_flush(unit)
-!!$       integer, intent(in) :: unit
-!!$     end subroutine bigdft_utils_flush
-!!$  end interface
 
   contains
 
@@ -144,44 +136,5 @@ module module_defs
       foo = kind(one)
       uninitialized_logical=.false.
     end function uninitialized_logical
-
-
-    !> fpe-free way of calling exp.
-    !! Crop the results to zero in the case of underflow
-    pure function safe_dexp(x,extra_crop_order,underflow) result(ex)
-      implicit none
-      !> argument of the exponential function
-      double precision, intent(in) :: x
-      !> determine the value under which the result is assumed to be zero
-      double precision, intent(in), optional :: underflow
-      !> further restrict the valid range of the function
-      !! by the order of magnitude indicated.
-      !! Useful when the function has to be multiplied by extra terms
-      !! The default is log of epsilon**2
-      integer, intent(in), optional :: extra_crop_order
-      double precision :: ex
-      !local variables
-      !> if the exponent is bigger than this value, the result is tiny(1.0)
-      double precision, parameter :: mn_expo=-708.396418532264d0 ! = log(tiny(1.d0))
-      !> if the exponent is lower than this value, the result is huge(1.0)
-      double precision, parameter :: mx_expo=709.78271289338397d0 ! = log(huge(1.d0))
-      !> the value of the cropping
-      double precision, parameter :: crop_expo=72.0873067782343d0 ! = -2*log(epsilon(1.d0))
-      double precision :: crop,mn,mx
-
-      crop=crop_expo
-      if (present(extra_crop_order)) crop=real(extra_crop_order,kind=8)
-      mn=mn_expo+crop
-      mx=mx_expo-crop
-      if (present(underflow)) mn=log(abs(underflow))
-      if (x > mn .and. x< mx) then
-         ex=exp(x)
-      else if (x <= mn) then
-         ex=0.d0
-      else
-         ex=exp(mx)
-      end if
-         
-    end function safe_dexp
 
 end module module_defs

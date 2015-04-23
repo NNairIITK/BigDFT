@@ -126,7 +126,7 @@
    hgrids: [0.55, 0.55, 0.55] #                   Grid spacing in the three directions (bohr)
    rmult: [3.5, 9.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
-   ncharge                             : 0 #      Charge of the system
+   qcharge                             : 0 #      Charge of the system
    elecfield: [0.0, 0.0, 0.0] #                   Electric field (Ex,Ey,Ez)
    nspin                               : 1 #      Spin polarization treatment
    mpol                                : 0 #      Total magnetic moment
@@ -597,6 +597,9 @@
  -  {H: [ 1.230290163915E-02, -1.234495856959E-02, -1.234495856959E-02]} # 0005
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
+ - 
+   Do not read the linear input files in the old format. If you use the .yaml format you can 
+   igno
  - Chosen Grid spacings seem too high for this atom. At you own risk!
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

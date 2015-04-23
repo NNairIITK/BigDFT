@@ -58,6 +58,7 @@ module module_types
   integer, parameter, public :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
   integer, parameter, public :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
 
+
   !> All possible values of input psi (determination of the input guess)
   integer, dimension(12), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
@@ -134,6 +135,11 @@ module module_types
   integer, parameter, public :: UPDATE_BY_PURIFICATION = 0
   integer, parameter, public :: UPDATE_BY_FOE = 1
   integer, parameter, public :: UPDATE_BY_RENORMALIZATION = 2
+
+  !> How to do the partition of the support functions (linear scaling version)
+  integer,parameter,public :: LINEAR_PARTITION_SIMPLE = 61
+  integer,parameter,public :: LINEAR_PARTITION_OPTIMAL = 62
+  integer,parameter,public :: LINEAR_PARTITION_NONE = 63
   
   !> Type used for the orthogonalisation parameters
   type, public :: orthon_data
@@ -196,8 +202,8 @@ module module_types
     integer :: blocksize_pdgemm, blocksize_pdsyev
     integer :: correctionOrthoconstraint, nproc_pdsyev, nproc_pdgemm
     integer :: nit_lowaccuracy, nit_highaccuracy, nItdmin_lowaccuracy, nItdmin_highaccuracy
-    integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy
-    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy
+    integer :: nItSCCWhenFixed_lowaccuracy, nItSCCWhenFixed_highaccuracy, nit_extendedIG
+    real(kind=8) :: convCrit_lowaccuracy, convCrit_highaccuracy, convCrit_extendedIG
     real(kind=8) :: alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
     real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
     integer :: plotBasisFunctions
@@ -209,7 +215,7 @@ module module_types
     real(kind=8), dimension(:,:), pointer :: locrad_type
     real(kind=8), dimension(:), pointer :: potentialPrefac_lowaccuracy, potentialPrefac_highaccuracy, potentialPrefac_ao
     real(kind=8), dimension(:),pointer :: kernel_cutoff, locrad_kernel, locrad_mult
-    real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic
+    real(kind=8) :: early_stop, gnrm_dynamic, min_gnrm_for_dynamic 
     integer, dimension(:), pointer :: norbsPerType
     integer :: kernel_mode, mixing_mode
     integer :: scf_mode, nlevel_accuracy
@@ -218,6 +224,7 @@ module module_types
     integer :: extra_states, order_taylor, mixing_after_inputguess
     !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
     real(kind=8) :: max_inversion_error
+    logical :: calculate_onsite_overlap
   end type linearInputParameters
 
 
@@ -288,7 +295,7 @@ module module_types
 
      !> DFT basic parameters.
      integer :: ixc         !< XC functional Id
-     integer :: ncharge     !< Total charge of the system
+     real(gp):: qcharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
      integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
@@ -317,6 +324,7 @@ module module_types
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
+     character(len=8) :: set_epsilon !< method for setting the dielectric constant
 
      !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
@@ -379,6 +387,10 @@ module module_types
      real(gp) :: steepthresh
      real(gp) :: trustr
 
+    !Force Field Parameter
+    character(len=64) :: mm_paramset
+    character(len=64) :: mm_paramfile
+
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
@@ -421,7 +433,7 @@ module module_types
      integer :: check_sumrho               !< (LS) Perform a check of sumrho (no check, light check or full check)
      integer :: check_overlap              !< (LS) Perform a check of the overlap calculation
      logical :: experimental_mode          !< (LS) Activate the experimental mode
-     logical :: write_orbitals             !< (LS) Write KS orbitals for cubic restart
+     integer :: write_orbitals             !< (LS) Write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)
      logical :: explicit_locregcenters     !< (LS) Explicitely specify localization centers
      logical :: calculate_KS_residue       !< (LS) Calculate Kohn-Sham residue
      logical :: intermediate_forces        !< (LS) Calculate intermediate forces
@@ -471,6 +483,21 @@ module module_types
      !> linear scaling: enable the matrix taskgroups
      logical :: enable_matrix_taskgroups
 
+     !> linear scaling: radius enlargement for the Hamiltonian application (in grid points)
+     integer :: hamapp_radius_incr
+
+     !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
+     logical :: adjust_kernel_iterations
+
+     !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     logical :: wf_extent_analysis
+
+     !> Method for the solution of  generalized poisson Equation
+     character(len=4) :: GPS_Method
+
+     !> Use the FOE method to calculate the HOMO-LUMO gap at the end
+     logical :: foe_gap
+
   end type input_variables
 
 
@@ -482,9 +509,10 @@ module module_types
      real(gp) :: eion    !< Ion-Ion interaction
      real(gp) :: edisp   !< Dispersion force
      real(gp) :: ekin    !< Kinetic term
-     real(gp) :: epot    
-     real(gp) :: eproj   
-     real(gp) :: eexctX  
+     real(gp) :: epot    !< local potential energy
+     real(gp) :: eproj   !< energy of PSP projectors
+     real(gp) :: eexctX  !< exact exchange energy
+     real(gp) :: eelec   !< electrostatic energy. Replaces the hartree energy for cavities
      real(gp) :: ebs     
      real(gp) :: eKS     
      real(gp) :: trH     
@@ -701,6 +729,14 @@ module module_types
   end type workarrays_quartic_convolutions
 
 
+  type,public :: work_mpiaccumulate
+    integer :: ncount
+    real(wp),dimension(:),pointer :: receivebuf
+    real(wp),dimension(:),pointer :: sendbuf
+    integer :: window
+  end type work_mpiaccumulate
+
+
   type, public :: localizedDIISParameters
     integer :: is, isx, mis, DIISHistMax, DIISHistMin
     integer :: icountSDSatur, icountDIISFailureCons, icountSwitch, icountDIISFailureTot, itBest
@@ -747,6 +783,7 @@ module module_types
      real(gp) :: prefac                 !< Prefactor
      real(gp), dimension(3) :: hh       !< Grid spacings in ISF grid
      real(gp), dimension(3) :: rxyzConf !< Confining potential center in global coordinates
+     real(gp) :: damping                !< Damping factor to be used after the restart
   end type confpot_data
 
 
@@ -771,6 +808,7 @@ module module_types
      real(wp), dimension(:,:,:,:), pointer :: V_XC    !< eXchange and Correlation potential (local)
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
      real(wp), dimension(:,:,:,:), pointer :: f_XC    !< dV_XC[rho]/d_rho
+     real(wp), dimension(:,:,:,:), pointer :: rho_ion !< charge density of the ions, to be passed to PSolver
      !temporary arrays
      real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
      !metadata
@@ -859,6 +897,7 @@ module module_types
      integer :: npsidim_comp  !< Number of elements inside psi in the components distribution scheme
      type(hamiltonian_descriptors) :: ham_descr
      real(kind=8), dimension(:,:), pointer :: coeff          !< Expansion coefficients
+     real(kind=8) :: damping_factor_confinement !< damping for the confinement after a restart
   end type DFT_wavefunction
 
 
@@ -911,7 +950,7 @@ module module_types
  !>timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=146   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=149   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -1014,8 +1053,8 @@ module module_types
       'ovrlptransComp','Other         ' ,'Miscellaneous ' ,  &
       'ovrlptransComm','Communications' ,'mpi_allreduce ' ,  &
       'lincombtrans  ','Other         ' ,'Miscellaneous ' ,  &
-      'glsynchham1   ','Other         ' ,'Miscellaneous ' ,  &
-      'glsynchham2   ','Other         ' ,'Miscellaneous ' ,  &
+      'glsynchham1   ','Communications' ,'load balancing' ,  &
+      'glsynchham2   ','Communications' ,'load balancing' ,  &
       'gauss_proj    ','Other         ' ,'Miscellaneous ' ,  &
       'sumrho_allred ','Communications' ,'mpiallred     ' ,  &
       'deallocprec   ','Other         ' ,'Miscellaneous ' ,  &
@@ -1073,6 +1112,9 @@ module module_types
       'transform_matr','Other         ' ,'small to large' ,  &
       'calctrace_comp','Other         ' ,'Miscellaneous ' ,  &
       'calctrace_comm','Communications' ,'allreduce     ' ,  &
+      'determinespars','Other         ' ,'Miscellaneous ' ,  &
+      'inittaskgroup ','Other         ' ,'Miscellaneous ' ,  &
+      'transformspars','Other         ' ,'Miscellaneous ' ,  &
       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 
@@ -1087,14 +1129,15 @@ module module_types
  public :: material_acceleration_null,input_psi_names
  public :: wf_format_names,bigdft_init_errors,bigdft_init_timing_categories
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
- public :: deallocate_wfd,deallocate_bounds,update_nlpsp,deallocate_paw_objects
- public :: old_wavefunction_set,allocate_wfd,basis_params_set_dict
- public :: input_set,copy_locreg_descriptors,nullify_locreg_descriptors
+ public :: update_nlpsp,deallocate_paw_objects!,deallocate_wfd,
+ public :: old_wavefunction_set,basis_params_set_dict
+ public :: input_set,nullify_locreg_descriptors
  public :: input_psi_help,deallocate_rho_descriptors
- public :: nullify_paw_objects,frag_from_dict,copy_grid_dimensions
+ public :: nullify_paw_objects,frag_from_dict!,copy_grid_dimensions
  public :: cprj_to_array,deallocate_gwf_c
  public :: SIC_data_null,local_zone_descriptors_null,output_wf_format_help
- public :: energy_terms_null
+ public :: energy_terms_null, work_mpiaccumulate_null
+ public :: allocate_work_mpiaccumulate, deallocate_work_mpiaccumulate
 
 contains
 
@@ -1110,6 +1153,7 @@ contains
     en%epot    =0.0_gp
     en%eproj   =0.0_gp
     en%eexctX  =0.0_gp
+    en%eelec   =0.0_gp
     en%ebs     =0.0_gp
     en%eKS     =0.0_gp
     en%trH     =0.0_gp
@@ -1696,6 +1740,39 @@ contains
   end subroutine cprj_to_array
 
 
+  pure function work_mpiaccumulate_null() result(w)
+    implicit none
+    type(work_mpiaccumulate) :: w
+    call nullify_work_mpiaccumulate(w)
+  end function work_mpiaccumulate_null
+
+
+  pure subroutine nullify_work_mpiaccumulate(w)
+    implicit none
+    type(work_mpiaccumulate),intent(out) :: w
+    w%ncount = 0
+    w%window = 0
+    nullify(w%receivebuf)
+    nullify(w%sendbuf)
+  end subroutine nullify_work_mpiaccumulate
+
+
+  subroutine allocate_work_mpiaccumulate(w)
+    implicit none
+    type(work_mpiaccumulate),intent(out) :: w
+    w%receivebuf = f_malloc_ptr(w%ncount,id='w%receivebuf')
+    w%sendbuf = f_malloc_ptr(w%ncount,id='w%sendbuf')
+  end subroutine allocate_work_mpiaccumulate
+
+
+  subroutine deallocate_work_mpiaccumulate(w)
+    implicit none
+    type(work_mpiaccumulate),intent(out) :: w
+    call f_free_ptr(w%receivebuf)
+    call f_free_ptr(w%sendbuf)
+  end subroutine deallocate_work_mpiaccumulate
+
+
   !> create a null Lzd. Note: this is the correct way of defining 
   !! association through prure procedures.
   !! A pure subroutine has to be defined to create a null structure.
@@ -2075,7 +2152,19 @@ contains
              in%run_mode=LENOSKY_SI_BULK_RUN_MODE
           case('amber')
              in%run_mode=AMBER_RUN_MODE
+          case('morse_bulk')
+             in%run_mode=MORSE_BULK_RUN_MODE
+          case('morse_slab')
+             in%run_mode=MORSE_SLAB_RUN_MODE
+          case('tersoff')
+             in%run_mode=TERSOFF_RUN_MODE
+          case('bmhtf')
+             in%run_mode=BMHTF_RUN_MODE
           end select
+       case(MM_PARAMSET)
+            in%mm_paramset=val
+       case(MM_PARAMFILE)
+            in%mm_paramfile=val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2096,9 +2185,16 @@ contains
           in%frmult = dummy_gp(2)
        case (IXC)
           in%ixc = val !XC functional (ABINIT XC codes)
-       case (NCHARGE)
-          in%ncharge = val !charge and electric field
-       case (ELECFIELD)
+       case (NCHARGE) !charge 
+          str=val
+          !check if the provided value is a integer
+          if (is_atoi(str)) then
+             ipos=val
+             in%qcharge=real(ipos,gp) !exact conversion
+          else
+             in%qcharge = val 
+          end if
+       case (ELECFIELD) !electric field
           in%elecfield = val
        case (NSPIN)
           in%nspin = val !spin and polarization
@@ -2137,6 +2233,17 @@ contains
           in%nplot = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
+       case (SOLVENT)
+          in%set_epsilon= val
+!!$          dummy_char = val
+!!$          select case(trim(dummy_char))
+!!$          case ("vacuum")
+!!$             in%set_epsilon =EPSILON_VACUUM
+!!$          case("rigid")
+!!$             in%set_epsilon =EPSILON_RIGID_CAVITY
+!!$          case("sccs")
+!!$             in%set_epsilon =EPSILON_SCCS
+!!$          end select
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2322,6 +2429,20 @@ contains
        case (ENABLE_MATRIX_TASKGROUPS) 
            ! linear scaling: enable the matrix taskgroups
            in%enable_matrix_taskgroups = val
+       case (HAMAPP_RADIUS_INCR)
+           ! linear scaling: radius enlargement for the Hamiltonian application (in grid points)
+           in%hamapp_radius_incr = val
+       case (ADJUST_KERNEL_ITERATIONS) 
+           ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
+           in%adjust_kernel_iterations = val
+       case(WF_EXTENT_ANALYSIS)
+           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+           in%wf_extent_analysis = val
+       case (GPS_METHOD)
+           in%GPS_method = val
+       case (FOE_GAP)
+           ! linear scaling: Use the FOE method to calculate the HOMO-LUMO gap at the end
+           in%foe_gap = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2475,6 +2596,8 @@ contains
        case (MAX_INVERSION_ERROR)
            ! maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
            in%lin%max_inversion_error = val
+       case (CALCULATE_ONSITE_OVERLAP)
+           in%lin%calculate_onsite_overlap = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2493,6 +2616,10 @@ contains
           dummy_gp(1:2) = val
           in%lin%convCrit_lowaccuracy = dummy_gp(1)
           in%lin%convCrit_highaccuracy = dummy_gp(2)
+       case (GNRM_IG)
+          in%lin%convCrit_extendedIG = val
+       case (NIT_IG)
+          in%lin%nit_extendedIG = val
        case (DELTAE_CV)
           in%lin%early_stop = val
        case (GNRM_DYN)

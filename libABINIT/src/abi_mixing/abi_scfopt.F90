@@ -111,6 +111,7 @@ subroutine abi_scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
  integer :: i_vstore,ierr,ifft,ii,index,isp,jj,niter,npulay,tmp
  real(dp),save :: prod_resid_old,resid_old,resid_old2
  real(dp) :: aa1,aa2,bb,cc1,cc2,current,det,lambda,lambda2,resid_best
+ real(dp),dimension(1) :: dummy
  character(len=500) :: message
 !arrays
  integer,allocatable :: ipiv(:)
@@ -137,7 +138,14 @@ subroutine abi_scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
 
 !  Compute the new residual resid_new, from f_fftgr/f_paw(:,:,i_vrespc(1))
 !!$ call abi_sqnormm_v(cplex,i_vrespc(1),mpi_comm,mpi_summarize,1,nfft,resid_new,n_fftgr,nspden,opt_denpot,f_fftgr)
- resid_new(1) = fnrm(f_fftgr(1,1,i_vrespc(1)),cplex,nfft,nspden,opt_denpot,user_data)
+ if (nfft>0) then
+   resid_new(1) = fnrm(f_fftgr(1,1,i_vrespc(1)),cplex,nfft,nspden,opt_denpot,user_data)
+ else
+   ! To prevent an out-of-bounds error in case nfft is zero. Simply not calling
+   ! this function does not work since it contains a collective MPI call.
+   dummy = 0.0_dp
+   resid_new(1) = fnrm(dummy,cplex,nfft,nspden,opt_denpot,user_data)
+ end if
 
 
  if (usepaw==1.and.pawoptmix==1) then
@@ -181,7 +189,14 @@ subroutine abi_scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    call abi_wrtout(std_out,message,'COLL')
 
 !  Compute prod_resid from f_fftgr/f_paw(:,:,i_vrespc(1)) and f_fftgr/f_paw(:,:,i_vrespc(2))
-   prod_resid(1) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(2)),cplex,nfft,nspden,opt_denpot,user_data)
+   if (nfft>0) then
+     prod_resid(1) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(2)),cplex,nfft,nspden,opt_denpot,user_data)
+   else
+     ! To prevent an out-of-bounds error in case nfft is zero. Simply not calling
+     ! this function does not work since it contains a collective MPI call.
+     dummy = 0.0_dp
+     prod_resid(1) = fdot(dummy,dummy,cplex,nfft,nspden,opt_denpot,user_data)
+   end if
    if (usepaw==1.and.pawoptmix==1) then
      do index=1,npawmix
        prod_resid(1)=prod_resid(1)+f_paw(index,i_vrespc(1))*f_paw(index,i_vrespc(2))
@@ -236,7 +251,14 @@ subroutine abi_scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    call abi_wrtout(std_out,message,'COLL')
 
 !  Compute prod_resid from f_fftgr/f_paw(:,:,i_vrespc(1)) and f_fftgr/f_paw(:,:,i_vrespc(2))
-   prod_resid(1) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(2)),cplex,nfft,nspden,opt_denpot,user_data)
+   if (nfft>0) then
+     prod_resid(1) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(2)),cplex,nfft,nspden,opt_denpot,user_data)
+   else
+     ! To prevent an out-of-bounds error in case nfft is zero. Simply not calling
+     ! this function does not work since it contains a collective MPI call.
+     dummy = 0.0_dp
+     prod_resid(1) = fdot(dummy,dummy,cplex,nfft,nspden,opt_denpot,user_data)
+   end if
    if (usepaw==1.and.pawoptmix==1) then
      do index=1,npawmix
        prod_resid(1)=prod_resid(1)+f_paw(index,i_vrespc(1))*f_paw(index,i_vrespc(2))
@@ -244,7 +266,14 @@ subroutine abi_scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
    end if
 
 !  Compute prod_resid2 from f_fftgr/f_paw(:,:,i_vrespc(1)) and f_fftgr/f_paw(:,:,i_vrespc(3))
-   prod_resid2(1) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(3)),cplex,nfft,nspden,opt_denpot,user_data)
+   if (nfft>0) then
+     prod_resid2(1) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(3)),cplex,nfft,nspden,opt_denpot,user_data)
+   else
+     ! To prevent an out-of-bounds error in case nfft is zero. Simply not calling
+     ! this function does not work since it contains a collective MPI call.
+     dummy = 0.0_dp
+     prod_resid2(1) = fdot(dummy,dummy,cplex,nfft,nspden,opt_denpot,user_data)
+   end if
    if (usepaw==1.and.pawoptmix==1) then
      do index=1,npawmix
        prod_resid2(1)=prod_resid2(1)+f_paw(index,i_vrespc(1))*f_paw(index,i_vrespc(3))
@@ -316,8 +345,16 @@ subroutine abi_scfopt(cplex,f_fftgr,f_paw,iscf,istep,i_vrespc,i_vtrial,&
      end do
    end if
    do ii=1,niter
-     amat(ii,niter) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(1+niter-ii)),&
-          & cplex,nfft,nspden,opt_denpot,user_data)
+     if (nfft>0) then
+       amat(ii,niter) = fdot(f_fftgr(1,1,i_vrespc(1)), f_fftgr(1,1,i_vrespc(1+niter-ii)),&
+            & cplex,nfft,nspden,opt_denpot,user_data)
+     else
+       ! To prevent an out-of-bounds error in case nfft is zero. Simply not calling
+       ! this function does not work since it contains a collective MPI call.
+       dummy = 0.0_dp
+       amat(ii,niter) = fdot(dummy, dummy,&
+            & cplex,nfft,nspden,opt_denpot,user_data)
+     end if
      if (usepaw==1.and.pawoptmix==1) then
        do index=1,npawmix
          amat(ii,niter)=amat(ii,niter)+f_paw(index,i_vrespc(1))*f_paw(index,i_vrespc(1+niter-ii))

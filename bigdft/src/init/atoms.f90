@@ -31,7 +31,7 @@ END SUBROUTINE atoms_write
 !> Deallocate a new atoms_data type, for bindings.
 subroutine atoms_empty(atoms)
   use module_atoms, only: atoms_data, deallocate_atoms_data
-  use dynamic_memory
+  use f_refcnts, only: f_ref_new
   implicit none
   type(atoms_data), intent(inout) :: atoms
 

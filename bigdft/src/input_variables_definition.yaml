@@ -50,8 +50,8 @@
      B97-D: -170 #to be verified
      B3LYP: -402
      HF: 100 #Hartree-Fock
-   ncharge:
-     COMMENT: Charge of the system
+   qcharge:
+     COMMENT: Charge of the system. Can be integer or real.
      DESCRIPTION: Total charge of the system. A negative value means that extra electrons are added.
      RANGE: [-500., 500.]
      default: 0
@@ -129,13 +129,17 @@
      linear: 100
      linear_restart: 102
    output_wf:
-     COMMENT: Output of the wavefunctions
+     COMMENT: Output of the support functions
      default: 0
      EXCLUSIVE:
        0: None
-       1: Plain text
-       2: Fortran binary
-       3: ETSF file format
+       1: Wavelet, Plain text
+       2: Wavelet, Fortran binary
+       3: Wavelet, ETSF file format
+       10: None
+       11: Wavelet and Interpolating Scaling Function, Plain text
+       12: Wavelet and Interpolating Scaling Function, Fortran binary
+       13: Wavelet and Interpolating Scaling Function, ETSF file format
    output_denspot:
      COMMENT: Output of the density or the potential
      default: 0
@@ -178,7 +182,14 @@
      COMMENT: Disable the symmetry detection
      DESCRIPTION: Disable the symmetry detection (by default No except for isolated systems)
      default: No
-
+   solvent:
+     COMMENT: Electrostatic environment for Poisson Equation
+     DESCRIPTION: Define the method to set the dielectric function as a function of the position
+     EXCLUSIVE:
+       vacuum: No Solvent method, ordinary Poisson Equation
+       rigid:  Rigid (smoothed) cavity around the atoms, given as superposition of spheres
+       sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
+     default: vacuum
 #K points parameters
  kpt:
    DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations
@@ -437,7 +448,7 @@
      COMMENT: Temperature of molecular dynamics
      CONDITION:
        MASTER_KEY: ionmov
-       WHEN: [8, 9, 12, 13]
+       WHEN: [6, 8, 9, 12, 13]
 #       - 6
      RANGE: [0, 1e9]
      default: 300.
@@ -658,10 +669,20 @@
      EXCLUSIVE:
        dft: Density Functional Theory
        lj: Lennard-Jones force field
-       lensic: Lenosky Tight-Binding for Si clusters
-       lensib: Lenosky Tight-Binding for Si bulk
+       lensic: Lenosky Force Field for Si clusters
+       lensib: Lenosky Force Field for Si bulk
        amber: AMBER Force Fields Package (requires AMBERtools)
+       morse_bulk: Morse bulk
+       morse_slab: Morse slab
+       tersoff: Tersoff potential for C and Si
+       bmhtf: Born Mayer Huggins Tosi Fumi Potential
      default: dft
+   mm_paramset:
+     COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+     default: default
+   mm_paramfile:
+     COMMENT: name of parameter file
+     default: none
      
 #Performance parameters
  perf:
@@ -789,6 +810,9 @@
    mp_isf:
      COMMENT: (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
      EXCLUSIVE:
+       2: isf 2
+       4: isf 4
+       6: isf 6
        8: isf 8
        14: isf 14
        16: isf 16
@@ -849,7 +873,11 @@
      default: No
    write_orbitals:
      COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
-     default: No
+     default: 0
+     EXCLUSIVE:
+       0: No output
+       1: Output in in wavelet basis
+       2: In addition output in interpolating scaling functions (cube file)
    explicit_locregcenters:
      COMMENT: Linear scaling explicitely specify localization centers 
      default: No
@@ -904,8 +932,8 @@
    FOE_restart:
      COMMENT: Restart method to be used for the FOE method
      EXCLUSVE:
-       0: REFORMAT
-       1: AO
+       0: AO
+       1: REFORMAT
      default: 0 
    imethod_overlap:
      COMMENT: method to calculate the overlap matrices (1=old, 2=new)
@@ -916,6 +944,26 @@
    enable_matrix_taskgroups:
      COMMENT: enable the matrix taskgroups
      default: True
+   hamapp_radius_incr:
+     COMMENT: radius enlargement for the Hamiltonian application (in grid points)
+     default: 8
+     RANGE: [0,8]
+   adjust_kernel_iterations:
+     COMMENT: enable the addaptive ajustment of the number of kernel iterations
+     default: True
+   wf_extent_analysis:
+     COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     default: False
+   gps_method:
+     COMMENT: method for the Generalized Poisson Equation
+     EXCLUSIVE:
+        VAC: Vacuum (ordinary treatment)
+        PI: Polarization Iteration
+        PCG: Preconditioned Conjugate Gradient
+     default: VAC
+   foe_gap:
+     COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
+     default: False
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -974,16 +1022,24 @@
        DESCRIPTION: |
                     possible value: 1 nonnegative-integer number
                     Indicates how the support functions should be written to disk at the end of the run:
-                     * 0 => no output
-                     * 1 => formatted output
-                     * 2 => Fortran bin
-                     * 3 => ETSF
-       EXCLUSIVE:
-         0: no output
-         1: formatted output
-         2: Fortran bin
-         3: ETSF
+                     *  0 => None
+                     *  1 => Wavelet, Plain text
+                     *  2 => Wavelet, Fortran binary
+                     *  3 => Wavelet, ETSF file format
+                     * 10 => None
+                     * 11 => Wavelet and Interpolating Scaling Function, Plain text
+                     * 12 => Wavelet and Interpolating Scaling Function, Fortran binary
+                     * 13 => Wavelet and Interpolating Scaling Function, ETSF file format
        default: 0
+       EXCLUSIVE:
+         0:  None
+         1:  Wavelet, Plain text
+         2:  Wavelet, Fortran binary
+         3:  Wavelet, ETSF file format
+         10: None
+         11: Wavelet and Interpolating Scaling Function, Plain text
+         12: Wavelet and Interpolating Scaling Function, Fortran binary
+         13: Wavelet and Interpolating Scaling Function, ETSF file format
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical
@@ -1004,12 +1060,15 @@
        COMMENT: diagonalization at the end
        DESCRIPTION: |
                     possible value: logical
-                    Indicates whether a diagonliazation shall be performed at the end of the run
+                    Indicates whether a diagonalization shall be performed at the end of the run
        default: No
      extra_states:
        COMMENT: extra states to optimize (dmin only)
        default: 0
        RANGE: [0, 10000]
+     calculate_onsite_overlap:
+       COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
+       default: No
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
@@ -1021,6 +1080,10 @@
                     If the hybrid mode is used, only the first value is taken into account.
        RANGE: [0,100]
        default: [4,5]
+     nit_ig:
+       COMMENT:  maximal number of iterations to optimize the support functions in the extended input guess (experimental mode only)
+       RANGE: [0,100]
+       default: 50 #just for backward compatibility, should be smaller
      idsx:
        COMMENT: DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
        DESCRIPTION: |
@@ -1039,6 +1102,10 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-6,1.0]
        default: [1.e-2,1.e-4]
+     gnrm_ig:
+       COMMENT: convergence criterion for the optimization of the support functions in the extended input guess (experimental mode only)
+       RANGE: [1.e-5,10.0]
+       default: 1.e-3 #just for backward compatibility, should be larger
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
        DESCRIPTION: |
@@ -1120,7 +1187,7 @@
                     Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
-       RANGE: [0,100]
+       RANGE: [0,1000]
        default: [5,5]
 # check whether there are different DIIS histories...
      idsx_coeff:

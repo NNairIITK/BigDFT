@@ -124,7 +124,7 @@
    hgrids: [0.3, 0.3, 0.3] #                      Grid spacing in the three directions (bohr)
    rmult: [7.0, 8.0] #                            c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
    ixc                                 : 11 #     Exchange-correlation parameter (LDA=1,PBE=11)
-   ncharge                             : 0 #      Charge of the system
+   qcharge                             : 0 #      Charge of the system
    elecfield: [0.0, 0.0, 0.0] #                   Electric field (Ex,Ey,Ez)
    nspin                               : 2 #      Spin polarization treatment
    mpol                                : 2 #      Total magnetic moment
@@ -582,7 +582,7 @@
    -  [ -4.8341951543E-10, -8.065863293894E-11,  1.100142057805E-05 ]
    Pressure:
      Ha/Bohr^3                         : -3.79056532935251E-04
-     GPa                               : -11.1522
+     GPa                               : -11.1522263878
      PV (Ha)                           : -6.90660074618292E-02
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

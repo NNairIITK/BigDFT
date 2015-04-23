@@ -1631,7 +1631,6 @@ contains
     integer :: dummy_int, blocks(2)
     double precision :: dummy_real
     character(len = 7) :: dummy_str
-    character(len = max_field_length) :: dummy_path
 
     call input_set_file(iproc, (iproc == 0), filename, exists, PERF_VARIABLES)
     !if (exists) in%files = in%files + INPUTS_PERF
@@ -1745,8 +1744,8 @@ contains
     call input_var("experimental_mode", .false., "linear scaling: activate the experimental mode", dummy_bool)
     call set(dict // EXPERIMENTAL_MODE, dummy_bool)
 
-    call input_var("write_orbitals", .false., "linear scaling: write KS orbitals for cubic restart", dummy_bool)
-    call set(dict // WRITE_ORBITALS, dummy_bool)
+    call input_var("write_orbitals", 0, "(LS): write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)", dummy_int)
+    call set(dict // WRITE_ORBITALS, dummy_int)
 
     call input_var("explicit_locregcenters", .false., "linear scaling: explicitely specify localization centers", dummy_bool)
     call set(dict // EXPLICIT_LOCREGCENTERS, dummy_bool)
@@ -1797,7 +1796,16 @@ contains
     call set(dict // IMETHOD_OVERLAP, dummy_int)
 
     call input_var("enable_matrix_taskgroups", .true., "enable matrix taskgroups", dummy_bool)
-    call set(dict // IMETHOD_OVERLAP, dummy_int)
+    call set(dict // ENABLE_MATRIX_TASKGROUPS, dummy_bool)
+
+    call input_var("hamapp_radius_incr", 8, "radius enlargement for Ham application", dummy_int)
+    call set(dict // HAMAPP_RADIUS_INCR, dummy_int)
+
+    call input_var("adjust_kernel_iterations", .true., "addaptive ajustment of the number of kernel iterations", dummy_bool)
+    call set(dict // ADJUST_KERNEL_ITERATIONS, dummy_bool)
+
+    call input_var("wf_extent_analysis", .false., "extent analysis of the support functions / KS orbitals", dummy_bool)
+    call set(dict // WF_EXTENT_ANALYSIS, dummy_bool)
 
     call input_free(.false.)
 
@@ -1821,6 +1829,9 @@ contains
     double precision :: dummy_real
     character(len=256) :: comments,dummy_char,filename
     type(dictionary), pointer :: dict_basis
+
+    !call f_err_throw('For the linear version the input parameters must be read in the .yaml format, &
+    !    &the old version is deprecated', err_name='BIGDFT_INPUT_VARIABLES_ERROR')
 
     filename=repeat(' ',len(filename))
     call set_inputfile(filename, trim(run_name),    "lin")
@@ -1949,9 +1960,9 @@ contains
     call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
 
     !plot basis functions: true or false
-    comments='Output basis functions: 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF ;'//&
+    comments='Output support functions (i: wvl, i+10: wvl+isf): i=0 No, i=1 formatted, i=2 Fortran bin, i=3 ETSF ;'//&
              'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
-    call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,ranges=(/0,3/))
+    call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,exclusive=(/0,1,2,3,10,11,12,13/))
     call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
     call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY//0)
     call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_PULAY//1)
@@ -1986,11 +1997,11 @@ contains
      dict_basis=>dict//LIN_BASIS_PARAMS//trim(dummy_char)
      call input_var(dummy_int,'1',dict_basis//NBASIS,ranges=(/1,100/))
      call input_var(dummy_real,'1.2d-2',dict_basis//AO_CONFINEMENT,&
-          ranges=(/0.0_gp,1.0_gp/))
+          ranges=(/-1.0_gp,1.0_gp/))
      call input_var(dummy_real,'1.2d-2',dict_basis//CONFINEMENT//0,&
-          ranges=(/0.0_gp,1.0_gp/))
+          ranges=(/-1.0_gp,1.0_gp/))
      call input_var(dummy_real,'5.d-5',dict_basis//CONFINEMENT//1,&
-          ranges=(/0.0_gp,1.0_gp/))
+          ranges=(/-1.0_gp,1.0_gp/))
      call input_var(dummy_real,'10.d0',dict_basis//RLOC//0,&
           ranges=(/1.0_gp,10000.0_gp/))
      call input_var(dummy_real,'10.d0',dict_basis//RLOC//1,&
