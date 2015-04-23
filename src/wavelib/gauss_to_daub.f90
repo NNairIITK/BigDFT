@@ -479,7 +479,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   include 'sym_16.inc'! WAVELET FILTERS
 
 
-  call f_routine(id='gauss_to_daub_k')
+  !call f_routine(id='gauss_to_daub_k')
 
   !rescale the parameters so that hgrid goes to 1.d0  
   !when calculating "r2" in gauss_to_scf 
@@ -569,7 +569,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
      call f_free(cc)
   end if
 
-  call f_release_routine()
+  !call f_release_routine()
 
 contains
 
