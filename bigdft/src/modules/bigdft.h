@@ -301,11 +301,12 @@ struct _BigDFT_Goutput
   double strten[6];
 
   /* Private. */
-  f90_DFT_global_output_pointer data;
+  f90_state_properties_pointer data;
   f90_energy_terms_pointer energs;
 };
 /********************************/
 BigDFT_Goutput* bigdft_goutput_new        (guint nat);
+BigDFT_Goutput* bigdft_goutput_new_from_fortran(long fadd);
 void            bigdft_goutput_unref      (BigDFT_Goutput *energs);
 void            bigdft_goutput_emit_energs(BigDFT_Goutput *energs, guint istep,
                                            BigDFT_EnergsIds kind);
@@ -376,6 +377,8 @@ struct _BigDFT_Run
 BigDFT_Run*     bigdft_run_new();
 BigDFT_Run*     bigdft_run_new_from_files  (const gchar *radical, const gchar *posinp);
 BigDFT_Run*     bigdft_run_new_from_dict   (BigDFT_Dict *dict);
+BigDFT_Run*     bigdft_run_new_from_fortran(long fadd);
+
 void            bigdft_run_unref           (BigDFT_Run *run);
 void            bigdft_run_update          (BigDFT_Run *run, BigDFT_Dict *dict);
 gboolean        bigdft_run_dump            (BigDFT_Run *run, const gchar *filename,

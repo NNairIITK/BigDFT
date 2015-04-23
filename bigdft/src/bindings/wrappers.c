@@ -4,9 +4,15 @@
 #include "bindings.h"
 #include "bindings_api.h"
 
+#ifdef HAVE_PYTHON
+#include <Python.h>
+#endif
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#define max_field_length 256
 
  /* Duplicate functions in C due to multiple interface definition in Fortran */
 void FC_FUNC_(inquire_pointer1, INQUIRE_POINTER1)(void *pt, void *add, int *size)
@@ -113,6 +119,81 @@ int bigdft_lib_finalize()
   FC_FUNC_(f_lib_finalize, F_LIB_FINALIZE)();
   return ierr;
 }
+
+void  INThandler(int sig)
+{
+  exit(0);
+}
+static gboolean pythonInitialized = FALSE;
+void FC_FUNC_(bigdft_python_init, BIGDFT_PYTHON_INIT)(int *iproc, int *nproc,
+                                                      int *igroup, int *ngroup)
+{
+  char buf[64];
+#ifdef HAVE_PYTHON
+  if (!pythonInitialized)
+    {
+      Py_SetProgramName(PACKAGE_TARNAME);
+      Py_Initialize();
+      PyRun_SimpleString("from gi.repository import BigDFT");
+      sprintf(buf, "iproc = %6d\n" 
+              "nproc = %6d\n"
+              "igroup = %6d\n"
+              "ngroup = %6d\n",
+              *iproc, *nproc, *igroup, *ngroup);
+      PyRun_SimpleString(buf);
+
+      signal(SIGINT, INThandler);
+    }
+  pythonInitialized = TRUE;
+#endif
+}
+void FC_FUNC_(bigdft_python_exec, BIGDFT_PYTHON_EXEC)(char *script, int *len, int *status)
+{
+  char *buf;
+
+  buf = g_malloc(sizeof(char) * (*len + 1));
+  memcpy(buf, script, sizeof(char) * *len);
+  buf[*len] = '\0';
+#ifdef HAVE_PYTHON
+  *status = PyRun_SimpleString(buf);
+#endif
+  g_free(buf);
+}
+void FC_FUNC_(bigdft_python_exec_dict, BIGDFT_PYTHON_EXEC_DICT)(f90_dictionary_pointer *dict, int *status)
+{
+  char *buf;
+  int i, j, ln;
+  f90_dictionary_pointer iter;
+  gboolean loop;
+
+  FC_FUNC_(dict_len, DICT_LEN)(dict, &ln);
+  buf = g_malloc(sizeof(char) * ((max_field_length + 1) * ln + 1));
+
+  i = 0;
+  iter = *dict;
+  FC_FUNC_(dict_iter, DICT_ITER)(&iter, &loop);
+  while (loop)
+    {
+      FC_FUNC_(dict_value_binding, DICT_VALUE_BINDING)(&iter, buf + i, max_field_length);
+      for (j = i + max_field_length - 1; j >= i && buf[j] == ' '; j--);
+      buf[j + 1] = '\n';
+      i = j + 2;
+      
+      FC_FUNC_(dict_next, DICT_NEXT)(&iter, &loop);
+    }
+  buf[i] = '\0';
+#ifdef HAVE_PYTHON
+  *status = PyRun_SimpleString(buf);
+#endif
+  g_free(buf);
+}
+void FC_FUNC_(bigdft_python_finalize, BIGDFT_PYTHON_FINALIZE)()
+{
+#ifdef HAVE_PYTHON
+  if (pythonInitialized)
+    Py_Finalize();
+#endif
+}
 /**
  * bigdft_lib_err_severe_override:
  * @func: (allow-none) (scope call): a routine.
@@ -123,7 +204,7 @@ void bigdft_lib_err_severe_override(BigdftErrorCallback func)
 {
   FC_FUNC_(call_external_c_fromadd, CALL_EXTERNAL_C_FROMADD)(&func);
   /*FC_FUNC_(err_severe_override, ERR_SEVERE_OVERRIDE)(func);*/
-  fprintf(stderr, "%ld\n", (long long int)func);
+  fprintf(stderr, "%lld\n", (long long int)func);
 }
 
 guint bigdft_get_count(GObject *obj)
@@ -502,7 +583,7 @@ void  bigdft_dict_set_dict(BigDFT_Dict *dict, const gchar *id, const BigDFT_Dict
   root = dict->current;
   if (id)
     FC_FUNC_(dict_insert, DICT_INSERT)(&dict->current, id, strlen(id));
-  FC_FUNC_(dict_update_binding, DICT_UPDATE_BINDING)(&dict->current, &value->current);
+  FC_FUNC_(dict_update_binding, DICT_UPDATE_BINDING)(&dict->current, (f90_dictionary_pointer*)&value->current);
   dict->current = root;
 }
 gboolean bigdft_dict_pop(BigDFT_Dict *dict, const gchar *key)
@@ -522,7 +603,6 @@ gboolean bigdft_dict_pop(BigDFT_Dict *dict, const gchar *key)
  **/
 gchar* bigdft_dict_value(BigDFT_Dict *dict)
 {
-#define max_field_length 256
   char buf[max_field_length + 1];
   guint i, ln;
   gchar *out;

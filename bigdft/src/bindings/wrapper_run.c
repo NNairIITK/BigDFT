@@ -50,11 +50,16 @@ static void bigdft_goutput_init(BigDFT_Goutput *obj)
 }
 static void bigdft_goutput_dispose(GObject *obj)
 {
-  BigDFT_Goutput *energs = BIGDFT_GOUTPUT(obj);
+  BigDFT_Goutput *outs = BIGDFT_GOUTPUT(obj);
+  long self = 0;
 
-  if (energs->dispose_has_run)
+  if (outs->dispose_has_run)
     return;
-  energs->dispose_has_run = TRUE;
+  outs->dispose_has_run = TRUE;
+  /* Detach the wrapper from the Fortran object. */
+  if (F_TYPE(outs->data))
+    FC_FUNC_(state_properties_set_c_obj, STATE_PROPERTIES_SET_C_OBJ)
+      (F_TYPE(outs->data), &self);
 
 #ifdef HAVE_GLIB
   /* Chain up to the parent class */
@@ -66,39 +71,11 @@ static void bigdft_goutput_finalize(GObject *obj)
   BigDFT_Goutput *outs = BIGDFT_GOUTPUT(obj);
 
   if (F_TYPE(outs->data))
-    FC_FUNC_(state_properties_free, STATE_PROPERTIES_FREE)(&outs->data);
+    FC_FUNC_(state_properties_delete, STATE_PROPERTIES_DELETE)(&outs->data);
 
 #ifdef HAVE_GLIB
   G_OBJECT_CLASS(bigdft_goutput_parent_class)->finalize(obj);
 #endif
-}
-BigDFT_Goutput* bigdft_goutput_new(guint nat)
-{
-  BigDFT_Goutput *outs;
-  long self;
-  f90_pointer_double_2D fxyz;
-
-#ifdef HAVE_GLIB
-  outs = BIGDFT_GOUTPUT(g_object_new(BIGDFT_GOUTPUT_TYPE, NULL));
-#else
-  outs = g_malloc(sizeof(BigDFT_Goutput));
-  bigdft_goutput_init(outs);
-#endif
-  self = *((long*)&outs);
-  F90_2D_POINTER_INIT(&fxyz);
-  FC_FUNC_(state_properties_new, STATE_PROPERTIES_NEW)(&self, &outs->data, &outs->energs,
-                                                 &fxyz, (int*)&nat);
-  outs->fdim = nat;
-  outs->fxyz = fxyz.data;
-
-  return outs;
-}
-void FC_FUNC_(energs_new_wrapper, ENERGS_NEW_WRAPPER)(double *self, f90_DFT_global_output *obj)
-{
-  /* BigDFT_Goutput *outs; */
-
-  /* outs = bigdft_goutput_new_from_fortran(obj); */
-  /* *self = *((double*)&outs); */
 }
 static void _sync_energs(BigDFT_Goutput *outs)
 {
@@ -112,37 +89,108 @@ static void _sync_energs(BigDFT_Goutput *outs)
 static void _sync_outs(BigDFT_Goutput *outs)
 {
   f90_pointer_double_2D fxyz;
+  long self;
 
   F90_2D_POINTER_INIT(&fxyz);
-  FC_FUNC_(state_properties_get, STATE_PROPERTIES_GET)(F_TYPE(outs->data), &outs->energs, &fxyz,
-                                                 (int*)&outs->fdim,
-                                                 &outs->fnoise, &outs->pressure,
-                                                 outs->strten, &outs->etot);
+  FC_FUNC_(state_properties_get, STATE_PROPERTIES_GET)(F_TYPE(outs->data),
+                                                       &outs->energs, &fxyz,
+                                                       (int*)&outs->fdim,
+                                                       &outs->fnoise,
+                                                       &outs->pressure,
+                                                       outs->strten,
+                                                       &outs->etot);
   outs->fxyz = fxyz.data;
   _sync_energs(outs);
+
+  self = *((long*)&outs);
+  FC_FUNC_(state_properties_set_c_obj, STATE_PROPERTIES_SET_C_OBJ)
+    (F_TYPE(outs->data), &self);
 }
-BigDFT_Goutput* bigdft_goutput_new_from_fortran(f90_DFT_global_output_pointer obj)
+static BigDFT_Goutput* bigdft_goutput_from_fortran(f90_state_properties *fobj)
 {
   BigDFT_Goutput *outs;
+  gpointer cobj;
 
+  FC_FUNC_(state_properties_c_obj, STATE_PROPERTIES_C_OBJ)(fobj, (long*)&cobj);
+  if (cobj)
+    {
+      /* Read existing wrapper. */
+      outs = BIGDFT_GOUTPUT(cobj);
+      _sync_outs(outs);
+      g_object_ref(G_OBJECT(outs));
+    }
+  else
+    {
+      /* Create a new wrapper. */
 #ifdef HAVE_GLIB
-  outs = BIGDFT_GOUTPUT(g_object_new(BIGDFT_GOUTPUT_TYPE, NULL));
+      outs = BIGDFT_GOUTPUT(g_object_new(BIGDFT_GOUTPUT_TYPE, NULL));
 #else
-  outs = g_malloc(sizeof(BigDFT_Goutput));
-  bigdft_goutput_init(outs);
+      outs = g_malloc(sizeof(BigDFT_Goutput));
+      bigdft_goutput_init(outs);
 #endif
-  outs->data = obj;
-  _sync_outs(outs);
+      F_TYPE(outs->data) = fobj;
+      _sync_outs(outs);
+    }
 
   return outs;
 }
-void FC_FUNC_(energs_free_wrapper, ENERGS_FREE_WRAPPER)(gpointer *obj)
+BigDFT_Goutput* bigdft_goutput_new(guint nat)
+{
+  f90_state_properties_pointer fobj;
+  BigDFT_Goutput *outs;
+  
+  FC_FUNC_(state_properties_alloc, STATE_PROPERTIES_ALLOC)(&fobj, (int*)&nat);
+  outs = bigdft_goutput_from_fortran(F_TYPE(fobj));
+  outs->data = fobj; /* Need to copy the full structure here for later
+                        deallocate. */
+  return outs;
+}
+/**
+ * bigdft_goutput_new_from_fortran:
+ * @fadd: 
+ *
+ * Create a C wrapper around a Fortran object.
+ *
+ * Returns: (transfer none):
+ **/
+BigDFT_Goutput* bigdft_goutput_new_from_fortran(long fadd)
+{
+  gpointer fobj;
+
+  fobj = fadd;
+  return bigdft_goutput_from_fortran((f90_state_properties*)fobj);
+}
+void FC_FUNC_(state_properties_to_python, STATE_PROPERTIES_TO_PYTHON)(long outs, const char *lbl, int *len)
+{
+#ifdef HAVE_PYTHON
+  char buf[64];
+
+  memcpy(buf, lbl, sizeof(char) * *len);
+  sprintf(buf + *len, " = BigDFT.Goutput.new_from_fortran(%ld)\n", outs);
+  PyRun_SimpleString(buf);
+#endif
+}
+void FC_FUNC_(state_properties_wrapper_detach, STATE_PROPERTIES_WRAPPER_DETACH)(gpointer *obj, int *claim)
+{
+  BigDFT_Goutput *outs = BIGDFT_GOUTPUT(*obj);
+  long self = 0;
+
+  claim = bigdft_get_count(G_OBJECT(outs)) - 1;
+  /* Detach the wrapper from the Fortran object. */
+  if (!claim)
+    {
+      FC_FUNC_(state_properties_set_c_obj, STATE_PROPERTIES_SET_C_OBJ)
+        (F_TYPE(outs->data), &self);
+      F_TYPE(outs->data) = (f90_state_properties*)0;
+    }
+  bigdft_goutput_unref(outs);
+}
+void FC_FUNC_(state_properties_wrapper_attach, STATE_PROPERTIES_WRAPPER_ATTACH)(gpointer *obj, f90_state_properties *fobj)
 {
   BigDFT_Goutput *outs = BIGDFT_GOUTPUT(*obj);
 
-  F_TYPE(outs->data) = (f90_DFT_global_output*)0;
-  F_TYPE(outs->energs) = (f90_energy_terms*)0;
-  bigdft_goutput_unref(outs);
+  FC_FUNC_(state_properties_copy, STATE_PROPERTIES_COPY)(&outs->data, fobj);
+  _sync_outs(outs);
 }
 void bigdft_goutput_unref(BigDFT_Goutput *outs)
 {
@@ -259,6 +307,7 @@ static void bigdft_run_init(BigDFT_Run *obj)
 static void bigdft_run_dispose(GObject *obj)
 {
   BigDFT_Run *run = BIGDFT_RUN(obj);
+  long self = 0;
 
   if (run->dispose_has_run)
     return;
@@ -273,6 +322,11 @@ static void bigdft_run_dispose(GObject *obj)
   /* Release ownership of dict. */
   FC_FUNC_(run_objects_nullify_dict, RUN_OBJECTS_NULLIFY_DICT)(F_TYPE(run->data));
   bigdft_dict_unref(run->dict);
+
+  /* Detach the wrapper from the Fortran object. */
+  if (F_TYPE(run->data))
+    FC_FUNC_(run_objects_set_c_obj, RUN_OBJECTS_SET_C_OBJ)
+      (F_TYPE(run->data), &self);
 
 #ifdef HAVE_GLIB
   /* Chain up to the parent class */
@@ -353,38 +407,74 @@ BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict)
   return run;
 }
 
-/* void FC_FUNC_(run_new_wrapper, RUN_NEW_WRAPPER)(double *self, void *obj) */
-/* { */
-/*   BigDFT_Run *run; */
-
-/*   run = bigdft_run_new_from_fortran(obj); */
-/*   *self = *((double*)&run); */
-/* } */
-BigDFT_Run* bigdft_run_new_from_fortran(f90_run_objects_pointer obj,
-                                        gboolean create_wrappers)
+/**
+ * bigdft_run_new_from_fortran:
+ * @fadd: 
+ *
+ * Create a C wrapper around a Fortran object.
+ *
+ * Returns: (transfer none):
+ **/
+BigDFT_Run* bigdft_run_new_from_fortran(long fadd)
 {
+  gpointer fobj, cobj;
   BigDFT_Run *run;
 
+  fobj = fadd;
+  FC_FUNC_(run_objects_c_obj, RUN_OBJECTS_C_OBJ)(fobj, (long*)&cobj);
+  if (cobj)
+    {
+      /* Read existing wrapper. */
+      run = BIGDFT_RUN(cobj);
+      g_object_ref(G_OBJECT(run));
+    }
+  else
+    {
+      /* Create a new wrapper. */
 #ifdef HAVE_GLIB
-  run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL));
+      run = BIGDFT_RUN(g_object_new(BIGDFT_RUN_TYPE, NULL));
 #else
-  run = g_malloc(sizeof(BigDFT_Run));
-  bigdft_run_init(run);
+      run = g_malloc(sizeof(BigDFT_Run));
+      bigdft_run_init(run);
 #endif
-  run->data = obj;
-
-  if (create_wrappers)
-    _attributes_from_fortran(run);
+      F_TYPE(run->data) = fobj;
+      _attributes_from_fortran(run);
+    }
 
   return run;
 }
-/* void FC_FUNC_(run_free_wrapper, RUN_FREE_WRAPPER)(gpointer *obj) */
-/* { */
-/*   BigDFT_Run *run = BIGDFT_RUN(*obj); */
+void FC_FUNC_(run_objects_to_python, RUN_OBJECTS_TO_PYTHON)(long run, const char *lbl, int *len)
+{
+#ifdef HAVE_PYTHON
+  char buf[64];
 
-/*   run->data = (gpointer)0; */
-/*   bigdft_run_free(run); */
-/* } */
+  memcpy(buf, lbl, sizeof(char) * *len);
+  sprintf(buf + *len, " = BigDFT.Run.new_from_fortran(%ld)\n", run);
+  PyRun_SimpleString(buf);
+#endif
+}
+void FC_FUNC_(run_objects_wrapper_detach, RUN_OBJECTS_WRAPPER_DETACH)(gpointer *obj, int *claim)
+{
+  BigDFT_Run *outs = BIGDFT_RUN(*obj);
+  long self = 0;
+
+  claim = bigdft_get_count(G_OBJECT(outs)) - 1;
+  /* Detach the wrapper from the Fortran object. */
+  if (!claim)
+    {
+      FC_FUNC_(run_objects_set_c_obj, RUN_OBJECTS_SET_C_OBJ)
+        (F_TYPE(outs->data), &self);
+      F_TYPE(outs->data) = (f90_run_objects*)0;
+    }
+  bigdft_run_unref(outs);
+}
+void FC_FUNC_(run_objects_wrapper_attach, RUN_OBJECTS_WRAPPER_ATTACH)(gpointer *obj, f90_run_objects *fobj)
+{
+  BigDFT_Run *run = BIGDFT_RUN(*obj);
+
+  FC_FUNC_(run_objects_copy, RUN_OBJECTS_COPY)(&run->data, fobj);
+  _attributes_from_fortran(run);
+}
 void bigdft_run_unref(BigDFT_Run *run)
 {
   g_object_unref(G_OBJECT(run));
@@ -503,7 +593,7 @@ BigDFT_Goutput* bigdft_run_calculate(BigDFT_Run *run, guint iproc, guint nproc)
   if (run->inputs->last_run == -1)
     {
       FC_FUNC_(bigdft_exec, BIGDFT_EXEC)(F_TYPE(run->data), F_TYPE(outs->data),
-                                         (int*)&nproc, (int*)&iproc, &infocode);
+                                         &infocode);
       _inputs_sync(run->inputs);
     }
 

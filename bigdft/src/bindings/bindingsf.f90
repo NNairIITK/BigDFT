@@ -1271,37 +1271,38 @@ subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
 END SUBROUTINE orbs_get_iorbp
 
 
-subroutine state_properties_new(self, outs, energs, fxyz, nat)
-  use module_defs, only: gp
-  use module_types,only: energy_terms
+subroutine state_properties_alloc(outs, nat)
   use bigdft_run
   implicit none
-  integer(kind = 8), intent(in) :: self
   type(state_properties), pointer :: outs
-  type(energy_terms), pointer :: energs
-  real(gp), dimension(:,:), pointer :: fxyz
   integer, intent(in) :: nat
 
   type(state_properties), pointer :: intern
 
   allocate(intern)
   call init_state_properties(intern, nat)
-  energs => intern%energs
-  fxyz => intern%fxyz
-  intern%energs%c_obj = self
   outs => intern
-END SUBROUTINE state_properties_new
+END SUBROUTINE state_properties_alloc
+subroutine state_properties_copy(outs, from)
+  use bigdft_run
+  implicit none
+  type(state_properties), pointer :: outs
+  type(state_properties), intent(in) :: from
 
+  type(state_properties), pointer :: intern
 
-subroutine state_properties_free(outs)
+  allocate(intern)
+  intern = from
+  outs => intern
+END SUBROUTINE state_properties_copy
+subroutine state_properties_delete(outs)
   use bigdft_run
   implicit none
   type(state_properties), pointer :: outs
 
   call deallocate_state_properties(outs)
   deallocate(outs)
-END SUBROUTINE state_properties_free
-
+END SUBROUTINE state_properties_delete
 
 subroutine state_properties_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
   use module_defs, only: gp
@@ -1326,6 +1327,23 @@ subroutine state_properties_get(outs, energs, fxyz, fdim, fnoise, pressure, strt
 
   etot = outs%energy
 END SUBROUTINE state_properties_get
+
+subroutine state_properties_set_c_obj(outs, c_obj)
+  use bigdft_run
+  implicit none
+  type(state_properties), intent(inout) :: outs
+  integer(kind = 8), intent(in) :: c_obj
+  
+  outs%c_obj = c_obj
+END SUBROUTINE state_properties_set_c_obj
+subroutine state_properties_c_obj(outs, c_obj)
+  use bigdft_run
+  implicit none
+  type(state_properties), intent(in) :: outs
+  integer(kind = 8), intent(out) :: c_obj
+  
+  c_obj = outs%c_obj
+END SUBROUTINE state_properties_c_obj
 
 
 subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
@@ -1537,6 +1555,18 @@ subroutine run_objects_new(runObj)
   allocate(runObj%mm_rst)
   call nullify_MM_restart_objects(runObj%mm_rst)
 END SUBROUTINE run_objects_new
+subroutine run_objects_copy(run, from)
+  use bigdft_run
+  implicit none
+  type(run_objects), pointer :: run
+  type(run_objects), intent(in) :: from
+
+  type(run_objects), pointer :: intern
+
+  allocate(intern)
+  intern = from
+  run => intern
+END SUBROUTINE run_objects_copy
 
 
 subroutine run_objects_destroy(runObj)
@@ -1549,6 +1579,22 @@ subroutine run_objects_destroy(runObj)
   deallocate(runObj)
 end subroutine run_objects_destroy
 
+subroutine run_objects_set_c_obj(run, c_obj)
+  use bigdft_run
+  implicit none
+  type(run_objects), intent(inout) :: run
+  integer(kind = 8), intent(in) :: c_obj
+  
+  run%c_obj = c_obj
+END SUBROUTINE run_objects_set_c_obj
+subroutine run_objects_c_obj(run, c_obj)
+  use bigdft_run
+  implicit none
+  type(run_objects), intent(in) :: run
+  integer(kind = 8), intent(out) :: c_obj
+  
+  c_obj = run%c_obj
+END SUBROUTINE run_objects_c_obj
 
 subroutine run_objects_get(runObj, dict, inputs, atoms)
   use bigdft_run

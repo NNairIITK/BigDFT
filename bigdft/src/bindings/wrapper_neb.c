@@ -53,7 +53,7 @@ static void bigdft_image_finalize(GObject *obj)
 {
   BigDFT_Image *image = BIGDFT_IMAGE(obj);
   f90_run_objects_pointer run;
-  f90_DFT_global_output_pointer outs;
+  f90_state_properties_pointer outs;
 
   if (F_TYPE(image->data))
     {

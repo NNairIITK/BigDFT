@@ -53,6 +53,10 @@ module bigdft_run
      type(QM_restart_objects), pointer    :: rst
      !> datatype describing extra MM information
      type(MM_restart_objects), pointer :: mm_rst
+     !> Python hooks to be executed during the run.
+     type(dictionary), pointer :: py_hooks
+
+     integer(kind = 8) :: c_obj !< Pointer to a C wrapper
   end type run_objects
 
   !> Used to store results of a DFT calculation.
@@ -62,6 +66,8 @@ module bigdft_run
      integer :: fdim                           !< Dimension of allocated forces (second dimension)
      real(gp), dimension(:,:), pointer :: fxyz !< Atomic forces
      real(gp), dimension(6) :: strten          !< Stress Tensor
+     
+     integer(kind = 8) :: c_obj                !< Pointer to a C wrapper
   end type state_properties
 
   public :: init_state_properties,deallocate_state_properties
@@ -91,6 +97,14 @@ module bigdft_run
 !!$     END SUBROUTINE geopt
 !!$
 !!$  end interface
+  interface
+     subroutine bigdft_python_exec_dict(dict, status)
+       use dictionaries
+       implicit none
+       type(dictionary), pointer :: dict
+       integer, intent(out) :: status
+     end subroutine bigdft_python_exec_dict
+  end interface
   
   !> Keys of a run dict. All private, use get_run_prop() and set_run_prop() to change them.
   character(len = *), parameter :: RADICAL_NAME = "radical"
@@ -337,6 +351,8 @@ contains
     outs%fnoise    = UNINITIALIZED(1.0_gp)
     outs%pressure  = UNINITIALIZED(1.0_gp)
     outs%strten(:) = UNINITIALIZED(1.0_gp)
+    
+    outs%c_obj     = 0
   END SUBROUTINE nullify_state_properties
 
 
@@ -375,12 +391,28 @@ contains
     type(state_properties), intent(inout) :: outs
     real(gp), intent(out), optional :: fxyz
 
-    if (associated(outs%fxyz)) then
-       if (present(fxyz)) &
-            call f_memcpy(src=outs%fxyz(1,1),dest=fxyz,n=3*outs%fdim)
-       !call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
-       !end if
-       call f_free_ptr(outs%fxyz)
+    logical :: release
+    integer :: claim
+
+    ! Fortran release ownership
+    release = .true.
+
+    if (outs%c_obj /= 0) then
+       call state_properties_wrapper_detach(outs%c_obj, claim)
+       ! The C wrapper may claim ownership
+       release = (claim == 0)
+    end if
+
+    if (release) then
+       if (associated(outs%fxyz)) then
+          if (present(fxyz)) &
+               call f_memcpy(src=outs%fxyz(1,1),dest=fxyz,n=3*outs%fdim)
+          !call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fxyz, 1)
+          !end if
+          call f_free_ptr(outs%fxyz)
+       end if
+    else
+       call state_properties_wrapper_attach(outs%c_obj, outs)
     end if
   END SUBROUTINE deallocate_state_properties
 
@@ -663,6 +695,8 @@ contains
     nullify(runObj%atoms)
     nullify(runObj%rst)
     nullify(runObj%mm_rst)
+    nullify(runObj%py_hooks)
+    runObj%c_obj = 0
   END SUBROUTINE nullify_run_objects
 
   !>release run_objects structure as a whole
@@ -713,6 +747,9 @@ contains
           nullify(runObj%inputs)
        end if
     end if
+    if (associated(runObj%py_hooks)) then
+       call dict_free(runObj%py_hooks)
+    end if
 
     call nullify_run_objects(runObj)
   end subroutine release_run_objects
@@ -726,24 +763,43 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
 
-    call dict_free(runObj%user_inputs)
-    if (associated(runObj%rst)) then
-       call free_QM_restart_objects(runObj%rst)
-       deallocate(runObj%rst)
+    logical :: release
+    integer :: claim
+
+    ! Fortran release ownership
+    release = .true.
+
+    if (runObj%c_obj /= 0) then
+       call run_objects_wrapper_detach(runObj%c_obj, claim)
+       ! The C wrapper may claim ownership
+       release = (claim == 0)
     end if
-    if (associated(runObj%mm_rst)) then
-       call free_MM_restart_objects(runObj%mm_rst)
-       deallocate(runObj%mm_rst)
+
+    if (release) then
+       call dict_free(runObj%user_inputs)
+       if (associated(runObj%rst)) then
+          call free_QM_restart_objects(runObj%rst)
+          deallocate(runObj%rst)
+       end if
+       if (associated(runObj%mm_rst)) then
+          call free_MM_restart_objects(runObj%mm_rst)
+          deallocate(runObj%mm_rst)
+       end if
+       if (associated(runObj%atoms)) then
+          call deallocate_atoms_data(runObj%atoms) 
+          deallocate(runObj%atoms)
+       end if
+       if (associated(runObj%inputs)) then
+          call free_input_variables(runObj%inputs)
+          deallocate(runObj%inputs)
+       end if
+       if (associated(runObj%py_hooks)) then
+          call dict_free(runObj%py_hooks)
+       end if
+       call nullify_run_objects(runObj)
+    else
+       call run_objects_wrapper_attach(runObj%c_obj, runObj)
     end if
-    if (associated(runObj%atoms)) then
-       call deallocate_atoms_data(runObj%atoms) 
-       deallocate(runObj%atoms)
-    end if
-    if (associated(runObj%inputs)) then
-       call free_input_variables(runObj%inputs)
-       deallocate(runObj%inputs)
-    end if
-    call nullify_run_objects(runObj)
   END SUBROUTINE free_run_objects
 
   !> Parse the input dictionary and create all run_objects
@@ -778,6 +834,10 @@ contains
 
     !associate the run_mode
     runObj%run_mode => runObj%inputs%run_mode
+
+    if ("py_hooks" .in. runObj%user_inputs) then
+       call dict_copy(runObj%py_hooks, runObj%user_inputs // "py_hooks")
+    end if
   END SUBROUTINE set_run_objects
 
   !> Read all input files and create the objects to run BigDFT
@@ -806,6 +866,7 @@ contains
     type(run_objects), intent(in), optional :: source
     !local variables
     logical :: dict_from_files
+    integer :: ierr
     character(len=max_field_length) :: radical, posinp_id
 
     call nullify_run_objects(runObj)
@@ -862,6 +923,15 @@ contains
           call bigdft_signals_init(runObj%inputs%gmainloop, 2, &
                & runObj%inputs%domain, len_trim(runObj%inputs%domain))
           call bigdft_signals_start(runObj%inputs%gmainloop, runObj%inputs%signalTimeout)
+       end if
+
+       if (associated(runObj%py_hooks)) then
+          call bigdft_python_init(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+               & bigdft_mpi%igroup, bigdft_mpi%ngroup)
+          if ("init" .in. runObj%py_hooks) then
+             call bigdft_python_exec_dict(runObj%py_hooks // "init", ierr)
+             if (ierr /= 0) stop ! Should raise a proper error later.
+          end if
        end if
 
     else if (present(source)) then
@@ -1161,14 +1231,20 @@ contains
     type(state_properties), intent(inout) :: outs
     integer, intent(inout) :: infocode
     !local variables
-    integer :: nat
+    integer :: nat, ierr
     integer :: icc !for amber
     real(gp) :: alatint(3)
     real(gp), dimension(:,:), pointer :: rxyz_ptr
 
-
     rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
     nat=bigdft_nat(runObj)
+
+    ! Run any Python hook post run.
+    if ("pre" .in. runObj%py_hooks) then
+       call run_objects_to_python(runObj, "run", 3)
+       call bigdft_python_exec_dict(runObj%py_hooks // "pre", ierr)
+       if (ierr /= 0) stop
+    end if
 
     call clean_state_properties(outs) !zero the state first
     infocode = 0
@@ -1231,6 +1307,13 @@ contains
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '//trim(yaml_toa(int(runObj%run_mode))))
     end select
+    
+    ! Run any Python hook post run.
+    if ("post" .in. runObj%py_hooks) then
+       call state_properties_to_python(outs, "outs", 4)
+       call bigdft_python_exec_dict(runObj%py_hooks // "post", ierr)
+       if (ierr /= 0) stop
+    end if
   end subroutine bigdft_state
 
   !> Routine to use BigDFT as a blackbox

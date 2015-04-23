@@ -1957,7 +1957,7 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, den
         call wf_new_wrapper(tmb%c_obj, tmb, 1)
         call wf_copy_from_fortran(tmb%c_obj, radii_cf, crmult, frmult)
         call bigdft_signals_add_wf(gmainloop, KSwfn%c_obj, tmb%c_obj)
-        call energs_new_wrapper(energs%c_obj, energs)
+        !call energs_new_wrapper(energs%c_obj, energs)
         call bigdft_signals_add_energs(gmainloop, energs%c_obj)
         call localfields_new_wrapper(denspot%c_obj, denspot)
         call bigdft_signals_add_denspot(gmainloop, denspot%c_obj)
