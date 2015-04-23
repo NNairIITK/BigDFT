@@ -416,18 +416,18 @@ cleanup:
  Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.3e-9
  Energy (Hartree): 1.8e-10
- ebs_check: 6.2e-10
- charge diff: 6.1e-8
- Tr(K): 1.1e-7
- guess for new ef: 1.1e-9
- eF: 1.1e-9
- D Tr: 1.0e-8
- ebs: 6.2e-10
- HOMO energy: 7.2e-11
+ ebs_check: 1.5e-9
+ charge diff: 2.7e-7
+ Tr(K): 2.7e-7
+ guess for new ef: 3.1e-9
+ eF: 2.8e-9
+ D Tr: 1.1e-8
+ ebs: 1.5e-9
+ HOMO energy: 1.8e-10
  LUMO energy: 1.5e-10
- HOMO-LUMO gap (eV): 2.4e-9
- HOMO-LUMO gap (Ha): 8.8e-11
- D eF: 1.0e-10
+ HOMO-LUMO gap (eV): 3.5e-9
+ HOMO-LUMO gap (Ha): 1.3e-10
+ D eF: 1.1e-8
 
 directmin:
  Patterns to ignore:
@@ -618,7 +618,7 @@ hybrid-directmin:
  Clean forces norm (Ha/Bohr): 8.0e-11
  Raw forces norm (Ha/Bohr): 3.3e-11
  Average noise forces: 1.1e-10
- Energy (Hartree): 2.4e-11
+ Energy (Hartree): 2.5e-11
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -887,7 +887,7 @@ experimentalfoe_long:
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
  relative diff: 2.2e-11
- Energy (Hartree): 9.8e-11
+ Energy (Hartree): 1.0e-10
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -1067,7 +1067,7 @@ explicit_locregcenters:
  Total electronic charge: 4.1e-11
  EKS: 1.1e-9
  EH: 1.1e-9
- Energy (Hartree): 6.1e-11
+ Energy (Hartree): 7.7e-11
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 4.9e-7
@@ -1231,7 +1231,7 @@ geoptconstrained_SDCG:
  D Tr: 1.1e-9
  Omega: 1.7e-10
  D: 1.1e-10
- tr(KS) before purification: 1.2e-11
+ tr(KS) before purification: 1.3e-11
  Clean forces norm (Ha/Bohr): 2.1e-9
  Atomic Forces (Ha/Bohr): 3.4e-9
  Average noise forces: 2.0e-9
@@ -1289,24 +1289,24 @@ O2spin_foe:
  Energy (Hartree): 2.4e-10
 
 O2spin_dirmin:
- Atomic Forces (Ha/Bohr): 1.1e-5
+ Atomic Forces (Ha/Bohr): 1.2e-5
  Average noise forces: 2.4e-5
- Clean forces norm (Ha/Bohr): 6.4e-5
+ Clean forces norm (Ha/Bohr): 7.4e-5
+ Raw forces norm (Ha/Bohr): 7.4e-5
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 2.4e-5
  eBS: 6.1e-6
  fnrm: 1.1e-5
- EH: 8.9e-6
+ EH: 1.1e-5
  EXC: 5.6e-6
- Ekin: 6.9e-6
+ Ekin: 8.0e-6
  Enl: 1.9e-7
- Epot: 1.3e-5
+ Epot: 1.5e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
- energy: 1.1e-6
- Energy (Hartree): 9.2e-7
+ energy: 1.2e-6
+ Energy (Hartree): 1.2e-6
  Omega: 6.1e-6
- Raw forces norm (Ha/Bohr): 5.6e-5
  D: 2.1e-6
  DIIS weights: 1.5
  Max deviation from unity in reorthonormalize_coeff: 1.1e-6

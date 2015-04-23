@@ -224,7 +224,7 @@ module fermi_level
           real(kind=8),dimension(4,4) :: tmp_matrix
           real(kind=8),dimension(4) :: interpol_solution
           integer,dimension(4) :: ipiv
-          logical :: interpolation_nonsense
+          logical :: interpolation_nonsense, cubicinterpol_possible
 
           !call yaml_map('sumn',sumn)
 
@@ -249,41 +249,48 @@ module fermi_level
         
           ! Solve the linear system f%interpol_matrix*interpol_solution=f%interpol_vector
           if (f%it_solver>=4) then
-              do i=1,ii
-                  interpol_solution(i)=f%interpol_vector(i)
-                  tmp_matrix(i,1)=f%interpol_matrix(i,1)
-                  tmp_matrix(i,2)=f%interpol_matrix(i,2)
-                  tmp_matrix(i,3)=f%interpol_matrix(i,3)
-                  tmp_matrix(i,4)=f%interpol_matrix(i,4)
-              end do
-              !if (bigdft_mpi%iproc==0) then
-                 !call yaml_map('matrix',tmp_matrix,fmt='(es10.3)')
-                 !call yaml_map('interpol_vector',f%interpol_vector,fmt='(es12.5)')
-                 !call yaml_newline()
-                 !call yaml_map('solution',interpol_solution,fmt='(es10.3)')
-                 !call yaml_map('determinant',determinant(bigdft_mpi%iproc,4,f%interpol_matrix),fmt='(es10.3)')
-              call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
-              if (info/=0) then
-                 if (bigdft_mpi%iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
-              end if
+              ! Calculate the determinant of the matrix used for the interpolation
+              det=determinant(bigdft_mpi%iproc,4,f%interpol_matrix)
+              if (abs(det) > f%ef_interpol_det) then
+                  cubicinterpol_possible = .true.
+                  do i=1,ii
+                      interpol_solution(i)=f%interpol_vector(i)
+                      tmp_matrix(i,1)=f%interpol_matrix(i,1)
+                      tmp_matrix(i,2)=f%interpol_matrix(i,2)
+                      tmp_matrix(i,3)=f%interpol_matrix(i,3)
+                      tmp_matrix(i,4)=f%interpol_matrix(i,4)
+                  end do
+                  !if (bigdft_mpi%iproc==0) then
+                     !call yaml_map('matrix',tmp_matrix,fmt='(es10.3)')
+                     !call yaml_map('interpol_vector',f%interpol_vector,fmt='(es12.5)')
+                     !call yaml_newline()
+                     !call yaml_map('solution',interpol_solution,fmt='(es10.3)')
+                     !call yaml_map('determinant',determinant(bigdft_mpi%iproc,4,f%interpol_matrix),fmt='(es10.3)')
+                  call dgesv(ii, 1, tmp_matrix, 4, ipiv, interpol_solution, 4, info)
+                  if (info/=0) then
+                     if (bigdft_mpi%iproc==0) write(*,'(1x,a,i0)') 'ERROR in dgesv (FOE), info=',info
+                  end if
         
-              !if (bigdft_mpi%iproc==0) call yaml_map('a x^3+b x^2 + c x + d',interpol_solution,fmt='(es10.3)')
-              call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
-                   interpol_solution(3), interpol_solution(4), ef, ef_interpol)
-              !if (bigdft_mpi%iproc==0) then
-              !    call yaml_newline()
-              !    call yaml_map('zero of cubic polynomial',ef_interpol,fmt='(es10.3)')
-              !end if
-              ! Sanity check: If the charge was too small, then new new guess
-              ! for the Fermi energy must be larger than the actual value, and
-              ! analogously if the charge was too large.
-              interpolation_nonsense = .false.
-              if (f%interpol_vector(ii)<0) then
-                  ! Charge too small, the new guess must be larger
-                  if (ef_interpol<ef) interpolation_nonsense = .true.
-              else if (f%interpol_vector(ii)>0) then
-                  ! Charge too large, the new guess must be smaller
-                  if (ef_interpol>ef) interpolation_nonsense = .true.
+                  !if (bigdft_mpi%iproc==0) call yaml_map('a x^3+b x^2 + c x + d',interpol_solution,fmt='(es10.3)')
+                  call get_roots_of_cubic_polynomial(interpol_solution(1), interpol_solution(2), &
+                       interpol_solution(3), interpol_solution(4), ef, ef_interpol)
+                  !if (bigdft_mpi%iproc==0) then
+                  !    call yaml_newline()
+                  !    call yaml_map('zero of cubic polynomial',ef_interpol,fmt='(es10.3)')
+                  !end if
+                  ! Sanity check: If the charge was too small, then new new guess
+                  ! for the Fermi energy must be larger than the actual value, and
+                  ! analogously if the charge was too large.
+                  interpolation_nonsense = .false.
+                  if (f%interpol_vector(ii)<0) then
+                      ! Charge too small, the new guess must be larger
+                      if (ef_interpol<ef) interpolation_nonsense = .true.
+                  else if (f%interpol_vector(ii)>0) then
+                      ! Charge too large, the new guess must be smaller
+                      if (ef_interpol>ef) interpolation_nonsense = .true.
+                  end if
+              else
+                  cubicinterpol_possible = .false.
               end if
           end if
         
@@ -293,14 +300,15 @@ module fermi_level
               call yaml_mapping_open('Search new eF',flow=.true.)
           end if
           if (f%it_solver>=4 .and.  &
-              abs(sumn-f%target_charge) < f%ef_interpol_chargediff .and. &
-              .not.interpolation_nonsense) then
-              det=determinant(bigdft_mpi%iproc,4,f%interpol_matrix)
+              abs(sumn-f%target_charge) < f%ef_interpol_chargediff) then! .and. &
+              !.not.interpolation_nonsense) then
+              !det=determinant(bigdft_mpi%iproc,4,f%interpol_matrix)
               if (f%verbosity >= 1 .and. bigdft_mpi%iproc==0) then
                   call yaml_map('det',det,fmt='(es10.3)')
                   call yaml_map('limit',f%ef_interpol_det,fmt='(es10.3)')
               end if
-              if(abs(det) > f%ef_interpol_det) then
+              !if(abs(det) > f%ef_interpol_det) then
+              if(cubicinterpol_possible .and. .not.interpolation_nonsense) then
                   ef = ef_interpol
                   if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','cubic interpolation')
               else
