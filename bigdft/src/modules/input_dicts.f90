@@ -290,7 +290,8 @@ contains
          .item. LIN_BASIS_PARAMS,&
          .item. OCCUPATION,&
          .item. IG_OCCUPATION,&
-         .item. FRAG_VARIABLES])
+         .item. FRAG_VARIABLES,&
+         .item. PY_HOOKS])
 
     !then the list of vaid patterns
     valid_patterns=>list_new(&
