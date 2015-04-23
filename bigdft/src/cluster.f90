@@ -1266,7 +1266,7 @@ contains
        call bigdft_signals_rm_wf(in%gmainloop)
        call bigdft_signals_rm_optloop(in%gmainloop)
        call localfields_free_wrapper(denspot%c_obj)
-       call energs_free_wrapper(energs%c_obj)
+       !call energs_free_wrapper(energs%c_obj)
        call optloop_free_wrapper(optLoop%c_obj)
        call wf_free_wrapper(KSwfn%c_obj)
        call wf_free_wrapper(tmb%c_obj)
