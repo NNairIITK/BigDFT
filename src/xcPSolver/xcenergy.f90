@@ -340,6 +340,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      vxc=0.0_gp
      call f_timing(TCAT_EXCHANGECORR,'OF')
      !call timing(iproc,'Exchangecorr  ','OF')
+     call f_release_routine()
      return
   end if
   
