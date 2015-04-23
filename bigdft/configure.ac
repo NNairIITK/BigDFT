@@ -143,6 +143,13 @@ if test x"$ac_use_glib" = x"yes"; then
     AC_SUBST([G_IR_COMPILER], [$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)])
     dnl Force dynamic library building.
     ac_build_dynamic="yes"
+
+    dnl Add Python support for the PythonGI plug-in.
+    AC_LANG_PUSH(C)
+    AM_CHECK_PYTHON_HEADERS([AC_DEFINE([HAVE_PYTHON], [], [If set, we can call Python.h])],[AC_MSG_WARN(could not find Python headers)])
+    PYTHON_LIBS="`python-config --libs`"
+    AC_SUBST(PYTHON_LIBS)
+    AC_LANG_POP(C)
   fi
 else
   have_glib=no
@@ -745,7 +752,7 @@ dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
 dnl Agregate all the optional libs.
-LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
 LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_FLIB_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
