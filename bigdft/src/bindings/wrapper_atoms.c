@@ -238,7 +238,7 @@ static void _sync_geometry(BigDFT_Atoms *atoms)
  * @atoms: 
  * @geocode: 
  * @alat: (array fixed-size=3):
- * @units: 
+ * @units: (allow-none):
  *
  * 
  **/
@@ -248,7 +248,8 @@ void bigdft_atoms_set_geometry(BigDFT_Atoms *atoms, gchar geocode, double alat[3
   atoms->alat[0] = alat[0];
   atoms->alat[1] = alat[1];
   atoms->alat[2] = alat[2];
-  strncpy(atoms->units, units, 20);
+  if (units)
+    strncpy(atoms->units, units, 20);
   _sync_geometry(atoms);
 }
 void bigdft_atoms_set_default_file_format(BigDFT_Atoms *atoms, const gchar *format)
