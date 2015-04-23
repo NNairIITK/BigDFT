@@ -25,13 +25,7 @@ program BigDFT
    type(run_objects) :: runObj
    !output variables
    type(state_properties) :: outs
-   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: filename,posinp_id!, run_id
-   integer :: iconfig,nconfig!,ngroups,igroup
-   real(kind=8),dimension(:,:),allocatable :: fxyz
-   integer :: iat
-   logical :: file_exists
-   integer,dimension(:),allocatable :: atoms_ref
    type(dictionary), pointer :: run,options
 
    call f_lib_initialize()
