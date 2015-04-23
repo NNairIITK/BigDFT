@@ -654,7 +654,7 @@ fructose:
  ebs: 1.1e-8
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
- Energy (Hartree): 4.7e-11
+ Energy (Hartree): 4.8e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -886,8 +886,8 @@ experimentalfoe_long:
  ebs: 6.0e-10
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
- relative diff: 2.2e-11
- Energy (Hartree): 1.0e-10
+ relative diff: 2.9e-11
+ Energy (Hartree): 1.2e-10
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -1231,7 +1231,7 @@ geoptconstrained_SDCG:
  D Tr: 1.1e-9
  Omega: 1.7e-10
  D: 1.1e-10
- tr(KS) before purification: 1.3e-11
+ tr(KS) before purification: 1.5e-11
  Clean forces norm (Ha/Bohr): 2.1e-9
  Atomic Forces (Ha/Bohr): 3.4e-9
  Average noise forces: 2.0e-9
@@ -1364,6 +1364,7 @@ expfoegeopt:
  epred: 1.9e-11
  trace(KS): 3.3e-11
  Total charge: 3.1e-11
+ Energy (Hartree): 1.2e-11
 
 log_model:
  System pseudo energy (Ha): 3.6e-11
@@ -1473,25 +1474,25 @@ periodic_water:
  EH: 3.1e-9
  Epot: 2.1e-9
  EXC: 1.1e-9
- EvXC: 1.0e-9
+ EvXC: 1.1e-9
  Ekin: 2.0e-9
  Enl: 1.1e-9
- Energy (Hartree): 7.3e-11
+ Energy (Hartree): 7.4e-11
  Omega: 2.7e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 9.2e-9
- D eF: 1.0e-8
+ D eF: 1.2e-8
  energy: 2.8e-10
  guess for new ef: 9.1e-9
  number of corrected points: 1
  charge diff: 5.2e-7
- diff: 1.1e-10
+ diff: 1.2e-10
  Tr(K): 5.0e-7
- D Tr: 2.1e-7
+ D Tr: 1.0e-6
  Total ionic charge: 6.0e-11
  Pressure: 6.4e-10
- Clean forces norm (Ha/Bohr): 1.8e-11
+ Clean forces norm (Ha/Bohr): 1.9e-11
 
 surface_boronnitride:
  Enl: 1.01e-9
