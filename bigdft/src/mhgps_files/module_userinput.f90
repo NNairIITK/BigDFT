@@ -10,6 +10,7 @@
 
 module module_userinput
     !use module_base !bigdft base module
+    use module_defs, only: gp
     implicit none
 
     private

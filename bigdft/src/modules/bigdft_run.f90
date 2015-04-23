@@ -881,11 +881,12 @@ contains
     use yaml_output, only: yaml_sequence_close
     implicit none
     type(run_objects), intent(inout) :: runObj
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
-         call yaml_sequence_close()
-
     logical :: release
     integer :: claim
+
+    !@todo in/out in a freeing routine of an object, how strange !
+    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+         call yaml_sequence_close()
 
     ! Fortran release ownership
     release = .true.
@@ -1572,7 +1573,6 @@ contains
     logical :: exists
     integer :: inputPsiId_orig,istep
     !integer :: iat
-    real(gp) :: maxdiff
     external :: cluster
     !put a barrier for all the processes
     call mpibarrier(bigdft_mpi%mpi_comm)

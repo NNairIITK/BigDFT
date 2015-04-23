@@ -25,13 +25,9 @@ module module_atoms
        & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_QMMM
   use public_enums, only : ATOM_MODE_QM, ATOM_MODE_MM
   use dictionaries, only: dictionary
+  use f_trees, only: f_tree
   implicit none
   private
-
-  !> @todo to be moved to flib.
-  type, public :: f_tree
-     type(dictionary), pointer :: impl
-  end type f_tree
 
   !> Source of the radii coefficients
   integer, parameter, public :: RADII_SOURCE_HARD_CODED = 1
@@ -373,8 +369,8 @@ contains
        call f_free_ptr(astruct%rxyz_int)
        call f_free_ptr(astruct%ixyz_int)
        do iat = 1, astruct%nat
-          if (associated(astruct%attributes(iat)%impl)) then
-             call dict_free(astruct%attributes(iat)%impl)
+          if (associated(astruct%attributes(iat)%d)) then
+             call dict_free(astruct%attributes(iat)%d)
           end if
        end do
        deallocate(astruct%attributes)
@@ -1083,7 +1079,7 @@ contains
       use dictionaries
       use module_defs, only: UNINITIALIZED
       use dynamic_memory
-      use f_utils, only: operator(==), int, char
+      use f_enums, only: operator(==), int, char
       implicit none
       type(dictionary), pointer :: dict
       character(len = max_field_length), intent(out), optional :: symbol !< Symbol
@@ -1225,7 +1221,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
 
   allocate(astruct%attributes(astruct%nat))
   do iat = 1, astruct%nat
-     nullify(astruct%attributes(iat)%impl)
+     nullify(astruct%attributes(iat)%d)
   end do
 
   !this array is useful for frozen atoms, no atom is frozen by default
@@ -1659,7 +1655,7 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
         asub%iatype(i) = types // trim(astruct%atomnames(astruct%iatype(iat)))
         asub%input_polarization(i) = astruct%input_polarization(iat)
         asub%rxyz(:, i) = astruct%rxyz(:, iat)
-        call dict_copy(asub%attributes(i)%impl, astruct%attributes(iat)%impl)
+        call dict_copy(asub%attributes(i)%d, astruct%attributes(iat)%d)
      end if
   end do
   s => dict_iter(hlist)

@@ -29,10 +29,10 @@ subroutine mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,fxyz,epot,infocode)
     !use module_base
     !use yaml_output
     use module_mhgps_state
-    use bigdft_run, only: bigdft_nat, bigdft_set_rxyz, bigdft_state
-    use module_defs, only: gp
+    use bigdft_run
+    use module_defs, only: gp, bigdft_mpi
     use dynamic_memory
-    use f_utils, only: char
+    use f_enums, only: char
     use yaml_output, only: yaml_warning
     implicit none
     !parameters

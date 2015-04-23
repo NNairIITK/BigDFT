@@ -190,7 +190,7 @@
         call f_err_throw('At atom ' // trim(yaml_toa(iat)) // ': ' // trim(errmess),&
              & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
      else
-        call astruct_at_from_dict(astruct%attributes(iat)%impl, &
+        call astruct_at_from_dict(astruct%attributes(iat)%d, &
              & ifrztyp = astruct%ifrztyp(iat), igspin = nspol, igchrg = nchrg)
         !now assign the array, following the rule
         astruct%input_polarization(iat)=1000*nchrg+sign(1, nchrg)*100+nspol
@@ -459,7 +459,7 @@ subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getli
            call f_err_throw('At atom ' // trim(yaml_toa(iat)) // ': ' // trim(errmess),&
                 & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
         else
-           call astruct_at_from_dict(astruct%attributes(iat)%impl, &
+           call astruct_at_from_dict(astruct%attributes(iat)%d, &
                 & ifrztyp = astruct%ifrztyp(iat), igspin = nspol, igchrg = nchrg)
            !now assign the array, following the rule
            astruct%input_polarization(iat)=1000*nchrg+sign(1, nchrg)*100+nspol
@@ -733,7 +733,7 @@ subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine,di
         call f_err_throw('At atom ' // trim(yaml_toa(iat)) // ': ' // trim(errmess),&
              & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
      else
-        call astruct_at_from_dict(astruct%attributes(iat)%impl, &
+        call astruct_at_from_dict(astruct%attributes(iat)%d, &
              & ifrztyp = astruct%ifrztyp(iat), igspin = nspol, igchrg = nchrg)
         !now assign the array, following the rule
         astruct%input_polarization(iat)=1000*nchrg+sign(1, nchrg)*100+nspol
@@ -990,11 +990,11 @@ subroutine parse_extra_info(att, extra, errmess)
   !print *,iat,'ex'//trim(extra)//'ex'
 
   write(errmess, "(A)") " "
-  nullify(att%impl)
+  nullify(att%d)
   if (index(extra, ":") > 0) then
      ! YAML case.
      call yaml_parse_from_string(dict, extra)
-     if (dict_len(dict) > 0) att%impl => dict .pop. 0
+     if (dict_len(dict) > 0) att%d => dict .pop. 0
      call dict_free(dict)
   else
      ! Old case.
@@ -1037,14 +1037,14 @@ subroutine parse_extra_info(att, extra, errmess)
      end if
 
      ! convert everything into a dict.
-     call dict_init(att%impl)
-     if (nspol /= 0) call set(att%impl // ASTRUCT_ATT_IGSPIN, nspol)
-     if (nchrg /= 0) call set(att%impl // ASTRUCT_ATT_IGCHRG, nchrg)
-     if (len_trim(suffix) > 0) call set(att%impl // ASTRUCT_ATT_FROZEN, suffix)
+     call dict_init(att%d)
+     if (nspol /= 0) call set(att%d // ASTRUCT_ATT_IGSPIN, nspol)
+     if (nchrg /= 0) call set(att%d // ASTRUCT_ATT_IGCHRG, nchrg)
+     if (len_trim(suffix) > 0) call set(att%d // ASTRUCT_ATT_FROZEN, suffix)
      
-     if (dict_size(att%impl) == 0) then
-        call dict_free(att%impl)
-        nullify(att%impl)
+     if (dict_size(att%d) == 0) then
+        call dict_free(att%d)
+        nullify(att%d)
      end if
   end if
 
@@ -1341,9 +1341,9 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
           & advance = "NO", unit = iunit)
      call yaml_scalar(trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     if (associated(astruct%attributes(iat)%impl)) then
+     if (associated(astruct%attributes(iat)%d)) then
         call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
-        call yaml_dict_dump(astruct%attributes(iat)%impl, flow = .true., unit = iunit)
+        call yaml_dict_dump(astruct%attributes(iat)%d, flow = .true., unit = iunit)
         call yaml_mapping_close(unit = iunit)
      end if
      call yaml_newline(unit = iunit)
@@ -1469,9 +1469,9 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
           & advance = "NO", unit = iunit)
      call yaml_scalar(trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     if (associated(astruct%attributes(iat)%impl)) then
+     if (associated(astruct%attributes(iat)%d)) then
         call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
-        call yaml_dict_dump(astruct%attributes(iat)%impl, flow = .true., unit = iunit)
+        call yaml_dict_dump(astruct%attributes(iat)%d, flow = .true., unit = iunit)
         call yaml_mapping_close(unit = iunit)
      end if
      call yaml_newline(unit = iunit)
@@ -1601,9 +1601,9 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
      call yaml_scalar(trim(yaml_toa(nc(iat))), advance = "NO", unit = iunit)
      call yaml_scalar(trim(yaml_toa(rxyz(3, iat) * factor_angle, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     if (associated(astruct%attributes(iat)%impl)) then
+     if (associated(astruct%attributes(iat)%d)) then
         call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
-        call yaml_dict_dump(astruct%attributes(iat)%impl, flow = .true., unit = iunit)
+        call yaml_dict_dump(astruct%attributes(iat)%d, flow = .true., unit = iunit)
         call yaml_mapping_close(unit = iunit)
      end if
      call yaml_newline(unit = iunit)

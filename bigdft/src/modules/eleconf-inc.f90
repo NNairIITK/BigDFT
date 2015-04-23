@@ -1014,20 +1014,6 @@ neleconf(5,0)=1.d-18
      nsccode=12
      amu=106.42d0
 
-  case(47*1000+19)
-     ! -----------------------          74
-     ! Ag          47          19     Symbol, Z, Zion
-     symbol = "Ag"
-     rcov=2.50d0
-     rprb=5.00d0
-     ehomo=-0.157407d0
-     neleconf(4,0)=2
-     neleconf(4,1)=6
-     neleconf(4,2)=10
-     neleconf(5,0)=1
-     nsccode=123
-     amu=107.8682d0
-
   case(47*1000+11)
      ! -----------------------          74
      ! Ag          47          11     Symbol, Z, Zion
