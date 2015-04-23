@@ -4,11 +4,6 @@ EXTRA_DIST =
 
 check_PROGRAMS = smatmul
 
-if BUILD_LIBYAML
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
-PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
-endif
-
 AM_FCFLAGS = -I$(top_builddir)/includes -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
 AM_LDFLAGS = -L$(top_builddir)/src
 if BUILD_DYNAMIC_LIBS
@@ -32,14 +27,10 @@ test-smatmul.out.yaml: smatmul
 
 
 check: $(srcdir)/test-smatmul.ref.yaml test-smatmul.out.yaml
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	python $(top_srcdir)/tests/fldiff_yaml.py \
+	python $(top_builddir)/tests/fldiff_yaml.py \
 		-r $(abs_srcdir)/test-smatmul.ref.yaml -d test-smatmul.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
 
 
 report: 
-	export PYTHONPATH=${PYTHONPATH} ; \
-	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
-	python $(top_srcdir)/tests/report.py
+	python $(top_builddir)/tests/report.py
