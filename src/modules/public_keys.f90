@@ -42,6 +42,7 @@ module public_keys
   character(len = *), parameter :: NPLOT = "nplot"
   character(len = *), parameter :: DISABLE_SYM = "disablesym"
   character(len = *), parameter :: SOLVENT = "solvent"
+  character(len = *), parameter :: EXTERNAL_POTENTIAL = "external_potential"
 
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"

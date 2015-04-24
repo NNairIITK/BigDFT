@@ -80,6 +80,7 @@ libmodules_a_SOURCES = base.f90 \
 	locreg_operations.f90 \
 	bigdft_run.f90 \
 	rhopotential.f90 \
+	multipole_base.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -138,6 +139,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	LOCREG_OPERATIONS.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
 	RHOPOTENTIAL.@MODULE_EXT@ \
+	MULTIPOLE_BASE.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
@@ -195,6 +197,7 @@ modules = module_base.@MODULE_EXT@ \
 	locreg_operations.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	rhopotential.@MODULE_EXT@ \
+	multipole_base.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
@@ -234,7 +237,7 @@ $(modules): $(libmodules_a_OBJECTS)
 input_keys.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o base.o public_keys.o
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o public_keys.o
 types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o \
-	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o
+	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o
 input.o: base.o types.o input_keys.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o
 gaussians.o: base.o
@@ -283,6 +286,7 @@ foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o spars
 ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 locreg_operations.o: base.o types.o atoms_data.o locregs.o
 rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o
+multipole_base.o: base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

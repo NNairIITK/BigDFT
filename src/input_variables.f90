@@ -137,7 +137,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_input_keys
   use public_keys, only: POSINP, IG_OCCUPATION, CONSTRAINED_DFT, FRAG_VARIABLES, &
        & KPT_VARIABLES, LIN_BASIS_PARAMS, OCCUPATION, TRANSFER_INTEGRALS, DFT_VARIABLES, &
-       & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES
+       & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES, EXTERNAL_POTENTIAL
   use module_input_dicts
   use dynamic_memory
   use f_utils, only: f_zero
@@ -149,6 +149,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use m_ab6_symmetry, only: symmetry_get_n_sym
   use interfaces_42_libpaw
   use bigdft_run, only: bigdft_get_run_properties
+  use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
   implicit none
   !Arguments
   type(input_variables), intent(out) :: in
@@ -168,6 +169,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   integer :: nsym
   real(gp) :: gsqcut_shp, rloc, projr, rlocmin
   real(gp), dimension(2) :: cfrmults
+  type(external_potential_descriptors) :: ep
+  integer :: impl, l
 
 !  dict => dict//key
 
@@ -397,6 +400,18 @@ subroutine inputs_from_dict(in, atoms, dict)
   else
      call default_fragmentInputParameters(in%frag)
   end if
+
+  ! Process the multipoles for the external potential
+  write(*,*) 'HETE: process multipoles'
+  call multipoles_from_dict(dict//DFT_VARIABLES//EXTERNAL_POTENTIAL, in%ep)
+  do impl=1,in%ep%nmpl
+      call yaml_map('rxyz',in%ep%mpl(impl)%rxyz)
+      do l=0,lmax
+           if(associated(in%ep%mpl(impl)%qlm(l)%q)) then
+               call yaml_map(trim(yaml_toa(l)),in%ep%mpl(impl)%qlm(l)%q)
+           end if
+      end do
+  end do
 
   ! No use anymore of the types.
   call dict_free(types)
