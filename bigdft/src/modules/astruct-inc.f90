@@ -1335,11 +1335,11 @@ subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
 
      !call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
      call yaml_scalar(trim(symbol), advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(rxyz(1, iat) * factor, fmt = "(1pe24.17)")), &
+     call yaml_scalar(" " // trim(yaml_toa(rxyz(1, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(rxyz(2, iat) * factor, fmt = "(1pe24.17)")), &
+     call yaml_scalar(" " // trim(yaml_toa(rxyz(2, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
+     call yaml_scalar(" " // trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
      if (associated(astruct%attributes(iat)%d)) then
         call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
@@ -1462,13 +1462,13 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
      end if
 
      !call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
-     call yaml_scalar(trim(symbol), advance = "NO", unit = iunit)
      call yaml_scalar(trim(yaml_toa(rxyz(1, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(rxyz(2, iat) * factor, fmt = "(1pe24.17)")), &
+     call yaml_scalar(" " // trim(yaml_toa(rxyz(2, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
+     call yaml_scalar(" " // trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
+     call yaml_scalar(" " // trim(symbol), advance = "NO", unit = iunit)
      if (associated(astruct%attributes(iat)%d)) then
         call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
         call yaml_dict_dump(astruct%attributes(iat)%d, flow = .true., unit = iunit)
@@ -1592,14 +1592,14 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
 
 !     call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
      call yaml_scalar(trim(symbol), advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(na(iat))), advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(rxyz(1, iat) * factor, fmt = "(1pe24.17)")), &
+     call yaml_scalar(" " // trim(yaml_toa(na(iat))), advance = "NO", unit = iunit)
+     call yaml_scalar(" " // trim(yaml_toa(rxyz(1, iat) * factor, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(nb(iat))), advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(rxyz(2, iat) * factor_angle, fmt = "(1pe24.17)")), &
+     call yaml_scalar(" " // trim(yaml_toa(nb(iat))), advance = "NO", unit = iunit)
+     call yaml_scalar(" " // trim(yaml_toa(rxyz(2, iat) * factor_angle, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(nc(iat))), advance = "NO", unit = iunit)
-     call yaml_scalar(trim(yaml_toa(rxyz(3, iat) * factor_angle, fmt = "(1pe24.17)")), &
+     call yaml_scalar(" " // trim(yaml_toa(nc(iat))), advance = "NO", unit = iunit)
+     call yaml_scalar(" " // trim(yaml_toa(rxyz(3, iat) * factor_angle, fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
      if (associated(astruct%attributes(iat)%d)) then
         call yaml_mapping_open(flow = .true., advance = "NO", tabbing = 0, unit = iunit)
