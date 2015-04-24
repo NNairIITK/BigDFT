@@ -15,6 +15,7 @@
    mixing_after_inputguess: 2
    experimental_mode: Yes
    correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    hybrid: Yes
    nit: [80, 0]

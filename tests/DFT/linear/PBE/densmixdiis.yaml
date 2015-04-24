@@ -16,6 +16,7 @@
    experimental_mode: Yes
    kappa_conv: 0.5
    correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    hybrid: Yes
    nit: [2, 0]

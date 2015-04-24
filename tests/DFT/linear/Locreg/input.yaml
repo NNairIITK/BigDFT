@@ -10,6 +10,7 @@
  perf:
    linear: FUL
    ef_interpol_det: 0.10E-19
+   purification_quickreturn: no
  lin_general:
    nit: [2, 1]
    rpnrm_cv: 9.9999999999999994E-012

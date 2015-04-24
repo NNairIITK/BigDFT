@@ -10,6 +10,7 @@
    inputpsiid: linear_restart
  perf:
    correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    nit: [0, 1]
    rpnrm_cv: [1.0000000000000001E-009, 1.0E-010]

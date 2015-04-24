@@ -16,6 +16,7 @@
    foe_gap: yes
    ef_interpol_det: 1.e-12
    correction_co_contra: No
+   purification_quickreturn: no
  lin_general:
    nit: [2, 3]
    rpnrm_cv: 9.9999999999999994E-012

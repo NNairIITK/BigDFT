@@ -12,6 +12,7 @@
    disablesym: Yes
  perf:
    correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    hybrid: Yes
    nit: [2, 0]
