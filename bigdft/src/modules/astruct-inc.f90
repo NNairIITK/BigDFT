@@ -35,7 +35,7 @@
       character(len=*), parameter :: subname='read_atomic_positions'
       character(len=20) :: symbol
       character(len=20) :: tatonam
-      character(len=256) :: extra
+      character(len=226) :: extra
       character(len=256) :: line
       logical :: lpsdbl, eof
       integer :: iat,ityp,ntyp,i,ierrsfx,nspol,nchrg
@@ -987,7 +987,7 @@ subroutine parse_extra_info(att, extra, errmess)
   integer :: ierr,ierr1,ierr2,nspol,nchrg
   type(dictionary), pointer :: dict
   !case with all the information
-  !print *,iat,'ex'//trim(extra)//'ex'
+  !print *,'ex'//trim(extra)//'ex'
 
   write(errmess, "(A)") " "
   nullify(att%d)

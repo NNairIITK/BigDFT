@@ -192,7 +192,58 @@ module abi_defs_basis
 !This variable tells the code if some lines have to be written in a LOG file
  logical, public, save :: do_write_log   =.true.
 
-!CONTAINS
+CONTAINS
+!!***
+
+!!****f* defs_basis/abi_io_redirect
+!! NAME
+!!  abi_io_redirect
+!!
+!! FUNCTION
+!!  Redirect unit numbers (and|or) change the MPI communicator for the IO (output and log file).
+!!  This routine can be used in client code (e.g. bigdft)
+!!  that wants to call the abinit routines packed in an external library.
+!!
+!! INPUTS
+!!  new_ab_out=new value for output file unit
+!!  new_std_out=new value for standard output unit
+!!  new_io_comm=new value for IO MPI communicator
+!!
+!! PARENTS
+!!      abinit,aim,anaddb,band2eps,bsepostproc,conducti,cut3d,driver,fftprof
+!!      initmpi_world,ioprof,kss2wfk,lapackprof,m_io_redirect,macroave
+!!      memory_eval,mpi_setup,mrgddb,mrggkk,mrgscr,optic,ujdet,vdw_kernelgen
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+ subroutine abi_io_redirect(new_ab_out,new_std_out,new_io_comm,new_leave_comm)
+
+
+!This section has been created automatically by the script Abilint (TD).
+!Do not modify the following lines by hand.
+#undef ABI_FUNC
+#define ABI_FUNC 'abi_io_redirect'
+!End of the abilint section
+
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,optional,intent(in) :: new_std_out,new_ab_out,new_io_comm,new_leave_comm
+
+!************************************************************************
+
+ if (PRESENT(new_ab_out))  ab_out  = new_ab_out
+ if (PRESENT(new_std_out)) std_out = new_std_out
+ if (PRESENT(new_io_comm)) abinit_comm_output = new_io_comm
+ if (.FALSE.) then
+   ! Not used anymore
+   write(std_out,*)new_leave_comm
+ end if
+
+ end subroutine abi_io_redirect
 !!***
 
 end module abi_defs_basis
