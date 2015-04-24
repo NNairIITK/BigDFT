@@ -81,6 +81,7 @@ libmodules_a_SOURCES = base.f90 \
 	bigdft_run.f90 \
 	rhopotential.f90 \
 	multipole_base.f90 \
+	multipole.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -140,6 +141,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
 	RHOPOTENTIAL.@MODULE_EXT@ \
 	MULTIPOLE_BASE.@MODULE_EXT@ \
+	MULTIPOLE.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
@@ -198,6 +200,7 @@ modules = module_base.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	rhopotential.@MODULE_EXT@ \
 	multipole_base.@MODULE_EXT@ \
+	multipole.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
@@ -287,6 +290,7 @@ ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o spars
 locreg_operations.o: base.o types.o atoms_data.o locregs.o
 rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o
 multipole_base.o: base.o
+multipole.o: base.o multipole_base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
