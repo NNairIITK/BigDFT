@@ -1709,7 +1709,7 @@ subroutine gather_cprj(orbs, paw)
   type(orbitals_data), intent(in) :: orbs
   type(paw_objects), intent(inout) :: paw
   ! Local variables:
-  integer::iatom,ilmn,iorb,ierr,ikpts,jproc
+  integer::iatom,ilmn,iorb,ikpts,jproc
   ! Tabulated data to be send/received for mpi
   integer,allocatable,dimension(:):: ndsplt
   integer,allocatable,dimension(:):: ncntt 
@@ -1757,7 +1757,8 @@ subroutine gather_cprj(orbs, paw)
      !   
      !    call MPI_ALLGATHER(raux,sendcnt,MPI_DOUBLE_PRECISION,&
      !&     raux2,recvcnt,MPI_DOUBLE_PRECISION,MPI_COMM_WORLD,ierr)
-     call mpiallgatherv(raux(1,1,1,1), ncntt, ndsplt, bigdft_mpi%iproc, bigdft_mpi%mpi_comm, ierr)
+     call mpiallgather(sendbuf = raux(1,1,1,1), recvcounts = ncntt, &
+          & displs = ndsplt, comm = bigdft_mpi%mpi_comm)
 !!$     call MPI_ALLGATHERV(raux,ncntd,mpidtypw,&
 !!$          &     raux2,ncntt,ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
      !

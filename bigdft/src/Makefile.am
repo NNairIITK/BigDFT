@@ -333,7 +333,7 @@ mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCL
 mhgpstool_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 global_SOURCES = global.f90
-global_LDADD = $(bigdft_library) @LINALG_LIBS@
+global_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 globaltool_SOURCES = globaltool.f90
 globaltool_FCFLAGS = -I. -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@

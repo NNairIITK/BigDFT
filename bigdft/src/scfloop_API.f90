@@ -32,7 +32,7 @@ contains
 
   subroutine scfloop_init(nproc, obj)
     use f_utils, only: f_open_file
-    use defs_basis, only: abi_io_redirect
+    !use defs_basis, only: abi_io_redirect
     implicit none
     integer, intent(in) :: nproc
     type(run_objects), intent(in), target :: obj
@@ -46,7 +46,7 @@ contains
     unt2=unt+1
     call f_open_file(unt2,file=trim(ab6out()))
     !reaffect the value of stdout in abinit
-    call abi_io_redirect(new_ab_out=unt,new_std_out=unt2)
+    !call abi_io_redirect(new_ab_out=unt,new_std_out=unt2)
 
     scfloop_nproc = nproc
     scfloop_obj => obj

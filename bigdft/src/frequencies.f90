@@ -348,7 +348,7 @@ program frequencies
    do i=1,3*runObj%atoms%astruct%nat
       iperm(i)=i
    end do
-   call sort_dp(3*runObj%atoms%astruct%nat,sort_work,iperm,tol_freq)
+   call abi_sort_dp(3*runObj%atoms%astruct%nat,sort_work,iperm,tol_freq)
    if (bigdft_mpi%iproc == 0) then
       call yaml_comment('(F) Hessian results',hfill='=')
       call yaml_map('(F) Full Hessian Matrix Calculation',nfree == 3*runObj%atoms%astruct%nat)

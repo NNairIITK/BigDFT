@@ -1381,9 +1381,9 @@ program memguess
       nlpsp%pspd(iat)%plr%wfd%keyvloc = nlpsp%pspd(iat)%plr%wfd%keyvglob
       ! Doing this is buggy.
       runObj%rst%KSwfn%Lzd%Glr%wfd = nlpsp%pspd(iat)%plr%wfd
-      call plot_wf(filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
+      call plot_wf(.false.,filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
            & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,&
-           & runObj%atoms%astruct%rxyz, nlpsp%proj(1))
+           & runObj%atoms%astruct%rxyz, nlpsp%proj(1:))
    end if
 
    if (GPUtest) then
