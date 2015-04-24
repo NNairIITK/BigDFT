@@ -100,6 +100,13 @@ CONTAINS
 !! nparam_out= number of parameters found.
 !! param_out(nparam_out)= parameters (coefficients and factors of complex gaussians).
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
  subroutine gaussfit_main(mparam,nparam_out,nterm_bounds,nr,&
@@ -394,6 +401,13 @@ end subroutine gaussfit_main
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
  subroutine gaussfit_mpi_set_weight(f,x)
@@ -444,6 +458,13 @@ end subroutine gaussfit_main
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
  subroutine gaussfit_mpi_remove_item(iterm,pload)
@@ -484,6 +505,13 @@ end subroutine gaussfit_main
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
  subroutine gaussfit_mpi_add_item(iterm,pload)
@@ -523,6 +551,13 @@ end subroutine gaussfit_main
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -575,6 +610,13 @@ end subroutine gaussfit_main
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -640,6 +682,13 @@ end subroutine gaussfit_main
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -709,6 +758,13 @@ end subroutine gaussfit_main
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -827,6 +883,13 @@ end subroutine gaussfit_main
 !! SIDE EFFECTS
 !! if(verbosity>1) output files are written with y(x) and y_out(x)
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
 subroutine gaussfit_fit(chisq,constrains,&
@@ -912,6 +975,12 @@ end subroutine gaussfit_fit
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1027,6 +1096,13 @@ end subroutine gaussfit_calc_deriv_r
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
 subroutine gaussfit_calc_deriv_c3(nparam,nterm,nx,opt,param,x,y_out,&
@@ -1129,6 +1205,13 @@ end subroutine gaussfit_calc_deriv_c3
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1252,6 +1335,13 @@ end subroutine gaussfit_calc_deriv_c2
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1404,6 +1494,13 @@ end subroutine gaussfit_calc_deriv_c
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
 subroutine gaussfit_calc_deriv_c4(nparam,nterm,nx,opt,param,x,y_out,&
@@ -1553,6 +1650,13 @@ end subroutine gaussfit_calc_deriv_c4
 !!  if(option==4)mparam=nterm_bounds(2)*4
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -1731,6 +1835,13 @@ end subroutine gaussfit_rlsf
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
 subroutine gaussfit_chisq_alpha_beta(alpha,beta,chisq,&
@@ -1815,6 +1926,12 @@ end subroutine gaussfit_chisq_alpha_beta
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
 subroutine gaussfit_set_param1(nterm,nparam,nx,param,sep,x,y)
@@ -1889,6 +2006,12 @@ end subroutine gaussfit_set_param1
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
 subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
@@ -1949,6 +2072,13 @@ subroutine gaussfit_set_param2(nterm,nparam,nx,param,rpaw,x,y)
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
  subroutine gaussfit_param2_findsign()
@@ -1996,6 +2126,12 @@ end subroutine gaussfit_set_param2
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2051,6 +2187,13 @@ end subroutine gaussfit_set_param3
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
  
 subroutine gaussfit_set_param4(nparam,param)
@@ -2089,6 +2232,13 @@ end subroutine gaussfit_set_param4
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2151,6 +2301,13 @@ end subroutine gaussfit_set_param5
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 
@@ -2226,6 +2383,13 @@ end subroutine gaussfit_constrains_init
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!      m_paw_gaussfit
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
+!!
 !! SOURCE
 
 subroutine gaussfit_apply_constrains(const,limit,nparam,ioparams)
@@ -2288,6 +2452,13 @@ end subroutine gaussfit_apply_constrains
 !! NOTES
 !! chisq=accuracy_p= sum_x abs(f(x)-y(x))/nx. 
 !!    nx is the number of points, f(x) and y(x) are the fitted and original functions.
+!!
+!! PARENTS
+!!      m_pawpsp
+!!
+!! CHILDREN
+!!      gaussfit_main,paw_spline,paw_splint,pawrad_deducer0,pawrad_free
+!!      pawrad_init,wrtout
 !!
 !! SOURCE
 

@@ -1262,6 +1262,8 @@ end subroutine pawtab_print
 !!   l_size_atm(natom)=output array of l_size values (for each atom)
 !!
 !! PARENTS
+!!      bethe_salpeter,classify_bands,d2frnl,denfgr,exc_plot,m_wfs,pawmkaewf
+!!      respfn,scfcv,screening,sigma
 !!
 !! CHILDREN
 !!
@@ -2692,6 +2694,8 @@ subroutine wvlpaw_allocate(wvlpaw)
    LIBPAW_DATATYPE_ALLOCATE(wvlpaw,)
    call wvlpaw_nullify(wvlpaw)
  end if
+
+ wvlpaw%npspcode_init_guess=10
 
 end subroutine wvlpaw_allocate
 !!***

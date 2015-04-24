@@ -712,6 +712,9 @@ contains
     real(gp), dimension(7,3,4) :: cproj,dproj 
     logical, dimension(3,4) :: cont
 
+    !call to_zero(n_w*n_p,hscpr(1,1))
+    hscpr=0.0_gp
+
 !!$    !fill the hij matrix
 !!$    call hgh_hij_matrix(npspcode,psppar,hij)
 
@@ -832,6 +835,9 @@ contains
     logical :: cplx_p,cplx_w,cplx_pw
     integer :: iw,ip,ieps_p,ieps_w,ieps
     real(wp) :: prfr,prfi,pifr,pifi
+
+    !call to_zero(max(ncplx_w,ncplx_p)*n_w*n_p,pdpsi(1,1,1))
+    pdpsi=0.0_wp
 
     cplx_p=ncplx_p==2
     cplx_w=ncplx_w==2

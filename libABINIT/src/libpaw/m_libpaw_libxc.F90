@@ -19,8 +19,8 @@
 !!  This file comes directly from m_libxc_functionals.F90 module delivered with ABINIT.
 !!
 !!  How to initialize (finalize) libXC datastructure:
-!!   if call libpaw_libxc_init(abinit_ixc,nspin)
-!!   if call libpaw_libxc_end()
+!!   call libpaw_libxc_init(abinit_ixc,nspin)
+!!   call libpaw_libxc_end()
 !!
 !! SOURCE
 
@@ -32,7 +32,7 @@ module m_libpaw_libxc_funcs
  USE_MSG_HANDLING
  USE_MEMORY_PROFILING
 
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
  use xc_f90_types_m
  use libxc_funcs_m
  use xc_f90_lib_m
@@ -40,7 +40,7 @@ module m_libpaw_libxc_funcs
 
  implicit none
 
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
  type libpaw_libxc_functional
    private
    integer                :: family  ! LDA, GGA, etc.
@@ -55,7 +55,7 @@ module m_libpaw_libxc_funcs
 
  private
 
- integer,save :: ABI_IXC = HUGE(0)
+ integer,save :: LIBPAW_IXC = HUGE(0)
 
  public :: libpaw_libxc_init        ! Initialize the desired XC functional, from LibXC.
  public :: libpaw_libxc_fullname    ! Return full name of the XC functional
@@ -83,6 +83,13 @@ contains
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      wrtout,xc_f90_gga_exc_vxc,xc_f90_gga_fxc,xc_f90_gga_vxc
+!!      xc_f90_lda_exc_vxc,xc_f90_lda_fxc,xc_f90_lda_kxc,xc_f90_lda_vxc
+!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc,xc_f90_mgga_x_tb09_set_par
 !!
 !! SOURCE
 
@@ -112,7 +119,7 @@ contains
 ! *************************************************************************
 
 !Save abinit value for reference 
- ABI_IXC = ixc
+ LIBPAW_IXC = ixc
 
  pawxcfuncs(1)%id = -ixc/1000
  pawxcfuncs(2)%id = -ixc - pawxcfuncs(1)%id*1000
@@ -175,6 +182,13 @@ end subroutine libpaw_libxc_init
 !!
 !! OUTPUT
 !!
+!! PARENTS
+!!
+!! CHILDREN
+!!      wrtout,xc_f90_gga_exc_vxc,xc_f90_gga_fxc,xc_f90_gga_vxc
+!!      xc_f90_lda_exc_vxc,xc_f90_lda_fxc,xc_f90_lda_kxc,xc_f90_lda_vxc
+!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc,xc_f90_mgga_x_tb09_set_par
+!!
 !! SOURCE
  subroutine libpaw_libxc_end()
 
@@ -192,7 +206,7 @@ end subroutine libpaw_libxc_init
 
 ! *************************************************************************
 
- ABI_IXC = HUGE(0)
+ LIBPAW_IXC = HUGE(0)
 
  do ii = 1, 2
    if (pawxcfuncs(ii)%id == 0) cycle
@@ -332,7 +346,7 @@ end function libpaw_libxc_getid
 
 ! *************************************************************************
 
- libpaw_libxc_global_ixc = ABI_IXC
+ libpaw_libxc_global_ixc = LIBPAW_IXC
 
 end function libpaw_libxc_global_ixc
 !!***
@@ -505,6 +519,13 @@ end function libpaw_libxc_nspin
 !! INPUTS
 !!
 !! OUTPUT
+!!
+!! PARENTS
+!!
+!! CHILDREN
+!!      wrtout,xc_f90_gga_exc_vxc,xc_f90_gga_fxc,xc_f90_gga_vxc
+!!      xc_f90_lda_exc_vxc,xc_f90_lda_fxc,xc_f90_lda_kxc,xc_f90_lda_vxc
+!!      xc_f90_mgga_exc_vxc,xc_f90_mgga_vxc,xc_f90_mgga_x_tb09_set_par
 !!
 !! SOURCE
 
@@ -801,7 +822,7 @@ end module m_libpaw_libxc_funcs
 
 module m_libpaw_libxc
 
-#if defined HAVE_DFT_LIBXC
+#if defined LIBPAW_HAVE_LIBXC
 
 #if defined HAVE_LIBPAW_ABINIT
  use libxc_functionals
@@ -820,6 +841,8 @@ module m_libpaw_libxc
 & libxc_functionals_end        => libpaw_libxc_end
 
 #endif
+
+ implicit none
 
 #endif
 

@@ -441,8 +441,8 @@ end subroutine pawrhoij_free
 !! pawrhoij(:)<type(pawrhoij_type)>= rhoij datastructure
 !!
 !! PARENTS
-!!      d2frnl,loper3,m_pawrhoij,m_scf_history,outscfcv,pawgrnl
-!!      pawmkrho,pawprt,posdoppler,respfn
+!!      d2frnl,loper3,m_pawrhoij,m_scf_history,outscfcv,pawgrnl,pawmkrho,pawprt
+!!      posdoppler,respfn
 !!
 !! CHILDREN
 !!

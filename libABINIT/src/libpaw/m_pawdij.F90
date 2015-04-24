@@ -157,7 +157,7 @@ CONTAINS
 !!      bethe_salpeter,respfn,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -1085,7 +1085,7 @@ end subroutine pawdij
 !!      m_pawdij,pawdenpot,pawenergy3
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -1223,7 +1223,7 @@ end subroutine pawdijhartree
 !!      m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -1529,7 +1529,7 @@ end subroutine pawdijxc
 !!      m_pawdij,pawdenpot
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -1811,7 +1811,7 @@ end subroutine pawdijfock
 !!      m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -2084,10 +2084,10 @@ end subroutine pawdijxcm
 !!  cplex is for RF, cplex_dij is for non-collinear (nspinor==2)
 !!
 !! PARENTS
-!!      m_pawdij
+!!      fock_getghc,m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -2404,8 +2404,10 @@ end subroutine pawdijhat
 !!  cplex_dij=2 must be 2
 !!
 !! PARENTS
+!!      m_pawdij,pawdenpot
 !!
 !! CHILDREN
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -2548,7 +2550,7 @@ end subroutine pawdijnd
 !!      m_pawdij,pawdenpot
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -2748,7 +2750,7 @@ end subroutine pawdijso
 !!      m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -2934,7 +2936,7 @@ end subroutine pawdiju
 !!      m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -3248,7 +3250,7 @@ end subroutine pawdijexxc
 !!      d2frnl,nstpaw3,rhofermi3,scfcv3
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -3837,8 +3839,8 @@ end subroutine pawdijfr
 !!  ndij=number of spin components for Dij^hat
 !!  nspden=number of spin density components
 !!  pawprtvol=control print volume and debugging output for PAW
-!!  noccmmp(cplex_dij,2*lpawu+1,2*lpawu+1,nspden)=density matrix in the augm. region
-!!  nocctot(nspden)=number of electrons in the correlated subspace
+!!  noccmmp(cplex_dij,2*lpawu+1,2*lpawu+1,ndij)=density matrix in the augm. region
+!!  nocctot(ndij)=number of electrons in the correlated subspace
 !!  pawtab(ntypat) <type(pawtab_type)>=paw tabulated starting data:
 !!     %usepawu, %upawu, %jpau
 !!     %vee(2*lpawu+1*4)=screened coulomb matrix
@@ -3851,7 +3853,7 @@ end subroutine pawdijfr
 !!      ldau_self,m_paw_commutator,m_pawdij
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -4142,7 +4144,7 @@ end subroutine pawdijfr
 !!      m_pawdij,pawdenpot
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -4301,7 +4303,7 @@ end subroutine pawdijfr
 !!      bethe_salpeter,m_pawdij,paw_mknewh0,respfn,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -4999,7 +5001,7 @@ end subroutine symdij
 !!      paw_mknewh0,screening,sigma
 !!
 !! CHILDREN
-!!      free_my_atmtab,get_my_atmtab,symdij
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 
@@ -5143,6 +5145,12 @@ end subroutine symdij_all
 !!
 !! OUTPUT
 !!  dij_out = coeff2d_type array containing the gathered Dij
+!!
+!! PARENTS
+!!      m_pawdij
+!!
+!! CHILDREN
+!!      xpaw_mpi_allgather,xpaw_mpi_allgatherv
 !!
 !! SOURCE
 

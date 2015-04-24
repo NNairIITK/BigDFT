@@ -305,8 +305,8 @@ CONTAINS
 !!   according to the input variables.
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,ldau_self,m_energy,nstpaw3,paw_qpscgw
-!!      respfn,rhofermi3,scfcv,scfcv3,screening,sigma
+!!      bethe_salpeter,d2frnl,ldau_self,m_energy,nstpaw3,paw_qpscgw,respfn
+!!      rhofermi3,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
 !!
@@ -559,8 +559,8 @@ end subroutine paw_ij_init
 !!  paw_ij(:)<type(paw_ij_type)>=paw arrays given on (i,j) channels
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,ldau_self,m_energy,m_paral_pert
-!!      m_paw_ij,nstpaw3,pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
+!!      bethe_salpeter,d2frnl,ldau_self,m_energy,m_paral_pert,m_paw_ij,nstpaw3
+!!      pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
 !!
@@ -676,8 +676,8 @@ end subroutine paw_ij_free
 !!  Paw_ij(:)<type(paw_ij_type)>=PAW arrays given on (i,j) channels.
 !!
 !! PARENTS
-!!      bethe_salpeter,d2frnl,ldau_self,m_energy,m_paw_ij,nstpaw3
-!!      paw_qpscgw,pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
+!!      bethe_salpeter,d2frnl,ldau_self,m_energy,m_paw_ij,nstpaw3,paw_qpscgw
+!!      pawprt,respfn,rhofermi3,scfcv,scfcv3,screening,sigma
 !!
 !! CHILDREN
 !!
