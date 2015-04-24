@@ -707,7 +707,7 @@ water_foe:
  charge diff: 3.9e-8
  eF: 2.4e-8
  D eF: 2.3e-8
- D Tr: 3.1e-11
+ D Tr: 1.1e-10
  guess for new ef: 4.1e-9
  Tr(K): 1.1e-7
  ebs_check: 1.6e-11
