@@ -13,12 +13,12 @@
    method: SDCG
    ncount_cluster_x: 3
    betax: NEB
-   purification_quickreturn: no
  perf:
    ef_interpol_det: 0.10E-07
    mixing_after_inputguess: 2
    evbounds_nsatur: 100
    correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    nit: [2, 3]
    rpnrm_cv: [9.9999999999999995E-008, 9.9999999999999994E-012]
