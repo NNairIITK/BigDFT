@@ -515,6 +515,7 @@ subroutine default_input_variables(in)
   in%dir_output = "data"
   in%output_wf_format = WF_FORMAT_NONE
   in%output_denspot_format = output_denspot_FORMAT_CUBE
+  call f_zero(in%set_epsilon)
   nullify(in%gen_kpt)
   nullify(in%gen_wkpt)
   nullify(in%kptv)
@@ -799,7 +800,7 @@ subroutine abscalc_input_variables_default(in)
   use module_base
   use module_types
   implicit none
-  type(input_variables), intent(out) :: in
+  type(input_variables), intent(inout) :: in
 
   in%c_absorbtion=.false.
   in%potshortcut=0
@@ -818,7 +819,7 @@ subroutine frequencies_input_variables_default(in)
   use module_base
   use module_types
   implicit none
-  type(input_variables), intent(out) :: in
+  type(input_variables), intent(inout) :: in
 
   in%freq_alpha=1.d0/real(64,kind(1.d0))
   in%freq_order=2

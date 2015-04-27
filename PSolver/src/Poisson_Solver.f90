@@ -56,6 +56,8 @@
 !! @ingroup PSOLVER
 module Poisson_Solver
    use dictionaries, only: f_err_throw
+   use f_utils
+   use f_enums
    use wrapper_linalg
    use wrapper_MPI
    use dynamic_memory
@@ -83,7 +85,24 @@ module Poisson_Solver
    integer, public, save :: TCAT_PSOLV_KERNEL=TIMING_UNINITIALIZED
    
    include 'configure.inc'
-   
+
+   !> how to set the dielectric function
+   integer, parameter :: PS_EPSILON_VACUUM = -1000
+   integer, parameter :: PS_EPSILON_RIGID_CAVITY = 1001
+   integer, parameter :: PS_EPSILON_SCCS = 1002
+
+   integer, parameter :: PS_PCG = 1234
+   integer, parameter :: PS_PI = 1432
+
+   type(f_enumerator) :: PS_NONE_ENUM=f_enumerator('vacuum',PS_EPSILON_VACUUM)
+   type(f_enumerator) :: PS_RIGID_ENUM=f_enumerator('rigid',PS_EPSILON_RIGID_CAVITY)
+   type(f_enumerator) :: PS_SCCS_ENUM=f_enumerator('sccs',PS_EPSILON_SCCS)
+
+   type(f_enumerator), parameter :: PS_VAC_ENUM=f_enumerator('VAC',PS_EPSILON_VACUUM)
+   type(f_enumerator), parameter :: PS_PI_ENUM=f_enumerator('PI',PS_PI)
+   type(f_enumerator), parameter :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG)
+
+  
    !>Defines the internal information for application of the FFT between the kernel and the 
    !!density
    type, public :: FFT_metadata
@@ -124,7 +143,11 @@ module Poisson_Solver
        !!          - 'VAC' Poisson Equation in vacuum. Default case.
        !!          - 'PCG' Generalized Poisson Equation, Preconditioned Conjugate Gradient
        !!          - 'PI'  Generalized Poisson Equation, Polarization Iteration method
-      character(len=3) :: method 
+      !character(len=3) :: method 
+      !! this represents the information for the equation and the algorithm to be solved
+      !! this enumerator contains the algorithm and has the attribute associated to the 
+      !! type of cavity to be used
+      type(f_enumerator) :: method
       integer, dimension(3) :: ndims   !< dimension of the box of the density
       real(gp), dimension(3) :: hgrids !<grid spacings in each direction
       real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
@@ -166,7 +189,7 @@ module Poisson_Solver
    ! Calculate the allocation dimensions
    public :: PS_dim4allocation, PS_getVersion
    ! Routine that creates the kernel
-   public :: pkernel_init, pkernel_set, pkernel_free, pkernel_set_epsilon
+   public :: pkernel_init, pkernel_set, pkernel_free, pkernel_set_epsilon, pkernel_allocate_cavity
    ! Calculate the poisson solver
    public :: H_potential 
    ! Calculate the allocation dimensions
@@ -218,7 +241,7 @@ contains
     type(coulomb_operator) :: k
     k%itype_scf=0
     k%geocode='F'
-    k%method='VAC'
+    call nullify_f_enum(k%method)
     k%mu=0.0_gp
     k%ndims=(/0,0,0/)
     k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)

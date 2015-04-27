@@ -1454,7 +1454,7 @@ module gaussdaub
     end subroutine gaus_highres
 
     pure function collocate_gaussian(n_gau,a,r) result(func)
-      use module_defs, only: safe_exp
+      use numerics, only: safe_exp
       implicit none
       integer, intent(in) :: n_gau !<principal quantum number
       real(gp), intent(in) :: a !<standard deviation

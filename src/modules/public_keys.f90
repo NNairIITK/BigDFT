@@ -37,6 +37,7 @@ module public_keys
   character(len = *), parameter :: NORBV = "norbv", NVIRT = "nvirt"
   character(len = *), parameter :: NPLOT = "nplot"
   character(len = *), parameter :: DISABLE_SYM = "disablesym"
+  character(len = *), parameter :: SOLVENT = "solvent"
 
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"
@@ -167,6 +168,7 @@ module public_keys
   character(len = *), parameter :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
   character(len = *), parameter :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
   character(len = *), parameter :: CORRECTION_CO_CONTRA = "correction_co_contra"
+  character(len = *), parameter :: GPS_METHOD = "gps_method"
 
   !keys for linear input variables
   !level keys
@@ -257,7 +259,7 @@ end module public_keys
 !>module identifying constants that have to be used as enumerators
 !! they can be used to define f_enumerator types or directly as integers
 module public_enums
-  use f_utils
+  use f_enums
   implicit none
   
   public

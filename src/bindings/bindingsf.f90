@@ -937,7 +937,7 @@ subroutine kernel_get_comm(pkernel, igroup, ngroup, iproc_grp, &
      & nproc_grp, mpi_comm)
   use module_types
   implicit none
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   integer, intent(out) :: igroup, ngroup, iproc_grp, nproc_grp, mpi_comm
   igroup = pkernel%mpi_env%igroup
   ngroup = pkernel%mpi_env%ngroup
@@ -1654,6 +1654,7 @@ END SUBROUTINE run_objects_nullify_dict
 
 subroutine run_objects_nullify_volatile(runObj)
   use f_utils
+  use public_enums, only: QM_RUN_MODE
   use bigdft_run, only: run_objects
   use module_defs, only: bigdft_mpi
   use yaml_output, only: yaml_sequence_close
@@ -1661,7 +1662,7 @@ subroutine run_objects_nullify_volatile(runObj)
   type(run_objects), intent(inout) :: runObj
 
   if (associated(runObj%run_mode)) then
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+    if (bigdft_mpi%iproc==0 .and. runObj%run_mode == QM_RUN_MODE)&
          call yaml_sequence_close()
   end if
 

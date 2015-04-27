@@ -252,7 +252,7 @@ program GPS_3D
 !  end if
 
   !new method
-  pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
+  pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,alg=PSol)
   call pkernel_set(pkernel,verbose=.true.)
 
   if ( trim(PSol)=='PCG') then
@@ -359,7 +359,7 @@ program GPS_3D
   PSol='VAC'
   eps=1.d0
   erfL=1.d0
-  pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,method=PSol)
+  pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,alg=PSol)
   call pkernel_set(pkernel,verbose=.true.)
 
   potsol(:,:,:,:)=dens_check(:,:,:,:,1)
@@ -507,7 +507,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,hx,hy,hz,b,acell,eps,nord,pk
   real(kind=8), intent(in) :: hx,hy,hz
   integer, intent(in) :: nord
   real(kind=8), intent(in) :: acell
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   real(kind=8), dimension(n01,n02,n03), intent(in) :: eps,potential
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
 
@@ -686,7 +686,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
   real(kind=8), intent(in) :: hx,hy,hz
   integer, intent(in) :: nord
   real(kind=8), intent(in) :: acell,multp
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
   integer, intent(in) :: SetEps
   real(kind=8), dimension(n01,n02,n03), intent(in) :: potential

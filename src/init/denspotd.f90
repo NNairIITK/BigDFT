@@ -21,6 +21,7 @@ subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C)
   nullify(denspot%V_ext)
+  nullify(denspot%rho_ion)
   nullify(denspot%Vloc_KS)
   nullify(denspot%rho_psi)
   nullify(denspot%V_XC)
@@ -465,6 +466,17 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
      denspot%V_XC = f_malloc_ptr((/ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3p , nspin /),id='denspot%V_XC')
   else
      denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , nspin /),id='denspot%V_XC')
+  end if
+
+  !allocate ionic density in the case of a cavity calculation
+  if (denspot%pkernel%method /= 'VAC') then
+     if (denspot%dpbox%n3pi > 0) then
+        denspot%rho_ion = f_malloc_ptr([ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3pi , 1 ],id='denspot%rho_ion')
+     else
+        denspot%rho_ion = f_malloc_ptr([ 1 , 1 , 1 , 1 ],id='denspot%rho_ion')
+     end if
+  else
+     denspot%rho_ion = f_malloc_ptr([ 1 , 1 , 1 , 1 ],id='denspot%rho_ion')
   end if
 
   if (denspot%dpbox%n3d >0) then

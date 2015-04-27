@@ -1281,7 +1281,7 @@ subroutine convolut_kinetic_per_T_1D(n1,n2,n3,hgrid,jdim,x,y)
   integer, dimension(lowfil:n3+lupfil) :: mod_arr3
   real(wp) :: ekin1,ekin2,ekin3
   real(wp) :: scale
-  real(wp), dimension(lowfil:lupfil) :: fil
+  real(wp), dimension(lowfil:lupfil,3) :: fil
   !real(wp), dimension(8,3) :: ekin_array
 !$ integer :: ithread=0
 !$ integer :: omp_get_thread_num
@@ -1310,24 +1310,24 @@ subroutine convolut_kinetic_per_T_1D(n1,n2,n3,hgrid,jdim,x,y)
   scale=real(-.5_gp/hgrid**2,wp)
 
   ! second derivative filters for Daubechies 16
-  fil(0)=   -3.5536922899131901941296809374e0_wp*scale
-  fil(1)=    2.2191465938911163898794546405e0_wp*scale
-  fil(2)=   -0.6156141465570069496314853949e0_wp*scale
-  fil(3)=    0.2371780582153805636239247476e0_wp*scale
-  fil(4)=   -0.0822663999742123340987663521e0_wp*scale
-  fil(5)=    0.02207029188482255523789911295638968409e0_wp*scale
-  fil(6)=   -0.409765689342633823899327051188315485e-2_wp*scale
-  fil(7)=    0.45167920287502235349480037639758496e-3_wp*scale
-  fil(8)=   -0.2398228524507599670405555359023135e-4_wp*scale
-  fil(9)=    2.0904234952920365957922889447361e-6_wp*scale
-  fil(10)=  -3.7230763047369275848791496973044e-7_wp*scale
-  fil(11)=  -1.05857055496741470373494132287e-8_wp*scale
-  fil(12)=  -5.813879830282540547959250667e-11_wp*scale
-  fil(13)=   2.70800493626319438269856689037647576e-13_wp*scale
-  fil(14)=  -6.924474940639200152025730585882e-18_wp*scale
+  fil(0 ,:)=   -3.5536922899131901941296809374e0_wp*scale
+  fil(1 ,:)=    2.2191465938911163898794546405e0_wp*scale
+  fil(2 ,:)=   -0.6156141465570069496314853949e0_wp*scale
+  fil(3 ,:)=    0.2371780582153805636239247476e0_wp*scale
+  fil(4 ,:)=   -0.0822663999742123340987663521e0_wp*scale
+  fil(5 ,:)=    0.02207029188482255523789911295638968409e0_wp*scale
+  fil(6 ,:)=   -0.409765689342633823899327051188315485e-2_wp*scale
+  fil(7 ,:)=    0.45167920287502235349480037639758496e-3_wp*scale
+  fil(8 ,:)=   -0.2398228524507599670405555359023135e-4_wp*scale
+  fil(9 ,:)=    2.0904234952920365957922889447361e-6_wp*scale
+  fil(10,:)=  -3.7230763047369275848791496973044e-7_wp*scale
+  fil(11,:)=  -1.05857055496741470373494132287e-8_wp*scale
+  fil(12,:)=  -5.813879830282540547959250667e-11_wp*scale
+  fil(13,:)=   2.70800493626319438269856689037647576e-13_wp*scale
+  fil(14,:)=  -6.924474940639200152025730585882e-18_wp*scale
 
   do k=1,14
-     fil(-k)=fil(k)
+     fil(-k,:)=fil(k,:)
   end do
 
   ekin2=0.0_wp

@@ -44,7 +44,7 @@ program wvl
 !  real(gp), allocatable :: radii_cf(:,:)
   real(gp), dimension(3) :: shift
   real(gp), dimension(:,:), pointer :: rxyz_old
-  real(dp), dimension(:), pointer   :: rhor, pot_ion, potential
+  real(dp), dimension(:), pointer   :: rhor, pot_ion, potential,rho_ion
   real(wp), dimension(:), pointer   :: w
   real(wp), dimension(:,:), pointer :: ovrlp
   real(dp), dimension(:,:), pointer :: rho_p => null() !needs to be nullified
@@ -266,7 +266,7 @@ program wvl
   !     ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
   call createIonicPotential(iproc,(iproc==0),atoms,atoms%astruct%rxyz,&
-       & inputs%elecfield, dpcom, pkernel,pot_ion,psoffset)
+       & inputs%elecfield, dpcom, pkernel,pot_ion,rho_ion,psoffset)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,pot_ion,potential)
 !!$  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &
@@ -290,7 +290,7 @@ program wvl
   !if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
   if (iproc == 0) call yaml_map("System pseudo energy (Ha)", epot_sum)
 
-  deallocate(pot_ion)
+  deallocate(pot_ion,rho_ion)
   deallocate(psir)
   call deallocate_work_arrays_sumrho(wisf)
 

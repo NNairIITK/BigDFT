@@ -110,7 +110,7 @@ module wrapper_MPI
 
   !> Interface for MPI_ALLGATHERV routine
   interface mpiallgather
-     module procedure mpiallgatherv_d0,mpiallgatherv_d1
+     module procedure mpiallgatherv_d0,mpiallgatherv_d1,mpiallgatherv_d2d3
   end interface mpiallgather
   
   interface mpiiallred
@@ -979,6 +979,18 @@ contains
     double precision, dimension(:), allocatable :: copybuf
     include 'allgather-inc.f90'
   end subroutine mpiallgatherv_d1
+  subroutine mpiallgatherv_d2d3(sendbuf,sendcount,recvbuf,recvcount,&
+       recvcounts,displs,comm)
+    use yaml_strings, only: yaml_toa
+    use dictionaries, only: f_err_throw
+    use dynamic_memory
+    implicit none
+    double precision, dimension(:,:), intent(inout) :: sendbuf
+    double precision, dimension(:,:,:), intent(inout), optional :: recvbuf
+    double precision, dimension(:), allocatable :: copybuf
+    include 'allgather-inc.f90'
+  end subroutine mpiallgatherv_d2d3
+
 
 
   subroutine mpialltoallv_int(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)

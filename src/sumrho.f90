@@ -25,7 +25,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(symmetry_data), intent(in) :: symObj
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   type(xc_info), intent(in) :: xc
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(GPU_pointers), intent(inout) :: GPU

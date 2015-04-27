@@ -27,7 +27,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    type(denspot_distribution), intent(in) :: dpcom
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   type(coulomb_operator), intent(in) :: pkernel
+   type(coulomb_operator), intent(inout) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
    type(xc_info), intent(in) :: xc
@@ -417,7 +417,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(comms_cubic), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   type(coulomb_operator), intent(in) :: pkernel
+   type(coulomb_operator), intent(inout) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
    type(GPU_pointers), intent(inout) :: GPU

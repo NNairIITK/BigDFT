@@ -171,15 +171,16 @@ subroutine f_lib_finalize()
   use dictionaries_base, only: dictionary_check_leak
   use dictionaries, only: f_err_finalize,dict_get_num
   use dynamic_memory, only: f_malloc_finalize
-  use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment,yaml_toa
+  use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment,yaml_toa,yaml_walltime_toa
   use yaml_parse, only: yaml_parse_errors_finalize
-  use time_profiling, only: f_timing_finalize
+  use time_profiling, only: f_timing_finalize,f_clock
   implicit none
   !local variables
   integer :: ndict,ndict_max,iproc,nlibs,nlibs_max
   call f_malloc_finalize(process_id=iproc)
   !print maximal value of dictionary usage
   if (iproc == 0) then
+     call yaml_map('Walltime since initialization',yaml_walltime_toa(f_clock()))
      call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
      call yaml_map('Max No. of dictionaries used',ndict_max, advance='no')
      call yaml_comment('('//trim(yaml_toa(ndict))//' still in use)')
