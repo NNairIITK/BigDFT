@@ -25,7 +25,11 @@ module multipole
       real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp
       real(dp),dimension(3) :: r
 
-
+      !$omp parallel &
+      !$omp default(none) &
+      !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, ep, pot) &
+      !$omp private(i1, i2, i3, x, y, z, impl, r, rnrm1, rnrm2, rnrm3, rnrm5, l, mp)
+      !$omp do
       do i3=is3,ie3
           z = real(i3,kind=8)*hz
           do i2=is2,ie2
@@ -66,43 +70,46 @@ module multipole
               end do
           end do
       end do
+      !$omp end do
+      !$omp end parallel
 
 
       contains
 
 
-        function calc_monopole(q, rnrm1) result(mp)
+        function calc_monopole(q, rnrm1) result(mpm)
           implicit none
           ! Calling arguments
           real(dp),dimension(1),intent(in) :: q
           real(dp),intent(in) :: rnrm1
-          real(dp) :: mp
+          real(dp) :: mpm
 
-          mp = -q(1)/rnrm1
+          mpm = -q(1)/rnrm1
 
         end function calc_monopole
 
 
-        function calc_dipole(q, r, rnrm3) result(dp)
+        function calc_dipole(q, r, rnrm3) result(dpm)
           implicit none
           ! Calling arguments
           real(dp),dimension(3),intent(in) :: q
           real(dp),intent(in) :: rnrm3
           real(dp),dimension(3),intent(in) :: r
-          real(dp) :: dp
+          real(dp) :: dpm
 
-          dp = q(1)*r(1) + q(2)*r(2) + q(3)*r(3)
-          dp = -dp/rnrm3
+          dpm = q(1)*r(1) + q(2)*r(2) + q(3)*r(3)
+          dpm = -dpm/rnrm3
 
         end function calc_dipole
 
 
-        function calc_quadropole(q, r, rnrm5) result(qp)
+        function calc_quadropole(q, r, rnrm5) result(qpm)
+          implicit none
           ! Calling arguments
           real(dp),dimension(5),intent(in) :: q
           real(dp),intent(in) :: rnrm5
           real(dp),dimension(3),intent(in) :: r
-          real(dp) :: qp
+          real(dp) :: qpm
           ! Local variables
           real(dp),dimension(3,3) :: qq
 
@@ -116,7 +123,7 @@ module multipole
           qq(2,3) = qq(3,2)
           qq(3,3) = 1.0_dp-qq(1,1)-qq(2,2)
 
-          qp = qq(1,1)*r(1)*r(1) + &
+          qpm = qq(1,1)*r(1)*r(1) + &
                qq(2,1)*r(2)*r(1) + &
                qq(3,1)*r(3)*r(1) + &
                qq(1,2)*r(1)*r(2) + &
@@ -125,7 +132,7 @@ module multipole
                qq(1,3)*r(1)*r(3) + &
                qq(2,3)*r(2)*r(3) + &
                qq(3,3)*r(3)*r(3)
-          qp = -0.5_dp*qp/rnrm5
+          qpm = -0.5_dp*qpm/rnrm5
 
         end function calc_quadropole
 

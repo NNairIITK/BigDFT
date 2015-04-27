@@ -1525,12 +1525,23 @@ surface_graphene:
  Total ionic charge: 1.2e-11
 
 multipoles_OH-:
- eF: 9.0e-9
- guess for new ef: 9.1e-9
- charge diff: 6.6e-10
- D Tr: 6.0e-10
- Tr(K): 1.1e-9
- ebs_check: 1.8e-11
- relative diff: 3.9e-11
- diff: 1.8e-11
- multiplicator for the confinement: 2.4e-10
+ eF: 2.6e-6
+ guess for new ef: 2.6e-6
+ charge diff: 6.8e-8
+ D Tr: 6.8e-8
+ Tr(K): 6.7e-8
+ ebs_check: 2.1e-9
+ ebs: 1.6e-10
+ relative diff: 4.6e-9
+ diff: 2.1e-9
+ multiplicator for the confinement: 4.8e-10
+ Epot: 1.3e-10
+ EH: 2.1e-10
+ Ekin: 4.1e-11
+ EXC: 2.1e-11
+ EvXC: 3.1e-11
+ energy: 3.0e-11
+ D eF: 2.1e-8
+ Total charge: 4.3e-11
+ trace(KS): 4.3e-11
+ diff from reference kernel: 1.1e-8
