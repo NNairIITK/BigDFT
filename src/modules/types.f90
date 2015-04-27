@@ -2250,7 +2250,7 @@ contains
 !!$             in%set_epsilon =EPSILON_SCCS
 !!$          end select
        case (EXTERNAL_POTENTIAL)
-           write(*,*) 'read EXTERNAL_POTENTIAL'
+           ! Do nothing?
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

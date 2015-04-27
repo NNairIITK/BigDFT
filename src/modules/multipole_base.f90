@@ -23,6 +23,8 @@ module multipole_base
 
   !> Public routines
   public :: multipoles_from_dict
+  public :: external_potential_descriptors_null
+  public :: deallocate_external_potential_descriptors
 
   contains
 
@@ -70,6 +72,33 @@ module multipole_base
       type(external_potential_descriptors),intent(out) :: ep
       nullify(ep%mpl)
     end subroutine nullify_external_potential_descriptors
+
+
+    subroutine deallocate_multipole(mp)
+      implicit none
+      type(multipole),intent(inout) :: mp
+      call f_free_ptr(mp%q)
+    end subroutine deallocate_multipole
+
+
+    subroutine deallocate_multipole_set(mps)
+      implicit none
+      type(multipole_set),intent(inout) :: mps
+      integer :: l
+      do l=0,lmax
+          call deallocate_multipole(mps%qlm(l))
+      end do
+    end subroutine deallocate_multipole_set
+
+
+    subroutine deallocate_external_potential_descriptors(ep)
+      implicit none
+      type(external_potential_descriptors),intent(inout) :: ep
+      integer :: impl
+      do impl=1,ep%nmpl
+          call deallocate_multipole_set(ep%mpl(impl))
+      end do
+    end subroutine deallocate_external_potential_descriptors
 
 
     subroutine multipoles_from_dict(dict, ep)
@@ -137,7 +166,6 @@ module multipole_base
               !ep%mpl(impl+1)%qlm(l)%l = l
               norm = dnrm2(2*l+1, mp_tmp(1), 1)
               if (norm>0.d0) then
-                  ep%mpl(impl+1)%qlm(l)%q = f_malloc_ptr(2*l+1,id='q')
                   ep%mpl(impl+1)%qlm(l)%q = f_malloc_ptr(2*l+1,id='q')
                   !call yaml_map('l',mp_tmp(1:2*l+1))
                   call vcopy(2*l+1, mp_tmp(1), 1, ep%mpl(impl+1)%qlm(l)%q(1), 1)

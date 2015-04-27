@@ -508,9 +508,6 @@ contains
     if (ierr /= 0) call f_err_throw(err_id = ierr, err_msg = val)
     call f_release_routine()
 
-    write(*,*) 'AT END merge_input_file_to_dict'
-    call yaml_dict_dump(dict)
-
   END SUBROUTINE merge_input_file_to_dict
 
   !> Read from all input files and build a dictionary

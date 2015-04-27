@@ -193,6 +193,7 @@
    external_potential:
      COMMENT: Multipole moments on an external potential
      DESCRIPTION: Give the multipole moments up to octopoles
+     default: 0.0
 #K points parameters
  kpt:
    DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations

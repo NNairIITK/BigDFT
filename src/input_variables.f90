@@ -402,16 +402,15 @@ subroutine inputs_from_dict(in, atoms, dict)
   end if
 
   ! Process the multipoles for the external potential
-  write(*,*) 'HETE: process multipoles'
   call multipoles_from_dict(dict//DFT_VARIABLES//EXTERNAL_POTENTIAL, in%ep)
-  do impl=1,in%ep%nmpl
-      call yaml_map('rxyz',in%ep%mpl(impl)%rxyz)
-      do l=0,lmax
-           if(associated(in%ep%mpl(impl)%qlm(l)%q)) then
-               call yaml_map(trim(yaml_toa(l)),in%ep%mpl(impl)%qlm(l)%q)
-           end if
-      end do
-  end do
+  !!do impl=1,in%ep%nmpl
+  !!    call yaml_map('rxyz',in%ep%mpl(impl)%rxyz)
+  !!    do l=0,lmax
+  !!         if(associated(in%ep%mpl(impl)%qlm(l)%q)) then
+  !!             call yaml_map(trim(yaml_toa(l)),in%ep%mpl(impl)%qlm(l)%q)
+  !!         end if
+  !!    end do
+  !!end do
 
   ! No use anymore of the types.
   call dict_free(types)
@@ -525,6 +524,7 @@ subroutine default_input_variables(in)
   use module_base
   use module_types
   use dictionaries
+  use multipole_base, only: external_potential_descriptors_null
   implicit none
 
   type(input_variables), intent(inout) :: in
@@ -576,6 +576,7 @@ subroutine default_input_variables(in)
   nullify(in%frag%dirname)
   nullify(in%frag%frag_index)
   nullify(in%frag%charge)
+  in%ep = external_potential_descriptors_null()
 END SUBROUTINE default_input_variables
 
 
@@ -785,6 +786,7 @@ subroutine free_input_variables(in)
   use module_types
   use module_xc
   use dynamic_memory, only: f_free_ptr
+  use multipole_base, only: deallocate_external_potential_descriptors
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
@@ -797,6 +799,7 @@ subroutine free_input_variables(in)
   call f_free_ptr(in%gen_occup)
   call deallocateBasicArraysInput(in%lin)
   call deallocateInputFragArrays(in%frag)
+  call deallocate_external_potential_descriptors(in%ep)
 
   ! Free the libXC stuff if necessary, related to the choice of in%ixc.
 !!$  call xc_end(in%xcObj)
