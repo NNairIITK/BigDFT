@@ -115,9 +115,13 @@ subroutine ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
 
 !Add up total charge and sum of charge^2 in cell
  ch=0._dp
+ !$omp parallel default(none) shared(natom,zion,typat,ch) private(ia)
+ !$omp do reduction(+:ch) schedule(static)
  do ia=1,natom
    ch=ch+zion(typat(ia))
  end do
+ !$omp end do
+ !$omp end parallel
 
 !Compute eta, the Ewald summation convergence parameter,
 !for approximately optimized summations:
@@ -167,12 +171,17 @@ subroutine ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
                term1=exp(-arg1)/arg1
                summr = 0.0_dp
                summi = 0.0_dp
+               !$omp parallel default(none) &
+               !$omp shared(natom,ig1,ig2,ig3,xred,zion,typat,summr,summi)private(ia,arg2)
+               !$omp do reduction(+:summr,summi) schedule(static)
                do ia=1,natom
                  arg2=two_pi*(ig1*xred(1,ia)+ig2*xred(2,ia)+ig3*xred(3,ia))
 !                Sum real and imaginary parts (avoid complex variables)
                  summr=summr+zion(typat(ia))*cos(arg2)
                  summi=summi+zion(typat(ia))*sin(arg2)
                end do
+               !$omp end do
+               !$omp end parallel
 
 !              Avoid underflow error messages
                if (abs(summr)<1.d-16) summr=0.0_dp
@@ -235,6 +244,10 @@ subroutine ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
              fraca1=xred(1,iia)-aint(xred(1,iia))+0.5_dp-sign(0.5_dp,xred(1,iia))
              fraca2=xred(2,iia)-aint(xred(2,iia))+0.5_dp-sign(0.5_dp,xred(2,iia))
              fraca3=xred(3,iia)-aint(xred(3,iia))+0.5_dp-sign(0.5_dp,xred(3,iia))
+             !$omp parallel default(none) &
+             !$omp shared(natom,xred,fraca1,fraca2,fraca3,ir1,ir2,ir3,rprimd,reta,strr_tmp,newr,eta,zion,typat,iia) &
+             !$omp private(ib,fracb1,fracb2,fracb3,r1,r2,r3,r1c,r2c,r3c,rsq,rmagn,arg3,term3,term4,dderfc,derfc_arg)
+             !$omp do reduction(+:strr_tmp,newr)
              do ib=1,natom
                fracb1=xred(1,ib)-aint(xred(1,ib))+0.5_dp-sign(0.5_dp,xred(1,ib))
                fracb2=xred(2,ib)-aint(xred(2,ib))+0.5_dp-sign(0.5_dp,xred(2,ib))
@@ -259,7 +272,7 @@ subroutine ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
 !                so do not bother with larger arg**2 in exp.
                  arg3=reta*rmagn
                  if (arg3<8.0_dp) then
-                   newr=1
+                   newr=newr+1
 !                  derfc computes the complementary error function
 !                  dderfc is the derivative of the complementary error function
                    dderfc=(-2/sqrt(pi))*exp(-eta*rsq)
@@ -280,6 +293,8 @@ subroutine ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
 
 !              End loop over ib:
              end do
+             !$omp end do
+             !$omp end parallel
 
 !            End loop over ia:
            end do

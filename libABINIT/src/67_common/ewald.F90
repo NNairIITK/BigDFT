@@ -110,10 +110,14 @@ subroutine ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,
 !Add up total charge and sum of $charge^2$ in cell
  chsq=0._dp
  ch=0._dp
+ !$omp parallel default(none) shared(natom,zion, typat,ch,chsq)
+ !$omp do reduction(+:ch,chsq) schedule(static)
  do ia=1,natom
    ch=ch+zion(typat(ia))
    chsq=chsq+zion(typat(ia))**2
  end do
+ !$omp end do
+ !$omp end parallel
 
 !Compute eta, the Ewald summation convergence parameter,
 !for approximately optimized summations:
@@ -166,12 +170,17 @@ subroutine ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,
 !              of unit cell (outside [0,1)) it is irrelevant in the following
 !              term, which only computes a phase.
 !              OCL SCALAR ! by MM for Fujitsu
+               !$omp parallel default(none) &
+               !$omp shared(natom,ig1,ig2,ig3,xred,zion,typat,summr,summi) private(ia,arg)
+               !$omp do reduction(+:summr,summi) schedule(static)
                do ia=1,natom
                  arg=two_pi*(ig1*xred(1,ia)+ig2*xred(2,ia)+ig3*xred(3,ia))
 !                Sum real and imaginary parts (avoid complex variables)
                  summr=summr+zion(typat(ia))*cos(arg)
                  summi=summi+zion(typat(ia))*sin(arg)
                end do
+               !$omp end do
+               !$omp end parallel
 
 !              The following two checks avoid an annoying
 !              underflow error message
@@ -184,6 +193,10 @@ subroutine ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,
                gsum=gsum+t1
 
 !              OCL SCALAR ! by MM for Fujitsu
+               !$omp parallel default(none) &
+               !$omp shared(natom,ig1,ig2,ig3,xred,summr,summi,term,zion,typat,grewtn) &
+               !$omp private(ia,arg,phr,phi,c1i)
+               !$omp do schedule(static)
                do ia=1,natom
 !                Again only phase is computed so xred may fall outside [0,1).
                  arg=two_pi*(ig1*xred(1,ia)+ig2*xred(2,ia)+ig3*xred(3,ia))
@@ -197,6 +210,8 @@ subroutine ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,
                  grewtn(2,ia)=grewtn(2,ia)-c1i*ig2
                  grewtn(3,ia)=grewtn(3,ia)-c1i*ig3
                end do
+               !$omp end do
+               !$omp end parallel
 
 !              End condition of not larger than 80.0
              end if
@@ -260,6 +275,11 @@ subroutine ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,
              drdta2=0.0_dp
              drdta3=0.0_dp
 !            OCL SCALAR ! by MM for Fujitsu
+             !$omp parallel default(none) &
+             !$omp shared(natom,xred,fraca1,fraca2,fraca3,rmet,reta,zion,typat) &
+             !$omp shared(iia,newr,sumr,drdta1,drdta2,drdta3,ir1,ir2,ir3,eta,fac) &
+             !$omp private(ib,fracb1,fracb2,fracb3,r1,r2,r3,rsq,term,rmagn,arg,derfc_arg,r1a1d,r2a2d,r3a3d)
+             !$omp do reduction(+:newr,sumr,drdta1,drdta2,drdta3)
              do ib=1,natom
                fracb1=xred(1,ib)-aint(xred(1,ib))+0.5_dp-sign(0.5_dp,xred(1,ib))
                fracb2=xred(2,ib)-aint(xred(2,ib))+0.5_dp-sign(0.5_dp,xred(2,ib))
@@ -279,7 +299,7 @@ subroutine ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,
 !                so do not bother with larger arg**2 in exp.
                  term=0._dp
                  if (eta*rsq<64.0_dp) then
-                   newr=1
+                   newr=newr+1
                    rmagn=sqrt(rsq)
                    arg=reta*rmagn
 !                  derfc is the real(dp) complementary error function
@@ -303,6 +323,8 @@ subroutine ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,
 
 !              end loop over ib:
              end do
+             !$omp end do
+             !$omp end parallel
 
              grewtn_tmp(1,iia,1)=grewtn_tmp(1,iia,1)+drdta1
              grewtn_tmp(2,iia,1)=grewtn_tmp(2,iia,1)+drdta2
