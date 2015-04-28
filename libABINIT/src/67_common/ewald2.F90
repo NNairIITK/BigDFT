@@ -47,7 +47,7 @@
 #include "config.inc"
 #endif
 
-subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
+subroutine ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
 &  typat,ucvol,xred,zion)
 
  use defs_basis
@@ -58,10 +58,12 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 !End of the abilint section
 
  implicit none
+ !SM there are probably better ways than this...
+ include 'mpif.h'
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: natom,ntypat
+ integer,intent(in) :: iproc,nproc,natom,ntypat
  real(dp),intent(in) :: ucvol
 !arrays
  integer,intent(in) :: typat(natom)
@@ -78,8 +80,34 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
  real(dp) :: term2,term3,term4
 !arrays
  real(dp) :: gprimd(3,3),strg(6),strr(6)
+ real(dp) :: tt
+ integer :: natp, isat, ii, iia, ierr
+ real(dp),dimension(6) :: strr_tmp
 
 ! *************************************************************************
+
+
+!SM: MPI parallelization over the atoms
+ tt = real(natom,kind=dp)/nproc
+ natp = floor(tt) !number of atoms per proc
+ isat = iproc*natp !offset for each proc
+ ii = natom-nproc*natp !remaining atoms
+ if (iproc<ii) then
+     natp = natp+1 !one more atom for this proc
+     isat = isat+iproc !offset increases by the number of additional atoms up to iproc
+ else
+     isat = isat+ii !offset increases by the number of additional atoms
+ end if
+ ! Check
+ ii = natp
+ if (nproc>1) then
+     !call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     iia=0
+     call mpi_allreduce(ii, iia, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+     ii = iia
+ end if
+ !if (ii/=natom) call f_err_throw('ii/=natom',err_name='BIGDFT_RUNTIME_ERROR')
+ if (ii/=natom) stop 'ii/=natom'
 
 !Define dimensional reciprocal space primitive translations gprimd
 !(inverse transpose of rprimd)
@@ -187,6 +215,7 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 !Conduct real space summations
  reta=sqrt(eta)
  strr(1:6)=0.0_dp
+ strr_tmp(1:6)=0.0_dp
 
 !Loop on shells in r-space as was done in g-space
  nr=0
@@ -200,11 +229,12 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
          if( abs(ir3)==nr .or. abs(ir2)==nr .or. abs(ir1)==nr&
 &         .or. nr==1 )then
 
-           do ia=1,natom
+           do ia=1,natp!natom
+             iia=isat+ia
 !            Convert reduced atomic coordinates to [0,1)
-             fraca1=xred(1,ia)-aint(xred(1,ia))+0.5_dp-sign(0.5_dp,xred(1,ia))
-             fraca2=xred(2,ia)-aint(xred(2,ia))+0.5_dp-sign(0.5_dp,xred(2,ia))
-             fraca3=xred(3,ia)-aint(xred(3,ia))+0.5_dp-sign(0.5_dp,xred(3,ia))
+             fraca1=xred(1,iia)-aint(xred(1,iia))+0.5_dp-sign(0.5_dp,xred(1,iia))
+             fraca2=xred(2,iia)-aint(xred(2,iia))+0.5_dp-sign(0.5_dp,xred(2,iia))
+             fraca3=xred(3,iia)-aint(xred(3,iia))+0.5_dp-sign(0.5_dp,xred(3,iia))
              do ib=1,natom
                fracb1=xred(1,ib)-aint(xred(1,ib))+0.5_dp-sign(0.5_dp,xred(1,ib))
                fracb2=xred(2,ib)-aint(xred(2,ib))+0.5_dp-sign(0.5_dp,xred(2,ib))
@@ -235,13 +265,13 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
                    dderfc=(-2/sqrt(pi))*exp(-eta*rsq)
                    call derfcf(derfc_arg,arg3)
                    term3=dderfc-derfc_arg/arg3
-                   term4=zion(typat(ia))*zion(typat(ib))*term3
-                   strr(1)=strr(1)+term4*r1c*r1c/rsq
-                   strr(2)=strr(2)+term4*r2c*r2c/rsq
-                   strr(3)=strr(3)+term4*r3c*r3c/rsq
-                   strr(4)=strr(4)+term4*r2c*r3c/rsq
-                   strr(5)=strr(5)+term4*r1c*r3c/rsq
-                   strr(6)=strr(6)+term4*r1c*r2c/rsq
+                   term4=zion(typat(iia))*zion(typat(ib))*term3
+                   strr_tmp(1)=strr_tmp(1)+term4*r1c*r1c/rsq
+                   strr_tmp(2)=strr_tmp(2)+term4*r2c*r2c/rsq
+                   strr_tmp(3)=strr_tmp(3)+term4*r3c*r3c/rsq
+                   strr_tmp(4)=strr_tmp(4)+term4*r2c*r3c/rsq
+                   strr_tmp(5)=strr_tmp(5)+term4*r1c*r3c/rsq
+                   strr_tmp(6)=strr_tmp(6)+term4*r1c*r2c/rsq
 !                  End the condition of not being to large
                  end if
 
@@ -260,11 +290,28 @@ subroutine ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
      end do
    end do
 
+   if (nproc>1) then
+     !call mpiallred(newr, mpi_sum, bigdft_mpi%mpi_comm)
+     ii = 0
+     call mpi_allreduce(newr, ii, 1, &
+          mpi_integer, mpi_sum, mpi_comm_world, ierr)
+     newr=ii
+   end if
+
 !  Check if new shell must be calculated
    if(newr==0) exit
 
 !  End loop on new shells
  end do
+
+ if (nproc>1) then
+   !call mpiallred(stress_tmp, mpi_sum, bigdft_mpi%mpi_comm)
+   strr=0.0_dp
+   call mpi_allreduce(strr_tmp, strr, 6, &
+        mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+ else
+   strr=strr_tmp
+ end if
 
 !Finally assemble stress tensor coming from Ewald energy, stress
 !(note division by unit cell volume in accordance with definition
