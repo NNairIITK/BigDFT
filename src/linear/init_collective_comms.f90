@@ -178,7 +178,8 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   type(sparse_matrix), intent(inout) :: sparsemat
   
   ! Local variables
-  integer :: iorb, jorb, istat, imin, imax, nmiddle, imax_old, imin_old, iiorb, jjorb, ii, imin_new, imax_new, i
+  integer :: iorb, jorb, istat, imin, imax, nmiddle, imax_old, imin_old, iiorb, jjorb
+  integer :: ii, imin_new, imax_new, i, nlen, j
   !integer :: kproc,jproc,jjorbold,jjorb,isend,irecv,ilr,ijorb,iiorb,ind,ierr, irow, irowold, iseg
   !integer :: compressed_index
 !  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
@@ -199,7 +200,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   !imax=max(imax,maxval(collcom_shamop%indexrecvorbital_f))
   !imax=max(imax,maxval(collcom_sr%indexrecvorbital_c))
 
-  nmiddle = sparsemat%nfvctr/2
+  nmiddle = sparsemat%nfvctr/2 + 1
 
   imin_old = huge(1)
   imax_old = 0
@@ -256,6 +257,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
       end if
   end do
 
+
   write(*,*) 'iproc, imin_old, imax_old', iproc, imin_old, imax_old
   write(*,*) 'iproc, imin_new, imax_new', iproc, imin_new, imax_new
 
@@ -269,23 +271,30 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
       ! everything in either first or second half
       imin = imin_old
       imax = imax_old
-      sparsemat%offset_matrixindex_in_compressed_fortransposed = 1
+      !sparsemat%offset_matrixindex_in_compressed_fortransposed = 1
   else
       ! in both half
       if (imax_old-imin_old>imax_new-imin_new) then
           ! wrap around
           imin = imin_new
           imax = imax_new
-          sparsemat%offset_matrixindex_in_compressed_fortransposed = imin_new
+          !sparsemat%offset_matrixindex_in_compressed_fortransposed = imin_new
       else
           ! no wrap around
           imin = imin_old
           imax = imax_old
-          sparsemat%offset_matrixindex_in_compressed_fortransposed = 1
+          !sparsemat%offset_matrixindex_in_compressed_fortransposed = 1
       end if
   end if
 
-  write(*,*) 'iproc, imin, imax', iproc, imin, imax
+  !!! Check
+  !!if (sparsemat%offset_matrixindex_in_compressed_fortransposed<sparsemat%nfvctr/2+1) then
+  !!    stop 'sparsemat%offset_matrixindex_in_compressed_fortransposed<sparsemat%nfvctr/2+1'
+  !!end if
+
+  nlen = imax - imin + 1
+  sparsemat%offset_matrixindex_in_compressed_fortransposed = imin
+  write(*,*) 'iproc, imin, imax, nlen', iproc, imin, imax, nlen
 
   !!! This is a temporary solution for spin polarized systems
   !!imax=min(imax,orbs%norbu)
@@ -294,12 +303,16 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
 
   !!allocate(sparsemat%matrixindex_in_compressed_fortransposed(imin:imax,imin:imax), stat=istat)
   !!call memocc(istat, sparsemat%matrixindex_in_compressed_fortransposed, &
-  sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/imin.to.imax,imin.to.imax/),&
+  !sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/imin.to.imax,imin.to.imax/),&
+  !    id='sparsemat%matrixindex_in_compressed_fortransposed')
+  sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/nlen,nlen/),&
       id='sparsemat%matrixindex_in_compressed_fortransposed')
 
   !$omp parallel do default(private) shared(sparsemat,orbs,imin,imax)
   do iorb=imin,imax
+      i = iorb - imin + 1
       do jorb=imin,imax
+          j = jorb - imin + 1
           !@ii=(jorb-1)*sparsemat%nfvctr+iorb
           !@ispin=(ii-1)/sparsemat%nfvctr+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
           !@iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
@@ -307,7 +320,8 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
           !sparsemat%matrixindex_in_compressed_fortransposed(iorb,jorb)=compressed_index(iiorb,jjorb,orbs%norbu,sparsemat)
           iiorb = mod(iorb-1,sparsemat%nfvctr)+1
           jjorb = mod(jorb-1,sparsemat%nfvctr)+1
-          sparsemat%matrixindex_in_compressed_fortransposed(iorb,jorb)=matrixindex_in_compressed(sparsemat, iiorb, jjorb)
+          !sparsemat%matrixindex_in_compressed_fortransposed(iorb,jorb)=matrixindex_in_compressed(sparsemat, iiorb, jjorb)
+          sparsemat%matrixindex_in_compressed_fortransposed(i,j)=matrixindex_in_compressed(sparsemat, iiorb, jjorb)
           !sendbuf(jorb,iorb)=compressed_index(jorb,iiorb,orbs%norb,sparsemat)
           !sendbuf(iorb,jorb)=compressed_index(iiorb,jorb,orbs%norb,sparsemat)
       end do

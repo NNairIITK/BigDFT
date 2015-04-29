@@ -34,7 +34,8 @@ module sparsematrix_init
   public :: distribute_columns_on_processes_simple
   public :: redistribute
   public :: distribute_on_threads
-  public :: get_transposed_index
+  !public :: get_transposed_index
+  public :: get_modulo_array
 
 contains
 
@@ -3198,14 +3199,17 @@ contains
 
         subroutine check_transposed_layout()
           logical :: found
-          integer :: iiseg1, iiseg2
+          integer :: iiseg1, iiseg2, iorb, jorb
+          integer,dimension(:),pointer :: moduloarray
 
           call f_routine(id='check_transposed_layout')
 
+          call get_modulo_array(smat, moduloarray)
+
           !$omp parallel &
           !$omp default(none) &
-          !$omp shared(collcom, smat, ind_min, ind_max) &
-          !$omp private(ipt, ii, i0, i, i0i, iiorb, j, i0j, jjorb, ind)
+          !$omp shared(collcom, smat, moduloarray, ind_min, ind_max) &
+          !$omp private(ipt, ii, i0, i, i0i, iiorb, j, i0j, jjorb, ind, iorb, jorb)
           !$omp do reduction(min: ind_min) reduction(max: ind_max)
           do ipt=1,collcom%nptsp_c
               ii=collcom%norb_per_gridpoint_c(ipt)
@@ -3213,11 +3217,14 @@ contains
               do i=1,ii
                   i0i=i0+i
                   iiorb=collcom%indexrecvorbital_c(i0i)
+                  iorb=moduloarray(iiorb)
                   do j=1,ii
                       i0j=i0+j
                       jjorb=collcom%indexrecvorbital_c(i0j)
+                      jorb=moduloarray(jjorb)
                       !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                      ind = get_transposed_index(smat,jjorb,iiorb)
+                      ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                      !ind = get_transposed_index(smat,jjorb,iiorb)
                       if (ind==0) write(*,'(a,2i8)') 'coarse iszero: iiorb, jjorb', iiorb, jjorb
                       ind_min = min(ind_min,ind)
                       ind_max = max(ind_max,ind)
@@ -3232,11 +3239,14 @@ contains
               do i=1,ii
                   i0i=i0+i
                   iiorb=collcom%indexrecvorbital_f(i0i)
+                  iorb=moduloarray(iiorb)
                   do j=1,ii
                       i0j=i0+j
                       jjorb=collcom%indexrecvorbital_f(i0j)
+                      jorb=moduloarray(jjorb)
                       !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                      ind = get_transposed_index(smat,jjorb,iiorb)
+                      ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                      !ind = get_transposed_index(smat,jjorb,iiorb)
                       if (ind==0) write(*,'(a,2i8)') 'fine iszero: iiorb, jjorb', iiorb, jjorb
                       ind_min = min(ind_min,ind)
                       ind_max = max(ind_max,ind)
@@ -3282,6 +3292,8 @@ contains
           !$omp end parallel
           smat%istartendseg_t(1) = iiseg1
           smat%istartendseg_t(2) = iiseg2
+
+          call f_free_ptr(moduloarray)
 
           call f_release_routine()
 
@@ -3365,25 +3377,33 @@ contains
         end subroutine check_matmul_layout
 
         subroutine check_sumrho_layout()
+          integer :: iorb
+          integer,dimension(:),pointer :: moduloarray
 
           call f_routine(id='check_sumrho_layout')
 
+          call get_modulo_array(smat, moduloarray)
+
           !$omp parallel default(none) &
-          !$omp shared(collcom_sr, smat, ind_min, ind_max) private(ipt, ii, i0, i, iiorb, ind)
+          !$omp shared(collcom_sr, smat, moduloarray, ind_min, ind_max) private(ipt, ii, i0, i, iiorb, ind, iorb, jorb)
           !$omp do reduction(min: ind_min) reduction(max: ind_max)
           do ipt=1,collcom_sr%nptsp_c
               ii=collcom_sr%norb_per_gridpoint_c(ipt)
               i0=collcom_sr%isptsp_c(ipt)
               do i=1,ii
                   iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+                  iorb=moduloarray(iiorb)
                   !ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
-                  ind=get_transposed_index(smat,iiorb,iiorb)
+                  ind=smat%matrixindex_in_compressed_fortransposed(iorb,iorb)
+                  !ind=get_transposed_index(smat,iiorb,iiorb)
                   ind_min = min(ind_min,ind)
                   ind_max = max(ind_max,ind)
               end do
           end do
           !$omp end do
           !$omp end parallel
+
+          call f_free_ptr(moduloarray)
 
           call f_release_routine()
 
@@ -3565,18 +3585,26 @@ contains
     
             subroutine check_transposed_layout()
               implicit none
-              integer :: ipt, ii, i0, i, i0i, iiorb, j, i0j, jjorb, ind
+              integer :: ipt, ii, i0, i, i0i, iiorb, j, i0j, jjorb, ind, iorb, jorb
+              integer,dimension(:),pointer :: moduloarray
+
+              call get_modulo_array(smat, moduloarray)
+
               do ipt=1,collcom%nptsp_c
                   ii=collcom%norb_per_gridpoint_c(ipt)
                   i0 = collcom%isptsp_c(ipt)
                   do i=1,ii
                       i0i=i0+i
                       iiorb=collcom%indexrecvorbital_c(i0i)
+                      iorb=moduloarray(iiorb)
                       do j=1,ii
                           i0j=i0+j
                           jjorb=collcom%indexrecvorbital_c(i0j)
+                          jorb=moduloarray(jjorb)
                           !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                          ind = get_transposed_index(smat,jjorb,iiorb)
+                          !write(*,'(a,5i8)') 'iproc, iiorb, iorb, jjorb, jorb', iproc, iiorb, iorb, jjorb, jorb
+                          ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                          !ind = get_transposed_index(smat,jjorb,iiorb)
                           !if (ind==0) write(*,'(a,2i8)') 'iszero: iiorb, jjorb', iiorb, jjorb
                           ind_min = min(ind_min,ind)
                           ind_max = max(ind_max,ind)
@@ -3589,11 +3617,14 @@ contains
                   do i=1,ii
                       i0i=i0+i
                       iiorb=collcom%indexrecvorbital_f(i0i)
+                      iorb=moduloarray(iiorb)
                       do j=1,ii
                           i0j=i0+j
                           jjorb=collcom%indexrecvorbital_f(i0j)
+                          jorb=moduloarray(jjorb)
                           !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                          ind = get_transposed_index(smat,jjorb,iiorb)
+                          ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                          !ind = get_transposed_index(smat,jjorb,iiorb)
                           !if (ind==0) write(*,'(a,2i8)') 'iszero: iiorb, jjorb', iiorb, jjorb
                           ind_min = min(ind_min,ind)
                           ind_max = max(ind_max,ind)
@@ -3603,6 +3634,7 @@ contains
 
               !contains
 
+              call f_free_ptr(moduloarray)
     
             end subroutine check_transposed_layout
 
@@ -3667,18 +3699,26 @@ contains
     
             subroutine check_sumrho_layout()
               implicit none
-              integer :: ipt, ii, i0, i, iiorb, ind
+              integer :: ipt, ii, i0, i, iiorb, ind, iorb
+              integer,dimension(:),pointer :: moduloarray
+
+              call get_modulo_array(smat, moduloarray)
+
               do ipt=1,collcom_sr%nptsp_c
                   ii=collcom_sr%norb_per_gridpoint_c(ipt)
                   i0=collcom_sr%isptsp_c(ipt)
                   do i=1,ii
                       iiorb=collcom_sr%indexrecvorbital_c(i0+i)
+                      iorb=moduloarray(iiorb)
                       !ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
-                      ind=get_transposed_index(smat,iiorb,iiorb)
+                      ind=smat%matrixindex_in_compressed_fortransposed(iorb,iorb)
+                      !ind=get_transposed_index(smat,iiorb,iiorb)
                       ind_min = min(ind_min,ind)
                       ind_max = max(ind_max,ind)
                   end do
               end do
+
+              call f_free_ptr(moduloarray)
 
               !contains
 
@@ -4641,25 +4681,48 @@ contains
     end subroutine distribute_on_threads
 
 
-    function get_transposed_index(smat,jorb,iorb) result(ind)
-        implicit none
-        type(sparse_matrix),intent(in) :: smat
-        integer,intent(in) :: jorb, iorb
-        integer :: ind
-        integer :: jjorb,iiorb
-        ! If iorb is smaller than the offset, add a periodic shift
-        if (iorb<smat%offset_matrixindex_in_compressed_fortransposed) then
-            iiorb = iorb + smat%nfvctr
-        else
-            iiorb = iorb
-        end if
-        if (jorb<smat%offset_matrixindex_in_compressed_fortransposed) then
-            jjorb = jorb + smat%nfvctr
-        else
-            jjorb = jorb
-        end if
-        ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-        !write(*,*) 'iorb, jorb, iiorb, jjorb, ind', iorb, jorb, iiorb, jjorb, ind
-    end function get_transposed_index
+    !!function get_transposed_index(smat,jorb,iorb) result(ind)
+    !!    implicit none
+    !!    type(sparse_matrix),intent(in) :: smat
+    !!    integer,intent(in) :: jorb, iorb
+    !!    integer :: ind
+    !!    integer :: jjorb,iiorb,ii,jj
+    !!    ! If iorb,jorb is smaller than the offset, add a periodic shift
+    !!    ! This is rather slow...
+    !!    if (iorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+    !!        iiorb = iorb + smat%nfvctr
+    !!    else
+    !!        iiorb = iorb
+    !!    end if
+    !!    if (jorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+    !!        jjorb = jorb + smat%nfvctr
+    !!    else
+    !!        jjorb = jorb
+    !!    end if
+
+    !!    !!!! Hopefully faster
+    !!    !!!! ii should be 1 if iorb<smat%offset_matrixindex_in_compressed_fortransposed and 0 otherwise...
+    !!    !!!ii = iorb/smat%offset_matrixindex_in_compressed_fortransposed
+    !!    !!!! Now ii should be 0 if iorb<smat%offset_matrixindex_in_compressed_fortransposed and >=1 otherwise
+    !!    !!!ii = 1 - 1**ii
+    !!    !!!! Now ii should be 0 if iorb<smat%offset_matrixindex_in_compressed_fortransposed and non-zero otherwise
+    !!    !!!iiorb = iorb + ii*smat%nfvctr
+
+    !!    ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+    !!end function get_transposed_index
+
+
+    subroutine get_modulo_array(smat, moduloarray)
+      implicit none
+      ! Calling arguments
+      type(sparse_matrix),intent(in) :: smat
+      integer,dimension(:),pointer :: moduloarray
+      ! Local variables
+      integer :: i
+      moduloarray = f_malloc_ptr(smat%nfvctr,id='moduloarray')
+      do i=1,smat%nfvctr
+          moduloarray(i) = modulo(i-smat%offset_matrixindex_in_compressed_fortransposed,smat%nfvctr)+1
+      end do
+    end subroutine get_modulo_array
 
 end module sparsematrix_init
