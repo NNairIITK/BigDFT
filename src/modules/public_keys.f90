@@ -259,7 +259,7 @@ end module public_keys
 !>module identifying constants that have to be used as enumerators
 !! they can be used to define f_enumerator types or directly as integers
 module public_enums
-  use f_utils
+  use f_enums
   implicit none
   
   public

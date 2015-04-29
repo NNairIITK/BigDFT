@@ -1334,7 +1334,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
               at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),&
               pnrm,denspot%dpbox%nscatterarr)
       end if
-      call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+      call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
       if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
          ! set the initial potential
          call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&
@@ -1754,9 +1754,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
      end if
 
      !Now update the potential
-     call updatePotential(nspin,denspot,energs%eh,energs%exc,energs%evxc)
-
-     call yaml_map('hartree energy before',[energs%eh,energs%exc,energs%evxc])
+     call updatePotential(nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
 
   else
      !Put to zero the density if no Hartree
@@ -2652,7 +2650,7 @@ use sparsematrix, only: uncompress_matrix2
      end if
      !!call deallocateCommunicationbufferSumrho(tmb%comsr, subname)
 
-     call updatePotential(in%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+     call updatePotential(in%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
      if (in%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
         ! set the initial potential
         call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.d0,denspot%mix,&

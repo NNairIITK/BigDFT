@@ -937,7 +937,7 @@ subroutine kernel_get_comm(pkernel, igroup, ngroup, iproc_grp, &
      & nproc_grp, mpi_comm)
   use module_types
   implicit none
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   integer, intent(out) :: igroup, ngroup, iproc_grp, nproc_grp, mpi_comm
   igroup = pkernel%mpi_env%igroup
   ngroup = pkernel%mpi_env%ngroup

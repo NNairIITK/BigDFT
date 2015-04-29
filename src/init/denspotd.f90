@@ -483,7 +483,7 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
   end if
 
   !allocate ionic density in the case of a cavity calculation
-  if (trim(denspot%pkernel%method) /= 'VAC') then
+  if (denspot%pkernel%method /= 'VAC') then
      if (denspot%dpbox%n3pi > 0) then
         denspot%rho_ion = f_malloc_ptr([ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3pi , 1 ],id='denspot%rho_ion')
      else

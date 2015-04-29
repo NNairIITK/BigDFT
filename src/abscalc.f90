@@ -1504,7 +1504,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    type(gaussian_basis), intent(out) :: G !basis for davidson IG
    real(wp), dimension(:), pointer :: psi
    real(wp), dimension(:,:,:,:), pointer :: rhocore
-   type(coulomb_operator), intent(in) :: pkernel
+   type(coulomb_operator), intent(inout) :: pkernel
    type(xc_info) :: xc
    integer, intent(in) ::potshortcut
 
