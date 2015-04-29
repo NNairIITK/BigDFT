@@ -258,8 +258,8 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
   end do
 
 
-  write(*,*) 'iproc, imin_old, imax_old', iproc, imin_old, imax_old
-  write(*,*) 'iproc, imin_new, imax_new', iproc, imin_new, imax_new
+  !!write(*,*) 'iproc, imin_old, imax_old', iproc, imin_old, imax_old
+  !!write(*,*) 'iproc, imin_new, imax_new', iproc, imin_new, imax_new
 
   !! values regardless of the spin
   !imin=mod(imin-1,sparsemat%nfvctr)+1
@@ -294,7 +294,7 @@ subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, coll
 
   nlen = imax - imin + 1
   sparsemat%offset_matrixindex_in_compressed_fortransposed = imin
-  write(*,*) 'iproc, imin, imax, nlen', iproc, imin, imax, nlen
+  !!write(*,*) 'iproc, imin, imax, nlen', iproc, imin, imax, nlen
 
   !!! This is a temporary solution for spin polarized systems
   !!imax=min(imax,orbs%norbu)
