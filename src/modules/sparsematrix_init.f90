@@ -34,6 +34,7 @@ module sparsematrix_init
   public :: distribute_columns_on_processes_simple
   public :: redistribute
   public :: distribute_on_threads
+  public :: get_transposed_index
 
 contains
 
@@ -3215,7 +3216,8 @@ contains
                   do j=1,ii
                       i0j=i0+j
                       jjorb=collcom%indexrecvorbital_c(i0j)
-                      ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      ind = get_transposed_index(smat,jjorb,iiorb)
                       if (ind==0) write(*,'(a,2i8)') 'coarse iszero: iiorb, jjorb', iiorb, jjorb
                       ind_min = min(ind_min,ind)
                       ind_max = max(ind_max,ind)
@@ -3233,7 +3235,8 @@ contains
                   do j=1,ii
                       i0j=i0+j
                       jjorb=collcom%indexrecvorbital_f(i0j)
-                      ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      ind = get_transposed_index(smat,jjorb,iiorb)
                       if (ind==0) write(*,'(a,2i8)') 'fine iszero: iiorb, jjorb', iiorb, jjorb
                       ind_min = min(ind_min,ind)
                       ind_max = max(ind_max,ind)
@@ -3282,7 +3285,27 @@ contains
 
           call f_release_routine()
 
+
         end subroutine check_transposed_layout
+
+
+        !function get_transposed_index(jorb,iorb) result(ind)
+        !    integer,intent(in) :: jorb, iorb
+        !    integer :: ind
+        !    integer :: jjorb,iiorb
+        !    ! If iorb is smaller than the offset, add a periodic shift
+        !    if (iorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+        !        iiorb = iorb + smat%nfvctr
+        !    else
+        !        iiorb = iorb
+        !    end if
+        !    if (jorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+        !        jjorb = jorb + smat%nfvctr
+        !    else
+        !        jjorb = jorb
+        !    end if
+        !    ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+        !end function get_transposed_index
 
 
         subroutine check_compress_distributed_layout()
@@ -3353,7 +3376,8 @@ contains
               i0=collcom_sr%isptsp_c(ipt)
               do i=1,ii
                   iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-                  ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                  !ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                  ind=get_transposed_index(smat,iiorb,iiorb)
                   ind_min = min(ind_min,ind)
                   ind_max = max(ind_max,ind)
               end do
@@ -3362,6 +3386,26 @@ contains
           !$omp end parallel
 
           call f_release_routine()
+
+          !contains
+
+          !  function get_transposed_index(jorb,iorb) res(ind)
+          !      integer,intent(in) :: jorb, iorb
+          !      integer :: ind
+          !      integer :: jjorb,iiorb
+          !      ! If iorb is smaller than the offset, add a periodic shift
+          !      if (iorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+          !          iiorb = iorb + smat%nfvctr
+          !      else
+          !          iiorb = iorb
+          !      end if
+          !      if (jorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+          !          jjorb = jorb + smat%nfvctr
+          !      else
+          !          jjorb = jorb
+          !      end if
+          !      ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+          !  end function get_transposed_index
 
         end subroutine check_sumrho_layout
 
@@ -3531,7 +3575,8 @@ contains
                       do j=1,ii
                           i0j=i0+j
                           jjorb=collcom%indexrecvorbital_c(i0j)
-                          ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          ind = get_transposed_index(smat,jjorb,iiorb)
                           !if (ind==0) write(*,'(a,2i8)') 'iszero: iiorb, jjorb', iiorb, jjorb
                           ind_min = min(ind_min,ind)
                           ind_max = max(ind_max,ind)
@@ -3547,15 +3592,38 @@ contains
                       do j=1,ii
                           i0j=i0+j
                           jjorb=collcom%indexrecvorbital_f(i0j)
-                          ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                          ind = get_transposed_index(smat,jjorb,iiorb)
                           !if (ind==0) write(*,'(a,2i8)') 'iszero: iiorb, jjorb', iiorb, jjorb
                           ind_min = min(ind_min,ind)
                           ind_max = max(ind_max,ind)
                       end do
                   end do
               end do
+
+              !contains
+
     
             end subroutine check_transposed_layout
+
+
+            !function get_transposed_index(jorb,iorb) result(ind)
+            !    integer,intent(in) :: jorb, iorb
+            !    integer :: ind
+            !    integer :: jjorb,iiorb
+            !    ! If iorb is smaller than the offset, add a periodic shift
+            !    if (iorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+            !        iiorb = iorb + smat%nfvctr
+            !    else
+            !        iiorb = iorb
+            !    end if
+            !    if (jorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+            !        jjorb = jorb + smat%nfvctr
+            !    else
+            !        jjorb = jorb
+            !    end if
+            !    ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+            !end function get_transposed_index
     
     
             subroutine check_compress_distributed_layout()
@@ -3605,11 +3673,32 @@ contains
                   i0=collcom_sr%isptsp_c(ipt)
                   do i=1,ii
                       iiorb=collcom_sr%indexrecvorbital_c(i0+i)
-                      ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                      !ind=smat%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                      ind=get_transposed_index(smat,iiorb,iiorb)
                       ind_min = min(ind_min,ind)
                       ind_max = max(ind_max,ind)
                   end do
               end do
+
+              !contains
+
+              !  function get_transposed_index(jorb,iorb) res(ind)
+              !      integer,intent(in) :: jorb, iorb
+              !      integer :: ind
+              !      integer :: jjorb,iiorb
+              !      ! If iorb is smaller than the offset, add a periodic shift
+              !      if (iorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+              !          iiorb = iorb + smat%nfvctr
+              !      else
+              !          iiorb = iorb
+              !      end if
+              !      if (jorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+              !          jjorb = jorb + smat%nfvctr
+              !      else
+              !          jjorb = jorb
+              !      end if
+              !      ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+              !  end function get_transposed_index
             end subroutine check_sumrho_layout
     
     
@@ -4550,5 +4639,27 @@ contains
       call f_release_routine()
 
     end subroutine distribute_on_threads
+
+
+    function get_transposed_index(smat,jorb,iorb) result(ind)
+        implicit none
+        type(sparse_matrix),intent(in) :: smat
+        integer,intent(in) :: jorb, iorb
+        integer :: ind
+        integer :: jjorb,iiorb
+        ! If iorb is smaller than the offset, add a periodic shift
+        if (iorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+            iiorb = iorb + smat%nfvctr
+        else
+            iiorb = iorb
+        end if
+        if (jorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+            jjorb = jorb + smat%nfvctr
+        else
+            jjorb = jorb
+        end if
+        ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+        !write(*,*) 'iorb, jorb, iiorb, jjorb, ind', iorb, jorb, iiorb, jjorb, ind
+    end function get_transposed_index
 
 end module sparsematrix_init

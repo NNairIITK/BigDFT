@@ -277,7 +277,7 @@ module_tersoff.o: base.o atoms_data.o
 module_bornmayerhugginstosifumi.o: base.o atoms_data.o
 module_lenosky_si.o: base.o defs.o
 module_fingerprints.o: base.o
-transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o
+transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o sparsematrix_init.o
 module_forces.o: base.o types.o 
 chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
 unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o locregs.o locreg_operations.o rhopotential.o
@@ -288,7 +288,7 @@ postprocessing_linear.o: base.o types.o interfaces.o communications_base.o commu
 foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 locreg_operations.o: base.o types.o atoms_data.o locregs.o
-rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o
+rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o sparsematrix_init.o
 multipole_base.o: base.o
 multipole.o: base.o multipole_base.o
 

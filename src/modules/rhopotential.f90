@@ -483,6 +483,7 @@ module rhopotential
       use module_types
       use yaml_output
       use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_init, only: get_transposed_index
       implicit none
     
       ! Calling arguments
@@ -570,14 +571,16 @@ module rhopotential
                   !iiorb=mod(iiorb-1,denskern%nfvctr)+1
         !ispin=spinsgn(iiorb) 
                   tt1=collcom_sr%psit_c(i0+i)
-                  ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                  !ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                  ind=get_transposed_index(denskern,iiorb,iiorb)
                   ind=ind+ishift_mat-denskern%isvctrp_tg
                   tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
         !tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
                   do j=i+1,ii
                       jjorb=collcom_sr%indexrecvorbital_c(i0+j) - iorb_shift
                       !jjorb=mod(jjorb-1,denskern%nfvctr)+1
-                      ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      !ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      ind=get_transposed_index(denskern,jjorb,iiorb)
                       if (ind==0) cycle
                       ind=ind+ishift_mat-denskern%isvctrp_tg
                       tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
@@ -708,6 +711,25 @@ module rhopotential
           call f_release_routine()
     
         end subroutine communicate_density
+
+
+        !function get_transposed_index(jorb,iorb) result(ind)
+        !    integer,intent(in) :: jorb, iorb
+        !    integer :: ind
+        !    integer :: jjorb,iiorb
+        !    ! If iorb is smaller than the offset, add a periodic shift
+        !    if (iorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+        !        iiorb = iorb + smat%nfvctr
+        !    else
+        !        iiorb = iorb
+        !    end if
+        !    if (jorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+        !        jjorb = jorb + smat%nfvctr
+        !    else
+        !        jjorb = jorb
+        !    end if
+        !    ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+        !end function get_transposed_index
     
       !!write(*,*) 'after deallocate'
       !!call mpi_finalize(ierr)
