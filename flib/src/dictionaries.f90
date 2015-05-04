@@ -83,7 +83,7 @@ module dictionaries
       module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
       module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec,get_c1vec
       !safe getter from list_container
-      module procedure safe_get_dict,safe_get_integer,safe_get_double,safe_get_real,safe_get_char
+      module procedure safe_get_dict,safe_get_integer,safe_get_double,safe_get_real,safe_get_char,safe_get_logical
    end interface
 
    interface dict_remove
@@ -1542,6 +1542,13 @@ contains
         nullify(dict)
      end if
    end subroutine safe_get_dict
+
+   subroutine safe_get_logical(val,el)
+     implicit none
+     logical, intent(inout) :: val
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) val=el%dict
+   end subroutine safe_get_logical
 
    subroutine safe_get_integer(val,el)
      implicit none

@@ -141,6 +141,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_input_dicts
   use dynamic_memory
   use f_utils, only: f_zero
+  use f_input_file, only: input_keys_get_profile
   use module_xc
   use input_old_text_format, only: dict_from_frag
   use module_atoms, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,check_atoms_positions
@@ -209,7 +210,7 @@ subroutine inputs_from_dict(in, atoms, dict)
      rlocmin = min(rloc, rlocmin)
      var => dict_next(var)
   end do
-  select case (trim(input_keys_get_source(dict // DFT_VARIABLES, HGRIDS, userdef)))
+  select case (trim(input_keys_get_profile(dict // DFT_VARIABLES, HGRIDS, userdef)))
      case ("accurate")
         call set(dict // DFT_VARIABLES // HGRIDS, (/ rlocmin, rlocmin, rlocmin /) * 1.25_gp)
      case ("normal")
@@ -367,7 +368,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 
   ! Warn for all INPUT_VAR_ILLEGAL errors.
-  do while (f_err_pop(INPUT_VAR_ILLEGAL, add_msg = msg) /= 0)
+  do while (f_err_pop(err_name='INPUT_VAR_ILLEGAL', add_msg = msg) /= 0)
      call yaml_warning(trim(msg))
   end do
   !check if an error has been found and raise an exception to be handled
@@ -841,7 +842,6 @@ subroutine input_analyze(in,astruct)
        LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
   use module_atoms, only: atomic_structure
   use module_base
-  use module_input_keys, only: input_keys_equal
   implicit none
   type(input_variables), intent(inout) :: in
   type(atomic_structure), intent(in) :: astruct
@@ -909,7 +909,7 @@ subroutine input_analyze(in,astruct)
   !target stress tensor
   in%strtarget(:)=0.0_gp
 
-  if (input_keys_equal(trim(in%geopt_approach), "AB6MD")) then
+  if (trim(in%geopt_approach) .eqv. "AB6MD") then
      if (in%ionmov /= 13) then
         in%nnos=0
         in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
@@ -954,9 +954,9 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use defs_basis
   use m_ab6_kpoints
   use yaml_output
-  use module_input_keys, only: input_keys_equal
   use public_keys
   use dictionaries
+  use yaml_strings,only: operator(.eqv.)
   implicit none
   !Arguments
   integer, intent(in) :: iproc
@@ -986,7 +986,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   nullify(in%gen_kpt, in%gen_wkpt)
 
   method = dict // KPT_METHOD
-  if (input_keys_equal(trim(method), 'auto')) then
+  if (trim(method) .eqv. 'auto') then
      kptrlen_ = dict // KPTRLEN
      if (geocode == 'F') then
         in%gen_nkpt = 1
@@ -1016,7 +1016,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
      end if
-  else if (input_keys_equal(trim(method), 'mpgrid')) then
+  else if (trim(method) .eqv. 'mpgrid') then
      !take the points of Monkhorst-pack grid
      ngkpt_(1:3) = dict // NGKPT
      if (geocode == 'S') ngkpt_(2) = 1
@@ -1060,7 +1060,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
      end if
-  else if (input_keys_equal(trim(method), 'manual')) then
+  else if (trim(method) .eqv. 'manual') then
      in%gen_nkpt = max(1, dict_len(dict//KPT))
      if (geocode == 'F' .and. in%gen_nkpt > 1) then
         if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
