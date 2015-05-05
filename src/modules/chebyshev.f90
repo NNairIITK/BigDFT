@@ -182,7 +182,7 @@ module chebyshev
                   do iorb=1,kernel%smmm%nfvctrp
                       !!tt=ddot(kernel%nfvctr, fermi(1,iorb,1), 1, fermi(1,iorb,1), 1)
                       tt=ddot(kernel%smmm%nvctrp, fermi_new(1,1), 1, fermi_new(1,1), 1)
-                      if (abs(tt)>1.d3) then
+                      if (abs(tt)>1000.d0*kernel%smmm%nvctrp) then
                           emergency_stop=.true.
                           exit main_loop
                       end if
