@@ -20,6 +20,7 @@
    method_updatekernel: 1
    calculate_gap: Yes
    correction_co_contra: Yes
+   purification_quickreturn: no
  lin_general:
    hybrid: Yes
    nit: 20

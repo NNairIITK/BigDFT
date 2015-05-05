@@ -1768,7 +1768,7 @@ contains
     call input_var("method_updatekernel", 0, (/0,1,2/), "K update (sup fun opt) (0: purific., 1: FOE, 2: renorm.)", dummy_int)
     call set(dict // METHOD_UPDATEKERNEL, dummy_int)
 
-    call input_var("purification_quickreturn", .false., "linear scaling: quick return in purification", dummy_bool)
+    call input_var("purification_quickreturn", .true., "linear scaling: quick return in purification", dummy_bool)
     call set(dict // PURIFICATION_QUICKRETURN, dummy_bool)
 
     call input_var("adjust_FOE_temperature", .true., "dynamic adjustment of FOE error function decay length", dummy_bool)
@@ -1783,7 +1783,7 @@ contains
     call input_var("check_matrix_compression", .true., "perform a check of the matrix compression routines", dummy_bool)
     call set(dict // CHECK_MATRIX_COMPRESSION, dummy_bool)
 
-    call input_var("correction_co_contra", .false., "correction covariant / contravariant gradient", dummy_bool)
+    call input_var("correction_co_contra", .true., "correction covariant / contravariant gradient", dummy_bool)
     call set(dict // CORRECTION_CO_CONTRA, dummy_bool)
 
     call input_var("fscale_lowerbound", 5.d-3, "lower bound for the error function decay length", dummy_real)

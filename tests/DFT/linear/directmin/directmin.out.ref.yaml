@@ -1892,26 +1892,6 @@
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
  -  {Process:  0, Timing:  [  6.1E-01,  5.543E-01 ]}
- Overview of the reformatting (several categories may apply):
-   No reformatting required            :  1
-   Grid spacing has changed            :  0
-   Number of coarse grid points has changed:  23
-   Number of fine grid points has changed:  23
-   Box size has changed                :  18
-   Molecule was shifted                :  23
-   Molecule was rotated                :  0
- total elements                        :  576
- non-zero elements                     :  576
-  #segments:  24
- sparsity in %                         :  0.00
- sparse matmul load balancing naive / optimized:  [  1.00,  1.00 ]
- taskgroup summary:
-   number of taskgroups                :  1
-   taskgroups overview:
-   -  {number of tasks:  4, IDs: { 0: {s:  1, e:  576},  1: {s:  1, e:  576},  2: {s:  1, 
- e:  576},  3: {s:  1, e:  576}}, 
- start / end:  [  1,  576 ], start / end disjoint:  [  1,  576 ]}
- Wavefunction coefficients written     :  Yes
  Total charge                          :  1.599999982223E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:

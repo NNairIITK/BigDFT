@@ -137,7 +137,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_input_keys
   use public_keys, only: POSINP, IG_OCCUPATION, CONSTRAINED_DFT, FRAG_VARIABLES, &
        & KPT_VARIABLES, LIN_BASIS_PARAMS, OCCUPATION, TRANSFER_INTEGRALS, DFT_VARIABLES, &
-       & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES
+       & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES, EXTERNAL_POTENTIAL
   use module_input_dicts
   use dynamic_memory
   use f_utils, only: f_zero
@@ -149,6 +149,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   use m_ab6_symmetry, only: symmetry_get_n_sym
   use interfaces_42_libpaw
   use bigdft_run, only: bigdft_get_run_properties
+  use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
   implicit none
   !Arguments
   type(input_variables), intent(out) :: in
@@ -168,6 +169,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   integer :: nsym
   real(gp) :: gsqcut_shp, rloc, projr, rlocmin
   real(gp), dimension(2) :: cfrmults
+  type(external_potential_descriptors) :: ep
+  integer :: impl, l
 
 !  dict => dict//key
 
@@ -398,6 +401,17 @@ subroutine inputs_from_dict(in, atoms, dict)
      call default_fragmentInputParameters(in%frag)
   end if
 
+  ! Process the multipoles for the external potential
+  call multipoles_from_dict(dict//DFT_VARIABLES//EXTERNAL_POTENTIAL, in%ep)
+  !!do impl=1,in%ep%nmpl
+  !!    call yaml_map('rxyz',in%ep%mpl(impl)%rxyz)
+  !!    do l=0,lmax
+  !!         if(associated(in%ep%mpl(impl)%qlm(l)%q)) then
+  !!             call yaml_map(trim(yaml_toa(l)),in%ep%mpl(impl)%qlm(l)%q)
+  !!         end if
+  !!    end do
+  !!end do
+
   ! No use anymore of the types.
   call dict_free(types)
 
@@ -459,7 +473,9 @@ subroutine check_for_data_writing_directory(iproc,in)
        bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
        mod(in%lin%plotBasisFunctions,10) > 0 .or. &    !dumping of basis functions for locreg runs
        in%inputPsiId == 102 .or. &                     !reading of basis functions
-       in%write_orbitals>0                             !writing the KS orbitals in the linear case
+       in%write_orbitals>0 .or. &                      !writing the KS orbitals in the linear case
+       mod(in%lin%output_mat_format,10)>0 .or. &       !writing the sparse linear matrices
+       mod(in%lin%output_coeff_format,10)>0            !writing the linear KS coefficients
 
   !here you can check whether the etsf format is compiled
 
@@ -508,6 +524,7 @@ subroutine default_input_variables(in)
   use module_base
   use module_types
   use dictionaries
+  use multipole_base, only: external_potential_descriptors_null
   implicit none
 
   type(input_variables), intent(inout) :: in
@@ -559,6 +576,7 @@ subroutine default_input_variables(in)
   nullify(in%frag%dirname)
   nullify(in%frag%frag_index)
   nullify(in%frag%charge)
+  in%ep = external_potential_descriptors_null()
 END SUBROUTINE default_input_variables
 
 
@@ -768,6 +786,7 @@ subroutine free_input_variables(in)
   use module_types
   use module_xc
   use dynamic_memory, only: f_free_ptr
+  use multipole_base, only: deallocate_external_potential_descriptors
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
@@ -780,6 +799,7 @@ subroutine free_input_variables(in)
   call f_free_ptr(in%gen_occup)
   call deallocateBasicArraysInput(in%lin)
   call deallocateInputFragArrays(in%frag)
+  call deallocate_external_potential_descriptors(in%ep)
 
   ! Free the libXC stuff if necessary, related to the choice of in%ixc.
 !!$  call xc_end(in%xcObj)

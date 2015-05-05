@@ -467,6 +467,7 @@ contains
     type(dictionary), pointer :: udict
     external :: getFileContent,copyCBuffer,freeCBuffer
 
+
     call f_routine(id='merge_input_file_to_dict')
     if (mpi_env%iproc == 0) then
        call getFileContent(cbuf, cbuf_len, fname, len_trim(fname))
