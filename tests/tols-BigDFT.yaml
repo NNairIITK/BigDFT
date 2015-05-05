@@ -891,7 +891,7 @@ experimentalfoe_long:
  ebs: 6.0e-10
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
- relative diff: 2.9e-11
+ relative diff: 3.3e-11
  Energy (Hartree): 1.2e-10
 
 experimentalfoe_short:
@@ -1538,7 +1538,7 @@ multipoles_OH-:
  multiplicator for the confinement: 4.8e-10
  Epot: 1.3e-10
  EH: 2.1e-10
- Ekin: 4.1e-11
+ Ekin: 5.1e-11
  EXC: 2.1e-11
  EvXC: 3.1e-11
  energy: 3.0e-11
@@ -1546,3 +1546,8 @@ multipoles_OH-:
  Total charge: 4.3e-11
  trace(KS): 4.3e-11
  diff from reference kernel: 1.1e-8
+ Atomic Forces (Ha/Bohr): 3.3e-11
+ Clean forces norm (Ha/Bohr): 3.4e-11
+ Raw forces norm (Ha/Bohr): 3.7e-11
+ Average noise forces: 1.1e-10
+ decay length of error function: 1.1e-5
