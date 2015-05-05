@@ -97,6 +97,7 @@ subroutine initialize_flib_errors()
   use dynamic_memory, only: dynamic_memory_errors
   use f_refcnts, only: refcnts_errors
   use time_profiling, only: timing_errors
+  use f_input_file, only: input_file_errors
   implicit none
 
   call dictionaries_errors()
@@ -107,6 +108,7 @@ subroutine initialize_flib_errors()
   call refcnts_errors()
   call dynamic_memory_errors()
   call timing_errors()
+  call input_file_errors()
   
 end subroutine initialize_flib_errors
 

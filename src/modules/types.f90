@@ -1749,7 +1749,7 @@ contains
   !> Define the BigDFT errors
   subroutine bigdft_init_errors()
     use dictionaries
-  use module_input_keys, only: input_keys_errors
+    !use module_input_keys, only: input_keys_errors
     implicit none
     external :: bigdft_severe_abort
 
@@ -1774,8 +1774,8 @@ contains
          BIGDFT_INPUT_VARIABLES_ERROR,&
          err_action='Check above which input variable has been not correctly parsed, or check their values')
 
-    !define the errors of internal modules
-    call input_keys_errors()
+!!$    !define the errors of internal modules
+!!$    call input_keys_errors()
 
       call f_err_define('BIGDFT_INPUT_FILE_ERROR',&
       'The input file does not exist',&
@@ -2061,14 +2061,14 @@ contains
   
   !> Set the dictionary from the input variables
   subroutine input_set_dict(in, level, val)
-    use dictionaries, only: dictionary, operator(//), assignment(=)
-    use dictionaries, only: dict_key, max_field_length, dict_value, dict_len
+    use dictionaries, only: dictionary, operator(//), assignment(=),&
+         dict_key, max_field_length, dict_value, dict_len
     use module_defs, only: DistProjApply, GPUblas, gp
-    use module_input_keys, only: input_keys_equal
     use public_keys
     use public_enums
     use dynamic_memory
     use yaml_output, only: yaml_warning
+    use yaml_strings, only: operator(.eqv.)
     implicit none
     type(input_variables), intent(inout) :: in
     type(dictionary), pointer :: val
@@ -2213,13 +2213,13 @@ contains
           in%inguess_geopt = val
        case (ACCEL)
           str = dict_value(val)
-          if (input_keys_equal(trim(str), "CUDAGPU")) then
+          if (trim(str) .eqv. "CUDAGPU") then
              in%matacc%iacceleration = 1
-          else if (input_keys_equal(trim(str), "OCLGPU")) then
+          else if (trim(str) .eqv. "OCLGPU") then
              in%matacc%iacceleration = 2
-          else if (input_keys_equal(trim(str), "OCLCPU")) then
+          else if (trim(str) .eqv. "OCLCPU") then
              in%matacc%iacceleration = 3
-          else if (input_keys_equal(trim(str), "OCLACC")) then
+          else if (trim(str) .eqv. "OCLACC") then
              in%matacc%iacceleration = 4
           else 
              in%matacc%iacceleration = 0
@@ -2277,11 +2277,11 @@ contains
        case (LINEAR)
           !Use Linear scaling methods
           str = dict_value(val)
-          if (input_keys_equal(trim(str), "LIG")) then
+          if (trim(str) .eqv. "LIG") then
              in%linear = INPUT_IG_LIG
-          else if (input_keys_equal(trim(str), "FUL")) then
+          else if (trim(str) .eqv. "FUL") then
              in%linear = INPUT_IG_FULL
-          else if (input_keys_equal(trim(str), "TMO")) then
+          else if (trim(str) .eqv. "TMO") then
              in%linear = INPUT_IG_TMO
           else
              in%linear = INPUT_IG_OFF

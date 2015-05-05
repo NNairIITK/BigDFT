@@ -135,7 +135,7 @@ end subroutine write_orbital_density
 subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor, binary, psi_g)
   use module_base
   use module_types
-  use module_interfaces, only: filename_of_iorb
+  use module_interfaces, only: filename_of_iorb,plot_wf
   implicit none
 
   ! Calling arguments
