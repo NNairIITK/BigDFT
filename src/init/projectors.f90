@@ -394,14 +394,7 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
                       'The norm of the nonlocal PSP for atom n=' // trim(yaml_toa(iat)) // &
                       ' (' // trim(atomname) // ') labeled by l=' // trim(yaml_toa(iter%l)) // &
                       ' m=' // trim(yaml_toa(iter%n)) // ' is ' // trim(yaml_toa(scpr)) // &
-                      'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.')
-                 !write(*,'(1x,a)')'error found!'
-                 !write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
-                 !     'The norm of the nonlocal PSP for atom n=',iat,&
-                 !     ' (',trim(atomname),') labeled by l=',iter%l,' m=',iter%n,' is ',scpr
-                 !write(*,'(1x,a)')&
-                 !     'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
-                 !end if
+                      ' while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.')
                  !stop commented for the moment
                  !restore the norm of the projector
                  !call wscal_wrap(mbvctr_c,mbvctr_f,1.0_gp/sqrt(scpr),proj(istart_c))

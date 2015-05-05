@@ -95,9 +95,9 @@
      default: 1
    mpol:
      COMMENT: Total magnetic moment
-     DESCRIPTION: Total magnetic moment which has to be the same parity 
-                  as the total number of electrons (nelec_up-nelec_down=mpol).
-                  You should also define the keyword 'IGSpin' or add a spin per atom to specify the polarisation for the input guess.
+     DESCRIPTION: |
+       Total magnetic moment which has to be the same parity as the total number of electrons (nelec_up-nelec_down=mpol).
+       You should also define the keyword 'IGSpin' or add a spin per atom to specify the polarisation for the input guess.
      default: 0
    gnrm_cv:
      COMMENT: convergence criterion gradient

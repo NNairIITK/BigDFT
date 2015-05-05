@@ -1262,9 +1262,9 @@ expfoegeopt:
  Ekin: 1.1e-10
  Tr(K): 2.3e-8
  decay length of error function: 1.1e-5
- Omega: 2.4e-11
- energy: 2.2e-11
- epred: 1.9e-11
+ Omega: 3.3e-11
+ energy: 3.3e-11
+ epred: 2.2e-11
  trace(KS): 3.3e-11
  Total charge: 3.1e-11
 

@@ -1638,15 +1638,15 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            call yaml_flush_document()
            if (opt%itrpmax >1) then
               if ( KSwfn%diis%energy > KSwfn%diis%energy_min) &
-                   call yaml_warning('Found an energy value lower than the ' // final_out // &
-                   ' energy, delta:' // trim(yaml_toa(KSwfn%diis%energy-KSwfn%diis%energy_min,fmt='(1pe9.2)')))
+                   call yaml_warning('Found an energy value lower than the ' // final_out // ' energy (delta=' // &
+                   trim(yaml_toa(KSwfn%diis%energy-KSwfn%diis%energy_min,fmt='(1pe9.2)')) // ')')
            else
               !write this warning only if the system is closed shell
               call check_closed_shell(KSwfn%orbs,lcs)
               if (lcs) then
                  if ( energs%eKS > KSwfn%diis%energy_min) &
-                      call yaml_warning('Found an energy value lower than the FINAL energy, delta:' // &
-                      trim(yaml_toa(energs%eKS-KSwfn%diis%energy_min,fmt='(1pe9.2)')))
+                      call yaml_warning('Found an energy value lower than the FINAL energy (delta=' // &
+                      trim(yaml_toa(energs%eKS-KSwfn%diis%energy_min,fmt='(1pe9.2)')) // ')')
               end if
            end if
         end if
