@@ -576,6 +576,7 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   smat_out%nfvctrp = smat_in%nfvctrp
   smat_out%isfvctr = smat_in%isfvctr
   smat_out%nspin = smat_in%nspin
+  smat_out%offset_matrixindex_in_compressed_fortransposed = smat_in%offset_matrixindex_in_compressed_fortransposed
   smat_out%store_index = smat_in%store_index
   smat_out%can_use_dense = smat_in%can_use_dense
   smat_out%ntaskgroup = smat_in%ntaskgroup
@@ -607,6 +608,8 @@ subroutine copy_sparse_matrix(smat_in, smat_out)
   call allocate_and_copy(smat_in%inwhichtaskgroup, smat_out%inwhichtaskgroup, id='smat_out%inwhichtaskgroup')
   call allocate_and_copy(smat_in%tgranks, smat_out%tgranks, id='smat_out%tgranks')
   call allocate_and_copy(smat_in%nranks, smat_out%nranks, id='smat_out%nranks')
+  call allocate_and_copy(smat_in%luccomm, smat_out%luccomm, id='smat_out%luccomm')
+  call allocate_and_copy(smat_in%on_which_atom, smat_out%on_which_atom, id='smat_out%on_which_atom')
 
 
   call copy_sparse_matrix_matrix_multiplication(smat_in%smmm, smat_out%smmm)
@@ -642,20 +645,36 @@ subroutine copy_sparse_matrix_matrix_multiplication(smmm_in, smmm_out)
   smmm_out%nseg = smmm_in%nseg
   smmm_out%nfvctrp = smmm_in%nfvctrp
   smmm_out%isfvctr = smmm_in%isfvctr
+  smmm_out%nvctrp_mm = smmm_in%nvctrp_mm
+  smmm_out%isvctr_mm = smmm_in%isvctr_mm
+  smmm_out%isseg = smmm_in%isseg
+  smmm_out%ieseg = smmm_in%ieseg
+  smmm_out%nccomm_smmm = smmm_in%nccomm_smmm
   smmm_out%nvctrp = smmm_in%nvctrp
   smmm_out%isvctr = smmm_in%isvctr
+  smmm_out%nconsecutive_max = smmm_in%nconsecutive_max
   smmm_out%istartendseg_mm(1:2) = smmm_in%istartendseg_mm(1:2)
   smmm_out%istartend_mm(1:2) = smmm_in%istartend_mm(1:2)
   smmm_out%istartend_mm_dj(1:2) = smmm_in%istartend_mm_dj(1:2)
 
+  call allocate_and_copy(smmm_in%keyv, smmm_out%keyv, id='smmm_out%keyv')
+  call allocate_and_copy(smmm_in%keyg, smmm_out%keyg, id='smmm_out%keyg')
+  call allocate_and_copy(smmm_in%isvctr_mm_par, smmm_out%isvctr_mm_par, id='smmm_out%isvctr_mm_par')
+  call allocate_and_copy(smmm_in%nvctr_mm_par, smmm_out%nvctr_mm_par, id='smmm_out%nvctr_mm_par')
   call allocate_and_copy(smmm_in%ivectorindex, smmm_out%ivectorindex, id='smmm_out%ivectorindex')
+  call allocate_and_copy(smmm_in%ivectorindex_new, smmm_out%ivectorindex_new, id='smmm_out%ivectorindex_new')
   call allocate_and_copy(smmm_in%nsegline, smmm_out%nsegline, id='smmm_out%segline')
-  call allocate_and_copy(smmm_in%istsegline, smmm_out%istsegline, id='smmm_out%stsegline')
+  call allocate_and_copy(smmm_in%istsegline, smmm_out%istsegline, id='smmm_out%istsegline')
   call allocate_and_copy(smmm_in%indices_extract_sequential, smmm_out%indices_extract_sequential, &
        id='smmm_out%ndices_extract_sequential')
+  call allocate_and_copy(smmm_in%onedimindices, smmm_out%onedimindices, id='smmm_out%onedimindices')
+  call allocate_and_copy(smmm_in%onedimindices_new, smmm_out%onedimindices_new, id='smmm_out%onedimindices_new')
+  call allocate_and_copy(smmm_in%line_and_column_mm, smmm_out%line_and_column_mm, id='smmm_out%line_and_column_mm')
+  call allocate_and_copy(smmm_in%line_and_column, smmm_out%line_and_column, id='smmm_out%line_and_column')
+  call allocate_and_copy(smmm_in%luccomm_smmm, smmm_out%luccomm_smmm, id='smmm_out%luccomm_smmm')
   call allocate_and_copy(smmm_in%isvctr_par, smmm_out%isvctr_par, id='smmm_out%isvctr_par')
   call allocate_and_copy(smmm_in%nvctr_par, smmm_out%nvctr_par, id='smmm_out%nvctr_par')
-  call allocate_and_copy(smmm_in%onedimindices, smmm_out%onedimindices, id='smmm_out%onedimindices')
+  call allocate_and_copy(smmm_in%consecutive_lookup, smmm_out%consecutive_lookup, id='smmm_out%consecutive_lookup')
   !!call allocate_and_copy(smmm_in%keyg, smmm_out%keyg, id='smmm_out%keyg')
 end subroutine copy_sparse_matrix_matrix_multiplication
 
