@@ -315,7 +315,9 @@ subroutine check_multipoles(parser)
           do imp=0,3
                key='q'//trim(adjustl(yaml_toa(imp)))
                if (key .in. iter) then
-                 if (dict_len(iter//key)/=2*imp+1) call f_err_throw('Wrong len ('//trim(yaml_toa(dict_len(iter//key)))//') of the mutipole')
+                 if (dict_len(iter//key)/=2*imp+1) then
+                     call f_err_throw('Wrong len ('//trim(yaml_toa(dict_len(iter//key)))//') of the mutipole')
+                 end if
                  mp(1:2*imp+1) = iter//key
                  !call yaml_map('dict_size of '//key,dict_size(iter//key))  
                  !call yaml_map('dict_len of '//key,dict_len(iter//key))  
