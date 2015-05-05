@@ -2890,8 +2890,8 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
            !if (iproc==0) write(*,*)''
            inputpsi=INPUT_PSI_LINEAR_AO
            ! if one directory doesn't exist, throw an error than exit
-           if (nfrag > 1) call f_err_throw('Fragment calculation cannot be done without template',&
-                err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+           !*!*if (nfrag > 1) call f_err_throw('Fragment calculation cannot be done without template',&
+           !*!*     err_name='BIGDFT_INPUT_VARIABLES_ERROR')
            exit
         end if
      end do
