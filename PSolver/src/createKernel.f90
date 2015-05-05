@@ -1092,13 +1092,13 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
               else
-                 r=fact1*(log(edensmax)-log(abs(edens(i1,i2,i3))))
+                 r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
                  t=fact2*(r-sin(r))
                  !eps(i1,i2,i3)=exp(t)
                  kernel%oneoeps(i1,i23)=safe_exp(-0.5d0*t) !oneosqrteps(i1,i2,i3)
                  coeff=fact3*(1.d0-cos(r))
                  dtx=-coeff/dabs(edens(i1,i2,i3))
-                 depsdrho(i1,i23)=-0.125d0/pi*dtx
+                 depsdrho(i1,i23)=-safe_exp(t)*0.125d0/pi*dtx
                  d2=0.d0
                  do i=1,3
                     !dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,isp,i)
@@ -1133,7 +1133,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  t=fact2*(r-sin(r))
                  coeff=fact3*(1.d0-cos(r))
                  dtx=-coeff/dabs(edens(i1,i2,i3))
-                 depsdrho(i1,i23)=-0.125d0/pi*dtx
+                 depsdrho(i1,i23)=-safe_exp(t)*0.125d0/pi*dtx
                  !eps(i1,i2,i3)=dexp(t)
                  kernel%oneoeps(i1,i23)=safe_exp(-t) !oneoeps(i1,i2,i3)
               end if
