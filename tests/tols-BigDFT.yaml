@@ -1498,6 +1498,7 @@ periodic_water:
  Total ionic charge: 6.0e-11
  Pressure: 6.4e-10
  Clean forces norm (Ha/Bohr): 1.9e-11
+ Ion-Ion interaction energy: 1.6e-11
 
 surface_boronnitride:
  Enl: 1.01e-9
