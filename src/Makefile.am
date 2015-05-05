@@ -191,7 +191,6 @@ low_level = \
 	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/linearScaling.f90 \
-	linear/energyAndForces.f90 \
 	linear/initAndUtils.f90 \
 	linear/sumrhoLinear.f90 \
 	linear/inputguessLinear.f90 \

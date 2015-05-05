@@ -91,6 +91,20 @@ module locregs
   public :: nullify_locreg_descriptors,locreg_null
   public :: deallocate_locreg_descriptors,deallocate_wfd
   public :: allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
+  public :: check_overlap_cubic_periodic
+  public :: check_whether_bounds_overlap
+  public :: get_extent_of_overlap
+
+
+  interface check_whether_bounds_overlap
+    module procedure check_whether_bounds_overlap_int
+    module procedure check_whether_bounds_overlap_long
+  end interface check_whether_bounds_overlap
+  
+  interface get_extent_of_overlap
+    module procedure get_extent_of_overlap_int
+    module procedure get_extent_of_overlap_long
+  end interface get_extent_of_overlap
 
 
 contains
@@ -903,6 +917,380 @@ contains
 
 
   end subroutine copy_grow_bounds
+
+
+  !> Almost degenerate with get_number_of_overlap_region
+  !! should merge the two... prefering this one since argument list is better 
+  subroutine check_overlap_cubic_periodic(Glr,Ilr,Jlr,isoverlap)
+    use module_base
+    !use communications_init, only: check_whether_bounds_overlap
+    implicit none
+    type(locreg_descriptors), intent(in) :: Glr
+    type(locreg_descriptors), intent(in) :: Ilr
+    type(locreg_descriptors), intent(in) :: Jlr
+    logical, intent(out) :: isoverlap
+    !Local variables
+    integer :: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
+    logical :: overlap1, overlap2, overlap3
+  !!  integer :: azones,bzones,ii,izones,jzones !, i_stat, i_all
+  !!  logical :: go1, go2, go3
+  !!  integer,dimension(3,8) :: astart,bstart,aend,bend
+  
+  !!  azones = 1
+  !!  bzones = 1
+  !!! Calculate the number of regions to cut alr and blr
+  !!  do ii=1,3
+  !!     if(Ilr%outofzone(ii) > 0) azones = azones * 2
+  !!     if(Jlr%outofzone(ii) > 0) bzones = bzones * 2
+  !!  end do
+  !!
+  !!!FRACTURE THE FIRST LOCALIZATION REGION
+  !!  call fracture_periodic_zone(azones,Glr,Ilr,Ilr%outofzone,astart,aend)
+  !!
+  !!!FRACTURE SECOND LOCREG
+  !!  call fracture_periodic_zone(bzones,Glr,Jlr,Jlr%outofzone,bstart,bend)
+  !!
+  !!! Now check if they overlap
+  !!  isoverlap = .false.
+  !!  loop_izones: do izones=1,azones
+  !!    do jzones=1,bzones
+  !!      go1 = (bstart(1,jzones) .le. aend(1,izones) .and. bend(1,jzones) .ge. astart(1,izones))
+  !!      go2 = (bstart(2,jzones) .le. aend(2,izones) .and. bend(2,jzones) .ge. astart(2,izones))
+  !!      go3 = (bstart(3,jzones) .le. aend(3,izones) .and. bend(3,jzones) .ge. astart(3,izones))
+  !!      if(go1 .and. go2 .and. go3) then
+  !!        isoverlap = .true.
+  !!        exit loop_izones
+  !!      end if
+  !!    end do
+  !!  end do loop_izones
+  
+  
+    !@ NEW VERSION #########################################
+    ! Shift all the indices into the periodic cell. This can result is starting
+    ! indices being larger than ending indices
+    is1 = modulo(ilr%ns1,glr%d%n1+1)
+    ie1 = modulo(ilr%ns1+ilr%d%n1,glr%d%n1+1)
+    is2 = modulo(ilr%ns2,glr%d%n2+1)
+    ie2 = modulo(ilr%ns2+ilr%d%n2,glr%d%n2+1)
+    is3 = modulo(ilr%ns3,glr%d%n3+1)
+    ie3 = modulo(ilr%ns3+ilr%d%n3,glr%d%n3+1)
+    js1 = modulo(jlr%ns1,glr%d%n1+1)
+    je1 = modulo(jlr%ns1+jlr%d%n1,glr%d%n1+1)
+    js2 = modulo(jlr%ns2,glr%d%n2+1)
+    je2 = modulo(jlr%ns2+jlr%d%n2,glr%d%n2+1)
+    js3 = modulo(jlr%ns3,glr%d%n3+1)
+    je3 = modulo(jlr%ns3+jlr%d%n3,glr%d%n3+1)
+    overlap1 = check_whether_bounds_overlap(is1, ie1, js1, je1)
+    overlap2 = check_whether_bounds_overlap(is2, ie2, js2, je2)
+    overlap3 = check_whether_bounds_overlap(is3, ie3, js3, je3)
+  
+    if (overlap1 .and. overlap2 .and. overlap3) then
+        isoverlap = .true.
+    else
+        isoverlap = .false.
+    end if
+        
+    !@ END NEW VERSION #####################################
+  
+    !!!debug
+    !!isoverlap=.true.
+  
+  end subroutine check_overlap_cubic_periodic
+
+
+
+    !!!> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
+    !!!! than i1 due to periodic boundary conditions) overlaps with a segment with
+    !!!! bounds j1,2 (where j1<=j2)
+    !> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
+    !! than i1 due to periodic boundary conditions) overlaps with a segment with
+    !! bounds j1,2 (where j2 might be smaller than j1)
+    function check_whether_bounds_overlap_int(i1, i2, j1, j2) result(overlap)
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: i1, i2, j1, j2
+      logical :: overlap
+      ! Local variables
+      integer :: periodic
+
+      ! If the end is smaller than the start, we have a periodic wrap around
+      periodic = 0
+      if (i2<i1) then
+          periodic = periodic + 1
+      end if
+      if (j2<j1) then
+          periodic = periodic + 1
+      end if
+
+      ! Check whether there is an overlap
+      select case(periodic)
+      case(2)
+          ! If both segments have a wrap around, they necessarily overlap
+          overlap = .true.
+      case(1)
+          overlap = (i1<=j2 & !i2>=j1 due to periodic wrap around 
+               .or. i2>=j1)   !i1<=j2 due to periodic wrap around
+      case(0)
+          overlap = (i2>=j1 .and. i1<=j2)
+      case default
+          stop 'wrong value of periodic'
+      end select
+
+    end function check_whether_bounds_overlap_int
+
+
+    function check_whether_bounds_overlap_long(i1, i2, j1, j2) result(overlap)
+      implicit none
+      ! Calling arguments
+      integer(kind=8),intent(in) :: i1, i2, j1, j2
+      logical :: overlap
+      ! Local variables
+      integer :: periodic
+
+      ! If the end is smaller than the start, we have a periodic wrap around
+      periodic = 0
+      if (i2<i1) then
+          periodic = periodic + 1
+      end if
+      if (j2<j1) then
+          periodic = periodic + 1
+      end if
+
+      ! Check whether there is an overlap
+      select case(periodic)
+      case(2)
+          ! If both segments have a wrap around, they necessarily overlap
+          overlap = .true.
+      case(1)
+          overlap = (i1<=j2 & !i2>=j1 due to periodic wrap around 
+               .or. i2>=j1)   !i1<=j2 due to periodic wrap around
+      case(0)
+          overlap = (i2>=j1 .and. i1<=j2)
+      case default
+          stop 'wrong value of periodic'
+      end select
+
+    end function check_whether_bounds_overlap_long
+
+
+    !> Checks whether a segment with bounds i1,i2 (where i2 might be smaller
+    !! than i1 due to periodic boundary conditions) overlaps with a segment with
+    !! bounds j1,2 (where j1<=j2). Is so, it gives the starting point, ending
+    !! point and the extent of the (possibly two) overlaps.
+    subroutine get_extent_of_overlap_int(i1, i2, j1, j2, n, ks, ke, nlen)
+      use dictionaries, only: f_err_throw
+      use yaml_output, only: yaml_toa
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: i1, i2, j1, j2
+      integer,intent(out) :: n !<number of overlaps
+      integer,dimension(2),intent(out) :: ks, ke, nlen
+      ! Local variables
+      integer :: ks1, ke1, ks2, ke2
+      logical :: periodic, case1, case2, found_case
+
+      ks(:) = 0
+      ke(:) = 0
+      nlen(:) = 0
+
+      if (j2<j1) then
+          call f_err_throw('j2<j1: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      ! Check whether there is an overlap
+      if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
+          ! If the end is smaller than the start, we have a periodic wrap around
+          periodic = (i2<i1)
+          if (periodic) then
+              found_case = .false.
+              if (i2>=j1) then
+                  ks1 = j1 !don't need to check i1 due to periodic wrap around
+                  ke1 = min(i2,j2)
+                  found_case = .true.
+                  case1 = .true.
+              else
+                  ks1=huge(i2)
+                  ke1=-huge(i2)
+                  case1 = .false.
+              end if
+              if (i1<=j2) then
+                  ks2 = max(i1,j1)
+                  ke2 = j2 !don't need to check i2 due to periodic wrap around
+                  found_case = .true.
+                  case2 = .true.
+              else
+                  ks2=huge(i1)
+                  ke2=-huge(i1)
+                  case2 = .false.
+              end if
+              if (.not. found_case) then
+                  call f_err_throw('Cannot determine overlap',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              if (case1 .and. case2) then
+                  ! There are two overlaps
+                  n = 2
+                  ks(1) = ks1
+                  ke(1) = ke1
+                  nlen(1) = ke(1) - ks(1) + 1
+                  ks(2) = ks2
+                  ke(2) = ke2
+                  nlen(2) = ke(2) - ks(2) + 1
+              else
+                  n = 1
+                  ks = min(ks1,ks2)
+                  ke = max(ke1,ke2)
+                  nlen = ke(1) - ks(1) + 1
+              end if
+          else
+              n = 1
+              ks(1) = max(i1,j1)
+              ke(1) = min(i2,j2)
+              nlen(1) = ke(1) - ks(1) + 1
+          end if
+          !write(*,'(a,7i8)') 'i1, i2, j1, j2, is, ie, n', i1, i2, j1, j2, is, ie, n
+      else
+          n = 0
+          ks(1) = -1
+          ke(1) = -1
+          nlen(1) = 0
+      end if
+
+      if (nlen(1)<0) then
+          call f_err_throw('nlen(1)<0: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
+               &', ks='//trim(yaml_toa(ks(1),fmt='(i0)'))//&
+               &', ke='//trim(yaml_toa(ke(1),fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      if (nlen(2)<0) then
+          call f_err_throw('nlen(2)<0: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
+               &', ks='//trim(yaml_toa(ks(2),fmt='(i0)'))//&
+               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+    end subroutine get_extent_of_overlap_int
+
+
+    subroutine get_extent_of_overlap_long(i1, i2, j1, j2, n, ks, ke, nlen)
+      use dictionaries, only: f_err_throw
+      use yaml_output, only: yaml_toa
+      implicit none
+      ! Calling arguments
+      integer(kind=8),intent(in) :: i1, i2, j1, j2
+      integer,intent(out) :: n
+      integer(kind=8),dimension(2),intent(out) :: ks, ke, nlen
+      ! Local variables
+      integer(kind=8) :: ks1, ke1, ks2, ke2
+      logical :: periodic, case1, case2, found_case
+
+      ks(:) = 0
+      ke(:) = 0
+      nlen(:) = 0
+
+      if (j2<j1) then
+          call f_err_throw('j2<j1: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      ! Check whether there is an overlap
+      if (check_whether_bounds_overlap(i1, i2, j1, j2)) then
+          ! If the end is smaller than the start, we have a periodic wrap around
+          periodic = (i2<i1)
+          if (periodic) then
+              found_case = .false.
+              if (i2>=j1) then
+                  ks1 = j1 !don't need to check i1 due to periodic wrap around
+                  ke1 = min(i2,j2)
+                  found_case = .true.
+                  case1 = .true.
+              else
+                  ks1=huge(i2)
+                  ke1=-huge(i2)
+                  case1 = .false.
+              end if
+              if (i1<=j2) then
+                  ks2 = max(i1,j1)
+                  ke2 = j2 !don't need to check i2 due to periodic wrap around
+                  found_case = .true.
+                  case2 = .true.
+              else
+                  ks2=huge(i1)
+                  ke2=-huge(i1)
+                  case2 = .false.
+              end if
+              if (.not. found_case) then
+                  call f_err_throw('Cannot determine overlap',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+              if (case1 .and. case2) then
+                  ! There are two overlaps
+                  n = 2
+                  ks(1) = ks1
+                  ke(1) = ke1
+                  nlen(1) = ke(1) - ks(1) + 1
+                  ks(2) = ks2
+                  ke(2) = ke2
+                  nlen(2) = ke(2) - ks(2) + 1
+              else
+                  n = 1
+                  ks = min(ks1,ks2)
+                  ke = max(ke1,ke2)
+                  nlen = ke(1) - ks(1) + 1
+              end if
+          else
+              n = 1
+              ks(1) = max(i1,j1)
+              ke(1) = min(i2,j2)
+              nlen(1) = ke(1) - ks(1) + 1
+          end if
+          !write(*,'(a,7i8)') 'i1, i2, j1, j2, is, ie, n', i1, i2, j1, j2, is, ie, n
+      else
+          n = 0
+          ks(1) = -1
+          ke(1) = -1
+          nlen(1) = 0
+      end if
+
+      if (nlen(1)<0) then
+          call f_err_throw('nlen(1)<0: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
+               &', ks='//trim(yaml_toa(ks(1),fmt='(i0)'))//&
+               &', ke='//trim(yaml_toa(ke(1),fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+      if (nlen(2)<0) then
+          call f_err_throw('nlen(2)<0: '//&
+               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
+               &', ks='//trim(yaml_toa(ks(2),fmt='(i0)'))//&
+               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
+               ,err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+    end subroutine get_extent_of_overlap_long
 
 
 end module locregs

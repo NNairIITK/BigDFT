@@ -566,6 +566,11 @@
    norm(P)                             :  4.467349E-03
  Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - 
+   Do not read the linear input files in the old format. If you use the .yaml format you can 
+   igno
  Average noise forces: {x:  7.18391488E-05, y:  7.18391488E-05, z:  2.27374545E-04, 
                     total:  2.49039977E-04}
  Clean forces norm (Ha/Bohr): {maxval:  5.583431876676E-02, fnrm2:  6.234942304297E-03}

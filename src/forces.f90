@@ -4239,7 +4239,9 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   if (iproc<ii) noutp = noutp + 1
   nout_par = f_malloc0(0.to.nproc,id='nout_par')
   nout_par(iproc) = noutp
-  call mpiallred(nout_par(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  if (nproc>1) then
+      call mpiallred(nout_par(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  end if
   if (sum(nout_par)/=nout) then
       call f_err_throw('wrong partition of the outer loop',err_name='BIGDFT_RUNTIME_ERROR')
   end if
@@ -4322,7 +4324,9 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
 
   end do !iat -atoms
 
-  call mpiallred(tens(1), 6, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  if (nproc>1) then
+      call mpiallred(tens(1), 6, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  end if
 
 !!$  if (iproc ==0) then
 !!$     write(*,*)
@@ -4359,7 +4363,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW,projector_has_overlap
   use yaml_output
-  use communications_init, only: check_whether_bounds_overlap
+  use locregs, only: check_whether_bounds_overlap
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
@@ -4557,6 +4561,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
         call f_routine(id='determine_dimension_scalprod')
 
+        nscalprod_send = 0
+        nat_overlap = 0
         norbp_if: if (orbs%norbp>0) then
     
             !look for the strategy of projectors application
@@ -4569,8 +4575,6 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
                   call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
           
           
-                  nat_overlap = 0
-                  nscalprod_send = 0
                   do iat=1,natp
                      iiat = iat+isat-1
           
@@ -4920,8 +4924,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             nrecvcounts_tmp(jproc) = 1
             nrecvdspls_tmp(jproc) = jproc
         end do
-        call mpialltoallv(nsendcounts(0), nsendcounts_tmp, nsenddspls_tmp, &
-             nrecvcounts(0), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            call mpialltoallv(nsendcounts(0), nsendcounts_tmp, nsenddspls_tmp, &
+                 nrecvcounts(0), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+        else
+            call f_memcpy(n=nsendcounts_tmp(0), src=nsendcounts(0), dest=nrecvcounts(0))
+        end if
         nrecvdspls(0) = 0
         do jproc=1,nproc-1
             nrecvdspls(jproc) = nrecvdspls(jproc-1) + nrecvcounts(jproc-1)
@@ -4935,8 +4943,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
             nrecvcounts_tmp(jproc) = nat_par(iproc)
             nrecvdspls_tmp(jproc) = jproc*nat_par(iproc)
         end do
-        call mpialltoallv(supfun_per_atom(1), nsendcounts_tmp, nsenddspls_tmp, &
-             supfun_per_atom_recv(1), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            call mpialltoallv(supfun_per_atom(1), nsendcounts_tmp, nsenddspls_tmp, &
+                 supfun_per_atom_recv(1), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+        else
+            call f_memcpy(n=nsendcounts_tmp(0), src=supfun_per_atom(1), dest=supfun_per_atom_recv(1))
+        end if
 
         ! Determine the size of the receive buffer
         nscalprod_recv = sum(nrecvcounts)
@@ -4947,8 +4959,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         scalprod_lookup = f_malloc(max(nscalprod_recv,1), id='scalprod_lookup')
 
         ! Communicate the lookup array
-        call mpialltoallv(scalprod_send_lookup(1), nsendcounts, nsenddspls, &
-             scalprod_lookup_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            call mpialltoallv(scalprod_send_lookup(1), nsendcounts, nsenddspls, &
+                 scalprod_lookup_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+        else
+            call f_memcpy(n=nsendcounts(0), src=scalprod_send_lookup(1), dest=scalprod_lookup_recvbuf(1))
+        end if
         
         ! Communicate the scalprods
         ncount = 2*(ndir+1)*m_max*i_max*l_max
@@ -4956,14 +4972,20 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         nsenddspls(:) = nsenddspls(:)*ncount
         nrecvcounts(:) = nrecvcounts(:)*ncount
         nrecvdspls(:) = nrecvdspls(:)*ncount
-        call mpialltoallv(scalprod_sendbuf_new(1,0,1,1,1,1), nsendcounts, nsenddspls, &
-             scalprod_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            call mpialltoallv(scalprod_sendbuf_new(1,0,1,1,1,1), nsendcounts, nsenddspls, &
+                 scalprod_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+        else
+            call f_memcpy(n=nsendcounts(0), src=scalprod_sendbuf_new(1,0,1,1,1,1), dest=scalprod_recvbuf(1))
+        end if
 
 
 
         ! Now the value of supfun_per_atom can be summed up, since each task has all scalprods for a given atom.
         ! In principle this is only necessary for the atoms handled by a given task, but do it for the moment for all...
-        call mpiallred(supfun_per_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
+        if (nproc>1) then
+            call mpiallred(supfun_per_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
+        end if
         ! The starting points have to be recalculated.
         is_supfun_per_atom(1) = 0
         do jat=2,at%astruct%nat

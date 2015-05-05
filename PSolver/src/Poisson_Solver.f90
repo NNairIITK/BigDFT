@@ -94,13 +94,13 @@ module Poisson_Solver
    integer, parameter :: PS_PCG = 1234
    integer, parameter :: PS_PI = 1432
 
-   type(f_enumerator) :: PS_NONE_ENUM=f_enumerator('vacuum',PS_EPSILON_VACUUM)
-   type(f_enumerator) :: PS_RIGID_ENUM=f_enumerator('rigid',PS_EPSILON_RIGID_CAVITY)
-   type(f_enumerator) :: PS_SCCS_ENUM=f_enumerator('sccs',PS_EPSILON_SCCS)
+   type(f_enumerator) :: PS_NONE_ENUM=f_enumerator('vacuum',PS_EPSILON_VACUUM,null())
+   type(f_enumerator) :: PS_RIGID_ENUM=f_enumerator('rigid',PS_EPSILON_RIGID_CAVITY,null())
+   type(f_enumerator) :: PS_SCCS_ENUM=f_enumerator('sccs',PS_EPSILON_SCCS,null())
 
-   type(f_enumerator), parameter :: PS_VAC_ENUM=f_enumerator('VAC',PS_EPSILON_VACUUM)
-   type(f_enumerator), parameter :: PS_PI_ENUM=f_enumerator('PI',PS_PI)
-   type(f_enumerator), parameter :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG)
+   type(f_enumerator), parameter :: PS_VAC_ENUM=f_enumerator('VAC',PS_EPSILON_VACUUM,null())
+   type(f_enumerator), parameter :: PS_PI_ENUM=f_enumerator('PI',PS_PI,null())
+   type(f_enumerator), parameter :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG,null())
 
   
    !>Defines the internal information for application of the FFT between the kernel and the 

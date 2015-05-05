@@ -420,13 +420,14 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
   else if (slowion) then
      !now call the Poisson Solver for the global energy forces
      call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-2.0_gp*psoffset,.false.)
+
      eion=ehart-eself
-     
+
      !print *,'ehart,eself',iproc,ehart,eself
-     
+
      !if (nproc==1) 
      !print *,'iproc,eion',iproc,eion
-     
+
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
      if (dpbox%n3pi >0 ) then
@@ -1461,7 +1462,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   !print *,'test case input_rho_ion',iproc,i3start,i3end,n3pi,2*n3+16,tt
   !if rho_ion is needed for the SCF cycle copy in the array
   if (pkernel%method /= 'VAC') then
-     call f_memcpy(n=n1i*n2i*n3pi,src=pot_ion(1),dest=rho_ion(1))
+     call f_memcpy(n=n1i*n2i*dpbox%n3pi,src=pot_ion(1),dest=rho_ion(1))
   end if
 
   if (pkernel%mpi_env%nproc > 1) then
@@ -1500,7 +1501,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
      !otherwise the pot_ion array is set to zero and can be filled with external potentials
      !like the gaussian part of the PSP ad/or external electric fields
      if (pkernel%method /= 'VAC') then
-        call f_zero(n1i*n2i*n3pi,pot_ion(1))
+        call f_zero(n1i*n2i*dpbox%n3pi,pot_ion(1))
      else
         call H_potential('D',pkernel,pot_ion,pot_ion,ehart,-psoffset,.false.,quiet=quiet)
      end if
@@ -1841,7 +1842,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 !!-  end do
 !!-  print *,'actual offset',tt_tot*hxh*hyh*hzh
 
-  !use rhopot to calculate the potential from a constant electric field along y direction
+  !use rhopotential to calculate the potential from a constant electric field along y direction
   if (.not. all(elecfield(1:3) == 0.0_gp)) then
      !constant electric field allowed only for surface and free BC
      if (dpbox%geocode == 'P') then

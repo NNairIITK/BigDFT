@@ -1174,23 +1174,6 @@ module module_interfaces
          real(wp), dimension(:), pointer :: psi,psivirt
        END SUBROUTINE write_eigen_objects
 
-       subroutine full_local_potential(iproc,nproc,orbs,Lzd,iflag,dpbox,xc,potential,pot,comgp)
-         use module_base
-         use module_dpbox
-         use module_types
-         use module_xc
-         implicit none
-         integer, intent(in) :: iproc,nproc,iflag
-         type(orbitals_data),intent(in) :: orbs
-         type(local_zone_descriptors),intent(in) :: Lzd
-         type(denspot_distribution), intent(in) :: dpbox
-         type(xc_info), intent(in) :: xc
-         real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), target :: potential
-         real(wp), dimension(:), pointer :: pot
-         !type(p2pCommsGatherPot),intent(inout), optional:: comgp
-         type(p2pComms),intent(inout), optional:: comgp
-       END SUBROUTINE full_local_potential
-
       subroutine free_full_potential(nproc,flag,xc,pot,subname)
          use module_base
          use module_xc
@@ -1754,17 +1737,6 @@ module module_interfaces
        type(comms_cubic), intent(in) :: commse
        integer, dimension(natsc+1,nspin), intent(in) :: norbsc_arr
      end subroutine LDiagHam
-
-     subroutine updatePotential(nspin,denspot,energs)!ehart,eexcu,vexcu)
-       use module_base
-       use module_types
-       implicit none
-       ! Calling arguments
-       integer, intent(in) :: nspin
-       type(DFT_local_fields), intent(inout) :: denspot
-       type(energy_terms), intent(inout) :: energs
-       !real(8),intent(out):: ehart, eexcu, vexcu
-     end subroutine updatePotential
 
      subroutine setCommsParameters(mpisource, mpidest, istsource, istdest, ncount, tag, comarr)
        use module_base
@@ -3105,22 +3077,6 @@ module module_interfaces
           real(kind=8),dimension(npsidim),intent(in) :: lphi
           type(comms_linear),intent(inout) :: collcom_sr
         end subroutine communicate_basis_for_density_collective
-
-        subroutine sumrho_for_TMBs(iproc, nproc, hx, hy, hz, collcom_sr, denskern, denskern_, ndimrho, rho, rho_negative, &
-                   print_results)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc, ndimrho
-          real(kind=8),intent(in) :: hx, hy, hz
-          type(comms_linear),intent(in) :: collcom_sr
-          type(sparse_matrix),intent(in) :: denskern
-          type(matrices),intent(in) :: denskern_
-          real(kind=8),dimension(ndimrho),intent(out) :: rho
-          logical,intent(out) :: rho_negative
-          logical,intent(in),optional :: print_results
-        end subroutine sumrho_for_TMBs
 
         subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
           use module_dpbox

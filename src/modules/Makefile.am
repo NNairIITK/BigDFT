@@ -78,7 +78,9 @@ libmodules_a_SOURCES = base.f90 \
 	postprocessing_linear.f90 \
 	foe.f90 \
 	ice.f90 \
+	locreg_operations.f90 \
 	bigdft_run.f90 \
+	rhopotential.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -135,7 +137,9 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	POSTPROCESSING_LINEAR.@MODULE_EXT@ \
 	FOE.@MODULE_EXT@ \
 	ICE.@MODULE_EXT@ \
+	LOCREG_OPERATIONS.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
+	RHOPOTENTIAL.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
@@ -191,7 +195,9 @@ modules = module_base.@MODULE_EXT@ \
 	postprocessing_linear.@MODULE_EXT@ \
 	foe.@MODULE_EXT@ \
 	ice.@MODULE_EXT@ \
+	locreg_operations.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
+	rhopotential.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
@@ -240,7 +246,7 @@ BigDFT_API.o: base.o types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_ing
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 diis_module.o: base.o types.o
-fragments.o: base.o types.o
+fragments.o: base.o types.o locreg_operations.o 
 constrained_dft.o: base.o types.o sparsematrix_base.o
 input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o defs.o ao_inguess.o interfaces.o atoms_data.o input.o public_keys.o
 psp_projectors.o: locregs.o gaussians.o defs.o
@@ -251,9 +257,9 @@ atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
 reformatting.o: base.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
-communications.o: base.o types.o communications_base.o
+communications.o: base.o types.o communications_base.o locregs.o locreg_operations.o xc.o
 sparsematrix_base.o: base.o
-sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o
+sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o locregs.o 
 sparsematrix.o: base.o types.o sparsematrix_base.o sparsematrix_init.o
 foe_base.o: base.o defs.o
 foe_common.o: base.o defs.o foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
@@ -272,13 +278,15 @@ module_fingerprints.o: base.o
 transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o
 module_forces.o: base.o types.o 
 chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
-unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o
+unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o locregs.o locreg_operations.o rhopotential.o
 matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: base.o types.o
 io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o
-postprocessing_linear.o: base.o types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o
+postprocessing_linear.o: base.o types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o
 foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
+locreg_operations.o: base.o types.o atoms_data.o locregs.o
+rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

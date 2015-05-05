@@ -603,7 +603,7 @@ subroutine gpu_precond(lr,hx,hy,hz,GPU,norbp,ncong,gnrm) !n(c) eval (arg:8)
   gnrm=0.0_wp
   do iorb=1,norbp
 
-     !use rhopot as a work array here
+     !use rhopotential as a work array here
      call gpuprecond(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
           0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
           GPU%psi(iorb),&
@@ -629,7 +629,7 @@ subroutine gpu_intprecond(lr,hx,hy,hz,GPU,ncong,iorb) !n(c) norbp (args:6), eval
   !local variables
   !n(c) integer :: i_stat
 
-  !use rhopot as a work array here
+  !use rhopotential as a work array here
   call gpuintprecond(lr%d%n1,lr%d%n2,lr%d%n3,lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,&
        0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        GPU%psi(iorb),&

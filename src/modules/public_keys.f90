@@ -26,6 +26,8 @@ module public_keys
   character(len = *), parameter :: ELECFIELD = "elecfield"
   character(len = *), parameter :: NSPIN = "nspin", MPOL = "mpol"
   character(len = *), parameter :: GNRM_CV = "gnrm_cv"
+  character(len = *), parameter :: GNRM_IG = "gnrm_ig"
+  character(len = *), parameter :: NIT_IG = "nit_ig"
   character(len = *), parameter :: ITERMAX = "itermax",ITERMIN = "itermin", NREPMAX = "nrepmax"
   character(len = *), parameter :: NCONG = "ncong", IDSX = "idsx"
   character(len = *), parameter :: DISPERSION = "dispersion"
@@ -169,6 +171,7 @@ module public_keys
   character(len = *), parameter :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
   character(len = *), parameter :: CORRECTION_CO_CONTRA = "correction_co_contra"
   character(len = *), parameter :: GPS_METHOD = "gps_method"
+  character(len = *), parameter :: FOE_GAP = "foe_gap"
 
   !keys for linear input variables
   !level keys
@@ -221,6 +224,7 @@ module public_keys
   character(len=*), parameter :: HAMAPP_RADIUS_INCR='hamapp_radius_incr'
   character(len=*), parameter :: ADJUST_KERNEL_ITERATIONS='adjust_kernel_iterations'
   character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
+  character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
 
   !> Parameters to avoid typos in dictionary keys
   character(len=*), parameter :: ASTRUCT_UNITS = 'units' 
@@ -264,15 +268,15 @@ module public_enums
   
   public
   
-  type(f_enumerator), parameter :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000)
-  type(f_enumerator), parameter :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999)
-  type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998)
-  type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997)
-  type(f_enumerator), parameter :: MORSE_BULK_RUN_MODE         =f_enumerator('MORSE_BULK_RUN_MODE',-996)
-  type(f_enumerator), parameter :: MORSE_SLAB_RUN_MODE         =f_enumerator('MORSE_SLAB_RUN_MODE',-995)
-  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994)
-  type(f_enumerator), parameter :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993)
-  type(f_enumerator), parameter :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992)
+  type(f_enumerator), parameter :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000,null())
+  type(f_enumerator), parameter :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999,null())
+  type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998,null())
+  type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997,null())
+  type(f_enumerator), parameter :: MORSE_BULK_RUN_MODE         =f_enumerator('MORSE_BULK_RUN_MODE',-996,null())
+  type(f_enumerator), parameter :: MORSE_SLAB_RUN_MODE         =f_enumerator('MORSE_SLAB_RUN_MODE',-995,null())
+  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994,null())
+  type(f_enumerator), parameter :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993,null())
+  type(f_enumerator), parameter :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992,null())
   
 end module public_enums
 

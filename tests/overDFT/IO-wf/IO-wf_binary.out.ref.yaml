@@ -595,6 +595,9 @@
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
+ - 
+   Do not read the linear input files in the old format. If you use the .yaml format you can 
+   igno
  - symmetries have been disabled, k points are not irreductible.
  - No convergence within the allowed number of minimization steps
  - Wavefunctions not converged after cycle  1
@@ -1017,4 +1020,7 @@
  Number of dictionary folders allocated:  1
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
+ - 
+   Do not read the linear input files in the old format. If you use the .yaml format you can 
+   igno
  - symmetries have been disabled, k points are not irreductible.

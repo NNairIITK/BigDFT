@@ -152,8 +152,8 @@ def parse():
                      help="number of support functions [default: %default]")
     group.add_option("--norb", type="int", default=1, metavar="NUM",
                      help="number of orbitals [default: %default]")
-    group.add_option("--interval", type="float", default=0.01, metavar="NUM",
-                     help="energy interval [default: %default]")
+    #group.add_option("--interval", type="float", default=0.01, metavar="NUM",
+    #                 help="energy interval [default: %default]")
     group.add_option("--pdos_file", type="string", default=1, metavar="PDOSFILE",
                      help="TMBs to be considered for PDOS [default: %default]")
 
@@ -699,7 +699,7 @@ options:
         #infile_names = options.infile.split(".")
         #infile_extension = infile_names[len(infile_names)-1]
         #command = "%s 1 %s dd pdos %s %s %s %d %d %d %e %s %s" % (memguess, options.name, options.coeff_file, options.ham_file, options.overlap_file, options.nbasis, options.norb, options.nat, options.interval, options.pdos_file, options.posinp_file)
-        command = "%s 1 %s dd pdos %s %s %s %e %s" % (memguess, options.name, options.coeff_file, options.ham_file, options.overlap_file, options.interval, options.pdos_file)
+        command = "%s 1 %s dd pdos %s %s %s %s" % (memguess, options.name, options.coeff_file, options.ham_file, options.overlap_file, options.pdos_file)
         print command
     if options.action == actions[12]:
         print 'calling memguess for kernel analysis'

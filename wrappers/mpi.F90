@@ -1612,16 +1612,23 @@ contains
     
   end function mpiwindow_l0
 
-  subroutine mpi_fenceandfree(window)
+  subroutine mpi_fenceandfree(window, assert)
     use dictionaries, only: f_err_throw,f_err_define
     ! Calling arguments
     integer,intent(inout) :: window !<window to be synchronized and freed
+    integer,intent(in),optional :: assert
 
     ! Local variables
-    integer :: ierr
+    integer :: ierr, assert_
+
+    if (present(assert)) then
+        assert_ = assert
+    else
+        assert_ = 0
+    end if
 
     ! Synchronize the communication
-    call mpi_win_fence(0, window, ierr)
+    call mpi_win_fence(assert_, window, ierr)
     if (ierr/=0) then
        call f_err_throw('Error in mpi_win_fence',&
             err_id=ERR_MPI_WRAPPERS)  

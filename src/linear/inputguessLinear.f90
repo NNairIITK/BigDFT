@@ -27,6 +27,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use communications_base, only: work_transpose, &
                                  work_transpose_null, allocate_work_transpose, deallocate_work_transpose
+  use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -826,8 +827,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
           info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
           input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
-          50,&
-          ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
+          input%lin%nit_extendedIG,&
+          ratio_deltas,ortho_on,input%lin%extra_states,0,input%lin%convCrit_extendedIG,&
+          input%experimental_mode,input%lin%early_stop,&
           input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
           can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
           input%purification_quickreturn, input%correction_co_contra, &
