@@ -209,6 +209,12 @@ contains
        mm_rst%refcnt=f_ref_new('mm_rst')
        call init_bmhtf(nat,runObj%atoms%astruct,runObj%inputs%mm_paramset,&
             runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode) 
+    case('RGLAU_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call init_RosatoGuillopeLegrand_Au(nat,astruct,paramset,paramfile,&
+            geocode)
     case('AMBER_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == nat) then
@@ -1315,6 +1321,8 @@ contains
         call tersoff(nat,bigdft_get_cell(runObj),rxyz_ptr,outs%fxyz,outs%strten,outs%energy)
     case('BMHTF_RUN_MODE')
         call energyandforces_bmhtf(nat,rxyz_ptr,outs%fxyz,outs%energy)
+    case('RGLAU_RUN_MODE')
+        call energyandforces_rgl_au(nat,alat, rxyz,fxyz,etot)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        !else if(trim(adjustl(efmethod))=='LENSIc')then!for clusters
        call f_memcpy(src=rxyz_ptr,dest=runObj%mm_rst%rf_extra)

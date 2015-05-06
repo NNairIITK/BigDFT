@@ -270,6 +270,7 @@ module public_enums
   type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994)
   type(f_enumerator), parameter :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993)
   type(f_enumerator), parameter :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992)
+  type(f_enumerator), parameter :: RGLAU_RUN_MODE         =f_enumerator('RGLAU_RUN_MODE',-991)
   
 end module public_enums
 

@@ -471,13 +471,13 @@ if(mdat%nneighbpairs(isad)>5)exclude=.true.
 write(*,*)'imaxloc',ipair
         if(exclude)then
             write(u2,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
-                 '0   0',mn(mdat%snghb(isad)%neighb(1,ipair)),&
-                  mn(mdat%snghb(isad)%neighb(2,ipair))
+                 '0   0',min(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair))),&
+                  max(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair)))
         else
             isadc=isadc+1
             write(u,'(es24.17,1x,a,2(1x,i0.0))')mdat%en_arr_sad(isad),&
-                 '0   0',mn(mdat%snghb(isad)%neighb(1,ipair)),&
-                  mn(mdat%snghb(isad)%neighb(2,ipair))
+                 '0   0',min(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair))),&
+                 max(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair)))
             write(ci,'(i5.5)')isadc
             write(u3,'(a)')'cp '//trim(adjustl(mdat%path_sad(isad)))//&
                        '.EXT saddlepoints/sad'//ci//'.EXT'
