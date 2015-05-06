@@ -2142,8 +2142,6 @@ contains
              in%run_mode=TERSOFF_RUN_MODE
           case('bmhtf')
              in%run_mode=BMHTF_RUN_MODE
-          case('rglau')
-             in%run_mode=RGLAU_RUN_MODE
           end select
        case(MM_PARAMSET)
             in%mm_paramset=val
