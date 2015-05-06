@@ -1036,7 +1036,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -3.4069E+02, -2.8095E+02, -2.1549E+02 ]
    norm(P)                             :  4.913642E+02
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
  Stress Tensor calculated              :  Yes
  Stress Tensor:

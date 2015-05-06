@@ -1886,11 +1886,11 @@
    BC                                  : Free
    Box                                 :  [  101,  95,  95 ]
    MPI tasks                           :  2
- Calculate local forces: Yes
+ Calculate local forces                :  Yes
  Calculate Non Local forces            :  No
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Found an energy value lower than the FINAL energy, delta: 4.00E-15
+ - Found an energy value lower than the FINAL energy (delta= 8.44E-15)
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  1.27

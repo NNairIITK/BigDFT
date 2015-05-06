@@ -49,7 +49,7 @@ import yaml
 def ignore_key(key):
     "Return True if the key has to be ignored."
     ret = key in keys_to_ignore
-    if (not(ret)):
+    if not ret:
         for p in patterns_to_ignore:
             if str(key).find(p) > -1:
                 ret = True
@@ -154,13 +154,14 @@ def compare_map(map, ref, tols, always_fails=False, keyword=""):
         #Initialize always_fails for each key
         always_f = always_fails
         if not ignore_key(key):
-            if not(key in map):
+            if not (key in map):
                 docmiss += 1
                 docmiss_it.append(key)
                 #print "WARNING!!", key, "not found", ref[key]
                 remarks += "KEY NOT FOUND: %s'%s' with value=%s\n" % (keyword,key,ref[key])
                 always_f = True
-                value = ref[key]
+                #value = ref[key]
+                value = None
             else:
                 value = map[key]
             if isinstance(tols,dict) and key in tols:
@@ -197,7 +198,7 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
     # eliminate the character variables
     diff = None
     if isinstance(ref,str):
-        if not(scl == ref):
+        if not (scl == ref):
             ret = (True, scl)
     elif not always_fails:
         # infinity case
@@ -209,9 +210,9 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
                 diff = math.fabs(scl - ref)
                 ret_diff = diff
                 if tols is None:
-                    failed = not(diff <= epsilon)
+                    failed = not (diff <= epsilon)
                 else:
-                    failed = not(diff <= tols)
+                    failed = not (diff <= tols)
             except TypeError:
                 ret_diff = "NOT SAME KIND"
                 diff = 0.
@@ -220,7 +221,7 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
         #  if (discrepancy > 1.85e-6):
         #      print 'test',scl,ref,tols,discrepancy,failed
         #      sys.exit(1)
-        if not(failed):
+        if not failed:
             if tols is None:
                 ret = (always_fails, None)
             else:
@@ -258,7 +259,7 @@ def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it,
         if leaks != 0:
             failure_reason = "Memory Leak"
         elif nmiss > 0:
-            failure_reason = "Information"
+            failure_reason = "Missing Keys"
         elif tol == -1 and "No such file" in message:
             failure_reason = "Missing File"
         elif tol == -1 and "while parsing" in message:
