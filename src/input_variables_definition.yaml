@@ -31,7 +31,7 @@
       As described in the wavelet formalism section, the nodes of this grid serve as the centers for the scaling 
       function/wavelet basis.
       Values are in most cases between 0.3 and 0.6 bohr.
-     RANGE: [0., 2.]
+     RANGE: [0., 4.]
      default: [0.45, 0.45, 0.45]
      fast: [0.55, 0.55, 0.55]
      accurate: [0.30, 0.30, 0.30]
@@ -198,7 +198,7 @@
         data structure restart.
         
         - InputPsiId = 2 The input wavefunction is read from the wavefunction. files which contain all the scaling
-        function and wavelet coefficients. In case some parameters such as hgridx or crmult have changed, compared to
+        function and wavelet coefficients. In case some parameters such as hgrids or crmult have changed, compared to
         the previous run, the wavefunctions will be also transformed to the new parameter set. Use also this value to
         restart from ETSF file format wavefunction-etsf.nc.
         
