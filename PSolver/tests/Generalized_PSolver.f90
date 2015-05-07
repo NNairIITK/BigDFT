@@ -1075,7 +1075,7 @@ subroutine writeroutinePot(n01,n02,n03,nspden,ri,i,potential)
   real(kind=8), dimension(:,:,:,:), allocatable :: re
   integer :: i1,i2,i3,j,i1_max,i2_max,i3_max,jj,unt
   real(kind=8) :: max_val,fact
-  write(*,*)'Use of writeroutinePot'
+  call yaml_comment('Use of writeroutinePot')
   re=f_malloc([n01,n02,n03,nspden],id='re')
       max_val = 0.d0
       i1_max = 1
