@@ -132,6 +132,8 @@
     #     yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
     #     yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
     #     yyyyyyyyyyyyyyyyyyyyyyyy
+ Check long sequences:
+   aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 ---
   #----------------------------------------------------------------------- Yaml Invoice Example
  invoice                               :  34843
@@ -184,9 +186,9 @@
    Late afternoon is best. Backup contact is Nancy Billsmer @ 338-4338
 ---
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Error Handling Module Test
- Raising the TOTO error, errcode       :  25
+ Raising the TOTO error, errcode       :  28
  ERR_TOTO:
-   Id                                  : 25
+   Id                                  : 28
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it
@@ -195,10 +197,10 @@
    Callback Procedure Address          : 4207856
  Additional Info                       : Extra message added
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
- Print the error ID                    :  25
+ Print the error ID                    :  28
  Raising the TOTO error, by name, without condition: ERR_TOTO
  ERR_TOTO:
-   Id                                  : 25
+   Id                                  : 28
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it
@@ -207,7 +209,7 @@
    Callback Procedure Address          : 4207856
  Additional Info                       : Extra message added again
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
- Callback done, errcode                :  25
+ Callback done, errcode                :  28
  GENERIC_ERROR:
    Id                                  : 1
    Message                             : UNSPECIFIED
@@ -290,36 +292,36 @@
        When a reference counter is present each pointer association should be tracked, check 
        for it
  - ERR_ALLOCATE:
-     Id                                : 17
+     Id                                : 18
      Message                           : Allocation error
      Action:
        Control the order of the allocation or if the memory limit has been reached
      Callback Procedure Address        : 4590240
  - ERR_DEALLOCATE:
-     Id                                : 18
+     Id                                : 19
      Message                           : Deallocation error
      Action:
        Control the order of the allocation or if the memory limit has been reached
      Callback Procedure Address        : 4590240
  - ERR_MEMLIMIT:
-     Id                                : 19
+     Id                                : 20
      Message                           : Memory limit reached
      Action:
        Control the size of the arrays needed for this run with bigdft-tool program
      Callback Procedure Address        : 4590240
  - ERR_INVALID_COPY:
-     Id                                : 20
+     Id                                : 21
      Message                           : Copy not allowed
      Action:
        A f_memcpy command failed, probably invalid sizes: check sizes of arrays at runtime
      Callback Procedure Address        : 4590240
  - ERR_INVALID_MALLOC:
-     Id                                : 21
+     Id                                : 22
      Message                           : Invalid specification of f_malloc
      Action                            : Put coherent data for the memory space allocation
      Callback Procedure Address        : 4590240
  - ERR_MALLOC_INTERNAL:
-     Id                                : 22
+     Id                                : 23
      Message                           : Internal error of memory profiler
      Action:
        An invalid operation occurs, submit bug report to developers
@@ -329,9 +331,23 @@
      Message                           : Error in timing routines
 
      Action                            : Control the running conditions of f_timing routines called
-     Callback Procedure Address        : 4654624
- - ERR_TOTO:
+     Callback Procedure Address        : 4617264
+ - INPUT_VAR_NOT_IN_LIST:
      Id                                : 25
+     Message                           : given value not in allowed list.
+     Action                            : choose a value from the list below.
+     Callback Procedure Address        : 4648352
+ - INPUT_VAR_NOT_IN_RANGE:
+     Id                                : 26
+     Message                           : given value not in allowed range.
+     Action                            : adjust the given value.
+ - INPUT_VAR_ILLEGAL:
+     Id                                : 27
+     Message                           : provided variable is not allowed in this context.
+     Action                            : correct or remove the input variable.
+     Callback Procedure Address        : 4646480
+ - ERR_TOTO:
+     Id                                : 28
      Message:
        This is the error message for the error of kind 1 and it is written extensively on 
        purpose to see whether yaml module prints it
@@ -339,18 +355,18 @@
        For this error, contact the routine developer at mail at univ dot gov
      Callback Procedure Address        : 4207856
  - ERR_TITI:
-     Id                                : 26
+     Id                                : 29
      Message                           : test2
      Callback Procedure Address        : 4207920
      Callback Procedure Data Address   : 140736968498416
  - ERR_GRAVE:
-     Id                                : 27
+     Id                                : 30
      Message                           : test2
      Callback Procedure Address        : 4338320
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End of error list
  Additional Info                       : This is the list of the errors
  ERR_TITI:
-   Id                                  : 26
+   Id                                  : 29
    Message                             : test2
    Callback Procedure Address          : 4207920
    Callback Procedure Data Address     : 140736968498416
@@ -366,10 +382,10 @@
  Error check value before try          :  No
  Number of errors(1)                   :  1
  Number of errors(2)                   :  0
- ID                                    :  25
+ ID                                    :  28
  MSG                                   : two
  ERR_TOTO:
-   Id                                  : 25
+   Id                                  : 28
    Message:
      This is the error message for the error of kind 1 and it is written extensively on 
      purpose to see whether yaml module prints it

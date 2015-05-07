@@ -170,7 +170,7 @@ subroutine test_yaml_output_sequences1()
 end subroutine test_yaml_output_sequences1
 
 
-!> Second test of sequences
+!> Second test of sequences (long comments and sequences)
 subroutine test_yaml_output_sequences2()
   use yaml_output
   implicit none
@@ -194,6 +194,12 @@ subroutine test_yaml_output_sequences2()
   call yaml_comment(repeat('y',200),hfill='-')
   call yaml_comment(repeat('y',200),tabbing=9,hfill='-')
   call yaml_mapping_close()
+
+  !Check long sequence
+  call yaml_sequence_open('Check long sequences')
+  call yaml_sequence(repeat('a',200))
+  call yaml_sequence(repeat('b',20))
+  call yaml_sequence_close()
 
   deallocate(dv)
 end subroutine test_yaml_output_sequences2
