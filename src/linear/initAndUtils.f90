@@ -37,16 +37,18 @@ end subroutine allocateBasicArraysInputLin
 
 
 subroutine allocate_extra_lin_arrays(lin,nspin,astruct)
+  use module_base
   use module_atoms, only: atomic_structure
   use module_types, only: linearInputParameters
   use dynamic_memory
+  use yaml_output
   implicit none
   integer,intent(in) :: nspin
   type(atomic_structure), intent(in) :: astruct
   type(linearInputParameters), intent(inout) :: lin
   !local variables
   character(len=*), parameter :: subname='allocate_extra_lin_arrays'
-  integer :: nlr,iat,itype,iiorb,iorb
+  integer :: nlr,iat,itype,iiorb,iorb,ispin
   !then perform extra allocations
   nlr=0
   do iat=1,astruct%nat
@@ -62,17 +64,23 @@ subroutine allocate_extra_lin_arrays(lin,nspin,astruct)
 
   ! Assign the localization radius to each atom.
   iiorb=0
-  do iat=1,astruct%nat
-     itype=astruct%iatype(iat)
-     do iorb=1,lin%norbsPerType(itype)
-        iiorb=iiorb+1
-        lin%locrad(iiorb)=lin%locrad_type(itype,1)
-        lin%locrad_kernel(iiorb)=lin%kernel_cutoff(itype)
-        lin%locrad_mult(iiorb)=lin%kernel_cutoff_FOE(itype)
-        lin%locrad_lowaccuracy(iiorb)=lin%locrad_type(itype,1) 
-        lin%locrad_highaccuracy(iiorb)=lin%locrad_type(itype,2)
-     end do
+  do ispin=1,nspin
+      do iat=1,astruct%nat
+         itype=astruct%iatype(iat)
+         do iorb=1,lin%norbsPerType(itype)
+            iiorb=iiorb+1
+            lin%locrad(iiorb)=lin%locrad_type(itype,1)
+            lin%locrad_kernel(iiorb)=lin%kernel_cutoff(itype)
+            lin%locrad_mult(iiorb)=lin%kernel_cutoff_FOE(itype)
+            lin%locrad_lowaccuracy(iiorb)=lin%locrad_type(itype,1) 
+            lin%locrad_highaccuracy(iiorb)=lin%locrad_type(itype,2)
+         end do
+      end do
   end do
+  if (iiorb/=nlr) then
+      call f_err_throw('Error in filling the extra_lin_arrays, iiorb/=nlr ('&
+      &//trim(yaml_toa(iiorb))//','//trim(yaml_toa(nlr))//')',err_name='BIGDFT_RUNTIME_ERROR')
+  end if
 end subroutine allocate_extra_lin_arrays
 
 
