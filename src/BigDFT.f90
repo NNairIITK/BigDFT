@@ -54,7 +54,10 @@ program BigDFT
       call bigdft_state(runObj,outs,infocode)
     
          if (trim(char(runObj%run_mode))/='QM_RUN_MODE)')then
-            if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
+            if (bigdft_mpi%iproc ==0 ) then
+                call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
+                call yaml_map('Force norm (Hartree)',sqrt(sum(outs%fxyz**2)),fmt='(es24.17)')
+            endif
          endif
 
          if (runObj%inputs%ncount_cluster_x > 1) then
