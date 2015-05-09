@@ -447,7 +447,7 @@ subroutine write_data(mdat)
     integer, allocatable :: mn(:)
     integer :: ipair, it
     logical :: exclude
-    character(len=5) :: ci
+    character(len=9) :: ci
     integer :: isadc, iminc
     integer :: imin_well_aligned
 
@@ -469,7 +469,7 @@ subroutine write_data(mdat)
     do imin = 1,mdat%nmin
         mn(mdat%minnumber(imin)) = imin
         write(u,*)mdat%en_arr(imin)
-        write(ci,'(i5.5)')imin
+        write(ci,'(i9.9)')imin
         write(u3,'(a)')'cp '//trim(adjustl(mdat%path_min(imin)))//&
                    '.EXT minima/min'//ci//'.EXT'
     enddo 
@@ -499,34 +499,34 @@ if(mdat%nneighbpairs(isad)>5)exclude=.true.
 !            endif
 !        enddo
 !!write(*,*)mdat%paircounter(:,isad)
-write(*,'(a,3(1x,i8.8))')'imaxloc',ipair,min(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair))),&                           
+write(*,'(a,3(1x,i9.9))')'imaxloc',ipair,min(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair))),&                           
                  max(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair)))
         if(exclude)then
-            write(u2,'(es24.17,1x,a,2(1x,i8.8),2x,2(1x,i8.8))')mdat%en_arr_sad(isad),&
+            write(u2,'(es24.17,1x,a,2(1x,i9.9),2x,2(1x,i9.9))')mdat%en_arr_sad(isad),&
                  '0   0',min(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair))),&
                   max(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair))),&
                   imin_well_aligned,imin_well_aligned+1
-            write(ci,'(i5.5)')imin_well_aligned
+            write(ci,'(i9.9)')imin_well_aligned
             write(u4,'(a)')'cp '//trim(adjustl(mdat%snghb(isad)%neighbPath(1,ipair)))//&                                                             
                        '.EXT minima_well_aligned/min'//ci//'.EXT'
-            write(ci,'(i5.5)')imin_well_aligned+1
+            write(ci,'(i9.9)')imin_well_aligned+1
             write(u4,'(a)')'cp '//trim(adjustl(mdat%snghb(isad)%neighbPath(2,ipair)))//&                                                             
                        '.EXT minima_well_aligned/min'//ci//'.EXT'
         else
             isadc=isadc+1
-            write(u,'(es24.17,1x,a,2(1x,i8.8),2x,2(1x,i8.8))')mdat%en_arr_sad(isad),&
+            write(u,'(es24.17,1x,a,2(1x,i9.9),2x,2(1x,i9.9))')mdat%en_arr_sad(isad),&
                  '0   0',min(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair))),&
                  max(mn(mdat%snghb(isad)%neighb(1,ipair)),mn(mdat%snghb(isad)%neighb(2,ipair))),&
                  imin_well_aligned,imin_well_aligned+1
-            write(ci,'(i5.5)')isadc
+            write(ci,'(i9.9)')isadc
             write(u3,'(a)')'cp '//trim(adjustl(mdat%path_sad(isad)))//&
                        '.EXT saddlepoints/sad'//ci//'.EXT'
             write(u4,'(a)')'cp '//trim(adjustl(mdat%path_sad(isad)))//&
                        '.EXT saddlepoints/sad'//ci//'.EXT'
-            write(ci,'(i5.5)')imin_well_aligned
+            write(ci,'(i9.9)')imin_well_aligned
             write(u4,'(a)')'cp '//trim(adjustl(mdat%snghb(isad)%neighbPath(1,ipair)))//&                                                             
                        '.EXT minima_well_aligned/min'//ci//'.EXT'
-            write(ci,'(i5.5)')imin_well_aligned+1
+            write(ci,'(i9.9)')imin_well_aligned+1
             write(u4,'(a)')'cp '//trim(adjustl(mdat%snghb(isad)%neighbPath(2,ipair)))//&                                                             
                        '.EXT minima_well_aligned/min'//ci//'.EXT'
         endif
@@ -535,10 +535,10 @@ write(*,*)ipair,mdat%snghb(isad)%paircounter(ipair)
 enddo
     
 !        if(.not. any(mdat%exclude .eq. mdat%sadnumber(isad)))then
-!            write(u,'(es24.17,1x,a,2(1x,i8.8))')mdat%en_arr_sad(isad),&
+!            write(u,'(es24.17,1x,a,2(1x,i9.9))')mdat%en_arr_sad(isad),&
 !                 '0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
 !        else
-!            write(u2,'(es24.17,1x,a,2(1x,i8.8))')mdat%en_arr_sad(isad),&
+!            write(u2,'(es24.17,1x,a,2(1x,i9.9))')mdat%en_arr_sad(isad),&
 !                 '0   0',mn(mdat%sadneighb(1,isad)),mn(mdat%sadneighb(2,isad))
 !        endif
     enddo
