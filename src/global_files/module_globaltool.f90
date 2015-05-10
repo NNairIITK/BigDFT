@@ -127,7 +127,6 @@ subroutine count_poslocm(gdat)
     !local
     character(len=600) :: filename
     integer :: idict,ifile
-    character(len=4) :: cifile
     logical :: exists
 
     call yaml_comment('Counting poslocms ....',hfill='-')
@@ -159,11 +158,11 @@ subroutine construct_filename(gdat,idict,ifile,filename)
 
     if(.not.gdat%oldfilename)then
         !for bigdft >= 1.7.6
-        write(filename,'(a,i4.4)')trim(adjustl(&
+        write(filename,'(a,i6.6)')trim(adjustl(&
              gdat%uinp%directories(idict)))//'/poslocm_',ifile
     else
         !for bigdft < 1.7.6
-        write(filename,'(a,i4.4,a)')trim(adjustl(&
+        write(filename,'(a,i6.6,a)')trim(adjustl(&
              gdat%uinp%directories(idict)))//'/poslocm_',&
              ifile,'_'
     endif
@@ -495,7 +494,7 @@ subroutine write_transitionpairs(gdat)
         kIDmin2=gdat%mn(IDmin2)
         call fpdistance(gdat%nid,gdat%fp_arr(1,kIDmin1),&
              gdat%fp_arr(1,kIDmin2),fpd)
-        write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17),1x,i8.8)')'   Trans',&
+        write(*,'(a,1x,i6.6,3x,i6.6,2x,4(1x,es24.17),1x,i8.8)')'   Trans',&
              IDmin1,IDmin2,gdat%en_arr(kIDmin1),gdat%en_arr(kIDmin2),&
              abs(gdat%en_arr(kIDmin1)-gdat%en_arr(kIDmin2)),fpd,gdat%transpairs(itrans)
     enddo
@@ -546,7 +545,7 @@ subroutine check_filename(gdat,idict)
     character(len=600) :: filename
     logical :: exists
     !for bigdft >= 1.7.6
-    write(filename,'(a,i4.4)')trim(adjustl(&
+    write(filename,'(a,i6.6)')trim(adjustl(&
          gdat%uinp%directories(idict)))//'/poslocm_',1
     call check_struct_file_exists(trim(adjustl(filename)),exists)
     if(exists)then
@@ -554,7 +553,7 @@ subroutine check_filename(gdat,idict)
         return
     endif
     !for bigdft < 1.7.6
-    write(filename,'(a,i4.4,a)')trim(adjustl(&
+    write(filename,'(a,i6.6,a)')trim(adjustl(&
          gdat%uinp%directories(idict)))//'/poslocm_',&
          1,'_'
     call check_struct_file_exists(trim(adjustl(filename)),exists)
@@ -628,7 +627,7 @@ subroutine add_transpairs_to_database(gdat)
         id_transpair = getPairId(idcurr,idnext)
         call fpdistance(gdat%nid,gdat%fp_arr(1,kidcurr),&
              gdat%fp_arr(1,kidnext),fpd)
-        write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17))')'   trans',idcurr,&
+        write(*,'(a,1x,i6.6,3x,i6.6,2x,4(1x,es24.17))')'   trans',idcurr,&
              idnext,gdat%en_arr(kidcurr),gdat%en_arr(kidnext),&
              abs(gdat%en_arr(kidcurr)-gdat%en_arr(kidnext)),fpd
 
@@ -830,7 +829,7 @@ subroutine gmon_line_to_fp(gdat,icount,iline,found)
     !We start at icount+10, because glbal might have been killed
     !after writing the first poslocm file and before writing global.mon
     do iposloc = min(icount+10,gdat%nminmaxpd) , 1 , -1
-write(*,'(i4.4,2(1x,es24.17))')iposloc,gdat%en_arr_currDir(iposloc),abs(gdat%en_arr_currDir(iposloc)-gdat%gmon_ener(icount))
+write(*,'(i6.6,2(1x,es24.17))')iposloc,gdat%en_arr_currDir(iposloc),abs(gdat%en_arr_currDir(iposloc)-gdat%gmon_ener(icount))
         if(abs(gdat%en_arr_currDir(iposloc)-&
            gdat%gmon_ener(icount))<ethresh)then
             found=.true.
