@@ -42,6 +42,7 @@ module module_globaltool
 
     type gt_data
         logical :: oldfilename
+        character :: cndigitposlocm
         integer :: nid
         integer :: nat
         integer :: ntrans
@@ -158,11 +159,11 @@ subroutine construct_filename(gdat,idict,ifile,filename)
 
     if(.not.gdat%oldfilename)then
         !for bigdft >= 1.7.6
-        write(filename,'(a,i6.6)')trim(adjustl(&
+        write(filename,'(a,i'//gdat%cndigitposlocm//'.'//gdat%cndigitposlocm//')')trim(adjustl(&
              gdat%uinp%directories(idict)))//'/poslocm_',ifile
     else
         !for bigdft < 1.7.6
-        write(filename,'(a,i6.6,a)')trim(adjustl(&
+        write(filename,'(a,i'//gdat%cndigitposlocm//'.'//gdat%cndigitposlocm//',a)')trim(adjustl(&
              gdat%uinp%directories(idict)))//'/poslocm_',&
              ifile,'_'
     endif
@@ -544,8 +545,11 @@ subroutine check_filename(gdat,idict)
     !local
     character(len=600) :: filename
     logical :: exists
+
+    gdat%cndigitposlocm='4'
+6323 continue
     !for bigdft >= 1.7.6
-    write(filename,'(a,i6.6)')trim(adjustl(&
+    write(filename,'(a,i'//gdat%cndigitposlocm//'.'//gdat%cndigitposlocm//')')trim(adjustl(&
          gdat%uinp%directories(idict)))//'/poslocm_',1
     call check_struct_file_exists(trim(adjustl(filename)),exists)
     if(exists)then
@@ -553,7 +557,7 @@ subroutine check_filename(gdat,idict)
         return
     endif
     !for bigdft < 1.7.6
-    write(filename,'(a,i6.6,a)')trim(adjustl(&
+    write(filename,'(a,i'//gdat%cndigitposlocm//'.'//gdat%cndigitposlocm//',a)')trim(adjustl(&
          gdat%uinp%directories(idict)))//'/poslocm_',&
          1,'_'
     call check_struct_file_exists(trim(adjustl(filename)),exists)
@@ -563,6 +567,10 @@ subroutine check_filename(gdat,idict)
     endif
 
     if(.not. exists)then
+        if(gdat%cndigitposlocm=='4')then
+            gdat%cndigitposlocm='6'
+            goto 6323
+        endif
         call f_err_throw(trim(adjustl(filename))//' does not exist.',&
              err_name='BIGDFT_RUNTIME_ERROR')
     endif
