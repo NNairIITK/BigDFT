@@ -201,6 +201,7 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
   real(kind=8),dimension(:),allocatable :: tmp_mat_compr, hpsit_tmp_c, hpsit_tmp_f, hphi_nococontra
   integer,dimension(:),allocatable :: ipiv
   type(matrices),dimension(1) :: inv_ovrlp_
+  integer :: ist, ispin
   real(8),dimension(:),allocatable :: inv_ovrlp_seq, lagmat_large, tmpmat, tmparr
   real(8),dimension(:,:),allocatable :: lagmatp, inv_lagmatp
   integer,dimension(2) :: irowcol
@@ -264,8 +265,11 @@ subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim
       !!write(*,*) 'iproc, sum(inv_lagmatp)', iproc, sum(inv_lagmatp)
       !!call compress_matrix_distributed(iproc, nproc, linmat%l, DENSE_MATMUL, &
       !!     inv_lagmatp, lagmat_large)
-      call matrix_matrix_mult_wrapper(iproc, nproc, linmat%l, &
-           linmat%ovrlppowers_(3)%matrix_compr, lagmat_large, lagmat_large)
+      do ispin=1,linmat%l%nspin
+          ist=(ispin-1)*linmat%l%nvctrp_tg+1
+          call matrix_matrix_mult_wrapper(iproc, nproc, linmat%l, &
+               linmat%ovrlppowers_(3)%matrix_compr(ist:), lagmat_large(ist:), lagmat_large(ist:))
+      end do
   end if
   if (data_strategy_main==SUBMATRIX) then
       call transform_sparse_matrix_local(linmat%m, linmat%l, lagmat_%matrix_compr, lagmat_large, 'large_to_small')
