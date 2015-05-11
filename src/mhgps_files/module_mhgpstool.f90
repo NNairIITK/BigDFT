@@ -24,6 +24,7 @@ module module_mhgpstool
     public :: init_mhgpstool_data
     public :: finalize_mhgpstool_data
     public :: write_data
+    public :: identMHminMHGPSmin
     
     type sadneighb
         integer :: npairx=-1
@@ -283,6 +284,63 @@ subroutine count_saddle_points(nfolder,folders,nsad)
     enddo
     call yaml_map('TOTAL',sum(nsad))
 end subroutine count_saddle_points
+!=====================================================================
+subroutine identMHminMHGPSmin(MHminPath,mdat,mn)
+    use module_base
+    use yaml_output
+    use module_atoms, only: set_astruct_from_file,&
+                            deallocate_atomic_structure
+    use module_fingerprints
+!identifies minima from MH database with minima from mhgps database
+    implicit none
+    !parameters
+    character(len=*), intent(in) :: MHminPath
+    type(mhgpstool_data), intent(inout) :: mdat
+    integer, intent(in) :: mn(mdat%nmin)
+    !local
+    integer :: imin
+    character(len=600) :: filename
+    logical :: exists
+    real(gp) :: rxyz(3,mdat%nat), fp(mdat%nid), epot
+    real(gp) :: en_delta, fp_delta
+    logical  :: lnew
+    integer  :: kid
+    integer  :: k_epot
+    en_delta = mdat%mhgps_uinp%en_delta_min
+    fp_delta = mdat%mhgps_uinp%fp_delta_min
+    imin=0
+    call yaml_comment('Mapping of MH minima to MHGPS minima ....',hfill='-')
+write(*,*)'ID MH  ---> ID MHGPS '
+    do
+        imin=imin+1
+        write(filename,'(a,i6.6,a)')trim(adjustl(MHminPath))//'/min',imin,'.xyz'
+        inquire(file=filename,exist=exists)
+        if(.not.exists)exit
+        call deallocate_atomic_structure(mdat%astruct)
+        !insert left minimum
+        call set_astruct_from_file(trim(filename),0,mdat%astruct,&
+             energy=epot)
+        if (mdat%astruct%nat /= mdat%nat) then
+            call f_err_throw('Error in identMHminMHGPSmin:'//&
+                 ' wrong size ('//trim(yaml_toa(mdat%astruct%nat))&
+                 //' /= '//trim(yaml_toa(mdat%nat))//')',&
+                 err_name='BIGDFT_RUNTIME_ERROR')
+        end if
+        call fingerprint(mdat%nat,mdat%nid,mdat%astruct%cell_dim,&
+             mdat%astruct%geocode,mdat%rcov,mdat%astruct%rxyz,&
+             fp(1))
+        call identical('min',mdat,mdat%nmintot,mdat%nmin,mdat%nid,epot,fp,&
+             mdat%en_arr,mdat%fp_arr,en_delta,fp_delta,lnew,kid,&
+             k_epot)
+        if(lnew)then
+write(*,'(i6.6,1x,a,1x,i6.5)')imin,'-->',-12345
+        else
+write(*,'(i6.6,1x,a,1x,i6.6)')imin,'-->',mn(mdat%minnumber(kid))
+        endif 
+    
+    enddo
+    call deallocate_atomic_structure(mdat%astruct)
+end subroutine
 !=====================================================================
 subroutine read_and_merge_data(folders,nsad,mdat)
     use module_base
@@ -546,8 +604,13 @@ enddo
     close(u2)
     close(u3)
     close(u4)
-    call f_free(mn)
 
+    !uncomment following call of identMHminMHGPSmin if
+    !identification of MH minima id with minima ID in MHPGS databse
+    !is desired
+!    call identMHminMHGPSmin('MH_database',mdat,mn)
+
+    call f_free(mn)
 end subroutine write_data
 !=====================================================================
 subroutine identical(cf,mdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
@@ -611,7 +674,6 @@ subroutine identical(cf,mdat,ndattot,ndat,nid,epot,fp,en_arr,fp_arr,en_delta,&
             dmin=min(dmin,d)
         endif
     enddo
-write(*,*)'dmin',dmin
     if (nsm.gt.1) then
         call yaml_warning('more than one identical configuration'//&
              ' found')
