@@ -13,6 +13,8 @@
  perf:
    ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
+   correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    nit: [1, 5]
    rpnrm_cv: [9.9999999999999995E-008, 9.9999999999999994E-012]
@@ -21,6 +23,7 @@
    calc_dipole: Yes
    calc_pulay: old
    calculate_onsite_overlap: Yes
+   output_mat: 21
  lin_basis:
    nit: [0, 3]
    idsx: [5, 0]

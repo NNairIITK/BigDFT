@@ -29,6 +29,7 @@ module module_types
   use m_paw_ij, only: paw_ij_type
   use m_pawfgrtab, only: pawfgrtab_type
   use m_pawrhoij, only: pawrhoij_type
+  use multipole_base, only: external_potential_descriptors
 
   implicit none
 
@@ -225,6 +226,8 @@ module module_types
     !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
     real(kind=8) :: max_inversion_error
     logical :: calculate_onsite_overlap
+    integer :: output_mat_format     !< Output Matrices format
+    integer :: output_coeff_format   !< Output Coefficients format
   end type linearInputParameters
 
 
@@ -425,6 +428,8 @@ module module_types
      integer :: PSolver_groupsize
      !> Global MPI group size (will be written in the mpi_environment)
      ! integer :: mpi_groupsize 
+
+     type(external_potential_descriptors) :: ep
 
      ! Linear scaling parameters
      type(linearInputParameters) :: lin    !< Linear scaling data
@@ -2244,6 +2249,8 @@ contains
 !!$          case("sccs")
 !!$             in%set_epsilon =EPSILON_SCCS
 !!$          end select
+       case (EXTERNAL_POTENTIAL)
+           ! Do nothing?
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2583,6 +2590,10 @@ contains
           in%lin%order_taylor = val
        case (OUTPUT_WF)
           in%lin%plotBasisFunctions = val
+       case (OUTPUT_MAT)
+          in%lin%output_mat_format = val
+       case (OUTPUT_COEFF)
+          in%lin%output_coeff_format = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
        case (CALC_PULAY)

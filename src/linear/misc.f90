@@ -166,7 +166,7 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   filex = trim(filebasex)//'.cube'
   filey = trim(filebasey)//'.cube'
   filez = trim(filebasez)//'.cube'
-  write(*,*) 'file0',file0
+  !write(*,*) 'file0',file0
   call f_open_file(iunit0, file=file0, binary=binary)
   call f_open_file(iunitx, file=filex, binary=binary)
   call f_open_file(iunity, file=filey, binary=binary)

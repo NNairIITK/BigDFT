@@ -77,12 +77,12 @@ module module_interfaces
          real(gp), dimension(3), intent(out) :: shift
       END SUBROUTINE system_size
 
-      subroutine standard_inputfile_names(inputs, radical)
-         use module_types
-         implicit none
-         type(input_variables), intent(out) :: inputs
-         character(len = *), intent(in) :: radical
-      END SUBROUTINE standard_inputfile_names
+!!$      subroutine standard_inputfile_names(inputs, radical)
+!!$         use module_types
+!!$         implicit none
+!!$         type(input_variables), intent(out) :: inputs
+!!$         character(len = *), intent(in) :: radical
+!!$      END SUBROUTINE standard_inputfile_names
 
       subroutine read_input_dict_from_files(radical, mpi_env,dict)
         use dictionaries, only: dictionary

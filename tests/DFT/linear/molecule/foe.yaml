@@ -10,6 +10,8 @@
    disablesym: Yes
  perf:
    evbounds_nsatur: 100
+   correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    nit: [1, 3]
    rpnrm_cv: 1.0E-008

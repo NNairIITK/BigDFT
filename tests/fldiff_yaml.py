@@ -505,7 +505,11 @@ for i in range(len(references)):
     highlight_iftty(options)
     if remarks:
         newreport = open(options_remarks.input, "w")
-        newreport.write(yaml.dump({"Remarks": remarks}, default_style="|", explicit_start=False))
+        if args.label is not None:
+            labl="("+args.label+")"
+        else:
+            labl=''
+        newreport.write(yaml.dump({"Remarks"+labl: remarks}, default_style="|", explicit_start=False))
         newreport.close()
         reports.write(open(options_remarks.input, "rb").read())
         highlight_iftty(options_remarks)

@@ -1150,8 +1150,98 @@ END MODULE module_input
 module input_old_text_format
   use yaml_strings, only: operator(.eqv.)
   implicit none
-  public
+  private
+  public :: input_from_old_text_format
 contains
+
+  subroutine input_from_old_text_format(radical,mpi_env,dict)
+    use public_keys
+    use wrapper_MPI
+    use dictionaries
+    use yaml_output
+    implicit none
+    character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
+    type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
+    type(dictionary), pointer :: dict            !< Input dictionary
+    !local variables
+    character(len = 100) :: f0
+    type(dictionary), pointer :: vals
+    
+    ! Parse all files.
+    call set_inputfile(f0, radical, PERF_VARIABLES)
+    nullify(vals)
+    call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//PERF_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, DFT_VARIABLES)
+    nullify(vals)
+    call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//DFT_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, KPT_VARIABLES)
+    nullify(vals)
+    call read_kpt_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//KPT_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, GEOPT_VARIABLES)
+    nullify(vals)
+    call read_geopt_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, MIX_VARIABLES)
+    nullify(vals)
+    call read_mix_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//MIX_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, SIC_VARIABLES)
+    nullify(vals)
+    call read_sic_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//SIC_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, TDDFT_VARIABLES)
+    nullify(vals)
+    call read_tddft_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//TDDFT_VARIABLES, vals)
+
+    !call set_inputfile(f0, radical, 'lin')
+    !call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
+
+    call set_inputfile(f0, radical, 'neb')
+    nullify(vals)
+    call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+
+    if (mpi_env%iproc==0) then
+       call yaml_warning('Input files read in the old format.'//&
+            'Use the input_minimal.yaml file to switch to new format. '//&
+            'In future versions this will be deprecated')
+    end if
+
+  end subroutine input_from_old_text_format
+
+  !> Set and check the input file
+  !! if radical is empty verify if the file input.ext exists. 
+  !! otherwise search for radical.ext
+  !! if the so defined file is not existing, then filename becomes default.ext
+  subroutine set_inputfile(filename, radical, ext)
+    implicit none
+    character(len = *), intent(in) :: radical, ext
+    character(len = 100), intent(out) :: filename
+
+    logical :: exists
+
+    write(filename, "(A)") ""
+    if (trim(radical) == "") then
+       write(filename, "(A,A,A)") "input", ".", trim(ext)
+    else
+       write(filename, "(A,A,A)") trim(radical), ".", trim(ext)
+    end if
+
+    inquire(file=trim(filename),exist=exists)
+    if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
+         & write(filename, "(A,A,A)") "default", ".", trim(ext)
+  end subroutine set_inputfile
+
   subroutine read_dft_from_text_format(iproc,dict,filename)
     use module_base
     use module_types
@@ -1766,7 +1856,7 @@ contains
     call input_var("method_updatekernel", 0, (/0,1,2/), "K update (sup fun opt) (0: purific., 1: FOE, 2: renorm.)", dummy_int)
     call set(dict // METHOD_UPDATEKERNEL, dummy_int)
 
-    call input_var("purification_quickreturn", .false., "linear scaling: quick return in purification", dummy_bool)
+    call input_var("purification_quickreturn", .true., "linear scaling: quick return in purification", dummy_bool)
     call set(dict // PURIFICATION_QUICKRETURN, dummy_bool)
 
     call input_var("adjust_FOE_temperature", .true., "dynamic adjustment of FOE error function decay length", dummy_bool)
@@ -1781,7 +1871,7 @@ contains
     call input_var("check_matrix_compression", .true., "perform a check of the matrix compression routines", dummy_bool)
     call set(dict // CHECK_MATRIX_COMPRESSION, dummy_bool)
 
-    call input_var("correction_co_contra", .false., "correction covariant / contravariant gradient", dummy_bool)
+    call input_var("correction_co_contra", .true., "correction covariant / contravariant gradient", dummy_bool)
     call set(dict // CORRECTION_CO_CONTRA, dummy_bool)
 
     call input_var("fscale_lowerbound", 5.d-3, "lower bound for the error function decay length", dummy_real)
@@ -2092,7 +2182,7 @@ contains
     use module_base
     use module_types
     use module_input
-    use module_input_keys
+    !use module_input_keys
     use yaml_output, only: yaml_toa,yaml_map
     implicit none
     logical, intent(in) :: shouldexist

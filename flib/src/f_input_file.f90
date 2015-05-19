@@ -9,6 +9,7 @@
 module f_input_file
   use dictionaries
   use yaml_strings, only: operator(.eqv.),f_strcpy
+  use f_utils, only: f_zero
   implicit none
 
   private
@@ -31,13 +32,15 @@ module f_input_file
   character(len = *), parameter :: COND = "CONDITION"
   character(len = *), parameter :: WHEN = "WHEN"
   character(len = *), parameter :: MASTER_KEY = "MASTER_KEY"
+  character(len = *), parameter :: IMPORT_KEY = "import"
 
   !internal variable of the module, only used to dump errors.
   type(dictionary), pointer :: failed_exclusive
 
   !> for internal flib usage
-  public :: input_file_errors,input_file_minimal,input_keys_fill,input_variable_dump
-  public :: input_value_is_default,input_keys_get_profile
+  public :: input_file_errors
+  public :: input_value_is_default,input_keys_get_profile,input_file_complete,input_file_dump
+  public :: input_file_minimal
 
 contains
 
@@ -83,6 +86,60 @@ contains
     end if
 
   end subroutine input_file_errors
+
+  !> Check and complete input file
+  subroutine input_file_complete(inputdef,dict,imports,nocheck)
+    use yaml_output
+    implicit none
+    !> dictionary of input definitions
+    type(dictionary), pointer :: inputdef
+    !>dictionary of the input files
+    type(dictionary), pointer :: dict
+    !>list of the keys which should not be checked
+    type(dictionary), pointer, optional :: nocheck
+    !>dictionary of the preloaded input parameters associated to the importing
+    !!for the input file
+    type(dictionary), pointer, optional :: imports
+
+    !local variables
+    logical :: localcheck
+    type(dictionary), pointer :: dict_tmp,iter,dict_tmp2
+
+    !if present imports, the user dictionary has to be saved for overriding
+    if (present(imports) .and. (IMPORT_KEY .in. dict)) then
+       if (associated(imports)) then
+          dict_tmp => dict
+          nullify(dict)
+          !distinguish now the presence of a list or a scalar in the import keyword
+          dict_tmp2 => dict_tmp//IMPORT_KEY
+          if (dict_len(dict_tmp2) > 0) then
+             !iterate on the list elements
+             iter => dict_iter(dict_tmp2)
+             do while(associated(iter))
+                call dict_update(dict,imports//dict_value(iter))
+                iter => dict_next(iter)
+             end do
+          else if (dict_size(dict_tmp2) > 0 ) then
+             call f_err_throw(err_id = INPUT_VAR_ILLEGAL, &
+                  err_msg ='The "'//IMPORT_KEY//'" key only accepts scalars or lists')
+          else
+             call dict_copy(src=imports//dict_value(dict_tmp2),dest=dict)
+          end if
+          !then override with the input defaults
+          call dict_update(dict,dict_tmp)
+          call dict_free(dict_tmp)
+       end if
+    end if
+    
+    localcheck=.true.
+    dict_tmp => dict_iter(inputdef)
+    do while (associated(dict_tmp))
+       if (present(nocheck)) localcheck = dict_key(dict_tmp) .notin. nocheck
+       call input_keys_fill(inputdef,dict,trim(dict_key(dict_tmp)),check=localcheck)
+       dict_tmp => dict_next(dict_tmp)
+    end do
+
+  end subroutine input_file_complete
 
   subroutine input_keys_set(inputdef,userDef, dict, file, key)
     use dictionaries
@@ -399,20 +456,13 @@ contains
     call f_zero(descr)! = " "
     call f_zero(tag)! = " "
     call f_zero(prof)! = " "
-    userDef = .false.
+    userDef = .true.
     parent => dict%parent
     if (associated(parent)) then
        attr = parent .get. (trim(dict%data%key)//ATTRS)
        descr = attr .get. COMMENT
        prof = attr .get. PROF_KEY   
        userDef = attr .get. USER_KEY
-!!$       if (has_key(parent, trim(dict%data%key) // ATTRS)) then
-!!$          attr => parent // (trim(dict%data%key) // ATTRS)
-!!$          if (has_key(attr, COMMENT)) descr = attr // COMMENT
-!!$          !if (has_key(attr, PROF_KEY)) tag = attr // PROF_KEY
-!!$          if (has_key(attr, PROF_KEY)) prof = attr // PROF_KEY
-!!$          if (has_key(attr, USER_KEY)) userDef = attr // USER_KEY
-!!$       end if
     end if
 
     if (dict_len(dict) > 0) then
@@ -562,7 +612,7 @@ contains
       type(dictionary), pointer :: vars,input,minim
       !local variables
       logical :: profile_found
-      character(len=max_field_length) :: def_var,var_prof,prof_var
+      character(len=max_field_length) :: def_var,var_prof,prof_var,scalar_tmp
       type(dictionary), pointer :: defvar,var
       nullify(minim)
 
@@ -576,7 +626,11 @@ contains
          !search if the input data have values among the profiles
          if (has_key(input,def_var)) then
             profile_found=.false.
-            !see if the dictionary has the PROF_KEY in thier possibilities
+            !see if the dictionary has the PROF_KEY in its possibilities
+!!$            call f_zero(prof_var)
+!!$            call f_zero(profile_value)
+!!$            profile_value=var .get. PROF_KEY
+!!$            if (len_trim(profile_value) == 0) prof_var=input .get. profile_value
             prof_var(1:len(prof_var))=' '
             if (has_key(var,PROF_KEY)) then
                if (has_key(input,dict_value(var//PROF_KEY))) &
@@ -589,9 +643,13 @@ contains
                !exclude keys for definition of the variable
                var_prof=dict_key(defvar)
                !              call yaml_map('key',var_prof)
-               if (trim(var_prof) /= COMMENT .and. trim(var_prof) /= COND .and.&
-                    trim(var_prof) /= RANGE .and. trim(var_prof) /= PROF_KEY .and. &
-                    trim(var_prof) /= EXCLUSIVE) then
+!!$               if (trim(var_prof) /= COMMENT .and. trim(var_prof) /= COND .and.&
+!!$                    trim(var_prof) /= RANGE .and. trim(var_prof) /= PROF_KEY .and. &
+!!$                    trim(var_prof) /= EXCLUSIVE) then
+               select case(trim(var_prof))
+               case(COMMENT,COND,RANGE,PROF_KEY,EXCLUSIVE)
+                  !do nothing in these cases
+               case default
                   !check if some profile meets desired values
                   !call yaml_map('defvar',defvar)
                   !call yaml_map('input',input//def_var)
@@ -600,6 +658,17 @@ contains
                   !call yaml_map('test',trim(var_prof) /= DEFAULT .and. var_prof /= prof_var)
                   !print *,'key',def_var
                   profile_found= (defvar == input//def_var) 
+                  !if it has not been found verify first that the list has not to be compacted
+                  !in one sense
+                  if (.not. profile_found) then
+                     call list_scalar(input//def_var,scalar_tmp)
+                     if (len_trim(scalar_tmp) /= 0) profile_found= dict_value(defvar) .eqv. scalar_tmp
+                  end if
+                  !or in another
+                  if (.not. profile_found) then
+                     call list_scalar(defvar,scalar_tmp)
+                     if (len_trim(scalar_tmp) /= 0) profile_found= dict_value(input//def_var) .eqv. scalar_tmp
+                  end if
                   if (profile_found) then
                      if (trim(var_prof) /= DEFAULT .and. var_prof /= prof_var) then
                         if (.not. associated(minim)) call dict_init(minim)
@@ -607,41 +676,47 @@ contains
                      end if
                      exit check_profile
                   end if
-               end if
+               end select
+!!$               end if
                defvar => dict_next(defvar)
             end do check_profile
             !the key has not been found among the profiles, therefore it should be entered as is
             if (.not. profile_found .and. len_trim(dict_value(input//def_var))/=0) then
                if (.not. associated(minim)) call dict_init(minim)
-               !clean the list items if the dictionary is a list with all the items identical
-               defvar => dict_iter(input//def_var)
-               var_prof=repeat(' ',len(var_prof))
-               if (dict_len(input // def_var)==0) nullify(defvar)
-               compact_list: do while(associated(defvar))
-                  !if scalar, retrieve the value, otherwise exit
-                  if (dict_size(defvar) == 0 .and. dict_len(defvar)==0) then
-                     prof_var=defvar
-                  else
-                     var_prof=repeat(' ',len(var_prof))
-                     exit compact_list
-                  end if
-                  !check if all the values of the list are equal to the first one
-                  if (len_trim(var_prof) == 0) then
-                     var_prof=prof_var
-                  else
-                     !check if all the values are OK, otherwise exit at first failure
-                     if (var_prof /= prof_var) then
-                        var_prof=repeat(' ',len(var_prof))
-                        exit compact_list
-                     end if
-                  end if
-                  defvar => dict_next(defvar)
-               end do compact_list
+               call list_scalar(input//def_var,var_prof)
+!!$               defvar => dict_iter(input//def_var)
+!!$               call f_zero(var_prof)
+!!$               !var_prof=repeat(' ',len(var_prof))
+!!$               !if the dictionary is not a list there is no need to start
+!!$               if (dict_len(input // def_var)==0) nullify(defvar)
+!!$               compact_list: do while(associated(defvar))
+!!$                  !if scalar, retrieve the value, otherwise exit
+!!$                  if (dict_size(defvar) == 0 .and. dict_len(defvar)==0) then
+!!$                     prof_var=defvar
+!!$                  else
+!!$                     !var_prof=repeat(' ',len(var_prof))
+!!$                     call f_zero(var_prof)
+!!$                     exit compact_list
+!!$                  end if
+!!$                  !check if all the values of the list are equal to the first one
+!!$                  if (len_trim(var_prof) == 0) then
+!!$                     var_prof=prof_var
+!!$                  else
+!!$                     !check if all the values are OK, otherwise exit at first failure
+!!$                     if (var_prof /= prof_var) then
+!!$                        !var_prof=repeat(' ',len(var_prof))
+!!$                        call f_zero(var_prof)
+!!$                        exit compact_list
+!!$                     end if
+!!$                  end if
+!!$                  defvar => dict_next(defvar)
+!!$               end do compact_list
                !if the dictionary is not a one-level list or if it is a list with different values
                ! copy it as-is
                if (len_trim(var_prof) == 0) then
                   call dict_copy(minim//def_var,input//def_var)
                else !otherwise put the scalar value associated
+                  !but first we should check if it is associated to a profile
                   call set(minim//def_var,var_prof)
                end if
             end if
@@ -652,6 +727,83 @@ contains
 
   end subroutine input_file_minimal
 
+  !>clean the list items if the dictionary is a list with all the items identical
+  subroutine list_scalar(list,scalar)
+    implicit none
+    type(dictionary), pointer :: list
+    character(len=max_field_length), intent(out) :: scalar !<empty if failed
+    !local variables
+    character(len=max_field_length) :: probe
+    type(dictionary), pointer :: iter
+
+    !the result is first cleaned
+    call f_zero(scalar)
+    !if the dictionary is not a list there is no need to start
+    if (dict_len(list)==0) return
+    iter => dict_iter(list)
+    do while(associated(iter))
+       !if scalar, retrieve the value, otherwise exit
+       if (dict_size(iter) == 0 .and. dict_len(iter)==0) then
+          probe=iter
+       else
+          call f_zero(scalar)
+          exit
+       end if
+       !assign the first value of the list
+       if (len_trim(scalar) == 0) then
+          call f_strcpy(src=probe,dest=scalar)
+       else
+          !check if all the values are OK, otherwise exit at first failure
+          if (scalar /= probe) then
+             call f_zero(scalar)
+             exit 
+          end if
+       end if
+       iter => dict_next(iter)
+    end do
+
+  end subroutine list_scalar
+
+
+  !> Dump the dictionary of the input variables.
+  !! Should dump only the keys relative to the input variables and
+  !! print out warnings for the ignored keys
+  subroutine input_file_dump(dict, userOnly,nodump_list,msg)
+    use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict   !< Dictionary to dump
+    logical, intent(in), optional :: userOnly
+    !>message to be written as comment in the beginning
+    !! do not write anything if present and empty
+    character(len=*), intent(in), optional :: msg
+    type(dictionary), pointer, optional :: nodump_list !<list containing keys not to dump
+
+    !local variables
+    integer, parameter :: natoms_dump=500
+    logical :: userOnly_,todump
+    integer :: i, dlen, skeys,natoms
+    character(max_field_length), dimension(:), allocatable :: keys
+    character(max_field_length) ::  sourcefile
+    type(dictionary), pointer :: tmp,iter
+
+    userOnly_ = .false.
+    if (present(userOnly)) userOnly_ = userOnly
+
+    if (present(msg)) then
+       if (len_trim(msg) /= 0) call yaml_comment(msg, hfill = "-")
+    else
+       call yaml_comment("Input parameters", hfill = "-")
+    end if
+    
+    iter => dict_iter(dict)
+    do while(associated(iter))
+       todump=.true.
+       if (present(nodump_list)) todump = dict_key(iter) .notin. nodump_list
+       if (todump) call input_variable_dump(iter,userOnly_)
+       iter => dict_next(iter)
+    end do
+
+  end subroutine input_file_dump
 
   
 end module f_input_file

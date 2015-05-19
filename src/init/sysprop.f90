@@ -829,7 +829,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use ao_inguess, only: atomic_info
   !use yaml_output
   use module_defs, only : Bohr_Ang,bigdft_mpi
-  use f_enums
+  use f_enums, f_str => str
   use yaml_output
   use dictionaries, only: f_err_throw
   implicit none
@@ -940,7 +940,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  corr=0.d0
 !!$  oneosqrteps=1.d0
 
-  select case(trim(char(pkernel%method)))
+  select case(trim(f_str(pkernel%method)))
   case('PCG')
    call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
   case('PI') 

@@ -876,7 +876,7 @@ real(gp) :: alpha0int
                 call yaml_comment('INFO: (MHGPS) alpha reset (opt. curv): '//&
                      trim(yaml_toa(fsw%alpha_rot)))
             fsw%ndim_rot=0
-            if((trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE') .and. (runObj%inputs%inputPsiId/=0))then
+            if(runObj%run_mode=='QM_RUN_MODE' .and. (runObj%inputs%inputPsiId/=0))then
                 if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity>=3)&
                     call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on '//&
                     '(until end of current minmode optimization).')
@@ -969,7 +969,7 @@ real(gp) :: alpha0int
                 call yaml_warning('(MHGPS) opt_curv failed because'//&
                      ' nrise > nmaxrise. Wrong finite difference'//&
                      ' or errors in energies and forces.')
-                if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
+                if(runObj%run_mode =='QM_RUN_MODE')then
                     call yaml_warning('(MHGPS) Did QM method converge?')
                 endif
             endif

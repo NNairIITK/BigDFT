@@ -40,12 +40,12 @@ module f_enums
      module procedure int_enum
   end interface int
 
-  interface char
+  interface str
      module procedure char_enum
-  end interface char
+  end interface str
 
   public :: f_enum_attr,operator(.hasattr.),nullify_f_enum
-  public :: int,char,f_enumerator_null,operator(==),operator(/=)
+  public :: int,str,f_enumerator_null,operator(==),operator(/=)
 
 contains
 

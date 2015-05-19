@@ -201,8 +201,10 @@ program GPS_3D
 !   corr=0.d0
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
-   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
-!   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
+   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,&
+        a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
+!   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,acell,a_gauss,a2,&
+!   hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
 
 !   eps=1.d0
 !   corr=0.d0
@@ -328,11 +330,14 @@ program GPS_3D
   if (any(SetEps == [2,3,4])) then
    call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
   else if (any(SetEps == [5])) then
-  call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset)
-!  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset)
+  call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,&
+       SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset)
+!  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,&
+!  nord,pkernel,potential,oneoeps,dlogeps,multp,offset)
   else if (any(SetEps == [6])) then
    call Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,6,nord,pkernel,potential,corr,oneosqrteps,multp)
-!   call Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,6,nord,pkernel,potential,corr,oneosqrteps,multp)
+!   call Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
+!   eps,6,nord,pkernel,potential,corr,oneosqrteps,multp)
   end if
 
   pot_check(:,:,:,:,i_check) = rhopot(:,:,:,:)
@@ -586,7 +591,8 @@ pure function PB_charge(x) result(ions_conc)
   real(8), dimension(n_ions) :: c_max  !< maximum local concentration that ionic species can attain [mol/m^3]
   real(8), dimension(n_ions) :: r_ions !< effective ionic radius of ionic species [m]
   real(8), parameter :: Temp = 300 ! Temperature of the liquid system [K]
-  real(8), parameter :: p = 0.74d0 !< packing coefficient p = 1 for perfect packing, p = pi_greek/(3(2)^{1/2}) ≈ 0.74 for close packing,
+  !> packing coefficient p = 1 for perfect packing, p = pi_greek/(3(2)^{1/2}) ≈ 0.74 for close packing,
+  real(8), parameter :: p = 0.74d0 
                                    !! p ≈ 0.64 for random close packing, and p = pi_greek/6 ≈ 0.52 for simple cubic packing.
   ! Nedeed constant
   real(8), parameter :: n_avo = 6.0221412927d23 ! Avogadro's number [1/mol]
@@ -841,7 +847,8 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
 
 end subroutine PolarizationIteration
 
-subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset)
+subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,&
+     SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset)
 
   use Poisson_Solver
   use yaml_output
@@ -1085,7 +1092,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
         qval=q(i1,i2,i3,isp)
         rval=r(i1,i2,i3,isp)
         pval = zeta+(beta/beta0)*pval
-        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+        ! Additional contribution to the Generalized Poisson operator
+        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta)
                                                                           ! for the Poisson-Boltzmann solution.
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*zeta)
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta*dcosh(multp*x(i1,i2,i3,isp))
@@ -1487,7 +1495,8 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
 
 end subroutine Poisson_Boltzmann
 
-subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp)
+subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,&
+     SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp)
 
   use Poisson_Solver
   use yaml_output
@@ -3852,7 +3861,7 @@ end if
 
 
      do i1=1,n01
-      write(22,'(1x,I8,2(1x,e22.15))') i1,eps(i1,n02/2,n03/2),eps(n01/2,i1,n03/2)
+        if (i1 <= n02) write(22,'(1x,I8,2(1x,e22.15))') i1,eps(i1,n02/2,n03/2),eps(n01/2,i1,n03/2)
      end do
 
   close(unit=21)
@@ -4180,7 +4189,8 @@ subroutine Eps_rigid_cavity_new2(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,e
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
   real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
-  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps !< inverse square root of epsilon. Needed for PCG method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps 
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
   !local variables
   integer :: i,i1,i2,i3,iat

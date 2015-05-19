@@ -75,13 +75,13 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-12_dp
+        kernel%minres=1.0e-10_dp!1.0e-12_dp
         kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%method=PS_PCG_ENUM
         kernel%nord=16 
         kernel%max_iter=50
-        kernel%minres=1.0e-12_dp
+        kernel%minres=1.0e-4_dp!1.0e-12_dp
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -147,7 +147,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      call yaml_map('MPI tasks',kernel%mpi_env%nproc)
      if (nthreads /=0) call yaml_map('OpenMP threads per MPI task',nthreads)
      if (kernel%igpu==1) call yaml_map('Kernel copied on GPU',.true.)
-     if (kernel%method /= 'VAC') call yaml_map('Iterative method for Generalised Equation',char(kernel%method))
+     if (kernel%method /= 'VAC') call yaml_map('Iterative method for Generalised Equation',str(kernel%method))
      if (kernel%method .hasattr. PS_RIGID_ENUM) call yaml_map('Cavity determination','rigid')
      if (kernel%method .hasattr. PS_SCCS_ENUM) call yaml_map('Cavity determination','sccs')
      call yaml_mapping_close() !kernel
@@ -726,7 +726,7 @@ endif
      kernel%displs(jproc)=kernel%grid%m1*kernel%grid%m3*istart
   end do
 
-  select case(trim(char(kernel%method)))
+  select case(trim(str(kernel%method)))
   case('PCG')
   if (present(eps)) then
      if (present(oneosqrteps)) then
@@ -830,7 +830,7 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
   !starting point in third direction
   i3s=kernel%grid%istart+1
   if (kernel%grid%n3p==0) i3s=1
-  select case(trim(char(kernel%method)))
+  select case(trim(str(kernel%method)))
   case('PCG')
      if (present(corr)) then
         kernel%corr=f_malloc_ptr([n1,n23],id='corr')
@@ -943,7 +943,7 @@ subroutine pkernel_allocate_cavity(kernel,vacuum)
 
   n1=kernel%ndims(1)
   n23=kernel%ndims(2)*kernel%grid%n3p
-  select case(trim(char(kernel%method)))
+  select case(trim(str(kernel%method)))
   case('PCG')
      kernel%corr=f_malloc_ptr([n1,n23],id='corr')
      kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
@@ -954,7 +954,7 @@ subroutine pkernel_allocate_cavity(kernel,vacuum)
   end select
   if (present(vacuum)) then
      if (vacuum) then
-        select case(trim(char(kernel%method)))
+        select case(trim(str(kernel%method)))
         case('PCG')
            call f_zero(kernel%corr)
         case('PI')
@@ -1032,8 +1032,8 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
 
   
   !local variables
-  real(kind=8) :: edensmax = 0.0035d0
-  real(kind=8) :: edensmin = 0.0001d0
+  real(kind=8), parameter :: edensmax = 0.0035d0
+  real(kind=8), parameter :: edensmin = 0.0001d0
   integer :: n01,n02,n03,i,i1,i2,i3,i23,i3s
   real(dp) :: oneoeps0,oneosqrteps0,pi,coeff,coeff1,fact1,fact2,fact3,r,t,d2,dtx,dd
   real(dp), dimension(:,:,:), allocatable :: ddt_edens
@@ -1063,11 +1063,11 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   fact3=(dlog(eps0))/(dlog(edensmax)-dlog(edensmin))
 
   if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
-       call yaml_map('Rebuilding the cavity for method',trim(char(kernel%method)))
+       call yaml_map('Rebuilding the cavity for method',trim(str(kernel%method)))
 
   !now fill the pkernel arrays according the the chosen method
   !if ( trim(PSol)=='PCG') then
-  select case(trim(char(kernel%method)))
+  select case(trim(str(kernel%method)))
   case('PCG')
      !in PCG we only need corr, oneosqrtepsilon
      i23=1

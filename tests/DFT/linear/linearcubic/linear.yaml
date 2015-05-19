@@ -13,6 +13,8 @@
    ef_interpol_det: 0.10E-19
    write_orbitals: 1
    wf_extent_analysis: Yes
+   correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    hybrid: Yes
    nit: 3

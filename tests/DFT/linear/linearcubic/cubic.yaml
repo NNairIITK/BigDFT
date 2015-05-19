@@ -9,6 +9,9 @@
    idsx: 10
    inputpsiid: 2
    disablesym: Yes
+ perf:
+   correction_co_contra: no
+   purification_quickreturn: no
  posinp:
    units: angstroem
    positions:
