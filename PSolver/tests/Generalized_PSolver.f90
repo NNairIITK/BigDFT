@@ -36,6 +36,7 @@ program GPS_3D
 !!$giu   character(len=2), parameter :: geocode = 'F'
 !   character(len=2), parameter :: geocode = 'P'
    character(len=2) :: geocode
+   character(len=2) :: geocodeprova
    character(len=2), parameter :: datacode = 'G'
    !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
    integer, parameter :: nord = 16
@@ -43,8 +44,8 @@ program GPS_3D
    real(8), dimension(3) :: hgrids
    real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
    !integer :: m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,
-   integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc,n01,n02,n03
-   real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid,sume
+   integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc,n01,n02,n03,iat
+   real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid,sume,delta
    real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,sum,einit
    real(kind=8) :: ehartree,offset,epol
    real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion,potsol
@@ -56,6 +57,7 @@ program GPS_3D
    integer, parameter :: n_check = 1 
 
    real(kind=8), dimension(:,:), allocatable :: rxyz
+   real(kind=8), dimension(:), allocatable :: radii
    real(kind=8), pointer :: kernel(:)
    type(coulomb_operator) :: pkernel
 !   type(mpi_environment), intent(in), optional :: mpi_env
@@ -142,6 +144,7 @@ program GPS_3D
    dens_check =f_malloc([n01,n02,n03,nspden,n_check],id='dens_check')
    pot_check =f_malloc([n01,n02,n03,nspden,n_check],id='pot_check')
    rxyz   =f_malloc([3,nat],id='rxyz')
+   radii   =f_malloc([nat],id='radii')
    
    eps=f_malloc([n01,n02,n03],id='eps')
    dlogeps=f_malloc([3,n01,n02,n03],id='dlogeps')
@@ -173,6 +176,45 @@ program GPS_3D
    if (SetEps.eq.3) then
       call get_rho(n01,n02,n03,nspden,nat,acell,a_gauss,hx,hy,hz,rhoele,rhoion,sume,rxyz,iproc)
    else
+    if (nat.eq.1) then
+     delta=0.3d0 !6.d0*max(hx,hy,hz)
+!     rxyz(1,1) = hx*real(n01/2,kind=8)
+     rxyz(2,1) = hy*real(n02/2,kind=8)
+!     rxyz(3,1) = hz*real(n03/2,kind=8)
+     rxyz(1,1) = hx*real(10,kind=8)
+!     rxyz(2,1) = hy*real(10,kind=8)
+     rxyz(3,1) = hz*real(10,kind=8)
+     radii(1)=rad_cav!*1.5d0/0.52917721092d0
+    else if (nat.eq.2) then
+     delta=0.3d0 !6.d0*max(hx,hy,hz)
+     rxyz(1,1) = hx*real(20,kind=8)
+     rxyz(2,1) = hy*real(10,kind=8)
+     rxyz(3,1) = hz*real(20,kind=8)
+     rxyz(1,2) = hx*real(10,kind=8)
+     rxyz(2,2) = hy*real(10,kind=8)
+     rxyz(3,2) = hz*real(10,kind=8)
+     radii(1)=rad_cav!*1.5d0/0.52917721092d0
+     radii(2)=rad_cav!*1.5d0/0.52917721092d0
+    else if (nat.eq.3) then
+      rxyz(1:3,1)=[9.300000d0, 9.300337d0, 9.243250d0]!-[2.30d0,2.85d0,3.7d0]
+      rxyz(1:3,2)=[9.300000d0, 8.415319d0, 8.700265d0]!-[2.30d0,2.85d0,3.7d0]
+      rxyz(1:3,3)=[9.300000d0, 7.299663d0, 9.156750d0]!-[2.30d0,2.85d0,3.7d0]
+!      rxyz(1:3,4)=[7.300000d0, 7.299663d0,9.156750d0]-[2.30d0,2.85d0,3.7d0]
+!      rxyz(1:3,5)=[7.300000d0, 7.299663d0,8.156750d0]-[2.30d0,2.85d0,3.7d0]
+!      radii=[1.5d0,2.0d0,1.5d0]
+!      radii=[1.5d0,2.0d0,1.5d0,1.5d0]
+!      radii=[1.5d0,1.2d0,1.2d0,1.2d0,1.2d0]
+!      rxyz(1:3,2)=[5.00000d0, 5.00000d0 + 0.2d0, 5.000000d0]
+
+     delta=0.3d0
+!     delta=2.0d0
+!     delta=delta*0.25d0 ! Divided by 4 because both rigid cavities are 4*delta widespread
+     radii=[1.4d0,1.0d0,1.0d0]
+!     do iat=1,nat
+!      radii(iat) = rad_cav*radii(iat)/0.52917721092d0 + 1.22d0*delta
+!     end do
+    end if
+
     rhoele(:,:,:,:) = 0.d0
     rhoion(:,:,:,:) = 0.d0
    end if
@@ -180,7 +222,7 @@ program GPS_3D
 !   SetEps=4
 
     call SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,&
-         4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz)
+         4,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,rhoele,rad_cav,rxyz,radii,delta)
 
     if (SetEps.lt.5) then
      if ( trim(PSol)=='VAC') then
@@ -194,6 +236,13 @@ program GPS_3D
 !    Setrho=1
     call print_PB_function(n01,n02,n03,iproc,hx,hy,hz,nord,acell)
 !------------------------------------------------------------------------
+! Vacuum
+!   eps=1.0d0
+!   dlogeps=0.d0
+!   oneoeps=1.d0
+!   oneosqrteps=1.d0
+!   corr=0.d0
+! Water
 !   eps=78.36d0
 !   dlogeps=0.d0
 !   oneoeps=1.d0/78.36d0
@@ -201,7 +250,7 @@ program GPS_3D
 !   corr=0.d0
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
-   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
+   call SetInitDensPot(n01,n02,n03,nspden,iproc,nat,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz)
 !   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,acell,a_gauss,a2,hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
 
 !   eps=1.d0
@@ -210,9 +259,9 @@ program GPS_3D
 !------------------------------------------------------------------------
 
 !------------------------------------------------------------------------
-
+geocodeprova='F'
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
-   call ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,5,multp)
+   call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,5,multp)
 
   if (iproc==0) then
    write(*,*)'Comparison between Generalized Poisson operator and analytical density'
@@ -222,7 +271,7 @@ program GPS_3D
 !------------------------------------------------------------------------
 
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
-   call ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,SetEps,multp)
+   call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,SetEps,multp)
 
   if (iproc==0) then
    write(*,*)'Comparison between Poisson-Boltzmann operator and analytical density'
@@ -328,10 +377,10 @@ program GPS_3D
   if (any(SetEps == [2,3,4])) then
    call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
   else if (any(SetEps == [5])) then
-  call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset)
-!  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset)
+  call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode)
+!  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
   else if (any(SetEps == [6])) then
-   call Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,6,nord,pkernel,potential,corr,oneosqrteps,multp)
+   call Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp)
 !   call Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,6,nord,pkernel,potential,corr,oneosqrteps,multp)
   end if
 
@@ -444,6 +493,7 @@ program GPS_3D
   call f_free(dens_check)
   call f_free(pot_check)
   call f_free(rxyz)
+  call f_free(radii)
   call f_free(rvApp)
   call f_free(eps)
   call f_free(dlogeps)
@@ -632,7 +682,7 @@ pure function PB_charge(x) result(ions_conc)
   ! Modified Poisson-Boltzmann Equation.
   ions_conc = 0.d0
   do i=1,n_ions
-   y=x/k_bT*0.05d0
+   y=x/k_bT!*0.05d0
    t = -z_ions(i)*y 
 !   t=safe_exp(t) ! Comment this line for linear Poisson-Boltzmann Equation.
    h=0.d0
@@ -643,11 +693,11 @@ pure function PB_charge(x) result(ions_conc)
    t=1.d0/l
    ions_conc = ions_conc + z_ions(i)*c_ions(i)*t 
   end do
-  ions_conc = ions_conc*fact*5.0d2
+  ions_conc = ions_conc*fact!*5.0d2
 
 end function PB_charge
 
-subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset)
+subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
   use yaml_output
   use Poisson_Solver
   use wrapper_linalg
@@ -663,6 +713,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
   type(coulomb_operator), intent(inout) :: pkernel
   real(kind=8), dimension(n01,n02,n03), intent(in) :: eps,potential,oneoeps,dlogeps
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
+  character(len=2), intent(in) :: geocode
 
   real(kind=8), dimension(n01,n02,n03)  :: pot_ion
   real(kind=8), parameter :: eta = 1.0d0 ! Polarization Iterative Method parameter.
@@ -687,15 +738,17 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
   pi = 4.d0*datan(1.d0)
   rpoints=product(real([n01,n02,n03],kind=8))
 
+  open(unit=18,file='PI_normr_'//trim(geocode)//'.dat',status='unknown')
+  open(unit=38,file='PI_accuracy_'//trim(geocode)//'.dat',status='unknown')
+
   if (iproc ==0) then
+   write(18,'(1x,a)')'iter normr rhores2'
+   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
    write(*,'(a)')'--------------------------------------------------------------------------------------------'
    write(*,'(a)')'Starting Polarization Iteration '
   end if
 
-  open(unit=18,file='PI_normr.dat',status='unknown')
-  open(unit=38,file='PI_accuracy.dat',status='unknown')
-
-  call fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,eps,deps,nord,acell)
+!  call fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,eps,deps,nord,acell)
 
   isp=1
   do i3=1,n03
@@ -704,10 +757,10 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
      rhopol(i1,i2,i3,isp) = 0.d0
      rhosol(i1,i2,i3,isp) = b(i1,i2,i3,isp)
 
-     !switch and create the logarithmic derivative of epsilon
-     dlv(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
-     dlv(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
-     dlv(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
+!     !switch and create the logarithmic derivative of epsilon
+!     dlv(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
+!     dlv(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
+!     dlv(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
 
     end do
    end do
@@ -841,7 +894,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
 
 end subroutine PolarizationIteration
 
-subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset)
+subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset,geocode)
 
   use Poisson_Solver
   use yaml_output
@@ -860,19 +913,20 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
   integer, intent(in) :: SetEps
   real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,corr3,oneosqrteps
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
+  character(len=2), intent(in) :: geocode
 
   real(kind=8), dimension(:,:,:,:), allocatable :: x,r,z,p,q,qold,lv,corr,deps
   !real(kind=8), dimension(n01,n02,n03,3) :: deps
   real(kind=8), dimension(:,:,:), allocatable :: de2,ddeps
-  integer, parameter :: max_iter = 50
+  integer, parameter :: max_iter = 100
   real(kind=8), parameter :: max_ratioex = 1.0d10
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   integer :: i,ii,j,i1,i2,i3,isp
-  real(kind=8), parameter :: error = 1.0d-20
+  real(kind=8), parameter :: error = 1.0d-8
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
   real(kind=8) :: ehartree,pi,switch,rpoints
-  real(kind=8) :: PB_charge
+  real(kind=8) :: PB_charge,shift,offsetnew
 
   !allocate heap arrays
   x=f_malloc([n01,n02,n03,nspden],id='x')
@@ -890,10 +944,12 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
   pi = 4.d0*datan(1.d0)   
   rpoints=product(real([n01,n02,n03],kind=8))
 
-  open(unit=18,file='PCG_normr.dat',status='unknown')
-  open(unit=38,file='PCG_accuracy.dat',status='unknown')
+  open(unit=18,file='PCG_normr_'//trim(geocode)//'.dat',status='unknown')
+  open(unit=38,file='PCG_accuracy_'//trim(geocode)//'.dat',status='unknown')
 
   if (iproc ==0) then
+   write(18,'(1x,a)')'iter normr ratio beta'
+   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
    call yaml_map('rpoints',rpoints)
    call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
   end if
@@ -1005,7 +1061,9 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
   call f_zero(p)
   beta=1.d0
   ratio=1.d0
-  normr=1.d0
+  normr=normb
+  shift=0.d0
+  offsetnew=0.d0 
 
   do i3=1,n03
      do i2=1,n02
@@ -1047,12 +1105,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
     call yaml_sequence(advance='no')
    end if
 
-   if (i.eq.1) then
-    call H_potential('G',pkernel,lv,pot_ion,ehartree,offset,.false.)
-   else if (i.gt.1) then
     call H_potential('G',pkernel,lv,pot_ion,ehartree,0.0_dp,.false.)
-   end if
-
 
    beta0 = beta
    beta=0.d0
@@ -1108,12 +1161,14 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
    alpha = beta/k
    !write(*,*)alpha
 
+   offsetnew=0.d0
    normr=0.d0
    isp=1
    do i3=1,n03
     do i2=1,n02
      do i1=1,n01
       x(i1,i2,i3,isp) = x(i1,i2,i3,isp) + alpha*p(i1,i2,i3,isp)
+      offsetnew=offsetnew+alpha*p(i1,i2,i3,isp)
       r(i1,i2,i3,isp) = r(i1,i2,i3,isp) - alpha*q(i1,i2,i3,isp)
       normr=normr+r(i1,i2,i3,isp)*r(i1,i2,i3,isp)
       !lv(i1,i2,i3,isp) = r(i1,i2,i3,isp)/dsqrt(eps(i1,i2,i3))
@@ -1124,6 +1179,25 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
    end do
 !   normr=dsqrt(normr)
    normr=sqrt(normr/rpoints)
+
+   if (trim(geocode) == 'P') then
+
+    if (i.eq.1) then
+     shift=offsetnew/(n01*n02*n03)-offset/(acell**3)
+    else if (i.gt.1) then
+     shift=offsetnew/(n01*n02*n03)
+    end if
+
+    isp=1
+    do i3=1,n03
+     do i2=1,n02
+      do i1=1,n01
+       x(i1,i2,i3,isp) = x(i1,i2,i3,isp) - shift
+      end do
+     end do
+    end do
+
+   end if
 
    ratio=normr/normb
    if (iproc ==0) then
@@ -1211,7 +1285,7 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
   real(kind=8), parameter :: eta = 1.0d0 ! Mixing parameter for the Poisson-Boltzmann ionic charge.
   real(kind=8), parameter :: tauPB = 1.0d-13 ! Polarization Iterative Method parameter.
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
-  real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2
+  real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2,normrPB
   real(kind=8) :: PB_charge
 
   !allocate heap arrays
@@ -1231,10 +1305,12 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
   pi = 4.d0*datan(1.d0)   
   rpoints=product(real([n01,n02,n03],kind=8))
 
-  open(unit=18,file='PCG_normr.dat',status='unknown')
-  open(unit=38,file='PCG_accuracy.dat',status='unknown')
+  open(unit=18,file='PB_PCG_normr.dat',status='unknown')
+  open(unit=38,file='PB_PCG_accuracy.dat',status='unknown')
 
   if (iproc ==0) then
+   write(18,'(1x,a)')'iter_PB normrPB rhores2'
+   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
    call yaml_map('rpoints',rpoints)
    call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
   end if
@@ -1306,6 +1382,7 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
   call f_zero(p)
   beta=1.d0
   ratio=1.d0
+  normr=normb
 
   do i3=1,n03
      do i2=1,n02
@@ -1319,8 +1396,8 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
 
   do i=1,max_iter
 
-   if (ratio.lt.error) exit
-   if (ratio.gt.max_ratioex) exit
+   if (normr.lt.error) exit
+   if (normr.gt.max_ratioex) exit
 
    if (iproc==0) then
     write(*,'(a)')'--------------------------------------------------------------------------------------------!'
@@ -1407,7 +1484,7 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
 
    ratio=normr/normb
    if (iproc ==0) then
-   write(18,'(1x,I8,3(1x,e14.7))')i,normr,ratio,beta
+!   write(18,'(1x,I8,3(1x,e14.7))')i,normr,ratio,beta
    !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
    call EPS_iter_output_LG(i,normb,normr,ratio,alpha,beta)
 !   call writeroutine(n01,n02,n03,nspden,r,i)
@@ -1434,13 +1511,23 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
     end do
    end do
 
+  normrPB=sqrt(rhores2/rpoints)
+
+   if (iproc==0) then
+    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    write(*,*)'End Poisson-Boltzmann iteration ',i_PB
+   end if
+
   if (iproc ==0) then
    call yaml_map('iter PB',i_PB)
+   call yaml_map('normrPB',normrPB)
    call yaml_map('rhores2',rhores2)
+   write(18,'(1x,I8,3(1x,e14.7))')i_PB,normrPB,rhores2
+   call writeroutinePot(n01,n02,n03,nspden,x,i_PB,potential)
   end if
 
-   if (rhores2.lt.tauPB) exit
-   if (rhores2.gt.max_ratioex_PB) exit
+   if (normrPB.lt.tauPB) exit
+   if (normrPB.gt.max_ratioex_PB) exit
 
  end do ! Poisson-Boltzmann loop
 
@@ -1521,7 +1608,7 @@ subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,
   real(kind=8), parameter :: eta = 1.0d0 ! Mixing parameter for the Poisson-Boltzmann ionic charge.
   real(kind=8), parameter :: tauPB = 1.0d-13 ! Polarization Iterative Method parameter.
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
-  real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2
+  real(kind=8) :: ehartree,offset,pi,switch,rpoints,res,rho,rhores2,normrPB
   real(kind=8) :: PB_charge
 
   !allocate heap arrays
@@ -1543,10 +1630,12 @@ subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,
   pi = 4.d0*datan(1.d0)   
   rpoints=product(real([n01,n02,n03],kind=8))
 
-  open(unit=18,file='PCG_normr.dat',status='unknown')
-  open(unit=38,file='PCG_accuracy.dat',status='unknown')
+  open(unit=18,file='PBimpro_PCG_normr.dat',status='unknown')
+  open(unit=38,file='PCGimpro_accuracy.dat',status='unknown')
 
   if (iproc ==0) then
+   write(18,'(1x,a)')'iter_PB normrPB rhores2'
+   write(38,'(1x,a)')'iter i1_max i2_max i3_max max_val max_center'
    call yaml_map('rpoints',rpoints)
    call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
   end if
@@ -1619,6 +1708,7 @@ subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,
   call f_zero(p)
   beta=1.d0
   ratio=1.d0
+  normr=normb
 
   do i3=1,n03
      do i2=1,n02
@@ -1632,8 +1722,8 @@ subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,
 
   do i=1,max_iter
 
-   if (ratio.lt.error) exit
-   if (ratio.gt.max_ratioex) exit
+   if (normr.lt.error) exit
+   if (normr.gt.max_ratioex) exit
 
    if (iproc==0) then
     write(*,'(a)')'--------------------------------------------------------------------------------------------!'
@@ -1721,7 +1811,7 @@ subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,
 
    ratio=normr/normb
    if (iproc ==0) then
-   write(18,'(1x,I8,3(1x,e14.7))')i,normr,ratio,beta
+!   write(18,'(1x,I8,3(1x,e14.7))')i,normr,ratio,beta
    !write(*,'(1x,I8,2(1x,e14.7))')i,ratio,beta
    call EPS_iter_output_LG(i,normb,normr,ratio,alpha,beta)
 !   call writeroutine(n01,n02,n03,nspden,r,i)
@@ -1750,13 +1840,23 @@ subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,
     end do
    end do
 
+  normrPB=sqrt(rhores2/rpoints)
+
+   if (iproc==0) then
+    write(*,'(a)')'--------------------------------------------------------------------------------------------!'
+    write(*,*)'End Poisson-Boltzmann iteration ',i_PB
+   end if
+
   if (iproc ==0) then
    call yaml_map('iter PB',i_PB)
+   call yaml_map('normrPB',normrPB)
    call yaml_map('rhores2',rhores2)
+   write(18,'(1x,I8,3(1x,e14.7))')i_PB,normrPB,rhores2
+   call writeroutinePot(n01,n02,n03,nspden,x_PB,i_PB,potential)
   end if
 
-   if (rhores2.lt.tauPB) exit
-   if (rhores2.gt.max_ratioex_PB) exit
+   if (normrPB.lt.tauPB) exit
+   if (normrPB.gt.max_ratioex_PB) exit
 
  end do ! Poisson-Boltzmann loop
 
@@ -2014,9 +2114,10 @@ subroutine FluxSurface(n01,n02,n03,nspden,hx,hy,hz,x,acell,eps,nord)
 
 end subroutine FluxSurface 
 
-subroutine ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,SetEps,multp)
+subroutine ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,SetEps,multp)
   use dynamic_memory
   implicit none
+  character(len=2), intent(in) :: geocode
   integer, intent(in) :: n01
   integer, intent(in) :: n02
   integer, intent(in) :: n03
@@ -2043,8 +2144,8 @@ subroutine ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,SetEps,mu
   ddx=f_malloc([n01,n02,n03,nspden],id='ddx')
   dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
   deps=f_malloc([n01,n02,n03,3],id='deps')
-
-  call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+  write(*,*)geocode
+  call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
 
       isp=1
       do i3=1,n03
@@ -2057,7 +2158,7 @@ subroutine ApplyLaplace(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,SetEps,mu
        end do
       end do
 
-   call fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
+   call fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
 
    y(:,:,:,:)=-y(:,:,:,:)/(4.d0*pi)
 
@@ -2148,7 +2249,7 @@ subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
 
 end subroutine Polarization_charge
 
-subroutine fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
+subroutine fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
       implicit none
 
 !c..this routine computes 'nord' order accurate first derivatives 
@@ -2162,6 +2263,7 @@ subroutine fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 !c..du(ngrid)   = first derivative values at the grid points
 
 !c..declare the pass
+      character(len=2), intent(in) :: geocode
       integer, intent(in) :: n01,n02,n03,nspden,nord
       real(kind=8), intent(in) :: hx,hy,hz
       real(kind=8), intent(in) :: acell
@@ -2170,13 +2272,20 @@ subroutine fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 !c..local variables
       integer :: n,m,n_cell
-      integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max
+      integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max,ii
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
       real(kind=8) :: max_diff,fact
+      logical :: perx,pery,perz
 
       n = nord+1
       m = nord/2
       n_cell = max(n01,n02,n03)
+
+      !buffers associated to the geocode
+      !conditions for periodicity in the three directions
+      perx=(geocode /= 'F')
+      pery=(geocode == 'P')
+      perz=(geocode /= 'F')
 
       ! Beware that n_cell has to be > than n.
       if (n_cell.lt.n) then
@@ -2212,13 +2321,27 @@ subroutine fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
              du(i1,i2,i3,isp,1) = 0.0d0
 
              if (i1.le.m) then
-              do j=-m,m
-               du(i1,i2,i3,isp,1) = du(i1,i2,i3,isp,1) + c1D(j,i1-m-1)*u(j+m+1,i2,i3,isp)!/hx
-              end do
+              if (perx) then
+               do j=-m,m
+                ii=modulo(i1 + j + n01 - 1, n01 ) + 1
+                du(i1,i2,i3,isp,1) = du(i1,i2,i3,isp,1) + c1D(j,0)*u(ii,i2,i3,isp)!/hx
+               end do
+              else
+               do j=-m,m
+                du(i1,i2,i3,isp,1) = du(i1,i2,i3,isp,1) + c1D(j,i1-m-1)*u(j+m+1,i2,i3,isp)!/hx
+               end do
+              end if
              else if (i1.gt.n01-m) then
-              do j=-m,m
-               du(i1,i2,i3,isp,1) = du(i1,i2,i3,isp,1) + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,isp)!/hx
-              end do
+              if (perx) then
+               do j=-m,m
+                ii=modulo(i1 + j - 1, n01 ) + 1
+                du(i1,i2,i3,isp,1) = du(i1,i2,i3,isp,1) + c1D(j,0)*u(ii,i2,i3,isp)!/hx
+               end do
+              else
+               do j=-m,m
+                du(i1,i2,i3,isp,1) = du(i1,i2,i3,isp,1) + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,isp)!/hx
+               end do
+              end if
              else
               do j=-m,m
                du(i1,i2,i3,isp,1) = du(i1,i2,i3,isp,1) + c1D(j,0)*u(i1 + j,i2,i3,isp)!/hx
@@ -2229,13 +2352,27 @@ subroutine fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
              du(i1,i2,i3,isp,2) = 0.0d0
 
              if (i2.le.m) then
-             do j=-m,m
-              du(i1,i2,i3,isp,2) = du(i1,i2,i3,isp,2) + c1D(j,i2-m-1)*u(i1,j+m+1,i3,isp)!/hy
-             end do 
+              if (pery) then
+               do j=-m,m
+                ii=modulo(i2 + j + n02 - 1, n02 ) + 1
+                du(i1,i2,i3,isp,2) = du(i1,i2,i3,isp,2) + c1D(j,0)*u(i1,ii,i3,isp)!/hy
+               end do
+              else
+               do j=-m,m
+                du(i1,i2,i3,isp,2) = du(i1,i2,i3,isp,2) + c1D(j,i2-m-1)*u(i1,j+m+1,i3,isp)!/hy
+               end do 
+              end if
              else if (i2.gt.n02-m) then
-              do j=-m,m
-               du(i1,i2,i3,isp,2) = du(i1,i2,i3,isp,2) + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,isp)!/hy
-              end do
+              if (pery) then
+               do j=-m,m
+                ii=modulo(i2 + j - 1, n02 ) + 1
+                du(i1,i2,i3,isp,2) = du(i1,i2,i3,isp,2) + c1D(j,0)*u(i1,ii,i3,isp)!/hy
+               end do
+              else
+               do j=-m,m
+                du(i1,i2,i3,isp,2) = du(i1,i2,i3,isp,2) + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,isp)!/hy
+               end do
+              end if
              else
               do j=-m,m
                du(i1,i2,i3,isp,2) = du(i1,i2,i3,isp,2) + c1D(j,0)*u(i1,i2 + j,i3,isp)!/hy
@@ -2246,13 +2383,27 @@ subroutine fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
              du(i1,i2,i3,isp,3) = 0.0d0
 
              if (i3.le.m) then
-             do j=-m,m
-              du(i1,i2,i3,isp,3) = du(i1,i2,i3,isp,3) + c1D(j,i3-m-1)*u(i1,i2,j+m+1,isp)!/hz
-             end do
+              if (perz) then
+               do j=-m,m
+                ii=modulo(i3 + j + n03 - 1, n03 ) + 1
+                du(i1,i2,i3,isp,3) = du(i1,i2,i3,isp,3) + c1D(j,0)*u(i1,i2,ii,isp)!/hx
+               end do
+              else
+               do j=-m,m
+                du(i1,i2,i3,isp,3) = du(i1,i2,i3,isp,3) + c1D(j,i3-m-1)*u(i1,i2,j+m+1,isp)!/hz
+               end do
+              end if
              else if (i3.gt.n03-m) then
-              do j=-m,m
-               du(i1,i2,i3,isp,3) = du(i1,i2,i3,isp,3) + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m,isp)!/hz
-              end do
+              if (perz) then
+               do j=-m,m
+                ii=modulo(i3 + j - 1, n03 ) + 1
+                du(i1,i2,i3,isp,3) = du(i1,i2,i3,isp,3) + c1D(j,0)*u(i1,i2,ii,isp)!/hx
+               end do
+              else
+               do j=-m,m
+                du(i1,i2,i3,isp,3) = du(i1,i2,i3,isp,3) + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m,isp)!/hz
+               end do
+              end if
              else
               do j=-m,m
                du(i1,i2,i3,isp,3) = du(i1,i2,i3,isp,3) + c1D(j,0)*u(i1,i2,i3 + j,isp)!/hz
@@ -2761,7 +2912,7 @@ subroutine fssnordEpsilonDerivative(n01,n02,n03,nspden,hx,hy,hz,u,du2,ddu,nord,a
 
 end subroutine fssnordEpsilonDerivative
 
-subroutine fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
+subroutine fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
       implicit none
 
 !c..this routine computes 'nord' order accurate first derivatives 
@@ -2775,6 +2926,7 @@ subroutine fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 !c..du(ngrid)   = first derivative values at the grid points
 
 !c..declare the pass
+      character(len=2), intent(in) :: geocode
       integer, intent(in) :: n01,n02,n03,nspden,nord
       real(kind=8), intent(in) :: hx,hy,hz
       real(kind=8), intent(in) :: acell
@@ -2783,14 +2935,21 @@ subroutine fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 !c..local variables
       integer :: n,m,n_cell
-      integer :: i,j,ib,i1,i2,i3,isp
+      integer :: i,j,ib,i1,i2,i3,isp,ii
       real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
       real(kind=8) :: d1,d2,d3
       real(kind=8), parameter :: zero = 0.d0! 1.0d-11
+      logical :: perx,pery,perz
 
       n = nord+1
       m = nord/2
       n_cell = max(n01,n02,n03)
+
+      !buffers associated to the geocode
+      !conditions for periodicity in the three directions
+      perx=(geocode /= 'F')
+      pery=(geocode == 'P')
+      perz=(geocode /= 'F')
 
       ! Beware that n_cell has to be > than n.
       if (n_cell.lt.n) then
@@ -2826,13 +2985,27 @@ subroutine fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
              d1 = 0.d0
              if (i1.le.m) then
-              do j=-m,m
-               d1 = d1 + c1D(j,i1-m-1)*u(j+m+1,i2,i3,isp,1)!/hx
-              end do
+              if (perx) then
+               do j=-m,m
+                ii=modulo(i1 + j + n01 - 1, n01 ) + 1
+                d1 = d1 + c1D(j,0)*u(ii,i2,i3,isp,1)!/hx
+               end do
+              else
+               do j=-m,m
+                d1 = d1 + c1D(j,i1-m-1)*u(j+m+1,i2,i3,isp,1)!/hx
+               end do
+              end if
              else if (i1.gt.n01-m) then
-              do j=-m,m
-               d1 = d1 + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,isp,1)!/hx
-              end do
+              if (perx) then
+               do j=-m,m
+                ii=modulo(i1 + j - 1, n01 ) + 1
+                d1 = d1 + c1D(j,0)*u(ii,i2,i3,isp,1)!/hx
+               end do
+              else
+               do j=-m,m
+                d1 = d1 + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,isp,1)!/hx
+               end do
+              end if
              else
               do j=-m,m
                d1 = d1 + c1D(j,0)*u(i1 + j,i2,i3,isp,1)!/hx
@@ -2842,13 +3015,27 @@ subroutine fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
              d2 = 0.d0
              if (i2.le.m) then
-             do j=-m,m
-              d2 = d2 + c1D(j,i2-m-1)*u(i1,j+m+1,i3,isp,2)!/hy
-             end do 
+              if (pery) then
+               do j=-m,m
+                ii=modulo(i2 + j + n02 - 1, n02 ) + 1
+                d2 = d2 + c1D(j,0)*u(i1,ii,i3,isp,2)!/hy
+               end do
+              else
+               do j=-m,m
+                d2 = d2 + c1D(j,i2-m-1)*u(i1,j+m+1,i3,isp,2)!/hy
+               end do 
+              end if
              else if (i2.gt.n02-m) then
-              do j=-m,m
-               d2 = d2 + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,isp,2)!/hy
-              end do
+              if (pery) then
+               do j=-m,m
+                ii=modulo(i2 + j - 1, n02 ) + 1
+                d2 = d2 + c1D(j,0)*u(i1,ii,i3,isp,2)!/hy
+               end do
+              else
+               do j=-m,m
+                d2 = d2 + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,isp,2)!/hy
+               end do
+              end if
              else
               do j=-m,m
                d2 = d2 + c1D(j,0)*u(i1,i2 + j,i3,isp,2)!/hy
@@ -2858,13 +3045,27 @@ subroutine fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
              d3 = 0.d0
              if (i3.le.m) then
-             do j=-m,m
-              d3 = d3 + c1D(j,i3-m-1)*u(i1,i2,j+m+1,isp,3)!/hz
-             end do
+              if (perz) then
+               do j=-m,m
+                ii=modulo(i3 + j + n03 - 1, n03 ) + 1
+                d3 = d3 + c1D(j,0)*u(i1,i2,ii,isp,3)!/hz
+               end do
+              else
+               do j=-m,m
+                d3 = d3 + c1D(j,i3-m-1)*u(i1,i2,j+m+1,isp,3)!/hz
+               end do
+              end if
              else if (i3.gt.n03-m) then
-              do j=-m,m
-               d3 = d3 + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m,isp,3)!/hz
-              end do
+              if (perz) then
+               do j=-m,m
+                ii=modulo(i3 + j - 1, n03 ) + 1
+                d3 = d3 + c1D(j,0)*u(i1,i2,ii,isp,3)!/hz
+               end do
+              else
+               do j=-m,m
+                d3 = d3 + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m,isp,3)!/hz
+               end do
+              end if
              else
               do j=-m,m
                d3 = d3 + c1D(j,0)*u(i1,i2,i3 + j,isp,3)!/hz
@@ -2999,16 +3200,19 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 
 end subroutine fssnord3DmatDiv3var
 
-subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,&
-     acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
+subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,&
+     acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyzreal)
   use dynamic_memory
   use yaml_output
   use f_utils
+  use numerics, only: safe_exp
+  use module_defs, only : Bohr_Ang,bigdft_mpi
+
   implicit none
   integer, intent(in) :: n01
   integer, intent(in) :: n02
   integer, intent(in) :: n03
-  integer, intent(in) :: nspden,iproc
+  integer, intent(in) :: nspden,iproc,natreal
   integer, intent(in) :: Setrho
   real(kind=8), intent(in) :: acell,a_gauss,a2,hx,hy,hz,sigmaeps,erfL,erfR
   integer, intent(in) :: SetEps
@@ -3019,20 +3223,30 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
   character(len=2), intent(in) :: geocode
   real(kind=8), intent(out) :: offset,einit
   real(kind=8), intent(in) :: multp
+  real(kind=8), dimension(n01,n02,n03) :: potential1
+  real(kind=8), dimension(3,natreal), intent(inout) :: rxyzreal
   real(kind=8), dimension(:,:,:,:), allocatable :: density1,density2
-  real(kind=8), dimension(:,:,:), allocatable :: potential1,potential2
-  integer :: i,i1,i2,i3,ifx,ify,ifz,unt
+  real(kind=8), dimension(:,:,:), allocatable :: potential2
+  integer :: i,i1,i2,i3,ifx,ify,ifz,unt,iat,jat,ii,nat,j,k,l,px,py,pz,imax
   real(kind=8) :: sigma,sigma1,sigma2,pi,sumd,sump,tt1,tt2,x0,r12
-  real(kind=8) :: x1,x2,x3,r,r2,r1,r22,derf_tt1,derf_tt2,factor,factor1,factor2
-  real(kind=8) :: length,denval,derf_tt,k1,k2,switch
-  real(kind=8) :: x,y,fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,fx1,fy1,fz1
+  real(kind=8) :: x1,x2,x3,r,r2,r1,r22,derf_tt1,derf_tt2,factor,factor1,factor2,value,d
+  real(kind=8) :: length,denval,derf_tt,k1,k2,switch,dens
+  real(kind=8) :: x,y,fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,fx1,fy1,fz1,valuemax
   real(kind=8), dimension(3) :: r_v
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8) :: PB_charge
+  !local variables
+  real(kind=8), parameter :: valuebc=1.d-15
+  real(kind=8), dimension(3) :: rv,shift,sh
+  real(kind=8), dimension(6) :: plandist
+  integer, dimension(6) :: ba
+  real(kind=8), dimension(3,27*natreal) :: rxyztot
+  real(kind=8), dimension(:,:), allocatable :: rxyz
+  logical :: perx,pery,perz
+  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3
 
   density1=f_malloc([n01,n02,n03,nspden],id='density1')
   density2=f_malloc([n01,n02,n03,nspden],id='density2')
-  potential1=f_malloc([n01,n02,n03],id='potential1')
   potential2=f_malloc([n01,n02,n03],id='potential2')
 
   density=0.d0
@@ -3260,7 +3474,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
 
       offset=offset*hx*hy*hz
 
-      write(*,*)'offset',offset
+!      write(*,*)'offset',offset
 
   else if (trim(geocode) == 'S') then
 
@@ -3307,11 +3521,205 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
 
 ! Set initial potential as gaussian and density as the correct Generalized
 ! Laplace operator. It works with a gaussian epsilon.
+  sigma = 0.05d0*acell
+  factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
+
+  shift(1)=hx*real(n01,kind=8)
+  shift(2)=hy*real(n02,kind=8)
+  shift(3)=hz*real(n03,kind=8)
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+!------------------------------------------------------------------------------------------------------
+! Depending of Free, Periodic or Surface bc, image atoms are or not included.
+
+  if (iproc==0) then
+   call yaml_map('nbl1',nbl1)
+   call yaml_map('nbl2',nbl2)
+   call yaml_map('nbl3',nbl3)
+   do iat=1,natreal
+    call yaml_map('real input atoms',iat)
+    call yaml_map('rxyz',rxyzreal(:,iat))
+   end do
+  end if
+
+  px=0
+  py=0
+  pz=0
+  if (perx) px=1
+  if (pery) py=1
+  if (perz) pz=1
+
+  rxyztot(:,:)=0.d0
+
+  i=0
+  do iat=1,natreal
+
+   ba(1:6)=0
+   ! checking what are the image atoms to include in the calculation of the
+   ! cavity.
+   rv(1:3)=rxyzreal(1:3,iat)
+   plandist(1)=dabs(rv(1))
+   plandist(2)=dabs(shift(1)-rv(1))
+   plandist(3)=dabs(rv(2))
+   plandist(4)=dabs(shift(2)-rv(2))
+   plandist(5)=dabs(rv(3))
+   plandist(6)=dabs(shift(3)-rv(3))       !Normalization
+   do ii=1,6
+    valuemax=0.d0
+    d=plandist(ii)
+    r2=d*d
+    value=factor*safe_exp(-0.5d0*r2/(sigma**2))
+    if (value.gt.valuebc) then ! valuebc is the value to check on the box border to accept or refuse an image atom.
+     if (abs(value).gt.valuemax) then
+      valuemax=abs(value)
+      imax=ii
+     end if
+     select case(ii)
+     case (1)
+      ba(1)=1*px
+     case (2)
+      ba(2)=-1*px
+     case (3)
+      ba(3)=1*py
+     case (4)
+      ba(4)=-1*py
+     case (5)
+      ba(5)=1*pz
+     case (6)
+      ba(6)=-1*pz
+     end select
+    end if
+   end do
+
+   do j=ba(6),ba(5)
+    sh(3)=real(j,kind=8)*shift(3)
+    do k=ba(4),ba(3)
+     sh(2)=real(k,kind=8)*shift(2)
+     do l=ba(2),ba(1)
+      sh(1)=real(l,kind=8)*shift(1)
+      rv(1:3)=rxyzreal(1:3,iat) + sh(1:3)
+      i=i+1
+      rxyztot(1:3,i)=rv(1:3)
+     end do
+    end do
+   end do
+
+  end do
+
+  nat=i
+
+  rxyz=f_malloc([3,nat],id='rxyz')
+  rxyz(1:3,1:nat)=rxyztot(1:3,1:nat)
+
+  if (iproc==0) then
+   write(*,*)plandist
+   write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value max =',valuemax,'at bc side',imax
+   call yaml_map('nat',nat)
+   do iat=1,nat
+    call yaml_map('atom',iat)
+    call yaml_map('rxyz',rxyz(:,iat))
+   end do
+  end if
+
+!------------------------------------------------------------------------------------------------------
+! Starting the potential and density building for rxyztot atoms=real+image atoms (total
+! natcurr) for periodic and surface boundary conditions or atoms=real for free bc.
+
+  density(:,:,:,:)=0.d0
+  potential(:,:,:)=0.d0
+  potential1(:,:,:)=0.d0
+  offset=0.d0
+
+  do iat=1,nat
+
+   !gaussian function for the potential.
+   sump=0.d0
+   do i3=1,n03
+    x3=hz*(i3-1-nbl3)
+    !x3 = hz*real(i3-n03/2,kind=8)
+    do i2=1,n02
+     x2 = hy*(i2-1-nbl2)
+     !x2 = hy*real(i2-n02/2,kind=8)
+     do i1=1,n01
+      x1 = hx*(i1-1-nbl1)
+      !x1 = hx*real(i1-n01/2,kind=8)
+      r2=(x1-rxyz(1,iat))**2+(x2-rxyz(2,iat))**2+(x3-rxyz(3,iat))**2
+      !r2 = x1*x1+x2*x2+x3*x3
+!      potential(i1,i2,i3) = 1.d0/real(nspden,kind=8)*max(factor*exp(-0.5d0*r2/(sigma**2)),1d-24)
+      potential1(i1,i2,i3) = factor*safe_exp(-0.5d0*r2/(sigma**2))
+      potential(i1,i2,i3) = potential(i1,i2,i3) + potential1(i1,i2,i3)
+      sump=sump+potential(i1,i2,i3)
+      offset=offset+potential(i1,i2,i3)
+     end do
+    end do
+   end do
+
+   offset=offset*hx*hy*hz
+   write(*,*)'offset',offset
+   switch=0.0d0
+   if (SetEps.eq.6) then
+    switch=1.0d0
+   end if
+
+    sumd=0.d0
+    !analitic density calculation.
+    do i3=1,n03
+     x3=hz*(i3-1-nbl3)
+     !x3 = hz*real(i3-n03/2,kind=8)
+     r_v(3)=x3-rxyz(3,iat)
+     do i2=1,n02
+      x2 = hy*(i2-1-nbl2)
+      !x2 = hy*real(i2-n02/2,kind=8)
+      r_v(2)=x2-rxyz(2,iat)
+      do i1=1,n01
+       x1 = hx*(i1-1-nbl1)
+       !x1 = hx*real(i1-n01/2,kind=8)
+       r_v(1)=x1-rxyz(1,iat)
+       r2=(x1-rxyz(1,iat))**2+(x2-rxyz(2,iat))**2+(x3-rxyz(3,iat))**2
+       !r2 = x1*x1+x2*x2+x3*x3
+       k1=0.d0
+       do i=1,3
+        k1 = k1 + dlogeps(i,i1,i2,i3)*potential1(i1,i2,i3)*(-r_v(i)/(sigma**2))
+       end do
+       k2 = potential1(i1,i2,i3)*(r2/(sigma**2)-3.d0)/(sigma**2)
+       do i=1,nspden
+!        density(i1,i2,i3,i) =(-1.d0/(4.d0*pi))*eps(i1,i2,i3)*(k1+k2)&
+!                             -switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(potential(i1,i2,i3))
+        dens = (-1.d0/(4.d0*pi))*eps(i1,i2,i3)*(k1+k2)&
+                -switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(potential1(i1,i2,i3))
+!                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*potential(i1,i2,i3))
+!                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dtanh(multp*potential(i1,i2,i3))
+!                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*potential(i1,i2,i3)
+!                             +switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*(potential(i1,i2,i3)**2)
+        density(i1,i2,i3,i) = density(i1,i2,i3,i) + dens
+        sumd=sumd+density(i1,i2,i3,i)
+       end do
+      end do
+     end do
+    end do
+
+  end do ! loop iat over atoms
+  
+  call f_free(rxyz)
+
+ else if (SetEps.eq.7) then
+
+! Set initial potential as gaussian and density as the correct Generalized
+! Laplace operator. It works with a gaussian epsilon.
 
   offset=0.d0
   sigma = 0.05d0*acell
   x0 = 0.d0 ! hx*real(25-n01/2,kind=8)
-!print *,'we should be here for cavity'
+print *,'we should be here for old analytical functions'
          !Normalization
          factor = 1.d0/((sigma**3)*sqrt((2.d0*pi)**3))
          !gaussian function for the potential.
@@ -3330,10 +3738,9 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
                end do
             end do
           end do
-
       offset=offset*hx*hy*hz
 
-      write(*,*)'offset',offset
+!      write(*,*)'offset',offset
 
   switch=0.0d0
   if (SetEps.eq.6) then
@@ -3376,7 +3783,8 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
 !plot of the starting conditions
  unt=f_get_free_unit(21)
  call f_open_file(unt,file='initial.dat')
- i1=n03/2
+ i1=n01/2
+ !i1=1
  do i2=1,n02
     do i3=1,n03
        write(unt,'(2(1x,I4),3(1x,e14.7))')i2,i3,density(i1,i2,i3,1),potential(i1,i2,i3),eps(i1,i2,i3)
@@ -3386,8 +3794,13 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
 
  unt=f_get_free_unit(22)
  call f_open_file(unt,file='initial_line.dat')
- do i2=1,n02
-  write(unt,'(1x,I8,3(1x,e22.15))') i2,density(n01/2,i2,n03/2,1),potential(n01/2,i2,n03/2),eps(n01/2,i2,n03/2)
+ i1=n01/2
+ !i1=1
+ i2=n03/2
+! i3=1
+ do i3=1,n02
+!  write(unt,'(1x,I8,3(1x,e22.15))') i2,density(n01/2,i2,n03/2,1),potential(n01/2,i2,n03/2),eps(n01/2,i2,n03/2)
+  write(unt,'(1x,I8,3(1x,e22.15))') i3,density(i1,i2,i3,1),potential(i1,i2,i3),eps(i1,i2,i3)
  end do
  call f_close(unt)
 
@@ -3415,7 +3828,6 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,SetEps,e
 
   call f_free(density1)
   call f_free(density2)
-  call f_free(potential1)
   call f_free(potential2)
 
 end subroutine SetInitDensPot
@@ -3501,7 +3913,7 @@ end subroutine functions
 
 subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,&
      erfL,erfR,sigmaeps,SetEps,geocode,PSol,eps,dlogeps,oneoeps,oneosqrteps,corr,&
-     rhoele,rad_cav,rxyz)
+     rhoele,rad_cav,rxyz,radii,delta)
 
   use dynamic_memory
   use yaml_output
@@ -3513,7 +3925,7 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,&
   integer, intent(in) :: nspden
   integer, intent(in) :: nord
   integer, intent(in) :: nat,iproc
-  real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,rad_cav
+  real(kind=8), intent(in) :: acell,a_gauss,hx,hy,hz,erfL,erfR,sigmaeps,rad_cav,delta
   integer, intent(in) :: SetEps
   character(len=2), intent(in) :: geocode
   character(len=4), intent(in) :: PSol
@@ -3535,6 +3947,7 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,&
 
   real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: rhoele
   real(kind=8), dimension(3,nat), intent(inout) :: rxyz
+  real(kind=8), dimension(nat), intent(inout) :: radii
 
   ! local variables.
   real(kind=8), dimension(n01,n02,n03,nspden) :: edens
@@ -3547,12 +3960,10 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,&
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8) :: x1,x2,x3,r,t,pi,r2,sigma,x0,factor,length,oneoeps0,oneosqrteps0
   real(kind=8) :: x,y,fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt,fx1,fy1,fz1
-  real(kind=8) :: fact1,fact2,fact3,dtx,d2,dd,coeff,coeff1,delta
-  real(kind=8), dimension(nat) :: radii
+  real(kind=8) :: fact1,fact2,fact3,dtx,d2,dd,coeff,coeff1
 
-
-  open(unit=21,file='Epsilon.dat',status='unknown')
-  open(unit=22,file='Epsilon_line.dat',status='unknown')
+  open(unit=21,file='epsilon.dat',status='unknown')
+  open(unit=22,file='epsilon_line.dat',status='unknown')
 
   nabla_edens=0.d0
   ddt_edens=0.d0
@@ -3777,30 +4188,6 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,&
 
 else if (SetEps ==4) then
 
-!      rxyz(1:3,1)=[7.300000d0, 7.300337d0, 7.243250d0]-[2.30d0,2.85d0,3.7d0]
-!      rxyz(1:3,2)=[7.300000d0, 8.415319d0, 8.700265d0]-[2.30d0,2.85d0,3.7d0]
-!      rxyz(1:3,3)=[7.300000d0, 7.299663d0,10.156750d0]-[2.30d0,2.85d0,3.7d0]
-!      rxyz(1:3,4)=[7.300000d0, 7.299663d0,9.156750d0]-[2.30d0,2.85d0,3.7d0]
-!      rxyz(1:3,5)=[7.300000d0, 7.299663d0,8.156750d0]-[2.30d0,2.85d0,3.7d0]
-!      radii=[1.5d0,2.0d0,1.5d0,1.5d0]
-!      radii=[1.5d0,1.2d0,1.2d0,1.2d0,1.2d0]
-!      rxyz(1:3,2)=[5.00000d0, 5.00000d0 + 0.2d0, 5.000000d0]
-
-      if (nat.eq.1) then
-       delta=0.3d0 !6.d0*max(hx,hy,hz)
-       rxyz(1,1) = hx*real(n01/2,kind=8)
-       rxyz(2,1) = hy*real(n02/2,kind=8)
-       rxyz(3,1) = hz*real(n03/2,kind=8)
-       radii(1)=rad_cav!*1.5d0/0.52917721092d0
-      else if (nat.eq.3) then
-       delta=2.0d0
-       delta=delta*0.25d0 ! Divided by 4 because both rigid cavities are 4*delta widespread
-       radii=[1.4d0,1.0d0,1.0d0]
-       do iat=1,nat
-        radii(iat) = rad_cav*radii(iat)/0.52917721092d0 + 1.22d0*delta
-       end do
-      end if
-
       if (iproc==0) then
        call yaml_map('Delta cavity',delta)
        call yaml_map('radii',radii)
@@ -3812,7 +4199,7 @@ else if (SetEps ==4) then
 
 !      call Eps_rigid_cavity([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
       call Eps_rigid_cavity_multiatoms([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],&
-           nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+           nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,geocode,iproc)
 !      call Eps_rigid_cavity_new([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
 !      call Eps_rigid_cavity_new_multiatoms([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
 !      call Eps_rigid_cavity_new2([n01,n02,n03],nspden,nord,acell,[hx,hy,hz],nat,rxyz,radii,eps0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
@@ -3842,17 +4229,18 @@ end if
 !!$      write(21,*)
 !!$     end do
 
-     i1=1!n03/2
+     i1=n01/2
+     !i1=1
      do i2=1,n02
       do i3=1,n03
-       write(21,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(n01/2,i2,i3)
+       write(21,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i2,i1,i3),eps(i1,i2,i3)
       end do
       write(21,*)
      end do
 
 
-     do i1=1,n01
-      write(22,'(1x,I8,2(1x,e22.15))') i1,eps(i1,n02/2,n03/2),eps(n01/2,i1,n03/2)
+     do i2=1,n02
+      write(22,'(1x,I8,2(1x,e22.15))') i2,eps(i1,n03/2,i2),eps(i1,i2,n03/2)
      end do
 
   close(unit=21)
@@ -4255,23 +4643,44 @@ subroutine Eps_rigid_cavity_new2(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,e
 
 end subroutine Eps_rigid_cavity_new2
 
+! New value!! Modified nl=14 and nr=15 after else.
+subroutine ext_buffers(periodic,nl,nr)
+  implicit none
+  logical, intent(in) :: periodic
+  integer, intent(out) :: nl,nr
+
+  if (periodic) then
+     nl=0
+     nr=0
+  else
+     nl=0
+     nr=0
+  end if
+END SUBROUTINE ext_buffers
+
 !> calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii. Based on error function.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
-subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,&
-     radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)
+subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rxyzreal,&
+     radiireal,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,geocode,iproc)
+  use dynamic_memory
+  use yaml_output
+  use f_utils
+  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use f_enums
   implicit none
-  integer, intent(in) :: nat !< number of centres defining the cavity
+  integer, intent(in) :: natreal !< number of centres defining the cavity
   integer, intent(in) :: nspden
-  integer, intent(in) :: nord
+  integer, intent(in) :: nord,iproc
   real(kind=8), intent(in) :: acell
   real(kind=8), intent(in) :: epsilon0 !< dielectric constant of th solvent
   real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
   integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
   real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
-  real(kind=8), dimension(nat), intent(in) :: radii !< radii of each of the atoms
+  real(kind=8), dimension(natreal), intent(in) :: radiireal !< radii of each of the atoms
+  character(len=2), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   !> position of all the atoms in the grid coordinates
-  real(kind=8), dimension(3,nat), intent(in) :: rxyz
+  real(kind=8), dimension(3,natreal), intent(in) :: rxyzreal
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
   real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
@@ -4279,29 +4688,159 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,&
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps 
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
   !local variables
-  integer :: i,i1,i2,i3,iat,jat,ii
+  integer :: i,i1,i2,i3,iat,jat,ii,nat,j,k,l,px,py,pz
   real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax,oneoeps0,oneosqrteps0
-  real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx,curr
-  real(kind=8), dimension(3) :: deps,ddeps,v
+  real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx,curr,value,valuemin
+  real(kind=8), parameter :: valuebc=1.d0
+  real(kind=8), dimension(3) :: deps,ddeps,v,rv,shift,sh
+  real(kind=8), dimension(6) :: plandist
+  integer, dimension(6) :: ba
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_de2
   real(kind=8), dimension(ndims(1),ndims(2),ndims(3)) :: v_ddeps
-  real(kind=8), dimension(nat) :: ep,ddep
-  real(kind=8), dimension(3,nat) :: dep
+  real(kind=8), dimension(:), allocatable :: ep,ddep
+  real(kind=8), dimension(:,:), allocatable :: dep
+  real(kind=8), dimension(3,27*natreal) :: rxyztot
+  real(kind=8), dimension(27*natreal) :: radiitot
+  real(kind=8), dimension(:), allocatable :: radii
+  real(kind=8), dimension(:,:), allocatable :: rxyz
+  logical :: perx,pery,perz
+  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,imin
 
-   pi = 4.d0*datan(1.d0)
-   r=0.d0
-   t=0.d0
-   oneoeps0=1.d0/epsilon0
-   oneosqrteps0=1.d0/dsqrt(epsilon0)
+  pi = 4.d0*datan(1.d0)
+  r=0.d0
+  t=0.d0
+  oneoeps0=1.d0/epsilon0
+  oneosqrteps0=1.d0/dsqrt(epsilon0)
+
+  shift(1)=hgrids(1)*ndims(1)
+  shift(2)=hgrids(2)*ndims(2)
+  shift(3)=hgrids(3)*ndims(3)
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+!------------------------------------------------------------------------------------------------------
+! Depending of Free, Periodic or Surface bc, image atoms are or not included.
+
+  if (iproc==0) then
+   call yaml_map('nbl1',nbl1)
+   call yaml_map('nbl2',nbl2)
+   call yaml_map('nbl3',nbl3)
+   do iat=1,natreal
+    call yaml_map('real input atoms',iat)
+    call yaml_map('radii',radiireal(iat))
+    call yaml_map('rxyz',rxyzreal(:,iat))
+   end do
+  end if
+
+  px=0 
+  py=0
+  pz=0
+  if (perx) px=1
+  if (pery) py=1
+  if (perz) pz=1
+
+  rxyztot(:,:)=0.d0
+
+  i=0
+  do iat=1,natreal
+
+   ba(1:6)=0
+   ! checking what are the image atoms to include in the calculation of the
+   ! cavity.
+   rv(1:3)=rxyzreal(1:3,iat)
+   plandist(1)=dabs(rv(1))
+   plandist(2)=dabs(shift(1)-rv(1))
+   plandist(3)=dabs(rv(2))
+   plandist(4)=dabs(shift(2)-rv(2))
+   plandist(5)=dabs(rv(3))
+   plandist(6)=dabs(shift(3)-rv(3))
+   do ii=1,6
+    valuemin=1.d0
+    d=plandist(ii)
+    value=epsl(d,radiireal(iat),delta)
+    if (value.lt.valuebc) then ! valuebc is the value to check on the box border to accept or refuse an image atom.
+     if (abs(value).lt.valuemin) then
+      valuemin=abs(value)
+      imin=ii
+     end if
+     select case(ii)
+     case (1)
+      ba(1)=1*px
+     case (2)
+      ba(2)=-1*px
+     case (3)
+      ba(3)=1*py
+     case (4)
+      ba(4)=-1*py
+     case (5)
+      ba(5)=1*pz
+     case (6)
+      ba(6)=-1*pz
+     end select
+    end if
+   end do
+
+   do j=ba(6),ba(5)
+    sh(3)=real(j,kind=8)*shift(3)
+    do k=ba(4),ba(3)
+     sh(2)=real(k,kind=8)*shift(2)
+     do l=ba(2),ba(1)
+      sh(1)=real(l,kind=8)*shift(1)
+      rv(1:3)=rxyzreal(1:3,iat) + sh(1:3)
+      i=i+1
+      rxyztot(1:3,i)=rv(1:3)
+      radiitot(i)=radiireal(iat)
+     end do
+    end do
+   end do
+
+  end do
+
+   nat=i
+
+   ep=f_malloc(nat,id='ep')
+   ddep=f_malloc(nat,id='ddep')
+   dep=f_malloc([3,nat],id='dep')
+   rxyz=f_malloc([3,nat],id='rxyz')
+   radii=f_malloc(nat,id='radii')
+
+   rxyz(1:3,1:nat)=rxyztot(1:3,1:nat)
+   radii(1:nat)=radiitot(1:nat)
+
+   if (iproc==0) then
+    write(*,*)plandist
+    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
+    call yaml_map('nat',nat)
+    do iat=1,nat
+     call yaml_map('atom',iat)
+     call yaml_map('radii',radii(iat))
+     call yaml_map('rxyz',rxyz(:,iat))
+    end do
+   end if
+
+!------------------------------------------------------------------------------------------------------
+! Starting the cavity building for rxyztot atoms=real+image atoms (total natcurr) for periodic
+! and surface boundary conditions or atoms=real for free bc.
 
   do i3=1,ndims(3)
-   z=hgrids(3)*i3 !(i3-1) for 0 axis start.
+   z=hgrids(3)*(i3-1-nbl3)
+   !z=hgrids(3)*i3 !(i3-1) for 0 axis start.
    v(3)=z
    do i2=1,ndims(2)
-    y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
+    y=hgrids(2)*(i2-1-nbl2)
+    !y=hgrids(2)*i2 !*(i2-1) for 0 axis start.
     v(2)=y
     do i1=1,ndims(1)
-     x=hgrids(1)*i1 !(i1-1) for 0 axis start.
+     x=hgrids(1)*(i1-1-nbl1)
+     !x=hgrids(1)*i1 !(i1-1) for 0 axis start.
      v(1)=x
      !choose the closest atom
      do iat=1,nat
@@ -4382,6 +4921,12 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,nat,rxyz,&
     end do
    end do
   end do
+
+  call f_free(ep)
+  call f_free(ddep)
+  call f_free(dep)
+  call f_free(rxyz)
+  call f_free(radii)
 
   contains
 
