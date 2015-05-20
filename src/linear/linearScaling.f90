@@ -1328,8 +1328,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   if (input%loewdin_charge_analysis) then
+      !call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
+      !     calculate_ovrlp_half=.true., meth_overlap=0)
       call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
-           calculate_ovrlp_half=.true., meth_overlap=0)
+           calculate_ovrlp_half=.true., meth_overlap=norder_taylor)
       call support_function_multipoles(iproc, tmb, at, denspot)
   end if
 
