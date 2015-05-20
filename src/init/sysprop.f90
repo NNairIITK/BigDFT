@@ -903,7 +903,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
 ! Calculation of non-electrostatic contribution. Use of raddi without fact
 ! multiplication.
-  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,&
+  call epsilon_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,&
        atoms%astruct%nat,rxyz,radii_nofact,&
        epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 !  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
@@ -928,7 +928,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
 !  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps)
-  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+  call epsilon_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
        epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 !  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)

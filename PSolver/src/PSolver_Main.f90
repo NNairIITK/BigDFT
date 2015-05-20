@@ -267,7 +267,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          end if
          
          !update rhopol and calculate residue
-         call fssnord3DmatNabla_LG(kernel%ndims(1),kernel%ndims(2),&
+         call fssnord3DmatNabla_LG(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
               kernel%ndims(3),&
               rhopot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%dlogeps,rhopol,rhores2)
 

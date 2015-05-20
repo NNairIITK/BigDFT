@@ -60,53 +60,6 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   ! We fallback on the old text format (to be eliminated in the future)
   if (.not.exists_default .and. .not. exists_user) then
      call input_from_old_text_format(radical,mpi_env,dict)
-!!$     ! Parse all files.
-!!$     call set_inputfile(f0, radical, PERF_VARIABLES)
-!!$     nullify(vals)
-!!$     call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
-!!$     if (associated(vals)) call set(dict//PERF_VARIABLES, vals)
-!!$
-!!$     call set_inputfile(f0, radical, DFT_VARIABLES)
-!!$     nullify(vals)
-!!$     call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
-!!$     if (associated(vals)) call set(dict//DFT_VARIABLES, vals)
-!!$
-!!$     call set_inputfile(f0, radical, KPT_VARIABLES)
-!!$     nullify(vals)
-!!$     call read_kpt_from_text_format(mpi_env%iproc,vals, trim(f0))
-!!$     if (associated(vals)) call set(dict//KPT_VARIABLES, vals)
-!!$
-!!$     call set_inputfile(f0, radical, GEOPT_VARIABLES)
-!!$     nullify(vals)
-!!$     call read_geopt_from_text_format(mpi_env%iproc,vals, trim(f0))
-!!$     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
-!!$
-!!$     call set_inputfile(f0, radical, MIX_VARIABLES)
-!!$     nullify(vals)
-!!$     call read_mix_from_text_format(mpi_env%iproc,vals, trim(f0))
-!!$     if (associated(vals)) call set(dict//MIX_VARIABLES, vals)
-!!$
-!!$     call set_inputfile(f0, radical, SIC_VARIABLES)
-!!$     nullify(vals)
-!!$     call read_sic_from_text_format(mpi_env%iproc,vals, trim(f0))
-!!$     if (associated(vals)) call set(dict//SIC_VARIABLES, vals)
-!!$
-!!$     call set_inputfile(f0, radical, TDDFT_VARIABLES)
-!!$     nullify(vals)
-!!$     call read_tddft_from_text_format(mpi_env%iproc,vals, trim(f0))
-!!$     if (associated(vals)) call set(dict//TDDFT_VARIABLES, vals)
-!!$
-!!$     if (bigdft_mpi%iproc==0) then
-!!$         call yaml_warning('Do not read the linear input files in the old format. &
-!!$             &If you use the .yaml format you can ignore this message.')
-!!$     end if
-!!$     !call set_inputfile(f0, radical, 'lin')
-!!$     !call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
-!!$
-!!$     call set_inputfile(f0, radical, 'neb')
-!!$     nullify(vals)
-!!$     call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
-!!$     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
   end if
 
   !LG modfication of errors (see above)
