@@ -106,25 +106,26 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
      call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
      !initialize the id_proc per node
      call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
-     call sg_init(GPUshare,useGPU,iproc,nproc_node,initerror)
-     if (useGPU == 1) then
-        iconv = 1
+!!$     call sg_init(GPUshare,useGPU,iproc,nproc_node,initerror)
+     !detect if a GPU is present to accelerate blas
+     !if (useGPU == 1) then
+     !   iconv = 1
         iblas = 1
-     else
-        iconv = 0
-        iblas = 0
-     end if
-     if (initerror == 1) then
-        call yaml_warning('(iproc=' // trim(yaml_toa(iproc,fmt='(i0)')) // &
-        &    ') S_GPU library init failed, aborting...')
-        !write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
-        call MPI_ABORT(bigdft_mpi%mpi_comm,initerror,ierror)
-     end if
+     !else
+        !iconv = 0
+      !  iblas = 0
+     !end if
+!!$     if (initerror == 1) then
+!!$        call yaml_warning('(iproc=' // trim(yaml_toa(iproc,fmt='(i0)')) // &
+!!$        &    ') S_GPU library init failed, aborting...')
+!!$        !write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
+!!$        call MPI_ABORT(bigdft_mpi%mpi_comm,initerror,ierror)
+!!$     end if
 
-     if (iconv == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUconv=.true.
-     end if
+!!$     if (iconv == 1) then
+!!$        !change the value of the GPU convolution flag defined in the module_base
+!!$        GPUconv=.true.
+!!$     end if
      if (iblas == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
@@ -189,10 +190,6 @@ subroutine release_material_acceleration(GPU)
   implicit none
   type(GPU_pointers), intent(inout) :: GPU
   
-  if (GPUconv) then
-     call sg_end()
-  end if
-
   if (GPU%OCLconv) then
      call release_acceleration_OCL(GPU)
      GPU%OCLconv=.false.

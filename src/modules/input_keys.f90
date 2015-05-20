@@ -16,9 +16,8 @@ module module_input_keys
   
   private
 
-  public :: input_keys_init, input_keys_finalize
+  !public :: input_keys_init, input_keys_finalize
   public :: input_keys_fill_all, input_keys_dump
-!  public :: input_keys_equal,input_keys_get_profiles
 
   type(dictionary), pointer :: parameters=>null()
   type(dictionary), pointer :: parsed_parameters=>null()

@@ -66,20 +66,20 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%nspin = nspin
 
 
-  !create an array which indicate which processor has a GPU associated 
-  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
-  if (.not. GPUshare) then
-     GPU_for_orbs = f_malloc(0.to.nproc-1,id='GPU_for_orbs')
-     
-     if (nproc > 1) then
-        call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
-             bigdft_mpi%mpi_comm,ierr)
-     else
-        GPU_for_orbs(0)=GPUconv
-     end if
-     
-     call f_free(GPU_for_orbs)
-  end if
+!!$  !create an array which indicate which processor has a GPU associated 
+!!$  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
+!!$  if (.not. GPUshare) then
+!!$     GPU_for_orbs = f_malloc(0.to.nproc-1,id='GPU_for_orbs')
+!!$     
+!!$     if (nproc > 1) then
+!!$        call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
+!!$             bigdft_mpi%mpi_comm,ierr)
+!!$     else
+!!$        GPU_for_orbs(0)=GPUconv
+!!$     end if
+!!$     
+!!$     call f_free(GPU_for_orbs)
+!!$  end if
 
   norb_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norb_par')
   norbu_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norbu_par')

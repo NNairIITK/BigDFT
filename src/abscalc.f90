@@ -1510,7 +1510,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   !local variables
   character(len=*), parameter :: subname='extract_potential_for_spectra'
-  logical :: switchGPUconv,switchOCLconv
+  logical :: switchOCLconv
   integer :: nspin_ig
   real(gp) :: hxh,hyh,hzh,eks,ehart,eexcu,vexcu
   type(orbitals_data) :: orbse
@@ -1572,19 +1572,12 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
   psi = f_malloc_ptr(max(orbse%npsidim_orbs, orbse%npsidim_comp),id='psi')
 
   !allocate arrays for the GPU if a card is present
-  switchGPUconv=.false.
   switchOCLconv=.false.
-  if (GPUconv .and. potshortcut ==0 ) then
-     call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
-          hx,hy,hz,Lzd%Glr%wfd,orbse,GPU)
-  else if (GPU%OCLconv .and. potshortcut ==0) then
+  if (GPU%OCLconv .and. potshortcut ==0) then
      call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%astruct%geocode,&
           nspin_ig,Lzde%Glr%wfd,orbse,GPU)
      if (iproc == 0) write(*,*)&
           'GPU data allocated'
-  else if (GPUconv .and. potshortcut >0 ) then
-     switchGPUconv=.true.
-     GPUconv=.false.
   else if (GPU%OCLconv .and. potshortcut >0 ) then
      switchOCLconv=.true.
      GPU%OCLconv=.false.
@@ -1660,9 +1653,6 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
 
   end if
 
-  if (switchGPUconv) then
-     GPUconv=.true.
-  end if
   if (switchOCLconv) then
      GPU%OCLconv=.true.
   end if
