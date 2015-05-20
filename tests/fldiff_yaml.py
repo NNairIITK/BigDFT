@@ -506,7 +506,7 @@ for i in range(len(references)):
     if remarks:
         newreport = open(options_remarks.input, "w")
         if args.label is not None:
-            labl="("+args.label+")"
+            labl=" ("+args.label+")"
         else:
             labl=''
         newreport.write(yaml.dump({"Remarks"+labl: remarks}, default_style="|", explicit_start=False))
