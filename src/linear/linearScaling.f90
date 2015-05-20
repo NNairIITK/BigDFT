@@ -265,7 +265,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      end do
   else
      ! only use tmb%orbs%occup for calculating energy components, otherwise using KSwfn%orbs%occup
-     tmb%orbs%occup=1.0d0
+     !SM: This is just to make sure that the value of a open shell calculation is equivalent to a closed shell calculations.
+     ! Maybe one should change this to 2 and 1...
+     if (input%nspin==1) then
+         tmb%orbs%occup=1.0d0
+     else
+         tmb%orbs%occup=0.5d0
+     end if
   end if
 
   ! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL

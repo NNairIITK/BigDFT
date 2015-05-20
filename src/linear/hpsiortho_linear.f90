@@ -126,10 +126,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! For the non polarized case, a factor of two is already included in the
   ! kernel. Therefore explicitely add this factor for the polarized case 
   ! in order to make the two cases analogous.
-  if (tmb%linmat%l%nspin==2 .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if (tmb%linmat%l%nspin==2 .and. &
+      (target_function==TARGET_FUNCTION_IS_ENERGY .or. target_function==TARGET_FUNCTION_IS_HYBRID)) then
       if (iproc==0) call yaml_warning('multiply the gradient by 2.0, check this!')
-      hpsit_c=2.d0*hpsit_c
-      hpsit_f=2.d0*hpsit_f
+      !hpsit_c=2.d0*hpsit_c
+      !hpsit_f=2.d0*hpsit_f
+      call vscal(tmb%ham_descr%collcom%ndimind_c, 2.d0, hpsit_c(1), 1)
+      call vscal(7*tmb%ham_descr%collcom%ndimind_f, 2.d0, hpsit_f(1), 1)
   end if
 
 
@@ -402,7 +405,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! For the polarized case, a factor of two was already multiplied to the
   ! gradient (see above). Therefore now undo this again for the band structure
   ! energy in order to get the analogous result to the non-polarized case.
-  if (tmb%linmat%l%nspin==2 .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if (tmb%linmat%l%nspin==2 .and. &
+      (target_function==TARGET_FUNCTION_IS_ENERGY .or. target_function==TARGET_FUNCTION_IS_HYBRID)) then
       if (iproc==0) call yaml_warning('divide the band stucture energy by 2.0, check this!')
       trH=0.5d0*trH
   end if
