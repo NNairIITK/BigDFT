@@ -23,19 +23,19 @@ subroutine f_utils_test()
   integer :: unt,unt2,u
 !  double precision :: t0
   integer(kind=8) :: i0,i1
-  real(simple), dimension(3) :: r1
-  real(double), dimension(3) :: r2
-  real(quadruple), dimension(3) :: r4
-  complex(simple), dimension(3) :: c1
-  complex(double), dimension(3) :: c2
-  complex(quadruple), dimension(3) :: c4
-  integer(short), dimension(3) :: is
-  integer(four), dimension(3) :: i4
-  integer(long), dimension(3) :: il
-  logical(byte), dimension(3) :: lb
+  real(f_simple), dimension(3) :: r1
+  real(f_double), dimension(3) :: r2
+  real(f_quadruple), dimension(3) :: r4
+  complex(f_simple), dimension(3) :: c1
+  complex(f_double), dimension(3) :: c2
+  complex(f_quadruple), dimension(3) :: c4
+  integer(f_short), dimension(3) :: is
+  integer(f_int), dimension(3) :: i4
+  integer(f_long), dimension(3) :: il
+  logical(f_byte), dimension(3) :: lb
   logical, dimension(3) :: l
 
-  r4=real(10.0,quadruple)
+  r4=real(10.0,f_quadruple)
 
 !  call expq(r4(1),r4(2))
 
@@ -55,7 +55,7 @@ subroutine f_utils_test()
   call f_enum_attr(f1,attr=greetings)
   call f_enum_attr(f2,attr=greetings)
 
-  call yaml_map('Enum1 char',char(f1))
+  call yaml_map('Enum1 char',str(f1))
   call yaml_map('Enum1 int',int(f1))
   call yaml_map('Enum1 check',f1=='Ciao')
 
@@ -143,3 +143,181 @@ end subroutine f_utils_test
 !!$!  print *,'res',res,exp(x)
 !!$  
 !!$end subroutine expq
+
+subroutine f_inputfile_test()
+  use dictionaries
+  use yaml_output
+  use f_input_file
+  use f_precisions, only: f_cr
+  implicit none
+  
+  !> input definitions as they can be defined by the developers
+  character(len=*), parameter :: inputdef='                                                         '//f_cr//&
+       '  dft:                                                                                      '//f_cr//&
+       '    DESCRIPTION: Density Functional Theory parameters                                       '//f_cr//&
+       '    hgrids: #a variable with range                                                          '//f_cr//&
+       '      COMMENT: Grid spacing in the three directions (bohr)                                  '//f_cr//&
+       '      DESCRIPTION: |                                                                        '//f_cr//&
+       '       Grid spacing in three directions (Bohr units) of the coarse mesh.  '//f_cr//&
+       '       A scalar can also be given as 0.45.                                                  '//f_cr//&
+       '      RANGE: [0., 2.]                                                                       '//f_cr//&
+       '      default: [0.45, 0.45, 0.45]                                                           '//f_cr//&
+       '      fast: [0.55, 0.55, 0.55]                                                              '//f_cr//&
+       '      accurate: [0.30, 0.30, 0.30]                                                          '//f_cr//&
+       '    ixc: #a variable with several profiles                                                  '//f_cr//&
+       '      COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)                                '//f_cr//&
+       '      DESCRIPTION: Determine the exchange-correlation functional.                           '//f_cr//&
+       '      default: 1                                                                            '//f_cr//&
+       '      #Here follow a number of possibilities for the different XC functionals               '//f_cr//&
+       '      LDA (ABINIT): 1                                                                       '//f_cr//&
+       '      PBE (ABINIT): 11                                                                      '//f_cr//&
+       '      LDA: -20                                                                              '//f_cr//&
+       '      PBE: -101130                                                                          '//f_cr//&
+       '      PBE0: -406                                                                            '//f_cr//&
+       '      B97-D: -170 #to be verified                                                           '//f_cr//&
+       '      B3LYP: -402                                                                           '//f_cr//&
+       '      HF: 100 #Hartree-Fock                                                                 '//f_cr//&
+       '  geopt:                                                                                    '//f_cr//&
+       '    DESCRIPTION: Parameters for the geometry relaxation and molecular dynamics              '//f_cr//&
+       '    method:  # a variable with exclusive                                                    '//f_cr//&
+       '      COMMENT: Geometry optimisation method                                                 '//f_cr//&
+       '      EXCLUSIVE:                                                                            '//f_cr//&
+       '        none:   No geometry optimization                                                    '//f_cr//&
+       '        SDCG:   A combination of Steepest Descent and Conjugate Gradient                    '//f_cr//&
+       '        VSSD:   Variable Stepsize Steepest Descent method                                   '//f_cr//&
+       '        LBFGS:  Limited-memory BFGS                                                         '//f_cr//&
+       '        BFGS:   Broyden-Fletcher-Goldfarb-Shanno                                            '//f_cr//&
+       '        PBFGS:  Same as BFGS with an initial Hessian obtained from a force field            '//f_cr//&
+       '        AB6MD:  Molecular dynamics from ABINIT                                              '//f_cr//&
+       '        DIIS:   Direct inversion of iterative subspace                                      '//f_cr//&
+       '        FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.               '//f_cr//&
+       '        NEB:    Nudged Elastic Band                                                         '//f_cr//&
+       '        SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future relea'//f_cr//&
+       '        SQNM:   Stabilized quasi-Newton minimzer                                            '//f_cr//&
+       '      default: none                                                                         '//f_cr//&
+       '    ncount_cluster_x:                                                                       '//f_cr//&
+       '      COMMENT: Maximum number of force evaluations                                          '//f_cr//&
+       '      RANGE: [0, 2000]                                                                      '//f_cr//&
+       '      PROFILE_FROM: method                                                                  '//f_cr//&
+       '      default: 50                                                                           '//f_cr//&
+       '      none: 1                                                                               '//f_cr//&
+       '    betax:                                                                                  '//f_cr//&
+       '      COMMENT: Stepsize for the geometry optimization                                       '//f_cr//&
+       '      CONDITION:                                                                            '//f_cr//&
+       '        MASTER_KEY: method                                                                  '//f_cr//&
+       '        WHEN:                                                                               '//f_cr//&
+       '        - SDCG                                                                              '//f_cr//&
+       '        - VSSD                                                                              '//f_cr//&
+       '        - LBFGS                                                                             '//f_cr//&
+       '        - BFGS                                                                              '//f_cr//&
+       '        - PBFGS                                                                             '//f_cr//&
+       '        - DIIS                                                                              '//f_cr//&
+       '        - FIRE                                                                              '//f_cr//&
+       '        - NEB                                                                               '//f_cr//&
+       '        - SBFGS                                                                             '//f_cr//&
+       '        - SQNM                                                                              '//f_cr//&
+       '        - none                                                                              '//f_cr//&
+       '      PROFILE_FROM: method                                                                  '//f_cr//&
+       '      RANGE: [0., 100.]                                                                     '//f_cr//&
+       '      default: 4.                                                                           '//f_cr//&
+       '      DIIS: 2.                                                                              '//f_cr//&
+       '      NEB: 0.5                                                                              '//f_cr
+
+  !> dictionary of the input definitions
+  type(dictionary), pointer :: inputdefinitions
+  !> dictionary of the imports
+  type(dictionary), pointer :: dict_profiles
+  !> input file
+  type(dictionary), pointer :: input
+  !> minuimal input file
+  type(dictionary), pointer :: input_minimal
+  type(dictionary), pointer :: as_is,nested
+  character(len=*), parameter :: example1='                                                         '//f_cr//&
+       'dft:             '//f_cr//&
+       ' hgrids: 0.45    '//f_cr//&
+       ' ixc: B3LYP     '//f_cr//&
+       ' bidon: 2       '//f_cr//&
+       'geopt:           '//f_cr//&
+       ' method: DIIS   '//f_cr
+  character(len=*), parameter :: profiles='                                                         '//f_cr//&
+       ' simple:  '//f_cr//&
+       '   dft:             '//f_cr//&
+       '     hgrids: 0.45    '//f_cr//&
+       '     ixc: LDA     '//f_cr//&
+       ' geopt:'//f_cr//&
+       '    geopt: {method: DIIS} '//f_cr
+  character(len=*), parameter :: example2='import: [geopt, simple]'
+  
+
+  !first, insert the definitiions of the input file in the dictionary
+  call parse_dict(inputdefinitions,inputdef)
+  call yaml_map('Initial input variables',inputdefinitions)
+  !then parse the user's input file
+  call parse_dict(input,example1)
+
+  call yaml_map('User input file',input)
+
+  !complete input file, should crash now
+  call f_err_open_try()
+  call input_file_complete(inputdefinitions,input)
+  if (f_err_check()) then
+     call f_dump_all_errors(-1)
+     call dict_remove(input//'dft','bidon')
+  end if
+  !now try again
+  call input_file_complete(inputdefinitions,input)
+  call f_err_close_try()
+
+  call yaml_map('Completed input file',input)
+  call input_file_dump(input)
+
+  !only user defined
+  call input_file_dump(input,.true.)
+
+  !retrieve input minimal
+  nullify(as_is,nested)
+  call input_file_minimal(inputdefinitions,input,input_minimal,nested,as_is)
+  call yaml_map('Input minimal',input_minimal)
+
+  !and redo the same stuff
+  call input_file_complete(inputdefinitions,input_minimal)
+  call yaml_map('Completed minimal input file',input_minimal)
+
+  call dict_free(input,input_minimal)
+
+  !now redo same thing for example2
+  !then parse the user's input file
+  call parse_dict(dict_profiles,profiles)
+
+  !now redo same thing for example2
+  !then parse the user's input file
+  call parse_dict(input,example2)
+
+  call yaml_map('User input file 2',input)
+  call input_file_complete(inputdefinitions,input,imports=dict_profiles)
+  
+  call yaml_map('Completed input file 2',input)
+  call input_file_dump(input)
+  !retrieve input minimal
+  nullify(as_is,nested)
+  call input_file_minimal(inputdefinitions,input,input_minimal,nested,as_is)
+  call yaml_map('Input minimal 2',input_minimal)
+
+  call dict_free(inputdefinitions,input,input_minimal,dict_profiles)
+
+contains
+  subroutine parse_dict(dict,str)
+    use yaml_parse
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: str
+    !local variales
+    type(dictionary), pointer :: tmp
+
+
+    call yaml_parse_from_string(tmp,str)
+    dict => tmp .pop. 0
+    call dict_free(tmp)
+
+  end subroutine parse_dict
+end subroutine f_inputfile_test

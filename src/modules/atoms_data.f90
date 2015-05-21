@@ -870,7 +870,8 @@ contains
                  record_length = 92, setdefault = .false., tabbing = 0)
          else
             !here the f_utils module should be defined to control file opening
-            open(unit = iunit, file = trim(fname))
+            !open(unit = iunit, file = trim(fname))
+            call f_open_file(iunit,trim(fname))
          end if
       end if
 

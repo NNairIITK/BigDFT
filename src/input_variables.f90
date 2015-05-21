@@ -13,13 +13,10 @@
 !! following the input files as defined  by the user
 subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use module_base
-  use dictionaries
   use wrapper_MPI
-  !use module_input_keys
-  use public_keys
   use module_input_dicts, only: merge_input_file_to_dict
   use input_old_text_format
-  use yaml_output
+  !use yaml_output
   use dynamic_memory
   implicit none
   character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
@@ -29,8 +26,6 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   integer :: ierr
   logical :: exists_default, exists_user
   character(len = max_field_length) :: fname
-  character(len = 100) :: f0
-  type(dictionary), pointer :: vals
 
   call f_routine(id='read_input_dict_from_files')
 
@@ -64,53 +59,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 
   ! We fallback on the old text format (to be eliminated in the future)
   if (.not.exists_default .and. .not. exists_user) then
-     ! Parse all files.
-     call set_inputfile(f0, radical, PERF_VARIABLES)
-     nullify(vals)
-     call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//PERF_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, DFT_VARIABLES)
-     nullify(vals)
-     call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//DFT_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, KPT_VARIABLES)
-     nullify(vals)
-     call read_kpt_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//KPT_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, GEOPT_VARIABLES)
-     nullify(vals)
-     call read_geopt_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, MIX_VARIABLES)
-     nullify(vals)
-     call read_mix_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//MIX_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, SIC_VARIABLES)
-     nullify(vals)
-     call read_sic_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//SIC_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, TDDFT_VARIABLES)
-     nullify(vals)
-     call read_tddft_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//TDDFT_VARIABLES, vals)
-
-     if (bigdft_mpi%iproc==0) then
-         call yaml_warning('Do not read the linear input files in the old format. &
-             &If you use the .yaml format you can ignore this message.')
-     end if
-     !call set_inputfile(f0, radical, 'lin')
-     !call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
-
-     call set_inputfile(f0, radical, 'neb')
-     nullify(vals)
-     call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+     call input_from_old_text_format(radical,mpi_env,dict)
   end if
 
   !LG modfication of errors (see above)
@@ -137,19 +86,20 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_input_keys
   use public_keys, only: POSINP, IG_OCCUPATION, CONSTRAINED_DFT, FRAG_VARIABLES, &
        & KPT_VARIABLES, LIN_BASIS_PARAMS, OCCUPATION, TRANSFER_INTEGRALS, DFT_VARIABLES, &
-       & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES
+       & HGRIDS, RMULT, PROJRAD, IXC, PERF_VARIABLES, EXTERNAL_POTENTIAL
   use module_input_dicts
   use dynamic_memory
   use f_utils, only: f_zero
   use f_input_file, only: input_keys_get_profile
   use module_xc
-  use input_old_text_format, only: dict_from_frag
+!  use input_old_text_format, only: dict_from_frag
   use module_atoms, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,check_atoms_positions
   use yaml_strings, only: f_strcpy
   use psp_projectors, only: PSPCODE_PAW
   use m_ab6_symmetry, only: symmetry_get_n_sym
   use interfaces_42_libpaw
   use bigdft_run, only: bigdft_get_run_properties
+  use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
   implicit none
   !Arguments
   type(input_variables), intent(out) :: in
@@ -169,6 +119,8 @@ subroutine inputs_from_dict(in, atoms, dict)
   integer :: nsym
   real(gp) :: gsqcut_shp, rloc, projr, rlocmin
   real(gp), dimension(2) :: cfrmults
+  type(external_potential_descriptors) :: ep
+  integer :: impl, l
 
 !  dict => dict//key
 
@@ -399,6 +351,17 @@ subroutine inputs_from_dict(in, atoms, dict)
      call default_fragmentInputParameters(in%frag)
   end if
 
+  ! Process the multipoles for the external potential
+  call multipoles_from_dict(dict//DFT_VARIABLES//EXTERNAL_POTENTIAL, in%ep)
+  !!do impl=1,in%ep%nmpl
+  !!    call yaml_map('rxyz',in%ep%mpl(impl)%rxyz)
+  !!    do l=0,lmax
+  !!         if(associated(in%ep%mpl(impl)%qlm(l)%q)) then
+  !!             call yaml_map(trim(yaml_toa(l)),in%ep%mpl(impl)%qlm(l)%q)
+  !!         end if
+  !!    end do
+  !!end do
+
   ! No use anymore of the types.
   call dict_free(types)
 
@@ -439,11 +402,14 @@ subroutine check_for_data_writing_directory(iproc,in)
   use module_base
   use module_types
   use yaml_output
+  use f_precisions, only: f_int
   implicit none
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
   !local variables
+  integer(f_int), parameter :: dirlen=100
   logical :: shouldwrite
+  character(len=dirlen) :: dirname
 
   if (iproc==0) call yaml_comment('|',hfill='-')
 
@@ -460,12 +426,21 @@ subroutine check_for_data_writing_directory(iproc,in)
        bigdft_mpi%ngroup > 1   .or. &                  !taskgroups have been inserted
        mod(in%lin%plotBasisFunctions,10) > 0 .or. &    !dumping of basis functions for locreg runs
        in%inputPsiId == 102 .or. &                     !reading of basis functions
-       in%write_orbitals>0                             !writing the KS orbitals in the linear case
+       in%write_orbitals>0 .or. &                      !writing the KS orbitals in the linear case
+       mod(in%lin%output_mat_format,10)>0 .or. &       !writing the sparse linear matrices
+       mod(in%lin%output_coeff_format,10)>0            !writing the linear KS coefficients
 
   !here you can check whether the etsf format is compiled
 
   if (shouldwrite) then
-     call create_dir_output(iproc, in)
+     !!call create_dir_output(iproc, in)
+     call f_zero(dirname)
+     if (iproc == 0) then
+        call f_mkdir(in%dir_output,dirname)
+     end if
+     call mpibcast(dirname,comm=bigdft_mpi%mpi_comm)
+     !in%dir_output=dirname
+     call f_strcpy(src=dirname,dest=in%dir_output)
      if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))
   else
      if (iproc==0) call yaml_map('Data Writing directory','./')
@@ -491,15 +466,18 @@ subroutine create_dir_output(iproc, in)
   integer         :: ierrr
 
   ! Create a directory to put the files in.
-  dirname=repeat(' ',len(dirname))
+  !dirname=repeat(' ',len(dirname))
+  call f_zero(dirname)
   if (iproc == 0) then
-     call getdir(in%dir_output, int(len_trim(in%dir_output),kind=4), dirname, dirlen, i_stat)
-     if (i_stat /= 0) then
-        call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
-        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierrr)
-     end if
+     call f_mkdir(in%dir_output,dirname)
+!!$     call getdir(in%dir_output, int(len_trim(in%dir_output),kind=4), dirname, dirlen, i_stat)
+!!$     if (i_stat /= 0) then
+!!$        call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
+!!$        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierrr)
+!!$     end if
   end if
-  call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierrr)
+  call mpibcast(dirname,comm=bigdft_mpi%mpi_comm)
+  !call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierrr)
   in%dir_output=dirname
 END SUBROUTINE create_dir_output
 
@@ -509,6 +487,7 @@ subroutine default_input_variables(in)
   use module_base
   use module_types
   use dictionaries
+  use multipole_base, only: external_potential_descriptors_null
   implicit none
 
   type(input_variables), intent(inout) :: in
@@ -560,6 +539,7 @@ subroutine default_input_variables(in)
   nullify(in%frag%dirname)
   nullify(in%frag%frag_index)
   nullify(in%frag%charge)
+  in%ep = external_potential_descriptors_null()
 END SUBROUTINE default_input_variables
 
 
@@ -770,6 +750,7 @@ subroutine free_input_variables(in)
   use module_types
   use module_xc
   use dynamic_memory, only: f_free_ptr
+  use multipole_base, only: deallocate_external_potential_descriptors
   implicit none
   type(input_variables), intent(inout) :: in
   character(len=*), parameter :: subname='free_input_variables'
@@ -782,6 +763,7 @@ subroutine free_input_variables(in)
   call f_free_ptr(in%gen_occup)
   call deallocateBasicArraysInput(in%lin)
   call deallocateInputFragArrays(in%frag)
+  call deallocate_external_potential_descriptors(in%ep)
 
   ! Free the libXC stuff if necessary, related to the choice of in%ixc.
 !!$  call xc_end(in%xcObj)

@@ -107,12 +107,12 @@
    evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
    method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE, 2 renormalization)
-   purification_quickreturn            : No #     linear scaling quick return in purification
+   purification_quickreturn            : Yes #    linear scaling quick return in purification
    adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
    calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
-   correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
+   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
    imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
@@ -383,12 +383,12 @@
    evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
    method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE, 2 renormalization)
-   purification_quickreturn            : No #     linear scaling quick return in purification
+   purification_quickreturn            : Yes #    linear scaling quick return in purification
    adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
    calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
    loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
-   correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
+   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.0000000000000001E-003 # linear scaling lower bound for the error function decay length
    fscale_upperbound                   : 5.0000000000000003E-002 # linear scaling upper bound for the error function decay length
    imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
@@ -549,8 +549,8 @@
    Fluctuation in forces               :  4.0E+00
    Maximum in forces                   :  1.0E-04
    Steepest descent step               :  1.0E+00
- (MH) beta_S, beta_O, beta_N           :  [  1.05E+00,  1.1000E+00,  9.0909E-01 ]
- (MH) alpha_A, alpha_R                 :  [  9.0909E-01,  1.1000E+00 ]
+ (MH) beta_S, beta_O, beta_N           :  [  1.05E+00,  1.0500E+00,  9.5238E-01 ]
+ (MH) alpha_A, alpha_R                 :  [  9.5238E-01,  1.0500E+00 ]
  (MH) mdmin=                           :  2
  (MH) RCOV Si                          :  2.09
  (MH) RCOV Si                          :  2.09
@@ -8746,8 +8746,8 @@
    (MH) number of configurations for which atoms escaped:  0
    (MH)  most frequent visits          :  1.0
    (MH)   av. numb. visits per minimum :  1.0
-   (MH) ediff out                      :  1.2585817933884302E-004
-   (MH) ekinetic out                   :  7.400249944916045E-003
+   (MH) ediff out                      :  1.3185142597402604E-004
+   (MH) ekinetic out                   :  7.7526427994358566E-003
    (MH) dt out                         :  8.8200000000000014E-002
  Memory Consumption Report:
    Tot. No. of Allocations             :  48254

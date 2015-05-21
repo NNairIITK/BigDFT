@@ -1653,7 +1653,7 @@ END SUBROUTINE run_objects_nullify_dict
 
 
 subroutine run_objects_nullify_volatile(runObj)
-  use f_utils
+  use f_enums
   use public_enums
   use bigdft_run, only: run_objects
   use module_defs, only: bigdft_mpi
@@ -1662,7 +1662,7 @@ subroutine run_objects_nullify_volatile(runObj)
   type(run_objects), intent(inout) :: runObj
 
   if (associated(runObj%run_mode)) then
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+    if (bigdft_mpi%iproc == 0 .and. runObj%run_mode /= QM_RUN_MODE)&
          call yaml_sequence_close()
   end if
 

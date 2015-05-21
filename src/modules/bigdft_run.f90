@@ -17,7 +17,7 @@ module bigdft_run
   use f_refcnts, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
        nullify_f_ref,f_ref_free
   use f_utils
-  use f_enums
+  use f_enums, f_str => str
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
        bigdft_get_run_properties => dict_get_run_properties
   private
@@ -156,7 +156,7 @@ contains
     type(MM_restart_objects), intent(inout) :: mm_rst
 
     !then check if extra workspaces have to be allocated
-    select case(trim(char(run_mode)))
+    select case(trim(f_str(run_mode)))
     case('LENNARD_JONES_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -1000,7 +1000,7 @@ contains
     end if
 
     if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') &
-         call yaml_sequence_open('Initializing '//trim(char(runObj%run_mode)))
+         call yaml_sequence_open('Initializing '//trim(f_str(runObj%run_mode)))
     call f_release_routine()
 
   END SUBROUTINE run_objects_init
@@ -1394,12 +1394,12 @@ contains
     !open the document if the run_mode has not it inside
     if (runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0) then
        call yaml_sequence(advance='no')
-       call yaml_mapping_open(trim(char(runObj%run_mode)),flow=.true.)
+       call yaml_mapping_open(trim(f_str(runObj%run_mode)),flow=.true.)
        !call yaml_new_document()
       end if
     infocode = 0
     !choose what to do by following the mode prescription
-    select case(trim(char(runObj%run_mode)))
+    select case(trim(f_str(runObj%run_mode)))
     case('LENNARD_JONES_RUN_MODE')
        call lenjon(nat,rxyz_ptr,outs%fxyz,outs%energy)
        !         if (bigdft_mpi%iproc == 0) then

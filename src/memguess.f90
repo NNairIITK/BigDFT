@@ -844,17 +844,18 @@ program memguess
                 !write(*,*) 'ovrlp_mat%matrix',ovrlp_mat%matrix
                energy = 0.d0
                occup = 0.d0
-               !!$omp parallel default(none) &
-               !!$omp shared(nspin,ntmb,denskernel,ham_matrix,overlap_matrix,ipdos,npdos,energy,occup) &
-               !!$omp private(ispin,tmb,jtmb)
                do ispin=1,nspin
-                   !!$omp do reduction(+:energy)
+                   !$omp parallel default(none) &
+                   !$omp shared(ispin,ntmb,denskernel,ham_mat,energy) &
+                   !$omp private(itmb,jtmb)
+                   !$omp do reduction(+:energy)
                    do itmb=1,ntmb
                        do jtmb=1,ntmb
                            energy = energy + denskernel(itmb,jtmb)*ham_mat%matrix(jtmb,itmb,ispin)
                        end do
                    end do
-                   !!$omp end do
+                   !$omp end do
+                   !$omp end parallel
                end do
                do ispin=1,nspin
                    !!$omp do reduction(+:occup)

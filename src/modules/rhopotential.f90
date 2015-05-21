@@ -484,6 +484,7 @@ module rhopotential
       use module_types
       use yaml_output
       use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_init, only: get_modulo_array
       implicit none
     
       ! Calling arguments
@@ -497,15 +498,18 @@ module rhopotential
       logical,intent(in),optional :: print_results
     
       ! Local variables
-      integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
+      integer :: ipt, ii, i0, iiorb, jjorb, iorb, jorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
       real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1, rho_neg
       integer,dimension(:),allocatable :: isend_total
+      integer,dimension(:),pointer :: moduloarray
       real(kind=8),dimension(:),allocatable :: rho_local
       character(len=*),parameter :: subname='sumrho_for_TMBs'
       logical :: print_local
       integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, ishift_dest, ishift_source
     
       call f_routine('sumrho_for_TMBs')
+
+      call get_modulo_array(denskern, moduloarray)
     
       ! check whether all entries of the charge density are positive
       rho_negative=.false.
@@ -558,7 +562,7 @@ module rhopotential
           iorb_shift=(ispin-1)*denskern%nfvctr
           ishift_mat=(ispin-1)*denskern%nvctr
           !$omp parallel default(private) &
-          !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local) &
+          !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, moduloarray) &
           !$omp shared(rho_neg, ispin, ishift, ishift_mat, iorb_shift) 
           !$omp do schedule(static,200) reduction(+:total_charge, rho_neg)
           do ipt=1,collcom_sr%nptsp_c
@@ -568,17 +572,23 @@ module rhopotential
               tt=1.e-20_dp
               do i=1,ii
                   iiorb=collcom_sr%indexrecvorbital_c(i0+i) - iorb_shift
+                  iorb=moduloarray(iiorb)
                   !iiorb=mod(iiorb-1,denskern%nfvctr)+1
         !ispin=spinsgn(iiorb) 
                   tt1=collcom_sr%psit_c(i0+i)
-                  ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                  !ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                  ind=denskern%matrixindex_in_compressed_fortransposed(iorb,iorb)
+                  !ind=get_transposed_index(denskern,iiorb,iiorb)
                   ind=ind+ishift_mat-denskern%isvctrp_tg
                   tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
         !tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
                   do j=i+1,ii
                       jjorb=collcom_sr%indexrecvorbital_c(i0+j) - iorb_shift
+                      jorb=moduloarray(jjorb)
                       !jjorb=mod(jjorb-1,denskern%nfvctr)+1
-                      ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      !ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      ind=denskern%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                      !ind=get_transposed_index(denskern,jjorb,iiorb)
                       if (ind==0) cycle
                       ind=ind+ishift_mat-denskern%isvctrp_tg
                       tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
@@ -594,6 +604,7 @@ module rhopotential
           !$omp end parallel
       end do
     
+      call f_free_ptr(moduloarray)
     
       !if (print_local .and. iproc==0) write(*,'(a)') 'done.'
     
@@ -709,6 +720,25 @@ module rhopotential
           call f_release_routine()
     
         end subroutine communicate_density
+
+
+        !function get_transposed_index(jorb,iorb) result(ind)
+        !    integer,intent(in) :: jorb, iorb
+        !    integer :: ind
+        !    integer :: jjorb,iiorb
+        !    ! If iorb is smaller than the offset, add a periodic shift
+        !    if (iorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+        !        iiorb = iorb + smat%nfvctr
+        !    else
+        !        iiorb = iorb
+        !    end if
+        !    if (jorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+        !        jjorb = jorb + smat%nfvctr
+        !    else
+        !        jjorb = jorb
+        !    end if
+        !    ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+        !end function get_transposed_index
     
       !!write(*,*) 'after deallocate'
       !!call mpi_finalize(ierr)
