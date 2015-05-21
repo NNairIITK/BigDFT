@@ -1123,6 +1123,7 @@ contains
 
        !Dump the string towrite into the stream
        call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=event)
+       !print *, "ee",towrite(1:msg_lgt),"ee"
        !next line, it will be SCALAR
        event=SCALAR
        msg_lgt=0
@@ -1659,12 +1660,11 @@ contains
              !print *,'towrite', repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt),' end'
              !stop 'ERROR (dump): writing exceeds record size'
           end if
-       else
-          if (extra_line) write(stream%unit,*)
-          !write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
-          write(stream%unit,'(a)',advance=trim(adv))&
-               repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
+       if (extra_line) write(stream%unit,*)
+       !write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
+       write(stream%unit,'(a)',advance=trim(adv))&
+            repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
     end if
 
     !if advancing i/o cursor is again one
