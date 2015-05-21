@@ -776,8 +776,8 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
 
 END SUBROUTINE apply_potential
 
-!>   Calculate on-the fly each projector for each atom, then applies the projectors 
-!!   to all distributed orbitals
+!> Calculate on-the fly each projector for each atom, then applies the projectors 
+!! to all distributed orbitals
 subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      rxyz,hx,hy,hz,wfd,nlpsp,psi,hpsi,eproj_sum,&
      paw)

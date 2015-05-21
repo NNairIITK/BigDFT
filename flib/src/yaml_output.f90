@@ -41,7 +41,7 @@ module yaml_output
   integer :: active_streams=0  !< Number of active streams (stdout always active after init)
   integer :: default_stream=1  !< Id of the default stream
 
-  !parameter of the document
+  !> Parameter of the document
   type :: yaml_stream
      logical :: document_closed=.true.  !< Put the starting of the document if new_document is called
      logical :: pp_allowed=.true.       !< Pretty printing allowed
@@ -1056,13 +1056,13 @@ contains
   !> Write directly a yaml sequence, i.e. en element of a list
   subroutine yaml_sequence(seqvalue,label,advance,unit,padding)
     implicit none
-    integer, optional, intent(in) :: unit               !<@copydoc doc::unit
-    character(len=*), optional, intent(in) :: label     !<@copydoc doc::label
+    integer, optional, intent(in) :: unit               !< @copydoc doc::unit
+    character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
     character(len=*), optional, intent(in) :: seqvalue  !< value of the sequence
-    character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
-    integer, intent(in), optional :: padding            !<pad the seqvalue with blanks to have more readable output
+    character(len=*), optional, intent(in) :: advance   !< @copydoc doc::advance
+    integer, intent(in), optional :: padding            !< pad the seqvalue with blanks to have more readable output
     !local variables
-    integer :: msg_lgt,unt,strm,tb,istat,ipos,jpos,kpos
+    integer :: msg_lgt,unt,strm,tb,istat,ipos,event,lstart,lend,lspace,lmsg
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1079,34 +1079,62 @@ contains
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
-    !put the value
-    if (present(seqvalue)) &
-         call buffer_string(towrite,len(towrite),trim(seqvalue),msg_lgt)
+
+    !Special case if not seqvalue
+    if (.not.present(seqvalue)) then
+       !Check padding
+       if (present(padding)) then
+          tb=padding-msg_lgt
+          if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
+       end if
+       call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM,istat=istat)
+       return
+    end if
 
     if (present(padding)) then
-       tb=padding-len_trim(seqvalue)
+       tb=padding-(len_trim(seqvalue)+msg_lgt)
        if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
     end if
-    !try to see if the line is too long
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM,istat=istat)
-    if (istat /=0 .and. .not. streams(strm)%flowrite) then
-       ipos=1
-       jpos=msg_lgt
-       kpos=jpos
-       loop_seq: do
-          call dump(streams(strm),towrite(ipos:kpos),advance=trim(adv),event=SCALAR,istat=istat)
-          if (istat /=0) then
-             !continue searching
-             kpos=index(towrite(ipos:jpos),' ',back=.true.)
-             if (kpos == 0) kpos=jpos-1
-          else
-             ipos=kpos+1
-             jpos=msg_lgt
-             kpos=jpos
+    
+    !Beginning of the sequence
+    lstart=1
+    !Length of the sequence to write (without blank characters)
+    lmsg=len_trim(seqvalue)
+
+    !Split the sequence if too long
+    event=SEQUENCE_ELEM
+    do
+       !Position of the cursor
+       ipos=max(streams(strm)%icursor,streams(strm)%indent)
+
+       !Detect the last character of the sequence
+       lend=len_trim(seqvalue(lstart:))
+       if (lend+msg_lgt+2 > streams(strm)%max_record_length) then
+          !We have an error from buffer_string so we split it!
+          !-1 to be less and -2 for the character '#'
+          lend=streams(strm)%max_record_length-msg_lgt-2
+          !We are looking for the first ' ' from the end
+          lspace=index(seqvalue(lstart:lstart+lend-1),' ',back=.true.)
+          if (lspace /= 0) then
+             lend = lspace
           end if
-          if (ipos > msg_lgt) exit loop_seq
-       end do loop_seq
-    end if
+       end if
+       call buffer_string(towrite,len(towrite),seqvalue(lstart:lstart+lend-1),msg_lgt)
+
+       !Dump the string towrite into the stream
+       call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=event)
+       !next line, it will be SCALAR
+       event=SCALAR
+       msg_lgt=0
+
+       !Check if all the sequence is written
+       !So we start from iend+1
+       lstart=lstart+lend
+       if (lstart>lmsg) then
+          exit
+       end if
+    end do
+
   end subroutine yaml_sequence
 
 

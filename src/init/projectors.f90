@@ -354,6 +354,7 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
      lmax = max(lmax, iterM%l)
      if (iterM%ndoc > 1) use_tmp = .true.
   end do
+
   if (use_tmp) then
      nc = (mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx_k
      proj_tmp = f_malloc(nc, id = 'proj_tmp')
@@ -364,7 +365,7 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
      if (.not. gaussian_iter_next_shell(nl%proj_G, iter)) exit
      nc = (mbvctr_c+7*mbvctr_f) * (2*iter%l-1) * ncplx_k
      if (istart_c + nc > nl%nprojel+1) stop 'istart_c > nprojel+1'
-     ! Loop on contraction, treat the first gaussian separatly for performance reasons.
+     ! Loop on contraction, treat the first gaussian separately for performance reasons.
      if (gaussian_iter_next_gaussian(nl%proj_G, iter, coeff, expo)) &
           & call projector(geocode, iat, idir, iter%l, iter%n, coeff, expo, &
           & nl%pspd(iat)%gau_cut, nl%proj_G%rxyz(1, iat), lr%ns1, lr%ns2, lr%ns3, lr%d%n1, lr%d%n2, lr%d%n3, &
@@ -389,12 +390,11 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
            !print '(a,3(i6),1pe14.7,2(i6))','iat,l,m,scpr',iat,l,m,scpr,idir,istart_c
            if (abs(1.d0-scpr) > 1.d-2) then
               if (abs(1.d0-scpr) > 1.d-1) then
-                 !if (iproc == 0) then
-                 call yaml_warning( &
-                      'The norm of the nonlocal PSP for atom n=' // trim(yaml_toa(iat)) // &
-                      ' (' // trim(atomname) // ') labeled by l=' // trim(yaml_toa(iter%l)) // &
+                 if (bigdft_mpi%iproc == 0) call yaml_warning( &
+                      'Norm of the nonlocal PSP [atom ' // trim(yaml_toa(iat)) // &
+                      ' (' // trim(atomname) // ') l=' // trim(yaml_toa(iter%l)) // &
                       ' m=' // trim(yaml_toa(iter%n)) // ' is ' // trim(yaml_toa(scpr)) // &
-                      ' while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.')
+                      ' while it is supposed to be about 1.0.')
                  !stop commented for the moment
                  !restore the norm of the projector
                  !call wscal_wrap(mbvctr_c,mbvctr_f,1.0_gp/sqrt(scpr),proj(istart_c))
