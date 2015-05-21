@@ -1648,7 +1648,6 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      call axpy(Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*dpcom%nscatterarr(iproc,2)*nspin,1.0_dp,potxc(1),1,&
           rhopot(1),1)
 
-
      call f_free(potxc)
 
   end if

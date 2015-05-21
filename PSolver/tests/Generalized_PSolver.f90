@@ -705,7 +705,8 @@ pure function PB_charge(x) result(ions_conc)
 
 end function PB_charge
 
-subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,nord,&
+     pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
   use yaml_output
   use Poisson_Solver
   use wrapper_linalg

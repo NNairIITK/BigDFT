@@ -17,7 +17,7 @@ module yaml_strings
 
   private
 
-  integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
+  integer, parameter :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
   character(len=*), parameter :: yaml_int_fmt  = '(i0)'                      !< Default format for integer
   character(len=*), parameter :: yaml_real_fmt = '(1pe18.9)'                 !< Default format for single
