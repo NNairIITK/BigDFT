@@ -22,7 +22,7 @@ subroutine f_utils_test()
   type(f_enumerator) :: f3=f_enumerator('Pizza',3)             
   integer :: unt,unt2,u
 !  double precision :: t0
-  integer(kind=8) :: i0,i1
+  integer(kind=8) :: i0
   real(f_simple), dimension(3) :: r1
   real(f_double), dimension(3) :: r2
   real(f_quadruple), dimension(3) :: r4

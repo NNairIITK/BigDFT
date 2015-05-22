@@ -980,10 +980,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !used on the on-the-fly projector creation
   if (nwarnings /= 0 .and. iproc == 0) then
      call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
-     if (nwarnings /= 0) then
-        call yaml_newline()
-        call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
-     end if
+      call yaml_newline()
+      call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
   end if
 
   call f_free(scpr)
