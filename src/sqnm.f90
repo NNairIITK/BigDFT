@@ -305,7 +305,13 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
       if (iproc == 0) then
          write(fn4,'(i4.4)') ncount_bigdft
-         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
+!         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
+         if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
+            write(comment,'(a,1pe10.3)')'R SQNM:fnrm= ',fnrm
+         else
+            write(comment,'(a,1pe10.3)')'A SQNM:fnrm= ',fnrm
+         endif
+
          call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
               trim(comment))
       endif
