@@ -225,7 +225,7 @@ ElecField:
 FeHyb:
  EKS: 6.e-11
  y: 1.51e-11
- Energy (Hartree): 4.3e-11 
+ Energy (Hartree): 4.9e-11 
 
 
 Li+:
@@ -323,7 +323,7 @@ NEB.NEB.ref.yaml:
   Energy (eV): 4.7e-9
 
 CH4-D3:
- Energy (Hartree): 1.7e-11
+ Energy (Hartree): 2.9e-11
  EH: &ener 1.1e-10
  Epot: *ener
  EKS: &ener2 3.3e-11
@@ -420,14 +420,15 @@ cleanup:
  energy: 2.3e-9
  Energy (Hartree): 1.8e-10
  ebs_check: 3.4e-10
- charge diff: 1.3e-8
- Tr(K): 1.3e-8
+ charge diff: 2.9e-8
+ Tr(K): 2.8e-8
  guess for new ef: 1.0e-10
- eF: 1.1e-10
- ebs: 7.4e-11
+ eF: 3.1e-10
+ ebs: 1.5e-10
  D Tr: 1.e-9
- HOMO-LUMO gap (eV): 9.3e-10
- HOMO-LUMO gap (Ha): 3.5e-11
+ HOMO-LUMO gap (eV): 9.8e-10
+ HOMO-LUMO gap (Ha): 3.6e-11
+ HOMO energy: 1.8e-11
  LUMO energy: 2.7e-11
 
 directmin:
@@ -1369,7 +1370,7 @@ expfoegeopt:
  epred: 2.2e-11
  trace(KS): 3.3e-11
  Total charge: 3.1e-11
- Energy (Hartree): 1.4e-11
+ Energy (Hartree): 1.5e-11
 
 log_model:
  System pseudo energy (Ha): 3.6e-11
@@ -1448,7 +1449,7 @@ FF_LJ-vssd:
   - WARNINGS
   
 periodic_silicon:
- Epot: 3.0e-10
+ Epot: 1.1e-9
  Enl: 1.1e-9
  EXC: 1.1e-10
  Omega: 5.91e-11
@@ -1493,7 +1494,7 @@ periodic_water:
  guess for new ef: 9.1e-9
  number of corrected points: 1
  charge diff: 5.2e-7
- diff: 1.1e-10
+ diff: 1.2e-10
  Tr(K): 5.0e-7
  D Tr: 2.1e-7
  Total ionic charge: 6.0e-11
@@ -1516,6 +1517,7 @@ surface_boronnitride:
 surface_graphene:
  Energies: 1.01e-9
  Omega: 2.21e-10
+ energy: 1.9e-11
  ebs_check: 2.8e-10
  ebs: 2.8e-10
  charge diff: 1.5e-7
@@ -1525,6 +1527,7 @@ surface_graphene:
  D eF: 1.1e-9
  diff: 2.2e-11
  Total ionic charge: 1.2e-11
+ Energy (Hartree): 1.9e-11
 
 dev.ref.yaml:
  Epot: 1.1e-10
