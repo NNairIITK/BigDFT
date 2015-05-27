@@ -725,6 +725,8 @@ subroutine test_dictionary_for_atoms()
 
   !now print some double precision values to understand which is the best format
   tt=real(0.5e0,kind=8) !use a conversion from float
+  call yaml_map('Test clean_zeroes',clean_zeroes(yaml_toa('20')))
+  call yaml_map('Retest clean_zeroes',clean_zeroes(yaml_toa('20.0e+00')))
   call yaml_map('Real without format',clean_zeroes(yaml_toa('0.2000000000000000000')))
   fmts(1:len(fmts))='(1pe25.17)'
   call yaml_map('Real with format '//trim(fmts),clean_zeroes(yaml_toa(tt,fmt=fmts)))
@@ -740,11 +742,13 @@ subroutine test_dictionary_for_atoms()
   call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(i3)'
   call yaml_map('Integer with too little format '//trim(fmts),10000,fmt=fmts)
-  write(tmp,fmt=fmts,iostat=ierr)10000
+  write(tmp,fmt=fmts,iostat=ierr) 10000
   call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(f3.2)'
   call yaml_map('Float with too little format '//trim(fmts),1000.4,fmt=fmts)
-  write(tmp,fmt=fmts,iostat=ierr)1000.4
+  fmts(1:len(fmts))='(f3.0)'
+  call yaml_map('Real as integer '//trim(fmts),10.0,fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr) 1000.4
   call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(f3.2)'
   call yaml_map('Double with too little format '//trim(fmts),1000.4d0,fmt=fmts)

@@ -695,7 +695,8 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      enddo
   enddo
 
-  if (verbose >= 2) call yaml_comment(trim(yaml_toa(iorb)) //'th wavefunction written')
+  if (bigdft_mpi%iproc == 0 .and. verbose >= 2) &
+     & call yaml_comment(trim(yaml_toa(iorb)) //'th wavefunction written')
   !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 END SUBROUTINE writeonewave
