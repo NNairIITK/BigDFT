@@ -1264,7 +1264,7 @@ program memguess
        call f_free_ptr(matrix_compr)
 
        call loewdin_charge_analysis_core(iproc, nproc, smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
-            smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=0, &
+            smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=1020, &
             smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
        stop
    end if

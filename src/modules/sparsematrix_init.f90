@@ -959,12 +959,14 @@ contains
       end if
 
       ! Determine to which segments this corresponds
+      sparsemat%smmm%istartendseg_mm(1)=sparsemat%nseg+1
       do iseg=1,sparsemat%nseg
-          if (sparsemat%keyv(iseg)>=sparsemat%smmm%istartend_mm(1)) then
+          if (sparsemat%keyv(iseg)+sparsemat%keyg(2,1,iseg)-sparsemat%keyg(1,1,iseg)+1>=sparsemat%smmm%istartend_mm(1)) then
               sparsemat%smmm%istartendseg_mm(1)=iseg
               exit
           end if
       end do
+      sparsemat%smmm%istartendseg_mm(2)=0
       do iseg=sparsemat%nseg,1,-1
           if (sparsemat%keyv(iseg)<=sparsemat%smmm%istartend_mm(2)) then
               sparsemat%smmm%istartendseg_mm(2)=iseg
@@ -1015,6 +1017,26 @@ contains
       ! Keep the values of its own task
       sparsemat%smmm%istartend_mm_dj(1) = istartend_dj(1,iproc)
       sparsemat%smmm%istartend_mm_dj(2) = istartend_dj(2,iproc)
+
+      ! Update the segments...
+      !write(*,*) 'sparsemat%smmm%istartend_mm_dj(1)',sparsemat%smmm%istartend_mm_dj(1)
+      ii=sparsemat%nseg+1
+      do iseg=1,sparsemat%nseg
+      !write(*,*) 'sparsemat%smmm%istartend_mm_dj(1)',sparsemat%keyv(iseg), sparsemat%smmm%istartend_mm_dj(1)
+          if (sparsemat%keyv(iseg)+sparsemat%keyg(2,1,iseg)-sparsemat%keyg(1,1,iseg)+1>=sparsemat%smmm%istartend_mm_dj(1)) then
+              ii=iseg
+              exit
+          end if
+      end do
+      if (ii<sparsemat%smmm%istartendseg_mm(1)) sparsemat%smmm%istartendseg_mm(1)=ii
+      ii=0
+      do iseg=sparsemat%nseg,1,-1
+          if (sparsemat%keyv(iseg)<=sparsemat%smmm%istartend_mm_dj(2)) then
+              ii=iseg
+              exit
+          end if
+      end do
+      if (ii>sparsemat%smmm%istartendseg_mm(2)) sparsemat%smmm%istartendseg_mm(2)=ii
 
 
       call f_free(norb_par_ideal)

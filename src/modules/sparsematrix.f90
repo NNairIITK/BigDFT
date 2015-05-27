@@ -715,7 +715,8 @@ module sparsematrix
 
 
      if (layout==SPARSE_MATMUL_SMALL) then
-         if (size(matrixp)/=smat%smmm%nvctrp_mm) then
+         if (size(matrixp)/=max(smat%smmm%nvctrp_mm,1)) then
+             write(*,*) 'CRASH 1'
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
                   err_name='BIGDFT_RUNTIME_ERROR')
@@ -1712,14 +1713,15 @@ module sparsematrix
       c_exp = f_malloc(smat%smmm%nvctrp, id='c_exp')
       a_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='a_seq')
 
-
       call sequential_acces_matrix_fast2(smat, a, a_seq)
-      call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-           smat%nseg, smat%keyv, smat%keyg, &
-           smat%smmm%line_and_column_mm, &
-           smat%smmm%nvctrp, smat%smmm%isvctr, &
-           smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-           'small_to_large', b(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), b_exp)
+      if (smat%smmm%nvctrp_mm>0) then !to avoid out of bounds error...
+          call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+               smat%nseg, smat%keyv, smat%keyg, &
+               smat%smmm%line_and_column_mm, &
+               smat%smmm%nvctrp, smat%smmm%isvctr, &
+               smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
+               'small_to_large', b(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), b_exp)
+      end if
       call sparsemm_new(smat, a_seq, b_exp, c_exp)
       call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
            c_exp, c)

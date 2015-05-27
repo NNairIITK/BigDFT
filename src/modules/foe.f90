@@ -114,9 +114,9 @@ module foe
       fermi_check_compr = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='fermi_check_compr')
     
       penalty_ev_new = f_malloc((/tmb%linmat%l%smmm%nvctrp,2/),id='penalty_ev_new')
-      fermi_check_new = f_malloc((/tmb%linmat%l%smmm%nvctrp_mm/),id='fermip_check_new')
+      fermi_check_new = f_malloc(max(tmb%linmat%l%smmm%nvctrp_mm,1),id='fermip_check_new')
       fermi_new = f_malloc((/tmb%linmat%l%smmm%nvctrp/),id='fermi_new')
-      fermi_small_new = f_malloc((/tmb%linmat%l%smmm%nvctrp_mm/),id='fermi_small_new')
+      fermi_small_new = f_malloc(max(tmb%linmat%l%smmm%nvctrp_mm,1),id='fermi_small_new')
     
     
       call timing(iproc, 'FOE_auxiliary ', 'OF')
@@ -583,8 +583,11 @@ module foe
             
               ! Calculate S^-1/2 * K * S^-1/2^T
               ! Since S^-1/2 is symmetric, don't use the transpose
+              istl = tmb%linmat%l%smmm%istartend_mm_dj(1)-tmb%linmat%l%isvctrp_tg
+              !write(*,*) 'before kernel_%matrix_compr(ilshift+istl)',iproc, kernel_%matrix_compr(ilshift+istl)
               call retransform_ext(iproc, nproc, tmb%linmat%l, &
                    tmb%linmat%ovrlppowers_(2)%matrix_compr(ilshift2+1:), kernel_%matrix_compr(ilshift+1:))
+              !write(*,*) 'after kernel_%matrix_compr(ilshift+istl)',iproc, kernel_%matrix_compr(ilshift+istl)
     
         
               call retransform_ext(iproc, nproc, tmb%linmat%l, &
@@ -604,9 +607,13 @@ module foe
         
               ! Calculate trace(KH). Since they have the same sparsity pattern and K is
               ! symmetric, this is a simple ddot.
+              !write(*,*) 'iproc, tmb%linmat%l%smmm%istartend_mm_dj', iproc, tmb%linmat%l%smmm%istartend_mm_dj
               ncount = tmb%linmat%l%smmm%istartend_mm_dj(2) - tmb%linmat%l%smmm%istartend_mm_dj(1) + 1
               istl = tmb%linmat%l%smmm%istartend_mm_dj(1)-tmb%linmat%l%isvctrp_tg
+              !write(*,*) 'ddot kernel_%matrix_compr(ilshift+istl)', &
+              !    iproc, kernel_%matrix_compr(ilshift+istl), ilshift+istl, hamscal_compr(istl)
               ebsp = ddot(ncount, kernel_%matrix_compr(ilshift+istl), 1, hamscal_compr(istl), 1)
+              !write(*,*) 'iproc, ncount, ebsp', iproc, ncount, ebsp
               !!write(*,'(a,3i8,3es16.8)') 'iproc, ncount, istl, sum(k), sum(h), ebsp', &
               !!    iproc, ncount, istl, sum(kernel_%matrix_compr(ilshift+istl:)), sum(hamscal_compr(istl:)), ebsp
     
