@@ -63,3 +63,12 @@ check report:
 
 clean-local:
 	-rm -rf includes
+
+lcov-analysis:
+	@echo "Works with gcc and the options '-fprofile-arcs -ftest-coverage' 
+	cp -p $(srcdir)/flib/src/*-inc.f90 flib/src; \
+	cp -p $(srcdir)/flib/src/*-inc-ptr.f90 flib/src; \
+	cp -p $(srcdir)/flib/src/error_handling.f90 flib/src/ ; \
+	lcov --capture --directory . --output-file doc/lcov.info ; \
+	genhtml --legend doc/lcov.info --output-dir doc/lcov-html
+	@echo "Type <Browser> doc/lcv-html/index.html"
