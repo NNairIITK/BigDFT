@@ -796,7 +796,7 @@ module rhopotential
       charge_correction=0.d0
       do ipt=1,npt
           if (rho(ipt)<0.d0) then
-              if (rho(ipt)>=-1.d-9) then
+              if (rho(ipt)>=-1.d-5) then
                   ! negative, but small, so simply set to zero
                   charge_correction=charge_correction+rho(ipt)
                   !rho(ipt)=0.d0

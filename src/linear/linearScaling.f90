@@ -872,7 +872,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                 pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
                      !!write(*,*) 'after mix_rhopot 1.2: pnrm', pnrm
                 !write(*,*) 'new pnrm',pnrm
-                call check_negative_rho(KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
+                call check_negative_rho(input%nspin, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, &
                      denspot%rhov, rho_negative)
                 if (rho_negative) then
                     call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
@@ -1404,8 +1404,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
   ! Write the sparse matrices
   if (mod(input%lin%output_mat_format,10) /= WF_FORMAT_NONE) then
+      call timing(iproc,'write_matrices','ON')
       call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
            input%lin%output_mat_format,tmb,at,rxyz,input%lin%calculate_onsite_overlap)
+      call timing(iproc,'write_matrices','OF')
   end if
   ! Write the KS coefficients
   if (mod(input%lin%output_coeff_format,10) /= WF_FORMAT_NONE) then
