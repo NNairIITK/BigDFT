@@ -225,7 +225,7 @@ ElecField:
 FeHyb:
  EKS: 6.e-11
  y: 1.51e-11
- Energy (Hartree): 4.3e-11 
+ Energy (Hartree): 4.9e-11 
 
 
 Li+:
@@ -305,7 +305,7 @@ mixpotential:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Enl: 2.1e-11
- Energy (Hartree): 1.9e-11
+ Energy (Hartree): 5.9e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -324,6 +324,7 @@ NEB.NEB.ref.yaml:
   Energy (eV): 4.7e-9
 
 CH4-D3:
+ Energy (Hartree): 2.9e-11
  EH: &ener 1.1e-10
  Epot: *ener
  EKS: &ener2 3.3e-11
@@ -825,7 +826,7 @@ foe:
  ebs_check: 1.1e-10
  guess for new ef: 4.2e-8
  D: 1.1e-10
- Energy (Hartree): 3.7e-11
+ Energy (Hartree): 1.3e-10
 
 onlyhigh:
  Energies: 2.1e-9
@@ -837,6 +838,7 @@ onlyhigh:
  fnrm2: 1.3e-11
  Average noise forces: 4.1e-10
  maxval: 1.3e-10
+ Energy (Hartree): 1.6e-11
 
 rotatesmall_read1:
  Epsilon: 1.1e-11
@@ -1376,7 +1378,7 @@ expfoegeopt:
  epred: 2.2e-11
  trace(KS): 3.3e-11
  Total charge: 3.1e-11
- Energy (Hartree): 1.4e-11
+ Energy (Hartree): 1.5e-11
 
 log_model:
  System pseudo energy (Ha): 3.6e-11
@@ -1456,7 +1458,7 @@ FF_LJ-vssd:
   - WARNINGS
   
 periodic_silicon:
- Epot: 3.0e-10
+ Epot: 1.1e-9
  Enl: 1.1e-9
  EXC: 1.1e-10
  Omega: 5.91e-11
@@ -1525,6 +1527,7 @@ surface_boronnitride:
 surface_graphene:
  Energies: 1.01e-9
  Omega: 2.21e-10
+ energy: 1.9e-11
  ebs_check: 2.8e-10
  ebs: 2.8e-10
  charge diff: 1.5e-7
@@ -1534,6 +1537,7 @@ surface_graphene:
  D eF: 1.1e-9
  diff: 2.2e-11
  Total ionic charge: 1.2e-11
+ Energy (Hartree): 1.9e-11
 
 dev.ref.yaml:
  Epot: 1.1e-10

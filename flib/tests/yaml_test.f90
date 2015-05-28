@@ -220,6 +220,11 @@ program yaml_test
    !prepare the finalization of the library
    call f_lib_finalize()
 
+  call f_lib_initialize()
+  !Finalize without report
+  call f_lib_finalize_noreport()
+
+
 end program yaml_test
 
 subroutine yaml_parse_file_and_string()
