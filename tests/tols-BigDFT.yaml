@@ -304,7 +304,7 @@ mixpotential:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Enl: 2.1e-11
- Energy (Hartree): 1.9e-11
+ Energy (Hartree): 5.9e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -819,7 +819,7 @@ foe:
  ebs_check: 1.1e-10
  guess for new ef: 4.2e-8
  D: 1.1e-10
- Energy (Hartree): 3.7e-11
+ Energy (Hartree): 1.3e-10
 
 onlyhigh:
  Energies: 2.1e-9
@@ -831,6 +831,7 @@ onlyhigh:
  fnrm2: 1.3e-11
  Average noise forces: 4.1e-10
  maxval: 1.3e-10
+ Energy (Hartree): 1.6e-11
 
 rotatesmall_read1:
  Epsilon: 1.1e-11
