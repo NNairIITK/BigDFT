@@ -1704,7 +1704,8 @@ module sparsematrix
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: a, b, c
+      real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: a
+      real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: b, c
 
       ! Local variables
       real(kind=8),dimension(:),allocatable :: b_exp, c_exp, a_seq
