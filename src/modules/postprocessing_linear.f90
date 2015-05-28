@@ -230,7 +230,7 @@ module postprocessing_linear
       integer,dimension(0:nproc-1),intent(in) :: norb_par, isorb_par
       type(sparse_matrix),intent(inout) :: smats, smatl
       type(atoms_data),intent(in) :: atoms
-      type(matrices),intent(in) :: kernel
+      type(matrices),intent(inout) :: kernel
       type(matrices),intent(inout) :: ovrlp
 
       ! Local variables
