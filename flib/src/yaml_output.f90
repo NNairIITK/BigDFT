@@ -739,7 +739,7 @@ contains
     integer :: unt,strm
     integer :: idx
     type(dictionary), pointer :: dict_tmp
-
+    dict_tmp => null() !for NAG compiler bug
     unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
