@@ -1317,6 +1317,7 @@ O2spin_dirmin:
  Max deviation from unity in reorthonormalize_coeff: 1.1e-6
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
  delta: 1.1e-10
+ delta out: 1.1e-10
 
 verysparse:
  Total charge: 2.3e-8
