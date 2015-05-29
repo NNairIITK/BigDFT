@@ -68,7 +68,7 @@ module orbitalbasis
   end type orbital_basis
 
   public :: local_hamiltonian_ket, ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next
-  public :: orbital_basis_associate,orbital_basis_release
+  public :: orbital_basis_associate,orbital_basis_release,test_iterator
 
 contains
 
@@ -104,7 +104,7 @@ contains
     !number of parallel localization regions
     it%nlrp = size(ob%dd)
     !zero value
-    it%ilr=minval(ob%orbs%inwhichlocreg(ob%orbs%isorb+1:ob%orbs%isorb+ob%orbs%norbp))
+    it%ilr=minval(ob%orbs%inwhichlocreg(ob%orbs%isorb+1:ob%orbs%isorb+ob%orbs%norbp))-1
     !last value
     it%ilr_max=maxval(ob%orbs%inwhichlocreg(ob%orbs%isorb+1:ob%orbs%isorb+ob%orbs%norbp))
     !start orbital
@@ -129,6 +129,8 @@ contains
        call nullify_ket(it)
        return
     end if
+
+    if (ok) call update_ket(it)
 
     it%iorbp=0
 
@@ -174,7 +176,7 @@ contains
           ilr_tmp=ilr_tmp+1
        end do find_next_ilr
        it%ilr=ilr_tmp
-       ok= it%ilr <= it%ilr_max
+       ok= it%ilr <= it%ilr_max 
        if (.not. ok) then
           call nullify_ket(it)
           return
@@ -182,7 +184,7 @@ contains
     end if
 
     !at this point the iorbp and ilr are determined, the iterator can be updated
-    call update_ket(it)
+    if (ok) call update_ket(it)
     
   end function ket_next
 
@@ -194,7 +196,7 @@ contains
     integer, intent(in) :: ilr_tmp
     logical :: dosome
     dosome=.false.
-    find_iorb: do while(.not. dosome .and. it%iorbp <= it%ob%orbs%norbp)
+    find_iorb: do while(.not. dosome .and. it%iorbp < it%ob%orbs%norbp)
        it%iorbp=it%iorbp+1
        !check if this localisation region is used by one of the orbitals
        dosome = (it%ob%orbs%inwhichlocreg(it%iorbp+it%ob%orbs%isorb) == ilr_tmp)
@@ -497,6 +499,34 @@ contains
 !!$     end if
 !!$
 !!$  end do
+
+  subroutine test_iterator(ob)
+    use yaml_output
+    implicit none
+    type(orbital_basis), intent(in) :: ob
+    type(ket) :: it
+
+    !iterate over all the orbitals
+    !iterate over the orbital_basis
+    it=orbital_basis_iterator(ob)
+    do while(ket_next(it))
+       call yaml_map('Locreg, orbs',[it%ilr,it%iorb,it%iorbp])
+       call yaml_map('associated lr',associated(it%lr))
+    end do
+
+
+    !iterate over the orbital_basis
+    it=orbital_basis_iterator(ob)
+    loop_lr: do while(ket_next_locreg(it))
+       call yaml_map('Locreg2',it%ilr)
+       call yaml_map('associated lr',associated(it%lr))
+       loop_iorb: do while(ket_next(it,ilr=it%ilr))
+          call yaml_map('Locreg2, orbs',[it%ilr,it%iorb,it%iorbp])
+       end do loop_iorb
+    end do loop_lr
+  end subroutine test_iterator
+
+
 
 
 end module orbitalbasis

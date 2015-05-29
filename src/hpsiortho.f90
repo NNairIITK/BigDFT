@@ -620,38 +620,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
            err_name='BIGDFT_RUNTIME_ERROR')
    end if
 
-   !!!here we can branch into the new ket-based application of the hamiltonian
-   !initialize the orbital basis object, for psi and hpsi
-   call orbital_basis_associate(psi_ob,orbs=orbs,confdatarr=confdatarr,&
-        phis_wvl=psi,Lzd=Lzd)
-
-   !iterate over the orbital_basis
-   psi_it=orbital_basis_iterator(psi_ob)
-   loop_lr: do while(ket_next_locreg(psi_it))
-      call initialize_work_arrays_locham(1,psi_it%lr,psi_it%nspinor,.true.,wrk_lh)  
-      ! wavefunction after application of the self-interaction potential
-      if (ipotmethod == 2 .or. ipotmethod == 3) then
-         vsicpsir = f_malloc([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='vsicpsir')
-      end if
-      loop_psi_lr: do while(ket_next(psi_it,ilr=psi_it%ilr))
-          fi=psi_it%kwgt*psi_it%occup
-          hpsi_ptr => ob_ket_map(hpsi,psi_it)
-          call local_hamiltonian_ket(psi_it,Lzd%hgrids,ipotmethod,xc,&
-               pkernelSIC,wrk_lh,psir,vsicpsir,hpsi_ptr,pot,eSIC_DCi,SIC%alpha,epot,ekin)
-          energs%ekin=energs%ekin+fi*ekin
-          energs%epot=energs%epot+fi*epot
-          energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
-      end do loop_psi_lr
-      !deallocations of work arrays
-      call f_free(psir)
-      if (ipotmethod == 2 .or. ipotmethod ==3) then
-         call f_free(vsicpsir)
-      end if
-      call deallocate_work_arrays_locham(wrk_lh)
-   end do loop_lr
-
-   call orbital_basis_release(psi_ob)
-
    !!!
 
    !apply the local hamiltonian for each of the orbitals
@@ -676,6 +644,12 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
       !call timing(iproc,'ApplyLocPotKin','OF') 
    else
 
+!!!here we can branch into the new ket-based application of the hamiltonian
+      !initialize the orbital basis object, for psi and hpsi
+      call orbital_basis_associate(psi_ob,orbs=orbs,confdatarr=confdatarr,&
+           phis_wvl=psi,Lzd=Lzd)
+
+
 !!$      !temporary allocation
 !!$      allocate(fake_pot(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%nspin),stat=i_stat)
 !!$      call memocc(i_stat,fake_pot,'fake_pot',subname)
@@ -686,16 +660,55 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
       !print *,'here',ipotmethod,associated(pkernelSIC)
       if (PotOrKin==1) then ! both
          call timing(iproc,'ApplyLocPotKin','ON') 
-         if(present(dpbox) .and. present(potential) .and. present(comgp)) then
-            call local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
-                 ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
-                 xc,SIC%alpha,energs%ekin,energs%epot,energs%evsic,&
-                 dpbox,potential,comgp)
-         else
-            call local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
-                 ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
-                 xc,SIC%alpha,energs%ekin,energs%epot,energs%evsic)
-         end if
+         energs%ekin=0.0_gp
+         energs%epot=0.0_gp
+
+         
+!!$         call test_iterator(psi_ob)
+!!$!         stop
+
+         !iterate over the orbital_basis
+         psi_it=orbital_basis_iterator(psi_ob)
+         !print *,'orbs',psi_it%iorb,psi_it%ilr
+         loop_lr: do while(ket_next_locreg(psi_it))
+            !print *,'orbs',psi_it%iorb,psi_it%ilr,psi_it%nspinor,associated(psi_it%lr)
+            psir = f_malloc0([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='psir')
+            call initialize_work_arrays_locham(1,psi_it%lr,psi_it%nspinor,.true.,wrk_lh)  
+            ! wavefunction after application of the self-interaction potential
+            if (ipotmethod == 2 .or. ipotmethod == 3) then
+               vsicpsir = f_malloc([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='vsicpsir')
+            end if
+            !print *,'orbs',psi_it%iorb,psi_it%ilr
+            loop_psi_lr: do while(ket_next(psi_it,ilr=psi_it%ilr))
+               fi=psi_it%kwgt*psi_it%occup
+               hpsi_ptr => ob_ket_map(hpsi,psi_it)
+               call local_hamiltonian_ket(psi_it,Lzd%hgrids,ipotmethod,xc,&
+                    pkernelSIC,wrk_lh,psir,vsicpsir,hpsi_ptr,pot,eSIC_DCi,SIC%alpha,epot,ekin)
+               energs%ekin=energs%ekin+fi*ekin
+               energs%epot=energs%epot+fi*epot
+               energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
+               !print *,'orbs',psi_it%iorbp,psi_it%iorb,psi_it%kwgt,psi_it%occup,epot,ekin
+            end do loop_psi_lr
+            !deallocations of work arrays
+            call f_free(psir)
+            if (ipotmethod == 2 .or. ipotmethod ==3) then
+               call f_free(vsicpsir)
+            end if
+            call deallocate_work_arrays_locham(wrk_lh)
+         end do loop_lr
+
+         call orbital_basis_release(psi_ob)
+
+!!$         if(present(dpbox) .and. present(potential) .and. present(comgp)) then
+!!$            call local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+!!$                 ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+!!$                 xc,SIC%alpha,energs%ekin,energs%epot,energs%evsic,&
+!!$                 dpbox,potential,comgp)
+!!$         else
+!!$            call local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+!!$                 ipotmethod,confdatarr,pot,psi,hpsi,pkernelSIC,&
+!!$                 xc,SIC%alpha,energs%ekin,energs%epot,energs%evsic)
+!!$         end if
          call timing(iproc,'ApplyLocPotKin','OF') 
 !!$      i_all=-product(shape(fake_pot))*kind(fake_pot)
 !!$      deallocate(fake_pot,stat=i_stat)
