@@ -657,7 +657,6 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
  
 end subroutine density_descriptors
 
-
 !> routine which initialised the potential data
 subroutine default_confinement_data(confdatarr,norbp)
   use module_base
@@ -670,21 +669,11 @@ subroutine default_confinement_data(confdatarr,norbp)
 
   !initialize the confdatarr
   do iorb=1,norbp
-     confdatarr(iorb)%potorder=0
-     !the rest is not useful
-     confdatarr(iorb)%prefac     =UNINITIALIZED(confdatarr(iorb)%prefac)     
-     confdatarr(iorb)%hh(1)      =UNINITIALIZED(confdatarr(iorb)%hh(1))      
-     confdatarr(iorb)%hh(2)      =UNINITIALIZED(confdatarr(iorb)%hh(2))      
-     confdatarr(iorb)%hh(3)      =UNINITIALIZED(confdatarr(iorb)%hh(3))      
-     confdatarr(iorb)%rxyzConf(1)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(1))
-     confdatarr(iorb)%rxyzConf(2)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(2))
-     confdatarr(iorb)%rxyzConf(3)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(3))
-     confdatarr(iorb)%ioffset(1) =UNINITIALIZED(confdatarr(iorb)%ioffset(1)) 
-     confdatarr(iorb)%ioffset(2) =UNINITIALIZED(confdatarr(iorb)%ioffset(2)) 
-     confdatarr(iorb)%ioffset(3) =UNINITIALIZED(confdatarr(iorb)%ioffset(3)) 
-     confdatarr(iorb)%damping    =UNINITIALIZED(confdatarr(iorb)%damping)
+     call nullify_confpot_data(confdatarr(iorb))
   end do
 end subroutine default_confinement_data
+
+
 
 
 subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&

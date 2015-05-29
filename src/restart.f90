@@ -31,7 +31,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,psi,&
   !n(c) nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
 !  psi_old=&
-!       f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,!&
+!       f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvc_f)*orbs%norbp*orbs%nspinor,!&
 !       id='psi_old')
   psi_old = f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,id='psi_old')
 
@@ -1400,11 +1400,6 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
 
 END SUBROUTINE readonewave_linear
 
-
-
-
-
-
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !! have changed
 subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
@@ -2509,7 +2504,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
 
       end if
 
-  end do
+   end do
 
   ! Get the maximal shift among all tasks
   if (nproc>1) then

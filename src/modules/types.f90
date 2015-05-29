@@ -1143,6 +1143,7 @@ module module_types
  public :: SIC_data_null,local_zone_descriptors_null,output_wf_format_help
  public :: energy_terms_null, work_mpiaccumulate_null
  public :: allocate_work_mpiaccumulate, deallocate_work_mpiaccumulate
+ public :: nullify_confpot_data
 
 contains
 
@@ -1542,7 +1543,26 @@ contains
     call nullify_coulomb_operator(denspot%pkernelseq)
     
   end subroutine nullify_DFT_local_fields
+  
+  pure subroutine nullify_confpot_data(c)
+    use module_defs, only: UNINITIALIZED
+    implicit none
+    type(confpot_data), intent(out) :: c
+    c%potorder=0
+    !the rest is not useful
+    c%prefac     =UNINITIALIZED(c%prefac)     
+    c%hh(1)      =UNINITIALIZED(c%hh(1))      
+    c%hh(2)      =UNINITIALIZED(c%hh(2))      
+    c%hh(3)      =UNINITIALIZED(c%hh(3))      
+    c%rxyzConf(1)=UNINITIALIZED(c%rxyzConf(1))
+    c%rxyzConf(2)=UNINITIALIZED(c%rxyzConf(2))
+    c%rxyzConf(3)=UNINITIALIZED(c%rxyzConf(3))
+    c%ioffset(1) =UNINITIALIZED(c%ioffset(1)) 
+    c%ioffset(2) =UNINITIALIZED(c%ioffset(2)) 
+    c%ioffset(3) =UNINITIALIZED(c%ioffset(3)) 
+    c%damping    =UNINITIALIZED(c%damping)
 
+  end subroutine nullify_confpot_data
 
   subroutine deallocate_denspot_distribution(dpbox)
     implicit none

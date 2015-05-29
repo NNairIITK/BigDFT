@@ -136,7 +136,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
               vsicpsir,eSICi)
       end if
    
-      call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
+      call psir_to_vpsi(npot,orbs%nspinor,Lzd%llr(ilr),&
            pot(orbs%ispot(iorb)),psir(1,1),epot,confdata=confdatarr(iorb))
 
 !!$      !this ispot has to be better defined inside denspot structure
