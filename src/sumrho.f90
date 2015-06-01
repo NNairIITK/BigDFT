@@ -107,7 +107,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    call timing(dpbox%mpi_env%iproc,'Rho_comput    ','ON')
 
    if (writeout) then
-      call yaml_map('GPU acceleration',(GPUconv .or. GPU%OCLconv))
+      call yaml_map('GPU acceleration',GPU%OCLconv)
    end if
 
    !components of the charge density
@@ -127,10 +127,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
 
    !switch between GPU/CPU treatment of the density
    !here also one might decide to save the value of psir and of its laplacian 
-   if (GPUconv) then
-      call local_partial_density_GPU(orbs,rhodsc%nrhotot,Lzd%Glr,&
-           dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,psi,rho_p,GPU)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call local_partial_density_OCL(orbs,rhodsc%nrhotot,Lzd%Glr,&
            dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then

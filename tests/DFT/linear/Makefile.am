@@ -24,7 +24,7 @@ TESTDIRS = Locreg \
 	   O2spin \
        verysparse \
 	   expfoegeopt \
-	   periodic \ 
+	   periodic \
        surface \
        multipoles
 

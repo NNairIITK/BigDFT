@@ -106,25 +106,26 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
      call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
      !initialize the id_proc per node
      call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
-     call sg_init(GPUshare,useGPU,iproc,nproc_node,initerror)
-     if (useGPU == 1) then
-        iconv = 1
+!!$     call sg_init(GPUshare,useGPU,iproc,nproc_node,initerror)
+     !detect if a GPU is present to accelerate blas
+     !if (useGPU == 1) then
+     !   iconv = 1
         iblas = 1
-     else
-        iconv = 0
-        iblas = 0
-     end if
-     if (initerror == 1) then
-        call yaml_warning('(iproc=' // trim(yaml_toa(iproc,fmt='(i0)')) // &
-        &    ') S_GPU library init failed, aborting...')
-        !write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
-        call MPI_ABORT(bigdft_mpi%mpi_comm,initerror,ierror)
-     end if
+     !else
+        !iconv = 0
+      !  iblas = 0
+     !end if
+!!$     if (initerror == 1) then
+!!$        call yaml_warning('(iproc=' // trim(yaml_toa(iproc,fmt='(i0)')) // &
+!!$        &    ') S_GPU library init failed, aborting...')
+!!$        !write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
+!!$        call MPI_ABORT(bigdft_mpi%mpi_comm,initerror,ierror)
+!!$     end if
 
-     if (iconv == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUconv=.true.
-     end if
+!!$     if (iconv == 1) then
+!!$        !change the value of the GPU convolution flag defined in the module_base
+!!$        GPUconv=.true.
+!!$     end if
      if (iblas == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
@@ -189,10 +190,6 @@ subroutine release_material_acceleration(GPU)
   implicit none
   type(GPU_pointers), intent(inout) :: GPU
   
-  if (GPUconv) then
-     call sg_end()
-  end if
-
   if (GPU%OCLconv) then
      call release_acceleration_OCL(GPU)
      GPU%OCLconv=.false.
@@ -263,7 +260,8 @@ END SUBROUTINE processor_id_per_node
 subroutine ensure_log_file(writing_directory, logfile, ierr)
   use yaml_output
   use yaml_strings
-  use f_utils, only: f_file_exists
+  use f_utils, only: f_file_exists,f_mkdir
+  use dictionaries
   implicit none
   character(len = *), intent(in) :: writing_directory, logfile
   integer(kind=4), intent(out) :: ierr
@@ -279,12 +277,18 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
   call f_file_exists(trim(filepath),exists)
   if (exists) then
      logfile_old=writing_directory//'logfiles'
-     call getdir(logfile_old,&
-          int(len_trim(logfile_old),kind=4),logfile_dir,int(len(logfile_dir),kind=4),ierr)
-     if (ierr /= 0) then
-        write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
+     !here a try-catch section has to be added
+     call f_mkdir(logfile_old,logfile_dir)
+     if (f_err_check(err_name='INPUT_OUTPUT_ERROR')) then
+        ierr=f_get_last_error()
         return
      end if
+!!$     call getdir(logfile_old,&
+!!$          int(len_trim(logfile_old),kind=4),logfile_dir,int(len(logfile_dir),kind=4),ierr)
+!!$     if (ierr /= 0) then
+!!$        write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
+!!$        return
+!!$     end if
      logfile_old=trim(logfile_dir)//logfile
      !change the name of the existing logfile
      lgt=index(logfile_old,'.yaml')

@@ -829,7 +829,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use ao_inguess, only: atomic_info
   !use yaml_output
   use module_defs, only : Bohr_Ang,bigdft_mpi
-  use f_enums
+  use f_enums, f_str => str
   use yaml_output
   use dictionaries, only: f_err_throw
   implicit none
@@ -903,7 +903,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
 ! Calculation of non-electrostatic contribution. Use of raddi without fact
 ! multiplication.
-  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,&
+  call epsilon_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,&
        atoms%astruct%nat,rxyz,radii_nofact,&
        epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 !  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
@@ -928,7 +928,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
 !  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps)
-  call epsilon_rigid_cavity_error_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+  call epsilon_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
        epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 !  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
@@ -940,7 +940,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  corr=0.d0
 !!$  oneosqrteps=1.d0
 
-  select case(trim(char(pkernel%method)))
+  select case(trim(f_str(pkernel%method)))
   case('PCG')
    call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
   case('PI') 

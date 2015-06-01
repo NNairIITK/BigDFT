@@ -70,6 +70,7 @@ module multipole_base
     pure subroutine nullify_external_potential_descriptors(ep)
       implicit none
       type(external_potential_descriptors),intent(out) :: ep
+      ep%nmpl=0
       nullify(ep%mpl)
     end subroutine nullify_external_potential_descriptors
 
@@ -88,6 +89,7 @@ module multipole_base
       do l=0,lmax
           call deallocate_multipole(mps%qlm(l))
       end do
+      deallocate(mps%qlm)
     end subroutine deallocate_multipole_set
 
 
@@ -98,6 +100,7 @@ module multipole_base
       do impl=1,ep%nmpl
           call deallocate_multipole_set(ep%mpl(impl))
       end do
+      deallocate(ep%mpl)
     end subroutine deallocate_external_potential_descriptors
 
 

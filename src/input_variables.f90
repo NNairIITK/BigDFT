@@ -13,13 +13,10 @@
 !! following the input files as defined  by the user
 subroutine read_input_dict_from_files(radical,mpi_env,dict)
   use module_base
-  use dictionaries
   use wrapper_MPI
-  !use module_input_keys
-  use public_keys
   use module_input_dicts, only: merge_input_file_to_dict
   use input_old_text_format
-  use yaml_output
+  !use yaml_output
   use dynamic_memory
   implicit none
   character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
@@ -29,8 +26,6 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
   integer :: ierr
   logical :: exists_default, exists_user
   character(len = max_field_length) :: fname
-  character(len = 100) :: f0
-  type(dictionary), pointer :: vals
 
   call f_routine(id='read_input_dict_from_files')
 
@@ -64,53 +59,7 @@ subroutine read_input_dict_from_files(radical,mpi_env,dict)
 
   ! We fallback on the old text format (to be eliminated in the future)
   if (.not.exists_default .and. .not. exists_user) then
-     ! Parse all files.
-     call set_inputfile(f0, radical, PERF_VARIABLES)
-     nullify(vals)
-     call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//PERF_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, DFT_VARIABLES)
-     nullify(vals)
-     call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//DFT_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, KPT_VARIABLES)
-     nullify(vals)
-     call read_kpt_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//KPT_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, GEOPT_VARIABLES)
-     nullify(vals)
-     call read_geopt_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, MIX_VARIABLES)
-     nullify(vals)
-     call read_mix_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//MIX_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, SIC_VARIABLES)
-     nullify(vals)
-     call read_sic_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//SIC_VARIABLES, vals)
-
-     call set_inputfile(f0, radical, TDDFT_VARIABLES)
-     nullify(vals)
-     call read_tddft_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//TDDFT_VARIABLES, vals)
-
-     if (bigdft_mpi%iproc==0) then
-         call yaml_warning('Do not read the linear input files in the old format. &
-             &If you use the .yaml format you can ignore this message.')
-     end if
-     !call set_inputfile(f0, radical, 'lin')
-     !call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
-
-     call set_inputfile(f0, radical, 'neb')
-     nullify(vals)
-     call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
-     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+     call input_from_old_text_format(radical,mpi_env,dict)
   end if
 
   !LG modfication of errors (see above)
@@ -141,8 +90,9 @@ subroutine inputs_from_dict(in, atoms, dict)
   use module_input_dicts
   use dynamic_memory
   use f_utils, only: f_zero
+  use f_input_file, only: input_keys_get_profile
   use module_xc
-  use input_old_text_format, only: dict_from_frag
+!  use input_old_text_format, only: dict_from_frag
   use module_atoms, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,check_atoms_positions
   use yaml_strings, only: f_strcpy
   use psp_projectors, only: PSPCODE_PAW
@@ -212,7 +162,7 @@ subroutine inputs_from_dict(in, atoms, dict)
      rlocmin = min(rloc, rlocmin)
      var => dict_next(var)
   end do
-  select case (trim(input_keys_get_source(dict // DFT_VARIABLES, HGRIDS, userdef)))
+  select case (trim(input_keys_get_profile(dict // DFT_VARIABLES, HGRIDS, userdef)))
      case ("accurate")
         call set(dict // DFT_VARIABLES // HGRIDS, (/ rlocmin, rlocmin, rlocmin /) * 1.25_gp)
      case ("normal")
@@ -324,8 +274,9 @@ subroutine inputs_from_dict(in, atoms, dict)
   end if
   
   if (in%gen_nkpt > 1 .and. in%gaussian_help) then
-     if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+     call f_err_throw('Gaussian projection is not implemented with k-point support',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+     !if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
+     !call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
   
   if(in%inputpsiid == INPUT_PSI_LINEAR_AO .or. &
@@ -345,8 +296,9 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Stop the code if it is trying to run GPU with spin=4
   if (in%nspin == 4 .and. in%matacc%iacceleration /= 0) then
-     if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+     call f_err_throw('GPU calculation not implemented with non-collinear spin',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+!!$     if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
+!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
   !control atom positions
@@ -370,7 +322,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   !call mpi_barrier(bigdft_mpi%mpi_comm,ierr)
 
   ! Warn for all INPUT_VAR_ILLEGAL errors.
-  do while (f_err_pop(INPUT_VAR_ILLEGAL, add_msg = msg) /= 0)
+  do while (f_err_pop(err_name='INPUT_VAR_ILLEGAL', add_msg = msg) /= 0)
      call yaml_warning(trim(msg))
   end do
   !check if an error has been found and raise an exception to be handled
@@ -452,11 +404,14 @@ subroutine check_for_data_writing_directory(iproc,in)
   use module_base
   use module_types
   use yaml_output
+  use f_precisions, only: f_int
   implicit none
   integer, intent(in) :: iproc
   type(input_variables), intent(inout) :: in
   !local variables
+  integer(f_int), parameter :: dirlen=100
   logical :: shouldwrite
+  character(len=dirlen) :: dirname
 
   if (iproc==0) call yaml_comment('|',hfill='-')
 
@@ -480,7 +435,14 @@ subroutine check_for_data_writing_directory(iproc,in)
   !here you can check whether the etsf format is compiled
 
   if (shouldwrite) then
-     call create_dir_output(iproc, in)
+     !!call create_dir_output(iproc, in)
+     call f_zero(dirname)
+     if (iproc == 0) then
+        call f_mkdir(in%dir_output,dirname)
+     end if
+     call mpibcast(dirname,comm=bigdft_mpi%mpi_comm)
+     !in%dir_output=dirname
+     call f_strcpy(src=dirname,dest=in%dir_output)
      if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))
   else
      if (iproc==0) call yaml_map('Data Writing directory','./')
@@ -506,15 +468,18 @@ subroutine create_dir_output(iproc, in)
   integer         :: ierrr
 
   ! Create a directory to put the files in.
-  dirname=repeat(' ',len(dirname))
+  !dirname=repeat(' ',len(dirname))
+  call f_zero(dirname)
   if (iproc == 0) then
-     call getdir(in%dir_output, int(len_trim(in%dir_output),kind=4), dirname, dirlen, i_stat)
-     if (i_stat /= 0) then
-        call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
-        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierrr)
-     end if
+     call f_mkdir(in%dir_output,dirname)
+!!$     call getdir(in%dir_output, int(len_trim(in%dir_output),kind=4), dirname, dirlen, i_stat)
+!!$     if (i_stat /= 0) then
+!!$        call yaml_warning("Cannot create output directory '" // trim(in%dir_output) // "'.")
+!!$        call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierrr)
+!!$     end if
   end if
-  call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierrr)
+  call mpibcast(dirname,comm=bigdft_mpi%mpi_comm)
+  !call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierrr)
   in%dir_output=dirname
 END SUBROUTINE create_dir_output
 
@@ -861,7 +826,6 @@ subroutine input_analyze(in,astruct)
        LINEAR_MIXPOT_SIMPLE, LINEAR_FOE
   use module_atoms, only: atomic_structure
   use module_base
-  use module_input_keys, only: input_keys_equal
   implicit none
   type(input_variables), intent(inout) :: in
   type(atomic_structure), intent(in) :: astruct
@@ -929,7 +893,7 @@ subroutine input_analyze(in,astruct)
   !target stress tensor
   in%strtarget(:)=0.0_gp
 
-  if (input_keys_equal(trim(in%geopt_approach), "AB6MD")) then
+  if (trim(in%geopt_approach) .eqv. "AB6MD") then
      if (in%ionmov /= 13) then
         in%nnos=0
         in%qmass = f_malloc_ptr(in%nnos, id = "in%qmass")
@@ -974,9 +938,9 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   use defs_basis
   use m_ab6_kpoints
   use yaml_output
-  use module_input_keys, only: input_keys_equal
   use public_keys
   use dictionaries
+  use yaml_strings,only: operator(.eqv.)
   implicit none
   !Arguments
   integer, intent(in) :: iproc
@@ -1006,7 +970,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
   nullify(in%gen_kpt, in%gen_wkpt)
 
   method = dict // KPT_METHOD
-  if (input_keys_equal(trim(method), 'auto')) then
+  if (trim(method) .eqv. 'auto') then
      kptrlen_ = dict // KPTRLEN
      if (geocode == 'F') then
         in%gen_nkpt = 1
@@ -1036,7 +1000,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
      end if
-  else if (input_keys_equal(trim(method), 'mpgrid')) then
+  else if (trim(method) .eqv. 'mpgrid') then
      !take the points of Monkhorst-pack grid
      ngkpt_(1:3) = dict // NGKPT
      if (geocode == 'S') ngkpt_(2) = 1
@@ -1080,7 +1044,7 @@ subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
 !!$        call memocc(0,in%gen_kpt,'in%gen_kpt',subname)
 !!$        call memocc(0,in%gen_wkpt,'in%gen_wkpt',subname)
      end if
-  else if (input_keys_equal(trim(method), 'manual')) then
+  else if (trim(method) .eqv. 'manual') then
      in%gen_nkpt = max(1, dict_len(dict//KPT))
      if (geocode == 'F' .and. in%gen_nkpt > 1) then
         if (iproc==0) call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')

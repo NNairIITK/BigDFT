@@ -224,7 +224,7 @@ ElecField:
 FeHyb:
  EKS: 6.e-11
  y: 1.51e-11
- Energy (Hartree): 1.15e-11 
+ Energy (Hartree): 2.15e-11 
 
 
 Li+:
@@ -279,6 +279,8 @@ test.minhop.ref.yaml:
  etot: 1.85e-11
  Orbitals: 6.1e-9
  Positions: 1.1e-9
+ curv: 5.51e-11
+ fd2: 2.7e-10
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -330,7 +332,7 @@ CH4-D3:
  etot: 2.92e-11
  Etot: 2.9e-11
  Ion-Ion interaction energy: 9.0e-11
- Energy (Hartree): 1.22e-11
+ Energy (Hartree): 1.23e-11
 
 NLCC: &NLCCs
  Energies: 1.2e-10
@@ -623,7 +625,7 @@ hybrid-directmin:
  Clean forces norm (Ha/Bohr): 8.0e-11
  Raw forces norm (Ha/Bohr): 3.3e-11
  Average noise forces: 1.1e-10
- Energy (Hartree): 2.5e-11
+ Energy (Hartree): 2.8e-11
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -819,7 +821,7 @@ foe:
  ebs_check: 1.1e-10
  guess for new ef: 4.2e-8
  D: 1.1e-10
- Energy (Hartree): 2.7e-11
+ Energy (Hartree): 2.73e-11
 
 onlyhigh:
  Energies: 2.1e-9
@@ -1072,7 +1074,7 @@ explicit_locregcenters:
  Total electronic charge: 4.1e-11
  EKS: 1.1e-9
  EH: 1.1e-9
- Energy (Hartree): 7.7e-11
+ Energy (Hartree): 9.12e-11
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 4.9e-7
@@ -1113,7 +1115,7 @@ DIIShistory:
  EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
- Energy (Hartree): 4.5e-11
+ Energy (Hartree): 5.2e-11
 
 sparsity:
  Total charge: 1.1e-10
@@ -1134,7 +1136,7 @@ sparsity:
  ebs: 2.1e-10
  diff: 1.1e-9
  D Tr: 1.1e-10
- Energy (Hartree): 4.0e-10
+ Energy (Hartree): 4.02e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -1145,7 +1147,7 @@ PBE_densmixlin:
  EXC: 1.01e-10
  EH: 1.0e-9
  Total charge: 2.1e-11
- Energy (Hartree): 2.8e-11
+ Energy (Hartree): 2.82e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1181,7 +1183,7 @@ PBE_potmixdiis:
  Enl: 2.2e-9
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
- Energy (Hartree): 1.9e-9
+ Energy (Hartree): 2.2e-9
 
 PBE_densmixdiis:
  Epot: 1.1e-10
@@ -1193,7 +1195,7 @@ PBE_densmixdiis:
  Ekin: 1.1e-9
  Total charge: 2.1e-11
  EH: 1.0e-9
- Energy (Hartree): 3.0e-11
+ Energy (Hartree): 3.14e-11
 
 test-bigdft-tool:
  positions: 5.1e-8
@@ -1304,9 +1306,9 @@ O2spin_dirmin:
  fnrm: 1.1e-5
  EH: 1.3e-5
  EXC: 5.6e-6
- Ekin: 8.0e-6
+ Ekin: 8.5e-6
  Enl: 1.9e-7
- Epot: 1.5e-5
+ Epot: 1.56e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
  energy: 1.5e-6
@@ -1370,7 +1372,7 @@ expfoegeopt:
  epred: 1.9e-11
  trace(KS): 3.3e-11
  Total charge: 3.1e-11
- Energy (Hartree): 1.2e-11
+ Energy (Hartree): 1.3e-11
 
 log_model:
  System pseudo energy (Ha): 3.6e-11
@@ -1388,7 +1390,7 @@ FF_LENOSKY-vssd:
   - WARNINGS
 
 FF_LENOSKY-sdcg:
-  etot: 2.6e-11
+  etot: 3.9e-11
   maxval: 1.01e-9
   Keys to ignore:
   - WARNINGS
@@ -1401,6 +1403,7 @@ FF_LENOSKY-lbfgs:
   FORCES norm(Ha/Bohr): 9.01e-6
   Forces: 1.e-4
   etot: 4.9e-6
+  Alpha: 0.00101
   Keys to ignore:
   - WARNINGS
 
@@ -1472,7 +1475,7 @@ periodic_wateredge:
  energy: 1.6e-10
  Total charge: 1.1e-10
  PV (Ha): 2.7e-9
- Energy (Hartree): 7.95e-11
+ Energy (Hartree): 8.45e-11
  Total ionic charge: 2.7e-11
  Pressure: 7.4e-10
 
@@ -1531,20 +1534,20 @@ multipoles_OH-:
  guess for new ef: 2.6e-6
  charge diff: 6.8e-8
  D Tr: 6.8e-8
- Tr(K): 6.7e-8
+ Tr(K): 6.71e-8
  ebs_check: 2.1e-9
  ebs: 1.6e-10
  relative diff: 4.6e-9
  diff: 2.1e-9
- multiplicator for the confinement: 4.8e-10
+ multiplicator for the confinement: 7.02e-10
  Epot: 1.3e-10
  EH: 2.1e-10
- Ekin: 5.1e-11
+ Ekin: 6.1e-11
  EXC: 2.1e-11
  EvXC: 3.1e-11
  energy: 3.0e-11
  D eF: 2.1e-8
- Total charge: 4.3e-11
+ Total charge: 4.31e-11
  trace(KS): 4.3e-11
  diff from reference kernel: 1.1e-8
  Atomic Forces (Ha/Bohr): 3.3e-11
@@ -1552,3 +1555,7 @@ multipoles_OH-:
  Raw forces norm (Ha/Bohr): 3.7e-11
  Average noise forces: 1.1e-10
  decay length of error function: 1.1e-5
+
+Xabsb2B.xabs.ref.yaml:
+  Keys to ignore:
+  - WARNINGS

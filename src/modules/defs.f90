@@ -21,10 +21,10 @@ module module_defs
   integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
 
   ! General precision, density and the wavefunctions types
-  integer, parameter :: gp=double!kind(1.0d0)  !< general-type precision
-  integer, parameter :: dp=double!kind(1.0d0)  !< density-type precision
-  integer, parameter :: wp=double!kind(1.0d0)  !< wavefunction-type precision
-  integer, parameter :: tp=double!kind(1.0d0)  !< DIIS precision (single in this context, if double is only for non-regression)
+  integer, parameter :: gp=f_double!kind(1.0d0)  !< general-type precision
+  integer, parameter :: dp=f_double!kind(1.0d0)  !< density-type precision
+  integer, parameter :: wp=f_double!kind(1.0d0)  !< wavefunction-type precision
+  integer, parameter :: tp=f_double!kind(1.0d0)  !< DIIS precision (single in this context, if double is only for non-regression)
 
   !> Define type of data for MPI
   integer, parameter :: mpidtypw=MPI_DOUBLE_PRECISION
@@ -32,10 +32,10 @@ module module_defs
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
-  !> Flag for GPU computing, if CUDA libraries are present
-  !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
-  !! this value can be changed in the read_input_variables routine
-  logical :: GPUconv=.false.,GPUshare=.true.
+!!$  !> Flag for GPU computing, if CUDA libraries are present
+!!$  !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
+!!$  !! this value can be changed in the read_input_variables routine
+!!$  logical :: GPUconv=.false.,GPUshare=.true.
 
   !> Flag for GPU computing, if OpenCL libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
@@ -85,7 +85,7 @@ module module_defs
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
 
-  private :: double,simple,long,short,four
+  private :: f_double,f_simple,f_long,f_short,f_int
 
   !interface for uninitialized variable
   interface UNINITIALIZED

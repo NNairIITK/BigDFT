@@ -1148,9 +1148,100 @@ END MODULE module_input
 
 !> Module reading the old format (before 1.7) for the input
 module input_old_text_format
+  use yaml_strings, only: operator(.eqv.)
   implicit none
-  public
+  private
+  public :: input_from_old_text_format
 contains
+
+  subroutine input_from_old_text_format(radical,mpi_env,dict)
+    use public_keys
+    use wrapper_MPI
+    use dictionaries
+    use yaml_output
+    implicit none
+    character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
+    type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
+    type(dictionary), pointer :: dict            !< Input dictionary
+    !local variables
+    character(len = 100) :: f0
+    type(dictionary), pointer :: vals
+    
+    ! Parse all files.
+    call set_inputfile(f0, radical, PERF_VARIABLES)
+    nullify(vals)
+    call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//PERF_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, DFT_VARIABLES)
+    nullify(vals)
+    call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//DFT_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, KPT_VARIABLES)
+    nullify(vals)
+    call read_kpt_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//KPT_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, GEOPT_VARIABLES)
+    nullify(vals)
+    call read_geopt_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, MIX_VARIABLES)
+    nullify(vals)
+    call read_mix_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//MIX_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, SIC_VARIABLES)
+    nullify(vals)
+    call read_sic_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//SIC_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, TDDFT_VARIABLES)
+    nullify(vals)
+    call read_tddft_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//TDDFT_VARIABLES, vals)
+
+    !call set_inputfile(f0, radical, 'lin')
+    !call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
+
+    call set_inputfile(f0, radical, 'neb')
+    nullify(vals)
+    call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+
+    if (mpi_env%iproc==0) then
+       call yaml_warning('Input files read in the old format.'//&
+            'Use the input_minimal.yaml file to switch to new format. '//&
+            'In future versions this will be deprecated')
+    end if
+
+  end subroutine input_from_old_text_format
+
+  !> Set and check the input file
+  !! if radical is empty verify if the file input.ext exists. 
+  !! otherwise search for radical.ext
+  !! if the so defined file is not existing, then filename becomes default.ext
+  subroutine set_inputfile(filename, radical, ext)
+    implicit none
+    character(len = *), intent(in) :: radical, ext
+    character(len = 100), intent(out) :: filename
+
+    logical :: exists
+
+    write(filename, "(A)") ""
+    if (trim(radical) == "") then
+       write(filename, "(A,A,A)") "input", ".", trim(ext)
+    else
+       write(filename, "(A,A,A)") trim(radical), ".", trim(ext)
+    end if
+
+    inquire(file=trim(filename),exist=exists)
+    if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
+         & write(filename, "(A,A,A)") "default", ".", trim(ext)
+  end subroutine set_inputfile
+
   subroutine read_dft_from_text_format(iproc,dict,filename)
     use module_base
     use module_types
@@ -1274,7 +1365,6 @@ contains
     use module_types
     use module_input
     use public_keys
-    use module_input_keys, only: input_keys_equal
     use dictionaries
     implicit none
     integer, intent(in) :: iproc
@@ -1312,7 +1402,7 @@ contains
     call input_var(dummy_real,'0.0',dict // RANDDIS,comment="")
     !call set(dict // RANDDIS, dummy_real, fmt = "(E8.2)")
 
-    if (input_keys_equal(trim(dummy_str),"AB6MD")) then
+    if (trim(dummy_str) .eqv. "AB6MD") then
        call input_var(ionmov_,'6',dict // IONMOV,comment="")
        !call set(dict // IONMOV, ionmov_)
        call input_var(dummy_real,'20.670689',dict // DTION,comment="")
@@ -1351,7 +1441,7 @@ contains
           call input_var(dummy_real,'1.0',dict // VMASS,comment="")
           !call set(dict // VMASS, dummy_real)
        end if
-    else if (input_keys_equal(trim(dummy_str),"DIIS")) then
+    else if (trim(dummy_str) .eqv. "DIIS") then
        call input_var(dummy_real,'2.0',dict // BETAX)
        !call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
        call input_var(dummy_int,'4',dict // HISTORY,comment="")
@@ -1360,7 +1450,7 @@ contains
        call input_var(dummy_real,'4.0',dict // BETAX,comment="")
        !call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
     end if
-    if (input_keys_equal(trim(dummy_str),"FIRE")) then
+    if (trim(dummy_str) .eqv. "FIRE") then
        call input_var(dummy_real,'0.75',dict // DTINIT)
        !call set(dict // DTINIT, dummy_real, fmt = "(F6.3)")
        call input_var(dummy_real, '1.5',dict // DTMAX,comment="")
@@ -1427,7 +1517,6 @@ contains
   subroutine read_sic_from_text_format(iproc,dict,filename)
     use module_input
     use public_keys
-    use module_input_keys, only: input_keys_equal
     use dictionaries
     implicit none
     integer, intent(in) :: iproc
@@ -1454,7 +1543,7 @@ contains
     call input_var(dummy_real,'0.0',dict // SIC_ALPHA,comment='')
     !call set(dict // SIC_ALPHA, dummy_real, fmt = "(E8.2)")
     
-    if (input_keys_equal(trim(dummy_str),'NK')) then
+    if (trim(dummy_str) .eqv. 'NK') then
        call input_var(dummy_real,'0.0',dict // SIC_FREF,comment='')
        !call set(dict // SIC_FREF, dummy_real, fmt = "(E8.2)")
     end if
@@ -1500,7 +1589,6 @@ contains
     use dictionaries
     use module_input
     use public_keys
-    use module_input_keys, only: input_keys_equal
     implicit none
     character(len=*), intent(in) :: filename
     integer, intent(in) :: iproc
@@ -1530,10 +1618,10 @@ contains
     call input_var(dummy_str, 'manual',dict//KPT_METHOD, comment='K-point sampling method')
     !call set(dict//KPT_METHOD, trim(dummy_str))
 
-    if (input_keys_equal(trim(dummy_str),'auto')) then
+    if (trim(dummy_str) .eqv.  'auto') then
        call input_var(dummy_real,'0.0',dict//KPTRLEN, comment='Equivalent length of K-space resolution (Bohr)')
        !call set(dict//KPTRLEN, dummy_real)
-    else if (input_keys_equal(trim(dummy_str),'mpgrid')) then
+    else if (trim(dummy_str) .eqv. 'mpgrid') then
        !take the points of Monckorst-pack grid
        call input_var(dummy_int3(1),'1',dict//NGKPT//0)
        call input_var(dummy_int3(2),'1',dict//NGKPT//1)
@@ -1553,7 +1641,7 @@ contains
           !call set(dict//SHIFTK//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
           !call set(dict//SHIFTK//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
        end do
-    else if (input_keys_equal(trim(dummy_str),'manual')) then
+    else if (trim(dummy_str) .eqv. 'manual') then
        call input_var(dummy_int,'1',ranges=(/1,10000/),&
             comment='Number of K-points')
        do i=1,dummy_int
@@ -2094,7 +2182,7 @@ contains
     use module_base
     use module_types
     use module_input
-    use module_input_keys
+    !use module_input_keys
     use yaml_output, only: yaml_toa,yaml_map
     implicit none
     logical, intent(in) :: shouldexist

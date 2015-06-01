@@ -49,7 +49,7 @@ module time_profiling
      integer :: cat_paused !<id of paused category when interrupt action
      integer :: timing_ncat !<number of categories
      integer :: timing_nctr !<number of partial counters
-     integer(long) :: epoch !<time of the creation of the routine
+     integer(f_long) :: epoch !<time of the creation of the routine
      double precision :: time0 !<reference time since last checkpoint
      double precision :: t0 !<reference time since last opening action
      double precision, dimension(ncat_max+1) :: clocks !< timings of different categories
@@ -238,7 +238,7 @@ module time_profiling
     !> get the walltime since most recent call of the f_timing initialize
     function f_clock()
       implicit none
-      integer(long) :: f_clock !< elapsed walltime since last call of the initialize
+      integer(f_long) :: f_clock !< elapsed walltime since last call of the initialize
       f_clock=f_time()-times(ictrl)%epoch
     end function f_clock
 
@@ -246,7 +246,7 @@ module time_profiling
     subroutine f_timing_finalize(walltime)
       use yaml_output
       implicit none
-      integer(long), intent(out), optional :: walltime !< elapsed walltime since last call of the initialize
+      integer(f_long), intent(out), optional :: walltime !< elapsed walltime since last call of the initialize
       !create the general category for unspecified timings
       call dict_free(times(ictrl)%dict_timing_categories)
       call dict_free(times(ictrl)%dict_timing_groups)

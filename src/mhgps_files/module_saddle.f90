@@ -876,7 +876,7 @@ real(gp) :: alpha0int
                 call yaml_comment('INFO: (MHGPS) alpha reset (opt. curv): '//&
                      trim(yaml_toa(fsw%alpha_rot)))
             fsw%ndim_rot=0
-            if((trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE') .and. (runObj%inputs%inputPsiId/=0))then
+            if(runObj%run_mode=='QM_RUN_MODE' .and. (runObj%inputs%inputPsiId/=0))then
                 if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity>=3)&
                     call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on '//&
                     '(until end of current minmode optimization).')
@@ -947,8 +947,8 @@ real(gp) :: alpha0int
                 fsw%fstretch_rot(:,:,fsw%idx_rot(fsw%nhist_rot))
         endif
 
-!        if (cosangle.gt..20_gp) then
-        if (cosangle.gt..40_gp) then
+        if (cosangle.gt..20_gp) then
+!        if (cosangle.gt..40_gp) then
             fsw%alpha_rot=fsw%alpha_rot*1.10_gp
         else
             fsw%alpha_rot=max(fsw%alpha_rot*.85_gp,alpha0int)
@@ -969,7 +969,7 @@ real(gp) :: alpha0int
                 call yaml_warning('(MHGPS) opt_curv failed because'//&
                      ' nrise > nmaxrise. Wrong finite difference'//&
                      ' or errors in energies and forces.')
-                if(trim(adjustl(char(runObj%run_mode)))=='QM_RUN_MODE')then
+                if(runObj%run_mode =='QM_RUN_MODE')then
                     call yaml_warning('(MHGPS) Did QM method converge?')
                 endif
             endif
@@ -1167,6 +1167,16 @@ end do loop_nfrag
 !   if(mhgpsst%iproc==0) write(*,*) '(MH) nfrag=',nfrag
 occured=.false.
 if(nfrag.ne.1) then          !"if there is fragmentation..."
+
+!!DISABLE FIX FRAGMENTATION
+!!      if(mhgpsst%iproc==0) then
+!!         call yaml_comment('(MHGPS) FIX: Fragmentation DISABLED!')
+!!         call yaml_mapping_close()
+!!      end if
+!!      return
+!!END DISBALE FIX FRAGEMENTATION
+
+
    occured=.true.
    if(mhgpsst%iproc==0) then
       call yaml_mapping_open('(MHGPS) FIX')

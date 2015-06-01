@@ -117,7 +117,6 @@ high_level = cluster.f90 \
 	init.f90 \
 	initialization.f90 \
 	input_variables.f90 \
-	input_variables_text.f90 \
 	sumrho.f90 \
 	hpsiortho.f90 \
 	forces.f90 \
@@ -231,7 +230,6 @@ libbigdft_1_a_SOURCES =
 
 input_variables_description.o: input_variables_definition-inc.h
 #build the fortran include file with the stream of input variables into a local string
-#should we check (AC_CHECK_PROG) if sed and echo are available?
 #the sed command below will transform the entire yaml document into a fortran string
 input_variables_definition-inc.h: input_variables_definition.yaml
 	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
