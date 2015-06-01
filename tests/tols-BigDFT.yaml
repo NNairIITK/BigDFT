@@ -707,7 +707,7 @@ water_foe:
  charge diff: 3.9e-8
  eF: 2.4e-8
  D eF: 2.3e-8
- D Tr: 1.1e-10
+ D Tr: 1.1e-9
  guess for new ef: 4.1e-9
  Tr(K): 1.1e-7
  ebs_check: 1.6e-11
@@ -1048,9 +1048,9 @@ reformat_read:
  etot: 3.5e-9
  Ion-Ion interaction energy: 4.3e-9
  Raw forces norm (Ha/Bohr): 3.6e-9
- e: 5.2e-10
+ e: 5.3e-10
  Positions: 3.5e-09
- Energy (Hartree): 3.2e-11
+ Energy (Hartree): 3.3e-11
 
 reformat_write:
  Kohn-Sham residue: 4.1e-4
@@ -1283,7 +1283,7 @@ O2spin_foe:
  Omega: 2.3e-9
  energy: 1.1e-7
  Raw forces norm (Ha/Bohr): 7.5e-8
- Clean forces norm (Ha/Bohr): 7.5e-8
+ Clean forces norm (Ha/Bohr): 8.9e-8
  Average noise forces: 3.2e-8
  Total charge: 7.5e-8
  decay length of error function: 1.1e-5
@@ -1294,26 +1294,26 @@ O2spin_foe:
  Energy (Hartree): 2.4e-10
 
 O2spin_dirmin:
- Atomic Forces (Ha/Bohr): 1.2e-5
+ Atomic Forces (Ha/Bohr): 1.5e-5
  Average noise forces: 2.4e-5
- Clean forces norm (Ha/Bohr): 7.4e-5
- Raw forces norm (Ha/Bohr): 7.4e-5
+ Clean forces norm (Ha/Bohr): 8.9e-5
+ Raw forces norm (Ha/Bohr): 8.9e-5
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 2.4e-5
- eBS: 6.1e-6
+ eBS: 7.1e-6
  fnrm: 1.1e-5
- EH: 1.1e-5
+ EH: 1.3e-5
  EXC: 5.6e-6
  Ekin: 8.0e-6
  Enl: 1.9e-7
  Epot: 1.5e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
- energy: 1.2e-6
- Energy (Hartree): 1.2e-6
+ energy: 1.5e-6
+ Energy (Hartree): 1.5e-6
  Omega: 6.1e-6
- D: 2.1e-6
- DIIS weights: 1.5
+ D: 1.1e-4
+ DIIS weights: 3.9
  Max deviation from unity in reorthonormalize_coeff: 1.1e-6
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
  delta: 1.1e-10
@@ -1323,7 +1323,7 @@ verysparse:
  Total charge: 2.3e-8
  EH: 4.8e-7
  EXC: 1.4e-8
- Enl: 1.4e-9
+ Enl: 2.2e-9
  Epot: 5.0e-7
  Ekin: 1.8e-8
  EvXC: 1.7e-8
@@ -1346,7 +1346,7 @@ verysparse:
  Raw forces norm (Ha/Bohr): 7.8e-10
  Atomic Forces (Ha/Bohr): 3.1e-9
  Average noise forces: 1.0e-9
- Energy (Hartree): 2.1e-9
+ Energy (Hartree): 2.2e-9
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
