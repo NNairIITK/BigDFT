@@ -1210,7 +1210,7 @@ module io
       do iseg=1,nseg
           read(iunit,*) keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg), keyg(1,2,iseg), keyg(2,2,iseg)
       end do
-      mat_compr = f_malloc_ptr(nvctr,id='mat_compr')
+      mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
       if (read_on_which_atom) then
           nullify(on_which_atom)
           on_which_atom = f_malloc_ptr(nfvctr,id='on_which_atom')
