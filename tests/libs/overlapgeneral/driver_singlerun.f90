@@ -56,7 +56,7 @@ program driver_singlerun
   ! Create the corresponding BigDFT sparsity pattern
   !call ccs_to_sparsebigdft(iproc, nproc, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
   call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smat)
+  call bigdft_to_sparsebigdft(iproc, nproc, nspin, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smat)
 
   matA = matrices_null()
   matB(1) = matrices_null()

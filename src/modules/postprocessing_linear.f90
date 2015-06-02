@@ -234,7 +234,7 @@ module postprocessing_linear
       type(matrices),intent(inout) :: ovrlp
 
       ! Local variables
-      integer :: ierr, iorb, iat, ind
+      integer :: ierr, iorb, iat, ind, ist, ishift, ispin
       type(matrices),dimension(1) :: inv_ovrlp
       real(kind=8),dimension(:,:,:),allocatable :: proj_mat
       real(kind=8),dimension(:,:),allocatable :: weight_matrix, weight_matrixp, proj_ovrlp_half
@@ -244,7 +244,11 @@ module postprocessing_linear
       integer,parameter :: DENSE=101, SPARSE=102
       integer :: imode=SPARSE
 
+      call f_routine(id='loewdin_charge_analysis_core')
+
       if (imode==DENSE) then
+
+          call f_err_throw('Dense mode is deprecated',err_name='BIGDT_RUNTIME_ERROR')
 
           inv_ovrlp(1) = matrices_null()
           call allocate_matrices(smatl, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
@@ -313,59 +317,32 @@ module postprocessing_linear
 
       else if (imode==SPARSE) then
 
+
           inv_ovrlp(1) = matrices_null()
-          !call allocate_matrices(smatl, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
           inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
 
-          !!ovrlp%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='ovrlp%matrix')
-          !call uncompress_matrix2(iproc, nproc, smats, &
-          !     ovrlp%matrix_compr, ovrlp%matrix)
+
           call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
                imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
                max_error=max_error, mean_error=mean_error)
           call f_free_ptr(ovrlp%matrix)
-    
-          ! optimize this to just change the matrix multiplication?
-          !proj_mat = sparsematrix_malloc0(smatl,iaction=DENSE_FULL,id='proj_mat')
-          !proj_mat_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
-    
-          !call uncompress_matrix2(iproc, nproc, smatl, kernel%matrix_compr, proj_mat)
 
-          !proj_ovrlp_half=f_malloc((/norb,norbp/),id='proj_ovrlp_half')
+    
           proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
-          if (norbp>0) then
-             !call dgemm('n', 'n', norb, norbp, &
-             !       norb, 1.d0, &
-             !       proj_mat(1,1,1), norb, &
-             !       inv_ovrlp(1)%matrix(1,isorb+1,1), norb, 0.d0, &
-             !       proj_ovrlp_half(1,1), norb)
-             call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
-                  kernel%matrix_compr, inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr)
-          end if
-          !call f_free(proj_mat)
-          !weight_matrixp=f_malloc((/norb,norbp/), id='weight_matrixp')
           weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
-          if (norbp>0) then
-             !call dgemm('n', 'n', norb, norbp, &
-             !     norb, 1.d0, &
-             !     inv_ovrlp(1)%matrix(1,1,1), norb, &
-             !     proj_ovrlp_half(1,1), norb, 0.d0, &
-             !     weight_matrixp(1,1), norb)
-             call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
-                  inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr, weight_matrix_compr_tg)
-          end if
-          !call f_free(proj_ovrlp_half)
+          do ispin=1,smatl%nspin
+              ist = (ispin-1)*smatl%nvctrp_tg + 1
+              if (norbp>0) then
+                 call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+                      kernel%matrix_compr(ist:), inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:))
+              end if
+              if (norbp>0) then
+                 call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+                      inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
+              end if
+          end do
           call f_free(proj_ovrlp_half_compr)
-          !weight_matrix=f_malloc((/norb,norb/), id='weight_matrix')
-          !if (nproc>1) then
-          !   call mpi_allgatherv(weight_matrixp, norb*norbp, mpi_double_precision, weight_matrix, &
-          !        norb*norb_par(:), norb*isorb_par, &
-          !        mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-          !else
-          !   call vcopy(norb*norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
-          !end if
-          !call f_free(weight_matrixp)
     
           call deallocate_matrices(inv_ovrlp(1))
           charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
@@ -374,21 +351,22 @@ module postprocessing_linear
           weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
           call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
     
-          do iorb=1,norb
-              iat=smats%on_which_atom(iorb)
-              ind = matrixindex_in_compressed(smatl, iorb, iorb)
-              !charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
-              charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix_compr(ind)
+          do ispin=1,smatl%nspin
+              ishift = (ispin-1)*smatl%nvctr
+              do iorb=1,norb
+                  iat=smats%on_which_atom(iorb)
+                  ind = matrixindex_in_compressed(smatl, iorb, iorb)
+                  ind = ind + ishift
+                  charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix_compr(ind)
+              end do
           end do
           if (iproc==0) then
-              !call write_partial_charges()
               call write_partial_charges(atoms, charge_per_atom, .true.)
               call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
               call calculate_dipole(iproc, atoms, charge_per_atom)
               call calculate_quadropole(iproc, atoms, charge_per_atom)
               call yaml_sequence_close()
           end if
-          !!call support_function_multipoles()
     
           call f_free(charge_per_atom)
           call f_free(weight_matrix_compr_tg)
@@ -397,6 +375,8 @@ module postprocessing_linear
       else
           call f_err_throw('wrong value for imode',err_name='BIGDFT_RUNTIME_ERROR')
       end if
+
+      call f_release_routine()
 
     end subroutine loewdin_charge_analysis_core
 
@@ -416,14 +396,27 @@ module postprocessing_linear
       real(kind=8),dimension(2) :: charges
       character(len=128) :: output
       character(len=2) :: backslash
-      integer,parameter :: ncolors = 7
-      character(len=20),dimension(ncolors),parameter :: colors=(/'violet', &
-                                                                 'blue  ', &
-                                                                 'cyan  ', &
-                                                                 'green ', &
-                                                                 'yellow', &
-                                                                 'orange', &
-                                                                 'red   '/)
+      integer,parameter :: ncolors = 12 !7
+      !character(len=20),dimension(ncolors),parameter :: colors=(/'violet', &
+      !                                                           'blue  ', &
+      !                                                           'cyan  ', &
+      !                                                           'green ', &
+      !                                                           'yellow', &
+      !                                                           'orange', &
+      !                                                           'red   '/)
+      ! Presumably well suited colorschemes from colorbrewer2.org
+      character(len=20),dimension(ncolors),parameter :: colors=(/'#a6cee3', &
+                                                                 '#1f78b4', &
+                                                                 '#b2df8a', &
+                                                                 '#33a02c', &
+                                                                 '#fb9a99', &
+                                                                 '#e31a1c', &
+                                                                 '#fdbf6f', &
+                                                                 '#ff7f00', &
+                                                                 '#cab2d6', &
+                                                                 '#6a3d9a', &
+                                                                 '#ffff99', &
+                                                                 '#b15928'/)
 
       call yaml_sequence_open('Loewdin charge analysis (charge / net charge)')
       total_charge=0.d0
@@ -452,7 +445,7 @@ module postprocessing_linear
           iunit=100
           call f_open_file(iunit, file=trim(output), binary=.false.)
           write(iunit,'(a)') '# plot the fractional charge as a normalized sum of Gaussians'
-          write(iunit,'(a)') 'set samples 500000'
+          write(iunit,'(a)') 'set samples 1000'
           range_min = minval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) - 0.1d0
           range_max = maxval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) + 0.1d0
           write(iunit,'(a,2(es12.5,a))') 'set xrange[',range_min,':',range_max,']'
