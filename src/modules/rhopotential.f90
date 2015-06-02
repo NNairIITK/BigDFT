@@ -231,7 +231,7 @@ module rhopotential
     
        call timing(iproc,'Pot_after_comm','ON')
        
-       if(Lzd%nlr > 1) then
+       if(Lzd%nlr > 1 .or. iflag==2) then !nlr>1 not enough to activate linear scaling (linear scaling with only one locreg is possible...)
           ilrtable = f_malloc(orbs%norbp,id='ilrtable')
           !call f_zero(orbs%norbp*2,ilrtable(1,1))
           ilrtable=0

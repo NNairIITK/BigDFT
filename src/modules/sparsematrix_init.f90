@@ -4546,7 +4546,7 @@ contains
       wli = workload_ideal
     
       call f_zero(norb_par)
-      if (norb>=nproc) then
+      if (norb>nproc) then
           workload_par = f_malloc(0.to.nproc-1,id='workload_par')
           norb_par_trial = f_malloc(0.to.nproc-1,id='norbpar_par_trial')
           tcount = 0.d0

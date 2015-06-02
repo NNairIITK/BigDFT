@@ -1724,7 +1724,7 @@ module module_interfaces
      end subroutine setCommsParameters
 
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, npsidim_orbs, &
-                orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed, foe_obj)
+                orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
        use module_base
        use module_types
        use sparsematrix_base, only: sparse_matrix
@@ -1742,7 +1742,6 @@ module module_interfaces
        real(8),dimension(npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer:: psit_c, psit_f
        logical,intent(inout):: can_use_transposed
-       type(foe_data),intent(in) :: foe_obj
      end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldiis, experimental_mode)
