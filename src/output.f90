@@ -135,7 +135,7 @@ subroutine print_general_parameters(in,atoms,input_id,posinp_id)
   use module_types
   use defs_basis
   use yaml_output
-  use module_input_keys, only: input_keys_equal
+  use yaml_strings, only: operator(.eqv.)
   implicit none
   !Arguments
   type(input_variables), intent(in) :: in
@@ -210,7 +210,7 @@ subroutine print_general_parameters(in,atoms,input_id,posinp_id)
            call yaml_map('DIIS history', in%history)
         end if
      call yaml_mapping_close()
-     if (input_keys_equal(trim(in%geopt_approach),"AB6MD")) then
+     if (trim(in%geopt_approach) .eqv. "AB6MD") then
         call yaml_mapping_open('Molecular Dynamics Parameters')
            call yaml_map('ionmov',in%ionmov)
            call yaml_map('dtion', in%dtion,fmt='(0pf7.0)')

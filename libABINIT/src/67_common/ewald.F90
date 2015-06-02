@@ -353,7 +353,7 @@ subroutine ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,
 !  End loop on nr (new shells). Note that there is an exit within the loop
  end do
 
- if (nproc>1) then
+ if (nproc > 1 .and. natom > 0) then
    !call mpiallred(grewtn, mpi_sum, bigdft_mpi%mpi_comm)
    call mpi_allreduce(grewtn_tmp(1,1,1), grewtn_tmp(1,1,2), 3*natom, &
         mpi_double_precision, mpi_sum, mpi_comm_world, ierr)

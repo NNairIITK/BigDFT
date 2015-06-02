@@ -135,7 +135,7 @@ end subroutine write_orbital_density
 subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor, binary, psi_g)
   use module_base
   use module_types
-  use module_interfaces, only: filename_of_iorb
+  use module_interfaces, only: filename_of_iorb,plot_wf
   implicit none
 
   ! Calling arguments
@@ -166,7 +166,7 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   filex = trim(filebasex)//'.cube'
   filey = trim(filebasey)//'.cube'
   filez = trim(filebasez)//'.cube'
-  write(*,*) 'file0',file0
+  !write(*,*) 'file0',file0
   call f_open_file(iunit0, file=file0, binary=binary)
   call f_open_file(iunitx, file=filex, binary=binary)
   call f_open_file(iunity, file=filey, binary=binary)

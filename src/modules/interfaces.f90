@@ -77,12 +77,12 @@ module module_interfaces
          real(gp), dimension(3), intent(out) :: shift
       END SUBROUTINE system_size
 
-      subroutine standard_inputfile_names(inputs, radical)
-         use module_types
-         implicit none
-         type(input_variables), intent(out) :: inputs
-         character(len = *), intent(in) :: radical
-      END SUBROUTINE standard_inputfile_names
+!!$      subroutine standard_inputfile_names(inputs, radical)
+!!$         use module_types
+!!$         implicit none
+!!$         type(input_variables), intent(out) :: inputs
+!!$         character(len = *), intent(in) :: radical
+!!$      END SUBROUTINE standard_inputfile_names
 
       subroutine read_input_dict_from_files(radical, mpi_env,dict)
         use dictionaries, only: dictionary
@@ -2668,24 +2668,24 @@ module module_interfaces
           type(comms_cubic), intent(in) :: comms
         end subroutine check_communications
 
-        subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
-             orbs,nlpsp,wfd,psi,fsep,refill,strten)
-          use module_base
-          use module_types
-          implicit none
-          !Arguments-------------
-          type(atoms_data), intent(in) :: at
-          type(wavefunctions_descriptors), intent(in) :: wfd
-          type(DFT_PSP_projectors), intent(inout) :: nlpsp
-          logical, intent(in) :: refill
-          real(gp), intent(in) :: hx,hy,hz
-          type(locreg_descriptors) :: lr
-          type(orbitals_data), intent(in) :: orbs
-          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-          real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
-          real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
-          real(gp), dimension(6), intent(out) :: strten
-        end subroutine nonlocal_forces
+!!$        subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
+!!$             orbs,nlpsp,wfd,psi,fsep,refill,strten)
+!!$          use module_base
+!!$          use module_types
+!!$          implicit none
+!!$          !Arguments-------------
+!!$          type(atoms_data), intent(in) :: at
+!!$          type(wavefunctions_descriptors), intent(in) :: wfd
+!!$          type(DFT_PSP_projectors), intent(inout) :: nlpsp
+!!$          logical, intent(in) :: refill
+!!$          real(gp), intent(in) :: hx,hy,hz
+!!$          type(locreg_descriptors) :: lr
+!!$          type(orbitals_data), intent(in) :: orbs
+!!$          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!!$          real(wp), dimension((wfd%nvctr_c+7*wfd%nvctr_f)*orbs%norbp*orbs%nspinor), intent(in) :: psi
+!!$          real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
+!!$          real(gp), dimension(6), intent(out) :: strten
+!!$        end subroutine nonlocal_forces
 
         subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
              n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
@@ -3061,26 +3061,26 @@ module module_interfaces
           type(denspot_distribution), intent(in) :: dpbox
         end subroutine kswfn_init_comm
 
-        subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
-             orbs,nlpsp,lzd,phi,denskern,denskern_mat,fsep,refill,strten)
-          use module_base
-          use module_types
-          implicit none
-          type(atoms_data), intent(in) :: at
-          type(local_zone_descriptors), intent(in) :: lzd
-          type(DFT_PSP_projectors), intent(inout) :: nlpsp
-          logical, intent(in) :: refill
-          integer, intent(in) :: iproc, nproc, npsidim_orbs
-          real(gp), intent(in) :: hx,hy,hz
-          type(locreg_descriptors) :: lr
-          type(orbitals_data), intent(in) :: orbs
-          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-          real(wp), dimension(npsidim_orbs), intent(in) :: phi
-          type(sparse_matrix),intent(in) :: denskern
-          type(matrices),intent(inout) :: denskern_mat
-          real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
-          real(gp), dimension(6), intent(out) :: strten
-        end subroutine nonlocal_forces_linear
+!!$        subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
+!!$             orbs,nlpsp,lzd,phi,denskern,denskern_mat,fsep,refill,strten)
+!!$          use module_base
+!!$          use module_types
+!!$          implicit none
+!!$          type(atoms_data), intent(in) :: at
+!!$          type(local_zone_descriptors), intent(in) :: lzd
+!!$          type(DFT_PSP_projectors), intent(inout) :: nlpsp
+!!$          logical, intent(in) :: refill
+!!$          integer, intent(in) :: iproc, nproc, npsidim_orbs
+!!$          real(gp), intent(in) :: hx,hy,hz
+!!$          type(locreg_descriptors) :: lr
+!!$          type(orbitals_data), intent(in) :: orbs
+!!$          real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+!!$          real(wp), dimension(npsidim_orbs), intent(in) :: phi
+!!$          type(sparse_matrix),intent(in) :: denskern
+!!$          type(matrices),intent(inout) :: denskern_mat
+!!$          real(gp), dimension(3,at%astruct%nat), intent(inout) :: fsep
+!!$          real(gp), dimension(6), intent(out) :: strten
+!!$        end subroutine nonlocal_forces_linear
 
         subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_converged, damping_factor, confdatarr, &
                    target_function, nit_basis, nit_scc, mix_hist, locrad, alpha_mix, convCritMix, &

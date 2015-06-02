@@ -269,17 +269,17 @@ module public_enums
   use f_enums
   implicit none
   
-  public
+  private
   
-  type(f_enumerator), parameter :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000,null())
-  type(f_enumerator), parameter :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999,null())
-  type(f_enumerator), parameter :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998,null())
-  type(f_enumerator), parameter :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997,null())
-  type(f_enumerator), parameter :: MORSE_BULK_RUN_MODE         =f_enumerator('MORSE_BULK_RUN_MODE',-996,null())
-  type(f_enumerator), parameter :: MORSE_SLAB_RUN_MODE         =f_enumerator('MORSE_SLAB_RUN_MODE',-995,null())
-  type(f_enumerator), parameter :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994,null())
-  type(f_enumerator), parameter :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993,null())
-  type(f_enumerator), parameter :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992,null())
+  type(f_enumerator), parameter, public :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000,null())
+  type(f_enumerator), parameter, public :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999,null())
+  type(f_enumerator), parameter, public :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998,null())
+  type(f_enumerator), parameter, public :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997,null())
+  type(f_enumerator), parameter, public :: MORSE_BULK_RUN_MODE         =f_enumerator('MORSE_BULK_RUN_MODE',-996,null())
+  type(f_enumerator), parameter, public :: MORSE_SLAB_RUN_MODE         =f_enumerator('MORSE_SLAB_RUN_MODE',-995,null())
+  type(f_enumerator), parameter, public :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994,null())
+  type(f_enumerator), parameter, public :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993,null())
+  type(f_enumerator), parameter, public :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992,null())
   
 end module public_enums
 

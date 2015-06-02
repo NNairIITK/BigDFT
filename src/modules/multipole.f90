@@ -1,6 +1,6 @@
 module multipole
   use module_base
-  use multipole_base
+  use multipole_base, only: external_potential_descriptors,lmax
   implicit none
 
   private

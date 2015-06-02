@@ -210,7 +210,7 @@ contains
     type(xc_info), intent(in) :: xcObj
 
     integer :: i, ii
-    type(xc_f90_pointer_t) :: str
+    type(xc_f90_pointer_t) :: str1
     character(len=500) :: message
 
     ! Dump functional information
@@ -229,11 +229,11 @@ contains
           
           ii = 0
           if (xcObj%id(i) > 0) then
-             call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str,message)
+             call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str1,message)
              do while (ii >= 0)
                 !write(*,"(1x,a1,1x,a82)") "|", trim(message)
                 call yaml_sequence('"'//trim(message)//'"')
-                call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str,message)
+                call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str1,message)
              end do
           end if
        end do

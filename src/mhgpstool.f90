@@ -36,6 +36,7 @@ program mhgpstool
     nat = bigdft_nat(filename=filename)
     call count_saddle_points(nfolder,folders,nsad)
     call init_mhgpstool_data(nat,nfolder,nsad,mdat)
+
     call set_astruct_from_file(trim(filename),0,mdat%astruct,energy=energy)
     call yaml_comment('Covalent radii ....',hfill='-')
     call give_rcov(0,mdat%astruct,mdat%astruct%nat,mdat%rcov)

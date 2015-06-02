@@ -210,6 +210,7 @@ program yaml_test
 !!$   end if
    if (UTILS .in. run) then
       call f_utils_test()
+      call f_inputfile_test()
    end if
 
    call dict_free(run)
@@ -223,9 +224,9 @@ subroutine yaml_parse_file_and_string()
   use dictionaries
   use yaml_parse
   use yaml_output
+  use f_precisions, only: cr=>f_cr
   implicit none
   type(dictionary), pointer :: dict_parse
-  character(len=*), parameter :: cr=char(13)//char(10) !carriage return
   character(len=*), parameter ::stream=&
        "---"//cr//&
        "Key1: field1"//cr//&

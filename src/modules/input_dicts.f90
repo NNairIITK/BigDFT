@@ -263,6 +263,7 @@ contains
   subroutine dict_run_validate(dict)
     use dictionaries
     use yaml_output
+    use yaml_strings, only: operator(.eqv.)
     use module_base, only: bigdft_mpi
     use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
          & GEOPT_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
@@ -271,7 +272,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict
     !local variables
-    logical :: found
+    logical :: found,loginput
     type(dictionary), pointer :: valid_entries,valid_patterns
     type(dictionary), pointer :: iter,invalid_entries,iter2
 
@@ -305,6 +306,9 @@ contains
          .item. 'psppar' &
          )
 
+    !if the input file is a logfile, this will be only a warning
+    loginput=.false.
+
     call dict_init(invalid_entries)
     !for any of the keys of the dictionary iterate to find if it is allowed
     iter=>dict_iter(dict)
@@ -321,11 +325,14 @@ contains
              iter2=>dict_next(iter2)
           end do find_patterns
           if (.not. found) call add(invalid_entries,dict_key(iter))
+          !if the key "Version number"  is present this means that we are parsing a logfile
+          !which is tolerated
+          loginput = (trim(dict_key(iter)) .eqv. 'Version Number' ) .or. loginput
        end if
        iter=>dict_next(iter)
     end do
 
-    if (dict_len(invalid_entries) > 0) then
+    if (dict_len(invalid_entries) > 0 .and. .not. loginput) then
        if (bigdft_mpi%iproc==0) then
           call yaml_map('Allowed keys',valid_entries)
           call yaml_map('Allowed key patterns',valid_patterns)
@@ -333,6 +340,8 @@ contains
        end if
        call f_err_throw('The input dictionary contains invalid entries,'//&
             ' check above the valid entries',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+    !else if (loginput) then
+    !      call yaml_warning('This input file has been created from a logfile')
     end if
 
     call dict_free(invalid_entries)
@@ -365,20 +374,24 @@ contains
     call dict_get_run_properties(dict, outdir_id = writing_directory)
     ! Create writing_directory and parents if needed and broadcast everything.
     if (trim(writing_directory) /= '.') then
-       path=repeat(' ',len(path))
+       !path=repeat(' ',len(path))
+       call f_zero(path)
        !add the output directory in the directory name
        if (bigdft_mpi%iproc == 0 .and. trim(writing_directory) /= '.') then
-          call getdir(writing_directory,&
-               int(len_trim(writing_directory),kind=4),path,int(len(path),kind=4),ierr)
-          if (ierr /= 0) then
-             write(*,*) "ERROR: cannot create writing directory '"&
-                  //trim(writing_directory) // "'."
-             call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
-          end if
+          call f_mkdir(writing_directory,path)
+!!$          call getdir(writing_directory,&
+!!$               int(len_trim(writing_directory),kind=4),path,int(len(path),kind=4),ierr)
+!!$          if (ierr /= 0) then
+!!$             write(*,*) "ERROR: cannot create writing directory '"&
+!!$                  //trim(writing_directory) // "'."
+!!$             call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+!!$          end if
        end if
-       call MPI_BCAST(path,len(path),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
-       lgt=min(len(writing_directory),len(path))
-       writing_directory(1:lgt)=path(1:lgt)
+!!$       call MPI_BCAST(path,len(path),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
+!!$       lgt=min(len(writing_directory),len(path))
+!!$       writing_directory(1:lgt)=path(1:lgt)
+       call mpibcast(path,comm=bigdft_mpi%mpi_comm)
+       call f_strcpy(src=path,dest=writing_directory)
     end if
     ! Add trailing slash if missing.
     lgt = len_trim(writing_directory)

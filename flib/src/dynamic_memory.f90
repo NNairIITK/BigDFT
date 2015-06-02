@@ -127,7 +127,7 @@ module dynamic_memory
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1
      module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3,f_memcpy_d3,f_memcpy_d4,f_memcpy_d1d0
      module procedure f_memcpy_d0d3,f_memcpy_d0d2,f_memcpy_d3d0,f_memcpy_d2d0,f_memcpy_d3d2
-     module procedure f_memcpy_l0,f_memcpy_c1i1,f_memcpy_i1c1
+     module procedure f_memcpy_l0,f_memcpy_c1i1,f_memcpy_i1c1,f_memcpy_c0i1
      module procedure f_memcpy_li0,f_memcpy_li0li1,f_memcpy_i0i1
   end interface f_memcpy
 
@@ -138,7 +138,7 @@ module dynamic_memory
      module procedure f_maxdiff_d0,f_maxdiff_d1,f_maxdiff_d2
      module procedure f_maxdiff_d0d1,f_maxdiff_d1d2,f_maxdiff_d2d1,f_maxdiff_d2d3
      module procedure f_maxdiff_l0,f_maxdiff_i0i1
-     module procedure f_maxdiff_c1i1,f_maxdiff_li0li1
+     module procedure f_maxdiff_c1i1,f_maxdiff_li0li1,f_maxdiff_c0i1
   end interface f_maxdiff
 
   !> Public routines
