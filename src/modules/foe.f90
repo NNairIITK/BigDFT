@@ -316,7 +316,7 @@ module foe
             
             
                       cc = f_malloc((/npl,3,1/),id='cc')
-                      cc_check = f_malloc((/npl,3,1/),id='cc_check')
+                      cc_check = f_malloc((/npl_check,3,1/),id='cc_check')
             
                       if (foe_data_get_real(foe_obj,"evlow",ispin)>=0.d0) then
                           stop 'ERROR: lowest eigenvalue must be negative'
@@ -368,6 +368,8 @@ module foe
                               cc(ipl,1,1)=2.d0*cc(ipl,1,1)
                               cc(ipl,2,1)=2.d0*cc(ipl,2,1)
                               cc(ipl,3,1)=2.d0*cc(ipl,3,1)
+                          end do
+                          do ipl=1,npl_check
                               cc_check(ipl,1,1)=2.d0*cc_check(ipl,1,1)
                               cc_check(ipl,2,1)=2.d0*cc_check(ipl,2,1)
                               cc_check(ipl,3,1)=2.d0*cc_check(ipl,3,1)
