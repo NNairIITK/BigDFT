@@ -1858,13 +1858,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         ! Determine whether the sign of the energy change is the same as in the previous iteration
         ! (i.e. whether the energy continues to increase or decrease)
         tt = sign(energyDiff,sign_of_energy_change)
-        if (tt/energyDiff>0.d0) then
-            ! same sign, everything ok
-        else if (abs(energyDiff/energy)>1.d-7) then
-            nit_energyoscillation = nit_energyoscillation + 1
-            if (iproc==0) then
-                call yaml_warning('oscillation of the energy, increase counter')
-                call yaml_map('energy_scillation_counter',nit_energyoscillation)
+        if (energyDiff/=0.d0) then
+            if (tt/energyDiff>0.d0) then
+                ! same sign, everything ok
+            else if (abs(energyDiff/energy)>1.d-7) then
+                nit_energyoscillation = nit_energyoscillation + 1
+                if (iproc==0) then
+                    call yaml_warning('oscillation of the energy, increase counter')
+                    call yaml_map('energy_scillation_counter',nit_energyoscillation)
+                end if
             end if
         end if
         if (nit_energyoscillation>1) then

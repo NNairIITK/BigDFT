@@ -323,15 +323,15 @@ module postprocessing_linear
           call f_free_ptr(ovrlp%matrix)
     
           proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
-          if (norbp>0) then
+          !if (norbp>0) then
              call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                   kernel%matrix_compr, inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr)
-          end if
+          !end if
           weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
-          if (norbp>0) then
+          !if (norbp>0) then
              call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                   inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr, weight_matrix_compr_tg)
-          end if
+          !end if
           call f_free(proj_ovrlp_half_compr)
     
           call deallocate_matrices(inv_ovrlp(1))

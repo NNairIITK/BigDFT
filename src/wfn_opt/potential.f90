@@ -280,6 +280,7 @@ subroutine apply_potential_lr_conf(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,&
      !$omp do reduction(+:epot)
      do i3=i3s,i3e
         z=confdata%hh(3)*real(i3+confdata%ioffset(3),wp)-confdata%rxyzConf(3)
+        write(*,*) 'i3,z',i3,z
         z2=z**2
         ii3=i3-ishift(3)
         do i2=i2s,i2e

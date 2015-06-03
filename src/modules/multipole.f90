@@ -183,12 +183,13 @@ module multipole
       real(kind=8),dimension(:,:,:,:,:,:),allocatable :: sphi
       integer,dimension(:,:),allocatable :: comms
       logical :: can_use_transposed, arr_allocated
-      real(kind=8) :: ddot, x, y, z, tt
+      real(kind=8) :: ddot, x, y, z, tt, rnorm
       !real(kind=8) ,dimension(2,orbs%norb) :: testarr
       real(kind=8),dimension(:),allocatable :: kernel_ortho, phi_ortho
       real(kind=8),dimension(-lmax:lmax,0:lmax,at%astruct%nat) :: multipoles
       real(kind=8) :: factor_normalization
       character(len=20) :: atomname
+      real(kind=8),dimension(-lmax:lmax,0:lmax) :: norm
       !testarr = 0.d0
 
       call f_routine(id='multipoles_from_density')
@@ -210,7 +211,7 @@ module multipole
 
 
       ! Transform the support functions to real space
-      psir = f_malloc(collcom_sr%ndimpsi_c,id='psir')
+      psir = f_malloc(max(collcom_sr%ndimpsi_c,1),id='psir')
       ist=1
       istr=1
       do iorb=1,orbs%norbp
@@ -329,7 +330,14 @@ module multipole
       !lmax = 1
       norb_list = f_malloc(maxval(norbsPerType(:)),id='norb_list')
           call f_zero(multipoles)
-      factor_normalization = sqrt(4.d0*pi_param)
+      !factor_normalization = sqrt(4.d0*pi_param)
+      !factor_normalization = 4.d0*pi_param/(lzd%llr(ilr)%d%n3i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i)
+      factor_normalization = (0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))/(64.d0/3.d0)
+      !factor_normalization = 1.d0/(lzd%llr(ilr)%d%n3i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i)
+      !factor_normalization = sqrt(4.d0*pi_param)/(lzd%llr(ilr)%d%n3i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i)
+      !factor_normalization = 1.d0/(lzd%llr(ilr)%d%n3i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i)
+      !factor_normalization = 1.d0/(lzd%llr(ilr)%d%n3i)
+      !factor_normalization = 1.d0/(0.5d0*lzd%hgrids(3))
       do iat=1,natp
           iiat = iat + isat
           ityp=at%astruct%iatype(iiat)
@@ -342,38 +350,67 @@ module multipole
               jat = orbs%onwhichatom(iorb)
               if (jat==iiat) then
                   if (.not.arr_allocated) then
-                      phi = f_malloc((/1.to.lzd%Llr(ilr)%d%n1i,1.to.lzd%Llr(ilr)%d%n2i,1.to.lzd%Llr(ilr)%d%n3i, &
+                      phi = f_malloc0((/1.to.lzd%Llr(ilr)%d%n1i,1.to.lzd%Llr(ilr)%d%n2i,1.to.lzd%Llr(ilr)%d%n3i, &
                                        1.to.norb_per_atom/),id='sphi')
-                      sphi = f_malloc((/1.to.lzd%Llr(ilr)%d%n1i,1.to.lzd%Llr(ilr)%d%n2i,1.to.lzd%Llr(ilr)%d%n3i, &
+                      sphi = f_malloc0((/1.to.lzd%Llr(ilr)%d%n1i,1.to.lzd%Llr(ilr)%d%n2i,1.to.lzd%Llr(ilr)%d%n3i, &
                                         1.to.norb_per_atom,-lmax.to.lmax,0.to.lmax/),id='sphi')
                       arr_allocated = .true.
                   end if
                   iiorb = iiorb + 1
                   norb_list(iiorb) = iorb
                   ! Apply the spherical harmonic
+                  rnorm = 0.d0
+                  norm = 0.d0
                   do i3=1,lzd%llr(ilr)%d%n3i
-                      ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 1
+                      ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 2
                       z = ii3*0.5d0*lzd%hgrids(3) - lzd%llr(ilr)%locregcenter(3)
                       do i2=1,lzd%llr(ilr)%d%n2i
-                          ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 1
+                          ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 2
                           y = ii2*0.5d0*lzd%hgrids(2) - lzd%llr(ilr)%locregcenter(2)
+                          !if (y/=0.d0) cycle
                           do i1=1,lzd%llr(ilr)%d%n1i
-                              ii1 = lzd%llr(ilr)%nsi1 + i1 -14 -1
+                              ii1 = lzd%llr(ilr)%nsi1 + i1 -14 -2
                               x = ii1*0.5d0*lzd%hgrids(1) - lzd%llr(ilr)%locregcenter(1)
+                              if (x**2+y**2+z**2>16.d0) cycle
+                              !if (x/=0.d0) cycle
                               ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
-                              phi(i1,i2,i3,iiorb) = psir_get(ist+ind)
+                              !phi(i1,i2,i3,iiorb) = psir_get(ist+ind)
+                              phi(i1,i2,i3,iiorb) = 1.d0 + 11.d0*y + 12.d0*z + 13.d0*x + 21.d0*x*y + 22.d0*y*z + 23.d0*(-x**2-y**2+2*z**2) + 24.d0*z*x + 25.d0*(x**2-y**2)
+                              !rnorm = rnorm + phi(i1,i2,i3,iiorb)**2
+                              rnorm = rnorm + 1.d0
                               do l=0,lmax
+                                  if (l==0) then
+                                      !factor_normalization = sqrt((0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))/(64.d0/3.d0))
+                                      factor_normalization = sqrt(0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))
+                                  else if (l==1) then
+                                      !factor_normalization = sqrt((0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))/(1024.d0/5.d0))
+                                      factor_normalization = sqrt(0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))
+                                  else if (l==2) then
+                                      !factor_normalization = sqrt((0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))/(16384.d0/7.d0))
+                                      factor_normalization = sqrt(0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))
+                                  end if
                                   do m=-l,l
-                                      tt = spherical_harmonic(l, m, x, y, z)
+                                      tt = spherical_harmonic(4.d0, l, m, x, y, z)
                                       !if (iproc==0) write(*,'(a,3i4,3f9.3,3x,3f9.3,es20.12)') 'i1, i2, i3, xx, yy, zz, locregcenter, tt', &
                                       !    i1, i2, i3, ii3*0.5d0*lzd%hgrids(3), ii2*0.5d0*lzd%hgrids(2), ii1*0.5d0*lzd%hgrids(1), lzd%llr(ilr)%locregcenter, tt
-                                      sphi(i1,i2,i3,iiorb,m,l) = factor_normalization*tt*phi(i1,i2,i3,iiorb)
+                                      !sphi(i1,i2,i3,iiorb,m,l) = factor_normalization*tt*phi(i1,i2,i3,iiorb)
+                                      !factor_normalization = 1.d0/(lzd%llr(ilr)%d%n3i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i*(0.5d0*lzd%hgrids(1))**l)
+                                      !sphi(i1,i2,i3,iiorb,m,l) = factor_normalization*tt!*phi(i1,i2,i3,iiorb)
+                                      sphi(i1,i2,i3,iiorb,m,l) = factor_normalization*tt!*phi(i1,i2,i3,iiorb)
+                                      norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
+                                      if (i1==1 .and. i2==1) write(*,'(a,2i5,3es13.3,3es19.8)') 'l, m, x, y, z, tt, phi, sphi', l, m, x, y, z, tt, phi(i1,i2,i3,iiorb), sphi(i1,i2,i3,iiorb,m,l)
+                                      !write(*,'(a,2i5,3es13.3,3es19.8)') 'l, m, x, y, z, tt, phi, sphi', l, m, x, y, z, tt, phi(i1,i2,i3,iiorb), sphi(i1,i2,i3,iiorb,m,l)
                                       !sphi(i1,i2,i3,iiorb,m,l) = phi(i1,i2,i3,iiorb)
                                   end do
                               end do
                           end do
                       end do
                   end do
+                  call yaml_map('rnorm',rnorm)
+                  call yaml_map('norm',norm,fmt='(es14.6)')
+                  call yaml_map('4.d0/rnorm',4.d0/rnorm)
+                  !sphi(:,:,:,iiorb,:,:) = sphi(:,:,:,iiorb,:,:)/rnorm
+                  sphi(:,:,:,iiorb,:,:) = sphi(:,:,:,iiorb,:,:)*sqrt(0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))
                   ist = ist + ind
               end if
           end do
@@ -413,6 +450,11 @@ module multipole
               do l=0,lmax
                   call yaml_sequence(advance='no')
                   call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
+                  !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat)*sqrt(4.d0**(2*l+3)),fmt='(1es16.8)')
+                  do m=-l,l
+                      multipoles(m,l,iat) = multipoles(m,l,iat)*get_normalization(4.d0, l, m)
+                  end do
+                  call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
                   call yaml_newline()
               end do
               !call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
@@ -444,53 +486,132 @@ module multipole
       contains
 
           !> Calculates the real spherical harmonic for given values of l, m, x, y, z
-          function spherical_harmonic(l, m, x, y, z) result(sh)
+          function spherical_harmonic(rmax, l, m, x, y, z) result(sh)
             use module_base, only: pi => pi_param
             implicit none
             ! Calling arguments
             integer,intent(in) :: l, m
-            real(kind=8),intent(in) :: x, y, z
+            real(kind=8),intent(in) :: rmax, x, y, z
             real(kind=8) :: sh
 
             ! Local variables
             integer,parameter :: l_max=2
-            real(kind=8) :: r, r2
+            real(kind=8) :: r, r2, rnorm
 
             if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
             if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
                 err_name='BIGDFT_RUNTIME_ERROR')
             if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
 
+
+            ! Normalization for a sphere of radius rmax
             select case (l)
             case (0)
-                sh = 0.5d0*sqrt(1/pi)
+                rnorm = sqrt(rmax**3/3.d0)
+                !sh = sqrt(4.d0*pi)*0.5d0*sqrt(1/pi)
+                sh = 0.5d0*sqrt(1/pi)/rnorm
             case (1)
+                rnorm = sqrt(rmax**5/5.d0)
                 r = sqrt(x**2+y**2+z**2)
+                r = 1.d0
+                ! fix for small r (needs proper handling later...)
+                if (r==0.d0) r=1.d-20
                 select case (m)
                 case (-1)
-                    sh = sqrt(3.d0/(4.d0*pi))*y/r
+                    !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*y/r
+                    !sh = sqrt(3.d0/(4.d0*pi))*y/r
+                    sh = sqrt(3.d0/(4.d0*pi))*y/rnorm
                 case (0)
-                    sh = sqrt(3.d0/(4.d0*pi))*z/r
+                    !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*z/r
+                    !sh = sqrt(3.d0/(4.d0*pi))*z/r
+                    sh = sqrt(3.d0/(4.d0*pi))*z/rnorm
                 case (1)
-                    sh = sqrt(3.d0/(4.d0*pi))*x/r
+                    !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*x/r
+                    !sh = sqrt(3.d0/(4.d0*pi))*x/r
+                    sh = sqrt(3.d0/(4.d0*pi))*x/rnorm
                 end select
             case (2)
+                rnorm = sqrt(rmax**7/7.d0)
                 r2 = x**2+y**2+z**2
+                r2=1.d0
+                ! fix for small r2 (needs proper handling later...)
+                if (r2==0.d0) r2=1.d-20
                 select case (m)
                 case (-2)
-                    sh = 0.5d0*sqrt(15.d0/pi)*x*y/r2
+                    !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*x*y/r2
+                    !sh = 0.5d0*sqrt(15.d0/pi)*x*y/r2
+                    sh = 0.5d0*sqrt(15.d0/pi)*x*y/rnorm
                 case (-1)
-                    sh = 0.5d0*sqrt(15.d0/pi)*y*z/r2
+                    !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*y*z/r2
+                    !sh = 0.5d0*sqrt(15.d0/pi)*y*z/r2
+                    sh = 0.5d0*sqrt(15.d0/pi)*y*z/rnorm
                 case (0)
-                    sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
+                    !sh = sqrt(4.d0*pi/5.d0)*0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
+                    !sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
+                    sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/rnorm
                 case (1)
-                    sh = 0.5d0*sqrt(15.d0/pi)*z*x/r2
+                    !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*z*x/r2
+                    !sh = 0.5d0*sqrt(15.d0/pi)*z*x/r2
+                    sh = 0.5d0*sqrt(15.d0/pi)*z*x/rnorm
                 case (2)
-                    sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
+                    !sh = sqrt(4.d0*pi/5.d0)*0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
+                    !sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
+                    sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/rnorm
                 end select
             end select
 
           end function spherical_harmonic
+
+          function get_normalization(rmax, l, m) result(fn)
+            use module_base, only: pi => pi_param
+            implicit none
+            ! Calling arguments
+            integer,intent(in) :: l, m
+            real(kind=8),intent(in) :: rmax
+            real(kind=8) :: fn
+
+            ! Local variables
+            integer,parameter :: l_max=2
+            real(kind=8) :: r, r2, rnorm
+
+            if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
+            if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
+                err_name='BIGDFT_RUNTIME_ERROR')
+            if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
+
+
+            ! Normalization for a sphere of radius rmax
+            select case (l)
+            case (0)
+                rnorm = sqrt(rmax**3/3.d0)
+                fn = 0.5d0*sqrt(1/pi)/rnorm
+            case (1)
+                rnorm = sqrt(rmax**5/5.d0)
+                select case (m)
+                case (-1)
+                    fn = sqrt(3.d0/(4.d0*pi))/rnorm
+                case (0)
+                    fn = sqrt(3.d0/(4.d0*pi))/rnorm
+                case (1)
+                    fn = sqrt(3.d0/(4.d0*pi))/rnorm
+                end select
+            case (2)
+                rnorm = sqrt(rmax**7/7.d0)
+                select case (m)
+                case (-2)
+                    fn = 0.5d0*sqrt(15.d0/pi)/rnorm
+                case (-1)
+                    fn = 0.5d0*sqrt(15.d0/pi)/rnorm
+                case (0)
+                    fn = 0.25d0*sqrt(5.d0/pi)/rnorm
+                case (1)
+                    fn = 0.5d0*sqrt(15.d0/pi)/rnorm
+                case (2)
+                    fn = 0.25d0*sqrt(15.d0/pi)/rnorm
+                end select
+            end select
+
+          end function get_normalization
 
 
     end subroutine multipoles_from_density
@@ -530,15 +651,15 @@ module multipole
       !call f_free_ptr(ovrlp%matrix)
 
       proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
-      if (norbp>0) then
+      !if (norbp>0) then
          call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
               kernel%matrix_compr, inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr)
-      end if
+      !end if
       weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
-      if (norbp>0) then
+      !if (norbp>0) then
          call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
               inv_ovrlp(1)%matrix_compr, proj_ovrlp_half_compr, weight_matrix_compr_tg)
-      end if
+      !end if
       call f_free(proj_ovrlp_half_compr)
 
       call deallocate_matrices(inv_ovrlp(1))
