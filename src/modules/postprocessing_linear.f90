@@ -98,9 +98,14 @@ module postprocessing_linear
          !!end if
       end if
 
-      call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, &
-               tmb%orbs%norb_par, tmb%orbs%isorb_par, meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
-               tmb%linmat%kernel_, tmb%linmat%ovrlp_)
+      !call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, &
+      !         tmb%orbs%norb_par, tmb%orbs%isorb_par, meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+      !         tmb%linmat%kernel_, tmb%linmat%ovrlp_)
+      call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+           tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
+           tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
+           meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+           tmb%linmat%kernel_, tmb%linmat%ovrlp_)
     
 !!!!      if (calculate_ovrlp_half) then
 !!!!         tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
@@ -234,7 +239,7 @@ module postprocessing_linear
       type(matrices),intent(inout) :: ovrlp
 
       ! Local variables
-      integer :: ierr, iorb, iat, ind, ist, ishift, ispin
+      integer :: ierr, iorb, iat, ind, ist, ishift, ispin, iiorb
       type(matrices),dimension(1) :: inv_ovrlp
       real(kind=8),dimension(:,:,:),allocatable :: proj_mat
       real(kind=8),dimension(:,:),allocatable :: weight_matrix, weight_matrixp, proj_ovrlp_half
@@ -350,11 +355,13 @@ module postprocessing_linear
           ! Maybe this can be improved... not really necessary to gather the entire matrix
           weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
           call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
+
     
           do ispin=1,smatl%nspin
               ishift = (ispin-1)*smatl%nvctr
               do iorb=1,norb
-                  iat=smats%on_which_atom(iorb)
+                  iiorb = modulo(iorb-1,smatl%nfvctr)+1
+                  iat=smats%on_which_atom(iiorb)
                   ind = matrixindex_in_compressed(smatl, iorb, iorb)
                   ind = ind + ishift
                   charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix_compr(ind)
