@@ -173,18 +173,18 @@ module multipole
       ! Local variables
       integer :: ist, istr, iorb, iiorb, ilr, ii, natp, isat, nr, jproc, iat, n, norb_get, istr_get
       integer :: window, ioffset, methTransformOverlap, l, m, iiat, ityp, norb_per_atom, i1, i2, i3, ind, jorb, jat
-      integer :: ii1, ii2, ii3, jjorb
+      integer :: ii1, ii2, ii3, jjorb, i
       real(kind=8),dimension(:),allocatable :: psir
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       type(workarr_sumrho) :: w
       integer,dimension(:),allocatable :: nat_par, norb_list
-      real(kind=8),dimension(:),allocatable :: psir_get, psir_get_fake
-      real(kind=8),dimension(:,:),allocatable :: locregcenter
+      real(kind=8),dimension(:),allocatable :: psir_get
+      real(kind=8),dimension(:,:),allocatable :: locregcenter, psir_get_fake
       real(kind=8),dimension(:,:,:,:),allocatable :: phi
       real(kind=8),dimension(:,:,:,:,:,:),allocatable :: sphi
       integer,dimension(:,:),allocatable :: comms
       logical :: can_use_transposed, arr_allocated
-      real(kind=8) :: ddot, x, y, z, tt, rnorm
+      real(kind=8) :: ddot, x, y, z, tt, rnorm, factor, max_error!, get_normalization, get_test_factor
       !real(kind=8) ,dimension(2,orbs%norb) :: testarr
       real(kind=8),dimension(:),allocatable :: kernel_ortho, phi_ortho
       integer,dimension(:),allocatable :: n1i, n2i, n3i, ns1i, ns2i, ns3i
@@ -192,6 +192,7 @@ module multipole
       real(kind=8) :: factor_normalization
       character(len=20) :: atomname
       real(kind=8),dimension(-lmax:lmax,0:lmax) :: norm
+      real(kind=8),parameter :: rmax=5.d0
       !testarr = 0.d0
 
       call f_routine(id='multipoles_from_density')
@@ -329,6 +330,9 @@ module multipole
       ! For the support functions on atom A we only need to apply 
       ! the spherical harmonics centered as well on atom A.
 
+      call unitary_test()
+
+
       !lmax = 1
       n1i = f_malloc(orbs%norb,id='n1i')
       n2i = f_malloc(orbs%norb,id='n2i')
@@ -346,137 +350,25 @@ module multipole
           ns3i(iorb) = lzd%llr(iorb)%nsi3
           locregcenter(1:3,iorb) = lzd%llr(iorb)%locregcenter(1:3)
       end do
-      psir_get_fake = f_malloc(nr,id='psir_get_fake')
-      psir_get_fake = 1.d0
-      call multipole_analysis_core(natp, isat, at%astruct%nat, at%astruct%ntypes, orbs%norb, &
+      call multipole_analysis_core(iproc, nproc, rmax, natp, isat, at%astruct%nat, at%astruct%ntypes, orbs%norb, &
            at%astruct%iatype, norbsPerType, orbs%inwhichlocreg, orbs%onwhichatom, &
            n1i, n2i, n3i, ns1i, ns2i, ns3i, lzd%hgrids, locregcenter, &
-           nr, psir_get, psir_get_fake, &
+           nr, psir_get, psir_get, &
            smatl%nvctr, kernel_ortho, multipoles, 101, smatl)!, matrixindex)
       call f_free(psir_get_fake)
-      ! COPY FROM HERE ###########################
-      !!norb_list = f_malloc(maxval(norbsPerType(:)),id='norb_list')
-      !!call f_zero(multipoles)
-      !!do iat=1,natp
-      !!    iiat = iat + isat
-      !!    ityp=at%astruct%iatype(iiat)
-      !!    norb_per_atom = norbsPerType(ityp)
-      !!    arr_allocated = .false.
-      !!    iiorb = 0
-      !!    ist = 0
-      !!    do iorb=1,orbs%norb
-      !!        ilr = orbs%inwhichlocreg(iorb)
-      !!        jat = orbs%onwhichatom(iorb)
-      !!        if (jat==iiat) then
-      !!            if (.not.arr_allocated) then
-      !!                phi = f_malloc0((/1.to.lzd%Llr(ilr)%d%n1i,1.to.lzd%Llr(ilr)%d%n2i,1.to.lzd%Llr(ilr)%d%n3i, &
-      !!                                 1.to.norb_per_atom/),id='sphi')
-      !!                sphi = f_malloc0((/1.to.lzd%Llr(ilr)%d%n1i,1.to.lzd%Llr(ilr)%d%n2i,1.to.lzd%Llr(ilr)%d%n3i, &
-      !!                                  1.to.norb_per_atom,-lmax.to.lmax,0.to.lmax/),id='sphi')
-      !!                arr_allocated = .true.
-      !!            end if
-      !!            iiorb = iiorb + 1
-      !!            norb_list(iiorb) = iorb
-      !!            ! Apply the spherical harmonic
-      !!            rnorm = 0.d0
-      !!            norm = 0.d0
-      !!            factor_normalization = sqrt(0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))
-      !!            do i3=1,lzd%llr(ilr)%d%n3i
-      !!                ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 2
-      !!                z = ii3*0.5d0*lzd%hgrids(3) - lzd%llr(ilr)%locregcenter(3)
-      !!                do i2=1,lzd%llr(ilr)%d%n2i
-      !!                    ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 2
-      !!                    y = ii2*0.5d0*lzd%hgrids(2) - lzd%llr(ilr)%locregcenter(2)
-      !!                    do i1=1,lzd%llr(ilr)%d%n1i
-      !!                        ii1 = lzd%llr(ilr)%nsi1 + i1 -14 -2
-      !!                        x = ii1*0.5d0*lzd%hgrids(1) - lzd%llr(ilr)%locregcenter(1)
-      !!                        if (x**2+y**2+z**2>16.d0) cycle
-      !!                        ind = (i3-1)*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n1i + (i2-1)*lzd%llr(ilr)%d%n1i + i1
-      !!                        !phi(i1,i2,i3,iiorb) = psir_get(ist+ind)
-      !!                        phi(i1,i2,i3,iiorb) = 1.d0 + 11.d0*y + 12.d0*z + 13.d0*x + 21.d0*x*y + 22.d0*y*z + 23.d0*(-x**2-y**2+2*z**2) + 24.d0*z*x + 25.d0*(x**2-y**2)
-      !!                        do l=0,lmax
-      !!                            do m=-l,l
-      !!                                tt = spherical_harmonic(4.d0, l, m, x, y, z)
-      !!                                sphi(i1,i2,i3,iiorb,m,l) = factor_normalization*tt*phi(i1,i2,i3,iiorb)
-      !!                                norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
-      !!                                !if (i1==1 .and. i2==1) write(*,'(a,2i5,3es13.3,3es19.8)') 'l, m, x, y, z, tt, phi, sphi', l, m, x, y, z, tt, phi(i1,i2,i3,iiorb), sphi(i1,i2,i3,iiorb,m,l)
-      !!                            end do
-      !!                        end do
-      !!                    end do
-      !!                end do
-      !!            end do
-      !!            !call yaml_map('rnorm',rnorm)
-      !!            call yaml_map('norm',norm,fmt='(es14.6)')
-      !!            !call yaml_map('4.d0/rnorm',4.d0/rnorm)
-      !!            sphi(:,:,:,iiorb,:,:) = sphi(:,:,:,iiorb,:,:)*sqrt(0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))
-      !!            ist = ist + ind
-      !!        end if
-      !!    end do
-      !!    ! Calculate the scalar product
-      !!    do l=0,lmax
-      !!        do m=-l,l
-      !!            do iorb=1,norb_per_atom
-      !!                iiorb = norb_list(iorb)
-      !!                do jorb=1,norb_per_atom
-      !!                    jjorb = norb_list(jorb)
-      !!                    ind = matrixindex_in_compressed(smatl, iiorb, jjorb)
-      !!                    tt = ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, sphi(1,1,1,iorb,m,l), 1, phi(1,1,1,jorb), 1)
-      !!                    !write(*,'(a,6i7,2es18.8)') 'iiat, m, l, iiorb, jjorb, ind, tt, K', iiat, m, l, iiorb, jjorb, ind, tt, kernel%matrix_compr(ind)
-      !!                    !multipoles(m,l,iiat) = multipoles(m,l,iiat) + kernel%matrix_compr(ind)*tt
-      !!                    multipoles(m,l,iiat) = multipoles(m,l,iiat) + kernel_ortho(ind)*tt
-      !!                    !write(*,'(a,5i8,es16.8)') 'iproc, l, m, iorb, jorb, ddot', iproc, l, m, iorb, jorb, tt
-      !!                end do
-      !!            end do
+      call f_free(n1i)
+      call f_free(n2i)
+      call f_free(n3i)
+      call f_free(ns1i)
+      call f_free(ns2i)
+      call f_free(ns3i)
+      call f_free(locregcenter)
 
-      !!        end do
-      !!    end do
-      !!    if (arr_allocated) then
-      !!        call f_free(phi)
-      !!        call f_free(sphi)
-      !!    end if
-      !!end do
-      !!call f_free(norb_list)
-      ! COPY UNTIL HERE ###########################
-      call f_free(psir_get)
-
-
-      call mpiallred(multipoles, mpi_sum, comm=bigdft_mpi%mpi_comm)
       if (iproc==0) then
-          call yaml_sequence_open('Multipole analysis')
-          do iat=1,at%astruct%nat
-              call yaml_sequence(advance='no')
-              atomname=at%astruct%atomnames(at%astruct%iatype(iat))
-              call yaml_sequence_open(trim(atomname))
-              do l=0,lmax
-                  call yaml_sequence(advance='no')
-                  call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
-                  !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat)*sqrt(4.d0**(2*l+3)),fmt='(1es16.8)')
-                  do m=-l,l
-                      multipoles(m,l,iat) = multipoles(m,l,iat)*get_normalization(4.d0, l, m)
-                  end do
-                  call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
-                  call yaml_newline()
-              end do
-              !call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-              call yaml_sequence_close()
-          end do
-          call yaml_sequence_close()
+          call write_multipoles(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
+               multipoles, rmax, without_normalization=.false.)
       end if
-
-      !if (iproc==0) then
-      !    !write(*,*) 'SUM(KERNEL)',sum(kernel_ortho), sum(kernel%matrix_compr)
-      !    tt = 0.d0
-      !    do iorb=1,orbs%norb
-      !        do jorb=1,orbs%norb
-      !             ind = matrixindex_in_compressed(smatl, iorb, jorb)
-      !             write(*,*) 'iorb, jorb, val', iorb, jorb, kernel_ortho(ind)
-      !             if (iorb==jorb) then
-      !                 tt = tt + kernel_ortho(ind)
-      !             end if
-      !        end do
-      !    end do
-      !    !write(*,*) 'TRACE',tt
-      !end if
+      call f_free(psir_get)
 
       call f_free(kernel_ortho)
 
@@ -487,266 +379,72 @@ module multipole
       contains
 
 
+        subroutine unitary_test()
+          implicit none
 
-          subroutine multipole_analysis_core(natp, isat, nat, ntypes, norb, &
-                     iatype, norbsPerType, inwhichlocreg, onwhichatom, &
-                     n1i, n2i, n3i, nsi1, nsi2, nsi3, hgrids, locregcenter, &
-                     nr, psir1_get, psir2_get, &
-                     nvctr, matrix_compr, multipoles, get_index, smatl, matrixindex)
-            implicit none
-            ! Calling arguments
-            integer,intent(in) :: natp, isat, nat, ntypes, norb, nr, nvctr, get_index
-            integer,dimension(nat),intent(in) :: iatype
-            integer,dimension(ntypes),intent(in) :: norbsPerType
-            integer,dimension(norb),intent(in) :: inwhichlocreg, onwhichatom
-            integer,dimension(norb),intent(in) :: n1i, n2i, n3i, nsi1, nsi2, nsi3
-            real(kind=8),dimension(3),intent(in) :: hgrids
-            real(kind=8),dimension(3,norb) :: locregcenter
-            real(kind=8),dimension(nr),intent(in) :: psir1_get, psir2_get
-            real(kind=8),dimension(nvctr),intent(in) :: matrix_compr
-            real(kind=8),dimension(-lmax:lmax,0:lmax,at%astruct%nat),intent(out) :: multipoles
-            type(sparse_matrix),intent(in),optional :: smatl
-            integer,dimension(norb,norb),intent(in),optional :: matrixindex
+          psir_get_fake = f_malloc0((/lzd%llr(1)%d%n1i*lzd%llr(1)%d%n2i*lzd%llr(1)%d%n3i,2/),id='psir_get_fake')
+          psir_get_fake(:,2) = 1.d0
+          do i3=1,lzd%llr(1)%d%n3i
+              ii3 = lzd%llr(1)%nsi3 + i3 - 14 - 1
+              z = ii3*0.5d0*lzd%hgrids(3) - lzd%llr(1)%locregcenter(3)
+              do i2=1,lzd%llr(1)%d%n2i
+                  ii2 = lzd%llr(1)%nsi2 + i2 - 14 - 1
+                  y = ii2*0.5d0*lzd%hgrids(2) - lzd%llr(1)%locregcenter(2)
+                  do i1=1,lzd%llr(1)%d%n1i
+                      ii1 = lzd%llr(1)%nsi1 + i1 - 14 - 1
+                      x = ii1*0.5d0*lzd%hgrids(1) - lzd%llr(1)%locregcenter(1)
+                      if (x**2+y**2+z**2>rmax**2) cycle
+                      ind = (i3-1)*lzd%llr(1)%d%n2i*lzd%llr(1)%d%n1i + (i2-1)*lzd%llr(1)%d%n1i + i1
+                      do l=0,lmax
+                          do m=-l,l
+                              factor = get_test_factor(l,m)
+                              select case (l)
+                              case (0)
+                                  psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor
+                              case (1)
+                                  select case (m)
+                                  case (-1)
+                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*y
+                                  case ( 0)
+                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*z
+                                  case ( 1)
+                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*x
+                                  end select
+                              case (2)
+                                  select case (m)
+                                  case (-2)
+                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*x*y
+                                  case (-1)
+                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*y*z
+                                  case ( 0)
+                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*(-x**2-y**2+2*z**2)
+                                  case ( 1)
+                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*z*x
+                                  case ( 2)
+                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*(x**2-y**2)
+                                  end select
+                              end select
+                          end do
+                      end do
+                      !write(200,*) 'ind, val', ind, psir_get_fake(ind,1)
+                  end do
+              end do
+          end do
+          ! Only do it for one MPI task
+          if (iproc==0) then
+              call multipole_analysis_core(0, 1, rmax, 1, 0, 1, 1, 1, &
+                   (/1/), (/1/), (/1/), (/1/), &
+                   (/lzd%llr(1)%d%n1i/), (/lzd%llr(1)%d%n2i/), (/lzd%llr(1)%d%n3i/), &
+                   (/lzd%llr(1)%nsi1/), (/lzd%llr(1)%nsi2/), (/lzd%llr(1)%nsi3/), lzd%hgrids, lzd%llr(1)%locregcenter, &
+                   nr, psir_get_fake(:,1), psir_get_fake(:,2), &
+                   1, (/1.d0/), multipoles, 102, matrixindex=(/1/))
+          end if
 
-            ! Local variables
-            integer,parameter :: INDEX_AUTOMATIC=101
-            integer,parameter :: INDEX_MANUALLY=102
-            integer :: ist, istr, iorb, iiorb, ilr, ii, jproc, iat, n, norb_get, istr_get
-            integer :: window, ioffset, methTransformOverlap, l, m, iiat, ityp, norb_per_atom, i1, i2, i3, ind, jorb, jat
-            integer :: ii1, ii2, ii3, jjorb
-            real(kind=8),dimension(:),allocatable :: psir
-            real(kind=8),dimension(:),pointer :: phit_c, phit_f
-            type(workarr_sumrho) :: w
-            integer,dimension(:),allocatable :: nat_par, norb_list
-            real(kind=8),dimension(:),allocatable :: psir_get
-            real(kind=8),dimension(:,:,:,:),allocatable :: phi1, phi2
-            real(kind=8),dimension(:,:,:,:,:,:),allocatable :: sphi
-            integer,dimension(:,:),allocatable :: comms
-            logical :: can_use_transposed, arr_allocated
-            real(kind=8) :: ddot, x, y, z, tt, rnorm
-            !real(kind=8) ,dimension(2,orbs%norb) :: testarr
-            real(kind=8),dimension(:),allocatable :: kernel_ortho, phi_ortho
-            real(kind=8) :: factor_normalization
-            character(len=20) :: atomname
-            real(kind=8),dimension(-lmax:lmax,0:lmax) :: norm
+          if (iproc==0) then
+              call write_multipoles(1, 1, (/1/), (/'testatom'/), multipoles, rmax, without_normalization=.true.)
+          end if
 
-            norb_list = f_malloc(maxval(norbsPerType(:)),id='norb_list')
-            call f_zero(multipoles)
-            do iat=1,natp
-                iiat = iat + isat
-                ityp=iatype(iiat)
-                norb_per_atom = norbsPerType(ityp)
-                arr_allocated = .false.
-                iiorb = 0
-                ist = 0
-                do iorb=1,norb
-                    ilr = inwhichlocreg(iorb)
-                    jat = onwhichatom(iorb)
-                    if (jat==iiat) then
-                        if (.not.arr_allocated) then
-                            phi1 = f_malloc0((/1.to.n1i(ilr),1.to.n2i(ilr),1.to.n3i(ilr), &
-                                             1.to.norb_per_atom/),id='ph1i')
-                            phi2 = f_malloc0((/1.to.n1i(ilr),1.to.n2i(ilr),1.to.n3i(ilr), &
-                                             1.to.norb_per_atom/),id='phi2')
-                            sphi = f_malloc0((/1.to.n1i(ilr),1.to.n2i(ilr),1.to.n3i(ilr), &
-                                              1.to.norb_per_atom,-lmax.to.lmax,0.to.lmax/),id='sphi')
-                            arr_allocated = .true.
-                        end if
-                        iiorb = iiorb + 1
-                        norb_list(iiorb) = iorb
-                        ! Apply the spherical harmonic
-                        rnorm = 0.d0
-                        norm = 0.d0
-                        factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
-                        do i3=1,n3i(ilr)
-                            ii3 = nsi3(ilr) + i3 - 14 - 1
-                            z = ii3*0.5d0*hgrids(3) - locregcenter(3,ilr)
-                            do i2=1,n2i(ilr)
-                                ii2 = nsi2(ilr) + i2 - 14 - 1
-                                y = ii2*0.5d0*hgrids(2) - locregcenter(2,ilr)
-                                do i1=1,n1i(ilr)
-                                    ii1 = nsi1(ilr) + i1 - 14 - 1
-                                    x = ii1*0.5d0*hgrids(1) - locregcenter(1,ilr)
-                                    if (x**2+y**2+z**2>16.d0) cycle
-                                    ind = (i3-1)*n2i(ilr)*n1i(ilr) + (i2-1)*n1i(ilr) + i1
-                                    !phi(i1,i2,i3,iiorb) = psir_get(ist+ind)
-                                    phi1(i1,i2,i3,iiorb) = 1.d0 + 11.d0*y + 12.d0*z + 13.d0*x + 21.d0*x*y + 22.d0*y*z + 23.d0*(-x**2-y**2+2*z**2) + 24.d0*z*x + 25.d0*(x**2-y**2)
-                                    phi2(i1,i2,i3,iiorb) = psir2_get(ist+ind)
-                                    do l=0,lmax
-                                        do m=-l,l
-                                            tt = spherical_harmonic(4.d0, l, m, x, y, z)
-                                            sphi(i1,i2,i3,iiorb,m,l) = factor_normalization*tt*phi1(i1,i2,i3,iiorb)
-                                            norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
-                                            !if (i1==1 .and. i2==1) write(*,'(a,2i5,3es13.3,3es19.8)') 'l, m, x, y, z, tt, phi, sphi', l, m, x, y, z, tt, phi(i1,i2,i3,iiorb), sphi(i1,i2,i3,iiorb,m,l)
-                                        end do
-                                    end do
-                                end do
-                            end do
-                        end do
-                        !call yaml_map('rnorm',rnorm)
-                        call yaml_map('norm',norm,fmt='(es14.6)')
-                        !call yaml_map('4.d0/rnorm',4.d0/rnorm)
-                        sphi(:,:,:,iiorb,:,:) = sphi(:,:,:,iiorb,:,:)*sqrt(0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3))
-                        ist = ist + ind
-                    end if
-                end do
-                ! Calculate the scalar product
-                do l=0,lmax
-                    do m=-l,l
-                        do iorb=1,norb_per_atom
-                            iiorb = norb_list(iorb)
-                            do jorb=1,norb_per_atom
-                                jjorb = norb_list(jorb)
-                                if (get_index==INDEX_AUTOMATIC) then
-                                    ind = matrixindex_in_compressed(smatl, iiorb, jjorb)
-                                else if (get_index==INDEX_MANUALLY) then
-                                    ind = matrixindex(iiorb, jjorb)
-                                end if
-                                tt = ddot(n1i(ilr)*n2i(ilr)*n3i(ilr), sphi(1,1,1,iorb,m,l), 1, phi2(1,1,1,jorb), 1)
-                                write(*,'(a,6i7,2es18.8)') 'iiat, m, l, iiorb, jjorb, ind, tt, K', iiat, m, l, iiorb, jjorb, ind, tt, matrix_compr(ind)
-                                multipoles(m,l,iiat) = multipoles(m,l,iiat) + matrix_compr(ind)*tt
-                                !write(*,'(a,5i8,es16.8)') 'iproc, l, m, iorb, jorb, ddot', iproc, l, m, iorb, jorb, tt
-                            end do
-                        end do
-
-                    end do
-                end do
-                if (arr_allocated) then
-                    call f_free(phi1)
-                    call f_free(phi2)
-                    call f_free(sphi)
-                end if
-            end do
-            call f_free(norb_list)
-          end subroutine multipole_analysis_core
-
-          !> Calculates the real spherical harmonic for given values of l, m, x, y, z
-          function spherical_harmonic(rmax, l, m, x, y, z) result(sh)
-            use module_base, only: pi => pi_param
-            implicit none
-            ! Calling arguments
-            integer,intent(in) :: l, m
-            real(kind=8),intent(in) :: rmax, x, y, z
-            real(kind=8) :: sh
-
-            ! Local variables
-            integer,parameter :: l_max=2
-            real(kind=8) :: r, r2, rnorm
-
-            if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
-            if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
-                err_name='BIGDFT_RUNTIME_ERROR')
-            if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
-
-
-            ! Normalization for a sphere of radius rmax
-            select case (l)
-            case (0)
-                rnorm = sqrt(rmax**3/3.d0)
-                !sh = sqrt(4.d0*pi)*0.5d0*sqrt(1/pi)
-                sh = 0.5d0*sqrt(1/pi)/rnorm
-            case (1)
-                rnorm = sqrt(rmax**5/5.d0)
-                r = sqrt(x**2+y**2+z**2)
-                r = 1.d0
-                ! fix for small r (needs proper handling later...)
-                if (r==0.d0) r=1.d-20
-                select case (m)
-                case (-1)
-                    !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*y/r
-                    !sh = sqrt(3.d0/(4.d0*pi))*y/r
-                    sh = sqrt(3.d0/(4.d0*pi))*y/rnorm
-                case (0)
-                    !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*z/r
-                    !sh = sqrt(3.d0/(4.d0*pi))*z/r
-                    sh = sqrt(3.d0/(4.d0*pi))*z/rnorm
-                case (1)
-                    !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*x/r
-                    !sh = sqrt(3.d0/(4.d0*pi))*x/r
-                    sh = sqrt(3.d0/(4.d0*pi))*x/rnorm
-                end select
-            case (2)
-                rnorm = sqrt(rmax**7/7.d0)
-                r2 = x**2+y**2+z**2
-                r2=1.d0
-                ! fix for small r2 (needs proper handling later...)
-                if (r2==0.d0) r2=1.d-20
-                select case (m)
-                case (-2)
-                    !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*x*y/r2
-                    !sh = 0.5d0*sqrt(15.d0/pi)*x*y/r2
-                    sh = 0.5d0*sqrt(15.d0/pi)*x*y/rnorm
-                case (-1)
-                    !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*y*z/r2
-                    !sh = 0.5d0*sqrt(15.d0/pi)*y*z/r2
-                    sh = 0.5d0*sqrt(15.d0/pi)*y*z/rnorm
-                case (0)
-                    !sh = sqrt(4.d0*pi/5.d0)*0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
-                    !sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
-                    sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/rnorm
-                case (1)
-                    !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*z*x/r2
-                    !sh = 0.5d0*sqrt(15.d0/pi)*z*x/r2
-                    sh = 0.5d0*sqrt(15.d0/pi)*z*x/rnorm
-                case (2)
-                    !sh = sqrt(4.d0*pi/5.d0)*0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
-                    !sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
-                    sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/rnorm
-                end select
-            end select
-
-          end function spherical_harmonic
-
-          function get_normalization(rmax, l, m) result(fn)
-            use module_base, only: pi => pi_param
-            implicit none
-            ! Calling arguments
-            integer,intent(in) :: l, m
-            real(kind=8),intent(in) :: rmax
-            real(kind=8) :: fn
-
-            ! Local variables
-            integer,parameter :: l_max=2
-            real(kind=8) :: r, r2, rnorm
-
-            if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
-            if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
-                err_name='BIGDFT_RUNTIME_ERROR')
-            if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
-
-
-            ! Normalization for a sphere of radius rmax
-            select case (l)
-            case (0)
-                rnorm = sqrt(rmax**3/3.d0)
-                fn = 0.5d0*sqrt(1/pi)/rnorm
-            case (1)
-                rnorm = sqrt(rmax**5/5.d0)
-                select case (m)
-                case (-1)
-                    fn = sqrt(3.d0/(4.d0*pi))/rnorm
-                case (0)
-                    fn = sqrt(3.d0/(4.d0*pi))/rnorm
-                case (1)
-                    fn = sqrt(3.d0/(4.d0*pi))/rnorm
-                end select
-            case (2)
-                rnorm = sqrt(rmax**7/7.d0)
-                select case (m)
-                case (-2)
-                    fn = 0.5d0*sqrt(15.d0/pi)/rnorm
-                case (-1)
-                    fn = 0.5d0*sqrt(15.d0/pi)/rnorm
-                case (0)
-                    fn = 0.25d0*sqrt(5.d0/pi)/rnorm
-                case (1)
-                    fn = 0.5d0*sqrt(15.d0/pi)/rnorm
-                case (2)
-                    fn = 0.25d0*sqrt(15.d0/pi)/rnorm
-                end select
-            end select
-
-          end function get_normalization
+        end subroutine unitary_test
 
 
     end subroutine multipoles_from_density
@@ -806,5 +504,419 @@ module multipole
       call f_free(weight_matrix_compr_tg)
 
     end subroutine kernel_for_orthonormal_basis
+
+
+    subroutine write_multipoles(nat, ntypes, iatype, atomnames, multipoles, rmax, without_normalization)
+      use yaml_output
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: nat, ntypes
+      integer,dimension(nat),intent(in) :: iatype
+      character(len=*),dimension(ntypes),intent(in) :: atomnames
+      real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(in) :: multipoles
+      real(kind=8),intent(in) :: rmax
+      logical,intent(in) :: without_normalization
+      
+      ! Local variables
+      character(len=20) :: atomname
+      integer :: i, iat, l, m, nit
+      real(kind=8) :: max_error!, get_normalization, get_test_factor
+      real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
+
+          multipoles_tmp = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.nat/),id='multipoles_tmp')
+
+          if (without_normalization) then
+              nit = 2
+          else
+              nit = 1
+          end if
+
+          max_error = 0.d0
+          call yaml_mapping_open('Multipole coefficients')
+          do i=1,nit
+              if (i==1) then
+                  call yaml_map('normalized',.true.)
+                  call yaml_map('radius of normalization sphere',rmax)
+                  call f_memcpy(src=multipoles, dest=multipoles_tmp)
+              else if (i==2) then
+                  call yaml_map('normalized',.false.)
+                  do iat=1,nat
+                      do l=0,lmax
+                          do m=-l,l
+                              multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax, l, m)
+                              max_error = max(max_error,abs(multipoles_tmp(m,l,iat)-get_test_factor(l,m)))
+                              !write(*,'(a,3i5,2es14.5)') 'iat, l, m, multipoles(m,l,iat), ref', iat, l, m, multipoles(m,l,iat), get_test_factor(l,m)
+                          end do
+                      end do
+                  end do
+              end if
+              call yaml_sequence_open('Values')
+              do iat=1,nat
+                  call yaml_sequence(advance='no')
+                  atomname=atomnames(iatype(iat))
+                  call yaml_sequence_open(trim(atomname))
+                  do l=0,lmax
+                      call yaml_sequence(advance='no')
+                      !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
+                      !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat)*sqrt(4.d0**(2*l+3)),fmt='(1es16.8)')
+                      !do m=-l,l
+                          !multipoles(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax, l, m)
+                          !max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
+                      !end do
+                      call yaml_map('l='//yaml_toa(l),multipoles_tmp(-l:l,l,iat),fmt='(1es16.8)')
+                      call yaml_newline()
+                  end do
+                  !call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+                  call yaml_sequence_close()
+              end do
+              call yaml_sequence_close()
+              if (i==2) then
+                  call yaml_map('max error from original values',max_error)
+              end if
+          end do
+          call yaml_mapping_close()
+
+
+          call f_free(multipoles_tmp)
+
+    end subroutine write_multipoles
+
+
+    function get_normalization(rmax, l, m) result(fn)
+      use module_base, only: pi => pi_param
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: l, m
+      real(kind=8),intent(in) :: rmax
+      real(kind=8) :: fn
+
+      ! Local variables
+      integer,parameter :: l_max=2
+      real(kind=8) :: r, r2, rnorm
+
+      if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
+      if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
+          err_name='BIGDFT_RUNTIME_ERROR')
+      if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
+
+
+      ! Normalization for a sphere of radius rmax
+      select case (l)
+      case (0)
+          rnorm = sqrt(rmax**3/3.d0)
+          fn = 0.5d0*sqrt(1/pi)/rnorm
+      case (1)
+          rnorm = sqrt(rmax**5/5.d0)
+          select case (m)
+          case (-1)
+              fn = sqrt(3.d0/(4.d0*pi))/rnorm
+          case (0)
+              fn = sqrt(3.d0/(4.d0*pi))/rnorm
+          case (1)
+              fn = sqrt(3.d0/(4.d0*pi))/rnorm
+          end select
+      case (2)
+          rnorm = sqrt(rmax**7/7.d0)
+          select case (m)
+          case (-2)
+              fn = 0.5d0*sqrt(15.d0/pi)/rnorm
+          case (-1)
+              fn = 0.5d0*sqrt(15.d0/pi)/rnorm
+          case (0)
+              fn = 0.25d0*sqrt(5.d0/pi)/rnorm
+          case (1)
+              fn = 0.5d0*sqrt(15.d0/pi)/rnorm
+          case (2)
+              fn = 0.25d0*sqrt(15.d0/pi)/rnorm
+          end select
+      end select
+
+    end function get_normalization
+
+
+    function get_test_factor(l, m) result(ff)
+      implicit none
+      integer,intent(in) :: l, m
+      real(kind=8) :: ff
+      select case (l)
+      case (0)
+          ff = 1.d0
+      case (1)
+          select case (m)
+          case (-1)
+              ff = 11.d0
+          case ( 0)
+              ff = 12.d0
+          case ( 1)
+              ff = 13.d0
+          end select
+      case (2)
+          select case (m)
+          case (-2)
+              ff = 21.d0
+          case (-1)
+              ff = 22.d0
+          case ( 0)
+              ff = 23.d0
+          case ( 1)
+              ff = 24.d0
+          case ( 2)
+              ff = 25.d0
+          end select
+      end select
+    end function get_test_factor
+
+
+    !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
+    !! The functions are normalized to one within a sphere of radius rmax.
+    function spherical_harmonic(rmax, l, m, x, y, z) result(sh)
+      use module_base, only: pi => pi_param
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: l, m
+      real(kind=8),intent(in) :: rmax, x, y, z
+      real(kind=8) :: sh
+
+      ! Local variables
+      integer,parameter :: l_max=2
+      real(kind=8) :: r, r2, rnorm
+
+      if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
+      if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
+          err_name='BIGDFT_RUNTIME_ERROR')
+      if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
+
+
+      ! Normalization for a sphere of radius rmax
+      select case (l)
+      case (0)
+          rnorm = sqrt(rmax**3/3.d0)
+          !sh = sqrt(4.d0*pi)*0.5d0*sqrt(1/pi)
+          sh = 0.5d0*sqrt(1/pi)/rnorm
+      case (1)
+          rnorm = sqrt(rmax**5/5.d0)
+          r = sqrt(x**2+y**2+z**2)
+          r = 1.d0
+          ! fix for small r (needs proper handling later...)
+          if (r==0.d0) r=1.d-20
+          select case (m)
+          case (-1)
+              !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*y/r
+              !sh = sqrt(3.d0/(4.d0*pi))*y/r
+              sh = sqrt(3.d0/(4.d0*pi))*y/rnorm
+          case (0)
+              !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*z/r
+              !sh = sqrt(3.d0/(4.d0*pi))*z/r
+              sh = sqrt(3.d0/(4.d0*pi))*z/rnorm
+          case (1)
+              !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*x/r
+              !sh = sqrt(3.d0/(4.d0*pi))*x/r
+              sh = sqrt(3.d0/(4.d0*pi))*x/rnorm
+          end select
+      case (2)
+          rnorm = sqrt(rmax**7/7.d0)
+          r2 = x**2+y**2+z**2
+          r2=1.d0
+          ! fix for small r2 (needs proper handling later...)
+          if (r2==0.d0) r2=1.d-20
+          select case (m)
+          case (-2)
+              !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*x*y/r2
+              !sh = 0.5d0*sqrt(15.d0/pi)*x*y/r2
+              sh = 0.5d0*sqrt(15.d0/pi)*x*y/rnorm
+          case (-1)
+              !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*y*z/r2
+              !sh = 0.5d0*sqrt(15.d0/pi)*y*z/r2
+              sh = 0.5d0*sqrt(15.d0/pi)*y*z/rnorm
+          case (0)
+              !sh = sqrt(4.d0*pi/5.d0)*0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
+              !sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
+              sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/rnorm
+          case (1)
+              !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*z*x/r2
+              !sh = 0.5d0*sqrt(15.d0/pi)*z*x/r2
+              sh = 0.5d0*sqrt(15.d0/pi)*z*x/rnorm
+          case (2)
+              !sh = sqrt(4.d0*pi/5.d0)*0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
+              !sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
+              sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/rnorm
+          end select
+      end select
+
+    end function spherical_harmonic
+
+
+    subroutine multipole_analysis_core(iproc, nproc, rmax, natp, isat, nat, ntypes, norb, &
+               iatype, norbsPerType, inwhichlocreg, onwhichatom, &
+               n1i, n2i, n3i, nsi1, nsi2, nsi3, hgrids, locregcenter, &
+               nr, psir1_get, psir2_get, &
+               nvctr, matrix_compr, multipoles, get_index, smatl, matrixindex)
+      use module_types, only: workarr_sumrho
+      use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_init, only: matrixindex_in_compressed
+      use yaml_output
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      real(kind=8),intent(in) :: rmax
+      integer,intent(in) :: natp, isat, nat, ntypes, norb, nr, nvctr, get_index
+      integer,dimension(nat),intent(in) :: iatype
+      integer,dimension(ntypes),intent(in) :: norbsPerType
+      integer,dimension(norb),intent(in) :: inwhichlocreg, onwhichatom
+      integer,dimension(norb),intent(in) :: n1i, n2i, n3i, nsi1, nsi2, nsi3
+      real(kind=8),dimension(3),intent(in) :: hgrids
+      real(kind=8),dimension(3,norb) :: locregcenter
+      real(kind=8),dimension(nr),intent(in) :: psir1_get, psir2_get
+      real(kind=8),dimension(nvctr),intent(in) :: matrix_compr
+      real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(out) :: multipoles
+      type(sparse_matrix),intent(in),optional :: smatl
+      integer,dimension(norb,norb),intent(in),optional :: matrixindex
+
+      ! Local variables
+      integer,parameter :: INDEX_AUTOMATIC=101
+      integer,parameter :: INDEX_MANUALLY=102
+      integer :: ist, istr, iorb, iiorb, ilr, ii, jproc, iat, n, norb_get, istr_get
+      integer :: window, ioffset, methTransformOverlap, l, m, iiat, ityp, norb_per_atom, i1, i2, i3, ind, jorb, jat
+      integer :: ii1, ii2, ii3, jjorb
+      real(kind=8),dimension(:),allocatable :: psir
+      real(kind=8),dimension(:),pointer :: phit_c, phit_f
+      type(workarr_sumrho) :: w
+      integer,dimension(:),allocatable :: nat_par, norb_list
+      !real(kind=8),dimension(:),allocatable :: psir_get
+      real(kind=8),dimension(:,:,:,:),allocatable :: phi1, phi2
+      real(kind=8),dimension(:,:,:,:,:,:),allocatable :: sphi
+      integer,dimension(:,:),allocatable :: comms
+      logical :: can_use_transposed, arr_allocated
+      real(kind=8) :: ddot, x, y, z, tt, rnorm, rnorm_maxdev
+      !real(kind=8) ,dimension(2,orbs%norb) :: testarr
+      real(kind=8),dimension(:),allocatable :: kernel_ortho, phi_ortho
+      real(kind=8) :: factor_normalization
+      character(len=20) :: atomname
+      real(kind=8),dimension(-lmax:lmax,0:lmax) :: norm
+
+      ! Check that rmax does remains within the box.
+      if (rmax>=0.5d0*(0.5d0*hgrids(1)*maxval(n1i)+0.5d0*hgrids(2)*maxval(n2i)+0.5d0*hgrids(3)*maxval(n3i))) then
+          call f_err_throw('The radius for the multipole analysis is too small', err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+
+
+      if (iproc==0) call yaml_comment('Multipole analysis',hfill='-')
+
+      norb_list = f_malloc(maxval(norbsPerType(:)),id='norb_list')
+      call f_zero(multipoles)
+      rnorm_maxdev = 0.d0
+      do iat=1,natp
+          iiat = iat + isat
+          ityp=iatype(iiat)
+          norb_per_atom = norbsPerType(ityp)
+          arr_allocated = .false.
+          iiorb = 0
+          ist = 0
+          do iorb=1,norb
+              ilr = inwhichlocreg(iorb)
+              jat = onwhichatom(iorb)
+              if (jat==iiat) then
+                  if (.not.arr_allocated) then
+                      phi1 = f_malloc0((/1.to.n1i(ilr),1.to.n2i(ilr),1.to.n3i(ilr), &
+                                       1.to.norb_per_atom/),id='ph1i')
+                      phi2 = f_malloc0((/1.to.n1i(ilr),1.to.n2i(ilr),1.to.n3i(ilr), &
+                                       1.to.norb_per_atom/),id='phi2')
+                      sphi = f_malloc0((/1.to.n1i(ilr),1.to.n2i(ilr),1.to.n3i(ilr), &
+                                        1.to.norb_per_atom,-lmax.to.lmax,0.to.lmax/),id='sphi')
+                      arr_allocated = .true.
+                  end if
+                  iiorb = iiorb + 1
+                  norb_list(iiorb) = iorb
+                  ! Apply the spherical harmonic
+                  rnorm = 0.d0
+                  norm = 0.d0
+                  factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
+                  do i3=1,n3i(ilr)
+                      ii3 = nsi3(ilr) + i3 - 14 - 1
+                      z = ii3*0.5d0*hgrids(3) - locregcenter(3,ilr)
+                      do i2=1,n2i(ilr)
+                          ii2 = nsi2(ilr) + i2 - 14 - 1
+                          y = ii2*0.5d0*hgrids(2) - locregcenter(2,ilr)
+                          do i1=1,n1i(ilr)
+                              ii1 = nsi1(ilr) + i1 - 14 - 1
+                              x = ii1*0.5d0*hgrids(1) - locregcenter(1,ilr)
+                              if (x**2+y**2+z**2>rmax**2) cycle
+                              ind = (i3-1)*n2i(ilr)*n1i(ilr) + (i2-1)*n1i(ilr) + i1
+                              phi1(i1,i2,i3,iiorb) = psir1_get(ist+ind)
+                              !write(300,*) 'ind, val', ind, phi1(i1,i2,i3,iiorb)
+                              !write(400,*) 'ind, val', ind, (1.d0 + 11.d0*y + 12.d0*z + 13.d0*x + &
+                              !    21.d0*x*y + 22.d0*y*z + 23.d0*(-x**2-y**2+2*z**2) + 24.d0*z*x + 25.d0*(x**2-y**2))
+                              !write(*,*) 'DIFF', &
+                              !    phi1(i1,i2,i3,iiorb) - &
+                              !    (1.d0 + 11.d0*y + 12.d0*z + 13.d0*x + &
+                              !    21.d0*x*y + 22.d0*y*z + 23.d0*(-x**2-y**2+2*z**2) + 24.d0*z*x + 25.d0*(x**2-y**2))
+                              !phi1(i1,i2,i3,iiorb) = 1.d0 + 11.d0*y + 12.d0*z + 13.d0*x + 21.d0*x*y + 22.d0*y*z + 23.d0*(-x**2-y**2+2*z**2) + 24.d0*z*x + 25.d0*(x**2-y**2)
+                              phi2(i1,i2,i3,iiorb) = psir2_get(ist+ind)
+                              do l=0,lmax
+                                  do m=-l,l
+                                      tt = spherical_harmonic(rmax, l, m, x, y, z)
+                                      sphi(i1,i2,i3,iiorb,m,l) = factor_normalization*tt*phi1(i1,i2,i3,iiorb)
+                                      norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
+                                      !if (i1==1 .and. i2==1) write(*,'(a,2i5,3es13.3,3es19.8)') 'l, m, x, y, z, tt, phi, sphi', l, m, x, y, z, tt, phi(i1,i2,i3,iiorb), sphi(i1,i2,i3,iiorb,m,l)
+                                  end do
+                              end do
+                          end do
+                      end do
+                  end do
+                  do l=0,lmax
+                      do m=-l,l
+                          norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
+                          rnorm_maxdev = max(rnorm_maxdev,abs(1.d0-norm(m,l)))
+                      end do
+                  end do
+                  !call yaml_map('rnorm',rnorm)
+                  !call yaml_map('norm',norm,fmt='(es14.6)')
+                  !call yaml_map('4.d0/rnorm',4.d0/rnorm)
+                  sphi(:,:,:,iiorb,:,:) = sphi(:,:,:,iiorb,:,:)*sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
+                  ist = ist + ind
+              end if
+          end do
+          ! Calculate the scalar product
+          do l=0,lmax
+              do m=-l,l
+                  do iorb=1,norb_per_atom
+                      iiorb = norb_list(iorb)
+                      do jorb=1,norb_per_atom
+                          jjorb = norb_list(jorb)
+                          if (get_index==INDEX_AUTOMATIC) then
+                              ind = matrixindex_in_compressed(smatl, iiorb, jjorb)
+                          else if (get_index==INDEX_MANUALLY) then
+                              ind = matrixindex(iiorb, jjorb)
+                          end if
+                          tt = ddot(n1i(ilr)*n2i(ilr)*n3i(ilr), sphi(1,1,1,iorb,m,l), 1, phi2(1,1,1,jorb), 1)
+                          !write(*,'(a,6i7,2es18.8)') 'iiat, m, l, iiorb, jjorb, ind, tt, K', iiat, m, l, iiorb, jjorb, ind, tt, matrix_compr(ind)
+                          multipoles(m,l,iiat) = multipoles(m,l,iiat) + matrix_compr(ind)*tt
+                          !write(*,'(a,5i8,es16.8)') 'iproc, l, m, iorb, jorb, ddot', iproc, l, m, iorb, jorb, tt
+                      end do
+                  end do
+
+              end do
+          end do
+          if (arr_allocated) then
+              call f_free(phi1)
+              call f_free(phi2)
+              call f_free(sphi)
+          end if
+      end do
+      if (nproc>1) then
+          call mpiallred(multipoles, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(rnorm_maxdev, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+      end if
+      if (iproc==0) then
+          call yaml_mapping_open('Calculation of solid harmonics')
+          call yaml_map('radius for normalization',rmax,fmt='(es8.2)')
+          call yaml_map('max deviation from normalization',rnorm_maxdev,fmt='(es8.2)')
+          call yaml_mapping_close()
+      end if
+
+
+      call f_free(norb_list)
+    end subroutine multipole_analysis_core
 
 end module multipole
