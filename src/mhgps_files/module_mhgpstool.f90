@@ -500,7 +500,7 @@ subroutine write_data(mdat)
     !parameters
     type(mhgpstool_data), intent(inout) :: mdat
     !local
-    integer :: u, u2, u3, u4
+    integer :: u, u2, u3, u4, u5
     integer :: imin, isad
     integer, allocatable :: mn(:)
     integer :: ipair, it
@@ -538,6 +538,8 @@ subroutine write_data(mdat)
     open(u,file='tsdat')
     u2=f_get_free_unit()
     open(u2,file='tsdat_exclude')
+    u5=f_get_free_unit()
+    open(u5,file='tsfiles')
     isadc=0
     imin_well_aligned=-1
     do isad=1,mdat%nsad
@@ -581,6 +583,7 @@ write(*,'(a,3(1x,i9.9))')'imaxloc',ipair,min(mn(mdat%snghb(isad)%neighb(1,ipair)
                        '.EXT saddlepoints/sad'//ci//'.EXT'
             write(u4,'(a)')'cp '//trim(adjustl(mdat%path_sad(isad)))//&
                        '.EXT saddlepoints/sad'//ci//'.EXT'
+            write(u5,'(a,x,a)')'"'//trim(adjustl(mdat%path_sad(isad)))//'"',ci
             write(ci,'(i9.9)')imin_well_aligned
             write(u4,'(a)')'cp '//trim(adjustl(mdat%snghb(isad)%neighbPath(1,ipair)))//&                                                             
                        '.EXT minima_well_aligned/min'//ci//'.EXT'
@@ -604,6 +607,7 @@ enddo
     close(u2)
     close(u3)
     close(u4)
+    close(u5)
 
     !uncomment following call of identMHminMHGPSmin if
     !identification of MH minima id with minima ID in MHPGS databse

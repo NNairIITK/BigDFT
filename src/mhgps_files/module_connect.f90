@@ -645,14 +645,14 @@ connectloop: do while(cobj%ntodo>=1)
     !rmsd alignment (optional in mhgps approach)
     call superimpose(runObj%atoms%astruct%nat,cobj%rxyz1,cobj%rxyz2)
 
-    !check if previously connected
-    if(previously_connected(mhgpsst,uinp,runObj,cobj%rxyz1,cobj%rxyz2))then
-        if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) connect: '//&
-                    'Minima previously connected. Will not connect again.')
-!        connected=.true.
-        cobj%ntodo=cobj%ntodo-1
-        cycle
-    endif
+!!    !check if previously connected
+!!    if(previously_connected(mhgpsst,uinp,runObj,cobj%rxyz1,cobj%rxyz2))then
+!!        if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) connect: '//&
+!!                    'Minima previously connected. Will not connect again.')
+!!!        connected=.true.
+!!        cobj%ntodo=cobj%ntodo-1
+!!        cycle
+!!    endif
     endif
 
     !get input guess for transition state
