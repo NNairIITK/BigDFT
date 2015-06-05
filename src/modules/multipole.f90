@@ -254,31 +254,35 @@ module multipole
       end if
       call f_free(nat_par)
       comms = f_malloc((/4,orbs%norb/),id='comms')
+      !write(*,'(a,i5,3x,13i4)') 'iproc, orbs%onwhichatom', iproc, orbs%onwhichatom
       nr = 0
       norb_get = 0
       istr = 1
       istr_get = 1
-      do jproc=0,nproc-1
-          istr = 0
-          do iorb=1,orbs%norb_par(jproc,0)
-              iiorb = iorb + orbs%isorb_par(jproc)
-              ilr = orbs%inwhichlocreg(iiorb)
-              iat = orbs%onwhichatom(iiorb)
-              n = lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-              !write(*,'(a,5i8)') 'iproc, jproc, iiorb, iat', iproc, jproc, iiorb, iat
-              if (iat>=isat+1 .and. iat<=isat+natp) then
-                  norb_get = norb_get + 1
-                  comms(1,norb_get) = jproc
-                  comms(2,norb_get) = n
-                  comms(3,norb_get) = istr
-                  comms(4,norb_get) = istr_get
-                  nr = nr + n
-                  !write(*,'(a,5i8)') 'iproc, jproc, n, istr, istr_get', iproc, jproc, n, istr, istr_get
-                  istr = istr + n
-                  istr_get = istr_get + n
-              else
-                  istr = istr + n
-              end if
+      do iat=isat+1,isat+natp
+          do jproc=0,nproc-1
+              istr = 0
+              do iorb=1,orbs%norb_par(jproc,0)
+                  iiorb = iorb + orbs%isorb_par(jproc)
+                  ilr = orbs%inwhichlocreg(iiorb)
+                  iiat = orbs%onwhichatom(iiorb)
+                  n = lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+                  !write(*,'(a,5i8)') 'iproc, jproc, iiorb, iat', iproc, jproc, iiorb, iat
+                  !if (iat>=isat+1 .and. iat<=isat+natp) then
+                  if (iiat==iat) then
+                      norb_get = norb_get + 1
+                      comms(1,norb_get) = jproc
+                      comms(2,norb_get) = n
+                      comms(3,norb_get) = istr
+                      comms(4,norb_get) = istr_get
+                      nr = nr + n
+                      !write(*,'(a,5i8)') 'iproc, jproc, n, istr, istr_get', iproc, jproc, n, istr, istr_get
+                      istr = istr + n
+                      istr_get = istr_get + n
+                  else
+                      istr = istr + n
+                  end if
+              end do
           end do
       end do
       !write(*,*) 'iproc, nr', iproc, nr
@@ -312,6 +316,9 @@ module multipole
               istr = istr + n
           end if
       end do
+      !do iorb=1,size(psir_get)
+      !    write(300+iproc,'(a,i7,es16.7)') 'i, psir_get(i)', iorb, psir_get(iorb)
+      !end do
       !call mpiallred(testarr, mpi_sum, comm=bigdft_mpi%mpi_comm)
       !if (iproc==0) then
       !    do iorb=1,orbs%norb
@@ -439,6 +446,7 @@ module multipole
                    nr, psir_get_fake(:,1), psir_get_fake(:,2), &
                    1, (/1.d0/), multipoles, 102, matrixindex=(/1/))
           end if
+          !call mpi_barrier(mpi_comm_world,i3)
 
           if (iproc==0) then
               call write_multipoles(1, 1, (/1/), (/'testatom'/), multipoles, rmax, without_normalization=.true.)
@@ -778,7 +786,7 @@ module multipole
       integer,parameter :: INDEX_MANUALLY=102
       integer :: ist, istr, iorb, iiorb, ilr, ii, jproc, iat, n, norb_get, istr_get
       integer :: window, ioffset, methTransformOverlap, l, m, iiat, ityp, norb_per_atom, i1, i2, i3, ind, jorb, jat
-      integer :: ii1, ii2, ii3, jjorb
+      integer :: ii1, ii2, ii3, jjorb, iilr
       real(kind=8),dimension(:),allocatable :: psir
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       type(workarr_sumrho) :: w
@@ -806,25 +814,37 @@ module multipole
       norb_list = f_malloc(maxval(norbsPerType(:)),id='norb_list')
       call f_zero(multipoles)
       rnorm_maxdev = 0.d0
+      ist = 0
+      !call mpi_barrier(mpi_comm_world,iat)
       do iat=1,natp
           iiat = iat + isat
           ityp=iatype(iiat)
           norb_per_atom = norbsPerType(ityp)
           arr_allocated = .false.
           iiorb = 0
-          ist = 0
           do iorb=1,norb
               ilr = inwhichlocreg(iorb)
               jat = onwhichatom(iorb)
               if (jat==iiat) then
+                  iilr = ilr
                   if (.not.arr_allocated) then
                       phi1 = f_malloc0((/1.to.n1i(ilr),1.to.n2i(ilr),1.to.n3i(ilr), &
                                        1.to.norb_per_atom/),id='ph1i')
                       phi2 = f_malloc0((/1.to.n1i(ilr),1.to.n2i(ilr),1.to.n3i(ilr), &
                                        1.to.norb_per_atom/),id='phi2')
                       sphi = f_malloc0((/1.to.n1i(ilr),1.to.n2i(ilr),1.to.n3i(ilr), &
-                                        1.to.norb_per_atom,-lmax.to.lmax,0.to.lmax/),id='sphi')
+                                        -lmax.to.lmax,0.to.lmax,1.to.norb_per_atom/),id='sphi')
+                      !write(*,*) 'sphi allocated, natp, size',natp, size(sphi)
+                      !write(*,'(a,4i9)') 'phi2 allocated, natp, n1, n2, n3',natp, n1i(ilr), n2i(ilr), n3i(ilr)
                       arr_allocated = .true.
+                  else
+                      ! Check the dimensions
+                      if (n1i(ilr)/=size(phi1,1)) call f_err_throw('wrong n1i',err_name='BIGDFT_RUNTIME_ERROR')
+                      if (n2i(ilr)/=size(phi1,2)) call f_err_throw('wrong n1i',err_name='BIGDFT_RUNTIME_ERROR')
+                      if (n3i(ilr)/=size(phi1,3)) call f_err_throw('wrong n1i',err_name='BIGDFT_RUNTIME_ERROR')
+                      if (n1i(ilr)/=size(phi2,1)) call f_err_throw('wrong n1i',err_name='BIGDFT_RUNTIME_ERROR')
+                      if (n2i(ilr)/=size(phi2,2)) call f_err_throw('wrong n1i',err_name='BIGDFT_RUNTIME_ERROR')
+                      if (n3i(ilr)/=size(phi2,3)) call f_err_throw('wrong n1i',err_name='BIGDFT_RUNTIME_ERROR')
                   end if
                   iiorb = iiorb + 1
                   norb_list(iiorb) = iorb
@@ -832,6 +852,7 @@ module multipole
                   rnorm = 0.d0
                   norm = 0.d0
                   factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
+                  !write(*,'(a,6i6)') 'iat, iiat, ilr, n1i, n2i, n3i', iat, iiat, ilr, n1i(ilr), n2i(ilr), n3i(ilr)
                   do i3=1,n3i(ilr)
                       ii3 = nsi3(ilr) + i3 - 14 - 1
                       z = ii3*0.5d0*hgrids(3) - locregcenter(3,ilr)
@@ -841,9 +862,10 @@ module multipole
                           do i1=1,n1i(ilr)
                               ii1 = nsi1(ilr) + i1 - 14 - 1
                               x = ii1*0.5d0*hgrids(1) - locregcenter(1,ilr)
-                              if (x**2+y**2+z**2>rmax**2) cycle
                               ind = (i3-1)*n2i(ilr)*n1i(ilr) + (i2-1)*n1i(ilr) + i1
                               phi1(i1,i2,i3,iiorb) = psir1_get(ist+ind)
+                              phi2(i1,i2,i3,iiorb) = psir2_get(ist+ind)
+                              if (x**2+y**2+z**2>rmax**2) cycle
                               !write(300,*) 'ind, val', ind, phi1(i1,i2,i3,iiorb)
                               !write(400,*) 'ind, val', ind, (1.d0 + 11.d0*y + 12.d0*z + 13.d0*x + &
                               !    21.d0*x*y + 22.d0*y*z + 23.d0*(-x**2-y**2+2*z**2) + 24.d0*z*x + 25.d0*(x**2-y**2))
@@ -852,11 +874,12 @@ module multipole
                               !    (1.d0 + 11.d0*y + 12.d0*z + 13.d0*x + &
                               !    21.d0*x*y + 22.d0*y*z + 23.d0*(-x**2-y**2+2*z**2) + 24.d0*z*x + 25.d0*(x**2-y**2))
                               !phi1(i1,i2,i3,iiorb) = 1.d0 + 11.d0*y + 12.d0*z + 13.d0*x + 21.d0*x*y + 22.d0*y*z + 23.d0*(-x**2-y**2+2*z**2) + 24.d0*z*x + 25.d0*(x**2-y**2)
-                              phi2(i1,i2,i3,iiorb) = psir2_get(ist+ind)
+                              !write(200+iproc,'(a,4i7,es16.7)') 'iiat, iorb, ist, ind, iorb, psir2_get(ist+ind)',&
+                              !    iiat, iorb, ist, ind, psir2_get(ist+ind)
                               do l=0,lmax
                                   do m=-l,l
                                       tt = spherical_harmonic(rmax, l, m, x, y, z)
-                                      sphi(i1,i2,i3,iiorb,m,l) = factor_normalization*tt*phi1(i1,i2,i3,iiorb)
+                                      sphi(i1,i2,i3,m,l,iiorb) = factor_normalization*tt*phi1(i1,i2,i3,iiorb)
                                       norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
                                       !if (i1==1 .and. i2==1) write(*,'(a,2i5,3es13.3,3es19.8)') 'l, m, x, y, z, tt, phi, sphi', l, m, x, y, z, tt, phi(i1,i2,i3,iiorb), sphi(i1,i2,i3,iiorb,m,l)
                                   end do
@@ -873,7 +896,11 @@ module multipole
                   !call yaml_map('rnorm',rnorm)
                   !call yaml_map('norm',norm,fmt='(es14.6)')
                   !call yaml_map('4.d0/rnorm',4.d0/rnorm)
-                  sphi(:,:,:,iiorb,:,:) = sphi(:,:,:,iiorb,:,:)*sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
+                  !sphi(:,:,:,:,:,iiorb) = sphi(:,:,:,:,:,iiorb)*sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
+                  !write(*,*) 'calling vscal,iproc, iat, iiorb', iproc, iat, iiorb
+                  call vscal(n1i(ilr)*n2i(ilr)*n3i(ilr)*(2*lmax+1)*(lmax+1), &
+                       sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3)), sphi(1,1,1,-lmax,0,iiorb), 1)
+                  !write(*,*) 'after vscal, iproc', iproc
                   ist = ist + ind
               end if
           end do
@@ -889,8 +916,16 @@ module multipole
                           else if (get_index==INDEX_MANUALLY) then
                               ind = matrixindex(iiorb, jjorb)
                           end if
-                          tt = ddot(n1i(ilr)*n2i(ilr)*n3i(ilr), sphi(1,1,1,iorb,m,l), 1, phi2(1,1,1,jorb), 1)
-                          !write(*,'(a,6i7,2es18.8)') 'iiat, m, l, iiorb, jjorb, ind, tt, K', iiat, m, l, iiorb, jjorb, ind, tt, matrix_compr(ind)
+                          !tt = ddot(n1i(iilr)*n2i(iilr)*n3i(iilr), sphi(1,1,1,iorb,m,l), 1, phi2(1,1,1,jorb), 1)
+                          !write(*,'(a,9i9)') 'call ddot, iproc, iat, iorb, jorb, n, size, n1, n2, n3', &
+                          !    iproc, iat, iorb, jorb, n1i(iilr)*n2i(iilr)*n3i(iilr), size(phi2,1)*size(phi2,2)*size(phi2,3), &
+                          !    n1i(iilr), n2i(iilr), n3i(iilr)
+                          tt = ddot(n1i(iilr)*n2i(iilr)*n3i(iilr), sphi(1,1,1,m,l,iorb), 1, phi2(1,1,1,jorb), 1)
+                          !write(*,'(a,9i7,5es18.8)') 'iproc, iiat, m, l, iorb, iiorb, jorb, jjorb, ind, tt, K, sphi, phi1, phi2', &
+                          !     iproc, iiat, m, l, iorb, iiorb, jorb, jjorb, ind, tt, matrix_compr(ind), &
+                          !     ddot(n1i(iilr)*n2i(iilr)*n3i(iilr), sphi(1,1,1,iorb,m,l), 1, sphi(1,1,1,jorb,m,l), 1), &
+                          !     ddot(n1i(iilr)*n2i(iilr)*n3i(iilr), phi1(1,1,1,iorb), 1, phi1(1,1,1,jorb), 1), &
+                          !     ddot(n1i(iilr)*n2i(iilr)*n3i(iilr), phi2(1,1,1,iorb), 1, phi2(1,1,1,jorb), 1)
                           multipoles(m,l,iiat) = multipoles(m,l,iiat) + matrix_compr(ind)*tt
                           !write(*,'(a,5i8,es16.8)') 'iproc, l, m, iorb, jorb, ddot', iproc, l, m, iorb, jorb, tt
                       end do

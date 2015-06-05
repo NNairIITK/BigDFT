@@ -1343,13 +1343,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   if (input%lin%charge_multipoles) then
-      write(200+iproc,*) tmb%linmat%ovrlp_%matrix_compr
-      write(210+iproc,*) tmb%linmat%kernel_%matrix_compr
+      !!write(200+iproc,*) tmb%linmat%ovrlp_%matrix_compr
+      !!write(210+iproc,*) tmb%linmat%kernel_%matrix_compr
       call multipoles_from_density(iproc, nproc, at, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%orbs, &
            tmb%npsidim_orbs, tmb%psi, input%lin%norbsPerType, tmb%collcom, tmb%collcom_sr, tmb%orthpar, &
            tmb%linmat%ovrlp_, tmb%linmat%kernel_, meth_overlap=norder_taylor)
-      write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
-      write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
+      !!write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
+      !!write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
   end if
 
 
