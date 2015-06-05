@@ -3896,11 +3896,11 @@ contains
 
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
-    subroutine bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, &
+    subroutine bigdft_to_sparsebigdft(iproc, nproc, nspin, ncol, ncolp, iscol, &
                on_which_atom, nvctr, nseg, keyg, smat)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
-      integer,intent(in) :: iproc, nproc, ncol, ncolp, iscol, nvctr, nseg
+      integer,intent(in) :: iproc, nproc, nspin, ncol, ncolp, iscol, nvctr, nseg
       integer,dimension(ncol),intent(in) :: on_which_atom
       !logical,intent(in) :: store_index
       integer,dimension(2,2,nseg),intent(in) :: keyg
@@ -3960,7 +3960,7 @@ contains
       !!    end if
       !!end do
 
-      call init_sparse_matrix(iproc, nproc, 1, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
+      call init_sparse_matrix(iproc, nproc, nspin, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
            on_which_atom, nvctr, nonzero, nvctr, nonzero, smat)
 
       collcom_dummy = comms_linear_null()
