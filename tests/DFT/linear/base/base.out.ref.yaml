@@ -135,7 +135,7 @@
    purification_quickreturn            : No #     linear scaling quick return in purification
    adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
    calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
-   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
+   loewdin_charge_analysis             : Yes #     linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
    fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
@@ -2174,6 +2174,180 @@
    LUMO energy                         :  [  0.2042756957374297 ]
    HOMO-LUMO gap (Ha)                  :  [  0.513439466082962 ]
    HOMO-LUMO gap (eV)                  :  [  13.97139901144989 ]
+ calculate S^x:
+   mode                                : sparse
+   powers:
+     x                                 : 1/2
+   order                               :  0
+   error estimation:
+     max / mean error                  :  [  3.11E-15,  6.85E-16 ]
+ Loewdin charge analysis (charge / net charge):
+ -  {Si:  [ -3.141480918861E+00,  8.585190811392E-01 ]} # 0001
+ -  {H:  [ -1.205668069079E+00, -2.056680690793E-01 ]} # 0002
+ -  {H:  [ -1.213413946582E+00, -2.134139465820E-01 ]} # 0003
+ -  {H:  [ -1.22105277613E+00, -2.210527761299E-01 ]} # 0004
+ -  {H:  [ -1.218384289348E+00, -2.183842893480E-01 ]} # 0005
+ - total charge                        : -8.00000000E+00
+ - total net charge                    : -8.65973959E-15
+ output file                           : chargeanalysis.gp
+ Multipole analysis (based on the Loewdin charges):
+   net dipole                          :  [  2.25914E-02,  3.06377E-02, -6.25433E-03 ]
+   net quadropole:
+   -  [ -5.96053E-02,  5.91407E-02, -1.41523E-01 ]
+   -  [  5.91407E-02, -1.05978E-02, -7.36530E-02 ]
+   -  [ -1.41523E-01, -7.36530E-02,  7.02031E-02 ]
+   - trace of quadropole matrix        : -3.22E-15
+ Support functions moments:
+   number 1 (atom number = 2, type = H):
+   - net dipole: [-1.0547118734E-15, -2.9698465909E-15, -6.1062266354E-16]
+   - net quadropole:
+     -  [ -1.24875087E-04,  6.15318352E-04, -9.91363626E-04 ]
+     -  [  6.15318352E-04,  3.99801034E-05, -1.03372540E-03 ]
+     -  [ -9.91363626E-04, -1.03372540E-03,  8.48949841E-05 ]
+   number 2 (atom number = 4, type = H):
+   - net dipole: [-2.1926904736E-15,  1.0824674490E-15,  3.4139358007E-15]
+   - net quadropole:
+     -  [  3.94381762E-04,  8.30345478E-04,  1.57144233E-03 ]
+     -  [  8.30345478E-04, -3.12791264E-04,  3.75378101E-04 ]
+     -  [  1.57144233E-03,  3.75378101E-04, -8.15904985E-05 ]
+   number 3 (atom number = 1, type = Si):
+   - net dipole: [ 3.0253577421E-15,  2.9420910153E-15,  3.8719027984E-15]
+   - net quadropole:
+     -  [ -9.10614158E-05, -1.23879497E-04,  9.48058575E-05 ]
+     -  [ -1.23879497E-04, -1.00207898E-04,  4.36841923E-05 ]
+     -  [  9.48058575E-05,  4.36841923E-05,  1.91269314E-04 ]
+   number 4 (atom number = 1, type = Si):
+   - net dipole: [-1.9567680809E-15,  6.4531713306E-15,  4.8294701571E-15]
+   - net quadropole:
+     -  [  3.03674671E-02, -1.97154641E-04, -3.63172005E-04 ]
+     -  [ -1.97154641E-04, -1.51483549E-02, -5.39177734E-05 ]
+     -  [ -3.63172005E-04, -5.39177734E-05, -1.52191122E-02 ]
+   number 5 (atom number = 1, type = Si):
+   - net dipole: [ 4.7184478547E-16,  5.7315263646E-15,  5.1209037011E-15]
+   - net quadropole:
+     -  [ -1.53297059E-02,  4.93921474E-04,  6.34413203E-05 ]
+     -  [  4.93921474E-04,  3.04184266E-02, -4.99659824E-05 ]
+     -  [  6.34413203E-05, -4.99659824E-05, -1.50887208E-02 ]
+   number 6 (atom number = 1, type = Si):
+   - net dipole: [ 3.4694469520E-16,  4.0384362521E-15,  1.7347234760E-15]
+   - net quadropole:
+     -  [ -1.50062861E-02, -5.00212463E-05,  3.95473280E-05 ]
+     -  [ -5.00212463E-05, -1.52207549E-02,  4.59716591E-05 ]
+     -  [  3.9547328E-05,  4.59716591E-05,  3.02270410E-02 ]
+   number 7 (atom number = 1, type = Si):
+   - net dipole: [ 1.2490009027E-16,  3.5804692544E-15,  7.0637939942E-15]
+   - net quadropole:
+     -  [ -1.65625474E-02, -3.40828408E-04,  3.02528590E-05 ]
+     -  [ -3.40828408E-04,  8.21418426E-03,  9.33307620E-05 ]
+     -  [  3.0252859E-05,  9.33307620E-05,  8.34836316E-03 ]
+   number 8 (atom number = 1, type = Si):
+   - net dipole: [ 5.1347814889E-16,  1.9984014443E-15,  3.9135361618E-15]
+   - net quadropole:
+     -  [  8.37927838E-03, -7.76469102E-05, -1.58901420E-05 ]
+     -  [ -7.76469102E-05, -1.67179972E-02,  2.70914628E-04 ]
+     -  [ -1.5890142E-05,  2.70914628E-04,  8.33871883E-03 ]
+   number 9 (atom number = 1, type = Si):
+   - net dipole: [ 3.2057689836E-15,  3.3029134983E-15,  2.8033131372E-15]
+   - net quadropole:
+     -  [  8.31351057E-03,  2.50225088E-04,  2.24477895E-04 ]
+     -  [  2.50225088E-04,  8.30668933E-03,  2.64609703E-05 ]
+     -  [  2.24477895E-04,  2.64609703E-05, -1.66201999E-02 ]
+   number 10 (atom number = 1, type = Si):
+   - net dipole: [ 4.6768144912E-15,  4.5796699766E-16,  6.2727600891E-15]
+   - net quadropole:
+     -  [  8.83553932E-03, -9.76934915E-05, -2.03719480E-04 ]
+     -  [ -9.76934915E-05,  8.71648444E-03, -1.73226003E-04 ]
+     -  [ -2.0371948E-04, -1.73226003E-04, -1.75520238E-02 ]
+   number 11 (atom number = 1, type = Si):
+   - net dipole: [ 4.5796699766E-16,  3.3029134983E-15,  3.8025138593E-15]
+   - net quadropole:
+     -  [ -8.77402539E-03,  2.99303216E-04,  3.06971285E-05 ]
+     -  [  2.99303216E-04, -8.51073671E-03, -1.35360437E-04 ]
+     -  [  3.06971285E-05, -1.35360437E-04,  1.72847621E-02 ]
+   number 12 (atom number = 5, type = H):
+   - net dipole: [-6.6058269965E-15,  4.9960036108E-16,  6.8001160258E-15]
+   - net quadropole:
+     -  [  1.40644229E-04, -1.49458074E-03,  2.52621291E-04 ]
+     -  [ -1.49458074E-03,  3.74332122E-04, -5.98494564E-04 ]
+     -  [  2.52621291E-04, -5.98494564E-04, -5.14976351E-04 ]
+   number 13 (atom number = 3, type = H):
+   - net dipole: [-1.8457457784E-15,  7.7299278090E-15, -3.7747582837E-15]
+   - net quadropole:
+     -  [ -5.49586191E-04, -3.66343971E-04, -4.86465931E-04 ]
+     -  [ -3.66343971E-04,  7.11542019E-05,  1.12665495E-03 ]
+     -  [ -4.86465931E-04,  1.12665495E-03,  4.78431989E-04 ]
+ calculate S^x:
+   mode                                : sparse
+   powers:
+     x                                 : -1/2
+   order                               :  1020
+   ICE:
+     eval bounds                       :  [  0.50,  1.50 ]
+     mult.                             :  20.00
+     pol. deg.                         :  20
+   error estimation:
+     max / mean error                  :  [  1.71E-12,  4.74E-13 ]
+ calculate S^x:
+   mode                                : sparse
+   powers:
+     x                                 : 1/2
+   order                               :  0
+   error estimation:
+     max / mean error                  :  [  3.11E-15,  6.85E-16 ]
+  #---------------------------------------------------------------------- Multipole analysis
+ Calculation of solid harmonics:
+   radius for normalization            :  [  9.11E+00,  9.11E+00 ]
+   max deviation from normalization    :  1.77E-03
+ Multipole coefficients:
+   normalized                          :  Yes
+   radius of normalization sphere      :  [  9.112500000000001,  9.112500000000001 ]
+   Values:
+   - testatom:
+     - l= 0                            :  [  2.78369E+05 ]
+     - l= 1: [ 5.08664772E+07,  5.54907024E+07,  6.01149276E+07]
+     - l= 2: [ 1.15159943E+09,  1.20643750E+09,  1.51569301E+10,  1.31611363E+09, 
+               5.49164135E+09]
+   normalized                          :  No
+   Values:
+   - testatom:
+     - l= 0                            :  [  1.00038504E+00 ]
+     - l= 1: [ 1.10070998E+01,  1.20077452E+01,  1.30083907E+01]
+     - l= 2: [ 2.10070777E+01,  2.20074147E+01,  2.30406222E+01,  2.40080888E+01, 
+               2.50441546E+01]
+   max error from original values      :  4.4154550095989009E-002
+  #---------------------------------------------------------------------- Multipole analysis
+ Calculation of solid harmonics:
+   radius for normalization            :  [  1.02E+01,  1.02E+01 ]
+   max deviation from normalization    :  1.03E-02
+ Multipole coefficients:
+   normalized                          :  Yes
+   radius of normalization sphere      :  [  10.2375,  10.2375 ]
+   Values:
+   - Si:
+     - l= 0                            :  [  3.14148091E+00 ]
+     - l= 1: [ 1.29839827E-02, -1.69502101E-02,  1.18495710E-02]
+     - l= 2: [ 7.82124329E-03,  2.62268637E-03,  6.75143449E-03, -3.21251810E-03, 
+               6.39708137E-03]
+   - H:
+     - l= 0                            :  [  1.20566804E+00 ]
+     - l= 1: [ 5.51429657E-02, -5.36237107E-02,  4.96252796E-02]
+     - l= 2: [ 2.39807930E-02, -3.89263581E-02,  9.19226428E-03, -3.71862656E-02, 
+              -6.29614872E-03]
+   - H:
+     - l= 0                            :  [  1.21341392E+00 ]
+     - l= 1: [ 3.59559334E-02,  7.67334920E-02, -1.35924410E-02]
+     - l= 2: [-1.34118455E-02,  4.22822278E-02,  5.94574162E-02, -1.81343838E-02, 
+              -2.29560376E-02]
+   - H:
+     - l= 0                            :  [  1.22105275E+00 ]
+     - l= 1: [-2.25866520E-02, -3.57143866E-02, -7.05731583E-02]
+     - l= 2: [ 3.09770733E-02,  1.40745670E-02, -1.11554664E-02,  5.82179952E-02, 
+               2.89334120E-02]
+   - H:
+     - l= 0                            :  [  1.21838426E+00 ]
+     - l= 1: [-6.03314900E-02,  2.03197466E-02,  4.53863686E-02]
+     - l= 2: [-5.55382037E-02, -2.23461797E-02, -5.90880085E-02,  9.76455501E-03, 
+              -9.63072058E-03]
   #WARNING: commented correction_locrad
   #------------------------------------------------------------------------ Pulay Correction
  Pulay Forces (Ha/Bohr):
