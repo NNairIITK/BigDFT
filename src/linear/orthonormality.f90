@@ -10,7 +10,7 @@
 
 !> Orthonormalized the localized orbitals
 subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, npsidim_orbs, &
-           orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed, foe_obj)
+           orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => orthonormalizeLocalized
@@ -39,7 +39,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
   real(kind=8),dimension(:),pointer :: psit_c, psit_f
   logical,intent(inout) :: can_use_transposed
-  type(foe_data),intent(in) :: foe_obj
 
   ! Local variables
   integer :: it, istat, iall

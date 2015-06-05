@@ -4,7 +4,7 @@ module multipole_base
 
   private
 
-  integer,parameter,public :: lmax=3
+  integer,parameter,public :: lmax=2
 
   type,public :: multipole
     !integer :: l

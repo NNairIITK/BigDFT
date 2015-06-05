@@ -43,6 +43,7 @@ module public_keys
   character(len = *), parameter :: DISABLE_SYM = "disablesym"
   character(len = *), parameter :: SOLVENT = "solvent"
   character(len = *), parameter :: EXTERNAL_POTENTIAL = "external_potential"
+  character(len = *), parameter :: CHARGE_MULTIPOLES = "charge_multipoles"
 
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"

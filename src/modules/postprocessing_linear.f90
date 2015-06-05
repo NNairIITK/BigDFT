@@ -326,14 +326,12 @@ module postprocessing_linear
           inv_ovrlp(1) = matrices_null()
           inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
 
-
           call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
                imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
                max_error=max_error, mean_error=mean_error)
           call f_free_ptr(ovrlp%matrix)
 
-    
           proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_mat_compr')
           weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
           do ispin=1,smatl%nspin
@@ -347,7 +345,6 @@ module postprocessing_linear
                       inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
               end if
           end do
-          call f_free(proj_ovrlp_half_compr)
     
           call deallocate_matrices(inv_ovrlp(1))
           charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')

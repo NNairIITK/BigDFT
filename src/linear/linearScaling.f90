@@ -33,6 +33,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   use locreg_operations, only: get_boundary_weight
+  use multipole, only: multipoles_from_density
   implicit none
 
   ! Calling arguments
@@ -1341,6 +1342,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call support_function_multipoles(iproc, tmb, at, denspot)
   end if
 
+  if (input%lin%charge_multipoles) then
+      !!write(200+iproc,*) tmb%linmat%ovrlp_%matrix_compr
+      !!write(210+iproc,*) tmb%linmat%kernel_%matrix_compr
+      call multipoles_from_density(iproc, nproc, at, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%orbs, &
+           tmb%npsidim_orbs, tmb%psi, input%lin%norbsPerType, tmb%collcom, tmb%collcom_sr, tmb%orthpar, &
+           tmb%linmat%ovrlp_, tmb%linmat%kernel_, meth_overlap=norder_taylor)
+      !!write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
+      !!write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
+  end if
+
 
   ! Deallocate everything that is not needed any more.
   if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) call DIIS_free(ldiis_coeff)!call deallocateDIIS(ldiis_coeff)
@@ -1414,6 +1425,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
            tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
   end if
+
 
        ! debug
        !tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
@@ -1846,13 +1858,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
         ! Determine whether the sign of the energy change is the same as in the previous iteration
         ! (i.e. whether the energy continues to increase or decrease)
         tt = sign(energyDiff,sign_of_energy_change)
-        if (tt/energyDiff>0.d0) then
-            ! same sign, everything ok
-        else if (abs(energyDiff/energy)>1.d-7) then
-            nit_energyoscillation = nit_energyoscillation + 1
-            if (iproc==0) then
-                call yaml_warning('oscillation of the energy, increase counter')
-                call yaml_map('energy_scillation_counter',nit_energyoscillation)
+        if (energyDiff/=0.d0) then
+            if (tt/energyDiff>0.d0) then
+                ! same sign, everything ok
+            else if (abs(energyDiff/energy)>1.d-7) then
+                nit_energyoscillation = nit_energyoscillation + 1
+                if (iproc==0) then
+                    call yaml_warning('oscillation of the energy, increase counter')
+                    call yaml_map('energy_scillation_counter',nit_energyoscillation)
+                end if
             end if
         end if
         if (nit_energyoscillation>1) then

@@ -228,6 +228,7 @@ module module_types
     logical :: calculate_onsite_overlap
     integer :: output_mat_format     !< Output Matrices format
     integer :: output_coeff_format   !< Output Coefficients format
+    logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
   end type linearInputParameters
 
 
@@ -2610,6 +2611,8 @@ contains
            in%lin%max_inversion_error = val
        case (CALCULATE_ONSITE_OVERLAP)
            in%lin%calculate_onsite_overlap = val
+       case (CHARGE_MULTIPOLES)
+           in%lin%charge_multipoles = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
