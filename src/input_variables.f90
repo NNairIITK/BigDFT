@@ -372,7 +372,7 @@ subroutine inputs_from_dict(in, atoms, dict)
   end if
 
   !check whether a directory name should be associated for the data storage
-  call check_for_data_writing_directory(bigdft_mpi%iproc,in)
+  call check_for_data_writing_directory(bigdft_mpi%iproc,bigdft_mpi%nproc,in)
 
   if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id,posinp_id)
 
@@ -400,13 +400,13 @@ end subroutine inputs_from_dict
 
 
 !> Check the directory of data (create if not present)
-subroutine check_for_data_writing_directory(iproc,in)
+subroutine check_for_data_writing_directory(iproc,nproc,in)
   use module_base
   use module_types
   use yaml_output
   use f_precisions, only: f_int
   implicit none
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc, nproc
   type(input_variables), intent(inout) :: in
   !local variables
   integer(f_int), parameter :: dirlen=100
@@ -440,7 +440,9 @@ subroutine check_for_data_writing_directory(iproc,in)
      if (iproc == 0) then
         call f_mkdir(in%dir_output,dirname)
      end if
-     call mpibcast(dirname,comm=bigdft_mpi%mpi_comm)
+     if (nproc>1) then
+         call mpibcast(dirname,comm=bigdft_mpi%mpi_comm)
+     end if
      !in%dir_output=dirname
      call f_strcpy(src=dirname,dest=in%dir_output)
      if (iproc==0) call yaml_map('Data Writing directory',trim(in%dir_output))

@@ -290,17 +290,26 @@ module multipole
       !    write(*,'(a,2i7,4i9)') 'iproc, iorb, comm',iproc, iorb, comms(:,iorb)
       !end do
       psir_get = f_malloc(nr,id='psir_get')
-      window = mpiwindow(size(psir), psir(1), bigdft_mpi%mpi_comm)
-      do iorb=1,norb_get
-          jproc = comms(1,iorb)
-          n = comms(2,iorb)
-          ioffset = comms(3,iorb)
-          istr = comms(4,iorb)
-          !write(*,'(5(a,i0))') 'task ',iproc,' gets ',n,' elements at position ', &
-          !                     istr,' from position ',ioffset+1,' on task ',jproc
-          call mpiget(psir_get(istr), n, jproc, int(ioffset,kind=mpi_address_kind), window)
-      end do
-      call mpi_fenceandfree(window)
+      if (nproc>1) then
+          window = mpiwindow(size(psir), psir(1), bigdft_mpi%mpi_comm)
+          do iorb=1,norb_get
+              jproc = comms(1,iorb)
+              n = comms(2,iorb)
+              ioffset = comms(3,iorb)
+              istr = comms(4,iorb)
+              !write(*,'(5(a,i0))') 'task ',iproc,' gets ',n,' elements at position ', &
+              !                     istr,' from position ',ioffset+1,' on task ',jproc
+              call mpiget(psir_get(istr), n, jproc, int(ioffset,kind=mpi_address_kind), window)
+          end do
+          call mpi_fenceandfree(window)
+      else
+          do iorb=1,norb_get
+              n = comms(2,iorb)
+              ioffset = comms(3,iorb)
+              istr = comms(4,iorb)
+              call vcopy(n, psir(ioffset+1), 1, psir_get(istr), 1)
+          end do
+      end if
       call f_free(psir)
       call f_free(comms)
       istr = 1

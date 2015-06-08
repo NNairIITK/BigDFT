@@ -1539,7 +1539,7 @@ multipoles_OH-:
  ebs: 1.6e-10
  relative diff: 4.6e-9
  diff: 2.1e-9
- multiplicator for the confinement: 7.02e-10
+ multiplicator for the confinement: 1.7e-9
  Epot: 1.3e-10
  EH: 2.1e-10
  Ekin: 6.1e-11
