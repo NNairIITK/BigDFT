@@ -4573,7 +4573,7 @@ contains
 
     real(kind=4) :: tr0, tr1, trt0, trt1
     real(kind=8) :: time0, time1, time2, time3, time4, time5, time6, time7, ttime
-    logical, parameter :: extra_timing=.true.
+    logical, parameter :: extra_timing=.false.
 
 
     call f_routine(id='calculate_scalprod')
