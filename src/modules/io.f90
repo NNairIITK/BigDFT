@@ -1113,7 +1113,7 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
     !> Write a sparse matrix to disk.
     !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
     !! in distributed among the matrix taksgroups
-    subroutine write_sparse_matrix(at, rxyz, smat, mat, filename)
+    subroutine write_sparse_matrix(nat, ntypes, iatype, rxyz, nzatom, nelpsp, atomnames, smat, mat, filename)
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, &
@@ -1122,8 +1122,11 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
       implicit none
       
       ! Calling arguments
-      type(atoms_data),intent(in) :: at
-      real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+      integer,intent(in) :: nat, ntypes
+      integer,dimension(nat),intent(in) :: iatype
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
+      character(len=*),dimension(ntypes),intent(in) :: atomnames
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
       character(len=*),intent(in) :: filename
@@ -1143,14 +1146,14 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
 
-          write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, smat%nspin, &
+          write(iunit,'(i10,2i6,a)') nat, ntypes, smat%nspin, &
               '   # number of atoms, number of atom types, nspin'
-          do itype=1,at%astruct%ntypes
-              write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
+          do itype=1,ntypes
+              write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
                   '   # nz, nelpsp, name'
           end do
-          do iat=1,at%astruct%nat
-              write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+          do iat=1,nat
+              write(iunit,'(i5, 3es24.16,a,i0)') iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
           end do
           write(iunit,'(3i12,a)') smat%nfvctr, smat%nseg, smat%nvctr, '   # nfvctr, nseg, nvctr'
           do iseg=1,smat%nseg
@@ -1196,7 +1199,7 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
       real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
       integer,intent(out),optional :: nat, ntypes
       integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
-      character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
+      character(len=*),dimension(:),pointer,intent(inout),optional :: atomnames
       real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
       integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
 
@@ -1257,7 +1260,7 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
       do iseg=1,nseg
           read(iunit,*) keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg), keyg(1,2,iseg), keyg(2,2,iseg)
       end do
-      mat_compr = f_malloc_ptr(nvctr,id='mat_compr')
+      mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
       if (read_on_which_atom) then
           nullify(on_which_atom)
           on_which_atom = f_malloc_ptr(nfvctr,id='on_which_atom')
@@ -1379,7 +1382,9 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(at, rxyz, tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+               at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
       end if
     
     
@@ -1438,7 +1443,9 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
       end if
 
       if (write_sparse) then
-          call write_sparse_matrix(at, rxyz, tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
+          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+               at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
       end if
     
     
@@ -1495,7 +1502,9 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
      end if
 
      if (write_sparse) then
-         call write_sparse_matrix(at, rxyz, tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
+          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+               at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
      end if
     
     

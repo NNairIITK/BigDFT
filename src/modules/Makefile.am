@@ -290,7 +290,7 @@ ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o spars
 locreg_operations.o: base.o types.o atoms_data.o locregs.o
 rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o sparsematrix_init.o
 multipole_base.o: base.o
-multipole.o: base.o multipole_base.o
+multipole.o: base.o multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

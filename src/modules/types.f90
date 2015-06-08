@@ -228,6 +228,7 @@ module module_types
     logical :: calculate_onsite_overlap
     integer :: output_mat_format     !< Output Matrices format
     integer :: output_coeff_format   !< Output Coefficients format
+    logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
   end type linearInputParameters
 
 
@@ -955,7 +956,7 @@ module module_types
  !>timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=152   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=153   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -1119,6 +1120,7 @@ module module_types
       'calctrace_comm','Communications' ,'allreduce     ' ,  &
       'determinespars','Other         ' ,'Miscellaneous ' ,  &
       'inittaskgroup ','Other         ' ,'Miscellaneous ' ,  &
+      'write_matrices','Other         ' ,'dump to disk  ' ,  &
       'transformspars','Other         ' ,'Miscellaneous ' ,  &
       'matrix_extents','Other         ' ,'Miscellaneous ' ,  &
       'lin_inputguess','Other         ' ,'Miscellaneous ' ,  &
@@ -2612,6 +2614,8 @@ contains
            in%lin%max_inversion_error = val
        case (CALCULATE_ONSITE_OVERLAP)
            in%lin%calculate_onsite_overlap = val
+       case (CHARGE_MULTIPOLES)
+           in%lin%charge_multipoles = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

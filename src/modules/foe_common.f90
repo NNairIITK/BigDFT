@@ -677,6 +677,7 @@ module foe_common
       if (data_strategy==GLOBAL_MATRIX) then
           stop 'scale_and_shift_matrix: data_strategy=GLOBAL_MATRIX is deprecated'
       else if (data_strategy==SUBMATRIX) then
+          !write(*,*) 'smatl%smmm%istartendseg_mm',smatl%smmm%istartendseg_mm
           !$omp parallel default(none) private(ii,i,j,ii2,ii1,tt2,tt1,iseg) &
           !$omp shared(matscal_compr,scale_factor,shift_value,i2shift,i1shift,smatl,smat1,smat2,mat1,mat2,with_overlap)
           !$omp do
@@ -751,11 +752,13 @@ module foe_common
         call sequential_acces_matrix_fast2(smat, kernel, kernel_compr_seq)
         call sequential_acces_matrix_fast2(smat, &
              inv_ovrlp, inv_ovrlp_compr_seq)
-        call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-             smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
-             smat%smmm%nvctrp, smat%smmm%isvctr, &
-             smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-             'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), inv_ovrlpp_new)
+        if (smat%smmm%nvctrp_mm>0) then !to avoid an out of bounds error
+            call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+                 smat%nseg, smat%keyv, smat%keyg, smat%smmm%line_and_column_mm, &
+                 smat%smmm%nvctrp, smat%smmm%isvctr, &
+                 smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
+                 'small_to_large', inv_ovrlp(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), inv_ovrlpp_new)
+        end if
         call sparsemm_new(smat, kernel_compr_seq, inv_ovrlpp_new, tempp_new)
         call sparsemm_new(smat, inv_ovrlp_compr_seq, tempp_new, inv_ovrlpp_new)
         call f_zero(kernel)
