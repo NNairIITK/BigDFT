@@ -6,42 +6,224 @@ module multipole
   private
 
   !> Public routines
+  public :: potential_from_charge_multipoles
   public :: potential_from_multipoles
   public :: multipoles_from_density
 
   contains
 
-    !> Calculate the external potential arising from the multipoles provided
-    subroutine potential_from_multipoles(ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, pot)
+
+    !> Calculate the external potential arising from the multipoles of the charge density
+    subroutine potential_from_charge_multipoles(denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
+      use module_types, only: DFT_local_fields
+      use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
       implicit none
       
       ! Calling arguments
+      type(DFT_local_fields),intent(inout) :: denspot
       type(external_potential_descriptors),intent(in) :: ep
       integer,intent(in) :: is1, ie1, is2, ie2, is3, ie3
-      real(dp),intent(in) :: hx, hy, hz
-      real(dp),dimension(is1:ie1,is2:ie2,is3:ie3),intent(inout) :: pot
+      real(gp),intent(in) :: hx, hy, hz
+      real(gp),dimension(3),intent(in) :: shift !< global shift of the atomic positions
+      real(gp),dimension(is1:ie1,is2:ie2,is3:ie3),intent(inout) :: pot
 
       ! Local variables
-      integer :: i1, i2, i3, impl, l
-      real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp
+      integer :: i1, i2, i3, ii1, ii2, ii3, impl, l, m, ii
+      real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp, ehart_ps, tt
       real(dp),dimension(3) :: r
+      real(dp),dimension(:,:,:),allocatable :: density
+      real(kind=8) :: sigma
+      real(8),dimension(ep%nmpl) :: norm
 
-      !$omp parallel &
-      !$omp default(none) &
-      !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, ep, pot) &
-      !$omp private(i1, i2, i3, x, y, z, impl, r, rnrm1, rnrm2, rnrm3, rnrm5, l, mp)
-      !$omp do
+      sigma = (hx*hy*hz)**(1.d0/3.d0)
+
+      density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
+
+      !!$omp parallel &
+      !!$omp default(none) &
+      !!$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, ep, pot) &
+      !!$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, rnrm1, rnrm2, rnrm3, rnrm5, l, mp)
+      !!$omp do
+      norm = 0.d0
       do i3=is3,ie3
-          z = real(i3,kind=8)*hz
+          ii3 = i3 - 15
+          z = real(ii3,kind=8)*hz + shift(3)
+          !write(*,'(a,i7,2es16.7)') 'i3, z, ep%mpl(1)%rxyz(3)', i3, z, ep%mpl(1)%rxyz(3)
           do i2=is2,ie2
-              y = real(i2,kind=8)*hy
+              ii2 = i2 - 15
+              y = real(ii2,kind=8)*hy + shift(2)
               do i1=is1,ie1
-                  x = real(i1,kind=8)*hx
+                  ii1 = i1 - 15
+                  x = real(ii1,kind=8)*hx + shift(1)
+                  tt = 0.d0
                   do impl=1,ep%nmpl
                       r(1) = ep%mpl(impl)%rxyz(1) - x
                       r(2) = ep%mpl(impl)%rxyz(2) - y
                       r(3) = ep%mpl(impl)%rxyz(3) - z 
                       rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
+                      rnrm1 = sqrt(rnrm2)
+                      !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
+                      !if (i1==is1 .and. i2==is2)  then
+                          norm(impl) = norm(impl) + gaussian(sigma, rnrm1)*sigma**3
+                      !    write(*,'(a,i5,3es16.7)') 'impl, rnrm1, g, norm', impl, rnrm1, gaussian(sigma, rnrm1), norm(impl)
+                      !end if
+                      do l=0,lmax
+                          if (associated(ep%mpl(impl)%qlm(l)%q)) then
+                              do m=-l,l
+                                  tt = tt + spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
+                              end do
+                          end if
+                      end do
+                  end do
+                  density(i1,i2,i3) = tt
+              end do
+          end do
+      end do
+      write(*,*) 'norm',norm
+      !!$omp end do
+      !!$omp end parallel
+
+
+      call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
+           quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
+
+
+      ii = 0
+      do i3=is3,ie3
+          ii3 = i3 - 15
+          do i2=is2,ie2
+              ii2 = i2 - 15
+              do i1=is1,ie1
+                  ii1 = i1 - 15
+                  ii = ii + 1
+                  write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+                  !do impl=1,ep%nmpl
+                  !    r(1) = ep%mpl(impl)%rxyz(1) - x
+                  !    r(2) = ep%mpl(impl)%rxyz(2) - y
+                  !    r(3) = ep%mpl(impl)%rxyz(3) - z 
+                  !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
+                  !    rnrm1 = sqrt(rnrm2)
+                  !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
+                  !    density(i1,i2,i3) =+ tt
+                  !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
+                  !end do
+              end do
+          end do
+      end do
+
+
+      contains
+
+
+        function gaussian(sigma, r) result(g)
+          use module_base, only: pi => pi_param
+          implicit none
+          ! Calling arguments
+          real(kind=8),intent(in) :: sigma, r
+          real(kind=8) :: g
+          
+          g = exp(-r**2/(2.d0*sigma**2))
+          g = g/sqrt(2.d0*pi*sigma**2)**3
+          !g = g/(sigma**3*sqrt(2.d0*pi)**3)
+        end function gaussian
+
+        !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
+        function spherical_harmonic(l, m, x, y, z) result(sh)
+          use module_base, only: pi => pi_param
+          implicit none
+          ! Calling arguments
+          integer,intent(in) :: l, m
+          real(kind=8),intent(in) :: x, y, z
+          real(kind=8) :: sh
+
+          ! Local variables
+          integer,parameter :: l_max=2
+          real(kind=8) :: r, r2, rnorm
+
+          if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
+          if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
+              err_name='BIGDFT_RUNTIME_ERROR')
+          if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
+
+
+          ! Normalization for a sphere of radius rmax
+          select case (l)
+          case (0)
+              sh = 0.5d0*sqrt(1/pi)
+          case (1)
+              r = sqrt(x**2+y**2+z**2)
+              ! fix for small r (needs proper handling later...)
+              if (r==0.d0) r=1.d-20
+              select case (m)
+              case (-1)
+                  sh = sqrt(3.d0/(4.d0*pi))*y/r
+              case (0)
+                  sh = sqrt(3.d0/(4.d0*pi))*z/r
+              case (1)
+                  sh = sqrt(3.d0/(4.d0*pi))*x/r
+              end select
+          case (2)
+              r2 = x**2+y**2+z**2
+              ! fix for small r2 (needs proper handling later...)
+              if (r2==0.d0) r2=1.d-20
+              select case (m)
+              case (-2)
+                  sh = 0.5d0*sqrt(15.d0/pi)*x*y/r2
+              case (-1)
+                  sh = 0.5d0*sqrt(15.d0/pi)*y*z/r2
+              case (0)
+                  sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
+              case (1)
+                  sh = 0.5d0*sqrt(15.d0/pi)*z*x/r2
+              case (2)
+                  sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
+              end select
+          end select
+
+        end function spherical_harmonic
+
+    end subroutine potential_from_charge_multipoles
+
+
+    !> Calculate the external potential arising from the multipoles provided
+    subroutine potential_from_multipoles(ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
+      implicit none
+      
+      ! Calling arguments
+      type(external_potential_descriptors),intent(in) :: ep
+      integer,intent(in) :: is1, ie1, is2, ie2, is3, ie3
+      real(gp),intent(in) :: hx, hy, hz
+      real(gp),dimension(3),intent(in) :: shift !< global shift of the atomic positions
+      real(gp),dimension(is1:ie1,is2:ie2,is3:ie3),intent(inout) :: pot
+
+      ! Local variables
+      integer :: i1, i2, i3, ii1, ii2, ii3, impl, l
+      real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp
+      real(dp),dimension(3) :: r
+
+      !!$omp parallel &
+      !!$omp default(none) &
+      !!$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, ep, pot) &
+      !!$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, rnrm1, rnrm2, rnrm3, rnrm5, l, mp)
+      !!$omp do
+      write(*,*) 'shift',shift
+      do i3=is3,ie3
+          ii3 = i3 - 15
+          z = real(ii3,kind=8)*hz + shift(3)
+          !write(*,'(a,i7,2es16.7)') 'i3, z, ep%mpl(1)%rxyz(3)', i3, z, ep%mpl(1)%rxyz(3)
+          do i2=is2,ie2
+              ii2 = i2 - 15
+              y = real(ii2,kind=8)*hy + shift(2)
+              do i1=is1,ie1
+                  ii1 = i1 - 15
+                  x = real(ii1,kind=8)*hx + shift(1)
+                  do impl=1,ep%nmpl
+                      r(1) = ep%mpl(impl)%rxyz(1) - x
+                      r(2) = ep%mpl(impl)%rxyz(2) - y
+                      r(3) = ep%mpl(impl)%rxyz(3) - z 
+                      rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
+                      ! To avoid floating point exception
+                      rnrm2=max(rnrm2,1.d-6)
                       rnrm1 = sqrt(rnrm2)
                       rnrm3 = rnrm1*rnrm2
                       rnrm5 = rnrm3*rnrm2
@@ -67,12 +249,13 @@ module multipole
                           end if
                       end do
                       pot(i1,i2,i3) = pot(i1,i2,i3) + mp
+                      write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
                   end do
               end do
           end do
       end do
-      !$omp end do
-      !$omp end parallel
+      !!$omp end do
+      !!$omp end parallel
 
 
       contains
@@ -406,13 +589,15 @@ module multipole
           integer,parameter :: n1i=101, n2i=81, n3i=91
           integer,parameter :: nsi1=0, nsi2=10, nsi3=20
           real(kind=8),dimension(3) :: locregcenter
+          integer :: nr
 
           locregcenter(1) = (ceiling(real(n1i,kind=8)/2.d0)+nsi1-14-1)*0.5d0*lzd%hgrids(1)
           locregcenter(2) = (ceiling(real(n2i,kind=8)/2.d0)+nsi2-14-1)*0.5d0*lzd%hgrids(2)
           locregcenter(3) = (ceiling(real(n3i,kind=8)/2.d0)+nsi3-14-1)*0.5d0*lzd%hgrids(3)
 
           !psir_get_fake = f_malloc0((/lzd%llr(1)%d%n1i*lzd%llr(1)%d%n2i*lzd%llr(1)%d%n3i,2/),id='psir_get_fake')
-          psir_get_fake = f_malloc0((/n1i*n2i*n3i,2/),id='psir_get_fake')
+          nr = n1i*n2i*n3i
+          psir_get_fake = f_malloc0((/nr,2/),id='psir_get_fake')
           psir_get_fake(:,2) = 1.d0
           rmax(1) = min(n1i*0.25d0*lzd%hgrids(1), &
                         n2i*0.25d0*lzd%hgrids(2), &
