@@ -319,10 +319,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
 
-
-
-
-
      ! check the extent of the kernel cutoff (must be at least shamop radius)
      call check_kernel_cutoff(iproc, tmb%orbs, atoms, in%hamapp_radius_incr, tmb%lzd)
 
@@ -359,7 +355,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      iicol(2) = max(icol(2),iicol(2))
      !!write(*,*) 'after l: iirow', iirow
      !!write(*,*) 'after l: iicol', iicol
-
 
      call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
           tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)

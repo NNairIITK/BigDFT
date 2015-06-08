@@ -41,13 +41,26 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
 
   !real(gp), dimension(3,atoms%astruct%nat) :: fxyz_tmp
 
+  real(kind=4) :: tr0, tr1, trt0, trt1
+  real(kind=8) :: time0, time1, time2, time3, time4, time5, time6, time7, ttime
+  logical, parameter :: extra_timing=.false.
+
+
   call f_routine(id='calculate_forces')
+
+  if (extra_timing) call cpu_time(trt0)
 
   call f_zero(strten)
   call f_zero(strtens)
 
+
+  if (extra_timing) call cpu_time(tr0)
+
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
        Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
+
+  if (extra_timing) call cpu_time(tr1)
+  if (extra_timing) time0=real(tr1-tr0,kind=8)
 
 
   !!do iat=1,atoms%astruct%nat
@@ -64,6 +77,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
 
+  if (extra_timing) call cpu_time(tr0)
   if (imode==0) then
      !cubic version of nonlocal forces
      call nonlocal_forces(Glr,hx,hy,hz,atoms,rxyz,&
@@ -82,6 +96,9 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   else
      stop 'wrong imode'
   end if
+  if (extra_timing) call cpu_time(tr1)
+  if (extra_timing) time1=real(tr1-tr0,kind=8)
+
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   !if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
@@ -196,6 +213,12 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
         if (iproc==0) call yaml_mapping_close()
      end if
   end if
+
+  if (extra_timing) call cpu_time(trt1)
+  if (extra_timing) ttime=real(trt1-trt0,kind=8)
+
+  if (extra_timing.and.iproc==0) print*,'forces (loc, nonloc):',time0,time1,time0+time1,ttime
+
 
   call f_release_routine()
 
@@ -466,6 +489,12 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
      if (n3pi > 0) then
+       !$omp parallel default(none) &
+       !$omp private(i1,i2,i3,x,y,z,j1,j2,j3,gox,goy,goz,r2,arg,xp,ind,tt,iloc,rhoel,forceloc,Vel) &
+       !$omp shared(Txx,Tyy,Tzz,Txy,Txz,Tyz,fxgau,fygau,fzgau,fxerf,fyerf,fzerf,forceleaked) &
+       !$omp shared(n3pi,isx,isy,isz,iex,iey,iez,perx,pery,perz,hxh,hyh,hzh,rx,ry,rz) &
+       !$omp shared(n1,n2,n3,nbl1,nbl2,nbl3,rloc,n1i,n2i,nloc,at,i3s,prefactor,cprime)
+       !$omp do reduction(+:Txx,Tyy,Tzz,Txy,Txz,Tyz,fxerf,fyerf,fzerf,fxgau,fygau,fzgau,forceleaked)
         do i3=isz,iez
            z=real(i3,kind=8)*hzh-rz
            call ind_positions(perz,i3,n3,j3,goz) 
@@ -528,6 +557,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
               end do
            end do
         end do
+       !$omp end do
+       !$omp end parallel
      end if
 
      !final result of the forces
@@ -4263,7 +4294,16 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   !scalprodglobal=0.d0
   !!allocate(phiglobal(lzd%glr%wfd%nvctr_c+7*lzd%glr%wfd%nvctr_f))
 
+  real(kind=4) :: tr0, tr1, trt0, trt1
+  real(kind=8) :: time0, time1, time2, time3, time4, time5, time6, time7, ttime
+  logical, parameter :: extra_timing=.false.
+
+
+
   call f_routine(id='nonlocal_forces_linear')
+
+  if (extra_timing) call cpu_time(trt0)
+
 
   !fxyz_orb = f_malloc0((/ 3, at%astruct%nat /),id='fxyz_orb')
 
@@ -4289,6 +4329,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   do jproc=1,nproc-1
      isat_par(jproc)=isat_par(jproc-1)+nat_par(jproc-1)
   end do
+
 
   ! Number of support functions having an overlap with the projector of a given atom
   supfun_per_atom = f_malloc0(at%astruct%nat,id='supfun_per_atom')
@@ -4370,14 +4411,24 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   end do
 
   ! Calculate the values of scalprod
-  call calculate_scalprod()
 
+  if (extra_timing) call cpu_time(tr0)
+  call calculate_scalprod()
+  if (extra_timing) call cpu_time(tr1)
+  if (extra_timing) time0=real(tr1-tr0,kind=8)
 
 
   ! Communicate scalprod
   call transpose_scalprod()
+  if (extra_timing) call cpu_time(tr0)
+  if (extra_timing) time1=real(tr0-tr1,kind=8)
+
+
 
   call calculate_forces()
+  if (extra_timing) call cpu_time(tr1)
+  if (extra_timing) time2=real(tr1-tr0,kind=8)
+
 
 
   call f_free(is_supfun_per_atom)
@@ -4395,6 +4446,13 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   call f_free(isat_par)
   !call f_free(fxyz_orb)
   call f_free(denskern_gathered)
+
+  if (extra_timing) call cpu_time(trt1)
+  if (extra_timing) ttime=real(trt1-trt0,kind=8)
+
+  if (extra_timing.and.iproc==0) print*,'nonloc (scal, trans, calc):',time0,time1,time2,time0+time1+time2,ttime
+
+
 
   call f_release_routine()
 
@@ -4511,8 +4569,19 @@ contains
     logical :: increase
     integer,dimension(:),allocatable :: is_supfun_per_atom_tmp
     real(kind=8) :: scpr
+    logical :: need_proj
+
+    real(kind=4) :: tr0, tr1, trt0, trt1
+    real(kind=8) :: time0, time1, time2, time3, time4, time5, time6, time7, ttime
+    logical, parameter :: extra_timing=.true.
+
 
     call f_routine(id='calculate_scalprod')
+
+    time0=0.0d0
+    time1=0.0d0
+
+    if (extra_timing) call cpu_time(trt0)
 
     is_supfun_per_atom_tmp = f_malloc(at%astruct%nat,id='is_supfun_per_atom_tmp')
 
@@ -4537,11 +4606,26 @@ contains
              do iat=1,natp
                 iiat = iat+isat-1
 
+                !first check if we actually need this projector (i.e. if any of our orbs overlap with it)
+                need_proj=.false.
+                do iorb=isorb,ieorb
+                   iiorb=orbs%isorb+iorb
+                   ilr=orbs%inwhichlocreg(iiorb)
+                   ! Check whether there is an overlap between projector and support functions
+                   if (projector_has_overlap(iat, ilr, lzd%llr(ilr), lzd%glr, nlpsp)) then
+                      need_proj=.true.
+                      exit
+                   end if
+                end do
+
+                if (.not. need_proj) cycle
+
 
                 call plr_segs_and_vctrs(nlpsp%pspd(iiat)%plr,&
                      mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
                 jseg_c=1
                 jseg_f=1
+
 
                 do idir=0,ndir
 
@@ -4550,11 +4634,16 @@ contains
                    ityp=at%astruct%iatype(iiat)
                    !calculate projectors
                    istart_c=1
+
+
+                   if (extra_timing) call cpu_time(tr0)
                    call atom_projector(nlpsp, ityp, iiat, at%astruct%atomnames(ityp), &
                         & at%astruct%geocode, idir, lr, hx, hy, hz, &
                         & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
                         & istart_c, iproj, nwarnings)
-
+                   if (extra_timing) call cpu_time(tr1)
+                   if (extra_timing) time0=time0+real(tr1-tr0,kind=8)
+                   if (extra_timing) call cpu_time(tr0)
                    !calculate the contribution for each orbital
                    !here the nspinor contribution should be adjusted
                    ! loop over all my orbitals
@@ -4605,9 +4694,11 @@ contains
                          ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
                       end do
                    end do
+                   if (extra_timing) call cpu_time(tr1)
+                   if (extra_timing) time1=time1+real(tr1-tr0,kind=8)
+
                    if (istart_c-1  > nlpsp%nprojel) stop '2:applyprojectors'
                 end do
-
              end do
 
              if (ieorb == orbs%norbp) exit loop_kptD
@@ -4623,6 +4714,11 @@ contains
 
 
     call f_free(is_supfun_per_atom_tmp)
+
+    if (extra_timing) call cpu_time(trt1)
+    if (extra_timing) ttime=real(trt1-trt0,kind=8)
+
+    if (extra_timing.and.iproc==0) print*,'calcscalprod (proj, wpdot):',time0,time1,time0+time1,ttime
 
     call f_release_routine()
 
@@ -4797,6 +4893,7 @@ contains
     real(kind=8),dimension(:,:),allocatable :: fxyz_orb
     !real(kind=8),dimension(:),allocatable :: sab, strten_loc
     real(kind=8),dimension(6) :: sab, strten_loc
+    real(kind=8) :: tt, tt1
 
     call f_routine(id='calculate_forces')
 
@@ -4824,7 +4921,7 @@ contains
           !$omp shared(scalprod_lookup, l_max, i_max, scalprod_new, fxyz_orb, denskern_gathered) &
           !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx,ndir,calculate_strten) &
           !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
-          !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj, iispin, jjspin)
+          !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj, iispin, jjspin, tt, tt1)
           spin_loop2: do ispin=1,denskern%nspin
 
 
@@ -4859,23 +4956,25 @@ contains
                          do l=1,l_max!4
                             do i=1,i_max!3
                                if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                  tt=denskern_gathered(ind)*at%psppar(l,i,ityp)
                                   do m=1,2*l-1
                                      do icplx=1,ncplx
                                         ! scalar product with the derivatives in all the directions
                                         sp0=real(scalprod_new(icplx,0,m,i,l,ii),gp)
+                                        tt1=tt*sp0
                                         do idir=1,3
                                            spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
 !!$omp critical
                                            fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
-                                                denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*spi
+                                                tt1*spi
 !!$omp end critical
                                         end do
                                         spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
-                                        Enl=Enl+sp0*spi*denskern_gathered(ind)*at%psppar(l,i,ityp)
+                                        Enl=Enl+tt*spi
                                         do idir=4,ndir !for stress
                                            strc=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
                                            sab(idir-3) = sab(idir-3)+&   
-                                                denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*2.0_gp*strc
+                                                tt1*2.0_gp*strc
                                         end do
                                      end do
                                   end do
@@ -4897,6 +4996,7 @@ contains
                                         else !HGH-K convention
                                            hij=at%psppar(l,i+j+1,ityp)
                                         end if
+                                        tt=denskern_gathered(ind)*hij
                                         do m=1,2*l-1
                                            !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
                                            !(the factor two is below)
@@ -4908,7 +5008,7 @@ contains
                                                  spj=real(scalprod_new(icplx,idir,m,j,l,jj),gp)
 !!$omp critical
                                                  fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
-                                                      denskern_gathered(ind)*hij*(sp0j*spi+spj*sp0i)
+                                                      tt*(sp0j*spi+spj*sp0i)
 !!$omp end critical
                                               end do
                                               spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
@@ -4918,7 +5018,7 @@ contains
                                                  spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
                                                  spj=real(scalprod_new(icplx,idir,m,j,l,jj),gp)
                                                  sab(idir-3)=sab(idir-3)+&   
-                                                      2.0_gp*denskern_gathered(ind)*hij*(sp0j*spi+sp0i*spj)!&
+                                                      2.0_gp*tt*(sp0j*spi+sp0i*spj)!&
                                               end do
                                            end do
                                         end do

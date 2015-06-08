@@ -46,6 +46,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   real(gp), dimension(:,:), allocatable :: fewald,xred
   real(gp), dimension(3) :: cc
 
+  call timing(iproc,'ionic_energy','ON')
   fion = f_malloc_ptr((/ 3, at%astruct%nat /),id='fion')
   fdisp = f_malloc_ptr((/ 3, at%astruct%nat /),id='fdisp')
 
@@ -170,6 +171,13 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
      eion=0.0_gp
      eself=0.0_gp
+
+     !LR: commented hessian as not currently using it
+
+     !$omp parallel default(none) &
+     !$omp private(iat,ityp,rx,ry,rz,fxion,fyion,fzion,jtyp,chgprod,dist) &
+     !$omp shared(at,rxyz,fion,eself,eion)
+     !$omp do reduction(+:eself,eion)
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
         rx=rxyz(1,iat) 
@@ -180,12 +188,12 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         fyion=0.0_gp
         fzion=0.0_gp
         !initialisation of the hessian
-        hxx=0.0_gp
-        hxy=0.0_gp
-        hxz=0.0_gp
-        hyy=0.0_gp
-        hyz=0.0_gp
-        hzz=0.0_gp
+        !hxx=0.0_gp
+        !hxy=0.0_gp
+        !hxz=0.0_gp
+        !hyy=0.0_gp
+        !hyz=0.0_gp
+        !hzz=0.0_gp
 
         !    ion-ion interaction
         do jat=1,iat-1
@@ -198,12 +206,12 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
            fzion=fzion+chgprod/(dist**3)*(rz-rxyz(3,jat))
            !hessian matrix
-           hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
-           hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
-           hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
-           hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
-           hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
-           hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
+           !hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
+           !hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
+           !hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
+           !hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
+           !hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
+           !hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
         enddo
         do jat=iat+1,at%astruct%nat
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
@@ -215,12 +223,12 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
            fzion=fzion+chgprod/(dist**3)*(rz-rxyz(3,jat))
            !hessian matrix
-           hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
-           hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
-           hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
-           hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
-           hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
-           hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
+           !hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
+           !hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
+           !hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
+           !hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
+           !hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
+           !hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
         end do
 
         fion(1,iat)=fxion
@@ -231,6 +239,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         !energy which comes from the self-interaction of the spread charge
        eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
      end do
+     !$omp end do
+     !$omp end parallel
 
      !if (nproc==1 .and. slowion) print *,'eself',eself
 
@@ -463,6 +473,9 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion)
   call vdwcorrection_freeparams() 
+
+  call timing(iproc,'ionic_energy','OF')
+
 END SUBROUTINE IonicEnergyandForces
 
 !> calculates the value of the dielectric funnction for a smoothed cavity 

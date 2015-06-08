@@ -1062,7 +1062,7 @@ module sparsematrix
      !real(kind=8),dimension(:),allocatable :: b_dense, c_dense
      integer,parameter :: MATMUL_NEW = 101
      integer,parameter :: MATMUL_OLD = 102
-     integer,parameter :: matmul_version = MATMUL_NEW!OLD!NEW
+     integer,parameter :: matmul_version = MATMUL_NEW
      logical,parameter :: count_flops = .false.
      real(kind=8) :: ts, te, op, gflops
      real(kind=8),parameter :: flop_per_op = 2.d0 !<number of FLOPS per operations
@@ -1085,7 +1085,7 @@ module sparsematrix
              ts = mpi_wtime()
          end if
          !$omp parallel default(private) shared(smat, a_seq, b, c)
-         !$omp do schedule(guided)
+         !$omp do !!!schedule(guided)
          do iout=1,smat%smmm%nout
              i=smat%smmm%onedimindices_new(1,iout)
              nblock=smat%smmm%onedimindices_new(4,iout)
@@ -1095,7 +1095,9 @@ module sparsematrix
                  jorb = smat%smmm%consecutive_lookup(1,iblock,iout)
                  jjorb = smat%smmm%consecutive_lookup(2,iblock,iout)
                  ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
-                 tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
+        !         tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
+                 !avoid calling ddot from OpenMP region on BG/Q as too expensive
+                 tt0=tt0+my_dot(ncount,b(jjorb:jjorb+ncount-1),a_seq(jorb:jorb+ncount-1))
              end do
 
              c(i) = tt0
@@ -1165,6 +1167,22 @@ module sparsematrix
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
      call f_release_routine()
+
+        contains
+
+     pure function my_dot(n,x,y) result(tt)
+       implicit none
+       integer , intent(in) :: n
+       double precision :: tt
+       double precision, dimension(n), intent(in) :: x,y
+       !local variables
+       integer :: i
+
+       tt=0.d0
+       do i=1,n
+          tt=tt+x(i)*y(i)
+       end do
+     end function
        
    end subroutine sparsemm_new
 

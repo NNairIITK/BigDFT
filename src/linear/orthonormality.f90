@@ -476,8 +476,8 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
   !!end do
 
 
-  call timing(iproc,'lovrlp^-1/2par','ON')
   call f_routine('overlap_power_minus_one_half_parallel')
+  call timing(iproc,'lovrlp^-1/2par','ON')
 
   in_neighborhood = f_malloc(ovrlp%nfvctr,id='in_neighborhood')
 
