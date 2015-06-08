@@ -118,6 +118,7 @@ program driver_singlerun
   call f_free_ptr(nelpsp)
   call f_free_ptr(iatype)
   call f_free_str_ptr(len(atomnames),atomnames)
+  call f_free_ptr(rxyz)
 
   call timing(bigdft_mpi%mpi_comm,'FINISH','PR')
 
