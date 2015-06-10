@@ -1,4 +1,5 @@
 module io
+  use public_enums
   implicit none
 
   private

@@ -9,8 +9,7 @@ module copy_utils
                      allocate_and_copy_d1, allocate_and_copy_d2, allocate_and_copy_d3
   end interface allocate_and_copy
 
-  public :: allocate_and_copy
-
+!  public :: allocate_and_copy
 
   contains
 
@@ -43,7 +42,6 @@ module copy_utils
 
     end subroutine allocate_and_copy_i1
 
-
     subroutine allocate_and_copy_i2(array_in, array_out, id)
       implicit none
       ! Calling arguments
@@ -71,7 +69,6 @@ module copy_utils
       end if
 
     end subroutine allocate_and_copy_i2
-
 
     subroutine allocate_and_copy_i3(array_in, array_out, id)
       implicit none
@@ -103,7 +100,6 @@ module copy_utils
 
     end subroutine allocate_and_copy_i3
 
-
     subroutine allocate_and_copy_d1(array_in, array_out, id)
       implicit none
       ! Calling arguments
@@ -129,7 +125,6 @@ module copy_utils
       end if
 
     end subroutine allocate_and_copy_d1
-
 
     subroutine allocate_and_copy_d2(array_in, array_out, id)
       implicit none
@@ -158,7 +153,6 @@ module copy_utils
       end if
 
     end subroutine allocate_and_copy_d2
-
 
     subroutine allocate_and_copy_d3(array_in, array_out, id)
       implicit none

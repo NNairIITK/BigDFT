@@ -9,7 +9,7 @@
 
 !> Read the options in the command line using get_command statement
 subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
-  use module_types
+  use public_enums
   implicit none
   integer, intent(out) :: mpi_groupsize
   character(len=*), intent(out) :: posinp_file !< file for list of radicals
@@ -92,6 +92,7 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
   use module_base
   use module_types
   use yaml_output
+  use module_input_keys, only: material_acceleration
   implicit none
   integer, intent(in):: iproc
   type(material_acceleration), intent(in) :: matacc

@@ -32,7 +32,8 @@ program memguess
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix, only: uncompress_matrix
    use postprocessing_linear, only: loewdin_charge_analysis_core
-                                
+   use public_enums
+   use module_input_keys, only: print_dft_parameters
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
@@ -69,7 +70,7 @@ program memguess
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
    character(len=128) :: line
-   integer :: i, inputpsi, input_wf_format, nneighbor_min, nneighbor_max, nneighbor, ntypes
+   integer :: i, input_wf_format, nneighbor_min, nneighbor_max, nneighbor, ntypes
    integer,parameter :: nconfig=1
    type(dictionary), pointer :: run
    integer,dimension(:),pointer :: nzatom, nelpsp, iatype
@@ -104,6 +105,7 @@ program memguess
    logical,dimension(:,:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
    type(sparse_matrix) :: smat_s, smat_m, smat_l
+   type(f_enumerator) :: inputpsi
 
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
@@ -210,7 +212,7 @@ program memguess
             optimise=.true.
             output_grid=1
             write(*,'(1x,a)')&
-               &   'The optimised system grid will be displayed in the "grid.xyz" file'
+               &   'The optimised system grid will be displayed in the "grid.xyz" file and "posopt.xyz"'
             exit loop_getargs
          else if (trim(tatonam)=='GPUtest') then
             GPUtest=.true.
@@ -1735,6 +1737,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use gaussians, only: gaussian_basis, deallocate_gwf
    use module_xc
+   use module_input_keys
 
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
@@ -2155,6 +2158,8 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    use module_interfaces
    use module_fragments
    use locreg_operations, only: lpsi_to_global2
+   use module_input_keys, only: wave_format_from_filename
+   use public_enums
    implicit none
    integer, intent(inout) :: iorbp, ispinor
    real(gp), intent(in) :: hx,hy,hz
@@ -2170,7 +2175,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    character(len=*), parameter :: subname='take_psi_form_file'
    logical :: perx,pery,perz
    integer :: nb1,nb2,nb3,ikpt, ispin, i
-   integer :: wave_format_from_filename,iformat
+   integer :: iformat
    real(gp) :: eval_fake
    real(wp), dimension(:,:,:), allocatable :: psifscf
    real(gp), dimension(:,:), allocatable :: rxyz_file
@@ -2186,7 +2191,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    real(wp), allocatable, dimension(:) :: lpsi
    type(orbitals_data) :: lin_orbs
 
-   rxyz_file = f_malloc((/ at%astruct%nat, 3 /),id='rxyz_file')
+   rxyz_file = f_malloc((/3, at%astruct%nat /),id='rxyz_file')
 
    iformat = wave_format_from_filename(0, filename)
    if (iformat == WF_FORMAT_PLAIN .or. iformat == WF_FORMAT_BINARY) then

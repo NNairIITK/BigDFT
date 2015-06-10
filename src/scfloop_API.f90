@@ -103,7 +103,8 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   use module_base
   use bigdft_run
   use yaml_output
-
+  use module_input_keys,only: inputpsiid_set_policy
+  use public_enums, only: ENUM_MEMORY
   implicit none
 
   integer, intent(in) :: natom, itime, me
@@ -133,7 +134,8 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   scfloop_obj%atoms%astruct%cell_dim(1) = acell(1)
   scfloop_obj%atoms%astruct%cell_dim(2)= rprimd(2,2)
   scfloop_obj%atoms%astruct%cell_dim(3)= acell(3)
-  scfloop_obj%inputs%inputPsiId=1
+  !scfloop_obj%inputs%inputPsiId=1
+  call inputpsiid_set_policy(ENUM_MEMORY,scfloop_obj%inputs%inputPsiId)
   ! need to transform xred into xcart
   do i = 1, scfloop_obj%atoms%astruct%nat, 1
      do j=1,3
@@ -148,7 +150,8 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
 !!$  write(100+me,*)xcart
 !!$  close(100+me)
   outs%fxyz => fcart
-  scfloop_obj%inputs%inputPsiId = 1
+  !scfloop_obj%inputs%inputPsiId = 1
+  call inputpsiid_set_policy(ENUM_MEMORY,scfloop_obj%inputs%inputPsiId)
   call bigdft_state(scfloop_obj,outs,infocode)
   epot = outs%energy
   nullify(outs%fxyz)

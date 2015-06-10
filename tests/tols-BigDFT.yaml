@@ -51,6 +51,7 @@ Keys to ignore:
  - Atomic positions within the cell (Atomic and Grid Units)
  - Rigid Shift Applied (AU)
  - Walltime since initialization
+ - Output grid format # to be removed for updated references
  #- number of tasks
  #- IDs
  #- start / end

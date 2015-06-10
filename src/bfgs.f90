@@ -35,7 +35,8 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
     !character(len=40) :: comment
     !real(gp), dimension(3*at%astruct%nat) :: rxyz0,rxyzwrite
 
-    runObj%inputs%inputPsiId=1
+    !runObj%inputs%inputPsiId=1
+    call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
     icheck=0
     !if(iproc==0) write(*,*) 'EPOT=',epot
     !return
@@ -757,7 +758,8 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 !  txyz=rxyz
 !  alpha=0._gp
 !  call atomic_axpy(at,txyz,alpha,sxyz,rxyz)
-  runObj%inputs%inputPsiId=1
+  !runObj%inputs%inputPsiId=1
+  call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
 !  if(ICALL.ne.0) call bigdft_state(nproc,iproc,at,rxyz,in,F,fxyz,rst,infocode)
   if(ICALL.ne.0) then
      call bigdft_state(runObj,outs,infocode)

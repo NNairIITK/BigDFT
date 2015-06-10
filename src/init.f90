@@ -218,6 +218,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
   use psp_projectors
   use module_types
   use gaussians, only: gaussian_basis, gaussian_basis_from_psp, gaussian_basis_from_paw
+  use public_enums, only: PSPCODE_PAW
   implicit none
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(locreg_descriptors),intent(in) :: lr
@@ -427,6 +428,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => input_wf_empty
+  use public_enums
   implicit none
   integer, intent(in) :: iproc, nproc
   type(orbitals_data), intent(in) :: orbs
@@ -754,6 +756,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   use matrix_operations, only: overlapPowerGeneral, deviation_from_unity_parallel
   use rhopotential, only: updatepotential, sumrho_for_TMBs, corrections_for_negative_charge
+  use public_enums
   implicit none
 
   ! Calling arguments
@@ -1445,6 +1448,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => input_wf_disk
+  use public_enums
   implicit none
 
   integer, intent(in) :: iproc, nproc, input_wf_format
@@ -1511,6 +1515,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
            use communications, only: transpose_v
   use communications, only: toglobal_and_transpose
   use rhopotential, only: full_local_potential, updatePotential
+  use public_enums
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc
@@ -2077,17 +2082,20 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use sparsematrix_base, only: sparse_matrix, &
                                sparsematrix_malloc, assignment(=), SPARSE_FULL, &
                                sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_TASKGROUP
-use sparsematrix, only: uncompress_matrix2
+  use sparsematrix, only: uncompress_matrix2
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use m_paw_ij, only: paw_ij_init
-  use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
+  use public_enums, only: PSPCODE_PAW, PSPCODE_HGH
+  use psp_projectors, only: free_DFT_PSP_projectors
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: normalize_transposed
   use rhopotential, only: updatepotential, sumrho_for_TMBs, clean_rho
+  use public_enums
   implicit none
 
-  integer, intent(in) :: iproc, nproc, inputpsi, input_wf_format
+  integer, intent(in) :: iproc, nproc, input_wf_format
+  type(f_enumerator), intent(in) :: inputpsi
   type(input_variables), intent(in) :: in
   type(GPU_pointers), intent(inout) :: GPU
   type(atoms_data), intent(inout) :: atoms
@@ -2129,8 +2137,9 @@ use sparsematrix, only: uncompress_matrix2
 
  !determine the orthogonality parameters
   KSwfn%orthpar = in%orthpar
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+!!$  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+!!$      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi .hasattr. 'LINEAR') then
      tmb%orthpar%blocksize_pdsyev = in%lin%blocksize_pdsyev
      tmb%orthpar%blocksize_pdgemm = in%lin%blocksize_pdgemm
      tmb%orthpar%nproc_pdsyev = in%lin%nproc_pdsyev
@@ -2142,39 +2151,38 @@ use sparsematrix, only: uncompress_matrix2
   KSwfn%exctxpar=in%exctxpar
 
   !avoid allocation of the eigenvalues array in case of restart
-  if ( inputpsi /= INPUT_PSI_MEMORY_WVL .and. &
-     & inputpsi /= INPUT_PSI_MEMORY_GAUSS .and. &
-       & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
-       & inputpsi /= INPUT_PSI_DISK_LINEAR) then
+!!$  if ( inputpsi /= INPUT_PSI_MEMORY_WVL .and. &
+!!$     & inputpsi /= INPUT_PSI_MEMORY_GAUSS .and. &
+!!$       & inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. &
+!!$       & inputpsi /= INPUT_PSI_DISK_LINEAR) then
+  if ( .not. (inputpsi .hasattr. 'MEMORY')) then
      KSwfn%orbs%eval = f_malloc_ptr(KSwfn%orbs%norb*KSwfn%orbs%nkpts,id='KSwfn%orbs%eval')
   end if
-  ! Still do it for linear restart, to be check...
-  if (inputpsi == INPUT_PSI_DISK_LINEAR) then
-     if(iproc==0) call yaml_comment('ALLOCATING KSwfn%orbs%eval... is this correct?')
-     KSwfn%orbs%eval = f_malloc_ptr(KSwfn%orbs%norb*KSwfn%orbs%nkpts,id='KSwfn%orbs%eval')
-  end if
+!!$  ! Still do it for linear restart, to be check...
+!!$  if (inputpsi == INPUT_PSI_DISK_LINEAR) then
+!!$     if(iproc==0) call yaml_comment('ALLOCATING KSwfn%orbs%eval... is this correct?')
+!!$     KSwfn%orbs%eval = f_malloc_ptr(KSwfn%orbs%norb*KSwfn%orbs%nkpts,id='KSwfn%orbs%eval')
+!!$  end if
 
   !all the input formats need to allocate psi except the LCAO input_guess
   ! WARNING: at the moment the linear scaling version allocates psi in the same
   ! way as the LCAO input guess, so it is not necessary to allocate it here.
   ! Maybe to be changed later.
   !if (inputpsi /= 0) then
+!!$  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+!!$     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
 
-  if (inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if ((inputpsi .hasattr. 'CUBIC') .and. (inputpsi /= 'INPUT_PSI_LCAO')) then
      KSwfn%psi = f_malloc_ptr(max(KSwfn%orbs%npsidim_comp, KSwfn%orbs%npsidim_orbs),id='KSwfn%psi')
   end if
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+!!$  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+!!$      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi .hasattr. 'LINEAR') then
      tmb%psi = f_malloc_ptr(max(tmb%npsidim_comp, tmb%npsidim_orbs),id='tmb%psi')
      tmb%psit_c = f_malloc_ptr(tmb%collcom%ndimind_c,id='tmb%psit_c')
      tmb%psit_f = f_malloc_ptr(7*tmb%collcom%ndimind_f,id='tmb%psit_f')
      tmb%ham_descr%psit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='tmb%ham_descr%psit_c')
      tmb%ham_descr%psit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='tmb%ham_descr%psit_f')
-     !allocate(tmb%confdatarr(tmb%orbs%norbp))
-     !call define_confinement_data(tmb%confdatarr,tmb%orbs,rxyz,atoms,&
-     !     KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),4,&
-     !     in%lin%potentialprefac_lowaccuracy,tmb%lzd,tmb%orbs%onwhichatom)
   else
      allocate(KSwfn%confdatarr(KSwfn%orbs%norbp))
      call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
@@ -2184,7 +2192,7 @@ use sparsematrix, only: uncompress_matrix2
   norbv=abs(in%norbv)
 
   ! INPUT WAVEFUNCTIONS, added also random input guess
-  select case(inputpsi)
+  select case(f_int(inputpsi))
 
   case(INPUT_PSI_EMPTY)
      if (iproc == 0) then
@@ -2593,7 +2601,7 @@ use sparsematrix, only: uncompress_matrix2
      call f_free(tmparr)
      if (rho_negative) then
          if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-         call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, init=.false.)
+         call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .false.)
          call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      end if
 
@@ -2731,8 +2739,8 @@ use sparsematrix, only: uncompress_matrix2
      !! end debug
 
   case default
-     call input_psi_help()
-     call f_err_throw('Illegal value of inputPsiId (' // trim(yaml_toa(in%inputPsiId,fmt='(i0)')) // ')', &
+     !call input_psi_help()
+     call f_err_throw('Illegal value of inputPsiId (' // trim(f_char(in%inputPsiId)) // ')', &
           err_name='BIGDFT_RUNTIME_ERROR')
 
   end select
@@ -2755,10 +2763,11 @@ use sparsematrix, only: uncompress_matrix2
   ! hpsi and psit have been allocated during the LCAO input guess.
   ! Maybe to be changed later.
   !if (inputpsi /= 0 .and. inputpsi /=-1000) then
-  if ( inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR_AO .and. &
-        inputpsi /= INPUT_PSI_EMPTY .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
-        inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-    
+  if ((inputpsi .hasattr. 'CUBIC') .and. (inputpsi /= 'INPUT_PSI_LCAO') .and. &
+       (inputpsi /= 'INPUT_PSI_EMPTY')) then
+!!$  if ( inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+!!$        inputpsi /= INPUT_PSI_EMPTY .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+!!$        inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,KSwfn%comms,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
@@ -2767,8 +2776,9 @@ use sparsematrix, only: uncompress_matrix2
   !if (iproc==0 .and. inputpsi /= INPUT_PSI_LINEAR_AO) call yaml_mapping_close() !input hamiltonian
   if (iproc==0) call yaml_mapping_close() !input hamiltonian
 
-  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
-     inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+!!$  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+!!$     inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if ( inputpsi .hasattr. 'CUBIC') then
      !allocate arrays for the GPU if a card is present
      if (GPU%OCLconv) then
         call allocate_data_OCL(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
@@ -2780,15 +2790,19 @@ use sparsematrix, only: uncompress_matrix2
   end if
 
    ! Emit that new wavefunctions are ready.
-   if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-        & .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. KSwfn%c_obj /= 0) then
-      call kswfn_emit_psi(KSwfn, 0, 0, iproc, nproc)
-   end if
-   if ((inputpsi == INPUT_PSI_LINEAR_AO .or.&
-        inputpsi == INPUT_PSI_DISK_LINEAR .or. &
-        inputpsi == INPUT_PSI_MEMORY_LINEAR ).and. tmb%c_obj /= 0) then
-      call kswfn_emit_psi(tmb, 0, 0, iproc, nproc)
-   end if
+!!$   if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+!!$        & .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. KSwfn%c_obj /= 0) then
+  if (KSwfn%c_obj /= 0) then
+     if (inputpsi .hasattr. 'CUBIC') then
+        call kswfn_emit_psi(KSwfn, 0, 0, iproc, nproc)
+     end if
+!!$   if ((inputpsi == INPUT_PSI_LINEAR_AO .or.&
+!!$        inputpsi == INPUT_PSI_DISK_LINEAR .or. &
+!!$        inputpsi == INPUT_PSI_MEMORY_LINEAR )
+     if (inputpsi .hasattr. 'LINEAR') then ! .and. tmb%c_obj /= 0) then
+        call kswfn_emit_psi(tmb, 0, 0, iproc, nproc)
+     end if
+  end if
 
    ! Init PAW from input wavefunctions.
    call paw_init(KSwfn%paw, atoms, KSwfn%orbs%nspinor, in%nspin, &
@@ -2806,9 +2820,12 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
   use module_fragments
   use module_interfaces, except_this_one=>input_check_psi_id
   use dictionaries, only: f_err_throw
+  use public_enums
+  use f_enums
+  use module_input_keys, only: inputpsiid_set_policy
   implicit none
   integer, intent(out) :: input_wf_format         !< (out) Format of WF
-  integer, intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
+  type(f_enumerator), intent(inout) :: inputpsi              !< (in) indicate how check input psi, (out) give how to build psi
                                                   !! INPUT_PSI_DISK_WVL: psi on the disk (wavelets), check if the wavefunctions are all present
                                                   !!                     otherwise switch to normal input guess
                                                   !! INPUT_PSI_DISK_LINEAR: psi on memory (linear version)
@@ -2828,7 +2845,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
   !for the inputPsi == WF_FORMAT_NONE case, check 
   !if the wavefunctions are all present
   !otherwise switch to normal input guess
-  if (inputpsi == INPUT_PSI_DISK_WVL) then
+  if (inputpsi == 'INPUT_PSI_DISK_WVL') then
      ! Test ETSF file.
      inquire(file=trim(dir_output)//"wavefunction.etsf",exist=onefile)
      if (onefile) then
@@ -2838,16 +2855,12 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
      end if
      if (input_wf_format == WF_FORMAT_NONE) then
         if (iproc==0) call yaml_warning('Missing wavefunction files, switch to normal input guess')
-        !if (iproc==0) write(*,*)''
-        !if (iproc==0) write(*,*)'*********************************************************************'
-        !if (iproc==0) write(*,*)'* WARNING: Missing wavefunction files, switch to normal input guess *'
-        !if (iproc==0) write(*,*)'*********************************************************************'
-        !if (iproc==0) write(*,*)''
-        inputpsi=INPUT_PSI_LCAO
+        call inputpsiid_set_policy(ENUM_SCRATCH,inputpsi)
+        !inputpsi=INPUT_PSI_LCAO
      end if
   end if
   ! Test if the files are there for initialization via reading files
-  if (inputpsi == INPUT_PSI_DISK_LINEAR) then
+  if (inputpsi == 'INPUT_PSI_DISK_LINEAR') then
      do ifrag=1,nfrag
         ! Test ETSF file.
         inquire(file=trim(dir_output)//"minBasis.etsf",exist=onefile)
@@ -2859,12 +2872,8 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
         end if
         if (input_wf_format == WF_FORMAT_NONE) then
            if (iproc==0) call yaml_warning('Missing wavefunction files, switch to normal input guess')
-           !if (iproc==0) write(*,*)''
-           !if (iproc==0) write(*,*)'*********************************************************************'
-           !if (iproc==0) write(*,*)'* WARNING: Missing wavefunction files, switch to normal input guess *'
-           !if (iproc==0) write(*,*)'*********************************************************************'
-           !if (iproc==0) write(*,*)''
-           inputpsi=INPUT_PSI_LINEAR_AO
+           call inputpsiid_set_policy(ENUM_SCRATCH,inputpsi)
+           !inputpsi=INPUT_PSI_LINEAR_AO
            ! if one directory doesn't exist, throw an error than exit
            if (nfrag > 1) call f_err_throw('Fragment calculation cannot be done without template',&
                 err_name='BIGDFT_INPUT_VARIABLES_ERROR')

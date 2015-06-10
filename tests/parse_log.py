@@ -290,9 +290,15 @@ class polar_axis():
     self.fig.canvas.draw()
       
 class BigDFTiming:
-  def __init__(self,filename):
+  def __init__(self,filenames):
     #here a try-catch section should be added for multiple documents
-    self.log=yaml.load(open(filename, "r").read(), Loader = yaml.CLoader)
+    #if (len(filename) > 1
+    self.log=[]
+    for filename in filenames:
+      try:
+        self.log+=[yaml.load(open(filename, "r").read(), Loader = yaml.CLoader)]
+      except:
+        self.log+=yaml.load_all(open(filename, "r").read(), Loader = yaml.CLoader)
 
     #cat=self.log["Dictionary of active categories"]
     #print 'categories',cat
@@ -302,29 +308,40 @@ class BigDFTiming:
     #  icat +=1
     #dssad
     #shallow copies of important parts
-    self.routines=self.log.get("Routines timing and number of calls")
-    self.hostnames=self.log.get("Hostnames")
-    self.scf=self.log.get("WFN_OPT")
+    self.routines=[]
+    self.hostnames=[]
+    self.scf=[]
+    self.ids=[]
+    for doc in self.log:
+        self.routines.append(doc.get("Routines timing and number of calls"))
+        self.hostnames.append(doc.get("Hostnames"))
+        self.scf.append(doc.get("WFN_OPT"))
+        mpit=doc.get("CPU parallelism")
+        if mpit is not None:
+          self.ids.append(mpit["MPI tasks"])
+        else:
+          self.ids.append("Unknown")
     self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
-                  "Other","PS Computation","Potential",
-                  "Flib LowLevel","Initialization"]
+            "Other","PS Computation","Potential",
+            "Flib LowLevel","Initialization"]
 
-  def bars_data(self,dict):
+  def bars_data(self,dict_list):
     """Extract the data for plotting the different categories in bar chart"""
     import pylab
-    ind=pylab.np.arange(1)#2)
-    width=0.35
-    bot=pylab.np.array([0])#,0])
+    ndata=len(dict_list)
+    ind=pylab.np.arange(ndata)
+    width=0.9#0.35
+    bot=pylab.np.array(ndata*[0.0])
     plts=[]
     key_legend=[]
     values_legend=[]
     icol=1.0
-    print "dict",dict
     for cat in self.classes:
+      #print [doc["Classes"][cat][0] for doc in dict_list]
       try:
-        dat=pylab.np.array([dict[cat][0]])#,dict[cat][0]])
-        print 'data',dat
-        print 'unbalancing',dict[cat][2:]
+        dat=pylab.np.array([doc["Classes"][cat][0] for doc in dict_list])
+        print 'data',cat,dat,bot
+        #print 'unbalancing',dict_list[0][cat][2:]
         plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(self.classes)))
         plts.append(plt)
         key_legend.append(plt[0])
@@ -335,10 +352,11 @@ class BigDFTiming:
         #print 'EXCEPTION FOUND',e
         print "category",cat,"not present"
   
-    pylab.ylabel('Percent')
     pylab.title('Time bar chart')
-    pylab.xticks(ind+width/2., ('G1', 'G2', 'G3', 'G4', 'G5') )
+    pylab.xticks(ind+width/2., pylab.np.array(self.ids))
+    pylab.ylabel('Percent')
     pylab.yticks(pylab.np.arange(0,100,10))
+    #pylab.ylabel('Seconds')
     pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
 
   def unbalanced(self,val):
@@ -410,17 +428,25 @@ if __name__ == "__main__":
 if args.timedata:
   import pylab
   print 'args of time',args.timedata,argcl
+  #in the case of more than one file to analyse
+  #or in the case of more than one yaml document per file
+  #just load the bars data script
+  
   #load the first yaml document
-  bt=BigDFTiming(argcl[0])
+  bt=BigDFTiming(argcl)
   print "hosts",bt.hostnames
+  
   #timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
   #dict_routines = timing["Routines timing and number of calls"]
   #sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
   if bt.scf is not None:
-    bt.bars_data(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
-    bt.load_unbalancing(bt.scf["Classes"]) #timing["WFN_OPT"]["Classes"])
-  if bt.routines is not None:
-    data=dump_timing_level(bt.routines) #dict_routines)
+    bt.bars_data(bt.scf) #timing["WFN_OPT"]["Classes"])
+    
+  if bt.scf[0] is not None and False:
+    bt.load_unbalancing(bt.scf[0]["Classes"]) #timing["WFN_OPT"]["Classes"])
+      
+  if bt.routines[0] is not None and False:
+    data=dump_timing_level(bt.routines[0]) #dict_routines)
     plt=polar_axis(data)
     plt.show()
   else:

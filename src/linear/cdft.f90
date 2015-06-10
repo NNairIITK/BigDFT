@@ -653,7 +653,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   use module_base
   use module_types
   use constrained_dft, only: cdft_data
-  use module_interfaces, except_this_one => calculate_weight_matrix_using_density
+  use module_interfaces
   use module_fragments
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication

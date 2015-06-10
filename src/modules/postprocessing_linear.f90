@@ -1,4 +1,5 @@
 module postprocessing_linear
+  use public_enums
   implicit none
 
   private

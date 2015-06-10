@@ -9,12 +9,8 @@
 !> MINHOP
 !!  Main program for the minima hopping
 program MINHOP
-  use module_base, int_enum => int
+  use module_base
   use bigdft_run
-!  use module_types, only: input_variables,bigdft_run_id_toa,BIGDFT_SUCCESS
-!  use module_interfaces
-!  use module_input_dicts
-!  use m_ab6_symmetry
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,atoms_data,astruct_dump_to_file
   use module_fingerprints
@@ -242,14 +238,9 @@ program MINHOP
           //trim(yaml_toa(INPUT_POLICY_SCRATCH,fmt='(i0)'))//' is possible',&
           err_name='BIGDFT_RUNTIME_ERROR')
   end if
-  !run_opt%inputs%inputPsiId=0
 
-!!$  call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
-!!$  call nullify_run_objects(runObj)
-!!$  call run_objects_associate(runObj, inputs_md, atoms, rst)
   !we start with md
   call bigdft_state(run_md,outs,infocode)
-
 
   energyold=1.d100
   ncount_bigdft=0
@@ -1339,7 +1330,7 @@ END SUBROUTINE hunt_g
 
 !> Assigns initial velocities for the MD escape part
 subroutine velnorm(nat,ekinetic,vxyz)
-  use module_base, int_enum => int
+  use module_base
 !  use module_types
 !  use m_ab6_symmetry
   implicit none

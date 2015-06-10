@@ -496,7 +496,8 @@ subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
 
      call f_free(solution)
 
-     runObj%inputs%inputPsiId=1
+     !runObj%inputs%inputPsiId=1
+     call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
      etotprev=outs%energy
 
      call bigdft_state(runObj,outs,infocode)
@@ -630,7 +631,8 @@ subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         pospred(iat)=poscur(iat)+dt*velcur(iat)+dt*dt*0.5_gp*fcur(iat)/mass(iat)
      enddo
 
-     runObj%inputs%inputPsiId=1
+     !runObj%inputs%inputPsiId=1
+     call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
      call bigdft_set_rxyz(runObj,rxyz_add=pospred(1))
 !!$     call vcopy(3 * runObj%atoms%astruct%nat, pospred(1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
      call bigdft_state(runObj,outs,infocode)

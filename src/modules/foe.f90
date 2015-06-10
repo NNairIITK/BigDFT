@@ -1,4 +1,5 @@
 module foe
+  use public_enums
   implicit none
 
   private

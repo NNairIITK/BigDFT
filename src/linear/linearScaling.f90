@@ -33,6 +33,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   use locreg_operations, only: get_boundary_weight
+  use public_enums
   implicit none
 
   ! Calling arguments
@@ -269,7 +270,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   ! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
-  if (input%lin%diag_start .and. input%inputPsiId==INPUT_PSI_DISK_LINEAR) then
+  if (input%lin%diag_start .and. (input%inputPsiId .hasattr. 'FILE')) then !==INPUT_PSI_DISK_LINEAR) then
      ! Calculate the charge density.
      !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
      !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
@@ -605,7 +606,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            if (input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) ldiis_coeff%alpha_coeff=input%lin%alphaSD_coeff !reset to default value
 
            ! I think this is causing a memory leak somehow in certain cases (possibly only with fragment calculations?)
-           if (input%inputPsiId==101 .and. info_basis_functions<=-2 .and. itout==1 .and. (.not.input%lin%fragment_calculation)) then
+           if ((input%inputPsiId .hasattr. 'MEMORY') &!input%inputPsiId==101 
+                .and. info_basis_functions<=-2 .and. itout==1 .and. (.not.input%lin%fragment_calculation)) then
                ! There seem to be some convergence problems after a restart. Better to quit
                ! and start with a new AO input guess.
                if (iproc==0) write(*,'(1x,a)') 'There are convergence problems after the restart. &
@@ -1545,7 +1547,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
 
     subroutine check_inputguess()
       real(kind=8) :: dnrm2
-      if (input%inputPsiId==101) then           !should we put 102 also?
+      if (input%inputPsiId .hasattr. 'MEMORY') then !==101) then           !should we put 102 also?
 
           if (input%lin%pulay_correction) then
              ! Check the input guess by calculation the Pulay forces.
@@ -1976,6 +1978,7 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
   use module_fragments
   !use internal_io
   use module_interfaces
+  use public_enums
   implicit none
 
   integer, intent(in) :: iproc, iformat, nat

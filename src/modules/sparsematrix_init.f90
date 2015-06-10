@@ -4374,6 +4374,7 @@ contains
       use module_base
       use module_types
       use module_interfaces
+      use public_enums
       implicit none
     
       ! Calling arguments

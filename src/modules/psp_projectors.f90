@@ -17,13 +17,6 @@ module psp_projectors
 
   private
 
-  !> Type of pseudopotential
-  integer, parameter, public :: PSPCODE_UNINITIALIZED = 1
-  integer, parameter, public :: PSPCODE_GTH = 2
-  integer, parameter, public :: PSPCODE_HGH = 3
-  integer, parameter, public :: PSPCODE_PAW = 7
-  integer, parameter, public :: PSPCODE_HGH_K = 10
-  integer, parameter, public :: PSPCODE_HGH_K_NLCC = 12
   integer,parameter,public :: NCPLX_MAX = 2
 
 
@@ -954,7 +947,7 @@ contains
 !> External routine as the psppar parameters are often passed by address
 subroutine hgh_hij_matrix(npspcode,psppar,hij)
   use module_defs, only: gp
-  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
+  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
   implicit none
   !Arguments
   integer, intent(in) :: npspcode

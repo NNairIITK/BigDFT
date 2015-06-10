@@ -112,7 +112,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    !local variables
    character(len=*), parameter :: subname='call_abscalc'
    character(len=40) :: comment
-   integer :: ierr,inputPsiId_orig,icycle
+   integer :: ierr
    real(gp) :: hx_old, hy_old, hz_old
 
    !put a barrier for all the processes
@@ -125,72 +125,23 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    !Assign a value for energy to avoid compiler warning and to check the calculation
    energy = huge(1.d0)
 
-   inputPsiId_orig=runObj%inputs%inputPsiId
+   if (runObj%inputs%inputPsiId == 'INPUT_PSI_LCAO' .and. associated(runObj%rst%KSwfn%psi)) then
+      call f_free_ptr(runObj%rst%KSwfn%psi)
+      call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
+      nullify(runObj%rst%KSwfn%orbs%eval)
+      
+      call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
+   end if
 
-   loop_cluster: do icycle=1,runObj%inputs%nrepmax
-
-      if (runObj%inputs%inputPsiId == 0 .and. associated(runObj%rst%KSwfn%psi)) then
-         call f_free_ptr(runObj%rst%KSwfn%psi)
-         call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-         nullify(runObj%rst%KSwfn%orbs%eval)
-
-        call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
-      end if
-
-      if(.not. runObj%inputs%c_absorbtion) then 
-         stop 'ERROR'
-      else
-         call abscalc(nproc,iproc,runObj%atoms,runObj%atoms%astruct%rxyz,&
-             runObj%rst%KSwfn,hx_old,hy_old,hz_old,runObj%inputs,runObj%rst%GPU,infocode)
-         fxyz(:,:) = 0.d0
-      endif
-
-      if (runObj%inputs%inputPsiId==1 .and. infocode==2) then
-         if (runObj%inputs%gaussian_help) then
-            runObj%inputs%inputPsiId=11
-         else
-            runObj%inputs%inputPsiId=0
-         end if
-      else if ((runObj%inputs%inputPsiId==1 .or. runObj%inputs%inputPsiId==0) .and. infocode==1) then
-         !in%inputPsiId=0 !better to diagonalise that to restart an input guess
-         runObj%inputs%inputPsiId=1
-         if(iproc==0) then
-            write(*,*)&
-               &   ' WARNING: Wavefunctions not converged after cycle',icycle
-            write(*,*)' restart after diagonalisation'
-         end if
-
-      else if (runObj%inputs%inputPsiId == 0 .and. infocode==3) then
-         if (iproc == 0) then
-            write( *,'(1x,a)')'Convergence error, cannot proceed.'
-            write( *,'(1x,a)')' writing positions in file posfail.xyz then exiting'
-            write(comment,'(a)')'UNCONVERGED WF '
-            !call wtxyz('posfail',energy,runObj%atoms%astruct%rxyz,runObj%atoms,trim(comment))
-
-            call astruct_dump_to_file(runObj%atoms%astruct,"posfail",&
-                 'UNCONVERGED WF ')
-
-         end if 
-
-         call f_free_ptr(runObj%rst%KSwfn%psi)
-         call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-         nullify(runObj%rst%KSwfn%orbs%eval)
-
-        call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
-
-        !test if stderr works
-        write(0,*)'unnormal end'
-        call mpibarrier(bigdft_mpi%mpi_comm)
-        call f_err_throw('Convergence error, cannot proceed. '//&
-             'Writing positions in file posfail.xyz',err_name='BIGDFT_RUNTIME_ERROR')
-      else
-         exit loop_cluster
-      end if
-
-   end do loop_cluster
-
-   !preserve the previous value
-   runObj%inputs%inputPsiId=inputPsiId_orig
+   if(f_err_raise(.not. runObj%inputs%c_absorbtion,err_msg='Not a valig option',&
+        err_name='BIGDFT_RUNTIME_ERROR')) then 
+      return
+   else
+      call abscalc(nproc,iproc,runObj%atoms,runObj%atoms%astruct%rxyz,&
+           runObj%rst%KSwfn,hx_old,hy_old,hz_old,runObj%inputs,runObj%rst%GPU,infocode)
+      fxyz(:,:) = 0.d0
+   endif
+      !assume always clean exit for abscalc
 
    !put a barrier for all the processes
    call mpibarrier()!MPI_COMM_WORLD,ierr)
@@ -219,6 +170,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use gaussians, only: gaussian_basis
    use yaml_output, only: yaml_warning,yaml_toa
    use psp_projectors, only: free_DFT_PSP_projectors
+   use public_enums, only: LINEAR_PARTITION_NONE
+   use module_input_keys, only: print_dft_parameters
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -247,7 +200,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    integer :: ndegree_ip,j,n1,n2,n3
 !   integer :: n3d,n3p,n3pi,i3xcsh,i3s
    integer :: ncount0,ncount1,ncount_rate,ncount_max,n1i,n2i,n3i
-   integer :: iat,ierr,inputpsi
+   integer :: iat,ierr
    real :: tcpu0,tcpu1
    real(gp), dimension(3) :: shift
    real(kind=8) :: crmult,frmult,cpmult,fpmult,gnrm_cv,rbuf,hxh,hyh,hzh,hx,hy,hz
@@ -354,18 +307,25 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    hy=in%hy
    hz=in%hz
 
-   write(gridformat, "(A)") ""
-   select case (in%output_denspot_format)
-   case (output_denspot_FORMAT_ETSF)
-      write(gridformat, "(A)") ".etsf"
-   case (output_denspot_FORMAT_CUBE)
-      write(gridformat, "(A)") ".bin"
-   end select
+!!$   write(gridformat, "(A)") ""
+!!$   select case (in%output_denspot_format)
+!!$   case (output_denspot_FORMAT_ETSF)
+!!$      write(gridformat, "(A)") ".etsf"
+!!$   case (output_denspot_FORMAT_CUBE)
+!!$      write(gridformat, "(A)") ".bin"
+!!$   end select
+   call f_zero(gridformat)
+   if (in%output_denspot .hasattr. 'ETSF') then
+      call f_strcpy(src='.etsf',dest=gridformat)
+   else if (in%output_denspot .hasattr. 'CUBE') then
+      call f_strcpy(src='.cube',dest=gridformat)
+   end if
+
 
    if (iproc == 0) then
       write( *,'(1x,a,1x,i0)') &
          &   '===================== BigDFT XANE calculation =============== inputPsiId=',&
-         &   in%inputPsiId
+         &   f_int(in%inputPsiId)
       call print_dft_parameters(in,atoms)
    end if
    !time initialization
@@ -675,8 +635,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    if( iand( in%potshortcut,1)  .gt. 0 ) then
 
-      inputpsi=in%inputPsiId
-
       nspin=in%nspin
 
       symObj%symObj = -1
@@ -710,13 +668,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
 
    if ( in%c_absorbtion ) then
-
-
       !!$
       !!$     rhopot(10,9,8+i3xcsh,1)=100.0
 
-      if (in%output_denspot == output_denspot_DENSPOT) then
-         if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
+      if (in%output_denspot == 'DENSPOT') then
+         !if (in%output_denspot_format == output_denspot_FORMAT_TEXT) then
+         if (in%output_denspot .hasattr. 'TEXT') then ! == output_denspot_FORMAT_TEXT) then
             if (iproc == 0) write(*,*) 'writing local_potential'
             call plot_density(iproc,nproc,'local_potentialb2B' // gridformat,&
                  atoms,rxyz,dpcom,in%nspin,rhopot(1,1,1,1))
