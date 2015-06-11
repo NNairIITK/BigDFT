@@ -840,12 +840,28 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
   IntSur=IntSur*hgrids(1)*hgrids(2)*hgrids(3)/(epsilon0-1.d0)
   IntVol=IntVol*hgrids(1)*hgrids(2)*hgrids(3)
 
-  unt=f_get_free_unit(21)
+  unt=f_get_free_unit(20)
   call f_open_file(unt,file='epsilon.dat')
   i1=1!n03/2
   do i2=1,ndims(2)
      do i3=1,ndims(3)
         write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
+     end do
+  end do
+  call f_close(unt)
+
+  unt=f_get_free_unit(21)
+  call f_open_file(unt,file='epsilon_yz.dat')
+  write(unt,'(a)')'y,z,eps'
+   do iat=1,natreal
+    write(unt,'(3(1x,e14.7))')rxyzreal(1:3,iat)
+   end do
+  i1=ndims(1)/2
+  do i2=1,ndims(2)
+     do i3=1,ndims(3)
+        y=hgrids(2)*(i2-1-nbl2)
+        z=hgrids(3)*(i3-1-nbl3)
+        write(unt,'(3(1x,e14.7))')y,z,eps(i1,i2,i3)
      end do
   end do
   call f_close(unt)

@@ -178,12 +178,12 @@ program GPS_3D
    else
     if (nat.eq.1) then
      delta=0.3d0 !6.d0*max(hx,hy,hz)
-!     rxyz(1,1) = hx*real(n01/2,kind=8)
+     rxyz(1,1) = hx*real(n01/2,kind=8)
      rxyz(2,1) = hy*real(n02/2,kind=8)
-!     rxyz(3,1) = hz*real(n03/2,kind=8)
-     rxyz(1,1) = hx*real(10,kind=8)
+     rxyz(3,1) = hz*real(n03/2,kind=8)
+!     rxyz(1,1) = hx*real(10,kind=8)
 !     rxyz(2,1) = hy*real(10,kind=8)
-     rxyz(3,1) = hz*real(10,kind=8)
+!     rxyz(3,1) = hz*real(10,kind=8)
      radii(1)=rad_cav!*1.5d0/0.52917721092d0
     else if (nat.eq.2) then
      delta=0.3d0 !6.d0*max(hx,hy,hz)
@@ -234,7 +234,7 @@ program GPS_3D
 
 !    SetEps=1
 !    Setrho=1
-    call print_PB_function(n01,n02,n03,iproc,hx,hy,hz,nord,acell)
+!    call print_PB_function(n01,n02,n03,iproc,hx,hy,hz,nord,acell)
 !------------------------------------------------------------------------
 ! Vacuum
 !   eps=1.0d0
@@ -377,8 +377,8 @@ geocodeprova='F'
   if (any(SetEps == [2,3,4])) then
    call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
   else if (any(SetEps == [5])) then
-  call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode)
-!  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+!  call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode)
+  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
   else if (any(SetEps == [6])) then
    call Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp)
 !   call Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,6,nord,pkernel,potential,corr,oneosqrteps,multp)
@@ -717,13 +717,13 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
 
   real(kind=8), dimension(n01,n02,n03)  :: pot_ion
   real(kind=8), parameter :: eta = 1.0d0 ! Polarization Iterative Method parameter.
-  real(kind=8), parameter :: taupol = 1.0d-20 ! Polarization Iterative Method parameter.
+  real(kind=8), parameter :: taupol = 1.0d-17 ! Polarization Iterative Method parameter.
   integer, parameter :: maxiterpol=100
   !real(kind=8), dimension(n01,n02,n03,nspden,3) :: dlv
   real(kind=8), dimension(:,:,:,:), allocatable :: dlv,deps,rhosol,rhopol,rhotot
   real(kind=8), dimension(:,:,:,:), allocatable :: rhopolnew,rhopolold,rhores,lv
   integer :: i1,i2,i3,i,j,ip,isp
-  real(kind=8) :: divprod,rhores2,diffcurr,pi,ehartree,res,rho,normr,rpoints
+  real(kind=8) :: divprod,rhores2,diffcurr,pi,ehartree,res,rho,normr,normb,rpoints
   
   rhosol=f_malloc([n01,n02,n03,nspden],id='rhosol')
   rhopol=f_malloc([n01,n02,n03,nspden],id='rhopol')
@@ -737,9 +737,10 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
 
   pi = 4.d0*datan(1.d0)
   rpoints=product(real([n01,n02,n03],kind=8))
+  normr=1.d0
 
-  open(unit=18,file='PI_normr_'//trim(geocode)//'.dat',status='unknown')
-  open(unit=38,file='PI_accuracy_'//trim(geocode)//'.dat',status='unknown')
+  open(unit=18,file='PI_normr_'//trim(geocode)//'_eta1.dat',status='unknown')
+  open(unit=38,file='PI_accuracy_'//trim(geocode)//'_eta1.dat',status='unknown')
 
   if (iproc ==0) then
    write(18,'(1x,a)')'iter normr rhores2'
@@ -750,10 +751,12 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
 
 !  call fssnord3DmatNabla3var(n01,n02,n03,nspden,hx,hy,hz,eps,deps,nord,acell)
 
+  normb=0.d0
   isp=1
   do i3=1,n03
    do i2=1,n02
     do i1=1,n01
+     normb=normb+b(i1,i2,i3,isp)*b(i1,i2,i3,isp)
      rhopol(i1,i2,i3,isp) = 0.d0
      rhosol(i1,i2,i3,isp) = b(i1,i2,i3,isp)
 
@@ -766,7 +769,8 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
    end do
   end do
 
-
+  normb=sqrt(normb/rpoints)
+  normr=normb
 !    call writeroutinePot(n01,n02,n03,nspden,potential,0,potential)
 !    call writeroutine(n01,n02,n03,nspden,rhosol,0)
 
@@ -922,7 +926,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
   real(kind=8), parameter :: max_ratioex = 1.0d10
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   integer :: i,ii,j,i1,i2,i3,isp
-  real(kind=8), parameter :: error = 1.0d-8
+  real(kind=8), parameter :: error = 1.0d-17
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
   real(kind=8) :: ehartree,pi,switch,rpoints
@@ -2145,7 +2149,9 @@ subroutine ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,S
   dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
   deps=f_malloc([n01,n02,n03,3],id='deps')
   write(*,*)geocode
+
   call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+!  call fssnord3DmatNabla3var_LG(geocode,n01,n02,n03,x,dx,nord,[hx,hy,hz])
 
       isp=1
       do i3=1,n03
@@ -2159,6 +2165,7 @@ subroutine ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,S
       end do
 
    call fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
+!   call fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,dx,y,nord,[hx,hy,hz])
 
    y(:,:,:,:)=-y(:,:,:,:)/(4.d0*pi)
 
@@ -3796,11 +3803,11 @@ print *,'we should be here for old analytical functions'
  call f_open_file(unt,file='initial_line.dat')
  i1=n01/2
  !i1=1
- i2=n03/2
+ i3=n03/2
 ! i3=1
- do i3=1,n02
+ do i2=1,n02
 !  write(unt,'(1x,I8,3(1x,e22.15))') i2,density(n01/2,i2,n03/2,1),potential(n01/2,i2,n03/2),eps(n01/2,i2,n03/2)
-  write(unt,'(1x,I8,3(1x,e22.15))') i3,density(i1,i2,i3,1),potential(i1,i2,i3),eps(i1,i2,i3)
+  write(unt,'(1x,I8,3(1x,e22.15))') i2,density(i1,i2,i3,1),potential(i1,i2,i3),eps(i1,i2,i3)
  end do
  call f_close(unt)
 
@@ -4233,14 +4240,14 @@ end if
      !i1=1
      do i2=1,n02
       do i3=1,n03
-       write(21,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i2,i1,i3),eps(i1,i2,i3)
+       write(21,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(i2,i1,i3)
       end do
       write(21,*)
      end do
 
 
      do i2=1,n02
-      write(22,'(1x,I8,2(1x,e22.15))') i2,eps(i1,n03/2,i2),eps(i1,i2,n03/2)
+      write(22,'(1x,I8,2(1x,e22.15))') i2,eps(i1,i2,n03/2),eps(i2,i1,n03/2)
      end do
 
   close(unit=21)
