@@ -446,7 +446,6 @@ contains
   END SUBROUTINE create_log_file
 
 
-
   !> Routine to read YAML input files and create input dictionary.
   !! Update the input dictionary with the result of yaml_parse
   subroutine merge_input_file_to_dict(dict, fname, mpi_env)
@@ -508,6 +507,7 @@ contains
     call f_release_routine()
 
   END SUBROUTINE merge_input_file_to_dict
+
 
   !> Read from all input files and build a dictionary
   subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)

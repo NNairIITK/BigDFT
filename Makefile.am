@@ -77,4 +77,4 @@ lcov-analysis:
 	lcov --capture --directory . --output-file doc/lcov.info ; \
 	genhtml --legend doc/lcov.info --output-dir doc/lcov-html --ignore-errors source
 	@echo "Works with gcc and the options '-fprofile-arcs -ftest-coverage'"
-	@echo "Type <Browser> doc/lcv-html/index.html"
+	@echo "Type <Browser> doc/lcov-html/index.html"

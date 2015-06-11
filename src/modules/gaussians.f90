@@ -515,7 +515,7 @@ contains
   end subroutine initialize_real_space_conversion
 
  
-  !> Deallocate scf_data
+  !> Deallocate scf_data for multipole-preserving scheme
   subroutine finalize_real_space_conversion()
     implicit none
 
