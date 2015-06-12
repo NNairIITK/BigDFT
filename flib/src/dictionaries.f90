@@ -1348,6 +1348,7 @@ contains
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
      if (f_err_raise(no_value(dict),'The key is "'//trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)) return
      call f_strcpy(src=dict%data%value,dest=val)
+     
      !call get_field(dict%data%value,val)
 
    end subroutine get_value

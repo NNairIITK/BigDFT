@@ -263,7 +263,8 @@ END SUBROUTINE processor_id_per_node
 subroutine ensure_log_file(writing_directory, logfile, ierr)
   use yaml_output
   use yaml_strings
-  use f_utils, only: f_file_exists
+  use f_utils, only: f_file_exists,f_mkdir
+  use dictionaries
   implicit none
   character(len = *), intent(in) :: writing_directory, logfile
   integer(kind=4), intent(out) :: ierr
@@ -279,12 +280,18 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
   call f_file_exists(trim(filepath),exists)
   if (exists) then
      logfile_old=writing_directory//'logfiles'
-     call getdir(logfile_old,&
-          int(len_trim(logfile_old),kind=4),logfile_dir,int(len(logfile_dir),kind=4),ierr)
-     if (ierr /= 0) then
-        write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
+     !here a try-catch section has to be added
+     call f_mkdir(logfile_old,logfile_dir)
+     if (f_err_check(err_name='INPUT_OUTPUT_ERROR')) then
+        ierr=f_get_last_error()
         return
      end if
+!!$     call getdir(logfile_old,&
+!!$          int(len_trim(logfile_old),kind=4),logfile_dir,int(len(logfile_dir),kind=4),ierr)
+!!$     if (ierr /= 0) then
+!!$        write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
+!!$        return
+!!$     end if
      logfile_old=trim(logfile_dir)//logfile
      !change the name of the existing logfile
      lgt=index(logfile_old,'.yaml')

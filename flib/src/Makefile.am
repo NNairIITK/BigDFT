@@ -168,7 +168,7 @@ f_input_file.o: dictionaries.o yaml_output.o dynamic_memory.o f_utils.o
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o yaml_strings.o
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o f_utils.o f_input_file.o
-f_utils.o: dictionaries.o yaml_strings.o
+f_utils.o: dictionaries.o yaml_strings.o f_precisions.o
 f_refcnts.o: dictionaries.o yaml_output.o
 f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)

@@ -378,7 +378,7 @@
   end subroutine get_error_msg
 
 
-  !> Identify id of last error occured (public)
+  !> Identify id of last error occurred (public)
   function f_get_last_error(add_msg)
     implicit none
     character(len=*), intent(out), optional :: add_msg

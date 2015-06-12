@@ -154,7 +154,7 @@ def compare_map(map, ref, tols, always_fails=False, keyword=""):
         #Initialize always_fails for each key
         always_f = always_fails
         if not ignore_key(key):
-            if not (key in map):
+            if not isinstance(map,dict) or not (key in map):
                 docmiss += 1
                 docmiss_it.append(key)
                 #print "WARNING!!", key, "not found", ref[key]
@@ -473,7 +473,7 @@ for i in range(len(references)):
         else:
             fatal_error(reports, message='Empty document!')
     except Exception, e:
-        print 'remarks',remarks,str(e)
+        print 'remarks "%s" (%s)' % (remarks,str(e))
         fatal_error(reports, message=str(e))
     try:
         #doctime = data["Timings for root process"]["Elapsed time (s)"]
@@ -506,7 +506,11 @@ for i in range(len(references)):
     highlight_iftty(options)
     if remarks:
         newreport = open(options_remarks.input, "w")
-        newreport.write(yaml.dump({"Remarks": remarks}, default_style="|", explicit_start=False))
+        if args.label is not None:
+            labl="("+args.label+")"
+        else:
+            labl=''
+        newreport.write(yaml.dump({"Remarks"+labl: remarks}, default_style="|", explicit_start=False))
         newreport.close()
         reports.write(open(options_remarks.input, "rb").read())
         highlight_iftty(options_remarks)

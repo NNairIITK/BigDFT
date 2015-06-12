@@ -4324,6 +4324,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
 
   end do !iat -atoms
 
+  !not needed as the stress tensor is reduced afterwards
   if (nproc>1) then
       call mpiallred(tens(1), 6, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if

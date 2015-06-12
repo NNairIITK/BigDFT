@@ -77,12 +77,12 @@ module module_interfaces
          real(gp), dimension(3), intent(out) :: shift
       END SUBROUTINE system_size
 
-      subroutine standard_inputfile_names(inputs, radical)
-         use module_types
-         implicit none
-         type(input_variables), intent(out) :: inputs
-         character(len = *), intent(in) :: radical
-      END SUBROUTINE standard_inputfile_names
+!!$      subroutine standard_inputfile_names(inputs, radical)
+!!$         use module_types
+!!$         implicit none
+!!$         type(input_variables), intent(out) :: inputs
+!!$         character(len = *), intent(in) :: radical
+!!$      END SUBROUTINE standard_inputfile_names
 
       subroutine read_input_dict_from_files(radical, mpi_env,dict)
         use dictionaries, only: dictionary
@@ -236,7 +236,7 @@ module module_interfaces
        type(confpot_data), dimension(norbp), intent(out) :: confdatarr
      end subroutine default_confinement_data
 
-     subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
+     subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
           & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,&
           & pot_ion,pkernel,psoffset)
        use module_defs, only: gp,dp
@@ -245,7 +245,7 @@ module module_interfaces
        implicit none
        type(denspot_distribution), intent(in) :: dpbox
        type(atoms_data), intent(in) :: at
-       integer, intent(in) :: iproc,dispersion
+       integer, intent(in) :: iproc,nproc,dispersion
        real(gp), dimension(3), intent(in) :: elecfield
        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
          type(coulomb_operator), intent(inout) :: pkernel

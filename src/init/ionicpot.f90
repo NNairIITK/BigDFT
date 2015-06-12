@@ -9,7 +9,7 @@
 
 
 !> Calculate the ionic contribution to the energy and the forces
-subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
+subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,&
      & pot_ion,pkernel,psoffset)
   use module_base, pi => pi_param
@@ -24,7 +24,7 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
   !Arguments
   type(denspot_distribution), intent(in) :: dpbox
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,dispersion
+  integer, intent(in) :: iproc,nproc,dispersion
   real(gp), dimension(3), intent(in) :: elecfield
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(coulomb_operator), intent(inout) :: pkernel
@@ -98,10 +98,10 @@ subroutine IonicEnergyandForces(iproc,dpbox,at,elecfield,&
      end do
 
      !calculate ewald energy and forces + stress
-     call ewald(eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
+     call ewald(iproc,nproc,eion,gmet,fewald,at%astruct%nat,at%astruct%ntypes,rmet,at%astruct%iatype,ucvol,&
           xred,real(at%nelpsp,gp))
      ewaldstr=0.0_dp
-     call ewald2(gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
+     call ewald2(iproc,nproc,gmet,at%astruct%nat,at%astruct%ntypes,rmet,rprimd,ewaldstr,at%astruct%iatype,&
           ucvol,xred,real(at%nelpsp,gp))
 
 ! our sequence of strten elements : 11 22 33 12 13 23
@@ -729,6 +729,322 @@ subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,del
       depsoeps=(epsilon0-1.d0)/delta*exp(-d**2)/epsl(r,rc,delta,epsilon0)
     end function depsoeps
  end subroutine epsilon_rigid_cavity
+
+!> calculates the value of the dielectric function for a smoothed cavity 
+!! given a set of centres and radii. Based on error function.
+!! Need the epsilon0 as well as the radius of the cavit and its smoothness
+subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal,rxyzreal,radiireal,epsilon0,delta,&
+     eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+  use f_utils
+  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use f_enums
+  use yaml_output
+  use dynamic_memory
+
+  implicit none
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  integer, intent(in) :: natreal !< number of centres defining the cavity
+  real(kind=8), intent(in) :: epsilon0 !< dielectric constant of the solvent
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(natreal), intent(in) :: radiireal !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,natreal), intent(in) :: rxyzreal
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric function
+  real(kind=8), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogeps !< dlogeps
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneoeps !< inverse of epsilon. Needed for PI method.
+  !> inverse square root of epsilon. Needed for PCG method.
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: oneosqrteps
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: corr !< correction term of the Generalized Laplacian.
+  !> Surface and volume integral needed for non-electrostatic contributions to the energy.
+  real(kind=8), intent(out) :: IntSur,IntVol 
+
+  !local variables
+  logical :: perx,pery,perz
+  integer :: i,i1,i2,i3,iat,jat,ii,nat,j,k,l,px,py,pz,unt
+  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,imin
+  real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax,oneoeps0,oneosqrteps0
+  real(kind=8) :: r,t,fact1,fact2,fact3,dd,dtx,curr,value,valuemin
+  real(kind=8), dimension(3) :: deps,ddeps,v,rv,shift,sh
+
+  real(kind=8), parameter :: valuebc=1.d0
+  real(kind=8), dimension(6) :: plandist
+  integer, dimension(6) :: ba
+  real(kind=8), dimension(:), allocatable :: ep,ddep
+  real(kind=8), dimension(:,:), allocatable :: dep
+  real(kind=8), dimension(3,27*natreal) :: rxyztot
+  real(kind=8), dimension(27*natreal) :: radiitot
+  real(kind=8), dimension(:), allocatable :: radii
+  real(kind=8), dimension(:,:), allocatable :: rxyz
+
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+  IntSur=0.d0
+  IntVol=0.d0
+  pi = 4.d0*datan(1.d0)
+  r=0.d0
+  t=0.d0
+  oneoeps0=1.d0/epsilon0
+  oneosqrteps0=1.d0/dsqrt(epsilon0)
+
+  shift(1)=hgrids(1)*ndims(1)
+  shift(2)=hgrids(2)*ndims(2)
+  shift(3)=hgrids(3)*ndims(3)
+
+!------------------------------------------------------------------------------------------------------
+! Depending of Free, Periodic or Surface bc, image atoms are or not included.
+
+  if (bigdft_mpi%iproc==0) then
+   do iat=1,natreal
+    call yaml_map('real input atoms',iat)
+    call yaml_map('radii',radiireal(iat))
+    call yaml_map('rxyz',rxyzreal(:,iat))
+   end do
+  end if
+
+  px=0
+  py=0
+  pz=0
+  if (perx) px=1
+  if (pery) py=1
+  if (perz) pz=1
+
+  rxyztot(:,:)=0.d0
+
+  i=0
+  do iat=1,natreal
+   ba(1:6)=0
+   ! checking what are the image atoms to include in the calculation of the
+   ! cavity.
+   rv(1:3)=rxyzreal(1:3,iat)
+   plandist(1)=dabs(rv(1))
+   plandist(2)=dabs(shift(1)-rv(1))
+   plandist(3)=dabs(rv(2))
+   plandist(4)=dabs(shift(2)-rv(2))
+   plandist(5)=dabs(rv(3))
+   plandist(6)=dabs(shift(3)-rv(3))
+   do ii=1,6
+    valuemin=1.d0
+    d=plandist(ii)
+    value=epsl(d,radiireal(iat),delta)
+    if (value.lt.valuebc) then ! valuebc is the value to check on the box border to accept or refuse an image atom.
+     if (abs(value).lt.valuemin) then
+      valuemin=abs(value)
+      imin=ii
+     end if
+     select case(ii)
+     case (1)
+      ba(1)=1*px
+     case (2)
+      ba(2)=-1*px
+     case (3)
+      ba(3)=1*py
+     case (4)
+      ba(4)=-1*py
+     case (5)
+      ba(5)=1*pz
+     case (6)
+      ba(6)=-1*pz
+     end select
+    end if
+   end do
+
+   do j=ba(6),ba(5)
+    sh(3)=real(j,kind=8)*shift(3)
+    do k=ba(4),ba(3)
+     sh(2)=real(k,kind=8)*shift(2)
+     do l=ba(2),ba(1)
+      sh(1)=real(l,kind=8)*shift(1)
+      rv(1:3)=rxyzreal(1:3,iat) + sh(1:3)
+      i=i+1
+      rxyztot(1:3,i)=rv(1:3)
+      radiitot(i)=radiireal(iat)
+     end do
+    end do
+   end do
+
+  end do
+
+   nat=i
+
+   ep=f_malloc(nat,id='ep')
+   ddep=f_malloc(nat,id='ddep')
+   dep=f_malloc([3,nat],id='dep')
+   rxyz=f_malloc([3,nat],id='rxyz')
+   radii=f_malloc(nat,id='radii')
+
+   rxyz(1:3,1:nat)=rxyztot(1:3,1:nat)
+   radii(1:nat)=radiitot(1:nat)
+
+   if (bigdft_mpi%iproc==0) then
+    write(*,*)plandist
+    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
+    call yaml_map('nat',nat)
+    do iat=1,nat
+     call yaml_map('atom',iat)
+     call yaml_map('radii',radii(iat))
+     call yaml_map('rxyz',rxyz(:,iat))
+    end do
+   end if
+
+!------------------------------------------------------------------------------------------------------
+! Starting the cavity building for rxyztot atoms=real+image atoms (total natcurr) for periodic
+! and surface boundary conditions or atoms=real for free bc.
+
+  do i3=1,ndims(3)
+   z=hgrids(3)*(i3-1-nbl3)
+   v(3)=z
+   do i2=1,ndims(2)
+    y=hgrids(2)*(i2-1-nbl2)
+    v(2)=y
+    do i1=1,ndims(1)
+     x=hgrids(1)*(i1-1-nbl1)
+     v(1)=x
+
+     do iat=1,nat
+      d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+      d=dsqrt(d2)
+
+      if (d2.eq.0.d0) then
+       d2=1.0d-30
+       ep(iat)=epsl(d,radii(iat),delta)
+       do i=1,3
+        dep(i,iat)=0.d0
+       end do
+       ddep(iat)=0.d0
+      else
+       oneod=1.d0/d
+       ep(iat)=epsl(d,radii(iat),delta)
+       d1=d1eps(d,radii(iat),delta)
+       coeff=2.d0*((sqrt(d2)-radii(iat))/(delta**2))
+       do i=1,3
+        h=(v(i)-rxyz(i,iat))*oneod
+        dep(i,iat) =d1*h
+       end do
+       ddep(iat)=d1*(2.d0*oneod-coeff)
+      end if
+
+     end do
+
+     IntVol = IntVol + (1.d0-product(ep))
+
+     eps(i1,i2,i3)=(epsilon0-1.d0)*product(ep)+1.d0
+     oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
+     oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
+
+     do i=1,3
+      deps(i)=0.d0
+      do jat=0,nat-1
+       curr=dep(i,jat+1)
+       do iat=1,nat-1
+        curr=curr*ep(modulo(iat+jat,nat)+1)
+       end do
+        deps(i) = deps(i) + curr
+      end do
+      deps(i) = deps(i)*(epsilon0-1.d0)
+     end do
+
+     d12=0.d0
+     do i=1,3
+      dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
+      d12 = d12 + deps(i)**2
+     end do
+
+     IntSur = IntSur + dsqrt(d12)
+
+     dd=0.d0
+     do jat=1,nat
+      curr=ddep(jat)
+      do iat=1,nat-1
+       curr=curr*ep(modulo(iat+jat-1,nat)+1)
+      end do
+      dd = dd + curr
+     end do
+
+      do i=1,3
+       do iat=1,nat-1
+        do jat=iat+1,nat
+         curr=dep(i,iat)*dep(i,jat)
+         do ii=1,nat
+          if ((ii.eq.iat).or.(ii.eq.jat)) then
+          else
+           curr=curr*ep(ii)
+          end if
+         end do
+         curr=curr*2.d0
+         dd = dd + curr
+        end do
+       end do
+      end do
+
+     dd=dd*(epsilon0-1.d0)
+     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+
+    end do
+   end do
+  end do
+
+  IntSur=IntSur*hgrids(1)*hgrids(2)*hgrids(3)/(epsilon0-1.d0)
+  IntVol=IntVol*hgrids(1)*hgrids(2)*hgrids(3)
+
+  unt=f_get_free_unit(21)
+  call f_open_file(unt,file='epsilon.dat')
+  i1=1!n03/2
+  do i2=1,ndims(2)
+     do i3=1,ndims(3)
+        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
+     end do
+  end do
+  call f_close(unt)
+
+  unt=f_get_free_unit(22)
+  call f_open_file(unt,file='epsilon_line.dat')
+  do i2=1,ndims(2)
+   write(unt,'(1x,I8,1(1x,e22.15))')i2,eps(ndims(1)/2,i2,ndims(3)/2)
+  end do
+  call f_close(unt)
+
+  call f_free(ep)
+  call f_free(ddep)
+  call f_free(dep)
+  call f_free(rxyz)
+  call f_free(radii)
+
+  contains
+    pure function epsl(r,rc,delta)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta
+      real(kind=8) :: epsl
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      epsl=0.5d0*(erf(d)+1.d0)
+    end function epsl
+
+    pure function d1eps(r,rc,delta)
+      use numerics, only: safe_exp
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta
+      real(kind=8) :: d1eps
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      d1eps=(1.d0/(delta*sqrt(pi)))*max(safe_exp(-d**2),1.0d-24)
+    end function d1eps
+
+end subroutine epsilon_rigid_cavity_error_multiatoms_bc
 
 !> calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii. Based on error function.

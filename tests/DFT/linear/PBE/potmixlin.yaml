@@ -13,6 +13,8 @@
  perf:
    ef_interpol_det: 0.10E-19
    foe_gap: yes
+   correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    hybrid: Yes
    nit: [10, 0]

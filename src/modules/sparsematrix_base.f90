@@ -53,6 +53,7 @@ module sparsematrix_base
 
   type,public :: sparse_matrix
       integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr, nspin
+      integer :: offset_matrixindex_in_compressed_fortransposed
       integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
       integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr!, orb_from_index
