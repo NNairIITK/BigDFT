@@ -901,7 +901,7 @@ experimentalfoe_long:
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
  relative diff: 3.3e-11
- Energy (Hartree): 3.0e-10
+ Energy (Hartree): 3.4e-10
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -1498,7 +1498,7 @@ periodic_water:
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 9.2e-9
- D eF: 1.2e-8
+ D eF: 1.3e-8
  energy: 2.8e-10
  guess for new ef: 9.1e-9
  number of corrected points: 1
@@ -1538,6 +1538,7 @@ surface_graphene:
  diff: 2.2e-11
  Total ionic charge: 1.2e-11
  Energy (Hartree): 1.9e-11
+ Total charge: 1.1e-10
 
 dev.ref.yaml:
  Epot: 1.1e-10
@@ -1552,7 +1553,7 @@ multipoles_OH-:
  ebs: 1.6e-10
  relative diff: 4.6e-9
  diff: 2.1e-9
- multiplicator for the confinement: 7.02e-10
+ multiplicator for the confinement: 8.5e-10
  Epot: 1.3e-10
  EH: 2.1e-10
  Ekin: 6.1e-11
