@@ -296,7 +296,7 @@ call f_free(weight)
 
    call yaml_comment('Entering in OpenMP section if available',hfill='-')
 
-   !!define the lock
+   ! define the lock
    !$ call OMP_init_lock(lock)
 
    !open try-catch section

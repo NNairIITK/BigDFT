@@ -628,7 +628,7 @@ hybrid-directmin:
  Clean forces norm (Ha/Bohr): 8.0e-11
  Raw forces norm (Ha/Bohr): 3.3e-11
  Average noise forces: 1.1e-10
- Energy (Hartree): 4.0e-11
+ Energy (Hartree): 7.4e-11
 
 cdft_ohoh:
  Epsilon: 7.1e-10
@@ -664,7 +664,7 @@ fructose:
  ebs: 1.1e-8
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
- Energy (Hartree): 7.6e-11
+ Energy (Hartree): 1.3e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -851,9 +851,9 @@ linearcubic_cubic:
  Ekin: 1.1e-9
  EH: 1.01e-9
  energy: 1.83e-10
- EKS: 2.6e-10
+ EKS: 2.7e-10
  Epot: 1.1e-9
- Energy (Hartree): 1.3e-10
+ Energy (Hartree): 2.7e-10
 
 linearcubic_linear:
  Epsilon: 1.1e-10
@@ -864,6 +864,7 @@ linearcubic_linear:
  Omega: 9.2e-10
  EvXC: 1.1e-9
  EXC: 2.1e-10
+ Energy (Hartree): 1.4e-10
 
 experimentalfoe_long:
  Atomic Forces (Ha/Bohr): 1.4e-05
@@ -901,7 +902,7 @@ experimentalfoe_long:
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
  relative diff: 3.3e-11
- Energy (Hartree): 3.4e-10
+ Energy (Hartree): 4.6e-10
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -926,7 +927,7 @@ experimentalfoe_short:
  diff from idempotency: 3.1e-09
  D: 1.1e-4
  decay length of error function: 1.1e-5
- Energy (Hartree): 3.0e-11
+ Energy (Hartree): 6.1e-11
 
 experimentalfoe_medium:
  charge diff: 2.5e-7
@@ -945,7 +946,7 @@ experimentalfoe_medium:
  energy: 2.9e-10
  Omega: 8.1e-10
  decay length of error function: 1.1e-5
- Energy (Hartree): 1.4e-10
+ Energy (Hartree): 2.7e-10
 
 newpulay:
  EXC: 1.1e-10
@@ -1081,7 +1082,7 @@ explicit_locregcenters:
  Total electronic charge: 4.1e-11
  EKS: 1.1e-9
  EH: 1.1e-9
- Energy (Hartree): 1.3e-10
+ Energy (Hartree): 3.3e-10
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 4.9e-7
@@ -1122,7 +1123,7 @@ DIIShistory:
  EH: 2.0e-8
  Pulay forces (Ha/Bohr): 7.8e-09
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
- Energy (Hartree): 5.5e-11
+ Energy (Hartree): 1.3e-10
 
 sparsity:
  Total charge: 1.1e-10
@@ -1143,7 +1144,7 @@ sparsity:
  ebs: 2.1e-10
  diff: 1.1e-9
  D Tr: 1.1e-10
- Energy (Hartree): 5.0e-10
+ Energy (Hartree): 9.6e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
