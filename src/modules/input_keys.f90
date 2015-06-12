@@ -729,7 +729,7 @@ contains
 !!$    if(in%inputpsiid == INPUT_PSI_LINEAR_AO .or. &
 !!$         in%inputpsiid == INPUT_PSI_MEMORY_LINEAR .or. &
 !!$         in%inputpsiid == INPUT_PSI_DISK_LINEAR) &
-    DistProjApply= in%inputpsiid .hasattr. 'LINEAR' !.true.
+    if (in%inputpsiid .hasattr. 'LINEAR') DistProjApply=.true.
     if(in%linear /= INPUT_IG_OFF .and. in%linear /= INPUT_IG_LIG) then
        !only on the fly calculation
        DistProjApply=.true.
@@ -1299,7 +1299,7 @@ contains
        policy = ENUM_SCRATCH
     else if (inputPsiId .hasattr. 'MEMORY') then
        policy = ENUM_MEMORY
-    else if (inputPsiId .hasattr. 'DISK') then
+    else if (inputPsiId .hasattr. 'FILE') then
        policy = ENUM_FILE
     end if
   end subroutine inputpsiid_get_policy

@@ -50,7 +50,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   type(DFT_wavefunction), intent(inout) :: KSwfn, tmb
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz_old
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
-  !real(gp), dimension(atoms%astruct%ntypes,3), intent(in) :: radii_cf
   type(energy_terms), intent(out) :: energs
   real(gp), intent(out) :: energy,fnoise,pressure
   real(gp), dimension(6), intent(out) :: strten
@@ -169,7 +168,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         !inputpsi = INPUT_PSI_LCAO
         call inputpsiid_set_policy(ENUM_SCRATCH,inputpsi)
      end if
-  else if (in%inputPsiId .hasattr. 'GAUSSIAN') then ! (in%inputPsiId == INPUT_PSI_MEMORY_GAUSS) then
+  else if(in%inputPsiId == 'INPUT_PSI_MEMORY_GAUSS') then
      if (associated(KSwfn%psi)) then
         !deallocate wavefunction and descriptors for placing the gaussians
         call deallocate_locreg_descriptors(KSwfn%Lzd%Glr)
@@ -178,7 +177,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         !inputpsi = INPUT_PSI_LCAO
         call set_inputpsiid(INPUT_PSI_LCAO,inputpsi) !special treatment here
      end if
-  else if ( (in%inputPsiId .hasattr. 'LINEAR') .and. associated(KSwfn%psi)) then !in%inputPsiId == INPUT_PSI_MEMORY_LINEAR
+  else if ( (in%inputPsiId == 'INPUT_PSI_MEMORY_LINEAR') .and. associated(KSwfn%psi)) then !in%inputPsiId == INPUT_PSI_MEMORY_LINEAR
      if (associated(tmb%psi)) then
         !this is a tmb_null constructor
         tmb_old%lzd = local_zone_descriptors_null()
@@ -552,6 +551,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      case default
          stop 'ERROR: wrong in%lin%scf_mode'
      end select
+
      call denspot_set_history(denspot,linear_iscf,in%nspin, &
           KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,npulayit=in%lin%mixHist_lowaccuracy)
      tmb%damping_factor_confinement = 1.d0 !will be modified in case of a restart
@@ -1572,8 +1572,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
            ! Emergency exit case
            if (opt%infocode == 2 .or. opt%infocode == 3) then
-              if (nproc > 1) call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-              !>todo: change this return into a clean out of the routine, so the YAML is clean.
+              if (nproc > 1) call mpibarrier(comm=bigdft_mpi%mpi_comm)
               if (iproc==0) then
                  !call yaml_mapping_close()
                  call yaml_sequence_close() !wfn iterations

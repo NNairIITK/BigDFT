@@ -341,7 +341,8 @@ contains
     type(dictionary), pointer :: dict
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
-    integer :: ierror,lgt,unit_log,ierrr
+    integer, parameter :: ntrials=3
+    integer :: ierror,lgt,unit_log,ierrr,trials
     integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
     character(len=500) :: logfilename,path
@@ -389,15 +390,27 @@ contains
        if (log_to_disk) then
           ! Get Create log file name.
           call dict_get_run_properties(dict, naming_id = run_name)
-          logfilename = "log" // trim(run_name) // ".yaml"
+          logfilename = "log"+run_name+".yaml"
           path = trim(writing_directory)//trim(logfilename)
           call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
           ! Check if logfile is already connected.
           call yaml_stream_connected(trim(path), unit_log, ierrr)
           if (ierrr /= 0) then
              ! Move possible existing log file.
-             call ensure_log_file(trim(writing_directory), trim(logfilename), ierr)
-             if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+             !this section has to be done sequentially for each of the 
+             !!taskgroups of BigDFT
+             !we should implement a lock, but for the moment let us do it three times for the processes which 
+             !!did not had problem
+             do trials=1,ntrials
+                call ensure_log_file(trim(writing_directory), trim(logfilename), ierr)
+                !if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+                if (ierr /=0 .and. trials < ntrials) then
+                   ierr=f_err_pop(err_name='INPUT_OUTPUT_ERROR')
+                   call f_pause(1) !wait one second for the other processes to finish
+                end if
+             end do
+             !if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+
              ! Close active stream and logfile if any. (TO BE MOVED IN RUN_UPDATE TO AVOID CLOSURE OF UPLEVEL INSTANCE)
              call yaml_get_default_stream(unit_log)
              if (unit_log /= 6) call yaml_close_stream(unit_log, ierrr)

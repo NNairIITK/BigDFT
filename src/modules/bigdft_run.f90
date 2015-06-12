@@ -1511,7 +1511,8 @@ contains
 !!$    if(runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL) then
 !!$       if (runObj%rst%version == LINEAR_VERSION) then
 !!$          runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
-    if (runObj%inputs%inputPsiId .hasattr. 'LINEAR') then
+    if ((runObj%inputs%inputPsiId .hasattr. 'LINEAR') .and. &
+         (runObj%inputs%inputPsiId .hasattr. 'MEMORY')) then
        if (any(runObj%inputs%lin%locrad_lowaccuracy /= &
             runObj%inputs%lin%locrad_highaccuracy)) then
           call f_err_throw('The radii for low and high accuracy must be the same '//&
@@ -1562,7 +1563,7 @@ contains
        !the infocode should have some values defined as parameters
        select case(infocode)
        case(1) !wfn not yet converged
-          call bigdft_set_input_policy(policy_tmp,runObj)
+          call bigdft_get_input_policy(runObj,policy_tmp)
           if (policy_tmp == INPUT_POLICY_SCRATCH) &
                call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
           !do not know why we do this, meaningful only if we did not exit
@@ -1958,7 +1959,8 @@ contains
        policy = INPUT_POLICY_DISK
     case default
        call f_err_throw('The specified value of inputPsiId ('//&
-            trim(f_char(runObj%inputs%inputPsiId))//') is not valid', &
+            trim(f_char(runObj%inputs%inputPsiId))//') is not valid for policy '//&
+            trim(f_char((policy_enum))), &
             err_name='BIGDFT_RUNTIME_ERROR')
     end select
 

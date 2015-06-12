@@ -38,12 +38,17 @@ module yaml_strings
      module procedure case_insensitive_equiv
   end interface operator(.eqv.)
 
+  interface operator(+)
+     module procedure combine_strings
+  end interface operator(+)
+
+
 
   !Public routines
-  public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
+  public :: yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
-  public :: operator(.eqv.)
+  public :: operator(.eqv.),operator(+)
 
 contains
 
@@ -620,6 +625,16 @@ contains
     end do
 
   end function case_insensitive_equiv
+
+  !define the strings which combine them, without the need of using trim or adjustl specifications
+  pure function combine_strings(a,b) result(c)
+    implicit none
+    character(len=*), intent(in) :: a
+    character(len=*), intent(in) :: b
+    character(len=len(trim(adjustl(a)))+len(trim(b))) :: c
+    
+    c=trim(adjustl(a))//trim(b)
+  end function combine_strings
 
 
   !> Shifts characters in in the string 'str' n positions (positive values

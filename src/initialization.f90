@@ -272,12 +272,13 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
   character(len = 500) :: logfile_old, logfile_dir, filepath
 
   ierr = 0
-  filepath = writing_directory//logfile
+  call f_strcpy(dest=filepath,src=writing_directory+logfile)
   !inquire for the existence of a logfile
   !inquire(file=trim(filepath),exist=exists)
   call f_file_exists(trim(filepath),exists)
   if (exists) then
-     logfile_old=writing_directory//'logfiles'
+     call f_strcpy(src=writing_directory+'logfiles',dest=logfile_old)
+     !logfile_old=writing_directory//'logfiles'
      !here a try-catch section has to be added
      call f_mkdir(logfile_old,logfile_dir)
      if (f_err_check(err_name='INPUT_OUTPUT_ERROR')) then
@@ -290,11 +291,11 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
 !!$        write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
 !!$        return
 !!$     end if
-     logfile_old=trim(logfile_dir)//logfile
+     logfile_old=logfile_dir+logfile
+     call f_strcpy(src=logfile_dir + logfile,dest=logfile_old)
      !change the name of the existing logfile
      lgt=index(logfile_old,'.yaml')
-     call buffer_string(logfile_old,len(logfile_old),&
-          trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
+     call buffer_string(logfile_old,len(logfile_old),yaml_time_toa()+'.yaml',lgt)
      call movefile(trim(filepath),int(len_trim(filepath),kind=4),trim(logfile_old),int(len_trim(logfile_old),kind=4),ierr)
      if (ierr /= 0) then
         write(*,*) "ERROR: cannot move logfile '"//trim(logfile)
