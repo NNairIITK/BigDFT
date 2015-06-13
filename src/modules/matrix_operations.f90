@@ -39,7 +39,7 @@ module matrix_operations
                                 sequential_acces_matrix_fast2, sequential_acces_matrix_fast, &
                                 gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace, &
                                 uncompress_matrix2, transform_sparsity_pattern, &
-                                sparsemm_new
+                                sparsemm_new, matrix_matrix_mult_wrapper
         use parallel_linalg, only: dpotrf_parallel, dpotri_parallel
         use ice, only: inverse_chebyshev_expansion
         use yaml_output
@@ -67,10 +67,10 @@ module matrix_operations
         logical :: ovrlp_allocated, inv_ovrlp_allocated
       
         ! new for sparse taylor
-        integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin, iline, icolumn, ist
+        integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin, iline, icolumn, ist, j
         integer,dimension(:,:,:),allocatable :: istindexarr
         real(kind=8),dimension(:),pointer :: ovrlpminone_sparse
-        real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr, tmparr
+        real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr, tmparr, resmat
         real(kind=8),dimension(:),allocatable :: invovrlp_compr_seq, ovrlpminoneoldp_new
         real(kind=8),dimension(:,:),allocatable :: ovrlpminoneoldp, invovrlpp, ovrlp_largep
         real(kind=8),dimension(:,:,:),allocatable :: invovrlpp_arr
@@ -81,7 +81,7 @@ module matrix_operations
         real(kind=8),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq, tmpmat
         integer,parameter :: SPARSE=1
         integer,parameter :: DENSE=2
-        real(kind=8) :: ex, max_error_p, mean_error_p
+        real(kind=8) :: ex, max_error_p, mean_error_p, tt1, tt2
         real(kind=8),dimension(:),allocatable :: factor_arr
         real(kind=8),dimension(:),allocatable :: ovrlp_largep_new, invovrlpp_new
         real(kind=8),dimension(:),allocatable :: Amat12p_new, Amat21p_new
@@ -467,12 +467,25 @@ module matrix_operations
                         if (power(icalc)==1) then
                            if (blocksize<0) then
                               call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp_local(1:,1:,ispin))
+                              if (iproc==0) then
+                                  do i=1,ovrlp_smat%nfvctr
+                                      do j=1,ovrlp_smat%nfvctr
+                                          write(400,'(2(i6,1x),es19.12)') i, j, inv_ovrlp_local(i,j,ispin)
+                                      end do
+                                  end do
+                              end if
                            else
                               !stop 'check if working - upper half may not be filled'
                               call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
                                    ovrlp_smat%nfvctr, inv_ovrlp_local(1:,1:,ispin), ovrlp_smat%nfvctr)
                               call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
                                    ovrlp_smat%nfvctr, inv_ovrlp_local(1:,1:,ispin), ovrlp_smat%nfvctr)
+                              !fill upper half...
+                              do i=1,ovrlp_smat%nfvctr
+                                  do j=i,ovrlp_smat%nfvctr
+                                      inv_ovrlp_local(i,j,ispin)=inv_ovrlp_local(j,i,ispin)
+                                  end do
+                              end do
                            end if
                         else if (power(icalc)==2) then
                             call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
@@ -859,6 +872,28 @@ module matrix_operations
                 invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')
                 !!ovrlp_largep = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='ovrlp_largep')
                 ovrlp_largep_new = f_malloc(inv_ovrlp_smat%smmm%nvctrp,id='ovrlp_largep')
+
+                !!if (iproc==0) write(*,*) 'TEST ##############################################'
+                !!do icalc=1,ncalc
+                !!    resmat = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='resmat')
+                !!    call matrix_matrix_mult_wrapper(iproc, nproc, inv_ovrlp_smat, ovrlp_large_compr, inv_ovrlp_mat(icalc)%matrix_compr, resmat)
+                !!    call deviation_from_unity_parallel_new(iproc, nproc, inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, inv_ovrlp_smat%isfvctr, &
+                !!         resmat, inv_ovrlp_smat, tt1, tt2)
+                !!    if (iproc==0) then
+                !!        call yaml_map('NEW max mean error',(/tt1,tt2/))
+                !!        do i=1,size(resmat,1)
+                !!            write(500,*) i, resmat(i)
+                !!        end do
+                !!        do i=1,size(ovrlp_large_compr)
+                !!            write(600,*) i, ovrlp_large_compr(i)
+                !!        end do
+                !!        do i=1,size(inv_ovrlp_mat(icalc)%matrix_compr)
+                !!            write(700,*) i, inv_ovrlp_mat(icalc)%matrix_compr(i)
+                !!        end do
+                !!    end if
+                !!    call f_free(resmat)
+                !!end do
+                !!if (iproc==0) write(*,*) 'END TEST ##########################################'
       
                 if (iproc==0) then
                     call yaml_newline()
@@ -1343,6 +1378,7 @@ module matrix_operations
                 else
                    error=ovrlp(i)**2
                 end if
+                !write(*,'(a,3i8,2es16.7)') 'i, iline, icolumn, ovrlp(i), error', i, iline, icolumn, ovrlp(i), error
                 max_deviation=max(error,max_deviation)
                 mean_deviation=mean_deviation+error
                 num=num+1.d0
