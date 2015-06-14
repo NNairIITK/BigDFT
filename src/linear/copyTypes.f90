@@ -53,7 +53,7 @@ subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
   !call copy_old_inwhichlocreg(tmbin%orbs%norb, tmbin%orbs%inwhichlocreg, tmbout%orbs%inwhichlocreg, &
   !     tmbin%orbs%onwhichatom, tmbout%orbs%onwhichatom)
   !call allocate_and_copy(tmbin%psi, tmbout%psi, id='tmbout%psi')
-  tmbout%psi=f_malloc_ptr(src_ptr=tmbin%psi,id='tmbout%psi')
+  !already donetmbout%psi=f_malloc_ptr(src_ptr=tmbin%psi,id='tmbout%psi')
 
   ! Not necessary to copy these arrays
   !call allocate_and_copy(tmbin%hpsi, tmbout%hpsi, id='tmbout%hpsi')

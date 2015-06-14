@@ -580,7 +580,8 @@ contains
     ! Atoms case.
     atoms = atoms_data_null()
 
-    if (.not. has_key(dict, POSINP)) stop "missing posinp"
+    if (.not. has_key(dict, POSINP)) &
+         call f_err_throw("missing posinp",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
     call astruct_set_from_dict(dict // POSINP, atoms%astruct)
     ! Generate the dict of types for later use.
     call astruct_dict_get_types(dict // POSINP, types)

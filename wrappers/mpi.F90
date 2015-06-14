@@ -1020,7 +1020,6 @@ contains
   end subroutine mpialltoallv_double
 
 
-
   !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
     use dictionaries, only: f_err_throw,f_err_define
@@ -1260,7 +1259,7 @@ contains
        array_diff=f_malloc(n,id='array_diff')
        call f_memcpy(src=buffer,dest=array_diff)
     end if
-    !< end bcast_decl
+    ! end bcast_decl
     include 'bcast-inc.f90'
   end subroutine mpibcast_c0
 
@@ -1315,7 +1314,6 @@ contains
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_d2
-
 
   subroutine mpiscatter_i1i1(sendbuf, recvbuf, root, comm)
     use dictionaries, only: f_err_throw,f_err_define

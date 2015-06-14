@@ -841,14 +841,13 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          frag_trans(iorb)%rot_center(:)=rxyz_old(:,iiat)
          frag_trans(iorb)%rot_center_new(:)=rxyz(:,iiat)
      end do
-
      ! This routine might overwrite tmb_old%psi, so save the values
      psi_old = f_malloc(src=tmb_old%psi,lbounds=lbound(tmb_old%psi),id='psi_old')
      call reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,.true.,tmb,ndim_old,tmb_old%lzd,frag_trans,&
           tmb_old%psi,input%dir_output,input%frag,ref_frags,max_shift)
-     call vcopy(size(psi_old), psi_old(1), 1, tmb_old%psi(1), 1)
+     call f_memcpy(src=psi_old,dest=tmb_old%psi)
+     !call vcopy(size(psi_old), psi_old(1), 1, tmb_old%psi(1), 1)
      call f_free(psi_old)
-
      if (max_shift>0.5d0) then
          if (iproc==0) call yaml_map('atoms have moved too much, switch to standard input guess',.true.)
          FOE_restart = RESTART_AO
@@ -898,9 +897,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   end if
           !!write(*,*) 'after vcopy, iproc',iproc
 
-  if (associated(tmb_old%coeff)) then
-      call f_free_ptr(tmb_old%coeff)
-  end if
+  call f_free_ptr(tmb_old%coeff)
 
   ! MOVE LATER 
   !!if (associated(tmb_old%linmat%denskern%matrix_compr)) then
@@ -1238,7 +1235,9 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
 
   call deallocate_orbitals_data(tmb_old%orbs)
+
   call f_free_ptr(tmb_old%psi)
+
   call f_free_ptr(tmb_old%linmat%kernel_%matrix_compr)
 
   if (associated(tmb_old%linmat%ks)) then

@@ -200,6 +200,7 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
+ Positions: 1.21e-8
  Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
  Average noise forces: 6.2e-8
@@ -1412,6 +1413,11 @@ FF_LJ-bfgs:
   Keys to ignore:
   - WARNINGS
 
+FF_LJ-ab6md:
+  Keys to ignore:
+  - WARNINGS
+
+
 FF_LENOSKY-bfgs:
   etot: 2.4e-11
   Keys to ignore:
@@ -1448,6 +1454,13 @@ FF_LJ-sqnm:
 
 
 FF_LJ-vssd:
+  etot: 2.2e-4
+  maxval: 3e-4
+  last beta: 3.5e-2
+  beta: 1.81e-2
+  fnrm2: 0.37
+  Forces: 0.33
+  
   Keys to ignore:
   - WARNINGS
   
@@ -1455,7 +1468,7 @@ periodic_silicon:
  Epot: 3.0e-10
  Enl: 1.1e-9
  EXC: 1.1e-10
- Omega: 5.91e-11
+ Omega: 6.3e-11
  ebs_check: 1.1e-10
  charge diff: 5.0e-10
  ebs: 1.2e-10

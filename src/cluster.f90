@@ -177,7 +177,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         !inputpsi = INPUT_PSI_LCAO
         call set_inputpsiid(INPUT_PSI_LCAO,inputpsi) !special treatment here
      end if
-  else if ( (in%inputPsiId == 'INPUT_PSI_MEMORY_LINEAR') .and. associated(KSwfn%psi)) then !in%inputPsiId == INPUT_PSI_MEMORY_LINEAR
+  else if ( in%inputPsiId == 'INPUT_PSI_MEMORY_LINEAR' .and. associated(KSwfn%psi)) then !in%inputPsiId == INPUT_PSI_MEMORY_LINEAR_
      if (associated(tmb%psi)) then
         !this is a tmb_null constructor
         tmb_old%lzd = local_zone_descriptors_null()
