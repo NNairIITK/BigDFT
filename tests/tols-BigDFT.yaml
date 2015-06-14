@@ -200,7 +200,7 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
- Positions: 1.21e-8
+ Positions: 4.31e-8
  Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
  Average noise forces: 6.2e-8
@@ -1426,7 +1426,7 @@ FF_LENOSKY-bfgs:
 
 FF_LENOSKY-diis:
   FORCES norm(Ha/Bohr): 1.01e-6
-  etot: 4.6e-8
+  etot: 7.2e-8
   Keys to ignore:
   - WARNINGS
 
@@ -1448,7 +1448,8 @@ FF_LJ-lbfgs:
   - WARNINGS
 
 FF_LJ-sqnm:
-  Geometry: 1.e-8
+  Geometry: 1.01e-8
+  fnrm2: 1.1e-6
   Keys to ignore:
   - WARNINGS
 
