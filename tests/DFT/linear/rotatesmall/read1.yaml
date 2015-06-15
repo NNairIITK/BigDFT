@@ -1,0 +1,54 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   rmult: [5.0, 7.0]
+   nrepmax: accurate
+   inputpsiid: linear_restart
+   disablesym: Yes
+ perf:
+   ef_interpol_det: 0.10E-19
+   mixing_after_inputguess: 2
+   correction_co_contra: no
+   purification_quickreturn: no
+ lin_general:
+   nit: [0, 1]
+   rpnrm_cv: [1.0000000000000001E-009, 1.0E-010]
+   conf_damping: 0.5
+ lin_basis:
+   nit: [2, 1]
+   idsx: 0
+   gnrm_cv: [5.0000000000000002E-005, 1.0000000000000001E-005]
+   alpha_sd: 0.1
+   nstep_prec: 4
+   fix_basis: 9.9999999999999994E-012
+ lin_kernel:
+   nit: [3, 1]
+   alphamix: 1.0
+   linear_method: DIRMIN
+   fscale_foe: 5.0000000000000003E-002
+ lin_basis_params:
+   Si:
+     ao_confinement: 5.0000000000000001E-003
+     confinement: [1.0E-003, 0.0]
+     rloc_kernel: 7.0
+     rloc_kernel_foe: 20.0
+   H:
+     nbasis: 1
+     ao_confinement: 5.0000000000000001E-003
+     confinement: [1.0E-003, 0.0]
+     rloc_kernel: 7.0
+     rloc_kernel_foe: 20.0
+ frag:
+   transfer_integrals: Yes
+   sih3:
+   - 1
+ posinp:
+   positions:
+   - Si: [0.0, 0.0, 0.0]
+   - H: [2.27703925603, 0.96296074397, -1.327026311748]
+   - H: [-0.96296074397, -2.27703925603, -1.327026311748]
+   - H: [-1.984065567778, 1.984065567778, 1.2947799689000001E-002]
+   properties:
+     format: xyz
+     source: read1

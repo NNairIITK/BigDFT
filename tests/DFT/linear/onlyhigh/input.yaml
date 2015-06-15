@@ -1,0 +1,52 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   rmult: [5.0, 7.0]
+   gnrm_cv: accurate
+   itermax: 100
+   ncong: 5
+   idsx: 10
+   inputpsiid: linear
+   disablesym: Yes
+ perf:
+   ef_interpol_det: 0.10E-19
+   mixing_after_inputguess: 2
+   correction_co_contra: no
+   purification_quickreturn: no
+ lin_general:
+   nit: [0, 10]
+   rpnrm_cv: 9.9999999999999994E-012
+   conf_damping: 0.5
+   calc_dipole: Yes
+   calc_pulay: old
+ lin_basis:
+   nit: 3
+   idsx: [5, 0]
+   gnrm_cv: 4.0000000000000003E-005
+ lin_kernel:
+   nit: 4
+   rpnrm_cv: 1.0000000000000001E-009
+   fscale_foe: 5.0000000000000003E-002
+ lin_basis_params:
+   C:
+     ao_confinement: 3.0000000000000001E-003
+     confinement: [3.0000000000000001E-003, 0.0]
+     rloc: [6.0, 7.0]
+     rloc_kernel: 6.0
+     rloc_kernel_foe: 20.0
+   O:
+     ao_confinement: 3.0000000000000001E-003
+     confinement: [3.0000000000000001E-003, 0.0]
+     rloc: [6.0, 7.0]
+     rloc_kernel: 6.0
+     rloc_kernel_foe: 20.0
+ posinp:
+   positions:
+   - O: [-0.1681115107138034, -0.4292082298950023, -0.5009525777368147]
+   - O: [2.157469879852385, 2.189192825510246, 2.128790988085025]
+   - C: [0.9946342037352509, 0.8800234367066865, 0.8135295734698423]
+   properties:
+     format: xyz
+     source: posinp
+   energy (Ha): -37.7327289363537

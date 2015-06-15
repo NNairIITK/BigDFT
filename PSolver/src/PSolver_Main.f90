@@ -198,6 +198,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            pot_ion,rhopot(i3start),rhopot(i3start),e_static)
       if (wrtmsg) then
+         call yaml_map('Rho_ion monopole',sum(rho_ion)*product(kernel%hgrids))
          call yaml_map('Summing up ionic density',.true.)
          call yaml_map('Estatic',e_static*product(kernel%hgrids))
          !call yaml_map('Total monopole',sum(rhopot(i3start:i3start+n1*n23-1)*product(kernel%hgrids)))
@@ -205,7 +206,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    end if
 
    !now switch the treatment according to the method used
-   select case(trim(char(kernel%method)))
+   select case(trim(str(kernel%method)))
    case('VAC')
       !core psolver routine
       call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,zf,.false.)

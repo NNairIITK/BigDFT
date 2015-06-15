@@ -83,7 +83,7 @@ module wrapper_MPI
   end interface mpigather
 
   interface mpibcast
-     module procedure mpibcast_i0,mpibcast_li0,mpibcast_d0
+     module procedure mpibcast_i0,mpibcast_li0,mpibcast_d0,mpibcast_c0
      module procedure mpibcast_c1,mpibcast_d1,mpibcast_d2,mpibcast_i1
   end interface mpibcast
 
@@ -1020,7 +1020,6 @@ contains
   end subroutine mpialltoallv_double
 
 
-
   !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
     use dictionaries, only: f_err_throw,f_err_define
@@ -1234,6 +1233,36 @@ contains
     include 'bcast-inc.f90'
   end subroutine mpibcast_d0
 
+  subroutine mpibcast_c0(buffer,root,comm,check,maxdiff)
+    use dynamic_memory
+    use dictionaries, only: f_err_throw
+    use yaml_output !for check=.true.
+    use f_utils, only: f_zero
+    implicit none
+    character(len=*), intent(inout) ::  buffer 
+    integer, intent(out), optional :: maxdiff
+    integer, dimension(:), allocatable :: array_diff !<the difference is performed with ascii value
+    ! 'bcast-decl-arr-inc.f90'
+    integer, intent(in), optional :: root  !< @copydoc doc::root
+    integer, intent(in), optional :: comm  !< @copydoc doc::comm  
+    logical, intent(in), optional :: check !< performs the check of the arguments
+    !local variables
+    logical chk
+    integer :: n,iroot,mpi_comm,ierr
+    integer, dimension(3) :: iarg_check
+    external :: MPI_BCAST
+
+    chk=.false.
+    n=len(buffer)
+    if (present(maxdiff)) then
+       call f_zero(maxdiff)
+       array_diff=f_malloc(n,id='array_diff')
+       call f_memcpy(src=buffer,dest=array_diff)
+    end if
+    ! end bcast_decl
+    include 'bcast-inc.f90'
+  end subroutine mpibcast_c0
+
   subroutine mpibcast_c1(buffer,root,comm,check,maxdiff)
     use dynamic_memory
     use dictionaries, only: f_err_throw
@@ -1285,7 +1314,6 @@ contains
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_d2
-
 
   subroutine mpiscatter_i1i1(sendbuf, recvbuf, root, comm)
     use dictionaries, only: f_err_throw,f_err_define
@@ -1611,16 +1639,23 @@ contains
     
   end function mpiwindow_l0
 
-  subroutine mpi_fenceandfree(window)
+  subroutine mpi_fenceandfree(window, assert)
     use dictionaries, only: f_err_throw,f_err_define
     ! Calling arguments
     integer,intent(inout) :: window !<window to be synchronized and freed
+    integer,intent(in),optional :: assert
 
     ! Local variables
-    integer :: ierr
+    integer :: ierr, assert_
+
+    if (present(assert)) then
+        assert_ = assert
+    else
+        assert_ = 0
+    end if
 
     ! Synchronize the communication
-    call mpi_win_fence(0, window, ierr)
+    call mpi_win_fence(assert_, window, ierr)
     if (ierr/=0) then
        call f_err_throw('Error in mpi_win_fence',&
             err_id=ERR_MPI_WRAPPERS)  

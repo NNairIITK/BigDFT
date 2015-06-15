@@ -415,6 +415,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
     !        write(*,*)'n:',Llr(ilr)%d%n1,Llr(ilr)%d%n2,Llr(ilr)%d%n3
     !        write(*,*)'nfl:',Llr(ilr)%d%nfl1,Llr(ilr)%d%nfl2,Llr(ilr)%d%nfl3
     !        write(*,*)'nfu:',Llr(ilr)%d%nfu1,Llr(ilr)%d%nfu2,Llr(ilr)%d%nfu3
+    !        write(*,*)'nsi:',Llr(ilr)%nsi1,Llr(ilr)%nsi2,Llr(ilr)%nsi3
     !        write(*,*)'ni:',Llr(ilr)%d%n1i,Llr(ilr)%d%n2i,Llr(ilr)%d%n3i
     !        write(*,*)'outofzone',ilr,':',outofzone(:)
     !     end if
@@ -670,10 +671,10 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
 
    keygloc_tmp = f_malloc((/ 2, (llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f) /),id='keygloc_tmp')
 
-   !$omp parallel default(private) &
-   !$omp shared(Glr,llr,hx,hy,hz,ilr,keygloc_tmp,perx,pery,perz)  
-   !$omp sections
-   !$omp section
+   !!$omp parallel default(private) &
+   !!$omp shared(Glr,llr,hx,hy,hz,ilr,keygloc_tmp,perx,pery,perz)  
+   !!$omp sections
+   !!$omp section
 
    !coarse part
    call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
@@ -688,7 +689,7 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%keyvloc(1), llr(ilr)%wfd%keyvglob(1), &
         keygloc_tmp(1,1))
 
-   !$omp section
+   !!$omp section
    !fine part
    call segkeys_Sphere(perx, pery, perz, Glr%d%n1, Glr%d%n2, Glr%d%n3, &
         glr%ns1, glr%ns2, glr%ns3, &
@@ -703,8 +704,8 @@ subroutine determine_wfdSphere(ilr,nlr,Glr,hx,hy,hz,Llr)!,outofzone)
         llr(ilr)%wfd%keyvloc(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         llr(ilr)%wfd%keyvglob(llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)), &
         keygloc_tmp(1,llr(ilr)%wfd%nseg_c+min(1,llr(ilr)%wfd%nseg_f)))  
-   !$omp end sections
-   !$omp end parallel
+   !!$omp end sections
+   !!$omp end parallel
 
    call f_free(keygloc_tmp)
 
@@ -1179,6 +1180,7 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
      locrad, locregCenter, &
      nsegglob, keygglob, keyvglob, nvctr_loc, keyg_loc, keyg_glob, keyv_loc, keyv_glob, keygloc)
   use module_base
+  use sparsematrix_init, only: distribute_on_threads
   implicit none
   logical,intent(in) :: perx, pery, perz
   integer,intent(in) :: n1, n2, n3, nl1glob, nl2glob, nl3glob, nl1, nu1, nl2, nu2, nl3, nu3, nseg, nsegglob, nvctr_loc
@@ -1196,9 +1198,15 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
   integer :: ij1, ij2, ij3, jj1, jj2, jj3, ii1mod, ii2mod, ii3mod, ivctr, jvctr, kvctr, ijs1, ijs2, ijs3, ije1, ije2, ije3
   real(kind=8) :: cut, dx, dy, dz
   logical :: segment, inside
+  integer,dimension(:,:),pointer :: ise
+  integer :: ithread, jthread, nthread, ivctr_tot, jvctr_tot, nstart_tot, nend_tot, kthread, j, offset
+  integer,dimension(:),allocatable :: nstartarr, keyv_last
+  integer,dimension(:,:,:),allocatable :: keygloc_work, keyg_glob_work
+  integer,dimension(:,:),allocatable :: keyv_glob_work
+  !$ integer :: omp_get_thread_num
   !integer, allocatable :: keygloc(:,:)
 
-  !call f_routine('segkeys_Sphere')
+  call f_routine('segkeys_Sphere')
 
   !keygloc = f_malloc((/ 2, nseg /),id='keygloc')
 
@@ -1211,10 +1219,6 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
   n2l=nu2-nl2
   n3l=nu3-nl3
 
-  nvctr=0
-  nstart=0
-  nend=0
-  segment=.false.
 
   ! For perdiodic boundary conditions, one has to check also in the neighboring
   ! cells (see in the loop below)
@@ -1240,6 +1244,16 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
       ije3 = 0
   end if
 
+  call distribute_on_threads(nsegglob, nthread, ise)
+
+  keygloc_work = f_malloc((/1.to.2,1.to.nseg,0.to.nthread-1/),id='keygloc_work')
+  keyg_glob_work = f_malloc((/1.to.2,1.to.nseg,0.to.nthread-1/),id='keyg_glob_work')
+  keyv_glob_work = f_malloc((/1.to.nseg,0.to.nthread-1/),id='keyv_glob_work')
+  keyv_last = f_malloc(0.to.nthread-1,id='keyv_last')
+
+
+  nstartarr = f_malloc(0.to.nthread-1,id='nstartarr')
+
   !can add openmp here too as segment always ends at end of y direction? 
   !problem is need nend value - can do a pre-scan to find seg value only as with init_collcom.
   !for now just do omp section
@@ -1251,7 +1265,29 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
   ivctr=0
   jvctr=0
   kvctr=0
-  do iseg=1,nsegglob
+  nvctr=0
+  nstart=0
+  nend=0
+  ivctr_tot = 0
+  jvctr_tot = 0
+  nstart_tot = 0
+  nend_tot = 0
+  segment=.false.
+  ithread = 0
+  !$omp parallel &
+  !$omp default(none) &
+  !$omp shared(ise, hx, hy, hz, keygglob, np, n1p1, nl1glob, nl2glob, nl3glob, locregCenter) &
+  !$omp shared(keygloc_work, keyg_glob_work, keyv_glob_work, nstartarr, nl1, nl2, nl3, nu1, nu2, nu3) &
+  !$omp shared(ijs3, ije3, ijs2, ije2, ijs1, ije1, n1, n2, n3, cut, n1lp1, nlp, nthread) &
+  !$omp shared(keygloc, keyg_glob, keyv_glob, ivctr_tot, jvctr_tot, nstart_tot, nend_tot, keyv_last) &
+  !$omp firstprivate(ithread, ivctr, jvctr, kvctr, nvctr, nstart, nend, segment) &
+  !$omp private(iseg, j0, j1, ii, i3, i2, i1, i0, ii2, ii3, dz, dy, igridgloba, jj1) &
+  !$omp private(i, ii1, dx, i1l, igridglob, inside, ij3, jj3, ij2, jj2, ij1, i2l, i3l) &
+  !$omp private(ii1mod, ii2mod, ii3mod, igridpoint, offset, j, kthread)
+  !jj1, )
+  !$ ithread = omp_get_thread_num()
+  do iseg=ise(1,ithread),ise(2,ithread)
+  !do iseg=1,nsegglob
       j0=keygglob(1,iseg)
       j1=keygglob(2,iseg)
       ii=j0-1
@@ -1302,9 +1338,6 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
           !write(*,*) 'ii1, ii2, ii3, inside', ii1, ii2, ii3, inside
           if(inside) then
               ! Check that we are not outside of the locreg region
-              !ii1mod=modulo(ii1-1,n1)+1
-              !ii2mod=modulo(ii2-1,n2)+1
-              !ii3mod=modulo(ii3-1,n3)+1
               ivctr=ivctr+1
               kvctr=kvctr+1
               !write(*,*) 'inside: kvctr, igridpoint', kvctr, igridpoint
@@ -1335,21 +1368,22 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
               nvctr=nvctr+1
               if(.not.segment) then
                   nstart=nstart+1
-                  keygloc(1,nstart)=igridpoint
-                  keyg_glob(1,nstart)=igridglob
-                  keyv_glob(nstart)=nvctr
+                  keygloc_work(1,nstart,ithread)=igridpoint
+                  keyg_glob_work(1,nstart,ithread)=igridglob
+                  keyv_glob_work(nstart,ithread)=nvctr
                   segment=.true.
               end if
           else
               if(segment) then
                   nend=nend+1
-                  keygloc(2,nend)=igridpoint!-1
-                  keyg_glob(2,nend)=igridglob-1
+                  keygloc_work(2,nend,ithread)=igridpoint!-1
+                  keyg_glob_work(2,nend,ithread)=igridglob-1
                   !write(*,'(a,4i7)') 'outside: kvctr, igridpoint, keygloc(1:2,nend)', kvctr, igridpoint, keygloc(1:2,nend)
                   segment=.false.
-                  jvctr=jvctr+keygloc(2,nend)-keygloc(1,nend)+1
-                  if (kvctr/=keygloc(2,nend)-keygloc(1,nend)+1) then
-                      write(*,*) 'kvctr, keygloc(2,nend)-keygloc(1,nend)+1', kvctr, keygloc(2,nend)-keygloc(1,nend)+1
+                  jvctr=jvctr+keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+                  if (kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1) then
+                      write(*,*) 'kvctr, keygloc(2,nend)-keygloc(1,nend)+1', &
+                           kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
                       stop 'kvctr/=keygloc(2,nend)-keygloc(1,nend)+1'
                   end if
                   kvctr=0
@@ -1359,48 +1393,97 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
       if(segment) then
           ! Close the segment
           nend=nend+1
-          keygloc(2,nend)=igridpoint
-          keyg_glob(2,nend)=igridglob
+          keygloc_work(2,nend,ithread)=igridpoint
+          keyg_glob_work(2,nend,ithread)=igridglob
           segment=.false.
-          jvctr=jvctr+keygloc(2,nend)-keygloc(1,nend)+1
-          if (kvctr/=keygloc(2,nend)-keygloc(1,nend)+1) then
-              write(*,*) 'kvctr, keygloc(2,nend)-keygloc(1,nend)+1', kvctr, keygloc(2,nend)-keygloc(1,nend)+1
-              stop 'kvctr/=keygloc(2,nend)-keygloc(1,nend)+1'
+          jvctr=jvctr+keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+          if (kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1) then
+              write(*,*) 'kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1', &
+                  kvctr, keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1
+              stop 'kvctr/=keygloc_work(2,nend,ithread)-keygloc_work(1,nend,ithread)+1'
           end if
           kvctr=0
       end if
   end do
+  ! Some checks
+  if (nstart/=nend) call f_err_throw('nstart/=nend',err_name='BIGDFT_RUNTIME_ERROR')
+  ! Number of segments calculated by ithread
+  nstartarr(ithread) = nstart
+  ! Number of elements calculated by ithread
+  if (nstart>0) then
+      keyv_last(ithread) = keyv_glob_work(nstart,ithread)+keyg_glob_work(2,nstart,ithread)-keyg_glob_work(1,nstart,ithread)
+  else
+      keyv_last(ithread) = 0
+  end if
+  !$omp barrier
+  ii = 1
+  do jthread=0,nthread-1
+      if (ithread==jthread) then
+          if (nstartarr(jthread)>0) then
+              call f_memcpy(n=2*nstartarr(jthread), src=keygloc_work(1,1,ithread), dest=keygloc(1,ii))
+              call f_memcpy(n=2*nstartarr(jthread), src=keyg_glob_work(1,1,ithread), dest=keyg_glob(1,ii))
+              offset = 0
+              do kthread=0,jthread-1
+                  offset = offset + keyv_last(kthread)
+              end do
+              do j=1,nstartarr(jthread)
+                  keyv_glob(ii+j-1) = keyv_glob_work(j,ithread) + offset
+              end do
+              !call f_memcpy(n=nstartarr(jthread), src=keyv_glob_work(1,ithread), dest=keyv_glob(ii))
+          end if
+      end if
+      ii = ii + nstartarr(jthread)
+  end do
+
+  !$omp critical
+      ivctr_tot = ivctr_tot + ivctr
+      jvctr_tot = jvctr_tot + jvctr
+      nstart_tot = nstart_tot + nstart
+      nend_tot = nend_tot + nend
+      !nseg_tot = nseg_tot + nseg
+  !$omp end critical
+  !$omp end parallel
+
+  !write(*,*) 'nstartarr',nstartarr
+  !do ii=1,nseg
+  !    write(*,*) 'ii, keygloc(:,ii)', ii, keygloc(:,ii)
+  !    write(*,*) 'ii, keyg_glob(:,ii)', ii, keyg_glob(:,ii)
+  !    write(*,*) 'ii, keyv_glob(ii)', ii, keyv_glob(ii)
+  !end do
+
 
   ! Some checks
-  if (ivctr/=nvctr_loc) then
-      write(*,*) 'ivctr, nvctr_loc', ivctr, nvctr_loc
-      stop 'ivctr/=nvctr_loc'
+  if (ivctr_tot/=nvctr_loc) then
+      write(*,*) 'ivctr_tot, nvctr_loc', ivctr_tot, nvctr_loc
+      stop 'ivctr_tot/=nvctr_loc'
   end if
 
-  if (jvctr/=nvctr_loc) then
-      write(*,*) 'jvctr, nvctr_loc', jvctr, nvctr_loc
-      stop 'jvctr/=nvctr_loc'
+  if (jvctr_tot/=nvctr_loc) then
+      write(*,*) 'jvctr_tot, nvctr_loc', jvctr_tot, nvctr_loc
+      stop 'jvctr_tot/=nvctr_loc'
   end if
 
-  if (nend /= nstart) then
-     write(*,*) 'nend , nstart',nend,nstart
-     stop 'nend <> nstart'
+  if (nend_tot /= nstart_tot) then
+     write(*,*) 'nend_tot , nstart_tot',nend_tot,nstart_tot
+     stop 'nend_tot <> nstart_tot'
   endif
-  if (nseg /= nstart) then
-     write(*,*) 'nseg , nstart',nseg,nstart
-     stop 'nseg <> nstart'
+  if (nseg /= nstart_tot) then
+     write(*,*) 'nseg , nstart_tot',nseg,nstart_tot
+     stop 'nseg <> nstart_tot'
   endif
 
   ! Now build the keyvloc where we replace the segments in order for the loc
   ivctr=0
-  do iseg = 1, nseg
+  ii = maxval(keygloc)
+  do iseg=1,nseg
      !sorting the keyg_loc
      loc = minloc(keygloc(1,:),1)
      keyg_loc(1,iseg) = keygloc(1,loc)
      keyg_loc(2,iseg) = keygloc(2,loc)
 !    print *,'iseg,keygloc,keyg_loc',iseg,keygloc(1,loc),keygloc(2,loc),keyg_loc(1,iseg),keyg_loc(2,iseg)
-     keygloc(1,loc) = maxval(keygloc) + 1
      keyv_loc(iseg) = keyv_glob(loc)
+     !keygloc(1,loc) = maxval(keygloc) + 1
+     keygloc(1,loc) = ii+iseg !just put to the maximal value
      !write(*,'(a,7i8)') 'iseg,keyglob,keyvglob,keygloc,keyvloc',iseg,keyg_glob(1:2,iseg),keyv_glob(iseg),keyg_loc(1:2,iseg),keyv_loc(iseg)
      ivctr=ivctr+keyg_loc(2,iseg)-keyg_loc(1,iseg)+1
   end do
@@ -1413,6 +1496,11 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
   ! Some checks
   ivctr=0
   !write(*,*) 'nlp, n1lp1', nlp, n1lp1
+  !$omp parallel &
+  !$omp default(none) &
+  !$omp shared(nseg, keyg_loc, nlp, n1lp1, n1l, n2l, n3l, ivctr) &
+  !$omp private(iseg, j0, j1, ii, i3, i2, i1, i0, i)
+  !$omp do reduction(+:ivctr)
   do iseg=1,nseg
      j0=keyg_loc(1,iseg)
      j1=keyg_loc(2,iseg)
@@ -1445,13 +1533,22 @@ subroutine segkeys_Sphere(perx, pery, perz, n1, n2, n3, nl1glob, nl2glob, nl3glo
         end if
      end do
   end do
+  !$omp end do
+  !$omp end parallel
 
   if (ivctr/=nvctr_loc) then
       write(*,*) 'ivctr, nvctr_loc', ivctr, nvctr_loc
       stop 'second check: ivctr/=nvctr_loc'
   end if
 
-  !call f_release_routine()
+  call f_free(keygloc_work)
+  call f_free(keyg_glob_work)
+  call f_free(keyv_glob_work)
+  call f_free(keyv_last)
+  call f_free(nstartarr)
+  call f_free_ptr(ise)
+
+  call f_release_routine()
 
 END SUBROUTINE segkeys_Sphere
 
@@ -1967,7 +2064,7 @@ end subroutine check_overlap_from_descriptors_periodic
 
 
   subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
-  use locregs, only: locreg_descriptors
+  use locregs, only: locreg_descriptors, check_overlap_cubic_periodic
   implicit none
 
   ! Calling arguments
@@ -2028,282 +2125,9 @@ subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
 end subroutine transform_keyglob_to_keygloc
 
 
-!> Almost degenerate with get_number_of_overlap_region
-!! should merge the two... prefering this one since argument list is better 
-subroutine check_overlap_cubic_periodic(Glr,Ilr,Jlr,isoverlap)
-  use module_types
-  use module_base
-  use communications_init, only: check_whether_bounds_overlap
-  implicit none
-  type(locreg_descriptors), intent(in) :: Glr
-  type(locreg_descriptors), intent(in) :: Ilr
-  type(locreg_descriptors), intent(in) :: Jlr
-  logical, intent(out) :: isoverlap
-  !Local variables
-  integer :: is1, ie1, is2, ie2, is3, ie3, js1, je1, js2, je2, js3, je3
-  logical :: overlap1, overlap2, overlap3
-!!  integer :: azones,bzones,ii,izones,jzones !, i_stat, i_all
-!!  logical :: go1, go2, go3
-!!  integer,dimension(3,8) :: astart,bstart,aend,bend
-
-!!  azones = 1
-!!  bzones = 1
-!!! Calculate the number of regions to cut alr and blr
-!!  do ii=1,3
-!!     if(Ilr%outofzone(ii) > 0) azones = azones * 2
-!!     if(Jlr%outofzone(ii) > 0) bzones = bzones * 2
-!!  end do
-!!
-!!!FRACTURE THE FIRST LOCALIZATION REGION
-!!  call fracture_periodic_zone(azones,Glr,Ilr,Ilr%outofzone,astart,aend)
-!!
-!!!FRACTURE SECOND LOCREG
-!!  call fracture_periodic_zone(bzones,Glr,Jlr,Jlr%outofzone,bstart,bend)
-!!
-!!! Now check if they overlap
-!!  isoverlap = .false.
-!!  loop_izones: do izones=1,azones
-!!    do jzones=1,bzones
-!!      go1 = (bstart(1,jzones) .le. aend(1,izones) .and. bend(1,jzones) .ge. astart(1,izones))
-!!      go2 = (bstart(2,jzones) .le. aend(2,izones) .and. bend(2,jzones) .ge. astart(2,izones))
-!!      go3 = (bstart(3,jzones) .le. aend(3,izones) .and. bend(3,jzones) .ge. astart(3,izones))
-!!      if(go1 .and. go2 .and. go3) then
-!!        isoverlap = .true.
-!!        exit loop_izones
-!!      end if
-!!    end do
-!!  end do loop_izones
-
-
-  !@ NEW VERSION #########################################
-  ! Shift all the indices into the periodic cell. This can result is starting
-  ! indices being larger than ending indices
-  is1 = modulo(ilr%ns1,glr%d%n1+1)
-  ie1 = modulo(ilr%ns1+ilr%d%n1,glr%d%n1+1)
-  is2 = modulo(ilr%ns2,glr%d%n2+1)
-  ie2 = modulo(ilr%ns2+ilr%d%n2,glr%d%n2+1)
-  is3 = modulo(ilr%ns3,glr%d%n3+1)
-  ie3 = modulo(ilr%ns3+ilr%d%n3,glr%d%n3+1)
-  js1 = modulo(jlr%ns1,glr%d%n1+1)
-  je1 = modulo(jlr%ns1+jlr%d%n1,glr%d%n1+1)
-  js2 = modulo(jlr%ns2,glr%d%n2+1)
-  je2 = modulo(jlr%ns2+jlr%d%n2,glr%d%n2+1)
-  js3 = modulo(jlr%ns3,glr%d%n3+1)
-  je3 = modulo(jlr%ns3+jlr%d%n3,glr%d%n3+1)
-  overlap1 = check_whether_bounds_overlap(is1, ie1, js1, je1)
-  overlap2 = check_whether_bounds_overlap(is2, ie2, js2, je2)
-  overlap3 = check_whether_bounds_overlap(is3, ie3, js3, je3)
-
-  if (overlap1 .and. overlap2 .and. overlap3) then
-      isoverlap = .true.
-  else
-      isoverlap = .false.
-  end if
-      
-  !@ END NEW VERSION #####################################
-
-  !!!debug
-  !!isoverlap=.true.
-
-end subroutine check_overlap_cubic_periodic
 
 
 
-!> Tranform wavefunction between localisation region and the global region
-!!!!!#######!> This routine only works if both locregs have free boundary conditions.
-!! @warning 
-!! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
-subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)
-
-  use module_base
-  use module_types
-
- implicit none
-
-  ! Subroutine Scalar Arguments
-  integer,intent(in):: iproc
-  integer :: Gdim          ! dimension of psi 
-  integer :: Ldim          ! dimension of lpsi
-  integer :: norb          ! number of orbitals
-  integer :: nspinor       ! number of spinors
-  integer :: nspin         ! number of spins 
-  type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
-  type(locreg_descriptors), intent(in) :: Llr  ! Localization grid descriptors 
-  
-  !Subroutine Array Arguments
-  real(wp),dimension(Gdim),intent(inout) :: psi       !Wavefunction (compressed format)
-  real(wp),dimension(Ldim),intent(in) :: lpsi         !Wavefunction in localization region
-  
-  !local variables
-  integer :: igrid,isegloc,isegG,ix!,iorbs
-  integer :: lmin,lmax,Gmin,Gmax
-  integer :: icheck      ! check to make sure the dimension of loc_psi does not overflow 
-  integer :: offset      ! gives the difference between the starting point of Lseg and Gseg
-  integer :: length      ! Length of the overlap between Lseg and Gseg
-  integer :: lincrement  ! Increment for writing orbitals in loc_psi
-  integer :: Gincrement  ! Increment for reading orbitals in psi
-  integer :: nseg        ! total number of segments in Llr
-  !integer, allocatable :: keymask(:,:)  ! shift for every segment of Llr (with respect to Glr)
-  character(len=*), parameter :: subname='Lpsi_to_global'
-  integer :: i_all
-  integer :: start,Gstart,Lindex
-  integer :: lfinc,Gfinc,spinshift,ispin,Gindex,isegstart
-  integer :: istart
-  !integer :: i_stat
-
-  call f_routine(id=subname)
-
-  !!! This routine is only intended for conversions between locregs with the same boundary conditions.
-  !!if (glr%geocode/= 'F' .or. llr%geocode/='F') then
-  !!    call f_err_throw('Lpsi_to_global2 can only be used for locregs with free boundary conditions', &
-  !!         err_name='BIGDFT_RUNTIME_ERROR')
-  !!end if
-
-  if(nspin/=1) stop 'not fully implemented for nspin/=1!'
-
-! Define integers
-  nseg = Llr%wfd%nseg_c + Llr%wfd%nseg_f
-  lincrement = Llr%wfd%nvctr_c + 7*Llr%wfd%nvctr_f
-  Gincrement = Glr%wfd%nvctr_c + 7*Glr%wfd%nvctr_f
-  icheck = 0
-  spinshift = Gdim / nspin
- 
-! Get the keymask: shift for every segment of Llr (with respect to Glr)
-! allocate(keymask(2,nseg),stat=i_stat)
-  !keymask = f_malloc((/2,nseg/),id='keymask')
-
-  !call shift_locreg_indexes(Glr,Llr,keymask,nseg)
-  !call shift_locreg_indexes_global(Glr,Llr,keymask,nseg)
-  !!keymask = llr%wfd%keyglob
-
-!####################################################
-! Do coarse region
-!####################################################
-  isegstart=1
-
- 
-  !$omp parallel default(private) &
-  !$omp shared(Glr,Llr, lpsi,icheck,psi,norb) &
-  !$omp firstprivate(isegstart,nseg,lincrement,Gincrement,spinshift,nspin) 
-
-  !$omp do reduction(+:icheck)
-  local_loop_c: do isegloc = 1,Llr%wfd%nseg_c
-     lmin = llr%wfd%keyglob(1,isegloc)
-     lmax = llr%wfd%keyglob(2,isegloc)
-     istart = llr%wfd%keyvglob(isegloc)-1
-
-     
-     global_loop_c: do isegG = isegstart,Glr%wfd%nseg_c
-        Gmin = Glr%wfd%keyglob(1,isegG)
-        Gmax = Glr%wfd%keyglob(2,isegG)
-
-        ! For each segment in Llr check if there is a collision with the segment in Glr
-        !if not, cycle
-        if(lmin > Gmax) then
-            isegstart=isegG
-        end if
-        if(Gmin > lmax) exit global_loop_c
-
-        !if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_c
-        if(lmin > Gmax)  cycle global_loop_c
-
-        ! Define the offset between the two segments
-        offset = lmin - Gmin
-        if(offset < 0) then
-           offset = 0
-        end if
-
-        ! Define the length of the two segments
-        length = min(lmax,Gmax)-max(lmin,Gmin)
-
-        !Find the common elements and write them to the new global wavefunction
-        icheck = icheck + (length + 1)
-
-        ! WARNING: index goes from 0 to length because it is the offset of the element
-
-        do ix = 0,length     
-           istart = istart + 1
-           do ispin=1,nspin
-              Gindex = Glr%wfd%keyvglob(isegG)+offset+ix+spinshift*(ispin-1)
-              Lindex = istart+lincrement*norb*(ispin-1)
-              psi(Gindex) = lpsi(Lindex) 
-           end do
-        end do
-     end do global_loop_c
-  end do local_loop_c
-  !$omp end do
-
-
-!##############################################################
-! Now do fine region
-!##############################################################
-
-  start = Llr%wfd%nvctr_c
-  Gstart = Glr%wfd%nvctr_c
-  lfinc  = Llr%wfd%nvctr_f
-  Gfinc = Glr%wfd%nvctr_f
-
-  isegstart=Glr%wfd%nseg_c+1
-
-  !$omp do reduction(+:icheck)
-  local_loop_f: do isegloc = Llr%wfd%nseg_c+1,nseg
-     lmin = llr%wfd%keyglob(1,isegloc)
-     lmax = llr%wfd%keyglob(2,isegloc)
-     istart = llr%wfd%keyvglob(isegloc)-1
-
-     global_loop_f: do isegG = isegstart,Glr%wfd%nseg_c+Glr%wfd%nseg_f
-
-        Gmin = Glr%wfd%keyglob(1,isegG)
-        Gmax = Glr%wfd%keyglob(2,isegG)
-
-        ! For each segment in Llr check if there is a collision with the segment in Glr
-        ! if not, cycle
-        if(lmin > Gmax) then
-            isegstart=isegG
-        end if
-        if(Gmin > lmax)  exit global_loop_f
-        !if((lmin > Gmax) .or. (lmax < Gmin))  cycle global_loop_f
-        if(lmin > Gmax)  cycle global_loop_f
-
-        offset = lmin - Gmin
-        if(offset < 0) offset = 0
-
-        length = min(lmax,Gmax)-max(lmin,Gmin)
-
-        !Find the common elements and write them to the new global wavefunction
-        ! First set to zero those elements which are not copied. WARNING: will not work for npsin>1!!
- 
-        icheck = icheck + (length + 1)
-
-        ! WARNING: index goes from 0 to length because it is the offset of the element
-        do ix = 0,length
-        istart = istart + 1
-           do igrid=1,7
-              do ispin = 1, nspin
-                 Gindex = Gstart + (Glr%wfd%keyvglob(isegG)+offset+ix-1)*7+igrid + spinshift*(ispin-1)
-                 Lindex = start+(istart-1)*7+igrid + lincrement*norb*(ispin-1) 
-                 psi(Gindex) = lpsi(Lindex) 
-              end do
-           end do
-        end do
-     end do global_loop_f
-  end do local_loop_f
-  !$omp end do
-
-  !$omp end parallel
-
-  !Check if the number of elements in loc_psi is valid
-  if(icheck .ne. Llr%wfd%nvctr_f+Llr%wfd%nvctr_c) then
-    write(*,*)'There is an error in Lpsi_to_global2: sum of fine and coarse points used',icheck
-    write(*,*)'is not equal to the sum of fine and coarse points in the region',Llr%wfd%nvctr_f+Llr%wfd%nvctr_c
-    stop
-  end if
-
-  !!call f_free(keymask)
-
-  call f_release_routine()
-
-END SUBROUTINE Lpsi_to_global2
 !> Tranform wavefunction between localisation region and the global region
 
 

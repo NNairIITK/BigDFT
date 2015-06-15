@@ -13,6 +13,7 @@ subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
   use module_base
   use module_types
   use module_xc
+  use public_enums
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
   integer, intent(in) :: ixc, nspden
@@ -165,6 +166,7 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
   use module_base
   use module_types
   use m_ab7_mixing
+  use public_enums, only: SCF_KIND_DIRECT_MINIMIZATION
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
   integer, intent(in) :: iscf, n1i, n2i, nspin

@@ -294,7 +294,8 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    
       delta=rxyz(:,:,idx(nhist))-rxyzOld
       displr=displr+dnrm2(3*nat,delta(1,1),1)
-      runObj%inputs%inputPsiId=1
+      !runObj%inputs%inputPsiId=1
+      call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
       call minenergyandforces(iproc,nproc,.true.,imode,runObj,outs,nat,rxyz(1,1,idx(nhist)),&
                              fxyz(1,1,idx(nhist)),fstretch(1,1,idx(nhist)),fxyzraw(1,1,idx(nhist)),&
                              etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
@@ -562,7 +563,8 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,fat,fs
     infocode=0
     if(eeval)then
         call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
-        runObj%inputs%inputPsiId=1
+        !runObj%inputs%inputPsiId=1
+        call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
         call bigdft_state(runObj,outs,infocode)
     endif
     call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fat(1,1), 1)

@@ -1,0 +1,97 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   rmult: [4.0, 4.5]
+   ixc: PBE (ABINIT)
+   gnrm_cv: accurate
+   itermax: 100
+   ncong: 5
+   idsx: 10
+   inputpsiid: linear
+   disablesym: Yes
+ perf:
+   ef_interpol_det: 0.10E-19
+   mixing_after_inputguess: 2
+   experimental_mode: Yes
+   kappa_conv: 0.5
+   correction_co_contra: no
+   purification_quickreturn: no
+ lin_general:
+   hybrid: Yes
+   nit: [2, 0]
+   rpnrm_cv: 9.9999999999999995E-007
+   taylor_order: 6
+ lin_basis:
+   nit: [3, 0]
+   idsx: 0
+   gnrm_cv: 5.9999999999999998E-002
+   gnrm_dyn: 1.0E-003
+   alpha_diis: 0.5
+   alpha_sd: 0.2
+   nstep_prec: 6
+   fix_basis: 9.9999999999999994E-012
+ lin_kernel:
+   nit: 4
+   idsx: 7
+   rpnrm_cv: 9.9999999999999995E-008
+   eval_range_foe: [-1.1, 1.3]
+   fscale_foe: 2.9999999999999999E-002
+ lin_basis_params:
+   S:
+     ao_confinement: 4.8000000000000001E-002
+     confinement: 4.8000000000000001E-002
+     rloc: 5.0
+     rloc_kernel: 10.0
+     rloc_kernel_foe: 12.0
+   N:
+     ao_confinement: 7.2999999999999995E-002
+     confinement: 7.2999999999999995E-002
+     rloc: 4.5
+     rloc_kernel: 10.0
+     rloc_kernel_foe: 12.0
+   C:
+     ao_confinement: 7.2999999999999995E-002
+     confinement: 7.2999999999999995E-002
+     rloc: 4.5
+     rloc_kernel: 10.0
+     rloc_kernel_foe: 12.0
+   O:
+     ao_confinement: 7.2999999999999995E-002
+     confinement: 7.2999999999999995E-002
+     rloc: 4.5
+     rloc_kernel: 10.0
+     rloc_kernel_foe: 12.0
+   H:
+     nbasis: 1
+     ao_confinement: 0.12
+     confinement: 0.12
+     rloc: 4.0
+     rloc_kernel: 10.0
+     rloc_kernel_foe: 12.0
+ posinp:
+   units: angstroem
+   positions:
+   - N: [0.0, 0.0, 0.0]
+   - C: [-0.1400000005960464, -0.9800000190734863, -1.059999942779541]
+   - C: [1.080000042915344, -1.840000033378601, -1.139999985694885]
+   - O: [1.120000004768372, -2.799999952316284, -1.860000014305115]
+   - O: [2.099999904632568, -1.440000057220459, -0.3799999952316284]
+   - C: [-0.4600000083446503, -0.2800000011920929, -2.380000114440918]
+   - C: [-1.440000057220459, -1.059999942779541, -3.259999990463257]
+   - S: [-0.6800000071525574, -2.599999904632568, -3.859999895095825]
+   - C: [-1.720000028610229, -3.779999971389771, -2.960000038146973]
+   - H: [0.209199994802475, -0.4663000106811523, 0.8596000075340271]
+   - H: [-0.8543999791145325, 0.5105000138282776, 9.7000002861022949E-002]
+   - H: [-0.9603999853134155, -1.631500005722046, -0.8424000144004822]
+   - H: [2.926100015640259, -1.929000020027161, -0.3892000019550323]
+   - H: [0.457399994134903, -0.198400005698204, -2.924700021743774]
+   - H: [-0.8873999714851379, 0.6764000058174133, -2.161799907684326]
+   - H: [-1.702299952507019, -0.4548999965190887, -4.10260009765625]
+   - H: [-2.312400102615356, -1.298400044441223, -2.688199996948242]
+   - H: [-1.619899988174438, -3.613500118255615, -1.907799959182739]
+   - H: [-2.74210000038147, -3.645600080490112, -3.246700048446655]
+   - H: [-1.412099957466125, -4.777699947357178, -3.194099903106689]
+   properties:
+     format: xyz
+     source: densmixdiis

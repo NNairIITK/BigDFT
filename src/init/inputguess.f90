@@ -13,6 +13,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    use module_types
    use module_interfaces, except_this_one => inputguess_gaussian_orbitals
    use yaml_output
+   use public_enums
    implicit none
    integer, intent(in) :: iproc,nproc,nspin
    integer, intent(inout) :: nvirt

@@ -32,7 +32,8 @@ program memguess
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix, only: uncompress_matrix
    use postprocessing_linear, only: loewdin_charge_analysis_core
-                                
+   use public_enums
+   use module_input_keys, only: print_dft_parameters
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
@@ -53,7 +54,7 @@ program memguess
    integer :: nspin,iorb,norbu,norbd,nspinor,norb,iorbp,iorb_out,lwork
    integer :: norbgpu,ng, nsubmatrices, ncategories
    integer :: export_wf_iband, export_wf_ispin, export_wf_ikpt, export_wf_ispinor,irad
-   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power,d
+   real(gp) :: hx,hy,hz,energy,occup,interval,tt,cutoff,power,d,occup_pdos, total_occup
    type(memory_estimation) :: mem
    type(run_objects) :: runObj
    type(orbitals_data) :: orbstst
@@ -69,7 +70,7 @@ program memguess
    type(system_fragment), dimension(:), pointer :: ref_frags
    character(len=3) :: in_name !lr408
    character(len=128) :: line
-   integer :: i, inputpsi, input_wf_format, nneighbor_min, nneighbor_max, nneighbor, ntypes
+   integer :: i, input_wf_format, nneighbor_min, nneighbor_max, nneighbor, ntypes
    integer,parameter :: nconfig=1
    type(dictionary), pointer :: run
    integer,dimension(:),pointer :: nzatom, nelpsp, iatype
@@ -104,6 +105,7 @@ program memguess
    logical,dimension(:,:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
    type(sparse_matrix) :: smat_s, smat_m, smat_l
+   type(f_enumerator) :: inputpsi
 
    call f_lib_initialize()
    !initialize errors and timings as bigdft routines are called
@@ -210,7 +212,7 @@ program memguess
             optimise=.true.
             output_grid=1
             write(*,'(1x,a)')&
-               &   'The optimised system grid will be displayed in the "grid.xyz" file'
+               &   'The optimised system grid will be displayed in the "grid.xyz" file and "posopt.xyz"'
             exit loop_getargs
          else if (trim(tatonam)=='GPUtest') then
             GPUtest=.true.
@@ -332,9 +334,9 @@ program memguess
             !i_arg = i_arg + 1
             !call get_command_argument(i_arg, value = nat_)
             !read(nat_,fmt=*,iostat=ierror) nat
-            i_arg = i_arg + 1
-            call get_command_argument(i_arg, value = interval_)
-            read(interval_,fmt=*,iostat=ierror) interval
+            !i_arg = i_arg + 1
+            !call get_command_argument(i_arg, value = interval_)
+            !read(interval_,fmt=*,iostat=ierror) interval
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = pdos_file)
             !i_arg = i_arg + 1
@@ -810,16 +812,17 @@ program memguess
 
        call f_close(iunit01)
 
-       npt = ceiling((eval_ptr(ntmb)-eval_ptr(1))/interval)
+       !!npt = ceiling((eval_ptr(ntmb)-eval_ptr(1))/interval)
        pdos = f_malloc0((/npt,npdos/),id='pdos')
-       energy_bins = f_malloc((/2,npt/),id='energy_bins')
-       ! Determine the energy bins
-       do ipt=1,npt
-           energy_bins(1,ipt) = eval_ptr(1) + real(ipt-1,kind=8)*interval - eps_roundoff
-           energy_bins(2,ipt) = energy_bins(1,ipt) + interval
-       end do
+       !!energy_bins = f_malloc((/2,npt/),id='energy_bins')
+       !!! Determine the energy bins
+       !!do ipt=1,npt
+       !!    energy_bins(1,ipt) = eval_ptr(1) + real(ipt-1,kind=8)*interval - eps_roundoff
+       !!    energy_bins(2,ipt) = energy_bins(1,ipt) + interval
+       !!end do
        output_pdos='PDoS.gp'
        call yaml_map('output file',trim(output_pdos))
+       iunit02 = 99
        call f_open_file(iunit02, file=trim(output_pdos), binary=.false.)
        write(iunit02,'(a)') '# plot the DOS as a sum of Gaussians'
        write(iunit02,'(a)') 'set samples 1000'
@@ -827,11 +830,13 @@ program memguess
        write(iunit02,'(a)') 'sigma=0.01'
        write(backslash,'(a)') '\ '
        ! Calculate a partial kernel for each KS orbital
+       total_occup = 0.d0
        do ipdos=1,npdos
            call yaml_map('PDoS number',ipdos)
            call yaml_map('start, increment',(/ipdos,npdos/))
            write(num,fmt='(i2.2)') ipdos
            write(iunit02,'(a,i0,a)') 'f',ipdos,'(x) = '//trim(backslash)
+           occup_pdos = 0.d0
            do iorb=1,norbks
                call yaml_map('orbital being processed',iorb)
                call gemm('n', 't', ntmb, ntmb, 1, 1.d0, coeff_ptr(1,iorb), ntmb, &
@@ -840,17 +845,18 @@ program memguess
                 !write(*,*) 'ovrlp_mat%matrix',ovrlp_mat%matrix
                energy = 0.d0
                occup = 0.d0
-               !!$omp parallel default(none) &
-               !!$omp shared(nspin,ntmb,denskernel,ham_matrix,overlap_matrix,ipdos,npdos,energy,occup) &
-               !!$omp private(ispin,tmb,jtmb)
                do ispin=1,nspin
-                   !!$omp do reduction(+:energy)
+                   !$omp parallel default(none) &
+                   !$omp shared(ispin,ntmb,denskernel,ham_mat,energy) &
+                   !$omp private(itmb,jtmb)
+                   !$omp do reduction(+:energy)
                    do itmb=1,ntmb
                        do jtmb=1,ntmb
                            energy = energy + denskernel(itmb,jtmb)*ham_mat%matrix(jtmb,itmb,ispin)
                        end do
                    end do
-                   !!$omp end do
+                   !$omp end do
+                   !$omp end parallel
                end do
                do ispin=1,nspin
                    !!$omp do reduction(+:occup)
@@ -865,17 +871,18 @@ program memguess
                end do
                !write(*,*) 'OCCUP',occup, energy, eval_ptr(iorb)
                !!$omp end parallel
-               found_bin = .false.
-               do ipt=1,npt
-                   if (energy>=energy_bins(1,ipt) .and. energy<energy_bins(2,ipt)) then
-                       pdos(ipt,ipdos) = pdos(ipt,ipdos) + occup
-                       found_bin = .true.
-                       exit
-                   end if
-               end do
-               if (.not.found_bin) then
-                   call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
-               end if
+               !!found_bin = .false.
+               !!do ipt=1,npt
+               !!    if (energy>=energy_bins(1,ipt) .and. energy<energy_bins(2,ipt)) then
+               !!        pdos(ipt,ipdos) = pdos(ipt,ipdos) + occup
+               !!        found_bin = .true.
+               !!        exit
+               !!    end if
+               !!end do
+               !!if (.not.found_bin) then
+               !!    call f_err_throw('could not determine energy bin, energy='//yaml_toa(energy),err_name='BIGDFT_RUNTIME_ERROR')
+               !!end if
+               occup_pdos = occup_pdos + occup
                if (iorb<norbks) then
                    write(iunit02,'(2(a,es16.9),a)') '  ',occup,'*exp(-(x-',energy,')**2/(2*sigma**2)) + '//trim(backslash)
                else
@@ -883,23 +890,24 @@ program memguess
                end if
                !write(*,'(a,i6,3es16.8)')'iorb, eval(iorb), energy, occup', iorb, eval(iorb), energy, occup
            end do
+           total_occup = total_occup + occup_pdos
            if (ipdos==1) then
                write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
            else
                write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
            end if
-           call yaml_map('sum of PDoS',sum(pdos(:,ipdos)))
-           output_pdos='PDoS_'//num//'.dat'
-           call yaml_map('output file',trim(output_pdos))
-           call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
-           write(iunit01,'(a)') '#             energy                pdos'
-           do ipt=1,npt
-               write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
-           end do
-           call f_close(iunit01)
+           call yaml_map('sum of PDoS',occup_pdos)
+           !!output_pdos='PDoS_'//num//'.dat'
+           !!call yaml_map('output file',trim(output_pdos))
+           !!call f_open_file(iunit01, file=trim(output_pdos), binary=.false.)
+           !!write(iunit01,'(a)') '#             energy                pdos'
+           !!do ipt=1,npt
+           !!    write(iunit01,'(2es20.12)') energy_bins(1,ipt), pdos(ipt,ipdos)
+           !!end do
+           !!call f_close(iunit01)
        end do
        call f_close(iunit02)
-       call yaml_map('sum of total DoS',sum(pdos(:,:)))
+       call yaml_map('sum of total DoS',total_occup)
 
        stop
    end if
@@ -1729,6 +1737,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use gaussians, only: gaussian_basis, deallocate_gwf
    use module_xc
+   use module_input_keys
 
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
@@ -1851,13 +1860,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !initialise the acceleration strategy if required
    call init_material_acceleration(iproc,matacc,GPU)
 
-   if (GPUconv .eqv. GPU%OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
-
    !allocate arrays for the GPU if a card is present
-   if (GPUconv) then
-      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,nspin,&
-           hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       !the same with OpenCL, but they cannot exist at same time
       call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%Glr%geocode,&
            nspin,Lzd%Glr%wfd,orbs,GPU)
@@ -1887,9 +1891,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    call nanosec(itsc0)
    do j=1,ntimes
       !switch between GPU/CPU treatment of the density
-      if (GPUconv) then
-         call local_partial_density_GPU(orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
-      else if (GPU%OCLconv) then
+      if (GPU%OCLconv) then
          call local_partial_density_OCL(orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
       end if
    end do
@@ -1963,9 +1965,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !take timings
    call nanosec(itsc0)
    do j=1,ntimes
-      if (GPUconv) then
-         call local_hamiltonian_GPU(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
-      else if (GPU%OCLconv) then
+      if (GPU%OCLconv) then
          call local_hamiltonian_OCL(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
       end if
    end do
@@ -2065,10 +2065,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
       !Preconditions all orbitals belonging to iproc
       !and calculate the partial norm of the residue
       !switch between CPU and GPU treatment
-      if (GPUconv) then
-         call preconditionall_GPU(orbs,Lzd%Glr,hx,hy,hz,ncong,&
-            &   GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
-      else if (GPU%OCLconv) then
+      if (GPU%OCLconv) then
          call preconditionall_OCL(orbs,Lzd%Glr,hx,hy,hz,ncong,&
             &   GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
       end if
@@ -2088,9 +2085,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
 
 
    !free the card at the end
-   if (GPUconv) then
-      call free_gpu(GPU,orbs%norbp)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,orbs,nspin)
    end if
 
@@ -2162,6 +2157,9 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    use module_types
    use module_interfaces
    use module_fragments
+   use locreg_operations, only: lpsi_to_global2
+   use module_input_keys, only: wave_format_from_filename
+   use public_enums
    implicit none
    integer, intent(inout) :: iorbp, ispinor
    real(gp), intent(in) :: hx,hy,hz
@@ -2177,7 +2175,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    character(len=*), parameter :: subname='take_psi_form_file'
    logical :: perx,pery,perz
    integer :: nb1,nb2,nb3,ikpt, ispin, i
-   integer :: wave_format_from_filename,iformat
+   integer :: iformat
    real(gp) :: eval_fake
    real(wp), dimension(:,:,:), allocatable :: psifscf
    real(gp), dimension(:,:), allocatable :: rxyz_file
@@ -2193,7 +2191,7 @@ subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorb
    real(wp), allocatable, dimension(:) :: lpsi
    type(orbitals_data) :: lin_orbs
 
-   rxyz_file = f_malloc((/ at%astruct%nat, 3 /),id='rxyz_file')
+   rxyz_file = f_malloc((/3, at%astruct%nat /),id='rxyz_file')
 
    iformat = wave_format_from_filename(0, filename)
    if (iformat == WF_FORMAT_PLAIN .or. iformat == WF_FORMAT_BINARY) then

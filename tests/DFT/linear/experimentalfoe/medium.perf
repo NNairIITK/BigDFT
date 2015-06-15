@@ -1,9 +1,0 @@
-check_sumrho 1
-experimental_mode T
-kappa_conv 0.7
-evbounds_nsatur 100
-calculate_gap T
-method_updatekernel 2
-correction_co_contra T
-purification_quickreturn T
-mixing_after_inputguess 2

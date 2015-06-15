@@ -53,6 +53,7 @@ module sparsematrix_base
 
   type,public :: sparse_matrix
       integer :: nvctr, nseg, nvctrp, isvctr, parallel_compression, nfvctr, nfvctrp, isfvctr, nspin
+      integer :: offset_matrixindex_in_compressed_fortransposed
       integer,dimension(:),pointer :: keyv, nsegline, istsegline, isvctr_par, nvctr_par, isfvctr_par, nfvctr_par
       integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr!, orb_from_index
@@ -236,10 +237,9 @@ module sparsematrix_base
 
 
 
-    subroutine allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, nsegline, istsegline, smmm)
+    subroutine allocate_sparse_matrix_matrix_multiplication(nproc, norb, nseg, smmm)
       implicit none
       integer,intent(in) :: nproc, norb, nseg
-      integer,dimension(norb),intent(in) :: nsegline, istsegline
       type(sparse_matrix_matrix_multiplication),intent(inout):: smmm
       smmm%ivectorindex=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex')
       smmm%ivectorindex_new=f_malloc_ptr(smmm%nseq,id='smmm%ivectorindex_new')

@@ -41,8 +41,7 @@
 #include "config.inc"
 #endif
 
-subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
-
+subroutine ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
  use defs_basis
 
 !This section has been created automatically by the script Abilint (TD).
@@ -52,10 +51,12 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !End of the abilint section
 
  implicit none
+ !SM there are probably better ways than this...
+ include 'mpif.h'
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: natom,ntypat
+ integer,intent(in) :: iproc,nproc,natom,ntypat
  real(dp),intent(in) :: ucvol
  real(dp),intent(out) :: eew
 !arrays
@@ -71,8 +72,35 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
  real(dp) :: r1a1d,r2,r2a2d,r3,r3a3d,recip,reta,rmagn,rsq,sumg,summi,summr,sumr
  real(dp) :: t1,term
  character(len=500) :: message
+ real(dp) :: tt
+ integer :: natp, isat, ii, iia, ierr
+ real(dp),dimension(2) :: sumarr
+ real(dp),dimension(:,:,:),allocatable :: grewtn_tmp
 
 ! *************************************************************************
+
+!SM: MPI parallelization over the atoms
+ tt = real(natom,kind=dp)/nproc
+ natp = floor(tt) !number of atoms per proc
+ isat = iproc*natp !offset for each proc
+ ii = natom-nproc*natp !remaining atoms
+ if (iproc<ii) then
+     natp = natp+1 !one more atom for this proc
+     isat = isat+iproc !offset increases by the number of additional atoms up to iproc
+ else
+     isat = isat+ii !offset increases by the number of additional atoms
+ end if
+ ! Check
+ ii = natp
+ if (nproc>1) then
+     !call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     iia=0
+     call mpi_allreduce(ii, iia, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+     ii = iia
+ end if
+ !if (ii/=natom) call f_err_throw('ii/=natom',err_name='BIGDFT_RUNTIME_ERROR')
+ if (ii/=natom) stop 'ii/=natom'
+ allocate(grewtn_tmp(3,natom,2))
 
 !DEBUG
 !write(6,*)' ewald : enter '
@@ -82,10 +110,14 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !Add up total charge and sum of $charge^2$ in cell
  chsq=0._dp
  ch=0._dp
+ !$omp parallel default(none) shared(natom,zion, typat,ch,chsq)
+ !$omp do reduction(+:ch,chsq) schedule(static)
  do ia=1,natom
    ch=ch+zion(typat(ia))
    chsq=chsq+zion(typat(ia))**2
  end do
+ !$omp end do
+ !$omp end parallel
 
 !Compute eta, the Ewald summation convergence parameter,
 !for approximately optimized summations:
@@ -138,12 +170,17 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !              of unit cell (outside [0,1)) it is irrelevant in the following
 !              term, which only computes a phase.
 !              OCL SCALAR ! by MM for Fujitsu
+               !$omp parallel default(none) &
+               !$omp shared(natom,ig1,ig2,ig3,xred,zion,typat,summr,summi) private(ia,arg)
+               !$omp do reduction(+:summr,summi) schedule(static)
                do ia=1,natom
                  arg=two_pi*(ig1*xred(1,ia)+ig2*xred(2,ia)+ig3*xred(3,ia))
 !                Sum real and imaginary parts (avoid complex variables)
                  summr=summr+zion(typat(ia))*cos(arg)
                  summi=summi+zion(typat(ia))*sin(arg)
                end do
+               !$omp end do
+               !$omp end parallel
 
 !              The following two checks avoid an annoying
 !              underflow error message
@@ -156,6 +193,10 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
                gsum=gsum+t1
 
 !              OCL SCALAR ! by MM for Fujitsu
+               !$omp parallel default(none) &
+               !$omp shared(natom,ig1,ig2,ig3,xred,summr,summi,term,zion,typat,grewtn) &
+               !$omp private(ia,arg,phr,phi,c1i)
+               !$omp do schedule(static)
                do ia=1,natom
 !                Again only phase is computed so xred may fall outside [0,1).
                  arg=two_pi*(ig1*xred(1,ia)+ig2*xred(2,ia)+ig3*xred(3,ia))
@@ -169,6 +210,8 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
                  grewtn(2,ia)=grewtn(2,ia)-c1i*ig2
                  grewtn(3,ia)=grewtn(3,ia)-c1i*ig3
                end do
+               !$omp end do
+               !$omp end parallel
 
 !              End condition of not larger than 80.0
              end if
@@ -204,6 +247,8 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
  fac=2._dp*sqrt(eta/pi)
  sumr=0.0_dp
 
+ grewtn_tmp(:,:,:)=0.0_dp
+
 !In the following a summation is being conducted over all
 !unit cells (ir1, ir2, ir3) so it is appropriate to map all
 !reduced coordinates xred back into [0,1).
@@ -220,15 +265,21 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
          if( abs(ir3)==nr .or. abs(ir2)==nr .or. abs(ir1)==nr&
 &         .or. nr==1 )then
 
-           do ia=1,natom
+           do ia=1,natp!natom
+             iia=isat+ia
 !            Map reduced coordinate xred(mu,ia) into [0,1)
-             fraca1=xred(1,ia)-aint(xred(1,ia))+0.5_dp-sign(0.5_dp,xred(1,ia))
-             fraca2=xred(2,ia)-aint(xred(2,ia))+0.5_dp-sign(0.5_dp,xred(2,ia))
-             fraca3=xred(3,ia)-aint(xred(3,ia))+0.5_dp-sign(0.5_dp,xred(3,ia))
+             fraca1=xred(1,iia)-aint(xred(1,iia))+0.5_dp-sign(0.5_dp,xred(1,iia))
+             fraca2=xred(2,iia)-aint(xred(2,iia))+0.5_dp-sign(0.5_dp,xred(2,iia))
+             fraca3=xred(3,iia)-aint(xred(3,iia))+0.5_dp-sign(0.5_dp,xred(3,iia))
              drdta1=0.0_dp
              drdta2=0.0_dp
              drdta3=0.0_dp
 !            OCL SCALAR ! by MM for Fujitsu
+             !$omp parallel default(none) &
+             !$omp shared(natom,xred,fraca1,fraca2,fraca3,rmet,reta,zion,typat) &
+             !$omp shared(iia,newr,sumr,drdta1,drdta2,drdta3,ir1,ir2,ir3,eta,fac) &
+             !$omp private(ib,fracb1,fracb2,fracb3,r1,r2,r3,rsq,term,rmagn,arg,derfc_arg,r1a1d,r2a2d,r3a3d)
+             !$omp do reduction(+:newr,sumr,drdta1,drdta2,drdta3)
              do ib=1,natom
                fracb1=xred(1,ib)-aint(xred(1,ib))+0.5_dp-sign(0.5_dp,xred(1,ib))
                fracb2=xred(2,ib)-aint(xred(2,ib))+0.5_dp-sign(0.5_dp,xred(2,ib))
@@ -248,14 +299,14 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 !                so do not bother with larger arg**2 in exp.
                  term=0._dp
                  if (eta*rsq<64.0_dp) then
-                   newr=1
+                   newr=newr+1
                    rmagn=sqrt(rsq)
                    arg=reta*rmagn
 !                  derfc is the real(dp) complementary error function
                    call derfcf(derfc_arg,arg)
                    term=derfc_arg/rmagn
-                   sumr=sumr+zion(typat(ia))*zion(typat(ib))*term
-                   term=zion(typat(ia))*zion(typat(ib))*&
+                   sumr=sumr+zion(typat(iia))*zion(typat(ib))*term
+                   term=zion(typat(iia))*zion(typat(ib))*&
 &                   (term+fac*exp(-eta*rsq))/rsq
 !                  Length scale grads now handled with stress tensor in ewald2
                    r1a1d=rmet(1,1)*r1+rmet(1,2)*r2+rmet(1,3)*r3
@@ -272,10 +323,12 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
 
 !              end loop over ib:
              end do
+             !$omp end do
+             !$omp end parallel
 
-             grewtn(1,ia)=grewtn(1,ia)+drdta1
-             grewtn(2,ia)=grewtn(2,ia)+drdta2
-             grewtn(3,ia)=grewtn(3,ia)+drdta3
+             grewtn_tmp(1,iia,1)=grewtn_tmp(1,iia,1)+drdta1
+             grewtn_tmp(2,iia,1)=grewtn_tmp(2,iia,1)+drdta2
+             grewtn_tmp(3,iia,1)=grewtn_tmp(3,iia,1)+drdta3
 
 !            end loop over ia:
            end do
@@ -286,11 +339,32 @@ subroutine ewald(eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,zion)
      end do
    end do
 
+   if (nproc>1) then
+     !call mpiallred(newr, mpi_sum, bigdft_mpi%mpi_comm)
+     ii=0
+     call mpi_allreduce(newr, ii, 1, &
+          mpi_integer, mpi_sum, mpi_comm_world, ierr)
+     newr=ii
+   end if
+
 !  Check if new shell must be calculated
    if(newr==0) exit
 
 !  End loop on nr (new shells). Note that there is an exit within the loop
  end do
+
+ if (nproc > 1 .and. natom > 0) then
+   !call mpiallred(grewtn, mpi_sum, bigdft_mpi%mpi_comm)
+   call mpi_allreduce(grewtn_tmp(1,1,1), grewtn_tmp(1,1,2), 3*natom, &
+        mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+   tt=0.0_dp
+   call mpi_allreduce(sumr, tt, 1, &
+        mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+   sumr=tt
+ else
+   grewtn_tmp(:,:,2)=grewtn_tmp(:,:,1)
+ end if
+ grewtn(:,:)=grewtn(:,:)+grewtn_tmp(:,:,2)
 !
  sumr=0.5_dp*sumr
  fac=pi*ch**2/(2.0_dp*eta*ucvol)

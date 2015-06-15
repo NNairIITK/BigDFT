@@ -75,13 +75,13 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-12_dp
+        kernel%minres=1.0e-10_dp!1.0e-12_dp
         kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%method=PS_PCG_ENUM
         kernel%nord=16 
         kernel%max_iter=50
-        kernel%minres=1.0e-12_dp
+        kernel%minres=1.0e-4_dp!1.0e-12_dp
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -147,7 +147,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      call yaml_map('MPI tasks',kernel%mpi_env%nproc)
      if (nthreads /=0) call yaml_map('OpenMP threads per MPI task',nthreads)
      if (kernel%igpu==1) call yaml_map('Kernel copied on GPU',.true.)
-     if (kernel%method /= 'VAC') call yaml_map('Iterative method for Generalised Equation',char(kernel%method))
+     if (kernel%method /= 'VAC') call yaml_map('Iterative method for Generalised Equation',str(kernel%method))
      if (kernel%method .hasattr. PS_RIGID_ENUM) call yaml_map('Cavity determination','rigid')
      if (kernel%method .hasattr. PS_SCCS_ENUM) call yaml_map('Cavity determination','sccs')
      call yaml_mapping_close() !kernel
@@ -726,7 +726,7 @@ endif
      kernel%displs(jproc)=kernel%grid%m1*kernel%grid%m3*istart
   end do
 
-  select case(trim(char(kernel%method)))
+  select case(trim(str(kernel%method)))
   case('PCG')
   if (present(eps)) then
      if (present(oneosqrteps)) then
@@ -830,7 +830,7 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
   !starting point in third direction
   i3s=kernel%grid%istart+1
   if (kernel%grid%n3p==0) i3s=1
-  select case(trim(char(kernel%method)))
+  select case(trim(str(kernel%method)))
   case('PCG')
      if (present(corr)) then
         kernel%corr=f_malloc_ptr([n1,n23],id='corr')
@@ -943,7 +943,7 @@ subroutine pkernel_allocate_cavity(kernel,vacuum)
 
   n1=kernel%ndims(1)
   n23=kernel%ndims(2)*kernel%grid%n3p
-  select case(trim(char(kernel%method)))
+  select case(trim(str(kernel%method)))
   case('PCG')
      kernel%corr=f_malloc_ptr([n1,n23],id='corr')
      kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
@@ -954,7 +954,7 @@ subroutine pkernel_allocate_cavity(kernel,vacuum)
   end select
   if (present(vacuum)) then
      if (vacuum) then
-        select case(trim(char(kernel%method)))
+        select case(trim(str(kernel%method)))
         case('PCG')
            call f_zero(kernel%corr)
         case('PI')
@@ -1034,8 +1034,9 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
 
   
   !local variables
-  real(kind=8) :: edensmax = 0.0050d0
-  real(kind=8) :: edensmin = 0.0001d0
+  logical, parameter :: dumpeps=.false.
+  real(kind=8), parameter :: edensmax = 0.0050d0
+  real(kind=8), parameter :: edensmin = 0.0001d0
   integer :: n01,n02,n03,i,i1,i2,i3,i23,i3s,unt
   real(dp) :: oneoeps0,oneosqrteps0,pi,coeff,coeff1,fact1,fact2,fact3,r,t,d2,dtx,dd
   real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr
@@ -1050,7 +1051,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   !allocate the work arrays
   nabla_edens=f_malloc([n01,n02,n03,3],id='nabla_edens')
   ddt_edens=f_malloc(kernel%ndims,id='ddt_edens')
-  epscurr=f_malloc(kernel%ndims,id='epscurr')
+  if (dumpeps) epscurr=f_malloc(kernel%ndims,id='epscurr')
 
   !build the gradients and the laplacian of the density
   !density gradient in du
@@ -1066,11 +1067,11 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   fact3=(dlog(eps0))/(dlog(edensmax)-dlog(edensmin))
 
   if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
-       call yaml_map('Rebuilding the cavity for method',trim(char(kernel%method)))
+       call yaml_map('Rebuilding the cavity for method',trim(str(kernel%method)))
 
   !now fill the pkernel arrays according the the chosen method
   !if ( trim(PSol)=='PCG') then
-  select case(trim(char(kernel%method)))
+  select case(trim(str(kernel%method)))
   case('PCG')
      !in PCG we only need corr, oneosqrtepsilon
      i23=1
@@ -1080,7 +1081,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
            do i1=1,n01
               if (dabs(edens(i1,i2,i3)).gt.edensmax) then
                  !eps(i1,i2,i3)=1.d0
-                 epscurr(i1,i2,i3)=1.d0
+                 if (dumpeps) epscurr(i1,i2,i3)=1.d0
                  kernel%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
 !!$                 do i=1,3
 !!$                    dlogeps(i,i1,i2,i3)=0.d0
@@ -1089,7 +1090,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  depsdrho(i1,i23)=0.d0
               else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
                  !eps(i1,i2,i3)=eps0
-                 epscurr(i1,i2,i3)=eps0
+                 if (dumpeps) epscurr(i1,i2,i3)=eps0
                  kernel%oneoeps(i1,i23)=oneosqrteps0 !oneosqrteps(i1,i2,i3)
 !!$                 do i=1,3
 !!$                    dlogeps(i,i1,i2,i3)=0.d0
@@ -1100,7 +1101,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
                  t=fact2*(r-sin(r))
                  !eps(i1,i2,i3)=exp(t)
-                 epscurr(i1,i2,i3)=safe_exp(t)
+                 if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
                  kernel%oneoeps(i1,i23)=safe_exp(-0.5d0*t) !oneosqrteps(i1,i2,i3)
                  coeff=fact3*(1.d0-cos(r))
                  dtx=-coeff/dabs(edens(i1,i2,i3))
@@ -1128,12 +1129,12 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
            do i1=1,n01
               if (dabs(edens(i1,i2,i3)).gt.edensmax) then
                  !eps(i1,i2,i3)=1.d0
-                 epscurr(i1,i2,i3)=1.d0
+                 if (dumpeps) epscurr(i1,i2,i3)=1.d0
                  kernel%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
               else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
                  !eps(i1,i2,i3)=eps0
-                 epscurr(i1,i2,i3)=eps0
+                 if (dumpeps) epscurr(i1,i2,i3)=eps0
                  kernel%oneoeps(i1,i23)=oneoeps0 !oneoeps(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
               else
@@ -1143,7 +1144,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  dtx=-coeff/dabs(edens(i1,i2,i3))
                  depsdrho(i1,i23)=-safe_exp(t)*0.125d0/pi*dtx
                  !eps(i1,i2,i3)=dexp(t)
-                 epscurr(i1,i2,i3)=safe_exp(t)
+                 if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
                  kernel%oneoeps(i1,i23)=safe_exp(-t) !oneoeps(i1,i2,i3)
               end if
 
@@ -1179,25 +1180,28 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
 
   end select
 
-  unt=f_get_free_unit(21)
-  call f_open_file(unt,file='epsilon_sccs.dat')
-  i1=1!n03/2
-  do i2=1,n02
-     do i3=1,n03
-        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,epscurr(i1,i2,i3),epscurr(n01/2,i2,i3)
+  if (dumpeps) then
+     unt=f_get_free_unit(21)
+     call f_open_file(unt,file='epsilon_sccs.dat')
+     i1=1!n03/2
+     do i2=1,n02
+        do i3=1,n03
+           write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,epscurr(i1,i2,i3),epscurr(n01/2,i2,i3)
+        end do
      end do
-  end do
-  call f_close(unt)
+     call f_close(unt)
 
-  unt=f_get_free_unit(22)
-  call f_open_file(unt,file='epsilon_line_sccs.dat')
-  do i2=1,n02
-   write(unt,'(1x,I8,1(1x,e22.15))')i2,epscurr(n01/2,i2,n03/2)
-  end do
-  call f_close(unt)
+     unt=f_get_free_unit(22)
+     call f_open_file(unt,file='epsilon_line_sccs.dat')
+     do i2=1,n02
+        write(unt,'(1x,I8,1(1x,e22.15))')i2,epscurr(n01/2,i2,n03/2)
+     end do
+     call f_close(unt)
+     call f_free(epscurr)
+  end if
 
   call f_free(ddt_edens)
-  call f_free(epscurr)
+
   call f_free(nabla_edens)
 
 end subroutine pkernel_build_epsilon

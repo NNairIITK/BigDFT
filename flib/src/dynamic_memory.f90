@@ -22,6 +22,7 @@ module dynamic_memory
   private 
 
   logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
+  logical, parameter :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
@@ -127,7 +128,7 @@ module dynamic_memory
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1
      module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3,f_memcpy_d3,f_memcpy_d4,f_memcpy_d1d0
      module procedure f_memcpy_d0d3,f_memcpy_d0d2,f_memcpy_d3d0,f_memcpy_d2d0,f_memcpy_d3d2
-     module procedure f_memcpy_l0,f_memcpy_c1i1,f_memcpy_i1c1
+     module procedure f_memcpy_l0,f_memcpy_c1i1,f_memcpy_i1c1,f_memcpy_c0i1
      module procedure f_memcpy_li0,f_memcpy_li0li1,f_memcpy_i0i1
   end interface f_memcpy
 
@@ -138,7 +139,7 @@ module dynamic_memory
      module procedure f_maxdiff_d0,f_maxdiff_d1,f_maxdiff_d2
      module procedure f_maxdiff_d0d1,f_maxdiff_d1d2,f_maxdiff_d2d1,f_maxdiff_d2d3
      module procedure f_maxdiff_l0,f_maxdiff_i0i1
-     module procedure f_maxdiff_c1i1,f_maxdiff_li0li1
+     module procedure f_maxdiff_c1i1,f_maxdiff_li0li1,f_maxdiff_c0i1
   end interface f_maxdiff
 
   !> Public routines
@@ -212,7 +213,7 @@ contains
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
   subroutine f_routine(id,profile)
-    use yaml_output, only: yaml_map !debug
+    use yaml_output, only: yaml_map,yaml_flush_document !debug
     implicit none
     logical, intent(in), optional :: profile     !< ???
     character(len=*), intent(in), optional :: id !< name of the subprogram
@@ -292,12 +293,16 @@ contains
 
     end if
     call set_routine_info(mems(ictrl)%present_routine,mems(ictrl)%profile_routine)
+    if (bigdebug) then
+       call yaml_map('Entering',mems(ictrl)%present_routine)
+       call yaml_flush_document()
+    end if
     call f_timer_resume()
   end subroutine f_routine
 
   !> Close a previously opened routine
   subroutine f_release_routine()
-    use yaml_output, only: yaml_dict_dump
+    use yaml_output, only: yaml_dict_dump,yaml_map,yaml_flush_document
     use f_utils, only: f_rewind
     implicit none
     integer :: jproc
@@ -314,6 +319,10 @@ contains
        nullify(mems(ictrl)%dict_routine)
     end if
     !call yaml_map('Closing routine',trim(dict_key(dict_codepoint)))
+    if (bigdebug) then
+       call yaml_map('Exiting',mems(ictrl)%present_routine)
+       call yaml_flush_document()
+    end if
 !test
 if (.not. track_origins) then
 call f_timer_resume()
@@ -363,6 +372,7 @@ end if
     mems(ictrl)%profile_routine=mems(ictrl)%dict_codepoint//prof_enabled! 
 
     call set_routine_info(mems(ictrl)%present_routine,mems(ictrl)%profile_routine)
+
     !debug
 !!$    call yaml_mapping_open('Codepoint after closing')
 !!$    call yaml_map('Potential Reference Routine',trim(dict_key(mems(ictrl)%dict_codepoint)))

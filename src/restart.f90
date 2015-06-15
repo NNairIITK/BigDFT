@@ -258,35 +258,6 @@ subroutine reformatmywaves(iproc,orbs,at,&
 END SUBROUTINE reformatmywaves
 
 
-integer function wave_format_from_filename(iproc, filename)
-  use module_types
-  use yaml_output
-  implicit none
-  integer, intent(in) :: iproc
-  character(len=*), intent(in) :: filename
-
-  integer :: isuffix
-
-  wave_format_from_filename = WF_FORMAT_NONE
-
-  isuffix = index(filename, ".etsf", back = .true.)
-  if (isuffix > 0) then
-     wave_format_from_filename = WF_FORMAT_ETSF
-     if (iproc ==0) call yaml_comment('Reading wavefunctions in ETSF file format.')
-     !if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
-  else
-     isuffix = index(filename, ".bin", back = .true.)
-     if (isuffix > 0) then
-        wave_format_from_filename = WF_FORMAT_BINARY
-        if (iproc ==0) call yaml_comment('Reading wavefunctions in BigDFT binary file format.')
-        !if (iproc ==0) write(*,*) "Reading wavefunctions in BigDFT binary file format."
-     else
-        wave_format_from_filename = WF_FORMAT_PLAIN
-        if (iproc ==0) call yaml_comment('Reading wavefunctions in plain text file format.')
-        !if (iproc ==0) write(*,*) "Reading wavefunctions in plain text file format."
-     end if
-  end if
-end function wave_format_from_filename
 
 
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
@@ -297,6 +268,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => readmywaves
+  use public_enums
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3, iformat
   real(gp), intent(in) :: hx,hy,hz
@@ -395,6 +367,7 @@ END SUBROUTINE readmywaves
 subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   use module_base
   use module_types
+  use public_enums
   use module_interfaces, except_this_one => verify_file_presence
   implicit none
   integer, intent(in) :: nproc
@@ -583,6 +556,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave, except_this_one_A => writemywaves
+  use public_enums
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,iformat
   real(gp), intent(in) :: hx,hy,hz
@@ -645,7 +619,8 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_wave_to_isf
-
+  use public_enums
+  use module_input_keys
   implicit none
 
   integer, intent(in) :: ln
@@ -657,7 +632,7 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
   logical, intent(out) :: lstat
 
   character(len = 1024) :: filename_
-  integer :: wave_format_from_filename, iformat, i
+  integer :: iformat, i
   
   write(filename_, "(A)") " "
   do i = 1, ln, 1
@@ -693,7 +668,8 @@ END SUBROUTINE read_wave_to_isf
 
 subroutine read_wave_descr(lstat, filename, ln, &
      & norbu, norbd, iorbs, ispins, nkpt, ikpts, nspinor, ispinor)
-  use module_types
+  use public_enums !module_types
+  use module_input_keys
   implicit none
   integer, intent(in) :: ln
   character, intent(in) :: filename(ln)
@@ -702,7 +678,7 @@ subroutine read_wave_descr(lstat, filename, ln, &
   logical, intent(out) :: lstat
 
   character(len = 1024) :: filename_
-  integer :: wave_format_from_filename, iformat, i
+  integer :: iformat, i
   character(len = 1024) :: testf
   
   write(filename_, "(A)") " "
@@ -727,10 +703,6 @@ subroutine read_wave_descr(lstat, filename, ln, &
      nkpt = 0
   end if
 END SUBROUTINE read_wave_descr
-
-
-
-
 
 subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
@@ -1416,6 +1388,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   !use internal_io
   use module_interfaces, except_this_one => readmywaves_linear_new
   use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error
+  use public_enums
   implicit none
   integer, intent(in) :: iproc, nproc
   integer, intent(in) :: iformat
@@ -1882,6 +1855,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   use module_interfaces, except_this_one => initialize_linear_from_file
   use locregs, only: locreg_null
   use io, only: io_read_descr_linear
+  use public_enums
   implicit none
   integer, intent(in) :: iproc, nproc, iformat
   type(fragmentInputParameters),intent(in) :: input_frag
@@ -2242,6 +2216,8 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   character(len=100) :: fragdir
   integer :: ifrag, ifrag_ref, iforb, isforb
   real(kind=gp), dimension(:,:,:), allocatable :: workarraytmp 
+  logical :: gperx, gpery, gperz, lperx, lpery, lperz
+  integer :: gnbl1, gnbr1, gnbl2, gnbr2, gnbl3, gnbr3, lnbl1, lnbr1, lnbl2, lnbr2, lnbl3, lnbr3
 
   real(gp), external :: dnrm2
 !  integer :: iat
@@ -2407,13 +2383,48 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
           !   call timing(iproc,'readisffiles','OF')
           !end if
 
-          lzd_old%llr(ilr_old)%nsi1=2*lzd_old%llr(ilr_old)%ns1
-          lzd_old%llr(ilr_old)%nsi2=2*lzd_old%llr(ilr_old)%ns2
-          lzd_old%llr(ilr_old)%nsi3=2*lzd_old%llr(ilr_old)%ns3
 
-          lzd_old%llr(ilr_old)%d%n1i=2*n_old(1)+31
-          lzd_old%llr(ilr_old)%d%n2i=2*n_old(2)+31
-          lzd_old%llr(ilr_old)%d%n3i=2*n_old(3)+31
+          ! Periodicity in the three directions
+          gperx=(tmb%lzd%glr%geocode /= 'F')
+          gpery=(tmb%lzd%glr%geocode == 'P')
+          gperz=(tmb%lzd%glr%geocode /= 'F')
+
+          ! Set the conditions for ext_buffers (conditions for buffer size)
+          lperx=(lzd_old%llr(ilr)%geocode /= 'F')
+          lpery=(lzd_old%llr(ilr)%geocode == 'P')
+          lperz=(lzd_old%llr(ilr)%geocode /= 'F')
+
+          !calculate the size of the buffers of interpolating function grid
+          call ext_buffers(gperx,gnbl1,gnbr1)
+          call ext_buffers(gpery,gnbl2,gnbr2)
+          call ext_buffers(gperz,gnbl3,gnbr3)
+          call ext_buffers(lperx,lnbl1,lnbr1)
+          call ext_buffers(lpery,lnbl2,lnbr2)
+          call ext_buffers(lperz,lnbl3,lnbr3)
+
+
+          lzd_old%llr(ilr_old)%nsi1=2*lzd_old%llr(ilr_old)%ns1 - (Lnbl1 - Gnbl1)
+          lzd_old%llr(ilr_old)%nsi2=2*lzd_old%llr(ilr_old)%ns2 - (Lnbl2 - Gnbl2)
+          lzd_old%llr(ilr_old)%nsi3=2*lzd_old%llr(ilr_old)%ns3 - (Lnbl3 - Gnbl3)
+
+          !lzd_old%llr(ilr_old)%d%n1i=2*n_old(1)+31
+          !lzd_old%llr(ilr_old)%d%n2i=2*n_old(2)+31
+          !lzd_old%llr(ilr_old)%d%n3i=2*n_old(3)+31
+          !dimensions of the interpolating scaling functions grid (reduce to +2 for periodic)
+          if(lzd_old%llr(ilr)%geocode == 'F') then
+             lzd_old%llr(ilr)%d%n1i=2*n_old(1)+31
+             lzd_old%llr(ilr)%d%n2i=2*n_old(2)+31
+             lzd_old%llr(ilr)%d%n3i=2*n_old(3)+31
+          else if(lzd_old%llr(ilr)%geocode == 'S') then
+             lzd_old%llr(ilr)%d%n1i=2*n_old(1)+2
+             lzd_old%llr(ilr)%d%n2i=2*n_old(2)+31
+             lzd_old%llr(ilr)%d%n3i=2*n_old(3)+2
+          else
+             lzd_old%llr(ilr)%d%n1i=2*n_old(1)+2
+             lzd_old%llr(ilr)%d%n2i=2*n_old(2)+2
+             lzd_old%llr(ilr)%d%n3i=2*n_old(3)+2
+          end if
+
 
           psirold_ok=.true.
           workarraytmp=f_malloc((2*n_old+31),id='workarraytmp')

@@ -39,7 +39,7 @@ module f_utils
      module procedure f_diff_i2i1,f_diff_i1,f_diff_i2,f_diff_i1i2
      module procedure f_diff_li2li1,f_diff_li1,f_diff_li2,f_diff_li1li2
      module procedure f_diff_d0d1,f_diff_i0i1
-     module procedure f_diff_c1i1,f_diff_li0li1
+     module procedure f_diff_c1i1,f_diff_li0li1,f_diff_c0i1
   end interface f_diff
 
   !> Initialize to zero an array (should be called f_memset)
@@ -61,7 +61,7 @@ module f_utils
      end subroutine nanosec
   end interface
 
-  public :: f_diff,f_file_unit
+  public :: f_diff,f_file_unit,f_mkdir
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring
@@ -229,6 +229,29 @@ contains
     end if
     unt2=unt
   end function f_get_free_unit
+
+  !>create a directory from CWD path
+  subroutine f_mkdir(dir,path)
+    use f_precisions, only: f_int
+    implicit none
+    character(len=*), intent(in) :: dir !<directory to be created
+    character(len=*), intent(out) :: path !<path of the created directory (trailing slash added)
+    !local variables
+    integer :: ierr
+    integer(f_int) :: lin,lout
+
+    call f_zero(path)
+    lin=int(len_trim(dir),f_int)
+    lout=int(len(path),f_int)
+
+    call getdir(dir,lin,path,lout,ierr)
+    if (ierr /= 0 .and. ierr /= 1) then
+       call f_err_throw('Error in creating directory ='//&
+            trim(dir)//', iostat='//trim(yaml_toa(ierr)),&
+            err_id=INPUT_OUTPUT_ERROR)
+    end if
+
+  end subroutine f_mkdir
 
   !> delete an existing file. If the file does not exists, it does nothing
   subroutine f_delete_file(file)
@@ -604,6 +627,17 @@ contains
     external :: diff_ci
     call diff_ci(n,a(1),b(1),diff)
   end subroutine f_diff_c1i1
+
+  subroutine f_diff_c0i1(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    character(len=*),   intent(in) :: a
+    integer, dimension(:), intent(in) :: b
+    integer, intent(out) :: diff
+    external :: diff_ci
+    call diff_ci(n,a,b(1),diff)
+  end subroutine f_diff_c0i1
+
 
   subroutine f_diff_li0li1(n,a,b,diff)
     implicit none

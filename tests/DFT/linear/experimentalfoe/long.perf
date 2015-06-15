@@ -1,5 +1,0 @@
-check_sumrho 1
-experimental_mode T
-evbounds_nsatur 100
-mixing_after_inputguess 2
-hamapp_radius_incr 6

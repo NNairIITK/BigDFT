@@ -15,6 +15,8 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => write_orbital_density
+  use locreg_operations, only: lpsi_to_global2
+  use public_enums
   implicit none
 
   ! Calling arguments
@@ -75,7 +77,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
           ldim=lzd_l%glr%wfd%nvctr_c+7*lzd_l%glr%wfd%nvctr_f
           call f_zero(psi_g)
           call lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, 1, lzd_l%glr, &
-               lzd_l%llr(ilr), psi(ist), psi_g(1))
+               lzd_l%llr(ilr), psi(ist:), psi_g)
       else
           sdim=lzd_g%llr(ilr)%wfd%nvctr_c+7*lzd_g%llr(ilr)%wfd%nvctr_f
           call vcopy(sdim, psi(ist), 1, psi_g(1), 1)
@@ -134,7 +136,7 @@ end subroutine write_orbital_density
 subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor, binary, psi_g)
   use module_base
   use module_types
-  use module_interfaces, only: filename_of_iorb
+  use module_interfaces, only: filename_of_iorb,plot_wf
   implicit none
 
   ! Calling arguments
@@ -165,7 +167,7 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   filex = trim(filebasex)//'.cube'
   filey = trim(filebasey)//'.cube'
   filez = trim(filebasez)//'.cube'
-  write(*,*) 'file0',file0
+  !write(*,*) 'file0',file0
   call f_open_file(iunit0, file=file0, binary=binary)
   call f_open_file(iunitx, file=filex, binary=binary)
   call f_open_file(iunity, file=filey, binary=binary)
@@ -737,6 +739,7 @@ end subroutine plotOrbitals
 subroutine plotGrid(iproc, norb, nspinor, nspin, orbitalNumber, llr, glr, atoms, rxyz, hx, hy, hz)
   use module_base
   use module_types
+  use locreg_operations, only: lpsi_to_global2
   implicit none
   
   ! Calling arguments

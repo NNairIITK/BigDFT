@@ -17,9 +17,10 @@ module bigdft_run
   use f_refcnts, only: f_reference_counter,f_ref_new,f_ref,f_unref,&
        nullify_f_ref,f_ref_free
   use f_utils
-  use f_enums
+  use f_enums, f_str => str
   use module_input_dicts, only: bigdft_set_run_properties => dict_set_run_properties,&
        bigdft_get_run_properties => dict_get_run_properties
+  use public_enums
   private
 
   !>  Used to restart a new DFT calculation or to save information
@@ -79,6 +80,14 @@ module bigdft_run
   public :: bigdft_get_astruct_ptr,bigdft_write_atomic_file,bigdft_set_run_properties
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
   public :: bigdft_dot,bigdft_nrm2
+  public :: bigdft_get_input_policy
+  public :: bigdft_set_input_policy
+
+  !> Input policies
+  integer,parameter,public :: INPUT_POLICY_SCRATCH = 10000 !< Start the calculation from scratch
+  integer,parameter,public :: INPUT_POLICY_MEMORY  = 10001 !< Start the calculation from data in memory
+  integer,parameter,public :: INPUT_POLICY_DISK    = 10002 !< Start the calculation from data on disk
+
 !!$  ! interfaces of external routines
 !!$  interface
 !!$     subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
@@ -149,7 +158,7 @@ contains
     type(MM_restart_objects), intent(inout) :: mm_rst
 
     !then check if extra workspaces have to be allocated
-    select case(trim(char(run_mode)))
+    select case(trim(f_str(run_mode)))
     case('LENNARD_JONES_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -249,7 +258,7 @@ contains
   !> Allocate and nullify restart objects
   pure subroutine nullify_QM_restart_objects(rst)
     use module_defs, only: UNINITIALIZED
-    use module_types, only: nullify_local_zone_descriptors,CUBIC_VERSION,nullify_paw_objects
+    use module_types, only: nullify_local_zone_descriptors,nullify_paw_objects
     use locregs, only: nullify_locreg_descriptors
     use gaussians, only: nullify_gaussian_basis
     implicit none
@@ -287,19 +296,24 @@ contains
     rst%GPU%OCLconv=.false.
   END SUBROUTINE nullify_QM_restart_objects
 
-  pure subroutine QM_restart_objects_set_mode(rst, inputpsiid)
-    use module_types
+  !pure 
+  subroutine QM_restart_objects_set_mode(rst, inputpsiid)
     implicit none
     type(QM_restart_objects), intent(inout) :: rst
-    integer, intent(in) :: inputpsiid
+    type(f_enumerator), intent(in) :: inputpsiid !,integer
 
-    select case (inputpsiid)
-    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
-         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+    if (inputpsiid .hasattr. 'CUBIC') then
        rst%version = CUBIC_VERSION
-    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+    else if (inputpsiid .hasattr. 'LINEAR') then
        rst%version = LINEAR_VERSION
-    end select
+    end if
+!!$    select case (inputpsiid)
+!!$    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
+!!$         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+!!$       rst%version = CUBIC_VERSION
+!!$    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+!!$       rst%version = LINEAR_VERSION
+!!$    end select
   END SUBROUTINE QM_restart_objects_set_mode
 
   subroutine QM_restart_objects_set_nat(rst, nat)
@@ -318,7 +332,7 @@ contains
   END SUBROUTINE QM_restart_objects_set_nat
 
   subroutine QM_restart_objects_set_mat_acc(rst, iproc, matacc)
-    use module_types, only: material_acceleration
+    use module_input_keys, only: material_acceleration
     implicit none
     !Arguments
     type(QM_restart_objects), intent(inout) :: rst
@@ -501,7 +515,7 @@ contains
     outs%energy=data(1)
     outs%pressure=data(2)
     outs%fnoise=data(3)
-    call f_memcpy(n=size(outs%fxyz),dest=outs%fxyz(1,1),src=data(4))
+    if (size(outs%fxyz)>0) call f_memcpy(n=size(outs%fxyz),dest=outs%fxyz(1,1),src=data(4))
     call f_memcpy(n=size(outs%strten),dest=outs%strten(1),src=data(4+size(outs%fxyz)))
 
     call f_free(data)
@@ -774,10 +788,10 @@ contains
   !! separately from run_objects
   !! should not give exception as release might be called indefinitely
   subroutine release_run_objects(runObj)
-    use module_types
     use module_base
     use module_atoms, only: deallocate_atoms_data
     use yaml_output, only: yaml_sequence_close
+    use module_input_keys, only: free_input_variables
     implicit none
     type(run_objects), intent(inout) :: runObj
     !local variables
@@ -824,10 +838,10 @@ contains
   !> Free the run_objects structure, &
   !! if all the objects have been dereferenced
   subroutine free_run_objects(runObj)
-    use module_types
     use module_base
     use module_atoms, only: deallocate_atoms_data
     use yaml_output, only: yaml_sequence_close
+    use module_input_keys, only: free_input_variables
     implicit none
     type(run_objects), intent(inout) :: runObj
     if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
@@ -857,9 +871,10 @@ contains
   !! in particular this routine identifies the input and the atoms structure
   subroutine set_run_objects(runObj)
     use module_base, only: f_err_throw
-    use module_interfaces, only: inputs_new, inputs_from_dict, atoms_new
+    use module_interfaces, only: inputs_new, atoms_new
     use module_atoms, only: deallocate_atoms_data
     use module_input_dicts, only: dict_run_validate
+    use module_input_keys, only: inputs_from_dict,free_input_variables
     use dynamic_memory
     implicit none
     type(run_objects), intent(inout) :: runObj
@@ -897,7 +912,8 @@ contains
   subroutine run_objects_init(runObj,run_dict,source)
     use module_base, only: bigdft_mpi,dict_init
     use module_types
-    use module_input_dicts, only: user_dict_from_files,create_log_file
+    use module_input_dicts, only: create_log_file
+    use module_input_keys, only: user_dict_from_files
     use yaml_output
     use dynamic_memory
     implicit none
@@ -986,7 +1002,7 @@ contains
     end if
 
     if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') &
-         call yaml_sequence_open('Initializing '//trim(char(runObj%run_mode)))
+         call yaml_sequence_open('Initializing '//trim(f_str(runObj%run_mode)))
     call f_release_routine()
 
   END SUBROUTINE run_objects_init
@@ -1325,6 +1341,7 @@ contains
     use module_morse_bulk
     use module_tersoff
     use module_BornMayerHugginsTosiFumi
+    use f_enums, only: f_int => int
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1373,12 +1390,12 @@ contains
     !open the document if the run_mode has not it inside
     if (runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0) then
        call yaml_sequence(advance='no')
-       call yaml_mapping_open(trim(char(runObj%run_mode)),flow=.true.)
+       call yaml_mapping_open(trim(f_str(runObj%run_mode)),flow=.true.)
        !call yaml_new_document()
       end if
     infocode = 0
     !choose what to do by following the mode prescription
-    select case(trim(char(runObj%run_mode)))
+    select case(trim(f_str(runObj%run_mode)))
     case('LENNARD_JONES_RUN_MODE')
        call lenjon(nat,rxyz_ptr,outs%fxyz,outs%energy)
        !         if (bigdft_mpi%iproc == 0) then
@@ -1434,7 +1451,7 @@ contains
        if (bigdft_mpi%iproc==0) call yaml_map('BigDFT infocode',infocode)
     case default
        call f_err_throw('Following method for evaluation of '//&
-            'energies and forces is unknown: '//trim(yaml_toa(int(runObj%run_mode))))
+            'energies and forces is unknown: '//trim(yaml_toa(f_int(runObj%run_mode))))
     end select
 !!         anoise=2.d-5
 !!         if (anoise.ne.0.d0) then
@@ -1464,8 +1481,8 @@ contains
     use yaml_output
     use module_atoms, only: astruct_dump_to_file,rxyz_inside_box
     use locregs, only: deallocate_locreg_descriptors
-    use module_types, only: INPUT_PSI_MEMORY_LINEAR,LINEAR_VERSION,INPUT_PSI_MEMORY_GAUSS, &
-         INPUT_PSI_LCAO,INPUT_PSI_MEMORY_WVL,old_wavefunction_null,INPUT_PSI_LINEAR_AO!,deallocate_wfd
+    use module_types, only: old_wavefunction_null
+    use module_input_keys, only: set_inputpsiid
     !use communications_base
     implicit none
     type(run_objects), intent(inout) :: runObj
@@ -1474,7 +1491,8 @@ contains
     !local variables
     character(len=*), parameter :: subname='quantum_mechanical_state'
     logical :: exists
-    integer :: inputPsiId_orig,istep
+    integer :: istep,policy_tmp
+    type(f_enumerator) :: inputPsiId_orig
     !integer :: iat
     real(gp) :: maxdiff
     external :: cluster
@@ -1482,29 +1500,28 @@ contains
     call mpibarrier(bigdft_mpi%mpi_comm)
 
     call f_routine(id=subname)
-
     !fill the rxyz array with the positions
     !wrap the atoms in the periodic directions when needed
     call rxyz_inside_box(runObj%atoms%astruct,rxyz=runObj%rst%rxyz_new)
-
     !assign the verbosity of the output
-    !the verbose variables is defined in module_base
+    !the verbose variables is defined in module_defs
     verbose=runObj%inputs%verbosity
 
     ! Use the restart for the linear scaling version... probably to be modified.
-    if(runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL) then
-       if (runObj%rst%version == LINEAR_VERSION) then
-          runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
-          if (any(runObj%inputs%lin%locrad_lowaccuracy /= &
-               runObj%inputs%lin%locrad_highaccuracy)) then
-             call f_err_throw('The radii for low and high accuracy must be the same '//&
-                  'when using the linear restart!',&
-                  err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-          end if
+!!$    if(runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL) then
+!!$       if (runObj%rst%version == LINEAR_VERSION) then
+!!$          runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
+    if ((runObj%inputs%inputPsiId .hasattr. 'LINEAR') .and. &
+         (runObj%inputs%inputPsiId .hasattr. 'MEMORY')) then
+       if (any(runObj%inputs%lin%locrad_lowaccuracy /= &
+            runObj%inputs%lin%locrad_highaccuracy)) then
+          call f_err_throw('The radii for low and high accuracy must be the same '//&
+               'when using the linear restart!',&
+               err_name='BIGDFT_INPUT_VARIABLES_ERROR')
        end if
     end if
+!    end if
     inputPsiId_orig=runObj%inputs%inputPsiId
-
     loop_cluster: do
        !allocate history container if it has not been done
        if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
@@ -1515,7 +1532,7 @@ contains
           end do
        end if
 
-       if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. associated(runObj%rst%KSwfn%psi)) then
+       if (runObj%inputs%inputPsiId == 'INPUT_PSI_LCAO' .and. associated(runObj%rst%KSwfn%psi)) then
           call f_free_ptr(runObj%rst%KSwfn%psi)
           call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
           call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
@@ -1525,10 +1542,10 @@ contains
        call f_file_exists('input.finite_difference_forces',exists)
        if (exists) then
           runObj%inputs%last_run=1 !do the last_run things nonetheless
-          runObj%inputs%inputPsiId = INPUT_PSI_LCAO !the first run always restart from IG
+          call set_inputpsiid(INPUT_PSI_LCAO,runObj%inputs%inputPsiId)
+          !runObj%inputs%inputPsiId = INPUT_PSI_LCAO !the first run always restart from IG
           !experimental_modulebase_var_onlyfion=.true. !put only ionic forces in the forces
        end if
-
        !Main routine calculating the KS orbitals
        call cluster(bigdft_mpi%nproc,bigdft_mpi%iproc,runObj%atoms,runObj%rst%rxyz_new, &
             outs%energy, outs%energs, outs%fxyz, outs%strten, outs%fnoise, outs%pressure,&
@@ -1543,42 +1560,72 @@ contains
                & outs%energy,outs%fxyz,outs%fnoise,runObj%rst,infocode)
        end if
 
-       !Check infocode in function of the inputPsiId parameters
-       !and change the strategy of input guess psi
-       if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .and. infocode==2) then
-          if (runObj%inputs%gaussian_help) then
-             runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_GAUSS
-          else
-             runObj%inputs%inputPsiId = INPUT_PSI_LCAO
-          end if
-       else if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. infocode==2) then
-          ! problems after restart for linear version
-          runObj%inputs%inputPsiId = INPUT_PSI_LINEAR_AO
-       else if ((runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .or. &
-            runObj%inputs%inputPsiId == INPUT_PSI_LCAO) .and. infocode==1) then
-          runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_WVL
+       !the infocode should have some values defined as parameters
+       select case(infocode)
+       case(1) !wfn not yet converged
+          call bigdft_get_input_policy(runObj,policy_tmp)
+          if (policy_tmp == INPUT_POLICY_SCRATCH) &
+               call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
+          !do not know why we do this, meaningful only if we did not exit
           exit loop_cluster
-       else if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. infocode==3) then
-          if (bigdft_mpi%iproc == 0) then
-             call astruct_dump_to_file(runObj%atoms%astruct,"posfail",&
-                  'UNCONVERGED WF ',outs%energy,runObj%rst%rxyz_new)
+       case(2) !too big residue after restart, come back to scratch
+          call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
+       case(3) !even with scracth policy, residue is too big. Exit with failure
+          !for the moment there is no crash for the linear scaling
+          if (runObj%inputs%inputPsiId .hasattr. 'CUBIC') then
+             if (bigdft_mpi%iproc == 0) then
+                call astruct_dump_to_file(runObj%atoms%astruct,"posfail",&
+                     'UNCONVERGED WF ',outs%energy,runObj%rst%rxyz_new)
+             end if
+
+             call f_free_ptr(runObj%rst%KSwfn%psi)
+             call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
+             call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
+
+             !test if stderr works
+             write(0,*) 'unnormal end'
+             call mpibarrier(bigdft_mpi%mpi_comm)
+             call f_err_throw('Convergence error (probably gnrm>4.0), cannot proceed. '//&
+                  'Writing positions in file posfail.xyz',err_name='BIGDFT_RUNTIME_ERROR')
           end if
-
-          call f_free_ptr(runObj%rst%KSwfn%psi)
-          call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
-
-          !call deallocate_wfd(runObj%rst%KSwfn%Lzd%Glr%wfd)
-          call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
-
-          !test if stderr works
-          write(0,*) 'unnormal end'
-          call mpibarrier(bigdft_mpi%mpi_comm)
-          call f_err_throw('Convergence error (probably gnrm>4.0), cannot proceed. '//&
-               'Writing positions in file posfail.xyz',err_name='BIGDFT_RUNTIME_ERROR')
-
-       else
+          call set_inputpsiid(INPUT_PSI_RANDOM,runObj%inputs%inputPsiId)
+       case default
           exit loop_cluster
-       end if
+       end select
+
+!!$       !Check infocode in function of the inputPsiId parameters
+!!$       !and change the strategy of input guess psi
+!!$       if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .and. infocode==2) then
+!!$          if (runObj%inputs%gaussian_help) then
+!!$             runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_GAUSS
+!!$          else
+!!$             runObj%inputs%inputPsiId = INPUT_PSI_LCAO
+!!$          end if
+!!$       else if (runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_LINEAR .and. infocode==2) then
+!!$          ! problems after restart for linear version
+!!$          runObj%inputs%inputPsiId = INPUT_PSI_LINEAR_AO
+!!$       else if ((runObj%inputs%inputPsiId == INPUT_PSI_MEMORY_WVL .or. &
+!!$            runObj%inputs%inputPsiId == INPUT_PSI_LCAO) .and. infocode==1) then
+!!$          runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_WVL
+!!$          exit loop_cluster
+!!$       else if (runObj%inputs%inputPsiId == INPUT_PSI_LCAO .and. infocode==3) then
+!!$          if (bigdft_mpi%iproc == 0) then
+!!$             call astruct_dump_to_file(runObj%atoms%astruct,"posfail",&
+!!$                  'UNCONVERGED WF ',outs%energy,runObj%rst%rxyz_new)
+!!$          end if
+!!$
+!!$          call f_free_ptr(runObj%rst%KSwfn%psi)
+!!$          call f_free_ptr(runObj%rst%KSwfn%orbs%eval)
+!!$          call deallocate_locreg_descriptors(runObj%rst%KSwfn%Lzd%Glr)
+!!$
+!!$          !test if stderr works
+!!$          write(0,*) 'unnormal end'
+!!$          call mpibarrier(bigdft_mpi%mpi_comm)
+!!$          call f_err_throw('Convergence error (probably gnrm>4.0), cannot proceed. '//&
+!!$               'Writing positions in file posfail.xyz',err_name='BIGDFT_RUNTIME_ERROR')
+!!$       else
+!!$          exit loop_cluster
+!!$       end if
 
     end do loop_cluster
 
@@ -1674,6 +1721,7 @@ contains
     use module_types
     use module_atoms, only: move_this_coordinate
     use module_forces
+    use module_input_keys, only: inputpsiid_set_policy
     implicit none
     integer, intent(in) :: iproc,nproc
     integer, intent(inout) :: infocode
@@ -1782,7 +1830,8 @@ contains
              else
                 rst%rxyz_new(i,iat)=rxyz_ref(i,iat)+dd
              end if
-             inputs%inputPsiId=1
+             !inputs%inputPsiId=1
+             call inputpsiid_set_policy(ENUM_MEMORY,inputs%inputPsiId)
              !here we should call cluster
              call cluster(nproc,iproc,atoms,rst%rxyz_new,energy,energs,fxyz_fake,strten,fnoise,pressure,&
                   rst%KSwfn,rst%tmb,&!psi,rst%Lzd,rst%gaucoeffs,rst%gbd,rst%orbs,&
@@ -1887,6 +1936,184 @@ contains
   end subroutine forces_via_finite_differences
 
 
+  !> Get the current run policy
+  subroutine bigdft_get_input_policy(runObj, policy)
+    use module_base
+    use module_input_keys, only: inputpsiid_get_policy
+    use public_enums
+    implicit none
+    ! Calling arguments
+    type(run_objects),intent(in) :: runObj
+    integer,intent(out) :: policy
+    !local variables
+    type(f_enumerator) :: policy_enum
+
+    call inputpsiid_get_policy(runObj%inputs%inputPsiId,policy_enum)
+
+    select case(trim(f_char(policy_enum)))
+    case('SCRATCH')
+       policy = INPUT_POLICY_SCRATCH
+    case('MEMORY')
+       policy = INPUT_POLICY_MEMORY
+    case('FILE')
+       policy = INPUT_POLICY_DISK
+    case default
+       call f_err_throw('The specified value of inputPsiId ('//&
+            trim(f_char(runObj%inputs%inputPsiId))//') is not valid for policy '//&
+            trim(f_char((policy_enum))), &
+            err_name='BIGDFT_RUNTIME_ERROR')
+    end select
+
+!!$    select case(runObj%inputs%inputPsiId)
+!!$    case(INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_LCAO, INPUT_PSI_LINEAR_AO)
+!!$        ! Start the calculation from scratch
+!!$        policy = INPUT_POLICY_SCRATCH
+!!$    case(INPUT_PSI_MEMORY_WVL, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_MEMORY_LINEAR)
+!!$        ! Start the calculation from data in memory
+!!$        policy = INPUT_POLICY_MEMORY
+!!$    case(INPUT_PSI_CP2K, INPUT_PSI_DISK_WVL, INPUT_PSI_DISK_GAUSS, INPUT_PSI_DISK_LINEAR)
+!!$        ! Start the calculation from data on disk
+!!$        policy = INPUT_POLICY_DISK
+!!$    case default
+!!$        call f_err_throw('The specified value of inputPsiId ('//&
+!!$            &trim(yaml_toa(runObj%inputs%inputPsiId))//') is not valid', &
+!!$            err_name='BIGDFT_RUNTIME_ERROR')
+!!$    end select
+  end subroutine bigdft_get_input_policy
+
+
+  !> Set the current run policy
+  !! modify the values of inputpsiid according to
+  !! the previously chosen policy
+  subroutine bigdft_set_input_policy(policy, runObj)
+    use module_base
+    use module_input_keys, only: inputpsiid_set_policy
+    use public_enums
+    implicit none
+    ! Calling arguments
+    integer,intent(in) :: policy
+    type(run_objects),intent(inout) :: runObj
+    ! Local variables
+    integer,parameter :: MODE_PLAIN    = 0
+    integer,parameter :: MODE_CUBIC    = 201
+    integer,parameter :: MODE_LINEAR   = 202
+    integer,parameter :: MODE_GAUSSIAN = 203
+    integer,parameter :: MODE_CP2K     = 204
+    integer,parameter :: MODE_EMPTY    = 205
+    integer,parameter :: MODE_RANDOM   = 206
+    integer :: mode
+    type(f_enumerator) :: policy_enum
+
+
+    ! Set the new ID for the input guess
+    select case(policy)
+    case(INPUT_POLICY_SCRATCH)
+       policy_enum=ENUM_SCRATCH
+    case(INPUT_POLICY_MEMORY)
+       policy_enum=ENUM_MEMORY
+    case(INPUT_POLICY_DISK)
+       policy_enum=ENUM_FILE
+    end select
+
+    call inputpsiid_set_policy(policy_enum,runObj%inputs%inputPsiId)
+    
+!!$
+!!$    ! Check which type of run this is, based on the current value of inputPsiId
+!!$    select case (runObj%inputs%inputPsiId)
+!!$    case(INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL)
+!!$        ! This is like a cubic run
+!!$        mode = MODE_CUBIC
+!!$    case(INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
+!!$        ! This is a linear run
+!!$        mode = MODE_LINEAR
+!!$    case(INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
+!!$        ! This is a run based on a Gaussian input guess
+!!$        mode = MODE_GAUSSIAN
+!!$    case(INPUT_PSI_CP2K)
+!!$        ! This is a run based on an input guess coming from CP2K
+!!$        mode = MODE_CP2K
+!!$    case(INPUT_PSI_EMPTY)
+!!$        ! This is a run based on an empty input guess
+!!$        mode = MODE_EMPTY
+!!$    case(INPUT_PSI_RANDOM)
+!!$        ! This is a run based on a random input guess
+!!$        mode = MODE_RANDOM
+!!$    case default
+!!$        call f_err_throw('The specified value of inputPsiId ('//&
+!!$            &trim(yaml_toa(runObj%inputs%inputPsiId))//') is not valid', &
+!!$            err_name='BIGDFT_RUNTIME_ERROR')
+!!$    end select
+!!$
+!!$    ! Set the new ID for the input guess
+!!$    select case(policy)
+!!$    case(INPUT_POLICY_SCRATCH)
+!!$        ! Start the calculation from scratch
+!!$        select case(mode)
+!!$        case(MODE_CUBIC)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_LCAO
+!!$        case(MODE_LINEAR)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_LINEAR_AO
+!!$        case(MODE_GAUSSIAN)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_LCAO_GAUSS
+!!$        case(MODE_CP2K)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_CP2K
+!!$        case(MODE_EMPTY)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_EMPTY
+!!$        case(MODE_RANDOM)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_RANDOM
+!!$        case default
+!!$        call f_err_throw('The specified value of mode ('//&
+!!$            &trim(yaml_toa(mode))//') is not valid', &
+!!$            err_name='BIGDFT_RUNTIME_ERROR')
+!!$        end select
+!!$
+!!$    case(INPUT_POLICY_MEMORY)
+!!$        ! Start the calculation from data in memory
+!!$        select case(mode)
+!!$        case(MODE_CUBIC)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_WVL
+!!$        case(MODE_LINEAR)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_LINEAR
+!!$        case(MODE_GAUSSIAN)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_MEMORY_GAUSS
+!!$        case(MODE_CP2K, MODE_EMPTY, MODE_RANDOM)
+!!$        call f_err_throw('The specified value of mode ('//&
+!!$            &trim(yaml_toa(mode))//') is not compatible with the input policy ('//&
+!!$            &trim(yaml_toa(policy))//')', &
+!!$            err_name='BIGDFT_RUNTIME_ERROR')
+!!$        case default
+!!$        call f_err_throw('The specified value of mode ('//&
+!!$            &trim(yaml_toa(mode))//') is not valid', &
+!!$            err_name='BIGDFT_RUNTIME_ERROR')
+!!$        end select
+!!$
+!!$    case(INPUT_POLICY_DISK)
+!!$        select case(mode)
+!!$        case(MODE_CUBIC)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_DISK_WVL
+!!$        case(MODE_LINEAR)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_DISK_LINEAR
+!!$        case(MODE_GAUSSIAN)
+!!$            runObj%inputs%inputPsiId = INPUT_PSI_DISK_GAUSS
+!!$        case(MODE_CP2K, MODE_EMPTY, MODE_RANDOM)
+!!$        call f_err_throw('The specified value of mode ('//&
+!!$            &trim(yaml_toa(mode))//') is not compatible with the input policy ('//&
+!!$            &trim(yaml_toa(policy))//')', &
+!!$            err_name='BIGDFT_RUNTIME_ERROR')
+!!$        case default
+!!$        call f_err_throw('The specified value of mode ('//&
+!!$            &trim(yaml_toa(mode))//') is not valid', &
+!!$            err_name='BIGDFT_RUNTIME_ERROR')
+!!$        end select
+!!$
+!!$    case default
+!!$        call f_err_throw('The specified value of inputPsiId ('//&
+!!$            &yaml_toa(runObj%inputs%inputPsiId)//') is not valid', &
+!!$            err_name='BIGDFT_RUNTIME_ERROR')
+!!$    end select
+  end subroutine bigdft_set_input_policy
+
+
 end module bigdft_run
 
 !external wrapper temporary to make the code compiling with wrappers
@@ -1911,7 +2138,7 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
 END SUBROUTINE run_objects_init_from_run_name
 
 subroutine run_objects_update(runObj, dict)
-  use module_base, only: bigdft_mpi,int
+  use module_base, only: bigdft_mpi,f_int
   use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
   use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
   use yaml_output
@@ -1949,7 +2176,7 @@ END SUBROUTINE run_objects_update
 
 !> this routine should be used in memguess executable also
 subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
-  use module_base, only: gp,f_memcpy
+  use module_base, only: gp,f_memcpy,f_enumerator
   use bigdft_run
   use module_types
   use module_fragments
@@ -1963,8 +2190,9 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   real(gp), dimension(3), intent(out) :: shift
   type(memory_estimation), intent(out) :: mem
 
-  integer :: inputpsi, input_wf_format
+  integer :: input_wf_format
   type(DFT_PSP_projectors) :: nlpsp
+  type(f_enumerator) :: inputpsi
   type(system_fragment), dimension(:), pointer :: ref_frags
   character(len = *), parameter :: subname = "run_objects_estimate_memory"
 
@@ -1973,7 +2201,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
 !!$  call memocc(i_stat,rxyz,'rxyz',subname)
   call f_memcpy(src=runObj%atoms%astruct%rxyz,dest=rxyz)
   !call vcopy(3 * runObj%atoms%astruct%nat, runObj%atoms%astruct%rxyz(1,1), 1, rxyz(1,1), 1)
-
+  inputpsi=runObj%inputs%inputpsiid
   call system_initialization(iproc, nproc, .true., inputpsi, input_wf_format, .true., &
        & runObj%inputs, runObj%atoms, rxyz, runObj%rst%GPU%OCLconv, runObj%rst%KSwfn%orbs, &
        & runObj%rst%tmb%npsidim_orbs, runObj%rst%tmb%npsidim_comp, &

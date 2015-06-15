@@ -9,12 +9,8 @@
 !> MINHOP
 !!  Main program for the minima hopping
 program MINHOP
-  use module_base, int_enum => int
+  use module_base
   use bigdft_run
-!  use module_types, only: input_variables,bigdft_run_id_toa,BIGDFT_SUCCESS
-!  use module_interfaces
-!  use module_input_dicts
-!  use m_ab6_symmetry
   use yaml_output
   use module_atoms, only: deallocate_atoms_data,atoms_data,astruct_dump_to_file
   use module_fingerprints
@@ -28,8 +24,9 @@ program MINHOP
 !  type(restart_objects) :: rst
   !C parameters for minima hopping
   integer, parameter :: mdmin=2
-  real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.10d0,beta_N=1.d0/1.10d0
-  real(kind=8), parameter :: alpha_A=1.d0/1.10d0,alpha_R=1.10d0
+  integer, parameter :: nwrite=1 !write interval
+  real(kind=8), parameter :: beta_S=1.05d0,beta_O=1.05d0,beta_N=1.d0/1.05d0
+  real(kind=8), parameter :: alpha_A=1.d0/1.05d0,alpha_R=1.05d0
   real(kind=8), allocatable, dimension(:,:) ::vxyz,gg,poshop
   real(kind=8), allocatable, dimension(:) :: rcov,ksevals
   real(kind=8), dimension(:,:), pointer :: pos
@@ -41,10 +38,10 @@ program MINHOP
   integer :: n_unique,n_nonuni,nputback,ncount_bigdft,ngeopt,nid,nlmin,nlminx
   integer :: ilmin,k,nvisit,kid,k_e,nlmin_old,ndfree,ndfroz,nummax,nummin
   ! integer :: ierror,ixyz, nproc,natp
-  integer :: istepnext,istep
+  integer :: istepnext,istep,run_policy
   character(len=*), parameter :: subname='global'
-  character(len=41) :: filename
-  character(len=4) :: fn4
+  character(len=43) :: filename
+  character(len=6) :: fn6
   character(len=5) :: fn5
 !  character(len=16) :: fn16
 !  character(len=18) :: fn18
@@ -229,14 +226,21 @@ program MINHOP
   count_md=0.d0
   nputback=0
 
-  run_opt%inputs%inputPsiId=0
+  call bigdft_get_input_policy(run_opt, run_policy)
+  if (run_policy/=INPUT_POLICY_SCRATCH) then
+      call f_err_throw('Wrong run policy ('//trim(yaml_toa(run_policy))//'), only '&
+          //trim(yaml_toa(INPUT_POLICY_SCRATCH,fmt='(i0)'))//' is possible',&
+          err_name='BIGDFT_RUNTIME_ERROR')
+  end if
+  call bigdft_get_input_policy(run_md, run_policy)
+  if (run_policy/=INPUT_POLICY_SCRATCH) then
+      call f_err_throw('Wrong run policy ('//trim(yaml_toa(run_policy))//'), only '&
+          //trim(yaml_toa(INPUT_POLICY_SCRATCH,fmt='(i0)'))//' is possible',&
+          err_name='BIGDFT_RUNTIME_ERROR')
+  end if
 
-!!$  call init_restart_objects(bigdft_mpi%iproc,inputs_opt,atoms,rst)
-!!$  call nullify_run_objects(runObj)
-!!$  call run_objects_associate(runObj, inputs_md, atoms, rst)
   !we start with md
   call bigdft_state(run_md,outs,infocode)
-
 
   energyold=1.d100
   ncount_bigdft=0
@@ -245,9 +249,9 @@ program MINHOP
 
   ngeopt=0
   do 
-     write(fn4,'(i4.4)') ngeopt+1
+     write(fn6,'(i6.6)') ngeopt+1
      !filename='poslocm_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
-     filename='poslocm_'//fn4//trim(naming_id)//'.xyz'
+     filename='poslocm_'//fn6//trim(naming_id)//'.xyz'
 !     write(*,*) 'filename: ',filename
      inquire(file=trim(filename),exist=exist_poslocm)
      if (exist_poslocm) then
@@ -260,9 +264,9 @@ program MINHOP
 
   nposacc=0
   do 
-     write(fn4,'(i4.4)') nposacc+1
+     write(fn6,'(i6.6)') nposacc+1
      !filename='posacc_'//fn4//'_'//trim(bigdft_run_id_toa())//'.xyz'
-     filename='posacc_'//fn4//trim(naming_id)//'.xyz'
+     filename='posacc_'//fn6//trim(naming_id)//'.xyz'
 !     write(*,*) 'filename: ',filename
      inquire(file=trim(filename),exist=exist_posacc)
      if (exist_posacc) then
@@ -338,14 +342,14 @@ program MINHOP
     nposacc=nposacc+1
   if (bigdft_mpi%iproc == 0) then
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     write(fn4,'(i4.4)')nposacc
+     write(fn6,'(i6.6)')nposacc
      if(disable_hatrans)then
          write(comment,'(a,1pe10.3)')'ha_trans disabled, fnrm= ',tt
      else
          write(comment,'(a,1pe10.3)')'ha_trans enabled, fnrm= ',tt
      endif
      call bigdft_write_atomic_file(run_opt,outs,&
-          'posacc_'//fn4//trim(naming_id),&
+          'posacc_'//fn6//trim(naming_id),&
           !'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           trim(comment),cwd_path=.true.)
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
@@ -355,17 +359,17 @@ program MINHOP
 
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     write(fn4,'(i4.4)') ngeopt
+     write(fn6,'(i6.6)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call bigdft_write_atomic_file(run_opt,outs,&
-          'poslocm_'//fn4//trim(naming_id),&
+          'poslocm_'//fn6//trim(naming_id),&
           !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
           trim(comment),cwd_path=.true.)
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
      !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
     if(run_opt%run_mode=='QM_RUN_MODE') then
-      open(unit=864,file='kseloc_'//fn4//trim(naming_id))
+      open(unit=864,file='kseloc_'//fn6//trim(naming_id))
       do i=1,nksevals
       write(864,*) ksevals(i)
       enddo
@@ -557,13 +561,13 @@ program MINHOP
                 ngeopt,bigdft_mpi%iproc)
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     write(fn4,'(i4.4)') nint(escape)
+     write(fn6,'(i6.6)') nint(escape)
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      
-     call bigdft_write_atomic_file(run_md,outs,&
-          !'posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          'posaftermd_'//fn4//trim(naming_id),&
-          trim(comment),cwd_path=.true.)
+!!     call bigdft_write_atomic_file(run_md,outs,&
+!!          !'posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+!!          'posaftermd_'//fn6//trim(naming_id),&
+!!          trim(comment),cwd_path=.true.)
 
 !!$     call write_atomic_file('posaftermd_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
@@ -627,18 +631,18 @@ program MINHOP
 
   if (bigdft_mpi%iproc == 0) then 
      tt=dnrm2(3*outs%fdim,outs%fxyz,1)
-     write(fn4,'(i4.4)') ngeopt
+     write(fn6,'(i6.6)') ngeopt
      write(comment,'(a,1pe10.3)')'fnrm= ',tt
      call bigdft_write_atomic_file(run_opt,outs,&
           !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),trim(comment),&
-          'poslocm_'//fn4//trim(naming_id),trim(comment),&
+          'poslocm_'//fn6//trim(naming_id),trim(comment),&
           cwd_path=.true.)
 
 !!$     call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
     if(run_opt%run_mode=='QM_RUN_MODE') then
         !open(unit=864,file='kseloc_'//fn4//'_'//trim(bigdft_run_id_toa()))
-        open(unit=864,file='kseloc_'//fn4//trim(naming_id))
+        open(unit=864,file='kseloc_'//fn6//trim(naming_id))
         do i=1,nksevals
           write(864,*) ksevals(i)
         enddo
@@ -696,10 +700,12 @@ program MINHOP
       ! write intermediate results
 
       if (bigdft_mpi%iproc == 0) then
+         if(mod(nlmin,nwrite)==0)then
          call yaml_comment('(MH) WINTER')
          call winter(naming_id,natoms,bigdft_get_astruct_ptr(run_opt),&
                                  nid,nlminx,nlmin,singlestep,en_delta,fp_delta,en_arr,ct_arr,&
                                  fp_arr,pl_arr,ediff,ekinetic,dt,nsoften)
+        endif
         !call yaml_stream_attributes()
         call yaml_mapping_open('(MH) New minimum',flow=.true.)
         call yaml_map('(MH) has energy',outs%energy,fmt='(e14.7)')
@@ -761,7 +767,7 @@ program MINHOP
      enddo
   nposacc=nposacc+1
   if (bigdft_mpi%iproc == 0) then
-     write(fn4,'(i4.4)')nposacc
+     write(fn6,'(i6.6)')nposacc
      if(disable_hatrans)then
          write(comment,'(a)')'ha_trans disabled'
      else
@@ -769,7 +775,7 @@ program MINHOP
      endif
      call astruct_dump_to_file(bigdft_get_astruct_ptr(run_opt),&
           !'posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-          'posacc_'//fn4//trim(naming_id),&
+          'posacc_'//fn6//trim(naming_id),&
           trim(comment),energy=e_pos,rxyz=pos)
 !!$     call write_atomic_file('posacc_'//fn4//'_'//trim(bigdft_run_id_toa()),&
 !!$          e_pos,pos,atoms%astruct%ixyz_int,atoms,trim(comment))
@@ -795,7 +801,8 @@ program MINHOP
       ediff=ediff*alpha_A
   else
      !C          local minima rejected -------------------------------------------------------
-     run_opt%inputs%inputPsiId=0  !ALEX says: Better do an input guess for the next escape
+     !run_opt%inputs%inputPsiId=0  !ALEX says: Better do an input guess for the next escape
+     call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, run_opt)
      if (bigdft_mpi%iproc == 0) then 
           write(2,'((1x,f10.0),1x,1pe21.14,2(1x,1pe10.3),3(1x,0pf5.2),a,i5)')  &
           escape,outs%energy,ediff,ekinetic, &
@@ -912,7 +919,7 @@ contains
     type(run_objects), intent(inout) :: runObj
     type(state_properties), intent(inout) :: outs
     real(kind=8), dimension(3,natoms) :: gg,vxyz
-    character(len=4) :: fn4
+    character(len=6) :: fn6
     real(gp) :: e0,enmin1,en0000,econs_max,econs_min,rkin,enmin2
     real(kind=8) :: devcon,at1,at2,at3
     real(gp), dimension(:,:), pointer :: rxyz_run
@@ -976,12 +983,13 @@ contains
        enmin2=enmin1
        enmin1=en0000
        !    if (iproc == 0) write(*,*) 'CLUSTER FOR  MD'
-       runObj%inputs%inputPsiId=1
+       !runObj%inputs%inputPsiId=1
+       call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
        call bigdft_state(runObj, outs,infocode)
 
        if (iproc == 0) then
-          write(fn4,'(i4.4)') istep
-          call bigdft_write_atomic_file(runObj,outs,'posmd_'//fn4,'')
+          write(fn6,'(i6.6)') istep
+          call bigdft_write_atomic_file(runObj,outs,'posmd_'//fn6,'')
 !!$          call write_atomic_file(trim(inputs_md%dir_output)//'posmd_'//fn4,outs%energy,&
 !!$              atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,'',forces=outs%fxyz)
        end if
@@ -990,17 +998,17 @@ contains
        if (istep >= 3 .and. enmin1 > enmin2 .and. enmin1 > en0000)  nummax=nummax+1
        if (istep >= 3 .and. enmin1 < enmin2 .and. enmin1 < en0000)  nummin=nummin+1
 !  write configuration file for data base
-       if (istep >= 3 .and. enmin1 < enmin2 .and. enmin1 < en0000)  then
-          ngeopt=ngeopt+1
-          write(fn4,'(i4.4)') ngeopt
-          write(comment,'(a,i3)')'nummin= ',nummin
-          call bigdft_write_atomic_file(runObj,outs,&
-               !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
-               'poslocm_'//fn4//trim(naming_id),&
-               trim(comment),cwd_path=.true.)
+!!       if (istep >= 3 .and. enmin1 < enmin2 .and. enmin1 < en0000)  then
+!!          ngeopt=ngeopt+1
+!!          write(fn6,'(i6.6)') ngeopt
+!!          write(comment,'(a,i3)')'nummin= ',nummin
+!!          call bigdft_write_atomic_file(runObj,outs,&
+!!               !'poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()),&
+!!               'poslocm_'//fn6//trim(naming_id),&
+!!               trim(comment),cwd_path=.true.)
 !!$          call write_atomic_file('poslocm_'//fn4//'_'//trim(bigdft_run_id_toa()), & 
 !!$               outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
-       endif
+!!       endif
        econs_max=max(econs_max,rkin+outs%energy)
        econs_min=min(econs_min,rkin+outs%energy)
        devcon=econs_max-econs_min
@@ -1105,7 +1113,8 @@ contains
     call bigdft_get_rxyz(runObj,rxyz_add=pos0(1))
     !call vcopy(3*natoms, atoms%astruct%rxyz(1,1), 1, pos0(1), 1)
 
-    runObj%inputs%inputPsiId=1
+    !runObj%inputs%inputPsiId=1
+    call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
     if(iproc==0) call yaml_comment('(MH) soften initial step ',hfill='~')
     call bigdft_state(runObj,outs,infocode)
     etot0 = outs%energy
@@ -1165,10 +1174,10 @@ contains
 !       call atomic_dot(atoms,fxyz,fxyz,res)
        res=sqrt(res)
 
-       write(fn4,'(i4.4)') it
+       write(fn6,'(i6.6)') it
        write(comment,'(a,1pe10.3)')'res= ',res
        if (iproc == 0) &
-            call bigdft_write_atomic_file(runObj,outs,'possoft_'//fn4,trim(comment))
+            call bigdft_write_atomic_file(runObj,outs,'possoft_'//fn6,trim(comment))
        
 !!$            call write_atomic_file(trim(inputs_md%dir_output)//'possoft_'//fn4,&
 !!$            outs%energy,atoms%astruct%rxyz,atoms%astruct%ixyz_int,atoms,trim(comment),forces=outs%fxyz)
@@ -1321,7 +1330,7 @@ END SUBROUTINE hunt_g
 
 !> Assigns initial velocities for the MD escape part
 subroutine velnorm(nat,ekinetic,vxyz)
-  use module_base, int_enum => int
+  use module_base
 !  use module_types
 !  use m_ab6_symmetry
   implicit none
@@ -2175,13 +2184,13 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
                endif
             enddo
 
-            if (iproc == 0) then
-               write(444,*) nat, 'atomic '
-               write(444,*) 'A fragmented configuration ',imin(1),imin(2)
-               do iat=1,nat
-                  write(444,'(a5,3(e15.7),l1)') ' Mg  ',pos(1,iat),pos(2,iat),pos(3,iat)
-               enddo
-            endif
+!            if (iproc == 0) then
+!               write(444,*) nat, 'atomic '
+!               write(444,*) 'A fragmented configuration ',imin(1),imin(2)
+!               do iat=1,nat
+!                  write(444,'(a5,3(e15.7),l1)') ' Mg  ',pos(1,iat),pos(2,iat),pos(3,iat)
+!               enddo
+!            endif
 
 
             vec(:)=pos(:,imin(1))-pos(:,imin(2))
@@ -2258,7 +2267,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
             invert(ifrag)=.false.
          endif
          if (iproc==0) then
-           write(*,*) '(MH) ifrag, angle ',ifrag, angle,invert(ifrag)
+!           write(*,*) '(MH) ifrag, angle ',ifrag, angle,invert(ifrag)
            call yaml_mapping_open('(MH) Frag. Info',flow=.true.)
             call yaml_map('ifrag',ifrag)
             call yaml_map('angle',angle)
@@ -2365,6 +2374,7 @@ if(nfrag.ne.1) then          !"if there is fragmentation..."
       if(iproc==0) call yaml_scalar('(MH) FIX: Velocity component towards the center of mass inverted! Keep on hopping...')
    endif
 endif
+call yaml_mapping_close()
 end subroutine fixfrag_posvel
 
 

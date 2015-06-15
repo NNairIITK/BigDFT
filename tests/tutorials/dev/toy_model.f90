@@ -17,11 +17,12 @@ program wvl
   use dynamic_memory
   use yaml_output
   use module_input_dicts
-  use module_interfaces, only: inputs_from_dict
+  use module_input_keys
   use module_atoms, only: deallocate_atoms_data
   use communications_base, only: deallocate_comms
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
+  use rhopotential, only: full_local_potential
   implicit none
 
   type(input_variables)             :: inputs

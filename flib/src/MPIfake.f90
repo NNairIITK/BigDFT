@@ -95,8 +95,10 @@ subroutine  MPI_FINALIZE(ierr)
   ierr=0
 END SUBROUTINE MPI_FINALIZE
 
-subroutine MPI_BCAST()
+subroutine MPI_BCAST(buffer,n,mpitype,root,comm,ierr)
   implicit none
+  integer :: buffer,n,mpitype,root,comm,ierr
+  ierr=0
 END SUBROUTINE MPI_BCAST
 
 subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)

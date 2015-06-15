@@ -18,7 +18,7 @@ module module_base
   use dynamic_memory
   use time_profiling
   use f_utils
-  use f_enums
+  use f_enums, f_char=>str, f_int => int
   use f_refcnts
   use f_trees
   use yaml_strings

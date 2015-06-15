@@ -496,13 +496,24 @@ subroutine test_dictionaries1()
    end do
 
    !perform an iterator on dict
-   dict_tmp=>dict_next(dictA)
+   dict_tmp=>dict_iter(dictA)
    do while(associated(dict_tmp))
       call yaml_map('Item of dictA',dict_item(dict_tmp))
       call yaml_map('Value of dictA',dict_value(dict_tmp))
       dict_tmp=>dict_next(dict_tmp)
    end do
    call dict_free(dictA)
+
+   !perform an iterator on a scalar, should not provide output
+   dictA=>dict_new('Key' .is. 'Scalar')
+   dict_tmp=>dict_iter(dictA//'Key')
+   do while(associated(dict_tmp))
+      call yaml_map('Item of dict scalar',dict_item(dict_tmp))
+      call yaml_map('Value of dict scalar',dict_value(dict_tmp))
+      dict_tmp=>dict_next(dict_tmp)
+   end do
+   call dict_free(dictA)
+
 
    !example which has a bug
    dict_tmp => list_new((/.item.'55',.item. '66'/))

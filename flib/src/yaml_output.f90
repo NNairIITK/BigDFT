@@ -303,7 +303,7 @@ contains
   !> Set all the output from now on to the file indicated by stdout
   !! therefore the default stream is now the one indicated by unit
   subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position,setdefault)
-    use f_utils, only: f_utils_recl,f_get_free_unit
+    use f_utils, only: f_utils_recl,f_get_free_unit,f_open_file
     implicit none
     integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
                                                        !! is not 6 and it has already been opened by the processor
@@ -375,13 +375,18 @@ contains
                      YAML_STREAM_ALREADY_PRESENT)
              end if
           end if
-          open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
-          if (present(istat)) then
-             istat = ierr
-          else
-             if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
-                  YAML_INVALID)) return
-          end if
+          call f_err_open_try()
+          call f_open_file(unt,trim(filename),position=trim(pos))
+          ierr=f_get_last_error()
+          call f_err_close_try()
+          if (present(istat)) istat=ierr
+!!$          open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
+!!$          if (present(istat)) then
+!!$             istat = ierr
+!!$          else
+!!$             if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
+!!$                  YAML_INVALID)) return
+!!$          end if
        end if
        if (ierr == 0 .and. .not. unit_is_open) then
           !inquire the record length for the unit
@@ -623,7 +628,7 @@ contains
 
   end subroutine yaml_release_document
 
-  !< close one stream and free its place
+  !> close one stream and free its place
   !! should this stream be the default stream, stdout becomes the default
   subroutine yaml_close_stream(unit,istat)
     implicit none
