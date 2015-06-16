@@ -97,7 +97,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       end do
   end if
 
-
   if (present(denspot)) then
      call initialize_DFT_local_fields(denspot, in%ixc, in%nspin)
 

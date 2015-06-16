@@ -75,13 +75,13 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-10_dp!1.0e-12_dp
+        kernel%minres=1.0e-12_dp!1.0e-4_dp!1.0e-12_dp
         kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%method=PS_PCG_ENUM
         kernel%nord=16 
         kernel%max_iter=50
-        kernel%minres=1.0e-4_dp!1.0e-12_dp
+        kernel%minres=1.0e-12_dp!1.0e-4_dp!1.0e-12_dp
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -1020,6 +1020,7 @@ end subroutine sccs_extra_potential
 subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   use numerics, only: safe_exp
   use f_utils
+  use yaml_output
 
   implicit none
   !> Poisson Solver kernel
@@ -1027,18 +1028,18 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   type(coulomb_operator), intent(inout) :: kernel
   !> electronic density in the full box. This is needed because of the calculation of the 
   !! gradient
-  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: edens
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(inout) :: edens
   !> functional derivative of the sc epsilon with respect to 
   !! the electronic density, in distributed memory
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: depsdrho
 
   
   !local variables
-  logical, parameter :: dumpeps=.false.
+  logical, parameter :: dumpeps=.true.
   real(kind=8), parameter :: edensmax = 0.0050d0
   real(kind=8), parameter :: edensmin = 0.0001d0
   integer :: n01,n02,n03,i,i1,i2,i3,i23,i3s,unt
-  real(dp) :: oneoeps0,oneosqrteps0,pi,coeff,coeff1,fact1,fact2,fact3,r,t,d2,dtx,dd
+  real(dp) :: oneoeps0,oneosqrteps0,pi,coeff,coeff1,fact1,fact2,fact3,r,t,d2,dtx,dd,x,y,z
   real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr
   real(dp), dimension(:,:,:,:), allocatable :: nabla_edens
 
@@ -1065,6 +1066,8 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   fact1=2.d0*pi/(dlog(edensmax)-dlog(edensmin))
   fact2=(dlog(eps0))/(2.d0*pi)
   fact3=(dlog(eps0))/(dlog(edensmax)-dlog(edensmin))
+
+  edens(n01/2,n02/2,117)=edens(n01/2,n02/2,118)
 
   if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
        call yaml_map('Rebuilding the cavity for method',trim(str(kernel%method)))
@@ -1181,22 +1184,43 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   end select
 
   if (dumpeps) then
+
+!   call pkernel_set_epsilon(kernel,eps=epscurr)
+     call yaml_map('#BUILDSCC',1)
      unt=f_get_free_unit(21)
      call f_open_file(unt,file='epsilon_sccs.dat')
      i1=1!n03/2
      do i2=1,n02
         do i3=1,n03
-           write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,epscurr(i1,i2,i3),epscurr(n01/2,i2,i3)
+           write(unt,'(2(1x,I4),3(1x,e14.7))')i2,i3,epscurr(i1,i2,i3),epscurr(n01/2,i2,i3),edens(n01/2,i2,i3)
         end do
      end do
      call f_close(unt)
 
      unt=f_get_free_unit(22)
-     call f_open_file(unt,file='epsilon_line_sccs.dat')
-     do i2=1,n02
-        write(unt,'(1x,I8,1(1x,e22.15))')i2,epscurr(n01/2,i2,n03/2)
+     call f_open_file(unt,file='epsilon_line_sccs_x.dat')
+     do i1=1,n01
+        x=i1*kernel%hgrids(1)
+        write(unt,'(1x,I8,3(1x,e22.15))')i1,x,epscurr(i1,n02/2,n03/2),edens(i1,n02/2,n03/2)
      end do
      call f_close(unt)
+
+     unt=f_get_free_unit(23)
+     call f_open_file(unt,file='epsilon_line_sccs_y.dat')
+     do i2=1,n02
+        y=i2*kernel%hgrids(2)
+        write(unt,'(1x,I8,3(1x,e22.15))')i2,y,epscurr(n01/2,i2,n03/2),edens(n01/2,i2,n03/2)
+     end do
+     call f_close(unt)
+
+     unt=f_get_free_unit(24)
+     call f_open_file(unt,file='epsilon_line_sccs_z.dat')
+     do i3=1,n03
+        z=i3*kernel%hgrids(3)
+        write(unt,'(1x,I8,3(1x,e22.15))')i3,z,epscurr(n01/2,n02/2,i3),edens(n01/2,n02/2,i3)
+     end do
+     call f_close(unt)
+
      call f_free(epscurr)
   end if
 
@@ -1938,6 +1962,6 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
         end do
      end do
   end do
-  rhores2=rhores2/rpoints
+!  rhores2=rhores2/rpoints
 
 end subroutine fssnord3DmatNabla_LG
