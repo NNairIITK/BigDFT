@@ -85,7 +85,7 @@ module module_defs
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
 
-  private :: f_double,f_simple,f_long,f_short,f_int
+  private :: f_double,f_simple,f_long,f_short,f_integer
 
   !interface for uninitialized variable
   interface UNINITIALIZED

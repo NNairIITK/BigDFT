@@ -28,7 +28,7 @@ module module_input_keys
 
   type(dictionary), pointer :: parameters=>null()
   type(dictionary), pointer :: parsed_parameters=>null()
-
+  type(dictionary), pointer :: profiles=>null()
 
 
  character(len = 12), dimension(0:2), parameter, public :: OUTPUT_DENSPOT_names = &
@@ -505,6 +505,7 @@ contains
     call yaml_parse_from_char_array(parsed_parameters,params)
     !there is only one document in the input variables specifications
     parameters=>parsed_parameters//0
+    profiles => parsed_parameters//1
     call f_free_str(1,params)
 
     !call yaml_dict_dump(parameters, comment_key = COMMENT)
@@ -522,6 +523,7 @@ contains
     if (associated(parsed_parameters)) then
        call dict_free(parsed_parameters)
        nullify(parameters)
+       nullify(profiles)
     else
        call dict_free(parameters)
     end if
@@ -850,7 +852,6 @@ contains
   subroutine check_for_data_writing_directory(iproc,in)
     use yaml_output
     use module_defs, only: bigdft_mpi
-    use f_precisions, only: f_int
     use f_utils, only: f_zero,f_mkdir
     use wrapper_MPI, only: mpibcast
     use yaml_strings, only: f_strcpy
@@ -910,6 +911,7 @@ contains
     use f_input_file
     use public_keys
     use yaml_strings, only: operator(.eqv.)
+    use yaml_output
     !use yaml_output
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
@@ -925,8 +927,8 @@ contains
     call f_routine(id='input_keys_fill_all')
 
     ! Overriding the default for isolated system
-    if (POSINP .in. dict) then
-       if (.not.has_key(dict//POSINP,ASTRUCT_CELL) .and. .not. has_key(dict//DFT_VARIABLES,DISABLE_SYM)) then
+    if ((POSINP .in. dict) .and. (DFT_VARIABLES .in. dict) ) then
+       if ( (ASTRUCT_CELL .notin. dict//POSINP) .and. (DISABLE_SYM .notin. dict//DFT_VARIABLES)) then
           call set(dict // DFT_VARIABLES // DISABLE_SYM,.true.)
        end if
     end if
@@ -934,9 +936,8 @@ contains
 
     ! Check and complete dictionary.
     call input_keys_init()
-
-
-    call input_file_complete(parameters,dict,nocheck=nested)
+! call yaml_map('present status',dict)
+    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)

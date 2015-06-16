@@ -10,7 +10,7 @@ EXTRA_DIST = Makefile.standalone \
 	kinetic.cu kinetic.h \
 	compress.cu
 if USE_CUDA_GPU
-sources = binding_s_gpu.c \
+sources = \
 	commonDef.cpp commonDef.h \
 	cudafct.cu \
 	locham.cu \
@@ -22,9 +22,11 @@ sources = binding_s_gpu.c \
 	structDef_anasyn.h \
 	structDef_locpot.h \
 	structDef_kinetic.h \
-	check_cuda.h \
 	read_conf_exception.h \
 	cpp_utils.h
+
+#binding_s_gpu.c check_cuda.h 
+
 else
 sources =
 endif

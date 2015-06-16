@@ -1341,7 +1341,6 @@ contains
     use module_morse_bulk
     use module_tersoff
     use module_BornMayerHugginsTosiFumi
-    use f_enums, only: f_int => int
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
