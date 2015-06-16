@@ -167,6 +167,7 @@ subroutine pkernel_free(kernel)
   call f_free_ptr(kernel%dlogeps)
   call f_free_ptr(kernel%oneoeps)
   call f_free_ptr(kernel%corr)
+  call f_free_ptr(kernel%epsinnersccs)
   call f_free_ptr(kernel%counts)
   call f_free_ptr(kernel%displs)
 
@@ -947,10 +948,12 @@ subroutine pkernel_allocate_cavity(kernel,vacuum)
   case('PCG')
      kernel%corr=f_malloc_ptr([n1,n23],id='corr')
      kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
+     kernel%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
   case('PI')
      kernel%dlogeps=f_malloc_ptr([3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],&
           id='dlogeps')
      kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
+     kernel%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
   end select
   if (present(vacuum)) then
      if (vacuum) then
@@ -960,6 +963,7 @@ subroutine pkernel_allocate_cavity(kernel,vacuum)
         case('PI')
            call f_zero(kernel%dlogeps)
         end select
+        call f_zero(kernel%epsinnersccs)
         do i23=1,n23
            do i1=1,n1
               kernel%oneoeps(i1,i23)=1.0_dp
@@ -1035,12 +1039,13 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
 
   
   !local variables
-  logical, parameter :: dumpeps=.true.
+  logical, parameter :: dumpeps=.false.  !.true.
   real(kind=8), parameter :: edensmax = 0.0050d0
   real(kind=8), parameter :: edensmin = 0.0001d0
+  real(kind=8), parameter :: innervalue = 0.9d0
   integer :: n01,n02,n03,i,i1,i2,i3,i23,i3s,unt
   real(dp) :: oneoeps0,oneosqrteps0,pi,coeff,coeff1,fact1,fact2,fact3,r,t,d2,dtx,dd,x,y,z
-  real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr
+  real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr,epsinner
   real(dp), dimension(:,:,:,:), allocatable :: nabla_edens
 
   n01=kernel%ndims(1)
@@ -1052,6 +1057,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   !allocate the work arrays
   nabla_edens=f_malloc([n01,n02,n03,3],id='nabla_edens')
   ddt_edens=f_malloc(kernel%ndims,id='ddt_edens')
+  epsinner=f_malloc(kernel%ndims,id='epsinner')
   if (dumpeps) epscurr=f_malloc(kernel%ndims,id='epscurr')
 
   !build the gradients and the laplacian of the density
@@ -1067,8 +1073,6 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   fact2=(dlog(eps0))/(2.d0*pi)
   fact3=(dlog(eps0))/(dlog(edensmax)-dlog(edensmin))
 
-  edens(n01/2,n02/2,117)=edens(n01/2,n02/2,118)
-
   if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
        call yaml_map('Rebuilding the cavity for method',trim(str(kernel%method)))
 
@@ -1082,6 +1086,17 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
         !do i3=1,n03
         do i2=1,n02
            do i1=1,n01
+             if (kernel%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+                 !eps(i1,i2,i3)=1.d0
+                 if (dumpeps) epscurr(i1,i2,i3)=1.d0
+                 kernel%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
+!!$                 do i=1,3
+!!$                    dlogeps(i,i1,i2,i3)=0.d0
+!!$                 end do
+                 kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
+                 depsdrho(i1,i23)=0.d0
+             else
+
               if (dabs(edens(i1,i2,i3)).gt.edensmax) then
                  !eps(i1,i2,i3)=1.d0
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
@@ -1119,6 +1134,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  kernel%corr(i1,i23)=(0.125d0/pi)*safe_exp(t)*(coeff1*d2+dtx*dd) !corr(i1,i2,i3)
               end if
 
+             end if
            end do
            i23=i23+1
         end do
@@ -1130,6 +1146,14 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
      do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
         do i2=1,n02
            do i1=1,n01
+             epsinner(i1,i2,i3)=kernel%epsinnersccs(i1,i23)
+             if (kernel%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+                 !eps(i1,i2,i3)=1.d0
+                 if (dumpeps) epscurr(i1,i2,i3)=1.d0
+                 kernel%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
+                 depsdrho(i1,i23)=0.d0
+             else
+
               if (dabs(edens(i1,i2,i3)).gt.edensmax) then
                  !eps(i1,i2,i3)=1.d0
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
@@ -1151,6 +1175,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  kernel%oneoeps(i1,i23)=safe_exp(-t) !oneoeps(i1,i2,i3)
               end if
 
+             end if
            end do
            i23=i23+1
         end do
@@ -1160,6 +1185,12 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
      do i3=1,n03
         do i2=1,n02
            do i1=1,n01
+             if (epsinner(i1,i2,i3).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+              do i=1,3
+               kernel%dlogeps(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
+              end do
+             else
+
               if (dabs(edens(i1,i2,i3)).gt.edensmax) then
                  do i=1,3
                     kernel%dlogeps(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
@@ -1177,6 +1208,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  end do
               end if
 
+             end if
            end do
         end do
      end do
@@ -1185,8 +1217,6 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
 
   if (dumpeps) then
 
-!   call pkernel_set_epsilon(kernel,eps=epscurr)
-     call yaml_map('#BUILDSCC',1)
      unt=f_get_free_unit(21)
      call f_open_file(unt,file='epsilon_sccs.dat')
      i1=1!n03/2
@@ -1222,11 +1252,12 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
      call f_close(unt)
 
      call f_free(epscurr)
+
   end if
 
   call f_free(ddt_edens)
-
   call f_free(nabla_edens)
+  call f_free(epsinner)
 
 end subroutine pkernel_build_epsilon
   

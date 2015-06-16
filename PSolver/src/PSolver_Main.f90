@@ -353,7 +353,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       PCG_loop: do ip=1,kernel%max_iter
 
-         if (normr < kernel%minres .or. ratio > max_ratioex) exit PCG_loop
+         if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
 
          !  Apply the Preconditioner
          call apply_kernel(cudasolver,kernel,z,offset,strten,zf,.true.)
