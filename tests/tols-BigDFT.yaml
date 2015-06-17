@@ -1555,6 +1555,14 @@ multipoles_OH-:
  Raw forces norm (Ha/Bohr): 3.7e-11
  Average noise forces: 1.1e-10
  decay length of error function: 1.1e-5
+ number of corrected points: 18
+ total charge correction: 1.7e-8
+
+multipoles_water:
+ eF: 5.1e-10
+ guess for new ef: 3.0e-10
+ number of corrected points: 7
+ multiplicator for the confinement: 5.2e-11
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
