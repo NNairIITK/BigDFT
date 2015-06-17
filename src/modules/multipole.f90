@@ -6,6 +6,7 @@ module multipole
   private
 
   !> Public routines
+  public :: interaction_multipoles_ions
   public :: potential_from_charge_multipoles
   public :: potential_from_multipoles
   public :: multipoles_from_density
@@ -13,13 +14,50 @@ module multipole
   contains
 
 
-    !> Calculate the external potential arising from the multipoles of the charge density
-    subroutine potential_from_charge_multipoles(denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
-      use module_types, only: DFT_local_fields
-      use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+    subroutine interaction_multipoles_ions(ep, at, eion, fion)
+      use module_types, only: atoms_data
       implicit none
       
       ! Calling arguments
+      type(external_potential_descriptors),intent(in) :: ep
+      type(atoms_data),intent(in) :: at
+      real(gp),intent(inout) :: eion
+      real(gp),dimension(3,at%astruct%nat),intent(inout) :: fion
+
+      ! Local variables
+      integer :: iat, ityp, impl
+      real(gp) :: r, charge
+
+      do iat=1,at%astruct%nat
+          ityp=at%astruct%iatype(iat)
+          do impl=1,ep%nmpl
+              r = sqrt((at%astruct%rxyz(1,iat)-ep%mpl(impl)%rxyz(1))**2 + &
+                       (at%astruct%rxyz(2,iat)-ep%mpl(impl)%rxyz(2))**2 + &
+                       (at%astruct%rxyz(3,iat)-ep%mpl(impl)%rxyz(3))**2)
+              if (associated(ep%mpl(impl)%qlm(0)%q)) then
+                  ! For the multipoles, a positive value corresponds to a
+                  ! negative charge! Therefore multiply by -1
+                  charge = real(at%nelpsp(ityp),gp)*real(-1.0_gp*ep%mpl(impl)%qlm(0)%q(1),kind=gp)
+                  eion = eion + charge/r
+                  fion(1,iat) = fion(1,iat) + charge/(r**3)*(at%astruct%rxyz(1,iat)-ep%mpl(impl)%rxyz(1))
+                  fion(2,iat) = fion(2,iat) + charge/(r**3)*(at%astruct%rxyz(2,iat)-ep%mpl(impl)%rxyz(2))
+                  fion(3,iat) = fion(3,iat) + charge/(r**3)*(at%astruct%rxyz(3,iat)-ep%mpl(impl)%rxyz(3))
+              end if
+          end do
+      end do
+
+    end subroutine interaction_multipoles_ions
+
+
+    !> Calculate the external potential arising from the multipoles of the charge density
+    subroutine potential_from_charge_multipoles(iproc, nproc, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
+      use module_types, only: DFT_local_fields
+      use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+      use yaml_output
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
       type(DFT_local_fields),intent(inout) :: denspot
       type(external_potential_descriptors),intent(in) :: ep
       integer,intent(in) :: is1, ie1, is2, ie2, is3, ie3
@@ -28,14 +66,21 @@ module multipole
       real(gp),dimension(is1:ie1,is2:ie2,is3:ie3),intent(inout) :: pot
 
       ! Local variables
-      integer :: i1, i2, i3, ii1, ii2, ii3, impl, l, m, ii
-      real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp, ehart_ps, tt
+      integer :: i1, i2, i3, ii1, ii2, ii3, impl, l, m, ii, mm
+      real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp, ehart_ps, tt, ttt
       real(dp),dimension(3) :: r
       real(dp),dimension(:,:,:),allocatable :: density
-      real(kind=8) :: sigma
-      real(8),dimension(ep%nmpl) :: norm
+      real(kind=8),dimension(0:lmax) :: sigma
+      real(8),dimension(ep%nmpl) :: monopole
+      real(8),dimension(0:2,1:ep%nmpl) :: norm
+      real(8),dimension(3,ep%nmpl) :: dipole
+      real(8),dimension(5,ep%nmpl) :: quadrupole
 
-      sigma = (hx*hy*hz)**(1.d0/3.d0)
+      call f_routine(id='potential_from_charge_multipoles')
+
+      sigma(0) = 5.d0*(hx*hy*hz)**(1.d0/3.d0)
+      sigma(1) = 4.d0*(hx*hy*hz)**(1.d0/3.d0)
+      sigma(2) = 2.d0*(hx*hy*hz)**(1.d0/3.d0)
 
       density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
 
@@ -45,6 +90,9 @@ module multipole
       !!$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, rnrm1, rnrm2, rnrm3, rnrm5, l, mp)
       !!$omp do
       norm = 0.d0
+      monopole = 0.d0
+      dipole = 0.d0
+      quadrupole = 0.d0
       do i3=is3,ie3
           ii3 = i3 - 15
           z = real(ii3,kind=8)*hz + shift(3)
@@ -57,35 +105,131 @@ module multipole
                   x = real(ii1,kind=8)*hx + shift(1)
                   tt = 0.d0
                   do impl=1,ep%nmpl
-                      r(1) = ep%mpl(impl)%rxyz(1) - x
-                      r(2) = ep%mpl(impl)%rxyz(2) - y
-                      r(3) = ep%mpl(impl)%rxyz(3) - z 
+                      r(1) = x - ep%mpl(impl)%rxyz(1)
+                      r(2) = y - ep%mpl(impl)%rxyz(2)
+                      r(3) = z - ep%mpl(impl)%rxyz(3)
                       rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
                       rnrm1 = sqrt(rnrm2)
                       !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
                       !if (i1==is1 .and. i2==is2)  then
-                          norm(impl) = norm(impl) + gaussian(sigma, rnrm1)*sigma**3
                       !    write(*,'(a,i5,3es16.7)') 'impl, rnrm1, g, norm', impl, rnrm1, gaussian(sigma, rnrm1), norm(impl)
                       !end if
                       do l=0,lmax
+                          norm(l,impl) = norm(l,impl) + gaussian(sigma(l), rnrm1)*hx*hy*hz
                           if (associated(ep%mpl(impl)%qlm(l)%q)) then
+                              mm = 0
                               do m=-l,l
-                                  tt = tt + spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
+                                  mm = mm + 1
+                                  !if (l==0) then
+                                  !    charge(impl) = charge(impl) + ep%mpl(impl)%qlm(l)%q(mm)*spherical_harmonic(l, m, r(1), r(2), r(3))*gaussian(sigma, rnrm1)*hx*hy*hz*sqrt(4.d0*pi_param)
+                                  !end if
+                                  !if (l==1) then
+                                  !    dipole(mm,impl) = dipole(mm,impl) + ep%mpl(impl)%qlm(l)%q(mm)*spherical_harmonic(l, m, r(1), r(2), r(3))*gaussian(sigma, rnrm1)*hx*hy*hz*sqrt(4.d0*pi_param)
+                                  !end if
+                                  ttt = ep%mpl(impl)%qlm(l)%q(mm)*spherical_harmonic(l, m, r(1), r(2), r(3))*gaussian(sigma(l), rnrm1)*sqrt(4.d0*pi_param)
+                                  tt = tt + ttt
+
+                                  if (l==0) then
+                                      monopole(impl) = monopole(impl) + ttt*hx*hy*hz
+                                  else if (l==1) then
+                                      if (m==-1) then
+                                          dipole(1,impl) = dipole(1,impl) + ttt*hx*hy*hz*y
+                                      else if (m==0) then
+                                          dipole(2,impl) = dipole(2,impl) + ttt*hx*hy*hz*z
+                                      else if (m==1) then
+                                          dipole(3,impl) = dipole(3,impl) + ttt*hx*hy*hz*x
+                                      end if
+                                  else if (l==2) then
+                                      if (m==-2) then
+                                          quadrupole(1,impl) = quadrupole(1,impl) + ttt*hx*hy*hz*x*y
+                                      else if (m==-1) then
+                                          quadrupole(2,impl) = quadrupole(2,impl) + ttt*hx*hy*hz*y*z
+                                      else if (m==0) then
+                                          quadrupole(3,impl) = quadrupole(3,impl) + ttt*hx*hy*hz*(3*z**2-1.d0)
+                                      else if (m==1) then
+                                          quadrupole(4,impl) = quadrupole(4,impl) + ttt*hx*hy*hz*x*z
+                                      else if (m==2) then
+                                          quadrupole(5,impl) = quadrupole(5,impl) + ttt*hx*hy*hz*(x**2-y**2)
+                                      end if
+                                  end if
                               end do
                           end if
                       end do
                   end do
                   density(i1,i2,i3) = tt
+                  !!do impl=1,ep%nmpl
+                  !!    do l=0,lmax
+                  !!        if (associated(ep%mpl(impl)%qlm(l)%q)) then
+                  !!            mm = 0
+                  !!            do m=-l,l
+                  !!                mm = mm + 1
+                  !!                if (l==0) then
+                  !!                    charge(impl) = charge(impl) + tt*hx*hy*hz
+                  !!                else if (l==1) then
+                  !!                    if (m==-1) then
+                  !!                        dipole(1,impl) = dipole(1,impl) + tt*hx*hy*hz*y
+                  !!                    else if (m==0) then
+                  !!                        dipole(2,impl) = dipole(1,impl) + tt*hx*hy*hz*z
+                  !!                    else if (m==1) then
+                  !!                        dipole(3,impl) = dipole(1,impl) + tt*hx*hy*hz*x
+                  !!                    end if
+                  !!                end if
+                  !!            end do
+                  !!        end if
+                  !!    end do
+                  !!end do
               end do
           end do
       end do
-      write(*,*) 'norm',norm
+      if (nproc>0) then
+          call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(dipole, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(quadrupole, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      end if
+      if (iproc==0) then
+              !do iat=1,nat
+              !    call yaml_sequence(advance='no')
+              !    atomname=atomnames(iatype(iat))
+              !    call yaml_sequence_open(trim(atomname))
+              !    do l=0,lmax
+              !        call yaml_sequence(advance='no')
+              !        !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
+              !        !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat)*sqrt(4.d0**(2*l+3)),fmt='(1es16.8)')
+              !        !do m=-l,l
+              !            !multipoles(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax, l, m)
+              !            !max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
+              !        !end do
+              !        call yaml_map('l='//yaml_toa(l),multipoles_tmp(-l:l,l,iat),fmt='(1es16.8)')
+              !        call yaml_newline()
+              !    end do
+              !    !call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+              !    call yaml_sequence_close()
+              !end do
+              !call yaml_sequence_close()
+          call yaml_mapping_open('Potential from multipoles')
+          call yaml_map('number of multipole centers',ep%nmpl)
+          call yaml_map('sigma of the Gaussians',sigma)
+          call yaml_sequence_open('Values')
+          do impl=1,ep%nmpl
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(trim(yaml_toa(impl)))
+              call yaml_map('norm of the Gaussians',norm,fmt='(1es16.8)')
+              call yaml_map('monopole',monopole,fmt='(1es16.8)')
+              call yaml_map('dipole',dipole,fmt='(1es16.8)')
+              call yaml_map('quadrupole',quadrupole,fmt='(1es16.8)')
+              call yaml_mapping_close()
+          end do
+          call yaml_sequence_close()
+          call yaml_mapping_close()
+      end if
       !!$omp end do
       !!$omp end parallel
 
 
       call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
            quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
+      pot = pot + density
+
 
 
       ii = 0
@@ -110,6 +254,10 @@ module multipole
               end do
           end do
       end do
+
+      call f_free(density)
+
+      call f_release_routine()
 
 
       contains

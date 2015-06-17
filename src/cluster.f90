@@ -41,7 +41,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use communications_base, only: comms_linear_null
   use unitary_tests, only: check_communication_potential, check_communication_sumrho, &
                            check_communications_locreg
-  use multipole, only: potential_from_charge_multipoles, potential_from_multipoles
+  use multipole, only: potential_from_charge_multipoles, potential_from_multipoles, interaction_multipoles_ions
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -526,14 +526,18 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   call createEffectiveIonicPotential(iproc,nproc,(iproc == 0),in,atoms,rxyz,shift,KSwfn%Lzd%Glr,&
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
        denspot%dpbox,denspot%pkernel,denspot%V_ext,denspot%rho_ion,in%elecfield,denspot%psoffset)
-  !call yaml_map('rxyz',rxyz)
-  !call yaml_map('atoms%astruct%rxyz',atoms%astruct%rxyz)
-  !call yaml_map('hgrids',(/denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3)/))
-  write(*,*) 'at%astruct%rxyz',atoms%astruct%rxyz
-  call potential_from_charge_multipoles(denspot, in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+  call potential_from_charge_multipoles(iproc, nproc, denspot, in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
+  call interaction_multipoles_ions(in%ep, atoms, energs%eion, fion)
+  !call yaml_map('rxyz',rxyz)
+  !call yaml_map('atoms%astruct%rxyz',atoms%astruct%rxyz)
+  !call yaml_map('hgrids',(/denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3)/))
+  !call potential_from_multipoles(in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+  !     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
+  !     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
+  !     denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
