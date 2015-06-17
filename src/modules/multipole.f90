@@ -183,6 +183,7 @@ module multipole
       end do
       if (nproc>0) then
           call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(monopole, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(dipole, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(quadrupole, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
