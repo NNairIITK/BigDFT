@@ -1560,9 +1560,10 @@ multipoles_OH-:
 
 multipoles_water:
  eF: 5.1e-10
- guess for new ef: 3.0e-10
+ guess for new ef: 1.0e-8
  number of corrected points: 7
- multiplicator for the confinement: 5.2e-11
+ multiplicator for the confinement: 1.1e-10
+ EH: 1.1e-10
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
