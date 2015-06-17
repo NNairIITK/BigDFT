@@ -1347,46 +1347,46 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !!write(200+iproc,*) tmb%linmat%ovrlp_%matrix_compr
       !!write(210+iproc,*) tmb%linmat%kernel_%matrix_compr
 
-      ! TEST ################################################
-      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
-           denspot%dpbox%ndimrhopot, &
-           denspot%rhov, rho_negative)
-      if (rho_negative) then
-          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
-      end if
-      is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
-      ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
-      is2 = 1
-      ie2 = denspot%dpbox%ndims(2)
-      is1 = 1
-      ie1 = denspot%dpbox%ndims(1)
-      ii = 0
-      do i3=is3,ie3
-          do i2=is2,ie2
-              do i1=is1,ie1
-                  ii = ii + 1
-                  write(190+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
-              end do
-          end do
-      end do
-      call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
-           quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
-      is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
-      ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
-      is2 = 1
-      ie2 = denspot%dpbox%ndims(2)
-      is1 = 1
-      ie1 = denspot%dpbox%ndims(1)
-      ii = 0
-      do i3=is3,ie3
-          do i2=is2,ie2
-              do i1=is1,ie1
-                  ii = ii + 1
-                  write(200+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
-              end do
-          end do
-      end do
+      !!! TEST ################################################
+      !!call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+      !!     tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
+      !!     denspot%dpbox%ndimrhopot, &
+      !!     denspot%rhov, rho_negative)
+      !!if (rho_negative) then
+      !!    call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+      !!end if
+      !!is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
+      !!ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
+      !!is2 = 1
+      !!ie2 = denspot%dpbox%ndims(2)
+      !!is1 = 1
+      !!ie1 = denspot%dpbox%ndims(1)
+      !!ii = 0
+      !!do i3=is3,ie3
+      !!    do i2=is2,ie2
+      !!        do i1=is1,ie1
+      !!            ii = ii + 1
+      !!            write(190+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
+      !!        end do
+      !!    end do
+      !!end do
+      !!call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
+      !!     quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
+      !!is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
+      !!ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
+      !!is2 = 1
+      !!ie2 = denspot%dpbox%ndims(2)
+      !!is1 = 1
+      !!ie1 = denspot%dpbox%ndims(1)
+      !!ii = 0
+      !!do i3=is3,ie3
+      !!    do i2=is2,ie2
+      !!        do i1=is1,ie1
+      !!            ii = ii + 1
+      !!            write(200+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
+      !!        end do
+      !!    end do
+      !!end do
 
 
       call multipoles_from_density(iproc, nproc, at, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%orbs, &

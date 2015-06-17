@@ -233,28 +233,28 @@ module multipole
 
 
 
-      ii = 0
-      do i3=is3,ie3
-          ii3 = i3 - 15
-          do i2=is2,ie2
-              ii2 = i2 - 15
-              do i1=is1,ie1
-                  ii1 = i1 - 15
-                  ii = ii + 1
-                  write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-                  !do impl=1,ep%nmpl
-                  !    r(1) = ep%mpl(impl)%rxyz(1) - x
-                  !    r(2) = ep%mpl(impl)%rxyz(2) - y
-                  !    r(3) = ep%mpl(impl)%rxyz(3) - z 
-                  !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
-                  !    rnrm1 = sqrt(rnrm2)
-                  !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
-                  !    density(i1,i2,i3) =+ tt
-                  !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
-                  !end do
-              end do
-          end do
-      end do
+      !ii = 0
+      !do i3=is3,ie3
+      !    ii3 = i3 - 15
+      !    do i2=is2,ie2
+      !        ii2 = i2 - 15
+      !        do i1=is1,ie1
+      !            ii1 = i1 - 15
+      !            ii = ii + 1
+      !            write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+      !            !do impl=1,ep%nmpl
+      !            !    r(1) = ep%mpl(impl)%rxyz(1) - x
+      !            !    r(2) = ep%mpl(impl)%rxyz(2) - y
+      !            !    r(3) = ep%mpl(impl)%rxyz(3) - z 
+      !            !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
+      !            !    rnrm1 = sqrt(rnrm2)
+      !            !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
+      !            !    density(i1,i2,i3) =+ tt
+      !            !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
+      !            !end do
+      !        end do
+      !    end do
+      !end do
 
       call f_free(density)
 
