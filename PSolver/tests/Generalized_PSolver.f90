@@ -23,6 +23,7 @@ program GPS_3D
    ! To set 1 for analytical epsilon, 2 for analytical electron dependence,
    ! 3 for real electron density from cube file, 4 for rigid cavity.
    integer :: SetEps! = 1!3 
+   logical :: usegpu
 
    real(kind=8), parameter :: acell = 10.d0
    real(kind=8), parameter :: rad_cav = 1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
@@ -52,7 +53,7 @@ program GPS_3D
 
    ! Now start modification for check.
    real(kind=8), dimension(:,:,:,:,:), allocatable :: dens_check,pot_check
-   integer :: i_check,unt
+   integer :: i_check,unt,igpu
    ! To set 1 for normal run, 3 for check V[\rho,\epsilon] + V[\rho_ion,epsilon] is = to V[\rho + \rho_ion, epsilon]
    integer, parameter :: n_check = 1 
 
@@ -88,7 +89,12 @@ program GPS_3D
 !!$giu
    geocode=options//'geocode'
    SetEps =options//'seteps'
+   usegpu = options // 'accel'
    call dict_free(options)
+
+
+   igpu=0
+   if (usegpu) igpu=1
 
    n01=ndims(1)
    n02=ndims(2)
@@ -322,7 +328,7 @@ geocodeprova='F'
 !  end if
 
   !new method
-  pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,alg=PSol)
+  pkernel=pkernel_init(.true.,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,alg=PSol)
   call pkernel_set(pkernel,verbose=.true.)
 
   if ( trim(PSol)=='PCG') then
@@ -582,6 +588,10 @@ subroutine PS_Check_options(parser)
                 '2' .is. 'analytical electron dependence',&
                 '3' .is. 'real electron density from cube file (need electroninc_density.cube)')))
 
+  call yaml_cl_parse_option(parser,'accel','No',&
+       'GPU Acceleration','a',&
+       dict_new('Usage' .is. &
+       'Boolean, set the GPU acceleration'))
 
 end subroutine PS_Check_options
 
@@ -2082,7 +2092,7 @@ subroutine FluxSurface(n01,n02,n03,nspden,hx,hy,hz,x,acell,eps,nord)
 
   pi = 4.d0*datan(1.d0)
 
-   call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+   call fssnord3DmatNabla("S",n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
 
      flux=0.d0
       isp=1
@@ -2220,7 +2230,7 @@ subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
   dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
   deps=f_malloc([n01,n02,n03,3],id='deps')
 
-  call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+  call fssnord3DmatNabla("F",n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
 
       isp=1
       do i3=1,n03
@@ -2233,7 +2243,7 @@ subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
        end do
       end do
 
-   call fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
+   call fssnord3DmatDiv("F",n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
 
      i3=1!n03/2
      do i2=1,n02
@@ -4095,8 +4105,8 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,&
     call SetEledens(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,SetEps,edens,nabla_edens,ddt_edens)
    else if (SetEps.eq.3) then
     edens(:,:,:,:) = rhoele(:,:,:,:)
-    call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,edens,nabla_edens,nord,acell)
-    call fssnord3DmatDiv(geocoode,n01,n02,n03,nspden,hx,hy,hz,nabla_edens,ddt_edens,nord,acell)
+    call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,edens,nabla_edens,nord,acell)
+    call fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,nabla_edens,ddt_edens,nord,acell)
    end if
 
 !   r2=(rad_cav/0.52917721092d0)**2
