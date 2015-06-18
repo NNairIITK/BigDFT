@@ -167,7 +167,7 @@ module ice
     
     
           spin_loop: do ispin=1,ovrlp_smat%nspin
-    
+
               degree_multiplicator = real(norder_polynomial,kind=8)/ &
                                      (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
               degree_multiplicator = min(degree_multiplicator,DEGREE_MULTIPLICATOR_MAX)
@@ -367,7 +367,7 @@ module ice
                           !!call check_eigenvalue_spectrum(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
                           !!     0, 1.2d0, 1.d0/1.2d0, penalty_ev, anoise, .false., emergency_stop, &
                           !!     foe_obj, restart, eval_bounds_ok)
-                          call check_eigenvalue_spectrum_new(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
+                          call check_eigenvalue_spectrum_new(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, ispin, &
                                0, 1.2d0, 1.d0/1.2d0, penalty_ev_new, anoise, .false., emergency_stop, &
                                foe_obj, restart, eval_bounds_ok)
                       end if
