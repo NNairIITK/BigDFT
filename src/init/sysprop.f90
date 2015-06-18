@@ -149,7 +149,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   call nullify_local_zone_descriptors(lzd_lin)
   lzd_lin%nlr = 0
 
-
   ! Create linear orbs data structure.
   if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
       .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
