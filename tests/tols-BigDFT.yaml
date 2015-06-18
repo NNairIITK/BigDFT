@@ -1506,7 +1506,7 @@ periodic_water:
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 9.2e-9
- D eF: 1.2e-8
+ D eF: 1.3e-8
  energy: 2.8e-10
  guess for new ef: 9.1e-9
  number of corrected points: 1
@@ -1574,11 +1574,12 @@ multipoles_OH-:
  total charge correction: 1.7e-8
 
 multipoles_water:
- eF: 5.1e-10
+ eF: 2.9e-9
  guess for new ef: 1.0e-8
  number of corrected points: 7
- multiplicator for the confinement: 1.1e-10
+ multiplicator for the confinement: 1.6e-10
  EH: 1.1e-10
+ D eF: 1.1e-8
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
