@@ -20,7 +20,9 @@ program WaCo
    use module_atoms, only: deallocate_atoms_data
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
+   use io, only: writeonewave_linear, writeLinearCoefficients
    use bigdft_run
+   use locregs, only: copy_locreg_descriptors
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -958,13 +960,15 @@ program WaCo
                  !call write_wannier_cube(ifile,trim(seedname)//'_test_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
                  !stop 
                 !END DEBUG
-                 call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz, &
+                 call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+                   Glr%ns1,Glr%ns2,Glr%ns3,input%hx,input%hy,input%hz, &
                    (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),4,0.0d0,atoms%astruct%nat,atoms%astruct%rxyz,  & 
-                   Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1,1),&
-                   Lzd%Llr(iiwann)%wfd%keyvglob(1),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
-                   Lzd%Llr(iiwann)%wfd%keyglob(1,Lzd%Llr(iiwann)%wfd%nseg_c+1),&
-                   Lzd%Llr(iiwann)%wfd%keyvglob(Lzd%Llr(iiwann)%wfd%nseg_c+1), & 
-                   lwann(1),lwann(Lzd%Llr(iiwann)%wfd%nvctr_c+1), ham(1,iwann,iwann))
+                   Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1:,1:),&
+                   Lzd%Llr(iiwann)%wfd%keyvglob(1:),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
+                   Lzd%Llr(iiwann)%wfd%keyglob(1:,Lzd%Llr(iiwann)%wfd%nseg_c+1:),&
+                   Lzd%Llr(iiwann)%wfd%keyvglob(Lzd%Llr(iiwann)%wfd%nseg_c+1:), & 
+                   lwann(1),lwann(Lzd%Llr(iiwann)%wfd%nvctr_c+1), ham(1,iwann,iwann),&
+                   -1) !SM: Not sure about the value of onwhichatom, so simply pass -1 to indicate that it is fake
                   call f_free(lwann)
               else if(hamilana) then
                 ! open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')

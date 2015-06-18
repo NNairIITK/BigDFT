@@ -9,13 +9,15 @@ EXTRA_DIST = \
 	yaml_hl.cfg \
 	yaml_hl.py \
 	parse_log.py \
-	tols-BigDFT.yaml
+	tols-BigDFT.yaml \
+	yaml_hl_remarks.cfg
 
 SUBDIRS = \
 	  DFT \
 	  overDFT \
 	  tutorials \
-	  libs
+	  libs \
+	  benchs
 
 if USE_OCL
 oclrun_message = oclrun

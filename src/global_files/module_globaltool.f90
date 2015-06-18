@@ -15,6 +15,7 @@ module module_globaltool
 
     !datatypes
     public :: gt_data
+    public :: gt_uinp !SM: Since gt_data contains an element of type gt_uinp, the latter must also be public
 
     !routines
     public :: read_globaltool_uinp

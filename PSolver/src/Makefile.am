@@ -57,14 +57,14 @@ EXTRA_DIST = \
 	lazy_16.inc\
 	lazy_20.inc\
 	lazy_24.inc\
+	lazy_2.inc\
 	lazy_30.inc\
 	lazy_40.inc\
+	lazy_4.inc\
 	lazy_50.inc\
 	lazy_60.inc\
-	lazy_8.inc\
 	lazy_6.inc\
-	lazy_4.inc\
-	lazy_2.inc\
+	lazy_8.inc\
 	lazy_ISF_100_2048.inc\
 	lazy_ISF_14_2048.inc\
 	lazy_ISF_16_2048.inc\
@@ -106,7 +106,7 @@ endif
 SUFFIXES = .cu
 
 NVCC = @NVCC@
-NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@
+NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@
 
 # Dynamic library building
 $(psolver_dynamic_library): $(libPSolver_1_a_OBJECTS)

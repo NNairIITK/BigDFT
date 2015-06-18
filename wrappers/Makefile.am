@@ -6,7 +6,7 @@ MPI_INCLUDES = allreduce-inc.f90 allreduce-arr-inc.f90 gather-inc.f90 \
 	gather-inner-inc.f90 maxdiff-arr-inc.f90 maxdiff-inc.f90 \
 	bcast-inc.f90 bcast-decl-inc.f90 bcast-decl-arr-inc.f90 \
 	maxdiff-decl-inc.f90 maxdiff-end-inc.f90 alltoallv-inc.f90 \
-	allgather-inc.f90
+	allgather-inc.f90 scatter-inc.f90
 
 if USE_MPI
 #mpi_source =
@@ -58,7 +58,8 @@ libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 	fft/fft2d.f90 \
 	fft/fft3d.f90 \
 	linalg.f90 \
-	mpi.F90
+	mpi.F90 \
+	numerics.f90
 
 # Dependencies
 $(modules): $(libwrappers_a_OBJECTS)
@@ -67,7 +68,6 @@ interface_dgemmsy_fake.o: linalg.o
 
 interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
-
 
 AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
@@ -79,11 +79,13 @@ endif
 if CAPITALIZE
 modules = MODULE_FFT_SG.@MODULE_EXT@ \
 	WRAPPER_LINALG.@MODULE_EXT@ \
-	WRAPPER_MPI.@MODULE_EXT@
+	WRAPPER_MPI.@MODULE_EXT@ \
+	NUMERICS.@MODULE_EXT@
 else
 modules = module_fft_sg.@MODULE_EXT@ \
 	wrapper_linalg.@MODULE_EXT@ \
-	wrapper_mpi.@MODULE_EXT@
+	wrapper_mpi.@MODULE_EXT@ \
+	numerics.@MODULE_EXT@
 endif
 CLEANFILES = $(modules) mpif.h
 

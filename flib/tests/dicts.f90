@@ -496,13 +496,24 @@ subroutine test_dictionaries1()
    end do
 
    !perform an iterator on dict
-   dict_tmp=>dict_next(dictA)
+   dict_tmp=>dict_iter(dictA)
    do while(associated(dict_tmp))
       call yaml_map('Item of dictA',dict_item(dict_tmp))
       call yaml_map('Value of dictA',dict_value(dict_tmp))
       dict_tmp=>dict_next(dict_tmp)
    end do
    call dict_free(dictA)
+
+   !perform an iterator on a scalar, should not provide output
+   dictA=>dict_new('Key' .is. 'Scalar')
+   dict_tmp=>dict_iter(dictA//'Key')
+   do while(associated(dict_tmp))
+      call yaml_map('Item of dict scalar',dict_item(dict_tmp))
+      call yaml_map('Value of dict scalar',dict_value(dict_tmp))
+      dict_tmp=>dict_next(dict_tmp)
+   end do
+   call dict_free(dictA)
+
 
    !example which has a bug
    dict_tmp => list_new((/.item.'55',.item. '66'/))
@@ -682,7 +693,8 @@ subroutine test_dictionary_for_atoms()
   implicit none
 
 !!$  character(len = 50) :: gu
-  character(len = 50) :: fmts
+  integer :: ierr
+  character(len = 50) :: fmts,tmp
   double precision, dimension(3) :: cell, xred, hgrids
   double precision :: tt
 
@@ -727,6 +739,28 @@ subroutine test_dictionary_for_atoms()
   call yaml_map('Real with format '//trim(fmts),clean_zeroes(yaml_toa(tt,fmt=fmts)))
   fmts(1:len(fmts))='(1pe24.16)'
   call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
+  fmts(1:len(fmts))='(1pe24.16)'
+  call yaml_map('Tiny with wrong format '//trim(fmts),tiny(tt),fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr)tiny(tt)
+  call yaml_map('Iostat for format',ierr)
+  fmts(1:len(fmts))='(1pe24.16)'
+  call yaml_map('Huge with wrong format '//trim(fmts),-huge(tt),fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr)-huge(tt)
+  call yaml_map('Iostat for format',ierr)
+  fmts(1:len(fmts))='(i3)'
+  call yaml_map('Integer with too little format '//trim(fmts),10000,fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr)10000
+  call yaml_map('Iostat for format',ierr)
+  fmts(1:len(fmts))='(f3.2)'
+  call yaml_map('Float with too little format '//trim(fmts),1000.4,fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr)1000.4
+  call yaml_map('Iostat for format',ierr)
+  fmts(1:len(fmts))='(f3.2)'
+  call yaml_map('Double with too little format '//trim(fmts),1000.4d0,fmt=fmts)
+  fmts(1:len(fmts))='(f3.2)'
+  call yaml_map('Float with too little format again '//trim(fmts),10.4456,fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr)10.4456
+  call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(es23.16)'
   call yaml_map('Real with format '//trim(fmts),tt,fmt=fmts)
   fmts(1:len(fmts))='(es24.17)'
@@ -744,7 +778,6 @@ subroutine test_dictionary_for_atoms()
 
 
   contains
-
     subroutine print_one_atom(atomname,rxyz,hgrids,id)
       implicit none
       integer, intent(in) :: id
@@ -802,6 +835,27 @@ subroutine test_dictionary_for_atoms()
     end function clean_zeroes
 
 end subroutine test_dictionary_for_atoms
+
+!> test the usage of the new f_trees structure
+subroutine test_f_trees()
+  use f_trees
+  use yaml_output
+  implicit none
+  type(f_tree) :: dict1,dict2
+
+  !initialization
+  dict1=f_tree_new()
+
+  call f_tree_push(dict1//'Key1','val1')
+  !to be updated with proper method for trees
+  call yaml_map('Initialized tree',dict1%d)
+
+  call yaml_mapping_open('Test of dump')
+  call f_tree_dump(dict1)
+  call yaml_mapping_close()
+
+  call f_tree_free(dict1)
+end subroutine test_f_trees
 
 !> this routine consider the usage of dictionaries for intensive data storage (of course to be avoided)
 !! and compares it to the usage of an array for doing similar things

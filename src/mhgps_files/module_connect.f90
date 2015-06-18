@@ -30,6 +30,7 @@ contains
 !> This recursive subroutine does not fully support a restart.
 !! (subroutine is depracted, use non-recursive version, instead.
 !! Before using recursive routine, again, it has to be updated to
+
 !! the full functionality of the non-recursive function
 !! ATTENTION: RECURSIVE ROUTINE IS DEPRECATED AND SHOULD NOT BE USED
 !! BEFORE THOROUGH TESTING
@@ -116,7 +117,8 @@ recursive subroutine connect_recursively(mhgpsst,fsw,uinp,runObj,outs,&
     mhgpsst%isad=mhgpsst%isad+1
     write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
 
-    runObj%inputs%inputPsiId=0
+    !runObj%inputs%inputPsiId=0
+    call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
     call get_ts_guess(mhgpsst,uinp,runObj,outs,cobj%rxyz1,cobj%rxyz2,&
           cobj%saddle(1,1,mhgpsst%nsad),cobj%minmode(1,1,mhgpsst%nsad),cobj%tsgenergy,&
           cobj%tsgforces(1,1))
@@ -660,7 +662,8 @@ connectloop: do while(cobj%ntodo>=1)
     mhgpsst%isad=mhgpsst%isad+1
     write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
 
-    runObj%inputs%inputPsiId=0
+    !runObj%inputs%inputPsiId=0
+    call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
     call get_ts_guess(mhgpsst,uinp,runObj,outs,cobj%rxyz1,cobj%rxyz2,&
           cobj%saddle(1,1,mhgpsst%nsad),cobj%minmode(1,1,mhgpsst%nsad),cobj%tsgenergy,&
           cobj%tsgforces(1,1))
@@ -1657,7 +1660,7 @@ subroutine pushoff_assym(uinp,nat,saddle,minmode,scll,sclr,left,right)
 end subroutine
 !=====================================================================
 subroutine write_todo(mhgpsst,runObj,outs,left,right,eleft,eright)
-    use module_base, only: gp
+    use module_defs, only: gp
     use module_atoms, only: astruct_dump_to_file
     use bigdft_run, only: bigdft_get_astruct_ptr, run_objects,&
                           state_properties
@@ -1685,7 +1688,7 @@ subroutine write_todo(mhgpsst,runObj,outs,left,right,eleft,eright)
              mhgpsst%currDir//'/todo'//trim(adjustl(mhgpsst%ntodoc))//'_R',comment,&
              energy=eright,rxyz=right)
     endif
-end subroutine
+  end subroutine write_todo
 !=====================================================================
 subroutine write_todoList(uinp,mhgpsst,runObj,cobj)
     use module_base, only: gp
@@ -1754,7 +1757,8 @@ subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
     use yaml_output
     use module_atoms, only: astruct_dump_to_file
     use bigdft_run, only: run_objects,&
-                          state_properties
+                          state_properties,&
+                          bigdft_set_input_policy,INPUT_POLICY_SCRATCH
     use module_userinput
     use module_mhgps_state
     implicit none
@@ -1798,7 +1802,8 @@ subroutine pushoff_and_relax_bothSides(uinp,mhgpsst,runObj,outs,rcov,&
         call yaml_comment('(MHGPS) Relax from right side ',hfill='.')
     !use inputPsiId=0 here, because wavefct. in memory corresponds
     !to left minimum. However, we are close to saddle, again.
-    runObj%inputs%inputPsiId=0
+    !runObj%inputs%inputPsiId=0
+    call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
     scl=1.0_gp
     call pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
            rxyz_sad,ener_sad,fp_sad,minmode,rxyz_minR,fxyz_minR,&
@@ -1817,7 +1822,8 @@ subroutine pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
     use yaml_output
     use module_atoms, only: astruct_dump_to_file
     use bigdft_run, only: run_objects, bigdft_get_astruct_ptr,&
-                          state_properties, bigdft_get_geocode
+                          state_properties, bigdft_get_geocode,&
+                          bigdft_set_input_policy,INPUT_POLICY_SCRATCH
     use module_fingerprints
     use module_userinput
     use module_mhgps_state
@@ -1891,7 +1897,8 @@ subroutine pushoff_and_relax_oneSide(uinp,mhgpsst,runObj,outs,rcov,scl,&
                  ' while computing forces for left side. Will retry'//&
                  ' with increased pushoff:  '//yaml_toa(scl))
             ipush=ipush+1
-            runObj%inputs%inputPsiId=0
+            !runObj%inputs%inputPsiId=0
+            call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
             cycle loopPush
         endif
 

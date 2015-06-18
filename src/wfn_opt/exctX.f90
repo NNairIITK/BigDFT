@@ -28,7 +28,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
   type(orbitals_data), intent(in) :: orbs             !< Orbitals
   integer, dimension(0:nproc-1), intent(in) :: n3parr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   real(gp), intent(out) :: eexctX
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,n3parr(0)*orbs%norb)), intent(out) :: psir
   !local variables
@@ -428,7 +428,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
   integer, dimension(0:nproc-1), intent(in) :: n3parr
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsocc%norbp,n3parr(0)*orbsocc%norb)), intent(in) :: psirocc
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbsvirt%nspinor,orbsvirt%norbp), intent(in) :: psivirt
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   real(wp), dimension(max(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbsvirt%norbp,n3parr(0)*orbsvirt%norb)), intent(out) :: psirvirt
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_virt'
@@ -689,7 +689,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   real(gp), intent(out) :: eexctX
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir
   !local variables
@@ -988,7 +988,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
 
      end do
 
-     if (nproc > 1) call mpiallred(ndatas(1,0,1),2*nproc*ngroup,MPI_SUM,bigdft_mpi%mpi_comm)
+     if (nproc > 1) call mpiallred(ndatas,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      !if(iproc ==0)print *,'iproc,datas',iproc,ndatas
 
      do igroup=1,ngroupp
@@ -1275,7 +1275,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   end do
   
   !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
-  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,bigdft_mpi%mpi_comm)
+  if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   
   !the exact exchange energy is half the Hartree energy (which already has another half)
   eexctX=-exctXfac*eexctX

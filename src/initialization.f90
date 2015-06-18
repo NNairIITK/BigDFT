@@ -9,7 +9,7 @@
 
 !> Read the options in the command line using get_command statement
 subroutine command_line_information(mpi_groupsize,posinp_file,run_id,ierr)
-  use module_types
+  use public_enums
   implicit none
   integer, intent(out) :: mpi_groupsize
   character(len=*), intent(out) :: posinp_file !< file for list of radicals
@@ -92,6 +92,7 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
   use module_base
   use module_types
   use yaml_output
+  use module_input_keys, only: material_acceleration
   implicit none
   integer, intent(in):: iproc
   type(material_acceleration), intent(in) :: matacc
@@ -106,25 +107,26 @@ subroutine init_material_acceleration(iproc,matacc,GPU)
      call MPI_COMM_SIZE(bigdft_mpi%mpi_comm,mproc,ierr)
      !initialize the id_proc per node
      call processor_id_per_node(iproc,mproc,GPU%id_proc,nproc_node)
-     call sg_init(GPUshare,useGPU,iproc,nproc_node,initerror)
-     if (useGPU == 1) then
-        iconv = 1
+!!$     call sg_init(GPUshare,useGPU,iproc,nproc_node,initerror)
+     !detect if a GPU is present to accelerate blas
+     !if (useGPU == 1) then
+     !   iconv = 1
         iblas = 1
-     else
-        iconv = 0
-        iblas = 0
-     end if
-     if (initerror == 1) then
-        call yaml_warning('(iproc=' // trim(yaml_toa(iproc,fmt='(i0)')) // &
-        &    ') S_GPU library init failed, aborting...')
-        !write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
-        call MPI_ABORT(bigdft_mpi%mpi_comm,initerror,ierror)
-     end if
+     !else
+        !iconv = 0
+      !  iblas = 0
+     !end if
+!!$     if (initerror == 1) then
+!!$        call yaml_warning('(iproc=' // trim(yaml_toa(iproc,fmt='(i0)')) // &
+!!$        &    ') S_GPU library init failed, aborting...')
+!!$        !write(*,'(1x,a)')'**** ERROR: S_GPU library init failed, aborting...'
+!!$        call MPI_ABORT(bigdft_mpi%mpi_comm,initerror,ierror)
+!!$     end if
 
-     if (iconv == 1) then
-        !change the value of the GPU convolution flag defined in the module_base
-        GPUconv=.true.
-     end if
+!!$     if (iconv == 1) then
+!!$        !change the value of the GPU convolution flag defined in the module_base
+!!$        GPUconv=.true.
+!!$     end if
      if (iblas == 1) then
         !change the value of the GPU convolution flag defined in the module_base
         GPUblas=.true.
@@ -189,10 +191,6 @@ subroutine release_material_acceleration(GPU)
   implicit none
   type(GPU_pointers), intent(inout) :: GPU
   
-  if (GPUconv) then
-     call sg_end()
-  end if
-
   if (GPU%OCLconv) then
      call release_acceleration_OCL(GPU)
      GPU%OCLconv=.false.
@@ -253,9 +251,6 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      end do
      
      call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
-     !i_all=-product(shape(nodename))*kind(nodename)
-     !deallocate(nodename,stat=i_stat)
-     !call memocc(i_stat,i_all,'nodename',subname)
   end if
   call f_release_routine()
 END SUBROUTINE processor_id_per_node
@@ -263,7 +258,8 @@ END SUBROUTINE processor_id_per_node
 subroutine ensure_log_file(writing_directory, logfile, ierr)
   use yaml_output
   use yaml_strings
-  use f_utils, only: f_file_exists
+  use f_utils, only: f_file_exists,f_mkdir
+  use dictionaries
   implicit none
   character(len = *), intent(in) :: writing_directory, logfile
   integer(kind=4), intent(out) :: ierr
@@ -273,23 +269,30 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
   character(len = 500) :: logfile_old, logfile_dir, filepath
 
   ierr = 0
-  filepath = writing_directory//logfile
+  call f_strcpy(dest=filepath,src=writing_directory+logfile)
   !inquire for the existence of a logfile
   !inquire(file=trim(filepath),exist=exists)
   call f_file_exists(trim(filepath),exists)
   if (exists) then
-     logfile_old=writing_directory//'logfiles'
-     call getdir(logfile_old,&
-          int(len_trim(logfile_old),kind=4),logfile_dir,int(len(logfile_dir),kind=4),ierr)
-     if (ierr /= 0) then
-        write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
+     call f_strcpy(src=writing_directory+'logfiles',dest=logfile_old)
+     !logfile_old=writing_directory//'logfiles'
+     !here a try-catch section has to be added
+     call f_mkdir(logfile_old,logfile_dir)
+     if (f_err_check(err_name='INPUT_OUTPUT_ERROR')) then
+        ierr=f_get_last_error()
         return
      end if
-     logfile_old=trim(logfile_dir)//logfile
+!!$     call getdir(logfile_old,&
+!!$          int(len_trim(logfile_old),kind=4),logfile_dir,int(len(logfile_dir),kind=4),ierr)
+!!$     if (ierr /= 0) then
+!!$        write(*,*) "ERROR: cannot create writing directory '" //trim(logfile_dir) // "'."
+!!$        return
+!!$     end if
+     logfile_old=logfile_dir+logfile
+     call f_strcpy(src=logfile_dir + logfile,dest=logfile_old)
      !change the name of the existing logfile
      lgt=index(logfile_old,'.yaml')
-     call buffer_string(logfile_old,len(logfile_old),&
-          trim(adjustl(yaml_time_toa()))//'.yaml',lgt)
+     call buffer_string(logfile_old,len(logfile_old),yaml_time_toa()+'.yaml',lgt)
      call movefile(trim(filepath),int(len_trim(filepath),kind=4),trim(logfile_old),int(len_trim(logfile_old),kind=4),ierr)
      if (ierr /= 0) then
         write(*,*) "ERROR: cannot move logfile '"//trim(logfile)

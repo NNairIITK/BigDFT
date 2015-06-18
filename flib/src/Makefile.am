@@ -52,10 +52,12 @@ endif
 libflib_1_a_SOURCES = utils.c utilsadd.c \
 	yaml_strings.f90 dictionaries_base.f90 dictionaries.f90 \
 	callbacks.f90 f_malloc.f90 \
-	f_utils.f90 \
+	f_enums.f90 f_precisions.f90 \
+	f_utils.f90 f_refcnts.f90 f_trees.f90 \
 	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 \
 	razero.f90 getadd.f90 time.f90 f_lib_highlev.f90 \
 	yaml_parser.c yaml_parse.f90 \
+	f_input_file.f90 \
 	$(flush_files) $(mpi_source) $(getarg_files)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
@@ -91,6 +93,8 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	DICTIONARIES.@MODULE_EXT@ \
 	DICTIONARIES_BASE.@MODULE_EXT@ \
 	YAML_OUTPUT.@MODULE_EXT@ \
+	F_ENUMS.@MODULE_EXT@ \
+	F_PRECISIONS.@MODULE_EXT@ \
 	YAML_PARSE.@MODULE_EXT@ \
 	METADATA_INTERFACES.@MODULE_EXT@ \
 	MODULE_F_MALLOC.@MODULE_EXT@ \
@@ -98,12 +102,17 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	RANDOMDATA.@MODULE_EXT@ \
 	MEMORY_PROFILING.@MODULE_EXT@ \
 	F_UTILS.@MODULE_EXT@ \
+	F_REFCNTS.@MODULE_EXT@ \
+	F_TREES.@MODULE_EXT@ \
+	F_INPUT_FILE.@MODULE_EXT@ \
 	EXCEPTION_CALLBACKS.@MODULE_EXT@ \
 	TIME_PROFILING.@MODULE_EXT@
 else
 modules = yaml_strings.@MODULE_EXT@ \
 	dictionaries.@MODULE_EXT@ \
 	dictionaries_base.@MODULE_EXT@ \
+	f_enums.@MODULE_EXT@ \
+	f_precisions.@MODULE_EXT@ \
 	yaml_output.@MODULE_EXT@ \
 	yaml_parse.@MODULE_EXT@ \
 	metadata_interfaces.@MODULE_EXT@ \
@@ -112,6 +121,9 @@ modules = yaml_strings.@MODULE_EXT@ \
 	randomdata.@MODULE_EXT@ \
 	memory_profiling.@MODULE_EXT@ \
 	f_utils.@MODULE_EXT@ \
+	f_input_file.@MODULE_EXT@ \
+	f_refcnts.@MODULE_EXT@ \
+	f_trees.@MODULE_EXT@ \
 	exception_callbacks.@MODULE_EXT@ \
 	time_profiling.@MODULE_EXT@
 endif
@@ -142,6 +154,7 @@ install-data-hook:
 # Dependencies
 $(modules): $(libflib_1_a_OBJECTS)
 yaml_strings.o: $(STRINGS_INCLUDES)
+f_enums.o: yaml_strings.o
 dictionaries_base.o: yaml_strings.o
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 dictionaries_base.o: yaml_strings.o
@@ -151,10 +164,13 @@ yaml_output.o : dictionaries.o f_utils.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o yaml_output.o
 #error_handling.o: dictionaries.o callbacks.o yaml_output.o $(ERR_INCLUDES)
 f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
+f_input_file.o: dictionaries.o yaml_output.o dynamic_memory.o f_utils.o
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o yaml_strings.o
-f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o f_utils.o
-f_utils.o: dictionaries.o yaml_strings.o
+f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o f_utils.o f_input_file.o
+f_utils.o: dictionaries.o yaml_strings.o f_precisions.o
+f_refcnts.o: dictionaries.o yaml_output.o
+f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES)
 $(flush_object): yaml_output.o dictionaries.o
 

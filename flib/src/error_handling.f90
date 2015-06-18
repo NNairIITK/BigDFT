@@ -186,10 +186,8 @@
     else
        f_err_raise=.true.
     end if
-
     !once the error has been identified add it to the present errors and call callback function if needed
     if (f_err_raise) then
-
        !throw the error with the annoying stuff of optional variables
        if (present(err_msg)) then
           message(1:len(message))=err_msg
@@ -245,7 +243,6 @@
        write(0,*) 'error_handling library not initialized'
        call f_err_severe()
     end if
-
     !search the error ID (the generic error is always the first)
     new_errcode=ERR_GENERIC
     if (present(err_name)) then
@@ -256,7 +253,7 @@
                '. Errorcode found='//trim(yaml_toa(new_errcode))//&
                '; index function returned'//trim(yaml_toa(dict_errors .index. err_name)))
        end if
-       else if (present(err_id)) then
+    else if (present(err_id)) then
        new_errcode=ERR_GENERIC
        if (err_id < dict_len(dict_errors)) then
           new_errcode=err_id
@@ -311,7 +308,6 @@
        end if
     end if
     call err_abort(clbk_add,clbk_data_add)
-    
   end subroutine f_err_throw
 
 
@@ -382,7 +378,7 @@
   end subroutine get_error_msg
 
 
-  !> Identify id of last error occured (public)
+  !> Identify id of last error occurred (public)
   function f_get_last_error(add_msg)
     implicit none
     character(len=*), intent(out), optional :: add_msg

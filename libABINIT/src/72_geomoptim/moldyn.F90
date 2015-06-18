@@ -406,7 +406,6 @@ subroutine moldyn(acell,amass,me,&
 !!$&   pwind,pwind_alloc,pwnsfac,rec_set,resid,results_gs,rhog,rhor,rprimd,&
 !!$&   scf_history,symrec,wffnew,wffnow,wvl,xred,xred_old,ylm,ylmgr)
   end if
-
   !!$ call status(itime,dtfil%filstat,iexit,level,'call prtxvf   ')
 
 ! Output of acell and/or rprim ( and angles ! - should become a routine later)

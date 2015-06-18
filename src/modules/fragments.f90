@@ -14,6 +14,8 @@ module module_fragments
   use module_types
   use dynamic_memory
   use module_atoms
+  use module_input_keys, only: input_variables
+  use fragment_base, only: fragmentInputParameters
   implicit none
 
   private
@@ -75,7 +77,7 @@ module module_fragments
 
   !public operator(*)
 
-  public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null, rotate_vector
+  public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null, rotate_vector,fragmentInputParameters
   public :: frag_center, find_frag_trans, calculate_fragment_density,fragment_transformation_identity
 
 contains
@@ -367,6 +369,7 @@ contains
 
   subroutine calculate_fragment_density(frag,ndimrho,tmb,iorb_start,charge,atoms,rxyz,denspot)
     use module_types
+    use locreg_operations, only: Lpsi_to_global2
     implicit none
     type(system_fragment), intent(inout) :: frag
     integer, intent(in) :: ndimrho ! add to fragment structure?
@@ -436,7 +439,7 @@ contains
 
        call Lpsi_to_global2(bigdft_mpi%iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
             tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-            1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi(indg))
+            1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind:), gpsi(indg:))
 
        call daub_to_isf(tmb%lzd%glr, w, gpsi(indg), psir(indr))
 

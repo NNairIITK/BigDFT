@@ -7,7 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
 module module_BornMayerHugginsTosiFumi
-    use module_base
+    use module_base, qp => dp !substitute with qp => quadruple is quadruple precision is needed
     implicit none
     integer, save ::ntypinter
     real(gp), save ::hsp
@@ -425,49 +425,49 @@ subroutine preparespline(nsp,rcut)
     enddo
 end subroutine preparespline
 !*******************************************************************************
-real*16 function func(r,rco1,a2,a3,a4,a5,a6)
+real(qp) function func(r,rco1,a2,a3,a4,a5,a6)
     implicit none
-    real(16)::r,rco1,a2,a3,a4,a5,a6,alpha,beta,frco1,rinv,rinv2,rinv6,rinv8,rinv10
+    real(qp)::r,rco1,a2,a3,a4,a5,a6,alpha,beta,frco1,rinv,rinv2,rinv6,rinv8,rinv10
     if(r<rco1) then
-        rinv=1.q0/rco1
+        rinv=1.0_qp/rco1
         rinv2=rinv**2;rinv6=rinv2**3;rinv8=rinv6*rinv2;rinv10=rinv8*rinv2
         frco1=rinv*a6 - a2*rinv6 -a3*rinv8 + a4*exp(-a5*rco1)
-        beta=10.q0*abs(frco1)
+        beta=10.0_qp*abs(frco1)
         alpha=(frco1-beta)/rco1
         func=alpha*r+beta
     else
-        rinv=1.q0/r
+        rinv=1.0_qp/r
         rinv2=rinv**2;rinv6=rinv2**3;rinv8=rinv6*rinv2;rinv10=rinv8*rinv2
         func=rinv*a6 - a2*rinv6 -a3*rinv8 + a4*exp(-a5*r)
     endif
 end function func
 !*******************************************************************************
-real*16 function funcder(r,rco1,a2,a3,a4,a5,a6)
+real(qp) function funcder(r,rco1,a2,a3,a4,a5,a6)
     implicit none
-    real(16)::r,rco1,a2,a3,a4,a5,a6,alpha,beta,frco1,rinv,rinv2,rinv6,rinv8,rinv10
+    real(qp)::r,rco1,a2,a3,a4,a5,a6,alpha,beta,frco1,rinv,rinv2,rinv6,rinv8,rinv10
     if(r<rco1) then
-        rinv=1.q0/rco1
+        rinv=1.0_qp/rco1
         rinv2=rinv**2;rinv6=rinv2**3;rinv8=rinv6*rinv2;rinv10=rinv8*rinv2
         frco1=rinv*a6 - a2*rinv6 -a3*rinv8 + a4*exp(-a5*rco1)
-        beta=10.q0*abs(frco1)
+        beta=10.0_qp*abs(frco1)
         alpha=(frco1-beta)/rco1
         funcder=alpha
     else
-        rinv=1.q0/r
+        rinv=1.0_qp/r
         rinv2=rinv**2;rinv6=rinv2**3;rinv8=rinv6*rinv2;rinv10=rinv8*rinv2
-        funcder=-rinv2*a6 + 6.q0*a2*rinv6*rinv + 8.q0*a3*rinv8*rinv - a5*a4*exp(-a5*r)
+        funcder=-rinv2*a6 + 6.0_qp*a2*rinv6*rinv + 8.0_qp*a3*rinv8*rinv - a5*a4*exp(-a5*r)
     endif
 end function funcder
 !*******************************************************************************
-real*16 function funcsecder(r,hsp,rco1,a2,a3,a4,a5,a6)
+real(qp) function funcsecder(r,hsp,rco1,a2,a3,a4,a5,a6)
     implicit none
-    real(16)::r,hsp,rco1,a2,a3,a4,a5,a6,rinv,rinv2,rinv6,rinv8,rinv10
+    real(qp)::r,hsp,rco1,a2,a3,a4,a5,a6,rinv,rinv2,rinv6,rinv8,rinv10
     if(r<rco1) then
-        funcsecder=0.q0
+        funcsecder=0.0_qp
     else
-        rinv=1.q0/r
+        rinv=1.0_qp/r
         rinv2=rinv**2;rinv6=rinv2**3;rinv8=rinv6*rinv2;rinv10=rinv8*rinv2
-        funcsecder=hsp*(2.q0*rinv2*a6*rinv - 42.q0*a2*rinv8 - 72.q0*a3*rinv10 + a5*a5*a4*exp(-a5*r))
+        funcsecder=hsp*(2.0_qp*rinv2*a6*rinv - 42.0_qp*a2*rinv8 - 72.0_qp*a3*rinv10 + a5*a5*a4*exp(-a5*r))
     endif
 end function funcsecder
 !*******************************************************************************
@@ -483,15 +483,15 @@ subroutine spline_bm(fdsp,fsp,nsp,rco1,rco2,a2,a3,a4,a5,a6,hsp)
     implicit none
     real(gp)::fdsp(0:3,0:nsp),fsp(0:4,0:nsp-1),rco1,rco2,a2,a3,a4,a5,a6,hsp
     integer::nsp,i,j
-    real(16)::qdel,qfsp_int,qhsp,qrco1,qrco2,qa2,qa3,qa4,qa5,qa6,qr
-    real(16), allocatable::qfdsp(:,:),qfsp(:,:)
+    real(qp)::qdel,qfsp_int,qhsp,qrco1,qrco2,qa2,qa3,qa4,qa5,qa6,qr
+    real(qp), allocatable::qfdsp(:,:),qfsp(:,:)
 !    qfdsp = f_malloc((/0 .to. 3,0.to.nsp/),id='qfdsp')
 !    qfsp = f_malloc((/0 .to. 4,0.to.nsp-1/),id='qfsp')
     allocate(qfdsp(0:3,0:nsp),qfsp(0:4,0:nsp-1))
-    qhsp=real(hsp,16);qa2=real(a2,16);qa3=real(a3,16);qa4=real(a4,16)
-    qa5=real(a5,16);qa6=real(a6,16);qrco1=real(rco1,16);qrco2=real(rco2,16)
-    qfdsp(0,0)=funcder(0.q0,qrco1,qa2,qa3,qa4,qa5,qa6)
-    qfdsp(1,0)=0.q0
+    qhsp=real(hsp,qp);qa2=real(a2,qp);qa3=real(a3,qp);qa4=real(a4,qp)
+    qa5=real(a5,qp);qa6=real(a6,qp);qrco1=real(rco1,qp);qrco2=real(rco2,qp)
+    qfdsp(0,0)=funcder(0.0_qp,qrco1,qa2,qa3,qa4,qa5,qa6)
+    qfdsp(1,0)=0.0_qp
     !f and f' outside the origin.
     do i=1,nsp
         qr=qhsp*i
@@ -500,18 +500,18 @@ subroutine spline_bm(fdsp,fsp,nsp,rco1,rco2,a2,a3,a4,a5,a6,hsp)
     enddo
     !compute the 3-d and 4-th order coefficients of the local polynomials
     do i=0,nsp-1
-        qfdsp(2,i)=3.q0*(-qfdsp(0,i)+qfdsp(0,i+1))-2.q0*qfdsp(1,i)-qfdsp(1,i+1)
-        qfdsp(3,i)=2.q0*( qfdsp(0,i)-qfdsp(0,i+1))+     qfdsp(1,i)+qfdsp(1,i+1)
+        qfdsp(2,i)=3.0_qp*(-qfdsp(0,i)+qfdsp(0,i+1))-2.0_qp*qfdsp(1,i)-qfdsp(1,i+1)
+        qfdsp(3,i)=2.0_qp*( qfdsp(0,i)-qfdsp(0,i+1))+     qfdsp(1,i)+qfdsp(1,i+1)
     enddo
-    qfsp_int=1.q0 !for the time being assume that the potential starts from this value.
+    qfsp_int=1.0_qp !for the time being assume that the potential starts from this value.
     do j=0,nsp-1
         !the zeroth coefficient is the value of the integral
         qfsp(0,j)=qfsp_int
         !the coefficients of the energy spline are obtained by integration
         qfsp(1,j)=qhsp*qfdsp(0,j)
-        qfsp(2,j)=qhsp*qfdsp(1,j)*0.5q0
-        qfsp(3,j)=qhsp*qfdsp(2,j)/3.q0
-        qfsp(4,j)=qhsp*qfdsp(3,j)*0.25q0
+        qfsp(2,j)=qhsp*qfdsp(1,j)*0.5_qp
+        qfsp(3,j)=qhsp*qfdsp(2,j)/3.0_qp
+        qfsp(4,j)=qhsp*qfdsp(3,j)*0.25_qp
         ! calculate the value of integral over the subinterval
         qfsp_int=qfsp_int+qfsp(1,j)+qfsp(2,j)+qfsp(3,j)+qfsp(4,j)
     enddo

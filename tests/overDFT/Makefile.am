@@ -1,6 +1,8 @@
 # Give here the list of existing tests
 TESTDIRS = \
 	C6H6-freq \
+	FF-LENOSKY \
+	FF-LJ \
 	GEOPT-all \
 	GEOPT-BFGS \
 	GEOPT-LBFGS \
@@ -103,6 +105,13 @@ IO-wf-ETSF_write.out.post-out:
 NH3.out.post-out:
 	mv -f data/geopt.mon NH3.geopt.mon.out
 
+# Additional H2O-slab in.
+H2O-slab.out.post-out:
+	cat ab6_moldyn-0.log >> H2O-slab.out.out
+
+FF_LJ-ab6md.out.post-out:
+	cat ab6_moldyn-0.log >> FF_LJ-ab6md.out.out
+
 InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz
@@ -111,17 +120,17 @@ InputGenPot.xabs.post-out:
 # Introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-    rm plain-read.perf ;\
+	if test -e plain-read.perf; then rm plain-read.perf ; fi ;\
 	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name plain-read -a export-wf data-plain-read/wavefunction-k002-DI.b0003 >> log-plain.yaml
-	if test -e check.perf; then cp check.perf plain-read.perf; fi
+	if test -e check.perf; then cp check.perf plain-read.perf; fi ; \
 	mv wavefunction-k002-DI.b0003.cube wf_plain.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 
 IO-wf_binary.cube: 
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-    rm binary-read.perf ;\
+	if test -e binary-read.perf; then rm binary-read.perf ; fi ;\
 	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name binary-read -a export-wf data-binary-read/wavefunction-k002-DI.bin.b0003 >> log-binary.yaml
-	if test -e check.perf; then cp check.perf binary-read.perf; fi
+	if test -e check.perf; then cp check.perf binary-read.perf; fi ; \
 	mv wavefunction-k002-DI.b0003.cube wf_binary.cube
 	rm -f wavefunction-k002-DI.b0003_avg_*
 

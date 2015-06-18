@@ -13,7 +13,7 @@
 module f_utils
   use dictionaries, only: f_err_throw,f_err_define, &
        & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
-  use yaml_strings, only: yaml_toa, operator(.eqv.)
+  use yaml_strings, only: yaml_toa
   implicit none
 
   private
@@ -30,18 +30,7 @@ module f_utils
      integer :: iunit = 0
      type(dictionary), pointer :: lstring => null()
   end type io_stream
-
-  !> enumerator type, useful to define different modes
-  type, public :: f_enumerator
-     character(len=64) :: name
-     integer :: id
-  end type f_enumerator
-
-  integer, parameter, private :: NULL_INT=-1024
-  character(len=*), parameter, private :: null_name='nullified enumerator'
-
-  type(f_enumerator), parameter, private :: &
-       f_enum_null=f_enumerator(null_name,NULL_INT)
+  
 
   !>interface for difference between two intrinsic types
   interface f_diff
@@ -50,7 +39,7 @@ module f_utils
      module procedure f_diff_i2i1,f_diff_i1,f_diff_i2,f_diff_i1i2
      module procedure f_diff_li2li1,f_diff_li1,f_diff_li2,f_diff_li1li2
      module procedure f_diff_d0d1,f_diff_i0i1
-     module procedure f_diff_c1i1,f_diff_li0li1
+     module procedure f_diff_c1i1,f_diff_li0li1,f_diff_c0i1
   end interface f_diff
 
   !> Initialize to zero an array (should be called f_memset)
@@ -72,70 +61,14 @@ module f_utils
      end subroutine nanosec
   end interface
 
-  interface operator(==)
-     module procedure enum_is_int,enum_is_enum
-  end interface operator(==)
-
-  interface int
-     module procedure int_enum
-  end interface int
-
-  interface char
-     module procedure char_enum
-  end interface char
-
-  public :: f_diff,int,char,f_enumerator_null,operator(==),f_file_unit
+  public :: f_diff,f_file_unit,f_mkdir
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
   public :: f_iostream_from_file,f_iostream_from_lstring
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
 
 contains
-
-  pure function f_enumerator_null() result(en)
-    implicit none
-    type(f_enumerator) :: en
-    en=f_enum_null
-  end function f_enumerator_null
-
-  elemental pure function enum_is_enum(en,en1) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    type(f_enumerator), intent(in) :: en1
-    logical :: ok
-    ok = en == en1%id
-  end function enum_is_enum
-
-  elemental pure function enum_is_int(en,int) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    integer, intent(in) :: int
-    logical :: ok
-    ok = en%id == int
-  end function enum_is_int
-
-  elemental pure function enum_is_char(en,char) result(ok)
-    implicit none
-    type(f_enumerator), intent(in) :: en
-    character(len=*), intent(in) :: char
-    logical :: ok
-    ok = trim(en%name) .eqv. trim(char)
-  end function enum_is_char
-
-  !>integer of f_enumerator type.
-  elemental pure function int_enum(en)
-    type(f_enumerator), intent(in) :: en
-    integer :: int_enum
-    int_enum=en%id
-  end function int_enum
-
-  !>char of f_enumerator type.
-  elemental pure function char_enum(en)
-    type(f_enumerator), intent(in) :: en
-    character(len=len(en%name)) :: char_enum
-    char_enum=en%name
-  end function char_enum
-  
+ 
   subroutine f_utils_errors()
 
     call f_err_define('INPUT_OUTPUT_ERROR',&
@@ -297,6 +230,29 @@ contains
     unt2=unt
   end function f_get_free_unit
 
+  !>create a directory from CWD path
+  subroutine f_mkdir(dir,path)
+    use f_precisions, only: f_integer
+    implicit none
+    character(len=*), intent(in) :: dir !<directory to be created
+    character(len=*), intent(out) :: path !<path of the created directory (trailing slash added)
+    !local variables
+    integer :: ierr
+    integer(f_integer) :: lin,lout
+
+    call f_zero(path)
+    lin=int(len_trim(dir),f_integer)
+    lout=int(len(path),f_integer)
+
+    call getdir(dir,lin,path,lout,ierr)
+    if (ierr /= 0 .and. ierr /= 1) then
+       call f_err_throw('Error in creating directory ='//&
+            trim(dir)//', iostat='//trim(yaml_toa(ierr)),&
+            err_id=INPUT_OUTPUT_ERROR)
+    end if
+
+  end subroutine f_mkdir
+
   !> delete an existing file. If the file does not exists, it does nothing
   subroutine f_delete_file(file)
     implicit none
@@ -348,7 +304,7 @@ contains
   end subroutine f_rewind
   
   !> open a filename and retrieve the unteger for the unit
-  subroutine f_open_file(unit,file,status,position,binary)
+  subroutine f_open_file(unit,file,status,position,action,binary)
     use yaml_strings, only: f_strcpy
     implicit none
     !> integer of the unit. On entry, it indicates the 
@@ -361,6 +317,8 @@ contains
     character(len=*), intent(in), optional :: status
     !> position
     character(len=*), intent(in), optional :: position
+    !> action
+    character(len=*), intent(in), optional :: action
     !> if true, the file will be opened in the unformatted i/o
     !! if false or absent, the file will be opened for formatted i/o
     logical, intent(in), optional :: binary
@@ -369,6 +327,7 @@ contains
     character(len=7) :: f_status
     character(len=11) :: f_form
     character(len=6) :: f_position
+    character(len=9) :: f_action
 
     !first, determine if the file is already opened.
     call f_file_unit(file,unt)
@@ -390,12 +349,16 @@ contains
        call f_strcpy(src='asis',dest=f_position)
        if (present(position)) call f_strcpy(src=position,dest=f_position)
 
+       call f_strcpy(src='readwrite',dest=f_action)
+       if (present(action)) call f_strcpy(src=action,dest=f_action)
+
        !then open the file with the given unit
        open(unit=unt,file=trim(file),status=f_status,form=f_form,&
-            position=f_position,iostat=ierror)
+            position=f_position,action=f_action,iostat=ierror)
        if (ierror /= 0) then
           call f_err_throw('Error in opening file='//&
-               trim(file)//' iostat='//trim(yaml_toa(ierror)),&
+               trim(file)//' with unit='//trim(yaml_toa(unt,fmt='(i0)'))//&
+               ', iostat='//trim(yaml_toa(ierror)),&
                err_id=INPUT_OUTPUT_ERROR)
        else
           !when everything succeded, assign the unit
@@ -664,6 +627,17 @@ contains
     external :: diff_ci
     call diff_ci(n,a(1),b(1),diff)
   end subroutine f_diff_c1i1
+
+  subroutine f_diff_c0i1(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    character(len=*),   intent(in) :: a
+    integer, dimension(:), intent(in) :: b
+    integer, intent(out) :: diff
+    external :: diff_ci
+    call diff_ci(n,a,b(1),diff)
+  end subroutine f_diff_c0i1
+
 
   subroutine f_diff_li0li1(n,a,b,diff)
     implicit none

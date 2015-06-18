@@ -128,10 +128,8 @@ subroutine bigdft_finalize(ierr)
   call mpibarrier() !over comm world
   !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
   call mpi_environment_free(bigdft_mpi)
-  call mpibarrier() !over comm world
   !wait all processes before finalisation
-  !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-  !call MPI_FINALIZE(ierr)
+  call mpibarrier() !over comm world
   call mpifinalize()
   
 end subroutine bigdft_finalize

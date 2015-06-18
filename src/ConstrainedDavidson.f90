@@ -56,6 +56,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   use module_xc
   use yaml_output
   use communications, only: transpose_v, untranspose_v
+  use rhopotential, only: full_local_potential
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: nvirt
@@ -116,11 +117,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !in the GPU case, the wavefunction should be copied to the card 
   !at each HamiltonianApplication
   !rebind the GPU pointers to the orbsv structure
-  if (GPUconv) then
-     call free_gpu(GPU,orbs%norbp)
-     call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-          hx,hy,hz,Lzd%Glr%wfd,orbsv,GPU)
-  else if (GPU%OCLconv) then
+  if (GPU%OCLconv) then
      call free_gpu_OCL(GPU,orbs,in%nspin)   
      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
           in%nspin,Lzd%Glr%wfd,orbsv,GPU) 
@@ -323,7 +320,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   if(nproc > 1)then
      !sum up the contributions of nproc sets with 
      !commsv%nvctr_par(iproc,1) wavelet coefficients each
-     call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(e,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
   !
   ! inform
@@ -460,7 +457,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! reduce if necessary
      if(nproc > 1)then
         !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-        call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      end if
      !
      ! untranspose gradients for preconditionning
@@ -614,7 +611,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      ! reduce result if necessary 
      !
      if(nproc > 1)then
-        call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(hamovr,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      end if
      !
      ! check asymmetry
@@ -861,8 +858,8 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      if(nproc > 1)then
         !sum up the contributions of nproc sets with 
         !commsv%nvctr_par(iproc,1) wavelet coefficients each
-        call mpiallred( e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
-        call mpiallred(eg(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred( e,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+        call mpiallred(eg,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      end if
      !
      ! End Hamiltonian application:
@@ -934,7 +931,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
 
   !write the results on the screen
-  call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,Lzd%Glr,orbs,orbsv,psi,v,in%output_wf_format)
+  call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,Lzd%Glr,orbs,orbsv,psi,v)!,in%output_wf_format)
 
 
   ! ******************************************************
@@ -986,9 +983,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   ! ******************************************************
 
 
-  if (GPUconv) then
-     call free_gpu(GPU,orbsv%norbp)
-  else if (GPU%OCLconv) then
+  if (GPU%OCLconv) then
      call free_gpu_OCL(GPU,orbsv,in%nspin)
   end if
 

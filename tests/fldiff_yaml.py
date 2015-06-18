@@ -475,7 +475,8 @@ for i in range(len(references)):
         print 'remarks',remarks,str(e)
         fatal_error(reports, message=str(e))
     try:
-        doctime = data["Timings for root process"]["Elapsed time (s)"]
+        #doctime = data["Timings for root process"]["Elapsed time (s)"]
+        doctime = data["Walltime since initialization"]
     except:
         doctime = 0
     try:
@@ -504,7 +505,11 @@ for i in range(len(references)):
     highlight_iftty(options)
     if remarks:
         newreport = open(options_remarks.input, "w")
-        newreport.write(yaml.dump({"Remarks": remarks}, default_style="|", explicit_start=False))
+        if args.label is not None:
+            labl=" ("+args.label+")"
+        else:
+            labl=''
+        newreport.write(yaml.dump({"Remarks"+labl: remarks}, default_style="|", explicit_start=False))
         newreport.close()
         reports.write(open(options_remarks.input, "rb").read())
         highlight_iftty(options_remarks)

@@ -1,0 +1,72 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   rmult: [4.0, 5.0]
+   gnrm_cv: accurate
+   itermax: 100
+   ncong: 5
+   idsx: 10
+   inputpsiid: linear
+   disablesym: Yes
+ perf:
+   correction_co_contra: no
+   purification_quickreturn: no
+ lin_general:
+   nit: [1, 2]
+   rpnrm_cv: [9.9999999999999995E-008, 1.0E-010]
+   conf_damping: 0.5
+   taylor_order: 4
+   output_wf: 2
+   calc_dipole: Yes
+   calc_pulay: old
+   extra_states: 2
+   calculate_onsite_overlap: Yes
+ lin_basis:
+   nit: 3
+   idsx: [5, 0]
+   gnrm_cv: 4.0000000000000003E-005
+ lin_kernel:
+   nstep: 6
+   nit: [4, 6]
+   idsx_coeff: 4
+   alphamix: 1.0
+   gnrm_cv_coeff: 1.0E-003
+   linear_method: DIRMIN
+   fscale_foe: 5.0000000000000003E-002
+ lin_basis_params:
+   Be:
+     ao_confinement: 2.0E-002
+     confinement: [2.0E-002, 0.0]
+     rloc: [6.0, 7.0]
+     rloc_kernel: 7.0
+     rloc_kernel_foe: 20.0
+   H:
+     nbasis: 1
+     ao_confinement: 2.0E-002
+     confinement: [2.0E-002, 0.0]
+     rloc: [6.0, 7.0]
+     rloc_kernel: 7.0
+     rloc_kernel_foe: 20.0
+ ig_occupation:
+   Be:
+     2s: 2.0
+     2p: 0.0
+ posinp:
+   units: angstroem
+   positions:
+   - Be: [0.9684339761734009, 1.103950023651123, 51.59270095825195]
+   - Be: [0.9576680064201355, 1.07571005821228, 53.52510070800781]
+   - Be: [0.9424059987068176, 1.049720048904419, 55.45640182495117]
+   - Be: [0.9233289957046509, 1.026090025901794, 57.40409851074219]
+   - H: [1.868379950523376, 1.692999958992004, 52.57519912719727]
+   - H: [1.184540033340454, 1.055999994277954, 50.13430023193359]
+   - H: [1.554739952087402, 0.1580249965190887, 54.49459838867188]
+   - H: [0.346127986907959, 1.967569947242737, 54.5093994140625]
+   - H: [2.8277099132537842E-002, 0.432981014251709, 56.39500045776368]
+   - H: [5.9088699519634247E-002, 0.484921008348465, 52.54779815673828]
+   - H: [1.83870005607605, 1.641980051994324, 56.42739868164062]
+   - H: [0.9094840288162231, 1.011090040206909, 58.74399948120117]
+   properties:
+     format: xyz
+     source: posinp

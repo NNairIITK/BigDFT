@@ -95,6 +95,30 @@ subroutine f_memcpy_c1i1(dest,src)
 
 end subroutine f_memcpy_c1i1
 
+subroutine f_memcpy_c0i1(dest,src)
+  implicit none
+  integer, dimension(:), intent(inout) :: dest !<destination buffer
+  character(len=*), intent(in) :: src !<source buffer 
+  !local variables
+  integer :: ns,nd,i
+  external :: f_atoi
+  nd=size(dest)
+  ns=len(src)
+  !include 'f_memcpy-base-inc.f90'
+  if (nd < ns) then
+     call f_err_throw('Error in f_memcpy; the size of the source ('//trim(yaml_toa(ns))//&
+          ') and of the destination buffer ('//trim(yaml_toa(nd))//&
+          ') are not compatible',err_id=ERR_INVALID_COPY)
+     return
+  end if
+  if (ns <=0) return
+  do i=1,ns
+     dest(i)=ichar(src(i:i))
+  end do
+
+end subroutine f_memcpy_c0i1
+
+
 subroutine f_memcpy_i1c1(dest,src)
   implicit none
   character, dimension(:), intent(inout) :: dest !<destination buffer
@@ -234,6 +258,30 @@ subroutine f_memcpy_d0d3(dest,src,n)
   include 'f_memcpy-base-inc.f90'
 end subroutine f_memcpy_d0d3
 
+subroutine f_memcpy_d3d0(dest,src,n)
+  implicit none
+  integer, intent(in) :: n !<nelems
+  double precision, intent(inout) :: dest !<destination buffer address
+  double precision, dimension(:,:,:), intent(in) :: src !<source buffer address
+  !local variables
+  integer :: ns,nd
+  nd=size(src)
+  ns=n
+  include 'f_memcpy-base-inc.f90'
+end subroutine f_memcpy_d3d0
+
+subroutine f_memcpy_d2d0(dest,src,n)
+  implicit none
+  integer, intent(in) :: n !<nelems
+  double precision, intent(inout) :: dest !<destination buffer address
+  double precision, dimension(:,:), intent(in) :: src !<source buffer address
+  !local variables
+  integer :: ns,nd
+  nd=size(src)
+  ns=n
+  include 'f_memcpy-base-inc.f90'
+end subroutine f_memcpy_d2d0
+
 
 subroutine f_memcpy_li0li1(dest,src,n)
   implicit none
@@ -280,6 +328,17 @@ subroutine f_memcpy_d2d3(dest,src)
   ns=size(src)
   include 'f_memcpy-base-inc.f90'
 end subroutine f_memcpy_d2d3
+
+subroutine f_memcpy_d3d2(dest,src)
+  implicit none
+  double precision, dimension(:,:,:), intent(inout) :: dest !<destination buffer
+  double precision, dimension(:,:), intent(in) :: src !<source buffer 
+  !local variables
+  integer :: ns,nd
+  nd=size(dest)
+  ns=size(src)
+  include 'f_memcpy-base-inc.f90'
+end subroutine f_memcpy_d3d2
 
 subroutine f_memcpy_d2d1(dest,src)
   implicit none
@@ -385,6 +444,21 @@ function f_maxdiff_c1i1(a,b,n) result(maxdiff)
   nd=size(b)
   include 'f_maxdiff-base-inc.f90'
 end function f_maxdiff_c1i1
+
+function f_maxdiff_c0i1(a,b,n) result(maxdiff)
+  use f_utils, only: f_diff
+  implicit none
+  character(len=*), intent(in) :: a
+  integer, dimension(:), intent(in) :: b
+  integer :: maxdiff
+  integer, intent(in), optional :: n
+  !local variables
+  integer :: ns,nd,cnt
+  ns=len(a)
+  nd=size(b)
+  include 'f_maxdiff-base-inc.f90'
+end function f_maxdiff_c0i1
+
 
 function f_maxdiff_d2d3(a,b,n) result(maxdiff)
   use f_utils, only: f_diff

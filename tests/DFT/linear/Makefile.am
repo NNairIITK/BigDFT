@@ -23,7 +23,10 @@ TESTDIRS = Locreg \
 	   geoptconstrained \
 	   O2spin \
        verysparse \
-	   expfoegeopt
+	   expfoegeopt \
+	   periodic \
+       surface \
+       multipoles
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \

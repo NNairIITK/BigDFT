@@ -52,7 +52,7 @@ subroutine lstpthpnt(runObj,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
     !clean forces is just a precaution. In principle
     !the coressponding frozen coordinates should already be
     !identical in rxyzP and rxyzR
-    call clean_forces_base(runObj%atoms,drxyz)
+    call clean_forces_base(bigdft_get_astruct_ptr(runObj),drxyz)
 
     rxyz = rxyzR + lambda * drxyz
     call fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
@@ -248,7 +248,7 @@ subroutine lst_penalty_free(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
     !$omp end do
     !$omp end parallel
 
-    call clean_forces_base(runObj%atoms,force)
+    call clean_forces_base(bigdft_get_astruct_ptr(runObj),force)
 end subroutine lst_penalty_free
 !=====================================================================
 subroutine lst_penalty_periodic(runObj,rxyzR_,rxyzP_,rxyz_,lambda,val,force)
@@ -370,19 +370,19 @@ rxyz=rxyz_
         call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzR)
         call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzP)
         call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyz)
-    else if(bigdft_get_geocode(runObj)=='F')then                                                                                         
-        latvec(1,1)=0.0_gp                                                                                                          
-        latvec(2,1)=0.0_gp                                                                                                          
-        latvec(3,1)=0.0_gp                                                                                                          
-        latvec(1,2)=0.0_gp                                                                                                          
-        latvec(2,2)=0.0_gp                                                                                                          
-        latvec(3,2)=0.0_gp                                                                                                          
-        latvec(1,3)=0.0_gp                                                                                                          
-        latvec(2,3)=0.0_gp                                                                                                          
-        latvec(3,3)=0.0_gp                                                                                                          
-        nec1=1                                                                                                                      
-        nec2=1                                                                                                                      
-        nec3=1                                                                                                                      
+    else if(bigdft_get_geocode(runObj)=='F')then
+        latvec(1,1)=0.0_gp
+        latvec(2,1)=0.0_gp
+        latvec(3,1)=0.0_gp
+        latvec(1,2)=0.0_gp
+        latvec(2,2)=0.0_gp
+        latvec(3,2)=0.0_gp
+        latvec(1,3)=0.0_gp
+        latvec(2,3)=0.0_gp
+        latvec(3,3)=0.0_gp
+        nec1=1
+        nec2=1
+        nec3=1
     else
         call f_err_throw('lst_penalty: specified boundary conditions'//&
              ' not supported.')
@@ -482,7 +482,7 @@ rxyz=rxyz_
     !$omp end parallel
     val=val*0.5_gp
 
-    call clean_forces_base(runObj%atoms,force)
+    call clean_forces_base(bigdft_get_astruct_ptr(runObj),force)
 end subroutine lst_penalty_periodic
 !=====================================================================
 subroutine fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)

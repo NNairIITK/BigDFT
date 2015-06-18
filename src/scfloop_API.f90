@@ -15,21 +15,38 @@ module scfloop_API
   use bigdft_run, only: run_objects
 !!$  use module_base
 !!$  use module_types
-
   implicit none
+
+  private
 
   ! Storage of required variables for a SCF loop calculation.
   logical :: scfloop_initialised = .false.
   integer :: scfloop_nproc, itime_shift_for_restart
-  type(run_objects), pointer :: scfloop_obj
+  character(len=*), parameter :: ab6file='ab6_moldyn'
+  type(run_objects), pointer, save :: scfloop_obj
 
   public :: scfloop_init
-!!!  public :: scfloop_finalise
+  public :: scfloop_finalise
+  public :: scfloop_initialised, scfloop_obj,itime_shift_for_restart
 contains
 
   subroutine scfloop_init(nproc, obj)
+    use f_utils, only: f_open_file
+    use defs_basis, only: abi_io_redirect
+    implicit none
     integer, intent(in) :: nproc
     type(run_objects), intent(in), target :: obj
+    !local variables
+    integer :: unt,unt2
+    character(len=10) :: suffix
+
+    !this routine set up the file for dump of the moldyn
+    unt=7
+    call f_open_file(unt,file=trim(ab6log()))
+    unt2=unt+1
+    call f_open_file(unt2,file=trim(ab6out()))
+    !reaffect the value of stdout in abinit
+    call abi_io_redirect(new_ab_out=unt,new_std_out=unt2)
 
     scfloop_nproc = nproc
     scfloop_obj => obj
@@ -37,8 +54,47 @@ contains
     scfloop_initialised = .true.
   END SUBROUTINE scfloop_init
 
-!!!  subroutine scfloop_finalise()
-!!!  END SUBROUTINE scfloop_finalise
+  function ab6log() result(suffix)
+    use module_defs, only: bigdft_mpi
+    use yaml_strings, only: yaml_toa,f_strcpy
+    implicit none
+    character(len=32) :: suffix
+    if (bigdft_mpi%ngroup>1) then
+       call f_strcpy(src=ab6file//'-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//'-'//&
+            trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.log',dest=suffix)
+    else
+       call f_strcpy(src=ab6file//'-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//'.log',dest=suffix)
+    end if
+  end function ab6log
+
+  function ab6out() result(suffix)
+    use module_defs, only: bigdft_mpi
+    use yaml_strings, only: yaml_toa,f_strcpy
+    implicit none
+    character(len=32) :: suffix
+    if (bigdft_mpi%ngroup>1) then
+       call f_strcpy(src=ab6file//'-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//'-'//&
+            trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.out',dest=suffix)
+    else
+       call f_strcpy(src=ab6file//'-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//'.out',dest=suffix)
+    end if
+  end function ab6out
+
+
+  subroutine scfloop_finalise()
+    use f_utils, only: f_close,f_file_unit
+    implicit none
+    !local variables
+    integer :: unit
+
+    call f_file_unit(trim(ab6out()),unit)
+    if (unit >0 .and. unit /=6 ) call f_close(unit)
+
+    call f_file_unit(trim(ab6log()),unit)
+    if (unit >0 .and. unit /=6 ) call f_close(unit)
+
+
+  END SUBROUTINE scfloop_finalise
 end module scfloop_API
 
 
@@ -46,7 +102,9 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   use scfloop_API
   use module_base
   use bigdft_run
-
+  use yaml_output
+  use module_input_keys,only: inputpsiid_set_policy
+  use public_enums, only: ENUM_MEMORY
   implicit none
 
   integer, intent(in) :: natom, itime, me
@@ -67,16 +125,17 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   end if
 
   if (me == 0) then
-     write( *,'(1x,a,1x,i0)') &
-          & 'SCFloop API, call force calculation step=', itime
+     !write( *,'(1x,a,1x,i0)') &
+     !     & 'SCFloop API, call force calculation step=', itime
+     call yaml_map('SCFloop API, call force calculation step',itime)
   end if
 
   ! We transfer acell into at
   scfloop_obj%atoms%astruct%cell_dim(1) = acell(1)
   scfloop_obj%atoms%astruct%cell_dim(2)= rprimd(2,2)
   scfloop_obj%atoms%astruct%cell_dim(3)= acell(3)
-
-  scfloop_obj%inputs%inputPsiId=1
+  !scfloop_obj%inputs%inputPsiId=1
+  call inputpsiid_set_policy(ENUM_MEMORY,scfloop_obj%inputs%inputPsiId)
   ! need to transform xred into xcart
   do i = 1, scfloop_obj%atoms%astruct%nat, 1
      do j=1,3
@@ -87,17 +146,16 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
         end if
      end do
   end do
-
 !!$  open(100+me)
 !!$  write(100+me,*)xcart
 !!$  close(100+me)
   outs%fxyz => fcart
-  scfloop_obj%inputs%inputPsiId = 1
+  !scfloop_obj%inputs%inputPsiId = 1
+  call inputpsiid_set_policy(ENUM_MEMORY,scfloop_obj%inputs%inputPsiId)
   call bigdft_state(scfloop_obj,outs,infocode)
   epot = outs%energy
   nullify(outs%fxyz)
   call deallocate_state_properties(outs)
-
   ! need to transform the forces into reduced ones.
   favg(:) = real(0, dp)
   do i = 1, scfloop_obj%atoms%astruct%nat, 1
@@ -186,14 +244,15 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   character(len=50) :: extra
   character(len=150) :: line
   logical :: lpsdbl,exists
-  integer :: iat,i,ierrsfx,nat
+  integer :: iat,i,ierrsfx,nat,unt
 ! To read the file posinp (avoid differences between compilers)
   real(kind=4) :: vx,vy,vz,alat1,alat2,alat3
 ! case for which the atomic positions are given whithin general precision
   real(gp) :: vxd0,vyd0,vzd0,alat1d0,alat2d0,alat3d0
 
   !inquire whether the input file is present, otherwise put velocities to zero
-  inquire(file=filename,exist=exists)
+  call f_file_exists(filename,exists)
+  !inquire(file=filename,exist=exists)
   if (.not. exists) then  
      call f_zero(vxyz)
      return
@@ -206,9 +265,11 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
      lpsdbl=.false.
   end if
 
-  open(unit=99,file=trim(filename),status='old',action='read')
+  unt=99
+  call f_open_file(unt,file=trim(filename),status='old',action='read')
+  !open(unit=99,file=trim(filename),status='old',action='read')
 
-  read(99,*) nat,units,extra,itime_shift_for_restart
+  read(unt,*) nat,units,extra,itime_shift_for_restart
  
   !check whether the number of atoms is different 
   if (nat /= atoms%astruct%nat) then
@@ -217,7 +278,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   end if
 
   !read from positions of .xyz format, but accepts also the old .ascii format
-  read(99,'(a150)')line
+  read(unt,'(a150)')line
 
   if (lpsdbl) then
      read(line,*,iostat=ierrsfx) tatonam,alat1d0,alat2d0,alat3d0
@@ -238,7 +299,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
   endif
   do iat=1,atoms%astruct%nat
      !xyz input file, allow extra information
-     read(99,'(a150)')line 
+     read(unt,'(a150)')line 
      if (lpsdbl) then
         read(line,*,iostat=ierrsfx)symbol,vxd0,vyd0,vzd0
      else
@@ -267,7 +328,7 @@ subroutine read_velocities(iproc,filename,atoms,vxyz)
      endif
   enddo
 
-  close(unit=99)
+  call f_close(unit=99)
 END SUBROUTINE read_velocities
 
 subroutine wtvel(filename,vxyz,atoms,comment)

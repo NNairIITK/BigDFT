@@ -20,9 +20,9 @@
   !verify the size of the receive buffer
   ntasks=mpisize(mpi_comm)
   if (ntotrecv*kind(recvbuf) < ntot*ntasks*kind(sendbuf)) then
-     call f_err_throw('Error in mpigather; the size of receive buffer ('//&
+     call f_err_throw('Error in mpigather; the size of the receive buffer ('//&
           trim(yaml_toa(ntotrecv*kind(recvbuf)))//&
-          ') is not enough to contain '//trim(yaml_toa(ntot*kind(sendbuf)))//&
+          ') is not large enough to contain '//trim(yaml_toa(ntot*kind(sendbuf)))//&
           ' * '//trim(yaml_toa(ntasks))//' elements',err_id=ERR_MPI_WRAPPERS)
      return
   end if

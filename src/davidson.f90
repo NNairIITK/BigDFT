@@ -18,6 +18,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    use module_xc
    use yaml_output
    use communications, only: transpose_v, untranspose_v
+   use rhopotential, only: full_local_potential
    implicit none
    integer, intent(in) :: iproc,nproc,nvirt
    type(input_variables), intent(in) :: in
@@ -26,7 +27,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    type(denspot_distribution), intent(in) :: dpcom
    type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   type(coulomb_operator), intent(in) :: pkernel
+   type(coulomb_operator), intent(inout) :: pkernel
    real(dp), dimension(*), intent(in), target :: rhopot
    type(GPU_pointers), intent(inout) :: GPU
    type(xc_info), intent(in) :: xc
@@ -70,11 +71,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !in the GPU case, the wavefunction should be copied to the card 
    !at each HamiltonianApplication
    !rebind the GPU pointers to the orbsv structure
-   if (GPUconv) then
-      call free_gpu(GPU,KSwfn%orbs%norbp)
-      call prepare_gpu_for_locham(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,in%nspin,&
-           VTwfn%Lzd%hgrids(1), VTwfn%Lzd%hgrids(2), VTwfn%Lzd%hgrids(3),VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)    
       call allocate_data_OCL(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,at%astruct%geocode,&
          &   in%nspin,VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
@@ -338,9 +335,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !deallocate potential
    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
 
-   if (GPUconv) then
-      call free_gpu(GPU,VTwfn%orbs%norbp)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,VTwfn%orbs,in%nspin)
    end if
 
@@ -348,7 +343,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
 
    !the plotting should be added here (perhaps build a common routine?)
    call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,VTwfn%Lzd%hgrids(1),VTwfn%Lzd%hgrids(2),VTwfn%Lzd%hgrids(3),&
-        at,rxyz,KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,KSwfn%psi,VTwfn%psi,in%output_wf_format)
+        at,rxyz,KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,KSwfn%psi,VTwfn%psi)!,in%output_wf_format)
 
    call f_release_routine()
 
@@ -404,6 +399,7 @@ subroutine davidson(iproc,nproc,in,at,&
    use yaml_output
    use communications_base, only: comms_cubic
    use communications, only: transpose_v, untranspose_v
+   use rhopotential, only: full_local_potential
    implicit none
    integer, intent(in) :: iproc,nproc
    integer, intent(in) :: nvirt
@@ -415,7 +411,7 @@ subroutine davidson(iproc,nproc,in,at,&
    type(comms_cubic), intent(in) :: comms, commsv
    type(denspot_distribution), intent(in) :: dpcom
    real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-   type(coulomb_operator), intent(in) :: pkernel
+   type(coulomb_operator), intent(inout) :: pkernel
    real(dp), dimension(*), intent(in) :: rhopot
    type(orbitals_data), intent(inout) :: orbsv
    type(GPU_pointers), intent(inout) :: GPU
@@ -468,11 +464,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !in the GPU case, the wavefunction should be copied to the card 
    !at each HamiltonianApplication
    !rebind the GPU pointers to the orbsv structure
-   if (GPUconv) then
-      call free_gpu(GPU,orbs%norbp)
-      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr%wfd,orbsv,GPU)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,orbs,in%nspin)    
       call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
            in%nspin,Lzd%Glr%wfd,orbsv,GPU)
@@ -650,7 +642,7 @@ subroutine davidson(iproc,nproc,in,at,&
    if(nproc > 1)then
       !sum up the contributions of nproc sets with 
       !commsv%nvctr_par(iproc,1) wavelet coefficients each
-      call mpiallred(e(1,1,1),2*orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+      call mpiallred(e,MPI_SUM,comm=bigdft_mpi%mpi_comm)
    end if
 
    !if(iproc==0)write(*,'(1x,a)')"done."
@@ -755,7 +747,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+         call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
       end if
 
       gnrm=0._dp
@@ -833,7 +825,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
          end if
 
          gnrm=0._dp
@@ -947,7 +939,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
          if(nproc > 1)then
             !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+            call mpiallred(e(1,1,2),orbsv%norb*orbsv%nkpts,MPI_SUM,comm=bigdft_mpi%mpi_comm)
          end if
 
          gnrm=0.0_dp
@@ -996,7 +988,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
       if(nproc > 1)then
          !sum up the contributions of nproc sets with nvctrp wavelet coefficients each
-         call mpiallred(hamovr(1),8*ndimovrlp(nspin,orbsv%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+         call mpiallred(hamovr,MPI_SUM,comm=bigdft_mpi%mpi_comm)
       end if
 
       !if(iproc==0)write(*,'(1x,a)')"done."
@@ -1262,13 +1254,11 @@ subroutine davidson(iproc,nproc,in,at,&
    !write the results on the screen
    call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,&
         Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz,Lzd%Glr,&
-        orbs,orbsv,psi,v,in%output_wf_format)
+        orbs,orbsv,psi,v)!,in%output_wf_format)
 
    deallocate(confdatarr)
 
-   if (GPUconv) then
-      call free_gpu(GPU,orbsv%norbp)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,orbsv,in%nspin)
    end if
 
@@ -1676,13 +1666,13 @@ END SUBROUTINE psivirt_from_gaussians
 
 !> Write eigenvalues and related quantities
 !! @todo: must add the writing directory to the files
-subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,output_wf_format)
+subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)!,output_wf_format)
    use module_base
    use module_types
    use yaml_output
    implicit none
    logical, intent(in) :: occorbs
-   integer, intent(in) :: iproc,nspin,nvirt,nplot,output_wf_format
+   integer, intent(in) :: iproc,nspin,nvirt,nplot!,output_wf_format
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
    type(locreg_descriptors), intent(in) :: lr
@@ -1846,8 +1836,12 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
   use module_base, only: gp,wp
   use locregs, only: locreg_descriptors
   use module_types, only: atoms_data,orbitals_data
+  use module_interfaces
   implicit none
-  integer, intent(in) :: nplot !<number of eigenfuncitions to be plotted close to the fermi level
+  !>number of eigenfuncitions to be plotted close to the fermi level
+  !! in the case of negative nplot, only the occupied orbitals are plotted
+  !! and the vitual orbitals are neglected
+  integer, intent(in) :: nplot 
   type(atoms_data), intent(in) :: at !<descriptor of atomic properties
   type(orbitals_data), intent(in) :: orbs,orbsv !<orbitals, occupied and virtual respectively
   type(locreg_descriptors), intent(in) :: lr !<localization regions of the wavefunctions
@@ -1867,7 +1861,7 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
   !add a modulo operator to get rid of the particular k-point
   do iorb=1,orbsv%norbp!requested: nvirt of nvirte orbitals
 
-     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot)) then
+     if(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1 > abs(nplot) .or. nplot < 0) then
         exit 
         !if(iproc == 0 .and. abs(nplot) > 0) write(*,'(A)')'No plots of occupied orbitals requested.'
      end if
@@ -1878,8 +1872,8 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
      write(denname,'(A,i4.4)')trim(dir_output)//'denvirt',iorb+orbsv%isorb
      !write(comment,'(1pe10.3)')orbsv%eval(iorb+orbsv%isorb)!e(modulo(iorb+orbsv%isorb-1,orbsv%norb)+1,orbsv%iokpt(iorb),1)
 
-     call plot_wf(trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
-     call plot_wf(trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
+     call plot_wf(.false.,trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
+     call plot_wf(.false.,trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psivirt(ind:))
 
   end do
 
@@ -1891,8 +1885,8 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
         write(denname,'(A,i4.4)')trim(dir_output)//'densocc',iorb+orbs%isorb
         !write(comment,'(1pe10.3)')orbs%eval(iorb+orbs%isorb)
 
-        call plot_wf(trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
-        call plot_wf(trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+        call plot_wf(.false.,trim(orbname),1,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
+        call plot_wf(.false.,trim(denname),2,at,1.0_wp,lr,hx,hy,hz,rxyz,psi(ind:))
 
      endif
   end do

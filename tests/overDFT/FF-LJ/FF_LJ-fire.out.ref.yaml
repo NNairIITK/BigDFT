@@ -1,0 +1,2591 @@
+---
+ Code logo:
+   "__________________________________ A fast and precise DFT wavelet code
+   |     |     |     |     |     |
+   |     |     |     |     |     |      BBBB         i       gggggg
+   |_____|_____|_____|_____|_____|     B    B               g
+   |     |  :  |  :  |     |     |    B     B        i     g
+   |     |-0+--|-0+--|     |     |    B    B         i     g        g
+   |_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g
+   |  :  |     |     |  :  |     |    B    B         i     g         g
+   |--+0-|     |     |-0+--|     |    B     B     iiii     g         g
+   |__:__|_____|_____|__:__|_____|    B     B        i      g        g
+   |     |  :  |  :  |     |     |    B BBBB        i        g      g
+   |     |-0+--|-0+--|     |     |    B        iiiii          gggggg
+   |_____|__:__|__:__|_____|_____|__BBBBB
+   |     |     |     |  :  |     |                           TTTTTTTTT
+   |     |     |     |--+0-|     |  DDDDDD          FFFFF        T
+   |_____|_____|_____|__:__|_____| D      D        F        TTTT T
+   |     |     |     |  :  |     |D        D      F        T     T
+   |     |     |     |--+0-|     |D         D     FFFF     T     T
+   |_____|_____|_____|__:__|_____|D___      D     F         T    T
+   |     |     |  :  |     |     |D         D     F          TTTTT
+   |     |     |--+0-|     |     | D        D     F         T    T
+   |_____|_____|__:__|_____|_____|          D     F        T     T
+   |     |     |     |     |     |         D               T    T
+   |     |     |     |     |     |   DDDDDD       F         TTTT
+   |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
+
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.7.6.6
+ Timestamp of this run                 : 2015-03-27 10:54:01.898
+ Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
+ MPI tasks of root process node        :  2
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments:
+     " 'FCFLAGS=-O2 -fopenmp -g -fbounds-check -fbacktrace 
+     -ffpe-trap=invalid,zero,overflow,denormal' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 
+     -L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 -lmkl_rt -liomp5 -lm' 
+     'CFLAGS=-O2 -fopenmp' 'CC=mpicc.openmpi' 'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 
+     'F77=mpif77.openmpi' '--with-blas=no' '--with-lapack=no'"
+
+   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
+   Compiler flags:
+     CFLAGS                            : -O2 -fopenmp
+                                        
+     FCFLAGS:
+       -O2 -fopenmp -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal
+     CXXFLAGS                          : -g -O2
+  #------------------------------------------------------------------------ Input parameters
+ radical                               : LJ-fire
+ outdir                                : ./
+ logfile                               : Yes
+ run_from_files                        : Yes
+ mode:
+   method                              : lj #     Run method of BigDFT call
+   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+   mm_paramfile                        : none #   name of parameter file
+ geopt:
+   method                              : FIRE #   Geometry optimisation method
+   ncount_cluster_x                    : 500 #    Maximum number of force evaluations
+   frac_fluct                          : 0.0 #    Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+   forcemax                            : 1.0E-3 # Max forces criterion when stop
+   dtinit                              : 6.0E-2 # Initial time step for the FIRE method
+   dtmax                               : 6.0E-2 # Maximal time step for the FIRE method
+   randdis                             : 0. #     Random displacement amplitude
+   betax                               : 4. #     Stepsize for the geometry optimization
+ posinp:
+   positions:
+   - LJ: [-2.9389518104801747E-003, -7.846637254470154E-002, -0.1104684013727375]
+   - LJ: [-3.5339654118662746E-003, -5.2323602430534421E-003, 1.005782882376979]
+   - LJ: [0.2478892936529572, -0.9132058312006248, 0.4742083983359983]
+   - LJ: [-0.774774295364753, -0.5382654333058956, 0.4748011107904337]
+   - LJ: [-0.7355641410713598, 0.5395574646796022, 0.4088889088703319]
+   - LJ: [0.3070151014162374, 0.8392445948446029, 0.3899534740811968]
+   - LJ: [0.9146732773779529, -5.257729770228188E-002, 0.4439403839386067]
+   - LJ: [-0.8192464740556027, -1.079771005740482, -0.4407255114842359]
+   - LJ: [-0.9808547500746307, 1.1710382851751324E-002, -0.5443415825254738]
+   - LJ: [-0.2841005372477651, 0.8728557338627373, -0.5606640113996139]
+   - LJ: [0.7633864602868988, 0.5121242369105163, -0.5757646386072652]
+   - LJ: [1.211258298274715, -0.4970351445811421, -0.4769038607367634]
+   - LJ: [-3.176520194327781E-002, -4.560307031177404E-002, -1.180466368662702]
+   - LJ: [6.9154451252788325E-003, 2.8096725691109218E-002, 2.108960112109934]
+   - LJ: [0.2676111961423556, -0.9132350581285937, 1.56377452011333]
+   - LJ: [-0.7914635353545764, -0.5277759801080176, 1.565988516990445]
+   - LJ: [-0.7515641090271062, 0.5939339263080183, 1.515950792332507]
+   - LJ: [0.3288510980465937, 0.9045518905946425, 1.49634433640746]
+   - LJ: [0.9598204352214776, -2.4287654860161139E-002, 1.53410912377294]
+   - LJ: [1.220635943295054, -0.9627778787779802, 0.9714052982604325]
+   - LJ: [0.5239809872582188, -1.842853436373277, 0.9650277094002435]
+   - LJ: [-0.5328753825208348, -1.466930134573549, 1.003153512944695]
+   - LJ: [-1.580018092592139, -1.075266549044689, 0.9812693673761494]
+   - LJ: [-1.553068216080037, 4.6447564400094378E-002, 0.9646933886907024]
+   - LJ: [-1.499708483928552, 1.160896652511388, 0.9252519954051598]
+   - LJ: [-0.4296489595696282, 1.470596716237427, 0.903837905168876]
+   - LJ: [0.6416550687636232, 1.776412282226643, 0.8863456682018116]
+   - LJ: [1.279698864028365, 0.8607761082949934, 0.913235118354891]
+   - LJ: [1.89859682526577, -7.5265885969337559E-002, 0.9181510440895526]
+   - LJ: [1.016484801784717, -1.500925072373482, 1.1853870738495014E-003]
+   - LJ: [0.2519270599806615, -0.9946830731631207, -0.6401878027878054]
+   - LJ: [-0.1066556352081414, -1.823498942568663, 2.1176548337658283E-002]
+   - LJ: [-1.756027781869396, -0.535418184275641, 1.4273186143427962E-002]
+   - LJ: [-1.745173851541197, 0.5909419684622135, 3.3804080108061223E-004]
+   - LJ: [-1.038734893656594, 1.484802522614631, -3.9058111012909791E-002]
+   - LJ: [4.6960944631207813E-002, 1.79708925409458, -5.8619278941656874E-002]
+   - LJ: [1.120837517513499, 1.414622996013542, -5.1908139220799857E-002]
+   - LJ: [1.729008907226007, 0.4664651252169732, -4.8745804521419203E-002]
+   properties:
+     format                            : xyz
+     source                            : LJ-fire
+ psppar.LJ:
+   Pseudopotential type                : HGH
+   Atomic number                       : 12
+   No. of Electrons                    : 2
+   Pseudopotential XC                  : 1
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.6518119999999999
+     Coefficients (c1 .. c4): [-2.864297, 0.0, 0.0, 0.0]
+   NonLocal PSP Parameters:
+   - Channel (l)                       : 0
+     Rloc                              : 0.556478
+     h_ij terms: [2.970957, 1.329941, 0.0, 0.0, 0.0, 0.0]
+   - Channel (l)                       : 1
+     Rloc                              : 0.677569
+     h_ij terms: [1.049881, 0.0, 0.0, 0.0, 0.0, 0.0]
+   PAW patch                           : No
+   Source                              : psppar.LJ
+   Radii of active regions (AU):
+     Coarse                            : 1.688250099201262
+     Fine                              : 0.556478
+     Coarse PSP                        : 1.055156312000789
+     Source                            : Hard-Coded
+ dft:
+   disablesym                          : Yes #    Disable the symmetry detection
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
+   rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+   ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
+   qcharge                             : 0 #      Charge of the system. Can be integer or real.
+   elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
+   nspin                               : 1 #      Spin polarization treatment
+   mpol                                : 0 #      Total magnetic moment
+   gnrm_cv                             : 1.e-4 #  convergence criterion gradient
+   itermax                             : 50 #     Max. iterations of wfn. opt. steps
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   nrepmax                             : 1 #      Max. number of re-diag. runs
+   ncong                               : 6 #      No. of CG it. for preconditioning eq.
+   idsx                                : 6 #      Wfn. diis history
+   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
+   inputpsiid                          : 0 #      Input guess wavefunctions
+   output_wf                           : 0 #      Output of the support functions
+   output_denspot                      : 0 #      Output of the density or the potential
+   rbuf                                : 0. #     Length of the tail (AU)
+   ncongt                              : 30 #     No. of tail CG iterations
+   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
+   nvirt                               : 0 #      No. of virtual orbs
+   nplot                               : 0 #      No. of plotted orbs
+ perf:
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
+   ocl_platform                        : ~ #      Chosen OCL platform
+   ocl_devices                         : ~ #      Chosen OCL devices
+   blas                                : No #     CUBLAS acceleration
+   projrad                             : 15. #    Radius of the projector as a function of the maxrad
+   exctxpar                            : OP2P #   Exact exchange parallelisation scheme
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
+   methortho                           : 0 #      Orthogonalisation
+   rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
+   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
+   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
+   unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
+   linear                              : OFF #    Linear Input Guess approach
+   tolsym                              : 1.0e-8 # Tolerance for symmetry detection
+   signaling                           : No #     Expose calculation results on Network
+   signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
+   domain                              : ~ #      Domain to add to the hostname to find the IP
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
+   psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
+   multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
+   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
+   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
+   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
+   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
+   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
+   iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
+   check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
+   experimental_mode                   : No #     Activate the experimental mode in linear scaling
+   write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
+   calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
+   intermediate_forces                 : No #     Linear scaling calculate intermediate forces
+   kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
+   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
+   method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
+    #                                              purification, 1 FOE, 2 renormalization)
+   purification_quickreturn            : Yes #    linear scaling quick return in purification
+   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
+   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
+   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
+   check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
+   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
+   fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
+   fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
+   FOE_restart                         : 0 #      Restart method to be used for the FOE method
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
+   enable_matrix_taskgroups            : True #   enable the matrix taskgroups
+   hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
+   adjust_kernel_iterations            : True #   enable the addaptive ajustment of the number of kernel iterations
+   wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
+ kpt:
+   method                              : manual # K-point sampling method
+   kpt: #                                         Kpt coordinates
+   -  [0., 0., 0.]
+   wkpt: [1.] #                                   Kpt weights
+   bands                               : No #     For doing band structure calculation
+ mix:
+   iscf                                : 0 #      Mixing parameters
+   itrpmax                             : 1 #      Maximum number of diagonalisation iterations
+   rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
+   norbsempty                          : 0 #      No. of additional bands
+   tel                                 : 0. #     Electronic temperature
+   occopt                              : 1 #      Smearing method
+   alphamix                            : 0. #     Multiplying factors for the mixing
+   alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
+ sic:
+   sic_approach                        : none #   SIC (self-interaction correction) method
+   sic_alpha                           : 0. #     SIC downscaling parameter
+ tddft:
+   tddft_approach                      : none #   Time-Dependent DFT method
+ lin_general:
+   hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
+   nit: [100, 100] #                              number of iteration with low/high accuracy
+   rpnrm_cv: [1.e-12, 1.e-12] #                   convergence criterion for low/high accuracy
+   conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
+    #                                              automatic
+   taylor_order                        : 0 #      order of the Taylor approximation; 0 -> exact
+   max_inversion_error                 : 1.d0 #   linear scaling maximal error of the Taylor approximations to calculate the inverse of 
+    #                                              the overlap matrix
+   output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+   calc_dipole                         : No #     calculate dipole
+   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
+   subspace_diag                       : No #     diagonalization at the end
+   extra_states                        : 0 #      extra states to optimize (dmin only)
+ lin_basis:
+   nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
+    #                                              support functions
+   idsx: [6, 6] #                                 DIIS history for optimization of the support functions 
+    #                                              (low/high accuracy); 0 -> SD
+   gnrm_cv: [1.e-2, 1.e-4] #                      convergence criterion for the optimization of the support functions 
+    #                                              (low/high accuracy)
+   deltae_cv                           : 1.e-4 #  total relative energy difference to stop the optimization ('experimental_mode' only)
+   gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
+   min_gnrm_for_dynamic                : 1.e-3 #  minimal gnrm to active the dynamic gnrm criterion
+   alpha_diis                          : 1.0 #    multiplicator for DIIS
+   alpha_sd                            : 1.0 #    initial step size for SD
+   nstep_prec                          : 5 #      number of iterations in the preconditioner
+   fix_basis                           : 1.e-10 # fix the support functions if the density change is below this threshold
+   correction_orthoconstraint          : 1 #      correction for the slight non-orthonormality in the orthoconstraint
+ lin_kernel:
+   nstep: [1, 1] #                                number of steps taken when updating the coefficients via 
+    #                                              direct minimization for each iteration of 
+    #                                              the density kernel loop
+   nit: [5, 5] #                                  number of iterations in the (self-consistent) 
+    #                                              optimization of the density kernel
+   idsx_coeff: [0, 0] #                           DIIS history for direct mininimization
+   idsx: [0, 0] #                                 mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+   alphamix: [0.5, 0.5] #                         mixing parameter (low/high accuracy)
+   gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
+   rpnrm_cv: [1.e-10, 1.e-10] #                   convergence criterion (change in density/potential) for the kernel 
+    #                                              optimization
+   linear_method                       : DIAG #   method to optimize the density kernel
+   mixing_method                       : DEN #    quantity to be mixed
+   alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
+   alpha_fit_coeff                     : No #     update the SD step size by fitting a quadratic polynomial to the energy along the 
+    #                                              direction of the gradient during direct 
+    #                                              mininimization.
+   eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
+    #                                              automatically if chosen unproperly
+   fscale_foe                          : 2.e-2 #  decay length of the error function
+ lin_basis_params:
+   nbasis                              : 4 #      number of support functions per atom
+   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             localization radius for the support functions
+   rloc_kernel                         : 9.0 #    localization radius for the density kernel
+   rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
+  #--------------------------------------------------------------------------------------- |
+ Data Writing directory                : ./data-LJ-fire/
+  #----------------------------------------- Input Atomic System (file: __not_a_value__.xyz)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  38
+   Types of atoms                      :  [ LJ ]
+   Boundary Conditions                 : Free #Code: F
+   Number of Symmetries                :  0
+   Space group                         : disabled
+  #---------------------------- Geometry optimization Input Parameters (file: LJ-fire.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  500
+   Algorithm                           : FIRE
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  0.0E+00
+   Maximum in forces                   :  1.0E-03
+   Steepest descent step               :  4.0E+00
+ Material acceleration                 :  No #iproc=0
+  #------------------------------------------------------------------------- Initializing LJ
+  #Using normalized Units for LJ (sigma=1, epsilon=1)
+ Initializing LENNARD_JONES_RUN_MODE:
+ - LENNARD_JONES_RUN_MODE: {}
+   Energy (Hartree)                    : -1.70999463371587865E+02
+   Wavefunction Optimization Finished, exit signal:  0
+    #------------------------------------------------------ Geometry minimization using FIRE
+   Begin of minimization using         : FIRE
+   ENTERING FIRE                       :  0
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  1
+     Geometry step                     :  1
+     FORCES norm(Ha/Bohr): { maxval:  6.84364E-03, fnrm2:  1.49597E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999463641571E+02, -1.70999463641571E+02 ]
+     Alpha                             :  2.50E-1
+     dt                                :  6.00E-2
+     vnrm                              :  7.32E-04
+     nstep                             :  1
+     P                                 :  8.85E-06
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  2
+     Geometry step                     :  2
+     FORCES norm(Ha/Bohr): { maxval:  6.74323E-03, fnrm2:  1.50911E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999464442243E+02, -8.00672239620326E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.46E-03
+     nstep                             :  2
+     P                                 :  1.79E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.66294E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  3
+     Geometry step                     :  3
+     FORCES norm(Ha/Bohr): { maxval:  6.75029E-03, fnrm2:  1.62703E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999465802343E+02, -1.36010038431778E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  6.00E-2
+     vnrm                              :  2.21E-03
+     nstep                             :  3
+     P                                 :  2.78E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  4
+     Geometry step                     :  4
+     FORCES norm(Ha/Bohr): { maxval:  6.96651E-03, fnrm2:  1.85999E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999467815299E+02, -2.01295529222989E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  6.00E-2
+     vnrm                              :  2.98E-03
+     nstep                             :  4
+     P                                 :  3.99E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.55351E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  5
+     Geometry step                     :  5
+     FORCES norm(Ha/Bohr): { maxval:  7.40914E-03, fnrm2:  2.51323E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999470619176E+02, -2.80387746443012E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  6.00E-2
+     vnrm                              :  3.81E-03
+     nstep                             :  5
+     P                                 :  5.53E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  6
+     Geometry step                     :  6
+     FORCES norm(Ha/Bohr): { maxval:  1.44242E-02, fnrm2:  7.56200E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7099947415283E+02, -3.53365390992622E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  6.00E-2
+     vnrm                              :  4.64E-03
+     nstep                             :  6
+     P                                 :  7.64E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  7
+     Geometry step                     :  7
+     FORCES norm(Ha/Bohr): { maxval:  3.93250E-02, fnrm2:  4.15431E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999476823218E+02, -2.67038791434970E-06 ]
+     Alpha                             :  2.47E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.17E-03
+     nstep                             :  7
+     P                                 :  1.02E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  8
+     Geometry step                     :  8
+     FORCES norm(Ha/Bohr): { maxval:  6.28291E-02, fnrm2:  1.01734E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999478540505E+02, -1.71728763120882E-06 ]
+     Alpha                             :  2.45E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.35E-03
+     nstep                             :  8
+     P                                 :  7.87E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 7.10543E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  9
+     Geometry step                     :  9
+     FORCES norm(Ha/Bohr): { maxval:  6.61777E-02, fnrm2:  1.13390E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7099948378112E+02, -5.24061491091743E-06 ]
+     Alpha                             :  2.43E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.58E-03
+     nstep                             :  9
+     P                                 :  1.82E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  10
+     Geometry step                     :  10
+     FORCES norm(Ha/Bohr): { maxval:  5.26866E-02, fnrm2:  7.41306E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999492875769E+02, -9.09464910137103E-06 ]
+     Alpha                             :  2.40E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.89E-03
+     nstep                             :  10
+     P                                 :  2.73E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  11
+     Geometry step                     :  11
+     FORCES norm(Ha/Bohr): { maxval:  3.94726E-02, fnrm2:  4.44130E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999502494854E+02, -9.61908489216512E-06 ]
+     Alpha                             :  2.38E-1
+     dt                                :  6.00E-2
+     vnrm                              :  6.27E-03
+     nstep                             :  11
+     P                                 :  8.90E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  12
+     Geometry step                     :  12
+     FORCES norm(Ha/Bohr): { maxval:  3.84109E-02, fnrm2:  4.36644E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999511950187E+02, -9.45533236063056E-06 ]
+     Alpha                             :  2.35E-1
+     dt                                :  6.00E-2
+     vnrm                              :  6.85E-03
+     nstep                             :  12
+     P                                 :  1.46E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.33067E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  13
+     Geometry step                     :  13
+     FORCES norm(Ha/Bohr): { maxval:  5.05882E-02, fnrm2:  7.17687E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999521632861E+02, -9.68267391954214E-06 ]
+     Alpha                             :  2.33E-1
+     dt                                :  6.00E-2
+     vnrm                              :  7.57E-03
+     nstep                             :  13
+     P                                 :  1.89E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  14
+     Geometry step                     :  14
+     FORCES norm(Ha/Bohr): { maxval:  6.77873E-02, fnrm2:  1.24010E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7099953200903E+02, -1.03761694560944E-05 ]
+     Alpha                             :  2.31E-1
+     dt                                :  6.00E-2
+     vnrm                              :  8.27E-03
+     nstep                             :  14
+     P                                 :  2.08E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  15
+     Geometry step                     :  15
+     FORCES norm(Ha/Bohr): { maxval:  7.90807E-02, fnrm2:  1.67117E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999545236347E+02, -1.32273169413111E-05 ]
+     Alpha                             :  2.28E-1
+     dt                                :  6.00E-2
+     vnrm                              :  8.94E-03
+     nstep                             :  15
+     P                                 :  1.98E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.13687E-13 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  16
+     Geometry step                     :  16
+     FORCES norm(Ha/Bohr): { maxval:  8.01821E-02, fnrm2:  1.73571E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999563381643E+02, -1.81452959964190E-05 ]
+     Alpha                             :  2.26E-1
+     dt                                :  6.00E-2
+     vnrm                              :  9.67E-03
+     nstep                             :  16
+     P                                 :  2.07E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  17
+     Geometry step                     :  17
+     FORCES norm(Ha/Bohr): { maxval:  7.64686E-02, fnrm2:  1.61312E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7099958595453E+02, -2.25728869054365E-05 ]
+     Alpha                             :  2.24E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.05E-02
+     nstep                             :  17
+     P                                 :  2.68E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  18
+     Geometry step                     :  18
+     FORCES norm(Ha/Bohr): { maxval:  7.62404E-02, fnrm2:  1.63536E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999611885493E+02, -2.59309627494986E-05 ]
+     Alpha                             :  2.22E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.15E-02
+     nstep                             :  18
+     P                                 :  3.64E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 6.21725E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  19
+     Geometry step                     :  19
+     FORCES norm(Ha/Bohr): { maxval:  8.40510E-02, fnrm2:  1.97883E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999641076235E+02, -2.91907424525562E-05 ]
+     Alpha                             :  2.19E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.26E-02
+     nstep                             :  19
+     P                                 :  4.68E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  20
+     Geometry step                     :  20
+     FORCES norm(Ha/Bohr): { maxval:  9.76988E-02, fnrm2:  2.64247E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999674576517E+02, -3.35002814608742E-05 ]
+     Alpha                             :  2.17E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.38E-02
+     nstep                             :  20
+     P                                 :  5.61E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  21
+     Geometry step                     :  21
+     FORCES norm(Ha/Bohr): { maxval:  1.11764E-01, fnrm2:  3.42164E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999714564733E+02, -3.99882163151233E-05 ]
+     Alpha                             :  2.15E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.52E-02
+     nstep                             :  21
+     P                                 :  6.40E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 7.32747E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  22
+     Geometry step                     :  22
+     FORCES norm(Ha/Bohr): { maxval:  1.21368E-01, fnrm2:  4.04204E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999764076672E+02, -4.95119394940957E-05 ]
+     Alpha                             :  2.13E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.66E-02
+     nstep                             :  22
+     P                                 :  7.30E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  23
+     Geometry step                     :  23
+     FORCES norm(Ha/Bohr): { maxval:  1.27024E-01, fnrm2:  4.45658E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999824967151E+02, -6.08904784655806E-05 ]
+     Alpha                             :  2.11E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.81E-02
+     nstep                             :  23
+     P                                 :  8.72E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  24
+     Geometry step                     :  24
+     FORCES norm(Ha/Bohr): { maxval:  1.32478E-01, fnrm2:  4.89995E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.70999898272804E+02, -7.33056529043097E-05 ]
+     Alpha                             :  2.09E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.99E-02
+     nstep                             :  24
+     P                                 :  1.08E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  25
+     Geometry step                     :  25
+     FORCES norm(Ha/Bohr): { maxval:  1.42239E-01, fnrm2:  5.65896E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7099998484828E+02, -8.65754759900028E-05 ]
+     Alpha                             :  2.07E-1
+     dt                                :  6.00E-2
+     vnrm                              :  2.18E-02
+     nstep                             :  25
+     P                                 :  1.34E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.21965E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  26
+     Geometry step                     :  26
+     FORCES norm(Ha/Bohr): { maxval:  1.56788E-01, fnrm2:  6.87782E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71000087321214E+02, -1.02472934003117E-04 ]
+     Alpha                             :  2.04E-1
+     dt                                :  6.00E-2
+     vnrm                              :  2.40E-02
+     nstep                             :  26
+     P                                 :  1.64E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  27
+     Geometry step                     :  27
+     FORCES norm(Ha/Bohr): { maxval:  1.74569E-01, fnrm2:  8.47336E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71000209567236E+02, -1.22246021760475E-04 ]
+     Alpha                             :  2.02E-1
+     dt                                :  6.00E-2
+     vnrm                              :  2.64E-02
+     nstep                             :  27
+     P                                 :  1.96E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  28
+     Geometry step                     :  28
+     FORCES norm(Ha/Bohr): { maxval:  1.91571E-01, fnrm2:  1.02206E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71000357792688E+02, -1.48225452647921E-04 ]
+     Alpha                             :  2.00E-1
+     dt                                :  6.00E-2
+     vnrm                              :  2.90E-02
+     nstep                             :  28
+     P                                 :  2.34E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  29
+     Geometry step                     :  29
+     FORCES norm(Ha/Bohr): { maxval:  2.07286E-01, fnrm2:  1.19648E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71000537795786E+02, -1.80003097568715E-04 ]
+     Alpha                             :  1.98E-1
+     dt                                :  6.00E-2
+     vnrm                              :  3.19E-02
+     nstep                             :  29
+     P                                 :  2.80E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  30
+     Geometry step                     :  30
+     FORCES norm(Ha/Bohr): { maxval:  2.21951E-01, fnrm2:  1.38220E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71000756505376E+02, -2.18709590427579E-04 ]
+     Alpha                             :  1.96E-1
+     dt                                :  6.00E-2
+     vnrm                              :  3.50E-02
+     nstep                             :  30
+     P                                 :  3.41E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  31
+     Geometry step                     :  31
+     FORCES norm(Ha/Bohr): { maxval:  2.39574E-01, fnrm2:  1.61067E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71001019579641E+02, -2.63074264552188E-04 ]
+     Alpha                             :  1.94E-1
+     dt                                :  6.00E-2
+     vnrm                              :  3.86E-02
+     nstep                             :  31
+     P                                 :  4.17E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  32
+     Geometry step                     :  32
+     FORCES norm(Ha/Bohr): { maxval:  2.60490E-01, fnrm2:  1.91437E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7100133659381E+02, -3.17014168786045E-04 ]
+     Alpha                             :  1.93E-1
+     dt                                :  6.00E-2
+     vnrm                              :  4.25E-02
+     nstep                             :  32
+     P                                 :  5.10E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  33
+     Geometry step                     :  33
+     FORCES norm(Ha/Bohr): { maxval:  2.86452E-01, fnrm2:  2.30461E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7100171770525E+02, -3.81111440447057E-04 ]
+     Alpha                             :  1.91E-1
+     dt                                :  6.00E-2
+     vnrm                              :  4.69E-02
+     nstep                             :  33
+     P                                 :  6.19E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 6.66134E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  34
+     Geometry step                     :  34
+     FORCES norm(Ha/Bohr): { maxval:  3.13578E-01, fnrm2:  2.77475E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71002180202591E+02, -4.62497340890877E-04 ]
+     Alpha                             :  1.89E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.17E-02
+     nstep                             :  34
+     P                                 :  7.50E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  35
+     Geometry step                     :  35
+     FORCES norm(Ha/Bohr): { maxval:  3.43129E-01, fnrm2:  3.30941E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71002740513448E+02, -5.60310857338209E-04 ]
+     Alpha                             :  1.87E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.70E-02
+     nstep                             :  35
+     P                                 :  9.08E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  36
+     Geometry step                     :  36
+     FORCES norm(Ha/Bohr): { maxval:  3.71766E-01, fnrm2:  3.91698E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7100342390038E+02, -6.83386931456198E-04 ]
+     Alpha                             :  1.85E-1
+     dt                                :  6.00E-2
+     vnrm                              :  6.29E-02
+     nstep                             :  36
+     P                                 :  1.11E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  37
+     Geometry step                     :  37
+     FORCES norm(Ha/Bohr): { maxval:  4.04918E-01, fnrm2:  4.63012E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71004251473587E+02, -8.27573207686783E-04 ]
+     Alpha                             :  1.83E-1
+     dt                                :  6.00E-2
+     vnrm                              :  6.94E-02
+     nstep                             :  37
+     P                                 :  1.35E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  38
+     Geometry step                     :  38
+     FORCES norm(Ha/Bohr): { maxval:  4.39587E-01, fnrm2:  5.50733E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71005259119109E+02, -1.00764552195187E-03 ]
+     Alpha                             :  1.81E-1
+     dt                                :  6.00E-2
+     vnrm                              :  7.67E-02
+     nstep                             :  38
+     P                                 :  1.65E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  39
+     Geometry step                     :  39
+     FORCES norm(Ha/Bohr): { maxval:  4.82434E-01, fnrm2:  6.59123E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71006477926631E+02, -1.21880752189440E-03 ]
+     Alpha                             :  1.79E-1
+     dt                                :  6.00E-2
+     vnrm                              :  8.47E-02
+     nstep                             :  39
+     P                                 :  2.01E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  40
+     Geometry step                     :  40
+     FORCES norm(Ha/Bohr): { maxval:  5.26312E-01, fnrm2:  7.91935E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71007964979144E+02, -1.48705251314141E-03 ]
+     Alpha                             :  1.78E-1
+     dt                                :  6.00E-2
+     vnrm                              :  9.37E-02
+     nstep                             :  40
+     P                                 :  2.46E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  41
+     Geometry step                     :  41
+     FORCES norm(Ha/Bohr): { maxval:  5.78623E-01, fnrm2:  9.49573E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71009767988341E+02, -1.80300919683418E-03 ]
+     Alpha                             :  1.76E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.04E-01
+     nstep                             :  41
+     P                                 :  2.99E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  42
+     Geometry step                     :  42
+     FORCES norm(Ha/Bohr): { maxval:  6.29058E-01, fnrm2:  1.13591E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71011974761677E+02, -2.20677333547314E-03 ]
+     Alpha                             :  1.74E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.14E-01
+     nstep                             :  42
+     P                                 :  3.65E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  43
+     Geometry step                     :  43
+     FORCES norm(Ha/Bohr): { maxval:  6.90186E-01, fnrm2:  1.35507E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71014651241484E+02, -2.67647980689389E-03 ]
+     Alpha                             :  1.72E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.27E-01
+     nstep                             :  43
+     P                                 :  4.46E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.77316E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  44
+     Geometry step                     :  44
+     FORCES norm(Ha/Bohr): { maxval:  7.49043E-01, fnrm2:  1.61924E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71017927170297E+02, -3.27592881370720E-03 ]
+     Alpha                             :  1.71E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.40E-01
+     nstep                             :  44
+     P                                 :  5.45E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.42109E-13 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  45
+     Geometry step                     :  45
+     FORCES norm(Ha/Bohr): { maxval:  8.24052E-01, fnrm2:  1.93696E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71021892898346E+02, -3.96572804856987E-03 ]
+     Alpha                             :  1.69E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.55E-01
+     nstep                             :  45
+     P                                 :  6.65E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  46
+     Geometry step                     :  46
+     FORCES norm(Ha/Bohr): { maxval:  8.95394E-01, fnrm2:  2.32395E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71026744306015E+02, -4.85140766869563E-03 ]
+     Alpha                             :  1.67E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.71E-01
+     nstep                             :  46
+     P                                 :  8.11E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  47
+     Geometry step                     :  47
+     FORCES norm(Ha/Bohr): { maxval:  9.87156E-01, fnrm2:  2.78389E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71032605085745E+02, -5.86077973036936E-03 ]
+     Alpha                             :  1.66E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.89E-01
+     nstep                             :  47
+     P                                 :  9.86E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  48
+     Geometry step                     :  48
+     FORCES norm(Ha/Bohr): { maxval:  1.07045E+00, fnrm2:  3.33401E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71039767157318E+02, -7.16207157336157E-03 ]
+     Alpha                             :  1.64E-1
+     dt                                :  6.00E-2
+     vnrm                              :  2.09E-01
+     nstep                             :  48
+     P                                 :  1.20E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  49
+     Geometry step                     :  49
+     FORCES norm(Ha/Bohr): { maxval:  1.17881E+00, fnrm2:  3.97547E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71048381024984E+02, -8.61386766555938E-03 ]
+     Alpha                             :  1.62E-1
+     dt                                :  6.00E-2
+     vnrm                              :  2.31E-01
+     nstep                             :  49
+     P                                 :  1.45E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  50
+     Geometry step                     :  50
+     FORCES norm(Ha/Bohr): { maxval:  1.27404E+00, fnrm2:  4.73823E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71058858878551E+02, -1.04778535668117E-02 ]
+     Alpha                             :  1.61E-1
+     dt                                :  6.00E-2
+     vnrm                              :  2.55E-01
+     nstep                             :  50
+     P                                 :  1.75E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  51
+     Geometry step                     :  51
+     FORCES norm(Ha/Bohr): { maxval:  1.40110E+00, fnrm2:  5.62068E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71071345027673E+02, -1.24861491220827E-02 ]
+     Alpha                             :  1.59E-1
+     dt                                :  6.00E-2
+     vnrm                              :  2.81E-01
+     nstep                             :  51
+     P                                 :  2.09E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  52
+     Geometry step                     :  52
+     FORCES norm(Ha/Bohr): { maxval:  1.51075E+00, fnrm2:  6.66511E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7108638296087E+02, -1.50379331975614E-02 ]
+     Alpha                             :  1.57E-1
+     dt                                :  6.00E-2
+     vnrm                              :  3.09E-01
+     nstep                             :  52
+     P                                 :  2.48E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.44089E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  53
+     Geometry step                     :  53
+     FORCES norm(Ha/Bohr): { maxval:  1.65571E+00, fnrm2:  7.84083E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71104020440738E+02, -1.76374798678012E-02 ]
+     Alpha                             :  1.56E-1
+     dt                                :  6.00E-2
+     vnrm                              :  3.38E-01
+     nstep                             :  53
+     P                                 :  2.91E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  54
+     Geometry step                     :  54
+     FORCES norm(Ha/Bohr): { maxval:  1.77868E+00, fnrm2:  9.19232E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71124886578541E+02, -2.08661378025568E-02 ]
+     Alpha                             :  1.54E-1
+     dt                                :  6.00E-2
+     vnrm                              :  3.69E-01
+     nstep                             :  54
+     P                                 :  3.38E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  55
+     Geometry step                     :  55
+     FORCES norm(Ha/Bohr): { maxval:  1.93050E+00, fnrm2:  1.06249E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71148717796098E+02, -2.38312175576425E-02 ]
+     Alpha                             :  1.53E-1
+     dt                                :  6.00E-2
+     vnrm                              :  4.01E-01
+     nstep                             :  55
+     P                                 :  3.83E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  56
+     Geometry step                     :  56
+     FORCES norm(Ha/Bohr): { maxval:  2.06167E+00, fnrm2:  1.21933E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71176073954053E+02, -2.73561579544435E-02 ]
+     Alpha                             :  1.51E-1
+     dt                                :  6.00E-2
+     vnrm                              :  4.32E-01
+     nstep                             :  56
+     P                                 :  4.26E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  57
+     Geometry step                     :  57
+     FORCES norm(Ha/Bohr): { maxval:  2.19793E+00, fnrm2:  1.37013E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71206080454418E+02, -3.00065003650047E-02 ]
+     Alpha                             :  1.50E-1
+     dt                                :  6.00E-2
+     vnrm                              :  4.63E-01
+     nstep                             :  57
+     P                                 :  4.61E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  58
+     Geometry step                     :  58
+     FORCES norm(Ha/Bohr): { maxval:  2.32748E+00, fnrm2:  1.52336E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71239119683941E+02, -3.30392295235242E-02 ]
+     Alpha                             :  1.48E-1
+     dt                                :  6.00E-2
+     vnrm                              :  4.91E-01
+     nstep                             :  58
+     P                                 :  4.87E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  59
+     Geometry step                     :  59
+     FORCES norm(Ha/Bohr): { maxval:  2.41554E+00, fnrm2:  1.64687E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71273719867108E+02, -3.46001831663614E-02 ]
+     Alpha                             :  1.47E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.16E-01
+     nstep                             :  59
+     P                                 :  5.01E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  60
+     Geometry step                     :  60
+     FORCES norm(Ha/Bohr): { maxval:  2.52090E+00, fnrm2:  1.75556E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71310451201438E+02, -3.67313343308240E-02 ]
+     Alpha                             :  1.45E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.38E-01
+     nstep                             :  60
+     P                                 :  5.08E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.44089E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  61
+     Geometry step                     :  61
+     FORCES norm(Ha/Bohr): { maxval:  2.54109E+00, fnrm2:  1.81784E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71347827264761E+02, -3.73760633223128E-02 ]
+     Alpha                             :  1.44E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.56E-01
+     nstep                             :  61
+     P                                 :  5.14E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  62
+     Geometry step                     :  62
+     FORCES norm(Ha/Bohr): { maxval:  2.61120E+00, fnrm2:  1.86669E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71386995611461E+02, -3.91683467007340E-02 ]
+     Alpha                             :  1.42E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.73E-01
+     nstep                             :  62
+     P                                 :  5.24E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  63
+     Geometry step                     :  63
+     FORCES norm(Ha/Bohr): { maxval:  2.59936E+00, fnrm2:  1.89127E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71426679177335E+02, -3.96835658731334E-02 ]
+     Alpha                             :  1.41E-1
+     dt                                :  6.00E-2
+     vnrm                              :  5.87E-01
+     nstep                             :  63
+     P                                 :  5.41E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  64
+     Geometry step                     :  64
+     FORCES norm(Ha/Bohr): { maxval:  2.67419E+00, fnrm2:  1.93802E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71468431295091E+02, -4.17521177568290E-02 ]
+     Alpha                             :  1.40E-1
+     dt                                :  6.00E-2
+     vnrm                              :  6.02E-01
+     nstep                             :  64
+     P                                 :  5.67E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  65
+     Geometry step                     :  65
+     FORCES norm(Ha/Bohr): { maxval:  2.67218E+00, fnrm2:  1.99003E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71511489603337E+02, -4.30583082459748E-02 ]
+     Alpha                             :  1.38E-1
+     dt                                :  6.00E-2
+     vnrm                              :  6.17E-01
+     nstep                             :  65
+     P                                 :  6.07E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.88498E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  66
+     Geometry step                     :  66
+     FORCES norm(Ha/Bohr): { maxval:  2.78335E+00, fnrm2:  2.07094E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7155835876037E+02, -4.68691570321198E-02 ]
+     Alpha                             :  1.37E-1
+     dt                                :  6.00E-2
+     vnrm                              :  6.36E-01
+     nstep                             :  66
+     P                                 :  6.68E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  67
+     Geometry step                     :  67
+     FORCES norm(Ha/Bohr): { maxval:  2.76812E+00, fnrm2:  2.16250E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71609039411583E+02, -5.06806512132698E-02 ]
+     Alpha                             :  1.35E-1
+     dt                                :  6.00E-2
+     vnrm                              :  6.58E-01
+     nstep                             :  67
+     P                                 :  7.56E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  68
+     Geometry step                     :  68
+     FORCES norm(Ha/Bohr): { maxval:  2.95191E+00, fnrm2:  2.28057E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71666689053217E+02, -5.76496416342138E-02 ]
+     Alpha                             :  1.34E-1
+     dt                                :  6.00E-2
+     vnrm                              :  6.87E-01
+     nstep                             :  68
+     P                                 :  8.71E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.77476E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  69
+     Geometry step                     :  69
+     FORCES norm(Ha/Bohr): { maxval:  2.89672E+00, fnrm2:  2.44244E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7173091547514E+02, -6.42264219225694E-02 ]
+     Alpha                             :  1.33E-1
+     dt                                :  6.00E-2
+     vnrm                              :  7.23E-01
+     nstep                             :  69
+     P                                 :  1.00E+00
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  70
+     Geometry step                     :  70
+     FORCES norm(Ha/Bohr): { maxval:  3.22687E+00, fnrm2:  2.64402E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71804530102455E+02, -7.36146273156635E-02 ]
+     Alpha                             :  1.31E-1
+     dt                                :  6.00E-2
+     vnrm                              :  7.64E-01
+     nstep                             :  70
+     P                                 :  1.14E+00
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.13687E-13 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  71
+     Geometry step                     :  71
+     FORCES norm(Ha/Bohr): { maxval:  3.10636E+00, fnrm2:  2.88415E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71885890448533E+02, -8.13603460773891E-02 ]
+     Alpha                             :  1.30E-1
+     dt                                :  6.00E-2
+     vnrm                              :  8.08E-01
+     nstep                             :  71
+     P                                 :  1.27E+00
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  72
+     Geometry step                     :  72
+     FORCES norm(Ha/Bohr): { maxval:  3.50164E+00, fnrm2:  3.10436E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.71976505263753E+02, -9.06148152207891E-02 ]
+     Alpha                             :  1.29E-1
+     dt                                :  6.00E-2
+     vnrm                              :  8.54E-01
+     nstep                             :  72
+     P                                 :  1.36E+00
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  73
+     Geometry step                     :  73
+     FORCES norm(Ha/Bohr): { maxval:  3.34565E+00, fnrm2:  3.30219E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72071266258407E+02, -9.47609946539671E-02 ]
+     Alpha                             :  1.27E-1
+     dt                                :  6.00E-2
+     vnrm                              :  8.96E-01
+     nstep                             :  73
+     P                                 :  1.39E+00
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.32907E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  74
+     Geometry step                     :  74
+     FORCES norm(Ha/Bohr): { maxval:  3.55664E+00, fnrm2:  3.54097E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72170732042317E+02, -9.94657839091815E-02 ]
+     Alpha                             :  1.26E-1
+     dt                                :  6.00E-2
+     vnrm                              :  9.32E-01
+     nstep                             :  74
+     P                                 :  1.44E+00
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  75
+     Geometry step                     :  75
+     FORCES norm(Ha/Bohr): { maxval:  3.43743E+00, fnrm2:  3.55554E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72278959814921E+02, -1.08227772604721E-01 ]
+     Alpha                             :  1.25E-1
+     dt                                :  6.00E-2
+     vnrm                              :  9.71E-01
+     nstep                             :  75
+     P                                 :  1.63E+00
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.13687E-13 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  76
+     Geometry step                     :  76
+     FORCES norm(Ha/Bohr): { maxval:  3.38910E+00, fnrm2:  3.36721E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72399732996795E+02, -1.20773181873858E-01 ]
+     Alpha                             :  1.24E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.02E+00
+     nstep                             :  76
+     P                                 :  1.76E+00
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.10862E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  77
+     Geometry step                     :  77
+     FORCES norm(Ha/Bohr): { maxval:  3.55761E+00, fnrm2:  3.40127E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72517174554308E+02, -1.17441557513359E-01 ]
+     Alpha                             :  1.22E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.05E+00
+     nstep                             :  77
+     P                                 :  1.64E+00
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  78
+     Geometry step                     :  78
+     FORCES norm(Ha/Bohr): { maxval:  3.70429E+00, fnrm2:  3.86903E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72621661546583E+02, -1.04486992274076E-01 ]
+     Alpha                             :  1.21E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.07E+00
+     nstep                             :  78
+     P                                 :  1.36E+00
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  79
+     Geometry step                     :  79
+     FORCES norm(Ha/Bohr): { maxval:  4.23935E+00, fnrm2:  4.04063E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72709347394948E+02, -8.76858483652541E-02 ]
+     Alpha                             :  1.20E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.06E+00
+     nstep                             :  79
+     P                                 :  9.50E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  80
+     Geometry step                     :  80
+     FORCES norm(Ha/Bohr): { maxval:  3.77424E+00, fnrm2:  3.70745E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72772695642317E+02, -6.33482473689071E-02 ]
+     Alpha                             :  1.19E-1
+     dt                                :  6.00E-2
+     vnrm                              :  1.02E+00
+     nstep                             :  80
+     P                                 :  3.01E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  81
+     Geometry step                     :  81
+     FORCES norm(Ha/Bohr): { maxval:  3.58726E+00, fnrm2:  3.16047E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72794856888199E+02, -2.21612458823870E-02 ]
+     Alpha                             :  1.18E-1
+     dt                                :  6.00E-2
+     vnrm                              :  9.33E-01
+     nstep                             :  81
+     P                                 : -4.56E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  82
+     Geometry step                     :  82
+     FORCES norm(Ha/Bohr): { maxval:  2.31161E+00, fnrm2:  1.64422E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72807014221125E+02, -1.21573329254261E-02 ]
+     Alpha                             :  2.50E-1
+     dt                                :  3.00E-2
+     vnrm                              :  1.45E-01
+     nstep                             :  1
+     P                                 :  5.83E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.44089E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  83
+     Geometry step                     :  83
+     FORCES norm(Ha/Bohr): { maxval:  9.17011E-01, fnrm2:  5.56883E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72821123067156E+02, -1.41088460314620E-02 ]
+     Alpha                             :  2.50E-1
+     dt                                :  3.00E-2
+     vnrm                              :  2.16E-01
+     nstep                             :  2
+     P                                 :  1.92E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  84
+     Geometry step                     :  84
+     FORCES norm(Ha/Bohr): { maxval:  2.08810E+00, fnrm2:  1.20236E+01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72827909287369E+02, -6.78622021314368E-03 ]
+     Alpha                             :  2.50E-1
+     dt                                :  3.00E-2
+     vnrm                              :  2.25E-01
+     nstep                             :  3
+     P                                 :  2.78E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.88498E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  85
+     Geometry step                     :  85
+     FORCES norm(Ha/Bohr): { maxval:  1.03347E+00, fnrm2:  4.60135E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72842780593467E+02, -1.48713060978025E-02 ]
+     Alpha                             :  2.50E-1
+     dt                                :  3.00E-2
+     vnrm                              :  2.58E-01
+     nstep                             :  4
+     P                                 :  4.77E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  86
+     Geometry step                     :  86
+     FORCES norm(Ha/Bohr): { maxval:  1.19982E+00, fnrm2:  4.27601E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72852382795009E+02, -9.60220154189528E-03 ]
+     Alpha                             :  2.50E-1
+     dt                                :  3.00E-2
+     vnrm                              :  2.87E-01
+     nstep                             :  5
+     P                                 :  1.40E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.66454E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  87
+     Geometry step                     :  87
+     FORCES norm(Ha/Bohr): { maxval:  1.13575E+00, fnrm2:  3.48889E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72860553691805E+02, -8.17089679611627E-03 ]
+     Alpha                             :  2.50E-1
+     dt                                :  3.00E-2
+     vnrm                              :  2.74E-01
+     nstep                             :  6
+     P                                 :  2.80E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  88
+     Geometry step                     :  88
+     FORCES norm(Ha/Bohr): { maxval:  8.61383E-01, fnrm2:  2.04904E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72867595914431E+02, -7.04222262629628E-03 ]
+     Alpha                             :  2.47E-1
+     dt                                :  3.30E-2
+     vnrm                              :  2.75E-01
+     nstep                             :  7
+     P                                 :  6.44E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  89
+     Geometry step                     :  89
+     FORCES norm(Ha/Bohr): { maxval:  5.31790E-01, fnrm2:  8.89488E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72872689671229E+02, -5.09375679735058E-03 ]
+     Alpha                             :  2.45E-1
+     dt                                :  3.63E-2
+     vnrm                              :  2.49E-01
+     nstep                             :  8
+     P                                 :  1.14E-01
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  90
+     Geometry step                     :  90
+     FORCES norm(Ha/Bohr): { maxval:  1.45369E+00, fnrm2:  4.16236E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72873168215751E+02, -4.78544522536595E-04 ]
+     Alpha                             :  2.43E-1
+     dt                                :  3.99E-2
+     vnrm                              :  2.29E-01
+     nstep                             :  9
+     P                                 : -5.41E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  91
+     Geometry step                     :  91
+     FORCES norm(Ha/Bohr): { maxval:  1.21823E+00, fnrm2:  2.97212E+00, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72873933265871E+02, -7.65050119753141E-04 ]
+     Alpha                             :  2.50E-1
+     dt                                :  2.00E-2
+     vnrm                              :  3.76E-02
+     nstep                             :  1
+     P                                 :  6.48E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.13687E-13 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  92
+     Geometry step                     :  92
+     FORCES norm(Ha/Bohr): { maxval:  5.87969E-01, fnrm2:  8.14230E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72875356428663E+02, -1.42316279232091E-03 ]
+     Alpha                             :  2.50E-1
+     dt                                :  2.00E-2
+     vnrm                              :  6.36E-02
+     nstep                             :  2
+     P                                 :  5.62E-02
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  93
+     Geometry step                     :  93
+     FORCES norm(Ha/Bohr): { maxval:  2.21933E-01, fnrm2:  2.35848E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72875883635951E+02, -5.27207287973397E-04 ]
+     Alpha                             :  2.50E-1
+     dt                                :  2.00E-2
+     vnrm                              :  7.08E-02
+     nstep                             :  3
+     P                                 : -9.53E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  94
+     Geometry step                     :  94
+     FORCES norm(Ha/Bohr): { maxval:  2.12867E-01, fnrm2:  2.27314E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72875895278793E+02, -1.16428414287384E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  9.98E-3
+     vnrm                              :  4.80E-03
+     nstep                             :  1
+     P                                 :  2.29E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  95
+     Geometry step                     :  95
+     FORCES norm(Ha/Bohr): { maxval:  1.86477E-01, fnrm2:  2.04227E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72875928541426E+02, -3.32626331385200E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  9.98E-3
+     vnrm                              :  9.44E-03
+     nstep                             :  2
+     P                                 :  4.26E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  96
+     Geometry step                     :  96
+     FORCES norm(Ha/Bohr): { maxval:  1.58626E-01, fnrm2:  1.73461E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7287597896977E+02, -5.04283446502996E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  9.98E-3
+     vnrm                              :  1.38E-02
+     nstep                             :  3
+     P                                 :  5.69E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  97
+     Geometry step                     :  97
+     FORCES norm(Ha/Bohr): { maxval:  1.55160E-01, fnrm2:  1.43840E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72876040876807E+02, -6.19070366099095E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  9.98E-3
+     vnrm                              :  1.77E-02
+     nstep                             :  4
+     P                                 :  6.56E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.10862E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  98
+     Geometry step                     :  98
+     FORCES norm(Ha/Bohr): { maxval:  1.50582E-01, fnrm2:  1.22426E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72876109483484E+02, -6.86066767059401E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  9.98E-3
+     vnrm                              :  2.11E-02
+     nstep                             :  5
+     P                                 :  7.05E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  99
+     Geometry step                     :  99
+     FORCES norm(Ha/Bohr): { maxval:  1.44836E-01, fnrm2:  1.10963E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72876182674088E+02, -7.31906039845853E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  9.98E-3
+     vnrm                              :  2.42E-02
+     nstep                             :  6
+     P                                 :  7.47E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  100
+     Geometry step                     :  100
+     FORCES norm(Ha/Bohr): { maxval:  1.37226E-01, fnrm2:  1.04878E-01, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72876269110532E+02, -8.64364445760657E-05 ]
+     Alpha                             :  2.47E-1
+     dt                                :  1.10E-2
+     vnrm                              :  2.72E-02
+     nstep                             :  7
+     P                                 :  8.09E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.32907E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  101
+     Geometry step                     :  101
+     FORCES norm(Ha/Bohr): { maxval:  1.27553E-01, fnrm2:  9.72265E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72876372937674E+02, -1.03827141401780E-04 ]
+     Alpha                             :  2.45E-1
+     dt                                :  1.21E-2
+     vnrm                              :  3.04E-02
+     nstep                             :  8
+     P                                 :  8.87E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  102
+     Geometry step                     :  102
+     FORCES norm(Ha/Bohr): { maxval:  1.15814E-01, fnrm2:  8.28782E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72876496442902E+02, -1.23505228685872E-04 ]
+     Alpha                             :  2.43E-1
+     dt                                :  1.33E-2
+     vnrm                              :  3.39E-02
+     nstep                             :  9
+     P                                 :  9.47E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  103
+     Geometry step                     :  103
+     FORCES norm(Ha/Bohr): { maxval:  1.02287E-01, fnrm2:  6.54895E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72876636533277E+02, -1.40090374628699E-04 ]
+     Alpha                             :  2.40E-1
+     dt                                :  1.46E-2
+     vnrm                              :  3.76E-02
+     nstep                             :  10
+     P                                 :  9.50E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.52651E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  104
+     Geometry step                     :  104
+     FORCES norm(Ha/Bohr): { maxval:  8.76487E-02, fnrm2:  5.31554E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72876786887369E+02, -1.50354092028238E-04 ]
+     Alpha                             :  2.38E-1
+     dt                                :  1.61E-2
+     vnrm                              :  4.13E-02
+     nstep                             :  11
+     P                                 :  9.07E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.13687E-13 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  105
+     Geometry step                     :  105
+     FORCES norm(Ha/Bohr): { maxval:  7.29127E-02, fnrm2:  4.31704E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72876944857247E+02, -1.57969878358699E-04 ]
+     Alpha                             :  2.35E-1
+     dt                                :  1.77E-2
+     vnrm                              :  4.47E-02
+     nstep                             :  12
+     P                                 :  8.60E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  106
+     Geometry step                     :  106
+     FORCES norm(Ha/Bohr): { maxval:  5.90110E-02, fnrm2:  3.02004E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877106928622E+02, -1.62071374660400E-04 ]
+     Alpha                             :  2.33E-1
+     dt                                :  1.95E-2
+     vnrm                              :  4.76E-02
+     nstep                             :  13
+     P                                 :  7.78E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  107
+     Geometry step                     :  107
+     FORCES norm(Ha/Bohr): { maxval:  4.73172E-02, fnrm2:  2.29766E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877262190576E+02, -1.55261953949548E-04 ]
+     Alpha                             :  2.31E-1
+     dt                                :  2.14E-2
+     vnrm                              :  5.03E-02
+     nstep                             :  14
+     P                                 :  6.54E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  108
+     Geometry step                     :  108
+     FORCES norm(Ha/Bohr): { maxval:  4.06924E-02, fnrm2:  1.53689E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877406698545E+02, -1.44507968940388E-04 ]
+     Alpha                             :  2.28E-1
+     dt                                :  2.35E-2
+     vnrm                              :  5.18E-02
+     nstep                             :  15
+     P                                 :  5.40E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  109
+     Geometry step                     :  109
+     FORCES norm(Ha/Bohr): { maxval:  3.74744E-02, fnrm2:  1.19744E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877532975502E+02, -1.26276957274740E-04 ]
+     Alpha                             :  2.26E-1
+     dt                                :  2.59E-2
+     vnrm                              :  5.28E-02
+     nstep                             :  16
+     P                                 :  4.08E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  110
+     Geometry step                     :  110
+     FORCES norm(Ha/Bohr): { maxval:  2.93744E-02, fnrm2:  7.54689E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877635920751E+02, -1.02945248301012E-04 ]
+     Alpha                             :  2.24E-1
+     dt                                :  2.85E-2
+     vnrm                              :  5.20E-02
+     nstep                             :  17
+     P                                 :  2.71E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.13687E-13 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  111
+     Geometry step                     :  111
+     FORCES norm(Ha/Bohr): { maxval:  4.19354E-02, fnrm2:  5.60985E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877702941987E+02, -6.70212369584533E-05 ]
+     Alpha                             :  2.22E-1
+     dt                                :  3.13E-2
+     vnrm                              :  4.96E-02
+     nstep                             :  18
+     P                                 :  1.14E-03
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.10783E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  112
+     Geometry step                     :  112
+     FORCES norm(Ha/Bohr): { maxval:  1.06922E-01, fnrm2:  2.22753E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877712034939E+02, -9.09295124529308E-06 ]
+     Alpha                             :  2.19E-1
+     dt                                :  3.45E-2
+     vnrm                              :  4.35E-02
+     nstep                             :  19
+     P                                 : -8.93E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  113
+     Geometry step                     :  113
+     FORCES norm(Ha/Bohr): { maxval:  9.39959E-02, fnrm2:  1.73992E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877715149189E+02, -3.11425066001902E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.72E-2
+     vnrm                              :  2.42E-03
+     nstep                             :  1
+     P                                 :  3.19E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 8.88178E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  114
+     Geometry step                     :  114
+     FORCES norm(Ha/Bohr): { maxval:  5.83863E-02, fnrm2:  7.21764E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877721773589E+02, -6.62439941834236E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.72E-2
+     vnrm                              :  4.28E-03
+     nstep                             :  2
+     P                                 :  3.62E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  115
+     Geometry step                     :  115
+     FORCES norm(Ha/Bohr): { maxval:  1.20129E-02, fnrm2:  9.93701E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877726279245E+02, -4.50565624987576E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.72E-2
+     vnrm                              :  5.18E-03
+     nstep                             :  3
+     P                                 :  1.07E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.10862E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  116
+     Geometry step                     :  116
+     FORCES norm(Ha/Bohr): { maxval:  3.45256E-02, fnrm2:  3.04256E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877726260865E+02,  1.83798647412914E-08 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.72E-2
+     vnrm                              :  4.85E-03
+     nstep                             :  4
+     P                                 : -1.06E-04
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  117
+     Geometry step                     :  117
+     FORCES norm(Ha/Bohr): { maxval:  3.34534E-02, fnrm2:  2.89952E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.7287772637244E+02, -1.11574649963586E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.62E-3
+     vnrm                              :  4.70E-04
+     nstep                             :  1
+     P                                 :  2.53E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.99680E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  118
+     Geometry step                     :  118
+     FORCES norm(Ha/Bohr): { maxval:  3.03041E-02, fnrm2:  2.50428E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877726686258E+02, -3.13818077302130E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.62E-3
+     vnrm                              :  9.17E-04
+     nstep                             :  2
+     P                                 :  4.59E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  119
+     Geometry step                     :  119
+     FORCES norm(Ha/Bohr): { maxval:  2.52886E-02, fnrm2:  1.95141E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877727144792E+02, -4.58534401559518E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.62E-3
+     vnrm                              :  1.32E-03
+     nstep                             :  3
+     P                                 :  5.82E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.55271E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  120
+     Geometry step                     :  120
+     FORCES norm(Ha/Bohr): { maxval:  1.87736E-02, fnrm2:  1.37331E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877727668814E+02, -5.24021771752814E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.62E-3
+     vnrm                              :  1.67E-03
+     nstep                             :  4
+     P                                 :  6.09E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  121
+     Geometry step                     :  121
+     FORCES norm(Ha/Bohr): { maxval:  1.13176E-02, fnrm2:  9.04892E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877728179931E+02, -5.11117320911580E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.62E-3
+     vnrm                              :  1.94E-03
+     nstep                             :  5
+     P                                 :  5.55E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.33227E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  122
+     Geometry step                     :  122
+     FORCES norm(Ha/Bohr): { maxval:  9.71123E-03, fnrm2:  6.38581E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877728627546E+02, -4.47614183940459E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.62E-3
+     vnrm                              :  2.14E-03
+     nstep                             :  6
+     P                                 :  4.65E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  123
+     Geometry step                     :  123
+     FORCES norm(Ha/Bohr): { maxval:  9.46697E-03, fnrm2:  5.76918E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877729047087E+02, -4.19541095197928E-07 ]
+     Alpha                             :  2.47E-1
+     dt                                :  9.48E-3
+     vnrm                              :  2.28E-03
+     nstep                             :  7
+     P                                 :  3.98E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  124
+     Geometry step                     :  124
+     FORCES norm(Ha/Bohr): { maxval:  9.09035E-03, fnrm2:  6.34772E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877729488366E+02, -4.41279070173550E-07 ]
+     Alpha                             :  2.45E-1
+     dt                                :  1.04E-2
+     vnrm                              :  2.36E-03
+     nstep                             :  8
+     P                                 :  4.15E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  125
+     Geometry step                     :  125
+     FORCES norm(Ha/Bohr): { maxval:  1.07149E-02, fnrm2:  6.41067E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877730034097E+02, -5.45731694501228E-07 ]
+     Alpha                             :  2.43E-1
+     dt                                :  1.15E-2
+     vnrm                              :  2.45E-03
+     nstep                             :  9
+     P                                 :  4.94E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  126
+     Geometry step                     :  126
+     FORCES norm(Ha/Bohr): { maxval:  8.71768E-03, fnrm2:  5.13640E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877730718388E+02, -6.84290910157870E-07 ]
+     Alpha                             :  2.40E-1
+     dt                                :  1.26E-2
+     vnrm                              :  2.63E-03
+     nstep                             :  10
+     P                                 :  5.52E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  127
+     Geometry step                     :  127
+     FORCES norm(Ha/Bohr): { maxval:  7.11851E-03, fnrm2:  3.44520E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877731484545E+02, -7.66156858844624E-07 ]
+     Alpha                             :  2.38E-1
+     dt                                :  1.39E-2
+     vnrm                              :  2.88E-03
+     nstep                             :  11
+     P                                 :  5.30E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  128
+     Geometry step                     :  128
+     FORCES norm(Ha/Bohr): { maxval:  6.41138E-03, fnrm2:  2.86710E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877732246063E+02, -7.61517298997205E-07 ]
+     Alpha                             :  2.35E-1
+     dt                                :  1.53E-2
+     vnrm                              :  3.12E-03
+     nstep                             :  12
+     P                                 :  4.63E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  129
+     Geometry step                     :  129
+     FORCES norm(Ha/Bohr): { maxval:  5.65614E-03, fnrm2:  2.64857E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877733021028E+02, -7.74965087657620E-07 ]
+     Alpha                             :  2.33E-1
+     dt                                :  1.68E-2
+     vnrm                              :  3.30E-03
+     nstep                             :  13
+     P                                 :  4.43E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.49800E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  130
+     Geometry step                     :  130
+     FORCES norm(Ha/Bohr): { maxval:  4.88875E-03, fnrm2:  1.52977E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877733833261E+02, -8.12233565739007E-07 ]
+     Alpha                             :  2.31E-1
+     dt                                :  1.85E-2
+     vnrm                              :  3.44E-03
+     nstep                             :  14
+     P                                 :  4.05E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  131
+     Geometry step                     :  131
+     FORCES norm(Ha/Bohr): { maxval:  4.23183E-03, fnrm2:  1.20255E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877734555983E+02, -7.22721551937866E-07 ]
+     Alpha                             :  2.28E-1
+     dt                                :  2.03E-2
+     vnrm                              :  3.61E-03
+     nstep                             :  15
+     P                                 :  2.99E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  132
+     Geometry step                     :  132
+     FORCES norm(Ha/Bohr): { maxval:  2.92455E-03, fnrm2:  6.78843E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877735189231E+02, -6.33248276926679E-07 ]
+     Alpha                             :  2.26E-1
+     dt                                :  2.23E-2
+     vnrm                              :  3.63E-03
+     nstep                             :  16
+     P                                 :  2.40E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  133
+     Geometry step                     :  133
+     FORCES norm(Ha/Bohr): { maxval:  4.51080E-03, fnrm2:  7.39124E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877735651745E+02, -4.62514350374477E-07 ]
+     Alpha                             :  2.24E-1
+     dt                                :  2.46E-2
+     vnrm                              :  3.63E-03
+     nstep                             :  17
+     P                                 :  1.24E-05
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  134
+     Geometry step                     :  134
+     FORCES norm(Ha/Bohr): { maxval:  1.77754E-03, fnrm2:  2.63393E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877735971865E+02, -3.20119283969689E-07 ]
+     Alpha                             :  2.22E-1
+     dt                                :  2.70E-2
+     vnrm                              :  3.33E-03
+     nstep                             :  18
+     P                                 :  6.43E-06
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  135
+     Geometry step                     :  135
+     FORCES norm(Ha/Bohr): { maxval:  1.54660E-03, fnrm2:  1.87356E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736143604E+02, -1.71739486631850E-07 ]
+     Alpha                             :  2.19E-1
+     dt                                :  2.97E-2
+     vnrm                              :  3.00E-03
+     nstep                             :  19
+     P                                 :  2.65E-06
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  136
+     Geometry step                     :  136
+     FORCES norm(Ha/Bohr): { maxval:  3.64171E-03, fnrm2:  3.77311E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736209403E+02, -6.57992131891660E-08 ]
+     Alpha                             :  2.17E-1
+     dt                                :  3.27E-2
+     vnrm                              :  2.59E-03
+     nstep                             :  20
+     P                                 : -5.86E-07
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 4.21885E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  137
+     Geometry step                     :  137
+     FORCES norm(Ha/Bohr): { maxval:  3.25964E-03, fnrm2:  3.27590E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736214276E+02, -4.87273155158618E-09 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.64E-2
+     vnrm                              :  9.70E-05
+     nstep                             :  1
+     P                                 :  5.55E-07
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  138
+     Geometry step                     :  138
+     FORCES norm(Ha/Bohr): { maxval:  2.20220E-03, fnrm2:  2.18514E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736226386E+02, -1.21095808935934E-08 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.64E-2
+     vnrm                              :  1.81E-04
+     nstep                             :  2
+     P                                 :  8.36E-07
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 1.13687E-13 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  139
+     Geometry step                     :  139
+     FORCES norm(Ha/Bohr): { maxval:  1.15527E-03, fnrm2:  1.36595E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736240427E+02, -1.40414897487062E-08 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.64E-2
+     vnrm                              :  2.45E-04
+     nstep                             :  3
+     P                                 :  8.11E-07
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  140
+     Geometry step                     :  140
+     FORCES norm(Ha/Bohr): { maxval:  1.07637E-03, fnrm2:  1.27787E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736253505E+02, -1.30773685214081E-08 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.64E-2
+     vnrm                              :  2.90E-04
+     nstep                             :  4
+     P                                 :  7.57E-07
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  141
+     Geometry step                     :  141
+     FORCES norm(Ha/Bohr): { maxval:  1.26116E-03, fnrm2:  1.39743E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736267696E+02, -1.41918121698836E-08 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.64E-2
+     vnrm                              :  3.22E-04
+     nstep                             :  5
+     P                                 :  9.18E-07
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  142
+     Geometry step                     :  142
+     FORCES norm(Ha/Bohr): { maxval:  1.08463E-03, fnrm2:  1.15501E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736285029E+02, -1.73329794961319E-08 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.64E-2
+     vnrm                              :  3.59E-04
+     nstep                             :  6
+     P                                 :  1.11E-06
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.77316E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  143
+     Geometry step                     :  143
+     FORCES norm(Ha/Bohr): { maxval:  8.37060E-04, fnrm2:  7.27569E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736305408E+02, -2.03784793484374E-08 ]
+     Alpha                             :  2.47E-1
+     dt                                :  1.80E-2
+     vnrm                              :  4.06E-04
+     nstep                             :  7
+     P                                 :  1.09E-06
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.84217E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  144
+     Geometry step                     :  144
+     FORCES norm(Ha/Bohr): { maxval:  8.21478E-04, fnrm2:  6.25968E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736325659E+02, -2.02508942948043E-08 ]
+     Alpha                             :  2.45E-1
+     dt                                :  1.98E-2
+     vnrm                              :  4.53E-04
+     nstep                             :  8
+     P                                 :  9.45E-07
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 2.22045E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  145
+     Geometry step                     :  145
+     FORCES norm(Ha/Bohr): { maxval:  8.66782E-04, fnrm2:  4.74315E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736346543E+02, -2.08847836802306E-08 ]
+     Alpha                             :  2.43E-1
+     dt                                :  2.18E-2
+     vnrm                              :  4.84E-04
+     nstep                             :  9
+     P                                 :  9.11E-07
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 3.33067E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  146
+     Geometry step                     :  146
+     FORCES norm(Ha/Bohr): { maxval:  4.66377E-04, fnrm2:  2.34865E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736366422E+02, -1.98787404315226E-08 ]
+     Alpha                             :  2.40E-1
+     dt                                :  2.40E-2
+     vnrm                              :  5.12E-04
+     nstep                             :  10
+     P                                 :  6.86E-07
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.32907E-15 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  147
+     Geometry step                     :  147
+     FORCES norm(Ha/Bohr): { maxval:  4.78921E-04, fnrm2:  1.65806E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736382305E+02, -1.58825628204795E-08 ]
+     Alpha                             :  2.38E-1
+     dt                                :  2.63E-2
+     vnrm                              :  5.31E-04
+     nstep                             :  11
+     P                                 :  4.87E-07
+ - LENNARD_JONES_RUN_MODE: { #WARNING: State properties not identical! (difference: 5.68434E-14 ), broadcasting from 
+  #master node.
+ }
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  148
+     Geometry step                     :  148
+     FORCES norm(Ha/Bohr): { maxval:  8.36911E-04, fnrm2:  1.87466E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -1.72877736392591E+02, -1.02866124507273E-08 ]
+     Alpha                             :  2.35E-1
+     dt                                :  2.90E-2
+     vnrm                              :  5.22E-04
+     nstep                             :  12
+     P                                 :  1.79E-07
+   Iterations when FIRE converged      :  148
+   End of minimization using           : FIRE
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  497
+   Tot. No. of Deallocations           :  497
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  0.050
+     for the array                     : params
+     in the routine                    : input_keys_fill_all
+     Memory Peak of process            : 21.288 MB
+ Max No. of dictionaries used          :  3573 #( 887 still in use)
+ Number of dictionary folders allocated:  1
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - State properties not identical! (difference: 2.84217E-14 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.66454E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 4.66294E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 5.68434E-14 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.55351E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 8.52651E-14 ), broadcasting from master node.
+ - State properties not identical! (difference: 7.10543E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 3.33067E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.13687E-13 ), broadcasting from master node.
+ - State properties not identical! (difference: 3.55271E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 6.21725E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 7.32747E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.22045E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 3.21965E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 6.66134E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 5.77316E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.42109E-13 ), broadcasting from master node.
+ - State properties not identical! (difference: 4.44089E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 4.88498E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 3.77476E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 5.32907E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 3.10862E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 4.10783E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 8.88178E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 3.99680E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 1.33227E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 2.49800E-15 ), broadcasting from master node.
+ - State properties not identical! (difference: 4.21885E-15 ), broadcasting from master node.

@@ -95,8 +95,10 @@ subroutine  MPI_FINALIZE(ierr)
   ierr=0
 END SUBROUTINE MPI_FINALIZE
 
-subroutine MPI_BCAST()
+subroutine MPI_BCAST(buffer,n,mpitype,root,comm,ierr)
   implicit none
+  integer :: buffer,n,mpitype,root,comm,ierr
+  ierr=0
 END SUBROUTINE MPI_BCAST
 
 subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -330,6 +332,11 @@ subroutine mpi_info_free()
   implicit none
   stop 'MPIFAKE: mpi_info_free'
 END SUBROUTINE  MPI_INFO_FREE
+
+subroutine mpi_type_get_extent
+  implicit none
+  stop 'MPIFAKE: mpi_type_get_extent'
+END SUBROUTINE mpi_type_get_extent
 
 real(kind=8) function mpi_wtime()
   implicit none

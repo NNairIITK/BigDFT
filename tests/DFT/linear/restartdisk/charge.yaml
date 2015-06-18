@@ -1,0 +1,57 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   rmult: [5.0, 7.0]
+   qcharge: 1
+   gnrm_cv: accurate
+   itermax: 100
+   ncong: 5
+   idsx: 10
+   inputpsiid: linear
+   disablesym: Yes
+ perf:
+   ef_interpol_det: 0.10E-19
+   mixing_after_inputguess: 2
+   correction_co_contra: no
+   purification_quickreturn: no
+ lin_general:
+   nit: [1, 5]
+   rpnrm_cv: [9.9999999999999995E-008, 9.9999999999999994E-012]
+   conf_damping: 0.5
+   output_wf: 1
+   calc_dipole: Yes
+   calc_pulay: old
+   calculate_onsite_overlap: Yes
+   output_mat: 21
+ lin_basis:
+   nit: [0, 3]
+   idsx: [5, 0]
+   gnrm_cv: 4.0000000000000003E-005
+ lin_kernel:
+   nit: [4, 6]
+   rpnrm_cv: 1.0000000000000001E-009
+   fscale_foe: 5.0000000000000003E-002
+ lin_basis_params:
+   O:
+     ao_confinement: 4.0000000000000001E-002
+     confinement: [4.0000000000000001E-002, 0.0]
+     rloc: [6.0, 7.0]
+     rloc_kernel: 6.0
+     rloc_kernel_foe: 20.0
+   H:
+     nbasis: 1
+     ao_confinement: 4.0000000000000001E-002
+     confinement: [4.0000000000000001E-002, 0.0]
+     rloc: [6.0, 7.0]
+     rloc_kernel: 6.0
+     rloc_kernel_foe: 20.0
+ posinp:
+   positions:
+   - O: [2.065621065394574, 0.7276197830051158, 0.7650374978227975]
+   - H: [0.2609031030233364, 0.4497236554241762, 0.5729218373685834]
+   - H: [2.217505931689284, 2.044733573632779, 2.030559672968256]
+   properties:
+     format: xyz
+     source: charge
+   energy (Ha): -17.17977402367096

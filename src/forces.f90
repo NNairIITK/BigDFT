@@ -33,11 +33,15 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
   type(DFT_wavefunction),intent(inout) :: tmb
   !local variables
+  logical, parameter :: calculate_strten=.true. !temporary
   integer :: iat,i,j
   real(gp) :: charge,ucvol,maxdiff
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
+  !real(gp), dimension(3,atoms%astruct%nat) :: fxyz_tmp
+
+  call f_routine(id='calculate_forces')
 
   call f_zero(strten)
   call f_zero(strtens)
@@ -57,34 +61,46 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !for a taksgroup Poisson Solver, multiply by the ratio.
   !it is important that the forces are bitwise identical among the processors.
   if (psolver_groupsize < nproc) call vscal(3*atoms%astruct%nat,real(psolver_groupsize,gp)/real(nproc,gp),fxyz(1,1),1)
-  
+
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
- 
+
   if (imode==0) then
-      !cubic version of nonlocal forces
-      call nonlocal_forces(Glr,hx,hy,hz,atoms,rxyz,&
-           orbs,nlpsp,Glr%wfd,psi,fxyz,refill_proj,strtens(1,2))
+     !cubic version of nonlocal forces
+     call nonlocal_forces(Glr,hx,hy,hz,atoms,rxyz,&
+          orbs,nlpsp,Glr%wfd,psi,fxyz,refill_proj,&
+          calculate_strten .and. (atoms%astruct%geocode == 'P'),strtens(1,2))
   else if (imode==1) then
-      !linear version of nonlocal forces
-      call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
-           tmb%orbs,nlpsp,tmb%lzd,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
-           strtens(1,2))
-      !!do iat=1,atoms%astruct%nat
-      !!    write(4200+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
-      !!end do
+     !linear version of nonlocal forces
+     !fxyz_tmp = fxyz
+     call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
+          tmb%orbs,nlpsp,tmb%lzd,tmb%psi,tmb%linmat%l,tmb%linmat%kernel_,fxyz,refill_proj,&
+          calculate_strten .and. (atoms%astruct%geocode == 'P'),strtens(1,2))
+     !fxyz_tmp = fxyz - fxyz_tmp
+     !do iat=1,atoms%astruct%nat
+     !    write(1000+iproc,'(a,2i8,3es15.6)') 'iproc, iat, fxyz(:,iat)', iproc, iat, fxyz(:,iat)
+     !end do
   else
-      stop 'wrong imode'
+     stop 'wrong imode'
   end if
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   !if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
-   if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpsp%nprojel > 0))
+  if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpsp%nprojel > 0))
 
-  if (atoms%astruct%geocode == 'P' .and. psolver_groupsize == nproc) then
-     call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
+  !LG: can we relax the constraint for psolver taskgroups in the case of stress tensors?
+  if (atoms%astruct%geocode == 'P' .and. psolver_groupsize == nproc .and. calculate_strten) then
+     if (imode==0) then
+        ! Otherwise psi is not available
+        call local_hamiltonian_stress(orbs,Glr,hx,hy,hz,psi,strtens(1,3))
+     else
+        call local_hamiltonian_stress_linear(iproc, nproc, tmb%orbs, tmb%ham_descr%lzd, &
+             tmb%lzd%hgrids(1), tmb%lzd%hgrids(2), tmb%lzd%hgrids(3), tmb%ham_descr%npsidim_orbs, &
+             tmb%ham_descr%psi, &!tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, &
+             tmb%ham_descr%collcom, tmb%linmat%m, tmb%linmat%ham_, tmb%linmat%l, tmb%linmat%kernel_, strtens(1,3))
+     end if
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
-          iproc,nproc,ngatherarr,rho,strtens(1,4)) !shouud not be reduced for the moment
+          iproc,nproc,ngatherarr,rho,strtens(1,4)) 
   end if
 
   !add to the forces the ionic and dispersion contribution
@@ -101,7 +117,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      !!end do
   else
      if (iproc==0) then
-        call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+        !call vcopy(3*atoms%astruct%nat,fion(1,1),1,fxyz(1,1),1)
+        call f_memcpy(src=fion,dest=fxyz)
      else
         call f_zero(fxyz)
      end if
@@ -109,94 +126,79 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
 
   ! Add up all the force contributions
   if (nproc > 1) then
-     !TD: fxyz(1,1) not used in case of no atoms
-     !if (atoms%astruct%nat>0) then
-     call mpiallred(fxyz,MPI_SUM,bigdft_mpi%mpi_comm)
-     !end if
-     if (atoms%astruct%geocode == 'P') &
-         call mpiallred(strtens(1,1),6*3,MPI_SUM,bigdft_mpi%mpi_comm) !do not reduce erfstr
-     call mpiallred(charge,1,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(sendbuf=fxyz,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     if (atoms%astruct%geocode == 'P' .and. calculate_strten) &
+          call mpiallred(strtens,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     call mpiallred(charge,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
   !!do iat=1,atoms%astruct%nat
   !!    write(4400+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
-  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
-  if (atoms%astruct%inputfile_format=='int') then
-      if (iproc==0) call yaml_map('cleaning using internal coordinates','Yes')
-      !if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
-      !if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
-      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
-      !if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
-  end if
-  ! @ ##############################################################
-
+!!$  ! @ NEW: POSSIBLE CONSTRAINTS IN INTERNAL COORDINATES ############
+!!$  if (atoms%astruct%inputfile_format=='int') then
+!!$      if (iproc==0) call yaml_map('Cleaning using internal coordinates','Yes')
+!!$      !if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+!!$      !if (bigdft_mpi%iproc==0) call yaml_map('BEFORE: MAX COMPONENT',maxval(fxyz))
+!!$      call internal_forces(atoms%astruct%nat, rxyz, atoms%astruct%ixyz_int, atoms%astruct%ifrztyp, fxyz)
+!!$      !if (bigdft_mpi%iproc==0) call yaml_map('AFTER: MAX COMPONENT',maxval(fxyz))
+!!$  end if
+!!$  ! @ ##############################################################
 
   !clean the center mass shift and the torque in isolated directions
-  call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
+  !no need to do it twice
+  !call clean_forces(iproc,atoms,rxyz,fxyz,fnoise)
   !!do iat=1,atoms%astruct%nat
   !!    write(4500+iproc,'(a,i8,3es15.6)') 'iat, fxyz(:,iat)', iat, fxyz(:,iat)
   !!end do
 
+!!$  ! Apply symmetries when needed
+!!$  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms%astruct)
 
-  ! Apply symmetries when needed
-  if (atoms%astruct%sym%symObj >= 0) call symmetrise_forces(fxyz,atoms)
+  !if (iproc == 0) call write_forces(atoms%astruct,fxyz)
 
-  ! Check forces consistency.
-  if (bigdft_mpi%nproc >1) then
-     call mpibcast(fxyz,comm=bigdft_mpi%mpi_comm,maxdiff=maxdiff)
-     !maxdiff=mpimaxdiff(fxyz,comm=bigdft_mpi%mpi_comm)
-     !call check_array_consistency(maxdiff, nproc, fxyz, bigdft_mpi%mpi_comm)
-     if (iproc==0 .and. maxdiff > epsilon(1.0_gp)) &
-          call yaml_warning('Output forces were not identical! (broadcasted) '//&
-          '(difference:'//trim(yaml_toa(maxdiff))//' )')
+  if (calculate_strten) then
+     !volume element for local stress
+     strtens(:,1)=strtens(:,1)/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)
+     strtens(1:3,1)=strtens(1:3,1)+charge*psoffset&
+          /real(0.5_gp*hx*0.5_gp*hy*0.5_gp*hz,gp)**2.0_gp/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)**2.0_gp
   end if
-  if (iproc == 0) call write_forces(atoms,fxyz)
-
-  !volume element for local stress
-  strtens(:,1)=strtens(:,1)/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)
-  strtens(1:3,1)=strtens(1:3,1)+charge*psoffset&
-       /real(0.5_gp*hx*0.5_gp*hy*0.5_gp*hz,gp)**2.0_gp/real(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,dp)**2.0_gp
 
   if (atoms%astruct%geocode == 'P') then
-     ucvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3) !orthorombic cell
-     if (iproc==0) call yaml_mapping_open('Stress Tensor')
-     !sum and symmetrize results
-     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
-     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
-     if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,xcstr,ucvol,pressure,'XC')
-     do j=1,6
-        strten(j)=ewaldstr(j)+hstrten(j)+xcstr(j)
-     end do
-     messages(1)='PSP Short Range'
-     messages(2)='PSP Projectors'
-     messages(3)='Kinetic'
-     messages(4)='PSP Long Range'
-     !here we should add the pretty printings
-     do i=1,4
-        if (atoms%astruct%sym%symObj >= 0) call symm_stress(strtens(1,i),atoms%astruct%sym%symObj)
-        if (iproc==0 .and. verbose>2)&
-             call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
+     if (iproc==0) call yaml_map('Stress Tensor calculated',calculate_strten)
+     if (calculate_strten) then
+        ucvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3) !orthorombic cell
+        if (iproc==0) call yaml_mapping_open('Stress Tensor')
+        !sum and symmetrize results
+        if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
+        if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
+        if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,xcstr,ucvol,pressure,'XC')
         do j=1,6
-           strten(j)=strten(j)+strtens(j,i)
+           strten(j)=ewaldstr(j)+hstrten(j)+xcstr(j)
         end do
-     end do
-     !final result
-     pressure=(strten(1)+strten(2)+strten(3))/3.0_gp
-     if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
-     if (iproc==0) call yaml_mapping_close()
+        messages(1)='PSP Short Range'
+        messages(2)='PSP Projectors'
+        messages(3)='Kinetic'
+        messages(4)='PSP Long Range'
+        !here we should add the pretty printings
+        do i=1,4
+           if (atoms%astruct%sym%symObj >= 0) call symm_stress(strtens(1,i),atoms%astruct%sym%symObj)
+           if (iproc==0 .and. verbose>2)&
+                call write_strten_info(.false.,strtens(1,i),ucvol,pressure,trim(messages(i)))
+           do j=1,6
+              strten(j)=strten(j)+strtens(j,i)
+           end do
+        end do
+        !final result
+        pressure=(strten(1)+strten(2)+strten(3))/3.0_gp
+        if (iproc==0)call write_strten_info(.true.,strten,ucvol,pressure,'Total')
+        if (iproc==0) call yaml_mapping_close()
+     end if
   end if
-!!$  if (iproc == 0) then
-!!$     sumx=0.d0 ; sumy=0.d0 ; sumz=0.d0
-!!$     fumx=0.d0 ; fumy=0.d0 ; fumz=0.d0
-!!$     do iat=1,atoms%astruct%nat
-!!$        sumx=sumx+fxyz(1,iat) ; sumy=sumy+fxyz(2,iat) ; sumz=sumz+fxyz(3,iat)
-!!$        fumx=fumx+fion(1,iat) ; fumy=fumy+fion(2,iat) ; fumz=fumz+fion(3,iat)
-!!$     enddo
-!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force total pot ',sumx,sumy,sumz
-!!$     write(77,'(a30,3(1x,e10.3))') 'translat. force ionic pot ',fumx,fumy,fumz
-!!$  endif
+
+  call f_release_routine()
+
 end subroutine calculate_forces
 
 
@@ -220,6 +222,8 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   integer :: i1,i2,i3,j1,j2,j3
   real(gp) :: spinfac,rx,ry,rz,frcx,frcy,frcz,rloc,cutoff,x,y,z,r2
   real(gp) :: spherical_gaussian_value,drhoc,drhov,drhodr2
+
+  call f_routine(id='rhocore_forces')
 
   if (atoms%donlcc) then
      !if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate NLCC forces...'
@@ -339,6 +343,9 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
      if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate NLCC forces',.true.)
      !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   end if
+
+  call f_release_routine()
+
 end subroutine rhocore_forces
 
 
@@ -369,8 +376,10 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   !array of coefficients of the derivative
   real(kind=8), dimension(4) :: cprime 
 
+  call f_routine(id='local_forces')
+
   if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
-  
+
   locstrten=0.0_gp
 
   charge=0.d0
@@ -384,7 +393,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   enddo
   charge=charge*hxh*hyh*hzh
 
- !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
+  !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
   if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
   forceleaked=0.d0
 
@@ -449,7 +458,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      isx=floor((rx-cutoff)/hxh)
      isy=floor((ry-cutoff)/hyh)
      isz=floor((rz-cutoff)/hzh)
-     
+
      iex=ceiling((rx+cutoff)/hxh)
      iey=ceiling((ry+cutoff)/hyh)
      iez=ceiling((rz+cutoff)/hzh)
@@ -473,8 +482,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
                  if (at%multipole_preserving) then
                     !use multipole-preserving function
                     xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-                       mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-                       mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
+                         mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
+                         mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
                  else
                     xp=exp(-.5d0*arg)
                  end if
@@ -527,6 +536,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
      floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
 
+     !the stress tensor here does not add extra overhead therefore we calculate it nonetheless
      locstrten(1)=locstrten(1)+Txx/rloc/rloc
      locstrten(2)=locstrten(2)+Tyy/rloc/rloc
      locstrten(3)=locstrten(3)+Tzz/rloc/rloc
@@ -540,20 +550,22 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 
   end do !iat
 
-!write(*,*) 'iproc,charge:',iproc,charge
+  !write(*,*) 'iproc,charge:',iproc,charge
 
-!locstrten(1:3)=locstrten(1:3)+charge*psoffset/(hxh*hyh*hzh)/real(n1i*n2i*n3pi,kind=8)
+  !locstrten(1:3)=locstrten(1:3)+charge*psoffset/(hxh*hyh*hzh)/real(n1i*n2i*n3pi,kind=8)
 
   forceleaked=forceleaked*hxh*hyh*hzh
   !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
- !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
+  !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
   if (iproc == 0 .and. verbose > 1) then
      call yaml_map('Leaked force',trim(yaml_toa(forceleaked,fmt='(1pe12.5)')))
      call yaml_mapping_close()
   end if
 
   if (at%multipole_preserving) call finalize_real_space_conversion()
+
+  call f_release_routine()
 
 END SUBROUTINE local_forces
 
@@ -562,17 +574,17 @@ END SUBROUTINE local_forces
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpsp,wfd,psi,fsep,refill,strten)
+     orbs,nlpsp,wfd,psi,fsep,refill,calculate_strten,strten)
   use module_base
   use module_types
-  use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
+  use public_enums, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  logical, intent(in) :: refill
+  logical, intent(in) :: refill,calculate_strten
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors) :: lr
   type(orbitals_data), intent(in) :: orbs
@@ -582,7 +594,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
   real(gp), dimension(6), intent(out) :: strten
   !local variables--------------
   character(len=*), parameter :: subname='nonlocal_forces'
-  integer :: istart_c,iproj,iat,ityp,i,j,l,m
+  integer :: istart_c,iproj,iat,ityp,i,j,l,m,ndir
   integer :: mbseg_c,mbseg_f,jseg_c,jseg_f
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,strc,Enl,vol
@@ -595,17 +607,23 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 
   call f_routine(id=subname)
   call f_zero(strten) 
-  
+
   !quick return if no orbitals on this processor
   if (orbs%norbp == 0) return
-     
+
+
+  if (calculate_strten) then
+     ndir=9
+  else
+     ndir=3
+  end if
   !always put complex scalprod
   !also nspinor for the moment is the biggest as possible
 
   !  allocate(scalprod(2,0:3,7,3,4,at%astruct%nat,orbs%norbp*orbs%nspinor),stat=i_stat)
   ! need more components in scalprod to calculate terms like dp/dx*psi*x
   scalprod = &
-       f_malloc0([1.to.2,0.to.9,1.to.7,1.to.3,1.to.4,1.to.at%astruct%nat,1.to.orbs%norbp*orbs%nspinor],id='scalprod')
+       f_malloc0([1.to.2,0.to.ndir,1.to.7,1.to.3,1.to.4,1.to.at%astruct%nat,1.to.orbs%norbp*orbs%nspinor],id='scalprod')
   !if (2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor>0) then
   !    call to_zero(2*10*7*3*4*at%astruct%nat*orbs%norbp*orbs%nspinor,scalprod(1,0,1,1,1,1,1))
   !end if
@@ -672,7 +690,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
            jseg_c=1
            jseg_f=1
 
-           do idir=0,9
+           do idir=0,ndir
               ityp=at%astruct%iatype(iat)
               !calculate projectors
               istart_c=1
@@ -684,7 +702,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
               !!    write(850+iat,*) i_all, proj(i_all)
               !!end do
               !print '(a,i6,i6,1pe14.6)','iat,idir,sum(proj)',iat,idir,sum(nlpsp%proj)
- 
+
               !calculate the contribution for each orbital
               !here the nspinor contribution should be adjusted
               ! loop over all my orbitals
@@ -728,7 +746,7 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
 
   else
      !calculate all the scalar products for each direction and each orbitals
-     do idir=0,9
+     do idir=0,ndir
 
         if (idir /= 0) then !for the first run the projectors are already allocated
            call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
@@ -839,15 +857,15 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                                      at%psppar(l,i,ityp)*sp0*spi
                              end do
 
-Enl=Enl+sp0*sp0*at%psppar(l,i,ityp)*&
-orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                            do idir=4,9 !for stress
-strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-sab(idir-3)=&
-sab(idir-3)+&   
-at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
-orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                            end do
+                             Enl=Enl+sp0*sp0*at%psppar(l,i,ityp)*&
+                                  orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                             do idir=4,ndir !for stress
+                                strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
+                                sab(idir-3)=&
+                                     sab(idir-3)+&   
+                                     at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
+                                     orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                             end do
                           end do
                        end do
                     end if
@@ -855,8 +873,8 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
               end do
               !HGH case, offdiagonal terms
               if (at%npspcode(ityp) == PSPCODE_HGH .or. &
-                  at%npspcode(ityp) == PSPCODE_HGH_K .or. &
-                  at%npspcode(ityp) == PSPCODE_HGH_K_NLCC ) then
+                   at%npspcode(ityp) == PSPCODE_HGH_K .or. &
+                   at%npspcode(ityp) == PSPCODE_HGH_K_NLCC ) then
                  do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
                     do i=1,2
                        if (at%psppar(l,i,ityp) /= 0.0_gp) then 
@@ -882,11 +900,11 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                    end do
 
                                    Enl = Enl + 2.0_gp*sp0i*sp0j*hij*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                   do idir=4,9
+                                   do idir=4,ndir
                                       spi = real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                       spj = real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
                                       sab(idir-3) = sab(idir-3) + &   
-                                      2.0_gp*hij*(sp0j*spi+sp0i*spj)*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
+                                           2.0_gp*hij*(sp0j*spi+sp0i*spj)*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
                                    end do
                                 end do
                              end do
@@ -901,13 +919,15 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
         !orbital-dependent factor for the forces
         orbfac=orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)*2.0_gp
 
-        !seq: strten(1:6) =  11 22 33 23 13 12 
-        strten(1)=strten(1)+sab(1)/vol 
-        strten(2)=strten(2)+sab(2)/vol 
-        strten(3)=strten(3)+sab(3)/vol 
-        strten(4)=strten(4)+sab(5)/vol
-        strten(5)=strten(5)+sab(6)/vol
-        strten(6)=strten(6)+sab(4)/vol
+        if (calculate_strten) then
+           !seq: strten(1:6) =  11 22 33 23 13 12 
+           strten(1)=strten(1)+sab(1)/vol 
+           strten(2)=strten(2)+sab(2)/vol 
+           strten(3)=strten(3)+sab(3)/vol 
+           strten(4)=strten(4)+sab(5)/vol
+           strten(5)=strten(5)+sab(6)/vol
+           strten(6)=strten(6)+sab(4)/vol
+        end if
 
         do iat=1,at%astruct%nat
            fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
@@ -922,10 +942,12 @@ orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
   end do loop_kptF
 
 
-!Adding Enl to the diagonal components of strten after loop over kpts is finished...
-do i=1,3
-strten(i)=strten(i)+Enl/vol
-end do
+  if (calculate_strten) then
+     !Adding Enl to the diagonal components of strten after loop over kpts is finished...
+     do i=1,3
+        strten(i)=strten(i)+Enl/vol
+     end do
+  end if
 
 !!!  do iat=1,at%astruct%nat
 !!!     write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
@@ -935,7 +957,7 @@ end do
   call f_free(fxyz_orb)
   call f_free(scalprod)
 
-call f_release_routine()
+  call f_release_routine()
 
 END SUBROUTINE nonlocal_forces
 
@@ -949,2331 +971,2331 @@ subroutine calc_coeff_derproj(l,i,m,nterm_max,rhol,nterm_arr,lxyz_arr,fac_arr)
   integer, dimension(3,nterm_max,3), intent(out) :: lxyz_arr
   real(kind=8), dimension(nterm_max,3), intent(out) :: fac_arr
 
-if (l.eq.1 .and. i.eq.1 .and. m.eq.1) then
-   nterm_arr(1)=1
-   nterm_arr(2)=1
-   nterm_arr(3)=1
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   fac_arr(1,1)=-0.7071067811865475244008444d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   fac_arr(1,2)=-0.7071067811865475244008444d0/rhol**2d0
-   lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   fac_arr(1,3)=-0.7071067811865475244008444d0/rhol**2d0
-else if (l.eq.1 .and. i.eq.2 .and. m.eq.1) then
-   nterm_arr(1)=4
-   nterm_arr(2)=4
-   nterm_arr(3)=4
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
-   fac_arr(1,1)=0.730296743340221484609293d0
-   fac_arr(2,1)=-0.3651483716701107423046465d0/rhol**2d0
-   fac_arr(3,1)=-0.3651483716701107423046465d0/rhol**2d0
-   fac_arr(4,1)=-0.3651483716701107423046465d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
-   fac_arr(1,2)=0.730296743340221484609293d0
-   fac_arr(2,2)=-0.3651483716701107423046465d0/rhol**2d0
-   fac_arr(3,2)=-0.3651483716701107423046465d0/rhol**2d0
-   fac_arr(4,2)=-0.3651483716701107423046465d0/rhol**2d0
-   lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
-   fac_arr(1,3)=0.730296743340221484609293d0
-   fac_arr(2,3)=-0.3651483716701107423046465d0/rhol**2d0
-   fac_arr(3,3)=-0.3651483716701107423046465d0/rhol**2d0
-   fac_arr(4,3)=-0.3651483716701107423046465d0/rhol**2d0
-else if (l.eq.1 .and. i.eq.3 .and. m.eq.1) then
-   nterm_arr(1)=9
-   nterm_arr(2)=9
-   nterm_arr(3)=9
-   lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=2
-   lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=0
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=4 ; lxyz_arr(3,6,1)=0
-   lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=2
-   lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=2
-   lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=4
-   fac_arr(1,1)=0.3680349649825889161579343d0
-   fac_arr(2,1)=0.3680349649825889161579343d0
-   fac_arr(3,1)=0.3680349649825889161579343d0
-   fac_arr(4,1)=-0.09200874124564722903948358d0/rhol**2d0
-   fac_arr(5,1)=-0.1840174824912944580789672d0/rhol**2d0
-   fac_arr(6,1)=-0.09200874124564722903948358d0/rhol**2d0
-   fac_arr(7,1)=-0.1840174824912944580789672d0/rhol**2d0
-   fac_arr(8,1)=-0.1840174824912944580789672d0/rhol**2d0
-   fac_arr(9,1)=-0.09200874124564722903948358d0/rhol**2d0
-   lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
-   lxyz_arr(1,4,2)=4 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=0
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=0
-   lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=2
-   lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=2
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=4
-   fac_arr(1,2)=0.3680349649825889161579343d0
-   fac_arr(2,2)=0.3680349649825889161579343d0
-   fac_arr(3,2)=0.3680349649825889161579343d0
-   fac_arr(4,2)=-0.09200874124564722903948358d0/rhol**2d0
-   fac_arr(5,2)=-0.1840174824912944580789672d0/rhol**2d0
-   fac_arr(6,2)=-0.09200874124564722903948358d0/rhol**2d0
-   fac_arr(7,2)=-0.1840174824912944580789672d0/rhol**2d0
-   fac_arr(8,2)=-0.1840174824912944580789672d0/rhol**2d0
-   fac_arr(9,2)=-0.09200874124564722903948358d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
-   lxyz_arr(1,4,3)=4 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=2 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=3
-   lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=3
-   lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=5
-   fac_arr(1,3)=0.3680349649825889161579343d0
-   fac_arr(2,3)=0.3680349649825889161579343d0
-   fac_arr(3,3)=0.3680349649825889161579343d0
-   fac_arr(4,3)=-0.09200874124564722903948358d0/rhol**2d0
-   fac_arr(5,3)=-0.1840174824912944580789672d0/rhol**2d0
-   fac_arr(6,3)=-0.09200874124564722903948358d0/rhol**2d0
-   fac_arr(7,3)=-0.1840174824912944580789672d0/rhol**2d0
-   fac_arr(8,3)=-0.1840174824912944580789672d0/rhol**2d0
-   fac_arr(9,3)=-0.09200874124564722903948358d0/rhol**2d0
-else if (l.eq.2 .and. i.eq.1 .and. m.eq.1) then
-   nterm_arr(1)=2
-   nterm_arr(2)=1
-   nterm_arr(3)=1
-   lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=0
-   fac_arr(1,1)=1.d0
-   fac_arr(2,1)=-1.d0/rhol**2d0
-   lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   fac_arr(1,2)=-1.d0/rhol**2d0
-   lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   fac_arr(1,3)=-1.d0/rhol**2d0
-else if (l.eq.2 .and. i.eq.1 .and. m.eq.2) then
-   nterm_arr(1)=1
-   nterm_arr(2)=2
-   nterm_arr(3)=1
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   fac_arr(1,1)=-1.d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   fac_arr(1,2)=1.d0
-   fac_arr(2,2)=-1.d0/rhol**2d0
-   lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   fac_arr(1,3)=-1.d0/rhol**2d0
-else if (l.eq.2 .and. i.eq.1 .and. m.eq.3) then
-   nterm_arr(1)=1
-   nterm_arr(2)=1
-   nterm_arr(3)=2
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   fac_arr(1,1)=-1.d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   fac_arr(1,2)=-1.d0/rhol**2d0
-   lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=2
-   fac_arr(1,3)=1.d0
-   fac_arr(2,3)=-1.d0/rhol**2d0
-else if (l.eq.2 .and. i.eq.2 .and. m.eq.1) then
-   nterm_arr(1)=6
-   nterm_arr(2)=4
-   nterm_arr(3)=4
-   lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=2
-   lxyz_arr(1,4,1)=4 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=2 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=0
-   lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=2
-   fac_arr(1,1)=1.014185105674219893011542d0
-   fac_arr(2,1)=0.3380617018914066310038473d0
-   fac_arr(3,1)=0.3380617018914066310038473d0
-   fac_arr(4,1)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(5,1)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(6,1)=-0.3380617018914066310038473d0/rhol**2d0
-   lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=1 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
-   fac_arr(1,2)=0.6761234037828132620076947d0
-   fac_arr(2,2)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(3,2)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(4,2)=-0.3380617018914066310038473d0/rhol**2d0
-   lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=1 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
-   fac_arr(1,3)=0.6761234037828132620076947d0
-   fac_arr(2,3)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(3,3)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(4,3)=-0.3380617018914066310038473d0/rhol**2d0
-else if (l.eq.2 .and. i.eq.2 .and. m.eq.2) then
-   nterm_arr(1)=4
-   nterm_arr(2)=6
-   nterm_arr(3)=4
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
-   fac_arr(1,1)=0.6761234037828132620076947d0
-   fac_arr(2,1)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(3,1)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(4,1)=-0.3380617018914066310038473d0/rhol**2d0
-   lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=2
-   lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=2 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=4 ; lxyz_arr(3,5,2)=0
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=2
-   fac_arr(1,2)=0.3380617018914066310038473d0
-   fac_arr(2,2)=1.014185105674219893011542d0
-   fac_arr(3,2)=0.3380617018914066310038473d0
-   fac_arr(4,2)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(5,2)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(6,2)=-0.3380617018914066310038473d0/rhol**2d0
-   lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=3 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
-   fac_arr(1,3)=0.6761234037828132620076947d0
-   fac_arr(2,3)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(3,3)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(4,3)=-0.3380617018914066310038473d0/rhol**2d0
-else if (l.eq.2 .and. i.eq.2 .and. m.eq.3) then
-   nterm_arr(1)=4
-   nterm_arr(2)=4
-   nterm_arr(3)=6
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=1
-   lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
-   fac_arr(1,1)=0.6761234037828132620076947d0
-   fac_arr(2,1)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(3,1)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(4,1)=-0.3380617018914066310038473d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
-   fac_arr(1,2)=0.6761234037828132620076947d0
-   fac_arr(2,2)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(3,2)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(4,2)=-0.3380617018914066310038473d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
-   lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
-   fac_arr(1,3)=0.3380617018914066310038473d0
-   fac_arr(2,3)=0.3380617018914066310038473d0
-   fac_arr(3,3)=1.014185105674219893011542d0
-   fac_arr(4,3)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(5,3)=-0.3380617018914066310038473d0/rhol**2d0
-   fac_arr(6,3)=-0.3380617018914066310038473d0/rhol**2d0
-else if (l.eq.2 .and. i.eq.3 .and. m.eq.1) then
-   nterm_arr(1)=12
-   nterm_arr(2)=9
-   nterm_arr(3)=9
-   lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
-   lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=2
-   lxyz_arr(1,6,1)=0 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=4
-   lxyz_arr(1,7,1)=6 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=0
-   lxyz_arr(1,8,1)=4 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=0
-   lxyz_arr(1,9,1)=2 ; lxyz_arr(2,9,1)=4 ; lxyz_arr(3,9,1)=0
-   lxyz_arr(1,10,1)=4 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=2
-   lxyz_arr(1,11,1)=2 ; lxyz_arr(2,11,1)=2 ; lxyz_arr(3,11,1)=2
-   lxyz_arr(1,12,1)=2 ; lxyz_arr(2,12,1)=0 ; lxyz_arr(3,12,1)=4
-   fac_arr(1,1)=0.3397647942917503630913594d0
-   fac_arr(2,1)=0.4077177531501004357096312d0
-   fac_arr(3,1)=0.06795295885835007261827187d0
-   fac_arr(4,1)=0.4077177531501004357096312d0
-   fac_arr(5,1)=0.1359059177167001452365437d0
-   fac_arr(6,1)=0.06795295885835007261827187d0
-   fac_arr(7,1)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(8,1)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(9,1)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(10,1)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(11,1)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(12,1)=-0.06795295885835007261827187d0/rhol**2d0
-   lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
-   lxyz_arr(1,4,2)=5 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=3 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=0
-   lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=0
-   lxyz_arr(1,7,2)=3 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=2
-   lxyz_arr(1,8,2)=1 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=2
-   lxyz_arr(1,9,2)=1 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=4
-   fac_arr(1,2)=0.2718118354334002904730875d0
-   fac_arr(2,2)=0.2718118354334002904730875d0
-   fac_arr(3,2)=0.2718118354334002904730875d0
-   fac_arr(4,2)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(5,2)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(6,2)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(7,2)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(8,2)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(9,2)=-0.06795295885835007261827187d0/rhol**2d0
-   lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
-   lxyz_arr(1,4,3)=5 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=3 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=3 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=3
-   lxyz_arr(1,8,3)=1 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=3
-   lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=5
-   fac_arr(1,3)=0.2718118354334002904730875d0
-   fac_arr(2,3)=0.2718118354334002904730875d0
-   fac_arr(3,3)=0.2718118354334002904730875d0
-   fac_arr(4,3)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(5,3)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(6,3)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(7,3)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(8,3)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(9,3)=-0.06795295885835007261827187d0/rhol**2d0
-else if (l.eq.2 .and. i.eq.3 .and. m.eq.2) then
-   nterm_arr(1)=9
-   nterm_arr(2)=12
-   nterm_arr(3)=9
-   lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=2
-   lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=0
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=5 ; lxyz_arr(3,6,1)=0
-   lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=2
-   lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=2
-   lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=1 ; lxyz_arr(3,9,1)=4
-   fac_arr(1,1)=0.2718118354334002904730875d0
-   fac_arr(2,1)=0.2718118354334002904730875d0
-   fac_arr(3,1)=0.2718118354334002904730875d0
-   fac_arr(4,1)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(5,1)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(6,1)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(7,1)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(8,1)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(9,1)=-0.06795295885835007261827187d0/rhol**2d0
-   lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=2
-   lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=2
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=0 ; lxyz_arr(3,6,2)=4
-   lxyz_arr(1,7,2)=4 ; lxyz_arr(2,7,2)=2 ; lxyz_arr(3,7,2)=0
-   lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=4 ; lxyz_arr(3,8,2)=0
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=6 ; lxyz_arr(3,9,2)=0
-   lxyz_arr(1,10,2)=2 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=2
-   lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=2
-   lxyz_arr(1,12,2)=0 ; lxyz_arr(2,12,2)=2 ; lxyz_arr(3,12,2)=4
-   fac_arr(1,2)=0.06795295885835007261827187d0
-   fac_arr(2,2)=0.4077177531501004357096312d0
-   fac_arr(3,2)=0.3397647942917503630913594d0
-   fac_arr(4,2)=0.1359059177167001452365437d0
-   fac_arr(5,2)=0.4077177531501004357096312d0
-   fac_arr(6,2)=0.06795295885835007261827187d0
-   fac_arr(7,2)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(8,2)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(9,2)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(10,2)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(11,2)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(12,2)=-0.06795295885835007261827187d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=3
-   lxyz_arr(1,4,3)=4 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=2 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=5 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=3
-   lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=3
-   lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=1 ; lxyz_arr(3,9,3)=5
-   fac_arr(1,3)=0.2718118354334002904730875d0
-   fac_arr(2,3)=0.2718118354334002904730875d0
-   fac_arr(3,3)=0.2718118354334002904730875d0
-   fac_arr(4,3)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(5,3)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(6,3)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(7,3)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(8,3)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(9,3)=-0.06795295885835007261827187d0/rhol**2d0
-else if (l.eq.2 .and. i.eq.3 .and. m.eq.3) then
-   nterm_arr(1)=9
-   nterm_arr(2)=9
-   nterm_arr(3)=12
-   lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=3
-   lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=1
-   lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=1
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=4 ; lxyz_arr(3,6,1)=1
-   lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=3
-   lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=3
-   lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=5
-   fac_arr(1,1)=0.2718118354334002904730875d0
-   fac_arr(2,1)=0.2718118354334002904730875d0
-   fac_arr(3,1)=0.2718118354334002904730875d0
-   fac_arr(4,1)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(5,1)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(6,1)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(7,1)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(8,1)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(9,1)=-0.06795295885835007261827187d0/rhol**2d0
-   lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=3
-   lxyz_arr(1,4,2)=4 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=1
-   lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=1
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=1
-   lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=3
-   lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=3
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=5
-   fac_arr(1,2)=0.2718118354334002904730875d0
-   fac_arr(2,2)=0.2718118354334002904730875d0
-   fac_arr(3,2)=0.2718118354334002904730875d0
-   fac_arr(4,2)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(5,2)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(6,2)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(7,2)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(8,2)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(9,2)=-0.06795295885835007261827187d0/rhol**2d0
-   lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
-   lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
-   lxyz_arr(1,7,3)=4 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=2
-   lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=2
-   lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=4 ; lxyz_arr(3,9,3)=2
-   lxyz_arr(1,10,3)=2 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=4
-   lxyz_arr(1,11,3)=0 ; lxyz_arr(2,11,3)=2 ; lxyz_arr(3,11,3)=4
-   lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=0 ; lxyz_arr(3,12,3)=6
-   fac_arr(1,3)=0.06795295885835007261827187d0
-   fac_arr(2,3)=0.1359059177167001452365437d0
-   fac_arr(3,3)=0.06795295885835007261827187d0
-   fac_arr(4,3)=0.4077177531501004357096312d0
-   fac_arr(5,3)=0.4077177531501004357096312d0
-   fac_arr(6,3)=0.3397647942917503630913594d0
-   fac_arr(7,3)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(8,3)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(9,3)=-0.06795295885835007261827187d0/rhol**2d0
-   fac_arr(10,3)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(11,3)=-0.1359059177167001452365437d0/rhol**2d0
-   fac_arr(12,3)=-0.06795295885835007261827187d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.1 .and. m.eq.1) then
-   nterm_arr(1)=1
-   nterm_arr(2)=2
-   nterm_arr(3)=2
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
-   fac_arr(1,1)=-1.414213562373095048801689d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
-   fac_arr(1,2)=1.414213562373095048801689d0
-   fac_arr(2,2)=-1.414213562373095048801689d0/rhol**2d0
-   lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=2
-   fac_arr(1,3)=1.414213562373095048801689d0
-   fac_arr(2,3)=-1.414213562373095048801689d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.1 .and. m.eq.2) then
-   nterm_arr(1)=2
-   nterm_arr(2)=1
-   nterm_arr(3)=2
-   lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=1
-   fac_arr(1,1)=1.414213562373095048801689d0
-   fac_arr(2,1)=-1.414213562373095048801689d0/rhol**2d0
-   lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   fac_arr(1,2)=-1.414213562373095048801689d0/rhol**2d0
-   lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=2
-   fac_arr(1,3)=1.414213562373095048801689d0
-   fac_arr(2,3)=-1.414213562373095048801689d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.1 .and. m.eq.3) then
-   nterm_arr(1)=2
-   nterm_arr(2)=2
-   nterm_arr(3)=1
-   lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=0
-   fac_arr(1,1)=1.414213562373095048801689d0
-   fac_arr(2,1)=-1.414213562373095048801689d0/rhol**2d0
-   lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   fac_arr(1,2)=1.414213562373095048801689d0
-   fac_arr(2,2)=-1.414213562373095048801689d0/rhol**2d0
-   lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   fac_arr(1,3)=-1.414213562373095048801689d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.1 .and. m.eq.4) then
-   nterm_arr(1)=3
-   nterm_arr(2)=3
-   nterm_arr(3)=2
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=0
-   fac_arr(1,1)=1.414213562373095048801689d0
-   fac_arr(2,1)=-0.7071067811865475244008444d0/rhol**2d0
-   fac_arr(3,1)=0.7071067811865475244008444d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
-   fac_arr(1,2)=-1.414213562373095048801689d0
-   fac_arr(2,2)=-0.7071067811865475244008444d0/rhol**2d0
-   fac_arr(3,2)=0.7071067811865475244008444d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   fac_arr(1,3)=-0.7071067811865475244008444d0/rhol**2d0
-   fac_arr(2,3)=0.7071067811865475244008444d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.1 .and. m.eq.5) then
-   nterm_arr(1)=4
-   nterm_arr(2)=4
-   nterm_arr(3)=4
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
-   fac_arr(1,1)=-0.816496580927726032732428d0
-   fac_arr(2,1)=0.408248290463863016366214d0/rhol**2d0
-   fac_arr(3,1)=0.408248290463863016366214d0/rhol**2d0
-   fac_arr(4,1)=-0.816496580927726032732428d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
-   fac_arr(1,2)=-0.816496580927726032732428d0
-   fac_arr(2,2)=0.408248290463863016366214d0/rhol**2d0
-   fac_arr(3,2)=0.408248290463863016366214d0/rhol**2d0
-   fac_arr(4,2)=-0.816496580927726032732428d0/rhol**2d0
-   lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
-   fac_arr(1,3)=1.632993161855452065464856d0
-   fac_arr(2,3)=0.408248290463863016366214d0/rhol**2d0
-   fac_arr(3,3)=0.408248290463863016366214d0/rhol**2d0
-   fac_arr(4,3)=-0.816496580927726032732428d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.2 .and. m.eq.1) then
-   nterm_arr(1)=4
-   nterm_arr(2)=6
-   nterm_arr(3)=6
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=1
-   lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=3
-   fac_arr(1,1)=0.7126966450997983591588093d0
-   fac_arr(2,1)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(3,1)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(4,1)=-0.3563483225498991795794046d0/rhol**2d0
-   lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=3
-   lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=2 ; lxyz_arr(3,4,2)=1
-   lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=4 ; lxyz_arr(3,5,2)=1
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=3
-   fac_arr(1,2)=0.3563483225498991795794046d0
-   fac_arr(2,2)=1.069044967649697538738214d0
-   fac_arr(3,2)=0.3563483225498991795794046d0
-   fac_arr(4,2)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(5,2)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(6,2)=-0.3563483225498991795794046d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=2
-   lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=4
-   fac_arr(1,3)=0.3563483225498991795794046d0
-   fac_arr(2,3)=0.3563483225498991795794046d0
-   fac_arr(3,3)=1.069044967649697538738214d0
-   fac_arr(4,3)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(5,3)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(6,3)=-0.3563483225498991795794046d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.2 .and. m.eq.2) then
-   nterm_arr(1)=6
-   nterm_arr(2)=4
-   nterm_arr(3)=6
-   lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=3
-   lxyz_arr(1,4,1)=4 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=1
-   lxyz_arr(1,5,1)=2 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=1
-   lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=3
-   fac_arr(1,1)=1.069044967649697538738214d0
-   fac_arr(2,1)=0.3563483225498991795794046d0
-   fac_arr(3,1)=0.3563483225498991795794046d0
-   fac_arr(4,1)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(5,1)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(6,1)=-0.3563483225498991795794046d0/rhol**2d0
-   lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
-   lxyz_arr(1,4,2)=1 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
-   fac_arr(1,2)=0.7126966450997983591588093d0
-   fac_arr(2,2)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(3,2)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(4,2)=-0.3563483225498991795794046d0/rhol**2d0
-   lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
-   lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
-   fac_arr(1,3)=0.3563483225498991795794046d0
-   fac_arr(2,3)=0.3563483225498991795794046d0
-   fac_arr(3,3)=1.069044967649697538738214d0
-   fac_arr(4,3)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(5,3)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(6,3)=-0.3563483225498991795794046d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.2 .and. m.eq.3) then
-   nterm_arr(1)=6
-   nterm_arr(2)=6
-   nterm_arr(3)=4
-   lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=2
-   lxyz_arr(1,4,1)=4 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=2 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=0
-   lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=2
-   fac_arr(1,1)=1.069044967649697538738214d0
-   fac_arr(2,1)=0.3563483225498991795794046d0
-   fac_arr(3,1)=0.3563483225498991795794046d0
-   fac_arr(4,1)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(5,1)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(6,1)=-0.3563483225498991795794046d0/rhol**2d0
-   lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=2
-   lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=2 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=4 ; lxyz_arr(3,5,2)=0
-   lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=2
-   fac_arr(1,2)=0.3563483225498991795794046d0
-   fac_arr(2,2)=1.069044967649697538738214d0
-   fac_arr(3,2)=0.3563483225498991795794046d0
-   fac_arr(4,2)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(5,2)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(6,2)=-0.3563483225498991795794046d0/rhol**2d0
-   lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=3 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=1 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
-   fac_arr(1,3)=0.7126966450997983591588093d0
-   fac_arr(2,3)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(3,3)=-0.3563483225498991795794046d0/rhol**2d0
-   fac_arr(4,3)=-0.3563483225498991795794046d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.2 .and. m.eq.4) then
-   nterm_arr(1)=6
-   nterm_arr(2)=6
-   nterm_arr(3)=6
-   lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=2
-   lxyz_arr(1,3,1)=5 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=4 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=2
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=2
-   fac_arr(1,1)=0.7126966450997983591588093d0
-   fac_arr(2,1)=0.3563483225498991795794046d0
-   fac_arr(3,1)=-0.1781741612749495897897023d0/rhol**2d0
-   fac_arr(4,1)=0.1781741612749495897897023d0/rhol**2d0
-   fac_arr(5,1)=-0.1781741612749495897897023d0/rhol**2d0
-   fac_arr(6,1)=0.1781741612749495897897023d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=3 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=2
-   lxyz_arr(1,3,2)=4 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=5 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=1 ; lxyz_arr(3,5,2)=2
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=3 ; lxyz_arr(3,6,2)=2
-   fac_arr(1,2)=-0.7126966450997983591588093d0
-   fac_arr(2,2)=-0.3563483225498991795794046d0
-   fac_arr(3,2)=-0.1781741612749495897897023d0/rhol**2d0
-   fac_arr(4,2)=0.1781741612749495897897023d0/rhol**2d0
-   fac_arr(5,2)=-0.1781741612749495897897023d0/rhol**2d0
-   fac_arr(6,2)=0.1781741612749495897897023d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=4 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=4 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=2 ; lxyz_arr(2,5,3)=0 ; lxyz_arr(3,5,3)=3
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=2 ; lxyz_arr(3,6,3)=3
-   fac_arr(1,3)=0.3563483225498991795794046d0
-   fac_arr(2,3)=-0.3563483225498991795794046d0
-   fac_arr(3,3)=-0.1781741612749495897897023d0/rhol**2d0
-   fac_arr(4,3)=0.1781741612749495897897023d0/rhol**2d0
-   fac_arr(5,3)=-0.1781741612749495897897023d0/rhol**2d0
-   fac_arr(6,3)=0.1781741612749495897897023d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.2 .and. m.eq.5) then
-   nterm_arr(1)=9
-   nterm_arr(2)=9
-   nterm_arr(3)=9
-   lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=2
-   lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=0
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=4 ; lxyz_arr(3,6,1)=0
-   lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=2
-   lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=2
-   lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=4
-   fac_arr(1,1)=-0.4114755998989117606962519d0
-   fac_arr(2,1)=-0.4114755998989117606962519d0
-   fac_arr(3,1)=0.205737799949455880348126d0
-   fac_arr(4,1)=0.102868899974727940174063d0/rhol**2d0
-   fac_arr(5,1)=0.205737799949455880348126d0/rhol**2d0
-   fac_arr(6,1)=0.102868899974727940174063d0/rhol**2d0
-   fac_arr(7,1)=-0.102868899974727940174063d0/rhol**2d0
-   fac_arr(8,1)=-0.102868899974727940174063d0/rhol**2d0
-   fac_arr(9,1)=-0.205737799949455880348126d0/rhol**2d0
-   lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
-   lxyz_arr(1,4,2)=4 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=0
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=0
-   lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=2
-   lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=2
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=4
-   fac_arr(1,2)=-0.4114755998989117606962519d0
-   fac_arr(2,2)=-0.4114755998989117606962519d0
-   fac_arr(3,2)=0.205737799949455880348126d0
-   fac_arr(4,2)=0.102868899974727940174063d0/rhol**2d0
-   fac_arr(5,2)=0.205737799949455880348126d0/rhol**2d0
-   fac_arr(6,2)=0.102868899974727940174063d0/rhol**2d0
-   fac_arr(7,2)=-0.102868899974727940174063d0/rhol**2d0
-   fac_arr(8,2)=-0.102868899974727940174063d0/rhol**2d0
-   fac_arr(9,2)=-0.205737799949455880348126d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
-   lxyz_arr(1,4,3)=4 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=2 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=3
-   lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=3
-   lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=5
-   fac_arr(1,3)=0.205737799949455880348126d0
-   fac_arr(2,3)=0.205737799949455880348126d0
-   fac_arr(3,3)=0.8229511997978235213925038d0
-   fac_arr(4,3)=0.102868899974727940174063d0/rhol**2d0
-   fac_arr(5,3)=0.205737799949455880348126d0/rhol**2d0
-   fac_arr(6,3)=0.102868899974727940174063d0/rhol**2d0
-   fac_arr(7,3)=-0.102868899974727940174063d0/rhol**2d0
-   fac_arr(8,3)=-0.102868899974727940174063d0/rhol**2d0
-   fac_arr(9,3)=-0.205737799949455880348126d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.3 .and. m.eq.1) then
-   nterm_arr(1)=9
-   nterm_arr(2)=12
-   nterm_arr(3)=12
-   lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=3
-   lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=1
-   lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=1
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=5 ; lxyz_arr(3,6,1)=1
-   lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=3
-   lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=3
-   lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=1 ; lxyz_arr(3,9,1)=5
-   fac_arr(1,1)=0.2383947500094262395810797d0
-   fac_arr(2,1)=0.2383947500094262395810797d0
-   fac_arr(3,1)=0.2383947500094262395810797d0
-   fac_arr(4,1)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(5,1)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(6,1)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(7,1)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(8,1)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(9,1)=-0.05959868750235655989526993d0/rhol**2d0
-   lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=1
-   lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=3
-   lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=3
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=0 ; lxyz_arr(3,6,2)=5
-   lxyz_arr(1,7,2)=4 ; lxyz_arr(2,7,2)=2 ; lxyz_arr(3,7,2)=1
-   lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=4 ; lxyz_arr(3,8,2)=1
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=6 ; lxyz_arr(3,9,2)=1
-   lxyz_arr(1,10,2)=2 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=3
-   lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=3
-   lxyz_arr(1,12,2)=0 ; lxyz_arr(2,12,2)=2 ; lxyz_arr(3,12,2)=5
-   fac_arr(1,2)=0.05959868750235655989526993d0
-   fac_arr(2,2)=0.3575921250141393593716196d0
-   fac_arr(3,2)=0.2979934375117827994763496d0
-   fac_arr(4,2)=0.1191973750047131197905399d0
-   fac_arr(5,2)=0.3575921250141393593716196d0
-   fac_arr(6,2)=0.05959868750235655989526993d0
-   fac_arr(7,2)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(8,2)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(9,2)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(10,2)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(11,2)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(12,2)=-0.05959868750235655989526993d0/rhol**2d0
-   lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=0
-   lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=4
-   lxyz_arr(1,7,3)=4 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=2
-   lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=2
-   lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=5 ; lxyz_arr(3,9,3)=2
-   lxyz_arr(1,10,3)=2 ; lxyz_arr(2,10,3)=1 ; lxyz_arr(3,10,3)=4
-   lxyz_arr(1,11,3)=0 ; lxyz_arr(2,11,3)=3 ; lxyz_arr(3,11,3)=4
-   lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=1 ; lxyz_arr(3,12,3)=6
-   fac_arr(1,3)=0.05959868750235655989526993d0
-   fac_arr(2,3)=0.1191973750047131197905399d0
-   fac_arr(3,3)=0.05959868750235655989526993d0
-   fac_arr(4,3)=0.3575921250141393593716196d0
-   fac_arr(5,3)=0.3575921250141393593716196d0
-   fac_arr(6,3)=0.2979934375117827994763496d0
-   fac_arr(7,3)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(8,3)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(10,3)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(11,3)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(12,3)=-0.05959868750235655989526993d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.3 .and. m.eq.2) then
-   nterm_arr(1)=12
-   nterm_arr(2)=9
-   nterm_arr(3)=12
-   lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=1
-   lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
-   lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=3
-   lxyz_arr(1,6,1)=0 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=5
-   lxyz_arr(1,7,1)=6 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=1
-   lxyz_arr(1,8,1)=4 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=1
-   lxyz_arr(1,9,1)=2 ; lxyz_arr(2,9,1)=4 ; lxyz_arr(3,9,1)=1
-   lxyz_arr(1,10,1)=4 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=3
-   lxyz_arr(1,11,1)=2 ; lxyz_arr(2,11,1)=2 ; lxyz_arr(3,11,1)=3
-   lxyz_arr(1,12,1)=2 ; lxyz_arr(2,12,1)=0 ; lxyz_arr(3,12,1)=5
-   fac_arr(1,1)=0.2979934375117827994763496d0
-   fac_arr(2,1)=0.3575921250141393593716196d0
-   fac_arr(3,1)=0.05959868750235655989526993d0
-   fac_arr(4,1)=0.3575921250141393593716196d0
-   fac_arr(5,1)=0.1191973750047131197905399d0
-   fac_arr(6,1)=0.05959868750235655989526993d0
-   fac_arr(7,1)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(8,1)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(9,1)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(10,1)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(11,1)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(12,1)=-0.05959868750235655989526993d0/rhol**2d0
-   lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=3
-   lxyz_arr(1,4,2)=5 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=1
-   lxyz_arr(1,5,2)=3 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=1
-   lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=1
-   lxyz_arr(1,7,2)=3 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=3
-   lxyz_arr(1,8,2)=1 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=3
-   lxyz_arr(1,9,2)=1 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=5
-   fac_arr(1,2)=0.2383947500094262395810797d0
-   fac_arr(2,2)=0.2383947500094262395810797d0
-   fac_arr(3,2)=0.2383947500094262395810797d0
-   fac_arr(4,2)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(5,2)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(6,2)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(7,2)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(8,2)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(9,2)=-0.05959868750235655989526993d0/rhol**2d0
-   lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
-   lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
-   lxyz_arr(1,7,3)=5 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=2
-   lxyz_arr(1,8,3)=3 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=2
-   lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=4 ; lxyz_arr(3,9,3)=2
-   lxyz_arr(1,10,3)=3 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=4
-   lxyz_arr(1,11,3)=1 ; lxyz_arr(2,11,3)=2 ; lxyz_arr(3,11,3)=4
-   lxyz_arr(1,12,3)=1 ; lxyz_arr(2,12,3)=0 ; lxyz_arr(3,12,3)=6
-   fac_arr(1,3)=0.05959868750235655989526993d0
-   fac_arr(2,3)=0.1191973750047131197905399d0
-   fac_arr(3,3)=0.05959868750235655989526993d0
-   fac_arr(4,3)=0.3575921250141393593716196d0
-   fac_arr(5,3)=0.3575921250141393593716196d0
-   fac_arr(6,3)=0.2979934375117827994763496d0
-   fac_arr(7,3)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(8,3)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(10,3)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(11,3)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(12,3)=-0.05959868750235655989526993d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.3 .and. m.eq.3) then
-   nterm_arr(1)=12
-   nterm_arr(2)=12
-   nterm_arr(3)=9
-   lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=5 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
-   lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=2
-   lxyz_arr(1,6,1)=0 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=4
-   lxyz_arr(1,7,1)=6 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=0
-   lxyz_arr(1,8,1)=4 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=0
-   lxyz_arr(1,9,1)=2 ; lxyz_arr(2,9,1)=5 ; lxyz_arr(3,9,1)=0
-   lxyz_arr(1,10,1)=4 ; lxyz_arr(2,10,1)=1 ; lxyz_arr(3,10,1)=2
-   lxyz_arr(1,11,1)=2 ; lxyz_arr(2,11,1)=3 ; lxyz_arr(3,11,1)=2
-   lxyz_arr(1,12,1)=2 ; lxyz_arr(2,12,1)=1 ; lxyz_arr(3,12,1)=4
-   fac_arr(1,1)=0.2979934375117827994763496d0
-   fac_arr(2,1)=0.3575921250141393593716196d0
-   fac_arr(3,1)=0.05959868750235655989526993d0
-   fac_arr(4,1)=0.3575921250141393593716196d0
-   fac_arr(5,1)=0.1191973750047131197905399d0
-   fac_arr(6,1)=0.05959868750235655989526993d0
-   fac_arr(7,1)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(8,1)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(9,1)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(10,1)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(11,1)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(12,1)=-0.05959868750235655989526993d0/rhol**2d0
-   lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=2
-   lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=2
-   lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=0 ; lxyz_arr(3,6,2)=4
-   lxyz_arr(1,7,2)=5 ; lxyz_arr(2,7,2)=2 ; lxyz_arr(3,7,2)=0
-   lxyz_arr(1,8,2)=3 ; lxyz_arr(2,8,2)=4 ; lxyz_arr(3,8,2)=0
-   lxyz_arr(1,9,2)=1 ; lxyz_arr(2,9,2)=6 ; lxyz_arr(3,9,2)=0
-   lxyz_arr(1,10,2)=3 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=2
-   lxyz_arr(1,11,2)=1 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=2
-   lxyz_arr(1,12,2)=1 ; lxyz_arr(2,12,2)=2 ; lxyz_arr(3,12,2)=4
-   fac_arr(1,2)=0.05959868750235655989526993d0
-   fac_arr(2,2)=0.3575921250141393593716196d0
-   fac_arr(3,2)=0.2979934375117827994763496d0
-   fac_arr(4,2)=0.1191973750047131197905399d0
-   fac_arr(5,2)=0.3575921250141393593716196d0
-   fac_arr(6,2)=0.05959868750235655989526993d0
-   fac_arr(7,2)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(8,2)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(9,2)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(10,2)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(11,2)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(12,2)=-0.05959868750235655989526993d0/rhol**2d0
-   lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=3
-   lxyz_arr(1,4,3)=5 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=3 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=5 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=3 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=3
-   lxyz_arr(1,8,3)=1 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=3
-   lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=1 ; lxyz_arr(3,9,3)=5
-   fac_arr(1,3)=0.2383947500094262395810797d0
-   fac_arr(2,3)=0.2383947500094262395810797d0
-   fac_arr(3,3)=0.2383947500094262395810797d0
-   fac_arr(4,3)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(5,3)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(6,3)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(7,3)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(8,3)=-0.1191973750047131197905399d0/rhol**2d0
-   fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.3 .and. m.eq.4) then
-   nterm_arr(1)=13
-   nterm_arr(2)=13
-   nterm_arr(3)=12
-   lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=3 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
-   lxyz_arr(1,5,1)=1 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=4
-   lxyz_arr(1,6,1)=7 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=0
-   lxyz_arr(1,7,1)=5 ; lxyz_arr(2,7,1)=2 ; lxyz_arr(3,7,1)=0
-   lxyz_arr(1,8,1)=3 ; lxyz_arr(2,8,1)=4 ; lxyz_arr(3,8,1)=0
-   lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=6 ; lxyz_arr(3,9,1)=0
-   lxyz_arr(1,10,1)=5 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=2
-   lxyz_arr(1,11,1)=1 ; lxyz_arr(2,11,1)=4 ; lxyz_arr(3,11,1)=2
-   lxyz_arr(1,12,1)=3 ; lxyz_arr(2,12,1)=0 ; lxyz_arr(3,12,1)=4
-   lxyz_arr(1,13,1)=1 ; lxyz_arr(2,13,1)=2 ; lxyz_arr(3,13,1)=4
-   fac_arr(1,1)=0.1787960625070696796858098d0
-   fac_arr(2,1)=0.1191973750047131197905399d0
-   fac_arr(3,1)=-0.05959868750235655989526993d0
-   fac_arr(4,1)=0.2383947500094262395810797d0
-   fac_arr(5,1)=0.05959868750235655989526993d0
-   fac_arr(6,1)=-0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(7,1)=-0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(8,1)=0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(9,1)=0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(10,1)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(11,1)=0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(12,1)=-0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(13,1)=0.02979934375117827994763496d0/rhol**2d0
-   lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=3 ; lxyz_arr(3,4,2)=2
-   lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=1 ; lxyz_arr(3,5,2)=4
-   lxyz_arr(1,6,2)=6 ; lxyz_arr(2,6,2)=1 ; lxyz_arr(3,6,2)=0
-   lxyz_arr(1,7,2)=4 ; lxyz_arr(2,7,2)=3 ; lxyz_arr(3,7,2)=0
-   lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=5 ; lxyz_arr(3,8,2)=0
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=7 ; lxyz_arr(3,9,2)=0
-   lxyz_arr(1,10,2)=4 ; lxyz_arr(2,10,2)=1 ; lxyz_arr(3,10,2)=2
-   lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=5 ; lxyz_arr(3,11,2)=2
-   lxyz_arr(1,12,2)=2 ; lxyz_arr(2,12,2)=1 ; lxyz_arr(3,12,2)=4
-   lxyz_arr(1,13,2)=0 ; lxyz_arr(2,13,2)=3 ; lxyz_arr(3,13,2)=4
-   fac_arr(1,2)=0.05959868750235655989526993d0
-   fac_arr(2,2)=-0.1191973750047131197905399d0
-   fac_arr(3,2)=-0.1787960625070696796858098d0
-   fac_arr(4,2)=-0.2383947500094262395810797d0
-   fac_arr(5,2)=-0.05959868750235655989526993d0
-   fac_arr(6,2)=-0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(7,2)=-0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(8,2)=0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(9,2)=0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(10,2)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(11,2)=0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(12,2)=-0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(13,2)=0.02979934375117827994763496d0/rhol**2d0
-   lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=4 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
-   lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=2 ; lxyz_arr(3,4,3)=3
-   lxyz_arr(1,5,3)=6 ; lxyz_arr(2,5,3)=0 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=4 ; lxyz_arr(2,6,3)=2 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=4 ; lxyz_arr(3,7,3)=1
-   lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=6 ; lxyz_arr(3,8,3)=1
-   lxyz_arr(1,9,3)=4 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=3
-   lxyz_arr(1,10,3)=0 ; lxyz_arr(2,10,3)=4 ; lxyz_arr(3,10,3)=3
-   lxyz_arr(1,11,3)=2 ; lxyz_arr(2,11,3)=0 ; lxyz_arr(3,11,3)=5
-   lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=2 ; lxyz_arr(3,12,3)=5
-   fac_arr(1,3)=0.1191973750047131197905399d0
-   fac_arr(2,3)=-0.1191973750047131197905399d0
-   fac_arr(3,3)=0.1191973750047131197905399d0
-   fac_arr(4,3)=-0.1191973750047131197905399d0
-   fac_arr(5,3)=-0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(6,3)=-0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(7,3)=0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(8,3)=0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(10,3)=0.05959868750235655989526993d0/rhol**2d0
-   fac_arr(11,3)=-0.02979934375117827994763496d0/rhol**2d0
-   fac_arr(12,3)=0.02979934375117827994763496d0/rhol**2d0
-else if (l.eq.3 .and. i.eq.3 .and. m.eq.5) then
-   nterm_arr(1)=11
-   nterm_arr(2)=11
-   nterm_arr(3)=10
-   lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=4
-   lxyz_arr(1,5,1)=7 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=0
-   lxyz_arr(1,6,1)=5 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=0
-   lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=4 ; lxyz_arr(3,7,1)=0
-   lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=6 ; lxyz_arr(3,8,1)=0
-   lxyz_arr(1,9,1)=3 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=4
-   lxyz_arr(1,10,1)=1 ; lxyz_arr(2,10,1)=2 ; lxyz_arr(3,10,1)=4
-   lxyz_arr(1,11,1)=1 ; lxyz_arr(2,11,1)=0 ; lxyz_arr(3,11,1)=6
-   fac_arr(1,1)=-0.1032279548185018340124748d0
-   fac_arr(2,1)=-0.2064559096370036680249495d0
-   fac_arr(3,1)=-0.1032279548185018340124748d0
-   fac_arr(4,1)=0.1032279548185018340124748d0
-   fac_arr(5,1)=0.01720465913641697233541246d0/rhol**2d0
-   fac_arr(6,1)=0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(7,1)=0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(8,1)=0.01720465913641697233541246d0/rhol**2d0
-   fac_arr(9,1)=-0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(10,1)=-0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(11,1)=-0.03440931827283394467082492d0/rhol**2d0
-   lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=4
-   lxyz_arr(1,5,2)=6 ; lxyz_arr(2,5,2)=1 ; lxyz_arr(3,5,2)=0
-   lxyz_arr(1,6,2)=4 ; lxyz_arr(2,6,2)=3 ; lxyz_arr(3,6,2)=0
-   lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=5 ; lxyz_arr(3,7,2)=0
-   lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=7 ; lxyz_arr(3,8,2)=0
-   lxyz_arr(1,9,2)=2 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=4
-   lxyz_arr(1,10,2)=0 ; lxyz_arr(2,10,2)=3 ; lxyz_arr(3,10,2)=4
-   lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=1 ; lxyz_arr(3,11,2)=6
-   fac_arr(1,2)=-0.1032279548185018340124748d0
-   fac_arr(2,2)=-0.2064559096370036680249495d0
-   fac_arr(3,2)=-0.1032279548185018340124748d0
-   fac_arr(4,2)=0.1032279548185018340124748d0
-   fac_arr(5,2)=0.01720465913641697233541246d0/rhol**2d0
-   fac_arr(6,2)=0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(7,2)=0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(8,2)=0.01720465913641697233541246d0/rhol**2d0
-   fac_arr(9,2)=-0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(10,2)=-0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(11,2)=-0.03440931827283394467082492d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=3
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=3
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=5
-   lxyz_arr(1,4,3)=6 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=4 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=2 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=0 ; lxyz_arr(2,7,3)=6 ; lxyz_arr(3,7,3)=1
-   lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=0 ; lxyz_arr(3,8,3)=5
-   lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=2 ; lxyz_arr(3,9,3)=5
-   lxyz_arr(1,10,3)=0 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=7
-   fac_arr(1,3)=0.2064559096370036680249495d0
-   fac_arr(2,3)=0.2064559096370036680249495d0
-   fac_arr(3,3)=0.2064559096370036680249495d0
-   fac_arr(4,3)=0.01720465913641697233541246d0/rhol**2d0
-   fac_arr(5,3)=0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(6,3)=0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(7,3)=0.01720465913641697233541246d0/rhol**2d0
-   fac_arr(8,3)=-0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(9,3)=-0.05161397740925091700623738d0/rhol**2d0
-   fac_arr(10,3)=-0.03440931827283394467082492d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.1 .and. m.eq.1) then
-   nterm_arr(1)=6
-   nterm_arr(2)=4
-   nterm_arr(3)=4
-   lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=2
-   lxyz_arr(1,4,1)=4 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=2 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=0
-   lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=2
-   fac_arr(1,1)=0.9486832980505137995996681d0
-   fac_arr(2,1)=0.3162277660168379331998894d0
-   fac_arr(3,1)=-1.264911064067351732799557d0
-   fac_arr(4,1)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(5,1)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(6,1)=1.264911064067351732799557d0/rhol**2d0
-   lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=1 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
-   fac_arr(1,2)=0.6324555320336758663997787d0
-   fac_arr(2,2)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(3,2)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(4,2)=1.264911064067351732799557d0/rhol**2d0
-   lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=1 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
-   fac_arr(1,3)=-2.529822128134703465599115d0
-   fac_arr(2,3)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(3,3)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(4,3)=1.264911064067351732799557d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.1 .and. m.eq.2) then
-   nterm_arr(1)=4
-   nterm_arr(2)=6
-   nterm_arr(3)=4
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
-   fac_arr(1,1)=0.6324555320336758663997787d0
-   fac_arr(2,1)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(3,1)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(4,1)=1.264911064067351732799557d0/rhol**2d0
-   lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=2
-   lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=2 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=4 ; lxyz_arr(3,5,2)=0
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=2
-   fac_arr(1,2)=0.3162277660168379331998894d0
-   fac_arr(2,2)=0.9486832980505137995996681d0
-   fac_arr(3,2)=-1.264911064067351732799557d0
-   fac_arr(4,2)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(5,2)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(6,2)=1.264911064067351732799557d0/rhol**2d0
-   lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=3 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
-   fac_arr(1,3)=-2.529822128134703465599115d0
-   fac_arr(2,3)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(3,3)=-0.3162277660168379331998894d0/rhol**2d0
-   fac_arr(4,3)=1.264911064067351732799557d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.1 .and. m.eq.3) then
-   nterm_arr(1)=4
-   nterm_arr(2)=4
-   nterm_arr(3)=6
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=1
-   lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
-   fac_arr(1,1)=1.549193338482966754071706d0
-   fac_arr(2,1)=-0.7745966692414833770358531d0/rhol**2d0
-   fac_arr(3,1)=-0.7745966692414833770358531d0/rhol**2d0
-   fac_arr(4,1)=0.5163977794943222513572354d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
-   fac_arr(1,2)=1.549193338482966754071706d0
-   fac_arr(2,2)=-0.7745966692414833770358531d0/rhol**2d0
-   fac_arr(3,2)=-0.7745966692414833770358531d0/rhol**2d0
-   fac_arr(4,2)=0.5163977794943222513572354d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
-   lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
-   fac_arr(1,3)=0.7745966692414833770358531d0
-   fac_arr(2,3)=0.7745966692414833770358531d0
-   fac_arr(3,3)=-1.549193338482966754071706d0
-   fac_arr(4,3)=-0.7745966692414833770358531d0/rhol**2d0
-   fac_arr(5,3)=-0.7745966692414833770358531d0/rhol**2d0
-   fac_arr(6,3)=0.5163977794943222513572354d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.1 .and. m.eq.4) then
-   nterm_arr(1)=4
-   nterm_arr(2)=3
-   nterm_arr(3)=2
-   lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=4 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=2 ; lxyz_arr(3,4,1)=0
-   fac_arr(1,1)=1.224744871391589049098642d0
-   fac_arr(2,1)=-1.224744871391589049098642d0
-   fac_arr(3,1)=-0.408248290463863016366214d0/rhol**2d0
-   fac_arr(4,1)=1.224744871391589049098642d0/rhol**2d0
-   lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
-   fac_arr(1,2)=-2.449489742783178098197284d0
-   fac_arr(2,2)=-0.408248290463863016366214d0/rhol**2d0
-   fac_arr(3,2)=1.224744871391589049098642d0/rhol**2d0
-   lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   fac_arr(1,3)=-0.408248290463863016366214d0/rhol**2d0
-   fac_arr(2,3)=1.224744871391589049098642d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.1 .and. m.eq.5) then
-   nterm_arr(1)=3
-   nterm_arr(2)=4
-   nterm_arr(3)=2
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=0
-   fac_arr(1,1)=-2.449489742783178098197284d0
-   fac_arr(2,1)=1.224744871391589049098642d0/rhol**2d0
-   fac_arr(3,1)=-0.408248290463863016366214d0/rhol**2d0
-   lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=2 ; lxyz_arr(2,3,2)=2 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=4 ; lxyz_arr(3,4,2)=0
-   fac_arr(1,2)=-1.224744871391589049098642d0
-   fac_arr(2,2)=1.224744871391589049098642d0
-   fac_arr(3,2)=1.224744871391589049098642d0/rhol**2d0
-   fac_arr(4,2)=-0.408248290463863016366214d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
-   fac_arr(1,3)=1.224744871391589049098642d0/rhol**2d0
-   fac_arr(2,3)=-0.408248290463863016366214d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.1 .and. m.eq.6) then
-   nterm_arr(1)=3
-   nterm_arr(2)=3
-   nterm_arr(3)=4
-   lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=1
-   fac_arr(1,1)=2.d0
-   fac_arr(2,1)=-1.d0/rhol**2d0
-   fac_arr(3,1)=rhol**(-2)
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
-   fac_arr(1,2)=-2.d0
-   fac_arr(2,2)=-1.d0/rhol**2d0
-   fac_arr(3,2)=rhol**(-2)
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
-   lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=2 ; lxyz_arr(3,4,3)=2
-   fac_arr(1,3)=1.d0
-   fac_arr(2,3)=-1.d0
-   fac_arr(3,3)=-1.d0/rhol**2d0
-   fac_arr(4,3)=rhol**(-2)
-else if (l.eq.4 .and. i.eq.1 .and. m.eq.7) then
-   nterm_arr(1)=2
-   nterm_arr(2)=2
-   nterm_arr(3)=2
-   lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=1
-   fac_arr(1,1)=2.d0
-   fac_arr(2,1)=-2.d0/rhol**2d0
-   lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
-   fac_arr(1,2)=2.d0
-   fac_arr(2,2)=-2.d0/rhol**2d0
-   lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=2
-   fac_arr(1,3)=2.d0
-   fac_arr(2,3)=-2.d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.2 .and. m.eq.1) then
-   nterm_arr(1)=12
-   nterm_arr(2)=9
-   nterm_arr(3)=9
-   lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
-   lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=2
-   lxyz_arr(1,6,1)=0 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=4
-   lxyz_arr(1,7,1)=6 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=0
-   lxyz_arr(1,8,1)=4 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=0
-   lxyz_arr(1,9,1)=2 ; lxyz_arr(2,9,1)=4 ; lxyz_arr(3,9,1)=0
-   lxyz_arr(1,10,1)=4 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=2
-   lxyz_arr(1,11,1)=2 ; lxyz_arr(2,11,1)=2 ; lxyz_arr(3,11,1)=2
-   lxyz_arr(1,12,1)=2 ; lxyz_arr(2,12,1)=0 ; lxyz_arr(3,12,1)=4
-   fac_arr(1,1)=0.3178208630818641051489253d0
-   fac_arr(2,1)=0.3813850356982369261787104d0
-   fac_arr(3,1)=0.06356417261637282102978506d0
-   fac_arr(4,1)=-0.5720775535473553892680656d0
-   fac_arr(5,1)=-0.1906925178491184630893552d0
-   fac_arr(6,1)=-0.2542566904654912841191402d0
-   fac_arr(7,1)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(8,1)=-0.1271283452327456420595701d0/rhol**2d0
-   fac_arr(9,1)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(10,1)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(11,1)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(12,1)=0.2542566904654912841191402d0/rhol**2d0
-   lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
-   lxyz_arr(1,4,2)=5 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=3 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=0
-   lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=0
-   lxyz_arr(1,7,2)=3 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=2
-   lxyz_arr(1,8,2)=1 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=2
-   lxyz_arr(1,9,2)=1 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=4
-   fac_arr(1,2)=0.2542566904654912841191402d0
-   fac_arr(2,2)=0.2542566904654912841191402d0
-   fac_arr(3,2)=-0.3813850356982369261787104d0
-   fac_arr(4,2)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(5,2)=-0.1271283452327456420595701d0/rhol**2d0
-   fac_arr(6,2)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(7,2)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(8,2)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(9,2)=0.2542566904654912841191402d0/rhol**2d0
-   lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
-   lxyz_arr(1,4,3)=5 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=3 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=3 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=3
-   lxyz_arr(1,8,3)=1 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=3
-   lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=5
-   fac_arr(1,3)=-0.3813850356982369261787104d0
-   fac_arr(2,3)=-0.3813850356982369261787104d0
-   fac_arr(3,3)=-1.017026761861965136476561d0
-   fac_arr(4,3)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(5,3)=-0.1271283452327456420595701d0/rhol**2d0
-   fac_arr(6,3)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(7,3)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(8,3)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(9,3)=0.2542566904654912841191402d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.2 .and. m.eq.2) then
-   nterm_arr(1)=9
-   nterm_arr(2)=12
-   nterm_arr(3)=9
-   lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=2
-   lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=0
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=5 ; lxyz_arr(3,6,1)=0
-   lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=2
-   lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=2
-   lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=1 ; lxyz_arr(3,9,1)=4
-   fac_arr(1,1)=0.2542566904654912841191402d0
-   fac_arr(2,1)=0.2542566904654912841191402d0
-   fac_arr(3,1)=-0.3813850356982369261787104d0
-   fac_arr(4,1)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(5,1)=-0.1271283452327456420595701d0/rhol**2d0
-   fac_arr(6,1)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(7,1)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(8,1)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(9,1)=0.2542566904654912841191402d0/rhol**2d0
-   lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=2
-   lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=2
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=0 ; lxyz_arr(3,6,2)=4
-   lxyz_arr(1,7,2)=4 ; lxyz_arr(2,7,2)=2 ; lxyz_arr(3,7,2)=0
-   lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=4 ; lxyz_arr(3,8,2)=0
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=6 ; lxyz_arr(3,9,2)=0
-   lxyz_arr(1,10,2)=2 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=2
-   lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=2
-   lxyz_arr(1,12,2)=0 ; lxyz_arr(2,12,2)=2 ; lxyz_arr(3,12,2)=4
-   fac_arr(1,2)=0.06356417261637282102978506d0
-   fac_arr(2,2)=0.3813850356982369261787104d0
-   fac_arr(3,2)=0.3178208630818641051489253d0
-   fac_arr(4,2)=-0.1906925178491184630893552d0
-   fac_arr(5,2)=-0.5720775535473553892680656d0
-   fac_arr(6,2)=-0.2542566904654912841191402d0
-   fac_arr(7,2)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(8,2)=-0.1271283452327456420595701d0/rhol**2d0
-   fac_arr(9,2)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(10,2)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(11,2)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(12,2)=0.2542566904654912841191402d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=3
-   lxyz_arr(1,4,3)=4 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=2 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=5 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=3
-   lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=3
-   lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=1 ; lxyz_arr(3,9,3)=5
-   fac_arr(1,3)=-0.3813850356982369261787104d0
-   fac_arr(2,3)=-0.3813850356982369261787104d0
-   fac_arr(3,3)=-1.017026761861965136476561d0
-   fac_arr(4,3)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(5,3)=-0.1271283452327456420595701d0/rhol**2d0
-   fac_arr(6,3)=-0.06356417261637282102978506d0/rhol**2d0
-   fac_arr(7,3)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(8,3)=0.1906925178491184630893552d0/rhol**2d0
-   fac_arr(9,3)=0.2542566904654912841191402d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.2 .and. m.eq.3) then
-   nterm_arr(1)=9
-   nterm_arr(2)=9
-   nterm_arr(3)=12
-   lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=3
-   lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=1
-   lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=1
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=4 ; lxyz_arr(3,6,1)=1
-   lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=3
-   lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=3
-   lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=5
-   fac_arr(1,1)=0.6227991553292183767329405d0
-   fac_arr(2,1)=0.6227991553292183767329405d0
-   fac_arr(3,1)=0.1037998592215363961221568d0
-   fac_arr(4,1)=-0.1556997888323045941832351d0/rhol**2d0
-   fac_arr(5,1)=-0.3113995776646091883664703d0/rhol**2d0
-   fac_arr(6,1)=-0.1556997888323045941832351d0/rhol**2d0
-   fac_arr(7,1)=-0.05189992961076819806107838d0/rhol**2d0
-   fac_arr(8,1)=-0.05189992961076819806107838d0/rhol**2d0
-   fac_arr(9,1)=0.1037998592215363961221568d0/rhol**2d0
-   lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=3
-   lxyz_arr(1,4,2)=4 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=1
-   lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=1
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=1
-   lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=3
-   lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=3
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=5
-   fac_arr(1,2)=0.6227991553292183767329405d0
-   fac_arr(2,2)=0.6227991553292183767329405d0
-   fac_arr(3,2)=0.1037998592215363961221568d0
-   fac_arr(4,2)=-0.1556997888323045941832351d0/rhol**2d0
-   fac_arr(5,2)=-0.3113995776646091883664703d0/rhol**2d0
-   fac_arr(6,2)=-0.1556997888323045941832351d0/rhol**2d0
-   fac_arr(7,2)=-0.05189992961076819806107838d0/rhol**2d0
-   fac_arr(8,2)=-0.05189992961076819806107838d0/rhol**2d0
-   fac_arr(9,2)=0.1037998592215363961221568d0/rhol**2d0
-   lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
-   lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
-   lxyz_arr(1,7,3)=4 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=2
-   lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=2
-   lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=4 ; lxyz_arr(3,9,3)=2
-   lxyz_arr(1,10,3)=2 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=4
-   lxyz_arr(1,11,3)=0 ; lxyz_arr(2,11,3)=2 ; lxyz_arr(3,11,3)=4
-   lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=0 ; lxyz_arr(3,12,3)=6
-   fac_arr(1,3)=0.1556997888323045941832351d0
-   fac_arr(2,3)=0.3113995776646091883664703d0
-   fac_arr(3,3)=0.1556997888323045941832351d0
-   fac_arr(4,3)=0.1556997888323045941832351d0
-   fac_arr(5,3)=0.1556997888323045941832351d0
-   fac_arr(6,3)=-0.5189992961076819806107838d0
-   fac_arr(7,3)=-0.1556997888323045941832351d0/rhol**2d0
-   fac_arr(8,3)=-0.3113995776646091883664703d0/rhol**2d0
-   fac_arr(9,3)=-0.1556997888323045941832351d0/rhol**2d0
-   fac_arr(10,3)=-0.05189992961076819806107838d0/rhol**2d0
-   fac_arr(11,3)=-0.05189992961076819806107838d0/rhol**2d0
-   fac_arr(12,3)=0.1037998592215363961221568d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.2 .and. m.eq.4) then
-   nterm_arr(1)=10
-   nterm_arr(2)=8
-   nterm_arr(3)=7
-   lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
-   lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=2
-   lxyz_arr(1,6,1)=6 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=0
-   lxyz_arr(1,7,1)=4 ; lxyz_arr(2,7,1)=2 ; lxyz_arr(3,7,1)=0
-   lxyz_arr(1,8,1)=2 ; lxyz_arr(2,8,1)=4 ; lxyz_arr(3,8,1)=0
-   lxyz_arr(1,9,1)=4 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=2
-   lxyz_arr(1,10,1)=2 ; lxyz_arr(2,10,1)=2 ; lxyz_arr(3,10,1)=2
-   fac_arr(1,1)=0.4103049699311091091141355d0
-   fac_arr(2,1)=-0.4923659639173309309369626d0
-   fac_arr(3,1)=-0.2461829819586654654684813d0
-   fac_arr(4,1)=0.2461829819586654654684813d0
-   fac_arr(5,1)=-0.2461829819586654654684813d0
-   fac_arr(6,1)=-0.08206099398622182182282711d0/rhol**2d0
-   fac_arr(7,1)=0.1641219879724436436456542d0/rhol**2d0
-   fac_arr(8,1)=0.2461829819586654654684813d0/rhol**2d0
-   fac_arr(9,1)=-0.08206099398622182182282711d0/rhol**2d0
-   fac_arr(10,1)=0.2461829819586654654684813d0/rhol**2d0
-   lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
-   lxyz_arr(1,4,2)=5 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=3 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=0
-   lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=0
-   lxyz_arr(1,7,2)=3 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=2
-   lxyz_arr(1,8,2)=1 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=2
-   fac_arr(1,2)=-0.3282439759448872872913084d0
-   fac_arr(2,2)=-0.9847319278346618618739253d0
-   fac_arr(3,2)=-0.4923659639173309309369626d0
-   fac_arr(4,2)=-0.08206099398622182182282711d0/rhol**2d0
-   fac_arr(5,2)=0.1641219879724436436456542d0/rhol**2d0
-   fac_arr(6,2)=0.2461829819586654654684813d0/rhol**2d0
-   fac_arr(7,2)=-0.08206099398622182182282711d0/rhol**2d0
-   fac_arr(8,2)=0.2461829819586654654684813d0/rhol**2d0
-   lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=5 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=2 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=4 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=3 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=3
-   lxyz_arr(1,7,3)=1 ; lxyz_arr(2,7,3)=2 ; lxyz_arr(3,7,3)=3
-   fac_arr(1,3)=0.1641219879724436436456542d0
-   fac_arr(2,3)=-0.4923659639173309309369626d0
-   fac_arr(3,3)=-0.08206099398622182182282711d0/rhol**2d0
-   fac_arr(4,3)=0.1641219879724436436456542d0/rhol**2d0
-   fac_arr(5,3)=0.2461829819586654654684813d0/rhol**2d0
-   fac_arr(6,3)=-0.08206099398622182182282711d0/rhol**2d0
-   fac_arr(7,3)=0.2461829819586654654684813d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.2 .and. m.eq.5) then
-   nterm_arr(1)=8
-   nterm_arr(2)=10
-   nterm_arr(3)=7
-   lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=2
-   lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=0
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=5 ; lxyz_arr(3,6,1)=0
-   lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=2
-   lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=2
-   fac_arr(1,1)=-0.9847319278346618618739253d0
-   fac_arr(2,1)=-0.3282439759448872872913084d0
-   fac_arr(3,1)=-0.4923659639173309309369626d0
-   fac_arr(4,1)=0.2461829819586654654684813d0/rhol**2d0
-   fac_arr(5,1)=0.1641219879724436436456542d0/rhol**2d0
-   fac_arr(6,1)=-0.08206099398622182182282711d0/rhol**2d0
-   fac_arr(7,1)=0.2461829819586654654684813d0/rhol**2d0
-   fac_arr(8,1)=-0.08206099398622182182282711d0/rhol**2d0
-   lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=2
-   lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=2
-   lxyz_arr(1,6,2)=4 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=0
-   lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=4 ; lxyz_arr(3,7,2)=0
-   lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=6 ; lxyz_arr(3,8,2)=0
-   lxyz_arr(1,9,2)=2 ; lxyz_arr(2,9,2)=2 ; lxyz_arr(3,9,2)=2
-   lxyz_arr(1,10,2)=0 ; lxyz_arr(2,10,2)=4 ; lxyz_arr(3,10,2)=2
-   fac_arr(1,2)=-0.2461829819586654654684813d0
-   fac_arr(2,2)=-0.4923659639173309309369626d0
-   fac_arr(3,2)=0.4103049699311091091141355d0
-   fac_arr(4,2)=-0.2461829819586654654684813d0
-   fac_arr(5,2)=0.2461829819586654654684813d0
-   fac_arr(6,2)=0.2461829819586654654684813d0/rhol**2d0
-   fac_arr(7,2)=0.1641219879724436436456542d0/rhol**2d0
-   fac_arr(8,2)=-0.08206099398622182182282711d0/rhol**2d0
-   fac_arr(9,2)=0.2461829819586654654684813d0/rhol**2d0
-   fac_arr(10,2)=-0.08206099398622182182282711d0/rhol**2d0
-   lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=4 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=3 ; lxyz_arr(3,4,3)=1
-   lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=5 ; lxyz_arr(3,5,3)=1
-   lxyz_arr(1,6,3)=2 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=3
-   lxyz_arr(1,7,3)=0 ; lxyz_arr(2,7,3)=3 ; lxyz_arr(3,7,3)=3
-   fac_arr(1,3)=-0.4923659639173309309369626d0
-   fac_arr(2,3)=0.1641219879724436436456542d0
-   fac_arr(3,3)=0.2461829819586654654684813d0/rhol**2d0
-   fac_arr(4,3)=0.1641219879724436436456542d0/rhol**2d0
-   fac_arr(5,3)=-0.08206099398622182182282711d0/rhol**2d0
-   fac_arr(6,3)=0.2461829819586654654684813d0/rhol**2d0
-   fac_arr(7,3)=-0.08206099398622182182282711d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.2 .and. m.eq.6) then
-   nterm_arr(1)=6
-   nterm_arr(2)=6
-   nterm_arr(3)=8
-   lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=3
-   lxyz_arr(1,3,1)=5 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=1
-   lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=4 ; lxyz_arr(3,4,1)=1
-   lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=3
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=3
-   fac_arr(1,1)=0.8040302522073696603914988d0
-   fac_arr(2,1)=0.4020151261036848301957494d0
-   fac_arr(3,1)=-0.2010075630518424150978747d0/rhol**2d0
-   fac_arr(4,1)=0.2010075630518424150978747d0/rhol**2d0
-   fac_arr(5,1)=-0.2010075630518424150978747d0/rhol**2d0
-   fac_arr(6,1)=0.2010075630518424150978747d0/rhol**2d0
-   lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=3 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=3
-   lxyz_arr(1,3,2)=4 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=1
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=5 ; lxyz_arr(3,4,2)=1
-   lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=1 ; lxyz_arr(3,5,2)=3
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=3 ; lxyz_arr(3,6,2)=3
-   fac_arr(1,2)=-0.8040302522073696603914988d0
-   fac_arr(2,2)=-0.4020151261036848301957494d0
-   fac_arr(3,2)=-0.2010075630518424150978747d0/rhol**2d0
-   fac_arr(4,2)=0.2010075630518424150978747d0/rhol**2d0
-   fac_arr(5,2)=-0.2010075630518424150978747d0/rhol**2d0
-   fac_arr(6,2)=0.2010075630518424150978747d0/rhol**2d0
-   lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=4 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
-   lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=2 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=4 ; lxyz_arr(2,5,3)=0 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=2
-   lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=4
-   lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=4
-   fac_arr(1,3)=0.2010075630518424150978747d0
-   fac_arr(2,3)=-0.2010075630518424150978747d0
-   fac_arr(3,3)=0.6030226891555272452936241d0
-   fac_arr(4,3)=-0.6030226891555272452936241d0
-   fac_arr(5,3)=-0.2010075630518424150978747d0/rhol**2d0
-   fac_arr(6,3)=0.2010075630518424150978747d0/rhol**2d0
-   fac_arr(7,3)=-0.2010075630518424150978747d0/rhol**2d0
-   fac_arr(8,3)=0.2010075630518424150978747d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.2 .and. m.eq.7) then
-   nterm_arr(1)=6
-   nterm_arr(2)=6
-   nterm_arr(3)=6
-   lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=3
-   lxyz_arr(1,4,1)=4 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=1
-   lxyz_arr(1,5,1)=2 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=1
-   lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=3
-   fac_arr(1,1)=1.206045378311054490587248d0
-   fac_arr(2,1)=0.4020151261036848301957494d0
-   fac_arr(3,1)=0.4020151261036848301957494d0
-   fac_arr(4,1)=-0.4020151261036848301957494d0/rhol**2d0
-   fac_arr(5,1)=-0.4020151261036848301957494d0/rhol**2d0
-   fac_arr(6,1)=-0.4020151261036848301957494d0/rhol**2d0
-   lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=3
-   lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=2 ; lxyz_arr(3,4,2)=1
-   lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=4 ; lxyz_arr(3,5,2)=1
-   lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=3
-   fac_arr(1,2)=0.4020151261036848301957494d0
-   fac_arr(2,2)=1.206045378311054490587248d0
-   fac_arr(3,2)=0.4020151261036848301957494d0
-   fac_arr(4,2)=-0.4020151261036848301957494d0/rhol**2d0
-   fac_arr(5,2)=-0.4020151261036848301957494d0/rhol**2d0
-   fac_arr(6,2)=-0.4020151261036848301957494d0/rhol**2d0
-   lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=2
-   lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=4
-   fac_arr(1,3)=0.4020151261036848301957494d0
-   fac_arr(2,3)=0.4020151261036848301957494d0
-   fac_arr(3,3)=1.206045378311054490587248d0
-   fac_arr(4,3)=-0.4020151261036848301957494d0/rhol**2d0
-   fac_arr(5,3)=-0.4020151261036848301957494d0/rhol**2d0
-   fac_arr(6,3)=-0.4020151261036848301957494d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.3 .and. m.eq.1) then
-   nterm_arr(1)=20
-   nterm_arr(2)=16
-   nterm_arr(3)=16
-   lxyz_arr(1,1,1)=6 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=4 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=2 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=0 ; lxyz_arr(2,4,1)=6 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=4 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=2
-   lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=2
-   lxyz_arr(1,7,1)=0 ; lxyz_arr(2,7,1)=4 ; lxyz_arr(3,7,1)=2
-   lxyz_arr(1,8,1)=2 ; lxyz_arr(2,8,1)=0 ; lxyz_arr(3,8,1)=4
-   lxyz_arr(1,9,1)=0 ; lxyz_arr(2,9,1)=2 ; lxyz_arr(3,9,1)=4
-   lxyz_arr(1,10,1)=0 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=6
-   lxyz_arr(1,11,1)=8 ; lxyz_arr(2,11,1)=0 ; lxyz_arr(3,11,1)=0
-   lxyz_arr(1,12,1)=6 ; lxyz_arr(2,12,1)=2 ; lxyz_arr(3,12,1)=0
-   lxyz_arr(1,13,1)=4 ; lxyz_arr(2,13,1)=4 ; lxyz_arr(3,13,1)=0
-   lxyz_arr(1,14,1)=2 ; lxyz_arr(2,14,1)=6 ; lxyz_arr(3,14,1)=0
-   lxyz_arr(1,15,1)=6 ; lxyz_arr(2,15,1)=0 ; lxyz_arr(3,15,1)=2
-   lxyz_arr(1,16,1)=4 ; lxyz_arr(2,16,1)=2 ; lxyz_arr(3,16,1)=2
-   lxyz_arr(1,17,1)=2 ; lxyz_arr(2,17,1)=4 ; lxyz_arr(3,17,1)=2
-   lxyz_arr(1,18,1)=4 ; lxyz_arr(2,18,1)=0 ; lxyz_arr(3,18,1)=4
-   lxyz_arr(1,19,1)=2 ; lxyz_arr(2,19,1)=2 ; lxyz_arr(3,19,1)=4
-   lxyz_arr(1,20,1)=2 ; lxyz_arr(2,20,1)=0 ; lxyz_arr(3,20,1)=6
-   fac_arr(1,1)=0.06372694925323242808889581d0
-   fac_arr(2,1)=0.1365577483997837744762053d0
-   fac_arr(3,1)=0.08193464903987026468572318d0
-   fac_arr(4,1)=0.009103849893318918298413687d0
-   fac_arr(5,1)=-0.09103849893318918298413687d0
-   fac_arr(6,1)=-0.1092461987198270195809642d0
-   fac_arr(7,1)=-0.01820769978663783659682737d0
-   fac_arr(8,1)=-0.1911808477596972842666874d0
-   fac_arr(9,1)=-0.06372694925323242808889581d0
-   fac_arr(10,1)=-0.03641539957327567319365475d0
-   fac_arr(11,1)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(12,1)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(13,1)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(14,1)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(15,1)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(16,1)=0.03641539957327567319365475d0/rhol**2d0
-   fac_arr(17,1)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(18,1)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(19,1)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(20,1)=0.03641539957327567319365475d0/rhol**2d0
-   lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
-   lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=2
-   lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=1 ; lxyz_arr(3,6,2)=4
-   lxyz_arr(1,7,2)=7 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=0
-   lxyz_arr(1,8,2)=5 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=0
-   lxyz_arr(1,9,2)=3 ; lxyz_arr(2,9,2)=5 ; lxyz_arr(3,9,2)=0
-   lxyz_arr(1,10,2)=1 ; lxyz_arr(2,10,2)=7 ; lxyz_arr(3,10,2)=0
-   lxyz_arr(1,11,2)=5 ; lxyz_arr(2,11,2)=1 ; lxyz_arr(3,11,2)=2
-   lxyz_arr(1,12,2)=3 ; lxyz_arr(2,12,2)=3 ; lxyz_arr(3,12,2)=2
-   lxyz_arr(1,13,2)=1 ; lxyz_arr(2,13,2)=5 ; lxyz_arr(3,13,2)=2
-   lxyz_arr(1,14,2)=3 ; lxyz_arr(2,14,2)=1 ; lxyz_arr(3,14,2)=4
-   lxyz_arr(1,15,2)=1 ; lxyz_arr(2,15,2)=3 ; lxyz_arr(3,15,2)=4
-   lxyz_arr(1,16,2)=1 ; lxyz_arr(2,16,2)=1 ; lxyz_arr(3,16,2)=6
-   fac_arr(1,2)=0.05462309935991350979048212d0
-   fac_arr(2,2)=0.1092461987198270195809642d0
-   fac_arr(3,2)=0.05462309935991350979048212d0
-   fac_arr(4,2)=-0.0728307991465513463873095d0
-   fac_arr(5,2)=-0.0728307991465513463873095d0
-   fac_arr(6,2)=-0.1274538985064648561777916d0
-   fac_arr(7,2)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(8,2)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(9,2)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(10,2)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(11,2)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(12,2)=0.03641539957327567319365475d0/rhol**2d0
-   fac_arr(13,2)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(14,2)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(15,2)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(16,2)=0.03641539957327567319365475d0/rhol**2d0
-   lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
-   lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=3
-   lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=5
-   lxyz_arr(1,7,3)=7 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=1
-   lxyz_arr(1,8,3)=5 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=1
-   lxyz_arr(1,9,3)=3 ; lxyz_arr(2,9,3)=4 ; lxyz_arr(3,9,3)=1
-   lxyz_arr(1,10,3)=1 ; lxyz_arr(2,10,3)=6 ; lxyz_arr(3,10,3)=1
-   lxyz_arr(1,11,3)=5 ; lxyz_arr(2,11,3)=0 ; lxyz_arr(3,11,3)=3
-   lxyz_arr(1,12,3)=3 ; lxyz_arr(2,12,3)=2 ; lxyz_arr(3,12,3)=3
-   lxyz_arr(1,13,3)=1 ; lxyz_arr(2,13,3)=4 ; lxyz_arr(3,13,3)=3
-   lxyz_arr(1,14,3)=3 ; lxyz_arr(2,14,3)=0 ; lxyz_arr(3,14,3)=5
-   lxyz_arr(1,15,3)=1 ; lxyz_arr(2,15,3)=2 ; lxyz_arr(3,15,3)=5
-   lxyz_arr(1,16,3)=1 ; lxyz_arr(2,16,3)=0 ; lxyz_arr(3,16,3)=7
-   fac_arr(1,3)=-0.03641539957327567319365475d0
-   fac_arr(2,3)=-0.0728307991465513463873095d0
-   fac_arr(3,3)=-0.03641539957327567319365475d0
-   fac_arr(4,3)=-0.2549077970129297123555832d0
-   fac_arr(5,3)=-0.2549077970129297123555832d0
-   fac_arr(6,3)=-0.2184923974396540391619285d0
-   fac_arr(7,3)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(8,3)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(9,3)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(10,3)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(11,3)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(12,3)=0.03641539957327567319365475d0/rhol**2d0
-   fac_arr(13,3)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(14,3)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(15,3)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(16,3)=0.03641539957327567319365475d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.3 .and. m.eq.2) then
-   nterm_arr(1)=16
-   nterm_arr(2)=20
-   nterm_arr(3)=16
-   lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=5 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=3 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
-   lxyz_arr(1,5,1)=1 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=2
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=4
-   lxyz_arr(1,7,1)=7 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=0
-   lxyz_arr(1,8,1)=5 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=0
-   lxyz_arr(1,9,1)=3 ; lxyz_arr(2,9,1)=5 ; lxyz_arr(3,9,1)=0
-   lxyz_arr(1,10,1)=1 ; lxyz_arr(2,10,1)=7 ; lxyz_arr(3,10,1)=0
-   lxyz_arr(1,11,1)=5 ; lxyz_arr(2,11,1)=1 ; lxyz_arr(3,11,1)=2
-   lxyz_arr(1,12,1)=3 ; lxyz_arr(2,12,1)=3 ; lxyz_arr(3,12,1)=2
-   lxyz_arr(1,13,1)=1 ; lxyz_arr(2,13,1)=5 ; lxyz_arr(3,13,1)=2
-   lxyz_arr(1,14,1)=3 ; lxyz_arr(2,14,1)=1 ; lxyz_arr(3,14,1)=4
-   lxyz_arr(1,15,1)=1 ; lxyz_arr(2,15,1)=3 ; lxyz_arr(3,15,1)=4
-   lxyz_arr(1,16,1)=1 ; lxyz_arr(2,16,1)=1 ; lxyz_arr(3,16,1)=6
-   fac_arr(1,1)=0.05462309935991350979048212d0
-   fac_arr(2,1)=0.1092461987198270195809642d0
-   fac_arr(3,1)=0.05462309935991350979048212d0
-   fac_arr(4,1)=-0.0728307991465513463873095d0
-   fac_arr(5,1)=-0.0728307991465513463873095d0
-   fac_arr(6,1)=-0.1274538985064648561777916d0
-   fac_arr(7,1)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(8,1)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(9,1)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(10,1)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(11,1)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(12,1)=0.03641539957327567319365475d0/rhol**2d0
-   fac_arr(13,1)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(14,1)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(15,1)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(16,1)=0.03641539957327567319365475d0/rhol**2d0
-   lxyz_arr(1,1,2)=6 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=4 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=2 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=6 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=4 ; lxyz_arr(2,5,2)=0 ; lxyz_arr(3,5,2)=2
-   lxyz_arr(1,6,2)=2 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=2
-   lxyz_arr(1,7,2)=0 ; lxyz_arr(2,7,2)=4 ; lxyz_arr(3,7,2)=2
-   lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=0 ; lxyz_arr(3,8,2)=4
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=2 ; lxyz_arr(3,9,2)=4
-   lxyz_arr(1,10,2)=0 ; lxyz_arr(2,10,2)=0 ; lxyz_arr(3,10,2)=6
-   lxyz_arr(1,11,2)=6 ; lxyz_arr(2,11,2)=2 ; lxyz_arr(3,11,2)=0
-   lxyz_arr(1,12,2)=4 ; lxyz_arr(2,12,2)=4 ; lxyz_arr(3,12,2)=0
-   lxyz_arr(1,13,2)=2 ; lxyz_arr(2,13,2)=6 ; lxyz_arr(3,13,2)=0
-   lxyz_arr(1,14,2)=0 ; lxyz_arr(2,14,2)=8 ; lxyz_arr(3,14,2)=0
-   lxyz_arr(1,15,2)=4 ; lxyz_arr(2,15,2)=2 ; lxyz_arr(3,15,2)=2
-   lxyz_arr(1,16,2)=2 ; lxyz_arr(2,16,2)=4 ; lxyz_arr(3,16,2)=2
-   lxyz_arr(1,17,2)=0 ; lxyz_arr(2,17,2)=6 ; lxyz_arr(3,17,2)=2
-   lxyz_arr(1,18,2)=2 ; lxyz_arr(2,18,2)=2 ; lxyz_arr(3,18,2)=4
-   lxyz_arr(1,19,2)=0 ; lxyz_arr(2,19,2)=4 ; lxyz_arr(3,19,2)=4
-   lxyz_arr(1,20,2)=0 ; lxyz_arr(2,20,2)=2 ; lxyz_arr(3,20,2)=6
-   fac_arr(1,2)=0.009103849893318918298413687d0
-   fac_arr(2,2)=0.08193464903987026468572318d0
-   fac_arr(3,2)=0.1365577483997837744762053d0
-   fac_arr(4,2)=0.06372694925323242808889581d0
-   fac_arr(5,2)=-0.01820769978663783659682737d0
-   fac_arr(6,2)=-0.1092461987198270195809642d0
-   fac_arr(7,2)=-0.09103849893318918298413687d0
-   fac_arr(8,2)=-0.06372694925323242808889581d0
-   fac_arr(9,2)=-0.1911808477596972842666874d0
-   fac_arr(10,2)=-0.03641539957327567319365475d0
-   fac_arr(11,2)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(12,2)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(13,2)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(14,2)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(15,2)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(16,2)=0.03641539957327567319365475d0/rhol**2d0
-   fac_arr(17,2)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(18,2)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(19,2)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(20,2)=0.03641539957327567319365475d0/rhol**2d0
-   lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
-   lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=3
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=5
-   lxyz_arr(1,7,3)=6 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=1
-   lxyz_arr(1,8,3)=4 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=1
-   lxyz_arr(1,9,3)=2 ; lxyz_arr(2,9,3)=5 ; lxyz_arr(3,9,3)=1
-   lxyz_arr(1,10,3)=0 ; lxyz_arr(2,10,3)=7 ; lxyz_arr(3,10,3)=1
-   lxyz_arr(1,11,3)=4 ; lxyz_arr(2,11,3)=1 ; lxyz_arr(3,11,3)=3
-   lxyz_arr(1,12,3)=2 ; lxyz_arr(2,12,3)=3 ; lxyz_arr(3,12,3)=3
-   lxyz_arr(1,13,3)=0 ; lxyz_arr(2,13,3)=5 ; lxyz_arr(3,13,3)=3
-   lxyz_arr(1,14,3)=2 ; lxyz_arr(2,14,3)=1 ; lxyz_arr(3,14,3)=5
-   lxyz_arr(1,15,3)=0 ; lxyz_arr(2,15,3)=3 ; lxyz_arr(3,15,3)=5
-   lxyz_arr(1,16,3)=0 ; lxyz_arr(2,16,3)=1 ; lxyz_arr(3,16,3)=7
-   fac_arr(1,3)=-0.03641539957327567319365475d0
-   fac_arr(2,3)=-0.0728307991465513463873095d0
-   fac_arr(3,3)=-0.03641539957327567319365475d0
-   fac_arr(4,3)=-0.2549077970129297123555832d0
-   fac_arr(5,3)=-0.2549077970129297123555832d0
-   fac_arr(6,3)=-0.2184923974396540391619285d0
-   fac_arr(7,3)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(8,3)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(9,3)=-0.02731154967995675489524106d0/rhol**2d0
-   fac_arr(10,3)=-0.009103849893318918298413687d0/rhol**2d0
-   fac_arr(11,3)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(12,3)=0.03641539957327567319365475d0/rhol**2d0
-   fac_arr(13,3)=0.01820769978663783659682737d0/rhol**2d0
-   fac_arr(14,3)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(15,3)=0.06372694925323242808889581d0/rhol**2d0
-   fac_arr(16,3)=0.03641539957327567319365475d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.3 .and. m.eq.3) then
-   nterm_arr(1)=16
-   nterm_arr(2)=16
-   nterm_arr(3)=20
-   lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=1
-   lxyz_arr(1,4,1)=3 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
-   lxyz_arr(1,5,1)=1 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=3
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=5
-   lxyz_arr(1,7,1)=7 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=1
-   lxyz_arr(1,8,1)=5 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=1
-   lxyz_arr(1,9,1)=3 ; lxyz_arr(2,9,1)=4 ; lxyz_arr(3,9,1)=1
-   lxyz_arr(1,10,1)=1 ; lxyz_arr(2,10,1)=6 ; lxyz_arr(3,10,1)=1
-   lxyz_arr(1,11,1)=5 ; lxyz_arr(2,11,1)=0 ; lxyz_arr(3,11,1)=3
-   lxyz_arr(1,12,1)=3 ; lxyz_arr(2,12,1)=2 ; lxyz_arr(3,12,1)=3
-   lxyz_arr(1,13,1)=1 ; lxyz_arr(2,13,1)=4 ; lxyz_arr(3,13,1)=3
-   lxyz_arr(1,14,1)=3 ; lxyz_arr(2,14,1)=0 ; lxyz_arr(3,14,1)=5
-   lxyz_arr(1,15,1)=1 ; lxyz_arr(2,15,1)=2 ; lxyz_arr(3,15,1)=5
-   lxyz_arr(1,16,1)=1 ; lxyz_arr(2,16,1)=0 ; lxyz_arr(3,16,1)=7
-   fac_arr(1,1)=0.1337987216011345233133409d0
-   fac_arr(2,1)=0.2675974432022690466266818d0
-   fac_arr(3,1)=0.1337987216011345233133409d0
-   fac_arr(4,1)=0.1189321969787862429451919d0
-   fac_arr(5,1)=0.1189321969787862429451919d0
-   fac_arr(6,1)=-0.01486652462234828036814899d0
-   fac_arr(7,1)=-0.02229978693352242055222348d0/rhol**2d0
-   fac_arr(8,1)=-0.06689936080056726165667044d0/rhol**2d0
-   fac_arr(9,1)=-0.06689936080056726165667044d0/rhol**2d0
-   fac_arr(10,1)=-0.02229978693352242055222348d0/rhol**2d0
-   fac_arr(11,1)=-0.02973304924469656073629797d0/rhol**2d0
-   fac_arr(12,1)=-0.05946609848939312147259594d0/rhol**2d0
-   fac_arr(13,1)=-0.02973304924469656073629797d0/rhol**2d0
-   fac_arr(14,1)=0.007433262311174140184074493d0/rhol**2d0
-   fac_arr(15,1)=0.007433262311174140184074493d0/rhol**2d0
-   fac_arr(16,1)=0.01486652462234828036814899d0/rhol**2d0
-   lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=1
-   lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
-   lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=3
-   lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=1 ; lxyz_arr(3,6,2)=5
-   lxyz_arr(1,7,2)=6 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=1
-   lxyz_arr(1,8,2)=4 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=1
-   lxyz_arr(1,9,2)=2 ; lxyz_arr(2,9,2)=5 ; lxyz_arr(3,9,2)=1
-   lxyz_arr(1,10,2)=0 ; lxyz_arr(2,10,2)=7 ; lxyz_arr(3,10,2)=1
-   lxyz_arr(1,11,2)=4 ; lxyz_arr(2,11,2)=1 ; lxyz_arr(3,11,2)=3
-   lxyz_arr(1,12,2)=2 ; lxyz_arr(2,12,2)=3 ; lxyz_arr(3,12,2)=3
-   lxyz_arr(1,13,2)=0 ; lxyz_arr(2,13,2)=5 ; lxyz_arr(3,13,2)=3
-   lxyz_arr(1,14,2)=2 ; lxyz_arr(2,14,2)=1 ; lxyz_arr(3,14,2)=5
-   lxyz_arr(1,15,2)=0 ; lxyz_arr(2,15,2)=3 ; lxyz_arr(3,15,2)=5
-   lxyz_arr(1,16,2)=0 ; lxyz_arr(2,16,2)=1 ; lxyz_arr(3,16,2)=7
-   fac_arr(1,2)=0.1337987216011345233133409d0
-   fac_arr(2,2)=0.2675974432022690466266818d0
-   fac_arr(3,2)=0.1337987216011345233133409d0
-   fac_arr(4,2)=0.1189321969787862429451919d0
-   fac_arr(5,2)=0.1189321969787862429451919d0
-   fac_arr(6,2)=-0.01486652462234828036814899d0
-   fac_arr(7,2)=-0.02229978693352242055222348d0/rhol**2d0
-   fac_arr(8,2)=-0.06689936080056726165667044d0/rhol**2d0
-   fac_arr(9,2)=-0.06689936080056726165667044d0/rhol**2d0
-   fac_arr(10,2)=-0.02229978693352242055222348d0/rhol**2d0
-   fac_arr(11,2)=-0.02973304924469656073629797d0/rhol**2d0
-   fac_arr(12,2)=-0.05946609848939312147259594d0/rhol**2d0
-   fac_arr(13,2)=-0.02973304924469656073629797d0/rhol**2d0
-   fac_arr(14,2)=0.007433262311174140184074493d0/rhol**2d0
-   fac_arr(15,2)=0.007433262311174140184074493d0/rhol**2d0
-   fac_arr(16,2)=0.01486652462234828036814899d0/rhol**2d0
-   lxyz_arr(1,1,3)=6 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=4 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
-   lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=6 ; lxyz_arr(3,4,3)=0
-   lxyz_arr(1,5,3)=4 ; lxyz_arr(2,5,3)=0 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=2 ; lxyz_arr(2,6,3)=2 ; lxyz_arr(3,6,3)=2
-   lxyz_arr(1,7,3)=0 ; lxyz_arr(2,7,3)=4 ; lxyz_arr(3,7,3)=2
-   lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=0 ; lxyz_arr(3,8,3)=4
-   lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=2 ; lxyz_arr(3,9,3)=4
-   lxyz_arr(1,10,3)=0 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=6
-   lxyz_arr(1,11,3)=6 ; lxyz_arr(2,11,3)=0 ; lxyz_arr(3,11,3)=2
-   lxyz_arr(1,12,3)=4 ; lxyz_arr(2,12,3)=2 ; lxyz_arr(3,12,3)=2
-   lxyz_arr(1,13,3)=2 ; lxyz_arr(2,13,3)=4 ; lxyz_arr(3,13,3)=2
-   lxyz_arr(1,14,3)=0 ; lxyz_arr(2,14,3)=6 ; lxyz_arr(3,14,3)=2
-   lxyz_arr(1,15,3)=4 ; lxyz_arr(2,15,3)=0 ; lxyz_arr(3,15,3)=4
-   lxyz_arr(1,16,3)=2 ; lxyz_arr(2,16,3)=2 ; lxyz_arr(3,16,3)=4
-   lxyz_arr(1,17,3)=0 ; lxyz_arr(2,17,3)=4 ; lxyz_arr(3,17,3)=4
-   lxyz_arr(1,18,3)=2 ; lxyz_arr(2,18,3)=0 ; lxyz_arr(3,18,3)=6
-   lxyz_arr(1,19,3)=0 ; lxyz_arr(2,19,3)=2 ; lxyz_arr(3,19,3)=6
-   lxyz_arr(1,20,3)=0 ; lxyz_arr(2,20,3)=0 ; lxyz_arr(3,20,3)=8
-   fac_arr(1,3)=0.02229978693352242055222348d0
-   fac_arr(2,3)=0.06689936080056726165667044d0
-   fac_arr(3,3)=0.06689936080056726165667044d0
-   fac_arr(4,3)=0.02229978693352242055222348d0
-   fac_arr(5,3)=0.08919914773408968220889392d0
-   fac_arr(6,3)=0.1783982954681793644177878d0
-   fac_arr(7,3)=0.08919914773408968220889392d0
-   fac_arr(8,3)=-0.03716631155587070092037247d0
-   fac_arr(9,3)=-0.03716631155587070092037247d0
-   fac_arr(10,3)=-0.1040656723564379625770429d0
-   fac_arr(11,3)=-0.02229978693352242055222348d0/rhol**2d0
-   fac_arr(12,3)=-0.06689936080056726165667044d0/rhol**2d0
-   fac_arr(13,3)=-0.06689936080056726165667044d0/rhol**2d0
-   fac_arr(14,3)=-0.02229978693352242055222348d0/rhol**2d0
-   fac_arr(15,3)=-0.02973304924469656073629797d0/rhol**2d0
-   fac_arr(16,3)=-0.05946609848939312147259594d0/rhol**2d0
-   fac_arr(17,3)=-0.02973304924469656073629797d0/rhol**2d0
-   fac_arr(18,3)=0.007433262311174140184074493d0/rhol**2d0
-   fac_arr(19,3)=0.007433262311174140184074493d0/rhol**2d0
-   fac_arr(20,3)=0.01486652462234828036814899d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.3 .and. m.eq.4) then
-   nterm_arr(1)=18
-   nterm_arr(2)=15
-   nterm_arr(3)=14
-   lxyz_arr(1,1,1)=6 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=4 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=2 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=0 ; lxyz_arr(2,4,1)=6 ; lxyz_arr(3,4,1)=0
-   lxyz_arr(1,5,1)=4 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=2
-   lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=2
-   lxyz_arr(1,7,1)=0 ; lxyz_arr(2,7,1)=4 ; lxyz_arr(3,7,1)=2
-   lxyz_arr(1,8,1)=2 ; lxyz_arr(2,8,1)=0 ; lxyz_arr(3,8,1)=4
-   lxyz_arr(1,9,1)=0 ; lxyz_arr(2,9,1)=2 ; lxyz_arr(3,9,1)=4
-   lxyz_arr(1,10,1)=8 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=0
-   lxyz_arr(1,11,1)=6 ; lxyz_arr(2,11,1)=2 ; lxyz_arr(3,11,1)=0
-   lxyz_arr(1,12,1)=4 ; lxyz_arr(2,12,1)=4 ; lxyz_arr(3,12,1)=0
-   lxyz_arr(1,13,1)=2 ; lxyz_arr(2,13,1)=6 ; lxyz_arr(3,13,1)=0
-   lxyz_arr(1,14,1)=6 ; lxyz_arr(2,14,1)=0 ; lxyz_arr(3,14,1)=2
-   lxyz_arr(1,15,1)=4 ; lxyz_arr(2,15,1)=2 ; lxyz_arr(3,15,1)=2
-   lxyz_arr(1,16,1)=2 ; lxyz_arr(2,16,1)=4 ; lxyz_arr(3,16,1)=2
-   lxyz_arr(1,17,1)=4 ; lxyz_arr(2,17,1)=0 ; lxyz_arr(3,17,1)=4
-   lxyz_arr(1,18,1)=2 ; lxyz_arr(2,18,1)=2 ; lxyz_arr(3,18,1)=4
-   fac_arr(1,1)=0.08227113772079145865717289d0
-   fac_arr(2,1)=-0.05876509837199389904083778d0
-   fac_arr(3,1)=-0.1762952951159816971225133d0
-   fac_arr(4,1)=-0.03525905902319633942450267d0
-   fac_arr(5,1)=0.1175301967439877980816756d0
-   fac_arr(6,1)=-0.1410362360927853576980107d0
-   fac_arr(7,1)=-0.07051811804639267884900533d0
-   fac_arr(8,1)=0.03525905902319633942450267d0
-   fac_arr(9,1)=-0.03525905902319633942450267d0
-   fac_arr(10,1)=-0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(11,1)=0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(12,1)=0.05876509837199389904083778d0/rhol**2d0
-   fac_arr(13,1)=0.03525905902319633942450267d0/rhol**2d0
-   fac_arr(14,1)=-0.02350603934879755961633511d0/rhol**2d0
-   fac_arr(15,1)=0.04701207869759511923267022d0/rhol**2d0
-   fac_arr(16,1)=0.07051811804639267884900533d0/rhol**2d0
-   fac_arr(17,1)=-0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(18,1)=0.03525905902319633942450267d0/rhol**2d0
-   lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
-   lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=2
-   lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=1 ; lxyz_arr(3,6,2)=4
-   lxyz_arr(1,7,2)=7 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=0
-   lxyz_arr(1,8,2)=5 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=0
-   lxyz_arr(1,9,2)=3 ; lxyz_arr(2,9,2)=5 ; lxyz_arr(3,9,2)=0
-   lxyz_arr(1,10,2)=1 ; lxyz_arr(2,10,2)=7 ; lxyz_arr(3,10,2)=0
-   lxyz_arr(1,11,2)=5 ; lxyz_arr(2,11,2)=1 ; lxyz_arr(3,11,2)=2
-   lxyz_arr(1,12,2)=3 ; lxyz_arr(2,12,2)=3 ; lxyz_arr(3,12,2)=2
-   lxyz_arr(1,13,2)=1 ; lxyz_arr(2,13,2)=5 ; lxyz_arr(3,13,2)=2
-   lxyz_arr(1,14,2)=3 ; lxyz_arr(2,14,2)=1 ; lxyz_arr(3,14,2)=4
-   lxyz_arr(1,15,2)=1 ; lxyz_arr(2,15,2)=3 ; lxyz_arr(3,15,2)=4
-   fac_arr(1,2)=-0.02350603934879755961633511d0
-   fac_arr(2,2)=-0.2350603934879755961633511d0
-   fac_arr(3,2)=-0.211554354139178036547016d0
-   fac_arr(4,2)=-0.09402415739519023846534044d0
-   fac_arr(5,2)=-0.2820724721855707153960213d0
-   fac_arr(6,2)=-0.07051811804639267884900533d0
-   fac_arr(7,2)=-0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(8,2)=0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(9,2)=0.05876509837199389904083778d0/rhol**2d0
-   fac_arr(10,2)=0.03525905902319633942450267d0/rhol**2d0
-   fac_arr(11,2)=-0.02350603934879755961633511d0/rhol**2d0
-   fac_arr(12,2)=0.04701207869759511923267022d0/rhol**2d0
-   fac_arr(13,2)=0.07051811804639267884900533d0/rhol**2d0
-   fac_arr(14,2)=-0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(15,2)=0.03525905902319633942450267d0/rhol**2d0
-   lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
-   lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=3
-   lxyz_arr(1,6,3)=7 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=5 ; lxyz_arr(2,7,3)=2 ; lxyz_arr(3,7,3)=1
-   lxyz_arr(1,8,3)=3 ; lxyz_arr(2,8,3)=4 ; lxyz_arr(3,8,3)=1
-   lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=6 ; lxyz_arr(3,9,3)=1
-   lxyz_arr(1,10,3)=5 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=3
-   lxyz_arr(1,11,3)=3 ; lxyz_arr(2,11,3)=2 ; lxyz_arr(3,11,3)=3
-   lxyz_arr(1,12,3)=1 ; lxyz_arr(2,12,3)=4 ; lxyz_arr(3,12,3)=3
-   lxyz_arr(1,13,3)=3 ; lxyz_arr(2,13,3)=0 ; lxyz_arr(3,13,3)=5
-   lxyz_arr(1,14,3)=1 ; lxyz_arr(2,14,3)=2 ; lxyz_arr(3,14,3)=5
-   fac_arr(1,3)=0.04701207869759511923267022d0
-   fac_arr(2,3)=-0.09402415739519023846534044d0
-   fac_arr(3,3)=-0.1410362360927853576980107d0
-   fac_arr(4,3)=0.04701207869759511923267022d0
-   fac_arr(5,3)=-0.1410362360927853576980107d0
-   fac_arr(6,3)=-0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(7,3)=0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(8,3)=0.05876509837199389904083778d0/rhol**2d0
-   fac_arr(9,3)=0.03525905902319633942450267d0/rhol**2d0
-   fac_arr(10,3)=-0.02350603934879755961633511d0/rhol**2d0
-   fac_arr(11,3)=0.04701207869759511923267022d0/rhol**2d0
-   fac_arr(12,3)=0.07051811804639267884900533d0/rhol**2d0
-   fac_arr(13,3)=-0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(14,3)=0.03525905902319633942450267d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.3 .and. m.eq.5) then
-   nterm_arr(1)=15
-   nterm_arr(2)=18
-   nterm_arr(3)=14
-   lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=5 ; lxyz_arr(3,3,1)=0
-   lxyz_arr(1,4,1)=3 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
-   lxyz_arr(1,5,1)=1 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=2
-   lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=4
-   lxyz_arr(1,7,1)=7 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=0
-   lxyz_arr(1,8,1)=5 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=0
-   lxyz_arr(1,9,1)=3 ; lxyz_arr(2,9,1)=5 ; lxyz_arr(3,9,1)=0
-   lxyz_arr(1,10,1)=1 ; lxyz_arr(2,10,1)=7 ; lxyz_arr(3,10,1)=0
-   lxyz_arr(1,11,1)=5 ; lxyz_arr(2,11,1)=1 ; lxyz_arr(3,11,1)=2
-   lxyz_arr(1,12,1)=3 ; lxyz_arr(2,12,1)=3 ; lxyz_arr(3,12,1)=2
-   lxyz_arr(1,13,1)=1 ; lxyz_arr(2,13,1)=5 ; lxyz_arr(3,13,1)=2
-   lxyz_arr(1,14,1)=3 ; lxyz_arr(2,14,1)=1 ; lxyz_arr(3,14,1)=4
-   lxyz_arr(1,15,1)=1 ; lxyz_arr(2,15,1)=3 ; lxyz_arr(3,15,1)=4
-   fac_arr(1,1)=-0.211554354139178036547016d0
-   fac_arr(2,1)=-0.2350603934879755961633511d0
-   fac_arr(3,1)=-0.02350603934879755961633511d0
-   fac_arr(4,1)=-0.2820724721855707153960213d0
-   fac_arr(5,1)=-0.09402415739519023846534044d0
-   fac_arr(6,1)=-0.07051811804639267884900533d0
-   fac_arr(7,1)=0.03525905902319633942450267d0/rhol**2d0
-   fac_arr(8,1)=0.05876509837199389904083778d0/rhol**2d0
-   fac_arr(9,1)=0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(10,1)=-0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(11,1)=0.07051811804639267884900533d0/rhol**2d0
-   fac_arr(12,1)=0.04701207869759511923267022d0/rhol**2d0
-   fac_arr(13,1)=-0.02350603934879755961633511d0/rhol**2d0
-   fac_arr(14,1)=0.03525905902319633942450267d0/rhol**2d0
-   fac_arr(15,1)=-0.01175301967439877980816756d0/rhol**2d0
-   lxyz_arr(1,1,2)=6 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
-   lxyz_arr(1,2,2)=4 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
-   lxyz_arr(1,3,2)=2 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=6 ; lxyz_arr(3,4,2)=0
-   lxyz_arr(1,5,2)=4 ; lxyz_arr(2,5,2)=0 ; lxyz_arr(3,5,2)=2
-   lxyz_arr(1,6,2)=2 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=2
-   lxyz_arr(1,7,2)=0 ; lxyz_arr(2,7,2)=4 ; lxyz_arr(3,7,2)=2
-   lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=0 ; lxyz_arr(3,8,2)=4
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=2 ; lxyz_arr(3,9,2)=4
-   lxyz_arr(1,10,2)=6 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=0
-   lxyz_arr(1,11,2)=4 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=0
-   lxyz_arr(1,12,2)=2 ; lxyz_arr(2,12,2)=6 ; lxyz_arr(3,12,2)=0
-   lxyz_arr(1,13,2)=0 ; lxyz_arr(2,13,2)=8 ; lxyz_arr(3,13,2)=0
-   lxyz_arr(1,14,2)=4 ; lxyz_arr(2,14,2)=2 ; lxyz_arr(3,14,2)=2
-   lxyz_arr(1,15,2)=2 ; lxyz_arr(2,15,2)=4 ; lxyz_arr(3,15,2)=2
-   lxyz_arr(1,16,2)=0 ; lxyz_arr(2,16,2)=6 ; lxyz_arr(3,16,2)=2
-   lxyz_arr(1,17,2)=2 ; lxyz_arr(2,17,2)=2 ; lxyz_arr(3,17,2)=4
-   lxyz_arr(1,18,2)=0 ; lxyz_arr(2,18,2)=4 ; lxyz_arr(3,18,2)=4
-   fac_arr(1,2)=-0.03525905902319633942450267d0
-   fac_arr(2,2)=-0.1762952951159816971225133d0
-   fac_arr(3,2)=-0.05876509837199389904083778d0
-   fac_arr(4,2)=0.08227113772079145865717289d0
-   fac_arr(5,2)=-0.07051811804639267884900533d0
-   fac_arr(6,2)=-0.1410362360927853576980107d0
-   fac_arr(7,2)=0.1175301967439877980816756d0
-   fac_arr(8,2)=-0.03525905902319633942450267d0
-   fac_arr(9,2)=0.03525905902319633942450267d0
-   fac_arr(10,2)=0.03525905902319633942450267d0/rhol**2d0
-   fac_arr(11,2)=0.05876509837199389904083778d0/rhol**2d0
-   fac_arr(12,2)=0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(13,2)=-0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(14,2)=0.07051811804639267884900533d0/rhol**2d0
-   fac_arr(15,2)=0.04701207869759511923267022d0/rhol**2d0
-   fac_arr(16,2)=-0.02350603934879755961633511d0/rhol**2d0
-   fac_arr(17,2)=0.03525905902319633942450267d0/rhol**2d0
-   fac_arr(18,2)=-0.01175301967439877980816756d0/rhol**2d0
-   lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
-   lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
-   lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=1
-   lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
-   lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=3
-   lxyz_arr(1,6,3)=6 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=1
-   lxyz_arr(1,7,3)=4 ; lxyz_arr(2,7,3)=3 ; lxyz_arr(3,7,3)=1
-   lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=5 ; lxyz_arr(3,8,3)=1
-   lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=7 ; lxyz_arr(3,9,3)=1
-   lxyz_arr(1,10,3)=4 ; lxyz_arr(2,10,3)=1 ; lxyz_arr(3,10,3)=3
-   lxyz_arr(1,11,3)=2 ; lxyz_arr(2,11,3)=3 ; lxyz_arr(3,11,3)=3
-   lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=5 ; lxyz_arr(3,12,3)=3
-   lxyz_arr(1,13,3)=2 ; lxyz_arr(2,13,3)=1 ; lxyz_arr(3,13,3)=5
-   lxyz_arr(1,14,3)=0 ; lxyz_arr(2,14,3)=3 ; lxyz_arr(3,14,3)=5
-   fac_arr(1,3)=-0.1410362360927853576980107d0
-   fac_arr(2,3)=-0.09402415739519023846534044d0
-   fac_arr(3,3)=0.04701207869759511923267022d0
-   fac_arr(4,3)=-0.1410362360927853576980107d0
-   fac_arr(5,3)=0.04701207869759511923267022d0
-   fac_arr(6,3)=0.03525905902319633942450267d0/rhol**2d0
-   fac_arr(7,3)=0.05876509837199389904083778d0/rhol**2d0
-   fac_arr(8,3)=0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(9,3)=-0.01175301967439877980816756d0/rhol**2d0
-   fac_arr(10,3)=0.07051811804639267884900533d0/rhol**2d0
-   fac_arr(11,3)=0.04701207869759511923267022d0/rhol**2d0
-   fac_arr(12,3)=-0.02350603934879755961633511d0/rhol**2d0
-   fac_arr(13,3)=0.03525905902319633942450267d0/rhol**2d0
-   fac_arr(14,3)=-0.01175301967439877980816756d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.3 .and. m.eq.6) then
-   nterm_arr(1)=13
-   nterm_arr(2)=13
-   nterm_arr(3)=16
-   lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=1
-   lxyz_arr(1,4,1)=3 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
-   lxyz_arr(1,5,1)=1 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=5
-   lxyz_arr(1,6,1)=7 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=1
-   lxyz_arr(1,7,1)=5 ; lxyz_arr(2,7,1)=2 ; lxyz_arr(3,7,1)=1
-   lxyz_arr(1,8,1)=3 ; lxyz_arr(2,8,1)=4 ; lxyz_arr(3,8,1)=1
-   lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=6 ; lxyz_arr(3,9,1)=1
-   lxyz_arr(1,10,1)=5 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=3
-   lxyz_arr(1,11,1)=1 ; lxyz_arr(2,11,1)=4 ; lxyz_arr(3,11,1)=3
-   lxyz_arr(1,12,1)=3 ; lxyz_arr(2,12,1)=0 ; lxyz_arr(3,12,1)=5
-   lxyz_arr(1,13,1)=1 ; lxyz_arr(2,13,1)=2 ; lxyz_arr(3,13,1)=5
-   fac_arr(1,1)=0.1727334068350121925245643d0
-   fac_arr(2,1)=0.1151556045566747950163762d0
-   fac_arr(3,1)=-0.05757780227833739750818811d0
-   fac_arr(4,1)=0.2303112091133495900327524d0
-   fac_arr(5,1)=0.05757780227833739750818811d0
-   fac_arr(6,1)=-0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(7,1)=-0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(8,1)=0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(9,1)=0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(10,1)=-0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(11,1)=0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(12,1)=-0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(13,1)=0.02878890113916869875409405d0/rhol**2d0
-   lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=1
-   lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=3 ; lxyz_arr(3,4,2)=3
-   lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=1 ; lxyz_arr(3,5,2)=5
-   lxyz_arr(1,6,2)=6 ; lxyz_arr(2,6,2)=1 ; lxyz_arr(3,6,2)=1
-   lxyz_arr(1,7,2)=4 ; lxyz_arr(2,7,2)=3 ; lxyz_arr(3,7,2)=1
-   lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=5 ; lxyz_arr(3,8,2)=1
-   lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=7 ; lxyz_arr(3,9,2)=1
-   lxyz_arr(1,10,2)=4 ; lxyz_arr(2,10,2)=1 ; lxyz_arr(3,10,2)=3
-   lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=5 ; lxyz_arr(3,11,2)=3
-   lxyz_arr(1,12,2)=2 ; lxyz_arr(2,12,2)=1 ; lxyz_arr(3,12,2)=5
-   lxyz_arr(1,13,2)=0 ; lxyz_arr(2,13,2)=3 ; lxyz_arr(3,13,2)=5
-   fac_arr(1,2)=0.05757780227833739750818811d0
-   fac_arr(2,2)=-0.1151556045566747950163762d0
-   fac_arr(3,2)=-0.1727334068350121925245643d0
-   fac_arr(4,2)=-0.2303112091133495900327524d0
-   fac_arr(5,2)=-0.05757780227833739750818811d0
-   fac_arr(6,2)=-0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(7,2)=-0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(8,2)=0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(9,2)=0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(10,2)=-0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(11,2)=0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(12,2)=-0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(13,2)=0.02878890113916869875409405d0/rhol**2d0
-   lxyz_arr(1,1,3)=6 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=4 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
-   lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=6 ; lxyz_arr(3,4,3)=0
-   lxyz_arr(1,5,3)=4 ; lxyz_arr(2,5,3)=0 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=2
-   lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=4
-   lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=4
-   lxyz_arr(1,9,3)=6 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=2
-   lxyz_arr(1,10,3)=4 ; lxyz_arr(2,10,3)=2 ; lxyz_arr(3,10,3)=2
-   lxyz_arr(1,11,3)=2 ; lxyz_arr(2,11,3)=4 ; lxyz_arr(3,11,3)=2
-   lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=6 ; lxyz_arr(3,12,3)=2
-   lxyz_arr(1,13,3)=4 ; lxyz_arr(2,13,3)=0 ; lxyz_arr(3,13,3)=4
-   lxyz_arr(1,14,3)=0 ; lxyz_arr(2,14,3)=4 ; lxyz_arr(3,14,3)=4
-   lxyz_arr(1,15,3)=2 ; lxyz_arr(2,15,3)=0 ; lxyz_arr(3,15,3)=6
-   lxyz_arr(1,16,3)=0 ; lxyz_arr(2,16,3)=2 ; lxyz_arr(3,16,3)=6
-   fac_arr(1,3)=0.02878890113916869875409405d0
-   fac_arr(2,3)=0.02878890113916869875409405d0
-   fac_arr(3,3)=-0.02878890113916869875409405d0
-   fac_arr(4,3)=-0.02878890113916869875409405d0
-   fac_arr(5,3)=0.1727334068350121925245643d0
-   fac_arr(6,3)=-0.1727334068350121925245643d0
-   fac_arr(7,3)=0.1439445056958434937704703d0
-   fac_arr(8,3)=-0.1439445056958434937704703d0
-   fac_arr(9,3)=-0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(10,3)=-0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(11,3)=0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(12,3)=0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(13,3)=-0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(14,3)=0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(15,3)=-0.02878890113916869875409405d0/rhol**2d0
-   fac_arr(16,3)=0.02878890113916869875409405d0/rhol**2d0
-else if (l.eq.4 .and. i.eq.3 .and. m.eq.7) then
-   nterm_arr(1)=12
-   nterm_arr(2)=12
-   nterm_arr(3)=12
-   lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
-   lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=1
-   lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=5 ; lxyz_arr(3,3,1)=1
-   lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=3
-   lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=3
-   lxyz_arr(1,6,1)=0 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=5
-   lxyz_arr(1,7,1)=6 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=1
-   lxyz_arr(1,8,1)=4 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=1
-   lxyz_arr(1,9,1)=2 ; lxyz_arr(2,9,1)=5 ; lxyz_arr(3,9,1)=1
-   lxyz_arr(1,10,1)=4 ; lxyz_arr(2,10,1)=1 ; lxyz_arr(3,10,1)=3
-   lxyz_arr(1,11,1)=2 ; lxyz_arr(2,11,1)=3 ; lxyz_arr(3,11,1)=3
-   lxyz_arr(1,12,1)=2 ; lxyz_arr(2,12,1)=1 ; lxyz_arr(3,12,1)=5
-   fac_arr(1,1)=0.2878890113916869875409405d0
-   fac_arr(2,1)=0.3454668136700243850491286d0
-   fac_arr(3,1)=0.05757780227833739750818811d0
-   fac_arr(4,1)=0.3454668136700243850491286d0
-   fac_arr(5,1)=0.1151556045566747950163762d0
-   fac_arr(6,1)=0.05757780227833739750818811d0
-   fac_arr(7,1)=-0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(8,1)=-0.1151556045566747950163762d0/rhol**2d0
-   fac_arr(9,1)=-0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(10,1)=-0.1151556045566747950163762d0/rhol**2d0
-   fac_arr(11,1)=-0.1151556045566747950163762d0/rhol**2d0
-   fac_arr(12,1)=-0.05757780227833739750818811d0/rhol**2d0
-   lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
-   lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
-   lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=1
-   lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=3
-   lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=3
-   lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=0 ; lxyz_arr(3,6,2)=5
-   lxyz_arr(1,7,2)=5 ; lxyz_arr(2,7,2)=2 ; lxyz_arr(3,7,2)=1
-   lxyz_arr(1,8,2)=3 ; lxyz_arr(2,8,2)=4 ; lxyz_arr(3,8,2)=1
-   lxyz_arr(1,9,2)=1 ; lxyz_arr(2,9,2)=6 ; lxyz_arr(3,9,2)=1
-   lxyz_arr(1,10,2)=3 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=3
-   lxyz_arr(1,11,2)=1 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=3
-   lxyz_arr(1,12,2)=1 ; lxyz_arr(2,12,2)=2 ; lxyz_arr(3,12,2)=5
-   fac_arr(1,2)=0.05757780227833739750818811d0
-   fac_arr(2,2)=0.3454668136700243850491286d0
-   fac_arr(3,2)=0.2878890113916869875409405d0
-   fac_arr(4,2)=0.1151556045566747950163762d0
-   fac_arr(5,2)=0.3454668136700243850491286d0
-   fac_arr(6,2)=0.05757780227833739750818811d0
-   fac_arr(7,2)=-0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(8,2)=-0.1151556045566747950163762d0/rhol**2d0
-   fac_arr(9,2)=-0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(10,2)=-0.1151556045566747950163762d0/rhol**2d0
-   fac_arr(11,2)=-0.1151556045566747950163762d0/rhol**2d0
-   fac_arr(12,2)=-0.05757780227833739750818811d0/rhol**2d0
-   lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
-   lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
-   lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=0
-   lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=2
-   lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=2
-   lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=4
-   lxyz_arr(1,7,3)=5 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=2
-   lxyz_arr(1,8,3)=3 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=2
-   lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=5 ; lxyz_arr(3,9,3)=2
-   lxyz_arr(1,10,3)=3 ; lxyz_arr(2,10,3)=1 ; lxyz_arr(3,10,3)=4
-   lxyz_arr(1,11,3)=1 ; lxyz_arr(2,11,3)=3 ; lxyz_arr(3,11,3)=4
-   lxyz_arr(1,12,3)=1 ; lxyz_arr(2,12,3)=1 ; lxyz_arr(3,12,3)=6
-   fac_arr(1,3)=0.05757780227833739750818811d0
-   fac_arr(2,3)=0.1151556045566747950163762d0
-   fac_arr(3,3)=0.05757780227833739750818811d0
-   fac_arr(4,3)=0.3454668136700243850491286d0
-   fac_arr(5,3)=0.3454668136700243850491286d0
-   fac_arr(6,3)=0.2878890113916869875409405d0
-   fac_arr(7,3)=-0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(8,3)=-0.1151556045566747950163762d0/rhol**2d0
-   fac_arr(9,3)=-0.05757780227833739750818811d0/rhol**2d0
-   fac_arr(10,3)=-0.1151556045566747950163762d0/rhol**2d0
-   fac_arr(11,3)=-0.1151556045566747950163762d0/rhol**2d0
-   fac_arr(12,3)=-0.05757780227833739750818811d0/rhol**2d0
-else
-   stop 'PSP format error'
-end if
+  if (l.eq.1 .and. i.eq.1 .and. m.eq.1) then
+     nterm_arr(1)=1
+     nterm_arr(2)=1
+     nterm_arr(3)=1
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     fac_arr(1,1)=-0.7071067811865475244008444d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     fac_arr(1,2)=-0.7071067811865475244008444d0/rhol**2d0
+     lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     fac_arr(1,3)=-0.7071067811865475244008444d0/rhol**2d0
+  else if (l.eq.1 .and. i.eq.2 .and. m.eq.1) then
+     nterm_arr(1)=4
+     nterm_arr(2)=4
+     nterm_arr(3)=4
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
+     fac_arr(1,1)=0.730296743340221484609293d0
+     fac_arr(2,1)=-0.3651483716701107423046465d0/rhol**2d0
+     fac_arr(3,1)=-0.3651483716701107423046465d0/rhol**2d0
+     fac_arr(4,1)=-0.3651483716701107423046465d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
+     fac_arr(1,2)=0.730296743340221484609293d0
+     fac_arr(2,2)=-0.3651483716701107423046465d0/rhol**2d0
+     fac_arr(3,2)=-0.3651483716701107423046465d0/rhol**2d0
+     fac_arr(4,2)=-0.3651483716701107423046465d0/rhol**2d0
+     lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
+     fac_arr(1,3)=0.730296743340221484609293d0
+     fac_arr(2,3)=-0.3651483716701107423046465d0/rhol**2d0
+     fac_arr(3,3)=-0.3651483716701107423046465d0/rhol**2d0
+     fac_arr(4,3)=-0.3651483716701107423046465d0/rhol**2d0
+  else if (l.eq.1 .and. i.eq.3 .and. m.eq.1) then
+     nterm_arr(1)=9
+     nterm_arr(2)=9
+     nterm_arr(3)=9
+     lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=2
+     lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=0
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=4 ; lxyz_arr(3,6,1)=0
+     lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=2
+     lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=2
+     lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=4
+     fac_arr(1,1)=0.3680349649825889161579343d0
+     fac_arr(2,1)=0.3680349649825889161579343d0
+     fac_arr(3,1)=0.3680349649825889161579343d0
+     fac_arr(4,1)=-0.09200874124564722903948358d0/rhol**2d0
+     fac_arr(5,1)=-0.1840174824912944580789672d0/rhol**2d0
+     fac_arr(6,1)=-0.09200874124564722903948358d0/rhol**2d0
+     fac_arr(7,1)=-0.1840174824912944580789672d0/rhol**2d0
+     fac_arr(8,1)=-0.1840174824912944580789672d0/rhol**2d0
+     fac_arr(9,1)=-0.09200874124564722903948358d0/rhol**2d0
+     lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
+     lxyz_arr(1,4,2)=4 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=0
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=0
+     lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=2
+     lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=2
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=4
+     fac_arr(1,2)=0.3680349649825889161579343d0
+     fac_arr(2,2)=0.3680349649825889161579343d0
+     fac_arr(3,2)=0.3680349649825889161579343d0
+     fac_arr(4,2)=-0.09200874124564722903948358d0/rhol**2d0
+     fac_arr(5,2)=-0.1840174824912944580789672d0/rhol**2d0
+     fac_arr(6,2)=-0.09200874124564722903948358d0/rhol**2d0
+     fac_arr(7,2)=-0.1840174824912944580789672d0/rhol**2d0
+     fac_arr(8,2)=-0.1840174824912944580789672d0/rhol**2d0
+     fac_arr(9,2)=-0.09200874124564722903948358d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
+     lxyz_arr(1,4,3)=4 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=2 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=3
+     lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=3
+     lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=5
+     fac_arr(1,3)=0.3680349649825889161579343d0
+     fac_arr(2,3)=0.3680349649825889161579343d0
+     fac_arr(3,3)=0.3680349649825889161579343d0
+     fac_arr(4,3)=-0.09200874124564722903948358d0/rhol**2d0
+     fac_arr(5,3)=-0.1840174824912944580789672d0/rhol**2d0
+     fac_arr(6,3)=-0.09200874124564722903948358d0/rhol**2d0
+     fac_arr(7,3)=-0.1840174824912944580789672d0/rhol**2d0
+     fac_arr(8,3)=-0.1840174824912944580789672d0/rhol**2d0
+     fac_arr(9,3)=-0.09200874124564722903948358d0/rhol**2d0
+  else if (l.eq.2 .and. i.eq.1 .and. m.eq.1) then
+     nterm_arr(1)=2
+     nterm_arr(2)=1
+     nterm_arr(3)=1
+     lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=0
+     fac_arr(1,1)=1.d0
+     fac_arr(2,1)=-1.d0/rhol**2d0
+     lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     fac_arr(1,2)=-1.d0/rhol**2d0
+     lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     fac_arr(1,3)=-1.d0/rhol**2d0
+  else if (l.eq.2 .and. i.eq.1 .and. m.eq.2) then
+     nterm_arr(1)=1
+     nterm_arr(2)=2
+     nterm_arr(3)=1
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     fac_arr(1,1)=-1.d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     fac_arr(1,2)=1.d0
+     fac_arr(2,2)=-1.d0/rhol**2d0
+     lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     fac_arr(1,3)=-1.d0/rhol**2d0
+  else if (l.eq.2 .and. i.eq.1 .and. m.eq.3) then
+     nterm_arr(1)=1
+     nterm_arr(2)=1
+     nterm_arr(3)=2
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     fac_arr(1,1)=-1.d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     fac_arr(1,2)=-1.d0/rhol**2d0
+     lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=2
+     fac_arr(1,3)=1.d0
+     fac_arr(2,3)=-1.d0/rhol**2d0
+  else if (l.eq.2 .and. i.eq.2 .and. m.eq.1) then
+     nterm_arr(1)=6
+     nterm_arr(2)=4
+     nterm_arr(3)=4
+     lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=2
+     lxyz_arr(1,4,1)=4 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=2 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=0
+     lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=2
+     fac_arr(1,1)=1.014185105674219893011542d0
+     fac_arr(2,1)=0.3380617018914066310038473d0
+     fac_arr(3,1)=0.3380617018914066310038473d0
+     fac_arr(4,1)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(5,1)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(6,1)=-0.3380617018914066310038473d0/rhol**2d0
+     lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=1 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
+     fac_arr(1,2)=0.6761234037828132620076947d0
+     fac_arr(2,2)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(3,2)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(4,2)=-0.3380617018914066310038473d0/rhol**2d0
+     lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=1 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
+     fac_arr(1,3)=0.6761234037828132620076947d0
+     fac_arr(2,3)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(3,3)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(4,3)=-0.3380617018914066310038473d0/rhol**2d0
+  else if (l.eq.2 .and. i.eq.2 .and. m.eq.2) then
+     nterm_arr(1)=4
+     nterm_arr(2)=6
+     nterm_arr(3)=4
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
+     fac_arr(1,1)=0.6761234037828132620076947d0
+     fac_arr(2,1)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(3,1)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(4,1)=-0.3380617018914066310038473d0/rhol**2d0
+     lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=2
+     lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=2 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=4 ; lxyz_arr(3,5,2)=0
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=2
+     fac_arr(1,2)=0.3380617018914066310038473d0
+     fac_arr(2,2)=1.014185105674219893011542d0
+     fac_arr(3,2)=0.3380617018914066310038473d0
+     fac_arr(4,2)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(5,2)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(6,2)=-0.3380617018914066310038473d0/rhol**2d0
+     lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=3 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
+     fac_arr(1,3)=0.6761234037828132620076947d0
+     fac_arr(2,3)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(3,3)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(4,3)=-0.3380617018914066310038473d0/rhol**2d0
+  else if (l.eq.2 .and. i.eq.2 .and. m.eq.3) then
+     nterm_arr(1)=4
+     nterm_arr(2)=4
+     nterm_arr(3)=6
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=1
+     lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
+     fac_arr(1,1)=0.6761234037828132620076947d0
+     fac_arr(2,1)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(3,1)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(4,1)=-0.3380617018914066310038473d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
+     fac_arr(1,2)=0.6761234037828132620076947d0
+     fac_arr(2,2)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(3,2)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(4,2)=-0.3380617018914066310038473d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
+     lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
+     fac_arr(1,3)=0.3380617018914066310038473d0
+     fac_arr(2,3)=0.3380617018914066310038473d0
+     fac_arr(3,3)=1.014185105674219893011542d0
+     fac_arr(4,3)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(5,3)=-0.3380617018914066310038473d0/rhol**2d0
+     fac_arr(6,3)=-0.3380617018914066310038473d0/rhol**2d0
+  else if (l.eq.2 .and. i.eq.3 .and. m.eq.1) then
+     nterm_arr(1)=12
+     nterm_arr(2)=9
+     nterm_arr(3)=9
+     lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
+     lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=2
+     lxyz_arr(1,6,1)=0 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=4
+     lxyz_arr(1,7,1)=6 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=0
+     lxyz_arr(1,8,1)=4 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=0
+     lxyz_arr(1,9,1)=2 ; lxyz_arr(2,9,1)=4 ; lxyz_arr(3,9,1)=0
+     lxyz_arr(1,10,1)=4 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=2
+     lxyz_arr(1,11,1)=2 ; lxyz_arr(2,11,1)=2 ; lxyz_arr(3,11,1)=2
+     lxyz_arr(1,12,1)=2 ; lxyz_arr(2,12,1)=0 ; lxyz_arr(3,12,1)=4
+     fac_arr(1,1)=0.3397647942917503630913594d0
+     fac_arr(2,1)=0.4077177531501004357096312d0
+     fac_arr(3,1)=0.06795295885835007261827187d0
+     fac_arr(4,1)=0.4077177531501004357096312d0
+     fac_arr(5,1)=0.1359059177167001452365437d0
+     fac_arr(6,1)=0.06795295885835007261827187d0
+     fac_arr(7,1)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(8,1)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(9,1)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(10,1)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(11,1)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(12,1)=-0.06795295885835007261827187d0/rhol**2d0
+     lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
+     lxyz_arr(1,4,2)=5 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=3 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=0
+     lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=0
+     lxyz_arr(1,7,2)=3 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=2
+     lxyz_arr(1,8,2)=1 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=2
+     lxyz_arr(1,9,2)=1 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=4
+     fac_arr(1,2)=0.2718118354334002904730875d0
+     fac_arr(2,2)=0.2718118354334002904730875d0
+     fac_arr(3,2)=0.2718118354334002904730875d0
+     fac_arr(4,2)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(5,2)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(6,2)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(7,2)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(8,2)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(9,2)=-0.06795295885835007261827187d0/rhol**2d0
+     lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
+     lxyz_arr(1,4,3)=5 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=3 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=3 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=3
+     lxyz_arr(1,8,3)=1 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=3
+     lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=5
+     fac_arr(1,3)=0.2718118354334002904730875d0
+     fac_arr(2,3)=0.2718118354334002904730875d0
+     fac_arr(3,3)=0.2718118354334002904730875d0
+     fac_arr(4,3)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(5,3)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(6,3)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(7,3)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(8,3)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(9,3)=-0.06795295885835007261827187d0/rhol**2d0
+  else if (l.eq.2 .and. i.eq.3 .and. m.eq.2) then
+     nterm_arr(1)=9
+     nterm_arr(2)=12
+     nterm_arr(3)=9
+     lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=2
+     lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=0
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=5 ; lxyz_arr(3,6,1)=0
+     lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=2
+     lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=2
+     lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=1 ; lxyz_arr(3,9,1)=4
+     fac_arr(1,1)=0.2718118354334002904730875d0
+     fac_arr(2,1)=0.2718118354334002904730875d0
+     fac_arr(3,1)=0.2718118354334002904730875d0
+     fac_arr(4,1)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(5,1)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(6,1)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(7,1)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(8,1)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(9,1)=-0.06795295885835007261827187d0/rhol**2d0
+     lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=2
+     lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=2
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=0 ; lxyz_arr(3,6,2)=4
+     lxyz_arr(1,7,2)=4 ; lxyz_arr(2,7,2)=2 ; lxyz_arr(3,7,2)=0
+     lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=4 ; lxyz_arr(3,8,2)=0
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=6 ; lxyz_arr(3,9,2)=0
+     lxyz_arr(1,10,2)=2 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=2
+     lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=2
+     lxyz_arr(1,12,2)=0 ; lxyz_arr(2,12,2)=2 ; lxyz_arr(3,12,2)=4
+     fac_arr(1,2)=0.06795295885835007261827187d0
+     fac_arr(2,2)=0.4077177531501004357096312d0
+     fac_arr(3,2)=0.3397647942917503630913594d0
+     fac_arr(4,2)=0.1359059177167001452365437d0
+     fac_arr(5,2)=0.4077177531501004357096312d0
+     fac_arr(6,2)=0.06795295885835007261827187d0
+     fac_arr(7,2)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(8,2)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(9,2)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(10,2)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(11,2)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(12,2)=-0.06795295885835007261827187d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=3
+     lxyz_arr(1,4,3)=4 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=2 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=5 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=3
+     lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=3
+     lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=1 ; lxyz_arr(3,9,3)=5
+     fac_arr(1,3)=0.2718118354334002904730875d0
+     fac_arr(2,3)=0.2718118354334002904730875d0
+     fac_arr(3,3)=0.2718118354334002904730875d0
+     fac_arr(4,3)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(5,3)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(6,3)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(7,3)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(8,3)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(9,3)=-0.06795295885835007261827187d0/rhol**2d0
+  else if (l.eq.2 .and. i.eq.3 .and. m.eq.3) then
+     nterm_arr(1)=9
+     nterm_arr(2)=9
+     nterm_arr(3)=12
+     lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=3
+     lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=1
+     lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=1
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=4 ; lxyz_arr(3,6,1)=1
+     lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=3
+     lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=3
+     lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=5
+     fac_arr(1,1)=0.2718118354334002904730875d0
+     fac_arr(2,1)=0.2718118354334002904730875d0
+     fac_arr(3,1)=0.2718118354334002904730875d0
+     fac_arr(4,1)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(5,1)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(6,1)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(7,1)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(8,1)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(9,1)=-0.06795295885835007261827187d0/rhol**2d0
+     lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=3
+     lxyz_arr(1,4,2)=4 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=1
+     lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=1
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=1
+     lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=3
+     lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=3
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=5
+     fac_arr(1,2)=0.2718118354334002904730875d0
+     fac_arr(2,2)=0.2718118354334002904730875d0
+     fac_arr(3,2)=0.2718118354334002904730875d0
+     fac_arr(4,2)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(5,2)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(6,2)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(7,2)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(8,2)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(9,2)=-0.06795295885835007261827187d0/rhol**2d0
+     lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
+     lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
+     lxyz_arr(1,7,3)=4 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=2
+     lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=2
+     lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=4 ; lxyz_arr(3,9,3)=2
+     lxyz_arr(1,10,3)=2 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=4
+     lxyz_arr(1,11,3)=0 ; lxyz_arr(2,11,3)=2 ; lxyz_arr(3,11,3)=4
+     lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=0 ; lxyz_arr(3,12,3)=6
+     fac_arr(1,3)=0.06795295885835007261827187d0
+     fac_arr(2,3)=0.1359059177167001452365437d0
+     fac_arr(3,3)=0.06795295885835007261827187d0
+     fac_arr(4,3)=0.4077177531501004357096312d0
+     fac_arr(5,3)=0.4077177531501004357096312d0
+     fac_arr(6,3)=0.3397647942917503630913594d0
+     fac_arr(7,3)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(8,3)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(9,3)=-0.06795295885835007261827187d0/rhol**2d0
+     fac_arr(10,3)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(11,3)=-0.1359059177167001452365437d0/rhol**2d0
+     fac_arr(12,3)=-0.06795295885835007261827187d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.1 .and. m.eq.1) then
+     nterm_arr(1)=1
+     nterm_arr(2)=2
+     nterm_arr(3)=2
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
+     fac_arr(1,1)=-1.414213562373095048801689d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
+     fac_arr(1,2)=1.414213562373095048801689d0
+     fac_arr(2,2)=-1.414213562373095048801689d0/rhol**2d0
+     lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=2
+     fac_arr(1,3)=1.414213562373095048801689d0
+     fac_arr(2,3)=-1.414213562373095048801689d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.1 .and. m.eq.2) then
+     nterm_arr(1)=2
+     nterm_arr(2)=1
+     nterm_arr(3)=2
+     lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=1
+     fac_arr(1,1)=1.414213562373095048801689d0
+     fac_arr(2,1)=-1.414213562373095048801689d0/rhol**2d0
+     lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     fac_arr(1,2)=-1.414213562373095048801689d0/rhol**2d0
+     lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=2
+     fac_arr(1,3)=1.414213562373095048801689d0
+     fac_arr(2,3)=-1.414213562373095048801689d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.1 .and. m.eq.3) then
+     nterm_arr(1)=2
+     nterm_arr(2)=2
+     nterm_arr(3)=1
+     lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=0
+     fac_arr(1,1)=1.414213562373095048801689d0
+     fac_arr(2,1)=-1.414213562373095048801689d0/rhol**2d0
+     lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     fac_arr(1,2)=1.414213562373095048801689d0
+     fac_arr(2,2)=-1.414213562373095048801689d0/rhol**2d0
+     lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     fac_arr(1,3)=-1.414213562373095048801689d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.1 .and. m.eq.4) then
+     nterm_arr(1)=3
+     nterm_arr(2)=3
+     nterm_arr(3)=2
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=0
+     fac_arr(1,1)=1.414213562373095048801689d0
+     fac_arr(2,1)=-0.7071067811865475244008444d0/rhol**2d0
+     fac_arr(3,1)=0.7071067811865475244008444d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
+     fac_arr(1,2)=-1.414213562373095048801689d0
+     fac_arr(2,2)=-0.7071067811865475244008444d0/rhol**2d0
+     fac_arr(3,2)=0.7071067811865475244008444d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
+     fac_arr(1,3)=-0.7071067811865475244008444d0/rhol**2d0
+     fac_arr(2,3)=0.7071067811865475244008444d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.1 .and. m.eq.5) then
+     nterm_arr(1)=4
+     nterm_arr(2)=4
+     nterm_arr(3)=4
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
+     fac_arr(1,1)=-0.816496580927726032732428d0
+     fac_arr(2,1)=0.408248290463863016366214d0/rhol**2d0
+     fac_arr(3,1)=0.408248290463863016366214d0/rhol**2d0
+     fac_arr(4,1)=-0.816496580927726032732428d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
+     fac_arr(1,2)=-0.816496580927726032732428d0
+     fac_arr(2,2)=0.408248290463863016366214d0/rhol**2d0
+     fac_arr(3,2)=0.408248290463863016366214d0/rhol**2d0
+     fac_arr(4,2)=-0.816496580927726032732428d0/rhol**2d0
+     lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
+     fac_arr(1,3)=1.632993161855452065464856d0
+     fac_arr(2,3)=0.408248290463863016366214d0/rhol**2d0
+     fac_arr(3,3)=0.408248290463863016366214d0/rhol**2d0
+     fac_arr(4,3)=-0.816496580927726032732428d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.2 .and. m.eq.1) then
+     nterm_arr(1)=4
+     nterm_arr(2)=6
+     nterm_arr(3)=6
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=1
+     lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=3
+     fac_arr(1,1)=0.7126966450997983591588093d0
+     fac_arr(2,1)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(3,1)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(4,1)=-0.3563483225498991795794046d0/rhol**2d0
+     lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=3
+     lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=2 ; lxyz_arr(3,4,2)=1
+     lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=4 ; lxyz_arr(3,5,2)=1
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=3
+     fac_arr(1,2)=0.3563483225498991795794046d0
+     fac_arr(2,2)=1.069044967649697538738214d0
+     fac_arr(3,2)=0.3563483225498991795794046d0
+     fac_arr(4,2)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(5,2)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(6,2)=-0.3563483225498991795794046d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=2
+     lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=4
+     fac_arr(1,3)=0.3563483225498991795794046d0
+     fac_arr(2,3)=0.3563483225498991795794046d0
+     fac_arr(3,3)=1.069044967649697538738214d0
+     fac_arr(4,3)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(5,3)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(6,3)=-0.3563483225498991795794046d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.2 .and. m.eq.2) then
+     nterm_arr(1)=6
+     nterm_arr(2)=4
+     nterm_arr(3)=6
+     lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=3
+     lxyz_arr(1,4,1)=4 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=1
+     lxyz_arr(1,5,1)=2 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=1
+     lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=3
+     fac_arr(1,1)=1.069044967649697538738214d0
+     fac_arr(2,1)=0.3563483225498991795794046d0
+     fac_arr(3,1)=0.3563483225498991795794046d0
+     fac_arr(4,1)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(5,1)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(6,1)=-0.3563483225498991795794046d0/rhol**2d0
+     lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
+     lxyz_arr(1,4,2)=1 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
+     fac_arr(1,2)=0.7126966450997983591588093d0
+     fac_arr(2,2)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(3,2)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(4,2)=-0.3563483225498991795794046d0/rhol**2d0
+     lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
+     lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
+     fac_arr(1,3)=0.3563483225498991795794046d0
+     fac_arr(2,3)=0.3563483225498991795794046d0
+     fac_arr(3,3)=1.069044967649697538738214d0
+     fac_arr(4,3)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(5,3)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(6,3)=-0.3563483225498991795794046d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.2 .and. m.eq.3) then
+     nterm_arr(1)=6
+     nterm_arr(2)=6
+     nterm_arr(3)=4
+     lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=2
+     lxyz_arr(1,4,1)=4 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=2 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=0
+     lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=2
+     fac_arr(1,1)=1.069044967649697538738214d0
+     fac_arr(2,1)=0.3563483225498991795794046d0
+     fac_arr(3,1)=0.3563483225498991795794046d0
+     fac_arr(4,1)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(5,1)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(6,1)=-0.3563483225498991795794046d0/rhol**2d0
+     lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=2
+     lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=2 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=4 ; lxyz_arr(3,5,2)=0
+     lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=2
+     fac_arr(1,2)=0.3563483225498991795794046d0
+     fac_arr(2,2)=1.069044967649697538738214d0
+     fac_arr(3,2)=0.3563483225498991795794046d0
+     fac_arr(4,2)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(5,2)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(6,2)=-0.3563483225498991795794046d0/rhol**2d0
+     lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=3 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=1 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
+     fac_arr(1,3)=0.7126966450997983591588093d0
+     fac_arr(2,3)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(3,3)=-0.3563483225498991795794046d0/rhol**2d0
+     fac_arr(4,3)=-0.3563483225498991795794046d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.2 .and. m.eq.4) then
+     nterm_arr(1)=6
+     nterm_arr(2)=6
+     nterm_arr(3)=6
+     lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=2
+     lxyz_arr(1,3,1)=5 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=4 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=2
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=2
+     fac_arr(1,1)=0.7126966450997983591588093d0
+     fac_arr(2,1)=0.3563483225498991795794046d0
+     fac_arr(3,1)=-0.1781741612749495897897023d0/rhol**2d0
+     fac_arr(4,1)=0.1781741612749495897897023d0/rhol**2d0
+     fac_arr(5,1)=-0.1781741612749495897897023d0/rhol**2d0
+     fac_arr(6,1)=0.1781741612749495897897023d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=3 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=2
+     lxyz_arr(1,3,2)=4 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=5 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=1 ; lxyz_arr(3,5,2)=2
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=3 ; lxyz_arr(3,6,2)=2
+     fac_arr(1,2)=-0.7126966450997983591588093d0
+     fac_arr(2,2)=-0.3563483225498991795794046d0
+     fac_arr(3,2)=-0.1781741612749495897897023d0/rhol**2d0
+     fac_arr(4,2)=0.1781741612749495897897023d0/rhol**2d0
+     fac_arr(5,2)=-0.1781741612749495897897023d0/rhol**2d0
+     fac_arr(6,2)=0.1781741612749495897897023d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=4 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=4 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=2 ; lxyz_arr(2,5,3)=0 ; lxyz_arr(3,5,3)=3
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=2 ; lxyz_arr(3,6,3)=3
+     fac_arr(1,3)=0.3563483225498991795794046d0
+     fac_arr(2,3)=-0.3563483225498991795794046d0
+     fac_arr(3,3)=-0.1781741612749495897897023d0/rhol**2d0
+     fac_arr(4,3)=0.1781741612749495897897023d0/rhol**2d0
+     fac_arr(5,3)=-0.1781741612749495897897023d0/rhol**2d0
+     fac_arr(6,3)=0.1781741612749495897897023d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.2 .and. m.eq.5) then
+     nterm_arr(1)=9
+     nterm_arr(2)=9
+     nterm_arr(3)=9
+     lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=2
+     lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=0
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=4 ; lxyz_arr(3,6,1)=0
+     lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=2
+     lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=2
+     lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=4
+     fac_arr(1,1)=-0.4114755998989117606962519d0
+     fac_arr(2,1)=-0.4114755998989117606962519d0
+     fac_arr(3,1)=0.205737799949455880348126d0
+     fac_arr(4,1)=0.102868899974727940174063d0/rhol**2d0
+     fac_arr(5,1)=0.205737799949455880348126d0/rhol**2d0
+     fac_arr(6,1)=0.102868899974727940174063d0/rhol**2d0
+     fac_arr(7,1)=-0.102868899974727940174063d0/rhol**2d0
+     fac_arr(8,1)=-0.102868899974727940174063d0/rhol**2d0
+     fac_arr(9,1)=-0.205737799949455880348126d0/rhol**2d0
+     lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
+     lxyz_arr(1,4,2)=4 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=0
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=0
+     lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=2
+     lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=2
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=4
+     fac_arr(1,2)=-0.4114755998989117606962519d0
+     fac_arr(2,2)=-0.4114755998989117606962519d0
+     fac_arr(3,2)=0.205737799949455880348126d0
+     fac_arr(4,2)=0.102868899974727940174063d0/rhol**2d0
+     fac_arr(5,2)=0.205737799949455880348126d0/rhol**2d0
+     fac_arr(6,2)=0.102868899974727940174063d0/rhol**2d0
+     fac_arr(7,2)=-0.102868899974727940174063d0/rhol**2d0
+     fac_arr(8,2)=-0.102868899974727940174063d0/rhol**2d0
+     fac_arr(9,2)=-0.205737799949455880348126d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
+     lxyz_arr(1,4,3)=4 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=2 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=3
+     lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=3
+     lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=5
+     fac_arr(1,3)=0.205737799949455880348126d0
+     fac_arr(2,3)=0.205737799949455880348126d0
+     fac_arr(3,3)=0.8229511997978235213925038d0
+     fac_arr(4,3)=0.102868899974727940174063d0/rhol**2d0
+     fac_arr(5,3)=0.205737799949455880348126d0/rhol**2d0
+     fac_arr(6,3)=0.102868899974727940174063d0/rhol**2d0
+     fac_arr(7,3)=-0.102868899974727940174063d0/rhol**2d0
+     fac_arr(8,3)=-0.102868899974727940174063d0/rhol**2d0
+     fac_arr(9,3)=-0.205737799949455880348126d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.3 .and. m.eq.1) then
+     nterm_arr(1)=9
+     nterm_arr(2)=12
+     nterm_arr(3)=12
+     lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=3
+     lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=1
+     lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=1
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=5 ; lxyz_arr(3,6,1)=1
+     lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=3
+     lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=3
+     lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=1 ; lxyz_arr(3,9,1)=5
+     fac_arr(1,1)=0.2383947500094262395810797d0
+     fac_arr(2,1)=0.2383947500094262395810797d0
+     fac_arr(3,1)=0.2383947500094262395810797d0
+     fac_arr(4,1)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(5,1)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(6,1)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(7,1)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(8,1)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(9,1)=-0.05959868750235655989526993d0/rhol**2d0
+     lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=1
+     lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=3
+     lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=3
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=0 ; lxyz_arr(3,6,2)=5
+     lxyz_arr(1,7,2)=4 ; lxyz_arr(2,7,2)=2 ; lxyz_arr(3,7,2)=1
+     lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=4 ; lxyz_arr(3,8,2)=1
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=6 ; lxyz_arr(3,9,2)=1
+     lxyz_arr(1,10,2)=2 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=3
+     lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=3
+     lxyz_arr(1,12,2)=0 ; lxyz_arr(2,12,2)=2 ; lxyz_arr(3,12,2)=5
+     fac_arr(1,2)=0.05959868750235655989526993d0
+     fac_arr(2,2)=0.3575921250141393593716196d0
+     fac_arr(3,2)=0.2979934375117827994763496d0
+     fac_arr(4,2)=0.1191973750047131197905399d0
+     fac_arr(5,2)=0.3575921250141393593716196d0
+     fac_arr(6,2)=0.05959868750235655989526993d0
+     fac_arr(7,2)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(8,2)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(9,2)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(10,2)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(11,2)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(12,2)=-0.05959868750235655989526993d0/rhol**2d0
+     lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=0
+     lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=4
+     lxyz_arr(1,7,3)=4 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=2
+     lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=2
+     lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=5 ; lxyz_arr(3,9,3)=2
+     lxyz_arr(1,10,3)=2 ; lxyz_arr(2,10,3)=1 ; lxyz_arr(3,10,3)=4
+     lxyz_arr(1,11,3)=0 ; lxyz_arr(2,11,3)=3 ; lxyz_arr(3,11,3)=4
+     lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=1 ; lxyz_arr(3,12,3)=6
+     fac_arr(1,3)=0.05959868750235655989526993d0
+     fac_arr(2,3)=0.1191973750047131197905399d0
+     fac_arr(3,3)=0.05959868750235655989526993d0
+     fac_arr(4,3)=0.3575921250141393593716196d0
+     fac_arr(5,3)=0.3575921250141393593716196d0
+     fac_arr(6,3)=0.2979934375117827994763496d0
+     fac_arr(7,3)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(8,3)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(10,3)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(11,3)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(12,3)=-0.05959868750235655989526993d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.3 .and. m.eq.2) then
+     nterm_arr(1)=12
+     nterm_arr(2)=9
+     nterm_arr(3)=12
+     lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=1
+     lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
+     lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=3
+     lxyz_arr(1,6,1)=0 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=5
+     lxyz_arr(1,7,1)=6 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=1
+     lxyz_arr(1,8,1)=4 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=1
+     lxyz_arr(1,9,1)=2 ; lxyz_arr(2,9,1)=4 ; lxyz_arr(3,9,1)=1
+     lxyz_arr(1,10,1)=4 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=3
+     lxyz_arr(1,11,1)=2 ; lxyz_arr(2,11,1)=2 ; lxyz_arr(3,11,1)=3
+     lxyz_arr(1,12,1)=2 ; lxyz_arr(2,12,1)=0 ; lxyz_arr(3,12,1)=5
+     fac_arr(1,1)=0.2979934375117827994763496d0
+     fac_arr(2,1)=0.3575921250141393593716196d0
+     fac_arr(3,1)=0.05959868750235655989526993d0
+     fac_arr(4,1)=0.3575921250141393593716196d0
+     fac_arr(5,1)=0.1191973750047131197905399d0
+     fac_arr(6,1)=0.05959868750235655989526993d0
+     fac_arr(7,1)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(8,1)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(9,1)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(10,1)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(11,1)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(12,1)=-0.05959868750235655989526993d0/rhol**2d0
+     lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=3
+     lxyz_arr(1,4,2)=5 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=1
+     lxyz_arr(1,5,2)=3 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=1
+     lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=1
+     lxyz_arr(1,7,2)=3 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=3
+     lxyz_arr(1,8,2)=1 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=3
+     lxyz_arr(1,9,2)=1 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=5
+     fac_arr(1,2)=0.2383947500094262395810797d0
+     fac_arr(2,2)=0.2383947500094262395810797d0
+     fac_arr(3,2)=0.2383947500094262395810797d0
+     fac_arr(4,2)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(5,2)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(6,2)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(7,2)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(8,2)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(9,2)=-0.05959868750235655989526993d0/rhol**2d0
+     lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
+     lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
+     lxyz_arr(1,7,3)=5 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=2
+     lxyz_arr(1,8,3)=3 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=2
+     lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=4 ; lxyz_arr(3,9,3)=2
+     lxyz_arr(1,10,3)=3 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=4
+     lxyz_arr(1,11,3)=1 ; lxyz_arr(2,11,3)=2 ; lxyz_arr(3,11,3)=4
+     lxyz_arr(1,12,3)=1 ; lxyz_arr(2,12,3)=0 ; lxyz_arr(3,12,3)=6
+     fac_arr(1,3)=0.05959868750235655989526993d0
+     fac_arr(2,3)=0.1191973750047131197905399d0
+     fac_arr(3,3)=0.05959868750235655989526993d0
+     fac_arr(4,3)=0.3575921250141393593716196d0
+     fac_arr(5,3)=0.3575921250141393593716196d0
+     fac_arr(6,3)=0.2979934375117827994763496d0
+     fac_arr(7,3)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(8,3)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(10,3)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(11,3)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(12,3)=-0.05959868750235655989526993d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.3 .and. m.eq.3) then
+     nterm_arr(1)=12
+     nterm_arr(2)=12
+     nterm_arr(3)=9
+     lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=5 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
+     lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=2
+     lxyz_arr(1,6,1)=0 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=4
+     lxyz_arr(1,7,1)=6 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=0
+     lxyz_arr(1,8,1)=4 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=0
+     lxyz_arr(1,9,1)=2 ; lxyz_arr(2,9,1)=5 ; lxyz_arr(3,9,1)=0
+     lxyz_arr(1,10,1)=4 ; lxyz_arr(2,10,1)=1 ; lxyz_arr(3,10,1)=2
+     lxyz_arr(1,11,1)=2 ; lxyz_arr(2,11,1)=3 ; lxyz_arr(3,11,1)=2
+     lxyz_arr(1,12,1)=2 ; lxyz_arr(2,12,1)=1 ; lxyz_arr(3,12,1)=4
+     fac_arr(1,1)=0.2979934375117827994763496d0
+     fac_arr(2,1)=0.3575921250141393593716196d0
+     fac_arr(3,1)=0.05959868750235655989526993d0
+     fac_arr(4,1)=0.3575921250141393593716196d0
+     fac_arr(5,1)=0.1191973750047131197905399d0
+     fac_arr(6,1)=0.05959868750235655989526993d0
+     fac_arr(7,1)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(8,1)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(9,1)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(10,1)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(11,1)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(12,1)=-0.05959868750235655989526993d0/rhol**2d0
+     lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=2
+     lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=2
+     lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=0 ; lxyz_arr(3,6,2)=4
+     lxyz_arr(1,7,2)=5 ; lxyz_arr(2,7,2)=2 ; lxyz_arr(3,7,2)=0
+     lxyz_arr(1,8,2)=3 ; lxyz_arr(2,8,2)=4 ; lxyz_arr(3,8,2)=0
+     lxyz_arr(1,9,2)=1 ; lxyz_arr(2,9,2)=6 ; lxyz_arr(3,9,2)=0
+     lxyz_arr(1,10,2)=3 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=2
+     lxyz_arr(1,11,2)=1 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=2
+     lxyz_arr(1,12,2)=1 ; lxyz_arr(2,12,2)=2 ; lxyz_arr(3,12,2)=4
+     fac_arr(1,2)=0.05959868750235655989526993d0
+     fac_arr(2,2)=0.3575921250141393593716196d0
+     fac_arr(3,2)=0.2979934375117827994763496d0
+     fac_arr(4,2)=0.1191973750047131197905399d0
+     fac_arr(5,2)=0.3575921250141393593716196d0
+     fac_arr(6,2)=0.05959868750235655989526993d0
+     fac_arr(7,2)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(8,2)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(9,2)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(10,2)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(11,2)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(12,2)=-0.05959868750235655989526993d0/rhol**2d0
+     lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=3
+     lxyz_arr(1,4,3)=5 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=3 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=5 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=3 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=3
+     lxyz_arr(1,8,3)=1 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=3
+     lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=1 ; lxyz_arr(3,9,3)=5
+     fac_arr(1,3)=0.2383947500094262395810797d0
+     fac_arr(2,3)=0.2383947500094262395810797d0
+     fac_arr(3,3)=0.2383947500094262395810797d0
+     fac_arr(4,3)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(5,3)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(6,3)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(7,3)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(8,3)=-0.1191973750047131197905399d0/rhol**2d0
+     fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.3 .and. m.eq.4) then
+     nterm_arr(1)=13
+     nterm_arr(2)=13
+     nterm_arr(3)=12
+     lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=3 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
+     lxyz_arr(1,5,1)=1 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=4
+     lxyz_arr(1,6,1)=7 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=0
+     lxyz_arr(1,7,1)=5 ; lxyz_arr(2,7,1)=2 ; lxyz_arr(3,7,1)=0
+     lxyz_arr(1,8,1)=3 ; lxyz_arr(2,8,1)=4 ; lxyz_arr(3,8,1)=0
+     lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=6 ; lxyz_arr(3,9,1)=0
+     lxyz_arr(1,10,1)=5 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=2
+     lxyz_arr(1,11,1)=1 ; lxyz_arr(2,11,1)=4 ; lxyz_arr(3,11,1)=2
+     lxyz_arr(1,12,1)=3 ; lxyz_arr(2,12,1)=0 ; lxyz_arr(3,12,1)=4
+     lxyz_arr(1,13,1)=1 ; lxyz_arr(2,13,1)=2 ; lxyz_arr(3,13,1)=4
+     fac_arr(1,1)=0.1787960625070696796858098d0
+     fac_arr(2,1)=0.1191973750047131197905399d0
+     fac_arr(3,1)=-0.05959868750235655989526993d0
+     fac_arr(4,1)=0.2383947500094262395810797d0
+     fac_arr(5,1)=0.05959868750235655989526993d0
+     fac_arr(6,1)=-0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(7,1)=-0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(8,1)=0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(9,1)=0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(10,1)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(11,1)=0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(12,1)=-0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(13,1)=0.02979934375117827994763496d0/rhol**2d0
+     lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=3 ; lxyz_arr(3,4,2)=2
+     lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=1 ; lxyz_arr(3,5,2)=4
+     lxyz_arr(1,6,2)=6 ; lxyz_arr(2,6,2)=1 ; lxyz_arr(3,6,2)=0
+     lxyz_arr(1,7,2)=4 ; lxyz_arr(2,7,2)=3 ; lxyz_arr(3,7,2)=0
+     lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=5 ; lxyz_arr(3,8,2)=0
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=7 ; lxyz_arr(3,9,2)=0
+     lxyz_arr(1,10,2)=4 ; lxyz_arr(2,10,2)=1 ; lxyz_arr(3,10,2)=2
+     lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=5 ; lxyz_arr(3,11,2)=2
+     lxyz_arr(1,12,2)=2 ; lxyz_arr(2,12,2)=1 ; lxyz_arr(3,12,2)=4
+     lxyz_arr(1,13,2)=0 ; lxyz_arr(2,13,2)=3 ; lxyz_arr(3,13,2)=4
+     fac_arr(1,2)=0.05959868750235655989526993d0
+     fac_arr(2,2)=-0.1191973750047131197905399d0
+     fac_arr(3,2)=-0.1787960625070696796858098d0
+     fac_arr(4,2)=-0.2383947500094262395810797d0
+     fac_arr(5,2)=-0.05959868750235655989526993d0
+     fac_arr(6,2)=-0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(7,2)=-0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(8,2)=0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(9,2)=0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(10,2)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(11,2)=0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(12,2)=-0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(13,2)=0.02979934375117827994763496d0/rhol**2d0
+     lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=4 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
+     lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=2 ; lxyz_arr(3,4,3)=3
+     lxyz_arr(1,5,3)=6 ; lxyz_arr(2,5,3)=0 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=4 ; lxyz_arr(2,6,3)=2 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=4 ; lxyz_arr(3,7,3)=1
+     lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=6 ; lxyz_arr(3,8,3)=1
+     lxyz_arr(1,9,3)=4 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=3
+     lxyz_arr(1,10,3)=0 ; lxyz_arr(2,10,3)=4 ; lxyz_arr(3,10,3)=3
+     lxyz_arr(1,11,3)=2 ; lxyz_arr(2,11,3)=0 ; lxyz_arr(3,11,3)=5
+     lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=2 ; lxyz_arr(3,12,3)=5
+     fac_arr(1,3)=0.1191973750047131197905399d0
+     fac_arr(2,3)=-0.1191973750047131197905399d0
+     fac_arr(3,3)=0.1191973750047131197905399d0
+     fac_arr(4,3)=-0.1191973750047131197905399d0
+     fac_arr(5,3)=-0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(6,3)=-0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(7,3)=0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(8,3)=0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(9,3)=-0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(10,3)=0.05959868750235655989526993d0/rhol**2d0
+     fac_arr(11,3)=-0.02979934375117827994763496d0/rhol**2d0
+     fac_arr(12,3)=0.02979934375117827994763496d0/rhol**2d0
+  else if (l.eq.3 .and. i.eq.3 .and. m.eq.5) then
+     nterm_arr(1)=11
+     nterm_arr(2)=11
+     nterm_arr(3)=10
+     lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=4
+     lxyz_arr(1,5,1)=7 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=0
+     lxyz_arr(1,6,1)=5 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=0
+     lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=4 ; lxyz_arr(3,7,1)=0
+     lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=6 ; lxyz_arr(3,8,1)=0
+     lxyz_arr(1,9,1)=3 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=4
+     lxyz_arr(1,10,1)=1 ; lxyz_arr(2,10,1)=2 ; lxyz_arr(3,10,1)=4
+     lxyz_arr(1,11,1)=1 ; lxyz_arr(2,11,1)=0 ; lxyz_arr(3,11,1)=6
+     fac_arr(1,1)=-0.1032279548185018340124748d0
+     fac_arr(2,1)=-0.2064559096370036680249495d0
+     fac_arr(3,1)=-0.1032279548185018340124748d0
+     fac_arr(4,1)=0.1032279548185018340124748d0
+     fac_arr(5,1)=0.01720465913641697233541246d0/rhol**2d0
+     fac_arr(6,1)=0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(7,1)=0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(8,1)=0.01720465913641697233541246d0/rhol**2d0
+     fac_arr(9,1)=-0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(10,1)=-0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(11,1)=-0.03440931827283394467082492d0/rhol**2d0
+     lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=4
+     lxyz_arr(1,5,2)=6 ; lxyz_arr(2,5,2)=1 ; lxyz_arr(3,5,2)=0
+     lxyz_arr(1,6,2)=4 ; lxyz_arr(2,6,2)=3 ; lxyz_arr(3,6,2)=0
+     lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=5 ; lxyz_arr(3,7,2)=0
+     lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=7 ; lxyz_arr(3,8,2)=0
+     lxyz_arr(1,9,2)=2 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=4
+     lxyz_arr(1,10,2)=0 ; lxyz_arr(2,10,2)=3 ; lxyz_arr(3,10,2)=4
+     lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=1 ; lxyz_arr(3,11,2)=6
+     fac_arr(1,2)=-0.1032279548185018340124748d0
+     fac_arr(2,2)=-0.2064559096370036680249495d0
+     fac_arr(3,2)=-0.1032279548185018340124748d0
+     fac_arr(4,2)=0.1032279548185018340124748d0
+     fac_arr(5,2)=0.01720465913641697233541246d0/rhol**2d0
+     fac_arr(6,2)=0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(7,2)=0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(8,2)=0.01720465913641697233541246d0/rhol**2d0
+     fac_arr(9,2)=-0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(10,2)=-0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(11,2)=-0.03440931827283394467082492d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=3
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=3
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=5
+     lxyz_arr(1,4,3)=6 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=4 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=2 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=0 ; lxyz_arr(2,7,3)=6 ; lxyz_arr(3,7,3)=1
+     lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=0 ; lxyz_arr(3,8,3)=5
+     lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=2 ; lxyz_arr(3,9,3)=5
+     lxyz_arr(1,10,3)=0 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=7
+     fac_arr(1,3)=0.2064559096370036680249495d0
+     fac_arr(2,3)=0.2064559096370036680249495d0
+     fac_arr(3,3)=0.2064559096370036680249495d0
+     fac_arr(4,3)=0.01720465913641697233541246d0/rhol**2d0
+     fac_arr(5,3)=0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(6,3)=0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(7,3)=0.01720465913641697233541246d0/rhol**2d0
+     fac_arr(8,3)=-0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(9,3)=-0.05161397740925091700623738d0/rhol**2d0
+     fac_arr(10,3)=-0.03440931827283394467082492d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.1) then
+     nterm_arr(1)=6
+     nterm_arr(2)=4
+     nterm_arr(3)=4
+     lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=2
+     lxyz_arr(1,4,1)=4 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=2 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=0
+     lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=2
+     fac_arr(1,1)=0.9486832980505137995996681d0
+     fac_arr(2,1)=0.3162277660168379331998894d0
+     fac_arr(3,1)=-1.264911064067351732799557d0
+     fac_arr(4,1)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(5,1)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(6,1)=1.264911064067351732799557d0/rhol**2d0
+     lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=1 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
+     fac_arr(1,2)=0.6324555320336758663997787d0
+     fac_arr(2,2)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(3,2)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(4,2)=1.264911064067351732799557d0/rhol**2d0
+     lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=0 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=2 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=1 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
+     fac_arr(1,3)=-2.529822128134703465599115d0
+     fac_arr(2,3)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(3,3)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(4,3)=1.264911064067351732799557d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.2) then
+     nterm_arr(1)=4
+     nterm_arr(2)=6
+     nterm_arr(3)=4
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
+     fac_arr(1,1)=0.6324555320336758663997787d0
+     fac_arr(2,1)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(3,1)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(4,1)=1.264911064067351732799557d0/rhol**2d0
+     lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=2
+     lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=2 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=4 ; lxyz_arr(3,5,2)=0
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=2
+     fac_arr(1,2)=0.3162277660168379331998894d0
+     fac_arr(2,2)=0.9486832980505137995996681d0
+     fac_arr(3,2)=-1.264911064067351732799557d0
+     fac_arr(4,2)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(5,2)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(6,2)=1.264911064067351732799557d0/rhol**2d0
+     lxyz_arr(1,1,3)=0 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=3 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
+     fac_arr(1,3)=-2.529822128134703465599115d0
+     fac_arr(2,3)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(3,3)=-0.3162277660168379331998894d0/rhol**2d0
+     fac_arr(4,3)=1.264911064067351732799557d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.3) then
+     nterm_arr(1)=4
+     nterm_arr(2)=4
+     nterm_arr(3)=6
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=1
+     lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
+     fac_arr(1,1)=1.549193338482966754071706d0
+     fac_arr(2,1)=-0.7745966692414833770358531d0/rhol**2d0
+     fac_arr(3,1)=-0.7745966692414833770358531d0/rhol**2d0
+     fac_arr(4,1)=0.5163977794943222513572354d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
+     fac_arr(1,2)=1.549193338482966754071706d0
+     fac_arr(2,2)=-0.7745966692414833770358531d0/rhol**2d0
+     fac_arr(3,2)=-0.7745966692414833770358531d0/rhol**2d0
+     fac_arr(4,2)=0.5163977794943222513572354d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
+     lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
+     fac_arr(1,3)=0.7745966692414833770358531d0
+     fac_arr(2,3)=0.7745966692414833770358531d0
+     fac_arr(3,3)=-1.549193338482966754071706d0
+     fac_arr(4,3)=-0.7745966692414833770358531d0/rhol**2d0
+     fac_arr(5,3)=-0.7745966692414833770358531d0/rhol**2d0
+     fac_arr(6,3)=0.5163977794943222513572354d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.4) then
+     nterm_arr(1)=4
+     nterm_arr(2)=3
+     nterm_arr(3)=2
+     lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=4 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=2 ; lxyz_arr(3,4,1)=0
+     fac_arr(1,1)=1.224744871391589049098642d0
+     fac_arr(2,1)=-1.224744871391589049098642d0
+     fac_arr(3,1)=-0.408248290463863016366214d0/rhol**2d0
+     fac_arr(4,1)=1.224744871391589049098642d0/rhol**2d0
+     lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=0
+     fac_arr(1,2)=-2.449489742783178098197284d0
+     fac_arr(2,2)=-0.408248290463863016366214d0/rhol**2d0
+     fac_arr(3,2)=1.224744871391589049098642d0/rhol**2d0
+     lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
+     fac_arr(1,3)=-0.408248290463863016366214d0/rhol**2d0
+     fac_arr(2,3)=1.224744871391589049098642d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.5) then
+     nterm_arr(1)=3
+     nterm_arr(2)=4
+     nterm_arr(3)=2
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=3 ; lxyz_arr(3,3,1)=0
+     fac_arr(1,1)=-2.449489742783178098197284d0
+     fac_arr(2,1)=1.224744871391589049098642d0/rhol**2d0
+     fac_arr(3,1)=-0.408248290463863016366214d0/rhol**2d0
+     lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=2 ; lxyz_arr(2,3,2)=2 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=4 ; lxyz_arr(3,4,2)=0
+     fac_arr(1,2)=-1.224744871391589049098642d0
+     fac_arr(2,2)=1.224744871391589049098642d0
+     fac_arr(3,2)=1.224744871391589049098642d0/rhol**2d0
+     fac_arr(4,2)=-0.408248290463863016366214d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
+     fac_arr(1,3)=1.224744871391589049098642d0/rhol**2d0
+     fac_arr(2,3)=-0.408248290463863016366214d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.6) then
+     nterm_arr(1)=3
+     nterm_arr(2)=3
+     nterm_arr(3)=4
+     lxyz_arr(1,1,1)=1 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=2 ; lxyz_arr(3,3,1)=1
+     fac_arr(1,1)=2.d0
+     fac_arr(2,1)=-1.d0/rhol**2d0
+     fac_arr(3,1)=rhol**(-2)
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=3 ; lxyz_arr(3,3,2)=1
+     fac_arr(1,2)=-2.d0
+     fac_arr(2,2)=-1.d0/rhol**2d0
+     fac_arr(3,2)=rhol**(-2)
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
+     lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=2 ; lxyz_arr(3,4,3)=2
+     fac_arr(1,3)=1.d0
+     fac_arr(2,3)=-1.d0
+     fac_arr(3,3)=-1.d0/rhol**2d0
+     fac_arr(4,3)=rhol**(-2)
+  else if (l.eq.4 .and. i.eq.1 .and. m.eq.7) then
+     nterm_arr(1)=2
+     nterm_arr(2)=2
+     nterm_arr(3)=2
+     lxyz_arr(1,1,1)=0 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=1 ; lxyz_arr(3,2,1)=1
+     fac_arr(1,1)=2.d0
+     fac_arr(2,1)=-2.d0/rhol**2d0
+     lxyz_arr(1,1,2)=1 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
+     fac_arr(1,2)=2.d0
+     fac_arr(2,2)=-2.d0/rhol**2d0
+     lxyz_arr(1,1,3)=1 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=1 ; lxyz_arr(3,2,3)=2
+     fac_arr(1,3)=2.d0
+     fac_arr(2,3)=-2.d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.1) then
+     nterm_arr(1)=12
+     nterm_arr(2)=9
+     nterm_arr(3)=9
+     lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
+     lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=2
+     lxyz_arr(1,6,1)=0 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=4
+     lxyz_arr(1,7,1)=6 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=0
+     lxyz_arr(1,8,1)=4 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=0
+     lxyz_arr(1,9,1)=2 ; lxyz_arr(2,9,1)=4 ; lxyz_arr(3,9,1)=0
+     lxyz_arr(1,10,1)=4 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=2
+     lxyz_arr(1,11,1)=2 ; lxyz_arr(2,11,1)=2 ; lxyz_arr(3,11,1)=2
+     lxyz_arr(1,12,1)=2 ; lxyz_arr(2,12,1)=0 ; lxyz_arr(3,12,1)=4
+     fac_arr(1,1)=0.3178208630818641051489253d0
+     fac_arr(2,1)=0.3813850356982369261787104d0
+     fac_arr(3,1)=0.06356417261637282102978506d0
+     fac_arr(4,1)=-0.5720775535473553892680656d0
+     fac_arr(5,1)=-0.1906925178491184630893552d0
+     fac_arr(6,1)=-0.2542566904654912841191402d0
+     fac_arr(7,1)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(8,1)=-0.1271283452327456420595701d0/rhol**2d0
+     fac_arr(9,1)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(10,1)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(11,1)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(12,1)=0.2542566904654912841191402d0/rhol**2d0
+     lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
+     lxyz_arr(1,4,2)=5 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=3 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=0
+     lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=0
+     lxyz_arr(1,7,2)=3 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=2
+     lxyz_arr(1,8,2)=1 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=2
+     lxyz_arr(1,9,2)=1 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=4
+     fac_arr(1,2)=0.2542566904654912841191402d0
+     fac_arr(2,2)=0.2542566904654912841191402d0
+     fac_arr(3,2)=-0.3813850356982369261787104d0
+     fac_arr(4,2)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(5,2)=-0.1271283452327456420595701d0/rhol**2d0
+     fac_arr(6,2)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(7,2)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(8,2)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(9,2)=0.2542566904654912841191402d0/rhol**2d0
+     lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=3
+     lxyz_arr(1,4,3)=5 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=3 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=3 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=3
+     lxyz_arr(1,8,3)=1 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=3
+     lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=5
+     fac_arr(1,3)=-0.3813850356982369261787104d0
+     fac_arr(2,3)=-0.3813850356982369261787104d0
+     fac_arr(3,3)=-1.017026761861965136476561d0
+     fac_arr(4,3)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(5,3)=-0.1271283452327456420595701d0/rhol**2d0
+     fac_arr(6,3)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(7,3)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(8,3)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(9,3)=0.2542566904654912841191402d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.2) then
+     nterm_arr(1)=9
+     nterm_arr(2)=12
+     nterm_arr(3)=9
+     lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=2
+     lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=0
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=5 ; lxyz_arr(3,6,1)=0
+     lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=2
+     lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=2
+     lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=1 ; lxyz_arr(3,9,1)=4
+     fac_arr(1,1)=0.2542566904654912841191402d0
+     fac_arr(2,1)=0.2542566904654912841191402d0
+     fac_arr(3,1)=-0.3813850356982369261787104d0
+     fac_arr(4,1)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(5,1)=-0.1271283452327456420595701d0/rhol**2d0
+     fac_arr(6,1)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(7,1)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(8,1)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(9,1)=0.2542566904654912841191402d0/rhol**2d0
+     lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=2
+     lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=2
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=0 ; lxyz_arr(3,6,2)=4
+     lxyz_arr(1,7,2)=4 ; lxyz_arr(2,7,2)=2 ; lxyz_arr(3,7,2)=0
+     lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=4 ; lxyz_arr(3,8,2)=0
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=6 ; lxyz_arr(3,9,2)=0
+     lxyz_arr(1,10,2)=2 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=2
+     lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=2
+     lxyz_arr(1,12,2)=0 ; lxyz_arr(2,12,2)=2 ; lxyz_arr(3,12,2)=4
+     fac_arr(1,2)=0.06356417261637282102978506d0
+     fac_arr(2,2)=0.3813850356982369261787104d0
+     fac_arr(3,2)=0.3178208630818641051489253d0
+     fac_arr(4,2)=-0.1906925178491184630893552d0
+     fac_arr(5,2)=-0.5720775535473553892680656d0
+     fac_arr(6,2)=-0.2542566904654912841191402d0
+     fac_arr(7,2)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(8,2)=-0.1271283452327456420595701d0/rhol**2d0
+     fac_arr(9,2)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(10,2)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(11,2)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(12,2)=0.2542566904654912841191402d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=3
+     lxyz_arr(1,4,3)=4 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=2 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=5 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=3
+     lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=3
+     lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=1 ; lxyz_arr(3,9,3)=5
+     fac_arr(1,3)=-0.3813850356982369261787104d0
+     fac_arr(2,3)=-0.3813850356982369261787104d0
+     fac_arr(3,3)=-1.017026761861965136476561d0
+     fac_arr(4,3)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(5,3)=-0.1271283452327456420595701d0/rhol**2d0
+     fac_arr(6,3)=-0.06356417261637282102978506d0/rhol**2d0
+     fac_arr(7,3)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(8,3)=0.1906925178491184630893552d0/rhol**2d0
+     fac_arr(9,3)=0.2542566904654912841191402d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.3) then
+     nterm_arr(1)=9
+     nterm_arr(2)=9
+     nterm_arr(3)=12
+     lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=3
+     lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=1
+     lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=1
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=4 ; lxyz_arr(3,6,1)=1
+     lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=3
+     lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=3
+     lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=5
+     fac_arr(1,1)=0.6227991553292183767329405d0
+     fac_arr(2,1)=0.6227991553292183767329405d0
+     fac_arr(3,1)=0.1037998592215363961221568d0
+     fac_arr(4,1)=-0.1556997888323045941832351d0/rhol**2d0
+     fac_arr(5,1)=-0.3113995776646091883664703d0/rhol**2d0
+     fac_arr(6,1)=-0.1556997888323045941832351d0/rhol**2d0
+     fac_arr(7,1)=-0.05189992961076819806107838d0/rhol**2d0
+     fac_arr(8,1)=-0.05189992961076819806107838d0/rhol**2d0
+     fac_arr(9,1)=0.1037998592215363961221568d0/rhol**2d0
+     lxyz_arr(1,1,2)=2 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=3
+     lxyz_arr(1,4,2)=4 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=1
+     lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=1
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=1
+     lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=3
+     lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=3
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=1 ; lxyz_arr(3,9,2)=5
+     fac_arr(1,2)=0.6227991553292183767329405d0
+     fac_arr(2,2)=0.6227991553292183767329405d0
+     fac_arr(3,2)=0.1037998592215363961221568d0
+     fac_arr(4,2)=-0.1556997888323045941832351d0/rhol**2d0
+     fac_arr(5,2)=-0.3113995776646091883664703d0/rhol**2d0
+     fac_arr(6,2)=-0.1556997888323045941832351d0/rhol**2d0
+     fac_arr(7,2)=-0.05189992961076819806107838d0/rhol**2d0
+     fac_arr(8,2)=-0.05189992961076819806107838d0/rhol**2d0
+     fac_arr(9,2)=0.1037998592215363961221568d0/rhol**2d0
+     lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
+     lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=4
+     lxyz_arr(1,7,3)=4 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=2
+     lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=2
+     lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=4 ; lxyz_arr(3,9,3)=2
+     lxyz_arr(1,10,3)=2 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=4
+     lxyz_arr(1,11,3)=0 ; lxyz_arr(2,11,3)=2 ; lxyz_arr(3,11,3)=4
+     lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=0 ; lxyz_arr(3,12,3)=6
+     fac_arr(1,3)=0.1556997888323045941832351d0
+     fac_arr(2,3)=0.3113995776646091883664703d0
+     fac_arr(3,3)=0.1556997888323045941832351d0
+     fac_arr(4,3)=0.1556997888323045941832351d0
+     fac_arr(5,3)=0.1556997888323045941832351d0
+     fac_arr(6,3)=-0.5189992961076819806107838d0
+     fac_arr(7,3)=-0.1556997888323045941832351d0/rhol**2d0
+     fac_arr(8,3)=-0.3113995776646091883664703d0/rhol**2d0
+     fac_arr(9,3)=-0.1556997888323045941832351d0/rhol**2d0
+     fac_arr(10,3)=-0.05189992961076819806107838d0/rhol**2d0
+     fac_arr(11,3)=-0.05189992961076819806107838d0/rhol**2d0
+     fac_arr(12,3)=0.1037998592215363961221568d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.4) then
+     nterm_arr(1)=10
+     nterm_arr(2)=8
+     nterm_arr(3)=7
+     lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=2
+     lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=2
+     lxyz_arr(1,6,1)=6 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=0
+     lxyz_arr(1,7,1)=4 ; lxyz_arr(2,7,1)=2 ; lxyz_arr(3,7,1)=0
+     lxyz_arr(1,8,1)=2 ; lxyz_arr(2,8,1)=4 ; lxyz_arr(3,8,1)=0
+     lxyz_arr(1,9,1)=4 ; lxyz_arr(2,9,1)=0 ; lxyz_arr(3,9,1)=2
+     lxyz_arr(1,10,1)=2 ; lxyz_arr(2,10,1)=2 ; lxyz_arr(3,10,1)=2
+     fac_arr(1,1)=0.4103049699311091091141355d0
+     fac_arr(2,1)=-0.4923659639173309309369626d0
+     fac_arr(3,1)=-0.2461829819586654654684813d0
+     fac_arr(4,1)=0.2461829819586654654684813d0
+     fac_arr(5,1)=-0.2461829819586654654684813d0
+     fac_arr(6,1)=-0.08206099398622182182282711d0/rhol**2d0
+     fac_arr(7,1)=0.1641219879724436436456542d0/rhol**2d0
+     fac_arr(8,1)=0.2461829819586654654684813d0/rhol**2d0
+     fac_arr(9,1)=-0.08206099398622182182282711d0/rhol**2d0
+     fac_arr(10,1)=0.2461829819586654654684813d0/rhol**2d0
+     lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=2
+     lxyz_arr(1,4,2)=5 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=3 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=0
+     lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=5 ; lxyz_arr(3,6,2)=0
+     lxyz_arr(1,7,2)=3 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=2
+     lxyz_arr(1,8,2)=1 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=2
+     fac_arr(1,2)=-0.3282439759448872872913084d0
+     fac_arr(2,2)=-0.9847319278346618618739253d0
+     fac_arr(3,2)=-0.4923659639173309309369626d0
+     fac_arr(4,2)=-0.08206099398622182182282711d0/rhol**2d0
+     fac_arr(5,2)=0.1641219879724436436456542d0/rhol**2d0
+     fac_arr(6,2)=0.2461829819586654654684813d0/rhol**2d0
+     fac_arr(7,2)=-0.08206099398622182182282711d0/rhol**2d0
+     fac_arr(8,2)=0.2461829819586654654684813d0/rhol**2d0
+     lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=5 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=2 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=4 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=3 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=3
+     lxyz_arr(1,7,3)=1 ; lxyz_arr(2,7,3)=2 ; lxyz_arr(3,7,3)=3
+     fac_arr(1,3)=0.1641219879724436436456542d0
+     fac_arr(2,3)=-0.4923659639173309309369626d0
+     fac_arr(3,3)=-0.08206099398622182182282711d0/rhol**2d0
+     fac_arr(4,3)=0.1641219879724436436456542d0/rhol**2d0
+     fac_arr(5,3)=0.2461829819586654654684813d0/rhol**2d0
+     fac_arr(6,3)=-0.08206099398622182182282711d0/rhol**2d0
+     fac_arr(7,3)=0.2461829819586654654684813d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.5) then
+     nterm_arr(1)=8
+     nterm_arr(2)=10
+     nterm_arr(3)=7
+     lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=2
+     lxyz_arr(1,4,1)=5 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=0
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=5 ; lxyz_arr(3,6,1)=0
+     lxyz_arr(1,7,1)=3 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=2
+     lxyz_arr(1,8,1)=1 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=2
+     fac_arr(1,1)=-0.9847319278346618618739253d0
+     fac_arr(2,1)=-0.3282439759448872872913084d0
+     fac_arr(3,1)=-0.4923659639173309309369626d0
+     fac_arr(4,1)=0.2461829819586654654684813d0/rhol**2d0
+     fac_arr(5,1)=0.1641219879724436436456542d0/rhol**2d0
+     fac_arr(6,1)=-0.08206099398622182182282711d0/rhol**2d0
+     fac_arr(7,1)=0.2461829819586654654684813d0/rhol**2d0
+     fac_arr(8,1)=-0.08206099398622182182282711d0/rhol**2d0
+     lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=2
+     lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=2
+     lxyz_arr(1,6,2)=4 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=0
+     lxyz_arr(1,7,2)=2 ; lxyz_arr(2,7,2)=4 ; lxyz_arr(3,7,2)=0
+     lxyz_arr(1,8,2)=0 ; lxyz_arr(2,8,2)=6 ; lxyz_arr(3,8,2)=0
+     lxyz_arr(1,9,2)=2 ; lxyz_arr(2,9,2)=2 ; lxyz_arr(3,9,2)=2
+     lxyz_arr(1,10,2)=0 ; lxyz_arr(2,10,2)=4 ; lxyz_arr(3,10,2)=2
+     fac_arr(1,2)=-0.2461829819586654654684813d0
+     fac_arr(2,2)=-0.4923659639173309309369626d0
+     fac_arr(3,2)=0.4103049699311091091141355d0
+     fac_arr(4,2)=-0.2461829819586654654684813d0
+     fac_arr(5,2)=0.2461829819586654654684813d0
+     fac_arr(6,2)=0.2461829819586654654684813d0/rhol**2d0
+     fac_arr(7,2)=0.1641219879724436436456542d0/rhol**2d0
+     fac_arr(8,2)=-0.08206099398622182182282711d0/rhol**2d0
+     fac_arr(9,2)=0.2461829819586654654684813d0/rhol**2d0
+     fac_arr(10,2)=-0.08206099398622182182282711d0/rhol**2d0
+     lxyz_arr(1,1,3)=2 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=4 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=3 ; lxyz_arr(3,4,3)=1
+     lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=5 ; lxyz_arr(3,5,3)=1
+     lxyz_arr(1,6,3)=2 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=3
+     lxyz_arr(1,7,3)=0 ; lxyz_arr(2,7,3)=3 ; lxyz_arr(3,7,3)=3
+     fac_arr(1,3)=-0.4923659639173309309369626d0
+     fac_arr(2,3)=0.1641219879724436436456542d0
+     fac_arr(3,3)=0.2461829819586654654684813d0/rhol**2d0
+     fac_arr(4,3)=0.1641219879724436436456542d0/rhol**2d0
+     fac_arr(5,3)=-0.08206099398622182182282711d0/rhol**2d0
+     fac_arr(6,3)=0.2461829819586654654684813d0/rhol**2d0
+     fac_arr(7,3)=-0.08206099398622182182282711d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.6) then
+     nterm_arr(1)=6
+     nterm_arr(2)=6
+     nterm_arr(3)=8
+     lxyz_arr(1,1,1)=3 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=1 ; lxyz_arr(2,2,1)=0 ; lxyz_arr(3,2,1)=3
+     lxyz_arr(1,3,1)=5 ; lxyz_arr(2,3,1)=0 ; lxyz_arr(3,3,1)=1
+     lxyz_arr(1,4,1)=1 ; lxyz_arr(2,4,1)=4 ; lxyz_arr(3,4,1)=1
+     lxyz_arr(1,5,1)=3 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=3
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=3
+     fac_arr(1,1)=0.8040302522073696603914988d0
+     fac_arr(2,1)=0.4020151261036848301957494d0
+     fac_arr(3,1)=-0.2010075630518424150978747d0/rhol**2d0
+     fac_arr(4,1)=0.2010075630518424150978747d0/rhol**2d0
+     fac_arr(5,1)=-0.2010075630518424150978747d0/rhol**2d0
+     fac_arr(6,1)=0.2010075630518424150978747d0/rhol**2d0
+     lxyz_arr(1,1,2)=0 ; lxyz_arr(2,1,2)=3 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=0 ; lxyz_arr(2,2,2)=1 ; lxyz_arr(3,2,2)=3
+     lxyz_arr(1,3,2)=4 ; lxyz_arr(2,3,2)=1 ; lxyz_arr(3,3,2)=1
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=5 ; lxyz_arr(3,4,2)=1
+     lxyz_arr(1,5,2)=2 ; lxyz_arr(2,5,2)=1 ; lxyz_arr(3,5,2)=3
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=3 ; lxyz_arr(3,6,2)=3
+     fac_arr(1,2)=-0.8040302522073696603914988d0
+     fac_arr(2,2)=-0.4020151261036848301957494d0
+     fac_arr(3,2)=-0.2010075630518424150978747d0/rhol**2d0
+     fac_arr(4,2)=0.2010075630518424150978747d0/rhol**2d0
+     fac_arr(5,2)=-0.2010075630518424150978747d0/rhol**2d0
+     fac_arr(6,2)=0.2010075630518424150978747d0/rhol**2d0
+     lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=0 ; lxyz_arr(2,2,3)=4 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=0 ; lxyz_arr(3,3,3)=2
+     lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=2 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=4 ; lxyz_arr(2,5,3)=0 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=2
+     lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=4
+     lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=4
+     fac_arr(1,3)=0.2010075630518424150978747d0
+     fac_arr(2,3)=-0.2010075630518424150978747d0
+     fac_arr(3,3)=0.6030226891555272452936241d0
+     fac_arr(4,3)=-0.6030226891555272452936241d0
+     fac_arr(5,3)=-0.2010075630518424150978747d0/rhol**2d0
+     fac_arr(6,3)=0.2010075630518424150978747d0/rhol**2d0
+     fac_arr(7,3)=-0.2010075630518424150978747d0/rhol**2d0
+     fac_arr(8,3)=0.2010075630518424150978747d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.2 .and. m.eq.7) then
+     nterm_arr(1)=6
+     nterm_arr(2)=6
+     nterm_arr(3)=6
+     lxyz_arr(1,1,1)=2 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=0 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=1 ; lxyz_arr(3,3,1)=3
+     lxyz_arr(1,4,1)=4 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=1
+     lxyz_arr(1,5,1)=2 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=1
+     lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=3
+     fac_arr(1,1)=1.206045378311054490587248d0
+     fac_arr(2,1)=0.4020151261036848301957494d0
+     fac_arr(3,1)=0.4020151261036848301957494d0
+     fac_arr(4,1)=-0.4020151261036848301957494d0/rhol**2d0
+     fac_arr(5,1)=-0.4020151261036848301957494d0/rhol**2d0
+     fac_arr(6,1)=-0.4020151261036848301957494d0/rhol**2d0
+     lxyz_arr(1,1,2)=3 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=1 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=0 ; lxyz_arr(3,3,2)=3
+     lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=2 ; lxyz_arr(3,4,2)=1
+     lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=4 ; lxyz_arr(3,5,2)=1
+     lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=3
+     fac_arr(1,2)=0.4020151261036848301957494d0
+     fac_arr(2,2)=1.206045378311054490587248d0
+     fac_arr(3,2)=0.4020151261036848301957494d0
+     fac_arr(4,2)=-0.4020151261036848301957494d0/rhol**2d0
+     fac_arr(5,2)=-0.4020151261036848301957494d0/rhol**2d0
+     fac_arr(6,2)=-0.4020151261036848301957494d0/rhol**2d0
+     lxyz_arr(1,1,3)=3 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=1 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=1 ; lxyz_arr(3,3,3)=2
+     lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=4
+     fac_arr(1,3)=0.4020151261036848301957494d0
+     fac_arr(2,3)=0.4020151261036848301957494d0
+     fac_arr(3,3)=1.206045378311054490587248d0
+     fac_arr(4,3)=-0.4020151261036848301957494d0/rhol**2d0
+     fac_arr(5,3)=-0.4020151261036848301957494d0/rhol**2d0
+     fac_arr(6,3)=-0.4020151261036848301957494d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.1) then
+     nterm_arr(1)=20
+     nterm_arr(2)=16
+     nterm_arr(3)=16
+     lxyz_arr(1,1,1)=6 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=4 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=2 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=0 ; lxyz_arr(2,4,1)=6 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=4 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=2
+     lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=2
+     lxyz_arr(1,7,1)=0 ; lxyz_arr(2,7,1)=4 ; lxyz_arr(3,7,1)=2
+     lxyz_arr(1,8,1)=2 ; lxyz_arr(2,8,1)=0 ; lxyz_arr(3,8,1)=4
+     lxyz_arr(1,9,1)=0 ; lxyz_arr(2,9,1)=2 ; lxyz_arr(3,9,1)=4
+     lxyz_arr(1,10,1)=0 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=6
+     lxyz_arr(1,11,1)=8 ; lxyz_arr(2,11,1)=0 ; lxyz_arr(3,11,1)=0
+     lxyz_arr(1,12,1)=6 ; lxyz_arr(2,12,1)=2 ; lxyz_arr(3,12,1)=0
+     lxyz_arr(1,13,1)=4 ; lxyz_arr(2,13,1)=4 ; lxyz_arr(3,13,1)=0
+     lxyz_arr(1,14,1)=2 ; lxyz_arr(2,14,1)=6 ; lxyz_arr(3,14,1)=0
+     lxyz_arr(1,15,1)=6 ; lxyz_arr(2,15,1)=0 ; lxyz_arr(3,15,1)=2
+     lxyz_arr(1,16,1)=4 ; lxyz_arr(2,16,1)=2 ; lxyz_arr(3,16,1)=2
+     lxyz_arr(1,17,1)=2 ; lxyz_arr(2,17,1)=4 ; lxyz_arr(3,17,1)=2
+     lxyz_arr(1,18,1)=4 ; lxyz_arr(2,18,1)=0 ; lxyz_arr(3,18,1)=4
+     lxyz_arr(1,19,1)=2 ; lxyz_arr(2,19,1)=2 ; lxyz_arr(3,19,1)=4
+     lxyz_arr(1,20,1)=2 ; lxyz_arr(2,20,1)=0 ; lxyz_arr(3,20,1)=6
+     fac_arr(1,1)=0.06372694925323242808889581d0
+     fac_arr(2,1)=0.1365577483997837744762053d0
+     fac_arr(3,1)=0.08193464903987026468572318d0
+     fac_arr(4,1)=0.009103849893318918298413687d0
+     fac_arr(5,1)=-0.09103849893318918298413687d0
+     fac_arr(6,1)=-0.1092461987198270195809642d0
+     fac_arr(7,1)=-0.01820769978663783659682737d0
+     fac_arr(8,1)=-0.1911808477596972842666874d0
+     fac_arr(9,1)=-0.06372694925323242808889581d0
+     fac_arr(10,1)=-0.03641539957327567319365475d0
+     fac_arr(11,1)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(12,1)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(13,1)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(14,1)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(15,1)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(16,1)=0.03641539957327567319365475d0/rhol**2d0
+     fac_arr(17,1)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(18,1)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(19,1)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(20,1)=0.03641539957327567319365475d0/rhol**2d0
+     lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
+     lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=2
+     lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=1 ; lxyz_arr(3,6,2)=4
+     lxyz_arr(1,7,2)=7 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=0
+     lxyz_arr(1,8,2)=5 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=0
+     lxyz_arr(1,9,2)=3 ; lxyz_arr(2,9,2)=5 ; lxyz_arr(3,9,2)=0
+     lxyz_arr(1,10,2)=1 ; lxyz_arr(2,10,2)=7 ; lxyz_arr(3,10,2)=0
+     lxyz_arr(1,11,2)=5 ; lxyz_arr(2,11,2)=1 ; lxyz_arr(3,11,2)=2
+     lxyz_arr(1,12,2)=3 ; lxyz_arr(2,12,2)=3 ; lxyz_arr(3,12,2)=2
+     lxyz_arr(1,13,2)=1 ; lxyz_arr(2,13,2)=5 ; lxyz_arr(3,13,2)=2
+     lxyz_arr(1,14,2)=3 ; lxyz_arr(2,14,2)=1 ; lxyz_arr(3,14,2)=4
+     lxyz_arr(1,15,2)=1 ; lxyz_arr(2,15,2)=3 ; lxyz_arr(3,15,2)=4
+     lxyz_arr(1,16,2)=1 ; lxyz_arr(2,16,2)=1 ; lxyz_arr(3,16,2)=6
+     fac_arr(1,2)=0.05462309935991350979048212d0
+     fac_arr(2,2)=0.1092461987198270195809642d0
+     fac_arr(3,2)=0.05462309935991350979048212d0
+     fac_arr(4,2)=-0.0728307991465513463873095d0
+     fac_arr(5,2)=-0.0728307991465513463873095d0
+     fac_arr(6,2)=-0.1274538985064648561777916d0
+     fac_arr(7,2)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(8,2)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(9,2)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(10,2)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(11,2)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(12,2)=0.03641539957327567319365475d0/rhol**2d0
+     fac_arr(13,2)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(14,2)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(15,2)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(16,2)=0.03641539957327567319365475d0/rhol**2d0
+     lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
+     lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=3
+     lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=5
+     lxyz_arr(1,7,3)=7 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=1
+     lxyz_arr(1,8,3)=5 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=1
+     lxyz_arr(1,9,3)=3 ; lxyz_arr(2,9,3)=4 ; lxyz_arr(3,9,3)=1
+     lxyz_arr(1,10,3)=1 ; lxyz_arr(2,10,3)=6 ; lxyz_arr(3,10,3)=1
+     lxyz_arr(1,11,3)=5 ; lxyz_arr(2,11,3)=0 ; lxyz_arr(3,11,3)=3
+     lxyz_arr(1,12,3)=3 ; lxyz_arr(2,12,3)=2 ; lxyz_arr(3,12,3)=3
+     lxyz_arr(1,13,3)=1 ; lxyz_arr(2,13,3)=4 ; lxyz_arr(3,13,3)=3
+     lxyz_arr(1,14,3)=3 ; lxyz_arr(2,14,3)=0 ; lxyz_arr(3,14,3)=5
+     lxyz_arr(1,15,3)=1 ; lxyz_arr(2,15,3)=2 ; lxyz_arr(3,15,3)=5
+     lxyz_arr(1,16,3)=1 ; lxyz_arr(2,16,3)=0 ; lxyz_arr(3,16,3)=7
+     fac_arr(1,3)=-0.03641539957327567319365475d0
+     fac_arr(2,3)=-0.0728307991465513463873095d0
+     fac_arr(3,3)=-0.03641539957327567319365475d0
+     fac_arr(4,3)=-0.2549077970129297123555832d0
+     fac_arr(5,3)=-0.2549077970129297123555832d0
+     fac_arr(6,3)=-0.2184923974396540391619285d0
+     fac_arr(7,3)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(8,3)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(9,3)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(10,3)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(11,3)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(12,3)=0.03641539957327567319365475d0/rhol**2d0
+     fac_arr(13,3)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(14,3)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(15,3)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(16,3)=0.03641539957327567319365475d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.2) then
+     nterm_arr(1)=16
+     nterm_arr(2)=20
+     nterm_arr(3)=16
+     lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=5 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=3 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
+     lxyz_arr(1,5,1)=1 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=2
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=4
+     lxyz_arr(1,7,1)=7 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=0
+     lxyz_arr(1,8,1)=5 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=0
+     lxyz_arr(1,9,1)=3 ; lxyz_arr(2,9,1)=5 ; lxyz_arr(3,9,1)=0
+     lxyz_arr(1,10,1)=1 ; lxyz_arr(2,10,1)=7 ; lxyz_arr(3,10,1)=0
+     lxyz_arr(1,11,1)=5 ; lxyz_arr(2,11,1)=1 ; lxyz_arr(3,11,1)=2
+     lxyz_arr(1,12,1)=3 ; lxyz_arr(2,12,1)=3 ; lxyz_arr(3,12,1)=2
+     lxyz_arr(1,13,1)=1 ; lxyz_arr(2,13,1)=5 ; lxyz_arr(3,13,1)=2
+     lxyz_arr(1,14,1)=3 ; lxyz_arr(2,14,1)=1 ; lxyz_arr(3,14,1)=4
+     lxyz_arr(1,15,1)=1 ; lxyz_arr(2,15,1)=3 ; lxyz_arr(3,15,1)=4
+     lxyz_arr(1,16,1)=1 ; lxyz_arr(2,16,1)=1 ; lxyz_arr(3,16,1)=6
+     fac_arr(1,1)=0.05462309935991350979048212d0
+     fac_arr(2,1)=0.1092461987198270195809642d0
+     fac_arr(3,1)=0.05462309935991350979048212d0
+     fac_arr(4,1)=-0.0728307991465513463873095d0
+     fac_arr(5,1)=-0.0728307991465513463873095d0
+     fac_arr(6,1)=-0.1274538985064648561777916d0
+     fac_arr(7,1)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(8,1)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(9,1)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(10,1)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(11,1)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(12,1)=0.03641539957327567319365475d0/rhol**2d0
+     fac_arr(13,1)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(14,1)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(15,1)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(16,1)=0.03641539957327567319365475d0/rhol**2d0
+     lxyz_arr(1,1,2)=6 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=4 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=2 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=6 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=4 ; lxyz_arr(2,5,2)=0 ; lxyz_arr(3,5,2)=2
+     lxyz_arr(1,6,2)=2 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=2
+     lxyz_arr(1,7,2)=0 ; lxyz_arr(2,7,2)=4 ; lxyz_arr(3,7,2)=2
+     lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=0 ; lxyz_arr(3,8,2)=4
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=2 ; lxyz_arr(3,9,2)=4
+     lxyz_arr(1,10,2)=0 ; lxyz_arr(2,10,2)=0 ; lxyz_arr(3,10,2)=6
+     lxyz_arr(1,11,2)=6 ; lxyz_arr(2,11,2)=2 ; lxyz_arr(3,11,2)=0
+     lxyz_arr(1,12,2)=4 ; lxyz_arr(2,12,2)=4 ; lxyz_arr(3,12,2)=0
+     lxyz_arr(1,13,2)=2 ; lxyz_arr(2,13,2)=6 ; lxyz_arr(3,13,2)=0
+     lxyz_arr(1,14,2)=0 ; lxyz_arr(2,14,2)=8 ; lxyz_arr(3,14,2)=0
+     lxyz_arr(1,15,2)=4 ; lxyz_arr(2,15,2)=2 ; lxyz_arr(3,15,2)=2
+     lxyz_arr(1,16,2)=2 ; lxyz_arr(2,16,2)=4 ; lxyz_arr(3,16,2)=2
+     lxyz_arr(1,17,2)=0 ; lxyz_arr(2,17,2)=6 ; lxyz_arr(3,17,2)=2
+     lxyz_arr(1,18,2)=2 ; lxyz_arr(2,18,2)=2 ; lxyz_arr(3,18,2)=4
+     lxyz_arr(1,19,2)=0 ; lxyz_arr(2,19,2)=4 ; lxyz_arr(3,19,2)=4
+     lxyz_arr(1,20,2)=0 ; lxyz_arr(2,20,2)=2 ; lxyz_arr(3,20,2)=6
+     fac_arr(1,2)=0.009103849893318918298413687d0
+     fac_arr(2,2)=0.08193464903987026468572318d0
+     fac_arr(3,2)=0.1365577483997837744762053d0
+     fac_arr(4,2)=0.06372694925323242808889581d0
+     fac_arr(5,2)=-0.01820769978663783659682737d0
+     fac_arr(6,2)=-0.1092461987198270195809642d0
+     fac_arr(7,2)=-0.09103849893318918298413687d0
+     fac_arr(8,2)=-0.06372694925323242808889581d0
+     fac_arr(9,2)=-0.1911808477596972842666874d0
+     fac_arr(10,2)=-0.03641539957327567319365475d0
+     fac_arr(11,2)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(12,2)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(13,2)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(14,2)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(15,2)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(16,2)=0.03641539957327567319365475d0/rhol**2d0
+     fac_arr(17,2)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(18,2)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(19,2)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(20,2)=0.03641539957327567319365475d0/rhol**2d0
+     lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
+     lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=3
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=5
+     lxyz_arr(1,7,3)=6 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=1
+     lxyz_arr(1,8,3)=4 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=1
+     lxyz_arr(1,9,3)=2 ; lxyz_arr(2,9,3)=5 ; lxyz_arr(3,9,3)=1
+     lxyz_arr(1,10,3)=0 ; lxyz_arr(2,10,3)=7 ; lxyz_arr(3,10,3)=1
+     lxyz_arr(1,11,3)=4 ; lxyz_arr(2,11,3)=1 ; lxyz_arr(3,11,3)=3
+     lxyz_arr(1,12,3)=2 ; lxyz_arr(2,12,3)=3 ; lxyz_arr(3,12,3)=3
+     lxyz_arr(1,13,3)=0 ; lxyz_arr(2,13,3)=5 ; lxyz_arr(3,13,3)=3
+     lxyz_arr(1,14,3)=2 ; lxyz_arr(2,14,3)=1 ; lxyz_arr(3,14,3)=5
+     lxyz_arr(1,15,3)=0 ; lxyz_arr(2,15,3)=3 ; lxyz_arr(3,15,3)=5
+     lxyz_arr(1,16,3)=0 ; lxyz_arr(2,16,3)=1 ; lxyz_arr(3,16,3)=7
+     fac_arr(1,3)=-0.03641539957327567319365475d0
+     fac_arr(2,3)=-0.0728307991465513463873095d0
+     fac_arr(3,3)=-0.03641539957327567319365475d0
+     fac_arr(4,3)=-0.2549077970129297123555832d0
+     fac_arr(5,3)=-0.2549077970129297123555832d0
+     fac_arr(6,3)=-0.2184923974396540391619285d0
+     fac_arr(7,3)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(8,3)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(9,3)=-0.02731154967995675489524106d0/rhol**2d0
+     fac_arr(10,3)=-0.009103849893318918298413687d0/rhol**2d0
+     fac_arr(11,3)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(12,3)=0.03641539957327567319365475d0/rhol**2d0
+     fac_arr(13,3)=0.01820769978663783659682737d0/rhol**2d0
+     fac_arr(14,3)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(15,3)=0.06372694925323242808889581d0/rhol**2d0
+     fac_arr(16,3)=0.03641539957327567319365475d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.3) then
+     nterm_arr(1)=16
+     nterm_arr(2)=16
+     nterm_arr(3)=20
+     lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=1
+     lxyz_arr(1,4,1)=3 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
+     lxyz_arr(1,5,1)=1 ; lxyz_arr(2,5,1)=2 ; lxyz_arr(3,5,1)=3
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=5
+     lxyz_arr(1,7,1)=7 ; lxyz_arr(2,7,1)=0 ; lxyz_arr(3,7,1)=1
+     lxyz_arr(1,8,1)=5 ; lxyz_arr(2,8,1)=2 ; lxyz_arr(3,8,1)=1
+     lxyz_arr(1,9,1)=3 ; lxyz_arr(2,9,1)=4 ; lxyz_arr(3,9,1)=1
+     lxyz_arr(1,10,1)=1 ; lxyz_arr(2,10,1)=6 ; lxyz_arr(3,10,1)=1
+     lxyz_arr(1,11,1)=5 ; lxyz_arr(2,11,1)=0 ; lxyz_arr(3,11,1)=3
+     lxyz_arr(1,12,1)=3 ; lxyz_arr(2,12,1)=2 ; lxyz_arr(3,12,1)=3
+     lxyz_arr(1,13,1)=1 ; lxyz_arr(2,13,1)=4 ; lxyz_arr(3,13,1)=3
+     lxyz_arr(1,14,1)=3 ; lxyz_arr(2,14,1)=0 ; lxyz_arr(3,14,1)=5
+     lxyz_arr(1,15,1)=1 ; lxyz_arr(2,15,1)=2 ; lxyz_arr(3,15,1)=5
+     lxyz_arr(1,16,1)=1 ; lxyz_arr(2,16,1)=0 ; lxyz_arr(3,16,1)=7
+     fac_arr(1,1)=0.1337987216011345233133409d0
+     fac_arr(2,1)=0.2675974432022690466266818d0
+     fac_arr(3,1)=0.1337987216011345233133409d0
+     fac_arr(4,1)=0.1189321969787862429451919d0
+     fac_arr(5,1)=0.1189321969787862429451919d0
+     fac_arr(6,1)=-0.01486652462234828036814899d0
+     fac_arr(7,1)=-0.02229978693352242055222348d0/rhol**2d0
+     fac_arr(8,1)=-0.06689936080056726165667044d0/rhol**2d0
+     fac_arr(9,1)=-0.06689936080056726165667044d0/rhol**2d0
+     fac_arr(10,1)=-0.02229978693352242055222348d0/rhol**2d0
+     fac_arr(11,1)=-0.02973304924469656073629797d0/rhol**2d0
+     fac_arr(12,1)=-0.05946609848939312147259594d0/rhol**2d0
+     fac_arr(13,1)=-0.02973304924469656073629797d0/rhol**2d0
+     fac_arr(14,1)=0.007433262311174140184074493d0/rhol**2d0
+     fac_arr(15,1)=0.007433262311174140184074493d0/rhol**2d0
+     fac_arr(16,1)=0.01486652462234828036814899d0/rhol**2d0
+     lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=1
+     lxyz_arr(1,4,2)=2 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=3
+     lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=3
+     lxyz_arr(1,6,2)=0 ; lxyz_arr(2,6,2)=1 ; lxyz_arr(3,6,2)=5
+     lxyz_arr(1,7,2)=6 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=1
+     lxyz_arr(1,8,2)=4 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=1
+     lxyz_arr(1,9,2)=2 ; lxyz_arr(2,9,2)=5 ; lxyz_arr(3,9,2)=1
+     lxyz_arr(1,10,2)=0 ; lxyz_arr(2,10,2)=7 ; lxyz_arr(3,10,2)=1
+     lxyz_arr(1,11,2)=4 ; lxyz_arr(2,11,2)=1 ; lxyz_arr(3,11,2)=3
+     lxyz_arr(1,12,2)=2 ; lxyz_arr(2,12,2)=3 ; lxyz_arr(3,12,2)=3
+     lxyz_arr(1,13,2)=0 ; lxyz_arr(2,13,2)=5 ; lxyz_arr(3,13,2)=3
+     lxyz_arr(1,14,2)=2 ; lxyz_arr(2,14,2)=1 ; lxyz_arr(3,14,2)=5
+     lxyz_arr(1,15,2)=0 ; lxyz_arr(2,15,2)=3 ; lxyz_arr(3,15,2)=5
+     lxyz_arr(1,16,2)=0 ; lxyz_arr(2,16,2)=1 ; lxyz_arr(3,16,2)=7
+     fac_arr(1,2)=0.1337987216011345233133409d0
+     fac_arr(2,2)=0.2675974432022690466266818d0
+     fac_arr(3,2)=0.1337987216011345233133409d0
+     fac_arr(4,2)=0.1189321969787862429451919d0
+     fac_arr(5,2)=0.1189321969787862429451919d0
+     fac_arr(6,2)=-0.01486652462234828036814899d0
+     fac_arr(7,2)=-0.02229978693352242055222348d0/rhol**2d0
+     fac_arr(8,2)=-0.06689936080056726165667044d0/rhol**2d0
+     fac_arr(9,2)=-0.06689936080056726165667044d0/rhol**2d0
+     fac_arr(10,2)=-0.02229978693352242055222348d0/rhol**2d0
+     fac_arr(11,2)=-0.02973304924469656073629797d0/rhol**2d0
+     fac_arr(12,2)=-0.05946609848939312147259594d0/rhol**2d0
+     fac_arr(13,2)=-0.02973304924469656073629797d0/rhol**2d0
+     fac_arr(14,2)=0.007433262311174140184074493d0/rhol**2d0
+     fac_arr(15,2)=0.007433262311174140184074493d0/rhol**2d0
+     fac_arr(16,2)=0.01486652462234828036814899d0/rhol**2d0
+     lxyz_arr(1,1,3)=6 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=4 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
+     lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=6 ; lxyz_arr(3,4,3)=0
+     lxyz_arr(1,5,3)=4 ; lxyz_arr(2,5,3)=0 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=2 ; lxyz_arr(2,6,3)=2 ; lxyz_arr(3,6,3)=2
+     lxyz_arr(1,7,3)=0 ; lxyz_arr(2,7,3)=4 ; lxyz_arr(3,7,3)=2
+     lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=0 ; lxyz_arr(3,8,3)=4
+     lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=2 ; lxyz_arr(3,9,3)=4
+     lxyz_arr(1,10,3)=0 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=6
+     lxyz_arr(1,11,3)=6 ; lxyz_arr(2,11,3)=0 ; lxyz_arr(3,11,3)=2
+     lxyz_arr(1,12,3)=4 ; lxyz_arr(2,12,3)=2 ; lxyz_arr(3,12,3)=2
+     lxyz_arr(1,13,3)=2 ; lxyz_arr(2,13,3)=4 ; lxyz_arr(3,13,3)=2
+     lxyz_arr(1,14,3)=0 ; lxyz_arr(2,14,3)=6 ; lxyz_arr(3,14,3)=2
+     lxyz_arr(1,15,3)=4 ; lxyz_arr(2,15,3)=0 ; lxyz_arr(3,15,3)=4
+     lxyz_arr(1,16,3)=2 ; lxyz_arr(2,16,3)=2 ; lxyz_arr(3,16,3)=4
+     lxyz_arr(1,17,3)=0 ; lxyz_arr(2,17,3)=4 ; lxyz_arr(3,17,3)=4
+     lxyz_arr(1,18,3)=2 ; lxyz_arr(2,18,3)=0 ; lxyz_arr(3,18,3)=6
+     lxyz_arr(1,19,3)=0 ; lxyz_arr(2,19,3)=2 ; lxyz_arr(3,19,3)=6
+     lxyz_arr(1,20,3)=0 ; lxyz_arr(2,20,3)=0 ; lxyz_arr(3,20,3)=8
+     fac_arr(1,3)=0.02229978693352242055222348d0
+     fac_arr(2,3)=0.06689936080056726165667044d0
+     fac_arr(3,3)=0.06689936080056726165667044d0
+     fac_arr(4,3)=0.02229978693352242055222348d0
+     fac_arr(5,3)=0.08919914773408968220889392d0
+     fac_arr(6,3)=0.1783982954681793644177878d0
+     fac_arr(7,3)=0.08919914773408968220889392d0
+     fac_arr(8,3)=-0.03716631155587070092037247d0
+     fac_arr(9,3)=-0.03716631155587070092037247d0
+     fac_arr(10,3)=-0.1040656723564379625770429d0
+     fac_arr(11,3)=-0.02229978693352242055222348d0/rhol**2d0
+     fac_arr(12,3)=-0.06689936080056726165667044d0/rhol**2d0
+     fac_arr(13,3)=-0.06689936080056726165667044d0/rhol**2d0
+     fac_arr(14,3)=-0.02229978693352242055222348d0/rhol**2d0
+     fac_arr(15,3)=-0.02973304924469656073629797d0/rhol**2d0
+     fac_arr(16,3)=-0.05946609848939312147259594d0/rhol**2d0
+     fac_arr(17,3)=-0.02973304924469656073629797d0/rhol**2d0
+     fac_arr(18,3)=0.007433262311174140184074493d0/rhol**2d0
+     fac_arr(19,3)=0.007433262311174140184074493d0/rhol**2d0
+     fac_arr(20,3)=0.01486652462234828036814899d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.4) then
+     nterm_arr(1)=18
+     nterm_arr(2)=15
+     nterm_arr(3)=14
+     lxyz_arr(1,1,1)=6 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=4 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=2 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=0 ; lxyz_arr(2,4,1)=6 ; lxyz_arr(3,4,1)=0
+     lxyz_arr(1,5,1)=4 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=2
+     lxyz_arr(1,6,1)=2 ; lxyz_arr(2,6,1)=2 ; lxyz_arr(3,6,1)=2
+     lxyz_arr(1,7,1)=0 ; lxyz_arr(2,7,1)=4 ; lxyz_arr(3,7,1)=2
+     lxyz_arr(1,8,1)=2 ; lxyz_arr(2,8,1)=0 ; lxyz_arr(3,8,1)=4
+     lxyz_arr(1,9,1)=0 ; lxyz_arr(2,9,1)=2 ; lxyz_arr(3,9,1)=4
+     lxyz_arr(1,10,1)=8 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=0
+     lxyz_arr(1,11,1)=6 ; lxyz_arr(2,11,1)=2 ; lxyz_arr(3,11,1)=0
+     lxyz_arr(1,12,1)=4 ; lxyz_arr(2,12,1)=4 ; lxyz_arr(3,12,1)=0
+     lxyz_arr(1,13,1)=2 ; lxyz_arr(2,13,1)=6 ; lxyz_arr(3,13,1)=0
+     lxyz_arr(1,14,1)=6 ; lxyz_arr(2,14,1)=0 ; lxyz_arr(3,14,1)=2
+     lxyz_arr(1,15,1)=4 ; lxyz_arr(2,15,1)=2 ; lxyz_arr(3,15,1)=2
+     lxyz_arr(1,16,1)=2 ; lxyz_arr(2,16,1)=4 ; lxyz_arr(3,16,1)=2
+     lxyz_arr(1,17,1)=4 ; lxyz_arr(2,17,1)=0 ; lxyz_arr(3,17,1)=4
+     lxyz_arr(1,18,1)=2 ; lxyz_arr(2,18,1)=2 ; lxyz_arr(3,18,1)=4
+     fac_arr(1,1)=0.08227113772079145865717289d0
+     fac_arr(2,1)=-0.05876509837199389904083778d0
+     fac_arr(3,1)=-0.1762952951159816971225133d0
+     fac_arr(4,1)=-0.03525905902319633942450267d0
+     fac_arr(5,1)=0.1175301967439877980816756d0
+     fac_arr(6,1)=-0.1410362360927853576980107d0
+     fac_arr(7,1)=-0.07051811804639267884900533d0
+     fac_arr(8,1)=0.03525905902319633942450267d0
+     fac_arr(9,1)=-0.03525905902319633942450267d0
+     fac_arr(10,1)=-0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(11,1)=0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(12,1)=0.05876509837199389904083778d0/rhol**2d0
+     fac_arr(13,1)=0.03525905902319633942450267d0/rhol**2d0
+     fac_arr(14,1)=-0.02350603934879755961633511d0/rhol**2d0
+     fac_arr(15,1)=0.04701207869759511923267022d0/rhol**2d0
+     fac_arr(16,1)=0.07051811804639267884900533d0/rhol**2d0
+     fac_arr(17,1)=-0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(18,1)=0.03525905902319633942450267d0/rhol**2d0
+     lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=1 ; lxyz_arr(3,4,2)=2
+     lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=3 ; lxyz_arr(3,5,2)=2
+     lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=1 ; lxyz_arr(3,6,2)=4
+     lxyz_arr(1,7,2)=7 ; lxyz_arr(2,7,2)=1 ; lxyz_arr(3,7,2)=0
+     lxyz_arr(1,8,2)=5 ; lxyz_arr(2,8,2)=3 ; lxyz_arr(3,8,2)=0
+     lxyz_arr(1,9,2)=3 ; lxyz_arr(2,9,2)=5 ; lxyz_arr(3,9,2)=0
+     lxyz_arr(1,10,2)=1 ; lxyz_arr(2,10,2)=7 ; lxyz_arr(3,10,2)=0
+     lxyz_arr(1,11,2)=5 ; lxyz_arr(2,11,2)=1 ; lxyz_arr(3,11,2)=2
+     lxyz_arr(1,12,2)=3 ; lxyz_arr(2,12,2)=3 ; lxyz_arr(3,12,2)=2
+     lxyz_arr(1,13,2)=1 ; lxyz_arr(2,13,2)=5 ; lxyz_arr(3,13,2)=2
+     lxyz_arr(1,14,2)=3 ; lxyz_arr(2,14,2)=1 ; lxyz_arr(3,14,2)=4
+     lxyz_arr(1,15,2)=1 ; lxyz_arr(2,15,2)=3 ; lxyz_arr(3,15,2)=4
+     fac_arr(1,2)=-0.02350603934879755961633511d0
+     fac_arr(2,2)=-0.2350603934879755961633511d0
+     fac_arr(3,2)=-0.211554354139178036547016d0
+     fac_arr(4,2)=-0.09402415739519023846534044d0
+     fac_arr(5,2)=-0.2820724721855707153960213d0
+     fac_arr(6,2)=-0.07051811804639267884900533d0
+     fac_arr(7,2)=-0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(8,2)=0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(9,2)=0.05876509837199389904083778d0/rhol**2d0
+     fac_arr(10,2)=0.03525905902319633942450267d0/rhol**2d0
+     fac_arr(11,2)=-0.02350603934879755961633511d0/rhol**2d0
+     fac_arr(12,2)=0.04701207869759511923267022d0/rhol**2d0
+     fac_arr(13,2)=0.07051811804639267884900533d0/rhol**2d0
+     fac_arr(14,2)=-0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(15,2)=0.03525905902319633942450267d0/rhol**2d0
+     lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=0 ; lxyz_arr(3,4,3)=3
+     lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=2 ; lxyz_arr(3,5,3)=3
+     lxyz_arr(1,6,3)=7 ; lxyz_arr(2,6,3)=0 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=5 ; lxyz_arr(2,7,3)=2 ; lxyz_arr(3,7,3)=1
+     lxyz_arr(1,8,3)=3 ; lxyz_arr(2,8,3)=4 ; lxyz_arr(3,8,3)=1
+     lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=6 ; lxyz_arr(3,9,3)=1
+     lxyz_arr(1,10,3)=5 ; lxyz_arr(2,10,3)=0 ; lxyz_arr(3,10,3)=3
+     lxyz_arr(1,11,3)=3 ; lxyz_arr(2,11,3)=2 ; lxyz_arr(3,11,3)=3
+     lxyz_arr(1,12,3)=1 ; lxyz_arr(2,12,3)=4 ; lxyz_arr(3,12,3)=3
+     lxyz_arr(1,13,3)=3 ; lxyz_arr(2,13,3)=0 ; lxyz_arr(3,13,3)=5
+     lxyz_arr(1,14,3)=1 ; lxyz_arr(2,14,3)=2 ; lxyz_arr(3,14,3)=5
+     fac_arr(1,3)=0.04701207869759511923267022d0
+     fac_arr(2,3)=-0.09402415739519023846534044d0
+     fac_arr(3,3)=-0.1410362360927853576980107d0
+     fac_arr(4,3)=0.04701207869759511923267022d0
+     fac_arr(5,3)=-0.1410362360927853576980107d0
+     fac_arr(6,3)=-0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(7,3)=0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(8,3)=0.05876509837199389904083778d0/rhol**2d0
+     fac_arr(9,3)=0.03525905902319633942450267d0/rhol**2d0
+     fac_arr(10,3)=-0.02350603934879755961633511d0/rhol**2d0
+     fac_arr(11,3)=0.04701207869759511923267022d0/rhol**2d0
+     fac_arr(12,3)=0.07051811804639267884900533d0/rhol**2d0
+     fac_arr(13,3)=-0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(14,3)=0.03525905902319633942450267d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.5) then
+     nterm_arr(1)=15
+     nterm_arr(2)=18
+     nterm_arr(3)=14
+     lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=0
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=0
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=5 ; lxyz_arr(3,3,1)=0
+     lxyz_arr(1,4,1)=3 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=2
+     lxyz_arr(1,5,1)=1 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=2
+     lxyz_arr(1,6,1)=1 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=4
+     lxyz_arr(1,7,1)=7 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=0
+     lxyz_arr(1,8,1)=5 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=0
+     lxyz_arr(1,9,1)=3 ; lxyz_arr(2,9,1)=5 ; lxyz_arr(3,9,1)=0
+     lxyz_arr(1,10,1)=1 ; lxyz_arr(2,10,1)=7 ; lxyz_arr(3,10,1)=0
+     lxyz_arr(1,11,1)=5 ; lxyz_arr(2,11,1)=1 ; lxyz_arr(3,11,1)=2
+     lxyz_arr(1,12,1)=3 ; lxyz_arr(2,12,1)=3 ; lxyz_arr(3,12,1)=2
+     lxyz_arr(1,13,1)=1 ; lxyz_arr(2,13,1)=5 ; lxyz_arr(3,13,1)=2
+     lxyz_arr(1,14,1)=3 ; lxyz_arr(2,14,1)=1 ; lxyz_arr(3,14,1)=4
+     lxyz_arr(1,15,1)=1 ; lxyz_arr(2,15,1)=3 ; lxyz_arr(3,15,1)=4
+     fac_arr(1,1)=-0.211554354139178036547016d0
+     fac_arr(2,1)=-0.2350603934879755961633511d0
+     fac_arr(3,1)=-0.02350603934879755961633511d0
+     fac_arr(4,1)=-0.2820724721855707153960213d0
+     fac_arr(5,1)=-0.09402415739519023846534044d0
+     fac_arr(6,1)=-0.07051811804639267884900533d0
+     fac_arr(7,1)=0.03525905902319633942450267d0/rhol**2d0
+     fac_arr(8,1)=0.05876509837199389904083778d0/rhol**2d0
+     fac_arr(9,1)=0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(10,1)=-0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(11,1)=0.07051811804639267884900533d0/rhol**2d0
+     fac_arr(12,1)=0.04701207869759511923267022d0/rhol**2d0
+     fac_arr(13,1)=-0.02350603934879755961633511d0/rhol**2d0
+     fac_arr(14,1)=0.03525905902319633942450267d0/rhol**2d0
+     fac_arr(15,1)=-0.01175301967439877980816756d0/rhol**2d0
+     lxyz_arr(1,1,2)=6 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=0
+     lxyz_arr(1,2,2)=4 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=0
+     lxyz_arr(1,3,2)=2 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=0
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=6 ; lxyz_arr(3,4,2)=0
+     lxyz_arr(1,5,2)=4 ; lxyz_arr(2,5,2)=0 ; lxyz_arr(3,5,2)=2
+     lxyz_arr(1,6,2)=2 ; lxyz_arr(2,6,2)=2 ; lxyz_arr(3,6,2)=2
+     lxyz_arr(1,7,2)=0 ; lxyz_arr(2,7,2)=4 ; lxyz_arr(3,7,2)=2
+     lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=0 ; lxyz_arr(3,8,2)=4
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=2 ; lxyz_arr(3,9,2)=4
+     lxyz_arr(1,10,2)=6 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=0
+     lxyz_arr(1,11,2)=4 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=0
+     lxyz_arr(1,12,2)=2 ; lxyz_arr(2,12,2)=6 ; lxyz_arr(3,12,2)=0
+     lxyz_arr(1,13,2)=0 ; lxyz_arr(2,13,2)=8 ; lxyz_arr(3,13,2)=0
+     lxyz_arr(1,14,2)=4 ; lxyz_arr(2,14,2)=2 ; lxyz_arr(3,14,2)=2
+     lxyz_arr(1,15,2)=2 ; lxyz_arr(2,15,2)=4 ; lxyz_arr(3,15,2)=2
+     lxyz_arr(1,16,2)=0 ; lxyz_arr(2,16,2)=6 ; lxyz_arr(3,16,2)=2
+     lxyz_arr(1,17,2)=2 ; lxyz_arr(2,17,2)=2 ; lxyz_arr(3,17,2)=4
+     lxyz_arr(1,18,2)=0 ; lxyz_arr(2,18,2)=4 ; lxyz_arr(3,18,2)=4
+     fac_arr(1,2)=-0.03525905902319633942450267d0
+     fac_arr(2,2)=-0.1762952951159816971225133d0
+     fac_arr(3,2)=-0.05876509837199389904083778d0
+     fac_arr(4,2)=0.08227113772079145865717289d0
+     fac_arr(5,2)=-0.07051811804639267884900533d0
+     fac_arr(6,2)=-0.1410362360927853576980107d0
+     fac_arr(7,2)=0.1175301967439877980816756d0
+     fac_arr(8,2)=-0.03525905902319633942450267d0
+     fac_arr(9,2)=0.03525905902319633942450267d0
+     fac_arr(10,2)=0.03525905902319633942450267d0/rhol**2d0
+     fac_arr(11,2)=0.05876509837199389904083778d0/rhol**2d0
+     fac_arr(12,2)=0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(13,2)=-0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(14,2)=0.07051811804639267884900533d0/rhol**2d0
+     fac_arr(15,2)=0.04701207869759511923267022d0/rhol**2d0
+     fac_arr(16,2)=-0.02350603934879755961633511d0/rhol**2d0
+     fac_arr(17,2)=0.03525905902319633942450267d0/rhol**2d0
+     fac_arr(18,2)=-0.01175301967439877980816756d0/rhol**2d0
+     lxyz_arr(1,1,3)=4 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=1
+     lxyz_arr(1,2,3)=2 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=1
+     lxyz_arr(1,3,3)=0 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=1
+     lxyz_arr(1,4,3)=2 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=3
+     lxyz_arr(1,5,3)=0 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=3
+     lxyz_arr(1,6,3)=6 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=1
+     lxyz_arr(1,7,3)=4 ; lxyz_arr(2,7,3)=3 ; lxyz_arr(3,7,3)=1
+     lxyz_arr(1,8,3)=2 ; lxyz_arr(2,8,3)=5 ; lxyz_arr(3,8,3)=1
+     lxyz_arr(1,9,3)=0 ; lxyz_arr(2,9,3)=7 ; lxyz_arr(3,9,3)=1
+     lxyz_arr(1,10,3)=4 ; lxyz_arr(2,10,3)=1 ; lxyz_arr(3,10,3)=3
+     lxyz_arr(1,11,3)=2 ; lxyz_arr(2,11,3)=3 ; lxyz_arr(3,11,3)=3
+     lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=5 ; lxyz_arr(3,12,3)=3
+     lxyz_arr(1,13,3)=2 ; lxyz_arr(2,13,3)=1 ; lxyz_arr(3,13,3)=5
+     lxyz_arr(1,14,3)=0 ; lxyz_arr(2,14,3)=3 ; lxyz_arr(3,14,3)=5
+     fac_arr(1,3)=-0.1410362360927853576980107d0
+     fac_arr(2,3)=-0.09402415739519023846534044d0
+     fac_arr(3,3)=0.04701207869759511923267022d0
+     fac_arr(4,3)=-0.1410362360927853576980107d0
+     fac_arr(5,3)=0.04701207869759511923267022d0
+     fac_arr(6,3)=0.03525905902319633942450267d0/rhol**2d0
+     fac_arr(7,3)=0.05876509837199389904083778d0/rhol**2d0
+     fac_arr(8,3)=0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(9,3)=-0.01175301967439877980816756d0/rhol**2d0
+     fac_arr(10,3)=0.07051811804639267884900533d0/rhol**2d0
+     fac_arr(11,3)=0.04701207869759511923267022d0/rhol**2d0
+     fac_arr(12,3)=-0.02350603934879755961633511d0/rhol**2d0
+     fac_arr(13,3)=0.03525905902319633942450267d0/rhol**2d0
+     fac_arr(14,3)=-0.01175301967439877980816756d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.6) then
+     nterm_arr(1)=13
+     nterm_arr(2)=13
+     nterm_arr(3)=16
+     lxyz_arr(1,1,1)=5 ; lxyz_arr(2,1,1)=0 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=3 ; lxyz_arr(2,2,1)=2 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=1 ; lxyz_arr(2,3,1)=4 ; lxyz_arr(3,3,1)=1
+     lxyz_arr(1,4,1)=3 ; lxyz_arr(2,4,1)=0 ; lxyz_arr(3,4,1)=3
+     lxyz_arr(1,5,1)=1 ; lxyz_arr(2,5,1)=0 ; lxyz_arr(3,5,1)=5
+     lxyz_arr(1,6,1)=7 ; lxyz_arr(2,6,1)=0 ; lxyz_arr(3,6,1)=1
+     lxyz_arr(1,7,1)=5 ; lxyz_arr(2,7,1)=2 ; lxyz_arr(3,7,1)=1
+     lxyz_arr(1,8,1)=3 ; lxyz_arr(2,8,1)=4 ; lxyz_arr(3,8,1)=1
+     lxyz_arr(1,9,1)=1 ; lxyz_arr(2,9,1)=6 ; lxyz_arr(3,9,1)=1
+     lxyz_arr(1,10,1)=5 ; lxyz_arr(2,10,1)=0 ; lxyz_arr(3,10,1)=3
+     lxyz_arr(1,11,1)=1 ; lxyz_arr(2,11,1)=4 ; lxyz_arr(3,11,1)=3
+     lxyz_arr(1,12,1)=3 ; lxyz_arr(2,12,1)=0 ; lxyz_arr(3,12,1)=5
+     lxyz_arr(1,13,1)=1 ; lxyz_arr(2,13,1)=2 ; lxyz_arr(3,13,1)=5
+     fac_arr(1,1)=0.1727334068350121925245643d0
+     fac_arr(2,1)=0.1151556045566747950163762d0
+     fac_arr(3,1)=-0.05757780227833739750818811d0
+     fac_arr(4,1)=0.2303112091133495900327524d0
+     fac_arr(5,1)=0.05757780227833739750818811d0
+     fac_arr(6,1)=-0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(7,1)=-0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(8,1)=0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(9,1)=0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(10,1)=-0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(11,1)=0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(12,1)=-0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(13,1)=0.02878890113916869875409405d0/rhol**2d0
+     lxyz_arr(1,1,2)=4 ; lxyz_arr(2,1,2)=1 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=2 ; lxyz_arr(2,2,2)=3 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=0 ; lxyz_arr(2,3,2)=5 ; lxyz_arr(3,3,2)=1
+     lxyz_arr(1,4,2)=0 ; lxyz_arr(2,4,2)=3 ; lxyz_arr(3,4,2)=3
+     lxyz_arr(1,5,2)=0 ; lxyz_arr(2,5,2)=1 ; lxyz_arr(3,5,2)=5
+     lxyz_arr(1,6,2)=6 ; lxyz_arr(2,6,2)=1 ; lxyz_arr(3,6,2)=1
+     lxyz_arr(1,7,2)=4 ; lxyz_arr(2,7,2)=3 ; lxyz_arr(3,7,2)=1
+     lxyz_arr(1,8,2)=2 ; lxyz_arr(2,8,2)=5 ; lxyz_arr(3,8,2)=1
+     lxyz_arr(1,9,2)=0 ; lxyz_arr(2,9,2)=7 ; lxyz_arr(3,9,2)=1
+     lxyz_arr(1,10,2)=4 ; lxyz_arr(2,10,2)=1 ; lxyz_arr(3,10,2)=3
+     lxyz_arr(1,11,2)=0 ; lxyz_arr(2,11,2)=5 ; lxyz_arr(3,11,2)=3
+     lxyz_arr(1,12,2)=2 ; lxyz_arr(2,12,2)=1 ; lxyz_arr(3,12,2)=5
+     lxyz_arr(1,13,2)=0 ; lxyz_arr(2,13,2)=3 ; lxyz_arr(3,13,2)=5
+     fac_arr(1,2)=0.05757780227833739750818811d0
+     fac_arr(2,2)=-0.1151556045566747950163762d0
+     fac_arr(3,2)=-0.1727334068350121925245643d0
+     fac_arr(4,2)=-0.2303112091133495900327524d0
+     fac_arr(5,2)=-0.05757780227833739750818811d0
+     fac_arr(6,2)=-0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(7,2)=-0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(8,2)=0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(9,2)=0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(10,2)=-0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(11,2)=0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(12,2)=-0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(13,2)=0.02878890113916869875409405d0/rhol**2d0
+     lxyz_arr(1,1,3)=6 ; lxyz_arr(2,1,3)=0 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=4 ; lxyz_arr(2,2,3)=2 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=2 ; lxyz_arr(2,3,3)=4 ; lxyz_arr(3,3,3)=0
+     lxyz_arr(1,4,3)=0 ; lxyz_arr(2,4,3)=6 ; lxyz_arr(3,4,3)=0
+     lxyz_arr(1,5,3)=4 ; lxyz_arr(2,5,3)=0 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=0 ; lxyz_arr(2,6,3)=4 ; lxyz_arr(3,6,3)=2
+     lxyz_arr(1,7,3)=2 ; lxyz_arr(2,7,3)=0 ; lxyz_arr(3,7,3)=4
+     lxyz_arr(1,8,3)=0 ; lxyz_arr(2,8,3)=2 ; lxyz_arr(3,8,3)=4
+     lxyz_arr(1,9,3)=6 ; lxyz_arr(2,9,3)=0 ; lxyz_arr(3,9,3)=2
+     lxyz_arr(1,10,3)=4 ; lxyz_arr(2,10,3)=2 ; lxyz_arr(3,10,3)=2
+     lxyz_arr(1,11,3)=2 ; lxyz_arr(2,11,3)=4 ; lxyz_arr(3,11,3)=2
+     lxyz_arr(1,12,3)=0 ; lxyz_arr(2,12,3)=6 ; lxyz_arr(3,12,3)=2
+     lxyz_arr(1,13,3)=4 ; lxyz_arr(2,13,3)=0 ; lxyz_arr(3,13,3)=4
+     lxyz_arr(1,14,3)=0 ; lxyz_arr(2,14,3)=4 ; lxyz_arr(3,14,3)=4
+     lxyz_arr(1,15,3)=2 ; lxyz_arr(2,15,3)=0 ; lxyz_arr(3,15,3)=6
+     lxyz_arr(1,16,3)=0 ; lxyz_arr(2,16,3)=2 ; lxyz_arr(3,16,3)=6
+     fac_arr(1,3)=0.02878890113916869875409405d0
+     fac_arr(2,3)=0.02878890113916869875409405d0
+     fac_arr(3,3)=-0.02878890113916869875409405d0
+     fac_arr(4,3)=-0.02878890113916869875409405d0
+     fac_arr(5,3)=0.1727334068350121925245643d0
+     fac_arr(6,3)=-0.1727334068350121925245643d0
+     fac_arr(7,3)=0.1439445056958434937704703d0
+     fac_arr(8,3)=-0.1439445056958434937704703d0
+     fac_arr(9,3)=-0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(10,3)=-0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(11,3)=0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(12,3)=0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(13,3)=-0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(14,3)=0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(15,3)=-0.02878890113916869875409405d0/rhol**2d0
+     fac_arr(16,3)=0.02878890113916869875409405d0/rhol**2d0
+  else if (l.eq.4 .and. i.eq.3 .and. m.eq.7) then
+     nterm_arr(1)=12
+     nterm_arr(2)=12
+     nterm_arr(3)=12
+     lxyz_arr(1,1,1)=4 ; lxyz_arr(2,1,1)=1 ; lxyz_arr(3,1,1)=1
+     lxyz_arr(1,2,1)=2 ; lxyz_arr(2,2,1)=3 ; lxyz_arr(3,2,1)=1
+     lxyz_arr(1,3,1)=0 ; lxyz_arr(2,3,1)=5 ; lxyz_arr(3,3,1)=1
+     lxyz_arr(1,4,1)=2 ; lxyz_arr(2,4,1)=1 ; lxyz_arr(3,4,1)=3
+     lxyz_arr(1,5,1)=0 ; lxyz_arr(2,5,1)=3 ; lxyz_arr(3,5,1)=3
+     lxyz_arr(1,6,1)=0 ; lxyz_arr(2,6,1)=1 ; lxyz_arr(3,6,1)=5
+     lxyz_arr(1,7,1)=6 ; lxyz_arr(2,7,1)=1 ; lxyz_arr(3,7,1)=1
+     lxyz_arr(1,8,1)=4 ; lxyz_arr(2,8,1)=3 ; lxyz_arr(3,8,1)=1
+     lxyz_arr(1,9,1)=2 ; lxyz_arr(2,9,1)=5 ; lxyz_arr(3,9,1)=1
+     lxyz_arr(1,10,1)=4 ; lxyz_arr(2,10,1)=1 ; lxyz_arr(3,10,1)=3
+     lxyz_arr(1,11,1)=2 ; lxyz_arr(2,11,1)=3 ; lxyz_arr(3,11,1)=3
+     lxyz_arr(1,12,1)=2 ; lxyz_arr(2,12,1)=1 ; lxyz_arr(3,12,1)=5
+     fac_arr(1,1)=0.2878890113916869875409405d0
+     fac_arr(2,1)=0.3454668136700243850491286d0
+     fac_arr(3,1)=0.05757780227833739750818811d0
+     fac_arr(4,1)=0.3454668136700243850491286d0
+     fac_arr(5,1)=0.1151556045566747950163762d0
+     fac_arr(6,1)=0.05757780227833739750818811d0
+     fac_arr(7,1)=-0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(8,1)=-0.1151556045566747950163762d0/rhol**2d0
+     fac_arr(9,1)=-0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(10,1)=-0.1151556045566747950163762d0/rhol**2d0
+     fac_arr(11,1)=-0.1151556045566747950163762d0/rhol**2d0
+     fac_arr(12,1)=-0.05757780227833739750818811d0/rhol**2d0
+     lxyz_arr(1,1,2)=5 ; lxyz_arr(2,1,2)=0 ; lxyz_arr(3,1,2)=1
+     lxyz_arr(1,2,2)=3 ; lxyz_arr(2,2,2)=2 ; lxyz_arr(3,2,2)=1
+     lxyz_arr(1,3,2)=1 ; lxyz_arr(2,3,2)=4 ; lxyz_arr(3,3,2)=1
+     lxyz_arr(1,4,2)=3 ; lxyz_arr(2,4,2)=0 ; lxyz_arr(3,4,2)=3
+     lxyz_arr(1,5,2)=1 ; lxyz_arr(2,5,2)=2 ; lxyz_arr(3,5,2)=3
+     lxyz_arr(1,6,2)=1 ; lxyz_arr(2,6,2)=0 ; lxyz_arr(3,6,2)=5
+     lxyz_arr(1,7,2)=5 ; lxyz_arr(2,7,2)=2 ; lxyz_arr(3,7,2)=1
+     lxyz_arr(1,8,2)=3 ; lxyz_arr(2,8,2)=4 ; lxyz_arr(3,8,2)=1
+     lxyz_arr(1,9,2)=1 ; lxyz_arr(2,9,2)=6 ; lxyz_arr(3,9,2)=1
+     lxyz_arr(1,10,2)=3 ; lxyz_arr(2,10,2)=2 ; lxyz_arr(3,10,2)=3
+     lxyz_arr(1,11,2)=1 ; lxyz_arr(2,11,2)=4 ; lxyz_arr(3,11,2)=3
+     lxyz_arr(1,12,2)=1 ; lxyz_arr(2,12,2)=2 ; lxyz_arr(3,12,2)=5
+     fac_arr(1,2)=0.05757780227833739750818811d0
+     fac_arr(2,2)=0.3454668136700243850491286d0
+     fac_arr(3,2)=0.2878890113916869875409405d0
+     fac_arr(4,2)=0.1151556045566747950163762d0
+     fac_arr(5,2)=0.3454668136700243850491286d0
+     fac_arr(6,2)=0.05757780227833739750818811d0
+     fac_arr(7,2)=-0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(8,2)=-0.1151556045566747950163762d0/rhol**2d0
+     fac_arr(9,2)=-0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(10,2)=-0.1151556045566747950163762d0/rhol**2d0
+     fac_arr(11,2)=-0.1151556045566747950163762d0/rhol**2d0
+     fac_arr(12,2)=-0.05757780227833739750818811d0/rhol**2d0
+     lxyz_arr(1,1,3)=5 ; lxyz_arr(2,1,3)=1 ; lxyz_arr(3,1,3)=0
+     lxyz_arr(1,2,3)=3 ; lxyz_arr(2,2,3)=3 ; lxyz_arr(3,2,3)=0
+     lxyz_arr(1,3,3)=1 ; lxyz_arr(2,3,3)=5 ; lxyz_arr(3,3,3)=0
+     lxyz_arr(1,4,3)=3 ; lxyz_arr(2,4,3)=1 ; lxyz_arr(3,4,3)=2
+     lxyz_arr(1,5,3)=1 ; lxyz_arr(2,5,3)=3 ; lxyz_arr(3,5,3)=2
+     lxyz_arr(1,6,3)=1 ; lxyz_arr(2,6,3)=1 ; lxyz_arr(3,6,3)=4
+     lxyz_arr(1,7,3)=5 ; lxyz_arr(2,7,3)=1 ; lxyz_arr(3,7,3)=2
+     lxyz_arr(1,8,3)=3 ; lxyz_arr(2,8,3)=3 ; lxyz_arr(3,8,3)=2
+     lxyz_arr(1,9,3)=1 ; lxyz_arr(2,9,3)=5 ; lxyz_arr(3,9,3)=2
+     lxyz_arr(1,10,3)=3 ; lxyz_arr(2,10,3)=1 ; lxyz_arr(3,10,3)=4
+     lxyz_arr(1,11,3)=1 ; lxyz_arr(2,11,3)=3 ; lxyz_arr(3,11,3)=4
+     lxyz_arr(1,12,3)=1 ; lxyz_arr(2,12,3)=1 ; lxyz_arr(3,12,3)=6
+     fac_arr(1,3)=0.05757780227833739750818811d0
+     fac_arr(2,3)=0.1151556045566747950163762d0
+     fac_arr(3,3)=0.05757780227833739750818811d0
+     fac_arr(4,3)=0.3454668136700243850491286d0
+     fac_arr(5,3)=0.3454668136700243850491286d0
+     fac_arr(6,3)=0.2878890113916869875409405d0
+     fac_arr(7,3)=-0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(8,3)=-0.1151556045566747950163762d0/rhol**2d0
+     fac_arr(9,3)=-0.05757780227833739750818811d0/rhol**2d0
+     fac_arr(10,3)=-0.1151556045566747950163762d0/rhol**2d0
+     fac_arr(11,3)=-0.1151556045566747950163762d0/rhol**2d0
+     fac_arr(12,3)=-0.05757780227833739750818811d0/rhol**2d0
+  else
+     stop 'PSP format error'
+  end if
 END SUBROUTINE calc_coeff_derproj
 
 
@@ -3298,7 +3320,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
   real(gp), dimension(3*nat) :: rat
   real(gp), dimension(3*nat,3) :: vrot
   real(gp), dimension(:), allocatable :: amass
-  
+
   amass = f_malloc(nat,id='amass')
 
   rat=rat0
@@ -3334,7 +3356,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
   call normalizevector(3*nat,vrot(1,1))
   call normalizevector(3*nat,vrot(1,2))
   call normalizevector(3*nat,vrot(1,3))
-  
+
   do i=1,3*nat-2,3
      rat(i+0)=rat(i+0)+cmx
      rat(i+1)=rat(i+1)+cmy
@@ -3347,7 +3369,7 @@ subroutine elim_torque_reza(nat,rat0,fat)
   if (vrotnrm /= 0.0_gp) vrot(1:3*nat,2)=vrot(1:3*nat,2)/vrotnrm
   vrotnrm=nrm2(3*nat,vrot(1,3),1)
   if (vrotnrm /= 0.0_gp) vrot(1:3*nat,3)=vrot(1:3*nat,3)/vrotnrm
-  
+
   do i=1,3
      alpha=0.0_gp  
      if(abs(evaleria(i)).gt.1.e-10_gp) then
@@ -3389,7 +3411,7 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   real(gp), dimension(:), allocatable :: amass
 
   amass = f_malloc(nat,id='amass')
-  
+
   !positions relative to center of geometry
   amass(1:nat)=1.0_gp
   !calculate inertia tensor
@@ -3409,7 +3431,7 @@ subroutine moment_of_inertia(nat,rat,teneria,evaleria)
   !diagonalize inertia tensor
   call DSYEV('V','L',3,teneria,3,evaleria,work,lwork,info)
   call f_free(amass)
-  
+
 END SUBROUTINE moment_of_inertia
 
 
@@ -3667,18 +3689,18 @@ end subroutine symm_stress
 
 
 !> Symmetrise the atomic forces (needed with special k points)
-subroutine symmetrise_forces(fxyz, at)
+subroutine symmetrise_forces(fxyz, astruct)
   use defs_basis
   use m_ab6_symmetry
   use module_defs, only: gp
-  use module_types, only: atoms_data
+  use module_atoms, only: atomic_structure
   use yaml_output
 
   implicit none
 
   !Arguments
-  type(atoms_data), intent(in) :: at
-  real(gp), intent(inout) :: fxyz(3, at%astruct%nat)
+  type(atomic_structure), intent(in) :: astruct
+  real(gp), intent(inout) :: fxyz(3, astruct%nat)
   !Local variables
   integer :: ia, mu, isym, errno, ind, nsym
   integer :: indsym(4, AB6_MAX_SYMMETRIES)
@@ -3690,10 +3712,10 @@ subroutine symmetrise_forces(fxyz, at)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call symmetry_get_matrices_p(at%astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(astruct%sym%symObj, nsym, sym, transNon, symAfm, errno)
   if (errno /= AB7_NO_ERROR) stop
   if (nsym < 2) return
- !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
+  !if (iproc == 0) write(*,"(1x,A,I0,A)") "Symmetrise forces with ", nsym, " symmetries."
   !if (iproc == 0) call yaml_map('Number of Symmetries for forces symmetrization',nsym,fmt='(i0)')
 
   !Get the symmetry matrices in terms of reciprocal basis
@@ -3702,18 +3724,18 @@ subroutine symmetrise_forces(fxyz, at)
      call mati3inv(sym(:,:,isym), symrec(:,:,isym))
   end do
 
-  alat = (/ at%astruct%cell_dim(1), at%astruct%cell_dim(2), at%astruct%cell_dim(3) /)
-  if (at%astruct%geocode == 'S') alat(2) = real(1, gp)
+  alat =astruct%cell_dim
+  if (astruct%geocode == 'S') alat(2) = real(1, gp)
 
   !Save fxyz into dedt.
-  allocate(dedt(3,at%astruct%nat))
-  do ia = 1, at%astruct%nat
+  allocate(dedt(3,astruct%nat))
+  do ia = 1, astruct%nat
      dedt(:, ia) = fxyz(:, ia) / alat
   end do
 
   ! actually conduct symmetrization
-  do ia = 1, at%astruct%nat
-     call symmetry_get_equivalent_atom(at%astruct%sym%symObj, indsym, ia, errno)
+  do ia = 1, astruct%nat
+     call symmetry_get_equivalent_atom(astruct%sym%symObj, indsym, ia, errno)
      if (errno /= AB7_NO_ERROR) stop
      do mu = 1, 3
         summ = real(0, gp)
@@ -3730,9 +3752,9 @@ subroutine symmetrise_forces(fxyz, at)
 
   deallocate(dedt)
   deallocate(symrec)
-  
+
   ! fxyz is in reduced coordinates, we expand here.
-  do ia = 1, at%astruct%nat
+  do ia = 1, astruct%nat
      fxyz(:, ia) = fxyz(:, ia) * alat
   end do
 end subroutine symmetrise_forces
@@ -3749,7 +3771,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(in) :: psi
   real(gp), intent(inout) :: tens(6)
-   real(gp) :: ekin_sum,epot_sum
+  real(gp) :: ekin_sum,epot_sum
   !local variables
   character(len=*), parameter :: subname='local_hamiltonian_stress'
   integer :: iorb,npot,oidx
@@ -3757,6 +3779,8 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   real(gp) :: ekin,kx,ky,kz,etest
   type(workarr_locham) :: wrk_lh
   real(wp), dimension(:,:), allocatable :: psir,hpsi
+
+  call f_routine(id='local_hamiltonian_stress')
 
   !initialise the work arrays
   call initialize_work_arrays_locham(1,lr,orbs%nspinor,.true.,wrk_lh)  
@@ -3796,7 +3820,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
 
      kinstr = -kinstr*8.0_gp/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
      tens=tens+kinstr*2.0_gp*&
-     orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
+          orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
 
   end do !loop over orbitals: finished
 
@@ -3807,7 +3831,197 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
 
   call deallocate_work_arrays_locham(wrk_lh)
 
+  call f_release_routine()
+
 END SUBROUTINE local_hamiltonian_stress
+
+
+
+subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, npsidim, &
+     psi, &!psit_c, psit_f, &
+     collcom, msmat, mmat, lsmat, lmat, tens)
+  use module_base
+  use module_types
+  use module_interfaces
+  !use module_xc
+  use sparsematrix_base, only: sparse_matrix, matrices
+  use sparsematrix, only: trace_sparse
+  use communications_base, only: TRANSPOSE_FULL
+  use communications, only: transpose_localized
+  use transposed_operations, only: calculate_overlap_transposed
+  implicit none
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data), intent(in) :: orbs
+  type(local_zone_descriptors), intent(in) :: lzd
+  type(comms_linear),intent(in) :: collcom
+  type(sparse_matrix),intent(in) :: lsmat
+  type(sparse_matrix),intent(inout) :: msmat
+  type(matrices),intent(inout) :: mmat, lmat
+  real(gp), intent(in) :: hx,hy,hz
+  integer,intent(in) :: npsidim
+  real(wp), dimension(npsidim), intent(in) :: psi
+  !real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
+  !real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
+  real(gp), intent(inout) :: tens(6)
+  !local variables
+  real(gp) :: ekin_sum,epot_sum
+  character(len=*), parameter :: subname='local_hamiltonian_stress'
+  integer :: iorb, npot, i_f, iseg_f, iiorb, ilr, ist, idir, iidim
+  !real(wp) :: kinstr(6)
+  real(gp) :: ekin,kx,ky,kz,etest, tt, ekino
+  type(workarr_locham) :: w
+  real(wp), dimension(:,:), allocatable :: psir
+  real(kind=8),dimension(0:3) :: scal=1.d0
+  real(kind=8),dimension(3) :: hgridh
+  real(kind=8),dimension(:,:),allocatable :: hpsit_c, hpsit_f, hpsi
+  real(kind=8),dimension(:),allocatable :: psit_c, psit_f
+
+  call f_routine(id='local_hamiltonian_stress')
+
+  !@ NEW ####################################################
+
+  hgridh(1)=hx*.5_gp
+  hgridh(2)=hy*.5_gp
+  hgridh(3)=hz*.5_gp
+
+  hpsit_c = f_malloc((/collcom%ndimind_c,3/),id='hpsit_c')
+  hpsit_f = f_malloc((/7*collcom%ndimind_f,3/),id='hpsit_f')
+  hpsi = f_malloc((/npsidim,3/),id='hpsi')
+  psit_c = f_malloc(collcom%ndimind_c,id='psit_c')
+  psit_f = f_malloc(7*collcom%ndimind_f,id='psit_f')
+
+  call initialize_work_arrays_locham(lzd%nlr, lzd%llr, orbs%nspinor, .true., w)
+  ist = 1
+  do iorb=1,orbs%norbp
+     iiorb = orbs%isorb + iorb
+     ilr = orbs%inwhichlocreg(iiorb)
+
+     i_f=min(1,lzd%llr(ilr)%wfd%nvctr_f)
+     iseg_f=min(1,lzd%llr(ilr)%wfd%nseg_f)
+
+
+     !!psir = f_malloc0((/lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,orbs%nspinor/),id='psir')
+     call initialize_work_arrays_locham(1, Lzd%Llr(ilr), orbs%nspinor, .false., w)
+
+     !!call daub_to_isf_locham(orbs%nspinor, lzd%llr(ilr), wrk_lh, psi(ist), psir)
+     call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+          lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+          lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+          lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+          lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
+          lzd%llr(ilr)%wfd%keygloc(1,1), lzd%llr(ilr)%wfd%keyvloc(1), &
+          lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+          lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+iseg_f), &
+          lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+iseg_f), &
+          scal, psi(ist), psi(ist+lzd%llr(ilr)%wfd%nvctr_c+i_f-1), &
+          w%x_c(1,1), w%x_f(1,1), w%x_f1(1,1), w%x_f2(1,1), w%x_f3(1,1))
+
+     do idir=1,3
+        iidim = 10**(3-idir)
+        call f_zero(w%y_c)
+        call f_zero(w%y_f)
+        !!call convolut_kinetic_per_T_1D(2*lzd%llr(ilr)%d%n1+1, 2*lzd%llr(ilr)%d%n2+1, 2*lzd%llr(ilr)%d%n3+1, &
+        !!     hgridh(idir), idir, w%x_c(1,1), w%y_c(1,1))
+        call ConvolkineticT(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+             lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+             lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+             lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+             hx, hy, hz, &      !here the grid spacings are supposed to be equal.  SM: not any more
+             lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+             lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+             w%x_c(1,1), w%x_f(1,1), &
+             w%y_c(1,1), w%y_f(1,1), ekino, &
+             w%x_f1(1,1), w%x_f2(1,1), w%x_f3(1,1),iidim)
+        call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+             lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+             lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+             lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+             lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
+             lzd%llr(ilr)%wfd%keygloc(1,1), lzd%llr(ilr)%wfd%keyvloc(1), &
+             lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+             lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+iseg_f), &
+             lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+iseg_f), &
+             scal, w%y_c(1,1), w%y_f(1,1), hpsi(ist,idir), hpsi(ist+lzd%llr(ilr)%wfd%nvctr_c+i_f-1,idir))
+     end do
+
+     ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+  end do
+
+  call transpose_localized(iproc, nproc, npsidim, orbs, collcom, TRANSPOSE_FULL, &
+       psi, psit_c, psit_f, lzd)
+  do idir=1,3
+     call transpose_localized(iproc, nproc, npsidim, orbs, collcom, TRANSPOSE_FULL, &
+          hpsi(1,idir), hpsit_c, hpsit_f, lzd)
+     call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+          psit_c, hpsit_c, psit_f, hpsit_f, msmat, mmat)
+     tt = trace_sparse(iproc, nproc, orbs, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
+     !tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
+     tens(idir) = tens(idir) - 2.0_gp*8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
+     tens(idir) = tens(idir)/real(nproc,kind=8) !divide by nproc since an allreduce will follow
+  end do
+
+  call deallocate_work_arrays_locham(w)
+  call f_free(hpsit_c)
+  call f_free(hpsit_f)
+  call f_free(psit_c)
+  call f_free(psit_f)
+  call f_free(hpsi)
+
+  !@ END NEW ################################################
+
+!!!initialise the work arrays
+  !!call initialize_work_arrays_locham(1,lr,orbs%nspinor,.true.,wrk_lh)  
+
+  !!tens=0.d0
+
+!!!components of the potential
+  !!npot=orbs%nspinor
+  !!if (orbs%nspinor == 2) npot=1
+
+  !!hpsi = f_malloc((/ lr%wfd%nvctr_c+7*lr%wfd%nvctr_f , orbs%nspinor*orbs%norbp /),id='hpsi')
+  !!hpsi=0.0_wp
+!!! Wavefunction in real space
+  !!psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspinor /),id='psir')
+!!!call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+
+
+
+  !!ekin_sum=0.0_gp
+  !!epot_sum=0.0_gp
+
+  !!etest=0.0_gp
+
+
+  !!do iorb=1,orbs%norbp
+  !!   kinstr=0._wp
+  !!   oidx=(iorb-1)*orbs%nspinor+1
+
+  !!   call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+
+  !!   kx=orbs%kpts(1,orbs%iokpt(iorb))
+  !!   ky=orbs%kpts(2,orbs%iokpt(iorb))
+  !!   kz=orbs%kpts(3,orbs%iokpt(iorb))
+
+  !!   call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
+  !!        psir,hpsi(1,oidx),ekin,kinstr)
+
+  !!   kinstr = -kinstr*8.0_gp/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
+  !!   tens=tens+kinstr*2.0_gp*&
+  !!   orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
+
+  !!end do !loop over orbitals: finished
+
+!!!deallocations of work arrays
+  !!call f_free(psir)
+
+  !!call f_free(hpsi)
+
+  !!call deallocate_work_arrays_locham(wrk_lh)
+
+
+  call f_release_routine()
+
+END SUBROUTINE local_hamiltonian_stress_linear
 
 
 subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,tens)
@@ -3832,8 +4046,12 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
   real(kind=8) :: potg,potg2
   real(kind=8) :: Zion
-  integer :: iat,ityp
+  integer :: iat,ityp,iout,iiout,nout,noutp,ii,isout,jproc
   integer :: j1,j2,j3,i1,i2,i3,inzee,ind
+  real(kind=8) :: routp
+  integer,dimension(:),allocatable :: nout_par
+
+  call f_routine(id='erf_stress')
 
   !write(*,*) 'iproc,n3i,n3p',iproc,n3i,n3p
   !write(*,*) 'iproc',iproc, ngatherarr(iproc-1,1),ngatherarr(iproc-1,2)
@@ -3848,7 +4066,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   end if
 
   pi = 4.0_gp*atan(1.0_gp)
-  allocate(rhog(2,n1i+1,n2i+1,n3i+1,2))
+  rhog = f_malloc((/2,n1i+1,n2i+1,n3i+1,2/),id='rhog')
   tens(:)=0.0_dp ; p(:)=0.0_dp
 
   ! calculate total rho(G)
@@ -3870,8 +4088,31 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
 
   tens=0.0_dp
 
-  do iat=1,at%astruct%nat                          ! SUM OVER ATOMS
+  ! Collapse the loops over nat and n3i
+  nout = at%astruct%nat*n3i
+  routp = real(nout,kind=8)/real(nproc,kind=8)
+  noutp = floor(routp)
+  ii = nout - noutp*nproc
+  if (iproc<ii) noutp = noutp + 1
+  nout_par = f_malloc0(0.to.nproc,id='nout_par')
+  nout_par(iproc) = noutp
+  if (nproc>1) then
+     call mpiallred(nout_par(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  end if
+  if (sum(nout_par)/=nout) then
+     call f_err_throw('wrong partition of the outer loop',err_name='BIGDT_RUNTIME_ERROR')
+  end if
+  isout = 0
+  do jproc=0,iproc-1
+     isout = isout + nout_par(jproc)
+  end do
 
+  !do iat=1,at%astruct%nat                          ! SUM OVER ATOMS
+  do iout=1,noutp!at%astruct%nat*n3i
+
+     iiout = isout + iout
+
+     iat = (iiout-1)/n3i + 1
      ityp=at%astruct%iatype(iat)                ! ityp
      rloc=at%psppar(0,0,ityp)           ! take corresp. r_loc
      Zion = real(at%nelpsp(ityp),kind=8)
@@ -3883,72 +4124,79 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
 
      potg=0.0_dp
 
-     do i3=1,n3i
-        j3=i3-(i3/(n3i/2+2))*n3i-1
-        p(3)=real(j3,dp)/(n3i*hzh)         
+     i3 = modulo(iiout-1,n3i) + 1
+     j3=i3-(i3/(n3i/2+2))*n3i-1
+     p(3)=real(j3,dp)/(n3i*hzh)         
 
-        do i2=1,n2i
-           j2=i2-(i2/(n2i/2+2))*n2i-1
-           p(2)=real(j2,dp)/(n2i*hyh)    
+     !$omp parallel default(none) &
+     !$omp shared(n3i, inzee, i3, n2i, hyh, n1i, hxh, rx, ry, rz, rhog, Zion, rloc, pi, hzh, tens) &
+     !$omp private(i2, j2, i1, j1, sfr, sfi, rhore, rhoim, g2, fac, setv, potg, potg2) &
+     !$omp firstprivate(p)
+     !$omp do reduction(+:tens)
+     do i2=1,n2i
+        j2=i2-(i2/(n2i/2+2))*n2i-1
+        p(2)=real(j2,dp)/(n2i*hyh)    
 
-           do i1=1,n1i
-              j1=i1-(i1/(n1i/2+2))*n1i-1
-              p(1)=real(j1,dp)/(n1i*hxh)
+        do i1=1,n1i
+           j1=i1-(i1/(n1i/2+2))*n1i-1
+           p(1)=real(j1,dp)/(n1i*hxh)
 
-              ! calculate structural factor exp(-2*pi*i*R*G)
-              sfr=cos(-2.0_gp*pi*(rx*p(1)+ry*p(2)+rz*p(3)))
-              sfi=sin(-2.0_gp*pi*(rx*p(1)+ry*p(2)+rz*p(3)))
+           ! calculate structural factor exp(-2*pi*i*R*G)
+           sfr=cos(-2.0_gp*pi*(rx*p(1)+ry*p(2)+rz*p(3)))
+           sfi=sin(-2.0_gp*pi*(rx*p(1)+ry*p(2)+rz*p(3)))
 
-              ! multiply density by shift /structural/ factor 
-              rhore=rhog(1,i1,i2,i3,inzee)*sfr
-              rhoim=rhog(2,i1,i2,i3,inzee)*sfi
+           ! multiply density by shift /structural/ factor 
+           rhore=rhog(1,i1,i2,i3,inzee)*sfr
+           rhoim=rhog(2,i1,i2,i3,inzee)*sfi
 
-              ! use analytical expression for rhog^el
-              ! multiply by  Kernel 1/pi/G^2 in reciprocal space
+           ! use analytical expression for rhog^el
+           ! multiply by  Kernel 1/pi/G^2 in reciprocal space
 
-              g2=real(p(1)**2+p(2)**2+p(3)**2,kind=8)
+           g2=real(p(1)**2+p(2)**2+p(3)**2,kind=8)
 
-              !set = rhog^el (analytic)
-              fac=(Zion/rloc**3.0_gp)/sqrt(2.0_gp*pi)/(2.0_gp*pi)
-              fac=fac/real(n1i*hxh*n2i*hyh*n3i*hzh,kind=8)                    !Division by Volume
-              setv=((sqrt(pi*2.0_gp*rloc**2.0_gp))**3)*fac*exp(-pi*pi*g2*2.0_gp*rloc**2.0_gp)
+           !set = rhog^el (analytic)
+           fac=(Zion/rloc**3.0_gp)/sqrt(2.0_gp*pi)/(2.0_gp*pi)
+           fac=fac/real(n1i*hxh*n2i*hyh*n3i*hzh,kind=8)                    !Division by Volume
+           setv=((sqrt(pi*2.0_gp*rloc**2.0_gp))**3)*fac*exp(-pi*pi*g2*2.0_gp*rloc**2.0_gp)
 
-              if (g2 /= 0) then
+           if (g2 /= 0.d0) then
 
-                 potg = -setv/(pi*g2)  ! V^el(G)
-                 potg2 = (setv/pi)*((real(1.d0,kind=8)/g2**2.d0)&
-                      +real(pi*pi*2.d0*rloc**2.d0/g2,kind=8))
+              potg = -setv/(pi*g2)  ! V^el(G)
+              potg2 = (setv/pi)*((real(1.d0,kind=8)/g2**2.d0)&
+                   +real(pi*pi*2.d0*rloc**2.d0/g2,kind=8))
 
-                 !STRESS TENSOR
-                 tens(1)=tens(1)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(1)+potg)
-                 tens(2)=tens(2)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(2)+potg)
-                 tens(3)=tens(3)-(rhore+rhoim)*(potg2*2.0_gp*p(3)*p(3)+potg)
-                 tens(6)=tens(6)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(2))
-                 tens(5)=tens(5)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(3))
-                 tens(4)=tens(4)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(3))
+              !STRESS TENSOR
+              tens(1)=tens(1)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(1)+potg)
+              tens(2)=tens(2)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(2)+potg)
+              tens(3)=tens(3)-(rhore+rhoim)*(potg2*2.0_gp*p(3)*p(3)+potg)
+              tens(6)=tens(6)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(2))
+              tens(5)=tens(5)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(3))
+              tens(4)=tens(4)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(3))
 
-              end if  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! g2 /=0
-           end do !i1
-        end do !i2
-     end do !i3
+           end if  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! g2 /=0
+        end do !i1
+     end do !i2
+     !$omp end do
+     !$omp end parallel
 
   end do !iat -atoms
 
-!!$  if (iproc ==0) then
-!!$     write(*,*)
-!!$     write(*,*)'--------------------------------------------------------------------'
-!!$     write(*,*) 'STRESS TENSOR: ERF PART'
-!!$     write(*,*) tens(1),tens(2),tens(3)
-!!$     write(*,*) tens(4),tens(5),tens(6)
-!!$     write(*,*)
+!!$  !not needed as the stress tensor is reduced afterwards
+!!$  if (nproc>1) then
+!!$      call mpiallred(tens(1), 6, mpi_sum, comm=bigdft_mpi%mpi_comm)
 !!$  end if
+
+
+  call f_free(nout_par)
 
   if (nproc>1) then
      call f_free_ptr(rhor)
   else
      nullify(rhor)
   end if
-  deallocate(rhog)
+  call f_free(rhog)
+
+  call f_release_routine()
 
 END SUBROUTINE erf_stress
 
@@ -3957,20 +4205,23 @@ END SUBROUTINE erf_stress
 !! belonging to iproc and adds them to the force array
 !! recalculate the projectors at the end if refill flag is .true.
 subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
-     orbs,nlpsp,lzd,phi,denskern,denskern_mat,fsep,refill,strten)
+     orbs,nlpsp,lzd,phi,denskern,denskern_mat,fsep,refill,calculate_strten,strten)
   use module_base
   use module_types
   use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc, assignment(=), SPARSE_FULL
   use sparsematrix, only: gather_matrix_from_taskgroups
-  use psp_projectors, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
+  use psp_projectors, only: projector_has_overlap
+  use public_enums, only: PSPCODE_HGH,PSPCODE_HGH_K,PSPCODE_HGH_K_NLCC,&
        PSPCODE_PAW
+
   use yaml_output
+  use locregs, only: check_whether_bounds_overlap
   implicit none
   !Arguments-------------
   type(atoms_data), intent(in) :: at
   type(local_zone_descriptors), intent(in) :: lzd
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  logical, intent(in) :: refill
+  logical, intent(in) :: refill,calculate_strten
   integer, intent(in) :: iproc, nproc, npsidim_orbs
   real(gp), intent(in) :: hx,hy,hz
   type(locreg_descriptors) :: lr
@@ -3987,21 +4238,26 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   integer :: mbvctr_c,mbvctr_f,iorb,nwarnings,nspinor,ispinor,jorbd,ncount,ist_send
   real(gp) :: offdiagcoeff,hij,sp0,spi,sp0i,sp0j,spj,Enl,vol
   !real(gp) :: orbfac,strc
+  real(gp) :: strc
   integer :: idir,ncplx,icplx,isorb,ikpt,ieorb,istart_ck,ispsi_k,ispsi,jorb,jproc,ii,ist,ierr,iiat,iiiat
   real(gp), dimension(2,2,3) :: offdiagarr
-  real(gp), dimension(:,:), allocatable :: fxyz_orb
+  !real(gp), dimension(:,:), allocatable :: fxyz_orb
   real(dp), dimension(:,:,:,:,:,:,:), allocatable :: scalprod
-  real(gp), dimension(6) :: sab
-  integer,dimension(:),allocatable :: nat_par, isat_par, sendcounts, recvcounts, senddspls, recvdspls
-  integer,dimension(:,:),allocatable :: iat_startend
-  real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
+  !real(gp), dimension(6) :: sab
+  integer,dimension(:),allocatable :: nat_par, isat_par!, sendcounts, recvcounts, senddspls, recvdspls
+  integer,dimension(:),allocatable :: is_supfun_per_atom, supfun_per_atom, scalprod_send_lookup, scalprod_lookup
+  !integer,dimension(:,:),allocatable :: iat_startend
+  !real(dp),dimension(:,:,:,:,:,:,:),allocatable :: scalprod_sendbuf
+  real(dp),dimension(:,:,:,:,:,:),allocatable :: scalprod_sendbuf_new, scalprod_new
   real(dp),dimension(:),allocatable :: scalprod_recvbuf
-  integer,parameter :: ndir=3 !3 for forces, 9 for forces and stresses
+  integer :: ndir!=9 !3 for forces, 9 for forces and stresses
   real(kind=8),dimension(:),allocatable :: denskern_gathered
-  integer,dimension(:,:),allocatable :: iorbminmax, iatminmax
-  integer :: iorbmin, jorbmin, iorbmax, jorbmax
+  !integer,dimension(:,:),allocatable :: iorbminmax, iatminmax 
+  integer :: iorbmin, jorbmin, iorbmax, jorbmax, nscalprod_send, nscalprod_recv, jat
+  integer :: i1s, i1e, j1s, j1e, i2s, i2e, j2s, j2e, i3s, i3e, j3s, j3e
   integer :: nat_per_iteration, isat, natp, iat_out, nat_out, norbp_max
-  integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
+  integer :: nat_overlap, l_max, i_max, m_max
+  !integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
 
   !integer :: ldim, gdim
   !real(8),dimension(:),allocatable :: phiglobal
@@ -4011,8 +4267,7 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
 
   call f_routine(id='nonlocal_forces_linear')
 
-  fxyz_orb = f_malloc0((/ 3, at%astruct%nat /),id='fxyz_orb')
-
+  !fxyz_orb = f_malloc0((/ 3, at%astruct%nat /),id='fxyz_orb')
 
   ! Gather together the entire density kernel
   denskern_gathered = sparsematrix_malloc(denskern,iaction=SPARSE_FULL,id='denskern_gathered')
@@ -4030,48 +4285,30 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   nat_par(0:nproc-1)=ii
   ii=natp-ii*nproc
   do i=0,ii-1
-      nat_par(i)=nat_par(i)+1
+     nat_par(i)=nat_par(i)+1
   end do
   isat_par(0)=0
   do jproc=1,nproc-1
-      isat_par(jproc)=isat_par(jproc-1)+nat_par(jproc-1)
+     isat_par(jproc)=isat_par(jproc-1)+nat_par(jproc-1)
   end do
 
-  
-  sendcounts = f_malloc(0.to.nproc-1,id='sendcounts')
-  recvcounts = f_malloc(0.to.nproc-1,id='recvcounts')
-  senddspls = f_malloc(0.to.nproc-1,id='senddspls')
-  recvdspls = f_malloc(0.to.nproc-1,id='recvdspls')
-  
-  do jproc=0,nproc-1
-      sendcounts(jproc)=2*(ndir+1)*7*3*4*orbs%norbp*nat_par(jproc)
-      recvcounts(jproc)=2*(ndir+1)*7*3*4*orbs%norb_par(jproc,0)*nat_par(iproc)
-  end do
-  senddspls(0)=0
-  recvdspls(0)=0
-  do jproc=1,nproc-1
-      senddspls(jproc)=senddspls(jproc-1)+sendcounts(jproc-1)
-      recvdspls(jproc)=recvdspls(jproc-1)+recvcounts(jproc-1)
-  end do
-  
+  ! Number of support functions having an overlap with the projector of a given atom
+  supfun_per_atom = f_malloc0(at%astruct%nat,id='supfun_per_atom')
+  is_supfun_per_atom = f_malloc0(at%astruct%nat,id='is_supfun_per_atom')
+
+
   call f_zero(strten) 
-  
-     
+
+
   !always put complex scalprod
   !also nspinor for the moment is the biggest as possible
-  
-  !  allocate(scalprod(2,0:3,7,3,4,natp,orbs%norbp*orbs%nspinor),stat=i_stat)
-  ! need more components in scalprod to calculate terms like dp/dx*psi*x
-  !scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-  !                       1.to.natp, 1.to.max(1, orbs%norbp*orbs%nspinor) /),id='scalprod')
-  !call to_zero(2*(ndir+1)*7*3*4*natp*max(1,orbs%norbp*orbs%nspinor),scalprod(1,0,1,1,1,1,1))
-  
-  
+
+
   Enl=0._gp
   !strten=0.d0
   vol=real(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3),gp)
-  sab=0.d0
-  
+  !sab=0.d0
+
   !calculate the coefficients for the off-diagonal terms
   do l=1,3
      do i=1,2
@@ -4103,742 +4340,650 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
         end do
      end do
   end do
-  
-  ! Minimal and maximal value of jorb for which scalprod (with respect to a given atom) is non-zero
-  iorbminmax = f_malloc((/natp,2/),id='iorbminmax')
-  iorbminmax(:,1) = orbs%norb
-  iorbminmax(:,2) = 1
-  iatminmax = f_malloc0((/orbs%norb,2/),id='iatminmax')
-  iatminmax(orbs%isorb+1:orbs%isorb+orbs%norbp,1) = at%astruct%nat
-  iatminmax(orbs%isorb+1:orbs%isorb+orbs%norbp,2) = 1
+
+
+  ! Determine the maximal value of l and i
+  l_max = 1
+  i_max = 1
+  do iat=1,natp
+     iiat = iat+isat-1
+     ityp=at%astruct%iatype(iiat)
+     do l=1,4
+        do i=1,3
+           if (at%psppar(l,i,ityp) /= 0.0_gp) then
+              l_max = max(l,l_max)
+              i_max = max(i,i_max)
+           end if
+        end do
+     end do
+  end do
+  m_max = 2*l_max-1
 
 
   ! Determine the size of the array scalprod_sendbuf (indicated by iat_startend)
-  iat_startend = f_malloc0((/1.to.2,0.to.nproc-1/),id='iat_startend')
-  iat_startend(1,iproc) = at%astruct%nat
-  iat_startend(2,iproc) = 1
   call determine_dimension_scalprod()
-  scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-                                 iat_startend(1,iproc).to.iat_startend(2,iproc), &
-                                 1.to.max(1,orbs%norbp*orbs%nspinor) /),id='scalprod_sendbuf')
-  
+  scalprod_sendbuf_new = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.m_max, 1.to.i_max, 1.to.l_max, &
+       1.to.max(nscalprod_send,1) /),id='scalprod_sendbuf_new')
+  scalprod_send_lookup = f_malloc(max(nscalprod_send,1), id='scalprod_send_lookup')
+
+  is_supfun_per_atom(1) = 0
+  do jat=2,at%astruct%nat
+     is_supfun_per_atom(jat) = is_supfun_per_atom(jat-1) + supfun_per_atom(jat-1)
+  end do
+
   ! Calculate the values of scalprod
   call calculate_scalprod()
-  
-  
-  
+
+
+
   ! Communicate scalprod
   call transpose_scalprod()
-  
-  call f_free(sendcounts)
-  call f_free(recvcounts)
-  call f_free(senddspls)
-  call f_free(recvdspls)
-  
+
   call calculate_forces()
-  
-  
-  
-  !Adding Enl to the diagonal components of strten after loop over kpts is finished...
-  do i=1,3
-  strten(i)=strten(i)+Enl/vol
-  end do
-  
-  !  do iat=1,natp
-  !     write(20+iat,'(1x,i5,1x,3(1x,1pe12.5))') &
-  !          iat,fsep(1,iat),fsep(2,iat),fsep(3,iat)
-  !  end do
-  
-  call f_free(iorbminmax)
-  call f_free(iatminmax)
-  call f_free(scalprod)
+
+
+  call f_free(is_supfun_per_atom)
+  call f_free(supfun_per_atom)
+  call f_free(scalprod_sendbuf_new)
+  call f_free(scalprod_send_lookup)
+  call f_free(scalprod_lookup)
+
+
+  !!call mpiallred(Enl,1,mpi_sum, bigdft_mpi%mpi_comm)
+  !!if (bigdft_mpi%iproc==0) call yaml_map('Enl',Enl)
+
+  call f_free(scalprod_new)
   call f_free(nat_par)
   call f_free(isat_par)
-  call f_free(iat_startend)
-
-
-  call f_free(fxyz_orb)
+  !call f_free(fxyz_orb)
   call f_free(denskern_gathered)
 
   call f_release_routine()
 
 
-  contains
+contains
 
 
-      subroutine determine_dimension_scalprod()
-        implicit none
+  subroutine determine_dimension_scalprod()
+    implicit none
+    integer :: ii
+    !logical :: projector_has_overlap
 
-        call f_routine(id='determine_dimension_scalprod')
+    call f_routine(id='determine_dimension_scalprod')
 
-        norbp_if: if (orbs%norbp>0) then
-    
-            !look for the strategy of projectors application
-            if (DistProjApply) then
-               !apply the projectors on the fly for each k-point of the processor
-               !starting k-point
-               ikpt=orbs%iokpt(1)
-               loop_kptD: do
-          
-                  call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-          
-          
-                  do iat=1,natp
-                     iiat = iat+isat-1
-          
-                     ityp=at%astruct%iatype(iiat)
-                     do iorb=isorb,ieorb
-                        iiorb=orbs%isorb+iorb
-                        ilr=orbs%inwhichlocreg(iiorb)
-                        ! Quick check
-                        if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                            nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                            lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                            nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                            lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                            nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
-                            cycle 
-                        else
-                            iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
-                            iat_startend(2,iproc) = max(iat_startend(2,iproc),iat)
-                        end if
-                     end do
-          
-                  end do
-          
-                  if (ieorb == orbs%norbp) exit loop_kptD
-                  ikpt=ikpt+1
-                  ispsi_k=ispsi
-               end do loop_kptD
-          
-            else
+    if (calculate_strten) then
+       ndir=9
+    else
+       ndir=3
+    end if
 
-               stop 'carefully test this section...'
-               !calculate all the scalar products for each direction and each orbitals
-          
-                  !apply the projectors  k-point of the processor
-                  !starting k-point
-                  ikpt=orbs%iokpt(1)
-                  loop_kpt: do
-          
-                     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-          
-                     do iorb=isorb,ieorb
-                        iiorb=orbs%isorb+iorb
-                        ilr=orbs%inwhichlocreg(iiorb)
-                        ! Quick check
-                        if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                            nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                            lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                            nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                            lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                            nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
-                            cycle 
-                        else
-                            iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
-                            iat_startend(2,iproc) = max(iat_startend(2,iproc),iat)
-                        end if
-                     end do
-                     if (ieorb == orbs%norbp) exit loop_kpt
-                     ikpt=ikpt+1
-                  end do loop_kpt
-          
-            end if
+    nscalprod_send = 0
+    nat_overlap = 0
+    norbp_if: if (orbs%norbp>0) then
 
-        else norbp_if
+       !look for the strategy of projectors application
+       if (DistProjApply) then
+          !apply the projectors on the fly for each k-point of the processor
+          !starting k-point
+          ikpt=orbs%iokpt(1)
+          loop_kptD: do
 
-            iat_startend(1,iproc) = 1
-            iat_startend(2,iproc) = 1
-    
-        end if norbp_if
-
-        if (nproc>1) then
-            call mpiallred(iat_startend(1,0), 2*nproc, mpi_sum, bigdft_mpi%mpi_comm)
-        end if
-
-        call f_release_routine()
-
-      end subroutine determine_dimension_scalprod
+             call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
 
 
-      subroutine calculate_scalprod()
-        implicit none
+             do iat=1,natp
+                iiat = iat+isat-1
 
-        call f_routine(id='calculate_scalprod')
-
-        norbp_if: if (orbs%norbp>0) then
-    
-            !look for the strategy of projectors application
-            if (DistProjApply) then
-               !apply the projectors on the fly for each k-point of the processor
-               !starting k-point
-               ikpt=orbs%iokpt(1)
-               ispsi_k=1
-               jorb=0
-               loop_kptD: do
-          
-                  call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-          
-                  call ncplx_kpt(ikpt,orbs,ncplx)
-          
-                  nwarnings=0 !not used, simply initialised 
-                  iproj=0 !should be equal to four times nproj at the end
-                  jorbd=jorb
-                  do iat=1,natp
-                     iiat = iat+isat-1
-                     
-          
-                     call plr_segs_and_vctrs(nlpsp%pspd(iiat)%plr,&
-                          mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-                     jseg_c=1
-                     jseg_f=1
-          
-                     do idir=0,ndir
-          
-                     ityp=at%astruct%iatype(iiat)
-                        !calculate projectors
-                        istart_c=1
-                        call atom_projector(nlpsp, ityp, iiat, at%astruct%atomnames(ityp), &
-                             & at%astruct%geocode, idir, lr, hx, hy, hz, &
-                             & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
-                             & istart_c, iproj, nwarnings)
-                         !!do i_all=1,nlpspd%nprojel
-                         !!    write(800+iiat,*) i_all, proj(i_all)
-                         !!end do
-          !              print *,'iiat,ilr,idir,sum(proj)',iiat,ilr,idir,sum(proj)
-           
-                        !calculate the contribution for each orbital
-                        !here the nspinor contribution should be adjusted
-                        ! loop over all my orbitals
-                        ispsi=ispsi_k
-                        jorb=jorbd
-                        do iorb=isorb,ieorb
-                           iiorb=orbs%isorb+iorb
-                           ilr=orbs%inwhichlocreg(iiorb)
-                           ! Quick check
-                           if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                               nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                               lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                               nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                               lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                               nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
-                               jorb=jorb+1
-                               ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
-                               cycle 
-                           end if
-                           do ispinor=1,nspinor,ncplx
-                              jorb=jorb+1
-                              istart_c=1
-                              do l=1,4
-                                 do i=1,3
-                                    if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                       do m=1,2*l-1
-                                          call wpdot_wrap(ncplx,&
-                                               lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
-                                               lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
-                                               lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
-                                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                               nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
-                                               nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
-                                               nlpsp%proj(istart_c),&
-                                               scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
-                                          !!scalprod_sendbuf(1,idir,m,i,l,iat,jorb) = scalprod(1,idir,m,i,l,iat,jorb)
-                                          if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
-                                              iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
-                                              iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
-                                              iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
-                                              iatminmax(iiorb,2) = max(iatminmax(iiorb,2),iat)
-                                          end if
-                                          istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
-                                       end do
-                                    end if
-                                 end do
-                              end do
-                              ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
-                           end do
-                        end do
-                        if (istart_c-1  > nlpsp%nprojel) stop '2:applyprojectors'
-                     end do
-          
-                  end do
-          
-                  if (ieorb == orbs%norbp) exit loop_kptD
-                  ikpt=ikpt+1
-                  ispsi_k=ispsi
-               end do loop_kptD
-          
-            else
-               !calculate all the scalar products for each direction and each orbitals
-               do idir=0,ndir
-          
-                  if (idir /= 0) then !for the first run the projectors are already allocated
-                     call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
-                  end if
-                  !apply the projectors  k-point of the processor
-                  !starting k-point
-                  ikpt=orbs%iokpt(1)
-                  istart_ck=1
-                  ispsi_k=1
-                  jorb=0
-                  loop_kpt: do
-          
-                     call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-          
-                     call ncplx_kpt(ikpt,orbs,ncplx)
-          
-                     ! calculate the scalar product for all the orbitals
-                     ispsi=ispsi_k
-                     do iorb=isorb,ieorb
-                        iiorb=orbs%isorb+iorb
-                        ilr=orbs%inwhichlocreg(iiorb)
-                        ! Quick check
-                        if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
-                            nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
-                            lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
-                            nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
-                            lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
-                            nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
-                            jorb=jorb+1
-                            ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
-                            cycle 
-                        end if
-                        do ispinor=1,nspinor,ncplx
-                           jorb=jorb+1
-                           ! loop over all projectors of this k-point
-                           iproj=0
-                           istart_c=istart_ck
-                           do iat=1,natp
-                              iiat=iat+isat-1
-                              call plr_segs_and_vctrs(nlpsp%pspd(iiat)%plr,&
-                                   mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
-                              jseg_c=1
-                              jseg_f=1
-          
-                              ityp=at%astruct%iatype(iiat)
-                              do l=1,4
-                                 do i=1,3
-                                    if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                       do m=1,2*l-1
-                                          iproj=iproj+1
-                                          call wpdot_wrap(ncplx,&
-                                               lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
-                                               lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
-                                               lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),  &
-                                               mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                                               nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
-                                               nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
-                                               nlpsp%proj(istart_c),scalprod_sendbuf(1,idir,m,i,l,iat,jorb))
-                                          !!scalprod_sendbuf(1,idir,m,i,l,iat,jorb) = scalprod(1,idir,m,i,l,iat,jorb)
-                                          if (scalprod_sendbuf(1,idir,m,i,l,iat,jorb)/=0.d0) then
-                                              iorbminmax(iat,1) = min(iorbminmax(iat,1),iiorb)
-                                              iorbminmax(iat,2) = max(iorbminmax(iat,2),iiorb)
-                                              iatminmax(iiorb,1) = min(iatminmax(iiorb,1),iat)
-                                              iatminmax(iiorb,2) = max(iatminmax(iiorb,2),iat)
-                                          end if
-                                          istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
-                                       end do
-                                    end if
-                                 end do
-                              end do
-                           end do
-                           ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
-                        end do
-                        if (iproj /= nlpsp%nproj) stop '1:applyprojectors'
-                     end do
-                     istart_ck=istart_c
-                     if (ieorb == orbs%norbp) exit loop_kpt
-                     ikpt=ikpt+1
-                     ispsi_k=ispsi
-                  end do loop_kpt
-                  if (istart_ck-1  /= nlpsp%nprojel) stop '2:applyprojectors'
-          
-               end do
-          
-               !restore the projectors in the proj array (for on the run forces calc., tails or so)
-               if (refill) then 
-                  call fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,0)
-               end if
-          
-            end if
-    
-        end if norbp_if
-
-        if (nproc>1) then
-            call mpiallred(iatminmax(1,1), 2*orbs%norb, mpi_sum, bigdft_mpi%mpi_comm)
-            call mpiallred(iorbminmax(1,1), natp, mpi_min, bigdft_mpi%mpi_comm)
-            call mpiallred(iorbminmax(1,2), natp, mpi_max, bigdft_mpi%mpi_comm)
-        end if
-
-        call f_release_routine()
-
-      end subroutine calculate_scalprod
-
-
-      subroutine transpose_scalprod()
-        implicit none
-
-        ! Local variables
-        integer :: window, iatmin, iatmax, is, ie, nat_on_task, ist_recv, nsize, size_of_double
-        integer,dimension(:),allocatable :: datatypes
-        real(kind=8),dimension(:),allocatable :: scalprod_recvbuf
-
-        call f_routine(id='transpose_scalprod')
-
-        !!scalprod_sendbuf = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-        !!                               1.to.max(1, orbs%norbp*orbs%nspinor), 1.to.natp /),id='scalprod_sendbuf')
-      
-        !!! Copy scalprod to auxiliary array for communication
-        !!do iorb=1,orbs%norbp
-        !!    do iat=1,natp
-        !!        call vcopy(2*(ndir+1)*7*3*4, scalprod(1,0,1,1,1,iat,iorb), 1, scalprod_sendbuf(1,0,1,1,1,iorb,iat), 1)
-        !!    end do
-        !!end do
-      
-        !!call f_free(scalprod)
-      
-        !!scalprod_recvbuf = f_malloc0(2*(ndir+1)*7*3*4*max(1, nat_par(iproc))*orbs%norb*orbs%nspinor,id='scalprod_recvbuf')
-      
-        !!if (nproc>1) then
-        !!    call mpi_alltoallv(scalprod_sendbuf, sendcounts, senddspls, mpi_double_precision, &
-        !!                       scalprod_recvbuf, recvcounts, recvdspls, mpi_double_precision, &
-        !!                       bigdft_mpi%mpi_comm, ierr)
-        !!else
-        !!    call vcopy(2*(ndir+1)*7*3*4*natp*orbs%norb*orbs%nspinor, scalprod_sendbuf(1,0,1,1,1,1,1), &
-        !!         1, scalprod_recvbuf(1), 1)
-        !!end if
-      
-        !!call f_free(scalprod_sendbuf)
-
-
-
-        ! Maximal size to be allocated
-        iorbmin = orbs%norb
-        iorbmax = 1
-        do iat=1,nat_par(iproc)
-            iiat = isat_par(iproc) + iat
-            iorbmin = min(iorbmin,iorbminmax(iiat,1))
-            iorbmax = max(iorbmax,iorbminmax(iiat,2))
-        end do
-        !!scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-        !!                       1.to.max(1, nat_par(iproc)), 1.to.orbs%norb*orbs%nspinor /),id='scalprod')
-        if (orbs%nspinor/=1) stop 'nonlocal_forces_linear: nspinor must be 1 for the moment'
-        scalprod = f_malloc0((/ 1.to.2, 0.to.ndir, 1.to.7, 1.to.3, 1.to.4, &
-                               1.to.max(1, nat_par(iproc)), iorbmin.to.iorbmax /),id='scalprod')
-
-        scalprod_recvbuf = f_malloc(2*(ndir+1)*7*3*4*max(1,nat_par(iproc))*(iorbmax-iorbmin+1),id='scalprod_recvbuf')
-    
-        !!ist=1
-        !!do jproc=0,nproc-1
-        !!    do iat=1,nat_par(iproc)
-        !!        iiorb=orbs%isorb_par(jproc)
-        !!        do iorb=1,orbs%norb_par(jproc,0)
-        !!            iiorb=iiorb+1
-        !!            if (iiorb>=iorbmin .and. iiorb<=iorbmax) then
-        !!                call vcopy(2*(ndir+1)*7*3*4, scalprod_recvbuf(ist), 1, scalprod(1,0,1,1,1,iat,iiorb), 1)
-        !!            end if
-        !!            ist=ist+2*(ndir+1)*7*3*4
-        !!        end do
-        !!    end do
-        !!end do
-
-
-        !@NEW ###########################################
-        nat_on_task = iat_startend(2,iproc)-iat_startend(1,iproc)+1
-        if (nproc>1) then
-            window = mpiwindow(2*(ndir+1)*7*3*4*(iat_startend(2,iproc)-iat_startend(1,iproc)+1)*max(1,orbs%norbp*orbs%nspinor), &
-                     scalprod_sendbuf(1,0,1,1,1,iat_startend(1,iproc),1), bigdft_mpi%mpi_comm)
-            call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-        end if
-        datatypes = f_malloc(0.to.nproc-1,id='datatypes')
-
-        if (nproc>1) then
-            ist_recv = 1
-            do jproc=0,nproc-1
-                isorb = orbs%isorb_par(jproc) + 1
-                ieorb = orbs%isorb_par(jproc) + orbs%norb_par(jproc,0)
-                is = max(isorb,iorbmin)
-                ie = min(ieorb,iorbmax)
-                iatmin = at%astruct%nat
-                iatmax = 1
-                do iorb=is,ie
-                    ii = max(isat_par(iproc)+1,iatminmax(iorb,1))
-                    iatmin = min(ii,iatmin)
-                    ii = min(isat_par(iproc)+nat_par(iproc),iatminmax(iorb,2))
-                    iatmax = max(ii,iatmax)
+                ityp=at%astruct%iatype(iiat)
+                ii = 0
+                do iorb=isorb,ieorb
+                   iiorb=orbs%isorb+iorb
+                   ilr=orbs%inwhichlocreg(iiorb)
+                   ! Check whether there is an overlap between projector and support functions
+                   if (.not.projector_has_overlap(iat, ilr, lzd%llr(ilr), lzd%glr, nlpsp)) then
+                      cycle 
+                   else
+                      ii = ii +1
+                   end if
                 end do
-                ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
-                nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
-                if (ie>=is .and. ncount>0) then
-                    call mpi_type_vector(ie-is+1, ncount, 2*(ndir+1)*7*3*4*nat_on_task, &
-                         mpi_double_precision, datatypes(jproc), ierr)
-                    call mpi_type_commit(datatypes(jproc), ierr)
-                    !!do iorb=is,ie
-                    !!    if (ncount>0) then
-                    !!        ist = 2*(ndir+1)*7*3*4*(nat_on_task*(iorb-orbs%isorb_par(jproc)-1)+iatmin-iat_startend(1,jproc))!orbs%norb_par(jproc,0)
-                    !!        !!write(*,'(a,8i9)') 'iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin, ncount', &
-                    !!        !!    iproc, jproc, iorb, ist, iorb, orbs%isorb_par(jproc), iatmin, ncount
-                    !!        !!if (ist<0) write(*,*) 'ist<0',ist
-                    !!        !!if (ist+ncount>2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)) &
-                    !!        !!    write(*,*) 'ist>', &
-                    !!        !!        ist,ncount,2*(ndir+1)*7*3*4*at%astruct%nat*max(1,orbs%norb_par(jproc,0)*orbs%nspinor)
-                    !!        call mpiget(scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), ncount, jproc, &
-                    !!             int(ist,kind=mpi_address_kind), window)
-                    !!    end if
-                    !!end do
-                    ist = 2*(ndir+1)*7*3*4*(nat_on_task*(is-orbs%isorb_par(jproc)-1)+iatmin-iat_startend(1,jproc))!orbs%norb_par(jproc,0)
-                    call mpi_type_size(datatypes(jproc), nsize, ierr)
-                    nsize = nsize/size_of_double
-                    call mpi_get(scalprod_recvbuf(ist_recv), nsize, mpi_double_precision, jproc, &
-                         int(ist,kind=mpi_address_kind), 1, datatypes(jproc), window, ierr)
-                    ist_recv = ist_recv + nsize
-                end if
-            end do
-        else
-            call vcopy(2*(ndir+1)*7*3*4*(iat_startend(2,iproc)-iat_startend(1,iproc)+1)*(iorbmax-iorbmin+1), &
-                       scalprod_sendbuf(1,0,1,1,1,iat_startend(1,iproc),1), 1, &
-                       scalprod(1,0,1,1,1,1,iorbmin), 1)
-        end if
-        if (nproc>1) then
-            call mpi_fenceandfree(window)
-            ist_recv = 1
-            do jproc=0,nproc-1
-                isorb = orbs%isorb_par(jproc) + 1
-                ieorb = orbs%isorb_par(jproc) + orbs%norb_par(jproc,0)
-                is = max(isorb,iorbmin)
-                ie = min(ieorb,iorbmax)
-                iatmin = at%astruct%nat
-                iatmax = 1
-                do iorb=is,ie
-                    ii = max(isat_par(iproc)+1,iatminmax(iorb,1))
-                    iatmin = min(ii,iatmin)
-                    ii = min(isat_par(iproc)+nat_par(iproc),iatminmax(iorb,2))
-                    iatmax = max(ii,iatmax)
+                nscalprod_send = nscalprod_send + ii
+                supfun_per_atom(iat) = supfun_per_atom(iat) + ii
+                nat_overlap = max(nat_overlap,ii)
+
+             end do
+
+             if (ieorb == orbs%norbp) exit loop_kptD
+             ikpt=ikpt+1
+             ispsi_k=ispsi
+          end do loop_kptD
+
+       else
+
+          stop 'carefully test this section...'
+!!!calculate all the scalar products for each direction and each orbitals
+
+          !!   !apply the projectors  k-point of the processor
+          !!   !starting k-point
+          !!   ikpt=orbs%iokpt(1)
+          !!   loop_kpt: do
+
+          !!      call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+
+          !!      do iorb=isorb,ieorb
+          !!         iiorb=orbs%isorb+iorb
+          !!         ilr=orbs%inwhichlocreg(iiorb)
+          !!         ! Quick check
+          !!         if (lzd%llr(ilr)%ns1>nlpsp%pspd(iiat)%plr%ns1+nlpsp%pspd(iiat)%plr%d%n1 .or. &
+          !!             nlpsp%pspd(iiat)%plr%ns1>lzd%llr(ilr)%ns1+lzd%llr(ilr)%d%n1 .or. &
+          !!             lzd%llr(ilr)%ns2>nlpsp%pspd(iiat)%plr%ns2+nlpsp%pspd(iiat)%plr%d%n2 .or. &
+          !!             nlpsp%pspd(iiat)%plr%ns2>lzd%llr(ilr)%ns2+lzd%llr(ilr)%d%n2 .or. &
+          !!             lzd%llr(ilr)%ns3>nlpsp%pspd(iiat)%plr%ns3+nlpsp%pspd(iiat)%plr%d%n3 .or. &
+          !!             nlpsp%pspd(iiat)%plr%ns3>lzd%llr(ilr)%ns3+lzd%llr(ilr)%d%n3) then
+          !!             cycle 
+          !!         else
+          !!             iat_startend(1,iproc) = min(iat_startend(1,iproc),iat)
+          !!             iat_startend(2,iproc) = max(iat_startend(2,iproc),iat)
+          !!         end if
+          !!      end do
+          !!      if (ieorb == orbs%norbp) exit loop_kpt
+          !!      ikpt=ikpt+1
+          !!   end do loop_kpt
+
+       end if
+
+    else norbp_if
+
+       !!iat_startend(1,iproc) = 1
+       !!iat_startend(2,iproc) = 1
+
+    end if norbp_if
+
+    !if (nproc>1) then
+    !   call mpiallred(iat_startend, mpi_sum, bigdft_mpi%mpi_comm)
+    !end if
+
+    call f_release_routine()
+
+  end subroutine determine_dimension_scalprod
+
+
+  subroutine calculate_scalprod()
+    implicit none
+    integer :: iii
+    logical :: increase
+    integer,dimension(:),allocatable :: is_supfun_per_atom_tmp
+    real(kind=8) :: scpr
+
+    call f_routine(id='calculate_scalprod')
+
+    is_supfun_per_atom_tmp = f_malloc(at%astruct%nat,id='is_supfun_per_atom_tmp')
+
+    norbp_if: if (orbs%norbp>0) then
+
+       !look for the strategy of projectors application
+       if (DistProjApply) then
+          !apply the projectors on the fly for each k-point of the processor
+          !starting k-point
+          ikpt=orbs%iokpt(1)
+          ispsi_k=1
+          jorb=0
+          loop_kptD: do
+
+             call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+
+             call ncplx_kpt(ikpt,orbs,ncplx)
+
+             nwarnings=0 !not used, simply initialised 
+             iproj=0 !should be equal to four times nproj at the end
+             jorbd=jorb
+             do iat=1,natp
+                iiat = iat+isat-1
+
+
+                call plr_segs_and_vctrs(nlpsp%pspd(iiat)%plr,&
+                     mbseg_c,mbseg_f,mbvctr_c,mbvctr_f)
+                jseg_c=1
+                jseg_f=1
+
+                do idir=0,ndir
+
+                   call vcopy(at%astruct%nat, is_supfun_per_atom(1), 1, is_supfun_per_atom_tmp(1), 1)
+
+                   ityp=at%astruct%iatype(iiat)
+                   !calculate projectors
+                   istart_c=1
+                   call atom_projector(nlpsp, ityp, iiat, at%astruct%atomnames(ityp), &
+                        & at%astruct%geocode, idir, lr, hx, hy, hz, &
+                        & orbs%kpts(1,ikpt), orbs%kpts(2,ikpt), orbs%kpts(3,ikpt), &
+                        & istart_c, iproj, nwarnings)
+
+                   !calculate the contribution for each orbital
+                   !here the nspinor contribution should be adjusted
+                   ! loop over all my orbitals
+                   ispsi=ispsi_k
+                   jorb=jorbd
+                   do iorb=isorb,ieorb
+                      iiorb=orbs%isorb+iorb
+                      ilr=orbs%inwhichlocreg(iiorb)
+                      ! Check whether there is an overlap between projector and support functions
+                      if (.not.projector_has_overlap(iat, ilr, lzd%llr(ilr), lzd%glr, nlpsp)) then
+                         jorb=jorb+1
+                         ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
+                         cycle 
+                      end if
+                      increase = .true.
+                      do ispinor=1,nspinor,ncplx
+                         jorb=jorb+1
+                         istart_c=1
+                         do l=1,l_max!4
+                            do i=1,i_max!3
+                               if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                  do m=1,2*l-1
+                                     call wpdot_wrap(ncplx,&
+                                          lzd%llr(ilr)%wfd%nvctr_c,lzd%llr(ilr)%wfd%nvctr_f,&
+                                          lzd%llr(ilr)%wfd%nseg_c,lzd%llr(ilr)%wfd%nseg_f,&
+                                          lzd%llr(ilr)%wfd%keyvglob,lzd%llr(ilr)%wfd%keyglob,phi(ispsi),&
+                                          mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+                                          nlpsp%pspd(iiat)%plr%wfd%keyvglob(jseg_c),&
+                                          nlpsp%pspd(iiat)%plr%wfd%keyglob(1,jseg_c),&
+                                          nlpsp%proj(istart_c),&
+                                          scpr)
+                                     !if (scpr/=0.d0) then
+                                     if (increase) then
+                                        is_supfun_per_atom_tmp(iat) = is_supfun_per_atom_tmp(iat)+1
+                                        increase = .false.
+                                     end if
+                                     iii = is_supfun_per_atom_tmp(iat)
+                                     scalprod_sendbuf_new(1,idir,m,i,l,iii) = scpr
+                                     scalprod_send_lookup(iii) = iiorb
+                                     !else
+                                     !    stop 'scalprod should not be zero'
+                                     !end if
+                                     istart_c=istart_c+(mbvctr_c+7*mbvctr_f)*ncplx
+                                  end do
+                               end if
+                            end do
+                         end do
+                         ispsi=ispsi+(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f)*ncplx
+                      end do
+                   end do
+                   if (istart_c-1  > nlpsp%nprojel) stop '2:applyprojectors'
                 end do
-                ncount = 2*(ndir+1)*7*3*4*(iatmax-iatmin+1)
-                nat_on_task = iat_startend(2,jproc)-iat_startend(1,jproc)+1
-                if (ie>=is .and. ncount>0) then
-                    do iorb=is,ie
-                       call vcopy(ncount, scalprod_recvbuf(ist_recv), 1, scalprod(1,0,1,1,1,iatmin-isat_par(iproc),iorb), 1)
-                       ist_recv = ist_recv + ncount
-                    end do
-                    call mpi_type_free(datatypes(jproc), ierr)
-                end if
-            end do
-        end if
 
-        call f_free(datatypes)
+             end do
 
-        !@END NEW #######################################
-    
-      call f_free(scalprod_recvbuf)
-      call f_free(scalprod_sendbuf)
+             if (ieorb == orbs%norbp) exit loop_kptD
+             ikpt=ikpt+1
+             ispsi_k=ispsi
+          end do loop_kptD
 
-      call f_release_routine()
+       else
+          stop "shouldn't enter this section"
+       end if
 
-      end subroutine transpose_scalprod
+    end if norbp_if
 
 
-      subroutine calculate_forces()
-        implicit none
+    call f_free(is_supfun_per_atom_tmp)
 
-        call f_routine(id='calculate_forces')
+    call f_release_routine()
 
-        natp_if: if (nat_par(iproc)>0) then
-    
-            !apply the projectors  k-point of the processor
-            !starting k-point
-            ikpt=orbs%iokpt(1)
-            jorb=0
-            loop_kptF: do
-    
-               call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
-    
-               call ncplx_kpt(ikpt,orbs,ncplx)
-    
-         !call f_zero(fxyz_orb)
-    
-               ! loop over all my orbitals for calculating forces
-               !do iorbout=isorb,ieorb
-               !do iorbout=1,orbs%norb
-               spin_loop: do ispin=1,denskern%nspin
-                  do iat=1,nat_par(iproc)
-                     iiat=isat_par(iproc)+iat
-                     iiiat=isat_par(iproc)+iat+isat-1
-                     ityp=at%astruct%iatype(iiat)
-                     !write(*,'(a,3i9,2i12)') 'iproc, iat, iiat, iorbminmax', iproc, iat, iiat, iorbminmax(iiat,:)
-                     do iseg=1,denskern%nseg
-                        ! Check whether this segment is within the range to be considered (check 
-                        ! only the line number as one segment is always on one single line).
-                        iorbout = denskern%keyg(1,2,iseg)
-                        if (ispin==2) then
-                            iorbout = iorbout + denskern%nfvctr
-                        end if
-                        if (iorbout<iorbminmax(iiat,1) .or. iorbout>iorbminmax(iiat,2)) cycle
-                        !if (denskern%keyg(1,2,iseg)<iorbminmax(iiat,1) .or. denskern%keyg(1,2,iseg)>iorbminmax(iiat,2)) cycle
-                        ii = denskern%keyv(iseg)-1 + (ispin-1)*denskern%nvctr 
-                        do jjorb=denskern%keyg(1,1,iseg),denskern%keyg(2,1,iseg)
-                           ii=ii+1
-                           !!iorbout = (jjorb-1)/orbs%norb + 1
-                           !!jorb = jjorb - (iorbout-1)*orbs%norb
-                           jorb = jjorb
-                           if (jorb<iorbminmax(iiat,1) .or. jorb>iorbminmax(iiat,2)) cycle
-                           !spin shift
-                           if (ispin==2) then
-                               !iorbout = iorbout + denskern%nfvctr
-                               jorb = jorb + denskern%nfvctr
-                           end if
-                        !jorb=0 !THIS WILL CREATE PROBLEMS FOR K-POINTS!!
-                        sab=0.0_gp
-                        ! loop over all projectors
-                        !do iorb=isorb,ieorb
-                        !do iorb=1,orbs%norb
-                           do ispinor=1,nspinor,ncplx
-                              !jorb=jorb+1
-                              !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                              !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                              ind=ii
-                              !write(100+iproc,'(a,3i8,es20.10)') 'iorbout, jorb, ind, denskern%matrix_compr(ind)', iorbout, jorb, ind, denskern%matrix_compr(ind)
-                              !if (kernel(jorb,iorbout)==0.d0) cycle
-                              if (denskern_gathered(ind)==0.d0) cycle
-                              !do iat=1,natp
-                                 do l=1,4
-                                    do i=1,3
-                                       if (at%psppar(l,i,ityp) /= 0.0_gp) then
-                                          do m=1,2*l-1
-                                             do icplx=1,ncplx
-                                                ! scalar product with the derivatives in all the directions
-                                                sp0=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
-                                                !if (kernel(jorb,iorbout)/=0.d0) then
-                                                    !!write(100+iproc,'(a,9i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-                                                    !!                                   iorbout,jorb,icplx,0,m,i,l,iat,iiat,sp0
-                                                !end if
-                                                !if (sp0==0.d0) write(*,*) 'sp0 is zero'
-                                                do idir=1,3
-                                                   spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                                   !if (spi==0.d0) write(*,*) 'sp0 is zero'
-                                                   !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                                                   !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                                                   ind=ii
-                                                   !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                                   !     kernel(jorb,iorbout)*at%psppar(l,i,ityp)*sp0*spi
-                                                   fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
-                                                        denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*spi
-                                                   !if (kernel(jorb,iorbout)/=0.d0) then
-                                                       !!write(110+iproc,'(a,10i6,es18.8)') 'iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-                                                       !!                                    &idir,fxyz_orb(idir,iat)', &
-                                                       !!                                    iorbout,jorb,icplx,0,m,i,l,iat,iiat,&
-                                                       !!                                    idir,fxyz_orb(idir,iat)
-                                                   !end if
-                                                end do
-                                                !!spi=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                                !!Enl=Enl+sp0*spi*at%psppar(l,i,ityp)*&
-                                                !!orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                                !!do idir=4,9 !for stress
-                                                !!    strc=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                                !!    sab(idir-3)=&
-                                                !!    sab(idir-3)+&   
-                                                !!    at%psppar(l,i,ityp)*sp0*2.0_gp*strc*&
-                                                !!    orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                                !!end do
-                                             end do
-                                          end do
-                                       end if
-                                    end do
-                                 end do
-                                 !HGH case, offdiagonal terms
-                                 if (at%npspcode(ityp) == PSPCODE_HGH .or. &
-                                     at%npspcode(ityp) == PSPCODE_HGH_K .or. &
-                                     at%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
-                                    do l=1,3 !no offdiagoanl terms for l=4 in HGH-K case
-                                       do i=1,2
-                                          if (at%psppar(l,i,ityp) /= 0.0_gp) then 
-                                             loop_j: do j=i+1,3
-                                                if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j
-                                                !offdiagonal HGH term
-                                                if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
-                                                   hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
-                                                else !HGH-K convention
-                                                   hij=at%psppar(l,i+j+1,ityp)
-                                                end if
-                                                do m=1,2*l-1
-                                                   !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
-                                                   !(the two factor is below)
-                                                   do icplx=1,ncplx
-                                                      sp0i=real(scalprod(icplx,0,m,i,l,iat,iorbout),gp)
-                                                      sp0j=real(scalprod(icplx,0,m,j,l,iat,iorbout),gp)
-                                                      do idir=1,3
-                                                         spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                                         spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-                                                         !ind=collcom%matrixindex_in_compressed(jorb,iorbout)
-                                                         !ind=collcom%matrixindex_in_compressed(iorbout,jorb)
-                                                         ind=ii
-                                                         !fxyz_orb(idir,iiat)=fxyz_orb(idir,iiat)+&
-                                                         !     kernel(jorb,iorbout)*hij*(sp0j*spi+spj*sp0i)
-                                                         fxyz_orb(idir,iiiat)=fxyz_orb(idir,iiiat)+&
-                                                              denskern_gathered(ind)*hij*(sp0j*spi+spj*sp0i)
-                                                      end do
-                                                      !!sp0i=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
-                                                      !!Enl=Enl+2.0_gp*sp0i*sp0j*hij&
-                                                      !!*orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                                      !!do idir=4,9
-                                                      !!    spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
-                                                      !!    spj=real(scalprod(icplx,idir,m,j,l,iat,jorb),gp)
-                                                      !!    sab(idir-3)=&
-                                                      !!    sab(idir-3)+&   
-                                                      !!    2.0_gp*hij*(sp0j*spi+sp0i*spj)&
-                                                      !!    *orbs%occup(iorb+orbs%isorb)*orbs%kwgts(orbs%iokpt(iorb))
-                                                      !!end do
-                                                   end do
-                                                end do
-                                             end do loop_j
-                                          end if
-                                       end do
-                                    end do
-                                 end if
-                           end do
-             
-                           !!!orbital-dependent factor for the forces
-                           !!orbfac=orbs%kwgts(orbs%iokpt(iorbout))*orbs%occup(iorbout+orbs%isorb)*2.0_gp
-             
-                           !seq: strten(1:6) =  11 22 33 23 13 12 
-                           strten(1)=strten(1)+sab(1)/vol 
-                           strten(2)=strten(2)+sab(2)/vol 
-                           strten(3)=strten(3)+sab(3)/vol 
-                           strten(4)=strten(4)+sab(5)/vol
-                           strten(5)=strten(5)+sab(6)/vol
-                           strten(6)=strten(6)+sab(4)/vol
-                        end do
-                     end do
-                  end do
-               end do spin_loop
-               !do iat=1,natp
-               do iat=1,nat_par(iproc)
-                  iiat=isat_par(iproc)+iat+isat-1
-                  !write(120+iproc,'(a,2i7,2es18.8)') 'iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)', &
-                  !                                    iorbout, iat, fsep(1,iiat), fxyz_orb(1,iiat)
-                  !!fsep(1,iat)=fsep(1,iat)+orbfac*fxyz_orb(1,iat)
-                  !!fsep(2,iat)=fsep(2,iat)+orbfac*fxyz_orb(2,iat)
-                  !!fsep(3,iat)=fsep(3,iat)+orbfac*fxyz_orb(3,iat)
-                  fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iiat)
-                  fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iiat)
-                  fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iiat)
-               end do
-               if (ieorb == orbs%norbp) exit loop_kptF
-               ikpt=ikpt+1
-               ispsi_k=ispsi
-            end do loop_kptF
-    
-        end if natp_if
+  end subroutine calculate_scalprod
 
-        call f_release_routine()
 
-      end subroutine calculate_forces
+  subroutine transpose_scalprod()
+    implicit none
+
+    ! Local variables
+    integer :: window, iatmin, iatmax, is, ie, nat_on_task, ist_recv, nsize, size_of_double, jjat
+    integer :: isrc, idst, ncount, nel
+    integer,dimension(:),allocatable :: datatypes, is_supfun_per_atom_tmp, scalprod_lookup_recvbuf
+    integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, supfun_per_atom_recv
+    integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
+    real(kind=8),dimension(:),allocatable :: scalprod_recvbuf
+
+    call f_routine(id='transpose_scalprod')
+
+
+
+    ! Prepare communication arrays for alltoallv
+    nsendcounts = f_malloc0(0.to.nproc-1,id='nsendcounts')
+    nsenddspls = f_malloc(0.to.nproc-1,id='nsenddspls')
+    nrecvcounts = f_malloc(0.to.nproc-1,id='nrecvcounts')
+    nrecvdspls = f_malloc(0.to.nproc-1,id='nrecvdspls')
+    do jproc=0,nproc-1
+       do jat=1,nat_par(jproc)
+          jjat = isat_par(jproc) + jat
+          nsendcounts(jproc) = nsendcounts(jproc) + supfun_per_atom(jjat)
+       end do
+    end do
+    nsenddspls(0) = 0
+    do jproc=1,nproc-1
+       nsenddspls(jproc) = nsenddspls(jproc-1) + nsendcounts(jproc-1)
+    end do
+
+
+    ! Communicate the send counts and receive displacements using another alltoallv
+    nsendcounts_tmp = f_malloc(0.to.nproc-1,id='nsendcounts_tmp')
+    nsenddspls_tmp = f_malloc(0.to.nproc-1,id='nsenddspls_tmp')
+    nrecvcounts_tmp = f_malloc(0.to.nproc-1,id='nrecvcounts_tmp')
+    nrecvdspls_tmp = f_malloc(0.to.nproc-1,id='nrecvdspls_tmp')
+    do jproc=0,nproc-1
+       nsendcounts_tmp(jproc) = 1
+       nsenddspls_tmp(jproc) = jproc
+       nrecvcounts_tmp(jproc) = 1
+       nrecvdspls_tmp(jproc) = jproc
+    end do
+    if (nproc>1) then
+       call mpialltoallv(nsendcounts(0), nsendcounts_tmp, nsenddspls_tmp, &
+            nrecvcounts(0), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+    else
+       call f_memcpy(n=nsendcounts_tmp(0), src=nsendcounts(0), dest=nrecvcounts(0))
+    end if
+    nrecvdspls(0) = 0
+    do jproc=1,nproc-1
+       nrecvdspls(jproc) = nrecvdspls(jproc-1) + nrecvcounts(jproc-1)
+    end do
+
+    ! Communicate the number of scalprods per atom, which will be needed as a switch
+    supfun_per_atom_recv = f_malloc(max(nat_par(iproc),1)*nproc,id='supfun_per_atom_recv')
+    do jproc=0,nproc-1
+       nsendcounts_tmp(jproc) = nat_par(jproc)
+       nsenddspls_tmp(jproc) = isat_par(jproc)
+       nrecvcounts_tmp(jproc) = nat_par(iproc)
+       nrecvdspls_tmp(jproc) = jproc*nat_par(iproc)
+    end do
+    if (nproc>1) then
+       call mpialltoallv(supfun_per_atom(1), nsendcounts_tmp, nsenddspls_tmp, &
+            supfun_per_atom_recv(1), nrecvcounts_tmp, nrecvdspls_tmp, bigdft_mpi%mpi_comm)
+    else
+       call f_memcpy(n=nsendcounts_tmp(0), src=supfun_per_atom(1), dest=supfun_per_atom_recv(1))
+    end if
+
+    ! Determine the size of the receive buffer
+    nscalprod_recv = sum(nrecvcounts)
+    scalprod_new = f_malloc((/ 1.to.2, 0.to.ndir, 1.to.m_max, 1.to.i_max, 1.to.l_max, &
+         1.to.max(nscalprod_recv,1) /),id='scalprod_new')
+    scalprod_recvbuf = f_malloc(2*(ndir+1)*m_max*i_max*l_max*max(nscalprod_recv,1),id='scalprod_recvbuf')
+    scalprod_lookup_recvbuf = f_malloc(max(nscalprod_recv,1), id='scalprod_send_lookup_recvbuf')
+    scalprod_lookup = f_malloc(max(nscalprod_recv,1), id='scalprod_lookup')
+
+    ! Communicate the lookup array
+    if (nproc>1) then
+       call mpialltoallv(scalprod_send_lookup(1), nsendcounts, nsenddspls, &
+            scalprod_lookup_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+    else
+       call f_memcpy(n=nsendcounts(0), src=scalprod_send_lookup(1), dest=scalprod_lookup_recvbuf(1))
+    end if
+
+    ! Communicate the scalprods
+    ncount = 2*(ndir+1)*m_max*i_max*l_max
+    nsendcounts(:) = nsendcounts(:)*ncount
+    nsenddspls(:) = nsenddspls(:)*ncount
+    nrecvcounts(:) = nrecvcounts(:)*ncount
+    nrecvdspls(:) = nrecvdspls(:)*ncount
+    if (nproc>1) then
+       call mpialltoallv(scalprod_sendbuf_new(1,0,1,1,1,1), nsendcounts, nsenddspls, &
+            scalprod_recvbuf(1), nrecvcounts, nrecvdspls, bigdft_mpi%mpi_comm)
+    else
+       call f_memcpy(n=nsendcounts(0), src=scalprod_sendbuf_new(1,0,1,1,1,1), dest=scalprod_recvbuf(1))
+    end if
+
+
+
+    ! Now the value of supfun_per_atom can be summed up, since each task has all scalprods for a given atom.
+    ! In principle this is only necessary for the atoms handled by a given task, but do it for the moment for all...
+    if (nproc>1) then
+       call mpiallred(supfun_per_atom, mpi_sum, comm=bigdft_mpi%mpi_comm)
+    end if
+    ! The starting points have to be recalculated.
+    is_supfun_per_atom(1) = 0
+    do jat=2,at%astruct%nat
+       is_supfun_per_atom(jat) = is_supfun_per_atom(jat-1) + supfun_per_atom(jat-1)
+    end do
+
+
+    ! Rearrange the elements
+    is_supfun_per_atom_tmp = f_malloc(at%astruct%nat,id='is_supfun_per_atom_tmp')
+    !ncount = 2*(ndir+1)*m_max*i_max*l_max
+    call vcopy(at%astruct%nat, is_supfun_per_atom(1), 1, is_supfun_per_atom_tmp(1), 1)
+    ii = 1
+    isrc = 1
+    do jproc=0,nproc-1
+       do iat=1,nat_par(iproc)
+          iiat = isat_par(iproc) + iat
+          nel = supfun_per_atom_recv(ii)
+          idst = is_supfun_per_atom_tmp(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + 1
+          if (nel>0) then
+             call vcopy(nel*ncount, scalprod_recvbuf((isrc-1)*ncount+1), 1, scalprod_new(1,0,1,1,1,idst), 1)
+             call vcopy(nel, scalprod_lookup_recvbuf(isrc), 1, scalprod_lookup(idst), 1)
+          end if
+          is_supfun_per_atom_tmp(iiat) = is_supfun_per_atom_tmp(iiat) + nel
+          isrc = isrc + nel
+          ii = ii + 1
+       end do
+    end do
+
+    call f_free(is_supfun_per_atom_tmp)
+
+
+    do iat=1,nat_par(iproc)
+       iiat = isat_par(iproc) + iat
+       do iorb=1,supfun_per_atom(iiat)
+          ii = is_supfun_per_atom(iiat)+iorb
+       end do
+    end do
+
+    call f_free(scalprod_recvbuf)
+    call f_free(nsendcounts)
+    call f_free(nsenddspls)
+    call f_free(nrecvcounts)
+    call f_free(nrecvdspls)
+    call f_free(nsendcounts_tmp)
+    call f_free(nsenddspls_tmp)
+    call f_free(nrecvcounts_tmp)
+    call f_free(nrecvdspls_tmp)
+    call f_free(scalprod_lookup_recvbuf)
+    call f_free(supfun_per_atom_recv)
+
+    call f_release_routine()
+
+  end subroutine transpose_scalprod
+
+
+
+  subroutine calculate_forces()
+    use sparsematrix_init, only: matrixindex_in_compressed
+    implicit none
+    integer :: jj, iispin, jjspin
+    real(kind=8),dimension(:,:),allocatable :: fxyz_orb
+    !real(kind=8),dimension(:),allocatable :: sab, strten_loc
+    real(kind=8),dimension(6) :: sab, strten_loc
+
+    call f_routine(id='calculate_forces')
+
+    fxyz_orb = f_malloc0((/3,nat_par(iproc)/),id='fxyz_orb')
+    !sab = f_malloc0(6,id='sab')
+    !strten_loc = f_malloc(6,id='strten_loc')
+
+    natp_if2: if (nat_par(iproc)>0) then
+
+       !apply the projectors  k-point of the processor
+       !starting k-point
+       ikpt=orbs%iokpt(1)
+       jorb=0
+       loop_kptF2: do
+
+          call orbs_in_kpt(ikpt,orbs,isorb,ieorb,nspinor)
+
+          call ncplx_kpt(ikpt,orbs,ncplx)
+          strten_loc(:) = 0.d0
+
+          ! Do the OMP loop over supfun_per_atom, as nat_par(iproc) is typically rather small
+
+          !$omp parallel default(none) &
+          !$omp shared(denskern, nat_par, iproc, isat_par, at, supfun_per_atom, is_supfun_per_atom) &
+          !$omp shared(scalprod_lookup, l_max, i_max, scalprod_new, fxyz_orb, denskern_gathered) &
+          !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx,ndir,calculate_strten) &
+          !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
+          !$omp private(l, i, m, icplx, sp0, idir, spi, strc, j, hij, sp0i, sp0j, spj, iispin, jjspin)
+          spin_loop2: do ispin=1,denskern%nspin
+
+
+             do iat=1,nat_par(iproc)
+                iiat=isat_par(iproc)+iat
+                ityp=at%astruct%iatype(iiat)
+                !$omp do reduction(+:fxyz_orb,strten_loc,Enl)
+                do iorb=1,supfun_per_atom(iiat)
+                   ii = is_supfun_per_atom(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + iorb
+                   iiorb = scalprod_lookup(ii)
+                   iispin = (iiorb-1)/denskern%nfvctr + 1
+                   if (iispin/=ispin) cycle
+                   !  if (ispin==2) then
+                   !      ! spin shift
+                   !      iiorb = iiorb + denskern%nfvctr
+                   !  end if
+                   do jorb=1,supfun_per_atom(iiat)
+                      jj = is_supfun_per_atom(iiat) - is_supfun_per_atom(isat_par(iproc)+1) + jorb
+                      jjorb = scalprod_lookup(jj)
+                      jjspin = (jjorb-1)/denskern%nfvctr + 1
+                      if (jjspin/=ispin) cycle
+                      !     if (ispin==2) then
+                      !         !spin shift
+                      !         jjorb = jjorb + denskern%nfvctr
+                      !     end if
+                      ind = matrixindex_in_compressed(denskern, jjorb, iiorb)
+                      if (ind==0) cycle
+                      sab=0.0_gp
+                      ! Loop over all projectors
+                      do ispinor=1,nspinor,ncplx
+                         if (denskern_gathered(ind)==0.d0) cycle
+                         do l=1,l_max!4
+                            do i=1,i_max!3
+                               if (at%psppar(l,i,ityp) /= 0.0_gp) then
+                                  do m=1,2*l-1
+                                     do icplx=1,ncplx
+                                        ! scalar product with the derivatives in all the directions
+                                        sp0=real(scalprod_new(icplx,0,m,i,l,ii),gp)
+                                        do idir=1,3
+                                           spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
+!!$omp critical
+                                           fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
+                                                denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*spi
+!!$omp end critical
+                                        end do
+                                        spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
+                                        Enl=Enl+sp0*spi*denskern_gathered(ind)*at%psppar(l,i,ityp)
+                                        do idir=4,ndir !for stress
+                                           strc=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
+                                           sab(idir-3) = sab(idir-3)+&   
+                                                denskern_gathered(ind)*at%psppar(l,i,ityp)*sp0*2.0_gp*strc
+                                        end do
+                                     end do
+                                  end do
+                               end if
+                            end do
+                         end do
+                         !HGH case, offdiagonal terms
+                         if (at%npspcode(ityp) == PSPCODE_HGH .or. &
+                              at%npspcode(ityp) == PSPCODE_HGH_K .or. &
+                              at%npspcode(ityp) == PSPCODE_HGH_K_NLCC) then
+                            do l=1,3!min(l_max,3) !no offdiagoanl terms for l=4 in HGH-K case
+                               do i=1,2!min(i_max,2)
+                                  if (at%psppar(l,i,ityp) /= 0.0_gp) then 
+                                     loop_j2: do j=i+1,3
+                                        if (at%psppar(l,j,ityp) == 0.0_gp) exit loop_j2
+                                        !offdiagonal HGH term
+                                        if (at%npspcode(ityp) == PSPCODE_HGH) then !traditional HGH convention
+                                           hij=offdiagarr(i,j-i,l)*at%psppar(l,j,ityp)
+                                        else !HGH-K convention
+                                           hij=at%psppar(l,i+j+1,ityp)
+                                        end if
+                                        do m=1,2*l-1
+                                           !F_t= 2.0*h_ij (<D_tp_i|psi><psi|p_j>+<p_i|psi><psi|D_tp_j>)
+                                           !(the factor two is below)
+                                           do icplx=1,ncplx
+                                              sp0i=real(scalprod_new(icplx,0,m,i,l,ii),gp)
+                                              sp0j=real(scalprod_new(icplx,0,m,j,l,ii),gp)
+                                              do idir=1,3
+                                                 spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
+                                                 spj=real(scalprod_new(icplx,idir,m,j,l,jj),gp)
+!!$omp critical
+                                                 fxyz_orb(idir,iat)=fxyz_orb(idir,iat)+&
+                                                      denskern_gathered(ind)*hij*(sp0j*spi+spj*sp0i)
+!!$omp end critical
+                                              end do
+                                              spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
+                                              spj=real(scalprod_new(icplx,0,m,j,l,jj),gp)
+                                              Enl=Enl+denskern_gathered(ind)*(sp0i*spj+sp0j*spi)*hij
+                                              do idir=4,ndir
+                                                 spi=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
+                                                 spj=real(scalprod_new(icplx,idir,m,j,l,jj),gp)
+                                                 sab(idir-3)=sab(idir-3)+&   
+                                                      2.0_gp*denskern_gathered(ind)*hij*(sp0j*spi+sp0i*spj)!&
+                                              end do
+                                           end do
+                                        end do
+                                     end do loop_j2
+                                  end if
+                               end do
+                            end do
+                         end if
+                      end do
+
+
+                      !seq: strten(1:6) =  11 22 33 23 13 12 
+                      !!tmparr(1)=tmparr(1)+1.d0!sab(1)/vol 
+                      !!tmparr(2)=tmparr(2)+1.d0!sab(2)/vol 
+                      !!tmparr(3)=tmparr(3)+1.d0!sab(3)/vol 
+                      !!tmparr(4)=tmparr(4)+1.d0!sab(5)/vol
+                      !!tmparr(5)=tmparr(5)+1.d0!sab(6)/vol
+                      !!tmparr(6)=tmparr(6)+1.d0!sab(4)/vol
+                      if (calculate_strten) then
+                         strten_loc(1)=strten_loc(1)+sab(1)/vol 
+                         strten_loc(2)=strten_loc(2)+sab(2)/vol 
+                         strten_loc(3)=strten_loc(3)+sab(3)/vol 
+                         strten_loc(4)=strten_loc(4)+sab(5)/vol
+                         strten_loc(5)=strten_loc(5)+sab(6)/vol
+                         strten_loc(6)=strten_loc(6)+sab(4)/vol
+                      end if
+                   end do
+                end do
+                !$omp end do
+             end do
+          end do spin_loop2
+          !$omp end parallel
+          do iat=1,nat_par(iproc)
+             iiat=isat_par(iproc)+iat+isat-1
+             fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iat)
+             fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iat)
+             fsep(3,iiat)=fsep(3,iiat)+2.d0*fxyz_orb(3,iat)
+          end do
+          if (calculate_strten) strten(:) = strten(:) + strten_loc(:)
+          if (ieorb == orbs%norbp) exit loop_kptF2
+          ikpt=ikpt+1
+          ispsi_k=ispsi
+       end do loop_kptF2
+
+    end if natp_if2
+
+    !call f_free(sab)
+    !call f_free(strten_loc)
+    call f_free(fxyz_orb)
+
+    if (calculate_strten) then
+       !Adding Enl to the diagonal components of strten after loop over kpts is finished...
+       do i=1,3
+          strten(i)=strten(i)+Enl/vol
+       end do
+    end if
+
+
+    call f_release_routine()
+
+  end subroutine calculate_forces
 
 END SUBROUTINE nonlocal_forces_linear
-
-
-
-
 
 subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   use module_base
@@ -4884,25 +5029,25 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   nc=ixyz_int(3,:)
 
   do iat=1,nat
-      rxyz_shifted(1,iat)=rxyz(1,iat)-shift(1)
-      rxyz_shifted(2,iat)=rxyz(2,iat)-shift(2)
-      rxyz_shifted(3,iat)=rxyz(3,iat)-shift(3)
+     rxyz_shifted(1,iat)=rxyz(1,iat)-shift(1)
+     rxyz_shifted(2,iat)=rxyz(2,iat)-shift(2)
+     rxyz_shifted(3,iat)=rxyz(3,iat)-shift(3)
   end do
 
-!!#  if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
-!!#  if (bigdft_mpi%iproc==0) call yaml_map('rxyz_shifted start',rxyz_shifted)
+  !!#  if (bigdft_mpi%iproc==0) call yaml_map('force start',fxyz)
+  !!#  if (bigdft_mpi%iproc==0) call yaml_map('rxyz_shifted start',rxyz_shifted)
 
-  !!! Get the neighbor lists
+!!! Get the neighbor lists
   !!call get_neighbors(rxyz, nat, na, nb, nc)
-  
+
   ! Transform the atomic positions to internal coordinates 
   !call xyzint(rxyz, nat, na, nb, nc, degree, geo)
   call xyzint(rxyz_shifted, nat, na, nb, nc, degree, geo)
   !!if (bigdft_mpi%iproc==0) call yaml_map('internal orig',geo)
 !!! TEST ######################
-!!call internal_to_cartesian(nat, na, nb, nc, geo, rxyz_tmp)
-!!if (bigdft_mpi%iproc==0) call yaml_map('rxyz start',rxyz)
-!!if (bigdft_mpi%iproc==0) call yaml_map('rxyz end',rxyz_tmp)
+  !!call internal_to_cartesian(nat, na, nb, nc, geo, rxyz_tmp)
+  !!if (bigdft_mpi%iproc==0) call yaml_map('rxyz start',rxyz)
+  !!if (bigdft_mpi%iproc==0) call yaml_map('rxyz end',rxyz_tmp)
 !!! ###########################
 
   ! Shift the atomic positions according to the forces
@@ -4911,37 +5056,37 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   ! Transform these new atomic positions to internal coordinates
   call xyzint(rxyz_tmp, nat, na, nb, nc, degree, geo_tmp)
 
-  !!! Define the forces in internal coordinates
+!!! Define the forces in internal coordinates
   !!fxyz_int = geo_tmp - geo
 
   ! Apply some constraints if required
   do iat=1,nat
-      !!if (bigdft_mpi%iproc==0) then
-      !!    write(*,'(a,i4,2es16.6)') 'iat, geo(1,iat), geo_tmp(1,iat)', iat, geo(1,iat), geo_tmp(1,iat)
-      !!    write(*,'(a,i4,2es16.6)') 'iat, geo(2,iat), geo_tmp(2,iat)', iat, geo(2,iat), geo_tmp(2,iat)
-      !!    write(*,'(a,i4,2es16.6)') 'iat, geo(3,iat), geo_tmp(3,iat)', iat, geo(3,iat), geo_tmp(3,iat)
-      !!end if
-      ii=ifrozen(iat)
-      fix_theta = (mod(ii,10)==2)
-      if (fix_theta) ii=ii-2
-      fix_phi = (mod(ii,100)==20)
-      if (fix_phi) ii=ii-20
-      fix_bond = (mod(ii,1000)==200)
-      if (fix_bond) then
-          ! keep the original value, i.e. don't let this value be modified by the forces
-          geo_tmp(1,iat)=geo(1,iat)
-          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/1,iat/))
-      end if
-      if (fix_phi) then
-          ! keep the original value, i.e. don't let this value be modified by the forces
-          geo_tmp(2,iat)=geo(2,iat)
-          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/2,iat/))
-      end if
-      if (fix_theta) then
-          ! keep the original value, i.e. don't let this value be modified by the forces
-          geo_tmp(3,iat)=geo(3,iat)
-          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/3,iat/))
-      end if
+     !!if (bigdft_mpi%iproc==0) then
+     !!    write(*,'(a,i4,2es16.6)') 'iat, geo(1,iat), geo_tmp(1,iat)', iat, geo(1,iat), geo_tmp(1,iat)
+     !!    write(*,'(a,i4,2es16.6)') 'iat, geo(2,iat), geo_tmp(2,iat)', iat, geo(2,iat), geo_tmp(2,iat)
+     !!    write(*,'(a,i4,2es16.6)') 'iat, geo(3,iat), geo_tmp(3,iat)', iat, geo(3,iat), geo_tmp(3,iat)
+     !!end if
+     ii=ifrozen(iat)
+     fix_theta = (mod(ii,10)==2)
+     if (fix_theta) ii=ii-2
+     fix_phi = (mod(ii,100)==20)
+     if (fix_phi) ii=ii-20
+     fix_bond = (mod(ii,1000)==200)
+     if (fix_bond) then
+        ! keep the original value, i.e. don't let this value be modified by the forces
+        geo_tmp(1,iat)=geo(1,iat)
+        if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/1,iat/))
+     end if
+     if (fix_phi) then
+        ! keep the original value, i.e. don't let this value be modified by the forces
+        geo_tmp(2,iat)=geo(2,iat)
+        if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/2,iat/))
+     end if
+     if (fix_theta) then
+        ! keep the original value, i.e. don't let this value be modified by the forces
+        geo_tmp(3,iat)=geo(3,iat)
+        if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/3,iat/))
+     end if
   end do
 
 
@@ -4981,9 +5126,9 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   ! Test
   rxyz_tmp = rxyz+alpha*fxyz
   call xyzint(rxyz_tmp, nat, na, nb, nc, degree, geo_tmp)
-!!#  if (bigdft_mpi%iproc==0) call yaml_map('cartesian end before',rxyz)
-!!#  if (bigdft_mpi%iproc==0) call yaml_map('cartesian end after',rxyz_tmp)
-!!#  if (bigdft_mpi%iproc==0) call yaml_map('internal end',geo_tmp)
+  !!#  if (bigdft_mpi%iproc==0) call yaml_map('cartesian end before',rxyz)
+  !!#  if (bigdft_mpi%iproc==0) call yaml_map('cartesian end after',rxyz_tmp)
+  !!#  if (bigdft_mpi%iproc==0) call yaml_map('internal end',geo_tmp)
 
 
   call f_free(na)
@@ -5000,7 +5145,13 @@ subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
 
 end subroutine internal_forces
 
-
+!> wrapper for the routine below
+subroutine constraints_internal(astruct)
+  use module_atoms, only: atomic_structure
+  implicit none
+  type(atomic_structure), intent(inout) :: astruct
+  call keep_internal_coordinates_constraints(astruct%nat, astruct%rxyz_int, astruct%ixyz_int, astruct%ifrztyp, astruct%rxyz)
+end subroutine constraints_internal
 
 subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifrozen, rxyz)
   use module_base
@@ -5040,7 +5191,7 @@ subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifroze
   nb=ixyz_int(2,:)
   nc=ixyz_int(3,:)
 
-  
+
   ! Transform the atomic positions to internal coordinates 
   call xyzint(rxyz, nat, na, nb, nc, degree, geo)
 
@@ -5051,27 +5202,27 @@ subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifroze
 
   ! Apply some constraints if required
   do iat=1,nat
-      ii=ifrozen(iat)
-      fix_theta = (mod(ii,10)==2)
-      if (fix_theta) ii=ii-2
-      fix_phi = (mod(ii,100)==20)
-      if (fix_phi) ii=ii-20
-      fix_bond = (mod(ii,1000)==200)
-      if (fix_bond) then
-          ! keep the original value, i.e. don't let this value be modified by the forces
-          geo(1,iat)=rxyz_int(1,iat)
-          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/1,iat/))
-      end if
-      if (fix_phi) then
-          ! keep the original value, i.e. don't let this value be modified by the forces
-          geo(2,iat)=rxyz_int(2,iat)
-          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/2,iat/))
-      end if
-      if (fix_theta) then
-          ! keep the original value, i.e. don't let this value be modified by the forces
-          geo(3,iat)=rxyz_int(3,iat)
-          if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/3,iat/))
-      end if
+     ii=ifrozen(iat)
+     fix_theta = (mod(ii,10)==2)
+     if (fix_theta) ii=ii-2
+     fix_phi = (mod(ii,100)==20)
+     if (fix_phi) ii=ii-20
+     fix_bond = (mod(ii,1000)==200)
+     if (fix_bond) then
+        ! keep the original value, i.e. don't let this value be modified by the forces
+        geo(1,iat)=rxyz_int(1,iat)
+        if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/1,iat/))
+     end if
+     if (fix_phi) then
+        ! keep the original value, i.e. don't let this value be modified by the forces
+        geo(2,iat)=rxyz_int(2,iat)
+        if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/2,iat/))
+     end if
+     if (fix_theta) then
+        ! keep the original value, i.e. don't let this value be modified by the forces
+        geo(3,iat)=rxyz_int(3,iat)
+        if (bigdft_mpi%iproc==0) call yaml_map('keep internal coordinate fixed',(/3,iat/))
+     end if
   end do
 
 

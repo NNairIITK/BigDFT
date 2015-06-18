@@ -57,7 +57,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   end do
 
   if (nproc > 1) then
-     call mpiallred(energykernel(1,1), tmb%orbs%norb**2, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(energykernel, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   ! calculate the overlap matrix
@@ -132,7 +132,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   end do
 
   if (nproc > 1) then
-     call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm)
+     call mpiallred(fpulay, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
   call f_free_ptr(tmb%linmat%kernel_%matrix)
 
@@ -464,6 +464,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use yaml_output
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication
+  use rhopotential, only: full_local_potential
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
@@ -531,11 +532,11 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
        energs,SIC,GPU,2,denspot%xc,pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
        & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
 
-  call timing(iproc,'glsynchham1','ON') !lr408t
+  call timing(iproc,'glsynchham1','ON')
   call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,&
        & tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,lhphilarge,&
-       energs%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
-  call timing(iproc,'glsynchham1','OF') !lr408t
+       energs)!%ekin,energs%epot,energs%eproj,energs%evsic,energs%eexctX)
+  call timing(iproc,'glsynchham1','OF')
   deallocate(confdatarrtmp)
   
 
@@ -665,7 +666,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
    end do 
 
    if (nproc > 1) then
-      call mpiallred(fpulay(1,1), 3*at%astruct%nat, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(fpulay, mpi_sum, comm=bigdft_mpi%mpi_comm)
    end if
 
   if(iproc==0) then

@@ -172,7 +172,7 @@ module yaml_output
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
-  public :: is_atoi,is_atof,is_atol
+  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa
 
   !for internal f_lib usage
   public :: yaml_output_errors
@@ -303,7 +303,7 @@ contains
   !> Set all the output from now on to the file indicated by stdout
   !! therefore the default stream is now the one indicated by unit
   subroutine yaml_set_stream(unit,filename,istat,tabbing,record_length,position,setdefault)
-    use f_utils, only: f_utils_recl,f_get_free_unit
+    use f_utils, only: f_utils_recl,f_get_free_unit,f_open_file
     implicit none
     integer, optional, intent(in) :: unit              !< File unit specified by the user.(by default 6) Returns a error code if the unit
                                                        !! is not 6 and it has already been opened by the processor
@@ -375,13 +375,18 @@ contains
                      YAML_STREAM_ALREADY_PRESENT)
              end if
           end if
-          open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
-          if (present(istat)) then
-             istat = ierr
-          else
-             if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
-                  YAML_INVALID)) return
-          end if
+          call f_err_open_try()
+          call f_open_file(unt,trim(filename),position=trim(pos))
+          ierr=f_get_last_error()
+          call f_err_close_try()
+          if (present(istat)) istat=ierr
+!!$          open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
+!!$          if (present(istat)) then
+!!$             istat = ierr
+!!$          else
+!!$             if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
+!!$                  YAML_INVALID)) return
+!!$          end if
        end if
        if (ierr == 0 .and. .not. unit_is_open) then
           !inquire the record length for the unit
@@ -623,7 +628,7 @@ contains
 
   end subroutine yaml_release_document
 
-  !< close one stream and free its place
+  !> close one stream and free its place
   !! should this stream be the default stream, stdout becomes the default
   subroutine yaml_close_stream(unit,istat)
     implicit none
@@ -758,7 +763,6 @@ contains
        dict_tmp = streams(strm)%dict_warning .get. 'WARNINGS'
        idx=dict_tmp .index. trim(message)
        if (idx < 0) call add(streams(strm)%dict_warning//'WARNINGS',trim(message))
-
     end if
     if (present(level)) then
        if (level <= streams(strm)%Wall) then
@@ -1063,7 +1067,7 @@ contains
     character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
     integer, intent(in), optional :: padding            !<pad the seqvalue with blanks to have more readable output
     !local variables
-    integer :: msg_lgt,unt,strm,tb
+    integer :: msg_lgt,unt,strm,tb,istat,ipos,jpos,kpos
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1088,8 +1092,26 @@ contains
        tb=padding-len_trim(seqvalue)
        if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
     end if
-
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM)
+    !try to see if the line is too long
+    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM,istat=istat)
+    if (istat /=0 .and. .not. streams(strm)%flowrite) then
+       ipos=1
+       jpos=msg_lgt
+       kpos=jpos
+       loop_seq: do
+          call dump(streams(strm),towrite(ipos:kpos),advance=trim(adv),event=SCALAR,istat=istat)
+          if (istat /=0) then
+             !continue searching
+             kpos=index(towrite(ipos:jpos),' ',back=.true.)
+             if (kpos == 0) kpos=jpos-1
+          else
+             ipos=kpos+1
+             jpos=msg_lgt
+             kpos=jpos
+          end if
+          if (ipos > msg_lgt) exit loop_seq
+       end do loop_seq
+    end if
   end subroutine yaml_sequence
 
 
@@ -1611,6 +1633,7 @@ contains
           else
              !crop the writing
              towrite_lgt=stream%max_record_length
+             !print *,'towrite', repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt),' end'
              !stop 'ERROR (dump): writing exceeds record size'
           end if
        else
@@ -2208,5 +2231,53 @@ contains
     end do
 
   end subroutine yaml_dict_dump_all
+
+  !>get the string associated to walltime format 
+  function yaml_walltime_toa(walltime) result(timestamp)
+    implicit none
+    integer(kind=8), intent(in) :: walltime
+    character(len=tot_max_record_length) :: timestamp
+    !local variables
+    character(len=*), parameter :: fmt='(i2.2)'
+    integer(kind=8), parameter :: billion=int(1000000000,kind=8),sixty=int(60,kind=8)
+    integer(kind=8), parameter :: tsf=int(365,kind=8),tf=int(24,kind=8)
+    integer(kind=8) :: s,ns,m,h,d,y
+
+    !get the seconds
+    s=walltime/billion
+    !then get nanosecs
+    ns=walltime-s*billion
+    !then take minutes from seconds
+    m=s/sixty; s=s-m*sixty
+    !and hours from minutes
+    h=m/sixty; m=m-h*sixty   
+
+    !split the treatment in the case of multiple days
+    if (h > tf) then
+       !days
+       d=h/tf; h=h-d*tf
+       !years
+       y=d/tsf; d=d-y*tsf
+
+       !and the winner is...
+       call f_strcpy(dest=timestamp,src=&
+            trim(adjustl(yaml_toa(y)))//'y '//&
+            trim(adjustl(yaml_toa(d)))//'d '//&
+            trim(adjustl(yaml_toa(h,fmt=fmt)))//':'//&
+            trim(adjustl(yaml_toa(m,fmt=fmt)))//':'//&
+            trim(adjustl(yaml_toa(s,fmt=fmt)))//'.'//&
+            trim(adjustl(yaml_toa(ns,fmt='(i9.9)'))))
+
+    else
+       !then put everything in the same string
+       call f_strcpy(dest=timestamp,src=&
+            trim(adjustl(yaml_toa(h,fmt=fmt)))//':'//&
+            trim(adjustl(yaml_toa(m,fmt=fmt)))//':'//&
+            trim(adjustl(yaml_toa(s,fmt=fmt)))//'.'//&
+            trim(adjustl(yaml_toa(ns,fmt='(i9.9)'))))
+    end if
+
+  end function yaml_walltime_toa
+
 
 end module yaml_output

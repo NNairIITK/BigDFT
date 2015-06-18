@@ -512,6 +512,8 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,eco
 
   call f_routine(id='psir_to_vpsi')
 
+  !write(*,'(a,a4,2l5)') 'in psir_to_vpsi: lr%geocode, present(vpsir_noconf), present(econf)', lr%geocode, present(vpsir_noconf), present(econf)
+
   epot=0.0_gp
   ishift=(/0,0,0/)
   confining=present(confdata)
@@ -538,13 +540,23 @@ subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,eco
                  !confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
         end if
      else
-        !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-        call apply_potential_lr_conf_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             lr%d%n1i,lr%d%n2i,lr%d%n3i,&
-             ishift,lr%d%n2,lr%d%n3,&
-             nspinor,npot,vpsir,pot,epot,&
-             confdata)
-             !confdata=confdata)
+        !!!if (present(vpsir_noconf)) then
+        !!!if (.not.present(econf)) stop 'ERROR: econf must be present when vpsir_noconf is present!'
+        !!!!call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        !!!    call apply_potential_lr_conf_noconf_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        !!!         lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+        !!!         ishift,lr%d%n2,lr%d%n3,&
+        !!!         nspinor,npot,vpsir,pot,epot,&
+        !!!         confdata,vpsir_noconf,econf)
+        !!!         !confdata=confdata)
+        !!!else
+            call apply_potential_lr_conf_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 ishift,lr%d%n2,lr%d%n3,&
+                 nspinor,npot,vpsir,pot,epot,&
+                 confdata)
+                 !confdata=confdata)
+        !!! end if
      end if
 
   else
@@ -771,7 +783,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   use module_base
   use module_types
   use yaml_output
-  use psp_projectors, only: PSPCODE_PAW
+  use public_enums, only: PSPCODE_PAW
   implicit none
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
@@ -922,7 +934,7 @@ END SUBROUTINE applyprojectorsonthefly
 !> Build the Hifj matrix for PSP
 subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
   use module_base, only: gp
-  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
+  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
   implicit none
   !Arguments
   integer, intent(in) :: npspcode
@@ -977,7 +989,7 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,psi,hpsi,eproj)
   use module_base, only: gp,wp,dp
-  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
+  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
   implicit none
   integer, intent(in) :: i,l,npspcode,ncplx
   integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
