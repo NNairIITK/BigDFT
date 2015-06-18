@@ -33,6 +33,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use parallel_linalg, only: dsygv_parallel
   use matrix_operations, only: deviation_from_unity_parallel
   use foe, only: fermi_operator_expansion
+  use public_enums
   implicit none
 
   ! Calling arguments
@@ -588,11 +589,13 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use sparsematrix_base, only: assignment(=), sparsematrix_malloc, sparsematrix_malloc_ptr, SPARSE_FULL, &
                                SPARSE_TASKGROUP
   use constrained_dft, only: cdft_data
+  use fragment_base, only: fragmentInputParameters
   use module_fragments, only: system_fragment
   use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral
   use foe, only: fermi_operator_expansion
+  use public_enums
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -3388,6 +3391,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   use sparsematrix_base, only: matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                SPARSE_TASKGROUP, assignment(=)
   use yaml_output
+  use public_enums
   implicit none
 
   ! Calling arguments

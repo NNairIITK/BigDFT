@@ -29,8 +29,9 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use sparsematrix, only: transform_sparse_matrix, gather_matrix_from_taskgroups_inplace, &
                           transform_sparse_matrix_local
   use constrained_dft, only: cdft_data
-  use module_fragments, only: system_fragment
+  use module_fragments, only: system_fragment,fragmentInputParameters
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
+  use public_enums
   implicit none
 
   ! Calling arguments
@@ -930,6 +931,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use transposed_operations, only: build_linear_combination_transposed
+  use public_enums
   implicit none
 
   ! Calling arguments

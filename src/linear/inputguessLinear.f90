@@ -28,6 +28,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use communications_base, only: work_transpose, &
                                  work_transpose_null, allocate_work_transpose, deallocate_work_transpose
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
+  use public_enums
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc

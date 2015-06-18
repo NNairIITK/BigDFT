@@ -49,6 +49,7 @@ libmodules_a_SOURCES = base.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
 	fragments.f90 \
+	fragment_base.f90 \
 	constrained_dft.f90 \
 	diis_module.f90 \
 	ao_inguess.f90 \
@@ -141,6 +142,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
 	RHOPOTENTIAL.@MODULE_EXT@ \
 	MULTIPOLE_BASE.@MODULE_EXT@ \
+	FRAGMENT_BASE.@MODULE_EXT@ \
 	MULTIPOLE.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
@@ -200,6 +202,7 @@ modules = module_base.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	rhopotential.@MODULE_EXT@ \
 	multipole_base.@MODULE_EXT@ \
+	fragment_base.@MODULE_EXT@ \
 	multipole.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
@@ -237,25 +240,27 @@ endif
 
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-input_keys.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o base.o public_keys.o
 base.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o public_keys.o
-types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o \
+multipole_base.o: base.o
+fragment_base.o: public_keys.o
+ao_inguess.o: $(AO_INCLUDES) base.o public_keys.o
+input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o defs.o ao_inguess.o public_keys.o fragment_base.o
+atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o input_dicts.o
+input_keys.o: defs.o $(top_builddir)/flib/src/dynamic_memory.o base.o public_keys.o multipole_base.o atoms_data.o xc.o input.o fragment_base.o
+input.o: base.o public_keys.o fragment_base.o
+types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o input_keys.o \
 	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o
-input.o: base.o types.o input_keys.o
-interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o
+interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
 gaussians.o: base.o
 op2p_module.o : base.o
 BigDFT_API.o: base.o types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o
 vdwcorrection.o: base.o types.o
 private_api.o: base.o types.o interfaces.o
 diis_module.o: base.o types.o
-fragments.o: base.o types.o locreg_operations.o 
-constrained_dft.o: base.o types.o sparsematrix_base.o
-input_dicts.o: $(top_builddir)/flib/src/dynamic_memory.o defs.o ao_inguess.o interfaces.o atoms_data.o input.o public_keys.o
+fragments.o: base.o input_keys.o types.o locreg_operations.o fragment_base.o
+constrained_dft.o: base.o input_keys.o sparsematrix_base.o
 psp_projectors.o: locregs.o gaussians.o defs.o
 locregs.o: base.o
-ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o psp_projectors.o
-atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
 reformatting.o: base.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
@@ -283,13 +288,12 @@ chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix
 unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o locregs.o locreg_operations.o rhopotential.o
 matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: base.o types.o
-io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o
+io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o
 postprocessing_linear.o: base.o types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o
 foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 locreg_operations.o: base.o types.o atoms_data.o locregs.o
 rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o sparsematrix_init.o
-multipole_base.o: base.o
 multipole.o: base.o multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o
 
 # Copy modules in a common include directory.

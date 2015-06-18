@@ -139,7 +139,7 @@ MODULE dipole_mod
 !! dipole.dat : Stores the main output to the screen.
 !! Use yaml format (TD)
  subroutine dipole_output(bdr,ions,dpl)
-   
+   use yaml_strings
     use yaml_output
 
     implicit none

@@ -372,7 +372,8 @@
         call fixfrag(mhgpsst,uinp,runObj,rcov,fsw%rxyz_trans(1,1,0))
 
 
-        runObj%inputs%inputPsiId=0
+        !runObj%inputs%inputPsiId=0
+        call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
         call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
              fsw%rxyz_trans(1,1,0),fsw%rxyzraw_trans(1,1,0),&
              fsw%fxyz_trans(1,1,0),fsw%fstretch_trans(1,1,0),&
@@ -467,7 +468,8 @@
                 '  #(MHGPS) METHOD COUNT  IT  CURVATURE             '//&
                 'DIFF      GMAX      GNRM      alpha    ndim '//&
                 'alpha_strtch overl. displr       displp'
-                runObj%inputs%inputPsiId=1
+                !runObj%inputs%inputPsiId=1
+                call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
                 !determine finite difference
                 call clean_minmode(runObj%atoms%astruct%nat,&
                      bigdft_get_geocode(runObj),&
@@ -500,7 +502,8 @@
                      uinp%saddle_maxcurvrise,uinp%saddle_cutoffratio,&
                      minoverlap)
 
-                runObj%inputs%inputPsiId=1
+                !runObj%inputs%inputPsiId=1
+                call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
                 minmode = minmode / dnrm2(3*runObj%atoms%astruct%nat,minmode(1,1),1)
     !            if(.not.optCurvConv)then
     !                if(mhgpsst%iproc==0)call yaml_warning('(MHGPS) opt_curv '//&
@@ -574,7 +577,8 @@
             fsw%delta_trans=fsw%rxyz_trans(:,:,fsw%idx_trans(nhist))-&
                              fsw%rxyzold_trans
             displ=displ+dnrm2(3*runObj%atoms%astruct%nat,fsw%delta_trans(1,1),1)
-            runObj%inputs%inputPsiId=1
+            !runObj%inputs%inputPsiId=1
+            call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
             call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,&
                  fsw%rxyz_trans(1,1,fsw%idx_trans(nhist)),&
                  fsw%rxyzraw_trans(1,1,fsw%idx_trans(nhist)),&
@@ -708,7 +712,7 @@ subroutine opt_curv(mhgpsst,itgeopt,imode,fsw,uinp,runObj,outs,alpha0,curvforced
     use module_base
     use yaml_output
     use module_sqn
-    use bigdft_run, only: run_objects, state_properties
+    use bigdft_run, only: run_objects, state_properties,bigdft_set_input_policy,INPUT_POLICY_SCRATCH
     use module_userinput
     use module_mhgps_state
     implicit none
@@ -876,11 +880,13 @@ real(gp) :: alpha0int
                 call yaml_comment('INFO: (MHGPS) alpha reset (opt. curv): '//&
                      trim(yaml_toa(fsw%alpha_rot)))
             fsw%ndim_rot=0
-            if(runObj%run_mode=='QM_RUN_MODE' .and. (runObj%inputs%inputPsiId/=0))then
+            if(runObj%run_mode=='QM_RUN_MODE' .and. &!(runObj%inputs%inputPsiId/=0))then
+                 .not. (runObj%inputs%inputPsiId .hasattr. 'SCRATCH')) then
                 if(mhgpsst%iproc==0 .and. uinp%mhgps_verbosity>=3)&
                     call yaml_comment('INFO: (MHGPS) Will use LCAO input guess from now on '//&
                     '(until end of current minmode optimization).')
-                runObj%inputs%inputPsiId=0
+                !runObj%inputs%inputPsiId=0
+                call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
                 call mincurvforce(mhgpsst,imode,runObj,outs,&
                      curvforcediff,rxyz_fix(1,1),fxyz_fix(1,1),&
                      fsw%rxyz_rot(1,1,fsw%idx_rot(fsw%nhist_rot-1)),&

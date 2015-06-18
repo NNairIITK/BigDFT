@@ -1,3 +1,12 @@
+!> @file
+!>  Modules which contains information about multipole structure
+!! @author
+!!    Copyright (C) 2013-2014 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
 module multipole_base
   use module_base
   implicit none
