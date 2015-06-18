@@ -274,6 +274,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          !reduction of the residue not necessary as datacode==G
          !if (kernel%mpi_env%nproc > 1) &
          !     call mpiallred(rhores2,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+         rhores2=sqrt(rhores2/rpoints)
 
          if (wrtmsg) then 
             call yaml_newline()
@@ -332,6 +333,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
            call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
       beta=1.d0
       ratio=1.d0
+      normr=1.d0
 
       normb=dot(n1*n23,rhopot(i3start),1,rhopot(i3start),1)
       if (kernel%mpi_env%nproc > 1) &
@@ -351,7 +353,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       PCG_loop: do ip=1,kernel%max_iter
 
-         if (ratio < kernel%minres .or. ratio > max_ratioex) exit PCG_loop
+         if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
 
          !  Apply the Preconditioner
          call apply_kernel(cudasolver,kernel,z,offset,strten,zf,.true.)

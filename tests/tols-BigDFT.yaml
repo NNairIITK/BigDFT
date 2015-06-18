@@ -306,7 +306,7 @@ mixpotential:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Enl: 2.1e-11
- Energy (Hartree): 1.4e-11
+ Energy (Hartree): 1.43e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10

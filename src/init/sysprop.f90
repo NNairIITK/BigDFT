@@ -97,7 +97,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       end do
   end if
 
-
   if (present(denspot)) then
      call initialize_DFT_local_fields(denspot, in%ixc, in%nspin)
 
@@ -114,6 +113,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      else if (denspot%pkernel%method /= 'VAC') then 
           call pkernel_allocate_cavity(denspot%pkernel,&
           vacuum=.not. (denspot%pkernel%method .hasattr. 'sccs'))
+
+          call epsinnersccs_cavity(atoms,rxyz,denspot%pkernel)
+
         !if (denspot%pkernel%method .hasattr. 'sccs') &
         !     call pkernel_allocate_cavity(denspot%pkernel)
      end if
@@ -976,7 +978,65 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call f_free(corr)
 end subroutine epsilon_cavity
 
+!> calculate the inner cavity for a sccs run to avoit discontinuity in epsilon
+!! due to near-zero edens near atoms
+subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
+  use dynamic_memory
+  use Poisson_Solver
+  use module_atoms
+  use ao_inguess, only: atomic_info
+  !use yaml_output
+  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use f_enums, f_str => str
+  use yaml_output
+  use dictionaries, only: f_err_throw
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  type(coulomb_operator), intent(inout) :: pkernel
 
+  !local variables
+  integer :: i,n1,n23,i3s
+  real(gp) :: delta
+  type(atoms_iterator) :: it
+  real(gp), dimension(:), allocatable :: radii
+  real(gp), dimension(:,:,:), allocatable :: eps
+
+  radii=f_malloc(atoms%astruct%nat,id='radii')
+  eps=f_malloc(pkernel%ndims,id='eps')
+
+  it=atoms_iter(atoms%astruct)
+  !python metod
+  do while(atoms_iter_next(it))
+     !only amu is extracted here
+     call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
+          rcov=radii(it%iat))
+  end do
+
+!  if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
+
+  delta=2.0*maxval(pkernel%hgrids)
+!  if(bigdft_mpi%iproc==0) call yaml_map('Delta cavity',delta)
+
+  do i=1,atoms%astruct%nat
+   radii(i) = 0.5d0/Bohr_Ang
+  end do
+!  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
+
+  call epsinnersccs_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,&
+       pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,delta,eps)
+
+  n1=pkernel%ndims(1)
+  n23=pkernel%ndims(2)*pkernel%grid%n3p
+  !starting point in third direction
+  i3s=pkernel%grid%istart+1
+  if (pkernel%grid%n3p==0) i3s=1
+
+  call f_memcpy(n=n1*n23,src=eps(1,1,i3s),dest=pkernel%epsinnersccs)
+
+  call f_free(radii)
+  call f_free(eps)
+end subroutine epsinnersccs_cavity
 
 !> Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
@@ -2513,5 +2573,3 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, den
      tmb%c_obj    = 0
   end if
 END SUBROUTINE system_signaling
-
-

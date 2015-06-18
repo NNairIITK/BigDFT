@@ -196,7 +196,7 @@
      default: 0.0
 #K points parameters
  kpt:
-   DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations
+   DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
    method:
      COMMENT: K-point sampling method
      EXCLUSIVE:

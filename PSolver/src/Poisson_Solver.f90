@@ -163,6 +163,9 @@ module Poisson_Solver
       !> correction term, given in terms of the multiplicative factor of nabla*eps*nabla
       !! to be used for Preconditioned Conjugate Gradient 
       real(dp), dimension(:,:), pointer :: corr
+      !> inner rigid cavity to be integrated in the sccs method to avoit inner
+      !! cavity discontinuity due to near-zero edens near atoms
+      real(dp), dimension(:,:), pointer :: epsinnersccs
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
       integer, dimension(5) :: plan
       integer, dimension(3) :: geo
@@ -250,6 +253,7 @@ contains
     nullify(k%dlogeps)
     nullify(k%oneoeps)
     nullify(k%corr)
+    nullify(k%epsinnersccs)
     k%work1_GPU=0.d0
     k%work2_GPU=0.d0
     k%k_GPU=0.d0

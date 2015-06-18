@@ -1752,7 +1752,7 @@ contains
 
   !> Read the linear input variables
   subroutine read_lin_and_frag_from_text_format(iproc,dict,run_name)
-    use dictionaries 
+    use dictionaries, dict_set => set 
     use module_defs, only: gp
     use module_input
     use public_keys

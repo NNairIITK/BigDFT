@@ -1335,12 +1335,13 @@ contains
     use public_enums
     use module_defs
     use dynamic_memory, only: f_memcpy
-    use yaml_strings, only: yaml_toa
+    use yaml_strings, only: yaml_toa, operator(+)
     use yaml_output
     use module_forces, only: clean_forces
     use module_morse_bulk
     use module_tersoff
     use module_BornMayerHugginsTosiFumi
+    use f_enums, enum_int => int
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1450,7 +1451,7 @@ contains
        if (bigdft_mpi%iproc==0) call yaml_map('BigDFT infocode',infocode)
     case default
        call f_err_throw('Following method for evaluation of '//&
-            'energies and forces is unknown: '//trim(yaml_toa(f_int(runObj%run_mode))))
+            'energies and forces is unknown: '+ yaml_toa(enum_int(runObj%run_mode)))
     end select
 !!         anoise=2.d-5
 !!         if (anoise.ne.0.d0) then
