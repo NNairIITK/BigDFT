@@ -2688,7 +2688,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
-             energs_work) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             energs_work,.false.) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         call deallocate_work_mpiaccumulate(energs_work)
 
