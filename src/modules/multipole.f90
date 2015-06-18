@@ -126,7 +126,9 @@ module multipole
                                   !if (l==1) then
                                   !    dipole(mm,impl) = dipole(mm,impl) + ep%mpl(impl)%qlm(l)%q(mm)*spherical_harmonic(l, m, r(1), r(2), r(3))*gaussian(sigma, rnrm1)*hx*hy*hz*sqrt(4.d0*pi_param)
                                   !end if
-                                  ttt = ep%mpl(impl)%qlm(l)%q(mm)*spherical_harmonic(l, m, r(1), r(2), r(3))*gaussian(sigma(l), rnrm1)*sqrt(4.d0*pi_param)
+                                  ttt = ep%mpl(impl)%qlm(l)%q(mm)*&
+                                        spherical_harmonic(l, m, r(1), r(2), r(3))*gaussian(sigma(l), rnrm1)*&
+                                        sqrt(4.d0*pi_param)
                                   tt = tt + ttt
 
                                   if (l==0) then
