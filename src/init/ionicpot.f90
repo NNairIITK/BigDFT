@@ -647,13 +647,13 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
 !------------------------------------------------------------------------------------------------------
 ! Depending of Free, Periodic or Surface bc, image atoms are or not included.
 
-  if (bigdft_mpi%iproc==0) then
-   do iat=1,natreal
-    call yaml_map('real input atoms',iat)
-    call yaml_map('radii',radiireal(iat))
-    call yaml_map('rxyz',rxyzreal(:,iat))
-   end do
-  end if
+!  if (bigdft_mpi%iproc==0) then
+!   do iat=1,natreal
+!    call yaml_map('real input atoms',iat)
+!    call yaml_map('radii',radiireal(iat))
+!    call yaml_map('rxyz',rxyzreal(:,iat))
+!   end do
+!  end if
 
   px=0
   py=0
@@ -729,16 +729,16 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
    rxyz(1:3,1:nat)=rxyztot(1:3,1:nat)
    radii(1:nat)=radiitot(1:nat)
 
-   if (bigdft_mpi%iproc==0) then
-    write(*,*)plandist
-    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
-    call yaml_map('nat',nat)
-    do iat=1,nat
-     call yaml_map('atom',iat)
-     call yaml_map('radii',radii(iat))
-     call yaml_map('rxyz',rxyz(:,iat))
-    end do
-   end if
+!   if (bigdft_mpi%iproc==0) then
+!    write(*,*)plandist
+!    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
+!    call yaml_map('nat',nat)
+!    do iat=1,nat
+!     call yaml_map('atom',iat)
+!     call yaml_map('radii',radii(iat))
+!     call yaml_map('rxyz',rxyz(:,iat))
+!    end do
+!   end if
 
 !------------------------------------------------------------------------------------------------------
 ! Starting the cavity building for rxyztot atoms=real+image atoms (total natcurr) for periodic
@@ -946,7 +946,7 @@ subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,na
   real(kind=8), dimension(27*natreal) :: radiitot
   real(kind=8), dimension(:), allocatable :: radii
   real(kind=8), dimension(:,:), allocatable :: rxyz
-  logical, parameter :: dumpeps=.false.  !.true.
+  logical, parameter :: dumpeps=.false.
 
   !buffers associated to the geocode
   !conditions for periodicity in the three directions

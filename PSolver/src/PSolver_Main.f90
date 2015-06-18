@@ -106,6 +106,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    else
       wrtmsg=.true.
    end if
+   wrtmsg=.true.
    wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
    ! rewrite
 
