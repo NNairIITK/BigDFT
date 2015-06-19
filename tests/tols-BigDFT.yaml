@@ -600,9 +600,9 @@ molecule_foe:
  energy: 6.9e-10
  Omega: 8.6e-9
  Total charge: 2.5e-10
- eF: 5.0e-9
- guess for new ef: 5.0e-9
- D eF: 5.3e-9
+ eF: 6.0e-9
+ guess for new ef: 6.0e-9
+ D eF: 6.6e-9
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
@@ -1476,7 +1476,7 @@ periodic_silicon:
  ebs: 1.2e-10
  Energy (Hartree): 2.9e-11
  energy: 2.9e-11
- Total ionic charge: 2.1e-11
+ Total ionic charge: 2.5e-11
  Pressure: 1.5e-10
 
 periodic_wateredge:
@@ -1518,6 +1518,7 @@ periodic_water:
  Pressure: 6.4e-10
  Clean forces norm (Ha/Bohr): 1.9e-11
  Ion-Ion interaction energy: 1.6e-11
+ Total charge: 1.1e-10
 
 surface_boronnitride:
  Enl: 1.01e-9
@@ -1570,8 +1571,8 @@ multipoles_OH-:
  Raw forces norm (Ha/Bohr): 3.7e-11
  Average noise forces: 1.1e-10
  decay length of error function: 1.1e-5
- number of corrected points: 18
- total charge correction: 1.7e-8
+ number of corrected points:51
+ total charge correction: 3.2e-8
 
 multipoles_water:
  eF: 2.9e-9
