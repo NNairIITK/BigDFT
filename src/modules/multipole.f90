@@ -183,7 +183,7 @@ module multipole
               end do
           end do
       end do
-      if (nproc>0) then
+      if (nproc>1) then
           call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(monopole, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(dipole, mpi_sum, comm=bigdft_mpi%mpi_comm)
@@ -351,6 +351,8 @@ module multipole
       integer :: i1, i2, i3, ii1, ii2, ii3, impl, l
       real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp
       real(dp),dimension(3) :: r
+
+      stop 'deprecated'
 
       !!$omp parallel &
       !!$omp default(none) &

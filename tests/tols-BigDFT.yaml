@@ -226,7 +226,7 @@ ElecField:
 FeHyb:
  EKS: 6.e-11
  y: 1.51e-11
- Energy (Hartree): 2.15e-11 
+ Energy (Hartree): 2.9e-11 
 
 
 Li+:
@@ -1571,8 +1571,8 @@ multipoles_OH-:
  Raw forces norm (Ha/Bohr): 3.7e-11
  Average noise forces: 1.1e-10
  decay length of error function: 1.1e-5
- number of corrected points: 51
- total charge correction: 3.2e-8
+ number of corrected points: 77
+ total charge correction: 4.6e-8
 
 multipoles_water:
  eF: 2.9e-9
@@ -1581,6 +1581,9 @@ multipoles_water:
  multiplicator for the confinement: 1.6e-10
  EH: 1.1e-10
  D eF: 1.1e-8
+ Epot: 1.1e-10
+ ebs_check: 1.2e-11
+ ebs: 1.2e-11
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
