@@ -1571,7 +1571,7 @@ multipoles_OH-:
  Raw forces norm (Ha/Bohr): 3.7e-11
  Average noise forces: 1.1e-10
  decay length of error function: 1.1e-5
- number of corrected points:51
+ number of corrected points: 51
  total charge correction: 3.2e-8
 
 multipoles_water:
