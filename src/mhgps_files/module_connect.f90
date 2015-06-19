@@ -25,6 +25,7 @@ module module_connect
 !    public :: connect_recursively
     public :: connect
     public :: pushoff_and_relax_bothSides
+    public :: addToPreviouslyconnected
 contains
 !=====================================================================
 !> This recursive subroutine does not fully support a restart.
@@ -586,6 +587,7 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
     integer :: iloop
     integer :: istat
     real(gp) :: scl
+    logical :: dmyl
 
     connected=.false.
     premature_exit = .false.
@@ -647,14 +649,14 @@ connectloop: do while(cobj%ntodo>=1)
     !rmsd alignment (optional in mhgps approach)
     call superimpose(runObj%atoms%astruct%nat,cobj%rxyz1,cobj%rxyz2)
 
-!!    !check if previously connected
-!!    if(previously_connected(mhgpsst,uinp,runObj,cobj%rxyz1,cobj%rxyz2))then
-!!        if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) connect: '//&
-!!                    'Minima previously connected. Will not connect again.')
-!!!        connected=.true.
-!!        cobj%ntodo=cobj%ntodo-1
-!!        cycle
-!!    endif
+    !check if previously connected
+    if(previously_connected(mhgpsst,uinp,runObj,cobj%rxyz1,cobj%rxyz2))then
+        if(mhgpsst%iproc==0)call yaml_comment('(MHGPS) connect: '//&
+                    'Minima previously connected. Will not connect again.')
+!        connected=.true.
+        cobj%ntodo=cobj%ntodo-1
+        cycle
+    endif
     endif
 
     !get input guess for transition state
@@ -762,6 +764,7 @@ connectloop: do while(cobj%ntodo>=1)
         cobj%enerleft(mhgpsst%nsad),cobj%fpleft(1,mhgpsst%nsad),&
         cobj%rightmin(1,1,mhgpsst%nsad),cobj%fright(1,1,mhgpsst%nsad),&
         cobj%enerright(mhgpsst%nsad),cobj%fpright(1,mhgpsst%nsad),istat)
+    call addToPreviouslyconnected(mhgpsst,uinp,runObj,cobj%leftmin(1,1,mhgpsst%nsad),cobj%rightmin(1,1,mhgpsst%nsad))
     if(istat/=0)then
         if(mhgpsst%iproc==0)then
             if(istat==1)then
@@ -1139,6 +1142,7 @@ connectloop: do while(cobj%ntodo>=1)
                             '(MHGPS) connection check connected',&
                             cobj%enerleft(mhgpsst%nsad),&
                             cobj%enerright(mhgpsst%nsad)
+!         call addToPreviouslyconnected(mhgpsst,uinp,runObj,cobj%rxyz1,cobj%rxyz2)
 !        connected=.true.
 !        return
 cycle
@@ -1470,8 +1474,8 @@ enddo connectloop
 end subroutine
 !=====================================================================
 function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
-    !this function compares rxyz1 an rxyz2 with a non-permutational
-    !invariant rmsd if the have been tried to be connected previously.
+    !this function compares rxyz1 and rxyz2 using a non-permutational
+    !invariant rmsd if they previously have been tried to be connected.
     !a non-permutationally invariant rmsd is used such that
     !transition states between different premuational variants of the 
     !same structures are computed
@@ -1490,7 +1494,6 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
     !local
     integer :: iatt
     integer :: i
-    logical :: match
     real(gp),allocatable :: attempted_connections_tmp(:,:,:,:)
 
     previously_connected = .false.
@@ -1513,37 +1516,85 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
         endif
     enddo outer
 
-    if(.not. previously_connected)then
-        mhgpsst%nattempted = mhgpsst%nattempted + 1
-        !check if enough space, if not
-        !resize array
-        if(mhgpsst%nattempted > mhgpsst%nattemptedmax)then
+!!    if(.not. previously_connected)then
+!!        mhgpsst%nattempted = mhgpsst%nattempted + 1
+!!        !check if enough space, if not
+!!        !resize array
+!!        if(mhgpsst%nattempted > mhgpsst%nattemptedmax)then
+!!if(mhgpsst%iproc==0)write(*,*)'prevresize '
+!!
+!!            attempted_connections_tmp = f_malloc((/3,&
+!!                                       runObj%atoms%astruct%nat,2,&
+!!                                       mhgpsst%nattemptedmax/),&
+!!                                       id='attempted_connections_tmp')
+!!            attempted_connections_tmp = mhgpsst%attempted_connections
+!!            call f_free(mhgpsst%attempted_connections)
+!!            mhgpsst%nattemptedmax = mhgpsst%nattemptedmax + 1000
+!!            mhgpsst%attempted_connections = f_malloc((/3,&
+!!                                       runObj%atoms%astruct%nat,2,&
+!!                                       mhgpsst%nattemptedmax/),&
+!!                                       id='mhgpsst%attempted_connections')
+!!            do i = 1, mhgpsst%nattemptedmax - 1000
+!!                mhgpsst%attempted_connections(:,:,:,i) = attempted_connections_tmp(:,:,:,i)
+!!            enddo
+!!            call f_free(attempted_connections_tmp)
+!!        endif
+!!
+!!        !add pair to list
+!!        mhgpsst%attempted_connections(:,:,1,mhgpsst%nattempted) &
+!!                = rxyz1
+!!        mhgpsst%attempted_connections(:,:,2,mhgpsst%nattempted) &
+!!                = rxyz2
+!!    endif
+end function
+!=====================================================================
+subroutine  addToPreviouslyconnected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
+!adds a new pair of configurations to the list of previously
+!connected configurations
+    use module_base
+    use bigdft_run, only: run_objects
+    use module_mhgps_state
+    use module_userinput
+    implicit none
+    !parameters
+    type(mhgps_state), intent(inout) :: mhgpsst
+    type(userinput), intent(in)  :: uinp
+    type(run_objects), intent(in) :: runObj
+    real(gp), intent(in) :: rxyz1(3,runObj%atoms%astruct%nat)
+    real(gp), intent(in) :: rxyz2(3,runObj%atoms%astruct%nat)
+    !internal
+    integer :: i
+    real(gp),allocatable :: attempted_connections_tmp(:,:,:,:)
+
+    mhgpsst%nattempted = mhgpsst%nattempted + 1
+    !check if enough space, if not
+    !resize array
+    if(mhgpsst%nattempted > mhgpsst%nattemptedmax)then
 if(mhgpsst%iproc==0)write(*,*)'prevresize '
 
-            attempted_connections_tmp = f_malloc((/3,&
-                                       runObj%atoms%astruct%nat,2,&
-                                       mhgpsst%nattemptedmax/),&
-                                       id='attempted_connections_tmp')
-            attempted_connections_tmp = mhgpsst%attempted_connections
-            call f_free(mhgpsst%attempted_connections)
-            mhgpsst%nattemptedmax = mhgpsst%nattemptedmax + 1000
-            mhgpsst%attempted_connections = f_malloc((/3,&
-                                       runObj%atoms%astruct%nat,2,&
-                                       mhgpsst%nattemptedmax/),&
-                                       id='mhgpsst%attempted_connections')
-            do i = 1, mhgpsst%nattemptedmax - 1000
-                mhgpsst%attempted_connections(:,:,:,i) = attempted_connections_tmp(:,:,:,i)
-            enddo
-            call f_free(attempted_connections_tmp)
-        endif
-
-        !add pair to list
-        mhgpsst%attempted_connections(:,:,1,mhgpsst%nattempted) &
-                = rxyz1
-        mhgpsst%attempted_connections(:,:,2,mhgpsst%nattempted) &
-                = rxyz2
+        attempted_connections_tmp = f_malloc((/3,&
+                                   runObj%atoms%astruct%nat,2,&
+                                   mhgpsst%nattemptedmax/),&
+                                   id='attempted_connections_tmp')
+        attempted_connections_tmp = mhgpsst%attempted_connections
+        call f_free(mhgpsst%attempted_connections)
+        mhgpsst%nattemptedmax = mhgpsst%nattemptedmax + 1000
+        mhgpsst%attempted_connections = f_malloc((/3,&
+                                   runObj%atoms%astruct%nat,2,&
+                                   mhgpsst%nattemptedmax/),&
+                                   id='mhgpsst%attempted_connections')
+        do i = 1, mhgpsst%nattemptedmax - 1000
+            mhgpsst%attempted_connections(:,:,:,i) = attempted_connections_tmp(:,:,:,i)
+        enddo
+        call f_free(attempted_connections_tmp)
     endif
-end function
+
+    !add pair to list
+    mhgpsst%attempted_connections(:,:,1,mhgpsst%nattempted) &
+            = rxyz1
+    mhgpsst%attempted_connections(:,:,2,mhgpsst%nattempted) &
+            = rxyz2
+end subroutine
 !=====================================================================
 function rmsd_equal(iproc,nat,rxyz1,rxyz2)
     use module_base
