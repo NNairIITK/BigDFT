@@ -38,6 +38,10 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use locreg_operations, only: get_boundary_weight
   use public_enums
   use multipole, only: multipoles_from_density
+  use matrix_operations, only: overlapPowerGeneral
+  use foe, only: fermi_operator_expansion
+  use foe_base, only: foe_data_set_real
+
   implicit none
 
   ! Calling arguments
@@ -76,7 +80,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy, nit_scc_changed
   real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin, tt1, tt2, ehart_ps
   logical :: lowaccur_converged, exit_outer_loop, calculate_overlap, invert_overlap_matrix
-  real(kind=8),dimension(:),allocatable :: locrad, kernel_orig, ovrlp_large, tmpmat
+  real(kind=8),dimension(:),allocatable :: locrad, kernel_orig, ovrlp_large, tmpmat, inv_full, inv_cropped
+  real(kind=8),dimension(:),allocatable :: kernel_cropped, ovrlp_cropped, ham_cropped, kernel_foe_cropped
   integer:: target_function, nit_basis
   logical :: keep_value
   type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
@@ -102,7 +107,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: j, ind, n
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
-  real(8) :: tt, ddot
+  real(8) :: tt, ddot, max_error, mean_error
 
   !better names/input variables
   logical, parameter :: write_fragments=.true.
@@ -1344,34 +1349,147 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call calculate_gap_FOE(iproc, nproc, input, KSwfn%orbs, tmb)
   end if
 
-  !!# TEST ################################################################
-  !update_phi = .false.
-  !! Set to zero all term which couple different atoms
-  !do i=1,tmb%linmat%s%nvctr
-  !    write(*,*) 'i, val', i, tmb%linmat%ovrlp_%matrix_compr(i)
-  !end do
-  !kernel_orig = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='kernel_orig')
-  !call f_memcpy(src=tmb%linmat%kernel_%matrix_compr, dest=kernel_orig)
-  !call delete_coupling_terms(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr)
-  !call delete_coupling_terms(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr)
-  !call delete_coupling_terms(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr)
-  !write(*,*) '==='
-  !do i=1,tmb%linmat%s%nvctr
-  !    write(*,*) 'i, val', i, tmb%linmat%ovrlp_%matrix_compr(i)
-  !end do
+  !# TEST ################################################################
+  update_phi = .false.
+  ! Set to zero all term which couple different atoms
+  do i=1,tmb%linmat%s%nvctr
+      write(*,*) 'i, val', i, tmb%linmat%ovrlp_%matrix_compr(i)
+  end do
+  kernel_orig = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='kernel_orig')
+  inv_full = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='inv_full')
+  inv_cropped = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='inv_cropped')
+
+  kernel_cropped = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='kernel_cropped')
+  ovrlp_cropped = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%s, id='ovrlp_cropped')
+  ham_cropped = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%m, id='ham_cropped')
+  kernel_foe_cropped = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='kernel_foe_cropped')
+
+  call f_memcpy(src=tmb%linmat%kernel_%matrix_compr, dest=kernel_orig)
+  ! Calculate S^1/2 for the original overlap matrix
+  call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/2/), -1, &
+        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+        ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(2), &
+        check_accur=.true., max_error=max_error, mean_error=mean_error)
+  inv_full = tmb%linmat%ovrlppowers_(2)%matrix_compr
+
+  call delete_coupling_terms(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr)
+  call delete_coupling_terms(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr)
+  call delete_coupling_terms(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr)
+
+  ovrlp_large = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='ovrlp_large')
+  tmpmat = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='tmpmat')
+  call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%l, tmb%linmat%ovrlp_%matrix_compr, ovrlp_large, 'small_to_large')
+
+  ovrlp_cropped = tmb%linmat%ovrlp_%matrix_compr
+  ham_cropped = tmb%linmat%ham_%matrix_compr
+  kernel_cropped = tmb%linmat%kernel_%matrix_compr
+
+  ! Calculate S^1/2 for the cropped overlap matrix
+  call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/2/), -1, &
+        imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+        ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(1), &
+        check_accur=.true., max_error=max_error, mean_error=mean_error)
+  inv_cropped = tmb%linmat%ovrlppowers_(1)%matrix_compr
+
+  kernel_foe_cropped = 0.d0
+  ii = 1
+  do 
+      tmb%linmat%ovrlp_%matrix_compr = 0.d0
+      tmb%linmat%ham_%matrix_compr = 0.d0
+      tmb%linmat%kernel_%matrix_compr = 0.d0
+      iat = tmb%linmat%l%on_which_atom(ii)
+      itype = at%astruct%iatype(iat)
+      n = input%lin%norbsPerType(itype)
+      do i=ii,ii+n-1
+          do j=ii,ii+n-1
+              ind=matrixindex_in_compressed(tmb%linmat%l, i, j)
+              tmb%linmat%ovrlp_%matrix_compr(ind) = ovrlp_cropped(ind)
+              tmb%linmat%ham_%matrix_compr(ind) = ham_cropped(ind)
+              tmb%linmat%kernel_%matrix_compr(ind) = kernel_cropped(ind)
+          end do
+      end do
+      if (n==1) then
+          call foe_data_set_real(tmb%foe_obj,"charge",1.d0,1)
+      else if (n==4) then
+          call foe_data_set_real(tmb%foe_obj,"charge",6.d0,1)
+      end if
+      call fermi_operator_expansion(iproc, nproc, 0.d0, &
+           energs%ebs, norder_taylor, 1.d-8, .true., &
+           .false., 2, FOE_ACCURATE, &
+           trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(-999,fmt='(i3.3)'))), &
+           tmb, tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%kernel_, tmb%foe_obj)
+      write(*,*) 'tmb%linmat%kernel_%matrix_compr(1)',tmb%linmat%kernel_%matrix_compr(1)
+      write(*,*) 'tmb%linmat%ham_%matrix_compr(1)',tmb%linmat%ham_%matrix_compr(1)
+      write(*,*) 'tmb%linmat%ovrlp_%matrix_compr(1)',tmb%linmat%ovrlp_%matrix_compr(1)
+      do i=ii,ii+n-1
+          do j=ii,ii+n-1
+              ind=matrixindex_in_compressed(tmb%linmat%l, i, j)
+              kernel_foe_cropped(ind) = tmb%linmat%kernel_%matrix_compr(ind)
+          end do
+      end do
+      ii = ii + n
+      if (ii==tmb%linmat%l%nfvctr+1) exit
+  end do
+  tmb%linmat%kernel_%matrix_compr = kernel_foe_cropped
+
+
+
+  write(*,*) '==='
+  do i=1,tmb%linmat%s%nvctr
+      write(*,*) 'i, val', i, tmb%linmat%ovrlp_%matrix_compr(i)
+  end do
   !call scf_kernel(1, .true., update_phi)
-  !ovrlp_large = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='ovrlp_large')
-  !tmpmat = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='tmpmat')
-  !call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%l, tmb%linmat%ovrlp_%matrix_compr, ovrlp_large, 'small_to_large')
-  !do i=1,tmb%linmat%l%nvctr
-  !    write(*,*) 'i, val ovrlp_large', i, ovrlp_large(i)
-  !    write(*,*) 'i, val kernel', i, tmb%linmat%kernel_%matrix_compr(i)
-  !    write(*,*) 'i, val kernel orig', i, kernel_orig(i)
-  !end do
-  !tmb%linmat%kernel_%matrix_compr = 0.5d0*tmb%linmat%kernel_%matrix_compr
-  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, ovrlp_large, tmb%linmat%kernel_%matrix_compr, tmpmat)
-  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, kernel_orig, tmpmat, tmb%linmat%kernel_%matrix_compr)
-  !!# END TEST ############################################################
+  do i=1,tmb%linmat%l%nvctr
+      write(*,*) 'i, val ovrlp_large', i, ovrlp_large(i)
+      write(*,*) 'i, val inv full', i, inv_full(i)
+      write(*,*) 'i, val inv cropped', i, inv_cropped(i)
+      write(*,*) 'i, val kernel', i, tmb%linmat%kernel_%matrix_compr(i)
+      write(*,*) 'i, val kernel orig', i, kernel_orig(i)
+  end do
+  tmb%linmat%kernel_%matrix_compr = 0.5d0*tmb%linmat%kernel_%matrix_compr
+  ! use ovrlp_large as workarray
+  ! NEW $$$$$$$$$$$$$$$$$
+  ovrlp_large = inv_cropped
+  call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, ovrlp_large, tmpmat)
+  ovrlp_large = tmpmat
+  call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, inv_cropped, ovrlp_large, tmpmat)
+  ovrlp_large = tmpmat
+  call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, inv_full, ovrlp_large, tmpmat)
+  ovrlp_large = tmpmat
+  call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, kernel_orig, ovrlp_large, tmpmat)
+  ovrlp_large = tmpmat
+  call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, inv_full, ovrlp_large, tmpmat)
+  !! OLD $$$$$$$$$$$$$$$$$
+  !ovrlp_large = 0.5d0*tmb%linmat%ovrlppowers_(2)%matrix_compr
+  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, kernel_orig, ovrlp_large, tmpmat)
+  !ovrlp_large = tmpmat
+  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmb%linmat%ovrlppowers_(2)%matrix_compr, ovrlp_large, tmpmat)
+  !ovrlp_large = tmpmat
+  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmb%linmat%ovrlppowers_(2)%matrix_compr, ovrlp_large, tmpmat)
+  !ovrlp_large = tmpmat
+  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, kernel_orig, ovrlp_large, tmpmat)
+  !ovrlp_large = tmpmat
+  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmb%linmat%ovrlppowers_(2)%matrix_compr, ovrlp_large, tmpmat)
+
+  ii = 1
+  do 
+      iat = tmb%linmat%l%on_which_atom(ii)
+      itype = at%astruct%iatype(iat)
+      n = input%lin%norbsPerType(itype)
+      tt=0.d0
+      do i=ii,ii+n-1
+          ind=matrixindex_in_compressed(tmb%linmat%l, i, i)
+          tt = tt + tmpmat(ind)
+      end do
+      write(*,*) 'iat, itype, charge', iat, itype, tt
+      ii = ii + n
+      if (ii==tmb%linmat%l%nfvctr+1) exit
+  end do
+
+  !!call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(2)%matrix_compr(i), kernel_orig, tmpmat)
+  !!call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(2)%matrix_compr(i), kernel_orig, tmpmat)
+  !!call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, kernel_orig, tmpmat, tmb%linmat%kernel_%matrix_compr)
+  !# END TEST ############################################################
 
 
   !!# TEST 2 ################################################################
