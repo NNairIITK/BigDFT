@@ -228,7 +228,6 @@ class polar_axis():
       pylab.show()
     except KeyboardInterrupt:
       raise
-
         
   def find_name(self,th,level):
     import pylab
@@ -312,6 +311,11 @@ class BigDFTiming:
     self.hostnames=[]
     self.scf=[]
     self.ids=[]
+    self.barfig = None
+    self.axbars = None
+    self.newfigs =[]
+    self.radio = None
+    self.quitButton = None
     for doc in self.log:
         self.routines.append(doc.get("Routines timing and number of calls"))
         self.hostnames.append(doc.get("Hostnames"))
@@ -325,39 +329,136 @@ class BigDFTiming:
             "Other","PS Computation","Potential",
             "Flib LowLevel","Initialization"]
 
-  def bars_data(self,dict_list):
+  def bars_data(self,vals='Percent'):
     """Extract the data for plotting the different categories in bar chart"""
-    import pylab
-    ndata=len(dict_list)
-    ind=pylab.np.arange(ndata)
-    width=0.9#0.35
-    bot=pylab.np.array(ndata*[0.0])
-    plts=[]
-    key_legend=[]
-    values_legend=[]
-    icol=1.0
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from pylab import cm as cm
+    from matplotlib.widgets import CheckButtons,Button,RadioButtons
+    self.vals=vals
+    if self.barfig is None:
+      self.barfig, self.axbars = plt.subplots()
+    dict_list=self.scf
+    self.plts=[]
+    self.draw_barplot(self.axbars,self.collect_categories(dict_list,vals),vals)
+    if self.vals == 'Percent': self.axbars.set_yticks(np.arange(0,100,10))
+    if self.radio is None:
+      self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.1, 0.11], axisbg='lightgoldenrodyellow'), ('Percent', 'Seconds'))
+      self.radio.on_clicked(self.replot)
+
+    if self.quitButton is None:
+      self.quitButton = Button(plt.axes([0.0, 0.0, 0.1, 0.075]), 'Quit')
+      self.quitButton.on_clicked(self.onclick_quitButton)
+      self.barfig.canvas.mpl_connect('pick_event',self.onclick_ev)
+
+  def find_items(self,category,dict_list):
+    """For a given category find the items which has them"""
+    import numpy as np
+    items={}
+    for idoc in range(len(dict_list)):
+        for cat in dict_list[idoc]["Categories"]:
+            dicat=dict_list[idoc]["Categories"][cat]
+            if dicat["Class"] == category:
+                if cat not in items:
+                    items[cat]=np.zeros(len(dict_list))
+                items[cat][idoc]=dicat["Data"][self.iprc]
+    return [ (cat,items[cat]) for cat in items]
+    
+  def collect_categories(self,dict_list,vals):
+    """ Collect all the categories which belong to all the dictionaries """
+    import numpy as np
+    #classes=[]
+    #for doc in dict_list:
+    #  for cat in doc["Classes"]:
+    #    if cat not in classes and cat != 'Total': classes.append(cat)
+    #print 'found',classes
+    if vals == 'Percent':
+      self.iprc=0
+    elif vals == 'Seconds':
+      self.iprc=1
+    catsdats=[]
+    self.values_legend=[]
     for cat in self.classes:
-      #print [doc["Classes"][cat][0] for doc in dict_list]
       try:
-        dat=pylab.np.array([doc["Classes"][cat][0] for doc in dict_list])
-        print 'data',cat,dat,bot
-        #print 'unbalancing',dict_list[0][cat][2:]
-        plt=pylab.bar(ind,dat,width,bottom=bot,color=pylab.cm.jet(icol/len(self.classes)))
-        plts.append(plt)
-        key_legend.append(plt[0])
-        values_legend.append(cat)
-        bot+=dat
-        icol+=1.0
+        dat=np.array([doc["Classes"][cat][self.iprc] for doc in dict_list])
+        catsdats.append((cat,dat))
+        self.values_legend.append(cat)
       except Exception,e:
-        #print 'EXCEPTION FOUND',e
-        print "category",cat,"not present"
+        print 'EXCEPTION FOUND',e
+        print "category",cat,"not present everywhere"
+    return catsdats
+    
+  def onclick_ev(self,event):
+    import matplotlib.pyplot as plt
+    thisline = event.artist
+    xdata, ydata = thisline.get_xy()
+    #find the category which has been identified
+    y0data=0.0
+    for cat in self.values_legend:
+      if y0data == ydata:
+        category=cat
+        break
+      y0data+=self.scf[xdata]["Classes"][cat][self.iprc]
+    print 'category',category
+    print self.find_items(category,self.scf)
+    #self.axbars.cla()
+    #self.draw_barplot(self.axbars,self.find_items(category,self.scf),self.vals)
+    #self.barfig.canvas.draw()
+
+    newfig=plt.figure()
+    newax=newfig.add_subplot(111)
+    self.draw_barplot(newax,self.find_items(category,self.scf),self.vals,title=category)
+    newfig.show()
+    self.newfigs.append((newfig,newax))
   
-    pylab.title('Time bar chart')
-    pylab.xticks(ind+width/2., pylab.np.array(self.ids))
-    pylab.ylabel('Percent')
-    pylab.yticks(pylab.np.arange(0,100,10))
-    #pylab.ylabel('Seconds')
-    pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
+    
+  def draw_barplot(self,axbars,data,vals,title='Time bar chart'):
+    import numpy as np
+    import matplotlib.pyplot as plt
+    from pylab import cm as cm
+    from matplotlib.widgets import Button,RadioButtons
+
+    ndata=len(data[0][1])
+    ind=np.arange(ndata)
+    width=0.9#0.35
+    bot=np.array(ndata*[0.0])
+    icol=1.0
+    for cat,dat in data:
+      print 'cat',cat,dat
+      plt=axbars.bar(ind,dat,width,bottom=bot,color=cm.jet(icol/len(self.classes)),picker=True,label=cat)
+      self.plts.append(plt)
+      bot+=dat
+      icol+=1.0
+    drawn_classes=np.array(self.values_legend)
+    axbars.set_title(title)
+    axbars.set_ylabel(vals)
+    axbars.set_xticks(ind+width/2.)
+    axbars.set_xticklabels(np.array(self.ids))
+    self.leg = axbars.legend(loc='upper right')
+    self.leg.get_frame().set_alpha(0.4)  
+      
+      
+  def onclick_quitButton(self,event):
+    print "Good bye!"
+    for figax in self.newfigs:
+      pylab.close(figax[0])
+    pylab.close(self.barfig)
+    
+  def replot(self,label):
+    self.axbars.cla()
+    self.bars_data(vals=label)
+    self.barfig.canvas.draw()
+    for figax in self.newfigs:
+      ax=figax[1]
+      fi=figax[0]
+      category=ax.get_title()
+      ax.cla()
+      self.draw_barplot(ax,self.find_items(category,self.scf),self.vals,title=category)
+      fi.canvas.draw()
+
+  def func(self,label):
+    print 'label,cid',label,self.cid
+    self.barfig.draw()
 
   def unbalanced(self,val):
     """Criterion for unbalancing"""
@@ -440,7 +541,7 @@ if args.timedata:
   #dict_routines = timing["Routines timing and number of calls"]
   #sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
   if bt.scf is not None:
-    bt.bars_data(bt.scf) #timing["WFN_OPT"]["Classes"])
+    bt.bars_data() #timing["WFN_OPT"]["Classes"])
     
   if bt.scf[0] is not None and False:
     bt.load_unbalancing(bt.scf[0]["Classes"]) #timing["WFN_OPT"]["Classes"])
