@@ -334,7 +334,7 @@ class BigDFTiming:
     import numpy as np
     import matplotlib.pyplot as plt
     from pylab import cm as cm
-    from matplotlib.widgets import CheckButtons,Button,RadioButtons
+    from matplotlib.widgets import Button,RadioButtons
     self.vals=vals
     if self.barfig is None:
       self.barfig, self.axbars = plt.subplots()
