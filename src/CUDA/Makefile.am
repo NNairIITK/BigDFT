@@ -13,7 +13,6 @@ if USE_CUDA_GPU
 sources = \
 	commonDef.cpp commonDef.h \
 	cudafct.cu \
-	locham.cu \
 	kernels_anasyn.hcu \
 	kernels_locpot.hcu \
 	kernels_kinetic.hcu \
@@ -25,7 +24,7 @@ sources = \
 	read_conf_exception.h \
 	cpp_utils.h
 
-#binding_s_gpu.c check_cuda.h 
+#binding_s_gpu.c check_cuda.h locham.cu
 
 else
 sources =
@@ -39,7 +38,7 @@ EXTRA_PROGRAMS = conv_check
 AM_CPPFLAGS = -I. -I$(top_builddir) -I@CUDA_PATH@/include/ @LIBSGPU_INCLUDE@
 
 NVCC = @NVCC@
-NVCC_FLAGS = -arch sm_13 @NVCC_FLAGS@ 
+NVCC_FLAGS = -arch sm_20 @NVCC_FLAGS@ 
 SUFFIXES = .cu
 
 CLEANFILES = fort.1 fort.98 *linkinfo
