@@ -319,12 +319,14 @@ class BigDFTiming:
     for doc in self.log:
         self.routines.append(doc.get("Routines timing and number of calls"))
         self.hostnames.append(doc.get("Hostnames"))
-        self.scf.append(doc.get("WFN_OPT"))
-        mpit=doc.get("CPU parallelism")
-        if mpit is not None:
-          self.ids.append(mpit["MPI tasks"])
-        else:
-          self.ids.append("Unknown")
+        scf=doc.get("WFN_OPT")
+        if scf is not None:
+            self.scf.append(scf)
+            mpit=doc.get("CPU parallelism")
+            if mpit is not None:
+                self.ids.append(mpit["MPI tasks"])
+            else:
+                self.ids.append("Unknown")
     self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
             "Other","PS Computation","Potential",
             "Flib LowLevel","Initialization"]
@@ -392,13 +394,15 @@ class BigDFTiming:
     import matplotlib.pyplot as plt
     thisline = event.artist
     xdata, ydata = thisline.get_xy()
+    print 'data',xdata,ydata
     #find the category which has been identified
     y0data=0.0
     for cat in self.values_legend:
-      if y0data == ydata:
+      y0data+=self.scf[xdata]["Classes"][cat][self.iprc]
+      print 'cat,y0data',cat,y0data,ydata
+      if y0data > ydata:
         category=cat
         break
-      y0data+=self.scf[xdata]["Classes"][cat][self.iprc]
     print 'category',category
     print self.find_items(category,self.scf)
     #self.axbars.cla()
@@ -536,10 +540,6 @@ if args.timedata:
   #load the first yaml document
   bt=BigDFTiming(argcl)
   print "hosts",bt.hostnames
-  
-  #timing = yaml.load(open(args.timedata, "r").read(), Loader = yaml.CLoader)
-  #dict_routines = timing["Routines timing and number of calls"]
-  #sys.stdout.write(yaml.dump(timing["WFN_OPT"]["Classes"],default_flow_style=False,explicit_start=True))
   if bt.scf is not None:
     bt.bars_data() #timing["WFN_OPT"]["Classes"])
     
