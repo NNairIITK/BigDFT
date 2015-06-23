@@ -64,7 +64,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies global globaltool abscalc mhgps mhgpstool
+binaries_sources = bigdft memguess splsad NEB frequencies global globaltool abscalc mhgps mhgpstool utilities
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -310,6 +310,9 @@ NEB_LDADD = $(bigdft_library) @LINALG_LIBS@
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
+
+utilities_SOURCES = utilities.f90
+utilities_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
 frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
