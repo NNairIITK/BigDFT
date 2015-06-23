@@ -188,7 +188,7 @@ contains
        nelecfrag=ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
        do jtmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
           tmb%coeff(jsforb+jtmb,jtmb)=1.0d0
-          tmb%orbs%occup(jsforb+jtmb)=real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp)/real(nelecfrag,dp)
+          tmb%orbs%occup(jsforb+jtmb)=real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp)
           tmb%orbs%eval(jsforb+jtmb)=-0.5d0
        end do
        !if (iproc==0) print*,ifrag,ifrag_ref,ref_frags(ifrag_ref)%fbasis%forbs%norb,nelecfrag,&
