@@ -15,6 +15,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
      orbs,linear_partition,basedist,basedistu,basedistd)
   use module_base
   use module_types
+  use public_enums
   implicit none
   integer, intent(in) :: linear_partition !< repartition mode for the linear scaling version
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin

@@ -25,11 +25,11 @@ module f_enums
        f_enum_null=f_enumerator(null_name,NULL_INT,null())
 
   interface operator(==)
-     module procedure enum_is_int,enum_is_enum,enum_is_char
+     module procedure enum_is_enum,enum_is_char,enum_is_int
   end interface operator(==)
 
   interface operator(/=)
-     module procedure enum_is_not_int,enum_is_not_enum,enum_is_not_char
+     module procedure enum_is_not_enum,enum_is_not_char,enum_is_not_int
   end interface operator(/=)
 
   interface operator(.hasattr.)
@@ -78,11 +78,12 @@ contains
        dest%family=>attr
     else
        !print *,'there'
+       !if the enumerator already exists do not associate
        iter => dest%family
-       do while(associated(iter%family))
+       do while(associated(iter%family) .and. (iter /= attr))
           iter => iter%family
        end do
-       iter%family=>attr
+       if (iter /= attr) iter%family=>attr
     end if
   end subroutine f_enum_attr
 
@@ -172,7 +173,8 @@ contains
     type(f_enumerator), intent(in) :: en
     integer, intent(in) :: int
     logical :: ok
-    ok = .not. (en == int)
+    !ok = .not. (en == int)
+    ok = .not. enum_is_int(en,int)
   end function enum_is_not_int
 
   elemental pure function enum_is_not_char(en,char) result(ok)

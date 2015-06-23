@@ -270,8 +270,180 @@ module public_enums
   use f_enums
   implicit none
   
-  private
-  
+  private !as we use at least one module, private become compulsory
+
+  !> Error codes, to be documented little by little
+  integer, parameter, public :: BIGDFT_SUCCESS        = 0   !< No errors
+  integer, parameter, public :: BIGDFT_UNINITIALIZED  = -10 !< The quantities we want to access seem not yet defined
+  integer, parameter, public :: BIGDFT_INCONSISTENCY  = -11 !< Some of the quantities is not correct
+  integer, parameter, public :: BIGDFT_INVALID        = -12 !< Invalid entry
+
+  !> How to do the partition of the support functions (linear scaling version)
+  integer,parameter,public :: LINEAR_PARTITION_SIMPLE = 61
+  integer,parameter,public :: LINEAR_PARTITION_OPTIMAL = 62
+  integer,parameter,public :: LINEAR_PARTITION_NONE = 63
+
+  !> Flags for rhov status
+  integer, parameter, public :: EMPTY              = -1980
+  integer, parameter, public :: ELECTRONIC_DENSITY = -1979
+  integer, parameter, public :: CHARGE_DENSITY     = -1978
+  integer, parameter, public :: KS_POTENTIAL       = -1977
+  integer, parameter, public :: HARTREE_POTENTIAL  = -1976
+
+  !> Flags for the restart (linear scaling only)
+  integer, parameter, public :: LINEAR_LOWACCURACY  = 101 !< Low accuracy after restart
+  integer, parameter, public :: LINEAR_HIGHACCURACY = 102 !< High accuracy after restart
+
+  !> Flags for optimization loop id
+  integer, parameter, public :: OPTLOOP_HAMILTONIAN   = 0
+  integer, parameter, public :: OPTLOOP_SUBSPACE      = 1
+  integer, parameter, public :: OPTLOOP_WAVEFUNCTIONS = 2
+  integer, parameter, public :: OPTLOOP_N_LOOPS       = 3
+
+  !> Constants to determine between cubic version and linear version
+  integer, parameter, public :: CUBIC_VERSION =  0
+  integer, parameter, public :: LINEAR_VERSION = 100
+  integer, parameter  :: GAUSSIAN_ENHANCEMENT = 102
+
+  integer, parameter :: NONE=0
+  integer, parameter :: TEXT=1
+  integer, parameter :: BINARY=2
+  integer, parameter :: ETSF=3
+  integer, parameter :: CUBE=22
+
+
+  !> Output wf parameters.
+  integer, parameter, public :: WF_FORMAT_NONE   = NONE
+  integer, parameter, public :: WF_FORMAT_PLAIN  = TEXT
+  integer, parameter, public :: WF_FORMAT_BINARY = BINARY
+  integer, parameter, public :: WF_FORMAT_ETSF   = ETSF
+
+  !> Output grid parameters. 
+  ! with these options we would have 
+  ! 0 : none
+  ! 1 : density, plain
+  ! 2 : denspot, plain
+  !
+  integer, parameter, public :: OUTPUT_DENSPOT_NONE    = 0
+  integer, parameter, public :: OUTPUT_DENSPOT_DENSITY = 1
+  integer, parameter, public :: OUTPUT_DENSPOT_DENSPOT = 2
+
+  integer, parameter, public :: OUTPUT_DENSPOT_FORMAT_TEXT = TEXT
+  integer, parameter, public :: OUTPUT_DENSPOT_FORMAT_ETSF = ETSF
+  integer, parameter, public :: OUTPUT_DENSPOT_FORMAT_CUBE = CUBE
+
+
+  !>empty enumerator
+  type(f_enumerator), public :: ENUM_EMPTY =f_enumerator('NONE',0,null())
+
+  !> enumerators defining the psi policy
+  type(f_enumerator), public :: ENUM_SCRATCH =f_enumerator('SCRATCH',10000,null())
+  type(f_enumerator), public :: ENUM_MEMORY =f_enumerator('MEMORY',10001,null())
+  type(f_enumerator), public :: ENUM_FILE =f_enumerator('FILE',10002,null())
+
+  !> enumerators defining the mode
+  type(f_enumerator), public :: ENUM_CUBIC =f_enumerator('CUBIC',CUBIC_VERSION,null())
+  type(f_enumerator), public :: ENUM_LINEAR =f_enumerator('LINEAR',LINEAR_VERSION,null())
+  type(f_enumerator), public :: ENUM_GAUSSIAN =f_enumerator('GAUSSIAN',20002,null())
+
+  !> enumerators defining the i/o format
+  type(f_enumerator), public :: ENUM_TEXT =f_enumerator('TEXT',TEXT,null())
+  type(f_enumerator), public :: ENUM_ETSF =f_enumerator('ETSF',ETSF,null())
+  type(f_enumerator), public :: ENUM_CUBE =f_enumerator('CUBE',CUBE,null())
+  type(f_enumerator), public :: ENUM_BINARY =f_enumerator('BINARY',BINARY,null())
+
+
+  !> Input wf parameters. @relates module_types::input_variables::inputpsiid @relates inputpsiid
+  !! used to define the inputpsiid enumerator and the corresponding attributes
+  integer, parameter, public :: INPUT_PSI_EMPTY        = -1000  !< Input PSI to 0
+  integer, parameter, public :: INPUT_PSI_RANDOM       = -2     !< Input Random PSI
+  integer, parameter, public :: INPUT_PSI_CP2K         = -1     !< Input PSI coming from cp2k
+  integer, parameter, public :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
+  integer, parameter, public :: INPUT_PSI_MEMORY_WVL   = 1      !< Input PSI from memory
+  integer, parameter, public :: INPUT_PSI_DISK_WVL     = 2      !< Input PSI from disk (wavelet coefficients)
+  integer, parameter, public :: INPUT_PSI_LCAO_GAUSS   = 10
+  integer, parameter, public :: INPUT_PSI_MEMORY_GAUSS = 11
+  integer, parameter, public :: INPUT_PSI_DISK_GAUSS   = 12
+  integer, parameter, public :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI for linear from Atomic Orbital
+  integer, parameter, public :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
+  integer, parameter, public :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
+
+  !> Source of the radii coefficients
+  integer, parameter, public :: RADII_SOURCE_HARD_CODED = 1
+  integer, parameter, public :: RADII_SOURCE_FILE = 2
+  integer, parameter, public :: RADII_SOURCE_USER = 3
+  integer, parameter, public :: RADII_SOURCE_UNKNOWN = 4
+  character(len=*), dimension(4), parameter, public :: RADII_SOURCE = (/ &
+       "Hard-Coded  ", &
+       "PSP File    ", &
+       "User defined", &
+       "Unknown     " /)
+
+
+
+  !> SCF mixing parameters (@todo mixing parameters to be added).
+  integer, parameter, public :: SCF_KIND_GENERALIZED_DIRMIN = -1
+  integer, parameter, public :: SCF_KIND_DIRECT_MINIMIZATION = 0
+
+  !> Function to determine the occupation numbers
+  integer, parameter, public :: SMEARING_DIST_ERF   = 1  !< Tends to 0 and 1 faster \f$1/2\left[1-erf\left(\frac{E-\mu}{\delta E}\right)\right]\f$
+  integer, parameter, public :: SMEARING_DIST_FERMI = 2  !< Normal Fermi distribution i.e.\f$\frac{1}{1+e^{E-\mu}/k_BT}\f$
+  integer, parameter, public :: SMEARING_DIST_COLD1 = 3  !< Marzari's cold smearing with a=-.5634 (bumb minimization)
+  integer, parameter, public :: SMEARING_DIST_COLD2 = 4  !< Marzari's cold smearing with a=-.8165 (monotonic tail)
+  integer, parameter, public :: SMEARING_DIST_METPX = 5  !< Methfessel and Paxton (same as COLD with a=0)
+
+  !> Target function for the optimization of the basis functions (linear scaling version)
+  integer, parameter, public :: TARGET_FUNCTION_IS_TRACE=0
+  integer, parameter, public :: TARGET_FUNCTION_IS_ENERGY=1
+  integer, parameter, public :: TARGET_FUNCTION_IS_HYBRID=2
+  !!integer, parameter, public :: DECREASE_LINEAR=0
+  !!integer, parameter, public :: DECREASE_ABRUPT=1
+  !!integer, parameter, public :: COMMUNICATION_COLLECTIVE=0
+  !!integer, parameter, public :: COMMUNICATION_P2P=1
+  integer, parameter, public :: LINEAR_DIRECT_MINIMIZATION=100
+  integer, parameter, public :: LINEAR_MIXDENS_SIMPLE=101
+  integer, parameter, public :: LINEAR_MIXPOT_SIMPLE=102
+  integer, parameter, public :: LINEAR_FOE=103
+  integer, parameter, public :: KERNELMODE_DIRMIN = 10
+  integer, parameter, public :: KERNELMODE_DIAG = 11
+  integer, parameter, public :: KERNELMODE_FOE = 12
+  integer, parameter, public :: MIXINGMODE_DENS = 20
+  integer, parameter, public :: MIXINGMODE_POT = 21
+  integer,parameter, public :: FOE_ACCURATE = 30
+  integer,parameter, public :: FOE_FAST = 31
+
+  !> How to update the density kernel during teh support function optimization
+  integer, parameter, public :: UPDATE_BY_PURIFICATION = 0
+  integer, parameter, public :: UPDATE_BY_FOE = 1
+  integer, parameter, public :: UPDATE_BY_RENORMALIZATION = 2
+
+  integer, parameter, public :: INPUT_IG_OFF  = 0
+  integer, parameter, public :: INPUT_IG_LIG  = 1
+  integer, parameter, public :: INPUT_IG_FULL = 2
+  integer, parameter, public :: INPUT_IG_TMO  = 3
+
+  !> Flags for the input files.
+  integer, parameter, public :: INPUTS_NONE  =   0
+  integer, parameter, public :: INPUTS_DFT   =   1
+  integer, parameter, public :: INPUTS_GEOPT =   2
+  integer, parameter, public :: INPUTS_PERF  =   4
+  integer, parameter, public :: INPUTS_KPT   =   8
+  integer, parameter, public :: INPUTS_MIX   =  16
+  integer, parameter, public :: INPUTS_TDDFT =  32
+  integer, parameter, public :: INPUTS_SIC   =  64
+  integer, parameter, public :: INPUTS_FREQ  = 128
+  integer, parameter, public :: INPUTS_LIN   = 256
+  integer, parameter, public :: INPUTS_FRAG  = 512
+
+  !> Type of pseudopotential
+  integer, parameter, public :: PSPCODE_UNINITIALIZED = 1
+  integer, parameter, public :: PSPCODE_GTH = 2
+  integer, parameter, public :: PSPCODE_HGH = 3
+  integer, parameter, public :: PSPCODE_PAW = 7
+  integer, parameter, public :: PSPCODE_HGH_K = 10
+  integer, parameter, public :: PSPCODE_HGH_K_NLCC = 12
+
+  !run modes
   type(f_enumerator), parameter, public :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000,null())
   type(f_enumerator), parameter, public :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999,null())
   type(f_enumerator), parameter, public :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998,null())

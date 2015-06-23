@@ -51,6 +51,7 @@ Keys to ignore:
  - Atomic positions within the cell (Atomic and Grid Units)
  - Rigid Shift Applied (AU)
  - Walltime since initialization
+ - Output grid format # to be removed for updated references
  #- number of tasks
  #- IDs
  #- start / end
@@ -199,6 +200,7 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
+ Positions: 4.31e-8
  Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
  Average noise forces: 6.2e-8
@@ -224,7 +226,7 @@ ElecField:
 FeHyb:
  EKS: 6.e-11
  y: 1.51e-11
- Energy (Hartree): 2.15e-11 
+ Energy (Hartree): 2.9e-11 
 
 
 Li+:
@@ -598,9 +600,9 @@ molecule_foe:
  energy: 6.9e-10
  Omega: 8.6e-9
  Total charge: 2.5e-10
- eF: 5.0e-9
- guess for new ef: 5.0e-9
- D eF: 5.3e-9
+ eF: 6.0e-9
+ guess for new ef: 6.0e-9
+ D eF: 6.6e-9
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
@@ -1412,6 +1414,11 @@ FF_LJ-bfgs:
   Keys to ignore:
   - WARNINGS
 
+FF_LJ-ab6md:
+  Keys to ignore:
+  - WARNINGS
+
+
 FF_LENOSKY-bfgs:
   etot: 2.4e-11
   Keys to ignore:
@@ -1420,7 +1427,7 @@ FF_LENOSKY-bfgs:
 
 FF_LENOSKY-diis:
   FORCES norm(Ha/Bohr): 1.01e-6
-  etot: 4.6e-8
+  etot: 7.2e-8
   Keys to ignore:
   - WARNINGS
 
@@ -1442,12 +1449,20 @@ FF_LJ-lbfgs:
   - WARNINGS
 
 FF_LJ-sqnm:
-  Geometry: 1.e-8
+  Geometry: 1.01e-8
+  fnrm2: 1.1e-6
   Keys to ignore:
   - WARNINGS
 
 
 FF_LJ-vssd:
+  etot: 2.2e-4
+  maxval: 3e-4
+  last beta: 3.5e-2
+  beta: 1.81e-2
+  fnrm2: 0.37
+  Forces: 0.33
+  
   Keys to ignore:
   - WARNINGS
   
@@ -1455,13 +1470,13 @@ periodic_silicon:
  Epot: 3.0e-10
  Enl: 1.1e-9
  EXC: 1.1e-10
- Omega: 5.91e-11
+ Omega: 6.3e-11
  ebs_check: 1.1e-10
  charge diff: 5.0e-10
  ebs: 1.2e-10
  Energy (Hartree): 2.9e-11
  energy: 2.9e-11
- Total ionic charge: 2.1e-11
+ Total ionic charge: 2.5e-11
  Pressure: 1.5e-10
 
 periodic_wateredge:
@@ -1491,7 +1506,7 @@ periodic_water:
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 9.2e-9
- D eF: 1.2e-8
+ D eF: 1.3e-8
  energy: 2.8e-10
  guess for new ef: 9.1e-9
  number of corrected points: 1
@@ -1503,6 +1518,7 @@ periodic_water:
  Pressure: 6.4e-10
  Clean forces norm (Ha/Bohr): 1.9e-11
  Ion-Ion interaction energy: 1.6e-11
+ Total charge: 1.1e-10
 
 surface_boronnitride:
  Enl: 1.01e-9
@@ -1555,6 +1571,19 @@ multipoles_OH-:
  Raw forces norm (Ha/Bohr): 3.7e-11
  Average noise forces: 1.1e-10
  decay length of error function: 1.1e-5
+ number of corrected points: 77
+ total charge correction: 4.6e-8
+
+multipoles_water:
+ eF: 2.9e-9
+ guess for new ef: 1.0e-8
+ number of corrected points: 7
+ multiplicator for the confinement: 1.6e-10
+ EH: 1.1e-10
+ D eF: 1.1e-8
+ Epot: 1.1e-10
+ ebs_check: 1.2e-11
+ ebs: 1.2e-11
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:

@@ -16,6 +16,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   use module_types
   use module_interfaces, except_this_one => write_orbital_density
   use locreg_operations, only: lpsi_to_global2
+  use public_enums
   implicit none
 
   ! Calling arguments

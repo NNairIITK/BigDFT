@@ -25,11 +25,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
   use Poisson_Solver, only: pkernel_allocate_cavity
+  use public_enums
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
   integer, intent(out) :: input_wf_format, lnpsidim_orbs, lnpsidim_comp
-  integer, intent(inout) :: inputpsi
+  type(f_enumerator), intent(inout) :: inputpsi
   type(input_variables), intent(in) :: in 
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
@@ -119,9 +120,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   end if
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
-  calculate_bounds = (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
-                      inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
-                      inputpsi /= INPUT_PSI_MEMORY_LINEAR)
+  calculate_bounds = .not. (inputpsi .hasattr. 'LINEAR')
+!!$  (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+!!$                      inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+!!$                      inputpsi /= INPUT_PSI_MEMORY_LINEAR)
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
        rxyz,in%crmult,in%frmult,calculate_bounds,Lzd%Glr, output_grid_)
   if (iproc == 0 .and. dump) call print_wfd(Lzd%Glr%wfd)
@@ -151,9 +153,11 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
 
   ! Create linear orbs data structure.
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
+  !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+  !    .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi .hasattr. 'LINEAR') then
+     !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
+     if (.not. (inputpsi .hasattr. 'MEMORY')) then ! == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
          ! First do a simple redistribution
          call init_linear_orbs(LINEAR_PARTITION_SIMPLE)
      else
@@ -181,7 +185,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call fragment_stuff()
      call init_lzd_linear()
      ! For restart calculations, the suport function distribution must not be modified
-     if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
+     !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
+     if (.not. (inputpsi .hasattr. 'MEMORY')) then
          times_convol = f_malloc(lorbs%norb,id='times_convol')
          call test_preconditioning()
          time_max(1) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
@@ -244,7 +249,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
 
   !In the case in which the number of orbitals is not "trivial" check whether they are too many
-  if (inputpsi /= INPUT_PSI_RANDOM) then
+  if (inputpsi /= 'INPUT_PSI_RANDOM') then
 
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files)
      norbsc_arr = f_malloc((/ atoms%natsc+1, in%nspin /),id='norbsc_arr')
@@ -298,8 +303,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+  !.or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi .hasattr. 'LINEAR') then
      if(iproc==0 .and. dump) call print_orbital_distribution(iproc, nproc, lorbs)
   end if
 
@@ -318,8 +324,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   ! Done orbs
 
   !!! fragment initializations - if not a fragment calculation, set to appropriate dummy values
-  if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-      .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  !if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+  !    .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if (.not. (inputpsi .hasattr. 'LINEAR')) then
       call fragment_stuff()
   end if
   !!frag_allocated=.false.
@@ -352,9 +359,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   ! SM: For a linear scaling calculation, some parts can be done later.
   ! SM: The following flag is false for linear scaling and true otherwise.
-  init_projectors_completely = (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
-                                inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
-                                inputpsi /= INPUT_PSI_MEMORY_LINEAR)
+  init_projectors_completely =   .not.(inputpsi .hasattr. 'LINEAR')
+  !(inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+  !                              inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+  !                              inputpsi /= INPUT_PSI_MEMORY_LINEAR)
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
@@ -384,8 +392,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
 
   !check the communication distribution
-  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  !if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+  !   .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if (.not.(inputpsi .hasattr. 'LINEAR')) then
      call check_communications(iproc,nproc,orbs,Lzd,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
@@ -461,7 +470,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        implicit none
        call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
        call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
-       if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+       if (inputpsi == 'INPUT_PSI_LINEAR_AO' .or. inputpsi == 'INPUT_PSI_MEMORY_LINEAR') then
            !!write(*,*) 'rxyz',rxyz
            !!write(*,*) 'locregcenters',locregcenters
            if (present(locregcenters)) then
@@ -741,7 +750,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      subroutine fragment_stuff()
        implicit none
        frag_allocated=.false.
-       if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
+       if (inputpsi == 'INPUT_PSI_DISK_LINEAR' .or. in%lin%fragment_calculation) then
           allocate(ref_frags(in%frag%nfrag_ref))
           do ifrag=1,in%frag%nfrag_ref
              ref_frags(ifrag)=fragment_null()
@@ -757,7 +766,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
             orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
 
        ! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
-       if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+       if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= 'INPUT_PSI_DISK_LINEAR') then
            do ifrag=1,in%frag%nfrag_ref
               call fragment_free(ref_frags(ifrag))
               ref_frags(ifrag)%astruct_frg%nat=-1
@@ -973,7 +982,8 @@ end subroutine epsilon_cavity
 subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => system_properties
+  use module_interfaces
+  use public_enums
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables), intent(in) :: in
@@ -2203,8 +2213,8 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   implicit none
   character(len=*), intent(in) :: filename
   type(atoms_data), intent(inout) :: atoms
-  integer , intent(IN):: ityp 
-  integer , intent(INOUT):: paw_tot_l, paw_tot_q, paw_tot_coefficients, paw_tot_matrices
+  integer , intent(in):: ityp 
+  integer , intent(inout):: paw_tot_l, paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical, intent(in) :: storeit
 
 !! local variables  

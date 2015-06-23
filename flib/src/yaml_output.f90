@@ -628,7 +628,7 @@ contains
 
   end subroutine yaml_release_document
 
-  !< close one stream and free its place
+  !> close one stream and free its place
   !! should this stream be the default stream, stdout becomes the default
   subroutine yaml_close_stream(unit,istat)
     implicit none

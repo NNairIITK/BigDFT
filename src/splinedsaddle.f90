@@ -2256,7 +2256,8 @@ subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold
        !call run_objects_associate(runObj, inputs, atoms, rst, xtmax(1))
        call bigdft_set_rxyz(runObj,rxyz_add=xtmax(1))
        call init_state_properties(outs, bigdft_nat(ll_runObj))!atoms%astruct%nat)
-       runObj%inputs%inputPsiId=0
+       !runObj%inputs%inputPsiId=0
+       call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
        call cpu_time(time1)
        call bigdft_state(runObj,outs,infocode)
        call cpu_time(time2)
@@ -2566,7 +2567,8 @@ subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,l
     ibad=0
     ibadold=0
     oneisideal=1.d0
-    ll_runObj%inputs%inputPsiId=1
+    !ll_runObj%inputs%inputPsiId=1
+    call bigdft_set_input_policy(INPUT_POLICY_MEMORY,ll_runObj)
     do iter=1,50-(np+pnow%ns2+1)
         pnow%tmax=pnow%tmax-sign(min(abs(alpha*vd),0.05d0),alpha*vd)
         pnow%tmax=min(max(pnow%tmax,pnow%sv(0)),pnow%sv(npv))
@@ -2621,7 +2623,8 @@ subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,l
         endif
     enddo
     pnow%npv=npv
-    ll_runObj%inputs%inputPsiId=0
+    !ll_runObj%inputs%inputPsiId=0
+    call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, ll_runObj)
     !if(iproc==0) &
     !write(54,'(3i5,e24.15,7e15.6)') istep,iter,npv,epot,vd,ft(1:2),vddq,alpha,pnow%tmax,pnow%tmax/pnow%s(np)
 end subroutine caltmax2
