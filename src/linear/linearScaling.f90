@@ -29,14 +29,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, DENSE_FULL, &
-                               SPARSE_TASKGROUP, DENSE_PARALLEL
+                               SPARSE_TASKGROUP, DENSE_PARALLEL, sparsematrix_malloc0
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, uncompress_matrix2, &
                           delete_coupling_terms, transform_sparse_matrix, matrix_matrix_mult_wrapper, &
                           uncompress_matrix_distributed2
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_init, only: matrixindex_in_compressed
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
-  use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals
+  use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals, calculate_theta
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   use locreg_operations, only: get_boundary_weight
   use public_enums
@@ -80,20 +80,21 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
   logical :: fix_support_functions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
-  integer :: ldiis_coeff_hist, nitdmin
+  integer :: ldiis_coeff_hist, nitdmin, lwork
   logical :: ldiis_coeff_changed, overlap_calculated
   integer :: mix_hist, info_basis_functions, nit_scc, cur_it_highaccuracy, nit_scc_changed
   real(kind=8) :: pnrm_out, alpha_mix, ratio_deltas, convcrit_dmin, tt1, tt2, ehart_ps
   logical :: lowaccur_converged, exit_outer_loop, calculate_overlap, invert_overlap_matrix
   real(kind=8),dimension(:),allocatable :: locrad, kernel_orig, ovrlp_large, tmpmat, inv_full, inv_cropped, ovrlp_orig
-  real(kind=8),dimension(:),allocatable :: kernel_cropped, ovrlp_cropped, ham_cropped, kernel_foe_cropped
-  integer:: target_function, nit_basis
+  real(kind=8),dimension(:),allocatable :: kernel_cropped, ovrlp_cropped, ham_cropped, kernel_foe_cropped, ham_large
+  real(kind=8),dimension(:),allocatable :: tmpmat_compr, hamtilde_compr, work
+  integer:: target_function, nit_basis, ieval
   logical :: keep_value
   type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
   type(workarr_precond),dimension(:),pointer :: precond_workarrays
   type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
   integer,dimension(:,:),allocatable :: ioffset_isf
-  integer :: is1, is2, is3, ie1, ie2, ie3, i1, i2, i3, ii
+  integer :: is1, is2, is3, ie1, ie2, ie3, i1, i2, i3, ii, jj, info, ist
   real(kind=8),dimension(:),pointer :: hpsit_c, hpsit_f
   
   real(kind=gp) :: ebs, vgrad_old, vgrad, valpha, vold, vgrad2, vold_tmp, conv_crit_TMB, best_charge_diff, cdft_charge_thresh
@@ -111,7 +112,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=8),dimension(1,1) :: K_H
   real(kind=8),dimension(4,4) :: K_O
   integer :: j, ind, n, ishifts, ishiftm
-  real(kind=8),dimension(:,:),allocatable :: tempmat, all_evals
+  real(kind=8),dimension(:,:),allocatable :: tempmat, all_evals, ham_small, projector_small, ovrlp_small, theta
+  real(kind=8),dimension(:),allocatable :: projector_compr
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
@@ -1213,11 +1215,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   
   call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
 
-  ! Moved down for tests
-  call deallocate_work_transpose(wt_philarge)
-  call deallocate_work_transpose(wt_hpsinoprecond)
-  call deallocate_work_transpose(wt_hphi)
-  call deallocate_work_transpose(wt_phi)
+  !! Moved down for tests
+  !call deallocate_work_transpose(wt_philarge)
+  !call deallocate_work_transpose(wt_hpsinoprecond)
+  !call deallocate_work_transpose(wt_hphi)
+  !call deallocate_work_transpose(wt_phi)
 
 
   if (input%wf_extent_analysis) then
@@ -1360,205 +1362,334 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
 
-  !!!!# DIAGONALIZATION TEST ####################################################
-  !!!if (nproc/=1) stop 'only implemented in serial'
+  !# DIAGONALIZATION TEST ####################################################
+  if (nproc/=1) stop 'only implemented in serial'
 
-  !!!matrixElements = f_malloc((/ tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,2 /),id='matrixElements')
-  !!!eval = f_malloc(tmb%linmat%l%nfvctr,id='eval')
-  !!!all_evals = f_malloc((/at%astruct%nat*tmb%linmat%l%nfvctr,2/),id='eval')
+  matrixElements = f_malloc((/ tmb%linmat%m%nfvctr,tmb%linmat%m%nfvctr,2 /),id='matrixElements')
+  eval = f_malloc(tmb%linmat%l%nfvctr,id='eval')
+  all_evals = f_malloc((/at%astruct%nat*tmb%linmat%l%nfvctr,2/),id='eval')
 
-  !!!do iat=1,at%astruct%nat
+  theta = f_malloc0((/at%astruct%nat,tmb%orbs%norbp/),id='theta')
 
-  !!!    ! Modify the confinement
-  !!!    do iorb=1,tmb%orbs%norb
-  !!!        tmb%confdatarr(iorb)%rxyzConf(1:3) = rxyz(1:3,iat)
-  !!!        tmb%confdatarr(iorb)%prefac = 1.d-2
-  !!!    end do
+  do iat=1,at%astruct%nat
 
-  !!!    ! Start the communication
-  !!!    call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
-  !!!    call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
-  !!!         max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
-  !!!         tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
-  !!!         tmb%ham_descr%lzd)
+      ! Modify the confinement
+      do iorb=1,tmb%orbs%norb
+          tmb%confdatarr(iorb)%rxyzConf(1:3) = rxyz(1:3,iat)
+          tmb%confdatarr(iorb)%prefac = 1.d1
+      end do
 
-  !!!    ! Synchronize the mpi_get before starting a new communication
-  !!!    call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
+      ! Start the communication
+      call local_potential_dimensions(iproc,tmb%ham_descr%lzd,tmb%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
+      call start_onesided_communication(iproc, nproc, denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
+           max(denspot%dpbox%nscatterarr(:,2),1), denspot%rhov, &
+           tmb%ham_descr%comgp%nrecvbuf*tmb%ham_descr%comgp%nspin, tmb%ham_descr%comgp%recvbuf, tmb%ham_descr%comgp, &
+           tmb%ham_descr%lzd)
 
-  !!!    !!! Start the communication
-  !!!    !!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-  !!!    !!     TRANSPOSE_POST, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd, wt_phi)
+      ! Synchronize the mpi_get before starting a new communication
+      call synchronize_onesided_communication(iproc, nproc, tmb%ham_descr%comgp)
 
-  !!!    ! Calculate the unconstrained gradient by applying the Hamiltonian.
-  !!!    if (tmb%ham_descr%npsidim_orbs > 0)  call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
-  !!!    call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
-  !!!         tmb%orbs, tmb%psi, tmb%ham_descr%psi)
+      !!! Start the communication
+      !!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+      !!     TRANSPOSE_POST, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd, wt_phi)
 
-  !!!    ! Start the nonblocking transposition (the results will be gathered in
-  !!!    ! orthoconstraintNonorthogonal)
-  !!!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-  !!!         TRANSPOSE_POST, tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd, &
-  !!!         wt_philarge)
+      ! Calculate the unconstrained gradient by applying the Hamiltonian.
+      if (tmb%ham_descr%npsidim_orbs > 0)  call f_zero(tmb%ham_descr%npsidim_orbs,tmb%hpsi(1))
+      call small_to_large_locreg(iproc, tmb%npsidim_orbs, tmb%ham_descr%npsidim_orbs, tmb%lzd, tmb%ham_descr%lzd, &
+           tmb%orbs, tmb%psi, tmb%ham_descr%psi)
 
-  !!!    call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-  !!!         tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj,tmb%paw)
-  !!!    ! only kinetic because waiting for communications
-  !!!    call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-  !!!         tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
-  !!!         & tmb%ham_descr%psi,tmb%hpsi,energs,input%SIC,GPU,3,denspot%xc,&
-  !!!         & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
-  !!!         & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-  !!!    call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
-  !!!         & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
-  !!!    ! only potential
-  !!!    !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-  !!!    !    call vcopy(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, hpsi_tmp(1), 1)
-  !!!    !    call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-  !!!    !         tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
-  !!!    !         & tmb%ham_descr%psi,tmb%hpsi,energs,input%SIC,GPU,2,denspot%xc,&
-  !!!    !         & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
-  !!!    !         & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
-  !!!    !         hpsi_noconf=hpsi_tmp,econf=econf)
+      ! Start the nonblocking transposition (the results will be gathered in
+      ! orthoconstraintNonorthogonal)
+      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+           TRANSPOSE_POST, tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd, &
+           wt_philarge)
 
-  !!!    !    !!if (nproc>1) then
-  !!!    !    !!    call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
-  !!!    !    !!end if
+      call NonLocalHamiltonianApplication(iproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+           tmb%ham_descr%lzd,nlpsp,tmb%ham_descr%psi,tmb%hpsi,energs%eproj,tmb%paw)
+      ! only kinetic because waiting for communications
+      call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+           tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
+           & tmb%ham_descr%psi,tmb%hpsi,energs,input%SIC,GPU,3,denspot%xc,&
+           & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+           & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      call full_local_potential(iproc,nproc,tmb%orbs,tmb%ham_descr%lzd,2,denspot%dpbox,&
+           & denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
+      ! only potential
+      !if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !    call vcopy(tmb%ham_descr%npsidim_orbs, tmb%hpsi(1), 1, hpsi_tmp(1), 1)
+      !    call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+      !         tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,&
+      !         & tmb%ham_descr%psi,tmb%hpsi,energs,input%SIC,GPU,2,denspot%xc,&
+      !         & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+      !         & potential=denspot%rhov,comgp=tmb%ham_descr%comgp,&
+      !         hpsi_noconf=hpsi_tmp,econf=econf)
 
-  !!!    !else
-  !!!        call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
-  !!!             tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,&
-  !!!             & denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,energs,input%SIC,GPU,2,denspot%xc,&
-  !!!             & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
-  !!!             & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
-  !!!    !end if
+      !    !!if (nproc>1) then
+      !    !!    call mpiallred(econf, 1, mpi_sum, bigdft_mpi%mpi_comm)
+      !    !!end if
 
-
-  !!!    !!if (target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
-  !!!    !!    write(*,*) 'econf, econf/tmb%orbs%norb',econf, econf/tmb%orbs%norb
-  !!!    !!end if
-
-  !!!    call timing(iproc,'glsynchham2','ON')
-  !!!    call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
-  !!!         energs,energs_work)
-  !!!    call timing(iproc,'glsynchham2','OF')
-
-  !!!    if (iproc==0) then
-  !!!        call yaml_map('Hamiltonian Applied',.true.)
-  !!!    end if
-
-  !!!    !if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
-  !!!    !              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
-
-  !!!    hpsit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='hpsit_c')
-  !!!    hpsit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_f')
+      !else
+          call LocalHamiltonianApplication(iproc,nproc,at,tmb%ham_descr%npsidim_orbs,tmb%orbs,&
+               tmb%ham_descr%lzd,tmb%confdatarr,denspot%dpbox%ngatherarr,&
+               & denspot%pot_work,tmb%ham_descr%psi,tmb%hpsi,energs,input%SIC,GPU,2,denspot%xc,&
+               & pkernel=denspot%pkernelseq,dpbox=denspot%dpbox,&
+               & potential=denspot%rhov,comgp=tmb%ham_descr%comgp)
+      !end if
 
 
-  !!!    ! Start the communication
-  !!!    !!if (target_function==TARGET_FUNCTION_IS_HYBRID) then
-  !!!    !!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-  !!!    !!         TRANSPOSE_POST, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
-  !!!    !!else
-  !!!        call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-  !!!             TRANSPOSE_POST, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
-  !!!    !!end if
+      !!if (target_function==TARGET_FUNCTION_IS_HYBRID .and. iproc==0) then
+      !!    write(*,*) 'econf, econf/tmb%orbs%norb',econf, econf/tmb%orbs%norb
+      !!end if
 
-  !!!    ! Gather the data
-  !!!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-  !!!         TRANSPOSE_GATHER, tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd, &
-  !!!         wt_philarge)
-  !!!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
-  !!!         TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
+      call timing(iproc,'glsynchham2','ON')
+      call SynchronizeHamiltonianApplication(nproc,tmb%ham_descr%npsidim_orbs,tmb%orbs,tmb%ham_descr%lzd,GPU,denspot%xc,tmb%hpsi,&
+           energs,energs_work)
+      call timing(iproc,'glsynchham2','OF')
 
-  !!!    call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
-  !!!         tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+      if (iproc==0) then
+          call yaml_map('Hamiltonian Applied',.true.)
+      end if
 
-  !!!    do ispin=1,tmb%linmat%m%nspin
-  !!!             ishifts = (ispin-1)*tmb%linmat%s%nvctrp_tg
-  !!!             ishiftm = (ispin-1)*tmb%linmat%m%nvctrp_tg
-  !!!             call f_zero(tmb%linmat%m%nfvctr**2, matrixElements(1,1,1))
-  !!!             tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_PARALLEL, id='tempmat')
-  !!!             call uncompress_matrix_distributed2(iproc, tmb%linmat%m, DENSE_PARALLEL, &
-  !!!                  tmb%linmat%ham_%matrix_compr(ishiftm+1:ishiftm+tmb%linmat%m%nvctrp_tg), tempmat)
-  !!!             if (tmb%linmat%m%nfvctrp>0) then
-  !!!                 call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%nfvctrp, tempmat(1,1), 1, &
-  !!!                      matrixElements(1,tmb%linmat%m%isfvctr+1,1), 1)
-  !!!             end if
-  !!!             call f_free(tempmat)
-  !!!             if (nproc>1) then
-  !!!                 call mpiallred(matrixElements(1,1,1), tmb%linmat%m%nfvctr**2, &
-  !!!                      mpi_sum, comm=bigdft_mpi%mpi_comm)
-  !!!             end if
+      !if (iproc==0) write(*,'(a,5es16.6)') 'ekin, eh, epot, eproj, eex', &
+      !              energs%ekin, energs%eh, energs%epot, energs%eproj, energs%exc
 
-  !!!             call f_zero(tmb%linmat%s%nfvctr**2, matrixElements(1,1,2))
-  !!!             tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='tempmat')
-  !!!             call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
-  !!!                  tmb%linmat%ovrlp_%matrix_compr(ishifts+1:), tempmat)
-  !!!             if (tmb%linmat%m%nfvctrp>0) then
-  !!!                 call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%nfvctrp, tempmat(1,1), 1, &
-  !!!                      matrixElements(1,tmb%linmat%s%isfvctr+1,2), 1)
-  !!!             end if
-  !!!             call f_free(tempmat)
-  !!!             if (nproc>1) then
-  !!!                 call mpiallred(matrixElements(1,1,2), tmb%linmat%s%nfvctr**2, &
-  !!!                      mpi_sum, comm=bigdft_mpi%mpi_comm)
-  !!!             end if
-  !!!             call diagonalizeHamiltonian2(iproc, tmb%linmat%m%nfvctr, &
-  !!!                  matrixElements(1,1,1), matrixElements(1,1,2), eval)
-  !!!             call vcopy(tmb%linmat%l%nfvctr, eval(1), 1, all_evals((iat-1)*tmb%linmat%l%nfvctr+1,1), 1)
-  !!!             all_evals((iat-1)*tmb%linmat%l%nfvctr+1:iat*tmb%linmat%l%nfvctr,2) = real(iat,kind=8)
-  !!!             call yaml_map('eval',eval)
-  !!!    end do
+      hpsit_c = f_malloc_ptr(tmb%ham_descr%collcom%ndimind_c,id='hpsit_c')
+      hpsit_f = f_malloc_ptr(7*tmb%ham_descr%collcom%ndimind_f,id='hpsit_f')
 
 
-  !!!end do
+      ! Start the communication
+      !!if (target_function==TARGET_FUNCTION_IS_HYBRID) then
+      !!    call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+      !!         TRANSPOSE_POST, hpsi_tmp, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
+      !!else
+          call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+               TRANSPOSE_POST, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
+      !!end if
 
-  !!!do i=1,at%astruct%nat*tmb%linmat%l%nfvctr
-  !!!   write(*,*) 'i, all_evals',i,all_evals(i,1),all_evals(i,2)
-  !!!end do
+      ! Gather the data
+      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+           TRANSPOSE_GATHER, tmb%ham_descr%psi, tmb%ham_descr%psit_c, tmb%ham_descr%psit_f, tmb%ham_descr%lzd, &
+           wt_philarge)
+      call transpose_localized(iproc, nproc, tmb%ham_descr%npsidim_orbs, tmb%orbs, tmb%ham_descr%collcom, &
+           TRANSPOSE_GATHER, tmb%hpsi, hpsit_c, hpsit_f, tmb%ham_descr%lzd, wt_hphi)
+
+      call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%ham_descr%collcom, &
+           tmb%ham_descr%psit_c, hpsit_c, tmb%ham_descr%psit_f, hpsit_f, tmb%linmat%m, tmb%linmat%ham_)
+
+      do ispin=1,tmb%linmat%m%nspin
+               ishifts = (ispin-1)*tmb%linmat%s%nvctrp_tg
+               ishiftm = (ispin-1)*tmb%linmat%m%nvctrp_tg
+               call f_zero(tmb%linmat%m%nfvctr**2, matrixElements(1,1,1))
+               tempmat = sparsematrix_malloc(tmb%linmat%m, iaction=DENSE_PARALLEL, id='tempmat')
+               call uncompress_matrix_distributed2(iproc, tmb%linmat%m, DENSE_PARALLEL, &
+                    tmb%linmat%ham_%matrix_compr(ishiftm+1:ishiftm+tmb%linmat%m%nvctrp_tg), tempmat)
+               if (tmb%linmat%m%nfvctrp>0) then
+                   call vcopy(tmb%linmat%m%nfvctr*tmb%linmat%m%nfvctrp, tempmat(1,1), 1, &
+                        matrixElements(1,tmb%linmat%m%isfvctr+1,1), 1)
+               end if
+               call f_free(tempmat)
+               if (nproc>1) then
+                   call mpiallred(matrixElements(1,1,1), tmb%linmat%m%nfvctr**2, &
+                        mpi_sum, comm=bigdft_mpi%mpi_comm)
+               end if
+
+               call f_zero(tmb%linmat%s%nfvctr**2, matrixElements(1,1,2))
+               tempmat = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='tempmat')
+               call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
+                    tmb%linmat%ovrlp_%matrix_compr(ishifts+1:), tempmat)
+               if (tmb%linmat%m%nfvctrp>0) then
+                   call vcopy(tmb%linmat%s%nfvctr*tmb%linmat%s%nfvctrp, tempmat(1,1), 1, &
+                        matrixElements(1,tmb%linmat%s%isfvctr+1,2), 1)
+               end if
+               call f_free(tempmat)
+               if (nproc>1) then
+                   call mpiallred(matrixElements(1,1,2), tmb%linmat%s%nfvctr**2, &
+                        mpi_sum, comm=bigdft_mpi%mpi_comm)
+               end if
+               call diagonalizeHamiltonian2(iproc, tmb%linmat%m%nfvctr, &
+                    matrixElements(1,1,1), matrixElements(1,1,2), eval)
+               call vcopy(tmb%linmat%l%nfvctr, eval(1), 1, all_evals((iat-1)*tmb%linmat%l%nfvctr+1,1), 1)
+               all_evals((iat-1)*tmb%linmat%l%nfvctr+1:iat*tmb%linmat%l%nfvctr,2) = real(iat,kind=8)
+               call yaml_map('eval',eval)
+               do i=1,tmb%linmat%m%nfvctr
+                   write(*,'(a,6es10.2)') 'evec', matrixElements(i,1:tmb%linmat%l%nfvctr,1)
+               end do
+               if (iat==1) then
+                   !O
+                   do i=1,3
+                       do j=1,tmb%linmat%m%nfvctr
+                           theta(iat,j) = theta(iat,j) + abs(matrixElements(j,i,1))
+                       end do
+                   end do
+               else
+                   !H
+                   do i=1,1
+                       do j=1,tmb%linmat%m%nfvctr
+                           theta(iat,j) = theta(iat,j) + abs(matrixElements(j,i,1))
+                       end do
+                   end do
+               end if
+      end do
+
+  end do
+
+  do j=1,tmb%linmat%m%nfvctr
+      tt = 0.d0
+      do iat=1,at%astruct%nat
+          tt = tt + theta(iat,j)
+      end do
+      tt = 1.d0/tt
+      call dscal(at%astruct%nat, tt, theta(1,j), 1)
+      call yaml_map('theta '//adjustl(trim(yaml_toa(j))),theta(:,j))
+  end do
+
+  do i=1,at%astruct%nat*tmb%linmat%l%nfvctr
+     write(*,*) 'i, all_evals',i,all_evals(i,1),all_evals(i,2)
+  end do
 
 
-  !!!do i=1,at%astruct%nat*tmb%linmat%l%nfvctr
-  !!!    ! add i-1 since we are only searching in the subarray
-  !!!    ii = minloc(all_evals(i:at%astruct%nat*tmb%linmat%l%nfvctr,1),1) + (i-1)
-  !!!    write(*,*) 'i, ii',i, ii
-  !!!    tt = all_evals(i,1)
-  !!!    all_evals(i,1) = all_evals(ii,1)
-  !!!    all_evals(ii,1) = tt
-  !!!    tt = all_evals(i,2)
-  !!!    all_evals(i,2) = all_evals(ii,2)
-  !!!    all_evals(ii,2) = tt
-  !!!end do
+  do i=1,at%astruct%nat*tmb%linmat%l%nfvctr
+      ! add i-1 since we are only searching in the subarray
+      ii = minloc(all_evals(i:at%astruct%nat*tmb%linmat%l%nfvctr,1),1) + (i-1)
+      write(*,*) 'i, ii',i, ii
+      tt = all_evals(i,1)
+      all_evals(i,1) = all_evals(ii,1)
+      all_evals(ii,1) = tt
+      tt = all_evals(i,2)
+      all_evals(i,2) = all_evals(ii,2)
+      all_evals(ii,2) = tt
+  end do
 
-  !!!do i=1,at%astruct%nat*tmb%linmat%l%nfvctr
-  !!!    call yaml_map('ordered',(/real(i,kind=8),all_evals(i,1),all_evals(i,2)/))
-  !!!end do
-  !!!
-  !!!call deallocate_work_transpose(wt_philarge)
-  !!!call deallocate_work_transpose(wt_hpsinoprecond)
-  !!!call deallocate_work_transpose(wt_hphi)
-  !!!call deallocate_work_transpose(wt_phi)
+  do i=1,at%astruct%nat*tmb%linmat%l%nfvctr
+      call yaml_map('ordered',(/real(i,kind=8),all_evals(i,1),all_evals(i,2)/))
+  end do
+  
+  call deallocate_work_transpose(wt_philarge)
+  call deallocate_work_transpose(wt_hpsinoprecond)
+  call deallocate_work_transpose(wt_hphi)
+  call deallocate_work_transpose(wt_phi)
 
-  !!!!# END DIAGONALIZATION TEST ################################################
+  !# END DIAGONALIZATION TEST ################################################
 
 
   !!# @VERYNEW TEST ##############################################################
-  !ist = 1
+  !! Calculate S^1/1 and S^-1/2
+  !call overlapPowerGeneral(iproc, nproc, norder_taylor, 2, (/2,-2/), -1, &
+  !      imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+  !      ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_, &
+  !      check_accur=.true., max_error=max_error, mean_error=mean_error)
+
+  !! Calculate S^-1/2 * H S^-1/2
+  !ham_large = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='ham_large')
+  !tmpmat_compr = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='tmpmat_compr')
+  !hamtilde_compr = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='hamtilde_compr')
+  !call transform_sparse_matrix(tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_%matrix_compr, ham_large, 'small_to_large')
+  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, ham_large, tmb%linmat%ovrlppowers_(2)%matrix_compr, tmpmat_compr)
+  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmb%linmat%ovrlppowers_(2)%matrix_compr, tmpmat_compr, hamtilde_compr)
+
+  !! Diagonalize the small matrices for each atom and calculate a projector on the occupied subspace
+  !projector_compr = sparsematrix_malloc0(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='projector_compr')
   !do iat=1,at%astruct%nat
   !    itype = at%astruct%iatype(iat)
   !    n = input%lin%norbsPerType(itype)
-  !    matrixElements = f_malloc((/n,n,3/),id='matrixElements')
-  !    do i=ist,ist+n-1
-  !        do j=ist,ist+n-1
-  !            ind=matrixindex_in_compressed(tmb%linmat%m, i, j)
-  !            matrixElements(j,i,1) = tmb%linmat%ham_%matrix_compr(ind) 
-  !            ind=matrixindex_in_compressed(tmb%linmat%s, i, j)
-  !            matrixElements(j,i,2) = tmb%linmat%ovrlp_%matrix_compr(ind) 
-  !            ! passing linmat%s is in principle not correct, but I think it should not matter
-  !            call overlap_plus_minus_one_half_exact(1, n, -1, .false., matrixElements,tmb%linmat%s)
-  !            call dgemm('n', 'n', n, n, n, 1.d0, matrixElements(1,1,1), n, matrixElements(1,1,2), n, 0.d0, matrixElemens(1,1,3), n)
-  !            (TRANSA,TRANSB,M,N,K,ALPHA,A,LDA,B,LDB,BETA,C,LDC)
+  !    ham_small = f_malloc((/n,n/),id='ham_small')
+  !    !ovrlp_small = f_malloc((/n,n/),id='ovrlp_small')
+  !    projector_small = f_malloc0((/n,n/),id='projector_small')
+  !    eval = f_malloc(n,id='eval')
+  !    lwork = 10*n
+  !    work = f_malloc(lwork,id='work')
+  !    ! Determine the first support function belonging to this atom
+  !    !write(*,*) 'tmb%linmat%l%on_which_atom',tmb%linmat%l%on_which_atom
+  !    do i=1,tmb%linmat%l%nfvctr
+  !        if (tmb%linmat%l%on_which_atom(i)==iat) then
+  !            ist = i - 1
+  !            exit
+  !        end if
+  !    end do
+  !    do i=1,n
+  !        ii = ist + i
+  !        do j=1,n
+  !            jj = ist + j
+  !            ind=matrixindex_in_compressed(tmb%linmat%l, ii, jj)
+  !            write(*,*) 'iat, i, j, ii, jj, ind, val', iat, i, j, ii, jj, ind, hamtilde_compr(ind)
+  !            ham_small(j,i) = hamtilde_compr(ind)
+  !            !ind=matrixindex_in_compressed(tmb%linmat%m, ii, jj)
+  !            !ham_small(j,i) = tmb%linmat%ham_%matrix_compr(ind)
+  !            !ind=matrixindex_in_compressed(tmb%linmat%s, ii, jj)
+  !            !ovrlp_small(j,i) = tmb%linmat%ovrlp_%matrix_compr(ind)
   !        end do
   !    end do
+  !    do i=1,n
+  !        write(*,'(4es15.5)') ham_small(i,1:n)
+  !    end do
+  !    !call diagonalizeHamiltonian2(iproc, n, ham_small, ovrlp_small, eval)
+  !    call dsyev('v', 'l', n, ham_small, n, eval, work, lwork, info)
+  !    if (info/=0) call f_err_throw('problem in dsyev', err_name='BIGDFT_LINALG_ERROR')
+  !    call yaml_map('atom '//adjustl(trim(yaml_toa(iat))),eval,fmt='(es12.5)')
+  !    do i=1,n
+  !        write(*,'(4es15.5)') ham_small(i,1:n)
+  !    end do
+  !    do i=1,n
+  !        do j=1,n
+  !            if (itype==2) then
+  !                do ieval=1,1
+  !                    projector_small(j,i) = projector_small(j,i) + ham_small(j,ieval)*ham_small(i,ieval)
+  !                end do
+  !            else if (itype==1) then
+  !                do ieval=1,4
+  !                    projector_small(j,i) = projector_small(j,i) + ham_small(j,ieval)*ham_small(i,ieval)
+  !                end do
+  !            end if
+  !        end do
+  !    end do
+
+  !    ! Test: diagonalize the projector
+  !    ham_small = projector_small
+  !    call dsyev('v', 'l', n, ham_small, n, eval, work, lwork, info)
+  !    if (info/=0) call f_err_throw('problem in dsyev', err_name='BIGDFT_LINALG_ERROR')
+  !    call yaml_map('atom projector '//adjustl(trim(yaml_toa(iat))),eval,fmt='(es12.5)')
+
+  !    do i=1,n
+  !        ii = ist + i
+  !        do j=1,n
+  !            jj = ist + j
+  !            ind=matrixindex_in_compressed(tmb%linmat%l, ii, jj)
+  !            projector_compr(ind) = projector_small(j,i)
+  !        end do
+  !    end do
+  !    call f_free(projector_small)
+  !    call f_free(ham_small)
+  !    call f_free(work)
+  !    call f_free(eval)
+  !end do
+  !do i=1,size(projector_compr)
+  !    write(*,*) 'i, projector_compr(i)', i, projector_compr(i)
+  !end do
+
+  !! Calculate K * S^1/2 * P * S^1/2. Use  hamtilde_compr as workarray
+  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, &
+  !     projector_compr, tmb%linmat%ovrlppowers_(1)%matrix_compr, tmpmat_compr)
+  !hamtilde_compr = tmpmat_compr
+  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, &
+  !     tmb%linmat%ovrlppowers_(1)%matrix_compr, hamtilde_compr, tmpmat_compr)
+  !hamtilde_compr = tmpmat_compr
+  !call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, &
+  !     tmb%linmat%kernel_%matrix_compr, hamtilde_compr, tmpmat_compr)
+
+  !! Calculate the partial traces
+  !ii = 1
+  !do 
+  !    iat = tmb%linmat%l%on_which_atom(ii)
+  !    itype = at%astruct%iatype(iat)
+  !    n = input%lin%norbsPerType(itype)
+  !    tt=0.d0
+  !    do i=ii,ii+n-1
+  !        ind=matrixindex_in_compressed(tmb%linmat%l, i, i)
+  !        tt = tt + tmpmat_compr(ind)
+  !    end do
+  !    write(*,*) 'iat, itype, charge', iat, itype, tt
+  !    ii = ii + n
+  !    if (ii==tmb%linmat%l%nfvctr+1) exit
   !end do
   !!# @END VERYNEW TEST ##########################################################
 
@@ -1829,8 +1960,16 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   if (input%loewdin_charge_analysis) then
       !call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
       !     calculate_ovrlp_half=.true., meth_overlap=0)
+      !theta = f_malloc((/at%astruct%nat,tmb%orbs%norbp/),id='theta')
+      !!! This check is here to prevent inconsictencies between orbs distribution and matrix distribution, to be fixed
+      !!if (tmb%orbs%norbp/=tmb%linmat%s%nfvctrp) then
+      !!    call f_err_throw('tmb%orbs%norbp/=tmb%linmat%s%nfvctrp',err_name='BIGDFT_RUNTIME_ERROR')
+      !!end if
+      !call calculate_theta(at%astruct%nat, rxyz, size(tmb%psi), tmb%psi, tmb%collcom_sr%ndimpsi_c, &
+      !     tmb%orbs, tmb%lzd, theta)
       call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
-           calculate_ovrlp_half=.true., meth_overlap=norder_taylor)
+           calculate_ovrlp_half=.true., meth_overlap=norder_taylor, &
+           ntheta=tmb%orbs%norbp, istheta=tmb%orbs%isorb, theta=theta)
       call support_function_multipoles(iproc, tmb, at, denspot)
   end if
 
