@@ -143,7 +143,7 @@ program driver_singlerun
   !call overlapPowerGeneral(iproc, nproc, 1020, 1, (/1/), -8, &
   !     1, ovrlp_smat=smat, inv_ovrlp_smat=smat, ovrlp_mat=matA, inv_ovrlp_mat=matB, &
   !     check_accur=.true., max_error=max_error, mean_error=mean_error)
-  call overlapPowerGeneral(iproc, nproc, 50, 1, (/1/), -8, &
+  call overlapPowerGeneral(iproc, nproc, 0, 1, (/2/), 8, &
        imode=1, ovrlp_smat=smatA, inv_ovrlp_smat=smatB, ovrlp_mat=matA, inv_ovrlp_mat=matB, &
        check_accur=.true., max_error=max_error, mean_error=mean_error)
   !!call overlapPowerGeneral(iproc, nproc, 0, 1, (/1/), -8, &

@@ -1901,7 +1901,7 @@ module matrix_operations
         inv_ovrlp_halfp=f_malloc_ptr((/norb,norbp/), id='inv_ovrlp_halfp')
         ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
         ! This will give S^{+/-1/2}.
-        if(blocksize<0) then
+        !!if(blocksize<0) then
            if (norbp>0) call dgemm('n', 't', norb, norbp, norb, 1.d0, inv_ovrlp_half, &
                 norb, tempArr, norbp, 0.d0, inv_ovrlp_halfp, norb)
            !if (present(orbs).and.bigdft_mpi%nproc>1) then
@@ -1911,11 +1911,11 @@ module matrix_operations
            else
               call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
            end if
-        else
-           call dgemm_parallel(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, bigdft_mpi%mpi_comm, 'n', 't', norb, norb, norb, &
-                1.d0, inv_ovrlp_half, norb, tempArr, norb, 0.d0, inv_ovrlp_halfp, norb)
-           call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
-        end if
+        !!else
+        !!   call dgemm_parallel(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, bigdft_mpi%mpi_comm, 'n', 't', norb, norb, norb, &
+        !!        1.d0, inv_ovrlp_half, norb, tempArr, norb, 0.d0, inv_ovrlp_halfp, norb)
+        !!   call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
+        !!end if
       
         call f_free_ptr(inv_ovrlp_halfp)
         call f_free(tempArr)
