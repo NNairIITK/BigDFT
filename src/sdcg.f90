@@ -475,16 +475,6 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
               call f_tree_push(f_info//'b/b0'  ,yaml_toa( beta/runObj%inputs%betax, fmt='(1pe8.2e1)'))
               call f_tree_push(f_info//'nsat'  ,yaml_toa(nsatur))
               call geometry_output('GEOPT_SD',ncount_bigdft,itsd,fmax,fnrm,fluct,f_info)
-!!$              call yaml_mapping_open('Geometry')
-!!$                 call yaml_map('Ncount_BigDFT',ncount_bigdft)
-!!$                 call yaml_map('Iteration',itsd)
-!!$                 call yaml_map('Geometry Method','GEOPT_SD')
-!!$                 call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
-!!$                 call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
-!!$                 call yaml_map('b/b0', beta/runObj%inputs%betax, fmt='(1pe8.2e1)')
-!!$                 call yaml_map('nsat',nsatur)
-!!$                 call geometry_output(fmax,fnrm,fluct)
-!!$              call yaml_mapping_close()
            end if
         end if
         etotprev=outs%energy

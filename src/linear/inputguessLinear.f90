@@ -704,8 +704,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !end do
       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, &
-           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
-           tmb%foe_obj)
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
             
  else
      ! Iterative orthonomalization
@@ -893,12 +892,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false.)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false.)
 
       !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)

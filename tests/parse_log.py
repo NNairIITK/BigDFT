@@ -429,6 +429,8 @@ class BigDFTiming:
     icol=1.0
     for cat,dat in data:
       print 'cat',cat,dat
+      for i in range(len(self.ids)):
+          print self.ids[i],dat[i]
       plt=axbars.bar(ind,dat,width,bottom=bot,color=cm.jet(icol/len(self.classes)),picker=True,label=cat)
       self.plts.append(plt)
       bot+=dat
@@ -440,8 +442,7 @@ class BigDFTiming:
     axbars.set_xticklabels(np.array(self.ids))
     self.leg = axbars.legend(loc='upper right')
     self.leg.get_frame().set_alpha(0.4)  
-      
-      
+          
   def onclick_quitButton(self,event):
     print "Good bye!"
     for figax in self.newfigs:

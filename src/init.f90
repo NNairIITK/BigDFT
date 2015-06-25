@@ -959,8 +959,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
          do it=1,10
               call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
                    tmb%linmat%s, tmb%linmat%l, &
-                   tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
-                   tmb%foe_obj)
+                   tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
               call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
                    TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
               call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, &
@@ -1433,8 +1432,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
       methTransformOverlap=-1
       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, &
-           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
-           tmb%foe_obj)
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
   end if  
 
   call f_release_routine()
@@ -2690,7 +2688,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
-             energs_work) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             energs_work,.false.) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         call deallocate_work_mpiaccumulate(energs_work)
 

@@ -1490,7 +1490,7 @@ module module_interfaces
     subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn,&
-        calculate_KS_residue,calculate_gap,energs_work,&
+        calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_base
       use module_types
@@ -1518,6 +1518,7 @@ module module_interfaces
       logical,intent(in):: communicate_phi_for_lsumrho, purification_quickreturn
       logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
       type(work_mpiaccumulate),intent(inout) :: energs_work
+      logical,intent(in) :: remove_coupling_terms
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -1730,7 +1731,7 @@ module module_interfaces
      end subroutine setCommsParameters
 
      subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, npsidim_orbs, &
-                orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed, foe_obj)
+                orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
        use module_base
        use module_types
        use sparsematrix_base, only: sparse_matrix
@@ -1748,7 +1749,6 @@ module module_interfaces
        real(8),dimension(npsidim_orbs), intent(inout) :: lphi
        real(8),dimension(:),pointer:: psit_c, psit_f
        logical,intent(inout):: can_use_transposed
-       type(foe_data),intent(in) :: foe_obj
      end subroutine orthonormalizeLocalized
 
      subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldiis, experimental_mode)

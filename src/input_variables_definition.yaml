@@ -191,8 +191,8 @@
        sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
      default: vacuum
    external_potential:
-     COMMENT: Multipole moments on an external potential
-     DESCRIPTION: Give the multipole moments up to octopoles
+     COMMENT: Multipole moments of an external potential
+     DESCRIPTION: Give the multipole moments up to quadrupoles
      default: 0.0
 #K points parameters
  kpt:
@@ -1098,6 +1098,10 @@
      calculate_onsite_overlap:
        COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
        default: No
+     charge_multipoles:
+       COMMENT: Calculate the atom-centered multipole coefficients of the electronic charge
+       DESCRIPTION: Calculate the multipole expansion coefficients which can then be used to establish a QM/MM coupling
+       default: no
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
