@@ -9,11 +9,13 @@ module postprocessing_linear
   public :: loewdin_charge_analysis_core
   public :: support_function_multipoles
   public :: build_ks_orbitals
+  public :: calculate_theta
 
   contains
 
-    subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
-               calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
+    subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot, &
+               calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap, &
+               ntheta, istheta, theta)
       use module_base
       use module_types
       use module_interfaces
@@ -34,6 +36,8 @@ module postprocessing_linear
       type(DFT_local_fields), intent(inout) :: denspot
       logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
       integer,intent(in) :: meth_overlap
+      integer,intent(in),optional :: ntheta, istheta
+      real(kind=8),dimension(:,:),intent(in),optional :: theta ! must have dimension (atoms%astruct%nat,ndim_theta)
     
       !local variables
       !integer :: ifrag,ifrag_ref,isforb,jorb
@@ -51,12 +55,33 @@ module postprocessing_linear
       real(kind=8) :: total_charge, total_net_charge
       real(kind=8),dimension(:),allocatable :: charge_per_atom
       !logical :: psit_c_associated, psit_f_associated
+      logical :: optionals_present
     
     
       ! needs parallelizing/converting to sparse
       ! re-use overlap matrix if possible either before or after
     
       call f_routine(id='loewdin_charge_analysis')
+
+
+      if (present(theta)) then
+          if (.not.present(ntheta)) then
+              call f_err_throw('ntheta not present',err_name='BIGDFT_RUNTIME_ERROR')
+          else if (.not.present(istheta)) then
+              call f_err_throw('istheta not present',err_name='BIGDFT_RUNTIME_ERROR')
+          else
+              optionals_present = .true.
+          end if
+          if (size(theta,1)/=atoms%astruct%nat) then
+              call f_err_throw('wrong first dimension of theta',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (size(theta,2)/=ntheta) then
+              call f_err_throw('wrong second dimension of theta',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+      else
+          optionals_present = .false.
+      end if
+
     
       !inv_ovrlp(1) = matrices_null()
       !call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
@@ -102,11 +127,20 @@ module postprocessing_linear
       !call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, &
       !         tmb%orbs%norb_par, tmb%orbs%isorb_par, meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
       !         tmb%linmat%kernel_, tmb%linmat%ovrlp_)
-      call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
-           tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
-           tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
-           meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
-           tmb%linmat%kernel_, tmb%linmat%ovrlp_)
+      if (optionals_present) then
+          call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+               tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
+               tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
+               meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+               tmb%linmat%kernel_, tmb%linmat%ovrlp_, &
+               ntheta=ntheta, istheta=istheta, theta=theta)
+      else
+          call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+               tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
+               tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
+               meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+               tmb%linmat%kernel_, tmb%linmat%ovrlp_)
+      end if
     
 !!!!      if (calculate_ovrlp_half) then
 !!!!         tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
@@ -219,7 +253,8 @@ module postprocessing_linear
 
 
     subroutine loewdin_charge_analysis_core(iproc, nproc, norb, norbp, isorb, &
-               norb_par, isorb_par, meth_overlap, smats, smatl, atoms, kernel, ovrlp)
+               norb_par, isorb_par, meth_overlap, smats, smatl, atoms, kernel, ovrlp, &
+               ntheta, istheta, theta)
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix, matrices, &
@@ -238,6 +273,8 @@ module postprocessing_linear
       type(atoms_data),intent(in) :: atoms
       type(matrices),intent(inout) :: kernel
       type(matrices),intent(inout) :: ovrlp
+      integer,intent(in),optional :: ntheta, istheta
+      real(kind=8),dimension(:,:),intent(in),optional :: theta !dimension (atoms%astruct%nat,ntheta)
 
       ! Local variables
       integer :: ierr, iorb, iat, ind, ist, ishift, ispin, iiorb
@@ -249,8 +286,28 @@ module postprocessing_linear
       real(kind=8) :: mean_error, max_error
       integer,parameter :: DENSE=101, SPARSE=102
       integer :: imode=SPARSE
+      logical :: optionals_present
 
       call f_routine(id='loewdin_charge_analysis_core')
+
+      if (present(theta)) then
+          if (.not.present(ntheta)) then
+              call f_err_throw('ntheta not present',err_name='BIGDFT_RUNTIME_ERROR')
+          else if (.not.present(istheta)) then
+              call f_err_throw('istheta not present',err_name='BIGDFT_RUNTIME_ERROR')
+          else
+              optionals_present = .true.
+          end if
+          if (size(theta,1)/=atoms%astruct%nat) then
+              call f_err_throw('wrong first dimension of theta',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (size(theta,2)/=ntheta) then
+              call f_err_throw('wrong second dimension of theta',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+      else
+          optionals_present = .false.
+      end if
+
 
       if (imode==DENSE) then
 
@@ -355,17 +412,32 @@ module postprocessing_linear
           weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
           call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
 
-    
-          do ispin=1,smatl%nspin
-              ishift = (ispin-1)*smatl%nvctr
-              do iorb=1,norb
-                  iiorb = modulo(iorb-1,smatl%nfvctr)+1
-                  iat=smats%on_which_atom(iiorb)
-                  ind = matrixindex_in_compressed(smatl, iorb, iorb)
-                  ind = ind + ishift
-                  charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix_compr(ind)
+          if (optionals_present) then
+              do ispin=1,smatl%nspin
+                  ishift = (ispin-1)*smatl%nvctr
+                  do iorb=1,ntheta
+                      iiorb = iorb + istheta
+                      iiorb = modulo(iiorb-1,smatl%nfvctr)+1
+                      do iat=1,atoms%astruct%nat
+                          ind = matrixindex_in_compressed(smatl, iorb, iorb)
+                          ind = ind + ishift
+                          charge_per_atom(iat) = charge_per_atom(iat) + theta(iat,iorb)*weight_matrix_compr(ind)
+                       end do
+                  end do
               end do
-          end do
+          else 
+              do ispin=1,smatl%nspin
+                  ishift = (ispin-1)*smatl%nvctr
+                  do iorb=1,norb
+                      iiorb = modulo(iorb-1,smatl%nfvctr)+1
+                      iat=smats%on_which_atom(iiorb)
+                      ind = matrixindex_in_compressed(smatl, iorb, iorb)
+                      ind = ind + ishift
+                      charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix_compr(ind)
+                  end do
+              end do
+          end if
+
           if (iproc==0) then
               call write_partial_charges(atoms, charge_per_atom, .true.)
               call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
@@ -1307,5 +1379,101 @@ module postprocessing_linear
     end if
       call allocate_work_mpiaccumulate(energs_work)
     end subroutine build_ks_orbitals_laura_tmp
+
+
+
+    subroutine calculate_theta(nat, rxyz, nphidim, phi, nphirdim, orbs, lzd, theta)
+      use module_base
+      use module_types, only: orbitals_data, local_zone_descriptors, workarr_sumrho
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: nat, nphidim, nphirdim
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      real(kind=8),dimension(nphidim),intent(in) :: phi
+      type(orbitals_data),intent(in) :: orbs
+      type(local_zone_descriptors),intent(in) :: lzd
+      real(kind=8),dimension(nat,orbs%norbp),intent(out) :: theta
+
+      ! Local variables
+      real(kind=8),dimension(:),allocatable :: psir
+      type(workarr_sumrho) :: w
+      integer :: ist, istr, iorb, iiorb, ilr, i1, i2, i3, ii1, ii2, ii3, iat
+      real(kind=8),dimension(3) :: com
+      real(kind=8) :: weight, tt, x, y, z, r2, hxh, hyh, hzh
+      real(kind=8),parameter :: sigma2=0.5d0
+
+      ! Transform the support functions to real space
+      psir = f_malloc(max(nphirdim,1),id='psir')
+      ist=1
+      istr=1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
+          call deallocate_work_arrays_sumrho(w)
+          !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
+          !    iproc, iiorb, lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, &
+          !    istr, ddot(lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, psir(istr), 1, psir(istr), 1)
+          !testarr(1,iiorb) = ddot(lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, psir(istr), 1, psir(istr), 1) 
+          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+      end do
+      if(istr/=nphirdim+1) then
+          call f_err_throw('ERROR on process '//adjustl(trim(yaml_toa(bigdft_mpi%iproc)))//': istr/=nphirdim+1', &
+               err_name='BIGDFT_RUNTIME_ERROR')
+          stop
+      end if
+
+      hxh = 0.5d0*lzd%hgrids(1)
+      hyh = 0.5d0*lzd%hgrids(2)
+      hzh = 0.5d0*lzd%hgrids(3)
+
+      istr = 1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+          com(1:3) = 0.d0
+          weight = 0.d0
+          do i3=1,lzd%llr(ilr)%d%n3i
+              ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 1
+              z = ii3*hzh
+              do i2=1,lzd%llr(ilr)%d%n2i
+                  ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 1
+                  y = ii2*hyh
+                  do i1=1,lzd%llr(ilr)%d%n1i
+                      ii1 = lzd%llr(ilr)%nsi1 + i1 - 14 - 1
+                      x = ii1*hxh
+                      tt = psir(istr)**2
+                      com(1) = com(1) + x*tt
+                      com(2) = com(2) + y*tt
+                      com(3) = com(3) + z*tt
+                      weight = weight + tt
+                      istr = istr + 1
+                  end do
+              end do
+          end do
+          call yaml_map('weight',weight)
+
+          weight = 0.d0
+          do iat=1,nat
+              write(*,*) 'com, rxzy', com, rxyz(:,iat)
+              r2 = (rxyz(1,iat)-com(1))**2 + (rxyz(2,iat)-com(2))**2 + (rxyz(3,iat)-com(3))**2
+              tt = exp(-r2/(2*sigma2))
+              theta(iat,iorb) = tt
+              weight = weight + tt
+          end do
+          call yaml_map('weight',weight)
+          tt = 1.d0/weight
+          call dscal(nat, tt, theta(1,iorb), 1)
+
+          call yaml_map('theta '//adjustl(trim(yaml_toa(iorb))),theta(:,iorb))
+
+      end do
+
+    end subroutine calculate_theta
 
 end module postprocessing_linear

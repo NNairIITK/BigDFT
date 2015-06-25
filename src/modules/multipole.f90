@@ -1196,6 +1196,8 @@ module multipole
       real(kind=8) :: factor_normalization
       character(len=20) :: atomname
       real(kind=8),dimension(-lmax:lmax,0:lmax) :: norm
+      real(kind=8),dimension(3) :: com
+      real(kind=8) :: dnrm2
       !real(kind=8) :: rmax
 
       !! Check that rmax does remains within the box.
@@ -1253,6 +1255,7 @@ module multipole
                   norm = 0.d0
                   factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
                   !write(*,'(a,6i6)') 'iat, iiat, ilr, n1i, n2i, n3i', iat, iiat, ilr, n1i(ilr), n2i(ilr), n3i(ilr)
+                  com(1:3) = 0.d0
                   do i3=1,n3i(ilr)
                       ii3 = nsi3(ilr) + i3 - 14 - 1
                       z = ii3*0.5d0*hgrids(3) - locregcenter(3,ilr)
@@ -1265,6 +1268,9 @@ module multipole
                               ind = (i3-1)*n2i(ilr)*n1i(ilr) + (i2-1)*n1i(ilr) + i1
                               phi1(i1,i2,i3,iiorb) = psir1_get(ist+ind)
                               phi2(i1,i2,i3,iiorb) = psir2_get(ist+ind)
+                              com(1) = com(1) + (x+locregcenter(1,ilr))*phi1(i1,i2,i3,iiorb)**2
+                              com(2) = com(2) + (y+locregcenter(2,ilr))*phi1(i1,i2,i3,iiorb)**2
+                              com(3) = com(3) + (z+locregcenter(3,ilr))*phi1(i1,i2,i3,iiorb)**2
                               if (x**2+y**2+z**2>rmax(iiat)**2) cycle
                               !write(300,*) 'ind, val', ind, phi1(i1,i2,i3,iiorb)
                               !write(400,*) 'ind, val', ind, (1.d0 + 11.d0*y + 12.d0*z + 13.d0*x + &
@@ -1292,6 +1298,10 @@ module multipole
                               end do
                           end do
                       end do
+                  end do
+                  do ii1=1,norb
+                      write(*,*) 'iat, iorb, ii1, com(1:3), diff', &
+                          iat, iorb, ii1, com(1:3), dnrm2(2, com(1:3)-locregcenter(1:3,ii1), 1)
                   end do
                   do l=0,lmax
                       do m=-l,l
