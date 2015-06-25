@@ -149,7 +149,6 @@ contains
     use module_BornMayerHugginsTosiFumi
     use module_lj
     use module_lenosky_si
-    use module_base, only: bigdft_mpi
     use yaml_output
     implicit none
     type(run_objects), intent(inout) :: runObj
@@ -244,7 +243,6 @@ contains
   end subroutine init_MM_restart_objects
 
   subroutine free_MM_restart_objects(mm_rst)
-    use module_base, only: bigdft_mpi
     use dynamic_memory
     use yaml_output
     implicit none
@@ -773,7 +771,7 @@ contains
     nullify(runObj%mm_rst)
   END SUBROUTINE nullify_run_objects
 
-  !>release run_objects structure as a whole
+  !> Release run_objects structure as a whole
   !! if the reference counter goes to zero, do not free
   !! the structure as other atoms and inputs may live somewhere
   !! freeing command has to be given explicitly until we are
@@ -789,8 +787,9 @@ contains
     type(run_objects), intent(inout) :: runObj
     !local variables
     integer :: count
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') then
-       call yaml_sequence_close()
+    if (associated(runObj%run_mode)) then
+      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+           call yaml_sequence_close()
     end if
 
     if (associated(runObj%rst)) then
@@ -828,7 +827,8 @@ contains
     call nullify_run_objects(runObj)
   end subroutine release_run_objects
 
-  !> Free the run_objects structure, &
+
+  !> Free the run_objects structure,
   !! if all the objects have been dereferenced
   subroutine free_run_objects(runObj)
     use module_base
@@ -837,8 +837,10 @@ contains
     use module_input_keys, only: free_input_variables
     implicit none
     type(run_objects), intent(inout) :: runObj
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
-         call yaml_sequence_close()
+    if (associated(runObj%run_mode)) then
+      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+           call yaml_sequence_close()
+    end if
 
     call dict_free(runObj%user_inputs)
     if (associated(runObj%rst)) then
@@ -859,6 +861,7 @@ contains
     end if
     call nullify_run_objects(runObj)
   END SUBROUTINE free_run_objects
+
 
   !> Parse the input dictionary and create all run_objects
   !! in particular this routine identifies the input and the atoms structure
@@ -1493,7 +1496,6 @@ contains
     integer :: istep,policy_tmp
     type(f_enumerator) :: inputPsiId_orig
     !integer :: iat
-    real(gp) :: maxdiff
     external :: cluster
     !put a barrier for all the processes
     call mpibarrier(bigdft_mpi%mpi_comm)
