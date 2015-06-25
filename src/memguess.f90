@@ -101,7 +101,7 @@ program memguess
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
    character(len=2) :: backslash
-   logical :: file_exists, found_bin, mpi_init
+   logical :: file_exists, found_bin, mpi_initd
    logical,dimension(:,:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
    type(sparse_matrix) :: smat_s, smat_m, smat_l
@@ -684,8 +684,8 @@ program memguess
    end if
 
    if (calculate_pdos) then
-       call mpi_initialized(mpi_init, ierror)
-       if (mpi_init) then
+       call mpi_initialized(mpi_initd, ierror)
+       if (mpi_initd) then
            call mpi_comm_rank(mpi_comm_world, iproc, ierror)
            call mpi_comm_size(mpi_comm_world, nproc, ierror)
        else
@@ -913,8 +913,8 @@ program memguess
    end if
 
    if (kernel_analysis) then
-       call mpi_initialized(mpi_init, ierror)
-       if (mpi_init) then
+       call mpi_initialized(mpi_initd, ierror)
+       if (mpi_initd) then
            call mpi_comm_rank(mpi_comm_world, iproc, ierror)
            call mpi_comm_size(mpi_comm_world, nproc, ierror)
        else
@@ -972,8 +972,8 @@ program memguess
    end if
 
    if (solve_eigensystem) then
-       call mpi_initialized(mpi_init, ierror)
-       if (mpi_init) then
+       call mpi_initialized(mpi_initd, ierror)
+       if (mpi_initd) then
            call mpi_comm_rank(mpi_comm_world, iproc, ierror)
            call mpi_comm_size(mpi_comm_world, nproc, ierror)
        else
@@ -998,8 +998,8 @@ program memguess
    end if
 
    if (analyze_coeffs) then
-       call mpi_initialized(mpi_init, ierror)
-       if (mpi_init) then
+       call mpi_initialized(mpi_initd, ierror)
+       if (mpi_initd) then
            call mpi_comm_rank(mpi_comm_world, iproc, ierror)
            call mpi_comm_size(mpi_comm_world, nproc, ierror)
        else
@@ -1234,8 +1234,8 @@ program memguess
    end if
 
    if (charge_analysis) then
-       call mpi_initialized(mpi_init, ierror)
-       if (mpi_init) then
+       call mpi_initialized(mpi_initd, ierror)
+       if (mpi_initd) then
            call mpi_comm_rank(mpi_comm_world, iproc, ierror)
            call mpi_comm_size(mpi_comm_world, nproc, ierror)
        else
