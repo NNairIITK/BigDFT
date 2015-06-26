@@ -200,7 +200,7 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
- Positions: 4.31e-8
+ Positions: 2.0e-7
  Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
  Average noise forces: 6.2e-8
@@ -282,7 +282,7 @@ test.minhop.ref.yaml:
  Orbitals: 6.1e-9
  Positions: 1.1e-9
  curv: 5.51e-11
- fd2: 2.7e-10
+ fd2: 2.76e-10
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -306,7 +306,7 @@ mixpotential:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Enl: 2.1e-11
- Energy (Hartree): 1.43e-11
+ Energy (Hartree): 1.49e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -1138,7 +1138,7 @@ sparsity:
  ebs: 2.1e-10
  diff: 1.1e-9
  D Tr: 1.1e-10
- Energy (Hartree): 4.02e-10
+ Energy (Hartree): 4.09e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -1149,7 +1149,7 @@ PBE_densmixlin:
  EXC: 1.01e-10
  EH: 1.0e-9
  Total charge: 2.1e-11
- Energy (Hartree): 2.82e-11
+ Energy (Hartree): 2.84e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1197,7 +1197,7 @@ PBE_densmixdiis:
  Ekin: 1.1e-9
  Total charge: 2.1e-11
  EH: 1.0e-9
- Energy (Hartree): 3.14e-11
+ Energy (Hartree): 3.17e-11
 
 test-bigdft-tool:
  positions: 5.1e-8
@@ -1446,11 +1446,16 @@ FF_LJ-fire:
   - disablesym
 
 FF_LJ-sdcg:
+  maxval: 1.1e-9
   Keys to ignore:
   - WARNINGS
   - disablesym
 
 FF_LJ-lbfgs:
+  etot: 6.8e-9
+  Energy: 4.7e-9
+  fnrm2: 1.e-8
+  maxval: 9.6e-8
   Keys to ignore:
   - WARNINGS
   - disablesym
@@ -1596,3 +1601,6 @@ multipoles_water:
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
   - WARNINGS
+
+dev.ref.yaml:
+  Epot: 1.01e-10

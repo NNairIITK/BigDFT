@@ -229,11 +229,13 @@ module multipole
           call yaml_mapping_close()
       end if
 
-
-      call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
-           quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
-      pot = pot + density
-
+      if (ep%nmpl > 0) then
+         call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
+              quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
+         !LG: attention to stack overflow here !
+         !pot = pot + density
+         call daxpy(size(density),1.d0,density,1,pot,1)
+      end if
 
 
       !ii = 0
