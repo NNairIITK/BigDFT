@@ -10,6 +10,7 @@ module postprocessing_linear
   public :: support_function_multipoles
   public :: build_ks_orbitals
   public :: calculate_theta
+  public :: supportfunction_centers
 
   contains
 
@@ -418,8 +419,9 @@ module postprocessing_linear
                   do iorb=1,ntheta
                       iiorb = iorb + istheta
                       iiorb = modulo(iiorb-1,smatl%nfvctr)+1
+                      ind = matrixindex_in_compressed(smatl, iorb, iorb)
+                      write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)
                       do iat=1,atoms%astruct%nat
-                          ind = matrixindex_in_compressed(smatl, iorb, iorb)
                           ind = ind + ishift
                           charge_per_atom(iat) = charge_per_atom(iat) + theta(iat,iorb)*weight_matrix_compr(ind)
                        end do
@@ -873,6 +875,10 @@ module postprocessing_linear
               end do
           end do
       end do
+
+      call yaml_map('rxyz_center',rxyz_center)
+      call yaml_map('charge_center_elec',charge_center_elec)
+      call yaml_map('qtot',qtot)
     
       ! Dipole of the center
       dipole_center(1) = -qtot*rxyz_center(1)
@@ -895,6 +901,8 @@ module postprocessing_linear
       end do
     
       ! Net dipole and quadropole
+      call yaml_map('dipole_el',dipole_el)
+      call yaml_map('dipole_center',dipole_center)
       dipole_net = dipole_el + dipole_center
       quadropole_net = quadropole_el + quadropole_center
     
@@ -1399,10 +1407,280 @@ module postprocessing_linear
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psir
       type(workarr_sumrho) :: w
-      integer :: ist, istr, iorb, iiorb, ilr, i1, i2, i3, ii1, ii2, ii3, iat
+      integer :: ist, istr, iorb, iiorb, ilr, i1, i2, i3, ii1, ii2, ii3, iat, iiat, l, m
       real(kind=8),dimension(3) :: com
-      real(kind=8) :: weight, tt, x, y, z, r2, hxh, hyh, hzh
-      real(kind=8),parameter :: sigma2=0.5d0
+      real(kind=8),dimension(-1:1) :: dipole
+      real(kind=8) :: weight, tt, x, y, z, r2, hxh, hyh, hzh, q, qtot, monopole, r
+      real(kind=8),parameter :: sigma2=0.1d0
+
+      call f_zero(theta)
+
+      ! Transform the support functions to real space
+      psir = f_malloc(max(nphirdim,1),id='psir')
+      ist=1
+      istr=1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
+          call deallocate_work_arrays_sumrho(w)
+          !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
+          !    iproc, iiorb, lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, &
+          !    istr, ddot(lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, psir(istr), 1, psir(istr), 1)
+          !testarr(1,iiorb) = ddot(lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, psir(istr), 1, psir(istr), 1) 
+          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+      end do
+      if(istr/=nphirdim+1) then
+          call f_err_throw('ERROR on process '//adjustl(trim(yaml_toa(bigdft_mpi%iproc)))//': istr/=nphirdim+1', &
+               err_name='BIGDFT_RUNTIME_ERROR')
+          stop
+      end if
+
+      hxh = 0.5d0*lzd%hgrids(1)
+      hyh = 0.5d0*lzd%hgrids(2)
+      hzh = 0.5d0*lzd%hgrids(3)
+
+
+      !! METHOD 1 ####################################################
+      !istr = 1
+      !do iorb=1,orbs%norbp
+      !    iiorb=orbs%isorb+iorb
+      !    ilr=orbs%inwhichlocreg(iiorb)
+      !    write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+      !    com(1:3) = 0.d0
+      !    weight = 0.d0
+      !    do i3=1,lzd%llr(ilr)%d%n3i
+      !        ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 1
+      !        z = ii3*hzh
+      !        do i2=1,lzd%llr(ilr)%d%n2i
+      !            ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 1
+      !            y = ii2*hyh
+      !            do i1=1,lzd%llr(ilr)%d%n1i
+      !                ii1 = lzd%llr(ilr)%nsi1 + i1 - 14 - 1
+      !                x = ii1*hxh
+      !                tt = psir(istr)**2
+      !                com(1) = com(1) + x*tt
+      !                com(2) = com(2) + y*tt
+      !                com(3) = com(3) + z*tt
+      !                weight = weight + tt
+      !                istr = istr + 1
+      !            end do
+      !        end do
+      !    end do
+      !    call yaml_map('weight',weight)
+
+      !    weight = 0.d0
+      !    do iat=1,nat
+      !        write(*,*) 'com, rxzy', com, rxyz(:,iat)
+      !        r2 = (rxyz(1,iat)-com(1))**2 + (rxyz(2,iat)-com(2))**2 + (rxyz(3,iat)-com(3))**2
+      !        tt = exp(-r2/(2*sigma2))
+      !        theta(iat,iorb) = tt
+      !        weight = weight + tt
+      !    end do
+      !    call yaml_map('weight',weight)
+      !    tt = 1.d0/weight
+      !    call dscal(nat, tt, theta(1,iorb), 1)
+
+      !    call yaml_map('theta '//adjustl(trim(yaml_toa(iorb))),theta(:,iorb))
+
+      !end do
+      !! END METHOD 1 ################################################
+
+
+      ! METHOD 2 ####################################################
+      istr = 1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          iiat = orbs%onwhichatom(iiorb)
+          write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+          com(1:3) = 0.d0
+          dipole(:) = 0.d0
+          weight = 0.d0
+          qtot = 0.d0
+          do i3=1,lzd%llr(ilr)%d%n3i
+              ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 1
+              z = ii3*hzh
+              !write(*,*) 'i3, ii3, z, d', i3, ii3, z, z-rxyz(3,iiat)
+              do i2=1,lzd%llr(ilr)%d%n2i
+                  ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 1
+                  y = ii2*hyh
+                  do i1=1,lzd%llr(ilr)%d%n1i
+                      ii1 = lzd%llr(ilr)%nsi1 + i1 - 14 - 1
+                      x = ii1*hxh
+                      q = psir(istr)**2!*hxh*hyh*hzh
+                      com(1) = com(1) + x*q
+                      com(2) = com(2) + y*q
+                      com(3) = com(3) + z*q
+                      qtot = qtot + q
+                      !r2 = (rxyz(1,iiat)-x)**2 + (rxyz(2,iiat)-y)**2 + (rxyz(3,iiat)-z)**2
+                      !tt = 1.d0/r2**4
+                      !!r2 = (rxyz(1,iiat)-x)**2 + (rxyz(2,iiat)-y)**2 + (rxyz(3,iiat)-z)**2
+                      !!if (r2/(2.d0*0.2d0)>300) then
+                      !!    tt = 0.d0
+                      !!else
+                      !!    tt = safe_exp(-r2/(2.d0*0.2d0))
+                      !!end if
+                      !!if (tt*psir(istr)**2<1.d-300) then
+                      !!    q =0.d0
+                      !!else
+                      !!    q = tt*psir(istr)**2
+                      !!end if
+                      do iat=1,nat
+                          !write(*,*) 'com, rxzy', com, rxyz(:,iat)
+                          !r2 = (rxyz(1,iat)-com(1))**2 + (rxyz(2,iat)-com(2))**2 + (rxyz(3,iat)-com(3))**2
+                          r2 = (rxyz(1,iat)-x)**2 + (rxyz(2,iat)-y)**2 + (rxyz(3,iat)-z)**2
+                          if (r2/(2*sigma2)>300) then
+                              tt = 0.d0
+                          else
+                              theta(iat,iorb) = theta(iat,iorb) + q*safe_exp(-r2/(2*sigma2))
+                          end if
+                      end do
+                      istr = istr + 1
+                  end do
+              end do
+          end do
+          dipole(-1) = com(2)
+          dipole( 0) = com(3)
+          dipole( 1) = com(1)
+          com(1:3) = com(1:3)/qtot
+          monopole = qtot - 1.d0
+          dipole(:) = dipole(:) - qtot*rxyz(1:3,iiat)
+          call yaml_map('monopole',monopole)
+          call yaml_map('dipole',dipole)
+          call yaml_map('qtot', qtot)
+          call yaml_map('rxyz(..,iiat)', rxyz(1:3,iiat))
+          call yaml_map('com', com)
+          !if (iiat==1 .and. iiorb==5) then
+          !    theta(:,iorb) = 0.d0
+          !    theta(iiat,iorb) = 1.d0
+          !end if
+
+          do iat=1,nat
+              theta(iat,iorb) = 0.d0
+              !x = rxyz(1,iat) - rxyz(1,iiat)
+              !y = rxyz(2,iat) - rxyz(2,iiat)
+              !z = rxyz(3,iat) - rxyz(3,iiat)
+              x = rxyz(1,iat) - com(1)
+              y = rxyz(2,iat) - com(2)
+              z = rxyz(3,iat) - com(3)
+              r = sqrt( x**2 + y**2 + z**2 )
+              do l=0,0!1
+                  do m=-l,l
+                      tt = spherical_harmonic(l, m, x, y, z)*gaussian(1.d0, r)
+                      if(l==1) tt = tt * dipole(m)
+                      write(*,*) 'iorb, iat, m, r, rxyz, tt', iorb, iat, m, r, rxyz(:,iat), tt
+                      theta(iat,iorb) = theta(iat,iorb) + tt**2
+                  end do
+              end do
+          end do
+
+          tt = sum(theta(1:nat,iorb))
+          write(*,*) 'tt',tt
+          tt = 1.d0/tt
+          call dscal(nat, tt, theta(1,iorb), 1)
+
+          call yaml_map('theta '//adjustl(trim(yaml_toa(iorb))),theta(:,iorb))
+
+      end do
+      ! END METHOD 2 ################################################
+
+    end subroutine calculate_theta
+
+
+    function gaussian(sigma, r) result(g)
+      use module_base, only: pi => pi_param
+      implicit none
+      ! Calling arguments
+      real(kind=8),intent(in) :: sigma, r
+      real(kind=8) :: g
+      
+      g = exp(-r**2/(2.d0*sigma**2))
+      g = g/sqrt(2.d0*pi*sigma**2)**3
+      !g = g/(sigma**3*sqrt(2.d0*pi)**3)
+    end function gaussian
+
+    !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
+    function spherical_harmonic(l, m, x, y, z) result(sh)
+      !use module_base, only: pi => pi_param
+      use module_base, pi => pi_param
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: l, m
+      real(kind=8),intent(in) :: x, y, z
+      real(kind=8) :: sh
+
+      ! Local variables
+      integer,parameter :: l_max=2
+      real(kind=8) :: r, r2, rnorm
+
+      if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
+      if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
+          err_name='BIGDFT_RUNTIME_ERROR')
+      if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
+
+
+      ! Normalization for a sphere of radius rmax
+      select case (l)
+      case (0)
+          sh = 0.5d0*sqrt(1/pi)
+      case (1)
+          r = sqrt(x**2+y**2+z**2)
+          ! fix for small r (needs proper handling later...)
+          if (r==0.d0) r=1.d-20
+          select case (m)
+          case (-1)
+              sh = sqrt(3.d0/(4.d0*pi))*y/r
+          case (0)
+              sh = sqrt(3.d0/(4.d0*pi))*z/r
+          case (1)
+              sh = sqrt(3.d0/(4.d0*pi))*x/r
+          end select
+      case (2)
+          r2 = x**2+y**2+z**2
+          ! fix for small r2 (needs proper handling later...)
+          if (r2==0.d0) r2=1.d-20
+          select case (m)
+          case (-2)
+              sh = 0.5d0*sqrt(15.d0/pi)*x*y/r2
+          case (-1)
+              sh = 0.5d0*sqrt(15.d0/pi)*y*z/r2
+          case (0)
+              sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
+          case (1)
+              sh = 0.5d0*sqrt(15.d0/pi)*z*x/r2
+          case (2)
+              sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
+          end select
+      end select
+
+    end function spherical_harmonic
+
+
+
+    subroutine supportfunction_centers(nat, rxyz, nphidim, phi, nphirdim, orbs, lzd, com)
+      use module_base
+      use module_types, only: orbitals_data, local_zone_descriptors, workarr_sumrho
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: nat, nphidim, nphirdim
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      real(kind=8),dimension(nphidim),intent(in) :: phi
+      type(orbitals_data),intent(in) :: orbs
+      type(local_zone_descriptors),intent(in) :: lzd
+      real(kind=8),dimension(3,orbs%norbp),intent(out) :: com
+
+      ! Local variables
+      real(kind=8),dimension(:),allocatable :: psir
+      type(workarr_sumrho) :: w
+      integer :: ist, istr, iorb, iiorb, ilr, i1, i2, i3, ii1, ii2, ii3, iat, iiat, l, m
+      real(kind=8),dimension(-1:1) :: dipole
+      real(kind=8) :: weight, tt, x, y, z, r2, hxh, hyh, hzh, q, qtot, monopole, r
+      real(kind=8),parameter :: sigma2=0.1d0
 
       ! Transform the support functions to real space
       psir = f_malloc(max(nphirdim,1),id='psir')
@@ -1436,7 +1714,7 @@ module postprocessing_linear
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
           write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
-          com(1:3) = 0.d0
+          com(1:3,iorb) = 0.d0
           weight = 0.d0
           do i3=1,lzd%llr(ilr)%d%n3i
               ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 1
@@ -1448,32 +1726,19 @@ module postprocessing_linear
                       ii1 = lzd%llr(ilr)%nsi1 + i1 - 14 - 1
                       x = ii1*hxh
                       tt = psir(istr)**2
-                      com(1) = com(1) + x*tt
-                      com(2) = com(2) + y*tt
-                      com(3) = com(3) + z*tt
+                      com(1,iorb) = com(1,iorb) + x*tt
+                      com(2,iorb) = com(2,iorb) + y*tt
+                      com(3,iorb) = com(3,iorb) + z*tt
                       weight = weight + tt
                       istr = istr + 1
                   end do
               end do
           end do
           call yaml_map('weight',weight)
-
-          weight = 0.d0
-          do iat=1,nat
-              write(*,*) 'com, rxzy', com, rxyz(:,iat)
-              r2 = (rxyz(1,iat)-com(1))**2 + (rxyz(2,iat)-com(2))**2 + (rxyz(3,iat)-com(3))**2
-              tt = exp(-r2/(2*sigma2))
-              theta(iat,iorb) = tt
-              weight = weight + tt
-          end do
-          call yaml_map('weight',weight)
-          tt = 1.d0/weight
-          call dscal(nat, tt, theta(1,iorb), 1)
-
-          call yaml_map('theta '//adjustl(trim(yaml_toa(iorb))),theta(:,iorb))
+          com(1:3,iorb) = com(1:3,iorb)/weight
 
       end do
 
-    end subroutine calculate_theta
+    end subroutine supportfunction_centers
 
 end module postprocessing_linear
