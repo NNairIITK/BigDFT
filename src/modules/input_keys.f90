@@ -925,7 +925,7 @@ contains
     type(dictionary), pointer :: as_is,nested,no_check
     character(max_field_length) :: meth, prof
     real(gp) :: dtmax_, betax_
-    logical :: user_defined
+    logical :: user_defined,free,dftvar
 
     if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
          err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -934,7 +934,9 @@ contains
 
     ! Overriding the default for isolated system
     if ((POSINP .in. dict) .and. (DFT_VARIABLES .in. dict) ) then
-       if ( (ASTRUCT_CELL .notin. dict//POSINP) .and. (DISABLE_SYM .notin. dict//DFT_VARIABLES)) then
+       free=ASTRUCT_CELL .notin. dict//POSINP
+       dftvar=DISABLE_SYM .notin. dict//DFT_VARIABLES
+       if (free .and. dftvar) then
           call set(dict // DFT_VARIABLES // DISABLE_SYM,.true.)
        end if
     end if
