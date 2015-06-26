@@ -81,8 +81,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
    integer :: nxc,istden,istglo,ip,irho,i3s,i23,i23s,n23
-   real(dp) :: ehartreeLOC,pot,rhores2,zeta,epsc,pval,qval,rval,beta,kappa
-   real(dp) :: beta0,alpha,ratio,normb,normr,norm_nonvac,e_static,rpoints
+   real(dp) :: ehartreeLOC,pot,rhores2,beta
+   real(dp) :: alpha,ratio,normb,normr,norm_nonvac,e_static,rpoints
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
    real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z,depsdrho
@@ -358,66 +358,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          !  Apply the Preconditioner
          call apply_kernel(cudasolver,kernel,z,offset,strten,zf,.true.)
 
-         beta0 = beta
-         beta=0.d0
-         !$omp parallel do default(shared) private(i1,i23,rval,zeta) &
-         !$omp reduction(+:beta)
-         do i23=1,n23
-            do i1=1,n1
-               zeta=z(i1,i23)
-               zeta=zeta*kernel%oneoeps(i1,i23)
-               rval=r(i1,i23)
-               rval=rval*zeta
-               beta=beta+rval
-               z(i1,i23)=zeta
-            end do
-         end do
-         !$omp end parallel do
-
-         if (kernel%mpi_env%nproc > 1) &
-              call mpiallred(beta,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
-
-         kappa=0.d0
-         !$omp parallel do default(shared) private(i1,i23,epsc,zeta)&
-         !$omp private(pval,qval,rval) reduction(+:kappa)
-         do i23=1,n23
-            do i1=1,n1
-               zeta=z(i1,i23)
-               epsc=kernel%corr(i1,i23)
-               pval=p(i1,i23)
-               qval=q(i1,i23)
-               rval=r(i1,i23)
-               pval = zeta+(beta/beta0)*pval
-               qval = zeta*epsc+rval+(beta/beta0)*qval
-               p(i1,i23) = pval
-               q(i1,i23) = qval
-               rval=pval*qval
-               kappa = kappa+rval 
-            end do
-         end do
-         !$omp end parallel do
-
-         if (kernel%mpi_env%nproc > 1) &
-              call mpiallred(kappa,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
-
-         alpha = beta/kappa
-
-         normr=0.d0
-         !$omp parallel do default(shared) private(i1,i23,rval) &
-         !$omp reduction(+:normr)
-         do i23=1,n23
-            do i1=1,n1
-               x(i1,i23) = x(i1,i23) + alpha*p(i1,i23)
-               r(i1,i23) = r(i1,i23) - alpha*q(i1,i23)
-               z(i1,i23) = r(i1,i23)*kernel%oneoeps(i1,i23)
-               rval=r(i1,i23)*r(i1,i23)
-               normr=normr+rval
-            end do
-         end do
-         !$omp end parallel do
-
-         if (kernel%mpi_env%nproc > 1) &
-              call mpiallred(normr,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+         call apply_reductions(ip, cudasolver, kernel, r, x, p, q, z, alpha, beta, normr)
 
          normr=sqrt(normr/rpoints)
 
@@ -680,11 +621,6 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
         call cudafree(kernel%work2_GPU)
      endif
 
-     if (kernel%keepGPUmemory == 0) then
-        call cudafree(kernel%work1_GPU)
-        call cudafree(kernel%work2_GPU)
-     endif
-
   endif
 
   if (updaterho) then
@@ -701,6 +637,189 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
 end subroutine apply_kernel
 
+
+
+subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
+  use f_utils, only: f_zero
+  use time_profiling, only: f_timing
+  use yaml_output
+  implicit none
+  logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
+  type(coulomb_operator), intent(in) :: kernel 
+
+  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: r,x,p,q,z
+  !local variables
+  integer :: n1,n23,i_stat,ierr,i23,i1,size1, ip
+  real(dp) :: beta, zeta, rval, alpha, normr, beta0, epsc, kappa, pval, qval
+
+
+
+  n23=kernel%grid%m3*kernel%grid%n3p
+  n1=kernel%grid%m1
+  beta0 = beta
+  beta=0.d0
+!  if (.true.) then !CPU case
+  if (.not. gpu) then !CPU case
+         !$omp parallel do default(shared) private(i1,i23,rval,zeta) &
+         !$omp reduction(+:beta)
+         do i23=1,n23
+            do i1=1,n1
+               zeta=z(i1,i23)
+               zeta=zeta*kernel%oneoeps(i1,i23)
+               rval=r(i1,i23)
+               rval=rval*zeta
+               beta=beta+rval
+               z(i1,i23)=zeta
+            end do
+         end do
+         !$omp end parallel do
+
+
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(beta,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+         kappa=0.d0
+
+         !$omp parallel do default(shared) private(i1,i23,epsc,zeta)&
+         !$omp private(pval,qval,rval) reduction(+:kappa)
+         do i23=1,n23
+            do i1=1,n1
+               zeta=z(i1,i23)
+               epsc=kernel%corr(i1,i23)
+               pval=p(i1,i23)
+               qval=q(i1,i23)
+               rval=r(i1,i23)
+               pval = zeta+(beta/beta0)*pval
+               qval = zeta*epsc+rval+(beta/beta0)*qval
+               p(i1,i23) = pval
+               q(i1,i23) = qval
+               rval=pval*qval
+               kappa = kappa+rval 
+            end do
+         end do
+         !$omp end parallel do
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(kappa,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+         alpha = beta/kappa
+
+         normr=0.d0
+         !$omp parallel do default(shared) private(i1,i23,rval) &
+         !$omp reduction(+:normr)
+         do i23=1,n23
+            do i1=1,n1
+               x(i1,i23) = x(i1,i23) + alpha*p(i1,i23)
+               r(i1,i23) = r(i1,i23) - alpha*q(i1,i23)
+               z(i1,i23) = r(i1,i23)*kernel%oneoeps(i1,i23)
+               rval=r(i1,i23)*r(i1,i23)
+               normr=normr+rval
+            end do
+         end do
+         !$omp end parallel do
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(normr,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+
+  else
+!naive method, with allocations/free at each time .. 
+!may need to store more pointers inside kernel
+  size1=n1*n23
+  if (kernel%keepGPUmemory == 0) then
+    call cudamalloc(size1,kernel%z_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(size1,kernel%r_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(size1,kernel%oneoeps_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(size1,kernel%p_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(size1,kernel%q_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(size1,kernel%x_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(size1,kernel%corr_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+
+
+    call cudamalloc(sizeof(alpha),kernel%alpha_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(sizeof(beta),kernel%beta_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(sizeof(beta0),kernel%beta0_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamalloc(sizeof(kappa),kernel%kappa_GPU,i_stat)
+    if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    call cudamemset(kernel%p_GPU, 0, size1,i_stat)
+    if (i_stat /= 0) print *,'error cudamemset p',i_stat
+    call cudamemset(kernel%q_GPU, 0, size1,i_stat)
+    if (i_stat /= 0) print *,'error cudamemset q',i_stat
+    call cudamemset(kernel%x_GPU, 0, size1,i_stat)
+    if (i_stat /= 0) print *,'error cudamemset x',i_stat
+
+  end if
+
+  if (ip == 1) then 
+    call reset_gpu_data(size1,r,kernel%r_GPU)
+    call reset_gpu_data(size1,kernel%oneoeps,kernel%oneoeps_GPU)
+  end if
+
+  call reset_gpu_data(size1,z,kernel%z_GPU)
+  call cudamemset(kernel%beta_GPU, 0, sizeof(beta),i_stat)
+  call first_reduction_kernel(n1,n23,kernel%p_GPU,kernel%q_GPU,kernel%r_GPU,&
+kernel%x_GPU,kernel%z_GPU,kernel%corr_GPU, kernel%oneoeps_GPU, kernel%alpha_GPU,&
+ kernel%beta_GPU, kernel%beta0_GPU, kernel%kappa_GPU, beta)
+
+  call cudamemset(kernel%kappa_GPU, 0, sizeof(kappa),i_stat)
+
+!TODO : gpudirect.
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(beta,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+         kappa=0.d0
+
+  call reset_gpu_data(sizeof(beta),beta, kernel%beta_GPU)
+  call reset_gpu_data(sizeof(beta0),beta0, kernel%beta0_GPU)
+
+  if (ip == 1) then 
+    call reset_gpu_data(size1,kernel%corr,kernel%corr_GPU)
+  end if
+
+  call second_reduction_kernel(n1,n23,kernel%p_GPU,kernel%q_GPU,kernel%r_GPU,&
+kernel%x_GPU,kernel%z_GPU,kernel%corr_GPU, kernel%oneoeps_GPU, kernel%alpha_GPU,&
+ kernel%beta_GPU, kernel%beta0_GPU, kernel%kappa_GPU, kappa)
+
+!  call get_gpu_data(size1,p,kernel%p_GPU)
+!  call get_gpu_data(size1,q,kernel%q_GPU)
+
+  if (kernel%mpi_env%nproc > 1) &
+    call mpiallred(kappa,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+
+  alpha = beta/kappa
+  call reset_gpu_data(sizeof(alpha),alpha,kernel%alpha_GPU)
+  normr=0.d0
+
+  call third_reduction_kernel(n1,n23,kernel%p_GPU,kernel%q_GPU,kernel%r_GPU,&
+kernel%x_GPU,kernel%z_GPU,kernel%corr_GPU, kernel%oneoeps_GPU, kernel%alpha_GPU,&
+ kernel%beta_GPU, kernel%beta0_GPU, kernel%kappa_GPU, normr)
+
+         if (kernel%mpi_env%nproc > 1) &
+              call mpiallred(normr,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+  
+  call get_gpu_data(size1,z,kernel%z_GPU)
+
+  if (kernel%keepGPUmemory == 0) then
+    call cudafree(kernel%z_GPU)
+    call cudafree(kernel%r_GPU)
+    call cudafree(kernel%oneoeps_GPU)
+    call cudafree(kernel%p_GPU)
+    call cudafree(kernel%q_GPU)
+    call cudafree(kernel%x_GPU)
+    call cudafree(kernel%corr_GPU)
+    call cudafree(kernel%alpha_GPU)
+    call cudafree(kernel%beta_GPU)
+    call cudafree(kernel%beta0_GPU)
+    call cudafree(kernel%kappa_GPU)
+  end if
+
+  end if
+
+end subroutine apply_reductions
 !> calculate the integral between the array in zf and the array in rho
 !! copy the zf array in pot and sum with the array pot_ion if needed
 subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&

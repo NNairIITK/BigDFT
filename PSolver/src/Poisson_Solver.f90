@@ -167,6 +167,8 @@ module Poisson_Solver
       !! cavity discontinuity due to near-zero edens near atoms
       real(dp), dimension(:,:), pointer :: epsinnersccs
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
+      real(dp) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
+      real(dp) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
       integer, dimension(5) :: plan
       integer, dimension(3) :: geo
       !variables with computational meaning
