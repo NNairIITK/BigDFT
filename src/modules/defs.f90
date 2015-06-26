@@ -18,7 +18,7 @@ module module_defs
 
   include 'configure.inc' !< Include variables set from configure.
 
-  integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
+  integer :: verbose=2    !< Verbosity of the output, control the level of writing (normal by default)
 
   ! General precision, density and the wavefunctions types
   integer, parameter :: gp=f_double!kind(1.0d0)  !< general-type precision

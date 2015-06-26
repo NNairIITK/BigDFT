@@ -591,7 +591,7 @@ endif
 
 subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,fat,fstretch,&
            fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch,infocode)
-    use module_base, only: gp
+    use module_defs, only: gp
     use module_energyandforces
     use module_sqn
     use bigdft_run, only: run_objects, state_properties

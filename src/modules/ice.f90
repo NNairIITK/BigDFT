@@ -79,8 +79,8 @@ module ice
     
     
       penalty_ev_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp,2/),id='penalty_ev_new')
-      inv_ovrlp_matrixp_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp,ncalc/),id='inv_ovrlp_matrixp_new')
-      inv_ovrlp_matrixp_small_new = f_malloc((/inv_ovrlp_smat%smmm%nvctrp_mm,ncalc/),id='inv_ovrlp_matrixp_small_new')
+      inv_ovrlp_matrixp_new = f_malloc((/max(inv_ovrlp_smat%smmm%nvctrp,1),ncalc/),id='inv_ovrlp_matrixp_new')
+      inv_ovrlp_matrixp_small_new = f_malloc((/max(inv_ovrlp_smat%smmm%nvctrp_mm,1),ncalc/),id='inv_ovrlp_matrixp_small_new')
     
     
     !@ JUST FOR THE MOMENT.... ########################
@@ -167,7 +167,7 @@ module ice
     
     
           spin_loop: do ispin=1,ovrlp_smat%nspin
-    
+
               degree_multiplicator = real(norder_polynomial,kind=8)/ &
                                      (foe_data_get_real(foe_obj,"evhigh",ispin)-foe_data_get_real(foe_obj,"evlow",ispin))
               degree_multiplicator = min(degree_multiplicator,DEGREE_MULTIPLICATOR_MAX)
@@ -299,19 +299,21 @@ module ice
                            !!do i=1,size(inv_ovrlp_matrixp_new,1)
                            !!    write(400+iproc,*) i, inv_ovrlp_matrixp_new(i,1)
                            !!end do
-                          do icalc=1,ncalc
-                              call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, &
-                                   inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
-                                   inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
-                                   inv_ovrlp_smat%smmm%line_and_column_mm, &
-                                   inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
-                                   inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
-                                   inv_ovrlp_smat%smmm%istsegline, 'large_to_small', &
-                                   inv_ovrlp_matrixp_small_new(1,icalc), inv_ovrlp_matrixp_new(1,icalc))
-                             !!do i=1,size(inv_ovrlp_matrixp_small_new,1)
-                             !!    write(410+iproc,*) i, inv_ovrlp_matrixp_small_new(i,icalc)
-                             !!end do
-                          end do
+                          if (inv_ovrlp_smat%smmm%nvctrp>0) then
+                              do icalc=1,ncalc
+                                  call transform_sparsity_pattern(inv_ovrlp_smat%nfvctr, &
+                                       inv_ovrlp_smat%smmm%nvctrp_mm, inv_ovrlp_smat%smmm%isvctr_mm, &
+                                       inv_ovrlp_smat%nseg, inv_ovrlp_smat%keyv, inv_ovrlp_smat%keyg, &
+                                       inv_ovrlp_smat%smmm%line_and_column_mm, &
+                                       inv_ovrlp_smat%smmm%nvctrp, inv_ovrlp_smat%smmm%isvctr, &
+                                       inv_ovrlp_smat%smmm%nseg, inv_ovrlp_smat%smmm%keyv, inv_ovrlp_smat%smmm%keyg, &
+                                       inv_ovrlp_smat%smmm%istsegline, 'large_to_small', &
+                                       inv_ovrlp_matrixp_small_new(1,icalc), inv_ovrlp_matrixp_new(1,icalc))
+                                 !!do i=1,size(inv_ovrlp_matrixp_small_new,1)
+                                 !!    write(410+iproc,*) i, inv_ovrlp_matrixp_small_new(i,icalc)
+                                 !!end do
+                              end do
+                          end if
     
                            !write(*,'(a,i5,2es24.8)') 'iproc, sum(inv_ovrlp_matrixp(:,:,1:2)', (sum(inv_ovrlp_matrixp(:,:,icalc)),icalc=1,ncalc)
                           !!do i=1,inv_ovrlp_smat%smmm%nvctrp
@@ -365,7 +367,7 @@ module ice
                           !!call check_eigenvalue_spectrum(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
                           !!     0, 1.2d0, 1.d0/1.2d0, penalty_ev, anoise, .false., emergency_stop, &
                           !!     foe_obj, restart, eval_bounds_ok)
-                          call check_eigenvalue_spectrum_new(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, 1, &
+                          call check_eigenvalue_spectrum_new(nproc, inv_ovrlp_smat, ovrlp_smat, ovrlp_mat, ispin, &
                                0, 1.2d0, 1.d0/1.2d0, penalty_ev_new, anoise, .false., emergency_stop, &
                                foe_obj, restart, eval_bounds_ok)
                       end if
@@ -395,13 +397,15 @@ module ice
             
             
         
-              do icalc=1,ncalc
-                  !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp(1:,1:,icalc), &
-                  !!     inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
-                  call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
-                       SPARSE_MATMUL_SMALL, inv_ovrlp_matrixp_small_new(:,icalc), &
-                       inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
-              end do
+              !if (inv_ovrlp_smat%smmm%nvctrp>0) then
+                  do icalc=1,ncalc
+                      !!call compress_matrix_distributed(iproc, nproc, inv_ovrlp_smat, DENSE_MATMUL, inv_ovrlp_matrixp(1:,1:,icalc), &
+                      !!     inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
+                      call compress_matrix_distributed_wrapper(iproc, nproc, inv_ovrlp_smat, &
+                           SPARSE_MATMUL_SMALL, inv_ovrlp_matrixp_small_new(:,icalc), &
+                           inv_ovrlp(icalc)%matrix_compr(ilshift2+1:))
+                  end do
+              !end if
         
     
           end do spin_loop

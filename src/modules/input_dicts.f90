@@ -371,7 +371,9 @@ contains
 !!$       call MPI_BCAST(path,len(path),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
 !!$       lgt=min(len(writing_directory),len(path))
 !!$       writing_directory(1:lgt)=path(1:lgt)
-       call mpibcast(path,comm=bigdft_mpi%mpi_comm)
+       if (bigdft_mpi%nproc>1) then
+           call mpibcast(path,comm=bigdft_mpi%mpi_comm)
+       end if
        call f_strcpy(src=path,dest=writing_directory)
     end if
     ! Add trailing slash if missing.

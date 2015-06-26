@@ -959,12 +959,14 @@ contains
       end if
 
       ! Determine to which segments this corresponds
+      sparsemat%smmm%istartendseg_mm(1)=sparsemat%nseg+1
       do iseg=1,sparsemat%nseg
-          if (sparsemat%keyv(iseg)>=sparsemat%smmm%istartend_mm(1)) then
+          if (sparsemat%keyv(iseg)+sparsemat%keyg(2,1,iseg)-sparsemat%keyg(1,1,iseg)+1>=sparsemat%smmm%istartend_mm(1)) then
               sparsemat%smmm%istartendseg_mm(1)=iseg
               exit
           end if
       end do
+      sparsemat%smmm%istartendseg_mm(2)=0
       do iseg=sparsemat%nseg,1,-1
           if (sparsemat%keyv(iseg)<=sparsemat%smmm%istartend_mm(2)) then
               sparsemat%smmm%istartendseg_mm(2)=iseg
@@ -1015,6 +1017,26 @@ contains
       ! Keep the values of its own task
       sparsemat%smmm%istartend_mm_dj(1) = istartend_dj(1,iproc)
       sparsemat%smmm%istartend_mm_dj(2) = istartend_dj(2,iproc)
+
+      ! Update the segments...
+      !write(*,*) 'sparsemat%smmm%istartend_mm_dj(1)',sparsemat%smmm%istartend_mm_dj(1)
+      ii=sparsemat%nseg+1
+      do iseg=1,sparsemat%nseg
+      !write(*,*) 'sparsemat%smmm%istartend_mm_dj(1)',sparsemat%keyv(iseg), sparsemat%smmm%istartend_mm_dj(1)
+          if (sparsemat%keyv(iseg)+sparsemat%keyg(2,1,iseg)-sparsemat%keyg(1,1,iseg)+1>=sparsemat%smmm%istartend_mm_dj(1)) then
+              ii=iseg
+              exit
+          end if
+      end do
+      if (ii<sparsemat%smmm%istartendseg_mm(1)) sparsemat%smmm%istartendseg_mm(1)=ii
+      ii=0
+      do iseg=sparsemat%nseg,1,-1
+          if (sparsemat%keyv(iseg)<=sparsemat%smmm%istartend_mm_dj(2)) then
+              ii=iseg
+              exit
+          end if
+      end do
+      if (ii>sparsemat%smmm%istartendseg_mm(2)) sparsemat%smmm%istartendseg_mm(2)=ii
 
 
       call f_free(norb_par_ideal)
@@ -2030,7 +2052,7 @@ contains
       !$omp default (none) &
       !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
       !$omp shared(ivectorindex_work, ivectorindex, nseq) &
-      !$omp private(ipt, iipt, iline, icolumn, ind, jthread) &
+      !$omp private(ipt, iipt, iline, icolumn, ind, jthread,jseg,jorb) &
       !$omp firstprivate(ii, iseg_start, ithread)
       !$ ithread = omp_get_thread_num()
       do ipt=ise(1,ithread),ise(2,ithread)
@@ -2258,7 +2280,7 @@ contains
       !$omp default (none) &
       !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
       !$omp shared(indices_extract_sequential_work, indices_extract_sequential) &
-      !$omp private(ipt, iipt, iline, icolumn, ind, jj, jthread) &
+      !$omp private(ipt, iipt, iline, icolumn, ind, jj, jthread,jseg,jorb) &
       !$omp firstprivate(ii, iseg_start, ithread)
       !$ ithread = omp_get_thread_num()
       do ipt=ise(1,ithread),ise(2,ithread)
@@ -3337,7 +3359,7 @@ contains
                   isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
                   !$omp parallel default(none) &
                   !$omp shared(isegstart, isegend, smat, ind_min, ind_max) &
-                  !$omp private(iseg, ii)
+                  !$omp private(iseg, ii,jorb)
                   !$omp do reduction(min: ind_min) reduction(max: ind_max)
                   do iseg=isegstart,isegend
                       ii=smat%keyv(iseg)-1
@@ -3457,7 +3479,7 @@ contains
         ithread = 0
         !$omp parallel default(none) &
         !$omp shared(smat, in_neighborhood, ind_min, ind_max) &
-        !$omp private(iorb, iiorb, isegstart, isegend, iseg, j, jorb, korb, ind) &
+        !$omp private(iorb, iiorb, isegstart, isegend, iseg, j, jorb, korb, ind,i) &
         !$omp firstprivate(ithread)
         !$omp do reduction(min: ind_min) reduction(max: ind_max)
         do iorb=1,smat%nfvctrp
@@ -3874,11 +3896,11 @@ contains
 
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
-    subroutine bigdft_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, &
+    subroutine bigdft_to_sparsebigdft(iproc, nproc, nspin, ncol, ncolp, iscol, &
                on_which_atom, nvctr, nseg, keyg, smat)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
-      integer,intent(in) :: iproc, nproc, ncol, ncolp, iscol, nvctr, nseg
+      integer,intent(in) :: iproc, nproc, nspin, ncol, ncolp, iscol, nvctr, nseg
       integer,dimension(ncol),intent(in) :: on_which_atom
       !logical,intent(in) :: store_index
       integer,dimension(2,2,nseg),intent(in) :: keyg
@@ -3938,7 +3960,7 @@ contains
       !!    end if
       !!end do
 
-      call init_sparse_matrix(iproc, nproc, 1, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
+      call init_sparse_matrix(iproc, nproc, nspin, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
            on_which_atom, nvctr, nonzero, nvctr, nonzero, smat)
 
       collcom_dummy = comms_linear_null()
@@ -4525,7 +4547,7 @@ contains
       wli = workload_ideal
     
       call f_zero(norb_par)
-      if (norb>=nproc) then
+      if (norb>nproc) then
           workload_par = f_malloc(0.to.nproc-1,id='workload_par')
           norb_par_trial = f_malloc(0.to.nproc-1,id='norbpar_par_trial')
           tcount = 0.d0

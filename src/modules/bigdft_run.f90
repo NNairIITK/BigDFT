@@ -149,7 +149,6 @@ contains
     use module_BornMayerHugginsTosiFumi
     use module_lj
     use module_lenosky_si
-    use module_base, only: bigdft_mpi
     use yaml_output
     implicit none
     type(run_objects), intent(inout) :: runObj
@@ -244,7 +243,6 @@ contains
   end subroutine init_MM_restart_objects
 
   subroutine free_MM_restart_objects(mm_rst)
-    use module_base, only: bigdft_mpi
     use dynamic_memory
     use yaml_output
     implicit none
@@ -307,13 +305,6 @@ contains
     else if (inputpsiid .hasattr. 'LINEAR') then
        rst%version = LINEAR_VERSION
     end if
-!!$    select case (inputpsiid)
-!!$    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
-!!$         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
-!!$       rst%version = CUBIC_VERSION
-!!$    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
-!!$       rst%version = LINEAR_VERSION
-!!$    end select
   END SUBROUTINE QM_restart_objects_set_mode
 
   subroutine QM_restart_objects_set_nat(rst, nat)
@@ -640,7 +631,7 @@ contains
   end subroutine bigdft_get_rxyz
 
   !> returns the pointer to the atomic positions of the run.
-  !! it performas a shallwo copy therefore this routine is intended to
+  !! it performs a shallow copy therefore this routine is intended to
   !! provide acces to position for reading.
   !! Use at own risk to modify the value of the atomic positions.
   !! it returns nullified pointer in the case runObj is not properly
@@ -780,7 +771,7 @@ contains
     nullify(runObj%mm_rst)
   END SUBROUTINE nullify_run_objects
 
-  !>release run_objects structure as a whole
+  !> Release run_objects structure as a whole
   !! if the reference counter goes to zero, do not free
   !! the structure as other atoms and inputs may live somewhere
   !! freeing command has to be given explicitly until we are
@@ -796,8 +787,9 @@ contains
     type(run_objects), intent(inout) :: runObj
     !local variables
     integer :: count
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') then
-       call yaml_sequence_close()
+    if (associated(runObj%run_mode)) then
+      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+           call yaml_sequence_close()
     end if
 
     if (associated(runObj%rst)) then
@@ -835,7 +827,8 @@ contains
     call nullify_run_objects(runObj)
   end subroutine release_run_objects
 
-  !> Free the run_objects structure, &
+
+  !> Free the run_objects structure,
   !! if all the objects have been dereferenced
   subroutine free_run_objects(runObj)
     use module_base
@@ -844,8 +837,10 @@ contains
     use module_input_keys, only: free_input_variables
     implicit none
     type(run_objects), intent(inout) :: runObj
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
-         call yaml_sequence_close()
+    if (associated(runObj%run_mode)) then
+      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+           call yaml_sequence_close()
+    end if
 
     call dict_free(runObj%user_inputs)
     if (associated(runObj%rst)) then
@@ -867,6 +862,7 @@ contains
     call nullify_run_objects(runObj)
   END SUBROUTINE free_run_objects
 
+
   !> Parse the input dictionary and create all run_objects
   !! in particular this routine identifies the input and the atoms structure
   subroutine set_run_objects(runObj)
@@ -876,6 +872,7 @@ contains
     use module_input_dicts, only: dict_run_validate
     use module_input_keys, only: inputs_from_dict,free_input_variables
     use dynamic_memory
+    use yaml_output
     implicit none
     type(run_objects), intent(inout) :: runObj
     character(len=*), parameter :: subname = "run_objects_parse"
@@ -899,6 +896,7 @@ contains
 
     ! Regenerate inputs and atoms.
     call dict_run_validate(runObj%user_inputs)
+
     call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
 
     !associate the run_mode
@@ -1348,6 +1346,7 @@ contains
     type(state_properties), intent(inout) :: outs
     integer, intent(inout) :: infocode
     !local variables
+    logical :: write_mapping
     integer :: nat
     integer :: icc !for amber
     real(gp) :: maxdiff
@@ -1387,8 +1386,10 @@ contains
     !    the reasons for such high overhead
     !    The new document has been substituted by sequence, not to have multiple documents for FF runs
     !    However this hybrid scheme has to be tested in the case of QM/MM runs
+    !    In any case the verbosity value is used to (un)mute the output
+    write_mapping= runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0 .and. verbose > 0
     !open the document if the run_mode has not it inside
-    if (runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0) then
+    if (write_mapping) then
        call yaml_sequence(advance='no')
        call yaml_mapping_open(trim(f_str(runObj%run_mode)),flow=.true.)
        !call yaml_new_document()
@@ -1468,8 +1469,9 @@ contains
     !broadcast the state properties
     call broadcast_state_properties(outs)
 
-    if (runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0) then
+    if (write_mapping) then
        !call yaml_release_document()
+       call yaml_map('Energy',outs%energy)
        call yaml_mapping_close()
     end if
 
@@ -1494,7 +1496,6 @@ contains
     integer :: istep,policy_tmp
     type(f_enumerator) :: inputPsiId_orig
     !integer :: iat
-    real(gp) :: maxdiff
     external :: cluster
     !put a barrier for all the processes
     call mpibarrier(bigdft_mpi%mpi_comm)
