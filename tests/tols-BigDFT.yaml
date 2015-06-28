@@ -149,6 +149,7 @@ SiH4:
  maxval: 2.e-9
  Average noise forces: 2.2e-10
  Average CG stepsize in terms of betax: 1.1e-5
+ H: 1.1e-9
 
 Mn2:
  Keys to ignore:
@@ -186,7 +187,7 @@ GEOPT-LBFGS:
  Eion: 8.5e-10
  Enl: 1.33e-9
  DIIS weights: 1.1e-5
- Mg: 1.01e-9
+ Mg: 2.01e-9
  
 NaCl:
  Epsilon: 2.e-9
@@ -1410,9 +1411,8 @@ FF_LENOSKY-lbfgs:
   - WARNINGS
   - disablesym
 
-
 FF_LJ-bfgs:
-  etot: 3.1e-5
+  etot: 9.3e-5
   Keys to ignore:
   - WARNINGS
   - disablesym
@@ -1423,7 +1423,9 @@ FF_LJ-ab6md:
 
 
 FF_LENOSKY-bfgs:
-  etot: 2.4e-11
+  etot: 7.3e-11
+  maxval: 1.0e-10
+  fnrm2: 1.01e-10
   Keys to ignore:
   - WARNINGS
 
@@ -1452,10 +1454,11 @@ FF_LJ-sdcg:
   - disablesym
 
 FF_LJ-lbfgs:
-  etot: 6.8e-9
-  Energy: 4.7e-9
-  fnrm2: 1.e-8
-  maxval: 9.6e-8
+  etot: 2.11e-8
+  Forces: 1.01e-5
+  Energy: 1.48e-8
+  fnrm2: 1.01e-5
+  maxval: 1.55e-7
   Keys to ignore:
   - WARNINGS
   - disablesym
@@ -1571,7 +1574,7 @@ multipoles_OH-:
  multiplicator for the confinement: 1.7e-9
  Epot: 1.3e-10
  EH: 2.1e-10
- Ekin: 6.1e-11
+ Ekin: 7.0e-11
  EXC: 2.1e-11
  EvXC: 3.1e-11
  energy: 3.0e-11
@@ -1582,7 +1585,7 @@ multipoles_OH-:
  Atomic Forces (Ha/Bohr): 3.3e-11
  Clean forces norm (Ha/Bohr): 3.4e-11
  Raw forces norm (Ha/Bohr): 3.7e-11
- Average noise forces: 1.1e-10
+ Average noise forces: 1.01e-9
  decay length of error function: 1.1e-5
  number of corrected points: 77
  total charge correction: 4.6e-8
@@ -1595,8 +1598,8 @@ multipoles_water:
  EH: 1.1e-10
  D eF: 1.1e-8
  Epot: 1.1e-10
- ebs_check: 1.2e-11
- ebs: 1.2e-11
+ ebs_check: 2.32e-11
+ ebs: 2.32e-11
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
