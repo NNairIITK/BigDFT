@@ -1218,11 +1218,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   
   call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
 
-  !! Moved down for tests
-  !call deallocate_work_transpose(wt_philarge)
-  !call deallocate_work_transpose(wt_hpsinoprecond)
-  !call deallocate_work_transpose(wt_hphi)
-  !call deallocate_work_transpose(wt_phi)
+  ! Moved down for tests
+  call deallocate_work_transpose(wt_philarge)
+  call deallocate_work_transpose(wt_hpsinoprecond)
+  call deallocate_work_transpose(wt_hphi)
+  call deallocate_work_transpose(wt_phi)
 
 
   if (input%wf_extent_analysis) then
@@ -2172,17 +2172,17 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   if (input%loewdin_charge_analysis) then
       !call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
       !     calculate_ovrlp_half=.true., meth_overlap=0)
-      theta = f_malloc((/at%astruct%nat,tmb%orbs%norbp/),id='theta')
+      !theta = f_malloc((/at%astruct%nat,tmb%orbs%norbp/),id='theta')
       !!! This check is here to prevent inconsictencies between orbs distribution and matrix distribution, to be fixed
       !!if (tmb%orbs%norbp/=tmb%linmat%s%nfvctrp) then
       !!    call f_err_throw('tmb%orbs%norbp/=tmb%linmat%s%nfvctrp',err_name='BIGDFT_RUNTIME_ERROR')
       !!end if
-      call calculate_theta(at%astruct%nat, rxyz, size(tmb%psi), tmb%psi, tmb%collcom_sr%ndimpsi_c, &
-           tmb%orbs, tmb%lzd, theta)
-      write(*,*) 'theta',theta
+      !call calculate_theta(at%astruct%nat, rxyz, size(tmb%psi), tmb%psi, tmb%collcom_sr%ndimpsi_c, &
+      !     tmb%orbs, tmb%lzd, theta)
+      !write(*,*) 'theta',theta
       call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
-           calculate_ovrlp_half=.true., meth_overlap=norder_taylor, &
-           ntheta=tmb%orbs%norbp, istheta=tmb%orbs%isorb, theta=theta)
+           calculate_ovrlp_half=.true., meth_overlap=norder_taylor)!, &
+           !ntheta=tmb%orbs%norbp, istheta=tmb%orbs%isorb, theta=theta)
       call support_function_multipoles(iproc, tmb, at, denspot)
   end if
 

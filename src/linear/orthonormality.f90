@@ -568,7 +568,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
                else
                   ovrlp_tmp(kkorb,jjorb)=0.d0
                end if
-               !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+               !!write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
             end do
          end do
               
@@ -686,6 +686,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed, &
                                    normalize_transposed
   use matrix_operations, only: overlapPowerGeneral
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -703,7 +704,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, iorb, jorb, iat, jat, ii
+  integer :: it, istat, iall, iorb, jorb, iat, jat, ii, itype
   logical :: iout, jout
   integer,dimension(:),allocatable :: icount_norb, jcount_norb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm, tmparr
@@ -716,6 +717,20 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   call f_routine(id='orthonormalize_subset')
 
+  if (iproc==0) then
+      call yaml_sequence_open('Loewdin orthonormalization for the following orbitals')
+      do itype=1,at%astruct%ntypes
+          if (minorbs_type(itype)<=maxorbs_type(itype)) then
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('atom type',adjustl(trim(at%astruct%atomnames(itype))))
+              call yaml_map('first orbital',minorbs_type(itype))
+              call yaml_map('last orbital',maxorbs_type(itype))
+              call yaml_mapping_close()
+          end if
+      end do
+      call yaml_sequence_close()
+  end if
 
   !call nullify_sparse_matrix(inv_ovrlp_half)
   !call sparse_copy_pattern(inv_ovrlp, inv_ovrlp_half, iproc, subname)
@@ -894,6 +909,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -911,7 +927,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   logical,intent(inout) :: can_use_transposed
 
   ! Local variables
-  integer :: it, istat, iall, iorb, jorb, iat, jat, ii
+  integer :: it, istat, iall, iorb, jorb, iat, jat, ii, itype
   logical :: iout, jout
   integer,dimension(:),allocatable :: icount_norb, jcount_norb
   real(kind=8),dimension(:),allocatable :: psittemp_c, psittemp_f, norm
@@ -920,6 +936,21 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   type(matrices) :: ovrlp_
 
   call f_routine('gramschmidt_subset')
+
+  if (iproc==0) then
+      call yaml_sequence_open('Gram-Schmidt orthogonalization for the following orbitals')
+      do itype=1,at%astruct%ntypes
+          if (minorbs_type(itype)<=maxorbs_type(itype)) then
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('atom type',adjustl(trim(at%astruct%atomnames(itype))))
+              call yaml_map('first orbital',minorbs_type(itype))
+              call yaml_map('last orbital',maxorbs_type(itype))
+              call yaml_mapping_close()
+          end if
+      end do
+      call yaml_sequence_close()
+  end if
 
 
   !call nullify_sparse_matrix(inv_ovrlp_half)

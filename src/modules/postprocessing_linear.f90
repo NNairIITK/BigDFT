@@ -420,7 +420,7 @@ module postprocessing_linear
                       iiorb = iorb + istheta
                       iiorb = modulo(iiorb-1,smatl%nfvctr)+1
                       ind = matrixindex_in_compressed(smatl, iorb, iorb)
-                      write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)
+                      !write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)
                       do iat=1,atoms%astruct%nat
                           ind = ind + ishift
                           charge_per_atom(iat) = charge_per_atom(iat) + theta(iat,iorb)*weight_matrix_compr(ind)
@@ -435,6 +435,7 @@ module postprocessing_linear
                       iat=smats%on_which_atom(iiorb)
                       ind = matrixindex_in_compressed(smatl, iorb, iorb)
                       ind = ind + ishift
+                      !write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)
                       charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix_compr(ind)
                   end do
               end do
@@ -876,9 +877,9 @@ module postprocessing_linear
           end do
       end do
 
-      call yaml_map('rxyz_center',rxyz_center)
-      call yaml_map('charge_center_elec',charge_center_elec)
-      call yaml_map('qtot',qtot)
+      !call yaml_map('rxyz_center',rxyz_center)
+      !call yaml_map('charge_center_elec',charge_center_elec)
+      !call yaml_map('qtot',qtot)
     
       ! Dipole of the center
       dipole_center(1) = -qtot*rxyz_center(1)
@@ -901,8 +902,8 @@ module postprocessing_linear
       end do
     
       ! Net dipole and quadropole
-      call yaml_map('dipole_el',dipole_el)
-      call yaml_map('dipole_center',dipole_center)
+      !call yaml_map('dipole_el',dipole_el)
+      !call yaml_map('dipole_center',dipole_center)
       dipole_net = dipole_el + dipole_center
       quadropole_net = quadropole_el + quadropole_center
     
