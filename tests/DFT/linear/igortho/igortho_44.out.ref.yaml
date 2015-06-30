@@ -587,14 +587,6 @@
    BC                                  : Free
    Box                                 :  [  81,  83,  137 ]
    MPI tasks                           :  4
- Potential from multipoles:
-   number of multipole centers         :  0
-   sigma of the Gaussians              :  [  1.5,  1.2,  0.6 ]
-   Values:
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  81,  83,  137 ]
-   MPI tasks                           :  4
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors

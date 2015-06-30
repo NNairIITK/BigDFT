@@ -1647,7 +1647,7 @@ igortho_19:
 
 igortho_44:
  Atomic Forces (Ha/Bohr): 2.6e-7
- Average noise forces: 7.2e-9
+ Average noise forces: 7.7e-9
  Clean forces norm (Ha/Bohr): 5.0e-7
  Energy (Hartree): 9.3e-10
  Raw forces norm (Ha/Bohr): 5.0e-7
@@ -1660,7 +1660,7 @@ igortho_44:
  Tr(K): 4.0e-08
  charge diff: 3.7e-08
  eF: 5.9e-06
- D Tr: 2.7e-8
+ D Tr: 2.9e-8
  D eF: 1.6e-6
  diff: 4.6e-7
  ebs: 2.8e-04
@@ -1673,7 +1673,7 @@ igortho_44:
  Multipole coefficients: 4.2e-7
  number of corrected points: 5
  net quadropole: 6.0e-5
- net dipole: 2.0e-8
+ net dipole: 3.0e-8
  D: 2.1e-8
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
