@@ -385,7 +385,7 @@ module postprocessing_linear
           inv_ovrlp(1) = matrices_null()
           inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
 
-          call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
+          call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), 8, &
                imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
                max_error=max_error, mean_error=mean_error)
