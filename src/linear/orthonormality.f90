@@ -671,7 +671,7 @@ subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orb
 end subroutine overlap_power_minus_one_half_parallel
 
 !> Orthonormalize a subset of orbitals
-subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+subroutine orthonormalize_subset(iproc, nproc, verbosity, methTransformOverlap, npsidim_orbs, &
            orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
            lphi, psit_c, psit_f, can_use_transposed)
   use module_base
@@ -690,7 +690,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+  integer,intent(in) :: iproc,nproc,verbosity,methTransformOverlap,npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(atoms_data),intent(in) :: at
   integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
@@ -717,7 +717,7 @@ subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orb
 
   call f_routine(id='orthonormalize_subset')
 
-  if (iproc==0) then
+  if (iproc==0 .and. verbosity>1) then
       call yaml_sequence_open('Loewdin orthonormalization for the following orbitals')
       do itype=1,at%astruct%ntypes
           if (minorbs_type(itype)<=maxorbs_type(itype)) then
@@ -897,7 +897,7 @@ end subroutine orthonormalize_subset
 
 
 
-subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+subroutine gramschmidt_subset(iproc, nproc, verbosity, methTransformOverlap, npsidim_orbs, &
            orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
            lphi, psit_c, psit_f, can_use_transposed)
   use module_base
@@ -913,7 +913,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+  integer,intent(in) :: iproc,nproc,verbosity,methTransformOverlap,npsidim_orbs
   type(orbitals_data),intent(in) :: orbs
   type(atoms_data),intent(in) :: at
   integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
@@ -937,7 +937,7 @@ subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, 
 
   call f_routine('gramschmidt_subset')
 
-  if (iproc==0) then
+  if (iproc==0 .and. verbosity>1) then
       call yaml_sequence_open('Gram-Schmidt orthogonalization for the following orbitals')
       do itype=1,at%astruct%ntypes
           if (minorbs_type(itype)<=maxorbs_type(itype)) then
@@ -1582,3 +1582,93 @@ subroutine check_taylor_order(error, max_error, order_taylor)
   end if
 
 end subroutine check_taylor_order
+
+
+
+!> Orthogonalization where the "additional" support functions are handled separately
+subroutine iterative_orthonormalization(iproc, nproc, verbosity, iorder, at, nspin, sf_per_type, tmb)
+  use module_base
+  use module_interfaces, only: gramschmidt_subset, orthonormalize_subset
+  use module_types, only: DFT_wavefunction
+  use module_atoms, only: atoms_data
+  use ao_inguess, only: aoig_data, aoig_data_null, aoig_set
+  use yaml_output
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc, verbosity, iorder
+  type(atoms_data),intent(in) :: at
+  integer,intent(in) :: nspin
+  integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type !< number of support functions per atom type
+  type(DFT_wavefunction),intent(inout) :: tmb
+
+  ! Local variables
+  integer,dimension(:),allocatable :: minorbs_type, maxorbs_type
+  logical,dimension(:),allocatable :: type_covered
+  integer :: iortho, itype, jj, iat, inl
+  logical :: finished
+  integer, dimension(:,:), allocatable :: nl_default
+  type(aoig_data),dimension(:),allocatable :: aoig_default
+
+  allocate(aoig_default(at%astruct%nat))
+  do iat=1,at%astruct%nat
+      aoig_default(iat)=aoig_data_null()
+  end do
+  nl_default=f_malloc((/0.to.3,1.to.at%astruct%nat/),id='nl_default')
+  do iat=1,at%astruct%nat
+     itype = at%astruct%iatype(iat)
+     aoig_default(iat) = aoig_set(at%nzatom(itype), at%nelpsp(itype), &
+                         at%astruct%input_polarization(iat), nspin)
+     nl_default(:,iat)=aoig_default(iat)%nl(:)
+  end do
+  deallocate(aoig_default)
+
+  if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
+  maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
+  minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
+  type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
+  minorbs_type(1:at%astruct%ntypes)=0
+  iortho=0
+  ortho_loop: do
+      finished=.true.
+      type_covered=.false.
+      do iat=1,at%astruct%nat
+          itype=at%astruct%iatype(iat)
+          if (type_covered(itype)) cycle
+          type_covered(itype)=.true.
+          jj=nl_default(0,iat)+3*nl_default(1,iat)+5*nl_default(2,iat)+7*nl_default(3,iat)
+          maxorbs_type(itype)=jj
+          !should not enter in the conditional below due to the raise of the exception above
+          if (jj<sf_per_type(at%astruct%iatype(iat))) then
+              finished=.false.
+              increase_count: do inl=1,4
+                 if (nl_default(inl,iat)==0) then
+                    nl_default(inl,iat)=1
+                    !call f_err_throw('InputguessLinear: Should not be here',&
+                    !     err_name='BIGDFT_RUNTIME_ERROR')
+                    exit increase_count
+                 end if
+              end do increase_count
+          end if
+      end do
+      if (iortho>0) then
+          call gramschmidt_subset(iproc, nproc, verbosity, iorder, tmb%npsidim_orbs, &
+               tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+               tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+               tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+      end if
+      call orthonormalize_subset(iproc, nproc, verbosity, iorder, tmb%npsidim_orbs, &                                  
+           tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+           tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+           tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+      if (finished) exit ortho_loop
+      iortho=iortho+1
+      minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
+  end do ortho_loop
+
+  call f_free(maxorbs_type)
+  call f_free(minorbs_type)
+  call f_free(type_covered)
+  call f_free(nl_default)
+
+end subroutine iterative_orthonormalization

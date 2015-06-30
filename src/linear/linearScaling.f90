@@ -589,7 +589,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
            if (input%lin%constrained_dft) then
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-                  info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+                  info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs,&
+                  input%lin%iterative_orthogonalization,input%lin%norbsPerType,&
                   input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                   nit_basis,&
                   ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&
@@ -602,7 +603,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                   cdft, input%frag, ref_frags)
            else
               call getLocalizedBasis(iproc,nproc,at,KSwfn%orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-                  info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
+                  info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs,&
+                  input%lin%iterative_orthogonalization,input%lin%norbsPerType,&
                   input%lin%nItPrecond,target_function,input%lin%correctionOrthoconstraint,&
                   nit_basis,&
                   ratio_deltas,orthonormalization_on,input%lin%extra_states,itout,conv_crit_TMB,input%experimental_mode,&

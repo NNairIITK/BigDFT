@@ -1419,7 +1419,7 @@ module module_interfaces
       END SUBROUTINE allocateRhoPot
 
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-          fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
+              fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,do_iterative_orthogonalization,sf_per_type,&
           nit_precond,target_function,&
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
@@ -1454,6 +1454,8 @@ module module_interfaces
         type(DFT_wavefunction),target,intent(inout) :: tmb
         type(SIC_data) :: SIC !<parameters for the SIC methods
         type(energy_terms),intent(in) :: energs_base
+        logical,intent(in) :: do_iterative_orthogonalization
+        integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type
         integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
         real(kind=8),intent(out) :: ratio_deltas
         logical, intent(inout) :: ortho_on
@@ -2435,7 +2437,7 @@ module module_interfaces
          logical,intent(in) :: experimental_mode
        end subroutine improveOrbitals
 
-       subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+       subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_orthonormalization, sf_per_type, &
                   lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
                   experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
          use module_base
@@ -2446,6 +2448,9 @@ module module_interfaces
          real(kind=8),intent(in) :: max_inversion_error
          type(localizedDIISParameters),intent(inout):: ldiis
          type(DFT_wavefunction),target,intent(inout):: tmb
+         type(atoms_data),intent(in) :: at
+         logical,intent(in) :: do_iterative_orthonormalization
+         integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type 
          real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lphiold
          real(8),intent(in):: trH, meanAlpha, alpha_max
          real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
@@ -3220,14 +3225,14 @@ module module_interfaces
           integer,intent(inout) :: ib(2,nfl2:nfu2,nfl3:nfu3)
         end subroutine squares_1d
 
-        subroutine orthonormalize_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+        subroutine orthonormalize_subset(iproc, nproc, verbosity, methTransformOverlap, npsidim_orbs, &
                    orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
                    lphi, psit_c, psit_f, can_use_transposed)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
-          integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+          integer,intent(in) :: iproc,nproc,verbosity,methTransformOverlap,npsidim_orbs
           type(orbitals_data),intent(in) :: orbs
           type(atoms_data),intent(in) :: at
           integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
@@ -3241,14 +3246,14 @@ module module_interfaces
           logical,intent(inout) :: can_use_transposed
         end subroutine orthonormalize_subset
 
-        subroutine gramschmidt_subset(iproc, nproc, methTransformOverlap, npsidim_orbs, &
+        subroutine gramschmidt_subset(iproc, nproc, verbosity, methTransformOverlap, npsidim_orbs, &
                    orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
                    lphi, psit_c, psit_f, can_use_transposed)
           use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
-          integer,intent(in) :: iproc,nproc,methTransformOverlap,npsidim_orbs
+          integer,intent(in) :: iproc,nproc,verbosity,methTransformOverlap,npsidim_orbs
           type(orbitals_data),intent(in) :: orbs
           type(atoms_data),intent(in) :: at
           integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
@@ -3745,6 +3750,19 @@ module module_interfaces
           real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
           type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
         end subroutine write_orbital_density
+
+        subroutine iterative_orthonormalization(iproc, nproc, verbosity, iorder, at, nspin, sf_per_type, tmb)
+          use module_base
+          use module_types, only: DFT_wavefunction
+          use module_atoms, only: atoms_data
+          use ao_inguess, only: aoig_data, aoig_data_null, aoig_set
+          implicit none
+          integer,intent(in) :: iproc, nproc, verbosity, iorder
+          type(atoms_data),intent(in) :: at
+          integer,intent(in) :: nspin
+          integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type !< number of support functions per atom type
+          type(DFT_wavefunction),intent(inout) :: tmb
+        end subroutine iterative_orthonormalization
 
   end interface
 END MODULE module_interfaces

@@ -803,7 +803,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 end subroutine calculate_residue_ks
 
 
-subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
+subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_orthonormalization, sf_per_type, &
            lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
            experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
   use module_base
@@ -818,6 +818,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   real(kind=8),intent(in) :: max_inversion_error
   type(localizedDIISParameters), intent(inout) :: ldiis
   type(DFT_wavefunction), target,intent(inout) :: tmb
+  type(atoms_data),intent(in) :: at
+  logical,intent(in) :: do_iterative_orthonormalization
+  integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type 
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: lphiold
   real(kind=8), intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha, alphaDIIS
@@ -883,9 +886,13 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
           end do 
       end if
 
-      call orthonormalizeLocalized(iproc, nproc, order_taylor, max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-           tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-           tmb%can_use_transposed)
+      if (do_iterative_orthonormalization) then
+          call iterative_orthonormalization(iproc, nproc, 1, order_taylor, at, tmb%linmat%s%nspin, sf_per_type, tmb)
+      else
+          call orthonormalizeLocalized(iproc, nproc, order_taylor, max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+               tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+               tmb%can_use_transposed)
+       end if
       if (iproc == 0) then
           call yaml_map('Orthogonalization',.true.)
       end if

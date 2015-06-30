@@ -570,7 +570,7 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-    fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
+        fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,do_iterative_orthogonalization,sf_per_type,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
@@ -625,6 +625,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(DFT_wavefunction),target,intent(inout) :: tmb
   type(SIC_data) :: SIC !<parameters for the SIC methods
   type(energy_terms),intent(in) :: energs_base
+  logical,intent(in) :: do_iterative_orthogonalization
+  integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
   real(kind=8),intent(out) :: ratio_deltas
   logical, intent(inout) :: ortho_on
@@ -1225,7 +1227,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (ldiis%isx>0) then
           ldiis%mis=mod(ldiis%is,ldiis%isx)+1 !to store the energy at the correct location in the history
       end if
-      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_orthogonalization, sf_per_type, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
            experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
 
