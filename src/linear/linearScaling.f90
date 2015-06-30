@@ -2181,7 +2181,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !     tmb%orbs, tmb%lzd, theta)
       !write(*,*) 'theta',theta
       call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
-           calculate_ovrlp_half=.true., meth_overlap=norder_taylor)!, &
+           calculate_ovrlp_half=.true., meth_overlap=norder_taylor, blocksize=tmb%orthpar%blocksize_pdsyev)!, &
            !ntheta=tmb%orbs%norbp, istheta=tmb%orbs%isorb, theta=theta)
       call support_function_multipoles(iproc, tmb, at, denspot)
   end if

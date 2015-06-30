@@ -15,7 +15,7 @@ module postprocessing_linear
   contains
 
     subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot, &
-               calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap, &
+               calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,blocksize,&
                ntheta, istheta, theta)
       use module_base
       use module_types
@@ -31,7 +31,7 @@ module postprocessing_linear
       use matrix_operations, only: overlapPowerGeneral
       use yaml_output
       implicit none
-      integer,intent(in) :: iproc
+      integer,intent(in) :: iproc, blocksize
       type(dft_wavefunction),intent(inout) :: tmb
       type(atoms_data),intent(in) :: atoms
       type(DFT_local_fields), intent(inout) :: denspot
@@ -132,14 +132,14 @@ module postprocessing_linear
           call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
                tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
                tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
-               meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+               meth_overlap, blocksize, tmb%linmat%s, tmb%linmat%l, atoms, &
                tmb%linmat%kernel_, tmb%linmat%ovrlp_, &
                ntheta=ntheta, istheta=istheta, theta=theta)
       else
           call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
                tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
                tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
-               meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+               meth_overlap, blocksize, tmb%linmat%s, tmb%linmat%l, atoms, &
                tmb%linmat%kernel_, tmb%linmat%ovrlp_)
       end if
     
@@ -254,7 +254,7 @@ module postprocessing_linear
 
 
     subroutine loewdin_charge_analysis_core(iproc, nproc, norb, norbp, isorb, &
-               norb_par, isorb_par, meth_overlap, smats, smatl, atoms, kernel, ovrlp, &
+            norb_par, isorb_par, meth_overlap, blocksize, smats, smatl, atoms, kernel, ovrlp, &
                ntheta, istheta, theta)
       use module_base
       use module_types
@@ -268,7 +268,7 @@ module postprocessing_linear
       use yaml_output
       implicit none
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, norb, norbp, isorb, meth_overlap
+      integer,intent(in) :: iproc, nproc, norb, norbp, isorb, meth_overlap, blocksize
       integer,dimension(0:nproc-1),intent(in) :: norb_par, isorb_par
       type(sparse_matrix),intent(inout) :: smats, smatl
       type(atoms_data),intent(in) :: atoms
@@ -385,7 +385,7 @@ module postprocessing_linear
           inv_ovrlp(1) = matrices_null()
           inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
 
-          call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), 8, &
+          call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), blocksize, &
                imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
                ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
                max_error=max_error, mean_error=mean_error)

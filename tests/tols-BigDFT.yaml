@@ -1301,11 +1301,11 @@ O2spin_foe:
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 1.5e-5
  Average noise forces: 2.4e-5
- Clean forces norm (Ha/Bohr): 8.9e-5
- Raw forces norm (Ha/Bohr): 8.9e-5
+ Clean forces norm (Ha/Bohr): 9.3e-5
+ Raw forces norm (Ha/Bohr): 9.3e-5
  Electric Dipole Moment (AU): 2.4e-5
  Electric Dipole Moment (Debye): 2.4e-5
- eBS: 7.1e-6
+ eBS: 7.6e-6
  fnrm: 1.1e-5
  EH: 1.3e-5
  EXC: 5.6e-6
@@ -1314,8 +1314,8 @@ O2spin_dirmin:
  Epot: 1.56e-5
  EvXC: 6.0e-6
  energydiff: 6.0e-6
- energy: 1.5e-6
- Energy (Hartree): 1.5e-6
+ energy: 1.6e-6
+ Energy (Hartree): 1.6e-6
  Omega: 6.1e-6
  D: 1.1e-4
  DIIS weights: 3.9
@@ -1611,14 +1611,14 @@ dev.ref.yaml:
   
 igortho_19:
  Atomic Forces (Ha/Bohr): 5.3e-7
- Clean forces norm (Ha/Bohr): 1.5e-7
- Raw forces norm (Ha/Bohr): 2.5e-7
- net quadropole: 1.1e-6
+ Clean forces norm (Ha/Bohr): 2.1e-7
+ Raw forces norm (Ha/Bohr): 3.6e-7
+ net quadropole: 2.1e-6
  net dipole: 1.1e-6
  Energy (Hartree): 8.2e-10
  Multipole coefficients: 1.1e-6
- Loewdin charge analysis (charge / net charge): 2.8e-7
- Average noise forces: 5.4e-7
+ Loewdin charge analysis (charge / net charge): 4.1e-7
+ Average noise forces: 7.8e-7
  eF: 1.9e-5
  EXC: 1.5e-6
  Epot: 2.1e-5
@@ -1657,23 +1657,23 @@ igortho_44:
  EvXC: 1.4e-5
  Total charge: 6.7e-09
  guess for new ef: 5.9e-06
- Tr(K): 4.0e-08
- charge diff: 3.7e-08
+ Tr(K): 1.7e-07
+ charge diff: 1.7e-07
  eF: 5.9e-06
- D Tr: 2.7e-8
+ D Tr: 1.7e-7
  D eF: 1.6e-6
  diff: 4.6e-7
  ebs: 2.8e-04
  ebs_check: 2.8e-04
  relative diff: 3.2e-10
  trace(KS): 6.8e-09
- energy: 8.5e-08
+ energy: 4.1e-07
  Omega: 8.8e-11
  Loewdin charge analysis (charge / net charge): 4.1e-7
  Multipole coefficients: 4.2e-7
- number of corrected points: 5
+ number of corrected points: 8
  net quadropole: 6.0e-5
- net dipole: 2.0e-8
+ net dipole: 1.1e-7
  D: 2.1e-8
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
@@ -1683,7 +1683,7 @@ igortho_94:
  Atomic Forces (Ha/Bohr): 2.6e-5
  net quadropole: 1.1e-5
  net dipole: 2.1e-6
- Energy (Hartree): 1.9e-9
+ Energy (Hartree): 2.1e-9
  Multipole coefficients: 7.1e-10
  Total charge: 2.7e-9
  Clean forces norm (Ha/Bohr): 3.4e-5
