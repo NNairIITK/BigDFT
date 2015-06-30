@@ -1646,35 +1646,38 @@ igortho_19:
  multiplicator for the confinement: 1.8e-11
 
 igortho_44:
- Atomic Forces (Ha/Bohr): 2.6e-7
- Average noise forces: 7.7e-9
- Clean forces norm (Ha/Bohr): 5.0e-7
- Energy (Hartree): 9.3e-10
- Raw forces norm (Ha/Bohr): 5.0e-7
+ Atomic Forces (Ha/Bohr): 3.6e-7
+ Average noise forces: 1.2e-8
+ Clean forces norm (Ha/Bohr): 5.3e-7
+ Energy (Hartree): 1.6e-9
+ Raw forces norm (Ha/Bohr): 5.2e-7
  EH: 2.8e-4
  EXC: 1.3e-5
  Epot: 5.5e-4
  EvXC: 1.6e-5
+ Enl: 2.1e-8
+ Ekin: 1.0e-9
  Total charge: 6.7e-09
- guess for new ef: 5.9e-06
+ guess for new ef: 6.3e-06
  Tr(K): 2.7e-07
  charge diff: 1.7e-07
- eF: 5.9e-06
+ eF: 6.3e-06
  D Tr: 2.6e-7
- D eF: 1.8e-6
+ D eF: 2.7e-6
  diff: 4.6e-7
  ebs: 2.8e-04
  ebs_check: 2.8e-04
  relative diff: 3.2e-10
  trace(KS): 6.8e-09
  energy: 6.6e-07
- Omega: 8.8e-11
- Loewdin charge analysis (charge / net charge): 4.1e-7
- Multipole coefficients: 4.2e-7
+ Omega: 8.9e-11
+ Loewdin charge analysis (charge / net charge): 4.9e-7
+ Multipole coefficients: 5.9e-7
  number of corrected points: 8
  net quadropole: 6.0e-5
  net dipole: 1.1e-7
  D: 2.1e-8
+ delta: 1.1e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1695,7 +1698,7 @@ igortho_94:
  Enl: 1.4e-8
  Epot: 6.2e-4
  EvXC: 4.4e-5
- total charge correction: 1.3e-8
+ total charge correction: 2.9e-8
  guess for new ef: 1.3e-5
  Tr(K): 2.1e-8
  charge diff: 2.1e-8
