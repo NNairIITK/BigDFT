@@ -21,6 +21,17 @@
 
 #define TILE_DIM  8
 
+
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
 // synchronize blocks
 extern "C" void synchronize_() {
  
@@ -1182,45 +1193,48 @@ void reduce_step(int s, int threads, int blocks, int reduceOnly,  Real* p_GPU, R
         switch (threads)
         {
             case 512:
-                reduce_kernel<512, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<512, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 256:
-                reduce_kernel<256, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<256, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 128:
-                reduce_kernel<128, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<128, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 64:
-                reduce_kernel<64, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<64, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 32:
-                reduce_kernel<32, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<32, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 16:
-                reduce_kernel<16, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<16, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  8:
-                reduce_kernel<8, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<8, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  4:
-                reduce_kernel<4, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<4, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  2:
-                reduce_kernel<2, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<2, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  1:
-                reduce_kernel<1, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<1, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
         }
     }
 
-  cudaError_t error = cudaGetLastError();
-  if(error != cudaSuccess)
-  {
-    // print the CUDA error message and exit
-    printf("CUDA error in kernel : %s", cudaGetErrorString(error));
-exit(0);
-  }
+gpuErrchk( cudaPeekAtLastError() );
+gpuErrchk( cudaDeviceSynchronize() );
+
+//  cudaError_t error = cudaGetLastError();
+//  if(error != cudaSuccess)
+//  {
+//    // print the CUDA error message and exit
+//    printf("CUDA error in kernel : %s", cudaGetErrorString(error));
+//exit(0);
+//  }
 }
 
 unsigned int nextPow2(unsigned int x)
@@ -1279,6 +1293,7 @@ void apply_reduction(int n,
   if( cudaGetLastError() != cudaSuccess)
       printf("allocate error\n");
     //first reduction
+    cudaDeviceSynchronize();
     reduce_step<op1, op2>(n, threads, blocks, 0,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
   
   if( cudaGetLastError() != cudaSuccess)
@@ -1305,6 +1320,7 @@ void apply_reduction(int n,
             printf("result during reduction kernel\n");
         s = (s + (threads*2-1)) / (threads*2);
     }
+        cudaDeviceSynchronize();
   //TODO: move result copy to user code ?
   cudaMemcpy(result, d_odata, sizeof(Real), cudaMemcpyDeviceToHost);
   if( cudaGetLastError() != cudaSuccess)
