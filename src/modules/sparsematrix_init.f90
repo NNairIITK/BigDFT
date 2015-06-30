@@ -2052,7 +2052,7 @@ contains
       !$omp default (none) &
       !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
       !$omp shared(ivectorindex_work, ivectorindex, nseq) &
-      !$omp private(ipt, iipt, iline, icolumn, ind, jthread) &
+      !$omp private(ipt, iipt, iline, icolumn, ind, jthread,jseg,jorb) &
       !$omp firstprivate(ii, iseg_start, ithread)
       !$ ithread = omp_get_thread_num()
       do ipt=ise(1,ithread),ise(2,ithread)
@@ -2280,7 +2280,7 @@ contains
       !$omp default (none) &
       !$omp shared(ise, ispt, nseg, keyv, keyg, smat, istsegline, iiarr, nthread) &
       !$omp shared(indices_extract_sequential_work, indices_extract_sequential) &
-      !$omp private(ipt, iipt, iline, icolumn, ind, jj, jthread) &
+      !$omp private(ipt, iipt, iline, icolumn, ind, jj, jthread,jseg,jorb) &
       !$omp firstprivate(ii, iseg_start, ithread)
       !$ ithread = omp_get_thread_num()
       do ipt=ise(1,ithread),ise(2,ithread)
@@ -3359,7 +3359,7 @@ contains
                   isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
                   !$omp parallel default(none) &
                   !$omp shared(isegstart, isegend, smat, ind_min, ind_max) &
-                  !$omp private(iseg, ii)
+                  !$omp private(iseg, ii,jorb)
                   !$omp do reduction(min: ind_min) reduction(max: ind_max)
                   do iseg=isegstart,isegend
                       ii=smat%keyv(iseg)-1
@@ -3479,7 +3479,7 @@ contains
         ithread = 0
         !$omp parallel default(none) &
         !$omp shared(smat, in_neighborhood, ind_min, ind_max) &
-        !$omp private(iorb, iiorb, isegstart, isegend, iseg, j, jorb, korb, ind) &
+        !$omp private(iorb, iiorb, isegstart, isegend, iseg, j, jorb, korb, ind,i) &
         !$omp firstprivate(ithread)
         !$omp do reduction(min: ind_min) reduction(max: ind_max)
         do iorb=1,smat%nfvctrp

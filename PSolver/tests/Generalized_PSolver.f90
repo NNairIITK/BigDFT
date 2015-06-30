@@ -23,6 +23,7 @@ program GPS_3D
    ! To set 1 for analytical epsilon, 2 for analytical electron dependence,
    ! 3 for real electron density from cube file, 4 for rigid cavity.
    integer :: SetEps! = 1!3 
+   logical :: usegpu
 
    real(kind=8), parameter :: acell = 10.d0
    real(kind=8), parameter :: rad_cav = 1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
@@ -52,7 +53,7 @@ program GPS_3D
 
    ! Now start modification for check.
    real(kind=8), dimension(:,:,:,:,:), allocatable :: dens_check,pot_check
-   integer :: i_check,unt
+   integer :: i_check,unt,igpu
    ! To set 1 for normal run, 3 for check V[\rho,\epsilon] + V[\rho_ion,epsilon] is = to V[\rho + \rho_ion, epsilon]
    integer, parameter :: n_check = 1 
 
@@ -88,7 +89,12 @@ program GPS_3D
 !!$giu
    geocode=options//'geocode'
    SetEps =options//'seteps'
+   usegpu = options // 'accel'
    call dict_free(options)
+
+
+   igpu=0
+   if (usegpu) igpu=1
 
    n01=ndims(1)
    n02=ndims(2)
@@ -250,11 +256,10 @@ program GPS_3D
 !   corr=0.d0
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
-   call SetInitDensPot(n01,n02,n03,nspden,iproc,nat,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,&
-        a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz)
-        !a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
-!   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,acell,a_gauss,a2,&
-!   hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
+   call SetInitDensPot(n01,n02,n03,nspden,iproc,nat,eps,dlogeps,sigmaeps,SetEps,&
+        erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz)
+!   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,&
+!   acell,a_gauss,a2,hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
 
 !   eps=1.d0
 !   corr=0.d0
@@ -323,7 +328,7 @@ geocodeprova='F'
 !  end if
 
   !new method
-  pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,alg=PSol)
+  pkernel=pkernel_init(.true.,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,alg=PSol)
   call pkernel_set(pkernel,verbose=.true.)
 
   if ( trim(PSol)=='PCG') then
@@ -380,15 +385,12 @@ geocodeprova='F'
   if (any(SetEps == [2,3,4])) then
    call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
   else if (any(SetEps == [5])) then
-  call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,&
-   SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode)
+  call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
+       eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode)
 !  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
-!  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,&
-!  nord,pkernel,potential,oneoeps,dlogeps,multp,offset)
   else if (any(SetEps == [6])) then
    call Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp)
-!   call Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
-!   eps,6,nord,pkernel,potential,corr,oneosqrteps,multp)
+!   call Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,6,nord,pkernel,potential,corr,oneosqrteps,multp)
   end if
 
   pot_check(:,:,:,:,i_check) = rhopot(:,:,:,:)
@@ -586,6 +588,10 @@ subroutine PS_Check_options(parser)
                 '2' .is. 'analytical electron dependence',&
                 '3' .is. 'real electron density from cube file (need electroninc_density.cube)')))
 
+  call yaml_cl_parse_option(parser,'accel','No',&
+       'GPU Acceleration','a',&
+       dict_new('Usage' .is. &
+       'Boolean, set the GPU acceleration'))
 
 end subroutine PS_Check_options
 
@@ -705,8 +711,8 @@ pure function PB_charge(x) result(ions_conc)
 
 end function PB_charge
 
-subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,nord,&
-     pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,&
+     hx,hy,hz,b,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
   use yaml_output
   use Poisson_Solver
   use wrapper_linalg
@@ -903,9 +909,8 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
 
 end subroutine PolarizationIteration
 
-subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,&
-     SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset,geocode)
-     !SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset)
+subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
+     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset,geocode)
 
   use Poisson_Solver
   use yaml_output
@@ -1149,8 +1154,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
         qval=q(i1,i2,i3,isp)
         rval=r(i1,i2,i3,isp)
         pval = zeta+(beta/beta0)*pval
-        ! Additional contribution to the Generalized Poisson operator
-        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta)
+        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
                                                                           ! for the Poisson-Boltzmann solution.
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*zeta)
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta*dcosh(multp*x(i1,i2,i3,isp))
@@ -1586,8 +1590,8 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
 
 end subroutine Poisson_Boltzmann
 
-subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,&
-     SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp)
+subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
+     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp)
 
   use Poisson_Solver
   use yaml_output
@@ -2088,7 +2092,7 @@ subroutine FluxSurface(n01,n02,n03,nspden,hx,hy,hz,x,acell,eps,nord)
 
   pi = 4.d0*datan(1.d0)
 
-   call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+   call fssnord3DmatNabla("S",n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
 
      flux=0.d0
       isp=1
@@ -2226,7 +2230,7 @@ subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
   dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
   deps=f_malloc([n01,n02,n03,3],id='deps')
 
-  call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+  call fssnord3DmatNabla("F",n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
 
       isp=1
       do i3=1,n03
@@ -2239,7 +2243,7 @@ subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
        end do
       end do
 
-   call fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
+   call fssnord3DmatDiv("F",n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
 
      i3=1!n03/2
      do i2=1,n02
@@ -4101,8 +4105,8 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,&
     call SetEledens(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,SetEps,edens,nabla_edens,ddt_edens)
    else if (SetEps.eq.3) then
     edens(:,:,:,:) = rhoele(:,:,:,:)
-    call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,edens,nabla_edens,nord,acell)
-    call fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,nabla_edens,ddt_edens,nord,acell)
+    call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,edens,nabla_edens,nord,acell)
+    call fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,nabla_edens,ddt_edens,nord,acell)
    end if
 
 !   r2=(rad_cav/0.52917721092d0)**2

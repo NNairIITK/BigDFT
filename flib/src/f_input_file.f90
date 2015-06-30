@@ -117,6 +117,7 @@ contains
              iter => dict_iter(dict_tmp2)
              do while(associated(iter))
                 call dict_update(dict,imports//dict_value(iter))
+                if (COMMENT .in. dict) call dict_remove(dict,COMMENT)
                 iter => dict_next(iter)
              end do
           else if (dict_size(dict_tmp2) > 0 ) then
@@ -130,7 +131,6 @@ contains
           call dict_free(dict_tmp)
        end if
     end if
-    
     localcheck=.true.
     dict_tmp => dict_iter(inputdef)
     do while (associated(dict_tmp))
@@ -587,6 +587,7 @@ contains
                 !verify that no parameters correspond to default values
                 call minimal_category(inputdef//category0,dict_tmp,min_cat)
                 if (associated(min_cat)) then
+                   if (.not. associated(minimal)) call dict_init(minimal)
                    call set(minimal//category0//category,min_cat)
                 end if
              end if
@@ -600,8 +601,10 @@ contains
     dict_tmp => dict_iter(as_is)
     do while(associated(dict_tmp))
        category=dict_value(dict_tmp)
-       if (category .in. dict) &
-            call dict_copy(minimal//category,dict//category)
+       if (category .in. dict) then
+          if (.not. associated(minimal)) call dict_init(minimal)
+          call dict_copy(minimal//category,dict//category)
+       end if
        dict_tmp => dict_next(dict_tmp)
     end do
 

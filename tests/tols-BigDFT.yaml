@@ -149,6 +149,7 @@ SiH4:
  maxval: 2.e-9
  Average noise forces: 2.2e-10
  Average CG stepsize in terms of betax: 1.1e-5
+ H: 1.1e-9
 
 Mn2:
  Keys to ignore:
@@ -186,7 +187,7 @@ GEOPT-LBFGS:
  Eion: 8.5e-10
  Enl: 1.33e-9
  DIIS weights: 1.1e-5
- Mg: 1.01e-9
+ Mg: 2.01e-9
  
 NaCl:
  Epsilon: 2.e-9
@@ -200,7 +201,7 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
- Positions: 4.31e-8
+ Positions: 2.0e-7
  Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
  Average noise forces: 6.2e-8
@@ -282,7 +283,7 @@ test.minhop.ref.yaml:
  Orbitals: 6.1e-9
  Positions: 1.1e-9
  curv: 5.51e-11
- fd2: 2.7e-10
+ fd2: 2.76e-10
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -306,7 +307,7 @@ mixpotential:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Enl: 2.1e-11
- Energy (Hartree): 1.4e-11
+ Energy (Hartree): 1.49e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -341,7 +342,7 @@ NLCC: &NLCCs
  EKS: 5.9e-11
  Total electronic charge: 1.2e-11
  norm(P): 1.0e-10
- GPa: 3.0e-11
+ GPa: 3.8e-11
 
 NLCC: &NLCCsnew
  EH: 5.1e-10
@@ -1138,7 +1139,7 @@ sparsity:
  ebs: 2.1e-10
  diff: 1.1e-9
  D Tr: 1.1e-10
- Energy (Hartree): 4.02e-10
+ Energy (Hartree): 4.09e-10
 
 PBE_densmixlin:
  Ekin: 1.1e-10
@@ -1149,7 +1150,7 @@ PBE_densmixlin:
  EXC: 1.01e-10
  EH: 1.0e-9
  Total charge: 2.1e-11
- Energy (Hartree): 2.82e-11
+ Energy (Hartree): 2.84e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1197,7 +1198,7 @@ PBE_densmixdiis:
  Ekin: 1.1e-9
  Total charge: 2.1e-11
  EH: 1.0e-9
- Energy (Hartree): 3.14e-11
+ Energy (Hartree): 3.17e-11
 
 test-bigdft-tool:
  positions: 5.1e-8
@@ -1408,11 +1409,13 @@ FF_LENOSKY-lbfgs:
   Alpha: 0.00101
   Keys to ignore:
   - WARNINGS
+  - disablesym
 
 FF_LJ-bfgs:
-  etot: 3.1e-5
+  etot: 9.3e-5
   Keys to ignore:
   - WARNINGS
+  - disablesym
 
 FF_LJ-ab6md:
   Keys to ignore:
@@ -1420,7 +1423,9 @@ FF_LJ-ab6md:
 
 
 FF_LENOSKY-bfgs:
-  etot: 2.4e-11
+  etot: 7.3e-11
+  maxval: 1.0e-10
+  fnrm2: 1.01e-10
   Keys to ignore:
   - WARNINGS
 
@@ -1434,25 +1439,36 @@ FF_LENOSKY-diis:
 FF_LJ-diis:
   Keys to ignore:
   - WARNINGS
+  - disablesym
 
 FF_LJ-fire:
   epred: 1.2e-11
   Keys to ignore:
   - WARNINGS
+  - disablesym
 
 FF_LJ-sdcg:
+  maxval: 1.1e-9
   Keys to ignore:
   - WARNINGS
+  - disablesym
 
 FF_LJ-lbfgs:
+  etot: 2.11e-8
+  Forces: 1.01e-5
+  Energy: 1.48e-8
+  fnrm2: 1.01e-5
+  maxval: 1.55e-7
   Keys to ignore:
   - WARNINGS
+  - disablesym
 
 FF_LJ-sqnm:
   Geometry: 1.01e-8
   fnrm2: 1.1e-6
   Keys to ignore:
   - WARNINGS
+  - disablesym
 
 
 FF_LJ-vssd:
@@ -1462,9 +1478,9 @@ FF_LJ-vssd:
   beta: 1.81e-2
   fnrm2: 0.37
   Forces: 0.33
-  
   Keys to ignore:
   - WARNINGS
+  - disablesym
   
 periodic_silicon:
  Epot: 3.0e-10
@@ -1558,7 +1574,7 @@ multipoles_OH-:
  multiplicator for the confinement: 1.7e-9
  Epot: 1.3e-10
  EH: 2.1e-10
- Ekin: 6.1e-11
+ Ekin: 7.0e-11
  Loewdin charge analysis (charge / net charge): 6.8e-8
  EXC: 2.1e-11
  EvXC: 3.1e-11
@@ -1570,7 +1586,7 @@ multipoles_OH-:
  Atomic Forces (Ha/Bohr): 3.3e-11
  Clean forces norm (Ha/Bohr): 3.4e-11
  Raw forces norm (Ha/Bohr): 3.7e-11
- Average noise forces: 1.1e-10
+ Average noise forces: 1.01e-9
  decay length of error function: 1.1e-5
  number of corrected points: 77
  total charge correction: 4.6e-8
@@ -1583,13 +1599,16 @@ multipoles_water:
  EH: 1.1e-10
  D eF: 1.1e-8
  Epot: 1.1e-10
- ebs_check: 1.2e-11
- ebs: 1.2e-11
+ ebs_check: 2.32e-11
+ ebs: 2.32e-11
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
   - WARNINGS
 
+dev.ref.yaml:
+  Epot: 1.01e-10
+  
 igortho_19:
  Atomic Forces (Ha/Bohr): 5.3e-7
  Clean forces norm (Ha/Bohr): 1.5e-7

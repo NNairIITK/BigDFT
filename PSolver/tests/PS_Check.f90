@@ -20,6 +20,7 @@ program PS_Check
   implicit none
   !Length of the box
   character(len=*), parameter :: subname='PS_Check'
+  logical :: usegpu
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
   character(len=50) :: chain
@@ -34,7 +35,7 @@ program PS_Check
   integer :: ncount0,ncount1,ncount_rate,ncount_max
   integer :: n01,n02,n03,itype_scf!,i_all,i_stat
   integer :: iproc,nproc,namelen,ierr,ispden
-  integer :: n_cell
+  integer :: n_cell,igpu
   integer, dimension(3) :: nxyz
   integer, dimension(3) :: ndims
   real(wp), dimension(:,:,:,:), pointer :: rhocore
@@ -85,12 +86,15 @@ program PS_Check
 
   nxyz=options//'ndim'
   geocode=options//'geocode'
+  usegpu = options // 'accel'
+
 
   call dict_free(options)
   n01=nxyz(1)
   n02=nxyz(2)
   n03=nxyz(3)
-
+  igpu=0
+  if (usegpu) igpu=1
   !print *,iproc,n01,n02,n03
 
   !Step size
@@ -120,7 +124,7 @@ program PS_Check
   ndims=(/n01,n02,n03/)
   hgrids=(/hx,hy,hz/)
 
-  pkernel=pkernel_init(.true.,iproc,nproc,0,&
+  pkernel=pkernel_init(.true.,iproc,nproc,igpu,&
        geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
   call pkernel_set(pkernel,verbose=.true.)
 
@@ -996,6 +1000,11 @@ subroutine PS_Check_options(parser)
        'Allowed values' .is. &
        dict_new("PI" .is. 'Polarization iteration Method',&
                "PCG" .is. 'Preconditioned Conjugate Gradient')))
+  call yaml_cl_parse_option(parser,'accel','No',&
+       'GPU Acceleration','a',&
+       dict_new('Usage' .is. &
+       'Boolean, set the GPU acceleration'))
+
 
 end subroutine PS_Check_options
 

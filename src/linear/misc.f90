@@ -1362,7 +1362,7 @@ subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
 
   ! Local variables
   integer :: iorb, itmb, jtmb, iat, jat, iunit, nproc, ierr
-  logical :: mpi_init
+  logical :: mpi_initd
   real(kind=8) :: d, asymm, maxdiff, diff
   real(kind=8),dimension(3) :: dist
   real(kind=8),dimension(:,:),allocatable :: kernel_full
@@ -1372,8 +1372,8 @@ subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
   call f_routine(id='analyze_kernel')
 
   ! Check that this is a monoproc run
-  call mpi_initialized(mpi_init, ierr)
-  if (mpi_init) then
+  call mpi_initialized(mpi_initd, ierr)
+  if (mpi_initd) then
       call mpi_comm_size(mpi_comm_world, nproc, ierr)
   else
       nproc = 1

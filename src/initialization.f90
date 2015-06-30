@@ -251,9 +251,6 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      end do
      
      call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
-     !i_all=-product(shape(nodename))*kind(nodename)
-     !deallocate(nodename,stat=i_stat)
-     !call memocc(i_stat,i_all,'nodename',subname)
   end if
   call f_release_routine()
 END SUBROUTINE processor_id_per_node

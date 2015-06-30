@@ -28,7 +28,7 @@ subroutine f_utils_test()
   complex(f_double), dimension(3) :: c2
   complex(f_quadruple), dimension(3) :: c4
   integer(f_short), dimension(3) :: is
-  integer(f_int), dimension(3) :: i4
+  integer(f_integer), dimension(3) :: i4
   integer(f_long), dimension(3) :: il
   logical(f_byte), dimension(3) :: lb
   logical, dimension(3) :: l

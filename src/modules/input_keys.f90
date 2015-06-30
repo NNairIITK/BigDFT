@@ -28,7 +28,7 @@ module module_input_keys
 
   type(dictionary), pointer :: parameters=>null()
   type(dictionary), pointer :: parsed_parameters=>null()
-
+  type(dictionary), pointer :: profiles=>null()
 
 
  character(len = 12), dimension(0:2), parameter, public :: OUTPUT_DENSPOT_names = &
@@ -506,6 +506,7 @@ contains
     call yaml_parse_from_char_array(parsed_parameters,params)
     !there is only one document in the input variables specifications
     parameters=>parsed_parameters//0
+    profiles => parsed_parameters//1
     call f_free_str(1,params)
 
     !call yaml_dict_dump(parameters, comment_key = COMMENT)
@@ -523,6 +524,7 @@ contains
     if (associated(parsed_parameters)) then
        call dict_free(parsed_parameters)
        nullify(parameters)
+       nullify(profiles)
     else
        call dict_free(parameters)
     end if
@@ -549,6 +551,7 @@ contains
     use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
     use public_enums
     use fragment_base
+    use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
     implicit none
     !Arguments
@@ -566,7 +569,7 @@ contains
 
     integer, parameter :: pawlcutd = 10, pawlmix = 10, pawnphi = 13, pawntheta = 12, pawxcdev = 1
     integer, parameter :: xclevel = 1, usepotzero = 0
-    integer :: nsym
+    integer :: nsym,unt
     real(gp) :: gsqcut_shp, rloc, projr, rlocmin
     real(gp), dimension(2) :: cfrmults
     type(external_potential_descriptors) :: ep
@@ -590,10 +593,14 @@ contains
     ! Input variables case.
     call default_input_variables(in)
 
+
+
     !call yaml_map('Dictionary parsed',dict)
 
     ! extract also the minimal dictionary which is necessary to do this run
     call input_keys_fill_all(dict,dict_minimal)
+
+
 
     ! Add missing pseudo information.
     projr = dict // PERF_VARIABLES // PROJRAD
@@ -828,15 +835,15 @@ contains
     if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
        call dict_get_run_properties(dict, input_id = run_id)
        call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
-
-       call yaml_set_stream(unit=99971,filename=trim(outdir)//trim(filename),&
+       unt=f_get_free_unit(99971)
+       call yaml_set_stream(unit=unt,filename=trim(outdir)//trim(filename),&
             record_length=92,istat=ierr,setdefault=.false.,tabbing=0,position='rewind')
        if (ierr==0) then
-          call yaml_comment('Minimal input file',hfill='-',unit=99971)
+          call yaml_comment('Minimal input file',hfill='-',unit=unt)
           call yaml_comment('This file indicates the minimal set of input variables which has to be given '//&
-               'to perform the run. The code would produce the same output if this file is used as input.',unit=99971)
-          call yaml_dict_dump(dict_minimal,unit=99971)
-          call yaml_close_stream(unit=99971)
+               'to perform the run. The code would produce the same output if this file is used as input.',unit=unt)
+          call yaml_dict_dump(dict_minimal,unit=unt)
+          call yaml_close_stream(unit=unt)
        else
           call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
        end if
@@ -851,7 +858,6 @@ contains
   subroutine check_for_data_writing_directory(iproc,in)
     use yaml_output
     use module_defs, only: bigdft_mpi
-    use f_precisions, only: f_int
     use f_utils, only: f_zero,f_mkdir
     use wrapper_MPI, only: mpibcast
     use yaml_strings, only: f_strcpy
@@ -911,6 +917,7 @@ contains
     use f_input_file
     use public_keys
     use yaml_strings, only: operator(.eqv.)
+    use yaml_output
     !use yaml_output
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
@@ -918,7 +925,7 @@ contains
     type(dictionary), pointer :: as_is,nested,no_check
     character(max_field_length) :: meth, prof
     real(gp) :: dtmax_, betax_
-    logical :: user_defined
+    logical :: user_defined,free,dftvar
 
     if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
          err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -926,24 +933,30 @@ contains
     call f_routine(id='input_keys_fill_all')
 
     ! Overriding the default for isolated system
-    if (POSINP .in. dict) then
-       if (.not.has_key(dict//POSINP,ASTRUCT_CELL) .and. .not. has_key(dict//DFT_VARIABLES,DISABLE_SYM)) then
+    if ((POSINP .in. dict) .and. (DFT_VARIABLES .in. dict) ) then
+       free=ASTRUCT_CELL .notin. dict//POSINP
+       dftvar=DISABLE_SYM .notin. dict//DFT_VARIABLES
+       if (free .and. dftvar) then
           call set(dict // DFT_VARIABLES // DISABLE_SYM,.true.)
        end if
     end if
     nested=>list_new(.item. LIN_BASIS_PARAMS)
 
+
+
     ! Check and complete dictionary.
     call input_keys_init()
+! call yaml_map('present status',dict)
+    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
 
 
-    call input_file_complete(parameters,dict,nocheck=nested)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
-    as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION) 
+    as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION)
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
     call dict_free(nested,as_is)
+
 
     ! Additional treatments.
     meth = dict // GEOPT_VARIABLES // GEOPT_METHOD
@@ -1034,7 +1047,7 @@ contains
        call yaml_map(POSINP,sourcefile)
     else
        call yaml_mapping_open(POSINP)
-       call input_file_dump(TMP, useronly=userOnly_,msg='Atomic positions')
+       call input_file_dump(tmp, useronly=userOnly_,msg='Atomic positions')
        call yaml_mapping_close()
     end if
     nullify(tmp)

@@ -182,14 +182,17 @@ module multipole
                   !!end do
               end do
           end do
-      end do
+       end do
+       !!$omp end do
+       !!$omp end parallel
+      
       if (nproc>1) then
           call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(monopole, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(dipole, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(quadrupole, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
-      if (iproc==0) then
+      if (iproc==0 .and. ep%nmpl > 0) then
               !do iat=1,nat
               !    call yaml_sequence(advance='no')
               !    atomname=atomnames(iatype(iat))
@@ -225,14 +228,14 @@ module multipole
           call yaml_sequence_close()
           call yaml_mapping_close()
       end if
-      !!$omp end do
-      !!$omp end parallel
 
-
-      call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
-           quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
-      pot = pot + density
-
+      if (ep%nmpl > 0) then
+         call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
+              quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
+         !LG: attention to stack overflow here !
+         !pot = pot + density
+         call daxpy(size(density),1.d0,density,1,pot,1)
+      end if
 
 
       !ii = 0

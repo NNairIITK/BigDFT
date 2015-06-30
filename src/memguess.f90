@@ -101,7 +101,7 @@ program memguess
    real(kind=8),parameter :: degree=1.d0
    character(len=6) :: direction
    character(len=2) :: backslash
-   logical :: file_exists, found_bin, mpi_init
+   logical :: file_exists, found_bin
    logical,dimension(:,:),allocatable :: calc_array
    real(kind=8),parameter :: eps_roundoff=1.d-5
    type(sparse_matrix) :: smat_s, smat_m, smat_l
@@ -684,14 +684,18 @@ program memguess
    end if
 
    if (calculate_pdos) then
-       call mpi_initialized(mpi_init, ierror)
-       if (mpi_init) then
-           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
-           call mpi_comm_size(mpi_comm_world, nproc, ierror)
-       else
-           iproc = 0
-           nproc = 1
-       end if
+!!$      !if (mpiinitialized()) then
+         iproc=mpirank()
+         nproc=mpisize()
+!!$      else
+!!$       call mpi_initialized(mpi_initd, ierror)
+!!$       if (mpi_initd) then
+!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+!!$       else
+!!$         iproc = 0
+!!$         nproc = 1
+!!$      end if
        !coeff = f_malloc((/ntmb,norbks/),id='coeff')
        !eval = f_malloc(norbks,id='eval')
        !denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
@@ -913,14 +917,16 @@ program memguess
    end if
 
    if (kernel_analysis) then
-       call mpi_initialized(mpi_init, ierror)
-       if (mpi_init) then
-           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
-           call mpi_comm_size(mpi_comm_world, nproc, ierror)
-       else
-           iproc = 0
-           nproc = 1
-       end if
+!!$       call mpi_initialized(mpi_initd, ierror)
+!!$       if (mpi_initd) then
+!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+!!$       else
+!!$           iproc = 0
+!!$           nproc = 1
+!!$       end if
+      iproc=mpirank()
+      nproc=mpisize()
        coeff = f_malloc((/ntmb,norbks/),id='coeff')
        eval = f_malloc(norbks,id='eval')
        denskernel = f_malloc((/ntmb,ntmb/),id='denskernel')
@@ -972,14 +978,17 @@ program memguess
    end if
 
    if (solve_eigensystem) then
-       call mpi_initialized(mpi_init, ierror)
-       if (mpi_init) then
-           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
-           call mpi_comm_size(mpi_comm_world, nproc, ierror)
-       else
-           iproc = 0
-           nproc = 1
-       end if
+!!$       call mpi_initialized(mpi_initd, ierror)
+!!$       if (mpi_initd) then
+!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+!!$       else
+!!$           iproc = 0
+!!$           nproc = 1
+!!$       end if
+      iproc=mpirank()
+      nproc=mpisize()
+
        ham = f_malloc((/ntmb,ntmb/),id='ham')
        overlap = f_malloc((/ntmb,ntmb/),id='overlap')
        eval = f_malloc(ntmb,id='eval')
@@ -998,14 +1007,17 @@ program memguess
    end if
 
    if (analyze_coeffs) then
-       call mpi_initialized(mpi_init, ierror)
-       if (mpi_init) then
-           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
-           call mpi_comm_size(mpi_comm_world, nproc, ierror)
-       else
-           iproc = 0
-           nproc = 1
-       end if
+!!$       call mpi_initialized(mpi_initd, ierror)
+!!$       if (mpi_initd) then
+!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+!!$       else
+!!$           iproc = 0
+!!$           nproc = 1
+!!$       end if
+      iproc=mpirank()
+      nproc=mpisize()
+
        coeff = f_malloc((/ntmb,norbks/),id='coeff')
        coeff_cat = f_malloc(ncategories,id='coeff_cat')
        eval = f_malloc(ntmb,id='eval')
@@ -1234,14 +1246,17 @@ program memguess
    end if
 
    if (charge_analysis) then
-       call mpi_initialized(mpi_init, ierror)
-       if (mpi_init) then
-           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
-           call mpi_comm_size(mpi_comm_world, nproc, ierror)
-       else
-           iproc = 0
-           nproc = 1
-       end if
+!!$       call mpi_initialized(mpi_initd, ierror)
+!!$       if (mpi_initd) then
+!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+!!$       else
+!!$           iproc = 0
+!!$           nproc = 1
+!!$       end if
+      iproc=mpirank()
+      nproc=mpisize()
+
        !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
 
        call read_sparse_matrix(trim(overlap_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &

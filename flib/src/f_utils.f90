@@ -32,7 +32,7 @@ module f_utils
   end type io_stream
   
 
-  !>interface for difference between two intrinsic types
+  !> Interface for difference between two intrinsic types
   interface f_diff
      module procedure f_diff_i,f_diff_r,f_diff_d,f_diff_li,f_diff_l
      module procedure f_diff_d2d3,f_diff_d2d1,f_diff_d1d2,f_diff_d2,f_diff_d1
@@ -178,7 +178,7 @@ contains
     end if
   end subroutine f_close
 
-  !>search the unit associated to a filename.
+  !> Search the unit associated to a filename.
   !! the unit is -1 if the file does not exists or if the file is
   !! not connected
   subroutine f_file_unit(file,unit)
@@ -203,7 +203,7 @@ contains
     end if
   end subroutine f_file_unit
 
-  !>get a unit which is not opened at present
+  !> Get a unit which is not opened at present
   !! start the search from the unit
   function f_get_free_unit(unit) result(unt2)
     implicit none
@@ -232,17 +232,17 @@ contains
 
   !>create a directory from CWD path
   subroutine f_mkdir(dir,path)
-    use f_precisions, only: f_int
+    use f_precisions, only: f_integer
     implicit none
     character(len=*), intent(in) :: dir !<directory to be created
     character(len=*), intent(out) :: path !<path of the created directory (trailing slash added)
     !local variables
     integer :: ierr
-    integer(f_int) :: lin,lout
+    integer(f_integer) :: lin,lout
 
     call f_zero(path)
-    lin=int(len_trim(dir),f_int)
-    lout=int(len(path),f_int)
+    lin=int(len_trim(dir),f_integer)
+    lout=int(len(path),f_integer)
 
     call getdir(dir,lin,path,lout,ierr)
     if (ierr /= 0 .and. ierr /= 1) then
@@ -253,7 +253,6 @@ contains
 
   end subroutine f_mkdir
 
-  !> delete an existing file. If the file does not exists, it does nothing
   subroutine f_delete_file(file)
     implicit none
     character(len=*), intent(in) :: file
