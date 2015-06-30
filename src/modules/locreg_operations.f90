@@ -352,7 +352,15 @@ module locreg_operations
       integer :: ij3, ij2, ij1, jj3, jj2, jj1, ijs3, ijs2, ijs1, ije3, ije2, ije1, nwarnings
       real(kind=8) :: h, x, y, z, d, weight_inside, weight_boundary, points_inside, points_boundary, ratio
       real(kind=8) :: atomrad, rad, boundary, weight_normalized, maxweight, meanweight
+      real(kind=8),dimension(:),allocatable :: maxweight_types, meanweight_types
+      integer,dimension(:),allocatable :: nwarnings_types
       logical :: perx, pery, perz, on_boundary
+
+      call f_routine(id='get_boundary_weight')
+
+      maxweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
+      meanweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
+      nwarnings_types = f_malloc0(atoms%astruct%ntypes,id='nwarnings_types')
 
       if (iproc==0) then
           call yaml_sequence(advance='no')
@@ -514,8 +522,11 @@ module locreg_operations
               weight_normalized = weight_boundary/ratio
               meanweight = meanweight + weight_normalized
               maxweight = max(maxweight,weight_normalized)
+              meanweight_types(iatype) = meanweight_types(iatype) + weight_normalized
+              maxweight_types(iatype) = max(maxweight_types(iatype),weight_normalized)
               if (weight_normalized>crit) then
                   nwarnings = nwarnings + 1
+                  nwarnings_types(iatype) = nwarnings_types(iatype) + 1
               end if
               !write(*,'(a,i7,2f9.1,4es16.6)') 'iiorb, pi, pb, weight_inside, weight_boundary, ratio, xi', &
               !    iiorb, points_inside, points_boundary, weight_inside, weight_boundary, &
@@ -528,17 +539,33 @@ module locreg_operations
           end if
       end if
 
-      ! Sum up among all tasks
+      ! Sum up among all tasks... could use workarrays
       if (nproc>1) then
           call mpiallred(nwarnings, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(meanweight, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(maxweight, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(nwarnings_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(meanweight_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(maxweight_types, mpi_max, comm=bigdft_mpi%mpi_comm)
       end if
       meanweight = meanweight/real(orbs%norb,kind=8)
       if (iproc==0) then
-          call yaml_mapping_open('Check boundary values')
+          call yaml_sequence_open('Check boundary values')
+          call yaml_sequence(advance='no')
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('type','overall')
           call yaml_map('mean / max value',(/meanweight,maxweight/),fmt='(2es9.2)')
+          call yaml_map('warnings',nwarnings)
           call yaml_mapping_close()
+          do iatype=1,atoms%astruct%ntypes
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('type',trim(atoms%astruct%atomnames(iatype)))
+              call yaml_map('mean / max value',(/meanweight_types(iatype),maxweight_types(iatype)/),fmt='(2es9.2)')
+              call yaml_map('warnings',nwarnings_types(iatype))
+              call yaml_mapping_close()
+          end do
+          call yaml_sequence_close()
       end if
 
       ! Print the warnings
@@ -548,6 +575,13 @@ module locreg_operations
                   &//trim(yaml_toa(nwarnings))//' warnings')
           end if
       end if
+
+      call f_free(maxweight_types)
+      call f_free(meanweight_types)
+      call f_free(nwarnings_types)
+
+      call f_release_routine()
+
     end subroutine get_boundary_weight
 
 
