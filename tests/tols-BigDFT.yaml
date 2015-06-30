@@ -1559,6 +1559,7 @@ multipoles_OH-:
  Epot: 1.3e-10
  EH: 2.1e-10
  Ekin: 6.1e-11
+ Loewdin charge analysis (charge / net charge): 6.8e-8
  EXC: 2.1e-11
  EvXC: 3.1e-11
  energy: 3.0e-11
@@ -1588,3 +1589,106 @@ multipoles_water:
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
   - WARNINGS
+
+igortho_19:
+ Atomic Forces (Ha/Bohr): 5.3e-7
+ Clean forces norm (Ha/Bohr): 1.5e-7
+ Raw forces norm (Ha/Bohr): 2.5e-7
+ net quadropole: 1.1e-6
+ net dipole: 1.1e-6
+ Energy (Hartree): 8.2e-10
+ Multipole coefficients: 1.1e-6
+ Loewdin charge analysis (charge / net charge): 2.8e-7
+ Average noise forces: 5.4e-7
+ eF: 1.9e-5
+ EXC: 1.5e-6
+ Epot: 2.1e-5
+ EvXC: 1.9e-6
+ EH: 1.1e-5
+ Ekin: 6.3e-8
+ Enl: 6.2e-9
+ Omega: 3.8e-9
+ D eF: 1.3e-5
+ ebs: 9.9e-6
+ ebs_check: 9.9e-6
+ guess for new ef: 1.9e-5
+ energy: 8.5e-9
+ charge diff: 5.8e-9
+ D Tr: 1.1e-8
+ number of corrected points: 6
+ diff: 3.8e-9
+ trace(KS): 4.4e-9
+ Total charge: 4.4e-9
+ relative diff: 9.7e-10
+ diff from reference kernel: 3.0e-8
+ D: 2.1e-9
+ Tr(K): 6.0e-9
+
+igortho_44:
+ Atomic Forces (Ha/Bohr): 6.1e-8
+ Average noise forces: 1.2e-9
+ Clean forces norm (Ha/Bohr): 1.2e-7
+ Energy (Hartree): 2.0e-10
+ Raw forces norm (Ha/Bohr): 1.2e-7
+ EH: 5.7e-05
+ EXC: 2.2e-06
+ Epot: 1.2e-4
+ EvXC: 2.8e-06
+ Total charge: 1.5e-09
+ guess for new ef: 1.3e-06
+ Tr(K): 1.1e-08
+ charge diff: 7.6e-09
+ eF: 1.3e-06
+ D Tr: 5.6e-09
+ D eF: 3.3e-07
+ diff: 9.5e-10
+ ebs: 5.7e-05
+ ebs_check: 5.7e-05
+ relative diff: 6.6e-11
+ trace(KS): 1.5e-09
+ energy: 6.7e-09
+ Omega: 6.8e-11
+ Loewdin charge analysis (charge / net charge): 8.5e-8
+ Multipole coefficients: 9.0e-8
+ number of corrected points: 5
+ net quadropole: 1.1e-5
+ Keys to ignore:
+  - Calculating wavelets expansion of projectors, found warnings
+  - found warnings
+
+igortho_94:
+ Atomic Forces (Ha/Bohr): 2.6e-5
+ net quadropole: 1.1e-5
+ net dipole: 2.1e-6
+ Energy (Hartree): 1.8e-9
+ Multipole coefficients: 7.1e-10
+ Total charge: 2.7e-9
+ Clean forces norm (Ha/Bohr): 3.4e-5
+ Average noise forces: 2.8e-5
+ Raw forces norm (Ha/Bohr): 5.0e-5
+ EH: 3.5e-4
+ EXC: 3.4e-5
+ Ekin: 1.7e-7
+ Enl: 1.4e-8
+ Epot: 6.2e-4
+ EvXC: 4.4e-5
+ total charge correction: 1.3e-8
+ guess for new ef: 1.3e-5
+ Tr(K): 2.1e-8
+ charge diff: 2.1e-8
+ eF: 1.3e-5
+ D Tr: 2.0e-8
+ D eF: 1.1e-5
+ diff: 5.4e-9
+ diff from reference kernel: 6.1e-9
+ ebs: 3.2e-4
+ ebs_check: 3.2e-4
+ relative diff: 1.4e-9
+ trace(KS): 2.7e-9
+ D: 1.1e-7
+ energy: 2.4e-8
+ Omega: 1.1e-8
+ Loewdin charge analysis (charge / net charge): 2.0e-6
+ Multipole coefficients: 1.2e-5
+ number of corrected points: 43
+ delta: 4.1e-11
