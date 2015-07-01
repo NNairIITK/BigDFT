@@ -1251,7 +1251,10 @@ subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
   !Write atomic positions
   call yaml_sequence_open('Positions', unit = iunit)
   do iat=1,astruct%nat
+     !for very large systems, consider deactivating the printing, but should do this in a cleaner manner
+     !if (astruct%nat < 500.or.(.not. wrtlog)) then
      call yaml_sequence(advance='no', unit = iunit)
+     !end if
      if (extra_info(iat)) then
         call yaml_mapping_open(flow=.true., unit = iunit)
      end if
@@ -1265,8 +1268,11 @@ subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
         xred = xred*factor
      end if
      if (wrtlog) then
+        !for very large systems, consider deactivating the printing, but should do this in a cleaner manner
+        !if (astruct%nat < 500) then
         call print_one_atom(trim(astruct%atomnames(astruct%iatype(iat))),&
              xred,hgrids,iat)
+        !end if
 !!$        call yaml_map(trim(astruct%atomnames(astruct%iatype(iat))),&
 !!$             & xred,fmt="(g18.10)", unit = iunit, advance = "no")
 !!$        xred(1:3) = rxyz(1:3,iat) / hgrids

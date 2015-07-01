@@ -1292,7 +1292,12 @@ contains
       logical :: allocate_full, print_info
       integer(kind=8) :: ntot
 
+      real(kind=4) :: tr0, tr1, trt0, trt1
+      real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
+      logical, parameter :: extra_timing=.false.
+
       call timing(iproc,'init_matrCompr','ON')
+      if (extra_timing) call cpu_time(trt0)
       call f_routine(id='init_sparse_matrix')
 
       call set_value_from_optional()
@@ -1307,7 +1312,7 @@ contains
       sparsemat%isfvctr=isorbu
       sparsemat%nfvctr_par=f_malloc0_ptr((/0.to.nproc-1/),id='sparsemat%nfvctr_par')
       sparsemat%isfvctr_par=f_malloc0_ptr((/0.to.nproc-1/),id='sparsemat%isfvctr_par')
-
+      if (extra_timing) call cpu_time(tr0)
       ! Same as isorb_par and norb_par
       do jproc=0,nproc-1
           if (iproc==jproc) then
@@ -1324,6 +1329,7 @@ contains
 
       call vcopy(norbu, on_which_atom(1), 1, sparsemat%on_which_atom(1), 1)
 
+
       sparsemat%nseg=0
       sparsemat%nvctr=0
       sparsemat%nsegline=0
@@ -1333,13 +1339,15 @@ contains
           call nseg_perline(norbu, lut, sparsemat%nseg, sparsemat%nvctr, sparsemat%nsegline(iiorb))
       end do
 
-
       if (nproc>1) then
           call mpiallred(sparsemat%nvctr, 1, mpi_sum,comm=bigdft_mpi%mpi_comm)
           call mpiallred(sparsemat%nseg, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(sparsemat%nsegline(1), sparsemat%nfvctr, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
+      if (extra_timing) call cpu_time(tr1)
+      if (extra_timing) time0=real(tr1-tr0,kind=8)
 
+      if (extra_timing) call cpu_time(tr0)
 
       ist=1
       do jorb=1,sparsemat%nfvctr
@@ -1359,7 +1367,6 @@ contains
     
       call allocate_sparse_matrix_keys(store_index, sparsemat)
     
-
 
       ivctr=0
       sparsemat%keyg=0
@@ -1382,7 +1389,6 @@ contains
           call mpiallred(sparsemat%keyg(1,1,1), 2*2*sparsemat%nseg, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
 
-
       ! start of the segments
       sparsemat%keyv(1)=1
       do iseg=2,sparsemat%nseg
@@ -1390,22 +1396,30 @@ contains
           sparsemat%keyv(iseg) = sparsemat%keyv(iseg-1) + sparsemat%keyg(2,1,iseg-1) - sparsemat%keyg(1,1,iseg-1) + 1
       end do
 
-    
-    
+
+      if (extra_timing) call cpu_time(tr1)
+      if (extra_timing) time1=real(tr1-tr0,kind=8)
+
+      if (extra_timing) call cpu_time(tr0)   
+
       if (store_index) then
           ! store the indices of the matrices in the sparse format
           sparsemat%store_index=.true.
-
     
           ! initialize sparsemat%matrixindex_in_compressed
-          !$omp parallel do default(private) shared(sparsemat,norbu) 
+          call f_zero(sparsemat%matrixindex_in_compressed_arr)
+
+          !$omp parallel do default(private) shared(sparsemat,norbu,norbup,isorbu) 
           do iorb=1,norbu
-             do jorb=1,norbu
+             do jorb=1,norbup
                 !sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norbu,sparsemat)
-                sparsemat%matrixindex_in_compressed_arr(iorb,jorb) = matrixindex_in_compressed(sparsemat, iorb, jorb, .true., norbu)
+                sparsemat%matrixindex_in_compressed_arr(iorb,jorb+isorbu) = &
+                     matrixindex_in_compressed(sparsemat, iorb, jorb+isorbu, .true., norbu)
              end do
           end do
           !$omp end parallel do
+
+          call mpiallred(sparsemat%matrixindex_in_compressed_arr(1,1), norbu*norbu, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
           !!! Initialize sparsemat%orb_from_index
           !!ind = 0
@@ -1420,16 +1434,25 @@ contains
           !!end do
     
       else
-          ! Otherwise alwyas calculate them on-the-fly
+          ! Otherwise always calculate them on-the-fly
           sparsemat%store_index=.false.
       end if
-    
+      if (extra_timing) call cpu_time(tr1)   
+      if (extra_timing) time2=real(tr1-tr0,kind=8)
+
+      if (extra_timing) call cpu_time(tr0)     
+
 
       ! parallelization of matrices, following same idea as norb/norbp/isorb
       !most equal distribution, but want corresponding to norbp for second column
       call init_matrix_parallelization(iproc, nproc, sparsemat%nfvctr, sparsemat%nseg, sparsemat%nvctr, &
            sparsemat%isfvctr_par, sparsemat%nfvctr_par, sparsemat%istsegline, sparsemat%keyv, &
            sparsemat%isvctr, sparsemat%nvctrp, sparsemat%isvctr_par, sparsemat%nvctr_par)
+      if (extra_timing) call cpu_time(tr1)   
+      if (extra_timing) time3=real(tr1-tr0,kind=8)
+
+      if (extra_timing) call cpu_time(tr0) 
+
       !!do jproc=0,nproc-1
       !!    jst_line = sparsemat%isfvctr_par(jproc)+1
       !!    if (sparsemat%nfvctr_par(jproc)==0) then
@@ -1505,7 +1528,10 @@ contains
       do iseg=2,nseg_mult
           keyv_mult(iseg) = keyv_mult(iseg-1) + keyg_mult(2,1,iseg-1) - keyg_mult(1,1,iseg-1) + 1
       end do
+      if (extra_timing) call cpu_time(tr1)   
+      if (extra_timing) time4=real(tr1-tr0,kind=8)
 
+      if (extra_timing) call cpu_time(tr0) 
 
       ! Allocate the matrices
       !call allocate_sparse_matrix_matrices(sparsemat, allocate_full)
@@ -1515,6 +1541,9 @@ contains
       call init_sparse_matrix_matrix_multiplication_new(iproc, nproc, norbu, norbup, isorbu, nseg_mult, &
                nsegline_mult, istsegline_mult, keyv_mult, keyg_mult, sparsemat)
 
+      if (extra_timing) call cpu_time(tr1)   
+      if (extra_timing) time5=real(tr1-tr0,kind=8)    
+
       call f_free(nsegline_mult)
       call f_free(istsegline_mult)
       call f_free(keyg_mult)
@@ -1523,6 +1552,11 @@ contains
     
       call f_release_routine()
       call timing(iproc,'init_matrCompr','OF')
+      if (extra_timing) call cpu_time(trt1)   
+      if (extra_timing) ttime=real(trt1-trt0,kind=8)
+
+      if (extra_timing.and.iproc==0) print*,'imctime',time0,time1,time2,time3,time4,time5,&
+           time0+time1+time2+time3+time4+time5,ttime
 
 
       contains
@@ -2412,6 +2446,8 @@ contains
       integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
       integer :: irow, icol, inc, ist, ind_min1, ind_max1
       integer,dimension(:),pointer :: isvctr_par, nvctr_par
+      logical, parameter :: print_full=.false.
+
 
       call f_routine(id='init_matrix_taskgroups')
       call timing(iproc,'inittaskgroup','ON')
@@ -3112,15 +3148,17 @@ contains
               call yaml_mapping_open(flow=.true.)
               call yaml_map('number of tasks',tasks_per_taskgroup(itaskgroups))
               !call yaml_map('IDs',smat%tgranks(0:tasks_per_taskgroup(itaskgroups)-1,itaskgroups))
-              call yaml_mapping_open('IDs')
-              do itg=0,tasks_per_taskgroup(itaskgroups)-1
-                  call yaml_mapping_open(yaml_toa(smat%tgranks(itg,itaskgroups),fmt='(i0)'))
-                  call yaml_map('s',iuse_startend(1,smat%tgranks(itg,itaskgroups)))
-                  call yaml_map('e',iuse_startend(2,smat%tgranks(itg,itaskgroups)))
+              if (print_full) then
+                  call yaml_mapping_open('IDs')
+                  do itg=0,tasks_per_taskgroup(itaskgroups)-1
+                      call yaml_mapping_open(yaml_toa(smat%tgranks(itg,itaskgroups),fmt='(i0)'))
+                      call yaml_map('s',iuse_startend(1,smat%tgranks(itg,itaskgroups)))
+                      call yaml_map('e',iuse_startend(2,smat%tgranks(itg,itaskgroups)))
+                      call yaml_mapping_close()
+                  end do
                   call yaml_mapping_close()
-              end do
-              call yaml_mapping_close()
-              call yaml_newline()
+                  call yaml_newline()
+              end if
               call yaml_map('start / end',smat%taskgroup_startend(1:2,1,itaskgroups))
               call yaml_map('start / end disjoint',smat%taskgroup_startend(1:2,2,itaskgroups))
               call yaml_mapping_close()
@@ -3554,30 +3592,50 @@ contains
     
           ! Local variables
           integer :: ind_min, ind_max, i, ii_ref, iorb, jorb, ii, iseg
+          logical :: found
+
+          real(kind=4) :: tr0, tr1, trt0, trt1
+          real(kind=8) :: time0, time1, time2, time3, time4, time5, ttime
+          logical, parameter :: extra_timing=.false.
     
+          call timing(iproc,'matrix_extents','ON')
+          if (extra_timing) call cpu_time(trt0)  
+
           ind_min = smat%nvctr
           ind_max = 0
-    
+
+          if (extra_timing) call cpu_time(tr0)
           ! The operations done in the transposed wavefunction layout
           call check_transposed_layout()
           !write(*,'(a,2i8)') 'after check_transposed_layout: ind_min, ind_max', ind_min, ind_max
-    
+          if (extra_timing) call cpu_time(tr1)
+          if (extra_timing) time0=real(tr1-tr0,kind=8)    
+
+
           ! Now check the compress_distributed layout
           call check_compress_distributed_layout()
           !write(*,'(a,2i8)') 'after check_compress_distributed_layout: ind_min, ind_max', ind_min, ind_max
-    
+          if (extra_timing) call cpu_time(tr0)
+          if (extra_timing) time1=real(tr0-tr1,kind=8)        
+
           ! Now check the matrix matrix multiplications layout
           call check_matmul_layout()
           !write(*,'(a,2i8)') 'after check_matmul_layout: ind_min, ind_max', ind_min, ind_max
+          if (extra_timing) call cpu_time(tr1)
+          if (extra_timing) time2=real(tr1-tr0,kind=8)    
     
           ! Now check the sumrho operations
           call check_sumrho_layout()
           !write(*,'(a,2i8)') 'after check_sumrho_layout: ind_min, ind_max', ind_min, ind_max
+          if (extra_timing) call cpu_time(tr0)
+          if (extra_timing) time3=real(tr0-tr1,kind=8)    
     
           ! Now check the pseudo-exact orthonormalization during the input guess
           call check_ortho_inguess()
           !write(*,'(a,2i8)') 'after check_ortho_inguess: ind_min, ind_max', ind_min, ind_max
-    
+          if (extra_timing) call cpu_time(tr1)
+          if (extra_timing) time4=real(tr1-tr0,kind=8)        
+
           !!write(*,'(a,3i8)') 'after check_local_matrix_extents: iproc, ind_min, ind_max', iproc, ind_min, ind_max
 
           ! Get the global indices of ind_min and ind_max
@@ -3588,20 +3646,41 @@ contains
                   ii_ref = ind_max
               end if
               ! Search the indices iorb,jorb corresponding to ii_ref
+              found=.false.
+
+              ! not sure if OpenMP is really worth it here
+              !$omp parallel default(none) &
+              !$omp private(iseg,ii,iorb,jorb) &
+              !$omp shared(smat,ii_ref,irow,icol,found,i)
+              !$omp do
               outloop: do iseg=1,smat%nseg
-                  iorb = smat%keyg(1,2,iseg)
-                  do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
-                      ii = matrixindex_in_compressed(smat, jorb, iorb)
-                      !if (iproc==0) write(*,'(a,5i9)') 'i, ii_ref, ii, iorb, jorb', i, ii_ref, ii, iorb, jorb
-                      if (ii==ii_ref) then
-                          irow(i) = jorb
-                          icol(i) = iorb
-                          exit outloop
-                      end if
-                  end do
+                  if (.not. found) then
+                     iorb = smat%keyg(1,2,iseg)
+                     do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                         ii = matrixindex_in_compressed(smat, jorb, iorb)
+                         !if (iproc==0) write(*,'(a,5i9)') 'i, ii_ref, ii, iorb, jorb', i, ii_ref, ii, iorb, jorb
+                         if (ii==ii_ref) then
+                             irow(i) = jorb
+                             icol(i) = iorb
+                             !exit outloop
+                             found=.true.
+                         end if
+                     end do
+                  end if
               end do outloop
+              !$omp end do
+              !$omp end parallel
+
           end do
-    
+          if (extra_timing) call cpu_time(tr0)
+          if (extra_timing) time5=real(tr0-tr1,kind=8)    
+          if (extra_timing) call cpu_time(trt1)  
+          if (extra_timing) ttime=real(trt1-trt0,kind=8)  
+
+          if (extra_timing.and.iproc==0) print*,'matextent',time0,time1,time2,time3,time4,time5,&
+               time0+time1+time2+time3+time4+time5,ttime
+
+          call timing(iproc,'matrix_extents','OF')    
     
           contains
     
@@ -3612,6 +3691,10 @@ contains
 
               call get_modulo_array(smat, moduloarray)
 
+              !$omp parallel default(none) &
+              !$omp private(ipt,ii,i0,i,i0i,iiorb,iorb,j,i0j,jjorb,jorb,ind) &
+              !$omp shared(collcom,moduloarray,smat,ind_min,ind_max)
+              !$omp do reduction(min: ind_min) reduction(max: ind_max)
               do ipt=1,collcom%nptsp_c
                   ii=collcom%norb_per_gridpoint_c(ipt)
                   i0 = collcom%isptsp_c(ipt)
@@ -3633,6 +3716,9 @@ contains
                       end do
                   end do
               end do
+              !$omp end do
+
+              !$omp do reduction(min: ind_min) reduction(max: ind_max)
               do ipt=1,collcom%nptsp_f
                   ii=collcom%norb_per_gridpoint_f(ipt)
                   i0 = collcom%isptsp_f(ipt)
@@ -3653,6 +3739,8 @@ contains
                       end do
                   end do
               end do
+              !$omp end do
+              !$omp end parallel
 
               !contains
 
@@ -3694,6 +3782,10 @@ contains
                   if (nfvctrp>0) then
                       isegstart=smat%istsegline(isfvctr+1)
                       isegend=smat%istsegline(isfvctr+nfvctrp)+smat%nsegline(isfvctr+nfvctrp)-1
+                      !$omp parallel default(none) &
+                      !$omp private(iseg,ii,jorb) &
+                      !$omp shared(isegstart,isegend,smat,ind_min,ind_max)
+                      !$omp do reduction(min: ind_min) reduction(max: ind_max)
                       do iseg=isegstart,isegend
                           ii=smat%keyv(iseg)-1
                           ! A segment is always on one line, therefore no double loop
@@ -3703,6 +3795,8 @@ contains
                               ind_max = max(ii,ind_max)
                           end do
                       end do
+                      !$omp end do
+                      !$omp end parallel
                   end if
               end do
             end subroutine check_compress_distributed_layout
@@ -3726,6 +3820,10 @@ contains
 
               call get_modulo_array(smat, moduloarray)
 
+              !$omp parallel default(none) &
+              !$omp private(ipt,ii,i0,iiorb,iorb,ind) &
+              !$omp shared(collcom_sr,moduloarray,smat,ind_min,ind_max)
+              !$omp do reduction(min: ind_min) reduction(max: ind_max)
               do ipt=1,collcom_sr%nptsp_c
                   ii=collcom_sr%norb_per_gridpoint_c(ipt)
                   i0=collcom_sr%isptsp_c(ipt)
@@ -3739,6 +3837,8 @@ contains
                       ind_max = max(ind_max,ind)
                   end do
               end do
+              !$omp end do
+              !$omp end parallel
 
               call f_free_ptr(moduloarray)
 
@@ -3788,6 +3888,14 @@ contains
                 isegstart = smat%istsegline(iiorb)
                 isegend = smat%istsegline(iiorb) + smat%nsegline(iiorb) -1
                 in_neighborhood = .false.
+
+                !$omp parallel default(none) &
+                !$omp private(iseg,j,i) &
+                !$omp private(jorb,korb,ind) &
+                !$omp shared(isegstart,isegend,smat,in_neighborhood) &
+                !$omp shared(ind_min,ind_max)
+
+                !$omp do
                 do iseg=isegstart,isegend
                     ! A segment is always on one line, therefore no double loop
                     j = smat%keyg(1,2,iseg)
@@ -3795,7 +3903,9 @@ contains
                         in_neighborhood(i) = .true.
                     end do
                 end do
+                !$omp end do
     
+                !$omp do reduction(min: ind_min) reduction(max: ind_max) schedule(static,10) 
                 do jorb=1,smat%nfvctr
                     if (.not.in_neighborhood(jorb)) cycle
                     do korb=1,smat%nfvctr
@@ -3807,6 +3917,9 @@ contains
                         end if
                     end do
                 end do
+                !$omp end do
+
+                !$omp end parallel
     
             end do
     
@@ -4119,15 +4232,22 @@ contains
           !character(len=*), parameter :: subname='determine_overlap_from_descriptors'
     
           call f_routine('determine_sparsity_pattern')
+          call timing(iproc,'determinespars','ON')
         
           overlapMatrix = f_malloc((/orbs%norbu,maxval(orbs%norbu_par(:,0))/),id='overlapMatrix')
           noverlapsarr = f_malloc(orbs%norbup,id='noverlapsarr')
         
           overlapMatrix=.false.
+
           do iorb=1,orbs%norbup
              ioverlaporb=0 ! counts the overlaps for the given orbital.
              iiorb=orbs%isorbu+iorb
              ilr=orbs%inWhichLocreg(iiorb)
+
+             !$omp parallel default(none) &
+             !$omp private(jorb,jlr,isoverlap,onseg) &
+             !$omp shared(orbs,lzd,iorb,ilr,overlapMatrix,ioverlaporb)
+             !$omp do reduction(+:ioverlaporb)
              do jorb=1,orbs%norbu
                 jlr=orbs%inWhichLocreg(jorb)
                 call check_overlap_cubic_periodic(lzd%Glr,lzd%llr(ilr),lzd%llr(jlr),isoverlap)
@@ -4160,10 +4280,13 @@ contains
                 end if
                 !!write(*,'(a,2i8,l4)') 'iiorb, jorb, isoverlap', iiorb, jorb, isoverlap
              end do
+             !$omp end do
+             !$omp end parallel     
              noverlapsarr(iorb)=ioverlaporb
           end do
-    
-    
+   
+
+
           overlaps_op = f_malloc((/maxval(noverlapsarr),orbs%norbup/),id='overlaps_op')
         
           ! Now we know how many overlaps have to be calculated, so determine which orbital overlaps
@@ -4202,6 +4325,7 @@ contains
           call f_free(noverlapsarr)
           call f_free(overlaps_op)
         
+          call timing(iproc,'determinespars','OF')
           call f_release_routine()
     
     end subroutine determine_sparsity_pattern
@@ -4228,16 +4352,17 @@ contains
       integer :: ijs1, ije1, ijs2, ije2, ijs3, ije3, ind
       real(kind=8) :: tt, cut, xi, yi, zi, xj, yj, zj, x0, y0, z0
       logical :: perx, pery, perz, present_smat_ref
-    
+
       call f_routine('determine_sparsity_pattern_distance')
-    
+      call timing(bigdft_mpi%iproc,'determinespars','ON')    
+
       present_smat_ref = present(smat_ref)
     
       ! periodicity in the three directions
       perx=(lzd%glr%geocode /= 'F')
       pery=(lzd%glr%geocode == 'P')
       perz=(lzd%glr%geocode /= 'F')
-      ! For perdiodic boundary conditions, one has to check also in the neighboring
+      ! For periodic boundary conditions, one has to check also in the neighboring
       ! cells (see in the loop below)
       if (perx) then
           ijs1 = -1
@@ -4260,132 +4385,143 @@ contains
           ijs3 = 0
           ije3 = 0
       end if
-    
-          nnonzero=0
-          do iorb=1,orbs%norbup
-             iiorb=orbs%isorbu+iorb
-             ilr=orbs%inwhichlocreg(iiorb)
-             iwa=orbs%onwhichatom(iiorb)
-             itype=astruct%iatype(iwa)
-             xi=lzd%llr(ilr)%locregcenter(1)
-             yi=lzd%llr(ilr)%locregcenter(2)
-             zi=lzd%llr(ilr)%locregcenter(3)
-             do jjorb=1,orbs%norbu
-                if (present_smat_ref) then
-                    ind = matrixindex_in_compressed(smat_ref,jjorb,iiorb)
-                else
-                    ind = 0
-                end if
-                if (ind>0) then
-                    ! There is an overlap in the reference sparsity pattern
-                    overlap = .true.
-                else
-                    ! Check explicitely whether there is an overlap
-                    jlr=orbs%inwhichlocreg(jjorb)
-                    jwa=orbs%onwhichatom(jjorb)
-                    jtype=astruct%iatype(jwa)
-                    x0=lzd%llr(jlr)%locregcenter(1)
-                    y0=lzd%llr(jlr)%locregcenter(2)
-                    z0=lzd%llr(jlr)%locregcenter(3)
-                    cut = (cutoff(ilr)+cutoff(jlr))**2
-                    overlap = .false.
-                    do i3=ijs3,ije3!-1,1
-                        zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
-                        do i2=ijs2,ije2!-1,1
-                            yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
-                            do i1=ijs1,ije1!-1,1
-                                xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
-                                tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
-                                if (tt<cut) then
-                                    !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
-                                    overlap=.true.
-                                end if
-                            end do
+
+      nnonzero=0
+      do iorb=1,orbs%norbup
+         iiorb=orbs%isorbu+iorb
+         ilr=orbs%inwhichlocreg(iiorb)
+         iwa=orbs%onwhichatom(iiorb)
+         itype=astruct%iatype(iwa)
+         xi=lzd%llr(ilr)%locregcenter(1)
+         yi=lzd%llr(ilr)%locregcenter(2)
+         zi=lzd%llr(ilr)%locregcenter(3)
+
+         !$omp parallel default(none) &
+         !$omp private(jjorb,ind,overlap,jlr,jwa,jtype,x0,y0,z0,cut,i3,i2,i1,zj,yj,xj,tt) &
+         !$omp shared(xi,yi,zi,iiorb,ilr,orbs,nnonzero,lzd,cutoff,astruct) &
+         !$omp shared(ijs3,ije3,ijs2,ije2,ijs1,ije1,present_smat_ref,smat_ref) 
+         !$omp do reduction(+:nnonzero)
+         do jjorb=1,orbs%norbu
+            if (present_smat_ref) then
+                ind = matrixindex_in_compressed(smat_ref,jjorb,iiorb)
+            else
+                ind = 0
+            end if
+            if (ind>0) then
+                ! There is an overlap in the reference sparsity pattern
+                overlap = .true.
+            else
+                ! Check explicitly whether there is an overlap
+                jlr=orbs%inwhichlocreg(jjorb)
+                jwa=orbs%onwhichatom(jjorb)
+                jtype=astruct%iatype(jwa)
+                x0=lzd%llr(jlr)%locregcenter(1)
+                y0=lzd%llr(jlr)%locregcenter(2)
+                z0=lzd%llr(jlr)%locregcenter(3)
+                cut = (cutoff(ilr)+cutoff(jlr))**2
+                overlap = .false.
+                do i3=ijs3,ije3!-1,1
+                    zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
+                    do i2=ijs2,ije2!-1,1
+                        yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
+                        do i1=ijs1,ije1!-1,1
+                            xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
+                            tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
+                            if (tt<cut) then
+                                !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
+                                overlap=.true.
+                            end if
                         end do
                     end do
-                end if
-                if (overlap) then
-                   nnonzero=nnonzero+1
-                end if
-             end do
-          end do
-          !call mpiallred(nnonzero, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
-          nonzero = f_malloc_ptr((/2,nnonzero/),id='nonzero')
+                end do
+            end if
+            if (overlap) then
+               nnonzero=nnonzero+1
+            end if
+         end do
+         !$omp end do
+         !$omp end parallel
+      end do
+
+      !call mpiallred(nnonzero, 1, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+      nonzero = f_malloc_ptr((/2,nnonzero/),id='nonzero')
     
-          ii=0
-          !!do iorb=1,orbs%norbup
-          !!   iiorb=orbs%isorbu+iorb
-          !!   ilr=orbs%inwhichlocreg(iiorb)
-          !!   iwa=orbs%onwhichatom(iiorb)
-          !!   itype=astruct%iatype(iwa)
-          !!   do jjorb=1,orbs%norbu
-          !!      jlr=orbs%inwhichlocreg(jjorb)
-          !!      jwa=orbs%onwhichatom(jjorb)
-          !!      jtype=astruct%iatype(jwa)
-          !!      tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
-          !!           (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
-          !!           (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
-          !!      cut = cutoff(ilr)+cutoff(jlr)!+2.d0*incr
-          !!      tt=sqrt(tt)
-          !!      if (tt<=cut) then
-          !!         ii=ii+1
-          !!         nonzero(1,ii)=jjorb
-          !!         nonzero(2,ii)=iiorb
-          !!      end if
-          !!   end do
-          !!end do
-          do iorb=1,orbs%norbup
-             iiorb=orbs%isorbu+iorb
-             ilr=orbs%inwhichlocreg(iiorb)
-             iwa=orbs%onwhichatom(iiorb)
-             itype=astruct%iatype(iwa)
-             xi=lzd%llr(ilr)%locregcenter(1)
-             yi=lzd%llr(ilr)%locregcenter(2)
-             zi=lzd%llr(ilr)%locregcenter(3)
-             do jjorb=1,orbs%norbu
-                if (present_smat_ref) then
-                    ind = matrixindex_in_compressed(smat_ref,jjorb,iiorb)
-                else
-                    ind = 0
-                end if
-                if (ind>0) then
-                    ! There is an overlap in the reference sparsity pattern
-                    overlap = .true.
-                else
-                    ! Check explicitely whether there is an overlap
-                    jlr=orbs%inwhichlocreg(jjorb)
-                    jwa=orbs%onwhichatom(jjorb)
-                    jtype=astruct%iatype(jwa)
-                    x0=lzd%llr(jlr)%locregcenter(1)
-                    y0=lzd%llr(jlr)%locregcenter(2)
-                    z0=lzd%llr(jlr)%locregcenter(3)
-                    cut = (cutoff(ilr)+cutoff(jlr))**2
-                    overlap = .false.
-                    do i3=ijs3,ije3!-1,1
-                        zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
-                        do i2=ijs2,ije2!-1,1
-                            yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
-                            do i1=ijs1,ije1!-1,1
-                                xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
-                                tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
-                                if (tt<cut) then
-                                    !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
-                                    overlap=.true.
-                                end if
-                            end do
+      ii=0
+      !!do iorb=1,orbs%norbup
+      !!   iiorb=orbs%isorbu+iorb
+      !!   ilr=orbs%inwhichlocreg(iiorb)
+      !!   iwa=orbs%onwhichatom(iiorb)
+      !!   itype=astruct%iatype(iwa)
+      !!   do jjorb=1,orbs%norbu
+      !!      jlr=orbs%inwhichlocreg(jjorb)
+      !!      jwa=orbs%onwhichatom(jjorb)
+      !!      jtype=astruct%iatype(jwa)
+      !!      tt = (lzd%llr(ilr)%locregcenter(1)-lzd%llr(jlr)%locregcenter(1))**2 + &
+      !!           (lzd%llr(ilr)%locregcenter(2)-lzd%llr(jlr)%locregcenter(2))**2 + &
+      !!           (lzd%llr(ilr)%locregcenter(3)-lzd%llr(jlr)%locregcenter(3))**2
+      !!      cut = cutoff(ilr)+cutoff(jlr)!+2.d0*incr
+      !!      tt=sqrt(tt)
+      !!      if (tt<=cut) then
+      !!         ii=ii+1
+      !!         nonzero(1,ii)=jjorb
+      !!         nonzero(2,ii)=iiorb
+      !!      end if
+      !!   end do
+      !!end do
+      do iorb=1,orbs%norbup
+         iiorb=orbs%isorbu+iorb
+         ilr=orbs%inwhichlocreg(iiorb)
+         iwa=orbs%onwhichatom(iiorb)
+         itype=astruct%iatype(iwa)
+         xi=lzd%llr(ilr)%locregcenter(1)
+         yi=lzd%llr(ilr)%locregcenter(2)
+         zi=lzd%llr(ilr)%locregcenter(3)
+
+         do jjorb=1,orbs%norbu
+            if (present_smat_ref) then
+                ind = matrixindex_in_compressed(smat_ref,jjorb,iiorb)
+            else
+                ind = 0
+            end if
+            if (ind>0) then
+                ! There is an overlap in the reference sparsity pattern
+                overlap = .true.
+            else
+                ! Check explicitly whether there is an overlap
+                jlr=orbs%inwhichlocreg(jjorb)
+                jwa=orbs%onwhichatom(jjorb)
+                jtype=astruct%iatype(jwa)
+                x0=lzd%llr(jlr)%locregcenter(1)
+                y0=lzd%llr(jlr)%locregcenter(2)
+                z0=lzd%llr(jlr)%locregcenter(3)
+                cut = (cutoff(ilr)+cutoff(jlr))**2
+                overlap = .false.
+                do i3=ijs3,ije3!-1,1
+                    zj=z0+i3*(lzd%glr%d%n3+1)*lzd%hgrids(3)
+                    do i2=ijs2,ije2!-1,1
+                        yj=y0+i2*(lzd%glr%d%n2+1)*lzd%hgrids(2)
+                        do i1=ijs1,ije1!-1,1
+                            xj=x0+i1*(lzd%glr%d%n1+1)*lzd%hgrids(1)
+                            tt = (xi-xj)**2 + (yi-yj)**2 + (zi-zj)**2
+                            if (tt<cut) then
+                                !if (overlap) stop 'determine_sparsity_pattern_distance: problem with overlap'
+                                overlap=.true.
+                            end if
                         end do
                     end do
-                end if
-                if (overlap) then
-                   ii=ii+1
-                   nonzero(1,ii)=jjorb
-                   nonzero(2,ii)=iiorb
-                end if
-             end do
-          end do
-    
-          if (ii/=nnonzero) stop 'ii/=nnonzero'
-    
+                end do
+            end if
+            if (overlap) then
+               ii=ii+1
+               nonzero(1,ii)=jjorb
+               nonzero(2,ii)=iiorb
+            end if
+         end do
+      end do
+
+      if (ii/=nnonzero) stop 'ii/=nnonzero'
+
+      call timing(bigdft_mpi%iproc,'determinespars','OF')
       call f_release_routine()
     
     end subroutine determine_sparsity_pattern_distance
@@ -4558,7 +4694,7 @@ contains
           do jorb=1,norb
               if (jproc==nproc-1) exit
               jjorb = jjorb + 1
-              if(jorb==norb) exit !just to besure that no out of bound happens
+              if(jorb==norb) exit !just to be sure that no out of bound happens
               tcount = tcount + workload(jorb)
               jcount = jcount + workload(jorb)
               if (abs(tcount-wli*real(jproc+1,kind=8)) <= &
@@ -4743,9 +4879,15 @@ contains
       ! Local variables
       integer :: i
       moduloarray = f_malloc_ptr(smat%nfvctr,id='moduloarray')
+      !$omp parallel default(none) &
+      !$omp shared(moduloarray,smat) &
+      !$omp private(i)
+      !$omp do
       do i=1,smat%nfvctr
           moduloarray(i) = modulo(i-smat%offset_matrixindex_in_compressed_fortransposed,smat%nfvctr)+1
       end do
+      !$omp end do
+      !$omp end parallel
     end subroutine get_modulo_array
 
 end module sparsematrix_init

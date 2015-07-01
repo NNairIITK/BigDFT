@@ -12,7 +12,7 @@
 !> Module defining all yaml strings for output.
 !! This module must be only used by the module yaml_output
 module yaml_strings
-
+  use f_precisions
   implicit none
 
   private
@@ -39,7 +39,7 @@ module yaml_strings
   end interface operator(.eqv.)
 
   interface operator(+)
-     module procedure combine_strings
+     module procedure combine_strings,string_plus_integer
   end interface operator(+)
 
 
@@ -635,6 +635,18 @@ contains
     
     c=trim(adjustl(a))//trim(b)
   end function combine_strings
+
+  pure function string_plus_integer(a,num) result(c)
+    implicit none
+    integer(f_int), intent(in) :: num
+    include 'yaml_plus-inc.f90'
+  end function string_plus_integer
+
+  pure function string_plus_double(a,num) result(c)
+    implicit none
+    real(f_double), intent(in) :: num
+    include 'yaml_plus-inc.f90'
+  end function string_plus_double
 
 
   !> Shifts characters in in the string 'str' n positions (positive values

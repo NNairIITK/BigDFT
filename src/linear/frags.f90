@@ -439,7 +439,7 @@ contains
 
        !GENERALIZE HERE FOR OTHER CHARGE STATES
        !eval_tmp(jsforb+jtmb-ceiling(jstate_max)+jf)=eval_tmp(jsforb+jtmb-ceiling(jstate_max)+jf)+5.0d0/real(input%frag%nfrag,gp)
-       tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max)+ifrag)=0.0d0
+       tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max)+ifrag-1)=0.0d0
        !version where occupancies are fixed
        !if (lincombp) tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max)+ifrag)=real(2*input%frag%nfrag-1,gp)/real(input%frag%nfrag,gp)
 

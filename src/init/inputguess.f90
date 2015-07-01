@@ -35,6 +35,9 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    integer :: norbe,norbme,norbyou,norbsc,nvirte,ikpt
    integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
    integer, dimension(:), allocatable :: iorbtolr
+   logical, parameter :: print_all=.false.
+   integer :: minn, maxn
+   real(kind=8) :: avn
 
    !Generate the input guess via the inguess_generator
    !here we should allocate the gaussian basis descriptors 
@@ -112,17 +115,28 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
       call yaml_newline()
       call yaml_mapping_open('Inputguess Orbitals Repartition')
       jpst=0
+      avn=0.0d0
+      minn=orbse%norb
+      maxn=0
       do jproc=0,nproc-1
          norbme=orbse%norb_par(jproc,0)
          norbyou=orbse%norb_par(min(jproc+1,nproc-1),0)
          if (norbme /= norbyou .or. jproc == nproc-1) then
-            call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
+            if (print_all) call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//&
+                 '-'//trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
             !!this is a screen output that must be modified
             !write(*,'(3(a,i0),a)')&
             !   &   ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' inguess orbitals '
             jpst=jproc+1
+            minn=min(minn,norbme)
+            maxn=max(maxn,norbme)
          end if
+         avn=avn+real(norbme,kind=8)
       end do
+      avn=avn/real(nproc,kind=8)
+      call yaml_map('Minimum ',minn,fmt='(i0)')
+      call yaml_map('Maximum ',maxn,fmt='(i0)')
+      call yaml_map('Average ',avn,fmt='(f8.1)')
       call yaml_mapping_close()
       !write(*,'(3(a,i0),a)')&
          !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '

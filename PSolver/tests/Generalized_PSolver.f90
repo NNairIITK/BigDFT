@@ -3223,7 +3223,6 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   use yaml_output
   use f_utils
   use numerics, only: safe_exp
-  use module_defs, only : Bohr_Ang,bigdft_mpi
 
   implicit none
   integer, intent(in) :: n01
@@ -4684,7 +4683,6 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rx
   use dynamic_memory
   use yaml_output
   use f_utils
-  use module_defs, only : Bohr_Ang,bigdft_mpi
   use f_enums
   implicit none
   integer, intent(in) :: natreal !< number of centres defining the cavity
