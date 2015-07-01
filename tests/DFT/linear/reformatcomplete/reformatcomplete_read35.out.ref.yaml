@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-07-01 08:30:01.027
+ Timestamp of this run                 : 2015-07-01 12:48:17.688
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -461,8 +461,11 @@
  preconditioning load balancing before :  1.08E+00
  preconditioning load balancing after  :  1.08E+00
  task with max load                    :  [  6 ]
- Support function repartition:
-   MPI tasks  0- 7                     :  3
+ Total No. Support Functions           :  24
+ Support Function Repartition:
+   Minimum                             :  3
+   Maximum                             :  3
+   Average                             :  3.0
  Wavefunctions memory occupation for root MPI process:  3 MB 322 KB 256 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -516,24 +519,18 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  576},  1: {s:  1, e:  576},  2: {s:  1, 
- e:  576},  3: {s:  1, e:  576},  4: {s:  1, e:  576},  5: {s:  1, e:  576},  6: {s:  1, 
- e:  576},  7: {s:  1, e:  576}}, 
- start / end:  [  1,  576 ], start / end disjoint:  [  1,  576 ]}
+   -  {number of tasks:  8, start / end:  [  1,  576 ], 
+  start / end disjoint:  [  1,  576 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  576},  1: {s:  1, e:  576},  2: {s:  1, 
- e:  576},  3: {s:  1, e:  576},  4: {s:  1, e:  576},  5: {s:  1, e:  576},  6: {s:  1, 
- e:  576},  7: {s:  1, e:  576}}, 
- start / end:  [  1,  576 ], start / end disjoint:  [  1,  576 ]}
+   -  {number of tasks:  8, start / end:  [  1,  576 ], 
+  start / end disjoint:  [  1,  576 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  576},  1: {s:  1, e:  576},  2: {s:  1, 
- e:  576},  3: {s:  1, e:  576},  4: {s:  1, e:  576},  5: {s:  1, e:  576},  6: {s:  1, 
- e:  576},  7: {s:  1, e:  576}}, 
- start / end:  [  1,  576 ], start / end disjoint:  [  1,  576 ]}
+   -  {number of tasks:  8, start / end:  [  1,  576 ], 
+  start / end disjoint:  [  1,  576 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -591,7 +588,7 @@
      Molecule was shifted              :  24
      Molecule was rotated              :  18
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  1.524E+01,  1.527E+01 ]}
+   -  {Process:  0, Timing:  [  1.55E+01,  1.552E+01 ]}
    Max deviation from unity in reorthonormalize_coeff:  2.08E-07
    Mean deviation from unity in reorthonormalize_coeff:  7.69E-08
    Max deviation from unity in reorthonormalize_coeff:  1.00E-06
@@ -710,12 +707,12 @@
  error estimation: [
  max / mean error:  [  7.86E-04,  1.22E-04 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  2.47E-01, Omega: -6.873747112854444E+01, D: -6.87E+01, D best: -6.87E+01, 
+ iter:  1, fnrm:  2.47E-01, Omega: -6.873747112854450E+01, D: -6.87E+01, D best: -6.87E+01, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 1
  target function: ENERGY, 
  Energies: {Ekin:  3.75194469234E+01, Epot: -4.81116393429E+01, Enl:  2.75317526879E+00}, 
- iter:  1, fnrm:  2.47E-01, Omega: -6.873747112854444E+01, D: -6.87E+01, D best: -6.87E+01}
+ iter:  1, fnrm:  2.47E-01, Omega: -6.873747112854450E+01, D: -6.87E+01, D best: -6.87E+01}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.78E-03,  1.45E-02 ], warnings:  8}
@@ -740,24 +737,24 @@
  Mean deviation from unity in reorthonormalize_coeff:  8.56E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.44E-02, eBS: -1.62668971058736140E+01, D: -1.744E-03, 
+ iter:  1, fnrm:  2.44E-02, eBS: -1.62668971058735359E+01, D: -1.744E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
  Energies: {Ekin:  3.75194469234E+01, Epot: -4.81116393429E+01, Enl:  2.75317526879E+00, 
               EH:  1.42386685901E+02,  EXC: -1.65077579955E+01, EvXC: -2.16397615396E+01}, 
-    Total charge:  3.199999979249E+01, 
+    Total charge:  3.199999979250E+01, 
  Poisson Solver: {BC: Free, Box:  [  169,  189,  163 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.47E-11, 
- iter:  1, delta:  2.54E-08, energy: -6.87392152572896151E+01, D: -6.874E+01}]
+ iter:  1, delta:  2.54E-08, energy: -6.87392152572896720E+01, D: -6.874E+01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  2.47E-11, 
- iter:  2, delta:  2.54E-08, energy: -6.87392152572896151E+01, D: -6.874E+01}]}
+ iter:  2, delta:  2.54E-08, energy: -6.87392152572896720E+01, D: -6.874E+01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  2.541E-08, energy: -6.87392152572896151E+01, D: -6.874E+01}
+ iter high:  1, delta out:  2.541E-08, energy: -6.87392152572896720E+01, D: -6.874E+01}
    calculate S^x:
      mode                              : dense
      powers:
@@ -826,9 +823,9 @@
  Energies: {Ekin:  3.75194469234E+01, Epot: -4.81116393429E+01, Enl:  2.75317526879E+00, 
               EH:  1.42319192605E+02,  EXC: -1.64945167089E+01, EvXC: -2.16222824824E+01}, 
        iter high:  1,            delta out:  2.541E-08, 
-          energy: -6.87392152572896151E+01,                       D:  0.000E+00,  #FINAL
+          energy: -6.87392152572896720E+01,                       D:  0.000E+00,  #FINAL
  }
- Total charge                          :  3.199999979249E+01
+ Total charge                          :  3.199999979250E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
@@ -844,28 +841,28 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  32.13
-   Elapsed time (s)                    :  32.21
+   CPU time (s)                        :  32.26
+   Elapsed time (s)                    :  32.47
  BigDFT infocode                       :  0
  Average noise forces: {x:  9.34471923E-03, y: -5.92597970E-02, z:  3.80994183E-02, 
                     total:  7.10676649E-02}
- Clean forces norm (Ha/Bohr): {maxval:  7.937917945782E-02, fnrm2:  1.198425624512E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  7.937917945779E-02, fnrm2:  1.198425624512E-02}
  Raw forces norm (Ha/Bohr): {maxval:  1.138896083286E-01, fnrm2:  2.106892853164E-02}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.230325227684E-02, -7.076261516572E-02,  2.821828067371E-02]} # 0001
- -  {H: [-3.791652702367E-03,  1.098750409955E-02, -1.301781435303E-02]} # 0002
- -  {H: [-2.538429553274E-03,  8.321902013614E-03, -6.715718825090E-03]} # 0003
- -  {O: [ 2.379592762933E-03, -3.840158300041E-02,  2.600827804592E-02]} # 0004
- -  {H: [-2.204531646768E-02,  7.811844496861E-03, -1.324841343725E-02]} # 0005
- -  {H: [-9.975661131971E-03,  5.617059446298E-03, -9.544281527650E-03]} # 0006
- -  {O: [-1.542857484560E-02,  7.806982459784E-03, -2.455834934403E-03]} # 0007
- -  {H: [ 8.835840325692E-03,  2.359508355751E-02, -6.594437354199E-03]} # 0008
- -  {H: [ 4.517458903621E-03,  2.574388112148E-02, -1.146514964895E-02]} # 0009
- -  {O: [ 1.147053426647E-02,  9.784148770422E-03,  2.894656700363E-03]} # 0010
- -  {H: [ 4.323277150464E-04,  2.062819927220E-03,  6.884656446496E-03]} # 0011
- -  {H: [ 3.840628450289E-03,  7.432972273390E-03, -9.642217859352E-04]} # 0012
- Energy (Hartree)                      : -6.87392152572896151E+01
+ -  {O: [ 2.230325227683E-02, -7.076261516571E-02,  2.821828067369E-02]} # 0001
+ -  {H: [-3.791652702368E-03,  1.098750409955E-02, -1.301781435303E-02]} # 0002
+ -  {H: [-2.538429553272E-03,  8.321902013613E-03, -6.715718825093E-03]} # 0003
+ -  {O: [ 2.379592762932E-03, -3.840158300041E-02,  2.600827804597E-02]} # 0004
+ -  {H: [-2.204531646768E-02,  7.811844496859E-03, -1.324841343726E-02]} # 0005
+ -  {H: [-9.975661131965E-03,  5.617059446296E-03, -9.544281527658E-03]} # 0006
+ -  {O: [-1.542857484558E-02,  7.806982459788E-03, -2.455834934389E-03]} # 0007
+ -  {H: [ 8.835840325684E-03,  2.359508355751E-02, -6.594437354198E-03]} # 0008
+ -  {H: [ 4.517458903617E-03,  2.574388112148E-02, -1.146514964893E-02]} # 0009
+ -  {O: [ 1.147053426647E-02,  9.784148770419E-03,  2.894656700351E-03]} # 0010
+ -  {H: [ 4.323277150424E-04,  2.062819927216E-03,  6.884656446494E-03]} # 0011
+ -  {H: [ 3.840628450286E-03,  7.432972273393E-03, -9.642217859409E-04]} # 0012
+ Energy (Hartree)                      : -6.87392152572896720E+01
  Memory Consumption Report:
    Tot. No. of Allocations             :  3638
    Tot. No. of Deallocations           :  3638
@@ -874,7 +871,7 @@
      Peak Value (MB)                   :  715.535
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 664.756 MB
- Walltime since initialization         : 00:00:32.721870114
- Max No. of dictionaries used          :  4536 #( 861 still in use)
+     Memory Peak of process            : 664.804 MB
+ Walltime since initialization         : 00:00:32.951962070
+ Max No. of dictionaries used          :  4548 #( 873 still in use)
  Number of dictionary folders allocated:  1

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-07-01 09:12:25.768
+ Timestamp of this run                 : 2015-07-01 12:20:18.588
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -443,9 +443,11 @@
  preconditioning load balancing before :  1.14E+00
  preconditioning load balancing after  :  1.14E+00
  task with max load                    :  [  0 ]
- Support function repartition:
-   MPI tasks  0- 6                     :  1
-   MPI tasks  7- 7                     :  0
+ Total No. Support Functions           :  7
+ Support Function Repartition:
+   Minimum                             :  0
+   Maximum                             :  1
+   Average                             :  0.9
  Wavefunctions memory occupation for root MPI process:  0 MB 363 KB 0 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -499,24 +501,15 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  49},  1: {s:  1, e:  49},  2: {s:  1, 
- e:  49},  3: {s:  1, e:  49},  4: {s:  1, e:  49},  5: {s:  1, e:  49},  6: {s:  1, 
- e:  49},  7: {s:  1, e:  49}}, 
- start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
+   -  {number of tasks:  8, start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  49},  1: {s:  1, e:  49},  2: {s:  1, 
- e:  49},  3: {s:  1, e:  49},  4: {s:  1, e:  49},  5: {s:  1, e:  49},  6: {s:  1, 
- e:  49},  7: {s:  1, e:  49}}, 
- start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
+   -  {number of tasks:  8, start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  49},  1: {s:  1, e:  49},  2: {s:  1, 
- e:  49},  3: {s:  1, e:  49},  4: {s:  1, e:  49},  5: {s:  1, e:  49},  6: {s:  1, 
- e:  49},  7: {s:  1, e:  49}}, 
- start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
+   -  {number of tasks:  8, start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -570,8 +563,9 @@
    -  {atom type: H, value:  5.00E-03, origin: file}
    Total No. of Atomic Input Orbitals  :  7
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 6                   :  1
-     MPI tasks  7- 7                   :  0
+     Minimum                           :  0
+     Maximum                           :  1
+     Average                           :  0.9
    Atomic Input Orbital Generation:
    -  {Atom Type: Si, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
@@ -630,7 +624,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.94E-15,  7.70E-16 ]]}, 
+ max / mean error:  [  1.94E-15,  7.77E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.68E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  9.57E-05, 
@@ -766,7 +760,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.33E-15,  7.81E-16 ]]}, 
+ max / mean error:  [  2.33E-15,  7.53E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  6.94E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  3.39E-06, 
@@ -888,7 +882,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.5E-01,  1.525E-01 ]}
+ -  {Process:  0, Timing:  [  1.9E-01,  2.120E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -905,10 +899,7 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  49},  1: {s:  1, e:  49},  2: {s:  1, 
- e:  49},  3: {s:  1, e:  49},  4: {s:  1, e:  49},  5: {s:  1, e:  49},  6: {s:  1, 
- e:  49},  7: {s:  1, e:  49}}, 
- start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
+   -  {number of tasks:  8, start / end:  [  1,  49 ], start / end disjoint:  [  1,  49 ]}
  Total charge                          :  6.999999951184E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -925,8 +916,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  4.09
-   Elapsed time (s)                    :  4.10
+   CPU time (s)                        :  4.11
+   Elapsed time (s)                    :  4.15
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.25022272E-03, y: -1.27870691E-03, z:  5.17500267E-04, 
                     total:  1.86170748E-03}
@@ -947,7 +938,7 @@
      Peak Value (MB)                   :  100.743
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 130.588 MB
- Walltime since initialization         : 00:00:04.526185281
- Max No. of dictionaries used          :  5026 #( 861 still in use)
+     Memory Peak of process            : 130.608 MB
+ Walltime since initialization         : 00:00:04.590135106
+ Max No. of dictionaries used          :  5038 #( 873 still in use)
  Number of dictionary folders allocated:  1

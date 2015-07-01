@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-07-01 09:04:06.137
+ Timestamp of this run                 : 2015-07-01 13:20:14.478
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -452,10 +452,11 @@
  preconditioning load balancing before :  1.10E+00
  preconditioning load balancing after  :  1.09E+00
  task with max load                    :  [  1 ]
- Support function repartition:
-   MPI tasks  0- 2                     :  4
-   MPI tasks  3- 4                     :  3
-   MPI tasks  5- 7                     :  4
+ Total No. Support Functions           :  30
+ Support Function Repartition:
+   Minimum                             :  3
+   Maximum                             :  4
+   Average                             :  3.8
  Wavefunctions memory occupation for root MPI process:  1 MB 237 KB 192 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -509,24 +510,18 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  900},  1: {s:  1, e:  900},  2: {s:  1, 
- e:  900},  3: {s:  1, e:  900},  4: {s:  1, e:  900},  5: {s:  1, e:  900},  6: {s:  1, 
- e:  900},  7: {s:  1, e:  900}}, 
- start / end:  [  1,  900 ], start / end disjoint:  [  1,  900 ]}
+   -  {number of tasks:  8, start / end:  [  1,  900 ], 
+  start / end disjoint:  [  1,  900 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  900},  1: {s:  1, e:  900},  2: {s:  1, 
- e:  900},  3: {s:  1, e:  900},  4: {s:  1, e:  900},  5: {s:  1, e:  900},  6: {s:  1, 
- e:  900},  7: {s:  1, e:  900}}, 
- start / end:  [  1,  900 ], start / end disjoint:  [  1,  900 ]}
+   -  {number of tasks:  8, start / end:  [  1,  900 ], 
+  start / end disjoint:  [  1,  900 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  900},  1: {s:  1, e:  900},  2: {s:  1, 
- e:  900},  3: {s:  1, e:  900},  4: {s:  1, e:  900},  5: {s:  1, e:  900},  6: {s:  1, 
- e:  900},  7: {s:  1, e:  900}}, 
- start / end:  [  1,  900 ], start / end disjoint:  [  1,  900 ]}
+   -  {number of tasks:  8, start / end:  [  1,  900 ], 
+  start / end disjoint:  [  1,  900 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -580,9 +575,9 @@
    -  {atom type: H, value:  5.00E-03, origin: file}
    Total No. of Atomic Input Orbitals  :  30
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 2                   :  4
-     MPI tasks  3- 4                   :  3
-     MPI tasks  5- 7                   :  4
+     Minimum                           :  3
+     Maximum                           :  4
+     Average                           :  3.8
    Atomic Input Orbital Generation:
    -  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
@@ -645,14 +640,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  9.56E-16,  7.70E-17 ]]}, 
+ max / mean error:  [  9.56E-16,  8.40E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  4.27E-01, Omega: -2.632842167452733E+01, D: -2.63E+01, D best: -2.63E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E-01, max alpha:  1.000E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  4.0E-15,  5.49E-16 ]]}, 
+ max / mean error:  [  3.77E-15,  5.54E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.32E-03, 
  Mean deviation from unity in reorthonormalize_coeff:  1.43E-04, 
@@ -664,7 +659,7 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  1.31E-15,  8.30E-17 ]]}, 
+ max / mean error:  [  1.31E-15,  8.79E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  3.92E-01, Omega: -2.668276668556766E+01, D: -3.54E-01, D best: -3.54E-01, 
  exit criterion: net number of iterations}
@@ -809,14 +804,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  1.31E-15,  8.30E-17 ]]}, 
+ max / mean error:  [  1.31E-15,  8.79E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  2.88E-01, Omega: -3.732822566756712E+01, D: -1.10E+01, D best: -1.10E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.100E-01, max alpha:  1.100E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.44E-15,  5.08E-16 ]]}, 
+ max / mean error:  [  2.89E-15,  5.11E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  6.92E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  7.74E-05, 
@@ -828,7 +823,7 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  9.04E-16,  8.63E-17 ]]}, 
+ max / mean error:  [  9.04E-16,  8.05E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  2.40E-01, Omega: -3.742769906889123E+01, D: -9.95E-02, D best: -9.95E-02, 
  exit criterion: net number of iterations}
@@ -992,7 +987,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  9.0E-01,  9.806E-01 ]}
+ -  {Process:  0, Timing:  [  1.09E+00,  1.107E+00 ]}
  Total charge                          :  2.999999983054E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1008,8 +1003,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  19.01
-   Elapsed time (s)                    :  19.34
+   CPU time (s)                        :  19.35
+   Elapsed time (s)                    :  19.68
  BigDFT infocode                       :  0
  Average noise forces: {x: -1.65160993E-03, y:  5.14782019E-03, z: -6.87712812E-04, 
                     total:  5.44984559E-03}
@@ -1038,7 +1033,7 @@
      Peak Value (MB)                   :  319.437
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 368.848 MB
- Walltime since initialization         : 00:00:19.834385806
- Max No. of dictionaries used          :  4950 #( 861 still in use)
+     Memory Peak of process            : 368.868 MB
+ Walltime since initialization         : 00:00:20.149834390
+ Max No. of dictionaries used          :  4962 #( 873 still in use)
  Number of dictionary folders allocated:  1

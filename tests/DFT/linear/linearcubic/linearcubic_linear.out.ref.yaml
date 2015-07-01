@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-07-01 09:16:22.118
+ Timestamp of this run                 : 2015-07-01 12:24:18.478
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -522,12 +522,11 @@
  preconditioning load balancing before :  1.08E+00
  preconditioning load balancing after  :  1.08E+00
  task with max load                    :  [  5 ]
- Support function repartition:
-   MPI tasks  0- 0                     :  9
-   MPI tasks  1- 1                     :  8
-   MPI tasks  2- 2                     :  7
-   MPI tasks  3- 3                     :  8
-   MPI tasks  4- 7                     :  7
+ Total No. Support Functions           :  60
+ Support Function Repartition:
+   Minimum                             :  7
+   Maximum                             :  9
+   Average                             :  7.5
  Wavefunctions memory occupation for root MPI process:  2 MB 141 KB 104 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -582,24 +581,18 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  2134},  1: {s:  1, e:  2134},  2: {s:  1, 
- e:  2134},  3: {s:  1, e:  2134},  4: {s:  1, e:  2134},  5: {s:  1, e:  2134},  6: {
- s:  1, e:  2134},  7: {s:  1, e:  2134}}, 
- start / end:  [  1,  2134 ], start / end disjoint:  [  1,  2134 ]}
+   -  {number of tasks:  8, start / end:  [  1,  2134 ], 
+  start / end disjoint:  [  1,  2134 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  3600},  1: {s:  1, e:  3600},  2: {s:  1, 
- e:  3600},  3: {s:  1, e:  3600},  4: {s:  1, e:  3600},  5: {s:  1, e:  3600},  6: {
- s:  1, e:  3600},  7: {s:  1, e:  3600}}, 
- start / end:  [  1,  3600 ], start / end disjoint:  [  1,  3600 ]}
+   -  {number of tasks:  8, start / end:  [  1,  3600 ], 
+  start / end disjoint:  [  1,  3600 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  3600},  1: {s:  1, e:  3600},  2: {s:  1, 
- e:  3600},  3: {s:  1, e:  3600},  4: {s:  1, e:  3600},  5: {s:  1, e:  3600},  6: {
- s:  1, e:  3600},  7: {s:  1, e:  3600}}, 
- start / end:  [  1,  3600 ], start / end disjoint:  [  1,  3600 ]}
+   -  {number of tasks:  8, start / end:  [  1,  3600 ], 
+  start / end disjoint:  [  1,  3600 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -654,11 +647,9 @@
    -  {atom type: H, value:  2.50E-01, origin: file}
    Total No. of Atomic Input Orbitals  :  60
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 0                   :  9
-     MPI tasks  1- 1                   :  8
-     MPI tasks  2- 2                   :  7
-     MPI tasks  3- 3                   :  8
-     MPI tasks  4- 7                   :  7
+     Minimum                           :  7
+     Maximum                           :  9
+     Average                           :  7.5
    Atomic Input Orbital Generation:
    -  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
    -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
@@ -1687,7 +1678,7 @@
     # 4th wavefunction written
     # 5th wavefunction written
    Write Waves Time:
-   -  {Process:  0, Timing:  [  2.3E+00,  2.399E+00 ]}
+   -  {Process:  0, Timing:  [  2.77E+00,  3.096E+00 ]}
    Kohn Sham orbitals extent analysis: [
  {eval: -9.758254381248E-01, sigma:  1.6522E+00},  # 1
  {eval: -9.308545551368E-01, sigma:  1.9587E+00},  # 2
@@ -1828,8 +1819,8 @@
  - The support function localization radii might be too small, got 55 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  24.71
-   Elapsed time (s)                    :  24.86
+   CPU time (s)                        :  24.88
+   Elapsed time (s)                    :  25.59
  BigDFT infocode                       :  0
  Average noise forces: {x: -2.98692621E-02, y:  5.57648274E-02, z:  5.89255015E-02, 
                     total:  8.64528977E-02}
@@ -1837,26 +1828,26 @@
  Raw forces norm (Ha/Bohr): {maxval:  1.299802785130E-01, fnrm2:  9.091545851118E-02}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 9.033458879240E-03, -1.953608337929E-02,  4.051905547396E-03]} # 0001
- -  {C: [ 1.219903447376E-02, -5.336028869841E-03,  5.306127311335E-03]} # 0002
- -  {C: [-4.672746100606E-03, -6.419505977497E-03,  1.235047317854E-02]} # 0003
+ -  {C: [ 9.033458879240E-03, -1.953608337929E-02,  4.051905547395E-03]} # 0001
+ -  {C: [ 1.219903447376E-02, -5.336028869842E-03,  5.306127311335E-03]} # 0002
+ -  {C: [-4.672746100606E-03, -6.419505977498E-03,  1.235047317854E-02]} # 0003
  -  {C: [ 2.150425438959E-02, -5.382345517230E-03,  1.613423693567E-02]} # 0004
- -  {C: [ 6.478919309429E-02, -6.877762068677E-02,  3.537398420011E-03]} # 0005
- -  {C: [ 7.682683727162E-02, -2.280750092104E-02,  6.921755266498E-03]} # 0006
+ -  {C: [ 6.478919309429E-02, -6.877762068677E-02,  3.537398420010E-03]} # 0005
+ -  {C: [ 7.682683727162E-02, -2.280750092104E-02,  6.921755266496E-03]} # 0006
  -  {O: [-4.616529067519E-02,  8.936723945222E-02, -7.408816629523E-02]} # 0007
  -  {C: [-4.268513948829E-02, -1.057986984173E-02, -1.001347261008E-02]} # 0008
- -  {O: [-5.832510706122E-02,  2.219985563659E-02, -3.099155211387E-02]} # 0009
- -  {C: [ 5.888723745716E-03,  2.532421990559E-02,  2.713775842651E-02]} # 0010
+ -  {O: [-5.832510706122E-02,  2.219985563659E-02, -3.099155211386E-02]} # 0009
+ -  {C: [ 5.888723745716E-03,  2.532421990559E-02,  2.713775842652E-02]} # 0010
  -  {C: [ 1.993295768258E-02, -2.196199688640E-02,  5.792413321594E-02]} # 0011
  -  {H: [ 3.743217714035E-02,  5.395391372475E-02, -1.808769671636E-02]} # 0012
  -  {H: [-1.672601708840E-02,  5.350088856830E-02, -9.277159544380E-03]} # 0013
- -  {H: [-3.955224235834E-02, -2.447050058136E-03,  3.115778596296E-03]} # 0014
- -  {H: [-1.364759406984E-02, -4.760802818323E-02,  3.524935252023E-03]} # 0015
+ -  {H: [-3.955224235834E-02, -2.447050058137E-03,  3.115778596297E-03]} # 0014
+ -  {H: [-1.364759406984E-02, -4.760802818323E-02,  3.524935252022E-03]} # 0015
  -  {O: [-2.242110605972E-02, -4.376971659953E-02,  5.545321029999E-02]} # 0016
- -  {H: [ 8.405354548561E-03, -3.513994224956E-02,  4.783438948388E-03]} # 0017
+ -  {H: [ 8.405354548562E-03, -3.513994224956E-02,  4.783438948386E-03]} # 0017
  -  {O: [ 2.604461062802E-02,  6.888827129626E-02,  2.801763595048E-02]} # 0018
- -  {H: [ 5.872158059570E-03, -4.592467834553E-02, -5.477381476071E-02]} # 0019
- -  {H: [-5.682769588313E-02, -1.381034833691E-02, -8.091099147404E-04]} # 0020
+ -  {H: [ 5.872158059569E-03, -4.592467834553E-02, -5.477381476071E-02]} # 0019
+ -  {H: [-5.682769588313E-02, -1.381034833691E-02, -8.091099147410E-04]} # 0020
  -  {H: [ 1.309417887143E-02,  3.626632726897E-02, -3.021781539372E-02]} # 0021
  Energy (Hartree)                      : -1.18718290106367533E+02
  Memory Consumption Report:
@@ -1867,7 +1858,7 @@
      Peak Value (MB)                   :  243.847
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 302.388 MB
- Walltime since initialization         : 00:00:25.431954799
- Max No. of dictionaries used          :  5293 #( 861 still in use)
+     Memory Peak of process            : 302.400 MB
+ Walltime since initialization         : 00:00:26.151395225
+ Max No. of dictionaries used          :  5305 #( 873 still in use)
  Number of dictionary folders allocated:  1

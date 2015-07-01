@@ -340,7 +340,7 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
    OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
@@ -367,8 +367,8 @@
  Total Number of Electrons             :  122
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 0                     :  16
-   MPI tasks  1- 3                     :  15
+#   MPI tasks  0- 0                     :  16
+#   MPI tasks  1- 3                     :  15
  Total Number of Orbitals              :  61
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
@@ -401,7 +401,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  110
@@ -416,7 +416,7 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  121,  195,  129 ]
-     MPI tasks                         :  4
+  #   MPI tasks                         :  4
    Calculating wavelets expansion of projectors, found warnings:  8
     #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Checking Communications of Minimal Basis:
@@ -436,27 +436,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -464,27 +450,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -492,27 +464,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -520,27 +478,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -548,27 +492,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -576,27 +506,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -604,27 +520,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -632,13 +534,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -646,132 +548,230 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
   #----------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -1048,7 +1048,7 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
    OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
@@ -1075,8 +1075,8 @@
  Total Number of Electrons             :  122
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 0                     :  16
-   MPI tasks  1- 3                     :  15
+#   MPI tasks  0- 0                     :  16
+#   MPI tasks  1- 3                     :  15
  Total Number of Orbitals              :  61
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
@@ -1109,7 +1109,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  110
@@ -1124,7 +1124,7 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  121,  195,  129 ]
-     MPI tasks                         :  4
+  #   MPI tasks                         :  4
    Calculating wavelets expansion of projectors, found warnings:  8
     #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Checking Communications of Minimal Basis:
@@ -1146,27 +1146,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -1174,27 +1160,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -1202,27 +1174,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -1230,27 +1188,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -1258,27 +1202,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -1286,27 +1216,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -1314,27 +1230,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
- Calculating wavelets expansion of projectors, found warnings:  8
-  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
- Poisson Solver:
-   BC                                  : Free
-   Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -1342,13 +1244,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
@@ -1356,132 +1258,230 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Calculating wavelets expansion of projectors, found warnings:  8
   #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
+ Calculating wavelets expansion of projectors, found warnings:  8
+  #WARNING: Projectors too rough: Consider modifying hgrid and/or the localisation radii.
+ Poisson Solver:
+   BC                                  : Free
+   Box                                 :  [  121,  195,  129 ]
+#   MPI tasks                           :  4
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  195,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -1764,7 +1764,7 @@
  High Res. box is treated separately   :  Yes
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
    OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
@@ -1791,8 +1791,8 @@
  Total Number of Electrons             :  122
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 0                     :  16
-   MPI tasks  1- 3                     :  15
+#   MPI tasks  0- 0                     :  16
+#   MPI tasks  1- 3                     :  15
  Total Number of Orbitals              :  61
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
@@ -1825,7 +1825,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
   #------------------------------------------------------------------ Support functions Restart
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  110
@@ -1840,7 +1840,7 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  121,  193,  129 ]
-     MPI tasks                         :  4
+  #   MPI tasks                         :  4
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  29230,  411 ]
  
@@ -1856,212 +1856,212 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  121,  193,  129 ]
-   MPI tasks                           :  4
+#   MPI tasks                           :  4
  Non Local forces calculated           :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

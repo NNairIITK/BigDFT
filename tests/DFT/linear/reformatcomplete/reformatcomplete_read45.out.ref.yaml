@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-07-01 08:30:35.128
+ Timestamp of this run                 : 2015-07-01 12:48:50.878
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -462,8 +462,11 @@
  preconditioning load balancing before :  1.09E+00
  preconditioning load balancing after  :  1.09E+00
  task with max load                    :  [  6 ]
- Support function repartition:
-   MPI tasks  0- 7                     :  3
+ Total No. Support Functions           :  24
+ Support Function Repartition:
+   Minimum                             :  3
+   Maximum                             :  3
+   Average                             :  3.0
  Wavefunctions memory occupation for root MPI process:  1 MB 406 KB 128 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -517,24 +520,18 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  576},  1: {s:  1, e:  576},  2: {s:  1, 
- e:  576},  3: {s:  1, e:  576},  4: {s:  1, e:  576},  5: {s:  1, e:  576},  6: {s:  1, 
- e:  576},  7: {s:  1, e:  576}}, 
- start / end:  [  1,  576 ], start / end disjoint:  [  1,  576 ]}
+   -  {number of tasks:  8, start / end:  [  1,  576 ], 
+  start / end disjoint:  [  1,  576 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  576},  1: {s:  1, e:  576},  2: {s:  1, 
- e:  576},  3: {s:  1, e:  576},  4: {s:  1, e:  576},  5: {s:  1, e:  576},  6: {s:  1, 
- e:  576},  7: {s:  1, e:  576}}, 
- start / end:  [  1,  576 ], start / end disjoint:  [  1,  576 ]}
+   -  {number of tasks:  8, start / end:  [  1,  576 ], 
+  start / end disjoint:  [  1,  576 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  576},  1: {s:  1, e:  576},  2: {s:  1, 
- e:  576},  3: {s:  1, e:  576},  4: {s:  1, e:  576},  5: {s:  1, e:  576},  6: {s:  1, 
- e:  576},  7: {s:  1, e:  576}}, 
- start / end:  [  1,  576 ], start / end disjoint:  [  1,  576 ]}
+   -  {number of tasks:  8, start / end:  [  1,  576 ], 
+  start / end disjoint:  [  1,  576 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -592,7 +589,7 @@
      Molecule was shifted              :  24
      Molecule was rotated              :  18
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  9.65E+00,  9.658E+00 ]}
+   -  {Process:  0, Timing:  [  9.41E+00,  9.643E+00 ]}
    Max deviation from unity in reorthonormalize_coeff:  4.75E-06
    Mean deviation from unity in reorthonormalize_coeff:  2.36E-06
    Max deviation from unity in reorthonormalize_coeff:  1.67E-06
@@ -741,7 +738,7 @@
  Mean deviation from unity in reorthonormalize_coeff:  8.66E-06, 
  calculate S^x: {mode: dense, powers: {x: -1/2}, order:  8}, 
  communication strategy kernel: ALLREDUCE, method: DminSD, 
- iter:  1, fnrm:  2.45E-02, eBS: -1.62501138574664665E+01, D: -1.771E-03, 
+ iter:  1, fnrm:  2.45E-02, eBS: -1.62501138574664381E+01, D: -1.771E-03, 
           alpha:  2.000E-01}
        Coefficients available          :  Yes
      Hamiltonian update: {
@@ -750,15 +747,15 @@
     Total charge:  3.199999499063E+01, 
  Poisson Solver: {BC: Free, Box:  [  135,  149,  129 ], MPI tasks:  8}}
      summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.85E-11, 
- iter:  1, delta:  3.40E-08, energy: -6.87221689290769433E+01, D: -6.872E+01}]
+ iter:  1, delta:  3.40E-08, energy: -6.87221689290769149E+01, D: -6.872E+01}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 2
  summary: [ {kernel method: DMIN, mix entity: DENS, mix hist:  0, conv crit:  1.85E-11, 
- iter:  2, delta:  3.40E-08, energy: -6.87221689290769433E+01, D: -6.872E+01}]}
+ iter:  2, delta:  3.40E-08, energy: -6.87221689290769149E+01, D: -6.872E+01}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: ENERGY,  #WARNING: support function optimization not converged
  kernel optimization: DIRMIN,  #WARNING: density optimization not converged
- iter high:  1, delta out:  3.396E-08, energy: -6.87221689290769433E+01, D: -6.872E+01}
+ iter high:  1, delta out:  3.396E-08, energy: -6.87221689290769149E+01, D: -6.872E+01}
    calculate S^x:
      mode                              : dense
      powers:
@@ -827,7 +824,7 @@
  Energies: {Ekin:  3.75282244111E+01, Epot: -4.81105877954E+01, Enl:  2.75407380664E+00, 
               EH:  1.42312017813E+02,  EXC: -1.64931000454E+01, EvXC: -2.16204107969E+01}, 
        iter high:  1,            delta out:  3.396E-08, 
-          energy: -6.87221689290769433E+01,                       D:  0.000E+00,  #FINAL
+          energy: -6.87221689290769149E+01,                       D:  0.000E+00,  #FINAL
  }
  Total charge                          :  3.199999499063E+01
   #---------------------------------------------------------------------- Forces Calculation
@@ -845,28 +842,28 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  18.12
-   Elapsed time (s)                    :  18.14
+   CPU time (s)                        :  17.82
+   Elapsed time (s)                    :  18.18
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.20278655E-02, y: -5.91923346E-02, z:  3.59651424E-02, 
                     total:  7.02986023E-02}
- Clean forces norm (Ha/Bohr): {maxval:  8.121005566153E-02, fnrm2:  1.231921464396E-02}
- Raw forces norm (Ha/Bohr): {maxval:  1.152449525836E-01, fnrm2:  2.128975873393E-02}
+ Clean forces norm (Ha/Bohr): {maxval:  8.121005566152E-02, fnrm2:  1.231921464396E-02}
+ Raw forces norm (Ha/Bohr): {maxval:  1.152449525836E-01, fnrm2:  2.128975873392E-02}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [ 2.609712336335E-02, -7.265592630815E-02,  2.520177900489E-02]} # 0001
- -  {H: [-4.503763038897E-03,  1.146852342183E-02, -1.210865456991E-02]} # 0002
- -  {H: [-3.466087151718E-03,  8.139859419728E-03, -5.937587682059E-03]} # 0003
- -  {O: [ 3.753009501327E-03, -3.900839278428E-02,  2.557758364296E-02]} # 0004
- -  {H: [-2.306897671986E-02,  7.942005489058E-03, -1.183170852572E-02]} # 0005
- -  {H: [-1.115481207198E-02,  5.341036408036E-03, -8.477019369528E-03]} # 0006
- -  {O: [-1.547237566394E-02,  1.101990643499E-02, -2.244874547795E-03]} # 0007
- -  {H: [ 8.548810779033E-03,  2.344898880539E-02, -6.266878142358E-03]} # 0008
- -  {H: [ 3.674000227887E-03,  2.535783370543E-02, -1.093530398141E-02]} # 0009
- -  {O: [ 1.219349164934E-02,  9.605721877663E-03,  1.058706934634E-03]} # 0010
- -  {H: [ 2.136054208543E-04,  2.185178234291E-03,  6.979871942587E-03]} # 0011
- -  {H: [ 3.185973704603E-03,  7.155265296007E-03, -1.015914706281E-03]} # 0012
- Energy (Hartree)                      : -6.87221689290769433E+01
+ -  {O: [ 2.609712336336E-02, -7.265592630813E-02,  2.520177900492E-02]} # 0001
+ -  {H: [-4.503763038901E-03,  1.146852342183E-02, -1.210865456991E-02]} # 0002
+ -  {H: [-3.466087151718E-03,  8.139859419726E-03, -5.937587682059E-03]} # 0003
+ -  {O: [ 3.753009501327E-03, -3.900839278429E-02,  2.557758364297E-02]} # 0004
+ -  {H: [-2.306897671986E-02,  7.942005489054E-03, -1.183170852574E-02]} # 0005
+ -  {H: [-1.115481207198E-02,  5.341036408035E-03, -8.477019369541E-03]} # 0006
+ -  {O: [-1.547237566393E-02,  1.101990643500E-02, -2.244874547803E-03]} # 0007
+ -  {H: [ 8.548810779027E-03,  2.344898880539E-02, -6.266878142361E-03]} # 0008
+ -  {H: [ 3.674000227883E-03,  2.535783370542E-02, -1.093530398142E-02]} # 0009
+ -  {O: [ 1.219349164934E-02,  9.605721877667E-03,  1.058706934650E-03]} # 0010
+ -  {H: [ 2.136054208507E-04,  2.185178234289E-03,  6.979871942584E-03]} # 0011
+ -  {H: [ 3.185973704599E-03,  7.155265296012E-03, -1.015914706285E-03]} # 0012
+ Energy (Hartree)                      : -6.87221689290769149E+01
  Memory Consumption Report:
    Tot. No. of Allocations             :  3620
    Tot. No. of Deallocations           :  3620
@@ -875,7 +872,7 @@
      Peak Value (MB)                   :  354.251
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 365.584 MB
- Walltime since initialization         : 00:00:18.612280163
- Max No. of dictionaries used          :  4536 #( 861 still in use)
+     Memory Peak of process            : 365.556 MB
+ Walltime since initialization         : 00:00:18.648718646
+ Max No. of dictionaries used          :  4548 #( 873 still in use)
  Number of dictionary folders allocated:  1
