@@ -30,6 +30,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   use public_enums
   use ao_inguess, only: aoig_data, aoig_data_null, aoig_set
+  use orthonormalization, only: orthonormalizeLocalized, iterative_orthonormalization
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc

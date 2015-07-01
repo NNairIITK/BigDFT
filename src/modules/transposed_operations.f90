@@ -18,6 +18,7 @@ module transposed_operations
       use module_types
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: get_modulo_array
+      use sparsematrix, only: synchronize_matrix_taskgroups
       implicit none
       
       ! Calling arguments

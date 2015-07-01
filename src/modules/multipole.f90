@@ -492,6 +492,7 @@ module multipole
       use module_interfaces
       use sparsematrix_base, only: sparsematrix_malloc0, SPARSE_FULL, assignment(=)
       use sparsematrix_init, only: matrixindex_in_compressed
+      use orthonormalization, only: orthonormalizeLocalized
       use yaml_output
       implicit none
 

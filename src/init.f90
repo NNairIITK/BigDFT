@@ -754,9 +754,10 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
                           gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, &
                           uncompress_matrix_distributed2, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
-  use matrix_operations, only: overlapPowerGeneral, deviation_from_unity_parallel
+  use matrix_operations, only: overlapPowerGeneral, deviation_from_unity_parallel, check_taylor_order
   use rhopotential, only: updatepotential, sumrho_for_TMBs, corrections_for_negative_charge
   use public_enums
+  use orthonormalization, only : orthonormalizeLocalized, iterative_orthonormalization
   implicit none
 
   ! Calling arguments

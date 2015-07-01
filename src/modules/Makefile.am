@@ -83,6 +83,7 @@ libmodules_a_SOURCES = base.f90 \
 	rhopotential.f90 \
 	multipole_base.f90 \
 	multipole.f90 \
+	orthonormalization.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -144,6 +145,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MULTIPOLE_BASE.@MODULE_EXT@ \
 	FRAGMENT_BASE.@MODULE_EXT@ \
 	MULTIPOLE.@MODULE_EXT@ \
+	ORTHORMALIZATION.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
@@ -204,6 +206,7 @@ modules = module_base.@MODULE_EXT@ \
 	multipole_base.@MODULE_EXT@ \
 	fragment_base.@MODULE_EXT@ \
 	multipole.@MODULE_EXT@ \
+	orthonormalization.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
@@ -294,7 +297,8 @@ foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o spars
 ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 locreg_operations.o: base.o types.o atoms_data.o locregs.o
 rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o sparsematrix_init.o
-multipole.o: base.o multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o
+multipole.o: base.o multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
+orthonormalization.o: base.o types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

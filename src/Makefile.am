@@ -192,7 +192,6 @@ low_level = \
 	linear/initAndUtils.f90 \
 	linear/sumrhoLinear.f90 \
 	linear/inputguessLinear.f90 \
-	linear/orthonormality.f90 \
 	linear/orbitalOptimization.f90 \
 	linear/mixdiis.f90 \
 	linear/copyTypes.f90 \

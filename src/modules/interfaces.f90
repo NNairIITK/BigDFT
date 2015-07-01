@@ -1732,27 +1732,6 @@ module module_interfaces
        integer,dimension(8),intent(out):: comarr
      end subroutine setCommsParameters
 
-     subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inversion_error, npsidim_orbs, &
-                orbs, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, lphi, psit_c, psit_f, can_use_transposed)
-       use module_base
-       use module_types
-       use sparsematrix_base, only: sparse_matrix
-       use foe_base, only: foe_data
-       implicit none
-       integer,intent(in) :: iproc,nproc,npsidim_orbs
-       integer,intent(inout) :: methTransformOverlap
-       real(kind=8),intent(in) :: max_inversion_error
-       type(orbitals_data),intent(in):: orbs
-       type(local_zone_descriptors),intent(in):: lzd
-       type(sparse_matrix),intent(inout):: ovrlp
-       type(sparse_matrix),intent(inout):: inv_ovrlp_half
-       type(comms_linear),intent(in):: collcom
-       type(orthon_data),intent(in):: orthpar
-       real(8),dimension(npsidim_orbs), intent(inout) :: lphi
-       real(8),dimension(:),pointer:: psit_c, psit_f
-       logical,intent(inout):: can_use_transposed
-     end subroutine orthonormalizeLocalized
-
      subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldiis, experimental_mode)
        use module_base
        use module_types
@@ -1870,40 +1849,6 @@ module module_interfaces
       type(foe_data),intent(inout):: foe_obj
       character(len=*),intent(in):: subname
     end subroutine deallocate_foe
-
-      subroutine orthoconstraintNonorthogonal(iproc, nproc, lzd, npsidim_orbs, npsidim_comp, orbs, collcom, orthpar, &
-                 correction_orthoconstraint, linmat, lphi, lhphi, lagmat, lagmat_, psit_c, psit_f, &
-                 hpsit_c, hpsit_f, &
-                 can_use_transposed, overlap_calculated, &
-                 experimental_mode, calculate_inverse, norder_taylor, max_inversion_error, &
-           npsidim_orbs_small, lzd_small, hpsi_noprecond, wt_philarge, wt_hphi, wt_hpsinoprecond)
-        use module_base
-        use module_types
-        use communications_base, only: work_transpose
-        implicit none
-        integer,intent(in) :: iproc, nproc, npsidim_orbs, npsidim_comp, npsidim_orbs_small
-        type(local_zone_descriptors),intent(in) :: lzd, lzd_small
-        type(orbitals_Data),intent(inout) :: orbs !temporary inout
-        type(comms_linear),intent(in) :: collcom
-        type(orthon_data),intent(in) :: orthpar
-        integer,intent(in) :: correction_orthoconstraint
-        real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
-        real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
-        type(sparse_matrix),intent(inout) :: lagmat
-        type(matrices),intent(out) :: lagmat_
-        real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c
-        real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_f
-        real(kind=8),dimension(:),pointer :: psit_c, psit_f
-        logical,intent(inout) :: can_use_transposed, overlap_calculated
-        type(linear_matrices),intent(inout) :: linmat ! change to ovrlp and inv_ovrlp, and use inv_ovrlp instead of denskern
-        logical,intent(in) :: experimental_mode, calculate_inverse
-        integer,intent(inout) :: norder_taylor
-        real(kind=8),intent(in) :: max_inversion_error
-        real(kind=8),dimension(npsidim_orbs_small),intent(out) :: hpsi_noprecond
-        type(work_transpose),intent(inout) :: wt_philarge
-        type(work_transpose),intent(out) :: wt_hphi, wt_hpsinoprecond
-      end subroutine orthoconstraintNonorthogonal
-
 
      subroutine choosePreconditioner2(iproc, nproc, orbs, lr, hx, hy, hz, ncong, hpsi, &
                 confpotorder, potentialprefac, iorb, eval_zero)
@@ -3225,48 +3170,6 @@ module module_interfaces
           integer,intent(inout) :: ib(2,nfl2:nfu2,nfl3:nfu3)
         end subroutine squares_1d
 
-        subroutine orthonormalize_subset(iproc, nproc, verbosity, methTransformOverlap, npsidim_orbs, &
-                   orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
-                   lphi, psit_c, psit_f, can_use_transposed)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc,nproc,verbosity,methTransformOverlap,npsidim_orbs
-          type(orbitals_data),intent(in) :: orbs
-          type(atoms_data),intent(in) :: at
-          integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(sparse_matrix),intent(inout) :: ovrlp
-          type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
-          type(comms_linear),intent(in) :: collcom
-          type(orthon_data),intent(in) :: orthpar
-          real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
-          real(kind=8),dimension(:),pointer :: psit_c, psit_f
-          logical,intent(inout) :: can_use_transposed
-        end subroutine orthonormalize_subset
-
-        subroutine gramschmidt_subset(iproc, nproc, verbosity, methTransformOverlap, npsidim_orbs, &
-                   orbs, at, minorbs_type, maxorbs_type, lzd, ovrlp, inv_ovrlp_half, collcom, orthpar, &
-                   lphi, psit_c, psit_f, can_use_transposed)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc,nproc,verbosity,methTransformOverlap,npsidim_orbs
-          type(orbitals_data),intent(in) :: orbs
-          type(atoms_data),intent(in) :: at
-          integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
-          type(local_zone_descriptors),intent(in) :: lzd
-          type(sparse_matrix),intent(inout) :: ovrlp
-          type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
-          type(comms_linear),intent(in) :: collcom
-          type(orthon_data),intent(in) :: orthpar
-          real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
-          real(kind=8),dimension(:),pointer :: psit_c, psit_f
-          logical,intent(inout) :: can_use_transposed
-        end subroutine gramschmidt_subset
-
         subroutine input_wf_memory_new(nproc,iproc, atoms, &
                  rxyz_old, hx_old, hy_old, hz_old, psi_old,lzd_old, &
                  rxyz,psi,orbs,lzd)
@@ -3750,19 +3653,6 @@ module module_interfaces
           real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
           type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
         end subroutine write_orbital_density
-
-        subroutine iterative_orthonormalization(iproc, nproc, verbosity, iorder, at, nspin, sf_per_type, tmb)
-          use module_base
-          use module_types, only: DFT_wavefunction
-          use module_atoms, only: atoms_data
-          use ao_inguess, only: aoig_data, aoig_data_null, aoig_set
-          implicit none
-          integer,intent(in) :: iproc, nproc, verbosity, iorder
-          type(atoms_data),intent(in) :: at
-          integer,intent(in) :: nspin
-          integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type !< number of support functions per atom type
-          type(DFT_wavefunction),intent(inout) :: tmb
-        end subroutine iterative_orthonormalization
 
   end interface
 END MODULE module_interfaces

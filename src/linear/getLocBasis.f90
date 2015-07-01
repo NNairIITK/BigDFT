@@ -600,7 +600,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_fragments, only: system_fragment
   use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: calculate_overlap_transposed
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   use foe, only: fermi_operator_expansion
   use public_enums
   !  use Poisson_Solver
@@ -2110,6 +2110,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
        allocate_matrices, deallocate_matrices
   use yaml_output, only: yaml_newline, yaml_map
   use matrix_operations, only: overlapPowerGeneral, overlap_minus_one_half_serial, deviation_from_unity_parallel
+  use orthonormalization, only: gramschmidt_coeff_trans
   implicit none
 
   ! Calling arguments
@@ -2609,7 +2610,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                           uncompress_matrix2, compress_matrix2, trace_sparse
   use foe_base, only: foe_data_get_real
   use transposed_operations, only: calculate_overlap_transposed
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   implicit none
 
   ! Calling arguments
@@ -3196,7 +3197,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   use foe_common, only: retransform_ext
   implicit none
 
