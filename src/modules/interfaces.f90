@@ -3215,30 +3215,6 @@ module module_interfaces
           type(input_variables), pointer :: in
         end subroutine inputs_new
 
-        subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, collcom, collcom_shamop, &
-                   collcom_sr, sparsemat)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc
-          type(orbitals_data),intent(in) :: orbs
-          type(comms_linear),intent(in) :: collcom, collcom_shamop, collcom_sr
-          type(sparse_matrix), intent(inout) :: sparsemat
-        end subroutine init_matrixindex_in_compressed_fortransposed
-
-        subroutine compress_polynomial_vector(iproc, nproc, nsize_polynomial, norb, norbp, isorb, &
-                   fermi, vector, vector_compressed)
-          use module_base
-          use module_types
-          use sparsematrix_base, only: sparse_matrix
-          implicit none
-          integer,intent(in) :: iproc, nproc, nsize_polynomial, norb, norbp, isorb
-          type(sparse_matrix),intent(in) :: fermi
-          real(kind=8),dimension(norb,norbp),intent(in) :: vector
-          real(kind=8),dimension(nsize_polynomial),intent(out) :: vector_compressed
-        end subroutine compress_polynomial_vector
-
         subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, &
                    max_inversion_error, purification_quickreturn, ispin)
           use module_base

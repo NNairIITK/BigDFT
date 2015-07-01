@@ -7,6 +7,7 @@ module transposed_operations
   public :: calculate_overlap_transposed
   public :: build_linear_combination_transposed
   public :: normalize_transposed
+  public :: init_matrixindex_in_compressed_fortransposed
 
 
   contains
@@ -15,8 +16,9 @@ module transposed_operations
     subroutine calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
                psit_c1, psit_c2, psit_f1, psit_f2, smat, ovrlp)
       use module_base
-      use module_types
-      use sparsematrix_base, only: sparse_matrix
+      use module_types, only: orbitals_data
+      use communications_base, only: comms_linear
+      use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: get_modulo_array
       use sparsematrix, only: synchronize_matrix_taskgroups
       implicit none
@@ -684,7 +686,8 @@ module transposed_operations
     
     subroutine normalize_transposed(iproc, nproc, orbs, nspin, collcom, psit_c, psit_f, norm)
       use module_base
-      use module_types
+      use module_types, only: orbitals_data
+      use communications_base, only: comms_linear
       implicit none
       
       ! Calling arguments
@@ -803,8 +806,8 @@ module transposed_operations
     subroutine build_linear_combination_transposed(collcom, sparsemat, mat, psitwork_c, psitwork_f, &
          reset, psit_c, psit_f, iproc)
       use module_base
-      use module_types
-      use sparsematrix_base, only: sparse_matrix
+      use communications_base, only: comms_linear
+      use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix_init, only: get_modulo_array
       implicit none
       
@@ -1136,6 +1139,185 @@ module transposed_operations
         !end function get_transposed_index
     
     end subroutine build_linear_combination_transposed
+
+
+    subroutine init_matrixindex_in_compressed_fortransposed(iproc, nproc, orbs, collcom, collcom_shamop, &
+               collcom_sr, sparsemat)
+      use module_base
+      use module_types, only: orbitals_data
+      use communications_base, only: comms_linear
+      !use module_interfaces, except_this_one => init_matrixindex_in_compressed_fortransposed
+      use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_init, only: matrixindex_in_compressed!compressed_index
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      type(orbitals_data),intent(in) :: orbs
+      type(comms_linear),intent(in) :: collcom, collcom_shamop, collcom_sr
+      type(sparse_matrix), intent(inout) :: sparsemat
+      
+      ! Local variables
+      integer :: iorb, jorb, istat, imin, imax, nmiddle, imax_old, imin_old, iiorb, jjorb
+      integer :: ii, imin_new, imax_new, i, nlen, j
+      !integer :: kproc,jproc,jjorbold,jjorb,isend,irecv,ilr,ijorb,iiorb,ind,ierr, irow, irowold, iseg
+      !integer :: compressed_index
+    !  integer,dimension(:,:),allocatable :: sendbuf, requests, iminmaxarr
+      character(len=*),parameter :: subname='init_sparse_matrix'
+    
+      call f_routine(id='init_matrixindex_in_compressed_fortransposed')
+      call timing(iproc,'init_matrCompr','ON')
+    
+      ! for the calculation of overlaps and the charge density
+      !imin=minval(collcom%indexrecvorbital_c)
+      !imin=min(imin,minval(collcom%indexrecvorbital_f))
+      !imin=min(imin,minval(collcom_shamop%indexrecvorbital_c))
+      !imin=min(imin,minval(collcom_shamop%indexrecvorbital_f))
+      !imin=min(imin,minval(collcom_sr%indexrecvorbital_c))
+      !imax=maxval(collcom%indexrecvorbital_c)
+      !imax=max(imax,maxval(collcom%indexrecvorbital_f))
+      !imax=max(imax,maxval(collcom_shamop%indexrecvorbital_c))
+      !imax=max(imax,maxval(collcom_shamop%indexrecvorbital_f))
+      !imax=max(imax,maxval(collcom_sr%indexrecvorbital_c))
+    
+      nmiddle = sparsemat%nfvctr/2 + 1
+    
+      imin_old = huge(1)
+      imax_old = 0
+      imin_new = huge(1)
+      imax_new = 0
+      do i=1,size(collcom%indexrecvorbital_c)
+          ii = mod(collcom%indexrecvorbital_c(i)-1,sparsemat%nfvctr)+1
+          imin_old = min(imin_old,ii)
+          imax_old = max(imax_old,ii)
+          if (ii>nmiddle) then
+              imin_new = min(imin_new,ii)
+          else
+              imax_new = max(imax_new,ii+sparsemat%nfvctr)
+          end if
+      end do
+      do i=1,size(collcom%indexrecvorbital_f)
+          ii = mod(collcom%indexrecvorbital_f(i)-1,sparsemat%nfvctr)+1
+          imin_old = min(imin_old,ii)
+          imax_old = max(imax_old,ii)
+          if (ii>nmiddle) then
+              imin_new = min(imin_new,ii)
+          else
+              imax_new = max(imax_new,ii+sparsemat%nfvctr)
+          end if
+      end do
+      do i=1,size(collcom_shamop%indexrecvorbital_c)
+          ii = mod(collcom_shamop%indexrecvorbital_c(i)-1,sparsemat%nfvctr)+1
+          imin_old = min(imin_old,ii)
+          imax_old = max(imax_old,ii)
+          if (ii>nmiddle) then
+              imin_new = min(imin_new,ii)
+          else
+              imax_new = max(imax_new,ii+sparsemat%nfvctr)
+          end if
+      end do
+      do i=1,size(collcom_shamop%indexrecvorbital_f)
+          ii = mod(collcom_shamop%indexrecvorbital_f(i)-1,sparsemat%nfvctr)+1
+          imin_old = min(imin_old,ii)
+          imax_old = max(imax_old,ii)
+          if (ii>nmiddle) then
+              imin_new = min(imin_new,ii)
+          else
+              imax_new = max(imax_new,ii+sparsemat%nfvctr)
+          end if
+      end do
+      do i=1,size(collcom_sr%indexrecvorbital_c)
+          ii = mod(collcom_sr%indexrecvorbital_c(i)-1,sparsemat%nfvctr)+1
+          imin_old = min(imin_old,ii)
+          imax_old = max(imax_old,ii)
+          if (ii>nmiddle) then
+              imin_new = min(imin_new,ii)
+          else
+              imax_new = max(imax_new,ii+sparsemat%nfvctr)
+          end if
+      end do
+    
+    
+      !!write(*,*) 'iproc, imin_old, imax_old', iproc, imin_old, imax_old
+      !!write(*,*) 'iproc, imin_new, imax_new', iproc, imin_new, imax_new
+    
+      !! values regardless of the spin
+      !imin=mod(imin-1,sparsemat%nfvctr)+1
+      !imax=mod(imax-1,sparsemat%nfvctr)+1
+    
+    
+      ! Determine with which size the array should be allocated
+      if (imax_new-imin_new<0) then
+          ! everything in either first or second half
+          imin = imin_old
+          imax = imax_old
+          !sparsemat%offset_matrixindex_in_compressed_fortransposed = 1
+      else
+          ! in both half
+          if (imax_old-imin_old>imax_new-imin_new) then
+              ! wrap around
+              imin = imin_new
+              imax = imax_new
+              !sparsemat%offset_matrixindex_in_compressed_fortransposed = imin_new
+          else
+              ! no wrap around
+              imin = imin_old
+              imax = imax_old
+              !sparsemat%offset_matrixindex_in_compressed_fortransposed = 1
+          end if
+      end if
+    
+      !!! Check
+      !!if (sparsemat%offset_matrixindex_in_compressed_fortransposed<sparsemat%nfvctr/2+1) then
+      !!    stop 'sparsemat%offset_matrixindex_in_compressed_fortransposed<sparsemat%nfvctr/2+1'
+      !!end if
+    
+      nlen = imax - imin + 1
+      sparsemat%offset_matrixindex_in_compressed_fortransposed = imin
+      !!write(*,*) 'iproc, imin, imax, nlen', iproc, imin, imax, nlen
+    
+      !!! This is a temporary solution for spin polarized systems
+      !!imax=min(imax,orbs%norbu)
+    
+    
+    
+      !!allocate(sparsemat%matrixindex_in_compressed_fortransposed(imin:imax,imin:imax), stat=istat)
+      !!call memocc(istat, sparsemat%matrixindex_in_compressed_fortransposed, &
+      !sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/imin.to.imax,imin.to.imax/),&
+      !    id='sparsemat%matrixindex_in_compressed_fortransposed')
+      sparsemat%matrixindex_in_compressed_fortransposed=f_malloc_ptr((/nlen,nlen/),&
+          id='sparsemat%matrixindex_in_compressed_fortransposed')
+    
+      !$omp parallel do default(private) shared(sparsemat,orbs,imin,imax)
+      do iorb=imin,imax
+          i = iorb - imin + 1
+          do jorb=imin,imax
+              j = jorb - imin + 1
+              !@ii=(jorb-1)*sparsemat%nfvctr+iorb
+              !@ispin=(ii-1)/sparsemat%nfvctr+1 !integer division to get the spin (1 for spin up (or non polarized), 2 for spin down)
+              !@iiorb=mod(iorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+              !@jjorb=mod(jorb-1,sparsemat%nfvctr)+1 !orbital number regardless of the spin
+              !sparsemat%matrixindex_in_compressed_fortransposed(iorb,jorb)=compressed_index(iiorb,jjorb,orbs%norbu,sparsemat)
+              iiorb = mod(iorb-1,sparsemat%nfvctr)+1
+              jjorb = mod(jorb-1,sparsemat%nfvctr)+1
+              !sparsemat%matrixindex_in_compressed_fortransposed(iorb,jorb)=matrixindex_in_compressed(sparsemat, iiorb, jjorb)
+              sparsemat%matrixindex_in_compressed_fortransposed(i,j)=matrixindex_in_compressed(sparsemat, iiorb, jjorb)
+              !sendbuf(jorb,iorb)=compressed_index(jorb,iiorb,orbs%norb,sparsemat)
+              !sendbuf(iorb,jorb)=compressed_index(iiorb,jorb,orbs%norb,sparsemat)
+          end do
+      end do
+      !$omp end parallel do
+    
+      !@! Add the spin shift (i.e. the index is in the spin polarized matrix which is at the end)
+      !@if (ispin==2) then
+      !@    matrixindex_in_compressed = matrixindex_in_compressed + sparsemat%nvctr
+      !@end if
+    
+      call timing(iproc,'init_matrCompr','OF')
+      call f_release_routine()
+    
+    end subroutine init_matrixindex_in_compressed_fortransposed
+
 
 
 end module transposed_operations
