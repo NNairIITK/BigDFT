@@ -353,7 +353,7 @@ module locreg_operations
       real(kind=8) :: h, x, y, z, d, weight_inside, weight_boundary, points_inside, points_boundary, ratio
       real(kind=8) :: atomrad, rad, boundary, weight_normalized, maxweight, meanweight
       real(kind=8),dimension(:),allocatable :: maxweight_types, meanweight_types
-      integer,dimension(:),allocatable :: nwarnings_types
+      integer,dimension(:),allocatable :: nwarnings_types, nsf_per_type
       logical :: perx, pery, perz, on_boundary
 
       call f_routine(id='get_boundary_weight')
@@ -361,6 +361,7 @@ module locreg_operations
       maxweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
       meanweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
       nwarnings_types = f_malloc0(atoms%astruct%ntypes,id='nwarnings_types')
+      nsf_per_type = f_malloc0(atoms%astruct%ntypes,id='nsf_per_type')
 
       if (iproc==0) then
           call yaml_sequence(advance='no')
@@ -414,6 +415,8 @@ module locreg_operations
 
               boundary = min(rad,lzd%llr(ilr)%locrad)
               !write(*,*) 'rad, locrad, boundary', rad, lzd%llr(ilr)%locrad, boundary
+
+              nsf_per_type(iatype) = nsf_per_type(iatype ) + 1
 
               weight_boundary = 0.d0
               weight_inside = 0.d0
@@ -549,6 +552,9 @@ module locreg_operations
           call mpiallred(maxweight_types, mpi_max, comm=bigdft_mpi%mpi_comm)
       end if
       meanweight = meanweight/real(orbs%norb,kind=8)
+      do iatype=1,atoms%astruct%ntypes
+          meanweight_types(iatype) = meanweight_types(iatype)/real(nsf_per_type(iatype),kind=8)
+      end do
       if (iproc==0) then
           call yaml_sequence_open('Check boundary values')
           call yaml_sequence(advance='no')
@@ -579,6 +585,7 @@ module locreg_operations
       call f_free(maxweight_types)
       call f_free(meanweight_types)
       call f_free(nwarnings_types)
+      call f_free(nsf_per_type)
 
       call f_release_routine()
 
