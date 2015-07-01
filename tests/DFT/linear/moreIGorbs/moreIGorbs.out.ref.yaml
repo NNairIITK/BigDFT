@@ -216,7 +216,7 @@
      To                                :  [  23,  24,  65 ]
  High Res. box is treated separately   :  Yes
  Poisson Kernel Initialization:
-   MPI tasks                           :  6
+#   MPI tasks                           :  6
    OpenMP threads per task             :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
@@ -243,8 +243,8 @@
  Total Number of Electrons             :  62
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 0                     :  6
-   MPI tasks  1- 5                     :  5
+#   MPI tasks  0- 0                     :  6
+#   MPI tasks  1- 5                     :  5
  Occupation numbers come from          : System properties
  Occupation Numbers:
    Total Number of Orbitals            :  31
@@ -273,7 +273,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  105,  187 ]
-   MPI tasks                           :  6
+#   MPI tasks                           :  6
  Input Hamiltonian: { #--------------------------------------- Input Wavefunctions Creation
  Atomic Input Orbital Generation: [
  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}},  {
@@ -286,31 +286,31 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  105,  187 ]
-   MPI tasks                           :  6
+#   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  105,  187 ]
-   MPI tasks                           :  6
+#   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  105,  187 ]
-   MPI tasks                           :  6
+#   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  105,  187 ]
-   MPI tasks                           :  6
+#   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  105,  187 ]
-   MPI tasks                           :  6
+#   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  105,  187 ]
-   MPI tasks                           :  6
+#   MPI tasks                           :  6
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  101,  105,  187 ]
-   MPI tasks                           :  6
+#   MPI tasks                           :  6
  Electric Dipole Moment (AU):
    P vector                            :  [ -6.5936E-01,  1.6210E+00, -7.1457E-01 ]
    norm(P)                             :  1.890211E+00

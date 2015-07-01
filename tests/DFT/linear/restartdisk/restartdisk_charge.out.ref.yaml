@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:28:46.158
+ Timestamp of this run                 : 2015-07-01 12:14:56.038
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -442,9 +442,11 @@
  preconditioning load balancing before :  1.33E+00
  preconditioning load balancing after  :  1.33E+00
  task with max load                    :  [  0 ]
- Support function repartition:
-   MPI tasks  0- 5                     :  1
-   MPI tasks  6- 7                     :  0
+ Total No. Support Functions           :  6
+ Support Function Repartition:
+   Minimum                             :  0
+   Maximum                             :  1
+   Average                             :  0.8
  Wavefunctions memory occupation for root MPI process:  0 MB 202 KB 448 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -498,24 +500,15 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  36},  1: {s:  1, e:  36},  2: {s:  1, 
- e:  36},  3: {s:  1, e:  36},  4: {s:  1, e:  36},  5: {s:  1, e:  36},  6: {s:  1, 
- e:  36},  7: {s:  1, e:  36}}, 
- start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+   -  {number of tasks:  8, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  36},  1: {s:  1, e:  36},  2: {s:  1, 
- e:  36},  3: {s:  1, e:  36},  4: {s:  1, e:  36},  5: {s:  1, e:  36},  6: {s:  1, 
- e:  36},  7: {s:  1, e:  36}}, 
- start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+   -  {number of tasks:  8, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  36},  1: {s:  1, e:  36},  2: {s:  1, 
- e:  36},  3: {s:  1, e:  36},  4: {s:  1, e:  36},  5: {s:  1, e:  36},  6: {s:  1, 
- e:  36},  7: {s:  1, e:  36}}, 
- start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+   -  {number of tasks:  8, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -569,8 +562,9 @@
    -  {atom type: H, value:  4.00E-02, origin: file}
    Total No. of Atomic Input Orbitals  :  6
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 5                   :  1
-     MPI tasks  6- 7                   :  0
+     Minimum                           :  0
+     Maximum                           :  1
+     Average                           :  0.8
    Atomic Input Orbital Generation:
    -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
@@ -622,7 +616,7 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  1.01E-16 ]]}, 
+ max / mean error:  [  4.44E-16,  9.96E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  4.65E-01, Omega: -1.609146185121964E+01, D: -1.61E+01, D best: -1.61E+01, 
  exit criterion: net number of iterations,    exit criterion: total number of iterations}
@@ -633,8 +627,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.88E-06,  5.01E-06 ], warnings:  0}
-     -  {type: O, mean / max value:  [  4.53E-06,  2.22E-06 ], warnings:  0}
-     -  {type: H, mean / max value:  [  6.78E-06,  5.01E-06 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.13E-06,  2.22E-06 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.39E-06,  5.01E-06 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -795,24 +789,18 @@
    taskgroup summary:
      number of taskgroups              :  1
      taskgroups overview:
-     -  {number of tasks:  8, IDs: { 0: {s:  1, e:  36},  1: {s:  1, e:  36},  2: {s:  1, 
- e:  36},  3: {s:  1, e:  36},  4: {s:  1, e:  36},  5: {s:  1, e:  36},  6: {s:  1, 
- e:  36},  7: {s:  1, e:  36}}, 
- start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+     -  {number of tasks:  8, start / end:  [  1,  36 ], 
+    start / end disjoint:  [  1,  36 ]}
    taskgroup summary:
      number of taskgroups              :  1
      taskgroups overview:
-     -  {number of tasks:  8, IDs: { 0: {s:  1, e:  36},  1: {s:  1, e:  36},  2: {s:  1, 
- e:  36},  3: {s:  1, e:  36},  4: {s:  1, e:  36},  5: {s:  1, e:  36},  6: {s:  1, 
- e:  36},  7: {s:  1, e:  36}}, 
- start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+     -  {number of tasks:  8, start / end:  [  1,  36 ], 
+    start / end disjoint:  [  1,  36 ]}
    taskgroup summary:
      number of taskgroups              :  1
      taskgroups overview:
-     -  {number of tasks:  8, IDs: { 0: {s:  1, e:  36},  1: {s:  1, e:  36},  2: {s:  1, 
- e:  36},  3: {s:  1, e:  36},  4: {s:  1, e:  36},  5: {s:  1, e:  36},  6: {s:  1, 
- e:  36},  7: {s:  1, e:  36}}, 
- start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+     -  {number of tasks:  8, start / end:  [  1,  36 ], 
+    start / end disjoint:  [  1,  36 ]}
    sparse matmul load balancing naive / optimized:  [  2.00,  2.00 ]
    sparse matmul load balancing naive / optimized:  [  2.00,  2.00 ]
    Kernel update:
@@ -836,14 +824,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  9.44E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  9.25E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  3.81E-01, Omega: -1.651164168676993E+01, D: -1.65E+01, D best: -1.65E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E+00, max alpha:  1.000E+00, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.89E-15,  6.97E-16 ]]}, 
+ max / mean error:  [  2.66E-15,  6.49E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  9.28E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  2.84E-07, 
@@ -862,7 +850,7 @@
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.78E-15,  6.80E-16 ]]}, 
+ max / mean error:  [  1.89E-15,  7.28E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  5.36E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  2.38E-07, 
@@ -874,7 +862,7 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  2.22E-16,  8.28E-17 ]]}, 
+ max / mean error:  [  2.22E-16,  7.63E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  3, fnrm:  9.56E-02, Omega: -1.667314882672635E+01, D: -4.38E-02, D best: -4.38E-02, 
  exit criterion: net number of iterations}
@@ -885,8 +873,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.92E-04,  3.97E-04 ], warnings:  0}
-     -  {type: O, mean / max value:  [  1.06E-03,  3.97E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.8E-05,  6.42E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  2.66E-04,  3.97E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.4E-05,  6.42E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1066,14 +1054,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  2.22E-16,  8.28E-17 ]]}, 
+ max / mean error:  [  2.22E-16,  7.63E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  1.12E-01, Omega: -1.665441811421338E+01, D: -2.51E-02, D best: -2.51E-02, 
  Optimization: {algorithm: SD, mean alpha:  3.600E-01, max alpha:  3.600E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.78E-15,  6.14E-16 ]]}, 
+ max / mean error:  [  1.44E-15,  5.93E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  9.46E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  5.02E-08, 
@@ -1085,14 +1073,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  2.22E-16,  5.23E-17 ]]}, 
+ max / mean error:  [  2.22E-16,  4.14E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  5.15E-02, Omega: -1.666372900199871E+01, D: -9.31E-03, D best: -9.31E-03, 
  Optimization: {algorithm: SD, mean alpha:  3.960E-01, max alpha:  3.960E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.55E-15,  4.67E-16 ]]}, 
+ max / mean error:  [  1.78E-15,  4.77E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.95E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  1.08E-08, 
@@ -1115,8 +1103,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.39E-04,  2.94E-04 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.47E-04,  2.94E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.96E-05,  7.27E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.87E-04,  2.94E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.48E-05,  7.27E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1303,7 +1291,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  6.66E-16,  3.04E-16 ]]}, 
+ max / mean error:  [  6.66E-16,  2.96E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  3.20E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.67E-09, 
@@ -1322,7 +1310,7 @@
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  9.99E-16,  3.73E-16 ]]}, 
+ max / mean error:  [  8.88E-16,  3.45E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.70E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  6.45E-10, 
@@ -1345,8 +1333,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.36E-04,  2.69E-04 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.27E-04,  2.69E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.83E-05,  7.24E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.82E-04,  2.69E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.42E-05,  7.24E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1533,7 +1521,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.0E-15,  6.87E-16 ]]}, 
+ max / mean error:  [  1.78E-15,  6.86E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.11E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  4.16E-10, 
@@ -1552,7 +1540,7 @@
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.44E-15,  4.69E-16 ]]}, 
+ max / mean error:  [  1.44E-15,  4.75E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  3.45E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  1.99E-10, 
@@ -1575,8 +1563,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.37E-04,  2.65E-04 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.35E-04,  2.65E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.93E-05,  7.36E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.84E-04,  2.65E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.47E-05,  7.36E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1763,7 +1751,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.78E-15,  8.01E-16 ]]}, 
+ max / mean error:  [  2.11E-15,  8.25E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.13E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  1.08E-10, 
@@ -1782,7 +1770,7 @@
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  8.88E-16,  3.72E-16 ]]}, 
+ max / mean error:  [  6.86E-16,  3.66E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.93E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  1.70E-10, 
@@ -1805,8 +1793,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.38E-04,  2.67E-04 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.39E-04,  2.67E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.97E-05,  7.40E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.85E-04,  2.67E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.49E-05,  7.40E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1999,7 +1987,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.2E-01,  1.180E-01 ]}
+ -  {Process:  0, Timing:  [  1.2E-01,  1.215E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -2016,10 +2004,7 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  36},  1: {s:  1, e:  36},  2: {s:  1, 
- e:  36},  3: {s:  1, e:  36},  4: {s:  1, e:  36},  5: {s:  1, e:  36},  6: {s:  1, 
- e:  36},  7: {s:  1, e:  36}}, 
- start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
+   -  {number of tasks:  8, start / end:  [  1,  36 ], start / end disjoint:  [  1,  36 ]}
  Total charge                          :  6.999996217831E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2043,8 +2028,8 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.78
-   Elapsed time (s)                    :  10.81
+   CPU time (s)                        :  9.40
+   Elapsed time (s)                    :  9.43
  BigDFT infocode                       :  0
  Average noise forces: {x: -1.63201297E-02, y: -1.07537118E-02, z: -6.85581900E-03, 
                     total:  2.07121029E-02}
@@ -2057,14 +2042,14 @@
  -  {H: [ 1.346837815484E-02,  3.883510887360E-02,  3.693410092721E-02]} # 0003
  Energy (Hartree)                      : -1.66655163296485647E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  9757
-   Tot. No. of Deallocations           :  9757
+   Tot. No. of Allocations             :  9763
+   Tot. No. of Deallocations           :  9763
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  86.926
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 120.524 MB
- Walltime since initialization         : 00:00:11.254249258
- Max No. of dictionaries used          :  5863 #( 861 still in use)
+     Memory Peak of process            : 120.532 MB
+ Walltime since initialization         : 00:00:09.877416498
+ Max No. of dictionaries used          :  5875 #( 873 still in use)
  Number of dictionary folders allocated:  1

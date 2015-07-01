@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:27:11.497
+ Timestamp of this run                 : 2015-07-01 12:13:45.268
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -484,7 +484,9 @@
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  8
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 7                   :  1
+     Minimum                           :  1
+     Maximum                           :  1
+     Average                           :  1.0
    Atomic Input Orbital Generation:
    -  {Atom Type: Si, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
@@ -657,7 +659,7 @@
  Write wavefunctions to file           : ./data/wavefunction.*
   # 1th wavefunction written
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.9E-01,  1.894E-01 ]}
+ -  {Process:  0, Timing:  [  1.8E-01,  1.847E-01 ]}
   #---------------------------------------------------------------------- Forces Calculation
  GPU acceleration                      :  No
   #WARNING: Using fake local mapping array. Check whether this is correct!
@@ -680,20 +682,20 @@
  - Using fake local mapping array. Check whether this is correct!
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  4.75
-   Elapsed time (s)                    :  4.76
+   CPU time (s)                        :  4.73
+   Elapsed time (s)                    :  4.82
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.33609819E-05, y:  1.33609819E-05, z:  1.33609818E-05, 
                     total:  2.31418994E-05}
- Clean forces norm (Ha/Bohr): {maxval:  9.298787823977E-05, fnrm2:  3.385586424698E-08}
- Raw forces norm (Ha/Bohr): {maxval:  9.698710943571E-05, fnrm2:  3.439141175404E-08}
+ Clean forces norm (Ha/Bohr): {maxval:  9.298787823972E-05, fnrm2:  3.385586424694E-08}
+ Raw forces norm (Ha/Bohr): {maxval:  9.698710943564E-05, fnrm2:  3.439141175400E-08}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [-3.355627074867E-06, -3.355627074508E-06, -3.355627190482E-06]} # 0001
- -  {H: [-5.125702247237E-05, -5.125702247168E-05, -5.125702244193E-05]} # 0002
- -  {H: [ 5.391734435330E-05,  5.391734435182E-05, -5.322203912832E-05]} # 0003
- -  {H: [-5.322203916016E-05,  5.391734435323E-05,  5.391734438067E-05]} # 0004
- -  {H: [ 5.391734435409E-05, -5.322203915886E-05,  5.391734438006E-05]} # 0005
+ -  {Si: [-3.355627074856E-06, -3.355627074519E-06, -3.355627190493E-06]} # 0001
+ -  {H: [-5.125702247233E-05, -5.125702247163E-05, -5.125702244191E-05]} # 0002
+ -  {H: [ 5.391734435326E-05,  5.391734435179E-05, -5.322203912831E-05]} # 0003
+ -  {H: [-5.322203916012E-05,  5.391734435319E-05,  5.391734438066E-05]} # 0004
+ -  {H: [ 5.391734435405E-05, -5.322203915882E-05,  5.391734438005E-05]} # 0005
  Energy (Hartree)                      : -6.26982277959634704E+00
  Memory Consumption Report:
    Tot. No. of Allocations             :  1655
@@ -703,7 +705,7 @@
      Peak Value (MB)                   :  64.249
      for the array                     : wz
      in the routine                    : input_wf
-     Memory Peak of process            : 73.972 MB
- Walltime since initialization         : 00:00:05.203554679
- Max No. of dictionaries used          :  3525 #( 861 still in use)
+     Memory Peak of process            : 73.996 MB
+ Walltime since initialization         : 00:00:05.223461701
+ Max No. of dictionaries used          :  3537 #( 873 still in use)
  Number of dictionary folders allocated:  1

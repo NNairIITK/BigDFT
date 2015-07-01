@@ -4972,7 +4972,7 @@ contains
 !!$omp end critical
                                         end do
                                         spi=real(scalprod_new(icplx,0,m,i,l,jj),gp)
-                                        Enl=Enl+tt*spi
+                                        Enl=Enl+tt1*spi
                                         do idir=4,ndir !for stress
                                            strc=real(scalprod_new(icplx,idir,m,i,l,jj),gp)
                                            sab(idir-3) = sab(idir-3)+&   

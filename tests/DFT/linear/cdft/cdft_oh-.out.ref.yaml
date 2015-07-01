@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:35:06.838
+ Timestamp of this run                 : 2015-07-01 12:21:17.968
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -438,9 +438,11 @@
  preconditioning load balancing before :  1.66E+00
  preconditioning load balancing after  :  1.66E+00
  task with max load                    :  [  4 ]
- Support function repartition:
-   MPI tasks  0- 4                     :  1
-   MPI tasks  5- 7                     :  0
+ Total No. Support Functions           :  5
+ Support Function Repartition:
+   Minimum                             :  0
+   Maximum                             :  1
+   Average                             :  0.6
  Wavefunctions memory occupation for root MPI process:  0 MB 261 KB 768 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -494,24 +496,15 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  25},  1: {s:  1, e:  25},  2: {s:  1, 
- e:  25},  3: {s:  1, e:  25},  4: {s:  1, e:  25},  5: {s:  1, e:  25},  6: {s:  1, 
- e:  25},  7: {s:  1, e:  25}}, 
- start / end:  [  1,  25 ], start / end disjoint:  [  1,  25 ]}
+   -  {number of tasks:  8, start / end:  [  1,  25 ], start / end disjoint:  [  1,  25 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  25},  1: {s:  1, e:  25},  2: {s:  1, 
- e:  25},  3: {s:  1, e:  25},  4: {s:  1, e:  25},  5: {s:  1, e:  25},  6: {s:  1, 
- e:  25},  7: {s:  1, e:  25}}, 
- start / end:  [  1,  25 ], start / end disjoint:  [  1,  25 ]}
+   -  {number of tasks:  8, start / end:  [  1,  25 ], start / end disjoint:  [  1,  25 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  25},  1: {s:  1, e:  25},  2: {s:  1, 
- e:  25},  3: {s:  1, e:  25},  4: {s:  1, e:  25},  5: {s:  1, e:  25},  6: {s:  1, 
- e:  25},  7: {s:  1, e:  25}}, 
- start / end:  [  1,  25 ], start / end disjoint:  [  1,  25 ]}
+   -  {number of tasks:  8, start / end:  [  1,  25 ], start / end disjoint:  [  1,  25 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -565,8 +558,9 @@
    -  {atom type: H, value:  5.00E-03, origin: file}
    Total No. of Atomic Input Orbitals  :  5
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 4                   :  1
-     MPI tasks  5- 7                   :  0
+     Minimum                           :  0
+     Maximum                           :  1
+     Average                           :  0.6
    Atomic Input Orbital Generation:
    -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
@@ -625,7 +619,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.89E-15,  6.17E-16 ]]}, 
+ max / mean error:  [  1.67E-15,  5.96E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  3.04E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.31E-06, 
@@ -644,7 +638,7 @@
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.44E-15,  6.75E-16 ]]}, 
+ max / mean error:  [  2.66E-15,  7.28E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.15E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  3.74E-07, 
@@ -663,7 +657,7 @@
     consecutive successes:  3}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.0E-15,  6.57E-16 ]]}, 
+ max / mean error:  [  1.89E-15,  6.45E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.16E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  3.82E-07, 
@@ -686,7 +680,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.05E-03,  5.53E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  1.01E-02,  5.53E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  2.54E-03,  5.53E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  8.59E-05,  8.59E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -885,7 +879,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.33E-15,  4.87E-16 ]]}, 
+ max / mean error:  [  1.33E-15,  4.71E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  6.99E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  2.13E-06, 
@@ -904,7 +898,7 @@
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.33E-15,  5.08E-16 ]]}, 
+ max / mean error:  [  1.44E-15,  5.41E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.58E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  4.69E-07, 
@@ -923,7 +917,7 @@
     consecutive successes:  3}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.11E-15,  3.52E-16 ]]}, 
+ max / mean error:  [  1.11E-15,  3.32E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.03E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  8.19E-08, 
@@ -946,7 +940,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.81E-04,  2.80E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  4.27E-03,  2.80E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.07E-03,  2.80E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  1.3E-04,  1.30E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -1171,7 +1165,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.78E-15,  6.16E-16 ]]}, 
+ max / mean error:  [  1.78E-15,  6.18E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  3.52E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  1.17E-05, 
@@ -1183,7 +1177,7 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  1.33E-16 ]]}, 
+ max / mean error:  [  4.44E-16,  9.93E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  4.78E-01, Omega: -1.693949846465728E+01, D: -7.73E-01, D best: -7.73E-01, 
  exit criterion: net number of iterations}
@@ -1194,7 +1188,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.81E-03,  4.80E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  8.54E-03,  4.80E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  2.13E-03,  4.80E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  5.0E-04,  5.00E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1497,14 +1491,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  1.33E-16 ]]}, 
+ max / mean error:  [  4.44E-16,  9.93E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  6.31E-01, Omega: -1.633233274307819E+01, D: -1.66E-01, D best: -1.66E-01, 
  Optimization: {algorithm: SD, mean alpha:  5.271E-01, max alpha:  5.271E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.33E-15,  4.85E-16 ]]}, 
+ max / mean error:  [  1.33E-15,  4.73E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  3.62E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  1.24E-05, 
@@ -1527,7 +1521,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  3.24E-03,  4.52E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  1.59E-02,  4.52E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  3.98E-03,  4.52E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  2.64E-04,  2.64E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1837,7 +1831,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.55E-15,  4.94E-16 ]]}, 
+ max / mean error:  [  1.44E-15,  4.76E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  6.26E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  1.95E-06, 
@@ -1860,7 +1854,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  3.69E-03,  5.67E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  1.82E-02,  5.67E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  4.55E-03,  5.67E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  2.59E-04,  2.59E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -2170,7 +2164,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  8.88E-16,  3.25E-16 ]]}, 
+ max / mean error:  [  8.88E-16,  3.35E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  5.10E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  1.71E-07, 
@@ -2193,7 +2187,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.13E-03,  6.77E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.04E-02,  6.77E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  5.1E-03,  6.77E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  2.49E-04,  2.49E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
@@ -2503,7 +2497,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.71E-15,  6.18E-16 ]]}, 
+ max / mean error:  [  1.71E-15,  6.13E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.57E-07, 
  Mean deviation from unity in reorthonormalize_coeff:  4.80E-08, 
@@ -2526,7 +2520,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.53E-03,  7.74E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.24E-02,  7.74E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  5.6E-03,  7.74E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  2.35E-04,  2.35E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel007
@@ -2836,7 +2830,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.78E-15,  4.63E-16 ]]}, 
+ max / mean error:  [  1.78E-15,  4.35E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  5.20E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  1.63E-08, 
@@ -2859,7 +2853,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.85E-03,  8.53E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.4E-02,  8.53E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  6.01E-03,  8.53E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  2.21E-04,  2.21E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel008
@@ -3169,7 +3163,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.44E-15,  3.92E-16 ]]}, 
+ max / mean error:  [  1.44E-15,  3.85E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.30E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  5.08E-09, 
@@ -3192,7 +3186,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.1E-03,  9.13E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.53E-02,  9.13E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  6.32E-03,  9.13E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  2.07E-04,  2.07E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel009
@@ -3502,7 +3496,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.0E-15,  6.76E-16 ]]}, 
+ max / mean error:  [  2.0E-15,  6.86E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  3.99E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  2.23E-09, 
@@ -3525,7 +3519,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.27E-03,  9.54E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.62E-02,  9.54E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  6.54E-03,  9.54E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  1.94E-04,  1.94E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel010
@@ -3835,7 +3829,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  3.11E-15,  8.45E-16 ]]}, 
+ max / mean error:  [  3.11E-15,  8.62E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  3.66E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.82E-09, 
@@ -3858,7 +3852,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.38E-03,  9.81E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.67E-02,  9.81E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  6.68E-03,  9.81E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  1.84E-04,  1.84E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel011
@@ -4168,7 +4162,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.02E-15,  4.17E-16 ]]}, 
+ max / mean error:  [  1.02E-15,  4.20E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.24E-08, 
  Mean deviation from unity in reorthonormalize_coeff:  3.85E-09, 
@@ -4191,7 +4185,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.43E-03,  9.94E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.7E-02,  9.94E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  6.75E-03,  9.94E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  1.77E-04,  1.77E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel012
@@ -4501,7 +4495,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  8.88E-16,  3.99E-16 ]]}, 
+ max / mean error:  [  8.88E-16,  4.27E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  8.24E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  2.47E-09, 
@@ -4524,7 +4518,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.46E-03,  1.00E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.71E-02,  1.00E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  6.78E-03,  1.00E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.73E-04,  1.73E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -4835,7 +4829,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.11E-15,  4.75E-16 ]]}, 
+ max / mean error:  [  1.11E-15,  4.77E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  5.54E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  2.79E-10, 
@@ -4858,7 +4852,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.48E-03,  1.01E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.72E-02,  1.01E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  6.81E-03,  1.01E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.69E-04,  1.69E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -5169,7 +5163,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.5E-15,  7.35E-16 ]]}, 
+ max / mean error:  [  1.5E-15,  7.47E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  4.73E-10, 
  Mean deviation from unity in reorthonormalize_coeff:  2.36E-10, 
@@ -5192,7 +5186,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.49E-03,  1.01E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.73E-02,  1.01E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  6.83E-03,  1.01E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.66E-04,  1.66E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -5503,7 +5497,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.33E-15,  4.08E-16 ]]}, 
+ max / mean error:  [  1.33E-15,  4.12E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  4.72E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  1.39E-09, 
@@ -5526,7 +5520,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.5E-03,  1.01E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.73E-02,  1.01E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  6.83E-03,  1.01E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.65E-04,  1.65E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -5837,7 +5831,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.44E-15,  7.20E-16 ]]}, 
+ max / mean error:  [  2.55E-15,  7.27E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  3.24E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  9.55E-10, 
@@ -5860,7 +5854,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.5E-03,  1.01E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.74E-02,  1.01E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  6.84E-03,  1.01E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.63E-04,  1.63E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -6171,7 +6165,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.0E-15,  5.86E-16 ]]}, 
+ max / mean error:  [  2.0E-15,  5.89E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.36E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  3.84E-10, 
@@ -6194,7 +6188,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.51E-03,  1.01E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.74E-02,  1.01E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  6.84E-03,  1.01E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.63E-04,  1.63E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -6505,7 +6499,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.33E-15,  4.97E-16 ]]}, 
+ max / mean error:  [  1.33E-15,  4.88E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.51E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  4.25E-10, 
@@ -6528,7 +6522,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.51E-03,  1.01E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.74E-02,  1.01E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  6.85E-03,  1.01E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.62E-04,  1.62E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -6839,7 +6833,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.33E-15,  4.92E-16 ]]}, 
+ max / mean error:  [  1.33E-15,  5.02E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.55E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  7.46E-10, 
@@ -6862,7 +6856,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.51E-03,  1.01E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.74E-02,  1.01E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  6.85E-03,  1.01E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.62E-04,  1.62E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -7173,7 +7167,7 @@
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.89E-15,  6.92E-16 ]]}, 
+ max / mean error:  [  2.89E-15,  6.94E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.79E-09, 
  Mean deviation from unity in reorthonormalize_coeff:  5.03E-10, 
@@ -7196,7 +7190,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.51E-03,  1.01E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.74E-02,  1.01E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  6.85E-03,  1.01E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.61E-04,  1.61E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -7518,7 +7512,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.4E-01,  1.333E-01 ]}
+ -  {Process:  0, Timing:  [  1.3E-01,  1.325E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -7535,10 +7529,7 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  25},  1: {s:  1, e:  25},  2: {s:  1, 
- e:  25},  3: {s:  1, e:  25},  4: {s:  1, e:  25},  5: {s:  1, e:  25},  6: {s:  1, 
- e:  25},  7: {s:  1, e:  25}}, 
- start / end:  [  1,  25 ], start / end disjoint:  [  1,  25 ]}
+   -  {number of tasks:  8, start / end:  [  1,  25 ], start / end disjoint:  [  1,  25 ]}
  Total charge                          :  7.999999375251E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -7556,8 +7547,8 @@
  - The support function localization radii might be too small, got 2 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  42.32
-   Elapsed time (s)                    :  42.71
+   CPU time (s)                        :  42.29
+   Elapsed time (s)                    :  42.40
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.22838288E-03, y:  5.07886477E-04, z:  5.07886464E-04, 
                     total:  1.42296235E-03}
@@ -7569,14 +7560,14 @@
  -  {H: [-1.044451312477E-02, -5.421010862428E-20, -5.421010862428E-20]} # 0002
  Energy (Hartree)                      : -1.65524726808178926E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  33827
-   Tot. No. of Deallocations           :  33827
+   Tot. No. of Allocations             :  33848
+   Tot. No. of Deallocations           :  33848
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  96.508
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 128.684 MB
- Walltime since initialization         : 00:00:43.171617269
- Max No. of dictionaries used          :  4981 #( 861 still in use)
+     Memory Peak of process            : 128.676 MB
+ Walltime since initialization         : 00:00:42.874731352
+ Max No. of dictionaries used          :  4993 #( 873 still in use)
  Number of dictionary folders allocated:  1

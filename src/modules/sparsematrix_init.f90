@@ -3662,7 +3662,10 @@ contains
                              irow(i) = jorb
                              icol(i) = iorb
                              !exit outloop
+                             !SM: I think one should do this within a critical section since it is shared, just to be sure...
+                             !$omp critical
                              found=.true.
+                             !$omp end critical
                          end if
                      end do
                   end if
@@ -3687,12 +3690,16 @@ contains
               implicit none
               integer :: ipt, ii, i0, i, i0i, iiorb, j, i0j, jjorb, ind, iorb, jorb
               integer,dimension(:),pointer :: moduloarray
+              integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
 
               call get_modulo_array(smat, moduloarray)
 
+              !SM: when the pointer within the type is used directly the code crashes with Intel, I have no idea why...
+              matrixindex_in_compressed_fortransposed => smat%matrixindex_in_compressed_fortransposed
+
               !$omp parallel default(none) &
               !$omp private(ipt,ii,i0,i,i0i,iiorb,iorb,j,i0j,jjorb,jorb,ind) &
-              !$omp shared(collcom,moduloarray,smat,ind_min,ind_max)
+              !$omp shared(collcom,moduloarray,smat,ind_min,ind_max,matrixindex_in_compressed_fortransposed)
               !$omp do reduction(min: ind_min) reduction(max: ind_max)
               do ipt=1,collcom%nptsp_c
                   ii=collcom%norb_per_gridpoint_c(ipt)
@@ -3705,11 +3712,8 @@ contains
                           i0j=i0+j
                           jjorb=collcom%indexrecvorbital_c(i0j)
                           jorb=moduloarray(jjorb)
-                          !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                          !write(*,'(a,5i8)') 'iproc, iiorb, iorb, jjorb, jorb', iproc, iiorb, iorb, jjorb, jorb
-                          ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
-                          !ind = get_transposed_index(smat,jjorb,iiorb)
-                          !if (ind==0) write(*,'(a,2i8)') 'iszero: iiorb, jjorb', iiorb, jjorb
+                          !ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                          ind = matrixindex_in_compressed_fortransposed(jorb,iorb)
                           ind_min = min(ind_min,ind)
                           ind_max = max(ind_max,ind)
                       end do
@@ -3729,10 +3733,8 @@ contains
                           i0j=i0+j
                           jjorb=collcom%indexrecvorbital_f(i0j)
                           jorb=moduloarray(jjorb)
-                          !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                          ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
-                          !ind = get_transposed_index(smat,jjorb,iiorb)
-                          !if (ind==0) write(*,'(a,2i8)') 'iszero: iiorb, jjorb', iiorb, jjorb
+                          !ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                          ind = matrixindex_in_compressed_fortransposed(jorb,iorb)
                           ind_min = min(ind_min,ind)
                           ind_max = max(ind_max,ind)
                       end do
@@ -3741,7 +3743,6 @@ contains
               !$omp end do
               !$omp end parallel
 
-              !contains
 
               call f_free_ptr(moduloarray)
     

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 17:22:13.018
+ Timestamp of this run                 : 2015-07-01 13:11:10.948
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -477,15 +477,11 @@
  preconditioning load balancing before :  1.11E+00
  preconditioning load balancing after  :  1.05E+00
  task with max load                    :  [  2 ]
- Support function repartition:
-   MPI tasks  0- 0                     :  8
-   MPI tasks  1- 1                     :  7
-   MPI tasks  2- 2                     :  8
-   MPI tasks  3- 3                     :  7
-   MPI tasks  4- 4                     :  8
-   MPI tasks  5- 5                     :  7
-   MPI tasks  6- 6                     :  8
-   MPI tasks  7- 7                     :  7
+ Total No. Support Functions           :  60
+ Support Function Repartition:
+   Minimum                             :  7
+   Maximum                             :  8
+   Average                             :  7.5
  Wavefunctions memory occupation for root MPI process:  4 MB 931 KB 896 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -539,24 +535,18 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  1800},  1: {s:  1, e:  1800},  2: {s:  1, 
- e:  1800},  3: {s:  1, e:  1800},  4: {s:  1, e:  1800},  5: {s:  1, e:  1800},  6: {
- s:  1, e:  1800},  7: {s:  1, e:  1800}}, 
- start / end:  [  1,  1800 ], start / end disjoint:  [  1,  1800 ]}
+   -  {number of tasks:  8, start / end:  [  1,  1800 ], 
+  start / end disjoint:  [  1,  1800 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  1800},  1: {s:  1, e:  1800},  2: {s:  1, 
- e:  1800},  3: {s:  1, e:  1800},  4: {s:  1, e:  1800},  5: {s:  1, e:  1800},  6: {
- s:  1, e:  1800},  7: {s:  1, e:  1800}}, 
- start / end:  [  1,  1800 ], start / end disjoint:  [  1,  1800 ]}
+   -  {number of tasks:  8, start / end:  [  1,  1800 ], 
+  start / end disjoint:  [  1,  1800 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  1800},  1: {s:  1, e:  1800},  2: {s:  1, 
- e:  1800},  3: {s:  1, e:  1800},  4: {s:  1, e:  1800},  5: {s:  1, e:  1800},  6: {
- s:  1, e:  1800},  7: {s:  1, e:  1800}}, 
- start / end:  [  1,  1800 ], start / end disjoint:  [  1,  1800 ]}
+   -  {number of tasks:  8, start / end:  [  1,  1800 ], 
+  start / end disjoint:  [  1,  1800 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -610,14 +600,9 @@
    -  {atom type: H, value:  0.00E+00, origin: file}
    Total No. of Atomic Input Orbitals  :  60
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 0                   :  8
-     MPI tasks  1- 1                   :  7
-     MPI tasks  2- 2                   :  8
-     MPI tasks  3- 3                   :  7
-     MPI tasks  4- 4                   :  8
-     MPI tasks  5- 5                   :  7
-     MPI tasks  6- 6                   :  8
-     MPI tasks  7- 7                   :  7
+     Minimum                           :  7
+     Maximum                           :  8
+     Average                           :  7.5
    Atomic Input Orbital Generation:
    -  {Atom Type: C, Electronic configuration: {s: [ 2.00], p: [ 2/3,  2/3,  2/3]}}
    -  {Atom Type: H, Electronic configuration: {s: [ 1.00]}}
@@ -695,14 +680,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  1.9E-15,  8.54E-17 ]]}, 
+ max / mean error:  [  1.9E-15,  8.34E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  6.48E-01, Omega: -5.870301884851045E+01, D: -5.87E+01, D best: -5.87E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E-01, max alpha:  1.000E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.49E-15,  4.93E-16 ]]}, 
+ max / mean error:  [  2.49E-15,  4.92E-16 ]]}, 
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: TRACE, Hamiltonian Applied:  Yes, 
@@ -710,7 +695,7 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  8.88E-16,  6.52E-17 ]]}, 
+ max / mean error:  [  8.88E-16,  6.47E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  5.90E-01, Omega: -5.969362747930626E+01, D: -9.91E-01, D best: -9.91E-01, 
  exit criterion: net number of iterations}
@@ -721,8 +706,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.07E-03,  1.46E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  5.46E-02,  1.46E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  9.81E-03,  8.37E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.14E-03,  1.46E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  8.18E-04,  8.37E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -974,14 +959,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  8.88E-16,  6.52E-17 ]]}, 
+ max / mean error:  [  8.88E-16,  6.47E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  4.59E-01, Omega: -7.424471523420107E+01, D: -1.55E+01, D best: -1.55E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.100E-01, max alpha:  1.100E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  3.33E-15,  5.76E-16 ]]}, 
+ max / mean error:  [  3.33E-15,  5.79E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  9.51E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  1.06E-04, 
@@ -993,7 +978,7 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  1.28E-15,  6.78E-17 ]]}, 
+ max / mean error:  [  1.28E-15,  6.95E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  3.79E-01, Omega: -7.461287341905336E+01, D: -3.68E-01, D best: -3.68E-01, 
  exit criterion: net number of iterations}
@@ -1004,8 +989,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.02E-03,  1.47E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  5.14E-02,  1.47E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  9.6E-03,  8.27E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.07E-03,  1.47E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  8.0E-04,  8.27E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1305,7 +1290,7 @@
  Wavefunction written No.              :  6
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  3.24E+00,  3.603E+00 ]}
+ -  {Process:  0, Timing:  [  2.62E+00,  2.751E+00 ]}
  Total charge                          :  5.999999875208E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1321,8 +1306,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  49.88
-   Elapsed time (s)                    :  50.99
+   CPU time (s)                        :  46.65
+   Elapsed time (s)                    :  46.86
  BigDFT infocode                       :  0
  Average noise forces: {x: -4.51824542E-03, y: -4.71628387E-03, z: -3.92340513E-03, 
                     total:  7.61911957E-03}
@@ -1330,12 +1315,12 @@
  Raw forces norm (Ha/Bohr): {maxval:  1.161266027640E-01, fnrm2:  2.716292196874E-01}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [-2.925388129467E-04,  1.041899316851E-01,  1.717091632916E-02]} # 0001
- -  {C: [-2.921542327020E-04,  3.467172508416E-02,  1.085782538051E-01]} # 0002
- -  {C: [-3.804556983287E-04, -6.839844715352E-02,  8.413974771249E-02]} # 0003
- -  {C: [-2.070914947424E-04, -1.092739052599E-01, -1.916753445076E-02]} # 0004
- -  {C: [-3.018638276661E-04, -3.918501817901E-02, -1.019425903966E-01]} # 0005
- -  {C: [-9.914533345500E-05,  7.155664562365E-02, -9.156095600882E-02]} # 0006
+ -  {C: [-2.925388129467E-04,  1.041899316851E-01,  1.717091632915E-02]} # 0001
+ -  {C: [-2.921542327019E-04,  3.467172508416E-02,  1.085782538051E-01]} # 0002
+ -  {C: [-3.804556983286E-04, -6.839844715352E-02,  8.413974771249E-02]} # 0003
+ -  {C: [-2.070914947424E-04, -1.092739052599E-01, -1.916753445075E-02]} # 0004
+ -  {C: [-3.018638276662E-04, -3.918501817901E-02, -1.019425903966E-01]} # 0005
+ -  {C: [-9.914533345503E-05,  7.155664562365E-02, -9.156095600882E-02]} # 0006
  -  {H: [ 1.130880129257E-03,  1.124335566285E-01,  1.912393218424E-02]} # 0007
  -  {H: [ 1.155447982929E-03,  3.824352729359E-02,  1.020387668711E-01]} # 0008
  -  {H: [ 1.259822191424E-03, -6.896589566756E-02,  8.512907294087E-02]} # 0009
@@ -1349,21 +1334,21 @@
  -  {C: [-2.501180201771E-03, -3.793103329724E-02, -9.554535415959E-02]} # 0017
  -  {C: [-2.205775300185E-03,  6.370934867758E-02, -7.854227194170E-02]} # 0018
  -  {H: [ 1.349497925884E-03,  1.043970979713E-01,  1.804513962549E-02]} # 0019
- -  {H: [ 1.359262036063E-03,  3.671068674143E-02,  9.842533951842E-02]} # 0020
- -  {H: [ 1.270066959649E-03, -6.435904220327E-02,  8.066667887692E-02]} # 0021
+ -  {H: [ 1.359262036063E-03,  3.671068674143E-02,  9.842533951843E-02]} # 0020
+ -  {H: [ 1.270066959649E-03, -6.435904220328E-02,  8.066667887692E-02]} # 0021
  -  {H: [ 1.258964982659E-03, -9.998410851193E-02, -1.621095051901E-02]} # 0022
- -  {H: [ 1.330722890264E-03, -3.583232534824E-02, -9.479043862775E-02]} # 0023
+ -  {H: [ 1.330722890263E-03, -3.583232534824E-02, -9.479043862775E-02]} # 0023
  -  {H: [ 1.311700547068E-03,  6.700534827488E-02, -7.810802452170E-02]} # 0024
  Energy (Hartree)                      : -7.46042976583785844E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  7279
-   Tot. No. of Deallocations           :  7279
+   Tot. No. of Allocations             :  7281
+   Tot. No. of Deallocations           :  7281
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  782.043
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 838.520 MB
- Walltime since initialization         : 00:00:51.535787329
- Max No. of dictionaries used          :  4977 #( 861 still in use)
+     Memory Peak of process            : 838.524 MB
+ Walltime since initialization         : 00:00:47.366691784
+ Max No. of dictionaries used          :  4989 #( 873 still in use)
  Number of dictionary folders allocated:  1

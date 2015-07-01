@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:35:50.248
+ Timestamp of this run                 : 2015-07-01 12:22:01.068
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -446,12 +446,11 @@
  preconditioning load balancing before :  1.60E+00
  preconditioning load balancing after  :  1.60E+00
  task with max load                    :  [  4 ]
- Support function repartition:
-   MPI tasks  0- 3                     :  1
-   MPI tasks  4- 4                     :  2
-   MPI tasks  5- 5                     :  1
-   MPI tasks  6- 6                     :  2
-   MPI tasks  7- 7                     :  1
+ Total No. Support Functions           :  10
+ Support Function Repartition:
+   Minimum                             :  1
+   Maximum                             :  2
+   Average                             :  1.2
  Wavefunctions memory occupation for root MPI process:  0 MB 348 KB 576 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -505,24 +504,18 @@
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  100},  1: {s:  1, e:  100},  2: {s:  1, 
- e:  100},  3: {s:  1, e:  100},  4: {s:  1, e:  100},  5: {s:  1, e:  100},  6: {s:  1, 
- e:  100},  7: {s:  1, e:  100}}, 
- start / end:  [  1,  100 ], start / end disjoint:  [  1,  100 ]}
+   -  {number of tasks:  8, start / end:  [  1,  100 ], 
+  start / end disjoint:  [  1,  100 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  100},  1: {s:  1, e:  100},  2: {s:  1, 
- e:  100},  3: {s:  1, e:  100},  4: {s:  1, e:  100},  5: {s:  1, e:  100},  6: {s:  1, 
- e:  100},  7: {s:  1, e:  100}}, 
- start / end:  [  1,  100 ], start / end disjoint:  [  1,  100 ]}
+   -  {number of tasks:  8, start / end:  [  1,  100 ], 
+  start / end disjoint:  [  1,  100 ]}
  taskgroup summary:
    number of taskgroups                :  1
    taskgroups overview:
-   -  {number of tasks:  8, IDs: { 0: {s:  1, e:  100},  1: {s:  1, e:  100},  2: {s:  1, 
- e:  100},  3: {s:  1, e:  100},  4: {s:  1, e:  100},  5: {s:  1, e:  100},  6: {s:  1, 
- e:  100},  7: {s:  1, e:  100}}, 
- start / end:  [  1,  100 ], start / end disjoint:  [  1,  100 ]}
+   -  {number of tasks:  8, start / end:  [  1,  100 ], 
+  start / end disjoint:  [  1,  100 ]}
  Checking Compression/Uncompression of small sparse matrices:
    Tolerances for this check           :  1.00000001335143196E-10
    Maxdiff for compress                :  0.00000000000000000E+00
@@ -580,7 +573,7 @@
      Molecule was shifted              :  10
      Molecule was rotated              :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  3.13E+00,  3.139E+00 ]}
+   -  {Process:  0, Timing:  [  3.16E+00,  3.172E+00 ]}
    Max deviation from unity in reorthonormalize_coeff:  1.63E-06
    Mean deviation from unity in reorthonormalize_coeff:  5.58E-07
    Max deviation from unity in reorthonormalize_coeff:  1.82E-06
@@ -662,7 +655,7 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  8.88E-16,  2.45E-16 ]]}, 
+ max / mean error:  [  1.11E-15,  2.63E-16 ]]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  5.41E-01, Omega: -3.240099098127420E+01, D: -3.24E+01, D best: -3.24E+01, 
  exit criterion: net number of iterations}
@@ -10230,12 +10223,12 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  42.81
-   Elapsed time (s)                    :  43.04
+   CPU time (s)                        :  42.89
+   Elapsed time (s)                    :  42.97
  BigDFT infocode                       :  0
  Average noise forces: {x: -6.37226112E-02, y: -3.66087845E-01, z:  1.98099289E-02, 
                     total:  3.72120028E-01}
- Clean forces norm (Ha/Bohr): {maxval:  8.382893015913E-01, fnrm2:  1.368368534498E+00}
+ Clean forces norm (Ha/Bohr): {maxval:  8.382893015914E-01, fnrm2:  1.368368534498E+00}
  Raw forces norm (Ha/Bohr): {maxval:  1.094021680929E+00, fnrm2:  1.594180154738E+00}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
@@ -10253,6 +10246,6 @@
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
      Memory Peak of process            : 153.140 MB
- Walltime since initialization         : 00:00:43.481168607
- Max No. of dictionaries used          :  4451 #( 861 still in use)
+ Walltime since initialization         : 00:00:43.429651304
+ Max No. of dictionaries used          :  4463 #( 873 still in use)
  Number of dictionary folders allocated:  1
