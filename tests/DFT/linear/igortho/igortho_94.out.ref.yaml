@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:54:44.328
+ Timestamp of this run                 : 2015-07-01 09:33:05.068
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -799,8 +799,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.4E-04,  2.68E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  6.22E-03,  2.68E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  4.66E-03,  1.33E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  6.92E-04,  2.68E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  5.82E-04,  1.33E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1404,8 +1404,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.49E-03,  6.83E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  1.71E-02,  6.83E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.28E-03,  1.65E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.9E-03,  6.83E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.03E-03,  1.65E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1955,8 +1955,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.88E-03,  7.95E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.17E-02,  7.95E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.02E-02,  2.39E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  2.41E-03,  7.95E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.27E-03,  2.39E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -2579,8 +2579,8 @@
  - set to 1.d-20 instead of 0.d0
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  16.63
-   Elapsed time (s)                    :  16.73
+   CPU time (s)                        :  16.70
+   Elapsed time (s)                    :  16.88
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.71092192E-02, y: -1.57430388E-02, z: -1.61197527E-02, 
                     total:  3.52505243E-02}
@@ -2593,14 +2593,14 @@
  -  {H: [-1.676011613621E-02,  7.299717043887E-03,  7.757463935809E-03]} # 0003
  Energy (Hartree)                      : -1.74603473860768617E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  8739
-   Tot. No. of Deallocations           :  8739
+   Tot. No. of Allocations             :  8742
+   Tot. No. of Deallocations           :  8742
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  587.732
      for the array                     : sphi
      in the routine                    : multipoles_from_density
-     Memory Peak of process            : 674.284 MB
- Walltime since initialization         : 00:00:17.176666612
+     Memory Peak of process            : 674.100 MB
+ Walltime since initialization         : 00:00:17.341689799
  Max No. of dictionaries used          :  7724 #( 861 still in use)
  Number of dictionary folders allocated:  1

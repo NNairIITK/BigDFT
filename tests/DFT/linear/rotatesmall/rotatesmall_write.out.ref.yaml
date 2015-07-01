@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:34:07.708
+ Timestamp of this run                 : 2015-07-01 09:12:25.768
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -653,8 +653,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.61E-04,  1.96E-03 ], warnings:  0}
-     -  {type: Si, mean / max value:  [  1.49E-03,  5.57E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  4.53E-03,  1.96E-03 ], warnings:  0}
+     -  {type: Si, mean / max value:  [  3.72E-04,  5.57E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.51E-03,  1.96E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -789,8 +789,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  7.0E-04,  1.59E-03 ], warnings:  0}
-     -  {type: Si, mean / max value:  [  1.26E-03,  5.46E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  3.65E-03,  1.59E-03 ], warnings:  0}
+     -  {type: Si, mean / max value:  [  3.14E-04,  5.46E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.22E-03,  1.59E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -888,7 +888,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.7E-01,  1.831E-01 ]}
+ -  {Process:  0, Timing:  [  1.5E-01,  1.525E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -926,7 +926,7 @@
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  4.09
-   Elapsed time (s)                    :  4.11
+   Elapsed time (s)                    :  4.10
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.25022272E-03, y: -1.27870691E-03, z:  5.17500267E-04, 
                     total:  1.86170748E-03}
@@ -940,14 +940,14 @@
  -  {H: [ 1.694752897044E-02, -1.754245912606E-02, -2.538068245489E-02]} # 0004
  Energy (Hartree)                      : -5.49248095956173010E+00
  Memory Consumption Report:
-   Tot. No. of Allocations             :  3874
-   Tot. No. of Deallocations           :  3874
+   Tot. No. of Allocations             :  3876
+   Tot. No. of Deallocations           :  3876
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  100.743
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 130.596 MB
- Walltime since initialization         : 00:00:04.534531698
+     Memory Peak of process            : 130.588 MB
+ Walltime since initialization         : 00:00:04.526185281
  Max No. of dictionaries used          :  5026 #( 861 still in use)
  Number of dictionary folders allocated:  1

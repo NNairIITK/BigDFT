@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 17:23:04.848
+ Timestamp of this run                 : 2015-07-01 08:55:50.567
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -614,7 +614,7 @@
      Molecule was shifted              :  60
      Molecule was rotated              :  0
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  1.338E+01,  1.340E+01 ]}
+   -  {Process:  0, Timing:  [  1.345E+01,  1.346E+01 ]}
    Max deviation from unity in reorthonormalize_coeff:  1.65E-01
    Mean deviation from unity in reorthonormalize_coeff:  1.49E-02
    calculate S^x:
@@ -700,8 +700,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.12E-03,  1.44E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  5.72E-02,  1.44E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.01E-02,  8.71E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.19E-03,  1.44E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  8.43E-04,  8.71E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -953,8 +953,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  53.48
-   Elapsed time (s)                    :  53.73
+   CPU time (s)                        :  52.88
+   Elapsed time (s)                    :  52.97
  BigDFT infocode                       :  0
  Average noise forces: {x: -3.06303192E-03, y: -5.19690892E-03, z: -4.60771411E-03, 
                     total:  7.59085345E-03}
@@ -1352,8 +1352,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.14E-03,  1.53E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  5.84E-02,  1.53E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.02E-02,  8.79E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.22E-03,  1.53E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  8.49E-04,  8.79E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -1605,8 +1605,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  40.49
-   Elapsed time (s)                    :  40.56
+   CPU time (s)                        :  39.81
+   Elapsed time (s)                    :  39.92
  BigDFT infocode                       :  0
  Average noise forces: {x: -4.11788220E-03, y: -5.67440295E-03, z: -4.89828573E-03, 
                     total:  8.55271920E-03}
@@ -2012,8 +2012,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.05E-03,  1.48E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  5.33E-02,  1.48E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  9.82E-03,  8.67E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.11E-03,  1.48E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  8.18E-04,  8.67E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -2265,8 +2265,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  52.55
-   Elapsed time (s)                    :  52.64
+   CPU time (s)                        :  52.68
+   Elapsed time (s)                    :  52.79
  BigDFT infocode                       :  0
  Average noise forces: {x: -1.01406500E-02, y: -2.60556857E+00, z: -2.66702458E+00, 
                     total:  3.72855341E+00}
@@ -2672,8 +2672,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.01E-03,  1.43E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  5.08E-02,  1.43E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  9.58E-03,  8.40E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.06E-03,  1.43E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  7.98E-04,  8.40E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -2925,8 +2925,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  52.08
-   Elapsed time (s)                    :  52.35
+   CPU time (s)                        :  52.41
+   Elapsed time (s)                    :  52.49
  BigDFT infocode                       :  0
  Average noise forces: {x: -6.42045028E-03, y:  4.43310269E-01, z:  4.42789988E-01, 
                     total:  6.26600503E-01}
@@ -3332,8 +3332,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  9.26E-04,  1.35E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  4.54E-02,  1.35E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.01E-02,  8.68E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  9.46E-04,  1.35E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  8.45E-04,  8.68E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -3585,8 +3585,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  52.12
-   Elapsed time (s)                    :  52.24
+   CPU time (s)                        :  51.70
+   Elapsed time (s)                    :  53.49
  BigDFT infocode                       :  0
  Average noise forces: {x: -1.60785188E-02, y: -3.62917529E+00, z: -3.83854520E+00, 
                     total:  5.28257523E+00}
@@ -3631,14 +3631,14 @@
    isatur                              :  0
  End of minimization using             : BFGS
  Memory Consumption Report:
-   Tot. No. of Allocations             :  32475
-   Tot. No. of Deallocations           :  32475
+   Tot. No. of Allocations             :  32480
+   Tot. No. of Deallocations           :  32480
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  830.547
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 887.504 MB
- Walltime since initialization         : 00:04:12.101764579
+     Memory Peak of process            : 887.112 MB
+ Walltime since initialization         : 00:04:12.256206259
  Max No. of dictionaries used          :  4302 #( 861 still in use)
  Number of dictionary folders allocated:  1

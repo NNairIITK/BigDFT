@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:58:56.827
+ Timestamp of this run                 : 2015-07-01 08:30:35.128
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -592,7 +592,7 @@
      Molecule was shifted              :  24
      Molecule was rotated              :  18
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  9.94E+00,  9.967E+00 ]}
+   -  {Process:  0, Timing:  [  9.65E+00,  9.658E+00 ]}
    Max deviation from unity in reorthonormalize_coeff:  4.75E-06
    Mean deviation from unity in reorthonormalize_coeff:  2.36E-06
    Max deviation from unity in reorthonormalize_coeff:  1.67E-06
@@ -720,8 +720,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  7.35E-03,  1.52E-02 ], warnings:  8}
-     -  {type: O, mean / max value:  [  1.75E-01,  1.52E-02 ], warnings:  8}
-     -  {type: H, mean / max value:  [  1.28E-03,  1.92E-04 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.09E-02,  1.52E-02 ], warnings:  8}
+     -  {type: H, mean / max value:  [  1.6E-04,  1.92E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 8 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -845,8 +845,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  20.34
-   Elapsed time (s)                    :  20.65
+   CPU time (s)                        :  18.12
+   Elapsed time (s)                    :  18.14
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.20278655E-02, y: -5.91923346E-02, z:  3.59651424E-02, 
                     total:  7.02986023E-02}
@@ -868,14 +868,14 @@
  -  {H: [ 3.185973704603E-03,  7.155265296007E-03, -1.015914706281E-03]} # 0012
  Energy (Hartree)                      : -6.87221689290769433E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  3619
-   Tot. No. of Deallocations           :  3619
+   Tot. No. of Allocations             :  3620
+   Tot. No. of Deallocations           :  3620
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  354.251
      for the array                     : psir
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 365.568 MB
- Walltime since initialization         : 00:00:21.151844944
+     Memory Peak of process            : 365.584 MB
+ Walltime since initialization         : 00:00:18.612280163
  Max No. of dictionaries used          :  4536 #( 861 still in use)
  Number of dictionary folders allocated:  1

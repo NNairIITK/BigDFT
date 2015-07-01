@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:50:52.226
+ Timestamp of this run                 : 2015-07-01 09:29:25.338
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1002,8 +1002,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.43E-03,  8.82E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  7.66E-02,  3.57E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  3.22E-01,  8.82E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  2.55E-03,  3.57E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  5.37E-03,  8.82E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1310,8 +1310,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  3.26E-02,  5.36E-02 ], warnings:  89}
-     -  {type: H, mean / max value:  [  4.17E-01,  1.67E-02 ], warnings:  29}
-     -  {type: O, mean / max value:  [  2.51E+00,  5.36E-02 ], warnings:  60}
+     -  {type: H, mean / max value:  [  1.39E-02,  1.67E-02 ], warnings:  29}
+     -  {type: O, mean / max value:  [  4.19E-02,  5.36E-02 ], warnings:  60}
       #WARNING: The support function localization radii might be too small, got 89 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -1620,8 +1620,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  3.61E-02,  7.45E-02 ], warnings:  90}
-     -  {type: H, mean / max value:  [  5.38E-01,  2.13E-02 ], warnings:  30}
-     -  {type: O, mean / max value:  [  2.71E+00,  7.45E-02 ], warnings:  60}
+     -  {type: H, mean / max value:  [  1.79E-02,  2.13E-02 ], warnings:  30}
+     -  {type: O, mean / max value:  [  4.52E-02,  7.45E-02 ], warnings:  60}
       #WARNING: The support function localization radii might be too small, got 90 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -2013,8 +2013,8 @@
  - The support function localization radii might be too small, got 90 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  24.91
-   Elapsed time (s)                    :  24.99
+   CPU time (s)                        :  24.22
+   Elapsed time (s)                    :  24.65
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.18901137E-01, y:  1.02065525E-01, z:  1.19059048E-01, 
                     total:  1.96799158E-01}
@@ -2068,14 +2068,14 @@
  -  {H: [ 1.729771711000E-02,  3.154953901800E-02, -1.435323554651E-02]} # 0045
  Energy (Hartree)                      : -2.60305286810263681E+02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  13236
-   Tot. No. of Deallocations           :  13236
+   Tot. No. of Allocations             :  13239
+   Tot. No. of Deallocations           :  13239
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  485.291
      for the array                     : f_i
      in the routine                    : vxcpostprocessing
-     Memory Peak of process            : 530.792 MB
- Walltime since initialization         : 00:00:25.831982195
+     Memory Peak of process            : 530.796 MB
+ Walltime since initialization         : 00:00:25.295140850
  Max No. of dictionaries used          :  6740 #( 861 still in use)
  Number of dictionary folders allocated:  1

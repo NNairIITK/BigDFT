@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:28:00.407
+ Timestamp of this run                 : 2015-07-01 09:06:44.608
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -645,8 +645,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.76E-02,  2.80E-02 ], warnings:  6}
-     -  {type: O, mean / max value:  [  5.76E-02,  2.12E-02 ], warnings:  4}
-     -  {type: H, mean / max value:  [  4.78E-02,  2.80E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  1.44E-02,  2.12E-02 ], warnings:  4}
+     -  {type: H, mean / max value:  [  2.39E-02,  2.80E-02 ], warnings:  2}
       #WARNING: The support function localization radii might be too small, got 6 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -800,8 +800,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.75E-02,  2.80E-02 ], warnings:  6}
-     -  {type: O, mean / max value:  [  5.75E-02,  2.11E-02 ], warnings:  4}
-     -  {type: H, mean / max value:  [  4.77E-02,  2.80E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  1.44E-02,  2.11E-02 ], warnings:  4}
+     -  {type: H, mean / max value:  [  2.39E-02,  2.80E-02 ], warnings:  2}
       #WARNING: The support function localization radii might be too small, got 6 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -962,8 +962,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.75E-02,  2.80E-02 ], warnings:  6}
-     -  {type: O, mean / max value:  [  5.75E-02,  2.11E-02 ], warnings:  4}
-     -  {type: H, mean / max value:  [  4.77E-02,  2.80E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  1.44E-02,  2.11E-02 ], warnings:  4}
+     -  {type: H, mean / max value:  [  2.39E-02,  2.80E-02 ], warnings:  2}
       #WARNING: The support function localization radii might be too small, got 6 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1348,8 +1348,8 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  3.16
-   Elapsed time (s)                    :  3.17
+   CPU time (s)                        :  3.27
+   Elapsed time (s)                    :  3.28
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.81627853E-01, y:  2.49290264E-02, z:  1.39157120E-02, 
                     total:  1.83858044E-01}
@@ -1362,14 +1362,14 @@
  -  {H: [-4.308671318413E-02, -1.557603081381E-03,  3.162291988252E-04]} # 0003
  Energy (Hartree)                      : -1.69482356914543715E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  4991
-   Tot. No. of Deallocations           :  4991
+   Tot. No. of Allocations             :  4994
+   Tot. No. of Deallocations           :  4994
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  72.699
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 70.476 MB
- Walltime since initialization         : 00:00:03.615050499
+     Memory Peak of process            : 70.904 MB
+ Walltime since initialization         : 00:00:03.733479695
  Max No. of dictionaries used          :  5153 #( 861 still in use)
  Number of dictionary folders allocated:  1

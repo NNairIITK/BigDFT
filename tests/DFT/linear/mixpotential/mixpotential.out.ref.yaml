@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:27:46.807
+ Timestamp of this run                 : 2015-07-01 09:06:30.707
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -732,8 +732,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  3.84E-02,  4.89E-02 ], warnings:  50}
-     -  {type: C, mean / max value:  [  1.17E+00,  4.50E-02 ], warnings:  32}
-     -  {type: H, mean / max value:  [  7.45E-01,  4.89E-02 ], warnings:  18}
+     -  {type: C, mean / max value:  [  3.67E-02,  4.50E-02 ], warnings:  32}
+     -  {type: H, mean / max value:  [  4.14E-02,  4.89E-02 ], warnings:  18}
       #WARNING: The support function localization radii might be too small, got 50 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -894,8 +894,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.12E-02,  5.00E-02 ], warnings:  50}
-     -  {type: C, mean / max value:  [  1.3E+00,  4.87E-02 ], warnings:  32}
-     -  {type: H, mean / max value:  [  7.58E-01,  5.00E-02 ], warnings:  18}
+     -  {type: C, mean / max value:  [  4.06E-02,  4.87E-02 ], warnings:  32}
+     -  {type: H, mean / max value:  [  4.21E-02,  5.00E-02 ], warnings:  18}
       #WARNING: The support function localization radii might be too small, got 50 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -1183,8 +1183,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.42E-03,  6.61E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.53E-01,  6.61E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  6.78E-02,  4.39E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  4.79E-03,  6.61E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.77E-03,  4.39E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1452,8 +1452,8 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  12.28
-   Elapsed time (s)                    :  12.33
+   CPU time (s)                        :  12.22
+   Elapsed time (s)                    :  12.39
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.58132199E-02, y:  2.54445056E-02, z:  1.49453888E-02, 
                     total:  3.92059923E-02}
@@ -1489,14 +1489,14 @@
  -  {H: [-4.187900654782E-04,  1.091562025352E-01, -1.543768186283E-01]} # 0026
  Energy (Hartree)                      : -4.94479646296493058E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  11964
-   Tot. No. of Deallocations           :  11964
+   Tot. No. of Allocations             :  11967
+   Tot. No. of Deallocations           :  11967
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  137.530
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 189.824 MB
- Walltime since initialization         : 00:00:12.845937376
+     Memory Peak of process            : 188.568 MB
+ Walltime since initialization         : 00:00:12.922947818
  Max No. of dictionaries used          :  7777 #( 861 still in use)
  Number of dictionary folders allocated:  1

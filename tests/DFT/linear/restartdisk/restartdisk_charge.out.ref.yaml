@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:28:46.158
+ Timestamp of this run                 : 2015-07-01 09:07:08.087
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -633,8 +633,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.88E-06,  5.01E-06 ], warnings:  0}
-     -  {type: O, mean / max value:  [  4.53E-06,  2.22E-06 ], warnings:  0}
-     -  {type: H, mean / max value:  [  6.78E-06,  5.01E-06 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.13E-06,  2.22E-06 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.39E-06,  5.01E-06 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -885,8 +885,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.92E-04,  3.97E-04 ], warnings:  0}
-     -  {type: O, mean / max value:  [  1.06E-03,  3.97E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.8E-05,  6.42E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  2.66E-04,  3.97E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.4E-05,  6.42E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1115,8 +1115,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.39E-04,  2.94E-04 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.47E-04,  2.94E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.96E-05,  7.27E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.87E-04,  2.94E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.48E-05,  7.27E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1345,8 +1345,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.36E-04,  2.69E-04 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.27E-04,  2.69E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.83E-05,  7.24E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.82E-04,  2.69E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.42E-05,  7.24E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1575,8 +1575,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.37E-04,  2.65E-04 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.35E-04,  2.65E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.93E-05,  7.36E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.84E-04,  2.65E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.47E-05,  7.36E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1805,8 +1805,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.38E-04,  2.67E-04 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.39E-04,  2.67E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.97E-05,  7.40E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.85E-04,  2.67E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.49E-05,  7.40E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1999,7 +1999,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.2E-01,  1.180E-01 ]}
+ -  {Process:  0, Timing:  [  1.2E-01,  1.227E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -2043,8 +2043,8 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  10.78
-   Elapsed time (s)                    :  10.81
+   CPU time (s)                        :  9.31
+   Elapsed time (s)                    :  9.35
  BigDFT infocode                       :  0
  Average noise forces: {x: -1.63201297E-02, y: -1.07537118E-02, z: -6.85581900E-03, 
                     total:  2.07121029E-02}
@@ -2057,14 +2057,14 @@
  -  {H: [ 1.346837815484E-02,  3.883510887360E-02,  3.693410092721E-02]} # 0003
  Energy (Hartree)                      : -1.66655163296485647E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  9757
-   Tot. No. of Deallocations           :  9757
+   Tot. No. of Allocations             :  9763
+   Tot. No. of Deallocations           :  9763
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  86.926
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 120.524 MB
- Walltime since initialization         : 00:00:11.254249258
+     Memory Peak of process            : 120.544 MB
+ Walltime since initialization         : 00:00:09.805341467
  Max No. of dictionaries used          :  5863 #( 861 still in use)
  Number of dictionary folders allocated:  1

@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 17:16:34.648
+ Timestamp of this run                 : 2015-07-01 08:49:20.988
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -838,9 +838,9 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  3.52E-03,  1.09E-02 ], warnings:  2}
-     -  {type: C, mean / max value:  [  2.62E-01,  1.09E-02 ], warnings:  2}
-     -  {type: S, mean / max value:  [  1.67E-02,  1.37E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.68E-02,  2.79E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  4.68E-03,  1.09E-02 ], warnings:  2}
+     -  {type: S, mean / max value:  [  8.34E-04,  1.37E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  2.1E-03,  2.79E-03 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -1065,9 +1065,9 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.87E-03,  1.95E-02 ], warnings:  12}
-     -  {type: C, mean / max value:  [  4.35E-01,  1.95E-02 ], warnings:  12}
-     -  {type: S, mean / max value:  [  2.9E-02,  2.89E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.88E-02,  4.85E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  7.78E-03,  1.95E-02 ], warnings:  12}
+     -  {type: S, mean / max value:  [  1.45E-03,  2.89E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.6E-03,  4.85E-03 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 12 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -1281,9 +1281,9 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.71E-03,  2.13E-02 ], warnings:  12}
-     -  {type: C, mean / max value:  [  4.32E-01,  2.13E-02 ], warnings:  12}
-     -  {type: S, mean / max value:  [  2.71E-02,  2.43E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.04E-02,  3.39E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  7.71E-03,  2.13E-02 ], warnings:  12}
+     -  {type: S, mean / max value:  [  1.36E-03,  2.43E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  2.54E-03,  3.39E-03 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 12 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1469,9 +1469,9 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.57E-03,  1.74E-02 ], warnings:  11}
-     -  {type: C, mean / max value:  [  4.21E-01,  1.74E-02 ], warnings:  11}
-     -  {type: S, mean / max value:  [  2.51E-02,  2.18E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.13E-02,  3.52E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  7.52E-03,  1.74E-02 ], warnings:  11}
+     -  {type: S, mean / max value:  [  1.26E-03,  2.18E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  2.67E-03,  3.52E-03 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 11 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1657,9 +1657,9 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.66E-03,  1.80E-02 ], warnings:  11}
-     -  {type: C, mean / max value:  [  4.28E-01,  1.80E-02 ], warnings:  11}
-     -  {type: S, mean / max value:  [  2.53E-02,  2.20E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.24E-02,  3.86E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  7.64E-03,  1.80E-02 ], warnings:  11}
+     -  {type: S, mean / max value:  [  1.26E-03,  2.20E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  2.8E-03,  3.86E-03 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 11 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -1845,9 +1845,9 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.66E-03,  1.78E-02 ], warnings:  11}
-     -  {type: C, mean / max value:  [  4.27E-01,  1.78E-02 ], warnings:  11}
-     -  {type: S, mean / max value:  [  2.53E-02,  2.20E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.31E-02,  4.08E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  7.63E-03,  1.78E-02 ], warnings:  11}
+     -  {type: S, mean / max value:  [  1.26E-03,  2.20E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  2.89E-03,  4.08E-03 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 11 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
@@ -2110,7 +2110,7 @@
  Wavefunction written No.              :  8
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  3.8E+00,  4.121E+00 ]}
+ -  {Process:  0, Timing:  [  3.57E+00,  3.857E+00 ]}
  Total charge                          :  9.399999973881E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2129,8 +2129,8 @@
  - The support function localization radii might be too small, got 11 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  225.37
-   Elapsed time (s)                    :  227.81
+   CPU time (s)                        :  213.04
+   Elapsed time (s)                    :  225.24
  BigDFT infocode                       :  0
  Average noise forces: {x: -9.60036473E-04, y: -1.01473932E-03, z:  5.63466430E-04, 
                     total:  1.50627366E-03}
@@ -2167,14 +2167,14 @@
  -  {H: [ 1.173415179577E-03, -1.430313343905E-03,  1.326323418767E-05]} # 0027
  Energy (Hartree)                      : -1.35539927465641767E+02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  20214
-   Tot. No. of Deallocations           :  20214
+   Tot. No. of Allocations             :  20220
+   Tot. No. of Deallocations           :  20220
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  1064.844
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 1107.948 MB
- Walltime since initialization         : 00:03:48.499310463
+     Memory Peak of process            : 1108.296 MB
+ Walltime since initialization         : 00:03:45.895655405
  Max No. of dictionaries used          :  5523 #( 861 still in use)
  Number of dictionary folders allocated:  1

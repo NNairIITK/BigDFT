@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:49:13.798
+ Timestamp of this run                 : 2015-07-01 09:27:52.027
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1141,8 +1141,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.74E-01,  2.17E-01 ], warnings:  392}
-     -  {type: C, mean / max value:  [  4.82E+01,  2.17E-01 ], warnings:  260}
-     -  {type: H, mean / max value:  [  2.01E+01,  1.72E-01 ], warnings:  132}
+     -  {type: C, mean / max value:  [  1.85E-01,  2.17E-01 ], warnings:  260}
+     -  {type: H, mean / max value:  [  1.52E-01,  1.72E-01 ], warnings:  132}
       #WARNING: The support function localization radii might be too small, got 392 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -1777,8 +1777,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  24.35
-   Elapsed time (s)                    :  24.67
+   CPU time (s)                        :  22.63
+   Elapsed time (s)                    :  22.69
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.71821323E-01, y:  8.67331760E-02, z: -1.21354127E-01, 
                     total:  3.10058542E-01}
@@ -1985,14 +1985,14 @@
  -  {H: [-2.328063895122E-02,  4.124652692770E-02,  5.990021993132E-02]} # 0197
  Energy (Hartree)                      : -3.96944058125549873E+02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  23695
-   Tot. No. of Deallocations           :  23695
+   Tot. No. of Allocations             :  23696
+   Tot. No. of Deallocations           :  23696
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  480.529
      for the array                     : psi_f
      in the routine                    : transpose_localized
-     Memory Peak of process            : 521.804 MB
- Walltime since initialization         : 00:00:26.345059168
+     Memory Peak of process            : 530.032 MB
+ Walltime since initialization         : 00:00:24.362594679
  Max No. of dictionaries used          :  8936 #( 861 still in use)
  Number of dictionary folders allocated:  1

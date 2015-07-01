@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:38:32.038
+ Timestamp of this run                 : 2015-07-01 09:16:47.808
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -548,7 +548,7 @@
    Need to reformat wavefunctions      :  No
    Need to reformat wavefunctions      :  No
    Reading Waves Time:
-   -  {Process:  0, Timing:  [  2.6E-01,  2.558E-01 ]}
+   -  {Process:  0, Timing:  [  2.5E-01,  2.441E-01 ]}
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
@@ -717,8 +717,8 @@
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  14.95
-   Elapsed time (s)                    :  15.24
+   CPU time (s)                        :  15.03
+   Elapsed time (s)                    :  15.06
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.85110444E-02, y:  2.74567954E-02, z:  2.30183241E-02, 
                     total:  4.57886286E-02}
@@ -756,7 +756,7 @@
      Peak Value (MB)                   :  99.080
      for the array                     : w%x_f3
      in the routine                    : local_hamiltonian
-     Memory Peak of process            : 121.296 MB
- Walltime since initialization         : 00:00:15.660610572
+     Memory Peak of process            : 121.232 MB
+ Walltime since initialization         : 00:00:15.480887516
  Max No. of dictionaries used          :  3580 #( 861 still in use)
  Number of dictionary folders allocated:  1

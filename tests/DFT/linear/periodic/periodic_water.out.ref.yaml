@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:51:18.488
+ Timestamp of this run                 : 2015-07-01 09:29:51.018
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1184,8 +1184,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.08E-02,  2.05E-02 ], warnings:  114}
-     -  {type: H, mean / max value:  [  6.02E-01,  1.04E-02 ], warnings:  3}
-     -  {type: O, mean / max value:  [  1.74E+00,  2.05E-02 ], warnings:  111}
+     -  {type: H, mean / max value:  [  8.36E-03,  1.04E-02 ], warnings:  3}
+     -  {type: O, mean / max value:  [  1.21E-02,  2.05E-02 ], warnings:  111}
       #WARNING: The support function localization radii might be too small, got 114 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -1394,8 +1394,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.42E-02,  8.78E-02 ], warnings:  216}
-     -  {type: H, mean / max value:  [  2.2E+00,  3.63E-02 ], warnings:  72}
-     -  {type: O, mean / max value:  [  9.51E+00,  8.78E-02 ], warnings:  144}
+     -  {type: H, mean / max value:  [  3.05E-02,  3.63E-02 ], warnings:  72}
+     -  {type: O, mean / max value:  [  6.61E-02,  8.78E-02 ], warnings:  144}
       #WARNING: The support function localization radii might be too small, got 216 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -1647,8 +1647,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  7.49E-02,  1.49E-01 ], warnings:  216}
-     -  {type: H, mean / max value:  [  2.97E+00,  4.96E-02 ], warnings:  72}
-     -  {type: O, mean / max value:  [  1.32E+01,  1.49E-01 ], warnings:  144}
+     -  {type: H, mean / max value:  [  4.13E-02,  4.96E-02 ], warnings:  72}
+     -  {type: O, mean / max value:  [  9.17E-02,  1.49E-01 ], warnings:  144}
       #WARNING: The support function localization radii might be too small, got 216 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1880,8 +1880,8 @@
  - The support function localization radii might be too small, got 216 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  41.77
-   Elapsed time (s)                    :  43.43
+   CPU time (s)                        :  37.43
+   Elapsed time (s)                    :  37.54
  BigDFT infocode                       :  0
  Average noise forces: {x:  1.95183634E-01, y:  2.11850924E-01, z:  2.04191808E-01, 
                     total:  3.53088883E-01}
@@ -1998,14 +1998,14 @@
  -  {H: [ 4.260150980849E-02,  2.482100295558E-02,  2.839748071599E-02]} # 0108
  Energy (Hartree)                      : -6.21676988758171888E+02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  24359
-   Tot. No. of Deallocations           :  24359
+   Tot. No. of Allocations             :  24362
+   Tot. No. of Deallocations           :  24362
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  354.688
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 396.580 MB
- Walltime since initialization         : 00:00:44.651083573
+     Memory Peak of process            : 396.720 MB
+ Walltime since initialization         : 00:00:38.774241282
  Max No. of dictionaries used          :  8571 #( 861 still in use)
  Number of dictionary folders allocated:  1

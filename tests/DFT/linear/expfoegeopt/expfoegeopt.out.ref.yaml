@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:49:41.098
+ Timestamp of this run                 : 2015-07-01 09:28:17.507
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -934,10 +934,10 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.2E-03,  3.27E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.59E-02,  2.41E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  1.07E-02,  3.27E-03 ], warnings:  0}
-     -  {type: N, mean / max value:  [  6.95E-03,  2.21E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  3.51E-03,  6.44E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.33E-03,  2.41E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.34E-03,  3.27E-03 ], warnings:  0}
+     -  {type: N, mean / max value:  [  1.74E-03,  2.21E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  5.01E-04,  6.44E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1154,10 +1154,10 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.91E-03,  6.86E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  3.05E-02,  4.70E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  3.5E-02,  6.86E-03 ], warnings:  0}
-     -  {type: N, mean / max value:  [  1.17E-02,  3.69E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.31E-02,  2.46E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  2.54E-03,  4.70E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  4.37E-03,  6.86E-03 ], warnings:  0}
+     -  {type: N, mean / max value:  [  2.93E-03,  3.69E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.88E-03,  2.46E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1369,10 +1369,10 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.71E-03,  1.05E-02 ], warnings:  2}
-     -  {type: C, mean / max value:  [  4.5E-02,  7.06E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  5.69E-02,  1.05E-02 ], warnings:  2}
-     -  {type: N, mean / max value:  [  1.83E-02,  5.87E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.58E-02,  4.99E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  3.75E-03,  7.06E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  7.11E-03,  1.05E-02 ], warnings:  2}
+     -  {type: N, mean / max value:  [  4.57E-03,  5.87E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.68E-03,  4.99E-03 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1545,8 +1545,8 @@
  - The support function localization radii might be too small, got 2 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  11.84
-   Elapsed time (s)                    :  11.93
+   CPU time (s)                        :  11.29
+   Elapsed time (s)                    :  11.32
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.71113803E-02, y:  3.76325352E-02, z:  4.20177904E-02, 
                     total:  6.25837787E-02}
@@ -1995,10 +1995,10 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.32E-03,  1.45E-02 ], warnings:  4}
-     -  {type: C, mean / max value:  [  5.8E-02,  9.22E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.42E-02,  1.45E-02 ], warnings:  4}
-     -  {type: N, mean / max value:  [  2.42E-02,  8.76E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  3.93E-02,  7.83E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  4.83E-03,  9.22E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  9.27E-03,  1.45E-02 ], warnings:  4}
+     -  {type: N, mean / max value:  [  6.06E-03,  8.76E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  5.62E-03,  7.83E-03 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 4 warnings
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -2257,8 +2257,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  8.93
-   Elapsed time (s)                    :  9.08
+   CPU time (s)                        :  8.67
+   Elapsed time (s)                    :  8.68
  BigDFT infocode                       :  0
  Average noise forces: {x:  5.77117400E-02, y:  2.40555284E-02, z:  3.10707118E-02, 
                     total:  6.98190698E-02}
@@ -2292,14 +2292,14 @@
    P                                   :  2.09E-02
  End of minimization using             : FIRE
  Memory Consumption Report:
-   Tot. No. of Allocations             :  11537
-   Tot. No. of Deallocations           :  11537
+   Tot. No. of Allocations             :  11541
+   Tot. No. of Deallocations           :  11541
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  147.935
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 181.928 MB
- Walltime since initialization         : 00:00:21.534753872
+     Memory Peak of process            : 181.972 MB
+ Walltime since initialization         : 00:00:20.504426025
  Max No. of dictionaries used          :  4761 #( 861 still in use)
  Number of dictionary folders allocated:  1

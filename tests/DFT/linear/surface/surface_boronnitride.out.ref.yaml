@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:52:05.097
+ Timestamp of this run                 : 2015-07-01 09:30:31.878
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1401,8 +1401,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.66E-01,  9.23E-01 ], warnings:  440}
-     -  {type: N, mean / max value:  [  1.08E+02,  7.30E-01 ], warnings:  220}
-     -  {type: B, mean / max value:  [  1.41E+02,  9.23E-01 ], warnings:  220}
+     -  {type: N, mean / max value:  [  4.91E-01,  7.30E-01 ], warnings:  220}
+     -  {type: B, mean / max value:  [  6.41E-01,  9.23E-01 ], warnings:  220}
       #WARNING: The support function localization radii might be too small, got 440 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -2131,8 +2131,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  35.89
-   Elapsed time (s)                    :  37.15
+   CPU time (s)                        :  33.74
+   Elapsed time (s)                    :  33.84
  BigDFT infocode                       :  0
  Average noise forces: {x:  5.43060846E-01, y:  7.88538228E-01, z:  2.02970523E-02, 
                     total:  9.57663610E-01}
@@ -2252,14 +2252,14 @@
  -  {B: [ 1.354559997457E-01, -2.107083678308E-02, -9.797126949749E-02]} # 0110
  Energy (Hartree)                      : -6.90168101974339152E+02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  31906
-   Tot. No. of Deallocations           :  31906
+   Tot. No. of Allocations             :  31907
+   Tot. No. of Deallocations           :  31907
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  598.419
      for the array                     : tmp2p
      in the routine                    : check_accur_overlap_minus_one_sp
-     Memory Peak of process            : 632.052 MB
- Walltime since initialization         : 00:00:40.581100490
+     Memory Peak of process            : 608.428 MB
+ Walltime since initialization         : 00:00:37.273916368
  Max No. of dictionaries used          :  12966 #( 861 still in use)
  Number of dictionary folders allocated:  2

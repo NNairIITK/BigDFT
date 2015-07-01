@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:38:49.028
+ Timestamp of this run                 : 2015-07-01 09:17:04.517
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -1057,9 +1057,9 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.17E-04,  1.62E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.86E-03,  1.21E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  4.39E-02,  1.62E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.22E-02,  5.33E-04 ], warnings:  0}
+     -  {type: O, mean / max value:  [  7.15E-04,  1.21E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  5.49E-04,  1.62E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  4.06E-04,  5.33E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1324,9 +1324,9 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  3.22E-03,  6.92E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.07E-02,  6.14E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  2.45E-01,  6.92E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.01E-01,  4.08E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  5.17E-03,  6.14E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  3.06E-03,  6.92E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.37E-03,  4.08E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1533,9 +1533,9 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  3.22E-03,  6.92E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.07E-02,  6.14E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  2.45E-01,  6.92E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.01E-01,  4.08E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  5.17E-03,  6.14E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  3.06E-03,  6.92E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.37E-03,  4.08E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1745,8 +1745,8 @@
  - oscillation of the energy, increase counter
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  41.70
-   Elapsed time (s)                    :  42.01
+   CPU time (s)                        :  41.37
+   Elapsed time (s)                    :  42.55
  BigDFT infocode                       :  0
  Average noise forces: {x:  2.32783828E-02, y:  3.10838570E-02, z:  3.92797577E-02, 
                     total:  5.52357551E-02}
@@ -1807,14 +1807,14 @@
  -  {H: [-2.158027717230E-03,  6.281221057992E-03,  1.596636923540E-02]} # 0051
  Energy (Hartree)                      : -1.46112878454495785E+02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  23129
-   Tot. No. of Deallocations           :  23129
+   Tot. No. of Allocations             :  23132
+   Tot. No. of Deallocations           :  23132
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  502.604
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 542.640 MB
- Walltime since initialization         : 00:00:42.790742664
+     Memory Peak of process            : 543.140 MB
+ Walltime since initialization         : 00:00:43.355076877
  Max No. of dictionaries used          :  7119 #( 861 still in use)
  Number of dictionary folders allocated:  1

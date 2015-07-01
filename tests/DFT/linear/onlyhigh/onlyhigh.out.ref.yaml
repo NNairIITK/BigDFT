@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:28:04.988
+ Timestamp of this run                 : 2015-07-01 09:06:49.158
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -765,8 +765,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.19E-03,  2.63E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  1.35E-02,  2.63E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  7.74E-04,  2.32E-04 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.69E-03,  2.63E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.93E-04,  2.32E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -959,8 +959,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.39E-04,  1.27E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.53E-03,  1.27E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.44E-04,  4.30E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  9.41E-04,  1.27E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  3.6E-05,  4.30E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1153,8 +1153,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.99E-04,  1.21E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.02E-03,  1.21E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.6E-04,  4.77E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  8.78E-04,  1.21E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  4.01E-05,  4.77E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1347,8 +1347,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.02E-04,  1.21E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.04E-03,  1.21E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.87E-04,  5.61E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  8.8E-04,  1.21E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  4.68E-05,  5.61E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1541,8 +1541,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.06E-04,  1.21E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.06E-03,  1.21E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  2.13E-04,  6.64E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  8.83E-04,  1.21E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  5.32E-05,  6.64E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1735,8 +1735,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.16E-04,  1.23E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.16E-03,  1.23E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  2.31E-04,  7.41E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  8.95E-04,  1.23E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  5.77E-05,  7.41E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1931,8 +1931,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.25E-04,  1.25E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.26E-03,  1.25E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  2.44E-04,  7.97E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  9.07E-04,  1.25E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  6.1E-05,  7.97E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel007
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -2125,8 +2125,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.35E-04,  1.27E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.37E-03,  1.27E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  2.52E-04,  8.31E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  9.21E-04,  1.27E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  6.3E-05,  8.31E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel008
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -2319,8 +2319,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.42E-04,  1.28E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.45E-03,  1.28E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  2.56E-04,  8.46E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  9.32E-04,  1.28E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  6.39E-05,  8.46E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel009
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -2513,8 +2513,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.5E-04,  1.30E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  7.54E-03,  1.30E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  2.58E-04,  8.53E-05 ], warnings:  0}
+     -  {type: O, mean / max value:  [  9.43E-04,  1.30E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  6.45E-05,  8.53E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel010
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -2696,8 +2696,8 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  17.19
-   Elapsed time (s)                    :  17.68
+   CPU time (s)                        :  17.25
+   Elapsed time (s)                    :  17.30
  BigDFT infocode                       :  0
  Average noise forces: {x: -8.46567522E-03, y: -7.06917204E-03, z: -7.01714780E-03, 
                     total:  1.30721541E-02}
@@ -2710,14 +2710,14 @@
  -  {C: [ 3.737114981378E-03,  4.301547066189E-03,  3.837004680311E-03]} # 0003
  Energy (Hartree)                      : -3.77167268972146701E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  12592
-   Tot. No. of Deallocations           :  12592
+   Tot. No. of Allocations             :  12602
+   Tot. No. of Deallocations           :  12602
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  95.532
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 124.960 MB
- Walltime since initialization         : 00:00:18.142618742
+     Memory Peak of process            : 124.744 MB
+ Walltime since initialization         : 00:00:17.736611956
  Max No. of dictionaries used          :  5548 #( 861 still in use)
  Number of dictionary folders allocated:  1

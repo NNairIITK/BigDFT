@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 17:31:19.097
+ Timestamp of this run                 : 2015-07-01 09:04:06.137
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -675,8 +675,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  9.92E-05,  1.68E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  2.15E-03,  1.68E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.24E-04,  1.47E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.97E-05,  1.68E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.37E-04,  1.47E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -839,8 +839,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  9.12E-05,  1.53E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.9E-03,  1.51E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.36E-04,  1.53E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  7.92E-05,  1.51E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.39E-04,  1.53E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -992,7 +992,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.07E+00,  1.137E+00 ]}
+ -  {Process:  0, Timing:  [  9.0E-01,  9.806E-01 ]}
  Total charge                          :  2.999999983054E+01
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1008,8 +1008,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  19.47
-   Elapsed time (s)                    :  19.81
+   CPU time (s)                        :  19.01
+   Elapsed time (s)                    :  19.34
  BigDFT infocode                       :  0
  Average noise forces: {x: -1.65160993E-03, y:  5.14782019E-03, z: -6.87712812E-04, 
                     total:  5.44984559E-03}
@@ -1031,14 +1031,14 @@
  -  {H: [ 3.608613034438E-04,  3.688841188173E-02, -4.605203251292E-02]} # 0012
  Energy (Hartree)                      : -3.74274959498509077E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  5578
-   Tot. No. of Deallocations           :  5578
+   Tot. No. of Allocations             :  5580
+   Tot. No. of Deallocations           :  5580
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  319.437
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 368.856 MB
- Walltime since initialization         : 00:00:20.309109886
+     Memory Peak of process            : 368.848 MB
+ Walltime since initialization         : 00:00:19.834385806
  Max No. of dictionaries used          :  4950 #( 861 still in use)
  Number of dictionary folders allocated:  1

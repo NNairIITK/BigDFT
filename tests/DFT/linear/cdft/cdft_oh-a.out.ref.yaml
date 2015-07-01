@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:34:21.908
+ Timestamp of this run                 : 2015-07-01 09:12:39.947
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -686,7 +686,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.59E-03,  6.76E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  1.29E-02,  6.76E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  3.22E-03,  6.76E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  6.25E-05,  6.25E-05 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -946,7 +946,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  9.04E-04,  2.71E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  4.42E-03,  2.71E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.1E-03,  2.71E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  1.04E-04,  1.04E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -1194,7 +1194,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.73E-03,  8.95E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  1.35E-02,  8.95E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  3.37E-03,  8.95E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  2.03E-04,  2.03E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
@@ -1527,7 +1527,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.44E-03,  9.30E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.2E-02,  9.30E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  5.51E-03,  9.30E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  1.74E-04,  1.74E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
@@ -1860,7 +1860,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  4.7E-03,  9.28E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.33E-02,  9.28E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  5.83E-03,  9.28E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  1.81E-04,  1.81E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
@@ -2193,7 +2193,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.01E-03,  9.61E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.49E-02,  9.61E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  6.21E-03,  9.61E-03 ], warnings:  0}
      -  {type: H, mean / max value:  [  1.83E-04,  1.83E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel006
@@ -2526,7 +2526,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.29E-03,  1.00E-02 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.63E-02,  1.00E-02 ], warnings:  0}
+     -  {type: O, mean / max value:  [  6.57E-03,  1.00E-02 ], warnings:  0}
      -  {type: H, mean / max value:  [  1.82E-04,  1.82E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel007
@@ -2859,7 +2859,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.52E-03,  1.03E-02 ], warnings:  1}
-     -  {type: O, mean / max value:  [  2.74E-02,  1.03E-02 ], warnings:  1}
+     -  {type: O, mean / max value:  [  6.86E-03,  1.03E-02 ], warnings:  1}
      -  {type: H, mean / max value:  [  1.8E-04,  1.80E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 1 warnings
     #=================================================================== kernel optimization
@@ -3193,7 +3193,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.68E-03,  1.05E-02 ], warnings:  1}
-     -  {type: O, mean / max value:  [  2.82E-02,  1.05E-02 ], warnings:  1}
+     -  {type: O, mean / max value:  [  7.06E-03,  1.05E-02 ], warnings:  1}
      -  {type: H, mean / max value:  [  1.75E-04,  1.75E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 1 warnings
     #=================================================================== kernel optimization
@@ -3527,7 +3527,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.78E-03,  1.06E-02 ], warnings:  1}
-     -  {type: O, mean / max value:  [  2.87E-02,  1.06E-02 ], warnings:  1}
+     -  {type: O, mean / max value:  [  7.18E-03,  1.06E-02 ], warnings:  1}
      -  {type: H, mean / max value:  [  1.69E-04,  1.69E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 1 warnings
     #=================================================================== kernel optimization
@@ -3861,7 +3861,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.84E-03,  1.06E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.9E-02,  1.06E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.26E-03,  1.06E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.63E-04,  1.63E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -4195,7 +4195,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.87E-03,  1.06E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.92E-02,  1.06E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.3E-03,  1.06E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.57E-04,  1.57E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -4529,7 +4529,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.88E-03,  1.05E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.92E-02,  1.05E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.31E-03,  1.05E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.53E-04,  1.53E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -4863,7 +4863,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.89E-03,  1.05E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.93E-02,  1.05E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.32E-03,  1.05E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.5E-04,  1.50E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -5197,7 +5197,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.89E-03,  1.05E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.93E-02,  1.05E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.33E-03,  1.05E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.47E-04,  1.47E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -5531,7 +5531,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.9E-03,  1.05E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.93E-02,  1.05E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.33E-03,  1.05E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.44E-04,  1.44E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -5865,7 +5865,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.9E-03,  1.05E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.93E-02,  1.05E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.34E-03,  1.05E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.42E-04,  1.42E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -6199,7 +6199,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.9E-03,  1.05E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.94E-02,  1.05E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.34E-03,  1.05E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.41E-04,  1.41E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -6533,7 +6533,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.9E-03,  1.05E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.94E-02,  1.05E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.34E-03,  1.05E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.4E-04,  1.40E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -6867,7 +6867,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.9E-03,  1.05E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.94E-02,  1.05E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.34E-03,  1.05E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.39E-04,  1.39E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -7201,7 +7201,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.9E-03,  1.05E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.94E-02,  1.05E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.34E-03,  1.05E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.38E-04,  1.38E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -7535,7 +7535,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  5.9E-03,  1.05E-02 ], warnings:  2}
-     -  {type: O, mean / max value:  [  2.94E-02,  1.05E-02 ], warnings:  2}
+     -  {type: O, mean / max value:  [  7.34E-03,  1.05E-02 ], warnings:  2}
      -  {type: H, mean / max value:  [  1.37E-04,  1.37E-04 ], warnings:  0}
       #WARNING: The support function localization radii might be too small, got 2 warnings
     #=================================================================== kernel optimization
@@ -7857,7 +7857,7 @@
  Wavefunction written No.              :  1
  Wavefunction coefficients written     :  Yes
  Write Waves Time:
- -  {Process:  0, Timing:  [  1.5E-01,  1.502E-01 ]}
+ -  {Process:  0, Timing:  [  1.5E-01,  1.406E-01 ]}
  Overview of the reformatting (several categories may apply):
    No reformatting required            :  4
    Grid spacing has changed            :  0
@@ -7896,8 +7896,8 @@
  - The support function localization radii might be too small, got 2 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  43.44
-   Elapsed time (s)                    :  44.21
+   CPU time (s)                        :  43.94
+   Elapsed time (s)                    :  44.48
  BigDFT infocode                       :  0
  Average noise forces: {x: -6.84677908E-04, y:  4.91253865E-04, z:  4.90475559E-04, 
                     total:  9.75028447E-04}
@@ -7909,14 +7909,14 @@
  -  {H: [ 1.021419342837E-02, -5.421010862428E-20, -5.421010862428E-20]} # 0002
  Energy (Hartree)                      : -1.65526353231476975E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  35326
-   Tot. No. of Deallocations           :  35326
+   Tot. No. of Allocations             :  35348
+   Tot. No. of Deallocations           :  35348
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  97.754
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 137.448 MB
- Walltime since initialization         : 00:00:44.670595815
+     Memory Peak of process            : 137.840 MB
+ Walltime since initialization         : 00:00:44.950892132
  Max No. of dictionaries used          :  5010 #( 861 still in use)
  Number of dictionary folders allocated:  1

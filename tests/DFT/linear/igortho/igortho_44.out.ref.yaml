@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:54:14.168
+ Timestamp of this run                 : 2015-07-01 09:32:34.588
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -863,8 +863,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.4E-02,  6.71E-02 ], warnings:  54}
-     -  {type: C, mean / max value:  [  5.39E-02,  4.38E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.44E+00,  6.71E-02 ], warnings:  54}
+     -  {type: C, mean / max value:  [  1.68E-03,  4.38E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.39E-02,  6.71E-02 ], warnings:  54}
       #WARNING: The support function localization radii might be too small, got 54 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
@@ -1494,8 +1494,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.58E-02,  6.71E-02 ], warnings:  72}
-     -  {type: C, mean / max value:  [  6.62E-02,  5.32E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.62E+00,  6.71E-02 ], warnings:  72}
+     -  {type: C, mean / max value:  [  2.07E-03,  5.32E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.64E-02,  6.71E-02 ], warnings:  72}
       #WARNING: The support function localization radii might be too small, got 72 warnings
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
@@ -2911,8 +2911,8 @@
  - set to 1.d-20 instead of 0.d0
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  28.95
-   Elapsed time (s)                    :  29.02
+   CPU time (s)                        :  29.41
+   Elapsed time (s)                    :  29.48
  BigDFT infocode                       :  0
  Average noise forces: {x:  4.14387784E-02, y:  4.89735287E-02, z:  4.05647890E-02, 
                     total:  7.59017851E-02}
@@ -2948,14 +2948,14 @@
  -  {H: [-4.270263370573E-03,  1.618071344930E-02, -4.764555385282E-02]} # 0026
  Energy (Hartree)                      : -5.55986733201527841E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  16171
-   Tot. No. of Deallocations           :  16171
+   Tot. No. of Allocations             :  16173
+   Tot. No. of Deallocations           :  16173
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  461.649
      for the array                     : sphi
      in the routine                    : multipoles_from_density
-     Memory Peak of process            : 527.680 MB
- Walltime since initialization         : 00:00:29.762862105
+     Memory Peak of process            : 523.880 MB
+ Walltime since initialization         : 00:00:30.212702672
  Max No. of dictionaries used          :  8630 #( 861 still in use)
  Number of dictionary folders allocated:  1

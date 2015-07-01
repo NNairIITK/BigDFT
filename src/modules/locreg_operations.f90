@@ -550,6 +550,7 @@ module locreg_operations
           call mpiallred(nwarnings_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(meanweight_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(maxweight_types, mpi_max, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(nsf_per_type, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       meanweight = meanweight/real(orbs%norb,kind=8)
       do iatype=1,atoms%astruct%ntypes

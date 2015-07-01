@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:47:32.357
+ Timestamp of this run                 : 2015-07-01 09:26:04.548
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -994,7 +994,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  6.37E-04,  2.84E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  2.29E-02,  2.84E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  6.37E-04,  2.84E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1647,7 +1647,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.36E-03,  3.87E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  4.89E-02,  3.87E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.36E-03,  3.87E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -2288,7 +2288,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.34E-03,  3.80E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  4.81E-02,  3.80E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.34E-03,  3.80E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -2879,7 +2879,7 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.7E-03,  3.86E-03 ], warnings:  0}
-     -  {type: O, mean / max value:  [  6.11E-02,  3.86E-03 ], warnings:  0}
+     -  {type: O, mean / max value:  [  1.7E-03,  3.86E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -3329,8 +3329,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  95.16
-   Elapsed time (s)                    :  98.01
+   CPU time (s)                        :  97.96
+   Elapsed time (s)                    :  104.10
  BigDFT infocode                       :  0
  Average noise forces: {x: -2.09836647E-04, y: -2.09833892E-04, z:  2.21226260E-03, 
                     total:  2.23207695E-03}
@@ -3342,14 +3342,14 @@
  -  {O: [ 5.421010862428E-20,  5.421010862428E-20,  8.174691071733E-01]} # 0002
  Energy (Hartree)                      : -3.14006795940845578E+01
  Memory Consumption Report:
-   Tot. No. of Allocations             :  14282
-   Tot. No. of Deallocations           :  14282
+   Tot. No. of Allocations             :  14286
+   Tot. No. of Deallocations           :  14286
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  285.017
      for the array                     : psir_noconf
      in the routine                    : psi_to_vlocpsi
-     Memory Peak of process            : 336.120 MB
- Walltime since initialization         : 00:01:38.578924970
+     Memory Peak of process            : 336.056 MB
+ Walltime since initialization         : 00:01:44.581253305
  Max No. of dictionaries used          :  5647 #( 861 still in use)
  Number of dictionary folders allocated:  1

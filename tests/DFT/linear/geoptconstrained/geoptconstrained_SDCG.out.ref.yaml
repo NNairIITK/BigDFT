@@ -28,7 +28,7 @@
  
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.7.6.11
- Timestamp of this run                 : 2015-06-30 16:45:56.188
+ Timestamp of this run                 : 2015-07-01 09:24:27.827
  Root process Hostname                 : phys-comp-03
  Number of MPI tasks                   :  8
  OpenMP parallelization                :  Yes
@@ -790,8 +790,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.53E-04,  3.79E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.55E-03,  3.36E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.99E-03,  3.79E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.93E-04,  3.36E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.32E-04,  3.79E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -993,8 +993,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.6E-04,  4.08E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.5E-03,  3.26E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.14E-03,  4.08E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.88E-04,  3.26E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.57E-04,  4.08E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1288,8 +1288,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.14E-03,  1.97E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  7.3E-03,  1.97E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.69E-03,  1.54E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  9.13E-04,  1.97E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.45E-03,  1.54E-03 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1561,8 +1561,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.57E-04,  1.69E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  6.51E-03,  1.69E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  5.49E-03,  9.37E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.14E-04,  1.69E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  9.14E-04,  9.37E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -1866,8 +1866,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.73E-04,  1.65E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  6.63E-03,  1.65E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  5.59E-03,  9.60E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.29E-04,  1.65E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  9.32E-04,  9.60E-04 ], warnings:  0}
     #=================================================================== kernel optimization
  - kernel optimization: &it_kernel005
    -  #--------------------------------------------------------------------- kernel iter: 1
@@ -2169,8 +2169,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.01
-   Elapsed time (s)                    :  9.04
+   CPU time (s)                        :  8.90
+   Elapsed time (s)                    :  9.17
  BigDFT infocode                       :  0
  Cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
@@ -2614,8 +2614,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.53E-04,  3.79E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.55E-03,  3.36E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.99E-03,  3.79E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.93E-04,  3.36E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.32E-04,  3.79E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -2817,8 +2817,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.6E-04,  4.08E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.5E-03,  3.26E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.14E-03,  4.08E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.88E-04,  3.26E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.57E-04,  4.08E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -3112,8 +3112,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.14E-03,  1.97E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  7.3E-03,  1.97E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.69E-03,  1.54E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  9.13E-04,  1.97E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.45E-03,  1.54E-03 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -3385,8 +3385,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.57E-04,  1.69E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  6.51E-03,  1.69E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  5.49E-03,  9.37E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.14E-04,  1.69E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  9.14E-04,  9.37E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -3690,8 +3690,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.73E-04,  1.65E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  6.63E-03,  1.65E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  5.59E-03,  9.60E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.29E-04,  1.65E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  9.32E-04,  9.60E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel005
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -3993,8 +3993,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.08
-   Elapsed time (s)                    :  9.15
+   CPU time (s)                        :  8.72
+   Elapsed time (s)                    :  9.69
  BigDFT infocode                       :  0
  Cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
@@ -4442,8 +4442,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.51E-04,  3.73E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.54E-03,  3.36E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.98E-03,  3.73E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.93E-04,  3.36E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.29E-04,  3.73E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -4652,8 +4652,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.59E-04,  4.03E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.5E-03,  3.25E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.13E-03,  4.03E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.87E-04,  3.25E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.56E-04,  4.03E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -4960,8 +4960,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.14E-03,  1.96E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  7.29E-03,  1.96E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.71E-03,  1.53E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  9.11E-04,  1.96E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.45E-03,  1.53E-03 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -5268,8 +5268,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.55E-04,  1.69E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  6.49E-03,  1.69E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  5.48E-03,  9.35E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.12E-04,  1.69E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  9.13E-04,  9.35E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -5573,8 +5573,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.71E-04,  1.65E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  6.61E-03,  1.65E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  5.59E-03,  9.58E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.26E-04,  1.65E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  9.31E-04,  9.58E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel005
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -5876,8 +5876,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.15
-   Elapsed time (s)                    :  9.19
+   CPU time (s)                        :  8.37
+   Elapsed time (s)                    :  10.05
  BigDFT infocode                       :  0
  Cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
@@ -6325,8 +6325,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.51E-04,  3.73E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.54E-03,  3.37E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.97E-03,  3.73E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.93E-04,  3.37E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.28E-04,  3.73E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -6535,8 +6535,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.59E-04,  4.04E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.5E-03,  3.27E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.13E-03,  4.04E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.88E-04,  3.27E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.55E-04,  4.04E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -6830,8 +6830,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.14E-03,  1.96E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  7.3E-03,  1.96E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.71E-03,  1.53E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  9.12E-04,  1.96E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.45E-03,  1.53E-03 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -7120,8 +7120,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.56E-04,  1.70E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  6.51E-03,  1.70E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  5.47E-03,  9.32E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.13E-04,  1.70E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  9.12E-04,  9.32E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -7403,8 +7403,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.72E-04,  1.66E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  6.62E-03,  1.66E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  5.58E-03,  9.55E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.28E-04,  1.66E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  9.3E-04,  9.55E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel005
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -7679,8 +7679,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  9.24
-   Elapsed time (s)                    :  9.50
+   CPU time (s)                        :  9.08
+   Elapsed time (s)                    :  11.19
  BigDFT infocode                       :  0
  Cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
@@ -8128,8 +8128,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.51E-04,  3.74E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.54E-03,  3.36E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  1.97E-03,  3.74E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.93E-04,  3.36E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.28E-04,  3.74E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel001
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -8338,8 +8338,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.59E-04,  4.05E-04 ], warnings:  0}
-     -  {type: C, mean / max value:  [  1.51E-03,  3.27E-04 ], warnings:  0}
-     -  {type: H, mean / max value:  [  2.12E-03,  4.05E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  1.88E-04,  3.27E-04 ], warnings:  0}
+     -  {type: H, mean / max value:  [  3.54E-04,  4.05E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel002
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -8637,8 +8637,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.14E-03,  1.96E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  7.3E-03,  1.96E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  8.7E-03,  1.53E-03 ], warnings:  0}
+     -  {type: C, mean / max value:  [  9.12E-04,  1.96E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  1.45E-03,  1.53E-03 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel003
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -8881,8 +8881,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.56E-04,  1.70E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  6.51E-03,  1.70E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  5.47E-03,  9.31E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.14E-04,  1.70E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  9.11E-04,  9.31E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel004
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -9155,8 +9155,8 @@
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  8.72E-04,  1.66E-03 ], warnings:  0}
-     -  {type: C, mean / max value:  [  6.63E-03,  1.66E-03 ], warnings:  0}
-     -  {type: H, mean / max value:  [  5.58E-03,  9.54E-04 ], warnings:  0}
+     -  {type: C, mean / max value:  [  8.29E-04,  1.66E-03 ], warnings:  0}
+     -  {type: H, mean / max value:  [  9.29E-04,  9.54E-04 ], warnings:  0}
     #====================================================================== kernel optimization
  - kernel optimization: &it_kernel005
    -  #------------------------------------------------------------------------ kernel iter: 1
@@ -9373,8 +9373,8 @@
  - density optimization not converged
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  11.09
-   Elapsed time (s)                    :  11.22
+   CPU time (s)                        :  8.99
+   Elapsed time (s)                    :  9.19
  BigDFT infocode                       :  0
  Cleaning using internal coordinates   : Yes
  keep internal coordinate fixed        :  [  1,  2 ]
@@ -9407,14 +9407,14 @@
  ncount_bigdft in SD2                  :  [  4,  3 ]
  End of minimization using             : SDCG
  Memory Consumption Report:
-   Tot. No. of Allocations             :  32426
-   Tot. No. of Deallocations           :  32426
+   Tot. No. of Allocations             :  32451
+   Tot. No. of Deallocations           :  32451
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  115.693
      for the array                     : psir
      in the routine                    : LocalHamiltonianApplication
-     Memory Peak of process            : 162.612 MB
- Walltime since initialization         : 00:00:48.550942548
+     Memory Peak of process            : 162.600 MB
+ Walltime since initialization         : 00:00:49.773770856
  Max No. of dictionaries used          :  3922 #( 861 still in use)
  Number of dictionary folders allocated:  1
