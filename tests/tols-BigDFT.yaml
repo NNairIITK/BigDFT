@@ -52,6 +52,7 @@ Keys to ignore:
  - Rigid Shift Applied (AU)
  - Walltime since initialization
  - Output grid format # to be removed for updated references
+ - Support Function Repartition
  #- number of tasks
  #- IDs
  #- start / end
