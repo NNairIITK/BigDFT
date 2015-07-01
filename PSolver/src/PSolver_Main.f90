@@ -370,7 +370,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          end if
       end do PCG_loop
       if (wrtmsg) call yaml_sequence_close()
-
+      
+      !only useful for gpu, bring back the x array
+      call update_pot_from_device(cudasolver, kernel, x)
       !if statement for SC cavity
       if (kernel%method .hasattr. PS_SCCS_ENUM)&
            call extra_sccs_potential(kernel,work_full,depsdrho,x)
@@ -678,7 +680,6 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
          if (kernel%mpi_env%nproc > 1) &
               call mpiallred(beta,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
          kappa=0.d0
-
          !$omp parallel do default(shared) private(i1,i23,epsc,zeta)&
          !$omp private(pval,qval,rval) reduction(+:kappa)
          do i23=1,n23
@@ -746,18 +747,17 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
     if (i_stat /= 0) print *,'error cudamalloc',i_stat
     call cudamalloc(sizeof(kappa),kernel%kappa_GPU,i_stat)
     if (i_stat /= 0) print *,'error cudamalloc',i_stat
+  end if
+
+  if (ip == 1) then 
+    call reset_gpu_data(size1,r,kernel%r_GPU)
+    call reset_gpu_data(size1,kernel%oneoeps,kernel%oneoeps_GPU)
     call cudamemset(kernel%p_GPU, 0, size1,i_stat)
     if (i_stat /= 0) print *,'error cudamemset p',i_stat
     call cudamemset(kernel%q_GPU, 0, size1,i_stat)
     if (i_stat /= 0) print *,'error cudamemset q',i_stat
     call cudamemset(kernel%x_GPU, 0, size1,i_stat)
     if (i_stat /= 0) print *,'error cudamemset x',i_stat
-
-  end if
-
-  if (ip == 1) then 
-    call reset_gpu_data(size1,r,kernel%r_GPU)
-    call reset_gpu_data(size1,kernel%oneoeps,kernel%oneoeps_GPU)
   end if
 
   call reset_gpu_data(size1,z,kernel%z_GPU)
@@ -803,6 +803,7 @@ kernel%x_GPU,kernel%z_GPU,kernel%corr_GPU, kernel%oneoeps_GPU, kernel%alpha_GPU,
   
   call get_gpu_data(size1,z,kernel%z_GPU)
 
+
   if (kernel%keepGPUmemory == 0) then
     call cudafree(kernel%z_GPU)
     call cudafree(kernel%r_GPU)
@@ -820,6 +821,19 @@ kernel%x_GPU,kernel%z_GPU,kernel%corr_GPU, kernel%oneoeps_GPU, kernel%alpha_GPU,
   end if
 
 end subroutine apply_reductions
+
+!at the end of the loop, we have to synchronize potential from gpu
+subroutine update_pot_from_device(gpu, kernel,x)
+  type(coulomb_operator), intent(in) :: kernel 
+  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: x
+  logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
+  integer size1
+  if (gpu) then !CPU case
+    size1=kernel%grid%m3*kernel%grid%n3p*kernel%grid%m1
+    call get_gpu_data(size1,x,kernel%x_GPU)
+  end if 
+end subroutine update_pot_from_device
+
 !> calculate the integral between the array in zf and the array in rho
 !! copy the zf array in pot and sum with the array pot_ion if needed
 subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&

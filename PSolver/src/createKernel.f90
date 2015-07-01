@@ -661,13 +661,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
         call cudamalloc(sizeof(alpha),kernel%kappa_GPU,i_stat)
         if (i_stat /= 0) print *,'error cudamalloc',i_stat
 
-        call cudamemset(kernel%p_GPU, 0, size3,i_stat)
-        if (i_stat /= 0) print *,'error cudamemset p',i_stat
-        call cudamemset(kernel%q_GPU, 0, size3,i_stat)
-        if (i_stat /= 0) print *,'error cudamemset q',i_stat
-        call cudamemset(kernel%x_GPU, 0, size3,i_stat)
-        if (i_stat /= 0) print *,'error cudamemset x',i_stat
-
       endif
       call cudamalloc(sizek,kernel%k_GPU,i_stat)
       if (i_stat /= 0) print *,'error cudamalloc',i_stat

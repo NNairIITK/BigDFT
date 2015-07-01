@@ -955,6 +955,7 @@ void kern1_red (int i , Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real
   *sum+= (g_odata[i]);
 }
 
+
 __device__
 void kern2_comp_and_red (int i , Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU, Real* g_odata, Real* sum){
   Real zeta=z_GPU[i];
@@ -1320,12 +1321,13 @@ void apply_reduction(int n,
             printf("result during reduction kernel\n");
         s = (s + (threads*2-1)) / (threads*2);
     }
-        cudaDeviceSynchronize();
+
   //TODO: move result copy to user code ?
   cudaMemcpy(result, d_odata, sizeof(Real), cudaMemcpyDeviceToHost);
   if( cudaGetLastError() != cudaSuccess)
     printf("result retrieve error\n");
   cudaFree(d_odata);
+  cudaDeviceSynchronize();
 }
 
 //these will be called from fortran, and apply the reduction with the right subkernels
