@@ -104,7 +104,7 @@ amber_ld =
 endif
 
 if HAVE_CP2K
-cp2k_ld= @CP2K_LINKLINE@
+cp2k_ld= @CP2K_LINKLINE@ @LINALG_LIBS@
 cp2k_interfacemod = modules/module_cp2k.f90
 cp2k_interfacemodCAP = MODULES/MODULE_CP2k.F90
 else

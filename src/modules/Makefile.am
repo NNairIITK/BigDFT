@@ -4,13 +4,13 @@ module_DATA = $(modules)
 include_HEADERS = bigdft.h bigdft_input_keys.h
 nodist_include_HEADERS = bigdft_cst.h
 
-### Code source.
-##if USE_BLACS
-##BLACS = 
-##else
-##BLACS = blacs_fake.f90
-##endif
-##
+# Code source.
+if USE_BLACS
+BLACS = 
+else
+BLACS = blacs_fake.f90
+endif
+
 #if USE_MPI
 #mpi_include =
 #else
@@ -26,7 +26,7 @@ xc.o: base.o libxc_fake.o
 endif
 
 if HAVE_CP2K
-cp2k_ld= @CP2K_LINKLINE@
+cp2k_ld= @CP2K_LINKLINE@ @LINALG_LIBS@
 cp2k_interfacemod = module_cp2k.f90
 cp2k_interfacemodCAP = MODULE_CP2k.F90
 BLACS = 
