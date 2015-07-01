@@ -16,6 +16,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   use module_types
   use module_interfaces, except_this_one => write_orbital_density
   use locreg_operations, only: lpsi_to_global2
+  use public_enums
   implicit none
 
   ! Calling arguments
@@ -951,20 +952,31 @@ type(orbitals_data), intent(in) :: orbs
 integer :: jproc, jpst, norb0,  norb1
 !integer :: space1, space2, len1, len2, 
 !logical :: written
+logical, parameter :: print_all=.false.
+integer :: minn, maxn
+real(kind=8) :: avn
 
 !!write(*,'(1x,a)') '------------------------------------------------------------------------------------'
 !!written=.false.
 !!write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
-call yaml_mapping_open('Support function repartition')
+call yaml_map('Total No. Support Functions',orbs%norb,fmt='(i6)')
+call yaml_mapping_open('Support Function Repartition')
 jpst=0
+avn=0.0d0
+minn=orbs%norb
+maxn=0
 do jproc=0,nproc-1
     norb0=orbs%norb_par(jproc,0)
     norb1=orbs%norb_par(min(jproc+1,nproc-1),0)
     if (norb0/=norb1 .or. jproc==nproc-1) then
-        call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norb0,fmt='(i0)')
+       !if (print_all) call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//&
+       !      trim(yaml_toa(jproc,fmt='(i0)')),norb0,fmt='(i0)')
+       if (print_all) call yaml_map('MPI tasks '+jpst+'-'+jproc,norb0,fmt='(i0)')
+        minn=min(minn,norb0)
+        maxn=max(maxn,norb0)
         jpst=jproc+1
     end if
-
+    avn=avn+real(norb0,kind=8)
     !!if(orbs%norb_par(jproc,0)<orbs%norb_par(jproc-1,0)) then
     !!    len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(orbs%norb_par(jproc-1,0)+1.d-5)))
     !!    len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
@@ -984,6 +996,10 @@ do jproc=0,nproc-1
     !!    exit
     !!end if
 end do
+avn=avn/real(nproc,kind=8)
+call yaml_map('Minimum ',minn,fmt='(i0)')
+call yaml_map('Maximum ',maxn,fmt='(i0)')
+call yaml_map('Average ',avn,fmt='(f8.1)')
 call yaml_mapping_close()
 !!if(.not.written) then
 !!    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
@@ -1361,7 +1377,7 @@ subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
 
   ! Local variables
   integer :: iorb, itmb, jtmb, iat, jat, iunit, nproc, ierr
-  logical :: mpi_init
+  logical :: mpi_initd
   real(kind=8) :: d, asymm, maxdiff, diff
   real(kind=8),dimension(3) :: dist
   real(kind=8),dimension(:,:),allocatable :: kernel_full
@@ -1371,8 +1387,8 @@ subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
   call f_routine(id='analyze_kernel')
 
   ! Check that this is a monoproc run
-  call mpi_initialized(mpi_init, ierr)
-  if (mpi_init) then
+  call mpi_initialized(mpi_initd, ierr)
+  if (mpi_initd) then
       call mpi_comm_size(mpi_comm_world, nproc, ierr)
   else
       nproc = 1

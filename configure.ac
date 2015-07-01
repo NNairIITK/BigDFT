@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7.6.9],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.7.6.11],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -1059,9 +1059,10 @@ fi
 dnl Test S_GPU library.
 ac_build_libsgpu="no"
 ac_use_libsgpu="no"
-AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
+dnl AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
+ac_internal_sgpu="no"
 ac_build_libsgpu=$ac_internal_sgpu
-if test x"$ac_use_cuda_gpu" = "xyes" ; then
+if test x"$ac_use_cuda_gpu" = "xnotdothat" ; then
   dnl Test S_GPU library.
   ac_internal_sgpu="yes"
   AC_ARG_WITH(libsgpu-path, AS_HELP_STRING([--with-libsgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
@@ -1212,9 +1213,9 @@ tests/tutorials/Makefile
 if test x"$ac_build_libxc" != x"skip" ; then
    AC_CONFIG_SUBDIRS([libxc-2.0.x])
 fi
-if test x"$ac_build_libsgpu" != x"skip" ; then
-   AC_CONFIG_SUBDIRS([S_GPU])
-fi
+dnl if test x"$ac_build_libsgpu" != x"skip" ; then
+dnl  AC_CONFIG_SUBDIRS([S_GPU])
+dnl fi
 if test x"$ac_build_libyaml" != x"skip" ; then
    AC_CONFIG_SUBDIRS([yaml-0.1.4])
 fi

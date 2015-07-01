@@ -228,7 +228,8 @@ program mhgps
               write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
               !rmsd alignment (optional in mhgps approach)
               call superimpose(bigdft_nat(runObj),rxyz(1,1),rxyz2(1,1))
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call get_ts_guess(mhgpsst,uinp,runObj,outs,rxyz(1,1),&
                    rxyz2(1,1),tsguess(1,1),minmodeguess(1,1),&
                    tsgenergy,tsgforces(1,1))
@@ -252,10 +253,12 @@ program mhgps
 
               !Evalute energies. They are needed in connect
               !for identification
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,&
                                         fat,energy,infocode)
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,&
                                         fat,energy2,infocode)
               call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
@@ -383,7 +386,8 @@ program mhgps
               mhgpsst%isad=mhgpsst%isad+1
               write(mhgpsst%isadc,'(i3.3)')mhgpsst%isad
               ec=0.0_gp
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,&
                    fxyz,energy,infocode)
               call minimize(mhgpsst,uinp,runObj,outs,rcov,&
@@ -405,10 +409,12 @@ program mhgps
                       energy,rxyz=rxyz,forces=fxyz)
               endif
            case('hessian')
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,&
                    fxyz,energy,infocode)
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call cal_hessian_fd(mhgpsst,runObj,outs,rxyz,&
                    hess,nfree)
               if(mhgpsst%iproc==0)then

@@ -468,7 +468,7 @@ module matrix_operations
                            if (blocksize<0) then
                               call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp_local(1:,1:,ispin))
                            else
-                              stop 'check if working - upper half may not be filled'
+                              !stop 'check if working - upper half may not be filled'
                               call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
                                    ovrlp_smat%nfvctr, inv_ovrlp_local(1:,1:,ispin), ovrlp_smat%nfvctr)
                               call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &

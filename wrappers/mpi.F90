@@ -705,20 +705,24 @@ contains
     !local variables
     integer :: iproc,ierr,mpi_comm
 
-    if (present(comm)) then
-       mpi_comm=comm
-    else
-       mpi_comm=MPI_COMM_WORLD
-    end if
+    if (mpiinitialized()) then
+       if (present(comm)) then
+          mpi_comm=comm
+       else
+          mpi_comm=MPI_COMM_WORLD
+       end if
 
-    call MPI_COMM_RANK(mpi_comm, iproc, ierr)
-    if (ierr /=0) then
-       iproc=-1
+       call MPI_COMM_RANK(mpi_comm, iproc, ierr)
+       if (ierr /=0) then
+          iproc=-1
+          mpirank=iproc
+          call f_err_throw('An error in calling to MPI_COMM_RANK occurred',&
+               err_id=ERR_MPI_WRAPPERS)
+       end if
        mpirank=iproc
-       call f_err_throw('An error in calling to MPI_COMM_RANK occurred',&
-            err_id=ERR_MPI_WRAPPERS)
+    else
+       mpirank=0
     end if
-    mpirank=iproc
 
   end function mpirank
 
@@ -731,23 +735,48 @@ contains
     !local variables
     integer :: nproc,ierr,mpi_comm
 
-    if (present(comm)) then
-       mpi_comm=comm
-    else
-       mpi_comm=MPI_COMM_WORLD
-    end if
+    if (mpiinitialized()) then
+       if (present(comm)) then
+          mpi_comm=comm
+       else
+          mpi_comm=MPI_COMM_WORLD
+       end if
 
-    !verify the size of the receive buffer
-    call MPI_COMM_SIZE(mpi_comm,nproc,ierr)
-    if (ierr /=0) then
-       nproc=0
+       !verify the size of the receive buffer
+       call MPI_COMM_SIZE(mpi_comm,nproc,ierr)
+       if (ierr /=0) then
+          nproc=0
+          mpisize=nproc
+          call f_err_throw('An error in calling to MPI_COMM_SIZE occured',&
+               err_id=ERR_MPI_WRAPPERS)
+       end if
        mpisize=nproc
-       call f_err_throw('An error in calling to MPI_COMM_SIZE occured',&
-            err_id=ERR_MPI_WRAPPERS)
+    else
+       mpisize=1
     end if
-    mpisize=nproc
 
   end function mpisize
+
+  !> returns true if the mpi has been initialized
+  function mpiinitialized()
+    use dictionaries, only: f_err_throw
+    implicit none
+    logical :: mpiinitialized
+    !local variables
+    logical :: flag
+    integer :: ierr
+
+    mpiinitialized=.false.
+    call mpi_initialized(flag, ierr)
+    if (ierr /=0) then
+       flag=.false.
+       call f_err_throw('An error in calling to MPI_INITIALIZED occured',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+    mpiinitialized=flag
+
+  end function mpiinitialized
+
 
   !> Performs the barrier of a given communicator, if present
   subroutine mpibarrier(comm)
@@ -1020,7 +1049,6 @@ contains
   end subroutine mpialltoallv_double
 
 
-
   !> Interface for MPI_ALLREDUCE operations
   subroutine mpiallred_int(sendbuf,count,op,comm,recvbuf)
     use dictionaries, only: f_err_throw,f_err_define
@@ -1260,7 +1288,7 @@ contains
        array_diff=f_malloc(n,id='array_diff')
        call f_memcpy(src=buffer,dest=array_diff)
     end if
-    !< end bcast_decl
+    ! end bcast_decl
     include 'bcast-inc.f90'
   end subroutine mpibcast_c0
 
@@ -1315,7 +1343,6 @@ contains
     include 'bcast-decl-arr-inc.f90'
     include 'bcast-inc.f90'
   end subroutine mpibcast_d2
-
 
   subroutine mpiscatter_i1i1(sendbuf, recvbuf, root, comm)
     use dictionaries, only: f_err_throw,f_err_define

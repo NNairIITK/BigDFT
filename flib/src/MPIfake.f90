@@ -16,8 +16,9 @@ END SUBROUTINE MPI_INIT
         
 subroutine MPI_INITIALIZED(init,ierr)
   implicit none
-  integer, intent(out) :: init,ierr
-  init=0
+  logical, intent(out) :: init
+  integer, intent(out) :: ierr
+  init=.false.
   ierr=0
 END SUBROUTINE  MPI_INITIALIZED
 

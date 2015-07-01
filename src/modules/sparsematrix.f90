@@ -37,6 +37,7 @@ module sparsematrix
   public :: transform_sparsity_pattern
   public :: matrix_matrix_mult_wrapper
   public :: trace_sparse
+  public :: delete_coupling_terms
 
 
   interface compress_matrix_distributed_wrapper
@@ -201,12 +202,12 @@ module sparsematrix
          call f_zero(outm)
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
-             !OpenMP broken on Vesta
+             !openmp broken on vesta
              !$omp parallel default(none) private(iseg,i,ii,irowcol) shared(sparsemat,inm,outm,ispin,ishift)
              !$omp do
              do iseg=1,sparsemat%nseg
                  ii=sparsemat%keyv(iseg)
-                 ! A segment is always on one line, therefore no double loop
+                 ! a segment is always on one line, therefore no double loop
                  do i=sparsemat%keyg(1,1,iseg),sparsemat%keyg(2,1,iseg)
                     !irow = sparsemat%orb_from_index(1,ii)
                     !jcol = sparsemat%orb_from_index(2,ii)
@@ -715,7 +716,8 @@ module sparsematrix
 
 
      if (layout==SPARSE_MATMUL_SMALL) then
-         if (size(matrixp)/=smat%smmm%nvctrp_mm) then
+         if (size(matrixp)/=max(smat%smmm%nvctrp_mm,1)) then
+             write(*,*) 'CRASH 1'
              call f_err_throw('Array matrixp has size '//trim(yaml_toa(size(matrixp),fmt='(i0)'))//&
                   &' instead of '//trim(yaml_toa(smat%smmm%nvctrp_mm,fmt='(i0)')), &
                   err_name='BIGDFT_RUNTIME_ERROR')
@@ -1062,7 +1064,7 @@ module sparsematrix
      !real(kind=8),dimension(:),allocatable :: b_dense, c_dense
      integer,parameter :: MATMUL_NEW = 101
      integer,parameter :: MATMUL_OLD = 102
-     integer,parameter :: matmul_version = MATMUL_NEW!OLD!NEW
+     integer,parameter :: matmul_version = MATMUL_NEW
      logical,parameter :: count_flops = .false.
      real(kind=8) :: ts, te, op, gflops
      real(kind=8),parameter :: flop_per_op = 2.d0 !<number of FLOPS per operations
@@ -1085,7 +1087,7 @@ module sparsematrix
              ts = mpi_wtime()
          end if
          !$omp parallel default(private) shared(smat, a_seq, b, c)
-         !$omp do schedule(guided)
+         !$omp do !!!schedule(guided)
          do iout=1,smat%smmm%nout
              i=smat%smmm%onedimindices_new(1,iout)
              nblock=smat%smmm%onedimindices_new(4,iout)
@@ -1095,7 +1097,9 @@ module sparsematrix
                  jorb = smat%smmm%consecutive_lookup(1,iblock,iout)
                  jjorb = smat%smmm%consecutive_lookup(2,iblock,iout)
                  ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
-                 tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
+        !         tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
+                 !avoid calling ddot from OpenMP region on BG/Q as too expensive
+                 tt0=tt0+my_dot(ncount,b(jjorb:jjorb+ncount-1),a_seq(jorb:jorb+ncount-1))
              end do
 
              c(i) = tt0
@@ -1165,6 +1169,22 @@ module sparsematrix
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
      call f_release_routine()
+
+        contains
+
+     pure function my_dot(n,x,y) result(tt)
+       implicit none
+       integer , intent(in) :: n
+       double precision :: tt
+       double precision, dimension(n), intent(in) :: x,y
+       !local variables
+       integer :: i
+
+       tt=0.d0
+       do i=1,n
+          tt=tt+x(i)*y(i)
+       end do
+     end function
        
    end subroutine sparsemm_new
 
@@ -1703,7 +1723,8 @@ module sparsematrix
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       type(sparse_matrix),intent(in) :: smat
-      real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: a, b, c
+      real(kind=8),dimension(smat%nvctrp_tg),intent(in) :: a
+      real(kind=8),dimension(smat%nvctrp_tg),intent(inout) :: b, c
 
       ! Local variables
       real(kind=8),dimension(:),allocatable :: b_exp, c_exp, a_seq
@@ -1712,14 +1733,15 @@ module sparsematrix
       c_exp = f_malloc(smat%smmm%nvctrp, id='c_exp')
       a_seq = sparsematrix_malloc(smat, iaction=SPARSEMM_SEQ, id='a_seq')
 
-
       call sequential_acces_matrix_fast2(smat, a, a_seq)
-      call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
-           smat%nseg, smat%keyv, smat%keyg, &
-           smat%smmm%line_and_column_mm, &
-           smat%smmm%nvctrp, smat%smmm%isvctr, &
-           smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
-           'small_to_large', b(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), b_exp)
+      if (smat%smmm%nvctrp_mm>0) then !to avoid out of bounds error...
+          call transform_sparsity_pattern(smat%nfvctr, smat%smmm%nvctrp_mm, smat%smmm%isvctr_mm, &
+               smat%nseg, smat%keyv, smat%keyg, &
+               smat%smmm%line_and_column_mm, &
+               smat%smmm%nvctrp, smat%smmm%isvctr, &
+               smat%smmm%nseg, smat%smmm%keyv, smat%smmm%keyg, smat%smmm%istsegline, &
+               'small_to_large', b(smat%smmm%isvctr_mm-smat%isvctrp_tg+1), b_exp)
+      end if
       call sparsemm_new(smat, a_seq, b_exp, c_exp)
       call compress_matrix_distributed_wrapper(iproc, nproc, smat, SPARSE_MATMUL_LARGE, &
            c_exp, c)
@@ -1801,5 +1823,44 @@ module sparsematrix
       call f_release_routine()
     
     end function trace_sparse
+
+
+    !> Set to zero all term which couple different atoms
+    subroutine delete_coupling_terms(iproc, nproc, smat, mat_compr)
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      type(sparse_matrix),intent(in) :: smat
+      real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(inout) :: mat_compr
+
+      ! Local variables
+      integer :: ispin, ishift, iseg, ii, i, iiat, jjat
+      real(kind=8),dimension(:),allocatable :: fullmat_compr
+      
+      fullmat_compr = sparsematrix_malloc(smat,iaction=SPARSE_FULL,id='tmparr')
+      call gather_matrix_from_taskgroups(iproc, nproc, smat, mat_compr, fullmat_compr)
+
+      do ispin=1,smat%nspin
+          ishift=(ispin-1)*smat%nvctr
+          !!$omp parallel default(none) private(iseg,i,ii,irowcol) shared(sparsemat,inm,outm,ispin,ishift)
+          !!$omp do
+          do iseg=1,smat%nseg
+              ii=smat%keyv(iseg)
+              ! a segment is always on one line, therefore no double loop
+              do i=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+                 iiat = smat%on_which_atom(i)
+                 jjat = smat%on_which_atom(smat%keyg(1,2,iseg))
+                 if (iiat/=jjat) then
+                     fullmat_compr(ii+ishift) = 0.d0
+                 end if
+                 ii=ii+1
+             end do
+          end do
+          !!$omp end do
+          !!$omp end parallel
+      end do
+
+      call extract_taskgroup(smat, fullmat_compr, mat_compr)
+
+   end subroutine delete_coupling_terms
 
 end module sparsematrix

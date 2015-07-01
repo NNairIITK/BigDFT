@@ -77,7 +77,7 @@ F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
 	yaml_map-mat-inc.f90 yaml_open-inc.f90
-STRINGS_INCLUDES = yaml_toa-inc.f90 yaml_toa-arr-inc.f90
+STRINGS_INCLUDES = yaml_toa-inc.f90 yaml_toa-arr-inc.f90 yaml_plus-inc.f90
 ERR_INCLUDES = get_err-inc.f90
 DICT_INCLUDES = error_handling.f90 $(ERR_INCLUDES) dict_add-inc.f90 dict_getvec-inc.f90 \
 	set_arr-inc.f90 dict_cont-inc.f90 dict_cont_arr-inc.f90

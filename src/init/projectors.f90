@@ -16,6 +16,7 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   use gaussians, only: gaussian_basis_iter, gaussian_iter_start, gaussian_iter_next_shell
   use yaml_output
   use psp_projectors
+  use public_enums, only: PSPCODE_PAW
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz

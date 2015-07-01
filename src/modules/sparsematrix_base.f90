@@ -428,7 +428,7 @@ module sparsematrix_base
           smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%smmm%nfvctrp,smat_info_ptr%smat%nspin/),&
                                   id=smat_info_ptr%id)
       case default
-         call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+         call f_err_throw('The action specified for the 3d matrix allocation is invalid',&
               err_name='BIGDFT_RUNTIME_ERROR')
       end select
     end subroutine allocate_smat_d3_ptr
@@ -487,7 +487,7 @@ module sparsematrix_base
       case (DENSE_MATMUL)
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%smmm%nfvctrp,smat_info%smat%nspin/),id=smat_info%id)
       case default
-         call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+         call f_err_throw('The action specified for the 3d matrix allocation is invalid',&
               err_name='BIGDFT_RUNTIME_ERROR')
       end select
     end subroutine allocate_smat_d3

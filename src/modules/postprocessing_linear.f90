@@ -1,4 +1,5 @@
 module postprocessing_linear
+  use public_enums
   implicit none
 
   private
@@ -98,9 +99,14 @@ module postprocessing_linear
          !!end if
       end if
 
-      call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, &
-               tmb%orbs%norb_par, tmb%orbs%isorb_par, meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
-               tmb%linmat%kernel_, tmb%linmat%ovrlp_)
+      !call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, &
+      !         tmb%orbs%norb_par, tmb%orbs%isorb_par, meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+      !         tmb%linmat%kernel_, tmb%linmat%ovrlp_)
+      call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+           tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
+           tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
+           meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+           tmb%linmat%kernel_, tmb%linmat%ovrlp_)
     
 !!!!      if (calculate_ovrlp_half) then
 !!!!         tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
@@ -217,9 +223,11 @@ module postprocessing_linear
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix, matrices, &
-                                   assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, DENSE_FULL, &
+                                   assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, &
+                                   DENSE_FULL, SPARSE_TASKGROUP, SPARSE_FULL, &
                                    deallocate_matrices, matrices_null, allocate_matrices
-      use sparsematrix, only: uncompress_matrix2
+      use sparsematrix_init, only: matrixindex_in_compressed
+      use sparsematrix, only: uncompress_matrix2, matrix_matrix_mult_wrapper, gather_matrix_from_taskgroups
       use matrix_operations, only: overlapPowerGeneral
       use yaml_output
       implicit none
@@ -228,82 +236,153 @@ module postprocessing_linear
       integer,dimension(0:nproc-1),intent(in) :: norb_par, isorb_par
       type(sparse_matrix),intent(inout) :: smats, smatl
       type(atoms_data),intent(in) :: atoms
-      type(matrices),intent(in) :: kernel
+      type(matrices),intent(inout) :: kernel
       type(matrices),intent(inout) :: ovrlp
 
       ! Local variables
-      integer :: ierr, iorb, iat
+      integer :: ierr, iorb, iat, ind, ist, ishift, ispin, iiorb
       type(matrices),dimension(1) :: inv_ovrlp
       real(kind=8),dimension(:,:,:),allocatable :: proj_mat
       real(kind=8),dimension(:,:),allocatable :: weight_matrix, weight_matrixp, proj_ovrlp_half
-      real(kind=8),dimension(:),allocatable :: charge_per_atom
+      real(kind=8),dimension(:),allocatable :: charge_per_atom, proj_ovrlp_half_compr
+      real(kind=8),dimension(:),allocatable :: weight_matrix_compr_tg, weight_matrix_compr
       real(kind=8) :: mean_error, max_error
+      integer,parameter :: DENSE=101, SPARSE=102
+      integer :: imode=SPARSE
 
+      call f_routine(id='loewdin_charge_analysis_core')
 
-      inv_ovrlp(1) = matrices_null()
-      call allocate_matrices(smatl, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+      if (imode==DENSE) then
 
-      ovrlp%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='ovrlp%matrix')
-      call uncompress_matrix2(iproc, nproc, smats, &
-           ovrlp%matrix_compr, ovrlp%matrix)
-      call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
-           imode=2, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-           max_error=max_error, mean_error=mean_error)
-      call f_free_ptr(ovrlp%matrix)
+          call f_err_throw('Dense mode is deprecated',err_name='BIGDT_RUNTIME_ERROR')
+
+          inv_ovrlp(1) = matrices_null()
+          call allocate_matrices(smatl, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+
+          ovrlp%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='ovrlp%matrix')
+          call uncompress_matrix2(iproc, nproc, smats, &
+               ovrlp%matrix_compr, ovrlp%matrix)
+          call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
+               imode=2, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+               ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
+               max_error=max_error, mean_error=mean_error)
+          call f_free_ptr(ovrlp%matrix)
     
-      ! optimize this to just change the matrix multiplication?
-      proj_mat = sparsematrix_malloc0(smatl,iaction=DENSE_FULL,id='proj_mat')
+          ! optimize this to just change the matrix multiplication?
+          proj_mat = sparsematrix_malloc0(smatl,iaction=DENSE_FULL,id='proj_mat')
     
-      call uncompress_matrix2(iproc, nproc, smatl, kernel%matrix_compr, proj_mat)
+          call uncompress_matrix2(iproc, nproc, smatl, kernel%matrix_compr, proj_mat)
 
-      proj_ovrlp_half=f_malloc((/norb,norbp/),id='proj_ovrlp_half')
-      if (norbp>0) then
-         call dgemm('n', 'n', norb, norbp, &
-                norb, 1.d0, &
-                proj_mat(1,1,1), norb, &
-                inv_ovrlp(1)%matrix(1,isorb+1,1), norb, 0.d0, &
-                proj_ovrlp_half(1,1), norb)
-      end if
-      call f_free(proj_mat)
-      weight_matrixp=f_malloc((/norb,norbp/), id='weight_matrixp')
-      if (norbp>0) then
-         call dgemm('n', 'n', norb, norbp, &
-              norb, 1.d0, &
-              inv_ovrlp(1)%matrix(1,1,1), norb, &
-              proj_ovrlp_half(1,1), norb, 0.d0, &
-              weight_matrixp(1,1), norb)
-      end if
-      call f_free(proj_ovrlp_half)
-      weight_matrix=f_malloc((/norb,norb/), id='weight_matrix')
-      if (nproc>1) then
-         call mpi_allgatherv(weight_matrixp, norb*norbp, mpi_double_precision, weight_matrix, &
-              norb*norb_par(:), norb*isorb_par, &
-              mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          proj_ovrlp_half=f_malloc((/norb,norbp/),id='proj_ovrlp_half')
+          if (norbp>0) then
+             call dgemm('n', 'n', norb, norbp, &
+                    norb, 1.d0, &
+                    proj_mat(1,1,1), norb, &
+                    inv_ovrlp(1)%matrix(1,isorb+1,1), norb, 0.d0, &
+                    proj_ovrlp_half(1,1), norb)
+          end if
+          call f_free(proj_mat)
+          weight_matrixp=f_malloc((/norb,norbp/), id='weight_matrixp')
+          if (norbp>0) then
+             call dgemm('n', 'n', norb, norbp, &
+                  norb, 1.d0, &
+                  inv_ovrlp(1)%matrix(1,1,1), norb, &
+                  proj_ovrlp_half(1,1), norb, 0.d0, &
+                  weight_matrixp(1,1), norb)
+          end if
+          call f_free(proj_ovrlp_half)
+          weight_matrix=f_malloc((/norb,norb/), id='weight_matrix')
+          if (nproc>1) then
+             call mpi_allgatherv(weight_matrixp, norb*norbp, mpi_double_precision, weight_matrix, &
+                  norb*norb_par(:), norb*isorb_par, &
+                  mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          else
+             call vcopy(norb*norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
+          end if
+          call f_free(weight_matrixp)
+    
+          charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
+    
+          do iorb=1,norb
+              iat=smats%on_which_atom(iorb)
+              charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
+          end do
+          if (iproc==0) then
+              !call write_partial_charges()
+              call write_partial_charges(atoms, charge_per_atom, .true.)
+              call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
+              call calculate_dipole(iproc, atoms, charge_per_atom)
+              call calculate_quadropole(iproc, atoms, charge_per_atom)
+              call yaml_sequence_close()
+          end if
+          !!call support_function_multipoles()
+    
+          call deallocate_matrices(inv_ovrlp(1))
+          call f_free(charge_per_atom)
+          call f_free(weight_matrix)
+
+      else if (imode==SPARSE) then
+
+
+          inv_ovrlp(1) = matrices_null()
+          inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
+
+          call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
+               imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+               ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
+               max_error=max_error, mean_error=mean_error)
+          call f_free_ptr(ovrlp%matrix)
+
+          proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_ovrlp_half_compr')
+          weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
+          do ispin=1,smatl%nspin
+              ist = (ispin-1)*smatl%nvctrp_tg + 1
+              if (norbp>0) then
+                 call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+                      kernel%matrix_compr(ist:), inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:))
+              end if
+              if (norbp>0) then
+                 call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+                      inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
+              end if
+          end do
+          call f_free(proj_ovrlp_half_compr)
+    
+          call deallocate_matrices(inv_ovrlp(1))
+          charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
+
+          ! Maybe this can be improved... not really necessary to gather the entire matrix
+          weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
+          call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
+
+    
+          do ispin=1,smatl%nspin
+              ishift = (ispin-1)*smatl%nvctr
+              do iorb=1,norb
+                  iiorb = modulo(iorb-1,smatl%nfvctr)+1
+                  iat=smats%on_which_atom(iiorb)
+                  ind = matrixindex_in_compressed(smatl, iorb, iorb)
+                  ind = ind + ishift
+                  charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix_compr(ind)
+              end do
+          end do
+          if (iproc==0) then
+              call write_partial_charges(atoms, charge_per_atom, .true.)
+              call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
+              call calculate_dipole(iproc, atoms, charge_per_atom)
+              call calculate_quadropole(iproc, atoms, charge_per_atom)
+              call yaml_sequence_close()
+          end if
+    
+          call f_free(charge_per_atom)
+          call f_free(weight_matrix_compr_tg)
+          call f_free(weight_matrix_compr)
+
       else
-         call vcopy(norb*norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
+          call f_err_throw('wrong value for imode',err_name='BIGDFT_RUNTIME_ERROR')
       end if
-      call f_free(weight_matrixp)
-    
-      charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
-    
-      do iorb=1,norb
-          iat=smats%on_which_atom(iorb)
-          charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
-      end do
-      if (iproc==0) then
-          !call write_partial_charges()
-          call write_partial_charges(atoms, charge_per_atom, .true.)
-          call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
-          call calculate_dipole(iproc, atoms, charge_per_atom)
-          call calculate_quadropole(iproc, atoms, charge_per_atom)
-          call yaml_sequence_close()
-      end if
-      !!call support_function_multipoles()
-    
-      call deallocate_matrices(inv_ovrlp(1))
-      call f_free(charge_per_atom)
-      call f_free(weight_matrix)
+
+      call f_release_routine()
 
     end subroutine loewdin_charge_analysis_core
 
@@ -323,14 +402,27 @@ module postprocessing_linear
       real(kind=8),dimension(2) :: charges
       character(len=128) :: output
       character(len=2) :: backslash
-      integer,parameter :: ncolors = 7
-      character(len=20),dimension(ncolors),parameter :: colors=(/'violet', &
-                                                                 'blue  ', &
-                                                                 'cyan  ', &
-                                                                 'green ', &
-                                                                 'yellow', &
-                                                                 'orange', &
-                                                                 'red   '/)
+      integer,parameter :: ncolors = 12 !7
+      !character(len=20),dimension(ncolors),parameter :: colors=(/'violet', &
+      !                                                           'blue  ', &
+      !                                                           'cyan  ', &
+      !                                                           'green ', &
+      !                                                           'yellow', &
+      !                                                           'orange', &
+      !                                                           'red   '/)
+      ! Presumably well suited colorschemes from colorbrewer2.org
+      character(len=20),dimension(ncolors),parameter :: colors=(/'#a6cee3', &
+                                                                 '#1f78b4', &
+                                                                 '#b2df8a', &
+                                                                 '#33a02c', &
+                                                                 '#fb9a99', &
+                                                                 '#e31a1c', &
+                                                                 '#fdbf6f', &
+                                                                 '#ff7f00', &
+                                                                 '#cab2d6', &
+                                                                 '#6a3d9a', &
+                                                                 '#ffff99', &
+                                                                 '#b15928'/)
 
       call yaml_sequence_open('Loewdin charge analysis (charge / net charge)')
       total_charge=0.d0
@@ -356,9 +448,10 @@ module postprocessing_linear
       if (write_gnuplot) then
           output='chargeanalysis.gp'
           call yaml_map('output file',trim(output))
+          iunit=100
           call f_open_file(iunit, file=trim(output), binary=.false.)
           write(iunit,'(a)') '# plot the fractional charge as a normalized sum of Gaussians'
-          write(iunit,'(a)') 'set samples 500000'
+          write(iunit,'(a)') 'set samples 1000'
           range_min = minval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) - 0.1d0
           range_max = maxval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) + 0.1d0
           write(iunit,'(a,2(es12.5,a))') 'set xrange[',range_min,':',range_max,']'
@@ -863,7 +956,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
     
       if (bigdft_mpi%iproc ==0) then
@@ -990,7 +1083,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-           input%calculate_KS_residue, input%calculate_gap, energs_work, updatekernel=.false.)
+           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., updatekernel=.false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
@@ -1081,7 +1174,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,energs_work)
+           input%calculate_KS_residue,input%calculate_gap,energs_work, .false.)
     
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
@@ -1202,7 +1295,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-           input%calculate_KS_residue, input%calculate_gap, energs_work, updatekernel=.false.)
+           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., updatekernel=.false.)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
       energyold=energy

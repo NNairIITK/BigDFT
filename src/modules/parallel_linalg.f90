@@ -691,7 +691,7 @@ module parallel_linalg
           la = f_malloc((/ lnrow_a, lncol_a /),id='la')
       
           ! Copy the global array a to the local array la.
-          ! The same for b and lb, cpectively.
+          ! The same for b and lb, respectively.
           do i=1,n
               do j=1,n
                   call pdelset(la(1,1), j, i, desc_la, a(j,i))

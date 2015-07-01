@@ -28,6 +28,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use communications_base, only: work_transpose, &
                                  work_transpose_null, allocate_work_transpose, deallocate_work_transpose
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
+  use public_enums
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -83,6 +84,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
 
   call f_routine(id=subname)
+
+  call timing(iproc,'lin_inputguess','ON')
 
   call nullify_orbitals_data(orbs_gauss)
   call nullify_gaussian_basis(G)
@@ -530,6 +533,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      tmb%linmat%kernel_%matrix_compr(ind+ispinshift-tmb%linmat%l%isvctrp_tg)=1.d0*tmb%orbs%occup(iorb)
   end do
 
+  call timing(iproc,'lin_inputguess','OF')
+
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
        tmb%orbs, tmb%psi, tmb%collcom_sr)
@@ -703,8 +708,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !end do
       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, &
-           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
-           tmb%foe_obj)
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
             
  else
      ! Iterative orthonomalization
@@ -892,12 +896,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false.)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false.)
 
       !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
