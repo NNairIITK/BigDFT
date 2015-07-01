@@ -969,7 +969,10 @@ do jproc=0,nproc-1
     norb0=orbs%norb_par(jproc,0)
     norb1=orbs%norb_par(min(jproc+1,nproc-1),0)
     if (norb0/=norb1 .or. jproc==nproc-1) then
-        if (print_all) call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norb0,fmt='(i0)')
+        if (print_all) then
+            call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//&
+              &trim(yaml_toa(jproc,fmt='(i0)')),norb0,fmt='(i0)')
+        end if
         minn=min(minn,norb0)
         maxn=max(maxn,norb0)
         jpst=jproc+1
