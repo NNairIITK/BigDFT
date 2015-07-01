@@ -87,6 +87,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   call f_routine(id=subname)
 
+  call timing(iproc,'lin_inputguess','ON')
+
   call nullify_orbitals_data(orbs_gauss)
   call nullify_gaussian_basis(G)
   nullify(mom_vec_fake)
@@ -546,6 +548,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
      tmb%linmat%kernel_%matrix_compr(ind+ispinshift-tmb%linmat%l%isvctrp_tg)=1.d0*tmb%orbs%occup(iorb)
   end do
+
+  call timing(iproc,'lin_inputguess','OF')
 
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
