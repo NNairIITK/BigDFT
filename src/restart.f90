@@ -2182,6 +2182,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   use module_fragments
   use module_interfaces, except_this_one=>reformat_supportfunctions
   use yaml_output
+  use bounds, only: ext_buffers
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: ndim_old

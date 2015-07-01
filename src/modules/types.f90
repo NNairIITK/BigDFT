@@ -19,7 +19,7 @@ module module_types
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
   use locregs
-  use psp_projectors
+  use psp_projectors_base
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use communications_base, only: comms_linear, comms_cubic, p2pComms
   use sparsematrix_base, only: matrices, sparse_matrix
@@ -639,7 +639,7 @@ module module_types
  public :: default_lzd,find_category,old_wavefunction_null,old_wavefunction_free
  public :: bigdft_init_errors,bigdft_init_timing_categories
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
- public :: update_nlpsp,deallocate_paw_objects!,deallocate_wfd,
+ public :: deallocate_paw_objects!,deallocate_wfd,
  public :: old_wavefunction_set
  public :: nullify_locreg_descriptors
  public :: deallocate_rho_descriptors

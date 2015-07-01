@@ -169,7 +169,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use ao_inguess, only: set_aocc_from_string
    use gaussians, only: gaussian_basis
    use yaml_output, only: yaml_warning,yaml_toa
-   use psp_projectors, only: free_DFT_PSP_projectors
+   use psp_projectors_base, only: free_DFT_PSP_projectors
    use public_enums, only: LINEAR_PARTITION_NONE
    use module_input_keys, only: print_dft_parameters
    implicit none
@@ -1439,6 +1439,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
+   use psp_projectors, only: update_nlpsp
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,ixc

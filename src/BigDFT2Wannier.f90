@@ -21,6 +21,7 @@ program BigDFT2Wannier
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use communications, only: transpose_v, untranspose_v
+   use bounds, only: ext_buffers
    implicit none
    character :: filetype*4
    !etsf

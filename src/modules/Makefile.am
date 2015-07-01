@@ -32,6 +32,7 @@ libmodules_a_SOURCES = base.f90 \
 	gaussians.f90 \
 	locregs.f90 \
 	psp_projectors.f90 \
+	psp_projectors_base.f90 \
 	input_keys.f90 \
 	gaussdaub.f90 \
 	input_dicts.f90 \
@@ -114,6 +115,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_INPUT_KEYS.@MODULE_EXT@ \
 	MODULE_INPUT_DICTS.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
+	PSP_PROJECTORS_BASE.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@ \
 	AO_INGUESS.@MODULE_EXT@ \
 	REFORMATTING.@MODULE_EXT@ \
@@ -177,6 +179,7 @@ modules = module_base.@MODULE_EXT@ \
 	module_input_keys.@MODULE_EXT@ \
 	module_input_dicts.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
+	psp_projectors_base.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@ \
 	ao_inguess.@MODULE_EXT@ \
 	reformatting.@MODULE_EXT@ \
@@ -257,7 +260,7 @@ input.o: base.o public_keys.o fragment_base.o
 input_dicts.o: defs.o ao_inguess.o public_keys.o fragment_base.o input.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o input_dicts.o
 input_keys.o: defs.o base.o public_keys.o multipole_base.o atoms_data.o xc.o input.o fragment_base.o
-types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o input_keys.o \
+types.o: base.o gaussians.o locregs.o psp_projectors_base.o ao_inguess.o atoms_data.o communications_base.o input_keys.o \
 	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
 gaussians.o: base.o
@@ -268,14 +271,15 @@ private_api.o: base.o types.o interfaces.o
 diis_module.o: base.o types.o
 fragments.o: base.o input_keys.o types.o locreg_operations.o fragment_base.o
 constrained_dft.o: base.o input_keys.o sparsematrix_base.o
-psp_projectors.o: locregs.o gaussians.o defs.o
+psp_projectors_base.o: locregs.o gaussians.o defs.o
+psp_projectors.o: locregs.o locregs_init.o gaussians.o defs.o psp_projectors_base.o
 locregs.o: base.o
 reformatting.o: base.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
 communications.o: base.o types.o communications_base.o locregs.o locreg_operations.o xc.o
 sparsematrix_base.o: base.o
-sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o locregs.o 
+sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o locregs.o locregs_init.o
 sparsematrix.o: base.o types.o sparsematrix_base.o sparsematrix_init.o
 foe_base.o: base.o defs.o
 foe_common.o: base.o defs.o foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
@@ -306,7 +310,7 @@ rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communica
 multipole.o: base.o multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
 orthonormalization.o: base.o types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
 bounds.o: base.o types.o locregs.o
-locregs_init.o: base.o types.o communications.o bounds.o sparsematrix_init.o
+locregs_init.o: base.o types.o communications.o bounds.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

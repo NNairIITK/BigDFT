@@ -11,6 +11,7 @@ module bounds
   public :: make_all_ib
   public :: ib_from_logrid
   public :: ib_from_logrid_inv
+  public :: ext_buffers
 
   contains
 
@@ -594,5 +595,20 @@ module bounds
          enddo
       enddo
     END SUBROUTINE squares
+
+
+    subroutine ext_buffers(periodic,nl,nr)
+      implicit none
+      logical, intent(in) :: periodic
+      integer, intent(out) :: nl,nr
+    
+      if (periodic) then
+         nl=0
+         nr=0
+      else
+         nl=14
+         nr=15
+      end if
+    END SUBROUTINE ext_buffers
 
 end module bounds

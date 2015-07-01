@@ -158,6 +158,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   use ao_inguess, only: atomic_info
   use locregs, only: locreg_null,copy_locreg_descriptors
   use public_enums
+  use locregs_init, only: determine_locreg_parallel
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -292,6 +293,8 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   use ao_inguess, only: atomic_info
   use locregs, only: locreg_null,copy_locreg_descriptors
   use public_enums
+  use locregs_init, only: determine_locreg_parallel
+  use psp_projectors, only: update_nlpsp
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -978,6 +981,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
   use module_base
   use module_types
   use module_interfaces
+  use psp_projectors, only: update_nlpsp
   implicit none
 
   ! Calling arguments

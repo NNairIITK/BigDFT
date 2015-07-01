@@ -2182,7 +2182,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_types
   use module_fragments
   use module_interfaces, only: system_initialization
-  use psp_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use communications_base, only: deallocate_comms
   implicit none
   type(run_objects), intent(inout) :: runObj

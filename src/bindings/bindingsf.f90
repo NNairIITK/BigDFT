@@ -913,7 +913,7 @@ END SUBROUTINE proj_new
 
 
 subroutine proj_free(nlpspd)
-  use psp_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use module_types
   use memory_profiling
   implicit none

@@ -216,10 +216,12 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
      cpmult,fpmult,hx,hy,hz,dry_run,nl,&
      init_projectors_completely_)
   use module_base
-  use psp_projectors
+  use psp_projectors_base, only: DFT_PSP_projectors_null, nonlocal_psp_descriptors_null, allocate_workarrays_projectors
+  use psp_projectors, only: set_nlpsp_to_wfd, bounds_to_plr_limits
   use module_types
   use gaussians, only: gaussian_basis, gaussian_basis_from_psp, gaussian_basis_from_paw
   use public_enums, only: PSPCODE_PAW
+  use locregs_init, only: transform_keyglob_to_keygloc
   implicit none
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
   type(locreg_descriptors),intent(in) :: lr
@@ -318,7 +320,7 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
              nl%pspd(iat)%plr%wfd%keyglob(1,1),nl%pspd(iat)%plr%wfd%keyvglob(1))
 
         call transform_keyglob_to_keygloc(lr,nl%pspd(iat)%plr,nl%pspd(iat)%plr%wfd%nseg_c,&
-             nl%pspd(iat)%plr%wfd%keyglob(1,1),nl%pspd(iat)%plr%wfd%keygloc(1,1))
+             nl%pspd(iat)%plr%wfd%keyglob(1:,1:),nl%pspd(iat)%plr%wfd%keygloc(1:,1:))
 
         ! fine grid quantities
         call bounds_to_plr_limits(.false.,2,nl%pspd(iat)%plr,&
@@ -336,8 +338,8 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
                 logrid,mseg,nl%pspd(iat)%plr%wfd%keyglob(1,iseg),&
                 nl%pspd(iat)%plr%wfd%keyvglob(iseg))
 
-           call transform_keyglob_to_keygloc(lr,nl%pspd(iat)%plr,mseg,nl%pspd(iat)%plr%wfd%keyglob(1,iseg),&
-                nl%pspd(iat)%plr%wfd%keygloc(1,iseg)) 
+           call transform_keyglob_to_keygloc(lr,nl%pspd(iat)%plr,mseg,nl%pspd(iat)%plr%wfd%keyglob(1:,iseg:),&
+                nl%pspd(iat)%plr%wfd%keygloc(1:,iseg:)) 
         end if
         !in the case of linear scaling this section has to be built again
         if (init_projectors_completely) then
@@ -1516,6 +1518,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   use communications, only: toglobal_and_transpose
   use rhopotential, only: full_local_potential, updatePotential
   use public_enums
+  use psp_projectors, only: update_nlpsp
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc
@@ -2086,7 +2089,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use m_paw_ij, only: paw_ij_init
-  use psp_projectors, only: free_DFT_PSP_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: normalize_transposed
   use rhopotential, only: updatepotential, sumrho_for_TMBs, clean_rho
