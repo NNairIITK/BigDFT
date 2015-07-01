@@ -638,7 +638,7 @@ contains
 
   pure function string_plus_integer(a,num) result(c)
     implicit none
-    integer(f_int), intent(in) :: num
+    integer(f_integer), intent(in) :: num
     include 'yaml_plus-inc.f90'
   end function string_plus_integer
 
