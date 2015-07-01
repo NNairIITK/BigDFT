@@ -824,7 +824,7 @@ foe:
  ebs_check: 1.1e-10
  guess for new ef: 4.2e-8
  D: 1.1e-10
- Energy (Hartree): 2.73e-11
+ Energy (Hartree): 2.9e-11
 
 onlyhigh:
  Energies: 2.1e-9
@@ -1517,7 +1517,7 @@ periodic_water:
  EvXC: 1.1e-9
  Ekin: 2.0e-9
  Enl: 1.1e-9
- Energy (Hartree): 7.4e-11
+ Energy (Hartree): 7.7e-11
  Omega: 2.7e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
@@ -1588,8 +1588,8 @@ multipoles_OH-:
  Raw forces norm (Ha/Bohr): 3.7e-11
  Average noise forces: 1.01e-9
  decay length of error function: 1.1e-5
- number of corrected points: 77
- total charge correction: 4.6e-8
+ number of corrected points: 92
+ total charge correction: 5.2e-8
 
 multipoles_water:
  eF: 2.9e-9
@@ -1620,30 +1620,31 @@ igortho_19:
  Loewdin charge analysis (charge / net charge): 4.1e-7
  Average noise forces: 7.8e-7
  eF: 2.2e-5
- EXC: 1.5e-6
- Epot: 2.2e-5
- EvXC: 2.0e-6
- EH: 1.1e-5
+ EXC: 1.6e-6
+ Epot: 3.4e-5
+ EvXC: 2.1e-6
+ EH: 1.5e-5
  Ekin: 1.1e-7
  Enl: 1.0e-8
- Omega: 6.1e-9
+ Omega: 6.3e-9
  D eF: 2.1e-5
- ebs: 1.1e-5
- ebs_check: 1.1e-5
+ ebs: 1.4e-5
+ ebs_check: 1.4e-5
  guess for new ef: 2.2e-5
- energy: 1.1e-8
- charge diff: 6.1e-9
- D Tr: 1.2e-8
- number of corrected points: 7
+ energy: 2.4e-8
+ charge diff: 9.8e-9
+ D Tr: 1.5e-8
+ number of corrected points: 14
  diff: 5.9e-9
  trace(KS): 5.2e-9
  Total charge: 4.6e-9
  relative diff: 1.6e-9
  diff from reference kernel: 3.0e-8
- D: 1.0e-8
- Tr(K): 6.1e-9
+ D: 2.1e-8
+ Tr(K): 1.1e-8
  total charge correction: 1.5e-11
  multiplicator for the confinement: 1.8e-11
+ radius for normalizatio: 1.1e-2
 
 igortho_44:
  Atomic Forces (Ha/Bohr): 7.5e-7
@@ -1670,14 +1671,15 @@ igortho_44:
  relative diff: 8.6e-10
  trace(KS): 1.4e-08
  energy: 6.6e-07
- Omega: 8.9e-11
+ Omega: 3.0e-10
  Loewdin charge analysis (charge / net charge): 1.4e-6
  Multipole coefficients: 1.4e-6
  number of corrected points: 8
  net quadropole: 7.1e-5
  net dipole: 1.1e-7
- D: 2.1e-8
+ D: 1.1e-7
  delta: 1.1e-10
+ radius for normalizatio: 1.1e-1
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1698,7 +1700,7 @@ igortho_94:
  Enl: 1.4e-8
  Epot: 6.2e-4
  EvXC: 4.4e-5
- total charge correction: 2.9e-8
+ total charge correction: 3.3e-8
  guess for new ef: 1.3e-5
  Tr(K): 2.1e-8
  charge diff: 2.1e-8
@@ -1706,7 +1708,7 @@ igortho_94:
  D Tr: 2.0e-8
  D eF: 1.1e-5
  diff: 5.4e-9
- diff from reference kernel: 6.1e-9
+ diff from reference kernel: 1.1e-8
  ebs: 3.2e-4
  ebs_check: 3.2e-4
  relative diff: 1.4e-9
@@ -1716,5 +1718,7 @@ igortho_94:
  Omega: 1.1e-8
  Loewdin charge analysis (charge / net charge): 2.0e-6
  Multipole coefficients: 1.2e-5
- number of corrected points: 49
+ number of corrected points: 83
  delta: 4.1e-11
+ radius for normalization: 1.1e-2
+ multiplicator for the confinement: 3.1e-11
