@@ -149,6 +149,7 @@ contains
     use module_BornMayerHugginsTosiFumi
     use module_lj
     use module_lenosky_si
+    use module_cp2k
     use module_base, only: bigdft_mpi
     use yaml_output
     implicit none
@@ -236,6 +237,11 @@ contains
           mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
        endif
        call nab_init()
+    case('CP2K_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call init_cp2k(runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
     case default
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -243,16 +249,30 @@ contains
     end select
   end subroutine init_MM_restart_objects
 
-  subroutine free_MM_restart_objects(mm_rst)
+  subroutine free_MM_restart_objects(runObj,mm_rst)
     use module_base, only: bigdft_mpi
     use dynamic_memory
     use yaml_output
+    use module_cp2k
+    use module_BornMayerHugginsTosiFumi
+    use f_enums, enum_int => int
     implicit none
+    type(run_objects), intent(inout) :: runObj
     type(MM_restart_objects), intent(inout) :: mm_rst
     !check if the object can be freed
     call f_ref_free(mm_rst%refcnt)
     call f_free_ptr(mm_rst%rf_extra)
+    select case(trim(f_str(runObj%run_mode)))
+    case('BMHTF_RUN_MODE')
+       call finalize_bmhtf()
+    case('CP2K_RUN_MODE') ! CP2K run mode
+       call finalize_cp2k()
+    case default
+       call f_err_throw('Following method for evaluation of '//&
+            'energies and forces is unknown: '+ yaml_toa(enum_int(runObj%run_mode)))
+    end select
 
+    
   end subroutine free_MM_restart_objects
 
   !> Allocate and nullify restart objects
@@ -811,7 +831,7 @@ contains
     if (associated(runObj%mm_rst)) then
        call f_unref(runObj%mm_rst%refcnt,count=count)
        if (count==0) then
-          call free_MM_restart_objects(runObj%mm_rst)
+          call free_MM_restart_objects(runObj,runObj%mm_rst)
        else
           nullify(runObj%mm_rst)
        end if
@@ -853,7 +873,7 @@ contains
        deallocate(runObj%rst)
     end if
     if (associated(runObj%mm_rst)) then
-       call free_MM_restart_objects(runObj%mm_rst)
+       call free_MM_restart_objects(runObj,runObj%mm_rst)
        deallocate(runObj%mm_rst)
     end if
     if (associated(runObj%atoms)) then
@@ -1340,7 +1360,9 @@ contains
     use module_forces, only: clean_forces
     use module_morse_bulk
     use module_tersoff
+    use module_cp2k
     use module_BornMayerHugginsTosiFumi
+    use module_cp2k
     use f_enums, enum_int => int
     implicit none
     !parameters
@@ -1449,6 +1471,9 @@ contains
        !the yaml document is created in the cluster routine
        call quantum_mechanical_state(runObj,outs,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('BigDFT infocode',infocode)
+    case('CP2K_RUN_MODE') ! CP2K run mode
+       call cp2k_energy_forces(nat,bigdft_get_cell(runObj),rxyz_ptr,outs%fxyz,outs%energy,infocode)
+       if (bigdft_mpi%iproc==0) call yaml_map('CP2K infocode',infocode)
     case default
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '+ yaml_toa(enum_int(runObj%run_mode)))

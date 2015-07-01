@@ -56,7 +56,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld)
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -103,6 +103,15 @@ ambertools_wrap= wrap_fake.f90
 amber_ld =
 endif
 
+if HAVE_CP2K
+cp2k_ld= @CP2K_LINKLINE@
+cp2k_interfacemod = modules/module_cp2k.f90
+cp2k_interfacemodCAP = MODULES/MODULE_CP2k.F90
+else
+cp2k_interfacemod = modules/cp2k_fake.f90 modules/module_cp2k.f90
+cp2k_interfacemodCAP = MODULES/CP2K_FAKE.F90 MODULES/MODULE_CP2K_FAKE.F90
+cp2k_ld =
+endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
@@ -206,7 +215,8 @@ low_level = \
 	linear/transferintegrals.f90 \
 	linear/cdft.f90 \
 	linear/frags.f90\
-	$(ambertools_wrap)
+	$(ambertools_wrap)\
+	$(cp2k_interfacemod)
 
 # C objects
 c_level = posfiles.c \
@@ -247,7 +257,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)

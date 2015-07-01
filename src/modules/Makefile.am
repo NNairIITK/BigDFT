@@ -4,13 +4,13 @@ module_DATA = $(modules)
 include_HEADERS = bigdft.h bigdft_input_keys.h
 nodist_include_HEADERS = bigdft_cst.h
 
-# Code source.
-if USE_BLACS
-BLACS = 
-else
-BLACS = blacs_fake.f90
-endif
-
+### Code source.
+##if USE_BLACS
+##BLACS = 
+##else
+##BLACS = blacs_fake.f90
+##endif
+##
 #if USE_MPI
 #mpi_include =
 #else
@@ -23,6 +23,17 @@ xc.o: base.o
 else
 LIBXC_MODULE = libxc_fake.f90
 xc.o: base.o libxc_fake.o
+endif
+
+if HAVE_CP2K
+cp2k_ld= @CP2K_LINKLINE@
+cp2k_interfacemod = module_cp2k.f90
+cp2k_interfacemodCAP = MODULE_CP2k.F90
+BLACS = 
+else
+cp2k_interfacemod = cp2k_fake.f90 module_cp2k.f90
+cp2k_interfacemodCAP = CP2K_FAKE.F90 MODULE_CP2K.F90
+cp2k_ld =
 endif
 
 libmodules_a_SOURCES = base.f90 \
@@ -86,7 +97,8 @@ libmodules_a_SOURCES = base.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
-	configure.c
+	configure.c \
+	$(cp2k_interfacemod)
 
 # Modules
 if CAPITALIZE
@@ -148,7 +160,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
 	MODULE_TERSOFF.@MODULE_EXT@\
-	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@
+	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
+	$(cp2k_interfacemodCAP).@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -277,6 +290,8 @@ module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o
 ab7_mixing.o: defs.o
 module_lj.o: base.o defs.o
+module_cp2k.o: base.o defs.o
+module_cp2k_fake.o: base.o defs.o
 module_morse_bulk.o: base.o
 module_tersoff.o: base.o atoms_data.o
 module_bornmayerhugginstosifumi.o: base.o atoms_data.o

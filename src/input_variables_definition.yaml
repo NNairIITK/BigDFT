@@ -679,6 +679,7 @@
        morse_slab: Morse slab
        tersoff: Tersoff potential for C and Si
        bmhtf: Born Mayer Huggins Tosi Fumi Potential
+       cp2k: CP2K
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
