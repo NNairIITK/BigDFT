@@ -39,7 +39,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals, calculate_theta, &
                                    supportfunction_centers
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
-  use locreg_operations, only: get_boundary_weight
+  use locreg_operations, only: get_boundary_weight, small_to_large_locreg
   use public_enums
   use multipole, only: multipoles_from_density
   use matrix_operations, only: overlapPowerGeneral

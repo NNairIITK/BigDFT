@@ -12,6 +12,7 @@
 subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
   use module_base
   use locregs
+  use bounds, only: make_bounds
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
   type(convolutions_bounds),intent(out):: bounds
@@ -108,6 +109,7 @@ END SUBROUTINE make_all_ib_per
 
 !>   This subroutine mimics the comb_grow_f one
 subroutine make_ib_inv_per(logrid_big,ibxy,ibzzx,ibyyzz,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
+  use bounds, only: ib_from_logrid_inv
   implicit none
   integer nt,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
   integer,intent(out):: ibxy(2,nfl1:nfu1,nfl2:nfu2)
@@ -152,6 +154,7 @@ END SUBROUTINE ib_to_logrid_inv_per
 
 !>    This subroutine mimics the comb_grow_f one
 subroutine make_ib_per(logrid_big,ibyz,ibzxx,ibxxyy,n1,n2,nfl2,nfu2,nfl3,nfu3)
+  use bounds, only: ib_from_logrid
   implicit none
   integer :: nt,nfl2,nfu2,nfl3,nfu3,n1,n2
   integer :: ibyz(  2,nfl2:nfu2,nfl3:nfu3)! input

@@ -17,6 +17,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   use module_interfaces, except_this_one => write_orbital_density
   use locreg_operations, only: lpsi_to_global2
   use public_enums
+  use bounds, only: locreg_bounds
   implicit none
 
   ! Calling arguments
@@ -1206,11 +1207,12 @@ subroutine analyze_wavefunctions(output, region, lzd, orbs, npsidim, psi, ioffse
   use module_base
   use module_types
   use yaml_output
+  use bounds, only: locreg_bounds
   implicit none
 
   ! Calling arguments
   character(len=*),intent(in) :: output, region
-  type(local_zone_descriptors),intent(in) :: lzd
+  type(local_zone_descriptors),intent(inout) :: lzd
   type(orbitals_data),intent(in) :: orbs
   integer,intent(in) :: npsidim
   real(kind=8),dimension(npsidim),intent(in) :: psi

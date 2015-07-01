@@ -369,6 +369,7 @@ end subroutine glr_set_wave_descriptors
 
 subroutine glr_set_bounds(lr)
   use module_types
+  use bounds, only: locreg_bounds
   implicit none
   type(locreg_descriptors), intent(inout) :: lr
   

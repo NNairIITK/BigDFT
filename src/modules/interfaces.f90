@@ -2978,19 +2978,19 @@ module module_interfaces
           real(kind=8),dimension(3*lorbs%npsidim_orbs),intent(inout) :: phid  !< Derivative basis functions
         end subroutine get_derivative_supportfunctions
 
-        subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
-          use module_base
-          use module_types
-          implicit none
-          integer, intent(in) :: iproc,nproc
-          integer, intent(in) :: nlr
-          real(gp), intent(in) :: hx,hy,hz
-          type(atomic_structure),intent(in) :: astruct
-          type(orbitals_data),intent(in) :: orbs
-          type(locreg_descriptors), intent(in) :: Glr
-          type(locreg_descriptors), dimension(nlr), intent(inout) :: Llr
-          logical,dimension(nlr),intent(in) :: calculateBounds
-        end subroutine determine_locregSphere_parallel
+        !!subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer, intent(in) :: iproc,nproc
+        !!  integer, intent(in) :: nlr
+        !!  real(gp), intent(in) :: hx,hy,hz
+        !!  type(atomic_structure),intent(in) :: astruct
+        !!  type(orbitals_data),intent(in) :: orbs
+        !!  type(locreg_descriptors), intent(in) :: Glr
+        !!  type(locreg_descriptors), dimension(nlr), intent(inout) :: Llr
+        !!  logical,dimension(nlr),intent(in) :: calculateBounds
+        !!end subroutine determine_locregSphere_parallel
 
         subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, orbs, lphi, collcom_sr)
           use module_base
@@ -3050,56 +3050,56 @@ module module_interfaces
 !!$          real(kind=8),intent(out) :: alpha_mix, convCritMix, conv_crit_TMB
 !!$        end subroutine set_variables_for_hybrid
 
-        subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
-          use locregs, only: wavefunctions_descriptors, convolutions_bounds
-          implicit none
-          integer, intent(in) :: n1,n2,n3
-          integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-          type(wavefunctions_descriptors), intent(in) :: wfd
-          type(convolutions_bounds), intent(out) :: bounds
-        end subroutine locreg_bounds
+        !!subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
+        !!  use locregs, only: wavefunctions_descriptors, convolutions_bounds
+        !!  implicit none
+        !!  integer, intent(in) :: n1,n2,n3
+        !!  integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+        !!  type(wavefunctions_descriptors), intent(in) :: wfd
+        !!  type(convolutions_bounds), intent(out) :: bounds
+        !!end subroutine locreg_bounds
 
-        subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
-          use module_base
-          use module_types
-          implicit none
-          integer, intent(in) :: n1,n2,n3
-          type(wavefunctions_descriptors), intent(in) :: wfd
-          logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid_c,logrid_f
-        end subroutine wfd_to_logrids
+        !!subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
+        !!  use module_base
+        !!  use module_types
+        !!  implicit none
+        !!  integer, intent(in) :: n1,n2,n3
+        !!  type(wavefunctions_descriptors), intent(in) :: wfd
+        !!  logical, dimension(0:n1,0:n2,0:n3), intent(out) :: logrid_c,logrid_f
+        !!end subroutine wfd_to_logrids
 
-        subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
-           implicit none
-           integer, intent(in) :: n1,n2,n3
-           logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid
-           integer, dimension(2,0:n2,0:n3), intent(out) :: ibyz
-           integer, dimension(2,0:n1,0:n3), intent(out) :: ibxz
-           integer, dimension(2,0:n1,0:n2), intent(out) :: ibxy
-        end subroutine make_bounds
+        !!subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
+        !!   implicit none
+        !!   integer, intent(in) :: n1,n2,n3
+        !!   logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid
+        !!   integer, dimension(2,0:n2,0:n3), intent(out) :: ibyz
+        !!   integer, dimension(2,0:n1,0:n3), intent(out) :: ibxz
+        !!   integer, dimension(2,0:n1,0:n2), intent(out) :: ibxy
+        !!end subroutine make_bounds
 
-        subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
-             ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
-             ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
-          use module_base
-          implicit none
-          integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-          integer :: i1,i2,i3,i_stat,i_all !n(c) m1,m2,m3
-          integer,intent(in):: ibyz_c(2,0:n2,0:n3),ibxy_c(2,0:n1,0:n2)
-          integer,intent(in):: ibyz_f(2,0:n2,0:n3),ibxy_f(2,0:n1,0:n2)
-          integer,intent(inout):: ibzzx_c(2,-14:2*n3+16,0:n1)
-          integer,intent(out):: ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
-          integer,intent(out):: ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
-          integer,intent(inout):: ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
-          integer,intent(out):: ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
-          integer,intent(out):: ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
-          integer,intent(out):: ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
-          integer,intent(inout):: ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
-          integer,intent(out):: ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
-          integer,intent(out):: ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
-          character(len=*), parameter :: subname=' make_all_ib'
-          logical,allocatable:: logrid_big(:)
-          integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
-        end subroutine make_all_ib
+        !!subroutine make_all_ib(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,&
+        !!     ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibxy_ff,ibzzx_f,ibyyzz_f,&
+        !!     ibyz_c,ibzxx_c,ibxxyy_c,ibyz_f,ibyz_ff,ibzxx_f,ibxxyy_f,ibyyzz_r)
+        !!  use module_base
+        !!  implicit none
+        !!  integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+        !!  integer :: i1,i2,i3,i_stat,i_all !n(c) m1,m2,m3
+        !!  integer,intent(in):: ibyz_c(2,0:n2,0:n3),ibxy_c(2,0:n1,0:n2)
+        !!  integer,intent(in):: ibyz_f(2,0:n2,0:n3),ibxy_f(2,0:n1,0:n2)
+        !!  integer,intent(inout):: ibzzx_c(2,-14:2*n3+16,0:n1)
+        !!  integer,intent(out):: ibyyzz_c(2,-14:2*n2+16,-14:2*n3+16)
+        !!  integer,intent(out):: ibxy_ff(2,nfl1:nfu1,nfl2:nfu2)
+        !!  integer,intent(inout):: ibzzx_f(2,-14+2*nfl3:2*nfu3+16,nfl1:nfu1)
+        !!  integer,intent(out):: ibyyzz_f(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16)
+        !!  integer,intent(out):: ibzxx_c(2,0:n3,-14:2*n1+16) ! extended boundary arrays
+        !!  integer,intent(out):: ibxxyy_c(2,-14:2*n1+16,-14:2*n2+16)
+        !!  integer,intent(inout):: ibyz_ff(2,nfl2:nfu2,nfl3:nfu3)
+        !!  integer,intent(out):: ibzxx_f(2,nfl3:nfu3,2*nfl1-14:2*nfu1+16)
+        !!  integer,intent(out):: ibxxyy_f(2,2*nfl1-14:2*nfu1+16,2*nfl2-14:2*nfu2+16)
+        !!  character(len=*), parameter :: subname=' make_all_ib'
+        !!  logical,allocatable:: logrid_big(:)
+        !!  integer,intent(out):: ibyyzz_r(2,-14:2*n2+16,-14:2*n3+16)
+        !!end subroutine make_all_ib
 
         subroutine make_ib_inv(logrid_big,ibxy,ibzzx,ibyyzz,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3)
           implicit none
@@ -3274,19 +3274,6 @@ module module_interfaces
           character(len=*), intent(in) :: comment
           logical,intent(in),optional :: only_energies
         end subroutine write_energies
-
-        subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
-               orbs, phismall, philarge, to_global)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
-          type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
-          type(orbitals_data),intent(in) :: orbs
-          real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
-          real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
-          logical,intent(in),optional :: to_global
-        end subroutine small_to_large_locreg
 
         subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
           use module_base

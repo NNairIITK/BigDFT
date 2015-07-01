@@ -967,6 +967,7 @@ module postprocessing_linear
       use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
       use yaml_output
       use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
+      use locreg_operations, only: small_to_large_locreg
       implicit none
       
       ! Calling arguments
@@ -1193,6 +1194,7 @@ module postprocessing_linear
       use sparsematrix_base, only: sparse_matrix
       use yaml_output
       use rhopotential, only: updatepotential, sumrho_for_TMBs, corrections_for_negative_charge
+      use locreg_operations, only: small_to_large_locreg
       implicit none
       
       ! Calling arguments

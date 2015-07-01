@@ -13,6 +13,7 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   use module_types
   use module_atoms, only: atomic_structure
   use module_interfaces, exceptThisOne => initLocregs
+  use locregs_init, only: determine_locregsphere_parallel
   implicit none
   
   ! Calling arguments
@@ -1246,6 +1247,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
                                init_matrix_taskgroups, check_local_matrix_extents
   use foe_base, only: foe_data_deallocate
   use public_enums
+  use locreg_operations, only: small_to_large_locreg
   use module_interfaces
   implicit none
   

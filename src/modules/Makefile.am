@@ -84,6 +84,8 @@ libmodules_a_SOURCES = base.f90 \
 	multipole_base.f90 \
 	multipole.f90 \
 	orthonormalization.f90 \
+	bounds.f90 \
+	locregs_init.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -146,6 +148,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	FRAGMENT_BASE.@MODULE_EXT@ \
 	MULTIPOLE.@MODULE_EXT@ \
 	ORTHORMALIZATION.@MODULE_EXT@ \
+	BOUNDS.@MODULE_EXT@ \
+	LOCREGS_INIT.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
@@ -207,6 +211,8 @@ modules = module_base.@MODULE_EXT@ \
 	fragment_base.@MODULE_EXT@ \
 	multipole.@MODULE_EXT@ \
 	orthonormalization.@MODULE_EXT@ \
+	bounds.@MODULE_EXT@ \
+	locregs_init.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
@@ -292,13 +298,15 @@ unitary_tests.o: base.o types.o interfaces.o communications_init.o communication
 matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: base.o types.o
 io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o
-postprocessing_linear.o: base.o types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o
+postprocessing_linear.o: base.o types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o locreg_operations.o
 foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 locreg_operations.o: base.o types.o atoms_data.o locregs.o
 rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o sparsematrix_init.o
 multipole.o: base.o multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
 orthonormalization.o: base.o types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
+bounds.o: base.o types.o locregs.o
+locregs_init.o: base.o types.o communications.o bounds.o sparsematrix_init.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

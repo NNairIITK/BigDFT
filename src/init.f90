@@ -92,6 +92,7 @@ END SUBROUTINE createWavefunctionsDescriptors
 subroutine wfd_from_grids(logrid_c, logrid_f, calculate_bounds, Glr)
   use module_base
    use locregs
+   use bounds, only: make_bounds, make_all_ib
    !use yaml_output
    implicit none
    !Arguments
