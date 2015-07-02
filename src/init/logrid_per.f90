@@ -9,30 +9,30 @@
 
 
 !> Define the bounds of wavefunctions for periodic systems
-subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
+subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,cbounds,wfd)
   use module_base
   use locregs
   use bounds, only: make_bounds
   implicit none
   type(wavefunctions_descriptors), intent(in) :: wfd
-  type(convolutions_bounds),intent(out):: bounds
+  type(convolutions_bounds),intent(out):: cbounds
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
 
   logical,allocatable,dimension(:,:,:) :: logrid
   character(len=*), parameter :: subname='make_bounds_per'
   integer :: nseg_c
 
-  bounds%kb%ibyz_f = f_malloc_ptr((/ 1.to.2, 0.to.n2, 0.to.n3 /),id='bounds%kb%ibyz_f')
-  bounds%kb%ibxz_f = f_malloc_ptr((/ 1.to.2, 0.to.n1, 0.to.n3 /),id='bounds%kb%ibxz_f')
-  bounds%kb%ibxy_f = f_malloc_ptr((/ 1.to.2, 0.to.n1, 0.to.n2 /),id='bounds%kb%ibxy_f')
+  cbounds%kb%ibyz_f = f_malloc_ptr((/ 1.to.2, 0.to.n2, 0.to.n3 /),id='cbounds%kb%ibyz_f')
+  cbounds%kb%ibxz_f = f_malloc_ptr((/ 1.to.2, 0.to.n1, 0.to.n3 /),id='cbounds%kb%ibxz_f')
+  cbounds%kb%ibxy_f = f_malloc_ptr((/ 1.to.2, 0.to.n1, 0.to.n2 /),id='cbounds%kb%ibxy_f')
 
-  bounds%gb%ibyz_ff = f_malloc_ptr((/ 1.to.2, nfl2.to.nfu2, nfl3.to.nfu3 /),id='bounds%gb%ibyz_ff')
-  bounds%gb%ibzxx_f = f_malloc_ptr((/ 1.to.2, nfl3.to.nfu3, 0.to.2*n1+1 /),id='bounds%gb%ibzxx_f')
-  bounds%gb%ibxxyy_f = f_malloc_ptr((/ 1.to.2, 0.to.2*n1+1, 0.to.2*n2+1 /),id='bounds%gb%ibxxyy_f')
+  cbounds%gb%ibyz_ff = f_malloc_ptr((/ 1.to.2, nfl2.to.nfu2, nfl3.to.nfu3 /),id='cbounds%gb%ibyz_ff')
+  cbounds%gb%ibzxx_f = f_malloc_ptr((/ 1.to.2, nfl3.to.nfu3, 0.to.2*n1+1 /),id='cbounds%gb%ibzxx_f')
+  cbounds%gb%ibxxyy_f = f_malloc_ptr((/ 1.to.2, 0.to.2*n1+1, 0.to.2*n2+1 /),id='cbounds%gb%ibxxyy_f')
 
-  bounds%sb%ibxy_ff = f_malloc_ptr((/ 1.to.2, nfl1.to.nfu1, nfl2.to.nfu2 /),id='bounds%sb%ibxy_ff')
-  bounds%sb%ibzzx_f = f_malloc_ptr((/ 1.to.2, 0.to.2*n3+1, nfl1.to.nfu1 /),id='bounds%sb%ibzzx_f')
-  bounds%sb%ibyyzz_f = f_malloc_ptr((/ 1.to.2, 0.to.2*n2+1, 0.to.2*n3+1 /),id='bounds%sb%ibyyzz_f')
+  cbounds%sb%ibxy_ff = f_malloc_ptr((/ 1.to.2, nfl1.to.nfu1, nfl2.to.nfu2 /),id='cbounds%sb%ibxy_ff')
+  cbounds%sb%ibzzx_f = f_malloc_ptr((/ 1.to.2, 0.to.2*n3+1, nfl1.to.nfu1 /),id='cbounds%sb%ibzzx_f')
+  cbounds%sb%ibyyzz_f = f_malloc_ptr((/ 1.to.2, 0.to.2*n2+1, 0.to.2*n3+1 /),id='cbounds%sb%ibyyzz_f')
 
   logrid = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid')
 
@@ -41,7 +41,7 @@ subroutine make_bounds_per(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,bounds,wfd)
        wfd%nseg_f,wfd%keygloc(1,nseg_c+min(1,wfd%nseg_f)),  & 
        logrid)
 
-  call make_bounds(n1,n2,n3,logrid,bounds%kb%ibyz_f,bounds%kb%ibxz_f,bounds%kb%ibxy_f)
+  call make_bounds(n1,n2,n3,logrid,cbounds%kb%ibyz_f,cbounds%kb%ibxz_f,cbounds%kb%ibxy_f)
 
   call f_free(logrid)
 
