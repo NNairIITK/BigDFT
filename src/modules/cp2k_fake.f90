@@ -13,18 +13,26 @@
 !
 
 subroutine cp_init_cp2k()
+    stop 'ERROR: not linked to CP2K'
 end subroutine
 subroutine cp_create_fenv()
+    stop 'ERROR: not linked to CP2K'
 end subroutine
 subroutine cp_finalize_cp2k()
+    stop 'ERROR: not linked to CP2K'
 end subroutine
 subroutine cp_set_pos()
+    stop 'ERROR: not linked to CP2K'
 end subroutine
-subroutine set_cell()
+subroutine cp_set_cell()
+    stop 'ERROR: not linked to CP2K'
 end subroutine
 subroutine cp_calc_energy_force()
+    stop 'ERROR: not linked to CP2K'
 end subroutine
 subroutine cp_get_energy()
+    stop 'ERROR: not linked to CP2K'
 end subroutine
 subroutine cp_get_force()
+    stop 'ERROR: not linked to CP2K'
 end subroutine

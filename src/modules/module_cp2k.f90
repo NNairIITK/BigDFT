@@ -90,11 +90,18 @@ subroutine cp2k_energy_forces(nat,alat,rxyz, fxyz, epot,istat)
     real(gp) :: cell(3,3)
     integer:: ierr
     character(len=5) :: cierr
+!integer :: i
+    real :: start_time, stop_time
+
+   call cpu_time(start_time)
     if(.not.initialized_cp2k)then
         call f_err_throw('Method "cp2k" not initialized',&
              err_name='BIGDFT_RUNTIME_ERROR')
     endif
-
+!write(199,*)
+!do i=1,nat
+!write(199,'(3(x,es24.17))')rxyz(3*i-2),rxyz(3*i-1),rxyz(3*i)
+!enddo
     
     CALL cp_set_pos(f_env_id,rxyz,SIZE(rxyz),ierr)
     if (ierr/=0)then
@@ -128,6 +135,8 @@ subroutine cp2k_energy_forces(nat,alat,rxyz, fxyz, epot,istat)
         write(cierr,'(i5.5)')
         call f_err_throw('Error in CP2K while getting forces, ierr: '//trim(adjustl(cierr)))
     endif
+call cpu_time(stop_time)
+write(333,*)stop_time - start_time, "seconds"
 end subroutine cp2k_energy_forces
 
 end module module_cp2k
