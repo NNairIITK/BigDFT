@@ -459,13 +459,15 @@ contains
 
     !> Start the iterator of an astruct_neighbours structure.
     !  Only one iterator is possible at a time.
-    subroutine astruct_neighbours_iter(neighb, iat)
+    subroutine astruct_neighbours_iter(neighb, iat, n)
       implicit none
       type(atomic_neighbours), intent(inout) :: neighb
       integer, intent(in) :: iat
+      integer, intent(out), optional :: n
 
       neighb%iat = iat
       neighb%ind = 0
+      if (present(n)) n = neighb%keynei(1, neighb%iat)
     END SUBROUTINE astruct_neighbours_iter
     !> Return the next neighbour of a given atom, as initialised by
     !  astruct_neighbours_iter(). Return 0 if there is no next neighbours.
@@ -921,7 +923,7 @@ contains
          iunit = 6
       else if (.not. present(unit)) then
          !also unit opening should be checked
-         write(fname,"(A)") trim(filename)//'.'//trim(astruct%inputfile_format)
+         write(fname,"(A)") trim(filename)//'.'//trim(formt)
          if (formt == 'yaml') then
             call yaml_set_stream(unit = iunit, filename = trim(fname), &
                  & record_length = 92, tabbing = 0, setdefault = .false.)
@@ -1655,7 +1657,9 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
         asub%iatype(i) = types // trim(astruct%atomnames(astruct%iatype(iat)))
         asub%input_polarization(i) = astruct%input_polarization(iat)
         asub%rxyz(:, i) = astruct%rxyz(:, iat)
-        call dict_copy(asub%attributes(i)%d, astruct%attributes(iat)%d)
+        if (associated(astruct%attributes(iat)%d)) then
+           call dict_copy(asub%attributes(i)%d, astruct%attributes(iat)%d)
+        end if
      end if
   end do
   s => dict_iter(hlist)
