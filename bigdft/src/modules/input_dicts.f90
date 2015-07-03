@@ -615,7 +615,7 @@ contains
     real(gp) :: ehomo,radfine,rad,maxrad
     type(dictionary), pointer :: radii,dict_psp
     real(gp), dimension(3) :: radii_cf
-    character(len = max_field_length) :: source_val
+    character(len = max_field_length) :: source_val, pspt
 
     call f_routine(id='psp_dict_fill_all')
 
@@ -702,11 +702,12 @@ contains
           end if
        end do
     end if
-!!$    if (maxrad == 0.0_gp) then
-!!$       radii_cf(3)=0.0_gp
-!!$    else
+    pspt = dict_psp // PSP_TYPE   
+    if (maxrad == 0.0_gp .and. trim(pspt) /= "PAW") then
+       radii_cf(3)=0.0_gp
+    else
        radii_cf(3)=max(min(radii_cf(3),projrad*maxrad/frmult),radii_cf(2))
-!!$    end if
+    end if
     radii => dict_psp // RADII_KEY
     call set(radii // COARSE, radii_cf(1))
     call set(radii // FINE, radii_cf(2))
