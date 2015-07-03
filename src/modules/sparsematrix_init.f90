@@ -1418,7 +1418,9 @@ contains
           end do
           !$omp end parallel do
 
-          call mpiallred(sparsemat%matrixindex_in_compressed_arr(1,1), norbu*norbu, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          if (nproc>1) then
+              call mpiallred(sparsemat%matrixindex_in_compressed_arr(1,1), norbu*norbu, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          end if
 
           !!! Initialize sparsemat%orb_from_index
           !!ind = 0
