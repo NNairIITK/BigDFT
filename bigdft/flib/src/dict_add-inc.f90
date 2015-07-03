@@ -30,7 +30,7 @@
         call init_next(last_item_ptr)
         call set_item(last_item_ptr, length)
      else
-        last_item_ptr => dict // 0
+        last_item_ptr => dict // length
      end if
      call set(last_item_ptr, val)
   else
