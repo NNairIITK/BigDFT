@@ -44,8 +44,8 @@ subroutine dftbp_energy_forces(policy,nat,alat,astruct,geocode,rxyz, fxyz,strten
     real(gp) :: cell(3,3)
     integer:: ierr
     character(len=5) :: cierr
-integer :: clck_counts_beg, clck_counts_end, clck_rate
-call system_clock ( clck_counts_beg, clck_rate )
+!!integer :: clck_counts_beg, clck_counts_end, clck_rate
+!!call system_clock ( clck_counts_beg, clck_rate )
     istat=0
 
     
@@ -61,8 +61,8 @@ call system_clock ( clck_counts_beg, clck_rate )
     call create_input_files(policy,nat,cell,astruct,geocode,rxyz)
     call run_dftb()
     call get_results(nat,fxyz,strten,epot)
-call system_clock ( clck_counts_end, clck_rate) 
-write(333,*)(clck_counts_end - clck_counts_beg) / real (clck_rate), "seconds"
+!!call system_clock ( clck_counts_end, clck_rate) 
+!!write(333,*)(clck_counts_end - clck_counts_beg) / real (clck_rate), "seconds"
 end subroutine dftbp_energy_forces
 
 subroutine get_results(nat,fxyz,strten,epot)
