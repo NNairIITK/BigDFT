@@ -11,7 +11,7 @@
 subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => pulay_correction_new
+  use module_interfaces, only: small_to_large_locreg
   use yaml_output
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized

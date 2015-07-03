@@ -19,7 +19,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use m_ab7_mixing
   use yaml_output
-  use public_enums, only: PSPCODE_PAW
   use psp_projectors, only: PSP_APPLY_SKIP
   use rhopotential, only: full_local_potential
   use public_enums
@@ -703,7 +702,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => NonLocalHamiltonianApplication
+!  use module_interfaces
   use psp_projectors, only: PSP_APPLY_SKIP, projector_has_overlap
   use public_enums, only: PSPCODE_PAW
   implicit none
@@ -1824,7 +1823,7 @@ END SUBROUTINE last_orthon
 subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => eigensystem_info
+  use module_interfaces, only: write_eigenvalues_data
   implicit none
   integer, intent(in) :: iproc,nproc,nvctr
   real(gp), intent(in) :: tolerance !< threshold to classify degenerate eigenvalues

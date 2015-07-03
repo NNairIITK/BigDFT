@@ -133,7 +133,7 @@ END SUBROUTINE MemoryEstimator
 !> old timing routine, should disappear as soon as the f_timing routine is called
 subroutine timing(iproc,category,action)
   use dictionaries, only: max_field_length,f_err_raise
-  use yaml_output, only: yaml_toa
+  use yaml_strings, only: yaml_toa
   use module_types, only: find_category
   use time_profiling 
   implicit none

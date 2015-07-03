@@ -553,6 +553,7 @@ contains
     use fragment_base
     use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
+    use yaml_strings, only: yaml_toa
     implicit none
     !Arguments
     type(input_variables), intent(out) :: in
@@ -593,14 +594,10 @@ contains
     ! Input variables case.
     call default_input_variables(in)
 
-
-
     !call yaml_map('Dictionary parsed',dict)
 
     ! extract also the minimal dictionary which is necessary to do this run
     call input_keys_fill_all(dict,dict_minimal)
-
-
 
     ! Add missing pseudo information.
     projr = dict // PERF_VARIABLES // PROJRAD
@@ -2274,7 +2271,7 @@ contains
   subroutine allocate_extra_lin_arrays(lin,nspin,astruct)
     use module_atoms, only: atomic_structure
     use dynamic_memory
-    use yaml_output
+    use yaml_strings, only: yaml_toa
     implicit none
     integer,intent(in) :: nspin
     type(atomic_structure), intent(in) :: astruct
@@ -2748,7 +2745,7 @@ contains
     use module_atoms, only: atoms_data
     use defs_basis
     use yaml_output
-    use yaml_strings, only: operator(.eqv.)
+    use yaml_strings, only: operator(.eqv.),yaml_toa
     implicit none
     !Arguments
     type(input_variables), intent(in) :: in
@@ -2935,6 +2932,7 @@ contains
     use yaml_output
     use module_xc
     use f_enums, only: f_int => int
+    use yaml_strings, only: yaml_toa
     implicit none
     type(input_variables), intent(in) :: in
     type(atoms_data), intent(in) :: atoms

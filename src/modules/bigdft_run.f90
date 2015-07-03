@@ -1687,7 +1687,7 @@ contains
 
   !> square root of bigdft_dot(runObj,dx,dx)
   function bigdft_nrm2(runObj,dx,dx_add) result(scpr)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none
     !> run_object bigdft structure
     type(run_objects), intent(in) :: runObj

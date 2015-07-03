@@ -19,8 +19,8 @@
      ntotrecv=ntot
   end if
   if (ntot /= ntotrecv) then
-     call f_err_throw('Error in allreduce; the size of send ('//trim(yaml_toa(ntot))//&
-          ') and of receive buffer ('//trim(yaml_toa(ntotrecv))//&
+     call f_err_throw('Error in allreduce; the size of send ('//ntot//&
+          ') and of receive buffer ('//ntotrecv//&
           ') does not coincide',err_id=ERR_MPI_WRAPPERS)
      return
   end if

@@ -11,7 +11,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => calculate_forces
+  use module_interfaces, only: local_forces,erf_stress
   use communications_base
   use yaml_output
   use module_forces

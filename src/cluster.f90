@@ -1821,7 +1821,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, nspin)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => kswfn_post_treatments
+  use module_interfaces
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms

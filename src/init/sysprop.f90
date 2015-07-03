@@ -1433,8 +1433,8 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
      & atoms, qcharge, nspin, mpol, norbsempty)
   use module_atoms, only: atoms_data
   use ao_inguess, only: charge_and_spol
-  use module_base, only: gp, f_err_throw
-  use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
+  use module_base, only: gp, f_err_throw,yaml_toa
+  use yaml_output, only: yaml_warning, yaml_comment
   use dynamic_memory
   !use ao_inguess, only : count_atomic_shells
   implicit none

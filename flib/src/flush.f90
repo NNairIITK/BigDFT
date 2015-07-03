@@ -9,7 +9,7 @@
 
 !> Routine to flush a unit file 
 subroutine f_utils_flush(unit)
-  use yaml_output
+  use yaml_strings
   use dictionaries
   implicit none
   integer, intent(in) :: unit
@@ -19,7 +19,7 @@ subroutine f_utils_flush(unit)
 
   unit_is_connected=.false.
   inquire(unit=unit,opened=unit_is_connected,iostat=ierr)
-  if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
+  if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='+ierr,&
         err_name='YAML_INVALID')) return
   ! Please let this if on three lines, because flush() maybe a function
   ! for some compilers.

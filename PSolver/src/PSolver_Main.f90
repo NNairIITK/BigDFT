@@ -879,7 +879,6 @@ subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
 end subroutine finalize_hartree_results
 
 subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
-  use yaml_output
   implicit none
   integer, intent(in) :: iter
   real(dp), intent(in) :: normb,normr,ratio,beta,alpha
@@ -887,7 +886,7 @@ subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
   character(len=*), parameter :: vrb='(1pe25.17)'!'(1pe16.4)'
 
   call yaml_mapping_open('Iteration quality',flow=.true.)
-  if (beta /= 0.0_dp) call yaml_comment('Iteration '//trim(yaml_toa(iter)),hfill='_')
+  if (beta /= 0.0_dp) call yaml_comment('Iteration '//iter,hfill='_')
   !write the PCG iteration
   call yaml_map('iter',iter,fmt='(i4)')
   !call yaml_map('rho_norm',normb)
@@ -1159,7 +1158,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     !print *,'the FFT in the x direction is not allowed'
     !print *,'n01 dimension',n01
     !stop
-    call f_err_throw('The FFT in the x direction is not allowed, n01 dimension '//trim(yaml_toa(n01)))
+    call f_err_throw('The FFT in the x direction is not allowed, n01 dimension '//n01)
  end if
 
  call fourier_dim(l2,n2)
@@ -1167,7 +1166,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     !print *,'the FFT in the z direction is not allowed'
     !print *,'n03 dimension',n03
     !stop
-    call f_err_throw('The FFT in the z direction is not allowed, n03 dimension '//trim(yaml_toa(n03)))
+    call f_err_throw('The FFT in the z direction is not allowed, n03 dimension '//n03)
  end if
  
  call fourier_dim(l3,n3)
@@ -1175,7 +1174,7 @@ subroutine P_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
     !print *,'the FFT in the y direction is not allowed'
     !print *,'n02 dimension',n02
     !stop
-    call f_err_throw('The FFT in the y direction is not allowed, n02 dimension '//trim(yaml_toa(n02)))
+    call f_err_throw('The FFT in the y direction is not allowed, n02 dimension '//n02)
  end if
 
  !dimensions that contain the unpadded real space,
