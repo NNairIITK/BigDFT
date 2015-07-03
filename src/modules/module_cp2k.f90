@@ -88,8 +88,8 @@ subroutine cp2k_energy_forces(nat,alat,rxyz, fxyz, epot,istat)
     real(gp) :: cell(3,3)
     integer:: ierr
     character(len=5) :: cierr
-integer :: clck_counts_beg, clck_counts_end, clck_rate
-call system_clock ( clck_counts_beg, clck_rate )
+!integer :: clck_counts_beg, clck_counts_end, clck_rate
+!call system_clock ( clck_counts_beg, clck_rate )
     if(.not.initialized_cp2k)then
         call f_err_throw('Method "cp2k" not initialized',&
              err_name='BIGDFT_RUNTIME_ERROR')
@@ -131,8 +131,8 @@ call system_clock ( clck_counts_beg, clck_rate )
         write(cierr,'(i5.5)')
         call f_err_throw('Error in CP2K while getting forces, ierr: '//trim(adjustl(cierr)))
     endif
-call system_clock ( clck_counts_end, clck_rate) 
-write(333,*)(clck_counts_end - clck_counts_beg) / real (clck_rate), "seconds"
+!call system_clock ( clck_counts_end, clck_rate) 
+!write(333,*)(clck_counts_end - clck_counts_beg) / real (clck_rate), "seconds"
 end subroutine cp2k_energy_forces
 
 end module module_cp2k
