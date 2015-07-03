@@ -267,6 +267,14 @@ contains
        call finalize_bmhtf()
     case('CP2K_RUN_MODE') ! CP2K run mode
        call finalize_cp2k()
+    case('DFTBP_RUN_MODE') ! DFTB+ run mode
+    case('LENNARD_JONES_RUN_MODE')
+    case('MORSE_SLAB_RUN_MODE')
+    case('MORSE_BULK_RUN_MODE')
+    case('TERSOFF_RUN_MODE')
+    case('LENOSKY_SI_CLUSTERS_RUN_MODE')
+    case('LENOSKY_SI_BULK_RUN_MODE')
+    case('AMBER_RUN_MODE')
     case default
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '+ yaml_toa(enum_int(runObj%run_mode)))
