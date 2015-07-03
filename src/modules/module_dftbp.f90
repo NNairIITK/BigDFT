@@ -26,12 +26,13 @@ module module_dftbp
     real(gp), save :: alat_int(3)
 
     contains 
-subroutine dftbp_energy_forces(nat,alat,astruct,geocode,rxyz, fxyz,strten,epot,istat)
+subroutine dftbp_energy_forces(policy,nat,alat,astruct,geocode,rxyz, fxyz,strten,epot,istat)
     !receives and returns atomic units
     use module_base
     use module_types
     implicit none 
     !parameter
+    integer, intent(in) :: policy
     integer, intent(in) :: nat
     real(gp), intent(in) :: alat(3)
     character(len=1), intent(in) :: geocode
@@ -43,8 +44,8 @@ subroutine dftbp_energy_forces(nat,alat,astruct,geocode,rxyz, fxyz,strten,epot,i
     real(gp) :: cell(3,3)
     integer:: ierr
     character(len=5) :: cierr
-!integer :: clck_counts_beg, clck_counts_end, clck_rate
-!call system_clock ( clck_counts_beg, clck_rate )
+integer :: clck_counts_beg, clck_counts_end, clck_rate
+call system_clock ( clck_counts_beg, clck_rate )
     istat=0
 
     
@@ -57,11 +58,11 @@ subroutine dftbp_energy_forces(nat,alat,astruct,geocode,rxyz, fxyz,strten,epot,i
     cell(1,3)=0.0d0
     cell(2,3)=0.0d0
     cell(3,3)=alat(3)
-    call create_input_files(nat,cell,astruct,geocode,rxyz)
+    call create_input_files(policy,nat,cell,astruct,geocode,rxyz)
     call run_dftb()
     call get_results(nat,fxyz,strten,epot)
-!call system_clock ( clck_counts_end, clck_rate) 
-!write(333,*)(clck_counts_end - clck_counts_beg) / real (clck_rate), "seconds"
+call system_clock ( clck_counts_end, clck_rate) 
+write(333,*)(clck_counts_end - clck_counts_beg) / real (clck_rate), "seconds"
 end subroutine dftbp_energy_forces
 
 subroutine get_results(nat,fxyz,strten,epot)
@@ -128,11 +129,12 @@ subroutine run_dftb()
     call system('./rundftbp.sh')
 end subroutine
 
-subroutine create_input_files(nat,cell,astruct,geocode,rxyz)
+subroutine create_input_files(policy,nat,cell,astruct,geocode,rxyz)
     use module_base
     use yaml_output
     use module_types
     !parameter
+    integer, intent(in) :: policy
     integer, intent(in) :: nat
     real(gp), intent(in) :: cell(3,3)
     type(atomic_structure), intent(in) :: astruct
@@ -165,6 +167,16 @@ subroutine create_input_files(nat,cell,astruct,geocode,rxyz)
         write(u,'(3(1x,es25.15))') cell(:, 3)*Bohr_Ang
     endif
     close(u)
+
+    u=f_get_free_unit()
+    open(unit=u,file="input_restart.gen")
+    if (policy == 10001)then!INPUT_POLICY_MEMORY
+        write(u,'(a)')'Yes'
+    else
+        write(u,'(a)')'No'
+    endif
+    close(u)
+
 end subroutine
 
 end module module_dftbp

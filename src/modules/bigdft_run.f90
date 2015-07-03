@@ -1383,6 +1383,7 @@ contains
     real(gp) :: maxdiff
     real(gp), dimension(3) :: alatint
     real(gp), dimension(:,:), pointer :: rxyz_ptr
+    integer :: policy_tmp
 !!integer :: iat , l
 !!real(gp) :: anoise,tt
 
@@ -1484,7 +1485,8 @@ contains
             outs%fxyz,outs%energy,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('CP2K infocode',infocode)
     case('DFTBP_RUN_MODE') ! DFTB+ run mode
-        call dftbp_energy_forces(nat,bigdft_get_cell(runObj),&
+        call bigdft_get_input_policy(runObj, policy_tmp)
+        call dftbp_energy_forces(policy_tmp,nat,bigdft_get_cell(runObj),&
              bigdft_get_astruct_ptr(runObj),bigdft_get_geocode(runObj),rxyz_ptr,&
              outs%fxyz,outs%strten,outs%energy,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('DFTB+ infocode',infocode)
