@@ -44,11 +44,11 @@ subroutine dftbp_energy_forces(nat,alat,astruct,geocode,rxyz, fxyz,strten,epot,i
     integer:: ierr
     character(len=5) :: cierr
 !integer :: i
-    real :: start_time, stop_time
+!!    real :: start_time, stop_time
 
     istat=0
 
-call cpu_time(start_time)
+!!call cpu_time(start_time)
     
     cell(1,1)=alat(1)
     cell(2,1)=0.0d0
@@ -62,8 +62,8 @@ call cpu_time(start_time)
     call create_input_files(nat,cell,astruct,geocode,rxyz)
     call run_dftb()
     call get_results(nat,fxyz,strten,epot)
-call cpu_time(stop_time)
-write(333,*)stop_time - start_time, "seconds"
+!!call cpu_time(stop_time)
+!!write(333,*)stop_time - start_time, "seconds"
 end subroutine dftbp_energy_forces
 
 subroutine get_results(nat,fxyz,strten,epot)
