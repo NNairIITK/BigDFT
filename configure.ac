@@ -446,8 +446,6 @@ fi
 
 
 dnl cp2k
-AC_PATH_PROG([NAB], [nab])
-AC_SUBST(NAB)
 AC_ARG_WITH(cp2k, AS_HELP_STRING([--with-cp2k],
             [Give the link-line for cp2k.]),
             ac_cp2k_linkline=$withval, ac_cp2k_linkline=)

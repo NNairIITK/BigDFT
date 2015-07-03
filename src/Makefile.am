@@ -105,11 +105,11 @@ endif
 
 if HAVE_CP2K
 cp2k_ld= @CP2K_LINKLINE@ @LINALG_LIBS@
-cp2k_interfacemod = modules/module_cp2k.f90
-cp2k_interfacemodCAP = MODULES/MODULE_CP2k.F90
+##cp2k_interfacemod = modules/module_cp2k.f90
+##cp2k_interfacemodCAP = MODULES/MODULE_CP2k.F90
 else
-cp2k_interfacemod = modules/cp2k_fake.f90 modules/module_cp2k.f90
-cp2k_interfacemodCAP = MODULES/CP2K_FAKE.F90 MODULES/MODULE_CP2K_FAKE.F90
+##cp2k_interfacemod = modules/cp2k_fake.f90 modules/module_cp2k.f90
+##cp2k_interfacemodCAP = MODULES/CP2K_FAKE.F90 MODULES/MODULE_CP2K_FAKE.F90
 cp2k_ld =
 endif
 
@@ -215,8 +215,8 @@ low_level = \
 	linear/transferintegrals.f90 \
 	linear/cdft.f90 \
 	linear/frags.f90\
-	$(ambertools_wrap)\
-	$(cp2k_interfacemod)
+	$(ambertools_wrap)
+##	$(cp2k_interfacemod)
 
 # C objects
 c_level = posfiles.c \
