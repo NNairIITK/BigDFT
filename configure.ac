@@ -859,9 +859,6 @@ fi #end $withmpi = yes
 fi #end $withlinalg = no
 AC_SUBST(LINALG_LIBS, $LINALG_LIBS)
 AM_CONDITIONAL(USE_BLACS, test x"$withscalapack" = x"yes")
-echo "WITHSCALAPACK"
-echo $withscalapack
-echo "WITHSCALAPACK"
 
 dnl Error on the linking part only if required.
 if test "$ac_build_bin_cluster" = "yes" ; then
