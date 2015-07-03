@@ -27,8 +27,6 @@ module module_cp2k
     logical,save :: initialized_cp2k=.false.
     character(len=1), save :: geocode='F'
 
-    real(gp), save :: alat_int(3)
-
     contains 
 subroutine init_cp2k(paramfile,geocodeIn)
     use module_base
@@ -42,7 +40,7 @@ subroutine init_cp2k(paramfile,geocodeIn)
     integer :: ierr
 
     if(initialized_cp2k)stop'cp2k already initalized'
-    call yaml_comment('Initializing cp2k',hfill='-')
+    if(bigdft_mpi%iproc==0)call yaml_comment('Initializing cp2k',hfill='-')
 
     initialized_cp2k=.false.
 
@@ -69,8 +67,8 @@ subroutine finalize_cp2k()
     !internal
     integer :: ierr
     character(len=5) :: cierr
-    call yaml_comment('Finalizing CP2K',hfill='-')
-    CALL cp_finalize_cp2k(1,ierr)
+    if(bigdft_mpi%iproc==0)call yaml_comment('Finalizing CP2K',hfill='-')
+    CALL cp_finalize_cp2k(0,ierr)
     if (ierr/=0)then
         write(cierr,'(i5.5)')
         call f_err_throw('Error while finalizing cp2k, ierr: '//trim(adjustl(cierr)))

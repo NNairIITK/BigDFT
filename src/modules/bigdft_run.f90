@@ -1360,9 +1360,9 @@ contains
     use module_forces, only: clean_forces
     use module_morse_bulk
     use module_tersoff
-    use module_cp2k
     use module_BornMayerHugginsTosiFumi
     use module_cp2k
+    use module_dftbp
     use f_enums, enum_int => int
     implicit none
     !parameters
@@ -1472,8 +1472,14 @@ contains
        call quantum_mechanical_state(runObj,outs,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('BigDFT infocode',infocode)
     case('CP2K_RUN_MODE') ! CP2K run mode
-       call cp2k_energy_forces(nat,bigdft_get_cell(runObj),rxyz_ptr,outs%fxyz,outs%energy,infocode)
+       call cp2k_energy_forces(nat,bigdft_get_cell(runObj),rxyz_ptr,&
+            outs%fxyz,outs%energy,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('CP2K infocode',infocode)
+    case('DFTBP_RUN_MODE') ! DFTB+ run mode
+        call dftbp_energy_forces(nat,bigdft_get_cell(runObj),&
+             bigdft_get_astruct_ptr(runObj),bigdft_get_geocode(runObj),rxyz_ptr,&
+             outs%fxyz,outs%strten,outs%energy,infocode)
+       if (bigdft_mpi%iproc==0) call yaml_map('DFTB+ infocode',infocode)
     case default
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '+ yaml_toa(enum_int(runObj%run_mode)))

@@ -27,12 +27,12 @@ endif
 
 if HAVE_CP2K
 cp2k_ld= @CP2K_LINKLINE@ @LINALG_LIBS@
-cp2k_interfacemod = module_cp2k.f90
-cp2k_interfacemodCAP = MODULE_CP2k.F90
+cp2k_interfacemod = module_cp2k
+cp2k_interfacemodCAP = MODULE_CP2k
 BLACS = 
 else
-cp2k_interfacemod = cp2k_fake.f90 module_cp2k.f90
-cp2k_interfacemodCAP = CP2K_FAKE.F90 MODULE_CP2K.F90
+cp2k_interfacemod = cp2k_fake module_cp2k
+cp2k_interfacemodCAP = CP2K_FAKE MODULE_CP2K
 cp2k_ld =
 endif
 
@@ -98,7 +98,8 @@ libmodules_a_SOURCES = base.f90 \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
 	configure.c \
-	$(cp2k_interfacemod)
+	$(cp2k_interfacemod) \
+	module_dftbp.f90
 
 # Modules
 if CAPITALIZE
@@ -161,7 +162,8 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_MORSE_BULK.@MODULE_EXT@\
 	MODULE_TERSOFF.@MODULE_EXT@\
 	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
-	$(cp2k_interfacemodCAP).@MODULE_EXT@
+	$(cp2k_interfacemodCAP).@MODULE_EXT@ \
+        MODULE_DFTBP.@MODULE_EXT@
 else
 modules = module_base.@MODULE_EXT@ \
 	module_defs.@MODULE_EXT@ \
@@ -221,7 +223,9 @@ modules = module_base.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
 	module_bornmayerhugginstosifumi.@MODULE_EXT@ \
-	module_lenosky_si.@MODULE_EXT@
+	module_lenosky_si.@MODULE_EXT@ \
+	$(cp2k_interfacemod).@MODULE_EXT@ \
+        module_dftbp.@MODULE_EXT@
 else
 
 
@@ -287,12 +291,13 @@ fermi_level.o: base.o foe_common.o
 copy_utils.o: base.o
 gaussdaub.o: base.o
 module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o
 ab7_mixing.o: defs.o
 module_lj.o: base.o defs.o
 module_cp2k.o: base.o defs.o
 module_cp2k_fake.o: base.o defs.o
 module_morse_bulk.o: base.o
+module_dftbp.o: base.o types.o 
 module_tersoff.o: base.o atoms_data.o
 module_bornmayerhugginstosifumi.o: base.o atoms_data.o
 module_lenosky_si.o: base.o defs.o
