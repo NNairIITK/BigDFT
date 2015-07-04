@@ -115,7 +115,7 @@ module rhopotential
        use module_xc
        use communications_base, only: p2pComms
        use communications, only: synchronize_onesided_communication
-       use locreg_operations, only: global_to_local_parallel
+       use locreg_operations, only: global_to_local_parallel, global_to_local
        implicit none
        !Arguments
        integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid
@@ -318,7 +318,7 @@ module rhopotential
           do iorb=1,nilr
              ilr = ilrtable(iorb)
              ! Cut the potential into locreg pieces
-             call global_to_local(Lzd%Glr,Lzd%Llr(ilr),dpbox%nrhodim,npot,lzd%ndimpotisf,pot1,pot(istl))
+             call global_to_local(Lzd%Glr,Lzd%Llr(ilr),dpbox%nrhodim,npot,lzd%ndimpotisf,pot1,pot(istl:))
              istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*dpbox%nrhodim
           end do
        else

@@ -1677,6 +1677,7 @@ subroutine large_to_small_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, 
        orbs, philarge, phismall)
   use module_base
   use module_types
+  use locreg_operations, only: psi_to_locreg2
   implicit none
   
   ! Calling arguments

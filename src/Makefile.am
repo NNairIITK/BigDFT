@@ -145,8 +145,6 @@ low_level = \
 	init/gridmanipulation.f90 \
 	init/gauprod.f90 \
 	init/denspotd.f90 \
-	init/logrid.f90 \
-	init/logrid_per.f90 \
 	init/inputguess.f90 \
 	init/rcov.f90 \
 	init/gautowav.f90 \
@@ -186,7 +184,6 @@ low_level = \
 	linear/convolutions_aux.f90 \
 	linear/convolutions.f90 \
 	linear/precondLinear.f90 \
-	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/linearScaling.f90 \
 	linear/initAndUtils.f90 \
