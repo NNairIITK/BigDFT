@@ -3650,16 +3650,16 @@ module module_interfaces
 !!$          logical, intent(in) :: use_tmbs_as_coeffs
 !!$        end subroutine fragment_coeffs_to_kernel
 
-!!$        subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, nspin, psidiff, hpsi_noprecond, delta_energy)
-!!$          use module_base
-!!$          use module_types
-!!$          implicit none
-!!$          integer, intent(in) :: npsidim_orbs, nspin
-!!$          type(orbitals_data),intent(in) :: orbs
-!!$          type(local_zone_descriptors),intent(in) :: lzd
-!!$          real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
-!!$          real(kind=8),intent(out) :: delta_energy
-!!$        end subroutine estimate_energy_change
+        subroutine estimate_energy_change(npsidim_orbs, orbs, lzd, nspin, psidiff, hpsi_noprecond, delta_energy)
+          use module_base
+          use module_types
+          implicit none
+          integer, intent(in) :: npsidim_orbs, nspin
+          type(orbitals_data),intent(in) :: orbs
+          type(local_zone_descriptors),intent(in) :: lzd
+          real(kind=8),dimension(npsidim_orbs),intent(in) :: psidiff, hpsi_noprecond
+          real(kind=8),intent(out) :: delta_energy
+        end subroutine estimate_energy_change
 
 !!$        subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, hpsittmp_c, hpsittmp_f)
 !!$          use module_base

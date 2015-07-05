@@ -14,7 +14,7 @@
 subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    use module_base
    use module_types
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    type(atoms_data), intent(inout) :: atoms
    real(gp), intent(in) :: crmult,frmult

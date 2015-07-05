@@ -125,7 +125,7 @@ SiBulk:
  Average noise forces: 9.3e-10
  HOMO LUMO gap (AU, eV): 1.8e-10
  PV (Ha): 1.89e-10
- Optimization of virtual orbitals: 7.0101e-8
+ Optimization of virtual orbitals: 1.29e-7
  e_occupied: 1.42e-11
  Orbitals: 1.42e-11	
  GPa: 2.0e-9
@@ -285,7 +285,7 @@ test.minhop.ref.yaml:
  Orbitals: 6.1e-9
  Positions: 1.1e-9
  curv: 5.51e-11
- fd2: 2.76e-10
+ fd2: 2.792e-10
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -338,6 +338,7 @@ CH4-D3:
  Etot: 2.9e-11
  Ion-Ion interaction energy: 9.0e-11
  Energy (Hartree): 1.23e-11
+ Positions: 1.01e-9
 
 NLCC: &NLCCs
  Energies: 1.2e-10
@@ -1079,7 +1080,7 @@ explicit_locregcenters:
  Total electronic charge: 4.1e-11
  EKS: 1.1e-9
  EH: 1.1e-9
- Energy (Hartree): 9.12e-11
+ Energy (Hartree): 9.13e-11
 
 intermediateforces:
  Atomic Forces (Ha/Bohr): 4.9e-7
@@ -1152,7 +1153,7 @@ PBE_densmixlin:
  EXC: 1.01e-10
  EH: 1.0e-9
  Total charge: 2.1e-11
- Energy (Hartree): 2.84e-11
+ Energy (Hartree): 2.848e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1433,8 +1434,8 @@ FF_LENOSKY-bfgs:
 
 
 FF_LENOSKY-diis:
-  FORCES norm(Ha/Bohr): 1.01e-6
-  etot: 7.2e-8
+  FORCES norm(Ha/Bohr): 1.11e-6
+  etot: 1.35e-7
   Keys to ignore:
   - WARNINGS
 
@@ -1560,7 +1561,7 @@ surface_graphene:
  guess for new ef: 1.1e-9
  eF: 7.1e-10
  D eF: 1.1e-9
- diff: 2.1e-11
+ diff: 2.101e-11
  Total ionic charge: 1.2e-11
 
 multipoles_OH-:

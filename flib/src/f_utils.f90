@@ -30,7 +30,13 @@ module f_utils
      integer :: iunit = 0
      type(dictionary), pointer :: lstring => null()
   end type io_stream
-  
+
+  !> This type can be used to dump strings at bunches in a file
+  type, public :: f_dump_buffer
+     integer :: ipos
+     character(len=1), dimension(:), pointer :: buf
+  end type f_dump_buffer
+
 
   !> Interface for difference between two intrinsic types
   interface f_diff
@@ -301,6 +307,45 @@ contains
          err_id=INPUT_OUTPUT_ERROR)
     
   end subroutine f_rewind
+
+  !>tentative example of writing the data in a buffer
+  subroutine f_write(unit,msg,advance,buffer)
+    use f_precisions, only: cr => f_cr
+    use yaml_strings
+    !use dynamic_memory, only: f_memcpy
+    implicit none
+    integer, intent(in) :: unit
+    character(len=*), intent(in) :: msg
+    character(len=*), intent(in), optional :: advance
+    type(f_dump_buffer), optional, intent(inout) :: buffer
+    !local variables
+    integer :: lpos
+    character(len=3) :: adv
+    character(len=len(cr)) :: crtmp
+    
+    adv='yes'
+    if (present(advance)) call f_strcpy(src=advance,dest=adv)
+
+    if (present(buffer)) then
+       !determine the size of the input
+       lpos=len(msg)
+       call f_zero(crtmp)
+       if (adv .eqv. 'yes') crtmp=cr 
+       lpos=lpos+len_trim(cr)
+       !copy the values we would like to add in the buffer
+       !check if the total length is bigger than buffer size
+       if (lpos+buffer%ipos > size(buffer%buf)) then
+          write(unit=unit,fmt='(a)') buffer%buf(:buffer%ipos)
+          buffer%ipos=1
+       end if
+       !copy the data 
+       !call f_memcpy(n=lpos,src=msg+crtmp,dest=buffer%buf(buffer%ipos))
+       buffer%ipos=buffer%ipos+lpos
+    else
+       !we should inquire if the unit is formatted or not
+       write(unit=unit,fmt='(a)',advance=adv) msg
+    end if
+  end subroutine f_write
   
   !> open a filename and retrieve the unteger for the unit
   subroutine f_open_file(unit,file,status,position,action,binary)

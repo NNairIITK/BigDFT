@@ -333,7 +333,7 @@ END SUBROUTINE draw_locregs
 subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
   use module_base
   use locregs
-  use module_interfaces, except_this_one => locreg_bounds
+  !use module_interfaces, except_this_one => locreg_bounds
   implicit none
   !Arguments
   integer, intent(in) :: n1,n2,n3

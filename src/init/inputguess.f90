@@ -761,7 +761,7 @@ END SUBROUTINE AtomicOrbitals
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
    use module_base
    !use module_types, only: f_err_throw, BIGDFT_RUNTIME_ERROR
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    integer, intent(in) :: l,ng
    real(gp), dimension(ng), intent(in) :: xp,psiat
@@ -828,7 +828,7 @@ END SUBROUTINE atomkin
 
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
    use module_base
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    integer, intent(in) :: l,m,nterm_max
    integer, intent(out) :: nterm

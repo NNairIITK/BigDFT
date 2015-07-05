@@ -29,6 +29,7 @@ Keys to ignore:
   - Load Balancing of calculations
   - Timestamp of this run
   - Max No. of dictionaries used
+  - Walltime since initialization
 Patterns to ignore:
   - llocations
   - MB

@@ -144,7 +144,7 @@ subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs
 
   use module_base
   use module_types
-  use module_interfaces, except_this_one => determine_locregSphere_parallel
+  !use module_interfaces, except_this_one => determine_locregSphere_parallel
   use communications, only: communicate_locreg_descriptors_basics, communicate_locreg_descriptors_keys
 
   implicit none
