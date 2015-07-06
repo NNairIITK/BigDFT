@@ -230,6 +230,7 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
   use module_base
   use module_types
   use yaml_output
+  use bounds, only: ext_buffers
   implicit none
   integer, intent(in) :: iproc,n1i,n2i,n3p,i3s,nspin,n1,n2,n3
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -379,6 +380,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use bounds, only: ext_buffers
   implicit none
   !Arguments---------
   type(atoms_data), intent(in) :: at

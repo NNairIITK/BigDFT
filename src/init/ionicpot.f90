@@ -17,6 +17,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use vdwcorrection
   use yaml_output
+  use bounds, only: ext_buffers
   implicit none
   type(denspot_distribution), intent(in) :: dpbox
   type(atoms_data), intent(in) :: at
@@ -483,6 +484,7 @@ END SUBROUTINE IonicEnergyandForces
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
 subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps)
   use f_utils
+  use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nat !< number of centres defining the cavity
@@ -596,6 +598,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
   use f_enums
   use yaml_output
   use dynamic_memory
+  use bounds, only: ext_buffers
 
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -931,6 +934,7 @@ subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,na
   use f_enums
   use yaml_output
   use dynamic_memory
+  use bounds, only: ext_buffers
 
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -1158,6 +1162,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
   use module_defs, only : Bohr_Ang,bigdft_mpi
   use f_enums
   use yaml_output
+  use bounds, only: ext_buffers
 
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -1361,6 +1366,7 @@ end subroutine epsilon_rigid_cavity_error_multiatoms
 subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,&
      eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
+  use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nat !< number of centres defining the cavity
@@ -1594,6 +1600,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use public_enums, only: PSPCODE_PAW
+  use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
@@ -2270,19 +2277,6 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
 END SUBROUTINE sum_erfcr
 
 
-subroutine ext_buffers(periodic,nl,nr)
-  implicit none
-  logical, intent(in) :: periodic
-  integer, intent(out) :: nl,nr
-
-  if (periodic) then
-     nl=0
-     nr=0
-  else
-     nl=14
-     nr=15
-  end if
-END SUBROUTINE ext_buffers
 
 
 !> Read and initialize counter-ions potentials (read psp files)
@@ -2298,6 +2292,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use yaml_output
   use module_atoms
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n3pi,i3s

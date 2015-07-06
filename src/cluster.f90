@@ -25,10 +25,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
   use communications_init, only: orbitals_communicators
+  use transposed_operations, only: init_matrixindex_in_compressed_fortransposed
   use communications_base, only: deallocate_comms
 !  use vdwcorrection
   use yaml_output
-  use psp_projectors
+  use psp_projectors_base, only: free_dft_psp_projectors
   use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices, &
                                SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=), &
                                DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL

@@ -24,7 +24,7 @@ program memguess
    use internal_coordinates
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
-   use psp_projectors, only: free_DFT_PSP_projectors
+   use psp_projectors_base, only: free_DFT_PSP_projectors
    use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients, &
                  read_sparse_matrix, read_linear_coefficients
    use sparsematrix_base, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, &

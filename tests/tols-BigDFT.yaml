@@ -52,6 +52,7 @@ Keys to ignore:
  - Rigid Shift Applied (AU)
  - Walltime since initialization
  - Output grid format # to be removed for updated references
+ - Support Function Repartition
  #- number of tasks
  #- IDs
  #- start / end
@@ -1352,6 +1353,7 @@ verysparse:
  Atomic Forces (Ha/Bohr): 3.1e-9
  Average noise forces: 1.0e-9
  Energy (Hartree): 2.2e-9
+ Ion-Ion interaction energy: 8.1e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1517,7 +1519,7 @@ periodic_water:
  EvXC: 1.1e-9
  Ekin: 2.0e-9
  Enl: 1.1e-9
- Energy (Hartree): 7.7e-11
+ Energy (Hartree): 7.8e-11
  Omega: 2.7e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
@@ -1592,7 +1594,7 @@ multipoles_OH-:
  total charge correction: 5.2e-8
 
 multipoles_water:
- eF: 2.9e-9
+ eF: 3.0e-9
  guess for new ef: 1.0e-8
  number of corrected points: 7
  multiplicator for the confinement: 1.6e-10
@@ -1644,7 +1646,7 @@ igortho_19:
  Tr(K): 1.1e-8
  total charge correction: 1.5e-11
  multiplicator for the confinement: 1.8e-11
- radius for normalizatio: 1.1e-2
+ radius for normalization: 1.1e-2
 
 igortho_44:
  Atomic Forces (Ha/Bohr): 7.5e-7
@@ -1679,7 +1681,7 @@ igortho_44:
  net dipole: 1.1e-7
  D: 1.1e-7
  delta: 1.1e-10
- radius for normalizatio: 1.1e-1
+ radius for normalization: 1.1e-1
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings

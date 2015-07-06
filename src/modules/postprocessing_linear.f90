@@ -11,6 +11,7 @@ module postprocessing_linear
   public :: build_ks_orbitals
   public :: calculate_theta
   public :: supportfunction_centers
+  public :: projector_for_charge_analysis
 
   contains
 
@@ -143,108 +144,6 @@ module postprocessing_linear
                tmb%linmat%kernel_, tmb%linmat%ovrlp_)
       end if
     
-!!!!      if (calculate_ovrlp_half) then
-!!!!         tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-!!!!         call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, &
-!!!!              tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
-!!!!         call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, meth_overlap, 1, (/2/), &
-!!!!              tmb%orthpar%blocksize_pdsyev, &
-!!!!              imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-!!!!              ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-!!!!              max_error=max_error, mean_error=mean_error)
-!!!!         !!ovrlp_half=tmb%linmat%ovrlp%matrix
-!!!!         call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-!!!!      end if
-!!!!    
-!!!!      ! optimize this to just change the matrix multiplication?
-!!!!      proj_mat = sparsematrix_malloc0(tmb%linmat%l,iaction=DENSE_FULL,id='proj_mat')
-!!!!    
-!!!!      call uncompress_matrix2(iproc, bigdft_mpi%nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, proj_mat)
-!!!!      !!isforb=0
-!!!!      !!do ifrag=1,input%frag%nfrag
-!!!!      !!   ifrag_ref=input%frag%frag_index(ifrag)
-!!!!      !!   if (ifrag==ifrag_charged(1)) then
-!!!!      !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-!!!!      !!         proj_mat(iorb+isforb,iorb+isforb)=1.0_gp
-!!!!      !!      end do
-!!!!      !!   end if
-!!!!      !!   !!if (nfrag_charged==2) then
-!!!!      !!   !!   if (ifrag==ifrag_charged(2)) then
-!!!!      !!   !!      do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-!!!!      !!   !!         proj_mat(iorb+isforb,iorb+isforb)=-1.0_gp
-!!!!      !!   !!      end do
-!!!!      !!   !!   end if
-!!!!      !!   !!end if
-!!!!      !!   isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-!!!!      !!end do
-!!!!    
-!!!!      proj_ovrlp_half=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/),id='proj_ovrlp_half')
-!!!!      if (tmb%orbs%norbp>0) then
-!!!!         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
-!!!!                tmb%orbs%norb, 1.d0, &
-!!!!                proj_mat(1,1,1), tmb%orbs%norb, &
-!!!!                inv_ovrlp(1)%matrix(1,tmb%orbs%isorb+1,1), tmb%orbs%norb, 0.d0, &
-!!!!                proj_ovrlp_half(1,1), tmb%orbs%norb)
-!!!!      end if
-!!!!      call f_free(proj_mat)
-!!!!      weight_matrixp=f_malloc((/tmb%orbs%norb,tmb%orbs%norbp/), id='weight_matrixp')
-!!!!      if (tmb%orbs%norbp>0) then
-!!!!         call dgemm('n', 'n', tmb%orbs%norb, tmb%orbs%norbp, &
-!!!!              tmb%orbs%norb, 1.d0, &
-!!!!              inv_ovrlp(1)%matrix(1,1,1), tmb%orbs%norb, &
-!!!!              proj_ovrlp_half(1,1), tmb%orbs%norb, 0.d0, &
-!!!!              weight_matrixp(1,1), tmb%orbs%norb)
-!!!!      end if
-!!!!      !call f_free_ptr(ovrlp_half)
-!!!!      call f_free(proj_ovrlp_half)
-!!!!      weight_matrix=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/), id='weight_matrix')
-!!!!      if (bigdft_mpi%nproc>1) then
-!!!!         call mpi_allgatherv(weight_matrixp, tmb%orbs%norb*tmb%orbs%norbp, mpi_double_precision, weight_matrix, &
-!!!!              tmb%orbs%norb*tmb%orbs%norb_par(:,0), tmb%orbs%norb*tmb%orbs%isorb_par, &
-!!!!              mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-!!!!      else
-!!!!         call vcopy(tmb%orbs%norb*tmb%orbs%norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
-!!!!      end if
-!!!!      call f_free(weight_matrixp)
-!!!!      !call compress_matrix(bigdft_mpi%iproc,weight_matrix)
-!!!!    
-!!!!      charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
-!!!!      !!do iorb=1,tmb%orbs%norb
-!!!!      !!    do jorb=1,tmb%orbs%norb
-!!!!      !!        if (iproc==0) write(*,'(a,2i7,es16.7)') 'iorb,jorb,weight_matrix(jorb,iorb)', iorb,jorb,weight_matrix(jorb,iorb)
-!!!!      !!        if (iorb==jorb) then
-!!!!      !!            total_charge = total_charge + weight_matrix(jorb,iorb)
-!!!!      !!            iat=tmb%orbs%onwhichatom(iorb)
-!!!!      !!            charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(jorb,iorb)
-!!!!      !!        end if
-!!!!      !!    end do
-!!!!      !!end do
-!!!!      !!if (iproc==0) then
-!!!!      !!    do iat=1,atoms%astruct%nat
-!!!!      !!        write(*,*) 'iat, partial total_charge', iat, charge_per_atom(iat)
-!!!!      !!    end do
-!!!!      !!    write(*,*) 'total total_charge',total_charge
-!!!!      !!    if (iproc==0) call write_partial_charges()
-!!!!      !!end if
-!!!!    
-!!!!      do iorb=1,tmb%orbs%norb
-!!!!          iat=tmb%orbs%onwhichatom(iorb)
-!!!!          charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
-!!!!      end do
-!!!!      if (iproc==0) then
-!!!!          !call write_partial_charges()
-!!!!          call write_partial_charges(atoms, charge_per_atom)
-!!!!          call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
-!!!!          call calculate_dipole(iproc, atoms, charge_per_atom)
-!!!!          call calculate_quadropole(iproc, atoms, charge_per_atom)
-!!!!          call yaml_sequence_close()
-!!!!      end if
-!!!!      !!call support_function_multipoles()
-!!!!    
-!!!!      call deallocate_matrices(inv_ovrlp(1))
-!!!!    
-!!!!      call f_free(charge_per_atom)
-!!!!      call f_free(weight_matrix)
       call f_release_routine()
     
     
@@ -366,7 +265,6 @@ module postprocessing_linear
               charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
           end do
           if (iproc==0) then
-              !call write_partial_charges()
               call write_partial_charges(atoms, charge_per_atom, .true.)
               call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
               call calculate_dipole(iproc, atoms, charge_per_atom)
@@ -499,7 +397,7 @@ module postprocessing_linear
                                                                  '#ffff99', &
                                                                  '#b15928'/)
 
-      call yaml_sequence_open('Loewdin charge analysis (charge / net charge)')
+      call yaml_sequence_open('Charge analysis (charge / net charge)')
       total_charge=0.d0
       total_net_charge=0.d0
       do iat=1,atoms%astruct%nat
@@ -967,6 +865,7 @@ module postprocessing_linear
       use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
       use yaml_output
       use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
+      use locreg_operations, only: small_to_large_locreg
       implicit none
       
       ! Calling arguments
@@ -1193,6 +1092,7 @@ module postprocessing_linear
       use sparsematrix_base, only: sparse_matrix
       use yaml_output
       use rhopotential, only: updatepotential, sumrho_for_TMBs, corrections_for_negative_charge
+      use locreg_operations, only: small_to_large_locreg
       implicit none
       
       ! Calling arguments
@@ -1496,7 +1396,7 @@ module postprocessing_linear
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
           iiat = orbs%onwhichatom(iiorb)
-          write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+          !write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
           com(1:3) = 0.d0
           dipole(:) = 0.d0
           weight = 0.d0
@@ -1579,7 +1479,7 @@ module postprocessing_linear
           end do
 
           tt = sum(theta(1:nat,iorb))
-          write(*,*) 'tt',tt
+          !write(*,*) 'tt',tt
           tt = 1.d0/tt
           call dscal(nat, tt, theta(1,iorb), 1)
 
@@ -1683,6 +1583,8 @@ module postprocessing_linear
       real(kind=8) :: weight, tt, x, y, z, r2, hxh, hyh, hzh, q, qtot, monopole, r
       real(kind=8),parameter :: sigma2=0.1d0
 
+      call f_routine(id='supportfunction_centers')
+
       ! Transform the support functions to real space
       psir = f_malloc(max(nphirdim,1),id='psir')
       ist=1
@@ -1714,7 +1616,7 @@ module postprocessing_linear
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+          !write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
           com(1:3,iorb) = 0.d0
           weight = 0.d0
           do i3=1,lzd%llr(ilr)%d%n3i
@@ -1735,11 +1637,480 @@ module postprocessing_linear
                   end do
               end do
           end do
-          call yaml_map('weight',weight)
+          !call yaml_map('weight',weight)
           com(1:3,iorb) = com(1:3,iorb)/weight
 
       end do
 
+      call f_free(psir)
+
+      call f_release_routine()
+
     end subroutine supportfunction_centers
+
+
+
+
+
+
+    subroutine projector_for_charge_analysis(at, tmb, rxyz, norbs_per_type)
+      use module_base
+      use module_types, only: DFT_wavefunction
+      use module_atoms, only: atoms_data
+      use sparsematrix_base, only: sparsematrix_malloc, sparsematrix_malloc0, SPARSE_TASKGROUP, assignment(=)
+      use sparsematrix_init, only: matrixindex_in_compressed
+      use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
+      use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      type(atoms_data),intent(in) :: at
+      type(DFT_wavefunction),intent(inout) :: tmb
+      real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+      integer,dimension(at%astruct%ntypes),intent(in) :: norbs_per_type
+
+      ! Local variables
+      integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl
+      integer :: k, l, iatold
+      real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error
+      real(kind=8),dimension(:),allocatable :: projector_compr
+      real(kind=8),dimension(:,:),allocatable :: com, ham, ovrlp, proj, ovrlp_tmp
+      real(kind=8),dimension(:,:,:),allocatable :: coeff_all, ovrlp_onehalf_all
+      integer,dimension(:,:,:,:),allocatable :: ilup
+      real(kind=8),dimension(:),allocatable :: eval, eval_all, ovrlp_large, tmpmat1, tmpmat2, kerneltilde, charge_per_atom
+      integer,dimension(:),allocatable :: id_all, n_all
+      real(kind=8),dimension(3) :: rr
+      logical,dimension(:,:),allocatable :: neighbor
+      real(kind=8),parameter :: kT = 1.d-2
+
+
+      call f_routine(id='projector_for_charge_analysis')
+
+      ! Calculate S^1/2
+      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/2/), -1, &
+            imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+            ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(2), &
+            check_accur=.true., max_error=max_error, mean_error=mean_error)
+
+
+      !!! Determine the maximal cutoff radius of any atom, taking into account the overlap sparsity pattern
+      !!cutoff2 = 0.d0
+      !!do i=1,tmb%linmat%s%nfvctr
+      !!    do j=1,tmb%linmat%s%nfvctr
+      !!        inds =  matrixindex_in_compressed(tmb%linmat%s, i, j)
+      !!        if (inds>0) then
+      !!            iat = tmb%linmat%s%on_which_atom(i)
+      !!            jat = tmb%linmat%s%on_which_atom(j)
+      !!            r2 = (rxyz(1,iat)-rxyz(1,jat))**2 + &
+      !!                 (rxyz(2,iat)-rxyz(2,jat))**2 + &
+      !!                 (rxyz(3,iat)-rxyz(3,jat))**2
+      !!            r2 = r2 + 1.d-8 ! just to avoid roundoff errors...
+      !!            cutoff2 = max(cutoff2,r2)
+      !!        end if
+      !!    end do
+      !!end do
+      !!call yaml_map('cutoff2',cutoff2)
+
+
+      ! Determine the sum of the size of all submatrices (i.e. the total number of eigenvalues we will have)
+      ! and the maximal value for one atom.
+      neighbor = f_malloc((/tmb%linmat%s%nfvctr,at%astruct%nat/),id='neighbor')
+      neighbor(:,:) = .false.
+      ntot = 0
+      nmax = 0
+      !!do kat=1,at%astruct%nat
+      !!    ! Determine the size of the submatrix
+      !!    n = 0
+      !!    do j=1,tmb%linmat%s%nfvctr
+      !!        jat = tmb%linmat%s%on_which_atom(j)
+      !!        r2 = (rxyz(1,kat)-rxyz(1,jat))**2 + &
+      !!             (rxyz(2,kat)-rxyz(2,jat))**2 + &
+      !!             (rxyz(3,kat)-rxyz(3,jat))**2
+      !!        if (r2<=cutoff2) then
+      !!            n = n + 1
+      !!        end if
+      !!    end do
+      !!    ntot = ntot + n
+      !!    nmax = max(nmax, n)
+      !!end do
+      iatold = 0
+      do kat=1,at%astruct%nat
+          n = 0
+          do i=1,tmb%linmat%s%nfvctr
+               iat = tmb%linmat%s%on_which_atom(i)
+               ! Only do the following for the first TMB per atom
+               if (iat==iatold) cycle
+               iatold = iat
+               if (iat==kat) then
+                   do j=1,tmb%linmat%s%nfvctr
+                       inds =  matrixindex_in_compressed(tmb%linmat%s, i, j)
+                       if (inds/=0) then
+                          neighbor(j,kat) = .true.
+                          n = n + 1
+                          !!write(*,*) 'kat, i, j, inds', kat, i, j, inds
+                       end if
+                   end do
+               end if
+          end do
+          ntot = ntot + n
+          nmax = max(nmax, n)
+      end do
+      if (bigdft_mpi%iproc==0) then
+          call yaml_map('maximal size of a submatrix n',nmax)
+      end if
+      
+      eval_all = f_malloc(ntot,id='eval_all')
+      id_all = f_malloc(ntot,id='id_all')
+      coeff_all = f_malloc((/nmax,nmax,at%astruct%nat/),id='coeff_all')
+      ovrlp_onehalf_all = f_malloc((/nmax,nmax,at%astruct%nat/),id='ovrlp_onehalf_all')
+      ilup = f_malloc((/2,nmax,nmax,at%astruct%nat/),id='ilup')
+      n_all = f_malloc(at%astruct%nat,id='n_all')
+
+
+      ! Centers of the support functions
+      com = f_malloc0((/3,tmb%orbs%norb/),id='com')
+      if (tmb%orbs%norb>0) then
+          call supportfunction_centers(at%astruct%nat, rxyz, size(tmb%psi), tmb%psi, tmb%collcom_sr%ndimpsi_c, &
+               tmb%orbs, tmb%lzd, com(1:,tmb%orbs%isorb+1:))
+          if (bigdft_mpi%nproc>1) then
+              call mpiallred(com, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          end if
+      end if
+
+      !!do i=1,tmb%linmat%s%nfvctr
+      !!    iat = tmb%linmat%s%on_which_atom(i)
+      !!    write(*,*) 'i, iat, com(:,i), rxyz(:,iat)', i, iat, com(:,i), rxyz(:,iat)
+      !!end do
+
+
+      ist = 0
+      do kat=1,at%astruct%nat
+
+          ! Determine the size of the submatrix
+          n = 0
+          do j=1,tmb%linmat%s%nfvctr
+              !jat = tmb%linmat%s%on_which_atom(j)
+              !r2 = (rxyz(1,kat)-rxyz(1,jat))**2 + &
+              !     (rxyz(2,kat)-rxyz(2,jat))**2 + &
+              !     (rxyz(3,kat)-rxyz(3,jat))**2
+              !if (r2<=cutoff2) then
+              !    n = n + 1
+              !end if
+              if (neighbor(j,kat)) then
+                  n = n + 1
+              end if
+          end do
+          n_all(kat) = n
+
+
+          ! Extract the submatrices
+          ham = f_malloc0((/n,n/),id='ham')
+          ovrlp = f_malloc0((/n,n/),id='ovrlp')
+          proj = f_malloc0((/n,n/),id='proj')
+          eval = f_malloc0((/n/),id='eval')
+          icheck = 0
+          !!write(*,*) 'kat, n', kat, n
+          !!do i=1,tmb%linmat%s%nfvctr
+          !!    write(*,*) 'i, neighbor(i,kat)', i, neighbor(i,kat)
+          !!end do
+          ii = 0
+          do i=1,tmb%linmat%s%nfvctr
+              !!iat = tmb%linmat%s%on_which_atom(i)
+              if (neighbor(i,kat)) then
+              !if (iat==kat) then
+              !    ii = ii + 1
+                  jj = 0
+                  do j=1,tmb%linmat%s%nfvctr
+                      !jat = tmb%linmat%s%on_which_atom(j)
+                      !r2 = (rxyz(1,iat)-rxyz(1,jat))**2 + &
+                      !     (rxyz(2,iat)-rxyz(2,jat))**2 + &
+                      !     (rxyz(3,iat)-rxyz(3,jat))**2
+                      !if (r2<=cutoff2) then
+                      if (neighbor(j,kat)) then
+                          icheck = icheck + 1
+                          jj = jj + 1
+                          if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
+                          inds =  matrixindex_in_compressed(tmb%linmat%s, i, j)
+                          !!if (inds==0) then
+                          !!    write(*,*) 'kat, i, j, inds', kat, i, j, inds
+                          !!    call f_err_throw('inds==0',err_name='BIGDFT_RUNTIME_ERROR')
+                          !!end if
+                          if (inds>0) then
+                              ovrlp(jj,ii) = tmb%linmat%ovrlp_%matrix_compr(inds)
+                          else
+                              ovrlp(jj,ii) = 0.d0
+                          end if
+                          indm =  matrixindex_in_compressed(tmb%linmat%m, i, j)
+                          !!if (indm==0) call f_err_throw('indm==0',err_name='BIGDFT_RUNTIME_ERROR')
+                          if (indm>0) then
+                              ham(jj,ii) = tmb%linmat%ham_%matrix_compr(indm)
+                          else
+                              ham(jj,ii) = 0.d0
+                          end if
+                          rr(1) = 0.5d0*(com(1,i)+com(1,j))
+                          rr(2) = 0.5d0*(com(2,i)+com(2,j))
+                          rr(3) = 0.5d0*(com(3,i)+com(3,j))
+                          rr2 = (rr(1)-rxyz(1,kat))**2 + (rr(2)-rxyz(2,kat))**2 + (rr(3)-rxyz(3,kat))**2
+                          ham(jj,ii) = ham(jj,ii) + 1.d0*(0.5d0)*rr2**3*ovrlp(jj,ii)
+                          !!write(*,*) 'kat, ii, jj, rr2', kat, ii, jj, rr2
+                          ilup(1,jj,ii,kat) = j
+                          ilup(2,jj,ii,kat) = i
+                      !!else
+                      !!    write(*,*) 'outside cutoff', r2, cutoff2
+                      end if
+                  end do
+              end if
+          end do
+          if (icheck>n**2) then
+              call f_err_throw('icheck('//adjustl(trim(yaml_toa(icheck)))//') > n**2('//&
+                  &adjustl(trim(yaml_toa(n**2)))//')',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+
+          ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
+          ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
+          call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
+          call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc, n, -1, .true., ovrlp_tmp, tmb%linmat%s)
+          do i=1,n
+              call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
+          end do
+          call f_free(ovrlp_tmp)
+
+          ! Diagonalize the submatrix
+          !do i=1,n
+          !    do j=1,n
+          !        write(*,*) 'i, j, vals', i, j, ham(j,i), ovrlp(j,i)
+          !    end do
+          !end do
+          call diagonalizeHamiltonian2(bigdft_mpi%iproc, n, ham, ovrlp, eval)
+          !call yaml_map('eval',eval)
+          do i=1,n
+              ii = ist + i
+              eval_all(ii) = eval(i)
+              id_all(ii) = kat
+              call vcopy(n, ham(1,i), 1, coeff_all(1,i,kat), 1)
+          end do
+
+
+          ist = ist + n
+
+
+
+          call f_free(ham)
+          call f_free(ovrlp)
+          call f_free(proj)
+          call f_free(eval)
+
+      end do
+
+      if (ist/=ntot) call f_err_throw('ist/=ntot',err_name='BIGDFT_RUNTIME_ERROR')
+
+
+      ! Order the eigenvalues and IDs
+      do i=1,ntot
+          ! add i-1 since we are only searching in the subarray
+          ind = minloc(eval_all(i:ntot),1) + (i-1)
+          tt = eval_all(i)
+          eval_all(i) = eval_all(ind)
+          eval_all(ind) = tt
+          ii = id_all(i)
+          id_all(i) = id_all(ind)
+          id_all(ind) = ii
+      end do
+    
+    
+      ! Calculate how many states should be included
+      q = 0.d0
+      do iat=1,at%astruct%nat
+          itype = at%astruct%iatype(iat)
+          q = q + ceiling(0.5d0*real(at%nelpsp(itype),kind=8))
+      end do
+      iq = nint(q)
+      if (bigdft_mpi%iproc==0) then
+          call yaml_mapping_open('Calculating projector for charge analysis')
+          call yaml_map('number of states to be occupied (without smearing)',iq)
+      end if
+    
+    
+      ! Determine the "Fermi level" such that the iq-th state is still fully occupied even with a smearing
+      ef = eval_all(1)
+      do
+          ef = ef + 1.d-3
+          occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
+          if (abs(occ-1.d0)<1.d-8) exit
+      end do
+      if (bigdft_mpi%iproc==0) then
+          call yaml_map('Pseudo Fermi level for occupations',ef)
+      end if
+    
+    
+      if (bigdft_mpi%iproc==0) then
+          call yaml_sequence_open('ordered eigenvalues and occupations')
+          ii = 0
+          do i=1,ntot
+              occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+              if (occ>1.d-100) then
+                  call yaml_sequence(advance='no')
+                  call yaml_mapping_open(flow=.true.)
+                  call yaml_map('eval',eval_all(i),fmt='(es13.4)')
+                  call yaml_map('atom',id_all(i),fmt='(i5.5)')
+                  call yaml_map('occ',occ,fmt='(1pg13.4e3)')
+                  call yaml_mapping_close(advance='no')
+                  call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
+              else
+                  ii = ii + 1
+              end if
+          end do
+          if (ii>0) then
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('remaining states',ii)
+              call yaml_map('occ','<1.d-100')
+              call yaml_mapping_close()
+          end if
+          call yaml_sequence_close()
+      end if
+    
+    
+      projector_compr = sparsematrix_malloc0(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='projector_compr')
+      ! Calculate the projector. First for each single atom, then insert it into the big one.
+      do kat=1,at%astruct%nat
+          n = n_all(kat)
+          do i=1,n
+              do j=1,n
+                   ij = 0
+                   do ieval=1,ntot
+                       if (id_all(ieval)/=kat) cycle
+                       ij = ij + 1
+                       occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
+                       jj = ilup(1,j,i,kat)
+                       ii = ilup(2,j,i,kat)
+                       indl=matrixindex_in_compressed(tmb%linmat%l, ii, jj)
+                       !projector_compr(indl) = projector_compr(indl) + occ*coeff_all(j,ij,kat)*coeff_all(i,ij,kat)
+                       tt = 0.d0
+                       do k=1,n
+                           do l=1,n
+                               tt = tt + &
+                                   ovrlp_onehalf_all(j,l,kat)*coeff_all(l,ij,kat)*coeff_all(k,ij,kat)*ovrlp_onehalf_all(k,i,kat)
+                           end do
+                       end do
+                       projector_compr(indl) = projector_compr(indl) + occ*tt
+                   end do
+              end do
+          end do
+      end do
+
+      call f_free(coeff_all)
+      call f_free(ilup)
+      call f_free(n_all)
+    
+      !!do i=1,size(projector_compr)
+      !!    write(*,*) 'i, projector_compr(i)', i, projector_compr(i)
+      !!end do
+    
+      !!write(*,*) '1'
+      !ovrlp_large = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='ovrlp_large')
+      !!write(*,*) '2'
+      tmpmat1 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='tmpmat1')
+      !!write(*,*) '3'
+      tmpmat2 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='tmpmat2')
+      !!write(*,*) '4'
+      kerneltilde = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='kerneltilde')
+      !!write(*,*) '5'
+      !call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%l, tmb%linmat%ovrlp_%matrix_compr, ovrlp_large, 'small_to_large')
+      !!write(*,*) '6'
+    
+      !!! Calculate K * S * P * S.
+      !!call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
+      !!     projector_compr, ovrlp_large, tmpmat1)
+      !!call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
+      !!     ovrlp_large, tmpmat1, tmpmat2)
+      !!call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
+      !!     tmb%linmat%kernel_%matrix_compr, tmpmat2, kerneltilde)
+    
+      ! Calculate S^1/2 * K * S^1/2  * P'
+      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
+           tmb%linmat%ovrlppowers_(2)%matrix_compr, projector_compr, tmpmat1)
+      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
+           tmb%linmat%kernel_%matrix_compr, tmpmat1, tmpmat2)
+      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
+           tmb%linmat%ovrlppowers_(2)%matrix_compr, tmpmat2, kerneltilde)
+
+      call f_free(projector_compr)
+      call f_free(tmpmat1)
+      call f_free(tmpmat2)
+    
+      if (bigdft_mpi%iproc==0) then
+          call yaml_mapping_close()
+      end if
+    
+    
+      ! Calculate the partial traces
+      charge_per_atom = f_malloc0(at%astruct%nat,id='charge_per_atom')
+      !!ii = 1
+      !!do
+      !!    iat = tmb%linmat%l%on_which_atom(ii)
+      !!    itype = at%astruct%iatype(iat)
+      !!    n = norbs_per_type(itype)
+      !!    tt=0.d0
+      !!    do i=ii,ii+n-1
+      !!        ind=matrixindex_in_compressed(tmb%linmat%l, i, i)
+      !!        tt = tt + kerneltilde(ind)
+      !!    end do
+      !!    write(*,*) 'iat, itype, charge', iat, itype, tt
+      !!    ii = ii + n
+      !!    if (ii==tmb%linmat%l%nfvctr+1) exit
+      !!end do
+      call determine_atomic_charges(tmb%linmat%l, at%astruct%nat, kerneltilde, charge_per_atom)
+      !!write(*,*) 'cpa', charge_per_atom
+    
+      if (bigdft_mpi%iproc==0) then
+          call write_partial_charges(at, charge_per_atom, write_gnuplot=.false.)
+      end if
+
+      call f_free(charge_per_atom)
+      call f_free(kerneltilde)
+      call f_free(neighbor)
+      call f_free(eval_all)
+      call f_free(id_all)
+      call f_free(ovrlp_onehalf_all)
+      call f_free(com)
+
+      call f_release_routine()
+
+  end subroutine projector_for_charge_analysis
+
+
+
+  subroutine determine_atomic_charges(smat, nat, effective_kernel, charge_per_atom)
+    use module_base
+    use sparsematrix_base, only: sparse_matrix
+    use sparsematrix_init, only: matrixindex_in_compressed
+    implicit none
+  
+    ! Calling arguments
+    type(sparse_matrix),intent(in) :: smat
+    integer,intent(in) :: nat
+    real(kind=8),dimension(smat%nvctr*smat%nspin),intent(in) :: effective_kernel
+    real(kind=8),dimension(nat),intent(out) :: charge_per_atom
+  
+    ! Local variables
+    integer :: ispin, ishift, iorb, iiorb, ind, iat
+  
+    call f_zero(charge_per_atom)
+    
+    do ispin=1,smat%nspin
+        ishift = (ispin-1)*smat%nvctr
+        do iorb=1,smat%nfvctr
+            iiorb = modulo(iorb-1,smat%nfvctr)+1
+            iat = smat%on_which_atom(iiorb)
+            ind = matrixindex_in_compressed(smat, iorb, iorb)
+            ind = ind + ishift
+            !write(*,*) 'iorb, ind, val', iorb, ind, effective_kernel(ind)
+            charge_per_atom(iat) = charge_per_atom(iat) + effective_kernel(ind)
+        end do
+    end do
+  
+  end subroutine determine_atomic_charges
 
 end module postprocessing_linear

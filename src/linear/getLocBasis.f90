@@ -34,6 +34,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use matrix_operations, only: deviation_from_unity_parallel
   use foe, only: fermi_operator_expansion
   use public_enums
+  use locreg_operations, only: small_to_large_locreg
   implicit none
 
   ! Calling arguments
@@ -600,9 +601,10 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_fragments, only: system_fragment
   use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: calculate_overlap_transposed
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   use foe, only: fermi_operator_expansion
   use public_enums
+  use locreg_operations, only: small_to_large_locreg
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -1669,74 +1671,13 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
 
 end subroutine diagonalizeHamiltonian2
 
-subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
-       orbs, phismall, philarge, to_global)
-  use module_base
-  use module_types
-  use locreg_operations, only: lpsi_to_global2
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
-  type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
-  type(orbitals_data),intent(in) :: orbs
-  real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
-  real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
-  logical,intent(in),optional :: to_global
-  
-  ! Local variables
-  integer :: ists, istl, iorb, ilr, sdim, ldim, nspin
-  logical :: global
-
-  call f_routine(id='small_to_large_locreg')
-
-  if (present(to_global)) then
-      global=to_global
-  else
-      global=.false.
-  end if
-
-  call timing(iproc,'small2large','ON') ! lr408t 
-  ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
-  call f_zero(philarge)
-  ists=1
-  istl=1
-  do iorb=1,orbs%norbp
-      ilr = orbs%inwhichLocreg(orbs%isorb+iorb)
-      sdim=lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
-      if (global) then
-          ldim=lzdsmall%glr%wfd%nvctr_c+7*lzdsmall%glr%wfd%nvctr_f
-      else
-          ldim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-      end if
-      nspin=1 !this must be modified later
-      if (global) then
-          call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdsmall%glr, &
-               lzdsmall%llr(ilr), phismall(ists), philarge(istl))
-      else
-          call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdlarge%llr(ilr), &
-               lzdsmall%llr(ilr), phismall(ists), philarge(istl))
-      end if
-      ists=ists+sdim
-      istl=istl+ldim
-  end do
-  if(orbs%norbp>0 .and. ists/=npsidim_orbs_small+1) then
-      write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',ists,'=ists /= npsidim_orbs_small+1=',npsidim_orbs_small+1
-      stop
-  end if
-  if(orbs%norbp>0 .and. istl/=npsidim_orbs_large+1) then
-      write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istl /= npsidim_orbs_large+1=',npsidim_orbs_large+1
-      stop
-  end if
-       call timing(iproc,'small2large','OF') ! lr408t 
-  call f_release_routine()
-end subroutine small_to_large_locreg
 
 
 subroutine large_to_small_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
        orbs, philarge, phismall)
   use module_base
   use module_types
+  use locreg_operations, only: psi_to_locreg2
   implicit none
   
   ! Calling arguments
@@ -2110,6 +2051,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
        allocate_matrices, deallocate_matrices
   use yaml_output, only: yaml_newline, yaml_map
   use matrix_operations, only: overlapPowerGeneral, overlap_minus_one_half_serial, deviation_from_unity_parallel
+  use orthonormalization, only: gramschmidt_coeff_trans
   implicit none
 
   ! Calling arguments
@@ -2609,7 +2551,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                           uncompress_matrix2, compress_matrix2, trace_sparse
   use foe_base, only: foe_data_get_real
   use transposed_operations, only: calculate_overlap_transposed
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   implicit none
 
   ! Calling arguments
@@ -3196,7 +3138,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   use foe_common, only: retransform_ext
   implicit none
 

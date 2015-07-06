@@ -32,6 +32,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use module_fragments, only: system_fragment,fragmentInputParameters
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
   use public_enums
+  use orthonormalization, only: orthoconstraintNonorthogonal
   implicit none
 
   ! Calling arguments
@@ -810,6 +811,7 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_ortho
   use module_types
   use yaml_output
   use module_interfaces, fake_name_A => hpsitopsi_linear,fake_name_C=>calculate_energy_and_gradient_linear
+  use orthonormalization, only: orthonormalizeLocalized, iterative_orthonormalization
   implicit none
   
   ! Calling arguments

@@ -25,6 +25,8 @@ program WaCo
    use locregs, only: copy_locreg_descriptors
    use public_enums, only: LINEAR_PARTITION_NONE, WF_FORMAT_BINARY, WF_FORMAT_ETSF, WF_FORMAT_NONE
    use module_input_keys, only: user_dict_from_files, inputs_from_dict, free_input_variables
+   use locregs_init, only: determine_locregsphere_parallel
+   use locreg_operations, only: psi_to_locreg2
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -1706,9 +1708,10 @@ subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
 end subroutine read_hamiltonian
 
 subroutine write_wannier_cube(jfile,filename,atoms,Glr,input,rxyz,wannr)
-  use module_defs, only: gp,dp
-  use f_utils
+   use module_defs, only: gp,dp
+   use f_utils
    use module_types
+   use bounds, only: ext_buffers
    implicit none
    character(len=*), intent(in) :: filename
    integer, intent(in) :: jfile
