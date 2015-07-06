@@ -445,6 +445,19 @@ if test -n "$ac_ambertools_dir" ; then
 fi
 
 
+dnl cp2k
+AC_ARG_WITH(cp2k, AS_HELP_STRING([--with-cp2k],
+            [Give the link-line for cp2k.]),
+            ac_cp2k_linkline=$withval, ac_cp2k_linkline=)
+ac_use_cp2k="no"
+AM_CONDITIONAL(HAVE_CP2K, test x"$ac_cp2k_linkline" != "x")
+if test -n "$ac_cp2k_linkline" ; then
+  CP2K_LINKLINE="$ac_cp2k_linkline"
+  AC_SUBST(CP2K_LINKLINE, $CP2K_LINKLINE)
+  ac_use_cp2k="yes"
+fi
+
+
 
 dnl Use the GPU computing (only NVIDIA cards with CUDA libraries)
 AC_MSG_CHECKING([for GPU computing with CUDA libraries])
@@ -1264,6 +1277,7 @@ Options:
   With Intel MIC support:    $ac_use_mic
   With AMBERTOOLS compiler:  $ac_use_amber
    | nab Compiler:           $NAB
+  With CP2K:                 $ac_use_cp2k
   With dgemmsy support:      $ac_use_dgemmsy
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc

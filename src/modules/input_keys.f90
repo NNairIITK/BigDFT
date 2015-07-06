@@ -1451,6 +1451,10 @@ contains
              in%run_mode=TERSOFF_RUN_MODE
           case('bmhtf')
              in%run_mode=BMHTF_RUN_MODE
+          case('cp2k')
+             in%run_mode=CP2K_RUN_MODE
+          case('dftbp')
+             in%run_mode=DFTBP_RUN_MODE
           end select
        case(MM_PARAMSET)
           in%mm_paramset=val
