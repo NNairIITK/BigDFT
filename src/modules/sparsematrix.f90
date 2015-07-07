@@ -38,6 +38,7 @@ module sparsematrix
   public :: matrix_matrix_mult_wrapper
   public :: trace_sparse
   public :: delete_coupling_terms
+  public :: synchronize_matrix_taskgroups
 
 
   interface compress_matrix_distributed_wrapper
@@ -1862,5 +1863,65 @@ module sparsematrix
       call extract_taskgroup(smat, fullmat_compr, mat_compr)
 
    end subroutine delete_coupling_terms
+
+
+    subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+    
+      ! Local variables
+      integer :: ncount, itg, iitg, ispin, ishift, ist_send, ist_recv
+      integer,dimension(:),allocatable :: request
+      real(kind=8),dimension(:),allocatable :: recvbuf
+    
+      if (nproc>1) then
+          request = f_malloc(smat%ntaskgroupp,id='request')
+          ncount = 0
+          do itg=1,smat%ntaskgroupp
+              iitg = smat%taskgroupid(itg)
+              ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+          end do
+          recvbuf = f_malloc(ncount,id='recvbuf')
+          do ispin=1,smat%nspin
+              ishift = (ispin-1)*smat%nvctrp_tg
+    
+              ncount = 0
+              do itg=1,smat%ntaskgroupp
+                  iitg = smat%taskgroupid(itg)
+                  ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+                  ist_recv = ncount + 1
+                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+                  !!call mpi_iallreduce(mat%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+                  !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+                  if (nproc>1) then
+                      call mpiiallred(mat%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
+                           mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+                  else
+                      call vcopy(ncount, mat%matrix_compr(ishift+ist_send), 1, recvbuf(ist_recv), 1)
+                  end if
+              end do
+              if (nproc>1) then
+                  call mpiwaitall(smat%ntaskgroupp, request)
+              end if
+              ncount = 0
+              do itg=1,smat%ntaskgroupp
+                  iitg = smat%taskgroupid(itg)
+                  ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+                  ist_recv = ncount + 1
+                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+                  !call vcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
+                  call dcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
+              end do
+          end do
+          call f_free(request)
+          call f_free(recvbuf)
+      end if
+    end subroutine synchronize_matrix_taskgroups
 
 end module sparsematrix

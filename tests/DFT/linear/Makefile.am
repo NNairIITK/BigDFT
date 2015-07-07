@@ -26,7 +26,8 @@ TESTDIRS = Locreg \
 	   expfoegeopt \
 	   periodic \
        surface \
-       multipoles
+       multipoles \
+	   igortho
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \

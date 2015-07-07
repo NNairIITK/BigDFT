@@ -40,6 +40,7 @@ module bigdft_run
      type(f_reference_counter) :: refcnt
      !> array for temporary copy of atomic positions and forces
      real(gp), dimension(:,:), pointer :: rf_extra
+     type(f_enumerator) :: run_mode !< run_mode for freeing the extra treatments
   end type MM_restart_objects
 
   !> Public container to be used with bigdft_state().
@@ -134,6 +135,7 @@ contains
     type(MM_restart_objects), intent(out) :: mm_rst
     call nullify_f_ref(mm_rst%refcnt)
     nullify(mm_rst%rf_extra)
+    call nullify_f_enum(mm_rst%run_mode)
   end subroutine nullify_MM_restart_objects
 
   !> fill the run_mode with the input enumerator
@@ -246,21 +248,24 @@ contains
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
     end select
+
+    mm_rst%run_mode=run_mode
   end subroutine init_MM_restart_objects
 
-  subroutine free_MM_restart_objects(runObj,mm_rst)
+  subroutine free_MM_restart_objects(mm_rst)
     use dynamic_memory
     use yaml_output
     use module_cp2k
     use module_BornMayerHugginsTosiFumi
     use f_enums, enum_int => int
+    use yaml_strings
     implicit none
-    type(run_objects), intent(inout) :: runObj
     type(MM_restart_objects), intent(inout) :: mm_rst
     !check if the object can be freed
     call f_ref_free(mm_rst%refcnt)
     call f_free_ptr(mm_rst%rf_extra)
-    select case(trim(f_str(runObj%run_mode)))
+    !free the extra variables
+    select case(trim(f_str(mm_rst%run_mode)))
     case('BMHTF_RUN_MODE')
        call finalize_bmhtf()
     case('CP2K_RUN_MODE') ! CP2K run mode
@@ -273,9 +278,11 @@ contains
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
     case('LENOSKY_SI_BULK_RUN_MODE')
     case('AMBER_RUN_MODE')
+    case('QM_RUN_MODE')
     case default
        call f_err_throw('Following method for evaluation of '//&
-            'energies and forces is unknown: '+ yaml_toa(enum_int(runObj%run_mode)))
+            'energies and forces is unknown: '+enum_int(mm_rst%run_mode),&
+            err_name='BIGDFT_RUNTIME_ERROR')
     end select
 
     
@@ -831,7 +838,7 @@ contains
     if (associated(runObj%mm_rst)) then
        call f_unref(runObj%mm_rst%refcnt,count=count)
        if (count==0) then
-          call free_MM_restart_objects(runObj,runObj%mm_rst)
+          call free_MM_restart_objects(runObj%mm_rst)
        else
           nullify(runObj%mm_rst)
        end if
@@ -876,7 +883,7 @@ contains
        deallocate(runObj%rst)
     end if
     if (associated(runObj%mm_rst)) then
-       call free_MM_restart_objects(runObj,runObj%mm_rst)
+       call free_MM_restart_objects(runObj%mm_rst)
        deallocate(runObj%mm_rst)
     end if
     if (associated(runObj%atoms)) then
@@ -1360,7 +1367,7 @@ contains
     use module_lenosky_si
     use public_enums
     use module_defs
-    use dynamic_memory, only: f_memcpy
+    use dynamic_memory, only: f_memcpy,f_routine,f_release_routine
     use yaml_strings, only: yaml_toa, operator(+)
     use yaml_output
     use module_forces, only: clean_forces
@@ -1385,6 +1392,7 @@ contains
     integer :: policy_tmp
 !!integer :: iat , l
 !!real(gp) :: anoise,tt
+    call f_routine(id='bigdft_state')
 
     rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
     nat=bigdft_nat(runObj)
@@ -1493,7 +1501,8 @@ contains
        if (bigdft_mpi%iproc==0) call yaml_map('DFTB+ infocode',infocode)
     case default
        call f_err_throw('Following method for evaluation of '//&
-            'energies and forces is unknown: '+ yaml_toa(enum_int(runObj%run_mode)))
+            'energies and forces is unknown: '+ enum_int(runObj%run_mode)//&
+            '('+f_str(runObj%run_mode)+')',err_name='BIGDFT_RUNTIME_ERROR')
     end select
 !!         anoise=2.d-5
 !!         if (anoise.ne.0.d0) then
@@ -1515,6 +1524,8 @@ contains
        call yaml_map('Energy',outs%energy)
        call yaml_mapping_close()
     end if
+
+    call f_release_routine()
 
   end subroutine bigdft_state
 
@@ -2223,7 +2234,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_types
   use module_fragments
   use module_interfaces, only: system_initialization
-  use psp_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use communications_base, only: deallocate_comms
   implicit none
   type(run_objects), intent(inout) :: runObj

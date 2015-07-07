@@ -24,7 +24,7 @@ program memguess
    use internal_coordinates
    use gaussians, only: gaussian_basis, deallocate_gwf
    use communications_base, only: deallocate_comms
-   use psp_projectors, only: free_DFT_PSP_projectors
+   use psp_projectors_base, only: free_DFT_PSP_projectors
    use io, only: read_linear_matrix_dense, read_coeff_minbasis, writeLinearCoefficients, &
                  read_sparse_matrix, read_linear_coefficients
    use sparsematrix_base, only: sparse_matrix, matrices_null, assignment(=), SPARSE_FULL, &
@@ -1281,7 +1281,7 @@ program memguess
        call f_free_ptr(matrix_compr)
 
        call loewdin_charge_analysis_core(iproc, nproc, smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
-            smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=1020, &
+            smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=1020, blocksize=-8, &
             smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
        stop
    end if

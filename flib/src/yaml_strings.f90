@@ -659,7 +659,6 @@ contains
     c=a//trim(yaml_toa(num))
   end function string_and_long
 
-
   pure function string_and_double(a,num) result(c)
     implicit none
     real(f_double), intent(in) :: num
@@ -668,20 +667,21 @@ contains
     c=a//trim(yaml_toa(num))
   end function string_and_double
 
+  !function which attach two strings each other
   pure function attach_ci(s,num) result(c)
     implicit none
     integer(f_integer), intent(in) :: num
     character(len=*), intent(in) :: s
-    character(len=len_trim(adjustl(s))+len_trim(adjustl(yaml_itoa(num)))) :: c
-    c=s//trim(adjustl(yaml_toa(num)))
+    character(len=len_trim(s)+len_trim(adjustl(yaml_itoa(num)))) :: c
+    c=trim(s)//trim(adjustl(yaml_toa(num)))
   end function attach_ci
 
   pure function attach_cd(s,num) result(c)
     implicit none
     real(f_double), intent(in) :: num
     character(len=*), intent(in) :: s
-    character(len=len_trim(adjustl(s))+len_trim(adjustl(yaml_dtoa(num)))) :: c
-    c=s//trim(adjustl(yaml_toa(num)))
+    character(len=len_trim(s)+len_trim(adjustl(yaml_dtoa(num)))) :: c
+    c=trim(s)//trim(adjustl(yaml_toa(num)))
   end function attach_cd
   
   function yaml_itoa_fmt(num,fmt) result(c)

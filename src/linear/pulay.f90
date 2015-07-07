@@ -11,7 +11,7 @@
 subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use module_base
   use module_types
-  use module_interfaces, only: small_to_large_locreg
+  !use module_interfaces, only: small_to_large_locreg
   use yaml_output
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
@@ -20,6 +20,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
+  use locreg_operations, only: small_to_large_locreg
   implicit none
 
   ! Calling arguments

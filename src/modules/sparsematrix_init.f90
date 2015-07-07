@@ -33,7 +33,6 @@ module sparsematrix_init
   public :: get_line_and_column
   public :: distribute_columns_on_processes_simple
   public :: redistribute
-  public :: distribute_on_threads
   !public :: get_transposed_index
   public :: get_modulo_array
 
@@ -1409,7 +1408,7 @@ contains
              do jorb=1,norbup
                 !sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norbu,sparsemat)
                 sparsemat%matrixindex_in_compressed_arr(iorb,jorb+isorbu) = &
-                     matrixindex_in_compressed(sparsemat, iorb, jorb+isorbu, .true., norbu)
+                  matrixindex_in_compressed(sparsemat, iorb, jorb+isorbu, .true., norbu)
              end do
           end do
           !$omp end parallel do
@@ -2016,6 +2015,7 @@ contains
 
 
     subroutine get_arrays_for_sequential_acces_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, ivectorindex)
+      use locregs_init, only: distribute_on_threads
       implicit none
     
       ! Calling arguments
@@ -2246,6 +2246,7 @@ contains
 
     subroutine init_sequential_acces_matrix_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, &
                indices_extract_sequential)
+      use locregs_init, only: distribute_on_threads
       implicit none
     
       ! Calling arguments
@@ -3656,7 +3657,10 @@ contains
                              irow(i) = jorb
                              icol(i) = iorb
                              !exit outloop
+                             !SM: I think one should do this within a critical section since it is shared, just to be sure...
+                             !$omp critical
                              found=.true.
+                             !$omp end critical
                          end if
                      end do
                   end if
@@ -3681,12 +3685,16 @@ contains
               implicit none
               integer :: ipt, ii, i0, i, i0i, iiorb, j, i0j, jjorb, ind, iorb, jorb
               integer,dimension(:),pointer :: moduloarray
+              integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
 
               call get_modulo_array(smat, moduloarray)
 
+              !SM: when the pointer within the type is used directly the code crashes with Intel, I have no idea why...
+              matrixindex_in_compressed_fortransposed => smat%matrixindex_in_compressed_fortransposed
+
               !$omp parallel default(none) &
               !$omp private(ipt,ii,i0,i,i0i,iiorb,iorb,j,i0j,jjorb,jorb,ind) &
-              !$omp shared(collcom,moduloarray,smat,ind_min,ind_max)
+              !$omp shared(collcom,moduloarray,smat,ind_min,ind_max,matrixindex_in_compressed_fortransposed)
               !$omp do reduction(min: ind_min) reduction(max: ind_max)
               do ipt=1,collcom%nptsp_c
                   ii=collcom%norb_per_gridpoint_c(ipt)
@@ -3699,11 +3707,8 @@ contains
                           i0j=i0+j
                           jjorb=collcom%indexrecvorbital_c(i0j)
                           jorb=moduloarray(jjorb)
-                          !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                          !write(*,'(a,5i8)') 'iproc, iiorb, iorb, jjorb, jorb', iproc, iiorb, iorb, jjorb, jorb
-                          ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
-                          !ind = get_transposed_index(smat,jjorb,iiorb)
-                          !if (ind==0) write(*,'(a,2i8)') 'iszero: iiorb, jjorb', iiorb, jjorb
+                          !ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                          ind = matrixindex_in_compressed_fortransposed(jorb,iorb)
                           ind_min = min(ind_min,ind)
                           ind_max = max(ind_max,ind)
                       end do
@@ -3723,10 +3728,8 @@ contains
                           i0j=i0+j
                           jjorb=collcom%indexrecvorbital_f(i0j)
                           jorb=moduloarray(jjorb)
-                          !ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
-                          ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
-                          !ind = get_transposed_index(smat,jjorb,iiorb)
-                          !if (ind==0) write(*,'(a,2i8)') 'iszero: iiorb, jjorb', iiorb, jjorb
+                          !ind = smat%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                          ind = matrixindex_in_compressed_fortransposed(jorb,iorb)
                           ind_min = min(ind_min,ind)
                           ind_max = max(ind_max,ind)
                       end do
@@ -3735,7 +3738,6 @@ contains
               !$omp end do
               !$omp end parallel
 
-              !contains
 
               call f_free_ptr(moduloarray)
     
@@ -4200,6 +4202,7 @@ contains
     subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
           use module_types
           use locregs, only: check_overlap_cubic_periodic
+          use locregs_init, only: check_overlap_from_descriptors_periodic
           implicit none
         
           ! Calling arguments
@@ -4770,60 +4773,6 @@ contains
 
 
 
-    subroutine distribute_on_threads(nout, nthread, ise)
-      use dynamic_memory
-      implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: nout
-      integer,intent(out) :: nthread
-      integer,dimension(:,:),pointer :: ise
-
-      ! Local variables
-      integer :: ii, jthread
-      integer,dimension(:),allocatable :: n
-      !$ integer :: omp_get_max_threads
-
-      call f_routine(id='distribute_on_threads')
-
-      ! OpenMP parallelization using a large workarray
-      nthread = 1
-      !$ nthread = omp_get_max_threads()
-
-      ! Determine the number of iterations to be done by each thread
-      n = f_malloc(0.to.nthread-1,id='n')
-      ii = nout/nthread
-      n(0:nthread-1) = ii
-      ii = nout - nthread*ii
-      n(0:ii-1) = n(0:ii-1) + 1
-      ! Check
-      if (sum(n)/=nout) call f_err_throw('sum(n)/=nout',err_name='BIGDFT_RUNTIME_ERROR')
-
-      ! Determine the first and last iteration for each thread
-      ise = f_malloc_ptr((/1.to.2,0.to.nthread-1/),id='ise')
-      ise(1,0) = 1
-      do jthread=1,nthread-1
-          ise(1,jthread) = ise(1,jthread-1) + n(jthread-1)
-          ise(2,jthread-1) = ise(1,jthread) -1
-      end do
-      ise(2,nthread-1) = nout
-      ! Check
-      ii = 0
-      do jthread=0,nthread-1
-          ii = ii + ise(2,jthread) - ise(1,jthread) + 1
-          if (jthread>1) then
-              if (ise(1,jthread)/=ise(2,jthread-1)+1) then
-                  call f_err_throw('ise(1,jthread)/=ise(2,jthread-1)+1',err_name='BIGDFT_RUNTIME_ERROR')
-              end if
-          end if
-      end do
-      if (ii/=nout) call f_err_throw('ii/=nout',err_name='BIGDFT_RUNTIME_ERROR')
-
-      call f_free(n)
-
-      call f_release_routine()
-
-    end subroutine distribute_on_threads
 
 
     !!function get_transposed_index(smat,jorb,iorb) result(ind)
