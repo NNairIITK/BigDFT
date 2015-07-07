@@ -1564,6 +1564,7 @@ module postprocessing_linear
     subroutine supportfunction_centers(nat, rxyz, nphidim, phi, nphirdim, orbs, lzd, com)
       use module_base
       use module_types, only: orbitals_data, local_zone_descriptors, workarr_sumrho
+      use bounds, only: geocode_buffers
       use yaml_output
       implicit none
 
@@ -1578,7 +1579,7 @@ module postprocessing_linear
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psir
       type(workarr_sumrho) :: w
-      integer :: ist, istr, iorb, iiorb, ilr, i1, i2, i3, ii1, ii2, ii3, iat, iiat, l, m
+      integer :: ist, istr, iorb, iiorb, ilr, i1, i2, i3, ii1, ii2, ii3, iat, iiat, l, m, nl1, nl2, nl3
       real(kind=8),dimension(-1:1) :: dipole
       real(kind=8) :: weight, tt, x, y, z, r2, hxh, hyh, hzh, q, qtot, monopole, r
       real(kind=8),parameter :: sigma2=0.1d0
@@ -1616,17 +1617,18 @@ module postprocessing_linear
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
+          call geocode_buffers(lzd%Llr(ilr)%geocode, lzd%glr%geocode, nl1, nl2, nl3)
           !write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
           com(1:3,iorb) = 0.d0
           weight = 0.d0
           do i3=1,lzd%llr(ilr)%d%n3i
-              ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 1
+              ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
               z = ii3*hzh
               do i2=1,lzd%llr(ilr)%d%n2i
-                  ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 1
+                  ii2 = lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
                   y = ii2*hyh
                   do i1=1,lzd%llr(ilr)%d%n1i
-                      ii1 = lzd%llr(ilr)%nsi1 + i1 - 14 - 1
+                      ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
                       x = ii1*hxh
                       tt = psir(istr)**2
                       com(1,iorb) = com(1,iorb) + x*tt
@@ -1679,6 +1681,7 @@ module postprocessing_linear
       real(kind=8),dimension(:,:,:),allocatable :: coeff_all, ovrlp_onehalf_all
       integer,dimension(:,:,:,:),allocatable :: ilup
       real(kind=8),dimension(:),allocatable :: eval, eval_all, ovrlp_large, tmpmat1, tmpmat2, kerneltilde, charge_per_atom
+      real(kind=8),dimension(:,:,:),allocatable :: tmpmat2d
       integer,dimension(:),allocatable :: id_all, n_all
       real(kind=8),dimension(3) :: rr
       logical,dimension(:,:),allocatable :: neighbor
@@ -1757,7 +1760,7 @@ module postprocessing_linear
           nmax = max(nmax, n)
       end do
       if (bigdft_mpi%iproc==0) then
-          call yaml_map('maximal size of a submatrix n',nmax)
+          call yaml_map('maximal size of a submatrix',nmax)
       end if
       
       eval_all = f_malloc(ntot,id='eval_all')
@@ -1870,7 +1873,8 @@ module postprocessing_linear
           ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
           ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
           call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-          call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc, n, -1, .true., ovrlp_tmp, tmb%linmat%s)
+          !call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc, n, -1, .true., ovrlp_tmp, tmb%linmat%s)
+          call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, tmb%linmat%s)
           do i=1,n
               call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
           end do
@@ -1954,7 +1958,7 @@ module postprocessing_linear
                   call yaml_mapping_open(flow=.true.)
                   call yaml_map('eval',eval_all(i),fmt='(es13.4)')
                   call yaml_map('atom',id_all(i),fmt='(i5.5)')
-                  call yaml_map('occ',occ,fmt='(1pg13.4e3)')
+                  call yaml_map('occ',occ,fmt='(1pg13.5e3)')
                   call yaml_mapping_close(advance='no')
                   call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
               else
@@ -1976,6 +1980,7 @@ module postprocessing_linear
       ! Calculate the projector. First for each single atom, then insert it into the big one.
       do kat=1,at%astruct%nat
           n = n_all(kat)
+          proj = f_malloc0((/n,n/),id='proj')
           do i=1,n
               do j=1,n
                    ij = 0
@@ -1983,21 +1988,54 @@ module postprocessing_linear
                        if (id_all(ieval)/=kat) cycle
                        ij = ij + 1
                        occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
-                       jj = ilup(1,j,i,kat)
-                       ii = ilup(2,j,i,kat)
-                       indl=matrixindex_in_compressed(tmb%linmat%l, ii, jj)
-                       !projector_compr(indl) = projector_compr(indl) + occ*coeff_all(j,ij,kat)*coeff_all(i,ij,kat)
-                       tt = 0.d0
-                       do k=1,n
-                           do l=1,n
-                               tt = tt + &
-                                   ovrlp_onehalf_all(j,l,kat)*coeff_all(l,ij,kat)*coeff_all(k,ij,kat)*ovrlp_onehalf_all(k,i,kat)
-                           end do
-                       end do
-                       projector_compr(indl) = projector_compr(indl) + occ*tt
+                       !!jj = ilup(1,j,i,kat)
+                       !!ii = ilup(2,j,i,kat)
+                       proj(j,i) = proj(j,i) + occ*coeff_all(j,ij,kat)*coeff_all(i,ij,kat)
                    end do
               end do
           end do
+          tmpmat2d = f_malloc((/n,n,1/),id='tmppmat2d')
+          call gemm('n', 'n', n, n, n, 1.d0, proj(1,1), n, ovrlp_onehalf_all(1,1,kat), nmax, 0.d0, tmpmat2d(1,1,1), n)
+          call gemm('n', 'n', n, n, n, 1.d0, ovrlp_onehalf_all(1,1,kat), nmax, tmpmat2d(1,1,1), n, 0.d0, proj(1,1), n)
+          call f_free(tmpmat2d)
+          do i=1,n
+              do j=1,n
+                   jj = ilup(1,j,i,kat)
+                   ii = ilup(2,j,i,kat)
+                   indl=matrixindex_in_compressed(tmb%linmat%l, ii, jj)
+                   if (indl>0) then
+                       ! Within the sparsity pattern
+                       projector_compr(indl) = projector_compr(indl) + proj(j,i)
+                   end if
+              end do
+          end do
+          call f_free(proj)
+
+          !!do i=1,n
+          !!    do j=1,n
+          !!         ij = 0
+          !!         do ieval=1,ntot
+          !!             if (id_all(ieval)/=kat) cycle
+          !!             ij = ij + 1
+          !!             occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
+          !!             jj = ilup(1,j,i,kat)
+          !!             ii = ilup(2,j,i,kat)
+          !!             indl=matrixindex_in_compressed(tmb%linmat%l, ii, jj)
+          !!             if (indl>0) then
+          !!                 ! Within the sparsity pattern
+          !!                 !projector_compr(indl) = projector_compr(indl) + occ*coeff_all(j,ij,kat)*coeff_all(i,ij,kat)
+          !!                 tt = 0.d0
+          !!                 do k=1,n
+          !!                     do l=1,n
+          !!                         tt = tt + &
+          !!                             ovrlp_onehalf_all(j,l,kat)*coeff_all(l,ij,kat)*coeff_all(k,ij,kat)*ovrlp_onehalf_all(k,i,kat)
+          !!                     end do
+          !!                 end do
+          !!                 projector_compr(indl) = projector_compr(indl) + occ*tt
+          !!             end if
+          !!         end do
+          !!    end do
+          !!end do
       end do
 
       call f_free(coeff_all)

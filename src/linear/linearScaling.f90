@@ -47,6 +47,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use foe_base, only: foe_data_set_real
   use rhopotential, only: full_local_potential
   use transposed_operations, only: calculate_overlap_transposed
+  use bounds, only: geocode_buffers
 
   implicit none
 
@@ -1366,8 +1367,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       call calculate_gap_FOE(iproc, nproc, input, KSwfn%orbs, tmb)
   end if
 
-  !write(*,*) 'CALLING projector_for_charge_analysis'
-  call projector_for_charge_analysis(at, tmb, rxyz, input%lin%norbsPerType)
 
 
 !!  !!!# DIAGONALIZATION TEST ####################################################
@@ -2340,6 +2339,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !!# END TEST 2 ############################################################
 
   if (input%loewdin_charge_analysis) then
+      if (iproc==0) then
+          call yaml_mapping_open('Charge analysis, projector approach')
+      end if
+      call projector_for_charge_analysis(at, tmb, rxyz, input%lin%norbsPerType)
+      if (iproc==0) then
+          call yaml_mapping_close()
+      end if
+
       !call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
       !     calculate_ovrlp_half=.true., meth_overlap=0)
       !theta = f_malloc((/at%astruct%nat,tmb%orbs%norbp/),id='theta')
@@ -2350,9 +2357,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !call calculate_theta(at%astruct%nat, rxyz, size(tmb%psi), tmb%psi, tmb%collcom_sr%ndimpsi_c, &
       !     tmb%orbs, tmb%lzd, theta)
       !write(*,*) 'theta',theta
+      if (iproc==0) then
+          call yaml_mapping_open('Charge analysis, Loewdin approach')
+      end if
       call loewdin_charge_analysis(iproc, tmb, at, denspot, calculate_overlap_matrix=.true., &
            calculate_ovrlp_half=.true., meth_overlap=norder_taylor, blocksize=tmb%orthpar%blocksize_pdsyev)!, &
            !ntheta=tmb%orbs%norbp, istheta=tmb%orbs%isorb, theta=theta)
+      if (iproc==0) then
+          call yaml_mapping_close()
+      end if
       call support_function_multipoles(iproc, tmb, at, denspot)
   end if
 

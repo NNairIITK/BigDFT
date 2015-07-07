@@ -1577,7 +1577,7 @@ multipoles_OH-:
  Epot: 1.3e-10
  EH: 2.1e-10
  Ekin: 7.0e-11
- Loewdin charge analysis (charge / net charge): 6.8e-8
+ Charge analysis (charge / net charge): 6.8e-8
  EXC: 2.1e-11
  EvXC: 3.1e-11
  energy: 3.0e-11
@@ -1619,7 +1619,7 @@ igortho_19:
  net dipole: 1.1e-6
  Energy (Hartree): 1.4e-9
  Multipole coefficients: 1.1e-6
- Loewdin charge analysis (charge / net charge): 4.1e-7
+ Charge analysis (charge / net charge): 4.1e-7
  Average noise forces: 7.8e-7
  eF: 2.2e-5
  EXC: 1.6e-6
@@ -1674,7 +1674,7 @@ igortho_44:
  trace(KS): 1.4e-08
  energy: 6.6e-07
  Omega: 3.0e-10
- Loewdin charge analysis (charge / net charge): 1.4e-6
+ Charge analysis (charge / net charge): 1.4e-6
  Multipole coefficients: 1.4e-6
  number of corrected points: 8
  net quadropole: 7.1e-5
@@ -1718,7 +1718,7 @@ igortho_94:
  D: 1.1e-7
  energy: 2.4e-8
  Omega: 1.1e-8
- Loewdin charge analysis (charge / net charge): 2.0e-6
+ Charge analysis (charge / net charge): 2.0e-6
  Multipole coefficients: 1.2e-5
  number of corrected points: 83
  delta: 4.1e-11
