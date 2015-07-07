@@ -1981,18 +1981,18 @@ module postprocessing_linear
       do kat=1,at%astruct%nat
           n = n_all(kat)
           proj = f_malloc0((/n,n/),id='proj')
-          do i=1,n
-              do j=1,n
-                   ij = 0
-                   do ieval=1,ntot
-                       if (id_all(ieval)/=kat) cycle
-                       ij = ij + 1
-                       occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
-                       !!jj = ilup(1,j,i,kat)
-                       !!ii = ilup(2,j,i,kat)
-                       proj(j,i) = proj(j,i) + occ*coeff_all(j,ij,kat)*coeff_all(i,ij,kat)
-                   end do
-              end do
+          ij = 0
+          do ieval=1,ntot
+              if (id_all(ieval)/=kat) cycle
+              ij = ij + 1
+              occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
+              do i=1,n
+                  do j=1,n
+                      !!jj = ilup(1,j,i,kat)
+                      !!ii = ilup(2,j,i,kat)
+                      proj(j,i) = proj(j,i) + occ*coeff_all(j,ij,kat)*coeff_all(i,ij,kat)
+                  end do
+             end do
           end do
           tmpmat2d = f_malloc((/n,n,1/),id='tmppmat2d')
           call gemm('n', 'n', n, n, n, 1.d0, proj(1,1), n, ovrlp_onehalf_all(1,1,kat), nmax, 0.d0, tmpmat2d(1,1,1), n)
