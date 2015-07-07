@@ -10,7 +10,7 @@ module postprocessing_linear
   public :: support_function_multipoles
   public :: build_ks_orbitals
   public :: calculate_theta
-  public :: supportfunction_centers
+  !public :: supportfunction_centers
   public :: projector_for_charge_analysis
 
   contains
@@ -1561,20 +1561,21 @@ module postprocessing_linear
 
 
 
-    subroutine supportfunction_centers(nat, rxyz, nphidim, phi, nphirdim, orbs, lzd, com)
+    subroutine supportfunction_centers(nat, rxyz, nphidim, phi, nphirdim, &
+               norb, norbp, isorb, in_which_locreg, lzd, com)
       use module_base
-      use module_types, only: orbitals_data, local_zone_descriptors, workarr_sumrho
+      use module_types, only: local_zone_descriptors, workarr_sumrho
       use bounds, only: geocode_buffers
       use yaml_output
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: nat, nphidim, nphirdim
+      integer,intent(in) :: nat, nphidim, nphirdim, norb, norbp, isorb
+      integer,dimension(norb),intent(in) :: in_which_locreg
       real(kind=8),dimension(3,nat),intent(in) :: rxyz
       real(kind=8),dimension(nphidim),intent(in) :: phi
-      type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
-      real(kind=8),dimension(3,orbs%norbp),intent(out) :: com
+      real(kind=8),dimension(3,norbp),intent(out) :: com
 
       ! Local variables
       real(kind=8),dimension(:),allocatable :: psir
@@ -1590,9 +1591,9 @@ module postprocessing_linear
       psir = f_malloc(max(nphirdim,1),id='psir')
       ist=1
       istr=1
-      do iorb=1,orbs%norbp
-          iiorb=orbs%isorb+iorb
-          ilr=orbs%inwhichlocreg(iiorb)
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          ilr=in_which_locreg(iiorb)
           call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
           call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
           call deallocate_work_arrays_sumrho(w)
@@ -1614,9 +1615,9 @@ module postprocessing_linear
       hzh = 0.5d0*lzd%hgrids(3)
 
       istr = 1
-      do iorb=1,orbs%norbp
-          iiorb=orbs%isorb+iorb
-          ilr=orbs%inwhichlocreg(iiorb)
+      do iorb=1,norbp
+          iiorb=isorb+iorb
+          ilr=in_which_locreg(iiorb)
           call geocode_buffers(lzd%Llr(ilr)%geocode, lzd%glr%geocode, nl1, nl2, nl3)
           !write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
           com(1:3,iorb) = 0.d0
@@ -1655,11 +1656,17 @@ module postprocessing_linear
 
 
 
-    subroutine projector_for_charge_analysis(at, tmb, rxyz, norbs_per_type)
+    subroutine projector_for_charge_analysis(at, smats, smatm, smatl, ovrlp_, ham_, kernel_, &
+               lzd,  rxyz, norbs_per_type, centers_provided, &
+               nphirdim, psi, orbs, com_)
       use module_base
-      use module_types, only: DFT_wavefunction
+      use module_types, only: local_zone_descriptors, orbitals_data
       use module_atoms, only: atoms_data
-      use sparsematrix_base, only: sparsematrix_malloc, sparsematrix_malloc0, SPARSE_TASKGROUP, assignment(=)
+      use sparsematrix_base, only: sparse_matrix, matrices, &
+                                   sparsematrix_malloc, sparsematrix_malloc0, &
+                                   sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, &
+                                   SPARSE_TASKGROUP, assignment(=), &
+                                   matrices_null, deallocate_matrices
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
@@ -1668,16 +1675,26 @@ module postprocessing_linear
 
       ! Calling arguments
       type(atoms_data),intent(in) :: at
-      type(DFT_wavefunction),intent(inout) :: tmb
+      type(sparse_matrix),intent(inout) :: smats, smatl !< should be intent(in)...
+      type(sparse_matrix),intent(in) :: smatm
+      type(local_zone_descriptors),intent(in) :: lzd
+      type(matrices),intent(inout) :: ovrlp_ !< should be intent(in)...
+      type(matrices),intent(in) :: ham_, kernel_
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
       integer,dimension(at%astruct%ntypes),intent(in) :: norbs_per_type
+      logical,intent(in) :: centers_provided
+      integer,intent(in),optional :: nphirdim
+      real(kind=8),dimension(:),intent(in),optional :: psi
+      type(orbitals_data),intent(in),optional :: orbs
+      real(kind=8),dimension(:,:),pointer,intent(in),optional :: com_
 
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl
       integer :: k, l, iatold, isat, natp, kkat, istot, ntotp
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error
       real(kind=8),dimension(:),allocatable :: projector_compr
-      real(kind=8),dimension(:,:),allocatable :: com, ham, ovrlp, proj, ovrlp_tmp
+      real(kind=8),dimension(:,:),pointer :: com
+      real(kind=8),dimension(:,:),allocatable :: ham, ovrlp, proj, ovrlp_tmp
       real(kind=8),dimension(:,:,:),allocatable :: coeff_all, ovrlp_onehalf_all
       integer,dimension(:,:,:,:),allocatable :: ilup
       real(kind=8),dimension(:),allocatable :: eval, eval_all, ovrlp_large, tmpmat1, tmpmat2, kerneltilde, charge_per_atom
@@ -1685,16 +1702,38 @@ module postprocessing_linear
       integer,dimension(:),allocatable :: id_all, n_all, itmparr
       real(kind=8),dimension(3) :: rr
       logical,dimension(:,:),allocatable :: neighbor
+      type(matrices),dimension(1) :: ovrlp_onehalf_
       real(kind=8),parameter :: kT = 1.d-2
 
 
       call f_routine(id='projector_for_charge_analysis')
 
-      ! Calculate S^1/2
-      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/2/), -1, &
-            imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-            ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=tmb%linmat%ovrlppowers_(2), &
-            check_accur=.true., max_error=max_error, mean_error=mean_error)
+      ! Check the arguments
+      if (centers_provided) then
+          ! The centers of the support functions are already given
+          if (.not.present(com_)) then
+              call f_err_throw('com_ not present',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (size(com_,1)/=3) then
+              call f_err_throw('wrong first dimension of com_',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (size(com_,2)/=smats%nfvctr) then
+              call f_err_throw('wrong second dimension of com_',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          com => com_
+      else
+          ! Must calculate the centers of the support functions
+          if (.not.present(nphirdim)) then
+              call f_err_throw('nphirdim not present',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (.not.present(psi)) then
+              call f_err_throw('psi not present',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (.not.present(orbs)) then
+              call f_err_throw('orbs not present',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          com = f_malloc0_ptr((/3,orbs%norb/),id='com')
+      end if
 
 
       ! Parallelization over the number of atoms
@@ -1709,7 +1748,7 @@ module postprocessing_linear
 
       ! Determine the sum of the size of all submatrices (i.e. the total number of eigenvalues we will have)
       ! and the maximal value for one atom.
-      neighbor = f_malloc((/tmb%linmat%s%nfvctr,natp/),id='neighbor')
+      neighbor = f_malloc((/smats%nfvctr,natp/),id='neighbor')
       neighbor(:,:) = .false.
       ntot = 0
       nmax = 0
@@ -1717,18 +1756,17 @@ module postprocessing_linear
       do kat=1,natp
           kkat = kat + isat
           n = 0
-          do i=1,tmb%linmat%s%nfvctr
-               iat = tmb%linmat%s%on_which_atom(i)
+          do i=1,smats%nfvctr
+               iat = smats%on_which_atom(i)
                ! Only do the following for the first TMB per atom
                if (iat==iatold) cycle
                iatold = iat
                if (iat==kkat) then
-                   do j=1,tmb%linmat%s%nfvctr
-                       inds =  matrixindex_in_compressed(tmb%linmat%s, i, j)
+                   do j=1,smats%nfvctr
+                       inds =  matrixindex_in_compressed(smats, i, j)
                        if (inds/=0) then
                           neighbor(j,kat) = .true.
                           n = n + 1
-                          !!write(*,*) 'kat, i, j, inds', kat, i, j, inds
                        end if
                    end do
                end if
@@ -1762,35 +1800,26 @@ module postprocessing_linear
 
 
       ! Centers of the support functions
-      com = f_malloc0((/3,tmb%orbs%norb/),id='com')
-      if (tmb%orbs%norb>0) then
-          call supportfunction_centers(at%astruct%nat, rxyz, size(tmb%psi), tmb%psi, tmb%collcom_sr%ndimpsi_c, &
-               tmb%orbs, tmb%lzd, com(1:,tmb%orbs%isorb+1:))
-          if (bigdft_mpi%nproc>1) then
-              call mpiallred(com, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      if (.not.centers_provided) then
+          if (orbs%norb>0) then
+              !call supportfunction_centers(at%astruct%nat, rxyz, size(psi), psi, tmb%collcom_sr%ndimpsi_c, &
+              !     orbs%norb, orbs%norbp, orbs%isorb, orbs%in_which_locreg, lzd, com(1:,orbs%isorb+1:))
+              call supportfunction_centers(at%astruct%nat, rxyz, size(psi), psi, nphirdim, &
+                   orbs%norb, orbs%norbp, orbs%isorb, orbs%inwhichlocreg, lzd, com(1:,orbs%isorb+1:))
+              if (bigdft_mpi%nproc>1) then
+                  call mpiallred(com, mpi_sum, comm=bigdft_mpi%mpi_comm)
+              end if
           end if
       end if
 
-      !!do i=1,tmb%linmat%s%nfvctr
-      !!    iat = tmb%linmat%s%on_which_atom(i)
-      !!    write(*,*) 'i, iat, com(:,i), rxyz(:,iat)', i, iat, com(:,i), rxyz(:,iat)
-      !!end do
-
 
       ist = 0
-      do kat=1,natp!at%astruct%nat
+      do kat=1,natp
           kkat = kat + isat
 
           ! Determine the size of the submatrix
           n = 0
-          do j=1,tmb%linmat%s%nfvctr
-              !jat = tmb%linmat%s%on_which_atom(j)
-              !r2 = (rxyz(1,kat)-rxyz(1,jat))**2 + &
-              !     (rxyz(2,kat)-rxyz(2,jat))**2 + &
-              !     (rxyz(3,kat)-rxyz(3,jat))**2
-              !if (r2<=cutoff2) then
-              !    n = n + 1
-              !end if
+          do j=1,smats%nfvctr
               if (neighbor(j,kat)) then
                   n = n + 1
               end if
@@ -1804,41 +1833,24 @@ module postprocessing_linear
           proj = f_malloc0((/n,n/),id='proj')
           eval = f_malloc0((/n/),id='eval')
           icheck = 0
-          !!write(*,*) 'kat, n', kat, n
-          !!do i=1,tmb%linmat%s%nfvctr
-          !!    write(*,*) 'i, neighbor(i,kat)', i, neighbor(i,kat)
-          !!end do
           ii = 0
-          do i=1,tmb%linmat%s%nfvctr
-              !!iat = tmb%linmat%s%on_which_atom(i)
+          do i=1,smats%nfvctr
               if (neighbor(i,kat)) then
-              !if (iat==kat) then
-              !    ii = ii + 1
                   jj = 0
-                  do j=1,tmb%linmat%s%nfvctr
-                      !jat = tmb%linmat%s%on_which_atom(j)
-                      !r2 = (rxyz(1,iat)-rxyz(1,jat))**2 + &
-                      !     (rxyz(2,iat)-rxyz(2,jat))**2 + &
-                      !     (rxyz(3,iat)-rxyz(3,jat))**2
-                      !if (r2<=cutoff2) then
+                  do j=1,smats%nfvctr
                       if (neighbor(j,kat)) then
                           icheck = icheck + 1
                           jj = jj + 1
                           if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
-                          inds =  matrixindex_in_compressed(tmb%linmat%s, i, j)
-                          !!if (inds==0) then
-                          !!    write(*,*) 'kat, i, j, inds', kat, i, j, inds
-                          !!    call f_err_throw('inds==0',err_name='BIGDFT_RUNTIME_ERROR')
-                          !!end if
+                          inds =  matrixindex_in_compressed(smats, i, j)
                           if (inds>0) then
-                              ovrlp(jj,ii) = tmb%linmat%ovrlp_%matrix_compr(inds)
+                              ovrlp(jj,ii) = ovrlp_%matrix_compr(inds)
                           else
                               ovrlp(jj,ii) = 0.d0
                           end if
-                          indm =  matrixindex_in_compressed(tmb%linmat%m, i, j)
-                          !!if (indm==0) call f_err_throw('indm==0',err_name='BIGDFT_RUNTIME_ERROR')
+                          indm =  matrixindex_in_compressed(smatm, i, j)
                           if (indm>0) then
-                              ham(jj,ii) = tmb%linmat%ham_%matrix_compr(indm)
+                              ham(jj,ii) = ham_%matrix_compr(indm)
                           else
                               ham(jj,ii) = 0.d0
                           end if
@@ -1847,11 +1859,8 @@ module postprocessing_linear
                           rr(3) = 0.5d0*(com(3,i)+com(3,j))
                           rr2 = (rr(1)-rxyz(1,kkat))**2 + (rr(2)-rxyz(2,kkat))**2 + (rr(3)-rxyz(3,kkat))**2
                           ham(jj,ii) = ham(jj,ii) + 1.d0*(0.5d0)*rr2**3*ovrlp(jj,ii)
-                          !!write(*,*) 'kat, ii, jj, rr2', kat, ii, jj, rr2
                           ilup(1,jj,ii,kat) = j
                           ilup(2,jj,ii,kat) = i
-                      !!else
-                      !!    write(*,*) 'outside cutoff', r2, cutoff2
                       end if
                   end do
               end if
@@ -1864,21 +1873,13 @@ module postprocessing_linear
           ! Calculate ovrlp^1/2. The last argument is wrong, clean this.
           ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
           call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-          !call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc, n, -1, .true., ovrlp_tmp, tmb%linmat%s)
-          call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, tmb%linmat%s)
+          call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
           do i=1,n
               call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
           end do
           call f_free(ovrlp_tmp)
 
-          ! Diagonalize the submatrix
-          !do i=1,n
-          !    do j=1,n
-          !        write(*,*) 'i, j, vals', i, j, ham(j,i), ovrlp(j,i)
-          !    end do
-          !end do
           call diagonalizeHamiltonian2(bigdft_mpi%iproc, n, ham, ovrlp, eval)
-          !call yaml_map('eval',eval)
           do i=1,n
               ii = ist + i
               eval_all(istot+ii) = eval(i)
@@ -1886,10 +1887,7 @@ module postprocessing_linear
               call vcopy(n, ham(1,i), 1, coeff_all(1,i,kat), 1)
           end do
 
-
           ist = ist + n
-
-
 
           call f_free(ham)
           call f_free(ovrlp)
@@ -1972,9 +1970,9 @@ module postprocessing_linear
       end if
     
     
-      projector_compr = sparsematrix_malloc0(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='projector_compr')
+      projector_compr = sparsematrix_malloc0(iaction=SPARSE_TASKGROUP, smat=smatl, id='projector_compr')
       ! Calculate the projector. First for each single atom, then insert it into the big one.
-      do kat=1,natp!at%astruct%nat
+      do kat=1,natp
           kkat = kat + isat
           n = n_all(kat)
           proj = f_malloc0((/n,n/),id='proj')
@@ -1985,8 +1983,6 @@ module postprocessing_linear
               occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
               do i=1,n
                   do j=1,n
-                      !!jj = ilup(1,j,i,kat)
-                      !!ii = ilup(2,j,i,kat)
                       proj(j,i) = proj(j,i) + occ*coeff_all(j,ij,kat)*coeff_all(i,ij,kat)
                   end do
              end do
@@ -1999,7 +1995,7 @@ module postprocessing_linear
               do j=1,n
                    jj = ilup(1,j,i,kat)
                    ii = ilup(2,j,i,kat)
-                   indl=matrixindex_in_compressed(tmb%linmat%l, ii, jj)
+                   indl=matrixindex_in_compressed(smatl, ii, jj)
                    if (indl>0) then
                        ! Within the sparsity pattern
                        projector_compr(indl) = projector_compr(indl) + proj(j,i)
@@ -2007,32 +2003,6 @@ module postprocessing_linear
               end do
           end do
           call f_free(proj)
-
-          !!do i=1,n
-          !!    do j=1,n
-          !!         ij = 0
-          !!         do ieval=1,ntot
-          !!             if (id_all(ieval)/=kat) cycle
-          !!             ij = ij + 1
-          !!             occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
-          !!             jj = ilup(1,j,i,kat)
-          !!             ii = ilup(2,j,i,kat)
-          !!             indl=matrixindex_in_compressed(tmb%linmat%l, ii, jj)
-          !!             if (indl>0) then
-          !!                 ! Within the sparsity pattern
-          !!                 !projector_compr(indl) = projector_compr(indl) + occ*coeff_all(j,ij,kat)*coeff_all(i,ij,kat)
-          !!                 tt = 0.d0
-          !!                 do k=1,n
-          !!                     do l=1,n
-          !!                         tt = tt + &
-          !!                             ovrlp_onehalf_all(j,l,kat)*coeff_all(l,ij,kat)*coeff_all(k,ij,kat)*ovrlp_onehalf_all(k,i,kat)
-          !!                     end do
-          !!                 end do
-          !!                 projector_compr(indl) = projector_compr(indl) + occ*tt
-          !!             end if
-          !!         end do
-          !!    end do
-          !!end do
       end do
 
       if (bigdft_mpi%nproc>1) then
@@ -2043,37 +2013,28 @@ module postprocessing_linear
       call f_free(ilup)
       call f_free(n_all)
     
-      !!do i=1,size(projector_compr)
-      !!    write(*,*) 'i, projector_compr(i)', i, projector_compr(i)
-      !!end do
-    
-      !!write(*,*) '1'
-      !ovrlp_large = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='ovrlp_large')
-      !!write(*,*) '2'
-      tmpmat1 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='tmpmat1')
-      !!write(*,*) '3'
-      tmpmat2 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='tmpmat2')
-      !!write(*,*) '4'
-      kerneltilde = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='kerneltilde')
-      !!write(*,*) '5'
-      !call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%l, tmb%linmat%ovrlp_%matrix_compr, ovrlp_large, 'small_to_large')
-      !!write(*,*) '6'
-    
-      !!! Calculate K * S * P * S.
-      !!call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
-      !!     projector_compr, ovrlp_large, tmpmat1)
-      !!call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
-      !!     ovrlp_large, tmpmat1, tmpmat2)
-      !!call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
-      !!     tmb%linmat%kernel_%matrix_compr, tmpmat2, kerneltilde)
+      tmpmat1 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat1')
+      tmpmat2 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat2')
+      kerneltilde = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='kerneltilde')
+
+
+      ! Calculate S^1/2
+      ovrlp_onehalf_(1) = matrices_null()
+      ovrlp_onehalf_(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_onehalf_(1)%matrix_compr')
+      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/2/), -1, &
+            imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+            ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
+            check_accur=.true., max_error=max_error, mean_error=mean_error)
     
       ! Calculate S^1/2 * K * S^1/2  * P'
-      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
-           tmb%linmat%ovrlppowers_(2)%matrix_compr, projector_compr, tmpmat1)
-      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
-           tmb%linmat%kernel_%matrix_compr, tmpmat1, tmpmat2)
-      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%l, &
-           tmb%linmat%ovrlppowers_(2)%matrix_compr, tmpmat2, kerneltilde)
+      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
+           ovrlp_onehalf_(1)%matrix_compr, projector_compr, tmpmat1)
+      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
+           kernel_%matrix_compr, tmpmat1, tmpmat2)
+      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
+           ovrlp_onehalf_(1)%matrix_compr, tmpmat2, kerneltilde)
+
+      call deallocate_matrices(ovrlp_onehalf_(1))
 
       call f_free(projector_compr)
       call f_free(tmpmat1)
@@ -2086,22 +2047,7 @@ module postprocessing_linear
     
       ! Calculate the partial traces
       charge_per_atom = f_malloc0(at%astruct%nat,id='charge_per_atom')
-      !!ii = 1
-      !!do
-      !!    iat = tmb%linmat%l%on_which_atom(ii)
-      !!    itype = at%astruct%iatype(iat)
-      !!    n = norbs_per_type(itype)
-      !!    tt=0.d0
-      !!    do i=ii,ii+n-1
-      !!        ind=matrixindex_in_compressed(tmb%linmat%l, i, i)
-      !!        tt = tt + kerneltilde(ind)
-      !!    end do
-      !!    write(*,*) 'iat, itype, charge', iat, itype, tt
-      !!    ii = ii + n
-      !!    if (ii==tmb%linmat%l%nfvctr+1) exit
-      !!end do
-      call determine_atomic_charges(tmb%linmat%l, at%astruct%nat, kerneltilde, charge_per_atom)
-      !!write(*,*) 'cpa', charge_per_atom
+      call determine_atomic_charges(smatl, at%astruct%nat, kerneltilde, charge_per_atom)
     
       if (bigdft_mpi%iproc==0) then
           call write_partial_charges(at, charge_per_atom, write_gnuplot=.false.)
@@ -2113,7 +2059,9 @@ module postprocessing_linear
       call f_free(eval_all)
       call f_free(id_all)
       call f_free(ovrlp_onehalf_all)
-      call f_free(com)
+      if (.not.centers_provided) then
+          call f_free_ptr(com)
+      end if
 
       call f_release_routine()
 

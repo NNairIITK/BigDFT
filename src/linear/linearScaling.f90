@@ -37,7 +37,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use sparsematrix_init, only: matrixindex_in_compressed
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals, calculate_theta, &
-                                   supportfunction_centers, projector_for_charge_analysis
+                                   projector_for_charge_analysis
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   use locreg_operations, only: get_boundary_weight, small_to_large_locreg
   use public_enums
@@ -115,7 +115,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=8),dimension(1,1) :: K_H
   real(kind=8),dimension(4,4) :: K_O
   integer :: j, ind, n, ishifts, ishiftm, iq
-  real(kind=8),dimension(:,:),allocatable :: tempmat, all_evals, ham_small, projector_small, ovrlp_small, theta, com, coeffs
+  real(kind=8),dimension(:,:),allocatable :: tempmat, all_evals, ham_small, projector_small, ovrlp_small, theta, coeffs
+  real(kind=8),dimension(:,:),pointer :: com
   real(kind=8),dimension(:,:),allocatable :: tmat, coeff, ovrlp_full
   real(kind=8),dimension(:),allocatable :: projector_compr
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, coeff_all
@@ -2342,7 +2343,20 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       if (iproc==0) then
           call yaml_mapping_open('Charge analysis, projector approach')
       end if
-      call projector_for_charge_analysis(at, tmb, rxyz, input%lin%norbsPerType)
+      !call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, tmb%lzd, &
+      !     rxyz, input%lin%norbsPerType, centers_provided=.false., &
+      !     nphirdim=tmb%collcom_sr%ndimpsi_c, psi=tmb%psi, orbs=tmb%orbs)
+      com = f_malloc_ptr((/3,tmb%linmat%s%nfvctr/),id='com')
+      do i=1,tmb%linmat%s%nfvctr
+          iat = tmb%linmat%s%on_which_atom(i)
+          com(1:3,i) = rxyz(1:3,iat)
+      end do
+      call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, tmb%lzd, &
+           rxyz, input%lin%norbsPerType, centers_provided=.true., &
+           com_=com)
+      call f_free_ptr(com)
       if (iproc==0) then
           call yaml_mapping_close()
       end if
