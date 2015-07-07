@@ -1674,7 +1674,7 @@ module postprocessing_linear
 
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl
-      integer :: k, l, iatold
+      integer :: k, l, iatold, isat, natp, kkat, istot, ntotp
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error
       real(kind=8),dimension(:),allocatable :: projector_compr
       real(kind=8),dimension(:,:),allocatable :: com, ham, ovrlp, proj, ovrlp_tmp
@@ -1682,7 +1682,7 @@ module postprocessing_linear
       integer,dimension(:,:,:,:),allocatable :: ilup
       real(kind=8),dimension(:),allocatable :: eval, eval_all, ovrlp_large, tmpmat1, tmpmat2, kerneltilde, charge_per_atom
       real(kind=8),dimension(:,:,:),allocatable :: tmpmat2d
-      integer,dimension(:),allocatable :: id_all, n_all
+      integer,dimension(:),allocatable :: id_all, n_all, itmparr
       real(kind=8),dimension(3) :: rr
       logical,dimension(:,:),allocatable :: neighbor
       real(kind=8),parameter :: kT = 1.d-2
@@ -1697,55 +1697,32 @@ module postprocessing_linear
             check_accur=.true., max_error=max_error, mean_error=mean_error)
 
 
-      !!! Determine the maximal cutoff radius of any atom, taking into account the overlap sparsity pattern
-      !!cutoff2 = 0.d0
-      !!do i=1,tmb%linmat%s%nfvctr
-      !!    do j=1,tmb%linmat%s%nfvctr
-      !!        inds =  matrixindex_in_compressed(tmb%linmat%s, i, j)
-      !!        if (inds>0) then
-      !!            iat = tmb%linmat%s%on_which_atom(i)
-      !!            jat = tmb%linmat%s%on_which_atom(j)
-      !!            r2 = (rxyz(1,iat)-rxyz(1,jat))**2 + &
-      !!                 (rxyz(2,iat)-rxyz(2,jat))**2 + &
-      !!                 (rxyz(3,iat)-rxyz(3,jat))**2
-      !!            r2 = r2 + 1.d-8 ! just to avoid roundoff errors...
-      !!            cutoff2 = max(cutoff2,r2)
-      !!        end if
-      !!    end do
-      !!end do
-      !!call yaml_map('cutoff2',cutoff2)
+      ! Parallelization over the number of atoms
+      ii = at%astruct%nat/bigdft_mpi%nproc
+      natp = ii
+      jj = at%astruct%nat - bigdft_mpi%nproc*natp
+      if (bigdft_mpi%iproc<jj) then
+          natp = natp + 1
+      end if
+      isat = (bigdft_mpi%iproc)*ii + min(bigdft_mpi%iproc,jj)
 
 
       ! Determine the sum of the size of all submatrices (i.e. the total number of eigenvalues we will have)
       ! and the maximal value for one atom.
-      neighbor = f_malloc((/tmb%linmat%s%nfvctr,at%astruct%nat/),id='neighbor')
+      neighbor = f_malloc((/tmb%linmat%s%nfvctr,natp/),id='neighbor')
       neighbor(:,:) = .false.
       ntot = 0
       nmax = 0
-      !!do kat=1,at%astruct%nat
-      !!    ! Determine the size of the submatrix
-      !!    n = 0
-      !!    do j=1,tmb%linmat%s%nfvctr
-      !!        jat = tmb%linmat%s%on_which_atom(j)
-      !!        r2 = (rxyz(1,kat)-rxyz(1,jat))**2 + &
-      !!             (rxyz(2,kat)-rxyz(2,jat))**2 + &
-      !!             (rxyz(3,kat)-rxyz(3,jat))**2
-      !!        if (r2<=cutoff2) then
-      !!            n = n + 1
-      !!        end if
-      !!    end do
-      !!    ntot = ntot + n
-      !!    nmax = max(nmax, n)
-      !!end do
       iatold = 0
-      do kat=1,at%astruct%nat
+      do kat=1,natp
+          kkat = kat + isat
           n = 0
           do i=1,tmb%linmat%s%nfvctr
                iat = tmb%linmat%s%on_which_atom(i)
                ! Only do the following for the first TMB per atom
                if (iat==iatold) cycle
                iatold = iat
-               if (iat==kat) then
+               if (iat==kkat) then
                    do j=1,tmb%linmat%s%nfvctr
                        inds =  matrixindex_in_compressed(tmb%linmat%s, i, j)
                        if (inds/=0) then
@@ -1759,16 +1736,29 @@ module postprocessing_linear
           ntot = ntot + n
           nmax = max(nmax, n)
       end do
+      itmparr = f_malloc0(0.to.bigdft_mpi%nproc-1,id='itmparr')
+      itmparr(bigdft_mpi%iproc) = ntot
+      ntotp = ntot
+      if (bigdft_mpi%nproc>1) then
+          call mpiallred(itmparr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(ntot, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(nmax, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+      end if
+      istot = 0
+      do i=0,bigdft_mpi%iproc-1
+          istot = istot + itmparr(i)
+      end do
+      call f_free(itmparr)
       if (bigdft_mpi%iproc==0) then
           call yaml_map('maximal size of a submatrix',nmax)
       end if
       
-      eval_all = f_malloc(ntot,id='eval_all')
-      id_all = f_malloc(ntot,id='id_all')
-      coeff_all = f_malloc((/nmax,nmax,at%astruct%nat/),id='coeff_all')
-      ovrlp_onehalf_all = f_malloc((/nmax,nmax,at%astruct%nat/),id='ovrlp_onehalf_all')
-      ilup = f_malloc((/2,nmax,nmax,at%astruct%nat/),id='ilup')
-      n_all = f_malloc(at%astruct%nat,id='n_all')
+      eval_all = f_malloc0(ntot,id='eval_all')
+      id_all = f_malloc0(ntot,id='id_all')
+      coeff_all = f_malloc((/nmax,nmax,natp/),id='coeff_all')
+      ovrlp_onehalf_all = f_malloc((/nmax,nmax,natp/),id='ovrlp_onehalf_all')
+      ilup = f_malloc((/2,nmax,nmax,natp/),id='ilup')
+      n_all = f_malloc(natp,id='n_all')
 
 
       ! Centers of the support functions
@@ -1788,7 +1778,8 @@ module postprocessing_linear
 
 
       ist = 0
-      do kat=1,at%astruct%nat
+      do kat=1,natp!at%astruct%nat
+          kkat = kat + isat
 
           ! Determine the size of the submatrix
           n = 0
@@ -1854,7 +1845,7 @@ module postprocessing_linear
                           rr(1) = 0.5d0*(com(1,i)+com(1,j))
                           rr(2) = 0.5d0*(com(2,i)+com(2,j))
                           rr(3) = 0.5d0*(com(3,i)+com(3,j))
-                          rr2 = (rr(1)-rxyz(1,kat))**2 + (rr(2)-rxyz(2,kat))**2 + (rr(3)-rxyz(3,kat))**2
+                          rr2 = (rr(1)-rxyz(1,kkat))**2 + (rr(2)-rxyz(2,kkat))**2 + (rr(3)-rxyz(3,kkat))**2
                           ham(jj,ii) = ham(jj,ii) + 1.d0*(0.5d0)*rr2**3*ovrlp(jj,ii)
                           !!write(*,*) 'kat, ii, jj, rr2', kat, ii, jj, rr2
                           ilup(1,jj,ii,kat) = j
@@ -1890,8 +1881,8 @@ module postprocessing_linear
           !call yaml_map('eval',eval)
           do i=1,n
               ii = ist + i
-              eval_all(ii) = eval(i)
-              id_all(ii) = kat
+              eval_all(istot+ii) = eval(i)
+              id_all(istot+ii) = kkat
               call vcopy(n, ham(1,i), 1, coeff_all(1,i,kat), 1)
           end do
 
@@ -1907,7 +1898,12 @@ module postprocessing_linear
 
       end do
 
-      if (ist/=ntot) call f_err_throw('ist/=ntot',err_name='BIGDFT_RUNTIME_ERROR')
+      if (ist/=ntotp) call f_err_throw('ist/=ntotp',err_name='BIGDFT_RUNTIME_ERROR')
+
+      if (bigdft_mpi%nproc>1) then
+          call mpiallred(eval_all, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(id_all, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      end if
 
 
       ! Order the eigenvalues and IDs
@@ -1978,12 +1974,13 @@ module postprocessing_linear
     
       projector_compr = sparsematrix_malloc0(iaction=SPARSE_TASKGROUP, smat=tmb%linmat%l, id='projector_compr')
       ! Calculate the projector. First for each single atom, then insert it into the big one.
-      do kat=1,at%astruct%nat
+      do kat=1,natp!at%astruct%nat
+          kkat = kat + isat
           n = n_all(kat)
           proj = f_malloc0((/n,n/),id='proj')
           ij = 0
           do ieval=1,ntot
-              if (id_all(ieval)/=kat) cycle
+              if (id_all(ieval)/=kkat) cycle
               ij = ij + 1
               occ = 1.d0/(1.d0+safe_exp( (eval_all(ieval)-ef)*(1.d0/kT) ) )
               do i=1,n
@@ -2037,6 +2034,10 @@ module postprocessing_linear
           !!    end do
           !!end do
       end do
+
+      if (bigdft_mpi%nproc>1) then
+          call mpiallred(projector_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      end if
 
       call f_free(coeff_all)
       call f_free(ilup)
