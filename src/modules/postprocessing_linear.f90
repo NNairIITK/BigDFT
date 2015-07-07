@@ -1690,8 +1690,9 @@ module postprocessing_linear
 
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl
-      integer :: k, l, iatold, isat, natp, kkat, istot, ntotp
+      integer :: k, l, iatold, isat, natp, kkat, istot, ntotp, i1, i2, i3, is1, ie1, is2, ie2, is3, ie3, j1, j2, j3
       real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error
+      real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
       real(kind=8),dimension(:),allocatable :: projector_compr
       real(kind=8),dimension(:,:),pointer :: com
       real(kind=8),dimension(:,:),allocatable :: ham, ovrlp, proj, ovrlp_tmp
@@ -1703,6 +1704,7 @@ module postprocessing_linear
       real(kind=8),dimension(3) :: rr
       logical,dimension(:,:),allocatable :: neighbor
       type(matrices),dimension(1) :: ovrlp_onehalf_
+      logical :: perx, pery, perz
       real(kind=8),parameter :: kT = 1.d-2
 
 
@@ -1734,6 +1736,33 @@ module postprocessing_linear
           end if
           com = f_malloc0_ptr((/3,orbs%norb/),id='com')
       end if
+
+      ! Determine the periodicity...
+      perx=(lzd%glr%geocode /= 'F')
+      pery=(lzd%glr%geocode == 'P')
+      perz=(lzd%glr%geocode /= 'F')
+      if (perx) then
+          is1 = -1
+          ie1 = 1
+      else
+          is1 = 0
+          ie1 = 0
+      end if
+      if (pery) then
+          is2 = -1
+          ie2 = 1
+      else
+          is2 = 0
+          ie2 = 0
+      end if
+      if (perz) then
+          is3 = -1
+          ie3 = 1
+      else
+          is3 = 0
+          ie3 = 0
+      end if
+
 
 
       ! Parallelization over the number of atoms
@@ -1854,10 +1883,104 @@ module postprocessing_linear
                           else
                               ham(jj,ii) = 0.d0
                           end if
-                          rr(1) = 0.5d0*(com(1,i)+com(1,j))
-                          rr(2) = 0.5d0*(com(2,i)+com(2,j))
-                          rr(3) = 0.5d0*(com(3,i)+com(3,j))
-                          rr2 = (rr(1)-rxyz(1,kkat))**2 + (rr(2)-rxyz(2,kkat))**2 + (rr(3)-rxyz(3,kkat))**2
+                          !!! Search the midpoint between the two TMBs, taking into account the periodicity
+                          !!r2 = huge(r2)
+                          !!do i3=is3,ie3
+                          !!    zi = com(3,i) + i3*at%astruct%cell_dim(3)
+                          !!    zj = com(3,j) + i3*at%astruct%cell_dim(3)
+                          !!    zz = 0.5d0*(zi+zj)
+                          !!    ttz = (zi-zj)**2
+                          !!    do i2=is2,ie2
+                          !!        yi = com(2,i) + i2*at%astruct%cell_dim(2)
+                          !!        yj = com(2,j) + i2*at%astruct%cell_dim(2)
+                          !!        yy = 0.5d0*(yi+yj)
+                          !!        tty = (yi-yj)**2
+                          !!        do i1=is1,ie1
+                          !!            xi = com(1,i) + i1*at%astruct%cell_dim(1)
+                          !!            xj = com(1,j) + i1*at%astruct%cell_dim(1)
+                          !!            xx = 0.5d0*(xi+xj)
+                          !!            ttx = (xi-xj)**2
+                          !!            tt = ttx + tty + ttz
+                          !!            if (tt<r2) then
+                          !!                rr(3) = zz
+                          !!                rr(2) = yy
+                          !!                rr(1) = xx
+                          !!            end if
+                          !!        end do
+                          !!    end do
+                          !!end do
+                          !!! Determine the distance between the midpoint and the atom, taking into account the periodicity
+                          !!rr2 = huge(rr2)
+                          !!do i3=is3,ie3
+                          !!    zz = rr(3) + i3*at%astruct%cell_dim(3)
+                          !!    ttz = (zz-rxyz(3,kkat))**2
+                          !!    do i2=is2,ie2
+                          !!        yy = rr(2) + i2*at%astruct%cell_dim(2)
+                          !!        tty = (yy-rxyz(2,kkat))**2
+                          !!        do i1=is1,ie1
+                          !!            xx = rr(1) + i1*at%astruct%cell_dim(1)
+                          !!            ttx = (xx-rxyz(1,kkat))**2
+                          !!            tt = ttx + tty + ttz
+                          !!            if (tt<rr2) then
+                          !!                rr2 = tt
+                          !!            end if
+                          !!        end do
+                          !!    end do
+                          !!end do
+                          rr2 = huge(rr2)
+                          do i3=is3,ie3
+                              zi = com(3,i) + i3*at%astruct%cell_dim(3)
+                              zj = com(3,j) !+ i3*at%astruct%cell_dim(3)
+                              zz = 0.5d0*(zi+zj)
+                              do i2=is2,ie2
+                                  yi = com(2,i) + i2*at%astruct%cell_dim(2)
+                                  yj = com(2,j) !+ i2*at%astruct%cell_dim(2)
+                                  yy = 0.5d0*(yi+yj)
+                                  do i1=is1,ie1
+                                      xi = com(1,i) + i1*at%astruct%cell_dim(1)
+                                      xj = com(1,j) !+ i1*at%astruct%cell_dim(1)
+                                      xx = 0.5d0*(xi+xj)
+                                      do j3=is3,ie3
+                                          z = rxyz(3,kkat) + j3*at%astruct%cell_dim(3)
+                                          ttz = (zz-z)**2
+                                          do j2=is2,ie2
+                                              y = rxyz(2,kkat) + j2*at%astruct%cell_dim(2)
+                                              tty = (yy-y)**2
+                                              do j1=is1,ie1
+                                                  x = rxyz(1,kkat) + j1*at%astruct%cell_dim(1)
+                                                  ttx = (xx-x)**2
+                                                  tt = ttx + tty + ttz
+                                                  if (tt<rr2) then
+                                                      rr2 = tt
+                                                  end if
+                                              end do
+                                          end do
+                                      end do
+                                  end do
+                              end do
+                          end do
+                          !!rr2 = huge(rr2)
+                          !!do i3=is3,ie3
+                          !!    zz = rr(3) + i3*at%astruct%cell_dim(3)
+                          !!    ttz = (zz-rxyz(3,kkat))**2
+                          !!    do i2=is2,ie2
+                          !!        yy = rr(2) + i2*at%astruct%cell_dim(2)
+                          !!        tty = (yy-rxyz(2,kkat))**2
+                          !!        do i1=is1,ie1
+                          !!            xx = rr(1) + i1*at%astruct%cell_dim(1)
+                          !!            ttx = (xx-rxyz(1,kkat))**2
+                          !!            tt = ttx + tty + ttz
+                          !!            if (tt<rr2) then
+                          !!                rr2 = tt
+                          !!            end if
+                          !!        end do
+                          !!    end do
+                          !!end do
+                          !rr(1) = 0.5d0*(com(1,i)+com(1,j))
+                          !rr(2) = 0.5d0*(com(2,i)+com(2,j))
+                          !rr(3) = 0.5d0*(com(3,i)+com(3,j))
+                          !rr2 = (rr(1)-rxyz(1,kkat))**2 + (rr(2)-rxyz(2,kkat))**2 + (rr(3)-rxyz(3,kkat))**2
+                          !write(*,*) 'kat, i, j, ii, jj, iat, jat, rr2', kat, i, j, ii, jj, rr2
                           ham(jj,ii) = ham(jj,ii) + 1.d0*(0.5d0)*rr2**3*ovrlp(jj,ii)
                           ilup(1,jj,ii,kat) = j
                           ilup(2,jj,ii,kat) = i
