@@ -1708,7 +1708,7 @@ module postprocessing_linear
       logical :: perx, pery, perz, final
       !real(kind=8),parameter :: kT = 5.d-2
       real(kind=8) :: kT
-      real(kind=8),parameter :: alpha = 1.d1
+      real(kind=8),parameter :: alpha = 1.d-2
 
 
       call f_routine(id='projector_for_charge_analysis')
@@ -2221,18 +2221,29 @@ module postprocessing_linear
                       end do
                  end do
               end do
+              tt = 0.d0
+              do i=1,n
+                  tt = tt + proj(i,i)
+              end do
+              if (bigdft_mpi%iproc==0) then
+                  write(*,*) 'kkat, trace', kkat, tt
+              end if
               !tmpmat2d = f_malloc((/n,n,1/),id='tmppmat2d')
               !call gemm('n', 'n', n, n, n, 1.d0, proj(1,1), n, ovrlp_onehalf_all(1,1,kat), nmax, 0.d0, tmpmat2d(1,1,1), n)
               !call gemm('n', 'n', n, n, n, 1.d0, ovrlp_onehalf_all(1,1,kat), nmax, tmpmat2d(1,1,1), n, 0.d0, proj(1,1), n)
               !call f_free(tmpmat2d)
+
+              !@ TEMPORARY ############################################
+              projector_compr = 0.d0
+              !@ TEMPORARY ############################################
               do i=1,n
                   do j=1,n
                       ii = ilup(2,j,i,kat)
                       jj = ilup(1,j,i,kat)
                       iat = smatl%on_which_atom(ii)
-                      if (iat/=kkat) cycle
+                      !if (iat/=kkat) cycle
                       jat = smatl%on_which_atom(jj)
-                      if (jat/=kkat) cycle
+                      !if (jat/=kkat) cycle
                       indl=matrixindex_in_compressed(smatl, ii, jj)
                       if (indl>0) then
                           ! Within the sparsity pattern
@@ -2241,6 +2252,20 @@ module postprocessing_linear
                   end do
               end do
               call f_free(proj)
+
+              !@ TEMPORARY ############################################
+              ! Calculate S^1/2 * K * S^1/2  * P'
+              call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
+                   ovrlp_onehalf_(1)%matrix_compr, projector_compr, tmpmat1)
+              call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
+                   kernel_%matrix_compr, tmpmat1, tmpmat2)
+              call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
+                   ovrlp_onehalf_(1)%matrix_compr, tmpmat2, kerneltilde)
+              ! Calculate the partial traces
+              call determine_atomic_charges(smatl, at%astruct%nat, kerneltilde, charge_per_atom)
+              write(*,*) 'kkat, cpa', kkat, charge_per_atom
+              !@ TEMPORARY ############################################
+
           end do
 
           if (bigdft_mpi%nproc>1) then
@@ -2256,7 +2281,6 @@ module postprocessing_linear
                kernel_%matrix_compr, tmpmat1, tmpmat2)
           call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
                ovrlp_onehalf_(1)%matrix_compr, tmpmat2, kerneltilde)
-
 
 
           ! Calculate the partial traces
