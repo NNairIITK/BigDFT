@@ -191,12 +191,12 @@
        sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
      default: vacuum
    external_potential:
-     COMMENT: Multipole moments on an external potential
-     DESCRIPTION: Give the multipole moments up to octopoles
+     COMMENT: Multipole moments of an external potential
+     DESCRIPTION: Give the multipole moments up to quadrupoles
      default: 0.0
 #K points parameters
  kpt:
-   DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations
+   DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
    method:
      COMMENT: K-point sampling method
      EXCLUSIVE:
@@ -670,7 +670,7 @@
    method:
      COMMENT: Run method of BigDFT call
      EXCLUSIVE:
-       dft: Density Functional Theory
+       dft: Density Functional Theory (BigDFT)
        lj: Lennard-Jones force field
        lensic: Lenosky Force Field for Si clusters
        lensib: Lenosky Force Field for Si bulk
@@ -679,12 +679,14 @@
        morse_slab: Morse slab
        tersoff: Tersoff potential for C and Si
        bmhtf: Born Mayer Huggins Tosi Fumi Potential
+       cp2k: CP2K
+       dftbp: DFTP+
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
      default: default
    mm_paramfile:
-     COMMENT: name of parameter file
+     COMMENT: name of parameter or input file for the selected method or code
      default: none
      
 #Performance parameters
@@ -1098,6 +1100,10 @@
      calculate_onsite_overlap:
        COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
        default: No
+     charge_multipoles:
+       COMMENT: Calculate the atom-centered multipole coefficients of the electronic charge
+       DESCRIPTION: Calculate the multipole expansion coefficients which can then be used to establish a QM/MM coupling
+       default: no
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
@@ -1364,7 +1370,7 @@
                     Must be at least as large as the kernel cutoff.
        RANGE: [2.0,1000]
        default: 14.0
---- #here starts the document of possible input files
+--- #here starts the document of possible profiles, that have to be evoked with the 'import' keyword
 linear_accurate:
   COMMENT: appropriate input parameters for a high accuracy linear scaling calculation
   DESCRIPTION: This profile should be chosen if highly accurate energy differences are required
@@ -1473,3 +1479,92 @@ structural:
     ixc: PBE
   geopt:
     method: FIRE
+mixing:
+  COMMENT: to be used for metallic systems
+  dft:
+   gnrm_cv: 1.e-6
+   nrepmax: 1
+   itermax: 3
+   ncong: 5
+   idsx: 0
+  mix:
+   iscf: 17
+   itrpmax: 200
+   rpnrm_cv: 1.E-12
+   norbsempty: 120
+   tel: 0.01
+   alphamix: 0.8
+   alphadiis: 1.d0
+linear:
+ COMMENT: linear parameters sufficient for PDoS, charge analysis, MD
+ dft:
+   gnrm_cv: accurate
+   itermax: 50
+   nrepmax: 10
+   ncong: 5
+   idsx: 6
+   disablesym: Yes
+   inputpsiid: linear
+ perf:
+   ef_interpol_chargediff: 1.0
+   check_sumrho: 1
+   check_overlap: 1
+   experimental_mode: Yes
+   calculate_KS_residue: No
+   method_updatekernel: 2
+   purification_quickreturn: Yes
+   check_matrix_compression: No
+   correction_co_contra: Yes
+   store_index: No
+   mixing_after_inputguess: 1
+   kappa_conv: 0.1
+   FOE_restart: 1
+   hamapp_radius_incr: 6
+ lin_general:
+   hybrid: Yes
+   nit: 50
+   taylor_order: 1020
+   max_inversion_error: 5.0e-8
+   rpnrm_cv: 1.0e-11
+   output_mat: 1
+   output_coeff: 1
+ lin_basis:
+   nit: 8
+   idsx: 8
+   gnrm_cv: 2.0e-3
+   deltae_cv: 1.0e-4
+   min_gnrm_for_dynamic: 4.0e-3
+   alpha_diis: 0.5
+   alpha_sd: 0.5
+   nstep_prec: 6
+   fix_basis: 1.0e-12
+   correction_orthoconstraint: 0
+   gnrm_ig: 1.e-1
+ lin_kernel:
+   nstep: 10
+   nit: 6
+   idsx_coeff: [6, 0]
+   idsx: 6
+   alphamix: 0.1
+   linear_method: FOE
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002
+ lin_basis_params:
+   ao_confinement: -1.0
+   confinement: -1.0
+   rloc_kernel: 9.0
+   rloc_kernel_foe: 10.5
+   H:  {nbasis: 1, rloc: 4.5}
+   C:  {nbasis: 4, rloc: 5.0}
+   N:  {nbasis: 4, rloc: 5.0}
+   O:  {nbasis: 4, rloc: 5.0}
+   P:  {nbasis: 4, rloc: 5.5}
+   Cl: {nbasis: 4, rloc: 5.5}
+   K:  {nbasis: 1, rloc: 7.0}
+md:
+  COMMENT: Molecular dynamics Input file for H2O molecules
+  geopt:
+    method: AB6MD
+    ionmov: 8
+    dtion: 20.0
+    noseinert: 30.0

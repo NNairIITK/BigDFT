@@ -19,6 +19,7 @@ program PSolver_Program
   use dynamic_memory
   use yaml_output
   use dictionaries, only: f_err_throw
+  use yaml_strings
   implicit none
   !include 'mpif.h'
   !Order of interpolating scaling function

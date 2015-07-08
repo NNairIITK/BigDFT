@@ -231,7 +231,7 @@ module rhopotential
     
        call timing(iproc,'Pot_after_comm','ON')
        
-       if(Lzd%nlr > 1) then
+       if(Lzd%nlr > 1 .or. iflag==2) then !nlr>1 not enough to activate linear scaling (linear scaling with only one locreg is possible...)
           ilrtable = f_malloc(orbs%norbp,id='ilrtable')
           !call f_zero(orbs%norbp*2,ilrtable(1,1))
           ilrtable=0
@@ -796,7 +796,7 @@ module rhopotential
       charge_correction=0.d0
       do ipt=1,npt
           if (rho(ipt)<0.d0) then
-              if (rho(ipt)>=-1.d-9) then
+              if (rho(ipt)>=-1.d-5) then
                   ! negative, but small, so simply set to zero
                   charge_correction=charge_correction+rho(ipt)
                   !rho(ipt)=0.d0
@@ -804,7 +804,11 @@ module rhopotential
                   ncorrection=ncorrection+1
               else
                   ! negative, but non-negligible, so issue a warning
-                  call yaml_warning('considerable negative rho, value: '//trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+                  ! only print first time this occurs
+                  if (ncorrection==0) then
+                      call yaml_warning('considerable negative rho, value: '//&
+                        &trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+                  end if
                   charge_correction=charge_correction+rho(ipt)
                   !rho(ipt)=0.d0
                   rho(ipt)=1.d-20

@@ -186,7 +186,7 @@
    PAW patch                           : No
    Source                              : psppar.O_old
    Non Linear Core Correction term:
-     Conduction:
+     Core:
      -  [0.142620026930358, 0.0, 0.0, 15360.27758539605, 520.5121130161991]
    Radii of active regions (AU):
      Coarse                            : 1.215575721499752

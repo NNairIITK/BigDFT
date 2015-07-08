@@ -17,6 +17,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use vdwcorrection
   use yaml_output
+  use bounds, only: ext_buffers
   implicit none
   type(denspot_distribution), intent(in) :: dpbox
   type(atoms_data), intent(in) :: at
@@ -46,6 +47,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   real(gp), dimension(:,:), allocatable :: fewald,xred
   real(gp), dimension(3) :: cc
 
+  call timing(iproc,'ionic_energy','ON')
   fion = f_malloc_ptr((/ 3, at%astruct%nat /),id='fion')
   fdisp = f_malloc_ptr((/ 3, at%astruct%nat /),id='fdisp')
 
@@ -170,6 +172,13 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
      eion=0.0_gp
      eself=0.0_gp
+
+     !LR: commented hessian as not currently using it
+
+     !$omp parallel default(none) &
+     !$omp private(iat,ityp,rx,ry,rz,fxion,fyion,fzion,jtyp,chgprod,dist) &
+     !$omp shared(at,rxyz,fion,eself,eion)
+     !$omp do reduction(+:eself,eion)
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
         rx=rxyz(1,iat) 
@@ -180,12 +189,12 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         fyion=0.0_gp
         fzion=0.0_gp
         !initialisation of the hessian
-        hxx=0.0_gp
-        hxy=0.0_gp
-        hxz=0.0_gp
-        hyy=0.0_gp
-        hyz=0.0_gp
-        hzz=0.0_gp
+        !hxx=0.0_gp
+        !hxy=0.0_gp
+        !hxz=0.0_gp
+        !hyy=0.0_gp
+        !hyz=0.0_gp
+        !hzz=0.0_gp
 
         !    ion-ion interaction
         do jat=1,iat-1
@@ -198,12 +207,12 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
            fzion=fzion+chgprod/(dist**3)*(rz-rxyz(3,jat))
            !hessian matrix
-           hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
-           hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
-           hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
-           hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
-           hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
-           hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
+           !hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
+           !hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
+           !hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
+           !hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
+           !hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
+           !hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
         enddo
         do jat=iat+1,at%astruct%nat
            dist=sqrt((rx-rxyz(1,jat))**2+(ry-rxyz(2,jat))**2+(rz-rxyz(3,jat))**2)
@@ -215,12 +224,12 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            fyion=fyion+chgprod/(dist**3)*(ry-rxyz(2,jat))
            fzion=fzion+chgprod/(dist**3)*(rz-rxyz(3,jat))
            !hessian matrix
-           hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
-           hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
-           hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
-           hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
-           hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
-           hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
+           !hxx=hxx+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))**2-chgprod/(dist**3)
+           !hxy=hxy+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(ry-rxyz(2,jat))
+           !hxz=hxz+3.0_gp*chgprod/(dist**5)*(rx-rxyz(1,jat))*(rz-rxyz(3,jat))
+           !hyy=hyy+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))**2-chgprod/(dist**3)
+           !hyz=hyz+3.0_gp*chgprod/(dist**5)*(ry-rxyz(2,jat))*(rz-rxyz(3,jat))
+           !hzz=hzz+3.0_gp*chgprod/(dist**5)*(rz-rxyz(3,jat))**2-chgprod/(dist**3)
         end do
 
         fion(1,iat)=fxion
@@ -231,6 +240,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         !energy which comes from the self-interaction of the spread charge
        eself=eself+real(at%nelpsp(ityp)**2,gp)*0.5_gp*sqrt(1.d0/pi)/at%psppar(0,0,ityp)
      end do
+     !$omp end do
+     !$omp end parallel
 
      !if (nproc==1 .and. slowion) print *,'eself',eself
 
@@ -463,6 +474,9 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 
   call vdwcorrection_calculate_forces(fdisp,rxyz,at,dispersion)
   call vdwcorrection_freeparams() 
+
+  call timing(iproc,'ionic_energy','OF')
+
 END SUBROUTINE IonicEnergyandForces
 
 !> calculates the value of the dielectric funnction for a smoothed cavity 
@@ -470,6 +484,7 @@ END SUBROUTINE IonicEnergyandForces
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
 subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,eps)
   use f_utils
+  use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nat !< number of centres defining the cavity
@@ -583,6 +598,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
   use f_enums
   use yaml_output
   use dynamic_memory
+  use bounds, only: ext_buffers
 
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -620,7 +636,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
   real(kind=8), dimension(27*natreal) :: radiitot
   real(kind=8), dimension(:), allocatable :: radii
   real(kind=8), dimension(:,:), allocatable :: rxyz
-
+  logical, parameter :: dumpeps=.false.
 
   !buffers associated to the geocode
   !conditions for periodicity in the three directions
@@ -840,12 +856,30 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
   IntSur=IntSur*hgrids(1)*hgrids(2)*hgrids(3)/(epsilon0-1.d0)
   IntVol=IntVol*hgrids(1)*hgrids(2)*hgrids(3)
 
-  unt=f_get_free_unit(21)
+  if (dumpeps) then
+
+  unt=f_get_free_unit(20)
   call f_open_file(unt,file='epsilon.dat')
   i1=1!n03/2
   do i2=1,ndims(2)
      do i3=1,ndims(3)
         write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
+     end do
+  end do
+  call f_close(unt)
+
+  unt=f_get_free_unit(21)
+  call f_open_file(unt,file='epsilon_yz.dat')
+  write(unt,'(a)')'y,z,eps'
+   do iat=1,natreal
+    write(unt,'(3(1x,e14.7))')rxyzreal(1:3,iat)
+   end do
+  i1=ndims(1)/2
+  do i2=1,ndims(2)
+     do i3=1,ndims(3)
+        y=hgrids(2)*(i2-1-nbl2)
+        z=hgrids(3)*(i3-1-nbl3)
+        write(unt,'(3(1x,e14.7))')y,z,eps(i1,i2,i3)
      end do
   end do
   call f_close(unt)
@@ -856,6 +890,8 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
    write(unt,'(1x,I8,1(1x,e22.15))')i2,eps(ndims(1)/2,i2,ndims(3)/2)
   end do
   call f_close(unt)
+
+  end if
 
   call f_free(ep)
   call f_free(ddep)
@@ -889,6 +925,234 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
 
 end subroutine epsilon_rigid_cavity_error_multiatoms_bc
 
+!> calculates the inner cavity vector epsinnersccs for sccs run 
+!! given a set of centres. Based on error function.
+!! Need the radius of the cavit and its smoothness
+subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal,rxyzreal,radiireal,delta,eps)
+  use f_utils
+  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use f_enums
+  use yaml_output
+  use dynamic_memory
+  use bounds, only: ext_buffers
+
+  implicit none
+  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  integer, intent(in) :: natreal !< number of centres defining the cavity
+  real(kind=8), intent(in) :: delta !< smoothness factor of the cavity
+  integer, dimension(3), intent(in) :: ndims   !< dimensions of the simulation box
+  real(kind=8), dimension(3), intent(in) :: hgrids !< grid spacings
+  real(kind=8), dimension(natreal), intent(in) :: radiireal !< radii of each of the atoms
+  !> position of all the atoms in the grid coordinates
+  real(kind=8), dimension(3,natreal), intent(in) :: rxyzreal
+  real(kind=8), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: eps !< dielectric inner cavity for sccs run
+
+  !local variables
+  logical :: perx,pery,perz
+  integer :: i,i1,i2,i3,iat,jat,ii,nat,j,k,l,px,py,pz,unt
+  integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,imin
+  real(kind=8) :: r2,x,y2,z2,d,d2,d12,y,z,eps_min,eps1,pi,de2,dde,d1,oneod,h,coeff,dmin,dmax
+  real(kind=8) :: value,valuemin
+  real(kind=8), dimension(3) :: v,rv,shift,sh
+
+  real(kind=8), parameter :: valuebc=1.d0
+  real(kind=8), dimension(6) :: plandist
+  integer, dimension(6) :: ba
+  real(kind=8), dimension(:), allocatable :: ep
+  real(kind=8), dimension(3,27*natreal) :: rxyztot
+  real(kind=8), dimension(27*natreal) :: radiitot
+  real(kind=8), dimension(:), allocatable :: radii
+  real(kind=8), dimension(:,:), allocatable :: rxyz
+  logical, parameter :: dumpeps=.false.  !.true.
+
+  !buffers associated to the geocode
+  !conditions for periodicity in the three directions
+  perx=(geocode /= 'F')
+  pery=(geocode == 'P')
+  perz=(geocode /= 'F')
+
+  call ext_buffers(perx,nbl1,nbr1)
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+  pi = 4.d0*datan(1.d0)
+
+  shift(1)=hgrids(1)*ndims(1)
+  shift(2)=hgrids(2)*ndims(2)
+  shift(3)=hgrids(3)*ndims(3)
+
+!------------------------------------------------------------------------------------------------------
+! Depending of Free, Periodic or Surface bc, image atoms are or not included.
+
+!  if (bigdft_mpi%iproc==0) then
+!   do iat=1,natreal
+!    call yaml_map('real input atoms',iat)
+!    call yaml_map('radii',radiireal(iat))
+!    call yaml_map('rxyz',rxyzreal(:,iat))
+!   end do
+!  end if
+
+  px=0
+  py=0
+  pz=0
+  if (perx) px=1
+  if (pery) py=1
+  if (perz) pz=1
+
+  rxyztot(:,:)=0.d0
+
+  i=0
+  do iat=1,natreal
+   ba(1:6)=0
+   ! checking what are the image atoms to include in the calculation of the
+   ! cavity.
+   rv(1:3)=rxyzreal(1:3,iat)
+   plandist(1)=dabs(rv(1))
+   plandist(2)=dabs(shift(1)-rv(1))
+   plandist(3)=dabs(rv(2))
+   plandist(4)=dabs(shift(2)-rv(2))
+   plandist(5)=dabs(rv(3))
+   plandist(6)=dabs(shift(3)-rv(3))
+   do ii=1,6
+    valuemin=1.d0
+    d=plandist(ii)
+    value=epsl(d,radiireal(iat),delta)
+    if (value.lt.valuebc) then ! valuebc is the value to check on the box border to accept or refuse an image atom.
+     if (abs(value).lt.valuemin) then
+      valuemin=abs(value)
+      imin=ii
+     end if
+     select case(ii)
+     case (1)
+      ba(1)=1*px
+     case (2)
+      ba(2)=-1*px
+     case (3)
+      ba(3)=1*py
+     case (4)
+      ba(4)=-1*py
+     case (5)
+      ba(5)=1*pz
+     case (6)
+      ba(6)=-1*pz
+     end select
+    end if
+   end do
+
+   do j=ba(6),ba(5)
+    sh(3)=real(j,kind=8)*shift(3)
+    do k=ba(4),ba(3)
+     sh(2)=real(k,kind=8)*shift(2)
+     do l=ba(2),ba(1)
+      sh(1)=real(l,kind=8)*shift(1)
+      rv(1:3)=rxyzreal(1:3,iat) + sh(1:3)
+      i=i+1
+      rxyztot(1:3,i)=rv(1:3)
+      radiitot(i)=radiireal(iat)
+     end do
+    end do
+   end do
+
+  end do
+
+   nat=i
+
+   ep=f_malloc(nat,id='ep')
+   rxyz=f_malloc([3,nat],id='rxyz')
+   radii=f_malloc(nat,id='radii')
+
+   rxyz(1:3,1:nat)=rxyztot(1:3,1:nat)
+   radii(1:nat)=radiitot(1:nat)
+
+!   if (bigdft_mpi%iproc==0) then
+!    write(*,*)plandist
+!    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
+!    call yaml_map('nat',nat)
+!    do iat=1,nat
+!     call yaml_map('atom',iat)
+!     call yaml_map('radii',radii(iat))
+!     call yaml_map('rxyz',rxyz(:,iat))
+!    end do
+!   end if
+
+!------------------------------------------------------------------------------------------------------
+! Starting the cavity building for rxyztot atoms=real+image atoms (total natcurr) for periodic
+! and surface boundary conditions or atoms=real for free bc.
+
+  do i3=1,ndims(3)
+   z=hgrids(3)*(i3-1-nbl3)
+   v(3)=z
+   do i2=1,ndims(2)
+    y=hgrids(2)*(i2-1-nbl2)
+    v(2)=y
+    do i1=1,ndims(1)
+     x=hgrids(1)*(i1-1-nbl1)
+     v(1)=x
+
+     do iat=1,nat
+      d2=(x-rxyz(1,iat))**2+(y-rxyz(2,iat))**2+(z-rxyz(3,iat))**2
+      d=dsqrt(d2)
+
+      if (d2.eq.0.d0) then
+       d2=1.0d-30
+       ep(iat)=epsl(d,radii(iat),delta)
+      else
+       ep(iat)=epsl(d,radii(iat),delta)
+      end if
+     end do
+
+     eps(i1,i2,i3)= 1.d0 - product(ep)
+
+    end do
+   end do
+  end do
+
+  if (dumpeps) then
+
+  unt=f_get_free_unit(20)
+  call f_open_file(unt,file='epsinnersccs.dat')
+  i1=1!n03/2
+  do i2=1,ndims(2)
+     do i3=1,ndims(3)
+        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,eps(i1,i2,i3),eps(ndims(1)/2,i2,i3)
+     end do
+  end do
+  call f_close(unt)
+
+  unt=f_get_free_unit(22)
+  call f_open_file(unt,file='epsinnersccs_line_y.dat')
+  do i2=1,ndims(2)
+   write(unt,'(1x,I8,1(1x,e22.15))')i2,eps(ndims(1)/2,i2,ndims(3)/2)
+  end do
+  call f_close(unt)
+
+  unt=f_get_free_unit(23)
+  call f_open_file(unt,file='epsinnersccs_line_z.dat')
+  do i3=1,ndims(3)
+   write(unt,'(1x,I8,1(1x,e22.15))')i3,eps(ndims(1)/2,ndims(2)/2,i3)
+  end do
+  call f_close(unt)
+
+  end if
+
+  call f_free(ep)
+  call f_free(rxyz)
+  call f_free(radii)
+
+  contains
+    pure function epsl(r,rc,delta)
+      implicit none
+      real(kind=8), intent(in) :: r,rc,delta
+      real(kind=8) :: epsl
+      !local variables
+      real(kind=8) :: d
+
+      d=(r-rc)/delta
+      epsl=0.5d0*(erf(d)+1.d0)
+    end function epsl
+
+end subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc
+
 !> calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii. Based on error function.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
@@ -898,6 +1162,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,r
   use module_defs, only : Bohr_Ang,bigdft_mpi
   use f_enums
   use yaml_output
+  use bounds, only: ext_buffers
 
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -1101,6 +1366,7 @@ end subroutine epsilon_rigid_cavity_error_multiatoms
 subroutine epsilon_rigid_cavity_new_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,&
      eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
+  use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: nat !< number of centres defining the cavity
@@ -1333,7 +1599,8 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-  use psp_projectors, only: PSPCODE_PAW
+  use public_enums, only: PSPCODE_PAW
+  use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i
@@ -2010,19 +2277,6 @@ subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
 END SUBROUTINE sum_erfcr
 
 
-subroutine ext_buffers(periodic,nl,nr)
-  implicit none
-  logical, intent(in) :: periodic
-  integer, intent(out) :: nl,nr
-
-  if (periodic) then
-     nl=0
-     nr=0
-  else
-     nl=14
-     nr=15
-  end if
-END SUBROUTINE ext_buffers
 
 
 !> Read and initialize counter-ions potentials (read psp files)
@@ -2030,14 +2284,15 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
   use module_base, pi => pi_param
   use module_types
-  use module_interfaces, except_this_one => CounterIonPotential
+  !use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_input_dicts
   use public_keys, only: IG_OCCUPATION
   use dictionaries
   use yaml_output
-  use module_atoms, only: deallocate_atoms_data,atomic_data_set_from_dict,atoms_data_null
+  use module_atoms
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n3pi,i3s

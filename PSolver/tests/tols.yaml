@@ -10,11 +10,14 @@ Default tolerances:
   Maximum discrepancy: 1.e-14
   Value: 1.e-12
   beta: 7.4e-10
-  ratio: 1.5e-11
+  ratio: 1.1e-6
   res: 1.94e-8
   alpha: 5.e-1 #normal for CG
   Total Charge: 6.5e-15
   Potential monopole: 2.31e-13
+  Computed Hartree energy: 1.83e-14
+  Diff of expected-computed Hartree energy: 2.1e-14
+  Expected hartree energy: 1.88e-15
 #  Energies: 2.1e-10
 
 Keys to ignore:
@@ -29,6 +32,7 @@ Keys to ignore:
   - Load Balancing of calculations
   - Timestamp of this run
   - Max No. of dictionaries used
+  - Walltime since initialization
 Patterns to ignore:
   - llocations
   - MB

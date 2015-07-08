@@ -3,7 +3,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   use yaml_output
   use module_base
   use module_types
-  use module_interfaces, except_this_one => fragment_coeffs_to_kernel
+  use module_interfaces
   use module_fragments
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
@@ -439,7 +439,7 @@ contains
 
        !GENERALIZE HERE FOR OTHER CHARGE STATES
        !eval_tmp(jsforb+jtmb-ceiling(jstate_max)+jf)=eval_tmp(jsforb+jtmb-ceiling(jstate_max)+jf)+5.0d0/real(input%frag%nfrag,gp)
-       tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max)+ifrag)=0.0d0
+       tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max)+ifrag-1)=0.0d0
        !version where occupancies are fixed
        !if (lincombp) tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max)+ifrag)=real(2*input%frag%nfrag-1,gp)/real(input%frag%nfrag,gp)
 

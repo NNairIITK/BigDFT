@@ -7,7 +7,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
 !> Modules which contains all interfaces to parse input dictionary.
 module module_input_dicts
   use public_keys
@@ -19,29 +18,10 @@ module module_input_dicts
   ! Update a dictionary from a input file
   public :: merge_input_file_to_dict
 
-  ! Main creation routine
-  public :: user_dict_from_files
-
-  ! Dictionary completion
-  public :: psp_dict_fill_all, psp_dict_analyse
-
-  ! Dictionary inquire
-  public :: astruct_dict_get_types
-
-  ! Types from dictionaries
-
-  public :: astruct_set_from_dict
-  public :: psp_set_from_dict, nlcc_set_from_dict
   public :: occupation_set_from_dict
   public :: neb_set_from_dict
 
-  ! Types to dictionaries
-  public :: psp_data_merge_to_dict
-
   ! Dictionaries from files (old formats).
-  public :: psp_file_merge_to_dict, nlcc_file_merge_to_dict
-  public :: atoms_file_merge_to_dict
-  public :: astruct_file_merge_to_dict
   public :: occupation_data_file_merge_to_dict
   public :: dict_set_run_properties,dict_get_run_properties,dict_run_new,bigdft_options
   public :: set_dict_run_file,create_log_file,dict_run_validate
@@ -244,7 +224,7 @@ contains
   end subroutine dict_get_run_properties
 
   function run_id_toa()
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     use module_base, only: bigdft_mpi
     implicit none
     character(len=20) :: run_id_toa
@@ -272,6 +252,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict
     !local variables
+    character(len=*), parameter :: F_IMPORT_KEY='import'
     logical :: found,loginput
     type(dictionary), pointer :: valid_entries,valid_patterns
     type(dictionary), pointer :: iter,invalid_entries,iter2
@@ -299,7 +280,8 @@ contains
          .item. LIN_BASIS_PARAMS,&
          .item. OCCUPATION,&
          .item. IG_OCCUPATION,&
-         .item. FRAG_VARIABLES])
+         .item. FRAG_VARIABLES,&
+         .item. F_IMPORT_KEY])
 
     !then the list of vaid patterns
     valid_patterns=>list_new(&
@@ -352,9 +334,7 @@ contains
 
 
   subroutine create_log_file(dict,dict_from_files)
-    use module_base, enum_int => int
-    use module_types
-    use module_input
+    use module_base, enum_int => f_int
     use yaml_strings
     use yaml_output
     use dictionaries
@@ -362,7 +342,8 @@ contains
     type(dictionary), pointer :: dict
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
-    integer :: ierror,lgt,unit_log,ierrr
+    integer, parameter :: ntrials=3
+    integer :: ierror,lgt,unit_log,ierrr,trials
     integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
     character(len=500) :: logfilename,path
@@ -390,7 +371,9 @@ contains
 !!$       call MPI_BCAST(path,len(path),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
 !!$       lgt=min(len(writing_directory),len(path))
 !!$       writing_directory(1:lgt)=path(1:lgt)
-       call mpibcast(path,comm=bigdft_mpi%mpi_comm)
+       if (bigdft_mpi%nproc>1) then
+           call mpibcast(path,comm=bigdft_mpi%mpi_comm)
+       end if
        call f_strcpy(src=path,dest=writing_directory)
     end if
     ! Add trailing slash if missing.
@@ -410,15 +393,27 @@ contains
        if (log_to_disk) then
           ! Get Create log file name.
           call dict_get_run_properties(dict, naming_id = run_name)
-          logfilename = "log" // trim(run_name) // ".yaml"
+          logfilename = "log"+trim(run_name)//".yaml"
           path = trim(writing_directory)//trim(logfilename)
           call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
           ! Check if logfile is already connected.
           call yaml_stream_connected(trim(path), unit_log, ierrr)
           if (ierrr /= 0) then
              ! Move possible existing log file.
-             call ensure_log_file(trim(writing_directory), trim(logfilename), ierr)
-             if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+             !this section has to be done sequentially for each of the 
+             !!taskgroups of BigDFT
+             !we should implement a lock, but for the moment let us do it three times for the processes which 
+             !!did not had problem
+             do trials=1,ntrials
+                call ensure_log_file(trim(writing_directory), trim(logfilename), ierr)
+                !if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+                if (ierr /=0 .and. trials < ntrials) then
+                   ierr=f_err_pop(err_name='INPUT_OUTPUT_ERROR')
+                   call f_pause(1) !wait one second for the other processes to finish
+                end if
+             end do
+             !if (ierr /= 0) call MPI_ABORT(bigdft_mpi%mpi_comm,ierror,ierr)
+
              ! Close active stream and logfile if any. (TO BE MOVED IN RUN_UPDATE TO AVOID CLOSURE OF UPLEVEL INSTANCE)
              call yaml_get_default_stream(unit_log)
              if (unit_log /= 6) call yaml_close_stream(unit_log, ierrr)
@@ -427,7 +422,8 @@ contains
              !create that only if the stream is not already present, otherwise print a warning
              if (ierrr == 0) then
                 call yaml_get_default_stream(unit_log)
-                call input_set_stdout(unit=unit_log)
+                call old_input_stdout(unit_log)
+                !call input_set_stdout(unit=unit_log)
              else
                 call yaml_warning('Logfile '//trim(path)//' cannot be created, stream already present. Ignoring...')
              end if
@@ -457,8 +453,6 @@ contains
     if (USE_FILES .in. dict) dict_from_files = dict // USE_FILES
 
   END SUBROUTINE create_log_file
-
-
 
   !> Routine to read YAML input files and create input dictionary.
   !! Update the input dictionary with the result of yaml_parse
@@ -523,972 +517,6 @@ contains
 
   END SUBROUTINE merge_input_file_to_dict
 
-  !> Read from all input files and build a dictionary
-  subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
-    use dictionaries_base, only: TYPE_DICT, TYPE_LIST
-    use module_defs, only: mpi_environment
-    use module_interfaces, only: read_input_dict_from_files
-    use public_keys, only: POSINP,IG_OCCUPATION
-    use yaml_output
-    use yaml_strings, only: f_strcpy
-    use f_utils, only: f_file_exists
-    implicit none
-    !Arguments
-    type(dictionary), pointer :: dict                  !< Contains (out) all the information
-    character(len = *), intent(in) :: radical          !< Radical for the input files
-    character(len = *), intent(in) :: posinp_name           !< If the dict has no posinp key, use it
-    type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
-    !Local variables
-    logical :: exists
-    type(dictionary), pointer :: at
-    character(len = max_field_length) :: str, rad
-
-    !read the input file(s) and transform them into a dictionary
-    call read_input_dict_from_files(trim(radical), mpi_env, dict)
-
-    !possible overwrite with a specific posinp file.
-    call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
-
-    if (has_key(dict,POSINP)) then
-       str = dict_value(dict //POSINP)
-       if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
-          !str contains a file name so add atomic positions from it.
-          call astruct_file_merge_to_dict(dict,POSINP, trim(str))
-       else
-          !The yaml file contains the atomic positions
-          !Only add the format
-          at => dict //POSINP
-          if (.not. has_key(at, ASTRUCT_PROPERTIES)) then
-             call set(at // ASTRUCT_PROPERTIES // FORMAT_KEY, FORMAT_YAML)
-          else
-             at => at // ASTRUCT_PROPERTIES
-             if (FORMAT_KEY .notin. at) &
-                  call set(at // FORMAT_KEY, FORMAT_YAML)
-          end if
-       end if
-    end if
-
-    ! Add old psppar
-    call atoms_file_merge_to_dict(dict)
-
-    call f_strcpy(src = radical, dest = rad)
-    if (len_trim(radical) == 0) rad = "input"
-
-    !when the user has not specified the occupation in the input file
-    if (.not. has_key(dict,IG_OCCUPATION)) then
-       !yaml format should be used even for old method
-       call f_file_exists(trim(rad)//".occup",exists)
-       if (exists) &
-            call merge_input_file_to_dict(dict//IG_OCCUPATION,&
-            trim(rad)//".occup",mpi_env)
-    else !otherwise the input file always supersedes
-       str = dict_value(dict //IG_OCCUPATION)
-       if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
-          !call atomic_data_file_merge_to_dict(dict, ATOMIC_OCC, trim(str))
-          call f_file_exists(trim(str),exists)
-          if (exists) &
-               call merge_input_file_to_dict(dict//IG_OCCUPATION,trim(str),mpi_env)
-       end if
-    end if
-
-    if (OCCUPATION .notin. dict) then
-       ! Add old input.occ
-       call occupation_data_file_merge_to_dict(dict,OCCUPATION,trim(rad) // ".occ")
-    else
-       str = dict_value(dict //OCCUPATION)
-       if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
-          call occupation_data_file_merge_to_dict(dict,OCCUPATION, trim(str))
-       end if
-    end if
-
-  end subroutine user_dict_from_files
-
-
-  !> Fill up the dict with all pseudopotential information
-  subroutine psp_dict_fill_all(dict, atomname, run_ixc, projrad, crmult, frmult)
-    use module_defs, only: gp, UNINITIALIZED
-    use ao_inguess, only: atomic_info
-    use module_atoms, only : RADII_SOURCE, RADII_SOURCE_HARD_CODED, RADII_SOURCE_FILE
-    use dynamic_memory
-    implicit none
-    !Arguments
-    type(dictionary), pointer :: dict          !< Input dictionary (inout)
-    character(len = *), intent(in) :: atomname !< Atom name
-    integer, intent(in) :: run_ixc             !< XC functional
-    real(gp), intent(in) :: projrad            !< projector radius
-    real(gp), intent(in) :: crmult, frmult     !< radius multipliers
-    !Local variables
-    integer :: ixc
-    !integer :: ierr
-    character(len=27) :: filename
-    logical :: exists
-    integer :: nzatom, nelpsp, npspcode
-    real(gp), dimension(0:4,0:6) :: psppar
-    integer :: i,nlen
-    real(gp) :: ehomo,radfine,rad,maxrad
-    type(dictionary), pointer :: radii,dict_psp
-    real(gp), dimension(3) :: radii_cf
-    character(len = max_field_length) :: source_val
-
-    call f_routine(id='psp_dict_fill_all')
-
-    filename = 'psppar.' // atomname
-    dict_psp => dict // filename !inquire for the key?
-
-
-    exists = has_key(dict_psp, LPSP_KEY)
-    if (.not. exists) then
-       if (dict_len(dict_psp) > 0) then
-          ! Long string case, we parse it.
-          call psp_file_merge_to_dict(dict, filename, lstring = dict_psp)
-          ! Since it has been overrided.
-          dict_psp => dict // filename
-          exists = has_key(dict_psp, LPSP_KEY)
-          nzatom = dict_psp .get. ATOMIC_NUMBER
-          nelpsp = dict_psp .get. ELECTRON_NUMBER
-       else
-          ixc = run_ixc
-          ixc = dict_psp .get. PSPXC_KEY
-          call psp_from_data(atomname, nzatom, &
-               & nelpsp, npspcode, ixc, psppar(:,:), exists)
-          radii_cf(:) = UNINITIALIZED(1._gp)
-          call psp_data_merge_to_dict(dict_psp, nzatom, nelpsp, npspcode, ixc, &
-               & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
-          call set(dict_psp // SOURCE_KEY, "Hard-Coded")
-       end if
-    else
-       nzatom = dict_psp // ATOMIC_NUMBER
-       nelpsp = dict_psp // ELECTRON_NUMBER
-    end if
-
-    if (.not. exists) then
-       call f_err_throw('The pseudopotential parameter file "'//&
-            trim(filename)//&
-            '" is lacking, and no registered pseudo found for "'//&
-            trim(atomname),err_name='BIGDFT_INPUT_FILE_ERROR')
-       return
-    end if
-
-    radii_cf = UNINITIALIZED(1._gp)
-    !example with the .get. operator
-!    print *,'here',associated(radii)
-    nullify(radii)
-    radii = dict_psp .get. RADII_KEY
-    radii_cf(1) = radii .get. COARSE
-    radii_cf(2) = radii .get. FINE
-    radii_cf(3) = radii .get. COARSE_PSP
-
-    write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_FILE)
-    if (radii_cf(1) == UNINITIALIZED(1.0_gp)) then
-       !see whether the atom is semicore or not
-       !and consider the ground state electronic configuration
-       call atomic_info(nzatom,nelpsp,ehomo=ehomo)
-       !call eleconf(nzatom, nelpsp,symbol,rcov,rprb,ehomo,&
-       !     neleconf,nsccode,mxpl,mxchg,amu)
-
-       !assigning the radii by calculating physical parameters
-       radii_cf(1)=1._gp/sqrt(abs(2._gp*ehomo))
-       write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
-    end if
-    if (radii_cf(2) == UNINITIALIZED(1.0_gp)) then
-       radfine = dict_psp // LPSP_KEY // "Rloc"
-       if (has_key(dict_psp, NLPSP_KEY)) then
-          nlen=dict_len(dict_psp // NLPSP_KEY)
-          do i=1, nlen
-             rad = dict_psp // NLPSP_KEY // (i - 1) // "Rloc"
-             if (rad /= 0._gp) then
-                radfine=min(radfine, rad)
-             end if
-          end do
-       end if
-       radii_cf(2)=radfine
-       write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
-    end if
-    if (radii_cf(3) == UNINITIALIZED(1.0_gp)) radii_cf(3)=crmult*radii_cf(1)/frmult
-    ! Correct radii_cf(3) for the projectors.
-    maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
-    if (has_key( dict_psp, NLPSP_KEY)) then
-       nlen=dict_len(dict_psp // NLPSP_KEY)
-       do i=1, nlen
-          rad =  dict_psp  // NLPSP_KEY // (i - 1) // "Rloc"
-          if (rad /= 0._gp) then
-             maxrad=max(maxrad, rad)
-          end if
-       end do
-    end if
-    if (maxrad == 0.0_gp) then
-       radii_cf(3)=0.0_gp
-    else
-       radii_cf(3)=max(min(radii_cf(3),projrad*maxrad/frmult),radii_cf(2))
-    end if
-    radii => dict_psp // RADII_KEY
-    call set(radii // COARSE, radii_cf(1))
-    call set(radii // FINE, radii_cf(2))
-    call set(radii // COARSE_PSP, radii_cf(3))
-    call set(radii // SOURCE_KEY, source_val)
-
-    call f_release_routine()
-    
-  end subroutine psp_dict_fill_all
-
-  
-  !> Fill up the atoms structure from dict
-  subroutine psp_dict_analyse(dict, atoms)
-    use module_defs, only: gp
-    use module_types, only: atoms_data
-    use module_atoms, only: allocate_atoms_data
-    use m_pawrad, only: pawrad_type, pawrad_nullify
-    use m_pawtab, only: pawtab_type, pawtab_nullify
-    use psp_projectors, only: PSPCODE_PAW
-    use public_keys, only: SOURCE_KEY
-    use dynamic_memory
-    implicit none
-    !Arguments
-    type(dictionary), pointer :: dict        !< Input dictionary
-    type(atoms_data), intent(inout) :: atoms !Atoms structure to fill up
-    !Local variables
-    integer :: ityp, ityp2
-    character(len = 27) :: filename
-    real(gp), dimension(3) :: radii_cf
-    real(gp) :: rloc
-    real(gp), dimension(4) :: lcoeff
-    real(gp), dimension(4,0:6) :: psppar
-    logical :: pawpatch, l
-    integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
-    character(len = max_field_length) :: fpaw
-
-    call f_routine(id='psp_dict_analyse')
-
-    if (.not. associated(atoms%nzatom)) then
-       call allocate_atoms_data(atoms)
-    end if
-
-    pawpatch = .true.
-    do ityp=1,atoms%astruct%ntypes
-       filename = 'psppar.'//atoms%astruct%atomnames(ityp)
-       call psp_set_from_dict(dict // filename, l, &
-            & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &
-            & atoms%ixcpsp(ityp), atoms%iradii_source(ityp), radii_cf, rloc, lcoeff, psppar)
-       !To eliminate the runtime warning due to the copy of the array (TD)
-       atoms%radii_cf(ityp,:)=radii_cf(:)
-       atoms%psppar(0,0,ityp)=rloc
-       atoms%psppar(0,1:4,ityp)=lcoeff
-       atoms%psppar(1:4,0:6,ityp)=psppar
-
-       l = .false.
-       if (has_key(dict // filename, "PAW patch")) l = dict // filename // "PAW patch"
-       pawpatch = pawpatch .and. l
-
-       ! PAW case.
-       if (l .and. atoms%npspcode(ityp) == PSPCODE_PAW) then
-          ! Allocate the PAW arrays on the fly.
-          if (.not. associated(atoms%pawrad)) then
-             allocate(atoms%pawrad(atoms%astruct%ntypes))
-             allocate(atoms%pawtab(atoms%astruct%ntypes))
-             do ityp2 = 1, atoms%astruct%ntypes
-                call pawrad_nullify(atoms%pawrad(ityp2))
-                call pawtab_nullify(atoms%pawtab(ityp2))
-             end do
-          end if
-          ! Re-read the pseudo for PAW arrays.
-          fpaw = dict // filename // SOURCE_KEY
-          !write(*,*) 'Reading of PAW atomic-data, under development', trim(fpaw)
-          call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), trim(fpaw), &
-               & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%ixcpsp(ityp))
-       end if
-    end do
-    call nlcc_set_from_dict(dict, atoms)
-
-    !For PAW psp
-    if (pawpatch.and. any(atoms%npspcode /= PSPCODE_PAW)) then
-       paw_tot_l=0
-       paw_tot_q=0
-       paw_tot_coefficients=0
-       paw_tot_matrices=0
-       do ityp=1,atoms%astruct%ntypes
-          filename = 'psppar.'//atoms%astruct%atomnames(ityp)
-          call pawpatch_from_file( filename, atoms,ityp,&
-               paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .false.)
-       end do
-       do ityp=1,atoms%astruct%ntypes
-          filename = 'psppar.'//atoms%astruct%atomnames(ityp)
-          !! second time allocate and then store
-          call pawpatch_from_file( filename, atoms,ityp,&
-               paw_tot_l, paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .true.)
-       end do
-    else
-       nullify(atoms%paw_l,atoms%paw_NofL,atoms%paw_nofchannels)
-       nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
-       nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
-    end if
-
-    call f_release_routine()
-
-  end subroutine psp_dict_analyse
-
-
-  subroutine nlcc_set_from_dict(dict, atoms)
-    use module_defs, only: gp
-    use module_types, only: atoms_data
-    use dynamic_memory
-    implicit none
-    type(dictionary), pointer :: dict
-    type(atoms_data), intent(inout) :: atoms
-
-    type(dictionary), pointer :: nloc, coeffs
-    integer :: ityp, nlcc_dim, n, i
-    character(len=27) :: filename
-    intrinsic :: int
-
-    nlcc_dim = 0
-    do ityp = 1, atoms%astruct%ntypes, 1
-       atoms%nlcc_ngc(ityp)=0
-       atoms%nlcc_ngv(ityp)=0
-       filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
-       if (.not. has_key(dict, filename)) cycle    
-       if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) cycle
-       nloc => dict // filename // 'Non Linear Core Correction term'
-       if (has_key(nloc, "Valence") .or. has_key(nloc, "Conduction")) then
-          n = 0
-          if (has_key(nloc, "Valence")) n = dict_len(nloc // "Valence")
-          nlcc_dim = nlcc_dim + n
-          atoms%nlcc_ngv(ityp) = int((sqrt(real(1 + 8 * n)) - 1) / 2)
-          n = 0
-          if (has_key(nloc, "Conduction")) n = dict_len(nloc // "Conduction")
-          nlcc_dim = nlcc_dim + n
-          atoms%nlcc_ngc(ityp) = int((sqrt(real(1 + 8 * n)) - 1) / 2)
-       end if
-       if (has_key(nloc, "Rcore") .and. has_key(nloc, "Core charge")) then
-          nlcc_dim=nlcc_dim+1
-          atoms%nlcc_ngc(ityp)=1
-          atoms%nlcc_ngv(ityp)=0
-       end if
-    end do
-    atoms%donlcc = (nlcc_dim > 0)
-    atoms%nlccpar = f_malloc_ptr((/ 0 .to. 4, 1 .to. max(nlcc_dim,1) /), id = "nlccpar")
-    !start again the file inspection to fill nlcc parameters
-    if (atoms%donlcc) then
-       nlcc_dim=0
-       fill_nlcc: do ityp=1,atoms%astruct%ntypes
-          filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
-          !ALEX: These are preferably read from psppar.Xy, as stored in the
-          !local variables rcore and qcore
-          nloc => dict // filename // 'Non Linear Core Correction term'
-          if (has_key(nloc, "Valence") .or. has_key(nloc, "Conduction")) then
-             n = 0
-             if (has_key(nloc, "Valence")) n = dict_len(nloc // "Valence")
-             do i = 1, n, 1
-                coeffs => nloc // "Valence" // (i - 1)
-                atoms%nlccpar(:, nlcc_dim + i) = coeffs
-             end do
-             nlcc_dim = nlcc_dim + n
-             n = 0
-             if (has_key(nloc, "Conduction")) n = dict_len(nloc // "Conduction")
-             do i = 1, n, 1
-                coeffs => nloc // "Conduction" // (i - 1)
-                atoms%nlccpar(0, nlcc_dim + i) = coeffs // 0
-                atoms%nlccpar(1, nlcc_dim + i) = coeffs // 1
-                atoms%nlccpar(2, nlcc_dim + i) = coeffs // 2
-                atoms%nlccpar(3, nlcc_dim + i) = coeffs // 3
-                atoms%nlccpar(4, nlcc_dim + i) = coeffs // 4
-             end do
-             nlcc_dim = nlcc_dim + n
-          end if
-          if (has_key(nloc, "Rcore") .and. has_key(nloc, "Core charge")) then
-             nlcc_dim=nlcc_dim+1
-             atoms%nlcc_ngc(ityp)=1
-             atoms%nlcc_ngv(ityp)=0
-             atoms%nlccpar(0,nlcc_dim)=nloc // "Rcore"
-             atoms%nlccpar(1,nlcc_dim)=nloc // "Core charge"
-             atoms%nlccpar(2:4,nlcc_dim)=0.0_gp 
-          end if
-       end do fill_nlcc
-    end if
-  end subroutine nlcc_set_from_dict
-
-  !> Set the value for atoms_data from the dictionary
-  subroutine psp_set_from_dict(dict, valid, &
-       & nzatom, nelpsp, npspcode, ixcpsp, iradii_source, radii_cf, rloc, lcoeff, psppar)
-    use module_defs, only: gp, UNINITIALIZED
-    use module_atoms
-    use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
-    implicit none
-    !Arguments
-    type(dictionary), pointer :: dict
-    logical, intent(out), optional :: valid !< .true. if all required info for a pseudo are present
-    integer, intent(out), optional :: nzatom, nelpsp, npspcode, ixcpsp, iradii_source
-    real(gp), intent(out), optional :: rloc
-    real(gp), dimension(4), intent(out), optional :: lcoeff
-    real(gp), dimension(4,0:6), intent(out), optional :: psppar
-    real(gp), dimension(3), intent(out), optional :: radii_cf
-    !Local variables
-    type(dictionary), pointer :: loc
-    character(len = max_field_length) :: str
-    integer :: l
-
-    ! Default values
-    if (present(valid)) valid = .true.
-
-    ! Parameters
-    if (present(nzatom)) nzatom = -1
-    if (present(nelpsp)) nelpsp = -1
-    if (present(ixcpsp)) ixcpsp = -1
-    if (has_key(dict, ATOMIC_NUMBER) .and. present(nzatom))   nzatom = dict // ATOMIC_NUMBER
-    if (has_key(dict, ELECTRON_NUMBER) .and. present(nelpsp)) nelpsp = dict // ELECTRON_NUMBER
-    if (has_key(dict, PSPXC_KEY) .and. present(ixcpsp))       ixcpsp = dict // PSPXC_KEY
-    if (present(valid)) valid = valid .and. has_key(dict, ATOMIC_NUMBER) .and. &
-         & has_key(dict, ELECTRON_NUMBER) .and. has_key(dict, PSPXC_KEY)
-
-    ! Local terms
-    if (present(rloc))   rloc      = 0._gp
-    if (present(lcoeff)) lcoeff(:) = 0._gp
-    if (has_key(dict, LPSP_KEY)) then
-       loc => dict // LPSP_KEY
-       if (has_key(loc, "Rloc") .and. present(rloc)) rloc = loc // 'Rloc'
-       if (has_key(loc, "Coefficients (c1 .. c4)") .and. present(lcoeff)) lcoeff = loc // 'Coefficients (c1 .. c4)'
-       ! Validate
-       if (present(valid)) valid = valid .and. has_key(loc, "Rloc") .and. &
-            & has_key(loc, "Coefficients (c1 .. c4)")
-    end if
-
-    ! Nonlocal terms
-    if (present(psppar))   psppar(:,:) = 0._gp
-    if (has_key(dict, NLPSP_KEY) .and. present(psppar)) then
-       loc => dict_iter(dict // NLPSP_KEY)
-       do while (associated(loc))
-          if (has_key(loc, "Channel (l)")) then
-             l = loc // "Channel (l)"
-             l = l + 1
-             if (has_key(loc, "Rloc"))       psppar(l,0)   = loc // 'Rloc'
-             if (has_key(loc, "h_ij terms")) psppar(l,1:6) = loc // 'h_ij terms'
-             if (present(valid)) valid = valid .and. has_key(loc, "Rloc") .and. &
-                  & has_key(loc, "h_ij terms")
-          else
-             if (present(valid)) valid = .false.
-          end if
-          loc => dict_next(loc)
-       end do
-    end if
-
-    ! Type
-    if (present(npspcode)) npspcode = UNINITIALIZED(npspcode)
-    if (has_key(dict, PSP_TYPE) .and. present(npspcode)) then
-       str = dict // PSP_TYPE
-       select case(trim(str))
-       case("GTH")
-          npspcode = PSPCODE_GTH
-       case("HGH")
-          npspcode = PSPCODE_HGH
-       case("HGH-K")
-          npspcode = PSPCODE_HGH_K
-       case("HGH-K + NLCC")
-          npspcode = PSPCODE_HGH_K_NLCC
-          if (present(valid)) valid = valid .and. &
-               & has_key(dict, 'Non Linear Core Correction term') .and. &
-               & has_key(dict // 'Non Linear Core Correction term', "Rcore") .and. &
-               & has_key(dict // 'Non Linear Core Correction term', "Core charge")
-       case("PAW")
-          npspcode = PSPCODE_PAW
-       case default
-          if (present(valid)) valid = .false.
-       end select
-    end if
-
-    ! Optional values.
-    if (present(iradii_source)) iradii_source = RADII_SOURCE_HARD_CODED
-    if (present(radii_cf))      radii_cf(:)   = UNINITIALIZED(1._gp)
-    if (has_key(dict, RADII_KEY)) then
-       loc => dict // RADII_KEY
-       if (has_key(loc, COARSE) .and. present(radii_cf))     radii_cf(1) = loc // COARSE
-       if (has_key(loc, FINE) .and. present(radii_cf))       radii_cf(2) = loc // FINE
-       if (has_key(loc, COARSE_PSP) .and. present(radii_cf)) radii_cf(3) = loc // COARSE_PSP
-       
-       if (has_key(loc, SOURCE_KEY) .and. present(iradii_source)) then
-          ! Source of the radii
-          str = loc // SOURCE_KEY
-          select case(str)
-          case(RADII_SOURCE(RADII_SOURCE_HARD_CODED))
-             iradii_source = RADII_SOURCE_HARD_CODED
-          case(RADII_SOURCE(RADII_SOURCE_FILE))
-             iradii_source = RADII_SOURCE_FILE
-          case(RADII_SOURCE(RADII_SOURCE_USER))
-             iradii_source = RADII_SOURCE_USER
-          case default
-             !Undefined: we assume this the name of a file
-             iradii_source = RADII_SOURCE_UNKNOWN
-          end select
-       end if
-    end if
-
-  end subroutine psp_set_from_dict
-
-
-  !> Merge all psp data (coming from a file) in the dictionary
-  subroutine psp_data_merge_to_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
-       & psppar, radii_cf, rcore, qcore)
-    use module_defs, only: gp, UNINITIALIZED
-    use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
-    use module_atoms, only: RADII_SOURCE_FILE
-    use yaml_strings
-    implicit none
-    !Arguments
-    type(dictionary), pointer :: dict
-    integer, intent(in) :: nzatom, nelpsp, npspcode, ixcpsp
-    real(gp), dimension(0:4,0:6), intent(in) :: psppar
-    real(gp), dimension(3), intent(in) :: radii_cf
-    real(gp), intent(in) :: rcore, qcore
-    !Local variables
-    type(dictionary), pointer :: channel, radii
-    integer :: l, i
-
-    ! Type
-    select case(npspcode)
-    case(PSPCODE_GTH)
-       call set(dict // PSP_TYPE, 'GTH')
-    case(PSPCODE_HGH)
-       call set(dict // PSP_TYPE, 'HGH')
-    case(PSPCODE_HGH_K)
-       call set(dict // PSP_TYPE, 'HGH-K')
-    case(PSPCODE_HGH_K_NLCC)
-       call set(dict // PSP_TYPE, 'HGH-K + NLCC')
-    case(PSPCODE_PAW)
-       call set(dict // PSP_TYPE, 'PAW')
-    end select
-
-    call set(dict // ATOMIC_NUMBER, nzatom)
-    call set(dict // ELECTRON_NUMBER, nelpsp)
-    call set(dict // PSPXC_KEY, ixcpsp)
-
-    ! Local terms
-    if (psppar(0,0)/=0) then
-       call dict_init(channel)
-       call set(channel // 'Rloc', psppar(0,0))
-       do i = 1, 4, 1
-          call add(channel // 'Coefficients (c1 .. c4)', psppar(0,i))
-       end do
-       call set(dict // LPSP_KEY, channel)
-    end if
-
-    ! nlcc term
-    if (npspcode == PSPCODE_HGH_K_NLCC) then
-       call set(dict // 'Non Linear Core Correction term', &
-            & dict_new( 'Rcore' .is. yaml_toa(rcore), &
-            & 'Core charge' .is. yaml_toa(qcore)))
-    end if
-
-    ! Nonlocal terms
-    do l=1,4
-       if (psppar(l,0) /= 0._gp) then
-          call dict_init(channel)
-          call set(channel // 'Channel (l)', l - 1)
-          call set(channel // 'Rloc', psppar(l,0))
-          do i = 1, 6, 1
-             call add(channel // 'h_ij terms', psppar(l,i))
-          end do
-          call add(dict // 'NonLocal PSP Parameters', channel)
-       end if
-    end do
-
-    ! Radii (& carottes)
-    if (any(radii_cf /= UNINITIALIZED(1._gp))) then
-       call dict_init(radii)
-       if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // COARSE, radii_cf(1))
-       if (radii_cf(2) /= UNINITIALIZED(1._gp)) call set(radii // FINE, radii_cf(2))
-       if (radii_cf(3) /= UNINITIALIZED(1._gp)) call set(radii // COARSE_PSP, radii_cf(3))
-       call set(radii // SOURCE_KEY, RADII_SOURCE_FILE)
-       call set(dict // RADII_KEY, radii)
-    end if
-
-  end subroutine psp_data_merge_to_dict
-
-
-  !> Read old psppar file (check if not already in the dictionary) and merge to dict
-  subroutine atoms_file_merge_to_dict(dict)
-    use dictionaries_base, only: TYPE_DICT, TYPE_LIST
-    use yaml_output, only: yaml_warning
-    use public_keys, only: POSINP,SOURCE_KEY
-    implicit none
-    type(dictionary), pointer :: dict
-
-    type(dictionary), pointer :: types
-    character(len = max_field_length) :: str
-    integer :: iat, stypes
-    character(len=max_field_length), dimension(:), allocatable :: keys
-    character(len=27) :: key
-    logical :: exists
-
-    ! Loop on types for atomic data.
-    call astruct_dict_get_types(dict // POSINP, types)
-    if ( .not. associated(types)) return
-    allocate(keys(dict_size(types)))
-    keys = dict_keys(types)
-    stypes = dict_size(types)
-    do iat = 1, stypes, 1
-       key = 'psppar.' // trim(keys(iat))
-
-       exists = has_key(dict, key)
-       if (exists) then
-          if (has_key(dict // key, SOURCE_KEY)) then
-             str = dict_value(dict // key // SOURCE_KEY)
-          else
-             str = dict_value(dict // key)
-          end if
-          if (trim(str) /= "" .and. trim(str) /= TYPE_DICT) then
-             !Read the PSP file and merge to dict
-             if (trim(str) /= TYPE_LIST) then
-                call psp_file_merge_to_dict(dict, key, filename = trim(str))
-             else
-                call psp_file_merge_to_dict(dict, key, lstring = dict // key)
-             end if
-             if (.not. has_key(dict // key, 'Pseudopotential XC')) then
-                call yaml_warning("Pseudopotential file '" // trim(str) // &
-                     & "' not found. Fallback to file '" // trim(key) // &
-                     & "' or hard-coded pseudopotential.")
-             end if
-          end if
-          exists = has_key(dict // key, 'Pseudopotential XC')
-       end if
-       if (.not. exists) call psp_file_merge_to_dict(dict, key, key)
-
-       exists = has_key(dict, key)
-       if (exists) exists = has_key(dict // key, 'Non Linear Core Correction term')
-       if (.not. exists) call nlcc_file_merge_to_dict(dict, key, 'nlcc.' // trim(keys(iat)))
-    end do
-    deallocate(keys)
-    call dict_free(types)
-  end subroutine atoms_file_merge_to_dict
-
-
-  !> Read psp file and merge to dict
-  subroutine psp_file_merge_to_dict(dict, key, filename, lstring)
-    use module_defs, only: gp, UNINITIALIZED
-    use yaml_strings
-    use f_utils
-    use yaml_output
-    implicit none
-    !Arguments
-    type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: key
-    character(len = *), optional, intent(in) :: filename
-    type(dictionary), pointer, optional :: lstring
-    !Local variables
-    integer :: nzatom, nelpsp, npspcode, ixcpsp
-    real(gp) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
-    logical :: exists, donlcc, pawpatch
-    type(io_stream) :: ios
-
-    if (present(filename)) then
-       inquire(file=trim(filename),exist=exists)
-       if (.not. exists) return
-       call f_iostream_from_file(ios, filename)
-    else if (present(lstring)) then
-       call f_iostream_from_lstring(ios, lstring)
-    else
-       call f_err_throw("Error in psp_file_merge_to_dict, either 'filename' or 'lstring' should be present.", &
-            & err_name='BIGDFT_RUNTIME_ERROR')
-    end if
-    !ALEX: if npspcode==PSPCODE_HGH_K_NLCC, nlccpar are read from psppar.Xy via rcore and qcore 
-    call psp_from_stream(ios, nzatom, nelpsp, npspcode, ixcpsp, &
-         & psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
-    call f_iostream_release(ios)
-
-    if (has_key(dict, key)) call dict_remove(dict, key)
-    call psp_data_merge_to_dict(dict // key, nzatom, nelpsp, npspcode, ixcpsp, &
-         & psppar, radii_cf, rcore, qcore)
-    call set(dict // key // "PAW patch", pawpatch)
-    if (present(filename)) then
-       call set(dict // key // SOURCE_KEY, filename)
-    else
-       call set(dict // key // SOURCE_KEY, "In-line")
-    end if
-  end subroutine psp_file_merge_to_dict
-
-  subroutine nlcc_file_merge_to_dict(dict, key, filename)
-    use module_defs, only: gp, UNINITIALIZED
-    use yaml_strings
-    implicit none
-    type(dictionary), pointer :: dict
-    character(len = *), intent(in) :: filename, key
-
-    type(dictionary), pointer :: psp, gauss
-    logical :: exists
-    integer :: i, ig, ngv, ngc
-    real(gp), dimension(0:4) :: coeffs
-
-    inquire(file=filename,exist=exists)
-    if (.not.exists) return
-
-    psp => dict // key
-
-    !read the values of the gaussian for valence and core densities
-    open(unit=79,file=filename,status='unknown')
-    read(79,*)ngv
-    if (ngv > 0) then
-       do ig=1,(ngv*(ngv+1))/2
-          call dict_init(gauss)
-          read(79,*) coeffs
-          do i = 0, 4, 1
-             call add(gauss, coeffs(i))
-          end do
-          call add(psp // 'Non Linear Core Correction term' // "Valence", gauss)
-       end do
-    end if
-
-    read(79,*)ngc
-    if (ngc > 0) then
-       do ig=1,(ngc*(ngc+1))/2
-          call dict_init(gauss)
-          read(79,*) coeffs
-          do i = 0, 4, 1
-             call add(gauss, coeffs(i))
-          end do
-          call add(psp // 'Non Linear Core Correction term' // "Conduction", gauss)
-       end do
-    end if
-
-    close(unit=79)
-  end subroutine nlcc_file_merge_to_dict
-  
-  subroutine astruct_dict_get_types(dict, types)
-    implicit none
-    type(dictionary), pointer :: dict, types
-
-    type(dictionary), pointer :: atoms, at
-    character(len = max_field_length) :: str
-    integer :: ityp
-
-    if (ASTRUCT_POSITIONS .notin. dict) then
-       nullify(types)
-       return
-    end if
-    call dict_init(types)
-    ityp = 0
-    atoms => dict_iter(dict // ASTRUCT_POSITIONS)
-    do while(associated(atoms))
-       at => dict_iter(atoms)
-       do while(associated(at))
-          str = dict_key(at)
-          if (dict_len(at) == 3 .and. .not. has_key(types, str)) then
-             ityp = ityp + 1
-             call set(types // str, ityp)
-             nullify(at)
-          else
-             at => dict_next(at)
-          end if
-       end do
-       atoms => dict_next(atoms)
-    end do
-  end subroutine astruct_dict_get_types
-
-
-  !> Read Atomic positions and merge into dict
-  subroutine astruct_file_merge_to_dict(dict, key, filename)
-    use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
-        & BIGDFT_INPUT_FILE_ERROR,f_free_ptr
-    use module_atoms, only: set_astruct_from_file,atomic_structure,&
-         nullify_atomic_structure,deallocate_atomic_structure,astruct_merge_to_dict
-    use public_keys, only: POSINP
-    use yaml_strings
-    implicit none
-    !Arguments
-    type(dictionary), pointer :: dict          !< Contains (out) all the information
-    character(len = *), intent(in) :: key      !< Key of the dictionary where it should be have the information
-    character(len = *), intent(in) :: filename !< Name of the filename where the astruct should be read
-    !Local variables
-    type(atomic_structure) :: astruct
-    !type(DFT_global_output) :: outs
-    character(len=max_field_length) :: msg,radical
-    integer :: ierr,iat
-    real(gp) :: energy
-    real(gp), dimension(:,:), pointer :: fxyz
-    type(dictionary), pointer :: dict_tmp,pos
-
-
-    call f_routine(id='astruct_file_merge_to_dict')
-    ! Read atomic file, old way
-    call nullify_atomic_structure(astruct)
-    !call nullify_global_output(outs)
-    !Try to read the atomic coordinates from files
-    call f_err_open_try()
-    nullify(fxyz)
-    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
-         energy = energy, fxyz = fxyz)
-    !print *,'test2',associated(fxyz)
-    !Check if BIGDFT_INPUT_FILE_ERROR
-    ierr = f_get_last_error(msg) 
-    call f_err_close_try()
-    if (ierr == 0) then
-       dict_tmp => dict // key
-       !No errors: we have all information in astruct and put into dict
-
-       call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
-
-       call set(dict_tmp // ASTRUCT_PROPERTIES // POSINP_SOURCE, filename)
-
-       if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
-       if (associated(fxyz)) then
-          pos => dict_tmp // GOUT_FORCES
-          do iat=1,astruct%nat
-             call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. fxyz(:,iat)))
-          end do
-       end if
-
-       if (GOUT_ENERGY .in. dict_tmp) call dict_remove(dict_tmp, GOUT_ENERGY)
-       if (energy /= UNINITIALIZED(energy)) call set(dict_tmp // GOUT_ENERGY, energy)
-       !call global_output_merge_to_dict(dict // key, outs, astruct)
-       call deallocate_atomic_structure(astruct)
-
-    else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
-       !Found no file: maybe already inside the yaml file ?
-       !Check if posinp is in dict
-       if ( POSINP .notin.  dict) then
-          ! Raise an error
-          call f_strcpy(src='input',dest=radical)
-          !modify the radical name if it exists
-          call dict_get_run_properties(dict, input_id = radical)
-          msg = "No section 'posinp' for the atomic positions in the file '"//&
-               trim(radical) // ".yaml'. " // trim(msg)
-          call f_err_throw(err_msg=msg,err_id=ierr)
-       end if
-    else 
-       ! Raise an error
-       call f_err_throw(err_msg=msg,err_id=ierr)
-    end if
-    call f_free_ptr(fxyz)
-    !call deallocate_global_output(outs)
-    call f_release_routine()
-
-  end subroutine astruct_file_merge_to_dict
-
-
-  !> Allocate the astruct variable from the dictionary of input data
-  !! retrieve also other information like the energy and the forces if requested
-  !! and presend in the dictionary
-  subroutine astruct_set_from_dict(dict, astruct, comment)
-    use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
-    use module_atoms, only: atomic_structure, nullify_atomic_structure,astruct_at_from_dict
-    use dynamic_memory
-    implicit none
-    !Arguments
-    type(dictionary), pointer :: dict !< dictionary of the input variables
-                                      !! the keys have to be declared like input_dicts module
-    type(atomic_structure), intent(out) :: astruct          !< Structure created from the file
-    character(len = 1024), intent(out), optional :: comment !< Extra comment retrieved from the file if present
-    !local variables
-    character(len=*), parameter :: subname='astruct_set_from_dict'
-    type(dictionary), pointer :: pos, at, types
-    character(len = max_field_length) :: str
-    integer :: iat, ityp, units, igspin, igchrg, ntyp
-
-    call f_routine(id='astruct_set_from_dict')
-
-    call nullify_atomic_structure(astruct)
-    astruct%nat = -1
-    if (present(comment)) write(comment, "(A)") " "
-
-    ! The units
-    units = 0
-    write(astruct%units, "(A)") "bohr"
-    if (has_key(dict, ASTRUCT_UNITS)) astruct%units = dict // ASTRUCT_UNITS
-    select case(trim(astruct%units))
-    case('atomic','atomicd0','bohr','bohrd0')
-       units = 0
-    case('angstroem','angstroemd0')
-       units = 1
-    case('reduced')
-       units = 2
-    end select
-    ! The cell
-    astruct%cell_dim = 0.0_gp
-    if (.not. has_key(dict, ASTRUCT_CELL)) then
-       astruct%geocode = 'F'
-    else
-       astruct%geocode = 'P'
-       ! z
-       astruct%cell_dim(3) = dict // ASTRUCT_CELL // 2
-       ! y
-       str = dict // ASTRUCT_CELL // 1
-       if (trim(str) == ".inf") then
-          astruct%geocode = 'S'
-       else
-          astruct%cell_dim(2) = dict // ASTRUCT_CELL // 1
-       end if
-       ! x
-       str = dict // ASTRUCT_CELL // 0
-       if (trim(str) == ".inf") then
-          astruct%geocode = 'W'
-       else
-          astruct%cell_dim(1) = dict // ASTRUCT_CELL // 0
-       end if
-    end if
-    if (units == 1) astruct%cell_dim = astruct%cell_dim / Bohr_Ang
-    ! The types
-    call astruct_dict_get_types(dict, types)
-    ntyp = max(dict_size(types),0) !if types is nullified ntyp=-1
-    call astruct_set_n_types(astruct, ntyp)
-    ! astruct%atomnames = dict_keys(types)
-    ityp = 1
-    at => dict_iter(types)
-    do while (associated(at))
-       astruct%atomnames(ityp) = trim(dict_key(at))
-       ityp = ityp + 1
-       at => dict_next(at)
-    end do
-    ! The atoms
-    if (ASTRUCT_POSITIONS .in. dict) then
-       pos => dict // ASTRUCT_POSITIONS
-       call astruct_set_n_atoms(astruct, dict_len(pos))
-       at => dict_iter(pos)
-       do while(associated(at))
-          iat = dict_item(at) + 1
-
-          call astruct_at_from_dict(at, str, rxyz_add = astruct%rxyz(1, iat), &
-               & ifrztyp = astruct%ifrztyp(iat), igspin = igspin, igchrg = igchrg, &
-               & ixyz_add = astruct%ixyz_int(1,iat), rxyz_int_add = astruct%rxyz_int(1,iat))
-          astruct%iatype(iat) = types // str
-          astruct%input_polarization(iat) = 1000 * igchrg + sign(1, igchrg) * 100 + igspin
-
-          if (units == 1) then
-             astruct%rxyz(1,iat) = astruct%rxyz(1,iat) / Bohr_Ang
-             astruct%rxyz(2,iat) = astruct%rxyz(2,iat) / Bohr_Ang
-             astruct%rxyz(3,iat) = astruct%rxyz(3,iat) / Bohr_Ang
-          endif
-          if (units == 2) then !add treatment for reduced coordinates
-             if (astruct%cell_dim(1) > 0.) astruct%rxyz(1,iat)=&
-                  modulo(astruct%rxyz(1,iat),1.0_gp) * astruct%cell_dim(1)
-             if (astruct%cell_dim(2) > 0.) astruct%rxyz(2,iat)=&
-                  modulo(astruct%rxyz(2,iat),1.0_gp) * astruct%cell_dim(2)
-             if (astruct%cell_dim(3) > 0.) astruct%rxyz(3,iat)=&
-                  modulo(astruct%rxyz(3,iat),1.0_gp) * astruct%cell_dim(3)
-          else if (astruct%geocode == 'P') then
-             astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
-             astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
-             astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-          else if (astruct%geocode == 'S') then
-             astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
-             astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-          else if (astruct%geocode == 'W') then
-             astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
-          end if
-          at => dict_next(at)
-       end do
-    else
-       call astruct_set_n_atoms(astruct,0)
-    end if
-
-    if (has_key(dict, ASTRUCT_PROPERTIES)) then
-       pos => dict // ASTRUCT_PROPERTIES
-       if (has_key(pos, "info") .and. present(comment)) comment = pos // "info"
-       if (has_key(pos, "format")) astruct%inputfile_format = pos // "format"
-    end if
-
-    call dict_free(types)
-
-    call f_release_routine()
-
-  end subroutine astruct_set_from_dict
-
-
   !subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
   !  use module_defs, only: gp
   !  use dictionaries
@@ -1536,6 +564,7 @@ contains
        & nkpts, nspin, norbsempty, qelec_up, qelec_down, norb_max)
     use module_defs, only: gp
     use dynamic_memory
+    use yaml_strings, only: yaml_toa
     use yaml_output
     implicit none
     type(dictionary), pointer :: dict
@@ -1741,6 +770,7 @@ contains
   subroutine occupation_data_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
     use yaml_output
+    use yaml_strings, only: yaml_toa
     implicit none
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: filename, key
@@ -1858,3 +888,1242 @@ contains
     if (has_key(dict // GEOPT_VARIABLES, NEB_DAMP)) damp_ = dict // GEOPT_VARIABLES // NEB_DAMP
   end subroutine neb_set_from_dict
 end module module_input_dicts
+
+!> Module reading the old format (before 1.7) for the input
+module input_old_text_format
+  use yaml_strings, only: operator(.eqv.)
+  use public_enums
+  implicit none
+  private
+  integer, parameter :: WF_N_FORMAT      = 4
+  character(len = 12), dimension(0:WF_N_FORMAT-1), parameter :: wf_format_names = &
+       (/ "none        ", &
+       "plain text  ", &
+       "Fortran bin.", &
+       "ETSF        " /)
+
+
+  !> All possible values of input psi (determination of the input guess)
+  integer, dimension(12), parameter :: input_psi_values = &
+       (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
+       INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
+       INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
+       INPUT_PSI_LINEAR_AO, INPUT_PSI_DISK_LINEAR, INPUT_PSI_MEMORY_LINEAR /)
+
+
+  public :: read_input_dict_from_files!input_from_old_text_format
+contains
+
+  function input_psi_names(id)
+    use public_enums
+    integer, intent(in) :: id
+    character(len = 14) :: input_psi_names
+
+    select case(id)
+    case(INPUT_PSI_EMPTY)
+       write(input_psi_names, "(A)") "empty"
+    case(INPUT_PSI_RANDOM)
+       write(input_psi_names, "(A)") "random"
+    case(INPUT_PSI_CP2K)
+       write(input_psi_names, "(A)") "CP2K"
+    case(INPUT_PSI_LCAO)
+       write(input_psi_names, "(A)") "LCAO"
+    case(INPUT_PSI_MEMORY_WVL)
+       write(input_psi_names, "(A)") "wvl. in mem."
+    case(INPUT_PSI_DISK_WVL)
+       write(input_psi_names, "(A)") "wvl. on disk"
+    case(INPUT_PSI_LCAO_GAUSS)
+       write(input_psi_names, "(A)") "LCAO + gauss."
+    case(INPUT_PSI_MEMORY_GAUSS)
+       write(input_psi_names, "(A)") "gauss. in mem."
+    case(INPUT_PSI_DISK_GAUSS)
+       write(input_psi_names, "(A)") "gauss. on disk"
+    case(INPUT_PSI_LINEAR_AO)
+       write(input_psi_names, "(A)") "Linear AO"
+    case(INPUT_PSI_MEMORY_LINEAR)
+       write(input_psi_names, "(A)") "Linear restart"
+    case(INPUT_PSI_DISK_LINEAR)
+       write(input_psi_names, "(A)") "Linear on disk"
+    case default
+       write(input_psi_names, "(A)") "Error"
+    end select
+  end function input_psi_names
+
+
+  subroutine input_psi_help()
+    integer :: i
+
+    write(*, "(1x,A)") "Available values of inputPsiId are:"
+    do i = 1, size(input_psi_values)
+       write(*, "(1x,A,I5,A,A)") " | ", input_psi_values(i), &
+            & " - ", input_psi_names(input_psi_values(i))
+    end do
+  end subroutine input_psi_help
+
+  subroutine output_wf_format_help()
+    integer :: i
+
+    write(*, "(1x,A)") "Available values of output_wf are:"
+    do i = 0, size(wf_format_names) - 1
+       write(*, "(1x,A,I5,A,A)") " | ", i, &
+            & " - ", wf_format_names(i)
+    end do
+  end subroutine output_wf_format_help
+
+  !> This function returns a dictionary with all the input variables of a BigDFT run filled.
+  !! This dictionary is constructed from a updated version of the input variables dictionary
+  !! following the input files as defined  by the user
+  subroutine read_input_dict_from_files(radical,mpi_env,dict)
+    use module_base
+    use wrapper_MPI
+    use module_input_dicts, only: merge_input_file_to_dict
+    !use yaml_output
+    use dynamic_memory
+    implicit none
+    character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
+    type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
+    type(dictionary), pointer :: dict            !< Input dictionary, has to be nullified at input
+    !local variables
+    integer :: ierr
+    logical :: exists_default, exists_user
+    character(len = max_field_length) :: fname
+
+    call f_routine(id='read_input_dict_from_files')
+
+
+    ! We try first default.yaml
+    inquire(file = "default.yaml", exist = exists_default)
+    if (exists_default) call merge_input_file_to_dict(dict, "default.yaml", mpi_env)
+
+    ! We try then radical.yaml
+    if (len_trim(radical) == 0) then
+       fname(1:len(fname)) = "input.yaml"
+    else
+       fname(1:len(fname)) = trim(radical) // ".yaml"
+    end if
+    inquire(file = trim(fname), exist = exists_user)
+    if (exists_user) call merge_input_file_to_dict(dict, trim(fname), mpi_env)
+
+    ! We fallback on the old text format (to be eliminated in the future)
+    if (.not.exists_default .and. .not. exists_user) then
+       call input_from_old_text_format(radical,mpi_env,dict)
+    end if
+
+    ! We put a barrier here to be sure that non master proc will be stopped
+    ! by any issue on the master proc.
+    call mpibarrier(comm=mpi_env%mpi_comm)
+
+    call f_release_routine()
+  end subroutine read_input_dict_from_files
+
+  subroutine input_from_old_text_format(radical,mpi_env,dict)
+    use public_keys
+    use wrapper_MPI
+    use dictionaries
+    use yaml_output
+    implicit none
+    character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
+    type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
+    type(dictionary), pointer :: dict            !< Input dictionary
+    !local variables
+    character(len = 100) :: f0
+    type(dictionary), pointer :: vals
+    
+    ! Parse all files.
+    call set_inputfile(f0, radical, PERF_VARIABLES)
+    nullify(vals)
+    call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//PERF_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, DFT_VARIABLES)
+    nullify(vals)
+    call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//DFT_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, KPT_VARIABLES)
+    nullify(vals)
+    call read_kpt_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//KPT_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, GEOPT_VARIABLES)
+    nullify(vals)
+    call read_geopt_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, MIX_VARIABLES)
+    nullify(vals)
+    call read_mix_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//MIX_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, SIC_VARIABLES)
+    nullify(vals)
+    call read_sic_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//SIC_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, TDDFT_VARIABLES)
+    nullify(vals)
+    call read_tddft_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//TDDFT_VARIABLES, vals)
+
+    !call set_inputfile(f0, radical, 'lin')
+    !call read_lin_and_frag_from_text_format(mpi_env%iproc,dict,trim(radical)) !as it also reads fragment
+
+    call set_inputfile(f0, radical, 'neb')
+    nullify(vals)
+    call read_neb_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+
+    if (mpi_env%iproc==0) then
+       call yaml_warning('Input files read in the old format.'//&
+            'Use the input_minimal.yaml file to switch to new format. '//&
+            'In future versions this will be deprecated')
+    end if
+
+  end subroutine input_from_old_text_format
+
+  !> Set and check the input file
+  !! if radical is empty verify if the file input.ext exists. 
+  !! otherwise search for radical.ext
+  !! if the so defined file is not existing, then filename becomes default.ext
+  subroutine set_inputfile(filename, radical, ext)
+    implicit none
+    character(len = *), intent(in) :: radical, ext
+    character(len = 100), intent(out) :: filename
+
+    logical :: exists
+
+    write(filename, "(A)") ""
+    if (trim(radical) == "") then
+       write(filename, "(A,A,A)") "input", ".", trim(ext)
+    else
+       write(filename, "(A,A,A)") trim(radical), ".", trim(ext)
+    end if
+
+    inquire(file=trim(filename),exist=exists)
+    if (.not. exists .and. (trim(radical) /= "input" .and. trim(radical) /= "")) &
+         & write(filename, "(A,A,A)") "default", ".", trim(ext)
+  end subroutine set_inputfile
+
+  subroutine read_dft_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use public_keys
+    use dictionaries
+    !  use yaml_output
+    implicit none
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: iproc
+    !local variables
+    logical :: exists
+    integer :: ierror
+    real(gp), dimension(2), parameter :: hgrid_rng=(/0.0_gp,2.0_gp/)
+    real(gp), dimension(2), parameter :: xrmult_rng=(/0.0_gp,100.0_gp/)
+
+    logical :: dummy_bool
+    integer :: dummy_int
+    real(gp) :: dummy_real
+    real(gp), dimension(3) :: dummy_real3
+
+    !dft parameters, needed for the SCF part
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists, DFT_VARIABLES)
+    !if (exists) in%files = in%files + INPUTS_DFT
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    !grid spacings
+    call input_var(dummy_real3(1),'0.45',dict//HGRIDS//0,ranges=hgrid_rng)
+    call input_var(dummy_real3(2),'0.45',dict//HGRIDS//1,ranges=hgrid_rng)
+    call input_var(dummy_real3(3),'0.45',dict//HGRIDS//2,ranges=hgrid_rng,&
+         comment='hx,hy,hz: grid spacing in the three directions')
+
+    !coarse and fine radii around atoms
+    call input_var(dummy_real,'5.0',dict//RMULT//0,ranges=xrmult_rng)
+    call input_var(dummy_real,'8.0',dict//RMULT//1,ranges=xrmult_rng,&
+         comment='c(f)rmult: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius')
+
+    !XC functional (ABINIT XC codes)
+    call input_var(dummy_int,'1',dict//IXC,comment='ixc: exchange-correlation parameter (LDA=1,PBE=11)')
+
+    !charge and electric field
+    call input_var(dummy_int,'0',dict//NCHARGE,ranges=(/-500,500/))
+
+    call input_var(dummy_real3(1),'0.',dict//ELECFIELD//0)
+    call input_var(dummy_real3(2),'0.',dict//ELECFIELD//1)
+    call input_var(dummy_real3(3),'0.',dict//ELECFIELD//2,&
+         comment='charge of the system, Electric field (Ex,Ey,Ez)')
+
+    !spin and polarization
+    call input_var(dummy_int,'1',dict//NSPIN,exclusive=(/1,2,4/))
+    call input_var(dummy_int,'0',dict//MPOL,comment='nspin=1 non-spin polarization, mpol=total magnetic moment')
+
+    !convergence parameters
+    call input_var(dummy_real,'1.e-4',dict//GNRM_CV,ranges=(/1.e-20_gp,1.0_gp/),&
+         comment='gnrm_cv: convergence criterion gradient')
+    call input_var(dummy_int,'50',dict//ITERMAX,ranges=(/0,10000/))
+    call input_var(dummy_int,'1',dict//NREPMAX,ranges=(/0,1000/),&
+         comment='itermax,nrepmax: max. # of wfn. opt. steps and of re-diag. runs')
+
+    !convergence parameters
+    call input_var(dummy_int,'6',dict//NCONG,ranges=(/0,20/))
+    call input_var(dummy_int,'6',dict//IDSX,ranges=(/0,15/),&
+         comment='ncong, idsx: # of CG it. for preconditioning eq., wfn. diis history')
+
+    !dispersion parameter
+    call input_var(dummy_int,'0',dict//DISPERSION,ranges=(/0,5/),&
+         comment='dispersion correction potential (values 1,2,3,4,5), 0=none')
+
+    ! Now the variables which are to be used only for the last run
+    call input_var(dummy_int,'0',dict//INPUTPSIID,&
+         exclusive=(/-2,-1,0,2,10,12,13,100,101,102/),input_iostat=ierror)
+    ! Validate inputPsiId value (Can be added via error handling exception)
+    if (ierror /=0 .and. iproc == 0) then
+       write( *,'(1x,a,I0,a)')'ERROR: illegal value of inputPsiId (', dummy_int, ').'
+       call input_psi_help()
+       call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
+    end if
+
+    call input_var(dummy_int,'0',dict//OUTPUT_WF,exclusive=(/0,1,2,3/),input_iostat=ierror)
+    ! Validate output_wf value.
+    if (ierror /=0 .and. iproc == 0) then
+       write( *,'(1x,a,I0,a)')'ERROR: illegal value of output_wf (', dummy_int, ').'
+       call output_wf_format_help()
+       call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierror)
+    end if
+
+    call input_var(dummy_int,'0',dict//OUTPUT_DENSPOT,exclusive=(/0,1,2,10,11,12,20,21,22/),&
+         comment='InputPsiId, output_wf, output_denspot')
+
+    ! Tail treatment.
+    call input_var(dummy_real,'0.0',dict//RBUF,ranges=(/0.0_gp,10.0_gp/))
+    call input_var(dummy_int,'30',dict//NCONGT,ranges=(/1,50/),&
+         comment='rbuf, ncongt: length of the tail (AU),# tail CG iterations')
+
+    !davidson treatment
+    call input_var(dummy_int,'0',dict//NORBV,ranges=(/-9999,9999/))
+    call input_var(dummy_int,'0',dict//NVIRT)
+    call input_var(dummy_int,'0',dict//NPLOT,&
+         comment='Davidson subspace dim., # of opt. orbs, # of plotted orbs')
+
+    ! Line to disable automatic behaviours (currently only symmetries).
+    call input_var(dummy_bool,'F',dict//DISABLE_SYM,comment='disable the symmetry detection')
+
+    call input_free(.false.)
+
+  end subroutine read_dft_from_text_format
+
+
+  !> Read the input variables needed for the geometry optmization
+  !! Every argument should be considered as mandatory
+  subroutine read_geopt_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use public_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: iproc
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    !local variables
+    character(len=*), parameter :: subname='read_geopt_from_text_format'
+    integer :: i
+    logical :: exists
+
+    character(len = 5) :: dummy_str
+    integer :: dummy_int, ionmov_
+    real(gp) :: dummy_real
+
+    !geometry input parameters
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,GEOPT_VARIABLES)  
+    !if (exists) in%files = in%files + INPUTS_GEOPT
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    call input_var(dummy_str,"BFGS",dict // GEOPT_METHOD, comment = "")
+    !call set(dict // GEOPT_METHOD, dummy_str)
+    call input_var(dummy_int,'1',dict // NCOUNT_CLUSTER_X,comment="")
+    !call set(dict // NCOUNT_CLUSTER_X, dummy_int)
+
+    call input_var(dummy_real,'1.0',dict // FRAC_FLUCT)
+    !call set(dict // FRAC_FLUCT, dummy_real, fmt = "(E8.2)")
+    call input_var(dummy_real,'0.0',dict // FORCEMAX,comment="")
+    !call set(dict // FORCEMAX, dummy_real, fmt = "(E8.2)")
+    call input_var(dummy_real,'0.0',dict // RANDDIS,comment="")
+    !call set(dict // RANDDIS, dummy_real, fmt = "(E8.2)")
+
+    if (trim(dummy_str) .eqv. "AB6MD") then
+       call input_var(ionmov_,'6',dict // IONMOV,comment="")
+       !call set(dict // IONMOV, ionmov_)
+       call input_var(dummy_real,'20.670689',dict // DTION,comment="")
+       !call set(dict // DTION, dummy_real)
+       if (ionmov_ == 6) then
+          call input_var(dummy_real,'300',dict // MDITEMP,comment="")
+          !call set(dict // MDITEMP, dummy_real)
+       elseif (ionmov_ > 7) then
+          call input_var(dummy_real,'300',dict // MDITEMP)
+          !call set(dict // MDITEMP, dummy_real)
+          call input_var(dummy_real,'300',dict // MDFTEMP,comment="")
+          !call set(dict // MDFTEMP, dummy_real)
+       end if
+
+       if (ionmov_ == 8) then
+          call input_var(dummy_real,'1.e5',dict // NOSEINERT,comment="")
+          !call set(dict // NOSEINERT, dummy_real)
+       else if (ionmov_ == 9) then
+          call input_var(dummy_real,'1.e-3',dict // FRICTION,comment="")
+          !call set(dict // FRICTION, dummy_real)
+          call input_var(dummy_real,'1.e4',dict // MDWALL,comment="")
+          !call set(dict // MDWALL, dummy_real)
+       else if (ionmov_ == 13) then
+          !here no dictionary
+          call input_var(dummy_int,'0',ranges=(/0,100/),comment="")
+          do i=1,dummy_int-1
+             call input_var(dummy_real,'0.0',dict // QMASS // (i-1))
+             !call set(dict // QMASS // (i-1), dummy_real)
+          end do
+          if (dummy_int > 0) then
+             call input_var(dummy_real,'0.0',dict // QMASS // (dummy_int-1),comment="")
+             !call set(dict // QMASS // (dummy_int-1), dummy_real)
+          end if
+          call input_var(dummy_real,'10',dict // BMASS)
+          !call set(dict // BMASS, dummy_real)
+          call input_var(dummy_real,'1.0',dict // VMASS,comment="")
+          !call set(dict // VMASS, dummy_real)
+       end if
+    else if (trim(dummy_str) .eqv. "DIIS") then
+       call input_var(dummy_real,'2.0',dict // BETAX)
+       !call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
+       call input_var(dummy_int,'4',dict // HISTORY,comment="")
+       !call set(dict // HISTORY, dummy_int)
+    else
+       call input_var(dummy_real,'4.0',dict // BETAX,comment="")
+       !call set(dict // BETAX, dummy_real, fmt = "(F6.3)")
+    end if
+    if (trim(dummy_str) .eqv. "FIRE") then
+       call input_var(dummy_real,'0.75',dict // DTINIT)
+       !call set(dict // DTINIT, dummy_real, fmt = "(F6.3)")
+       call input_var(dummy_real, '1.5',dict // DTMAX,comment="")
+       !call set(dict // DTMAX, dummy_real, fmt = "(F6.3)")
+    endif
+
+    call input_free(.false.)
+
+  END SUBROUTINE read_geopt_from_text_format
+
+  !> Read the input variables needed for the geometry optmization
+  !!    Every argument should be considered as mandatory
+  subroutine read_mix_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use public_keys
+    use dictionaries
+    implicit none
+    !Arguments
+    integer, intent(in) :: iproc
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: filename
+    !local variables
+    !n(c) character(len=*), parameter :: subname='mix_input_variables'
+    logical :: exists
+    integer :: dummy_int
+    real(gp) :: dummy_real
+
+    !Mix parameters, needed for the SCF poart with Davidson
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,MIX_VARIABLES)
+    !if (exists) in%files = in%files + INPUTS_MIX
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not.exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    !Controls the self-consistency: 0 direct minimisation otherwise ABINIT convention
+    call input_var(dummy_int,'0',dict // ISCF,comment="")
+    !call set(dict // ISCF, dummy_int)
+    call input_var(dummy_int,'1',dict // ITRPMAX,comment="")
+    !call set(dict // ITRPMAX, dummy_int)
+    call input_var(dummy_real,'1.e-4',dict // RPNRM_CV,comment="")
+    !call set(dict // RPNRM_CV, dummy_real, fmt = "(E8.1)")
+    call input_var(dummy_int,'0',dict // NORBSEMPTY)
+    !call set(dict // NORBSEMPTY, dummy_int)
+    call input_var(dummy_real,'0.0',dict // TEL) 
+    !call set(dict // TEL, dummy_real, fmt = "(E9.2)")
+    call input_var(dummy_int,'1',dict // OCCOPT,comment="")
+    !call set(dict // OCCOPT, dummy_int)
+    call input_var(dummy_real,'0.0',dict // ALPHAMIX)
+    !call set(dict // ALPHAMIX, dummy_real, fmt = "(F6.3)")
+    call input_var(dummy_real,'2.0',dict // ALPHADIIS,comment="")
+    !call set(dict // ALPHADIIS, dummy_real, fmt = "(F6.3)")
+
+    call input_free(.false.)
+  END SUBROUTINE read_mix_from_text_format
+
+  !> Read Self-Interaction Correction (SIC) input parameters
+  subroutine read_sic_from_text_format(iproc,dict,filename)
+    use module_input
+    use public_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: iproc
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: filename
+    !local variables
+    logical :: exists
+    !n(c) character(len=*), parameter :: subname='sic_input_variables'
+    double precision :: dummy_real
+    character(len = 4) :: dummy_str
+
+    !Self-Interaction Correction input parameters
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'SIC Parameters')  
+    !if (exists) in%files = in%files + INPUTS_SIC
+    if (.not.exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    call input_var(dummy_str,'NONE',dict // SIC_APPROACH,comment='')
+    !call set(dict // SIC_APPROACH, dummy_str)
+    call input_var(dummy_real,'0.0',dict // SIC_ALPHA,comment='')
+    !call set(dict // SIC_ALPHA, dummy_real, fmt = "(E8.2)")
+    
+    if (trim(dummy_str) .eqv. 'NK') then
+       call input_var(dummy_real,'0.0',dict // SIC_FREF,comment='')
+       !call set(dict // SIC_FREF, dummy_real, fmt = "(E8.2)")
+    end if
+
+    call input_free(.false.)
+  END SUBROUTINE read_sic_from_text_format
+
+  subroutine read_tddft_from_text_format(iproc,dict,filename)
+    use module_input
+    use public_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: iproc
+    type(dictionary), pointer :: dict
+    character(len=*), intent(in) :: filename
+    !local variables
+    logical :: exists
+    !n(c) character(len=*), parameter :: subname='tddft_input_variables'
+    character(len = 4) :: dummy_str
+
+    !TD-DFT parameters
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'TD-DFT Parameters')  
+    !if (exists) in%files = in%files + INPUTS_TDDFT
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    call input_var(dummy_str,"NONE",dict // TDDFT_APPROACH,comment="")
+    !call set(dict // TDDFT_APPROACH, dummy_str)
+
+    call input_free(.false.)
+
+  END SUBROUTINE read_tddft_from_text_format
+
+  subroutine read_kpt_from_text_format(iproc,dict,filename)
+    use module_base
+    use dictionaries
+    use module_input
+    use public_keys
+    implicit none
+    character(len=*), intent(in) :: filename
+    integer, intent(in) :: iproc
+    type(dictionary), pointer :: dict
+    !local variables
+    logical :: exists
+    character(len=*), parameter :: subname='read_kpt_from_text_format'
+
+    integer :: dummy_int, nseg, i, ierror
+    integer, dimension(3) :: dummy_int3
+    real(gp) :: dummy_real
+    real(gp), dimension(3) :: dummy_real3
+    character(len = max_field_length) :: dummy_str
+
+    !kpt parameters, needed for the SCF part
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists, KPT_VARIABLES)
+    !if (exists) in%files = in%files + INPUTS_KPT
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    !if the file does exist, we fill up the dictionary.
+    call input_var(dummy_str, 'manual',dict//KPT_METHOD, comment='K-point sampling method')
+    !call set(dict//KPT_METHOD, trim(dummy_str))
+
+    if (trim(dummy_str) .eqv.  'auto') then
+       call input_var(dummy_real,'0.0',dict//KPTRLEN, comment='Equivalent length of K-space resolution (Bohr)')
+       !call set(dict//KPTRLEN, dummy_real)
+    else if (trim(dummy_str) .eqv. 'mpgrid') then
+       !take the points of Monckorst-pack grid
+       call input_var(dummy_int3(1),'1',dict//NGKPT//0)
+       call input_var(dummy_int3(2),'1',dict//NGKPT//1)
+       call input_var(dummy_int3(3),'1',dict//NGKPT//2, comment='No. of Monkhorst-Pack grid points')
+       !call set(dict//NGKPT//0, dummy_int3(1))
+       !call set(dict//NGKPT//1, dummy_int3(2))
+       !call set(dict//NGKPT//2, dummy_int3(3))
+       !shift
+       !no dict here
+       call input_var(dummy_int,'1',ranges=(/1,8/),comment='No. of different shifts')
+       !read the shifts
+       do i=1,dummy_int
+          call input_var(dummy_real3(1),'0.',dict//SHIFTK//(i-1)//0)
+          call input_var(dummy_real3(2),'0.',dict//SHIFTK//(i-1)//1)
+          call input_var(dummy_real3(3),'0.',dict//SHIFTK//(i-1)//2,comment=' ')
+          !call set(dict//SHIFTK//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
+          !call set(dict//SHIFTK//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
+          !call set(dict//SHIFTK//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
+       end do
+    else if (trim(dummy_str) .eqv. 'manual') then
+       call input_var(dummy_int,'1',ranges=(/1,10000/),&
+            comment='Number of K-points')
+       do i=1,dummy_int
+          call input_var(dummy_real3(1),'0.',dict//KPT//(i-1)//0)
+          call input_var(dummy_real3(2),'0.',dict//KPT//(i-1)//1)
+          call input_var(dummy_real3(3),'0.',dict//KPT//(i-1)//2)
+          !call set(dict//KPT//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
+          !call set(dict//KPT//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
+          !call set(dict//KPT//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
+          call input_var(dummy_real,'1.',dict//WKPT//(i-1),comment='K-pt coords, K-pt weigth')
+          !call set(dict//WKPT//(i-1), dummy_real, fmt = "(F6.4)")
+       end do
+    end if
+
+    ! Now read the band structure definition. do it only if the file exists
+    !no dictionary here
+    call input_var(dummy_str,'bands',comment='For doing band structure calculation',&
+         input_iostat=ierror)
+    call set(dict//BANDS, (ierror==0))
+    if (ierror==0) then
+       call input_var(nseg,'1',ranges=(/1,1000/),&
+            comment='# of segments of the BZ path')
+       !number of points for each segment, parallel granularity
+       do i=1,nseg
+          call input_var(dummy_int,'1',dict//ISEG)
+          !call set(dict//ISEG, dummy_int)
+       end do
+       call input_var(dummy_int,'1',dict//NGRANULARITY,&
+            comment='points for each segment, # of points done for each group')
+       !call set(dict//NGRANULARITY, dummy_int)
+
+       call input_var(dummy_real3(1),'0.',dict//KPTV//0//0)
+       call input_var(dummy_real3(2),'0.',dict//KPTV//0//1)
+       call input_var(dummy_real3(3),'0.',dict//KPTV//0//2,comment=' ')
+!       call set(dict//KPTV//0//0, dummy_real3(1))
+!       call set(dict//KPTV//0//1, dummy_real3(2))
+!       call set(dict//KPTV//0//2, dummy_real3(3))
+       do i=1,nseg
+          call input_var(dummy_real3(1),'0.5',dict//KPTV//(i-1)//0)
+          call input_var(dummy_real3(2),'0.5',dict//KPTV//(i-1)//1)
+          call input_var(dummy_real3(3),'0.5',dict//KPTV//(i-1)//2,comment=' ')
+          !call set(dict//KPTV//(i-1)//0, dummy_real3(1))
+          !call set(dict//KPTV//(i-1)//1, dummy_real3(2))
+          !call set(dict//KPTV//(i-1)//2, dummy_real3(3))
+       end do
+
+       !read an optional line to see if there is a file associated
+       !no dict for the moment
+       call input_var(dummy_str,' ',&
+            comment=' ',input_iostat=ierror)
+       if (ierror == 0) then
+          !since a file for the local potential is already given, do not perform ground state calculation
+          call set(dict//BAND_STRUCTURE_FILENAME, dummy_str)
+       end if
+    end if
+
+    call input_free(.false.)
+
+  end subroutine read_kpt_from_text_format
+
+
+  !> Read the input variables which can be used for performances
+  subroutine read_perf_from_text_format(iproc,dict,filename)
+    use module_input
+    use dictionaries
+    use public_keys
+    implicit none
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: iproc
+    !local variables
+    !n(c) character(len=*), parameter :: subname='perf_input_variables'
+    logical :: exists, dummy_bool
+    integer :: dummy_int, blocks(2)
+    double precision :: dummy_real
+    character(len = 7) :: dummy_str
+
+    call input_set_file(iproc, (iproc == 0), filename, exists, PERF_VARIABLES)
+    !if (exists) in%files = in%files + INPUTS_PERF
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    call input_var("debug", .false., "Debug option", dummy_bool)
+    call set(dict // DEBUG, dummy_bool)
+    call input_var("fftcache", 8*1024, "Cache size for the FFT", dummy_int)
+    call set(dict // FFTCACHE, dummy_int)
+    call input_var("accel", "NO", "Acceleration", dummy_str)
+    call set(dict // ACCEL, dummy_str)
+
+    !determine desired OCL platform which is used for acceleration
+    call input_var("OCL_platform"," ", "Chosen OCL platform", dummy_str)
+    call set(dict // OCL_PLATFORM, dummy_str)
+    call input_var("OCL_devices"," ", "Chosen OCL devices", dummy_str)
+    call set(dict // OCL_DEVICES, dummy_str)
+
+    !!@TODO to relocate
+    call input_var("blas", .false., "CUBLAS acceleration", dummy_bool)
+    call set(dict // BLAS, dummy_bool)
+    call input_var("projrad", 15.0d0, "Radius ", dummy_real)
+    call set(dict // PROJRAD, dummy_real, fmt = "(F6.3)")
+    call input_var("exctxpar", "OP2P", "Exact exchange parallelisation scheme", dummy_str)
+    call set(dict // EXCTXPAR, dummy_str)
+    call input_var("ig_diag", .true.,"Input guess", dummy_bool)
+    call set(dict // IG_DIAG, dummy_bool)
+    call input_var("ig_norbp", 5, "Input guess: ", dummy_int)
+    call set(dict // IG_NORBP, dummy_int)
+    call input_var("ig_blocks", (/ 300, 800 /), "Input guess: ", blocks)
+    call set(dict // IG_BLOCKS // 0, blocks(1))
+    call set(dict // IG_BLOCKS // 1, blocks(2))
+    call input_var("ig_tol", 1d-4, "Input guess: Tolerance criterion", dummy_real)
+    call set(dict // IG_TOL, dummy_real, fmt = "(E8.1)")
+    call input_var("methortho", 0, "Orthogonalisation ", dummy_int)
+    call set(dict // METHORTHO, dummy_int)
+    call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",dummy_str)
+    call set(dict // RHO_COMMUN, dummy_str)
+    call input_var("psolver_groupsize",0, "Size of ", dummy_int)
+    call set(dict // PSOLVER_GROUPSIZE, dummy_int)
+    call input_var("psolver_accel",0, "Acceleration ", dummy_int)
+    call set(dict // PSOLVER_ACCEL, dummy_int)
+    call input_var("unblock_comms", "OFF", "Overlap Com)",dummy_str)
+    call set(dict // UNBLOCK_COMMS, dummy_str)
+    call input_var("linear", 'OFF', "Linear Input Guess approach",dummy_str)
+    call set(dict // LINEAR, dummy_str)
+    call input_var("tolsym", 1d-8, "Tolerance for symmetry detection",dummy_real)
+    call set(dict // TOLSYM, dummy_real, fmt = "(E8.1)")
+    call input_var("signaling", .false., "Expose calculation results on Network",dummy_bool)
+    call set(dict // SIGNALING, dummy_bool)
+    call input_var("signalTimeout", 0, "Time out on startup for signal connection",dummy_int)  
+    call set(dict // SIGNALTIMEOUT, dummy_int)
+    call input_var("domain", "", "Domain to add to the hostname to find the IP", dummy_str)
+    call set(dict // DOMAIN, dummy_str)
+    call input_var("inguess_geopt", 0,"0= wavelet input ",dummy_int)
+    call set(dict // INGUESS_GEOPT, dummy_int)
+    call input_var("store_index", .true., "Linear scaling: store ", dummy_bool)
+    call set(dict // STORE_INDEX, dummy_bool)
+    !verbosity of the output
+    call input_var("verbosity", 2, "Verbosity of the output 0=low, 2=high",dummy_int)
+    call set(dict // VERBOSITY, dummy_int)
+
+    !If false, apply the projectors in the once-and-for-all scheme, otherwise on-the-fly
+    call input_var("psp_onfly", .true., "Calculate the PSP projectors on the fly (less memory)",dummy_bool)
+    call set(dict // PSP_ONFLY, dummy_bool)
+
+    !If true, preserve the multipole of the ionic part (local potential) projecting on delta instead of ISF
+    call input_var("multipole_preserving", .false., "Preserve multipole moment of the ionic charge",dummy_bool)
+    call set(dict // MULTIPOLE_PRESERVING, dummy_bool)
+    call input_var("mp_isf", 16, "Interpolating scaling function for the multipole preserving option",dummy_int)
+    call set(dict // MP_ISF, dummy_int)
+
+    !block size for pdsyev/pdsygv, pdgemm (negative -> sequential)
+    call input_var("pdsyev_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
+    call set(dict // PDSYEV_BLOCKSIZE, dummy_int)
+    call input_var("pdgemm_blocksize",-8,"SCALAPACK linear scaling blocksize",dummy_int) !ranges=(/-100,1000/)
+    call set(dict // PDGEMM_BLOCKSIZE, dummy_int)
+
+    !max number of process uses for pdsyev/pdsygv, pdgemm
+    call input_var("maxproc_pdsyev",4,"SCALAPACK linear scaling max num procs",dummy_int) !ranges=(/1,100000/)
+    call set(dict // MAXPROC_PDSYEV, dummy_int)
+    call input_var("maxproc_pdgemm",4,"SCALAPACK linear scaling max num procs",dummy_int) !ranges=(/1,100000/)
+    call set(dict // MAXPROC_PDGEMM, dummy_int)
+
+    !FOE: if the determinant of the interpolation matrix to find the Fermi energy
+    !is smaller than this value, switch from cubic to linear interpolation.
+    call input_var("ef_interpol_det",1.d-20,"FOE: max ",dummy_real)
+    call set(dict // EF_INTERPOL_DET, dummy_real, fmt = "(E9.2)")
+    call input_var("ef_interpol_chargediff",10.d0,"FOE: max ",dummy_real)
+    call set(dict // EF_INTERPOL_CHARGEDIFF, dummy_real, fmt = "(E9.2)")
+
+    !determines whether a mixing step shall be preformed after the input guess !(linear version)
+    call input_var("mixing_after_inputguess",1,"mixing after inguess (0/1/2)",dummy_int)
+    call set(dict // MIXING_AFTER_INPUTGUESS, dummy_int)
+
+    !determines whether the input guess support functions are orthogonalized iteratively (T) or in the standard way (F)
+    call input_var("iterative_orthogonalization",.false.," orbitals",dummy_bool)
+    call set(dict // ITERATIVE_ORTHOGONALIZATION, dummy_bool)
+
+    call input_var("check_sumrho", 2, (/0,1,2/), "linear sumrho: 0=no check, 1=light check, 2=full check", dummy_int)
+    call set(dict // CHECK_SUMRHO, dummy_int)
+
+    call input_var("check_overlap", 2, (/0,1,2/), "linear overlap: 0=no check, 1=light check, 2=full check", dummy_int)
+    call set(dict // CHECK_OVERLAP, dummy_int)
+
+    call input_var("experimental_mode", .false., "linear scaling: activate the experimental mode", dummy_bool)
+    call set(dict // EXPERIMENTAL_MODE, dummy_bool)
+
+    call input_var("write_orbitals", 0, "(LS): write KS orbitals for cubic restart (0: no, 1: wvl, 2: wvl+isf)", dummy_int)
+    call set(dict // WRITE_ORBITALS, dummy_int)
+
+    call input_var("explicit_locregcenters", .false., "linear scaling: explicitely specify localization centers", dummy_bool)
+    call set(dict // EXPLICIT_LOCREGCENTERS, dummy_bool)
+
+    call input_var("calculate_KS_residue", .true., "linear scaling: calculate Kohn-Sham residue", dummy_bool)
+    call set(dict // CALCULATE_KS_RESIDUE, dummy_bool)
+
+    call input_var("intermediate_forces", .false., "linear scaling: calculate intermediate forces", dummy_bool)
+    call set(dict // INTERMEDIATE_FORCES, dummy_bool)
+
+    call input_var("kappa_conv", 0.1d0, "exit kappa for extended input guess (experimental mode)", dummy_real)
+    call set(dict // KAPPA_CONV, dummy_real)
+
+    call input_var("evbounds_nsatur", 3, "number of FOE cycles before the eigenvalue bounds are shrinked", dummy_int)
+    call set(dict // EVBOUNDS_NSATUR, dummy_int)
+
+    call input_var("evboundsshrink_nsatur", 4, "maximal number of unsuccessful eigenvalue bounds shrinkings", dummy_int)
+    call set(dict // EVBOUNDSSHRINK_NSATUR, dummy_int)
+
+    call input_var("method_updatekernel", 0, (/0,1,2/), "K update (sup fun opt) (0: purific., 1: FOE, 2: renorm.)", dummy_int)
+    call set(dict // METHOD_UPDATEKERNEL, dummy_int)
+
+    call input_var("purification_quickreturn", .true., "linear scaling: quick return in purification", dummy_bool)
+    call set(dict // PURIFICATION_QUICKRETURN, dummy_bool)
+
+    call input_var("adjust_FOE_temperature", .true., "dynamic adjustment of FOE error function decay length", dummy_bool)
+    call set(dict // ADJUST_FOE_TEMPERATURE, dummy_bool)
+
+    call input_var("calculate_gap", .false., "calculate the HOMO LUMO gap", dummy_bool)
+    call set(dict // CALCULATE_GAP, dummy_bool)
+
+    call input_var("loewdin_charge_analysis", .false., "perform a Loewdin charge analysis at the end", dummy_bool)
+    call set(dict // LOEWDIN_CHARGE_ANALYSIS, dummy_bool)
+
+    call input_var("check_matrix_compression", .true., "perform a check of the matrix compression routines", dummy_bool)
+    call set(dict // CHECK_MATRIX_COMPRESSION, dummy_bool)
+
+    call input_var("correction_co_contra", .true., "correction covariant / contravariant gradient", dummy_bool)
+    call set(dict // CORRECTION_CO_CONTRA, dummy_bool)
+
+    call input_var("fscale_lowerbound", 5.d-3, "lower bound for the error function decay length", dummy_real)
+    call set(dict // FSCALE_LOWERBOUND, dummy_real)
+
+    call input_var("fscale_upperbound", 5.d-2, "upper bound for the error function decay length", dummy_real)
+    call set(dict // FSCALE_UPPERBOUND, dummy_real)
+
+    call input_var("imethod_overlap", 1, (/1,2/), "lin scaling method to calculate overlap matrix (1:old, 2:new)", dummy_int)
+    call set(dict // IMETHOD_OVERLAP, dummy_int)
+
+    call input_var("enable_matrix_taskgroups", .true., "enable matrix taskgroups", dummy_bool)
+    call set(dict // ENABLE_MATRIX_TASKGROUPS, dummy_bool)
+
+    call input_var("hamapp_radius_incr", 8, "radius enlargement for Ham application", dummy_int)
+    call set(dict // HAMAPP_RADIUS_INCR, dummy_int)
+
+    call input_var("adjust_kernel_iterations", .true., "addaptive ajustment of the number of kernel iterations", dummy_bool)
+    call set(dict // ADJUST_KERNEL_ITERATIONS, dummy_bool)
+
+    call input_var("wf_extent_analysis", .false., "extent analysis of the support functions / KS orbitals", dummy_bool)
+    call set(dict // WF_EXTENT_ANALYSIS, dummy_bool)
+
+    call input_free(.false.)
+
+  END SUBROUTINE read_perf_from_text_format
+
+
+  !> Read the linear input variables
+  subroutine read_lin_and_frag_from_text_format(iproc,dict,run_name)
+    use dictionaries, dict_set => set 
+    use module_defs, only: gp
+    use module_input
+    use public_keys
+    implicit none
+    character(len=*), intent(in) :: run_name
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: iproc
+    !local variables
+    !n(c) character(len=*), parameter :: subname='perf_input_variables'
+    logical :: exists, dummy_bool,frag_bool
+    integer :: dummy_int,ios
+    double precision :: dummy_real
+    character(len=256) :: comments,dummy_char,filename
+    type(dictionary), pointer :: dict_basis
+
+    !call f_err_throw('For the linear version the input parameters must be read in the .yaml format, &
+    !    &the old version is deprecated', err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+
+    filename=repeat(' ',len(filename))
+    call set_inputfile(filename, trim(run_name),    "lin")
+    ! This name seems to be too long..
+    !call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for Localized basis generation (O(N) approach)')
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,'Parameters for O(N) approach')
+!    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_GENERAL)
+!    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_BASIS)
+!    call input_set_file(iproc, (iproc == 0), filename, exists, LIN_KERNEL)
+    !if (exists) in%files = in%files + INPUTS_PERF
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    ! General variables #######################################################
+
+    comments='number of accuracy levels: either 2 (for low/high accuracy) or 1 (for hybrid mode)'
+    call input_var(dummy_int,'2',ranges=(/1,2/),comment=comments)
+    call dict_set(dict//LIN_GENERAL//HYBRID,dummy_int==1)
+
+    ! number of iterations
+    comments = 'outer loop iterations (low, high)'
+    call input_var(dummy_int,'15',dict//LIN_GENERAL//NIT//0,ranges=(/0,100000/))
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//NIT//1,ranges=(/0,100000/),comment=comments)
+
+    comments = 'basis iterations (low, high)'
+    call input_var(dummy_int,'12',dict//LIN_BASIS//NIT//0,ranges=(/0,100000/))
+    call input_var(dummy_int,'50',dict//LIN_BASIS//NIT//1,ranges=(/0,100000/),comment=comments)
+
+    comments = 'kernel iterations (low, high) - directmin only'
+    call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//0,ranges=(/0,1000/))
+    call input_var(dummy_int,'1',dict//LIN_KERNEL//NSTEP//1,ranges=(/0,1000/),comment=comments)
+
+    comments = 'density iterations (low, high)'
+    call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//0,ranges=(/0,1000/))
+    call input_var(dummy_int,'15',dict//LIN_KERNEL//NIT//1,ranges=(/0,1000/),comment=comments)
+
+    ! DIIS history lengths
+    comments = 'DIIS history for basis (low, high)'
+    call input_var(dummy_int,'5',dict//LIN_BASIS//IDSX//0,ranges=(/0,100/))
+    call input_var(dummy_int,'0',dict//LIN_BASIS//IDSX//1,ranges=(/0,100/),comment=comments)
+
+    comments = 'DIIS history for kernel (low, high) - directmin only'
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//0,ranges=(/0,100/))
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX_COEFF//1,ranges=(/0,100/),comment=comments)
+
+    comments = 'DIIS history for density mixing (low, high)'
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//0,ranges=(/0,100/))
+    call input_var(dummy_int,'0',dict//LIN_KERNEL//IDSX//1,ranges=(/0,100/),comment=comments)
+
+    ! mixing parameters
+    comments = 'density mixing parameter (low, high)'
+    call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'.5d0',dict//LIN_KERNEL//ALPHAMIX//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    ! Convergence criteria
+    comments = 'outer loop convergence (low, high)'
+    call input_var(dummy_real,'1.d-8' ,dict//LIN_GENERAL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'1.d-12',dict//LIN_GENERAL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments = 'basis convergence (low, high) ; early stop TMB optimization, dynamic gnrm, activate dyn (exp. mode only)'
+    call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//GNRM_CV//0,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-5',dict//LIN_BASIS//GNRM_CV//1,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//DELTAE_CV,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-4',dict//LIN_BASIS//GNRM_DYN,ranges=(/0.0_gp,1.0_gp/))
+    call input_var(dummy_real,'1.d-3',dict//LIN_BASIS//MIN_GNRM_FOR_DYNAMIC,ranges=(/1.d-7,1.0_gp/),comment=comments)
+
+    comments = 'factor to reduce the confinement. Only used for hybrid mode.'
+    call input_var(dummy_real,'0.5d0',dict//LIN_GENERAL//CONF_DAMPING,ranges=(/-1.d100,1.d0/),comment=comments)
+
+    comments = 'kernel convergence (low, high) - directmin only'
+    call input_var(dummy_real,'75.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'1.d-5',dict//LIN_KERNEL//GNRM_CV_COEFF//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments = 'density convergence (low, high)'
+    call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//0,ranges=(/0.d0,1.d0/))
+    call input_var(dummy_real,'1.d-13',dict//LIN_KERNEL//RPNRM_CV//1,ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments = 'convergence criterion on density to fix TMBS'
+    call input_var(dummy_real,'1.d-10',dict//LIN_BASIS//FIX_BASIS,ranges=(/1.d-14,1.d-6/),comment=comments)
+    !call input_var(in%lin%support_functions_converged,'1.d-10',ranges=(/0.d0,1.d0/),comment=comments)
+
+    comments='mixing method: 100 (direct minimization), 101 (simple dens mixing), 102 (simple pot mixing), 103 (FOE)'
+    call input_var(dummy_int,'100',ranges=(/100,103/),comment=comments)
+    select case(dummy_int)
+    case(100)
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIRMIN')
+    case(101) 
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
+       call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'DEN')
+    case(102)      
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'DIAG')
+       call dict_set(dict//LIN_KERNEL//MIXING_METHOD,'POT')
+    case(103)
+       call dict_set(dict//LIN_KERNEL//LINEAR_METHOD,'FOE')
+    end select
+
+    comments = 'initial step size for basis optimization (DIIS, SD)' ! DELETE ONE
+    call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_DIIS,ranges=(/0.0_gp,10.0_gp/))
+    call input_var(dummy_real,'1.d0',dict//LIN_BASIS//ALPHA_SD,ranges=(/0.0_gp,10.0_gp/),comment=comments)
+
+    comments = 'initial step size for kernel update (SD), curve fitting for alpha update - directmin only'
+    call input_var(dummy_real,'1.d0',dict//LIN_KERNEL//ALPHA_SD_COEFF,ranges=(/0.0_gp,10.0_gp/))
+    call input_var(dummy_bool,'F',dict//LIN_KERNEL//ALPHA_FIT_COEFF,comment=comments)
+
+    comments = 'lower and upper bound for the eigenvalue spectrum (FOE). Will be adjusted automatically if chosen too small'
+    call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//0,ranges=(/-10.d0,-1.d-10/))
+    call input_var(dummy_real,'-.5d0',dict//LIN_KERNEL//EVAL_RANGE_FOE//1,ranges=(/1.d-10,10.d0/),comment=comments)
+
+    !comments='number of iterations in the preconditioner, order of Taylor approximations'
+    comments='number of iterations in the preconditioner'
+    call input_var(dummy_int,'5',dict//LIN_BASIS//NSTEP_PREC,ranges=(/1,100/),comment=comments)
+    !!call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,100/),comment=comments)
+    !call input_var(in%lin%order_taylor,'1',ranges=(/1,100/),comment=comments)
+
+    comments = '0-> exact Loewdin, 1-> taylor expansion; &
+               &in orthoconstraint: correction for non-orthogonality (0) or no correction (1)'
+    call input_var(dummy_int,'1',dict//LIN_GENERAL//TAYLOR_ORDER,ranges=(/-100,10000/))
+    call input_var(dummy_int,'1',dict//LIN_BASIS//CORRECTION_ORTHOCONSTRAINT,comment=comments)
+    !call input_var(in%lin%correctionOrthoconstraint,'1',ranges=(/0,1/),comment=comments)
+
+    comments='fscale: length scale over which complementary error function decays from 1 to 0'
+    call input_var(dummy_real,'1.d-2',dict//LIN_KERNEL//FSCALE_FOE,ranges=(/0.d0,1.d0/),comment=comments)
+
+    !plot basis functions: true or false
+    comments='Output support functions (i: wvl, i+10: wvl+isf): i=0 No, i=1 formatted, i=2 Fortran bin, i=3 ETSF ;'//&
+             'calculate dipole ; pulay correction (old and new); diagonalization at the end (dmin, FOE)'
+    call input_var(dummy_int,'0',dict//LIN_GENERAL//OUTPUT_WF,exclusive=(/0,1,2,3,10,11,12,13/))
+    call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_DIPOLE)
+    call input_var(dummy_bool,'T',dict//LIN_GENERAL//CALC_PULAY//0)
+    call input_var(dummy_bool,'F',dict//LIN_GENERAL//CALC_PULAY//1)
+
+!    in%lin%pulay_correction=dummy_bool
+!    call input_var(in%lin%new_pulay_correction,'F')
+    call input_var(dummy_bool,'F',dict//LIN_GENERAL//SUBSPACE_DIAG,comment=comments)
+
+  !fragment calculation and transfer integrals: true or false
+  comments='fragment calculation; calculate transfer_integrals; constrained DFT calculation; extra states to optimize (dmin only)'
+  !these should becode dummy variables to build dictionary
+  !!call input_var(in%lin%fragment_calculation,'F')
+  !!call input_var(in%lin%calc_transfer_integrals,'F')
+  !!call input_var(in%lin%constrained_dft,'F')
+  !!call input_var(in%lin%extra_states,'0',ranges=(/0,10000/),comment=comments)
+  call input_var(frag_bool,'F')
+  !this variable makes sense only if fragments are specified
+  call input_var(dummy_bool,'F')
+  if (frag_bool) call dict_set(dict//FRAG_VARIABLES//TRANSFER_INTEGRALS,dummy_bool)
+  
+  call input_var(dummy_bool,'F') !constrained DFT, obtained via the charges
+  call input_var(dummy_int,'0',dict//LIN_GENERAL//EXTRA_STATES,&
+       ranges=(/0,10000/),comment=comments)
+
+  ! Now read in the parameters specific for each atom type.
+  comments = 'Atom name, number of basis functions per atom, prefactor for confinement potential,'//&
+       'localization radius, kernel cutoff, kernel cutoff FOE'
+  read_basis: do !while(itype <= atoms%astruct%ntypes) 
+  !!   if (exists) then
+        call input_var(dummy_char,'C',input_iostat=ios)
+        if (ios /= 0) exit read_basis
+     dict_basis=>dict//LIN_BASIS_PARAMS//trim(dummy_char)
+     call input_var(dummy_int,'1',dict_basis//NBASIS,ranges=(/1,100/))
+     call input_var(dummy_real,'1.2d-2',dict_basis//AO_CONFINEMENT,&
+          ranges=(/-1.0_gp,1.0_gp/))
+     call input_var(dummy_real,'1.2d-2',dict_basis//CONFINEMENT//0,&
+          ranges=(/-1.0_gp,1.0_gp/))
+     call input_var(dummy_real,'5.d-5',dict_basis//CONFINEMENT//1,&
+          ranges=(/-1.0_gp,1.0_gp/))
+     call input_var(dummy_real,'10.d0',dict_basis//RLOC//0,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'10.d0',dict_basis//RLOC//1,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'12.d0',dict_basis//RLOC_KERNEL,&
+          ranges=(/1.0_gp,10000.0_gp/))
+     call input_var(dummy_real,'20.d0',dict_basis//RLOC_KERNEL_FOE,&
+          ranges=(/1.0_gp,10000.0_gp/),comment=comments)
+
+  !!   if (.not. exists) exit read_basis !default has been filled
+  end do read_basis
+
+    call input_free(.false.)
+
+    !read extensively the file and build the temporary variable
+    !from which the input dictionary is updated
+    if (frag_bool) then
+       filename=repeat(' ',len(filename))
+       call set_inputfile(filename, run_name,   "frag")
+       call fragment_input_variables_from_text_format(iproc,.false.,&
+            trim(filename),frag_bool,dict//FRAG_VARIABLES)
+    end if
+
+  END SUBROUTINE read_lin_and_frag_from_text_format
+
+
+  subroutine read_neb_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use public_keys
+    use dictionaries
+    implicit none
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    integer, intent(in) :: iproc
+
+    INTEGER :: num_of_images
+    CHARACTER (LEN=20) :: minimization_scheme
+    logical :: climbing, optimization, restart, exists
+    integer :: max_iterations
+    real(gp) :: convergence, damp, k_min, k_max, ds, temp_req, tolerance
+    CHARACTER (LEN=80) :: first_config, last_config, job_name, scratch_dir
+
+    NAMELIST /NEB/ scratch_dir,         &
+         climbing,            &
+         optimization,        &
+         minimization_scheme, &
+         damp,                &
+         temp_req,            &
+         k_max, k_min,        &
+         ds,                  &
+         max_iterations,      &
+         tolerance,           &
+         convergence,         &
+         num_of_images,       &
+         restart,             & ! not used
+         job_name,            & ! not used
+         first_config,        & ! not used
+         last_config            ! not used
+
+    inquire(file=trim(filename),exist=exists)
+    if (.not. exists) return
+
+    open(unit = 123, file = trim(filename), action = "read")
+    READ(123 , NML=NEB )
+    close(123)
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    call set(dict // GEOPT_METHOD, "NEB")
+    call set(dict // NEB_CLIMBING, climbing)
+    call set(dict // EXTREMA_OPT, optimization)
+    call set(dict // NEB_METHOD, minimization_scheme)
+    if (trim(minimization_scheme) == 'damped-verlet') call set(dict // NEB_DAMP, damp)
+    call set(dict // SPRINGS_K // 0, k_min)
+    call set(dict // SPRINGS_K // 1, k_max)
+    if (trim(minimization_scheme) == 'sim-annealing') call set(dict // TEMP, temp_req)
+    call set(dict // BETAX, ds)
+    call set(dict // NCOUNT_CLUSTER_X, max_iterations)
+    call set(dict // FIX_TOL, tolerance)
+    call set(dict // FORCEMAX, convergence)
+    call set(dict // NIMG, num_of_images)
+
+  end subroutine read_neb_from_text_format
+
+  !> Read fragment input parameters
+  subroutine fragment_input_variables_from_text_format(iproc,dump,filename,shouldexist,dict)
+    use module_defs, only: gp
+    use fragment_base
+    use module_input
+    use dictionaries
+    use yaml_strings, only: yaml_toa
+    use yaml_output, only: yaml_map
+    implicit none
+    logical, intent(in) :: shouldexist
+    integer, intent(in) :: iproc
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    logical, intent(in) :: dump
+    !local variables
+    !character(len=*), parameter :: subname='fragment_input_variables'
+    logical :: exists
+    character(len=256) :: comments
+    integer :: ifrag, frag_num
+    real(gp) :: charge
+    type(fragmentInputParameters) :: frag
+    type(dictionary), pointer :: dict_frag
+
+    !Linear input parameters
+    call input_set_file(iproc,dump,trim(filename),exists,'Fragment Parameters') 
+
+    if (.not. exists .and. shouldexist) then ! we should be doing a fragment calculation, so this is a problem
+       call f_err_throw("The file 'input.frag' is missing and fragment calculation was specified",&
+            err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       call input_free(.false.)
+       return
+    end if
+
+    call nullifyInputFragParameters(frag)
+
+    !example of interpreted fragment yaml file
+    !!frag:
+    !!  transfer_integrals: Yes
+    !!  frag_name1: [1, ... , 3, 5, ... , 8]
+    !!  frag_name2: [9, 10, 13, 16, ... ,18]
+    !!  frag_name3: [11, 12, 15]
+    !!  constrained_dft:
+    !!    Fragment No. 9: +1
+    !!    Fragment No. 15: -1
+    !!
+
+    ! number of reference fragments
+    comments='# number of fragments in reference system, number of fragments in current system'
+    call input_var(frag%nfrag_ref,'1',ranges=(/1,100000/))
+    call input_var(frag%nfrag,'1',ranges=(/1,100000/),comment=comments)
+
+    ! Allocate fragment pointers
+    call allocateInputFragArrays(frag)
+
+    ! ADD A SENSIBLE DEFAULT AND ALLOW FOR USER NOT TO SPECIFY FRAGMENT NAMES
+    comments = '#  reference fragment number i, fragment label'
+    do ifrag=1,frag%nfrag_ref
+       call input_var(frag_num,'1',ranges=(/1,frag%nfrag_ref/))
+       if (frag_num/=ifrag) then
+          call f_err_throw("The file 'input.frag'  has an error when specifying"//&
+               " the reference fragments",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       end if
+       call input_var(frag%label(frag_num),' ',comment=comments)
+       frag%label(frag_num)=trim(frag%label(frag_num))
+       ! keep dirname blank if this isn't a fragment calculation
+       if (len(trim(frag%label(frag_num)))>=1) then
+          frag%dirname(frag_num)='data-'//trim(frag%label(frag_num))//'/'
+       else
+          frag%dirname(frag_num)=''
+       end if
+    end do
+
+    comments = '# fragment number j, reference fragment i this corresponds to, charge on this fragment'
+    do ifrag=1,frag%nfrag
+       call input_var(frag_num,'1',ranges=(/1,frag%nfrag/))
+       if (frag_num/=ifrag) then
+          call f_err_throw("The file 'input.frag'  has an error when specifying"//&
+               " the system fragments",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       end if
+       call input_var(frag%frag_index(frag_num),'1',ranges=(/0,100000/))
+       call input_var(charge,'0.d0',ranges=(/-500.d0,500.d0/),comment=comments)
+       frag%charge(frag_num)=charge
+       !call input_var(frag%charge(frag_num),'1',ranges=(/-500,500/),comment=comments)
+    end do
+
+    call input_free(.false.)
+
+    call dict_from_frag(frag,dict_frag)
+
+    !call yaml_map('Fragment dictionary',dict_frag)
+
+    call dict_update(dict,dict_frag)
+    call dict_free(dict_frag)
+    call deallocateInputFragArrays(frag)
+
+  END SUBROUTINE fragment_input_variables_from_text_format
+
+end module input_old_text_format

@@ -167,7 +167,7 @@ module time_profiling
 
     !> define a new timing category with its description
     subroutine f_timing_category(cat_name,grp_name,cat_info,cat_id)
-      use yaml_output, only: yaml_toa
+      use yaml_strings, only: yaml_toa
       implicit none
       character(len=*), intent(in) :: cat_name !< name of the category
       character(len=*), intent(in) :: grp_name !<class to which category belongs (see f_timing_class)
@@ -210,7 +210,7 @@ module time_profiling
 
     !initialize the timing by putting to zero all the chronometers
     subroutine f_timing_initialize()
-      use yaml_output, only: yaml_toa
+      use yaml_strings, only: yaml_toa
       implicit none
       !create the general category for unspecified timings
       ictrl=ictrl+1
@@ -314,7 +314,8 @@ module time_profiling
     !! the last active category is halted and a summary of the timing 
     !! is printed out
     subroutine f_timing_checkpoint(ctr_name,mpi_comm,nproc,gather_routine)
-      use yaml_output, only: yaml_map,yaml_toa
+      use yaml_output, only: yaml_map
+      use yaml_strings, only: yaml_toa
       use dynamic_memory
       implicit none
       !> name of the partial counter for checkpoint identification
@@ -543,7 +544,7 @@ module time_profiling
     subroutine f_timing(cat_id,action)
       use dictionaries, only: f_err_raise,f_err_throw
       use f_utils, only: f_time
-      use yaml_output, only: yaml_toa
+      use yaml_strings, only: yaml_toa
       implicit none
       !Variables
       integer, intent(in) :: cat_id
@@ -693,6 +694,7 @@ module time_profiling
     !> dump the line of the timings for time.yaml form
     subroutine timing_dump_line(name,tabbing,pc,secs,unit,loads)
       use yaml_output
+      use yaml_strings
       implicit none
       integer, intent(in) :: tabbing !<vlue of the tabbing for pretty printing
       double precision, intent(in) :: pc !< percent of the time for line id
@@ -765,6 +767,7 @@ module time_profiling
     !>dump the final information of the partial counters
     subroutine timing_dump_counters(ncounters,nproc,pcnames,timecnt,dict_info)
       use yaml_output
+      use yaml_strings, only: yaml_date_and_time_toa
       implicit none
       integer, intent(in) :: ncounters,nproc
       character(len=10), dimension(ncounters), intent(in) :: pcnames
@@ -802,6 +805,7 @@ module time_profiling
     subroutine timing_dump_results(ncat,nproc,message,timeall)
       use dynamic_memory
       use yaml_output
+      use yaml_strings
       implicit none
       integer, intent(in) :: ncat,nproc
       character(len=*), intent(in) :: message
@@ -833,8 +837,8 @@ module time_profiling
          dict_cat=>dict_next(dict_cat)
          
          if (.not. associated(dict_cat)) then
-            call f_err_throw('Dictionary of categories not compatible with total number, icat='//&
-                 trim(yaml_toa(icat)),err_id=TIMING_INVALID)
+            call f_err_throw('Dictionary of categories not compatible with total number, icat='//icat,&
+                 err_id=TIMING_INVALID)
             exit
          end if
          name=dict_cat//grpname
