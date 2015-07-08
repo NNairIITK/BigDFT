@@ -213,69 +213,69 @@ module postprocessing_linear
 
           call f_err_throw('Dense mode is deprecated',err_name='BIGDT_RUNTIME_ERROR')
 
-          inv_ovrlp(1) = matrices_null()
-          call allocate_matrices(smatl, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+          !!!inv_ovrlp(1) = matrices_null()
+          !!!call allocate_matrices(smatl, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
 
-          ovrlp%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='ovrlp%matrix')
-          call uncompress_matrix2(iproc, nproc, smats, &
-               ovrlp%matrix_compr, ovrlp%matrix)
-          call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
-               imode=2, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-               ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-               max_error=max_error, mean_error=mean_error)
-          call f_free_ptr(ovrlp%matrix)
+          !!!ovrlp%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='ovrlp%matrix')
+          !!!call uncompress_matrix2(iproc, nproc, smats, &
+          !!!     ovrlp%matrix_compr, ovrlp%matrix)
+          !!!call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
+          !!!     imode=2, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+          !!!     ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
+          !!!     max_error=max_error, mean_error=mean_error)
+          !!!call f_free_ptr(ovrlp%matrix)
     
-          ! optimize this to just change the matrix multiplication?
-          proj_mat = sparsematrix_malloc0(smatl,iaction=DENSE_FULL,id='proj_mat')
+          !!!! optimize this to just change the matrix multiplication?
+          !!!proj_mat = sparsematrix_malloc0(smatl,iaction=DENSE_FULL,id='proj_mat')
     
-          call uncompress_matrix2(iproc, nproc, smatl, kernel%matrix_compr, proj_mat)
+          !!!call uncompress_matrix2(iproc, nproc, smatl, kernel%matrix_compr, proj_mat)
 
-          proj_ovrlp_half=f_malloc((/norb,norbp/),id='proj_ovrlp_half')
-          if (norbp>0) then
-             call dgemm('n', 'n', norb, norbp, &
-                    norb, 1.d0, &
-                    proj_mat(1,1,1), norb, &
-                    inv_ovrlp(1)%matrix(1,isorb+1,1), norb, 0.d0, &
-                    proj_ovrlp_half(1,1), norb)
-          end if
-          call f_free(proj_mat)
-          weight_matrixp=f_malloc((/norb,norbp/), id='weight_matrixp')
-          if (norbp>0) then
-             call dgemm('n', 'n', norb, norbp, &
-                  norb, 1.d0, &
-                  inv_ovrlp(1)%matrix(1,1,1), norb, &
-                  proj_ovrlp_half(1,1), norb, 0.d0, &
-                  weight_matrixp(1,1), norb)
-          end if
-          call f_free(proj_ovrlp_half)
-          weight_matrix=f_malloc((/norb,norb/), id='weight_matrix')
-          if (nproc>1) then
-             call mpi_allgatherv(weight_matrixp, norb*norbp, mpi_double_precision, weight_matrix, &
-                  norb*norb_par(:), norb*isorb_par, &
-                  mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-          else
-             call vcopy(norb*norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
-          end if
-          call f_free(weight_matrixp)
+          !!!proj_ovrlp_half=f_malloc((/norb,norbp/),id='proj_ovrlp_half')
+          !!!if (norbp>0) then
+          !!!   call dgemm('n', 'n', norb, norbp, &
+          !!!          norb, 1.d0, &
+          !!!          proj_mat(1,1,1), norb, &
+          !!!          inv_ovrlp(1)%matrix(1,isorb+1,1), norb, 0.d0, &
+          !!!          proj_ovrlp_half(1,1), norb)
+          !!!end if
+          !!!call f_free(proj_mat)
+          !!!weight_matrixp=f_malloc((/norb,norbp/), id='weight_matrixp')
+          !!!if (norbp>0) then
+          !!!   call dgemm('n', 'n', norb, norbp, &
+          !!!        norb, 1.d0, &
+          !!!        inv_ovrlp(1)%matrix(1,1,1), norb, &
+          !!!        proj_ovrlp_half(1,1), norb, 0.d0, &
+          !!!        weight_matrixp(1,1), norb)
+          !!!end if
+          !!!call f_free(proj_ovrlp_half)
+          !!!weight_matrix=f_malloc((/norb,norb/), id='weight_matrix')
+          !!!if (nproc>1) then
+          !!!   call mpi_allgatherv(weight_matrixp, norb*norbp, mpi_double_precision, weight_matrix, &
+          !!!        norb*norb_par(:), norb*isorb_par, &
+          !!!        mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          !!!else
+          !!!   call vcopy(norb*norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
+          !!!end if
+          !!!call f_free(weight_matrixp)
     
-          charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
+          !!!charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
     
-          do iorb=1,norb
-              iat=smats%on_which_atom(iorb)
-              charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
-          end do
-          if (iproc==0) then
-              call write_partial_charges(atoms, charge_per_atom, .true.)
-              call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
-              call calculate_dipole(iproc, atoms, charge_per_atom)
-              call calculate_quadropole(iproc, atoms, charge_per_atom)
-              call yaml_sequence_close()
-          end if
-          !!call support_function_multipoles()
+          !!!do iorb=1,norb
+          !!!    iat=smats%on_which_atom(iorb)
+          !!!    charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
+          !!!end do
+          !!!if (iproc==0) then
+          !!!    call write_partial_charges(atoms, charge_per_atom, .true.)
+          !!!    call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
+          !!!    call calculate_dipole(iproc, atoms, charge_per_atom)
+          !!!    call calculate_quadropole(iproc, atoms, charge_per_atom)
+          !!!    call yaml_sequence_close()
+          !!!end if
+          !!!!!call support_function_multipoles()
     
-          call deallocate_matrices(inv_ovrlp(1))
-          call f_free(charge_per_atom)
-          call f_free(weight_matrix)
+          !!!call deallocate_matrices(inv_ovrlp(1))
+          !!!call f_free(charge_per_atom)
+          !!!call f_free(weight_matrix)
 
       else if (imode==SPARSE) then
 
@@ -1691,7 +1691,8 @@ module postprocessing_linear
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl
       integer :: k, l, iatold, isat, natp, kkat, istot, ntotp, i1, i2, i3, is1, ie1, is2, ie2, is3, ie3, j1, j2, j3
-      real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error
+      real(kind=8) :: r2, cutoff2, rr2, tt, ef, q, occ, max_error, mean_error, rr2i, rr2j, ttxi, ttyi, ttzi, ttxj, ttyj, ttzj
+      real(kind=8) :: tti, ttj
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
       real(kind=8),dimension(:),allocatable :: projector_compr
       real(kind=8),dimension(:,:),pointer :: com
@@ -1706,6 +1707,7 @@ module postprocessing_linear
       type(matrices),dimension(1) :: ovrlp_onehalf_
       logical :: perx, pery, perz
       real(kind=8),parameter :: kT = 1.d-2
+      real(kind=8),parameter :: alpha = 1.d0
 
 
       call f_routine(id='projector_for_charge_analysis')
@@ -1927,38 +1929,63 @@ module postprocessing_linear
                           !!        end do
                           !!    end do
                           !!end do
-                          rr2 = huge(rr2)
+                          !!rr2 = huge(rr2)
+                          !!do i3=is3,ie3
+                          !!    zi = com(3,i) + i3*at%astruct%cell_dim(3)
+                          !!    zj = com(3,j) !+ i3*at%astruct%cell_dim(3)
+                          !!    !zz = 0.5d0*(zi+zj)
+                          !!    zz = modulo(0.5d0*(zi+zj),at%astruct%cell_dim(3))
+                          !!    do i2=is2,ie2
+                          !!        yi = com(2,i) + i2*at%astruct%cell_dim(2)
+                          !!        yj = com(2,j) !+ i2*at%astruct%cell_dim(2)
+                          !!        !yy = 0.5d0*(yi+yj)
+                          !!        yy = modulo(0.5d0*(yi+yj),at%astruct%cell_dim(2))
+                          !!        do i1=is1,ie1
+                          !!            xi = com(1,i) + i1*at%astruct%cell_dim(1)
+                          !!            xj = com(1,j) !+ i1*at%astruct%cell_dim(1)
+                          !!            !xx = 0.5d0*(xi+xj)
+                          !!            xx = modulo(0.5d0*(xi+xj),at%astruct%cell_dim(1))
+                          !!            do j3=is3,ie3
+                          !!                z = rxyz(3,kkat) + j3*at%astruct%cell_dim(3)
+                          !!                ttz = (zz-z)**2
+                          !!                do j2=is2,ie2
+                          !!                    y = rxyz(2,kkat) + j2*at%astruct%cell_dim(2)
+                          !!                    tty = (yy-y)**2
+                          !!                    do j1=is1,ie1
+                          !!                        x = rxyz(1,kkat) + j1*at%astruct%cell_dim(1)
+                          !!                        ttx = (xx-x)**2
+                          !!                        tt = ttx + tty + ttz
+                          !!                        if (tt<rr2) then
+                          !!                            rr2 = tt
+                          !!                        end if
+                          !!                    end do
+                          !!                end do
+                          !!            end do
+                          !!        end do
+                          !!    end do
+                          !!end do
+                          rr2i = huge(rr2i)
+                          rr2j = huge(rr2j)
                           do i3=is3,ie3
-                              zi = com(3,i) + i3*at%astruct%cell_dim(3)
-                              zj = com(3,j) !+ i3*at%astruct%cell_dim(3)
-                              !zz = 0.5d0*(zi+zj)
-                              zz = modulo(0.5d0*(zi+zj),at%astruct%cell_dim(3))
+                              z = rxyz(3,kkat) + i3*at%astruct%cell_dim(3)
+                              ttzi = (com(3,i)-z)**2
+                              ttzj = (com(3,j)-z)**2
                               do i2=is2,ie2
-                                  yi = com(2,i) + i2*at%astruct%cell_dim(2)
-                                  yj = com(2,j) !+ i2*at%astruct%cell_dim(2)
-                                  !yy = 0.5d0*(yi+yj)
-                                  yy = modulo(0.5d0*(yi+yj),at%astruct%cell_dim(2))
+                                  y = rxyz(2,kkat) + i2*at%astruct%cell_dim(2)
+                                  ttyi = (com(2,i)-y)**2
+                                  ttyj = (com(2,j)-y)**2
                                   do i1=is1,ie1
-                                      xi = com(1,i) + i1*at%astruct%cell_dim(1)
-                                      xj = com(1,j) !+ i1*at%astruct%cell_dim(1)
-                                      !xx = 0.5d0*(xi+xj)
-                                      xx = modulo(0.5d0*(xi+xj),at%astruct%cell_dim(1))
-                                      do j3=is3,ie3
-                                          z = rxyz(3,kkat) + j3*at%astruct%cell_dim(3)
-                                          ttz = (zz-z)**2
-                                          do j2=is2,ie2
-                                              y = rxyz(2,kkat) + j2*at%astruct%cell_dim(2)
-                                              tty = (yy-y)**2
-                                              do j1=is1,ie1
-                                                  x = rxyz(1,kkat) + j1*at%astruct%cell_dim(1)
-                                                  ttx = (xx-x)**2
-                                                  tt = ttx + tty + ttz
-                                                  if (tt<rr2) then
-                                                      rr2 = tt
-                                                  end if
-                                              end do
-                                          end do
-                                      end do
+                                      x = rxyz(1,kkat) + i1*at%astruct%cell_dim(1)
+                                      ttxi = (com(1,i)-x)**2
+                                      ttxj = (com(1,j)-x)**2
+                                      tti = ttxi + ttyi + ttzi
+                                      ttj = ttxj + ttyj + ttzj
+                                      if (tti<rr2i) then
+                                          rr2i = tti
+                                      end if
+                                      if (ttj<rr2j) then
+                                          rr2j = ttj
+                                      end if
                                   end do
                               end do
                           end do
@@ -1984,7 +2011,10 @@ module postprocessing_linear
                           !rr(3) = 0.5d0*(com(3,i)+com(3,j))
                           !rr2 = (rr(1)-rxyz(1,kkat))**2 + (rr(2)-rxyz(2,kkat))**2 + (rr(3)-rxyz(3,kkat))**2
                           !write(*,*) 'kat, i, j, ii, jj, iat, jat, rr2', kat, i, j, ii, jj, rr2
-                          ham(jj,ii) = ham(jj,ii) + 1.d0*(0.5d0)*rr2**3*ovrlp(jj,ii)
+                          !ham(jj,ii) = ham(jj,ii) + 1.d0*(0.5d0)*rr2**3*ovrlp(jj,ii)
+                          rr2i = 0.5d0*rr2i
+                          rr2j = 0.5d0*rr2j
+                          ham(jj,ii) = ham(jj,ii) + alpha*0.5d0*(rr2i**3*ovrlp(jj,ii)+rr2j**3*ovrlp(ii,jj))
                           ilup(1,jj,ii,kat) = j
                           ilup(2,jj,ii,kat) = i
                       end if
