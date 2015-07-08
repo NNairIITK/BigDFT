@@ -306,7 +306,7 @@ fermi_level.o: base.o foe_common.o
 copy_utils.o: base.o
 gaussdaub.o: base.o
 module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
 ab7_mixing.o: defs.o
 module_lj.o: base.o defs.o
 module_cp2k.o: base.o defs.o
