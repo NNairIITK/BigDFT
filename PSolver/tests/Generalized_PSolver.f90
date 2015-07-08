@@ -48,7 +48,7 @@ program GPS_3D
    !integer :: m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,
    integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc,n01,n02,n03,iat
    real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid,sume,delta
-   real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,sum,einit
+   real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,einit
    real(kind=8) :: ehartree,offset,epol
    real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion,potsol
 

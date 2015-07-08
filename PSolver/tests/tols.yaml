@@ -18,6 +18,7 @@ Default tolerances:
   Computed Hartree energy: 1.83e-14
   Diff of expected-computed Hartree energy: 2.1e-14
   Expected hartree energy: 1.88e-15
+  Integral of the density in the nonvacuum region: 6.06e-15
 #  Energies: 2.1e-10
 
 Keys to ignore:
