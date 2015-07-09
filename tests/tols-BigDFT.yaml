@@ -1388,14 +1388,19 @@ log_model:
   - Reference Paper
 
 FF_LENOSKY-vssd:
-  etot: 2.05e-7
-  last beta: 1.7
-  beta: 0.4
-  fnrm2: 1.9e-7
-  maxval: 3.5e-5
-  Forces: 5.01e-5
+  etot: 3.54e-7
+  last beta: 3.301
+  beta: 0.501
+  fnrm2: 3.26e-7
+  maxval: 6.802e-5
+  Forces: 8.01e-5
   Keys to ignore:
   - WARNINGS
+
+FF_LENOSKY-ab6md:
+  Keys to ignore:
+  - WARNINGS
+
 
 FF_LENOSKY-sdcg:
   etot: 3.9e-11
@@ -1491,7 +1496,7 @@ periodic_silicon:
  Epot: 3.0e-10
  Enl: 1.1e-9
  EXC: 1.1e-10
- Omega: 6.3e-11
+ Omega: 8.56e-11
  ebs_check: 1.1e-10
  charge diff: 5.0e-10
  ebs: 1.2e-10
@@ -1544,7 +1549,7 @@ periodic_water:
 surface_boronnitride:
  Enl: 1.01e-9
  Epot: 1.0e-9
- Omega: 1.6e-10
+ Omega: 1.8e-10
  energy: 3.2e-11
  Energy (Hartree): 3.2e-11
  Total charge: 1.0e-10

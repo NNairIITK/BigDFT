@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-EXTRA_DIST = 
+EXTRA_DIST = test-smatmul.ref.yaml 
 
 check_PROGRAMS = smatmul
 
@@ -31,7 +31,7 @@ test-smatmul.out.yaml: smatmul
 	$(run_parallel) ./smatmul --filename=matrix.dat --nit=20 --verbosity=1 >> test-smatmul.out.yaml
 
 
-check: $(srcdir)/test-smatmul.ref.yaml test-smatmul.out.yaml
+check: test-smatmul.out.yaml
 	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py \

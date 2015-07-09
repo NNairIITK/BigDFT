@@ -744,9 +744,11 @@ end if
           !if iproc is present, overrides
           if (present(iproc)) jproc=iproc
 
-          if (.not. present(logfile_name)) &
+          if (.not. present(logfile_name)) then
                call f_err_throw('Error, f_malloc_set_status needs logfile_name for nontrivial output level',&
                err_id=ERR_INVALID_MALLOC)
+               return
+          end if
           !first, close the previously opened stream
           if (mems(ictrl)%logfile_unit > 0 .and. jproc==0) then
              call yaml_close_stream(unit=mems(ictrl)%logfile_unit)
@@ -758,7 +760,7 @@ end if
 !!$                  call f_err_throw('Logfile name "'//trim(logfile_name)//&
 !!$                  '" in f_malloc_set_status invalid, aleady in use for instance No.'//&
 !!$                  trim(yaml_toa(jctrl)),err_id=ERR_INVALID_MALLOC)
-             call f_err_throw('Logfile name "'+logfile_name+&
+             call f_err_throw('Logfile name "'//trim(logfile_name)//&
                   '" in f_malloc_set_status invalid, already in use for instance No.'//jctrl&
                   ,err_id=ERR_INVALID_MALLOC)
 

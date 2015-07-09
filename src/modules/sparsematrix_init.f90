@@ -181,6 +181,7 @@ contains
 
       ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
       integer function compressed_index_fn(irow, jcol, norb, sparsemat)
+        use sparsematrix_base
         implicit none
       
         ! Calling arguments

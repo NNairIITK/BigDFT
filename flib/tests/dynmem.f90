@@ -53,6 +53,28 @@ subroutine test_dynamic_memory()
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
 
+  call yaml_comment('testing aliasing on pointer sections',hfill='TEST')
+   i1_ptr = f_malloc0_ptr(100,id='i1ptr')
+
+   ptr1 => i1_ptr(50:55)
+
+   ptr1 = ptr1+3
+
+   call yaml_map('Ptr1 Lbound',lbound(ptr1))
+   call yaml_map('Ptr1 Ubound',ubound(ptr1))
+   call yaml_map('Ptr1 Size',size(ptr1))
+
+   call yaml_map('data in original position',i1_ptr(45:60))
+
+   call yaml_map('Predicted address for the starting point of ptr1',f_loc(i1_ptr)+kind(i1_ptr)*49)
+
+   call yaml_map('Actual address of first element of ptr1',f_loc(ptr1(1)))
+   call yaml_map('address of first element vs address of objects',[f_loc(i1_ptr),f_loc(i1_ptr(1))])
+   call yaml_map('address of first element vs address of objects',[f_loc(ptr1),f_loc(ptr1(1))])
+
+   call yaml_map('Address differences',f_loc(ptr1)-f_loc(i1_ptr))
+
+
    i1_all=f_malloc(0,id='i1_all')
    call yaml_map('Address of first element',f_loc(i1_all))
 !   call yaml_map('Address of first element, explicit',f_loc(i1_all(1)))
