@@ -1594,7 +1594,7 @@ multipoles_OH-:
  total charge correction: 5.2e-8
 
 multipoles_water:
- eF: 3.0e-9
+ eF: 3.2e-9
  guess for new ef: 1.0e-8
  number of corrected points: 7
  multiplicator for the confinement: 1.6e-10
