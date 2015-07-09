@@ -318,7 +318,7 @@ module postprocessing_linear
                       iiorb = iorb + istheta
                       iiorb = modulo(iiorb-1,smatl%nfvctr)+1
                       ind = matrixindex_in_compressed(smatl, iorb, iorb)
-                      if (iproc==0) write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)
+                      !if (iproc==0) write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)
                       do iat=1,atoms%astruct%nat
                           ind = ind + ishift
                           charge_per_atom(iat) = charge_per_atom(iat) + theta(iat,iorb)*weight_matrix_compr(ind)
@@ -333,7 +333,7 @@ module postprocessing_linear
                       iat=smats%on_which_atom(iiorb)
                       ind = matrixindex_in_compressed(smatl, iorb, iorb)
                       ind = ind + ishift
-                      if (iproc==0) write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)
+                      !if (iproc==0) write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)
                       charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix_compr(ind)
                   end do
               end do
@@ -1710,13 +1710,15 @@ module postprocessing_linear
       !real(kind=8),parameter :: kT = 5.d-2
       real(kind=8) :: kT
       !real(kind=8),parameter :: alpha = 5.d-1
-      real(kind=8) :: alpha
+      real(kind=8) :: alpha, alpha_up, alpha_low
 
 
       call f_routine(id='projector_for_charge_analysis')
 
       kT = 1.d-2
-      alpha = 5.d-1
+      ! This shouls be done in a cleaner way...
+      alpha_low = 1.d-6
+      alpha_up = 1.d4
 
       ! Check the arguments
       if (centers_provided) then
@@ -1871,8 +1873,26 @@ module postprocessing_linear
       call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
            ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
 
+      ! Calculate how many states should be included
+      q = 0.d0
+      do iat=1,at%astruct%nat
+          itype = at%astruct%iatype(iat)
+          q = q + ceiling(0.5d0*real(at%nelpsp(itype),kind=8))
+      end do
+      iq = nint(q)
+      if (bigdft_mpi%iproc==0) then
+          call yaml_mapping_open('Calculating projector for charge analysis')
+          call yaml_map('number of states to be occupied (without smearing)',iq)
+          call yaml_sequence_open('Searching alpha for charge neutrality')
+      end if
 
       alpha_loop: do ialpha=1,100
+
+          if (bigdft_mpi%iproc==0) then
+              call yaml_sequence(advance='no')
+          end if
+
+          alpha = 0.5d0*(alpha_low+alpha_up)
 
           charge_net = 0.d0
           call f_zero(eval_all)
@@ -2048,6 +2068,72 @@ module postprocessing_linear
                               !rr2 = (rr(1)-rxyz(1,kkat))**2 + (rr(2)-rxyz(2,kkat))**2 + (rr(3)-rxyz(3,kkat))**2
                               !write(*,*) 'kat, i, j, ii, jj, iat, jat, rr2', kat, i, j, ii, jj, rr2
                               !!ham(jj,ii) = ham(jj,ii) + 1.d0*(0.5d0)*rr2**3*ovrlp(jj,ii)
+                              !!NEWif (i==j) then
+                              !!NEW    rr2 = huge(rr2)
+                              !!NEW    do i3=is3,ie3
+                              !!NEW        z = rxyz(3,kkat) + i3*at%astruct%cell_dim(3)
+                              !!NEW        ttz = (com(3,i)-z)**2
+                              !!NEW        do i2=is2,ie2
+                              !!NEW            y = rxyz(2,kkat) + i2*at%astruct%cell_dim(2)
+                              !!NEW            tty = (com(2,i)-y)**2
+                              !!NEW            do i1=is1,ie1
+                              !!NEW                x = rxyz(1,kkat) + i1*at%astruct%cell_dim(1)
+                              !!NEW                ttx = (com(1,i)-x)**2
+                              !!NEW                tt = ttx + tty + ttz
+                              !!NEW                if (tt<rr2) then
+                              !!NEW                    rr2 = tt
+                              !!NEW                end if
+                              !!NEW            end do
+                              !!NEW        end do
+                              !!NEW    end do
+                              !!NEW    ham(jj,ii) = ham(jj,ii) + alpha*rr2**3*ovrlp(jj,ii)
+                              !!NEWend if
+                              !!@if (ii==jj) then
+                              !!@    ham(jj,ii) = ham(jj,ii) + alpha*0.5d0*(rr2i**3*ovrlp(jj,ii)+rr2j**3*ovrlp(ii,jj))
+                              !!@end if
+                              !!NEWilup(1,jj,ii,kat) = j
+                              !!NEWilup(2,jj,ii,kat) = i
+                          end if
+                      end do
+                  end if
+              end do
+              if (icheck>n**2) then
+                  call f_err_throw('icheck('//adjustl(trim(yaml_toa(icheck)))//') > n**2('//&
+                      &adjustl(trim(yaml_toa(n**2)))//')',err_name='BIGDFT_RUNTIME_ERROR')
+              end if
+
+
+              ! Calculate ovrlp^1/2 and ovrlp^-1/2. The last argument is wrong, clean this.
+              ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
+              call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
+              call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+              do i=1,n
+                  call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
+              end do
+              call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
+              call overlap_plus_minus_one_half_exact(1, n, -1, .false., ovrlp_tmp, smats)
+              do i=1,n
+                  call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_minusonehalf(1,i), 1)
+              end do
+              call f_free(ovrlp_tmp)
+    
+              ! Calculate S^-1/2 * H * S^-1/2
+              tmpmat2d = f_malloc((/n,n,1/),id='tmppmat2d')
+              call gemm('n', 'n', n, n, n, 1.d0, ham(1,1), n, ovrlp_minusonehalf(1,1), nmax, 0.d0, tmpmat2d(1,1,1), n)
+              call gemm('n', 'n', n, n, n, 1.d0, ovrlp_minusonehalf(1,1), nmax, tmpmat2d(1,1,1), n, 0.d0, ham(1,1), n)
+              call f_free(tmpmat2d)
+
+              ! Add the penalty term
+              icheck = 0
+              ii = 0
+              do i=1,smats%nfvctr
+                  if (neighbor(i,kat)) then
+                      jj = 0
+                      do j=1,smats%nfvctr
+                          if (neighbor(j,kat)) then
+                              icheck = icheck + 1
+                              jj = jj + 1
+                              if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
                               if (i==j) then
                                   rr2 = huge(rr2)
                                   do i3=is3,ie3
@@ -2082,25 +2168,27 @@ module postprocessing_linear
                       &adjustl(trim(yaml_toa(n**2)))//')',err_name='BIGDFT_RUNTIME_ERROR')
               end if
     
-              ! Calculate ovrlp^1/2 and ovrlp^-1/2. The last argument is wrong, clean this.
-              ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
-              call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-              call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
-              do i=1,n
-                  call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
-              end do
-              call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
-              call overlap_plus_minus_one_half_exact(1, n, -1, .false., ovrlp_tmp, smats)
-              do i=1,n
-                  call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_minusonehalf(1,i), 1)
-              end do
-              call f_free(ovrlp_tmp)
+              ! @NEW MOVED THIS UP ###########################################################
+              !!! Calculate ovrlp^1/2 and ovrlp^-1/2. The last argument is wrong, clean this.
+              !!ovrlp_tmp = f_malloc((/n,n/),id='ovrlp_tmp')
+              !!call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
+              !!call overlap_plus_minus_one_half_exact(1, n, -1, .true., ovrlp_tmp, smats)
+              !!do i=1,n
+              !!    call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_onehalf_all(1,i,kat), 1)
+              !!end do
+              !!call f_memcpy(src=ovrlp, dest=ovrlp_tmp)
+              !!call overlap_plus_minus_one_half_exact(1, n, -1, .false., ovrlp_tmp, smats)
+              !!do i=1,n
+              !!    call vcopy(n, ovrlp_tmp(1,i), 1, ovrlp_minusonehalf(1,i), 1)
+              !!end do
+              !!call f_free(ovrlp_tmp)
     
-              ! Calculate S^-1/2 * H * S^-1/2
-              tmpmat2d = f_malloc((/n,n,1/),id='tmppmat2d')
-              call gemm('n', 'n', n, n, n, 1.d0, ham(1,1), n, ovrlp_minusonehalf(1,1), nmax, 0.d0, tmpmat2d(1,1,1), n)
-              call gemm('n', 'n', n, n, n, 1.d0, ovrlp_minusonehalf(1,1), nmax, tmpmat2d(1,1,1), n, 0.d0, ham(1,1), n)
-              call f_free(tmpmat2d)
+              !!! Calculate S^-1/2 * H * S^-1/2
+              !!tmpmat2d = f_malloc((/n,n,1/),id='tmppmat2d')
+              !!call gemm('n', 'n', n, n, n, 1.d0, ham(1,1), n, ovrlp_minusonehalf(1,1), nmax, 0.d0, tmpmat2d(1,1,1), n)
+              !!call gemm('n', 'n', n, n, n, 1.d0, ovrlp_minusonehalf(1,1), nmax, tmpmat2d(1,1,1), n, 0.d0, ham(1,1), n)
+              !!call f_free(tmpmat2d)
+              ! @NEW END MOVED THIS UP #######################################################
     
     
               !!call diagonalizeHamiltonian2(bigdft_mpi%iproc, n, ham, ovrlp, eval)
@@ -2108,14 +2196,15 @@ module postprocessing_linear
               work = f_malloc(lwork,id='work')
               call syev('v', 'l', n, ham(1,1), n, eval(1), work(1), lwork, info)
               if (bigdft_mpi%iproc==0) then
-                  do i=1,n
-                      write(*,*) 'i, ham(i,1)',i, ham(i,1)
-                  end do
+                  !!write(*,*) 'kkat', kkat
+                  !!do i=1,n
+                  !!    write(*,*) 'i, ham(i,1), owa',i, ham(i,1), smatm%on_which_atom(ilup(1,i,i,kat))
+                  !!end do
               end if
-              if (bigdft_mpi%iproc==0) then
-                  call yaml_map('kkat',kkat)
-                  call yaml_map('eval',eval)
-              end if
+              !if (bigdft_mpi%iproc==0) then
+              !    call yaml_map('kkat',kkat)
+              !    call yaml_map('eval',eval)
+              !end if
               call f_free(work)
               do i=1,n
                   ii = ist + i
@@ -2154,17 +2243,6 @@ module postprocessing_linear
           end do
         
         
-          ! Calculate how many states should be included
-          q = 0.d0
-          do iat=1,at%astruct%nat
-              itype = at%astruct%iatype(iat)
-              q = q + ceiling(0.5d0*real(at%nelpsp(itype),kind=8))
-          end do
-          iq = nint(q)
-          if (bigdft_mpi%iproc==0) then
-              call yaml_mapping_open('Calculating projector for charge analysis')
-              call yaml_map('number of states to be occupied (without smearing)',iq)
-          end if
     
     
           !!! Determine the "Fermi level" such that the iq-th state is still fully occupied even with a smearing
@@ -2194,37 +2272,37 @@ module postprocessing_linear
                   occ = 1.d0/(1.d0+safe_exp( (eval_all(iq)-ef)*(1.d0/kT) ) )
                   if (abs(occ-1.d0)<1.d-8) exit
               end do
-              if (final .and. bigdft_mpi%iproc==0) then
-                  call yaml_map('Pseudo Fermi level for occupations',ef)
-              end if
+              !!if (final .and. bigdft_mpi%iproc==0) then
+              !!    call yaml_map('Pseudo Fermi level for occupations',ef)
+              !!end if
         
         
-              if (final .and. bigdft_mpi%iproc==0) then
-                  call yaml_sequence_open('ordered eigenvalues and occupations')
-                  ii = 0
-                  do i=1,ntot
-                      occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
-                      if (occ>1.d-100) then
-                          call yaml_sequence(advance='no')
-                          call yaml_mapping_open(flow=.true.)
-                          call yaml_map('eval',eval_all(i),fmt='(es13.4)')
-                          call yaml_map('atom',id_all(i),fmt='(i5.5)')
-                          call yaml_map('occ',occ,fmt='(1pg13.5e3)')
-                          call yaml_mapping_close(advance='no')
-                          call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
-                      else
-                          ii = ii + 1
-                      end if
-                  end do
-                  if (ii>0) then
-                      call yaml_sequence(advance='no')
-                      call yaml_mapping_open(flow=.true.)
-                      call yaml_map('remaining states',ii)
-                      call yaml_map('occ','<1.d-100')
-                      call yaml_mapping_close()
-                  end if
-                  call yaml_sequence_close()
-              end if
+              !!if (.false. .and. final .and. bigdft_mpi%iproc==0) then
+              !!    call yaml_sequence_open('ordered eigenvalues and occupations')
+              !!    ii = 0
+              !!    do i=1,ntot
+              !!        occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+              !!        if (occ>1.d-100) then
+              !!            call yaml_sequence(advance='no')
+              !!            call yaml_mapping_open(flow=.true.)
+              !!            call yaml_map('eval',eval_all(i),fmt='(es13.4)')
+              !!            call yaml_map('atom',id_all(i),fmt='(i5.5)')
+              !!            call yaml_map('occ',occ,fmt='(1pg13.5e3)')
+              !!            call yaml_mapping_close(advance='no')
+              !!            call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
+              !!        else
+              !!            ii = ii + 1
+              !!        end if
+              !!    end do
+              !!    if (ii>0) then
+              !!        call yaml_sequence(advance='no')
+              !!        call yaml_mapping_open(flow=.true.)
+              !!        call yaml_map('remaining states',ii)
+              !!        call yaml_map('occ','<1.d-100')
+              !!        call yaml_mapping_close()
+              !!    end if
+              !!    call yaml_sequence_close()
+              !!end if
         
         
               ! Calculate the projector. First for each single atom, then insert it into the big one.
@@ -2248,14 +2326,14 @@ module postprocessing_linear
                   do i=1,n
                       tt = tt + proj(i,i)
                   end do
-                  if (bigdft_mpi%iproc==0) then
-                      do i=1,n
-                          do j=1,n
-                              write(*,*) 'i, j, proj(i,j)',i, j, proj(i,j)
-                          end do
-                      end do
-                      write(*,*) 'kkat, trace, sum(proj)', kkat, tt, sum(proj)
-                  end if
+                  !if (bigdft_mpi%iproc==0) then
+                  !    do i=1,n
+                  !        do j=1,n
+                  !            write(*,*) 'i, j, proj(i,j)',i, j, proj(i,j)
+                  !        end do
+                  !    end do
+                  !    write(*,*) 'kkat, trace, sum(proj)', kkat, tt, sum(proj)
+                  !end if
                   !tmpmat2d = f_malloc((/n,n,1/),id='tmppmat2d')
                   !call gemm('n', 'n', n, n, n, 1.d0, proj(1,1), n, ovrlp_onehalf_all(1,1,kat), nmax, 0.d0, tmpmat2d(1,1,1), n)
                   !call gemm('n', 'n', n, n, n, 1.d0, ovrlp_onehalf_all(1,1,kat), nmax, tmpmat2d(1,1,1), n, 0.d0, proj(1,1), n)
@@ -2310,6 +2388,14 @@ module postprocessing_linear
                   do i=1,n
                       tt = tt + kp(i,i)
                   end do
+                  !!if (bigdft_mpi%iproc==0) then
+                  !!    do i=1,n
+                  !!        do j=1,n
+                  !!            write(*,'(a,2i5,3es13.3)') 'i, j, kt, proj, kp', i, j, ktilde(i,j), proj(j,i), kp(j,i)
+                  !!        end do
+                  !!    end do
+                  !!    write(*,*) 'kkat, trace, sum(proj)', kkat, tt, sum(proj)
+                  !!end if
                   charge_per_atom(kkat) = tt
                   !write(*,*) 'alpha, kkat, tt', alpha, kkat, tt
                   charge_total = charge_total + tt
@@ -2355,9 +2441,9 @@ module postprocessing_linear
               do iat=1,at%astruct%nat
                   charge_net = charge_net -(charge_per_atom(iat)-real(at%nelpsp(at%astruct%iatype(iat)),kind=8))
               end do
-              if (bigdft_mpi%iproc==0) then
-                  call yaml_map('kT, ef, net_charge',(/kT,ef,charge_net/))
-              end if
+              !!if (bigdft_mpi%iproc==0) then
+              !!    call yaml_map('kT, ef, net_charge',(/kT,ef,charge_net/))
+              !!end if
               if (abs(charge_net)<1.d0 .or. ikT==100) then
                   final = .true.
               else if (charge_net<0.d0) then
@@ -2375,31 +2461,65 @@ module postprocessing_linear
               call mpiallred(charge_total, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           end if
           if (bigdft_mpi%iproc==0) then
-              do iat=1,at%astruct%nat
-                  write(*,*) 'iat, cpa',iat,charge_per_atom(iat)
-              end do
-              write(*,*) 'charge_total',charge_total
+              !do iat=1,at%astruct%nat
+              !    write(*,*) 'iat, cpa',iat,charge_per_atom(iat)
+              !end do
+              !write(*,*) 'charge_total',charge_total
           end if
           charge_net = 0.d0
           do iat=1,at%astruct%nat
               charge_net = charge_net -(charge_per_atom(iat)-real(at%nelpsp(at%astruct%iatype(iat)),kind=8))
           end do
           if (bigdft_mpi%iproc==0) then
-              write(*,*) 'net charge', charge_net
+              !write(*,*) 'net charge', charge_net
+              call yaml_map('alpha, net charge',(/alpha,charge_net/),fmt='(es13.4)')
           end if
-          if (abs(charge_net)<1.d-2) then
+          if (abs(charge_net)<1.d-5) then
+              if (bigdft_mpi%iproc==0) then
+                  call yaml_sequence_close()
+                  call yaml_map('Pseudo Fermi level for occupations',ef)
+                  call yaml_sequence_open('ordered eigenvalues and occupations')
+                  ii = 0
+                  do i=1,ntot
+                      occ = 1.d0/(1.d0+safe_exp( (eval_all(i)-ef)*(1.d0/kT) ) )
+                      if (occ>1.d-100) then
+                          call yaml_sequence(advance='no')
+                          call yaml_mapping_open(flow=.true.)
+                          call yaml_map('eval',eval_all(i),fmt='(es13.4)')
+                          call yaml_map('atom',id_all(i),fmt='(i5.5)')
+                          call yaml_map('occ',occ,fmt='(1pg13.5e3)')
+                          call yaml_mapping_close(advance='no')
+                          call yaml_comment(trim(yaml_toa(i,fmt='(i5.5)')))
+                      else
+                          ii = ii + 1
+                      end if
+                  end do
+                  if (ii>0) then
+                      call yaml_sequence(advance='no')
+                      call yaml_mapping_open(flow=.true.)
+                      call yaml_map('remaining states',ii)
+                      call yaml_map('occ','<1.d-100')
+                      call yaml_mapping_close()
+                  end if
+                  call yaml_sequence_close()
+              end if
               exit alpha_loop
           else if (charge_net>0.d0) then
-              alpha = alpha*0.80
+              ! Too few electrons, i.e. confinement should be smaller
+              !alpha = alpha*0.80
+              alpha_up = alpha
           else if (charge_net<0.d0) then
-              alpha = alpha*1.2
+              ! Too many electrons, i.e. confinement should be larger
+              !alpha = alpha*1.2
+              alpha_low = alpha
           end if
 
-          if (bigdft_mpi%iproc==0) then
-              call yaml_mapping_close()
-          end if
 
       end do alpha_loop
+
+      if (bigdft_mpi%iproc==0) then
+          call yaml_mapping_close()
+      end if
 
       call deallocate_matrices(ovrlp_onehalf_(1))
       call f_free(tmpmat1)
