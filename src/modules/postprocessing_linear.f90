@@ -2108,6 +2108,11 @@ module postprocessing_linear
               work = f_malloc(lwork,id='work')
               call syev('v', 'l', n, ham(1,1), n, eval(1), work(1), lwork, info)
               if (bigdft_mpi%iproc==0) then
+                  do i=1,n
+                      write(*,*) 'i, ham(i,1)',i, ham(i,1)
+                  end do
+              end if
+              if (bigdft_mpi%iproc==0) then
                   call yaml_map('kkat',kkat)
                   call yaml_map('eval',eval)
               end if
@@ -2244,6 +2249,11 @@ module postprocessing_linear
                       tt = tt + proj(i,i)
                   end do
                   if (bigdft_mpi%iproc==0) then
+                      do i=1,n
+                          do j=1,n
+                              write(*,*) 'i, j, proj(i,j)',i, j, proj(i,j)
+                          end do
+                      end do
                       write(*,*) 'kkat, trace, sum(proj)', kkat, tt, sum(proj)
                   end if
                   !tmpmat2d = f_malloc((/n,n,1/),id='tmppmat2d')
