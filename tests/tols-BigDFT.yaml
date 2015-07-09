@@ -1413,9 +1413,10 @@ FF_LENOSKY-sqnm:
   - WARNINGS
 
 FF_LENOSKY-lbfgs:
-  FORCES norm(Ha/Bohr): 9.01e-6
+  #FORCES norm(Ha/Bohr): 9.01e-6
   Forces: 1.e-4
-  etot: 4.9e-6
+  etot: 6.2e-6
+  maxval: 1.1e-5
   Alpha: 0.00101
   Keys to ignore:
   - WARNINGS
@@ -1653,7 +1654,7 @@ igortho_19:
  D: 2.1e-8
  Tr(K): 1.1e-8
  total charge correction: 1.5e-11
- multiplicator for the confinement: 1.8e-11
+ multiplicator for the confinement: 1.89e-11
  radius for normalization: 1.1e-2
 
 igortho_44:
