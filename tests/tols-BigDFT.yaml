@@ -1654,7 +1654,7 @@ igortho_19:
  D: 2.1e-8
  Tr(K): 1.1e-8
  total charge correction: 1.5e-11
- multiplicator for the confinement: 1.89e-11
+ multiplicator for the confinement: 2.0e-11
  radius for normalization: 1.1e-2
 
 igortho_44:
@@ -1671,10 +1671,10 @@ igortho_44:
  Ekin: 1.0e-9
  Total charge: 1.4e-08
  guess for new ef: 1.8e-05
- Tr(K): 2.7e-07
- charge diff: 1.7e-07
+ Tr(K): 2.81e-07
+ charge diff: 2.76e-07
  eF: 1.8e-05
- D Tr: 2.6e-7
+ D Tr: 2.71e-7
  D eF: 7.5e-6
  diff: 4.6e-7
  ebs: 6.5e-04
