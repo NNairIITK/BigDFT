@@ -194,7 +194,7 @@ GEOPT-LBFGS:
  
 NaCl:
  Epsilon: 2.e-9
- Mean L2 norm of gaussian-wavelet difference: 1.21e-4
+ Mean L2 norm of gaussian-wavelet difference: 1.346e-4
 
 NH3:
  Epsilon: 1.1e-10
@@ -286,7 +286,7 @@ test.minhop.ref.yaml:
  Orbitals: 6.1e-9
  Positions: 1.1e-9
  curv: 5.51e-11
- fd2: 2.8e-10
+ fd2: 2.81e-10
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -425,7 +425,7 @@ cleanup:
  Omega: 2.12e-9
  Pulay Forces (Ha/Bohr): 1.9e-9
  energy: 2.3e-9
- Energy (Hartree): 1.8e-10
+ Energy (Hartree): 1.81e-10
  ebs_check: 1.5e-9
  charge diff: 2.7e-7
  Tr(K): 2.7e-7
@@ -1308,7 +1308,7 @@ O2spin_dirmin:
  Clean forces norm (Ha/Bohr): 9.3e-5
  Raw forces norm (Ha/Bohr): 9.3e-5
  Electric Dipole Moment (AU): 2.4e-5
- Electric Dipole Moment (Debye): 2.4e-5
+ Electric Dipole Moment (Debye): 2.62e-5
  eBS: 7.6e-6
  fnrm: 1.1e-5
  EH: 1.3e-5
@@ -1415,7 +1415,8 @@ FF_LENOSKY-sqnm:
 FF_LENOSKY-lbfgs:
   FORCES norm(Ha/Bohr): 9.01e-6
   Forces: 1.e-4
-  etot: 4.9e-6
+  etot: 6.2e-6
+  maxval: 1.1e-5
   Alpha: 0.00101
   Keys to ignore:
   - WARNINGS
@@ -1452,7 +1453,7 @@ FF_LJ-diis:
   - disablesym
 
 FF_LJ-fire:
-  epred: 1.2e-11
+  epred: 1.41e-11
   Keys to ignore:
   - WARNINGS
   - disablesym
@@ -1653,8 +1654,8 @@ igortho_19:
  D: 2.1e-8
  Tr(K): 1.1e-8
  total charge correction: 1.5e-11
- multiplicator for the confinement: 1.8e-11
- radius for normalizatio: 1.1e-2
+ multiplicator for the confinement: 1.89e-11
+ radius for normalization: 1.1e-2
 
 igortho_44:
  Atomic Forces (Ha/Bohr): 7.5e-7
@@ -1689,7 +1690,7 @@ igortho_44:
  net dipole: 1.1e-7
  D: 1.1e-7
  delta: 1.1e-10
- radius for normalizatio: 1.1e-1
+ radius for normalization: 1.1e-1
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
