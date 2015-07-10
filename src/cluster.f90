@@ -405,8 +405,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          else
             extra_states = in%lin%extra_states
          end if
-         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, in, extra_states, &
-              tmb%linmat%ks, tmb%linmat%ks_e)
+         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, in, atoms%astruct%geocode, &
+              extra_states, tmb%linmat%ks, tmb%linmat%ks_e)
      end if
 
 

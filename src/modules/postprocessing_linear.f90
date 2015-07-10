@@ -14,8 +14,9 @@ module postprocessing_linear
   public :: projector_for_charge_analysis
 
   !> Public constants
-  integer,parameter,public :: CHARGE_ANALYSIS_LOEWDIN = 501
-  integer,parameter,public :: CHARGE_ANALYSIS_MULLIKEN = 502
+  integer,parameter,public :: CHARGE_ANALYSIS_LOEWDIN   = 501
+  integer,parameter,public :: CHARGE_ANALYSIS_MULLIKEN  = 502
+  integer,parameter,public :: CHARGE_ANALYSIS_PROJECTOR = 503
 
   contains
 
@@ -320,19 +321,19 @@ module postprocessing_linear
                           inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
                   end if
               end do
+              call deallocate_matrices(inv_ovrlp(1))
           else if (method==CHARGE_ANALYSIS_MULLIKEN) then
               call transform_sparse_matrix(smats, smatl, ovrlp%matrix_compr, proj_ovrlp_half_compr, 'small_to_large')
               do ispin=1,smatl%nspin
                   ist = (ispin-1)*smatl%nvctrp_tg + 1
                   if (norbp>0) then
                      call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
-                          kernel%matrix_compr(ist:), ovrlp%matrix_compr(ist:), weight_matrix_compr_tg(ist:))
+                          kernel%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
                   end if
               end do
           end if
           call f_free(proj_ovrlp_half_compr)
     
-          call deallocate_matrices(inv_ovrlp(1))
           charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
 
           ! Maybe this can be improved... not really necessary to gather the entire matrix
@@ -1684,9 +1685,9 @@ module postprocessing_linear
 
 
 
-    subroutine projector_for_charge_analysis(at, smats, smatm, smatl, ovrlp_, ham_, kernel_, &
-               lzd,  rxyz, norbs_per_type, centers_provided, &
-               nphirdim, psi, orbs, com_)
+    subroutine projector_for_charge_analysis(at, smats, smatm, smatl, &
+               ovrlp_, ham_, kernel_, rxyz, calculate_centers, &
+               lzd, nphirdim, psi, orbs)
       use module_base
       use module_types, only: local_zone_descriptors, orbitals_data
       use module_atoms, only: atoms_data
@@ -1705,16 +1706,14 @@ module postprocessing_linear
       type(atoms_data),intent(in) :: at
       type(sparse_matrix),intent(inout) :: smats, smatl !< should be intent(in)...
       type(sparse_matrix),intent(in) :: smatm
-      type(local_zone_descriptors),intent(in) :: lzd
       type(matrices),intent(inout) :: ovrlp_ !< should be intent(in)...
       type(matrices),intent(in) :: ham_, kernel_
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
-      integer,dimension(at%astruct%ntypes),intent(in) :: norbs_per_type
-      logical,intent(in) :: centers_provided
+      logical,intent(in) :: calculate_centers
+      type(local_zone_descriptors),intent(in),optional :: lzd
       integer,intent(in),optional :: nphirdim
       real(kind=8),dimension(:),intent(in),optional :: psi
       type(orbitals_data),intent(in),optional :: orbs
-      real(kind=8),dimension(:,:),pointer,intent(in),optional :: com_
 
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
@@ -1724,7 +1723,7 @@ module postprocessing_linear
       real(kind=8) :: tti, ttj, charge_net, charge_total
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
       real(kind=8),dimension(:),allocatable :: projector_compr, work
-      real(kind=8),dimension(:,:),pointer :: com
+      real(kind=8),dimension(:,:),allocatable :: com
       real(kind=8),dimension(:,:),allocatable :: ham, ovrlp, proj, ovrlp_tmp, ovrlp_minusonehalf, kp, ktilde
       real(kind=8),dimension(:,:,:),allocatable :: coeff_all, ovrlp_onehalf_all
       integer,dimension(:,:,:,:),allocatable :: ilup
@@ -1746,20 +1745,23 @@ module postprocessing_linear
       kT = 1.d-2
 
       ! Check the arguments
-      if (centers_provided) then
-          ! The centers of the support functions are already given
-          if (.not.present(com_)) then
-              call f_err_throw('com_ not present',err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          if (size(com_,1)/=3) then
-              call f_err_throw('wrong first dimension of com_',err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          if (size(com_,2)/=smats%nfvctr) then
-              call f_err_throw('wrong second dimension of com_',err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          com => com_
-      else
+      if (calculate_centers) then
+      !!    ! The centers of the support functions are already given
+      !!    if (.not.present(com_)) then
+      !!        call f_err_throw('com_ not present',err_name='BIGDFT_RUNTIME_ERROR')
+      !!    end if
+      !!    if (size(com_,1)/=3) then
+      !!        call f_err_throw('wrong first dimension of com_',err_name='BIGDFT_RUNTIME_ERROR')
+      !!    end if
+      !!    if (size(com_,2)/=smats%nfvctr) then
+      !!        call f_err_throw('wrong second dimension of com_',err_name='BIGDFT_RUNTIME_ERROR')
+      !!    end if
+      !!    com => com_
+      !!else
           ! Must calculate the centers of the support functions
+          if (.not.present(lzd)) then
+              call f_err_throw('lzd not present',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
           if (.not.present(nphirdim)) then
               call f_err_throw('nphirdim not present',err_name='BIGDFT_RUNTIME_ERROR')
           end if
@@ -1769,7 +1771,6 @@ module postprocessing_linear
           if (.not.present(orbs)) then
               call f_err_throw('orbs not present',err_name='BIGDFT_RUNTIME_ERROR')
           end if
-          com = f_malloc0_ptr((/3,orbs%norb/),id='com')
       end if
 
 
@@ -1792,9 +1793,10 @@ module postprocessing_linear
 
 
       ! Determine the periodicity...
-      perx=(lzd%glr%geocode /= 'F')
-      pery=(lzd%glr%geocode == 'P')
-      perz=(lzd%glr%geocode /= 'F')
+      write(*,*) 'smats%geocode',smats%geocode
+      perx=(smats%geocode /= 'F')
+      pery=(smats%geocode == 'P')
+      perz=(smats%geocode /= 'F')
       if (perx) then
           is1 = -1
           ie1 = 1
@@ -1881,7 +1883,8 @@ module postprocessing_linear
 
 
       ! Centers of the support functions
-      if (.not.centers_provided) then
+      com = f_malloc0((/3,smats%nfvctr/),id='com')
+      if (calculate_centers) then
           if (orbs%norb>0) then
               !call supportfunction_centers(at%astruct%nat, rxyz, size(psi), psi, tmb%collcom_sr%ndimpsi_c, &
               !     orbs%norb, orbs%norbp, orbs%isorb, orbs%in_which_locreg, lzd, com(1:,orbs%isorb+1:))
@@ -1891,6 +1894,11 @@ module postprocessing_linear
                   call mpiallred(com, mpi_sum, comm=bigdft_mpi%mpi_comm)
               end if
           end if
+      else
+          do i=1,smats%nfvctr
+              iat = smats%on_which_atom(i)
+              com(1:3,i) = rxyz(1:3,iat)
+          end do
       end if
 
 
@@ -2516,26 +2524,6 @@ module postprocessing_linear
               call yaml_mapping_close()
           end if
 
-          ! If we are still searching the boundaries for the bisection...
-          if (.not.bound_low_ok) then
-              if (charge_net<0.d0) then
-                  ! this is a lower bound
-                  alpha_low = alpha
-                  bound_low_ok = .true.
-              else
-                  alpha_low = 0.5d0*alpha
-              end if
-              cycle alpha_loop
-          else if (.not.bound_up_ok) then
-              if (charge_net>0.d0) then
-                  ! this is an upper bound
-                  alpha_up = alpha
-                  bound_up_ok = .true.
-              else
-                  alpha_up = 2.0d0*alpha
-              end if
-              cycle alpha_loop
-          end if
 
           if (abs(charge_net)<1.d-5) then
               if (bigdft_mpi%iproc==0) then
@@ -2568,7 +2556,30 @@ module postprocessing_linear
                   call yaml_sequence_close()
               end if
               exit alpha_loop
-          else if (charge_net>0.d0) then
+          end if
+
+          ! If we are still searching the boundaries for the bisection...
+          if (.not.bound_low_ok) then
+              if (charge_net<0.d0) then
+                  ! this is a lower bound
+                  alpha_low = alpha
+                  bound_low_ok = .true.
+              else
+                  alpha_low = 0.5d0*alpha
+              end if
+              cycle alpha_loop
+          else if (.not.bound_up_ok) then
+              if (charge_net>0.d0) then
+                  ! this is an upper bound
+                  alpha_up = alpha
+                  bound_up_ok = .true.
+              else
+                  alpha_up = 2.0d0*alpha
+              end if
+              cycle alpha_loop
+          end if
+
+          if (charge_net>0.d0) then
               ! Too few electrons, i.e. confinement should be smaller
               !alpha = alpha*0.80
               alpha_up = alpha
@@ -2610,9 +2621,7 @@ module postprocessing_linear
       call f_free(eval_all)
       call f_free(id_all)
       call f_free(ovrlp_onehalf_all)
-      if (.not.centers_provided) then
-          call f_free_ptr(com)
-      end if
+      call f_free(com)
 
       call f_release_routine()
 

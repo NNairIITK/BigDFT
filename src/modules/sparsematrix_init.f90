@@ -100,7 +100,7 @@ contains
           call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, &
                nnonzero_mult, nonzero_mult)
       end if
-      call init_sparse_matrix(iproc, nproc, nspin, orbs%norb, orbs%norbp, orbs%isorb, &
+      call init_sparse_matrix(iproc, nproc, nspin, astruct%geocode, orbs%norb, orbs%norbp, orbs%isorb, &
            orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
            orbs%onwhichatom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)
       call f_free_ptr(nonzero)
@@ -1264,7 +1264,7 @@ contains
 
 
     !> Currently assuming square matrices
-    subroutine init_sparse_matrix(iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, store_index, &
+    subroutine init_sparse_matrix(iproc, nproc, nspin, geocode, norb, norbp, isorb, norbu, norbup, isorbu, store_index, &
                on_which_atom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
                allocate_full_, print_info_)
       use yaml_output
@@ -1272,6 +1272,7 @@ contains
       
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, nnonzero, nnonzero_mult
+      character(len=1),intent(in) :: geocode
       logical,intent(in) :: store_index
       integer,dimension(norbu),intent(in) :: on_which_atom
       integer,dimension(2,nnonzero),intent(in) :: nonzero
@@ -1306,6 +1307,7 @@ contains
       sparsemat=sparse_matrix_null()
     
       sparsemat%nspin=nspin
+      sparsemat%geocode = geocode
       sparsemat%nfvctr=norbu
       sparsemat%nfvctrp=norbup
       sparsemat%isfvctr=isorbu
@@ -3998,7 +4000,7 @@ contains
 
       call f_free(mat)
 
-      call init_sparse_matrix(iproc, nproc, 1, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
+      call init_sparse_matrix(iproc, nproc, 1, 'F', ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
            on_which_atom, nnonzero, nonzero, nnonzero, nonzero, smat)
 
       collcom_dummy = comms_linear_null()
@@ -4013,11 +4015,12 @@ contains
 
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
-    subroutine bigdft_to_sparsebigdft(iproc, nproc, nspin, ncol, ncolp, iscol, &
+    subroutine bigdft_to_sparsebigdft(iproc, nproc, nspin, geocode, ncol, ncolp, iscol, &
                on_which_atom, nvctr, nseg, keyg, smat)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
       integer,intent(in) :: iproc, nproc, nspin, ncol, ncolp, iscol, nvctr, nseg
+      character(len=1),intent(in) :: geocode
       integer,dimension(ncol),intent(in) :: on_which_atom
       !logical,intent(in) :: store_index
       integer,dimension(2,2,nseg),intent(in) :: keyg
@@ -4077,7 +4080,7 @@ contains
       !!    end if
       !!end do
 
-      call init_sparse_matrix(iproc, nproc, nspin, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
+      call init_sparse_matrix(iproc, nproc, nspin, geocode, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
            on_which_atom, nvctr, nonzero, nvctr, nonzero, smat)
 
       collcom_dummy = comms_linear_null()
@@ -4533,7 +4536,7 @@ contains
 
 
     !> Initializes a sparse matrix type compatible with the ditribution of the KS orbitals
-    subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, nextra, smat, smat_extra)
+    subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, geocode, nextra, smat, smat_extra)
       use module_base
       use module_types
       use module_interfaces
@@ -4544,6 +4547,7 @@ contains
       integer, intent(in) :: iproc, nproc, nextra
       type(orbitals_data), intent(in) :: orbs
       type(input_variables), intent(in) :: input
+      character(len=1),intent(in) :: geocode
       type(sparse_matrix),dimension(:),pointer,intent(out) :: smat, smat_extra
     
       ! Local variables
@@ -4586,7 +4590,7 @@ contains
                   nonzero(2,i)=iiorb
               end do
           end do
-          call init_sparse_matrix(iproc, nproc, input%nspin, orbs%norb, orbs%norbp, orbs%isorb, &
+          call init_sparse_matrix(iproc, nproc, input%nspin, geocode, orbs%norb, orbs%norbp, orbs%isorb, &
                norb, norbp, isorb, input%store_index, &
                orbs%onwhichatom, norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), print_info_=.false.)
           call f_free(nonzero)
@@ -4617,7 +4621,7 @@ contains
           !!call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
           !!     norb, norbp, isorb, input%store_index, &
           !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra(ispin), print_info_=.false.)
-          call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
+          call init_sparse_matrix(iproc, nproc, input%nspin, geocode, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
                orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
                orbs_aux%onwhichatom, orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu*orbs_aux%norbup, nonzero, &
                smat_extra(ispin), print_info_=.false.)

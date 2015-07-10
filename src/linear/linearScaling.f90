@@ -2347,16 +2347,15 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
       !!     tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, tmb%lzd, &
       !!     rxyz, input%lin%norbsPerType, centers_provided=.false., &
       !!     nphirdim=tmb%collcom_sr%ndimpsi_c, psi=tmb%psi, orbs=tmb%orbs)
-      com = f_malloc_ptr((/3,tmb%linmat%s%nfvctr/),id='com')
-      do i=1,tmb%linmat%s%nfvctr
-          iat = tmb%linmat%s%on_which_atom(i)
-          com(1:3,i) = rxyz(1:3,iat)
-      end do
+      !com = f_malloc_ptr((/3,tmb%linmat%s%nfvctr/),id='com')
+      !do i=1,tmb%linmat%s%nfvctr
+      !    iat = tmb%linmat%s%on_which_atom(i)
+      !    com(1:3,i) = rxyz(1:3,iat)
+      !end do
       call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, tmb%lzd, &
-           rxyz, input%lin%norbsPerType, centers_provided=.true., &
-           com_=com)
-      call f_free_ptr(com)
+           tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
+           rxyz, calculate_centers=.false.)
+      !call f_free_ptr(com)
       if (iproc==0) then
           call yaml_mapping_close()
       end if

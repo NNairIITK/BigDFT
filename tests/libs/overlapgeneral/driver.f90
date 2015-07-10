@@ -466,6 +466,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
   ! Local variables
   integer :: nnonzero, nspin, norbu, norbup, isorbu
+  character(len=1) :: geocode
   integer,dimension(:),allocatable :: nvctr_per_segment, on_which_atom
   integer,dimension(:,:),pointer :: nonzero
   type(comms_linear) :: collcom_dummy
@@ -506,12 +507,13 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
 
   ! for the moment no spin polarization
   nspin=1
+  geocode = 'F'
   norbu=norb
   norbup=norbp
   isorbu=isorb
   on_which_atom = f_malloc0(norbu,id='on_which_atom')
   ! on_which_atoms set to zero is of course not meaningful, but just be ok for this test...
-  call init_sparse_matrix(iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, .false., &
+  call init_sparse_matrix(iproc, nproc, nspin, geocode, norb, norbp, isorb, norbu, norbup, isorbu, .false., &
              on_which_atom, nnonzero, nonzero, nnonzero, nonzero, smat, allocate_full_=.true.)
   call f_free_ptr(nonzero)
   call f_free(on_which_atom)

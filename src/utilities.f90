@@ -21,25 +21,28 @@ program utilities
                                 sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
-                                    loewdin_charge_analysis_core
+                                    CHARGE_ANALYSIS_PROJECTOR, &
+                                    loewdin_charge_analysis_core, projector_for_charge_analysis
    use bigdft_run, only: bigdft_init
    implicit none
    external :: gather_timings
    character(len=*), parameter :: subname='utilities'
+   character(len=1) :: geocode
    character(len=30) :: tatonam, radical
-   character(len=128) :: method_name, overlap_file, kernel_file
+   character(len=128) :: method_name, overlap_file, hamiltonian_file, kernel_file
    logical :: charge_analysis = .false.
    type(atoms_data) :: at
    integer :: istat, i_arg, ierr, nspin, icount, nthread, method
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
+   integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
    integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
    integer,dimension(:),allocatable :: on_which_atom
-   integer,dimension(:),pointer :: keyv_s, keyv_l, on_which_atom_s, on_which_atom_l
-   integer,dimension(:,:,:),pointer :: keyg_s, keyg_l
+   integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
+   integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
    real(kind=8),dimension(:),pointer :: matrix_compr
-   type(matrices) :: ovrlp_mat, kernel_mat
+   type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat
    logical :: mpi_init
-   type(sparse_matrix) :: smat_s, smat_l
+   type(sparse_matrix) :: smat_s, smat_m, smat_l
    type(dictionary), pointer :: dict_timing_info
    !$ integer :: omp_get_max_threads
 
@@ -84,7 +87,7 @@ program utilities
       write(*,'(1x,a)')&
            &   '"charge-analysis"" ' 
       write(*,'(1x,a)')&
-           & 'perform a Loewdin charge analysis'
+           & 'perform a charge analysis (Loewdin or Mulliken)'
 
       stop
    else
@@ -101,6 +104,8 @@ program utilities
             call get_command_argument(i_arg, value = overlap_file)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = kernel_file)
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = hamiltonian_file)
             !write(*,'(1x,2a)')&
             !   &   'perform a Loewdin charge analysis'
             charge_analysis = .true.
@@ -113,7 +118,7 @@ program utilities
 
    if (charge_analysis) then
        if (bigdft_mpi%iproc==0) then
-           call yaml_comment('Loewdin charge analysis',hfill='-')
+           call yaml_comment('Charge analysis',hfill='-')
        end if
        
        !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
@@ -124,18 +129,20 @@ program utilities
            method = CHARGE_ANALYSIS_LOEWDIN
        case ('mulliken','MULLIKEN')
            method = CHARGE_ANALYSIS_MULLIKEN
+       case ('projector','PROJECTOR')
+           method = CHARGE_ANALYSIS_PROJECTOR
        case default
            call f_err_throw('Unknown Method for the charge analysis',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
        end select
 
        at = atoms_data_null()
 
-       call read_sparse_matrix(trim(overlap_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+       call read_sparse_matrix(trim(overlap_file), nspin, geocode, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
             matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
             at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
        at%refcnt=f_ref_new('atoms')
        call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
-       call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nspin, nfvctr_s, nfvctrp_s, isfvctr_s, &
+       call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nspin, geocode, nfvctr_s, nfvctrp_s, isfvctr_s, &
             on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
        call f_free_ptr(keyv_s)
        call f_free_ptr(keyg_s)
@@ -145,10 +152,10 @@ program utilities
        call vcopy(smat_s%nvctr*smat_s%nspin, matrix_compr(1), 1, ovrlp_mat%matrix_compr(1), 1)
        call f_free_ptr(matrix_compr)
 
-       call read_sparse_matrix(trim(kernel_file), nspin, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
+       call read_sparse_matrix(trim(kernel_file), nspin, geocode, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
             matrix_compr, on_which_atom=on_which_atom_l)
        call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
-       call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nspin, nfvctr_l, nfvctrp_l, isfvctr_l, &
+       call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nspin, geocode, nfvctr_l, nfvctrp_l, isfvctr_l, &
             on_which_atom_l, nvctr_l, nseg_l, keyg_l, smat_l)
        call f_free_ptr(keyv_l)
        call f_free_ptr(keyg_l)
@@ -157,11 +164,38 @@ program utilities
        kernel_mat%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='kernel_mat%matrix_compr')
        call vcopy(smat_l%nvctr*smat_l%nspin, matrix_compr(1), 1, kernel_mat%matrix_compr(1), 1)
        call f_free_ptr(matrix_compr)
+
+       if (method==CHARGE_ANALYSIS_PROJECTOR) then
+           call read_sparse_matrix(trim(hamiltonian_file), nspin, geocode, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
+                matrix_compr, on_which_atom=on_which_atom_m)
+           call distribute_columns_on_processes_simple(bigdft_mpi%iproc, bigdft_mpi%nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
+           call bigdft_to_sparsebigdft(bigdft_mpi%iproc, bigdft_mpi%nproc, nspin, geocode, nfvctr_m, nfvctrp_m, isfvctr_m, &
+                on_which_atom_m, nvctr_m, nseg_m, keyg_m, smat_m)
+           call f_free_ptr(keyv_m)
+           call f_free_ptr(keyg_m)
+           call f_free_ptr(on_which_atom_m)
+           hamiltonian_mat = matrices_null()
+           hamiltonian_mat%matrix_compr = sparsematrix_malloc_ptr(smat_m, iaction=SPARSE_FULL, id='hamiltonian_mat%matrix_compr')
+           call vcopy(smat_m%nvctr*smat_m%nspin, matrix_compr(1), 1, hamiltonian_mat%matrix_compr(1), 1)
+           call f_free_ptr(matrix_compr)
+       end if
+
        call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
-       call loewdin_charge_analysis_core(method, bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
-            smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=1020, blocksize=-8, &
-            smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
+       select case(method)
+       case(CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN)
+           call loewdin_charge_analysis_core(method, bigdft_mpi%iproc, bigdft_mpi%nproc, &
+                smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
+                smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=1020, blocksize=-8, &
+                smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
+       case(CHARGE_ANALYSIS_PROJECTOR)
+           call projector_for_charge_analysis(at, smat_s, smat_m, smat_l, &
+                ovrlp_mat, hamiltonian_mat, kernel_mat, &
+                at%astruct%rxyz, calculate_centers=.false.)
+       case default
+           call f_err_throw('wrong method',err_name='BIGDFT_RUNTIME_ERROR')
+       end select
+
        call timing(bigdft_mpi%mpi_comm,'CALC','PR')
 
        call deallocate_atoms_data(at)
@@ -169,6 +203,10 @@ program utilities
        call deallocate_sparse_matrix(smat_l)
        call deallocate_matrices(ovrlp_mat)
        call deallocate_matrices(kernel_mat)
+       if (method==CHARGE_ANALYSIS_PROJECTOR) then
+           call deallocate_sparse_matrix(smat_m)
+           call deallocate_matrices(hamiltonian_mat)
+       end if
 
        if (bigdft_mpi%iproc==0) then
            call yaml_comment('done',hfill='-')
