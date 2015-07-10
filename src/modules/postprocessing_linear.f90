@@ -1737,12 +1737,19 @@ module postprocessing_linear
       !real(kind=8),parameter :: kT = 5.d-2
       real(kind=8) :: kT
       !real(kind=8),parameter :: alpha = 5.d-1
-      real(kind=8) :: alpha, alpha_up, alpha_low
+      real(kind=8) :: alpha, alpha_up, alpha_low, convergence_criterion
 
 
       call f_routine(id='projector_for_charge_analysis')
 
       kT = 1.d-2
+
+      ! Convergence criterion: one million-th of the total charge
+      tt = 0.d0
+      do iat=1,at%astruct%nat
+          tt = tt + real(at%nelpsp(at%astruct%iatype(iat)),kind=8)
+      end do
+      convergence_criterion = 1.d-6*abs(tt)
 
       ! Check the arguments
       if (calculate_centers) then
@@ -1914,6 +1921,7 @@ module postprocessing_linear
       iq = nint(q)
       if (bigdft_mpi%iproc==0) then
           call yaml_mapping_open('Calculating projector for charge analysis')
+          call yaml_map('convergence criterion',convergence_criterion)
           call yaml_map('maximal size of a submatrix',nmax)
           call yaml_sequence_open('Searching alpha for charge neutrality')
       end if
@@ -2252,7 +2260,7 @@ module postprocessing_linear
           end if
 
 
-          if (abs(charge_net)<1.d-5) then
+          if (abs(charge_net)<convergence_criterion) then
               if (bigdft_mpi%iproc==0) then
                   call yaml_sequence_close()
                   call yaml_map('number of states to be occupied (without smearing)',iq)
@@ -2539,6 +2547,7 @@ module postprocessing_linear
 
   subroutine order_eigenvalues(n, eigenvalues, ids)
     use module_base
+    use sort, only: QsortC
     implicit none
 
     ! Calling arguments
@@ -2549,20 +2558,45 @@ module postprocessing_linear
     ! Local variables
     integer :: i, ind, ii
     real(kind=8) :: tt
+    integer,dimension(:),allocatable :: lookup
+    integer,dimension(:),allocatable :: ids_tmp
 
     call f_routine(id='order_eigenvalues')
 
-    ! Order the eigenvalues and IDs
+    !! Order the eigenvalues and IDs
+    !do i=1,n
+    !    ! add i-1 since we are only searching in the subarray
+    !    ind = minloc(eigenvalues(i:n),1) + (i-1)
+    !    tt = eigenvalues(i)
+    !    eigenvalues(i) = eigenvalues(ind)
+    !    eigenvalues(ind) = tt
+    !    ii = ids(i)
+    !    ids(i) = ids(ind)
+    !    ids(ind) = ii
+    !end do
+
+    !do i=1,n
+    !    write(200+bigdft_mpi%iproc,*) eigenvalues(i), ids(i)
+    !end do
+
+    lookup = f_malloc(n,id='lookup')
     do i=1,n
-        ! add i-1 since we are only searching in the subarray
-        ind = minloc(eigenvalues(i:n),1) + (i-1)
-        tt = eigenvalues(i)
-        eigenvalues(i) = eigenvalues(ind)
-        eigenvalues(ind) = tt
-        ii = ids(i)
-        ids(i) = ids(ind)
-        ids(ind) = ii
+        lookup(i) = i
     end do
+    call QsortC(eigenvalues, lookup)
+    ids_tmp = f_malloc(n,id='ids_tmp')
+    call f_memcpy(src=ids, dest=ids_tmp)
+    do i=1,n
+        ind = lookup(i)
+        ids(i) = ids_tmp(ind)
+    end do
+
+    !do i=1,n
+    !    write(300+bigdft_mpi%iproc,*) eigenvalues(i), ids(i)
+    !end do
+
+    call f_free(lookup)
+    call f_free(ids_tmp)
 
     call f_release_routine()
 
