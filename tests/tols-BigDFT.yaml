@@ -666,6 +666,9 @@ fructose:
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
  Energy (Hartree): 4.9e-11
+ Charge analysis (charge / net charge): 5.9e-11
+ Pseudo Fermi level for occupations: 5.9e-11
+ net charge: 1.1e-9
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
