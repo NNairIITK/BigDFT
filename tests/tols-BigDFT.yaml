@@ -1413,7 +1413,7 @@ FF_LENOSKY-sqnm:
   - WARNINGS
 
 FF_LENOSKY-lbfgs:
-  #FORCES norm(Ha/Bohr): 9.01e-6
+  FORCES norm(Ha/Bohr): 9.01e-6
   Forces: 1.e-4
   etot: 6.2e-6
   maxval: 1.1e-5
