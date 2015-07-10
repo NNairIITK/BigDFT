@@ -228,6 +228,9 @@ def parse():
 	# MPI...
     group.add_option("--mpirun", type="str", default="mpirun -n 1", metavar="MPI",
              		 help="MPI wrapper to run in parallel [default: %default]")
+	# Charge analysis method
+    group.add_option("--method", type="str", default="loewdin", metavar="METHOD",
+             		 help="method for the charge analysis [default: %default]")
 
     return parser
 
@@ -751,7 +754,7 @@ options:
         print command
     if options.action == actions[21]:
         print 'calling utilities to perform a Loewdin charge analysis'
-        command = "%s %s charge-analysis %s %s" % (options.mpirun, utilities, options.overlap_file, options.kernel_file)
+        command = "%s %s charge-analysis %s %s %s" % (options.mpirun, utilities, options.method, options.overlap_file, options.kernel_file)
         print command
     if command is not None:
         os.system(command)

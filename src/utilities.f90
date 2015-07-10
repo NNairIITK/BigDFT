@@ -20,15 +20,17 @@ program utilities
    use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, assignment(=), SPARSE_FULL, &
                                 sparsematrix_malloc_ptr, deallocate_sparse_matrix, deallocate_matrices
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
-   use postprocessing_linear, only: loewdin_charge_analysis_core
+   use postprocessing_linear, only: CHARGE_ANALYSIS_LOEWDIN, CHARGE_ANALYSIS_MULLIKEN, &
+                                    loewdin_charge_analysis_core
    use bigdft_run, only: bigdft_init
    implicit none
+   external :: gather_timings
    character(len=*), parameter :: subname='utilities'
    character(len=30) :: tatonam, radical
-   character(len=128) :: overlap_file, kernel_file
+   character(len=128) :: method_name, overlap_file, kernel_file
    logical :: charge_analysis = .false.
    type(atoms_data) :: at
-   integer :: istat, i_arg, ierr, nspin, icount, nthread
+   integer :: istat, i_arg, ierr, nspin, icount, nthread, method
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
    integer,dimension(:),allocatable :: on_which_atom
@@ -38,6 +40,7 @@ program utilities
    type(matrices) :: ovrlp_mat, kernel_mat
    logical :: mpi_init
    type(sparse_matrix) :: smat_s, smat_l
+   type(dictionary), pointer :: dict_timing_info
    !$ integer :: omp_get_max_threads
 
    call f_lib_initialize()
@@ -45,6 +48,15 @@ program utilities
    ! Initialize MPI
    !call bigdft_mpi_init(ierr)
    call bigdft_init()
+
+    if (bigdft_mpi%iproc==0) then
+        call yaml_new_document()
+    end if
+
+
+   !Time initialization
+   call f_timing_reset(filename='time.yaml',master=(bigdft_mpi%iproc==0),verbose_mode=(.true..and.bigdft_mpi%nproc>1))
+
 
    if (bigdft_mpi%iproc==0) then
        call yaml_scalar('',hfill='~')
@@ -66,7 +78,7 @@ program utilities
    write(radical, "(A)") "input"
    if(trim(tatonam)=='' .or. istat>0) then
       write(*,'(1x,a)')&
-         &   'Usage: ./utilities  [option]'
+         &   'Usage: ./utilities -a [option]'
       write(*,'(1x,a)')&
          &   '[option] can be the following: '
       write(*,'(1x,a)')&
@@ -83,6 +95,8 @@ program utilities
          if(trim(tatonam)=='' .or. istat > 0) then
             exit loop_getargs
          else if (trim(tatonam)=='charge-analysis') then
+            i_arg = i_arg + 1
+            call get_command_argument(i_arg, value = method_name)
             i_arg = i_arg + 1
             call get_command_argument(i_arg, value = overlap_file)
             i_arg = i_arg + 1
@@ -103,6 +117,16 @@ program utilities
        end if
        
        !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+
+       ! Determine the method
+       select case(trim(method_name))
+       case ('loewdin','LOEWDIN')
+           method = CHARGE_ANALYSIS_LOEWDIN
+       case ('mulliken','MULLIKEN')
+           method = CHARGE_ANALYSIS_MULLIKEN
+       case default
+           call f_err_throw('Unknown Method for the charge analysis',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+       end select
 
        at = atoms_data_null()
 
@@ -133,10 +157,12 @@ program utilities
        kernel_mat%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='kernel_mat%matrix_compr')
        call vcopy(smat_l%nvctr*smat_l%nspin, matrix_compr(1), 1, kernel_mat%matrix_compr(1), 1)
        call f_free_ptr(matrix_compr)
+       call timing(bigdft_mpi%mpi_comm,'INIT','PR')
 
-       call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
+       call loewdin_charge_analysis_core(method, bigdft_mpi%iproc, bigdft_mpi%nproc, smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
             smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=1020, blocksize=-8, &
             smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
+       call timing(bigdft_mpi%mpi_comm,'CALC','PR')
 
        call deallocate_atoms_data(at)
        call deallocate_sparse_matrix(smat_s)
@@ -150,8 +176,62 @@ program utilities
 
    end if
 
+   call build_dict_info(dict_timing_info)
+   call f_timing_stop(mpi_comm=bigdft_mpi%mpi_comm,nproc=bigdft_mpi%nproc,&
+        gather_routine=gather_timings,dict_info=dict_timing_info)
+   call dict_free(dict_timing_info)
+
+   if (bigdft_mpi%iproc==0) then
+       call yaml_release_document()
+   end if
+
+
    call bigdft_finalize(ierr)
    call f_lib_finalize()
+
+
+  !SM: This routine should go to a module
+  contains
+   !> construct the dictionary needed for the timing information
+    subroutine build_dict_info(dict_info)
+      !use module_base
+      use dynamic_memory
+      use dictionaries
+      implicit none
+      include 'mpif.h'
+      type(dictionary), pointer :: dict_info
+      !local variables
+      integer :: ierr,namelen,nthreads
+      character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
+      character(len=MPI_MAX_PROCESSOR_NAME), dimension(:), allocatable :: nodename
+      type(dictionary), pointer :: dict_tmp
+      !$ integer :: omp_get_max_threads
+
+      call dict_init(dict_info)
+!  bastian: comment out 4 followinf lines for debug purposes (7.12.2014)
+      !if (DoLastRunThings) then
+         call f_malloc_dump_status(dict_summary=dict_tmp)
+         call set(dict_info//'Routines timing and number of calls',dict_tmp)
+      !end if
+      nthreads = 0
+      !$  nthreads=omp_get_max_threads()
+      call set(dict_info//'CPU parallelism'//'MPI tasks',bigdft_mpi%nproc)
+      if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
+           nthreads)
+
+      nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.bigdft_mpi%nproc-1,id='nodename')
+      if (bigdft_mpi%nproc>1) then
+         call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
+         !gather the result between all the process
+         call MPI_GATHER(nodename_local,MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,&
+              nodename(0),MPI_MAX_PROCESSOR_NAME,MPI_CHARACTER,0,&
+              bigdft_mpi%mpi_comm,ierr)
+         if (bigdft_mpi%iproc==0) call set(dict_info//'Hostnames',&
+                 list_new(.item. nodename))
+      end if
+      call f_free_str(MPI_MAX_PROCESSOR_NAME,nodename)
+
+    end subroutine build_dict_info
 
 
 end program utilities

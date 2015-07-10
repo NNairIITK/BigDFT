@@ -537,6 +537,14 @@ module multipole
 
       call f_routine(id='multipoles_from_density')
 
+      if (iproc==0) call yaml_comment('Multipole analysis',hfill='-')
+
+      call unitary_test()
+
+      if (iproc==0) then
+          call yaml_mapping_open('Multipole analysis')
+      end if
+
       ! Orthogonalize the support functions
       can_use_transposed = .false.
       methTransformOverlap = 1020
@@ -544,6 +552,9 @@ module multipole
       phit_f = f_malloc_ptr(7*collcom%ndimind_f,id='phit_f')
       phi_ortho = f_malloc(npsidim,id='phi_ortho')
       call vcopy(npsidim, lphi(1), 1, phi_ortho(1), 1)
+      if (iproc==0) then
+          call yaml_map('Orthonormalizing support functions',.true.)
+      end if
       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
            1.d-8, npsidim, orbs, lzd, &
            smats, smatl, collcom, orthpar, &
@@ -686,7 +697,6 @@ module multipole
       ! For the support functions on atom A we only need to apply 
       ! the spherical harmonics centered as well on atom A.
 
-      call unitary_test()
 
 
       !lmax = 1
@@ -735,6 +745,10 @@ module multipole
 
       call f_free(kernel_ortho)
 
+      if (iproc==0) then
+          call yaml_mapping_close()
+      end if
+
       call f_release_routine()
 
 
@@ -749,6 +763,10 @@ module multipole
           integer,parameter :: nsi1=0, nsi2=10, nsi3=20
           real(kind=8),dimension(3) :: locregcenter
           integer :: nr
+
+          if (iproc==0) then
+              call yaml_mapping_open('Unitary test for multipoles')
+          end if
 
           locregcenter(1) = (ceiling(real(n1i,kind=8)/2.d0)+nsi1-14-1)*0.5d0*lzd%hgrids(1)
           locregcenter(2) = (ceiling(real(n2i,kind=8)/2.d0)+nsi2-14-1)*0.5d0*lzd%hgrids(2)
@@ -845,6 +863,7 @@ module multipole
               !!call write_multipoles(1, 1, (/1/), (/'testatom'/), multipoles, rmax, lzd%hgrids, without_normalization=.true.)
               call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), &
                    multipoles, rmax, lzd%hgrids, without_normalization=.true.)
+              call yaml_mapping_close()
           end if
 
         end subroutine unitary_test
@@ -1300,7 +1319,6 @@ module multipole
       !end if
 
 
-      if (iproc==0) call yaml_comment('Multipole analysis',hfill='-')
 
       rmax = 0.d0
       norb_list = f_malloc(maxval(norbsPerType(:)),id='norb_list')

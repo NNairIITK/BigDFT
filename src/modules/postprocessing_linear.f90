@@ -13,6 +13,10 @@ module postprocessing_linear
   !public :: supportfunction_centers
   public :: projector_for_charge_analysis
 
+  !> Public constants
+  integer,parameter,public :: CHARGE_ANALYSIS_LOEWDIN = 501
+  integer,parameter,public :: CHARGE_ANALYSIS_MULLIKEN = 502
+
   contains
 
     subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot, &
@@ -130,14 +134,14 @@ module postprocessing_linear
       !         tmb%orbs%norb_par, tmb%orbs%isorb_par, meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
       !         tmb%linmat%kernel_, tmb%linmat%ovrlp_)
       if (optionals_present) then
-          call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+          call loewdin_charge_analysis_core(CHARGE_ANALYSIS_LOEWDIN, bigdft_mpi%iproc, bigdft_mpi%nproc, &
                tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
                tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
                meth_overlap, blocksize, tmb%linmat%s, tmb%linmat%l, atoms, &
                tmb%linmat%kernel_, tmb%linmat%ovrlp_, &
                ntheta=ntheta, istheta=istheta, theta=theta)
       else
-          call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+          call loewdin_charge_analysis_core(CHARGE_ANALYSIS_LOEWDIN, bigdft_mpi%iproc, bigdft_mpi%nproc, &
                tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
                tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
                meth_overlap, blocksize, tmb%linmat%s, tmb%linmat%l, atoms, &
@@ -152,7 +156,7 @@ module postprocessing_linear
 
 
 
-    subroutine loewdin_charge_analysis_core(iproc, nproc, norb, norbp, isorb, &
+    subroutine loewdin_charge_analysis_core(method, iproc, nproc, norb, norbp, isorb, &
             norb_par, isorb_par, meth_overlap, blocksize, smats, smatl, atoms, kernel, ovrlp, &
                ntheta, istheta, theta)
       use module_base
@@ -162,12 +166,13 @@ module postprocessing_linear
                                    DENSE_FULL, SPARSE_TASKGROUP, SPARSE_FULL, &
                                    deallocate_matrices, matrices_null, allocate_matrices
       use sparsematrix_init, only: matrixindex_in_compressed
-      use sparsematrix, only: uncompress_matrix2, matrix_matrix_mult_wrapper, gather_matrix_from_taskgroups
+      use sparsematrix, only: uncompress_matrix2, matrix_matrix_mult_wrapper, gather_matrix_from_taskgroups, &
+                              transform_sparse_matrix
       use matrix_operations, only: overlapPowerGeneral
       use yaml_output
       implicit none
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, norb, norbp, isorb, meth_overlap, blocksize
+      integer,intent(in) :: method, iproc, nproc, norb, norbp, isorb, meth_overlap, blocksize
       integer,dimension(0:nproc-1),intent(in) :: norb_par, isorb_par
       type(sparse_matrix),intent(inout) :: smats, smatl
       type(atoms_data),intent(in) :: atoms
@@ -189,6 +194,16 @@ module postprocessing_linear
       logical :: optionals_present
 
       call f_routine(id='loewdin_charge_analysis_core')
+      
+      ! Check the arguments
+      select case (method)
+      case(CHARGE_ANALYSIS_LOEWDIN)
+          if (iproc==0) call yaml_map('Method','Loewdin')
+      case(CHARGE_ANALYSIS_MULLIKEN)
+          if (iproc==0) call yaml_map('Method','Mulliken')
+      case default
+          call f_err_throw('Wrong Method',err_name='BIGDFT_RUNTIME_ERROR')
+      end select
 
       if (present(theta)) then
           if (.not.present(ntheta)) then
@@ -280,28 +295,41 @@ module postprocessing_linear
       else if (imode==SPARSE) then
 
 
-          inv_ovrlp(1) = matrices_null()
-          inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
-
-          call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), blocksize, &
-               imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-               ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-               max_error=max_error, mean_error=mean_error)
-          call f_free_ptr(ovrlp%matrix)
-
-          proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_ovrlp_half_compr')
           weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
-          do ispin=1,smatl%nspin
-              ist = (ispin-1)*smatl%nvctrp_tg + 1
-              if (norbp>0) then
-                 call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
-                      kernel%matrix_compr(ist:), inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:))
-              end if
-              if (norbp>0) then
-                 call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
-                      inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
-              end if
-          end do
+          proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_ovrlp_half_compr')
+
+          if (method==CHARGE_ANALYSIS_LOEWDIN) then
+              inv_ovrlp(1) = matrices_null()
+              inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
+
+              call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), blocksize, &
+                   imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+                   ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
+                   max_error=max_error, mean_error=mean_error)
+              !call f_free_ptr(ovrlp%matrix)
+
+
+              do ispin=1,smatl%nspin
+                  ist = (ispin-1)*smatl%nvctrp_tg + 1
+                  if (norbp>0) then
+                     call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+                          kernel%matrix_compr(ist:), inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:))
+                  end if
+                  if (norbp>0) then
+                     call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+                          inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
+                  end if
+              end do
+          else if (method==CHARGE_ANALYSIS_MULLIKEN) then
+              call transform_sparse_matrix(smats, smatl, ovrlp%matrix_compr, proj_ovrlp_half_compr, 'small_to_large')
+              do ispin=1,smatl%nspin
+                  ist = (ispin-1)*smatl%nvctrp_tg + 1
+                  if (norbp>0) then
+                     call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+                          kernel%matrix_compr(ist:), ovrlp%matrix_compr(ist:), weight_matrix_compr_tg(ist:))
+                  end if
+              end do
+          end if
           call f_free(proj_ovrlp_half_compr)
     
           call deallocate_matrices(inv_ovrlp(1))
@@ -1706,7 +1734,7 @@ module postprocessing_linear
       real(kind=8),dimension(3) :: rr
       logical,dimension(:,:),allocatable :: neighbor
       type(matrices),dimension(1) :: ovrlp_onehalf_
-      logical :: perx, pery, perz, final
+      logical :: perx, pery, perz, final, bound_low_ok, bound_up_ok
       !real(kind=8),parameter :: kT = 5.d-2
       real(kind=8) :: kT
       !real(kind=8),parameter :: alpha = 5.d-1
@@ -1716,9 +1744,6 @@ module postprocessing_linear
       call f_routine(id='projector_for_charge_analysis')
 
       kT = 1.d-2
-      ! This shouls be done in a cleaner way...
-      alpha_low = 1.d-6
-      alpha_up = 1.d4
 
       ! Check the arguments
       if (centers_provided) then
@@ -1746,6 +1771,25 @@ module postprocessing_linear
           end if
           com = f_malloc0_ptr((/3,orbs%norb/),id='com')
       end if
+
+
+      ! Calculate S^1/2
+      ovrlp_onehalf_(1) = matrices_null()
+      ovrlp_onehalf_(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_onehalf_(1)%matrix_compr')
+      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/2/), -1, &
+            imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+            ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
+            check_accur=.true., max_error=max_error, mean_error=mean_error)
+
+      ! Calculate S^1/2 * K * S^1/2 = Ktilde
+      tmpmat1 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat1')
+      !tmpmat2 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat2')
+      kerneltilde = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='kerneltilde')
+      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
+           kernel_%matrix_compr, ovrlp_onehalf_(1)%matrix_compr, tmpmat1)
+      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
+           ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
+
 
       ! Determine the periodicity...
       perx=(lzd%glr%geocode /= 'F')
@@ -1826,9 +1870,6 @@ module postprocessing_linear
           istot = istot + itmparr(i)
       end do
       call f_free(itmparr)
-      if (bigdft_mpi%iproc==0) then
-          call yaml_map('maximal size of a submatrix',nmax)
-      end if
       
       eval_all = f_malloc0(ntot,id='eval_all')
       id_all = f_malloc0(ntot,id='id_all')
@@ -1855,23 +1896,7 @@ module postprocessing_linear
 
       projector_compr = sparsematrix_malloc0(iaction=SPARSE_TASKGROUP, smat=smatl, id='projector_compr')
       charge_per_atom = f_malloc0(at%astruct%nat,id='charge_per_atom')
-      tmpmat1 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat1')
-      tmpmat2 = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='tmpmat2')
-      kerneltilde = sparsematrix_malloc(iaction=SPARSE_TASKGROUP, smat=smatl, id='kerneltilde')
 
-      ! Calculate S^1/2
-      ovrlp_onehalf_(1) = matrices_null()
-      ovrlp_onehalf_(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='ovrlp_onehalf_(1)%matrix_compr')
-      call overlapPowerGeneral(bigdft_mpi%iproc, bigdft_mpi%nproc, 1020, 1, (/2/), -1, &
-            imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-            ovrlp_mat=ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_(1), &
-            check_accur=.true., max_error=max_error, mean_error=mean_error)
-
-      ! Calculate S^1/2 * K * S^1/2 = Ktilde
-      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
-           kernel_%matrix_compr, ovrlp_onehalf_(1)%matrix_compr, tmpmat1)
-      call matrix_matrix_mult_wrapper(bigdft_mpi%iproc, bigdft_mpi%nproc, smatl, &
-           ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
 
       ! Calculate how many states should be included
       q = 0.d0
@@ -1882,17 +1907,29 @@ module postprocessing_linear
       iq = nint(q)
       if (bigdft_mpi%iproc==0) then
           call yaml_mapping_open('Calculating projector for charge analysis')
-          call yaml_map('number of states to be occupied (without smearing)',iq)
+          call yaml_map('maximal size of a submatrix',nmax)
           call yaml_sequence_open('Searching alpha for charge neutrality')
       end if
 
-      alpha_loop: do ialpha=1,100
+      ! Initial guess for the bisection bounds
+      alpha_low = 1.d-3
+      alpha_up = 1.d1
+      bound_low_ok = .false.
+      bound_up_ok = .false.
+
+      alpha_loop: do! ialpha=1,100
 
           if (bigdft_mpi%iproc==0) then
               call yaml_sequence(advance='no')
           end if
 
-          alpha = 0.5d0*(alpha_low+alpha_up)
+          if (.not.bound_low_ok) then
+              alpha = alpha_low
+          else if (.not.bound_up_ok) then
+              alpha = alpha_up
+          else
+              alpha = 0.5d0*(alpha_low+alpha_up)
+          end if
 
           charge_net = 0.d0
           call f_zero(eval_all)
@@ -2472,11 +2509,38 @@ module postprocessing_linear
           end do
           if (bigdft_mpi%iproc==0) then
               !write(*,*) 'net charge', charge_net
-              call yaml_map('alpha, net charge',(/alpha,charge_net/),fmt='(es13.4)')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('alpha',alpha,fmt='(es12.4)')
+              call yaml_map('net charge',charge_net,fmt='(es12.4)')
+              call yaml_map('bisection bounds ok',(/bound_low_ok,bound_up_ok/))
+              call yaml_mapping_close()
           end if
+
+          ! If we are still searching the boundaries for the bisection...
+          if (.not.bound_low_ok) then
+              if (charge_net<0.d0) then
+                  ! this is a lower bound
+                  alpha_low = alpha
+                  bound_low_ok = .true.
+              else
+                  alpha_low = 0.5d0*alpha
+              end if
+              cycle alpha_loop
+          else if (.not.bound_up_ok) then
+              if (charge_net>0.d0) then
+                  ! this is an upper bound
+                  alpha_up = alpha
+                  bound_up_ok = .true.
+              else
+                  alpha_up = 2.0d0*alpha
+              end if
+              cycle alpha_loop
+          end if
+
           if (abs(charge_net)<1.d-5) then
               if (bigdft_mpi%iproc==0) then
                   call yaml_sequence_close()
+                  call yaml_map('number of states to be occupied (without smearing)',iq)
                   call yaml_map('Pseudo Fermi level for occupations',ef)
                   call yaml_sequence_open('ordered eigenvalues and occupations')
                   ii = 0
@@ -2523,7 +2587,7 @@ module postprocessing_linear
 
       call deallocate_matrices(ovrlp_onehalf_(1))
       call f_free(tmpmat1)
-      call f_free(tmpmat2)
+      !call f_free(tmpmat2)
       call f_free(kerneltilde)
       call f_free(projector_compr)
       call f_free(coeff_all)

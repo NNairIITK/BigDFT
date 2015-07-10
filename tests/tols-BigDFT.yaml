@@ -1645,7 +1645,7 @@ igortho_19:
  D: 2.1e-8
  Tr(K): 1.1e-8
  total charge correction: 1.5e-11
- multiplicator for the confinement: 1.8e-11
+ multiplicator for the confinement: 2.4e-11
  radius for normalization: 1.1e-2
 
 igortho_44:
