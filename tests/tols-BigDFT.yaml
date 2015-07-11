@@ -286,7 +286,7 @@ test.minhop.ref.yaml:
  Orbitals: 6.1e-9
  Positions: 1.1e-9
  curv: 5.51e-11
- fd2: 2.81e-10
+ fd2: 2.83e-10
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -485,6 +485,7 @@ H2-freq: &freq
  (F) Vibrational entropy: 1.1e-8
  (F) Frequencies (THz): 4.8e-3
  (F) Frequencies (cm-1): 4.9e-3
+ (F) Vibrational Energy (cm-1 and Hartree): 2.01e-11
 
 C6H6-freq: *freq
 
@@ -1528,7 +1529,7 @@ periodic_water:
  EvXC: 1.1e-9
  Ekin: 2.0e-9
  Enl: 1.1e-9
- Energy (Hartree): 7.7e-11
+ Energy (Hartree): 7.71e-11
  Omega: 2.7e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
