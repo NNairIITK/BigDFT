@@ -103,16 +103,16 @@ subroutine lst_penalty(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
     !the penal. fct. at
     !rxyz
 
-!    if(bigdft_get_geocode(runObj)=='F')then
+    if(bigdft_get_geocode(runObj)=='F')then
         !the periodic version can also handle free BC, however, the free BC version of
         !lst_penalty is twice as fast
         call lst_penalty_free(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
-!    else if (bigdft_get_geocode(runObj)=='S' .or. bigdft_get_geocode(runObj)=='P')then
-!        call lst_penalty_periodic(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
-!    else
-!        call f_err_throw('lst_penalty: specified boundary conditions'//&
-!             ' not supported.')
-!    endif
+    else if (bigdft_get_geocode(runObj)=='S' .or. bigdft_get_geocode(runObj)=='P')then
+        call lst_penalty_periodic(runObj,rxyzR,rxyzP,rxyz,lambda,val,force)
+    else
+        call f_err_throw('lst_penalty: specified boundary conditions'//&
+             ' not supported.')
+    endif
 end subroutine lst_penalty
 
 !=====================================================================
@@ -272,6 +272,13 @@ subroutine lst_penalty_periodic(runObj,rxyzR_,rxyzP_,rxyz_,lambda,val,force)
     !Journal of Chemical Theory and Computation, 7(12), 4019–4025.
     !doi:10.1021/ct200654u
     !
+    !and 
+    !
+    !Niranjan Govind, Max Petersen, George Fitzgerald, Dominic King-Smith,
+    !Jan Andzelm, A generalized synchronous transit method for transition
+    !state location, Computational Materials Science, Volume 28, Issue 2,
+    !October 2003, Pages 250-258
+    !
     !and
     !
     !BS: For computation of gradient see also personal notes in intel
@@ -296,10 +303,11 @@ subroutine lst_penalty_periodic(runObj,rxyzR_,rxyzP_,rxyz_,lambda,val,force)
     !(0<=lambda<=1)
     real(gp), intent(out) :: val  !the value of the penalty function
     real(gp), intent(out) :: force(3,runObj%atoms%astruct%nat) !the negative gradient of
-                                                               !the penal. fct. at
+                                                               !the penal. fct.
+                                                               !at
                                                                !rxyz
     !internal
-    integer, parameter :: necmin=1
+    integer, parameter :: necmin=2
     integer :: b !outer loop
     integer :: a !inner loop
     integer :: i,j,k !loops over periodic images
@@ -315,20 +323,21 @@ subroutine lst_penalty_periodic(runObj,rxyzR_,rxyzP_,rxyz_,lambda,val,force)
     real(gp) :: rxd, ryd, rzd
     real(gp) :: rabiMrabC
     real(gp) :: tt, ttx, tty, ttz
-    real(gp) :: waxi, wayi, wazi 
+    real(gp) :: waxi, wayi, wazi
     real(gp) :: latvec(3,3), cell(3), weight, trans(3)
     integer :: nec1, nec2, nec3
     real(gp) :: rcut
     real(gp) :: rxyzR(3,runObj%atoms%astruct%nat)
     real(gp) :: rxyzP(3,runObj%atoms%astruct%nat)
-    real(gp) :: rxyz(3,runObj%atoms%astruct%nat) 
-rxyzR=rxyzR_
-rxyzP=rxyzP_
-rxyz=rxyz_
+    real(gp) :: rxyz(3,runObj%atoms%astruct%nat)
 
+    rxyzR=rxyzR_
+    rxyzP=rxyzP_
+    rxyz=rxyz_
 
     !BigDFT only supports orthorombic unit cells (as of Mar. 2015).
-    !Therefore, the corresponding cell(:) data structure can only hold three numbers.
+    !Therefore, the corresponding cell(:) data structure can only hold three
+    !numbers.
     !We therefore build here the full lattice vectors.
     !If the BigDFT data structure is changed one day, or if the code
     !is used outside of the bigdft suite, the lattice vectors should
@@ -349,9 +358,9 @@ rxyz=rxyz_
         latvec(3,3)=cell(3)
         call give_rcut(latvec,necmin,rcut)
         call n_rep_dim(latvec,rcut,nec1,nec2,nec3)
-        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyzR)
-        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyzP)
-        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyz)
+!!        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyzR)
+!!        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyzP)
+!!        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyz)
     else if(bigdft_get_geocode(runObj)=='S')then
         !in BigDFT, the non-periodic direction is the y-direction
         !=> cell(2)=0.0_gp on input
@@ -365,11 +374,12 @@ rxyz=rxyz_
         latvec(2,3)=0.0_gp
         latvec(3,3)=cell(3)
         call give_rcut(latvec,necmin,rcut)
+
         call n_rep_dim(latvec,rcut,nec1,nec2,nec3)
         nec2=1
-        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzR)
-        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzP)
-        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyz)
+!!        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzR)
+!!        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzP)
+!!        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyz)
     else if(bigdft_get_geocode(runObj)=='F')then
         latvec(1,1)=0.0_gp
         latvec(2,1)=0.0_gp
@@ -387,12 +397,6 @@ rxyz=rxyz_
         call f_err_throw('lst_penalty: specified boundary conditions'//&
              ' not supported.')
     endif
-!write(199,*)nec1,nec2,nec3
-
-    !activate the following three lines if periodic images should be ignored
-!    nec1=1
-!    nec2=1
-!    nec3=1
 
     oml=1.0_gp-lambda!one minus lambda
     val=0.0_gp!function value
@@ -411,10 +415,10 @@ rxyz=rxyz_
        rxb = rxyz(1,b)
        ryb = rxyz(2,b)
        rzb = rxyz(3,b)
-       do i=0,nec1-1
-        do j=0,nec2-1
-          do k=0,nec3-1
-           do a = 1,runObj%atoms%astruct%nat
+       do i=-nec1+1,nec1-1
+        do j=-nec2+1,nec2-1
+          do k=-nec3+1,nec3-1
+           do a = b,runObj%atoms%astruct%nat
               trans(1) = latvec(1,1)*real(i,gp)+latvec(1,2)*real(j,gp)+latvec(1,3)*real(k,gp)
               trans(2) = latvec(2,1)*real(i,gp)+latvec(2,2)*real(j,gp)+latvec(2,3)*real(k,gp)
               trans(3) = latvec(3,1)*real(i,gp)+latvec(3,2)*real(j,gp)+latvec(3,3)*real(k,gp)
@@ -440,28 +444,32 @@ rxyz=rxyz_
               rabC = rxd**2+ryd**2+rzd**2
               rabC = sqrt(rabC)
 
-              if(i==0 .and. j==0 .and. k==0)then
-                  weight = rabim4
-              else
+!              if(i==0 .and. j==0 .and. k==0)then
+!                  weight = rabim4
+!              else
                   weight = rabim4 - 1.0_gp/ (rcut**4)
-              endif
+!              endif
               !compute function value
               rabiMrabC = rabi - rabC
-              val = val + rabiMrabC**2 * weight 
+              val = val + rabiMrabC**2 * weight
               !compute negative gradient
-              rabiMrabC = -2.0_gp*rabiMrabC * rabim4 / rabC
+              rabiMrabC = -2.0_gp*rabiMrabC * weight / rabC
               ttx = rabiMrabC * rxd
               tty = rabiMrabC * ryd
               ttz = rabiMrabC * rzd
               force(1,b) = force(1,b) + ttx
               force(2,b) = force(2,b) + tty
               force(3,b) = force(3,b) + ttz
+              force(1,a) = force(1,a) - ttx
+              force(2,a) = force(2,a) - tty
+              force(3,a) = force(3,a) - ttz
            enddo
           enddo
          enddo
         enddo
     enddo
     !$omp end do
+
 
     !$omp do schedule(dynamic) reduction(+:force,val)
     !second sum
@@ -480,10 +488,242 @@ rxyz=rxyz_
     enddo
     !$omp end do
     !$omp end parallel
-    val=val*0.5_gp
 
     call clean_forces_base(bigdft_get_astruct_ptr(runObj),force)
 end subroutine lst_penalty_periodic
+!!subroutine lst_penalty_periodic(runObj,rxyzR_,rxyzP_,rxyz_,lambda,val,force)
+!!    !computes the linear synchronous penalty function
+!!    !and gradient.
+!!    !OpenMP parallelized.
+!!    !Attention: Cells of rxyzR and rxyzP and rxyz must be identical
+!!    !
+!!    !see:
+!!    !
+!!    !Halgren, T. A., & Lipscomb, W. N. (1977). The synchronous-transit
+!!    !method for determining reaction pathways and locating molecular
+!!    !transition states. Chemical Physics Letters, 49(2), 225–232.
+!!    !doi:10.1016/0009-2614(77)80574-5
+!!    !
+!!    !and
+!!    !
+!!    !Behn, A., Zimmerman, P. M., Bell, A. T., & Head-Gordon, M. (2011)
+!!    !Incorporating Linear Synchronous Transit Interpolation into
+!!    !the Growing String Method: Algorithm and Applications.
+!!    !Journal of Chemical Theory and Computation, 7(12), 4019–4025.
+!!    !doi:10.1021/ct200654u
+!!    !
+!!    !and
+!!    !
+!!    !BS: For computation of gradient see also personal notes in intel
+!!    !notebook (paper version) from June 18th, 2014
+!!    !
+!!    !HISTORY:
+!!    !June 2014   : finished non-periodic version
+!!    !January 2015: OpenMP parallelized
+!!    !March 2015  : generalized to full periodicity
+!!    use module_base
+!!    use bigdft_run
+!!    use module_forces
+!!    implicit none
+!!    !parameters
+!!    type(run_objects), intent(in) :: runObj
+!!    real(gp), intent(in) :: rxyzR_(3,runObj%atoms%astruct%nat) !reactant
+!!    real(gp), intent(in) :: rxyzP_(3,runObj%atoms%astruct%nat) !product
+!!    real(gp), intent(in) :: rxyz_(3,runObj%atoms%astruct%nat)  !the positon at which
+!!    !the penalty fct. is to
+!!    !be evaluated
+!!    real(gp), intent(in)  :: lambda !interpolation parameter
+!!    !(0<=lambda<=1)
+!!    real(gp), intent(out) :: val  !the value of the penalty function
+!!    real(gp), intent(out) :: force(3,runObj%atoms%astruct%nat) !the negative gradient of
+!!                                                               !the penal. fct. at
+!!                                                               !rxyz
+!!    !internal
+!!    integer, parameter :: necmin=1
+!!    integer :: b !outer loop
+!!    integer :: a !inner loop
+!!    integer :: i,j,k !loops over periodic images
+!!    real(gp) :: rabi !interpolated interatomic distances
+!!    real(gp) :: rabim4 !rim4=ri**(-4)
+!!    real(gp) :: rabC !computed interatomic distances
+!!    real(gp) :: rabR !interatomic dist. of reactant
+!!    real(gp) :: rabP !interatomic dist. of product
+!!    real(gp) :: oml
+!!    real(gp) :: rxRb, ryRb, rzRb
+!!    real(gp) :: rxPb, ryPb, rzPb
+!!    real(gp) :: rxb, ryb, rzb
+!!    real(gp) :: rxd, ryd, rzd
+!!    real(gp) :: rabiMrabC
+!!    real(gp) :: tt, ttx, tty, ttz
+!!    real(gp) :: waxi, wayi, wazi 
+!!    real(gp) :: latvec(3,3), cell(3), weight, trans(3)
+!!    integer :: nec1, nec2, nec3
+!!    real(gp) :: rcut
+!!    real(gp) :: rxyzR(3,runObj%atoms%astruct%nat)
+!!    real(gp) :: rxyzP(3,runObj%atoms%astruct%nat)
+!!    real(gp) :: rxyz(3,runObj%atoms%astruct%nat) 
+!!rxyzR=rxyzR_
+!!rxyzP=rxyzP_
+!!rxyz=rxyz_
+!!
+!!
+!!    !BigDFT only supports orthorombic unit cells (as of Mar. 2015).
+!!    !Therefore, the corresponding cell(:) data structure can only hold three numbers.
+!!    !We therefore build here the full lattice vectors.
+!!    !If the BigDFT data structure is changed one day, or if the code
+!!    !is used outside of the bigdft suite, the lattice vectors should
+!!    !be passed and not be constructed here.
+!!    !In principle, this subroutine should also support
+!!    !non-orthorombic unit cells, if latvec is passed appropriately.
+!!    cell = bigdft_get_cell(runObj)
+!!    rcut=huge(1.0_gp)
+!!    if(bigdft_get_geocode(runObj)=='P')then
+!!        latvec(1,1)=cell(1)
+!!        latvec(2,1)=0.0_gp
+!!        latvec(3,1)=0.0_gp
+!!        latvec(1,2)=0.0_gp
+!!        latvec(2,2)=cell(2)
+!!        latvec(3,2)=0.0_gp
+!!        latvec(1,3)=0.0_gp
+!!        latvec(2,3)=0.0_gp
+!!        latvec(3,3)=cell(3)
+!!        call give_rcut(latvec,necmin,rcut)
+!!        call n_rep_dim(latvec,rcut,nec1,nec2,nec3)
+!!        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyzR)
+!!        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyzP)
+!!        call backtocell_cart(runObj%atoms%astruct%nat,latvec,rxyz)
+!!    else if(bigdft_get_geocode(runObj)=='S')then
+!!        !in BigDFT, the non-periodic direction is the y-direction
+!!        !=> cell(2)=0.0_gp on input
+!!        latvec(1,1)=cell(1)
+!!        latvec(2,1)=0.0_gp
+!!        latvec(3,1)=0.0_gp
+!!        latvec(1,2)=0.0_gp
+!!        latvec(2,2)=1.0_gp
+!!        latvec(3,2)=0.0_gp
+!!        latvec(1,3)=0.0_gp
+!!        latvec(2,3)=0.0_gp
+!!        latvec(3,3)=cell(3)
+!!        call give_rcut(latvec,necmin,rcut)
+!!        call n_rep_dim(latvec,rcut,nec1,nec2,nec3)
+!!        nec2=1
+!!        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzR)
+!!        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyzP)
+!!        call backtocell_cart_surface(runObj%atoms%astruct%nat,latvec,rxyz)
+!!    else if(bigdft_get_geocode(runObj)=='F')then
+!!        latvec(1,1)=0.0_gp
+!!        latvec(2,1)=0.0_gp
+!!        latvec(3,1)=0.0_gp
+!!        latvec(1,2)=0.0_gp
+!!        latvec(2,2)=0.0_gp
+!!        latvec(3,2)=0.0_gp
+!!        latvec(1,3)=0.0_gp
+!!        latvec(2,3)=0.0_gp
+!!        latvec(3,3)=0.0_gp
+!!        nec1=1
+!!        nec2=1
+!!        nec3=1
+!!    else
+!!        call f_err_throw('lst_penalty: specified boundary conditions'//&
+!!             ' not supported.')
+!!    endif
+!!!write(199,*)nec1,nec2,nec3
+!!
+!!    !activate the following three lines if periodic images should be ignored
+!!!    nec1=1
+!!!    nec2=1
+!!!    nec3=1
+!!
+!!    oml=1.0_gp-lambda!one minus lambda
+!!    val=0.0_gp!function value
+!!    force=0.0_gp!negative gradient
+!!    !$omp parallel default(private) shared(runObj, rxyzR, rxyzP, rxyz, &
+!!    !$omp val, force, oml, lambda, latvec, nec1, nec2, nec3, rcut)
+!!    !$omp do schedule(dynamic) reduction(+:force,val)
+!!    !first sum
+!!    do b =1,runObj%atoms%astruct%nat
+!!       rxRb = rxyzR(1,b)
+!!       ryRb = rxyzR(2,b)
+!!       rzRb = rxyzR(3,b)
+!!       rxPb = rxyzP(1,b)
+!!       ryPb = rxyzP(2,b)
+!!       rzPb = rxyzP(3,b)
+!!       rxb = rxyz(1,b)
+!!       ryb = rxyz(2,b)
+!!       rzb = rxyz(3,b)
+!!       do i=0,nec1-1
+!!        do j=0,nec2-1
+!!          do k=0,nec3-1
+!!           do a = 1,runObj%atoms%astruct%nat
+!!              trans(1) = latvec(1,1)*real(i,gp)+latvec(1,2)*real(j,gp)+latvec(1,3)*real(k,gp)
+!!              trans(2) = latvec(2,1)*real(i,gp)+latvec(2,2)*real(j,gp)+latvec(2,3)*real(k,gp)
+!!              trans(3) = latvec(3,1)*real(i,gp)+latvec(3,2)*real(j,gp)+latvec(3,3)*real(k,gp)
+!!              !compute interatomic distances of reactant
+!!              rabR = (rxyzR(1,a)+trans(1)-rxRb)**2+&
+!!                     (rxyzR(2,a)+trans(2)-ryRb)**2+&
+!!                     (rxyzR(3,a)+trans(3)-rzRb)**2
+!!              rabR = sqrt(rabR)
+!!              !compute interatomic distances of product
+!!              rabP = (rxyzP(1,a)+trans(1)-rxPb)**2+&
+!!                     (rxyzP(2,a)+trans(2)-ryPb)**2+&
+!!                     (rxyzP(3,a)+trans(3)-rzPb)**2
+!!              rabP = sqrt(rabP)
+!!              !compute interpolated interatomic distances
+!!              rabi = oml*rabR+lambda*rabP
+!!              if(rabi>rcut .or. a==b)cycle
+!!              rabim4 = 1.0_gp / (rabi**4)
+!!
+!!              !compute interatomic distances at rxyz
+!!              rxd = rxyz(1,a)+trans(1)-rxb
+!!              ryd = rxyz(2,a)+trans(2)-ryb
+!!              rzd = rxyz(3,a)+trans(3)-rzb
+!!              rabC = rxd**2+ryd**2+rzd**2
+!!              rabC = sqrt(rabC)
+!!
+!!              if(i==0 .and. j==0 .and. k==0)then
+!!                  weight = rabim4
+!!              else
+!!                  weight = rabim4 - 1.0_gp/ (rcut**4)
+!!              endif
+!!              !compute function value
+!!              rabiMrabC = rabi - rabC
+!!              val = val + rabiMrabC**2 * weight 
+!!              !compute negative gradient
+!!              rabiMrabC = -2.0_gp*rabiMrabC * rabim4 / rabC
+!!              ttx = rabiMrabC * rxd
+!!              tty = rabiMrabC * ryd
+!!              ttz = rabiMrabC * rzd
+!!              force(1,b) = force(1,b) + ttx
+!!              force(2,b) = force(2,b) + tty
+!!              force(3,b) = force(3,b) + ttz
+!!           enddo
+!!          enddo
+!!         enddo
+!!        enddo
+!!    enddo
+!!    !$omp end do
+!!
+!!    !$omp do schedule(dynamic) reduction(+:force,val)
+!!    !second sum
+!!    do a = 1, runObj%atoms%astruct%nat
+!!       waxi = oml*rxyzR(1,a) + lambda*rxyzP(1,a)
+!!       wayi = oml*rxyzR(2,a) + lambda*rxyzP(2,a)
+!!       wazi = oml*rxyzR(3,a) + lambda*rxyzP(3,a)
+!!       ttx = waxi-rxyz(1,a)
+!!       tty = wayi-rxyz(2,a)
+!!       ttz = wazi-rxyz(3,a)
+!!       tt   =  ttx**2 + tty**2 + ttz**2
+!!       val = val + 1.e-6_gp * tt
+!!       force(1,a) = force(1,a) + 2.e-6_gp * ttx
+!!       force(2,a) = force(2,a) + 2.e-6_gp * tty
+!!       force(3,a) = force(3,a) + 2.e-6_gp * ttz
+!!    enddo
+!!    !$omp end do
+!!    !$omp end parallel
+!!    val=val*0.5_gp
+!!
+!!    call clean_forces_base(bigdft_get_astruct_ptr(runObj),force)
+!!end subroutine lst_penalty_periodic
 !=====================================================================
 subroutine fire(mhgpsst,uinp,runObj,rxyzR,rxyzP,lambda,rxyz,fxyz,epot)
     use module_base
