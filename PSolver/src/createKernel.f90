@@ -162,7 +162,7 @@ subroutine pkernel_free(kernel)
   use dynamic_memory
   implicit none
   type(coulomb_operator), intent(inout) :: kernel
-
+  integer :: i_stat
   call f_free_ptr(kernel%kernel)
   call f_free_ptr(kernel%dlogeps)
   call f_free_ptr(kernel%oneoeps)
@@ -177,6 +177,17 @@ subroutine pkernel_free(kernel)
      if (kernel%keepGPUmemory == 1) then
        call cudafree(kernel%work1_GPU)
        call cudafree(kernel%work2_GPU)
+    call cudafree(kernel%z_GPU)
+    call cudafree(kernel%r_GPU)
+    call cudafree(kernel%oneoeps_GPU)
+    call cudafree(kernel%p_GPU)
+    call cudafree(kernel%q_GPU)
+    call cudafree(kernel%x_GPU)
+    call cudafree(kernel%corr_GPU)
+    call cudafree(kernel%alpha_GPU)
+    call cudafree(kernel%beta_GPU)
+    call cudafree(kernel%beta0_GPU)
+    call cudafree(kernel%kappa_GPU)
      endif
      call cudafree(kernel%k_GPU)
      if (kernel%initCufftPlan == 1) then
@@ -221,6 +232,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   use dynamic_memory
   use time_profiling, only: f_timing
   use dictionaries, only: f_err_throw
+  use yaml_strings, only: operator(+)
   implicit none
   !Arguments
   type(coulomb_operator), intent(inout) :: kernel
@@ -238,6 +250,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   !> correction term of the Generalized Laplacian
   !! if absent, it will be calculated from the array of epsilon
   real(dp), dimension(:,:,:), intent(in), optional :: corr
+  real(dp) :: alpha
   logical, intent(in), optional :: verbose 
   !local variables
   logical :: dump,wrtmsg
@@ -246,7 +259,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   integer :: jproc,nlimd,nlimk,jfd,jhd,jzd,jfk,jhk,jzk,npd,npk
   real(kind=8) :: alphat,betat,gammat,mu0t,pi
   real(kind=8), dimension(:), allocatable :: pkernel2
-  integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc
+  integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
   integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23
   integer,dimension(3) :: n
 
@@ -571,12 +584,12 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
            end if
         end do load_balancing
         call yaml_mapping_open('Density')
-         call yaml_map('MPI tasks 0-'//trim(yaml_toa(jfd,fmt='(i5)')),'100%')
+         call yaml_map('MPI tasks 0-'//jfd**'(i5)','100%')
          if (jfd < kernel%mpi_env%nproc-1) &
-              call yaml_map('MPI task'//trim(yaml_toa(jhd,fmt='(i5)')),trim(yaml_toa(npd,fmt='(i5)'))//'%')
+              call yaml_map('MPI task '//jhd**'(i5)',npd**'(i5)'//'%')
          if (jhd < kernel%mpi_env%nproc-1) &
-              call yaml_map('MPI tasks'//trim(yaml_toa(jhd,fmt='(i5)'))//'-'//&
-              yaml_toa(kernel%mpi_env%nproc-1,fmt='(i3)'),'0%')
+              call yaml_map('MPI tasks'//jhd**'(i5)'//'-'//&
+              (kernel%mpi_env%nproc-1)**'(i3)','0%')
         call yaml_mapping_close()
         jhk=10000
         jzk=10000
@@ -614,6 +627,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
+    size3=n1*n2*n3
 
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then
@@ -622,6 +636,38 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
         if (i_stat /= 0) print *,'error cudamalloc',i_stat
         call cudamalloc(size2,kernel%work2_GPU,i_stat)
         if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size3,kernel%z_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size3,kernel%r_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size3,kernel%oneoeps_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size3,kernel%p_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size3,kernel%q_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size3,kernel%x_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size3,kernel%corr_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+
+
+        call cudamalloc(sizeof(alpha),kernel%alpha_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(sizeof(alpha),kernel%beta_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(sizeof(alpha),kernel%beta0_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(sizeof(alpha),kernel%kappa_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+
+        call cudamemset(kernel%p_GPU, 0, size3,i_stat)
+        if (i_stat /= 0) print *,'error cudamemset p',i_stat
+        call cudamemset(kernel%q_GPU, 0, size3,i_stat)
+        if (i_stat /= 0) print *,'error cudamemset q',i_stat
+        call cudamemset(kernel%x_GPU, 0, size3,i_stat)
+        if (i_stat /= 0) print *,'error cudamemset x',i_stat
+
       endif
       call cudamalloc(sizek,kernel%k_GPU,i_stat)
       if (i_stat /= 0) print *,'error cudamalloc',i_stat
@@ -698,6 +744,7 @@ endif
      kernel%grid%n3p=0
   end if
 
+if (kernel%igpu == 0) then
   !add the checks that are done at the beginning of the Poisson Solver
   if (mod(kernel%grid%n1,2) /= 0 .and. kernel%geo(1)==0) &
        call f_err_throw('Parallel convolution:ERROR:n1') !this can be avoided
@@ -715,8 +762,9 @@ endif
   if (mod(kernel%grid%nd3,kernel%mpi_env%nproc) /= 0) &
        call f_err_throw('Parallel convolution:ERROR:nd3')
   if (mod(kernel%grid%md2,kernel%mpi_env%nproc) /= 0) &
-       call f_err_throw('Parallel convolution:ERROR:md2')
-
+       call f_err_throw('Parallel convolution:ERROR:md2'+&
+	yaml_toa(kernel%mpi_env%nproc)+yaml_toa(kernel%grid%md2))
+end if
   !allocate and set the distributions for the Poisson Solver
   kernel%counts = f_malloc_ptr([0.to.kernel%mpi_env%nproc-1],id='counts')
   kernel%displs = f_malloc_ptr([0.to.kernel%mpi_env%nproc-1],id='displs')

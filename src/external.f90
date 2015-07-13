@@ -215,7 +215,8 @@ end function bigdft_error_ret
 !> Abort bigdft program
 subroutine bigdft_severe_abort()
   use module_base
-  use yaml_output, only: yaml_toa,yaml_comment,yaml_flush_document
+  use yaml_output, only: yaml_comment,yaml_flush_document
+  use yaml_strings, only: yaml_toa
   implicit none
   integer :: ierr
   !local variables

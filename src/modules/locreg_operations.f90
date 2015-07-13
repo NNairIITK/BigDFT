@@ -8,6 +8,7 @@ module locreg_operations
   public :: Lpsi_to_global2
   public :: global_to_local_parallel
   public :: get_boundary_weight
+  public :: small_to_large_locreg
 
   contains
 
@@ -352,7 +353,16 @@ module locreg_operations
       integer :: ij3, ij2, ij1, jj3, jj2, jj1, ijs3, ijs2, ijs1, ije3, ije2, ije1, nwarnings
       real(kind=8) :: h, x, y, z, d, weight_inside, weight_boundary, points_inside, points_boundary, ratio
       real(kind=8) :: atomrad, rad, boundary, weight_normalized, maxweight, meanweight
+      real(kind=8),dimension(:),allocatable :: maxweight_types, meanweight_types
+      integer,dimension(:),allocatable :: nwarnings_types, nsf_per_type
       logical :: perx, pery, perz, on_boundary
+
+      call f_routine(id='get_boundary_weight')
+
+      maxweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
+      meanweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
+      nwarnings_types = f_malloc0(atoms%astruct%ntypes,id='nwarnings_types')
+      nsf_per_type = f_malloc0(atoms%astruct%ntypes,id='nsf_per_type')
 
       if (iproc==0) then
           call yaml_sequence(advance='no')
@@ -406,6 +416,8 @@ module locreg_operations
 
               boundary = min(rad,lzd%llr(ilr)%locrad)
               !write(*,*) 'rad, locrad, boundary', rad, lzd%llr(ilr)%locrad, boundary
+
+              nsf_per_type(iatype) = nsf_per_type(iatype ) + 1
 
               weight_boundary = 0.d0
               weight_inside = 0.d0
@@ -514,8 +526,11 @@ module locreg_operations
               weight_normalized = weight_boundary/ratio
               meanweight = meanweight + weight_normalized
               maxweight = max(maxweight,weight_normalized)
+              meanweight_types(iatype) = meanweight_types(iatype) + weight_normalized
+              maxweight_types(iatype) = max(maxweight_types(iatype),weight_normalized)
               if (weight_normalized>crit) then
                   nwarnings = nwarnings + 1
+                  nwarnings_types(iatype) = nwarnings_types(iatype) + 1
               end if
               !write(*,'(a,i7,2f9.1,4es16.6)') 'iiorb, pi, pb, weight_inside, weight_boundary, ratio, xi', &
               !    iiorb, points_inside, points_boundary, weight_inside, weight_boundary, &
@@ -528,17 +543,37 @@ module locreg_operations
           end if
       end if
 
-      ! Sum up among all tasks
+      ! Sum up among all tasks... could use workarrays
       if (nproc>1) then
           call mpiallred(nwarnings, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(meanweight, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(maxweight, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(nwarnings_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(meanweight_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(maxweight_types, mpi_max, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(nsf_per_type, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       meanweight = meanweight/real(orbs%norb,kind=8)
+      do iatype=1,atoms%astruct%ntypes
+          meanweight_types(iatype) = meanweight_types(iatype)/real(nsf_per_type(iatype),kind=8)
+      end do
       if (iproc==0) then
-          call yaml_mapping_open('Check boundary values')
+          call yaml_sequence_open('Check boundary values')
+          call yaml_sequence(advance='no')
+          call yaml_mapping_open(flow=.true.)
+          call yaml_map('type','overall')
           call yaml_map('mean / max value',(/meanweight,maxweight/),fmt='(2es9.2)')
+          call yaml_map('warnings',nwarnings)
           call yaml_mapping_close()
+          do iatype=1,atoms%astruct%ntypes
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow=.true.)
+              call yaml_map('type',trim(atoms%astruct%atomnames(iatype)))
+              call yaml_map('mean / max value',(/meanweight_types(iatype),maxweight_types(iatype)/),fmt='(2es9.2)')
+              call yaml_map('warnings',nwarnings_types(iatype))
+              call yaml_mapping_close()
+          end do
+          call yaml_sequence_close()
       end if
 
       ! Print the warnings
@@ -548,7 +583,78 @@ module locreg_operations
                   &//trim(yaml_toa(nwarnings))//' warnings')
           end if
       end if
+
+      call f_free(maxweight_types)
+      call f_free(meanweight_types)
+      call f_free(nwarnings_types)
+      call f_free(nsf_per_type)
+
+      call f_release_routine()
+
     end subroutine get_boundary_weight
+
+
+    subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
+           orbs, phismall, philarge, to_global)
+      use module_base
+      use module_types, only: orbitals_data, local_zone_descriptors
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
+      type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
+      type(orbitals_data),intent(in) :: orbs
+      real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
+      real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
+      logical,intent(in),optional :: to_global
+      
+      ! Local variables
+      integer :: ists, istl, iorb, ilr, sdim, ldim, nspin
+      logical :: global
+    
+      call f_routine(id='small_to_large_locreg')
+    
+      if (present(to_global)) then
+          global=to_global
+      else
+          global=.false.
+      end if
+    
+      call timing(iproc,'small2large','ON') ! lr408t 
+      ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
+      call f_zero(philarge)
+      ists=1
+      istl=1
+      do iorb=1,orbs%norbp
+          ilr = orbs%inwhichLocreg(orbs%isorb+iorb)
+          sdim=lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
+          if (global) then
+              ldim=lzdsmall%glr%wfd%nvctr_c+7*lzdsmall%glr%wfd%nvctr_f
+          else
+              ldim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+          end if
+          nspin=1 !this must be modified later
+          if (global) then
+              call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdsmall%glr, &
+                   lzdsmall%llr(ilr), phismall(ists), philarge(istl))
+          else
+              call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdlarge%llr(ilr), &
+                   lzdsmall%llr(ilr), phismall(ists), philarge(istl))
+          end if
+          ists=ists+sdim
+          istl=istl+ldim
+      end do
+      if(orbs%norbp>0 .and. ists/=npsidim_orbs_small+1) then
+          write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',ists,'=ists /= npsidim_orbs_small+1=',npsidim_orbs_small+1
+          stop
+      end if
+      if(orbs%norbp>0 .and. istl/=npsidim_orbs_large+1) then
+          write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istl /= npsidim_orbs_large+1=',npsidim_orbs_large+1
+          stop
+      end if
+           call timing(iproc,'small2large','OF') ! lr408t 
+      call f_release_routine()
+    end subroutine small_to_large_locreg
 
 
 end module locreg_operations

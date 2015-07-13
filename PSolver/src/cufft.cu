@@ -35,6 +35,14 @@ extern "C" void FC_FUNC(cudamalloc, CUDAMALLOC) (int *size, Real **d_data,int *i
       printf("allocate error\n");
 }
 
+// allocate device memory
+extern "C" void FC_FUNC(cudamemset, CUDAMEMSET) (Real **d_data, int* value, int* size,int *ierr) {
+
+  *ierr = cudaMemset((void*)*d_data, *value, sizeof(Real)*(*size));
+  if( cudaGetLastError() != cudaSuccess)
+      printf("cudamemset error\n");
+}
+
 extern "C" void FC_FUNC(cudafree, CUDAFREE) (Real **d_data) {
 
   cudaFree(*d_data);
@@ -665,7 +673,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    grid.y = ((NX/2+1)*zsize+TILE_DIM-1)/TILE_DIM;
 
    if (geo3==0) {
-     transpose_spread <<< grid, threads >>>(src, dst,NY,(NX/2+1)*NZ/2,NZ/2);
+     transpose_spread <<< grid, threads >>>(src,dst,NY,(NX/2+1)*NZ/2,NZ/2);
    } else {
      transpose <<< grid, threads >>>(src, dst,NY,(NX/2+1)*NZ);
    }
@@ -709,7 +717,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    grid.y = (NY+TILE_DIM-1)/TILE_DIM;
 
    if (geo3==0) {
-     transpose_spread_i <<< grid, threads >>>(dst,src,NZ/2*(NX/2+1),NY,NZ/2);
+     transpose_spread_i <<< grid, threads >>>(dst, src,NZ/2*(NX/2+1),NY,NZ/2);
    } else {
      transpose <<< grid, threads >>>(dst, src,NZ*(NX/2+1),NY);
    }
@@ -755,7 +763,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    nblocks.x=zsize;
    nblocks.y=ysize;
    if (geo1==0) {
-      spread_i<<<nblocks, NX/2>>>((Real*)dst, NX/2, (Real*)src, NX);
+      spread_i<<<nblocks, NX/2>>>((Real*)dst,NX/2, (Real*)src, NX);
    }
 }
 
@@ -868,7 +876,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    grid.y = (NY+TILE_DIM-1)/TILE_DIM;
 
    if (geo3==0) {
-     transpose_spread_i <<< grid, threads >>>(dst,src,NZ/2*(NX/2+1),NY,NZ/2);
+     transpose_spread_i <<< grid, threads >>>(dst, src,NZ/2*(NX/2+1),NY,NZ/2);
    } else {
      transpose <<< grid, threads >>>(dst, src,NZ*(NX/2+1),NY);
    }
@@ -882,7 +890,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
               NULL, 1, NY, Transform, (NX/2+1)*zsize) != CUFFT_SUCCESS)
       printf("Error creating plan 4\n");
 
-   if( TransformExec(plan, src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
+   if( TransformExec(plan, src, dst,CUFFT_INVERSE)!= CUFFT_SUCCESS){
       printf("error in PSolver inverse transform 2\n");
    }
 
@@ -890,7 +898,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    grid.y = (NX/2+1+TILE_DIM-1)/TILE_DIM;
 
    if (geo2==0) {
-      transpose_spread_i <<< grid, threads >>>(dst, src,ysize*zsize,NX/2+1, NY/2);
+      transpose_spread_i <<< grid, threads >>>(dst,src,ysize*zsize,NX/2+1, NY/2);
    } else
       transpose <<< grid, threads >>>(dst, src,ysize*zsize,NX/2+1);
 
@@ -910,8 +918,422 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    nblocks.x=zsize;
    nblocks.y=ysize;
    if (geo1==0) {
-      spread_i<<<nblocks, NX/2>>>((Real*)dst, NX/2, (Real*)src, NX);
+      spread_i<<<nblocks, NX/2>>>((Real*)dst,NX/2, (Real*)src, NX);
    }
 
    cufftDestroy(plan);
+}
+
+
+//Specialization of the computation part for each reduction kernel.
+//the kern1_red itself is useless as it is the same for all 3 reductions
+//keeping it, as we may want to use another someday
+
+typedef void(*comp_and_red_op)(int, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*);
+typedef void(*red_op)(int, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*, Real*);
+
+__device__
+void kern1_comp_and_red (int i , Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU, Real* g_odata, Real* sum){
+  Real zeta=z_GPU[i]*oneoeps_GPU[i];
+  z_GPU[i]=zeta;
+  *sum+= (r_GPU[i]*zeta);
+}
+
+__device__
+void kern1_red (int i , Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU, Real* g_odata, Real* sum){
+  *sum+= (g_odata[i]);
+}
+
+__device__
+void kern2_comp_and_red (int i , Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU, Real* g_odata, Real* sum){
+  Real zeta=z_GPU[i];
+  Real pval = zeta+(*beta_GPU / *beta0_GPU)*p_GPU[i];
+  Real qval = zeta*corr_GPU[i]+r_GPU[i]+(*beta_GPU / *beta0_GPU)*q_GPU[i];
+  p_GPU[i] = pval;
+  q_GPU[i] = qval;
+  *sum+= (pval*qval);
+}
+
+__device__
+void kern3_comp_and_red (int i , Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU, Real* g_odata, Real* sum){
+  x_GPU[i] = x_GPU[i] + *alpha_GPU*p_GPU[i];
+  r_GPU[i] = r_GPU[i] - *alpha_GPU*q_GPU[i];
+  z_GPU[i] = r_GPU[i] * oneoeps_GPU[i];
+  *sum+=(r_GPU[i]*r_GPU[i]);
+}
+
+
+
+
+//helper functions for the reduction (reduction taken from NVIDIA cuda samples)
+template<class T>
+struct SharedMemory
+{
+    __device__ inline operator       T *()
+    {
+        extern __shared__ int __smem[];
+        return (T *)__smem;
+    }
+
+    __device__ inline operator const T *() const
+    {
+        extern __shared__ int __smem[];
+        return (T *)__smem;
+    }
+};
+// specialize for double to avoid unaligned memory
+// access compile errors
+template<>
+struct SharedMemory<double>
+{
+    __device__ inline operator       double *()
+    {
+        extern __shared__ double __smem_d[];
+        return (double *)__smem_d;
+    }
+
+    __device__ inline operator const double *() const
+    {
+        extern __shared__ double __smem_d[];
+        return (double *)__smem_d;
+    }
+};
+
+
+
+/*actual kernel call for the reduction, that is specialized with 2 template 
+subkernels, one for computation, the other for specific reduction part.
+Result is written in g_odata array in GPU memory. So this must be called several 
+times to actually reduce to a single element.
+*/
+template <unsigned int blockSize, bool nIsPow2, comp_and_red_op op1, red_op op2>
+__global__ void
+reduce_kernel(int n, int reduceOnly, Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU, Real* g_odata)
+{
+    Real *sdata = SharedMemory<Real>();
+
+    // perform first level of reduction,
+    // reading from global memory, writing to shared memory
+    unsigned int tid = threadIdx.x;
+    unsigned int i = blockIdx.x*blockSize*2 + threadIdx.x;
+    unsigned int gridSize = blockSize*2*gridDim.x;
+
+    Real mySum = 0;
+    // we reduce multiple elements per thread.  The number is determined by the
+    // number of active thread blocks (via gridDim).  More blocks will result
+    // in a larger gridSize and therefore fewer elements per thread
+    while (i < n)
+    {
+    if(!reduceOnly){
+        op1 (i , p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, g_odata, &mySum);
+        // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
+        if (nIsPow2 || i + blockSize < n){
+            op1 (i + blockSize, p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, g_odata, &mySum);
+        }
+    }else{
+
+        //subsequent calls to the kernel after the first one don't have to perform 
+        // the computations
+        op2 (i, p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, g_odata, &mySum);
+
+        // ensure we don't read out of bounds -- this is optimized away for powerOf2 sized arrays
+        if (nIsPow2 || i + blockSize < n)
+            op2 (i + blockSize, p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, g_odata, &mySum);
+    }
+
+        i += gridSize;
+    }
+
+    // each thread puts its local sum into shared memory
+    sdata[tid] = mySum;
+    __syncthreads();
+
+
+    // do reduction in shared mem
+    if ((blockSize >= 512) && (tid < 256))
+    {
+        sdata[tid] = mySum = mySum + sdata[tid + 256];
+    }
+
+    __syncthreads();
+
+    if ((blockSize >= 256) &&(tid < 128))
+    {
+            sdata[tid] = mySum = mySum + sdata[tid + 128];
+    }
+
+     __syncthreads();
+
+    if ((blockSize >= 128) && (tid <  64))
+    {
+       sdata[tid] = mySum = mySum + sdata[tid +  64];
+    }
+
+    __syncthreads();
+
+#if (__CUDA_ARCH__ >= 300 )
+    if ( tid < 32 )
+    {
+        // Fetch final intermediate sum from 2nd warp
+        if (blockSize >=  64) mySum += sdata[tid + 32];
+        // Reduce final warp using shuffle
+        for (int offset = warpSize/2; offset > 0; offset /= 2) 
+        {
+            mySum += __shfl_down(mySum, offset);
+        }
+    }
+#else
+    // fully unroll reduction within a single warp
+    if ((blockSize >=  64) && (tid < 32))
+    {
+        sdata[tid] = mySum = mySum + sdata[tid + 32];
+    }
+
+    __syncthreads();
+
+    if ((blockSize >=  32) && (tid < 16))
+    {
+        sdata[tid] = mySum = mySum + sdata[tid + 16];
+    }
+
+    __syncthreads();
+
+    if ((blockSize >=  16) && (tid <  8))
+    {
+        sdata[tid] = mySum = mySum + sdata[tid +  8];
+    }
+
+    __syncthreads();
+
+    if ((blockSize >=   8) && (tid <  4))
+    {
+        sdata[tid] = mySum = mySum + sdata[tid +  4];
+    }
+
+    __syncthreads();
+
+    if ((blockSize >=   4) && (tid <  2))
+    {
+        sdata[tid] = mySum = mySum + sdata[tid +  2];
+    }
+
+    __syncthreads();
+
+    if ((blockSize >=   2) && ( tid <  1))
+    {
+        sdata[tid] = mySum = mySum + sdata[tid +  1];
+    }
+
+    __syncthreads();
+#endif
+
+    // write result for this block to global mem
+    if (tid == 0) g_odata[blockIdx.x] = mySum;
+}
+
+
+//wrapper for templated kernel
+template <comp_and_red_op op1, red_op op2>
+void reduce_step(int s, int threads, int blocks, int reduceOnly,  Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU, Real* d_odata){
+    //TODO : 2D
+    dim3 dimBlock(threads, 1, 1);
+    dim3 dimGrid(blocks, 1, 1);
+    int smemSize = (threads <= 32) ? 2 * threads * sizeof(Real) : threads * sizeof(Real);
+
+    if (((s&(s-1))==0))//pow2
+    {
+        switch (threads)
+        {
+            case 512:
+                reduce_kernel<512, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case 256:
+                reduce_kernel<256, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+
+            case 128:
+                reduce_kernel<128, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case 64:
+                reduce_kernel<64, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case 32:
+                reduce_kernel<32, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case 16:
+                reduce_kernel<16, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case  8:
+                reduce_kernel<8, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case  4:
+                reduce_kernel<4, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case  2:
+                reduce_kernel<2, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case  1:
+                reduce_kernel<1, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+        }
+    }
+    else
+    {
+        switch (threads)
+        {
+            case 512:
+                reduce_kernel<512, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case 256:
+                reduce_kernel<256, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case 128:
+                reduce_kernel<128, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case 64:
+                reduce_kernel<64, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case 32:
+                reduce_kernel<32, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case 16:
+                reduce_kernel<16, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case  8:
+                reduce_kernel<8, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case  4:
+                reduce_kernel<4, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case  2:
+                reduce_kernel<2, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+            case  1:
+                reduce_kernel<1, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                break;
+        }
+    }
+
+  cudaError_t error = cudaGetLastError();
+  if(error != cudaSuccess)
+  {
+    // print the CUDA error message and exit
+    printf("CUDA error in kernel : %s", cudaGetErrorString(error));
+exit(0);
+  }
+}
+
+unsigned int nextPow2(unsigned int x)
+{
+    --x;
+    x |= x >> 1;
+    x |= x >> 2;
+    x |= x >> 4;
+    x |= x >> 8;
+    x |= x >> 16;
+    return ++x;
+}
+
+/*this performs some calculations to chose the size of the blocks we want to use 
+for reduction, while limiting their number for efficiency purposes, as each kernel
+ will handle several elements in this version (see last version of reduction in
+reduction sample code from Nvidia)
+*/
+template <comp_and_red_op op1, red_op op2>
+void apply_reduction(int n,
+          Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU, Real* result) {
+    int maxThreads=256;
+    int maxBlocks=64;
+    int blocks=0;
+    int threads=0;
+
+    //get device capability, to avoid block/grid size excceed the upbound
+    cudaDeviceProp prop;
+    int device;
+    cudaGetDevice(&device);
+    cudaGetDeviceProperties(&prop, device);
+
+    threads = (n < maxThreads*2) ? nextPow2((n + 1)/ 2) : maxThreads;
+    blocks = (n + (threads * 2 - 1)) / (threads * 2);
+
+    if ((Real)threads*blocks > (Real)prop.maxGridSize[0] * prop.maxThreadsPerBlock)
+    {
+        printf("n is too large, please choose a smaller number!\n");
+    }
+
+    if (blocks > prop.maxGridSize[0])
+    {
+        printf("Grid size <%d> excceeds the device capability <%d>, set block size as %d (original %d)\n",
+               blocks, prop.maxGridSize[0], threads*2, threads);
+
+        blocks /= 2;
+        threads *= 2;
+    }
+
+    //we will only use maxblocks blocks, and make each thread work on more data
+    blocks = min(maxBlocks, blocks);
+
+
+    Real *d_odata = NULL;
+    cudaMalloc((void **) &d_odata, blocks*sizeof(Real));
+  if( cudaGetLastError() != cudaSuccess)
+      printf("allocate error\n");
+    //first reduction
+    reduce_step<op1, op2>(n, threads, blocks, 0,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+  
+  if( cudaGetLastError() != cudaSuccess)
+    printf("result during first reduction kernel\n");
+
+    int s=blocks;
+    //loop and perform as many reductions steps as necessary
+    while (s > 1)
+    {
+        threads = (s < maxThreads*2) ? nextPow2((s + 1)/ 2) : maxThreads;
+        blocks = (s + (threads * 2 - 1)) / (threads * 2);
+        if (blocks > prop.maxGridSize[0])
+        {
+            printf("Grid size <%d> excceeds the device capability <%d>, set block size as %d (original %d)\n",
+            blocks, prop.maxGridSize[0], threads*2, threads);
+
+            blocks /= 2;
+            threads *= 2;
+        }
+        blocks = min(maxBlocks, blocks);
+
+        reduce_step<op1, op2>(s, threads, blocks, 1, p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+        if( cudaGetLastError() != cudaSuccess)
+            printf("result during reduction kernel\n");
+        s = (s + (threads*2-1)) / (threads*2);
+    }
+  //TODO: move result copy to user code ?
+  cudaMemcpy(result, d_odata, sizeof(Real), cudaMemcpyDeviceToHost);
+  if( cudaGetLastError() != cudaSuccess)
+    printf("result retrieve error\n");
+  cudaFree(d_odata);
+}
+
+//these will be called from fortran, and apply the reduction with the right subkernels
+
+extern "C" void FC_FUNC_(first_reduction_kernel, FIRST_REDUCTION_KERNEL)(int* n1, int* n23,
+          Real** p_GPU, Real** q_GPU, Real** r_GPU, Real** x_GPU, Real** z_GPU, Real** corr_GPU, Real** oneoeps_GPU, Real** alpha_GPU, Real** beta_GPU, Real** beta0_GPU, Real** kappa_GPU, Real* result) {
+
+    int n=(*n1) * (*n23);
+    apply_reduction<kern1_comp_and_red, kern1_red>(n, *p_GPU, *q_GPU, *r_GPU, *x_GPU, *z_GPU, *corr_GPU, *oneoeps_GPU, *alpha_GPU, *beta_GPU, *beta0_GPU, *kappa_GPU, result);
+
+}
+
+extern "C" void FC_FUNC_(second_reduction_kernel, SECOND_REDUCTION_KERNEL)(int* n1, int* n23,
+          Real** p_GPU, Real** q_GPU, Real** r_GPU, Real** x_GPU, Real** z_GPU, Real** corr_GPU, Real** oneoeps_GPU, Real** alpha_GPU, Real** beta_GPU, Real** beta0_GPU, Real** kappa_GPU, Real* result) {
+
+    int n=(*n1) * (*n23);
+    apply_reduction<kern2_comp_and_red, kern1_red>(n, *p_GPU, *q_GPU, *r_GPU, *x_GPU, *z_GPU, *corr_GPU, *oneoeps_GPU, *alpha_GPU, *beta_GPU, *beta0_GPU, *kappa_GPU, result);
+
+}
+
+extern "C" void FC_FUNC_(third_reduction_kernel, THIRD_REDUCTION_KERNEL)(int* n1, int* n23,
+          Real** p_GPU, Real** q_GPU, Real** r_GPU, Real** x_GPU, Real** z_GPU, Real** corr_GPU, Real** oneoeps_GPU, Real** alpha_GPU, Real** beta_GPU, Real** beta0_GPU, Real** kappa_GPU, Real* result) {
+
+    int n=(*n1) * (*n23);
+    apply_reduction<kern3_comp_and_red, kern1_red>(n, *p_GPU, *q_GPU, *r_GPU, *x_GPU, *z_GPU, *corr_GPU, *oneoeps_GPU, *alpha_GPU, *beta_GPU, *beta0_GPU, *kappa_GPU, result);
+
 }

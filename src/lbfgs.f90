@@ -15,8 +15,8 @@ module minpar
    type parameterminimization
       !> general parameters for all methods
       character (len=10) :: approach
-      integer :: iter
-      integer :: iflag
+      integer :: iter=0
+      integer :: iflag=0
       integer :: history
       logical ::converged
       !>parameters for print information
@@ -36,7 +36,8 @@ module minpar
       logical :: IWRITE
    end type parameterminimization
 
-   type(parameterminimization) :: parmin
+   !LG: this is a bad practice, the local variables should never go inside the modules
+   type(parameterminimization), save :: parmin
 
 end module minpar
 

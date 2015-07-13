@@ -40,6 +40,7 @@ module bigdft_run
      type(f_reference_counter) :: refcnt
      !> array for temporary copy of atomic positions and forces
      real(gp), dimension(:,:), pointer :: rf_extra
+     type(f_enumerator) :: run_mode !< run_mode for freeing the extra treatments
   end type MM_restart_objects
 
   !> Public container to be used with bigdft_state().
@@ -134,6 +135,7 @@ contains
     type(MM_restart_objects), intent(out) :: mm_rst
     call nullify_f_ref(mm_rst%refcnt)
     nullify(mm_rst%rf_extra)
+    call nullify_f_enum(mm_rst%run_mode)
   end subroutine nullify_MM_restart_objects
 
   !> fill the run_mode with the input enumerator
@@ -150,7 +152,6 @@ contains
     use module_lj
     use module_lenosky_si
     use module_cp2k
-    use module_base, only: bigdft_mpi
     use yaml_output
     implicit none
     type(run_objects), intent(inout) :: runObj
@@ -247,22 +248,24 @@ contains
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
     end select
+
+    mm_rst%run_mode=run_mode
   end subroutine init_MM_restart_objects
 
-  subroutine free_MM_restart_objects(runObj,mm_rst)
-    use module_base, only: bigdft_mpi
+  subroutine free_MM_restart_objects(mm_rst)
     use dynamic_memory
     use yaml_output
     use module_cp2k
     use module_BornMayerHugginsTosiFumi
     use f_enums, enum_int => int
+    use yaml_strings
     implicit none
-    type(run_objects), intent(inout) :: runObj
     type(MM_restart_objects), intent(inout) :: mm_rst
     !check if the object can be freed
     call f_ref_free(mm_rst%refcnt)
     call f_free_ptr(mm_rst%rf_extra)
-    select case(trim(f_str(runObj%run_mode)))
+    !free the extra variables
+    select case(trim(f_str(mm_rst%run_mode)))
     case('BMHTF_RUN_MODE')
        call finalize_bmhtf()
     case('CP2K_RUN_MODE') ! CP2K run mode
@@ -275,9 +278,11 @@ contains
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
     case('LENOSKY_SI_BULK_RUN_MODE')
     case('AMBER_RUN_MODE')
+    case('QM_RUN_MODE')
     case default
        call f_err_throw('Following method for evaluation of '//&
-            'energies and forces is unknown: '+ yaml_toa(enum_int(runObj%run_mode)))
+            'energies and forces is unknown: '+enum_int(mm_rst%run_mode),&
+            err_name='BIGDFT_RUNTIME_ERROR')
     end select
 
     
@@ -335,13 +340,6 @@ contains
     else if (inputpsiid .hasattr. 'LINEAR') then
        rst%version = LINEAR_VERSION
     end if
-!!$    select case (inputpsiid)
-!!$    case (INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, &
-!!$         INPUT_PSI_DISK_WVL, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS)
-!!$       rst%version = CUBIC_VERSION
-!!$    case (INPUT_PSI_LINEAR_AO, INPUT_PSI_MEMORY_LINEAR, INPUT_PSI_DISK_LINEAR)
-!!$       rst%version = LINEAR_VERSION
-!!$    end select
   END SUBROUTINE QM_restart_objects_set_mode
 
   subroutine QM_restart_objects_set_nat(rst, nat)
@@ -668,7 +666,7 @@ contains
   end subroutine bigdft_get_rxyz
 
   !> returns the pointer to the atomic positions of the run.
-  !! it performas a shallwo copy therefore this routine is intended to
+  !! it performs a shallow copy therefore this routine is intended to
   !! provide acces to position for reading.
   !! Use at own risk to modify the value of the atomic positions.
   !! it returns nullified pointer in the case runObj is not properly
@@ -808,7 +806,7 @@ contains
     nullify(runObj%mm_rst)
   END SUBROUTINE nullify_run_objects
 
-  !>release run_objects structure as a whole
+  !> Release run_objects structure as a whole
   !! if the reference counter goes to zero, do not free
   !! the structure as other atoms and inputs may live somewhere
   !! freeing command has to be given explicitly until we are
@@ -824,8 +822,9 @@ contains
     type(run_objects), intent(inout) :: runObj
     !local variables
     integer :: count
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') then
-       call yaml_sequence_close()
+    if (associated(runObj%run_mode)) then
+      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+           call yaml_sequence_close()
     end if
 
     if (associated(runObj%rst)) then
@@ -839,7 +838,7 @@ contains
     if (associated(runObj%mm_rst)) then
        call f_unref(runObj%mm_rst%refcnt,count=count)
        if (count==0) then
-          call free_MM_restart_objects(runObj,runObj%mm_rst)
+          call free_MM_restart_objects(runObj%mm_rst)
        else
           nullify(runObj%mm_rst)
        end if
@@ -863,7 +862,8 @@ contains
     call nullify_run_objects(runObj)
   end subroutine release_run_objects
 
-  !> Free the run_objects structure, &
+
+  !> Free the run_objects structure,
   !! if all the objects have been dereferenced
   subroutine free_run_objects(runObj)
     use module_base
@@ -872,8 +872,10 @@ contains
     use module_input_keys, only: free_input_variables
     implicit none
     type(run_objects), intent(inout) :: runObj
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
-         call yaml_sequence_close()
+    if (associated(runObj%run_mode)) then
+      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+           call yaml_sequence_close()
+    end if
 
     call dict_free(runObj%user_inputs)
     if (associated(runObj%rst)) then
@@ -881,7 +883,7 @@ contains
        deallocate(runObj%rst)
     end if
     if (associated(runObj%mm_rst)) then
-       call free_MM_restart_objects(runObj,runObj%mm_rst)
+       call free_MM_restart_objects(runObj%mm_rst)
        deallocate(runObj%mm_rst)
     end if
     if (associated(runObj%atoms)) then
@@ -895,6 +897,7 @@ contains
     call nullify_run_objects(runObj)
   END SUBROUTINE free_run_objects
 
+
   !> Parse the input dictionary and create all run_objects
   !! in particular this routine identifies the input and the atoms structure
   subroutine set_run_objects(runObj)
@@ -904,6 +907,7 @@ contains
     use module_input_dicts, only: dict_run_validate
     use module_input_keys, only: inputs_from_dict,free_input_variables
     use dynamic_memory
+    use yaml_output
     implicit none
     type(run_objects), intent(inout) :: runObj
     character(len=*), parameter :: subname = "run_objects_parse"
@@ -927,6 +931,7 @@ contains
 
     ! Regenerate inputs and atoms.
     call dict_run_validate(runObj%user_inputs)
+
     call inputs_from_dict(runObj%inputs, runObj%atoms, runObj%user_inputs)
 
     !associate the run_mode
@@ -1362,7 +1367,7 @@ contains
     use module_lenosky_si
     use public_enums
     use module_defs
-    use dynamic_memory, only: f_memcpy
+    use dynamic_memory, only: f_memcpy,f_routine,f_release_routine
     use yaml_strings, only: yaml_toa, operator(+)
     use yaml_output
     use module_forces, only: clean_forces
@@ -1378,6 +1383,7 @@ contains
     type(state_properties), intent(inout) :: outs
     integer, intent(inout) :: infocode
     !local variables
+    logical :: write_mapping
     integer :: nat
     integer :: icc !for amber
     real(gp) :: maxdiff
@@ -1386,6 +1392,7 @@ contains
     integer :: policy_tmp
 !!integer :: iat , l
 !!real(gp) :: anoise,tt
+    call f_routine(id='bigdft_state')
 
     rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
     nat=bigdft_nat(runObj)
@@ -1418,8 +1425,10 @@ contains
     !    the reasons for such high overhead
     !    The new document has been substituted by sequence, not to have multiple documents for FF runs
     !    However this hybrid scheme has to be tested in the case of QM/MM runs
+    !    In any case the verbosity value is used to (un)mute the output
+    write_mapping= runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0 .and. verbose > 0
     !open the document if the run_mode has not it inside
-    if (runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0) then
+    if (write_mapping) then
        call yaml_sequence(advance='no')
        call yaml_mapping_open(trim(f_str(runObj%run_mode)),flow=.true.)
        !call yaml_new_document()
@@ -1492,7 +1501,8 @@ contains
        if (bigdft_mpi%iproc==0) call yaml_map('DFTB+ infocode',infocode)
     case default
        call f_err_throw('Following method for evaluation of '//&
-            'energies and forces is unknown: '+ yaml_toa(enum_int(runObj%run_mode)))
+            'energies and forces is unknown: '+ enum_int(runObj%run_mode)//&
+            '('+f_str(runObj%run_mode)+')',err_name='BIGDFT_RUNTIME_ERROR')
     end select
 !!         anoise=2.d-5
 !!         if (anoise.ne.0.d0) then
@@ -1509,10 +1519,13 @@ contains
     !broadcast the state properties
     call broadcast_state_properties(outs)
 
-    if (runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0) then
+    if (write_mapping) then
        !call yaml_release_document()
+       call yaml_map('Energy',outs%energy)
        call yaml_mapping_close()
     end if
+
+    call f_release_routine()
 
   end subroutine bigdft_state
 
@@ -1535,7 +1548,6 @@ contains
     integer :: istep,policy_tmp
     type(f_enumerator) :: inputPsiId_orig
     !integer :: iat
-    real(gp) :: maxdiff
     external :: cluster
     !put a barrier for all the processes
     call mpibarrier(bigdft_mpi%mpi_comm)
@@ -1727,7 +1739,7 @@ contains
 
   !> square root of bigdft_dot(runObj,dx,dx)
   function bigdft_nrm2(runObj,dx,dx_add) result(scpr)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none
     !> run_object bigdft structure
     type(run_objects), intent(in) :: runObj
@@ -2222,7 +2234,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_types
   use module_fragments
   use module_interfaces, only: system_initialization
-  use psp_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use communications_base, only: deallocate_comms
   implicit none
   type(run_objects), intent(inout) :: runObj

@@ -9,11 +9,14 @@ module postprocessing_linear
   public :: loewdin_charge_analysis_core
   public :: support_function_multipoles
   public :: build_ks_orbitals
+  public :: calculate_theta
+  public :: supportfunction_centers
 
   contains
 
-    subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot,&
-               calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap)
+    subroutine loewdin_charge_analysis(iproc,tmb,atoms,denspot, &
+               calculate_overlap_matrix,calculate_ovrlp_half,meth_overlap,blocksize,&
+               ntheta, istheta, theta)
       use module_base
       use module_types
       use module_interfaces
@@ -28,12 +31,14 @@ module postprocessing_linear
       use matrix_operations, only: overlapPowerGeneral
       use yaml_output
       implicit none
-      integer,intent(in) :: iproc
+      integer,intent(in) :: iproc, blocksize
       type(dft_wavefunction),intent(inout) :: tmb
       type(atoms_data),intent(in) :: atoms
       type(DFT_local_fields), intent(inout) :: denspot
       logical,intent(in) :: calculate_overlap_matrix, calculate_ovrlp_half
       integer,intent(in) :: meth_overlap
+      integer,intent(in),optional :: ntheta, istheta
+      real(kind=8),dimension(:,:),intent(in),optional :: theta ! must have dimension (atoms%astruct%nat,ndim_theta)
     
       !local variables
       !integer :: ifrag,ifrag_ref,isforb,jorb
@@ -51,12 +56,33 @@ module postprocessing_linear
       real(kind=8) :: total_charge, total_net_charge
       real(kind=8),dimension(:),allocatable :: charge_per_atom
       !logical :: psit_c_associated, psit_f_associated
+      logical :: optionals_present
     
     
       ! needs parallelizing/converting to sparse
       ! re-use overlap matrix if possible either before or after
     
       call f_routine(id='loewdin_charge_analysis')
+
+
+      if (present(theta)) then
+          if (.not.present(ntheta)) then
+              call f_err_throw('ntheta not present',err_name='BIGDFT_RUNTIME_ERROR')
+          else if (.not.present(istheta)) then
+              call f_err_throw('istheta not present',err_name='BIGDFT_RUNTIME_ERROR')
+          else
+              optionals_present = .true.
+          end if
+          if (size(theta,1)/=atoms%astruct%nat) then
+              call f_err_throw('wrong first dimension of theta',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (size(theta,2)/=ntheta) then
+              call f_err_throw('wrong second dimension of theta',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+      else
+          optionals_present = .false.
+      end if
+
     
       !inv_ovrlp(1) = matrices_null()
       !call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
@@ -99,9 +125,23 @@ module postprocessing_linear
          !!end if
       end if
 
-      call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, &
-               tmb%orbs%norb_par, tmb%orbs%isorb_par, meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+      !call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs%norb, tmb%orbs%norbp, tmb%orbs%isorb, &
+      !         tmb%orbs%norb_par, tmb%orbs%isorb_par, meth_overlap, tmb%linmat%s, tmb%linmat%l, atoms, &
+      !         tmb%linmat%kernel_, tmb%linmat%ovrlp_)
+      if (optionals_present) then
+          call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+               tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
+               tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
+               meth_overlap, blocksize, tmb%linmat%s, tmb%linmat%l, atoms, &
+               tmb%linmat%kernel_, tmb%linmat%ovrlp_, &
+               ntheta=ntheta, istheta=istheta, theta=theta)
+      else
+          call loewdin_charge_analysis_core(bigdft_mpi%iproc, bigdft_mpi%nproc, &
+               tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, tmb%linmat%s%isfvctr, &
+               tmb%linmat%s%nfvctr_par, tmb%linmat%s%isfvctr_par, &
+               meth_overlap, blocksize, tmb%linmat%s, tmb%linmat%l, atoms, &
                tmb%linmat%kernel_, tmb%linmat%ovrlp_)
+      end if
     
 !!!!      if (calculate_ovrlp_half) then
 !!!!         tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
@@ -214,97 +254,210 @@ module postprocessing_linear
 
 
     subroutine loewdin_charge_analysis_core(iproc, nproc, norb, norbp, isorb, &
-               norb_par, isorb_par, meth_overlap, smats, smatl, atoms, kernel, ovrlp)
+            norb_par, isorb_par, meth_overlap, blocksize, smats, smatl, atoms, kernel, ovrlp, &
+               ntheta, istheta, theta)
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix, matrices, &
-                                   assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, DENSE_FULL, &
+                                   assignment(=), sparsematrix_malloc0, sparsematrix_malloc_ptr, &
+                                   DENSE_FULL, SPARSE_TASKGROUP, SPARSE_FULL, &
                                    deallocate_matrices, matrices_null, allocate_matrices
-      use sparsematrix, only: uncompress_matrix2
+      use sparsematrix_init, only: matrixindex_in_compressed
+      use sparsematrix, only: uncompress_matrix2, matrix_matrix_mult_wrapper, gather_matrix_from_taskgroups
       use matrix_operations, only: overlapPowerGeneral
       use yaml_output
       implicit none
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, norb, norbp, isorb, meth_overlap
+      integer,intent(in) :: iproc, nproc, norb, norbp, isorb, meth_overlap, blocksize
       integer,dimension(0:nproc-1),intent(in) :: norb_par, isorb_par
       type(sparse_matrix),intent(inout) :: smats, smatl
       type(atoms_data),intent(in) :: atoms
-      type(matrices),intent(in) :: kernel
+      type(matrices),intent(inout) :: kernel
       type(matrices),intent(inout) :: ovrlp
+      integer,intent(in),optional :: ntheta, istheta
+      real(kind=8),dimension(:,:),intent(in),optional :: theta !dimension (atoms%astruct%nat,ntheta)
 
       ! Local variables
-      integer :: ierr, iorb, iat
+      integer :: ierr, iorb, iat, ind, ist, ishift, ispin, iiorb
       type(matrices),dimension(1) :: inv_ovrlp
       real(kind=8),dimension(:,:,:),allocatable :: proj_mat
       real(kind=8),dimension(:,:),allocatable :: weight_matrix, weight_matrixp, proj_ovrlp_half
-      real(kind=8),dimension(:),allocatable :: charge_per_atom
+      real(kind=8),dimension(:),allocatable :: charge_per_atom, proj_ovrlp_half_compr
+      real(kind=8),dimension(:),allocatable :: weight_matrix_compr_tg, weight_matrix_compr
       real(kind=8) :: mean_error, max_error
+      integer,parameter :: DENSE=101, SPARSE=102
+      integer :: imode=SPARSE
+      logical :: optionals_present
 
+      call f_routine(id='loewdin_charge_analysis_core')
 
-      inv_ovrlp(1) = matrices_null()
-      call allocate_matrices(smatl, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
-
-      ovrlp%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='ovrlp%matrix')
-      call uncompress_matrix2(iproc, nproc, smats, &
-           ovrlp%matrix_compr, ovrlp%matrix)
-      call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
-           imode=2, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
-           ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
-           max_error=max_error, mean_error=mean_error)
-      call f_free_ptr(ovrlp%matrix)
-    
-      ! optimize this to just change the matrix multiplication?
-      proj_mat = sparsematrix_malloc0(smatl,iaction=DENSE_FULL,id='proj_mat')
-    
-      call uncompress_matrix2(iproc, nproc, smatl, kernel%matrix_compr, proj_mat)
-
-      proj_ovrlp_half=f_malloc((/norb,norbp/),id='proj_ovrlp_half')
-      if (norbp>0) then
-         call dgemm('n', 'n', norb, norbp, &
-                norb, 1.d0, &
-                proj_mat(1,1,1), norb, &
-                inv_ovrlp(1)%matrix(1,isorb+1,1), norb, 0.d0, &
-                proj_ovrlp_half(1,1), norb)
-      end if
-      call f_free(proj_mat)
-      weight_matrixp=f_malloc((/norb,norbp/), id='weight_matrixp')
-      if (norbp>0) then
-         call dgemm('n', 'n', norb, norbp, &
-              norb, 1.d0, &
-              inv_ovrlp(1)%matrix(1,1,1), norb, &
-              proj_ovrlp_half(1,1), norb, 0.d0, &
-              weight_matrixp(1,1), norb)
-      end if
-      call f_free(proj_ovrlp_half)
-      weight_matrix=f_malloc((/norb,norb/), id='weight_matrix')
-      if (nproc>1) then
-         call mpi_allgatherv(weight_matrixp, norb*norbp, mpi_double_precision, weight_matrix, &
-              norb*norb_par(:), norb*isorb_par, &
-              mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+      if (present(theta)) then
+          if (.not.present(ntheta)) then
+              call f_err_throw('ntheta not present',err_name='BIGDFT_RUNTIME_ERROR')
+          else if (.not.present(istheta)) then
+              call f_err_throw('istheta not present',err_name='BIGDFT_RUNTIME_ERROR')
+          else
+              optionals_present = .true.
+          end if
+          if (size(theta,1)/=atoms%astruct%nat) then
+              call f_err_throw('wrong first dimension of theta',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (size(theta,2)/=ntheta) then
+              call f_err_throw('wrong second dimension of theta',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
       else
-         call vcopy(norb*norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
+          optionals_present = .false.
       end if
-      call f_free(weight_matrixp)
+
+
+      if (imode==DENSE) then
+
+          call f_err_throw('Dense mode is deprecated',err_name='BIGDT_RUNTIME_ERROR')
+
+          inv_ovrlp(1) = matrices_null()
+          call allocate_matrices(smatl, allocate_full=.true., matname='inv_ovrlp', mat=inv_ovrlp(1))
+
+          ovrlp%matrix = sparsematrix_malloc_ptr(smats, iaction=DENSE_FULL, id='ovrlp%matrix')
+          call uncompress_matrix2(iproc, nproc, smats, &
+               ovrlp%matrix_compr, ovrlp%matrix)
+          call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), -1, &
+               imode=2, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+               ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
+               max_error=max_error, mean_error=mean_error)
+          call f_free_ptr(ovrlp%matrix)
     
-      charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
+          ! optimize this to just change the matrix multiplication?
+          proj_mat = sparsematrix_malloc0(smatl,iaction=DENSE_FULL,id='proj_mat')
     
-      do iorb=1,norb
-          iat=smats%on_which_atom(iorb)
-          charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
-      end do
-      if (iproc==0) then
-          !call write_partial_charges()
-          call write_partial_charges(atoms, charge_per_atom, .true.)
-          call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
-          call calculate_dipole(iproc, atoms, charge_per_atom)
-          call calculate_quadropole(iproc, atoms, charge_per_atom)
-          call yaml_sequence_close()
+          call uncompress_matrix2(iproc, nproc, smatl, kernel%matrix_compr, proj_mat)
+
+          proj_ovrlp_half=f_malloc((/norb,norbp/),id='proj_ovrlp_half')
+          if (norbp>0) then
+             call dgemm('n', 'n', norb, norbp, &
+                    norb, 1.d0, &
+                    proj_mat(1,1,1), norb, &
+                    inv_ovrlp(1)%matrix(1,isorb+1,1), norb, 0.d0, &
+                    proj_ovrlp_half(1,1), norb)
+          end if
+          call f_free(proj_mat)
+          weight_matrixp=f_malloc((/norb,norbp/), id='weight_matrixp')
+          if (norbp>0) then
+             call dgemm('n', 'n', norb, norbp, &
+                  norb, 1.d0, &
+                  inv_ovrlp(1)%matrix(1,1,1), norb, &
+                  proj_ovrlp_half(1,1), norb, 0.d0, &
+                  weight_matrixp(1,1), norb)
+          end if
+          call f_free(proj_ovrlp_half)
+          weight_matrix=f_malloc((/norb,norb/), id='weight_matrix')
+          if (nproc>1) then
+             call mpi_allgatherv(weight_matrixp, norb*norbp, mpi_double_precision, weight_matrix, &
+                  norb*norb_par(:), norb*isorb_par, &
+                  mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          else
+             call vcopy(norb*norb,weight_matrixp(1,1),1,weight_matrix(1,1),1)
+          end if
+          call f_free(weight_matrixp)
+    
+          charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
+    
+          do iorb=1,norb
+              iat=smats%on_which_atom(iorb)
+              charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix(iorb,iorb)
+          end do
+          if (iproc==0) then
+              !call write_partial_charges()
+              call write_partial_charges(atoms, charge_per_atom, .true.)
+              call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
+              call calculate_dipole(iproc, atoms, charge_per_atom)
+              call calculate_quadropole(iproc, atoms, charge_per_atom)
+              call yaml_sequence_close()
+          end if
+          !!call support_function_multipoles()
+    
+          call deallocate_matrices(inv_ovrlp(1))
+          call f_free(charge_per_atom)
+          call f_free(weight_matrix)
+
+      else if (imode==SPARSE) then
+
+
+          inv_ovrlp(1) = matrices_null()
+          inv_ovrlp(1)%matrix_compr = sparsematrix_malloc_ptr(smatl, iaction=SPARSE_TASKGROUP, id='inv_ovrlp(1)%matrix_compr')
+
+          call overlapPowerGeneral(iproc, nproc, meth_overlap, 1, (/2/), blocksize, &
+               imode=1, ovrlp_smat=smats, inv_ovrlp_smat=smatl, &
+               ovrlp_mat=ovrlp, inv_ovrlp_mat=inv_ovrlp, check_accur=.true., &
+               max_error=max_error, mean_error=mean_error)
+          call f_free_ptr(ovrlp%matrix)
+
+          proj_ovrlp_half_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='proj_ovrlp_half_compr')
+          weight_matrix_compr_tg = sparsematrix_malloc0(smatl,iaction=SPARSE_TASKGROUP,id='weight_matrix_compr_tg')
+          do ispin=1,smatl%nspin
+              ist = (ispin-1)*smatl%nvctrp_tg + 1
+              if (norbp>0) then
+                 call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+                      kernel%matrix_compr(ist:), inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:))
+              end if
+              if (norbp>0) then
+                 call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
+                      inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
+              end if
+          end do
+          call f_free(proj_ovrlp_half_compr)
+    
+          call deallocate_matrices(inv_ovrlp(1))
+          charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
+
+          ! Maybe this can be improved... not really necessary to gather the entire matrix
+          weight_matrix_compr = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='weight_matrix_compr')
+          call gather_matrix_from_taskgroups(iproc, nproc, smatl, weight_matrix_compr_tg, weight_matrix_compr)
+
+          if (optionals_present) then
+              do ispin=1,smatl%nspin
+                  ishift = (ispin-1)*smatl%nvctr
+                  do iorb=1,ntheta
+                      iiorb = iorb + istheta
+                      iiorb = modulo(iiorb-1,smatl%nfvctr)+1
+                      ind = matrixindex_in_compressed(smatl, iorb, iorb)
+                      !write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)
+                      do iat=1,atoms%astruct%nat
+                          ind = ind + ishift
+                          charge_per_atom(iat) = charge_per_atom(iat) + theta(iat,iorb)*weight_matrix_compr(ind)
+                       end do
+                  end do
+              end do
+          else 
+              do ispin=1,smatl%nspin
+                  ishift = (ispin-1)*smatl%nvctr
+                  do iorb=1,norb
+                      iiorb = modulo(iorb-1,smatl%nfvctr)+1
+                      iat=smats%on_which_atom(iiorb)
+                      ind = matrixindex_in_compressed(smatl, iorb, iorb)
+                      ind = ind + ishift
+                      !write(*,*) 'iorb, trace charge', iorb, weight_matrix_compr(ind)
+                      charge_per_atom(iat) = charge_per_atom(iat) + weight_matrix_compr(ind)
+                  end do
+              end do
+          end if
+
+          if (iproc==0) then
+              call write_partial_charges(atoms, charge_per_atom, .true.)
+              call yaml_sequence_open('Multipole analysis (based on the Loewdin charges)')
+              call calculate_dipole(iproc, atoms, charge_per_atom)
+              call calculate_quadropole(iproc, atoms, charge_per_atom)
+              call yaml_sequence_close()
+          end if
+    
+          call f_free(charge_per_atom)
+          call f_free(weight_matrix_compr_tg)
+          call f_free(weight_matrix_compr)
+
+      else
+          call f_err_throw('wrong value for imode',err_name='BIGDFT_RUNTIME_ERROR')
       end if
-      !!call support_function_multipoles()
-    
-      call deallocate_matrices(inv_ovrlp(1))
-      call f_free(charge_per_atom)
-      call f_free(weight_matrix)
+
+      call f_release_routine()
 
     end subroutine loewdin_charge_analysis_core
 
@@ -324,14 +477,27 @@ module postprocessing_linear
       real(kind=8),dimension(2) :: charges
       character(len=128) :: output
       character(len=2) :: backslash
-      integer,parameter :: ncolors = 7
-      character(len=20),dimension(ncolors),parameter :: colors=(/'violet', &
-                                                                 'blue  ', &
-                                                                 'cyan  ', &
-                                                                 'green ', &
-                                                                 'yellow', &
-                                                                 'orange', &
-                                                                 'red   '/)
+      integer,parameter :: ncolors = 12 !7
+      !character(len=20),dimension(ncolors),parameter :: colors=(/'violet', &
+      !                                                           'blue  ', &
+      !                                                           'cyan  ', &
+      !                                                           'green ', &
+      !                                                           'yellow', &
+      !                                                           'orange', &
+      !                                                           'red   '/)
+      ! Presumably well suited colorschemes from colorbrewer2.org
+      character(len=20),dimension(ncolors),parameter :: colors=(/'#a6cee3', &
+                                                                 '#1f78b4', &
+                                                                 '#b2df8a', &
+                                                                 '#33a02c', &
+                                                                 '#fb9a99', &
+                                                                 '#e31a1c', &
+                                                                 '#fdbf6f', &
+                                                                 '#ff7f00', &
+                                                                 '#cab2d6', &
+                                                                 '#6a3d9a', &
+                                                                 '#ffff99', &
+                                                                 '#b15928'/)
 
       call yaml_sequence_open('Loewdin charge analysis (charge / net charge)')
       total_charge=0.d0
@@ -357,9 +523,10 @@ module postprocessing_linear
       if (write_gnuplot) then
           output='chargeanalysis.gp'
           call yaml_map('output file',trim(output))
+          iunit=100
           call f_open_file(iunit, file=trim(output), binary=.false.)
           write(iunit,'(a)') '# plot the fractional charge as a normalized sum of Gaussians'
-          write(iunit,'(a)') 'set samples 500000'
+          write(iunit,'(a)') 'set samples 1000'
           range_min = minval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) - 0.1d0
           range_max = maxval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) + 0.1d0
           write(iunit,'(a,2(es12.5,a))') 'set xrange[',range_min,':',range_max,']'
@@ -709,6 +876,10 @@ module postprocessing_linear
               end do
           end do
       end do
+
+      !call yaml_map('rxyz_center',rxyz_center)
+      !call yaml_map('charge_center_elec',charge_center_elec)
+      !call yaml_map('qtot',qtot)
     
       ! Dipole of the center
       dipole_center(1) = -qtot*rxyz_center(1)
@@ -731,6 +902,8 @@ module postprocessing_linear
       end do
     
       ! Net dipole and quadropole
+      !call yaml_map('dipole_el',dipole_el)
+      !call yaml_map('dipole_center',dipole_center)
       dipole_net = dipole_el + dipole_center
       quadropole_net = quadropole_el + quadropole_center
     
@@ -794,6 +967,7 @@ module postprocessing_linear
       use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
       use yaml_output
       use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
+      use locreg_operations, only: small_to_large_locreg
       implicit none
       
       ! Calling arguments
@@ -864,7 +1038,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
     
       if (bigdft_mpi%iproc ==0) then
@@ -991,7 +1165,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-           input%calculate_KS_residue, input%calculate_gap, energs_work, updatekernel=.false.)
+           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., updatekernel=.false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
@@ -1020,6 +1194,7 @@ module postprocessing_linear
       use sparsematrix_base, only: sparse_matrix
       use yaml_output
       use rhopotential, only: updatepotential, sumrho_for_TMBs, corrections_for_negative_charge
+      use locreg_operations, only: small_to_large_locreg
       implicit none
       
       ! Calling arguments
@@ -1082,7 +1257,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,energs_work)
+           input%calculate_KS_residue,input%calculate_gap,energs_work, .false.)
     
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
@@ -1203,7 +1378,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-           input%calculate_KS_residue, input%calculate_gap, energs_work, updatekernel=.false.)
+           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., updatekernel=.false.)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
       energyold=energy
@@ -1215,5 +1390,358 @@ module postprocessing_linear
     end if
       call allocate_work_mpiaccumulate(energs_work)
     end subroutine build_ks_orbitals_laura_tmp
+
+
+
+    subroutine calculate_theta(nat, rxyz, nphidim, phi, nphirdim, orbs, lzd, theta)
+      use module_base
+      use module_types, only: orbitals_data, local_zone_descriptors, workarr_sumrho
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: nat, nphidim, nphirdim
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      real(kind=8),dimension(nphidim),intent(in) :: phi
+      type(orbitals_data),intent(in) :: orbs
+      type(local_zone_descriptors),intent(in) :: lzd
+      real(kind=8),dimension(nat,orbs%norbp),intent(out) :: theta
+
+      ! Local variables
+      real(kind=8),dimension(:),allocatable :: psir
+      type(workarr_sumrho) :: w
+      integer :: ist, istr, iorb, iiorb, ilr, i1, i2, i3, ii1, ii2, ii3, iat, iiat, l, m
+      real(kind=8),dimension(3) :: com
+      real(kind=8),dimension(-1:1) :: dipole
+      real(kind=8) :: weight, tt, x, y, z, r2, hxh, hyh, hzh, q, qtot, monopole, r
+      real(kind=8),parameter :: sigma2=0.1d0
+
+      call f_zero(theta)
+
+      ! Transform the support functions to real space
+      psir = f_malloc(max(nphirdim,1),id='psir')
+      ist=1
+      istr=1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
+          call deallocate_work_arrays_sumrho(w)
+          !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
+          !    iproc, iiorb, lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, &
+          !    istr, ddot(lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, psir(istr), 1, psir(istr), 1)
+          !testarr(1,iiorb) = ddot(lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, psir(istr), 1, psir(istr), 1) 
+          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+      end do
+      if(istr/=nphirdim+1) then
+          call f_err_throw('ERROR on process '//adjustl(trim(yaml_toa(bigdft_mpi%iproc)))//': istr/=nphirdim+1', &
+               err_name='BIGDFT_RUNTIME_ERROR')
+          stop
+      end if
+
+      hxh = 0.5d0*lzd%hgrids(1)
+      hyh = 0.5d0*lzd%hgrids(2)
+      hzh = 0.5d0*lzd%hgrids(3)
+
+
+      !! METHOD 1 ####################################################
+      !istr = 1
+      !do iorb=1,orbs%norbp
+      !    iiorb=orbs%isorb+iorb
+      !    ilr=orbs%inwhichlocreg(iiorb)
+      !    write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+      !    com(1:3) = 0.d0
+      !    weight = 0.d0
+      !    do i3=1,lzd%llr(ilr)%d%n3i
+      !        ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 1
+      !        z = ii3*hzh
+      !        do i2=1,lzd%llr(ilr)%d%n2i
+      !            ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 1
+      !            y = ii2*hyh
+      !            do i1=1,lzd%llr(ilr)%d%n1i
+      !                ii1 = lzd%llr(ilr)%nsi1 + i1 - 14 - 1
+      !                x = ii1*hxh
+      !                tt = psir(istr)**2
+      !                com(1) = com(1) + x*tt
+      !                com(2) = com(2) + y*tt
+      !                com(3) = com(3) + z*tt
+      !                weight = weight + tt
+      !                istr = istr + 1
+      !            end do
+      !        end do
+      !    end do
+      !    call yaml_map('weight',weight)
+
+      !    weight = 0.d0
+      !    do iat=1,nat
+      !        write(*,*) 'com, rxzy', com, rxyz(:,iat)
+      !        r2 = (rxyz(1,iat)-com(1))**2 + (rxyz(2,iat)-com(2))**2 + (rxyz(3,iat)-com(3))**2
+      !        tt = exp(-r2/(2*sigma2))
+      !        theta(iat,iorb) = tt
+      !        weight = weight + tt
+      !    end do
+      !    call yaml_map('weight',weight)
+      !    tt = 1.d0/weight
+      !    call dscal(nat, tt, theta(1,iorb), 1)
+
+      !    call yaml_map('theta '//adjustl(trim(yaml_toa(iorb))),theta(:,iorb))
+
+      !end do
+      !! END METHOD 1 ################################################
+
+
+      ! METHOD 2 ####################################################
+      istr = 1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          iiat = orbs%onwhichatom(iiorb)
+          write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+          com(1:3) = 0.d0
+          dipole(:) = 0.d0
+          weight = 0.d0
+          qtot = 0.d0
+          do i3=1,lzd%llr(ilr)%d%n3i
+              ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 1
+              z = ii3*hzh
+              !write(*,*) 'i3, ii3, z, d', i3, ii3, z, z-rxyz(3,iiat)
+              do i2=1,lzd%llr(ilr)%d%n2i
+                  ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 1
+                  y = ii2*hyh
+                  do i1=1,lzd%llr(ilr)%d%n1i
+                      ii1 = lzd%llr(ilr)%nsi1 + i1 - 14 - 1
+                      x = ii1*hxh
+                      q = psir(istr)**2!*hxh*hyh*hzh
+                      com(1) = com(1) + x*q
+                      com(2) = com(2) + y*q
+                      com(3) = com(3) + z*q
+                      qtot = qtot + q
+                      !r2 = (rxyz(1,iiat)-x)**2 + (rxyz(2,iiat)-y)**2 + (rxyz(3,iiat)-z)**2
+                      !tt = 1.d0/r2**4
+                      !!r2 = (rxyz(1,iiat)-x)**2 + (rxyz(2,iiat)-y)**2 + (rxyz(3,iiat)-z)**2
+                      !!if (r2/(2.d0*0.2d0)>300) then
+                      !!    tt = 0.d0
+                      !!else
+                      !!    tt = safe_exp(-r2/(2.d0*0.2d0))
+                      !!end if
+                      !!if (tt*psir(istr)**2<1.d-300) then
+                      !!    q =0.d0
+                      !!else
+                      !!    q = tt*psir(istr)**2
+                      !!end if
+                      do iat=1,nat
+                          !write(*,*) 'com, rxzy', com, rxyz(:,iat)
+                          !r2 = (rxyz(1,iat)-com(1))**2 + (rxyz(2,iat)-com(2))**2 + (rxyz(3,iat)-com(3))**2
+                          r2 = (rxyz(1,iat)-x)**2 + (rxyz(2,iat)-y)**2 + (rxyz(3,iat)-z)**2
+                          if (r2/(2*sigma2)>300) then
+                              tt = 0.d0
+                          else
+                              theta(iat,iorb) = theta(iat,iorb) + q*safe_exp(-r2/(2*sigma2))
+                          end if
+                      end do
+                      istr = istr + 1
+                  end do
+              end do
+          end do
+          dipole(-1) = com(2)
+          dipole( 0) = com(3)
+          dipole( 1) = com(1)
+          com(1:3) = com(1:3)/qtot
+          monopole = qtot - 1.d0
+          dipole(:) = dipole(:) - qtot*rxyz(1:3,iiat)
+          call yaml_map('monopole',monopole)
+          call yaml_map('dipole',dipole)
+          call yaml_map('qtot', qtot)
+          call yaml_map('rxyz(..,iiat)', rxyz(1:3,iiat))
+          call yaml_map('com', com)
+          !if (iiat==1 .and. iiorb==5) then
+          !    theta(:,iorb) = 0.d0
+          !    theta(iiat,iorb) = 1.d0
+          !end if
+
+          do iat=1,nat
+              theta(iat,iorb) = 0.d0
+              !x = rxyz(1,iat) - rxyz(1,iiat)
+              !y = rxyz(2,iat) - rxyz(2,iiat)
+              !z = rxyz(3,iat) - rxyz(3,iiat)
+              x = rxyz(1,iat) - com(1)
+              y = rxyz(2,iat) - com(2)
+              z = rxyz(3,iat) - com(3)
+              r = sqrt( x**2 + y**2 + z**2 )
+              do l=0,0!1
+                  do m=-l,l
+                      tt = spherical_harmonic(l, m, x, y, z)*gaussian(1.d0, r)
+                      if(l==1) tt = tt * dipole(m)
+                      write(*,*) 'iorb, iat, m, r, rxyz, tt', iorb, iat, m, r, rxyz(:,iat), tt
+                      theta(iat,iorb) = theta(iat,iorb) + tt**2
+                  end do
+              end do
+          end do
+
+          tt = sum(theta(1:nat,iorb))
+          write(*,*) 'tt',tt
+          tt = 1.d0/tt
+          call dscal(nat, tt, theta(1,iorb), 1)
+
+          call yaml_map('theta '//adjustl(trim(yaml_toa(iorb))),theta(:,iorb))
+
+      end do
+      ! END METHOD 2 ################################################
+
+    end subroutine calculate_theta
+
+
+    function gaussian(sigma, r) result(g)
+      use module_base, only: pi => pi_param
+      implicit none
+      ! Calling arguments
+      real(kind=8),intent(in) :: sigma, r
+      real(kind=8) :: g
+      
+      g = exp(-r**2/(2.d0*sigma**2))
+      g = g/sqrt(2.d0*pi*sigma**2)**3
+      !g = g/(sigma**3*sqrt(2.d0*pi)**3)
+    end function gaussian
+
+    !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
+    function spherical_harmonic(l, m, x, y, z) result(sh)
+      !use module_base, only: pi => pi_param
+      use module_base, pi => pi_param
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: l, m
+      real(kind=8),intent(in) :: x, y, z
+      real(kind=8) :: sh
+
+      ! Local variables
+      integer,parameter :: l_max=2
+      real(kind=8) :: r, r2, rnorm
+
+      if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
+      if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
+          err_name='BIGDFT_RUNTIME_ERROR')
+      if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
+
+
+      ! Normalization for a sphere of radius rmax
+      select case (l)
+      case (0)
+          sh = 0.5d0*sqrt(1/pi)
+      case (1)
+          r = sqrt(x**2+y**2+z**2)
+          ! fix for small r (needs proper handling later...)
+          if (r==0.d0) r=1.d-20
+          select case (m)
+          case (-1)
+              sh = sqrt(3.d0/(4.d0*pi))*y/r
+          case (0)
+              sh = sqrt(3.d0/(4.d0*pi))*z/r
+          case (1)
+              sh = sqrt(3.d0/(4.d0*pi))*x/r
+          end select
+      case (2)
+          r2 = x**2+y**2+z**2
+          ! fix for small r2 (needs proper handling later...)
+          if (r2==0.d0) r2=1.d-20
+          select case (m)
+          case (-2)
+              sh = 0.5d0*sqrt(15.d0/pi)*x*y/r2
+          case (-1)
+              sh = 0.5d0*sqrt(15.d0/pi)*y*z/r2
+          case (0)
+              sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
+          case (1)
+              sh = 0.5d0*sqrt(15.d0/pi)*z*x/r2
+          case (2)
+              sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
+          end select
+      end select
+
+    end function spherical_harmonic
+
+
+
+    subroutine supportfunction_centers(nat, rxyz, nphidim, phi, nphirdim, orbs, lzd, com)
+      use module_base
+      use module_types, only: orbitals_data, local_zone_descriptors, workarr_sumrho
+      use yaml_output
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: nat, nphidim, nphirdim
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      real(kind=8),dimension(nphidim),intent(in) :: phi
+      type(orbitals_data),intent(in) :: orbs
+      type(local_zone_descriptors),intent(in) :: lzd
+      real(kind=8),dimension(3,orbs%norbp),intent(out) :: com
+
+      ! Local variables
+      real(kind=8),dimension(:),allocatable :: psir
+      type(workarr_sumrho) :: w
+      integer :: ist, istr, iorb, iiorb, ilr, i1, i2, i3, ii1, ii2, ii3, iat, iiat, l, m
+      real(kind=8),dimension(-1:1) :: dipole
+      real(kind=8) :: weight, tt, x, y, z, r2, hxh, hyh, hzh, q, qtot, monopole, r
+      real(kind=8),parameter :: sigma2=0.1d0
+
+      ! Transform the support functions to real space
+      psir = f_malloc(max(nphirdim,1),id='psir')
+      ist=1
+      istr=1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
+          call deallocate_work_arrays_sumrho(w)
+          !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
+          !    iproc, iiorb, lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, &
+          !    istr, ddot(lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, psir(istr), 1, psir(istr), 1)
+          !testarr(1,iiorb) = ddot(lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i, psir(istr), 1, psir(istr), 1) 
+          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+      end do
+      if(istr/=nphirdim+1) then
+          call f_err_throw('ERROR on process '//adjustl(trim(yaml_toa(bigdft_mpi%iproc)))//': istr/=nphirdim+1', &
+               err_name='BIGDFT_RUNTIME_ERROR')
+          stop
+      end if
+
+      hxh = 0.5d0*lzd%hgrids(1)
+      hyh = 0.5d0*lzd%hgrids(2)
+      hzh = 0.5d0*lzd%hgrids(3)
+
+      istr = 1
+      do iorb=1,orbs%norbp
+          iiorb=orbs%isorb+iorb
+          ilr=orbs%inwhichlocreg(iiorb)
+          write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+          com(1:3,iorb) = 0.d0
+          weight = 0.d0
+          do i3=1,lzd%llr(ilr)%d%n3i
+              ii3 = lzd%llr(ilr)%nsi3 + i3 - 14 - 1
+              z = ii3*hzh
+              do i2=1,lzd%llr(ilr)%d%n2i
+                  ii2 = lzd%llr(ilr)%nsi2 + i2 - 14 - 1
+                  y = ii2*hyh
+                  do i1=1,lzd%llr(ilr)%d%n1i
+                      ii1 = lzd%llr(ilr)%nsi1 + i1 - 14 - 1
+                      x = ii1*hxh
+                      tt = psir(istr)**2
+                      com(1,iorb) = com(1,iorb) + x*tt
+                      com(2,iorb) = com(2,iorb) + y*tt
+                      com(3,iorb) = com(3,iorb) + z*tt
+                      weight = weight + tt
+                      istr = istr + 1
+                  end do
+              end do
+          end do
+          call yaml_map('weight',weight)
+          com(1:3,iorb) = com(1:3,iorb)/weight
+
+      end do
+
+    end subroutine supportfunction_centers
 
 end module postprocessing_linear

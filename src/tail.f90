@@ -18,8 +18,9 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   use yaml_output
   use module_interfaces, except_this_one => CalculateTailCorrection
   use gaussians, only: gaussian_basis
-  use psp_projectors, only: deallocate_workarrays_projectors, allocate_workarrays_projectors
+  use psp_projectors_base, only: deallocate_workarrays_projectors, allocate_workarrays_projectors
   use public_enums
+  use bounds, only: make_bounds, make_all_ib
   implicit none
   type(atoms_data), intent(in) :: at
   type(orbitals_data), intent(in) :: orbs

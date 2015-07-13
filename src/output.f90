@@ -1059,6 +1059,7 @@ END SUBROUTINE print_atomic_variables
 subroutine print_memory_estimation(mem)
   use module_types
   use yaml_output
+  use yaml_strings
   implicit none
   type(memory_estimation), intent(in) :: mem
 
@@ -1123,6 +1124,7 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   use module_defs
   use module_types
   use yaml_output
+  use yaml_strings
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: atoms
@@ -1174,6 +1176,7 @@ subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
   use module_base, only: f_err_throw
   use module_defs, only: Bohr_Ang, gp, UNINITIALIZED
   use yaml_output
+  use yaml_strings
   use module_atoms, only: atomic_structure,frozen_itof
   use ao_inguess, only: charge_and_spol
   implicit none
@@ -1251,7 +1254,10 @@ subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
   !Write atomic positions
   call yaml_sequence_open('Positions', unit = iunit)
   do iat=1,astruct%nat
+     !for very large systems, consider deactivating the printing, but should do this in a cleaner manner
+     !if (astruct%nat < 500.or.(.not. wrtlog)) then
      call yaml_sequence(advance='no', unit = iunit)
+     !end if
      if (extra_info(iat)) then
         call yaml_mapping_open(flow=.true., unit = iunit)
      end if
@@ -1265,8 +1271,11 @@ subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
         xred = xred*factor
      end if
      if (wrtlog) then
+        !for very large systems, consider deactivating the printing, but should do this in a cleaner manner
+        !if (astruct%nat < 500) then
         call print_one_atom(trim(astruct%atomnames(astruct%iatype(iat))),&
              xred,hgrids,iat)
+        !end if
 !!$        call yaml_map(trim(astruct%atomnames(astruct%iatype(iat))),&
 !!$             & xred,fmt="(g18.10)", unit = iunit, advance = "no")
 !!$        xred(1:3) = rxyz(1:3,iat) / hgrids
@@ -1422,6 +1431,7 @@ subroutine print_orbitals(orbs, geocode)
   use module_types, only: orbitals_data
   use module_defs, only: gp
   use yaml_output
+  use yaml_strings
   implicit none
   type(orbitals_data), intent(in) :: orbs
   character(len = 1), intent(in) :: geocode

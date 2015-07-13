@@ -9,7 +9,7 @@
 module module_abscalc
   use module_base
   use module_types
-  use psp_projectors, only: free_DFT_PSP_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use gaussians, only: deallocate_gwf
   implicit none
 
