@@ -708,6 +708,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   real(wp), dimension(:), allocatable :: rp_ij
   real(wp), dimension(:,:), allocatable :: psir
   real(wp), dimension(:,:,:,:), allocatable :: psiw,dpsiw
+  integer :: win, win2, win3, size_of_double
 
   !call timing(iproc,'Exchangecorr  ','ON')
 
@@ -1021,10 +1022,32 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   call deallocate_work_arrays_sumrho(w)
   
   psiw = f_malloc0((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.2, 1.to.ngroupp /),id='psiw')
+
+
+! if (nproc>1) then
+!   call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+! else
+!   size_of_double = 8
+! end if
+   size_of_double = 1
+  call mpi_win_create(psiw,&
+int(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp, kind=mpi_address_kind), &
+size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win, ierr)
+        if (ierr /=0)  print *,'error when creating mpi window for psiw',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+  
   dpsiw = f_malloc0((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.3, 1.to.ngroupp /),id='dpsiw')
   !partial densities and potentials
   rp_ij = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='rp_ij')
-  
+
+  call mpi_win_create(dpsiw,&
+int(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp, kind=mpi_address_kind), &
+size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win2, ierr)
+  if (ierr /=0)  print *,'error when creating mpi window for dpsiw',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+
+call mpi_win_create(psir,&
+int(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp, kind=mpi_address_kind), &
+size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
+  if (ierr /=0)  print *,'error when creating mpi window for psir',iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
   !this is the array of the actions of the X potential on psi
   !ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp
   !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*2*ngroupp,psiw(1,1,1,1))
@@ -1034,46 +1057,55 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   !call to_zero(ii,dpsiw(1,1,1,1))
   
   call f_zero(dpsir)
-
+  call mpi_win_fence( MPI_MODE_NOPRECEDE, win ,ierr);
+  call mpi_win_fence( MPI_MODE_NOPRECEDE, win2 ,ierr);
+  call mpi_win_fence( MPI_MODE_NOPRECEDE, win3 ,ierr);
   ncalls=0
   !real communication
   isnow=1
   isnow2=1
   nend=(nproc-1)/2+1
   ncommsstep2=0
+
+
   do jproc=0,nend
      irnow=3-isnow
      ncommsstep=0
      !sending receiving data
      do igroup=1,ngroupp
+        
+! To use MPI_get, we need a window covering psir, which will be used only once
+           
         if (jprocsr(1,jproc,igroup) /= -1) then
            ncommsstep=ncommsstep+1
            if (iprocpm1(1,1,igroup) == itestproc) then
               print *,'step',jproc+1,': sending',nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
                    'elements from',iproc,'to',iprocpm1(1,1,igroup)
            end if
-           
-           if (jproc == 0) then
-              call MPI_ISEND(psir(1,iorbgr(2,iproc,igrpr(igroup))),nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
-                   mpidtypw,iprocpm1(1,1,igroup),&
-                   iproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+
+            if (jproc == 0) then
+
+            call MPI_GET(psiw(1,1,irnow,igroup), nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),mpidtypw,&
+iprocpm1(2,1,igroup),int(0, kind=mpi_address_kind),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
+mpidtypw,win3,ierr)
+        if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+ 
            else
-              call MPI_ISEND(psiw(1,1,isnow,igroup),nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
-                   mpidtypw,iprocpm1(1,1,igroup),&
-                   iproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+    call MPI_GET(psiw(1,1,irnow,igroup), nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),mpidtypw,&
+iprocpm1(2,1,igroup),(LOC(psiw(1,1,isnow,igroup))-LOC(psiw(1,1,1,1)))/size_of_double,&
+nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),mpidtypw,win,ierr)
+
+        if (ierr /=0)  print *,'mpi put error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+
            end if
+
         end if
-        if (jprocsr(2,jproc,igroup) /= -1) then
-           ncommsstep=ncommsstep+1
+
            if (iproc == itestproc) then
               print *,'step',jproc+1,': receiving',nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
                    'elements from',iprocpm1(2,1,igroup),'to',iproc
            end if
-           
-           call MPI_IRECV(psiw(1,1,irnow,igroup),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
-                mpidtypw,iprocpm1(2,1,igroup),&
-                iprocpm1(2,1,igroup)+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
-        end if
+
      end do
      
      do igroup=1,ngroupp
@@ -1208,12 +1240,10 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
            end do
         end if
      end do
-         
+                 
+      call mpi_win_fence( 0, win2 ,ierr);
      if (ncommsstep2 > 0) then
         !verify that the messages have been passed
-        call MPI_WAITALL(ncommsstep2,mpireq2,mpistat2,ierr)
-        if (ierr /=0)  print *,'step2,ierr',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
-        
         !copy the results which have been received (the messages sending are after)
         do igroup=1,ngroupp
            if (jprocsr(4,jproc-1,igroup) /= -1) then
@@ -1231,45 +1261,39 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
      
      ncommsstep2=0
      !meanwhile, we can receive the result from the processor which has the psi 
+
      irnow2=3-isnow2
      do igroup=1,ngroupp
         if (jprocsr(3,jproc,igroup) /= -1) then
            ncommsstep2=ncommsstep2+1
            if (jprocsr(3,jproc,igroup) == itestproc) then
-              print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
+              print *,'step',jproc+1,'group:',igrpr(igroup),&
                    ': sending',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
                    'elements from',iproc,'to',jprocsr(3,jproc,igroup)
            end if
            call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
                 dpsiw(1,1,3,igroup),1,dpsiw(1,1,isnow2,igroup),1)
-           
-           call MPI_ISEND(dpsiw(1,1,isnow2,igroup),&
-                nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),mpidtypw,&
-                jprocsr(3,jproc,igroup),&
-                iproc+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
+
+
+        if (ierr /=0)  print *,'mpi put error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+
         end if
         if (jprocsr(4,jproc,igroup) /= -1) then
            ncommsstep2=ncommsstep2+1
-           if (iproc == itestproc) then
-              print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                   ': receiving',nvctr_par(iproc,igrpr(igroup)),&
-                   'elements from',jprocsr(4,jproc,igroup),'to',iproc
-           end if
-           call MPI_IRECV(dpsiw(1,1,irnow2,igroup),&
-                nvctr_par(iproc,igrpr(igroup)),mpidtypw,jprocsr(4,jproc,igroup),&
-                jprocsr(4,jproc,igroup)+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
-           
+        call MPI_GET(dpsiw(1,1,irnow2,igroup),nvctr_par(iproc,igrpr(igroup)),mpidtypw,&
+            jprocsr(4,jproc,igroup),(LOC(dpsiw(1,1,isnow2,igroup))-LOC(dpsiw(1,1,1,1)))/size_of_double,&
+            nvctr_par(iproc,igrpr(igroup)),mpidtypw,win2,ierr)
+
         end if
      end do
      if (jproc>1) isnow2=3-isnow2
      
-     if (ncommsstep /=0) then
-        !verify that the messages have been passed
-        !print *,'waiting,iproc',iproc
-        call MPI_WAITALL(ncommsstep,mpireq,mpistat,ierr)
-        if (ierr /=0) print *,'step,ierr',jproc+1,iproc,ierr,mpistat !,MPI_STATUSES_IGNORE
-        !print *,'done,iproc',iproc
-     end if
+    if (jproc == 0) then
+      call mpi_win_fence( 0, win3 ,ierr);
+    else
+      call mpi_win_fence( 0, win ,ierr);
+    endif
+
      isnow=3-isnow
      ncommsstep=0
   end do
@@ -1282,7 +1306,9 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   
   if (iproc == 0) call yaml_map('Exact Exchange Energy',eexctX,fmt='(1pe18.11)')
   !if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
-
+  call mpi_win_free(win, ierr)
+  call mpi_win_free(win2, ierr)
+  call mpi_win_free(win3, ierr)
   !close(100+iproc)
   call f_free(nvctr_par)
   call f_free(iorbgr)
