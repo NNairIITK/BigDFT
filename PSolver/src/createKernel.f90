@@ -584,12 +584,12 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
            end if
         end do load_balancing
         call yaml_mapping_open('Density')
-         call yaml_map('MPI tasks 0-'//trim(yaml_toa(jfd,fmt='(i5)')),'100%')
+         call yaml_map('MPI tasks 0-'//jfd**'(i5)','100%')
          if (jfd < kernel%mpi_env%nproc-1) &
-              call yaml_map('MPI task'//trim(yaml_toa(jhd,fmt='(i5)')),trim(yaml_toa(npd,fmt='(i5)'))//'%')
+              call yaml_map('MPI task '//jhd**'(i5)',npd**'(i5)'//'%')
          if (jhd < kernel%mpi_env%nproc-1) &
-              call yaml_map('MPI tasks'//trim(yaml_toa(jhd,fmt='(i5)'))//'-'//&
-              yaml_toa(kernel%mpi_env%nproc-1,fmt='(i3)'),'0%')
+              call yaml_map('MPI tasks'//jhd**'(i5)'//'-'//&
+              (kernel%mpi_env%nproc-1)**'(i3)','0%')
         call yaml_mapping_close()
         jhk=10000
         jzk=10000

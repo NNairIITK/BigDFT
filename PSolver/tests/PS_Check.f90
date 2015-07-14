@@ -17,6 +17,7 @@ program PS_Check
   use dynamic_memory
   use dictionaries
   use time_profiling
+  use yaml_strings
   implicit none
   !Length of the box
   character(len=*), parameter :: subname='PS_Check'
@@ -145,7 +146,7 @@ program PS_Check
 
   if (iproc == 0) then
      call yaml_map('Number of Spins',ispden,advance='no')
-     call yaml_comment('nspden:'//trim(yaml_toa(ispden)),hfill='-')
+     call yaml_comment('nspden:'//ispden,hfill='-')
   end if
 
   !if (iproc == 0) call yaml_comment('nspden:'//yaml_toa(ispden,fmt='(i0)'),hfill='=')
@@ -690,8 +691,9 @@ contains
     real(kind=8) :: x1,x2,x3,length,denval,pi,a2,derf_tt,factor,r,r2
     real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt
 
-    if (trim(geocode) == 'P' .or. trim(geocode)=='W') then
-
+    select case (geocode)
+       !if (trim(geocode) == 'P' .or. trim(geocode)=='W') then
+    case('P')
        !parameters for the test functions
        length=acell
        a=0.5d0/a_gauss**2
@@ -738,7 +740,8 @@ contains
 
        denval=0.d0
 
-    else if (trim(geocode) == 'S') then
+    !else if (trim(geocode) == 'S') then
+    case('S')
        !parameters for the test functions
        length=acell
        a=0.5d0/a_gauss**2
@@ -779,8 +782,8 @@ contains
 
        denval=0.d0
 
-    else if (trim(geocode) == 'F') then
-
+    !else if (trim(geocode) == 'F') then
+    case('F')
        !grid for the free BC case
        !hgrid=max(hx,hy,hz)
 
@@ -814,12 +817,12 @@ contains
 
        denval=0.d0
 
-    else
+       case default
+!    else
+          print *,'geometry code not admitted',geocode
+          stop
 
-       print *,'geometry code not admitted',geocode
-       stop
-
-    end if
+    end select
 
     ! For ixc/=0 the XC potential is added to the solution, and an analytic comparison is no more
     ! possible. In that case the only possible comparison is between the serial and the parallel case

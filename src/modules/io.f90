@@ -154,8 +154,8 @@ module io
       type(fragmentInputParameters), intent(in) :: input_frag
       type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
       !Local variables
-      integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
-      integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf
+      integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat,onwhichatom_frag,ifr,iatf
+      integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf,ityp,nelec_frag,ifr_ref,ia,io
       real(kind=4) :: tr0,tr1
       real(kind=8) :: tel
       character(len=256) :: full_filename
@@ -192,16 +192,48 @@ module io
             fragment_written(ifrag_ref)=.true.
     
             ! loop over orbitals of this fragment
-            loop_iforb: do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+            !loop_iforb: do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+
                loop_iorb: do iorbp=1,orbs%norbp
                   iiorb=iorbp+orbs%isorb
     
                   ! check if this ref frag orbital corresponds to the orbital we want
-                  if (iiorb/=iforb+isforb) cycle
-    
+                  !if (iiorb/=iforb+isforb) cycle
+!NO LONGER TRUE - can reactivate the above once input tmb order is guaranteed to be in fragment order
+!for now do more complicated atom based testing
+!This also means coeffs and evals are printed wrong, but we're neglecting these anyway so ignore until we tidy
                   ilr=orbs%inwhichlocreg(iiorb)
                   iiat=orbs%onwhichatom(iiorb)
-    
+
+                  if (iiat<=isfat .or. iiat>isfat+ref_frags(ifrag_ref)%astruct_frg%nat) cycle
+                  ! there might be an easier way to figure this out, but in calculations from scratch there's no guarantee the tmbs are arranged by fragment order
+                  ! alternatively modify so they are in this order, but not sure there's any benefit to that approach?
+                  iat=0
+                  onwhichatom_frag=-1
+                  do ifr=1,input_frag%nfrag
+                     ifr_ref=input_frag%frag_index(ifr)
+                     do iatf=1,ref_frags(ifr_ref)%astruct_frg%nat
+                        iat=iat+1
+                        if (iat==iiat) then
+                           onwhichatom_frag=iatf
+                           ! double check
+                           if (ifr/=ifrag) stop 'Error error abort warning' 
+                           exit
+                        end if
+                     end do
+                     if (onwhichatom_frag/=-1) exit
+                  end do
+
+                  iforb=0
+                  do io=1,iiorb
+                     ia=orbs%onwhichatom(io)
+                     if (ia>isfat .and. ia<=isfat+ref_frags(ifrag_ref)%astruct_frg%nat) iforb=iforb+1
+                  end do
+                  !totally arbitrary order here but at least we know we're on the right fragment!
+                  !iforb = iforb+1
+
+print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag,iforb
+
                   shift = 1
                   do jorb = 1, iorbp-1 
                      jlr = orbs%inwhichlocreg(jorb+orbs%isorb)
@@ -229,13 +261,14 @@ module io
                         & Lzd%Llr(ilr)%wfd%keygloc(1:,Lzd%Llr(ilr)%wfd%nseg_c+1:), &
                         & Lzd%Llr(ilr)%wfd%keyvloc(Lzd%Llr(ilr)%wfd%nseg_c+1:), &
                         & psi(shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+shift),-0.5d0, & !orbs%eval(iiorb),&
-                        & orbs%onwhichatom(iiorb)-isfat)
+                        & onwhichatom_frag)
+                        !& orbs%onwhichatom(iiorb)-isfat) ! only works if reading the rewriting fragment tmbs
     
                      close(unitwf)
     
                   end do loop_ispinor
                end do loop_iorb
-            end do loop_iforb
+            !end do loop_iforb
     
     
             ! NEED to think about this - just make it diagonal for now? or random?  or truncate so they're not normalized?  or normalize after truncating?
@@ -244,6 +277,20 @@ module io
             ! Now write the coefficients to file
             ! Must be careful, the orbs%norb is the number of basis functions
             ! while the norb is the number of orbitals.
+
+            ! in from scratch case ref_frags(ifrag_ref)%nelec will be empty (zero)
+            ! need to recalculate in this case, so may as well recalculate anyway
+            ! probably also an easier way to do this...
+            nelec_frag=0
+            do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+               !ityp=ref_frags(ifrag_ref)%astruct_frg%iatype(iat)
+               ityp=at%astruct%iatype(iat+isfat)
+               nelec_frag=nelec_frag+at%nelpsp(ityp)
+            end do
+
+            if (nelec_frag/=ref_frags(ifrag_ref)%nelec .and. ref_frags(ifrag_ref)%nelec/=0) &
+                 call f_err_throw('Problem with nelec in fragment output')
+
             if(iproc == 0) then
                full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
      
@@ -258,7 +305,7 @@ module io
                ! Not sure whether this is correct for nspin=2...
                call writeLinearCoefficients(unitwf,(iformat == WF_FORMAT_PLAIN),ref_frags(ifrag_ref)%astruct_frg%nat,&
                     rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-                    ref_frags(ifrag_ref)%nelec,&
+                    nelec_frag,&
                     ref_frags(ifrag_ref)%fbasis%forbs%norb, &
                     coeff(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb,&
                     isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb),&
@@ -279,7 +326,7 @@ module io
             end if
     
             isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-            isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat    
+            isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
          end do loop_ifrag
       end if
     
@@ -590,7 +637,7 @@ module io
                exit
             end if
          end do
-         if (j==ntmb+1) print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
+         !if (j==ntmb+1) print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
       end do
     
     END SUBROUTINE read_coeff_minbasis
@@ -1153,7 +1200,7 @@ module io
       real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
       integer,intent(out),optional :: nat, ntypes
       integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
-      character(len=*),dimension(:),pointer,intent(inout),optional :: atomnames
+      character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
       real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
       integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
 
@@ -1569,7 +1616,7 @@ module io
                exit
             end if
          end do
-         if (j==ntmb+1)print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
+         !if (j==ntmb+1)print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
     
          do j = 1,nfvctr
               tt = coeff(j,i)

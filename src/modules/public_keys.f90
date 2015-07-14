@@ -453,6 +453,8 @@ module public_enums
   type(f_enumerator), parameter, public :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994,null())
   type(f_enumerator), parameter, public :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993,null())
   type(f_enumerator), parameter, public :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992,null())
+  type(f_enumerator), parameter, public :: CP2K_RUN_MODE         =f_enumerator('CP2K_RUN_MODE',-991,null())
+  type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
   
 end module public_enums
 

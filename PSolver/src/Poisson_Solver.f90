@@ -63,6 +63,7 @@ module Poisson_Solver
    use dynamic_memory
    use time_profiling, only: TIMING_UNINITIALIZED, f_timing
    use yaml_output
+   use yaml_strings
    !use m_profiling
    ! TO BE REMOVED with f_malloc
    

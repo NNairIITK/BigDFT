@@ -17,6 +17,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   use module_interfaces, except_this_one => write_orbital_density
   use locreg_operations, only: lpsi_to_global2
   use public_enums
+  use bounds, only: locreg_bounds
   implicit none
 
   ! Calling arguments
@@ -952,20 +953,32 @@ type(orbitals_data), intent(in) :: orbs
 integer :: jproc, jpst, norb0,  norb1
 !integer :: space1, space2, len1, len2, 
 !logical :: written
+logical, parameter :: print_all=.false.
+integer :: minn, maxn
+real(kind=8) :: avn
 
 !!write(*,'(1x,a)') '------------------------------------------------------------------------------------'
 !!written=.false.
 !!write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
-call yaml_mapping_open('Support function repartition')
+call yaml_map('Total No. Support Functions',orbs%norb,fmt='(i6)')
+call yaml_mapping_open('Support Function Repartition')
 jpst=0
+avn=0.0d0
+minn=orbs%norb
+maxn=0
 do jproc=0,nproc-1
     norb0=orbs%norb_par(jproc,0)
     norb1=orbs%norb_par(min(jproc+1,nproc-1),0)
     if (norb0/=norb1 .or. jproc==nproc-1) then
-        call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norb0,fmt='(i0)')
+        if (print_all) then
+            call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//&
+              &trim(yaml_toa(jproc,fmt='(i0)')),norb0,fmt='(i0)')
+        end if
+        minn=min(minn,norb0)
+        maxn=max(maxn,norb0)
         jpst=jproc+1
     end if
-
+    avn=avn+real(norb0,kind=8)
     !!if(orbs%norb_par(jproc,0)<orbs%norb_par(jproc-1,0)) then
     !!    len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(orbs%norb_par(jproc-1,0)+1.d-5)))
     !!    len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
@@ -985,6 +998,10 @@ do jproc=0,nproc-1
     !!    exit
     !!end if
 end do
+avn=avn/real(nproc,kind=8)
+call yaml_map('Minimum ',minn,fmt='(i0)')
+call yaml_map('Maximum ',maxn,fmt='(i0)')
+call yaml_map('Average ',avn,fmt='(f8.1)')
 call yaml_mapping_close()
 !!if(.not.written) then
 !!    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
@@ -1190,11 +1207,12 @@ subroutine analyze_wavefunctions(output, region, lzd, orbs, npsidim, psi, ioffse
   use module_base
   use module_types
   use yaml_output
+  use bounds, only: locreg_bounds
   implicit none
 
   ! Calling arguments
   character(len=*),intent(in) :: output, region
-  type(local_zone_descriptors),intent(in) :: lzd
+  type(local_zone_descriptors),intent(inout) :: lzd
   type(orbitals_data),intent(in) :: orbs
   integer,intent(in) :: npsidim
   real(kind=8),dimension(npsidim),intent(in) :: psi

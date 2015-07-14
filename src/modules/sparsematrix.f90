@@ -38,6 +38,7 @@ module sparsematrix
   public :: matrix_matrix_mult_wrapper
   public :: trace_sparse
   public :: delete_coupling_terms
+  public :: synchronize_matrix_taskgroups
 
 
   interface compress_matrix_distributed_wrapper
@@ -1064,7 +1065,7 @@ module sparsematrix
      !real(kind=8),dimension(:),allocatable :: b_dense, c_dense
      integer,parameter :: MATMUL_NEW = 101
      integer,parameter :: MATMUL_OLD = 102
-     integer,parameter :: matmul_version = MATMUL_NEW!OLD!NEW
+     integer,parameter :: matmul_version = MATMUL_NEW
      logical,parameter :: count_flops = .false.
      real(kind=8) :: ts, te, op, gflops
      real(kind=8),parameter :: flop_per_op = 2.d0 !<number of FLOPS per operations
@@ -1087,7 +1088,7 @@ module sparsematrix
              ts = mpi_wtime()
          end if
          !$omp parallel default(private) shared(smat, a_seq, b, c)
-         !$omp do schedule(guided)
+         !$omp do !!!schedule(guided)
          do iout=1,smat%smmm%nout
              i=smat%smmm%onedimindices_new(1,iout)
              nblock=smat%smmm%onedimindices_new(4,iout)
@@ -1097,7 +1098,9 @@ module sparsematrix
                  jorb = smat%smmm%consecutive_lookup(1,iblock,iout)
                  jjorb = smat%smmm%consecutive_lookup(2,iblock,iout)
                  ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
-                 tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
+        !         tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
+                 !avoid calling ddot from OpenMP region on BG/Q as too expensive
+                 tt0=tt0+my_dot(ncount,b(jjorb:jjorb+ncount-1),a_seq(jorb:jorb+ncount-1))
              end do
 
              c(i) = tt0
@@ -1167,6 +1170,22 @@ module sparsematrix
    
      call timing(bigdft_mpi%iproc, 'sparse_matmul ', 'RS')
      call f_release_routine()
+
+        contains
+
+     pure function my_dot(n,x,y) result(tt)
+       implicit none
+       integer , intent(in) :: n
+       double precision :: tt
+       double precision, dimension(n), intent(in) :: x,y
+       !local variables
+       integer :: i
+
+       tt=0.d0
+       do i=1,n
+          tt=tt+x(i)*y(i)
+       end do
+     end function
        
    end subroutine sparsemm_new
 
@@ -1844,5 +1863,65 @@ module sparsematrix
       call extract_taskgroup(smat, fullmat_compr, mat_compr)
 
    end subroutine delete_coupling_terms
+
+
+    subroutine synchronize_matrix_taskgroups(iproc, nproc, smat, mat)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      implicit none
+    
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc
+      type(sparse_matrix),intent(in) :: smat
+      type(matrices),intent(in) :: mat
+    
+      ! Local variables
+      integer :: ncount, itg, iitg, ispin, ishift, ist_send, ist_recv
+      integer,dimension(:),allocatable :: request
+      real(kind=8),dimension(:),allocatable :: recvbuf
+    
+      if (nproc>1) then
+          request = f_malloc(smat%ntaskgroupp,id='request')
+          ncount = 0
+          do itg=1,smat%ntaskgroupp
+              iitg = smat%taskgroupid(itg)
+              ncount = ncount + smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+          end do
+          recvbuf = f_malloc(ncount,id='recvbuf')
+          do ispin=1,smat%nspin
+              ishift = (ispin-1)*smat%nvctrp_tg
+    
+              ncount = 0
+              do itg=1,smat%ntaskgroupp
+                  iitg = smat%taskgroupid(itg)
+                  ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+                  ist_recv = ncount + 1
+                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+                  !!call mpi_iallreduce(mat%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
+                  !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
+                  if (nproc>1) then
+                      call mpiiallred(mat%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
+                           mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
+                  else
+                      call vcopy(ncount, mat%matrix_compr(ishift+ist_send), 1, recvbuf(ist_recv), 1)
+                  end if
+              end do
+              if (nproc>1) then
+                  call mpiwaitall(smat%ntaskgroupp, request)
+              end if
+              ncount = 0
+              do itg=1,smat%ntaskgroupp
+                  iitg = smat%taskgroupid(itg)
+                  ist_send = smat%taskgroup_startend(1,1,iitg) - smat%isvctrp_tg
+                  ist_recv = ncount + 1
+                  ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
+                  !call vcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
+                  call dcopy(ncount, recvbuf(ist_recv), 1, mat%matrix_compr(ishift+ist_send), 1)
+              end do
+          end do
+          call f_free(request)
+          call f_free(recvbuf)
+      end if
+    end subroutine synchronize_matrix_taskgroups
 
 end module sparsematrix
