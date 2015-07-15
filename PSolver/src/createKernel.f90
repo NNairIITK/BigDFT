@@ -1538,8 +1538,8 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
   !c..local variables
   integer :: n,m,n_cell
   integer :: i,j,ib,i1,i2,i3,ii
-  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-  real(kind=8) :: hx,hy,hz,d1,d2,d3
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
+  real(kind=8) :: hx,hy,hz,d1
   real(kind=8), parameter :: zero = 0.d0! 1.0d-11
   logical :: perx,pery,perz
 
@@ -1581,6 +1581,10 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
 
   include 'FiniteDiffCorff.inc'
 
+  c1D_1 = c1D/hx
+  c1D_2 = c1D/hy
+  c1D_3 = c1D/hz
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d1) 
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
@@ -1592,96 +1596,111 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
               if (perx) then
                do j=-m,m
                 ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-                d1 = d1 + c1D(j,0)*u(ii,i2,i3,1)!/hx
+                d1 = d1 + c1D_1(j,0)*u(ii,i2,i3,1)
                end do
               else
                do j=-m,m
-                 d1 = d1 + c1D(j,i1-m-1)*u(j+m+1,i2,i3,1)!/hx
+                 d1 = d1 + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3,1)
                end do
               end if
            else if (i1.gt.n01-m) then
               if (perx) then
                do j=-m,m
                 ii=modulo(i1 + j - 1, n01 ) + 1
-                d1 = d1 + c1D(j,0)*u(ii,i2,i3,1)!/hx
+                d1 = d1 + c1D_1(j,0)*u(ii,i2,i3,1)
                end do
               else
                do j=-m,m
-                 d1 = d1 + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,1)!/hx
+                 d1 = d1 + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3,1)
                end do
               end if
            else
               do j=-m,m
-                 d1 = d1 + c1D(j,0)*u(i1 + j,i2,i3,1)!/hx
+                 d1 = d1 + c1D_1(j,0)*u(i1 + j,i2,i3,1)
               end do
            end if
-           d1=d1/hx
 
-           d2 = 0.d0
+        du(i1,i2,i3) =d1
+        end do
+     end do
+  end do
+  !$omp end parallel do
+
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d1) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           d1=0.d0
            if (i2.le.m) then
               if (pery) then
                do j=-m,m
                 ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-                d2 = d2 + c1D(j,0)*u(i1,ii,i3,2)!/hy
+                d1 = d1 + c1D_2(j,0)*u(i1,ii,i3,2)
                end do
               else
                do j=-m,m
-                 d2 = d2 + c1D(j,i2-m-1)*u(i1,j+m+1,i3,2)!/hy
+                 d1 = d1 + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3,2)
                end do
               end if
            else if (i2.gt.n02-m) then
               if (pery) then
                do j=-m,m
                 ii=modulo(i2 + j - 1, n02 ) + 1
-                d2 = d2 + c1D(j,0)*u(i1,ii,i3,2)!/hy
+                d1 = d1 + c1D_2(j,0)*u(i1,ii,i3,2)
                end do
               else
                do j=-m,m
-                 d2 = d2 + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,2)!/hy
+                 d1 = d1 + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3,2)
                end do
               end if
            else
               do j=-m,m
-                 d2 = d2 + c1D(j,0)*u(i1,i2 + j,i3,2)!/hy
+                 d1 = d1 + c1D_2(j,0)*u(i1,i2 + j,i3,2)
               end do
            end if
-           d2=d2/hy
+          du(i1,i2,i3) = du(i1,i2,i3) + d1
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
-           d3 = 0.d0
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d1) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           d1=0.d0
            if (i3.le.m) then
               if (perz) then
                do j=-m,m
                 ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-                d3 = d3 + c1D(j,0)*u(i1,i2,ii,3)!/hz
+                d1 = d1 + c1D_3(j,0)*u(i1,i2,ii,3)
                end do
               else
                do j=-m,m
-                 d3 = d3 + c1D(j,i3-m-1)*u(i1,i2,j+m+1,3)!/hz
+                 d1 = d1 + c1D_3(j,i3-m-1)*u(i1,i2,j+m+1,3)
                end do
               end if
            else if (i3.gt.n03-m) then
               if (perz) then
                do j=-m,m
                 ii=modulo(i3 + j - 1, n03 ) + 1
-                d3 = d3 + c1D(j,0)*u(i1,i2,ii,3)!/hz
+                d1 = d1 + c1D_3(j,0)*u(i1,i2,ii,3)
                end do
               else
                do j=-m,m
-                d3 = d3 + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m,3)!/hz
+                d1 = d1 + c1D_3(j,i3-n03+m)*u(i1,i2,n03 + j - m,3)
                end do
               end if
            else
               do j=-m,m
-                 d3 = d3 + c1D(j,0)*u(i1,i2,i3 + j,3)!/hz
+                 d1 = d1 + c1D_3(j,0)*u(i1,i2,i3 + j,3)
               end do
            end if
-           d3=d3/hz
-
-           du(i1,i2,i3) = d1+d2+d3
-
+           du(i1,i2,i3) = du(i1,i2,i3)+d1
         end do
      end do
   end do
+  !$omp end parallel do
 
 end subroutine fssnord3DmatDiv3var_LG
 
