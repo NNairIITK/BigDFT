@@ -273,7 +273,6 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   use yaml_output
   use module_fragments
   !use internal_io
-  use module_interfaces, except_this_one => calc_transfer_integral
   use sparsematrix_base, only: sparse_matrix
   implicit none
 
@@ -348,7 +347,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   use yaml_output
   use module_fragments
   !use internal_io
-  use module_interfaces, except_this_one => calc_site_energies_transfer_integrals
+  !use module_interfaces, except_this_one => calc_site_energies_transfer_integrals
   use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=)
   use sparsematrix, only: uncompress_matrix, uncompress_matrix2
@@ -480,7 +479,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
            if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
               write(str,'(I2)') abs(ih-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp))
               !if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO-'//trim(adjustl(str))
-              if (iproc==0) call yaml_map('state','HOMO-'//trim(adjustl(str)))
+              if (iproc==0) call yaml_map('state','HOMO-'+str)
            else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
               !if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO'
               if (iproc==0) call yaml_map('state','HOMO')
@@ -490,7 +489,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
            else
               write(str,'(I2)') ih-1-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)
               !if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO+'//trim(adjustl(str))
-              if (iproc==0) call yaml_map('state','LUMO+'//trim(adjustl(str)))
+              if (iproc==0) call yaml_map('state','LUMO+'+str)
            end if
            !if (iproc==0) write(*,'(1x,5(F20.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
            !     ref_frags(ifrag_ref)%eval(ih), homo_ovrlp(istate), homo_ovrlp_orthog(istate)
@@ -600,7 +599,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
                        !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO-'//trim(adjustl(str))
                        call yaml_map('label',trim(input_frag%label(ifrag_ref1)))
                        call yaml_map('i',ifrag)
-                       call yaml_map('s1','HOMO-'//trim(adjustl(str)))
+                       call yaml_map('s1','HOMO-'+str)
                     else if (ih==0) then
                        !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO  '
                        call yaml_map('label',trim(input_frag%label(ifrag_ref1)))
@@ -616,7 +615,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
                        !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO+'//trim(adjustl(str))
                        call yaml_map('label',trim(input_frag%label(ifrag_ref1)))
                        call yaml_map('i',ifrag)
-                       call yaml_map('s1','LUMO+'//trim(adjustl(str)))
+                       call yaml_map('s1','LUMO+'+str)
                     end if
                  end if
 
@@ -627,7 +626,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
                        !     ' HOMO-'//trim(adjustl(str))
                        call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
                        call yaml_map('j',jfrag)
-                       call yaml_map('s1','HOMO-'//trim(adjustl(str)))
+                       call yaml_map('s1','HOMO-'+str)
                     else if (jh==0) then
                        !write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' HOMO  '
                        call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
@@ -644,7 +643,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
                        !     ' LUMO+'//trim(adjustl(str))
                        call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
                        call yaml_map('j',jfrag)
-                       call yaml_map('s1','LUMO+'//trim(adjustl(str)))
+                       call yaml_map('s1','LUMO+'+str)
                     end if
                  end if
 

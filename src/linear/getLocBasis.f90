@@ -1719,7 +1719,7 @@ end subroutine large_to_small_locreg
 subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, orbs, lphi, collcom_sr)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => communicate_basis_for_density_collective
+  !use module_interfaces, except_this_one => communicate_basis_for_density_collective
   use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
   implicit none
   
@@ -2542,7 +2542,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => purify_kernel
+  use module_interfaces
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), matrices, &
@@ -2944,7 +2944,6 @@ end subroutine purify_kernel
 subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => get_KS_residue
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)

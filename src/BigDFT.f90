@@ -55,6 +55,7 @@ program BigDFT
     
       !if (runObj%run_mode /='QM_RUN_MODE')then
       if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
+      if (bigdft_mpi%iproc ==0 ) call yaml_map('Force Norm (Hartree/Bohr)',sqrt(sum(outs%fxyz**2)),fmt='(es24.17)')
       !endif
          if (runObj%inputs%ncount_cluster_x > 1) then
             if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)

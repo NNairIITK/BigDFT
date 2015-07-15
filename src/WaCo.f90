@@ -1480,6 +1480,7 @@ subroutine read_umn(iproc,nwann,nband,seedname,umn)
   use module_defs, only: gp
    use module_types
    use yaml_output
+   use yaml_strings
    implicit none
    integer, intent(in) :: iproc
    integer, intent(in) :: nwann, nband
@@ -1514,10 +1515,10 @@ subroutine read_umn(iproc,nwann,nband,seedname,umn)
 
    if(nwann_umn .ne. nwann .or. nband_umn .ne. nband) then
      if(iproc == 0) then
-       call yaml_warning('Number of wannier functions in umn,' // trim(yaml_toa(nwann_umn)) // &
-          & 'not equal number of Wannier functions used:' // trim(yaml_toa(nwann)))
-       call yaml_warning('Number of orbitals in umn,' // trim(yaml_toa(nband_umn)) // &
-          & 'not equal number of orbitals used:' // trim(yaml_toa(nband)))
+       call yaml_warning('Number of wannier functions in umn,' // nwann_umn // &
+          & 'not equal number of Wannier functions used:' // nwann)
+       call yaml_warning('Number of orbitals in umn,' // nband_umn // &
+          & 'not equal number of orbitals used:' // nband)
        !write(*,'(A,I4)') 'ERROR : number of wannier functions in umn,',nwann_umn
        !write(*,'(A,I4)') 'not equal number of Wannier functions used:',nwann
        !write(*,'(A,I4)') 'ERROR : number of orbitals in umn,',nband_umn

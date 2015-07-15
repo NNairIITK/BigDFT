@@ -238,7 +238,7 @@ contains
 
   !> routine to build dictionary of fragment for purposes of backward compatibility with the old format
   subroutine dict_from_frag(frag,dict_frag)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     use dictionaries, dict_set => set
     implicit none
     type(fragmentInputParameters), intent(in) :: frag

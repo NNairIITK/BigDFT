@@ -585,7 +585,6 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, except_this_one_A => density_descriptors
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   type(xc_info), intent(in) :: xc

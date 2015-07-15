@@ -753,7 +753,7 @@ module locregs_init
       !$omp firstprivate(ithread, ivctr, jvctr, kvctr, nvctr, nstart, nend, segment) &
       !$omp private(iseg, j0, j1, ii, i3, i2, i1, i0, ii2, ii3, dz, dy, igridgloba, jj1) &
       !$omp private(i, ii1, dx, i1l, igridglob, inside, ij3, jj3, ij2, jj2, ij1, i2l, i3l) &
-      !$omp private(ii1mod, ii2mod, ii3mod, igridpoint, offset, j, kthread)
+      !$omp private(ii1mod, ii2mod, ii3mod, igridpoint, offset, j, kthread,jthread)
       !jj1, )
       !$ ithread = omp_get_thread_num()
       do iseg=ise(1,ithread),ise(2,ithread)

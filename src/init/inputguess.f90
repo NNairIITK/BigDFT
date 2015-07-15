@@ -763,7 +763,7 @@ END SUBROUTINE AtomicOrbitals
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
    use module_base
    !use module_types, only: f_err_throw, BIGDFT_RUNTIME_ERROR
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    integer, intent(in) :: l,ng
    real(gp), dimension(ng), intent(in) :: xp,psiat
@@ -830,7 +830,7 @@ END SUBROUTINE atomkin
 
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
    use module_base
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    integer, intent(in) :: l,m,nterm_max
    integer, intent(out) :: nterm
@@ -1154,7 +1154,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,nintp,&
       &   aeval,ng,psi,res,chrg,iorder)
    use module_base, only: gp,f_err_throw,BIGDFT_RUNTIME_ERROR,safe_exp
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    integer, parameter :: n_int=100
    !Arguments
@@ -1679,7 +1679,7 @@ END SUBROUTINE resid
 
 subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
    use module_base, only: gp,f_err_throw,BIGDFT_RUNTIME_ERROR,safe_exp
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    !implicit real(gp) (a-h,o-z)
    !Arguments
@@ -1836,7 +1836,7 @@ END FUNCTION emuxc
 !> Restricted version of the Gamma function
 function gamma_restricted(x)
    use module_base, only: gp,f_err_throw,BIGDFT_RUNTIME_ERROR
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    !Arguments
    real(gp), intent(in) :: x

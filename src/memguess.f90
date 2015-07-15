@@ -1504,7 +1504,6 @@ END PROGRAM memguess
 subroutine optimise_volume(atoms,crmult,frmult,hx,hy,hz,rxyz)
    use module_base
    use module_types
-   use module_interfaces, only: system_size
    implicit none
    type(atoms_data), intent(inout) :: atoms
    real(gp), intent(in) :: crmult,frmult

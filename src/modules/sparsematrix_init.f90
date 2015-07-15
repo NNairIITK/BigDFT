@@ -39,9 +39,7 @@ module sparsematrix_init
 contains
 
     subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat, smat_ref)
-      use module_base
       use module_types
-      use module_interfaces
       implicit none
     
       ! Calling arguments
@@ -114,7 +112,6 @@ contains
 
 
     integer function matrixindex_in_compressed(sparsemat, iorb, jorb, init_, n_)
-      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -184,6 +181,7 @@ contains
 
       ! Function that gives the index of the matrix element (jjorb,iiorb) in the compressed format.
       integer function compressed_index_fn(irow, jcol, norb, sparsemat)
+        use sparsematrix_base
         implicit none
       
         ! Calling arguments
@@ -1047,10 +1045,7 @@ contains
 
     end subroutine init_sparse_matrix_matrix_multiplication_new
 
-
-
     subroutine init_line_and_column(nvctrp, isvctr, nseg, keyv, keyg, line_and_column)
-      use module_base
       implicit none
 
       ! Calling arguments
@@ -1268,6 +1263,7 @@ contains
                on_which_atom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
                allocate_full_, print_info_)
       use yaml_output
+      use yaml_strings, only: yaml_toa
       implicit none
       
       ! Calling arguments
@@ -2424,7 +2420,6 @@ contains
 
 
     subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat, iirow, iicol)
-      use module_base
       use module_types
       use communications_base, only: comms_linear
       use yaml_output
@@ -3583,7 +3578,6 @@ contains
 
 
     subroutine check_local_matrix_extents(iproc, nproc, collcom, collcom_sr, smat, irow, icol)
-          use module_base
           use module_types
           use communications_base, only: comms_linear
           use yaml_output
@@ -4172,7 +4166,6 @@ contains
       close(iunit)
     end subroutine read_ccs_format
 
-
     subroutine read_bigdft_format(filename, nfvctr, nvctr, nseg, keyv, keyg, val)
       implicit none
 
@@ -4212,11 +4205,8 @@ contains
       close(iunit)
     end subroutine read_bigdft_format
 
-
     subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
-          use module_base
           use module_types
-          use module_interfaces
           use locregs, only: check_overlap_cubic_periodic
           use locregs_init, only: check_overlap_from_descriptors_periodic
           implicit none
@@ -4340,7 +4330,6 @@ contains
 
 
     subroutine determine_sparsity_pattern_distance(orbs, lzd, astruct, cutoff, nnonzero, nonzero, smat_ref)
-      use module_base
       use module_types
       implicit none
     
@@ -4537,9 +4526,8 @@ contains
 
     !> Initializes a sparse matrix type compatible with the ditribution of the KS orbitals
     subroutine init_sparse_matrix_for_KSorbs(iproc, nproc, orbs, input, geocode, nextra, smat, smat_extra)
-      use module_base
       use module_types
-      use module_interfaces
+      use module_interfaces, only: orbitals_descriptors
       use public_enums
       implicit none
     
@@ -4672,7 +4660,6 @@ contains
     !! given distribution of the orbitals (or a similar quantity), this subroutine
     !! redistributes the orbitals such that the load unbalancing is optimal
     subroutine redistribute(nproc, norb, workload, workload_ideal, norb_par)
-      use module_base
       implicit none
     
       ! Calling arguments

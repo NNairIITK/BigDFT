@@ -1201,7 +1201,7 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
       real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
       integer,intent(out),optional :: nat, ntypes
       integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
-      character(len=*),dimension(:),pointer,intent(inout),optional :: atomnames
+      character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
       real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
       integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
 

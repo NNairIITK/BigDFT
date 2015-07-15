@@ -1074,7 +1074,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
            energy,coeff,orbs,tmb_orbs,calculate_kernel)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => calculate_kernel_and_energy
+  use module_interfaces, only: calculate_density_kernel
   use sparsematrix_base, only: sparse_matrix
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace

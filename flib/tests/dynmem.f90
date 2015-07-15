@@ -14,6 +14,8 @@ subroutine test_dynamic_memory()
    use dynamic_memory
    use dictionaries
    use metadata_interfaces, only: getdp2
+   use yaml_strings
+   use f_precisions
    implicit none
 
    type :: dummy_type
@@ -52,6 +54,28 @@ subroutine test_dynamic_memory()
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
 
+  call yaml_comment('testing aliasing on pointer sections',hfill='TEST')
+   i1_ptr = f_malloc0_ptr(100,id='i1ptr')
+
+   ptr1 => i1_ptr(50:55)
+
+   ptr1 = ptr1+3
+
+   call yaml_map('Ptr1 Lbound',lbound(ptr1))
+   call yaml_map('Ptr1 Ubound',ubound(ptr1))
+   call yaml_map('Ptr1 Size',size(ptr1))
+
+   call yaml_map('data in original position',i1_ptr(45:60))
+
+   call yaml_map('Predicted address for the starting point of ptr1',f_loc(i1_ptr)+kind(i1_ptr)*49)
+
+   call yaml_map('Actual address of first element of ptr1',f_loc(ptr1(1)))
+   call yaml_map('address of first element vs address of objects',[f_loc(i1_ptr),f_loc(i1_ptr(1))])
+   call yaml_map('address of first element vs address of objects',[f_loc(ptr1),f_loc(ptr1(1))])
+
+   call yaml_map('Address differences',f_loc(ptr1)-f_loc(i1_ptr))
+
+
    i1_all=f_malloc(0,id='i1_all')
    call yaml_map('Address of first element',f_loc(i1_all))
 !   call yaml_map('Address of first element, explicit',f_loc(i1_all(1)))
@@ -59,6 +83,7 @@ subroutine test_dynamic_memory()
    nullify(ptr1,ptr2)
    call yaml_map('Associated',(/associated(ptr1),associated(ptr2)/))
 
+   call f_purge_database(int(size(i1_ptr),f_long),kind(i1_ptr),f_loc(i1_ptr))
    i1_ptr=f_malloc_ptr(0,id='i1_ptr')
 
    ptr1=>i1_ptr
@@ -212,7 +237,7 @@ call f_free(weight)
      str_arr=f_malloc0_str(len(str_arr),4,id='str_arr')
 
      do i=1,size(str_arr)
-        str_arr(i)='hello, arr'//trim(yaml_toa(i))
+        str_arr(i)='hello, arr'//i
      end do
 
      call yaml_map('String array values',str_arr)
@@ -224,7 +249,7 @@ call f_free(weight)
      str_ptr=f_malloc0_str_ptr(len(str_arr),4,id='str_ptr')
 
      do i=1,size(str_ptr)
-        str_ptr(i)='hello, ptr'//trim(yaml_toa(i))
+        str_ptr(i)='hello, ptr'//i
      end do
 
      call yaml_map('String pointer values',str_ptr)
@@ -483,6 +508,7 @@ end subroutine test_dynamic_memory
 !! in order to verify if the memory statis is in agreement with the process usage
 subroutine verify_heap_allocation_status()
   use yaml_output
+  use yaml_strings
   use dynamic_memory
   use dictionaries, only: f_loc
   implicit none
@@ -542,9 +568,9 @@ subroutine verify_heap_allocation_status()
         if (traditional) then
            allocate(pool(ibuf)%buffer(nsize))
            call f_update_database(int(nsize,kind=8),kind(1.d0),1,f_loc(pool(ibuf)%buffer),&
-                'buf'//trim(adjustl(yaml_toa(ibuf))),subname)
+                'buf'+ibuf,subname)
         else
-           pool(ibuf)%buffer=f_malloc_ptr(nsize,id='buf'//trim(adjustl(yaml_toa(ibuf))))
+           pool(ibuf)%buffer=f_malloc_ptr(nsize,id='buf'+ibuf)
         end if
         do i=1,nsize
            call random_number(tt)
@@ -563,7 +589,7 @@ subroutine verify_heap_allocation_status()
         chk=-sum(pool(ibuf)%buffer)
         if (traditional) then
            call f_purge_database(int(nsize,kind=8),kind(1.d0),f_loc(pool(ibuf)%buffer),&
-                'buf'//trim(adjustl(yaml_toa(ibuf))),subname)
+                'buf'+ibuf,subname)
            deallocate(pool(ibuf)%buffer)
         else
            call f_free_ptr(pool(ibuf)%buffer)

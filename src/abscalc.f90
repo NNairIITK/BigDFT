@@ -168,7 +168,8 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use communications_init, only: orbitals_communicators
    use ao_inguess, only: set_aocc_from_string
    use gaussians, only: gaussian_basis
-   use yaml_output, only: yaml_warning,yaml_toa
+   use yaml_output, only: yaml_warning
+   use yaml_strings, only: yaml_toa
    use psp_projectors_base, only: free_DFT_PSP_projectors
    use public_enums, only: LINEAR_PARTITION_NONE
    use module_input_keys, only: print_dft_parameters

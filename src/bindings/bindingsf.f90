@@ -528,6 +528,7 @@ subroutine inputs_free(in)
 
   call free_input_variables(in)
   deallocate(in)
+  nullify(in)
 end subroutine inputs_free
 
 

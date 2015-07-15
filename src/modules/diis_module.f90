@@ -82,7 +82,7 @@ contains
 
   !> fill the diis matrices with the error of the previous step
   subroutine DIIS_update_errors(ngrp,isgrp,ngrpp,ncomp_grp,ndim_psi,psi,hpsi,diis)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none 
     integer, intent(in) :: ngrp,isgrp,ngrpp
     integer, intent(in) :: ndim_psi !< should be greater or equal to sum(ncomp_grp(isgrp+1:isgrp+ngrpp)
@@ -117,7 +117,7 @@ contains
 
   !> fill the psi array with the diis combination of previous errors
   subroutine DIIS_update_psi(ngrp,isgrp,ngrpp,ncomp_grp,ndim_psi,psi,diis)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none 
     integer, intent(in) :: ngrp,isgrp,ngrpp
     integer, intent(in) :: ndim_psi !< should be greater or equal to sum(ncomp_grp(isgrp+1:isgrp+ngrpp)
@@ -149,7 +149,7 @@ contains
   !! vectors (preconditioned gradients) hpsidst
   subroutine diis_step(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,diis)
     use module_types
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none
     ! Arguments
     integer, intent(in) :: nproc,iproc,ngrp,isgrp,ngrpp
