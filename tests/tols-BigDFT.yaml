@@ -589,7 +589,7 @@ molecule_dmin:
  eBS: 7.2e-9
  e: 1.4e-10
  Average noise forces: 4.1e-11
- Energy (Hartree): 5.0e-11
+ Energy (Hartree): 6.0e-11
 
 molecule_foe:
  Enl: 6.6e-9
@@ -602,14 +602,14 @@ molecule_foe:
  energy: 6.9e-10
  Omega: 8.6e-9
  Total charge: 2.5e-10
- eF: 6.0e-9
- guess for new ef: 6.0e-9
- D eF: 6.6e-9
+ eF: 7.2e-9
+ guess for new ef: 7.0e-9
+ D eF: 7.2e-9
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
- ebs_check: 5.0e-10
- ebs: 5.0e-10
+ ebs_check: 9.4e-10
+ ebs: 9.3e-10
  Energy (Hartree): 5.1e-11
  diff: 1.7e-11
 
@@ -666,8 +666,8 @@ fructose:
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
  Energy (Hartree): 4.9e-11
- Charge analysis (charge / net charge): 5.9e-11
- Pseudo Fermi level for occupations: 5.9e-11
+ Charge analysis (charge / net charge): 4.1e-10
+ Pseudo Fermi level for occupations: 1.8e-10
  net charge: 1.1e-9
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
@@ -717,7 +717,7 @@ water_foe:
  eF: 2.4e-8
  D eF: 2.3e-8
  D Tr: 1.1e-9
- guess for new ef: 4.1e-9
+ guess for new ef: 6.0e-9
  Tr(K): 1.1e-7
  ebs_check: 1.6e-11
  Energy (Hartree): 5.0e-11
@@ -730,6 +730,8 @@ water_dirmin:
  EvXC: 1.1e-10
  EH: 1.1e-9
  Epot: 1.1e-9
+ Enl: 1.1e-10
+ eBS: 1.5e-11
  energy: 1.7e-10
  Omega: 1.7e-10
  etot: 1.7e-10
@@ -744,6 +746,7 @@ water_mixdens:
  EXC: 1.1e-10
  EH: 1.0e-9
  Epot: 1.1e-9
+ Enl: 1.1e-10
  D: 1.1e-9
  max alpha: 1.1e-4
  mean alpha: 1.1e-4
@@ -800,7 +803,7 @@ deltascf_write_neut:
  Enl: 4.1e-9
  energy: 2.4e-10
  D: 6.1e-9
- Energy (Hartree): 4.6e-11
+ Energy (Hartree): 4.9e-11
 
 foe:
  Epot: 1.1e-10
@@ -966,10 +969,10 @@ paracetamol:
  Omega: 1.1e-9
  energy: 1.5e-10
  Total charge: 2.1e-11
- charge diff: 2.0e-6
+ charge diff: 3.3e-6
  D eF: 1.6e-6
- Tr(K): 2.0e-6
- D Tr: 1.9e-6
+ Tr(K): 3.3e-6
+ D Tr: 3.2e-6
  tr(KS) before purification: 1.6e-6
  guess for new ef: 7.5e-7
  ebs_check: 9.1e-9
@@ -977,6 +980,7 @@ paracetamol:
  diff: 7.5e-7
  relative diff: 1.9e-6
  Energy (Hartree): 1.3e-11
+ mean conf prefac: 1.1e-5
 
 reformatcomplete_read35:
  energy: 8.7e-10
@@ -1059,7 +1063,7 @@ reformat_read:
  Raw forces norm (Ha/Bohr): 3.6e-9
  e: 5.3e-10
  Positions: 3.5e-09
- Energy (Hartree): 3.3e-11
+ Energy (Hartree): 3.5e-11
 
 reformat_write:
  Kohn-Sham residue: 4.1e-4
@@ -1623,6 +1627,8 @@ igortho_19:
  Energy (Hartree): 1.4e-9
  Multipole coefficients: 1.1e-6
  Charge analysis (charge / net charge): 4.1e-7
+ Pseudo Fermi level for occupations: 2.0e-8
+ net charge: 1.0e-8
  Average noise forces: 7.8e-7
  eF: 2.2e-5
  EXC: 1.6e-6
@@ -1678,6 +1684,9 @@ igortho_44:
  energy: 6.6e-07
  Omega: 3.0e-10
  Charge analysis (charge / net charge): 1.4e-6
+ Pseudo Fermi level for occupations: 4.7e-7
+ net charge: 4.3e-8
+ eval: 1.1e-5
  Multipole coefficients: 1.4e-6
  number of corrected points: 8
  net quadropole: 7.1e-5
@@ -1722,6 +1731,9 @@ igortho_94:
  energy: 2.4e-8
  Omega: 1.1e-8
  Charge analysis (charge / net charge): 2.0e-6
+ Pseudo Fermi level for occupations: 3.8e-8
+ net charge: 1.0e-7
+ eval: 1.1e-7
  Multipole coefficients: 1.2e-5
  number of corrected points: 83
  delta: 4.1e-11
