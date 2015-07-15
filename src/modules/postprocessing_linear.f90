@@ -1800,7 +1800,6 @@ module postprocessing_linear
 
 
       ! Determine the periodicity...
-      write(*,*) 'smats%geocode',smats%geocode
       perx=(smats%geocode /= 'F')
       pery=(smats%geocode == 'P')
       perz=(smats%geocode /= 'F')

@@ -58,7 +58,7 @@ program utilities
 
 
    !Time initialization
-   call f_timing_reset(filename='time.yaml',master=(bigdft_mpi%iproc==0),verbose_mode=(.true..and.bigdft_mpi%nproc>1))
+   call f_timing_reset(filename='time.yaml',master=(bigdft_mpi%iproc==0),verbose_mode=.false.)
 
 
    if (bigdft_mpi%iproc==0) then
