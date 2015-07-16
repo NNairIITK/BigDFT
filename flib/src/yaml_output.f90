@@ -615,11 +615,12 @@ contains
 
     !here we should print the warnings which have been obtained
     if (associated(streams(strm)%dict_warning)) then
-       call yaml_newline()
-       call yaml_comment('Warnings obtained during the run, check their relevance!',hfill='-')
-       call yaml_dict_dump(streams(strm)%dict_warning,flow=.false.)
+       call yaml_newline(unit=unt)
+       call yaml_comment('Warnings obtained during the run, check their relevance!',hfill='-',unit=unt)
+       call yaml_dict_dump(streams(strm)%dict_warning,flow=.false.,unit=unt)
        call dict_free(streams(strm)%dict_warning)
     end if
+    call yaml_flush_document(unit=unt)
 
     !Initialize the stream, keeping the file unit
     unit_prev=streams(strm)%unit
