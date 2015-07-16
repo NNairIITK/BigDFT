@@ -485,7 +485,7 @@ contains
     end if
 
     if (mpi_env%nproc > 1) call mpibcast(cbuf_len,comm=mpi_env%mpi_comm)
-    fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
+    fbuf=f_malloc0_str(int(1,kind=4),int(cbuf_len),id='fbuf')
 
     if (mpi_env%iproc == 0) then
        call copyCBuffer(fbuf, cbuf, cbuf_len)

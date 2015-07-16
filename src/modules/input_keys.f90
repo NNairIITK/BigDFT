@@ -483,17 +483,20 @@ contains
     use yaml_output
     use dynamic_memory
     use yaml_parse
+    use f_precisions, only: f_integer
     implicit none
     !local variables
-    integer :: params_size
+    integer(f_integer) :: params_size
     !integer(kind = 8) :: cbuf_add !< address of c buffer
     character, dimension(:), allocatable :: params
+
+    call f_routine(id='input_keys_init')
 
     !alternative filling of parameters from hard-coded source file
     !call getstaticinputdef(cbuf_add,params_size)
     call getinputdefsize(params_size)
     !allocate array
-    params=f_malloc_str(1,params_size,id='params')
+    params=f_malloc_str(int(1,kind=4),params_size,id='params')
     !fill it and parse dictionary
     !print *,'after', f_loc(params),f_loc(params(1)),'shape',shape(params),params_size
     !print *,'cbuf_add',cbuf_add
@@ -513,6 +516,8 @@ contains
     
 !!$    !in the case the errors have not been initialized before
 !!$    call input_keys_errors()
+
+    call f_release_routine()
 
   END SUBROUTINE input_keys_init
 
@@ -581,6 +586,7 @@ contains
     !  dict = dict//key
 
     call f_routine(id='inputs_from_dict')
+
 
     ! Atoms case.
     atoms = atoms_data_null()
@@ -1021,6 +1027,7 @@ contains
     type(dictionary), pointer :: tmp
 
     call f_routine(id='input_keys_dump')
+
 
     !new mechanism, to see if it works
 

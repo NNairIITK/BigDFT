@@ -2051,7 +2051,7 @@ subroutine astruct_set_n_types(astruct, ntypes)
   astruct%ntypes = ntypes
 
   ! Allocate geometry related stuff.
-  astruct%atomnames=f_malloc0_str_ptr(len(astruct%atomnames),astruct%ntypes,&
+  astruct%atomnames=f_malloc0_str_ptr(int(len(astruct%atomnames),kind=4),astruct%ntypes,&
        id='atomnames')
 !!$  allocate(astruct%atomnames(astruct%ntypes),stat=i_stat)
 !!$  call memocc(i_stat,astruct%atomnames,'astruct%atomnames',subname)

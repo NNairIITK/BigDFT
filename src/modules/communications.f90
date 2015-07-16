@@ -1323,13 +1323,13 @@ module communications
     
 !!$      allocate(worksend_char(orbs%norbp), stat=istat)
 !!$      call memocc(istat, worksend_char, 'worksend_char', subname)
-      worksend_char= f_malloc_str(len(worksend_char),orbs%norbp,&
+      worksend_char= f_malloc_str(int(len(worksend_char),kind=4),orbs%norbp,&
            id='worksend_char')
       worksend_log = f_malloc(orbs%norbp,id='worksend_log')
       worksend_int = f_malloc((/ 27, orbs%norbp /),id='worksend_int')
       worksend_dbl = f_malloc((/ 6, orbs%norbp /),id='worksend_dbl')
     
-      workrecv_char= f_malloc_str(len(workrecv_char),orbs%norb,&
+      workrecv_char= f_malloc_str(int(len(workrecv_char),kind=4),orbs%norb,&
            id='workrecv_char')
 !!$      allocate(workrecv_char(orbs%norb), stat=istat)
 !!$      call memocc(istat, workrecv_char, 'workrecv_char', subname)

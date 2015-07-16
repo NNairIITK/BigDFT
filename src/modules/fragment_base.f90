@@ -186,10 +186,10 @@ contains
     input_frag%frag_index = f_malloc_ptr(input_frag%nfrag,id='input_frag%frag_index')
     input_frag%charge = f_malloc_ptr(input_frag%nfrag,id='input_frag%charge')
 
-    input_frag%label=f_malloc_str_ptr(len(input_frag%label),&
+    input_frag%label=f_malloc_str_ptr(int(len(input_frag%label),kind=4),&
          input_frag%nfrag_ref,id='input_frag%label')
     !f_malloc0_str_ptr should be used here
-    input_frag%dirname=f_malloc_str_ptr(len(input_frag%dirname),&
+    input_frag%dirname=f_malloc_str_ptr(int(len(input_frag%dirname),kind=4),&
          input_frag%nfrag_ref,id='input_frag%label')
 
     !set the variables to their default value

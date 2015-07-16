@@ -12,7 +12,7 @@
 
   if (present(lbounds)) then
      m%rank=size(lbounds)
-     m%lbounds(1:m%rank)=lbounds
+     m%lbounds(1:m%rank)=int(lbounds,kind=4)
   end if
 
   if (present(sizes)) then
@@ -22,14 +22,14 @@
           'sizes not conformal with lbounds',ERR_INVALID_MALLOC)) then
         return
      end if
-     m%shape(1:m%rank)=sizes
+     m%shape(1:m%rank)=int(sizes,kind=4)
      do i=1,m%rank
-        m%ubounds(i)=m%lbounds(i)+m%shape(i)-1
+        m%ubounds(i)=int(m%lbounds(i),kind=4)+m%shape(i)-1
      end do
      if (present(ubounds)) then
         if (f_err_raise(m%rank/=size(ubounds),'sizes not conformal with ubounds')) return
         do i=1,m%rank
-           if (f_err_raise(m%ubounds(i) /=ubounds(i),&
+           if (f_err_raise(m%ubounds(i) /=int(ubounds(i),kind=4),&
                 'ubounds not conformal with sizes and lbounds',ERR_INVALID_MALLOC)) return
         end do
      end if
@@ -41,7 +41,7 @@
              'ubounds not conformal with lbounds',ERR_INVALID_MALLOC)) then
            return
         end if
-        m%ubounds(1:m%rank)=ubounds
+        m%ubounds(1:m%rank)=int(ubounds,kind=4)
         do i=1,m%rank
            m%shape(i)=m%ubounds(i)-m%lbounds(i)+1
         end do

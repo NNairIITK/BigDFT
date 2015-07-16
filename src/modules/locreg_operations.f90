@@ -213,7 +213,7 @@ module locreg_operations
     !> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
     !! @warning       
     !!    The quantity must not be stored in a compressed form.
-    subroutine global_to_local_parallel(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2, &
+    subroutine global_to_local_parallel(Glr,Llr,size_rho,size_Lrho,rho,Lrho,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2, &
                i1shift, i2shift, i3shift, ise)
     
      use module_base
@@ -225,7 +225,6 @@ module locreg_operations
      type(locreg_descriptors),intent(in) :: Glr   ! Global localization region
      integer, intent(in) :: size_rho  ! size of rho array
      integer, intent(in) :: size_Lrho ! size of Lrho array
-     integer, intent(in) :: nspin  !number of spins
      real(wp),dimension(size_rho),intent(in) :: rho  ! quantity in global region
      real(wp),dimension(size_Lrho),intent(out) :: Lrho ! piece of quantity in local region
      integer,intent(in) :: i1s, i1e, i2s, i2e
@@ -243,7 +242,7 @@ module locreg_operations
     
      !THIS ROUTINE NEEDS OPTIMIZING
     
-     !write(*,'(a,8i8)') 'in global_to_local_parallel: i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2
+     !!write(*,'(a,8i8)') 'in global_to_local_parallel: i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2
      
      ! Cut out a piece of the quantity (rho) from the global region (rho) and
      ! store it in a local region (Lrho).

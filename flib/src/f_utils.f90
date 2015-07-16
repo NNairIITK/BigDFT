@@ -14,6 +14,7 @@ module f_utils
   use dictionaries, only: f_err_throw,f_err_define, &
        & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
   use yaml_strings, only: yaml_toa
+  use module_razero
   implicit none
 
   private
@@ -44,19 +45,23 @@ module f_utils
      module procedure f_diff_d2d3,f_diff_d2d1,f_diff_d1d2,f_diff_d2,f_diff_d1
      module procedure f_diff_i2i1,f_diff_i1,f_diff_i2,f_diff_i1i2
      module procedure f_diff_li2li1,f_diff_li1,f_diff_li2,f_diff_li1li2
-     module procedure f_diff_d0d1,f_diff_i0i1
-     module procedure f_diff_c1i1,f_diff_li0li1,f_diff_c0i1
+     module procedure f_diff_d0d1,f_diff_i0i1, f_diff_li0li1
+     module procedure f_diff_c1i1,f_diff_c0i1
+     module procedure f_diff_c1li1,f_diff_c0li1
   end interface f_diff
 
   !> Initialize to zero an array (should be called f_memset)
   interface f_zero
-     module procedure zero_string,zero_li,zero_i,zero_r,zero_d,zero_l
-     module procedure put_to_zero_simple
+     module procedure zero_string
+     module procedure zero_li,zero_i,zero_r,zero_d,zero_l
+     !module procedure put_to_zero_simple, put_to_zero_long
      module procedure put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2
      module procedure put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5
      module procedure put_to_zero_double_6, put_to_zero_double_7
      module procedure put_to_zero_integer,put_to_zero_integer1,put_to_zero_integer2
      module procedure put_to_zero_integer3
+     module procedure put_to_zero_long,put_to_zero_long1,put_to_zero_long2
+     module procedure put_to_zero_long3
   end interface f_zero
 
   !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
@@ -243,7 +248,7 @@ contains
     character(len=*), intent(in) :: dir !<directory to be created
     character(len=*), intent(out) :: path !<path of the created directory (trailing slash added)
     !local variables
-    integer :: ierr
+    integer(f_integer) :: ierr
     integer(f_integer) :: lin,lout
 
     call f_zero(path)
@@ -666,22 +671,41 @@ contains
     implicit none
     integer, intent(in) :: n
     character, dimension(:),   intent(in) :: a
-    integer, dimension(:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_ci
     call diff_ci(n,a(1),b(1),diff)
   end subroutine f_diff_c1i1
+
+  subroutine f_diff_c1li1(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    character, dimension(:),   intent(in) :: a
+    integer(kind=8), dimension(:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_ci
+    call diff_ci(n,a(1),b(1),diff)
+  end subroutine f_diff_c1li1
 
   subroutine f_diff_c0i1(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
     character(len=*),   intent(in) :: a
-    integer, dimension(:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_ci
     call diff_ci(n,a,b(1),diff)
   end subroutine f_diff_c0i1
 
+  subroutine f_diff_c0li1(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    character(len=*),   intent(in) :: a
+    integer(kind=8), dimension(:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_ci
+    call diff_ci(n,a,b(1),diff)
+  end subroutine f_diff_c0li1
 
   subroutine f_diff_li0li1(n,a,b,diff)
     implicit none
@@ -718,7 +742,7 @@ contains
 
   subroutine zero_i(val)
     implicit none
-    integer, intent(out) :: val
+    integer(kind=4), intent(out) :: val
     val=0
   end subroutine zero_i
 
@@ -763,7 +787,7 @@ contains
     implicit none
     double precision, dimension(:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1)))
     call f_timer_resume()
   end subroutine put_to_zero_double_1
 
@@ -771,7 +795,7 @@ contains
     implicit none
     double precision, dimension(:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2)))
     call f_timer_resume()
   end subroutine put_to_zero_double_2
 
@@ -779,7 +803,7 @@ contains
     implicit none
     double precision, dimension(:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3)))
     call f_timer_resume() 
   end subroutine put_to_zero_double_3
 
@@ -787,7 +811,7 @@ contains
     implicit none
     double precision, dimension(:,:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3),lbound(da,4)))
     call f_timer_resume() 
   end subroutine put_to_zero_double_4
 
@@ -795,7 +819,7 @@ contains
     implicit none
     double precision, dimension(:,:,:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3),lbound(da,4),lbound(da,5)))
     call f_timer_resume() 
   end subroutine put_to_zero_double_5
 
@@ -803,7 +827,7 @@ contains
     implicit none
     double precision, dimension(:,:,:,:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3),lbound(da,4),lbound(da,5),lbound(da,6)))
     call f_timer_resume() 
   end subroutine put_to_zero_double_6
 
@@ -811,14 +835,15 @@ contains
     implicit none
     double precision, dimension(:,:,:,:,:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3),lbound(da,4),lbound(da,5),lbound(da,6),lbound(da,7)))
     call f_timer_resume() 
   end subroutine put_to_zero_double_7
+
 
   subroutine put_to_zero_integer(n,da)
     implicit none
     integer, intent(in) :: n
-    integer, intent(out) :: da
+    integer(kind=4), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
     call razero_integer(n,da)
     call f_timer_resume()
@@ -826,25 +851,60 @@ contains
 
   subroutine put_to_zero_integer1(da)
     implicit none
-    integer, dimension(:), intent(out) :: da
+    integer(kind=4), dimension(:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero_integer(size(da),da)
+    call razero_integer(size(da),da(lbound(da,1)))
     call f_timer_resume()
   end subroutine put_to_zero_integer1
+
   subroutine put_to_zero_integer2(da)
     implicit none
-    integer, dimension(:,:), intent(out) :: da
+    integer(kind=4), dimension(:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero_integer(size(da),da)
+    call razero_integer(size(da),da(lbound(da,1),lbound(da,2)))
     call f_timer_resume()
   end subroutine put_to_zero_integer2
+
   subroutine put_to_zero_integer3(da)
     implicit none
-    integer, dimension(:,:,:), intent(out) :: da
+    integer(kind=4), dimension(:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero_integer(size(da),da)
+    call razero_integer(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3)))
     call f_timer_resume()
   end subroutine put_to_zero_integer3
 
+
+  subroutine put_to_zero_long(n,da)
+    implicit none
+    integer, intent(in) :: n
+    integer(kind=8), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integerlong(n,da)
+    call f_timer_resume()
+  end subroutine put_to_zero_long
+
+  subroutine put_to_zero_long1(da)
+    implicit none
+    integer(kind=8), dimension(:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integerlong(size(da),da(lbound(da,1)))
+    call f_timer_resume()
+  end subroutine put_to_zero_long1
+
+  subroutine put_to_zero_long2(da)
+    implicit none
+    integer(kind=8), dimension(:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integerlong(size(da),da(lbound(da,1),lbound(da,2)))
+    call f_timer_resume()
+  end subroutine put_to_zero_long2
+
+  subroutine put_to_zero_long3(da)
+    implicit none
+    integer(kind=8), dimension(:,:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integerlong(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3)))
+    call f_timer_resume()
+  end subroutine put_to_zero_long3
   
 end module f_utils
