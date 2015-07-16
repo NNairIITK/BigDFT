@@ -256,7 +256,7 @@ end subroutine c1_all
 subroutine f_free_str(length,array)
   use metadata_interfaces, metadata_address => getc1
   implicit none
-  integer, intent(in) :: length !< need to specify length for the declaration below (sometimes fortran runtime error)
+  integer(kind=4), intent(in) :: length !< need to specify length for the declaration below (sometimes fortran runtime error)
   character(len=length), dimension(:), allocatable, intent(inout) :: array
   include 'deallocate-profile-inc.f90' 
   !include 'deallocate-c-inc.f90' 
@@ -989,7 +989,7 @@ end subroutine c1_ptr
 subroutine f_free_str_ptr(length,array)
   use metadata_interfaces, metadata_address => getc1ptr
   implicit none
-  integer, intent(in) :: length
+  integer(kind=4), intent(in) :: length
   character(len=length), dimension(:), pointer, intent(inout) :: array
   include 'deallocate-profile-inc.f90' 
   if (.not. associated(array)) return
