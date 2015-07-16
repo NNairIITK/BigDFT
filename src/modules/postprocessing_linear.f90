@@ -2362,36 +2362,36 @@ module postprocessing_linear
 
 
 
-  subroutine determine_atomic_charges(smat, nat, effective_kernel, charge_per_atom)
-    use module_base
-    use sparsematrix_base, only: sparse_matrix
-    use sparsematrix_init, only: matrixindex_in_compressed
-    implicit none
-  
-    ! Calling arguments
-    type(sparse_matrix),intent(in) :: smat
-    integer,intent(in) :: nat
-    real(kind=8),dimension(smat%nvctr*smat%nspin),intent(in) :: effective_kernel
-    real(kind=8),dimension(nat),intent(out) :: charge_per_atom
-  
-    ! Local variables
-    integer :: ispin, ishift, iorb, iiorb, ind, iat
-  
-    call f_zero(charge_per_atom)
-    
-    do ispin=1,smat%nspin
-        ishift = (ispin-1)*smat%nvctr
-        do iorb=1,smat%nfvctr
-            iiorb = modulo(iorb-1,smat%nfvctr)+1
-            iat = smat%on_which_atom(iiorb)
-            ind = matrixindex_in_compressed(smat, iorb, iorb)
-            ind = ind + ishift
-            !write(*,*) 'iorb, ind, val', iorb, ind, effective_kernel(ind)
-            charge_per_atom(iat) = charge_per_atom(iat) + effective_kernel(ind)
-        end do
-    end do
-  
-  end subroutine determine_atomic_charges
+  !!subroutine determine_atomic_charges(smat, nat, effective_kernel, charge_per_atom)
+  !!  use module_base
+  !!  use sparsematrix_base, only: sparse_matrix
+  !!  use sparsematrix_init, only: matrixindex_in_compressed
+  !!  implicit none
+  !!
+  !!  ! Calling arguments
+  !!  type(sparse_matrix),intent(in) :: smat
+  !!  integer,intent(in) :: nat
+  !!  real(kind=8),dimension(smat%nvctr*smat%nspin),intent(in) :: effective_kernel
+  !!  real(kind=8),dimension(nat),intent(out) :: charge_per_atom
+  !!
+  !!  ! Local variables
+  !!  integer :: ispin, ishift, iorb, iiorb, ind, iat
+  !!
+  !!  call f_zero(charge_per_atom)
+  !!  
+  !!  do ispin=1,smat%nspin
+  !!      ishift = (ispin-1)*smat%nvctr
+  !!      do iorb=1,smat%nfvctr
+  !!          iiorb = modulo(iorb-1,smat%nfvctr)+1
+  !!          iat = smat%on_which_atom(iiorb)
+  !!          ind = matrixindex_in_compressed(smat, iorb, iorb)
+  !!          ind = ind + ishift
+  !!          !write(*,*) 'iorb, ind, val', iorb, ind, effective_kernel(ind)
+  !!          charge_per_atom(iat) = charge_per_atom(iat) + effective_kernel(ind)
+  !!      end do
+  !!  end do
+  !!
+  !!end subroutine determine_atomic_charges
 
 
   subroutine extract_matrix(smat, matrix_compr, neighbor, n, nmax, matrix, ilup)
@@ -2428,7 +2428,7 @@ module postprocessing_linear
                     if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
                     ind =  matrixindex_in_compressed(smat, i, j)
                     if (ind>0) then
-                        matrix(jj,ii) = matrix_compr(ind)
+                        matrix(jj,ii) = matrix_compr(ind-smat%isvctrp_tg)
                     else
                         matrix(jj,ii) = 0.d0
                     end if

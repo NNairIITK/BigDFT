@@ -308,6 +308,7 @@ module orthonormalization
     
     
       if(.not.can_use_transposed) then
+          write(*,*) 'transposing...'
           !!if(associated(psit_c)) then
           !!    call f_free_ptr(psit_c)
           !!end if
@@ -380,17 +381,17 @@ module orthonormalization
           nullify(inv_ovrlp_null)
           ! do sparse.. check later
           !ovrlp%matrix_compr=ovrlp_%matrix_compr
-          tmparr = sparsematrix_malloc(ovrlp,iaction=SPARSE_FULL,id='tmparr')
-          call vcopy(ovrlp%nvctr*ovrlp%nspin, ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
-          call extract_taskgroup_inplace(ovrlp, ovrlp_)
+          !tmparr = sparsematrix_malloc(ovrlp,iaction=SPARSE_FULL,id='tmparr')
+          !call vcopy(ovrlp%nvctr*ovrlp%nspin, ovrlp_%matrix_compr(1), 1, tmparr(1), 1)
+          !call extract_taskgroup_inplace(ovrlp, ovrlp_)
           call overlapPowerGeneral(iproc, nproc, methTransformOverlap, 1, (/-2/), &
                orthpar%blocksize_pdsyev, &
                imode=1, check_accur=.true., &
                ovrlp_mat=ovrlp_, inv_ovrlp_mat=inv_ovrlp_half_, &
                ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
                max_error=max_error, mean_error=mean_error)
-          call vcopy(ovrlp%nvctr*ovrlp%nspin, tmparr(1), 1, ovrlp_%matrix_compr(1), 1)
-          call f_free(tmparr)
+          !call vcopy(ovrlp%nvctr*ovrlp%nspin, tmparr(1), 1, ovrlp_%matrix_compr(1), 1)
+          !call f_free(tmparr)
       end if
     
       ! For the "higher" TMBs: delete off-diagonal elements and
