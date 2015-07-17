@@ -615,7 +615,7 @@ contains
     real(gp) :: ehomo,radfine,rad,maxrad
     type(dictionary), pointer :: radii,dict_psp
     real(gp), dimension(3) :: radii_cf
-    character(len = max_field_length) :: source_val, pspt
+    character(len = max_field_length) :: source_val
 
     call f_routine(id='psp_dict_fill_all')
 
@@ -702,8 +702,7 @@ contains
           end if
        end do
     end if
-    pspt = dict_psp // PSP_TYPE   
-    if (maxrad == 0.0_gp .and. trim(pspt) /= "PAW") then
+    if (maxrad == 0.0_gp) then
        radii_cf(3)=0.0_gp
     else
        radii_cf(3)=max(min(radii_cf(3),projrad*maxrad/frmult),radii_cf(2))
@@ -786,6 +785,7 @@ contains
           call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), &
                & atoms%epsatm(ityp), trim(fpaw), &
                & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%ixcpsp(ityp))
+          atoms%radii_cf(ityp, 3) = atoms%pawtab(ityp)%rpaw
           call libxc_functionals_end()
        end if
     end do
