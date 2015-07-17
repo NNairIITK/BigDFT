@@ -902,11 +902,26 @@ module module_interfaces
 !!$        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
 !!$        real(dp), dimension(max(box%ndimpot,1),nspin), target, intent(in) :: rho
 !!$      END SUBROUTINE plot_density
+      subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoij)
+        use module_defs, only: gp, wp
+        use module_atoms
+        use locregs
+        use module_types
+        implicit none
+        character(len = *), intent(in) :: filename
+        integer, intent(in) :: iproc, nproc
+        type(atoms_data), intent(in) :: at
+        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+        type(locreg_descriptors), intent(in) :: Glr
+        type(orbitals_data), intent(in) :: orbs
+        real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, orbs%norbp), intent(out) :: psig
+        real(wp), dimension(:,:,:), pointer, optional :: rhoij
+      end subroutine read_pw_waves
 
       subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-            &   nat,rxyz,iatypes, znucl)
-        use module_defs, only: gp,dp
-         use module_types
+            &   nat,rxyz,iatypes, znucl, pawrhoij)
+        use module_defs, only: dp, gp
+        use m_pawrhoij, only: pawrhoij_type
          implicit none
          character(len=*), intent(in) :: filename
          character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -917,6 +932,7 @@ module module_interfaces
          real(gp), dimension(:,:), pointer, optional :: rxyz
          integer, intent(out), optional ::  nat
          integer, dimension(:), pointer, optional :: iatypes, znucl
+         type(pawrhoij_type), dimension(:), intent(inout), optional :: pawrhoij
       END SUBROUTINE read_density
 
       subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
@@ -936,7 +952,7 @@ module module_interfaces
       END SUBROUTINE read_cube
 
       subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-            &   nat,rxyz, iatypes, znucl)
+            &   nat,rxyz, iatypes, znucl, rhoij)
         use module_defs, only: gp,dp
          use module_types
          implicit none
@@ -949,6 +965,7 @@ module module_interfaces
          real(gp), dimension(:,:), pointer :: rxyz
          integer, intent(out) ::  nat
          integer, dimension(:), pointer :: iatypes, znucl
+         real(dp), dimension(:,:,:), pointer :: rhoij
       END SUBROUTINE read_etsf
 
       subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)

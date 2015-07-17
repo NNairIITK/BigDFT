@@ -202,7 +202,7 @@ END SUBROUTINE write_etsf_density
 
 !>   Read a field in the ISF basis in the ETSF format
 subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-     nat,rxyz, iatypes, znucl)
+     nat,rxyz, iatypes, znucl, rhoij)
   use module_base
   use module_types
   use etsf_io
@@ -216,6 +216,7 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   real(gp), dimension(:,:), pointer :: rxyz
   integer, intent(out) ::  nat
   integer, dimension(:), pointer :: iatypes, znucl
+  real(dp), dimension(:,:,:), pointer :: rhoij
   !local variables
   character(len=*), parameter :: subname='read_etsf'
   integer :: groupIds, i_stat, i_all, ncid
@@ -227,6 +228,7 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   character(len = etsf_io_low_error_len) :: error_string
 
   type(etsf_io_low_error) :: error
+  type(etsf_io_low_var_infos) :: varrhoij
   type(etsf_dims) :: dims
   type(etsf_split) :: split
   type(etsf_groups_flags) :: varIds
@@ -319,7 +321,7 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   do i3=0,2*(n3+nbz) - 1
      do i2=0,2*(n2+nby) - 1
         !i1 = nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
-        call etsf_io_low_read_var(ncid, "density", rho(nl1:nl1 + 2*(n1+nbx) - 1,i2+1,i3+1,1:nspin), & !rho(i1:i1 + 2*(n1+nbx) - 1, 1:nspin), &
+        call etsf_io_low_read_var(ncid, "exchange_correlation_potential", rho(nl1:nl1 + 2*(n1+nbx) - 1,i2+1,i3+1,1:nspin), & !rho(i1:i1 + 2*(n1+nbx) - 1, 1:nspin), &
              & lstat, error_data = error, start = (/ 1, 1, i2 + 1, i3 + 1, 1 /), &
              & count = (/ 1, 2*(n1+nbx), 1, 1, nspin /))
         if (.not. lstat) then
@@ -329,6 +331,25 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
         end if
      end do
   end do
+
+  ! Try to read rhoij
+  if(associated(rhoij)) then
+     call f_free_ptr(rhoij)
+  end if
+  varrhoij%ncshape = 0
+  call etsf_io_low_read_var_infos(ncid, "rhoij", varrhoij, lstat)
+  if (lstat .and. varrhoij%ncshape == 4) then
+     rhoij = f_malloc_ptr((/ varrhoij%ncdims(1) * varrhoij%ncdims(2), &
+          & varrhoij%ncdims(3), varrhoij%ncdims(4) /), id = "rhoij")
+     call etsf_io_low_read_var(ncid, "rhoij", rhoij, lstat, error_data = error)
+     if (.not. lstat) then
+        call etsf_io_low_error_to_str(error_string, error)
+        write(0, "(A)") trim(error_string)
+        stop
+     end if
+  else
+     nullify(rhoij)
+  end if
   
   call etsf_io_low_close(ncid, lstat, error_data = error)
   if (.not. lstat) then

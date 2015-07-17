@@ -591,10 +591,11 @@ END SUBROUTINE plot_density
 
 !> Read a density file using file format depending on the extension.
 subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-     nat,rxyz,iatypes, znucl)
-  use module_base
-  use module_types
-  use module_interfaces, except_this_one => read_density
+     nat,rxyz,iatypes, znucl, pawrhoij)
+  use module_defs, only: dp, gp
+  use module_interfaces, only: read_etsf, read_cube
+  use m_pawrhoij, only: pawrhoij_type
+  use dynamic_memory
   implicit none
   character(len=*), intent(in) :: filename
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -605,11 +606,13 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   real(gp), dimension(:,:), pointer, optional :: rxyz
   integer, intent(out), optional ::  nat
   integer, dimension(:), pointer, optional :: iatypes, znucl
+  type(pawrhoij_type), dimension(:), intent(inout), optional :: pawrhoij
 
   character(len = *), parameter :: subname = "read_density"
-  integer :: isuffix,fformat,nat_read
+  integer :: isuffix,fformat,nat_read, iat, isp, i
   real(gp), dimension(:,:), pointer :: rxyz_read
   integer, dimension(:), pointer :: iatypes_read, znucl_read
+  real(dp), dimension(:,:,:), pointer :: rhoij_read
 
   !check the arguments
   if (.not.(present(rxyz) .and. present(nat) .and. present(iatypes) .and. present(znucl)) .and. &
@@ -636,12 +639,13 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      end if
   end if
 
+  nullify(rhoij_read)
   if (fformat == 1) then
      call read_cube(filename(1:isuffix),geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
           nat_read,rxyz_read, iatypes_read, znucl_read)
   else
      call read_etsf(filename(1:isuffix),geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-          nat_read,rxyz_read, iatypes_read, znucl_read)
+          nat_read,rxyz_read, iatypes_read, znucl_read, rhoij_read)
   end if
 
   if (present(rxyz) .and. present(nat) .and. present(iatypes) .and. present(znucl)) then
@@ -654,6 +658,18 @@ subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      call f_free_ptr(iatypes_read)
      call f_free_ptr(znucl_read)
   end if
+
+  if (present(pawrhoij) .and. associated(rhoij_read)) then
+     do iat = 1, size(pawrhoij)
+        do isp = 1, size(pawrhoij(iat)%rhoijp, 2)
+           call f_memcpy(pawrhoij(iat)%rhoijp(1, isp), rhoij_read(1, isp, iat), &
+                & size(pawrhoij(iat)%rhoijp, 1))
+        end do
+        pawrhoij(iat)%rhoijselect = (/ ( i, i = 1, size(pawrhoij(iat)%rhoijselect) ) /)
+        pawrhoij(iat)%nrhoijsel = size(pawrhoij(iat)%rhoijselect)
+     end do
+  end if
+  if (associated(rhoij_read)) call f_free_ptr(rhoij_read)
 END SUBROUTINE read_density
 
 

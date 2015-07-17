@@ -42,6 +42,69 @@ module internal_etsf
       write(0,"(A)") trim(errmess)
    END SUBROUTINE etsf_warning
 
+   subroutine etsf_read_astruct(ncid, astruct, lstat, error_data)
+     use module_atoms
+     use etsf_io_low_level
+     use etsf_io
+     use etsf_io_file
+     use etsf_io_tools
+     use dictionaries
+     use dynamic_memory
+     implicit none
+     integer, intent(in) :: ncid
+     type(atomic_structure), intent(out) :: astruct
+     logical, intent(out) :: lstat
+     type(etsf_io_low_error), intent(out) :: error_data
+     
+     integer :: i
+     type(etsf_dims) :: dims
+     double precision, dimension(3,3) :: rprimd
+     character(len = etsf_charlen), dimension(:), allocatable :: atom_names
+
+     call nullify_atomic_structure(astruct)
+
+     call etsf_io_file_check_crystallographic_data(ncid, lstat, error_data)
+     if (.not. lstat) return
+
+     call etsf_io_dims_get(ncid, dims, lstat, error_data)
+     if (.not. lstat) return
+
+     call astruct_set_n_atoms(astruct, dims%number_of_atoms)
+     call astruct_set_n_types(astruct, dims%number_of_atom_species)
+     astruct%units = 'bohr'
+     astruct%geocode = "P"
+     
+     call etsf_io_low_read_var(ncid, "primitive_vectors", &
+          &   rprimd, lstat, error_data = error_data)
+     if (.not. lstat) return
+     astruct%cell_dim(1) = rprimd(1,1)
+     astruct%cell_dim(2) = rprimd(2,2)
+     astruct%cell_dim(3) = rprimd(3,3)
+
+     call etsf_io_low_read_var(ncid, "atom_species", &
+          &   astruct%iatype, lstat, error_data = error_data)
+     if (.not. lstat) return
+
+     call etsf_io_low_read_var(ncid, "reduced_atom_positions", &
+          &   astruct%rxyz, lstat, error_data = error_data)
+     if (.not. lstat) return
+     do i = 1, astruct%nat
+        astruct%rxyz(:, i) = astruct%rxyz(:, i) * astruct%cell_dim
+     end do
+
+     atom_names = f_malloc_str(etsf_charlen, (/ astruct%ntypes /), "atom_names")
+     call etsf_io_tools_get_atom_names(ncid, atom_names, lstat, error_data)
+     if (lstat) then
+        do i = 1, astruct%ntypes
+           write(astruct%atomnames(i), "(A)") trim(adjustl(atom_names(i)))
+        end do
+     end if
+     call f_free_str(etsf_charlen, atom_names)
+     if (.not. lstat) return
+
+     lstat = .true.
+   end subroutine etsf_read_astruct
+
    subroutine etsf_read_descr(ncid, orbsd, n1_old, n2_old, n3_old, hx_old, hy_old, hz_old, &
          &   lstat, error, nvctr_old, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
       use module_base
@@ -688,6 +751,7 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
    contains
 
    subroutine deallocate_local()
+     use locregs, only: deallocate_locreg_descriptors
       character(len = *), parameter :: subname = "read_wave_to_isf_etsf"
 
       ! We close the ETSF file.
@@ -699,9 +763,8 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
       call f_free_ptr(orbsd%eval)
       call f_free(psi)
       call f_free(gcoord)
+      call deallocate_locreg_descriptors(lr)
       call deallocate_work_arrays_sumrho(w)
-      call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
-      call deallocate_wfd(lr%wfd)
    END SUBROUTINE deallocate_local
 
 END SUBROUTINE readwavetoisf_etsf
@@ -1174,3 +1237,604 @@ subroutine write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,ps
       call f_free(coeff_map)
    END SUBROUTINE build_grid
 END SUBROUTINE write_waves_etsf
+
+
+subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoij)
+  use internal_etsf, only: etsf_read_astruct
+  use module_defs, only: gp, wp, pi_param
+  use module_types, only: orbitals_data, workarr_sumrho
+  use module_atoms
+  use locregs
+  use etsf_io_low_level
+  use etsf_io
+  use dynamic_memory
+  use f_utils
+  use dictionaries
+  use yaml_output, only: yaml_toa
+  use module_interfaces, only: plot_wf
+  
+  implicit none
+
+  character(len = *), intent(in) :: filename
+  integer, intent(in) :: iproc, nproc
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  type(locreg_descriptors), intent(in) :: Glr
+  type(orbitals_data), intent(in) :: orbs
+  real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, orbs%norbp), intent(out) :: psig
+  real(wp), dimension(:,:,:), pointer, optional :: rhoij
+
+  integer :: ncid, ikpt, isp, iorb, ispinor, inzee, i, j, k, ind, io
+  integer :: nd1, nd1b, nd2, nd3, nd3b, n1f, n3f, n1b, n3b, nd1f, nd3f
+  type(etsf_io_low_error) :: error
+  type(etsf_io_low_var_infos) :: varrhoij
+  logical :: lstat
+  type(etsf_dims) :: dims
+  real(wp) :: ralpha, ialpha, nrm
+
+  real(gp), dimension(3,3) :: identity
+  real(wp), dimension(2) :: cplex
+  integer, dimension(:), allocatable :: ncomp
+  integer, dimension(:,:), allocatable :: gvect, norbs
+  real(wp), dimension(:,:,:), allocatable :: cg, cfft
+  real(wp), dimension(:), allocatable :: psi
+  type(atomic_structure) :: at_old
+  type(workarr_sumrho) :: w
+
+  call nullify_atomic_structure(at_old)
+  call f_zero(psig)
+  call initialize_work_arrays_sumrho(1,Glr,.true.,w)
+  
+  ! We open the ETSF file
+  call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)
+  if (.not. lstat) call etsf_error(error)
+
+  call etsf_read_astruct(ncid, at_old, lstat, error)
+  if (.not. lstat) call etsf_error(error)
+
+  call etsf_io_dims_get(ncid, dims, lstat, error)
+  if (.not. lstat) call etsf_error(error)
+
+  ncomp = f_malloc(dims%number_of_kpoints, "ncomp")
+  call etsf_io_low_read_var(ncid, "number_of_coefficients", &
+       & ncomp, lstat, error_data = error)
+  if (.not. lstat) call etsf_error(error)
+
+  norbs = f_malloc((/ dims%number_of_kpoints, dims%number_of_spins /), "norbs")
+  call etsf_io_low_read_var(ncid, "number_of_states", &
+       & norbs, lstat, error_data = error)
+  if (.not. lstat) call etsf_error(error)
+  ! Checks on orbitals
+  if (f_err_raise(orbs%nkpts /= dims%number_of_kpoints, &
+       & "Number of kpoints not matching")) return
+  if (f_err_raise(.not. all(sum(norbs, 2) == orbs%norb), &
+       & "Number of kpoints not matching")) return
+
+  identity(:,:)=0; identity(1,1)=1 ; identity(2,2)=1 ; identity(3,3)=1
+
+  ! We use the Glr box as the FFT box to expand.
+  call dimensions_fft(Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, &
+       & nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
+  cfft = f_malloc0((/ 2, nd1 * nd2 * nd3, 2 /), "cfft")
+  psi = f_malloc((/ Glr%d%n1i * Glr%d%n2i * Glr%d%n3i /), "psi")
+
+  do ikpt = 1, dims%number_of_kpoints
+     if (.not. any(orbs%iokpt == ikpt)) cycle
+
+     gvect = f_malloc((/ 3, ncomp(ikpt) /), "gvect")
+     call etsf_io_low_read_var(ncid, "reduced_coordinates_of_plane_waves", &
+          & gvect, lstat, error_data = error, &
+          & start = (/ 1, 1, ikpt /), count = (/ 3, ncomp(ikpt), 1 /))
+     if (.not. lstat) call etsf_error(error)
+
+     io = (ikpt - 1) * orbs%norb
+     cg = f_malloc((/ 2, ncomp(ikpt), dims%number_of_spinor_components /), "cg")
+     do isp = 1, dims%number_of_spins
+        do iorb = 1, norbs(ikpt, isp)
+           io = io + 1
+           if (io <= orbs%isorb .or. io > orbs%isorb + orbs%norbp) cycle
+
+           call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
+                & cg, lstat, error_data = error, &
+                & start = (/ 1, 1, 1, iorb, ikpt, isp /), count = (/ 0, 0, 0, 1, 1, 1 /))
+           if (.not. lstat) call etsf_error(error)
+           
+           do ispinor = 1, dims%number_of_spinor_components
+              ! Convert here cg to real space.
+              inzee = 1
+              call sphere(cg(1, 1, ispinor), 1, ncomp(ikpt), cfft(1,1,inzee), &
+                   & Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, nd1, nd2, nd3, gvect, 1, 1, 0, &
+                   & (/ 0, 0, 0 /), identity, 1.d0)
+              call FFT(Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, nd1, nd2, nd3, cfft, -1, inzee)
+              cfft(:,:,inzee) = cfft(:,:,inzee) / &
+                   & sqrt(real(Glr%d%n1i * Glr%d%n2i * Glr%d%n3i, wp))
+              ! Remove complex rotation.
+              nrm = 0.d0
+              ralpha = 0.d0
+              ialpha = 0.d0
+              do k = 1, Glr%d%n3i
+                 do j = 1, Glr%d%n2i
+                    do i = 1, Glr%d%n1i
+                       cplex = cfft(:, i + (j - 1) * nd1 + (k - 1) * nd1 * nd2, inzee)
+                       nrm = nrm + cplex(1) ** 2 + cplex(2) ** 2
+                       ralpha = ralpha + cplex(1) ** 2 - cplex(2) ** 2
+                       ialpha = ialpha + 2._wp * cplex(1) * cplex(2)
+                    end do
+                 end do
+              end do
+              ralpha = ralpha / nrm
+              ialpha = ialpha / nrm
+              if (ralpha >= 0.d0 .and. ialpha >= 0.d0) then
+                 ralpha = cos(0.5_wp * acos(ralpha))
+                 ialpha = sin(0.5_wp * asin(ialpha))
+              else if (ralpha >= 0.d0 .and. ialpha < 0.d0) then
+                 ralpha = cos(0.5_wp * acos(ralpha))
+                 ialpha = sin(0.5_wp * asin(ialpha))
+              else if (ralpha < 0.d0 .and. ialpha >= 0.d0) then
+                 ralpha = cos(0.5_wp * acos(ralpha))
+                 ialpha = sin(0.5_wp * (pi_param - asin(ialpha)))
+              else if (ralpha < 0.d0 .and. ialpha < 0.d0) then
+                 ralpha = cos(0.5_wp * acos(ralpha))
+                 ialpha = sin(0.5_wp * (pi_param - asin(ialpha)))
+              end if
+              do k = 1, Glr%d%n3i
+                 do j = 1, Glr%d%n2i
+                    do i = 1, Glr%d%n1i
+                       ind = i + (j - 1) * nd1 + (k - 1) * nd1 * nd2
+                       psi(i + (j - 1) * Glr%d%n1i + (k - 1) * Glr%d%n1i * Glr%d%n2i) = &
+                            & cfft(1, ind, inzee) * ralpha + cfft(2, ind, inzee) * ialpha
+                    end do
+                 end do
+              end do
+!!$              write(*,*) iorb, sum(psi(1,:)**2)
+              ! Convert to daub
+              call isf_to_daub(Glr, w, psi(1), psig(1, io - orbs%isorb))
+!!$              call plot_wf(.false.,"toto" // trim(yaml_toa(iorb, fmt = "(I2.2)")),&
+!!$                   & 1,at,1._wp,Glr,2._gp * at_old%cell_dim(1) / real(Glr%d%n1i, gp),&
+!!$                   & 2._gp * at_old%cell_dim(2) / real(Glr%d%n2i, gp),&
+!!$                   & 2._gp * at_old%cell_dim(3) / real(Glr%d%n3i, gp),&
+!!$                   & at_old%rxyz,psig(1, io))
+           end do
+
+        end do
+     end do
+     call f_free(cg)     
+     call f_free(gvect)
+  end do
+  call f_free(psi)
+  call f_free(cfft)
+
+  ! Potentially read rhoij.
+  if (present(rhoij)) then
+     if(associated(rhoij)) then
+        call f_free_ptr(rhoij)
+        nullify(rhoij)
+     end if
+     varrhoij%ncshape = 0
+     call etsf_io_low_read_var_infos(ncid, "rhoij", varrhoij, lstat)
+     if (lstat .and. varrhoij%ncshape == 4) then
+        rhoij = f_malloc_ptr((/ varrhoij%ncdims(1) * varrhoij%ncdims(2), &
+             & varrhoij%ncdims(3), varrhoij%ncdims(4) /), id = "rhoij")
+        call etsf_io_low_read_var(ncid, "rhoij", rhoij, lstat, error_data = error)
+        if (.not. lstat) call etsf_error(error)
+     end if
+  end if
+  
+  ! We close the file.
+  call etsf_io_low_close(ncid, lstat, error)
+  if (.not. lstat) call etsf_error(error)
+
+  call f_free(norbs)
+  call f_free(ncomp)
+
+  call deallocate_atomic_structure(at_old)
+  call deallocate_work_arrays_sumrho(w)
+
+contains
+  
+  subroutine etsf_error(error)
+    use etsf_io_low_level
+    use dictionaries, only: f_err_throw
+
+    implicit none
+
+    type(etsf_io_low_error), intent(in) :: error
+    character(len=etsf_io_low_error_len)  :: errmess
+
+    call deallocate_atomic_structure(at_old)
+    call deallocate_work_arrays_sumrho(w)
+
+    call etsf_io_low_error_to_str(errmess, error)
+    call f_err_throw(errmess, err_name='BIGDFT_RUNTIME_ERROR')
+  END SUBROUTINE etsf_error
+
+end subroutine read_pw_waves
+
+
+!!****f* m_fftcore/sphere
+!! NAME
+!! sphere
+!!
+!! FUNCTION
+!! Array cg is defined in sphere with npw points. Insert cg inside box
+!! of n1*n2*n3 points to define array cfft for fft box.
+!! corresponds to given element in cg.  rest of cfft is filled with 0 s.
+!!
+!! iflag=1==>insert cg into cfft.
+!! iflag=2==>insert cg into cfft, where the second and third dimension
+!! have been switched (needed for new 2002 SGoedecker FFT)
+!! iflag=-1==> extract cg from cfft.
+!! iflag=-2==> extract cg from cfft, where the second and third dimension
+!! have been switched (needed for new 2002 SGoedecker FFT)
+!!  (WARNING : iflag=-2 cannot use symmetry operations)
+!!
+!! There is also the possibility to apply a symmetry operation,
+!! as well as to make a shift in reciprocal space, or to multiply
+!! by a constant factor, in the case iflag=-1.
+!! Multiplication by a constant factor is also possible in the case iflag=-2.
+!!
+!! INPUTS
+!! cg(2,npw*ndat)= contains values for npw G vectors in basis sphere
+!! ndat=number of FFT to do in //
+!! npw=number of G vectors in basis at this k point
+!! cfft(2,n4,n5,n6) = fft box
+!! n1,n2,n3=physical dimension of the box (cfft)
+!! n4,n5,n6=memory dimension of cfft
+!! kg_k(3,npw)=integer coordinates of G vectors in basis sphere
+!! istwf_k=option parameter that describes the storage of wfs
+!! iflag=option parameter. Possible values: -1, -2, 1, 2
+!! me_g0=1 if this node has G=0.
+!! shiftg(3)=The shift in reciprocal space.
+!! symm(3,3)=symmetry operation in reciprocal space to be applied.
+!! xnorm=Normalization factor.
+!!
+!! SIDE EFFECTS
+!! Input/Output
+!! iflag=1 and 2, insert cg(input) into cfft(output)
+!! iflag=-1 and -2, extract cg(output) from cfft(input)
+!!
+!! NOTES
+!! cg and cfft are assumed to be of type COMPLEX, although this routine treats
+!! them as real of twice the length to avoid nonstandard complex*16.
+!! If istwf_k differs from 1, then special storage modes must be taken
+!! into account, for symmetric wavefunctions coming from k=(0 0 0) or other
+!! special k points.
+!!
+!! TODO
+!! 1) Order arguments
+!! 2) Split the two cases: from and to sphere (merge with cg_box2gpsh and cg_gsph2box?)
+!!
+!! PARENTS
+!!      fourwf,m_fft,m_fftcore,m_fftw3,m_io_kss,wfconv
+!!
+!! CHILDREN
+!!
+!! SOURCE
+
+subroutine sphere(cg,ndat,npw,cfft,n1,n2,n3,n4,n5,n6,kg_k,istwf_k,iflag,me_g0,shiftg,symm,xnorm)
+  use module_defs, only: dp
+ implicit none
+
+!Arguments ------------------------------------
+!scalars
+ integer,intent(in) :: iflag,istwf_k,n1,n2,n3,n4,n5,n6,ndat,npw,me_g0
+ real(dp),intent(in) :: xnorm
+!arrays
+ integer,intent(in) :: kg_k(3,npw),shiftg(3),symm(3,3)
+ real(dp),intent(inout) :: cfft(2,n4,n5,n6*ndat),cg(2,npw*ndat)
+
+!Local variables-------------------------------
+!scalars
+ integer :: i1,i1inv,i2,i2inv,i3,i3inv,id1,id2,id3,idat,ipw
+ integer :: j1,j2,j3,l1,l2,l3,npwmin,use_symmetry,i3dat,i3invdat,i2invdat,ipwdat,i2dat
+ character(len=500) :: msg
+!arrays
+ integer :: identity(3,3)
+ integer :: i1inver(n1),i2inver(n2),i3inver(n3)
+
+! *************************************************************************
+
+ !In the case of special k-points, invariant under time-reversal,
+ !but not Gamma, initialize the inverse coordinates. !Remember indeed that
+ !
+ !  u_k(G) = u_{k+G0}(G-G0); u_{-k}(G) = u_k(G)^* and therefore:
+ !  u_{G0/2}(G) = u_{G0/2}(-G-G0)^*.
+
+ if (istwf_k>=2) then
+   if(istwf_k==2 .or. istwf_k==4 .or. istwf_k==6 .or. istwf_k==8)then
+     i1inver(1)=1
+     do i1=2,n1
+       i1inver(i1)=n1+2-i1
+     end do
+   else
+     do i1=1,n1
+       i1inver(i1)=n1+1-i1
+     end do
+   end if
+   if(istwf_k>=2 .and. istwf_k<=5)then
+     i2inver(1)=1
+     do i2=2,n2
+       i2inver(i2)=n2+2-i2
+     end do
+   else
+     do i2=1,n2
+       i2inver(i2)=n2+1-i2
+     end do
+   end if
+   if(istwf_k==2 .or. istwf_k==3 .or. istwf_k==6 .or. istwf_k==7)then
+     i3inver(1)=1
+     do i3=2,n3
+       i3inver(i3)=n3+2-i3
+     end do
+   else
+     do i3=1,n3
+       i3inver(i3)=n3+1-i3
+     end do
+   end if
+ end if
+
+ if (iflag==1 .or. iflag==2) then
+   ! Insert cg into cfft with extra 0 s around outside:
+    cfft = 0.d0
+
+   ! Take care of each plane wave, and complete cfft if needed
+   if (istwf_k==1) then
+
+     if (iflag==1) then
+!$OMP PARALLEL DO PRIVATE(i1,i2,i3) IF (ndat>1)
+       do idat=1,ndat
+         do ipw=1,npw
+           i1=kg_k(1,ipw); if(i1<0)i1=i1+n1; i1=i1+1
+           i2=kg_k(2,ipw); if(i2<0)i2=i2+n2; i2=i2+1
+           i3=kg_k(3,ipw); if(i3<0)i3=i3+n3; i3=i3+1
+
+           cfft(1,i1,i2,i3+n6*(idat-1))=cg(1,ipw+npw*(idat-1))
+           cfft(2,i1,i2,i3+n6*(idat-1))=cg(2,ipw+npw*(idat-1))
+         end do
+       end do
+     end if
+
+     if (iflag==2) then
+!$OMP PARALLEL DO PRIVATE(i1,i2,i3) IF (ndat>1)
+       do idat=1,ndat
+         do ipw=1,npw
+           i1=kg_k(1,ipw); if(i1<0)i1=i1+n1; i1=i1+1
+           i2=kg_k(2,ipw); if(i2<0)i2=i2+n2; i2=i2+1
+           i3=kg_k(3,ipw); if(i3<0)i3=i3+n3; i3=i3+1
+
+           cfft(1,i1,i3,i2+n6*(idat-1))=cg(1,ipw+npw*(idat-1))
+           cfft(2,i1,i3,i2+n6*(idat-1))=cg(2,ipw+npw*(idat-1))
+         end do
+       end do
+     end if
+
+   else if (istwf_k>=2) then
+
+     npwmin=1
+     if (istwf_k==2 .and. me_g0==1) then 
+       ! If gamma point, then cfft must be completed
+       do idat=1,ndat
+         cfft(1,1,1,1+n6*(idat-1))=cg(1,1+npw*(idat-1))
+         cfft(2,1,1,1+n6*(idat-1))=0.d0
+       end do
+       npwmin=2
+     end if
+
+     if (iflag==1) then
+!$OMP PARALLEL DO PRIVATE(i1,i1inv,i2,i2inv,i3,i3inv) IF (ndat>1)
+       do idat=1,ndat
+         do ipw=npwmin,npw
+           i1=kg_k(1,ipw); if(i1<0)i1=i1+n1; i1=i1+1
+           i2=kg_k(2,ipw); if(i2<0)i2=i2+n2; i2=i2+1
+           i3=kg_k(3,ipw); if(i3<0)i3=i3+n3; i3=i3+1
+           ! Construct the coordinates of -k-G
+           i1inv=i1inver(i1) ; i2inv=i2inver(i2) ; i3inv=i3inver(i3)
+
+           cfft(1,i1,i2,i3+n6*(idat-1))=cg(1,ipw+npw*(idat-1))
+           cfft(2,i1,i2,i3+n6*(idat-1))=cg(2,ipw+npw*(idat-1))
+           cfft(1,i1inv,i2inv,i3inv+n6*(idat-1))= cg(1,ipw+npw*(idat-1))
+           cfft(2,i1inv,i2inv,i3inv+n6*(idat-1))=-cg(2,ipw+npw*(idat-1))
+         end do
+       end do
+     end if
+
+     if (iflag==2) then
+!$OMP PARALLEL DO PRIVATE(i1,i1inv,i2,i2inv,i3,i3inv) IF (ndat>1)
+       do idat=1,ndat
+         do ipw=npwmin,npw
+           i1=kg_k(1,ipw); if(i1<0)i1=i1+n1; i1=i1+1
+           i2=kg_k(2,ipw); if(i2<0)i2=i2+n2; i2=i2+1
+           i3=kg_k(3,ipw); if(i3<0)i3=i3+n3; i3=i3+1
+
+           ! Construct the coordinates of -k-G
+           i1inv=i1inver(i1) ; i2inv=i2inver(i2) ; i3inv=i3inver(i3)
+
+           cfft(1,i1,i3,i2+n6*(idat-1))=cg(1,ipw+npw*(idat-1))
+           cfft(2,i1,i3,i2+n6*(idat-1))=cg(2,ipw+npw*(idat-1))
+           cfft(1,i1inv,i3inv,i2inv+n6*(idat-1))= cg(1,ipw+npw*(idat-1))
+           cfft(2,i1inv,i3inv,i2inv+n6*(idat-1))=-cg(2,ipw+npw*(idat-1))
+         end do
+       end do
+     end if
+
+   end if
+
+ else if (iflag==-1 .or. iflag==-2) then
+
+   use_symmetry=0
+   identity(:,:)=0; identity(1,1)=1 ; identity(2,2)=1 ; identity(3,3)=1
+   if(sum((symm(:,:)-identity(:,:))**2)/=0)use_symmetry=1
+   if(sum(shiftg(:)**2)/=0)use_symmetry=1
+
+   ! Extract cg from cfft, ignoring components outside range of cg:
+   if (istwf_k==1) then
+
+     if (use_symmetry==0) then
+       if (iflag==-1) then
+!$OMP PARALLEL DO PRIVATE(i1,i2,i3,ipwdat,i3dat) IF (ndat>1)
+         do idat=1,ndat
+           do ipw=1,npw
+             i1=kg_k(1,ipw); if(i1<0)i1=i1+n1; i1=i1+1
+             i2=kg_k(2,ipw); if(i2<0)i2=i2+n2; i2=i2+1
+             i3=kg_k(3,ipw); if(i3<0)i3=i3+n3; i3=i3+1
+             ipwdat = ipw + (idat-1) * npw
+             i3dat = i3 + (idat-1) * n6
+
+             cg(1,ipwdat)=cfft(1,i1,i2,i3dat)*xnorm
+             cg(2,ipwdat)=cfft(2,i1,i2,i3dat)*xnorm
+           end do
+         end do
+       else
+!$OMP PARALLEL DO PRIVATE(i1,i2,i3,ipwdat,i2dat) IF (ndat>1)
+         do idat=1,ndat
+           do ipw=1,npw
+             i1=kg_k(1,ipw); if(i1<0)i1=i1+n1; i1=i1+1
+             i2=kg_k(2,ipw); if(i2<0)i2=i2+n2; i2=i2+1
+             i3=kg_k(3,ipw); if(i3<0)i3=i3+n3; i3=i3+1
+
+             ipwdat = ipw + (idat-1) * npw
+             i2dat = i2 + (idat-1) * n6
+
+             cg(1,ipwdat)=cfft(1,i1,i3,i2dat)*xnorm
+             cg(2,ipwdat)=cfft(2,i1,i3,i2dat)*xnorm
+           end do
+         end do
+       end if
+     else
+!$OMP PARALLEL DO PRIVATE(i1,i2,i3,j1,j2,j3,l1,l2,l3,ipwdat,i3dat) IF (ndat>1)
+       do idat=1,ndat
+         do ipw=1,npw
+           l1=kg_k(1,ipw)+shiftg(1)
+           l2=kg_k(2,ipw)+shiftg(2)
+           l3=kg_k(3,ipw)+shiftg(3)
+           j1=symm(1,1)*l1+symm(1,2)*l2+symm(1,3)*l3
+           j2=symm(2,1)*l1+symm(2,2)*l2+symm(2,3)*l3
+           j3=symm(3,1)*l1+symm(3,2)*l2+symm(3,3)*l3
+           if(j1<0)j1=j1+n1; i1=j1+1
+           if(j2<0)j2=j2+n2; i2=j2+1
+           if(j3<0)j3=j3+n3; i3=j3+1
+
+           ipwdat = ipw + (idat-1) * npw
+           i3dat = i3 + (idat-1)*n6
+
+           cg(1,ipwdat)=cfft(1,i1,i2,i3dat)*xnorm
+           cg(2,ipwdat)=cfft(2,i1,i2,i3dat)*xnorm
+         end do
+       end do
+     end if
+
+   else if (istwf_k>=2) then
+
+     npwmin=1
+     if (istwf_k==2 .and. me_g0==1) then
+       ! Extract cg from cfft, in a way that projects on a 
+       ! wavefunction with time-reversal symmetry
+       do idat=1,ndat
+         ipwdat = 1 + (idat-1) * npw
+         i3dat = 1 + (idat-1)*n6
+         cg(1,ipwdat)=cfft(1,1,1,i3dat)*xnorm
+         cg(2,ipwdat)=0.d0
+       end do
+       npwmin=2
+     end if
+
+     if (use_symmetry==0) then
+
+       if (iflag==-1) then
+!$OMP PARALLEL DO PRIVATE(i1,i1inv,i2,i2inv,i3,i3inv,ipwdat,i3dat,i3invdat) IF (ndat>1)
+         do idat=1,ndat
+           do ipw=npwmin,npw
+             i1=kg_k(1,ipw); if(i1<0)i1=i1+n1; i1=i1+1
+             i2=kg_k(2,ipw); if(i2<0)i2=i2+n2; i2=i2+1
+             i3=kg_k(3,ipw); if(i3<0)i3=i3+n3; i3=i3+1
+
+             ! Construct the coordinates of -k-G
+             i1inv=i1inver(i1); i2inv=i2inver(i2); i3inv=i3inver(i3)
+
+             ipwdat = ipw + (idat-1) * npw
+             i3dat = i3 + (idat-1) * n6
+             i3invdat = i3inv + (idat-1) * n6
+
+             ! Here the time-reversal symmetry is used to project from cfft
+             cg(1,ipwdat)=(cfft(1,i1,i2,i3dat) + cfft(1,i1inv,i2inv,i3invdat))*0.5d0*xnorm
+             cg(2,ipwdat)=(cfft(2,i1,i2,i3dat) - cfft(2,i1inv,i2inv,i3invdat))*0.5d0*xnorm
+           end do
+         end do
+
+       else
+!$OMP PARALLEL DO PRIVATE(i1,i1inv,i2,i2inv,i3,i3inv,ipwdat,i2dat,i2invdat) IF (ndat>1)
+         do idat=1,ndat
+           do ipw=npwmin,npw
+             i1=kg_k(1,ipw); if(i1<0)i1=i1+n1; i1=i1+1
+             i2=kg_k(2,ipw); if(i2<0)i2=i2+n2; i2=i2+1
+             i3=kg_k(3,ipw); if(i3<0)i3=i3+n3; i3=i3+1
+
+             ! Construct the coordinates of -k-G
+             i1inv=i1inver(i1) ; i2inv=i2inver(i2) ; i3inv=i3inver(i3)
+
+             ipwdat = ipw + (idat-1) * npw
+             i2dat = i2 + (idat-1) * n6
+             i2invdat = i2inv + (idat-1) * n6
+
+             ! Here the time-reversal symmetry is used to project from cfft
+             cg(1,ipwdat)=(cfft(1,i1,i3,i2dat) + cfft(1,i1inv,i3inv,i2invdat))*0.5d0*xnorm
+             cg(2,ipwdat)=(cfft(2,i1,i3,i2dat) - cfft(2,i1inv,i3inv,i2invdat))*0.5d0*xnorm
+           end do
+         end do
+       end if
+
+     else ! Use symmetry
+       id1=n1/2+2
+       id2=n2/2+2
+       id3=n3/2+2
+
+!$OMP PARALLEL DO PRIVATE(i1,i1inv,i2,i2inv,i3,i3inv,j1,j2,j3,l1,l2,l3,ipwdat,i3dat,i3invdat) IF (ndat>1)
+       do idat=1,ndat
+         do ipw=npwmin,npw
+
+           i1=kg_k(1,ipw); if(i1<0)i1=i1+n1; i1=i1+1
+           i2=kg_k(2,ipw); if(i2<0)i2=i2+n2; i2=i2+1
+           i3=kg_k(3,ipw); if(i3<0)i3=i3+n3; i3=i3+1
+
+           i1inv=i1inver(i1) ; i2inv=i2inver(i2) ; i3inv=i3inver(i3)
+
+           l1=kg_k(1,ipw)+shiftg(1)
+           l2=kg_k(2,ipw)+shiftg(2)
+           l3=kg_k(3,ipw)+shiftg(3)
+           j1=symm(1,1)*l1+symm(1,2)*l2+symm(1,3)*l3
+           j2=symm(2,1)*l1+symm(2,2)*l2+symm(2,3)*l3
+           j3=symm(3,1)*l1+symm(3,2)*l2+symm(3,3)*l3
+           if(j1<0)j1=j1+n1 ; i1=j1+1
+           if(j2<0)j2=j2+n2 ; i2=j2+1
+           if(j3<0)j3=j3+n3 ; i3=j3+1
+
+           ! Construct the coordinates of -k-G
+           l1=i1inv-(i1inv/id1)*n1-1+shiftg(1)
+           l2=i2inv-(i2inv/id2)*n2-1+shiftg(2)
+           l3=i3inv-(i3inv/id3)*n3-1+shiftg(3)
+           j1=symm(1,1)*l1+symm(1,2)*l2+symm(1,3)*l3
+           j2=symm(2,1)*l1+symm(2,2)*l2+symm(2,3)*l3
+           j3=symm(3,1)*l1+symm(3,2)*l2+symm(3,3)*l3
+           if(j1<0)j1=j1+n1 ; i1inv=j1+1
+           if(j2<0)j2=j2+n2 ; i2inv=j2+1
+           if(j3<0)j3=j3+n3 ; i3inv=j3+1
+
+           ipwdat = ipw + (idat-1) * npw
+           i3dat = i3 + (idat-1) * n6
+           i3invdat = i3inv + (idat-1) * n6
+
+           ! Here the time-reversal symmetry is used to project from cfft
+           cg(1,ipwdat)=(cfft(1,i1,i2,i3dat) + cfft(1,i1inv,i2inv,i3invdat))*0.5d0*xnorm
+           cg(2,ipwdat)=(cfft(2,i1,i2,i3dat) - cfft(2,i1inv,i2inv,i3invdat))*0.5d0*xnorm
+         end do
+       end do
+     end if
+
+   end if
+
+ else
+   write(msg,'(a,i0,a)')'  iflag=',iflag,' not acceptable.'
+ end if
+
+end subroutine sphere
+!!***

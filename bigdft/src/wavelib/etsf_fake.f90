@@ -248,3 +248,30 @@ subroutine readwavedescr_etsf(lstat, filename, norbu, norbd, nkpt, nspinor)
   !To avoid warning from the compiler
   write(*,*) filename
 END SUBROUTINE readwavedescr_etsf
+
+
+subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoij)
+  use module_defs, only: gp, wp
+  use module_atoms
+  use locregs
+  use module_types
+  implicit none
+  character(len = *), intent(in) :: filename
+  integer, intent(in) :: iproc, nproc
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  type(locreg_descriptors), intent(in) :: Glr
+  type(orbitals_data), intent(in) :: orbs
+  real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, orbs%norbp), intent(out) :: psig
+  real(wp), dimension(:,:,:), pointer, optional :: rhoij
+
+  psig(1,1) = 0._wp
+
+  stop 'No ETSF support at compilation!'
+
+  !To avoid warning from the compiler
+  write(*,*) filename, iproc, nproc, at%astruct%nat, rxyz(1,1), Glr%d%n1, orbs%norbp
+  if (present(rhoij)) then
+     write(*,*) associated(rhoij)
+  end if
+END SUBROUTINE read_pw_waves
