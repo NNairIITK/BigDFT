@@ -1854,7 +1854,7 @@ module postprocessing_linear
                iatold = iat
                if (iat==kkat) then
                    do j=1,smats%nfvctr
-                       inds =  matrixindex_in_compressed(smats, i, j)
+                       inds =  matrixindex_in_compressed(smats, j, i)
                        if (inds/=0) then
                           neighbor(j,kat) = .true.
                           n = n + 1
@@ -2426,7 +2426,7 @@ module postprocessing_linear
                     icheck = icheck + 1
                     jj = jj + 1
                     if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
-                    ind =  matrixindex_in_compressed(smat, i, j)
+                    ind =  matrixindex_in_compressed(smat, j, i)
                     if (ind>0) then
                         matrix(jj,ii) = matrix_compr(ind-smat%isvctrp_tg)
                     else

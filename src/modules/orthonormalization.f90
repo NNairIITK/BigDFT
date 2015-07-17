@@ -308,7 +308,6 @@ module orthonormalization
     
     
       if(.not.can_use_transposed) then
-          write(*,*) 'transposing...'
           !!if(associated(psit_c)) then
           !!    call f_free_ptr(psit_c)
           !!end if
