@@ -4926,7 +4926,7 @@ contains
       isat = (bigdft_mpi%iproc)*ii + min(bigdft_mpi%iproc,jj)
 
 
-      neighbor = f_malloc((/smat%nfvctr,natp/),id='neighbor')
+      neighbor = f_malloc(smat%nfvctr,id='neighbor')
       do kat=1,natp
           ! Determine the "neighbors"
           iatold = 0
