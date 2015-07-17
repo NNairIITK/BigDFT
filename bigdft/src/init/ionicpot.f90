@@ -17,6 +17,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use abi_interfaces_geometry, only: abi_metric
   use abi_interfaces_common, only: abi_ewald, abi_ewald2
+  use m_paw_numeric, only: paw_splint
+  use abi_interfaces_numeric, only: abi_derf_ab
   use vdwcorrection
   use yaml_output
   use psp_projectors, only: PSPCODE_PAW
@@ -37,17 +39,18 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   logical :: perx,pery,perz,gox,goy,goz
   integer :: n1i,n2i,n3i,i3s,n3pi
   integer :: i,iat,ii,ityp,jat,jtyp,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
-  integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind
+  integer :: isx,iex,isy,iey,isz,iez,i1,i2,i3,j1,j2,j3,ind,ierr
   real(gp) :: ucvol,rloc,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
   real(gp) :: hxh,hyh,hzh
   real(gp) :: hxx,hxy,hxz,hyy,hyz,hzz,chgprod
-  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,de
+  real(gp) :: x,y,z,xp,Vel,prefactor,r2,arg,ehart,de,dv
   !real(gp) :: Mz,cmassy
   real(gp), dimension(3,3) :: gmet,rmet,rprimd,gprimd
   !other arrays for the ewald treatment
   real(gp), dimension(:,:), allocatable :: fewald,xred
   real(gp), dimension(3) :: cc
+  real(gp), dimension(1) :: rr, vr
 
   fion = f_malloc_ptr((/ 3, at%astruct%nat /),id='fion')
   fdisp = f_malloc_ptr((/ 3, at%astruct%nat /),id='fdisp')
@@ -116,30 +119,40 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      shortlength=0.0_gp
      charge=0.0_gp
      twopitothreehalf=2.0_gp*pi*sqrt(2.0_gp*pi)
-     if (any(at%npspcode == PSPCODE_PAW)) then
-        do iat=1,at%astruct%nat
-           ityp=at%astruct%iatype(iat)
-           !rloc = at%pawtab(ityp)%rpaw
-           !psoffset = 0.
-           shortlength = shortlength + at%epsatm(ityp)
-           !shortlength=shortlength+real(at%nelpsp(ityp),gp)*rloc**2
-           charge=charge+real(at%nelpsp(ityp),gp)
-        end do
-        !shortlength=shortlength*2.d0*pi
-        !psoffset=psoffset-shortlength
-     else
-        do iat=1,at%astruct%nat
-           ityp=at%astruct%iatype(iat)
-           rloc=at%psppar(0,0,ityp)
+     do iat=1,at%astruct%nat
+        ityp=at%astruct%iatype(iat)
+        rloc=at%psppar(0,0,ityp)
+        if (at%npspcode(ityp) == PSPCODE_PAW) then
+           atint = 0.d0
+           ! Comment to remove psoffset for erf correction ---------------8<---
+           do ii = 1, 1000, 1
+              rr(1) = 10.d0 / 1000.d0 * (ii - 1)
+              dv = 4.d0 * pi * rr(1) ** 2 * 10.d0 / 1000.d0
+              call paw_splint(at%pawtab(ityp)%wvl%rholoc%msz, &
+                   & at%pawtab(ityp)%wvl%rholoc%rad, &
+                   & at%pawtab(ityp)%wvl%rholoc%d(:,3), &
+                   & at%pawtab(ityp)%wvl%rholoc%d(:,4), &
+                   & 1,rr,vr,ierr)
+              atint = atint + vr(1) * dv
+              if (ii == 1) then
+                 vr(1) = sqrt(2.0d0) / sqrt(pi) / rloc
+              else
+                 call abi_derf_ab(vr(1), rr(1) / (sqrt(2.0d0) * rloc))
+                 vr(1) = vr(1) / rr(1)
+              end if
+              atint = atint + real(at%nelpsp(ityp),gp) * vr(1) * dv
+           end do
+           ! ------------------------------------------------------------->8---
+           psoffset = psoffset + atint
+           shortlength = shortlength + at%epsatm(ityp) - atint
+        else
            atint=at%psppar(0,1,ityp)+3.0_gp*at%psppar(0,2,ityp)+&
                 15.0_gp*at%psppar(0,3,ityp)+105.0_gp*at%psppar(0,4,ityp)
-           psoffset=psoffset+rloc**3*atint
-           shortlength=shortlength+real(at%nelpsp(ityp),gp)*rloc**2
-           charge=charge+real(at%nelpsp(ityp),gp)
-        end do
-        psoffset=twopitothreehalf*psoffset
-        shortlength=shortlength*2.d0*pi
-     end if
+           psoffset=psoffset+twopitothreehalf*rloc**3*atint
+           shortlength=shortlength+real(at%nelpsp(ityp),gp)*rloc**2*2.d0*pi
+        end if
+        charge=charge+real(at%nelpsp(ityp),gp)
+     end do
 
      !print *,'psoffset',psoffset,'pspcore',(psoffset+shortlength)*charge/(at%astruct%cell_dim(1)*at%astruct%cell_dim(2)*at%astruct%cell_dim(3))
      !if (iproc ==0) print *,'eion',eion,charge/ucvol*(psoffset+shortlength)
@@ -1048,6 +1061,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   real(gp) :: ehart
   real(dp), dimension(2) :: charges_mpi
   real(dp), dimension(:), allocatable :: potion_corr
+  logical, parameter :: pawErfCorrection = .true.
   !real(dp), dimension(:), allocatable :: den_aux
 
   call timing(iproc,'CrtLocPot     ','ON')
@@ -1080,11 +1094,10 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         rz=rxyz(3,iat)
 
         rloc=at%psppar(0,0,ityp)
-        rlocsq=rloc**2
         charge=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**3)
+        rlocsq=rloc**2
+        cutoff = 10.d0*rloc
         !cutoff of the range
-
-        cutoff=10.d0*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
            cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
@@ -1101,7 +1114,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !       Calculate Ionic Density
 !       using HGH parameters.
 !       Eq. 1.104, T. Deutsch and L. Genovese, JDN. 12, 2011
-        if( .not. any(at%npspcode == PSPCODE_PAW) ) then
+        if (at%npspcode(ityp) /= PSPCODE_PAW) then
 
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
@@ -1142,7 +1155,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 !       Calculate Ionic Density using splines, 
 !       PAW case
         else
-           r2paw=at%pawtab(ityp)%rpaw**2
+           !r2paw=at%pawtab(ityp)%rpaw**2
            do i3=isz,iez
               z=real(i3,kind=8)*hzh-rz
               call ind_positions(perz,i3,n3,j3,goz)
@@ -1159,7 +1172,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                     call ind_positions(perx,i1,n1,j1,gox)
                     r2=x**2+yzsq
                     !if(r2>r2paw) cycle
-                    if(1==2) then
+                    if(.not. pawErfCorrection) then
                       !This converges very slow                
                       rr1(1)=sqrt(r2)
                       call paw_splint(at%pawtab(ityp)%wvl%rholoc%msz, &
@@ -1247,7 +1260,25 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      quiet = "yes"
   end if
 
-  
+!!$  if (any(at%npspcode == PSPCODE_PAW)) then
+!!$     charge = 0.d0
+!!$     do iat = 1, at%astruct%nat, 1
+!!$        charge = charge + real(at%nelpsp(at%astruct%iatype(iat)), gp)
+!!$     end do
+!!$     write(*,*) "------------->", tt_tot, charge
+!!$     tt_tot = tt_tot / hxh / hyh / hzh / real(n1i * n2i * n3i, gp)
+!!$     charge = charge / hxh / hyh / hzh / real(n1i * n2i * n3i, gp)
+!!$     do j3=1,n3pi
+!!$        indj3=(j3-1)*n1i*n2i
+!!$        do i2= -nbl2,2*n2+1+nbr2
+!!$           indj23=1+nbl1+(i2+nbl2)*n1i+indj3
+!!$           do i1= -nbl1,2*n1+1+nbr1
+!!$              ind=i1+indj23
+!!$              pot_ion(ind)=pot_ion(ind)-(tt_tot + charge)
+!!$           enddo
+!!$        enddo
+!!$     enddo
+!!$  end if
 
   if (.not. htoobig) then
      call timing(iproc,'CrtLocPot     ','OF')
@@ -1320,7 +1351,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
 
   end if
 
-
 !!!  !calculate the value of the offset to be put
 !!!  tt_tot=0.d0
 !!!  do ind=1,n1i*n2i*n3i
@@ -1353,7 +1383,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
         
-        if( at%npspcode(1) /= PSPCODE_PAW) then
+        if( at%npspcode(ityp) /= PSPCODE_PAW) then
 
 !          Add the remaining local terms of Eq. (9)
 !          in JCP 129, 014109(2008)
@@ -1409,7 +1439,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
                  end if
               end do
            end if !nloc
-        else !HGH or PAW
+        else if (pawErfCorrection) then
            ! For PAW, add V^PAW-V_L^HGH
            charge=real(at%nelpsp(ityp),kind=8)
            do i3=isz,iez
@@ -1477,7 +1507,6 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      end if
      
   end if
- 
 
 !!!  !calculate the value of the offset to be put
 !!!  tt_tot=0.d0
