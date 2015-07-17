@@ -576,7 +576,7 @@ molecule_pmix:
  Clean forces norm (Ha/Bohr): 5.0e-11
  e: 1.4e-10
  Raw forces norm (Ha/Bohr): 6.2e-11
- Energy (Hartree): 8.3e-11
+ Energy (Hartree): 8.6e-11
  Average noise forces: 1.1e-10
 
 molecule_dmin:
