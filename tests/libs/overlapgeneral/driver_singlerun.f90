@@ -231,7 +231,7 @@ program driver_singlerun
   call f_free_ptr(nzatom)
   call f_free_ptr(nelpsp)
   call f_free_ptr(iatype)
-  call f_free_str_ptr(len(atomnames),atomnames)
+  call f_free_str_ptr(int(len(atomnames),kind=4),atomnames)
   call f_free_ptr(rxyz)
 
   call timing(bigdft_mpi%mpi_comm,'FINISH','PR')
@@ -282,7 +282,7 @@ program driver_singlerun
       if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
            nthreads)
 
-      nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.bigdft_mpi%nproc-1,id='nodename')
+      nodename=f_malloc0_str(int(MPI_MAX_PROCESSOR_NAME,kind=4),0.to.bigdft_mpi%nproc-1,id='nodename')
       if (bigdft_mpi%nproc>1) then
          call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
          !gather the result between all the process

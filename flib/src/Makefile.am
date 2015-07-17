@@ -70,7 +70,7 @@ DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 
 F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 	f_malloc-base-inc.f90 f_malloc-null-inc.f90 \
-	f_malloci-total-inc.f90 f_mallocli-total-inc.f90 f_malloc-bound-inc.f90 \
+	f_malloc-bound-inc.f90 \
 	f_malloc-bounds-inc.f90 f_malloci-simple-inc.f90 f_mallocli-simple-inc.f90 \
 	f_malloc-ptr-inc.f90 f_malloc-check-inc.f90 \
 	f_malloc-null-ptr-inc.f90
