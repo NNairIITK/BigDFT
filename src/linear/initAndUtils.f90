@@ -1455,27 +1455,30 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iirow(2) = 1
      iicol(1) = tmb%linmat%s%nfvctr
      iicol(2) = 1
-     call check_local_matrix_extents(iproc, nproc, tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
+          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
 
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
           tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
           tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
           tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
 
 

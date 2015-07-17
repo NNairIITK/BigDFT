@@ -670,9 +670,9 @@ fructose:
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
  Energy (Hartree): 4.9e-11
- Charge analysis (charge / net charge): 4.1e-10
- Pseudo Fermi level for occupations: 1.8e-10
- net charge: 1.1e-9
+ Charge analysis (charge / net charge): 5.2e-10
+ Pseudo Fermi level for occupations: 2.5e-10
+ net charge: 1.0e-8
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1443,7 +1443,7 @@ FF_LJ-ab6md:
 
 
 FF_LENOSKY-bfgs:
-  etot: 7.3e-11
+  etot: 1.5e-10
   maxval: 1.0e-10
   fnrm2: 1.01e-10
   Keys to ignore:
@@ -1514,6 +1514,7 @@ periodic_silicon:
  energy: 2.9e-11
  Total ionic charge: 2.5e-11
  Pressure: 1.5e-10
+ D Tr: 1.0e-9
 
 periodic_wateredge:
  Epot: 1.1e-9
@@ -1635,35 +1636,35 @@ igortho_19:
  Raw forces norm (Ha/Bohr): 3.6e-7
  net quadropole: 2.1e-6
  net dipole: 1.1e-6
- Energy (Hartree): 1.4e-9
+ Energy (Hartree): 2.4e-9
  Multipole coefficients: 1.1e-6
  Charge analysis (charge / net charge): 4.1e-7
- Pseudo Fermi level for occupations: 2.0e-8
- net charge: 1.0e-8
+ Pseudo Fermi level for occupations: 2.1e-8
+ net charge: 1.1e-8
  Average noise forces: 7.8e-7
- eF: 2.2e-5
- EXC: 1.6e-6
- Epot: 3.4e-5
- EvXC: 2.1e-6
- EH: 1.5e-5
- Ekin: 1.1e-7
- Enl: 1.0e-8
- Omega: 6.3e-9
- D eF: 2.1e-5
- ebs: 1.4e-5
- ebs_check: 1.4e-5
- guess for new ef: 2.2e-5
- energy: 2.4e-8
- charge diff: 9.8e-9
- D Tr: 1.5e-8
+ eF: 3.6e-5
+ EXC: 2.8e-6
+ Epot: 5.8e-5
+ EvXC: 3.2e-6
+ EH: 2.5e-5
+ Ekin: 1.8e-7
+ Enl: 1.6e-8
+ Omega: 1.1e-8
+ D eF: 2.9e-5
+ ebs: 2.5e-5
+ ebs_check: 2.5e-5
+ guess for new ef: 3.9e-5
+ energy: 4.1e-8
+ charge diff: 1.7e-8
+ D Tr: 2.6e-8
  number of corrected points: 14
  diff: 5.9e-9
- trace(KS): 5.2e-9
- Total charge: 4.6e-9
+ trace(KS): 5.5e-9
+ Total charge: 5.9e-9
  relative diff: 1.6e-9
  diff from reference kernel: 3.0e-8
- D: 2.1e-8
- Tr(K): 1.1e-8
+ D: 3.0e-8
+ Tr(K): 1.7e-8
  total charge correction: 1.5e-11
  multiplicator for the confinement: 2.4e-11
  radius for normalization: 1.1e-2
@@ -1682,10 +1683,10 @@ igortho_44:
  Ekin: 1.0e-9
  Total charge: 1.4e-08
  guess for new ef: 1.8e-05
- Tr(K): 2.81e-07
- charge diff: 2.76e-07
+ Tr(K): 3.0e-07
+ charge diff: 3.0e-07
  eF: 1.8e-05
- D Tr: 2.71e-7
+ D Tr: 3.0e-7
  D eF: 7.5e-6
  diff: 4.6e-7
  ebs: 6.5e-04
@@ -1695,9 +1696,9 @@ igortho_44:
  energy: 6.6e-07
  Omega: 3.0e-10
  Charge analysis (charge / net charge): 1.4e-6
- Pseudo Fermi level for occupations: 4.7e-7
- net charge: 4.3e-8
- eval: 1.1e-5
+ Pseudo Fermi level for occupations: 1.7e-6
+ net charge: 1.1e-5
+ eval: 1.1e-4
  Multipole coefficients: 1.4e-6
  number of corrected points: 8
  net quadropole: 7.1e-5
@@ -1727,10 +1728,10 @@ igortho_94:
  EvXC: 4.4e-5
  total charge correction: 3.3e-8
  guess for new ef: 1.3e-5
- Tr(K): 2.1e-8
- charge diff: 2.1e-8
+ Tr(K): 3.0e-7
+ charge diff: 3.0e-7
  eF: 1.3e-5
- D Tr: 2.0e-8
+ D Tr: 3.0e-7
  D eF: 1.1e-5
  diff: 5.4e-9
  diff from reference kernel: 1.1e-8
@@ -1738,12 +1739,12 @@ igortho_94:
  ebs_check: 3.2e-4
  relative diff: 1.4e-9
  trace(KS): 2.7e-9
- D: 1.1e-7
+ D: 1.1e-4
  energy: 2.4e-8
  Omega: 1.1e-8
  Charge analysis (charge / net charge): 2.0e-6
- Pseudo Fermi level for occupations: 3.8e-8
- net charge: 1.0e-7
+ Pseudo Fermi level for occupations: 1.1e-6
+ net charge: 1.1e-5
  eval: 1.1e-7
  Multipole coefficients: 1.2e-5
  number of corrected points: 83

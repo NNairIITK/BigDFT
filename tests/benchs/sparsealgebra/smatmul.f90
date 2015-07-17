@@ -22,7 +22,8 @@ program smatmul
   external :: gather_timings
 
   ! Variables
-  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin, nfvctr, nvctr, isfvctr, nfvctrp, nit, it, verbosity
+  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin
+  integer :: nfvctr, nvctr, isfvctr, nfvctrp, nit, it, verbosity, nat
   !character(len=*),parameter :: filename='matrix.dat'
   character(len=1024) :: filename
   character(len=1) :: geocode
@@ -78,11 +79,11 @@ program smatmul
 
   
   ! Read in a file in the sparse BigDFT format
-  call read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, on_which_atom=on_which_atom)
+  call read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, nat=nat, on_which_atom=on_which_atom)
 
   ! Create the corresponding BigDFT sparsity pattern
   call distribute_columns_on_processes_simple(iproc, nproc, nfvctr, nfvctrp, isfvctr)
-  call bigdft_to_sparsebigdft(iproc, nproc, nspin, geocode, nfvctr, nfvctrp, isfvctr, on_which_atom, nvctr, nseg, keyg, smat)
+  call bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, nfvctr, nfvctrp, isfvctr, on_which_atom, nvctr, nseg, keyg, smat)
 
   matA = matrices_null()
 

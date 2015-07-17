@@ -63,9 +63,9 @@ program driver_singlerun
        atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 
   ! Create the corresponding BigDFT sparsity pattern
-  !call ccs_to_sparsebigdft(iproc, nproc, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
+  !call ccs_to_sparsebigdft(iproc, nproc, nat, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
   call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatA)
+  call bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatA)
 
 
   ! Check the symmetry
@@ -87,7 +87,7 @@ program driver_singlerun
        !nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        !atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
   call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatB)
+  call bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatB)
 
   matB(1) = matrices_null()
 
@@ -231,7 +231,7 @@ program driver_singlerun
   call f_free_ptr(nzatom)
   call f_free_ptr(nelpsp)
   call f_free_ptr(iatype)
-  call f_free_str_ptr(len(atomnames),atomnames)
+  call f_free_str_ptr(int(len(atomnames),kind=4),atomnames)
   call f_free_ptr(rxyz)
 
   call timing(bigdft_mpi%mpi_comm,'FINISH','PR')
@@ -282,7 +282,7 @@ program driver_singlerun
       if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
            nthreads)
 
-      nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.bigdft_mpi%nproc-1,id='nodename')
+      nodename=f_malloc0_str(int(MPI_MAX_PROCESSOR_NAME,kind=4),0.to.bigdft_mpi%nproc-1,id='nodename')
       if (bigdft_mpi%nproc>1) then
          call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
          !gather the result between all the process

@@ -118,8 +118,7 @@ module module_f_malloc
   !! @param mapname  @copydoc doc::size
   !! @param id       @copydoc doc::id
   interface f_malloc
-     module procedure f_malloc,f_malloci_simple
-     module procedure f_mallocli_simple
+     module procedure f_malloc,f_malloci_simple,f_mallocli_simple
      module procedure f_malloc_bounds,f_malloc_bound
      !here also the procedures for the copying of arrays have to be defined
      module procedure f_malloc_i2,f_malloc_d2
@@ -129,16 +128,13 @@ module module_f_malloc
   end interface
 
   interface f_malloc0
-     module procedure f_malloc0
+     module procedure f_malloc0,f_malloci0_simple,f_mallocli0_simple
      !!module procedure f_mallocli0
-     module procedure f_malloci0_simple
-     module procedure f_mallocli0_simple
      module procedure f_malloc0_bounds,f_malloc0_bound
   end interface
 
   interface f_malloc_ptr
-     module procedure f_malloc_ptr,f_malloci_ptr_simple
-     module procedure f_mallocli_ptr_simple
+     module procedure f_malloc_ptr,f_malloci_ptr_simple,f_mallocli_ptr_simple
      module procedure f_malloc_ptr_bounds,f_malloc_ptr_bound
      !module procedure f_malloc_ptr_i2,f_malloc_ptr_i3
      module procedure f_malloc_ptr_i2_sp,f_malloc_ptr_i3_sp
@@ -150,16 +146,14 @@ module module_f_malloc
   end interface
 
   interface f_malloc0_ptr
-     module procedure f_malloc0_ptr
+     module procedure f_malloc0_ptr,f_malloci0_ptr_simple,f_mallocli0_ptr_simple
      !!module procedure f_mallocli0_ptr
-     module procedure f_malloci0_ptr_simple
-     module procedure f_mallocli0_ptr_simple
      module procedure f_malloc0_ptr_bounds,f_malloc0_ptr_bound
   end interface
 
   interface f_malloc_str
      module procedure f_malloci_str,f_malloci_str_simple,f_mallocli_str_simple
-     module procedure f_malloc_istr_bounds,f_malloc_istr_bound
+     module procedure f_malloc_str_bounds,f_malloc_str_bound
      !!module procedure f_mallocli_str
      !!module procedure f_malloc_istr_simple
      !!module procedure f_malloc_listr_bounds
@@ -168,7 +162,7 @@ module module_f_malloc
 
   interface f_malloc0_str
      module procedure f_malloci0_str,f_malloci0_str_simple,f_mallocli0_str_simple
-     module procedure f_malloc0_istr_bounds,f_malloc0_istr_bound
+     module procedure f_malloc0_str_bounds,f_malloc0_str_bound
      !!module procedure f_mallocli0_str
      !!module procedure f_malloc0_listr_bounds,f_malloc0_listr_bound
   end interface
@@ -405,13 +399,13 @@ contains
     m%put_to_zero=.true.
   end function f_malloc0_ptr_bound
   !> For rank-1 arrays, with bounds
-  pure function f_malloc_istr_bound(length,bounds,id,routine_id,profile) result(m)
+  pure function f_malloc_str_bound(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
     integer(kind=4), intent(in) :: length
     include 'f_malloc-bound-inc.f90'
     m%len=int(length,kind=4)
-  end function f_malloc_istr_bound
+  end function f_malloc_str_bound
   !!pure function f_malloc_listr_bound(length,bounds,id,routine_id,profile) result(m)
   !!  implicit none
   !!  type(malloc_information_str_all) :: m
@@ -420,14 +414,14 @@ contains
   !!  m%len=int(length,kind=4)
   !!end function f_malloc_listr_bound
   !>for rank-1 arrays, with boundaries
-  pure function f_malloc0_istr_bound(length,bounds,id,routine_id,profile) result(m)
+  pure function f_malloc0_str_bound(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
     integer(kind=4), intent(in) :: length
     include 'f_malloc-bound-inc.f90'
     m%len=int(length,kind=4)
     m%put_to_zero=.true.
-  end function f_malloc0_istr_bound
+  end function f_malloc0_str_bound
   !!pure function f_malloc0_listr_bound(length,bounds,id,routine_id,profile) result(m)
   !!  implicit none
   !!  type(malloc_information_str_all) :: m
@@ -489,13 +483,13 @@ contains
     m%put_to_zero=.true.
   end function f_malloc0_ptr_bounds
   !> Define the allocation information for  arrays of different rank
-  pure function f_malloc_istr_bounds(length,bounds,id,routine_id,profile) result(m)
+  pure function f_malloc_str_bounds(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
     integer(kind=4), intent(in) :: length
     include 'f_malloc-bounds-inc.f90'
     m%len=int(length,kind=4)
-  end function f_malloc_istr_bounds
+  end function f_malloc_str_bounds
   !!pure function f_malloc_listr_bounds(length,bounds,id,routine_id,profile) result(m)
   !!  implicit none
   !!  type(malloc_information_str_all) :: m
@@ -503,14 +497,14 @@ contains
   !!  include 'f_malloc-bounds-inc.f90'
   !!  m%len=int(length,kind=4)
   !!end function f_malloc_listr_bounds
-  pure function f_malloc0_istr_bounds(length,bounds,id,routine_id,profile) result(m)
+  pure function f_malloc0_str_bounds(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
     integer(kind=4), intent(in) :: length
     include 'f_malloc-bounds-inc.f90'
     m%len=int(length,kind=4)
     m%put_to_zero=.true.
-  end function f_malloc0_istr_bounds
+  end function f_malloc0_str_bounds
   !!pure function f_malloc0_listr_bounds(length,bounds,id,routine_id,profile) result(m)
   !!  implicit none
   !!  type(malloc_information_str_all) :: m
@@ -596,7 +590,7 @@ contains
     implicit none
     type(malloc_information_str_all) :: m
     integer(kind=4), intent(in) :: length
-    include 'f_malloci-total-inc.f90'
+    include 'f_malloc-total-inc.f90'
     m%len=int(length,kind=4)
   end function f_malloci_str
   !!function f_mallocli_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
@@ -611,7 +605,7 @@ contains
     implicit none
     type(malloc_information_str_all) :: m
     integer(kind=4), intent(in) :: length
-    include 'f_malloci-total-inc.f90'
+    include 'f_malloc-total-inc.f90'
     m%len=int(length,kind=4)
     m%put_to_zero=.true.
   end function f_malloci0_str
@@ -628,7 +622,7 @@ contains
     implicit none
     type(malloc_information_str_ptr) :: m
     integer(kind=4), intent(in) :: length
-    include 'f_malloci-total-inc.f90'
+    include 'f_malloc-total-inc.f90'
     m%len=int(length,kind=4)
   end function f_malloci_str_ptr
   !!function f_mallocli_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
@@ -643,7 +637,7 @@ contains
     implicit none
     type(malloc_information_str_ptr) :: m
     integer(kind=4), intent(in) :: length
-    include 'f_malloci-total-inc.f90'
+    include 'f_malloc-total-inc.f90'
     m%len=int(length,kind=4)
     m%put_to_zero=.true.
   end function f_malloci0_str_ptr

@@ -465,7 +465,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   type(sparse_matrix) :: smat
 
   ! Local variables
-  integer :: nnonzero, nspin, norbu, norbup, isorbu
+  integer :: nnonzero, nspin, norbu, norbup, isorbu, nat
   character(len=1) :: geocode
   integer,dimension(:),allocatable :: nvctr_per_segment, on_which_atom
   integer,dimension(:,:),pointer :: nonzero
@@ -511,6 +511,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   norbu=norb
   norbup=norbp
   isorbu=isorb
+  nat = norbu !fake nat
   on_which_atom = f_malloc0(norbu,id='on_which_atom')
   ! on_which_atoms set to zero is of course not meaningful, but just be ok for this test...
   call init_sparse_matrix(iproc, nproc, nspin, geocode, norb, norbp, isorb, norbu, norbup, isorbu, .false., &
@@ -523,7 +524,7 @@ subroutine sparse_matrix_init_fake(iproc,nproc,norb, norbp, isorb, nseg, nvctr, 
   collcom_dummy = comms_linear_null()
   ! since no taskgroups are used, the values of iirow and iicol are just set to
   ! the minimum and maximum, respectively.
-  call init_matrix_taskgroups(iproc, nproc, .false., collcom_dummy, collcom_dummy, smat, &
+  call init_matrix_taskgroups(iproc, nproc, nat, .false., collcom_dummy, collcom_dummy, smat, &
        (/1,norb/), (/1,norb/))
 
   !!! Initialize the parameters for the spare matrix matrix multiplication
