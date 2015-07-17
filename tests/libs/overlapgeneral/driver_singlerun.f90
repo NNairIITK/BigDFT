@@ -63,9 +63,9 @@ program driver_singlerun
        atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 
   ! Create the corresponding BigDFT sparsity pattern
-  !call ccs_to_sparsebigdft(iproc, nproc, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
+  !call ccs_to_sparsebigdft(iproc, nproc, nat, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
   call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatA)
+  call bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatA)
 
 
   ! Check the symmetry
@@ -87,7 +87,7 @@ program driver_singlerun
        !nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        !atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
   call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatB)
+  call bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatB)
 
   matB(1) = matrices_null()
 

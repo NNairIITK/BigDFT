@@ -2419,14 +2419,14 @@ contains
     end subroutine init_matrix_parallelization
 
 
-    subroutine init_matrix_taskgroups(iproc, nproc, parallel_layout, collcom, collcom_sr, smat, iirow, iicol)
-      use module_types
+    subroutine init_matrix_taskgroups(iproc, nproc, nat, parallel_layout, collcom, collcom_sr, smat, iirow, iicol)
       use communications_base, only: comms_linear
+      use sparsematrix_base, only: sparse_matrix
       use yaml_output
       implicit none
 
       ! Caling arguments
-      integer,intent(in) :: iproc, nproc
+      integer,intent(in) :: iproc, nproc, nat
       logical,intent(in) :: parallel_layout
       type(comms_linear),intent(in) :: collcom, collcom_sr
       type(sparse_matrix),intent(inout) :: smat
@@ -2476,6 +2476,10 @@ contains
 
       ! Now check the pseudo-exact orthonormalization during the input guess
       call check_ortho_inguess()
+
+      ! Now check the submatrix extraction for the projector charge analysis
+      call check_projector_charge_analysis(nat, smat, ind_min, ind_max)
+
 
       ind_min1 = ind_min
       ind_max1 = ind_max
@@ -3571,20 +3575,21 @@ contains
         call f_release_routine()
 
       end subroutine check_ortho_inguess
+
  
     end subroutine init_matrix_taskgroups
 
 
 
 
-    subroutine check_local_matrix_extents(iproc, nproc, collcom, collcom_sr, smat, irow, icol)
-          use module_types
+    subroutine check_local_matrix_extents(iproc, nproc, nat, collcom, collcom_sr, smat, irow, icol)
           use communications_base, only: comms_linear
+          use sparsematrix_base, only: sparse_matrix
           use yaml_output
           implicit none
     
           ! Caling arguments
-          integer,intent(in) :: iproc, nproc
+          integer,intent(in) :: iproc, nproc, nat
           type(comms_linear),intent(in) :: collcom, collcom_sr
           type(sparse_matrix),intent(in) :: smat
           integer,dimension(2),intent(out) :: irow, icol
@@ -3634,6 +3639,9 @@ contains
           !write(*,'(a,2i8)') 'after check_ortho_inguess: ind_min, ind_max', ind_min, ind_max
           if (extra_timing) call cpu_time(tr1)
           if (extra_timing) time4=real(tr1-tr0,kind=8)        
+
+          ! Now check the submatrix extraction for the projector charge analysis
+          call check_projector_charge_analysis(nat, smat, ind_min, ind_max)
 
           !!write(*,'(a,3i8)') 'after check_local_matrix_extents: iproc, ind_min, ind_max', iproc, ind_min, ind_max
 
@@ -3941,15 +3949,76 @@ contains
             !!end do
     
           end subroutine check_ortho_inguess
+
+
+          !!!> Copied from projector_for_charge_analysis and extract_matrix
+          !!subroutine check_projector_charge_analysis()
+          !!  implicit none
+
+          !!  integer :: ii, natp, jj, isat, kat, iatold, kkat, i, iat, j, ind
+          !!  logical,dimension(:),allocatable :: neighbor
+
+          !!  ! Parallelization over the number of atoms
+          !!  ii = at%astruct%nat/bigdft_mpi%nproc
+          !!  natp = ii
+          !!  jj = at%astruct%nat - bigdft_mpi%nproc*natp
+          !!  if (bigdft_mpi%iproc<jj) then
+          !!      natp = natp + 1
+          !!  end if
+          !!  isat = (bigdft_mpi%iproc)*ii + min(bigdft_mpi%iproc,jj)
+
+
+          !!  neighbor = f_malloc((/smat%nfvctr,natp/),id='neighbor')
+          !!  do kat=1,natp
+          !!      ! Determine the "neighbors"
+          !!      iatold = 0
+          !!      neighbor(:) = .false.
+          !!      kkat = kat + isat
+          !!      do i=1,smat%nfvctr
+          !!           iat = smat%on_which_atom(i)
+          !!           ! Only do the following for the first TMB per atom
+          !!           if (iat==iatold) cycle
+          !!           iatold = iat
+          !!           if (iat==kkat) then
+          !!               do j=1,smat%nfvctr
+          !!                   ind =  matrixindex_in_compressed(smat, j, i)
+          !!                   if (ind/=0) then
+          !!                      neighbor(j) = .true.
+          !!                   end if
+          !!               end do
+          !!           end if
+          !!      end do
+
+          !!      ! Determine the size of the matrix needed
+          !!      do i=1,smat%nfvctr
+          !!          if (neighbor(i)) then
+          !!              do j=1,smat%nfvctr
+          !!                  if (neighbor(j)) then
+          !!                      ind =  matrixindex_in_compressed(smat, j, i)
+          !!                      if (ind>0) then
+          !!                          ind_min = min(ind_min,ind)
+          !!                          ind_max = max(ind_max,ind)
+          !!                      end if
+          !!                  end if
+          !!              end do
+          !!          end if
+          !!      end do
+
+          !!  end do
+
+          !!  call f_free(neighbor)
+
+          !!end subroutine check_projector_charge_analysis
+
     end subroutine check_local_matrix_extents
 
 
     !> Uses the CCS sparsity pattern to create a BigDFT sparse_matrix type
-    subroutine ccs_to_sparsebigdft(iproc, nproc, ncol, ncolp, iscol, nnonzero, &
+    subroutine ccs_to_sparsebigdft(iproc, nproc, nat, ncol, ncolp, iscol, nnonzero, &
                on_which_atom, row_ind, col_ptr, smat)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
-      integer,intent(in) :: iproc, nproc, ncol, ncolp, iscol, nnonzero
+      integer,intent(in) :: iproc, nproc, nat, ncol, ncolp, iscol, nnonzero
       integer,dimension(ncol),intent(in) :: on_which_atom
       !logical,intent(in) :: store_index
       integer,dimension(nnonzero),intent(in) :: row_ind
@@ -4000,7 +4069,7 @@ contains
       collcom_dummy = comms_linear_null()
       ! since no taskgroups are used, the values of iirow and iicol are just set to
       ! the minimum and maximum, respectively.
-      call init_matrix_taskgroups(iproc, nproc, .false., collcom_dummy, collcom_dummy, smat, &
+      call init_matrix_taskgroups(iproc, nproc, nat, .false., collcom_dummy, collcom_dummy, smat, &
            (/1,ncol/), (/1,ncol/))
 
       call f_free(nonzero)
@@ -4009,11 +4078,11 @@ contains
 
 
     !> Uses the BigDFT sparsity pattern to create a BigDFT sparse_matrix type
-    subroutine bigdft_to_sparsebigdft(iproc, nproc, nspin, geocode, ncol, ncolp, iscol, &
+    subroutine bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, ncol, ncolp, iscol, &
                on_which_atom, nvctr, nseg, keyg, smat)
       use communications_base, only: comms_linear, comms_linear_null
       implicit none
-      integer,intent(in) :: iproc, nproc, nspin, ncol, ncolp, iscol, nvctr, nseg
+      integer,intent(in) :: iproc, nproc, nat, nspin, ncol, ncolp, iscol, nvctr, nseg
       character(len=1),intent(in) :: geocode
       integer,dimension(ncol),intent(in) :: on_which_atom
       !logical,intent(in) :: store_index
@@ -4080,7 +4149,7 @@ contains
       collcom_dummy = comms_linear_null()
       ! since no taskgroups are used, the values of iirow and iicol are just set to
       ! the minimum and maximum, respectively.
-      call init_matrix_taskgroups(iproc, nproc, .false., collcom_dummy, collcom_dummy, smat, &
+      call init_matrix_taskgroups(iproc, nproc, nat, .false., collcom_dummy, collcom_dummy, smat, &
            (/1,ncol/), (/1,ncol/))
 
       call f_free(nonzero)
@@ -4831,5 +4900,72 @@ contains
       !$omp end do
       !$omp end parallel
     end subroutine get_modulo_array
+
+
+    !> Copied from projector_for_charge_analysis and extract_matrix
+    subroutine check_projector_charge_analysis(nat, smat, ind_min, ind_max)
+      use module_base, only: bigdft_mpi
+      use sparsematrix_base, only: sparse_matrix
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: nat
+      type(sparse_matrix),intent(in) :: smat
+      integer,intent(inout) :: ind_min, ind_max
+
+      integer :: ii, natp, jj, isat, kat, iatold, kkat, i, iat, j, ind
+      logical,dimension(:),allocatable :: neighbor
+
+      ! Parallelization over the number of atoms
+      ii = nat/bigdft_mpi%nproc
+      natp = ii
+      jj = nat - bigdft_mpi%nproc*natp
+      if (bigdft_mpi%iproc<jj) then
+          natp = natp + 1
+      end if
+      isat = (bigdft_mpi%iproc)*ii + min(bigdft_mpi%iproc,jj)
+
+
+      neighbor = f_malloc((/smat%nfvctr,natp/),id='neighbor')
+      do kat=1,natp
+          ! Determine the "neighbors"
+          iatold = 0
+          neighbor(:) = .false.
+          kkat = kat + isat
+          do i=1,smat%nfvctr
+               iat = smat%on_which_atom(i)
+               ! Only do the following for the first TMB per atom
+               if (iat==iatold) cycle
+               iatold = iat
+               if (iat==kkat) then
+                   do j=1,smat%nfvctr
+                       ind =  matrixindex_in_compressed(smat, j, i)
+                       if (ind/=0) then
+                          neighbor(j) = .true.
+                       end if
+                   end do
+               end if
+          end do
+
+          ! Determine the size of the matrix needed
+          do i=1,smat%nfvctr
+              if (neighbor(i)) then
+                  do j=1,smat%nfvctr
+                      if (neighbor(j)) then
+                          ind =  matrixindex_in_compressed(smat, j, i)
+                          if (ind>0) then
+                              ind_min = min(ind_min,ind)
+                              ind_max = max(ind_max,ind)
+                          end if
+                      end if
+                  end do
+              end if
+          end do
+
+      end do
+
+      call f_free(neighbor)
+
+    end subroutine check_projector_charge_analysis
 
 end module sparsematrix_init

@@ -1843,8 +1843,8 @@ module postprocessing_linear
       neighbor(:,:) = .false.
       ntot = 0
       nmax = 0
-      iatold = 0
       do kat=1,natp
+          iatold = 0
           kkat = kat + isat
           n = 0
           do i=1,smats%nfvctr
