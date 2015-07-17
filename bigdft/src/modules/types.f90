@@ -51,6 +51,7 @@ module module_types
   integer, parameter, public :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
   integer, parameter, public :: INPUT_PSI_MEMORY_WVL   = 1      !< Input PSI from memory
   integer, parameter, public :: INPUT_PSI_DISK_WVL     = 2      !< Input PSI from disk (wavelet coefficients)
+  integer, parameter, public :: INPUT_PSI_DISK_PW      = 3      !< Input PSI from disk (plane wave coefficients)
   integer, parameter, public :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter, public :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter, public :: INPUT_PSI_DISK_GAUSS   = 12

@@ -781,7 +781,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(cdft_data), intent(inout) :: cdft
 
   ! Local variables
-  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, infoCoeff, ispin, ishift, it, ii
+  integer :: ndim_old, ndim, iorb, iiorb, ilr, ilr_old, iiat, methTransformOverlap, ispin, ishift, it !, ii, infoCoeff
   logical:: overlap_calculated
   real(wp), allocatable, dimension(:) :: norm
   type(fragment_transformation), dimension(:), pointer :: frag_trans
@@ -792,24 +792,24 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   integer,parameter :: RESTART_REFORMAT = 1
   integer,parameter :: restart_FOE = RESTART_AO!REFORMAT!AO
   real(kind=8),dimension(:,:),allocatable :: kernelp, ovrlpp, ovrlp_fullp
-  type(localizedDIISParameters) :: ldiis
-  logical :: ortho_on, reduce_conf, can_use_ham
-  real(kind=8) :: trace, trace_old, fnrm_tmb, ratio_deltas, max_error, mean_error
-  integer :: order_taylor, info_basis_functions, iortho, iat, jj, itype, inl, FOE_restart, i
+  !type(localizedDIISParameters) :: ldiis
+  !logical :: reduce_conf, can_use_ham, ortho_on
+  real(kind=8) :: max_error, mean_error !, fnrm_tmb, ratio_deltas, trace, trace_old
+  integer :: order_taylor, iortho, iat, jj, itype, inl, FOE_restart, i !, info_basis_functions
   integer,dimension(:),allocatable :: maxorbs_type, minorbs_type
   integer,dimension(:,:),allocatable :: nl_copy
   logical,dimension(:),allocatable :: type_covered
   logical :: finished
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
-  real(gp) :: fnrm, max_shift
+  real(gp) :: max_shift !, fnrm
   real(gp), dimension(:), pointer :: in_frag_charge
   real(kind=8),dimension(:),allocatable :: psi_old, tmparr
   type(matrices) :: ovrlp_old
-  real(kind=8),dimension(:,:,:),allocatable :: ovrlp_full
-  real(kind=8),dimension(:),allocatable :: eval
+  !real(kind=8),dimension(:,:,:),allocatable :: ovrlp_full
+  !real(kind=8),dimension(:),allocatable :: eval
   integer,parameter :: lwork=10000
-  real(kind=8),dimension(lwork) :: work
-  integer :: info, norder_taylor
+  !real(kind=8),dimension(lwork) :: work
+  integer :: norder_taylor !, info
 
   call f_routine(id='input_memory_linear')
 
@@ -1498,6 +1498,68 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
 
 END SUBROUTINE input_wf_disk
 
+subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, psig, denspot, paw)
+  use module_defs, only: gp, wp
+  use module_types, only: orbitals_data, paw_objects, DFT_local_fields, &
+       & GPU_pointers, local_zone_descriptors, ELECTRONIC_DENSITY, KS_POTENTIAL, &
+       & energy_terms
+  use module_atoms
+  use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_free_unpacked, pawrhoij_unpack
+  use dynamic_memory
+  use module_interfaces, only: read_pw_waves, sumrho, communicate_density
+  use rhopotential, only: updatePotential
+  
+  implicit none
+
+  character(len = *), intent(in) :: filename
+  integer, intent(in) :: iproc, nproc
+  type(atoms_data), intent(in) :: at
+  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+  type(GPU_pointers), intent(inout) :: GPU  
+  type(local_zone_descriptors), intent(in) :: Lzd
+  type(orbitals_data), intent(in) :: orbs
+  real(wp), dimension(orbs%npsidim_orbs / orbs%norbp, orbs%norbp), intent(out) :: psig
+  type(paw_objects), intent(inout) :: paw
+  type(DFT_local_fields), intent(inout) :: denspot
+
+  integer :: i, iat, isp
+  real(wp), dimension(:,:,:), pointer :: rhoij
+  type(energy_terms) :: energs
+
+  call read_pw_waves(filename, iproc, nproc, at, rxyz, Lzd%Glr, orbs, psig, rhoij)
+
+  if (paw%usepaw .and. associated(rhoij)) then
+     do iat = 1, size(paw%pawrhoij)
+        do isp = 1, size(paw%pawrhoij(iat)%rhoijp, 2)
+           call f_memcpy(paw%pawrhoij(iat)%rhoijp(1, isp), rhoij(1, isp, iat), &
+                & size(paw%pawrhoij(iat)%rhoijp, 1))
+        end do
+        paw%pawrhoij(iat)%rhoijselect = (/ ( i, i = 1, size(paw%pawrhoij(iat)%rhoijselect) ) /)
+        paw%pawrhoij(iat)%nrhoijsel = size(paw%pawrhoij(iat)%rhoijselect)
+     end do
+
+     ! Create rho to generate KS potential to generate spsi for later first orthon.
+     call sumrho(denspot%dpbox, orbs, Lzd, GPU, at%astruct%sym, denspot%rhod, &
+          & denspot%xc, psig, denspot%rho_psi)
+     call communicate_density(denspot%dpbox, orbs%nspin, denspot%rhod,&
+          denspot%rho_psi, denspot%rhov, .false.)
+     call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, 0, iproc, nproc)
+
+     call pawrhoij_init_unpacked(paw%pawrhoij)
+     call pawrhoij_unpack(paw%pawrhoij)
+     call paw_update_rho(paw, denspot, at)
+
+     ! Create KS potential.
+     call updatePotential(orbs%nspinor, denspot, energs)
+     call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
+
+     write(*,*) sum(denspot%V_XC), maxval(denspot%V_XC), minval(denspot%V_XC)
+     write(*,*) sum(denspot%rhov), maxval(denspot%rhov), minval(denspot%rhov)
+  end if
+
+  if (associated(rhoij)) call f_free_ptr(rhoij)
+
+END SUBROUTINE input_wf_disk_pw
 
 !> Input guess wavefunction diagonalization
 subroutine input_wf_diag(iproc,nproc,at,denspot,&
@@ -2094,7 +2156,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use sparsematrix_base, only: sparse_matrix, &
                                sparsematrix_malloc, assignment(=), SPARSE_FULL, &
                                sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_TASKGROUP
-use sparsematrix, only: uncompress_matrix2
+  use sparsematrix, only: uncompress_matrix2
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use psp_projectors, only: PSPCODE_PAW, PSPCODE_HGH, free_DFT_PSP_projectors
@@ -2197,6 +2259,11 @@ use sparsematrix, only: uncompress_matrix2
      call default_confinement_data(KSwfn%confdatarr,KSwfn%orbs%norbp)
      call local_potential_dimensions(iproc,KSwfn%Lzd,KSwfn%orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   end if
+
+  ! PAW storage initialisation.
+  call paw_init(iproc, KSwfn%paw, atoms, rxyz, KSwfn%Lzd%Glr%d, denspot%dpbox, &
+       & KSwfn%orbs%nspinor, &
+       & max(1,max(KSwfn%orbs%npsidim_orbs, KSwfn%orbs%npsidim_comp)), KSwfn%orbs%norb)
 
   norbv=abs(in%norbv)
 
@@ -2338,6 +2405,17 @@ use sparsematrix, only: uncompress_matrix2
           KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
           in, atoms, rxyz, KSwfn%Lzd%Glr%wfd, KSwfn%orbs, KSwfn%psi)
 
+  case(INPUT_PSI_DISK_PW)
+     if (iproc == 0) then
+        !write( *,'(1x,a)')&
+        !     &   '---------------------------------------------------- Reading Wavefunctions from disk'
+        call yaml_comment('Reading plane-wave wavefunctions from disk',hfill='-')
+        call yaml_mapping_open("Input Hamiltonian")
+     end if
+     call input_wf_disk_pw("pawo_WFK-etsf.nc", iproc, nproc, atoms, rxyz, GPU, &
+          & KSwfn%Lzd, KSwfn%orbs, KSwfn%psi, denspot, KSwfn%paw)
+     KSwfn%hpsi = f_malloc_ptr(max(KSwfn%orbs%npsidim_comp, &
+          & KSwfn%orbs%npsidim_orbs),id='KSwfn%hpsi')
   case(INPUT_PSI_MEMORY_GAUSS)
      !restart from previously calculated gaussian coefficients
      if (iproc == 0) then
@@ -2767,21 +2845,35 @@ use sparsematrix, only: uncompress_matrix2
           denspot%rhov(1),1,denspot%rho_work(1),1)
   end if
 
+  ! Additional steps for PAW in case of HGH input.
+  if (KSwfn%paw%usepaw .and. (inputpsi == INPUT_PSI_LCAO .or. inputpsi == INPUT_PSI_DISK_PW)) then
+     ! Compute |s|psi>.
+     call paw_compute_dij(KSwfn%paw, atoms, denspot, denspot%V_XC(1,1,1,1), e_paw, e_pawdc, compch_sph)
+
+     if (KSwfn%orbs%npsidim_orbs > 0) call f_zero(KSwfn%orbs%npsidim_orbs,KSwfn%hpsi(1))
+     call NonLocalHamiltonianApplication(iproc,atoms,KSwfn%orbs%npsidim_orbs,KSwfn%orbs,&
+          KSwfn%Lzd,nlpsp,KSwfn%psi,KSwfn%hpsi,e_nl,KSwfn%paw)
+     call f_free_ptr(KSwfn%hpsi)
+
+     ! Orthogonalize
+     if (nproc > 1) call f_free_ptr(KSwfn%psit)
+     call first_orthon(iproc, nproc, KSwfn%orbs, KSwfn%Lzd, KSwfn%comms, &
+          & KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orthpar, KSwfn%paw)
+  end if
   !all the input format need first_orthon except the LCAO input_guess
   ! WARNING: at the momemt the linear scaling version does not need first_orthon.
   ! hpsi and psit have been allocated during the LCAO input guess.
   ! Maybe to be changed later.
   !if (inputpsi /= 0 .and. inputpsi /=-1000) then
   if ( inputpsi /= INPUT_PSI_LCAO .and. inputpsi /= INPUT_PSI_LINEAR_AO .and. &
-        inputpsi /= INPUT_PSI_EMPTY .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
-        inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
-    
+       inputpsi /= INPUT_PSI_EMPTY .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+       inputpsi /= INPUT_PSI_MEMORY_LINEAR .and. inputpsi /= INPUT_PSI_DISK_PW) then
+
      !orthogonalise wavefunctions and allocate hpsi wavefunction (and psit if parallel)
      call first_orthon(iproc,nproc,KSwfn%orbs,KSwfn%Lzd,KSwfn%comms,&
           KSwfn%psi,KSwfn%hpsi,KSwfn%psit,in%orthpar)
   end if
 
-  !if (iproc==0 .and. inputpsi /= INPUT_PSI_LINEAR_AO) call yaml_mapping_close() !input hamiltonian
   if (iproc==0) call yaml_mapping_close() !input hamiltonian
 
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
@@ -2812,24 +2904,6 @@ use sparsematrix, only: uncompress_matrix2
         inputpsi == INPUT_PSI_DISK_LINEAR .or. &
         inputpsi == INPUT_PSI_MEMORY_LINEAR ).and. tmb%c_obj /= 0) then
       call kswfn_emit_psi(tmb, 0, 0, iproc, nproc)
-   end if
-
-   ! Init PAW from input wavefunctions.
-   call paw_init(iproc, KSwfn%paw, atoms, rxyz, KSwfn%Lzd%Glr%d, denspot%dpbox, KSwfn%orbs%nspinor, &
-        & max(1,max(KSwfn%orbs%npsidim_orbs, KSwfn%orbs%npsidim_comp)), KSwfn%orbs%norb)
-   if (KSwfn%paw%usepaw .and. inputpsi == INPUT_PSI_LCAO) then
-      ! Compute |s|psi>.
-      call paw_compute_dij(KSwfn%paw, atoms, denspot, denspot%V_XC(1,1,1,1), e_paw, e_pawdc, compch_sph)
-
-      if (KSwfn%orbs%npsidim_orbs > 0) call f_zero(KSwfn%orbs%npsidim_orbs,KSwfn%hpsi(1))
-      call NonLocalHamiltonianApplication(iproc,atoms,KSwfn%orbs%npsidim_orbs,KSwfn%orbs,&
-           KSwfn%Lzd,nlpsp,KSwfn%psi,KSwfn%hpsi,e_nl,KSwfn%paw)
-      call f_free_ptr(KSwfn%hpsi)
-      
-      ! Orthogonalize
-      if (nproc > 1) call f_free_ptr(KSwfn%psit)
-      call first_orthon(iproc, nproc, KSwfn%orbs, KSwfn%Lzd, KSwfn%comms, &
-           & KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orthpar, KSwfn%paw)
    end if
 
    call f_release_routine()
@@ -3267,7 +3341,7 @@ contains
     real :: simple
 
     if (kind(double) == kind(simple)) then
-       simple=double
+       simple=real(double)
     else if (abs(double) < real(tiny(1.e0),wp)) then
        simple=0.e0
     else if (abs(double) > real(huge(1.e0),wp)) then

@@ -169,7 +169,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
 
      if (wfn%paw%usepaw) then
         !write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
-        call paw_compute_rhoij(wfn%paw, wfn%orbs, atoms, denspot)
+        call paw_compute_rhoij(wfn%paw, wfn%orbs, atoms)
+        call paw_update_rho(wfn%paw, denspot, atoms)
         !write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
      end if
 
@@ -730,7 +731,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !local variables
   logical :: newmethod
   character(len=*), parameter :: subname='NonLocalHamiltonianApplication' 
-  logical :: dosome, overlap, goon
+  logical :: dosome, overlap !, goon
   integer :: ikpt,istart_ck,ispsi_k,isorb,ieorb,nspinor,iorb,iat,nwarnings
   integer :: iproj,ispsi,istart_c,ilr,ilr_skip,mproj,iatype,ispinor,iilr,jlr
   real(wp) :: hp,eproj
@@ -3093,8 +3094,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   type(paw_objects), intent(inout) :: paw
   type(atoms_data), intent(in) :: at
   type(DFT_local_fields), intent(inout) :: denspot
-  real(gp), dimension(denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p, &
-       & denspot%dpbox%nrhodim), intent(in) :: vxc
+  real(gp), dimension(denspot%dpbox%ndimpot, denspot%dpbox%nrhodim), intent(in) :: vxc
   real(gp), intent(out) :: e_paw, e_pawdc, compch_sph
 
   integer, parameter :: cplex = 1, pawprtvol = 0, pawspnorb = 0, pawxcdev = 1, &
@@ -3113,7 +3113,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   call f_zero(gprimd)
   xred = f_malloc((/ 3, at%astruct%nat /), id = "xred")
 
-  nfft = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p
+  nfft = denspot%dpbox%ndimpot
   nfftot = product(denspot%dpbox%ndims)
   ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
 
@@ -3159,38 +3159,21 @@ end subroutine paw_compute_dij
 
 !> Compute the PAW quantities rhoij (augmentation occupancies)
 !  Remember:for each atom, rho_ij=Sum_{n,k} {occ(n,k)*<Cnk|p_i><p_j|Cnk>}
-subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
+subroutine paw_compute_rhoij(paw, orbs, atoms)
   use module_base, only: bigdft_mpi, gp
-  use module_types, only: orbitals_data, paw_objects, atoms_data, DFT_local_fields, ELECTRONIC_DENSITY
+  use module_types, only: orbitals_data, paw_objects, atoms_data
   use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_mpisum_unpacked, &
        & pawrhoij_free
   use dynamic_memory
-  use yaml_output
-  use abi_defs_basis, only: AB7_NO_ERROR
-  use m_ab6_symmetry
-  use abi_interfaces_add_libpaw, only: abi_pawaccrhoij, abi_pawmkrho
-  use abi_interfaces_numeric, only: abi_mati3inv
+  use abi_interfaces_add_libpaw, only: abi_pawaccrhoij
   implicit none
   type(paw_objects), intent(inout) :: paw
   type(orbitals_data), intent(in) :: orbs
   type(atoms_data), intent(in) :: atoms
-  type(DFT_local_fields), intent(inout) :: denspot
 
-  integer, parameter :: cplex = 1, pawprtvol = 0, usewvl = 1, pawxcdev = 1, ipert = 0, idir = 1
-  integer :: iatom, iorbp, isppol, ncplx, iorb, errno, isym, nsym
-  integer :: nfft, ngfft(18)
+  integer :: iatom, iorbp, isppol, ncplx, iorb
   integer, dimension(atoms%astruct%nat) :: atindx
-  real(gp) :: compch_fft
   type(pawrhoij_type), pointer :: pawrhoij_all(:)
-  real(gp) :: ucvol
-  real(gp), dimension(3), parameter :: qphon = (/ 0._gp, 0._gp, 0._gp /)
-
-  type(symmetry_type), pointer :: symObj
-  integer, allocatable :: symrec(:,:,:)
-  integer, pointer  :: sym(:,:,:), indsym(:,:,:)
-  integer, pointer  :: symAfm(:)
-  real(gp), pointer :: transNon(:,:)
-!!$  real(gp), dimension(:,:), allocatable :: nhat
 
   !Build and initialize unpacked rhoij (to be computed here)
   call pawrhoij_init_unpacked(paw%pawrhoij)
@@ -3230,6 +3213,36 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
 !!$     call pawrhoij_free(pawrhoij_all)
 !!$     deallocate(pawrhoij_all)
 !!$  end if
+END SUBROUTINE paw_compute_rhoij
+
+subroutine paw_update_rho(paw, denspot, atoms)
+  use module_defs, only: gp, bigdft_mpi
+  use module_types, only: paw_objects, DFT_local_fields, ELECTRONIC_DENSITY
+  use module_atoms
+  use abi_defs_basis, only: AB7_NO_ERROR
+  use m_ab6_symmetry
+  use abi_interfaces_numeric, only: abi_mati3inv
+  use yaml_output
+  use abi_interfaces_add_libpaw, only: abi_pawmkrho
+  use dynamic_memory
+  implicit none
+  type(paw_objects), intent(inout) :: paw
+  type(DFT_local_fields), intent(inout) :: denspot
+  type(atoms_data), intent(in) :: atoms
+  
+  integer :: errno, isym, nsym
+  integer :: nfft, ngfft(18)
+  real(gp) :: ucvol
+  type(symmetry_type), pointer :: symObj
+  integer, allocatable :: symrec(:,:,:)
+  integer, pointer  :: sym(:,:,:), indsym(:,:,:)
+  integer, pointer  :: symAfm(:)
+  real(gp), pointer :: transNon(:,:)
+  real(gp) :: compch_fft
+!!$  real(gp), dimension(:,:), allocatable :: nhat
+
+  integer, parameter :: cplex = 1, pawprtvol = 0, usewvl = 1, pawxcdev = 1, ipert = 0, idir = 1
+  real(gp), dimension(3), parameter :: qphon = (/ 0._gp, 0._gp, 0._gp /)
 
   nfft = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p
   ngfft(1:3) = denspot%dpbox%ndims
@@ -3263,16 +3276,20 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
   end if
 !!$  nhat = f_malloc((/ nfft, denspot%dpbox%nrhodim /), id = "nhat")
   call abi_pawmkrho(compch_fft,cplex,symObj%gprimd,idir,indsym,ipert,&
-&          nfft, nfft / 8, ngfft, &
-&          size(paw%pawrhoij),atoms%astruct%nat,denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes, &
-& 0,atoms%pawang,paw%pawfgrtab,pawprtvol,&
-&          paw%pawrhoij,paw%pawrhoij,&
-&          atoms%pawtab,qphon,denspot%rhov,denspot%rhov,denspot%rhov,&
-& symObj%rprimd,symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred)!,&
+       &          nfft, nfft / 8, ngfft, &
+       &          size(paw%pawrhoij),atoms%astruct%nat,denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes, &
+       & 0,atoms%pawang,paw%pawfgrtab,pawprtvol,&
+       &          paw%pawrhoij,paw%pawrhoij,&
+       &          atoms%pawtab,qphon,denspot%rhov,denspot%rhov,denspot%rhov,&
+       & symObj%rprimd,symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred)!,&
 !!$& pawnhat = nhat)
 !!$  call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,"nhat.cube",atoms,&
 !!$       & symObj%xred,denspot%dpbox,denspot%dpbox%nrhodim,nhat)
 !!$  call f_free(nhat)
+  if (bigdft_mpi%iproc == 0) then
+     call yaml_map('Compensation charge on wavelet grid', compch_fft)
+     call yaml_newline()
+  end if
 
   call f_free(symrec)
 
@@ -3282,5 +3299,4 @@ subroutine paw_compute_rhoij(paw, orbs, atoms, denspot)
      call f_free_ptr(indsym)
      call f_free_ptr(sym)
   end if
-
-end subroutine paw_compute_rhoij
+END SUBROUTINE paw_update_rho

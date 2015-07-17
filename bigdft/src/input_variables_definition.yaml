@@ -119,6 +119,7 @@
        0:     LCAO
        1:     Wvl. in memory
        2:     Wvl. on disk
+       3:     Plane-waves on disk
        10:    LCAO + gauss.
        11:    Gauss. in memory
        12:    Gauss. on disk
