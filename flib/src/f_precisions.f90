@@ -18,7 +18,7 @@ module f_precisions
 
   !for integers to be verified
   integer, parameter :: f_short=selected_int_kind(4)
-  integer, parameter :: f_int=selected_int_kind(8)
+  integer, parameter :: f_integer=selected_int_kind(8)
   integer, parameter :: f_long=selected_int_kind(16)
 
   !logicals to be done also, and tested against bits and bytes with f_loc

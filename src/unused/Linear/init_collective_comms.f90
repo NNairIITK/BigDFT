@@ -473,3 +473,154 @@ subroutine check_gridpoint(nseg, n1, n2, noffset1, noffset2, noffset3, keyg, ita
 
 end subroutine check_gridpoint
 
+
+
+!!subroutine calculate_pulay_overlap(iproc, nproc, orbs1, orbs2, collcom1, collcom2, psit_c1, psit_c2, psit_f1, psit_f2, ovrlp)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  integer,intent(in) :: iproc, nproc
+!!  type(orbitals_data),intent(in) :: orbs1, orbs2
+!!  type(comms_linear),intent(in) :: collcom1, collcom2
+!!  real(kind=8),dimension(collcom1%ndimind_c),intent(in) :: psit_c1
+!!  real(kind=8),dimension(collcom2%ndimind_c),intent(in) :: psit_c2
+!!  real(kind=8),dimension(7*collcom1%ndimind_f),intent(in) :: psit_f1
+!!  real(kind=8),dimension(7*collcom2%ndimind_f),intent(in) :: psit_f2
+!!  real(kind=8),dimension(orbs1%norb,orbs2%norb),intent(out) :: ovrlp
+!!  
+!!  ! Local variables
+!!  integer :: i0, j0, ipt, ii, iiorb, j, jj, jjorb, i, ierr  
+!!
+!!  call timing(iproc,'ovrlptransComp','ON') !lr408t
+!!  call f_zero(ovrlp)
+!!  if(collcom1%nptsp_c/=collcom2%nptsp_c) then
+!!      write(*,'(a,i0,a)') 'ERROR on process ',iproc,': collcom1%nptsp_c/=collcom2%nptsp_c'
+!!      stop
+!!  end if
+!!  if(collcom1%nptsp_f/=collcom2%nptsp_f) then
+!!      write(*,'(a,i0,a)') 'ERROR on process ',iproc,': collcom1%nptsp_f/=collcom2%nptsp_f'
+!!      stop
+!!  end if
+!!
+!!  i0=0
+!!  j0=0
+!!  do ipt=1,collcom1%nptsp_c 
+!!      ii=collcom1%norb_per_gridpoint_c(ipt)
+!!      jj=collcom2%norb_per_gridpoint_c(ipt)
+!!      do i=1,ii
+!!          iiorb=collcom1%indexrecvorbital_c(i0+i)
+!!          do j=1,jj
+!!              jjorb=collcom2%indexrecvorbital_c(j0+j)
+!!              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_c1(i0+i)*psit_c2(j0+j)
+!!          end do
+!!      end do
+!!      i0=i0+ii
+!!      j0=j0+jj
+!!  end do
+!!
+!!  i0=0
+!!  j0=0
+!!  do ipt=1,collcom1%nptsp_f 
+!!      ii=collcom1%norb_per_gridpoint_f(ipt)
+!!      jj=collcom2%norb_per_gridpoint_f(ipt)
+!!      do i=1,ii
+!!          iiorb=collcom1%indexrecvorbital_f(i0+i)
+!!          do j=1,jj
+!!              jjorb=collcom2%indexrecvorbital_f(j0+j)
+!!              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-6)*psit_f2(7*(j0+j)-6)
+!!              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-5)*psit_f2(7*(j0+j)-5)
+!!              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-4)*psit_f2(7*(j0+j)-4)
+!!              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-3)*psit_f2(7*(j0+j)-3)
+!!              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-2)*psit_f2(7*(j0+j)-2)
+!!              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-1)*psit_f2(7*(j0+j)-1)
+!!              ovrlp(iiorb,jjorb)=ovrlp(iiorb,jjorb)+psit_f1(7*(i0+i)-0)*psit_f2(7*(j0+j)-0)
+!!          end do
+!!      end do
+!!      i0=i0+ii
+!!      j0=j0+jj
+!!  end do
+!!
+!!  call timing(iproc,'ovrlptransComp','OF') !lr408t
+!!
+!!  call timing(iproc,'ovrlptransComm','ON') !lr408t
+!!
+!!  if(nproc>1) then
+!!      call mpiallred(ovrlp, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!  end if
+!!  call timing(iproc,'ovrlptransComm','OF') !lr408t
+!!end subroutine calculate_pulay_overlap
+
+
+
+
+
+!!subroutine check_grid_point_from_boxes(i1, i2, i3, lr, overlap_possible)
+!!  use module_base
+!!  use module_types
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  integer,intent(in) :: i1, i2, i3
+!!  type(locreg_descriptors),intent(in) :: lr  
+!!  logical,intent(out) :: overlap_possible
+!!
+!!  ! Local variables
+!!  logical :: ovrlpx, ovrlpy, ovrlpz
+!!  
+!!  ovrlpx = (i1>=lr%ns1 .and. i1<=lr%ns1+lr%d%n1)
+!!  ovrlpy = (i2>=lr%ns2 .and. i2<=lr%ns2+lr%d%n2)
+!!  ovrlpz = (i3>=lr%ns3 .and. i3<=lr%ns3+lr%d%n3)
+!!  if(ovrlpx .and. ovrlpy .and. ovrlpz) then
+!!      overlap_possible=.true.
+!!  else
+!!      overlap_possible=.true.
+!!  end if
+!!
+!!end subroutine check_grid_point_from_boxes
+
+!!subroutine get_reverse_indices(n, indices, reverse_indices)
+!!  use module_base
+!!  implicit none
+!!  
+!!  ! Calling arguments
+!!  integer,intent(in) :: n
+!!  integer,dimension(n),intent(in) :: indices
+!!  integer,dimension(n),intent(out) :: reverse_indices
+!!
+!!  ! Local variables
+!!  integer :: i, j, m, j0, j1, j2, j3
+!!
+!!  !$omp parallel default(private) &
+!!  !$omp shared(n, m, indices, reverse_indices)
+!!
+!!  m=mod(n,4)
+!!  if (m/=0) then
+!!      do i=1,m
+!!          j=indices(i)
+!!          reverse_indices(j)=i
+!!      end do
+!!  end if
+!!
+!!  !$omp do
+!!  do i=m+1,n,4
+!!      j0=indices(i+0)
+!!      reverse_indices(j0)=i+0
+!!      j1=indices(i+1)
+!!      reverse_indices(j1)=i+1
+!!      j2=indices(i+2)
+!!      reverse_indices(j2)=i+2
+!!      j3=indices(i+3)
+!!      reverse_indices(j3)=i+3
+!!  end do
+!!  !$omp end do
+!!
+!!  !$omp end parallel
+!!
+!!  !!do i=1,n
+!!  !!    j=indices(i)
+!!  !!    reverse_indices(j)=i
+!!  !!end do
+!!
+!!end subroutine get_reverse_indices

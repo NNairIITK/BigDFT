@@ -13,7 +13,7 @@ module dictionaries_base
 
   implicit none
 
-  integer, parameter, public :: max_field_length = 256    !< Maximum length of a field
+  integer(kind=4), parameter, public :: max_field_length = 256    !< Maximum length of a field
   character(len=max_field_length), parameter :: TYPE_DICT='__dict__'
   character(len=max_field_length), parameter :: TYPE_LIST='__list__'
 

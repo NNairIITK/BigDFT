@@ -1377,8 +1377,8 @@ module io
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
 
-          write(iunit,'(i10,2i6,a)') nat, ntypes, smat%nspin, &
-              '   # number of atoms, number of atom types, nspin'
+          write(iunit,'(i10,2i6,3x,a,a)') nat, ntypes, smat%nspin, smat%geocode, &
+              '   # number of atoms, number of atom types, nspin, geocode'
           do itype=1,ntypes
               write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
                   '   # nz, nelpsp, name'
@@ -1523,7 +1523,7 @@ module io
     end subroutine write_dense_matrix
 
 
-    subroutine read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
+    subroutine read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
                nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
       use module_base
       use module_types
@@ -1532,12 +1532,13 @@ module io
       ! Calling arguments
       character(len=*),intent(in) :: filename
       integer,intent(out) :: nspin, nfvctr, nseg, nvctr
+      character(len=1),intent(out) :: geocode
       integer,dimension(:),pointer,intent(out) :: keyv
       integer,dimension(:,:,:),pointer,intent(out) :: keyg
       real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
       integer,intent(out),optional :: nat, ntypes
       integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
-      character(len=*),dimension(:),pointer,intent(inout),optional :: atomnames
+      character(len=20),dimension(:),pointer,intent(inout),optional :: atomnames
       real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
       integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
 
@@ -1570,10 +1571,10 @@ module io
       call f_open_file(iunit, file=trim(filename), binary=.false.)
 
       if (read_rxyz) then
-          read(iunit,*) nat, ntypes, nspin
+          read(iunit,*) nat, ntypes, nspin, geocode
           nzatom = f_malloc_ptr(ntypes,id='nzatom')
           nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
-          atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
+          atomnames = f_malloc0_str_ptr(int(len(atomnames),kind=4),ntypes,id='atomnames')
 
           do itype=1,ntypes
               read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)
@@ -1584,7 +1585,7 @@ module io
               read(iunit,*) iatype(iat), rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
           end do
       else
-          read(iunit,*) nat_, ntypes_, nspin
+          read(iunit,*) nat_, ntypes_, nspin, geocode
           do itype=1,ntypes_
               read(iunit,*) dummy_int, dummy_int, dummy_char
           end do
@@ -2202,7 +2203,7 @@ module io
           read(iunit,*) nat, ntypes, nspin
           nzatom = f_malloc_ptr(ntypes,id='nzatom')
           nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
-          atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
+          atomnames = f_malloc0_str_ptr(int(len(atomnames),kind=4),ntypes,id='atomnames')
 
           do itype=1,ntypes
               read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)

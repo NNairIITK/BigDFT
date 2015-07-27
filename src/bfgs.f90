@@ -380,6 +380,7 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
    real(kind=8), save::epotold,alpha,alphamax,zeta
    logical, save::reset=.false.
    integer, save::isatur=0
+   logical :: test
    type(f_tree) :: f_info
    if(nwork/=nr*nr+3*nr+3*nr*nr+3*nr) then
        stop 'ERROR: size of work array is insufficient.'
@@ -482,7 +483,8 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
        zeta=min(zeta*1.1d0,1.d0)
        !isatur=isatur+1
    endif
-   if(parmin%iter==0 .or. reset) then
+   test=parmin%iter==0 .or. reset
+   if(test) then
        reset=.false.
        !if(isatur>=10) then
        !    reset=.false.
@@ -498,7 +500,7 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
            enddo
        endif
        work(iw3:iw3-1+nr)=zeta*alphax*f(1:nr)
-   else
+    else
        work(ms:ms-1+nr)=x(1:nr)-work(mx:mx-1+nr)
        work(my:my-1+nr)=work(mf:mf-1+nr)-f(1:nr)
        tt1=DDOT(nr,work(my),1,work(ms),1)
@@ -529,6 +531,7 @@ subroutine bfgs_reza(iproc,dir_output,nr,x,epot,f,nwork,work,alphax,fnrm,fmax,nc
        !enddo
        !write(31,*) zeta
        work(iw1:iw1-1+nr*nr)=work(1:nr*nr)
+       !LG: this linear system might exhibit some fpe sometimes. See FF-LENOSKY test
        call DSYEV('V','L',nr,work(iw1),nr,work(iw4),work(iw2),nrsqtwo,info)
        if(info/=0) stop 'ERROR: DSYEV in bfgs_reza failed.'
        tt1=work(iw4+0)    ; tt2=work(iw4+1)    ; tt3=work(iw4+2)

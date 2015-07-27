@@ -115,7 +115,7 @@ module rhopotential
        use module_xc
        use communications_base, only: p2pComms
        use communications, only: synchronize_onesided_communication
-       use locreg_operations, only: global_to_local_parallel
+       use locreg_operations, only: global_to_local_parallel, global_to_local
        implicit none
        !Arguments
        integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid
@@ -318,7 +318,7 @@ module rhopotential
           do iorb=1,nilr
              ilr = ilrtable(iorb)
              ! Cut the potential into locreg pieces
-             call global_to_local(Lzd%Glr,Lzd%Llr(ilr),dpbox%nrhodim,npot,lzd%ndimpotisf,pot1,pot(istl))
+             call global_to_local(Lzd%Glr,Lzd%Llr(ilr),dpbox%nrhodim,npot,lzd%ndimpotisf,pot1,pot(istl:))
              istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*dpbox%nrhodim
           end do
        else
@@ -437,7 +437,17 @@ module rhopotential
                 !!          iproc, ilr, lzd%Llr(ilr)%nsi1, comgp%ise(1:2), lzd%Llr(ilr)%nsi2, comgp%ise(3:4), lzd%Llr(ilr)%nsi3, comgp%ise(5:6)
                 !!call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nspin*comgp%nrecvBuf, size_Lpot,&
                 !!     comgp%recvBuf(ishift+1), pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
-                call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nrecvBuf, size_Lpot,&
+                !write(*,*) 'comgp%nrecvBuf, size_Lpot, size(comgp%recvBuf(ishift+1:)), size(pot(ist:))', &
+                !            comgp%nrecvBuf, size_Lpot, size(comgp%recvBuf(ishift+1:)), size(pot(ist:))
+                !write(*,*) 'i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2 
+                !write(*,*) 'i1shift, i2shift, i3shift, comgp%ise', i1shift, i2shift, i3shift, comgp%ise
+                !write(*,*) 'kind(comgp%nrecvBuf)', kind(comgp%nrecvBuf)
+                !write(*,*) 'kind(size_Lpot)', kind(size_Lpot)
+                !write(*,*) 'kind(comgp%recvBuf)',kind(comgp%recvBuf)
+                !write(*,*) 'kind(pot)', kind(pot)
+                !write(*,*) 'kind(i1s)', kind(i1s)
+                !write(*,*) 'kind(comgp%ise)',kind(comgp%ise)
+                call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), comgp%nrecvBuf, size_Lpot,&
                      comgp%recvBuf(ishift+1:), pot(ist:), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2, &
                      i1shift, i2shift, i3shift, comgp%ise)
                 !write(*,'(3(a,i0))') 'process ',iproc,' copies data from position ',ishift+1,' to position ',ist
@@ -805,8 +815,10 @@ module rhopotential
               else
                   ! negative, but non-negligible, so issue a warning
                   ! only print first time this occurs
-                  if (ncorrection==0) &
-                       call yaml_warning('considerable negative rho, value: '//trim(yaml_toa(rho(ipt),fmt='(es12.4)')))
+                  if (ncorrection==0) then
+                      call yaml_warning('considerable negative rho, value: '//&
+                        &trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+                  end if
                   charge_correction=charge_correction+rho(ipt)
                   !rho(ipt)=0.d0
                   rho(ipt)=1.d-20

@@ -28,12 +28,21 @@ subroutine f_utils_test()
   complex(f_double), dimension(3) :: c2
   complex(f_quadruple), dimension(3) :: c4
   integer(f_short), dimension(3) :: is
-  integer(f_int), dimension(3) :: i4
+  integer(f_integer), dimension(3) :: i4
   integer(f_long), dimension(3) :: il
   logical(f_byte), dimension(3) :: lb
   logical, dimension(3) :: l
 
   r4=real(10.0,f_quadruple)
+
+  call yaml_map('Long Integer kind',f_long)
+  call yaml_map('Normal Integer kind',f_integer)
+  call yaml_map('Short Integer kind',f_short)
+
+  call yaml_map('Quadruple precision Real kind',f_quadruple)
+  call yaml_map('Double precision Real kind',f_integer)
+  call yaml_map('Single precision Real kind',f_short)
+
 
 !  call expq(r4(1),r4(2))
 

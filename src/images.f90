@@ -843,6 +843,7 @@ contains
 
   subroutine images_output_step(imgs, full, iteration, tol)
     use yaml_output
+    use yaml_strings
     implicit none
     type(run_image), dimension(:), intent(in) :: imgs
     logical, intent(in), optional :: full
@@ -1170,6 +1171,7 @@ subroutine image_calculate(img, iteration, id)
   use module_base, only: bigdft_mpi
   use module_types
   use module_images
+  use yaml_strings
   use bigdft_run, only: bigdft_state,bigdft_write_atomic_file,bigdft_set_input_policy,&
        INPUT_POLICY_SCRATCH,INPUT_POLICY_MEMORY
   implicit none

@@ -89,6 +89,7 @@ contains
 
   !> Check and complete input file
   subroutine input_file_complete(inputdef,dict,imports,nocheck)
+    use dynamic_memory
     use yaml_output
     implicit none
     !> dictionary of input definitions
@@ -105,6 +106,8 @@ contains
     logical :: localcheck
     type(dictionary), pointer :: dict_tmp,iter,dict_tmp2
 
+    call f_routine(id='input_file_complete')
+
     !if present imports, the user dictionary has to be saved for overriding
     if (present(imports) .and. (IMPORT_KEY .in. dict)) then
        if (associated(imports)) then
@@ -117,6 +120,7 @@ contains
              iter => dict_iter(dict_tmp2)
              do while(associated(iter))
                 call dict_update(dict,imports//dict_value(iter))
+                if (COMMENT .in. dict) call dict_remove(dict,COMMENT)
                 iter => dict_next(iter)
              end do
           else if (dict_size(dict_tmp2) > 0 ) then
@@ -130,7 +134,6 @@ contains
           call dict_free(dict_tmp)
        end if
     end if
-    
     localcheck=.true.
     dict_tmp => dict_iter(inputdef)
     do while (associated(dict_tmp))
@@ -138,6 +141,8 @@ contains
        call input_keys_fill(inputdef,dict,trim(dict_key(dict_tmp)),check=localcheck)
        dict_tmp => dict_next(dict_tmp)
     end do
+
+    call f_release_routine()
 
   end subroutine input_file_complete
 
@@ -358,7 +363,8 @@ contains
   !> control if all the keys which are defined in a given field are associated with a true input variable
   subroutine input_keys_control(inputdef,dict,file)
     use dictionaries
-    use yaml_output, only: yaml_map,yaml_toa,yaml_warning
+    use yaml_output, only: yaml_map,yaml_warning
+    use yaml_strings, only: yaml_toa
     implicit none
     !> dictionaries of the input definitions
     type(dictionary), pointer :: inputdef
@@ -531,6 +537,7 @@ contains
   !> This routine is used to create a minimal dictionary which can be used at the place 
   !! of the one provided as an indication on the understood variables
   subroutine input_file_minimal(inputdef,dict,minimal,nested,as_is)
+    use dynamic_memory
     use dictionaries
     use yaml_output
     implicit none
@@ -545,6 +552,8 @@ contains
     type(dictionary), pointer :: dict_tmp,min_cat,dict_tmp0
     character(len=max_field_length) :: category,category0
     logical :: cat_found
+
+    call f_routine(id='input_file_minimal')
 
     nullify(minimal)
 
@@ -587,6 +596,7 @@ contains
                 !verify that no parameters correspond to default values
                 call minimal_category(inputdef//category0,dict_tmp,min_cat)
                 if (associated(min_cat)) then
+                   if (.not. associated(minimal)) call dict_init(minimal)
                    call set(minimal//category0//category,min_cat)
                 end if
              end if
@@ -600,10 +610,14 @@ contains
     dict_tmp => dict_iter(as_is)
     do while(associated(dict_tmp))
        category=dict_value(dict_tmp)
-       if (category .in. dict) &
-            call dict_copy(minimal//category,dict//category)
+       if (category .in. dict) then
+          if (.not. associated(minimal)) call dict_init(minimal)
+          call dict_copy(minimal//category,dict//category)
+       end if
        dict_tmp => dict_next(dict_tmp)
     end do
+
+    call f_release_routine()
 
   contains
 

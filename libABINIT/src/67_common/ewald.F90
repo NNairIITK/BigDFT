@@ -110,7 +110,7 @@ subroutine ewald(iproc,nproc,eew,gmet,grewtn,natom,ntypat,rmet,typat,ucvol,xred,
 !Add up total charge and sum of $charge^2$ in cell
  chsq=0._dp
  ch=0._dp
- !$omp parallel default(none) shared(natom,zion, typat,ch,chsq)
+ !$omp parallel default(none) shared(natom,zion, typat,ch,chsq) private(ia)
  !$omp do reduction(+:ch,chsq) schedule(static)
  do ia=1,natom
    ch=ch+zion(typat(ia))

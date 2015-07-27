@@ -14,6 +14,7 @@ module f_utils
   use dictionaries, only: f_err_throw,f_err_define, &
        & dictionary, dict_len, dict_iter, dict_next, dict_value, max_field_length
   use yaml_strings, only: yaml_toa
+  use module_razero
   implicit none
 
   private
@@ -30,27 +31,37 @@ module f_utils
      integer :: iunit = 0
      type(dictionary), pointer :: lstring => null()
   end type io_stream
-  
 
-  !>interface for difference between two intrinsic types
+  !> This type can be used to dump strings at bunches in a file
+  type, public :: f_dump_buffer
+     integer :: ipos
+     character(len=1), dimension(:), pointer :: buf
+  end type f_dump_buffer
+
+
+  !> Interface for difference between two intrinsic types
   interface f_diff
      module procedure f_diff_i,f_diff_r,f_diff_d,f_diff_li,f_diff_l
      module procedure f_diff_d2d3,f_diff_d2d1,f_diff_d1d2,f_diff_d2,f_diff_d1
      module procedure f_diff_i2i1,f_diff_i1,f_diff_i2,f_diff_i1i2
      module procedure f_diff_li2li1,f_diff_li1,f_diff_li2,f_diff_li1li2
-     module procedure f_diff_d0d1,f_diff_i0i1
-     module procedure f_diff_c1i1,f_diff_li0li1,f_diff_c0i1
+     module procedure f_diff_d0d1,f_diff_i0i1, f_diff_li0li1
+     module procedure f_diff_c1i1,f_diff_c0i1
+     module procedure f_diff_c1li1,f_diff_c0li1
   end interface f_diff
 
   !> Initialize to zero an array (should be called f_memset)
   interface f_zero
-     module procedure zero_string,zero_li,zero_i,zero_r,zero_d,zero_l
-     module procedure put_to_zero_simple
+     module procedure zero_string
+     module procedure zero_li,zero_i,zero_r,zero_d,zero_l
+     !module procedure put_to_zero_simple, put_to_zero_long
      module procedure put_to_zero_double, put_to_zero_double_1, put_to_zero_double_2
      module procedure put_to_zero_double_3, put_to_zero_double_4, put_to_zero_double_5
      module procedure put_to_zero_double_6, put_to_zero_double_7
      module procedure put_to_zero_integer,put_to_zero_integer1,put_to_zero_integer2
      module procedure put_to_zero_integer3
+     module procedure put_to_zero_long,put_to_zero_long1,put_to_zero_long2
+     module procedure put_to_zero_long3
   end interface f_zero
 
   !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
@@ -178,7 +189,7 @@ contains
     end if
   end subroutine f_close
 
-  !>search the unit associated to a filename.
+  !> Search the unit associated to a filename.
   !! the unit is -1 if the file does not exists or if the file is
   !! not connected
   subroutine f_file_unit(file,unit)
@@ -203,7 +214,7 @@ contains
     end if
   end subroutine f_file_unit
 
-  !>get a unit which is not opened at present
+  !> Get a unit which is not opened at present
   !! start the search from the unit
   function f_get_free_unit(unit) result(unt2)
     implicit none
@@ -232,17 +243,17 @@ contains
 
   !>create a directory from CWD path
   subroutine f_mkdir(dir,path)
-    use f_precisions, only: f_int
+    use f_precisions, only: f_integer
     implicit none
     character(len=*), intent(in) :: dir !<directory to be created
     character(len=*), intent(out) :: path !<path of the created directory (trailing slash added)
     !local variables
-    integer :: ierr
-    integer(f_int) :: lin,lout
+    integer(f_integer) :: ierr
+    integer(f_integer) :: lin,lout
 
     call f_zero(path)
-    lin=int(len_trim(dir),f_int)
-    lout=int(len(path),f_int)
+    lin=int(len_trim(dir),f_integer)
+    lout=int(len(path),f_integer)
 
     call getdir(dir,lin,path,lout,ierr)
     if (ierr /= 0 .and. ierr /= 1) then
@@ -253,7 +264,6 @@ contains
 
   end subroutine f_mkdir
 
-  !> delete an existing file. If the file does not exists, it does nothing
   subroutine f_delete_file(file)
     implicit none
     character(len=*), intent(in) :: file
@@ -302,6 +312,45 @@ contains
          err_id=INPUT_OUTPUT_ERROR)
     
   end subroutine f_rewind
+
+  !>tentative example of writing the data in a buffer
+  subroutine f_write(unit,msg,advance,buffer)
+    use f_precisions, only: cr => f_cr
+    use yaml_strings
+    !use dynamic_memory, only: f_memcpy
+    implicit none
+    integer, intent(in) :: unit
+    character(len=*), intent(in) :: msg
+    character(len=*), intent(in), optional :: advance
+    type(f_dump_buffer), optional, intent(inout) :: buffer
+    !local variables
+    integer :: lpos
+    character(len=3) :: adv
+    character(len=len(cr)) :: crtmp
+    
+    adv='yes'
+    if (present(advance)) call f_strcpy(src=advance,dest=adv)
+
+    if (present(buffer)) then
+       !determine the size of the input
+       lpos=len(msg)
+       call f_zero(crtmp)
+       if (adv .eqv. 'yes') crtmp=cr 
+       lpos=lpos+len_trim(cr)
+       !copy the values we would like to add in the buffer
+       !check if the total length is bigger than buffer size
+       if (lpos+buffer%ipos > size(buffer%buf)) then
+          write(unit=unit,fmt='(a)') buffer%buf(:buffer%ipos)
+          buffer%ipos=1
+       end if
+       !copy the data 
+       !call f_memcpy(n=lpos,src=msg+crtmp,dest=buffer%buf(buffer%ipos))
+       buffer%ipos=buffer%ipos+lpos
+    else
+       !we should inquire if the unit is formatted or not
+       write(unit=unit,fmt='(a)',advance=adv) msg
+    end if
+  end subroutine f_write
   
   !> open a filename and retrieve the unteger for the unit
   subroutine f_open_file(unit,file,status,position,action,binary)
@@ -622,22 +671,41 @@ contains
     implicit none
     integer, intent(in) :: n
     character, dimension(:),   intent(in) :: a
-    integer, dimension(:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_ci
     call diff_ci(n,a(1),b(1),diff)
   end subroutine f_diff_c1i1
+
+  subroutine f_diff_c1li1(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    character, dimension(:),   intent(in) :: a
+    integer(kind=8), dimension(:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_ci
+    call diff_ci(n,a(1),b(1),diff)
+  end subroutine f_diff_c1li1
 
   subroutine f_diff_c0i1(n,a,b,diff)
     implicit none
     integer, intent(in) :: n
     character(len=*),   intent(in) :: a
-    integer, dimension(:), intent(in) :: b
-    integer, intent(out) :: diff
+    integer(kind=4), dimension(:), intent(in) :: b
+    integer(kind=4), intent(out) :: diff
     external :: diff_ci
     call diff_ci(n,a,b(1),diff)
   end subroutine f_diff_c0i1
 
+  subroutine f_diff_c0li1(n,a,b,diff)
+    implicit none
+    integer, intent(in) :: n
+    character(len=*),   intent(in) :: a
+    integer(kind=8), dimension(:), intent(in) :: b
+    integer(kind=8), intent(out) :: diff
+    external :: diff_ci
+    call diff_ci(n,a,b(1),diff)
+  end subroutine f_diff_c0li1
 
   subroutine f_diff_li0li1(n,a,b,diff)
     implicit none
@@ -674,7 +742,7 @@ contains
 
   subroutine zero_i(val)
     implicit none
-    integer, intent(out) :: val
+    integer(kind=4), intent(out) :: val
     val=0
   end subroutine zero_i
 
@@ -719,7 +787,7 @@ contains
     implicit none
     double precision, dimension(:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1)))
     call f_timer_resume()
   end subroutine put_to_zero_double_1
 
@@ -727,7 +795,7 @@ contains
     implicit none
     double precision, dimension(:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2)))
     call f_timer_resume()
   end subroutine put_to_zero_double_2
 
@@ -735,7 +803,7 @@ contains
     implicit none
     double precision, dimension(:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3)))
     call f_timer_resume() 
   end subroutine put_to_zero_double_3
 
@@ -743,7 +811,7 @@ contains
     implicit none
     double precision, dimension(:,:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3),lbound(da,4)))
     call f_timer_resume() 
   end subroutine put_to_zero_double_4
 
@@ -751,7 +819,7 @@ contains
     implicit none
     double precision, dimension(:,:,:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3),lbound(da,4),lbound(da,5)))
     call f_timer_resume() 
   end subroutine put_to_zero_double_5
 
@@ -759,7 +827,7 @@ contains
     implicit none
     double precision, dimension(:,:,:,:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3),lbound(da,4),lbound(da,5),lbound(da,6)))
     call f_timer_resume() 
   end subroutine put_to_zero_double_6
 
@@ -767,14 +835,15 @@ contains
     implicit none
     double precision, dimension(:,:,:,:,:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO) 
-    call razero(size(da),da)
+    call razero(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3),lbound(da,4),lbound(da,5),lbound(da,6),lbound(da,7)))
     call f_timer_resume() 
   end subroutine put_to_zero_double_7
+
 
   subroutine put_to_zero_integer(n,da)
     implicit none
     integer, intent(in) :: n
-    integer, intent(out) :: da
+    integer(kind=4), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
     call razero_integer(n,da)
     call f_timer_resume()
@@ -782,25 +851,60 @@ contains
 
   subroutine put_to_zero_integer1(da)
     implicit none
-    integer, dimension(:), intent(out) :: da
+    integer(kind=4), dimension(:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero_integer(size(da),da)
+    call razero_integer(size(da),da(lbound(da,1)))
     call f_timer_resume()
   end subroutine put_to_zero_integer1
+
   subroutine put_to_zero_integer2(da)
     implicit none
-    integer, dimension(:,:), intent(out) :: da
+    integer(kind=4), dimension(:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero_integer(size(da),da)
+    call razero_integer(size(da),da(lbound(da,1),lbound(da,2)))
     call f_timer_resume()
   end subroutine put_to_zero_integer2
+
   subroutine put_to_zero_integer3(da)
     implicit none
-    integer, dimension(:,:,:), intent(out) :: da
+    integer(kind=4), dimension(:,:,:), intent(out) :: da
     call f_timer_interrupt(TCAT_INIT_TO_ZERO)
-    call razero_integer(size(da),da)
+    call razero_integer(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3)))
     call f_timer_resume()
   end subroutine put_to_zero_integer3
 
+
+  subroutine put_to_zero_long(n,da)
+    implicit none
+    integer, intent(in) :: n
+    integer(kind=8), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integerlong(n,da)
+    call f_timer_resume()
+  end subroutine put_to_zero_long
+
+  subroutine put_to_zero_long1(da)
+    implicit none
+    integer(kind=8), dimension(:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integerlong(size(da),da(lbound(da,1)))
+    call f_timer_resume()
+  end subroutine put_to_zero_long1
+
+  subroutine put_to_zero_long2(da)
+    implicit none
+    integer(kind=8), dimension(:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integerlong(size(da),da(lbound(da,1),lbound(da,2)))
+    call f_timer_resume()
+  end subroutine put_to_zero_long2
+
+  subroutine put_to_zero_long3(da)
+    implicit none
+    integer(kind=8), dimension(:,:,:), intent(out) :: da
+    call f_timer_interrupt(TCAT_INIT_TO_ZERO)
+    call razero_integerlong(size(da),da(lbound(da,1),lbound(da,2),lbound(da,3)))
+    call f_timer_resume()
+  end subroutine put_to_zero_long3
   
 end module f_utils

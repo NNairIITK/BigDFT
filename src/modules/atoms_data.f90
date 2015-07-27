@@ -413,8 +413,8 @@ contains
       use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
            print_eleconf,aoig_set
       use dictionaries
-      use yaml_output, only: yaml_warning, yaml_toa, yaml_dict_dump
-      use yaml_strings, only: f_strcpy
+      use yaml_output, only: yaml_warning, yaml_dict_dump
+      use yaml_strings, only: f_strcpy, yaml_toa
       use dynamic_memory
       implicit none
       type(dictionary), pointer :: dict
@@ -584,7 +584,7 @@ contains
     subroutine set_astruct_from_file(file,iproc,astruct,comment,energy,fxyz,disableTrans)
       use module_base
       use dictionaries, only: set, dictionary
-      use yaml_output, only : yaml_toa
+      use yaml_strings, only : yaml_toa
       use internal_coordinates, only: internal_to_cartesian
       implicit none
       !Arguments
@@ -2051,7 +2051,7 @@ subroutine astruct_set_n_types(astruct, ntypes)
   astruct%ntypes = ntypes
 
   ! Allocate geometry related stuff.
-  astruct%atomnames=f_malloc0_str_ptr(len(astruct%atomnames),astruct%ntypes,&
+  astruct%atomnames=f_malloc0_str_ptr(int(len(astruct%atomnames),kind=4),astruct%ntypes,&
        id='atomnames')
 !!$  allocate(astruct%atomnames(astruct%ntypes),stat=i_stat)
 !!$  call memocc(i_stat,astruct%atomnames,'astruct%atomnames',subname)

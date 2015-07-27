@@ -13,6 +13,7 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   use module_types
   use module_atoms, only: atomic_structure
   use module_interfaces, exceptThisOne => initLocregs
+  use locregs_init, only: determine_locregsphere_parallel
   implicit none
   
   ! Calling arguments
@@ -157,6 +158,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   use ao_inguess, only: atomic_info
   use locregs, only: locreg_null,copy_locreg_descriptors
   use public_enums
+  use locregs_init, only: determine_locreg_parallel, check_linear_inputguess
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -291,6 +293,8 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   use ao_inguess, only: atomic_info
   use locregs, only: locreg_null,copy_locreg_descriptors
   use public_enums
+  use locregs_init, only: determine_locreg_parallel, check_linear_inputguess
+  use psp_projectors, only: update_nlpsp
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -977,6 +981,7 @@ subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, 
   use module_base
   use module_types
   use module_interfaces
+  use psp_projectors, only: update_nlpsp
   implicit none
 
   ! Calling arguments
@@ -1240,11 +1245,13 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
+  use transposed_operations, only: init_matrixindex_in_compressed_fortransposed
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff, &
                                init_matrix_taskgroups, check_local_matrix_extents
   use foe_base, only: foe_data_deallocate
   use public_enums
+  use locreg_operations, only: small_to_large_locreg
   use module_interfaces
   implicit none
   
@@ -1448,27 +1455,30 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iirow(2) = 1
      iicol(1) = tmb%linmat%s%nfvctr
      iicol(2) = 1
-     call check_local_matrix_extents(iproc, nproc, tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
+          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
 
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
           tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
           tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
           tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
 
 
@@ -1476,8 +1486,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      nullify(tmb%linmat%ks_e)
      if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction .or.  input%lin%new_pulay_correction .or. &
          (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) .or. input%lin%diag_end) then
-         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, input, input%lin%extra_states, &
-              tmb%linmat%ks, tmb%linmat%ks_e)
+         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, input, at%astruct%geocode, &
+              input%lin%extra_states, tmb%linmat%ks, tmb%linmat%ks_e)
      end if
 
 

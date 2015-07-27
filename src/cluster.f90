@@ -25,10 +25,11 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
   use communications_init, only: orbitals_communicators
+  use transposed_operations, only: init_matrixindex_in_compressed_fortransposed
   use communications_base, only: deallocate_comms
 !  use vdwcorrection
   use yaml_output
-  use psp_projectors
+  use psp_projectors_base, only: free_dft_psp_projectors
   use sparsematrix_base, only: sparse_matrix_null, matrices_null, allocate_matrices, &
                                SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=), &
                                DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL
@@ -308,21 +309,24 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      iirow(2) = 1
      iicol(1) = tmb%linmat%s%nfvctr
      iicol(2) = 1
-     call check_local_matrix_extents(iproc, nproc, tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, atoms%astruct%nat, &
+          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
      !!write(*,*) 'after s: iirow', iirow
      !!write(*,*) 'after s: iicol', iicol
-     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, atoms%astruct%nat, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
      !!write(*,*) 'after m: iirow', iirow
      !!write(*,*) 'after m: iicol', iicol
-     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, atoms%astruct%nat, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
@@ -330,13 +334,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!write(*,*) 'after l: iirow', iirow
      !!write(*,*) 'after l: iicol', iicol
 
-     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
           tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
      !!write(*,*) 'after s'
-     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
           tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
      !!write(*,*) 'after m'
-     call init_matrix_taskgroups(iproc, nproc, in%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, atoms%astruct%nat, in%enable_matrix_taskgroups, &
           tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
      !!write(*,*) 'after l'
 
@@ -404,8 +408,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
          else
             extra_states = in%lin%extra_states
          end if
-         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, in, extra_states, &
-              tmb%linmat%ks, tmb%linmat%ks_e)
+         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, in, atoms%astruct%geocode, &
+              extra_states, tmb%linmat%ks, tmb%linmat%ks_e)
      end if
 
 
@@ -1381,7 +1385,7 @@ contains
     if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
          nthreads)
 
-    nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.bigdft_mpi%nproc-1,id='nodename')
+    nodename=f_malloc0_str(int(MPI_MAX_PROCESSOR_NAME,kind=4),0.to.bigdft_mpi%nproc-1,id='nodename')
     if (bigdft_mpi%nproc>1) then
        call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
        !gather the result between all the process
@@ -1821,7 +1825,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, nspin)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => kswfn_post_treatments
+  use module_interfaces
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms

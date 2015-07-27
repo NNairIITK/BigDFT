@@ -1942,6 +1942,7 @@ END SUBROUTINE calculate_HOMO_LUMO_gap
 !! Solutions to a given value
 subroutine add_confining_potential(n1i,n2i,n3i,nspin,eps,dencutoff,rpow,pot,rho)
    use module_base
+   use bounds, only: ext_buffers
    implicit none
    integer, intent(in) :: n1i,n2i,n3i,nspin
    real(gp) , intent(in) :: rpow,eps,dencutoff
@@ -1970,6 +1971,7 @@ END SUBROUTINE add_confining_potential
 
 subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rxyz,pot)
    use module_base
+   use bounds, only: ext_buffers
    implicit none
    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
    integer, intent(in) :: n1i,n2i,n3i,nat

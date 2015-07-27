@@ -1806,15 +1806,15 @@ END SUBROUTINE wtioput
 !!END SUBROUTINE wtpos
 
 
-function round(enerd,accur)
-  implicit none
-  real(kind=8) :: round
-  real(kind=8), intent(in):: enerd,accur
-  integer*8 :: ii
-  ii=int(enerd/accur,kind=8)
-  round=ii*accur
-  !           write(*,'(a,1pe24.17,1x,i17,1x,1pe24.17)') 'enerd,ii,round',enerd,ii,round
-end function round
+!!$function round(enerd,accur)
+!!$  implicit none
+!!$  real(kind=8) :: round
+!!$  real(kind=8), intent(in):: enerd,accur
+!!$  integer*8 :: ii
+!!$  ii=int(enerd/accur,kind=8)
+!!$  round=ii*accur
+!!$  !           write(*,'(a,1pe24.17,1x,i17,1x,1pe24.17)') 'enerd,ii,round',enerd,ii,round
+!!$end function round
 
 
 !subroutine rdposout(igeostep,rxyz,nat)

@@ -17,6 +17,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   use module_interfaces, except_this_one => write_orbital_density
   use locreg_operations, only: lpsi_to_global2
   use public_enums
+  use bounds, only: locreg_bounds
   implicit none
 
   ! Calling arguments
@@ -969,8 +970,10 @@ do jproc=0,nproc-1
     norb0=orbs%norb_par(jproc,0)
     norb1=orbs%norb_par(min(jproc+1,nproc-1),0)
     if (norb0/=norb1 .or. jproc==nproc-1) then
-        if (print_all) call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),&
-             norb0,fmt='(i0)')
+        if (print_all) then
+            call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//&
+              &trim(yaml_toa(jproc,fmt='(i0)')),norb0,fmt='(i0)')
+        end if
         minn=min(minn,norb0)
         maxn=max(maxn,norb0)
         jpst=jproc+1
@@ -1204,11 +1207,12 @@ subroutine analyze_wavefunctions(output, region, lzd, orbs, npsidim, psi, ioffse
   use module_base
   use module_types
   use yaml_output
+  use bounds, only: locreg_bounds
   implicit none
 
   ! Calling arguments
   character(len=*),intent(in) :: output, region
-  type(local_zone_descriptors),intent(in) :: lzd
+  type(local_zone_descriptors),intent(inout) :: lzd
   type(orbitals_data),intent(in) :: orbs
   integer,intent(in) :: npsidim
   real(kind=8),dimension(npsidim),intent(in) :: psi
@@ -1376,7 +1380,7 @@ subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
 
   ! Local variables
   integer :: iorb, itmb, jtmb, iat, jat, iunit, nproc, ierr
-  logical :: mpi_init
+  logical :: mpi_initd
   real(kind=8) :: d, asymm, maxdiff, diff
   real(kind=8),dimension(3) :: dist
   real(kind=8),dimension(:,:),allocatable :: kernel_full
@@ -1386,8 +1390,8 @@ subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
   call f_routine(id='analyze_kernel')
 
   ! Check that this is a monoproc run
-  call mpi_initialized(mpi_init, ierr)
-  if (mpi_init) then
+  call mpi_initialized(mpi_initd, ierr)
+  if (mpi_initd) then
       call mpi_comm_size(mpi_comm_world, nproc, ierr)
   else
       nproc = 1

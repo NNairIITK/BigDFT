@@ -186,10 +186,10 @@ contains
     input_frag%frag_index = f_malloc_ptr(input_frag%nfrag,id='input_frag%frag_index')
     input_frag%charge = f_malloc_ptr(input_frag%nfrag,id='input_frag%charge')
 
-    input_frag%label=f_malloc_str_ptr(len(input_frag%label),&
+    input_frag%label=f_malloc_str_ptr(int(len(input_frag%label),kind=4),&
          input_frag%nfrag_ref,id='input_frag%label')
     !f_malloc0_str_ptr should be used here
-    input_frag%dirname=f_malloc_str_ptr(len(input_frag%dirname),&
+    input_frag%dirname=f_malloc_str_ptr(int(len(input_frag%dirname),kind=4),&
          input_frag%nfrag_ref,id='input_frag%label')
 
     !set the variables to their default value
@@ -238,7 +238,7 @@ contains
 
   !> routine to build dictionary of fragment for purposes of backward compatibility with the old format
   subroutine dict_from_frag(frag,dict_frag)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     use dictionaries, dict_set => set
     implicit none
     type(fragmentInputParameters), intent(in) :: frag

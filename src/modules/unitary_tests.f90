@@ -70,6 +70,7 @@ module unitary_tests
            tmb%ham_descr%comgp, tmb%ham_descr%lzd)
     
       !check the fetching of the potential element, destroy the MPI window, results in pot_work
+      !!write(*,*) 'kind(2)',kind(2)
       call full_local_potential(bigdft_mpi%iproc,bigdft_mpi%nproc,tmb%orbs,tmb%ham_descr%lzd,&
            2,denspot%dpbox,denspot%xc,denspot%rhov,denspot%pot_work,tmb%ham_descr%comgp)
     

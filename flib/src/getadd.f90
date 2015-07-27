@@ -11,6 +11,7 @@
 !! needed to pass to the C routines the correct address
 !! in order to take the address of the metadata
 module metadata_interfaces
+  use module_razero
   implicit none
 
   private
@@ -287,8 +288,8 @@ contains
   subroutine pad_i1(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(1), intent(in) :: shp
     integer(kind=4), dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -298,8 +299,8 @@ contains
   subroutine pad_i2(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(2), intent(in) :: shp
     integer(kind=4), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -309,8 +310,8 @@ contains
   subroutine pad_i3(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(3), intent(in) :: shp
     integer(kind=4), dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
@@ -320,8 +321,8 @@ contains
   subroutine pad_i4(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(4), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(4), intent(in) :: shp
     integer(kind=4), dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
@@ -331,8 +332,8 @@ contains
 !!$  subroutine pad_il1(array,init_to_zero,shp,ndebug)
 !!$    implicit none
 !!$    logical, intent(in) :: init_to_zero
-!!$    integer, intent(in) :: ndebug
-!!$    integer, dimension(1), intent(in) :: shp
+!!$    integer(kind=4), intent(in) :: ndebug
+!!$    integer(kind=4), dimension(1), intent(in) :: shp
 !!$    integer(kind=8), dimension(shp(1)+ndebug), intent(out) :: array
 !!$    
 !!$    call pad_integerlong(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -342,8 +343,8 @@ contains
 !!$  subroutine pad_il2(array,init_to_zero,shp,ndebug)
 !!$    implicit none
 !!$    logical, intent(in) :: init_to_zero
-!!$    integer, intent(in) :: ndebug
-!!$    integer, dimension(2), intent(in) :: shp
+!!$    integer(kind=4), intent(in) :: ndebug
+!!$    integer(kind=4), dimension(2), intent(in) :: shp
 !!$    integer(kind=8), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
 !!$    
 !!$    call pad_integerlong(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -353,8 +354,8 @@ contains
   subroutine pad_c1(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(1), intent(in) :: shp
     character(len=*), dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_character(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -364,8 +365,8 @@ contains
   subroutine pad_l1(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(1), intent(in) :: shp
     logical, dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_logical(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -375,8 +376,8 @@ contains
   subroutine pad_l2(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(2), intent(in) :: shp
     logical, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_logical(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -386,8 +387,8 @@ contains
   subroutine pad_l3(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(3), intent(in) :: shp
     logical, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
 
     call pad_logical(array,init_to_zero,product(shp),&
@@ -398,8 +399,8 @@ contains
   subroutine pad_r1(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(1), intent(in) :: shp
     real, dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_simple(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -409,8 +410,8 @@ contains
   subroutine pad_r2(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(2), intent(in) :: shp
     real, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_simple(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -420,8 +421,8 @@ contains
   subroutine pad_r3(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(3), intent(in) :: shp
     real, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
 
     call pad_simple(array,init_to_zero,product(shp),&
@@ -432,8 +433,8 @@ contains
   subroutine pad_r4(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(4), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(4), intent(in) :: shp
     real, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
 
     call pad_simple(array,init_to_zero,product(shp),&
@@ -445,8 +446,8 @@ contains
   subroutine pad_dp1(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(1), intent(in) :: shp
     double precision, dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -456,8 +457,8 @@ contains
   subroutine pad_dp2(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(2), intent(in) :: shp
     double precision, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -467,8 +468,8 @@ contains
   subroutine pad_dp3(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(3), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
@@ -478,8 +479,8 @@ contains
   subroutine pad_dp4(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(4), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(4), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
@@ -489,8 +490,8 @@ contains
   subroutine pad_dp5(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(5), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(5), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3),shp(4),shp(5)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:4))*(shp(5)+ndebug))
@@ -500,8 +501,8 @@ contains
   subroutine pad_dp6(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(6), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(6), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3),shp(4),shp(5),shp(6)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:5))*(shp(6)+ndebug))
@@ -511,8 +512,8 @@ contains
   subroutine pad_dp7(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(7), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(7), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3),shp(4),shp(5),shp(6),shp(7)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:6))*(shp(7)+ndebug))
@@ -522,8 +523,8 @@ contains
   subroutine pad_z1(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(1), intent(in) :: shp
     double complex, dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_double_complex(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -533,8 +534,8 @@ contains
   subroutine pad_z2(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(2), intent(in) :: shp
     double complex, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_double_complex(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -544,8 +545,8 @@ contains
   subroutine pad_li1(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(1), intent(in) :: shp
     integer(kind=8), dimension(shp(1)+ndebug), intent(out) :: array
 
     call pad_longinteger(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -555,8 +556,8 @@ contains
   subroutine pad_li2(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(2), intent(in) :: shp
     integer(kind=8), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
 
     call pad_longinteger(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -566,8 +567,8 @@ contains
   subroutine pad_li3(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(3), intent(in) :: shp
     integer(kind=8), dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
 
     call pad_longinteger(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
@@ -577,8 +578,8 @@ contains
   subroutine pad_li4(array,init_to_zero,shp,ndebug)
     implicit none
     logical, intent(in) :: init_to_zero
-    integer, intent(in) :: ndebug
-    integer, dimension(4), intent(in) :: shp
+    integer(kind=4), intent(in) :: ndebug
+    integer(kind=4), dimension(4), intent(in) :: shp
     integer(kind=8), dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
 
     call pad_longinteger(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
@@ -590,12 +591,12 @@ contains
   subroutine pad_double(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(kind=4), intent(in) :: ndim_tot, ndim_extra
     double precision, dimension(ndim_extra), intent(out) :: array
     !local variables
     integer :: i
 
-    if (init) call razero(ndim_tot,array)
+    if (init .and. ndim_tot>0) call razero(ndim_tot,array(lbound(array,1)))
     do i=ndim_tot+1,ndim_extra
        array(i)=d_nan()
     end do
@@ -604,12 +605,12 @@ contains
   subroutine pad_double_complex(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(kind=4), intent(in) :: ndim_tot, ndim_extra
     double complex, dimension(ndim_extra), intent(out) :: array
     !local variables
     integer :: i
 
-    if (init) call razero(2*ndim_tot,array)
+    if (init .and. ndim_tot>0) call razero_complex(ndim_tot,array(lbound(array,1)))
     do i=ndim_tot+1,ndim_extra
        array(i)=(1.d0,1.d0)*d_nan()
     end do
@@ -618,14 +619,14 @@ contains
   subroutine pad_simple(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(kind=4), intent(in) :: ndim_tot, ndim_extra
     real, dimension(ndim_extra), intent(out) :: array
     !local variables
     integer :: i,i_nan
     real :: r_nan1
     equivalence (r_nan1,i_nan)
 
-    if (init) call razero_simple(ndim_tot,array)
+    if (init .and. ndim_tot>0) call razero_simple(ndim_tot,array(lbound(array,1)))
     do i=ndim_tot+1,ndim_extra
        array(i)=r_nan()
     end do
@@ -634,7 +635,7 @@ contains
   subroutine pad_logical(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(kind=4), intent(in) :: ndim_tot, ndim_extra
     logical, dimension(ndim_extra), intent(out) :: array
     !local variables
     integer :: i
@@ -652,12 +653,12 @@ contains
   subroutine pad_integer(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(kind=4), intent(in) :: ndim_tot, ndim_extra
     integer(kind=4), dimension(ndim_extra), intent(out) :: array
     !local variables
     integer :: i
 
-    if (init) call razero_integer(ndim_tot,array)
+    if (init .and. ndim_tot>0) call razero_integer(ndim_tot,array(lbound(array,1)))
     do i=ndim_tot+1,ndim_extra
        array(i)= 2147483647 !i_nan
     end do
@@ -666,12 +667,12 @@ contains
   subroutine pad_longinteger(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(kind=4), intent(in) :: ndim_tot, ndim_extra
     integer(kind=8), dimension(ndim_extra), intent(out) :: array
     !local variables
     integer :: i
 
-    if (init) call razero(ndim_tot,array)
+    if (init .and. ndim_tot>0) call razero_integerlong(ndim_tot,array(lbound(array,1)))
     do i=ndim_tot+1,ndim_extra
        array(i)=li_nan()
     end do
@@ -681,7 +682,7 @@ contains
   subroutine pad_character(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(kind=4), intent(in) :: ndim_tot, ndim_extra
     character(len=*), dimension(ndim_extra), intent(out) :: array
     !local variables
     integer :: i

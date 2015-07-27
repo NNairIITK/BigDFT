@@ -10,7 +10,7 @@
 !> Calculate the values of a scaling function in real uniform grid
 subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   use f_utils, only: f_open_file,f_close,f_zero
-  use yaml_output, only: yaml_toa
+  use yaml_strings, only: yaml_toa
   use dictionaries, only: f_err_throw
   use dynamic_memory
 
@@ -88,7 +88,7 @@ end subroutine ISF_family
 !> Calculate the values of a scaling function in real uniform grid
 subroutine scaling_function(itype,nd,nrange,a,x)
   use f_utils, only: f_open_file,f_close
-  use yaml_output, only: yaml_toa
+  use yaml_strings, only: yaml_toa
   use dictionaries, only: f_err_throw
   use Poisson_Solver, only: dp
   use memory_profiling
@@ -203,7 +203,7 @@ END SUBROUTINE scaling_function
 !> Calculate the values of the wavelet function in a real uniform mesh.
 subroutine wavelet_function(itype,nd,a,x)
   use f_utils, only: f_open_file,f_close
-  use yaml_output, only: yaml_toa
+  use yaml_strings, only: yaml_toa
   use dictionaries, only: f_err_throw
   use Poisson_Solver, only: dp
   use memory_profiling
@@ -306,7 +306,7 @@ END SUBROUTINE wavelet_function
 
 subroutine get_isf_family(m_max,itype,nmoms,m,nrange,ch,cg)
   use dictionaries, only: f_err_throw
-  use yaml_output, only: yaml_toa
+  use yaml_strings, only: yaml_toa
   implicit none
   integer, intent(in) :: itype,m_max,nmoms
   integer, intent(out) :: m,nrange
@@ -461,7 +461,7 @@ end subroutine scal_filters
 !> Do iterations to go from p0gauss to pgauss
 !! order interpolating scaling function
 subroutine scf_recursion(itype,n_iter,n_range,kernel_scf,kern_1_scf)
-  use yaml_output, only: yaml_toa
+  use yaml_strings, only: yaml_toa
   use dictionaries, only: f_err_throw
   implicit none
   !Arguments

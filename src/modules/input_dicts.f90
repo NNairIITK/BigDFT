@@ -7,7 +7,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
 !> Modules which contains all interfaces to parse input dictionary.
 module module_input_dicts
   use public_keys
@@ -225,7 +224,7 @@ contains
   end subroutine dict_get_run_properties
 
   function run_id_toa()
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     use module_base, only: bigdft_mpi
     implicit none
     character(len=20) :: run_id_toa
@@ -253,6 +252,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict
     !local variables
+    character(len=*), parameter :: F_IMPORT_KEY='import'
     logical :: found,loginput
     type(dictionary), pointer :: valid_entries,valid_patterns
     type(dictionary), pointer :: iter,invalid_entries,iter2
@@ -280,7 +280,8 @@ contains
          .item. LIN_BASIS_PARAMS,&
          .item. OCCUPATION,&
          .item. IG_OCCUPATION,&
-         .item. FRAG_VARIABLES])
+         .item. FRAG_VARIABLES,&
+         .item. F_IMPORT_KEY])
 
     !then the list of vaid patterns
     valid_patterns=>list_new(&
@@ -392,7 +393,7 @@ contains
        if (log_to_disk) then
           ! Get Create log file name.
           call dict_get_run_properties(dict, naming_id = run_name)
-          logfilename = "log"+run_name+".yaml"
+          logfilename = "log"//trim(adjustl(run_name))//".yaml"
           path = trim(writing_directory)//trim(logfilename)
           call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
           ! Check if logfile is already connected.
@@ -484,7 +485,7 @@ contains
     end if
 
     if (mpi_env%nproc > 1) call mpibcast(cbuf_len,comm=mpi_env%mpi_comm)
-    fbuf=f_malloc0_str(1,int(cbuf_len),id='fbuf')
+    fbuf=f_malloc0_str(int(1,kind=4),int(cbuf_len),id='fbuf')
 
     if (mpi_env%iproc == 0) then
        call copyCBuffer(fbuf, cbuf, cbuf_len)
@@ -563,6 +564,7 @@ contains
        & nkpts, nspin, norbsempty, qelec_up, qelec_down, norb_max)
     use module_defs, only: gp
     use dynamic_memory
+    use yaml_strings, only: yaml_toa
     use yaml_output
     implicit none
     type(dictionary), pointer :: dict
@@ -768,6 +770,7 @@ contains
   subroutine occupation_data_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
     use yaml_output
+    use yaml_strings, only: yaml_toa
     implicit none
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: filename, key
@@ -1753,7 +1756,8 @@ contains
 
   !> Read the linear input variables
   subroutine read_lin_and_frag_from_text_format(iproc,dict,run_name)
-    use module_base
+    use dictionaries, dict_set => set 
+    use module_defs, only: gp
     use module_input
     use public_keys
     implicit none
@@ -2027,10 +2031,12 @@ contains
 
   !> Read fragment input parameters
   subroutine fragment_input_variables_from_text_format(iproc,dump,filename,shouldexist,dict)
-    use module_base
+    use module_defs, only: gp
     use fragment_base
     use module_input
-    use yaml_output, only: yaml_toa,yaml_map
+    use dictionaries
+    use yaml_strings, only: yaml_toa
+    use yaml_output, only: yaml_map
     implicit none
     logical, intent(in) :: shouldexist
     integer, intent(in) :: iproc
