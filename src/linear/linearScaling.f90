@@ -28,9 +28,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc, sparsematrix_malloc_ptr, assignment(=), SPARSE_FULL, DENSE_FULL, &
-                               SPARSE_TASKGROUP
+                               SPARSE_TASKGROUP, DENSE_PARALLEL
+  use matrix_operations, only: deviation_from_unity_parallel
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace, uncompress_matrix2, &
-                          delete_coupling_terms, transform_sparse_matrix, matrix_matrix_mult_wrapper
+                          delete_coupling_terms, transform_sparse_matrix, matrix_matrix_mult_wrapper, &
+                          uncompress_matrix_distributed2
   use sparsematrix_init, only: matrixindex_in_compressed
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals
@@ -38,6 +40,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use locreg_operations, only: get_boundary_weight
   use public_enums
   use multipole, only: multipoles_from_density
+  use transposed_operations, only: calculate_overlap_transposed
   implicit none
 
   ! Calling arguments
@@ -68,7 +71,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=8) :: energyold, energyDiff, energyoldout, fnrm_pulay, convCritMix, convCritMix_init
   type(localizedDIISParameters) :: ldiis
   type(DIIS_obj) :: ldiis_coeff, vdiis
-  logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on
+  logical :: can_use_ham, update_phi, locreg_increased, reduce_conf, orthonormalization_on, update_kernel
   logical :: fix_support_functions
   integer :: itype, istart, nit_lowaccuracy, nit_highaccuracy
   integer :: ldiis_coeff_hist, nitdmin
@@ -107,7 +110,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !better names/input variables
   logical, parameter :: write_fragments=.true.
   logical, parameter :: write_full_system=.true.
-
+  real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
+  real(kind=8) :: max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
 
   !integer :: ind, ilr, iorbp, iiorb, indg, npsidim_global
   !real(kind=gp), allocatable, dimension(:) :: gpsi, psit_large_c, psit_large_f, kpsit_c, kpsit_f, kpsi, kpsi_small
@@ -306,6 +310,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      !if (iproc==0) call yaml_map('update potential',.true.)
      if (iproc==0) call yaml_mapping_open('update pot',flow=.true.)
      call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
+     if (iproc==0) call yaml_mapping_close()
   end if
 
   call timing(iproc,'linscalinit','OF')
@@ -1261,6 +1266,103 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   !         energy, energyDiff, energyold, npsidim_global, gpsi_all)
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+   update_kernel=.false.
+
+!switch this off for now, needs cleaning and stabilizing
+if (.false.) then
+   ! not sure if we always want to do this when writing to disk? or all fragment calculations?
+   if (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE .and. input%lin%fragment_calculation) then
+
+  ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
+  max_deviation=0.d0
+  mean_deviation=0.d0
+  do ispin=1,tmb%linmat%s%nspin
+      ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
+      call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
+           tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
+      call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
+           tmb%linmat%s%isfvctr, ovrlp_fullp, &
+           tmb%linmat%s, max_deviation_p, mean_deviation_p)
+      max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+      mean_deviation = mean_deviation + mean_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+  end do
+  call f_free(ovrlp_fullp)
+  if (iproc==0) then
+      call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')
+      call yaml_map('mean dev from unity',mean_deviation,fmt='(es9.2)')
+  end if
+
+tmb%can_use_transposed=.false.
+      !call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+      !     tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+      call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, &
+           tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+           tmb%can_use_transposed)
+
+  call deallocate_matrices(tmb%linmat%ovrlp_)
+  tmb%linmat%ovrlp_ = matrices_null()
+  call allocate_matrices(tmb%linmat%s, allocate_full=.false., matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, &
+       tmb%linmat%s, tmb%linmat%ovrlp_)
+
+  ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
+  max_deviation=0.d0
+  mean_deviation=0.d0
+  do ispin=1,tmb%linmat%s%nspin
+      ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
+      call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
+           tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
+      call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
+           tmb%linmat%s%isfvctr, ovrlp_fullp, &
+           tmb%linmat%s, max_deviation_p, mean_deviation_p)
+      max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+      mean_deviation = mean_deviation + mean_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+  end do
+  call f_free(ovrlp_fullp)
+  if (iproc==0) then
+      call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')
+      call yaml_map('mean dev from unity',mean_deviation,fmt='(es9.2)')
+  end if
+
+tmb%can_use_transposed=.false.
+      !call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+      !     tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+      call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, &
+           tmb%orbs, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, &
+           tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+
+  call deallocate_matrices(tmb%linmat%ovrlp_)
+  tmb%linmat%ovrlp_ = matrices_null()
+  call allocate_matrices(tmb%linmat%s, allocate_full=.false., matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
+  call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, &
+       tmb%linmat%s, tmb%linmat%ovrlp_)
+
+  ovrlp_fullp = sparsematrix_malloc(tmb%linmat%l,iaction=DENSE_PARALLEL,id='ovrlp_fullp')
+  max_deviation=0.d0
+  mean_deviation=0.d0
+  do ispin=1,tmb%linmat%s%nspin
+      ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
+      call uncompress_matrix_distributed2(iproc, tmb%linmat%s, DENSE_PARALLEL, &
+           tmb%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlp_fullp)
+      call deviation_from_unity_parallel(iproc, nproc, tmb%linmat%s%nfvctr, tmb%linmat%s%nfvctrp, &
+           tmb%linmat%s%isfvctr, ovrlp_fullp, &
+           tmb%linmat%s, max_deviation_p, mean_deviation_p)
+      max_deviation = max_deviation + max_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+      mean_deviation = mean_deviation + mean_deviation_p/real(tmb%linmat%s%nspin,kind=8)
+  end do
+  call f_free(ovrlp_fullp)
+  if (iproc==0) then
+      call yaml_map('max dev from unity',max_deviation,fmt='(es9.2)')
+      call yaml_map('mean dev from unity',mean_deviation,fmt='(es9.2)')
+  end if
+
+
+      update_phi=.true.
+      !update_kernel=.true.
+      !not sure if this is overkill...
+      call scf_kernel(nit_scc, .false., update_phi)
+   end if
+end if
 
   ! Diagonalize the matrix for the FOE/direct min case to get the coefficients. Only necessary if
   ! the Pulay forces are to be calculated, or if we are printing eigenvalues for restart
@@ -1277,7 +1379,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,energs_work,.false.)
+           input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1576,7 +1678,11 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      if (write_fragments .and. input%lin%fragment_calculation) then
         call writemywaves_linear_fragments(iproc,'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
-             trim(input%dir_output),input%frag,ref_frags)
+             trim(input%dir_output),input%frag,ref_frags,tmb%linmat,norder_taylor,input%lin%max_inversion_error,&
+             tmb%orthpar)
+
+!      call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+!           tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
      end if
   end if
   ! Write the sparse matrices
@@ -2215,32 +2321,19 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
           call yaml_map('mix hist',mix_hist)
           call yaml_map('conv crit',convCritMix,fmt='(es8.2)')
 
+          call yaml_newline()
+          call yaml_map('iter',it_scc,fmt='(i6)')
+          call yaml_map('delta',pnrm,fmt='(es9.2)')
+          call yaml_map('energy',energy,fmt='(es24.17)')
+          call yaml_map('D',energyDiff,fmt='(es10.3)')
 
           if (input%lin%constrained_dft) then
-             if (iproc==0) then
-                 call yaml_newline()
-                 call yaml_map('iter',it_scc,fmt='(i6)')
-                 call yaml_map('delta',pnrm,fmt='(es9.2)')
-                 call yaml_map('energy',energy,fmt='(es24.17)')
-                 call yaml_map('D',energyDiff,fmt='(es10.3)')
-                 call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
-                 call yaml_mapping_close()
-             end if
-          else
-             if (iproc==0) then
-                 call yaml_newline()
-                 call yaml_map('iter',it_scc,fmt='(i6)')
-                 call yaml_map('delta',pnrm,fmt='(es9.2)')
-                 call yaml_map('energy',energy,fmt='(es24.17)')
-                 call yaml_map('D',energyDiff,fmt='(es10.3)')
-                 call yaml_mapping_close()
-             end if
+              call yaml_map('Tr(KW)',ebs,fmt='(es14.4)')
           end if     
+
+          call yaml_mapping_close()
           call yaml_sequence_close()
       end if
-
-
-
 
     end subroutine printSummary
 

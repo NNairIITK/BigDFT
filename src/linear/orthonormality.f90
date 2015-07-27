@@ -17,8 +17,9 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: sparse_matrix, matrices_null, allocate_matrices, deallocate_matrices, &
-                               assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
-  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace
+                               assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP!*, DENSE_FULL
+  use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace!*, &
+                              !*uncompress_matrix2
   use foe_base, only: foe_data
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed, &
                                    normalize_transposed
@@ -50,7 +51,7 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   type(matrices) :: ovrlp_
   type(matrices),dimension(1) :: inv_ovrlp_half_
   integer :: ii, i, ispin
-
+  !*integer :: iorb, jorb
 
   call f_routine(id='orthonormalizeLocalized')
 
@@ -81,7 +82,6 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
   !!    end do
   !!end do
 
-
   if (methTransformOverlap==-1) then
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp, ovrlp_)
       call overlap_power_minus_one_half_parallel(iproc, nproc, 0, orbs, ovrlp, ovrlp_, inv_ovrlp_half, inv_ovrlp_half_(1))
@@ -102,6 +102,26 @@ subroutine orthonormalizeLocalized(iproc, nproc, methTransformOverlap, max_inver
       !!    end do
       !!end do
   end if
+
+
+   !*!DEBUG
+   !*ovrlp_%matrix = sparsematrix_malloc_ptr(ovrlp,iaction=DENSE_FULL,id='ovrlp_%matrix')
+   !*call uncompress_matrix2(iproc, bigdft_mpi%nproc, ovrlp, &
+   !*     ovrlp_%matrix_compr, ovrlp_%matrix)
+
+   !*inv_ovrlp_half_(1)%matrix = sparsematrix_malloc_ptr(inv_ovrlp_half,iaction=DENSE_FULL,id='inv_ovrlp_half_(1)%matrix')
+   !*call uncompress_matrix2(iproc, bigdft_mpi%nproc, inv_ovrlp_half, &
+   !*     inv_ovrlp_half_(1)%matrix_compr, inv_ovrlp_half_(1)%matrix)
+   !*do iorb=1,ovrlp%nfvctr
+   !*do jorb=1,ovrlp%nfvctr
+   !*write(270+iproc,*) iorb,jorb,ovrlp_%matrix(iorb,jorb,1),inv_ovrlp_half_(1)%matrix(iorb,jorb,1)
+   !*end do
+   !*end do
+   !*write(270+iproc,*) ''
+   !*write(270+iproc,*) '##next##'
+
+   !*  call f_free_ptr(inv_ovrlp_half_(1)%matrix)
+   !*  call f_free_ptr(ovrlp_%matrix)
 
   call deallocate_matrices(ovrlp_)
 
