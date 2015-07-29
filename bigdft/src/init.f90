@@ -335,6 +335,21 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
              & at%astruct%ntypes,at%astruct%iatype(iat),rxyz(1,iat),at%radii_cf(1,2),&
              fpmult,hx,hy,hz,logrid)
 
+        ! Assign grid dimensions.
+        nl%pspd(iat)%plr%geocode = lr%geocode
+        nl%pspd(iat)%plr%d%n1 = n1
+        nl%pspd(iat)%plr%d%n2 = n2
+        nl%pspd(iat)%plr%d%n3 = n3
+        nl%pspd(iat)%plr%d%n1i = lr%d%n1i
+        nl%pspd(iat)%plr%d%n2i = lr%d%n2i
+        nl%pspd(iat)%plr%d%n3i = lr%d%n3i
+        nl%pspd(iat)%plr%d%nfl1 = nl1
+        nl%pspd(iat)%plr%d%nfu1 = nu1
+        nl%pspd(iat)%plr%d%nfl2 = nl2
+        nl%pspd(iat)%plr%d%nfu2 = nu2
+        nl%pspd(iat)%plr%d%nfl3 = nl3
+        nl%pspd(iat)%plr%d%nfu3 = nu3
+
         mseg=nl%pspd(iat)%plr%wfd%nseg_f
         iseg=nl%pspd(iat)%plr%wfd%nseg_c+1
 
@@ -351,6 +366,12 @@ subroutine createProjectorsArrays(lr,rxyz,at,orbs,&
            call set_nlpsp_to_wfd(lr,nl%pspd(iat)%plr,&
                 keyg_lin,nbsegs_cf,nl%pspd(iat)%noverlap,nl%pspd(iat)%lut_tolr,nl%pspd(iat)%tolr)
         end if
+
+        ! This is done for wavefunctions but not for projectors ?
+        ! Otherwise, keyvloc is allocated but not filled.
+        call f_free_ptr(nl%pspd(iat)%plr%wfd%keyvloc)
+        nl%pspd(iat)%plr%wfd%keyvloc => nl%pspd(iat)%plr%wfd%keyvglob
+
      endif
   enddo
 
@@ -1553,8 +1574,9 @@ subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, ps
      call updatePotential(orbs%nspinor, denspot, energs)
      call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
 
-     write(*,*) sum(denspot%V_XC), maxval(denspot%V_XC), minval(denspot%V_XC)
-     write(*,*) sum(denspot%rhov), maxval(denspot%rhov), minval(denspot%rhov)
+!!$     write(*,*) energs%exc, energs%evxc, energs%eh
+!!$     write(*,*) sum(denspot%V_XC), maxval(denspot%V_XC), minval(denspot%V_XC)
+!!$     write(*,*) sum(denspot%rhov), maxval(denspot%rhov), minval(denspot%rhov)
   end if
 
   if (associated(rhoij)) call f_free_ptr(rhoij)
@@ -2853,12 +2875,15 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (KSwfn%orbs%npsidim_orbs > 0) call f_zero(KSwfn%orbs%npsidim_orbs,KSwfn%hpsi(1))
      call NonLocalHamiltonianApplication(iproc,atoms,KSwfn%orbs%npsidim_orbs,KSwfn%orbs,&
           KSwfn%Lzd,nlpsp,KSwfn%psi,KSwfn%hpsi,e_nl,KSwfn%paw)
-     call f_free_ptr(KSwfn%hpsi)
 
-     ! Orthogonalize
-     if (nproc > 1) call f_free_ptr(KSwfn%psit)
-     call first_orthon(iproc, nproc, KSwfn%orbs, KSwfn%Lzd, KSwfn%comms, &
-          & KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orthpar, KSwfn%paw)
+     if (inputpsi == INPUT_PSI_LCAO) then
+        call f_free_ptr(KSwfn%hpsi)
+
+        ! Orthogonalize
+        if (nproc > 1) call f_free_ptr(KSwfn%psit)
+        call first_orthon(iproc, nproc, KSwfn%orbs, KSwfn%Lzd, KSwfn%comms, &
+             & KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orthpar, KSwfn%paw)
+     end if
   end if
   !all the input format need first_orthon except the LCAO input_guess
   ! WARNING: at the momemt the linear scaling version does not need first_orthon.

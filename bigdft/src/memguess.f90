@@ -1373,16 +1373,16 @@ program memguess
            & runObj%rst%KSwfn%Lzd%hgrids(3),.false.,nlpsp)
       call f_free_ptr(nlpsp%proj)
       call take_proj_from_file(filename_proj, &
-           & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz, &
+           & runObj%rst%KSwfn%Lzd%hgrids(1),runObj%rst%KSwfn%Lzd%hgrids(2),runObj%rst%KSwfn%Lzd%hgrids(3), &
            & nlpsp, runObj%atoms, runObj%atoms%astruct%rxyz, &
            & ikpt,iat,iproj,icplx)
       call filename_of_proj(.false.,"proj",ikpt,iat,iproj,icplx,filename_wfn)
-      nlpsp%pspd(iat)%plr%wfd%keygloc = nlpsp%pspd(iat)%plr%wfd%keyglob
-      nlpsp%pspd(iat)%plr%wfd%keyvloc = nlpsp%pspd(iat)%plr%wfd%keyvglob
-      ! Doing this is buggy.
-      runObj%rst%KSwfn%Lzd%Glr%wfd = nlpsp%pspd(iat)%plr%wfd
+!!$      nlpsp%pspd(iat)%plr%wfd%keygloc = nlpsp%pspd(iat)%plr%wfd%keyglob
+!!$      nlpsp%pspd(iat)%plr%wfd%keyvloc = nlpsp%pspd(iat)%plr%wfd%keyvglob
+!!$      ! Doing this is buggy.
+!!$      runObj%rst%KSwfn%Lzd%Glr%wfd = nlpsp%pspd(iat)%plr%wfd
       call plot_wf(.false.,filename_wfn,1,runObj%atoms,1.0_wp,runObj%rst%KSwfn%Lzd%Glr, &
-           & runObj%inputs%hx,runObj%inputs%hy,runObj%inputs%hz,&
+           & runObj%rst%KSwfn%Lzd%hgrids(1),runObj%rst%KSwfn%Lzd%hgrids(2),runObj%rst%KSwfn%Lzd%hgrids(3),&
            & runObj%atoms%astruct%rxyz, nlpsp%proj(1:))
    end if
 
