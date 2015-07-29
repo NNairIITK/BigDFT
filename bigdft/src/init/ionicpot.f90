@@ -1802,7 +1802,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   do ityp = 1, at%astruct%ntypes, 1
      call psp_dict_fill_all(dict, at%astruct%atomnames(ityp), in%ixc, in%projrad, in%crmult, in%frmult)
   end do
-  call psp_dict_analyse(dict, at)
+  call psp_dict_analyse(dict, at, in%frmult)
   ! Read associated pseudo files.
   call atomic_data_set_from_dict(dict,IG_OCCUPATION, at, in%nspin)
   call dict_free(dict)

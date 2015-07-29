@@ -719,7 +719,7 @@ contains
 
   
   !> Fill up the atoms structure from dict
-  subroutine psp_dict_analyse(dict, atoms)
+  subroutine psp_dict_analyse(dict, atoms, frmult)
     use module_defs, only: gp
     use module_types, only: atoms_data
     use module_atoms, only: allocate_atoms_data
@@ -732,7 +732,8 @@ contains
     implicit none
     !Arguments
     type(dictionary), pointer :: dict        !< Input dictionary
-    type(atoms_data), intent(inout) :: atoms !Atoms structure to fill up
+    type(atoms_data), intent(inout) :: atoms !< Atoms structure to fill up
+    real(gp), intent(in) :: frmult           !< Used to scale the PAW radius projector
     !Local variables
     integer :: ityp, ityp2
     character(len = 27) :: filename
@@ -785,7 +786,7 @@ contains
           call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), &
                & atoms%epsatm(ityp), trim(fpaw), &
                & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%ixcpsp(ityp))
-          atoms%radii_cf(ityp, 3) = atoms%pawtab(ityp)%rpaw
+          atoms%radii_cf(ityp, 3) = atoms%pawtab(ityp)%rpaw !/ frmult + 0.01
           call libxc_functionals_end()
        end if
     end do

@@ -295,7 +295,7 @@ subroutine inputs_from_dict(in, atoms, dict)
        & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
 
   ! Update atoms with pseudo information.
-  call psp_dict_analyse(dict, atoms)
+  call psp_dict_analyse(dict, atoms, in%frmult)
   call atomic_data_set_from_dict(dict,IG_OCCUPATION, atoms, in%nspin)
 
   ! Add multipole preserving information
