@@ -581,7 +581,6 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   real(wp), dimension((mvctr_c+7*mvctr_f)*ncplx_k), intent(out) :: proj
   !Local variables
   character(len=*), parameter :: subname='crtproj'
-  integer, parameter :: nw=65536
   logical :: perx,pery,perz !variables controlling the periodicity in x,y,z
   integer :: iterm,n_gau,ml1,ml2,ml3,mu1,mu2,mu3,i1,i2,i3
   integer :: ncplx_w,n1p1,np,i0jj
@@ -703,7 +702,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      !!call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
      !!     wprojx(1,0,1,iterm),wpr%work,nw,perx,gau_cut) 
      call gauss_to_daub_k(hx,kx*hx,ncplx_w,ncplx_g,ncplx_k,factor,rx,gau_a,n_gau,ns1,n1,ml1,mu1,&
-          wpr%wproj(1),wpr%work,nw,perx,gau_cut) 
+          wpr%wproj(1),wpr%work,size(wpr%work, 1),perx,gau_cut) 
      !!$ endif
      call vcopy(ncplx_w*(n1+1), wpr%wproj(1), 1, wpr%wprojx(1,0,1,iterm), iskip)
      call vcopy(ncplx_w*(n1+1), wpr%wproj(ncplx_w*(n1+1)+1), 1, wpr%wprojx(1,0,2,iterm), iskip)
@@ -712,7 +711,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=ly(iterm) 
      call gauss_to_daub_k(hy,ky*hy,ncplx_w,ncplx_g,ncplx_k,one,ry,gau_a,n_gau,ns2,n2,ml2,mu2,&
-          wpr%wproj(1),wpr%work,nw,pery,gau_cut) 
+          wpr%wproj(1),wpr%work,size(wpr%work, 1),pery,gau_cut) 
      !!$ endif
      call vcopy(ncplx_w*(n2+1), wpr%wproj(1), 1, wpr%wprojy(1,0,1,iterm), iskip)
      call vcopy(ncplx_w*(n2+1), wpr%wproj(ncplx_w*(n2+1)+1), 1, wpr%wprojy(1,0,2,iterm), iskip)
@@ -721,7 +720,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      !!$ if (mod(ichunk,nthread).eq.ithread) then
      n_gau=lz(iterm) 
      call gauss_to_daub_k(hz,kz*hz,ncplx_w,ncplx_g,ncplx_k,one,rz,gau_a,n_gau,ns3,n3,ml3,mu3,&
-          wpr%wproj(1),wpr%work,nw,perz,gau_cut)
+          wpr%wproj(1),wpr%work,size(wpr%work, 1),perz,gau_cut)
      !!$ endif
      call vcopy(ncplx_w*(n3+1), wpr%wproj(1), 1, wpr%wprojz(1,0,1,iterm), iskip)
      call vcopy(ncplx_w*(n3+1), wpr%wproj(ncplx_w*(n3+1)+1), 1, wpr%wprojz(1,0,2,iterm), iskip)
