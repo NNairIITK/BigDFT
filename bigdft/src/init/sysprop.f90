@@ -1012,93 +1012,139 @@ END SUBROUTINE system_properties
 
 !> Check for the need of a core density and fill the rhocore array which
 !! should be passed at the rhocore pointer
-subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
   use module_base
   use module_types
+  use psp_projectors, only: PSPCODE_PAW
+  use m_pawrad,  only : pawrad_type, pawrad_init, pawrad_free
   use yaml_output
   implicit none
-  integer, intent(in) :: i3s,n3d,i3xcsh,n3p
-  real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
-  type(grid_dimensions), intent(in) :: d
+  type(denspot_distribution), intent(in) :: dpbox
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(:,:,:,:), pointer :: rhocore
   !local variables
   character(len=*), parameter :: subname='calculate_rhocore'
-  integer :: ityp,iat,j3,i1,i2 !,ierr,ind
+  integer :: ityp,iat,j3,i1,i2,ncmax !,ierr,ind
   real(wp) :: tt
   real(gp) :: rx,ry,rz,rloc,cutoff
-  
+  logical :: donlcc
+  type(pawrad_type)::core_mesh
+  !allocatable arrays
+  integer,allocatable :: ifftsph(:)
+  real(gp),allocatable:: rr(:), raux(:), rcart(:,:)
 
   !check for the need of a nonlinear core correction
- !!$  donlcc=.false.
- !!$  chk_nlcc: do ityp=1,at%astruct%ntypes
- !!$     filename = 'nlcc.'//at%astruct%atomnames(ityp)
- !!$
- !!$     inquire(file=filename,exist=exists)
- !!$     if (exists) then
- !!$        donlcc=.true.
- !!$        exit chk_nlcc
- !!$     end if
- !!$  end do chk_nlcc
+  donlcc=.false.
+  chk_nlcc: do ityp=1,at%astruct%ntypes
+     if (at%nlcc_ngv(ityp) /= UNINITIALIZED(1) .or. &
+          & at%nlcc_ngc(ityp) /= UNINITIALIZED(1) .or. &
+          & at%npspcode(ityp) == PSPCODE_PAW) then
+        donlcc = .true.
+        exit
+     end if
+  end do chk_nlcc
+  
+  if (.not. donlcc) then
+     !No NLCC needed, nullify the pointer 
+     nullify(rhocore)
+     return
+  end if
 
-  if (at%donlcc) then
-     !allocate pointer rhocore
-     rhocore = f_malloc0_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
-     !perform the loop on any of the atoms which have this feature
-     do iat=1,at%astruct%nat
-        ityp=at%astruct%iatype(iat)
- !!$        filename = 'nlcc.'//at%astruct%atomnames(ityp)
- !!$        inquire(file=filename,exist=exists)
- !!$        if (exists) then
-        if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
-             at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
-           if (bigdft_mpi%iproc == 0) call yaml_map('NLCC, Calculate core density for atom',trim(at%astruct%atomnames(ityp)))
-           rx=rxyz(1,iat) 
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
+  !allocate pointer rhocore
+  rhocore = f_malloc0_ptr((/ dpbox%ndims(1) , dpbox%ndims(2) , dpbox%n3d , 10 /), id = 'rhocore')
+  !perform the loop on any of the atoms which have this feature
+  do ityp = 1, at%astruct%ntypes
+     
+     if (at%npspcode(ityp) == PSPCODE_PAW) then
+        !  Set radius size:
+        rloc = at%pawtab(ityp)%rcore
+        cutoff = rloc * 1.1d0
 
-           rloc=at%psppar(0,0,ityp)
-           cutoff=10.d0*rloc
+        !  allocate arrays
+        if (dpbox%n3p > 0) then
+           ! ncmax=1+int(1.1_dp*nfft*four_pi/(three*ucvol)*rshp**3)
+           ! ncmax=1+int(1.1d0*((rshp/dpbox%hgrids(1))*(rshp/dpbox%hgrids(2))*pi_param))
+           ! Calculation is done per z plane.
+           ncmax = 1 + int(4._gp * pi_param * rloc ** 2 / dpbox%hgrids(1) / dpbox%hgrids(2))
+        else
+           ncmax = 1
+        end if
+        ifftsph = f_malloc(ncmax, id = "ifftsph_tmp")
+        rr = f_malloc(ncmax, id = "rr")
+        raux = f_malloc(ncmax, id = "raux")
+        rcart = f_malloc((/ 3, ncmax /), id = "rcart")
+        !  Create mesh_core object
+        !  since core_mesh_size can be bigger than pawrad%mesh_size, 
+        call pawrad_init(core_mesh, mesh_size = at%pawtab(ityp)%core_mesh_size, &
+             & mesh_type = at%pawrad(ityp)%mesh_type, &
+             & rstep = at%pawrad(ityp)%rstep, &
+             & lstep = at%pawrad(ityp)%lstep)
+     else
+        rloc = at%psppar(0,0,ityp)
+        cutoff = 10.d0 * rloc
+     end if
 
-           call calc_rhocore_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
+     do iat = 1, at%astruct%nat
+        if (at%astruct%iatype(iat) /= ityp) cycle
 
+        rx=rxyz(1,iat) 
+        ry=rxyz(2,iat)
+        rz=rxyz(3,iat)
+        
+        if (at%npspcode(ityp) == PSPCODE_PAW) then
+           call mkcore_paw_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,&
+                & dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3), &
+                & dpbox%ndims(1), dpbox%ndims(2),dpbox%ndims(3), &
+                & dpbox%i3s,dpbox%n3d,core_mesh, rhocore, ncmax, ifftsph, rr, raux)
+        else
+           call calc_rhocore_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,&
+                & dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3), &
+                & dpbox%ndims(1), dpbox%ndims(2),dpbox%ndims(3), &
+                & dpbox%i3s,dpbox%n3d,rhocore)
         end if
      end do
 
-     !calculate total core charge in the grid
-     !In general this should be really bad
+     !  Deallocate
+     if (at%npspcode(ityp) == PSPCODE_PAW) then
+        call pawrad_free(core_mesh)
+        call f_free(ifftsph)
+        call f_free(rr)
+        call f_free(raux)
+        call f_free(rcart)
+     end if
+  end do
 
- !!$     do j3=1,n3d
- !!$        tt=0.0_wp
- !!$        do i2=1,d%n2i
- !!$           do i1=1,d%n1i
- !!$              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
- !!$              tt=tt+rhocore(i1,i2,j3,1)
- !!$           enddo
- !!$        enddo
- !!$        write(17+iproc,*)j3+i3s-1,tt
- !!$     enddo
- !!$call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
- !!$stop
-     tt=0.0_wp
-     do j3=1,n3p
-        do i2=1,d%n2i
-           do i1=1,d%n1i
-              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
-              tt=tt+rhocore(i1,i2,j3+i3xcsh,1)
-           enddo
+  !calculate total core charge in the grid
+  !In general this should be really bad
+
+!!$     do j3=1,n3d
+!!$        tt=0.0_wp
+!!$        do i2=1,d%n2i
+!!$           do i1=1,d%n1i
+!!$              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+!!$              tt=tt+rhocore(i1,i2,j3,1)
+!!$           enddo
+!!$        enddo
+!!$        write(17+iproc,*)j3+i3s-1,tt
+!!$     enddo
+!!$call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
+!!$stop
+  tt=0.0_wp
+  do j3=1,dpbox%n3p
+     do i2=1,dpbox%ndims(2)
+        do i1=1,dpbox%ndims(1)
+           !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+           tt=tt+rhocore(i1,i2,j3+dpbox%i3xcsh,1)
         enddo
      enddo
+  enddo
 
-     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
-     tt=tt*hxh*hyh*hzh
-     if (bigdft_mpi%iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
-
-  else
-     !No NLCC needed, nullify the pointer 
-     nullify(rhocore)
+  if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+  tt=tt*product(dpbox%hgrids)
+  if (bigdft_mpi%iproc == 0) then
+     call yaml_map('Total core charge on the grid', tt,fmt='(f15.7)', advance = "no")
+     call yaml_comment('To be compared with analytic one')
   end if
 
 END SUBROUTINE calculate_rhocore
@@ -1279,7 +1325,7 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
   character(len = *), intent(in) :: filename
   integer, intent(in) :: nzatom, nelpsp, ixc
 
-  integer:: icoulomb,ipsp
+  integer:: icoulomb,ipsp !, ib, i, ii
   integer:: pawxcdev,usewvl,usexcnhat,xclevel
   integer::pspso
   real(dp):: xc_denpos
@@ -1317,6 +1363,21 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
        & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
        & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,real(nelpsp, dp),real(nzatom, dp),&
        & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm)
+
+!!$  ii = 0
+!!$  do ib = 1, pawtab%basis_size
+!!$     write(*,*) pawtab%wvl%pngau(ib)
+!!$     write(80, "(A,I0,A)") "f", ib, "(x) = 0 \"
+!!$     do i = 1, pawtab%wvl%pngau(ib)
+!!$        ii = ii + 1
+!!$        write(80,*) " + {", pawtab%wvl%pfac(1, ii), ",", pawtab%wvl%pfac(2, ii), &
+!!$             & "} * exp({", pawtab%wvl%parg(1, ii), ",", pawtab%wvl%parg(2, ii) , "}*(x**2)) \"
+!!$        write(100+ib, *) pawtab%wvl%pfac(:, ii), pawtab%wvl%parg(:, ii)
+!!$     end do
+!!$     write(80,*) " + 0"
+!!$     close(100+ib)
+!!$  end do
+!!$  close(80)
 END SUBROUTINE paw_from_file
 
 

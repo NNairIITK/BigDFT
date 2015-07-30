@@ -10,12 +10,12 @@
 
 !> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
+     n1i,n2i,n3i,i3s,n3d,rhocore) 
   use module_defs, only: gp,dp,wp
   use module_types
   use yaml_output
   implicit none
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
+  integer, intent(in) :: n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(dp), dimension(n1i*n2i*n3d,0:9), intent(inout) :: rhocore
@@ -54,7 +54,9 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 
   !close(unit=79)
 
- 
+  if (iproc == 0) &
+       & call yaml_map('NLCC, Calculate core density for atom',trim(atoms%astruct%atomnames(ityp)))
+
   if (iproc == 0) call yaml_map('Analytic core charge',chc-chv,fmt='(f12.6)')
   !if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
 
@@ -94,11 +96,11 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         if (j3 >= i3s .and. j3 <= i3s+n3d-1) then
            do i2=isy,iey
               y=real(i2,kind=8)*hyh-ry
-              call ind_positions(pery,i2,n2,j2,goy)
+              call ind_positions_new(pery,i2,n2i,j2,goy)
               if (goy) then
                  do i1=isx,iex
                     x=real(i1,kind=8)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
+                    call ind_positions_new(perx,i1,n1i,j1,gox)
                     if (gox) then
                        r2=x**2+y**2+z**2
                        !here we can sum up the gaussians for the
@@ -161,6 +163,131 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   
 END SUBROUTINE calc_rhocore_iat
 
+!> Accumulate the contribution of atom iat to core density for PAW atoms.
+subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+     n1i,n2i,n3i,i3s,n3d,core_mesh,rhocore, ncmax, ifftsph, rr, raux)
+  use module_defs, only: dp, gp, bigdft_mpi, pi_param
+  use module_types, only: denspot_distribution
+  use module_atoms
+  use dynamic_memory
+  use dictionaries, only: f_err_raise
+  use f_utils
+
+  use m_pawrad,  only : pawrad_type, pawrad_init, pawrad_free
+  use m_paw_numeric, only: paw_sort_dp, paw_splint
+  use module_interfaces, only: ext_buffers, ind_positions
+
+  implicit none
+
+  !Arguments ---------------------------------------------
+  !scalars
+  integer, intent(in) :: n1i,n2i,n3i,i3s,n3d,iproc,ityp, ncmax
+  real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
+  type(atoms_data), intent(in) :: atoms
+  type(pawrad_type), intent(in) ::core_mesh
+  real(dp), dimension(n1i*n2i*n3d,0:9), intent(inout) :: rhocore
+  integer, dimension(ncmax), intent(inout) :: ifftsph
+  real(gp), dimension(ncmax), intent(inout) :: rr, raux
+
+  !Local variables ------------------------------
+  !scalars
+  !buffer to be added at the end of the last dimension of an array to control bounds_check
+  integer :: i1,i2,i3,iat,ii,jj
+  integer :: iex,iey,iez,isx,isy,isz,ind,j1,j2,j3
+  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+  integer :: nfgd,nfgd_r0
+  real(gp) :: factor,grxc1,grxc2,grxc3, ucvol,rr2,r2shp
+  real(gp) :: xx,yy,zz
+  logical :: perx,pery,perz,gox,goy,goz
+  !arrays
+  real(gp) :: corfra(3,3), dyfrx2(3,3)
+  !allocatable arrays
+
+  ! *************************************************************************
+
+  !mpi
+  ucvol = n1i * n2i * n3i / hxh / hyh / hzh
+
+  !Conditions for periodicity in the three directions
+  perx=(atoms%astruct%geocode /= 'F')
+  pery=(atoms%astruct%geocode == 'P')
+  perz=(atoms%astruct%geocode /= 'F')
+
+  !Compute values of external buffers
+  call ext_buffers(perx,nbl1,nbr1) 
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+  if (n3d >0) then
+     isx=floor((rx-cutoff)/hxh)
+     isy=floor((ry-cutoff)/hyh)
+     isz=floor((rz-cutoff)/hzh)
+
+     iex=ceiling((rx+cutoff)/hxh)
+     iey=ceiling((ry+cutoff)/hyh)
+     iez=ceiling((rz+cutoff)/hzh)
+     
+     r2shp = cutoff * cutoff
+     !    
+     do i3=isz,iez
+        zz=real(i3,gp)*hzh-rz
+        call ind_positions_new(perz,i3,n3i,j3,goz)
+        j3=j3+nbl3+1
+        if (j3 < i3s .or. j3 > i3s+n3d-1) cycle
+
+        !      Initialize counters
+        nfgd=0
+        nfgd_r0=0
+        !      
+        do i2=isy,iey
+           yy=real(i2,gp)*hyh-ry
+           call ind_positions_new(pery,i2,n2i,j2,goy)
+           !        
+           do i1=isx,iex
+              xx=real(i1,gp)*hxh-rx
+              call ind_positions_new(perx,i1,n1i,j1,gox)
+              rr2=xx**2+yy**2+zz**2
+              if (goy .and. gox .and. rr2<=r2shp) then
+                 ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
+
+                 nfgd=nfgd+1
+                 rr(nfgd)=(rr2)**0.5
+                 ifftsph(nfgd)=ind
+!!$                 rcart(1, nfgd) = xx
+!!$                 rcart(2, nfgd) = yy
+!!$                 rcart(3, nfgd) = zz
+              end if !j3..
+           end do !i1
+        end do !i2
+
+        !      All of the following  could be done inside or outside the loops (i2,i1,i3)
+        !      Outside the loops: the memory consuption increases.
+        !      Inside the inner loop: the time of calculation increases.
+        !      Here, I chose to do it here, somewhere in the middle.
+        if(nfgd==0)      cycle
+
+        call paw_sort_dp(nfgd, rr(1), ifftsph(1), 1.d-16)
+        !  Evaluate spline fit of core charge density
+        !  from tcoredens(:,1) and tcoredens(:,3)
+        call paw_splint(atoms%pawtab(ityp)%core_mesh_size, core_mesh%rad,&
+             & atoms%pawtab(ityp)%tcoredens(1,1), atoms%pawtab(ityp)%tcoredens(1,3),&
+             & nfgd,rr(1),raux(1))
+        !  Accumulate contributions to core density on the entire cell
+        do ii=1,nfgd
+           jj=ifftsph(ii)
+           rhocore(jj, 0) = rhocore(jj, 0) + raux(ii)
+        end do
+
+        ! Currently no stress and gradients...
+!!$        call mkcore_inner(corfra,core_mesh,dyfrx2,&
+!!$             & grxc1,grxc2,grxc3,ifftsph_tmp,atoms%pawtab(itypat)%core_mesh_size,&
+!!$             & ncmax,size(xccc3d),nfgd,nfgd_r0,dpbox%nrhodim,&
+!!$             & size(xccc3d),option,atoms%pawtab(itypat),&
+!!$             & rmet,rprimd,rr,rcart,rshpm1,strdia,ucvol,vxc,rhocore(1,0))
+     end do !i3
+  end if
+
+end subroutine mkcore_paw_iat
 
 !> Calculate the core charge described by a sum of spherical harmonics of s-channel with 
 !! principal quantum number increased with a given exponent.
@@ -227,7 +354,7 @@ end function spherical_gaussian_value
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
 subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,hx,hy,hz,&
-     rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
+     rho,exc,vxc,nspin,rhocore,rhohat,potxc,xcstr,dvxcdrho)
   use module_base
   !Rename dp into except_dp in order to avoid conflict with the definitions provided by module_base
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
@@ -246,10 +373,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
   real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
+  real(wp), dimension(:,:,:,:), pointer :: rhohat !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
   real(dp), dimension(6), intent(out) :: xcstr
   real(dp), dimension(:,:,:,:), target, intent(out), optional :: dvxcdrho
-  real(wp), dimension(:,:,:,:), optional :: rhohat
   !local variables
   character(len=*), parameter :: subname='XC_potential'
   logical :: wrtmsg
@@ -357,12 +484,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
 !!$ !    end if
 !!$ ! end if
  
-  !if rhohat is present, substract it from charge density
-  if (present(rhohat)) then
-        call axpy(m1*m3*nxt*nspin,-1.0_wp,rhohat(1,1,1,1),1,rho(1),1)
-        call abi_mkdenpos(iwarn,m1*m3*nxt,nspin,0,rho,tol20)
-  end if
-
   if (datacode=='G') then
      !starting address of rho in the case of global i/o
      i3start=istart+2-nxcl-nwbl
@@ -389,12 +510,24 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      stop 'PSolver: datacode not admitted'
   end if
 
+  !if rhohat is present, substract it from charge density
+  if (associated(rhohat) .and. m1*m3*nxt > 0) then
+     if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
+        call axpy(m1*m3*nxt,-1._wp,rhohat(1,1,1,1),1,rho_G(1),1)
+        if (nspin==2) call axpy(m1*m3*nxt,-1._wp,rhohat(1,1,1,2),1,&
+             rho_G(1+m1*m3*nxt),1)
+     else
+        call axpy(m1*m3*nxt,-1._wp,rhohat(1,1,1,1),1,rho(1+n01*n02*(i3start-1)),1)
+        if (nspin==2) call axpy(m1*m3*nxt,-1._wp,rhohat(1,1,1,2),1,&
+             rho(1+n01*n02*(i3start-1)+m1*m3*nxt),1)
+     end if
+  end if
+
   !print *,'density must go from',min(istart+1,m2),'to',iend,'with n2/2=',n2/2
   !print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
   !print *,'istart',i3start,nxcl,nwbl,istart,iproc,geocode
 
   !rescale the density to apply that to ABINIT routines
-
   if (nspin==1) then !rho_g does not enter here
      if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
         call vscal(m1*m3*nxt,0.5_dp,rho_G(1),1)
@@ -454,7 +587,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
         end if
      end if
   end if
-
 
 
   !if (present(dvxcdrho)) then
@@ -521,14 +653,14 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   end if
 
   !if rhohat is present, add it to charge density
-  if(present(rhohat)) then
-     do ispin=1,nspin
-       call axpy(m1*m3*nxc,1.0_wp,rhohat(1,1,i3xcsh_fake+1,ispin),1,rho(1),1)
-     end do
+  if(associated(rhohat) .and. m1*m3*nxc .gt.0) then
+     call axpy(m1*m3*nxt,1._wp,rhohat(1,1,1,1),1,rho(1+n01*n02*(i3start-1)),1)
+     if (nspin==2) call axpy(m1*m3*nxt,1._wp,rhohat(1,1,1,2),1,&
+          rho(1+n01*n02*(i3start-1)+m1*m3*nxt),1)
      !This will add V_xc(n) nhat to V_xc(n) n, to get: V_xc(n) (n+nhat)
-     call add_to_vexcu(rhohat)
+     ! Only if usexcnhat /= 0, not the default case.
+     !call add_to_vexcu(rhohat)
   end if
-
 
   !if rhocore is associated we then remove it from the charge density
   !and subtract its contribution from the evaluation of the XC potential integral vexcu
@@ -540,8 +672,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
 !print *,' aaaa', vexcuRC,vexcuLOC,eexcuLOC
   end if
 
-
-!stop
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then

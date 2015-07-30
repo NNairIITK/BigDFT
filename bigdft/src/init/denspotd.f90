@@ -19,6 +19,7 @@ subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
 
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C)
+  nullify(denspot%rhohat)
   nullify(denspot%V_ext)
   nullify(denspot%rho_ion)
   nullify(denspot%Vloc_KS)
@@ -458,7 +459,7 @@ END SUBROUTINE denspot_emit_v_ext
 subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
   use module_base
   use module_types
-  use module_interfaces, fake_name => allocateRhoPot
+  use module_interfaces, only: calculate_rhocore
   implicit none
   integer, intent(in) :: nspin
   type(locreg_descriptors), intent(in) :: Glr
@@ -499,10 +500,7 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
   !check if non-linear core correction should be applied, and allocate the 
   !pointer if it is the case
   !print *,'i3xcsh',denspot%dpbox%i3s,denspot%dpbox%i3xcsh,denspot%dpbox%n3d
-  call calculate_rhocore(atoms,Glr%d,rxyz,&
-       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-       denspot%dpbox%i3s,denspot%dpbox%i3xcsh,&
-       denspot%dpbox%n3d,denspot%dpbox%n3p,denspot%rho_C)
+  call calculate_rhocore(atoms,rxyz,denspot%dpbox,denspot%rho_C)
 
 END SUBROUTINE allocateRhoPot
 
