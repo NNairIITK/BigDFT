@@ -3226,6 +3226,7 @@ subroutine paw_update_rho(paw, denspot, atoms)
   use yaml_output
   use abi_interfaces_add_libpaw, only: abi_pawmkrho
   use dynamic_memory
+  use wrapper_MPI
   implicit none
   type(paw_objects), intent(inout) :: paw
   type(DFT_local_fields), intent(inout) :: denspot
@@ -3287,6 +3288,8 @@ subroutine paw_update_rho(paw, denspot, atoms)
        & pawnhat = denspot%rhohat)
 !!$  call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,"nhat.cube",atoms,&
 !!$       & symObj%xred,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rhohat)
+  ! The allred here is just for printing, how bad...
+  if (bigdft_mpi%nproc > 1) call mpiallred(compch_fft, 1, MPI_SUM, comm = bigdft_mpi%mpi_comm)
   if (bigdft_mpi%iproc == 0) then
      call yaml_map('Compensation charge on wavelet grid', compch_fft)
      call yaml_newline()
