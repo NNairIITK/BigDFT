@@ -3082,7 +3082,8 @@ end subroutine integral_equation
 
 !> Compute the Dij coefficients from the current KS potential.
 subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
-  use module_types, only: paw_objects, atoms_data, DFT_local_fields, KS_POTENTIAL
+  use module_types, only: paw_objects, atoms_data, DFT_local_fields, KS_POTENTIAL, &
+       & TCAT_PAW_DIJ, TCAT_LIBPAW
   use module_defs, only: gp, Ha_eV, bigdft_mpi
   use m_paw_an, only: paw_an_reset_flags
   use m_paw_ij, only: paw_ij_reset_flags
@@ -3091,6 +3092,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   use abi_interfaces_add_libpaw, only: abi_pawdenpot
   use dynamic_memory
   use f_utils
+  use time_profiling
   use yaml_output
   implicit none
   type(paw_objects), intent(inout) :: paw
@@ -3109,6 +3111,8 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   real(gp), dimension(:,:), allocatable :: xred ! Used only for phonons.
   real(gp), dimension(2) :: vpotzero
 
+  call f_timing(TCAT_PAW_DIJ, "ON")
+
   call paw_an_reset_flags(paw%paw_an) ! Force the recomputation of on-site potentials
   call paw_ij_reset_flags(paw%paw_ij,self_consistent=.true.) ! Force the recomputation of Dij
 
@@ -3119,6 +3123,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   nfftot = product(denspot%dpbox%ndims)
   ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
 
+  call f_timing(TCAT_LIBPAW, "ON")
   call abi_pawdenpot(compch_sph, e_paw, e_pawdc, ipert, denspot%xc%ixc, &
        & size(paw%pawrhoij), at%astruct%nat,&
        & denspot%dpbox%nrhodim, at%astruct%ntypes, nzlmopt, option, paw%paw_an, &
@@ -3127,6 +3132,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
        & xc_denpos, ucvol, real(at%nzatom, gp), vpotzero = vpotzero) !, &
   !&     mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
   !&     vpotzero=vpotzero)
+  call f_timing(TCAT_LIBPAW, "OF")
 
   !call yaml_map('average electrostatic smooth potential [Ha] , [eV]', &
   !     & (/ SUM(vpotzero(:)),SUM(vpotzero(:))*Ha_eV /))
@@ -3145,6 +3151,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
      call yaml_newline()
   end if
 
+  call f_timing(TCAT_LIBPAW, "ON")
   if (denspot%rhov_is /= KS_POTENTIAL) stop "rhov must be KS pot here."
   call pawdij(cplex, enunit, gprimd, ipert, size(paw%pawrhoij), at%astruct%nat, nfft, nfftot, &
        & denspot%dpbox%nrhodim, at%astruct%ntypes, paw%paw_an, paw%paw_ij, at%pawang, &
@@ -3153,19 +3160,22 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
        & mpi_comm_grid = bigdft_mpi%mpi_comm) !, &
   !&     natvshift=dtset%natvshift,atvshift=dtset%atvshift,fatvshift=fatvshift) !,&
   !&     mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
+  call f_timing(TCAT_LIBPAW, "OF")
 
   call f_free(xred)
 
+  call f_timing(TCAT_PAW_DIJ, "OF")
 end subroutine paw_compute_dij
 
 !> Compute the PAW quantities rhoij (augmentation occupancies)
 !  Remember:for each atom, rho_ij=Sum_{n,k} {occ(n,k)*<Cnk|p_i><p_j|Cnk>}
 subroutine paw_compute_rhoij(paw, orbs, atoms)
   use module_base, only: bigdft_mpi, gp
-  use module_types, only: orbitals_data, paw_objects, atoms_data
+  use module_types, only: orbitals_data, paw_objects, atoms_data, TCAT_LIBPAW
   use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_mpisum_unpacked, &
        & pawrhoij_free
   use dynamic_memory
+  use time_profiling
   use abi_interfaces_add_libpaw, only: abi_pawaccrhoij
   implicit none
   type(paw_objects), intent(inout) :: paw
@@ -3176,6 +3186,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms)
   integer, dimension(atoms%astruct%nat) :: atindx
   type(pawrhoij_type), pointer :: pawrhoij_all(:)
 
+  call f_timing(TCAT_LIBPAW, "ON")
   !Build and initialize unpacked rhoij (to be computed here)
   call pawrhoij_init_unpacked(paw%pawrhoij)
 
@@ -3205,6 +3216,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms)
 
   !MPI: need to exchange rhoij_ between procs
   call pawrhoij_mpisum_unpacked(pawrhoij_all, bigdft_mpi%mpi_comm)
+  call f_timing(TCAT_LIBPAW, "OF")
 
   !In case of distribution over atomic sites, dispatch rhoij
 !!$  if (associated(paw%mpi_atmtab)) then
@@ -3218,7 +3230,8 @@ END SUBROUTINE paw_compute_rhoij
 
 subroutine paw_update_rho(paw, denspot, atoms)
   use module_defs, only: gp, dp, bigdft_mpi
-  use module_types, only: paw_objects, DFT_local_fields, ELECTRONIC_DENSITY
+  use module_types, only: paw_objects, DFT_local_fields, ELECTRONIC_DENSITY, &
+       & TCAT_LIBPAW, TCAT_PAW_RHOIJ
   use module_atoms
   use abi_defs_basis, only: AB7_NO_ERROR
   use m_ab6_symmetry
@@ -3226,6 +3239,7 @@ subroutine paw_update_rho(paw, denspot, atoms)
   use yaml_output
   use abi_interfaces_add_libpaw, only: abi_pawmkrho
   use dynamic_memory
+  use time_profiling
   use wrapper_MPI
   implicit none
   type(paw_objects), intent(inout) :: paw
@@ -3244,6 +3258,8 @@ subroutine paw_update_rho(paw, denspot, atoms)
 
   integer, parameter :: cplex = 1, pawprtvol = 0, usewvl = 1, pawxcdev = 1, ipert = 0, idir = 1
   real(gp), dimension(3), parameter :: qphon = (/ 0._gp, 0._gp, 0._gp /)
+
+  call f_timing(TCAT_PAW_RHOIJ, "ON")
 
   nfft = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%n3p
   ngfft(1:3) = denspot%dpbox%ndims
@@ -3279,6 +3295,7 @@ subroutine paw_update_rho(paw, denspot, atoms)
      denspot%rhohat = f_malloc_ptr((/ denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
           & denspot%dpbox%n3p , denspot%dpbox%nrhodim /), id='denspot%rhohat')
   end if
+  call f_timing(TCAT_LIBPAW, "ON")
   call abi_pawmkrho(compch_fft,cplex,symObj%gprimd,idir,indsym,ipert,&
        & nfft, nfft / 8, ngfft, size(paw%pawrhoij),atoms%astruct%nat,&
        & denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes,0,atoms%pawang,&
@@ -3286,6 +3303,7 @@ subroutine paw_update_rho(paw, denspot, atoms)
        & qphon,denspot%rhov,denspot%rhov,denspot%rhov,symObj%rprimd,&
        & symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred,&
        & pawnhat = denspot%rhohat)
+  call f_timing(TCAT_LIBPAW, "OF")
 !!$  call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,"nhat.cube",atoms,&
 !!$       & symObj%xred,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rhohat)
   ! The allred here is just for printing, how bad...
@@ -3303,4 +3321,6 @@ subroutine paw_update_rho(paw, denspot, atoms)
      call f_free_ptr(indsym)
      call f_free_ptr(sym)
   end if
+
+  call f_timing(TCAT_PAW_RHOIJ, "OF")
 END SUBROUTINE paw_update_rho
