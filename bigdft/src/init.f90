@@ -1523,11 +1523,11 @@ subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, ps
   use module_defs, only: gp, wp
   use module_types, only: orbitals_data, paw_objects, DFT_local_fields, &
        & GPU_pointers, local_zone_descriptors, ELECTRONIC_DENSITY, KS_POTENTIAL, &
-       & energy_terms
+       & energy_terms, energy_terms_null
   use module_atoms
   use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_free_unpacked, pawrhoij_unpack
   use dynamic_memory
-  use module_interfaces, only: read_pw_waves, sumrho, communicate_density
+  use module_interfaces, only: read_pw_waves, sumrho, communicate_density, write_energies
   use rhopotential, only: updatePotential
   
   implicit none
@@ -1571,9 +1571,11 @@ subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, ps
      call paw_update_rho(paw, denspot, at)
 
      ! Create KS potential.
+     energs = energy_terms_null()
      call updatePotential(orbs%nspinor, denspot, energs)
      call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
 
+     call write_energies(0, 0, energs, 0._gp, 0._gp, "", .true.)
 !!$     write(*,*) energs%exc, energs%evxc, energs%eh
 !!$     write(*,*) sum(denspot%V_XC), maxval(denspot%V_XC), minval(denspot%V_XC)
 !!$     write(*,*) sum(denspot%rhov), maxval(denspot%rhov), minval(denspot%rhov)
