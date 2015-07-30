@@ -1829,7 +1829,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   call ext_buffers(pery,nbl2,nbr2)
   call ext_buffers(perz,nbl3,nbr3)
 
-  if (n3pi >0 .and. .not. htoobig) then
+  if (n3pi > 0 .and. .not. htoobig) then
 
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)

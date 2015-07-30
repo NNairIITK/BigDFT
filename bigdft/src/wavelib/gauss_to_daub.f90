@@ -583,7 +583,8 @@ contains
 
     !stop the code if the gaussian is too extended
     if (rightx-leftx > nwork) then
-       !STOP 'gaustodaub'
+       write(*,*) nwork, rightx, leftx
+       STOP 'gaustodaub'
        return
     end if
 

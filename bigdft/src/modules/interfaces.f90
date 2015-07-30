@@ -1044,20 +1044,18 @@ module module_interfaces
          real(wp), dimension((ngx*(ngx+1))/2,4), intent(out) :: rhocoeff
       END SUBROUTINE plot_gatom_basis
 
-      subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+      subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
         use module_base
         use module_types
         implicit none
-        integer, intent(in) :: i3s,n3d,i3xcsh,n3p
-        real(gp), intent(in) :: hxh,hyh,hzh
         type(atoms_data), intent(in) :: at
-        type(grid_dimensions), intent(in) :: d
+        type(denspot_distribution), intent(in) :: dpbox
         real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
         real(wp), dimension(:,:,:,:), pointer :: rhocore
       END SUBROUTINE calculate_rhocore
 
       subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xc,hx,hy,hz,&
-           rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
+           rho,exc,vxc,nspin,rhocore,rhohat,potxc,xcstr,dvxcdrho)
         use module_base
         use module_xc
         implicit none
@@ -1069,10 +1067,10 @@ module module_interfaces
         real(gp), intent(out) :: exc,vxc
         real(dp), dimension(*), intent(inout) :: rho
         real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
+        real(wp), dimension(:,:,:,:), pointer :: rhohat
         real(wp), dimension(*), intent(out) :: potxc
         real(dp), dimension(6), intent(out) :: xcstr
         real(dp), dimension(:,:,:,:), target, intent(out), optional :: dvxcdrho
-        real(wp), dimension(:,:,:,:), optional :: rhohat
       END SUBROUTINE XC_potential
 
       subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&

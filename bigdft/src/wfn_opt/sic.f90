@@ -128,7 +128,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,xc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi
      else
         call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
-             rhopoti,eexi,vexi,orbs%nspin,rhocore_fake,vSICi,xcstr) 
+             rhopoti,eexi,vexi,orbs%nspin,rhocore_fake,rhocore_fake,vSICi,xcstr) 
 
         call H_potential('D',pkernel,rhopoti,rhopoti,ehi,0.0_dp,.false.,&
              quiet='YES') !optional argument
@@ -269,7 +269,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
      !put the XC potential in the wxd term, which is the same for all the orbitals
      call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
           lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
-          deltarho,eexu,vexu,orbs%nspin,rhocore_fake,wxd,xcstr)
+          deltarho,eexu,vexu,orbs%nspin,rhocore_fake,rhocore_fake,wxd,xcstr)
 
      if (.not. virtual) then
         !rescale wxd, pay attention to the occupation of the orbitals
@@ -343,7 +343,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
         !calculate its vXC and fXC
         call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
              lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
-             deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr,fxci)
+             deltarho,eexi,vexi,orbs%nspin,rhocore_fake,rhocore_fake,vxci,xcstr,fxci)
 
         !copy the relevant part of Vxc[rhoref] in the potential
         if (.not. savewxd) &
@@ -408,7 +408,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
            !calculate its XC potential
            call XC_potential(lr%geocode,'D',0,1,bigdft_mpi%mpi_comm,&
                 lr%d%n1i,lr%d%n2i,lr%d%n3i,xc,hxh,hyh,hzh,&
-                deltarho,eexi,vexi,orbs%nspin,rhocore_fake,vxci,xcstr) 
+                deltarho,eexi,vexi,orbs%nspin,rhocore_fake,rhocore_fake,vxci,xcstr) 
            !saves the values for the double-counting term
            eSIC_DC=eSIC_DC+eexi-eexu+eSIC_DCi
 

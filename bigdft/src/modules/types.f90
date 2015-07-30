@@ -61,11 +61,12 @@ module module_types
 
 
   !> All possible values of input psi (determination of the input guess)
-  integer, dimension(12), parameter :: input_psi_values = &
+  integer, dimension(13), parameter :: input_psi_values = &
        (/ INPUT_PSI_EMPTY, INPUT_PSI_RANDOM, INPUT_PSI_CP2K, &
        INPUT_PSI_LCAO, INPUT_PSI_MEMORY_WVL, INPUT_PSI_DISK_WVL, &
-       INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, INPUT_PSI_DISK_GAUSS, &
-       INPUT_PSI_LINEAR_AO, INPUT_PSI_DISK_LINEAR, INPUT_PSI_MEMORY_LINEAR /)
+       INPUT_PSI_DISK_PW, INPUT_PSI_LCAO_GAUSS, INPUT_PSI_MEMORY_GAUSS, &
+       INPUT_PSI_DISK_GAUSS, INPUT_PSI_LINEAR_AO, INPUT_PSI_DISK_LINEAR, &
+       INPUT_PSI_MEMORY_LINEAR /)
 
   !> Output wf parameters.
   integer, parameter, public :: WF_FORMAT_NONE   = 0
@@ -520,6 +521,7 @@ module module_types
      real(gp) :: evsum   
      real(gp) :: evsic   
      real(gp) :: excrhoc 
+     real(gp) :: epaw, epawdc
      real(gp) :: eTS     
      real(gp) :: ePV     !< pressure term
      real(gp) :: energy  !< the functional which is minimized
@@ -805,6 +807,7 @@ module module_types
      !! normally given in parallel distribution
      real(dp), dimension(:,:), pointer :: rho_psi     !< density as given by square of el. WFN
      real(dp), dimension(:,:,:,:), pointer :: rho_C   !< core density
+     real(dp), dimension(:,:,:,:), pointer :: rhohat  !< PAW compensation density
      real(wp), dimension(:,:,:,:), pointer :: V_ext   !< local part of pseudopotientials
      real(wp), dimension(:,:,:,:), pointer :: V_XC    !< eXchange and Correlation potential (local)
      real(wp), dimension(:,:,:,:), pointer :: Vloc_KS !< complete local potential of KS Hamiltonian (might point on rho_psi)
@@ -1160,7 +1163,9 @@ contains
     en%trH     =0.0_gp
     en%evsum   =0.0_gp
     en%evsic   =0.0_gp 
-    en%excrhoc =0.0_gp 
+    en%excrhoc =0.0_gp
+    en%epaw    =0.0_gp 
+    en%epawdc  =0.0_gp
     en%eTS     =0.0_gp
     en%ePV     =0.0_gp 
     en%energy  =0.0_gp 
@@ -1431,6 +1436,8 @@ contains
        write(input_psi_names, "(A)") "wvl. in mem."
     case(INPUT_PSI_DISK_WVL)
        write(input_psi_names, "(A)") "wvl. on disk"
+    case(INPUT_PSI_DISK_PW)
+       write(input_psi_names, "(A)") "pw on disk"
     case(INPUT_PSI_LCAO_GAUSS)
        write(input_psi_names, "(A)") "LCAO + gauss."
     case(INPUT_PSI_MEMORY_GAUSS)
@@ -1526,6 +1533,7 @@ contains
     nullify(denspot%mix)
     nullify(denspot%rho_psi)
     nullify(denspot%rho_C)
+    nullify(denspot%rhohat)
     nullify(denspot%V_ext)
     nullify(denspot%V_XC)
     nullify(denspot%Vloc_KS)

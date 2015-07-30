@@ -592,6 +592,8 @@ subroutine write_energies(iter,iscf,energs,gnrm,gnrm_zero,comment,only_energies)
           call yaml_map('EexctX',energs%eexctX,fmt='(1pe18.11)')
      if (energs%evsic /= 0.0_gp)&
           call yaml_map('EvSIC',energs%evsic,fmt='(1pe18.11)')
+     if (energs%epawdc /= 0.0_gp)&
+          call yaml_map('Epaw',energs%epawdc,fmt='(1pe18.11)')
      if (len(trim(comment)) > 0) then
         if (energs%eion /= 0.0_gp)&
              call yaml_map('Eion',energs%eion,fmt='(1pe18.11)')

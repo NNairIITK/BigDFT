@@ -44,7 +44,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   real(gp) :: ehart_ps
   !integer :: ii,jj
   !$ integer :: omp_get_max_threads,omp_get_thread_num,omp_get_num_threads
-  real(gp) :: e_paw, e_pawdc, compch_sph
+  real(gp) :: compch_sph
 
   !in the default case, non local hamiltonian is done after potential creation
   whilepot=.true.
@@ -204,7 +204,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
              denspot%pkernel%mpi_env%mpi_comm,&
              denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
              denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-             denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
+             denspot%rhov,energs%exc,energs%evxc,wfn%orbs%nspin,denspot%rho_C,&
+             denspot%rhohat,denspot%V_XC,xcstr)
         call denspot_set_rhov_status(denspot, CHARGE_DENSITY, itwfn, iproc, nproc)
 
         call H_potential('D',denspot%pkernel,&
@@ -339,7 +340,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
 
   if (wfn%paw%usepaw) then
      call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC(1, 1, 1, 1), &
-          & e_paw, e_pawdc, compch_sph)
+          & energs%epaw, energs%epawdc, compch_sph)
   end if
 
   if ((ithread > 0 .or. nthread==1) .and. whilepot .and. .not. GPU%OCLconv) then
@@ -1213,7 +1214,8 @@ subroutine total_energies(energs, iter, iproc)
   energs%ebs=energs%ekin+energs%epot+energs%eproj !the potential energy contains also exctX
   !this is the Kohn-Sham energy
   energs%eKS=energs%ebs-energs%eh+energs%exc-energs%evxc-&
-       energs%eexctX-energs%evsic+energs%eion+energs%edisp!-energs%excrhoc
+       energs%eexctX-energs%evsic+energs%eion+energs%edisp+&
+       energs%epawdc!-energs%excrhoc
 
   ! Gibbs Free Energy
   energs%energy=energs%eKS-energs%eTS+energs%ePV
@@ -3139,8 +3141,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   end if
   if (bigdft_mpi%iproc == 0) then
      call yaml_newline()
-     call yaml_map('PAW energies', (/ e_paw, e_pawdc /))
-     call yaml_map('Compensation charge in spheres', compch_sph)
+     call yaml_map('Compensation charge on libPAW mesh', compch_sph)
      call yaml_newline()
   end if
 
@@ -3216,7 +3217,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms)
 END SUBROUTINE paw_compute_rhoij
 
 subroutine paw_update_rho(paw, denspot, atoms)
-  use module_defs, only: gp, bigdft_mpi
+  use module_defs, only: gp, dp, bigdft_mpi
   use module_types, only: paw_objects, DFT_local_fields, ELECTRONIC_DENSITY
   use module_atoms
   use abi_defs_basis, only: AB7_NO_ERROR
@@ -3239,7 +3240,6 @@ subroutine paw_update_rho(paw, denspot, atoms)
   integer, pointer  :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
   real(gp) :: compch_fft
-!!$  real(gp), dimension(:,:), allocatable :: nhat
 
   integer, parameter :: cplex = 1, pawprtvol = 0, usewvl = 1, pawxcdev = 1, ipert = 0, idir = 1
   real(gp), dimension(3), parameter :: qphon = (/ 0._gp, 0._gp, 0._gp /)
@@ -3274,18 +3274,19 @@ subroutine paw_update_rho(paw, denspot, atoms)
   if (bigdft_mpi%iproc == 0) then
      call yaml_newline()
   end if
-!!$  nhat = f_malloc((/ nfft, denspot%dpbox%nrhodim /), id = "nhat")
+  if (.not. associated(denspot%rhohat)) then   
+     denspot%rhohat = f_malloc_ptr((/ denspot%dpbox%ndims(1), denspot%dpbox%ndims(2), &
+          & denspot%dpbox%n3p , denspot%dpbox%nrhodim /), id='denspot%rhohat')
+  end if
   call abi_pawmkrho(compch_fft,cplex,symObj%gprimd,idir,indsym,ipert,&
-       &          nfft, nfft / 8, ngfft, &
-       &          size(paw%pawrhoij),atoms%astruct%nat,denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes, &
-       & 0,atoms%pawang,paw%pawfgrtab,pawprtvol,&
-       &          paw%pawrhoij,paw%pawrhoij,&
-       &          atoms%pawtab,qphon,denspot%rhov,denspot%rhov,denspot%rhov,&
-       & symObj%rprimd,symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred)!,&
-!!$& pawnhat = nhat)
+       & nfft, nfft / 8, ngfft, size(paw%pawrhoij),atoms%astruct%nat,&
+       & denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes,0,atoms%pawang,&
+       & paw%pawfgrtab,pawprtvol,paw%pawrhoij,paw%pawrhoij,atoms%pawtab,&
+       & qphon,denspot%rhov,denspot%rhov,denspot%rhov,symObj%rprimd,&
+       & symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred,&
+       & pawnhat = denspot%rhohat)
 !!$  call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,"nhat.cube",atoms,&
-!!$       & symObj%xred,denspot%dpbox,denspot%dpbox%nrhodim,nhat)
-!!$  call f_free(nhat)
+!!$       & symObj%xred,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rhohat)
   if (bigdft_mpi%iproc == 0) then
      call yaml_map('Compensation charge on wavelet grid', compch_fft)
      call yaml_newline()
