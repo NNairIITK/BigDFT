@@ -1721,32 +1721,30 @@ contains
     end if
   end subroutine deallocate_paw_objects
 
-  subroutine cprj_to_array(cprj,array,norb,nspinor,shift,option)
+  subroutine cprj_to_array(cprj,array,iat,norb,shift,option)
     implicit none
-    integer,intent(in) :: option,norb,nspinor,shift
+    integer,intent(in) :: option,norb,shift,iat
     real(kind=8),intent(inout) :: array(:,:)
-    type(pawcprj_type),intent(inout) :: cprj(:)
+    type(pawcprj_type),intent(inout) :: cprj(:,:)
     !
-    integer :: ii,jj,ilmn,iorb
+    integer :: ii,ilmn,iorb
     !
-    if(option==1) then
-      do iorb=1,norb*nspinor
-        ii=0
-        do ilmn=1,cprj(iorb+shift)%nlmn
-          do jj=1,2
-            ii=ii+1
-            array(ii,iorb)=cprj(iorb+shift)%cp(jj,ilmn)
-          end do
+    if (option == 1) then
+      do iorb = 1, norb
+        ii = 1
+        do ilmn = 1, cprj(iat,iorb+shift)%nlmn
+           array(ii,    iorb) = cprj(iat, iorb+shift)%cp(1,ilmn)
+           array(ii + 1,iorb) = cprj(iat, iorb+shift)%cp(2,ilmn)
+           ii = ii + 2
         end do
       end do
-    elseif(option==2) then
-      do iorb=1,norb*nspinor
-        ii=0
-        do ilmn=1,cprj(iorb+shift)%nlmn
-          do jj=1,2
-            ii=ii+1
-            cprj(iorb+shift)%cp(jj,ilmn)=array(ii,iorb)
-          end do
+    else if (option == 2) then
+      do iorb = 1, norb
+        ii = 1
+        do ilmn = 1, cprj(iat,iorb+shift)%nlmn
+           cprj(iat, iorb+shift)%cp(1,ilmn) = array(ii,    iorb)
+           cprj(iat, iorb+shift)%cp(2,ilmn) = array(ii + 1,iorb)
+           ii = ii + 2
         end do
       end do
     end if

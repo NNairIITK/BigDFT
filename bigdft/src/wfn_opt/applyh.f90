@@ -1192,16 +1192,14 @@ subroutine applyprojector_paw(ncplx,istart_c,iat,&
      do j_m=1,2*iter%l-1
         jlmn=jlmn+1
         !loop over all the components of the wavefunction
-        do ispinor=1,nspinor,ncplx
-           call wpdot_wrap(ncplx,  &
-                nvctr_c,nvctr_f,nseg_c,nseg_f,&
-                keyv,keyg,&
-                psi(1,ispinor), &
-                mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
-                keyv_p,keyg_p,&
-                proj(istart_j),&
-                cprj_out%cp(ispinor,jlmn))
-        end do !ispinor
+        call wpdot_wrap(ncplx,  &
+             nvctr_c,nvctr_f,nseg_c,nseg_f,&
+             keyv,keyg,&
+             psi(1,1), &
+             mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,&
+             keyv_p,keyg_p,&
+             proj(istart_j),&
+             cprj_out%cp(1,jlmn))
         istart_j=istart_j+(mbvctr_c+7*mbvctr_f)*ncplx
      end do !i_m
   end do !j_shell

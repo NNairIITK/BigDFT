@@ -57,7 +57,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   integer :: ilr, iilr
   real(kind=8),dimension(:),allocatable :: totaltimes
   real(kind=8),dimension(2) :: time_max, time_average
-  real(kind=8) :: ratio_before, ratio_after
+  !real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
   call f_routine(id=subname)
 
@@ -843,7 +843,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   !local variables
   real(gp), parameter :: epsilon0=78.36d0 ! Constant dielectric permittivity of water.
   real(gp), parameter :: fact=1.2d0 ! Multiplying factor to enlarge the rigid cavity.
-  integer :: i1,i2,i3,unt,i
+  integer :: i
   real(gp) :: delta,IntSur,IntVol,noeleene,Cavene,Repene,Disene
   type(atoms_iterator) :: it
   real(gp), dimension(:), allocatable :: radii,radii_nofact
@@ -2453,7 +2453,7 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   endif
 end subroutine pawpatch_from_file
 
-subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb)
+subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb, nkpts)
   !use module_base
   use module_defs, only: gp
   use module_types, only: atoms_data, paw_objects, nullify_paw_objects, &
@@ -2472,9 +2472,9 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb)
   real(gp), dimension(3, at%astruct%nat), intent(in) :: rxyz
   type(grid_dimensions), intent(in) :: d
   type(denspot_distribution), intent(in) :: dpbox
-  integer, intent(in) :: iproc, nspinor, npsidim, norb
+  integer, intent(in) :: iproc, nspinor, npsidim, norb, nkpts
 
-  integer, parameter :: cplex = 1, pawxcdev = 1, pawcpxocc = 1, pawspnorb = 0
+  integer, parameter :: pawxcdev = 1, pawspnorb = 0, nspinor_ = 1, cplex = 1
   integer :: i
   integer, dimension(:), allocatable :: nlmn, nattyp, l_size_atm, lexexch, lpawu, atindx1
   real(gp), dimension(:,:), allocatable :: spinat
@@ -2489,19 +2489,19 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb)
   paw%lmnmax = maxval(at%pawtab(:)%lmn_size)
 
   allocate(paw%paw_an(at%astruct%nat))
-  call paw_an_init(paw%paw_an, at%astruct%nat, at%astruct%ntypes, 0, dpbox%nrhodim, cplex, pawxcdev, &
+  call paw_an_init(paw%paw_an, at%astruct%nat, at%astruct%ntypes, 0, dpbox%nrhodim, 1, pawxcdev, &
        & at%astruct%iatype, at%pawang, at%pawtab, &
        & has_vxc=1, has_vxc_ex=1, has_vhartree=1) !, &
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
 
   allocate(paw%paw_ij(at%astruct%nat))
-  call paw_ij_init(paw%paw_ij,cplex,nspinor,dpbox%nrhodim,dpbox%nrhodim,&
+  call paw_ij_init(paw%paw_ij,cplex,nspinor_,dpbox%nrhodim,dpbox%nrhodim,&
        &   0,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,at%pawtab,&
        &   has_dij=1,has_dijhartree=1,has_dijso=0,has_dijhat=0,&
        &   has_pawu_occ=1,has_exexch_pot=1) !,&
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
 
-  allocate(paw%cprj(at%astruct%nat, nspinor * dpbox%nrhodim * norb))
+  allocate(paw%cprj(at%astruct%nat, norb * nkpts * nspinor_))
   nlmn = f_malloc(at%astruct%nat, id = "nlmn")
   nattyp = f_malloc0(at%astruct%ntypes, id = "nattyp")
   do i = 1, at%astruct%nat
@@ -2542,8 +2542,8 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb)
   lexexch = -1
   lpawu = f_malloc(at%astruct%ntypes, id = "lpawu")
   lpawu = -1
-  call abi_initrhoij(pawcpxocc, lexexch, lpawu, &
-       & at%astruct%nat, at%astruct%nat, dpbox%nrhodim, nspinor, dpbox%nrhodim, &
+  call abi_initrhoij(cplex, lexexch, lpawu, &
+       & at%astruct%nat, at%astruct%nat, dpbox%nrhodim, nspinor_, dpbox%nrhodim, &
        & at%astruct%ntypes, paw%pawrhoij, pawspnorb, at%pawtab, spinat, at%astruct%iatype) !,&
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
   call f_free(lpawu)

@@ -2287,7 +2287,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   ! PAW storage initialisation.
   call paw_init(iproc, KSwfn%paw, atoms, rxyz, KSwfn%Lzd%Glr%d, denspot%dpbox, &
        & KSwfn%orbs%nspinor, &
-       & max(1,max(KSwfn%orbs%npsidim_orbs, KSwfn%orbs%npsidim_comp)), KSwfn%orbs%norb)
+       & max(1,max(KSwfn%orbs%npsidim_orbs, KSwfn%orbs%npsidim_comp)), &
+       & KSwfn%orbs%norb, KSwfn%orbs%nkpts)
 
   norbv=abs(in%norbv)
 

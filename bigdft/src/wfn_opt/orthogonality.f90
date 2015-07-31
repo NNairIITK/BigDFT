@@ -2118,25 +2118,24 @@ do ikptp=1,orbs%nkptsp
             if(usepaw) then
               !Pending: check that this works in parallel, and with nspinor=2
               !update cprj
-              raux = f_malloc((/ 2*paw%lmnmax, norb*nspinor /),id='raux')
-              do iat=1,paw%natom
-                raux=0.d0
-                !copy cprj%cp objet to a simple array 'raux'
-                call cprj_to_array(paw%cprj(iat,:),raux,norb,nspinor,ndim_ovrlp(ispin,ikpt-1),1)
-                ! Calculate the matrix product cprj*L^{-1}=cprj.
-                if(nspinor==1) then
-                   call dtrmm('r', 'l', 't', 'n', 2*paw%lmnmax, norb, 1.d0, &
-                        ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, raux, 2*paw%lmnmax)
-                else
-                   call ztrmm('r', 'l', 'c', 'n', ncomp*2*paw%lmnmax, norb, (1.d0,0.d0),&
-                        ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, raux, ncomp*2*paw%lmnmax)
-                end if
-                !
-                !copy back raux to cprj%cp
-                call cprj_to_array(paw%cprj(iat,:),raux,norb,nspinor,ndim_ovrlp(ispin,ikpt-1),2)
-              end do
-              call f_free(raux)
- 
+              raux = f_malloc((/ 2*paw%lmnmax, norb /),id='raux')
+               do iat = 1, size(paw%cprj, 1)
+                  call f_zero(raux)
+                  !copy cprj%cp objet to a simple array 'raux'
+                  call cprj_to_array(paw%cprj, raux, iat, norb, (ikpt - 1) * norb, 1)
+                  ! Calculate the matrix product cprj*L^{-1}=cprj.
+                  if(nspinor==1) then
+                     call dtrmm('r', 'l', 't', 'n', 2*paw%lmnmax, norb, 1.d0, &
+                          ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, raux, 2*paw%lmnmax)
+                  else
+                     call ztrmm('r', 'l', 'c', 'n', paw%lmnmax, norb, (1.d0,0.d0),&
+                          ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, raux, paw%lmnmax)
+                  end if
+                  !copy back raux to cprj%cp
+                  call cprj_to_array(paw%cprj, raux, iat, norb, (ikpt - 1) * norb, 2)
+               end do
+               call f_free(raux)
+
             end if !usepaw
         end if !InSpin
 

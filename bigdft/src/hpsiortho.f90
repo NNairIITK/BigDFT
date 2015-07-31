@@ -3182,6 +3182,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms)
   type(orbitals_data), intent(in) :: orbs
   type(atoms_data), intent(in) :: atoms
 
+  integer, parameter :: nspinor = 1
   integer :: iatom, iorbp, isppol, ncplx, iorb
   integer, dimension(atoms%astruct%nat) :: atindx
   type(pawrhoij_type), pointer :: pawrhoij_all(:)
@@ -3204,12 +3205,12 @@ subroutine paw_compute_rhoij(paw, orbs, atoms)
   ! Loop on band for this proc.
   do iorbp = 1, orbs%norbp
      iorb = orbs%isorb + iorbp
-     isppol = 1 + (iorb - 1) / orbs%norbu
-     call ncplx_kpt(orbs%iokpt(iorbp),orbs,ncplx)
+     isppol = 1 + modulo(iorb - 1, orbs%norb) / orbs%norbu
+     !call ncplx_kpt(orbs%iokpt(iorbp),orbs,ncplx)
+     ncplx = 2
      call abi_pawaccrhoij(atindx, ncplx, &
-          & paw%cprj(:, (iorb - 1 ) * orbs%nspinor + 1:(iorb - 1 ) * orbs%nspinor + orbs%nspinor), &
-          & paw%cprj(:, (iorb - 1 ) * orbs%nspinor + 1:(iorb - 1 ) * orbs%nspinor + orbs%nspinor),&
-          & 0, isppol, size(paw%pawrhoij), atoms%astruct%nat, orbs%nspinor, &
+          & paw%cprj(:, iorb:iorb), paw%cprj(:, iorb:iorb),&
+          & 0, isppol, size(paw%pawrhoij), atoms%astruct%nat, nspinor, &
           & orbs%occup(iorb), 1, pawrhoij_all, &
           & .false., orbs%kwgts(orbs%iokpt(iorbp)))
   end do
