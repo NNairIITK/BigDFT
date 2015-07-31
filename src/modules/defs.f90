@@ -32,10 +32,10 @@ module module_defs
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
-  !> Flag for GPU computing, if CUDA libraries are present
-  !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
-  !! this value can be changed in the read_input_variables routine
-  logical :: GPUconv=.false.,GPUshare=.true.
+!!$  !> Flag for GPU computing, if CUDA libraries are present
+!!$  !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
+!!$  !! this value can be changed in the read_input_variables routine
+!!$  logical :: GPUconv=.false.,GPUshare=.true.
 
   !> Flag for GPU computing, if OpenCL libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation

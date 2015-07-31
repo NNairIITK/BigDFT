@@ -1306,9 +1306,7 @@ contains
     call f_free_ptr(denspot%rho_ion)
 
     !free GPU if it is the case
-    if (GPUconv .and. .not.(DoDavidson)) then
-       call free_gpu(GPU,KSwfn%orbs%norbp)
-    else if (GPU%OCLconv .and. .not.(DoDavidson)) then
+    if (GPU%OCLconv .and. .not.(DoDavidson)) then
        call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)
     end if
 

@@ -274,8 +274,9 @@ subroutine inputs_from_dict(in, atoms, dict)
   end if
   
   if (in%gen_nkpt > 1 .and. in%gaussian_help) then
-     if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+     call f_err_throw('Gaussian projection is not implemented with k-point support',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+     !if (bigdft_mpi%iproc==0) call yaml_warning('Gaussian projection is not implemented with k-point support')
+     !call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
   
   if(in%inputpsiid == INPUT_PSI_LINEAR_AO .or. &
@@ -295,8 +296,9 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Stop the code if it is trying to run GPU with spin=4
   if (in%nspin == 4 .and. in%matacc%iacceleration /= 0) then
-     if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
-     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
+     call f_err_throw('GPU calculation not implemented with non-collinear spin',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+!!$     if (bigdft_mpi%iproc==0) call yaml_warning('GPU calculation not implemented with non-collinear spin')
+!!$     call MPI_ABORT(bigdft_mpi%mpi_comm,0,ierr)
   end if
 
   !control atom positions

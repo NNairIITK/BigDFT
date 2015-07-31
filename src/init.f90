@@ -73,15 +73,6 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
         !write(*,*) '          errors due to translational invariance breaking may occur'
         !stop
      end if
-     if (GPUconv) then
-        !        if (iproc ==0)then
-        call yaml_warning('The code should be stopped for a GPU calculation')
-        call yaml_comment('Since density is not initialised to 10^-20')
-        !write(*,*) '          The code should be stopped for a GPU calculation     '
-        !write(*,*) '          since density is not initialised to 10^-20               '
-        !        end if
-        stop
-     end if
   end if
 
   output_denspot_ = .false.
@@ -1540,7 +1531,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   real(wp), dimension(:), pointer :: psi,hpsi,psit
   !local variables
   character(len=*), parameter :: subname='input_wf_diag'
-  logical :: switchGPUconv,switchOCLconv
+  !logical :: switchOCLconv
   integer :: ii,jj
   integer :: nspin_ig,ncplx,irhotot_add,irho_add,ispin,ikpt
   real(gp) :: hxh,hyh,hzh,etol,accurex,eks
@@ -1627,13 +1618,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 
   !allocate arrays for the GPU if a card is present
   GPUe = GPU
-  switchGPUconv=.false.
-  switchOCLconv=.false.
-  if (GPUconv) then
-     call prepare_gpu_for_locham(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,nspin_ig,&
-          Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzde%Glr%wfd,orbse,GPUe)
-     if (iproc == 0) call yaml_comment('GPU data allocated')
-  else if (GPU%OCLconv) then
+  !switchOCLconv=.false.
+  if (GPU%OCLconv) then
      call allocate_data_OCL(Lzde%Glr%d%n1,Lzde%Glr%d%n2,Lzde%Glr%d%n3,at%astruct%geocode,&
           nspin_ig,Lzde%Glr%wfd,orbse,GPUe)
      if (iproc == 0) call yaml_comment('GPU data allocated')
@@ -1946,10 +1932,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 !!!  call memocc(i_stat,i_all,'hpsigau',subname)
 
   !free GPU if it is the case
-  if (GPUconv) then
-     call free_gpu(GPUe,orbse%norbp)
-     if (iproc == 0) call yaml_comment('GPU data deallocated')
-  else if (GPU%OCLconv) then
+  if (GPU%OCLconv) then
      call free_gpu_OCL(GPUe,orbse,nspin_ig)
      if (iproc == 0) call yaml_comment('GPU data deallocated')
   end if
@@ -2788,13 +2771,6 @@ use sparsematrix, only: uncompress_matrix2
   if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
      inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
      !allocate arrays for the GPU if a card is present
-     if (GPUconv) then
-        call prepare_gpu_for_locham(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
-             in%nspin,&
-             KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-             KSwfn%Lzd%Glr%wfd,KSwfn%orbs,GPU)
-     end if
-     !the same with OpenCL, but they cannot exist at same time
      if (GPU%OCLconv) then
         call allocate_data_OCL(KSwfn%Lzd%Glr%d%n1,KSwfn%Lzd%Glr%d%n2,KSwfn%Lzd%Glr%d%n3,&
              atoms%astruct%geocode,&

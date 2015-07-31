@@ -16,9 +16,8 @@ module module_input_keys
   
   private
 
-  public :: input_keys_init, input_keys_finalize
+  !public :: input_keys_init, input_keys_finalize
   public :: input_keys_fill_all, input_keys_dump
-!  public :: input_keys_equal,input_keys_get_profiles
 
   type(dictionary), pointer :: parameters=>null()
   type(dictionary), pointer :: parsed_parameters=>null()
@@ -109,19 +108,6 @@ contains
 
 
     call input_file_complete(parameters,dict,nocheck=nested)
-
-!!$    call input_keys_fill(parameters,dict, PERF_VARIABLES)
-!!$    call input_keys_fill(parameters,dict, MODE_VARIABLES)
-!!$    call input_keys_fill(parameters,dict, DFT_VARIABLES)
-!!$    call input_keys_fill(parameters,dict, KPT_VARIABLES)
-!!$    call input_keys_fill(parameters,dict, GEOPT_VARIABLES)
-!!$    call input_keys_fill(parameters,dict, MIX_VARIABLES)
-!!$    call input_keys_fill(parameters,dict, SIC_VARIABLES)
-!!$    call input_keys_fill(parameters,dict, TDDFT_VARIABLES)
-!!$    call input_keys_fill(parameters,dict, LIN_GENERAL)
-!!$    call input_keys_fill(parameters,dict, LIN_BASIS)
-!!$    call input_keys_fill(parameters,dict, LIN_KERNEL)
-!!$    call input_keys_fill(parameters,dict, LIN_BASIS_PARAMS, check=.false.)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)

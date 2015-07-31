@@ -4642,7 +4642,7 @@ module communications_init
       !from the viewpoint of the BLAS routines (deprecated, not used anymore)
       GPU_for_comp = f_malloc(0.to.nproc-1,id='GPU_for_comp')
     
-      if (nproc > 1 .and. .not. GPUshare) then
+      if (nproc > 1) then
          call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
               bigdft_mpi%mpi_comm,ierr)
       else

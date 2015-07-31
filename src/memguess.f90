@@ -1858,13 +1858,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !initialise the acceleration strategy if required
    call init_material_acceleration(iproc,matacc,GPU)
 
-   if (GPUconv .eqv. GPU%OCLconv) stop 'ERROR: One (and only one) acceleration should be present with GPUtest'
-
    !allocate arrays for the GPU if a card is present
-   if (GPUconv) then
-      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,nspin,&
-           hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       !the same with OpenCL, but they cannot exist at same time
       call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,Lzd%Glr%geocode,&
            nspin,Lzd%Glr%wfd,orbs,GPU)
@@ -1894,9 +1889,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    call nanosec(itsc0)
    do j=1,ntimes
       !switch between GPU/CPU treatment of the density
-      if (GPUconv) then
-         call local_partial_density_GPU(orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
-      else if (GPU%OCLconv) then
+      if (GPU%OCLconv) then
          call local_partial_density_OCL(orbs,nrhotot,Lzd%Glr,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,nspin,psi,rho,GPU)
       end if
    end do
@@ -1970,9 +1963,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !take timings
    call nanosec(itsc0)
    do j=1,ntimes
-      if (GPUconv) then
-         call local_hamiltonian_GPU(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
-      else if (GPU%OCLconv) then
+      if (GPU%OCLconv) then
          call local_hamiltonian_OCL(orbs,Lzd%Glr,hx,hy,hz,orbs%nspin,pot,psi,GPU%hpsi_ASYNC,ekinGPU,epotGPU,GPU)
       end if
    end do
@@ -2072,10 +2063,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
       !Preconditions all orbitals belonging to iproc
       !and calculate the partial norm of the residue
       !switch between CPU and GPU treatment
-      if (GPUconv) then
-         call preconditionall_GPU(orbs,Lzd%Glr,hx,hy,hz,ncong,&
-            &   GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
-      else if (GPU%OCLconv) then
+      if (GPU%OCLconv) then
          call preconditionall_OCL(orbs,Lzd%Glr,hx,hy,hz,ncong,&
             &   GPU%hpsi_ASYNC,gnrmGPU,gnrm_zero,GPU)
       end if
@@ -2095,9 +2083,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
 
 
    !free the card at the end
-   if (GPUconv) then
-      call free_gpu(GPU,orbs%norbp)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,orbs,nspin)
    end if
 

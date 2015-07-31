@@ -179,8 +179,6 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
   !n(c)     -0.5185986881173432922848639136911487e-4_4,&
   !n(c)     2.72734492911979659657715313017228e-6_4 /
 
-  if (.not. GPUconv) then !traditional CPU computation
-
      !  (i1,i2*i3) -> (i2*i3,i1)
      ndat=(n2+1)*(n3+1)
      call convrot_n_per(n1,ndat,x,y)
@@ -191,9 +189,6 @@ subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
      ndat=(n1+1)*(n2+16)
      call convrot_n_per(n3,ndat,x,y)
 
-  else
-     stop 'the GPU part is not yet written'
-  end if
 END SUBROUTINE convolut_magic_n_slab_self
 
 
@@ -251,8 +246,6 @@ subroutine convolut_magic_n_free_self(n1,n2,n3,x,y)
   !n(c)     -0.5185986881173432922848639136911487e-4_4,&
   !n(c)     2.72734492911979659657715313017228e-6_4 /
 
-  if (.not. GPUconv) then !traditional CPU computation
-
      !  (i1,i2*i3) -> (i2*i3,i1)
      ndat=(n2+1)*(n3+1)
      call convrot_grow(n1,ndat,x,y)
@@ -262,10 +255,6 @@ subroutine convolut_magic_n_free_self(n1,n2,n3,x,y)
      !  (i3,i1*I2) -> (i1*I2,i3)
      ndat=(n1+16)*(n2+16)
      call convrot_grow(n3,ndat,x,y)
-
-  else
-     stop 'the GPU part is not yet written'
-  end if
 END SUBROUTINE convolut_magic_n_free_self
 
 
@@ -303,7 +292,6 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
   !n(c)     -0.5185986881173432922848639136911487e-4_4,&
   !n(c)     2.72734492911979659657715313017228e-6_4 /
 
-  if (.not. GPUconv) then !traditional CPU computation
 
      !  (i1,i2*i3) -> (i2*i3,i1)
      ndat=(n2+1)*(n3+1)
@@ -314,10 +302,6 @@ subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
      !  (i3,i1*I2) -> (i1*I2,i3)
      ndat=(n1+1)*(n2+16)
      call convrot_n_per(n3,ndat,ww,y)
-
-  else
-     stop 'the GPU part is not yet written'
-  end if
 END SUBROUTINE convolut_magic_n_slab
 
 
@@ -354,8 +338,6 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
   !n(c)     -0.1290557201342060969516786758559028e-4_4,&
   !n(c)     8.4334247333529341094733325815816e-7_4 /
 
-  if (.not. GPUconv) then
-
      !  (i1,I2*i3) -> (I2*i3,i1)
      ndat=(n2+16)*(n3+1)
      call convrot_t_per(n1,ndat,x,y)
@@ -366,9 +348,6 @@ subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
      ndat=(n1+1)*(n2+1)
      call convrot_t_per(n3,ndat,x,y)
 
-  else
-     stop 'the GPU part is not yet written'
-  end if
 
 END SUBROUTINE convolut_magic_t_slab_self
 

@@ -72,11 +72,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !in the GPU case, the wavefunction should be copied to the card 
    !at each HamiltonianApplication
    !rebind the GPU pointers to the orbsv structure
-   if (GPUconv) then
-      call free_gpu(GPU,KSwfn%orbs%norbp)
-      call prepare_gpu_for_locham(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,in%nspin,&
-           VTwfn%Lzd%hgrids(1), VTwfn%Lzd%hgrids(2), VTwfn%Lzd%hgrids(3),VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)    
       call allocate_data_OCL(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,at%astruct%geocode,&
          &   in%nspin,VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
@@ -340,9 +336,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !deallocate potential
    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
 
-   if (GPUconv) then
-      call free_gpu(GPU,VTwfn%orbs%norbp)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,VTwfn%orbs,in%nspin)
    end if
 
@@ -472,11 +466,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !in the GPU case, the wavefunction should be copied to the card 
    !at each HamiltonianApplication
    !rebind the GPU pointers to the orbsv structure
-   if (GPUconv) then
-      call free_gpu(GPU,orbs%norbp)
-      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr%wfd,orbsv,GPU)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,orbs,in%nspin)    
       call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
            in%nspin,Lzd%Glr%wfd,orbsv,GPU)
@@ -1270,9 +1260,7 @@ subroutine davidson(iproc,nproc,in,at,&
 
    deallocate(confdatarr)
 
-   if (GPUconv) then
-      call free_gpu(GPU,orbsv%norbp)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,orbsv,in%nspin)
    end if
 

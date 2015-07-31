@@ -118,11 +118,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   !in the GPU case, the wavefunction should be copied to the card 
   !at each HamiltonianApplication
   !rebind the GPU pointers to the orbsv structure
-  if (GPUconv) then
-     call free_gpu(GPU,orbs%norbp)
-     call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-          hx,hy,hz,Lzd%Glr%wfd,orbsv,GPU)
-  else if (GPU%OCLconv) then
+  if (GPU%OCLconv) then
      call free_gpu_OCL(GPU,orbs,in%nspin)   
      call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
           in%nspin,Lzd%Glr%wfd,orbsv,GPU) 
@@ -986,9 +982,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   ! ******************************************************
 
 
-  if (GPUconv) then
-     call free_gpu(GPU,orbsv%norbp)
-  else if (GPU%OCLconv) then
+  if (GPU%OCLconv) then
      call free_gpu_OCL(GPU,orbsv,in%nspin)
   end if
 
