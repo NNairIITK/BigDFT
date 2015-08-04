@@ -2948,7 +2948,7 @@ contains
     call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
     if (in%ixc < 0) then
        call xc_dump(in%ixc, XC_MIXED, in%nspin)
-    else
+    else ! @todo@ if (in%ixc /= XC_NO_HARTREE) then
        call xc_dump(in%ixc, XC_ABINIT, in%nspin)
     end if
     if (in%nspin>=2) then
