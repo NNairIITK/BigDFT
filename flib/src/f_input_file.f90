@@ -117,6 +117,7 @@ contains
              iter => dict_iter(dict_tmp2)
              do while(associated(iter))
                 call dict_update(dict,imports//dict_value(iter))
+                if (COMMENT .in. dict) call dict_remove(dict,COMMENT)
                 iter => dict_next(iter)
              end do
           else if (dict_size(dict_tmp2) > 0 ) then
@@ -130,7 +131,6 @@ contains
           call dict_free(dict_tmp)
        end if
     end if
-    
     localcheck=.true.
     dict_tmp => dict_iter(inputdef)
     do while (associated(dict_tmp))

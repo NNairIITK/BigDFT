@@ -28,19 +28,19 @@ extern "C" void synchronize_() {
 }
 
 // allocate device memory
-extern "C" void cudamalloc_(int *size, Real **d_data,int *ierr) {
+extern "C" void FC_FUNC(cudamalloc, CUDAMALLOC) (int *size, Real **d_data,int *ierr) {
 
   *ierr = cudaMalloc((void**)d_data, sizeof(Real)*(*size));
   if( cudaGetLastError() != cudaSuccess)
       printf("allocate error\n");
 }
 
-extern "C" void cudafree_(Real **d_data) {
+extern "C" void FC_FUNC(cudafree, CUDAFREE) (Real **d_data) {
 
   cudaFree(*d_data);
 }
 
-extern "C" void cufftdestroy_(cufftHandle *plan) {
+extern "C" void FC_FUNC(cufftdestroy, CUFFTDESTROY) (cufftHandle *plan) {
 
   cufftDestroy(*plan);
 }

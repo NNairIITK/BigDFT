@@ -7,7 +7,6 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
-
 !> Modules which contains all interfaces to parse input dictionary.
 module module_input_dicts
   use public_keys
@@ -253,6 +252,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict
     !local variables
+    character(len=*), parameter :: F_IMPORT_KEY='import'
     logical :: found,loginput
     type(dictionary), pointer :: valid_entries,valid_patterns
     type(dictionary), pointer :: iter,invalid_entries,iter2
@@ -280,7 +280,8 @@ contains
          .item. LIN_BASIS_PARAMS,&
          .item. OCCUPATION,&
          .item. IG_OCCUPATION,&
-         .item. FRAG_VARIABLES])
+         .item. FRAG_VARIABLES,&
+         .item. F_IMPORT_KEY])
 
     !then the list of vaid patterns
     valid_patterns=>list_new(&
@@ -1751,7 +1752,8 @@ contains
 
   !> Read the linear input variables
   subroutine read_lin_and_frag_from_text_format(iproc,dict,run_name)
-    use module_base
+    use dictionaries, dict_set => set 
+    use module_defs, only: gp
     use module_input
     use public_keys
     implicit none
@@ -2025,9 +2027,10 @@ contains
 
   !> Read fragment input parameters
   subroutine fragment_input_variables_from_text_format(iproc,dump,filename,shouldexist,dict)
-    use module_base
+    use module_defs, only: gp
     use fragment_base
     use module_input
+    use dictionaries
     use yaml_output, only: yaml_toa,yaml_map
     implicit none
     logical, intent(in) :: shouldexist

@@ -595,7 +595,7 @@ subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,fat,fstretch,&
     use module_energyandforces
     use module_sqn
     use bigdft_run, only: run_objects, state_properties
-    use module_mhgps_state
+    use module_mhgps_state, only: mhgps_state
     implicit none
     !parameter
     type(mhgps_state), intent(inout) :: mhgpsst
