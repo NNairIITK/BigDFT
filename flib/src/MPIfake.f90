@@ -16,8 +16,9 @@ END SUBROUTINE MPI_INIT
         
 subroutine MPI_INITIALIZED(init,ierr)
   implicit none
-  integer, intent(out) :: init,ierr
-  init=0
+  logical, intent(out) :: init
+  integer, intent(out) :: ierr
+  init=.false.
   ierr=0
 END SUBROUTINE  MPI_INITIALIZED
 
@@ -95,8 +96,10 @@ subroutine  MPI_FINALIZE(ierr)
   ierr=0
 END SUBROUTINE MPI_FINALIZE
 
-subroutine MPI_BCAST()
+subroutine MPI_BCAST(buffer,n,mpitype,root,comm,ierr)
   implicit none
+  integer :: buffer,n,mpitype,root,comm,ierr
+  ierr=0
 END SUBROUTINE MPI_BCAST
 
 subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)

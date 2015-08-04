@@ -43,6 +43,7 @@ module module_globaltool
 
     type gt_data
         logical :: oldfilename
+        character :: cndigitposlocm
         integer :: nid
         integer :: nat
         integer :: ntrans
@@ -66,7 +67,7 @@ module module_globaltool
         real(gp), allocatable :: en_arr_currDir(:)
         character(len=600), allocatable :: path_min_currDir(:)
 
-        integer, allocatable  :: transpairs(:)!Use Cantors pairing function
+        integer(kind=8), allocatable  :: transpairs(:)!Use Cantors pairing function
                                               !to identify pairs
         integer, allocatable  :: minnumber(:)
         integer, allocatable  :: sadnumber(:)
@@ -90,31 +91,35 @@ function getPairId(IDmin1,IDmin2)
     implicit none
     !parameters
     integer, intent(in) :: IDmin1, IDmin2
-    integer :: getPairId
+    integer(kind=8) :: getPairId
     !local
-    integer :: k1,k2
+    integer(kind=8) :: k1,k2
 
     k1= min(IDmin1,Idmin2)
     k2= max(IDmin1,Idmin2)
 
     !Cantor's pairing function:
     getPairId = (k1+k2)*(k1+k2+1)/2 + k2
+if(getPairId<0)then
+write(*,*)IdMin1,Idmin2
+stop 'Integer overflow in getPairId'
+endif
 end function getPairId
 !=====================================================================
 subroutine unpair(pairID,IDmin1,IDmin2)
     use module_base
     implicit none
     !parameters
-    integer, intent(in) :: pairID
+    integer(kind=8), intent(in) :: pairID
     integer, intent(out) :: IDmin1, IDmin2
     !local
-    integer :: w,t
+    integer(kind=8) :: w,t
     integer :: k1,k2
 
     w = floor(0.5_gp*(sqrt(real(8*pairID+1,gp))-1.0_gp))
     t = (w**2 + w)/2
-    k1 = pairID - t
-    k2 = w - k1
+    k1 = int(pairID - t)
+    k2 = int(w - k1)
     IDmin1 = min(k1,k2)
     IDmin2 = max(k1,k2)
 end subroutine unpair
@@ -161,11 +166,11 @@ subroutine construct_filename(gdat,idict,ifile,filename)
 
     if(.not.gdat%oldfilename)then
         !for bigdft >= 1.7.6
-        write(filename,'(a,i4.4)')trim(adjustl(&
+        write(filename,'(a,i'//gdat%cndigitposlocm//'.'//gdat%cndigitposlocm//')')trim(adjustl(&
              gdat%uinp%directories(idict)))//'/poslocm_',ifile
     else
         !for bigdft < 1.7.6
-        write(filename,'(a,i4.4,a)')trim(adjustl(&
+        write(filename,'(a,i'//gdat%cndigitposlocm//'.'//gdat%cndigitposlocm//',a)')trim(adjustl(&
              gdat%uinp%directories(idict)))//'/poslocm_',&
              ifile,'_'
     endif
@@ -187,6 +192,7 @@ subroutine init_nat_rcov(gdat)
     gdat%nat=gdat%astruct%nat
     gdat%rcov = f_malloc((/gdat%nat/),id='rcov')
     call give_rcov(0,gdat%astruct,gdat%rcov)
+    call deallocate_atomic_structure(gdat%astruct)
 end subroutine init_nat_rcov
 !=====================================================================
 subroutine init_gt_data(gdat)
@@ -247,11 +253,11 @@ subroutine finalize_gt_data(gdat)
     if(gdat%uinp%search_transpairs)then
     deallocate(gdat%uinp%trans_pairs_paths)
     deallocate(gdat%trans_pairs_paths_found)
-    endif
     call f_free(gdat%input_transpair_found)
 !    call f_free(gdat%trans_pairs_paths_found)
     call f_free(gdat%uinp%fp_arr_trans_pairs)
     call f_free(gdat%uinp%en_arr_trans_pairs)
+    endif
     call f_free(gdat%fp_arr)
     call f_free(gdat%en_arr)
     call f_free_str(600,gdat%path_min)
@@ -383,6 +389,7 @@ subroutine read_globaltool_uinp(gdat)
                  gdat%uinp%fp_arr_trans_pairs(1,2,iline))
             gdat%input_transpair_found(iline)=.false.
         enddo
+            call deallocate_atomic_structure(gdat%astruct)
         close(u)
     endif
 
@@ -468,6 +475,7 @@ subroutine write_merged(gdat)
     integer :: imin
     call yaml_comment('Merged minima ....',hfill='-')
     gdat%mn = f_malloc((/1.to.gdat%nmin/),id='gdat%mn')
+    gdat%mn = -999
     do imin=1,gdat%nmin
         gdat%mn(gdat%minnumber(imin)) = imin
         write(*,'(i6.6,1x,es24.17,1x,a)')gdat%minnumber(imin),gdat%en_arr(imin),&
@@ -487,6 +495,7 @@ subroutine write_transitionpairs(gdat)
     integer :: IDmin1, IDmin2
     integer :: kIDmin1, kIDmin2
     real(gp) :: fpd
+integer :: i
     call yaml_comment('Transition pairs unified ....',hfill='-')
     write(*,'(a)')'  #Trans IDmin1 IDmin2  Ener1                '//&
          '    Ener2                    |DeltaEner|         '//&
@@ -497,7 +506,7 @@ subroutine write_transitionpairs(gdat)
         kIDmin2=gdat%mn(IDmin2)
         call fpdistance(gdat%nid,gdat%fp_arr(1,kIDmin1),&
              gdat%fp_arr(1,kIDmin2),fpd)
-        write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17),1x,i8.8)')'   Trans',&
+        write(*,'(a,1x,i6.6,3x,i6.6,2x,4(1x,es24.17),1x,i13.13)')'   Trans',&
              IDmin1,IDmin2,gdat%en_arr(kIDmin1),gdat%en_arr(kIDmin2),&
              abs(gdat%en_arr(kIDmin1)-gdat%en_arr(kIDmin2)),fpd,gdat%transpairs(itrans)
     enddo
@@ -547,8 +556,11 @@ subroutine check_filename(gdat,idict)
     !local
     character(len=600) :: filename
     logical :: exists
+
+    gdat%cndigitposlocm='4'
+6323 continue
     !for bigdft >= 1.7.6
-    write(filename,'(a,i4.4)')trim(adjustl(&
+    write(filename,'(a,i'//gdat%cndigitposlocm//'.'//gdat%cndigitposlocm//')')trim(adjustl(&
          gdat%uinp%directories(idict)))//'/poslocm_',1
     call check_struct_file_exists(trim(adjustl(filename)),exists)
     if(exists)then
@@ -556,7 +568,7 @@ subroutine check_filename(gdat,idict)
         return
     endif
     !for bigdft < 1.7.6
-    write(filename,'(a,i4.4,a)')trim(adjustl(&
+    write(filename,'(a,i'//gdat%cndigitposlocm//'.'//gdat%cndigitposlocm//',a)')trim(adjustl(&
          gdat%uinp%directories(idict)))//'/poslocm_',&
          1,'_'
     call check_struct_file_exists(trim(adjustl(filename)),exists)
@@ -566,6 +578,10 @@ subroutine check_filename(gdat,idict)
     endif
 
     if(.not. exists)then
+        if(gdat%cndigitposlocm=='4')then
+            gdat%cndigitposlocm='6'
+            goto 6323
+        endif
         call f_err_throw(trim(adjustl(filename))//' does not exist.',&
              err_name='BIGDFT_RUNTIME_ERROR')
     endif
@@ -586,7 +602,7 @@ subroutine add_transpairs_to_database(gdat)
     integer :: kidcurr, kidnext
     integer :: kid, k_epot
     logical :: lnew
-    integer :: id_transpair
+    integer(kind=8) :: id_transpair
     integer :: iposloc
     integer :: iposloc_curr, iposloc_next
     integer :: loc_id_transpair
@@ -630,7 +646,7 @@ subroutine add_transpairs_to_database(gdat)
         id_transpair = getPairId(idcurr,idnext)
         call fpdistance(gdat%nid,gdat%fp_arr(1,kidcurr),&
              gdat%fp_arr(1,kidnext),fpd)
-        write(*,'(a,1x,i4.4,3x,i4.4,2x,4(1x,es24.17))')'   trans',idcurr,&
+        write(*,'(a,1x,i6.6,3x,i6.6,2x,4(1x,es24.17))')'   trans',idcurr,&
              idnext,gdat%en_arr(kidcurr),gdat%en_arr(kidnext),&
              abs(gdat%en_arr(kidcurr)-gdat%en_arr(kidnext)),fpd
 
@@ -831,7 +847,7 @@ subroutine gmon_line_to_fp(gdat,icount,iline,found)
     !We start at icount+10, because glbal might have been killed
     !after writing the first poslocm file and before writing global.mon
     do iposloc = min(icount+10,gdat%nminmaxpd) , 1 , -1
-write(*,'(i4.4,2(1x,es24.17))')iposloc,gdat%en_arr_currDir(iposloc),abs(gdat%en_arr_currDir(iposloc)-gdat%gmon_ener(icount))
+write(*,'(i6.6,2(1x,es24.17))')iposloc,gdat%en_arr_currDir(iposloc),abs(gdat%en_arr_currDir(iposloc)-gdat%gmon_ener(icount))
         if(abs(gdat%en_arr_currDir(iposloc)-&
            gdat%gmon_ener(icount))<ethresh)then
             found=.true.
@@ -997,7 +1013,7 @@ subroutine inthunt_gt(xx,n,x,jlo)
   implicit none
   !Arguments
   integer :: jlo,n
-  integer :: x,xx(n)
+  integer(kind=8) :: x,xx(n)
   !Local variables
   integer :: inc,jhi,jm
   logical :: ascnd

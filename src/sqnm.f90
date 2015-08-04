@@ -293,7 +293,8 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
    
       delta=rxyz(:,:,idx(nhist))-rxyzOld
       displr=displr+dnrm2(3*nat,delta(1,1),1)
-      runObj%inputs%inputPsiId=1
+      !runObj%inputs%inputPsiId=1
+      call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
       call minenergyandforces(iproc,nproc,.true.,imode,runObj,outs,nat,rxyz(1,1,idx(nhist)),&
                              fxyz(1,1,idx(nhist)),fstretch(1,1,idx(nhist)),fxyzraw(1,1,idx(nhist)),&
                              etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
@@ -306,7 +307,13 @@ subroutine sqnm(runObj,outsIO,nproc,iproc,verbosity,ncount_bigdft,fail)
 
       if (iproc == 0) then
          write(fn4,'(i4.4)') ncount_bigdft
-         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
+!         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
+         if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
+            write(comment,'(a,1pe10.3)')'R SQNM:fnrm= ',fnrm
+         else
+            write(comment,'(a,1pe10.3)')'A SQNM:fnrm= ',fnrm
+         endif
+
          call bigdft_write_atomic_file(runObj,outs,'posout_'//fn4,&
               trim(comment))
       endif
@@ -561,7 +568,8 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,fat,fs
     infocode=0
     if(eeval)then
         call vcopy(3 * runObj%atoms%astruct%nat, rat(1,1), 1,runObj%atoms%astruct%rxyz(1,1), 1)
-        runObj%inputs%inputPsiId=1
+        !runObj%inputs%inputPsiId=1
+        call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
         call bigdft_state(runObj,outs,infocode)
     endif
     call vcopy(3 * outs%fdim, outs%fxyz(1,1), 1, fat(1,1), 1)

@@ -19,8 +19,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use m_ab7_mixing
   use yaml_output
-  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
+  use psp_projectors_base, only: PSP_APPLY_SKIP
   use rhopotential, only: full_local_potential
+  use public_enums
   implicit none
   !Arguments
   logical, intent(in) :: scf  !< If .false. do not calculate the self-consistent potential
@@ -407,7 +408,8 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   use module_types
   use module_interfaces, fake_name => FullHamiltonianApplication
   use module_xc
-  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
+  use public_enums, only: PSPCODE_PAW
+  use psp_projectors_base, only: PSP_APPLY_SKIP
   implicit none
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(in) :: at
@@ -701,8 +703,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => NonLocalHamiltonianApplication
-  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP, projector_has_overlap
+!  use module_interfaces
+  use psp_projectors_base, only: PSP_APPLY_SKIP
+  use psp_projectors, only: projector_has_overlap
+  use public_enums, only: PSPCODE_PAW
   implicit none
   integer, intent(in) :: iproc, npsidim_orbs
   type(atoms_data), intent(in) :: at
@@ -1441,7 +1445,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    use module_interfaces, except_this_one_A => hpsitopsi
    use yaml_output
    use communications, only: transpose_v, untranspose_v
-   use psp_projectors, only: PSPCODE_PAW
+   use public_enums, only: PSPCODE_PAW
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,idsx,iter
@@ -1817,7 +1821,7 @@ END SUBROUTINE last_orthon
 subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => eigensystem_info
+  use module_interfaces, only: write_eigenvalues_data
   implicit none
   integer, intent(in) :: iproc,nproc,nvctr
   real(gp), intent(in) :: tolerance !< threshold to classify degenerate eigenvalues
@@ -1867,6 +1871,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    use dictionaries, only: f_err_throw
    use yaml_output
    use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
+   use public_enums
    implicit none
    logical, intent(in) :: filewrite
    integer, intent(in) :: iproc, nproc

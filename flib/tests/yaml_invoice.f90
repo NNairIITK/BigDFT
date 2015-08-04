@@ -13,6 +13,7 @@
 !> Test yaml part of flib
 subroutine yaml_invoice_example()
   use yaml_output
+  use yaml_strings, only: yaml_date_toa
   implicit none
 
   !call yaml_set_stream(tabbing=0)
@@ -63,6 +64,7 @@ end subroutine yaml_invoice_example
 subroutine yaml_invoice_example_with_dictionaries()
   use yaml_output
   use dictionaries
+  use yaml_strings, only: yaml_date_toa
   implicit none
   real(kind=8) :: price
   type(dictionary), pointer :: dict,dict_tmp

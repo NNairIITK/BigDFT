@@ -29,7 +29,8 @@ program mhgps
                              allocate_finsad_workarrays,&
                              deallocate_finsad_workarrays
     use module_connect, only: connect,&
-                              pushoff_and_relax_bothSides
+                              pushoff_and_relax_bothSides,&
+                              addToPreviouslyconnected
     use module_fingerprints, only: fingerprint
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
@@ -228,7 +229,8 @@ program mhgps
               write(mhgpsst%isadc,'(i5.5)')mhgpsst%isad
               !rmsd alignment (optional in mhgps approach)
               call superimpose(bigdft_nat(runObj),rxyz(1,1),rxyz2(1,1))
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call get_ts_guess(mhgpsst,uinp,runObj,outs,rxyz(1,1),&
                    rxyz2(1,1),tsguess(1,1),minmodeguess(1,1),&
                    tsgenergy,tsgforces(1,1))
@@ -252,10 +254,12 @@ program mhgps
 
               !Evalute energies. They are needed in connect
               !for identification
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,&
                                         fat,energy,infocode)
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz2,&
                                         fat,energy2,infocode)
               call fingerprint(bigdft_nat(runObj),mhgpsst%nid,&
@@ -284,12 +288,16 @@ program mhgps
 !                   isame,rxyz,rxyz2,energy,energy2,fp,&
 !                   fp2,cobj,connected)
               if(connected)then
+                if(nsad>1)then!directily connected paris were already
+                              !added in connect subroutine
+                call addToPreviouslyconnected(mhgpsst,uinp,runObj,rxyz,rxyz2)
+                endif
                 ltmp=.true.
                 if(ijob+1<=mhgpsst%njobs)then
                     !If connected==.true. then in subroutine connect, NO
                     !new connection jobs for a restart have been added.
-                    !This meand, the job in mhgpsst%joblist(1,ijob+1) is identical
-                    !to the job that will be read an after a restart.
+                    !This means, the job in mhgpsst%joblist(1,ijob+1) is identical
+                    !to the job that will be read after a restart.
                     if(trim(adjustl(mhgpsst%joblist(1,ijob+1)(10:16)))=='restart')then
                       ltmp=.false.
                     endif
@@ -383,7 +391,8 @@ program mhgps
               mhgpsst%isad=mhgpsst%isad+1
               write(mhgpsst%isadc,'(i3.3)')mhgpsst%isad
               ec=0.0_gp
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,&
                    fxyz,energy,infocode)
               call minimize(mhgpsst,uinp,runObj,outs,rcov,&
@@ -405,10 +414,12 @@ program mhgps
                       energy,rxyz=rxyz,forces=fxyz)
               endif
            case('hessian')
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call mhgpsenergyandforces(mhgpsst,runObj,outs,rxyz,&
                    fxyz,energy,infocode)
-              runObj%inputs%inputPsiId=0
+              !runObj%inputs%inputPsiId=0
+              call bigdft_set_input_policy(INPUT_POLICY_SCRATCH, runObj)
               call cal_hessian_fd(mhgpsst,runObj,outs,rxyz,&
                    hess,nfree)
               if(mhgpsst%iproc==0)then

@@ -5,7 +5,7 @@ Default tolerances:
   Difference in Inf. Norm: 5.5e-10
 #  Energy differences: 2.1e-10
   Exc: 1.1e-8
-  EVxc: 4.9e-9
+  EVxc: 5.21e-9
 #  Energies: 2.1e-10
 
 Keys to ignore:

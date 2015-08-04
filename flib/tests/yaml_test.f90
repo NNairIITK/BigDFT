@@ -287,7 +287,8 @@ end subroutine yaml_parse_file_and_string
 
 
 subroutine check_multipoles(parser)
-   use yaml_output
+  use yaml_output
+  use yaml_strings
    use dictionaries
    !use dynamic_memory
    use yaml_parse
@@ -314,17 +315,17 @@ subroutine check_multipoles(parser)
        call yaml_sequence_open('Values')
        do ilist=0,nmplist-1
           call yaml_sequence()
-          call yaml_map('Size of element'//trim(yaml_toa(ilist)),dict_size(dict_mp//ilist))
+          call yaml_map('Size of element'//ilist,dict_size(dict_mp//ilist))
           !retrieve atomic positions, compulsory
           iter => dict_mp//ilist
           if ('r' .notin. iter) call f_err_throw('For the item .. the r should  be present')
           rxyz = iter//'r'
           call yaml_map('rxyz',rxyz)
           do imp=0,3
-               key='q'//trim(adjustl(yaml_toa(imp)))
+               key='q'+imp
                if (key .in. iter) then
                  if (dict_len(iter//key)/=2*imp+1) then
-                     call f_err_throw('Wrong len ('//trim(yaml_toa(dict_len(iter//key)))//') of the mutipole')
+                     call f_err_throw('Wrong len ('//dict_len(iter//key)//') of the mutipole')
                  end if
                  mp(1:2*imp+1) = iter//key
                  !call yaml_map('dict_size of '//key,dict_size(iter//key))  

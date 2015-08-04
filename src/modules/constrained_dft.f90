@@ -12,7 +12,6 @@
 module constrained_dft
   use module_base
   use sparsematrix_base, only: sparse_matrix, matrices
-  !use module_types
   use dynamic_memory
   implicit none
 
@@ -82,7 +81,7 @@ contains
   end subroutine cdft_data_allocate
 
   subroutine cdft_data_init(cdft,input_frag,ndimrho,transfer_int)
-   use module_types, only: fragmentInputParameters
+   use fragment_base, only: fragmentInputParameters
     implicit none
     type(cdft_data), intent(inout) :: cdft
     type(fragmentInputParameters), intent(in) :: input_frag

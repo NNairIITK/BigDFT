@@ -12,7 +12,7 @@
 !> Module defining all yaml strings for output.
 !! This module must be only used by the module yaml_output
 module yaml_strings
-
+  use f_precisions
   implicit none
 
   private
@@ -40,13 +40,25 @@ module yaml_strings
      module procedure case_insensitive_equiv
   end interface operator(.eqv.)
 
+  interface operator(//)
+     module procedure string_and_integer,string_and_double,string_and_long
+  end interface
+
+  interface operator(+)
+     module procedure combine_strings,attach_ci,attach_cd
+  end interface
+
+  interface operator(**)
+     module procedure yaml_itoa_fmt,yaml_dtoa_fmt,yaml_ctoa_fmt
+  end interface operator(**)
+  !format test to convert rapidly
+  !' test string' + tt**'(1pe25.16)'
 
   !Public routines
-  public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
+  public :: yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
-  public :: operator(.eqv.)
-
+  public :: operator(.eqv.),operator(+),operator(//),operator(**)
 contains
 
 
@@ -59,21 +71,21 @@ contains
 
   pure function fmt_i(data)
     implicit none
-    integer(kind=4), intent(in) :: data
+    integer, intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_i
     fmt_i=yaml_int_fmt
   end function fmt_i
 
   pure function fmt_r(data)
     implicit none
-    real, intent(in) :: data
+    real(f_simple), intent(in) :: data
     character(len=len(yaml_real_fmt)) :: fmt_r
     fmt_r=yaml_real_fmt
   end function fmt_r
 
   pure function fmt_d(data)
     implicit none
-    double precision, intent(in) :: data
+    real(f_double), intent(in) :: data
     character(len=len(yaml_dble_fmt)) :: fmt_d
     fmt_d=yaml_dble_fmt
   end function fmt_d
@@ -194,7 +206,7 @@ contains
   !> Convert integer to character
   pure function yaml_itoa(data,fmt) result(str)
     implicit none
-    integer(kind=4), intent(in) :: data
+    integer, intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_itoa
 
@@ -208,14 +220,14 @@ contains
   !> Convert float to character
   pure function yaml_ftoa(data,fmt) result(str)
     implicit none
-    real, intent(in) :: data
+    real(f_simple), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_ftoa
 
   !> Convert double to character
   pure function yaml_dtoa(data,fmt) result(str)
     implicit none
-    real(kind=8), intent(in) :: data
+    real(f_double), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_dtoa
 
@@ -622,6 +634,81 @@ contains
     end do
 
   end function case_insensitive_equiv
+
+  !define the strings which combine them, without the need of using trim or adjustl specifications
+  pure function combine_strings(a,b) result(c)
+    implicit none
+    character(len=*), intent(in) :: a
+    character(len=*), intent(in) :: b
+    character(len=len_trim(a)+len_trim(adjustl(b))) :: c
+    
+    c=trim(a)//trim(adjustl(b))
+  end function combine_strings
+
+  pure function string_and_integer(a,num) result(c)
+    implicit none
+    integer(f_integer), intent(in) :: num
+    character(len=*), intent(in) :: a
+    character(len=len_trim(adjustl(a))+len_trim(yaml_itoa(num))) :: c
+    c=a//trim(yaml_toa(num))
+  end function string_and_integer
+
+  pure function string_and_long(a,num) result(c)
+    implicit none
+    integer(f_long), intent(in) :: num
+    character(len=*), intent(in) :: a
+    character(len=len_trim(adjustl(a))+len_trim(yaml_litoa(num))) :: c
+    c=a//trim(yaml_toa(num))
+  end function string_and_long
+
+  pure function string_and_double(a,num) result(c)
+    implicit none
+    real(f_double), intent(in) :: num
+    character(len=*), intent(in) :: a
+    character(len=len_trim(adjustl(a))+len_trim(yaml_dtoa(num))) :: c
+    c=a//trim(yaml_toa(num))
+  end function string_and_double
+
+  !function which attach two strings each other
+  pure function attach_ci(s,num) result(c)
+    implicit none
+    integer(f_integer), intent(in) :: num
+    character(len=*), intent(in) :: s
+    character(len=len_trim(s)+len_trim(adjustl(yaml_itoa(num)))) :: c
+    c=trim(s)//trim(adjustl(yaml_toa(num)))
+  end function attach_ci
+
+  pure function attach_cd(s,num) result(c)
+    implicit none
+    real(f_double), intent(in) :: num
+    character(len=*), intent(in) :: s
+    character(len=len_trim(s)+len_trim(adjustl(yaml_dtoa(num)))) :: c
+    c=trim(s)//trim(adjustl(yaml_toa(num)))
+  end function attach_cd
+  
+  function yaml_itoa_fmt(num,fmt) result(c)
+    implicit none
+    integer(f_integer), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+    character(len=len_trim(adjustl(yaml_itoa(num,fmt)))) :: c
+    c=trim(adjustl(yaml_toa(num,fmt)))
+  end function yaml_itoa_fmt
+
+  function yaml_dtoa_fmt(num,fmt) result(c)
+    implicit none
+    real(f_double), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+    character(len=len_trim(adjustl(yaml_dtoa(num,fmt)))) :: c
+    c=trim(adjustl(yaml_toa(num,fmt)))
+  end function yaml_dtoa_fmt
+
+  function yaml_ctoa_fmt(num,fmt) result(c)
+    implicit none
+    character(len=*), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+    character(len=len_trim(adjustl(yaml_ctoa(num,fmt)))) :: c
+    c=trim(adjustl(yaml_toa(num,fmt)))
+  end function yaml_ctoa_fmt
 
 
   !> Shifts characters in in the string 'str' n positions (positive values

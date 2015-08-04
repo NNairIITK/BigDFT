@@ -26,14 +26,18 @@ puts
 
 
 #parse the first argument
-docs = YAML::load_stream( File::read(ARGV.first) ).documents
+docs = YAML::load_stream( File::read(ARGV.first) )#.documents
+
+#puts docs
+
+puts docs["CPU parallelism"]
 
 puts "# Reference file (#{ARGV.first}):"
 
 #find the reference number of cores and the total time (First run of first file)
-nprocref=docs.first["SUMMARY"]["CPU Parallelism"]["MPI procs"]
-nthdsref=docs.first["SUMMARY"]["CPU Parallelism"]["OMP thrds"]
-timeref= docs.first["WFN_OPT"]["Classes"]["Total"][1]
+nprocref=docs["SUMMARY"]["CPU Parallelism"]["MPI procs"]
+nthdsref=docs["SUMMARY"]["CPU Parallelism"]["OMP thrds"]
+timeref= docs["WFN_OPT"]["Classes"]["Total"][1]
 
 
 nproc = docs.first["SUMMARY"]["CPU Parallelism"]["MPI procs"]

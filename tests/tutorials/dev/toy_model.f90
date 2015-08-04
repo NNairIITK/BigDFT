@@ -17,7 +17,7 @@ program wvl
   use dynamic_memory
   use yaml_output
   use module_input_dicts
-  use module_interfaces, only: inputs_from_dict
+  use module_input_keys
   use module_atoms, only: deallocate_atoms_data
   use module_dpbox, only: denspot_distribution,dpbox_free
   use communications_base, only: deallocate_comms

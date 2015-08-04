@@ -225,6 +225,9 @@ def parse():
     # suggest cutoff radii for the linear scaling version
     group = OptionGroup(parser, "bigdft-tool -a %s <input> <output>" % actions[21],
                         "Loewdin charge analysis")
+	# MPI...
+    group.add_option("--mpirun", type="str", default="mpirun -n 1", metavar="MPI",
+             		 help="MPI wrapper to run in parallel [default: %default]")
 
     return parser
 
@@ -441,6 +444,19 @@ if __name__ == "__main__":
         memguess = os.path.join(abs_top_builddir, "src", "memguess")
     elif os.path.isfile(os.path.join(bindir, "bin", "memguess")):
         memguess = os.path.join(bindir, "bin", "memguess")
+
+
+    # Try to find utilities executable.
+    utilities = None
+    if os.path.isfile(os.path.join(os.path.dirname(sys.argv[0]), "utilities")):
+        utilities = os.path.join(os.path.dirname(sys.argv[0]), "utilities")
+    elif os.path.isfile("./utilities"):
+        utilities = "./utilities"
+    elif os.path.isfile(os.path.join(abs_top_builddir, "src", "utilities")):
+        utilities = os.path.join(abs_top_builddir, "src", "utilities")
+    elif os.path.isfile(os.path.join(bindir, "bin", "utilities")):
+        utilities = os.path.join(bindir, "bin", "utilities")
+
 
     command = None
     # Run memguess
@@ -734,8 +750,8 @@ options:
         command = "%s 1 %s dd suggest-cutoff %s" % (memguess, options.name, options.posinp_file)
         print command
     if options.action == actions[21]:
-        print 'calling memguess to perform a Loewdin charge analysis'
-        command = "%s 1 %s dd charge-analysis %s %s" % (memguess, options.name, options.overlap_file, options.kernel_file)
+        print 'calling utilities to perform a Loewdin charge analysis'
+        command = "%s %s charge-analysis %s %s" % (options.mpirun, utilities, options.overlap_file, options.kernel_file)
         print command
     if command is not None:
         os.system(command)

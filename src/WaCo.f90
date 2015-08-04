@@ -23,6 +23,9 @@ program WaCo
    use io, only: writeonewave_linear, writeLinearCoefficients
    use bigdft_run
    use locregs, only: copy_locreg_descriptors
+   use public_enums, only: LINEAR_PARTITION_NONE, WF_FORMAT_BINARY, WF_FORMAT_ETSF, WF_FORMAT_NONE
+   use module_input_keys, only: user_dict_from_files, inputs_from_dict, free_input_variables
+   use locregs_init, only: determine_locregsphere_parallel
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -1476,6 +1479,7 @@ subroutine read_umn(iproc,nwann,nband,seedname,umn)
   use module_defs, only: gp
    use module_types
    use yaml_output
+   use yaml_strings
    implicit none
    integer, intent(in) :: iproc
    integer, intent(in) :: nwann, nband
@@ -1510,10 +1514,10 @@ subroutine read_umn(iproc,nwann,nband,seedname,umn)
 
    if(nwann_umn .ne. nwann .or. nband_umn .ne. nband) then
      if(iproc == 0) then
-       call yaml_warning('Number of wannier functions in umn,' // trim(yaml_toa(nwann_umn)) // &
-          & 'not equal number of Wannier functions used:' // trim(yaml_toa(nwann)))
-       call yaml_warning('Number of orbitals in umn,' // trim(yaml_toa(nband_umn)) // &
-          & 'not equal number of orbitals used:' // trim(yaml_toa(nband)))
+       call yaml_warning('Number of wannier functions in umn,' // nwann_umn // &
+          & 'not equal number of Wannier functions used:' // nwann)
+       call yaml_warning('Number of orbitals in umn,' // nband_umn // &
+          & 'not equal number of orbitals used:' // nband)
        !write(*,'(A,I4)') 'ERROR : number of wannier functions in umn,',nwann_umn
        !write(*,'(A,I4)') 'not equal number of Wannier functions used:',nwann
        !write(*,'(A,I4)') 'ERROR : number of orbitals in umn,',nband_umn
@@ -1704,9 +1708,10 @@ subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
 end subroutine read_hamiltonian
 
 subroutine write_wannier_cube(jfile,filename,atoms,Glr,input,rxyz,wannr)
-  use module_defs, only: gp,dp
-  use f_utils
+   use module_defs, only: gp,dp
+   use f_utils
    use module_types
+   use bounds, only: ext_buffers
    implicit none
    character(len=*), intent(in) :: filename
    integer, intent(in) :: jfile

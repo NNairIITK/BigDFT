@@ -84,7 +84,8 @@ subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
         !call atomic_axpy(at,rxyz,beta0,hh,tpos)
         call axpy(3 * runObj%atoms%astruct%nat, beta0, hh(1,1), 1, runObj%atoms%astruct%rxyz(1,1), 1)
 
-        runObj%inputs%inputPsiId=1
+        !runObj%inputs%inputPsiId=1a
+        call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
         call bigdft_state(runObj,l_outs,infocode)
 !!$        if (iproc == 0) then
 !!$           call transforce(at,gpf,sumx,sumy,sumz)
@@ -403,7 +404,8 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
         itsd=itsd+1
         itot=itot+1
 
-        runObj%inputs%inputPsiId=1
+        !runObj%inputs%inputPsiId=1
+        call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
         call bigdft_state(runObj,outs,infocode)
         ncount_bigdft=ncount_bigdft+1
 
@@ -473,16 +475,6 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
               call f_tree_push(f_info//'b/b0'  ,yaml_toa( beta/runObj%inputs%betax, fmt='(1pe8.2e1)'))
               call f_tree_push(f_info//'nsat'  ,yaml_toa(nsatur))
               call geometry_output('GEOPT_SD',ncount_bigdft,itsd,fmax,fnrm,fluct,f_info)
-!!$              call yaml_mapping_open('Geometry')
-!!$                 call yaml_map('Ncount_BigDFT',ncount_bigdft)
-!!$                 call yaml_map('Iteration',itsd)
-!!$                 call yaml_map('Geometry Method','GEOPT_SD')
-!!$                 call yaml_map('etot',(/ outs%energy,outs%energy-etotprev /),fmt='(1pe21.14)')
-!!$                 call yaml_map('Forces', (/ fmax,sqrt(fnrm),fluct*runObj%inputs%frac_fluct,fluct /), fmt='(1pe10.2)')
-!!$                 call yaml_map('b/b0', beta/runObj%inputs%betax, fmt='(1pe8.2e1)')
-!!$                 call yaml_map('nsat',nsatur)
-!!$                 call geometry_output(fmax,fnrm,fluct)
-!!$              call yaml_mapping_close()
            end if
         end if
         etotprev=outs%energy
@@ -605,7 +597,8 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 
   beta=runObj%inputs%betax
   itsd=0
-  runObj%inputs%inputPsiId=1
+  !runObj%inputs%inputPsiId=1
+  call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
   call bigdft_state(runObj,outsold,infocode)
   call fnrmandforcemax(outsold%fxyz,fnrm,fmax,outsold%fdim)
   if (fmax < 3.d-1) call updatefluctsum(outsold%fnoise,fluct) !n(m)
@@ -657,7 +650,8 @@ subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
 
   nitsd=1000
   loop_ntsd: do itsd=1,nitsd
-     runObj%inputs%inputPsiId=1
+     !runObj%inputs%inputPsiId=1
+     call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
      call bigdft_state(runObj,outs,infocode)
      ncount_bigdft=ncount_bigdft+1
      fnrm=0.d0

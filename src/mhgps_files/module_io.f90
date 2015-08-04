@@ -443,6 +443,7 @@ end subroutine
 !=====================================================================
 subroutine print_logo_mhgps(mhgpsst)
     use yaml_output
+    use yaml_strings, only: yaml_date_and_time_toa
     use module_mhgps_state
     implicit none
     !parameters

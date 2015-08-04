@@ -3350,9 +3350,13 @@ module communications_init
           write(*,*) 'ERROR: weight_check/=weight_tot', weight_check, weight_tot
           stop '2: weight_check/=weight_tot'
       else if (abs(weight_check-weight_tot) > 0.d0) then
+!!$         call yaml_warning('The total weight for density seems inconsistent! Ref:'//&
+!!$               trim(yaml_toa(weight_tot,fmt='(1pe25.17)'))//', Check:'//&
+!!$               trim(yaml_toa(weight_check,fmt='(1pe25.17)')))
          call yaml_warning('The total weight for density seems inconsistent! Ref:'//&
-               trim(yaml_toa(weight_tot,fmt='(1pe25.17)'))//', Check:'//&
-               trim(yaml_toa(weight_check,fmt='(1pe25.17)')))
+              weight_tot**'(1pe25.17)'//', Check:'//&
+              weight_check**'(1pe25.17)')
+
       end if
     
     end subroutine determine_num_orbs_per_gridpoint_sumrho
@@ -4567,7 +4571,7 @@ module communications_init
     subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
       use module_base
       use module_types
-      use yaml_output, only: yaml_toa
+      use yaml_strings, only: yaml_toa
       implicit none
       integer, intent(in) :: iproc,nproc
       type(locreg_descriptors), intent(in) :: lr

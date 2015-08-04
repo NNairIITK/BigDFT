@@ -14,6 +14,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   use module_defs, only: gp,dp,wp
   use module_types
   use yaml_output
+  use bounds, only: ext_buffers
   implicit none
   integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh

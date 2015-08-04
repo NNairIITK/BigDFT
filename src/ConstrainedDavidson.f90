@@ -930,7 +930,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
 
 
   !write the results on the screen
-  call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,Lzd%Glr,orbs,orbsv,psi,v,in%output_wf_format)
+  call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,hx,hy,hz,at,rxyz,Lzd%Glr,orbs,orbsv,psi,v)!,in%output_wf_format)
 
 
   ! ******************************************************

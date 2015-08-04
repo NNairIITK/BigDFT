@@ -7,158 +7,13 @@
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
 
-
-subroutine allocateBasicArraysInputLin(lin, ntypes)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(linearInputParameters), intent(inout) :: lin
-  integer, intent(in) :: ntypes
-  
-  ! Local variables
-  character(len=*), parameter :: subname='allocateBasicArrays'
-
-  call f_routine(id='allocateBasicArraysInputLin')
-  
-  lin%norbsPerType = f_malloc_ptr(ntypes,id='lin%norbsPerType')
-  lin%potentialPrefac_ao = f_malloc_ptr(ntypes,id='lin%potentialPrefac_ao')
-  lin%potentialPrefac_lowaccuracy = f_malloc_ptr(ntypes,id='lin%potentialPrefac_lowaccuracy')
-  lin%potentialPrefac_highaccuracy = f_malloc_ptr(ntypes,id='lin%potentialPrefac_highaccuracy')
-  !added a second dimension to include the low and high accuracy values
-  lin%locrad_type = f_malloc_ptr((/ ntypes, 2 /),id='lin%locrad_type')
-  lin%kernel_cutoff_FOE = f_malloc_ptr(ntypes,id='lin%kernel_cutoff_FOE')
-  lin%kernel_cutoff = f_malloc_ptr(ntypes,id='lin%kernel_cutoff')
-
-  call f_release_routine()
-
-end subroutine allocateBasicArraysInputLin
-
-
-subroutine allocate_extra_lin_arrays(lin,nspin,astruct)
-  use module_atoms, only: atomic_structure
-  use module_types, only: linearInputParameters
-  use dynamic_memory
-  implicit none
-  integer,intent(in) :: nspin
-  type(atomic_structure), intent(in) :: astruct
-  type(linearInputParameters), intent(inout) :: lin
-  !local variables
-  character(len=*), parameter :: subname='allocate_extra_lin_arrays'
-  integer :: nlr,iat,itype,iiorb,iorb
-  !then perform extra allocations
-  nlr=0
-  do iat=1,astruct%nat
-     itype=astruct%iatype(iat)
-     nlr=nlr+nspin*lin%norbsPerType(itype)
-  end do
-
-  lin%locrad = f_malloc_ptr(nlr,id='lin%locrad')
-  lin%locrad_kernel = f_malloc_ptr(nlr,id='lin%locrad_kernel')
-  lin%locrad_mult = f_malloc_ptr(nlr,id='lin%locrad_mult')
-  lin%locrad_lowaccuracy = f_malloc_ptr(nlr,id='lin%locrad_lowaccuracy')
-  lin%locrad_highaccuracy = f_malloc_ptr(nlr,id='lin%locrad_highaccuracy')
-
-  ! Assign the localization radius to each atom.
-  iiorb=0
-  do iat=1,astruct%nat
-     itype=astruct%iatype(iat)
-     do iorb=1,lin%norbsPerType(itype)
-        iiorb=iiorb+1
-        lin%locrad(iiorb)=lin%locrad_type(itype,1)
-        lin%locrad_kernel(iiorb)=lin%kernel_cutoff(itype)
-        lin%locrad_mult(iiorb)=lin%kernel_cutoff_FOE(itype)
-        lin%locrad_lowaccuracy(iiorb)=lin%locrad_type(itype,1) 
-        lin%locrad_highaccuracy(iiorb)=lin%locrad_type(itype,2)
-     end do
-  end do
-end subroutine allocate_extra_lin_arrays
-
-
-subroutine deallocateBasicArraysInput(lin)
-  use module_base
-  use module_types
-  implicit none
-  
-  ! Calling arguments
-  type(linearinputParameters), intent(inout) :: lin
-  
-  ! Local variables
-  character(len=*), parameter :: subname='deallocateBasicArrays'
-
-  call f_routine(id='deallocateBasicArraysInput')
- 
-  if(associated(lin%potentialPrefac_ao)) then
-    call f_free_ptr(lin%potentialPrefac_ao)
-    nullify(lin%potentialPrefac_ao)
-  end if 
-  if(associated(lin%potentialPrefac_lowaccuracy)) then
-    call f_free_ptr(lin%potentialPrefac_lowaccuracy)
-    nullify(lin%potentialPrefac_lowaccuracy)
-  end if 
-  if(associated(lin%potentialPrefac_highaccuracy)) then
-    call f_free_ptr(lin%potentialPrefac_highaccuracy)
-    nullify(lin%potentialPrefac_highaccuracy)
-  end if 
-
-  if(associated(lin%norbsPerType)) then
-    call f_free_ptr(lin%norbsPerType)
-    nullify(lin%norbsPerType)
-  end if 
-
-  if(associated(lin%locrad)) then
-    call f_free_ptr(lin%locrad)
-    nullify(lin%locrad)
-  end if 
-
-  if(associated(lin%locrad_kernel)) then
-    call f_free_ptr(lin%locrad_kernel)
-    nullify(lin%locrad_kernel)
-  end if 
-
-  if(associated(lin%locrad_mult)) then
-    call f_free_ptr(lin%locrad_mult)
-    nullify(lin%locrad_mult)
-  end if 
-
-  if(associated(lin%locrad_lowaccuracy)) then
-    call f_free_ptr(lin%locrad_lowaccuracy)
-    nullify(lin%locrad_lowaccuracy)
-  end if 
-
-  if(associated(lin%locrad_highaccuracy)) then
-    call f_free_ptr(lin%locrad_highaccuracy)
-    nullify(lin%locrad_highaccuracy)
-  end if 
-
-  if(associated(lin%locrad_type)) then
-    call f_free_ptr(lin%locrad_type)
-    nullify(lin%locrad_type)
-  end if 
-
-  if(associated(lin%kernel_cutoff_FOE)) then
-    call f_free_ptr(lin%kernel_cutoff_FOE)
-    nullify(lin%kernel_cutoff_FOE)
-  end if 
-
-  if(associated(lin%kernel_cutoff)) then
-    call f_free_ptr(lin%kernel_cutoff)
-    nullify(lin%kernel_cutoff)
-  end if 
-
-  call f_release_routine()
-
-end subroutine deallocateBasicArraysInput
-
-
-
 ! lzd%llr already allocated, locregcenter and locrad already filled - could tidy this!
 subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
   use module_base
   use module_types
   use module_atoms, only: atomic_structure
   use module_interfaces, exceptThisOne => initLocregs
+  use locregs_init, only: determine_locregsphere_parallel
   implicit none
   
   ! Calling arguments
@@ -302,6 +157,8 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   use module_xc
   use ao_inguess, only: atomic_info
   use locregs, only: locreg_null,copy_locreg_descriptors
+  use public_enums
+  use locregs_init, only: determine_locreg_parallel
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -435,6 +292,9 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   use module_xc
   use ao_inguess, only: atomic_info
   use locregs, only: locreg_null,copy_locreg_descriptors
+  use public_enums
+  use locregs_init, only: determine_locreg_parallel
+  use psp_projectors, only: update_nlpsp
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -595,6 +455,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
   use module_base
   use module_types
   use module_interfaces, except_this_one => init_orbitals_data_for_linear
+  use public_enums
   implicit none
   
   ! Calling arguments
@@ -1119,7 +980,8 @@ end subroutine update_wavefunctions_size
 subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, rxyz, lowaccur_converged)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => create_large_tmbs
+  use module_interfaces
+  use psp_projectors, only: update_nlpsp
   implicit none
 
   ! Calling arguments
@@ -1228,8 +1090,9 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
      convcrit_dmin, nitdmin, conv_crit_TMB)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => set_optimization_variables
+  use module_interfaces
   use yaml_output
+  use public_enums
   implicit none
   
   ! Calling arguments
@@ -1379,14 +1242,17 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
            rxyz, KSwfn, tmb, denspot, nlpsp,ldiis, locreg_increased, lowaccur_converged, locrad)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => adjust_locregs_and_confinement
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
+  use transposed_operations, only: init_matrixindex_in_compressed_fortransposed
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff, &
                                init_matrix_taskgroups, check_local_matrix_extents
   use foe_base, only: foe_data_deallocate
+  use public_enums
+  use locreg_operations, only: small_to_large_locreg
+  use module_interfaces
   implicit none
   
   ! Calling argument
@@ -1640,7 +1506,7 @@ end subroutine adjust_locregs_and_confinement
 subroutine adjust_DIIS_for_high_accuracy(input, denspot, lowaccur_converged, ldiis_coeff_hist, ldiis_coeff_changed)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => adjust_DIIS_for_high_accuracy
+  use public_enums
   implicit none
   
   ! Calling arguments
@@ -1697,8 +1563,9 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
            conv_crit_TMB)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => set_variables_for_hybrid
+  use module_interfaces
   use yaml_output
+  use public_enums
   implicit none
 
   ! Calling arguments
@@ -1780,7 +1647,7 @@ end subroutine set_variables_for_hybrid
 subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => increase_FOE_cutoff
+  use module_interfaces
   use yaml_output
   use foe_base, only: foe_data
   implicit none
@@ -1823,7 +1690,7 @@ subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs,
   do ilr=1,lzd%nlr
       locreg_centers(1:3,ilr)=lzd%llr(ilr)%locregcenter(1:3)
   end do
-  call init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset=.false.)
+  call init_foe(iproc, nproc, input, orbs_KS, foe_obj,.false.)
   call f_free(locreg_centers)
 
   call f_release_routine()
