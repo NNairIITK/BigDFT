@@ -147,7 +147,7 @@ module io
       use sparsematrix_base, only: sparsematrix_malloc_ptr, assignment(=), DENSE_FULL, &
            matrices_null, allocate_matrices, deallocate_matrices
       use sparsematrix, only: uncompress_matrix2
-      use matrix_operations, only: overlapPowerGeneral
+      use matrix_operations, only: overlapPowerGeneral, check_taylor_order
       implicit none
       integer, intent(in) :: iproc,iformat,npsidim,nelec
       !integer, intent(in) :: norb   !< number of orbitals, not basis functions
@@ -419,6 +419,7 @@ module io
 
 
             ! put this in a routine and reuse in write_linear_matrices
+            ! FIX SPIN
             unitm=99
             binary=(iformat /= WF_FORMAT_PLAIN)
             if(iproc == 0) then
@@ -427,11 +428,13 @@ module io
                     binary=binary)
     
                if (.not. binary) then
-                   write(unitm,'(a,2i10,a)') '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, ref_frags(ifrag_ref)%astruct_frg%nat, &
-                       '    number of basis functions, number of atoms'
+                   write(unitm,'(a,3i10,a)') '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+                       ref_frags(ifrag_ref)%astruct_frg%nat, linmat%m%nspin, &
+                       '    number of basis functions, number of atoms, number of spins'
                else
-                   write(unitm) '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, ref_frags(ifrag_ref)%astruct_frg%nat, &
-                       '    number of basis functions, number of atoms'
+                   write(unitm) '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+                       ref_frags(ifrag_ref)%astruct_frg%nat, linmat%m%nspin, &
+                       '    number of basis functions, number of atoms, number of spins'
                end if
                do ia=1,ref_frags(ifrag_ref)%astruct_frg%nat
                    if (.not. binary) then

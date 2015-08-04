@@ -2133,7 +2133,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(work_mpiaccumulate) :: energs_work
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
-  logical :: use_tmbs_as_coeffs, kernel_restart
   integer :: itmb, jtmb
   call f_routine(id='input_wf')
 
@@ -2407,10 +2406,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !     & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
      !     & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
 
-     kernel_restart=.false. !.true.
-
      call readmywaves_linear_new(iproc,nproc,trim(in%dir_output),'minBasis',input_wf_format,&
-          atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,kernel_restart)
+          atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,in%lin%kernel_restart_mode==LIN_RESTART_KERNEL)
 
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
      !nullify(tmb%psit_c)                                                                
@@ -2483,16 +2480,15 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! this is overkill as we are recalculating the kernel anyway - fix at some point
      ! or just put into fragment structure to save recalculating for CDFT
 
-     ! should eventually be input variable? - stabilize first
      !currently equivalent to diagonal kernel - all these options need tidying/stabilizing
-     use_tmbs_as_coeffs=.false. 
+     !atomic weight option needs figuring out - put in with kernel? just use coeffs for coeffs (and random? -> switch this to kernel too, just need to purify)
      if (in%lin%fragment_calculation) then
-        if (kernel_restart) then
+        if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
            call fragment_kernels_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
-                nstates_max,in%lin%constrained_dft,use_tmbs_as_coeffs)
+                in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL)
         else
            call fragment_coeffs_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
-                nstates_max,in%lin%constrained_dft,use_tmbs_as_coeffs)
+                nstates_max,in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_RANDOM)
         end if
 
         !! debug
@@ -2516,7 +2512,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            nullify(in_frag_charge)
         end if
      else
-        if (kernel_restart) then
+        if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
            ! for now assuming reading was from file in dense format
            tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
            call vcopy(tmb%linmat%l%nfvctr*tmb%linmat%l%nfvctr*tmb%orbs%nspinor,ref_frags(1)%kernel(1,1,1),1,&
@@ -2536,7 +2532,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
      tmb%can_use_transposed=.false.
-     if (in%lin%diag_start .or. (use_tmbs_as_coeffs.and.in%lin%fragment_calculation) .and. (.not. kernel_restart)) then
+     if (in%lin%diag_start .or. (in%lin%kernel_restart_mode==LIN_RESTART_TMB_WEIGHT.and.in%lin%fragment_calculation)) then
         ! not worrying about this case as not currently used anyway
         !call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
         !     tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
@@ -2562,7 +2558,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           tmb%orbs%occup(iorb)=Kswfn%orbs%occup(iorb)
         end do
      else
-        if (kernel_restart) then
+        if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
            !purify kernel?
         else
            ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
@@ -2571,22 +2567,22 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         end if
      end if
 
-     !*! debug
-     !*tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
-     !*!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
-     !*call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
-     !*if (iproc==0) then
-     !*   open(31)
-     !*   do itmb=1,tmb%orbs%norb
-     !*      do jtmb=1,tmb%orbs%norb
-     !*         write(31,*) itmb,jtmb,tmb%coeff(itmb,jtmb),tmb%linmat%kernel_%matrix(itmb,jtmb,1)
-     !*      end do
-     !*   end do
-     !*   write(31,*) ''
-     !*   close(31)
-     !*end if 
-     !*call f_free_ptr(tmb%linmat%kernel_%matrix) 
-     !*! end debug
+     !! debug
+     !tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
+     !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
+     !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
+     !if (iproc==0) then
+     !   open(31)
+     !   do itmb=1,tmb%orbs%norb
+     !      do jtmb=1,tmb%orbs%norb
+     !         write(31,*) itmb,jtmb,tmb%coeff(itmb,jtmb),tmb%linmat%kernel_%matrix(itmb,jtmb,1)
+     !      end do
+     !   end do
+     !   write(31,*) ''
+     !   close(31)
+     !end if 
+     !call f_free_ptr(tmb%linmat%kernel_%matrix) 
+     !! end debug
 
      !!tmb%linmat%ovrlp%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%ovrlp%matrix')
      !!tmb%linmat%denskern%matrix=f_malloc_ptr((/tmb%orbs%norb,tmb%orbs%norb/),id='tmb%linmat%denskern%matrix')
@@ -2696,6 +2692,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      !! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
      !not sure what happens here with kernel restart...
+     !is this useful for certain fragment cases?
      if (in%lin%diag_start) then ! .or. (use_tmbs_as_coeffs.and.in%lin%fragment_calculation)) then
         !if (iproc==0) then
         !print*,'coeffs before extra diag:'

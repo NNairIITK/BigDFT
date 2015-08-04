@@ -18,6 +18,7 @@
    nit: [0, 1]
    rpnrm_cv: 1.0E-008
    conf_damping: 0.5
+   kernel_restart_mode: coeff
  lin_basis:
    nit: [4, 1]
    idsx: 0

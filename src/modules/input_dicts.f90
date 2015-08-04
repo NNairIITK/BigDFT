@@ -1722,6 +1722,9 @@ contains
     call input_var("loewdin_charge_analysis", .false., "perform a Loewdin charge analysis at the end", dummy_bool)
     call set(dict // LOEWDIN_CHARGE_ANALYSIS, dummy_bool)
 
+    call input_var("coeff_weight_analysis", .false., "perform a Loewdin charge analysis of the coefficients for fragment calculations", dummy_bool)
+    call set(dict // COEFF_WEIGHT_ANALYSIS, dummy_bool)
+
     call input_var("check_matrix_compression", .true., "perform a check of the matrix compression routines", dummy_bool)
     call set(dict // CHECK_MATRIX_COMPRESSION, dummy_bool)
 

@@ -1,5 +1,6 @@
+!needs cleaning once we stabilize which options are useful
 subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated,&
-  nstates_max,cdft,use_tmbs_as_coeffs)
+  nstates_max,cdft,completely_random)
   use yaml_output
   use module_base
   use module_types
@@ -21,7 +22,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   integer, intent(in) :: iproc
   integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
   logical, intent(in) :: cdft
-  logical, intent(in) :: use_tmbs_as_coeffs
+  logical, intent(in) :: completely_random!, use_tmbs_as_coeffs
 
   integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag, linstate, jf, pm, ortho_size, s, nelecfrag
   integer, allocatable, dimension(:) :: ipiv
@@ -34,9 +35,11 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   integer, allocatable, dimension(:) :: rand_seed
   real(kind=dp) :: rtime, random_noise, rmax
   character(len=10) :: sys_time
-  logical :: random, completely_random, lincombm, lincombp
+  logical :: random, lincombm, lincombp !completely_random, 
 
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  logical, parameter :: use_tmbs_as_coeffs=.false.
+
 
   call timing(iproc,'kernel_init','ON')
   call f_routine(id='fragment_coeffs_to_kernel')
@@ -55,7 +58,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 
   ! adding random noise to starting to help with local minima problem
   random=.false. ! add a bit of noise
-  completely_random=.false. ! completely random start for coeffs
+  !completely_random=.false. ! completely random start for coeffs
   rmax=0.2d0
   random_noise=0.0d0
   rtime=0.0d0
@@ -173,6 +176,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 contains
 
   !still assuming neutral/correct charge distribution given
+  !might delete this option eventually, as now doing via kernel
   subroutine set_coeffs_to_tmbs()
     implicit none
 
@@ -762,7 +766,8 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
 
   ! for now working in dense format
   tmb%linmat%kernel_%matrix = sparsematrix_malloc0_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
-  if (.not. diagonal_kernel .or. completely_random) then
+
+  if ((.not. diagonal_kernel) .or. completely_random) then
      call fill_kernel_from_fragments()
   else if (completely_random) then
       call fill_random_kernel()
@@ -773,7 +778,6 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   if (random .and. (.not. completely_random)) then
      call add_noise_to_kernel()
   end if
-
 
   call compress_matrix(iproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)  
   call f_free_ptr(tmb%linmat%kernel_%matrix) 

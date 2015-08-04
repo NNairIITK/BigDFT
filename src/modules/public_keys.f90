@@ -36,6 +36,8 @@ module public_keys
   character(len = *), parameter :: OUTPUT_MAT = "output_mat"
   character(len = *), parameter :: OUTPUT_COEFF = "output_coeff"
   character(len = *), parameter :: OUTPUT_DENSPOT = "output_denspot"
+  character(len = *), parameter :: OUTPUT_FRAGMENTS = "output_fragments"
+  character(len = *), parameter :: KERNEL_RESTART_MODE = "kernel_restart_mode"
   character(len = *), parameter :: RBUF = "rbuf"
   character(len = *), parameter :: NCONGT = "ncongt"
   character(len = *), parameter :: NORBV = "norbv", NVIRT = "nvirt"
@@ -172,6 +174,7 @@ module public_keys
   character(len = *), parameter :: ADJUST_FOE_TEMPERATURE = "adjust_FOE_temperature"
   character(len = *), parameter :: CALCULATE_GAP = "calculate_gap"
   character(len = *), parameter :: LOEWDIN_CHARGE_ANALYSIS = "loewdin_charge_analysis"
+  character(len = *), parameter :: COEFF_WEIGHT_ANALYSIS = "coeff_weight_analysis"
   character(len = *), parameter :: CHECK_MATRIX_COMPRESSION = "check_matrix_compression"
   character(len = *), parameter :: CORRECTION_CO_CONTRA = "correction_co_contra"
   character(len = *), parameter :: GPS_METHOD = "gps_method"
@@ -367,6 +370,18 @@ module public_enums
   integer, parameter, public :: INPUT_PSI_LINEAR_AO    = 100    !< Input PSI for linear from Atomic Orbital
   integer, parameter, public :: INPUT_PSI_MEMORY_LINEAR= 101    !< Input PSI for linear in memory
   integer, parameter, public :: INPUT_PSI_DISK_LINEAR  = 102    !< Input PSI for linear from disk
+
+  !> Variables for kernel restart in linear
+  integer, parameter, public :: LIN_RESTART_KERNEL       = 0  !< Use kernel
+  integer, parameter, public :: LIN_RESTART_COEFF        = 1  !< Use coefficients
+  integer, parameter, public :: LIN_RESTART_RANDOM       = 2  !< Use randomized kernel
+  integer, parameter, public :: LIN_RESTART_DIAG_KERNEL  = 3  !< Use diagonal kernel scaled by number of electrons
+  integer, parameter, public :: LIN_RESTART_TMB_WEIGHT   = 4  !< Use support function weights
+
+  !> Variables for fragment output
+  integer, parameter, public :: OUTPUT_FRAGMENTS_AND_FULL = 0  !< Output both
+  integer, parameter, public :: OUTPUT_FRAGMENTS_ONLY     = 1  !< Output fragments only
+  integer, parameter, public :: OUTPUT_FULL_ONLY          = 2  !< Output full system onlu
 
   !> Source of the radii coefficients
   integer, parameter, public :: RADII_SOURCE_HARD_CODED = 1

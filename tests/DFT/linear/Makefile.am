@@ -27,7 +27,8 @@ TESTDIRS = Locreg \
 	   periodic \
        surface \
        multipoles \
-	   igortho
+	   igortho \
+       extendedfrags
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \
@@ -105,6 +106,24 @@ cdft_oh-.out.post-out:
 	rm -rf data-ohoh/data-oh-
 	mv -f data-oh- data-ohoh/data-oh-
 	cp -f oh-.xyz data-ohoh/oh-.xyz
+
+extendedfrags_readrotated.out.out : extendedfrags_read.out.out
+extendedfrags_read.out.out : extendedfrags_write.out.out
+extendedfrags_write.out.out : extendedfrags_nofrags.out.out
+
+extendedfrags_nofrags.out.post-out:
+	mkdir -p data-write
+	mkdir -p data-write/data-c1
+	mkdir -p data-write/data-c2
+	cp c.xyz data-write/c1.xyz
+	cp c.xyz data-write/c2.xyz
+
+extendedfrags_write.out.post-out: 
+	rm -rf data-read
+	cp -rf data-write data-read
+	rm -rf data-readrotated
+	cp -rf data-write data-readrotated
+	cp -f read.yaml readrotated.yaml
 
 reformatcomplete_read36.out.out : reformatcomplete_read45.out.out
 reformatcomplete_read45.out.out : reformatcomplete_read35.out.out

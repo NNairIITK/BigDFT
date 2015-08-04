@@ -106,6 +106,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer :: jorb, cdft_it, nelec, iat, ityp, norder_taylor, ispin, ishift
   integer :: dmin_diag_it, dmin_diag_freq, ioffset, nl1, nl2, nl3
   logical :: reorder, rho_negative
+  logical :: write_fragments, write_full_system
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
   type(matrices) :: weight_matrix_
   real(kind=8) :: sign_of_energy_change
@@ -126,9 +127,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
 
-  !better names/input variables
-  logical, parameter :: write_fragments=.true.
-  logical, parameter :: write_full_system=.true.
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp
   real(kind=8) :: max_deviation, mean_deviation, max_deviation_p, mean_deviation_p
 
@@ -178,7 +176,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   sign_of_energy_change = -1.d0
   nit_energyoscillation = 0
   keep_value = .false.
-
+  if (input%lin%output_fragments == OUTPUT_FRAGMENTS_AND_FULL .or. input%lin%output_fragments == OUTPUT_FRAGMENTS_ONLY) then
+     write_fragments = .true.
+  end if
+  if (input%lin%output_fragments == OUTPUT_FRAGMENTS_AND_FULL .or. input%lin%output_fragments == OUTPUT_FULL_ONLY) then
+     write_full_system = .true.
+  end if
 
 
   ! Allocate the communication arrays for the calculation of the charge density.
@@ -307,6 +310,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end if
 
   ! if we want to ignore read in coeffs and diag at start - EXPERIMENTAL
+  ! return to this point - don't need in all fragment cases, just those where we did an extra get_coeff in init
   if ((input%lin%diag_start .or. input%lin%fragment_calculation) .and. (input%inputPsiId .hasattr. 'FILE')) then !==INPUT_PSI_DISK_LINEAR) then
      ! Calculate the charge density.
      !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
@@ -1447,7 +1451,13 @@ end if
   !! END TEST ######################
 
 
-  if (input%lin%fragment_calculation .and. input%frag%nfrag>1) then
+  ! only do if explicitly activated, but still check for fragment calculation
+  if (input%coeff_weight_analysis .and. input%lin%fragment_calculation .and. input%frag%nfrag>1) then
+     ! unless we already did a diagonalization, the coeffs will probably be nonsensical in this case, so print a warning
+     ! maybe just don't do it in this case?  or do for the whole kernel and not just coeffs?
+     if (input%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or.  input%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
+        if (iproc==0) call yaml_warning('Output of coeff weight analysis might be nonsensical when restarting from kernel')
+     end if
      call coeff_weight_analysis(iproc, nproc, input, KSwfn%orbs, tmb, ref_frags)
   end if
 

@@ -14,10 +14,12 @@
    adjust_kernel_iterations: No
    correction_co_contra: no
    purification_quickreturn: no
+   coeff_weight_analysis: Yes
  lin_general:
    nit: [0, 1]
    rpnrm_cv: [1.0000000000000001E-009, 5.0000000000000003E-010]
    conf_damping: 0.5
+   kernel_restart_mode: coeff
  lin_basis:
    nit: [4, 1]
    idsx: 0

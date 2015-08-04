@@ -17,6 +17,7 @@
    rpnrm_cv: 9.9999999999999994E-012
    conf_damping: 0.5
    output_wf: 1
+   output_mat: 21
  lin_basis:
    nit: 2
    idsx: 0
