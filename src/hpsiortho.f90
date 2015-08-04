@@ -713,9 +713,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 !!$                 xc,SIC%alpha,energs%ekin,energs%epot,energs%evsic)
 !!$         end if
          call timing(iproc,'ApplyLocPotKin','OF') 
-!!$      i_all=-product(shape(fake_pot))*kind(fake_pot)
-!!$      deallocate(fake_pot,stat=i_stat)
-!!$      call memocc(i_stat,i_all,'fake_pot',subname)
          
       else if (PotOrKin==2) then !only pot
          call timing(iproc,'ApplyLocPot','ON') 

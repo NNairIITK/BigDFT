@@ -7,6 +7,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-  character(len=*), intent(in) :: a
-  character(len=len(trim(adjustl(a)))+len(trim(yaml_toa(num)))) :: c
+ ! character(len=*), intent(in) :: a
+!  character(len=len(trim(adjustl(a)))+len(trim(yaml_toa(num)))) :: c
   c=a+yaml_toa(num)

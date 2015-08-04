@@ -23,7 +23,8 @@ module f_utils
   integer, public, save :: TCAT_INIT_TO_ZERO
 
   !preprocessed include file with processor-specific values
-  include 'f_utils.inc' !defines recl_kind
+  !defines recl_kind
+  include 'f_utils.inc' 
 
   !> This type can be used to get strings from a file or a dictionary long string.
   type, public :: io_stream

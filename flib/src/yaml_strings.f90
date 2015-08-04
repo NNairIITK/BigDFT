@@ -55,28 +55,28 @@ contains
 
   pure function fmt_li(data)
     implicit none
-    integer(kind=8), intent(in) :: data
+    integer(f_long), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_li
     fmt_li=yaml_int_fmt
   end function fmt_li
 
   pure function fmt_i(data)
     implicit none
-    integer(kind=4), intent(in) :: data
+    integer(f_integer), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_i
     fmt_i=yaml_int_fmt
   end function fmt_i
 
   pure function fmt_r(data)
     implicit none
-    real, intent(in) :: data
+    real(f_simple), intent(in) :: data
     character(len=len(yaml_real_fmt)) :: fmt_r
     fmt_r=yaml_real_fmt
   end function fmt_r
 
   pure function fmt_d(data)
     implicit none
-    double precision, intent(in) :: data
+    real(f_double), intent(in) :: data
     character(len=len(yaml_dble_fmt)) :: fmt_d
     fmt_d=yaml_dble_fmt
   end function fmt_d
@@ -197,28 +197,28 @@ contains
   !> Convert integer to character
   pure function yaml_itoa(data,fmt) result(str)
     implicit none
-    integer(kind=4), intent(in) :: data
+    integer(f_integer), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_itoa
 
   !> Convert longinteger to character
   pure function yaml_litoa(data,fmt) result(str)
     implicit none
-    integer(kind=8), intent(in) :: data
+    integer(f_long), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_litoa
 
   !> Convert float to character
   pure function yaml_ftoa(data,fmt) result(str)
     implicit none
-    real, intent(in) :: data
+    real(f_simple), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_ftoa
 
   !> Convert double to character
   pure function yaml_dtoa(data,fmt) result(str)
     implicit none
-    real(kind=8), intent(in) :: data
+    real(f_double), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_dtoa
 
@@ -638,13 +638,17 @@ contains
 
   pure function string_plus_integer(a,num) result(c)
     implicit none
-    integer(f_int), intent(in) :: num
+    integer(f_integer), intent(in) :: num
+    character(len=*), intent(in) :: a
+    character(len=len(trim(adjustl(a)))+len(trim(yaml_itoa(num)))) :: c
     include 'yaml_plus-inc.f90'
   end function string_plus_integer
 
   pure function string_plus_double(a,num) result(c)
     implicit none
     real(f_double), intent(in) :: num
+    character(len=*), intent(in) :: a
+    character(len=len(trim(adjustl(a)))+len(trim(yaml_dtoa(num)))) :: c
     include 'yaml_plus-inc.f90'
   end function string_plus_double
 
