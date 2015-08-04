@@ -579,7 +579,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   integer, intent(in) :: nterm,mvctr_c,mvctr_f,mseg_c,mseg_f
   integer, intent(in) :: ncplx_g,ncplx_k,ns1,ns2,ns3,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,rx,ry,rz,kx,ky,kz
-  real(gp),intent(in)::gau_cut
+  real(gp), intent(in) :: gau_cut
   integer, dimension(nterm), intent(in) :: lx,ly,lz
   real(gp), dimension(ncplx_g,nterm), intent(in) :: fac_arr
   real(gp), dimension(ncplx_g),intent(in):: gau_a

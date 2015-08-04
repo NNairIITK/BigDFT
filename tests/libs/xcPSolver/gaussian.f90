@@ -14,18 +14,21 @@ program MP_gaussian
   use module_base
   use gaussians
   use yaml_output
+  use gaussdaub
   implicit none
-  integer, parameter :: iplot=14,iunit=16  !< File unit for the plots
-  integer, parameter :: nmoms=16           !< Number of calculated moments
-  integer, parameter :: nstep=10           !< Number of resolution to calculate the moments
-  integer, parameter :: nsigma=10        !< Number of different gaussian functions
-  integer, parameter :: npts=16          !< Arrays from -npts to npts
-  real(gp), parameter :: hgrid = 1.0_gp    !< Step grid
-  integer :: i,j,imoms,pow,istep,isigma,n_range,unit
+  integer, parameter :: iplot=14,iunit=16 !< File unit for the plots
+  integer, parameter :: nmoms=16          !< Number of calculated moments
+  integer, parameter :: nstep=1           !< Number of resolution to calculate the moments
+  integer, parameter :: nsigma=30         !< Number of different gaussian functions
+  integer, parameter :: npts=16           !< Arrays from -npts to npts
+  real(gp), parameter :: hgrid = 1.0_gp   !< Step grid
+  integer, parameter :: nw=65536
+  real(gp), dimension(0:nw,2,2) :: work
+  integer :: i,j,imoms,pow,istep,isigma,unit
   integer, parameter :: itype_scf = 16
-  integer :: n_scf,untplot
-  integer :: istart, iend, i0
-  real(gp) :: pgauss,x0,reference,max_phi,max_lag,scalar
+  integer :: n_scf,untplot,ml1,mu1
+  integer :: istart, iend, i0, npf
+  real(gp) :: pgauss,p0gauss,x0,x00,reference,max_phi,max_lag,scalar,tt,hh
   character(len=128) :: filename
   double precision, dimension(17), parameter :: MFdat=[&
        8.4334247333529341094733325815816d-7,&
@@ -46,26 +49,35 @@ program MP_gaussian
        2.72734492911979659657715313017228d-6,0.d0]
   real(gp), dimension(0:nmoms,3) :: moments
   real(gp), dimension(3,3,0:nmoms) :: avgmaxmin
-  real(gp), dimension(:), allocatable :: fj_phi,fj_coll,fj_lag
+  real(gp), dimension(:), allocatable :: fj_phi,fj_coll,fj_lag, psi_phi,psi_coll
+  real(gp), dimension(:,:), allocatable :: f_mu, psi_mu
   real(gp), dimension(:), allocatable :: scf_dat,lag_dat
   real(gp), dimension(:), allocatable :: x_scf
   call f_lib_initialize()
 
-  call bacasable_valence()
-
-  call f_lib_finalize()
-  stop
+!  call bacasable_valence()
+! 
+!  call f_lib_finalize()
+!  stop
 
   pow=0
   unit=iunit+1
   untplot=iplot
 
+  npf=2*npts-1
+  hh=0.5d0*hgrid
+
   !pgauss=0.5_gp/((0.1_gp*hgrid)**2)!8.0e-3_dp*1.25_dp**(6*(8-1))
   !array where we have to write the value of the discretization
-  fj_phi=f_malloc(-npts .to. npts,id='fj_phi')
-  fj_lag=f_malloc(-npts .to. npts,id='fj_lag')
-  fj_coll=f_malloc(-npts .to. npts,id='fj_coll')
+  fj_phi=f_malloc(-npf .to. npf,id='fj_phi')
+  fj_lag=f_malloc(-npf .to. npf,id='fj_lag')
+  fj_coll=f_malloc(-npf .to. npf,id='fj_coll')
+  f_mu=f_malloc( [ -npts .to. npts, 1 .to. 2 ], id='f_mu')
   call initialize_real_space_conversion(npoints=2**8,isf_m=itype_scf,nmoms=0) !initialize the work arrays needed to integrate with isf
+
+  psi_phi=f_malloc(-npf .to. npf,id='psi_phi')
+  psi_coll=f_malloc(-npf .to. npf,id='psi_coll')
+  psi_mu=f_malloc( [ -npts .to. npts, 1 .to. 2 ], id='psi_mu')
 
   call f_open_file(untplot,'Families.dat')
   call polynomial_exactness(npts,16,0,itype_scf,16,16,untplot,0,moments)
@@ -77,7 +89,7 @@ program MP_gaussian
   call polynomial_exactness(npts,16,0,itype_scf,-8,0,untplot,8,MFdat)
   call f_close(untplot)
 
-  stop
+!  stop
 
   call f_open_file(unit,file='MultipolesError.dat')
 
@@ -95,7 +107,7 @@ program MP_gaussian
 
   !call yaml_set_stream(record_length=150)
   call yaml_map('itype_scf',itype_scf)
-  call yaml_map('range', n_range)
+  !call yaml_map('range', n_range)
   call yaml_map('number of points',n_scf)
   call yaml_map('step',x_scf(1)-x_scf(0))
   call yaml_map('dx',real(2*itype_scf,gp)/real(n_scf,gp))
@@ -104,12 +116,12 @@ program MP_gaussian
   !dx = real(2*itype_scf,gp)/real(n_scf,gp)
   !starting point for the x coordinate for integration
   !x  = real(-itype_scf,gp)-dx
-  write(iplot,'(a)') '#Abscissae   Interpolating_scaling_function   Lagrange_polynomial' 
-  do i=0,n_scf
-     !x=x+dx
-     lag_dat(i) = lag_sym(x_scf(i),itype_scf,0)
-     write(iplot,'(f19.13,1x,3(1pe23.15,1x))') x_scf(i),scf_dat(i),lag_dat(i)
-  end do
+!  write(iplot,'(a)') '#Abscissae   Interpolating_scaling_function   Lagrange_polynomial' 
+!  do i=0,n_scf
+!     !x=x+dx
+!     lag_dat(i) = lag_sym(x_scf(i),itype_scf,0)
+!     write(iplot,'(f19.13,1x,3(1pe23.15,1x))') x_scf(i),scf_dat(i),lag_dat(i)
+!  end do
 
   !Do scalar product
   scalar = 0.d0
@@ -136,9 +148,21 @@ program MP_gaussian
   end do
   call yaml_sequence_close()
 
+  !Orbital is a gaussian (g0)
+  isigma=10
+  istep=5
+  pgauss=pg(isigma,hgrid)
+  x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+  call evaluate_moments(nmoms,npf,hh,pgauss,pow,x0,psi_phi,psi_coll,fj_lag,moments)
+  !Daubechies | gaussian
+  call gauss_to_daub_k(hgrid,0.d0,1,1,1,1.d0,x0,sqrt(0.5_gp/pgauss),0,-npts,2*npts,ml1,mu1,&
+      psi_mu,work,nw,.False.,1.d0) 
+  p0gauss=pgauss
+  x00=x0
+
   ! Calculate for different nsigma sigma
   do isigma=1,nsigma
-     pgauss=0.5_gp/((0.1_gp+0.1_gp*(isigma-1)*hgrid)**2)
+     pgauss=pg(isigma,hgrid)
      call yaml_map('sigma/h',sqrt(0.5_gp/pgauss)/hgrid)
 
      avgmaxmin=0.d0
@@ -148,7 +172,31 @@ program MP_gaussian
 
      do istep=1,nstep
         x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
-        call evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,fj_lag,moments)
+        call evaluate_moments(nmoms,npf,hh,pgauss,pow,x0,fj_phi,fj_coll,fj_lag,moments)
+
+        !Daubechies | gaussian
+        call gauss_to_daub_k(hgrid,0.d0,1,1,1,1.d0,x0,sqrt(0.5_gp/pgauss),0,-npts,2*npts,ml1,mu1,&
+            f_mu,work,nw,.False.,1.d0) 
+        !call gau_daub_1d(.False.,1, x0+real(npts,gp)*hgrid, [ 0 ], 0.d0, 1, [ sqrt(0.5_gp/pgauss) ], &
+        !     & 1, [ 1.d0 ], hgrid,4,2*npts,1,f_mu,nw,work)
+        tt = sqrt(pi_param/(pgauss+p0gauss))*exp(-(x00-x0)**2*(pgauss*p0gauss)/(pgauss+p0gauss))
+        call yaml_map('Projector norms', (/ &
+              &  1.d0-hh*scpr(2*npf+1,fj_phi,psi_phi)/tt, &
+              &  1.d0-hh*scpr(2*npf+1,fj_coll,psi_phi)/tt, &
+              &  1.d0-scpr(4*npts+2,f_mu,psi_mu)/tt, &
+              &  sqrt(0.5_gp/pgauss)/hgrid /),fmt='(1pg17.10)')
+        !call yaml_map('Projector norms', (/ nrm2(2*npts+1,fj_phi(-npts),1)/tt, nrm2(2*npts+1,fj_coll(-npts),1)/tt, &
+        !      &  nrm2(4*npts+2,f_mu(-npts,1),1)/tt, sqrt(0.5_gp/pgauss)/hgrid /),fmt='(1pg12.5)')
+
+        call filename_test(x0,pgauss,hgrid,filename)
+        untplot=iplot+istep
+        call f_open_file(untplot,trim(filename)//'daub.dat')
+        write(untplot,'(a,2(1pe20.8))') '#<daub|gaussian>',pgauss,sqrt(0.5_gp/pgauss)
+        write(untplot,'(a)') '#j,f_mu(j)'
+        do j=-npts,npts
+           write(untplot,*) j,f_mu(j,:)
+        end do
+        call f_close(untplot)
 
         call filename_test(x0,pgauss,hgrid,filename)
         call f_open_file(untplot,trim(filename)//'coll.dat')
@@ -204,12 +252,33 @@ program MP_gaussian
   call finalize_real_space_conversion()
 
   call f_free(fj_phi,fj_coll,fj_lag)
+  call f_free(psi_phi,psi_coll)
+  call f_free(f_mu)
+  call f_free(psi_mu)
   call f_free(scf_dat,lag_dat,x_scf)
   call f_lib_finalize()
 
 
 contains
 
+  !> Determine pgauss
+  function pg(i,h)
+    implicit none
+    integer, intent(in) :: i
+    real(gp), intent(in) :: h
+    real(gp) :: pg
+    !pg=0.5_gp/((0.1_gp+0.1_gp*real(i-1,gp)*hgrid)**2)
+    pg=1.0_gp/((0.1_gp+0.1_gp*real(i-1,gp)*h)**2)
+  end function pg
+
+  !> Scalar products
+  function scpr(n,a,b) result(s)
+    implicit none
+    integer, intent(in) :: n
+    real(gp), dimension(n), intent(in) :: a,b
+    real(gp) :: s
+    s = (dot(n,a(1),1,b(1),1))
+  end function scpr
 
   !> Classify the quality of a multipole extraction in both cases
   subroutine evaluate_moments(nmoms,npts,hgrid,pgauss,pow,x0,fj_phi,fj_coll,fj_lag,moments)
@@ -236,6 +305,7 @@ contains
     !  fj_phi=scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
     !scfdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
     call moments_1d(2*npts+1,fj_phi,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,1))
+
     !Lagrange polynomial array
     fj_lag=lagdotf((/(j,j=-npts,npts)/),hgrid,pgauss,x0,pow)
     call moments_1d(2*npts+1,fj_lag,x0+hgrid*(npts+1),hgrid,nmoms,moments(0,2))
@@ -256,7 +326,7 @@ contains
 
   end subroutine evaluate_moments
 
-  !>get the test filename
+  !> Get the test filename
   subroutine filename_test(x0,pgauss,hgrid,filename)
     use yaml_strings
     implicit none
@@ -267,6 +337,12 @@ contains
          'gau'//trim(adjustl(yaml_toa(x0,fmt='(f5.2)')))//&
          'p'//trim(adjustl(yaml_toa(pgauss,fmt='(f5.2)')))//&
          'h'//trim(adjustl(yaml_toa(hgrid,fmt='(f5.2)'))))
+
+
+!     call f_strcpy(dest=filename,src=&
+!         'gau'+x0**'(f5.2)'+'p'+pgauss**'(f5.2)'+'h'+hgrid**'(f5.2)')
+
+
   end subroutine filename_test
 
   !> Calculate the moments of an array with respect to a reference point 
