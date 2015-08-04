@@ -18,7 +18,7 @@ module module_defs
 
   include 'configure.inc' !< Include variables set from configure.
 
-  integer :: verbose=2    !< Verbosity of the output, control the level of writing (minimal by default)
+  integer :: verbose=2    !< Verbosity of the output, control the level of writing (normal by default)
 
   ! General precision, density and the wavefunctions types
   integer, parameter :: gp=f_double!kind(1.0d0)  !< general-type precision
@@ -32,10 +32,10 @@ module module_defs
   integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
   !integer, parameter :: mpidtypw=MPI_REAL,mpidtypd=MPI_REAL !in case of single precision
 
-  !> Flag for GPU computing, if CUDA libraries are present
-  !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
-  !! this value can be changed in the read_input_variables routine
-  logical :: GPUconv=.false.,GPUshare=.true.
+!!$  !> Flag for GPU computing, if CUDA libraries are present
+!!$  !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
+!!$  !! this value can be changed in the read_input_variables routine
+!!$  logical :: GPUconv=.false.,GPUshare=.true.
 
   !> Flag for GPU computing, if OpenCL libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
@@ -85,7 +85,7 @@ module module_defs
   !> Code constants.
   !real(gp), parameter :: UNINITIALISED = -123456789._gp
 
-  private :: f_double,f_simple,f_long,f_short,f_int
+  private :: f_double,f_simple,f_long,f_short,f_integer
 
   !interface for uninitialized variable
   interface UNINITIALIZED

@@ -15,7 +15,9 @@ subroutine localize_projectors(n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   use module_types, only: atoms_data,orbitals_data
   use gaussians, only: gaussian_basis_iter, gaussian_iter_start, gaussian_iter_next_shell
   use yaml_output
-  use psp_projectors
+  use psp_projectors_base, only: DFT_PSP_projectors
+  use psp_projectors, only: bounds_to_plr_limits, pregion_size
+  use public_enums, only: PSPCODE_PAW
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
@@ -310,11 +312,12 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
      & geocode, idir, lr, hx, hy, hz, kx, ky, kz, &
      & istart_c, iproj, nwarnings)
   use module_base
-  use psp_projectors
   use locregs
   use gaussians, only: gaussian_basis_new, gaussian_basis_iter, &
        & gaussian_iter_start, gaussian_iter_next_shell, gaussian_iter_next_gaussian
-  use yaml_output, only: yaml_warning, yaml_toa
+  use psp_projectors_base, only: DFT_PSP_projectors
+  use yaml_output, only: yaml_warning
+  use yaml_strings, only: yaml_toa
   implicit none
   type(DFT_PSP_projectors), intent(inout) :: nl
   integer, intent(in) :: ityp, iat
@@ -420,7 +423,7 @@ subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
      mbvctr_c,mbvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,wpr,proj)
   use module_base
   use module_types
-  use psp_projectors, only: workarrays_projectors
+  use psp_projectors_base, only: workarrays_projectors
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: ns1,ns2,ns3,n1,n2,n3
@@ -572,7 +575,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
      mvctr_c,mvctr_f,mseg_c,mseg_f,keyv_p,keyg_p,proj,wpr,gau_cut)
   use module_base
   use module_types
-  use psp_projectors, only: workarrays_projectors, NCPLX_MAX
+  use psp_projectors_base, only: workarrays_projectors, NCPLX_MAX
   !use gaussians
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode

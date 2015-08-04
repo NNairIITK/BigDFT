@@ -65,11 +65,14 @@ MODULE NEB_routines
   CONTAINS
 
     SUBROUTINE read_input(options)
-      use yaml_output
+       use module_defs, only: BIGDFT_INPUT_VARIABLES_ERROR
+       use yaml_output
+       use yaml_strings
       use dictionaries
       use module_interfaces
-      use module_input_keys, only: input_keys_fill_all
+      use module_input_keys, only: input_keys_fill_all,user_dict_from_files
       use module_input_dicts
+      use input_old_text_format
       use module_atoms, only: atomic_structure, &
            deallocate_atomic_structure, &
            read_atomic_file => set_astruct_from_file, &
@@ -148,10 +151,16 @@ MODULE NEB_routines
          ! Set-up naming scheme for image i
          nullify(dict_min)
          call bigdft_set_run_properties(dict_min, &
-              & run_id    = trim(job_name) // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
-              & input_id  = trim(run_id)   // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
-              & posinp_id = trim(posinp1)  // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
+              & run_id    = job_name+i**'(i3)', &
+              & input_id  = run_id+i**'(i3)', &
+              & posinp_id = posinp1+i**'(i3)', &
               & run_from_files = .true.)
+!!$         call bigdft_set_run_properties(dict_min, &
+!!$              & run_id    = trim(job_name) // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
+!!$              & input_id  = trim(run_id)   // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
+!!$              & posinp_id = trim(posinp1)  // trim(adjustl(yaml_toa(i,fmt='(i3)'))), &
+!!$              & run_from_files = .true.)
+
          call dict_copy(dict, dict_min)
          call add(options // 'BigDFT', dict_min)
 
@@ -234,6 +243,7 @@ MODULE NEB_routines
     
     SUBROUTINE search_MEP(options)
       use yaml_output
+      use yaml_strings, only: yaml_toa
       use bigdft_run
 
       IMPLICIT NONE

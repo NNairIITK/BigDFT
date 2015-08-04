@@ -16,6 +16,7 @@ program PS_Integral
   use dynamic_memory
   use m_profiling
   use reformatting
+  use yaml_strings
   implicit none
   integer :: n_points, n_range, n_scf, itype_scf
   integer, dimension(1:7) :: n_points_list = 0
@@ -523,7 +524,7 @@ stop
         !compare the gaussians together
 !        n_range=200
         if (i==1) call discretize_gaussian(n_range,1.d0,pgauss(j),0.1_gp,&
-             hgrid,'gaussian'//trim(adjustl(yaml_toa(j))))
+             hgrid,'gaussian'+j)
      end do
 
 !stop

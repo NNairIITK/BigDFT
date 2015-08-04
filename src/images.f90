@@ -843,6 +843,7 @@ contains
 
   subroutine images_output_step(imgs, full, iteration, tol)
     use yaml_output
+    use yaml_strings
     implicit none
     type(run_image), dimension(:), intent(in) :: imgs
     logical, intent(in), optional :: full
@@ -1170,7 +1171,9 @@ subroutine image_calculate(img, iteration, id)
   use module_base, only: bigdft_mpi
   use module_types
   use module_images
-  use bigdft_run, only: bigdft_state,bigdft_write_atomic_file
+  use yaml_strings
+  use bigdft_run, only: bigdft_state,bigdft_write_atomic_file,bigdft_set_input_policy,&
+       INPUT_POLICY_SCRATCH,INPUT_POLICY_MEMORY
   implicit none
   type(run_image), intent(inout) :: img
   integer :: iteration
@@ -1183,8 +1186,10 @@ subroutine image_calculate(img, iteration, id)
   !Because (tm) (DC)
   ! in details, because the worker may run several images, so it should
   ! restart from scratch since positions may be very different.
-  img%run%inputs%inputpsiid = 0
-  if (iteration > 0 .and. abs(img%id - id) < 2) img%run%inputs%inputpsiid = 1
+  !img%run%inputs%inputpsiid = 0
+  call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,img%run)
+  if (iteration > 0 .and. abs(img%id - id) < 2) &
+       call bigdft_set_input_policy(INPUT_POLICY_MEMORY,img%run) !img%run%inputs%inputpsiid = 1
 
   unit_log = 0
   img%id = id

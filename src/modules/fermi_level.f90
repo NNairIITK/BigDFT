@@ -319,14 +319,21 @@ module fermi_level
                   if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','linear interpolation')
               end if
           else
-              ! Use mean value of bisection and secant method
-              ! Secant method solution
-              ef = f%efarr(2)-(f%sumnarr(2)-f%target_charge)*(f%efarr(2)-f%efarr(1))/(f%sumnarr(2)-f%sumnarr(1))
-              ! Add bisection solution
-              ef = ef + 0.5d0*(f%efarr(1)+f%efarr(2))
-              ! Take the mean value
-              ef = 0.5d0*ef
-              if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','bisection / secant method')
+              ! Use mean value of bisection and secant method if possible,
+              ! otherwise only the bisection.
+              ! Bisection solution
+              ef = 0.5d0*(f%efarr(1)+f%efarr(2))
+              !write(*,'(a,i6,5es16.7)') 'iproc, f%efarr, f%sumnarr, f%target_charge', &
+              !     bigdft_mpi%iproc, f%efarr, f%sumnarr, f%target_charge
+              if (abs(f%sumnarr(2)-f%sumnarr(1))>1.d-6) then !otherwise secant method numerically unstable
+                  ! Add Secant method solution
+                  ef = ef + f%efarr(2)-(f%sumnarr(2)-f%target_charge)*(f%efarr(2)-f%efarr(1))/(f%sumnarr(2)-f%sumnarr(1))
+                  ! Take the mean value
+                  ef = 0.5d0*ef
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','bisection / secant method')
+              else
+                  if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) call yaml_map('method','bisection method')
+              end if
           end if
           if (f%verbosity>=1 .and. bigdft_mpi%iproc==0) then
               call yaml_map('guess for new ef',ef,fmt='(es15.8)')

@@ -186,7 +186,10 @@ elif pseudo:
 else:
     def line_junk(line):
         "Always False except for Hostname"
-        return "Hostname" in line
+        return "Hostname" in line \
+            or "Memory Peak of process" in line \
+            or "Walltime since initialization" in line \
+            or "RUN TIME" in line
 
 #Check the last line
 end_line = "Memory Consumption Report" 

@@ -11,6 +11,7 @@ program GPS_3D
    use dictionaries
    use time_profiling
    use f_utils
+   use yaml_strings
    implicit none
    
    !now these parameters have to be specified from the command line
@@ -23,6 +24,7 @@ program GPS_3D
    ! To set 1 for analytical epsilon, 2 for analytical electron dependence,
    ! 3 for real electron density from cube file, 4 for rigid cavity.
    integer :: SetEps! = 1!3 
+   logical :: usegpu
 
    real(kind=8), parameter :: acell = 10.d0
    real(kind=8), parameter :: rad_cav = 1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
@@ -46,13 +48,13 @@ program GPS_3D
    !integer :: m1,m2,m3,md1,md2,md3,nd1,nd2,nd3,n1,n2,n3,
    integer :: itype_scf,i_all,i_stat,n_cell,iproc,nproc,ixc,n01,n02,n03,iat
    real(kind=8) :: hx,hy,hz,freq,fz,fz1,fz2,pi,curr,average,CondNum,wcurr,ave1,ave2,rhores2,En1,En2,dVnorm,hgrid,sume,delta
-   real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,sum,einit
+   real(kind=8) :: Adiag,ersqrt,ercurr,factor,r,r2,max_diff,max_diffpot,fact,x1,x2,x3,derf_tt,diffcurr,diffcurrS,divprod,einit
    real(kind=8) :: ehartree,offset,epol
    real(kind=8), dimension(:,:,:,:), allocatable :: density,rhopot,rvApp,rhoele,rhoion,potsol
 
    ! Now start modification for check.
    real(kind=8), dimension(:,:,:,:,:), allocatable :: dens_check,pot_check
-   integer :: i_check,unt
+   integer :: i_check,unt,igpu
    ! To set 1 for normal run, 3 for check V[\rho,\epsilon] + V[\rho_ion,epsilon] is = to V[\rho + \rho_ion, epsilon]
    integer, parameter :: n_check = 1 
 
@@ -88,7 +90,12 @@ program GPS_3D
 !!$giu
    geocode=options//'geocode'
    SetEps =options//'seteps'
+   usegpu = options // 'accel'
    call dict_free(options)
+
+
+   igpu=0
+   if (usegpu) igpu=1
 
    n01=ndims(1)
    n02=ndims(2)
@@ -168,6 +175,7 @@ program GPS_3D
 
    hgrids=(/hx,hy,hz/)
 
+   ehartree=0.0
 !------------------------------------------------------------------------
 
 !------------------------------------------------------------------------
@@ -250,11 +258,10 @@ program GPS_3D
 !   corr=0.d0
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
-   call SetInitDensPot(n01,n02,n03,nspden,iproc,nat,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,acell,&
-        a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz)
-        !a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp)
-!   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,acell,a_gauss,a2,&
-!   hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
+   call SetInitDensPot(n01,n02,n03,nspden,iproc,nat,eps,dlogeps,sigmaeps,SetEps,&
+        erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz)
+!   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,&
+!   acell,a_gauss,a2,hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
 
 !   eps=1.d0
 !   corr=0.d0
@@ -267,7 +274,7 @@ geocodeprova='F'
    call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,5,multp)
 
   if (iproc==0) then
-   write(*,*)'Comparison between Generalized Poisson operator and analytical density'
+   call yaml_comment('Comparison between Generalized Poisson operator and analytical density',hfill='-')
    call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
   end if
 
@@ -277,8 +284,8 @@ geocodeprova='F'
    call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,SetEps,multp)
 
   if (iproc==0) then
-   write(*,*)'Comparison between Poisson-Boltzmann operator and analytical density'
-   call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
+     call yaml_comment('Comparison between Poisson-Boltzmann operator and analytical density')
+     call writeroutinePot(n01,n02,n03,1,density,0,rvApp)
   end if
 
 !!$   max_diffpot = 0.d0
@@ -311,9 +318,10 @@ geocodeprova='F'
 
  do i_check=1,n_check
  
-  if (n_check.eq.3 .and. SetEps.eq.3) then
-   write(*,'(a)')'--------------------------------------------------------------------------------------------'
-   write(*,'(a,i4)')'Calculation for ion+ele potential difference',i_check
+  if (n_check.eq.3 .and. SetEps.eq.3 .and. iproc==0) then
+     !write(*,'(a)')'--------------------------------------------------------------------------------------------'
+     call yaml_comment('Calculation for ion+ele potential difference '//i_check**'(i4)',hfill='-')
+     !write(*,'(a,i4)')'Calculation for ion+ele potential difference',i_check
   end if
 
 !  if (SetEps.eq.3) then
@@ -323,7 +331,7 @@ geocodeprova='F'
 !  end if
 
   !new method
-  pkernel=pkernel_init(.true.,iproc,nproc,0,geocode,ndims,hgrids,itype_scf,alg=PSol)
+  pkernel=pkernel_init(.true.,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,alg=PSol)
   call pkernel_set(pkernel,verbose=.true.)
 
   if ( trim(PSol)=='PCG') then
@@ -377,19 +385,20 @@ geocodeprova='F'
 !!$     call f_err_throw('Unrecognized method (provided "'//trim(PSol)//'")')
   end if
 
-  if (any(SetEps == [2,3,4])) then
-   call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
-  else if (any(SetEps == [5])) then
-  call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,&
-   SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode)
-!  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
-!  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,&
-!  nord,pkernel,potential,oneoeps,dlogeps,multp,offset)
-  else if (any(SetEps == [6])) then
-   call Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp)
-!   call Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
-!   eps,6,nord,pkernel,potential,corr,oneosqrteps,multp)
-  end if
+  select case(SetEps)
+     !if (any(SetEps == [2,3,4])) then
+  case(2,3,4)
+     call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
+  case(5)
+  !else if (any(SetEps == [5])) then
+     call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
+          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode)
+     !  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+  case(6)
+  !else if (any(SetEps == [6])) then
+     call Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp)
+     !   call Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,6,nord,pkernel,potential,corr,oneosqrteps,multp)
+  end select
 
   pot_check(:,:,:,:,i_check) = rhopot(:,:,:,:)
 
@@ -577,7 +586,7 @@ subroutine PS_Check_options(parser)
        dict_new("PI" .is. 'Polarization iteration Method',&
                 "PCG" .is. 'Preconditioned Conjugate Gradient')))
 
-  call yaml_cl_parse_option(parser,'seteps','1',&
+  call yaml_cl_parse_option(parser,'seteps','2',&
        'Epsilon determination method','e',&
        dict_new('Usage' .is. &
        'Set the dielectric constant determination method.',&
@@ -586,6 +595,10 @@ subroutine PS_Check_options(parser)
                 '2' .is. 'analytical electron dependence',&
                 '3' .is. 'real electron density from cube file (need electroninc_density.cube)')))
 
+  call yaml_cl_parse_option(parser,'accel','No',&
+       'GPU Acceleration','a',&
+       dict_new('Usage' .is. &
+       'Boolean, set the GPU acceleration'))
 
 end subroutine PS_Check_options
 
@@ -705,7 +718,8 @@ pure function PB_charge(x) result(ions_conc)
 
 end function PB_charge
 
-subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,&
+     hx,hy,hz,b,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
   use yaml_output
   use Poisson_Solver
   use wrapper_linalg
@@ -902,9 +916,8 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,n
 
 end subroutine PolarizationIteration
 
-subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,&
-     SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset,geocode)
-     !SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset)
+subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
+     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset,geocode)
 
   use Poisson_Solver
   use yaml_output
@@ -1148,8 +1161,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps
         qval=q(i1,i2,i3,isp)
         rval=r(i1,i2,i3,isp)
         pval = zeta+(beta/beta0)*pval
-        ! Additional contribution to the Generalized Poisson operator
-        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta)
+        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
                                                                           ! for the Poisson-Boltzmann solution.
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*zeta)
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta*dcosh(multp*x(i1,i2,i3,isp))
@@ -1585,8 +1597,8 @@ subroutine Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,SetEp
 
 end subroutine Poisson_Boltzmann
 
-subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,acell,eps,&
-     SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp)
+subroutine Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
+     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp)
 
   use Poisson_Solver
   use yaml_output
@@ -1920,13 +1932,14 @@ end subroutine Poisson_Boltzmann_improved
 subroutine EPS_iter_output_LG(iter,normb,normr,ratio,alpha,beta)
   !use module_defs, only: dp
   use yaml_output
+  use yaml_strings
   implicit none
   integer, intent(in) :: iter
   integer, parameter :: dp=8
   real(dp), intent(in) :: normb,normr,ratio,beta,alpha
 
   call yaml_mapping_open('Iteration quality',flow=.true.)
-  call yaml_comment('Iteration '//trim(yaml_toa(iter)),hfill='_')
+  call yaml_comment('Iteration '//iter,hfill='_')
   !write the PCG iteration
   call yaml_map('iter',iter,fmt='(i4)')
   !call yaml_map('rho_norm',normb)
@@ -2087,7 +2100,7 @@ subroutine FluxSurface(n01,n02,n03,nspden,hx,hy,hz,x,acell,eps,nord)
 
   pi = 4.d0*datan(1.d0)
 
-   call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+   call fssnord3DmatNabla("S ",n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
 
      flux=0.d0
       isp=1
@@ -2156,7 +2169,7 @@ subroutine ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,S
   ddx=f_malloc([n01,n02,n03,nspden],id='ddx')
   dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
   deps=f_malloc([n01,n02,n03,3],id='deps')
-  write(*,*)geocode
+  !write(*,*)geocode
   call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
 
       isp=1
@@ -2225,7 +2238,7 @@ subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
   dx=f_malloc([n01,n02,n03,nspden,3],id='dx')
   deps=f_malloc([n01,n02,n03,3],id='deps')
 
-  call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
+  call fssnord3DmatNabla("F ",n01,n02,n03,nspden,hx,hy,hz,x,dx,nord,acell)
 
       isp=1
       do i3=1,n03
@@ -2238,7 +2251,7 @@ subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
        end do
       end do
 
-   call fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
+   call fssnord3DmatDiv("F ",n01,n02,n03,nspden,hx,hy,hz,dx,y,nord,acell)
 
      i3=1!n03/2
      do i2=1,n02
@@ -3218,7 +3231,6 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   use yaml_output
   use f_utils
   use numerics, only: safe_exp
-  use module_defs, only : Bohr_Ang,bigdft_mpi
 
   implicit none
   integer, intent(in) :: n01
@@ -3633,8 +3645,8 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   rxyz(1:3,1:nat)=rxyztot(1:3,1:nat)
 
   if (iproc==0) then
-   write(*,*)plandist
-   write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value max =',valuemax,'at bc side',imax
+     !write(*,*)plandist
+     !write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value max =',valuemax,'at bc side',imax
    call yaml_map('nat',nat)
    do iat=1,nat
     call yaml_map('atom',iat)
@@ -3676,7 +3688,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
    end do
 
    offset=offset*hx*hy*hz
-   write(*,*)'offset',offset
+   call yaml_map('offset',offset)
    switch=0.0d0
    if (SetEps.eq.6) then
     switch=1.0d0
@@ -4100,8 +4112,8 @@ subroutine SetEpsilon(n01,n02,n03,nspden,nord,nat,iproc,acell,a_gauss,hx,hy,hz,&
     call SetEledens(n01,n02,n03,nspden,nord,acell,a_gauss,hx,hy,hz,SetEps,edens,nabla_edens,ddt_edens)
    else if (SetEps.eq.3) then
     edens(:,:,:,:) = rhoele(:,:,:,:)
-    call fssnord3DmatNabla(n01,n02,n03,nspden,hx,hy,hz,edens,nabla_edens,nord,acell)
-    call fssnord3DmatDiv(n01,n02,n03,nspden,hx,hy,hz,nabla_edens,ddt_edens,nord,acell)
+    call fssnord3DmatNabla(geocode,n01,n02,n03,nspden,hx,hy,hz,edens,nabla_edens,nord,acell)
+    call fssnord3DmatDiv(geocode,n01,n02,n03,nspden,hx,hy,hz,nabla_edens,ddt_edens,nord,acell)
    end if
 
 !   r2=(rad_cav/0.52917721092d0)**2
@@ -4680,7 +4692,6 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rx
   use dynamic_memory
   use yaml_output
   use f_utils
-  use module_defs, only : Bohr_Ang,bigdft_mpi
   use f_enums
   implicit none
   integer, intent(in) :: natreal !< number of centres defining the cavity
@@ -4830,8 +4841,8 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rx
    radii(1:nat)=radiitot(1:nat)
 
    if (iproc==0) then
-    write(*,*)plandist
-    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
+      !write(*,*)plandist
+      !write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
     call yaml_map('nat',nat)
     do iat=1,nat
      call yaml_map('atom',iat)
@@ -4956,6 +4967,7 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rx
     end function epsl
 
     pure function d1eps(r,rc,delta)
+      use numerics, only: safe_exp
       implicit none
       real(kind=8), intent(in) :: r,rc,delta
       real(kind=8) :: d1eps
@@ -4963,7 +4975,7 @@ subroutine Eps_rigid_cavity_multiatoms(ndims,nspden,nord,acell,hgrids,natreal,rx
       real(kind=8) :: d
 
       d=(r-rc)/delta
-      d1eps=(1.d0/(delta*sqrt(pi)))*max(exp(-d**2),1.0d-24)
+      d1eps=(1.d0/(delta*sqrt(pi)))*max(safe_exp(-d**2),1.0d-24)
     end function d1eps
 
 end subroutine Eps_rigid_cavity_multiatoms

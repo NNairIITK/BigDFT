@@ -23,17 +23,8 @@ module module_atoms
        & ASTRUCT_ATT_IXYZ_2, ASTRUCT_ATT_IXYZ_3, &
        & ASTRUCT_ATT_RXYZ_INT_1, ASTRUCT_ATT_RXYZ_INT_2, ASTRUCT_ATT_RXYZ_INT_3
   implicit none
-  private
 
-  !> Source of the radii coefficients
-  integer, parameter, public :: RADII_SOURCE_HARD_CODED = 1
-  integer, parameter, public :: RADII_SOURCE_FILE = 2
-  integer, parameter, public :: RADII_SOURCE_USER = 3
-  integer, parameter, public :: RADII_SOURCE_UNKNOWN = 4
-  character(len=*), dimension(4), parameter, public :: RADII_SOURCE = (/ "Hard-Coded  ", &
-                                                                         "PSP File    ", &
-                                                                         "User defined", &
-                                                                         "Unknown     " /)
+  private
 
   !> Quantities used for the symmetry operators. To be used in atomic_structure derived type.
   type, public :: symmetry_data
@@ -118,10 +109,14 @@ module module_atoms
   public :: set_astruct_from_file,astruct_dump_to_file
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
-  public :: atomic_data_set_from_dict
-
-  public :: atoms_iter,atoms_iter_next
-  public :: atoms_iterator_null,nullify_atoms_iterator
+  public :: atomic_data_set_from_dict,atoms_iter,atoms_iter_next
+  ! Dictionary inquire
+  public :: astruct_dict_get_types
+  ! Types from dictionaries
+  public :: astruct_set_from_dict
+  public :: astruct_file_merge_to_dict
+  public :: psp_dict_analyse, nlcc_set_from_dict,psp_set_from_dict
+  public :: atoms_file_merge_to_dict,psp_dict_fill_all
 
 
 contains
@@ -432,8 +427,8 @@ contains
       use ao_inguess, only: ao_ig_charge,atomic_info,aoig_set_from_dict,&
            print_eleconf,aoig_set
       use dictionaries
-      use yaml_output, only: yaml_warning, yaml_toa, yaml_dict_dump
-      use yaml_strings, only: f_strcpy
+      use yaml_output, only: yaml_warning, yaml_dict_dump
+      use yaml_strings, only: f_strcpy, yaml_toa
       use dynamic_memory
       implicit none
       type(dictionary), pointer :: dict
@@ -451,9 +446,9 @@ contains
 
       !number of atoms with semicore channels
       atoms%natsc = 0
-
+!!!!!$omp parallel private(it)
       !iterate above atoms
-      it=atoms_iter(atoms%astruct)
+      it=atoms_iter(atoms%astruct) !,omp=.true.)
       !python method
       do while(atoms_iter_next(it))
 !!$      !fortran method
@@ -473,7 +468,8 @@ contains
             !override by particular atom if present
             call f_strcpy(src="Atom "//trim(adjustl(yaml_toa(it%iat))),dest=at)
             dict_tmp = dict // key .get. at
-            if (.not. associated(dict_tmp)) dict_tmp = dict // key .get. it%name
+            if (.not. associated(dict_tmp)) dict_tmp = &
+                 dict // key .get. it%name
             !therefore the aiog structure has to be rebuilt
             !according to the dictionary
             if (associated(dict_tmp)) then
@@ -603,7 +599,7 @@ contains
     subroutine set_astruct_from_file(file,iproc,astruct,comment,energy,fxyz,disableTrans)
       use module_base
       use dictionaries, only: set, dictionary
-      use yaml_output, only : yaml_toa
+      use yaml_strings, only : yaml_toa
       use internal_coordinates, only: internal_to_cartesian
       implicit none
       !Arguments
@@ -1121,6 +1117,244 @@ contains
       end do
     end subroutine astruct_at_from_dict
 
+    subroutine astruct_dict_get_types(dict, types)
+      use dictionaries
+      implicit none
+      type(dictionary), pointer :: dict, types
+
+      type(dictionary), pointer :: atoms, at
+      character(len = max_field_length) :: str
+      integer :: ityp
+
+      if (ASTRUCT_POSITIONS .notin. dict) then
+         nullify(types)
+         return
+      end if
+      call dict_init(types)
+      ityp = 0
+      atoms => dict_iter(dict // ASTRUCT_POSITIONS)
+      do while(associated(atoms))
+         at => dict_iter(atoms)
+         do while(associated(at))
+            str = dict_key(at)
+            if (dict_len(at) == 3 .and. .not. has_key(types, str)) then
+               ityp = ityp + 1
+               call set(types // str, ityp)
+               nullify(at)
+            else
+               at => dict_next(at)
+            end if
+         end do
+         atoms => dict_next(atoms)
+      end do
+    end subroutine astruct_dict_get_types
+
+    !> Read Atomic positions and merge into dict
+    subroutine astruct_file_merge_to_dict(dict, key, filename)
+      use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
+           & BIGDFT_INPUT_FILE_ERROR,f_free_ptr
+      use public_keys, only: POSINP,GOUT_FORCES,GOUT_ENERGY,POSINP_SOURCE
+      use yaml_strings
+      use dictionaries
+      use module_input_dicts, only: dict_get_run_properties
+      implicit none
+      !Arguments
+      type(dictionary), pointer :: dict          !< Contains (out) all the information
+      character(len = *), intent(in) :: key      !< Key of the dictionary where it should be have the information
+      character(len = *), intent(in) :: filename !< Name of the filename where the astruct should be read
+      !Local variables
+      type(atomic_structure) :: astruct
+      !type(DFT_global_output) :: outs
+      character(len=max_field_length) :: msg,radical
+      integer :: ierr,iat
+      real(gp) :: energy
+      real(gp), dimension(:,:), pointer :: fxyz
+      type(dictionary), pointer :: dict_tmp,pos
+
+
+      call f_routine(id='astruct_file_merge_to_dict')
+      ! Read atomic file, old way
+      call nullify_atomic_structure(astruct)
+      !call nullify_global_output(outs)
+      !Try to read the atomic coordinates from files
+      call f_err_open_try()
+      nullify(fxyz)
+      call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
+           energy = energy, fxyz = fxyz)
+      !print *,'test2',associated(fxyz)
+      !Check if BIGDFT_INPUT_FILE_ERROR
+      ierr = f_get_last_error(msg) 
+      call f_err_close_try()
+      if (ierr == 0) then
+         dict_tmp => dict // key
+         !No errors: we have all information in astruct and put into dict
+
+         call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
+
+         call set(dict_tmp // ASTRUCT_PROPERTIES // POSINP_SOURCE, filename)
+
+         if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
+         if (associated(fxyz)) then
+            pos => dict_tmp // GOUT_FORCES
+            do iat=1,astruct%nat
+               call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. fxyz(:,iat)))
+            end do
+         end if
+
+         if (GOUT_ENERGY .in. dict_tmp) call dict_remove(dict_tmp, GOUT_ENERGY)
+         if (energy /= UNINITIALIZED(energy)) call set(dict_tmp // GOUT_ENERGY, energy)
+         !call global_output_merge_to_dict(dict // key, outs, astruct)
+         call deallocate_atomic_structure(astruct)
+
+      else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
+         !Found no file: maybe already inside the yaml file ?
+         !Check if posinp is in dict
+         if ( POSINP .notin.  dict) then
+            ! Raise an error
+            call f_strcpy(src='input',dest=radical)
+            !modify the radical name if it exists
+            call dict_get_run_properties(dict, input_id = radical)
+            msg = "No section 'posinp' for the atomic positions in the file '"//&
+                 trim(radical) // ".yaml'. " // trim(msg)
+            call f_err_throw(err_msg=msg,err_id=ierr)
+         end if
+      else 
+         ! Raise an error
+         call f_err_throw(err_msg=msg,err_id=ierr)
+      end if
+      call f_free_ptr(fxyz)
+      !call deallocate_global_output(outs)
+      call f_release_routine()
+
+    end subroutine astruct_file_merge_to_dict
+
+
+    !> Allocate the astruct variable from the dictionary of input data
+    !! retrieve also other information like the energy and the forces if requested
+    !! and presend in the dictionary
+    subroutine astruct_set_from_dict(dict, astruct, comment)
+      use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
+      use dynamic_memory
+      use dictionaries
+      implicit none
+      !Arguments
+      type(dictionary), pointer :: dict !< dictionary of the input variables
+      !! the keys have to be declared like input_dicts module
+      type(atomic_structure), intent(out) :: astruct          !< Structure created from the file
+      character(len = 1024), intent(out), optional :: comment !< Extra comment retrieved from the file if present
+      !local variables
+      character(len=*), parameter :: subname='astruct_set_from_dict'
+      type(dictionary), pointer :: pos, at, types
+      character(len = max_field_length) :: str
+      integer :: iat, ityp, units, igspin, igchrg, ntyp
+
+      call f_routine(id='astruct_set_from_dict')
+
+      call nullify_atomic_structure(astruct)
+      astruct%nat = -1
+      if (present(comment)) write(comment, "(A)") " "
+
+      ! The units
+      units = 0
+      write(astruct%units, "(A)") "bohr"
+      if (has_key(dict, ASTRUCT_UNITS)) astruct%units = dict // ASTRUCT_UNITS
+      select case(trim(astruct%units))
+      case('atomic','atomicd0','bohr','bohrd0')
+         units = 0
+      case('angstroem','angstroemd0')
+         units = 1
+      case('reduced')
+         units = 2
+      end select
+      ! The cell
+      astruct%cell_dim = 0.0_gp
+      if (.not. has_key(dict, ASTRUCT_CELL)) then
+         astruct%geocode = 'F'
+      else
+         astruct%geocode = 'P'
+         ! z
+         astruct%cell_dim(3) = dict // ASTRUCT_CELL // 2
+         ! y
+         str = dict // ASTRUCT_CELL // 1
+         if (trim(str) == ".inf") then
+            astruct%geocode = 'S'
+         else
+            astruct%cell_dim(2) = dict // ASTRUCT_CELL // 1
+         end if
+         ! x
+         str = dict // ASTRUCT_CELL // 0
+         if (trim(str) == ".inf") then
+            astruct%geocode = 'W'
+         else
+            astruct%cell_dim(1) = dict // ASTRUCT_CELL // 0
+         end if
+      end if
+      if (units == 1) astruct%cell_dim = astruct%cell_dim / Bohr_Ang
+      ! The types
+      call astruct_dict_get_types(dict, types)
+      ntyp = max(dict_size(types),0) !if types is nullified ntyp=-1
+      call astruct_set_n_types(astruct, ntyp)
+      ! astruct%atomnames = dict_keys(types)
+      ityp = 1
+      at => dict_iter(types)
+      do while (associated(at))
+         astruct%atomnames(ityp) = trim(dict_key(at))
+         ityp = ityp + 1
+         at => dict_next(at)
+      end do
+      ! The atoms
+      if (ASTRUCT_POSITIONS .in. dict) then
+         pos => dict // ASTRUCT_POSITIONS
+         call astruct_set_n_atoms(astruct, dict_len(pos))
+         at => dict_iter(pos)
+         do while(associated(at))
+            iat = dict_item(at) + 1
+
+            call astruct_at_from_dict(at, str, rxyz_add = astruct%rxyz(1, iat), &
+                 & ifrztyp = astruct%ifrztyp(iat), igspin = igspin, igchrg = igchrg, &
+                 & ixyz_add = astruct%ixyz_int(1,iat), rxyz_int_add = astruct%rxyz_int(1,iat))
+            astruct%iatype(iat) = types // str
+            astruct%input_polarization(iat) = 1000 * igchrg + sign(1, igchrg) * 100 + igspin
+
+            if (units == 1) then
+               astruct%rxyz(1,iat) = astruct%rxyz(1,iat) / Bohr_Ang
+               astruct%rxyz(2,iat) = astruct%rxyz(2,iat) / Bohr_Ang
+               astruct%rxyz(3,iat) = astruct%rxyz(3,iat) / Bohr_Ang
+            endif
+            if (units == 2) then !add treatment for reduced coordinates
+               if (astruct%cell_dim(1) > 0.) astruct%rxyz(1,iat)=&
+                    modulo(astruct%rxyz(1,iat),1.0_gp) * astruct%cell_dim(1)
+               if (astruct%cell_dim(2) > 0.) astruct%rxyz(2,iat)=&
+                    modulo(astruct%rxyz(2,iat),1.0_gp) * astruct%cell_dim(2)
+               if (astruct%cell_dim(3) > 0.) astruct%rxyz(3,iat)=&
+                    modulo(astruct%rxyz(3,iat),1.0_gp) * astruct%cell_dim(3)
+            else if (astruct%geocode == 'P') then
+               astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
+               astruct%rxyz(2,iat)=modulo(astruct%rxyz(2,iat),astruct%cell_dim(2))
+               astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+            else if (astruct%geocode == 'S') then
+               astruct%rxyz(1,iat)=modulo(astruct%rxyz(1,iat),astruct%cell_dim(1))
+               astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+            else if (astruct%geocode == 'W') then
+               astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
+            end if
+            at => dict_next(at)
+         end do
+      else
+         call astruct_set_n_atoms(astruct,0)
+      end if
+
+      if (has_key(dict, ASTRUCT_PROPERTIES)) then
+         pos => dict // ASTRUCT_PROPERTIES
+         if (has_key(pos, "info") .and. present(comment)) comment = pos // "info"
+         if (has_key(pos, "format")) astruct%inputfile_format = pos // "format"
+      end if
+
+      call dict_free(types)
+
+      call f_release_routine()
+
+    end subroutine astruct_set_from_dict
 
     include 'astruct-inc.f90'
 
@@ -1134,6 +1368,656 @@ contains
       call allocate_atoms_nat(atoms)
       call allocate_atoms_ntypes(atoms)
     end subroutine allocate_atoms_data
+
+    !> Fill up the atoms structure from dict
+    subroutine psp_dict_analyse(dict, atoms)
+      use module_defs, only: gp
+      use m_pawrad, only: pawrad_type, pawrad_nullify
+      use m_pawtab, only: pawtab_type, pawtab_nullify
+      use public_enums, only: PSPCODE_PAW
+      use public_keys, only: SOURCE_KEY
+      use dynamic_memory
+      use dictionaries
+      implicit none
+      !Arguments
+      type(dictionary), pointer :: dict        !< Input dictionary
+      type(atoms_data), intent(inout) :: atoms !Atoms structure to fill up
+      !Local variables
+      integer :: ityp, ityp2
+      character(len = 27) :: filename
+      real(gp), dimension(3) :: radii_cf
+      real(gp) :: rloc
+      real(gp), dimension(4) :: lcoeff
+      real(gp), dimension(4,0:6) :: psppar
+      logical :: pawpatch, l
+      integer :: paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices
+      character(len = max_field_length) :: fpaw
+
+      call f_routine(id='psp_dict_analyse')
+
+      if (.not. associated(atoms%nzatom)) then
+         call allocate_atoms_data(atoms)
+      end if
+
+      pawpatch = .true.
+      do ityp=1,atoms%astruct%ntypes
+         filename = 'psppar.'//atoms%astruct%atomnames(ityp)
+         call psp_set_from_dict(dict // filename, l, &
+              & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &
+              & atoms%ixcpsp(ityp), atoms%iradii_source(ityp), radii_cf, rloc, lcoeff, psppar)
+         !To eliminate the runtime warning due to the copy of the array (TD)
+         atoms%radii_cf(ityp,:)=radii_cf(:)
+         atoms%psppar(0,0,ityp)=rloc
+         atoms%psppar(0,1:4,ityp)=lcoeff
+         atoms%psppar(1:4,0:6,ityp)=psppar
+
+         l = .false.
+         if (has_key(dict // filename, "PAW patch")) l = dict // filename // "PAW patch"
+         pawpatch = pawpatch .and. l
+
+         ! PAW case.
+         if (l .and. atoms%npspcode(ityp) == PSPCODE_PAW) then
+            ! Allocate the PAW arrays on the fly.
+            if (.not. associated(atoms%pawrad)) then
+               allocate(atoms%pawrad(atoms%astruct%ntypes))
+               allocate(atoms%pawtab(atoms%astruct%ntypes))
+               do ityp2 = 1, atoms%astruct%ntypes
+                  call pawrad_nullify(atoms%pawrad(ityp2))
+                  call pawtab_nullify(atoms%pawtab(ityp2))
+               end do
+            end if
+            ! Re-read the pseudo for PAW arrays.
+            fpaw = dict // filename // SOURCE_KEY
+            !write(*,*) 'Reading of PAW atomic-data, under development', trim(fpaw)
+            call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), trim(fpaw), &
+                 & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%ixcpsp(ityp))
+         end if
+      end do
+      call nlcc_set_from_dict(dict, atoms)
+
+      !For PAW psp
+      if (pawpatch.and. any(atoms%npspcode /= PSPCODE_PAW)) then
+         paw_tot_l=0
+         paw_tot_q=0
+         paw_tot_coefficients=0
+         paw_tot_matrices=0
+         do ityp=1,atoms%astruct%ntypes
+            filename = 'psppar.'//atoms%astruct%atomnames(ityp)
+            call pawpatch_from_file( filename, atoms,ityp,&
+                 paw_tot_l,  paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .false.)
+         end do
+         do ityp=1,atoms%astruct%ntypes
+            filename = 'psppar.'//atoms%astruct%atomnames(ityp)
+            !! second time allocate and then store
+            call pawpatch_from_file( filename, atoms,ityp,&
+                 paw_tot_l, paw_tot_q, paw_tot_coefficients, paw_tot_matrices, .true.)
+         end do
+      else
+         nullify(atoms%paw_l,atoms%paw_NofL,atoms%paw_nofchannels)
+         nullify(atoms%paw_nofgaussians,atoms%paw_Greal,atoms%paw_Gimag)
+         nullify(atoms%paw_Gcoeffs,atoms%paw_H_matrices,atoms%paw_S_matrices,atoms%paw_Sm1_matrices)
+      end if
+
+      call f_release_routine()
+
+    end subroutine psp_dict_analyse
+
+
+    subroutine nlcc_set_from_dict(dict, atoms)
+      use module_defs, only: gp
+      use dynamic_memory
+      use dictionaries
+      implicit none
+      type(dictionary), pointer :: dict
+      type(atoms_data), intent(inout) :: atoms
+      !local variables
+      type(dictionary), pointer :: nloc, coeffs
+      integer :: ityp, nlcc_dim, n, i
+      character(len=27) :: filename
+      intrinsic :: int
+
+      nlcc_dim = 0
+      do ityp = 1, atoms%astruct%ntypes, 1
+         atoms%nlcc_ngc(ityp)=0
+         atoms%nlcc_ngv(ityp)=0
+         filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
+         if (.not. has_key(dict, filename)) cycle    
+         if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) cycle
+         nloc => dict // filename // 'Non Linear Core Correction term'
+         if (has_key(nloc, "Valence") .or. has_key(nloc, "Core")) then
+            n = 0
+            if (has_key(nloc, "Valence")) n = dict_len(nloc // "Valence")
+            nlcc_dim = nlcc_dim + n
+            atoms%nlcc_ngv(ityp) = int((sqrt(real(1 + 8 * n)) - 1) / 2)
+            n = 0
+            if (has_key(nloc, "Core")) n = dict_len(nloc // "Core")
+            nlcc_dim = nlcc_dim + n
+            atoms%nlcc_ngc(ityp) = int((sqrt(real(1 + 8 * n)) - 1) / 2)
+         end if
+         if (has_key(nloc, "Rcore") .and. has_key(nloc, "Core charge")) then
+            nlcc_dim=nlcc_dim+1
+            atoms%nlcc_ngc(ityp)=1
+            atoms%nlcc_ngv(ityp)=0
+         end if
+      end do
+      atoms%donlcc = (nlcc_dim > 0)
+      atoms%nlccpar = f_malloc_ptr((/ 0 .to. 4, 1 .to. max(nlcc_dim,1) /), id = "nlccpar")
+      !start again the file inspection to fill nlcc parameters
+      if (atoms%donlcc) then
+         nlcc_dim=0
+         fill_nlcc: do ityp=1,atoms%astruct%ntypes
+            filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
+            !ALEX: These are preferably read from psppar.Xy, as stored in the
+            !local variables rcore and qcore
+            nloc => dict // filename // 'Non Linear Core Correction term'
+            if (has_key(nloc, "Valence") .or. has_key(nloc, "Core")) then
+               n = 0
+               if (has_key(nloc, "Valence")) n = dict_len(nloc // "Valence")
+               do i = 1, n, 1
+                  coeffs => nloc // "Valence" // (i - 1)
+                  atoms%nlccpar(:, nlcc_dim + i) = coeffs
+               end do
+               nlcc_dim = nlcc_dim + n
+               n = 0
+               if (has_key(nloc, "Core")) n = dict_len(nloc // "Core")
+               do i = 1, n, 1
+                  coeffs => nloc // "Core" // (i - 1)
+                  atoms%nlccpar(0, nlcc_dim + i) = coeffs // 0
+                  atoms%nlccpar(1, nlcc_dim + i) = coeffs // 1
+                  atoms%nlccpar(2, nlcc_dim + i) = coeffs // 2
+                  atoms%nlccpar(3, nlcc_dim + i) = coeffs // 3
+                  atoms%nlccpar(4, nlcc_dim + i) = coeffs // 4
+               end do
+               nlcc_dim = nlcc_dim + n
+            end if
+            if (has_key(nloc, "Rcore") .and. has_key(nloc, "Core charge")) then
+               nlcc_dim=nlcc_dim+1
+               atoms%nlcc_ngc(ityp)=1
+               atoms%nlcc_ngv(ityp)=0
+               atoms%nlccpar(0,nlcc_dim)=nloc // "Rcore"
+               atoms%nlccpar(1,nlcc_dim)=nloc // "Core charge"
+               atoms%nlccpar(2:4,nlcc_dim)=0.0_gp 
+            end if
+         end do fill_nlcc
+      end if
+    end subroutine nlcc_set_from_dict
+
+
+    !> Read old psppar file (check if not already in the dictionary) and merge to dict
+    subroutine atoms_file_merge_to_dict(dict)
+      use dictionaries
+      use yaml_output, only: yaml_warning
+      use public_keys, only: POSINP,SOURCE_KEY
+      implicit none
+      type(dictionary), pointer :: dict
+
+      type(dictionary), pointer :: types
+      character(len = max_field_length) :: str
+      integer :: iat, stypes
+      character(len=max_field_length), dimension(:), allocatable :: keys
+      character(len=27) :: key
+      logical :: exists
+
+      ! Loop on types for atomic data.
+      call astruct_dict_get_types(dict // POSINP, types)
+      if ( .not. associated(types)) return
+      allocate(keys(dict_size(types)))
+      keys = dict_keys(types)
+      stypes = dict_size(types)
+      do iat = 1, stypes, 1
+         key = 'psppar.' // trim(keys(iat))
+
+         exists = has_key(dict, key)
+         if (exists) then
+            if (has_key(dict // key, SOURCE_KEY)) then
+               str = dict_value(dict // key // SOURCE_KEY)
+            else
+               str = dict_value(dict // key)
+            end if
+            if (trim(str) /= "" .and. trim(str) /= TYPE_DICT) then
+               !Read the PSP file and merge to dict
+               if (trim(str) /= TYPE_LIST) then
+                  call psp_file_merge_to_dict(dict, key, filename = trim(str))
+               else
+                  call psp_file_merge_to_dict(dict, key, lstring = dict // key)
+               end if
+               if (.not. has_key(dict // key, 'Pseudopotential XC')) then
+                  call yaml_warning("Pseudopotential file '" // trim(str) // &
+                       & "' not found. Fallback to file '" // trim(key) // &
+                       & "' or hard-coded pseudopotential.")
+               end if
+            end if
+            exists = has_key(dict // key, 'Pseudopotential XC')
+         end if
+         if (.not. exists) call psp_file_merge_to_dict(dict, key, key)
+
+         exists = has_key(dict, key)
+         if (exists) exists = has_key(dict // key, 'Non Linear Core Correction term')
+         if (.not. exists) call nlcc_file_merge_to_dict(dict, key, 'nlcc.' // trim(keys(iat)))
+      end do
+      deallocate(keys)
+      call dict_free(types)
+    end subroutine atoms_file_merge_to_dict
+
+    subroutine nlcc_file_merge_to_dict(dict, key, filename)
+      use module_defs, only: gp, UNINITIALIZED
+      use yaml_strings
+      use dictionaries
+      implicit none
+      type(dictionary), pointer :: dict
+      character(len = *), intent(in) :: filename, key
+
+      type(dictionary), pointer :: psp, gauss
+      logical :: exists
+      integer :: i, ig, ngv, ngc
+      real(gp), dimension(0:4) :: coeffs
+
+      inquire(file=filename,exist=exists)
+      if (.not.exists) return
+
+      psp => dict // key
+
+      !read the values of the gaussian for valence and core densities
+      open(unit=79,file=filename,status='unknown')
+      read(79,*)ngv
+      if (ngv > 0) then
+         do ig=1,(ngv*(ngv+1))/2
+            call dict_init(gauss)
+            read(79,*) coeffs
+            do i = 0, 4, 1
+               call add(gauss, coeffs(i))
+            end do
+            call add(psp // 'Non Linear Core Correction term' // "Valence", gauss)
+         end do
+      end if
+
+      read(79,*)ngc
+      if (ngc > 0) then
+         do ig=1,(ngc*(ngc+1))/2
+            call dict_init(gauss)
+            read(79,*) coeffs
+            do i = 0, 4, 1
+               call add(gauss, coeffs(i))
+            end do
+            call add(psp // 'Non Linear Core Correction term' // "Core", gauss)
+         end do
+      end if
+
+      close(unit=79)
+    end subroutine nlcc_file_merge_to_dict
+
+    !> Read psp file and merge to dict
+    subroutine psp_file_merge_to_dict(dict, key, filename, lstring)
+      use module_defs, only: gp, UNINITIALIZED
+      use yaml_strings
+      use f_utils
+      use yaml_output
+      use dictionaries
+      use public_keys, only: SOURCE_KEY
+      implicit none
+      !Arguments
+      type(dictionary), pointer :: dict
+      character(len = *), intent(in) :: key
+      character(len = *), optional, intent(in) :: filename
+      type(dictionary), pointer, optional :: lstring
+      !Local variables
+      integer :: nzatom, nelpsp, npspcode, ixcpsp
+      real(gp) :: psppar(0:4,0:6), radii_cf(3), rcore, qcore
+      logical :: exists, donlcc, pawpatch
+      type(io_stream) :: ios
+
+      if (present(filename)) then
+         inquire(file=trim(filename),exist=exists)
+         if (.not. exists) return
+         call f_iostream_from_file(ios, filename)
+      else if (present(lstring)) then
+         call f_iostream_from_lstring(ios, lstring)
+      else
+         call f_err_throw("Error in psp_file_merge_to_dict, either 'filename' or 'lstring' should be present.", &
+              & err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      !ALEX: if npspcode==PSPCODE_HGH_K_NLCC, nlccpar are read from psppar.Xy via rcore and qcore 
+      call psp_from_stream(ios, nzatom, nelpsp, npspcode, ixcpsp, &
+           & psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
+      call f_iostream_release(ios)
+
+      if (has_key(dict, key)) call dict_remove(dict, key)
+      call psp_data_merge_to_dict(dict // key, nzatom, nelpsp, npspcode, ixcpsp, &
+           & psppar, radii_cf, rcore, qcore)
+      call set(dict // key // "PAW patch", pawpatch)
+      if (present(filename)) then
+         call set(dict // key // SOURCE_KEY, filename)
+      else
+         call set(dict // key // SOURCE_KEY, "In-line")
+      end if
+    end subroutine psp_file_merge_to_dict
+
+    !> Set the value for atoms_data from the dictionary
+    subroutine psp_set_from_dict(dict, valid, &
+         & nzatom, nelpsp, npspcode, ixcpsp, iradii_source, radii_cf, rloc, lcoeff, psppar)
+      use module_defs, only: gp, UNINITIALIZED
+      use public_enums
+      use dictionaries
+      use public_keys, rloc_fake => rloc
+      implicit none
+      !Arguments
+      type(dictionary), pointer :: dict
+      logical, intent(out), optional :: valid !< .true. if all required info for a pseudo are present
+      integer, intent(out), optional :: nzatom, nelpsp, npspcode, ixcpsp, iradii_source
+      real(gp), intent(out), optional :: rloc
+      real(gp), dimension(4), intent(out), optional :: lcoeff
+      real(gp), dimension(4,0:6), intent(out), optional :: psppar
+      real(gp), dimension(3), intent(out), optional :: radii_cf
+      !Local variables
+      type(dictionary), pointer :: loc
+      character(len = max_field_length) :: str
+      integer :: l
+
+      ! Default values
+      if (present(valid)) valid = .true.
+
+      ! Parameters
+      if (present(nzatom)) nzatom = -1
+      if (present(nelpsp)) nelpsp = -1
+      if (present(ixcpsp)) ixcpsp = -1
+      if (has_key(dict, ATOMIC_NUMBER) .and. present(nzatom))   nzatom = dict // ATOMIC_NUMBER
+      if (has_key(dict, ELECTRON_NUMBER) .and. present(nelpsp)) nelpsp = dict // ELECTRON_NUMBER
+      if (has_key(dict, PSPXC_KEY) .and. present(ixcpsp))       ixcpsp = dict // PSPXC_KEY
+      if (present(valid)) valid = valid .and. has_key(dict, ATOMIC_NUMBER) .and. &
+           & has_key(dict, ELECTRON_NUMBER) .and. has_key(dict, PSPXC_KEY)
+
+      ! Local terms
+      if (present(rloc))   rloc      = 0._gp
+      if (present(lcoeff)) lcoeff(:) = 0._gp
+      if (has_key(dict, LPSP_KEY)) then
+         loc => dict // LPSP_KEY
+         if (has_key(loc, "Rloc") .and. present(rloc)) rloc = loc // 'Rloc'
+         if (has_key(loc, "Coefficients (c1 .. c4)") .and. present(lcoeff)) lcoeff = loc // 'Coefficients (c1 .. c4)'
+         ! Validate
+         if (present(valid)) valid = valid .and. has_key(loc, "Rloc") .and. &
+              & has_key(loc, "Coefficients (c1 .. c4)")
+      end if
+
+      ! Nonlocal terms
+      if (present(psppar))   psppar(:,:) = 0._gp
+      if (has_key(dict, NLPSP_KEY) .and. present(psppar)) then
+         loc => dict_iter(dict // NLPSP_KEY)
+         do while (associated(loc))
+            if (has_key(loc, "Channel (l)")) then
+               l = loc // "Channel (l)"
+               l = l + 1
+               if (has_key(loc, "Rloc"))       psppar(l,0)   = loc // 'Rloc'
+               if (has_key(loc, "h_ij terms")) psppar(l,1:6) = loc // 'h_ij terms'
+               if (present(valid)) valid = valid .and. has_key(loc, "Rloc") .and. &
+                    & has_key(loc, "h_ij terms")
+            else
+               if (present(valid)) valid = .false.
+            end if
+            loc => dict_next(loc)
+         end do
+      end if
+
+      ! Type
+      if (present(npspcode)) npspcode = UNINITIALIZED(npspcode)
+      if (has_key(dict, PSP_TYPE) .and. present(npspcode)) then
+         str = dict // PSP_TYPE
+         select case(trim(str))
+         case("GTH")
+            npspcode = PSPCODE_GTH
+         case("HGH")
+            npspcode = PSPCODE_HGH
+         case("HGH-K")
+            npspcode = PSPCODE_HGH_K
+         case("HGH-K + NLCC")
+            npspcode = PSPCODE_HGH_K_NLCC
+            if (present(valid)) valid = valid .and. &
+                 & has_key(dict, 'Non Linear Core Correction term') .and. &
+                 & has_key(dict // 'Non Linear Core Correction term', "Rcore") .and. &
+                 & has_key(dict // 'Non Linear Core Correction term', "Core charge")
+         case("PAW")
+            npspcode = PSPCODE_PAW
+         case default
+            if (present(valid)) valid = .false.
+         end select
+      end if
+
+      ! Optional values.
+      if (present(iradii_source)) iradii_source = RADII_SOURCE_HARD_CODED
+      if (present(radii_cf))      radii_cf(:)   = UNINITIALIZED(1._gp)
+      if (has_key(dict, RADII_KEY)) then
+         loc => dict // RADII_KEY
+         if (has_key(loc, COARSE) .and. present(radii_cf))     radii_cf(1) = loc // COARSE
+         if (has_key(loc, FINE) .and. present(radii_cf))       radii_cf(2) = loc // FINE
+         if (has_key(loc, COARSE_PSP) .and. present(radii_cf)) radii_cf(3) = loc // COARSE_PSP
+
+         if (has_key(loc, SOURCE_KEY) .and. present(iradii_source)) then
+            ! Source of the radii
+            str = loc // SOURCE_KEY
+            select case(str)
+            case(RADII_SOURCE(RADII_SOURCE_HARD_CODED))
+               iradii_source = RADII_SOURCE_HARD_CODED
+            case(RADII_SOURCE(RADII_SOURCE_FILE))
+               iradii_source = RADII_SOURCE_FILE
+            case(RADII_SOURCE(RADII_SOURCE_USER))
+               iradii_source = RADII_SOURCE_USER
+            case default
+               !Undefined: we assume this the name of a file
+               iradii_source = RADII_SOURCE_UNKNOWN
+            end select
+         end if
+      end if
+
+    end subroutine psp_set_from_dict
+
+    !> Merge all psp data (coming from a file) in the dictionary
+    subroutine psp_data_merge_to_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
+         & psppar, radii_cf, rcore, qcore)
+      use module_defs, only: gp, UNINITIALIZED
+      use public_enums, only: RADII_SOURCE_FILE,PSPCODE_GTH, PSPCODE_HGH, &
+           PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
+      use yaml_strings
+      use dictionaries
+      use public_keys
+      implicit none
+      !Arguments
+      type(dictionary), pointer :: dict
+      integer, intent(in) :: nzatom, nelpsp, npspcode, ixcpsp
+      real(gp), dimension(0:4,0:6), intent(in) :: psppar
+      real(gp), dimension(3), intent(in) :: radii_cf
+      real(gp), intent(in) :: rcore, qcore
+      !Local variables
+      type(dictionary), pointer :: channel, radii
+      integer :: l, i
+
+      ! Type
+      select case(npspcode)
+      case(PSPCODE_GTH)
+         call set(dict // PSP_TYPE, 'GTH')
+      case(PSPCODE_HGH)
+         call set(dict // PSP_TYPE, 'HGH')
+      case(PSPCODE_HGH_K)
+         call set(dict // PSP_TYPE, 'HGH-K')
+      case(PSPCODE_HGH_K_NLCC)
+         call set(dict // PSP_TYPE, 'HGH-K + NLCC')
+      case(PSPCODE_PAW)
+         call set(dict // PSP_TYPE, 'PAW')
+      end select
+
+      call set(dict // ATOMIC_NUMBER, nzatom)
+      call set(dict // ELECTRON_NUMBER, nelpsp)
+      call set(dict // PSPXC_KEY, ixcpsp)
+
+      ! Local terms
+      if (psppar(0,0)/=0) then
+         call dict_init(channel)
+         call set(channel // 'Rloc', psppar(0,0))
+         do i = 1, 4, 1
+            call add(channel // 'Coefficients (c1 .. c4)', psppar(0,i))
+         end do
+         call set(dict // LPSP_KEY, channel)
+      end if
+
+      ! nlcc term
+      if (npspcode == PSPCODE_HGH_K_NLCC) then
+         call set(dict // 'Non Linear Core Correction term', &
+              & dict_new( 'Rcore' .is. yaml_toa(rcore), &
+              & 'Core charge' .is. yaml_toa(qcore)))
+      end if
+
+      ! Nonlocal terms
+      do l=1,4
+         if (psppar(l,0) /= 0._gp) then
+            call dict_init(channel)
+            call set(channel // 'Channel (l)', l - 1)
+            call set(channel // 'Rloc', psppar(l,0))
+            do i = 1, 6, 1
+               call add(channel // 'h_ij terms', psppar(l,i))
+            end do
+            call add(dict // 'NonLocal PSP Parameters', channel)
+         end if
+      end do
+
+      ! Radii (& carottes)
+      if (any(radii_cf /= UNINITIALIZED(1._gp))) then
+         call dict_init(radii)
+         if (radii_cf(1) /= UNINITIALIZED(1._gp)) call set(radii // COARSE, radii_cf(1))
+         if (radii_cf(2) /= UNINITIALIZED(1._gp)) call set(radii // FINE, radii_cf(2))
+         if (radii_cf(3) /= UNINITIALIZED(1._gp)) call set(radii // COARSE_PSP, radii_cf(3))
+         call set(radii // SOURCE_KEY, RADII_SOURCE_FILE)
+         call set(dict // RADII_KEY, radii)
+      end if
+
+    end subroutine psp_data_merge_to_dict
+
+    !> Fill up the dict with all pseudopotential information
+    subroutine psp_dict_fill_all(dict, atomname, run_ixc, projrad, crmult, frmult)
+      use module_defs, only: gp, UNINITIALIZED
+      use ao_inguess, only: atomic_info
+      use public_enums, only : RADII_SOURCE, RADII_SOURCE_HARD_CODED, RADII_SOURCE_FILE
+      use dynamic_memory
+      use dictionaries
+      use public_keys, ixc_fake => ixc, projrad_fake => projrad
+      implicit none
+      !Arguments
+      type(dictionary), pointer :: dict          !< Input dictionary (inout)
+      character(len = *), intent(in) :: atomname !< Atom name
+      integer, intent(in) :: run_ixc             !< XC functional
+      real(gp), intent(in) :: projrad            !< projector radius
+      real(gp), intent(in) :: crmult, frmult     !< radius multipliers
+      !Local variables
+      integer :: ixc
+      !integer :: ierr
+      character(len=27) :: filename
+      logical :: exists
+      integer :: nzatom, nelpsp, npspcode
+      real(gp), dimension(0:4,0:6) :: psppar
+      integer :: i,nlen
+      real(gp) :: ehomo,radfine,rad,maxrad
+      type(dictionary), pointer :: radii,dict_psp
+      real(gp), dimension(3) :: radii_cf
+      character(len = max_field_length) :: source_val
+
+      call f_routine(id='psp_dict_fill_all')
+
+      filename = 'psppar.' // atomname
+      dict_psp => dict // filename !inquire for the key?
+
+
+      exists = has_key(dict_psp, LPSP_KEY)
+      if (.not. exists) then
+         if (dict_len(dict_psp) > 0) then
+            ! Long string case, we parse it.
+            call psp_file_merge_to_dict(dict, filename, lstring = dict_psp)
+            ! Since it has been overrided.
+            dict_psp => dict // filename
+            exists = has_key(dict_psp, LPSP_KEY)
+            nzatom = dict_psp .get. ATOMIC_NUMBER
+            nelpsp = dict_psp .get. ELECTRON_NUMBER
+         else
+            ixc = run_ixc
+            ixc = dict_psp .get. PSPXC_KEY
+            call psp_from_data(atomname, nzatom, &
+                 & nelpsp, npspcode, ixc, psppar(:,:), exists)
+            radii_cf(:) = UNINITIALIZED(1._gp)
+            call psp_data_merge_to_dict(dict_psp, nzatom, nelpsp, npspcode, ixc, &
+                 & psppar(0:4,0:6), radii_cf, UNINITIALIZED(1._gp), UNINITIALIZED(1._gp))
+            call set(dict_psp // SOURCE_KEY, "Hard-Coded")
+         end if
+      else
+         nzatom = dict_psp // ATOMIC_NUMBER
+         nelpsp = dict_psp // ELECTRON_NUMBER
+      end if
+
+      if (.not. exists) then
+         call f_err_throw('The pseudopotential parameter file "'//&
+              trim(filename)//&
+              '" is lacking, and no registered pseudo found for "'//&
+              trim(atomname),err_name='BIGDFT_INPUT_FILE_ERROR')
+         return
+      end if
+
+      radii_cf = UNINITIALIZED(1._gp)
+      !example with the .get. operator
+      !    print *,'here',associated(radii)
+      nullify(radii)
+      radii = dict_psp .get. RADII_KEY
+      radii_cf(1) = radii .get. COARSE
+      radii_cf(2) = radii .get. FINE
+      radii_cf(3) = radii .get. COARSE_PSP
+
+      write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_FILE)
+      if (radii_cf(1) == UNINITIALIZED(1.0_gp)) then
+         !see whether the atom is semicore or not
+         !and consider the ground state electronic configuration
+         call atomic_info(nzatom,nelpsp,ehomo=ehomo)
+         !call eleconf(nzatom, nelpsp,symbol,rcov,rprb,ehomo,&
+         !     neleconf,nsccode,mxpl,mxchg,amu)
+
+         !assigning the radii by calculating physical parameters
+         radii_cf(1)=1._gp/sqrt(abs(2._gp*ehomo))
+         write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
+      end if
+      if (radii_cf(2) == UNINITIALIZED(1.0_gp)) then
+         radfine = dict_psp // LPSP_KEY // "Rloc"
+         if (has_key(dict_psp, NLPSP_KEY)) then
+            nlen=dict_len(dict_psp // NLPSP_KEY)
+            do i=1, nlen
+               rad = dict_psp // NLPSP_KEY // (i - 1) // "Rloc"
+               if (rad /= 0._gp) then
+                  radfine=min(radfine, rad)
+               end if
+            end do
+         end if
+         radii_cf(2)=radfine
+         write(source_val, "(A)") RADII_SOURCE(RADII_SOURCE_HARD_CODED)
+      end if
+      if (radii_cf(3) == UNINITIALIZED(1.0_gp)) radii_cf(3)=crmult*radii_cf(1)/frmult
+      ! Correct radii_cf(3) for the projectors.
+      maxrad=0.e0_gp ! This line added by Alexey, 03.10.08, to be able to compile with -g -C
+      if (has_key( dict_psp, NLPSP_KEY)) then
+         nlen=dict_len(dict_psp // NLPSP_KEY)
+         do i=1, nlen
+            rad =  dict_psp  // NLPSP_KEY // (i - 1) // "Rloc"
+            if (rad /= 0._gp) then
+               maxrad=max(maxrad, rad)
+            end if
+         end do
+      end if
+      if (maxrad == 0.0_gp) then
+         radii_cf(3)=0.0_gp
+      else
+         radii_cf(3)=max(min(radii_cf(3),projrad*maxrad/frmult),radii_cf(2))
+      end if
+      radii => dict_psp // RADII_KEY
+      call set(radii // COARSE, radii_cf(1))
+      call set(radii // FINE, radii_cf(2))
+      call set(radii // COARSE_PSP, radii_cf(3))
+      call set(radii // SOURCE_KEY, source_val)
+
+      call f_release_routine()
+
+    end subroutine psp_dict_fill_all
+
 
 END MODULE module_atoms
 

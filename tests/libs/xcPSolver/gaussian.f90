@@ -242,7 +242,7 @@ program MP_gaussian
      !Plot fort.(iunit+1)
      avgmaxmin(2,:,:)=avgmaxmin(2,:,:)-avgmaxmin(3,:,:)
      write(unit,'(104(1pe14.5))') sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin(1:2,1:3:2,:)
-     call yaml_map('maxdiff' // trim(yaml_toa(isigma)), [ sqrt(0.5_gp/pgauss)/hgrid, max_phi, max_lag ] )
+     call yaml_map('maxdiff' // isigma, [ sqrt(0.5_gp/pgauss)/hgrid, max_phi, max_lag ] )
   end do
   call yaml_map('Results (phi)',reshape(avgmaxmin(1:3,1:3:2,:),[6,nmoms+1]),fmt='(1pe14.5)')
   call yaml_map('Results (lag)',reshape(avgmaxmin(1:3,2:3,:),[6,nmoms+1]),fmt='(1pe14.5)')
@@ -334,9 +334,9 @@ contains
     character(len=128), intent(out) :: filename
 
     call f_strcpy(dest=filename,src=&
-         'gau'//trim(adjustl(yaml_toa(x0,fmt='(f5.2)')))//&
-         'p'//trim(adjustl(yaml_toa(pgauss,fmt='(f5.2)')))//&
-         'h'//trim(adjustl(yaml_toa(hgrid,fmt='(f5.2)'))))
+         'gau'+x0**'(f5.2)'//&
+         'p'+pgauss**'(f5.2)'//&
+         'h'+hgrid**'(f5.2)')
 
 
 !     call f_strcpy(dest=filename,src=&
@@ -646,7 +646,7 @@ subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual
            scalar = scalar + scft_dat(i)*phival
         end do
         scalar = scalar*(x_scft(1)-x_scft(0))
-        call yaml_map('<phi|phi_{'//trim(adjustl(yaml_toa(j)))//'}>',scalar)
+        call yaml_map('<phi|phi_{'+j+'}>',scalar)
      end do
      call f_free(x_scft,scft_dat)
   end if
@@ -731,6 +731,7 @@ end subroutine polynomial_exactness
 subroutine invert_vandermonde(istart,iend,Aiq)
   use dictionaries
   use yaml_output
+  use yaml_strings
   implicit none
   integer, intent(in) :: istart,iend
   double precision, dimension(0:iend-istart,istart:iend), intent(out) :: Aiq
@@ -747,13 +748,13 @@ subroutine invert_vandermonde(istart,iend,Aiq)
 
   !lapack inverse
   call dgetrf(m,m,Aiq,m,ipiv,info)
-  if (info /=0) call f_err_throw('Error in dgetrf, info='//trim(yaml_toa(info)))
+  if (info /=0) call f_err_throw('Error in dgetrf, info='//info)
   !fill the unit element of the LU factorization
 !!$  do q=0,m-1
 !!$     Aiq(q+istart,q)=1.d0
 !!$  end do
   call dgetri(m,Aiq,m,ipiv,work,m,info)
-  if (info /=0) call f_err_throw('Error in dgetri, info='//trim(yaml_toa(info)))
+  if (info /=0) call f_err_throw('Error in dgetri, info='//info)
 
   !verify that the inverse is as such (plain dgemm)
   do ishift=0,0!istart-m,iend+m
@@ -772,7 +773,7 @@ subroutine invert_vandermonde(istart,iend,Aiq)
            end if
         end do
      end do
-     call yaml_map('Deltadeviation, ishift='//trim(yaml_toa(ishift)),deltadev)
+     call yaml_map('Deltadeviation, ishift='//ishift,deltadev)
   end do
   deltadev=0.d0
   !the transposed

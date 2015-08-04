@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 28/01/2014
+# Date: 04/08/2015
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -117,6 +117,7 @@ for file in files:
             print "%s%-74s%s%s" % (start,dirfic,state,end)
 
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
+tofail = 0
 for file in yaml_files:
     dirc = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
@@ -129,6 +130,7 @@ for file in yaml_files:
         if not discrepancy:
             Exit = 1
             start = start_fail
+            tofail += 1
             state = "Failed:    %7.1e > %7.1e (%s)" % \
                     (documents[-1]["Maximum discrepancy"], \
                      documents[-1]["Maximum tolerance applied"], \
@@ -144,10 +146,14 @@ for file in yaml_files:
         print "%s%-66s %s%8.2fs%s" % (start,dirfic,state,time,end)
     except:
         start = start_fail
+        tofail += 1
         state = "Failed: Can not parse file!"
         print "%s%-66s %s%s" % (start,dirfic,state,end)
 
 
+#Number of tests
+totest = len(yaml_files)
+tosucc = totest - tofail
 #Hours, minutes and seconds
 totimeh = int(totime/3600)
 totimem = int(totime-totimeh*3600)/60
@@ -156,8 +162,8 @@ p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
 print 105*"-"
 print 63*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
 if Exit==0:
-    print "Test set succeeded!"
+    print "Test set (%d tests) succeeded!" % totest
 else:
-    print "Test set failed, check the above report!"
+    print "Test set failed (%d failed, %d succeeded), check the above report!" % (tofail,tosucc)
 #Error code
 sys.exit(Exit)

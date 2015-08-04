@@ -258,35 +258,6 @@ subroutine reformatmywaves(iproc,orbs,at,&
 END SUBROUTINE reformatmywaves
 
 
-integer function wave_format_from_filename(iproc, filename)
-  use module_types
-  use yaml_output
-  implicit none
-  integer, intent(in) :: iproc
-  character(len=*), intent(in) :: filename
-
-  integer :: isuffix
-
-  wave_format_from_filename = WF_FORMAT_NONE
-
-  isuffix = index(filename, ".etsf", back = .true.)
-  if (isuffix > 0) then
-     wave_format_from_filename = WF_FORMAT_ETSF
-     if (iproc ==0) call yaml_comment('Reading wavefunctions in ETSF file format.')
-     !if (iproc ==0) write(*,*) "Reading wavefunctions in ETSF file format."
-  else
-     isuffix = index(filename, ".bin", back = .true.)
-     if (isuffix > 0) then
-        wave_format_from_filename = WF_FORMAT_BINARY
-        if (iproc ==0) call yaml_comment('Reading wavefunctions in BigDFT binary file format.')
-        !if (iproc ==0) write(*,*) "Reading wavefunctions in BigDFT binary file format."
-     else
-        wave_format_from_filename = WF_FORMAT_PLAIN
-        if (iproc ==0) call yaml_comment('Reading wavefunctions in plain text file format.')
-        !if (iproc ==0) write(*,*) "Reading wavefunctions in plain text file format."
-     end if
-  end if
-end function wave_format_from_filename
 
 
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
@@ -297,6 +268,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   use module_types
   use yaml_output
   use module_interfaces, except_this_one => readmywaves
+  use public_enums
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3, iformat
   real(gp), intent(in) :: hx,hy,hz
@@ -395,6 +367,7 @@ END SUBROUTINE readmywaves
 subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   use module_base
   use module_types
+  use public_enums
   use module_interfaces, except_this_one => verify_file_presence
   implicit none
   integer, intent(in) :: nproc
@@ -583,6 +556,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   use module_base
   use yaml_output
   use module_interfaces, except_this_one => writeonewave, except_this_one_A => writemywaves
+  use public_enums
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,iformat
   real(gp), intent(in) :: hx,hy,hz
@@ -645,7 +619,8 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
   use module_base
   use module_types
   use module_interfaces, except_this_one => read_wave_to_isf
-
+  use public_enums
+  use module_input_keys
   implicit none
 
   integer, intent(in) :: ln
@@ -657,7 +632,7 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
   logical, intent(out) :: lstat
 
   character(len = 1024) :: filename_
-  integer :: wave_format_from_filename, iformat, i
+  integer :: iformat, i
   
   write(filename_, "(A)") " "
   do i = 1, ln, 1
@@ -693,7 +668,8 @@ END SUBROUTINE read_wave_to_isf
 
 subroutine read_wave_descr(lstat, filename, ln, &
      & norbu, norbd, iorbs, ispins, nkpt, ikpts, nspinor, ispinor)
-  use module_types
+  use public_enums !module_types
+  use module_input_keys
   implicit none
   integer, intent(in) :: ln
   character, intent(in) :: filename(ln)
@@ -702,7 +678,7 @@ subroutine read_wave_descr(lstat, filename, ln, &
   logical, intent(out) :: lstat
 
   character(len = 1024) :: filename_
-  integer :: wave_format_from_filename, iformat, i
+  integer :: iformat, i
   character(len = 1024) :: testf
   
   write(filename_, "(A)") " "
@@ -728,10 +704,6 @@ subroutine read_wave_descr(lstat, filename, ln, &
   end if
 END SUBROUTINE read_wave_descr
 
-
-
-
-
 subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
 
   use module_base
@@ -748,7 +720,8 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
                                deallocate_matrices, deallocate_sparse_matrix, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
   use sparsematrix_init, only: init_sparse_matrix_wrapper, init_matrix_taskgroups, check_local_matrix_extents
-  use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
+  use transposed_operations, only: calculate_overlap_transposed, normalize_transposed, &
+                                   init_matrixindex_in_compressed_fortransposed
   implicit none
 
   ! Calling arguments
@@ -1416,6 +1389,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   !use internal_io
   use module_interfaces, except_this_one => readmywaves_linear_new
   use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error
+  use public_enums
   implicit none
   integer, intent(in) :: iproc, nproc
   integer, intent(in) :: iformat
@@ -1882,6 +1856,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   use module_interfaces, except_this_one => initialize_linear_from_file
   use locregs, only: locreg_null
   use io, only: io_read_descr_linear
+  use public_enums
   implicit none
   integer, intent(in) :: iproc, nproc, iformat
   type(fragmentInputParameters),intent(in) :: input_frag
@@ -2207,6 +2182,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   use module_fragments
   use module_interfaces, except_this_one=>reformat_supportfunctions
   use yaml_output
+  use bounds, only: ext_buffers
   implicit none
   integer, intent(in) :: iproc,nproc
   integer, intent(in) :: ndim_old

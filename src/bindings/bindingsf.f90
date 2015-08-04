@@ -369,6 +369,7 @@ end subroutine glr_set_wave_descriptors
 
 subroutine glr_set_bounds(lr)
   use module_types
+  use bounds, only: locreg_bounds
   implicit none
   type(locreg_descriptors), intent(inout) :: lr
   
@@ -521,20 +522,19 @@ end subroutine inputs_new
 
 
 subroutine inputs_free(in)
-  use module_types
+  use module_input_keys
   implicit none
   type(input_variables), pointer :: in
 
   call free_input_variables(in)
   deallocate(in)
+  nullify(in)
 end subroutine inputs_free
 
 
 subroutine inputs_set_dict(in, level, val)
-
   use dictionaries
-  use module_types
-  use yaml_output
+  use module_input_keys, only: input_variables, input_set
   implicit none
   type(input_variables), intent(inout) :: in
   character(len = *), intent(in) :: level
@@ -584,9 +584,9 @@ subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, qcharge, efield, 
   ncong = in%ncong
   idsx = in%idsx
   dispcorr = in%dispersion
-  inpsi = in%inputPsiId
-  outpsi = in%output_wf_format
-  outgrid = in%output_denspot
+!  inpsi = in%inputPsiId
+!  outpsi = in%output_wf_format
+!  outgrid = in%output_denspot
   rbuf = in%rbuf
   ncongt = in%ncongt
   davidson = in%norbv
@@ -674,7 +674,7 @@ END SUBROUTINE inputs_get_perf
 
 
 subroutine inputs_get_linear(linear, inputPsiId)
-  use module_types
+  use public_enums
   implicit none
   integer, intent(out) :: linear
   integer, intent(in) :: inputPsiId
@@ -688,9 +688,10 @@ subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, 
   use module_types
   use module_fragments
   use module_interfaces, only: input_check_psi_id
+  use f_enums
   implicit none
   integer, intent(out) :: input_wf_format
-  integer, intent(inout) :: inputpsi
+  type(f_enumerator), intent(inout) :: inputpsi
   integer, intent(in) :: iproc, ln, nproc
   character(len = ln), intent(in) :: dir_output
   type(orbitals_data), intent(in) :: orbs, lorbs
@@ -884,6 +885,7 @@ END SUBROUTINE orbs_get_onwhichatom
 
 subroutine orbs_open_file(orbs, unitwf, name, ln, iformat, iorbp, ispinor)
   use module_types
+  use public_enums
   use module_interfaces, only: open_filename_of_iorb
   implicit none
   type(orbitals_data), intent(in) :: orbs
@@ -912,7 +914,7 @@ END SUBROUTINE proj_new
 
 
 subroutine proj_free(nlpspd)
-  use psp_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use module_types
   use memory_profiling
   implicit none
@@ -1433,8 +1435,8 @@ END SUBROUTINE optloop_sync_data
 
 
 subroutine optloop_emit_done(optloop, id, energs, iproc, nproc)
-  use module_base
   use module_types
+  use public_enums
   implicit none
   type(DFT_optimization_loop), intent(inout) :: optloop
   type(energy_terms), intent(in) :: energs
@@ -1942,7 +1944,6 @@ subroutine err_severe_override(callback)
 end subroutine err_severe_override
 
 subroutine astruct_set_from_dict_binding(astruct, dict)
-  use module_input_dicts, only: astruct_set_from_dict
   use dictionaries, only: dictionary
   use module_atoms
   implicit none

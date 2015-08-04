@@ -22,6 +22,7 @@ module dynamic_memory
   private 
 
   logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
+  logical, parameter :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
@@ -212,7 +213,7 @@ contains
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
   subroutine f_routine(id,profile)
-    use yaml_output, only: yaml_map !debug
+    use yaml_output, only: yaml_map,yaml_flush_document !debug
     implicit none
     logical, intent(in), optional :: profile     !< ???
     character(len=*), intent(in), optional :: id !< name of the subprogram
@@ -292,12 +293,16 @@ contains
 
     end if
     call set_routine_info(mems(ictrl)%present_routine,mems(ictrl)%profile_routine)
+    if (bigdebug) then
+       call yaml_map('Entering',mems(ictrl)%present_routine)
+       call yaml_flush_document()
+    end if
     call f_timer_resume()
   end subroutine f_routine
 
   !> Close a previously opened routine
   subroutine f_release_routine()
-    use yaml_output, only: yaml_dict_dump
+    use yaml_output, only: yaml_dict_dump,yaml_map,yaml_flush_document
     use f_utils, only: f_rewind
     implicit none
     integer :: jproc
@@ -314,6 +319,10 @@ contains
        nullify(mems(ictrl)%dict_routine)
     end if
     !call yaml_map('Closing routine',trim(dict_key(dict_codepoint)))
+    if (bigdebug) then
+       call yaml_map('Exiting',mems(ictrl)%present_routine)
+       call yaml_flush_document()
+    end if
 !test
 if (.not. track_origins) then
 call f_timer_resume()
@@ -363,6 +372,7 @@ end if
     mems(ictrl)%profile_routine=mems(ictrl)%dict_codepoint//prof_enabled! 
 
     call set_routine_info(mems(ictrl)%present_routine,mems(ictrl)%profile_routine)
+
     !debug
 !!$    call yaml_mapping_open('Codepoint after closing')
 !!$    call yaml_map('Potential Reference Routine',trim(dict_key(mems(ictrl)%dict_codepoint)))
@@ -696,7 +706,7 @@ end if
   subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,iproc)
     use yaml_output!, only: yaml_date_and_time_toa
     use f_utils
-    use yaml_strings, only: f_strcpy
+    use yaml_strings
     implicit none
     !Arguments
     character(len=*), intent(in), optional :: logfile_name   !< Name of the logfile
@@ -734,9 +744,11 @@ end if
           !if iproc is present, overrides
           if (present(iproc)) jproc=iproc
 
-          if (.not. present(logfile_name)) &
+          if (.not. present(logfile_name)) then
                call f_err_throw('Error, f_malloc_set_status needs logfile_name for nontrivial output level',&
                err_id=ERR_INVALID_MALLOC)
+               return
+          end if
           !first, close the previously opened stream
           if (mems(ictrl)%logfile_unit > 0 .and. jproc==0) then
              call yaml_close_stream(unit=mems(ictrl)%logfile_unit)
@@ -745,9 +757,13 @@ end if
           !a previous instance of malloc_set_status, and raise and exception if it is so
           do jctrl=ictrl-1,1,-1
              if (trim(logfile_name)==mems(jctrl)%logfile) &
-                  call f_err_throw('Logfile name "'//trim(logfile_name)//&
-                  '" in f_malloc_set_status invalid, aleady in use for instance No.'//&
-                  trim(yaml_toa(jctrl)),err_id=ERR_INVALID_MALLOC)
+!!$                  call f_err_throw('Logfile name "'//trim(logfile_name)//&
+!!$                  '" in f_malloc_set_status invalid, aleady in use for instance No.'//&
+!!$                  trim(yaml_toa(jctrl)),err_id=ERR_INVALID_MALLOC)
+             call f_err_throw('Logfile name "'//trim(logfile_name)//&
+                  '" in f_malloc_set_status invalid, already in use for instance No.'//jctrl&
+                  ,err_id=ERR_INVALID_MALLOC)
+
              exit
           end do
           unt=-1 !SM: unt otherwise not defined for jproc/=0

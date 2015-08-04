@@ -19,8 +19,9 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use m_ab7_mixing
   use yaml_output
-  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
+  use psp_projectors_base, only: PSP_APPLY_SKIP
   use rhopotential, only: full_local_potential
+  use public_enums
   implicit none
   !Arguments
   logical, intent(in) :: scf  !< If .false. do not calculate the self-consistent potential
@@ -407,7 +408,8 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   use module_types
   use module_interfaces, fake_name => FullHamiltonianApplication
   use module_xc
-  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP
+  use public_enums, only: PSPCODE_PAW
+  use psp_projectors_base, only: PSP_APPLY_SKIP
   implicit none
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(in) :: at
@@ -606,10 +608,10 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    end if
 
    !GPU are supported only for ipotmethod=0
-   if ((GPUconv .or. GPU%OCLconv) .and. ipotmethod /=0) then
-      if (iproc ==0) write(*,*)&
-         &   'ERROR(HamiltonianApplication): Accelerated hamiltonian are possible only with ipotmethod==0)'
-      stop
+   if (GPU%OCLconv .and. ipotmethod /=0) then
+      call f_err_throw('ERROR(HamiltonianApplication): '//&
+           'Accelerated hamiltonian are possible only with ipotmethod==0)',&
+           err_name='BIGDFT_RUNTIME_ERROR')
    end if
 
 
@@ -621,19 +623,13 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    !  do i=1,(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
    !       call random_number(psi(i))
    !  end do
-   if(GPU%OCLconv .or. GPUconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
+   if(GPU%OCLconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
       GPU%hpsi_ASYNC = f_malloc_ptr(max(1, (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp),id='GPU%hpsi_ASYNC')
 !      call f_zero((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp,GPU%hpsi_ASYNC(1))!hpsi(1))
    !else if (GPU%OCLconv) then
    !   GPU%hpsi_ASYNC => hpsi
    end if
-   if (GPUconv) then
-      call timing(iproc,'ApplyLocPotKin','ON') 
-      call local_hamiltonian_GPU(orbs,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
-           orbs%nspin,pot,psi,GPU%hpsi_ASYNC,energs%ekin,energs%epot,GPU)
-      call timing(iproc,'ApplyLocPotKin','OF') 
-   else if (GPU%OCLconv) then
-
+   if (GPU%OCLconv) then
       !pin potential
       !call timing(iproc,'ApplyLocPotKin','ON') 
       call local_hamiltonian_OCL(orbs,Lzd%Glr,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
@@ -707,8 +703,10 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => NonLocalHamiltonianApplication
-  use psp_projectors, only: PSPCODE_PAW,PSP_APPLY_SKIP, projector_has_overlap
+!  use module_interfaces
+  use psp_projectors_base, only: PSP_APPLY_SKIP
+  use psp_projectors, only: projector_has_overlap
+  use public_enums, only: PSPCODE_PAW
   implicit none
   integer, intent(in) :: iproc, npsidim_orbs
   type(atoms_data), intent(in) :: at
@@ -1095,7 +1093,7 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
 
    call f_routine(id='SynchronizeHamiltonianApplication')
 
-   if(GPU%OCLconv .or. GPUconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
+   if(GPU%OCLconv) then! needed also in the non_ASYNC since now NlPSP is before .and. ASYNCconv)) then
       if (GPU%OCLconv) call finish_hamiltonian_OCL(orbs,energs%ekin,energs%epot,GPU)
       ispsi=1
       do iorb=1,orbs%norbp
@@ -1327,8 +1325,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !this can be done only if the occupation numbers are all equal
   tt=(energs%ebs-energs%trH)/energs%trH
 !print *,'tt,energybs,trH',tt,energybs,trH
-  if (((abs(tt) > 1.d-10 .and. .not. GPUconv) .or.&
-       &   (abs(tt) > 1.d-8 .and. GPUconv)) .and. iproc==0) then 
+  if (abs(tt) > 1.d-10 .and. iproc==0) then 
      !write this warning only if the system is closed shell
      call check_closed_shell(wfn%orbs,lcs)
      if (lcs) then
@@ -1355,11 +1352,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
   !Preconditions all orbitals belonging to iproc
   !and calculate the partial norm of the residue
   !switch between CPU and GPU treatment
-  if (GPUconv) then
-     call preconditionall_GPU(wfn%orbs,wfn%Lzd%Glr,&
-          wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),ncong,&
-          wfn%hpsi,gnrm,gnrm_zero,GPU)
-  else if (GPU%OCLconv) then
+  if (GPU%OCLconv) then
      call preconditionall_OCL(wfn%orbs,wfn%Lzd%Glr,&
           wfn%Lzd%hgrids(1),wfn%Lzd%hgrids(2),wfn%Lzd%hgrids(3),ncong,&
           wfn%hpsi,gnrm,gnrm_zero,GPU)
@@ -1452,7 +1445,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    use module_interfaces, except_this_one_A => hpsitopsi
    use yaml_output
    use communications, only: transpose_v, untranspose_v
-   use psp_projectors, only: PSPCODE_PAW
+   use public_enums, only: PSPCODE_PAW
    implicit none
    !Arguments
    integer, intent(in) :: iproc,nproc,idsx,iter
@@ -1828,7 +1821,7 @@ END SUBROUTINE last_orthon
 subroutine eigensystem_info(iproc,nproc,tolerance,nvctr,orbs,psi)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => eigensystem_info
+  use module_interfaces, only: write_eigenvalues_data
   implicit none
   integer, intent(in) :: iproc,nproc,nvctr
   real(gp), intent(in) :: tolerance !< threshold to classify degenerate eigenvalues
@@ -1878,6 +1871,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    use dictionaries, only: f_err_throw
    use yaml_output
    use fermi_level, only: fermi_aux, init_fermi_level, determine_fermi_level
+   use public_enums
    implicit none
    logical, intent(in) :: filewrite
    integer, intent(in) :: iproc, nproc
