@@ -1147,8 +1147,8 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
 
-          write(iunit,'(i10,2i6,a)') nat, ntypes, smat%nspin, &
-              '   # number of atoms, number of atom types, nspin'
+          write(iunit,'(i10,2i6,3x,a,a)') nat, ntypes, smat%nspin, smat%geocode, &
+              '   # number of atoms, number of atom types, nspin, geocode'
           do itype=1,ntypes
               write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
                   '   # nz, nelpsp, name'
@@ -1186,7 +1186,7 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
     end subroutine write_sparse_matrix
 
 
-    subroutine read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
+    subroutine read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
                nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
       use module_base
       use module_types
@@ -1195,6 +1195,7 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
       ! Calling arguments
       character(len=*),intent(in) :: filename
       integer,intent(out) :: nspin, nfvctr, nseg, nvctr
+      character(len=1),intent(out) :: geocode
       integer,dimension(:),pointer,intent(out) :: keyv
       integer,dimension(:,:,:),pointer,intent(out) :: keyg
       real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
@@ -1233,7 +1234,7 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
       call f_open_file(iunit, file=trim(filename), binary=.false.)
 
       if (read_rxyz) then
-          read(iunit,*) nat, ntypes, nspin
+          read(iunit,*) nat, ntypes, nspin, geocode
           nzatom = f_malloc_ptr(ntypes,id='nzatom')
           nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
           atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
@@ -1247,7 +1248,7 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
               read(iunit,*) iatype(iat), rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
           end do
       else
-          read(iunit,*) nat_, ntypes_, nspin
+          read(iunit,*) nat_, ntypes_, nspin, geocode
           do itype=1,ntypes_
               read(iunit,*) dummy_int, dummy_int, dummy_char
           end do

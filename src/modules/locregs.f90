@@ -986,7 +986,7 @@ contains
     function check_whether_bounds_overlap_int(i1, i2, j1, j2) result(overlap)
       implicit none
       ! Calling arguments
-      integer,intent(in) :: i1, i2, j1, j2
+      integer(kind=4),intent(in) :: i1, i2, j1, j2
       logical :: overlap
       ! Local variables
       integer :: periodic
@@ -1060,9 +1060,9 @@ contains
       use yaml_strings, only: operator(//)
       implicit none
       ! Calling arguments
-      integer,intent(in) :: i1, i2, j1, j2
-      integer,intent(out) :: n !<number of overlaps
-      integer,dimension(2),intent(out) :: ks, ke, nlen
+      integer(kind=4),intent(in) :: i1, i2, j1, j2
+      integer(kind=4),intent(out) :: n !<number of overlaps
+      integer(kind=4),dimension(2),intent(out) :: ks, ke, nlen
       ! Local variables
       integer :: ks1, ke1, ks2, ke2
       logical :: periodic, case1, case2, found_case
@@ -1173,7 +1173,7 @@ contains
       implicit none
       ! Calling arguments
       integer(kind=8),intent(in) :: i1, i2, j1, j2
-      integer,intent(out) :: n
+      integer(kind=8),intent(out) :: n
       integer(kind=8),dimension(2),intent(out) :: ks, ke, nlen
       ! Local variables
       integer(kind=8) :: ks1, ke1, ks2, ke2

@@ -922,13 +922,14 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   iirow(2) = 1
   iicol(1) = smat_tmp%nfvctr
   iicol(2) = 1
-  call check_local_matrix_extents(iproc, nproc, collcom_tmp, collcom_tmp, smat_tmp, irow, icol)
+  call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
+       collcom_tmp, collcom_tmp, smat_tmp, irow, icol)
   iirow(1) = min(irow(1),iirow(1))
   iirow(2) = max(irow(2),iirow(2))
   iicol(1) = min(icol(1),iicol(1))
   iicol(2) = max(icol(2),iicol(2))
 
-  call init_matrix_taskgroups(iproc, nproc, .false., &
+  call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, .false., &
        collcom_tmp, collcom_tmp, smat_tmp, iirow, iicol)
 
   mat_tmp = matrices_null()

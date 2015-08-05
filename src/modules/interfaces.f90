@@ -1609,66 +1609,6 @@ module module_interfaces
       real(kind=8),dimension(3,at%astruct%nat),intent(in),optional :: locregcenters
     end subroutine inputguessConfinement
 
-!!$   subroutine determine_locreg_periodic(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,Llr,calculateBounds)
-!!$      use module_base
-!!$      use module_types
-!!$      implicit none
-!!$      integer, intent(in) :: iproc
-!!$      integer, intent(in) :: nlr
-!!$      real(gp), intent(in) :: hx,hy,hz
-!!$      type(locreg_descriptors), intent(in) :: Glr
-!!$      real(gp), dimension(nlr), intent(in) :: locrad
-!!$      real(gp), dimension(3,nlr), intent(in) :: cxyz
-!!$      type(locreg_descriptors), dimension(nlr), intent(out) :: Llr
-!!$      logical,dimension(nlr),intent(in):: calculateBounds
-!!$   end subroutine determine_locreg_periodic
-
-!!$    subroutine determine_wfd_periodicity(ilr,nlr,Glr,Llr)
-!!$      use module_base
-!!$      use module_types
-!!$      implicit none
-!!$      integer,intent(in) :: ilr,nlr
-!!$      type(locreg_descriptors),intent(in) :: Glr
-!!$      type(locreg_descriptors),dimension(nlr),intent(inout) :: Llr
-!!$    end subroutine determine_wfd_periodicity
-
-!!$    subroutine num_segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-!!$     nseg_loc,nvctr_loc,outofzone)
-!!$     implicit none
-!!$     integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr
-!!$     integer, dimension(nseg), intent(in) :: keyv
-!!$     integer, dimension(2,nseg), intent(in) :: keyg
-!!$     integer, intent(out) :: nseg_loc,nvctr_loc
-!!$     integer, dimension(3),intent(in) :: outofzone
-!!$    end subroutine num_segkeys_periodic
-
-!!$    subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
-!!$               nseg_loc,nvctr_loc,keygloc,keyglob,keyvloc,keyvglob,outofzone)
-!!$      implicit none
-!!$      integer, intent(in) :: n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,nseg_loc,nvctr_loc
-!!$      integer, dimension(nseg), intent(in) :: keyv
-!!$      integer, dimension(2,nseg), intent(in) :: keyg
-!!$      integer, dimension(3), intent(in) :: outofzone
-!!$      integer, dimension(nseg_loc), intent(out) :: keyvloc
-!!$      integer, dimension(nseg_loc), intent(out) :: keyvglob
-!!$      integer, dimension(2,nseg_loc), intent(out) :: keygloc
-!!$      integer, dimension(2,nseg_loc), intent(out) :: keyglob
-!!$    end subroutine segkeys_periodic
-
-!!$    subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
-!!$      use module_base
-!!$      use module_types
-!!$      implicit none
-!!$      integer,intent(in) :: iproc                  ! process ID
-!!$      integer,intent(in) :: ldim          ! dimension of lpsi
-!!$      integer,intent(in) :: gdim          ! dimension of gpsi
-!!$      type(locreg_descriptors),intent(in) :: Llr  ! Local grid descriptor
-!!$      type(locreg_descriptors),intent(in) :: Glr  ! Global grid descriptor
-!!$      real(wp),dimension(gdim),intent(in) :: gpsi       !Wavefunction (compressed format)
-!!$      real(wp),dimension(ldim),intent(out) :: lpsi   !Wavefunction in localization region
-!!$    end subroutine psi_to_locreg2
-
-
     subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
          nrhotot,Lzd,hxh,hyh,hzh,xc,nspin,orbs,mapping,psi,rho)
       use module_base
@@ -1688,19 +1628,6 @@ module module_interfaces
       real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
       real(dp),dimension(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*nrhotot,1),max(nspin,orbs%nspinor)),intent(out):: rho
     end subroutine local_partial_densityLinear
-
-    subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
-      use module_base
-      use module_types
-      implicit none
-      type(locreg_descriptors),intent(in) :: Llr
-      type(locreg_descriptors),intent(in) :: Glr
-      integer, intent(in) :: size_rho
-      integer, intent(in) :: size_Lrho
-      integer, intent(in) :: nspin
-      real(wp),dimension(size_rho),intent(in) :: rho
-      real(wp),intent(out) :: Lrho
-     end subroutine global_to_local
 
      subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
           psi,hpsi,psit,orthpar,passmat,iscf,Tel,occopt,& !mandatory

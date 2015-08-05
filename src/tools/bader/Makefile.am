@@ -26,7 +26,7 @@ main.o : $(bader_objects:.f90=.o)
 
 ions_mod.o matrix_mod.o options_mod.o: kind_mod.o
 
-charge_mod.o chgcar_mod.o bader_mod.o dipole_mod.o voronoi_mod.o : matrix_mod.o
+charge_mod.o chgcar_mod.o bader_mod.o dipole_mod.o voronoi_mod.o : matrix_mod.o ions_mod.o
 
 io_mod.o cube_mod.o : ions_mod.o charge_mod.o
 

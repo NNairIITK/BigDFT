@@ -84,6 +84,7 @@ module sparsematrix_base
       integer :: nccomm !<number of communications required for the compress distributed in the dense parallel format
       integer,dimension(:,:),pointer :: luccomm !<lookup array for the communications required for the compress distributed in the dense parallel format
       integer,dimension(:),pointer :: on_which_atom !<dimension ntmb, indicates to which atoms a row/column of the matrix belongs
+      character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
   end type sparse_matrix
 
 
