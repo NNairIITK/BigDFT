@@ -30,20 +30,23 @@ subroutine ISF_family(itype,nmoms,nd,nrange,a,x)
   real(kind=8), dimension(0:nd), intent(out) :: a !< Values of the abscissae of the grid
   real(kind=8), dimension(0:nd), intent(out) :: x !< Values of the function at a
   !Local variables
-  integer :: i,nt,ni,unt,j,m_max,m
-  real(kind=8) :: mom
+  integer :: i,nt,ni,m_max,m
+!!$ integer :: unt,j
+!!$  real(kind=8) :: mom
   real(kind=8), dimension(:), allocatable :: y
   real(kind=8), dimension(:), allocatable :: ch,cg
+
+  y = f_malloc(0.to.nd,id='y')
+
+  !Allocate filters
+  m_max = itype + nmoms + 2
+  ch = f_malloc(-m_max.to.m_max,id='ch')
+  cg = f_malloc(-m_max.to.m_max,id='cg')
 
   !Give the range of the scaling function
   !from -itype to itype for the direct case, more general for the dual
   call get_isf_family(m_max,itype,nmoms,m,ni,ch,cg)
   nrange = ni
-
-  y = f_malloc(0.to.nd,id='y')
-  m_max = itype + 2
-  ch = f_malloc(-m_max.to.m_max,id='ch')
-  cg = f_malloc(-m_max.to.m_max,id='cg')
 
   ! plot scaling function
   call f_zero(x)

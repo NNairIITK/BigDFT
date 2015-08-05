@@ -62,6 +62,9 @@ module gaussdaub
        11.63172839656744892914422411_wp,52.3427777845535201811490084949_wp,&
        287.8852778150443609963195467219_wp/)
 
+
+  public :: gau_daub_1d
+
        
   contains
     
@@ -113,7 +116,9 @@ module gaussdaub
       !here the are the quantities for any of the objects
       a=gau_a/hgrid
 
-      right_t=ceiling(15.d0*maxval(a))
+      !right_t=ceiling(80.d0*maxval(a))
+      right_t= max(ceiling(15.d0*maxval(a)),i0+m+1)
+
       !the multiplicative factors for any of the object
       do ig=1,ng
          do icplx=1,ncplx_f
@@ -540,16 +545,16 @@ module gaussdaub
 
         if (ncplx_w==1) then
            !no kpts and real gaussians
-           call gauss_to_scf_1()
+!!$           call gauss_to_scf_1()
         elseif(ncplx_k==2 .and. ncplx_g==1) then
            !kpts and real gaussians
-           call gauss_to_scf_2()
+!!$           call gauss_to_scf_2()
         elseif(ncplx_k==1 .and. ncplx_g==2) then
            !no kpts and complex gaussians
-           call gauss_to_scf_3()
+!!$           call gauss_to_scf_3()
         elseif(ncplx_k==2 .and. ncplx_g==2) then
            !kpts and complex gaussians
-           call gauss_to_scf_4()
+!!$           call gauss_to_scf_4()
         endif
 
 !!$        do icplx=1,ncplx_w
@@ -1412,7 +1417,7 @@ module gaussdaub
     !! We assume that the situation when we need to fold both tails
     !! will never arise
     subroutine retrieve_results(periodic,ng,n_left,n_right,nmax,ncplx_w,ww,theor_norm,ncplx_f,fac,ncplx,c,error)
-      use module_base, only: f_memcpy,dot
+      use module_base, only: f_memcpy,dot,f_zero
       implicit none
       logical, intent(in) :: periodic
       integer, intent(in) :: n_left,n_right,nmax,ng,ncplx_w,ncplx_f,ncplx
