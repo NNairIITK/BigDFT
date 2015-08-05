@@ -1367,8 +1367,8 @@ subroutine fssnord3DmatNabla3varde2_LG(geocode,n01,n02,n03,u,du,du2,nord,hgrids)
   !c..local variables
   integer :: n,m,n_cell
   integer :: i,j,ib,i1,i2,i3,ii
-  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-  real(kind=8) :: hx,hy,hz
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
+  real(kind=8) :: hx,hy,hz,d
   logical :: perx,pery,perz
 
   n = nord+1
@@ -1408,111 +1408,133 @@ subroutine fssnord3DmatNabla3varde2_LG(geocode,n01,n02,n03,u,du,du2,nord,hgrids)
   end do
 
   include 'FiniteDiffCorff.inc'
-
+  c1D_1 = c1D/hx
+  c1D_2 = c1D/hy
+  c1D_3 = c1D/hz
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d) 
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
 
-           du(i1,i2,i3,1) = 0.0d0
+           d = 0.0d0
            du2(i1,i2,i3) = 0.0d0
 
            if (i1.le.m) then
             if (perx) then
              do j=-m,m
               ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+              d = d + c1D_1(j,0)*u(ii,i2,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-m-1)*u(j+m+1,i2,i3)/hx
+              d = d + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3)
              end do
             end if
            else if (i1.gt.n01-m) then
             if (perx) then
              do j=-m,m
               ii=modulo(i1 + j - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+              d = d + c1D_1(j,0)*u(ii,i2,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)/hx
+              d = d + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3)
              end do
             end if
            else
               do j=-m,m
-                 du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(i1 + j,i2,i3)/hx
+                 d = d + c1D_1(j,0)*u(i1 + j,i2,i3)
               end do
            end if
+           du(i1,i2,i3,1)= d
+           du2(i1,i2,i3) = d*d
 
-           du2(i1,i2,i3) = du(i1,i2,i3,1)*du(i1,i2,i3,1)
-           du(i1,i2,i3,2) = 0.0d0
+        end do
+     end do
+  end do
+  !$omp end parallel do
+
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+
+           d = 0.0d0
 
            if (i2.le.m) then
             if (pery) then
              do j=-m,m
               ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+              d = d + c1D_2(j,0)*u(i1,ii,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-m-1)*u(i1,j+m+1,i3)/hy
+              d = d + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3)
              end do
             end if
            else if (i2.gt.n02-m) then
             if (pery) then
              do j=-m,m
               ii=modulo(i2 + j - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+              d = d + c1D_2(j,0)*u(i1,ii,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)/hy
+              d = d + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3)
              end do
             end if
            else
               do j=-m,m
-                 du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,i2 + j,i3)/hy
+                 d = d + c1D_2(j,0)*u(i1,i2 + j,i3)
               end do
            end if
+           du(i1,i2,i3,2)= d
+           du2(i1,i2,i3) = du2(i1,i2,i3) + d*d
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
-           du2(i1,i2,i3) = du2(i1,i2,i3) + du(i1,i2,i3,2)*du(i1,i2,i3,2)
-
-           du(i1,i2,i3,3) = 0.0d0
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           d = 0.0d0
 
            if (i3.le.m) then
             if (perz) then
              do j=-m,m
               ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+              d = d + c1D_3(j,0)*u(i1,i2,ii)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-m-1)*u(i1,i2,j+m+1)/hz
+              d = d + c1D_3(j,i3-m-1)*u(i1,i2,j+m+1)
              end do
             end if
            else if (i3.gt.n03-m) then
             if (perz) then
              do j=-m,m
               ii=modulo(i3 + j - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+              d = d + c1D_3(j,0)*u(i1,i2,ii)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)/hz
+              d = d + c1D_3(j,i3-n03+m)*u(i1,i2,n03 + j - m)
              end do
             end if
            else
               do j=-m,m
-                 du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,i3 + j)/hz
+                 d = d + c1D_3(j,0)*u(i1,i2,i3 + j)
               end do
            end if
-
-           du2(i1,i2,i3) = du2(i1,i2,i3) + du(i1,i2,i3,3)*du(i1,i2,i3,3)
+           du(i1,i2,i3,3)=d
+           du2(i1,i2,i3) = du2(i1,i2,i3) + d*d
 
         end do
      end do
   end do
-
+  !$omp end parallel do
 end subroutine fssnord3DmatNabla3varde2_LG
 
 !>this routine computes 'nord' order accurate first derivatives 
@@ -1727,8 +1749,8 @@ subroutine fssnord3DmatNabla3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
   !c..local variables
   integer :: n,m,n_cell,ii
   integer :: i,j,ib,i1,i2,i3
-  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-  real(kind=8) :: hx,hy,hz
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
+  real(kind=8) :: hx,hy,hz, d
   logical :: perx,pery,perz
 
   n = nord+1
@@ -1770,104 +1792,125 @@ subroutine fssnord3DmatNabla3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
 
   include 'FiniteDiffCorff.inc'
 
+  c1D_1 = c1D/hx
+  c1D_2 = c1D/hy
+  c1D_3 = c1D/hz
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d) 
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
 
-           du(i1,i2,i3,1) = 0.0d0
+           d= 0.0d0
 
            if (i1.le.m) then
             if (perx) then
              do j=-m,m
               ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+              d = d + c1D_1(j,0)*u(ii,i2,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-m-1)*u(j+m+1,i2,i3)/hx
+              d = d + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3)
              end do
             end if
            else if (i1.gt.n01-m) then
             if (perx) then
              do j=-m,m
               ii=modulo(i1 + j - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+              d = d + c1D_1(j,0)*u(ii,i2,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)/hx
+              d = d + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3)
              end do
             end if
            else
             do j=-m,m
-             du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(i1 + j,i2,i3)/hx
+             d = d + c1D_1(j,0)*u(i1 + j,i2,i3)
             end do
            end if
+           du(i1,i2,i3,1) = d
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
-           du(i1,i2,i3,2) = 0.0d0
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           d = 0.0d0
 
            if (i2.le.m) then
             if (pery) then
              do j=-m,m
               ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+              d = d + c1D_2(j,0)*u(i1,ii,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-m-1)*u(i1,j+m+1,i3)/hy
+              d = d + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3)
              end do
             end if
            else if (i2.gt.n02-m) then
             if (pery) then
              do j=-m,m
               ii=modulo(i2 + j - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+              d = d + c1D_2(j,0)*u(i1,ii,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)/hy
+              d = d + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3)
              end do
             end if
            else
             do j=-m,m
-             du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,i2 + j,i3)/hy
+             d = d + c1D_2(j,0)*u(i1,i2 + j,i3)
             end do
            end if
+           du(i1,i2,i3,2)=d
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
-           du(i1,i2,i3,3) = 0.0d0
-
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           d = 0.0d0
            if (i3.le.m) then
             if (perz) then
              do j=-m,m
               ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+              d = d + c1D_3(j,0)*u(i1,i2,ii)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-m-1)*u(i1,i2,j+m+1)/hz
+              d = d + c1D_3(j,i3-m-1)*u(i1,i2,j+m+1)
              end do
             end if
            else if (i3.gt.n03-m) then
             if (perz) then
              do j=-m,m
               ii=modulo(i3 + j - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+              d = d + c1D_3(j,0)*u(i1,i2,ii)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)/hz
+              d = d + c1D_3(j,i3-n03+m)*u(i1,i2,n03 + j - m)
              end do
             end if
            else
             do j=-m,m
-             du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,i3 + j)/hz
+             d = d + c1D_3(j,0)*u(i1,i2,i3 + j)
             end do
            end if
-
+           du(i1,i2,i3,3)=d
         end do
      end do
   end do
-
+  !$omp end parallel do
 end subroutine fssnord3DmatNabla3var_LG
 
 !> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
@@ -1945,12 +1988,11 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
   include 'FiniteDiffCorff.inc'
 
   rhores2=0.d0
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dx) 
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
-
            dx=0.d0
-
            if (i1.le.m) then
               if (perx) then
                do j=-m,m
@@ -1979,7 +2021,15 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
               end do
            end if
            dx=dx/hx
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dy) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
            dy = 0.0d0
            if (i2.le.m) then
               if (pery) then
@@ -2009,7 +2059,15 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
               end do
            end if
            dy=dy/hy
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dz) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
            dz = 0.0d0
            if (i3.le.m) then
               if (perz) then
@@ -2039,7 +2097,16 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
               end do
            end if
            dz=dz/hz
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
+  !$omp parallel do default(shared) private(i1,i2,i3,res,rho) &
+  !$omp reduction(+:rhores2) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
            !retrieve the previous treatment
            res = dlogeps(1,i1,i2,i3)*dx + &
                 dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
@@ -2049,10 +2116,11 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
            res=eta*res
            rhores2=rhores2+res*res
            rhopol(i1,i2,i3)=res+rho
-
         end do
      end do
   end do
+  !$omp end parallel do
+
 !  rhores2=rhores2/rpoints
 
 end subroutine fssnord3DmatNabla_LG
