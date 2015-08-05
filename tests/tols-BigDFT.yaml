@@ -95,6 +95,10 @@ yaml_test:
    - Global dictionary
    - time
 
+xc:
+ Patterns to ignore:
+   - time
+
 #Runs which update and override the default
 AgBulk:
  Grid Spacing threshold (AU): 1.e-2

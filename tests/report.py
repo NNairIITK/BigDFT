@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 04/08/2015
+# Date: 05/08/2015
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -58,6 +58,12 @@ Exit = 0
 #Total time for the tests
 totime=0
 
+#Number of succeeded and failed files
+tofail = 0
+tosucc = 0
+toyfail = 0
+toysucc = 0
+
 print "Final report for writings in stdout ('passed' means all significant floats are correct):"
 for file in files:
     dirc = os.path.normpath(os.path.dirname(file))
@@ -109,15 +115,19 @@ for file in files:
             time = "%8ss" % time[0]
         else:
             time = ""
+        if start == start_fail:
+            tofail += 1
+        else:
+            tosucc += 1
         print "%s%-67s%s%s%s" % (start,dirfic,state,time,end)
     else:
         if not empty_file:
+            tofail +=1
             start = start_fail
             state = "can not parse file.    failed"
             print "%s%-74s%s%s" % (start,dirfic,state,end)
 
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
-tofail = 0
 for file in yaml_files:
     dirc = os.path.normpath(os.path.dirname(file))
     fic = "(%s)" % os.path.basename(file)
@@ -130,7 +140,6 @@ for file in yaml_files:
         if not discrepancy:
             Exit = 1
             start = start_fail
-            tofail += 1
             state = "Failed:    %7.1e > %7.1e (%s)" % \
                     (documents[-1]["Maximum discrepancy"], \
                      documents[-1]["Maximum tolerance applied"], \
@@ -146,14 +155,18 @@ for file in yaml_files:
         print "%s%-66s %s%8.2fs%s" % (start,dirfic,state,time,end)
     except:
         start = start_fail
-        tofail += 1
         state = "Failed: Can not parse file!"
         print "%s%-66s %s%s" % (start,dirfic,state,end)
+    if start == start_fail:
+        toyfail += 1
+    else:
+        toysucc += 1
 
 
 #Number of tests
-totest = len(yaml_files)
-tosucc = totest - tofail
+tosucc += toysucc
+tofail += toyfail
+totest = tosucc + tofail
 #Hours, minutes and seconds
 totimeh = int(totime/3600)
 totimem = int(totime-totimeh*3600)/60
