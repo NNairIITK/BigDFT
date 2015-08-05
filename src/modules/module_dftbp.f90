@@ -20,11 +20,6 @@ module module_dftbp
 
     public :: dftbp_energy_forces
 
-    !parameters
-    character(len=1), save :: geocode='F'
-
-    real(gp), save :: alat_int(3)
-
     contains 
 subroutine dftbp_energy_forces(policy,nat,alat,astruct,geocode,rxyz, fxyz,strten,epot,istat)
     !receives and returns atomic units
@@ -60,16 +55,17 @@ subroutine dftbp_energy_forces(policy,nat,alat,astruct,geocode,rxyz, fxyz,strten
     cell(3,3)=alat(3)
     call create_input_files(policy,nat,cell,astruct,geocode,rxyz)
     call run_dftb()
-    call get_results(nat,fxyz,strten,epot)
+    call get_results(nat,geocode,fxyz,strten,epot)
 !!call system_clock ( clck_counts_end, clck_rate) 
 !!write(333,*)(clck_counts_end - clck_counts_beg) / real (clck_rate), "seconds"
 end subroutine dftbp_energy_forces
 
-subroutine get_results(nat,fxyz,strten,epot)
+subroutine get_results(nat,geocode,fxyz,strten,epot)
     use module_base
     implicit none
     !parameters
     integer, intent(in) :: nat
+    character(len=1), intent(in) :: geocode
     real(gp), intent(out) :: fxyz(3,nat),strten(6)
     real(gp), intent(out) :: epot
     !internal
@@ -119,7 +115,7 @@ subroutine get_results(nat,fxyz,strten,epot)
     close(u)
     if(geocode=='F') strten=0.d0
     if(epot>=1.e10_gp.or.strten(1)>=1.e10_gp.or.fxyz(1,1)>=1.e10_gp)then
-        call f_err_throw('DFTB+ interface: Could not find all requested variables')
+        call f_err_throw('DFTB+ interface: Could not find all requested variables in dftb+ output file')
     endif
 
 end subroutine
@@ -142,7 +138,7 @@ subroutine create_input_files(policy,nat,cell,astruct,geocode,rxyz)
     real(gp), intent(in) :: rxyz(3,nat)
     !internal
     integer :: u
-    integer :: iat
+    integer :: iat,ityp
 
     u=f_get_free_unit()
     open(unit=u,file="input_geometry.gen")
@@ -155,7 +151,7 @@ subroutine create_input_files(policy,nat,cell,astruct,geocode,rxyz)
     endif
 
 
-    write(u,*) (trim(adjustl(astruct%atomnames(astruct%iatype(iat))))//" ", iat=1,astruct%ntypes)
+    write(u,*) (trim(adjustl(astruct%atomnames(ityp)))//" ", ityp=1,astruct%ntypes)
 
     do iat = 1, nat
         write(u,'(i5,1x,i5,3(1x,es25.15))') iat, astruct%iatype(iat), rxyz(:,iat)* Bohr_Ang
