@@ -2,7 +2,7 @@
 !! Manage different low-level operations
 !! like operations on external files and basic operations in memory
 !! @author
-!!    Copyright (C) 2012-2014 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -78,9 +78,9 @@ contains
   subroutine f_utils_errors()
 
     call f_err_define('INPUT_OUTPUT_ERROR',&
-         'Some of intrinsic I/O fortan routines returned an error code',&
+         'Some of intrinsic I/O fortran routines returned an error code.',&
          INPUT_OUTPUT_ERROR,&
-         err_action='Check if you have correct file system permission in i/o library or check the fortan runtime library')
+         err_action='Check if you have correct file system permission in I/O library or check the fortran runtime library.')
 
   end subroutine f_utils_errors
 
