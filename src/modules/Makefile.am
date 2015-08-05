@@ -131,6 +131,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	DIIS_SD_OPTIMIZATION.@MODULE_EXT@ \
 	INPUT_OLD_TEXT_FORMAT.@MODULE_EXT@ \
 	MODULE_INPUT_KEYS.@MODULE_EXT@ \
+	GAUSSDAUB.@MODULE_EXT@ \
 	MODULE_INPUT_DICTS.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	PSP_PROJECTORS_BASE.@MODULE_EXT@ \
@@ -197,6 +198,7 @@ modules = module_base.@MODULE_EXT@ \
 	diis_sd_optimization.@MODULE_EXT@ \
 	input_old_text_format.@MODULE_EXT@ \
 	module_input_keys.@MODULE_EXT@ \
+	gaussdaub.@MODULE_EXT@ \
 	module_input_dicts.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	psp_projectors_base.@MODULE_EXT@ \
