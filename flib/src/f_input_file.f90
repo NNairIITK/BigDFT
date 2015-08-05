@@ -91,14 +91,14 @@ contains
   subroutine input_file_complete(inputdef,dict,imports,nocheck)
     use yaml_output
     implicit none
-    !> dictionary of input definitions
+    !> Dictionary of input definitions
     type(dictionary), pointer :: inputdef
-    !>dictionary of the input files
+    !> Dictionary of the input files
     type(dictionary), pointer :: dict
-    !>list of the keys which should not be checked
+    !> List of the keys which should not be checked
     type(dictionary), pointer, optional :: nocheck
-    !>dictionary of the preloaded input parameters associated to the importing
-    !!for the input file
+    !> Dictionary of the preloaded input parameters associated to the importing
+    !! for the input file
     type(dictionary), pointer, optional :: imports
 
     !local variables
@@ -777,7 +777,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict   !< Dictionary to dump
     logical, intent(in), optional :: userOnly
-    !>message to be written as comment in the beginning
+    !> Message to be written as comment in the beginning
     !! do not write anything if present and empty
     character(len=*), intent(in), optional :: msg
     type(dictionary), pointer, optional :: nodump_list !<list containing keys not to dump
@@ -785,10 +785,7 @@ contains
     !local variables
     integer, parameter :: natoms_dump=500
     logical :: userOnly_,todump
-    integer :: i, dlen, skeys,natoms
-    character(max_field_length), dimension(:), allocatable :: keys
-    character(max_field_length) ::  sourcefile
-    type(dictionary), pointer :: tmp,iter
+    type(dictionary), pointer :: iter
 
     userOnly_ = .false.
     if (present(userOnly)) userOnly_ = userOnly
