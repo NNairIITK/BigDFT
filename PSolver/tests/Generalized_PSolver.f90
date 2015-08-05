@@ -3818,8 +3818,8 @@ print *,'we should be here for old analytical functions'
 
  unt=f_get_free_unit(22)
  call f_open_file(unt,file='initial_line.dat')
- do i2=1,n02
-  write(unt,'(1x,I8,3(1x,e22.15))') i1,density(n01/2,i2,n03/2,1),potential(n01/2,i2,n03/2),eps(n01/2,i2,n03/2)
+ i1=n01/2
+ !i1=1
  i2=n03/2
 ! i3=1
  do i3=1,n02
