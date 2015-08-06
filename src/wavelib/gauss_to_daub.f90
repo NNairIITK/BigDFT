@@ -495,8 +495,8 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
 
   !calculate the array sizes;
   !at level 0, positions shifted by i0 
-  !right_t= ceiling(15.d0*a1)
-  right_t= max(ceiling(15.d0*a1),i0+m+1)
+  right_t= ceiling(15.d0*a1)
+  !right_t= max(ceiling(15.d0*a1),i0+m+1)
 
   !print *,'a,right_t',a1,right_t,gau_a,hgrid
 

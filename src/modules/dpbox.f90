@@ -56,6 +56,7 @@ module module_dpbox
     real(gp) :: x,y,z                    !< 3D absolute coordinates inside the given box
     !private
     integer, dimension(2,3) :: nbox      !< Specify a sub-box to iterate over the points (ex. around atoms)
+                                         !! start and end points for each direction
     integer :: n1i,n2i,n3i               !< 3D dimension of the whole grid
     integer :: i3s                       !< Index of the first z plane for the mpi process i.e. from i3s:i3s+n3pi-1 
     integer :: n3_iter                   !< Indicate Z dimension when iter depending on should be n3pi,n3p,n3d
@@ -204,6 +205,7 @@ contains
     !Index of the first z plane between 1:n3_iter
     boxit%i3s = boxit%dpbox_ptr%i3s + boxit%dpbox_ptr%i3xcsh
 
+    !Select parallel distribution in function of nature of the array
     select case(idpbox)
     case(DPB_POT_ION)
       boxit%n3_iter = boxit%dpbox_ptr%n3pi

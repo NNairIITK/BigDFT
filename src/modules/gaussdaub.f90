@@ -116,8 +116,8 @@ module gaussdaub
       !here the are the quantities for any of the objects
       a=gau_a/hgrid
 
-      !right_t=ceiling(80.d0*maxval(a))
-      right_t= max(ceiling(15.d0*maxval(a)),i0+m+1)
+      right_t=ceiling(15.d0*maxval(a))
+      !right_t= max(ceiling(15.d0*maxval(a)),i0+m+1)
 
       !the multiplicative factors for any of the object
       do ig=1,ng
