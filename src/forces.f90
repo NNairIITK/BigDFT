@@ -605,7 +605,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
         x = boxit%x - rx
         y = boxit%y - ry
         z = boxit%z - rz
-       !$omp do reduction(+:Txx,Tyy,Tzz,Txy,Txz,Tyz,fxerf,fyerf,fzerf,fxgau,fygau,fzgau,forceleaked)
         r2 = x**2 + y**2 + z**2
         arg = r2*rlocinvsq
         !gaussian part

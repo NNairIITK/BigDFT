@@ -151,7 +151,7 @@ module yaml_output
   !! @link yaml_output::yaml_scalar @endlink, 
   !! @link yaml_output::yaml_newline @endlink, 
   !! @link yaml_strings::yaml_toa @endlink, 
-  !! @link yaml_output::yaml_date_and_time_toa @endlink, @link yaml_output::yaml_date_toa @endlink, @link yaml_output::yaml_time_toa @endlink.
+  !! @link yaml_strings::yaml_date_and_time_toa @endlink, @link yaml_strings::yaml_date_toa @endlink, @link yaml_strings::yaml_time_toa @endlink.
   !! @n@n
   !! There are also @link yaml_output::yaml_set_stream routine @endlink, @link yaml_output::yaml_set_default_stream @endlink, 
   !!                @link yaml_output::yaml_close_stream @endlink,       @link yaml_output::yaml_swap_stream @endlink, 
@@ -167,7 +167,7 @@ module yaml_output
   public :: yaml_map,yaml_mapping_open,yaml_mapping_close
   public :: yaml_sequence,yaml_sequence_open,yaml_sequence_close
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
-  !public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
+  !public :: yaml_toa,y1aml_date_and_time_toa,yaml_date_toa,yaml_time_toa
   public :: yaml_set_stream,yaml_flush_document,yaml_stream_connected
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams

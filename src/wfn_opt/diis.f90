@@ -631,6 +631,7 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
 END SUBROUTINE psimix
 
 
+!> Perform a diis or sd step
 subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
   use module_base
   use module_types
