@@ -782,7 +782,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
           call vcopy(ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyvloc(1), 1, workarray(4*ncount+1), 1)
           call vcopy(ncount, tmb%lzd%llr(ilr_tmp)%wfd%keyvglob(1), 1, workarray(5*ncount+1), 1)
       end if
-      call mpi_bcast(workarray(1), 6*ncount, mpi_integer, iroot, bigdft_mpi%mpi_comm, ierr)
+      call mpibcast(workarray,root=iroot, comm=bigdft_mpi%mpi_comm)
       if (iproc/=iroot) then
           call vcopy(2*ncount, workarray(1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keygloc(1,1), 1)
           call vcopy(2*ncount, workarray(2*ncount+1), 1, tmb%lzd%llr(ilr_tmp)%wfd%keyglob(1,1), 1)

@@ -1052,6 +1052,19 @@ contains
     include 'allgather-inc.f90'
   end subroutine mpiallgatherv_d2d3
 
+  subroutine mpiallgatherv_i2(sendbuf,sendcount,recvbuf,recvcount,&
+       recvcounts,displs,comm)
+    use yaml_strings, only: yaml_toa
+    use dictionaries, only: f_err_throw
+    use dynamic_memory
+    implicit none
+    integer, dimension(:,:), intent(inout) :: sendbuf
+    integer, dimension(:,:), intent(inout), optional :: recvbuf
+    integer, dimension(:), allocatable :: copybuf
+    include 'allgather-inc.f90'
+  end subroutine mpiallgatherv_i2
+
+
 
 
   subroutine mpialltoallv_int(sendbuf, sendcounts, sdispls, recvbuf, recvcounts, rdispls, comm)
