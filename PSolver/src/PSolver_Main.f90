@@ -1027,26 +1027,21 @@ END SUBROUTINE PS_dim4allocation
 
 !> Calculate the dimensions to be used for the XC part, taking into account also
 !! the White-bird correction which should be made for some GGA functionals
-!!
-!! SYNOPSIS
-!!    @param use_gradient .true. if functional is using the gradient.
-!!    @param use_wb_corr  .true. if functional is using WB corrections.
-!!    @param m2        dimension to be parallelised
-!!    @param nxc       size of the parallelised XC potential
-!!    @param ncxl,ncxr left and right buffers for calculating the WB correction after call drivexc
-!!    @param nwbl,nwbr left and right buffers for calculating the gradient to pass to drivexc    
-!!    @param i3s       starting addres of the distributed dimension
-!!    @param i3xcsh    shift to be applied to i3s for having the striting address of the potential
-!!
 !! @warning It is imperative that iend <=m2
 subroutine xc_dimensions(geocode,use_gradient,use_wb_corr,&
      & istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
   implicit none
 
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  logical, intent(in) :: use_gradient, use_wb_corr
-  integer, intent(in) :: istart,iend,m2
-  integer, intent(out) :: nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh
+  logical, intent(in) :: use_gradient     !< .true. if functional is using the gradient.
+  logical, intent(in) :: use_wb_corr      !< .true. if functional is using WB corrections.
+  integer, intent(in) :: istart,iend      
+  integer, intent(in) :: m2               !< dimension to be parallelised
+  integer, intent(out) :: nxc             !< size of the parallelised XC potential
+  integer, intent(out) :: nxcl,nxcr       !< left and right buffers for calculating the WB correction after call drivexc
+  integer, intent(out) :: nwbl,nwbr       !< left and right buffers for calculating the gradient to pass to drivexc    
+  integer, intent(out) :: i3s             !< starting addres of the distributed dimension
+  integer, intent(out) :: i3xcsh          !< shift to be applied to i3s for having the striting address of the potential
   !local variables
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
 

@@ -50,7 +50,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !real(gp), dimension(3,atoms%astruct%nat) :: fxyz_tmp
 
   real(kind=4) :: tr0, tr1, trt0, trt1
-  real(kind=8) :: time0, time1, time2, time3, time4, time5, time6, time7, ttime
+!!!  real(kind=8) :: time0, time1, time2, time3, time4, time5, time6, time7, ttime
+  real(kind=8) :: time0, time1,  ttime
   logical, parameter :: extra_timing=.false.
 
 
@@ -457,10 +458,10 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   type(dpbox_iterator) :: boxit
   integer, dimension(2,3) :: nbox
   real(gp) :: prefactor,cutoff,rloc,rlocinvsq,rlocinv2sq,Vel,rhoel
-  real(gp) :: x,y,z,rx,ry,rz,fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceloc
+  real(gp) :: x,y,z,rx,ry,rz,fxerf,fyerf,fzerf,fxgau,fygau,fzgau,forceloc
 !!!  logical :: perx,pery,perz,gox,goy,goz
 !!!  integer :: j1,j2,j3,ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,isx,isy,isz,iex,iey,iez
-!!!  real(gp) :: forceleaked
+!!!  real(gp) :: forceleaked,fxion,fyion,fzion
 !!!  real(gp) :: yp,zp,zsq,yzsq
   real(gp) :: arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
   integer :: i1,i2,i3,iat,ityp,nloc,iloc,nrange
@@ -505,30 +506,16 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 
   do iat=1,at%astruct%nat
      ityp=at%astruct%iatype(iat)
-     !coordinates of the center
+     !Coordinates of the center
      rx=rxyz(1,iat) 
      ry=rxyz(2,iat) 
      rz=rxyz(3,iat)
-     !initialization of the forces
-     !ion-ion term
-     fxion=0.d0
-     fyion=0.d0
-     fzion=0.d0
-     !ion-electron term, error function part
-     fxerf=0.d0
-     fyerf=0.d0
-     fzerf=0.d0
-     !ion-electron term, gaussian part
-     fxgau=0.d0
-     fygau=0.d0
-     fzgau=0.d0
-     !local stress tensor component for this atom
-     Txx=0.0_gp
-     Tyy=0.0_gp
-     Tzz=0.0_gp
-     Txy=0.0_gp
-     Txz=0.0_gp
-     Tyz=0.0_gp
+     !Initialization of the forces
+     floc(:,iat) = 0.d0
+     !Ion-ion term
+     !fxion=0.d0
+     !fyion=0.d0
+     !fzion=0.d0
 
      !building array of coefficients of the derivative of the gaussian part
      cprime(1)=2.d0*at%psppar(0,2,ityp)-at%psppar(0,1,ityp)
@@ -599,7 +586,31 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
+
+     !$omp parallel default(none) &
+     !$omp shared(dpbox,iat,nbox,mpx,mpy,mpz,pot,rx,ry,rz,locstrten,rloc,rlocinvsq,nloc) &
+     !$omp shared(cprime,floc,hxh,hyh,hzh,prefactor) &
+     !$omp private(boxit,fxerf,fyerf,fzerf,fxgau,fygau,fzgau,Txx,Tyy,Tzz,Txy,Txz,Tyz) &
+     !$omp private(xp,x,y,z,r2,arg,tt,rhoel,forceloc,Vel)
+
+     !Iterate over all grid points
      boxit = dpbox_iter(dpbox,DPB_POT,nbox)
+     !Ion-electron term, error function part
+     fxerf=0.d0
+     fyerf=0.d0
+     fzerf=0.d0
+     !Ion-electron term, gaussian part
+     fxgau=0.d0
+     fygau=0.d0
+     fzgau=0.d0
+     !Local stress tensor component for this atom
+     Txx=0.0_gp
+     Tyy=0.0_gp
+     Tzz=0.0_gp
+     Txy=0.0_gp
+     Txz=0.0_gp
+     Tyz=0.0_gp
+
      do while(dpbox_iter_next(boxit))
         xp = mpx(boxit%ibox(1)) * mpy(boxit%ibox(2)) * mpz(boxit%ibox(3))
         x = boxit%x - rx
@@ -703,18 +714,27 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!     end if
 
      !final result of the forces
+     !floc(1,iat)=fxion+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
+     !floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
+     !floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
 
-     floc(1,iat)=fxion+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
-     floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
-     floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
+     !$omp critical
+     !Final result of the forces
+     floc(1,iat)=floc(1,iat)+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
+     floc(2,iat)=floc(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
+     floc(3,iat)=floc(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
 
-     !the stress tensor here does not add extra overhead therefore we calculate it nonetheless
+     !The stress tensor here does not add extra overhead therefore we calculate it nonetheless
      locstrten(1)=locstrten(1)+Txx/rloc/rloc
      locstrten(2)=locstrten(2)+Tyy/rloc/rloc
      locstrten(3)=locstrten(3)+Tzz/rloc/rloc
      locstrten(4)=locstrten(4)+Tyz/rloc/rloc
      locstrten(5)=locstrten(5)+Txz/rloc/rloc
      locstrten(6)=locstrten(6)+Txy/rloc/rloc
+     !$omp end critical
+
+     !$omp end parallel
+
 !!!     !only for testing purposes, printing the components of the forces for each atoms
 !!!     write(10+iat,'(2(1x,3(1x,1pe12.5)))') &
 !!!          (hxh*hyh*hzh*prefactor)*fxerf,(hxh*hyh*hzh*prefactor)*fyerf,&
@@ -4043,13 +4063,14 @@ subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, 
   !real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
   real(gp), intent(inout) :: tens(6)
   !local variables
-  real(gp) :: ekin_sum,epot_sum
+!!!  real(gp) :: kx,ky,kz, ekin,etest,ekin_sum,epot_sum
   character(len=*), parameter :: subname='local_hamiltonian_stress'
-  integer :: iorb, npot, i_f, iseg_f, iiorb, ilr, ist, idir, iidim
+  integer :: iorb, i_f, iseg_f, iiorb, ilr, ist, idir, iidim
+!!! integer :: npot 
   !real(wp) :: kinstr(6)
-  real(gp) :: ekin,kx,ky,kz,etest, tt, ekino
+  real(gp) :: tt, ekino
   type(workarr_locham) :: w
-  real(wp), dimension(:,:), allocatable :: psir
+!!!  real(wp), dimension(:,:), allocatable :: psir
   real(kind=8),dimension(0:3) :: scal=1.d0
   real(kind=8),dimension(3) :: hgridh
   real(kind=8),dimension(:,:),allocatable :: hpsit_c, hpsit_f, hpsi
@@ -4876,17 +4897,16 @@ contains
   subroutine transpose_scalprod()
     implicit none
 
-    ! Local variables
+    !Local variables
     integer :: window, iatmin, iatmax, is, ie, nat_on_task, ist_recv, nsize, size_of_double, jjat
     integer :: isrc, idst, ncount, nel
-    integer,dimension(:),allocatable :: datatypes, is_supfun_per_atom_tmp, scalprod_lookup_recvbuf
-    integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, supfun_per_atom_recv
-    integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
-    real(kind=8),dimension(:),allocatable :: scalprod_recvbuf
+!!! integer, dimension(:), allocatable :: datatypes
+    integer, dimension(:), allocatable :: is_supfun_per_atom_tmp, scalprod_lookup_recvbuf
+    integer, dimension(:), allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls, supfun_per_atom_recv
+    integer, dimension(:), allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
+    real(kind=8), dimension(:), allocatable :: scalprod_recvbuf
 
     call f_routine(id='transpose_scalprod')
-
-
 
     ! Prepare communication arrays for alltoallv
     nsendcounts = f_malloc0(0.to.nproc-1,id='nsendcounts')

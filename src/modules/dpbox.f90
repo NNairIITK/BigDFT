@@ -51,6 +51,7 @@ module module_dpbox
   !> Define an iterator over the points of the grid which should be also inside a given box (for instance centered on an atom)
   type, public :: dpbox_iterator
     integer :: ix,iy,iz                  !< Indices of the three-dimensional arrays in distributed PSolver data scheme
+    integer :: it,nt                     !< ithread and nthread for omp
     integer :: ind                       !< One dimensional index (for pot_ion)
     integer, dimension(3)  :: ibox       !< 3D indices in absolute coordinates in the given box specified by boxat
     real(gp) :: x,y,z                    !< 3D absolute coordinates inside the given box
@@ -159,6 +160,8 @@ contains
   pure subroutine nullify_dpbox_iterator(boxit)
     implicit none
     type(dpbox_iterator), intent(out) :: boxit
+    boxit%it = -1
+    boxit%nt = -1
     boxit%ix = -1
     boxit%iy = -1
     boxit%iz = -1
@@ -192,6 +195,8 @@ contains
     !> Box of start and end points which have to be considered
     integer, dimension(2,3), intent(in), optional :: nbox
     type(dpbox_iterator) :: boxit
+    !Local variables
+    !$ integer :: omp_get_thread_num, omp_get_num_threads
 
     call nullify_dpbox_iterator(boxit)
 
@@ -251,14 +256,20 @@ contains
       boxit%nbox(2,1) = dpbox%ndims(1) - boxit%nbl1-1
     end if
 
+    ! ithread and nthread (define here because dpbox_next is pure)
+    boxit%it = 0
+    boxit%nt = 1
+    !$ boxit%it = omp_get_thread_num()
+    !$ boxit%nt = omp_get_num_threads()
     ! Start counting
     boxit%ix=0
     boxit%iy=0
     boxit%iz=0
+    ! Indicate for omp that we are at the first one search
+    boxit%ind=0
     boxit%x=0.0_gp
     boxit%y=0.0_gp
     boxit%z=0.0_gp
-    boxit%ind=0
     ! Iterate
     !First indices to change
     boxit%ibox(1) = boxit%nbox(1,1) - 1
@@ -284,9 +295,15 @@ contains
      type(dpbox_iterator), intent(inout) :: boxit
      !Local variables
      logical :: gox,goy,goz
+     integer :: niter
     
     if (associated(boxit%dpbox_ptr)) then
-      !There are distributed z planes in this proc: we start a loop
+      if (boxit%ind == 0) then
+        niter = boxit%it+1  !First search so we are looking for the omp_get_thread_num()+1 step.
+      else
+        niter = boxit%nt !for other search, nthread
+      end if
+      !There are distributed z planes in this proc: we start a loop to find the next one
       loop_ind: do
         if (boxit%ibox(1) < boxit%nbox(2,1)) then
           boxit%ibox(1) = boxit%ibox(1) + 1
@@ -302,7 +319,7 @@ contains
         else
           !End iteration, the iterator is destroyed and we leave!
           call nullify_dpbox_iterator(boxit)
-          return
+          exit loop_ind
         end if
         !Check if this point is inside the box
         call ind_positions_new(boxit%perz,boxit%ibox(3),boxit%n3i,boxit%iz,goz) 
@@ -314,14 +331,19 @@ contains
         !Check if in the box
         !if (boxit%iz >= boxit%i3s .and. boxit%iz <= boxit%i3s+boxit%n3_iter-1 .and. goy .and. gox ) then
         if (gox) then
-          !This point is valid: we calculate ind (index for pot_ion) and leave!
-          boxit%ind = boxit%ix+1 + boxit%nbl1 &
-                  & + (boxit%iy+boxit%nbl2)*boxit%n1i &
-                  & + (boxit%iz-boxit%i3s)*boxit%n1i*boxit%n2i
-          boxit%x = real(boxit%ibox(1),gp)*boxit%dpbox_ptr%hgrids(1)
-          boxit%y = real(boxit%ibox(2),gp)*boxit%dpbox_ptr%hgrids(2)
-          boxit%z = real(boxit%ibox(3),gp)*boxit%dpbox_ptr%hgrids(3)
-          return
+          !This point is valid
+          !Decrement niter (for omp, we are looking for the nthread next)
+          niter = niter - 1
+          if (niter == 0) then
+            !We calculate ind (index for pot_ion) and x,y and z and we leave!
+            boxit%ind = boxit%ix+1 + boxit%nbl1 &
+                    & + (boxit%iy+boxit%nbl2)*boxit%n1i &
+                    & + (boxit%iz-boxit%i3s)*boxit%n1i*boxit%n2i
+            boxit%x = real(boxit%ibox(1),gp)*boxit%dpbox_ptr%hgrids(1)
+            boxit%y = real(boxit%ibox(2),gp)*boxit%dpbox_ptr%hgrids(2)
+            boxit%z = real(boxit%ibox(3),gp)*boxit%dpbox_ptr%hgrids(3)
+            exit loop_ind
+          end if
         end if
       end do loop_ind
     end if

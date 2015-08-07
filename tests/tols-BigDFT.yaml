@@ -352,7 +352,7 @@ NLCC: &NLCCs
  EKS: 5.9e-11
  Total electronic charge: 1.2e-11
  norm(P): 1.0e-10
- GPa: 3.8e-11
+ GPa: 4.2e-11
 
 NLCC: &NLCCsnew
  EH: 5.1e-10
@@ -1516,7 +1516,7 @@ periodic_silicon:
  ebs: 1.2e-10
  Energy (Hartree): 2.9e-11
  energy: 2.9e-11
- Total ionic charge: 2.5e-11
+ Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
 
 periodic_wateredge:
@@ -1547,7 +1547,7 @@ periodic_water:
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 9.2e-9
- D eF: 1.3e-8
+ D eF: 1.4e-8
  energy: 2.8e-10
  guess for new ef: 9.1e-9
  number of corrected points: 1
@@ -1555,7 +1555,7 @@ periodic_water:
  diff: 1.2e-10
  Tr(K): 5.0e-7
  D Tr: 1.0e-6
- Total ionic charge: 6.0e-11
+ Total ionic charge: 9.5e-11
  Pressure: 6.4e-10
  Clean forces norm (Ha/Bohr): 1.9e-11
  Total charge: 1.1e-10
@@ -1569,7 +1569,7 @@ surface_boronnitride:
  energy: 3.2e-11
  Energy (Hartree): 3.2e-11
  Total charge: 1.0e-10
- Total ionic charge: 2.4e-11
+ Total ionic charge: 4.2e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1624,10 +1624,11 @@ multipoles_OH-:
  total charge correction: 5.2e-8
 
 multipoles_water:
+ Ekin: 1.1e-10
  eF: 3.21e-9
  guess for new ef: 1.0e-8
  number of corrected points: 7
- multiplicator for the confinement: 1.6e-10
+ multiplicator for the confinement: 1.8e-10
  EH: 1.1e-10
  D eF: 1.1e-8
  Epot: 1.1e-10
@@ -1679,8 +1680,8 @@ igortho_19:
  radius for normalization: 1.1e-2
 
 igortho_44:
- Atomic Forces (Ha/Bohr): 7.5e-7
- Average noise forces: 4.3e-8
+ Atomic Forces (Ha/Bohr): 8.2e-7
+ Average noise forces: 5.7e-8
  Clean forces norm (Ha/Bohr): 7.9e-7
  Energy (Hartree): 3.1e-9
  Raw forces norm (Ha/Bohr): 7.8e-7
@@ -1753,4 +1754,4 @@ igortho_94:
  number of corrected points: 83
  delta: 4.1e-11
  radius for normalization: 1.1e-2
- multiplicator for the confinement: 3.1e-11
+ multiplicator for the confinement: 3.5e-11
