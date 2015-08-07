@@ -488,10 +488,11 @@ H2-freq: &freq
  (F) Frequencies (Hartree): 5.e-10
  D: 1.e-10
  EKS: 2.6e-11
- (F) Vibrational entropy: 1.1e-8
+ (F) Vibrational entropy: 2.0e-8
  (F) Frequencies (THz): 4.8e-3
  (F) Frequencies (cm-1): 4.9e-3
  (F) Vibrational Energy (cm-1 and Hartree): 2.01e-11
+ (F) Total Energy (Hartree): 2.1e-11
 
 C6H6-freq: *freq
 
@@ -1447,7 +1448,7 @@ FF_LJ-ab6md:
 
 
 FF_LENOSKY-bfgs:
-  etot: 7.3e-11
+  etot: 1.5e-10
   maxval: 1.0e-10
   fnrm2: 1.01e-10
   Keys to ignore:
