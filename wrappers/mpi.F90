@@ -1275,7 +1275,7 @@ contains
     use yaml_output !for check=.true.
     use f_utils, only: f_zero
     implicit none
-    integer(f_integer), intent(inout) ::  buffer
+    integer(f_integer) ::  buffer
     integer(f_integer), intent(out), optional :: maxdiff
     integer(f_integer), dimension(:), allocatable :: array_diff      
     include 'bcast-decl-inc.f90'

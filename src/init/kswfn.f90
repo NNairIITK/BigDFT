@@ -109,7 +109,7 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
   if (jproc == 0) return
 
   !call MPI_BCAST(jproc, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
-  call mpibcast(jproc, 1,comm=bigdft_mpi%mpi_comm)a
+  call mpibcast(jproc, 1,comm=bigdft_mpi%mpi_comm)
 
   call MPI_SEND((/ psiStart, psiSize /), 2, MPI_INTEGER, jproc, 123, bigdft_mpi%mpi_comm, ierr)
   call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, bigdft_mpi%mpi_comm, status, ierr)
