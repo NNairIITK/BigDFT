@@ -1380,11 +1380,10 @@ module communications
            orbs%isorb_par, mpi_character, bigdft_mpi%mpi_comm, ierr)
       call mpi_allgatherv(worksend_log, orbs%norbp, mpi_logical, workrecv_log, orbs%norb_par(:,0), &
            orbs%isorb_par, mpi_logical, bigdft_mpi%mpi_comm, ierr)
-      !call mpi_allgatherv(worksend_int, 27*orbs%norbp, mpi_integer, workrecv_int, 27*orbs%norb_par(:,0), &
-      !     27*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
-      call mpiallgather(sendbuf=worksend_int,sendcount=27*orbs%norbp,recvbuf=workrecv_int,recvcounts=27*orbs%norb_par(:,0), &
-           displs=27*orbs%isorb_par, comm=bigdft_mpi%mpi_comm)
-
+      call mpi_allgatherv(worksend_int, 27*orbs%norbp, mpi_integer, workrecv_int, 27*orbs%norb_par(:,0), &
+           27*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+!!$      call mpiallgather(sendbuf=worksend_int,sendcount=27*orbs%norbp,recvbuf=workrecv_int,recvcounts=27*orbs%norb_par(:,0), &
+!!$           displs=27*orbs%isorb_par, comm=bigdft_mpi%mpi_comm)
       call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, 6*orbs%norb_par(:,0), &
            6*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     

@@ -96,6 +96,8 @@ libmodules_a_SOURCES = base.f90 \
 	ice.f90 \
 	locreg_operations.f90 \
 	bigdft_run.f90 \
+	sockets.c \
+	fsockets.f90 \
 	rhopotential.f90 \
 	multipole_base.f90 \
 	multipole.f90 \
@@ -172,6 +174,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	LOCREGS_INIT.@MODULE_EXT@ \
 	SORT.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
+	F90SOCKETS.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
 	MODULE_TERSOFF.@MODULE_EXT@\
@@ -238,6 +241,7 @@ modules = module_base.@MODULE_EXT@ \
 	locregs_init.@MODULE_EXT@ \
 	sort.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
+	f90sockets.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
 	module_bornmayerhugginstosifumi.@MODULE_EXT@ \

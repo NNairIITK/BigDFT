@@ -251,6 +251,8 @@ module module_input_keys
      real(gp) :: mditemp, mdftemp
      real(gp) :: noseinert, friction, mdwall
      real(gp) :: bmass, vmass, strprecon, strfact
+     integer:: sockinet, sockport
+     character(len=1032)  :: sockhost
      real(gp), dimension(6) :: strtarget
      real(gp), dimension(:), pointer :: qmass
      real(gp) :: dtinit, dtmax           !< For FIRE
@@ -1818,6 +1820,12 @@ contains
           in%beta_stretchx = val
        case (TRUSTR)
           in%trustr = val
+       case (SOCKINET)
+          in%sockinet = val
+       case (SOCKPORT)
+          in%sockport = val
+       case (SOCKHOST)
+          in%sockhost = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
