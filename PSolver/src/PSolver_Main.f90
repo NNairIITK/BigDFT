@@ -346,7 +346,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       !$omp parallel do default(shared) private(i1,i23)
       do i23=1,n23
          do i1=1,n1
-            z(i1,i23)=r(i1,i23)*kernel%oneoeps(i1,i23)
+             z(i1,i23)=r(i1,i23)*kernel%oneoeps(i1,i23)
          end do
       end do
       !$omp end parallel do
@@ -648,7 +648,6 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
   implicit none
   logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
   type(coulomb_operator), intent(in) :: kernel 
-
   real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: r,x,p,q,z
   !local variables
   integer :: n1,n23,i_stat,ierr,i23,i1,size1, ip

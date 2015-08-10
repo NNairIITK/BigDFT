@@ -2191,7 +2191,7 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
 END SUBROUTINE run_objects_init_from_run_name
 
 subroutine run_objects_update(runObj, dict)
-  use module_base, only: bigdft_mpi,f_int
+  use module_base, only: bigdft_mpi,f_int,f_str => f_char
   use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
   use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
   use yaml_output
@@ -2225,6 +2225,8 @@ subroutine run_objects_update(runObj, dict)
   call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
        runObj%rst)
   call init_MM_restart_objects(runObj,runObj%mm_rst,bigdft_nat(runObj),runObj%run_mode)
+print *,'ciao',f_str(runObj%mm_rst%run_mode),'hello'
+print *,'ciao2',f_str(runObj%run_mode),'hello2'
 END SUBROUTINE run_objects_update
 
 !> this routine should be used in memguess executable also

@@ -22,6 +22,7 @@ program driver_singlerun
   character(len=*),parameter :: filename1='matrix1.dat', filename2='matrix2.dat'
   integer,dimension(:),pointer :: col_ptr, row_ind, keyv, nzatom, nelpsp, iatype, on_which_atom
   character(len=20),dimension(:),pointer :: atomnames
+  character(len=1) :: geocode
   integer,dimension(:,:,:),pointer :: keyg
   real(kind=8),dimension(:,:,:),allocatable :: tempmat, matA_full, matB_full, matC_full
   real(kind=8),dimension(:),pointer :: val
@@ -57,14 +58,14 @@ program driver_singlerun
 
   ! Read in a file in the BigDFT format
   !call read_bigdft_format(filename, ncol, nnonzero, nseg, keyv, keyg, val, on_which_atom=on_which_atom)
-  call read_sparse_matrix(filename1, nspin, ncol, nseg, nnonzero, keyv, keyg, val, &
+  call read_sparse_matrix(filename1, nspin, geocode, ncol, nseg, nnonzero, keyv, keyg, val, &
        nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 
   ! Create the corresponding BigDFT sparsity pattern
-  !call ccs_to_sparsebigdft(iproc, nproc, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
+  !call ccs_to_sparsebigdft(iproc, nproc, nat, ncol, ncol, 0, nnonzero, row_ind, col_ptr, smat)
   call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, nspin, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatA)
+  call bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatA)
 
 
   ! Check the symmetry
@@ -82,11 +83,11 @@ program driver_singlerun
   call f_free_ptr(on_which_atom)
   call f_free_ptr(val)
 
-  call read_sparse_matrix(filename2, nspin, ncol, nseg, nnonzero, keyv, keyg, val, on_which_atom=on_which_atom)
+  call read_sparse_matrix(filename2, nspin, geocode, ncol, nseg, nnonzero, keyv, keyg, val, on_which_atom=on_which_atom)
        !nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
        !atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
   call distribute_columns_on_processes_simple(iproc, nproc, ncol, ncolp, iscol)
-  call bigdft_to_sparsebigdft(iproc, nproc, nspin, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatB)
+  call bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, ncol, ncolp, iscol, on_which_atom, nnonzero, nseg, keyg, smatB)
 
   matB(1) = matrices_null()
 
@@ -230,7 +231,7 @@ program driver_singlerun
   call f_free_ptr(nzatom)
   call f_free_ptr(nelpsp)
   call f_free_ptr(iatype)
-  call f_free_str_ptr(len(atomnames),atomnames)
+  call f_free_str_ptr(int(len(atomnames),kind=4),atomnames)
   call f_free_ptr(rxyz)
 
   call timing(bigdft_mpi%mpi_comm,'FINISH','PR')
@@ -281,7 +282,7 @@ program driver_singlerun
       if (nthreads /= 0) call set(dict_info//'CPU parallelism'//'OMP threads',&
            nthreads)
 
-      nodename=f_malloc0_str(MPI_MAX_PROCESSOR_NAME,0.to.bigdft_mpi%nproc-1,id='nodename')
+      nodename=f_malloc0_str(int(MPI_MAX_PROCESSOR_NAME,kind=4),0.to.bigdft_mpi%nproc-1,id='nodename')
       if (bigdft_mpi%nproc>1) then
          call MPI_GET_PROCESSOR_NAME(nodename_local,namelen,ierr)
          !gather the result between all the process
