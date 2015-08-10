@@ -661,7 +661,7 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
   beta0 = beta
   beta=0.d0
 !  if (.true.) then !CPU case
-  if (.not. gpu) then !CPU case
+  if (.not. gpu .or. (kernel%mpi_env%nproc > 1) ) then !CPU case
          !$omp parallel do default(shared) private(i1,i23,rval,zeta) &
          !$omp reduction(+:beta)
          do i23=1,n23
@@ -828,7 +828,7 @@ subroutine update_pot_from_device(gpu, kernel,x)
   real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: x
   logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
   integer size1
-  if (gpu) then !CPU case
+  if (gpu .and. .not. (kernel%mpi_env%nproc > 1)) then !CPU case
     size1=kernel%grid%m3*kernel%grid%n3p*kernel%grid%m1
     call get_gpu_data(size1,x,kernel%x_GPU)
   end if 
