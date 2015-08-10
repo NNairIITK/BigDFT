@@ -2225,8 +2225,6 @@ subroutine run_objects_update(runObj, dict)
   call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
        runObj%rst)
   call init_MM_restart_objects(runObj,runObj%mm_rst,bigdft_nat(runObj),runObj%run_mode)
-print *,'ciao',f_str(runObj%mm_rst%run_mode),'hello'
-print *,'ciao2',f_str(runObj%run_mode),'hello2'
 END SUBROUTINE run_objects_update
 
 !> this routine should be used in memguess executable also
