@@ -36,7 +36,6 @@ program utilities
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_l
    real(kind=8),dimension(:),pointer :: matrix_compr
    type(matrices) :: ovrlp_mat, kernel_mat
-   logical :: mpi_init
    type(sparse_matrix) :: smat_s, smat_l
    !$ integer :: omp_get_max_threads
 
