@@ -171,23 +171,28 @@ subroutine pkernel_free(kernel)
   call f_free_ptr(kernel%counts)
   call f_free_ptr(kernel%displs)
 
+  if (kernel%igpu == 1) then
+    if (kernel%keepGPUmemory == 1) then
+      call cudafree(kernel%z_GPU)
+      call cudafree(kernel%r_GPU)
+      call cudafree(kernel%oneoeps_GPU)
+      call cudafree(kernel%p_GPU)
+      call cudafree(kernel%q_GPU)
+      call cudafree(kernel%x_GPU)
+      call cudafree(kernel%corr_GPU)
+      call cudafree(kernel%alpha_GPU)
+      call cudafree(kernel%beta_GPU)
+      call cudafree(kernel%beta0_GPU)
+      call cudafree(kernel%kappa_GPU)
+    end if
+  end if
   !free GPU data
   if (kernel%igpu == 1) then
     if (kernel%mpi_env%iproc == 0) then
      if (kernel%keepGPUmemory == 1) then
        call cudafree(kernel%work1_GPU)
        call cudafree(kernel%work2_GPU)
-    call cudafree(kernel%z_GPU)
-    call cudafree(kernel%r_GPU)
-    call cudafree(kernel%oneoeps_GPU)
-    call cudafree(kernel%p_GPU)
-    call cudafree(kernel%q_GPU)
-    call cudafree(kernel%x_GPU)
-    call cudafree(kernel%corr_GPU)
-    call cudafree(kernel%alpha_GPU)
-    call cudafree(kernel%beta_GPU)
-    call cudafree(kernel%beta0_GPU)
-    call cudafree(kernel%kappa_GPU)
+
      endif
      call cudafree(kernel%k_GPU)
      if (kernel%initCufftPlan == 1) then
@@ -628,6 +633,32 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
     size3=n1*n2*n3
+  if (kernel%igpu == 1) then
+    if (kernel%keepGPUmemory == 1) then
+      call cudamalloc(size3,kernel%z_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(size3,kernel%r_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(size3,kernel%oneoeps_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(size3,kernel%p_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(size3,kernel%q_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(size3,kernel%x_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(size3,kernel%corr_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(sizeof(alpha),kernel%alpha_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(sizeof(alpha),kernel%beta_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(sizeof(alpha),kernel%beta0_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(sizeof(alpha),kernel%kappa_GPU,i_stat)
+      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+    end if 
+  end if
 
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then
@@ -636,31 +667,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
         if (i_stat /= 0) print *,'error cudamalloc',i_stat
         call cudamalloc(size2,kernel%work2_GPU,i_stat)
         if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%z_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%r_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%oneoeps_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%p_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%q_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%x_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%corr_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-
-
-        call cudamalloc(sizeof(alpha),kernel%alpha_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(sizeof(alpha),kernel%beta_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(sizeof(alpha),kernel%beta0_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(sizeof(alpha),kernel%kappa_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-
       endif
       call cudamalloc(sizek,kernel%k_GPU,i_stat)
       if (i_stat /= 0) print *,'error cudamalloc',i_stat
