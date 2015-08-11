@@ -1621,9 +1621,9 @@ contains
           end if
        end do
     else
-       do ikpt = 0, nkpts - 1, 1
-          call fill_default(ikpt * norb, 1, qelec_up, norbu)
-          call fill_default(ikpt * norb + norbu, 1, qelec_down, norbd)
+       do ikpt = 1, nkpts, 1
+          call fill_default((ikpt - 1) * norb, 1, qelec_up, norbu)
+          call fill_default((ikpt - 1) * norb + norbu, 1, qelec_down, norbd)
           if (associated(occup_src)) then
              write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
              if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
