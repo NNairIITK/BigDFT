@@ -1288,7 +1288,7 @@ contains
     use yaml_output !for check=.true.
     use f_utils, only: f_zero
     implicit none
-    integer(f_long), intent(inout) ::  buffer
+    integer(f_long) ::  buffer
     integer(f_long), intent(out), optional :: maxdiff
     integer(f_long), dimension(:), allocatable :: array_diff      
     include 'bcast-decl-inc.f90'
@@ -1301,7 +1301,7 @@ contains
     use yaml_output !for check=.true.
     use f_utils, only: f_zero
     implicit none
-    double precision, intent(inout) ::  buffer
+    double precision ::  buffer
     double precision, intent(out), optional :: maxdiff
     double precision, dimension(:), allocatable :: array_diff
     include 'bcast-decl-inc.f90'
@@ -1314,7 +1314,7 @@ contains
     use yaml_output !for check=.true.
     use f_utils, only: f_zero
     implicit none
-    character(len=*), intent(inout) ::  buffer 
+    character(len=*) ::  buffer 
     integer(f_integer), intent(out), optional :: maxdiff
     integer(f_integer), dimension(:), allocatable :: array_diff !<the difference is performed with ascii value
     ! 'bcast-decl-arr-inc.f90'

@@ -21,7 +21,7 @@ module dynamic_memory
   private 
 
   logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
-  logical, parameter :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
+  logical, parameter :: bigdebug=.true.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
