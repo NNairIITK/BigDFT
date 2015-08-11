@@ -2053,7 +2053,7 @@ type(paw_objects),optional,intent(inout)::paw
 ! Local variables
 character(len=*), parameter :: subname='cholesky'
 real(kind=8), dimension(:,:), allocatable :: raux
-integer :: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor
+integer :: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor, iscprj
 integer :: iat
 logical :: usepaw=.false.
 
@@ -2116,13 +2116,14 @@ do ikptp=1,orbs%nkptsp
             end if
 
             if(usepaw) then
-              !Pending: check that this works in parallel, and with nspinor=2
-              !update cprj
-              raux = f_malloc((/ 2*paw%lmnmax, norb /),id='raux')
+               !Pending: check that this works in parallel, and with nspinor=2
+               !update cprj
+               raux = f_malloc((/ 2*paw%lmnmax, norb /),id='raux')
+               iscprj = (ikpt - 1) * sum(norbTot) + (ispin - 1) * norbTot(1)
                do iat = 1, size(paw%cprj, 1)
                   call f_zero(raux)
                   !copy cprj%cp objet to a simple array 'raux'
-                  call cprj_to_array(paw%cprj, raux, iat, norb, (ikpt - 1) * norb, 1)
+                  call cprj_to_array(paw%cprj, raux, iat, norb, iscprj , 1)
                   ! Calculate the matrix product cprj*L^{-1}=cprj.
                   if(nspinor==1) then
                      call dtrmm('r', 'l', 't', 'n', 2*paw%lmnmax, norb, 1.d0, &
@@ -2132,18 +2133,15 @@ do ikptp=1,orbs%nkptsp
                           ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, raux, paw%lmnmax)
                   end if
                   !copy back raux to cprj%cp
-                  call cprj_to_array(paw%cprj, raux, iat, norb, (ikpt - 1) * norb, 2)
+                  call cprj_to_array(paw%cprj, raux, iat, norb, iscprj, 2)
                end do
                call f_free(raux)
 
             end if !usepaw
         end if !InSpin
-
-
  
         ! Increase the starting index.
         ist=ist+nvctrp*(norbTot(ispin)-block1+1)*nspinor
-
     end do
 end do         
 
