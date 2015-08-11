@@ -1708,6 +1708,7 @@ subroutine gather_cprj(orbs, paw)
   type(paw_objects), intent(inout) :: paw
   ! Local variables:
   integer::iatom,ilmn,iorb,ikpts,jproc
+  integer, parameter :: nspinor_ = 1
   ! Tabulated data to be send/received for mpi
   integer,allocatable,dimension(:):: ndsplt
   integer,allocatable,dimension(:):: ncntt 
@@ -1719,7 +1720,7 @@ subroutine gather_cprj(orbs, paw)
      !   Allocate temporary arrays
      ndsplt = f_malloc(0.to.bigdft_mpi%nproc-1,id='ndsplt')
      ncntt = f_malloc(0.to.bigdft_mpi%nproc-1,id='ncntt')
-     raux = f_malloc0((/ 2, paw%lmnmax, paw%natom, orbs%norb * orbs%nspinor /),id='raux')
+     raux = f_malloc0((/ 2, paw%lmnmax, paw%natom, orbs%norb * orbs%nkpts * nspinor_ /),id='raux')
 
      !   Set tables for mpi operations:
      !   receive buffer:
@@ -1727,7 +1728,7 @@ subroutine gather_cprj(orbs, paw)
         ncntt(jproc)=0
         do ikpts=1,orbs%nkpts
            ncntt(jproc)=ncntt(jproc)+&
-                2*paw%lmnmax*paw%natom*orbs%norb_par(jproc,ikpts)*orbs%nspinor
+                2*paw%lmnmax*paw%natom*orbs%norb_par(jproc,ikpts)*nspinor_
         end do
      end do
      !   Displacements table:
@@ -1741,7 +1742,7 @@ subroutine gather_cprj(orbs, paw)
      end do
 
      !   Transfer cprj to raux:
-     do iorb=orbs%isorb * orbs%nspinor+1,(orbs%isorb+orbs%norbp) * orbs%nspinor
+     do iorb=orbs%isorb * nspinor_+1,(orbs%isorb+orbs%norbp) * nspinor_
         do iatom=1,paw%natom
            do ilmn=1,paw%cprj(iatom,iorb)%nlmn
               raux(:,ilmn,iatom,iorb)=&
@@ -1761,7 +1762,7 @@ subroutine gather_cprj(orbs, paw)
 !!$          &     raux2,ncntt,ndsplt,mpidtypw,MPI_COMM_WORLD,ierr)
      !
      !   Transfer back, raux to cprj:
-     do iorb=1,orbs%norb * orbs%nspinor
+     do iorb=1,orbs%norb * orbs%nkpts * nspinor_
         do iatom=1,paw%natom
            do ilmn=1,paw%cprj(iatom,iorb)%nlmn
               paw%cprj(iatom,iorb)%cp(:,ilmn)=raux(:,ilmn,iatom,iorb)
