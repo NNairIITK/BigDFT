@@ -1617,8 +1617,8 @@ subroutine apply_atproj_iorb_paw(iat,iorbp,istart_c,at,orbs,wfd,&
      nlpsp,psi,hpsi,spsi,eproj,paw)
   use module_base
   use module_types
-  use gaussians, only: gaussian_basis
-  use m_pawcprj, only: pawcprj_mpi_allgather
+  !use gaussians, only: gaussian_basis
+  !use m_pawcprj, only: pawcprj_mpi_allgather
   implicit none
   integer, intent(in) :: iat,iorbp
   integer, intent(inout)::istart_c
@@ -1638,7 +1638,7 @@ subroutine apply_atproj_iorb_paw(iat,iorbp,istart_c,at,orbs,wfd,&
   integer :: ityp,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f
   real(gp) :: eproj_i
   integer :: ispinor
-  real(gp) :: d1, d2
+  !real(gp) :: d1(2), d2(2)
 
   !parameter for the descriptors of the projectors
   ityp=at%astruct%iatype(iat)

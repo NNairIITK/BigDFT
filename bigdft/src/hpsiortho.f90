@@ -1515,10 +1515,10 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    !call orthon_virt_occup(iproc,nproc,orbs,orbs,comms,comms,psit,hpsi,(verbose > 2))
 
    !apply the minimization method (DIIS or steepest descent)
-   call timing(iproc,'Diis          ','ON')
-
    if (iter > 0) then
+      call timing(iproc,'Diis          ','ON')
       call psimix(iproc,nproc,sum(wfn%comms%ncntt(0:nproc-1)),wfn%orbs,wfn%comms,wfn%diis,wfn%hpsi,wfn%psit)
+      call timing(iproc,'Diis          ','OF')
    end if
   
    !Update spsi, since psi has changed
@@ -1538,9 +1538,9 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
 
 !    Transpose spsi:     
      call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%paw%spsi(1),wfn%hpsi(1))
+     if (nproc == 1) &
+          & call transpose_v(iproc,nproc,wfn%orbs,wfn%lzd%glr%wfd,wfn%comms,wfn%psi(1),wfn%hpsi(1))
    end if
-
-   call timing(iproc,'Diis          ','OF')
 
    if (iproc == 0 .and. verbose > 1) then
       !write(*,'(1x,a)',advance='no')&
@@ -1668,6 +1668,8 @@ subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
        ! work array not nedded for nproc==1, so pass the same address
        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),&
           &   psi(1),out_add=psit(1))
+       if (usepaw) call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,&
+            & paw%spsi(1), paw%spsi(1))
    end if
 
    if(usepaw) then
