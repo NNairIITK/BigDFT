@@ -1261,7 +1261,7 @@ subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoi
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   type(locreg_descriptors), intent(in) :: Glr
   type(orbitals_data), intent(in) :: orbs
-  real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, orbs%norbp), intent(out) :: psig
+  real(wp), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f, orbs%nspinor, orbs%norbp), intent(out) :: psig
   real(wp), dimension(:,:,:), pointer, optional :: rhoij
 
   integer :: ncid, ikpt, isp, iorb, ispinor, inzee, i, j, k, ind, io
@@ -1336,7 +1336,7 @@ subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoi
 
            call etsf_io_low_read_var(ncid, "coefficients_of_wavefunctions", &
                 & cg, lstat, error_data = error, &
-                & start = (/ 1, 1, 1, iorb, ikpt, isp /), count = (/ 0, 0, 0, 1, 1, 1 /))
+                & start = (/ 1, 1, 1, iorb, ikpt, isp /), count = (/ 0, ncomp(ikpt), 0, 1, 1, 1 /))
            if (.not. lstat) call etsf_error(error)
            
            do ispinor = 1, dims%number_of_spinor_components
@@ -1348,47 +1348,71 @@ subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoi
               call FFT(Glr%d%n1i, Glr%d%n2i, Glr%d%n3i, nd1, nd2, nd3, cfft, -1, inzee)
               cfft(:,:,inzee) = cfft(:,:,inzee) / &
                    & sqrt(real(Glr%d%n1i * Glr%d%n2i * Glr%d%n3i, wp))
-              ! Remove complex rotation.
-              nrm = 0.d0
-              ralpha = 0.d0
-              ialpha = 0.d0
-              do k = 1, Glr%d%n3i
-                 do j = 1, Glr%d%n2i
-                    do i = 1, Glr%d%n1i
-                       cplex = cfft(:, i + (j - 1) * nd1 + (k - 1) * nd1 * nd2, inzee)
-                       nrm = nrm + cplex(1) ** 2 + cplex(2) ** 2
-                       ralpha = ralpha + cplex(1) ** 2 - cplex(2) ** 2
-                       ialpha = ialpha + 2._wp * cplex(1) * cplex(2)
+              if (orbs%nspinor == 1 .or. maxval(orbs%kpts(:, ikpt)) == 0.) then
+                 ! Remove complex rotation.
+                 nrm = 0.d0
+                 ralpha = 0.d0
+                 ialpha = 0.d0
+                 do k = 1, Glr%d%n3i
+                    do j = 1, Glr%d%n2i
+                       do i = 1, Glr%d%n1i
+                          cplex = cfft(:, i + (j - 1) * nd1 + (k - 1) * nd1 * nd2, inzee)
+                          nrm = nrm + cplex(1) ** 2 + cplex(2) ** 2
+                          ralpha = ralpha + cplex(1) ** 2 - cplex(2) ** 2
+                          ialpha = ialpha + 2._wp * cplex(1) * cplex(2)
+                       end do
                     end do
                  end do
-              end do
-              ralpha = ralpha / nrm
-              ialpha = ialpha / nrm
-              if (ralpha >= 0.d0 .and. ialpha >= 0.d0) then
-                 ralpha = cos(0.5_wp * acos(ralpha))
-                 ialpha = sin(0.5_wp * asin(ialpha))
-              else if (ralpha >= 0.d0 .and. ialpha < 0.d0) then
-                 ralpha = cos(0.5_wp * acos(ralpha))
-                 ialpha = sin(0.5_wp * asin(ialpha))
-              else if (ralpha < 0.d0 .and. ialpha >= 0.d0) then
-                 ralpha = cos(0.5_wp * acos(ralpha))
-                 ialpha = sin(0.5_wp * (pi_param - asin(ialpha)))
-              else if (ralpha < 0.d0 .and. ialpha < 0.d0) then
-                 ralpha = cos(0.5_wp * acos(ralpha))
-                 ialpha = sin(0.5_wp * (pi_param - asin(ialpha)))
+                 ralpha = ralpha / nrm
+                 ialpha = ialpha / nrm
+                 if (ralpha >= 0.d0 .and. ialpha >= 0.d0) then
+                    ralpha = cos(0.5_wp * acos(ralpha))
+                    ialpha = sin(0.5_wp * asin(ialpha))
+                 else if (ralpha >= 0.d0 .and. ialpha < 0.d0) then
+                    ralpha = cos(0.5_wp * acos(ralpha))
+                    ialpha = sin(0.5_wp * asin(ialpha))
+                 else if (ralpha < 0.d0 .and. ialpha >= 0.d0) then
+                    ralpha = cos(0.5_wp * acos(ralpha))
+                    ialpha = sin(0.5_wp * (pi_param - asin(ialpha)))
+                 else if (ralpha < 0.d0 .and. ialpha < 0.d0) then
+                    ralpha = cos(0.5_wp * acos(ralpha))
+                    ialpha = sin(0.5_wp * (pi_param - asin(ialpha)))
+                 end if
+                 do k = 1, Glr%d%n3i
+                    do j = 1, Glr%d%n2i
+                       do i = 1, Glr%d%n1i
+                          ind = i + (j - 1) * nd1 + (k - 1) * nd1 * nd2
+                          psi(i + (j - 1) * Glr%d%n1i + (k - 1) * Glr%d%n1i * Glr%d%n2i) = &
+                               & cfft(1, ind, inzee) * ralpha + cfft(2, ind, inzee) * ialpha
+                       end do
+                    end do
+                 end do
+                 ! Convert to daub
+                 call isf_to_daub(Glr, w, psi(1), psig(1, 1, io - orbs%isorb))
+              else
+                 ! complex wf case
+                 do k = 1, Glr%d%n3i
+                    do j = 1, Glr%d%n2i
+                       do i = 1, Glr%d%n1i
+                          ind = i + (j - 1) * nd1 + (k - 1) * nd1 * nd2
+                          psi(i + (j - 1) * Glr%d%n1i + (k - 1) * Glr%d%n1i * Glr%d%n2i) = &
+                               & cfft(1, ind, inzee)
+                       end do
+                    end do
+                 end do
+                 call isf_to_daub(Glr, w, psi(1), psig(1, 1, io - orbs%isorb))
+                 do k = 1, Glr%d%n3i
+                    do j = 1, Glr%d%n2i
+                       do i = 1, Glr%d%n1i
+                          ind = i + (j - 1) * nd1 + (k - 1) * nd1 * nd2
+                          psi(i + (j - 1) * Glr%d%n1i + (k - 1) * Glr%d%n1i * Glr%d%n2i) = &
+                               & cfft(2, ind, inzee)
+                       end do
+                    end do
+                 end do
+                 call isf_to_daub(Glr, w, psi(1), psig(1, 2, io - orbs%isorb))
               end if
-              do k = 1, Glr%d%n3i
-                 do j = 1, Glr%d%n2i
-                    do i = 1, Glr%d%n1i
-                       ind = i + (j - 1) * nd1 + (k - 1) * nd1 * nd2
-                       psi(i + (j - 1) * Glr%d%n1i + (k - 1) * Glr%d%n1i * Glr%d%n2i) = &
-                            & cfft(1, ind, inzee) * ralpha + cfft(2, ind, inzee) * ialpha
-                    end do
-                 end do
-              end do
 !!$              write(*,*) iorb, sum(psi(1,:)**2)
-              ! Convert to daub
-              call isf_to_daub(Glr, w, psi(1), psig(1, io - orbs%isorb))
 !!$              call plot_wf(.false.,"toto" // trim(yaml_toa(iorb, fmt = "(I2.2)")),&
 !!$                   & 1,at,1._wp,Glr,2._gp * at_old%cell_dim(1) / real(Glr%d%n1i, gp),&
 !!$                   & 2._gp * at_old%cell_dim(2) / real(Glr%d%n2i, gp),&
