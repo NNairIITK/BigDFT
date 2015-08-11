@@ -765,18 +765,22 @@ contains
        do i=leftx,rightx
           x=real(i-i0*16,gp)*h
           r=x-z0
-          r2=r*r
-          cval=cos(a2*r2)
-          sval=sin(a2*r2)
-          rk=real(i,gp)*h
-          cval2=cos(kval*rk)
-          sval2=sin(kval*rk)
-          coeff=r**n_gau
-          r2=0.5_gp*r2/(a1**2)
-          func=safe_exp(-r2)
-          func=coeff*func
-          ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
-          ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
+          if( abs(r)-gcut < 1e-8 ) then
+             r2=r*r
+             cval=cos(a2*r2)
+             sval=sin(a2*r2)
+             rk=real(i,gp)*h
+             cval2=cos(kval*rk)
+             sval2=sin(kval*rk)
+             coeff=r**n_gau
+             r2=0.5_gp*r2/(a1**2)
+             func=safe_exp(-r2)
+             func=coeff*func
+             ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
+             ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
+          else
+            ww(i-leftx,1,1:2)=0.0_wp
+          end if
        enddo
     end if
   END SUBROUTINE gauss_to_scf_4

@@ -1519,16 +1519,18 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
 
 END SUBROUTINE input_wf_disk
 
-subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, psig, denspot, paw)
+subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, psig, denspot, nlpsp, paw)
   use module_defs, only: gp, wp
   use module_types, only: orbitals_data, paw_objects, DFT_local_fields, &
        & GPU_pointers, local_zone_descriptors, ELECTRONIC_DENSITY, KS_POTENTIAL, &
        & energy_terms, energy_terms_null
+  use psp_projectors, only: DFT_PSP_projectors
   use module_atoms
   use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_free_unpacked, pawrhoij_unpack
   use dynamic_memory
   use module_interfaces, only: read_pw_waves, sumrho, communicate_density, write_energies
   use rhopotential, only: updatePotential
+  use f_utils, only: f_zero
   
   implicit none
 
@@ -1541,10 +1543,13 @@ subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, ps
   type(orbitals_data), intent(in) :: orbs
   real(wp), dimension(orbs%npsidim_orbs / orbs%norbp, orbs%norbp), intent(out) :: psig
   type(paw_objects), intent(inout) :: paw
+  type(DFT_PSP_projectors), intent(in) :: nlpsp
   type(DFT_local_fields), intent(inout) :: denspot
 
   integer :: i, iat, isp
+  real(wp), dimension(:), allocatable :: hpsi
   real(wp), dimension(:,:,:), pointer :: rhoij
+  real(gp) :: compch_sph
   type(energy_terms) :: energs
 
   call read_pw_waves(filename, iproc, nproc, at, rxyz, Lzd%Glr, orbs, psig, rhoij)
@@ -1572,8 +1577,18 @@ subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, ps
 
      ! Create KS potential.
      energs = energy_terms_null()
-     call updatePotential(orbs%nspinor, denspot, energs)
+     call updatePotential(orbs%nspin, denspot, energs)
      call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
+
+     ! Compute |s|psi>.
+     call paw_compute_dij(paw, at, denspot, denspot%V_XC(1,1,1,1), energs%epaw, energs%epawdc, compch_sph)
+
+     !@todo Change this for the calculation of spsi only, don't need hpsi here.
+     hpsi = f_malloc(orbs%npsidim_orbs, id = "hpsi")
+     if (orbs%npsidim_orbs > 0) call f_zero(orbs%npsidim_orbs, hpsi(1))
+     call NonLocalHamiltonianApplication(iproc,at,orbs%npsidim_orbs,orbs,&
+          Lzd,nlpsp,psig,hpsi,energs%eproj,paw)
+     call f_free(hpsi)
 
      call write_energies(0, 0, energs, 0._gp, 0._gp, "", .true.)
 !!$     write(*,*) energs%exc, energs%evxc, energs%eh
@@ -2438,7 +2453,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call yaml_mapping_open("Input Hamiltonian")
      end if
      call input_wf_disk_pw("pawo_WFK-etsf.nc", iproc, nproc, atoms, rxyz, GPU, &
-          & KSwfn%Lzd, KSwfn%orbs, KSwfn%psi, denspot, KSwfn%paw)
+          & KSwfn%Lzd, KSwfn%orbs, KSwfn%psi, denspot, nlpsp, KSwfn%paw)
      KSwfn%hpsi = f_malloc_ptr(max(KSwfn%orbs%npsidim_comp, &
           & KSwfn%orbs%npsidim_orbs),id='KSwfn%hpsi')
   case(INPUT_PSI_MEMORY_GAUSS)
@@ -2871,22 +2886,19 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   end if
 
   ! Additional steps for PAW in case of HGH input.
-  if (KSwfn%paw%usepaw .and. (inputpsi == INPUT_PSI_LCAO .or. inputpsi == INPUT_PSI_DISK_PW)) then
+  if (KSwfn%paw%usepaw .and. inputpsi == INPUT_PSI_LCAO) then
      ! Compute |s|psi>.
      call paw_compute_dij(KSwfn%paw, atoms, denspot, denspot%V_XC(1,1,1,1), e_paw, e_pawdc, compch_sph)
 
      if (KSwfn%orbs%npsidim_orbs > 0) call f_zero(KSwfn%orbs%npsidim_orbs,KSwfn%hpsi(1))
      call NonLocalHamiltonianApplication(iproc,atoms,KSwfn%orbs%npsidim_orbs,KSwfn%orbs,&
           KSwfn%Lzd,nlpsp,KSwfn%psi,KSwfn%hpsi,e_nl,KSwfn%paw)
+     call f_free_ptr(KSwfn%hpsi)
 
-     if (inputpsi == INPUT_PSI_LCAO) then
-        call f_free_ptr(KSwfn%hpsi)
-
-        ! Orthogonalize
-        if (nproc > 1) call f_free_ptr(KSwfn%psit)
-        call first_orthon(iproc, nproc, KSwfn%orbs, KSwfn%Lzd, KSwfn%comms, &
-             & KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orthpar, KSwfn%paw)
-     end if
+     ! Orthogonalize
+     if (nproc > 1) call f_free_ptr(KSwfn%psit)
+     call first_orthon(iproc, nproc, KSwfn%orbs, KSwfn%Lzd, KSwfn%comms, &
+          & KSwfn%psi, KSwfn%hpsi, KSwfn%psit, KSwfn%orthpar, KSwfn%paw)
   end if
   !all the input format need first_orthon except the LCAO input_guess
   ! WARNING: at the momemt the linear scaling version does not need first_orthon.
