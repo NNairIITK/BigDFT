@@ -123,7 +123,7 @@ module dynamic_memory
      module procedure f_memcpy_i0,f_memcpy_i1
      module procedure f_memcpy_i0i1,f_memcpy_i1i2,f_memcpy_i2i1,f_memcpy_i2i0
      module procedure f_memcpy_li0,f_memcpy_li1
-     module procedure f_memcpy_li0li1,f_memcpy_li1li2,f_memcpy_li2li1
+     module procedure f_memcpy_li0li1,f_memcpy_li1li2,f_memcpy_li2li1,f_memcpy_li2li0
      module procedure f_memcpy_r0
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1
      module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3,f_memcpy_d3,f_memcpy_d4,f_memcpy_d1d0

@@ -414,14 +414,27 @@ end subroutine f_memcpy_i0i1
 subroutine f_memcpy_i2i0(dest,src,n)
   implicit none
   integer, intent(in) :: n !<nelems
-  integer(kind=4), intent(inout) :: dest !<destination buffer address
-  integer(kind=4), dimension(:,:), intent(in) :: src !<source buffer address
+  integer(f_integer), intent(inout) :: dest !<destination buffer address
+  integer(f_integer), dimension(:,:), intent(in) :: src !<source buffer address
   !local variables
   integer :: ns,nd
   nd=size(src)
   ns=n
   include 'f_memcpy-base-inc.f90'
 end subroutine f_memcpy_i2i0
+
+subroutine f_memcpy_li2li0(dest,src,n)
+  implicit none
+  integer, intent(in) :: n !<nelems
+  integer(f_long), intent(inout) :: dest !<destination buffer address
+  integer(f_long), dimension(:,:), intent(in) :: src !<source buffer address
+  !local variables
+  integer :: ns,nd
+  nd=size(src)
+  ns=n
+  include 'f_memcpy-base-inc.f90'
+end subroutine f_memcpy_li2li0
+
 
 
 subroutine f_memcpy_d1d2(dest,src)

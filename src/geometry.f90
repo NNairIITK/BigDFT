@@ -826,10 +826,12 @@ subroutine f2fslave(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   if (bigdft_mpi%nproc > 1)  call mpibcast(port,1,comm=bigdft_mpi%mpi_comm)
   
   do    ! receive-send iteration
-    if (iproc==0) call readbuffer(socket, header, MSGLEN);if (iproc==0) call str2arr(header,header_arr,MSGLEN)
-    if (bigdft_mpi%nproc > 1) call mpibcast(header_arr,comm=bigdft_mpi%mpi_comm); call arr2str(header,header_arr,MSGLEN)
+    if (iproc==0) call readbuffer(socket, header, MSGLEN)
+    if (iproc==0) call str2arr(header,header_arr,MSGLEN)
+    if (bigdft_mpi%nproc > 1) call mpibcast(header_arr,comm=bigdft_mpi%mpi_comm)
+    call arr2str(header,header_arr,MSGLEN)
 
-    if (iproc==0) write(*,'(i,a,a)') iproc, ' # SOCKET SLAVE: header received ',trim(header)
+    if (iproc==0) write(*,'(i6,a,a)') iproc, ' # SOCKET SLAVE: header received ',trim(header)
       if (trim(header) == "STATUS") then
          if(iproc==0) call send_status(header, MSGLEN, isinit)
       else if (trim(header) == "INIT") then
@@ -838,7 +840,8 @@ subroutine f2fslave(runObj,outs,nproc,iproc,ncount_bigdft,fail)
          if (bigdft_mpi%nproc > 1)  call mpibcast(repid,1,comm=bigdft_mpi%mpi_comm)
 !Although the number of atoms and the arrays assiciated with that side should be
 !allocate already, we allocate fcart and pos here         
-         if(iproc==0.and.runObj%atoms%astruct%nat.ne.repid) stop "The number of atoms on the master and slave side should be the same"
+         if(iproc==0.and.runObj%atoms%astruct%nat.ne.repid) &
+              call f_err_throw("The number of atoms on the master and slave side should be the same")
 !Check if cell should be reset, in this case forget previous WF
          if(iproc==0) then
             str_index = index(msg(1:msglen),"CRESET",.true.)
@@ -850,7 +853,12 @@ subroutine f2fslave(runObj,outs,nproc,iproc,ncount_bigdft,fail)
             endif
           endif
           if (bigdft_mpi%nproc > 1)  call mpibcast(PsiId,1,comm=bigdft_mpi%mpi_comm)
-          runObj%inputs%inputPsiId=PsiId
+          select case(PsiId)
+          case(0)
+             call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
+          case(1)
+             call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
+          end select
       else if (trim(header) == "POSDATA") then
          if(iproc==0 ) call get_data(pos,latvec,runObj%atoms%astruct%nat,nat_get);
          if (bigdft_mpi%nproc > 1) call mpibcast(pos,comm=bigdft_mpi%mpi_comm)
@@ -932,8 +940,8 @@ contains
          latvec_inv = transpose(RESHAPE(get_array, (/3,3/)))   !inverse cell vector
          deallocate(get_array)
          call readbuffer(socket, nat_get)                      !number of atoms
-         if (nat.ne.nat_get) stop "Received NAT not the same as the &
-         local NAT"
+         if (nat.ne.nat_get) &
+              call f_err_throw("Received NAT not the same as the local NAT")
          allocate(get_array(3*nat_get))
          call readbuffer(socket, get_array, nat_get*3)
          pos_cart = RESHAPE(get_array, (/ 3 , nat /) ) 
