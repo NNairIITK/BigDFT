@@ -40,7 +40,7 @@
    correction_orthoconstraint: 0
    gnrm_ig: 1.e-1
  lin_kernel:
-   nit: 1 #60
+   nit: 10 #60
    idsx: 6
    alphamix: 0.3
    linear_method: FOE

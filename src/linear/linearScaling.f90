@@ -50,6 +50,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use rhopotential, only: full_local_potential
   use transposed_operations, only: calculate_overlap_transposed
   use bounds, only: geocode_buffers
+  use orthonormalization, only : orthonormalizeLocalized
 
   implicit none
 

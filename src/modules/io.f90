@@ -147,7 +147,7 @@ module io
       use sparsematrix_base, only: sparsematrix_malloc_ptr, assignment(=), DENSE_FULL, &
            matrices_null, allocate_matrices, deallocate_matrices
       use sparsematrix, only: uncompress_matrix2
-      use matrix_operations, only: overlapPowerGeneral, check_taylor_order
+      !use matrix_operations, only: overlapPowerGeneral, check_taylor_order
       implicit none
       integer, intent(in) :: iproc,iformat,npsidim,nelec
       !integer, intent(in) :: norb   !< number of orbitals, not basis functions
@@ -338,30 +338,30 @@ module io
                  linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
 
             !might be better to move this outside of the routine?
-            if (calc_sks) then
-               ovrlp_half_(1) = matrices_null()
-               call allocate_matrices(linmat%l, allocate_full=.true., matname='ovrlp_half_(1)', mat=ovrlp_half_(1))
+            !if (calc_sks) then
+            !   ovrlp_half_(1) = matrices_null()
+            !   call allocate_matrices(linmat%l, allocate_full=.true., matname='ovrlp_half_(1)', mat=ovrlp_half_(1))
 
-               !for case where tmbs aren't properly orthogonal, calculate S^1/2 K S^1/2
-               call overlapPowerGeneral(iproc, bigdft_mpi%nproc, methTransformOverlap, 1, (/2/), &
-                    orthpar%blocksize_pdgemm, &
-                    imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
-                    ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=ovrlp_half_, &
-                    check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
-               !if (iproc==0) call yaml_map('max error',max_error)
-               !if (iproc==0) call yaml_map('mean error',mean_error)
-               call check_taylor_order(mean_error, max_inversion_error, methTransformOverlap)
+            !   !for case where tmbs aren't properly orthogonal, calculate S^1/2 K S^1/2
+            !   call overlapPowerGeneral(iproc, bigdft_mpi%nproc, methTransformOverlap, 1, (/2/), &
+            !        orthpar%blocksize_pdgemm, &
+            !        imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
+            !        ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=ovrlp_half_, &
+            !        check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
+            !   !if (iproc==0) call yaml_map('max error',max_error)
+            !   !if (iproc==0) call yaml_map('mean error',mean_error)
+            !   call check_taylor_order(mean_error, max_inversion_error, methTransformOverlap)
 
-               call uncompress_matrix2(iproc, bigdft_mpi%nproc, linmat%l, &
-                    ovrlp_half_(1)%matrix_compr, ovrlp_half_(1)%matrix)
+            !   call uncompress_matrix2(iproc, bigdft_mpi%nproc, linmat%l, &
+            !        ovrlp_half_(1)%matrix_compr, ovrlp_half_(1)%matrix)
 
-               kernel_orthog=f_malloc_ptr(src_ptr=linmat%kernel_%matrix,id='kernel_orthog')
+            !   kernel_orthog=f_malloc_ptr(src_ptr=linmat%kernel_%matrix,id='kernel_orthog')
 
-               ! do this with sparse instead... fix after testing
-               call calculate_coeffMatcoeff(bigdft_mpi%nproc,linmat%kernel_%matrix,orbs,orbs,ovrlp_half_(1)%matrix,kernel_orthog)
-            else
+            !   ! do this with sparse instead... fix after testing
+            !   call calculate_coeffMatcoeff(bigdft_mpi%nproc,linmat%kernel_%matrix,orbs,orbs,ovrlp_half_(1)%matrix,kernel_orthog)
+            !else
                kernel_orthog => linmat%kernel_%matrix
-            end if
+            !end if
 
             coeff_frag=f_malloc0((/ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%fbasis%forbs%norb/),id='coeff_frag')
             do io=1,ref_frags(ifrag_ref)%fbasis%forbs%norb

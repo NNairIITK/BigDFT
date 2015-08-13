@@ -2133,7 +2133,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   type(work_mpiaccumulate) :: energs_work
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
-  integer :: itmb, jtmb
+  integer :: itmb, jtmb, ispin
   call f_routine(id='input_wf')
 
  !determine the orthogonality parameters
@@ -2559,7 +2559,23 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         end do
      else
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
-           !purify kernel?
+           ! purify kernel? - need to do more testing but doesn't seem to be particularly beneficial
+           if (.false.) then
+              if (iproc==0) then
+                  call yaml_sequence(advance='no')
+                  call yaml_mapping_open(flow=.true.)
+                  call yaml_map('Initial kernel purification',.true.)
+              end if
+              !overlap_calculated=.true.
+              do ispin=1,tmb%linmat%l%nspin
+
+                  !subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, &
+                  !           max_inversion_error, purification_quickreturn, ispin)
+                  call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, in%lin%order_taylor, &
+                       in%lin%max_inversion_error, .false., ispin)
+              end do
+              if (iproc==0) call yaml_mapping_close()
+           end if
         else
            ! come back to this - reconstruct kernel too expensive with exact version, but Taylor needs to be done ~ 3 times here...
            call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
