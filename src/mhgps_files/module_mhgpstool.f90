@@ -26,7 +26,7 @@ module module_mhgpstool
     public :: write_data
     public :: identMHminMHGPSmin
     
-    type sadneighb
+    type, public ::  sadneighb
         integer :: npairx=-1
         integer, allocatable :: neighb(:,:)
         integer, allocatable :: paircounter(:) 
@@ -188,8 +188,8 @@ subroutine init_mhgpstool_data(nat,nfolder,nsad,mdat)
     mdat%exclude = f_malloc((/mdat%nsadtot/),id='exclude')
     mdat%exclude = 0
     
-    mdat%path_sad = f_malloc_str(int(600,kind=4),(/1.to.mdat%nsadtot/),id='path_sad')
-    mdat%path_min = f_malloc_str(int(600,kind=4),(/1.to.mdat%nmintot/),id='path_min')
+    mdat%path_sad = f_malloc_str(600,(/1.to.mdat%nsadtot/),id='path_sad')
+    mdat%path_min = f_malloc_str(600,(/1.to.mdat%nmintot/),id='path_min')
 end subroutine init_mhgpstool_data
 !=====================================================================
 subroutine finalize_mhgpstool_data(mdat)
@@ -239,7 +239,7 @@ subroutine read_folders(nfolder,folders)
         if(istat/=0)exit
         nfolder=nfolder+1
     enddo
-    folders = f_malloc_str(int(500,kind=4),(/1.to.nfolder/),id='folders')
+    folders = f_malloc_str(500,(/1.to.nfolder/),id='folders')
     rewind(u)
     do ifolder=1,nfolder
         read(u,'(a)')folders(ifolder)

@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to initialize to zero arrays
 !! @author
-!!    Copyright (C) 2009-2011 BigDFT group 
+!!    Copyright (C) 2009-2015 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -580,9 +580,10 @@ subroutine f_itoa(n,src,dest)
 end subroutine f_itoa
 
 subroutine f_litoa(n,src,dest)
+  use f_precisions, only: f_long
   implicit none
   integer, intent(in) :: n
-  integer(kind=8), dimension(n), intent(in) :: src
+  integer(f_long), dimension(n), intent(in) :: src
   character, dimension(n), intent(out) :: dest
   !local variables
   integer :: i
@@ -594,10 +595,11 @@ subroutine f_litoa(n,src,dest)
 end subroutine f_litoa
 
 subroutine f_atoi(n,src,dest)
+  use f_precisions, only: f_integer
   implicit none
   integer, intent(in) :: n
   character, dimension(n), intent(in) :: src
-  integer(kind=4), dimension(n), intent(out) :: dest
+  integer(f_integer), dimension(n), intent(out) :: dest
   !local variables
   integer :: i
   
@@ -608,10 +610,11 @@ subroutine f_atoi(n,src,dest)
 end subroutine f_atoi
 
 subroutine f_atoli(n,src,dest)
+  use f_precisions, only: f_long
   implicit none
   integer, intent(in) :: n
   character, dimension(n), intent(in) :: src
-  integer(kind=8), dimension(n), intent(out) :: dest
+  integer(f_long), dimension(n), intent(out) :: dest
   !local variables
   integer :: i
   
@@ -620,3 +623,29 @@ subroutine f_atoli(n,src,dest)
   end do
 
 end subroutine f_atoli
+
+!> set nbytes term to zero
+subroutine setzero(nbytes,x)
+  use f_precisions, only: f_long
+  implicit none
+  integer(f_long), intent(in) :: nbytes
+  character, dimension(nbytes), intent(inout) :: x
+  !local variables
+  integer :: nthreads,ithread
+  !$ integer omp_get_max_threads,omp_get_thread_num
+  integer(f_long) :: nbt,it,nt,nb
+
+  if (nbytes == 0_f_long) return
+  nthreads=1
+  ithread=0
+  !$ nthreads=omp_get_max_threads()
+  nt=int(nthreads,f_long)
+  nbt=(nbytes+nt-1)/nt
+  !$omp parallel private(ithread,it,nb) 
+  !$ ithread=omp_get_thread_num()
+  !calculate the number of elements for each thread
+  it=min(nbt*ithread,nbytes-1)
+  nb=min(nbytes-it,nbt)
+  call memsetzero(x(it+1),nb)
+  !$omp end parallel
+end subroutine setzero

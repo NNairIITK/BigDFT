@@ -1577,7 +1577,7 @@ module io
           read(iunit,*) nat, ntypes, nspin, geocode
           nzatom = f_malloc_ptr(ntypes,id='nzatom')
           nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
-          atomnames = f_malloc0_str_ptr(int(len(atomnames),kind=4),ntypes,id='atomnames')
+          atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
 
           do itype=1,ntypes
               read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)
@@ -2206,7 +2206,7 @@ module io
           read(iunit,*) nat, ntypes, nspin
           nzatom = f_malloc_ptr(ntypes,id='nzatom')
           nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
-          atomnames = f_malloc0_str_ptr(int(len(atomnames),kind=4),ntypes,id='atomnames')
+          atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
 
           do itype=1,ntypes
               read(iunit,*) nzatom(itype), nelpsp(itype), atomnames(itype)

@@ -14,7 +14,7 @@ subroutine f_utils_flush(unit)
   implicit none
   integer, intent(in) :: unit
   !local variables
-  integer(kind=4) :: ierr
+  integer :: ierr
   logical :: unit_is_connected
 
   unit_is_connected=.false.

@@ -219,7 +219,7 @@ subroutine processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
      iproc_node=0
      nproc_node=1
   else
-     nodename=f_malloc_str(int(MPI_MAX_PROCESSOR_NAME,kind=4),0 .to. nproc-1,id='nodename')
+     nodename=f_malloc_str(MPI_MAX_PROCESSOR_NAME,0 .to. nproc-1,id='nodename')
      !allocate(nodename(0:nproc-1+ndebug),stat=i_stat)
      !call memocc(i_stat,nodename,'nodename',subname)
      

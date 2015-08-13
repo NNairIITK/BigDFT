@@ -1323,13 +1323,13 @@ module communications
     
 !!$      allocate(worksend_char(orbs%norbp), stat=istat)
 !!$      call memocc(istat, worksend_char, 'worksend_char', subname)
-      worksend_char= f_malloc_str(int(len(worksend_char),kind=4),orbs%norbp,&
+      worksend_char= f_malloc_str(len(worksend_char),orbs%norbp,&
            id='worksend_char')
       worksend_log = f_malloc(orbs%norbp,id='worksend_log')
       worksend_int = f_malloc((/ 27, orbs%norbp /),id='worksend_int')
       worksend_dbl = f_malloc((/ 6, orbs%norbp /),id='worksend_dbl')
     
-      workrecv_char= f_malloc_str(int(len(workrecv_char),kind=4),orbs%norb,&
+      workrecv_char= f_malloc_str(len(workrecv_char),orbs%norb,&
            id='workrecv_char')
 !!$      allocate(workrecv_char(orbs%norb), stat=istat)
 !!$      call memocc(istat, workrecv_char, 'workrecv_char', subname)
@@ -1382,6 +1382,8 @@ module communications
            orbs%isorb_par, mpi_logical, bigdft_mpi%mpi_comm, ierr)
       call mpi_allgatherv(worksend_int, 27*orbs%norbp, mpi_integer, workrecv_int, 27*orbs%norb_par(:,0), &
            27*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+!!$      call mpiallgather(sendbuf=worksend_int,sendcount=27*orbs%norbp,recvbuf=workrecv_int,recvcounts=27*orbs%norb_par(:,0), &
+!!$           displs=27*orbs%isorb_par, comm=bigdft_mpi%mpi_comm)
       call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, 6*orbs%norb_par(:,0), &
            6*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     

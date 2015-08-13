@@ -319,18 +319,16 @@ module sparsematrix_base
       type(sparse_matrix),intent(inout):: sparsemat
       ! Local variables
       integer :: i, is, ie
-      if (associated(sparseMat%keyg)) call f_free_ptr(sparseMat%keyg)
-      if (associated(sparseMat%keyv)) call f_free_ptr(sparseMat%keyv)
-      if (associated(sparseMat%nsegline)) call f_free_ptr(sparseMat%nsegline)
-      if (associated(sparseMat%istsegline)) call f_free_ptr(sparseMat%istsegline)
-      if (associated(sparseMat%matrixindex_in_compressed_fortransposed)) &
-          call f_free_ptr(sparseMat%matrixindex_in_compressed_fortransposed)
-      if (associated(sparseMat%matrixindex_in_compressed_arr)) &
-          call f_free_ptr(sparseMat%matrixindex_in_compressed_arr)
-      if (associated(sparseMat%isvctr_par)) call f_free_ptr(sparseMat%isvctr_par)
-      if (associated(sparseMat%nvctr_par)) call f_free_ptr(sparseMat%nvctr_par)
-      if (associated(sparseMat%isfvctr_par)) call f_free_ptr(sparseMat%isfvctr_par)
-      if (associated(sparseMat%nfvctr_par)) call f_free_ptr(sparseMat%nfvctr_par)
+      call f_free_ptr(sparseMat%keyg)
+      call f_free_ptr(sparseMat%keyv)
+      call f_free_ptr(sparseMat%nsegline)
+      call f_free_ptr(sparseMat%istsegline)
+      call f_free_ptr(sparseMat%matrixindex_in_compressed_fortransposed)
+      call f_free_ptr(sparseMat%matrixindex_in_compressed_arr)
+      call f_free_ptr(sparseMat%isvctr_par)
+      call f_free_ptr(sparseMat%nvctr_par)
+      call f_free_ptr(sparseMat%isfvctr_par)
+      call f_free_ptr(sparseMat%nfvctr_par)
       !!if (associated(sparseMat%orb_from_index)) call f_free_ptr(sparseMat%orb_from_index)
       call f_free_ptr(sparseMat%taskgroup_startend)
       call f_free_ptr(sparseMat%taskgroupid)
@@ -342,6 +340,7 @@ module sparsematrix_base
               call mpi_environment_free(sparseMat%mpi_groups(i))
           end do
           deallocate(sparseMat%mpi_groups)
+          nullify(sparseMat%mpi_groups)
       end if
       call f_free_ptr(sparseMat%inwhichtaskgroup)
       call f_free_ptr(sparseMat%tgranks)

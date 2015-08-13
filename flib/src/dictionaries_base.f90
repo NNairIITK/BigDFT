@@ -10,10 +10,10 @@
 
 !> Module which defines a dictionary and the pure functions for its basic usage rules (no dependency)
 module dictionaries_base
-
+  use f_precisions
   implicit none
 
-  integer(kind=4), parameter, public :: max_field_length = 256    !< Maximum length of a field
+  integer, parameter, public :: max_field_length = 256    !< Maximum length of a field
   character(len=max_field_length), parameter :: TYPE_DICT='__dict__'
   character(len=max_field_length), parameter :: TYPE_LIST='__list__'
 

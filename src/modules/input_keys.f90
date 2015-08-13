@@ -253,6 +253,8 @@ module module_input_keys
      real(gp) :: mditemp, mdftemp
      real(gp) :: noseinert, friction, mdwall
      real(gp) :: bmass, vmass, strprecon, strfact
+     integer:: sockinet, sockport
+     character(len=1032)  :: sockhost
      real(gp), dimension(6) :: strtarget
      real(gp), dimension(:), pointer :: qmass
      real(gp) :: dtinit, dtmax           !< For FIRE
@@ -501,7 +503,7 @@ contains
     !call getstaticinputdef(cbuf_add,params_size)
     call getinputdefsize(params_size)
     !allocate array
-    params=f_malloc_str(int(1,kind=4),params_size,id='params')
+    params=f_malloc_str(1,params_size,id='params')
     !fill it and parse dictionary
     !print *,'after', f_loc(params),f_loc(params(1)),'shape',shape(params),params_size
     !print *,'cbuf_add',cbuf_add
@@ -1826,6 +1828,12 @@ contains
           in%beta_stretchx = val
        case (TRUSTR)
           in%trustr = val
+       case (SOCKINET)
+          in%sockinet = val
+       case (SOCKPORT)
+          in%sockport = val
+       case (SOCKHOST)
+          in%sockhost = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2967,7 +2975,7 @@ contains
     call yaml_map('XC ID',in%ixc,fmt='(i8)',label='ixc')
     if (in%ixc < 0) then
        call xc_dump(in%ixc, XC_MIXED, in%nspin)
-    else
+    else ! @todo@ if (in%ixc /= XC_NO_HARTREE) then
        call xc_dump(in%ixc, XC_ABINIT, in%nspin)
     end if
     if (in%nspin>=2) then

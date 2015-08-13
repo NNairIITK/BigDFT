@@ -62,14 +62,14 @@ contains
 
   pure function fmt_li(data)
     implicit none
-    integer(kind=8), intent(in) :: data
+    integer(f_long), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_li
     fmt_li=yaml_int_fmt
   end function fmt_li
 
   pure function fmt_i(data)
     implicit none
-    integer(kind=4), intent(in) :: data
+    integer(f_integer), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_i
     fmt_i=yaml_int_fmt
   end function fmt_i
@@ -95,19 +95,20 @@ contains
     fmt_a=yaml_char_fmt
   end function fmt_a
 
-
-  !> Write the strings as they were written by write
+  !> Write the strings as if they were written by write
   pure subroutine f_strcpy(dest,src)
     implicit none
     character(len=*), intent(out) :: dest
     character(len=*), intent(in) :: src
     !local variables
-    integer :: i
-
-    dest=repeat(' ',len(dest))
-    
-    do i=1,min(len(src),len(dest))
+    integer :: i,n
+    !dest=repeat(' ',len(dest))
+    n=min(len(src),len(dest))
+    do i=1,n
        dest(i:i)=src(i:i)
+    end do
+    do i=n+1,len(dest)
+       dest(i:i)=' '
     end do
     
   end subroutine f_strcpy
@@ -204,14 +205,14 @@ contains
   !> Convert integer to character
   pure function yaml_itoa(data,fmt) result(str)
     implicit none
-    integer(kind=4), intent(in) :: data
+    integer(f_integer), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_itoa
 
   !> Convert longinteger to character
   pure function yaml_litoa(data,fmt) result(str)
     implicit none
-    integer(kind=8), intent(in) :: data
+    integer(f_long), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_litoa
 
@@ -512,7 +513,7 @@ contains
     
     !fill the string describing the format to be used for reading
     !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
-    write(form,'(a20)')'(i'//adjustl(trim(yaml_itoa(len_trim(str),fmt='(i17)')))//')' 
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_toa(len_trim(str),fmt='(i17)')))//')' 
     read(str,trim(form),iostat=ierr)ival
     yes=ierr==0
   end function is_atoi
@@ -533,7 +534,7 @@ contains
 
     !fill the string describing the format to be used for reading
     !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
-    write(form,'(a20)')'(i'//adjustl(trim(yaml_itoa(len_trim(str),fmt='(i17)')))//')' 
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_toa(len_trim(str),fmt='(i17)')))//')' 
     read(str,trim(form),iostat=ierr)ival
     yes=ierr==0
   end function is_atoli

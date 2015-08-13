@@ -173,8 +173,8 @@ f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time
 f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o
 f_refcnts.o: dictionaries.o yaml_output.o
 f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
-getadd.o: yaml_strings.o $(GETADD_INCLUDES)
-razero.o: randomData.o
+getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
+razero.o: randomData.o f_precisions.o
 $(flush_object): yaml_output.o dictionaries.o
 
 time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers

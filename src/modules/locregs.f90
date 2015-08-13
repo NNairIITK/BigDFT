@@ -1154,14 +1154,13 @@ contains
       end if
 
       if (nlen(2)<0) then
-          call f_err_throw('nlen(2)<0: '//&
-               &'i1='//  i1//&
-               &', i2='//i2//&
-               &', j1='//j1//&
-               &', j2='//j2//&
-               &', ks='//ks(2)//&
-               &', ke='//ke(2)&
-               ,err_name='BIGDFT_RUNTIME_ERROR')
+         call f_err_throw('nlen(2)<0: i1='//  i1//&
+              ', i2='//i2//&
+              (', j1='//j1//&
+              ', j2='//j2)//&
+              ', ks='//ks(2)//&
+              ', ke='//ke(2)&
+              ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
     end subroutine get_extent_of_overlap_int
@@ -1251,22 +1250,20 @@ contains
       end if
 
       if (nlen(1)<0) then
-          call f_err_throw('nlen(1)<0: '//&
-               &'i1='//  i1//&
+          call f_err_throw('nlen(1)<0: i1='//  i1//&
                &', i2='//i2//&
-               &', j1='//j1//&
-               &', j2='//j2//&
+               &(', j1='//j1//&
+               &', j2='//j2)//&
                &', ks='//ks(1)//&
                &', ke='//ke(1)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       if (nlen(2)<0) then
-          call f_err_throw('nlen(2)<0: '//&
-               &'i1='//  i1//&
+          call f_err_throw('nlen(2)<0: i1='//  i1//&
                &', i2='//i2//&
-               &', j1='//j1//&
-               &', j2='//j2//&
+               &(', j1='//j1//&
+               &', j2='//j2)//&
                &', ks='//ks(2)//&
                &', ke='//ke(2)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
