@@ -1024,14 +1024,15 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   psiw = f_malloc0((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.2, 1.to.ngroupp /),id='psiw')
 
 
-! if (nproc>1) then
-!   call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-! else
-!   size_of_double = 8
-! end if
-   size_of_double = 1
+ if (nproc>1) then
+   call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+ else
+   size_of_double = 8
+ end if
+
   call mpi_win_create(psiw,&
-int(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp, kind=mpi_address_kind), &
+int(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp, kind=mpi_address_kind)*&
+int(size_of_double, kind=mpi_address_kind), &
 size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win, ierr)
         if (ierr /=0)  print *,'error when creating mpi window for psiw',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
   
@@ -1040,12 +1041,13 @@ size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win, ierr)
   rp_ij = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='rp_ij')
 
   call mpi_win_create(dpsiw,&
-int(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp, kind=mpi_address_kind), &
+int(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp, kind=mpi_address_kind)*&
+int(size_of_double, kind=mpi_address_kind), &
 size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win2, ierr)
   if (ierr /=0)  print *,'error when creating mpi window for dpsiw',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
 
 call mpi_win_create(psir,&
-int(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp, kind=mpi_address_kind), &
+int(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp, kind=mpi_address_kind)*int(size_of_double, kind=mpi_address_kind), &
 size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
   if (ierr /=0)  print *,'error when creating mpi window for psir',iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
   !this is the array of the actions of the X potential on psi
@@ -1085,15 +1087,18 @@ size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
 
             if (jproc == 0) then
 
-            call MPI_GET(psiw(1,1,irnow,igroup), nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),mpidtypw,&
-iprocpm1(2,1,igroup),int(0, kind=mpi_address_kind),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
+            call MPI_GET(psiw(1,1,irnow,igroup), &
+int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
+iprocpm1(2,1,igroup),int(0, kind=mpi_address_kind),int(nvctr_par(jprocsr(2,jproc,igroup),&
+igrpr(igroup)), kind=mpi_address_kind),&
 mpidtypw,win3,ierr)
         if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
  
            else
-    call MPI_GET(psiw(1,1,irnow,igroup), nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),mpidtypw,&
+    call MPI_GET(psiw(1,1,irnow,igroup), &
+int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
 iprocpm1(2,1,igroup),(LOC(psiw(1,1,isnow,igroup))-LOC(psiw(1,1,1,1)))/size_of_double,&
-nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),mpidtypw,win,ierr)
+int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win,ierr)
 
         if (ierr /=0)  print *,'mpi put error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
 
@@ -1280,9 +1285,10 @@ nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),mpidtypw,win,ierr)
         end if
         if (jprocsr(4,jproc,igroup) /= -1) then
            ncommsstep2=ncommsstep2+1
-        call MPI_GET(dpsiw(1,1,irnow2,igroup),nvctr_par(iproc,igrpr(igroup)),mpidtypw,&
+        call MPI_GET(dpsiw(1,1,irnow2,igroup),&
+            int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
             jprocsr(4,jproc,igroup),(LOC(dpsiw(1,1,isnow2,igroup))-LOC(dpsiw(1,1,1,1)))/size_of_double,&
-            nvctr_par(iproc,igrpr(igroup)),mpidtypw,win2,ierr)
+            int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win2,ierr)
 
         end if
      end do

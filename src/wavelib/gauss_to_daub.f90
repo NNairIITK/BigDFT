@@ -642,9 +642,9 @@ contains
        !corrected for avoiding 0**0 problem
        icplx = 1
        if (n_gau == 0) then
-          !$omp parallel default(none) &
-          !$omp shared(leftx,rightx,i0,h,z0,a1,ww,icplx) private(i,x,r,r2,func)
-          !$omp do schedule(static)
+!!$          !$omp parallel default(none) &
+!!$          !$omp shared(leftx,rightx,i0,h,z0,a1,ww,icplx) private(i,x,r,r2,func)
+!!$          !$omp do schedule(static)
           do i=leftx,rightx
              x=real(i-i0*16,gp)*h
              r=x-z0
@@ -655,12 +655,12 @@ contains
              !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
              ww(i-leftx,1,icplx)=func
           enddo
-          !$omp end do
-          !$omp end parallel
+!!$          !$omp end do
+!!$          !$omp end parallel
        else
-          !$omp parallel default(none) &
-          !$omp shared(leftx,rightx,i0,h,z0,n_gau,a1,ww,icplx) private(i,x,r,coeff,r2,func)
-          !$omp do schedule(static)
+!!$          !$omp parallel default(none) &
+!!$          !$omp shared(leftx,rightx,i0,h,z0,n_gau,a1,ww,icplx) private(i,x,r,coeff,r2,func)
+!!$          !$omp do schedule(static)
           do i=leftx,rightx
              x=real(i-i0*16,gp)*h
              r=x-z0
@@ -673,8 +673,8 @@ contains
              func=coeff*func
              ww(i-leftx,1,icplx)=func
           enddo
-          !$omp end do
-          !$omp end parallel
+!!$          !$omp end do
+!!$          !$omp end parallel
        end if
 
   END SUBROUTINE gauss_to_scf_1

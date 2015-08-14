@@ -176,7 +176,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !LR: commented hessian as not currently using it
 
      !$omp parallel default(none) &
-     !$omp private(iat,ityp,rx,ry,rz,fxion,fyion,fzion,jtyp,chgprod,dist) &
+     !$omp private(iat,ityp,rx,ry,rz,fxion,fyion,fzion,jtyp,chgprod,dist,jat) &
      !$omp shared(at,rxyz,fion,eself,eion)
      !$omp do reduction(+:eself,eion)
      do iat=1,at%astruct%nat
