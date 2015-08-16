@@ -81,6 +81,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
    integer :: nxc,istden,istglo,ip,irho,i3s,i23,i23s,n23
+   integer(f_integer) :: ierr_4
    real(dp) :: ehartreeLOC,pot,rhores2,beta
    real(dp) :: alpha,ratio,normb,normr,norm_nonvac,e_static,rpoints
    !real(dp) :: scal
@@ -262,10 +263,13 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          !gathering the data to obtain the distribution array
          !this method only works with datacode == 'G'
          if (kernel%mpi_env%nproc > 1) then
-            call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
-                 displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+            call mpiallgather(rhopot(1),recvcounts=int(kernel%counts,f_integer),&
+                 displs=int(kernel%displs,f_integer),comm=int(kernel%mpi_env%mpi_comm,f_integer))
+            !call MPI_ALLGATHERV(int(MPI_IN_PLACE,f_long),int(kernel%counts(kernel%mpi_env%iproc),f_long),int(mpitype(rhopot(1)),f_long),&
+            !     rhopot,int(kernel%counts,f_long),int(kernel%displs,f_long),int(mpitype(rhopot(1)),f_long),int(kernel%mpi_env%mpi_comm,f_long),ierr)
+
          end if
-         
+
          !update rhopol and calculate residue
          call fssnord3DmatNabla_LG(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
               kernel%ndims(3),&
@@ -346,7 +350,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       !$omp parallel do default(shared) private(i1,i23)
       do i23=1,n23
          do i1=1,n1
-            z(i1,i23)=r(i1,i23)*kernel%oneoeps(i1,i23)
+             z(i1,i23)=r(i1,i23)*kernel%oneoeps(i1,i23)
          end do
       end do
       !$omp end parallel do
@@ -520,6 +524,8 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
   real(dp) :: pt,rh
   real(dp), dimension(:), allocatable :: zf1
 
+  call f_routine(id='apply_kernel')
+
   call f_zero(zf)
   !this routine builds the values for each process of the potential (zf), multiplying by scal   
   !fill the array with the values of the charge density
@@ -635,6 +641,8 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
      !$omp end parallel do
   end if
 
+  call f_release_routine()
+
 end subroutine apply_kernel
 
 
@@ -646,7 +654,6 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
   implicit none
   logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
   type(coulomb_operator), intent(in) :: kernel 
-
   real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: r,x,p,q,z
   !local variables
   integer :: n1,n23,i_stat,ierr,i23,i1,size1, ip

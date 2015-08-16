@@ -10,11 +10,14 @@
 !! This module has to be intended as a submodule of dynamic_memory module
 module module_f_malloc
 
+  use f_precisions
   use dictionaries, only: f_loc,f_err_throw,f_err_raise
+  use yaml_strings, only: f_strcpy,operator(+)
 
+  integer, parameter :: f_kind=f_long
   !>global parameter of the module telling if the profile has to be activated
   !! this parameter can be modified only by dynamic memory module
-  integer(kind=4), parameter :: f_malloc_namelen=32          !< length of the character variables
+  integer(f_integer), parameter :: f_malloc_namelen=32          !< length of the character variables
   integer, parameter :: max_rank=7          !< maximum rank in fortran
 
   !to be initialized in the dynamic_memory module
@@ -29,10 +32,10 @@ module module_f_malloc
      logical :: profile                      !< activate profiling for this allocation
      logical :: put_to_zero                  !< initialize to zero after allocation
      integer :: rank                         !< rank of the array
-     integer(kind=4), dimension(max_rank) :: shape   !< shape of the structure 
-     integer(kind=4), dimension(max_rank) :: lbounds !< lower bounds
-     integer(kind=4), dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: srcdata_add          !< physical address of source data
+     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure 
+     integer(f_kind), dimension(max_rank) :: lbounds !< lower bounds
+     integer(f_kind), dimension(max_rank) :: ubounds !< upper bounds
+     integer(f_address) :: srcdata_add          !< physical address of source data
      character(len=f_malloc_namelen) :: array_id      !< label the array
      character(len=f_malloc_namelen) :: routine_id    !< label the routine
      
@@ -44,11 +47,11 @@ module module_f_malloc
      logical :: profile                      !< activate profiling for this allocation
      logical :: put_to_zero                  !< initialize to zero after allocation
      integer :: rank                         !< rank of the array
-     integer(kind=4) :: len                  !< length of the character
-     integer(kind=4), dimension(max_rank) :: shape   !< shape of the structure 
-     integer(kind=4), dimension(max_rank) :: lbounds !< lower bounds
-     integer(kind=4), dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: srcdata_add          !< physical address of source data
+     integer :: len                  !< length of the character
+     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure 
+     integer(f_kind), dimension(max_rank) :: lbounds !< lower bounds
+     integer(f_kind), dimension(max_rank) :: ubounds !< upper bounds
+     integer(f_address) :: srcdata_add          !< physical address of source data
      character(len=f_malloc_namelen) :: array_id      !< label the array
      character(len=f_malloc_namelen) :: routine_id    !< label the routine
   end type malloc_information_str_all
@@ -60,10 +63,10 @@ module module_f_malloc
      logical :: profile                      !< activate profiling for this allocation
      logical :: put_to_zero                  !< initialize to zero after allocation
      integer :: rank                         !< rank of the pointer
-     integer(kind=4), dimension(max_rank) :: shape   !< shape of the structure 
-     integer(kind=4), dimension(max_rank) :: lbounds !< lower bounds
-     integer(kind=4), dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: srcdata_add          !< physical address of source data
+     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure 
+     integer(f_kind), dimension(max_rank) :: lbounds !< lower bounds
+     integer(f_kind), dimension(max_rank) :: ubounds !< upper bounds
+     integer(f_address) :: srcdata_add          !< physical address of source data
      character(len=f_malloc_namelen) :: array_id      !< label the array
      character(len=f_malloc_namelen) :: routine_id    !< label the routine
   end type malloc_information_ptr
@@ -75,18 +78,18 @@ module module_f_malloc
      logical :: profile                      !< activate profiling for this allocation
      logical :: put_to_zero                  !< initialize to zero after allocation
      integer :: rank                         !< rank of the pointer
-     integer(kind=4) :: len                  !< length of the character
-     integer(kind=4), dimension(max_rank) :: shape   !< shape of the structure 
-     integer(kind=4), dimension(max_rank) :: lbounds !< lower bounds
-     integer(kind=4), dimension(max_rank) :: ubounds !< upper bounds
-     integer(kind=8) :: srcdata_add          !< physical address of source data
+     integer :: len                  !< length of the character
+     integer(f_kind), dimension(max_rank) :: shape   !< shape of the structure 
+     integer(f_kind), dimension(max_rank) :: lbounds !< lower bounds
+     integer(f_kind), dimension(max_rank) :: ubounds !< upper bounds
+     integer(f_address) :: srcdata_add          !< physical address of source data
      character(len=f_malloc_namelen) :: array_id      !< label the array
      character(len=f_malloc_namelen) :: routine_id    !< label the routine
   end type malloc_information_str_ptr
 
   type, public :: array_bounds
-     integer(kind=4) :: nlow  !<lower bounds
-     integer(kind=4) :: nhigh !<higher bounds
+     integer(f_kind) :: nlow  !<lower bounds
+     integer(f_kind) :: nhigh !<higher bounds
   end type array_bounds
 
   interface operator(.to.)
@@ -189,42 +192,42 @@ contains
   
   elemental pure function f_array_bounds_intint(nlow,nhigh) result(f_array_bounds)
     implicit none
-    integer(kind=4), intent(in) :: nlow
-    integer(kind=4), intent(in) :: nhigh
+    integer(f_integer), intent(in) :: nlow
+    integer(f_integer), intent(in) :: nhigh
     type(array_bounds) :: f_array_bounds
 
-    f_array_bounds%nlow=int(nlow,kind=4)
-    f_array_bounds%nhigh=int(nhigh,kind=4)
+    f_array_bounds%nlow=int(nlow,f_kind)
+    f_array_bounds%nhigh=int(nhigh,f_kind)
   end function f_array_bounds_intint
 
   elemental pure function f_array_bounds_longlong(nlow,nhigh) result(f_array_bounds)
     implicit none
-    integer(kind=8), intent(in) :: nlow
-    integer(kind=8), intent(in) :: nhigh
+    integer(f_long), intent(in) :: nlow
+    integer(f_long), intent(in) :: nhigh
     type(array_bounds) :: f_array_bounds
 
-    f_array_bounds%nlow=int(nlow,kind=4)
-    f_array_bounds%nhigh=int(nhigh,kind=4)
+    f_array_bounds%nlow=int(nlow,f_kind)
+    f_array_bounds%nhigh=int(nhigh,f_kind)
   end function f_array_bounds_longlong
 
   elemental pure function f_array_bounds_intlong(nlow,nhigh) result(f_array_bounds)
     implicit none
-    integer(kind=4), intent(in) :: nlow
-    integer(kind=8), intent(in) :: nhigh
+    integer(f_integer), intent(in) :: nlow
+    integer(f_long), intent(in) :: nhigh
     type(array_bounds) :: f_array_bounds
 
-    f_array_bounds%nlow=int(nlow,kind=4)
-    f_array_bounds%nhigh=int(nhigh,kind=4)
+    f_array_bounds%nlow=int(nlow,f_kind)
+    f_array_bounds%nhigh=int(nhigh,f_kind)
   end function f_array_bounds_intlong
 
   elemental pure function f_array_bounds_longint(nlow,nhigh) result(f_array_bounds)
     implicit none
-    integer(kind=8), intent(in) :: nlow
-    integer(kind=4), intent(in) :: nhigh
+    integer(f_long), intent(in) :: nlow
+    integer(f_integer), intent(in) :: nhigh
     type(array_bounds) :: f_array_bounds
 
-    f_array_bounds%nlow=int(nlow,kind=4)
-    f_array_bounds%nhigh=int(nhigh,kind=4)
+    f_array_bounds%nlow=int(nlow,f_kind)
+    f_array_bounds%nhigh=int(nhigh,f_kind)
   end function f_array_bounds_longint
 
   pure subroutine nullify_malloc_information_all(m)
@@ -310,64 +313,64 @@ contains
   pure function f_malloci_str_simple(length,size,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloci-simple-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
   end function f_malloci_str_simple
   pure function f_mallocli_str_simple(length,size,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_mallocli-simple-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
   end function f_mallocli_str_simple
   !> For rank-1 arrays
   pure function f_malloci0_str_simple(length,size,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloci-simple-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_malloci0_str_simple
   pure function f_mallocli0_str_simple(length,size,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_mallocli-simple-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_mallocli0_str_simple
   !> For rank-1 arrays
   pure function f_malloci_str_ptr_simple(length,size,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloci-simple-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
   end function f_malloci_str_ptr_simple
   pure function f_mallocli_str_ptr_simple(length,size,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_mallocli-simple-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
   end function f_mallocli_str_ptr_simple
   !> For rank-1 arrays
   pure function f_malloci0_str_ptr_simple(length,size,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloci-simple-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_malloci0_str_ptr_simple
   pure function f_mallocli0_str_ptr_simple(length,size,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_mallocli-simple-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_mallocli0_str_ptr_simple
 
@@ -402,9 +405,9 @@ contains
   pure function f_malloc_str_bound(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-bound-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
   end function f_malloc_str_bound
   !!pure function f_malloc_listr_bound(length,bounds,id,routine_id,profile) result(m)
   !!  implicit none
@@ -417,9 +420,9 @@ contains
   pure function f_malloc0_str_bound(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-bound-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_malloc0_str_bound
   !!pure function f_malloc0_listr_bound(length,bounds,id,routine_id,profile) result(m)
@@ -434,25 +437,25 @@ contains
   pure function f_malloc_str_ptr_bound(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-bound-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
   end function f_malloc_str_ptr_bound
   !> For rank-1 arrays
   pure function f_malloc0_str_ptr_bound(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-bound-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_malloc0_str_ptr_bound
   pure function f_malloc0_listr_ptr_bound(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-bound-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_malloc0_listr_ptr_bound
 
@@ -486,9 +489,9 @@ contains
   pure function f_malloc_str_bounds(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-bounds-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
   end function f_malloc_str_bounds
   !!pure function f_malloc_listr_bounds(length,bounds,id,routine_id,profile) result(m)
   !!  implicit none
@@ -500,9 +503,9 @@ contains
   pure function f_malloc0_str_bounds(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-bounds-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_malloc0_str_bounds
   !!pure function f_malloc0_listr_bounds(length,bounds,id,routine_id,profile) result(m)
@@ -517,17 +520,17 @@ contains
   pure function f_malloc_str_ptr_bounds(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-bounds-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
   end function f_malloc_str_ptr_bounds
   !> Define the allocation information for  arrays of different rank
   pure function f_malloc0_str_ptr_bounds(length,bounds,id,routine_id,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-bounds-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_malloc0_str_ptr_bounds
 
@@ -589,9 +592,9 @@ contains
   function f_malloci_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-total-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
   end function f_malloci_str
   !!function f_mallocli_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
   !!  implicit none
@@ -604,9 +607,9 @@ contains
   function f_malloci0_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     type(malloc_information_str_all) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-total-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_malloci0_str
   !!function f_mallocli0_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
@@ -621,9 +624,9 @@ contains
   function f_malloci_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-total-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
   end function f_malloci_str_ptr
   !!function f_mallocli_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
   !!  implicit none
@@ -636,9 +639,9 @@ contains
   function f_malloci0_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
     type(malloc_information_str_ptr) :: m
-    integer(kind=4), intent(in) :: length
+    integer, intent(in) :: length
     include 'f_malloc-total-inc.f90'
-    m%len=int(length,kind=4)
+    m%len=length
     m%put_to_zero=.true.
   end function f_malloci0_str_ptr
   !!function f_mallocli0_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)

@@ -73,7 +73,7 @@ F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 	f_malloc-bound-inc.f90 \
 	f_malloc-bounds-inc.f90 f_malloci-simple-inc.f90 f_mallocli-simple-inc.f90 \
 	f_malloc-ptr-inc.f90 f_malloc-check-inc.f90 \
-	f_malloc-null-ptr-inc.f90
+	f_malloc-null-ptr-inc.f90 f_malloc-total-inc.f90
 
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
 	yaml_map-mat-inc.f90 yaml_open-inc.f90
@@ -173,8 +173,8 @@ f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time
 f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o
 f_refcnts.o: dictionaries.o yaml_output.o
 f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
-getadd.o: yaml_strings.o $(GETADD_INCLUDES)
-razero.o: randomData.o
+getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
+razero.o: randomData.o f_precisions.o
 $(flush_object): yaml_output.o dictionaries.o
 
 time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers

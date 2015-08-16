@@ -10,11 +10,10 @@
 
 !> Module used to manage memory allocations and de-allocations
 module dynamic_memory
-
   use memory_profiling
   use dictionaries, info_length => max_field_length
-  use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
-  use module_f_malloc
+  use yaml_strings, only: yaml_toa,yaml_date_and_time_toa,operator(//)
+  use module_f_malloc !use f_precision
   use yaml_parse, only: yaml_a_todict
   use f_utils, only: f_time
   implicit none
@@ -25,7 +24,7 @@ module dynamic_memory
   logical, parameter :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
-  integer(kind=4), parameter :: ndebug=0                  !< Size of debug parameters
+  integer, parameter :: ndebug=0                  !< Size of debug parameters
 !!$  integer, parameter :: max_rank=7             !< Maximum rank in fortran
   !> Maximum size of f_lib control variables
   integer, parameter :: max_ctrl = 5 !< Maximum number of nested levels
@@ -122,9 +121,9 @@ module dynamic_memory
 
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1
-     module procedure f_memcpy_i0i1,f_memcpy_i1i2,f_memcpy_i2i1
+     module procedure f_memcpy_i0i1,f_memcpy_i1i2,f_memcpy_i2i1,f_memcpy_i2i0
      module procedure f_memcpy_li0,f_memcpy_li1
-     module procedure f_memcpy_li0li1,f_memcpy_li1li2,f_memcpy_li2li1
+     module procedure f_memcpy_li0li1,f_memcpy_li1li2,f_memcpy_li2li1,f_memcpy_li2li0
      module procedure f_memcpy_r0
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1
      module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3,f_memcpy_d3,f_memcpy_d4,f_memcpy_d1d0

@@ -219,12 +219,12 @@ subroutine init_gt_data(gdat)
     gdat%fp_arr = f_malloc((/gdat%nid,gdat%nminmax/),id='fp_arr')
     gdat%en_arr = f_malloc((/gdat%nminmax/),id='en_arr')
     gdat%en_arr=huge(1.0_gp)
-    gdat%path_min =f_malloc_str(int(600,kind=4),(/1.to.gdat%nminmax/),id='path_min')
+    gdat%path_min =f_malloc_str(600,(/1.to.gdat%nminmax/),id='path_min')
     gdat%fp_arr_currDir = f_malloc((/gdat%nid,gdat%nminmaxpd/),&
                           id='fp_arr_currDir')
     gdat%en_arr_currDir = f_malloc((/gdat%nminmaxpd/),id='en_arr_currDir')
     gdat%en_arr_currDir=huge(1.0_gp)
-    gdat%path_min_currDir = f_malloc_str(int(600,kind=4),(/1.to.gdat%nminmaxpd/),&
+    gdat%path_min_currDir = f_malloc_str(600,(/1.to.gdat%nminmaxpd/),&
                             id='path_min_currDir')
     gdat%transpairs = f_malloc((/gdat%nminmax/),id='transpairs')
     gdat%transpairs=huge(1)
@@ -232,9 +232,9 @@ subroutine init_gt_data(gdat)
     gdat%sadnumber = f_malloc((/gdat%nminmax/),id='sadnumber')
     gdat%gmon_ener = f_malloc((/gdat%nminmaxpd/),id='gmon_ener')
     gdat%gmon_fp = f_malloc((/gdat%nid,gdat%nminmaxpd/),id='gmon_fp')
-    gdat%gmon_path = f_malloc_str(int(600,kind=4),(/1.to.gdat%nminmaxpd/),&
+    gdat%gmon_path = f_malloc_str(600,(/1.to.gdat%nminmaxpd/),&
                             id='gmon_path')
-    gdat%gmon_stat = f_malloc_str(int(1,kind=4),gdat%nminmaxpd,id='gmon_stat')
+    gdat%gmon_stat = f_malloc_str(1,gdat%nminmaxpd,id='gmon_stat')
     gdat%gmon_nposlocs=huge(1)
 end subroutine init_gt_data
 !=====================================================================
@@ -309,7 +309,7 @@ subroutine read_globaltool_uinp(gdat)
         if(istat/=0)exit
         gdat%uinp%ndir=gdat%uinp%ndir+1
     enddo
-    gdat%uinp%directories = f_malloc_str(int(500,kind=4),(/1.to.gdat%uinp%ndir/),&
+    gdat%uinp%directories = f_malloc_str(500,(/1.to.gdat%uinp%ndir/),&
                             id='gdat%uinp%directories')
     rewind(u)
     read(u,*,iostat=istat)gdat%uinp%en_delta,gdat%uinp%fp_delta
