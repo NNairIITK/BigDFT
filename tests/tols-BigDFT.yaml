@@ -194,7 +194,7 @@ GEOPT-LBFGS:
  
 NaCl:
  Epsilon: 2.e-9
- Mean L2 norm of gaussian-wavelet difference: 1.346e-4
+ Mean L2 norm of gaussian-wavelet difference: 1.358e-4
 
 NH3:
  Epsilon: 1.1e-10
@@ -1543,7 +1543,7 @@ periodic_water:
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 9.2e-9
- D eF: 1.3e-8
+ D eF: 1.4e-8
  energy: 2.8e-10
  guess for new ef: 9.1e-9
  number of corrected points: 1
@@ -1639,7 +1639,7 @@ igortho_19:
  Energy (Hartree): 2.4e-9
  Multipole coefficients: 1.1e-6
  Charge analysis (charge / net charge): 4.1e-7
- Pseudo Fermi level for occupations: 2.1e-8
+ Pseudo Fermi level for occupations: 2.9e-8
  net charge: 1.1e-8
  Average noise forces: 7.8e-7
  eF: 3.6e-5

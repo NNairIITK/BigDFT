@@ -513,7 +513,7 @@ module multipole
       ! Local variables
       integer :: ist, istr, iorb, iiorb, ilr, ii, natp, isat, nr, jproc, iat, n, norb_get, istr_get
       integer :: window, ioffset, methTransformOverlap, l, m, iiat, ityp, norb_per_atom, i1, i2, i3, ind, jorb, jat
-      integer :: ii1, ii2, ii3, jjorb, i
+      integer :: ii1, ii2, ii3, jjorb, i, itype
       real(kind=8),dimension(:),allocatable :: psir
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       type(workarr_sumrho) :: w
@@ -524,7 +524,7 @@ module multipole
       real(kind=8),dimension(:,:,:,:,:,:),allocatable :: sphi
       integer,dimension(:,:),allocatable :: comms
       logical :: can_use_transposed, arr_allocated
-      real(kind=8) :: ddot, x, y, z, tt, rnorm, factor, max_error!, get_normalization, get_test_factor
+      real(kind=8) :: ddot, x, y, z, tt, rnorm, factor, max_error, q!, get_normalization, get_test_factor
       !real(kind=8) ,dimension(2,orbs%norb) :: testarr
       real(kind=8),dimension(:),allocatable :: kernel_ortho, phi_ortho
       integer,dimension(:),allocatable :: n1i, n2i, n3i, ns1i, ns2i, ns3i
@@ -733,6 +733,13 @@ module multipole
       call f_free(ns3i)
       call f_free(locrad)
       call f_free(locregcenter)
+
+      ! The monopole term should be the net charge, i.e. subtract the atomic charges
+      do iat=1,at%astruct%nat
+          itype = at%astruct%iatype(iat)
+          q = real(at%nelpsp(itype),kind=8)
+          multipoles(0,0,iat) = multipoles(0,0,iat) - q
+      end do
 
       if (iproc==0) then
           !!call write_multipoles(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
