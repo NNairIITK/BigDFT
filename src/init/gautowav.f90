@@ -66,7 +66,7 @@ END SUBROUTINE check_gaussian_expansion
 !> Parse the output of CP2K to read the basis set information
 subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
      CP2K,wfn_cp2k)
-  use module_defs, only: gp,wp
+  use module_base
   use module_types, only: orbitals_data, gaussian_basis
   use gaussians
   use yaml_output
