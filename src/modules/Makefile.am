@@ -126,6 +126,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
+	GAUSSDAUB.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
 	VDWCORRECTION.@MODULE_EXT@ \
 	MODULE_FRAGMENTS.@MODULE_EXT@ \
@@ -193,6 +194,7 @@ modules = module_base.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
 	gaussians.@MODULE_EXT@ \
+	gaussdaub.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ \
 	module_fragments.@MODULE_EXT@ \
