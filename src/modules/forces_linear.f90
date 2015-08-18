@@ -198,7 +198,7 @@ module forces_linear
       !call calculate_scalprod()
       call  calculate_scalprod(iproc, natp, isat, ndir, i_max, l_max, m_max, npsidim_orbs, orbs, &
             lzd, nlpsp, at, lr, hx, hy, hz, is_supfun_per_atom, phi, &
-            nscalprod_send, scalprod_send_lookup, scalprod_sendbuf_new)
+            size(scalprod_send_lookup), scalprod_send_lookup, scalprod_sendbuf_new)
       if (extra_timing) call cpu_time(tr1)
       if (extra_timing) time0=real(tr1-tr0,kind=8)
     
@@ -208,7 +208,7 @@ module forces_linear
       call transpose_scalprod(iproc, nproc, at, nat_par, isat_par, &
                ndir, i_max, l_max, m_max, scalprod_sendbuf_new, &
                supfun_per_atom, is_supfun_per_atom, &
-               nscalprod_send, scalprod_send_lookup, scalprod_new, scalprod_lookup)
+               size(scalprod_send_lookup), scalprod_send_lookup, scalprod_new, scalprod_lookup)
       if (extra_timing) call cpu_time(tr0)
       if (extra_timing) time1=real(tr0-tr1,kind=8)
     
@@ -756,7 +756,7 @@ module forces_linear
       type(sparse_matrix),intent(in) :: denskern
       type(atoms_data),intent(in) :: at
       real(gp),dimension(2,2,3),intent(in) :: offdiagarr
-      real(kind=8),dimension(denskern%nvctr),intent(in) :: denskern_gathered
+      real(kind=8),dimension(denskern%nvctr*denskern%nspin),intent(in) :: denskern_gathered
       real(kind=8),dimension(1:2,0:ndir,1:m_max,1:i_max,1:l_max,1:nscalprod_recv),intent(in) :: scalprod_new
       integer,dimension(at%astruct%nat),intent(in) :: supfun_per_atom 
       integer,dimension(at%astruct%nat),intent(in) :: is_supfun_per_atom
