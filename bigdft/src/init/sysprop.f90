@@ -1025,7 +1025,7 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
   real(wp), dimension(:,:,:,:), pointer :: rhocore
   !local variables
   character(len=*), parameter :: subname='calculate_rhocore'
-  integer :: ityp,iat,j3,i1,i2,ncmax !,ierr,ind
+  integer :: ityp,iat,j3,i1,i2,ncmax,i !,ierr,ind
   real(wp) :: tt
   real(gp) :: rx,ry,rz,rloc,cutoff
   logical :: donlcc
@@ -1055,10 +1055,19 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
   rhocore = f_malloc0_ptr((/ dpbox%ndims(1) , dpbox%ndims(2) , dpbox%n3d , 10 /), id = 'rhocore')
   !perform the loop on any of the atoms which have this feature
   do ityp = 1, at%astruct%ntypes
-     
      if (at%npspcode(ityp) == PSPCODE_PAW) then
+        !  Create mesh_core object
+        !  since core_mesh_size can be bigger than pawrad%mesh_size, 
+        call pawrad_init(core_mesh, mesh_size = at%pawtab(ityp)%core_mesh_size, &
+             & mesh_type = at%pawrad(ityp)%mesh_type, &
+             & rstep = at%pawrad(ityp)%rstep, &
+             & lstep = at%pawrad(ityp)%lstep)
+
         !  Set radius size:
-        rloc = at%pawtab(ityp)%rcore
+        do i = 1, size(at%pawtab(ityp)%tcoredens, 1)
+           if (at%pawtab(ityp)%tcoredens(i, 1) < 1e-10) exit
+        end do
+        rloc = core_mesh%rad(i)
         cutoff = rloc * 1.1d0
 
         !  allocate arrays
@@ -1074,12 +1083,6 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
         rr = f_malloc(ncmax, id = "rr")
         raux = f_malloc(ncmax, id = "raux")
         rcart = f_malloc((/ 3, ncmax /), id = "rcart")
-        !  Create mesh_core object
-        !  since core_mesh_size can be bigger than pawrad%mesh_size, 
-        call pawrad_init(core_mesh, mesh_size = at%pawtab(ityp)%core_mesh_size, &
-             & mesh_type = at%pawrad(ityp)%mesh_type, &
-             & rstep = at%pawrad(ityp)%rstep, &
-             & lstep = at%pawrad(ityp)%lstep)
      else
         rloc = at%psppar(0,0,ityp)
         cutoff = 10.d0 * rloc
@@ -1153,9 +1156,10 @@ END SUBROUTINE calculate_rhocore
 subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
   use module_defs, only: gp, dp, UNINITIALIZED, pi_param, BIGDFT_INPUT_VARIABLES_ERROR
+  use module_xc, only: xc_get_id_from_name
   use yaml_strings, only: yaml_toa
+  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_PAW, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC
   use ao_inguess
-  use m_pawpsp, only: pawpsp_read_header_2
   use dictionaries
   use f_utils
   implicit none
@@ -1172,7 +1176,6 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
   integer :: lmax,lloc,mmax, ixc_
-  integer:: pspversion,basis_size,lmn_size
   real(dp) :: nelpsp_dp,nzatom_dp,r2well
   character(len=max_field_length) :: line
   logical :: exists, eof
@@ -1191,21 +1194,51 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
   !   stop
   !end if
   call f_iostream_get_line(ios, line)
-  call f_iostream_get_line(ios, line)
-  read(line,*) nzatom_dp, nelpsp_dp
-  nzatom=int(nzatom_dp); nelpsp=int(nelpsp_dp)
-  call f_iostream_get_line(ios, line)
-  read(line,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
+  if (line(1:5)/='<?xml') then
+     call f_iostream_get_line(ios, line)
+     read(line,*) nzatom_dp, nelpsp_dp
+     nzatom=int(nzatom_dp); nelpsp=int(nelpsp_dp)
+     call f_iostream_get_line(ios, line)
+     read(line,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
+  else
+     npspcode = PSPCODE_PAW ! XML pseudo, try to get nzatom, nelpsp and ixcpsp by hand
+     nzatom = 0
+     nelpsp = 0
+     ixcpsp = 0
+     do
+        call f_iostream_get_line(ios, line, eof)
+        if (eof .or. (nzatom > 0 .and. nelpsp > 0 .and. ixcpsp > 0)) exit
+        
+        if (line(1:6) == "<atom ") then
+           i = index(line, " Z")
+           i = i + index(line(i:max_field_length), '"')
+           j = i + index(line(i:max_field_length), '"') - 2
+           read(line(i:j), *) nzatom_dp
+           i = index(line, " valence")
+           i = i + index(line(i:max_field_length), '"')
+           j = i + index(line(i:max_field_length), '"') - 2
+           read(line(i:j), *) nelpsp_dp
+           nzatom = int(nzatom_dp)
+           nelpsp = int(nelpsp_dp)
+        end if
+        if (line(1:15) == "<xc_functional ") then
+           i = index(line, "name")
+           i = i + index(line(i:max_field_length), '"')
+           j = i + index(line(i:max_field_length), '"') - 2
+           call xc_get_id_from_name(ixcpsp, line(i:j))
+        end if
+     end do
+  end if
 
   psppar(:,:)=0._gp
-  if (npspcode == 2) then !GTH case
+  if (npspcode == PSPCODE_GTH) then !GTH case
      call f_iostream_get_line(ios, line)
      read(line,*) (psppar(0,j),j=0,4)
      do i=1,2
         call f_iostream_get_line(ios, line)
         read(line,*) (psppar(i,j),j=0,3-i)
      enddo
-  else if (npspcode == 3) then !HGH case
+  else if (npspcode == PSPCODE_HGH) then !HGH case
      call f_iostream_get_line(ios, line)
      read(line,*) (psppar(0,j),j=0,4)
      call f_iostream_get_line(ios, line)
@@ -1217,20 +1250,13 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
         call f_iostream_get_line(ios, line)
         !read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
      enddo
-  else if (npspcode == 7) then !PAW Pseudos
-     ! Need NC psp for input guess.
-     call atomic_info(nzatom, nelpsp, symbol = symbol)
-     ixc_ = ixcpsp ! Because psp_from_data() will change ixc_.
-     call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixc_, &
-          & psppar, exists)
-     if (.not.exists) stop "Implement here."
-
+  else if (npspcode == PSPCODE_PAW) then !PAW Pseudos
      ! PAW format using libPAW.
-     call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
+     !call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
      ! PAW data will not be saved in the input dictionary,
      ! we keep their reading for later.
      pawpatch = .true.
-  else if (npspcode == 10) then !HGH-K case
+  else if (npspcode == PSPCODE_HGH_K) then !HGH-K case
      call f_iostream_get_line(ios, line)
      read(line,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
      call f_iostream_get_line(ios, line)
@@ -1251,7 +1277,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
         end do
      end do prjloop
   !ALEX: Add support for reading NLCC from psppar
-  else if (npspcode == 12) then !HGH-NLCC: Same as HGH-K + one additional line
+  else if (npspcode == PSPCODE_HGH_K_NLCC) then !HGH-NLCC: Same as HGH-K + one additional line
      call f_iostream_get_line(ios, line)
      read(line,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
      call f_iostream_get_line(ios, line)
@@ -1285,7 +1311,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
           err_id=BIGDFT_INPUT_VARIABLES_ERROR)
   end if
 
-  if (npspcode /= 7) then
+  if (npspcode /= PSPCODE_PAW) then
      
      !old way of calculating the radii, requires modification of the PSP files
      call f_iostream_get_line(ios, line, eof)
@@ -1307,6 +1333,19 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
         if (eof .or. pawpatch) exit
         pawpatch = (trim(line) == "PAWPATCH")
      end do
+  else
+     ! Need NC psp for input guess.
+     call atomic_info(nzatom, nelpsp, symbol = symbol)
+     ixc_ = ixcpsp ! Because psp_from_data() will change ixc_.
+     call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixc_, &
+          & psppar, exists)
+     ! Fallback to LDA case, anyway, this is only for input guess.
+     if (.not.exists) then
+        ixc_ = 1
+        call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixc_, &
+             & psppar, exists)
+        if (.not. exists) stop 'Serious issue'
+     end if
   end if
 END SUBROUTINE psp_from_stream
 
@@ -1314,9 +1353,11 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
   use module_base
   use abi_defs_basis, only: tol14, fnlen
   use m_pawpsp, only: pawpsp_main
-
+  use m_pawxmlps, only: paw_setup, rdpawpsxml, ipsp2xml
   use m_pawrad, only: pawrad_type !, pawrad_nullify
   use m_pawtab, only: pawtab_type, pawtab_nullify
+  use f_utils
+
   implicit none
 
   type(pawrad_type), intent(out) :: pawrad
@@ -1331,7 +1372,8 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
   real(dp):: xc_denpos
   real(dp)::xcccrc
   character(len=fnlen):: filpsp   ! name of the psp file
-  !  type(paw_setup_t),optional,intent(in) :: psxml
+  character(len = max_field_length) :: line
+  type(io_stream) :: ios
   !!arrays
   integer:: wvl_ngauss(2)
   integer, parameter :: mqgrid_ff = 0, mqgrid_vl = 0
@@ -1358,11 +1400,27 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
   xc_denpos=tol14
   filpsp=trim(filename)
 
+  allocate(paw_setup(1))
+  allocate(ipsp2xml(1))
+  if (bigdft_mpi%iproc == 0) then
+     ! Parse the PAW file if in XML format
+     call f_iostream_from_file(ios, trim(filename))
+     call f_iostream_get_line(ios, line)
+     call f_iostream_release(ios)
+     if (line(1:5) == "<?xml") then
+        call rdpawpsxml(filpsp, paw_setup(1), 789)
+        ipsp2xml(1) = 1
+     end if
+  end if
+
   call pawpsp_main( &
        & pawrad,pawtab,&
        & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
        & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,real(nelpsp, dp),real(nzatom, dp),&
-       & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm)
+       & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm,psxml = paw_setup(1))
+
+  deallocate(ipsp2xml)
+  deallocate(paw_setup)
 
 !!$  ii = 0
 !!$  do ib = 1, pawtab%basis_size
