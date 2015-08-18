@@ -68,7 +68,8 @@ module module_xc
        &    xc_isgga, &
        &    xc_exctXfac, &
        &    xc_end, &
-       &    xc_get_name
+       &    xc_get_name, &
+       &    xc_get_id_from_name
 
 
 
@@ -255,6 +256,23 @@ contains
     call obj_get_name_(xcObj, name)
     call obj_free_(xcObj)
   end subroutine xc_get_name
+
+  !> Get the XC id from the name
+  subroutine xc_get_id_from_name(id, name)
+    implicit none
+    
+    integer, intent(out) :: id
+    character(len = *), intent(in) :: name
+
+    integer :: i
+
+    i = index(name, "+")
+    if (i > 0) then
+       id = -xc_f90_functional_get_number(name(1:i - 1)) - 1000 * xc_f90_functional_get_number(name(i+1:len(name)))
+    else
+       id = -xc_f90_functional_get_number(name)
+    end if
+  end subroutine xc_get_id_from_name
 
   !>  Dump XC info on screen.
   subroutine xc_dump(ixc,kind,nspden)
