@@ -2975,9 +2975,9 @@ end subroutine pawpsp_wvl_calc
 !!
 !! SOURCE
 
-subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
+subroutine pawpsp_17in(epsatm,ffspl,icoulomb,ipsp,ixc,lmax,&
 & lnmax,mmax,mqgrid_ff,mqgrid_vl,pawpsp_header,pawrad,pawtab,&
-& pawxcdev, qgrid_ff,qgrid_vl,usexcnhat_in,vlspl,xcccrc,&
+& pawxcdev, qgrid_ff,qgrid_vl,usewvl,usexcnhat_in,vlspl,xcccrc,&
 & xclevel,xc_denpos,zion,znucl)
 
 
@@ -2994,7 +2994,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !scalars
  integer,intent(in) :: ipsp,ixc,lmax,lnmax,mqgrid_ff,mqgrid_vl,pawxcdev,usexcnhat_in
  integer,intent(inout) ::mmax
- integer,intent(in) :: xclevel
+ integer,intent(in) :: xclevel,icoulomb,usewvl
  real(dp),intent(in) :: xc_denpos,zion,znucl
  real(dp),intent(out) :: epsatm,xcccrc
  type(pawpsp_header_type),intent(in) :: pawpsp_header
@@ -3008,11 +3008,11 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !Local variables ------------------------------
 !scalars
  integer :: ib,icoremesh,il,ilm,ilmn,ilmn0,iln,imainmesh,imsh,iprojmesh,ipsploc
- integer :: ir,iread1,ishpfmesh,ivalemesh,ivlocmesh,j0lmn,jlm
+ integer :: ir,iread1,ishpfmesh,ivalemesh,ivlocmesh,j0lmn,jlm,pngau
  integer :: jlmn,jln,klmn,msz,nmesh,nval,pspversion,sz10,usexcnhat,vlocopt
  real(dp), parameter :: rmax_vloc=10.0_dp
  real(dp) :: fourpi,occ,rc,yp1,ypn
- logical,parameter :: save_core_msz=.false. ! Temporary
+ logical :: save_core_msz
  character(len=500) :: msg
  type(pawrad_type) :: core_mesh,shpf_mesh,tproj_mesh,vale_mesh,vloc_mesh
 !arrays
@@ -3036,6 +3036,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
  pawtab%usexcnhat=usexcnhat_in
  fourpi=4*acos(-1.d0)
  pspversion=pawpsp_header%pawver
+ save_core_msz=(usewvl==1 .or. icoulomb .ne. 0)
 
 !==========================================================
 !Initialize partial waves quantum numbers
@@ -3323,11 +3324,29 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 !---------------------------------
 !Read projectors (tproj)
 
-!Reading of gaussian projectors for wavelets not available
-!Pending, add reading of Gaussian projectors
-!Nullify wavelet objects for safety:
- pawtab%has_wvl=0
- call wvlpaw_free(pawtab%wvl)
+ if (allocated(paw_setup(ipsploc)%projector_fit)) then
+    call wvlpaw_allocate(pawtab%wvl)
+    LIBPAW_ALLOCATE(pawtab%wvl%pngau,(pawtab%basis_size))
+    do ib=1,pawtab%basis_size
+       pawtab%wvl%pngau(ib) = paw_setup(ipsploc)%projector_fit(ib)%ngauss
+    end do
+    pawtab%wvl%ptotgau = sum(pawtab%wvl%pngau)
+    LIBPAW_ALLOCATE(pawtab%wvl%parg,(2,pawtab%wvl%ptotgau))
+    LIBPAW_ALLOCATE(pawtab%wvl%pfac,(2,pawtab%wvl%ptotgau))
+    pngau = 1
+    do ib=1,pawtab%basis_size
+       pawtab%wvl%parg(:,pngau:pngau + pawtab%wvl%pngau(ib) - 1) = &
+            & paw_setup(ipsploc)%projector_fit(ib)%expos(:,1:pawtab%wvl%pngau(ib))
+       pawtab%wvl%pfac(:,pngau:pngau + pawtab%wvl%pngau(ib) - 1) = &
+            & paw_setup(ipsploc)%projector_fit(ib)%factors(:,1:pawtab%wvl%pngau(ib))
+       pngau = pngau + pawtab%wvl%pngau(ib)
+    end do
+    pawtab%has_wvl=2
+ else
+    !Nullify wavelet objects for safety:
+    pawtab%has_wvl=0
+    call wvlpaw_free(pawtab%wvl)
+ end if
 
  do ib=1,pawtab%basis_size
    if (ib==1) then
@@ -3423,7 +3442,7 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
    pawtab%tcoredens(1:pawrad%mesh_size,:)=zero
  else
    pawtab%usetcore=1
-   pawtab%tcoredens(1:pawrad%mesh_size,1)=tncore(1:pawrad%mesh_size)
+   pawtab%tcoredens(1:core_mesh%mesh_size,1)=tncore(1:core_mesh%mesh_size)
  end if
  write(msg,'(a,i1)') &
 & ' Radial grid used for (t)core density is grid ',icoremesh
@@ -3666,6 +3685,15 @@ subroutine pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
 &     mmax,mqgrid_ff,mqgrid_vl,ncore,nmesh,pawrad,pawtab,pawxcdev,pspversion,&
 &     qgrid_ff,qgrid_vl,radmesh,tncore,tnvale,tproj,tproj_mesh,usexcnhat,vale_mesh,&
 &     vloc_mesh,vlocopt,vlocr,vlspl,xcccrc,xclevel,xc_denpos,zion,znucl)
+
+ if(usewvl==1 .or. icoulomb > 0) then
+!  Calculate up to the 5th derivative of tcoredens
+   call pawpsp_calc_d5(core_mesh,pawtab%tcoredens)
+!  Other wvl related operations
+   call pawpsp_wvl_calc(pawtab,tnvale,usewvl,vale_mesh,vloc_mesh,vlocr)
+ else if (pawtab%has_wvl>0) then
+   call wvlpaw_rholoc_nullify(pawtab%wvl%rholoc)
+ end if
 
 !==========================================================
 !Free temporary allocated space
@@ -4811,8 +4839,7 @@ subroutine pawpsp_main( &
      call pawpsp_read_header(tmp_unit,lloc,lmax,mmax,pspcod,&
 &     pspxc,r2well,zion,znucl)
 
-   else if (usexml == 1) then
-#if defined HAVE_TRIO_FOX
+   else if (usexml == 1 .and. present(psxml)) then
      write(msg,'(a,a)')  &
 &     '- pawpsp : Reading pseudopotential header in XML form from ', trim(filpsp)
      call wrtout(ab_out,msg,'COLL')
@@ -4827,8 +4854,6 @@ subroutine pawpsp_main( &
 &   pawpsp_header%l_size,pawpsp_header%mesh_size,&
 &   pawpsp_header%pawver,psxml,&
 &   pawpsp_header%rpaw,pawpsp_header%rshp,pawpsp_header%shape_type)
-#endif
-
    end if
 
 !  Check data for consistency against main routine input
@@ -4845,9 +4870,9 @@ subroutine pawpsp_main( &
    else if (pspcod==17)then
 !    XML format
      ipsp=1
-     call pawpsp_17in(epsatm,ffspl,ipsp,ixc,lmax,&
+     call pawpsp_17in(epsatm,ffspl,icoulomb,ipsp,ixc,lmax,&
 &     lnmax,mmax,mqgrid_ff,mqgrid_vl,pawpsp_header,pawrad,pawtab,&
-&     pawxcdev,qgrid_ff,qgrid_vl,usexcnhat,vlspl,xcccrc,&
+&     pawxcdev,qgrid_ff,qgrid_vl,usewvl,usexcnhat,vlspl,xcccrc,&
 &     xclevel,my_xc_denpos,zion,znucl)
 
    end if
@@ -4999,12 +5024,6 @@ implicit none
    write(msg, '(a,i2,a,a)' )&
 &   '  In reading atomic psp file, finds pspcod=',pspcod,ch10,&
 &   '  This is not an allowed value within PAW.'
-   MSG_BUG(msg)
- end if
-
-!Temporary limitation
- if (pspcod==17) then
-   msg='cannot work for XML PAW setups!'
    MSG_BUG(msg)
  end if
 

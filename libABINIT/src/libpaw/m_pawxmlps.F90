@@ -58,6 +58,7 @@ module m_pawxmlps
 
 ! The maximum length of a record in a file connected for sequential access.
  integer,parameter,private :: XML_RECL = 50000
+ integer,parameter,private :: NGAUSSIAN_MAX = 100
 !!***
 
 !!****t* m_pawxmlps/radial_grid_t
@@ -99,6 +100,26 @@ type, public              :: radialfunc_t
   character(len=6)    :: state=' ' !vz_z
   real(dpxml),allocatable :: data(:)
 end type radialfunc_t
+!!***
+
+!-------------------------------------------------------------------------
+
+!!****t* m_pawxmlps/gaussian_expansion_t
+!! NAME
+!! radial_func_t
+!!
+!! FUNCTION
+!! Radial function type for the FoX XML reader
+!!
+!! SOURCE
+
+type, public              :: gaussian_expansion_t
+  logical             :: tread=.false.
+  integer             :: ngauss=0
+  character(len=6)    :: state=' '
+  real(dpxml), dimension(2, NGAUSSIAN_MAX) :: factors
+  real(dpxml), dimension(2, NGAUSSIAN_MAX) :: expos
+end type gaussian_expansion_t
 !!***
 
 !-------------------------------------------------------------------------
@@ -251,6 +272,7 @@ type, public :: paw_setup_t
   type(radialfunc_t),allocatable :: ae_partial_wave(:)
   type(radialfunc_t),allocatable :: pseudo_partial_wave(:)
   type(radialfunc_t),allocatable :: projector_function(:)
+  type(gaussian_expansion_t),allocatable :: projector_fit(:)
   type(radialfunc_t)           :: kresse_joubert_local_ionic_potential
   type(radialfunc_t)           :: blochl_local_ionic_potential
   type(radialfunc_t)           :: kinetic_energy_differences
@@ -335,7 +357,7 @@ character(len=*),intent(in)   :: namespaceURI,localName,name
 type(dictionary_t),intent(in) :: attributes
 
 character(len=100)  :: msg,value
-integer ::iaewf=0,iproj=0,ipswf=0
+integer ::iaewf=0,iproj=0,ipswf=0,iprojfit=0,igauss=0
 !Just to fool abirules
  value=localName
  value=namespaceURI
@@ -641,6 +663,40 @@ select case(name)
          if(iproj==paw_setuploc%valence_states%nval) iproj=0
          in_data=.true.
          ndata = 0
+
+      case ("projector_fit")
+         if(.not.allocated(paw_setuploc%projector_fit)) then
+            LIBPAW_DATATYPE_ALLOCATE(paw_setuploc%projector_fit,(paw_setuploc%valence_states%nval))
+         end if
+
+         iprojfit=iprojfit+1
+         paw_setuploc%projector_fit(iprojfit)%tread=.true.
+         value = getValue(attributes,"state")
+         if (value == "" ) then
+           msg="Cannot determine projector_fit state"
+           MSG_ERROR(msg)
+         end if
+         paw_setuploc%projector_fit(iprojfit)%state=trim(value)
+
+         if(iprojfit==paw_setuploc%valence_states%nval) iprojfit=0
+         igauss = 0
+
+      case ("gaussian")
+         igauss = igauss + 1
+         value = getValue(attributes,"factor")
+         if (value == "" ) then
+           msg="Cannot determine gaussian factor"
+           MSG_ERROR(msg)
+         end if
+         read(paw_setup%projector_fit(iprojfit)%factors(1, igauss), *) value(2:XML_RECL)
+         read(paw_setup%projector_fit(iprojfit)%factors(2, igauss), *) value(index(value, ',') + 1:XML_RECL)
+         value = getValue(attributes,"exponent")
+         if (value == "" ) then
+           msg="Cannot determine gaussian exponent"
+           MSG_ERROR(msg)
+         end if
+         read(paw_setup%projector_fit(iprojfit)%expos(1, igauss), *) value(2:XML_RECL)
+         read(paw_setup%projector_fit(iprojfit)%expos(2, igauss), *) value(index(value, ',') + 1:XML_RECL)
 
      case ("ae_core_density")
          paw_setuploc%ae_core_density%tread=.true.
@@ -1171,6 +1227,9 @@ subroutine paw_setup_free(paw_setupin)
    end do
    LIBPAW_DATATYPE_DEALLOCATE(paw_setupin%projector_function)
  end if
+ if (allocated( paw_setupin%projector_fit)) then
+   LIBPAW_DATATYPE_DEALLOCATE(paw_setupin%projector_fit)
+ end if
  if(allocated(paw_setupin%valence_states%state)) then
    LIBPAW_DATATYPE_DEALLOCATE(paw_setupin%valence_states%state)
  end if
@@ -1402,6 +1461,17 @@ subroutine paw_setup_copy(paw_setupin,paw_setupout)
      end if
    end do
  end if 
+  if (allocated( paw_setupin%projector_fit)) then
+   sz1=size(paw_setupin%projector_fit,1)
+   LIBPAW_DATATYPE_ALLOCATE(paw_setupout%projector_fit,(sz1))
+   do ii=1,paw_setupin%valence_states%nval
+     paw_setupout%projector_fit(ii)%tread=paw_setupin%projector_fit(ii)%tread
+     paw_setupout%projector_fit(ii)%ngauss=paw_setupin%projector_fit(ii)%ngauss
+     paw_setupout%projector_fit(ii)%state=paw_setupin%projector_fit(ii)%state
+     paw_setupout%projector_fit(ii)%factors=paw_setupin%projector_fit(ii)%factors
+     paw_setupout%projector_fit(ii)%expos=paw_setupin%projector_fit(ii)%expos
+   end do
+ end if 
 
 end subroutine paw_setup_copy
 !!***
@@ -1508,8 +1578,8 @@ end subroutine paw_setup_copy
  character (len=fnlen),intent(in) :: filename
  type(paw_setup_t),intent(inout) :: paw_setup
 !Local variables ---------------------------------------
- integer :: iaewf,ii,ipswf,iproj,ir,igrid,ival,ierr,ishpf,lmax,mesh_size
- logical :: endfile,found
+ integer :: iaewf,ii,ipswf,iproj,ir,igrid,ival,ierr,ishpf,lmax,mesh_size,igauss,iprojfit
+ logical :: endfile,found,endgauss
  character(len=100) :: msg
  character (len=XML_RECL) :: line,readline
  character (len=XML_RECL) :: strg
@@ -1857,7 +1927,7 @@ end subroutine paw_setup_copy
  LIBPAW_DATATYPE_DEALLOCATE(grids)
 
 !Start a reading loop
- ipswf=0;iaewf=0;iproj=0
+ ipswf=0;iaewf=0;iproj=0;iprojfit=0
  endfile=.false.
  do while (.not.endfile)
    read(funit,'(a)',err=11,end=11) readline
@@ -2081,6 +2151,41 @@ end subroutine paw_setup_copy
      end do
      LIBPAW_ALLOCATE(paw_setup%projector_function(iproj)%data,(mesh_size))
      read(funit,*) (paw_setup%projector_function(iproj)%data(ir),ir=1,mesh_size)
+     cycle
+   end if
+
+!  --Read PROJECTORS TPROJ as gaussian representations
+   if (line(1:14)=='<projector_fit') then
+     if(.not.allocated(paw_setup%projector_fit)) then
+        LIBPAW_DATATYPE_ALLOCATE(paw_setup%projector_fit,(paw_setup%valence_states%nval))
+     end if
+     iprojfit=iprojfit+1
+     paw_setup%projector_fit(iprojfit)%tread=.true.
+     call paw_rdfromline(" state",line,strg,ierr)
+     paw_setup%projector_fit(iprojfit)%state=trim(strg)
+     igauss = 0
+     endgauss = .false.
+     do while(.not. endgauss)
+        read(funit,'(a)',err=12,end=12) readline
+        line=adjustl(readline);goto 22
+12      line="";endgauss=.true.
+22      continue
+        endgauss = (line(1:15)=='</projector_fit')
+        if (line(1:9)=='<gaussian') then
+           igauss = igauss + 1
+           call paw_rdfromline(" factor",line,strg,ierr)
+           read(strg(index(strg, '{') + 1:index(strg, ',') - 1), *) &
+                & paw_setup%projector_fit(iprojfit)%factors(1, igauss)
+           read(strg(index(strg, ',') + 1:index(strg, '}') - 1), *) &
+                & paw_setup%projector_fit(iprojfit)%factors(2, igauss)
+           call paw_rdfromline(" exponent",line,strg,ierr)
+           read(strg(index(strg, '{') + 1:index(strg, ',') - 1), *) &
+                & paw_setup%projector_fit(iprojfit)%expos(1, igauss)
+           read(strg(index(strg, ',') + 1:index(strg, '}') - 1), *) &
+                & paw_setup%projector_fit(iprojfit)%expos(2, igauss)
+        end if
+     end do
+     paw_setup%projector_fit(iprojfit)%ngauss = igauss
      cycle
    end if
 
