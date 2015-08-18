@@ -1425,19 +1425,30 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
      end if
      ! PAW case.
      if (atoms%npspcode(ityp) == PSPCODE_PAW) then
-        call yaml_map('No. of gaussians', atoms%pawtab(ityp)%wvl%pngau)
-        i = min(5, atoms%pawtab(ityp)%wvl%pngau(1))
-        call yaml_map('complex coefficients (1..5)', &
-             & atoms%pawtab(ityp)%wvl%parg(:,1:i))
-        call yaml_map('complex factors (1..5)', &
-             & atoms%pawtab(ityp)%wvl%pfac(:,1:i))
-     end if
-     mproj = 0
-     do l=1,4 
-        do i=1,3 
-           if (atoms%psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
+        call yaml_sequence_open('NonLocal PSP Parameters (PAW)')
+        j = 1
+        do i = 1, atoms%pawtab(ityp)%basis_size
+           call yaml_sequence(advance='no')
+           call yaml_map('Channel (l)', atoms%pawtab(ityp)%orbitals(i))
+           call yaml_map('complex coefficients', &
+                & atoms%pawtab(ityp)%wvl%parg(:,j:j + atoms%pawtab(ityp)%wvl%pngau(i) - 1),fmt='(f9.5)')
+           call yaml_map('complex factors', &
+                & atoms%pawtab(ityp)%wvl%pfac(:,j:j + atoms%pawtab(ityp)%wvl%pngau(i) - 1),fmt='(f9.5)')
+           j = j + atoms%pawtab(ityp)%wvl%pngau(i)
+        end do
+        call yaml_sequence_close()
+        mproj = 0
+        do i = 1, atoms%pawtab(ityp)%basis_size
+           mproj = mproj + 2 * atoms%pawtab(ityp)%orbitals(i) + 1
+        end do
+     else
+        mproj = 0
+        do l=1,4 
+           do i=1,3 
+              if (atoms%psppar(l,i,ityp) /= 0.0_gp) mproj=mproj+2*l-1
+           enddo
         enddo
-     enddo
+     end if
      !call numb_proj(ityp,atoms%astruct%ntypes,atoms%psppar,atoms%npspcode,mproj)
      call yaml_map('No. of projectors',mproj)
 
