@@ -93,8 +93,12 @@ rotate_write.out.post-out:
 	cp -rf data-write data-read2/data-benzene
 	cp -f write.xyz data-read2/benzene.xyz
 
+cdft_ohohfoe.out.out : cdft_ohoh.out.out
 cdft_ohoh.out.out : cdft_oh-.out.out
 cdft_oh-.out.out : cdft_oh-a.out.out
+
+cdft_ohoh.out.post-out: 
+	cp -rf data-ohoh data-ohohfoe
 
 cdft_oh-a.out.post-out: 
 	rm -rf data-ohoh/data-oh-a

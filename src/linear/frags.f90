@@ -650,10 +650,10 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   logical, intent(in) :: cdft
   logical, intent(in) :: diagonal_kernel
 
-  integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag, linstate, jf, pm, ortho_size, s, nelecfrag
+  integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag, linstate, jf, pm, ortho_size, s
   integer, allocatable, dimension(:) :: ipiv
   real(gp), dimension(:,:), allocatable :: coeff_final
-  real(gp) :: nelecorbs, nelecfrag_tot, jstate_max, homo_diff, lag_mult, fac
+  real(gp) :: nelecorbs, nelecfrag_tot, jstate_max, homo_diff, lag_mult, fac, nelecfrag
   real(gp), dimension(:), allocatable :: eval_tmp, eval_tmp2
   character(len=*), parameter :: subname='fragment_coeffs_to_kernel'
 
@@ -797,7 +797,7 @@ contains
 
        nelecfrag=ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
        do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-          tmb%linmat%kernel_%matrix(isforb+itmb,isforb+itmb,1)=real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp)
+          tmb%linmat%kernel_%matrix(isforb+itmb,isforb+itmb,1)=nelecfrag/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp)
        end do
 
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
