@@ -1382,14 +1382,14 @@ END SUBROUTINE readonewave_linear
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !! have changed
 subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
-       ref_frags,input_frag,frag_calc,orblist)
+       ref_frags,input_frag,frag_calc,kernel_restart,orblist)
   use module_base
   use module_types
   use yaml_output
   use module_fragments
   !use internal_io
   use module_interfaces, except_this_one => readmywaves_linear_new
-  use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error
+  use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error, read_dense_matrix
   use public_enums
   implicit none
   integer, intent(in) :: iproc, nproc
@@ -1401,7 +1401,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   character(len=*), intent(in) :: dir_output, filename
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
-  logical, intent(in) :: frag_calc
+  logical, intent(in) :: frag_calc, kernel_restart
   integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
   !Local variables
   integer :: ncount1,ncount_rate,ncount_max,ncount2
@@ -1426,8 +1426,9 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
   real(gp) :: max_shift
 
-  logical :: skip
-!!$ integer :: ierr
+  logical :: skip, binary
+  integer :: itmb, jtmb
+  !!$ integer :: ierr
 
   ! DEBUG
   ! character(len=12) :: orbname
@@ -1800,28 +1801,34 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
      ! find reference fragment this corresponds to
      ifrag_ref=input_frag%frag_index(ifrag)
 
-     full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_coeff.bin'
+     ! read coeffs/kernel
+     if (kernel_restart) then
+        full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//'density_kernel.bin'
+        !should fragments have some knowledge of spin?
+        !assume kernel is in binary if tmbs are...
+        binary=(iformat == WF_FORMAT_BINARY)
+        call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+             ref_frags(ifrag_ref)%kernel, ref_frags(ifrag_ref)%astruct_frg%nat) 
 
-     call f_open_file(unitwf,file=trim(full_filename),binary=iformat == WF_FORMAT_BINARY)
-     !if(iformat == WF_FORMAT_PLAIN) then
-     !   open(unitwf,file=trim(full_filename),status='unknown',form='formatted')
-     !else if(iformat == WF_FORMAT_BINARY) then
-     !   open(unitwf,file=trim(full_filename),status='unknown',form='unformatted')
-     !else
-     !   stop 'Coefficient format not implemented'
-     !end if
 
-     !if (input_frag%nfrag>1) then
+     if (iproc==0) then
+        open(32)
+        do itmb=1,tmb%orbs%norb
+           do jtmb=1,tmb%orbs%norb
+              write(32,*) itmb,jtmb,tmb%coeff(itmb,jtmb),ref_frags(ifrag_ref)%kernel(itmb,jtmb,1)
+           end do
+        end do
+        write(32,*) ''
+        close(32)
+     end if
+
+     else 
+        full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_coeff.bin'
+        call f_open_file(unitwf,file=trim(full_filename),binary=iformat == WF_FORMAT_BINARY)
         call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
              ref_frags(ifrag_ref)%nelec,ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%coeff,ref_frags(ifrag_ref)%eval)
-             !tmb%orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb))
-             !tmb%orbs%eval(isforb+1)
-        ! copying of coeffs from fragment to tmb%coeff now occurs after this routine
-     !else
-     !   call read_coeff_minbasis(unitwf,(iformat == WF_FORMAT_PLAIN),iproc,ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-     !        ref_frags(ifrag_ref)%nelec,tmb%coeff,tmb%orbs%eval)
-     !end if
-     call f_close(unitwf)
+        call f_close(unitwf)
+     end if
 
      isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do

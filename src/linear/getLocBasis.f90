@@ -12,7 +12,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
     calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,&
-    convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
+    convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff
@@ -485,6 +485,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   else ! foe
 
+      !same as for directmin/diag
+      ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
+      if (present(cdft)) then
+         call timing(iproc,'constraineddft','ON')
+         !   call daxpy(tmb%linmat%m%nvctr,cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
+         call timing(iproc,'constraineddft','OF') 
+      end if
 
       ! TEMPORARY #################################################
       if (calculate_gap) then
@@ -527,9 +534,19 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
+      !same as for directmin/diag
+      ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
+      if (present(cdft)) then
+         call timing(iproc,'constraineddft','ON')
+         tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
+         call gather_matrix_from_taskgroups(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tmparr)
+         call daxpy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin,-cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmparr,1)
+         call extract_taskgroup(tmb%linmat%m, tmparr, tmb%linmat%ham_%matrix_compr)
+         call f_free(tmparr)
+         call timing(iproc,'constraineddft','OF') 
+      end if
+
   end if
-
-
 
 
   if (calculate_ham) then

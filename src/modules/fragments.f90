@@ -59,7 +59,7 @@ module module_fragments
      ! add coeffs and or kernel
      integer :: nelec
      real(gp), dimension(:,:), pointer :: coeff
-     real(gp), dimension(:,:), pointer :: kernel
+     real(gp), dimension(:,:,:), pointer :: kernel
      real(gp), dimension(:), pointer :: eval
   end type system_fragment
 
@@ -625,7 +625,7 @@ contains
 
     frag%rxyz_env=f_malloc_ptr((/3,min(1,frag%nat_env)/),id='frag%rxyz_env')
     frag%coeff=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='frag%coeff')
-    frag%kernel=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='frag%kernel')
+    frag%kernel=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb,1/),id='frag%kernel') !NEED SPIN HERE
     frag%eval=f_malloc_ptr(frag%fbasis%forbs%norb,id='frag%eval')
 
     call f_release_routine()

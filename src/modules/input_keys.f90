@@ -121,7 +121,9 @@ module module_input_keys
      logical :: calculate_onsite_overlap
      integer :: output_mat_format     !< Output Matrices format
      integer :: output_coeff_format   !< Output Coefficients format
+     integer :: output_fragments   !< Output fragments/full system/both
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
+     integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -343,6 +345,9 @@ module module_input_keys
 
      !> linear scaling: perform a Loewdin charge analysis at the end of the calculation
      logical :: loewdin_charge_analysis
+
+     !> linear scaling: perform a Loewdin charge analysis of the coefficients for fragment calculations
+     logical :: coeff_weight_analysis
 
      !> linear scaling: perform a check of the matrix compression routines
      logical :: check_matrix_compression
@@ -1718,8 +1723,11 @@ contains
           ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
           in%calculate_gap = val
        case (LOEWDIN_CHARGE_ANALYSIS)
-          ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
+          ! linear scaling: perform a Loewdin charge analysis at the end of the calculation
           in%loewdin_charge_analysis = val
+       case (COEFF_WEIGHT_ANALYSIS)
+          ! linear scaling: perform a Loewdin charge analysis of the coefficients for fragment calculations
+          in%coeff_weight_analysis = val
        case (CHECK_MATRIX_COMPRESSION)
           ! linear scaling: perform a check of the matrix compression routines
           in%check_matrix_compression = val
@@ -1905,6 +1913,10 @@ contains
           in%lin%output_mat_format = val
        case (OUTPUT_COEFF)
           in%lin%output_coeff_format = val
+       case (OUTPUT_FRAGMENTS)
+          in%lin%output_fragments = val
+       case (KERNEL_RESTART_MODE)
+          in%lin%kernel_restart_mode = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
        case (CALC_PULAY)
