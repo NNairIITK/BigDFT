@@ -75,6 +75,7 @@ module multipole
       real(8),dimension(0:2,1:ep%nmpl) :: norm
       real(8),dimension(3,ep%nmpl) :: dipole
       real(8),dimension(5,ep%nmpl) :: quadrupole
+      real(kind=8),dimension(:,:,:),allocatable :: gaussians1, gaussians2, gaussians3
 
       call f_routine(id='potential_from_charge_multipoles')
 
@@ -86,6 +87,57 @@ module multipole
 
       density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
 
+      gaussians1 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is1.to.ie1/),id='gaussians1')
+      gaussians2 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is2.to.ie2/),id='gaussians2')
+      gaussians3 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is3.to.ie3/),id='gaussians3')
+
+      !$omp parallel default(none) &
+      !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, ep, sigma) &
+      !$omp shared(gaussians1, gaussians2, gaussians3) &
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l)
+      !$omp do
+      do i3=is3,ie3
+          ii3 = i3 - 15
+          z = real(ii3,kind=8)*hz + shift(3)
+          do impl=1,ep%nmpl
+              tt = z - ep%mpl(impl)%rxyz(3)
+              tt = tt**2
+              do l=0,lmax
+                  gaussians3(l,impl,i3) = gaussian(sigma(l),tt)
+              end do
+          end do
+      end do
+      !$omp end do
+      !$omp do
+      do i2=is2,ie2
+          ii2 = i2 - 15
+          y = real(ii2,kind=8)*hy + shift(2)
+          do impl=1,ep%nmpl
+              tt = y - ep%mpl(impl)%rxyz(2)
+              tt = tt**2
+              do l=0,lmax
+                  ! Undo the normalization for this Gaussian
+                  gaussians2(l,impl,i2) = gaussian(sigma(l),tt)*sqrt(2.d0*pi_param*sigma(l)**2)**3
+              end do
+          end do
+      end do
+      !$omp end do
+      !$omp do
+      do i1=is1,ie1
+          ii1 = i1 - 15
+          x = real(ii1,kind=8)*hx + shift(1)
+          do impl=1,ep%nmpl
+              tt = x - ep%mpl(impl)%rxyz(1)
+              tt = tt**2
+              do l=0,lmax
+                  ! Undo the normalization for this Gaussian
+                  gaussians1(l,impl,i1) = gaussian(sigma(l),tt)*sqrt(2.d0*pi_param*sigma(l)**2)**3
+              end do
+          end do
+      end do
+      !$omp end do
+      !$omp end parallel
+
 
       norm = 0.d0
       monopole = 0.d0
@@ -95,8 +147,8 @@ module multipole
       !$omp parallel &
       !$omp default(none) &
       !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma) &
-      !$omp shared(norm, monopole, dipole, quadrupole, density) &
-      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, rnrm1, rnrm2, l, gg, m, mm, tt, ttt)
+      !$omp shared(norm, monopole, dipole, quadrupole, density, gaussians1, gaussians2, gaussians3) &
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, rnrm2, l, gg, m, mm, tt, ttt)
       do i3=is3,ie3
           ii3 = i3 - 15
           z = real(ii3,kind=8)*hz + shift(3)
@@ -113,9 +165,12 @@ module multipole
                       r(2) = y - ep%mpl(impl)%rxyz(2)
                       r(3) = z - ep%mpl(impl)%rxyz(3)
                       rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
-                      rnrm1 = sqrt(rnrm2)
                       do l=0,lmax
-                          gg = gaussian(sigma(l),rnrm1)
+                          !gg = gaussian(sigma(l),rnrm2)
+                          ! Calculate the Gaussian as product of three 1D Gaussians
+                          gg = gaussians1(l,impl,i1)*gaussians2(l,impl,i2)*gaussians3(l,impl,i3)
+                          !gg = gaussian(sigma(l),r(1)**2)*gaussian(sigma(l),r(2)**2)*gaussian(sigma(l),r(3)**2)
+                          !gg = gg*sqrt(2.d0*pi_param*sigma(l)**2)**6
                           norm(l,impl) = norm(l,impl) + gg*hhh
                           if (associated(ep%mpl(impl)%qlm(l)%q)) then
                               mm = 0
@@ -158,6 +213,10 @@ module multipole
           !$omp end do
        end do
        !$omp end parallel
+
+      call f_free(gaussians1)
+      call f_free(gaussians2)
+      call f_free(gaussians3)
       
       if (nproc>1) then
           call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
@@ -242,15 +301,16 @@ module multipole
       contains
 
 
-        function gaussian(sigma, r) result(g)
+        function gaussian(sigma, r2) result(g)
           use module_base, only: pi => pi_param
           implicit none
           ! Calling arguments
-          real(kind=8),intent(in) :: sigma, r
+          real(kind=8),intent(in) :: sigma, r2
           real(kind=8) :: tt, g
 
+
           ! Only calculate the Gaussian if the result will be larger than 10^-30
-          tt = r**2/(2.d0*sigma**2)
+          tt = r2/(2.d0*sigma**2)
           if (tt<=69.07755279d0) then
               g = safe_exp(-tt)
               g = g/sqrt(2.d0*pi*sigma**2)**3
@@ -258,6 +318,8 @@ module multipole
               g = 0.d0
           end if
           !g = g/(sigma**3*sqrt(2.d0*pi)**3)
+
+
         end function gaussian
 
         !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
@@ -276,6 +338,7 @@ module multipole
           real(kind=8),parameter :: sqrt_3_over_4pi = sqrt(3.d0/(4.d0*pi))
           real(kind=8),parameter :: sqrt_15_over_pi = sqrt(15.d0/pi)
           real(kind=8),parameter :: sqrt_5_over_pi = sqrt(5.d0/pi)
+
 
           if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
           if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
@@ -316,6 +379,7 @@ module multipole
                   sh = 0.25d0*sqrt_15_over_pi*(x**2-y**2)/r2 !0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
               end select
           end select
+
 
         end function spherical_harmonic
 
