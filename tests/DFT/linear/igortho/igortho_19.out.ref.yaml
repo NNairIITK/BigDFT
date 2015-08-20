@@ -2596,6 +2596,7 @@
  - density optimization not converged
  - No increase of FOE cutoff
  - set to 1.d-20 instead of 0.d0
+ - units not recognized, no conversion done
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  56.12

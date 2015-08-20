@@ -1249,7 +1249,7 @@ geoptconstrained_SDCG:
  Ekin: 2.1e-10
  EXC: 3.1e-11
  EvXC: 4.1e-11
- charge diff: 7.2e-11
+ charge diff: 1.1e-10
  D Tr: 1.1e-9
  Omega: 1.7e-10
  D: 1.1e-10
@@ -1666,7 +1666,7 @@ igortho_19:
  D: 3.0e-8
  Tr(K): 1.7e-8
  total charge correction: 1.5e-11
- multiplicator for the confinement: 2.4e-11
+ multiplicator for the confinement: 2.6e-11
  radius for normalization: 1.1e-2
 
 igortho_44:
@@ -1696,7 +1696,7 @@ igortho_44:
  energy: 6.6e-07
  Omega: 3.0e-10
  Charge analysis (charge / net charge): 1.4e-6
- Pseudo Fermi level for occupations: 1.7e-6
+ Pseudo Fermi level for occupations: 1.9e-6
  net charge: 1.1e-5
  eval: 1.1e-4
  Multipole coefficients: 1.4e-6

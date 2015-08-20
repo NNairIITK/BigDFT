@@ -3105,6 +3105,7 @@
  - The support function localization radii might be too small, got 72 warnings
  - No increase of FOE cutoff
  - set to 1.d-20 instead of 0.d0
+ - units not recognized, no conversion done
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  107.18

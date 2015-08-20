@@ -745,7 +745,7 @@ module multipole
           !!call write_multipoles(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
           !!     multipoles, rmax, lzd%hgrids, without_normalization=.false.)
           call write_multipoles_new(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
-               at%astruct%rxyz, multipoles, rmax, lzd%hgrids, without_normalization=.false.)
+               at%astruct%rxyz, at%astruct%units, multipoles, rmax, lzd%hgrids, without_normalization=.false.)
       end if
       call f_free(rmax)
       call f_free(psir_get)
@@ -868,7 +868,7 @@ module multipole
 
           if (iproc==0) then
               !!call write_multipoles(1, 1, (/1/), (/'testatom'/), multipoles, rmax, lzd%hgrids, without_normalization=.true.)
-              call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), &
+              call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), 'fake', &
                    multipoles, rmax, lzd%hgrids, without_normalization=.true.)
               call yaml_mapping_close()
           end if
@@ -1018,7 +1018,8 @@ module multipole
 
 
 
-    subroutine write_multipoles_new(nat, ntypes, iatype, atomnames, rxyz, multipoles, rmax, hgrids, without_normalization)
+    subroutine write_multipoles_new(nat, ntypes, iatype, atomnames, rxyz, units, &
+               multipoles, rmax, hgrids, without_normalization)
       use yaml_output
       implicit none
       
@@ -1027,6 +1028,7 @@ module multipole
       integer,dimension(nat),intent(in) :: iatype
       character(len=*),dimension(ntypes),intent(in) :: atomnames
       real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      character(len=*),intent(in) :: units
       real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(in) :: multipoles
       real(kind=8),dimension(nat),intent(in) :: rmax
       real(kind=8),dimension(3),intent(in) :: hgrids
@@ -1035,7 +1037,7 @@ module multipole
       ! Local variables
       character(len=20) :: atomname
       integer :: i, iat, l, m, nit
-      real(kind=8) :: max_error, factor!, get_normalization, get_test_factor
+      real(kind=8) :: max_error, factor, convert_units!, get_normalization, get_test_factor
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
 
           multipoles_tmp = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.nat/),id='multipoles_tmp')
@@ -1045,6 +1047,16 @@ module multipole
           else
               nit = 1
           end if
+
+          ! See whether a conversion of the units necessary
+          select case (units)
+          case ('angstroem','angstroemd0')
+              convert_units = 0.52917721092_gp
+          case ('atomic','atomicd0','bohr','bohrd0','reduced')
+              convert_units = 1.d0
+          case default
+              call yaml_warning('units not recognized, no conversion done')
+          end select
 
           factor = 0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3)
 
@@ -1069,13 +1081,14 @@ module multipole
                       end do
                   end do
               end if
+              call yaml_map('units for atomic positions',trim(units))
               call yaml_sequence_open('Values')
               do iat=1,nat
                   call yaml_sequence(advance='no')
                   atomname=atomnames(iatype(iat))
                   !call yaml_sequence_open(trim(atomname))
-                  call yaml_map('sym',adjustl(trim(atomname)))
-                  call yaml_map('r',rxyz(1:3,iat))
+                  call yaml_map('sym',adjustl(trim(atomname))//' # '//trim(yaml_toa(iat,fmt='(i4.4)')))
+                  call yaml_map('r',convert_units*rxyz(1:3,iat))
                   do l=0,lmax
                       !call yaml_sequence(advance='no')
                       !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')

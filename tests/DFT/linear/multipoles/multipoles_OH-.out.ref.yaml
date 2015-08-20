@@ -4087,6 +4087,7 @@
  - The support function localization radii might be too small, got 1 warnings
  - The support function localization radii might be too small, got 3 warnings
  - oscillation of the energy, increase counter
+ - units not recognized, no conversion done
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  40.60

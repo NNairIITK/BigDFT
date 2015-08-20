@@ -2457,6 +2457,7 @@
  - Do not call check_communications in the linear scaling version!
  - support function optimization not converged
  - density optimization not converged
+ - units not recognized, no conversion done
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
