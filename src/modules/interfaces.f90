@@ -784,8 +784,8 @@ module module_interfaces
 
       subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
             &   CP2K,wfn_cp2k)
-        use module_defs, only: gp,wp
-         use module_types
+         use module_base
+         use module_types, only: orbitals_data, gaussian_basis
          implicit none
          character(len=*), intent(in) :: basisfile,orbitalfile
          integer, intent(in) :: iproc,nat,ntypes

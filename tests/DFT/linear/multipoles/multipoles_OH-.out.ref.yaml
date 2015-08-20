@@ -4057,13 +4057,13 @@
      Values:
      - sym                             : O
        r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
-       q0                              :  [  7.28787769E+00 ]
+       q0                              :  [  1.28787769E+00 ]
        q1: [ 3.94644471E-01,  3.73027563E-01,  2.42700847E-01]
        q2: [-1.62200698E-01,  1.50439928E-01,  1.14413299E+00, -1.17068463E-01, 
             -1.13331618E+00]
      - sym                             : H
        r: [ 0.2609031030233364,  0.4497236554241762,  0.5729218373685834]
-       q0                              :  [  7.1212071E-01 ]
+       q0                              :  [ -2.8787929E-01 ]
        q1: [-9.64848525E-03, -3.08099959E-03, -1.44942356E-01]
        q2: [-3.86766645E-04,  1.85546682E-03, -1.54440658E-03, -3.92926363E-04, 
              1.81637947E-03]
@@ -4087,6 +4087,7 @@
  - The support function localization radii might be too small, got 1 warnings
  - The support function localization radii might be too small, got 3 warnings
  - oscillation of the energy, increase counter
+ - units not recognized, no conversion done
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  40.60

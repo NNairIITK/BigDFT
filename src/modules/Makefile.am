@@ -105,6 +105,7 @@ libmodules_a_SOURCES = base.f90 \
 	bounds.f90 \
 	locregs_init.f90 \
 	sort.f90 \
+	forces_linear.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -174,6 +175,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	BOUNDS.@MODULE_EXT@ \
 	LOCREGS_INIT.@MODULE_EXT@ \
 	SORT.@MODULE_EXT@ \
+	FORCES_LINEAR.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	F90SOCKETS.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
@@ -241,6 +243,7 @@ modules = module_base.@MODULE_EXT@ \
 	orthonormalization.@MODULE_EXT@ \
 	bounds.@MODULE_EXT@ \
 	locregs_init.@MODULE_EXT@ \
+	forces_linear.@MODULE_EXT@ \
 	sort.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	f90sockets.@MODULE_EXT@ \
@@ -342,6 +345,7 @@ orthonormalization.o: base.o types.o communications_base.o communications.o spar
 bounds.o: base.o types.o locregs.o
 locregs_init.o: base.o types.o communications.o bounds.o
 sort.o:
+forces_linear.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o locregs.o public_keys.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
