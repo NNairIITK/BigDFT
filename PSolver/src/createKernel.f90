@@ -188,6 +188,8 @@ subroutine pkernel_free(kernel)
   !free GPU data
   if (kernel%igpu == 1) then
     if (kernel%mpi_env%iproc == 0) then
+     call f_free_ptr(kernel%rhocounts)
+     call f_free_ptr(kernel%rhodispls)
      if (kernel%keepGPUmemory == 1) then
        call cudafree(kernel%work1_GPU)
        call cudafree(kernel%work2_GPU)
