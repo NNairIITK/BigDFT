@@ -788,7 +788,6 @@ end if
          kernel%rhocounts(jproc)=0
       end if
       displ=displ+kernel%rhocounts(jproc)
-    print *, "here", jproc, kernel%rhocounts(jproc), kernel%rhodispls(jproc)
     end do
   end if
 
