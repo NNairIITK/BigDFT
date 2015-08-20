@@ -170,7 +170,6 @@ subroutine pkernel_free(kernel)
   call f_free_ptr(kernel%epsinnersccs)
   call f_free_ptr(kernel%counts)
   call f_free_ptr(kernel%displs)
-
   if (kernel%igpu == 1) then
     if (kernel%keepGPUmemory == 1) then
       call cudafree(kernel%z_GPU)
@@ -265,7 +264,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   real(kind=8) :: alphat,betat,gammat,mu0t,pi
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
-  integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23
+  integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ
   integer,dimension(3) :: n
 
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
@@ -773,6 +772,25 @@ end if
      kernel%counts(jproc)=kernel%grid%m1*kernel%grid%m3*jend
      kernel%displs(jproc)=kernel%grid%m1*kernel%grid%m3*istart
   end do
+
+  ! multi-gpu poisson distribution
+  if (kernel%igpu>0 .and. kernel%mpi_env%iproc ==0) then
+    displ=0
+    kernel%rhocounts=f_malloc_ptr([0.to.kernel%mpi_env%nproc-1], id='rhocounts')
+    kernel%rhodispls=f_malloc_ptr([0.to.kernel%mpi_env%nproc-1], id='rhodispls')
+    do jproc=0,kernel%mpi_env%nproc-1
+      kernel%rhodispls(jproc)=displ
+      istart=jproc*( kernel%grid%md2/kernel%mpi_env%nproc)
+      jend=min((jproc+1)* kernel%grid%md2/kernel%mpi_env%nproc,kernel%grid%m2)
+      if (istart <= kernel%grid%m2-1) then
+         kernel%rhocounts(jproc)=(jend-istart)*kernel%grid%md3*kernel%grid%md1
+      else
+         kernel%rhocounts(jproc)=0
+      end if
+      displ=displ+kernel%rhocounts(jproc)
+    print *, "here", jproc, kernel%rhocounts(jproc), kernel%rhodispls(jproc)
+    end do
+  end if
 
   select case(trim(str(kernel%method)))
   case('PCG')

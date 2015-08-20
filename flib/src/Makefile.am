@@ -73,7 +73,7 @@ F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 	f_malloc-bound-inc.f90 \
 	f_malloc-bounds-inc.f90 f_malloci-simple-inc.f90 f_mallocli-simple-inc.f90 \
 	f_malloc-ptr-inc.f90 f_malloc-check-inc.f90 \
-	f_malloc-null-ptr-inc.f90
+	f_malloc-null-ptr-inc.f90 f_malloc-total-inc.f90
 
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
 	yaml_map-mat-inc.f90 yaml_open-inc.f90

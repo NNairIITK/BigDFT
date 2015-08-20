@@ -188,6 +188,8 @@ module Poisson_Solver
       
       integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
       integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
+      integer, dimension(:), pointer :: rhocounts !<array needed to gather the information of the poisson solver on multiple gpus
+      integer, dimension(:), pointer :: rhodispls !<array needed to gather the information of the poisson solver on multiple gpus
    end type coulomb_operator
 
    !intialization of the timings

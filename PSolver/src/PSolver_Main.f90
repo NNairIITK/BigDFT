@@ -575,9 +575,10 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
      endif
 
      if (kernel%mpi_env%nproc > 1) then
-        zf1 = f_malloc(size1,id='zf1')
-
-        call mpi_gather(zf,size1/kernel%mpi_env%nproc,mpidtypd,zf1,size1/kernel%mpi_env%nproc, &
+       zf1 = f_malloc0(size1,id='zf1')
+        
+       call mpi_gatherv(zf,kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1,mpidtypd,&
+             zf1,kernel%rhocounts,kernel%rhodispls, &
              mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
 
         if (kernel%mpi_env%iproc == 0) then
@@ -597,11 +598,10 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
            call get_gpu_data(size1,zf1,kernel%work1_GPU)
         endif
 
-        call MPI_Scatter(zf1,size1/kernel%mpi_env%nproc,mpidtypd,zf,size1/kernel%mpi_env%nproc, &
+        call MPI_Scatterv(zf1,kernel%rhocounts,kernel%rhodispls,mpidtypd,zf,kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1, &
              mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
 
         call f_free(zf1)
-
      else
 
         !fill the GPU memory
@@ -620,8 +620,6 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
         !take data from GPU
         call get_gpu_data(size1,zf,kernel%work1_GPU)
-
-
      endif
 
      if (kernel%keepGPUmemory == 0) then
@@ -835,6 +833,7 @@ subroutine update_pot_from_device(gpu, kernel,x)
   real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: x
   logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
   integer size1
+!  if (.false.) then !CPU case
   if (gpu) then !CPU case
     size1=kernel%grid%m3*kernel%grid%n3p*kernel%grid%m1
     call get_gpu_data(size1,x,kernel%x_GPU)
