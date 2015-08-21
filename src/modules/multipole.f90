@@ -28,6 +28,8 @@ module multipole
       integer :: iat, ityp, impl
       real(gp) :: r, charge
 
+      call f_routine(id='interaction_multipoles_ions')
+
       do iat=1,at%astruct%nat
           ityp=at%astruct%iatype(iat)
           do impl=1,ep%nmpl
@@ -45,6 +47,10 @@ module multipole
               end if
           end do
       end do
+
+      write(*,*) 'eion',eion
+
+      call f_release_routine()
 
     end subroutine interaction_multipoles_ions
 
@@ -252,7 +258,7 @@ module multipole
               call yaml_sequence(advance='no')
               call yaml_mapping_open(trim(yaml_toa(impl)))
               call yaml_map('norm of the Gaussians',norm(:,impl),fmt='(1es16.8)')
-              call yaml_map('monopole',monopole(impl),fmt='(1es16.8)')
+              call yaml_map('monopole',(/monopole(impl),ep%mpl(impl)%qlm(0)%q(1)/),fmt='(1es16.8)')
               call yaml_map('dipole',dipole(:,impl),fmt='(1es16.8)')
               call yaml_map('quadrupole',quadrupole(:,impl),fmt='(1es16.8)')
               call yaml_mapping_close()
@@ -387,12 +393,13 @@ module multipole
 
 
     !> Calculate the external potential arising from the multipoles provided
-    subroutine potential_from_multipoles(ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
+    subroutine potential_from_multipoles(ep, is1, ie1, is2, ie2, is3, ie3, iis3, iie3, hx, hy, hz, shift, pot)
       implicit none
       
       ! Calling arguments
       type(external_potential_descriptors),intent(in) :: ep
-      integer,intent(in) :: is1, ie1, is2, ie2, is3, ie3
+      integer,intent(in) :: is1, ie1, is2, ie2, is3, ie3 !< parallelized box bounds
+      integer,intent(in) :: iis3, iie3 !< non-parallelized box bounds (z direction)
       real(gp),intent(in) :: hx, hy, hz
       real(gp),dimension(3),intent(in) :: shift !< global shift of the atomic positions
       real(gp),dimension(is1:ie1,is2:ie2,is3:ie3),intent(inout) :: pot
@@ -401,64 +408,85 @@ module multipole
       integer :: i1, i2, i3, ii1, ii2, ii3, impl, l
       real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp
       real(dp),dimension(3) :: r
+      real(kind=8),parameter :: buffer = 1.d0
+      real(kind=8) :: xxs, xxe, yys, yye, zzs, zze
 
-      stop 'deprecated'
+      !stop 'deprecated'
+
+      xxs = real(is1-15,kind=8)*hx + shift(1) - buffer
+      xxe = real(ie1-15,kind=8)*hx + shift(1) + buffer
+      yys = real(is2-15,kind=8)*hy + shift(2) - buffer
+      yye = real(ie2-15,kind=8)*hy + shift(2) + buffer
+      zzs = real(iis3-15,kind=8)*hz + shift(3) - buffer
+      zze = real(iie3-15,kind=8)*hz + shift(3) + buffer
 
       !!$omp parallel &
       !!$omp default(none) &
       !!$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, ep, pot) &
       !!$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, rnrm1, rnrm2, rnrm3, rnrm5, l, mp)
       !!$omp do
-      write(*,*) 'shift',shift
-      do i3=is3,ie3
-          ii3 = i3 - 15
-          z = real(ii3,kind=8)*hz + shift(3)
-          !write(*,'(a,i7,2es16.7)') 'i3, z, ep%mpl(1)%rxyz(3)', i3, z, ep%mpl(1)%rxyz(3)
-          do i2=is2,ie2
-              ii2 = i2 - 15
-              y = real(ii2,kind=8)*hy + shift(2)
-              do i1=is1,ie1
-                  ii1 = i1 - 15
-                  x = real(ii1,kind=8)*hx + shift(1)
-                  do impl=1,ep%nmpl
-                      r(1) = ep%mpl(impl)%rxyz(1) - x
-                      r(2) = ep%mpl(impl)%rxyz(2) - y
-                      r(3) = ep%mpl(impl)%rxyz(3) - z 
-                      rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
-                      ! To avoid floating point exception
-                      rnrm2=max(rnrm2,1.d-6)
-                      rnrm1 = sqrt(rnrm2)
-                      rnrm3 = rnrm1*rnrm2
-                      rnrm5 = rnrm3*rnrm2
-                      mp = 0.0_dp
-                      do l=0,lmax
-                          if (associated(ep%mpl(impl)%qlm(l)%q)) then
-                              select case(l)
-                              case (0)
-                                  mp = mp + calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
-                                  !write(*,'(a,3es12.4,es16.8)') 'x, y, z, monopole', x, y, z, calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
-                              case (1)
-                                  mp = mp + calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
-                                  !write(*,*) 'dipole', calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
-                              case (2)
-                                  mp = mp + calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
-                                  !write(*,*) 'quadrupole', calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
-                              case (3)
-                                  call f_err_throw('octupole not yet implemented', err_name='BIGDFT_RUNTIME_ERROR')
-                                  !multipole_terms(l) = calc_octopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
-                              case default
-                                  call f_err_throw('Wrong value of l', err_name='BIGDFT_RUNTIME_ERROR')
-                              end select
-                          end if
+      do impl=1,ep%nmpl
+          ! Only take this atom into account if it lies outside of the simulation box (plus some buffer).
+          ! Otherwise it has already been taken into account by the potential generated via the Poisson Solver
+          if ( ep%mpl(impl)%rxyz(1) <= xxs .or. ep%mpl(impl)%rxyz(1) >= xxe .or. &
+               ep%mpl(impl)%rxyz(2) <= yys .or. ep%mpl(impl)%rxyz(2) >= yye .or. &
+               ep%mpl(impl)%rxyz(3) <= zzs .or. ep%mpl(impl)%rxyz(3) >= zze ) then
+              !write(*,*) ep%mpl(impl)%rxyz(1) <= xxs
+              !write(*,*) ep%mpl(impl)%rxyz(1) >= xxe
+              !write(*,*) ep%mpl(impl)%rxyz(2) <= yys
+              !write(*,*) ep%mpl(impl)%rxyz(2) >= yye
+              !write(*,*) ep%mpl(impl)%rxyz(3) <= zzs
+              !write(*,*) ep%mpl(impl)%rxyz(3) >= zze
+              !write(*,*) 'ok for impl',impl, ep%mpl(impl)%rxyz(1:3), xxs, xxe, yys, yye, zzs, zze
+              do i3=is3,ie3
+                  ii3 = i3 - 15
+                  z = real(ii3,kind=8)*hz + shift(3)
+                  !write(*,'(a,i7,2es16.7)') 'i3, z, ep%mpl(1)%rxyz(3)', i3, z, ep%mpl(1)%rxyz(3)
+                  do i2=is2,ie2
+                      ii2 = i2 - 15
+                      y = real(ii2,kind=8)*hy + shift(2)
+                      do i1=is1,ie1
+                          ii1 = i1 - 15
+                          x = real(ii1,kind=8)*hx + shift(1)
+                          r(1) = ep%mpl(impl)%rxyz(1) - x
+                          r(2) = ep%mpl(impl)%rxyz(2) - y
+                          r(3) = ep%mpl(impl)%rxyz(3) - z 
+                          rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
+                          ! To avoid floating point exception
+                          rnrm2=max(rnrm2,1.d-6)
+                          rnrm1 = sqrt(rnrm2)
+                          rnrm3 = rnrm1*rnrm2
+                          rnrm5 = rnrm3*rnrm2
+                          mp = 0.0_dp
+                          do l=0,lmax
+                              if (associated(ep%mpl(impl)%qlm(l)%q)) then
+                                  select case(l)
+                                  case (0)
+                                      mp = mp + calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
+                                      !write(*,'(a,3es12.4,es16.8)') 'x, y, z, monopole', x, y, z, calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
+                                  case (1)
+                                      mp = mp + calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
+                                      !write(*,*) 'dipole', calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
+                                  case (2)
+                                      mp = mp + calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
+                                      !write(*,*) 'quadrupole', calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
+                                  case (3)
+                                      call f_err_throw('octupole not yet implemented', err_name='BIGDFT_RUNTIME_ERROR')
+                                      !multipole_terms(l) = calc_octopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
+                                  case default
+                                      call f_err_throw('Wrong value of l', err_name='BIGDFT_RUNTIME_ERROR')
+                                  end select
+                              end if
+                          end do
+                          pot(i1,i2,i3) = pot(i1,i2,i3) + mp
+                          !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
                       end do
-                      pot(i1,i2,i3) = pot(i1,i2,i3) + mp
-                      write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
                   end do
               end do
-          end do
+              !!$omp end do
+              !!$omp end parallel
+          end if
       end do
-      !!$omp end do
-      !!$omp end parallel
 
 
       contains
