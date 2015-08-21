@@ -635,6 +635,9 @@ hybrid-directmin:
  Average noise forces: 1.1e-10
  Energy (Hartree): 2.8e-11
 
+cdft_ohohfoe:
+ Epsilon: 7.1e-10
+
 cdft_ohoh:
  Epsilon: 7.1e-10
 
