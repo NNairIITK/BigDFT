@@ -28,6 +28,9 @@ module multipole
       integer :: iat, ityp, impl
       real(gp) :: r, charge
 
+      !write(*,*) 'WARNING DEBUG HERE!!!!!!!!!!!!!!!!!!!!!!!!!'
+      !return
+
       call f_routine(id='interaction_multipoles_ions')
 
       do iat=1,at%astruct%nat

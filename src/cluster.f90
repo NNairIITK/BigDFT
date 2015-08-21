@@ -114,7 +114,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   integer,dimension(2) :: irow, icol, iirow, iicol
   character(len=20) :: comment
 
-  integer :: ishift, extra_states
+  integer :: ishift, extra_states, i1, i2, i3, ii
 
   !debug
   !real(kind=8) :: ddot
@@ -512,6 +512,21 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
+
+  !ii = 0
+  !do i3=1,denspot%dpbox%ndims(3)
+  !    do i2=1,denspot%dpbox%ndims(2)
+  !        do i1=1,denspot%dpbox%ndims(1)
+  !            ii = ii + 1
+  !            write(300,*) 'vals', i1, i2, i3, denspot%V_ext(i1,i2,i3,1)
+  !        end do
+  !    end do
+  !end do
+
+  !call mpi_finalize(ii)
+  !stop
+
+
 
   norbv=abs(in%norbv)
 !!$  if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &

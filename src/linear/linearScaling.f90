@@ -2980,6 +2980,20 @@ end if
            call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
            if (iproc==0) call yaml_mapping_close()
 
+      ii = 0
+      do i3=1,denspot%dpbox%ndims(3)
+          do i2=1,denspot%dpbox%ndims(2)
+              do i1=1,denspot%dpbox%ndims(1)
+                  ii = ii + 1
+                  write(200,*) 'vals', i1, i2, i3, denspot%rhov(ii)
+              end do
+          end do
+      end do
+      close(200)
+
+      !!call mpi_finalize(ii)
+      !!stop
+
 
            ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
            ! switch off for FOE at the moment
@@ -3496,6 +3510,7 @@ end if
       call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
       call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
            0.0_dp,.false.,stress_tensor=hstrten)
+
 
       
       KSwfn%psi=f_malloc_ptr(1,id='KSwfn%psi')
