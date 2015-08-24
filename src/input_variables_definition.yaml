@@ -982,7 +982,7 @@
      default: 8
      RANGE: [0,8]
    adjust_kernel_iterations:
-     COMMENT: enable the addaptive ajustment of the number of kernel iterations
+     COMMENT: enable the adaptive ajustment of the number of kernel iterations
      default: True
    wf_extent_analysis:
      COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)

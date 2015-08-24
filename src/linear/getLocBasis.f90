@@ -489,7 +489,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
       if (present(cdft)) then
          call timing(iproc,'constraineddft','ON')
-         !   call daxpy(tmb%linmat%m%nvctr,cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
+         call daxpy(tmb%linmat%m%nvctr,cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
          call timing(iproc,'constraineddft','OF') 
       end if
 
@@ -528,7 +528,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call fermi_operator_expansion(iproc, nproc, tmprtr, &
            energs%ebs, order_taylor, max_inversion_error, purification_quickreturn, &
            invert_overlap_matrix, 2, FOE_ACCURATE, &
-           trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
+           trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
+           //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
            tmb, tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%kernel_, tmb%foe_obj)
 
       ! Eigenvalues not available, therefore take -.5d0
