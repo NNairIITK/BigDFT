@@ -51,7 +51,6 @@ module multipole
           end do
       end do
 
-      write(*,*) 'eion',eion
 
       call f_release_routine()
 
@@ -261,7 +260,7 @@ module multipole
               call yaml_sequence(advance='no')
               call yaml_mapping_open(trim(yaml_toa(impl)))
               call yaml_map('norm of the Gaussians',norm(:,impl),fmt='(1es16.8)')
-              call yaml_map('monopole',(/monopole(impl),ep%mpl(impl)%qlm(0)%q(1)/),fmt='(1es16.8)')
+              call yaml_map('monopole',monopole(impl),fmt='(1es16.8)')
               call yaml_map('dipole',dipole(:,impl),fmt='(1es16.8)')
               call yaml_map('quadrupole',quadrupole(:,impl),fmt='(1es16.8)')
               call yaml_mapping_close()
@@ -1165,7 +1164,7 @@ module multipole
                   call yaml_sequence(advance='no')
                   atomname=atomnames(iatype(iat))
                   !call yaml_sequence_open(trim(atomname))
-                  call yaml_map('sym',adjustl(trim(atomname))//' # '//trim(yaml_toa(iat,fmt='(i4.4)')))
+                  call yaml_map('sym',adjustl(trim(atomname))//' # '//adjustl(trim(yaml_toa(iat,fmt='(i4.4)'))))
                   call yaml_map('r',convert_units*rxyz(1:3,iat))
                   do l=0,lmax
                       !call yaml_sequence(advance='no')

@@ -4006,6 +4006,7 @@
    Multipole coefficients:
      normalized                        :  Yes
      radius of normalization sphere    :  [  11.1375,  11.1375 ]
+     units for atomic positions        : fake
      Values:
      - sym                             : testatom
        r                               :  [  0.0,  0.0,  0.0 ]
@@ -4014,6 +4015,7 @@
        q2: [ 2.56981668E+09,  2.69218890E+09,  3.38229864E+10,  2.93693335E+09, 
              1.22547052E+10]
      normalized                        :  No
+     units for atomic positions        : fake
      Values:
      - sym                             : testatom
        r                               :  [  0.0,  0.0,  0.0 ]
@@ -4052,6 +4054,7 @@
    Multipole coefficients:
      normalized                        :  Yes
      radius of normalization sphere    :  [  8.662500000000001,  9.2125 ]
+     units for atomic positions        : bohr
      Values:
      - sym                             : O
        r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
