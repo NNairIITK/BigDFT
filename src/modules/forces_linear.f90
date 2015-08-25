@@ -275,12 +275,12 @@ module forces_linear
       integer,dimension(at%astruct%nat),intent(inout) :: supfun_per_atom 
       integer,intent(out) :: ndir, nscalprod_send
       !logical :: projector_has_overlap
-    
+
       ! Local variables
       integer :: ikpt, ii, isorb, ieorb, iorb, iiorb, ilr, nspinor, iat, iiat, ityp 
-    
+
       call f_routine(id='determine_dimension_scalprod')
-    
+
       if (calculate_strten) then
          ndir=9
       else
@@ -409,7 +409,7 @@ module forces_linear
       real(kind=4) :: tr0, tr1, trt0, trt1
       real(kind=8) :: time0, time1, time2, time3, time4, time5, time6, time7, ttime
       logical, parameter :: extra_timing=.false.
-    
+
     
       call f_routine(id='calculate_scalprod')
     
@@ -511,11 +511,15 @@ module forces_linear
                                             nlpsp%proj(istart_c),&
                                             scpr)
                                        !if (scpr/=0.d0) then
+                                       ! SM: In principle it would be sufficient to update only is_supfun_per_atom_tmp
+                                       ! and then put iii =  is_supfun_per_atom_tmp(iat) after the if, but this
+                                       ! causes a crash with gfortran
+                                       iii = is_supfun_per_atom_tmp(iat)
                                        if (increase) then
                                           is_supfun_per_atom_tmp(iat) = is_supfun_per_atom_tmp(iat)+1
+                                          iii = iii + 1
                                           increase = .false.
                                        end if
-                                       iii = is_supfun_per_atom_tmp(iat)
                                        scalprod_sendbuf_new(1,idir,m,i,l,iii) = scpr
                                        scalprod_send_lookup(iii) = iiorb
                                        !else
