@@ -10,6 +10,7 @@ module multipole
   public :: potential_from_charge_multipoles
   public :: potential_from_multipoles
   public :: multipoles_from_density
+  public :: ionic_energy_of_external_charges
 
   contains
 
@@ -55,6 +56,44 @@ module multipole
       call f_release_routine()
 
     end subroutine interaction_multipoles_ions
+
+
+    subroutine ionic_energy_of_external_charges(ep, at, eion)
+      use module_types, only: atoms_data
+      implicit none
+      
+      ! Calling arguments
+      type(external_potential_descriptors),intent(in) :: ep
+      type(atoms_data),intent(in) :: at
+      real(gp),intent(inout) :: eion
+
+      ! Local variables
+      integer :: impl, jmpl
+      real(gp) :: r, charge
+
+      !write(*,*) 'WARNING DEBUG HERE!!!!!!!!!!!!!!!!!!!!!!!!!'
+      !return
+
+      call f_routine(id='ionic_energy_of_external_charges')
+
+      do impl=1,ep%nmpl
+          do jmpl=impl+1,ep%nmpl
+              r = sqrt((ep%mpl(impl)%rxyz(1)-ep%mpl(jmpl)%rxyz(1))**2 + &
+                       (ep%mpl(impl)%rxyz(2)-ep%mpl(jmpl)%rxyz(2))**2 + &
+                       (ep%mpl(impl)%rxyz(3)-ep%mpl(jmpl)%rxyz(3))**2)
+              if (associated(ep%mpl(impl)%qlm(0)%q)) then
+                  ! For the multipoles, a positive value corresponds to a
+                  ! negative charge, therefore multiply by -1. Actually it doesn't matter
+                  charge = real(-1.0_gp*ep%mpl(impl)%qlm(0)%q(1),kind=gp)*real(-1.0_gp*ep%mpl(jmpl)%qlm(0)%q(1),kind=gp)
+                  eion = eion + charge/r
+              end if
+          end do
+      end do
+
+
+      call f_release_routine()
+
+    end subroutine ionic_energy_of_external_charges
 
 
     !> Calculate the external potential arising from the multipoles of the charge density
