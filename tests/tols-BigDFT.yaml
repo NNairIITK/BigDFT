@@ -1374,7 +1374,7 @@ verysparse:
   - found warnings
 
 expfoegeopt:
- guess for new ef: 4.2e-8
+ guess for new ef: 4.6e-8
  eF: 2.5e-8
  D eF: 2.3e-8
  charge diff: 2.3e-8

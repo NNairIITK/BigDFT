@@ -114,7 +114,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   integer,dimension(2) :: irow, icol, iirow, iicol
   character(len=20) :: comment
 
-  integer :: ishift, extra_states
+  integer :: ishift, extra_states, i1, i2, i3, ii
 
   !debug
   !real(kind=8) :: ddot
@@ -504,13 +504,29 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   !call yaml_map('rxyz',rxyz)
   !call yaml_map('atoms%astruct%rxyz',atoms%astruct%rxyz)
   !call yaml_map('hgrids',(/denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3)/))
-  !call potential_from_multipoles(in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
-  !     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
-  !     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
-  !     denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
+  call potential_from_multipoles(in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+       denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
+       denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
+       1, denspot%dpbox%ndims(3), &
+       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
+
+  !ii = 0
+  !do i3=1,denspot%dpbox%ndims(3)
+  !    do i2=1,denspot%dpbox%ndims(2)
+  !        do i1=1,denspot%dpbox%ndims(1)
+  !            ii = ii + 1
+  !            write(300,*) 'vals', i1, i2, i3, denspot%V_ext(i1,i2,i3,1)
+  !        end do
+  !    end do
+  !end do
+
+  !call mpi_finalize(ii)
+  !stop
+
+
 
   norbv=abs(in%norbv)
 !!$  if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
