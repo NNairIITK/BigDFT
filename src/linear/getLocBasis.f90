@@ -545,6 +545,17 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
          call extract_taskgroup(tmb%linmat%m, tmparr, tmb%linmat%ham_%matrix_compr)
          call f_free(tmparr)
          call timing(iproc,'constraineddft','OF') 
+
+         ! we have ebs and the kernel already, but only the CDFT function not actual energy for CDFT
+         ! maybe pass both Hamiltonians to FOE to save calculation ebs twice?
+         !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+         !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+              tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
+              tmb%coeff,orbs,tmb%orbs,.false.)
+         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+
       end if
 
   end if
