@@ -15,6 +15,8 @@ module multipole
   contains
 
 
+    !> Calculate the interaction between the ions and the external multipoles.
+    !! At the moment only the monopoles are taken into account.
     subroutine interaction_multipoles_ions(iproc, ep, at, eion, fion)
       use module_types, only: atoms_data
       use yaml_output, only: yaml_map
@@ -67,6 +69,8 @@ module multipole
     end subroutine interaction_multipoles_ions
 
 
+    !> Calculate the interaction between the external multipoles.
+    !! At the moment only the monopoles are taken into account.
     subroutine ionic_energy_of_external_charges(iproc, ep, at, eion)
       use module_types, only: atoms_data
       use yaml_output, only: yaml_map
@@ -129,16 +133,16 @@ module multipole
       real(gp),dimension(is1:ie1,is2:ie2,is3:ie3),intent(inout) :: pot
 
       ! Local variables
-      integer :: i1, i2, i3, ii1, ii2, ii3, impl, l, m, ii, mm
+      integer :: i1, i2, i3, ii1, ii2, ii3, impl, l, m, ii, mm, nthread, ithread
       real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp, ehart_ps, tt, ttt, gg, hhh
       real(dp),dimension(3) :: r
       real(dp),dimension(:,:,:),allocatable :: density
+      real(dp),dimension(:,:,:,:),allocatable :: density_loc
       real(kind=8),dimension(0:lmax) :: sigma
-      real(8),dimension(ep%nmpl) :: monopole
-      real(8),dimension(0:2,1:ep%nmpl) :: norm
-      real(8),dimension(3,ep%nmpl) :: dipole
-      real(8),dimension(5,ep%nmpl) :: quadrupole
+      real(8),dimension(:),allocatable :: monopole
+      real(8),dimension(:,:),allocatable :: norm, dipole, quadrupole
       real(kind=8),dimension(:,:,:),allocatable :: gaussians1, gaussians2, gaussians3
+      !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
       call f_routine(id='potential_from_charge_multipoles')
 
@@ -149,6 +153,10 @@ module multipole
       sigma(2) = 2.d0*hhh**(1.d0/3.d0)
 
       density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
+      
+      nthread = 1
+      !$ nthread = omp_get_max_threads()
+      density_loc = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3,0.to.nthread-1/),id='density')
 
       gaussians1 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is1.to.ie1/),id='gaussians1')
       gaussians2 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is2.to.ie2/),id='gaussians2')
@@ -202,28 +210,39 @@ module multipole
       !$omp end parallel
 
 
+      norm = f_malloc((/0.to.2,1.to.ep%nmpl/),id='norm')
+      monopole = f_malloc(ep%nmpl,id='monopole')
+      dipole = f_malloc((/3,ep%nmpl/),id='dipole')
+      quadrupole = f_malloc((/5,ep%nmpl/),id='quadrupole')
+
+
       norm = 0.d0
       monopole = 0.d0
       dipole = 0.d0
       quadrupole = 0.d0
-      ! OMP parallelization over i2 since i3 is already MPI parallelized
       !$omp parallel &
       !$omp default(none) &
-      !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma) &
-      !$omp shared(norm, monopole, dipole, quadrupole, density, gaussians1, gaussians2, gaussians3) &
-      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, rnrm2, l, gg, m, mm, tt, ttt)
-      do i3=is3,ie3
-          ii3 = i3 - 15
-          z = real(ii3,kind=8)*hz + shift(3)
-          !$omp do reduction(+:norm, monopole, dipole, quadrupole)
-          do i2=is2,ie2
-              ii2 = i2 - 15
-              y = real(ii2,kind=8)*hy + shift(2)
-              do i1=is1,ie1
-                  ii1 = i1 - 15
-                  x = real(ii1,kind=8)*hx + shift(1)
-                  tt = 0.d0
-                  do impl=1,ep%nmpl
+      !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma, nthread) &
+      !$omp shared(norm, monopole, dipole, quadrupole, density, density_loc, gaussians1, gaussians2, gaussians3) &
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, rnrm2, l, gg, m, mm, tt, ttt, ithread)
+      ithread = 0
+      !$ ithread = omp_get_thread_num()
+      if (ithread<0 .or. ithread>nthread-1) then
+          !SM: Is it possible to call f_err_throw within OpenMP? Anyway this condition should never be true...
+          call f_err_throw('wrong value of ithread',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      !$omp do
+      do impl=1,ep%nmpl
+          do i3=is3,ie3
+              ii3 = i3 - 15
+              z = real(ii3,kind=8)*hz + shift(3)
+              do i2=is2,ie2
+                  ii2 = i2 - 15
+                  y = real(ii2,kind=8)*hy + shift(2)
+                  do i1=is1,ie1
+                      ii1 = i1 - 15
+                      x = real(ii1,kind=8)*hx + shift(1)
+                      tt = 0.d0
                       r(1) = x - ep%mpl(impl)%rxyz(1)
                       r(2) = y - ep%mpl(impl)%rxyz(2)
                       r(3) = z - ep%mpl(impl)%rxyz(3)
@@ -269,14 +288,20 @@ module multipole
                               end do
                           end if
                       end do
+                      !density(i1,i2,i3) = tt
+                      density_loc(i1,i2,i3,ithread) = density_loc(i1,i2,i3,ithread) + tt
                   end do
-                  density(i1,i2,i3) = tt
               end do
           end do
-          !$omp end do
-       end do
-       !$omp end parallel
+      end do
+      !$omp end do
+      !$omp end parallel
 
+      do ithread=0,nthread-1
+          call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_loc(is1,is2,is3,ithread), 1, density(is1,is2,is3), 1)
+      end do
+
+      call f_free(density_loc)
       call f_free(gaussians1)
       call f_free(gaussians2)
       call f_free(gaussians3)
@@ -343,6 +368,11 @@ module multipole
          !pot = pot + density
          call daxpy(size(density),1.d0,density,1,pot,1)
       end if
+
+      call f_free(norm)
+      call f_free(monopole)
+      call f_free(dipole)
+      call f_free(quadrupole)
 
 
       !ii = 0
@@ -557,74 +587,67 @@ module multipole
           end if
       end do
 
-
-      contains
-
-
-        function calc_monopole(q, rnrm1) result(mpm)
-          implicit none
-          ! Calling arguments
-          real(dp),dimension(1),intent(in) :: q
-          real(dp),intent(in) :: rnrm1
-          real(dp) :: mpm
-
-          mpm = -q(1)/rnrm1
-
-        end function calc_monopole
-
-
-        function calc_dipole(q, r, rnrm3) result(dpm)
-          implicit none
-          ! Calling arguments
-          real(dp),dimension(3),intent(in) :: q
-          real(dp),intent(in) :: rnrm3
-          real(dp),dimension(3),intent(in) :: r
-          real(dp) :: dpm
-
-          dpm = q(1)*r(1) + q(2)*r(2) + q(3)*r(3)
-          dpm = -dpm/rnrm3
-
-        end function calc_dipole
-
-
-        function calc_quadropole(q, r, rnrm5) result(qpm)
-          implicit none
-          ! Calling arguments
-          real(dp),dimension(5),intent(in) :: q
-          real(dp),intent(in) :: rnrm5
-          real(dp),dimension(3),intent(in) :: r
-          real(dp) :: qpm
-          ! Local variables
-          real(dp),dimension(3,3) :: qq
-
-          qq(1,1) = q(1)
-          qq(2,1) = q(2)
-          qq(3,1) = q(3)
-          qq(1,2) = qq(2,1)
-          qq(2,2) = q(4)
-          qq(3,2) = q(5)
-          qq(1,3) = qq(3,1)
-          qq(2,3) = qq(3,2)
-          qq(3,3) = 1.0_dp-qq(1,1)-qq(2,2)
-
-          qpm = qq(1,1)*r(1)*r(1) + &
-               qq(2,1)*r(2)*r(1) + &
-               qq(3,1)*r(3)*r(1) + &
-               qq(1,2)*r(1)*r(2) + &
-               qq(2,2)*r(2)*r(2) + &
-               qq(3,2)*r(3)*r(2) + &
-               qq(1,3)*r(1)*r(3) + &
-               qq(2,3)*r(2)*r(3) + &
-               qq(3,3)*r(3)*r(3)
-          qpm = -0.5_dp*qpm/rnrm5
-
-        end function calc_quadropole
-
-
-        !function calc_octopole()
-        !end function calc_octopole
-
     end subroutine potential_from_multipoles
+
+
+    function calc_monopole(q, rnrm1) result(mpm)
+      implicit none
+      ! Calling arguments
+      real(dp),dimension(1),intent(in) :: q
+      real(dp),intent(in) :: rnrm1
+      real(dp) :: mpm
+
+      mpm = -q(1)/rnrm1
+
+    end function calc_monopole
+
+
+    function calc_dipole(q, r, rnrm3) result(dpm)
+      implicit none
+      ! Calling arguments
+      real(dp),dimension(3),intent(in) :: q
+      real(dp),intent(in) :: rnrm3
+      real(dp),dimension(3),intent(in) :: r
+      real(dp) :: dpm
+
+      dpm = q(1)*r(1) + q(2)*r(2) + q(3)*r(3)
+      dpm = -dpm/rnrm3
+
+    end function calc_dipole
+
+
+    function calc_quadropole(q, r, rnrm5) result(qpm)
+      implicit none
+      ! Calling arguments
+      real(dp),dimension(5),intent(in) :: q
+      real(dp),intent(in) :: rnrm5
+      real(dp),dimension(3),intent(in) :: r
+      real(dp) :: qpm
+      ! Local variables
+      real(dp),dimension(3,3) :: qq
+
+      qq(1,1) = q(1)
+      qq(2,1) = q(2)
+      qq(3,1) = q(3)
+      qq(1,2) = qq(2,1)
+      qq(2,2) = q(4)
+      qq(3,2) = q(5)
+      qq(1,3) = qq(3,1)
+      qq(2,3) = qq(3,2)
+      qq(3,3) = 1.0_dp-qq(1,1)-qq(2,2)
+
+      qpm = qq(1,1)*r(1)*r(1) + &
+           qq(2,1)*r(2)*r(1) + &
+           qq(3,1)*r(3)*r(1) + &
+           qq(1,2)*r(1)*r(2) + &
+           qq(2,2)*r(2)*r(2) + &
+           qq(3,2)*r(3)*r(2) + &
+           qq(1,3)*r(1)*r(3) + &
+           qq(2,3)*r(2)*r(3) + &
+           qq(3,3)*r(3)*r(3)
+      qpm = -0.5_dp*qpm/rnrm5
+
+    end function calc_quadropole
 
 
 

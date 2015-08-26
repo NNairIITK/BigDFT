@@ -4,6 +4,7 @@ module forces_linear
 
   ! Public routines
   public :: nonlocal_forces_linear
+  public :: local_hamiltonian_stress_linear
 
   contains
 
@@ -962,5 +963,192 @@ module forces_linear
       call f_release_routine()
     
     end subroutine calculate_forces_kernel
+
+
+    subroutine local_hamiltonian_stress_linear(iproc, nproc, orbs, lzd, hx, hy, hz, npsidim, &
+         psi, &!psit_c, psit_f, &
+         collcom, msmat, mmat, lsmat, lmat, tens)
+      use module_base
+      use module_types
+      use module_interfaces
+      !use module_xc
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix, only: trace_sparse
+      use communications_base, only: TRANSPOSE_FULL
+      use communications, only: transpose_localized
+      use transposed_operations, only: calculate_overlap_transposed
+      implicit none
+      integer,intent(in) :: iproc, nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(local_zone_descriptors), intent(in) :: lzd
+      type(comms_linear),intent(in) :: collcom
+      type(sparse_matrix),intent(in) :: lsmat
+      type(sparse_matrix),intent(inout) :: msmat
+      type(matrices),intent(inout) :: mmat, lmat
+      real(gp), intent(in) :: hx,hy,hz
+      integer,intent(in) :: npsidim
+      real(wp), dimension(npsidim), intent(in) :: psi
+      !real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: psit_c
+      !real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: psit_f
+      real(gp), intent(inout) :: tens(6)
+      !local variables
+      real(gp) :: ekin_sum,epot_sum
+      character(len=*), parameter :: subname='local_hamiltonian_stress'
+      integer :: iorb, npot, i_f, iseg_f, iiorb, ilr, ist, idir, iidim
+      !real(wp) :: kinstr(6)
+      real(gp) :: ekin,kx,ky,kz,etest, tt, ekino
+      type(workarr_locham) :: w
+      real(wp), dimension(:,:), allocatable :: psir
+      real(kind=8),dimension(0:3) :: scal=1.d0
+      real(kind=8),dimension(3) :: hgridh
+      real(kind=8),dimension(:,:),allocatable :: hpsit_c, hpsit_f, hpsi
+      real(kind=8),dimension(:),allocatable :: psit_c, psit_f
+    
+      call f_routine(id='local_hamiltonian_stress')
+    
+      !@ NEW ####################################################
+    
+      hgridh(1)=hx*.5_gp
+      hgridh(2)=hy*.5_gp
+      hgridh(3)=hz*.5_gp
+    
+      hpsit_c = f_malloc((/collcom%ndimind_c,3/),id='hpsit_c')
+      hpsit_f = f_malloc((/7*collcom%ndimind_f,3/),id='hpsit_f')
+      hpsi = f_malloc((/npsidim,3/),id='hpsi')
+      psit_c = f_malloc(collcom%ndimind_c,id='psit_c')
+      psit_f = f_malloc(7*collcom%ndimind_f,id='psit_f')
+    
+      call initialize_work_arrays_locham(lzd%nlr, lzd%llr, orbs%nspinor, .true., w)
+      ist = 1
+      do iorb=1,orbs%norbp
+         iiorb = orbs%isorb + iorb
+         ilr = orbs%inwhichlocreg(iiorb)
+    
+         i_f=min(1,lzd%llr(ilr)%wfd%nvctr_f)
+         iseg_f=min(1,lzd%llr(ilr)%wfd%nseg_f)
+    
+    
+         !!psir = f_malloc0((/lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,orbs%nspinor/),id='psir')
+         call initialize_work_arrays_locham(1, Lzd%Llr(ilr), orbs%nspinor, .false., w)
+    
+         !!call daub_to_isf_locham(orbs%nspinor, lzd%llr(ilr), wrk_lh, psi(ist), psir)
+         call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+              lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+              lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+              lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+              lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
+              lzd%llr(ilr)%wfd%keygloc(1,1), lzd%llr(ilr)%wfd%keyvloc(1), &
+              lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+              lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+iseg_f), &
+              lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+iseg_f), &
+              scal, psi(ist), psi(ist+lzd%llr(ilr)%wfd%nvctr_c+i_f-1), &
+              w%x_c(1,1), w%x_f(1,1), w%x_f1(1,1), w%x_f2(1,1), w%x_f3(1,1))
+    
+         do idir=1,3
+            iidim = 10**(3-idir)
+            call f_zero(w%y_c)
+            call f_zero(w%y_f)
+            !!call convolut_kinetic_per_T_1D(2*lzd%llr(ilr)%d%n1+1, 2*lzd%llr(ilr)%d%n2+1, 2*lzd%llr(ilr)%d%n3+1, &
+            !!     hgridh(idir), idir, w%x_c(1,1), w%y_c(1,1))
+            call ConvolkineticT(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+                 lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+                 lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+                 lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+                 hx, hy, hz, &      !here the grid spacings are supposed to be equal.  SM: not any more
+                 lzd%llr(ilr)%bounds%kb%ibyz_c, lzd%llr(ilr)%bounds%kb%ibxz_c, lzd%llr(ilr)%bounds%kb%ibxy_c, &
+                 lzd%llr(ilr)%bounds%kb%ibyz_f, lzd%llr(ilr)%bounds%kb%ibxz_f, lzd%llr(ilr)%bounds%kb%ibxy_f, &
+                 w%x_c(1,1), w%x_f(1,1), &
+                 w%y_c(1,1), w%y_f(1,1), ekino, &
+                 w%x_f1(1,1), w%x_f2(1,1), w%x_f3(1,1),iidim)
+            call compress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &
+                 lzd%llr(ilr)%d%nfl1, lzd%llr(ilr)%d%nfu1, &
+                 lzd%llr(ilr)%d%nfl2, lzd%llr(ilr)%d%nfu2, &
+                 lzd%llr(ilr)%d%nfl3, lzd%llr(ilr)%d%nfu3, &
+                 lzd%llr(ilr)%wfd%nseg_c, lzd%llr(ilr)%wfd%nvctr_c, &
+                 lzd%llr(ilr)%wfd%keygloc(1,1), lzd%llr(ilr)%wfd%keyvloc(1), &
+                 lzd%llr(ilr)%wfd%nseg_f, lzd%llr(ilr)%wfd%nvctr_f, &
+                 lzd%llr(ilr)%wfd%keygloc(1,lzd%llr(ilr)%wfd%nseg_c+iseg_f), &
+                 lzd%llr(ilr)%wfd%keyvloc(lzd%llr(ilr)%wfd%nseg_c+iseg_f), &
+                 scal, w%y_c(1,1), w%y_f(1,1), hpsi(ist,idir), hpsi(ist+lzd%llr(ilr)%wfd%nvctr_c+i_f-1,idir))
+         end do
+    
+         ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
+      end do
+    
+      call transpose_localized(iproc, nproc, npsidim, orbs, collcom, TRANSPOSE_FULL, &
+           psi, psit_c, psit_f, lzd)
+      do idir=1,3
+         call transpose_localized(iproc, nproc, npsidim, orbs, collcom, TRANSPOSE_FULL, &
+              hpsi(1,idir), hpsit_c, hpsit_f, lzd)
+         call calculate_overlap_transposed(iproc, nproc, orbs, collcom, &
+              psit_c, hpsit_c, psit_f, hpsit_f, msmat, mmat)
+         tt = trace_sparse(iproc, nproc, orbs, msmat, lsmat, mmat%matrix_compr, lmat%matrix_compr, 1)
+         !tens(idir) = tens(idir) + -8.0_gp/(hx*hy*hz)/real(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,gp)*tt
+         tens(idir) = tens(idir) - 2.0_gp*8.0_gp/(hx*hy*hz)/real(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i,gp)*tt
+         tens(idir) = tens(idir)/real(nproc,kind=8) !divide by nproc since an allreduce will follow
+      end do
+    
+      call deallocate_work_arrays_locham(w)
+      call f_free(hpsit_c)
+      call f_free(hpsit_f)
+      call f_free(psit_c)
+      call f_free(psit_f)
+      call f_free(hpsi)
+    
+      !@ END NEW ################################################
+    
+    !!!initialise the work arrays
+      !!call initialize_work_arrays_locham(1,lr,orbs%nspinor,.true.,wrk_lh)  
+    
+      !!tens=0.d0
+    
+    !!!components of the potential
+      !!npot=orbs%nspinor
+      !!if (orbs%nspinor == 2) npot=1
+    
+      !!hpsi = f_malloc((/ lr%wfd%nvctr_c+7*lr%wfd%nvctr_f , orbs%nspinor*orbs%norbp /),id='hpsi')
+      !!hpsi=0.0_wp
+    !!! Wavefunction in real space
+      !!psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%nspinor /),id='psir')
+    !!!call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%nspinor,psir)
+    
+    
+    
+      !!ekin_sum=0.0_gp
+      !!epot_sum=0.0_gp
+    
+      !!etest=0.0_gp
+    
+    
+      !!do iorb=1,orbs%norbp
+      !!   kinstr=0._wp
+      !!   oidx=(iorb-1)*orbs%nspinor+1
+    
+      !!   call daub_to_isf_locham(orbs%nspinor,lr,wrk_lh,psi(1,oidx),psir)
+    
+      !!   kx=orbs%kpts(1,orbs%iokpt(iorb))
+      !!   ky=orbs%kpts(2,orbs%iokpt(iorb))
+      !!   kz=orbs%kpts(3,orbs%iokpt(iorb))
+    
+      !!   call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
+      !!        psir,hpsi(1,oidx),ekin,kinstr)
+    
+      !!   kinstr = -kinstr*8.0_gp/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
+      !!   tens=tens+kinstr*2.0_gp*&
+      !!   orbs%kwgts(orbs%iokpt(iorb))*orbs%occup(iorb+orbs%isorb)
+    
+      !!end do !loop over orbitals: finished
+    
+    !!!deallocations of work arrays
+      !!call f_free(psir)
+    
+      !!call f_free(hpsi)
+    
+      !!call deallocate_work_arrays_locham(wrk_lh)
+    
+    
+      call f_release_routine()
+    
+    END SUBROUTINE local_hamiltonian_stress_linear
 
 end module forces_linear
