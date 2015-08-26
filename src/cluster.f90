@@ -501,10 +501,10 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
-  call interaction_multipoles_ions(in%ep, atoms, energs%eion, fion)
-  write(*,*) 'eion before', energs%eion
-  call ionic_energy_of_external_charges(in%ep, atoms, energs%eion)
-  write(*,*) 'eion after', energs%eion
+  call interaction_multipoles_ions(bigdft_mpi%iproc, in%ep, atoms, energs%eion, fion)
+  !write(*,*) 'eion before', energs%eion
+  call ionic_energy_of_external_charges(bigdft_mpi%iproc, in%ep, atoms, energs%eion)
+  !write(*,*) 'eion after', energs%eion
   !call yaml_map('rxyz',rxyz)
   !call yaml_map('atoms%astruct%rxyz',atoms%astruct%rxyz)
   !call yaml_map('hgrids',(/denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3)/))

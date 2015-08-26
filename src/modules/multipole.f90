@@ -15,11 +15,13 @@ module multipole
   contains
 
 
-    subroutine interaction_multipoles_ions(ep, at, eion, fion)
+    subroutine interaction_multipoles_ions(iproc, ep, at, eion, fion)
       use module_types, only: atoms_data
+      use yaml_output, only: yaml_map
       implicit none
       
       ! Calling arguments
+      integer,intent(in) :: iproc
       type(external_potential_descriptors),intent(in) :: ep
       type(atoms_data),intent(in) :: at
       real(gp),intent(inout) :: eion
@@ -27,13 +29,14 @@ module multipole
 
       ! Local variables
       integer :: iat, ityp, impl
-      real(gp) :: r, charge
+      real(gp) :: r, charge, emp
 
       !write(*,*) 'WARNING DEBUG HERE!!!!!!!!!!!!!!!!!!!!!!!!!'
       !return
 
       call f_routine(id='interaction_multipoles_ions')
 
+      emp = 0.0_gp
       do iat=1,at%astruct%nat
           ityp=at%astruct%iatype(iat)
           do impl=1,ep%nmpl
@@ -44,7 +47,7 @@ module multipole
                   ! For the multipoles, a positive value corresponds to a
                   ! negative charge! Therefore multiply by -1
                   charge = real(at%nelpsp(ityp),gp)*real(-1.0_gp*ep%mpl(impl)%qlm(0)%q(1),kind=gp)
-                  eion = eion + charge/r
+                  emp = emp + charge/r
                   fion(1,iat) = fion(1,iat) + charge/(r**3)*(at%astruct%rxyz(1,iat)-ep%mpl(impl)%rxyz(1))
                   fion(2,iat) = fion(2,iat) + charge/(r**3)*(at%astruct%rxyz(2,iat)-ep%mpl(impl)%rxyz(2))
                   fion(3,iat) = fion(3,iat) + charge/(r**3)*(at%astruct%rxyz(3,iat)-ep%mpl(impl)%rxyz(3))
@@ -53,30 +56,38 @@ module multipole
       end do
 
 
+      if (iproc==0) then
+          call yaml_map('Interaction energy ions multipoles',emp)
+      end if
+      eion = eion + emp
+
+
       call f_release_routine()
 
     end subroutine interaction_multipoles_ions
 
 
-    subroutine ionic_energy_of_external_charges(ep, at, eion)
+    subroutine ionic_energy_of_external_charges(iproc, ep, at, eion)
       use module_types, only: atoms_data
+      use yaml_output, only: yaml_map
       implicit none
       
       ! Calling arguments
+      integer,intent(in) :: iproc
       type(external_potential_descriptors),intent(in) :: ep
       type(atoms_data),intent(in) :: at
       real(gp),intent(inout) :: eion
 
       ! Local variables
       integer :: impl, jmpl
-      real(gp) :: r, charge, ee
+      real(gp) :: r, charge, emp
 
       !write(*,*) 'WARNING DEBUG HERE!!!!!!!!!!!!!!!!!!!!!!!!!'
       !return
 
       call f_routine(id='ionic_energy_of_external_charges')
 
-      ee = 0.d0
+      emp = 0.0_gp
       do impl=1,ep%nmpl
           do jmpl=impl+1,ep%nmpl
               r = sqrt((ep%mpl(impl)%rxyz(1)-ep%mpl(jmpl)%rxyz(1))**2 + &
@@ -86,13 +97,15 @@ module multipole
                   ! For the multipoles, a positive value corresponds to a
                   ! negative charge, therefore multiply by -1. Actually it doesn't matter
                   charge = real(-1.0_gp*ep%mpl(impl)%qlm(0)%q(1),kind=gp)*real(-1.0_gp*ep%mpl(jmpl)%qlm(0)%q(1),kind=gp)
-                  eion = eion + charge/r
-                  ee = ee + charge/r
+                  emp = emp + charge/r
               end if
           end do
       end do
 
-      write(*,*) 'ee',ee
+      if (iproc==0) then
+          call yaml_map('Interaction energy multipoles multipoles',emp)
+      end if
+      eion = eion + emp
 
       call f_release_routine()
 
@@ -131,7 +144,7 @@ module multipole
 
       hhh = hx*hy*hz
 
-      sigma(0) = 1.0d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
+      sigma(0) = 5.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
       sigma(1) = 4.d0*hhh**(1.d0/3.d0)
       sigma(2) = 2.d0*hhh**(1.d0/3.d0)
 
@@ -268,16 +281,16 @@ module multipole
       call f_free(gaussians2)
       call f_free(gaussians3)
 
-      tt = 0.d0
-      do i3=1,size(density,3)
-          do i2=1,size(density,2)
-              do i1=1,size(density,1)
-                  write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-                  tt = tt + density(i1,i2,i3)*hhh
-              end do
-          end do
-      end do
-      write(*,*) 'DEBUG: tt',tt
+      !!tt = 0.d0
+      !!do i3=1,size(density,3)
+      !!    do i2=1,size(density,2)
+      !!        do i1=1,size(density,1)
+      !!            write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+      !!            tt = tt + density(i1,i2,i3)*hhh
+      !!        end do
+      !!    end do
+      !!end do
+      !!write(*,*) 'DEBUG: tt',tt
       
       if (nproc>1) then
           call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
@@ -325,7 +338,7 @@ module multipole
       if (ep%nmpl > 0) then
          call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
               quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
-         write(*,*) 'ehart_ps',ehart_ps
+         !write(*,*) 'ehart_ps',ehart_ps
          !LG: attention to stack overflow here !
          !pot = pot + density
          call daxpy(size(density),1.d0,density,1,pot,1)
