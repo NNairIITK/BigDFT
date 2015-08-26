@@ -1398,6 +1398,7 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
   character(len=2) :: symbol
   !character(len=226) :: extra
   character(len=10) :: name
+  character(len=11) :: units
   integer :: iat
   real(gp) :: xmax,ymax,zmax,factor(3)
 
@@ -1412,16 +1413,18 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
   enddo
   if (trim(astruct%units) == 'angstroem' .or. trim(astruct%units) == 'angstroemd0') then
      factor=Bohr_Ang
+     units='angstroemd0'
   else
      factor=1.0_gp
+     units='atomicd0'
   end if
 
   write(iunit, "(A,A)") "# BigDFT file - ", trim(comment)
   write(iunit, "(3e24.17)") astruct%cell_dim(1)*factor(1), 0.d0, astruct%cell_dim(2)*factor(2)
   write(iunit, "(3e24.17)") 0.d0,                                0.d0, astruct%cell_dim(3)*factor(3)
 
-  write(iunit, "(A,A)") "#keyword: ", trim(astruct%units)
-  if (trim(astruct%units) == "reduced") write(iunit, "(A,A)") "#keyword: bohr"
+  write(iunit, "(A,A)") "#keyword: ", trim(units)
+  if (trim(astruct%units) == "reduced") write(iunit, "(A,A)") "#keyword: reduced"
   select case(astruct%geocode)
   case('P')
      write(iunit, "(A)") "#keyword: periodic"
