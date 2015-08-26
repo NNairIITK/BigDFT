@@ -69,13 +69,14 @@ module multipole
 
       ! Local variables
       integer :: impl, jmpl
-      real(gp) :: r, charge
+      real(gp) :: r, charge, ee
 
       !write(*,*) 'WARNING DEBUG HERE!!!!!!!!!!!!!!!!!!!!!!!!!'
       !return
 
       call f_routine(id='ionic_energy_of_external_charges')
 
+      ee = 0.d0
       do impl=1,ep%nmpl
           do jmpl=impl+1,ep%nmpl
               r = sqrt((ep%mpl(impl)%rxyz(1)-ep%mpl(jmpl)%rxyz(1))**2 + &
@@ -86,10 +87,12 @@ module multipole
                   ! negative charge, therefore multiply by -1. Actually it doesn't matter
                   charge = real(-1.0_gp*ep%mpl(impl)%qlm(0)%q(1),kind=gp)*real(-1.0_gp*ep%mpl(jmpl)%qlm(0)%q(1),kind=gp)
                   eion = eion + charge/r
+                  ee = ee + charge/r
               end if
           end do
       end do
 
+      write(*,*) 'ee',ee
 
       call f_release_routine()
 
@@ -128,7 +131,7 @@ module multipole
 
       hhh = hx*hy*hz
 
-      sigma(0) = 5.d0*hhh**(1.d0/3.d0)
+      sigma(0) = 1.0d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
       sigma(1) = 4.d0*hhh**(1.d0/3.d0)
       sigma(2) = 2.d0*hhh**(1.d0/3.d0)
 
@@ -264,6 +267,17 @@ module multipole
       call f_free(gaussians1)
       call f_free(gaussians2)
       call f_free(gaussians3)
+
+      tt = 0.d0
+      do i3=1,size(density,3)
+          do i2=1,size(density,2)
+              do i1=1,size(density,1)
+                  write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+                  tt = tt + density(i1,i2,i3)*hhh
+              end do
+          end do
+      end do
+      write(*,*) 'DEBUG: tt',tt
       
       if (nproc>1) then
           call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
