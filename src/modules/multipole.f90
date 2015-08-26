@@ -311,6 +311,7 @@ module multipole
       if (ep%nmpl > 0) then
          call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
               quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
+         write(*,*) 'ehart_ps',ehart_ps
          !LG: attention to stack overflow here !
          !pot = pot + density
          call daxpy(size(density),1.d0,density,1,pot,1)
