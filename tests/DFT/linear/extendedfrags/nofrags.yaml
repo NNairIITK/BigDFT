@@ -21,7 +21,7 @@
    hamapp_radius_incr: 6
  lin_general:
    hybrid: Yes
-   nit: 17
+   nit: 5 #17
    taylor_order: 1010
    max_inversion_error: 1.0e-6
    rpnrm_cv: 1.0e-11

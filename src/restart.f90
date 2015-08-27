@@ -1421,10 +1421,12 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   type(phi_array), dimension(:), pointer :: phi_array_old
   type(fragment_transformation), dimension(:), pointer :: frag_trans_orb, frag_trans_frag
   real(gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new, rxyz4_ref, rxyz4_new
+  real(gp), dimension(:,:), allocatable :: rxyz_new_all, rxyz_frg_new, rxyz_ref_sorted
   real(gp), dimension(:), allocatable :: dist
   integer, dimension(:), allocatable :: ipiv
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
-  real(gp) :: max_shift
+  real(gp) :: max_shift, mindist
+  logical :: perx, pery, perz
 
   logical :: skip, binary
   integer :: itmb, jtmb
@@ -1605,31 +1607,160 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            cycle
         end if
 
-        rxyz_ref = f_malloc((/ 3, ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_ref')
-        rxyz_new = f_malloc((/ 3, ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_new')
+        if (ref_frags(ifrag_ref)%astruct_env%nat==0) then
+           rxyz_ref = f_malloc((/ 3, ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_ref')
+           rxyz_new = f_malloc((/ 3, ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_new')
 
-        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-           rxyz_new(:,iat)=rxyz(:,isfat+iat)
-           rxyz_ref(:,iat)=rxyz_old(:,isfat+iat)
-        end do
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_new(:,iat)=rxyz(:,isfat+iat)
+              rxyz_ref(:,iat)=rxyz_old(:,isfat+iat)
+           end do
 
-        ! use center of fragment for now, could later change to center of symmetry
-        frag_trans_frag(ifrag)%rot_center=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref)
-        frag_trans_frag(ifrag)%rot_center_new=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_new)
+           ! use center of fragment for now, could later change to center of symmetry
+           frag_trans_frag(ifrag)%rot_center=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref)
+           frag_trans_frag(ifrag)%rot_center_new=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_new)
 
-        ! shift rxyz wrt center of rotation
-        do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-           rxyz_ref(:,iat)=rxyz_ref(:,iat)-frag_trans_frag(ifrag)%rot_center
-           rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans_frag(ifrag)%rot_center_new
-        end do
+           ! shift rxyz wrt center of rotation
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_ref(:,iat)=rxyz_ref(:,iat)-frag_trans_frag(ifrag)%rot_center
+              rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans_frag(ifrag)%rot_center_new
+           end do
 
-        call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans_frag(ifrag))
+           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans_frag(ifrag))
 
-        call f_free(rxyz_ref)
-        call f_free(rxyz_new)
+           call f_free(rxyz_ref)
+           call f_free(rxyz_new)
+
+
+        ! take into account environment coordinates
+        else
+           !from _env file - includes fragment and environment
+           rxyz_ref = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_env%nat /),id='rxyz_ref')
+           !all coordinates in new system, except those in fragment
+           rxyz_new_all = f_malloc((/ 3,at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_new_all')
+           dist = f_malloc(at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat,id='dist')
+           ipiv = f_malloc(at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat,id='ipiv')
+           !just the fragment in the new system
+           rxyz_frg_new = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_frg_new')
+
+           !just a straightforward copy
+           do iat=1,ref_frags(ifrag_ref)%astruct_env%nat
+              rxyz_ref(:,iat)=ref_frags(ifrag_ref)%astruct_env%rxyz(:,iat)
+           end do
+
+           !take all atoms not in this fragment (might be overcomplicating this...)
+           do iat=1,isfat
+              rxyz_new_all(:,iat)=rxyz(:,iat)
+           end do
+
+           do iat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat+1,at%astruct%nat
+              rxyz_new_all(:,iat-ref_frags(ifrag_ref)%astruct_frg%nat)=rxyz(:,iat)
+           end do
+
+           !just take those in the fragment
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_frg_new(:,iat)=rxyz(:,isfat+iat)
+           end do
+
+           iiat=tmb%orbs%onwhichatom(iiorb)
+
+           !this should just be the fragment centre - fragment xyz comes first in rxyz_env so this should be ok
+           frag_trans_frag(ifrag)%rot_center=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,&
+                rxyz_ref(:,1:ref_frags(ifrag_ref)%astruct_frg%nat))
+           !the fragment centre in new coordinates
+           frag_trans_frag(ifrag)%rot_center_new=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_frg_new)
+
+           ! shift rxyz wrt center of rotation
+           do iat=1,ref_frags(ifrag_ref)%astruct_env%nat
+              rxyz_ref(:,iat)=rxyz_ref(:,iat)-frag_trans_frag(ifrag)%rot_center
+           end do
+
+           ! find distances from this atom BEFORE shifting
+           perx=(at%astruct%geocode /= 'F')
+           pery=(at%astruct%geocode == 'P')
+           perz=(at%astruct%geocode /= 'F')
+
+           !if coordinates wrap around (in periodic), correct before shifting
+           !assume that the fragment itself doesn't, just the environment... 
+           !think about other periodic cases that might need fixing...
+           do iat=1,at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat
+              dist(iat) = dist_and_shift(perx,at%astruct%cell_dim(1),&
+                   frag_trans_frag(ifrag)%rot_center_new(1),rxyz_new_all(1,iat))**2
+              dist(iat) = dist(iat) + dist_and_shift(pery,at%astruct%cell_dim(2),&
+                   frag_trans_frag(ifrag)%rot_center_new(2),rxyz_new_all(2,iat))**2
+              dist(iat) = dist(iat) + dist_and_shift(perz,at%astruct%cell_dim(3),&
+                   frag_trans_frag(ifrag)%rot_center_new(3),rxyz_new_all(3,iat))**2
+
+              dist(iat) = -dsqrt(dist(iat))
+!!$              write(*,'(A,2(I3,2x),F12.6,3x,2(3(F12.6,1x),2x))') 'ifrag,iat,dist',ifrag,iat,dist(iat),&
+!!$                   at%astruct%cell_dim(:),rxyz_new_all(:,iat)
+
+              rxyz_new_all(:,iat) = rxyz_new_all(:,iat)-frag_trans_frag(ifrag)%rot_center_new
+           end do             
+
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_frg_new(:,iat)=rxyz_frg_new(:,iat)-frag_trans_frag(ifrag)%rot_center_new
+           end do
+
+           ! sort atoms into neighbour order
+           call sort_positions(at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat,dist,ipiv)
+
+           rxyz_new = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_env%nat /),id='rxyz_new')
+
+           ! take fragment and closest neighbours (assume that environment atoms were originally the closest)
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_new(:,iat)=rxyz_frg_new(:,iat)
+           end do
+
+           do iat=1,ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_new(:,iat+ref_frags(ifrag_ref)%astruct_frg%nat)=rxyz_new_all(:,ipiv(iat))
+           end do
+
+           call f_free(dist)
+           call f_free(ipiv)
+           call f_free(rxyz_frg_new)
+           call f_free(rxyz_new_all)
+
+           !also sort rxyz_ref into distance order, but assume it's not periodic for the moment, might need to come back and generalize this
+           rxyz_ref_sorted = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_env%nat /),id='rxyz_ref_sorted')
+           dist = f_malloc(ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat,id='dist')
+           ipiv = f_malloc(ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat,id='ipiv')
+
+           do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
+              dist(iat-ref_frags(ifrag_ref)%astruct_frg%nat) &
+                   = -dsqrt(rxyz_ref(1,iat)**2 + rxyz_ref(2,iat)**2 + rxyz_ref(3,iat)**2)
+           end do
+
+           call sort_positions(ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat,dist,ipiv)
+
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_ref_sorted(:,iat) = rxyz_ref(:,iat)
+           end do
+
+           do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
+              rxyz_ref_sorted(:,iat) &
+                   = rxyz_ref(:,ref_frags(ifrag_ref)%astruct_frg%nat+ipiv(iat-ref_frags(ifrag_ref)%astruct_frg%nat))
+           end do
+
+!!$           do iat=1,ref_frags(ifrag_ref)%astruct_env%nat
+!!$              write(*,'(A,3(I3,2x),2x,2(3(F12.6,1x),2x))') 'ifrag,ifrag_ref,iat,rxyz_ref,rxyz_new',&
+!!$                   ifrag,ifrag_ref,iat,rxyz_ref(:,iat),rxyz_ref_sorted(:,iat)
+!!$           end do
+
+           call f_free(dist)
+           call f_free(ipiv)
+           call f_free(rxyz_ref)
+
+           call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_ref_sorted,rxyz_new,frag_trans_frag(ifrag))
+
+           call f_free(rxyz_ref_sorted)
+           call f_free(rxyz_new)
+
+        end if
 
 !!$        write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,ifrag_ref,rot_axis,theta',&
 !!$             ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+!!$        write(*,*) ''
 !!$        call yaml_map('Rmat again',frag_trans_frag(ifrag)%Rmat)
 
         isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
@@ -1849,6 +1980,36 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   end if
   !write(*,'(a,i4,2(1x,1pe10.3))') '- READING WAVES TIME',iproc,tr1-tr0,tel
   call timing(iproc,'tmbrestart','OF')
+
+contains
+
+  function dist_and_shift(periodic,alat,A,B)
+    implicit none
+    real(kind=8), intent(in) :: A
+    real(kind=8), intent(inout) :: B
+    real(kind=8) :: dist_and_shift
+    real(kind=8), intent(in) :: alat
+    logical, intent(in) :: periodic
+    !local variables
+    integer :: i
+    real(kind=8) :: shift
+
+    !shift the B vector on its periodic image
+    dist_and_shift = A - B
+    if (periodic) then
+       !periodic image, if distance is bigger than half of the box
+       shift = 0.0d0
+       if (dist_and_shift > 0.5d0*alat) then
+         shift = alat
+       else if (dist_and_shift < -0.5d0*alat) then
+         shift = -alat
+       end if
+       !shift = real(floor(dist_and_shift+0.5d0),kind=8)
+       dist_and_shift = dist_and_shift - shift
+       B = B + shift
+    end if
+
+  end function dist_and_shift
 
 END SUBROUTINE readmywaves_linear_new
 

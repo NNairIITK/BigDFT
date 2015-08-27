@@ -52,9 +52,10 @@ module module_fragments
 
   !> Defines the minimal information to identify a system building block
   type, public :: system_fragment
-     integer :: nat_env !< environment atoms which complete fragment specifications
-     real(gp), dimension(:,:), pointer :: rxyz_env !< position of atoms in environment (AU), external reference frame
+     !integer :: nat_env !< environment atoms which complete fragment specifications
+     !real(gp), dimension(:,:), pointer :: rxyz_env !< position of atoms in environment (AU), external reference frame
      type(atomic_structure) :: astruct_frg !< Number of atoms, positions, atom type etc for fragment
+     type(atomic_structure) :: astruct_env !< Number of atoms, positions, atom type etc for fragment environment
      type(fragment_basis) :: fbasis !< fragment basis, associated only if coherent with positions, pointer - do we really want this to be a pointer?
      ! add coeffs and or kernel
      integer :: nelec
@@ -123,6 +124,7 @@ contains
   
         ! astruct - fill in other bits later
         ref_frags(1)%astruct_frg%nat=astruct%nat
+        ref_frags(1)%astruct_env%nat=0
 
      end if
 
@@ -140,6 +142,8 @@ contains
     character(len=*), intent(in) :: frag_name
     type(input_variables), intent(in) :: input
     type(atomic_structure), intent(in) :: astruct ! atomic structure of full system
+    
+    logical :: env_exists
 
     call f_routine(id='init_fragment_from_file')
 
@@ -148,6 +152,19 @@ contains
 
     ! read fragment positions
     call set_astruct_from_file(frag_name(1:len(frag_name)),bigdft_mpi%iproc,frag%astruct_frg)
+
+    ! first check if an environment file exists
+    inquire(FILE = frag_name(1:len(frag_name))//'_env.xyz', EXIST = env_exists)
+
+    if (env_exists) then
+       call set_astruct_from_file(frag_name(1:len(frag_name))//'_env',bigdft_mpi%iproc,frag%astruct_env)
+       ! check that this contains at least 1 environment atom
+       if (frag%astruct_env%nat < frag%astruct_frg%nat+1) then
+          stop 'Fragment environment file missing some atoms'
+       end if
+    else
+       frag%astruct_env%nat=0
+    end if
 
     ! iproc, nproc, nspinor not needed yet, add in later
     call init_minimal_orbitals_data(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, input, frag%astruct_frg, &
@@ -543,13 +560,14 @@ contains
     implicit none
     type(system_fragment) :: frag
 
-    frag%nat_env=0
-    nullify(frag%rxyz_env)
+    !frag%nat_env=0
+    !nullify(frag%rxyz_env)
     frag%nelec=0
     nullify(frag%coeff)
     nullify(frag%kernel)
     nullify(frag%eval)
     call nullify_atomic_structure(frag%astruct_frg)
+    call nullify_atomic_structure(frag%astruct_env)
     ! nullify fragment basis
     call nullify_fragment_basis(frag%fbasis)
 
@@ -606,9 +624,11 @@ contains
 
     call deallocate_atomic_structure(frag%astruct_frg)
     frag%astruct_frg=atomic_structure_null()
+    call deallocate_atomic_structure(frag%astruct_env)
+    frag%astruct_env=atomic_structure_null()
     call minimal_orbitals_data_free(frag%fbasis%forbs)
     frag%fbasis%forbs = minimal_orbitals_data_null()
-    call f_free_ptr(frag%rxyz_env)
+    !call f_free_ptr(frag%rxyz_env)
     call f_free_ptr(frag%coeff)
     call f_free_ptr(frag%kernel)
     call f_free_ptr(frag%eval)
@@ -623,7 +643,7 @@ contains
 
     call f_routine(id='fragment_allocate')
 
-    frag%rxyz_env=f_malloc_ptr((/3,min(1,frag%nat_env)/),id='frag%rxyz_env')
+    !frag%rxyz_env=f_malloc_ptr((/3,min(1,frag%nat_env)/),id='frag%rxyz_env')
     frag%coeff=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='frag%coeff')
     frag%kernel=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb,1/),id='frag%kernel') !NEED SPIN HERE
     frag%eval=f_malloc_ptr(frag%fbasis%forbs%norb,id='frag%eval')

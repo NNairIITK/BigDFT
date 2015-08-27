@@ -1,19 +1,1 @@
  <BigDFT> log of the run will be written in logfile: ./log-readrotated.yaml
- sum(inv_ovrlp_matrixp_new(:,icalc))   10.3912170125457     
- sum(inv_ovrlp_matrixp_new(:,icalc))   6.49659009631529     
- sum(inv_ovrlp_matrixp_new(:,icalc))   7.95801657811398     
- sum(inv_ovrlp_matrixp_new(:,icalc))   11.8167098821364     
- sum(inv_ovrlp_matrixp_new(:,icalc))   11.3341862169280     
- sum(inv_ovrlp_matrixp_new(:,icalc))   7.25047003775285     
- sum(inv_ovrlp_matrixp_new(:,icalc))   28.0457407623239     
- sum(inv_ovrlp_matrixp_new(:,icalc))   6.50086988086182     
- sum(inv_ovrlp_matrixp_new(:,icalc))   19.0613102631685     
- sum(inv_ovrlp_matrixp_new(:,icalc))   6.13395951555687     
- sum(inv_ovrlp_matrixp_new(:,icalc))   8.92432524901401     
- sum(inv_ovrlp_matrixp_new(:,icalc))   16.0385251173124     
- sum(inv_ovrlp_matrixp_new(:,icalc))   10.3912170125457     
- sum(inv_ovrlp_matrixp_new(:,icalc))   6.49659009631529     
- sum(inv_ovrlp_matrixp_new(:,icalc))   7.95801657811398     
- sum(inv_ovrlp_matrixp_new(:,icalc))   7.25047003775285     
- sum(inv_ovrlp_matrixp_new(:,icalc))   11.8167098821364     
- sum(inv_ovrlp_matrixp_new(:,icalc))   11.3341862169280     
