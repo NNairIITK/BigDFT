@@ -290,8 +290,8 @@ contains
     iexpo = 0
     do iat = 1, nat
        do i = 1, pawtab(iatyp(iat))%wvl%ptotgau
-          ! minus real part is for BigDFT convention.
-          G%sd((EXPO_ - 1) * 2 + 1,iexpo + i)  = -pawtab(iatyp(iat))%wvl%parg(1,i)
+          ! real part of exponent is positive for BigDFT convention.
+          G%sd((EXPO_ - 1) * 2 + 1,iexpo + i)  = abs(pawtab(iatyp(iat))%wvl%parg(1,i))
           G%sd((EXPO_ - 1) * 2 + 2,iexpo + i)  = pawtab(iatyp(iat))%wvl%parg(2,i)
           G%sd((COEFF_ - 1) * 2 + 1,iexpo + i) = pawtab(iatyp(iat))%wvl%pfac(1,i)
           G%sd((COEFF_ - 1) * 2 + 2,iexpo + i) = pawtab(iatyp(iat))%wvl%pfac(2,i)
