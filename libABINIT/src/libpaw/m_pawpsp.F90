@@ -3330,16 +3330,28 @@ subroutine pawpsp_17in(epsatm,ffspl,icoulomb,ipsp,ixc,lmax,&
     do ib=1,pawtab%basis_size
        pawtab%wvl%pngau(ib) = paw_setup(ipsploc)%projector_fit(ib)%ngauss
     end do
-    pawtab%wvl%ptotgau = sum(pawtab%wvl%pngau)
+    pawtab%wvl%ptotgau = sum(pawtab%wvl%pngau) * 2
     LIBPAW_ALLOCATE(pawtab%wvl%parg,(2,pawtab%wvl%ptotgau))
     LIBPAW_ALLOCATE(pawtab%wvl%pfac,(2,pawtab%wvl%ptotgau))
     pngau = 1
     do ib=1,pawtab%basis_size
+       ! Complex gaussian
        pawtab%wvl%parg(:,pngau:pngau + pawtab%wvl%pngau(ib) - 1) = &
             & paw_setup(ipsploc)%projector_fit(ib)%expos(:,1:pawtab%wvl%pngau(ib))
        pawtab%wvl%pfac(:,pngau:pngau + pawtab%wvl%pngau(ib) - 1) = &
             & paw_setup(ipsploc)%projector_fit(ib)%factors(:,1:pawtab%wvl%pngau(ib))
        pngau = pngau + pawtab%wvl%pngau(ib)
+       ! Conjugate gaussian
+       pawtab%wvl%parg(1,pngau:pngau + pawtab%wvl%pngau(ib) - 1) = &
+            & paw_setup(ipsploc)%projector_fit(ib)%expos(1,1:pawtab%wvl%pngau(ib))
+       pawtab%wvl%parg(2,pngau:pngau + pawtab%wvl%pngau(ib) - 1) = &
+            & -paw_setup(ipsploc)%projector_fit(ib)%expos(2,1:pawtab%wvl%pngau(ib))
+       pawtab%wvl%pfac(1,pngau:pngau + pawtab%wvl%pngau(ib) - 1) = &
+            & paw_setup(ipsploc)%projector_fit(ib)%factors(1,1:pawtab%wvl%pngau(ib))
+       pawtab%wvl%pfac(2,pngau:pngau + pawtab%wvl%pngau(ib) - 1) = &
+            & -paw_setup(ipsploc)%projector_fit(ib)%factors(2,1:pawtab%wvl%pngau(ib))
+       pngau = pngau + pawtab%wvl%pngau(ib)
+       pawtab%wvl%pngau(ib) = pawtab%wvl%pngau(ib) * 2
     end do
     pawtab%has_wvl=2
  else
