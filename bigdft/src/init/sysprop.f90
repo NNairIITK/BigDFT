@@ -1064,7 +1064,7 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
              & lstep = at%pawrad(ityp)%lstep)
 
         !  Set radius size:
-        do i = 1, size(at%pawtab(ityp)%tcoredens, 1)
+        do i = 1, size(at%pawtab(ityp)%tcoredens, 1) - 1
            if (at%pawtab(ityp)%tcoredens(i, 1) < 1e-10) exit
         end do
         rloc = core_mesh%rad(i)
@@ -1353,7 +1353,7 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
   use module_base
   use abi_defs_basis, only: tol14, fnlen
   use m_pawpsp, only: pawpsp_main
-  use m_pawxmlps, only: paw_setup, rdpawpsxml, ipsp2xml
+  use m_pawxmlps, only: paw_setup, rdpawpsxml, ipsp2xml, paw_setup_free
   use m_pawrad, only: pawrad_type !, pawrad_nullify
   use m_pawtab, only: pawtab_type, pawtab_nullify
   use f_utils
@@ -1400,15 +1400,15 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
   xc_denpos=tol14
   filpsp=trim(filename)
 
-  allocate(paw_setup(1))
-  allocate(ipsp2xml(1))
   if (bigdft_mpi%iproc == 0) then
      ! Parse the PAW file if in XML format
      call f_iostream_from_file(ios, trim(filename))
      call f_iostream_get_line(ios, line)
      call f_iostream_release(ios)
      if (line(1:5) == "<?xml") then
+        allocate(paw_setup(1))
         call rdpawpsxml(filpsp, paw_setup(1), 789)
+        ipsp2xml = f_malloc(1, id = "ipsp2xml")
         ipsp2xml(1) = 1
      end if
   end if
@@ -1419,23 +1419,20 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
        & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,real(nelpsp, dp),real(nzatom, dp),&
        & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm,psxml = paw_setup(1))
 
-  deallocate(ipsp2xml)
-  deallocate(paw_setup)
+  if (allocated(paw_setup)) then
+     call paw_setup_free(paw_setup(1))
+     deallocate(paw_setup)
+  end if
+  if (allocated(ipsp2xml)) call f_free(ipsp2xml)
 
 !!$  ii = 0
 !!$  do ib = 1, pawtab%basis_size
-!!$     write(*,*) pawtab%wvl%pngau(ib)
-!!$     write(80, "(A,I0,A)") "f", ib, "(x) = 0 \"
 !!$     do i = 1, pawtab%wvl%pngau(ib)
 !!$        ii = ii + 1
-!!$        write(80,*) " + {", pawtab%wvl%pfac(1, ii), ",", pawtab%wvl%pfac(2, ii), &
-!!$             & "} * exp({", pawtab%wvl%parg(1, ii), ",", pawtab%wvl%parg(2, ii) , "}*(x**2)) \"
-!!$        write(100+ib, *) pawtab%wvl%pfac(:, ii), pawtab%wvl%parg(:, ii)
+!!$        write(80 + ib,*) pawtab%wvl%pfac(:, ii), pawtab%wvl%parg(:, ii)
 !!$     end do
-!!$     write(80,*) " + 0"
-!!$     close(100+ib)
+!!$     close(80 + ib)
 !!$  end do
-!!$  close(80)
 END SUBROUTINE paw_from_file
 
 
