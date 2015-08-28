@@ -1429,7 +1429,7 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
         j = 1
         do i = 1, atoms%pawtab(ityp)%basis_size
            call yaml_sequence(advance='no')
-           call yaml_map('Channel (l)', atoms%pawtab(ityp)%orbitals(i))
+           call yaml_map('Channel (l,m,n)', atoms%pawtab(ityp)%indlmn(1:3,i))
            call yaml_map('complex coefficients', &
                 & atoms%pawtab(ityp)%wvl%parg(:,j:j + atoms%pawtab(ityp)%wvl%pngau(i) - 1),fmt='(f9.5)')
            call yaml_map('complex factors', &
