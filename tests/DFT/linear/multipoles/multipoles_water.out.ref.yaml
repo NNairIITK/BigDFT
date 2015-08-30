@@ -562,27 +562,22 @@
    Box                                 :  [  91,  85,  91 ]
    MPI tasks                           :  2
  Potential from multipoles:
-   number of multipole centers         :  3
-   sigma of the Gaussians              :  [  1.375,  1.1,  0.55 ]
-   Values:
+   Number of multipole centers         :  3
+   Sigma of the Gaussians              :  [  1.375,  1.1,  0.55 ]
+   Threshold for the norm of th Gaussians:  1.0E-004
+   Details for each multipole:
    -  1:
-       norm of the Gaussians: [ 9.99999978E-01,  1.00000000E+00,  1.00000000E+00]
-       monopole                        :  6.47990416E-01
-       dipole: [-9.68089621E-02, -2.28794315E-01,  2.52330066E-01]
-       quadrupole: [-5.98978589E-02, -8.72171823E-02,  4.19098383E-02, -4.17603414E-03, 
-                    -1.69802438E-01]
+       Method                          : Density based on Gaussians
+       Deviation of normaliazation for the Gaussians:  [  2.19E-08,  3.82E-12,  1.88E-14 ]
+       Maximal deviation from the original values:  [  1.42E-08,  3.51E-03,  3.31E-01 ]
    -  2:
-       norm of the Gaussians: [ 9.99999981E-01,  1.00000000E+00,  1.00000000E+00]
-       monopole                        : -3.25133342E-01
-       dipole: [-3.51993720E-02,  4.88241599E-03, -1.42125233E-01]
-       quadrupole: [-3.63411919E-04,  4.36464046E-04, -5.24440547E-03,  1.87112514E-05, 
-                    -3.03418040E-03]
+       Method                          : Density based on Gaussians
+       Deviation of normaliazation for the Gaussians:  [  1.94E-08,  3.20E-12,  1.13E-14 ]
+       Maximal deviation from the original values:  [  6.3E-09,  1.88E-03,  1.60E-02 ]
    -  3:
-       norm of the Gaussians: [ 9.99995934E-01,  9.99999988E-01,  1.00000000E+00]
-       monopole                        : -3.30042902E-01
-       dipole: [ 9.11512446E-02,  1.07912882E-01, -3.79229374E-03]
-       quadrupole: [-2.19009609E-05, -1.72510661E-03, -4.40090156E-02, -4.74933420E-04, 
-                     4.82890059E-03]
+       Method                          : Density based on Gaussians
+       Deviation of normaliazation for the Gaussians:  [  4.07E-06,  1.19E-08,  2.23E-14 ]
+       Maximal deviation from the original values:  [  1.34E-06,  1.18E-03,  3.10E-02 ]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  91,  85,  91 ]

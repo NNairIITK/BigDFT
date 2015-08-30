@@ -542,15 +542,14 @@
    Box                                 :  [  85,  83,  83 ]
    MPI tasks                           :  3
  Potential from multipoles:
-   number of multipole centers         :  1
-   sigma of the Gaussians              :  [  1.375,  1.1,  0.55 ]
-   Values:
+   Number of multipole centers         :  1
+   Sigma of the Gaussians              :  [  1.375,  1.1,  0.55 ]
+   Threshold for the norm of th Gaussians:  1.0E-004
+   Details for each multipole:
    -  1:
-       norm of the Gaussians: [ 1.00000000E+00,  1.00000000E+00,  1.00000000E+00]
-       monopole                        : -1.00000000E+00
-       dipole: [ 0.00000000E+00,  0.00000000E+00,  0.00000000E+00]
-       quadrupole: [ 0.00000000E+00,  0.00000000E+00,  0.00000000E+00,  0.00000000E+00, 
-                     0.00000000E+00]
+       Method                          : Density based on Gaussians
+       Deviation of normaliazation for the Gaussians:  [  3.98E-13,  1.24E-13,  2.48E-14 ]
+       Maximal deviation from the original values:  [  3.98E-13,  0.00E+00,  0.00E+00 ]
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  85,  83,  83 ]
