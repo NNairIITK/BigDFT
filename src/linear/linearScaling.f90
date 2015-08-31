@@ -2616,7 +2616,8 @@ end if
   if (mod(input%lin%output_mat_format,10) /= WF_FORMAT_NONE) then
       call timing(iproc,'write_matrices','ON')
       call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
-           input%lin%output_mat_format,tmb,at,rxyz,input%lin%calculate_onsite_overlap)
+           input%lin%output_mat_format,tmb,at,rxyz,norder_taylor, &
+           input%lin%calculate_onsite_overlap, write_SminusonehalfH=.true.)
       call timing(iproc,'write_matrices','OF')
   end if
   ! Write the KS coefficients

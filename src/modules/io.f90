@@ -1496,7 +1496,7 @@ module io
           end if
           do iat=1,nat
               if (.not. binary) then
-                  write(iunit,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+                  write(iunit,'(a,3es24.16,a,i4.4)') '#  ',rxyz(1:3,iat), '   # position of atom no. ',iat
               else
                   write(iunit) '#  ',rxyz(1:3,iat)
               end if
@@ -1508,7 +1508,8 @@ module io
                 do jorb=1,smat%nfvctr
                    jat=orbs%onwhichatom(jorb)
                    if (.not. binary) then
-                      write(iunit,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,mat%matrix(iorb,jorb,ispin),iat,jat
+                      write(iunit,'(2(i6,1x),es19.12,2(1x,i6),a)') iorb,jorb,mat%matrix(iorb,jorb,ispin),iat,jat, &
+                          '   # i, j, mat(i,j), iat, jat'
                    else
                       write(iunit) iorb,jorb,mat%matrix(iorb,jorb,ispin),iat,jat
                    end if
@@ -1741,28 +1742,34 @@ module io
 
 
     !> Write Hamiltonian, overlap and kernel matrices in tmb basis
-    subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tmb,at,rxyz, &
-               calculate_onsite_overlap)
+    subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tmb,at,rxyz,norder_taylor, &
+               calculate_onsite_overlap, write_SminusonehalfH)
       use module_types
       use module_base
       use yaml_output
       use module_interfaces, except_this_one => writeonewave
-      use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-      use sparsematrix, only: uncompress_matrix2
+      use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, matrices_null, &
+                                   DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
+                                   deallocate_matrices
+      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix_local, matrix_matrix_mult_wrapper
+      use matrix_operations, only: overlapPowerGeneral
       implicit none
-      integer, intent(in) :: iproc,nproc,imethod_overlap
+      integer, intent(in) :: iproc,nproc,imethod_overlap,norder_taylor
       integer,intent(in) :: iformat !< 1: plain sparse, 11: plain dense, 21: plain both (later extend to other than plain formats...)
       character(len=*), intent(in) :: filename 
       type(DFT_wavefunction), intent(inout) :: tmb
       type(atoms_data), intent(in) :: at
       real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
-      logical,intent(in) :: calculate_onsite_overlap
+      logical,intent(in) :: calculate_onsite_overlap, write_SminusonehalfH
       !local variables
       logical :: binary
       integer :: ispin, iorb, jorb, iat, jat,unitm
       !!integer :: i_stat, i_all
       character(len=*),parameter :: subname='write_linear_matrices'
       logical :: write_sparse, write_dense
+      type(matrices),dimension(1) :: SminusonehalfH
+      real(kind=8),dimension(:),pointer :: ham_large, tmp_large
+      real(kind=8) :: max_error, mean_error
     
       call f_routine(id='write_linear_matrices')
 
@@ -1776,57 +1783,6 @@ module io
           call write_dense_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
                at%nzatom, at%nelpsp, at%astruct%atomnames, &
                tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian.bin'), binary, tmb%orbs)
-
-          !!tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, &
-          !!                         iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
-    
-          !!call uncompress_matrix2(iproc, nproc, tmb%linmat%m, &
-          !!     tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
-    
-          !!if (iproc==0) then
-    
-          !!   !if(iformat == WF_FORMAT_PLAIN) then
-          !!   call f_open_file(unitm, file=filename//'hamiltonian.bin',&
-          !!        binary=binary)
-          !!   !else
-          !!   !open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
-          !!   !end if
-    
-          !!   if (.not. binary) then
-          !!       write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-          !!           '    number of basis functions, number of atoms'
-          !!   else
-          !!       write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-          !!           '    number of basis functions, number of atoms'
-          !!   end if
-          !!   do iat=1,at%astruct%nat
-          !!       if (.not. binary) then
-          !!           write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
-          !!       else
-          !!           write(unitm) '#  ',rxyz(1:3,iat)
-          !!       end if
-          !!   end do
-    
-          !!   do ispin=1,tmb%linmat%m%nspin
-          !!      do iorb=1,tmb%linmat%m%nfvctr
-          !!         iat=tmb%orbs%onwhichatom(iorb)
-          !!         do jorb=1,tmb%linmat%m%nfvctr
-          !!            jat=tmb%orbs%onwhichatom(jorb)
-          !!            if (.not. binary) then
-          !!               write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
-          !!            else
-          !!               write(unitm) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
-          !!            end if
-          !!         end do
-          !!      end do
-          !!   end do
-    
-          !!   call f_close(unitm)
-    
-          !!end if
-
-          !!call f_free_ptr(tmb%linmat%ham_%matrix)
-
       end if
 
       if (write_sparse) then
@@ -1837,61 +1793,9 @@ module io
     
     
       if (write_dense) then
-
           call write_dense_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
                at%nzatom, at%nelpsp, at%astruct%atomnames, &
                tmb%linmat%s, tmb%linmat%ovrlp_, trim(filename//'overlap.bin'), binary, tmb%orbs)
-    
-          !!tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
-          !!                           id='tmb%linmat%ovrlp_%matrix')
-    
-          !!call uncompress_matrix2(iproc, nproc, tmb%linmat%s, &
-          !!        tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
-    
-          !!if (iproc==0) then
-    
-          !!   !if(iformat == WF_FORMAT_PLAIN) then
-          !!   call f_open_file(unitm, file=filename//'overlap.bin',&
-          !!        binary=binary)
-          !!   !else
-          !!   !open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
-          !!   !end if
-    
-          !!   if (.not. binary) then
-          !!       write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-          !!           '    number of basis functions, number of atoms'
-          !!   else
-          !!       write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-          !!           '    number of basis functions, number of atoms'
-          !!   end if
-          !!   do iat=1,at%astruct%nat
-          !!       if (.not. binary) then
-          !!           write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
-          !!       else
-          !!           write(unitm) '#  ',rxyz(1:3,iat)
-          !!       end if
-          !!   end do
-    
-          !!   do ispin=1,tmb%linmat%s%nspin
-          !!      do iorb=1,tmb%linmat%s%nfvctr
-          !!         iat=tmb%orbs%onwhichatom(iorb)
-          !!         do jorb=1,tmb%linmat%s%nfvctr
-          !!            jat=tmb%orbs%onwhichatom(jorb)
-          !!            if (.not. binary) then
-          !!               write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
-          !!            else
-          !!               write(unitm) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
-          !!            end if
-          !!         end do
-          !!      end do
-          !!   end do
-    
-          !!   call f_close(unitm)
-    
-          !!end if
-
-          !!call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-
       end if
 
       if (write_sparse) then
@@ -1902,66 +1806,16 @@ module io
     
     
       if (write_dense) then
-
           call write_dense_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
                at%nzatom, at%nelpsp, at%astruct%atomnames, &
                tmb%linmat%l, tmb%linmat%kernel_, trim(filename//'density_kernel.bin'), binary, tmb%orbs)
-    
-          !!tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
-    
-          !!call uncompress_matrix2(iproc, nproc, tmb%linmat%l, &
-          !!     tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
-    
-          !!if (iproc==0) then
-          !!   !if(iformat == WF_FORMAT_PLAIN) then
-          !!   call f_open_file(unitm,file=filename//'density_kernel.bin',&
-          !!        binary=binary)
-          !!   !else
-          !!   !open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
-          !!   !end if
-    
-          !!   if (.not. binary) then
-          !!       write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-          !!           '    number of basis functions, number of atoms'
-          !!   else
-          !!       write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-          !!           '    number of basis functions, number of atoms'
-          !!   end if
-          !!   do iat=1,at%astruct%nat
-          !!       if (.not. binary) then
-          !!           write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
-          !!       else
-          !!           write(unitm) '#  ',rxyz(1:3,iat)
-          !!       end if
-          !!   end do
-    
-          !!   do ispin=1,tmb%linmat%l%nspin
-          !!      do iorb=1,tmb%linmat%l%nfvctr
-          !!         iat=tmb%orbs%onwhichatom(iorb)
-          !!         do jorb=1,tmb%linmat%l%nfvctr
-          !!            jat=tmb%orbs%onwhichatom(jorb)
-          !!            if (.not. binary) then
-          !!               write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
-          !!            else
-          !!               write(unitm) iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
-          !!            end if
-          !!         end do
-          !!      end do
-          !!   end do
-    
-          !!   call f_close(unitm)
-    
-          !!end if
+      end if
 
-          !!call f_free_ptr(tmb%linmat%kernel_%matrix)
-
-     end if
-
-     if (write_sparse) then
+      if (write_sparse) then
           call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
                at%nzatom, at%nelpsp, at%astruct%atomnames, &
                tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
-     end if
+      end if
     
     
       if (calculate_onsite_overlap) then
@@ -2019,6 +1873,39 @@ module io
 
           end if
 
+      end if
+
+
+      if (write_SminusonehalfH) then
+          SminusonehalfH(1) = matrices_null()
+          SminusonehalfH(1)%matrix_compr = &
+              sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
+          ham_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='ham_large')
+          tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_large')
+          call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, &
+               tmb%linmat%ham_%matrix_compr, ham_large, 'small_to_large')
+          ! calculate S^-1/2
+          call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/-2/), -1, &
+               imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
+               check_accur=.true., max_error=max_error, mean_error=mean_error)
+          ! Calculate S^-1/2 * H
+          call f_memcpy(src=SminusonehalfH(1)%matrix_compr,dest=tmp_large)
+          call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmp_large, ham_large, SminusonehalfH(1)%matrix_compr)
+          call f_free_ptr(ham_large)
+          call f_free_ptr(tmp_large)
+          if (write_dense) then
+              call write_dense_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+                   at%nzatom, at%nelpsp, at%astruct%atomnames, &
+                   tmb%linmat%l, SminusonehalfH(1), trim(filename//'SminusonehalfH.bin'), binary, tmb%orbs)
+          end if
+
+          if (write_sparse) then
+              call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+                   at%nzatom, at%nelpsp, at%astruct%atomnames, &
+                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
+          end if
+          call deallocate_matrices(SminusonehalfH(1))
       end if
 
       call f_release_routine()
