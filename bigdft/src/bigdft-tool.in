@@ -28,7 +28,7 @@ actions = ["memory-estimation", "rotate", "convert-field",
            "pdos", "kernel-analysis", "extract-submatrix", "solve-eigensystem", 
            "analyze-coeffs", "peel-matrix", "multiply-matrices", "matrixpower", 
            "plot-wavefunction", "suggest-cutoff", "charge-analysis",
-           "export-proj"]
+           "export-proj", "fit-proj"]
 
 # Processed lines
 abs_srcdir = "@abs_srcdir@"
@@ -94,10 +94,16 @@ def parse():
                      help="choose the real or imaginary part to export [default: %default]")
     parser.add_option_group(group)
 
-    # Projector exportation
+    # Projector tools
     group = OptionGroup(parser, "bigdft-tool -a %s FILE [options]" % actions[22],
                         "Export the compress projector from FILE to a scalar-field."
                         " representation in Cube format.")
+    parser.add_option_group(group)
+
+    group = OptionGroup(parser, "bigdft-tool -a %s FILE [options]" % actions[23],
+                        "Fit in gaussians the radial part of projectors.")
+    group.add_option("--n-funcs", type="int", default=10, metavar="NGAUSS",
+                     help="number of independant gaussians [default: %default]")
     parser.add_option_group(group)
 
     # Grid exportation
@@ -433,6 +439,134 @@ def processmenu(h, n, screen, menu, parent=None):
         elif whattodo == EXITMENU:
             exitmenu = True
 
+def fitHelperResid(p, fit, prev):
+  res = fit.proj - fit.gauss_eval(p, prev)
+  print (res ** 2).sum()
+  return res
+  
+class GaussianFit:
+  I_FREAL = 0
+  I_FIMAG = 1
+  I_PHASE = 3
+  I_DAMP = 2
+  
+  def __init__(self, id, l, N, x, proj, cutoff = None, init = None):
+    import numpy
+    self.id = id
+    self.N = N
+    self.cutoff = cutoff
+    self.init = init
+
+    # Restrict fit to cutoff
+    imax = x.size
+    if cutoff is not None:
+      rmax = cutoff * numpy.sqrt(3)
+      for (i, v) in enumerate(x):
+        if v > rmax:
+          imax = i
+          break
+    self.x = x[:imax].copy()
+    self.x[self.x == 0] = 1
+    self.proj = proj[:imax] / (self.x ** l)
+    self.x = x[:imax]
+
+  def gauss_eval(self, p, prev):
+    import numpy
+    if prev is not None:
+      v0 = numpy.hstack((prev.reshape(-1), p)).reshape((-1, 4))
+    else:
+      v0 = p.reshape((-1, 4))
+    F = v0[:, GaussianFit.I_FREAL] + 1j * v0[:, GaussianFit.I_FIMAG]
+    D = numpy.abs(v0[:, GaussianFit.I_DAMP])
+    D[D < 0.01] = 0.01
+    C = -D + 1j * v0[:, GaussianFit.I_PHASE]
+    Fc = v0[:, GaussianFit.I_FREAL] - 1j * v0[:, GaussianFit.I_FIMAG]
+    Cc = -D - 1j * v0[:, GaussianFit.I_PHASE]
+    ret = numpy.zeros(len(self.x), dtype = self.x.dtype)
+    for (i, xv) in enumerate(self.x):
+      a = (F * numpy.exp(C * (xv ** 2)) + Fc * numpy.exp(Cc * (xv ** 2))).sum()
+      #ret[i] = (xv ** n) * numpy.real(a)
+      ret[i] = numpy.real(a)
+    return ret
+
+  def fit(self):
+    import numpy
+    from scipy.optimize import leastsq
+    ## # Calculate weights to have a linear weight on points.
+    ## weights = numpy.linspace(x[0], x[imax - 1], imax)
+    ## weights[0] = weights[1]
+    ## weights = x[:imax] / weights
+    ## weights = weights / weights.sum() * imax
+
+    # Input guess
+    if self.init is not None:
+      prev = numpy.loadtxt(self.init).reshape(-1)
+    else:
+      # Gaussian per gaussian
+      avg = numpy.average(self.proj)
+      prev = None
+      for I in range(self.N):
+        p0 = numpy.zeros(4, dtype = numpy.float)
+        if I == 0:
+          p0[GaussianFit.I_FREAL] = avg
+          p0[GaussianFit.I_DAMP] = self.cutoff
+          p0[GaussianFit.I_PHASE] = 1.1 ** (I + 1)
+        else:
+          p0[GaussianFit.I_FREAL] = 0.01
+          p0[GaussianFit.I_DAMP] = self.cutoff
+          p0[GaussianFit.I_PHASE] = 1.1 ** (I + 1)
+
+        (p, info) = leastsq(fitHelperResid, p0.reshape(-1), args = (self, prev))
+        if prev is not None:
+          prev = numpy.hstack((prev.reshape(-1), p)).reshape((-1, 4))
+        else:
+          prev = p
+        print prev
+    # Try a full free optimization additional
+    info = 5
+    p = prev.reshape(-1)
+    nTrial = 0
+    while info > 4 and nTrial < 5:
+      (p, info) = leastsq(fitHelperResid, p, args = (self, None))
+      nTrial += 1
+
+    return p
+
+def jobFit(gauss):
+  return gauss.fit()
+
+def fitPAW(file, N):
+  import numpy
+  import xml.etree.ElementTree as ET
+  from multiprocessing import Pool
+
+  psp = ET.parse(file).getroot()
+
+  cutoff = float(psp.find('paw_radius').get('rc'))
+
+  grids = {}
+  for grid in psp.findall('radial_grid'):
+    grids[grid.get('id')] = numpy.fromstring(grid.find('values').text.replace('\n', ''), sep = ' ')
+
+  projs = {state.get('id'):{'n': int(state.get('n', '1')),
+                            'l': int(state.get('l'))} for state in psp.find('valence_states')}
+
+  jobs = [GaussianFit(proj.get('state'), projs[proj.get('state')]['l'], N, grids[proj.get('grid')], numpy.fromstring(proj.text.replace('\n',''), sep = ' ', dtype = numpy.float64), cutoff) for proj in psp.findall('projector_function')]
+  fits = Pool().map(jobFit, jobs)
+  
+  # Save projector and fit to disk.
+  o = open("projs.yaml", "w")
+  for (g, p) in zip(jobs, fits):
+    o.write("%s:\n" % g.id)
+    o.write("  function:\n")
+    for vals in zip(g.x, g.proj):
+      o.write("  - [%15.9g, %15.9g]\n" % vals)
+    o.write("  fit:\n")
+    o.write("    residual: %15.9g\n" % (fitHelperResid(p, g, None) ** 2).sum())
+    o.write("    gaussians:\n")
+    for vals in p.reshape((-1, 4)):
+      o.write("    - {\"factor\": [%15.9g, %15.9g], \"exponent\": [%15.9g, %15.9g]}\n" % tuple(vals))
+  o.close()
 
 # Start the main script
 if __name__ == "__main__":
@@ -757,5 +891,11 @@ options:
         print 'calling memguess to perform a Loewdin charge analysis'
         command = "%s 1 %s dd charge-analysis %s %s" % (memguess, options.name, options.overlap_file, options.kernel_file)
         print command
+    if options.action == actions[23]:
+        if len(args) < 1:
+            parser.print_help()
+            raise ValueError(
+                "Action '%s' requires one mandatory argument" % actions[22])
+        fitPAW(args[0], options.n_funcs)
     if command is not None:
         os.system(command)
