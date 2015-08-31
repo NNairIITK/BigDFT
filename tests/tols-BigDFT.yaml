@@ -1657,7 +1657,7 @@ multipoles_CH4:
  Ekin: 1.1e-10
  diff from reference kernel: 1.1e-9
  diff: 8.9e-10
- number of corrected points: 5.0
+ number of corrected points: 6.0
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
