@@ -1351,6 +1351,7 @@ module multipole
       real(kind=8) :: max_error, factor, convert_units!, get_normalization, get_test_factor
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
 
+
           multipoles_tmp = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.nat/),id='multipoles_tmp')
 
           if (without_normalization) then
@@ -1366,6 +1367,7 @@ module multipole
           case ('atomic','atomicd0','bohr','bohrd0','reduced')
               convert_units = 1.d0
           case default
+              convert_units = 1.d0
               call yaml_warning('units not recognized, no conversion done')
           end select
 
