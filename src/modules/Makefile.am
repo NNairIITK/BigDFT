@@ -334,7 +334,7 @@ chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix
 unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o locregs.o locreg_operations.o rhopotential.o
 matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: base.o types.o
-io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o
+io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o matrix_operations.o
 postprocessing_linear.o: base.o types.o interfaces.o bounds.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o locreg_operations.o sort.o
 foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
