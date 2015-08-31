@@ -73,7 +73,7 @@
    correction_orthoconstraint: 0
  lin_kernel:
    nstep: 10
-   nit: 4
+   nit: 2
    idsx_coeff: [6, 0]
    idsx: 4
    alphamix: 0.2
