@@ -1657,7 +1657,7 @@ multipoles_CH4:
  Ekin: 1.1e-10
  diff from reference kernel: 1.1e-9
  diff: 8.9e-10
- number of corrected points: 6.0
+ number of corrected points: 8.0
 
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
@@ -1675,7 +1675,7 @@ igortho_19:
  Energy (Hartree): 2.4e-9
  Multipole coefficients: 1.1e-6
  Charge analysis (charge / net charge): 4.1e-7
- Pseudo Fermi level for occupations: 2.9e-8
+ Pseudo Fermi level for occupations: 3.0e-8
  net charge: 1.1e-8
  Average noise forces: 7.8e-7
  eF: 3.6e-5
