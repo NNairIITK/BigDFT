@@ -469,6 +469,8 @@ class GaussianFit:
     self.x[self.x == 0] = 1
     self.proj = proj[:imax] / (self.x ** l)
     self.x = x[:imax]
+    if l > 0:
+      self.proj[0] = self.proj[1]
 
   def gauss_eval(self, p, prev):
     import numpy
@@ -526,9 +528,13 @@ class GaussianFit:
     info = 5
     p = prev.reshape(-1)
     nTrial = 0
-    while info > 4 and nTrial < 5:
+    while info > 4 and nTrial < 2:
       (p, info) = leastsq(fitHelperResid, p, args = (self, None))
       nTrial += 1
+    # Constraints on exponents.
+    p = p.reshape((-1, 4))
+    p[:, GaussianFit.I_DAMP] = numpy.abs(p[:, GaussianFit.I_DAMP])
+    p[:, GaussianFit.I_DAMP] = numpy.where(p[:, GaussianFit.I_DAMP] < 0.01, 0.01, p[:, GaussianFit.I_DAMP])
 
     return p
 
@@ -564,7 +570,7 @@ def fitPAW(file, N):
     o.write("  fit:\n")
     o.write("    residual: %15.9g\n" % (fitHelperResid(p, g, None) ** 2).sum())
     o.write("    gaussians:\n")
-    for vals in p.reshape((-1, 4)):
+    for vals in p:
       o.write("    - {\"factor\": [%15.9g, %15.9g], \"exponent\": [%15.9g, %15.9g]}\n" % tuple(vals))
   o.close()
 
