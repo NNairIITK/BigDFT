@@ -121,6 +121,8 @@ extendedfrags_nofrags.out.post-out:
 	mkdir -p data-write/data-c2
 	cp c.xyz data-write/c1.xyz
 	cp c.xyz data-write/c2.xyz
+	cp c1_env.xyz data-write
+	cp c2_env.xyz data-write
 
 extendedfrags_write.out.post-out: 
 	rm -rf data-read
