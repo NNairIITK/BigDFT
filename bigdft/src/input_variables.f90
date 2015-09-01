@@ -164,10 +164,11 @@ subroutine inputs_from_dict(in, atoms, dict)
   type(dictionary), pointer :: dict_minimal, var, lvl, types
 
   integer, parameter :: pawlcutd = 10, pawlmix = 10, pawnphi = 13, pawntheta = 12, pawxcdev = 1
-  integer, parameter :: xclevel = 1, usepotzero = 0
-  integer :: nsym
+  integer, parameter :: usepotzero = 0
+  integer :: nsym, xclevel
   real(gp) :: gsqcut_shp, rloc, projr, rlocmin
   real(gp), dimension(2) :: cfrmults
+  type(xc_info) :: xc
 
 !  dict => dict//key
 
@@ -312,6 +313,10 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   ! Complement PAW initialisation.
   if (any(atoms%npspcode == PSPCODE_PAW)) then
+     call xc_init(xc, in%ixc, XC_MIXED, 1)
+     xclevel = 1 ! xclevel=XC functional level (1=LDA, 2=GGA)
+     if (xc_isgga(xc)) xclevel = 2
+     call xc_end(xc)
      !gsqcut_shp = two*abs(dtset%diecut)*dtset%dilatmx**2/pi**2
      gsqcut_shp = 2._gp * 2.2_gp / pi_param ** 2
      call symmetry_get_n_sym(atoms%astruct%sym%symObj, nsym, ierr)
@@ -486,7 +491,7 @@ subroutine create_dir_output(iproc, in)
   integer(kind=4),parameter    :: dirlen=100
   character(len=dirlen) :: dirname
   integer :: ierror
-  integer(kind=4) :: i_stat, ierr
+  integer(kind=4) :: i_stat
   integer         :: ierrr
 
   ! Create a directory to put the files in.

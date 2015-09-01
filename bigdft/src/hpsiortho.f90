@@ -3096,6 +3096,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   use f_utils
   use time_profiling
   use yaml_output
+  use module_xc, only: xc_isgga
   implicit none
   type(paw_objects), intent(inout) :: paw
   type(atoms_data), intent(in) :: at
@@ -3104,8 +3105,8 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   real(gp), intent(out) :: e_paw, e_pawdc, compch_sph
 
   integer, parameter :: cplex = 1, pawprtvol = 0, pawspnorb = 0, pawxcdev = 1, &
-       & enunit = 0, ipert = 0, nzlmopt = 0, option = 0, xclevel = 1
-  integer :: nfft, nfftot
+       & enunit = 0, ipert = 0, nzlmopt = 0, option = 0
+  integer :: nfft, nfftot, xclevel
   real(gp), parameter :: spnorbscl = 1._gp, charge = 0._gp, xc_denpos = tol14
   real(gp) :: ucvol
   real(gp), dimension(3), parameter :: qphon = (/ 0._gp, 0._gp, 0._gp /)
@@ -3124,6 +3125,8 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   nfft = denspot%dpbox%ndimpot
   nfftot = product(denspot%dpbox%ndims)
   ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
+  xclevel = 1
+  if (xc_isgga(denspot%xc)) xclevel = 2
 
   call f_timing(TCAT_LIBPAW, "ON")
   call abi_pawdenpot(compch_sph, e_paw, e_pawdc, ipert, denspot%xc%ixc, &

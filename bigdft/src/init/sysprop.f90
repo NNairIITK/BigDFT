@@ -1350,12 +1350,15 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
 END SUBROUTINE psp_from_stream
 
 subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
-  use module_base
+  use module_defs, only: dp, gp, bigdft_mpi, pi_param
+  use module_xc
   use abi_defs_basis, only: tol14, fnlen
   use m_pawpsp, only: pawpsp_main
   use m_pawxmlps, only: paw_setup, rdpawpsxml, ipsp2xml, paw_setup_free
   use m_pawrad, only: pawrad_type !, pawrad_nullify
   use m_pawtab, only: pawtab_type, pawtab_nullify
+  use dictionaries, only: max_field_length
+  use dynamic_memory
   use f_utils
 
   implicit none
@@ -1369,11 +1372,12 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
   integer:: icoulomb,ipsp !, ib, i, ii
   integer:: pawxcdev,usewvl,usexcnhat,xclevel
   integer::pspso
-  real(dp):: xc_denpos
-  real(dp)::xcccrc
-  character(len=fnlen):: filpsp   ! name of the psp file
+  real(dp) :: xc_denpos
+  real(dp) :: xcccrc
+  character(len = fnlen) :: filpsp   ! name of the psp file
   character(len = max_field_length) :: line
   type(io_stream) :: ios
+  type(xc_info) :: xc
   !!arrays
   integer:: wvl_ngauss(2)
   integer, parameter :: mqgrid_ff = 0, mqgrid_vl = 0
@@ -1390,10 +1394,13 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
   icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
   !do not change, even if icoulomb/=1
   ipsp=1      !This is relevant only for XML.
-  !This is not yet working
-  xclevel=1 ! xclevel=XC functional level (1=LDA, 2=GGA)
   ! For the moment, it will just work for LDA
   pspso=0 !No spin-orbit for the moment
+
+  call xc_init(xc, ixc, XC_MIXED, 1)
+  xclevel = 1 ! xclevel=XC functional level (1=LDA, 2=GGA)
+  if (xc_isgga(xc)) xclevel = 2
+  call xc_end(xc)
 
   ! Define parameters:
   pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
@@ -2584,7 +2591,7 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb, nkpt
        & size(at%pawtab), at%astruct%nat, nattyp, at%astruct%ntypes, &
        & d%n1, d%n1i, d%n2, d%n2i, d%n3, dpbox%n3pi, &
        & optcut, optgr0, optgr1, optgr2, optrad, &
-       & paw%pawfgrtab, at%pawtab, d%n1i * d%n2i * dpbox%nscatterarr(iproc, 4), rxyz) !,&
+       & paw%pawfgrtab, at%pawtab, d%n1i * d%n2i * dpbox%i3xcsh, rxyz) !,&
   !&         mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
   !&         mpi_comm_fft=spaceComm_fft,distribfft=mpi_enreg%distribfft)
   call f_free(atindx1)
