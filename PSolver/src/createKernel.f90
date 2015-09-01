@@ -138,7 +138,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   end if
 
   !gpu can be used only for one nproc
-  !if (kernel%nproc > 1) kernel%igpu=0
+  !if (nproc > 1) kernel%igpu=0
 
   !-------------------
   nthreads=0
@@ -170,7 +170,7 @@ subroutine pkernel_free(kernel)
   call f_free_ptr(kernel%epsinnersccs)
   call f_free_ptr(kernel%counts)
   call f_free_ptr(kernel%displs)
-  if (kernel%igpu == 1) then
+  if (trim(str(kernel%method))=='PCG' .and. kernel%igpu == 1) then
     if (kernel%keepGPUmemory == 1) then
       call cudafree(kernel%z_GPU)
       call cudafree(kernel%r_GPU)
@@ -634,7 +634,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
     size3=n1*n2*n3
-  if (kernel%igpu == 1) then
+  if (trim(str(kernel%method))=='PCG' .and. kernel%igpu == 1) then
     if (kernel%keepGPUmemory == 1) then
       call cudamalloc(size3,kernel%z_GPU,i_stat)
       if (i_stat /= 0) print *,'error cudamalloc',i_stat
