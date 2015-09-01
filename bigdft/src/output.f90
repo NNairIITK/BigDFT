@@ -1426,15 +1426,20 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
      ! PAW case.
      if (atoms%npspcode(ityp) == PSPCODE_PAW) then
         call yaml_sequence_open('NonLocal PSP Parameters (PAW)')
-        j = 1
+        l = 1
         do i = 1, atoms%pawtab(ityp)%basis_size
            call yaml_sequence(advance='no')
            call yaml_map('Channel (l,m,n)', atoms%pawtab(ityp)%indlmn(1:3,i))
-           call yaml_map('complex coefficients', &
-                & atoms%pawtab(ityp)%wvl%parg(:,j:j + atoms%pawtab(ityp)%wvl%pngau(i) - 1),fmt='(f9.5)')
-           call yaml_map('complex factors', &
-                & atoms%pawtab(ityp)%wvl%pfac(:,j:j + atoms%pawtab(ityp)%wvl%pngau(i) - 1),fmt='(f9.5)')
-           j = j + atoms%pawtab(ityp)%wvl%pngau(i)
+           call yaml_sequence_open('gaussians')
+           do j = l, l + atoms%pawtab(ityp)%wvl%pngau(i) / 2 - 1
+              call yaml_sequence(advance='no')
+              call yaml_mapping_open(flow = .true.)
+              call yaml_map('factor', atoms%pawtab(ityp)%wvl%pfac(:,j),fmt='(f10.6)')
+              call yaml_map('exponent', atoms%pawtab(ityp)%wvl%parg(:,j),fmt='(f10.6)')
+              call yaml_mapping_close()
+           end do
+           l = l + atoms%pawtab(ityp)%wvl%pngau(i)
+           call yaml_sequence_close()
         end do
         call yaml_sequence_close()
         mproj = 0
