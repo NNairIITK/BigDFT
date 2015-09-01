@@ -119,7 +119,7 @@ program GPS_3D
    !control memory profiling
    call f_malloc_set_status(memory_limit=0.e0,iproc=iproc)
    if (iproc ==0) then
-      call yaml_set_stream(record_length=92,tabbing=30)!unit=70,filename='log.yaml')
+      call yaml_set_stream(record_length=92,tabbing=30,unit=70,filename='log.yaml')
       call yaml_new_document()
    end if
 
@@ -3688,7 +3688,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
    end do
 
    offset=offset*hx*hy*hz
-   call yaml_map('offset',offset)
+   if (iproc == 0) call yaml_map('offset',offset)
    switch=0.0d0
    if (SetEps.eq.6) then
     switch=1.0d0

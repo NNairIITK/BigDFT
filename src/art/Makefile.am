@@ -51,7 +51,7 @@ bayes.o: defs.o random.o
 
 calcforce.o: defs.o bigdft_forces.o
 
-calcfo_sw.o: defs.o
+calcfo_sw.o: defs.o random.o
 
 neighbour.o: calcfo_sw.o
 

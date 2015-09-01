@@ -14,11 +14,12 @@ program MP_gaussian
   use module_base
   use gaussians
   use yaml_output
+  use yaml_strings
   use gaussdaub
   implicit none
   integer, parameter :: iplot=14,iunit=16 !< File unit for the plots
   integer, parameter :: nmoms=16          !< Number of calculated moments
-  integer, parameter :: nstep=1           !< Number of resolution to calculate the moments
+  integer, parameter :: nstep=10           !< Number of resolution to calculate the moments
   integer, parameter :: nsigma=30         !< Number of different gaussian functions
   integer, parameter :: npts=16           !< Arrays from -npts to npts
   real(gp), parameter :: hgrid = 1.0_gp   !< Step grid
@@ -27,8 +28,8 @@ program MP_gaussian
   integer :: i,j,imoms,pow,istep,isigma,unit
   integer, parameter :: itype_scf = 16
   integer :: n_scf,untplot,ml1,mu1
-  integer :: istart, iend, i0, npf
-  real(gp) :: pgauss,p0gauss,x0,x00,reference,max_phi,max_lag,scalar,tt,hh
+  integer :: istart, iend, i0, npf,ierr
+  real(gp) :: pgauss,p0gauss,x0,x00,reference,max_phi,max_lag,scalar,tt,hh,diff
   character(len=128) :: filename
   double precision, dimension(17), parameter :: MFdat=[&
        8.4334247333529341094733325815816d-7,&
@@ -48,9 +49,12 @@ program MP_gaussian
        -0.5185986881173432922848639136911487d-4,&
        2.72734492911979659657715313017228d-6,0.d0]
   real(gp), dimension(0:nmoms,3) :: moments
+  real(gp), dimension(nsigma) :: pgsigma
+  real(gp), dimension(nstep) :: x0s
   real(gp), dimension(3,3,0:nmoms) :: avgmaxmin
   real(gp), dimension(:), allocatable :: fj_phi,fj_coll,fj_lag, psi_phi,psi_coll
   real(gp), dimension(:,:), allocatable :: f_mu, psi_mu
+  real(gp), dimension(:,:,:,:), allocatable :: f_mus
   real(gp), dimension(:), allocatable :: scf_dat,lag_dat
   real(gp), dimension(:), allocatable :: x_scf
   call f_lib_initialize()
@@ -73,6 +77,7 @@ program MP_gaussian
   fj_lag=f_malloc(-npf .to. npf,id='fj_lag')
   fj_coll=f_malloc(-npf .to. npf,id='fj_coll')
   f_mu=f_malloc( [ -npts .to. npts, 1 .to. 2 ], id='f_mu')
+  f_mus=f_malloc( [1.to.nsigma, -npts .to. npts, 1 .to. 2,1 .to. nstep], id='f_mus')
   call initialize_real_space_conversion(npoints=2**8,isf_m=itype_scf,nmoms=0) !initialize the work arrays needed to integrate with isf
 
   psi_phi=f_malloc(-npf .to. npf,id='psi_phi')
@@ -105,7 +110,7 @@ program MP_gaussian
   !call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_dat)
   !call ISF_family(itype_scf,0,n_scf,n_range,x_scf,scf_dat)
 
-  !call yaml_set_stream(record_length=150)
+  call yaml_set_stream(record_length=150,tabbing=0,istat=ierr)
   call yaml_map('itype_scf',itype_scf)
   !call yaml_map('range', n_range)
   call yaml_map('number of points',n_scf)
@@ -148,21 +153,38 @@ program MP_gaussian
   end do
   call yaml_sequence_close()
 
+  ! Calculate for different nsigma sigma
+  do isigma=1,nsigma
+     pgsigma(isigma)=pg(isigma,hgrid)
+  end do
+  do istep=1,nstep
+     x0s(istep)=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+  end do
+
   !Orbital is a gaussian (g0)
-  isigma=10
-  istep=5
-  pgauss=pg(isigma,hgrid)
-  x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+  isigma=min(10,nsigma)
+  istep=min(5,nstep)
+  pgauss=pgsigma(isigma)
+  x0=x0s(istep)
   call evaluate_moments(nmoms,npf,hh,pgauss,pow,x0,psi_phi,psi_coll,fj_lag,moments)
   !Daubechies | gaussian
-  call gauss_to_daub_k(hgrid,0.d0,1,1,1,1.d0,x0,sqrt(0.5_gp/pgauss),0,-npts,2*npts,ml1,mu1,&
-      psi_mu,work,nw,.False.,1.d0) 
+!!$  call gauss_to_daub_k(hgrid,0.d0,1,1,1,1.d0,x0,sqrt(0.5_gp/pgauss),0,-npts,2*npts,ml1,mu1,&
+!!$      psi_mu,work,nw,.False.,1.d0) 
+  call gau_daub_1d(.false.,1, x0, [ 0 ], 0.d0, 1, [ sqrt(0.5_gp/pgauss) ], &
+       1, [ 1.d0 ], hgrid,4,-npts,2*npts,1,psi_mu,nw,work)
+ 
   p0gauss=pgauss
   x00=x0
 
+  !evaluate the 1d results with the new method
+  do istep=1,nstep
+     call gau_daub_1d(.false.,nsigma, x0s(istep), [(0,i=1,nsigma)], 0.d0, 1,sqrt(0.5_gp/pgsigma),1, [(1.d0,i=1,nsigma)], hgrid,4,-npts,2*npts,1,&
+          f_mus(1,-npts,1,istep),nw,work)
+  end do
+
   ! Calculate for different nsigma sigma
   do isigma=1,nsigma
-     pgauss=pg(isigma,hgrid)
+     pgauss=pgsigma(isigma)!pg(isigma,hgrid)
      call yaml_map('sigma/h',sqrt(0.5_gp/pgauss)/hgrid)
 
      avgmaxmin=0.d0
@@ -171,20 +193,31 @@ program MP_gaussian
      max_lag=0.0_gp
 
      do istep=1,nstep
-        x0=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
+        x0=x0s(istep)!(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
         call evaluate_moments(nmoms,npf,hh,pgauss,pow,x0,fj_phi,fj_coll,fj_lag,moments)
 
         !Daubechies | gaussian
         call gauss_to_daub_k(hgrid,0.d0,1,1,1,1.d0,x0,sqrt(0.5_gp/pgauss),0,-npts,2*npts,ml1,mu1,&
-            f_mu,work,nw,.False.,1.d0) 
-        !call gau_daub_1d(.False.,1, x0+real(npts,gp)*hgrid, [ 0 ], 0.d0, 1, [ sqrt(0.5_gp/pgauss) ], &
-        !     & 1, [ 1.d0 ], hgrid,4,2*npts,1,f_mu,nw,work)
+            f_mu,work,nw,.false.,1.d0) 
+!!$        call gau_daub_1d(.false.,1, x0, [ 0 ], 0.d0, 1, [ sqrt(0.5_gp/pgauss) ], &
+!!$             1, [ 1.d0 ], hgrid,4,-npts,2*npts,1,f_mus,nw,work)
+        !now calculate the diff with respect to the original
+        call f_diff(size(f_mu),f_mu,f_mus(isigma,:,:,istep),diff)
+        f_mu=f_mus(isigma,:,:,istep)
+        !the f_diff routine seems not working here
+        call yaml_map('Diffs',[diff,sum(abs(f_mu-f_mus(isigma,:,:,istep)))])
+        diff=sum(abs(f_mu-f_mus(isigma,:,:,istep)))
         tt = sqrt(pi_param/(pgauss+p0gauss))*exp(-(x00-x0)**2*(pgauss*p0gauss)/(pgauss+p0gauss))
         call yaml_map('Projector norms', (/ &
-              &  1.d0-hh*scpr(2*npf+1,fj_phi,psi_phi)/tt, &
-              &  1.d0-hh*scpr(2*npf+1,fj_coll,psi_phi)/tt, &
-              &  1.d0-scpr(4*npts+2,f_mu,psi_mu)/tt, &
-              &  sqrt(0.5_gp/pgauss)/hgrid /),fmt='(1pg17.10)')
+             (tt-hh*scpr(2*npf+1,fj_phi,psi_phi))/tt, &
+             (tt-hh*scpr(2*npf+1,fj_coll,psi_phi))/tt, &
+             (tt-scpr(4*npts+2,f_mu,psi_mu))/tt, &
+             !hh*scpr(2*npf+1,fj_phi,psi_phi), &
+             !hh*scpr(2*npf+1,fj_coll,psi_phi), &
+             !scpr(4*npts+2,f_mu,psi_mu), &
+             sqrt(0.5_gp/pgauss)/hgrid,tt /),fmt='(1pg15.6)',&
+              advance='no')
+        call yaml_comment(diff**'(1pe12.5)')
         !call yaml_map('Projector norms', (/ nrm2(2*npts+1,fj_phi(-npts),1)/tt, nrm2(2*npts+1,fj_coll(-npts),1)/tt, &
         !      &  nrm2(4*npts+2,f_mu(-npts,1),1)/tt, sqrt(0.5_gp/pgauss)/hgrid /),fmt='(1pg12.5)')
 
@@ -194,7 +227,7 @@ program MP_gaussian
         write(untplot,'(a,2(1pe20.8))') '#<daub|gaussian>',pgauss,sqrt(0.5_gp/pgauss)
         write(untplot,'(a)') '#j,f_mu(j)'
         do j=-npts,npts
-           write(untplot,*) j,f_mu(j,:)
+           write(untplot,'(i0,4(1pe26.17e3))')j,(f_mu(j,i),i=1,2),(f_mus(isigma,j,i,istep),i=1,2)
         end do
         call f_close(untplot)
 
@@ -238,7 +271,7 @@ program MP_gaussian
         call yaml_map('MP',moments(:,1),fmt='(1pe14.5)')
         call yaml_mapping_close()
      end do
-     call yaml_map('Results',reshape(avgmaxmin,[6,nmoms+1]),fmt='(1pe14.5)')
+     !call yaml_map('Results',reshape(avgmaxmin,[6,nmoms+1]),fmt='(1pe14.5)')
      !Plot fort.(iunit+1)
      avgmaxmin(2,:,:)=avgmaxmin(2,:,:)-avgmaxmin(3,:,:)
      write(unit,'(104(1pe14.5))') sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin(1:2,1:3:2,:)
@@ -254,6 +287,7 @@ program MP_gaussian
   call f_free(fj_phi,fj_coll,fj_lag)
   call f_free(psi_phi,psi_coll)
   call f_free(f_mu)
+  call f_free(f_mus)
   call f_free(psi_mu)
   call f_free(scf_dat,lag_dat,x_scf)
   call f_lib_finalize()
@@ -267,6 +301,7 @@ contains
     integer, intent(in) :: i
     real(gp), intent(in) :: h
     real(gp) :: pg
+    !pg=0.25_gp/((0.1_gp+0.1_gp*real(i-1,gp)*hgrid)**2)
     !pg=0.5_gp/((0.1_gp+0.1_gp*real(i-1,gp)*hgrid)**2)
     pg=1.0_gp/((0.1_gp+0.1_gp*real(i-1,gp)*h)**2)
   end function pg
@@ -332,6 +367,11 @@ contains
     implicit none
     double precision, intent(in) :: x0,pgauss,hgrid
     character(len=128), intent(out) :: filename
+
+!!$    call f_strcpy(dest=filename,src=&
+!!$         'gau'//trim(adjustl(yaml_toa(x0,fmt='(f5.2)')))//&
+!!$         'p'//trim(adjustl(yaml_toa(pgauss,fmt='(f5.2)')))//&
+!!$         'h'//trim(adjustl(yaml_toa(hgrid,fmt='(f5.2)'))))
 
     call f_strcpy(dest=filename,src=&
          'gau'+x0**'(f5.2)'//&
@@ -542,11 +582,11 @@ subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual
   x_scf = f_malloc(0.to.n_scf)
   scf_dat = f_malloc(0.to.n_scf,id='scf_dat')
   pol_dat = f_malloc0([0.to.n_scf,0.to.p],id='pol_dat')
-     !f_l = f_malloc0(0.to.n_scf,id='f_l')
-     Aiq= f_malloc([0.to.2*n_lagvdm-1,imin.to.imax],id='Aiq')
-     do i=0,0!5
-        call invert_vandermonde(imin+i,imax+i,Aiq)
-     end do
+  !f_l = f_malloc0(0.to.n_scf,id='f_l')
+  Aiq= f_malloc([0.to.2*n_lagvdm-1,imin.to.imax],id='Aiq')
+!  do i=0,0!5
+!     call invert_vandermonde(imin+i,imax+i,Aiq)
+!  end do
 
   !Build the scaling function external routine coming from Poisson Solver. To be customized accordingly
   !call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_dat)
@@ -562,12 +602,14 @@ subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual
   pol_sp = f_malloc0([-n_range.to.n_range,0.to.p],id='pol_sp')
 
   !call yaml_set_stream(record_length=150)
+  call yaml_mapping_open('ISF family',flow=.true.)
   call yaml_map('itype_scf',itype_scf)
   call yaml_map('nmoms',nmoms)
   call yaml_map('range', n_range)
   call yaml_map('number of points',n_scf)
   call yaml_map('step',x_scf(1)-x_scf(0))
   call yaml_map('dx',real(2*(abs(itype_scf)+nmoms),gp)/real(n_scf,gp))
+  call yaml_mapping_close()
 
   if (n_l > 0) then
      do i=0,n_scf
@@ -646,7 +688,7 @@ subroutine polynomial_exactness(npts,itype_scf,nmoms,p,itype_scf_dual,nmoms_dual
            scalar = scalar + scft_dat(i)*phival
         end do
         scalar = scalar*(x_scft(1)-x_scft(0))
-        call yaml_map('<phi|phi_{'+j+'}>',scalar)
+        call yaml_map('<phi|phi_{'//trim(adjustl(yaml_toa(j)))//'}>',scalar)
      end do
      call f_free(x_scft,scft_dat)
   end if
@@ -748,13 +790,13 @@ subroutine invert_vandermonde(istart,iend,Aiq)
 
   !lapack inverse
   call dgetrf(m,m,Aiq,m,ipiv,info)
-  if (info /=0) call f_err_throw('Error in dgetrf, info='//info)
+  if (info /=0) call f_err_throw('Error in dgetrf, info='//trim(yaml_toa(info)))
   !fill the unit element of the LU factorization
 !!$  do q=0,m-1
 !!$     Aiq(q+istart,q)=1.d0
 !!$  end do
   call dgetri(m,Aiq,m,ipiv,work,m,info)
-  if (info /=0) call f_err_throw('Error in dgetri, info='//info)
+  if (info /=0) call f_err_throw('Error in dgetri, info='//trim(yaml_toa(info)))
 
   !verify that the inverse is as such (plain dgemm)
   do ishift=0,0!istart-m,iend+m
@@ -773,7 +815,7 @@ subroutine invert_vandermonde(istart,iend,Aiq)
            end if
         end do
      end do
-     call yaml_map('Deltadeviation, ishift='//ishift,deltadev)
+     call yaml_map('Deltadeviation, ishift='//trim(yaml_toa(ishift)),deltadev)
   end do
   deltadev=0.d0
   !the transposed

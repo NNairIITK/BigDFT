@@ -97,12 +97,15 @@ libmodules_a_SOURCES = base.f90 \
 	ice.f90 \
 	locreg_operations.f90 \
 	bigdft_run.f90 \
+	sockets.c \
+	fsockets.f90 \
 	rhopotential.f90 \
 	multipole_base.f90 \
 	multipole.f90 \
 	orthonormalization.f90 \
 	bounds.f90 \
 	locregs_init.f90 \
+	sort.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -124,6 +127,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
+	GAUSSDAUB.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
 	VDWCORRECTION.@MODULE_EXT@ \
 	MODULE_FRAGMENTS.@MODULE_EXT@ \
@@ -131,7 +135,6 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	DIIS_SD_OPTIMIZATION.@MODULE_EXT@ \
 	INPUT_OLD_TEXT_FORMAT.@MODULE_EXT@ \
 	MODULE_INPUT_KEYS.@MODULE_EXT@ \
-	GAUSSDAUB.@MODULE_EXT@ \
 	MODULE_INPUT_DICTS.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	PSP_PROJECTORS_BASE.@MODULE_EXT@ \
@@ -172,7 +175,9 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	ORTHONORMALIZATION.@MODULE_EXT@ \
 	BOUNDS.@MODULE_EXT@ \
 	LOCREGS_INIT.@MODULE_EXT@ \
+	SORT.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
+	F90SOCKETS.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
 	MODULE_TERSOFF.@MODULE_EXT@\
@@ -191,6 +196,7 @@ modules = module_base.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
 	gaussians.@MODULE_EXT@ \
+	gaussdaub.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ \
 	module_fragments.@MODULE_EXT@ \
@@ -198,7 +204,6 @@ modules = module_base.@MODULE_EXT@ \
 	diis_sd_optimization.@MODULE_EXT@ \
 	input_old_text_format.@MODULE_EXT@ \
 	module_input_keys.@MODULE_EXT@ \
-	gaussdaub.@MODULE_EXT@ \
 	module_input_dicts.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	psp_projectors_base.@MODULE_EXT@ \
@@ -239,7 +244,9 @@ modules = module_base.@MODULE_EXT@ \
 	orthonormalization.@MODULE_EXT@ \
 	bounds.@MODULE_EXT@ \
 	locregs_init.@MODULE_EXT@ \
+	sort.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
+	f90sockets.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
 	module_bornmayerhugginstosifumi.@MODULE_EXT@ \
@@ -284,8 +291,8 @@ input.o: base.o public_keys.o fragment_base.o
 input_dicts.o: defs.o ao_inguess.o public_keys.o fragment_base.o input.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o input_dicts.o
 input_keys.o: defs.o base.o public_keys.o multipole_base.o atoms_data.o xc.o input.o fragment_base.o
-types.o: base.o gaussians.o locregs.o psp_projectors_base.o ao_inguess.o atoms_data.o communications_base.o \
-		input_keys.o sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o
+types.o: base.o gaussians.o locregs.o psp_projectors_base.o ao_inguess.o atoms_data.o communications_base.o input_keys.o \
+	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
 gaussians.o: base.o
 op2p_module.o : base.o
@@ -331,17 +338,18 @@ unitary_tests.o: base.o types.o interfaces.o communications_init.o communication
 matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: base.o types.o
 io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o
-postprocessing_linear.o: base.o types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o \
-		transposed_operations.o matrix_operations.o rhopotential.o locreg_operations.o
+postprocessing_linear.o: base.o types.o interfaces.o bounds.o communications_base.o communications.o sparsematrix_base.o \
+		sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o locreg_operations.o sort.o
 foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 locreg_operations.o: base.o types.o atoms_data.o locregs.o
 rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o sparsematrix_init.o
 multipole.o: base.o multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
-orthonormalization.o: base.o types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o \
-		transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
+orthonormalization.o: base.o types.o communications_base.o communications.o \
+		sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
 bounds.o: base.o types.o locregs.o
 locregs_init.o: base.o types.o communications.o bounds.o
+sort.o:
 
 # Copy modules in a common include directory.
 all: all-am insmod

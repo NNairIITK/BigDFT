@@ -236,7 +236,7 @@ subroutine init_gt_data(gdat)
     gdat%gmon_fp = f_malloc((/gdat%nid,gdat%nminmaxpd/),id='gmon_fp')
     gdat%gmon_path = f_malloc_str(600,(/1.to.gdat%nminmaxpd/),&
                             id='gmon_path')
-    gdat%gmon_stat = f_malloc_str(1,(/gdat%nminmaxpd/),id='gmon_stat')
+    gdat%gmon_stat = f_malloc_str(1,gdat%nminmaxpd,id='gmon_stat')
     gdat%gmon_nposlocs=huge(1)
 end subroutine init_gt_data
 !=====================================================================

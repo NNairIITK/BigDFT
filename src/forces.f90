@@ -4435,6 +4435,8 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   integer :: iorbmin, iorbmax, nscalprod_send, nscalprod_recv, jat
   integer :: isat, natp
   integer :: nat_overlap, l_max, i_max, m_max
+  real(kind=8),dimension(:,:),allocatable :: fxyz_orb
+
   !integer,parameter :: MAX_SIZE=268435456 !max size of the array scalprod, in elements
 
   !integer :: ldim, gdim
@@ -4572,9 +4574,12 @@ subroutine nonlocal_forces_linear(iproc,nproc,npsidim_orbs,lr,hx,hy,hz,at,rxyz,&
   if (extra_timing) call cpu_time(tr0)
   if (extra_timing) time1=real(tr0-tr1,kind=8)
 
+  !allocate the temporary array
+  fxyz_orb = f_malloc0((/3,nat_par(iproc)/),id='fxyz_orb')
 
+  call calculate_forces(nat_par(iproc),fxyz_orb)
+  call f_free(fxyz_orb)
 
-  call calculate_forces()
   if (extra_timing) call cpu_time(tr1)
   if (extra_timing) time2=real(tr1-tr0,kind=8)
 
@@ -5035,22 +5040,24 @@ contains
 
 
 
-  subroutine calculate_forces()
+  subroutine calculate_forces(ntmp,fxyz_orb)
     use sparsematrix_init, only: matrixindex_in_compressed
     implicit none
+    integer, intent(in) :: ntmp
+    real(gp), dimension(3,ntmp), intent(inout) :: fxyz_orb
     integer :: jj, iispin, jjspin
-    real(kind=8),dimension(:,:),allocatable :: fxyz_orb
+    !real(kind=8),dimension(:,:),allocatable :: fxyz_orb
     !real(kind=8),dimension(:),allocatable :: sab, strten_loc
     real(kind=8),dimension(6) :: sab, strten_loc
     real(kind=8) :: tt, tt1
 
     call f_routine(id='calculate_forces')
 
-    fxyz_orb = f_malloc0((/3,nat_par(iproc)/),id='fxyz_orb')
+    !fxyz_orb = f_malloc0((/3,nat_par(iproc)/),id='fxyz_orb')
     !sab = f_malloc0(6,id='sab')
     !strten_loc = f_malloc(6,id='strten_loc')
 
-    natp_if2: if (nat_par(iproc)>0) then
+    natp_if2: if (ntmp>0) then
 
        !apply the projectors  k-point of the processor
        !starting k-point
@@ -5063,10 +5070,10 @@ contains
           call ncplx_kpt(ikpt,orbs,ncplx)
           strten_loc(:) = 0.d0
 
-          ! Do the OMP loop over supfun_per_atom, as nat_par(iproc) is typically rather small
+          ! Do the OMP loop over supfun_per_atom, as ntmp is typically rather small
 
           !$omp parallel default(none) &
-          !$omp shared(denskern, nat_par, iproc, isat_par, at, supfun_per_atom, is_supfun_per_atom) &
+          !$omp shared(denskern, ntmp, iproc, isat_par, at, supfun_per_atom, is_supfun_per_atom) &
           !$omp shared(scalprod_lookup, l_max, i_max, scalprod_new, fxyz_orb, denskern_gathered) &
           !$omp shared(offdiagarr, strten, strten_loc, vol, Enl, nspinor,ncplx,ndir,calculate_strten) &
           !$omp private(ispin, iat, iiat, ityp, iorb, ii, iiorb, jorb, jj, jjorb, ind, sab, ispinor) &
@@ -5074,7 +5081,7 @@ contains
           spin_loop2: do ispin=1,denskern%nspin
 
 
-             do iat=1,nat_par(iproc)
+             do iat=1,ntmp
                 iiat=isat_par(iproc)+iat
                 ityp=at%astruct%iatype(iiat)
                 !$omp do reduction(+:fxyz_orb,strten_loc,Enl)
@@ -5200,7 +5207,7 @@ contains
              end do
           end do spin_loop2
           !$omp end parallel
-          do iat=1,nat_par(iproc)
+          do iat=1,ntmp
              iiat=isat_par(iproc)+iat+isat-1
              fsep(1,iiat)=fsep(1,iiat)+2.d0*fxyz_orb(1,iat)
              fsep(2,iiat)=fsep(2,iiat)+2.d0*fxyz_orb(2,iat)
@@ -5216,7 +5223,7 @@ contains
 
     !call f_free(sab)
     !call f_free(strten_loc)
-    call f_free(fxyz_orb)
+    !call f_free(fxyz_orb)
 
     if (calculate_strten) then
        !Adding Enl to the diagonal components of strten after loop over kpts is finished...

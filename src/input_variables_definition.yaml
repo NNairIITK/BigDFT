@@ -68,6 +68,7 @@
      B97-D: -170 #to be verified
      B3LYP: -402
      HF: 100 #Hartree-Fock
+     NONE: 1000
    qcharge:
      COMMENT: Charge of the system. Can be integer or real.
      DESCRIPTION: | 
@@ -528,6 +529,7 @@
        AB6MD:  Molecular dynamics from ABINIT
        DIIS:   Direct inversion of iterative subspace
        FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.
+       SOCK:   Socket communication
        NEB:    Nudged Elastic Band
        SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
        SQNM:   Stabilized quasi-Newton minimzer
@@ -540,6 +542,29 @@
      PROFILE_FROM: method
      default: 50
      none: 1
+   sockinet:
+     COMMENT: Socket either unix (0) or tcp (1)
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SOCK
+     RANGE: [0, 1]
+     default: 1
+   sockport:
+     COMMENT: Socket port number
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SOCK
+     RANGE: [0, 100000]
+     default: 2121
+   sockhost:
+     COMMENT: Socket host name
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SOCK
+     default: 127.0.0.1
    frac_fluct:
      COMMENT: Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
      DESCRIPTION: |
