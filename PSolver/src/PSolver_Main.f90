@@ -929,7 +929,7 @@ end subroutine EPS_iter_output
 !! @author Luigi Genovese
 !! @date February 2007
 subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradient,use_wb_corr,&
-      n3d,n3p,n3pi,i3xcsh,i3s)
+      igpu,n3d,n3p,n3pi,i3xcsh,i3s)
    implicit none
    character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
    character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
@@ -938,6 +938,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
    integer, intent(in) :: n01,n02,n03  !< Dimensions of the real space grid to be hit with the Poisson Solver
    logical, intent(in) :: use_gradient !< .true. if functional is using the gradient.
    logical, intent(in) :: use_wb_corr  !< .true. if functional is using WB corrections.
+   integer, intent(in) :: igpu         !< Is GPU enabled ?
    !> Third dimension of the density. For distributed data, it takes into account 
    !! the enlarging needed for calculating the XC functionals.
    !! For global data it is simply equal to n03. 
@@ -963,6 +964,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
    !! The array pot_ion to the planes from i3s+i3xcsh to i3s+i3xcsh+n3pi-1
    !! For global disposition i3s is equal to distributed case with i3xcsh=0.
    integer, intent(out) :: i3s
+
    !local variables
    !n(c) integer, parameter :: nordgr=4
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
@@ -982,7 +984,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
         endif
       endif
    case('S')
-      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,igpu,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
         n3pr2=n3/2+1
@@ -991,7 +993,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
         endif
       endif
    case('F','H')
-      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,igpu,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
         n3pr2=n3/2+1
@@ -1000,7 +1002,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
         endif
       endif
    case('W')
-      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,igpu,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
         n3pr2=n3/2+1
