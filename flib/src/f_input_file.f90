@@ -87,6 +87,7 @@ contains
 
   end subroutine input_file_errors
 
+
   !> Check and complete input file
   subroutine input_file_complete(inputdef,dict,imports,nocheck)
     use yaml_output
@@ -530,19 +531,19 @@ contains
 
 
   !> This routine is used to create a minimal dictionary which can be used at the place 
-  !! of the one provided as an indication on the understood variables
+  !! of the one provided as an indication on the understood variables in inputdef
   subroutine input_file_minimal(inputdef,dict,minimal,nested,as_is)
     use dictionaries
     use yaml_output
     implicit none
-    !> dictionaries of the input definitions
-    type(dictionary), pointer :: inputdef
-    !> user input file
-    type(dictionary), pointer, intent(in) :: dict
-    type(dictionary), pointer, intent(in) :: as_is,nested
-    type(dictionary), pointer, intent(out) :: minimal
-    !> list of keys that remain which require special treatments
-    !local variables
+    !Arguments
+    type(dictionary), pointer :: inputdef             !< Dictionary of the input definitions
+    type(dictionary), pointer, intent(in) :: dict     !< User input file
+    type(dictionary), pointer, intent(in) :: as_is    !< Add keys in as_is and not in inputdef
+    type(dictionary), pointer, intent(in) :: nested   !< Add other keys (extracted by subcategories of nested elements)
+    type(dictionary), pointer, intent(out) :: minimal !< List of keys in dict that remain which require special treatments
+                                                      !! which are also in inputdef (with different values) or in as_is
+    !Local variables
     type(dictionary), pointer :: dict_tmp,min_cat,dict_tmp0
     character(len=max_field_length) :: category,category0
     logical :: cat_found

@@ -461,6 +461,7 @@ contains
          & (fid >= 0 .and. fid < size(output_denspot_format_names))
   end function output_denspot_validate
 
+
   !> Nullify the linear Input parameters
   subroutine nullifyInputLinparameters(lin)
     implicit none
@@ -478,6 +479,7 @@ contains
     nullify(lin%kernel_cutoff)
 
   end subroutine nullifyInputLinparameters
+
 
   subroutine input_keys_init()
     use yaml_output
@@ -529,6 +531,7 @@ contains
        call dict_free(parameters)
     end if
   END SUBROUTINE input_keys_finalize
+
 
   !> Fill the input_variables and atoms_data structures from the information
   !! contained in the dictionary dict
@@ -940,16 +943,15 @@ contains
     nested=>list_new(.item. LIN_BASIS_PARAMS)
 
 
-
-    ! Check and complete dictionary.
+    ! Check and complete dict dictionary from parameters
     call input_keys_init()
 ! call yaml_map('present status',dict)
     call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
 
 
-
-    !create a shortened dictionary which will be associated to the given run
+    ! Create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
+    ! Add also these keys which are not in parameters
     as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION)
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
     call dict_free(nested,as_is)
@@ -977,7 +979,8 @@ contains
     call f_release_routine()
   end subroutine input_keys_fill_all
 
-  !> takes the posinp filename from the dictionary. Starting point is dict//POSINP
+
+  !> Takes the posinp filename from the dictionary. Starting point is dict//POSINP
   subroutine astruct_dict_get_source(dict, source)
     use public_keys, only: POSINP_SOURCE
     use f_utils, only: f_zero
@@ -997,6 +1000,7 @@ contains
 !!$            & source = dict_value(dict // ASTRUCT_PROPERTIES // POSINP_SOURCE)
 !!$    end if
   end subroutine astruct_dict_get_source
+
 
   !> Dump the dictionary of the input variables.
   !! Should dump only the keys relative to the input variables and

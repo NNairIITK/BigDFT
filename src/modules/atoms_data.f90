@@ -1547,7 +1547,7 @@ contains
     subroutine atoms_file_merge_to_dict(dict)
       use dictionaries
       use yaml_output, only: yaml_warning
-      use public_keys, only: POSINP,SOURCE_KEY
+      use public_keys, only: POSINP,SOURCE_KEY,PSPXC_KEY
       implicit none
       type(dictionary), pointer :: dict
 
@@ -1581,13 +1581,13 @@ contains
                else
                   call psp_file_merge_to_dict(dict, key, lstring = dict // key)
                end if
-               if (.not. has_key(dict // key, 'Pseudopotential XC')) then
+               if (.not. has_key(dict // key, PSPXC_KEY)) then
                   call yaml_warning("Pseudopotential file '" // trim(str) // &
                        & "' not found. Fallback to file '" // trim(key) // &
                        & "' or hard-coded pseudopotential.")
                end if
             end if
-            exists = has_key(dict // key, 'Pseudopotential XC')
+            exists = has_key(dict // key, PSPXC_KEY)
          end if
          if (.not. exists) call psp_file_merge_to_dict(dict, key, key)
 
@@ -1598,6 +1598,7 @@ contains
       deallocate(keys)
       call dict_free(types)
     end subroutine atoms_file_merge_to_dict
+
 
     subroutine nlcc_file_merge_to_dict(dict, key, filename)
       use module_defs, only: gp, UNINITIALIZED
@@ -1691,6 +1692,7 @@ contains
          call set(dict // key // SOURCE_KEY, "In-line")
       end if
     end subroutine psp_file_merge_to_dict
+
 
     !> Set the value for atoms_data from the dictionary
     subroutine psp_set_from_dict(dict, valid, &
@@ -1809,6 +1811,7 @@ contains
 
     end subroutine psp_set_from_dict
 
+
     !> Merge all psp data (coming from a file) in the dictionary
     subroutine psp_data_merge_to_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
          & psppar, radii_cf, rcore, qcore)
@@ -1888,6 +1891,7 @@ contains
       end if
 
     end subroutine psp_data_merge_to_dict
+
 
     !> Fill up the dict with all pseudopotential information
     subroutine psp_dict_fill_all(dict, atomname, run_ixc, projrad, crmult, frmult)
