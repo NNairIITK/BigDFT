@@ -441,7 +441,7 @@ contains
     nullify(rhocore)
 
     call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,n01,n02,n03,.false.,.false.,&
-         n3d,n3p,n3pi,i3xcsh,i3s)
+         0,n3d,n3p,n3pi,i3xcsh,i3s)
 
     !starting point of the three-dimensional arrays
     if (distcode == 'D') then
