@@ -748,17 +748,18 @@ contains
 
   !end function transform_fragment_basis
 
-  subroutine find_frag_trans(nat,rxyz_ref,rxyz_new,frag_trans)
+  subroutine find_frag_trans(nat,rxyz_ref,rxyz_new,frag_trans,J)
     use module_base
     use yaml_output
     implicit none
     integer, intent(in) :: nat !< fragment size
     real(gp), dimension(3,nat), intent(in) :: rxyz_ref,rxyz_new !<coordinates measured wrt rot_center
     type(fragment_transformation), intent(inout) :: frag_trans
+    real(gp), intent(out) :: J !< Wahba cost function, i.e. error in transformation
     !local variables
     integer, parameter :: lwork=7*3
     integer :: info,iat!,i_stat,i
-    real(gp) :: dets,J
+    real(gp) :: dets
     real(gp), dimension(3) :: SM_arr !< array of SVD and M array
     real(gp), dimension(lwork) :: work !< array of SVD and M array
     real(gp), dimension(3,nat) :: J_arr !< matrix for calculating Wahba's cost function

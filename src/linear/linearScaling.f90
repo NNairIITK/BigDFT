@@ -177,6 +177,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   sign_of_energy_change = -1.d0
   nit_energyoscillation = 0
   keep_value = .false.
+  write_fragments = .false.
+  write_full_system = .false.
   if (input%lin%output_fragments == OUTPUT_FRAGMENTS_AND_FULL .or. input%lin%output_fragments == OUTPUT_FRAGMENTS_ONLY) then
      write_fragments = .true.
   end if
@@ -3565,7 +3567,7 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
   !Local variables
   integer :: ifrag, jfrag, ifrag_ref, jfrag_ref, iat, isfat, jsfat
   real(kind=gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new
-  real(kind=gp) :: null_axe
+  real(kind=gp) :: null_axe, error
   type(fragment_transformation) :: frag_trans
   character(len=*), parameter :: subname='output_fragment_rotations'
 
@@ -3633,7 +3635,7 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
               rxyz_new(:,iat)=rxyz_new(:,iat)-frag_trans%rot_center_new
            end do
 
-           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans)
+           call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans,error)
 
            call f_free(rxyz_ref)
            call f_free(rxyz_new)
