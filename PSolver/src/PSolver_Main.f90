@@ -575,7 +575,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
      endif
 
      if (kernel%mpi_env%nproc > 1) then
-       zf1 = f_malloc0(size1,id='zf1')
+        if (kernel%mpi_env%iproc == 0) zf1 = f_malloc0(size1,id='zf1')
         
        call mpi_gatherv(zf,kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1,mpidtypd,&
              zf1,kernel%rhocounts,kernel%rhodispls, &
@@ -601,7 +601,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
         call MPI_Scatterv(zf1,kernel%rhocounts,kernel%rhodispls,mpidtypd,zf,kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1, &
              mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
 
-        call f_free(zf1)
+        if (kernel%mpi_env%iproc == 0) call f_free(zf1)
      else
 
         !fill the GPU memory
