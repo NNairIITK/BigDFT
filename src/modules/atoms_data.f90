@@ -593,7 +593,7 @@ contains
       type(atomic_structure), intent(inout) :: astruct !< Contains all info
       real(gp), intent(out), optional :: energy
       real(gp), dimension(:,:), pointer, optional :: fxyz
-      character(len = 256), intent(out), optional :: comment
+      character(len = 1024), intent(out), optional :: comment
       logical, intent(in), optional :: disableTrans
       !Local variables
       integer, parameter :: iunit=99
@@ -911,7 +911,7 @@ contains
       type(dictionary), pointer :: dict
       type(atomic_structure), intent(in) :: astruct
       real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
-      character(len=256), intent(in), optional :: comment
+      character(len=*), intent(in), optional :: comment
       !local variables
       type(dictionary), pointer :: pos, at, last
       integer :: iat,ichg,ispol

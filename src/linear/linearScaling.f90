@@ -2618,7 +2618,8 @@ end if
   if (mod(input%lin%output_mat_format,10) /= WF_FORMAT_NONE) then
       call timing(iproc,'write_matrices','ON')
       call write_linear_matrices(iproc,nproc,input%imethod_overlap,trim(input%dir_output),&
-           input%lin%output_mat_format,tmb,at,rxyz,input%lin%calculate_onsite_overlap)
+           input%lin%output_mat_format,tmb,at,rxyz,norder_taylor, &
+           input%lin%calculate_onsite_overlap, write_SminusonehalfH=.true.)
       call timing(iproc,'write_matrices','OF')
   end if
   ! Write the KS coefficients
@@ -2839,8 +2840,8 @@ end if
 
            ! CDFT: this is the real energy here as we subtracted the constraint term from the Hamiltonian before calculating ebs
            ! Calculate the total energy.
-           !if(iproc==0) write(*,'(a,7es14.6)') 'energs', &
-           !    energs%ebs,energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
+           !if(iproc==0) write(*,'(a,9es14.6)') 'energs', &
+           !    energs%ebs,energs%ekin, energs%epot, energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
            energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
            energyDiff=energy-energyold
            energyold=energy
