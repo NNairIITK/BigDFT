@@ -1100,7 +1100,7 @@ int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpi
 iprocpm1(2,1,igroup),(LOC(psiw(1,1,isnow,igroup))-LOC(psiw(1,1,1,1)))/size_of_double,&
 int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win,ierr)
 
-        if (ierr /=0)  print *,'mpi put error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+        if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
 
            end if
 
@@ -1278,18 +1278,19 @@ int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpi
            end if
            call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
                 dpsiw(1,1,3,igroup),1,dpsiw(1,1,isnow2,igroup),1)
-
-
-        if (ierr /=0)  print *,'mpi put error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
-
         end if
+     end do
+
+     call mpi_win_fence( 0, win2 ,ierr);
+
+     do igroup=1,ngroupp
         if (jprocsr(4,jproc,igroup) /= -1) then
            ncommsstep2=ncommsstep2+1
         call MPI_GET(dpsiw(1,1,irnow2,igroup),&
             int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
             jprocsr(4,jproc,igroup),(LOC(dpsiw(1,1,isnow2,igroup))-LOC(dpsiw(1,1,1,1)))/size_of_double,&
             int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win2,ierr)
-
+        if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
         end if
      end do
      if (jproc>1) isnow2=3-isnow2
