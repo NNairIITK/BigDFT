@@ -1065,7 +1065,8 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
 
         !  Set radius size:
         do i = 1, size(at%pawtab(ityp)%tcoredens, 1) - 1
-           if (at%pawtab(ityp)%tcoredens(i, 1) < 1e-10) exit
+           if (core_mesh%rad(i) > at%pawtab(ityp)%rpaw .and. &
+                & at%pawtab(ityp)%tcoredens(i, 1) < 1e-10) exit
         end do
         rloc = core_mesh%rad(i)
         cutoff = rloc * 1.1d0
@@ -1099,7 +1100,8 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
            call mkcore_paw_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,&
                 & dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3), &
                 & dpbox%ndims(1), dpbox%ndims(2),dpbox%ndims(3), &
-                & dpbox%i3s,dpbox%n3d,core_mesh, rhocore, ncmax, ifftsph, rr, raux)
+                & dpbox%i3s,dpbox%n3d,core_mesh, rhocore, ncmax, ifftsph, &
+                & rr, rcart, raux)
         else
            call calc_rhocore_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,&
                 & dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3), &

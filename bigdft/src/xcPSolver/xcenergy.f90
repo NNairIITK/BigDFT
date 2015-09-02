@@ -165,7 +165,7 @@ END SUBROUTINE calc_rhocore_iat
 
 !> Accumulate the contribution of atom iat to core density for PAW atoms.
 subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-     n1i,n2i,n3i,i3s,n3d,core_mesh,rhocore, ncmax, ifftsph, rr, raux)
+     n1i,n2i,n3i,i3s,n3d,core_mesh,rhocore, ncmax, ifftsph, rr, rcart, raux)
   use module_defs, only: dp, gp, bigdft_mpi, pi_param
   use module_types, only: denspot_distribution
   use module_atoms
@@ -188,20 +188,19 @@ subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   real(dp), dimension(n1i*n2i*n3d,0:9), intent(inout) :: rhocore
   integer, dimension(ncmax), intent(inout) :: ifftsph
   real(gp), dimension(ncmax), intent(inout) :: rr, raux
+  real(gp), dimension(3,ncmax), intent(inout) :: rcart
 
   !Local variables ------------------------------
   !scalars
   !buffer to be added at the end of the last dimension of an array to control bounds_check
-  integer :: i1,i2,i3,iat,ii,jj
+  integer :: i1,i2,i3,ii,jj
   integer :: iex,iey,iez,isx,isy,isz,ind,j1,j2,j3
   integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
   integer :: nfgd,nfgd_r0
-  real(gp) :: factor,grxc1,grxc2,grxc3, ucvol,rr2,r2shp
+  real(gp) :: factor, ucvol,rr2,r2shp
   real(gp) :: xx,yy,zz
   logical :: perx,pery,perz,gox,goy,goz
-  !arrays
-  real(gp) :: corfra(3,3), dyfrx2(3,3)
-  !allocatable arrays
+  integer, dimension(:), allocatable :: iperm
 
   ! *************************************************************************
 
@@ -217,6 +216,8 @@ subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   call ext_buffers(perx,nbl1,nbr1) 
   call ext_buffers(pery,nbl2,nbr2)
   call ext_buffers(perz,nbl3,nbr3)
+
+  iperm = f_malloc(ncmax, id = "iperm")
 
   if (n3d >0) then
      isx=floor((rx-cutoff)/hxh)
@@ -253,9 +254,10 @@ subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
                  nfgd=nfgd+1
                  rr(nfgd)=(rr2)**0.5
                  ifftsph(nfgd)=ind
-!!$                 rcart(1, nfgd) = xx
-!!$                 rcart(2, nfgd) = yy
-!!$                 rcart(3, nfgd) = zz
+                 rcart(1, nfgd) = xx
+                 rcart(2, nfgd) = yy
+                 rcart(3, nfgd) = zz
+                 iperm(nfgd) = nfgd
               end if !j3..
            end do !i1
         end do !i2
@@ -266,7 +268,7 @@ subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         !      Here, I chose to do it here, somewhere in the middle.
         if(nfgd==0)      cycle
 
-        call paw_sort_dp(nfgd, rr(1), ifftsph(1), 1.d-16)
+        call paw_sort_dp(nfgd, rr(1), iperm(1), 1.d-16)
         !  Evaluate spline fit of core charge density
         !  from tcoredens(:,1) and tcoredens(:,3)
         call paw_splint(atoms%pawtab(ityp)%core_mesh_size, core_mesh%rad,&
@@ -274,16 +276,36 @@ subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
              & nfgd,rr(1),raux(1))
         !  Accumulate contributions to core density on the entire cell
         do ii=1,nfgd
-           jj=ifftsph(ii)
+           jj=ifftsph(iperm(ii))
            rhocore(jj, 0) = rhocore(jj, 0) + raux(ii)
         end do
-
-        ! Currently no stress and gradients...
-!!$        call mkcore_inner(corfra,core_mesh,dyfrx2,&
-!!$             & grxc1,grxc2,grxc3,ifftsph_tmp,atoms%pawtab(itypat)%core_mesh_size,&
-!!$             & ncmax,size(xccc3d),nfgd,nfgd_r0,dpbox%nrhodim,&
-!!$             & size(xccc3d),option,atoms%pawtab(itypat),&
-!!$             & rmet,rprimd,rr,rcart,rshpm1,strdia,ucvol,vxc,rhocore(1,0))
+        !  Evaluate spline fit of first derivative core charge density
+        !  from tcoredens(:,2) and tcoredens(:,4)
+        call paw_splint(atoms%pawtab(ityp)%core_mesh_size, core_mesh%rad,&
+             & atoms%pawtab(ityp)%tcoredens(1,2), atoms%pawtab(ityp)%tcoredens(1,4),&
+             & nfgd,rr(1),raux(1))
+        !  Accumulate contributions to derivative of core density on the entire cell
+        do ii=1,nfgd
+           jj=ifftsph(iperm(ii))
+           if (rr(ii) > 0._gp) then
+              factor = 0.5_gp / rr(ii)
+              xx = rcart(1, iperm(ii)) * factor
+              yy = rcart(2, iperm(ii)) * factor
+              zz = rcart(3, iperm(ii)) * factor
+           else
+              xx = 1._gp; yy = 1._gp; zz = 1._gp
+           end if
+           rhocore(jj,1) = rhocore(jj,1) + xx * raux(ii)
+           rhocore(jj,2) = rhocore(jj,2) + yy * raux(ii)
+           rhocore(jj,3) = rhocore(jj,3) + zz * raux(ii)
+           !stress components
+           rhocore(jj,4) = rhocore(jj,4) + rcart(1, iperm(ii)) * xx * raux(ii)
+           rhocore(jj,5) = rhocore(jj,5) + rcart(2, iperm(ii)) * yy * raux(ii)
+           rhocore(jj,6) = rhocore(jj,6) + rcart(3, iperm(ii)) * zz * raux(ii)
+           rhocore(jj,7) = rhocore(jj,7) + rcart(2, iperm(ii)) * zz * raux(ii)
+           rhocore(jj,8) = rhocore(jj,8) + rcart(1, iperm(ii)) * zz * raux(ii)
+           rhocore(jj,9) = rhocore(jj,9) + rcart(1, iperm(ii)) * yy * raux(ii)
+        end do
      end do !i3
   end if
 
