@@ -24,7 +24,7 @@ subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
   real(wp), dimension(n1i,n2i,n3i,nspin), target, intent(in) :: x
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   !local variables
-  integer :: nl1,nl2,nl3,nbx,nby,nbz,iat, ncid, i3, i2, i_stat, i_all,nc1,nc2,nc3
+  integer :: nl1,nl2,nl3,nbx,nby,nbz,iat, ncid, i3, i2,nc1,nc2,nc3
   double precision, dimension(3, 3), target :: rprim
   double precision, dimension(:,:), allocatable, target :: xred
   double precision, dimension(:), allocatable, target :: znucl
@@ -219,7 +219,7 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   real(dp), dimension(:,:,:), pointer :: rhoij
   !local variables
   character(len=*), parameter :: subname='read_etsf'
-  integer :: groupIds, i_stat, i_all, ncid
+  integer :: groupIds, ncid
   integer :: n1t,n2t,n3t,n1,n2,n3, i2, i3, iat
   integer :: nl1,nl2,nl3,nbx,nby,nbz
   double precision, dimension(3, 3), target :: rprim
