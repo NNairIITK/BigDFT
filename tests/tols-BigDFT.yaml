@@ -1795,44 +1795,52 @@ extendedfrags_nofrags:
  Tr(K): 2.1e-8
  D Tr: 1.0e-9
  D eF: 1.1e-8
- ebs_check: 1.9e-11
- ebs: 1.9e-11
+ ebs_check: 3.6e-11
+ ebs: 3.7e-11
  EXC: 1.1e-10
+ Pressure: 3.3e-11
 
 extendedfrags_read:
- Omega: 3.4e-11
- ebs_check: 2.7e-11
- eF: 7.6e-10
+ Omega: 4.3e-11
+ eF: 7.9e-10
  charge diff: 2.3e-9
  Tr(K): 1.1e-8
  D eF: 1.1e-9
  guess for new ef: 1.3e-9
- ebs: 2.8e-11
+ ebs: 3.5e-11
+ ebs_check: 3.9e-11
  Epot: 1.1e-10
  D Tr: 1.1e-10
  Average noise forces: 1.0e-10
+ Pressure: 5.5e-11
 
 extendedfrags_readrotated:
- Omega: 3.4e-11
+ Omega: 4.5e-11
  eF: 6.1e-10
  D eF: 1.1e-9
  guess for new ef: 1.0e-9
  D Tr: 1.1e-10
- ebs_check: 2.7e-11
- ebs: 2.8e-11
+ ebs_check: 3.4e-11
+ ebs: 3.5e-11
  charge diff: 2.0e-9
+ Pressure: 4.6e-11
+ Epot: 1.1e-10
 
 extendedfrags_write:
- Epot: 1.1e-10
- EH: 1.1e-10
+ Epot: 7.0e-10
+ EH: 7.1e-10
  Ekin: 1.1e-10
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
  D Tr: 3.1e-8
  D eF: 5.0e-9
- ebs_check: 3.4e-11
- ebs: 3.8e-11
+ ebs_check: 6.7e-10
+ ebs: 6.7e-10
  guess for new ef: 6.0e-9
  Tr(K): 3.0e-8
  Total charge: 3.0e-11
  charge diff: 3.2e-8
  trace(KS): 2.1e-11
  eF: 7.0e-9
+ Pressure: 5.8e-11
+ decay length of error function: 1.1e-6
