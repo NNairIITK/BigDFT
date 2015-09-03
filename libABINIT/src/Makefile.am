@@ -151,7 +151,6 @@ libabinit_a_SOURCES = \
 	add_libpaw/abi_wvl_nhatgrid.F90 \
 	add_libpaw/abi_pawnhatfr.F90 \
 	add_libpaw/abi_pawmknhat.F90 \
-	add_libpaw/abi_pawmkrho.F90 \
 	add_libpaw/abi_pawaccrhoij.F90 \
 	add_libpaw/abi_pawxenergy.F90 \
 	add_libpaw/abi_pawdensities.F90 \

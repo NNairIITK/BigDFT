@@ -171,48 +171,6 @@ module abi_interfaces_add_libpaw
   end interface
 
   interface
-     subroutine abi_pawmkrho(compch_fft,cplex,gprimd,idir,indsym,ipert,&
-          &          nfft, nfftc, ngfft, &
-          &          my_natom,natom,nspden,nsym,ntypat,paral_kgb,pawang,pawfgrtab,pawprtvol,&
-          &          pawrhoij,pawrhoij_unsym,&
-          &          pawtab,qphon,rhopsg,rhopsr,rhor,rprimd,symafm,symrec,typat,ucvol,usewvl,xred,&
-          &          comm_fft, comm_wvl, comm_atom, mpi_atmtab, pawang_sym,pawnhat,pawrhoij0) ! optional arguments
-
-       USE_DEFS
-       use m_pawang,   only : pawang_type
-       use m_pawtab,   only : pawtab_type
-       use m_pawfgrtab,only : pawfgrtab_type
-       use m_pawrhoij, only : pawrhoij_type
-
-       implicit none
-
-       !Arguments ------------------------------------
-       !scalars
-       integer,intent(in) :: cplex,idir,ipert,my_natom,natom,nspden,nsym,ntypat,paral_kgb,pawprtvol
-       integer, intent(in) :: nfft, nfftc, ngfft(18)
-       integer,intent(in) :: usewvl
-       real(dp),intent(in) :: ucvol
-       real(dp),intent(out) :: compch_fft
-       type(pawang_type),intent(in) :: pawang
-       type(pawang_type),intent(in),optional :: pawang_sym
-       integer,optional,intent(in) :: comm_atom, comm_fft, comm_wvl
-       !arrays
-       integer,intent(in) :: indsym(4,nsym,natom)
-       integer,intent(in) :: symafm(nsym),symrec(3,3,nsym),typat(natom)
-       real(dp),intent(in) :: gprimd(3,3),qphon(3),rprimd(3,3),xred(3,natom)
-       real(dp),intent(inout),target,optional :: pawnhat(cplex*nfft,nspden) !vz_i
-       real(dp),intent(inout) :: rhor(cplex*nfft,nspden)
-       real(dp),intent(inout) :: rhopsg(2,nfftc),rhopsr(cplex*nfftc,nspden)
-       type(pawfgrtab_type),intent(inout) :: pawfgrtab(my_natom)
-       type(pawrhoij_type),intent(inout),target :: pawrhoij(:)
-       type(pawrhoij_type),intent(inout) :: pawrhoij_unsym(:)
-       type(pawrhoij_type),intent(in),target,optional :: pawrhoij0(my_natom)
-       type(pawtab_type),intent(in) :: pawtab(ntypat)
-       integer,optional,target,intent(in) :: mpi_atmtab(:)
-     end subroutine abi_pawmkrho
-  end interface
-
-  interface
      subroutine abi_pawdensities(compch_sph,cplex,iatom,lmselectin,lmselectout,lm_size,nhat1,nspden,nzlmopt,&
           &          opt_compch,opt_dens,opt_l,opt_print,pawang,pawprtvol,pawrad,pawrhoij,pawtab,rho1,trho1,&
           &          one_over_rad2) ! optional
