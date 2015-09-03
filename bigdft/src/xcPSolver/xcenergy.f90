@@ -533,15 +533,15 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   end if
 
   !if rhohat is present, substract it from charge density
-  if (associated(rhohat) .and. m1*m3*nxt > 0) then
-     if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
-        call axpy(m1*m3*nxt,-1._wp,rhohat(1,1,1,1),1,rho_G(1),1)
-        if (nspin==2) call axpy(m1*m3*nxt,-1._wp,rhohat(1,1,1,2),1,&
+  if (associated(rhohat) .and. m1*m3*nxc > 0) then
+     if (datacode=='G' .and. (i3start <=0 .or. i3start+nxc-1 > n03 )) then
+        call axpy(m1*m3*nxc,-1._wp,rhohat(1,1,1,1),1,rho_G(1),1)
+        if (nspin==2) call axpy(m1*m3*nxc,-1._wp,rhohat(1,1,1,2),1,&
              rho_G(1+m1*m3*nxt),1)
      else
-        call axpy(m1*m3*nxt,-1._wp,rhohat(1,1,1,1),1,rho(1+n01*n02*(i3start-1)),1)
-        if (nspin==2) call axpy(m1*m3*nxt,-1._wp,rhohat(1,1,1,2),1,&
-             rho(1+n01*n02*(i3start-1)+m1*m3*nxt),1)
+        call axpy(m1*m3*nxc,-1._wp,rhohat(1,1,1,1),1,rho(1+n01*n02*i3xcsh_fake),1)
+        if (nspin==2) call axpy(m1*m3*nxc,-1._wp,rhohat(1,1,1,2),1,&
+             rho(1+n01*n02*i3xcsh_fake+m1*m3*nxt),1)
      end if
   end if
 
@@ -676,9 +676,9 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
 
   !if rhohat is present, add it to charge density
   if(associated(rhohat) .and. m1*m3*nxc .gt.0) then
-     call axpy(m1*m3*nxt,1._wp,rhohat(1,1,1,1),1,rho(1+n01*n02*(i3start-1)),1)
-     if (nspin==2) call axpy(m1*m3*nxt,1._wp,rhohat(1,1,1,2),1,&
-          rho(1+n01*n02*(i3start-1)+m1*m3*nxt),1)
+     call axpy(m1*m3*nxc,1._wp,rhohat(1,1,1,1),1,rho(1),1)
+     if (nspin==2) call axpy(m1*m3*nxc,1._wp,rhohat(1,1,1,2),1,&
+          rho(1+m1*m3*nxt),1)
      !This will add V_xc(n) nhat to V_xc(n) n, to get: V_xc(n) (n+nhat)
      ! Only if usexcnhat /= 0, not the default case.
      !call add_to_vexcu(rhohat)

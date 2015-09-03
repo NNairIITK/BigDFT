@@ -210,10 +210,10 @@ subroutine abi_pawmkrho(compch_fft,cplex,gprimd,idir,indsym,ipert,&
  call abi_pawmknhat(compch_fft,cplex,ider,idir,ipert,izero,gprimd,my_natom,natom,&
 & nfft,ngfft,ider,nspden,ntypat,pawang,pawfgrtab,&
 & rhodum,pawnhat_ptr,pawrhoij_ptr,pawrhoij0_ptr,pawtab,qphon,rprimd,ucvol,usewvl,xred,&
-& mpi_comm_atom=comm_atom,mpi_atmtab=mpi_atmtab)
+& mpi_comm_atom=comm_atom,mpi_atmtab=mpi_atmtab,mpi_comm_wvl=comm_wvl)
 !,&
 !& mpi_comm_fft=comm_fft,paral_kgb=paral_kgb,me_g0=mpi_enreg%me_g0,&
-!& distribfft=mpi_enreg%distribfft,mpi_comm_wvl=comm_wvl) 
+!& distribfft=mpi_enreg%distribfft) 
 
 !Transfer pseudo density from coarse grid to fine grid
 !!$ if(usewvl==0) then
@@ -221,7 +221,7 @@ subroutine abi_pawmkrho(compch_fft,cplex,gprimd,idir,indsym,ipert,&
 !!$ end if
 
 !Add pseudo density and compensation charge density (on fine grid)
- rhor(:,:)=rhor(:,:)+pawnhat_ptr(:,:)
+! rhor(:,:)=rhor(:,:)+pawnhat_ptr(:,:)
 
 !Free temporary memory spaces
  if (.not.present(pawnhat)) then

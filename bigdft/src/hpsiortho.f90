@@ -179,8 +179,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      !copy the density contiguously since the GGA is calculated inside the NK routines
      !with the savefield scheme, this can be avoided in the future
      if (wfn%SIC%approach=='NK') then !here the density should be copied somewhere else
-        irhotot_add=wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpbox%i3xcsh+1
-        irho_add=wfn%Lzd%Glr%d%n1i*wfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d*wfn%orbs%nspin+1
+        irhotot_add=denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%i3xcsh+1
+        irho_add=denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d*wfn%orbs%nspin+1
         do ispin=1,wfn%orbs%nspin
            call vcopy(denspot%dpbox%ndimpot,&
                 denspot%rhov(irhotot_add),1,denspot%rhov(irho_add),1)
@@ -3160,7 +3160,7 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   if (denspot%rhov_is /= KS_POTENTIAL) stop "rhov must be KS pot here."
   call pawdij(cplex, enunit, gprimd, ipert, size(paw%pawrhoij), at%astruct%nat, nfft, nfftot, &
        & denspot%dpbox%nrhodim, at%astruct%ntypes, paw%paw_an, paw%paw_ij, at%pawang, &
-       & paw%pawfgrtab, pawprtvol, at%pawrad, paw%pawrhoij, pawspnorb, at%pawtab, pawxcdev, &
+       & paw%fgrtab, pawprtvol, at%pawrad, paw%pawrhoij, pawspnorb, at%pawtab, pawxcdev, &
        & qphon, spnorbscl, ucvol, charge, denspot%rhov, vxc, xred, &
        & mpi_comm_grid = bigdft_mpi%mpi_comm) !, &
   !&     natvshift=dtset%natvshift,atvshift=dtset%atvshift,fatvshift=fatvshift) !,&
@@ -3247,12 +3247,13 @@ subroutine paw_update_rho(paw, denspot, atoms)
   use dynamic_memory
   use time_profiling
   use wrapper_MPI
+  use wrapper_linalg
   implicit none
   type(paw_objects), intent(inout) :: paw
   type(DFT_local_fields), intent(inout) :: denspot
   type(atoms_data), intent(in) :: atoms
   
-  integer :: errno, isym, nsym
+  integer :: errno, isym, nsym, offset
   integer :: nfft, ngfft(18)
   real(gp) :: ucvol
   type(symmetry_type), pointer :: symObj
@@ -3303,22 +3304,20 @@ subroutine paw_update_rho(paw, denspot, atoms)
   end if
   call f_timing(TCAT_LIBPAW, "ON")
   call abi_pawmkrho(compch_fft,cplex,symObj%gprimd,idir,indsym,ipert,&
-       & nfft, nfft / 8, ngfft, size(paw%pawrhoij),atoms%astruct%nat,&
+       & nfft, nfft, ngfft, size(paw%pawrhoij),atoms%astruct%nat,&
        & denspot%dpbox%nrhodim,nsym,atoms%astruct%ntypes,0,atoms%pawang,&
-       & paw%pawfgrtab,pawprtvol,paw%pawrhoij,paw%pawrhoij,atoms%pawtab,&
+       & paw%fgrtab,pawprtvol,paw%pawrhoij,paw%pawrhoij,atoms%pawtab,&
        & qphon,denspot%rhov,denspot%rhov,denspot%rhov,symObj%rprimd,&
        & symAfm,symrec,atoms%astruct%iatype,ucvol,usewvl,symObj%xred,&
-       & pawnhat = denspot%rhohat)
+       & pawnhat = denspot%rhohat, comm_wvl = bigdft_mpi%mpi_comm)
+!!$  call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,"nhat0.cube",atoms,&
+!!$       & symObj%xred,denspot%dpbox,denspot%dpbox%nrhodim,&
+!!$       & denspot%rhohat(1, 1, denspot%dpbox%i3xcsh + 1, 1))
   call f_timing(TCAT_LIBPAW, "OF")
-!!$  call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,"nhat.cube",atoms,&
-!!$       & symObj%xred,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rhohat)
-  ! The allred here is just for printing, how bad...
-  if (bigdft_mpi%nproc > 1) call mpiallred(compch_fft, 1, MPI_SUM, comm = bigdft_mpi%mpi_comm)
   if (bigdft_mpi%iproc == 0) then
      call yaml_map('Compensation charge on wavelet grid', compch_fft)
      call yaml_newline()
   end if
-
   call f_free(symrec)
 
   if (atoms%astruct%sym%nsym == 0) then
@@ -3326,6 +3325,14 @@ subroutine paw_update_rho(paw, denspot, atoms)
      deallocate(symObj)
      call f_free_ptr(indsym)
      call f_free_ptr(sym)
+  end if
+
+  offset = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%i3xcsh
+  call axpy(denspot%dpbox%ndimpot, 1._dp, denspot%rhohat(1,1,1,1), 1, &
+       & denspot%rhov(offset + 1), 1)
+  if (denspot%dpbox%nrhodim == 2) then
+     call axpy(denspot%dpbox%ndimpot, 1._dp, denspot%rhohat(1,1,1,2), 1, &
+          & denspot%rhov(denspot%dpbox%ndimrhopot / denspot%dpbox%nrhodim + offset + 1), 1)
   end if
 
   call f_timing(TCAT_PAW_RHOIJ, "OF")

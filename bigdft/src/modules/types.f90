@@ -864,7 +864,7 @@ module module_types
      type(paw_an_type), dimension(:), pointer :: paw_an
      type(paw_ij_type), dimension(:), pointer :: paw_ij
      type(pawcprj_type), dimension(:,:), pointer :: cprj
-     type(pawfgrtab_type), dimension(:), pointer :: pawfgrtab
+     type(pawfgrtab_type), dimension(:), pointer :: fgrtab
      type(pawrhoij_type), dimension(:), pointer :: pawrhoij
 
      real(wp), dimension(:), pointer :: spsi !< Metric operator applied to psi (To be used for PAW)
@@ -1684,7 +1684,7 @@ contains
     nullify(paw%paw_an)
     nullify(paw%paw_ij)
     nullify(paw%cprj)
-    nullify(paw%pawfgrtab)
+    nullify(paw%fgrtab)
     nullify(paw%pawrhoij)
   end subroutine nullify_paw_objects
 
@@ -1711,9 +1711,9 @@ contains
        call pawcprj_free(paw%cprj)
        deallocate(paw%cprj)
     end if
-    if (associated(paw%pawfgrtab)) then
-       call pawfgrtab_free(paw%pawfgrtab)
-       deallocate(paw%pawfgrtab)
+    if (associated(paw%fgrtab)) then
+       call pawfgrtab_free(paw%fgrtab)
+       deallocate(paw%fgrtab)
     end if
     if (associated(paw%pawrhoij)) then
        call pawrhoij_free(paw%pawrhoij)

@@ -1409,13 +1409,14 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
   xc_denpos=tol14
   filpsp=trim(filename)
 
+  ! Always allocate paw_setup, but fill it only for iproc == 0.
+  allocate(paw_setup(1))
   if (bigdft_mpi%iproc == 0) then
      ! Parse the PAW file if in XML format
      call f_iostream_from_file(ios, trim(filename))
      call f_iostream_get_line(ios, line)
      call f_iostream_release(ios)
      if (line(1:5) == "<?xml") then
-        allocate(paw_setup(1))
         call rdpawpsxml(filpsp, paw_setup(1), 789)
         ipsp2xml = f_malloc(1, id = "ipsp2xml")
         ipsp2xml(1) = 1
@@ -1428,10 +1429,8 @@ subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
        & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,real(nelpsp, dp),real(nzatom, dp),&
        & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm,psxml = paw_setup(1))
 
-  if (allocated(paw_setup)) then
-     call paw_setup_free(paw_setup(1))
-     deallocate(paw_setup)
-  end if
+  call paw_setup_free(paw_setup(1))
+  deallocate(paw_setup)
   if (allocated(ipsp2xml)) call f_free(ipsp2xml)
 
 !!$  ii = 0
@@ -2576,12 +2575,12 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb, nkpt
   call pawcprj_alloc(paw%cprj, 0, nlmn)
   call f_free(nlmn)
 
-  allocate(paw%pawfgrtab(at%astruct%nat))
+  allocate(paw%fgrtab(at%astruct%nat))
   l_size_atm = f_malloc(at%astruct%nat, id = "l_size_atm")
   do i = 1, at%astruct%nat
      l_size_atm(i) = at%pawtab(at%astruct%iatype(i))%lcut_size
   end do
-  call pawfgrtab_init(paw%pawfgrtab, cplex, l_size_atm, dpbox%nrhodim, at%astruct%iatype) !,&
+  call pawfgrtab_init(paw%fgrtab, cplex, l_size_atm, dpbox%nrhodim, at%astruct%iatype) !,&
   !&     mpi_atmtab=mpi_enreg%my_atmtab,mpi_comm_atom=mpi_enreg%comm_atom)
   call f_free(l_size_atm)
   atindx1 = f_malloc(at%astruct%nat, id = "atindx1")
@@ -2589,11 +2588,11 @@ subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb, nkpt
      atindx1(i) = i
   end do
   !ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
-  call abi_wvl_nhatgrid(atindx1, at%astruct%geocode, dpbox%hgrids, dpbox%i3s, &
+  call abi_wvl_nhatgrid(atindx1, at%astruct%geocode, dpbox%hgrids, dpbox%i3s + dpbox%i3xcsh, &
        & size(at%pawtab), at%astruct%nat, nattyp, at%astruct%ntypes, &
        & d%n1, d%n1i, d%n2, d%n2i, d%n3, dpbox%n3pi, &
        & optcut, optgr0, optgr1, optgr2, optrad, &
-       & paw%pawfgrtab, at%pawtab, d%n1i * d%n2i * dpbox%i3xcsh, rxyz) !,&
+       & paw%fgrtab, at%pawtab, 0, rxyz) !,&
   !&         mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
   !&         mpi_comm_fft=spaceComm_fft,distribfft=mpi_enreg%distribfft)
   call f_free(atindx1)
