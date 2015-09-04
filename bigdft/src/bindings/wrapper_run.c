@@ -417,7 +417,8 @@ BigDFT_Run* bigdft_run_new_from_dict(BigDFT_Dict *dict)
  **/
 BigDFT_Run* bigdft_run_new_from_fortran(long fadd)
 {
-  gpointer fobj, cobj;
+  gpointer fobj;
+  gpointer cobj;
   BigDFT_Run *run;
 
   fobj = fadd;
