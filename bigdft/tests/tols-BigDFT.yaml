@@ -10,6 +10,7 @@ Keys to ignore:
  - Maximal OpenMP threads per MPI task
  - OpenMP threads per task
  - OpenMP parallelization
+ - logfile
  - Memory* 
  - Orbitals Repartition*
  - Rho Commun
@@ -362,6 +363,19 @@ NLCC_free-O2: *NLCCs
 NLCC_free: *NLCCsnew
 NLCC_periodic-O2: *NLCCsnew
 NLCC_periodic: *NLCCs
+
+PAW-GGA:
+ Keys to ignore:
+ - Atomic Forces (Ha/Bohr)
+ - Average noise forces
+ - Clean forces norm (Ha/Bohr)
+ - Stress Tensor
+ Compensation charge on libPAW mesh: 5e-10
+ Compensation charge on wavelet grid: 5e-10
+ Total electronic charge: 5e-10
+ Orbitals: 2e-10
+ Energies: 1e-9
+ EKS: 1e-9
 
 taskgroups:
   Energies: 1.1e-10

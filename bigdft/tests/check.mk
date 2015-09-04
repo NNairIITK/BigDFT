@@ -52,7 +52,8 @@ PSPS = psppar.H \
        HGH-K/psppar.O \
        HGH-K/psppar.Ti \
        extra/psppar.H \
-       Xabs/psppar.Fe
+       Xabs/psppar.Fe \
+       C.GGA_PBE-JTH.xml
 
 ALLDIRS = $(EXTRA_TESTDIRS) $(TESTDIRS)
 

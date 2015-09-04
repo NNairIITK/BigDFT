@@ -16,7 +16,8 @@ TESTDIRS = C \
 	  NLCC \
 	  taskgroups \
 	  CH4-D3 \
-	  PAW
+	  PAW \
+	  PAW-GGA
 
 tests_cpu_only = H Graphene FeHyb Mn2 SIC H-Rydberg
 tests_ocl_only = OCL
@@ -60,7 +61,7 @@ GPU.psp: HGH/psppar.Si
 OCL.psp: HGH/psppar.Si
 O2-Spin.psp: HGH-K/psppar.O
 ElectField.psp: HGH-K/psppar.H HGH-K/psppar.O
-
+PAW-GGA.psp: C.GGA_PBE-JTH.xml
 
 SIC-test.post-in:
 	if [ ! -d data-PZ ] ; then mkdir data-PZ; fi
