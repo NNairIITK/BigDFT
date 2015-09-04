@@ -309,6 +309,8 @@ subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      end do !i3
   end if
 
+  call f_free(iperm)
+
 end subroutine mkcore_paw_iat
 
 !> Calculate the core charge described by a sum of spherical harmonics of s-channel with 
