@@ -74,6 +74,8 @@ def compare(data, ref, tols=None, always_fails=False, keyword=""):
         return (True, None)
     elif isinstance(ref,dict):
         # for a floating point the reference is set for all the lower levels
+        if isinstance(tols, str):
+            tols = float(tols)
         if isinstance(tols,float):
             neweps = tols
             tols = {}
@@ -85,6 +87,8 @@ def compare(data, ref, tols=None, always_fails=False, keyword=""):
             # print neweps,tols,def_tols
         ret = compare_map(data, ref, tols, always_fails,keyword)
     elif isinstance(ref,list):
+        if isinstance(tols, str):
+            tols = float(tols)
         if isinstance(tols,float):
             neweps = tols
             tols = []
