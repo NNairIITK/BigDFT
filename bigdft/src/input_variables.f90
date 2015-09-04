@@ -319,6 +319,7 @@ subroutine inputs_from_dict(in, atoms, dict)
      call xc_end(xc)
      !gsqcut_shp = two*abs(dtset%diecut)*dtset%dilatmx**2/pi**2
      gsqcut_shp = 2._gp * 2.2_gp / pi_param ** 2
+     nsym = 0
      call symmetry_get_n_sym(atoms%astruct%sym%symObj, nsym, ierr)
      call abi_pawinit(1, gsqcut_shp, pawlcutd, pawlmix, maxval(atoms%pawtab(:)%lmn_size) + 1, &
           & pawnphi, nsym, pawntheta, atoms%pawang, atoms%pawrad, 0, &
