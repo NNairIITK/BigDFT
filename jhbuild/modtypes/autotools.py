@@ -222,7 +222,7 @@ class AutogenModule(MakeModule, DownloadableModule):
         except:
             pass
 
-        if self.autogen_sh == 'autoreconf':
+        if self.autogen_sh == 'autoreconf' and not(os.path.exists(os.path.join(srcdir, 'configure'))):
             # autoreconf doesn't honour ACLOCAL_FLAGS, therefore we pass
             # a crafted ACLOCAL variable.  (GNOME bug 590064)
             extra_env = {}
