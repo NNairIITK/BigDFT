@@ -62,6 +62,9 @@ subroutine abi_wrtout(unit,msg,mode_paral)
 
  if ((unit == std_out).and.(.not.do_write_log)) RETURN
  if (unit == dev_null) RETURN
+! BigDFT patch.
+ if (unit /= ab_out .and. index(msg, "ERROR") == 0) return
+! BigDFT patch.
 
  my_mode_paral = "COLL"; if (PRESENT(mode_paral)) my_mode_paral = mode_paral
 
