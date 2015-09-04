@@ -2008,12 +2008,14 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      imode = 0
      nsize_psi = (KSwfn%Lzd%Glr%wfd%nvctr_c+7*KSwfn%Lzd%Glr%wfd%nvctr_f)*KSwfn%orbs%nspinor*KSwfn%orbs%norbp
   end if
-  call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpsp,rxyz,&
-       KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-       denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
-       denspot%dpbox%nrhodim,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
-       denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
-       ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,imode,tmb,fpulay)
+  if (.not. KSwfn%paw%usepaw) then
+     call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,atoms,KSwfn%orbs,nlpsp,rxyz,&
+          KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
+          denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
+          denspot%dpbox%nrhodim,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
+          denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
+          ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,imode,tmb,fpulay)
+  end if
 
   call f_free_ptr(denspot%rho_work)
   !call f_free_ptr(denspot%pot_work)

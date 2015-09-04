@@ -726,17 +726,15 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [  7.8148E-01,  7.8148E-01,  7.8148E-01 ]
    norm(P)                             :  1.353559E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
- Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  37.55
    Elapsed time (s)                    :  37.62
  BigDFT infocode                       :  0
- Average noise forces: {x: -3.03405068E-02, y: -3.03405068E-02, z: -3.03405068E-02, 
-                    total:  5.25512994E-02}
+ Average noise forces: {x:  0.00000000E+00, y:  0.00000000E+00, z:  0.00000000E+00, 
+                    total:  0.00000000E+00}
  Clean forces norm (Ha/Bohr): {maxval:  0.000000000000E+00, fnrm2:  0.000000000000E+00}
- Raw forces norm (Ha/Bohr): {maxval:  5.255129937205E-02, fnrm2:  2.761639065691E-03}
+ Raw forces norm (Ha/Bohr): {maxval:  0.000000000000E+00, fnrm2:  0.000000000000E+00}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
  -  {C: [ 0.000000000000E+00,  0.000000000000E+00,  0.000000000000E+00]} # 0001

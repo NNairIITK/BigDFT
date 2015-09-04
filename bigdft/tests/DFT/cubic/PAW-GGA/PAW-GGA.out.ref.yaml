@@ -866,29 +866,18 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [  1.2641E+00,  1.2641E+00,  1.2641E+00 ]
    norm(P)                             :  2.189451E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
- Calculate Non Local forces            :  Yes
- Stress Tensor calculated              :  Yes
- Stress Tensor:
-   Total stress tensor matrix (Ha/Bohr^3):
-   -  [ -0.411335570377,  1.857978764273E-11,  1.854208004041E-11 ]
-   -  [  1.857978764273E-11, -0.411335570377,  1.857973920155E-11 ]
-   -  [  1.854208004041E-11,  1.857973920155E-11, -0.411335570377 ]
-   Pressure:
-     Ha/Bohr^3                         : -0.41133557037695
-     GPa                               : -12101.90830027730
-     PV (Ha)                           : -51.41694629711905
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  42.28
    Elapsed time (s)                    :  44.56
  BigDFT infocode                       :  0
- Average noise forces: {x:  6.92647229E-06, y:  6.92647232E-06, z:  6.92647233E-06, 
-                    total:  1.19970020E-05}
- Clean forces norm (Ha/Bohr): {maxval:  1.199700196256E-05, fnrm2:  1.439280560898E-10}
+ Average noise forces: {x:  0.00000000E+00, y:  0.00000000E+00, z:  0.00000000E+00, 
+                    total:  0.00000000E+00}
+ Clean forces norm (Ha/Bohr): {maxval:  0.000000000000E+00, fnrm2:  0.000000000000E+00}
+ Raw forces norm (Ha/Bohr): {maxval:  0.000000000000E+00, fnrm2:  0.000000000000E+00}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {C: [ 6.926472294398E-06,  6.926472315984E-06,  6.926472327282E-06]} # 0001
+ -  {C: [ 0.000000000000E+00,  0.000000000000E+00,  0.000000000000E+00]} # 0001
  Energy (Hartree)                      : -5.42519415893020440E+00
  Memory Consumption Report:
    Tot. No. of Allocations             :  24424
