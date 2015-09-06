@@ -1931,7 +1931,8 @@ END SUBROUTINE dict_init_binding
 
 
 subroutine err_severe_override(callback)
-  use dictionaries, only: f_err_severe_override, f_loc
+  use f_precisions, only: f_loc
+  use dictionaries, only: f_err_severe_override
   implicit none
   external :: callback
   
