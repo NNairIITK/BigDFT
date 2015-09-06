@@ -1600,6 +1600,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
 
            opt%iter = opt%iter + 1
+!        if (opt%iter == 2) stop
         end do wfn_loop
 
 
@@ -1934,6 +1935,18 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
      call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
           atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
+!---------------------------------------------------
+! giuseppe fisicaro dilectric cavity
+     if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
+
+     call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
+          atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%pol_charge)
+
+     if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
+
+     call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
+          atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%cavity)
+!---------------------------------------------------
 
      if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
         if (iproc == 0) call yaml_map('Writing core density in file','core_density'//gridformat)
