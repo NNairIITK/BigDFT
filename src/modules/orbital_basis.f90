@@ -292,7 +292,7 @@ contains
     real(gp) :: eSICi, exctXcoeff
     real(gp), dimension(3) :: hh
 
-    if (psi%iorbp==0) call f_err_throw('Illegal iorbp for local hamiltonian ket')
+    if (psi%iorbp==0) call f_err_throw('Illegal iorbp for local hamiltonian ket',err_name='BIGDFT_RUNTIME_ERROR')
 
     epot=0.d0
     ekin=0.d0
@@ -376,7 +376,7 @@ contains
     if (present(orbs)) ob%orbs => orbs
     
     if (present(Lzd)) then
-       if (.not. present(orbs)) call f_err_throw('orbs should be present with lzd')
+       if (.not. present(orbs)) call f_err_throw('orbs should be present with lzd',err_name='BIGDFT_RUNTIME_ERROR')
        allocate(ob%dd(orbs%norbp))
        do iorb=1,orbs%norbp
           ilr=orbs%inwhichlocreg(iorb+orbs%isorb)

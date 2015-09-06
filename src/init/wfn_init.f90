@@ -1162,8 +1162,11 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          norbpArrSimul=0
          norbpArrSimulLoc=0
          if(iproc<nprocSubu+nprocSubd) norbpArrSimulLoc(iproc)=norbpArr(iproc)
-         call mpi_allreduce(norbpArrSimulLoc(0), norbpArrSimul(0), nprocSubu+nprocSubd,&
-              mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         !call mpi_allreduce(norbpArrSimulLoc(0), norbpArrSimul(0), nprocSubu+nprocSubd,&
+         !     mpi_integer, mpi_sum, bigdft_mpi%mpi_comm, ierr)
+         call mpiallred(sendbuf=norbpArrSimulLoc(0), recvbuf=norbpArrSimul(0), count=nprocSubu+nprocSubd,&
+              op=mpi_sum, comm=bigdft_mpi%mpi_comm)
+
          call f_free(norbpArrSimulLoc)
       end if
 

@@ -118,7 +118,7 @@ module module_input_keys
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
      real(kind=8) :: max_inversion_error
-     logical :: calculate_onsite_overlap
+    logical :: calculate_onsite_overlap
      integer :: output_mat_format     !< Output Matrices format
      integer :: output_coeff_format   !< Output Coefficients format
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
@@ -251,6 +251,8 @@ module module_input_keys
      real(gp) :: mditemp, mdftemp
      real(gp) :: noseinert, friction, mdwall
      real(gp) :: bmass, vmass, strprecon, strfact
+     integer:: sockinet, sockport
+     character(len=1032)  :: sockhost
      real(gp), dimension(6) :: strtarget
      real(gp), dimension(:), pointer :: qmass
      real(gp) :: dtinit, dtmax           !< For FIRE
@@ -483,11 +485,14 @@ contains
     use yaml_output
     use dynamic_memory
     use yaml_parse
+    use f_precisions, only: f_integer
     implicit none
     !local variables
-    integer :: params_size
+    integer(f_integer) :: params_size
     !integer(kind = 8) :: cbuf_add !< address of c buffer
     character, dimension(:), allocatable :: params
+
+    call f_routine(id='input_keys_init')
 
     !alternative filling of parameters from hard-coded source file
     !call getstaticinputdef(cbuf_add,params_size)
@@ -513,6 +518,8 @@ contains
     
 !!$    !in the case the errors have not been initialized before
 !!$    call input_keys_errors()
+
+    call f_release_routine()
 
   END SUBROUTINE input_keys_init
 
@@ -581,6 +588,7 @@ contains
     !  dict = dict//key
 
     call f_routine(id='inputs_from_dict')
+
 
     ! Atoms case.
     atoms = atoms_data_null()
@@ -1021,6 +1029,7 @@ contains
     type(dictionary), pointer :: tmp
 
     call f_routine(id='input_keys_dump')
+
 
     !new mechanism, to see if it works
 
@@ -1811,6 +1820,12 @@ contains
           in%beta_stretchx = val
        case (TRUSTR)
           in%trustr = val
+       case (SOCKINET)
+          in%sockinet = val
+       case (SOCKPORT)
+          in%sockport = val
+       case (SOCKHOST)
+          in%sockhost = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

@@ -26,7 +26,7 @@ module module_mhgpstool
     public :: write_data
     public :: identMHminMHGPSmin
     
-    type sadneighb
+    type, public ::  sadneighb
         integer :: npairx=-1
         integer, allocatable :: neighb(:,:)
         integer, allocatable :: paircounter(:) 

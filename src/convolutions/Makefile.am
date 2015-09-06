@@ -42,4 +42,21 @@ libconvolutions_a_SOURCES = $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
 # convolut_ib_sse.c \ #to be verified, not working yet
 EXTRA_DIST = v.inc v_long.inc v_17.inc scalar_product-inc.f90 wpdot-inc.f90
 
+# Module files.
+if CAPITALIZE
+modules = 
+else
+modules = 
+endif
+
 AM_FCFLAGS = -I$(srcdir) @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
+
+# Copy modules in a common include directory.
+all: all-am insmod
+install: install-am insmod
+check: check-am insmod
+insmod: $(modules)
+	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
+	for mod in "$(modules)" ; do \
+	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \
+	done

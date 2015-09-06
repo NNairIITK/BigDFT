@@ -176,7 +176,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !LR: commented hessian as not currently using it
 
      !$omp parallel default(none) &
-     !$omp private(iat,ityp,rx,ry,rz,fxion,fyion,fzion,jtyp,chgprod,dist) &
+     !$omp private(iat,ityp,rx,ry,rz,fxion,fyion,fzion,jtyp,chgprod,dist,jat) &
      !$omp shared(at,rxyz,fion,eself,eion)
      !$omp do reduction(+:eself,eion)
      do iat=1,at%astruct%nat
@@ -640,6 +640,9 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
 
   !buffers associated to the geocode
   !conditions for periodicity in the three directions
+  perx=.false.
+  pery=.false.
+  perz=.false.
   perx=(geocode /= 'F')
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
@@ -663,13 +666,13 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
 !------------------------------------------------------------------------------------------------------
 ! Depending of Free, Periodic or Surface bc, image atoms are or not included.
 
-  if (bigdft_mpi%iproc==0) then
-   do iat=1,natreal
-    call yaml_map('real input atoms',iat)
-    call yaml_map('radii',radiireal(iat))
-    call yaml_map('rxyz',rxyzreal(:,iat))
-   end do
-  end if
+!  if (bigdft_mpi%iproc==0) then
+!   do iat=1,natreal
+!    call yaml_map('real input atoms',iat)
+!    call yaml_map('radii',radiireal(iat))
+!    call yaml_map('rxyz',rxyzreal(:,iat))
+!   end do
+!  end if
 
   px=0
   py=0
@@ -746,14 +749,14 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
    radii(1:nat)=radiitot(1:nat)
 
    if (bigdft_mpi%iproc==0) then
-    write(*,*)plandist
-    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
-    call yaml_map('nat',nat)
-    do iat=1,nat
-     call yaml_map('atom',iat)
-     call yaml_map('radii',radii(iat))
-     call yaml_map('rxyz',rxyz(:,iat))
-    end do
+!    write(*,*)plandist
+!    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
+    call yaml_map('nat for pbc',nat)
+!    do iat=1,nat
+!     call yaml_map('atom',iat)
+!     call yaml_map('radii',radii(iat))
+!     call yaml_map('rxyz',rxyz(:,iat))
+!    end do
    end if
 
 !------------------------------------------------------------------------------------------------------
@@ -801,53 +804,53 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
      oneoeps(i1,i2,i3)=1.d0/eps(i1,i2,i3)
      oneosqrteps(i1,i2,i3)=1.d0/dsqrt(eps(i1,i2,i3))
 
-     do i=1,3
-      deps(i)=0.d0
-      do jat=0,nat-1
-       curr=dep(i,jat+1)
-       do iat=1,nat-1
-        curr=curr*ep(modulo(iat+jat,nat)+1)
-       end do
-        deps(i) = deps(i) + curr
-      end do
-      deps(i) = deps(i)*(epsilon0-1.d0)
-     end do
+!     do i=1,3
+!      deps(i)=0.d0
+!      do jat=0,nat-1
+!       curr=dep(i,jat+1)
+!       do iat=1,nat-1
+!        curr=curr*ep(modulo(iat+jat,nat)+1)
+!       end do
+!        deps(i) = deps(i) + curr
+!      end do
+!      deps(i) = deps(i)*(epsilon0-1.d0)
+!     end do
+!
+!     d12=0.d0
+!     do i=1,3
+!      dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
+!      d12 = d12 + deps(i)**2
+!     end do
+!
+!     IntSur = IntSur + dsqrt(d12)
+!
+!     dd=0.d0
+!     do jat=1,nat
+!      curr=ddep(jat)
+!      do iat=1,nat-1
+!       curr=curr*ep(modulo(iat+jat-1,nat)+1)
+!      end do
+!      dd = dd + curr
+!     end do
+!
+!      do i=1,3
+!       do iat=1,nat-1
+!        do jat=iat+1,nat
+!         curr=dep(i,iat)*dep(i,jat)
+!         do ii=1,nat
+!          if ((ii.eq.iat).or.(ii.eq.jat)) then
+!          else
+!           curr=curr*ep(ii)
+!          end if
+!         end do
+!         curr=curr*2.d0
+!         dd = dd + curr
+!        end do
+!       end do
+!      end do
 
-     d12=0.d0
-     do i=1,3
-      dlogeps(i,i1,i2,i3)=deps(i)/eps(i1,i2,i3)
-      d12 = d12 + deps(i)**2
-     end do
-
-     IntSur = IntSur + dsqrt(d12)
-
-     dd=0.d0
-     do jat=1,nat
-      curr=ddep(jat)
-      do iat=1,nat-1
-       curr=curr*ep(modulo(iat+jat-1,nat)+1)
-      end do
-      dd = dd + curr
-     end do
-
-      do i=1,3
-       do iat=1,nat-1
-        do jat=iat+1,nat
-         curr=dep(i,iat)*dep(i,jat)
-         do ii=1,nat
-          if ((ii.eq.iat).or.(ii.eq.jat)) then
-          else
-           curr=curr*ep(ii)
-          end if
-         end do
-         curr=curr*2.d0
-         dd = dd + curr
-        end do
-       end do
-      end do
-
-     dd=dd*(epsilon0-1.d0)
-     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+!     dd=dd*(epsilon0-1.d0)
+!     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
 
     end do
    end do
@@ -963,7 +966,7 @@ subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,na
   real(kind=8), dimension(27*natreal) :: radiitot
   real(kind=8), dimension(:), allocatable :: radii
   real(kind=8), dimension(:,:), allocatable :: rxyz
-  logical, parameter :: dumpeps=.false.  !.true.
+  logical, parameter :: dumpeps=.false.
 
   !buffers associated to the geocode
   !conditions for periodicity in the three directions

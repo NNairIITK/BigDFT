@@ -276,7 +276,7 @@ module multipole
           real(kind=8),intent(in) :: sigma, r
           real(kind=8) :: g
           
-          g = exp(-r**2/(2.d0*sigma**2))
+          g = safe_exp(-r**2/(2.d0*sigma**2))
           g = g/sqrt(2.d0*pi*sigma**2)**3
           !g = g/(sigma**3*sqrt(2.d0*pi)**3)
         end function gaussian
@@ -537,6 +537,14 @@ module multipole
 
       call f_routine(id='multipoles_from_density')
 
+      if (iproc==0) call yaml_comment('Multipole analysis',hfill='-')
+
+      call unitary_test()
+
+      if (iproc==0) then
+          call yaml_mapping_open('Multipole analysis')
+      end if
+
       ! Orthogonalize the support functions
       can_use_transposed = .false.
       methTransformOverlap = 1020
@@ -544,6 +552,9 @@ module multipole
       phit_f = f_malloc_ptr(7*collcom%ndimind_f,id='phit_f')
       phi_ortho = f_malloc(npsidim,id='phi_ortho')
       call vcopy(npsidim, lphi(1), 1, phi_ortho(1), 1)
+      if (iproc==0) then
+          call yaml_map('Orthonormalizing support functions',.true.)
+      end if
       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
            1.d-8, npsidim, orbs, lzd, &
            smats, smatl, collcom, orthpar, &
@@ -686,7 +697,6 @@ module multipole
       ! For the support functions on atom A we only need to apply 
       ! the spherical harmonics centered as well on atom A.
 
-      call unitary_test()
 
 
       !lmax = 1
@@ -725,13 +735,19 @@ module multipole
       call f_free(locregcenter)
 
       if (iproc==0) then
-          call write_multipoles(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
-               multipoles, rmax, lzd%hgrids, without_normalization=.false.)
+          !!call write_multipoles(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
+          !!     multipoles, rmax, lzd%hgrids, without_normalization=.false.)
+          call write_multipoles_new(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
+               at%astruct%rxyz, multipoles, rmax, lzd%hgrids, without_normalization=.false.)
       end if
       call f_free(rmax)
       call f_free(psir_get)
 
       call f_free(kernel_ortho)
+
+      if (iproc==0) then
+          call yaml_mapping_close()
+      end if
 
       call f_release_routine()
 
@@ -747,6 +763,10 @@ module multipole
           integer,parameter :: nsi1=0, nsi2=10, nsi3=20
           real(kind=8),dimension(3) :: locregcenter
           integer :: nr
+
+          if (iproc==0) then
+              call yaml_mapping_open('Unitary test for multipoles')
+          end if
 
           locregcenter(1) = (ceiling(real(n1i,kind=8)/2.d0)+nsi1-14-1)*0.5d0*lzd%hgrids(1)
           locregcenter(2) = (ceiling(real(n2i,kind=8)/2.d0)+nsi2-14-1)*0.5d0*lzd%hgrids(2)
@@ -840,7 +860,10 @@ module multipole
           !call mpi_barrier(mpi_comm_world,i3)
 
           if (iproc==0) then
-              call write_multipoles(1, 1, (/1/), (/'testatom'/), multipoles, rmax, lzd%hgrids, without_normalization=.true.)
+              !!call write_multipoles(1, 1, (/1/), (/'testatom'/), multipoles, rmax, lzd%hgrids, without_normalization=.true.)
+              call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), &
+                   multipoles, rmax, lzd%hgrids, without_normalization=.true.)
+              call yaml_mapping_close()
           end if
 
         end subroutine unitary_test
@@ -985,6 +1008,92 @@ module multipole
           call f_free(multipoles_tmp)
 
     end subroutine write_multipoles
+
+
+
+    subroutine write_multipoles_new(nat, ntypes, iatype, atomnames, rxyz, multipoles, rmax, hgrids, without_normalization)
+      use yaml_output
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: nat, ntypes
+      integer,dimension(nat),intent(in) :: iatype
+      character(len=*),dimension(ntypes),intent(in) :: atomnames
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(in) :: multipoles
+      real(kind=8),dimension(nat),intent(in) :: rmax
+      real(kind=8),dimension(3),intent(in) :: hgrids
+      logical,intent(in) :: without_normalization
+      
+      ! Local variables
+      character(len=20) :: atomname
+      integer :: i, iat, l, m, nit
+      real(kind=8) :: max_error, factor!, get_normalization, get_test_factor
+      real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
+
+          multipoles_tmp = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.nat/),id='multipoles_tmp')
+
+          if (without_normalization) then
+              nit = 2
+          else
+              nit = 1
+          end if
+
+          factor = 0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3)
+
+          max_error = 0.d0
+          call yaml_mapping_open('Multipole coefficients')
+          do i=1,nit
+              if (i==1) then
+                  call yaml_map('normalized',.true.)
+                  call yaml_map('radius of normalization sphere',(/minval(rmax),maxval(rmax)/))
+                  call f_memcpy(src=multipoles, dest=multipoles_tmp)
+              else if (i==2) then
+                  call yaml_map('normalized',.false.)
+                  do iat=1,nat
+                      do l=0,lmax
+                          do m=-l,l
+                              !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)/((get_normalization(rmax, l, m)*0.821583836)**2)
+                              !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*((get_normalization(rmax, l, m)*0.106726871))
+                              multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax(iat),l,m)**2*factor
+                              max_error = max(max_error,abs(multipoles_tmp(m,l,iat)-get_test_factor(l,m)))
+                              !write(*,'(a,3i5,2es14.5)') 'iat, l, m, multipoles(m,l,iat), ref', iat, l, m, multipoles(m,l,iat), get_test_factor(l,m)
+                          end do
+                      end do
+                  end do
+              end if
+              call yaml_sequence_open('Values')
+              do iat=1,nat
+                  call yaml_sequence(advance='no')
+                  atomname=atomnames(iatype(iat))
+                  !call yaml_sequence_open(trim(atomname))
+                  call yaml_map('sym',adjustl(trim(atomname)))
+                  call yaml_map('r',rxyz(1:3,iat))
+                  do l=0,lmax
+                      !call yaml_sequence(advance='no')
+                      !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
+                      !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat)*sqrt(4.d0**(2*l+3)),fmt='(1es16.8)')
+                      !do m=-l,l
+                          !multipoles(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax, l, m)
+                          !max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
+                      !end do
+                      call yaml_map('q'//adjustl(trim(yaml_toa(l))),multipoles_tmp(-l:l,l,iat),fmt='(1es16.8)')
+                      call yaml_newline()
+                  end do
+                  !call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+                  !call yaml_sequence_close()
+              end do
+              call yaml_sequence_close()
+              if (i==2) then
+                  call yaml_map('max error from original values',max_error)
+              end if
+          end do
+          call yaml_mapping_close()
+
+
+          call f_free(multipoles_tmp)
+
+    end subroutine write_multipoles_new
 
 
     function get_normalization(rmax, l, m) result(fn)
@@ -1210,7 +1319,6 @@ module multipole
       !end if
 
 
-      if (iproc==0) call yaml_comment('Multipole analysis',hfill='-')
 
       rmax = 0.d0
       norb_list = f_malloc(maxval(norbsPerType(:)),id='norb_list')

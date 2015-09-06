@@ -10,7 +10,7 @@
 
 !> Module which defines a dictionary and the pure functions for its basic usage rules (no dependency)
 module dictionaries_base
-
+  use f_precisions
   implicit none
 
   integer, parameter, public :: max_field_length = 256    !< Maximum length of a field

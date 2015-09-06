@@ -81,12 +81,13 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
    integer :: nxc,istden,istglo,ip,irho,i3s,i23,i23s,n23
+   integer(f_integer) :: ierr_4
    real(dp) :: ehartreeLOC,pot,rhores2,beta
    real(dp) :: alpha,ratio,normb,normr,norm_nonvac,e_static,rpoints
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
    real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z,depsdrho
-   real(dp), dimension(:,:,:), allocatable :: zf,work_full
+   real(dp), dimension(:,:,:), allocatable :: zf,work_full,pot_full
    !integer, dimension(:,:), allocatable :: gather_arr
 
    call f_routine(id='H_potential')
@@ -106,6 +107,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    else
       wrtmsg=.true.
    end if
+   wrtmsg=.true.
    wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
    ! rewrite
 
@@ -178,6 +180,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !in the case of SC cavity, gather the full density and determine the depsdrho
    !here the if statement for the SC cavity should be put
    !print *,'method',trim(char(kernel%method)),associated(kernel%method%family),trim(char(kernel%method%family))
+   if (kernel%method == 'PCG') &
+        pot_full=f_malloc(kernel%ndims,id='pot_full')
    if (kernel%method .hasattr. PS_SCCS_ENUM) then
       work_full=f_malloc(kernel%ndims,id='work_full')
       depsdrho=f_malloc([n1,n23],id='depsdrho')
@@ -254,6 +258,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
                     rhopol(i1,i23+i23s)
 !!$                       kernel%oneoeps(i1,i2,i3+i3s)*rho(i1,i2,i3)+&
 !!$                       rhopol(i1,i2,i3+i3s)
+               kernel%pol_charge(i1,i23)=rhopot(irho)-rho(i1,i23)
                irho=irho+1
             end do
          end do
@@ -262,10 +267,13 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          !gathering the data to obtain the distribution array
          !this method only works with datacode == 'G'
          if (kernel%mpi_env%nproc > 1) then
-            call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
-                 displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+            call mpiallgather(rhopot(1),recvcounts=int(kernel%counts,f_integer),&
+                 displs=int(kernel%displs,f_integer),comm=int(kernel%mpi_env%mpi_comm,f_integer))
+            !call MPI_ALLGATHERV(int(MPI_IN_PLACE,f_long),int(kernel%counts(kernel%mpi_env%iproc),f_long),int(mpitype(rhopot(1)),f_long),&
+            !     rhopot,int(kernel%counts,f_long),int(kernel%displs,f_long),int(mpitype(rhopot(1)),f_long),int(kernel%mpi_env%mpi_comm,f_long),ierr)
+
          end if
-         
+
          !update rhopol and calculate residue
          call fssnord3DmatNabla_LG(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
               kernel%ndims(3),&
@@ -328,6 +336,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       q=f_malloc0([n1,n23],id='q')
       p=f_malloc0([n1,n23],id='p')
       z=f_malloc([n1,n23],id='z')
+      rho=f_malloc([n1,n23],id='rho')
 
       if (wrtmsg) &
            call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
@@ -342,6 +351,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
            src=rhopot(i3start),dest=r)
+      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
+           src=rhopot(i3start),dest=rho)
 
       !$omp parallel do default(shared) private(i1,i23)
       do i23=1,n23
@@ -375,6 +386,11 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       if (kernel%method .hasattr. PS_SCCS_ENUM)&
            call extra_sccs_potential(kernel,work_full,depsdrho,x)
 
+!--------------------------------------
+! Polarization charge
+           call pol_charge(kernel,pot_full,rho,x)
+!--------------------------------------
+
       !here the harteee energy can be calculated and the ionic potential
       !added
       call finalize_hartree_results(sumpion,pot_ion,&
@@ -396,10 +412,12 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call f_free(p)
       call f_free(q)
       call f_free(r)
+      call f_free(rho)
 
    end select
 
    call f_free(zf)
+   if (kernel%method == 'PCG') call f_free(pot_full)
 
    !if statement for SC cavity to be added
    if (kernel%method .hasattr. PS_SCCS_ENUM) then
@@ -475,6 +493,26 @@ subroutine extra_sccs_potential(kernel,work_full,depsdrho,pot)
   
 end subroutine extra_sccs_potential
 
+subroutine pol_charge(kernel,pot_full,rho,pot)
+  implicit none
+  type(coulomb_operator), intent(in) :: kernel
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out) :: pot_full
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: rho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p) :: pot !intent in
+
+  !first gather the potential to calculate the derivative
+  if (kernel%mpi_env%nproc > 1) then
+     call mpiallgather(pot,recvbuf=pot_full,recvcounts=kernel%counts,&
+          displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+  else
+     call f_memcpy(src=pot,dest=pot_full)
+  end if
+
+  !lculate the extra potential and add it to pot
+  call polarization_charge(kernel,pot_full,rho)
+  
+end subroutine pol_charge
+
 !> verify that the density is considerably zero in the region where epsilon is different from one
 subroutine nonvacuum_projection(n1,n23,rho,oneoeps,norm)
   implicit none
@@ -519,6 +557,8 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
   integer :: size1,size2,switch_alg,i_stat,ierr,i23,j23,j3,i1,n3delta
   real(dp) :: pt,rh
   real(dp), dimension(:), allocatable :: zf1
+
+  call f_routine(id='apply_kernel')
 
   call f_zero(zf)
   !this routine builds the values for each process of the potential (zf), multiplying by scal   
@@ -634,6 +674,8 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
      end do
      !$omp end parallel do
   end if
+
+  call f_release_routine()
 
 end subroutine apply_kernel
 

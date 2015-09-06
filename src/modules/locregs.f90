@@ -559,7 +559,7 @@ contains
     function check_whether_bounds_overlap_int(i1, i2, j1, j2) result(overlap)
       implicit none
       ! Calling arguments
-      integer,intent(in) :: i1, i2, j1, j2
+      integer(kind=4),intent(in) :: i1, i2, j1, j2
       logical :: overlap
       ! Local variables
       integer :: periodic
@@ -633,9 +633,9 @@ contains
       use yaml_strings, only: operator(//)
       implicit none
       ! Calling arguments
-      integer,intent(in) :: i1, i2, j1, j2
-      integer,intent(out) :: n !<number of overlaps
-      integer,dimension(2),intent(out) :: ks, ke, nlen
+      integer(kind=4),intent(in) :: i1, i2, j1, j2
+      integer(kind=4),intent(out) :: n !<number of overlaps
+      integer(kind=4),dimension(2),intent(out) :: ks, ke, nlen
       ! Local variables
       integer :: ks1, ke1, ks2, ke2
       logical :: periodic, case1, case2, found_case
@@ -727,14 +727,13 @@ contains
       end if
 
       if (nlen(2)<0) then
-          call f_err_throw('nlen(2)<0: '//&
-               &'i1='//  i1//&
-               &', i2='//i2//&
-               &', j1='//j1//&
-               &', j2='//j2//&
-               &', ks='//ks(2)//&
-               &', ke='//ke(2)&
-               ,err_name='BIGDFT_RUNTIME_ERROR')
+         call f_err_throw('nlen(2)<0: i1='//  i1//&
+              ', i2='//i2//&
+              (', j1='//j1//&
+              ', j2='//j2)//&
+              ', ks='//ks(2)//&
+              ', ke='//ke(2)&
+              ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
     end subroutine get_extent_of_overlap_int
@@ -746,7 +745,7 @@ contains
       implicit none
       ! Calling arguments
       integer(kind=8),intent(in) :: i1, i2, j1, j2
-      integer,intent(out) :: n
+      integer(kind=8),intent(out) :: n
       integer(kind=8),dimension(2),intent(out) :: ks, ke, nlen
       ! Local variables
       integer(kind=8) :: ks1, ke1, ks2, ke2
@@ -824,22 +823,20 @@ contains
       end if
 
       if (nlen(1)<0) then
-          call f_err_throw('nlen(1)<0: '//&
-               &'i1='//  i1//&
+          call f_err_throw('nlen(1)<0: i1='//  i1//&
                &', i2='//i2//&
-               &', j1='//j1//&
-               &', j2='//j2//&
+               &(', j1='//j1//&
+               &', j2='//j2)//&
                &', ks='//ks(1)//&
                &', ke='//ke(1)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       if (nlen(2)<0) then
-          call f_err_throw('nlen(2)<0: '//&
-               &'i1='//  i1//&
+          call f_err_throw('nlen(2)<0: i1='//  i1//&
                &', i2='//i2//&
-               &', j1='//j1//&
-               &', j2='//j2//&
+               &(', j1='//j1//&
+               &', j2='//j2)//&
                &', ks='//ks(2)//&
                &', ke='//ke(2)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
