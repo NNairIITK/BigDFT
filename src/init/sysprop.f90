@@ -26,6 +26,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use communications_init, only: orbitals_communicators
   use Poisson_Solver, only: pkernel_allocate_cavity
   use public_enums
+  use locreg_operations
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump

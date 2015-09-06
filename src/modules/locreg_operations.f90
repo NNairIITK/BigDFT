@@ -62,13 +62,13 @@ module locreg_operations
   public :: initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
   public :: initialize_work_arrays_locham,deallocate_work_arrays_locham
   public :: memspace_work_arrays_sumrho,memspace_work_arrays_locham
+  public :: allocate_work_arrays,init_local_work_arrays,deallocate_work_arrays
+  public :: deallocate_workarrays_quartic_convolutions,zero_local_work_arrays
 
   contains
 
     !> Initialize work arrays for local hamiltonian
     subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
-      use module_base
-      use module_types
       implicit none
       integer, intent(in) :: nlr, nspinor
       type(locreg_descriptors), dimension(nlr), intent(in) :: lr
@@ -247,10 +247,7 @@ module locreg_operations
 
 
     subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
-      !n(c) use module_base
-      use module_types
       implicit none
-      !n(c) integer, intent(in) :: nspinor
       type(locreg_descriptors), intent(in) :: lr
       integer(kind=8), intent(out) :: memwork
       !local variables
@@ -348,8 +345,6 @@ module locreg_operations
 
     !> Set to zero the work arrays for local hamiltonian
     subroutine zero_work_arrays_locham(lr,nspinor,w)
-      use module_base
-      use module_types
       implicit none
       integer, intent(in) :: nspinor
       type(locreg_descriptors), intent(in) :: lr
@@ -398,8 +393,6 @@ module locreg_operations
 
 
     subroutine deallocate_work_arrays_locham(w)
-      use module_base
-      use module_types
       implicit none
       type(workarr_locham), intent(inout) :: w
       !local variables
@@ -418,8 +411,6 @@ module locreg_operations
 
 
     subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
-      use module_base
-      use module_types
       implicit none
       integer, intent(in) :: nlr
       type(locreg_descriptors), dimension(nlr), intent(in) :: lr
@@ -532,8 +523,6 @@ module locreg_operations
 
 
     subroutine memspace_work_arrays_sumrho(lr,memwork)
-      !n(c) use module_base
-      use module_types
       implicit none
       type(locreg_descriptors), intent(in) :: lr
       integer(kind=8), intent(out) :: memwork
@@ -599,8 +588,6 @@ module locreg_operations
 
 
     subroutine deallocate_work_arrays_sumrho(w)
-      use module_base
-      use module_types
       implicit none
       type(workarr_sumrho), intent(inout) :: w
       !local variables
@@ -613,16 +600,512 @@ module locreg_operations
 
     END SUBROUTINE deallocate_work_arrays_sumrho
 
+    subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
+      implicit none
+      character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+      logical, intent(in) :: hybrid_on
+      integer, intent(in) :: ncplx
+      type(grid_dimensions), intent(in) :: d
+      type(workarr_precond), intent(out) :: w
+      !local variables
+      character(len=*), parameter :: subname='allocate_work_arrays'
+      integer, parameter :: lowfil=-14,lupfil=14
+      integer :: nd1,nd2,nd3
+      integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
+      integer :: nf
 
+      if (geocode == 'F') then
+
+         nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+         !allocate work arrays
+         w%xpsig_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%xpsig_c')
+         w%xpsig_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%xpsig_f')
+         w%ypsig_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%ypsig_c')
+         w%ypsig_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%ypsig_f')
+
+         w%x_f1 = f_malloc_ptr(nf,id='w%x_f1')
+         w%x_f2 = f_malloc_ptr(nf,id='w%x_f2')
+         w%x_f3 = f_malloc_ptr(nf,id='w%x_f3')
+
+      else if (geocode == 'P') then
+
+         if (hybrid_on) then
+
+            call dimensions_fft(d%n1,d%n2,d%n3,&
+                 nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
+
+            nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+
+            w%kern_k1 = f_malloc_ptr(0.to.d%n1,id='w%kern_k1')
+            w%kern_k2 = f_malloc_ptr(0.to.d%n2,id='w%kern_k2')
+            w%kern_k3 = f_malloc_ptr(0.to.d%n3,id='w%kern_k3')
+            w%z1 = f_malloc_ptr((/ 2, nd1b, nd2, nd3, 2 /),id='w%z1')
+            w%z3 = f_malloc_ptr((/ 2, nd1, nd2, nd3f, 2 /),id='w%z3')
+            w%x_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%x_c')
+
+            w%x_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%x_f')
+            w%x_f1 = f_malloc_ptr(nf,id='w%x_f1')
+            w%x_f2 = f_malloc_ptr(nf,id='w%x_f2')
+            w%x_f3 = f_malloc_ptr(nf,id='w%x_f3')
+            w%y_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%y_f')
+            w%ypsig_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%ypsig_c')
+
+
+         else 
+
+            if (ncplx == 1) then
+               !periodic, not k-points
+               w%modul1 = f_malloc_ptr(lowfil.to.d%n1+lupfil,id='w%modul1')
+               w%modul2 = f_malloc_ptr(lowfil.to.d%n2+lupfil,id='w%modul2')
+               w%modul3 = f_malloc_ptr(lowfil.to.d%n3+lupfil,id='w%modul3')
+               w%af = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%af')
+               w%bf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%bf')
+               w%cf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%cf')
+               w%ef = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%ef')
+            end if
+
+            w%psifscf = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2),id='w%psifscf')
+            w%ww = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2),id='w%ww')
+
+         end if
+
+      else if (geocode == 'S') then
+
+         if (ncplx == 1) then
+            w%modul1 = f_malloc_ptr(lowfil.to.d%n1+lupfil,id='w%modul1')
+            w%modul3 = f_malloc_ptr(lowfil.to.d%n3+lupfil,id='w%modul3')
+            w%af = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%af')
+            w%bf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%bf')
+            w%cf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%cf')
+            w%ef = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%ef')
+         end if
+
+         w%psifscf = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2),id='w%psifscf')
+         w%ww = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2),id='w%ww')
+
+      end if
+
+    END SUBROUTINE allocate_work_arrays
+
+
+    subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
+      implicit none
+      character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+      logical, intent(in) :: hybrid_on
+      integer, intent(in) :: ncplx
+      type(grid_dimensions), intent(in) :: d
+      integer(kind=8), intent(out) :: memwork
+      !local variables
+      integer, parameter :: lowfil=-14,lupfil=14
+      integer :: nd1,nd2,nd3
+      integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
+      integer :: nf
+
+
+      if (geocode == 'F') then
+
+         nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+
+         memwork=2*(d%n1+1)*(d%n2+1)*(d%n3+1)+2*7*(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)+3*nf
+
+
+      else if (geocode == 'P') then
+
+         if (hybrid_on) then
+
+            call dimensions_fft(d%n1,d%n2,d%n3,&
+                 nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
+
+            nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
+
+            memwork=(d%n1+1)+(d%n2+1)+(d%n3+1)+2*nd1b*nd2*nd3*2+2*nd1*nd2*nd3f*2+&
+                 (d%n1+1)*(d%n2+1)*(d%n3+1)+2*7*(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)+3*nf
+
+         else 
+
+            memwork=0
+            if (ncplx == 1) then
+               memwork=d%n1+d%n2+d%n3+15*(lupfil-lowfil+1)
+            end if
+            memwork=memwork+2*ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2)
+
+         end if
+
+      else if (geocode == 'S') then
+
+         memwork=0
+         if (ncplx == 1) then
+            memwork=d%n1+d%n3+14*(lupfil-lowfil+1)
+         end if
+         memwork=memwork+2*ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2)
+      end if
+
+    END SUBROUTINE memspace_work_arrays_precond
+
+
+    subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
+      implicit none
+      character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+      logical, intent(in) :: hybrid_on
+      integer, intent(in) :: ncplx
+      type(workarr_precond), intent(inout) :: w
+      !local variables
+      character(len=*), parameter :: subname='deallocate_work_arrays'
+
+      if (geocode == 'F') then
+
+         call f_free_ptr(w%xpsig_c)
+         call f_free_ptr(w%ypsig_c)
+         call f_free_ptr(w%xpsig_f)
+         call f_free_ptr(w%ypsig_f)
+         call f_free_ptr(w%x_f1)
+         call f_free_ptr(w%x_f2)
+         call f_free_ptr(w%x_f3)
+
+      else if ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'S') then
+
+         if (ncplx == 1) then
+            call f_free_ptr(w%modul1)
+            if (geocode /= 'S') then
+               call f_free_ptr(w%modul2)
+            end if
+            call f_free_ptr(w%modul3)
+            call f_free_ptr(w%af)
+            call f_free_ptr(w%bf)
+            call f_free_ptr(w%cf)
+            call f_free_ptr(w%ef)
+         end if
+
+         call f_free_ptr(w%psifscf)
+         call f_free_ptr(w%ww)
+
+      else if (geocode == 'P' .and. hybrid_on) then
+
+         call f_free_ptr(w%z1)
+         call f_free_ptr(w%z3)
+         call f_free_ptr(w%kern_k1)
+         call f_free_ptr(w%kern_k2)
+         call f_free_ptr(w%kern_k3)
+         call f_free_ptr(w%x_c)
+         call f_free_ptr(w%x_f)
+         call f_free_ptr(w%x_f1)
+         call f_free_ptr(w%x_f2)
+         call f_free_ptr(w%x_f3)
+         call f_free_ptr(w%y_f)
+         call f_free_ptr(w%ypsig_c)
+
+
+      end if
+
+    END SUBROUTINE deallocate_work_arrays
+
+    subroutine deallocate_workarrays_quartic_convolutions(work)
+      implicit none
+
+      ! Calling arguments
+      type(workarrays_quartic_convolutions),intent(inout):: work
+
+      ! Local variables
+      integer:: iall, istat
+
+
+      call f_free_ptr(work%xx_c)
+
+      call f_free_ptr(work%xy_c)
+
+      call f_free_ptr(work%xz_c)
+
+      call f_free_ptr(work%xx_f1)
+
+      call f_free_ptr(work%xx_f)
+
+      call f_free_ptr(work%xy_f2)
+
+      call f_free_ptr(work%xy_f)
+
+      call f_free_ptr(work%xz_f4)
+
+      call f_free_ptr(work%xz_f)
+
+      call f_free_ptr(work%y_c)
+
+      call f_free_ptr(work%y_f)
+
+      call f_free_ptr(work%aeff0array)
+
+      call f_free_ptr(work%beff0array)
+
+      call f_free_ptr(work%ceff0array)
+
+      call f_free_ptr(work%eeff0array)
+
+      call f_free_ptr(work%aeff0_2array)
+
+      call f_free_ptr(work%beff0_2array)
+
+      call f_free_ptr(work%ceff0_2array)
+
+      call f_free_ptr(work%eeff0_2array)
+
+      call f_free_ptr(work%aeff0_2auxarray)
+
+      call f_free_ptr(work%beff0_2auxarray)
+
+      call f_free_ptr(work%ceff0_2auxarray)
+
+      call f_free_ptr(work%eeff0_2auxarray)
+
+      call f_free_ptr(work%xya_c)
+
+      call f_free_ptr(work%xyc_c)
+
+      call f_free_ptr(work%xza_c)
+
+      call f_free_ptr(work%xzc_c)
+
+      call f_free_ptr(work%yza_c)
+
+      call f_free_ptr(work%yzb_c)
+
+      call f_free_ptr(work%yzc_c)
+
+      call f_free_ptr(work%yze_c)
+
+      call f_free_ptr(work%xya_f)
+
+      call f_free_ptr(work%xyb_f)
+
+      call f_free_ptr(work%xyc_f)
+
+      call f_free_ptr(work%xye_f)
+
+      call f_free_ptr(work%xza_f)
+
+      call f_free_ptr(work%xzb_f)
+
+      call f_free_ptr(work%xzc_f)
+
+      call f_free_ptr(work%xze_f)
+
+      call f_free_ptr(work%yza_f)
+
+      call f_free_ptr(work%yzb_f)
+
+      call f_free_ptr(work%yzc_f)
+
+      call f_free_ptr(work%yze_f)
+
+    end subroutine deallocate_workarrays_quartic_convolutions
+
+
+    subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, with_confpot, work)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in)::n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
+      logical,intent(in):: with_confpot
+      type(workarrays_quartic_convolutions),intent(inout):: work
+
+      ! Local variables
+      integer:: i, istat
+      integer,parameter :: lowfil=-14,lupfil=14
+
+      work%xx_c = f_malloc0_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='work%xx_c')
+      work%xy_c = f_malloc0_ptr((/ 0.to.n2, 0.to.n1, 0.to.n3 /),id='work%xy_c')
+      work%xz_c = f_malloc0_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%xz_c')
+
+      work%xx_f1 = f_malloc0_ptr((/ nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='work%xx_f1')
+      work%xx_f = f_malloc0_ptr((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='work%xx_f')
+
+
+      work%xy_f2 = f_malloc0_ptr((/ nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xy_f2')
+      work%xy_f = f_malloc0_ptr((/ 1.to.7, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xy_f')
+
+
+      work%xz_f4 = f_malloc0_ptr((/ nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xz_f4')
+      work%xz_f = f_malloc0_ptr((/ 1.to.7, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xz_f')
+
+
+      work%y_c = f_malloc0_ptr((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='work%y_c')
+
+      work%y_f = f_malloc0_ptr((/ 1.to.7, nfl1.to.nfu1, nfl2.to.nfu2, nfl3.to.nfu3 /),id='work%y_f')
+
+      i=max(n1,n2,n3)
+      work%aeff0array = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%aeff0array')
+      work%beff0array = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%beff0array')
+      work%ceff0array = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%ceff0array')
+      work%eeff0array = f_malloc0_ptr((/ lowfil.to.lupfil, 0.to.i /),id='work%eeff0array')
+
+      work%aeff0_2array = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%aeff0_2array')
+      work%beff0_2array = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%beff0_2array')
+      work%ceff0_2array = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%ceff0_2array')
+      work%eeff0_2array = f_malloc0_ptr((/ lowfil.to.lupfil, 0.to.i /),id='work%eeff0_2array')
+
+      work%aeff0_2auxarray = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%aeff0_2auxarray')
+      work%beff0_2auxarray = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%beff0_2auxarray')
+      work%ceff0_2auxarray = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%ceff0_2auxarray')
+      work%eeff0_2auxarray = f_malloc0_ptr((/ -3+lowfil.to.lupfil+3, 0.to.i /),id='work%eeff0_2auxarray')
+
+      work%xya_c = f_malloc_ptr((/ 0.to.n2, 0.to.n1, 0.to.n3 /),id='work%xya_c')
+      work%xyc_c = f_malloc_ptr((/ 0.to.n2, 0.to.n1, 0.to.n3 /),id='work%xyc_c')
+      if(with_confpot) then
+         call f_zero(work%xya_c)
+         call f_zero(work%xyc_c)
+      end if
+
+      work%xza_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%xza_c')
+      work%xzc_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%xzc_c')
+      if(with_confpot) then
+         call f_zero(work%xza_c)
+         call f_zero(work%xzc_c)
+      end if
+
+      work%yza_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yza_c')
+      work%yzb_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yzb_c')
+      work%yzc_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yzc_c')
+      work%yze_c = f_malloc_ptr((/ 0.to.n3, 0.to.n1, 0.to.n2 /),id='work%yze_c')
+      if(with_confpot) then
+         call f_zero(work%yza_c)
+         call f_zero(work%yzb_c)
+         call f_zero(work%yzc_c)
+         call f_zero(work%yze_c)
+      end if
+
+      work%xya_f = f_malloc_ptr((/ 1.to.3, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xya_f')
+      work%xyb_f = f_malloc_ptr((/ 1.to.4, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xyb_f')
+      work%xyc_f = f_malloc_ptr((/ 1.to.3, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xyc_f')
+      work%xye_f = f_malloc_ptr((/ 1.to.4, nfl2.to.nfu2, nfl1.to.nfu1, nfl3.to.nfu3 /),id='work%xye_f')
+      if(with_confpot) then
+         call f_zero(work%xya_f)
+         call f_zero(work%xyb_f)
+         call f_zero(work%xyc_f)
+         call f_zero(work%xye_f)
+      end if
+
+      work%xza_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xza_f')
+      work%xzb_f = f_malloc_ptr((/ 1.to.4, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xzb_f')
+      work%xzc_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xzc_f')
+      work%xze_f = f_malloc_ptr((/ 1.to.4, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%xze_f')
+      if(with_confpot) then
+         call f_zero(work%xza_f)
+         call f_zero(work%xzb_f)
+         call f_zero(work%xzc_f)
+         call f_zero(work%xze_f)
+      end if
+
+      work%yza_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yza_f')
+      work%yzb_f = f_malloc_ptr((/ 1.to.4, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yzb_f')
+      work%yzc_f = f_malloc_ptr((/ 1.to.3, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yzc_f')
+      work%yze_f = f_malloc_ptr((/ 1.to.4, nfl3.to.nfu3, nfl1.to.nfu1, nfl2.to.nfu2 /),id='work%yze_f')
+      if(with_confpot) then
+         call f_zero(work%yza_f)
+         call f_zero(work%yzb_f)
+         call f_zero(work%yzc_f)
+         call f_zero(work%yze_f)
+      end if
+
+
+    END SUBROUTINE init_local_work_arrays
+
+
+    subroutine zero_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, with_confpot, work, subname)
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in)::n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
+      logical,intent(in):: with_confpot
+      type(workarrays_quartic_convolutions),intent(inout):: work
+      character(len=*),intent(in):: subname
+
+      ! Local variables
+      integer:: i, istat
+      integer,parameter :: lowfil=-14,lupfil=14
+
+      call f_routine(id='zero_local_work_arrays')
+
+      call f_zero(work%xx_c)
+      call f_zero(work%xy_c)
+      call f_zero(work%xz_c)
+
+      call f_zero(work%xx_f1)
+      call f_zero(work%xx_f)
+
+
+      call f_zero(work%xy_f2)
+      call f_zero(work%xy_f)
+
+
+      call f_zero(work%xz_f4)
+      call f_zero(work%xz_f)
+
+
+      call f_zero(work%y_c)
+
+      call f_zero(work%y_f)
+
+      i=max(n1,n2,n3)
+      call f_zero(work%aeff0array)
+      call f_zero(work%beff0array)
+      call f_zero(work%ceff0array)
+      call f_zero(work%eeff0array)
+
+      call f_zero(work%aeff0_2array)
+      call f_zero(work%beff0_2array)
+      call f_zero(work%ceff0_2array)
+      call f_zero(work%eeff0_2array)
+
+      call f_zero(work%aeff0_2auxarray)
+      call f_zero(work%beff0_2auxarray)
+      call f_zero(work%ceff0_2auxarray)
+      call f_zero(work%eeff0_2auxarray)
+
+      if(with_confpot) then
+         call f_zero(work%xya_c)
+         call f_zero(work%xyc_c)
+      end if
+
+      if(with_confpot) then
+         call f_zero(work%xza_c)
+         call f_zero(work%xzc_c)
+      end if
+
+      if(with_confpot) then
+         call f_zero(work%yza_c)
+         call f_zero(work%yzb_c)
+         call f_zero(work%yzc_c)
+         call f_zero(work%yze_c)
+      end if
+
+      if(with_confpot) then
+         call f_zero(work%xya_f)
+         call f_zero(work%xyb_f)
+         call f_zero(work%xyc_f)
+         call f_zero(work%xye_f)
+      end if
+
+      if(with_confpot) then
+         call f_zero(work%xza_f)
+         call f_zero(work%xzb_f)
+         call f_zero(work%xzc_f)
+         call f_zero(work%xze_f)
+      end if
+
+      if(with_confpot) then
+         call f_zero(work%yza_f)
+         call f_zero(work%yzb_f)
+         call f_zero(work%yzc_f)
+         call f_zero(work%yze_f)
+      end if
+
+      call f_release_routine()
+
+    END SUBROUTINE zero_local_work_arrays
 
     !> Tranform wavefunction between localisation region and the global region
     !!!!!#######!> This routine only works if both locregs have free boundary conditions.
     !! @warning 
     !! WARNING: Make sure psi is set to zero where Glr does not collide with Llr (or everywhere)
-    subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)
-    
-      use module_base
-    
+    subroutine Lpsi_to_global2(iproc, ldim, gdim, norb, nspinor, nspin, Glr, Llr, lpsi, psi)    
      implicit none
     
       ! Subroutine Scalar Arguments
@@ -816,9 +1299,6 @@ module locreg_operations
     !!    The quantity must not be stored in a compressed form.
     subroutine global_to_local_parallel(Glr,Llr,size_rho,size_Lrho,rho,Lrho,i1s,i1e,i2s,i2e,i3s,i3e,ni1,ni2, &
                i1shift, i2shift, i3shift, ise)
-    
-     use module_base
-     
      implicit none
     
      ! Arguments
@@ -934,7 +1414,6 @@ module locreg_operations
     !> Check the relative weight which the support functions have at the
     !! boundaries of the localization regions.
     subroutine get_boundary_weight(iproc, nproc, orbs, lzd, atoms, crmult, nsize_psi, psi, crit)
-      use module_base
       use module_types, only: orbitals_data, local_zone_descriptors
       use module_atoms, only: atoms_data
       use yaml_output

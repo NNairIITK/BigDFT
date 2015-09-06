@@ -11,7 +11,7 @@
 module module_f_malloc
 
   use f_precisions
-  use dictionaries, only: f_loc,f_err_throw,f_err_raise
+  use dictionaries, only: f_err_throw,f_err_raise
   use yaml_strings, only: f_strcpy,operator(+)
 
   integer, parameter :: f_kind=f_long

@@ -18,6 +18,8 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
 
   use module_base
   use module_types
+  use locregs
+  use locreg_operations
 
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -130,7 +132,8 @@ END SUBROUTINE solvePrecondEquation
 subroutine differentiateBetweenBoundaryConditions(iproc,nproc,ncplx,lr,hx,hy,hz,kx,ky,kz,&
      cprecr,x,y,w,scal, rxyzParab, parabPrefac, confPotOrder, work_conv)! y:=Ax
   use module_base
-  use module_types
+  use locregs
+  use locreg_operations
   implicit none
   integer, intent(in) :: iproc,nproc,ncplx
   real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
@@ -230,6 +233,7 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   use module_base
   use module_types
   use module_interfaces
+  use locreg_operations
 
   implicit none
   integer, intent(in) :: iproc, nproc, n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1, ns2, ns3

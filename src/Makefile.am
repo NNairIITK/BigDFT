@@ -201,7 +201,6 @@ low_level = \
 	linear/orbitalOptimization.f90 \
 	linear/mixdiis.f90 \
 	linear/copyTypes.f90 \
-	linear/de-allocate.f90 \
 	linear/derivativeBasis.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/optimize_coeffs.f90 \

@@ -234,6 +234,7 @@ contains
   end subroutine update_ket
 
   function ob_ket_map(ob_ptr,it)
+    use f_precisions, only: f_address,f_loc
     implicit none
     real(wp), dimension(:), target :: ob_ptr !<coming from orbital_basis
     type(ket), intent(in) :: it
