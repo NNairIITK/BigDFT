@@ -118,7 +118,7 @@ module module_input_keys
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
      real(kind=8) :: max_inversion_error
-     logical :: calculate_onsite_overlap
+    logical :: calculate_onsite_overlap
      integer :: output_mat_format     !< Output Matrices format
      integer :: output_coeff_format   !< Output Coefficients format
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
