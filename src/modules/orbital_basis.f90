@@ -225,10 +225,10 @@ contains
     k%ispsi=1
     do iorbq=1,k%iorbp-1
        nvctr=k%ob%dd(iorbq)%lr%wfd%nvctr_c+7*k%ob%dd(iorbq)%lr%wfd%nvctr_f
-       k%ispsi=k%ispsi+nvctr
+       k%ispsi=k%ispsi+nvctr*k%nspinor
     end do
     k%lr=>k%ob%dd(k%iorbp)%lr
-    k%nphidim=k%lr%wfd%nvctr_c+7*k%lr%wfd%nvctr_f
+    k%nphidim=(k%lr%wfd%nvctr_c+7*k%lr%wfd%nvctr_f)*k%nspinor
 
     k%phi_wvl=>ob_ket_map(k%ob%phis_wvl,k)
   end subroutine update_ket

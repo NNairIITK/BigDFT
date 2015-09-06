@@ -690,7 +690,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                energs%ekin=energs%ekin+fi*ekin
                energs%epot=energs%epot+fi*epot
                energs%evsic=energs%evsic+SIC%alpha*eSIC_DCi
-               !print *,'orbs',psi_it%iorbp,psi_it%iorb,psi_it%kwgt,psi_it%occup,epot,ekin
+!  print *,'orbs',psi_it%iorbp,psi_it%iorb,psi_it%kwgt,psi_it%occup,epot,ekin,psi_it%ispsi,psi_it%nspinor
             end do loop_psi_lr
             !deallocations of work arrays
             call f_free(psir)
@@ -699,7 +699,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             end if
             call deallocate_work_arrays_locham(wrk_lh)
          end do loop_lr
-
+!call mpibarrier()
+!stop
          call orbital_basis_release(psi_ob)
 
 !!$         if(present(dpbox) .and. present(potential) .and. present(comgp)) then

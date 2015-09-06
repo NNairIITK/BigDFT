@@ -11,7 +11,6 @@ subroutine f_utils_test()
   use f_utils
   use yaml_output
   use f_enums
-  use dictionaries, only: f_loc
   implicit none
   !local variables
   type(f_enumerator) :: greetings=f_enumerator('Greetings',10) 

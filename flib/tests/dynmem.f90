@@ -550,7 +550,7 @@ subroutine verify_heap_allocation_status()
   use yaml_output
   use yaml_strings
   use dynamic_memory
-  use dictionaries, only: f_loc
+  use f_precisions, only: f_loc
   implicit none
   !local variables
   logical, parameter :: traditional=.true.
