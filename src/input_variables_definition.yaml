@@ -50,6 +50,7 @@
      B97-D: -170 #to be verified
      B3LYP: -402
      HF: 100 #Hartree-Fock
+     NONE: 1000
    qcharge:
      COMMENT: Charge of the system. Can be integer or real.
      DESCRIPTION: Total charge of the system. A negative value means that extra electrons are added.
@@ -670,7 +671,7 @@
    method:
      COMMENT: Run method of BigDFT call
      EXCLUSIVE:
-       dft: Density Functional Theory
+       dft: Density Functional Theory (BigDFT)
        lj: Lennard-Jones force field
        lensic: Lenosky Force Field for Si clusters
        lensib: Lenosky Force Field for Si bulk
@@ -679,12 +680,14 @@
        morse_slab: Morse slab
        tersoff: Tersoff potential for C and Si
        bmhtf: Born Mayer Huggins Tosi Fumi Potential
+       cp2k: CP2K
+       dftbp: DFTP+
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
      default: default
    mm_paramfile:
-     COMMENT: name of parameter file
+     COMMENT: name of parameter or input file for the selected method or code
      default: none
      
 #Performance parameters

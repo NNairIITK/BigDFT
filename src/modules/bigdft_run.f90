@@ -40,6 +40,7 @@ module bigdft_run
      type(f_reference_counter) :: refcnt
      !> array for temporary copy of atomic positions and forces
      real(gp), dimension(:,:), pointer :: rf_extra
+     type(f_enumerator) :: run_mode !< run_mode for freeing the extra treatments
   end type MM_restart_objects
 
   !> Public container to be used with bigdft_state().
@@ -134,6 +135,7 @@ contains
     type(MM_restart_objects), intent(out) :: mm_rst
     call nullify_f_ref(mm_rst%refcnt)
     nullify(mm_rst%rf_extra)
+    call nullify_f_enum(mm_rst%run_mode)
   end subroutine nullify_MM_restart_objects
 
   !> fill the run_mode with the input enumerator
@@ -149,6 +151,7 @@ contains
     use module_BornMayerHugginsTosiFumi
     use module_lj
     use module_lenosky_si
+    use module_cp2k
     use yaml_output
     implicit none
     type(run_objects), intent(inout) :: runObj
@@ -235,22 +238,54 @@ contains
           mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
        endif
        call nab_init()
+    case('CP2K_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call init_cp2k(runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
     case default
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
     end select
+
+    mm_rst%run_mode=run_mode
   end subroutine init_MM_restart_objects
 
   subroutine free_MM_restart_objects(mm_rst)
     use dynamic_memory
     use yaml_output
+    use module_cp2k
+    use module_BornMayerHugginsTosiFumi
+    use f_enums, enum_int => int
+    use yaml_strings
     implicit none
     type(MM_restart_objects), intent(inout) :: mm_rst
     !check if the object can be freed
     call f_ref_free(mm_rst%refcnt)
     call f_free_ptr(mm_rst%rf_extra)
+    !free the extra variables
+    select case(trim(f_str(mm_rst%run_mode)))
+    case('BMHTF_RUN_MODE')
+       call finalize_bmhtf()
+    case('CP2K_RUN_MODE') ! CP2K run mode
+       call finalize_cp2k()
+    case('DFTBP_RUN_MODE') ! DFTB+ run mode
+    case('LENNARD_JONES_RUN_MODE')
+    case('MORSE_SLAB_RUN_MODE')
+    case('MORSE_BULK_RUN_MODE')
+    case('TERSOFF_RUN_MODE')
+    case('LENOSKY_SI_CLUSTERS_RUN_MODE')
+    case('LENOSKY_SI_BULK_RUN_MODE')
+    case('AMBER_RUN_MODE')
+    case('QM_RUN_MODE')
+    case default
+       call f_err_throw('Following method for evaluation of '//&
+            'energies and forces is unknown: '+enum_int(mm_rst%run_mode),&
+            err_name='BIGDFT_RUNTIME_ERROR')
+    end select
 
+    
   end subroutine free_MM_restart_objects
 
   !> Allocate and nullify restart objects
@@ -1332,13 +1367,15 @@ contains
     use module_lenosky_si
     use public_enums
     use module_defs
-    use dynamic_memory, only: f_memcpy
+    use dynamic_memory, only: f_memcpy,f_routine,f_release_routine
     use yaml_strings, only: yaml_toa, operator(+)
     use yaml_output
     use module_forces, only: clean_forces
     use module_morse_bulk
     use module_tersoff
     use module_BornMayerHugginsTosiFumi
+    use module_cp2k
+    use module_dftbp
     use f_enums, enum_int => int
     implicit none
     !parameters
@@ -1352,8 +1389,10 @@ contains
     real(gp) :: maxdiff
     real(gp), dimension(3) :: alatint
     real(gp), dimension(:,:), pointer :: rxyz_ptr
+    integer :: policy_tmp
 !!integer :: iat , l
 !!real(gp) :: anoise,tt
+    call f_routine(id='bigdft_state')
 
     rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
     nat=bigdft_nat(runObj)
@@ -1450,9 +1489,20 @@ contains
        !the yaml document is created in the cluster routine
        call quantum_mechanical_state(runObj,outs,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('BigDFT infocode',infocode)
+    case('CP2K_RUN_MODE') ! CP2K run mode
+       call cp2k_energy_forces(nat,bigdft_get_cell(runObj),rxyz_ptr,&
+            outs%fxyz,outs%energy,infocode)
+       if (bigdft_mpi%iproc==0) call yaml_map('CP2K infocode',infocode)
+    case('DFTBP_RUN_MODE') ! DFTB+ run mode
+        call bigdft_get_input_policy(runObj, policy_tmp)
+        call dftbp_energy_forces(policy_tmp,nat,bigdft_get_cell(runObj),&
+             bigdft_get_astruct_ptr(runObj),bigdft_get_geocode(runObj),rxyz_ptr,&
+             outs%fxyz,outs%strten,outs%energy,infocode)
+       if (bigdft_mpi%iproc==0) call yaml_map('DFTB+ infocode',infocode)
     case default
        call f_err_throw('Following method for evaluation of '//&
-            'energies and forces is unknown: '+ yaml_toa(enum_int(runObj%run_mode)))
+            'energies and forces is unknown: '+ enum_int(runObj%run_mode)//&
+            '('+f_str(runObj%run_mode)+')',err_name='BIGDFT_RUNTIME_ERROR')
     end select
 !!         anoise=2.d-5
 !!         if (anoise.ne.0.d0) then
@@ -1474,6 +1524,8 @@ contains
        call yaml_map('Energy',outs%energy)
        call yaml_mapping_close()
     end if
+
+    call f_release_routine()
 
   end subroutine bigdft_state
 
@@ -1687,7 +1739,7 @@ contains
 
   !> square root of bigdft_dot(runObj,dx,dx)
   function bigdft_nrm2(runObj,dx,dx_add) result(scpr)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none
     !> run_object bigdft structure
     type(run_objects), intent(in) :: runObj
@@ -2182,7 +2234,7 @@ subroutine run_objects_system_setup(runObj, iproc, nproc, rxyz, shift, mem)
   use module_types
   use module_fragments
   use module_interfaces, only: system_initialization
-  use psp_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use communications_base, only: deallocate_comms
   implicit none
   type(run_objects), intent(inout) :: runObj

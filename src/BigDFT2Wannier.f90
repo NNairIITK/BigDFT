@@ -21,6 +21,7 @@ program BigDFT2Wannier
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use communications, only: transpose_v, untranspose_v
+   use bounds, only: ext_buffers
    implicit none
    character :: filetype*4
    !etsf
@@ -2115,6 +2116,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
 
    use BigDFT_API
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use bounds, only: ext_buffers
    implicit none
    ! I/O variables
    type(locreg_descriptors), intent(in) :: Glr

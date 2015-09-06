@@ -630,7 +630,7 @@ contains
     !! point and the extent of the (possibly two) overlaps.
     subroutine get_extent_of_overlap_int(i1, i2, j1, j2, n, ks, ke, nlen)
       use dictionaries, only: f_err_throw
-      use yaml_strings, only: yaml_toa!,operator(+)
+      use yaml_strings, only: operator(//)
       implicit none
       ! Calling arguments
       integer,intent(in) :: i1, i2, j1, j2
@@ -645,16 +645,16 @@ contains
       nlen(:) = 0
 
       if (j2<j1) then
-!!$          call f_err_throw('j2<j1: '+&
-!!$               'i1='+yaml_toa(i1,fmt='(i0)')+&
-!!$               ', i2='+yaml_toa(i2,fmt='(i0)')+&
-!!$               ', j1='+yaml_toa(j1,fmt='(i0)')+&
-!!$               ', j2='+yaml_toa(j2,fmt='(i0)')&
+          call f_err_throw('j2<j1: '+&
+               'i1='//i1//', i2='//i2//&
+               ', j1='//j1//', j2='//j2,&
+               err_name='BIGDFT_RUNTIME_ERROR')
+!!$          call f_err_throw('j2<j1: '//&
+!!$               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
+!!$               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
+!!$               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
+!!$               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))&
 !!$               ,err_name='BIGDFT_RUNTIME_ERROR')
-!!$          !that would be most practical
-!!$          call f_err_throw('j2<j1: '+'i1='+i1+', i2='+i2+', j1='+j1+', j2='+j2,&
-!!$               err_name='BIGDFT_RUNTIME_ERROR')
-         call f_err_throw('j2<j1: ',err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       ! Check whether there is an overlap
@@ -717,23 +717,23 @@ contains
 
       if (nlen(1)<0) then
           call f_err_throw('nlen(1)<0: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
-               &', ks='//trim(yaml_toa(ks(1),fmt='(i0)'))//&
-               &', ke='//trim(yaml_toa(ke(1),fmt='(i0)'))&
+               &'i1='//  i1//&
+               &', i2='//i2//&
+               &', j1='//j1//&
+               &', j2='//j2//&
+               &', ks='//ks(1)//&
+               &', ke='//ke(1)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       if (nlen(2)<0) then
           call f_err_throw('nlen(2)<0: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
-               &', ks='//trim(yaml_toa(ks(2),fmt='(i0)'))//&
-               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
+               &'i1='//  i1//&
+               &', i2='//i2//&
+               &', j1='//j1//&
+               &', j2='//j2//&
+               &', ks='//ks(2)//&
+               &', ke='//ke(2)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
@@ -742,7 +742,7 @@ contains
 
     subroutine get_extent_of_overlap_long(i1, i2, j1, j2, n, ks, ke, nlen)
       use dictionaries, only: f_err_throw
-      use yaml_output, only: yaml_toa
+      use yaml_strings, only: operator(//)
       implicit none
       ! Calling arguments
       integer(kind=8),intent(in) :: i1, i2, j1, j2
@@ -758,10 +758,10 @@ contains
 
       if (j2<j1) then
           call f_err_throw('j2<j1: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))&
+               &'i1='  //i1//&
+               &', i2='//i2//&
+               &', j1='//j1//&
+               &', j2='//j2&
                ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
@@ -825,23 +825,23 @@ contains
 
       if (nlen(1)<0) then
           call f_err_throw('nlen(1)<0: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
-               &', ks='//trim(yaml_toa(ks(1),fmt='(i0)'))//&
-               &', ke='//trim(yaml_toa(ke(1),fmt='(i0)'))&
+               &'i1='//  i1//&
+               &', i2='//i2//&
+               &', j1='//j1//&
+               &', j2='//j2//&
+               &', ks='//ks(1)//&
+               &', ke='//ke(1)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       if (nlen(2)<0) then
           call f_err_throw('nlen(2)<0: '//&
-               &'i1='//trim(yaml_toa(i1,fmt='(i0)'))//&
-               &', i2='//trim(yaml_toa(i2,fmt='(i0)'))//&
-               &', j1='//trim(yaml_toa(j1,fmt='(i0)'))//&
-               &', j2='//trim(yaml_toa(j2,fmt='(i0)'))//&
-               &', ks='//trim(yaml_toa(ks(2),fmt='(i0)'))//&
-               &', ke='//trim(yaml_toa(ke(2),fmt='(i0)'))&
+               &'i1='//  i1//&
+               &', i2='//i2//&
+               &', j1='//j1//&
+               &', j2='//j2//&
+               &', ks='//ks(2)//&
+               &', ke='//ke(2)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 

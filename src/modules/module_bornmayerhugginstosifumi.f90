@@ -112,7 +112,7 @@ subroutine init_bmhtf(nat,astruct,paramset,paramfile,geocode)
         select case(trim(paramset))
         case('NaCl')
             call yaml_mapping_open('Using NaCl parameters from'//&           
-                 ' Adams, D. J., McDonald, I. R. J. Phys. C: Solid State Phys., Vol. 7, 1974')
+                 ' Adams, D. J., McDonald, I. R. J. Phys. C: Solid State Phys., Vol. 7, 1974 (doi:10.1088/0022-3719/8/13/529)')
             nameinteraction(1) = 'NaNa' 
             parameters(1,1) = 15.5672851674_gp !A(Na<->Na) 
             parameters(2,1) = 1.6693287451_gp !1/rho (Na<->Na)
@@ -149,7 +149,7 @@ subroutine init_bmhtf(nat,astruct,paramset,paramfile,geocode)
             call yaml_mapping_close() 
         case('KCl')
             call yaml_mapping_open('Using KCl parameters from'//&           
-                 ' Adams, D. J., McDonald, I. R. J. Phys. C: Solid State Phys., Vol. 7, 1974')
+                 ' Adams, D. J., McDonald, I. R. J. Phys. C: Solid State Phys., Vol. 7, 1974 (doi:10.1088/0022-3719/8/13/529)')
             nameinteraction(1) = 'KK' 
             parameters(1,1) = 57.1660802102_gp !A(K<->K) 
             parameters(2,1) = 1.5702587899_gp !1/rho (K<->K)
@@ -186,7 +186,7 @@ subroutine init_bmhtf(nat,astruct,paramset,paramfile,geocode)
             call yaml_mapping_close() 
         case('LiCl')
             call yaml_mapping_open('Using LiCl parameters from'//&           
-                 ' Adams, D. J., McDonald, I. R. J. Phys. C: Solid State Phys., Vol. 7, 1974')
+                 ' Adams, D. J., McDonald, I. R. J. Phys. C: Solid State Phys., Vol. 7, 1974 (doi:10.1088/0022-3719/8/13/529)')
             nameinteraction(1) = 'LiLi' 
             parameters(1,1) =1.8319877717_gp!A(Li<->Li) 
             parameters(2,1) =1.5473017901_gp!1/rho (Li<->Li)
@@ -223,7 +223,7 @@ subroutine init_bmhtf(nat,astruct,paramset,paramfile,geocode)
             call yaml_mapping_close() 
         case('NaF')
             call yaml_mapping_open('Using NaF parameters from'//&           
-                 ' Adams, D. J., McDonald, I. R. J. Phys. C: Solid State Phys., Vol. 7, 1974')
+                 ' Adams, D. J., McDonald, I. R. J. Phys. C: Solid State Phys., Vol. 7, 1974 (doi:10.1088/0022-3719/8/13/529)')
             nameinteraction(1) = 'NaNa' 
             parameters(1,1) = 11.6391827398_gp !A(Na<->Na) 
             parameters(2,1) = 1.6035673097_gp !1/rho (Na<->Na)

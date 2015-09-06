@@ -369,6 +369,7 @@ end subroutine glr_set_wave_descriptors
 
 subroutine glr_set_bounds(lr)
   use module_types
+  use bounds, only: locreg_bounds
   implicit none
   type(locreg_descriptors), intent(inout) :: lr
   
@@ -527,6 +528,7 @@ subroutine inputs_free(in)
 
   call free_input_variables(in)
   deallocate(in)
+  nullify(in)
 end subroutine inputs_free
 
 
@@ -912,7 +914,7 @@ END SUBROUTINE proj_new
 
 
 subroutine proj_free(nlpspd)
-  use psp_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use module_types
   use memory_profiling
   implicit none

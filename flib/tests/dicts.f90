@@ -213,6 +213,7 @@ end subroutine test_dictionaries0
 
 subroutine test_dictionaries1()
   use yaml_output
+  use yaml_strings
   use dictionaries
   implicit none
   !local variables
@@ -492,7 +493,7 @@ subroutine test_dictionaries1()
    !fill a list and iterate over it
    dictA=>dict_new()
    do i=1,10
-      call add(dictA,'Value'//adjustl(trim(yaml_toa(i))))
+      call add(dictA,'Value'+i)
    end do
 
    !perform an iterator on dict
@@ -630,14 +631,14 @@ subroutine test_dictionaries1()
    dictA2=> dictA // 0 // name
    call yaml_map('Dictionary',dictA2)
    do i=1,dict_len(dictA2)
-      call yaml_map('i='//trim(adjustl(yaml_toa(i))),dictA2//(i-1))
+      call yaml_map('i='+i,dictA2//(i-1))
    end do
 
    dictA2=> dict_iter(dictA // 0 .get. name)
    i=0
    do while(associated(dictA2))
       i=i+1
-      call yaml_map('i2='//trim(adjustl(yaml_toa(i))),dictA2)
+      call yaml_map('i2='+i,dictA2)
       dictA2 => dict_next(dictA2)
    end do
    
@@ -689,7 +690,7 @@ subroutine test_dictionaries1()
 
 subroutine test_dictionary_for_atoms()
   use yaml_output
-  use yaml_strings, only: f_strcpy
+  use yaml_strings
   implicit none
 
 !!$  character(len = 50) :: gu

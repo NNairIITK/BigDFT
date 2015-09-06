@@ -192,6 +192,15 @@ void FC_FUNC(getfilecontent, GETFILECONTENT)(void **pt, long *pt_len, const char
   *pt_len = s;
 }
 
+// Take a Long integer as th enumber of bythes
+void FC_FUNC(memsetzero,MEMSETZERO)(void *buf, long long int *ln)
+{
+  size_t nbytes = *ln;
+
+  memset(buf, 0, nbytes);
+}
+
+
 void FC_FUNC(copycbuffer, COPYCBUFFER)(char *to, void **cbuf, long *ln)
 {
   char *from = (char*)*cbuf;

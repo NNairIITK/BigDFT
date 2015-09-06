@@ -38,18 +38,25 @@ module yaml_strings
      module procedure case_insensitive_equiv
   end interface operator(.eqv.)
 
+  interface operator(//)
+     module procedure string_and_integer,string_and_double,string_and_long
+  end interface
+
   interface operator(+)
-     module procedure combine_strings,string_plus_integer
-  end interface operator(+)
+     module procedure combine_strings,attach_ci,attach_cd
+  end interface
 
-
+  interface operator(**)
+     module procedure yaml_itoa_fmt,yaml_dtoa_fmt,yaml_ctoa_fmt
+  end interface operator(**)
+  !format test to convert rapidly
+  !' test string' + tt**'(1pe25.16)'
 
   !Public routines
   public :: yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
-  public :: operator(.eqv.),operator(+)
-
+  public :: operator(.eqv.),operator(+),operator(//),operator(**)
 contains
 
 
@@ -631,26 +638,75 @@ contains
     implicit none
     character(len=*), intent(in) :: a
     character(len=*), intent(in) :: b
-    character(len=len(trim(adjustl(a)))+len(trim(b))) :: c
+    character(len=len_trim(a)+len_trim(adjustl(b))) :: c
     
-    c=trim(adjustl(a))//trim(b)
+    c=trim(a)//trim(adjustl(b))
   end function combine_strings
 
-  pure function string_plus_integer(a,num) result(c)
+  pure function string_and_integer(a,num) result(c)
     implicit none
     integer(f_integer), intent(in) :: num
     character(len=*), intent(in) :: a
-    character(len=len(trim(adjustl(a)))+len(trim(yaml_itoa(num)))) :: c
-    include 'yaml_plus-inc.f90'
-  end function string_plus_integer
+    character(len=len_trim(adjustl(a))+len_trim(yaml_itoa(num))) :: c
+    c=a//trim(yaml_toa(num))
+  end function string_and_integer
 
-  pure function string_plus_double(a,num) result(c)
+  pure function string_and_long(a,num) result(c)
+    implicit none
+    integer(f_long), intent(in) :: num
+    character(len=*), intent(in) :: a
+    character(len=len_trim(adjustl(a))+len_trim(yaml_litoa(num))) :: c
+    c=a//trim(yaml_toa(num))
+  end function string_and_long
+
+  pure function string_and_double(a,num) result(c)
     implicit none
     real(f_double), intent(in) :: num
     character(len=*), intent(in) :: a
-    character(len=len(trim(adjustl(a)))+len(trim(yaml_dtoa(num)))) :: c
-    include 'yaml_plus-inc.f90'
-  end function string_plus_double
+    character(len=len_trim(adjustl(a))+len_trim(yaml_dtoa(num))) :: c
+    c=a//trim(yaml_toa(num))
+  end function string_and_double
+
+  !function which attach two strings each other
+  pure function attach_ci(s,num) result(c)
+    implicit none
+    integer(f_integer), intent(in) :: num
+    character(len=*), intent(in) :: s
+    character(len=len_trim(s)+len_trim(adjustl(yaml_itoa(num)))) :: c
+    c=trim(s)//trim(adjustl(yaml_toa(num)))
+  end function attach_ci
+
+  pure function attach_cd(s,num) result(c)
+    implicit none
+    real(f_double), intent(in) :: num
+    character(len=*), intent(in) :: s
+    character(len=len_trim(s)+len_trim(adjustl(yaml_dtoa(num)))) :: c
+    c=trim(s)//trim(adjustl(yaml_toa(num)))
+  end function attach_cd
+  
+  function yaml_itoa_fmt(num,fmt) result(c)
+    implicit none
+    integer(f_integer), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+    character(len=len_trim(adjustl(yaml_itoa(num,fmt)))) :: c
+    c=trim(adjustl(yaml_toa(num,fmt)))
+  end function yaml_itoa_fmt
+
+  function yaml_dtoa_fmt(num,fmt) result(c)
+    implicit none
+    real(f_double), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+    character(len=len_trim(adjustl(yaml_dtoa(num,fmt)))) :: c
+    c=trim(adjustl(yaml_toa(num,fmt)))
+  end function yaml_dtoa_fmt
+
+  function yaml_ctoa_fmt(num,fmt) result(c)
+    implicit none
+    character(len=*), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+    character(len=len_trim(adjustl(yaml_ctoa(num,fmt)))) :: c
+    c=trim(adjustl(yaml_toa(num,fmt)))
+  end function yaml_ctoa_fmt
 
 
   !> Shifts characters in in the string 'str' n positions (positive values

@@ -805,8 +805,10 @@ module rhopotential
               else
                   ! negative, but non-negligible, so issue a warning
                   ! only print first time this occurs
-                  if (ncorrection==0) call yaml_warning('considerable negative rho, value: '//&
-                       trim(yaml_toa(rho(ipt),fmt='(es12.4)')))
+                  if (ncorrection==0) then
+                      call yaml_warning('considerable negative rho, value: '//&
+                        &trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+                  end if
                   charge_correction=charge_correction+rho(ipt)
                   !rho(ipt)=0.d0
                   rho(ipt)=1.d-20

@@ -7,6 +7,31 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+!> set nbytes term to zero
+subroutine setzero(nbytes,x)
+  use f_precisions, only: f_long
+  implicit none
+  integer(f_long), intent(in) :: nbytes
+  character, dimension(nbytes), intent(inout) :: x
+  !local variables
+  integer :: nthreads,ithread
+  !$ integer omp_get_max_threads,omp_get_thread_num
+  integer(f_long) :: nbt,it,nt,nb
+
+  if (nbytes == 0_f_long) return
+  nthreads=1
+  ithread=0
+  !$ nthreads=omp_get_max_threads()
+  nt=int(nthreads,f_long)
+  nbt=(nbytes+nt-1)/nt
+  !$omp parallel private(ithread,it,nb) 
+  !$ ithread=omp_get_thread_num()
+  !calculate the number of elements for each thread
+  it=min(nbt*ithread,nbytes-1)
+  nb=min(nbytes-it,nbt)
+  call memsetzero(x(it+1),nb)
+  !$omp end parallel
+end subroutine setzero
 
 !> Routine initialize double precision arrays to zero
 subroutine razero(n,x)

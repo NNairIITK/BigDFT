@@ -29,7 +29,8 @@ program mhgps
                              allocate_finsad_workarrays,&
                              deallocate_finsad_workarrays
     use module_connect, only: connect,&
-                              pushoff_and_relax_bothSides
+                              pushoff_and_relax_bothSides,&
+                              addToPreviouslyconnected
     use module_fingerprints, only: fingerprint
     use module_hessian, only: cal_hessian_fd 
     use module_minimizers
@@ -287,12 +288,16 @@ program mhgps
 !                   isame,rxyz,rxyz2,energy,energy2,fp,&
 !                   fp2,cobj,connected)
               if(connected)then
+                if(nsad>1)then!directily connected paris were already
+                              !added in connect subroutine
+                call addToPreviouslyconnected(mhgpsst,uinp,runObj,rxyz,rxyz2)
+                endif
                 ltmp=.true.
                 if(ijob+1<=mhgpsst%njobs)then
                     !If connected==.true. then in subroutine connect, NO
                     !new connection jobs for a restart have been added.
-                    !This meand, the job in mhgpsst%joblist(1,ijob+1) is identical
-                    !to the job that will be read an after a restart.
+                    !This means, the job in mhgpsst%joblist(1,ijob+1) is identical
+                    !to the job that will be read after a restart.
                     if(trim(adjustl(mhgpsst%joblist(1,ijob+1)(10:16)))=='restart')then
                       ltmp=.false.
                     endif

@@ -372,7 +372,12 @@ endif
 
       if (mhgpsst%iproc == 0 .and. uinp%mhgps_verbosity >=4) then
          write(fn4,'(i4.4)') nint(energycounter)
-         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
+         write(fn4,'(i4.4)') nint(energycounter)
+         if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
+            write(comment,'(a,1pe10.3)')'R SQNM:fnrm= ',fnrm
+         else
+            write(comment,'(a,1pe10.3)')'A SQNM:fnrm= ',fnrm
+         endif
          call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
               mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))&
               //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &

@@ -12,9 +12,9 @@ echo "Average number of energy/force calls per saddle computation:"
 grep "convergence at" $file | awk '{sum+=$5} END { print "Average = ",sum/NR,NR}'
 
 echo "Average number of energy/force calls per saddle computation including input guess:"
-enersaddle=`grep convergence $file | awk '{sum+=$5} END { print sum}'`
+enersaddle=`grep "convergence at" $file | awk '{sum+=$5} END { print sum}'`
 energuess=`grep "Energy evaluations for TS guess" $file | awk '{sum+=$8} END { print sum}'`
-nsaddle=`grep convergence $file | awk '{sum+=$5} END { print NR}'`
+nsaddle=`grep "convergence at" $file | awk '{sum+=$5} END { print NR}'`
 printf '%0.f\n' `echo "( $enersaddle + $energuess )/ $nsaddle " | bc -l`
 
 echo "Average number of intermediate TS:"

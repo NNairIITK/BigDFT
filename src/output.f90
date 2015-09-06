@@ -1059,6 +1059,7 @@ END SUBROUTINE print_atomic_variables
 subroutine print_memory_estimation(mem)
   use module_types
   use yaml_output
+  use yaml_strings
   implicit none
   type(memory_estimation), intent(in) :: mem
 
@@ -1123,6 +1124,7 @@ subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   use module_defs
   use module_types
   use yaml_output
+  use yaml_strings
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: atoms
@@ -1174,6 +1176,7 @@ subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
   use module_base, only: f_err_throw
   use module_defs, only: Bohr_Ang, gp, UNINITIALIZED
   use yaml_output
+  use yaml_strings
   use module_atoms, only: atomic_structure,frozen_itof
   use ao_inguess, only: charge_and_spol
   implicit none
@@ -1428,6 +1431,7 @@ subroutine print_orbitals(orbs, geocode)
   use module_types, only: orbitals_data
   use module_defs, only: gp
   use yaml_output
+  use yaml_strings
   implicit none
   type(orbitals_data), intent(in) :: orbs
   character(len = 1), intent(in) :: geocode
