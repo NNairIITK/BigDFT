@@ -604,7 +604,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   use foe, only: fermi_operator_expansion
   use public_enums
-  use locreg_operations, only: small_to_large_locreg
+  use locreg_operations
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -1721,6 +1721,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   use module_types
   !use module_interfaces, except_this_one => communicate_basis_for_density_collective
   use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
+  use locreg_operations
   implicit none
   
   ! Calling arguments
@@ -1749,7 +1750,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inWhichLocreg(iiorb)
-      call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+      call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
       call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
       call deallocate_work_arrays_sumrho(w)
       ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
@@ -3258,6 +3259,7 @@ end subroutine renormalize_kernel
 subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
   use module_base, only: gp
   use module_types
+  use locreg_operations
   implicit none
   ! Calling arguments
   type(orbitals_data),intent(in) :: orbs
@@ -3300,6 +3302,7 @@ end subroutine allocate_precond_arrays
 subroutine deallocate_precond_arrays(orbs, lzd, precond_convol_workarrays, precond_workarrays)
   use module_base, only: gp
   use module_types
+  use locreg_operations
   implicit none
   ! Calling arguments
   type(orbitals_data),intent(in) :: orbs

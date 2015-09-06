@@ -183,13 +183,13 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   call f_close(iunitz)
 
 end subroutine plot_one_orbdens
-
  
 
 !> Plots the orbitals
 subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
    use module_base
    use module_types
+   use locreg_operations
    implicit none
 
    ! Calling arguments
@@ -223,7 +223,7 @@ subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
 
    phir = f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i,id='phir')
 
-   call initialize_work_arrays_sumrho(1,tmb%lzd%glr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[tmb%lzd%glr],.true.,w)
    rxyzref=-555.55d0
 
    istart=0
@@ -1282,6 +1282,7 @@ end subroutine analyze_wavefunctions
 subroutine analyze_one_wavefunction(lr, hgrids, npsidim, psi, ioffset, center, sigma)
   use module_base
   use module_types
+  use locreg_operations
   implicit none
 
   ! Calling arguments
@@ -1299,7 +1300,7 @@ subroutine analyze_one_wavefunction(lr, hgrids, npsidim, psi, ioffset, center, s
   real(kind=8) :: x, y, z, q
   real(kind=8),dimension(3) :: hhgrids, var
 
-  call initialize_work_arrays_sumrho(1, lr, .true., w)
+  call initialize_work_arrays_sumrho(1, [lr], .true., w)
 
   psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
   ! Initialisation

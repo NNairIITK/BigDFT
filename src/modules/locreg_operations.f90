@@ -5,14 +5,615 @@ module locreg_operations
 
   private
 
+  !> Contains the work arrays needed for expressing wavefunction in real space
+  !! with all the BC
+  type, public :: workarr_sumrho
+     integer :: nw1,nw2,nxc,nxf
+     real(wp), dimension(:), pointer :: x_c,x_f,w1,w2
+  end type workarr_sumrho
+
+  !> Contains the work arrays needed for hamiltonian application with all the BC
+  type, public :: workarr_locham
+     integer :: nw1,nw2,nxc,nyc,nxf1,nxf2,nxf3,nxf,nyf
+     real(wp), dimension(:), pointer :: w1,w2
+     !for the periodic BC case, these arrays substitute 
+     !psifscf,psifscfk,psig,ww respectively
+     real(wp), dimension(:,:), pointer :: x_c,y_c,x_f1,x_f2,x_f3,x_f,y_f
+  end type workarr_locham
+
+  !> Contains the work arrays needed for th preconditioner with all the BC
+  !! Take different pointers depending on the boundary conditions
+  type, public :: workarr_precond
+     integer, dimension(:), pointer :: modul1,modul2,modul3
+     real(wp), dimension(:), pointer :: psifscf,ww,x_f1,x_f2,x_f3,kern_k1,kern_k2,kern_k3
+     real(wp), dimension(:,:), pointer :: af,bf,cf,ef
+     real(wp), dimension(:,:,:), pointer :: xpsig_c,ypsig_c,x_c
+     real(wp), dimension(:,:,:,:), pointer :: xpsig_f,ypsig_f,x_f,y_f
+     real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
+  end type workarr_precond
+
+  type, public :: workarrays_quartic_convolutions
+     real(wp), dimension(:,:,:), pointer :: xx_c, xy_c, xz_c
+     real(wp), dimension(:,:,:), pointer :: xx_f1
+     real(wp), dimension(:,:,:), pointer :: xy_f2
+     real(wp), dimension(:,:,:), pointer :: xz_f4
+     real(wp), dimension(:,:,:,:), pointer :: xx_f, xy_f, xz_f
+     real(wp), dimension(:,:,:), pointer :: y_c
+     real(wp), dimension(:,:,:,:), pointer :: y_f
+     ! The following arrays are work arrays within the subroutine
+     real(wp), dimension(:,:), pointer :: aeff0array, beff0array, ceff0array, eeff0array
+     real(wp), dimension(:,:), pointer :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
+     real(wp), dimension(:,:), pointer :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
+     real(wp), dimension(:,:,:), pointer :: xya_c, xyc_c
+     real(wp), dimension(:,:,:), pointer :: xza_c, xzc_c
+     real(wp), dimension(:,:,:), pointer :: yza_c, yzb_c, yzc_c, yze_c
+     real(wp), dimension(:,:,:,:), pointer :: xya_f, xyb_f, xyc_f, xye_f
+     real(wp), dimension(:,:,:,:), pointer :: xza_f, xzb_f, xzc_f, xze_f
+     real(wp), dimension(:,:,:,:), pointer :: yza_f, yzb_f, yzc_f, yze_f
+  end type workarrays_quartic_convolutions
+
+
   public :: Lpsi_to_global2
   public :: global_to_local_parallel
   public :: get_boundary_weight
   public :: small_to_large_locreg
   public :: psi_to_locreg2
   public :: global_to_local
+  public :: initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
+  public :: initialize_work_arrays_locham,deallocate_work_arrays_locham
+  public :: memspace_work_arrays_sumrho,memspace_work_arrays_locham
 
   contains
+
+    !> Initialize work arrays for local hamiltonian
+    subroutine initialize_work_arrays_locham(nlr,lr,nspinor,allocate_arrays,w)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: nlr, nspinor
+      type(locreg_descriptors), dimension(nlr), intent(in) :: lr
+      logical,intent(in) :: allocate_arrays
+      type(workarr_locham), intent(out) :: w
+      !local variables
+      character(len=*), parameter :: subname='initialize_work_arrays_locham'
+      integer :: ilr
+      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,nw,nww,nf
+      character(len=1) :: geo
+      logical :: hyb
+
+      ! Determine the maximum array sizes for all locregs 1,..,nlr
+      ! If the sizes for a specific locreg are needed, simply call the routine with nlr=1
+      ! For the moment the geocode of all locregs must be the same
+      n1=0
+      n2=0
+      n3=0
+      n1i=0
+      n2i=0
+      n3i=0
+      nfl1=1000000000
+      nfl2=1000000000
+      nfl3=1000000000
+      nfu1=0
+      nfu2=0
+      nfu3=0
+      geo=lr(1)%geocode
+      hyb=lr(1)%hybrid_on
+      do ilr=1,nlr
+         n1=max(n1,lr(ilr)%d%n1)
+         n2=max(n2,lr(ilr)%d%n2)
+         n3=max(n3,lr(ilr)%d%n3)
+         n1i=max(n1i,lr(ilr)%d%n1i)
+         n2i=max(n2i,lr(ilr)%d%n2i)
+         n3i=max(n3i,lr(ilr)%d%n3i)
+         nfl1=min(nfl1,lr(ilr)%d%nfl1)
+         nfl2=min(nfl2,lr(ilr)%d%nfl2)
+         nfl3=min(nfl3,lr(ilr)%d%nfl3)
+         nfu1=max(nfu1,lr(ilr)%d%nfu1)
+         nfu2=max(nfu2,lr(ilr)%d%nfu2)
+         nfu3=max(nfu3,lr(ilr)%d%nfu3)
+         if (lr(ilr)%geocode /= geo) stop 'lr(ilr)%geocode/=geo'
+         if (lr(ilr)%hybrid_on .neqv. hyb) stop 'lr(ilr)%hybrid_on .neqv. hyb'
+      end do
+
+
+      if (allocate_arrays) then !this might create memory leaks if there is no check performed
+         !if (associated(w%xc)) &
+         !     call f_err_throw('Error in initialize_work_arrays_locham: arrays already allocated',&
+         !     err_name='BIGDFT_RUNTIME_ERROR')
+         nullify(w%w1)
+         nullify(w%w2)
+         nullify(w%x_c)
+         nullify(w%y_c)
+         nullify(w%x_f1)
+         nullify(w%x_f2)
+         nullify(w%x_f3)
+         nullify(w%x_f)
+         nullify(w%y_f)
+      end if
+
+
+      select case(geo)
+      case('F')
+         !dimensions of work arrays
+         ! shrink convention: nw1>nw2
+         w%nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
+              (n1+1)*(2*n2+31)*(2*n3+31),&
+              2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+              2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+         w%nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+              4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+              (n1+1)*(n2+1)*(2*n3+31),&
+              (2*n1+31)*(n2+1)*(n3+1))
+         w%nyc=(n1+1)*(n2+1)*(n3+1)
+         w%nyf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxc=(n1+1)*(n2+1)*(n3+1)
+         w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxf1=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxf2=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+         !allocation of work arrays
+         if (allocate_arrays) then
+            w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+            w%y_f = f_malloc_ptr((/ w%nyf, nspinor /),id='w%y_f')
+            w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+            w%x_f = f_malloc_ptr((/ w%nxf, nspinor /),id='w%x_f')
+            w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+            w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+            w%x_f1 = f_malloc_ptr((/ w%nxf1, nspinor /),id='w%x_f1')
+            w%x_f2 = f_malloc_ptr((/ w%nxf2, nspinor /),id='w%x_f2')
+            w%x_f3 = f_malloc_ptr((/ w%nxf3, nspinor /),id='w%x_f3')
+         end if
+
+         !initialisation of the work arrays
+         call f_zero(w%x_f1)
+         call f_zero(w%x_f2)
+         call f_zero(w%x_f3)
+         call f_zero(w%x_c)
+         call f_zero(w%x_f)
+         call f_zero(w%y_c)
+         call f_zero(w%y_f)
+
+      case('S')
+         w%nw1=0
+         w%nw2=0
+         w%nyc=n1i*n2i*n3i
+         w%nyf=0
+         w%nxc=n1i*n2i*n3i
+         w%nxf=0
+         w%nxf1=0
+         w%nxf2=0
+         w%nxf3=0
+
+         !allocation of work arrays
+         if (allocate_arrays) then
+            w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+            w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+         end if
+
+      case('P')
+         if (hyb) then
+            ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+            nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+            nw=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+            nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
+            nw=max(nw,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+
+            nww=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+            nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
+            nww=max(nww,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+
+            w%nw1=nw
+            w%nw2=nww
+            w%nxc=(n1+1)*(n2+1)*(n3+1)
+            w%nyc=(n1+1)*(n2+1)*(n3+1)
+            w%nxf=7*nf
+            w%nyf=7*nf
+            w%nxf1=nf
+            w%nxf2=nf
+            w%nxf3=nf
+
+            w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+            w%y_f = f_malloc_ptr((/ w%nyf, nspinor /),id='w%y_f')
+            w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+            w%x_f = f_malloc_ptr((/ w%nxf, nspinor /),id='w%x_f')
+            w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+            w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+            w%x_f1 = f_malloc_ptr((/ w%nxf1, nspinor /),id='w%x_f1')
+            w%x_f2 = f_malloc_ptr((/ w%nxf2, nspinor /),id='w%x_f2')
+            w%x_f3 = f_malloc_ptr((/ w%nxf3, nspinor /),id='w%x_f3')
+
+         else
+
+            w%nw1=0
+            w%nw2=0
+            w%nyc=n1i*n2i*n3i
+            w%nyf=0
+            w%nxc=n1i*n2i*n3i
+            w%nxf=0
+            w%nxf1=0
+            w%nxf2=0
+            w%nxf3=0
+
+            if (allocate_arrays) then
+               w%x_c = f_malloc_ptr((/ w%nxc, nspinor /),id='w%x_c')
+               w%y_c = f_malloc_ptr((/ w%nyc, nspinor /),id='w%y_c')
+            end if
+         endif
+      end select
+
+    END SUBROUTINE initialize_work_arrays_locham
+
+
+    subroutine memspace_work_arrays_locham(lr,memwork) !n(c) nspinor (arg:2)
+      !n(c) use module_base
+      use module_types
+      implicit none
+      !n(c) integer, intent(in) :: nspinor
+      type(locreg_descriptors), intent(in) :: lr
+      integer(kind=8), intent(out) :: memwork
+      !local variables
+      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i,nw,nww,nf
+      integer :: nw1,nw2,nxc,nxf,nyc,nyf,nxf1,nxf2,nxf3
+
+      n1=lr%d%n1
+      n2=lr%d%n2
+      n3=lr%d%n3
+      n1i=lr%d%n1i
+      n2i=lr%d%n2i
+      n3i=lr%d%n3i
+      nfl1=lr%d%nfl1
+      nfl2=lr%d%nfl2
+      nfl3=lr%d%nfl3
+      nfu1=lr%d%nfu1
+      nfu2=lr%d%nfu2
+      nfu3=lr%d%nfu3
+
+      select case(lr%geocode) 
+      case('F')
+         !dimensions of work arrays
+         ! shrink convention: nw1>nw2
+         nw1=max((n3+1)*(2*n1+31)*(2*n2+31),&
+              (n1+1)*(2*n2+31)*(2*n3+31),&
+              2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+              2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+
+         nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+              4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+              (n1+1)*(n2+1)*(2*n3+31),&
+              (2*n1+31)*(n2+1)*(n3+1))
+
+         nyc=(n1+1)*(n2+1)*(n3+1)
+         nyf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         nxc=(n1+1)*(n2+1)*(n3+1)
+         nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         nxf1=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         nxf2=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+      case('S')
+         nw1=0
+         nw2=0
+         nyc=n1i*n2i*n3i
+         nyf=0
+         nxc=n1i*n2i*n3i
+         nxf=0
+         nxf1=0
+         nxf2=0
+         nxf3=0
+
+      case('P')
+         if (lr%hybrid_on) then
+            ! Wavefunction expressed everywhere in fine scaling functions (for potential and kinetic energy)
+            nf=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+            nw=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+            nw=max(nw,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
+            nw=max(nw,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+
+            nww=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+            nww=max(nww,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
+            nww=max(nww,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+
+            nw1=nw
+            nw2=nww
+            nxc=(n1+1)*(n2+1)*(n3+1)
+            nyc=(n1+1)*(n2+1)*(n3+1)
+            nxf=7*nf
+            nyf=7*nf
+            nxf1=nf
+            nxf2=nf
+            nxf3=nf
+
+         else
+
+            nw1=0
+            nw2=0
+            nyc=n1i*n2i*n3i
+            nyf=0
+            nxc=n1i*n2i*n3i
+            nxf=0
+            nxf1=0
+            nxf2=0
+            nxf3=0
+
+         endif
+      end select
+
+      memwork=nw1+nw2+nxc+nxf+nyc+nyf+nxf1+nxf2+nxf3
+
+    END SUBROUTINE memspace_work_arrays_locham
+
+
+    !> Set to zero the work arrays for local hamiltonian
+    subroutine zero_work_arrays_locham(lr,nspinor,w)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: nspinor
+      type(locreg_descriptors), intent(in) :: lr
+      type(workarr_locham), intent(inout) :: w
+      !local variables
+      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+
+      n1=lr%d%n1
+      n2=lr%d%n2
+      n3=lr%d%n3
+      nfl1=lr%d%nfl1
+      nfl2=lr%d%nfl2
+      nfl3=lr%d%nfl3
+      nfu1=lr%d%nfu1
+      nfu2=lr%d%nfu2
+      nfu3=lr%d%nfu3
+
+      select case(lr%geocode)
+
+      case('F')
+
+         w%nyc=(n1+1)*(n2+1)*(n3+1)
+         w%nyf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxc=(n1+1)*(n2+1)*(n3+1)
+         w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxf1=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxf2=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+         w%nxf3=(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+         !initialisation of the work arrays
+         call f_zero(w%x_f1)
+         call f_zero(w%x_f2)
+         call f_zero(w%x_f3)
+         call f_zero(w%x_c)
+         call f_zero(w%x_f)
+         call f_zero(w%y_c)
+         call f_zero(w%y_f)
+
+      case('S')
+
+      case('P')
+
+      end select
+
+    END SUBROUTINE zero_work_arrays_locham
+
+
+    subroutine deallocate_work_arrays_locham(w)
+      use module_base
+      use module_types
+      implicit none
+      type(workarr_locham), intent(inout) :: w
+      !local variables
+      character(len=*), parameter :: subname='deallocate_work_arrays_locham'
+
+      call f_free_ptr(w%y_c)
+      call f_free_ptr(w%x_c)
+      call f_free_ptr(w%x_f1)
+      call f_free_ptr(w%x_f2)
+      call f_free_ptr(w%x_f3)
+      call f_free_ptr(w%y_f)
+      call f_free_ptr(w%x_f)
+      call f_free_ptr(w%w1)
+      call f_free_ptr(w%w2)
+    END SUBROUTINE deallocate_work_arrays_locham
+
+
+    subroutine initialize_work_arrays_sumrho(nlr,lr,allocate_arrays,w)
+      use module_base
+      use module_types
+      implicit none
+      integer, intent(in) :: nlr
+      type(locreg_descriptors), dimension(nlr), intent(in) :: lr
+      logical, intent(in) :: allocate_arrays
+      type(workarr_sumrho), intent(out) :: w
+      !local variables
+      character(len=*), parameter :: subname='initialize_work_arrays_sumrho'
+      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3!n(c) n1i,n2i,n3i
+      integer :: ilr
+      character(len=1) :: geo
+      logical :: hyb
+
+      ! Determine the maximum array sizes for all locregs 1,..,nlr
+      ! If the sizes for a specific locreg are needed, simply call the routine with nlr=1
+      ! For the moment the geocode of all locregs must be the same
+
+      n1=0
+      n2=0
+      n3=0
+      nfl1=1000000000
+      nfl2=1000000000
+      nfl3=1000000000
+      nfu1=0
+      nfu2=0
+      nfu3=0
+      geo=lr(1)%geocode
+      hyb=lr(1)%hybrid_on
+      do ilr=1,nlr
+         n1=max(n1,lr(ilr)%d%n1)
+         n2=max(n2,lr(ilr)%d%n2)
+         n3=max(n3,lr(ilr)%d%n3)
+         nfl1=min(nfl1,lr(ilr)%d%nfl1)
+         nfl2=min(nfl2,lr(ilr)%d%nfl2)
+         nfl3=min(nfl3,lr(ilr)%d%nfl3)
+         nfu1=max(nfu1,lr(ilr)%d%nfu1)
+         nfu2=max(nfu2,lr(ilr)%d%nfu2)
+         nfu3=max(nfu3,lr(ilr)%d%nfu3)
+         if (lr(ilr)%geocode /= geo) then
+            write(*,*) 'lr(ilr)%geocode, geo', lr(ilr)%geocode, geo
+            stop 'lr(ilr)%geocode/=geo'
+         end if
+         if (lr(ilr)%hybrid_on .neqv. hyb) stop 'lr(ilr)%hybrid_on .neqv. hyb'
+      end do
+
+      if (allocate_arrays) then
+         nullify(w%x_c)
+         nullify(w%x_f)
+         nullify(w%w1)
+         nullify(w%w2)
+      end if
+
+      select case(geo)
+      case('F')
+         !dimension of the work arrays
+         ! shrink convention: nw1>nw2
+         w%nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
+              (n1+1)*(2*n2+31)*(2*n3+31),&
+              2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+              2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+         w%nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+              4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+              (n1+1)*(n2+1)*(2*n3+31),&
+              (2*n1+31)*(n2+1)*(n3+1))
+         w%nxc=(n1+1)*(n2+1)*(n3+1)!(2*n1+2)*(2*n2+2)*(2*n3+2)
+         w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+      case('S')
+         !dimension of the work arrays
+         w%nw1=1
+         w%nw2=1
+         w%nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
+         w%nxf=1
+      case('P')
+         if (hyb) then
+            ! hybrid case:
+            w%nxc=(n1+1)*(n2+1)*(n3+1)
+            w%nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+            w%nw1=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+            w%nw1=max(w%nw1,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
+            w%nw1=max(w%nw1,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+
+            w%nw2=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+            w%nw2=max(w%nw2,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
+            w%nw2=max(w%nw2,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+         else
+            !dimension of the work arrays, fully periodic case
+            w%nw1=1
+            w%nw2=1
+            w%nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
+            w%nxf=1
+         endif
+
+      end select
+      !work arrays
+      if (allocate_arrays) then
+         w%x_c = f_malloc_ptr(w%nxc,id='w%x_c')
+         w%x_f = f_malloc_ptr(w%nxf,id='w%x_f')
+         w%w1 = f_malloc_ptr(w%nw1,id='w%w1')
+         w%w2 = f_malloc_ptr(w%nw2,id='w%w2')
+      end if
+
+
+      if (geo == 'F') then
+         call f_zero(w%x_c)
+         call f_zero(w%x_f)
+      end if
+
+
+    END SUBROUTINE initialize_work_arrays_sumrho
+
+
+    subroutine memspace_work_arrays_sumrho(lr,memwork)
+      !n(c) use module_base
+      use module_types
+      implicit none
+      type(locreg_descriptors), intent(in) :: lr
+      integer(kind=8), intent(out) :: memwork
+      !local variables
+      integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+      integer :: nw1,nw2,nxc,nxf
+
+      n1=lr%d%n1
+      n2=lr%d%n2
+      n3=lr%d%n3
+      nfl1=lr%d%nfl1
+      nfl2=lr%d%nfl2
+      nfl3=lr%d%nfl3
+      nfu1=lr%d%nfu1
+      nfu2=lr%d%nfu2
+      nfu3=lr%d%nfu3
+
+      select case(lr%geocode)
+      case('F')
+         !dimension of the work arrays
+         ! shrink convention: nw1>nw2
+         nw1=max((n3+1)*(2*n1+31)*(2*n2+31),& 
+              (n1+1)*(2*n2+31)*(2*n3+31),&
+              2*(nfu1-nfl1+1)*(2*(nfu2-nfl2)+31)*(2*(nfu3-nfl3)+31),&
+              2*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31)*(2*(nfu2-nfl2)+31))
+         nw2=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*(nfu1-nfl1)+31),&
+              4*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(2*(nfu3-nfl3)+31),&
+              (n1+1)*(n2+1)*(2*n3+31),&
+              (2*n1+31)*(n2+1)*(n3+1))
+         nxc=(n1+1)*(n2+1)*(n3+1)!(2*n1+2)*(2*n2+2)*(2*n3+2)
+         nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+      case('S')
+         !dimension of the work arrays
+         nw1=1
+         nw2=1
+         nxc=(2*n1+2)*(2*n2+31)*(2*n3+2)
+         nxf=1
+      case('P')
+         if (lr%hybrid_on) then
+            ! hybrid case:
+            nxc=(n1+1)*(n2+1)*(n3+1)
+            nxf=7*(nfu1-nfl1+1)*(nfu2-nfl2+1)*(nfu3-nfl3+1)
+
+            nw1=max(4*(nfu2-nfl2+1)*(nfu3-nfl3+1)*(2*n1+2),(2*n1+2)*(n2+2)*(n3+2))
+            nw1=max(nw1,2*(n3+1)*(n1+1)*(n2+1))      ! for the comb_shrink_hyb_c
+            nw1=max(nw1,4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1)) ! for the _f
+
+            nw2=max(2*(nfu3-nfl3+1)*(2*n1+2)*(2*n2+2),(n3+1)*(2*n1+2)*(2*n2+2))
+            nw2=max(nw2,4*(n2+1)*(n3+1)*(n1+1))   ! for the comb_shrink_hyb_c   
+            nw2=max(nw2,2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1)) ! for the _f
+         else
+            !dimension of the work arrays, fully periodic case
+            nw1=1
+            nw2=1
+            nxc=(2*n1+2)*(2*n2+2)*(2*n3+2)
+            nxf=1
+         endif
+
+      end select
+      memwork=nxc+nxf+nw1+nw2
+
+    END SUBROUTINE memspace_work_arrays_sumrho
+
+
+    subroutine deallocate_work_arrays_sumrho(w)
+      use module_base
+      use module_types
+      implicit none
+      type(workarr_sumrho), intent(inout) :: w
+      !local variables
+      character(len=*), parameter :: subname='deallocate_work_arrays_sumrho'
+
+      call f_free_ptr(w%x_c)
+      call f_free_ptr(w%x_f)
+      call f_free_ptr(w%w1)
+      call f_free_ptr(w%w2)
+
+    END SUBROUTINE deallocate_work_arrays_sumrho
+
+
 
     !> Tranform wavefunction between localisation region and the global region
     !!!!!#######!> This routine only works if both locregs have free boundary conditions.
@@ -221,12 +822,12 @@ module locreg_operations
      implicit none
     
      ! Arguments
-     type(locreg_descriptors),intent(in) :: Llr   ! Local localization region
-     type(locreg_descriptors),intent(in) :: Glr   ! Global localization region
+     type(locreg_descriptors),intent(in) :: Llr   !< Local localization region
+     type(locreg_descriptors),intent(in) :: Glr   !< Global localization region
      integer, intent(in) :: size_rho  ! size of rho array
      integer, intent(in) :: size_Lrho ! size of Lrho array
-     real(wp),dimension(size_rho),intent(in) :: rho  ! quantity in global region
-     real(wp),dimension(size_Lrho),intent(out) :: Lrho ! piece of quantity in local region
+     real(wp),dimension(size_rho),intent(in) :: rho  !< quantity in global region
+     real(wp),dimension(size_Lrho),intent(out) :: Lrho !< piece of quantity in local region
      integer,intent(in) :: i1s, i1e, i2s, i2e
      integer,intent(in) :: i3s, i3e ! starting and ending indices on z direction (related to distribution of rho when parallel)
      integer,intent(in) :: ni1, ni2 ! x and y extent of rho
@@ -1007,3 +1608,340 @@ module locreg_operations
 
 
 end module locreg_operations
+
+subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
+  use module_base
+  use locregs, only: locreg_descriptors
+  use locreg_operations, only: workarr_locham
+  implicit none
+  integer, intent(in) :: nspinor
+  real(gp), dimension(3), intent(in) :: hgrids,kptv
+  type(locreg_descriptors), intent(in) :: lr
+  type(workarr_locham), intent(inout) :: w
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psi
+  real(gp), intent(out) :: ekin
+  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
+  real(wp), dimension(6), optional :: k_strten
+  !Local variables
+  logical, parameter :: transpose=.false.
+  logical :: usekpts
+  integer :: idx,i,i_f,iseg_f,ipsif,isegf
+  real(gp) :: ekino
+  real(wp), dimension(0:3) :: scal
+  real(gp), dimension(3) :: hgridh
+  real(wp), dimension(6) :: kstrten,kstrteno
+
+
+  !control whether the k points are to be used
+  !real k-point different from Gamma still not implemented
+  usekpts = nrm2(3,kptv(1),1) > 0.0_gp .or. nspinor == 2
+
+  hgridh=.5_gp*hgrids
+
+  do i=0,3
+     scal(i)=1.0_wp
+  enddo
+
+  !starting point for the fine degrees, to avoid boundary problems
+  i_f=min(1,lr%wfd%nvctr_f)
+  iseg_f=min(1,lr%wfd%nseg_f)
+  ipsif=lr%wfd%nvctr_c+i_f
+  isegf=lr%wfd%nseg_c+iseg_f
+
+  !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
+  ekin=0.0_gp
+
+  kstrten=0.0_wp
+  select case(lr%geocode)
+  case('F')
+
+     !here kpoints cannot be used (for the moment, to be activated for the 
+     !localisation region scheme
+     if (usekpts) stop 'K points not allowed for Free BC locham'
+
+     do idx=1,nspinor
+        call uncompress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  & 
+             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+             lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),  & 
+             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+             lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+             scal,psi(1,idx),psi(ipsif,idx),  &
+             w%x_c(1,idx),w%x_f(1,idx),&
+             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
+
+        call f_zero(w%nyc,w%y_c(1,idx))
+        call f_zero(w%nyf,w%y_f(1,idx))
+
+        call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
+             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+             hgrids(1),hgrids(2),hgrids(3), &        !here the grid spacings are supposed to be equal. SM: not any more
+             lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+             lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
+             w%x_c(1,idx),w%x_f(1,idx),&
+             w%y_c(1,idx),w%y_f(1,idx),ekino, &
+             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),111)
+        ekin=ekin+ekino
+
+        !new compression routine in standard form
+        call compress_and_accumulate_standard(lr%d,lr%wfd,&
+             lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+             lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+             w%y_c(1,idx),w%y_f(1,idx),&
+             hpsi(1,idx),hpsi(ipsif,idx))
+
+     end do
+
+  case('S')
+
+     if (usekpts) then
+        !first calculate the proper arrays then transpose them before passing to the
+        !proper routine
+        do idx=1,nspinor
+           call uncompress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+                psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
+        end do
+
+        !Transposition of the work arrays (use y_c as workspace)
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
+             w%x_c,w%y_c,.true.)
+        call f_zero(nspinor*w%nyc,w%y_c(1,1))
+
+        ! compute the kinetic part and add  it to psi_out
+        ! the kinetic energy is calculated at the same time
+        ! do this thing for both components of the spinors
+        do idx=1,nspinor,2
+           call convolut_kinetic_slab_T_k(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kptv(1),kptv(2),kptv(3))
+           ekin=ekin+ekino        
+        end do
+
+        !re-Transposition of the work arrays (use x_c as workspace)
+        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
+             w%y_c,w%x_c,.false.)
+
+        do idx=1,nspinor
+           !new compression routine in mixed form
+           call analyse_slab_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                w%y_c(1,idx),w%x_c(1,idx))
+           call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+        end do
+
+     else
+        do idx=1,nspinor
+           call uncompress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+                psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
+
+           call f_zero(w%nyc,w%y_c(1,idx))
+           ! compute the kinetic part and add  it to psi_out
+           ! the kinetic energy is calculated at the same time
+           call convolut_kinetic_slab_T(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
+           ekin=ekin+ekino
+
+           !new compression routine in mixed form
+           call analyse_slab_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                w%y_c(1,idx),w%x_c(1,idx))
+           call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+        end do
+     end if
+
+  case('P')
+
+     if (lr%hybrid_on) then
+
+        !here kpoints cannot be used, such BC are used in general to mimic the Free BC
+        if (usekpts) stop 'K points not allowed for hybrid BC locham'
+
+        !here the grid spacing is not halved
+        hgridh=hgrids
+        do idx=1,nspinor
+           call uncompress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
+                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
+                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+                psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%x_f(1,idx),&
+                w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),&
+                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3)
+
+           call f_zero(w%nyc,w%y_c(1,idx))
+           call f_zero(w%nyf,w%y_f(1,idx))
+
+           call convolut_kinetic_hyb_T(lr%d%n1,lr%d%n2,lr%d%n3, &
+                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+                hgridh,w%x_c(1,idx),w%x_f(1,idx),w%y_c(1,idx),w%y_f(1,idx),kstrteno,&
+                w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),lr%bounds%kb%ibyz_f,&
+                lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
+           kstrten=kstrten+kstrteno
+           !ekin=ekin+ekino
+
+           call compress_and_accumulate_standard(lr%d,lr%wfd,&
+                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+        end do
+     else
+
+        if (usekpts) then
+
+           do idx=1,nspinor
+              call uncompress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                   lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
+                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+                   psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
+           end do
+
+           if (transpose) then
+              !Transposition of the work arrays (use psir as workspace)
+              call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                   w%x_c,w%y_c,.true.)
+
+              call f_zero(w%y_c)
+              ! compute the kinetic part and add  it to psi_out
+              ! the kinetic energy is calculated at the same time
+              do idx=1,nspinor,2
+                 !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
+
+                 call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                      hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
+                 kstrten=kstrten+kstrteno
+                 !ekin=ekin+ekino
+              end do
+
+              !Transposition of the work arrays (use psir as workspace)
+              call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                   w%y_c,w%x_c,.false.)
+
+           else
+              call f_zero(w%y_c)
+              do idx=1,nspinor,2
+                 call convolut_kinetic_per_T_k_notranspose(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                      hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
+                 kstrten=kstrten+kstrteno
+              end do
+           end if
+
+           do idx=1,nspinor
+
+              call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   w%y_c(1,idx),w%x_c(1,idx))
+              call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                   lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                   lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                   w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+           end do
+        else
+           !first calculate the proper arrays then transpose them before passing to the
+           !proper routine
+           do idx=1,nspinor
+              call uncompress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+                   lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
+                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+                   lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
+                   psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
+
+              call f_zero(w%nyc,w%y_c(1,idx))
+              ! compute the kinetic part and add  it to psi_out
+              ! the kinetic energy is calculated at the same time
+              call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                   hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno)
+              kstrten=kstrten+kstrteno
+
+              call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                   w%y_c(1,idx),w%x_c(1,idx))
+              call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                   lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                   lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                   w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+           end do
+        end if
+
+     end if
+     ekin=ekin+kstrten(1)+kstrten(2)+kstrten(3)
+     if (present(k_strten)) k_strten=kstrten 
+
+  end select
+
+END SUBROUTINE psi_to_tpsi
+
+
+!> In 3d,            
+!! Applies the magic filter transposed, then analysis wavelet transformation.
+!! The size of the data is forced to shrink
+!! The input array y is not overwritten
+subroutine comb_shrink_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,xc,xf,sb)
+  use module_defs, only: wp
+  use locregs, only: shrink_bounds
+  implicit none
+  type(shrink_bounds),intent(in):: sb
+  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
+  real(wp), dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(in) :: y
+  real(wp), dimension(max(2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1),&
+       (2*n2+2)*(2*n3+2)*(n1+1))), intent(inout) :: w1
+  real(wp), dimension(max(4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1),&
+       (2*n3+2)*(n1+1)*(n2+1))), intent(inout) :: w2
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xc
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xf
+
+  integer nt
+
+  !perform the combined transform    
+
+  call comb_shrink_hyb_c(n1,n2,n3,w1,w2,y,xc)
+
+  ! I1,I2,I3 -> I2,I3,i1
+  nt=(2*n2+2)*(2*n3+2)
+  call comb_rot_shrink_hyb_1_ib(nt,n1,nfl1,nfu1,y,w1,sb%ibyyzz_f)
+
+  ! I2,I3,i1 -> I3,i1,i2
+  nt=(2*n3+2)*(nfu1-nfl1+1)
+  call comb_rot_shrink_hyb_2_ib(nt,w1,w2,nfl2,nfu2,n2,sb%ibzzx_f)
+
+  ! I3,i1,i2 -> i1,i2,i3
+  nt=(nfu1-nfl1+1)*(nfu2-nfl2+1)
+  call comb_rot_shrink_hyb_3_ib(nt,w2,xf,nfl3,nfu3,n3,sb%ibxy_ff)
+
+END SUBROUTINE comb_shrink_hyb
+
+subroutine comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
+     ,w1,w2,xc,xf,y,gb)
+  use module_defs, only: wp
+  use locregs, only: grow_bounds
+  implicit none
+  type(grow_bounds),intent(in):: gb
+  integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2
+  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: xc
+  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: xf
+  real(wp), dimension(nw1), intent(inout) :: w1 !work
+  real(wp), dimension(nw2), intent(inout) :: w2 ! work
+  real(wp), dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(out) :: y
+
+  call comb_grow_c_simple(n1,n2,n3,w1,w2,xc,y)
+
+  call comb_rot_grow_ib_1(n1      ,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,xf,w1,gb%ibyz_ff,gb%ibzxx_f)
+  call comb_rot_grow_ib_2(n1,n2   ,          nfl2,nfu2,nfl3,nfu3,w1,w2,gb%ibzxx_f,gb%ibxxyy_f)
+  call comb_rot_grow_ib_3(n1,n2,n3,                    nfl3,nfu3,w2,y,gb%ibxxyy_f)
+
+END SUBROUTINE comb_grow_all_hybrid

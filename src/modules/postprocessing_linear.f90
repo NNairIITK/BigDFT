@@ -643,6 +643,7 @@ module postprocessing_linear
     subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
       use module_base
       use module_types
+      use locreg_operations
       use yaml_output
       
       ! Calling arguments
@@ -674,7 +675,7 @@ module postprocessing_linear
           iiorb=tmb%orbs%isorb+iorb
           ilr=tmb%orbs%inwhichlocreg(iiorb)
           iat=tmb%orbs%onwhichatom(iiorb)
-          call initialize_work_arrays_sumrho(1,tmb%lzd%Llr(ilr),.true.,w)
+          call initialize_work_arrays_sumrho(1,[tmb%lzd%Llr(ilr)],.true.,w)
           ! Transform the support function to real space
           call daub_to_isf(tmb%lzd%llr(ilr), w, tmb%psi(ist), phir(istr))
           call deallocate_work_arrays_sumrho(w)
@@ -1322,7 +1323,8 @@ module postprocessing_linear
 
     subroutine calculate_theta(nat, rxyz, nphidim, phi, nphirdim, orbs, lzd, theta)
       use module_base
-      use module_types, only: orbitals_data, local_zone_descriptors, workarr_sumrho
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use locreg_operations
       use yaml_output
       implicit none
 
@@ -1352,7 +1354,7 @@ module postprocessing_linear
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
           call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
           call deallocate_work_arrays_sumrho(w)
           !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
@@ -1593,8 +1595,9 @@ module postprocessing_linear
     subroutine supportfunction_centers(nat, rxyz, nphidim, phi, nphirdim, &
                norb, norbp, isorb, in_which_locreg, lzd, com)
       use module_base
-      use module_types, only: local_zone_descriptors, workarr_sumrho
+      use module_types, only: local_zone_descriptors
       use bounds, only: geocode_buffers
+      use locreg_operations
       use yaml_output
       implicit none
 
@@ -1623,7 +1626,7 @@ module postprocessing_linear
       do iorb=1,norbp
           iiorb=isorb+iorb
           ilr=in_which_locreg(iiorb)
-          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
           call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
           call deallocate_work_arrays_sumrho(w)
           !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &

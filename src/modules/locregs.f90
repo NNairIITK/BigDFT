@@ -844,5 +844,4 @@ contains
 
     end subroutine get_extent_of_overlap_long
 
-
 end module locregs

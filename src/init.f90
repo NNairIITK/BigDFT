@@ -2893,6 +2893,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   use ao_inguess, only: atomic_info
   use module_types
   use module_interfaces, except_this_one => input_wf_memory_new
+  use locreg_operations
   implicit none
 
   !Global Variables  
@@ -2936,7 +2937,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
  ! Daubechies to ISF
   npsir=1
-  call initialize_work_arrays_sumrho(1,Lzd_old%Glr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[Lzd_old%Glr],.true.,w)
   nbox = lzd_old%Glr%d%n1i*Lzd_old%Glr%d%n2i*Lzd_old%Glr%d%n3i
 
   psir_old = f_malloc((/ nbox, npsir, orbs%norbp /),id='psir_old')
@@ -3203,7 +3204,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   !$OMP END PARALLEL DO
   end do
 
-  call initialize_work_arrays_sumrho(1,Lzd%Glr,.true.,w) 
+  call initialize_work_arrays_sumrho(1,[Lzd%Glr],.true.,w) 
  
   ist=1
   loop_orbs_back: do iorb=1,orbs%norbp

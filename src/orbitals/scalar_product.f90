@@ -8,249 +8,6 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Applies one real projector operator in the form |p> hp <p| onto a set of wavefunctions described by the same descriptors
-!! accumulate the result on the array hpsi and calculate the energy in the form @f$\sum_w <psi_w|p> hp <p|psi_w>@f$
-subroutine apply_oneproj_operator(wfd_p,proj,hp,n_w,wfd_w,psi,hpsi,scpr)
-  use module_base
-  use module_types, only: wavefunctions_descriptors
-  implicit none
-  integer, intent(in) :: n_w !< complex components of the wavefunction
-  real(wp), intent(in) :: hp !<coefficient of the projector operator
-  type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
-  type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
-  !  real(gp), dimension(ncplx_o,ncomp_p,ncomp_p,ncomp_w), intent(in) :: hij !< matrix of operator in nonlocal projectors basis
-  real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f), intent(in) :: proj !< components of the projector
-  real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(in) :: psi !< components of wavefunction
-  real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(inout) :: hpsi !<application of NL operator on psi
-  real(wp), dimension(n_w), intent(out) :: scpr !<array of <p|psi_w>, to be used to evaluate energy terms
-  !local variables
-  character(len=*), parameter :: subname='apply_oneproj'
-  integer :: is_w,is_sw,is_p,is_sp,iw
-  integer, dimension(:,:), allocatable :: psi_mask
-  !routines which are optimized in separate files
-  external :: wpdot_keys,wpdot_mask,waxpy_mask
-
-  call f_routine(id=subname)
-
-  !calculate starting points of the fine regions
-  !they have to be calculated considering that there could be no fine grid points
-  !therefore the array values should not go out of bounds even though their value is actually not used
-  is_w=wfd_w%nvctr_c+min(wfd_w%nvctr_f,1)
-  is_sw=wfd_w%nseg_c+min(wfd_w%nseg_f,1)
-
-  is_p=wfd_p%nvctr_c+min(wfd_p%nvctr_f,1)
-  is_sp=wfd_p%nseg_c+min(wfd_p%nseg_f,1)
-
-  !mask array to avoid multiple calls to bitonic search routines
-  psi_mask=f_malloc0((/3,wfd_w%nseg_c+wfd_w%nseg_f/),id='psi_mask')
-  call wpdot_keys(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
-       wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
-       psi(1,1),psi(is_w,1),&
-       wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
-       wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
-       proj(1),proj(is_p),&
-       scpr(1))
-  !use now mask arrays to calculate the rest of the scalar product
-  do iw=2,n_w
-  call wpdot_keys(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
-       wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),&
-       wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
-       psi(1,iw),psi(is_w,iw),&
-       wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
-       wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),&
-       wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
-       proj(1),proj(is_p),&
-       scpr(iw))
-
-!!$     call wpdot_mask(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
-!!$          psi_mask(1,1),psi_mask(1,is_sw),psi(1,iw),psi(is_w,iw),&
-!!$          wfd_p%nvctr_c,wfd_p%nvctr_f,proj(1),proj(is_p),scpr(iw))
-  end do
-
-  !then reduce the projector in the wavefunction
-  do iw=1,n_w
-     call waxpy(hp*scpr(iw),wfd_p%nvctr_c,wfd_p%nvctr_f,&
-          wfd_p%nseg_c,wfd_p%nseg_f,&
-          wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),&
-          wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),proj(1),proj(is_p),& 
-          wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
-          wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),&
-          wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
-          hpsi(1,iw),hpsi(is_w,iw))
-!!$     call waxpy_mask(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
-!!$          psi_mask(1,1),psi_mask(1,is_sw),hpsi(1,iw),hpsi(is_w,iw),&
-!!$          wfd_p%nvctr_c,wfd_p%nvctr_f,proj(1),proj(is_p),&
-!!$          hp*scpr(iw))
-  end do
-
-  call f_free(psi_mask)
-
-  call f_release_routine()
-
-end subroutine apply_oneproj_operator
-
-
-!> Performs the scalar product of a projector with a wavefunction each one writeen in Daubechies basis
-!! with its own descriptors.
-!! A masking array is then calculated to avoid the calculation of bitonic search for the scalar product
-!! If the number of projectors is bigger than 1 the wavefunction is also packed in the number of components
-!! of the projector to ease its successive application
-subroutine proj_dot_psi(n_p,wfd_p,proj,n_w,wfd_w,psi,nmseg_c,nmseg_f,psi_mask,psi_pack,scpr)
-  use module_base, only: wp,gemm
-  use module_types, only: wavefunctions_descriptors
-  implicit none
-  integer, intent(in) :: n_p !< number of projectors (real and imaginary part included)
-  integer, intent(in) :: n_w !< number of wavefunctions (real and imaginary part included)
-  integer, intent(in) :: nmseg_c,nmseg_f !< segments of the masking array
-  type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
-  type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
-  real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_p), intent(in) :: proj !< components of the projectors
-  real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(in) :: psi !< components of wavefunction
-  integer, dimension(3,nmseg_c+nmseg_f), intent(in) :: psi_mask !<lookup array in the wfn segments
-  !indicating the points where data have to be taken for dot product
-  ! always produced. Has to be initialized to zero first
-  real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w), intent(inout) :: psi_pack !< packed array of psi in projector form
-  !needed only when n_p is bigger than one 
-  real(wp), dimension(n_w,n_p), intent(out) :: scpr !< array of the scalar product of all the components
-  !local variables
-  logical, parameter :: mask=.true.,pack=.true.
-  integer :: is_w,is_sw,is_p,is_sp,iw,ip,is_sm
-  !intensive routines
-  external :: wpdot_keys_pack,wpdot_mask_pack
-
-  !calculate starting points of the fine regions
-  !they have to be calculated considering that there could be no fine grid points
-  !therefore the array values should not go out of bounds even though their value is actually not used
-  is_w=wfd_w%nvctr_c+min(wfd_w%nvctr_f,1)
-  is_sw=wfd_w%nseg_c+min(wfd_w%nseg_f,1)
-
-  is_p=wfd_p%nvctr_c+min(wfd_p%nvctr_f,1)
-  is_sp=wfd_p%nseg_c+min(wfd_p%nseg_f,1)
-
-  is_sm=nmseg_c+min(nmseg_f,1)
-
-  if (pack) then
-     if (.not. mask) then
-        do iw=1,n_w
-           call wpdot_keys_pack(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
-                wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
-                psi(1,iw),psi(is_w,iw),&
-                wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
-                wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
-                proj(1,1),proj(is_p,1),&
-                psi_pack(1,iw),psi_pack(is_p,iw),scpr(iw,1))
-        end do
-     else 
-        do iw=1,n_w
-           call wpdot_mask_pack(wfd_w%nvctr_c,wfd_w%nvctr_f,nmseg_c,nmseg_f,&
-                psi_mask(1,1),psi_mask(1,is_sm),psi(1,iw),psi(is_w,iw),&
-                wfd_p%nvctr_c,wfd_p%nvctr_f,proj(1,1),proj(is_p,1),&
-                psi_pack(1,iw),psi_pack(is_p,iw),scpr(iw,1))
-        end do
-     end if
-
-     !now that the packed array is constructed linear algebra routine can be used to calculate
-     !use multithreaded dgemm or customized ones in the case of no OMP parallelized algebra
-     !scpr(iw,ip) = < psi_iw| p_ip >
-     if (n_p > 1) then
-        call gemm('T','N',n_w,n_p-1,wfd_p%nvctr_c+7*wfd_p%nvctr_f,1.0_wp,psi_pack(1,1),&
-             wfd_p%nvctr_c+7*wfd_p%nvctr_f,proj(1,2),wfd_p%nvctr_c+7*wfd_p%nvctr_f,0.0_wp,&
-             scpr(1,2),n_w)
-     end if
-
-  else
-     do ip=1,n_p
-        do iw=1,n_w
-           call wpdot_keys(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
-                wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
-                psi(1,iw),psi(is_w,iw),&
-                wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
-                wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
-                proj(1,ip),proj(is_p,ip),&
-                scpr(iw,ip))
-        end do
-     end do
-  end if
-end subroutine proj_dot_psi
-
-!> Performs the update of a set of wavefunctions with a projector each one written in Daubechies basis
-!! with its own descriptors.
-!! A masking array is used calculated to avoid the calculation of bitonic search for the scalar product
-!! If the number of projectors is bigger than 1 the wavefunction is also given by packing in the number of components
-!! of the projector to ease its successive application
-subroutine scpr_proj_p_hpsi(n_p,wfd_p,proj,n_w,wfd_w,&
-     nmseg_c,nmseg_f,psi_mask,hpsi_pack,scpr,hpsi)
-  use module_base, only: wp,gemm,f_zero
-  use module_types, only: wavefunctions_descriptors
-  implicit none
-  integer, intent(in) :: n_p !< number of projectors (real and imaginary part included)
-  integer, intent(in) :: n_w !< number of wavefunctions (real and imaginary part included)
-  integer, intent(in) :: nmseg_c,nmseg_f !< segments of the masking array
-  type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
-  type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
-  real(wp), dimension(n_w,n_p), intent(in) :: scpr !< array of the scalar product of all the components
-  real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_p), intent(in) :: proj !< components of the projectors
-  integer, dimension(3,nmseg_c+nmseg_f), intent(in) :: psi_mask !<lookup array in the wfn segments
-  !indicating the points where data have to be taken for dot product
-  ! always produced. Has to be initialized to zero first
-  real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w), intent(inout) :: hpsi_pack !< work array of hpsi in projector form
-  !needed only when n_p is bigger than one 
-
-  real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(inout) :: hpsi !< wavefunction result
-  !local variables
-  logical, parameter :: mask=.false.,pack=.true.
-  external :: waxpy_mask_unpack
-  integer :: is_w,is_sw,is_p,is_sp,iw,is_sm
-
-  is_w=wfd_w%nvctr_c+min(wfd_w%nvctr_f,1)
-  is_sw=wfd_w%nseg_c+min(wfd_w%nseg_f,1)
-
-  is_p=wfd_p%nvctr_c+min(wfd_p%nvctr_f,1)
-  is_sp=wfd_p%nseg_c+min(wfd_p%nseg_f,1)
-
-  is_sm=nmseg_c+min(nmseg_f,1)
-
-  if (pack) then
-     !once the coefficients are determined fill the components of the wavefunction with the last projector
-     !linear algebra up to the second last projector
-     !|psi_iw>=O_iw,jp| p_jp>
-     
-     if (n_p > 1) then
-        call gemm('N','T',wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w,n_p-1,&
-             1.0_wp,proj(1,1),wfd_p%nvctr_c+7*wfd_p%nvctr_f,&
-             scpr(1,1),n_w,0.0_wp,&
-             hpsi_pack(1,1),wfd_p%nvctr_c+7*wfd_p%nvctr_f)
-     else
-        call f_zero(hpsi_pack)
-     end if
-
-     !then last projector
-     if (mask) then
-        do iw=1,n_w
-           call waxpy_mask_unpack(wfd_w%nvctr_c,wfd_w%nvctr_f,nmseg_c,nmseg_f,&
-                psi_mask(1,1),psi_mask(1,is_sm),hpsi_pack(1,iw),hpsi_pack(is_p,iw),&
-                hpsi(1,iw),hpsi(is_w,iw),&
-                wfd_p%nvctr_c,wfd_p%nvctr_f,proj(1,n_p),proj(is_p,n_p),&
-                scpr(iw,n_p))
-        end do
-     else
-        do iw=1,n_w
-           call waxpy_keys_unpack(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
-                wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
-                hpsi(1,iw),hpsi(is_w,iw),&
-                wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
-                wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),&
-                wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
-                proj(1,n_p),proj(is_p,n_p),&
-                hpsi_pack(1,iw),hpsi_pack(is_p,iw),scpr(iw,n_p))
-        end do
-     end if
-  else
-     
-  end if
-
-end subroutine scpr_proj_p_hpsi
-
 !> Calculates the dot product between a wavefunctions apsi and a projector bpsi (both in compressed form)
 !! The array mask is then constructed so that successive application of the projector on the same object can
 !! be done without bitonic search
@@ -258,7 +15,7 @@ subroutine wpdot_keys(  &
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,&
      scpr)
-  use module_base, only: wp
+  use module_defs, only: wp
   implicit none
 
   real(wp), dimension(mavctr_c), intent(in) :: apsi_c
@@ -474,7 +231,7 @@ subroutine wpdot_keys_pack(  &
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,&
      apack_c,apack_f,scpr)
-  use module_base, only: wp
+  use module_defs, only: wp
   implicit none
   real(wp), dimension(mavctr_c), intent(in) :: apsi_c
   real(wp), dimension(7,mavctr_f), intent(in) :: apsi_f
@@ -701,7 +458,7 @@ subroutine waxpy_keys_unpack(  &
      mavctr_c,mavctr_f,maseg_c,maseg_f,keyav_c,keyav_f,keyag_c,keyag_f,apsi_c,apsi_f,  &
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keybv_c,keybv_f,keybg_c,keybg_f,bpsi_c,bpsi_f,&
      apack_c,apack_f,scpr)
-  use module_base, only: wp
+  use module_defs, only: wp
   implicit none
   real(wp), dimension(mavctr_c), intent(inout) :: apsi_c
   real(wp), dimension(7,mavctr_f), intent(inout) :: apsi_f
@@ -906,7 +663,7 @@ subroutine wpdot_mask_pack(  &
      mavctr_c,mavctr_f,mseg_c,mseg_f,amask_c,amask_f,apsi_c,apsi_f,  &
      mbvctr_c,mbvctr_f,bpsi_c,bpsi_f,&
      apack_c,apack_f,scpr)
-  use module_base, only: wp
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: mavctr_c,mavctr_f,mseg_c,mseg_f,mbvctr_c,mbvctr_f
   integer, dimension(3,mseg_c), intent(in) :: amask_c
@@ -978,7 +735,7 @@ subroutine wpdot_mask(  &
      mavctr_c,mavctr_f,mseg_c,mseg_f,amask_c,amask_f,apsi_c,apsi_f,  &
      mbvctr_c,mbvctr_f,bpsi_c,bpsi_f,&
      scpr)
-  use module_base, only: wp
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: mavctr_c,mavctr_f,mseg_c,mseg_f,mbvctr_c,mbvctr_f
   integer, dimension(3,mseg_c), intent(in) :: amask_c
@@ -1047,7 +804,7 @@ END SUBROUTINE wpdot_mask
 subroutine waxpy_mask(  &
      mavctr_c,mavctr_f,mseg_c,mseg_f,amask_c,amask_f,apsi_c,apsi_f,  &
      mbvctr_c,mbvctr_f,bpsi_c,bpsi_f,scpr)
-  use module_base, only: wp
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: mavctr_c,mavctr_f,mseg_c,mseg_f,mbvctr_c,mbvctr_f
   real(wp), intent(in) :: scpr
@@ -1109,7 +866,7 @@ subroutine waxpy_mask_unpack(  &
      mavctr_c,mavctr_f,mseg_c,mseg_f,amask_c,amask_f,apack_c,apack_f,&
      apsi_c,apsi_f, &
      mbvctr_c,mbvctr_f,bpsi_c,bpsi_f,scpr)
-  use module_base, only: wp
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: mavctr_c,mavctr_f,mseg_c,mseg_f,mbvctr_c,mbvctr_f
   real(wp), intent(in) :: scpr

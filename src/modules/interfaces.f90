@@ -757,6 +757,7 @@ module module_interfaces
                  linear_precond_convol_workarrays, linear_precond_workarrays)
         use module_base
         use module_types
+        use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
         implicit none
         integer, intent(in) :: iproc,nproc,ncong,npsidim
         real(gp), intent(in) :: hx,hy,hz
@@ -1268,20 +1269,6 @@ module module_interfaces
          real(dp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%nspin), intent(out), optional :: wxdsave
       END SUBROUTINE NK_SIC_potential
 
-      subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
-        use module_defs, only: gp,wp
-        use module_types
-        implicit none
-        integer, intent(in) :: nspinor
-        real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
-        type(locreg_descriptors), intent(in) :: lr
-        type(workarr_locham), intent(inout) :: w
-        real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
-        real(gp), intent(out) :: ekin
-        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
-        real(wp), dimension(6), optional :: k_strten
-      end subroutine isf_to_daub_kinetic
-
       subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  &
          wfd,psi,orblist)
          use module_base
@@ -1430,6 +1417,7 @@ module module_interfaces
           cdft, input_frag, ref_frags)
         use module_base
         use module_types
+        use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
         use fragment_base, only: fragmentInputParameters
         use module_fragments, only: system_fragment
         use constrained_dft, only: cdft_data
@@ -1835,12 +1823,12 @@ module module_interfaces
 !!$         logical, intent(in) :: reset
 !!$       end subroutine init_foe
 
-      subroutine deallocate_workarrays_quartic_convolutions(work)
-        use module_base
-        use module_types
-        implicit none
-        type(workarrays_quartic_convolutions),intent(out):: work
-      end subroutine deallocate_workarrays_quartic_convolutions
+!!$      subroutine deallocate_workarrays_quartic_convolutions(work)
+!!$        use module_base
+!!$        use module_types
+!!$        implicit none
+!!$        type(workarrays_quartic_convolutions),intent(out):: work
+!!$      end subroutine deallocate_workarrays_quartic_convolutions
 
       subroutine ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3,  &
                  hx, hy, hz, offsetx, offsety, offsetz, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
@@ -2261,6 +2249,7 @@ module module_interfaces
                   cdft, input_frag, ref_frags)
          use module_base
          use module_types
+         use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
          use communications_base, only: work_transpose
          use sparsematrix_base, only: matrices
          use constrained_dft, only: cdft_data
@@ -2768,43 +2757,44 @@ module module_interfaces
 !!$        end subroutine create_large_tmbs
 
 
-        subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-             hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder,&
-             work_conv, w)
-          use module_base
-          use module_types
-          implicit none
-          integer, intent(in) :: iproc,nproc,ncong,ncplx,confPotOrder
-          real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
-          type(locreg_descriptors), intent(in) :: lr
-          real(wp), intent(inout) :: x
-          real(8),dimension(3),intent(in):: rxyzParab
-          type(orbitals_data), intent(in):: orbs
-          real(8):: potentialPrefac
-          type(workarrays_quartic_convolutions),intent(inout):: work_conv !< workarrays for the convolutions
-          type(workarr_precond),intent(inout) :: w !< workarrays
-        end subroutine solvePrecondEquation
+!!$        subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
+!!$             hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder,&
+!!$             work_conv, w)
+!!$          use module_base
+!!$          use module_types
+!!$          
+!!$          implicit none
+!!$          integer, intent(in) :: iproc,nproc,ncong,ncplx,confPotOrder
+!!$          real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz
+!!$          type(locreg_descriptors), intent(in) :: lr
+!!$          real(wp), intent(inout) :: x
+!!$          real(8),dimension(3),intent(in):: rxyzParab
+!!$          type(orbitals_data), intent(in):: orbs
+!!$          real(8):: potentialPrefac
+!!$          type(workarrays_quartic_convolutions),intent(inout):: work_conv !< workarrays for the convolutions
+!!$          type(workarr_precond),intent(inout) :: w !< workarrays
+!!$        end subroutine solvePrecondEquation
 
-        subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, with_confpot, work)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in)::n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
-          logical,intent(in):: with_confpot
-          type(workarrays_quartic_convolutions),intent(inout):: work
-        end subroutine init_local_work_arrays
+!!$        subroutine init_local_work_arrays(n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, with_confpot, work)
+!!$          use module_base
+!!$          use module_types
+!!$          implicit none
+!!$          integer,intent(in)::n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3
+!!$          logical,intent(in):: with_confpot
+!!$          type(workarrays_quartic_convolutions),intent(inout):: work
+!!$        end subroutine init_local_work_arrays
 
-        subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
-          use module_base
-          use module_types
-          implicit none
-          integer, intent(in) :: iproc,npsidim_orbs
-          type(orbitals_data), intent(in) :: orbs
-          type(local_zone_descriptors), intent(in) :: Lzd
-          real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
-          real(gp), intent(out) :: ekin_sum
-          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
-        end subroutine psi_to_kinpsi
+!!$        subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
+!!$          use module_base
+!!$          use module_types
+!!$          implicit none
+!!$          integer, intent(in) :: iproc,npsidim_orbs
+!!$          type(orbitals_data), intent(in) :: orbs
+!!$          type(local_zone_descriptors), intent(in) :: Lzd
+!!$          real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
+!!$          real(gp), intent(out) :: ekin_sum
+!!$          real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
+!!$        end subroutine psi_to_kinpsi
 
         subroutine copy_old_supportfunctions(iproc,orbs,lzd,phi,lzd_old,phi_old)
           use module_base
@@ -3398,6 +3388,7 @@ module module_interfaces
         subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
           use module_base, only: gp
           use module_types
+          use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
           implicit none
           type(orbitals_data),intent(in) :: orbs
           type(local_zone_descriptors),intent(in) :: lzd
@@ -3409,6 +3400,7 @@ module module_interfaces
         subroutine deallocate_precond_arrays(orbs, lzd, precond_convol_workarrays, precond_workarrays)
           use module_base, only: gp
           use module_types
+          use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
           implicit none
           type(orbitals_data),intent(in) :: orbs
           type(local_zone_descriptors),intent(in) :: lzd

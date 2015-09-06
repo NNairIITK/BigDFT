@@ -16,6 +16,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian
   use module_xc
+  use locreg_operations
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,npsidim_orbs
@@ -93,7 +94,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
     ! Wavefunction in real space
     psir = f_malloc0((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='psir')
 
-    call initialize_work_arrays_locham(1,Lzd%Llr(ilr),orbs%nspinor,.true.,wrk_lh)  
+    call initialize_work_arrays_locham(1,[Lzd%Llr(ilr)],orbs%nspinor,.true.,wrk_lh)  
   
     ! wavefunction after application of the self-interaction potential
     if (ipotmethod == 2 .or. ipotmethod == 3) then
@@ -215,6 +216,7 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
   use module_types
   use module_interfaces, except_this_one => psi_to_vlocpsi
   use module_xc
+  use locreg_operations
   implicit none
   integer, intent(in) :: iproc,ipotmethod,npsidim_orbs
   real(gp), intent(in) :: alphaSIC
@@ -276,7 +278,7 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
      if (.not. dosome) cycle loop_lr
 
      !initialise the work arrays
-     call initialize_work_arrays_sumrho(1,lzd%llr(ilr),.false.,w)
+     call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.false.,w)
 
      !box elements size
      nbox=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
@@ -411,7 +413,7 @@ END SUBROUTINE psi_to_vlocpsi
 subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => psi_to_kinpsi
+  use locreg_operations
   implicit none
   integer, intent(in) :: iproc,npsidim_orbs
   type(orbitals_data), intent(in) :: orbs
@@ -451,7 +453,7 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
     psir = f_malloc0((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='psir')
 
     !initialise the work arrays
-    call initialize_work_arrays_locham(1,Lzd%Llr(ilr),orbs%nspinor,.false.,wrk_lh)  
+    call initialize_work_arrays_locham(1,[Lzd%Llr(ilr)],orbs%nspinor,.false.,wrk_lh)  
 
    
     ispsi=1

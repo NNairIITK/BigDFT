@@ -1171,9 +1171,9 @@ src/bigdft-tool
 src/Makefile
 src/modules/Makefile
 src/modules/bigdft_cst.h
-src/modules/configure.inc
 src/modules/configure.c
-src/convolutions/Makefile
+src/orbitals/Makefile
+src/orbitals/configure.inc
 src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile

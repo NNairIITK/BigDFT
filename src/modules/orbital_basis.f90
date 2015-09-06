@@ -268,10 +268,10 @@ contains
 
   subroutine local_hamiltonian_ket(psi,hgrids,ipotmethod,xc,pkernel,wrk_lh,psir,vsicpsir,hpsi,pot,eSIC_DCi,alphaSIC,epot,ekin)
     use module_xc, only: xc_info, xc_exctXfac
-    use module_types, only: workarr_locham
+    use locreg_operations, only: workarr_locham
     use Poisson_Solver, only: coulomb_operator
     use dynamic_memory
-    use module_interfaces, only: psir_to_vpsi,isf_to_daub_kinetic
+    use module_interfaces, only: psir_to_vpsi
     use wrapper_linalg, only: axpy
     implicit none
     type(ket), intent(in) :: psi

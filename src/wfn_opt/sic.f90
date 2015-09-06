@@ -16,6 +16,7 @@ subroutine PZ_SIC_potential(iorb,lr,orbs,xc,hxh,hyh,hzh,pkernel,psir,vpsir,eSICi
   use module_interfaces
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_xc
+  use locreg_operations
   implicit none
   integer, intent(in) :: iorb
   real(gp), intent(in) :: hxh,hyh,hzh
@@ -194,6 +195,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
   use module_xc
   use module_interfaces, except_this_one => NK_SIC_potential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use locreg_operations
   implicit none
   real(gp), intent(in) :: hxh,hyh,hzh,fref
   type(locreg_descriptors), intent(in) :: lr
@@ -292,7 +294,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hxh,hyh,hzh,pkernel,psi,poti,eSIC_DC
 
      !initalize the double-counting SIC corrections
      eSIC_DC=0.0_gp
-     call initialize_work_arrays_sumrho(1,lr,.true.,w)
+     call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
      do iorb=1,orbs%norbp
 

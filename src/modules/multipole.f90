@@ -493,7 +493,9 @@ module multipole
       use sparsematrix_base, only: sparsematrix_malloc0, SPARSE_FULL, assignment(=)
       use sparsematrix_init, only: matrixindex_in_compressed
       use orthonormalization, only: orthonormalizeLocalized
+      use locreg_operations, only: workarr_sumrho
       use yaml_output
+      use locreg_operations
       implicit none
 
       ! Calling arguments
@@ -571,7 +573,7 @@ module multipole
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
           call daub_to_isf(lzd%Llr(ilr), w, phi_ortho(ist), psir(istr))
           call deallocate_work_arrays_sumrho(w)
           !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
@@ -1265,7 +1267,7 @@ module multipole
                n1i, n2i, n3i, nsi1, nsi2, nsi3, locrad, hgrids, locregcenter, &
                nr, psir1_get, psir2_get, &
                nvctr, matrix_compr, multipoles, rmax, get_index, smatl, matrixindex)
-      use module_types, only: workarr_sumrho
+      use locreg_operations, only: workarr_sumrho      
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: matrixindex_in_compressed
       use yaml_output

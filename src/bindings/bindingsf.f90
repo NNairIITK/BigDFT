@@ -1225,7 +1225,8 @@ end subroutine wf_get_psi_size
 
 subroutine wf_iorbp_to_psi(psir, psi, lr)
   use module_base, only: wp,f_zero
-  use module_types
+  use locregs
+  use locreg_operations
   implicit none
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
@@ -1234,7 +1235,7 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
   character(len=*), parameter :: subname='wf_orb_to_psi'
   type(workarr_sumrho) :: w
 
-  call initialize_work_arrays_sumrho(1,lr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
   !initialisation
   if (lr%geocode == 'F') then

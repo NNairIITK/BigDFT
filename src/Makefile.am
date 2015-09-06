@@ -13,8 +13,8 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 # Sub-directories.
 # ---------------
 SUBDIRS = \
+	orbitals \
 	modules \
-	convolutions \
 	xcPSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
@@ -40,7 +40,7 @@ noinst_LIBRARIES = libmain.a libabscalc.a
 subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
-	convolutions/libconvolutions.a \
+	orbitals/liborbitals.a \
 	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
