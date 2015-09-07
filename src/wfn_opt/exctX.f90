@@ -703,7 +703,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   integer, dimension(MPI_STATUS_SIZE,4) :: mpistat,mpistat2
   type(workarr_sumrho) :: w
   integer, dimension(:), allocatable :: igrpr,ndatac
-  integer, dimension(:,:), allocatable :: nvctr_par
+  integer, dimension(:,:), allocatable :: nvctr_par,igrprarr
   integer, dimension(:,:,:), allocatable :: jprocsr,iprocpm1,ndatas,iorbgr
   real(wp), dimension(:), allocatable :: rp_ij
   real(wp), dimension(:,:), allocatable :: psir
@@ -791,6 +791,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
 
   !determine the array of the groups which are of interest for this processor
   igrpr = f_malloc(ngroupp,id='igrpr')
+  igrprarr= f_malloc0((/ 1.to.ngroup, 0.to.nproc-1 /),id='igrprarr')
   iprocpm1 = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroupp /),id='iprocpm1')
 
   !test array for data calculation
@@ -833,6 +834,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
      do igroup=1,ngroup
         if (nvctr_par(kproc,igroup) > 0) then
            icount=icount+1
+           igrprarr(igroup,kproc)=icount
         end if
      end do
      if (icount > icountmax) then
@@ -1088,17 +1090,20 @@ size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
             if (jproc == 0) then
 
             call MPI_GET(psiw(1,1,irnow,igroup), &
-int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-iprocpm1(2,1,igroup),int(0, kind=mpi_address_kind),int(nvctr_par(jprocsr(2,jproc,igroup),&
-igrpr(igroup)), kind=mpi_address_kind),&
-mpidtypw,win3,ierr)
+        int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
+        iprocpm1(2,1,igroup),int(0, kind=mpi_address_kind),int(nvctr_par(jprocsr(2,jproc,igroup),&
+        igrpr(igroup)), kind=mpi_address_kind),&
+        mpidtypw,win3,ierr)
         if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
  
            else
-    call MPI_GET(psiw(1,1,irnow,igroup), &
-int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-iprocpm1(2,1,igroup),(LOC(psiw(1,1,isnow,igroup))-LOC(psiw(1,1,1,1)))/size_of_double,&
-int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win,ierr)
+
+           call MPI_GET(psiw(1,1,irnow,igroup), &
+        int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
+        iprocpm1(2,1,igroup), int((igrprarr(igroup, iprocpm1(2,1,igroup))-1)*&
+        (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*2))&
+        + (isnow-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind),&
+        int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win,ierr)
 
         if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
 
@@ -1281,14 +1286,18 @@ int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpi
         end if
      end do
 
-     call mpi_win_fence( 0, win2 ,ierr);
+        call mpi_win_fence( 0, win2 ,ierr);
 
      do igroup=1,ngroupp
         if (jprocsr(4,jproc,igroup) /= -1) then
            ncommsstep2=ncommsstep2+1
-        call MPI_GET(dpsiw(1,1,irnow2,igroup),&
+
+           call MPI_GET(dpsiw(1,1,irnow2,igroup),&
             int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-            jprocsr(4,jproc,igroup),(LOC(dpsiw(1,1,isnow2,igroup))-LOC(dpsiw(1,1,1,1)))/size_of_double,&
+            jprocsr(4,jproc,igroup),&
+            int((igrprarr(igroup, jprocsr(4,jproc,igroup))-1)*&
+        (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
+             + (isnow2-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind) ,&
             int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win2,ierr)
         if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
         end if
@@ -1326,6 +1335,7 @@ int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpi
   call f_free(dpsiw)
   call f_free(psir)
   call f_free(igrpr)
+  call f_free(igrprarr)
   call f_free(iprocpm1)
   call f_free(jprocsr)
   !call timing(iproc,'Exchangecorr  ','OF')
