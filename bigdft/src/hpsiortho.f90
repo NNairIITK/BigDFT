@@ -3364,12 +3364,14 @@ subroutine paw_update_rho(paw, denspot, atoms)
      call yaml_newline()
   end if
 
-  offset = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%i3xcsh
-  call axpy(denspot%dpbox%ndimpot, 1._dp, denspot%rhohat(1,1,1,1), 1, &
-       & denspot%rhov(offset + 1), 1)
-  if (denspot%dpbox%nrhodim == 2) then
-     call axpy(denspot%dpbox%ndimpot, 1._dp, denspot%rhohat(1,1,1,2), 1, &
-          & denspot%rhov(denspot%dpbox%ndimrhopot / denspot%dpbox%nrhodim + offset + 1), 1)
+  if (denspot%dpbox%ndimpot > 0) then
+     offset = denspot%dpbox%ndims(1) * denspot%dpbox%ndims(2) * denspot%dpbox%i3xcsh
+     call axpy(denspot%dpbox%ndimpot, 1._dp, denspot%rhohat(1,1,1,1), 1, &
+          & denspot%rhov(offset + 1), 1)
+     if (denspot%dpbox%nrhodim == 2) then
+        call axpy(denspot%dpbox%ndimpot, 1._dp, denspot%rhohat(1,1,1,2), 1, &
+             & denspot%rhov(denspot%dpbox%ndimrhopot / denspot%dpbox%nrhodim + offset + 1), 1)
+     end if
   end if
 
   call f_timing(TCAT_PAW_RHOIJ, "OF")
