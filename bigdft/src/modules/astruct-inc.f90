@@ -1465,11 +1465,11 @@ subroutine wtascii(iunit,energy,rxyz,astruct,comment)
      end if
 
      !call write_extra_info(extra,astruct%input_polarization(iat),astruct%ifrztyp(iat))
-     call yaml_scalar(trim(yaml_toa(rxyz(1, iat) * factor, fmt = "(1pe24.17)")), &
+     call yaml_scalar(trim(yaml_toa(rxyz(1, iat) * factor(1), fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     call yaml_scalar(" " // trim(yaml_toa(rxyz(2, iat) * factor, fmt = "(1pe24.17)")), &
+     call yaml_scalar(" " // trim(yaml_toa(rxyz(2, iat) * factor(2), fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
-     call yaml_scalar(" " // trim(yaml_toa(rxyz(3, iat) * factor, fmt = "(1pe24.17)")), &
+     call yaml_scalar(" " // trim(yaml_toa(rxyz(3, iat) * factor(3), fmt = "(1pe24.17)")), &
           & advance = "NO", unit = iunit)
      call yaml_scalar(" " // trim(symbol), advance = "NO", unit = iunit)
      if (associated(astruct%attributes(iat)%d)) then
