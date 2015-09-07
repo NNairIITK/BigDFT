@@ -42,16 +42,13 @@ extern "C" void synchronize_() {
 extern "C" void FC_FUNC(cudamalloc, CUDAMALLOC) (int *size, Real **d_data,int *ierr) {
 
   *ierr = cudaMalloc((void**)d_data, sizeof(Real)*(*size));
-  if( cudaGetLastError() != cudaSuccess)
-      printf("allocate error\n");
+  //errors should be treated in the fortran part
 }
 
 // allocate device memory
 extern "C" void FC_FUNC(cudamemset, CUDAMEMSET) (Real **d_data, int* value, int* size,int *ierr) {
 
   *ierr = cudaMemset((void*)*d_data, *value, sizeof(Real)*(*size));
-  if( cudaGetLastError() != cudaSuccess)
-      printf("cudamemset error\n");
 }
 
 extern "C" void FC_FUNC(cudafree, CUDAFREE) (Real **d_data) {
@@ -1226,16 +1223,9 @@ void reduce_step(int s, int threads, int blocks, int reduceOnly,  Real* p_GPU, R
         }
     }
 
-gpuErrchk( cudaPeekAtLastError() );
-gpuErrchk( cudaDeviceSynchronize() );
+//gpuErrchk( cudaPeekAtLastError() );
+//gpuErrchk( cudaDeviceSynchronize() );
 
-//  cudaError_t error = cudaGetLastError();
-//  if(error != cudaSuccess)
-//  {
-//    // print the CUDA error message and exit
-//    printf("CUDA error in kernel : %s", cudaGetErrorString(error));
-//exit(0);
-//  }
 }
 
 unsigned int nextPow2(unsigned int x)
@@ -1291,14 +1281,12 @@ void apply_reduction(int n,
 
     Real *d_odata = NULL;
     cudaMalloc((void **) &d_odata, blocks*sizeof(Real));
-  if( cudaGetLastError() != cudaSuccess)
-      printf("allocate error\n");
+    gpuErrchk( cudaPeekAtLastError() );
     //first reduction
     cudaDeviceSynchronize();
     reduce_step<op1, op2>(n, threads, blocks, 0,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
   
-  if( cudaGetLastError() != cudaSuccess)
-    printf("result during first reduction kernel\n");
+    gpuErrchk( cudaPeekAtLastError() );
 
     int s=blocks;
     //loop and perform as many reductions steps as necessary
@@ -1317,15 +1305,13 @@ void apply_reduction(int n,
         blocks = min(maxBlocks, blocks);
 
         reduce_step<op1, op2>(s, threads, blocks, 1, p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
-        if( cudaGetLastError() != cudaSuccess)
-            printf("result during reduction kernel\n");
+        gpuErrchk( cudaPeekAtLastError() );
         s = (s + (threads*2-1)) / (threads*2);
     }
 
   //TODO: move result copy to user code ?
   cudaMemcpy(result, d_odata, sizeof(Real), cudaMemcpyDeviceToHost);
-  if( cudaGetLastError() != cudaSuccess)
-    printf("result retrieve error\n");
+  gpuErrchk( cudaPeekAtLastError() );
   cudaFree(d_odata);
   cudaDeviceSynchronize();
 }

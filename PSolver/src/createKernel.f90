@@ -138,7 +138,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   end if
 
   !gpu can be used only for one nproc
-  !if (nproc > 1) kernel%igpu=0
+  if (nproc > 1) kernel%igpu=0
 
   !-------------------
   nthreads=0
@@ -637,27 +637,27 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   if (trim(str(kernel%method))=='PCG' .and. kernel%igpu == 1) then
     if (kernel%keepGPUmemory == 1) then
       call cudamalloc(size3,kernel%z_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc z_GPU (GPU out of memory ?) ')
       call cudamalloc(size3,kernel%r_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc r_GPU (GPU out of memory ?) ')
       call cudamalloc(size3,kernel%oneoeps_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc oneoeps_GPU (GPU out of memory ?) ')
       call cudamalloc(size3,kernel%p_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc p_GPU (GPU out of memory ?) ')
       call cudamalloc(size3,kernel%q_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc q_GPU (GPU out of memory ?) ')
       call cudamalloc(size3,kernel%x_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc x_GPU (GPU out of memory ?) ')
       call cudamalloc(size3,kernel%corr_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc corr_GPU (GPU out of memory ?) ')
       call cudamalloc(sizeof(alpha),kernel%alpha_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc alpha_GPU (GPU out of memory ?) ')
       call cudamalloc(sizeof(alpha),kernel%beta_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc beta_GPU (GPU out of memory ?) ')
       call cudamalloc(sizeof(alpha),kernel%beta0_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc beta0_GPU (GPU out of memory ?) ')
       call cudamalloc(sizeof(alpha),kernel%kappa_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc kappa_GPU (GPU out of memory ?) ')
     end if 
   end if
 
@@ -665,12 +665,12 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
     if (kernel%igpu == 1) then
       if (kernel%keepGPUmemory == 1) then
         call cudamalloc(size2,kernel%work1_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc work1_GPU (GPU out of memory ?) ')
         call cudamalloc(size2,kernel%work2_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc work2_GPU (GPU out of memory ?) ')
       endif
       call cudamalloc(sizek,kernel%k_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc k_GPU (GPU out of memory ?) ')
     endif
 
     pkernel2 = f_malloc((n1/2+1)*n2*n3,id='pkernel2')
