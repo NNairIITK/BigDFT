@@ -749,6 +749,9 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   eproj_sum=0.0_gp
   !quick return if no orbitals on this task
   if (orbs%norbp == 0) then
+     if (paw%usepaw) then  
+        call gather_cprj(orbs, paw)
+     end if
      return
   end if
 
@@ -3244,6 +3247,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms)
      sym(2,2,1) = 1
      sym(3,3,1) = 1
      indsym = f_malloc_ptr((/ 4, nsym, atoms%astruct%nat /), id = "indsym")
+     symafm = f_malloc_ptr((/ nsym /), id = "symafm")
      allocate(symObj)
      symObj%xred = f_malloc0_ptr((/ 3, atoms%astruct%nat /), id = "xred")
   end if
@@ -3284,6 +3288,7 @@ subroutine paw_compute_rhoij(paw, orbs, atoms)
      call f_free_ptr(symObj%xred)
      deallocate(symObj)
      call f_free_ptr(indsym)
+     call f_free_ptr(symafm)
      call f_free_ptr(sym)
   end if
 
