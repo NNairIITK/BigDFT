@@ -46,7 +46,7 @@ end program]], withflibmod=yes, withflibmod=no)
   else
     ac_flib_libdir="-lflib-1"
   fi
-  AC_CHECK_LIB(flib-1, f_lib_initialize, ac_use_flib=yes, ac_use_flib=no, -lyaml)
+  AC_CHECK_LIB(flib-1, f_lib_initialize, ac_use_flib=yes, ac_use_flib=no, -lyaml -lrt)
   LIBS=$LIBS_SVG
   
   if test "$ac_use_flib" = "yes" -a "$withflibmod" = "yes" ; then
