@@ -2030,16 +2030,16 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
              ref_frags(ifrag_ref)%kernel, ref_frags(ifrag_ref)%astruct_frg%nat) 
 
 
-     if (iproc==0) then
-        open(32)
-        do itmb=1,tmb%orbs%norb
-           do jtmb=1,tmb%orbs%norb
-              write(32,*) itmb,jtmb,tmb%coeff(itmb,jtmb),ref_frags(ifrag_ref)%kernel(itmb,jtmb,1)
-           end do
-        end do
-        write(32,*) ''
-        close(32)
-     end if
+     !!if (iproc==0) then
+     !!   open(32)
+     !!   do itmb=1,tmb%orbs%norb
+     !!      do jtmb=1,tmb%orbs%norb
+     !!         write(32,*) itmb,jtmb,tmb%coeff(itmb,jtmb),ref_frags(ifrag_ref)%kernel(itmb,jtmb,1)
+     !!      end do
+     !!   end do
+     !!   write(32,*) ''
+     !!   close(32)
+     !!end if
 
      else 
         full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_coeff.bin'
