@@ -165,7 +165,7 @@ subroutine inputs_from_dict(in, atoms, dict)
 
   integer, parameter :: pawlcutd = 10, pawlmix = 10, pawnphi = 13, pawntheta = 12, pawxcdev = 1
   integer, parameter :: usepotzero = 0
-  integer :: nsym, xclevel
+  integer :: nsym, xclevel, iat, mpsang
   real(gp) :: gsqcut_shp, rloc, projr, rlocmin
   real(gp), dimension(2) :: cfrmults
   type(xc_info) :: xc
@@ -321,7 +321,11 @@ subroutine inputs_from_dict(in, atoms, dict)
      gsqcut_shp = 2._gp * 2.2_gp / pi_param ** 2
      nsym = 0
      call symmetry_get_n_sym(atoms%astruct%sym%symObj, nsym, ierr)
-     call abi_pawinit(1, gsqcut_shp, pawlcutd, pawlmix, maxval(atoms%pawtab(:)%lmn_size) + 1, &
+     mpsang = -1
+     do iat = 1, atoms%astruct%nat
+        mpsang = max(mpsang, maxval(atoms%pawtab(iat)%orbitals))
+     end do
+     call abi_pawinit(1, gsqcut_shp, pawlcutd, pawlmix, mpsang + 1, &
           & pawnphi, nsym, pawntheta, atoms%pawang, atoms%pawrad, 0, &
           & atoms%pawtab, pawxcdev, xclevel, usepotzero)
   end if
