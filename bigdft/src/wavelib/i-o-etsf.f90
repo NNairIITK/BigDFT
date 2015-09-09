@@ -1308,7 +1308,7 @@ subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoi
   if (f_err_raise(orbs%nkpts /= dims%number_of_kpoints, &
        & "Number of kpoints not matching")) return
   if (f_err_raise(.not. all(sum(norbs, 2) == orbs%norb), &
-       & "Number of kpoints not matching")) return
+       & "Number of orbitals not matching")) return
 
   identity(:,:)=0; identity(1,1)=1 ; identity(2,2)=1 ; identity(3,3)=1
 
