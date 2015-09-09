@@ -1266,7 +1266,7 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
   integer, intent(in) :: ixc, dispersion
   !Local variables
   logical :: nonloc
-  integer :: i,j,l,ityp,iat,natyp,mproj,inlcc
+  integer :: i,j,j0,l,ityp,iat,natyp,mproj,inlcc
   real(gp) :: minrad
   real(gp), dimension(3,3) :: hij
   real(gp), dimension(2,2,3) :: offdiagarr
@@ -1426,19 +1426,21 @@ subroutine print_atomic_variables(atoms, hmax, ixc, dispersion)
      ! PAW case.
      if (atoms%npspcode(ityp) == PSPCODE_PAW) then
         call yaml_sequence_open('NonLocal PSP Parameters (PAW)')
+        j0 = 1
         l = 1
         do i = 1, atoms%pawtab(ityp)%basis_size
            call yaml_sequence(advance='no')
-           call yaml_map('Channel (l,m,n)', atoms%pawtab(ityp)%indlmn(1:3,i))
+           call yaml_map('Channel (l,m,n)', atoms%pawtab(ityp)%indlmn(1:3, l))
+           l = l + atoms%pawtab(ityp)%orbitals(i) * 2 + 1
            call yaml_sequence_open('gaussians')
-           do j = l, l + atoms%pawtab(ityp)%wvl%pngau(i) / 2 - 1
+           do j = j0, j0 + atoms%pawtab(ityp)%wvl%pngau(i) / 2 - 1
               call yaml_sequence(advance='no')
               call yaml_mapping_open(flow = .true.)
               call yaml_map('factor', atoms%pawtab(ityp)%wvl%pfac(:,j),fmt='(f10.6)')
               call yaml_map('exponent', atoms%pawtab(ityp)%wvl%parg(:,j),fmt='(f10.6)')
               call yaml_mapping_close()
            end do
-           l = l + atoms%pawtab(ityp)%wvl%pngau(i)
+           j0 = j0 + atoms%pawtab(ityp)%wvl%pngau(i)
            call yaml_sequence_close()
         end do
         call yaml_sequence_close()
