@@ -1724,7 +1724,7 @@ module postprocessing_linear
       real(kind=8) :: tti, ttj, charge_net, charge_total
       real(kind=8) :: xi, xj, yi, yj, zi, zj, ttx, tty, ttz, xx, yy, zz, x, y, z
       real(kind=8),dimension(:),allocatable :: work, alpha_arr
-      real(kind=8),dimension(:,:),allocatable :: com
+      real(kind=8),dimension(:,:),allocatable :: com, alpha_arr_bounds
       real(kind=8),dimension(:,:),allocatable :: ham, ovrlp, proj, ovrlp_tmp, ovrlp_minusonehalf, kp, ktilde
       real(kind=8),dimension(:,:,:),allocatable :: coeff_all, ovrlp_onehalf_all
       integer,dimension(:,:,:,:),allocatable :: ilup
@@ -1745,15 +1745,18 @@ module postprocessing_linear
       call f_routine(id='projector_for_charge_analysis')
 
       alpha_arr = f_malloc(at%astruct%ntypes,id='alpha_arr')
+      alpha_arr_bounds = f_malloc((/at%astruct%ntypes,2/),id='alpha_arr_bounds')
 
       alpha_arr(1) = 17.777777778d0
       alpha_arr(2) = 5.25099769d0
-      alpha_arr(:) = 17.777777778d0
+      !alpha_arr(:) = 17.777777778d0
       !alpha_arr(:) = 5.25099769d0
       !alpha_arr(1) = 63.2d0*10.d-1
       !alpha_arr(2) = 5.51459534d0*10.d-1
       !alpha_arr(:) = 63.2d0*10.d-1
       !alpha_arr(:) = 5.51459534d0*10.d-1
+      alpha_arr_bounds(:,1) = 0.1d0*alpha_arr(:)
+      alpha_arr_bounds(:,2) = 10.d0*alpha_arr(:)
 
       kT = 1.d-2
 
@@ -1952,13 +1955,22 @@ module postprocessing_linear
           if (bigdft_mpi%iproc==0) then
               call yaml_sequence(advance='no')
           end if
+          
+          if (bigdft_mpi%iproc==0) then
+              write(*,*) 'bound_low_ok, bound_up_ok', bound_low_ok, bound_up_ok
+              write(*,*) 'alpha_arr_bounds(:,1)',alpha_arr_bounds(:,1)
+              write(*,*) 'alpha_arr_bounds(:,2)',alpha_arr_bounds(:,2)
+          end if
 
           if (.not.bound_low_ok) then
               alpha = alpha_low
+              alpha_arr(:) = alpha_arr_bounds(:,1)
           else if (.not.bound_up_ok) then
               alpha = alpha_up
+              alpha_arr(:) = alpha_arr_bounds(:,2)
           else
               alpha = 0.5d0*(alpha_low+alpha_up)
+              alpha_arr(:) = 0.5d0*(alpha_arr_bounds(:,1)+alpha_arr_bounds(:,2))
           end if
 
           charge_net = 0.d0
@@ -2152,10 +2164,43 @@ module postprocessing_linear
           if (abs(eval_all(ii)-eval_target)<1.d-4) then
               exit alpha_loop
           end if
-          if (eval_all(ii)>eval_target) then
-              alpha_arr(:) = 0.8d0*alpha_arr(:)
-          else
-              alpha_arr(:) = 1.2d0*alpha_arr(:)
+
+          !if (eval_all(ii)>eval_target) then
+          !    alpha_arr(:) = 0.8d0*alpha_arr(:)
+          !else
+          !    alpha_arr(:) = 1.2d0*alpha_arr(:)
+          !end if
+
+
+          ! If we are still searching the boundaries for the bisection...
+          if (.not.bound_low_ok) then
+              if (eval_all(ii)<eval_target) then
+                  ! this is an lower bound
+                  alpha_arr_bounds(:,1) = alpha_arr(:)
+                  bound_low_ok = .true.
+              else
+                  alpha_arr_bounds(:,1) = 0.5d0*alpha_arr_bounds(:,1)
+              end if
+              cycle alpha_loop
+          else if (.not.bound_up_ok) then
+              if (eval_all(ii)>eval_target) then
+                  ! this is an upper bound
+                  alpha_arr_bounds(:,2) = alpha_arr(:)
+                  bound_up_ok = .true.
+              else
+                  alpha_arr_bounds(:,2) = 2.0d0*alpha_arr_bounds(:,2)
+              end if
+              cycle alpha_loop
+          end if
+
+          if (eval_all(ii)<eval_target) then
+              ! new lower bound
+              if (bigdft_mpi%iproc==0) write(*,*) 'new lower bound'
+              alpha_arr_bounds(:,1) = alpha_arr(:)
+          else if (eval_all(ii)>eval_target) then
+              ! new upper bound
+              if (bigdft_mpi%iproc==0) write(*,*) 'new upper bound'
+              alpha_arr_bounds(:,2) = alpha_arr(:)
           end if
         
         
@@ -2418,6 +2463,7 @@ module postprocessing_linear
       call f_free(n_all)
       call f_free(ovrlp_minusonehalf)
       call f_free(alpha_arr)
+      call f_free(alpha_arr_bounds)
     
       !if (bigdft_mpi%iproc==0) then
       !    call yaml_mapping_close()
