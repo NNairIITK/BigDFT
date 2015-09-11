@@ -38,7 +38,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use sparsematrix_init, only: matrixindex_in_compressed
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals, calculate_theta, &
-                                   projector_for_charge_analysis, projector_for_charge_analysis_old
+                                   projector_for_charge_analysis
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   use locreg_operations, only: get_boundary_weight, small_to_large_locreg
   use public_enums
@@ -2466,10 +2466,7 @@ end if
       !    iat = tmb%linmat%s%on_which_atom(i)
       !    com(1:3,i) = rxyz(1:3,iat)
       !end do
-      !!call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
-      !!     tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
-      !!     rxyz, calculate_centers=.false.)
-      call projector_for_charge_analysis_old(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
            rxyz, calculate_centers=.false.)
       !call f_free_ptr(com)
