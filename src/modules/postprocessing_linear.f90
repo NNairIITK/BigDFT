@@ -1746,8 +1746,14 @@ module postprocessing_linear
 
       alpha_arr = f_malloc(at%astruct%ntypes,id='alpha_arr')
 
-      alpha_arr(1) = 5.51459534d0*10.d-1
-      alpha_arr(2) = 63.2d0*10.d-1
+      alpha_arr(1) = 17.777777778d0
+      alpha_arr(2) = 5.25099769d0
+      alpha_arr(:) = 17.777777778d0
+      !alpha_arr(:) = 5.25099769d0
+      !alpha_arr(1) = 63.2d0*10.d-1
+      !alpha_arr(2) = 5.51459534d0*10.d-1
+      !alpha_arr(:) = 63.2d0*10.d-1
+      !alpha_arr(:) = 5.51459534d0*10.d-1
 
       kT = 1.d-2
 
@@ -1966,6 +1972,7 @@ module postprocessing_linear
               kkat = kat + isat
 
               alpha = alpha_arr(at%astruct%iatype(kkat))
+              !write(*,*) 'kkat, name, alpha', kkat, at%astruct%atomnames(at%astruct%iatype(kkat)), alpha
               !if (kkat==2) then
               !    !O
               !    alpha = 5.51459534d0*10.d-1
@@ -2138,7 +2145,9 @@ module postprocessing_linear
               ii = ii + at%nelpsp(itype)
           end do
           ii = ii/2 !closed shell. quick and dirty
-          eval_target = -2.63d-1+0.05d0
+          !eval_target = -2.63d-1+0.05d0
+          !eval_target = -2.627921676582d-1+.1d0 !standard
+          eval_target = -2.637375544845d-1+.1d0 !large
           if (bigdft_mpi%iproc==0) write(*,*) 'eval_target, ii, eval_all(ii)', eval_target, ii, eval_all(ii)
           if (abs(eval_all(ii)-eval_target)<1.d-4) then
               exit alpha_loop
@@ -2600,7 +2609,8 @@ module postprocessing_linear
                             end do
                         end do
                         !ham(jj,ii) = ham(jj,ii) + alpha*rr2**3*ovrlp(jj,ii)
-                        ham(jj,ii) = ham(jj,ii) + alpha*rr2**2*ovrlp(jj,ii)
+                        !ham(jj,ii) = ham(jj,ii) + alpha*rr2**2*ovrlp(jj,ii)
+                        ham(jj,ii) = ham(jj,ii) + alpha*rr2*ovrlp(jj,ii)
                     end if
                 end if
             end do
