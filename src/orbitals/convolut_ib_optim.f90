@@ -13,7 +13,7 @@
 subroutine Convolkinetic(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,x_f1,x_f2,x_f3)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
 !dee
   !integer :: iend_test,count_rate_test,count_max_test,istart_test
@@ -717,7 +717,7 @@ END SUBROUTINE Convolkinetic
 !!$subroutine Convolkinetic_SSE(n1,n2,n3, &
 !!$     nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
 !!$     cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f)
-!!$  use module_base
+!!$  use module_defs, only: wp
 !!$  implicit none
 !!$!dee
 !!$  !integer :: iend_test,count_rate_test,count_max_test,istart_test
@@ -922,7 +922,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hx,hy,hz,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,ekinout,x_f1,x_f2,x_f3,idir)
   !   y = y+(kinetic energy operator)x 
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,idir
   real(gp), intent(in) :: hx,hy,hz

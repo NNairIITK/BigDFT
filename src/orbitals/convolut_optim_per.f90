@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 subroutine ana_rot_per(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
 
 !dee
@@ -146,7 +146,7 @@ END SUBROUTINE ana_rot_per
 
 
 subroutine syn_rot_per(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
 !dee
 !  integer :: iend_test,count_rate_test,count_max_test,istart_test
@@ -305,7 +305,7 @@ END SUBROUTINE syn_rot_per
 
 
 subroutine syn_rot_per_temp(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(0:2*n-1,ndat), intent(in) :: x
@@ -420,7 +420,7 @@ END SUBROUTINE syn_rot_per_temp
 
 
 subroutine syn_rot_per_simple(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
@@ -468,7 +468,7 @@ subroutine syn_rot_per_simple(n,ndat,x,y)
 END SUBROUTINE syn_rot_per_simple
 
 subroutine ana_rot_per_simple(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
@@ -517,7 +517,7 @@ END SUBROUTINE ana_rot_per_simple
 
 
 subroutine convrot_n_per(n1,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
 
 !dee
@@ -644,7 +644,7 @@ END SUBROUTINE convrot_n_per
 
 
 subroutine convrot_t_per(n1,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
 
 !dee
@@ -767,7 +767,7 @@ END SUBROUTINE convrot_t_per
 
 
 subroutine convrot_t_per_test(n1,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
 
 !dee
@@ -892,7 +892,7 @@ END SUBROUTINE convrot_t_per_test
 !> Applies the kinetic energy operator onto x to get y. Works for periodic BC
 !! This routines is used by OpenCL/conv_check.f90
 subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
 
   integer, intent(in) :: n1,n2,n3
@@ -1169,7 +1169,7 @@ END SUBROUTINE convolut_kinetic_per_c
 subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,kstrten)
   !   applies the kinetic energy operator onto x to get y. Works for periodic BC
   !   y:=y-1/2Delta x
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
 
   integer, intent(in) :: n1,n2,n3
@@ -1264,7 +1264,7 @@ END SUBROUTINE convolut_kinetic_per_T
 subroutine convolut_kinetic_per_T_1D(n1,n2,n3,hgrid,jdim,x,y)
   !   applies the kinetic energy operator onto x to get y. Works for periodic BC
   !   y:=y-1/2Delta x
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
 
   integer, intent(in) :: n1,n2,n3,jdim
@@ -1370,7 +1370,7 @@ END SUBROUTINE convolut_kinetic_per_T_1D
 
 
 subroutine conv_kin_x(x,y,n1,n2,n3,ekin,fil,mod_arr1)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
   integer, intent(in) :: n1,n2,n3
@@ -1447,7 +1447,7 @@ subroutine conv_kin_x(x,y,n1,n2,n3,ekin,fil,mod_arr1)
 END SUBROUTINE conv_kin_x
 
 subroutine conv_kin_y(x,y,n1,n2,n3,ekin,fil,mod_arr2)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
   integer, intent(in) :: n1,n2,n3
@@ -1517,7 +1517,7 @@ END SUBROUTINE conv_kin_y
 
 
 subroutine conv_kin_z(x,y,n1,n2,n3,ekin,fil,mod_arr3)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
   integer, intent(in) :: n1,n2,n3

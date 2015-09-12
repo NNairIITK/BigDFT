@@ -11,7 +11,7 @@
 !> Analysis wavelet transformation in periodic BC
 !! The input array y is NOT overwritten
 subroutine analyse_per(n1,n2,n3,ww,y,x)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:2*n2+1,0:2*n3+1,0:2*n1+1), intent(inout) :: ww
@@ -36,7 +36,7 @@ END SUBROUTINE analyse_per
 !> Analysis wavelet transformation  in periodic BC
 !! The input array y is overwritten
 subroutine analyse_per_self(n1,n2,n3,y,x)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(inout) :: y
@@ -60,7 +60,7 @@ END SUBROUTINE analyse_per_self
 !> A synthesis wavelet transformation  in periodic BC
 !! The input array x is not overwritten
 subroutine synthese_per(n1,n2,n3,ww,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(in) :: x
@@ -85,7 +85,7 @@ END SUBROUTINE synthese_per
 !> A synthesis wavelet transformation in periodic BC
 !! The input array x is  overwritten
 subroutine synthese_per_self(n1,n2,n3,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(in) :: x
@@ -110,7 +110,7 @@ END SUBROUTINE synthese_per_self
 !! The input array x is not overwritten
 !! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_per(n1,n2,n3,x,y,ww)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
@@ -137,7 +137,7 @@ END SUBROUTINE convolut_magic_n_per
 !! The input array x is overwritten in the usual case
 !! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_per_self(n1,n2,n3,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
@@ -164,7 +164,7 @@ END SUBROUTINE convolut_magic_n_per_self
 !! The input array x is overwritten
 !! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_t_per_self(n1,n2,n3,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: x

@@ -13,7 +13,7 @@
 !! The size of the data is forced to shrink
 !! The input array y is not overwritten
 subroutine comb_shrink_hyb_c(n1,n2,n3,w1,w2,y,x)
-use module_base
+use module_defs, only: wp
 implicit none
 integer,intent(in) ::n1,n2,n3 
 real(wp),dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1),intent(in)::y!input
@@ -39,7 +39,7 @@ END SUBROUTINE comb_shrink_hyb_c
 
 
 subroutine comb_grow_c_simple(n1,n2,n3,w1,w2,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer,intent(in)::n1,n2,n3
   real(wp),intent(in)::x(0:n1,0:n2,0:n3)   

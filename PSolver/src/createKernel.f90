@@ -14,7 +14,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      alg,cavity,mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
   use yaml_output
   use yaml_strings, only: f_strcpy
-  use dictionaries, only: f_loc
+  use f_precisions, only: f_loc
   implicit none
   logical, intent(in) :: verb       !< verbosity
   integer, intent(in) :: itype_scf
@@ -1094,7 +1094,7 @@ end subroutine sccs_extra_potential
 !>put in pol_charge array the polarization charge
 subroutine polarization_charge(kernel,pot,rho)
   implicit none
-  type(coulomb_operator), intent(in) :: kernel
+  type(coulomb_operator), intent(inout) :: kernel
   !>complete potential, needed to calculate the derivative
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: pot
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: rho

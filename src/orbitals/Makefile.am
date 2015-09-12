@@ -2,11 +2,11 @@
 noinst_LIBRARIES = liborbitals.a
 
 # Source code.
-if USE_CUDA_GPU
-CUDA_CONV = convolut_common_interface_cuda.f90
-else
+#if USE_CUDA_GPU
+#CUDA_CONV = convolut_common_interface_cuda.f90
+#else
 CUDA_CONV =
-endif
+#endif
 if USE_OCL
 OCL_CONV = convolut_common_interface_ocl.f90
 else
@@ -73,12 +73,13 @@ endif
 base.o: defs.o public_keys.o
 
 $(CONV_SOURCES).f90.o: defs.o
+conv_per_optim.o: base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
 install: install-am insmod
 check: check-am insmod
-insmod: $(modules)
+insmod: $(modules) liborbitals.a
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \
 	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \

@@ -11,7 +11,7 @@
 !>   A analysis wavelet transformation where the size of the data is forced to shrink
 !!   The input array y is overwritten
 subroutine analyse_shrink(n1,n2,n3,ww,y,x)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8), intent(inout) :: ww
@@ -36,7 +36,7 @@ END SUBROUTINE analyse_shrink
 !>   A synthesis wavelet transformation where the size of the data is allowed to grow
 !!   The input array x is not overwritten
 subroutine synthese_grow(n1,n2,n3,ww,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(in) :: x
@@ -150,7 +150,7 @@ END SUBROUTINE synthese_slab_self
 !!   The input array x is overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,-7:n2+8,0:n3), intent(inout) :: x
@@ -217,7 +217,7 @@ END SUBROUTINE synthese_free_self
 !!   The input array x is overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_free_self(n1,n2,n3,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(-7:n1+8,-7:n2+8,-7:n3+8), intent(inout) :: x
@@ -262,7 +262,7 @@ END SUBROUTINE convolut_magic_n_free_self
 !!   The input array x is not overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
@@ -309,7 +309,7 @@ END SUBROUTINE convolut_magic_n_slab
 !!   The input array x is overwritten
 !!   this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,-7:n2+8,0:n3), intent(inout) :: x
@@ -354,7 +354,7 @@ END SUBROUTINE convolut_magic_t_slab_self
 
 !>   Applies the kinetic energy operator onto x to get y. Works for periodic BC
 subroutine convolut_kinetic_slab_sdc(n1,n2,n3,x,y,cprecr,modul1,modul3,a,b,c,e)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in) :: cprecr
@@ -509,7 +509,7 @@ END SUBROUTINE convolut_kinetic_slab_sdc
 
 !> BigDFT/prepare_sdc_slab
 subroutine prepare_sdc_slab(n1,n3,modul1,modul3,a,b,c,e,hx,hy,hz)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer,intent(in)::n1,n3
   real(gp),intent(in)::hx,hy,hz

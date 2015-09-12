@@ -11,7 +11,7 @@
 !> A analysis wavelet transformation where the size of the data is forced to shrink
 !! The input array y is overwritten
 subroutine analyse_shrink(n1,n2,n3,ww,y,x)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(-7:2*n2+8,-7:2*n3+8,-7:2*n1+8), intent(inout) :: ww
@@ -36,7 +36,7 @@ END SUBROUTINE analyse_shrink
 !> A synthesis wavelet transformation where the size of the data is allowed to grow
 !! The input array x is not overwritten
 subroutine synthese_grow(n1,n2,n3,ww,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(in) :: x
@@ -59,7 +59,7 @@ END SUBROUTINE synthese_grow
 
 
 subroutine ana_rot_shrink(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(-7:2*n+8,ndat), intent(in) :: x
@@ -105,7 +105,7 @@ END SUBROUTINE ana_rot_shrink
 
 
 subroutine syn_rot_grow(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
@@ -168,7 +168,7 @@ END SUBROUTINE syn_rot_grow
 
 !> Simple non-optimized version of the major convolution routines
 subroutine convrot_grow(n1,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, parameter :: lowfil=-8,lupfil=7
   integer, intent(in) :: n1,ndat
@@ -214,7 +214,7 @@ END SUBROUTINE convrot_grow
 
 !> Simple non-optimized version of the major convolution routines
 subroutine convrot_shrink(n1,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, parameter :: lowfil=-8,lupfil=7
   integer, intent(in) :: n1,ndat

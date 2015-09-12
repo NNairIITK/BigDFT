@@ -9,7 +9,7 @@
 
 
 subroutine ana_rot_per(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
@@ -57,7 +57,7 @@ END SUBROUTINE ana_rot_per
 
 
 subroutine syn_rot_per(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
@@ -198,7 +198,7 @@ subroutine syn_rot_per(n,ndat,x,y)
 END SUBROUTINE syn_rot_per
 
 subroutine convrot_n_per(n1,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,ndat
   real(wp), dimension(0:n1,ndat), intent(in) :: x
@@ -244,7 +244,7 @@ END SUBROUTINE convrot_n_per
 
 
 subroutine convrot_t_per(n1,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,ndat
   real(wp), dimension(0:n1,ndat), intent(in) :: x
@@ -293,7 +293,7 @@ END SUBROUTINE convrot_t_per
 
 subroutine convolut_kinetic_per_c(n1,n2,n3,hgrid,x,y,c)
 !   applies the kinetic energy operator onto x to get y. Works for periodic BC
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::c
@@ -376,7 +376,7 @@ END SUBROUTINE convolut_kinetic_per_c
 
 subroutine convolut_kinetic_per_T(n1,n2,n3,hgrid,x,y,ekin)
 !   applies the kinetic energy operator onto x to get y. Works for periodic BC
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp), dimension(3), intent(in) :: hgrid

@@ -13,7 +13,7 @@
 !! See also the optimized version (apply_hp_sd_optim)
 subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e) !n(c) hx,hy,hz (arg:11,12,13)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
   integer, intent(in) :: n1,n2,n3
@@ -55,7 +55,7 @@ END SUBROUTINE apply_hp_sd
 !>   See also the optimized version (apply_hp_scal_optim)
 subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e,scal) !n(c) hx,hy,hz (arg:11,12,13)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
   integer, intent(in) :: n1,n2,n3
@@ -98,7 +98,7 @@ END SUBROUTINE apply_hp_scal
 !>   Applies the kinetic energy operator onto x to get y. Works for periodic BC
 !!   See also the optimized version (convolut_kinteic_per_sdc_optim)
 subroutine convolut_kinetic_per_sdc(n1,n2,n3,x,y,cprecr,modul1,modul2,modul3,a,b,c,e)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::cprecr
@@ -254,7 +254,7 @@ END SUBROUTINE convolut_kinetic_per_sdc
 
 
 subroutine prepare_sdc(n1,n2,n3,modul1,modul2,modul3,a,b,c,e,hx,hy,hz)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer,intent(in) :: n1,n2,n3
   real(gp),intent(in) :: hx,hy,hz
@@ -364,7 +364,7 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,x_c,x_f,y_c,y_f,kstrten,x_f1,x_f2,x_f3,ibyz,ibxz,ibxy)
   !   y = y+(kinetic energy operator)x 
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer,intent(in)::ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
@@ -707,7 +707,7 @@ subroutine convolut_kinetic_hyb_T(n1,n2,n3, &
 END SUBROUTINE convolut_kinetic_hyb_T
 
   subroutine conv_kin_x1(x,y,n1,n2,n3,ekin,mod_arr1,a)
-  use module_base
+  use module_defs, only: wp,gp
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14
     integer, intent(in) :: n1,n2,n3
@@ -782,7 +782,7 @@ END SUBROUTINE convolut_kinetic_hyb_T
   END SUBROUTINE conv_kin_x1
   
   subroutine conv_kin_y1(x,y,n1,n2,n3,ekin,mod_arr2,a)
-  use module_base
+  use module_defs, only: wp,gp
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14
     integer, intent(in) :: n1,n2,n3
@@ -848,7 +848,7 @@ END SUBROUTINE convolut_kinetic_hyb_T
 
 
   subroutine conv_kin_z1(x,y,n1,n2,n3,ekin,mod_arr3,a)
-  use module_base
+  use module_defs, only: wp,gp
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14
     integer, intent(in) :: n1,n2,n3
@@ -928,7 +928,7 @@ subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hgrid,x_c,x_f,y_c,y_f,cprecr,x_f1,x_f2,x_f3,ibyz,ibxz,ibxy)
   !   y = (kinetic energy operator+C)x 
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer,intent(in)::ibyz(2,0:n2,0:n3),ibxz(2,0:n1,0:n3),ibxy(2,0:n1,0:n2)
@@ -1230,7 +1230,7 @@ subroutine convolut_kinetic_hyb_c(n1,n2,n3, &
 END SUBROUTINE convolut_kinetic_hyb_c
 
   subroutine conv_kin_y2(x,y,n1,n2,n3,mod_arr2,a)
-  use module_base
+  use module_defs, only: wp
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14
     integer, intent(in) :: n1,n2,n3
@@ -1294,7 +1294,7 @@ END SUBROUTINE convolut_kinetic_hyb_c
 
 
   subroutine conv_kin_x2(x,y,n1,n2,n3,mod_arr1,a,cprecr)
-  use module_base
+  use module_defs, only: wp,gp
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14   
     integer, intent(in) :: n1,n2,n3
@@ -1369,7 +1369,7 @@ END SUBROUTINE convolut_kinetic_hyb_c
   END SUBROUTINE conv_kin_x2
 
   subroutine conv_kin_z2(x,y,n1,n2,n3,mod_arr3,a)
-  use module_base
+  use module_defs, only: wp
     implicit none
     integer, parameter :: lowfil=-14,lupfil=14
     integer, intent(in) :: n1,n2,n3
