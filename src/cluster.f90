@@ -1937,15 +1937,17 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
           atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
 !---------------------------------------------------
 ! giuseppe fisicaro dilectric cavity
-     if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
+     if (denspot%pkernel%method /= 'VAC') then
+        if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
 
-     call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
-          atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%pol_charge)
+        call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
+             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%pol_charge)
 
-     if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
+        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
 
-     call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
-          atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%cavity)
+        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
+             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%cavity)
+     end if
 !---------------------------------------------------
 
      if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then

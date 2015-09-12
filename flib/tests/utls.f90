@@ -30,6 +30,7 @@ subroutine f_utils_test()
   integer(f_integer), dimension(3) :: i4
   integer(f_long), dimension(3) :: il
   logical(f_byte), dimension(3) :: lb
+  character(len=256) :: path
   logical, dimension(3) :: l
 
   r4=real(10.0,f_quadruple)
@@ -120,6 +121,9 @@ subroutine f_utils_test()
   call f_delete_file('test3')
   call yaml_mapping_close()
   call yaml_map('If this value is 7 then all files have been correctly closed',f_get_free_unit())
+
+  !create a directory (we should add the test to remove it)
+  !call f_mkdir('testdir',path)
 
 end subroutine f_utils_test
 
