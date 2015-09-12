@@ -75,13 +75,13 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-12_dp!1.0e-4_dp!1.0e-12_dp
+        kernel%minres=1.0e-6_dp!1.0e-12_dp
         kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%method=PS_PCG_ENUM
-        kernel%nord=16 
+        kernel%nord=16
         kernel%max_iter=50
-        kernel%minres=1.0e-12_dp!1.0e-4_dp!1.0e-12_dp
+        kernel%minres=1.0e-6_dp!1.0e-12_dp
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -168,6 +168,8 @@ subroutine pkernel_free(kernel)
   call f_free_ptr(kernel%oneoeps)
   call f_free_ptr(kernel%corr)
   call f_free_ptr(kernel%epsinnersccs)
+  call f_free_ptr(kernel%pol_charge)
+  call f_free_ptr(kernel%cavity)
   call f_free_ptr(kernel%counts)
   call f_free_ptr(kernel%displs)
 
@@ -881,6 +883,8 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
   if (kernel%grid%n3p==0) i3s=1
   select case(trim(str(kernel%method)))
   case('PCG')
+     kernel%cavity=f_malloc_ptr([n1,n23],id='cavity')
+     kernel%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
      if (present(corr)) then
         kernel%corr=f_malloc_ptr([n1,n23],id='corr')
         call f_memcpy(n=n1*n23,src=corr(1,1,i3s),dest=kernel%corr)
@@ -933,6 +937,8 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
         call f_err_throw('For method "PCG" the arrays oneosqrteps or epsilon should be present')   
      end if
   case('PI')
+     kernel%cavity=f_malloc_ptr([n1,n23],id='cavity')
+     kernel%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
      if (present(dlogeps)) then
         !kernel%dlogeps=f_malloc_ptr(src=dlogeps,id='dlogeps')
         kernel%dlogeps=f_malloc_ptr(shape(dlogeps),id='dlogeps')
@@ -997,11 +1003,15 @@ subroutine pkernel_allocate_cavity(kernel,vacuum)
      kernel%corr=f_malloc_ptr([n1,n23],id='corr')
      kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
      kernel%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
+     kernel%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
+     kernel%cavity=f_malloc_ptr([n1,n23],id='cavity')
   case('PI')
      kernel%dlogeps=f_malloc_ptr([3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],&
           id='dlogeps')
      kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
      kernel%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
+     kernel%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
+     kernel%cavity=f_malloc_ptr([n1,n23],id='cavity')
   end select
   if (present(vacuum)) then
      if (vacuum) then
@@ -1012,6 +1022,8 @@ subroutine pkernel_allocate_cavity(kernel,vacuum)
            call f_zero(kernel%dlogeps)
         end select
         call f_zero(kernel%epsinnersccs)
+        call f_zero(kernel%pol_charge)
+        call f_zero(kernel%cavity)
         do i23=1,n23
            do i1=1,n1
               kernel%oneoeps(i1,i23)=1.0_dp
@@ -1024,15 +1036,17 @@ end subroutine pkernel_allocate_cavity
 
 !>put in depsdrho array the extra potential
 subroutine sccs_extra_potential(kernel,pot,depsdrho)
+  use yaml_output
   implicit none
   type(coulomb_operator), intent(in) :: kernel
   !>complete potential, needed to calculate the derivative
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: pot
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: depsdrho
   !local variables
-  integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03
-  real(dp) :: d2
+  integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03,unt
+  real(dp) :: d2,x
   real(dp), dimension(:,:,:,:), allocatable :: nabla_pot
+  !real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)) :: pot2,depsdrho1,depsdrho2
 
   n01=kernel%ndims(1)
   n02=kernel%ndims(2)
@@ -1052,18 +1066,75 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho)
            do i=1,3
               d2 = d2+nabla_pot(i1,i2,i3,i)**2
            end do
+           !depsdrho1(i1,i2,i3)=depsdrho(i1,i23)
            depsdrho(i1,i23)=depsdrho(i1,i23)*d2
+           !pot2(i1,i2,i3)=d2
+           !depsdrho2(i1,i2,i3)=depsdrho(i1,i23)
         end do
         i23=i23+1
      end do
   end do
+
+!     unt=f_get_free_unit(22)
+!     call f_open_file(unt,file='extra_term_line_sccs_x.dat')
+!     do i1=1,n01
+!        x=i1*kernel%hgrids(1)
+!        write(unt,'(1x,I8,5(1x,e22.15))')i1,x,pot(i1,n02/2,n03/2),depsdrho1(i1,n02/2,n03/2),pot2(i1,n02/2,n03/2),depsdrho2(i1,n02/2,n03/2)
+!     end do
+!     call f_close(unt)
  
   call f_free(nabla_pot)
+!  call yaml_map('extra term here',.true.)
 
   if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
        call yaml_map('Extra SCF potential calculated',.true.)
 
 end subroutine sccs_extra_potential
+
+!>put in pol_charge array the polarization charge
+subroutine polarization_charge(kernel,pot,rho)
+  implicit none
+  type(coulomb_operator), intent(inout) :: kernel
+  !>complete potential, needed to calculate the derivative
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: pot
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: rho
+  !local variables
+  integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03
+  real(dp) :: d2,pi
+  real(dp), dimension(:,:,:,:), allocatable :: nabla_pot
+  real(dp), dimension(:,:,:), allocatable :: lapla_pot
+
+  pi=4.0_dp*atan(1.0_dp)
+  n01=kernel%ndims(1)
+  n02=kernel%ndims(2)
+  n03=kernel%ndims(3)
+  !starting point in third direction
+  i3s=kernel%grid%istart+1
+
+  nabla_pot=f_malloc([n01,n02,n03,3],id='nabla_pot')
+  lapla_pot=f_malloc([n01,n02,n03],id='lapla_pot')
+  !calculate derivative of the potential
+  call fssnord3DmatNabla3var_LG(kernel%geocode,n01,n02,n03,pot,nabla_pot,kernel%nord,kernel%hgrids)
+  call fssnord3DmatDiv3var_LG(kernel%geocode,n01,n02,n03,nabla_pot,lapla_pot,kernel%nord,kernel%hgrids)
+  i23=1
+  do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
+     do i2=1,n02
+        do i1=1,n01
+           !this section has to be inserted into a optimized calculation of the
+           !derivative
+           kernel%pol_charge(i1,i23)=(-0.25_dp/pi)*lapla_pot(i1,i2,i3)-rho(i1,i23)
+        end do
+        i23=i23+1
+     end do
+  end do
+
+  call f_free(nabla_pot)
+  call f_free(lapla_pot)
+
+  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
+       call yaml_map('Polarization charge calculated',.true.)
+
+end subroutine polarization_charge
 
 !>build the needed arrays of the cavity from a given density
 !!according to the SCF cavity definition given by Andreussi et al. JCP 136, 064102 (2012)
@@ -1088,12 +1159,12 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   
   !local variables
   logical, parameter :: dumpeps=.false.  !.true.
-  real(kind=8), parameter :: edensmax = 0.0050d0
+  real(kind=8), parameter :: edensmax = 0.005d0 !0.0050d0
   real(kind=8), parameter :: edensmin = 0.0001d0
   real(kind=8), parameter :: innervalue = 0.9d0
   integer :: n01,n02,n03,i,i1,i2,i3,i23,i3s,unt
   real(dp) :: oneoeps0,oneosqrteps0,pi,coeff,coeff1,fact1,fact2,fact3,r,t,d2,dtx,dd,x,y,z
-  real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr,epsinner
+  real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr,epsinner,depsdrho1
   real(dp), dimension(:,:,:,:), allocatable :: nabla_edens
 
   n01=kernel%ndims(1)
@@ -1106,6 +1177,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   nabla_edens=f_malloc([n01,n02,n03,3],id='nabla_edens')
   ddt_edens=f_malloc(kernel%ndims,id='ddt_edens')
   epsinner=f_malloc(kernel%ndims,id='epsinner')
+  depsdrho1=f_malloc(kernel%ndims,id='depsdrho1')
   if (dumpeps) epscurr=f_malloc(kernel%ndims,id='epscurr')
 
   !build the gradients and the laplacian of the density
@@ -1136,6 +1208,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
            do i1=1,n01
              if (kernel%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
                  !eps(i1,i2,i3)=1.d0
+                 kernel%cavity(i1,i23)=1.d0
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
                  kernel%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
 !!$                 do i=1,3
@@ -1143,10 +1216,12 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
 !!$                 end do
                  kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
+                 depsdrho1(i1,i2,i3)=0.d0
              else
 
               if (dabs(edens(i1,i2,i3)).gt.edensmax) then
                  !eps(i1,i2,i3)=1.d0
+                 kernel%cavity(i1,i23)=1.d0
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
                  kernel%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
 !!$                 do i=1,3
@@ -1154,8 +1229,10 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
 !!$                 end do
                  kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
+                 depsdrho1(i1,i2,i3)=0.d0
               else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
                  !eps(i1,i2,i3)=eps0
+                 kernel%cavity(i1,i23)=eps0
                  if (dumpeps) epscurr(i1,i2,i3)=eps0
                  kernel%oneoeps(i1,i23)=oneosqrteps0 !oneosqrteps(i1,i2,i3)
 !!$                 do i=1,3
@@ -1163,15 +1240,18 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
 !!$                 end do
                  kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
+                 depsdrho1(i1,i2,i3)=0.d0
               else
                  r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
                  t=fact2*(r-sin(r))
                  !eps(i1,i2,i3)=exp(t)
+                 kernel%cavity(i1,i23)=safe_exp(t)
                  if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
                  kernel%oneoeps(i1,i23)=safe_exp(-0.5d0*t) !oneosqrteps(i1,i2,i3)
                  coeff=fact3*(1.d0-cos(r))
                  dtx=-coeff/dabs(edens(i1,i2,i3))
                  depsdrho(i1,i23)=-safe_exp(t)*0.125d0/pi*dtx
+                 depsdrho1(i1,i2,i3)=-safe_exp(t)*0.125d0/pi*dtx
                  d2=0.d0
                  do i=1,3
                     !dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,isp,i)
@@ -1197,6 +1277,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
              epsinner(i1,i2,i3)=kernel%epsinnersccs(i1,i23)
              if (kernel%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
                  !eps(i1,i2,i3)=1.d0
+                 kernel%cavity(i1,i23)=1.d0
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
                  kernel%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
@@ -1204,11 +1285,13 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
 
               if (dabs(edens(i1,i2,i3)).gt.edensmax) then
                  !eps(i1,i2,i3)=1.d0
+                 kernel%cavity(i1,i23)=1.d0
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
                  kernel%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
               else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
                  !eps(i1,i2,i3)=eps0
+                 kernel%cavity(i1,i23)=eps0
                  if (dumpeps) epscurr(i1,i2,i3)=eps0
                  kernel%oneoeps(i1,i23)=oneoeps0 !oneoeps(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
@@ -1218,6 +1301,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  coeff=fact3*(1.d0-cos(r))
                  dtx=-coeff/dabs(edens(i1,i2,i3))
                  depsdrho(i1,i23)=-safe_exp(t)*0.125d0/pi*dtx
+                 kernel%cavity(i1,i23)=safe_exp(t)
                  !eps(i1,i2,i3)=dexp(t)
                  if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
                  kernel%oneoeps(i1,i23)=safe_exp(-t) !oneoeps(i1,i2,i3)
@@ -1279,7 +1363,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
      call f_open_file(unt,file='epsilon_line_sccs_x.dat')
      do i1=1,n01
         x=i1*kernel%hgrids(1)
-        write(unt,'(1x,I8,3(1x,e22.15))')i1,x,epscurr(i1,n02/2,n03/2),edens(i1,n02/2,n03/2)
+        write(unt,'(1x,I8,4(1x,e22.15))')i1,x,epscurr(i1,n02/2,n03/2),edens(i1,n02/2,n03/2),depsdrho1(i1,n02/2,n03/2)
      end do
      call f_close(unt)
 
@@ -1306,6 +1390,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   call f_free(ddt_edens)
   call f_free(nabla_edens)
   call f_free(epsinner)
+  call f_free(depsdrho1)
 
 end subroutine pkernel_build_epsilon
   

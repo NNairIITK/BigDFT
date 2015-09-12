@@ -167,6 +167,10 @@ module Poisson_Solver
       !> inner rigid cavity to be integrated in the sccs method to avoit inner
       !! cavity discontinuity due to near-zero edens near atoms
       real(dp), dimension(:,:), pointer :: epsinnersccs
+      !> Polarization charge vector for print purpose only.
+      real(dp), dimension(:,:), pointer :: pol_charge
+      !> Dielectric cavity eps for print purpose only.
+      real(dp), dimension(:,:), pointer :: cavity
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
       real(dp) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
       real(dp) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
@@ -257,6 +261,8 @@ contains
     nullify(k%oneoeps)
     nullify(k%corr)
     nullify(k%epsinnersccs)
+    nullify(k%pol_charge)
+    nullify(k%cavity)
     k%work1_GPU=0.d0
     k%work2_GPU=0.d0
     k%k_GPU=0.d0
