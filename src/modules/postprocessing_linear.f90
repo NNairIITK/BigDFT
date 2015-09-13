@@ -25,7 +25,7 @@ module postprocessing_linear
                ntheta, istheta, theta)
       use module_base
       use module_types
-      use module_interfaces
+      !use module_interfaces
       use communications_base, only: TRANSPOSE_FULL
       use communications, only: transpose_localized
       use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc_ptr, &

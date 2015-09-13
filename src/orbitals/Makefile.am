@@ -33,7 +33,7 @@ endif
 mod_src = defs.f90 base.f90 \
 	public_keys.f90
 
-liborbitals_a_SOURCES = $(mod_src) $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
+routines = $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
 	growshrink.f90 \
 	growshrink_hyb_common.f90 \
 	conv_per_common.f90 \
@@ -43,6 +43,8 @@ liborbitals_a_SOURCES = $(mod_src) $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
 	convolut_simple_per_k.f90 \
 	convolut_simple_slab_k.f90 \
 	scalar_product.f90
+
+liborbitals_a_SOURCES = $(mod_src) $(routines)
 # convolut_ib_sse.c \ #to be verified, not working yet
 EXTRA_DIST = configure.inc.in v.inc v_long.inc v_17.inc scalar_product-inc.f90 wpdot-inc.f90
 
@@ -74,7 +76,7 @@ endif
 #dependencies
 base.o: defs.o public_keys.o
 
-$(CONV_SOURCES).f90.o: defs.o
+$(routines:.f90=.o): defs.o
 
 convolut_common_per.o conv_per_common.o conv_per_optim.o: base.o
 

@@ -115,7 +115,7 @@ module module_interfaces
        END SUBROUTINE input_wf_empty
 
        subroutine input_wf_random(psi, orbs)
-         use module_defs
+         use module_defs, only: wp
          use module_types
          implicit none
          type(orbitals_data), intent(inout) :: orbs
@@ -124,7 +124,7 @@ module module_interfaces
 
        subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
             & psi, orbs)
-         use module_defs
+         use module_defs, only: wp,gp
          use module_types
          implicit none
          integer, intent(in) :: iproc, nproc, nspin
@@ -138,7 +138,7 @@ module module_interfaces
        subroutine input_wf_memory(iproc, atoms, &
             & rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
             & rxyz, lzd, psi, orbs)
-         use module_defs
+         use module_defs, only: gp
          use module_types
          implicit none
          integer, intent(in) :: iproc
