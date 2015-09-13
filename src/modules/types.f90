@@ -599,8 +599,6 @@ module module_types
  public :: nullify_confpot_data
  public :: nullify_orbitals_data
  public :: SIC_data,orthon_data,input_variables
-!!$ public :: SIC_data_null,input_psi_names,input_set,output_wf_format_help
-!!$ public :: material_acceleration_null,wf_format_names,input_psi_help,basis_params_set_dict,frag_from_dict
 
 
 contains

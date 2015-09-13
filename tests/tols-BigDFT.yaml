@@ -54,6 +54,7 @@ Keys to ignore:
  - Support function repartition
  - Output grid format # to be removed for updated references
  - Support Function Repartition
+ - Iostat for format
  #- number of tasks
  #- IDs
  #- start / end

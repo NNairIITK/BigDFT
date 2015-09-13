@@ -168,26 +168,22 @@ END SUBROUTINE close_file
 
 
 subroutine deallocate_double_1D(array)
-  use module_base
+  use dynamic_memory, only: f_free_ptr
   implicit none
 
   double precision, dimension(:), pointer :: array
 
-  if (associated(array)) then
-     call f_free_ptr(array)
-  end if
+  call f_free_ptr(array)
+
 end subroutine deallocate_double_1D
 
 
 subroutine deallocate_double_2D(array)
-  use BigDFT_API
+  use dynamic_memory, only: f_free_ptr
   implicit none
 
   double precision, dimension(:,:), pointer :: array
-
-  if (associated(array)) then
-     call f_free_ptr(array)
-  end if
+  call f_free_ptr(array)
 end subroutine deallocate_double_2D
 
 

@@ -1969,7 +1969,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
            orbs, tmb, overlap_calculated)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => reconstruct_kernel
+  use module_interfaces!, except_this_one => reconstruct_kernel
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
@@ -2047,7 +2047,7 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
            basis_overlap, KS_overlap, basis_overlap_mat, coeff, orbs)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => reorthonormalize_coeff
+  use module_interfaces!, except_this_one => reorthonormalize_coeff
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
        allocate_matrices, deallocate_matrices
   use yaml_output, only: yaml_newline, yaml_map
