@@ -1,7 +1,7 @@
 ---
  Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
  Version Number              : PSolver 1.7.7
- Timestamp of this run       : 2015-09-06 11:24:35.453
+ Timestamp of this run       : 2015-09-12 22:39:40.603
  Root process Hostname       : athelas
  Boundary Conditions         : Isolated
  Multiprocessor run: &MPIrun
@@ -24,24 +24,16 @@
    Energies: {Hartree:  3.989422803955E-01}
    Comparison with a reference run:
      ANALYTIC:
-       Difference in Inf. Norm:  3.442615081894E-10
+       Difference in Inf. Norm:  3.442617302341E-10
         #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
        Original              :  1.128379167096E+000
      Global data:
-       Poisson Solver:
-         BC                  : Free
-         Box                 :  [  57,  48,  63 ]
-         MPI tasks           :  1
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             :  0.000000000000E+00
-       Poisson Solver:
-         BC                  : Free
-         Box                 :  [  57,  48,  63 ]
-         MPI tasks           :  1
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
@@ -50,18 +42,10 @@
        Energy differences:
          Hartree             :  0.000000000000E+00
      Distributed data:
-       Poisson Solver:
-         BC                  : Free
-         Box                 :  [  57,  48,  63 ]
-         MPI tasks           :  1
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             :  0.000000000000E+00
-       Poisson Solver:
-         BC                  : Free
-         Box                 :  [  57,  48,  63 ]
-         MPI tasks           :  1
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
@@ -71,19 +55,11 @@
          Hartree             :  0.000000000000E+00
  Complex run:
    Global data:
-     Poisson Solver:
-       BC                    : Free
-       Box                   :  [  57,  48,  63 ]
-       MPI tasks             :  1
      CPLXREAL:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                :  1.212023455656E-01
        Original              :  1.212023455656E-001
-     Poisson Solver:
-       BC                    : Free
-       Box                   :  [  57,  48,  63 ]
-       MPI tasks             :  1
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
@@ -92,19 +68,11 @@
      Energy differences:
        Hartree               :  0.000000000000E+00
    Distributed data:
-     Poisson Solver:
-       BC                    : Free
-       Box                   :  [  57,  48,  63 ]
-       MPI tasks             :  1
      CPLXREAL:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                :  1.212023455656E-01
        Original              :  1.212023455656E-001
-     Poisson Solver:
-       BC                    : Free
-       Box                   :  [  57,  48,  63 ]
-       MPI tasks             :  1
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
@@ -114,8 +82,8 @@
        Hartree               :  0.000000000000E+00
  Monoprocess run             : *MPIrun
  Timings for root process:
-   CPU time (s)              :  5.44
-   Elapsed time (s)          :  5.50
+   CPU time (s)              :  0.79
+   Elapsed time (s)          :  0.45
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Calculation possibly wrong, check if the diff is meaningful
@@ -127,14 +95,14 @@
      Peak Value (MB)                   :  19.098
      for the array                     : cosinarr
      in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 35.164 MB
- Walltime since initialization         : 00:00:05.547608865
+     Memory Peak of process            : 33.052 MB
+ Walltime since initialization         : 00:00:01.574868936
  Max No. of dictionaries used          :  330 #( 224 still in use)
  Number of dictionary folders allocated:  1
 ---
  Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
  Version Number              : PSolver 1.7.7
- Timestamp of this run       : 2015-09-06 11:24:41.268
+ Timestamp of this run       : 2015-09-12 22:39:42.100
  Root process Hostname       : athelas
  Boundary Conditions         : Periodic
  Multiprocessor run: &MPIrun
@@ -158,22 +126,14 @@
    Comparison with a reference run:
      ANALYTIC:
        Difference in Inf. Norm:  9.890754881781E-12
-       Max. diff coordinates :  [  38,  28,  38 ]
+       Max. diff coordinates :  [  28,  28,  38 ]
        Result                : -1.771130164828E+02
        Original              : -1.771130164828E+002
      Global data:
-       Poisson Solver:
-         BC                  : Periodic
-         Box                 :  [  64,  64,  64 ]
-         MPI tasks           :  1
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             :  0.000000000000E+00
-       Poisson Solver:
-         BC                  : Periodic
-         Box                 :  [  64,  64,  64 ]
-         MPI tasks           :  1
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
@@ -182,18 +142,10 @@
        Energy differences:
          Hartree             :  0.000000000000E+00
      Distributed data:
-       Poisson Solver:
-         BC                  : Periodic
-         Box                 :  [  64,  64,  64 ]
-         MPI tasks           :  1
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             :  0.000000000000E+00
-       Poisson Solver:
-         BC                  : Periodic
-         Box                 :  [  64,  64,  64 ]
-         MPI tasks           :  1
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
@@ -203,19 +155,11 @@
          Hartree             :  0.000000000000E+00
  Complex run:
    Global data:
-     Poisson Solver:
-       BC                    : Periodic
-       Box                   :  [  64,  64,  64 ]
-       MPI tasks             :  1
      CPLXREAL:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                : -6.256427529162E-01
        Original              : -6.256427529162E-001
-     Poisson Solver:
-       BC                    : Periodic
-       Box                   :  [  64,  64,  64 ]
-       MPI tasks             :  1
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
@@ -224,19 +168,11 @@
      Energy differences:
        Hartree               :  0.000000000000E+00
    Distributed data:
-     Poisson Solver:
-       BC                    : Periodic
-       Box                   :  [  64,  64,  64 ]
-       MPI tasks             :  1
      CPLXREAL:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
        Result                : -6.256427529162E-01
        Original              : -6.256427529162E-001
-     Poisson Solver:
-       BC                    : Periodic
-       Box                   :  [  64,  64,  64 ]
-       MPI tasks             :  1
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
@@ -246,8 +182,8 @@
        Hartree               :  0.000000000000E+00
  Monoprocess run             : *MPIrun
  Timings for root process:
-   CPU time (s)              :  1.99
-   Elapsed time (s)          :  1.95
+   CPU time (s)              :  0.36
+   Elapsed time (s)          :  0.21
  Memory Consumption Report:
    Tot. No. of Allocations             :  97
    Tot. No. of Deallocations           :  97
@@ -256,14 +192,14 @@
      Peak Value (MB)                   :  20.343
      for the array                     : zmpi2
      in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 33.956 MB
- Walltime since initialization         : 00:00:02.010492118
+     Memory Peak of process            : 33.812 MB
+ Walltime since initialization         : 00:00:01.231821049
  Max No. of dictionaries used          :  326 #( 224 still in use)
  Number of dictionary folders allocated:  1
 ---
  Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
  Version Number              : PSolver 1.7.7
- Timestamp of this run       : 2015-09-06 11:24:43.444
+ Timestamp of this run       : 2015-09-12 22:39:43.342
  Root process Hostname       : athelas
  Boundary Conditions         : Surface
  Multiprocessor run: &MPIrun
@@ -286,98 +222,66 @@
    Energies: {Hartree:  2.969431884210E+01}
    Comparison with a reference run:
      ANALYTIC:
-       Difference in Inf. Norm:  5.449595427719E-10
+       Difference in Inf. Norm:  5.449597607637E-10
         #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  1,  8,  25 ]
-       Result                : -1.455736585206E-06
+       Result                : -1.455736585424E-06
        Original              : -1.455191625663E-006
      Global data:
-       Poisson Solver:
-         BC                  : Surface
-         Box                 :  [  32,  64,  48 ]
-         MPI tasks           :  1
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             :  0.000000000000E+00
-       Poisson Solver:
-         BC                  : Surface
-         Box                 :  [  32,  64,  48 ]
-         MPI tasks           :  1
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
-         Result              :  3.577048935667E-11
-         Original            :  3.577048935667E-011
+         Result              :  3.577067101649E-11
+         Original            :  3.577067101649E-011
        Energy differences:
          Hartree             :  0.000000000000E+00
      Distributed data:
-       Poisson Solver:
-         BC                  : Surface
-         Box                 :  [  32,  64,  48 ]
-         MPI tasks           :  1
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
          Hartree             :  0.000000000000E+00
-       Poisson Solver:
-         BC                  : Surface
-         Box                 :  [  32,  64,  48 ]
-         MPI tasks           :  1
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
-         Result              :  3.577048935667E-11
-         Original            :  3.577048935667E-011
+         Result              :  3.577067101649E-11
+         Original            :  3.577067101649E-011
        Energy differences:
          Hartree             :  0.000000000000E+00
  Complex run:
    Global data:
-     Poisson Solver:
-       BC                    : Surface
-       Box                   :  [  32,  64,  48 ]
-       MPI tasks             :  1
      CPLXREAL:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
-       Result                :  3.577048935667E-11
-       Original              :  3.577048935667E-011
-     Poisson Solver:
-       BC                    : Surface
-       Box                   :  [  32,  64,  48 ]
-       MPI tasks             :  1
+       Result                :  3.577067101649E-11
+       Original              :  3.577067101649E-011
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
-       Result                :  3.577048935667E-11
-       Original              :  3.577048935667E-011
+       Result                :  3.577067101649E-11
+       Original              :  3.577067101649E-011
      Energy differences:
        Hartree               :  0.000000000000E+00
    Distributed data:
-     Poisson Solver:
-       BC                    : Surface
-       Box                   :  [  32,  64,  48 ]
-       MPI tasks             :  1
      CPLXREAL:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
-       Result                :  3.577048935667E-11
-       Original              :  3.577048935667E-011
-     Poisson Solver:
-       BC                    : Surface
-       Box                   :  [  32,  64,  48 ]
-       MPI tasks             :  1
+       Result                :  3.577067101649E-11
+       Original              :  3.577067101649E-011
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
-       Result                :  3.577048935667E-11
-       Original              :  3.577048935667E-011
+       Result                :  3.577067101649E-11
+       Original              :  3.577067101649E-011
      Energy differences:
        Hartree               :  0.000000000000E+00
  Monoprocess run             : *MPIrun
  Timings for root process:
-   CPU time (s)              :  1.23
-   Elapsed time (s)          :  1.27
+   CPU time (s)              :  0.21
+   Elapsed time (s)          :  0.15
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Calculation possibly wrong, check if the diff is meaningful
@@ -389,8 +293,8 @@
      Peak Value (MB)                   :  8.491
      for the array                     : cosinarr
      in the routine                    : G_PoissonSolver
-     Memory Peak of process            : 25.748 MB
- Walltime since initialization         : 00:00:01.288784715
+     Memory Peak of process            : 22.388 MB
+ Walltime since initialization         : 00:00:01.168059038
  Max No. of dictionaries used          :  330 #( 224 still in use)
  Number of dictionary folders allocated:  1
 ---
@@ -399,32 +303,32 @@
  Delta cavity                :  0.3
  radii                       :  [  1.7 ]
  atom                        :  1
- 
+
  rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
  nbl1                        :  0
  nbl2                        :  0
  nbl3                        :  0
  real input atoms            :  1
  radii                       :  1.7
- 
+
  rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
  nat                         :  1
  atom                        :  1
  radii                       :  1.7
- 
+
  rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
  nbl1                        :  0
  nbl2                        :  0
  nbl3                        :  0
  real input atoms            :  1
- 
+
  rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
  nat                         :  1
  atom                        :  1
- 
+
  rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
  offset                      :  0.99999999999994
- Total Charge                :  4.1276277781335486E-009
+ Total Charge                :  4.1276274954654746E-009
  Potential monopole          :  0.99999999999994
  Potential at the boundary 1 n02/2 1:  4.7787876529128167E-043
  Density at the boundary 1 n02/2 1: -2.2711541712282457E-039
@@ -461,26 +365,26 @@
    BC                        : Free
    Box                       :  [  57,  49,  63 ]
    MPI tasks                 :  2
-   Integral of the density in the nonvacuum region: -0.3567517638998448
+   Integral of the density in the nonvacuum region: -0.356751763899845
    Embedded PSolver Polarization Iteration Method:
-   - Iteration quality: {iter:  1, res:  7.86448858525262522E-03}
-   - Iteration quality: {iter:  2, res:  6.20631328099666840E-03}
-   - Iteration quality: {iter:  3, res:  1.74797956800593654E-03}
-   - Iteration quality: {iter:  4, res:  5.58249569908818625E-04}
-   - Iteration quality: {iter:  5, res:  1.73527025024891482E-04}
-   - Iteration quality: {iter:  6, res:  7.78010515160617981E-05}
-   - Iteration quality: {iter:  7, res:  2.19358905001597455E-05}
-   - Iteration quality: {iter:  8, res:  8.10825362583973042E-06}
-   - Iteration quality: {iter:  9, res:  3.47401470831165317E-06}
-   - Iteration quality: {iter:  10, res:  1.19619177738180117E-06}
-   - Iteration quality: {iter:  11, res:  4.78474029077736104E-07}
+   - Iteration quality: {iter:  1, res:  7.86448858525262869E-03}
+   - Iteration quality: {iter:  2, res:  6.20631328099666753E-03}
+   - Iteration quality: {iter:  3, res:  1.74797956800593545E-03}
+   - Iteration quality: {iter:  4, res:  5.58249569908817757E-04}
+   - Iteration quality: {iter:  5, res:  1.73527025024891102E-04}
+   - Iteration quality: {iter:  6, res:  7.78010515160616626E-05}
+   - Iteration quality: {iter:  7, res:  2.19358905001597794E-05}
+   - Iteration quality: {iter:  8, res:  8.10825362583972195E-06}
+   - Iteration quality: {iter:  9, res:  3.47401470831166249E-06}
+   - Iteration quality: {iter:  10, res:  1.19619177738183759E-06}
+   - Iteration quality: {iter:  11, res:  4.78474029077788197E-07}
  Inf. Norm difference with reference:
-   Value                     :  1.635387457274602E-05
+   Value                     :  1.635387457274082E-05
    Point                     :  [  29,  18,  32 ]
-   Some values: [-3.319267890822264E-06, -2.155854037511313E-06, -2.990512310393630E-06]
- Expected hartree energy     :  5.1863395854877349E-002
+   Some values: [-3.319267890877775E-06, -2.155854037508688E-06, -2.990512310396256E-06]
+ Expected hartree energy     :  5.1863395854877335E-002
  Computed Hartree energy     :  5.1864364702337989E-002
- Diff of expected-computed Hartree energy: -9.688474606403541E-007
+ Diff of expected-computed Hartree energy: -9.6884746065423188E-007
  Memory Consumption Report:
    Tot. No. of Allocations   :  416
    Tot. No. of Deallocations :  416
@@ -489,8 +393,8 @@
      Peak Value (MB)         :  39.265
      for the array           : zmpi1
      in the routine          : G_PoissonSolver
-     Memory Peak of process  : 62.396 MB
- Walltime since initialization: 00:00:09.716293192
+     Memory Peak of process  : 48.780 MB
+ Walltime since initialization: 00:00:01.836285666
  Max No. of dictionaries used:  246 #( 170 still in use)
  Number of dictionary folders allocated:  1
 ---
@@ -499,32 +403,32 @@
  Delta cavity                :  0.3
  radii                       :  [  1.7 ]
  atom                        :  1
- 
+
  rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
  nbl1                        :  0
  nbl2                        :  0
  nbl3                        :  0
  real input atoms            :  1
  radii                       :  1.7
- 
+
  rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
  nat                         :  1
  atom                        :  1
  radii                       :  1.7
- 
+
  rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
  nbl1                        :  0
  nbl2                        :  0
  nbl3                        :  0
  real input atoms            :  1
- 
+
  rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
  nat                         :  1
  atom                        :  1
- 
+
  rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
  offset                      :  0.99999999999994
- Total Charge                :  4.1276277781335486E-009
+ Total Charge                :  4.1276274954654746E-009
  Potential monopole          :  0.99999999999994
  Potential at the boundary 1 n02/2 1:  4.7787876529128167E-043
  Density at the boundary 1 n02/2 1: -2.2711541712282457E-039
@@ -561,40 +465,40 @@
    BC                        : Free
    Box                       :  [  57,  49,  63 ]
    MPI tasks                 :  2
-   Integral of the density in the nonvacuum region: -0.5600950457602285
+   Integral of the density in the nonvacuum region: -0.5600950457602287
    Embedded PSolver, Preconditioned Conjugate Gradient Method:
    - Iteration quality: { #______________________________________________________ Iteration
- iter:  1, res:  9.74369659406272050E-03, ratio:  6.43421631395723614E-01, 
-         alpha:  1.10571662379799276E-01, beta:  6.13899611461734196E+01}
+ iter:  1, res:  9.74369659406272050E-03, ratio:  6.43421631395727167E-01, 
+         alpha:  1.10571662379799290E-01, beta:  6.13899611461734054E+01}
    - Iteration quality: { #______________________________________________________ Iteration
- iter:  2, res:  3.40410683251268558E-03, ratio:  2.24789016209235887E-01, 
-         alpha:  7.72223660387182043E-01, beta:  1.47150988389883963E+01}
+ iter:  2, res:  3.40410683251269513E-03, ratio:  2.24789016209237774E-01, 
+         alpha:  7.72223660387181821E-01, beta:  1.47150988389883963E+01}
    - Iteration quality: { #______________________________________________________ Iteration
- iter:  3, res:  9.38722350164458100E-04, ratio:  6.19882054146148817E-02, 
-         alpha:  9.69751125966207494E-01, beta:  8.13038226287252225E-02}
+ iter:  3, res:  9.38722350164413973E-04, ratio:  6.19882054146123143E-02, 
+         alpha:  9.69751125966202165E-01, beta:  8.13038226287250976E-02}
    - Iteration quality: { #______________________________________________________ Iteration
- iter:  4, res:  2.84346097018997645E-04, ratio:  1.87766960782063605E-02, 
-         alpha:  1.73542161160686992E+00, beta:  1.22082062870083365E-02}
+ iter:  4, res:  2.84346097019765748E-04, ratio:  1.87766960782571879E-02, 
+         alpha:  1.73542161160686415E+00, beta:  1.22082062870081751E-02}
    - Iteration quality: { #______________________________________________________ Iteration
- iter:  5, res:  4.98340280724902934E-05, ratio:  3.29077279160767651E-03, 
-         alpha:  8.19067660879922443E-01, beta:  5.33443230251168265E-04}
+ iter:  5, res:  4.98340280686770799E-05, ratio:  3.29077279135589094E-03, 
+         alpha:  8.19067660879919779E-01, beta:  5.33443230251162085E-04}
    - Iteration quality: { #______________________________________________________ Iteration
- iter:  6, res:  7.74825014831130155E-06, ratio:  5.11653016158820201E-04, 
-         alpha:  4.04181396576251017E-01, beta:  8.56398675850738081E-05}
+ iter:  6, res:  7.74825013616815252E-06, ratio:  5.11653015356954466E-04, 
+         alpha:  4.04181396576253571E-01, beta:  8.56398675850758139E-05}
    - Iteration quality: { #______________________________________________________ Iteration
- iter:  7, res:  1.48058341098406172E-06, ratio:  9.77698129776841335E-05, 
-         alpha:  7.92382378135929155E-01, beta:  3.20534038439823614E-07}
+ iter:  7, res:  1.48058350901410337E-06, ratio:  9.77698194510645454E-05, 
+         alpha:  7.92382378135438437E-01, beta:  3.20534038439850189E-07}
    - Iteration quality: { #______________________________________________________ Iteration
- iter:  8, res:  1.52223445938040098E-07, ratio:  1.00520225539262132E-05, 
-         alpha:  6.47857529456935755E-01, beta:  2.04671874475730338E-08}
+ iter:  8, res:  1.52223014172422315E-07, ratio:  1.00519940424331725E-05, 
+         alpha:  6.47857529131673271E-01, beta:  2.04671874491728805E-08}
    Polarization charge calculated:  Yes
  Inf. Norm difference with reference:
-   Value                     :  1.753348054951004E-04
+   Value                     :  1.753347948118267E-04
    Point                     :  [  29,  30,  32 ]
-   Some values: [ 2.182714457454882E-06,  1.716148927159083E-07,  2.415940604295149E-07]
- Expected hartree energy     :  5.1863395854877349E-002
- Computed Hartree energy     :  5.1863900685313775E-002
- Diff of expected-computed Hartree energy: -5.0483043642635117E-007
+   Some values: [ 2.182703465414271E-06,  1.716145828993232E-07,  2.415936208304269E-07]
+ Expected hartree energy     :  5.1863395854877335E-002
+ Computed Hartree energy     :  5.186390068223308E-002
+ Diff of expected-computed Hartree energy: -5.0482735574480797E-007
  Memory Consumption Report:
    Tot. No. of Allocations   :  396
    Tot. No. of Deallocations :  396
@@ -603,7 +507,7 @@
      Peak Value (MB)         :  39.328
      for the array           : zmpi1
      in the routine          : G_PoissonSolver
-     Memory Peak of process  : 63.152 MB
- Walltime since initialization: 00:00:05.705125268
+     Memory Peak of process  : 50.336 MB
+ Walltime since initialization: 00:00:01.525022478
  Max No. of dictionaries used:  251 #( 170 still in use)
  Number of dictionary folders allocated:  1

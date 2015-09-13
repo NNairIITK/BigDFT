@@ -188,7 +188,8 @@ program MP_gaussian
 
   !evaluate the 1d results with the new method
   do istep=1,nstep
-     call gau_daub_1d(.false.,nsigma, x0s(istep), [(0,i=1,nsigma)], 0.d0, 1,sqrt(0.5_gp/pgsigma),1, [(1.d0,i=1,nsigma)], hgrid,nres,-npts,2*npts,1,&
+     call gau_daub_1d(.false.,nsigma, x0s(istep), [(0,i=1,nsigma)], 0.d0, 1,sqrt(0.5_gp/pgsigma),&
+          1, [(1.d0,i=1,nsigma)], hgrid,nres,-npts,2*npts,1,&
           f_mus(1,1,-npts,istep),nw,work)
   end do
 
