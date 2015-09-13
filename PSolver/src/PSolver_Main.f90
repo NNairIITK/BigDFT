@@ -495,7 +495,7 @@ end subroutine extra_sccs_potential
 
 subroutine pol_charge(kernel,pot_full,rho,pot)
   implicit none
-  type(coulomb_operator), intent(in) :: kernel
+  type(coulomb_operator), intent(inout) :: kernel
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out) :: pot_full
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: rho
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p) :: pot !intent in

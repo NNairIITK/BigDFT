@@ -1094,7 +1094,7 @@ end subroutine sccs_extra_potential
 !>put in pol_charge array the polarization charge
 subroutine polarization_charge(kernel,pot,rho)
   implicit none
-  type(coulomb_operator), intent(in) :: kernel
+  type(coulomb_operator), intent(inout) :: kernel
   !>complete potential, needed to calculate the derivative
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: pot
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: rho
