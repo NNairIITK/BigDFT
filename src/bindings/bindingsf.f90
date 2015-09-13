@@ -168,7 +168,7 @@ END SUBROUTINE close_file
 
 
 subroutine deallocate_double_1D(array)
-  use BigDFT_API
+  use module_base
   implicit none
 
   double precision, dimension(:), pointer :: array
@@ -1654,8 +1654,9 @@ END SUBROUTINE run_objects_nullify_dict
 subroutine run_objects_nullify_volatile(runObj)
   use f_enums
   use bigdft_run, only: run_objects
-  use module_defs, only: bigdft_mpi,verbose
+  use module_defs, only: verbose
   use yaml_output, only: yaml_sequence_close
+  use module_base, only: bigdft_mpi
   implicit none
   type(run_objects), intent(inout) :: runObj
 

@@ -175,7 +175,8 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_TERSOFF.@MODULE_EXT@\
 	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
         MODULE_DFTBP.@MODULE_EXT@ \
-	ORBITALBASIS.@MODULE_EXT@
+	ORBITALBASIS.@MODULE_EXT@ \
+	MODULE_CP2K.@MODULE_EXT@
 else
 modules = module_types.@MODULE_EXT@ \
 	m_ab7_mixing.@MODULE_EXT@ \
@@ -240,7 +241,8 @@ modules = module_types.@MODULE_EXT@ \
 	module_bornmayerhugginstosifumi.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@ \
 	orbitalbasis.@MODULE_EXT@ \
-        module_dftbp.@MODULE_EXT@ 
+        module_dftbp.@MODULE_EXT@ \
+	module_cp2k.@MODULE_EXT@
 else
 
 
@@ -329,7 +331,7 @@ locregs_init.o: types.o communications.o bounds.o
 all: all-am insmod
 install: install-am insmod
 check: check-am insmod
-insmod: $(modules) 
+insmod: $(modules) libmodules.a
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \
 	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \

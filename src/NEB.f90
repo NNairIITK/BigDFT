@@ -44,6 +44,8 @@ MODULE NEB_routines
   use module_interfaces
   use module_atoms, only: astruct_dump_to_file
   use dictionaries
+  use wrapper_mpi
+  use module_base, only: bigdft_mpi
   
   IMPLICIT NONE
 

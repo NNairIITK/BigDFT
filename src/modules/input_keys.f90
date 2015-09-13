@@ -541,7 +541,8 @@ contains
   !! contained in the dictionary dict
   !! the dictionary should be completes to fill all the information
   subroutine inputs_from_dict(in, atoms, dict)
-    use module_defs, only: gp,bigdft_mpi,DistProjApply,pi_param
+    use module_defs, only: DistProjApply,pi_param
+    use module_base, only: bigdft_mpi
     use yaml_output
     use dictionaries
     use module_input_dicts
@@ -862,7 +863,7 @@ contains
   !> Check the directory of data (create if not present)
   subroutine check_for_data_writing_directory(iproc,in)
     use yaml_output
-    use module_defs, only: bigdft_mpi
+    use module_base, only: bigdft_mpi
     use f_utils, only: f_zero,f_mkdir
     use wrapper_MPI, only: mpibcast
     use yaml_strings, only: f_strcpy
@@ -1417,12 +1418,13 @@ contains
 
   !> Set the dictionary from the input variables
   subroutine input_set_dict(in, level, val)
-    use module_defs, only: DistProjApply, GPUblas, gp
+    use module_defs, only: DistProjApply, gp
+    use wrapper_linalg, only: GPUblas
     use public_enums
     use dynamic_memory
     use yaml_output, only: yaml_warning
     use yaml_strings, only: operator(.eqv.),is_atoi
-    use module_defs, only: bigdft_mpi
+    use module_base, only: bigdft_mpi
     implicit none
     type(input_variables), intent(inout) :: in
     type(dictionary), pointer :: val
@@ -3048,7 +3050,7 @@ contains
   !> Read from all input files and build a dictionary
   subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
-    use module_defs, only: mpi_environment
+    use wrapper_MPI, only: mpi_environment
     use public_keys, only: POSINP,IG_OCCUPATION
     use yaml_output
     use yaml_strings, only: f_strcpy

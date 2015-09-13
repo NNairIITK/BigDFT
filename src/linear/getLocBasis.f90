@@ -1255,7 +1255,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! step, given by the product of the force and the "displacement" .
       if (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode) then
           call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%l%nspin, psidiff, &
-               hpsi_noprecond=hpsi_tmp, delta_energy=delta_energy)
+               hpsi_tmp,delta_energy)
           ! This is a hack...
           if (energy_increased) then
               delta_energy=1.d100

@@ -55,7 +55,7 @@ contains
   END SUBROUTINE scfloop_init
 
   function ab6log() result(suffix)
-    use module_defs, only: bigdft_mpi
+    use module_base, only: bigdft_mpi
     use yaml_strings, only: yaml_toa,f_strcpy
     implicit none
     character(len=32) :: suffix
@@ -68,7 +68,7 @@ contains
   end function ab6log
 
   function ab6out() result(suffix)
-    use module_defs, only: bigdft_mpi
+    use module_base, only: bigdft_mpi
     use yaml_strings, only: yaml_toa,f_strcpy
     implicit none
     character(len=32) :: suffix
