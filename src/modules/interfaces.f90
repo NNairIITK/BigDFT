@@ -784,8 +784,8 @@ module module_interfaces
 
       subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
             &   CP2K,wfn_cp2k)
-        use module_defs, only: gp,wp
-         use module_types
+         use module_base
+         use module_types, only: orbitals_data, gaussian_basis
          implicit none
          character(len=*), intent(in) :: basisfile,orbitalfile
          integer, intent(in) :: iproc,nat,ntypes
@@ -2438,7 +2438,7 @@ module module_interfaces
        end subroutine initialize_linear_from_file
 
         subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
-               ref_frags,input_frag,frag_calc,orblist)
+               ref_frags,input_frag,frag_calc,kernel_restart,orblist)
           use module_base
           use module_types
           use module_fragments
@@ -2453,7 +2453,7 @@ module module_interfaces
           character(len=*), intent(in) :: dir_output, filename
           type(fragmentInputParameters), intent(in) :: input_frag
           type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
-          logical, intent(in) :: frag_calc
+          logical, intent(in) :: frag_calc, kernel_restart
           integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
         end subroutine readmywaves_linear_new
 

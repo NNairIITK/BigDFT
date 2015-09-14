@@ -593,7 +593,7 @@ contains
       type(atomic_structure), intent(inout) :: astruct !< Contains all info
       real(gp), intent(out), optional :: energy
       real(gp), dimension(:,:), pointer, optional :: fxyz
-      character(len = *), intent(out), optional :: comment
+      character(len = 1024), intent(out), optional :: comment
       logical, intent(in), optional :: disableTrans
       !Local variables
       integer, parameter :: iunit=99
@@ -817,7 +817,7 @@ contains
       integer, intent(in), optional :: unit
       !> force the format of the output
       !! the default is otherwise used as defined in inputfile_format
-      character(len=*), intent(in), optional :: fmt
+      character(len=256), intent(in), optional :: fmt
 
       !local variables
       character(len = 15) :: arFile
@@ -1638,8 +1638,8 @@ contains
       implicit none
       !Arguments
       type(dictionary), pointer :: dict
-      character(len = *), intent(in) :: key
-      character(len = *), optional, intent(in) :: filename
+      character(len = 27), intent(in) :: key
+      character(len = 27), optional, intent(in) :: filename
       type(dictionary), pointer, optional :: lstring
       !Local variables
       integer :: nzatom, nelpsp, npspcode, ixcpsp

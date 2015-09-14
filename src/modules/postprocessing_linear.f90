@@ -2127,7 +2127,7 @@ module postprocessing_linear
           !!ikT = 0
           !!kT_loop: do
     
-              ikT = ikT + 1
+              !ikT = ikT + 1
     
               call f_zero(charge_per_atom)
     
