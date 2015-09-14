@@ -1467,7 +1467,7 @@ FF_LJ-diis:
   - disablesym
 
 FF_LJ-fire:
-  epred: 1.41e-11
+  epred: 1.51e-11
   Keys to ignore:
   - WARNINGS
   - disablesym
