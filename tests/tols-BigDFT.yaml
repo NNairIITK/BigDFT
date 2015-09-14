@@ -1739,7 +1739,7 @@ igortho_44:
  number of corrected points: 8
  net quadropole: 7.1e-5
  net dipole: 1.1e-7
- D: 1.1e-7
+ D: 1.1e-4
  delta: 1.1e-10
  radius for normalization: 1.1e-1
  Keys to ignore:
@@ -1801,30 +1801,33 @@ extendedfrags_nofrags:
  Pressure: 3.3e-11
 
 extendedfrags_read:
- Omega: 4.3e-11
- eF: 7.9e-10
+ Omega: 6.7e-11
+ eF: 8.0e-10
  charge diff: 2.3e-9
  Tr(K): 1.1e-8
  D eF: 1.1e-9
- guess for new ef: 1.3e-9
- ebs: 3.5e-11
- ebs_check: 3.9e-11
+ guess for new ef: 1.4e-9
+ ebs: 6.1e-11
+ ebs_check: 6.1e-11
  Epot: 1.1e-10
+ EvXC: 1.1e-10
  D Tr: 1.1e-10
  Average noise forces: 1.0e-10
  Pressure: 5.5e-11
+ Force Norm (Hartree/Bohr): 1.3e-11
 
 extendedfrags_readrotated:
- Omega: 4.5e-11
+ Omega: 6.7e-11
  eF: 6.1e-10
  D eF: 1.1e-9
  guess for new ef: 1.0e-9
  D Tr: 1.1e-10
- ebs_check: 3.4e-11
- ebs: 3.5e-11
+ ebs_check: 6.1e-11
+ ebs: 6.1e-11
  charge diff: 2.0e-9
  Pressure: 4.6e-11
  Epot: 1.1e-10
+ Force Norm (Hartree/Bohr): 1.4e-11
 
 extendedfrags_write:
  Epot: 7.0e-10
@@ -1840,7 +1843,7 @@ extendedfrags_write:
  Tr(K): 3.0e-8
  Total charge: 3.0e-11
  charge diff: 3.2e-8
- trace(KS): 2.1e-11
+ trace(KS): 2.9e-11
  eF: 7.0e-9
  Pressure: 5.8e-11
  decay length of error function: 1.1e-6
