@@ -33,7 +33,7 @@
 !!   The annihilation accuracy improves with decreasing grid constant h, as expected,
 !!   but the numerical noise spoils the convergence after some point.
 subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::c_in,k1,k2,k3
@@ -426,7 +426,7 @@ subroutine convolut_kinetic_per_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
 END SUBROUTINE convolut_kinetic_per_c_k
 
 subroutine convolut_kinetic_per_c_k_notranspose(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::c_in,k1,k2,k3
@@ -830,7 +830,7 @@ END SUBROUTINE convolut_kinetic_per_c_k_notranspose
 !!
 !! 
 subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::k1,k2,k3
@@ -981,7 +981,7 @@ subroutine convolut_kinetic_per_T_k(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
 END SUBROUTINE convolut_kinetic_per_T_k
 
 subroutine convolut_kinetic_per_T_k_notranspose(n1,n2,n3,hgrid,x,y,kstrten,k1,k2,k3)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::k1,k2,k3

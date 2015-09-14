@@ -15,7 +15,7 @@
 !! then adds the result to y.
 !! The size of the data is allowed to grow
 subroutine  comb_rot_grow_loc_3(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer,intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1,n2,n3
   integer, dimension(2,-14+2*nfl1:2*nfu1+16,-14+2*nfl2:2*nfu2+16), intent(in) :: ib
@@ -72,7 +72,7 @@ END SUBROUTINE comb_rot_grow_loc_3
 !! then convolves with magic filter
 !!  the size of the data is allowed to grow
 subroutine comb_rot_grow_loc_square_1(n1,n2,n3,x,y,ib,ib2,loczero)
-  use module_base
+  use module_defs, only: wp
   implicit none
   logical, intent(in) :: loczero
   integer, intent(in) :: n1,n2,n3
@@ -144,7 +144,7 @@ END SUBROUTINE comb_rot_grow_loc_square_1
 !!  but only inside the region defined by ib2 array
 !!  which is the ib array for the next step
 subroutine make_loczero(n1,n2,n3,ib2,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   integer, dimension(2,0:n3,-14:2*n1+16), intent(in) :: ib2

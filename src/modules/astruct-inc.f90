@@ -281,7 +281,6 @@ END SUBROUTINE read_xyz_positions
 !> Read atomic positions of ascii files.
 subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getline,disableTrans_)
   use module_base
-  use dynamic_memory
   use yaml_output
   implicit none
   integer, intent(in) :: ifile

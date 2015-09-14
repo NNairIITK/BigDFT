@@ -1578,7 +1578,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      !this wrapper can be inserted inside the poisson solver 
      call PSolverNC(at%astruct%geocode,'D',iproc,nproc,Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,&
           dpcom%nscatterarr(iproc,1),& !this is n3d
-          xc,hxh,hyh,hzh,&
+          xc,[hxh,hyh,hzh],&
           rhopot,pkernel%kernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
   else
      !Allocate XC potential
@@ -1589,7 +1589,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      end if
 
      call XC_potential(at%astruct%geocode,'D',iproc,nproc,MPI_COMM_WORLD,&
-          Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,xc,hxh,hyh,hzh,&
+          Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,xc,[hxh,hyh,hzh],&
           rhopot,eexcu,vexcu,nspin,rhocore,potxc,xcstr)
      if( iand(potshortcut,4)==0) then
         call H_potential('D',pkernel,rhopot,pot_ion,ehart,0.0_dp,.true.)

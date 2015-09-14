@@ -14,7 +14,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      alg,cavity,mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
   use yaml_output
   use yaml_strings, only: f_strcpy
-  use dictionaries, only: f_loc
+  use f_precisions, only: f_loc
   implicit none
   logical, intent(in) :: verb       !< verbosity
   integer, intent(in) :: itype_scf

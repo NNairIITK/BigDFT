@@ -44,7 +44,7 @@ module orbitalbasis
      !> spin
      integer:: nspin,nspinor
      real(gp), dimension(3) :: kpoint
-     real(gp) :: kwgt,occup
+     real(gp) :: kwgt,occup,spinval
      type(confpot_data) :: confdata
      real(wp), dimension(:), pointer :: phi_wvl !<coefficient
      !>starting address of potential
@@ -88,6 +88,7 @@ contains
     k%kpoint(3)=UNINITIALIZED(k%kpoint(3))      
     k%kwgt=UNINITIALIZED(k%kwgt)
     k%occup=UNINITIALIZED(k%occup)
+    k%spinval=UNINITIALIZED(k%spinval)
     call nullify_confpot_data(k%confdata)
     k%ispot=-1
     nullify(k%phi_wvl)
@@ -214,12 +215,14 @@ contains
     k%iorb=k%ob%orbs%isorb+k%iorbp
     k%nspin=k%ob%orbs%nspin
     k%nspinor=k%ob%orbs%nspinor
-    !k-point
+    !k-point, spin and confinement
     ikpt=k%ob%orbs%iokpt(k%iorbp)
     k%kpoint=k%ob%orbs%kpts(:,ikpt)
     k%kwgt=k%ob%orbs%kwgts(ikpt)
     k%occup=k%ob%orbs%occup(k%iorb)
+    k%spinval=k%ob%orbs%spinsgn(k%iorb)
     k%confdata=k%ob%confdatarr(k%iorbp)
+    !shifts metadata
     k%ispot=k%ob%orbs%ispot(k%iorbp)
     !find the psi shift for the association
     k%ispsi=1
@@ -290,7 +293,7 @@ contains
     real(wp), dimension(psi%nphidim), intent(inout) :: hpsi
     !local variables
     integer :: npoints, ispot, npot
-    real(gp) :: eSICi, exctXcoeff
+    real(gp) :: eSICi, exctXcoeff,fi,hfac
     real(gp), dimension(3) :: hh
 
     if (psi%iorbp==0) call f_err_throw('Illegal iorbp for local hamiltonian ket',err_name='BIGDFT_RUNTIME_ERROR')
@@ -315,8 +318,14 @@ contains
     eSIC_DCi=0.0_gp
     if (ipotmethod == 2) then
        !in this scheme the application of the potential is already done
-       call PZ_SIC_potential(psi%iorb,psi%lr,psi%ob%orbs,xc,&
-            hh(1),hh(2),hh(3),pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
+!!$       call PZ_SIC_potential(psi%iorb,psi%lr,psi%ob%orbs,xc,&
+!!$            hh,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
+       fi=psi%kwgt*psi%occup
+       hfac=fi/product(hh)
+       
+       call PZ_SIC_potential(psi%nspin,psi%nspinor,hfac,psi%spinval,psi%lr,xc,&
+            hh,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
+
        !NonKoopmans' correction scheme
     else if (ipotmethod == 3) then 
        !in this scheme first we have calculated the potential then we apply it

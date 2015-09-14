@@ -58,7 +58,7 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   use module_base
   use module_types
   use module_fragments
-  use module_interfaces, except_this_one => calculate_weight_matrix_lowdin
+  use module_interfaces!, except_this_one => calculate_weight_matrix_lowdin
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &

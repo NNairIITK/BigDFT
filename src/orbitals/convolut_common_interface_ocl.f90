@@ -9,7 +9,6 @@
 
 
 subroutine release_acceleration_OCL(GPU)
-  use module_base
   use module_types
   implicit none
   type(GPU_pointers), intent(out) :: GPU
@@ -19,7 +18,6 @@ END SUBROUTINE release_acceleration_OCL
 
 
 subroutine init_acceleration_OCL(matacc,GPU)
-  use module_base
   use module_input_keys, only: material_acceleration
   use module_types
   implicit none

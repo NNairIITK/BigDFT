@@ -121,7 +121,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   end if
 
   !add to the forces the ionic and dispersion contribution
-  if (.not. experimental_modulebase_var_onlyfion) then !normal case
+  if (.true.) then!.not. experimental_modulebase_var_onlyfion) then !normal case
      if (iproc==0) then
         do iat=1,atoms%astruct%nat
            fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)

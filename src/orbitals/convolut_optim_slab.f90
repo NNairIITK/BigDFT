@@ -9,7 +9,7 @@
 
 
 subroutine ana_rot_shrink(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(-7:2*n+8,ndat), intent(in) :: x
@@ -126,7 +126,7 @@ END SUBROUTINE ana_rot_shrink
 
 
 subroutine syn_rot_grow(n,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n,ndat
   real(wp), dimension(0:2*n+1,ndat), intent(in) :: x
@@ -323,7 +323,7 @@ END SUBROUTINE syn_rot_grow
 
 
 subroutine convrot_grow(n1,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, parameter :: lowfil=-8,lupfil=7
   integer, intent(in) :: n1,ndat
@@ -431,7 +431,7 @@ END SUBROUTINE convrot_grow
 
 
 subroutine convrot_shrink(n1,ndat,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   
   integer,parameter::lowfil=-7,lupfil=8
@@ -543,7 +543,7 @@ END SUBROUTINE convrot_shrink
 
 subroutine convolut_kinetic_slab_c(n1,n2,n3,hgrid,x,y,c)
 !   applies the kinetic energy operator onto x to get y. Works for surface BC
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::c
@@ -791,7 +791,7 @@ END SUBROUTINE convolut_kinetic_slab_c
 subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
 !   applies the kinetic energy operator onto x to get y. Works for surface BC
 !   y:=y-1/2Delta x
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp), dimension(3), intent(in) :: hgrid
@@ -1056,7 +1056,7 @@ END SUBROUTINE convolut_kinetic_slab_T
 ! New conv routine taken out from convolut_kinetic_slab_T. These routines 
 ! significantly speedup the version included in convolut_kinetic_slab_T.
 subroutine conv_kin_x_new(n1,x,y,ndat,lowfil,lupfil,fil,ekin,mod_arr1)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer,intent(in)::n1,ndat,lowfil,lupfil
   real(wp), intent(in), dimension(lowfil:lupfil,3) :: fil
@@ -1137,7 +1137,7 @@ subroutine conv_kin_x_new(n1,x,y,ndat,lowfil,lupfil,fil,ekin,mod_arr1)
 END SUBROUTINE conv_kin_x_new
 
 subroutine conv_kin_y_new(n1,n2,n3,x,y,lowfil,lupfil,fil,ekin)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer,intent(in)::n1,n2,n3,lowfil,lupfil
   real(wp), intent(in), dimension(lowfil:lupfil,3) :: fil
@@ -1217,7 +1217,7 @@ END SUBROUTINE conv_kin_y_new
 
 
 subroutine conv_kin_z_new(n3,x,y,ndat,lowfil,lupfil,fil,mod_arr3,ekin)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer,intent(in)::ndat,lowfil,lupfil,n3
   real(wp), intent(in), dimension(lowfil:lupfil,3) :: fil

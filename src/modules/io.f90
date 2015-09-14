@@ -760,7 +760,7 @@ print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,
 
 
     subroutine io_error(error)
-      use module_defs
+      use module_base, only: bigdft_mpi
   
       implicit none
   

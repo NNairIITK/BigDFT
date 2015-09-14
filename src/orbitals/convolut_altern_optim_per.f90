@@ -12,7 +12,7 @@
 !!  array x is input, array y is output
 subroutine apply_hp_sd(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
   integer, intent(in) :: n1,n2,n3
@@ -54,7 +54,7 @@ END SUBROUTINE apply_hp_sd
 !!  array x is input, array y is output
 subroutine apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
      cprecr,hx,hy,hz,x,y,psig_in,psig_out,modul1,modul2,modul3,a,b,c,e,scal)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, parameter :: lowfil=-14,lupfil=14
   integer, intent(in) :: n1,n2,n3
@@ -95,7 +95,7 @@ END SUBROUTINE apply_hp_scal
 
 !>   Applies the kinetic energy operator onto x to get y. Works for periodic BC
 subroutine convolut_kinetic_per_sdc(n1,n2,n3,x,y,cprecr,modul1,modul2,modul3,a,b,c,e)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in) :: cprecr
@@ -251,7 +251,7 @@ END SUBROUTINE convolut_kinetic_per_sdc
 
 
 subroutine prepare_sdc(n1,n2,n3,modul1,modul2,modul3,a,b,c,e,hx,hy,hz)
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer,intent(in) :: n1,n2,n3
   real(gp),intent(in) :: hx,hy,hz

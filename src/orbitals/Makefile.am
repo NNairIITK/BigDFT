@@ -2,11 +2,11 @@
 noinst_LIBRARIES = liborbitals.a
 
 # Source code.
-if USE_CUDA_GPU
-CUDA_CONV = convolut_common_interface_cuda.f90
-else
+#if USE_CUDA_GPU
+#CUDA_CONV = convolut_common_interface_cuda.f90
+#else
 CUDA_CONV =
-endif
+#endif
 if USE_OCL
 OCL_CONV = convolut_common_interface_ocl.f90
 else
@@ -33,7 +33,7 @@ endif
 mod_src = defs.f90 base.f90 \
 	public_keys.f90
 
-liborbitals_a_SOURCES = $(mod_src) $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
+routines = $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
 	growshrink.f90 \
 	growshrink_hyb_common.f90 \
 	conv_per_common.f90 \
@@ -43,6 +43,8 @@ liborbitals_a_SOURCES = $(mod_src) $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
 	convolut_simple_per_k.f90 \
 	convolut_simple_slab_k.f90 \
 	scalar_product.f90
+
+liborbitals_a_SOURCES = $(mod_src) $(routines)
 # convolut_ib_sse.c \ #to be verified, not working yet
 EXTRA_DIST = configure.inc.in v.inc v_long.inc v_17.inc scalar_product-inc.f90 wpdot-inc.f90
 
@@ -59,6 +61,8 @@ modules = module_base.@MODULE_EXT@ \
 	public_enums.@MODULE_EXT@ 
 endif
 
+CLEANFILES = $(modules)
+
 AM_FCFLAGS = -I. -I$(srcdir) @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
 
 # Hack for MIC compilation.
@@ -72,13 +76,15 @@ endif
 #dependencies
 base.o: defs.o public_keys.o
 
-$(CONV_SOURCES).f90.o: defs.o
+$(routines:.f90=.o): defs.o
+
+convolut_common_per.o conv_per_common.o conv_per_optim.o: base.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
 install: install-am insmod
 check: check-am insmod
-insmod: $(modules)
+insmod: liborbitals.a
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \
 	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \

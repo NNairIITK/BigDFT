@@ -840,7 +840,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use module_atoms
   use ao_inguess, only: atomic_info
   !use yaml_output
-  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use module_defs, only : Bohr_Ang
+  use module_base, only: bigdft_mpi
   use f_enums, f_str => str
   use yaml_output
   use dictionaries, only: f_err_throw
@@ -1002,7 +1003,8 @@ subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
   use module_atoms
   use ao_inguess, only: atomic_info
   !use yaml_output
-  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use module_defs, only : Bohr_Ang
+  use module_base, only: bigdft_mpi
   use f_enums, f_str => str
   use yaml_output
   use dictionaries, only: f_err_throw

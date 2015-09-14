@@ -21,7 +21,7 @@
 !!    to 10^-20 and not to zero.
 !! @author Luigi Genovese
 !! @date   February 2007
-subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
+subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hgrids,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)!,&
 !     alpha,beta,gamma,quiet) !optional argument
   use module_base
@@ -48,7 +48,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
                                            !! ixc=0 indicates that no XC terms are computed. The XC functional codes follow
                                            !! the ABINIT convention.
   integer, intent(in) :: nspin             !< Value of the spin-polarisation
-  real(gp), intent(in) :: hx,hy,hz         !< Grid spacings. For the isolated BC case for the moment they are supposed to 
+  real(gp), dimension(3), intent(in) :: hgrids         !< Grid spacings. For the isolated BC case for the moment they are supposed to 
                                            !! be equal in the three directions
   real(dp), intent(in) :: offset           !< Value of the potential at the point 1,1,1 of the grid.
                                            !! To be used only in the periodic case, ignored for other boundary conditions.
@@ -221,7 +221,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         !allocation of an auxiliary array for avoiding the shift 
         call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             xc%ixc,hx,hy,hz,rhopot_G,pot_ion,sumpion,zf,zfionxc,&
+             xc%ixc,hgrids(1),hgrids(2),hgrids(3),rhopot_G,pot_ion,sumpion,zf,zfionxc,&
              eexcuLOC,vexcuLOC,nproc,nspin)
         do ispin=1,nspin
            do i3=1,nxt
@@ -243,7 +243,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
         call f_free(rhopot_G)
      else
         call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             xc%ixc,hx,hy,hz,rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
+             xc%ixc,hgrids(1),hgrids(2),hgrids(3),rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
              eexcuLOC,vexcuLOC,nproc,nspin)
      end if
   else if (istart+1 <= nlim) then !this condition ensures we have performed good zero padding
@@ -271,22 +271,22 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
   else if (geocode == 'S') then
      !only one power of hgrid 
      !factor of -4*pi for the definition of the Poisson equation
-     scal=-16.0_dp*atan(1.0_dp)*real(hy,dp)/real(n1*n2*n3,dp)
+     scal=-16.0_dp*atan(1.0_dp)*real(hgrids(2),dp)/real(n1*n2*n3,dp)
      !call S_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
      !     scal) !,hx,hy,hz,ehartreeLOC)
   else if (geocode == 'F' .or. geocode == 'H') then
      !hgrid=max(hx,hy,hz)
-     scal=hx*hy*hz/real(n1*n2*n3,dp)
+     scal=product(hgrids)/real(n1*n2*n3,dp)
      !call F_PoissonSolver(n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,karray,zf(1,1,1),&
      !     scal)!,hgrid)!,ehartreeLOC)
   else if (geocode == 'W') then
      !only one power of hgrid 
      !factor of -1/(2pi) already included in the kernel definition
-     scal=-2.0_dp*hx*hy/real(n1*n2*n3,dp)
+     scal=-2.0_dp*hgrids(1)*hgrids(2)/real(n1*n2*n3,dp)
   end if
   !here the case ncplx/= 1 should be added
   call G_PoissonSolver(iproc,nproc,bigdft_mpi%mpi_comm,0,MPI_COMM_NULL,geocode,1,n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,karray,zf(1,1,1),&
-       scal,hx,hy,hz,offset,strten)
+       scal,hgrids(1),hgrids(2),hgrids(3),offset,strten)
     
   !the value of the shift depends on the distributed i/o or not
   if (datacode=='G') then
@@ -388,7 +388,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
         end do
      end if
   end if
-  ehartreeLOC=ehartreeLOC*0.5_dp*hx*hy*hz
+  ehartreeLOC=ehartreeLOC*0.5_dp*product(hgrids)
 
   call f_free(zf)
   call f_free(zfionxc)
@@ -494,7 +494,7 @@ END SUBROUTINE PSolver
 !!    to 10^-20 and not to zero.
 !! @author Anders Bergman
 !! @date   March 2008
-subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
+subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hgrids,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   use module_base
   use module_xc
@@ -522,7 +522,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
                                            !! ixc=0 indicates that no XC terms are computed. The XC functional codes follow
                                            !! the ABINIT convention.
   integer, intent(in) :: nspin             !< Value of the spin-polarisation
-  real(gp), intent(in) :: hx,hy,hz         !< Grid spacings. For the isolated BC case for the moment they are supposed to 
+  real(gp), dimension(3), intent(in) :: hgrids         !< Grid spacings. For the isolated BC case for the moment they are supposed to 
                                            !! be equal in the three directions
   real(dp), intent(in) :: offset           !< Value of the potential at the point 1,1,1 of the grid.
                                            !! To be used only in the periodic case, ignored for other boundary conditions.
@@ -551,29 +551,6 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
   integer :: i1,i2,i3,idx,offs
   real(dp), dimension(:,:,:), allocatable :: m_norm
   real(dp), dimension(:,:,:,:), allocatable :: rho_diag
-
-!!$  interface
-!!$     subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-!!$          rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin,&
-!!$          alpha,beta,gamma,quiet) !optional argument
-!!$       use module_base
-!!$       use module_types
-!!$       implicit none
-!!$       character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-!!$       character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
-!!$       logical, intent(in) :: sumpion
-!!$       integer, intent(in) :: iproc,nproc,n01,n02,n03,ixc,nspin
-!!$       real(gp), intent(in) :: hx,hy,hz
-!!$       real(dp), intent(in) :: offset
-!!$       real(dp), dimension(*), intent(in) :: karray
-!!$       real(gp), intent(out) :: eh,exc,vxc
-!!$       real(dp), dimension(*), intent(inout) :: rhopot
-!!$       real(wp), dimension(*), intent(inout) :: pot_ion
-!!$       character(len=3), intent(in), optional :: quiet
-!!$       !triclinic lattice
-!!$       real(dp), intent(in), optional :: alpha,beta,gamma
-!!$     end subroutine PSolver
-!!$  end interface
 
   call f_routine(id='PSolverNC')
 
@@ -613,7 +590,8 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
      !print *,'ciao',iproc     
      !substitution of the calling routine
      
-     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hx,hy,hz,&
+     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,&
+          hgrids,&
           rho_diag,karray,pot_ion,eh,exc,vxc,offset,sumpion,2)
      !print *,'Psolver R',eh,exc,vxc
      !open(17)
@@ -645,9 +623,6 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hx,hy,hz,&
      !close(17)
      call f_free(rho_diag)
      call f_free(m_norm)
-!!$  else
-!!$     call PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-!!$          rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   end if
 
   call f_release_routine()

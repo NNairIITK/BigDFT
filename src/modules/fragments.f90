@@ -86,7 +86,6 @@ contains
   ! initializes reference fragments (already nullified), if it isn't a fragment calculation sets to appropriate dummy values
   ! ignoring environment for now
   subroutine init_fragments(in,orbs,astruct,ref_frags)
-    use module_types
     implicit none
     type(input_variables), intent(in) :: in
     type(orbitals_data), intent(in) :: orbs ! orbitals of full system, needed to set 'dummy' values
@@ -133,7 +132,6 @@ contains
 
   !> Initializes all of fragment except lzd using the fragment posinp and tmb files
   subroutine init_fragment_from_file(frag,frag_name,input,astruct) ! switch this to pure if possible
-    use module_types
     !use module_interfaces
     implicit none
     type(system_fragment), intent(inout) :: frag
@@ -175,7 +173,6 @@ contains
 
   ! sanity check on fragment definitions
   subroutine check_fragments(input,ref_frags,astruct)
-    use module_types
     implicit none
     type(input_variables), intent(in) :: input
     type(atomic_structure), intent(in) :: astruct ! atomic structure of full system, needed to check fragments are sensible
@@ -230,7 +227,6 @@ contains
   !> just initializing norb for now, come back and do the rest later
   subroutine init_minimal_orbitals_data(iproc, nproc, nspinor, input, astruct, forbs, astruct_full)
     use module_base
-    use module_types
     implicit none
   
     ! Calling arguments
@@ -328,7 +324,6 @@ contains
 
   ! point minimal orbs structure to a given full orbs structure
   subroutine orbs_to_min_orbs_point(orbs,forbs)
-    use module_types
     implicit none
     ! Calling arguments
     type(orbitals_data),intent(in):: orbs
@@ -368,7 +363,6 @@ contains
   end subroutine orbs_to_min_orbs_point
 
   subroutine calculate_fragment_density(frag,ndimrho,tmb,iorb_start,charge,atoms,rxyz,denspot)
-    use module_types
     use locreg_operations, only: Lpsi_to_global2,workarr_sumrho,initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
     implicit none
     type(system_fragment), intent(inout) :: frag
@@ -634,6 +628,7 @@ contains
 
   !>defines a identity transformation
   function fragment_transformation_identity() result(ft)
+    implicit none
     type(fragment_transformation) :: ft
     ft%rot_center_new= 0.0_gp 
     ft%rot_center    = 0.0_gp 
@@ -684,7 +679,7 @@ contains
 
   !> Express the coordinates of a vector into a rotated reference frame
   pure function rotate_vector(newz,theta,vec) result(vecn)
-     use module_base
+    !use module_base
      implicit none
      real(gp), intent(in) :: theta
      real(gp), dimension(3), intent(in) :: newz,vec

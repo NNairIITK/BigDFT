@@ -13,6 +13,7 @@ program wvl
 
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use BigDFT_API
+  use locreg_operations, only: workarr_sumrho,initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
   use bigdft_run
   use dynamic_memory
   use yaml_output
@@ -216,7 +217,7 @@ program wvl
   ! BigDFT cut rho by slices, while here we keep one array for simplicity.
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i))
   call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,rhor(1))
-  call initialize_work_arrays_sumrho(1,Lzd%Glr,.true.,wisf)
+  call initialize_work_arrays_sumrho(1,[Lzd%Glr],.true.,wisf)
   do i = 1, orbs%norbp, 1
      ! Calculate values of psi_i on each grid points.
      call daub_to_isf(Lzd%Glr,wisf, &

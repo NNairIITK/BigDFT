@@ -168,26 +168,22 @@ END SUBROUTINE close_file
 
 
 subroutine deallocate_double_1D(array)
-  use BigDFT_API
+  use dynamic_memory, only: f_free_ptr
   implicit none
 
   double precision, dimension(:), pointer :: array
 
-  if (associated(array)) then
-     call f_free_ptr(array)
-  end if
+  call f_free_ptr(array)
+
 end subroutine deallocate_double_1D
 
 
 subroutine deallocate_double_2D(array)
-  use BigDFT_API
+  use dynamic_memory, only: f_free_ptr
   implicit none
 
   double precision, dimension(:,:), pointer :: array
-
-  if (associated(array)) then
-     call f_free_ptr(array)
-  end if
+  call f_free_ptr(array)
 end subroutine deallocate_double_2D
 
 
@@ -1654,8 +1650,9 @@ END SUBROUTINE run_objects_nullify_dict
 subroutine run_objects_nullify_volatile(runObj)
   use f_enums
   use bigdft_run, only: run_objects
-  use module_defs, only: bigdft_mpi,verbose
+  use module_defs, only: verbose
   use yaml_output, only: yaml_sequence_close
+  use module_base, only: bigdft_mpi
   implicit none
   type(run_objects), intent(inout) :: runObj
 

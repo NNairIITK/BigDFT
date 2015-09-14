@@ -346,7 +346,6 @@ contains
   !> Deallocate the structure atoms_data.
   subroutine deallocate_atoms_data(atoms) 
     use module_base
-    use dynamic_memory
     use m_pawrad, only: pawrad_destroy
     use m_pawtab, only: pawtab_destroy
     use m_pawang, only: pawang_destroy

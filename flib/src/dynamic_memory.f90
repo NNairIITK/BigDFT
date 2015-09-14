@@ -9,11 +9,12 @@
 
 
 !> Module used to manage memory allocations and de-allocations
-module dynamic_memory
+module dynamic_memory_base
   use memory_profiling
   use dictionaries, info_length => max_field_length
   use yaml_strings, only: yaml_toa,yaml_date_and_time_toa,operator(//)
-  use module_f_malloc !use f_precision
+  use module_f_malloc 
+  use f_precisions
   use yaml_parse, only: yaml_a_todict
   use f_utils, only: f_time
   implicit none
@@ -146,10 +147,7 @@ module dynamic_memory
      module procedure f_maxdiff_c1li1,f_maxdiff_c0li1
   end interface f_maxdiff
 
-  !> Public routines
-  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
-  public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
-  public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
+  public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr,f_malloc_dump_status
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
   public :: f_memcpy,f_maxdiff,f_update_database,f_purge_database
   public :: assignment(=),operator(.to.)
@@ -1103,4 +1101,15 @@ end if
   !---Templates start here
   include 'malloc_templates-inc.f90'
 
+end module dynamic_memory_base
+
+
+module dynamic_memory
+  use module_f_malloc
+  use dynamic_memory_base
+  implicit none
+
+  public 
+
+  private :: ERR_INVALID_MALLOC,f_malloc_namelen
 end module dynamic_memory

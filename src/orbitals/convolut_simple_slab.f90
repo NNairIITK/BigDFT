@@ -96,7 +96,7 @@ END SUBROUTINE synthese_slab_self
 !! The input array x is overwritten
 !! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_slab_self(n1,n2,n3,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,-7:n2+8,0:n3), intent(inout) :: x
@@ -148,7 +148,7 @@ END SUBROUTINE convolut_magic_n_slab_self
 !! The input array x is not overwritten
 !! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_n_slab(n1,n2,n3,x,y,ww)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: x
@@ -201,7 +201,7 @@ END SUBROUTINE convolut_magic_n_slab
 !! The input array x is overwritten
 !! this routine is modified to accept the GPU convolution if it is the case
 subroutine convolut_magic_t_slab_self(n1,n2,n3,x,y)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), dimension(0:n1,-7:n2+8,0:n3), intent(inout) :: x
@@ -252,7 +252,7 @@ END SUBROUTINE convolut_magic_t_slab_self
 
 !>  Applies the kinetic energy operator onto x to get y. Works for periodic BC
 subroutine convolut_kinetic_slab_c(n1,n2,n3,hgrid,x,y,c)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::c
@@ -337,7 +337,7 @@ END SUBROUTINE convolut_kinetic_slab_c
 
 !>  Applies the kinetic energy operator onto x to get y. Works for periodic BC
 subroutine convolut_kinetic_slab_T(n1,n2,n3,hgrid,x,y,ekin)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp), dimension(3), intent(in) :: hgrid

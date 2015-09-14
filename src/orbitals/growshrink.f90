@@ -12,7 +12,7 @@
 subroutine comb_grow_all(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
      ,w2,w1,xc,xf,y,ibyz_c,ibzxx_c,ibxxyy_c,&
      ibyz_f,ibzxx_f,ibxxyy_f)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz_c
@@ -47,7 +47,7 @@ END SUBROUTINE comb_grow_all
 !!   outside of the localization region
 !!   that remain from the first comb_grow
 subroutine comb_grow_c(n1,n2,n3,w1,w2,x,y,ibyz,ibzxx,ibxxyy)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   integer, dimension(2,0:n2,0:n3), intent(in) :: ibyz
@@ -77,7 +77,7 @@ END SUBROUTINE comb_grow_c
 !!   The input array x is not overwritten
 subroutine comb_grow_tree(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3&
      ,w1,w2,x,y,ibyz,ibzxx,ibxxyy)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, dimension(2,nfl2:nfu2,nfl3:nfu3), intent(in) :: ibyz
@@ -114,7 +114,7 @@ END SUBROUTINE comb_grow_tree
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
 subroutine comb_rot_grow_loc_1(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, dimension(2,nfl2:nfu2,nfl3:nfu3), intent(in) :: ib
@@ -222,7 +222,7 @@ END SUBROUTINE comb_rot_grow_loc_1
 !!   then convolves with magic filter
 !!   the size of the data is allowed to grow
 subroutine comb_rot_grow_loc_2(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib,ib2)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, dimension(2,nfl3:nfu3,-14+2*nfl1:2*nfu1+16), intent(in) :: ib 
@@ -309,7 +309,7 @@ END SUBROUTINE comb_rot_grow_loc_2
 !!   The input array y is not overwritten
 subroutine comb_shrink(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,&
      ibxy_c,ibzzx_c,ibyyzz_c,ibxy_f,ibzzx_f,ibyyzz_f,xc,xf)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, dimension(2,0:n1,0:n2), intent(in) :: ibxy_c
@@ -342,7 +342,7 @@ END SUBROUTINE comb_shrink
 !!   The input array y is not overwritten
 subroutine comb_shrink_loc_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,&
      ibxy,ibzzx,ibyyzz)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, dimension(2,nfl1:nfu1,nfl2:nfu2), intent(in) :: ibxy
@@ -380,7 +380,7 @@ END SUBROUTINE comb_shrink_loc_f
 !!   The input array y is not overwritten
 subroutine comb_shrink_loc_c(nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,x,l1,l2,l3,&
      ibxy,ibzzx,ibyyzz)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,l1,l2,l3
   integer, dimension(2,nfl1:nfu1,nfl2:nfu2), intent(in) :: ibxy  
@@ -417,7 +417,7 @@ END SUBROUTINE comb_shrink_loc_c
 !!   Applies the magic filter transposed, then analysis wavelet transformation.
 !!   The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc_3(ndat,x,y,nfl,nfu,ib)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, parameter :: lowfil2=-14,lupfil2=16
   integer, intent(in) :: ndat,nfl,nfu

@@ -18,7 +18,7 @@ end module convSimpleBench
 !> y = (kinetic energy operator)x + (cprec*I)x 
 subroutine Convolkinetic_f(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_f,ibxz_f,ibxy_f,x_f,y_f)
-  use module_base
+  use module_defs, only: wp
   !n(c) use convSimpleBench, nflop1 => conv_f_nflop1, nflop2 => conv_f_nflop2, nflop3 => conv_f_nflop3
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
@@ -188,7 +188,7 @@ END SUBROUTINE Convolkinetic_f
 subroutine Convolkinetic_sep(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f) !n(c) x_f1,x_f2,x_f3 (arg:l, l-1)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(wp), intent(in) :: cprecr
@@ -447,7 +447,7 @@ END SUBROUTINE Convolkinetic_sep
 subroutine Convolkinetic(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,x_f1,x_f2,x_f3)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   real(wp), intent(in) :: cprecr
@@ -875,7 +875,7 @@ END SUBROUTINE Convolkinetic
 
 !   y = (kinetic energy operator)x + (cprec*I)x 
 subroutine Convolkinetic_c(n1,n2,n3,cprecr,hgrid,ibyz_c,ibxz_c,ibxy_c,x_c,y_c,fac)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(wp), intent(in) :: cprecr
@@ -972,7 +972,7 @@ subroutine ConvolkineticT(n1,n2,n3, &
      nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,  &
      hx,hy,hz,ibyz_c,ibxz_c,ibxy_c,ibyz_f,ibxz_f,ibxy_f,x_c,x_f,y_c,y_f,ekinout,x_f1,x_f2,x_f3,idir)
   !   y = y+(kinetic energy operator)x 
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,idir
   real(gp), intent(in) :: hx,hy,hz

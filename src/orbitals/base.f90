@@ -23,4 +23,7 @@ module module_base
   use f_trees
   use yaml_strings
   implicit none  
+
+  type(mpi_environment), save, public :: bigdft_mpi !< Contains all data needed for MPI processes
+
 end module module_base

@@ -15,7 +15,7 @@
 !! where k=(k1,k2,k3); r=(x,y,z)
 subroutine convolut_kinetic_slab_c_k(n1,n2,n3,hgrid,x,y,c_in,k1,k2,k3)
 
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::c_in,k1,k2,k3
@@ -144,7 +144,7 @@ END SUBROUTINE convolut_kinetic_slab_c_k
 !! where k=(k1,k2,k3); r=(x,y,z)
 subroutine convolut_kinetic_slab_T_k(n1,n2,n3,hgrid,x,y,ener,k1,k2,k3)
 
-  use module_base
+  use module_defs, only: wp,gp
   implicit none
   integer, intent(in) :: n1,n2,n3
   real(gp),intent(in)::k1,k2,k3

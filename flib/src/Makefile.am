@@ -99,6 +99,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	METADATA_INTERFACES.@MODULE_EXT@ \
 	MODULE_F_MALLOC.@MODULE_EXT@ \
 	DYNAMIC_MEMORY.@MODULE_EXT@ \
+	DYNAMIC_MEMORY_BASE.@MODULE_EXT@ \
 	RANDOMDATA.@MODULE_EXT@ \
 	MEMORY_PROFILING.@MODULE_EXT@ \
 	F_UTILS.@MODULE_EXT@ \
@@ -119,6 +120,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	metadata_interfaces.@MODULE_EXT@ \
 	module_f_malloc.@MODULE_EXT@ \
 	dynamic_memory.@MODULE_EXT@ \
+	dynamic_memory_base.@MODULE_EXT@ \
 	randomdata.@MODULE_EXT@ \
 	memory_profiling.@MODULE_EXT@ \
 	f_utils.@MODULE_EXT@ \

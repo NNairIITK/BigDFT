@@ -594,7 +594,8 @@ subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,del
 subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal,rxyzreal,radiireal,epsilon0,delta,&
      eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
-  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use module_defs, only : Bohr_Ang
+  use module_base, only: bigdft_mpi
   use f_enums
   use yaml_output
   use dynamic_memory
@@ -933,7 +934,8 @@ end subroutine epsilon_rigid_cavity_error_multiatoms_bc
 !! Need the radius of the cavit and its smoothness
 subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal,rxyzreal,radiireal,delta,eps)
   use f_utils
-  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use module_defs, only : Bohr_Ang
+  use module_base, only: bigdft_mpi
   use f_enums
   use yaml_output
   use dynamic_memory
@@ -1162,7 +1164,8 @@ end subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc
 subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,&
      eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
-  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use module_defs, only : Bohr_Ang
+  use module_base, only: bigdft_mpi
   use f_enums
   use yaml_output
   use bounds, only: ext_buffers

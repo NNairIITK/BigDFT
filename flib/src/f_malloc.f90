@@ -14,14 +14,18 @@ module module_f_malloc
   use dictionaries, only: f_err_throw,f_err_raise
   use yaml_strings, only: f_strcpy,operator(+)
 
-  integer, parameter :: f_kind=f_long
+  implicit none
+
+  private
+
+  integer, parameter, public :: f_kind=f_long
   !>global parameter of the module telling if the profile has to be activated
   !! this parameter can be modified only by dynamic memory module
-  integer(f_integer), parameter :: f_malloc_namelen=32          !< length of the character variables
+  integer(f_integer), parameter, public :: f_malloc_namelen=32          !< length of the character variables
   integer, parameter :: max_rank=7          !< maximum rank in fortran
 
   !to be initialized in the dynamic_memory module
-  integer, save :: ERR_INVALID_MALLOC
+  integer, save, public :: ERR_INVALID_MALLOC
 
   logical, save, public :: f_malloc_default_profiling=.true.
   character(len=f_malloc_namelen), save, public :: f_malloc_routine_name=repeat(' ',f_malloc_namelen)
@@ -187,6 +191,11 @@ module module_f_malloc
      !!module procedure f_malloc0_listr_ptr
      module procedure f_mallocli0_str_ptr_simple
   end interface
+
+  !> Public routines
+  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,operator(.to.)
+  public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
+
 
 contains
   

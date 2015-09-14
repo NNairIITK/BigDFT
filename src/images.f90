@@ -63,7 +63,7 @@ MODULE Minimization_routines
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE steepest_descent( ndim, pos, grad, ds )
-
+      use wrapper_linalg
       IMPLICIT NONE
 
       integer, intent(in) :: ndim
@@ -83,7 +83,7 @@ MODULE Minimization_routines
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE fletcher_reeves( ndim, pos, grad, old_grad, delta, ds )
-     
+      use wrapper_linalg
       IMPLICIT NONE
 
       integer, intent(in) :: ndim
@@ -131,7 +131,7 @@ MODULE Minimization_routines
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE polak_ribiere( ndim, pos, grad, old_grad, delta, ds )
-     
+      use wrapper_linalg
       IMPLICIT NONE
 
       integer, intent(in) :: ndim
@@ -178,7 +178,7 @@ MODULE Minimization_routines
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     SUBROUTINE velocity_Verlet_first_step( ndim, pos, vel, grad, ds )
-
+      use wrapper_linalg
       IMPLICIT NONE
 
       integer, intent(in) :: ndim
@@ -193,7 +193,7 @@ MODULE Minimization_routines
     
     
     SUBROUTINE velocity_Verlet_second_step( ndim, vel, grad, ds, damp )
-
+      use wrapper_linalg
       IMPLICIT NONE
 
       integer, intent(in) :: ndim
@@ -211,7 +211,7 @@ MODULE Minimization_routines
     
     
     SUBROUTINE quick_min_second_step( ndim, vel, grad, ds )
-
+      use wrapper_linalg
       IMPLICIT NONE
 
       integer, intent(in) :: ndim
@@ -351,6 +351,7 @@ contains
     use public_keys, only: GEOPT_VARIABLES
     use f_utils, only: f_zero
     use yaml_output
+    use module_base, only: bigdft_mpi
     implicit none
     type(run_image), intent(out) :: img
     type(dictionary), pointer :: dict
@@ -404,6 +405,7 @@ contains
   end subroutine image_init
 
   subroutine image_set_init_vel(img, ndim, vel0)
+    use wrapper_linalg, only: vcopy
     implicit none
     integer, intent(in) :: ndim
     type(run_image), intent(inout) :: img
@@ -758,6 +760,7 @@ contains
 
 
   SUBROUTINE write_dat_files(job_name, imgs, iter)
+    use wrapper_linalg
     IMPLICIT NONE
 
     character(len = *), intent(in) :: job_name
@@ -901,6 +904,8 @@ contains
 
 
   subroutine images_collect_results(imgs, igroup, nimages, mpi_env)
+    use wrapper_mpi
+    use module_base, only: bigdft_mpi
     implicit none
     integer, intent(in) :: nimages
     type(run_image), dimension(nimages), intent(inout) :: imgs
@@ -988,6 +993,7 @@ subroutine image_update_pos(img, iteration, posm1, posp1, Vm1, Vp1, &
   use Minimization_routines
   use module_images
   use f_utils, only: f_zero
+  use wrapper_linalg
   implicit none
   type(run_image), intent(inout) :: img
   integer, intent(in) :: iteration

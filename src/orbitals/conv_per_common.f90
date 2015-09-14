@@ -11,7 +11,7 @@
 !> A periodic synthesis (backward) wavelet transformation
 !! the input array x is not overwritten
 subroutine synthese_per_old(nd1,nd2,nd3,x,y,ww)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: nd1,nd2,nd3
   real(wp), dimension(0:nd1,0:nd2,0:nd3), intent(in) :: x
@@ -36,7 +36,7 @@ END SUBROUTINE synthese_per_old
 !>   A periodic synthesis (backward) wavelet transformation
 !!   the input array x is not overwritten
 subroutine synthese_per_old_self(nd1,nd2,nd3,x,y,ww)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: nd1,nd2,nd3
   real(wp), dimension(0:nd1,0:nd2,0:nd3), intent(in) :: x
@@ -61,7 +61,7 @@ END SUBROUTINE synthese_per_old_self
 !>   An analysis (forward) periodic wavelet transformation
 !!   the input array y is not overwritten
 subroutine analyse_per_old(nd1,nd2,nd3,y,x,ww)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: nd1,nd2,nd3
   real(wp), dimension(0:nd1,0:nd2,0:nd3), intent(in) :: y
@@ -86,7 +86,7 @@ END SUBROUTINE analyse_per_old
 !>   An analysis (forward) periodic wavelet transformation
 !!   the input array y is not overwritten
 subroutine analyse_per_old_self(nd1,nd2,nd3,y,x,ww)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: nd1,nd2,nd3
   real(wp), dimension(0:nd1,0:nd2,0:nd3), intent(in) :: y

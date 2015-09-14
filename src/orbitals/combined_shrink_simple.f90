@@ -12,7 +12,7 @@
 !! Applies the magic filter transposed, then analysis wavelet transformation.
 !! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc(ndat,x,y,icf,nfl,nfu,ib)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, parameter :: lowfil2=-14,lupfil2=16
   integer, intent(in) :: ndat,icf,nfl,nfu
@@ -58,7 +58,7 @@ END SUBROUTINE comb_rot_shrink_loc
 !! Applies the magic filter transposed, then analysis wavelet transformation.
 !! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc_1(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,x,y,ib)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
   integer, dimension(2,-14+2*nfl2:2*nfu2+16,-14+2*nfl3:2*nfu3+16), intent(in) :: ib
@@ -101,7 +101,7 @@ END SUBROUTINE comb_rot_shrink_loc_1
 !! Applies the magic filter transposed, then analysis wavelet transformation.
 !! The size of the data is forced to shrink
 subroutine comb_rot_shrink_loc_2(ndat,x,y,nfl,nfu,ib)
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, parameter:: lowfil2=-14,lupfil2=16
   integer, intent(in) :: ndat,nfl,nfu

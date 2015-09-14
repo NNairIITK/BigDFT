@@ -11,7 +11,7 @@
 !>  Forward wavelet transform, analysis, periodic
 subroutine ana_rot_per_old(right,nt,c,cd_1)
 
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: right,nt
   real(wp), dimension(0:right,nt), intent(in) :: c
@@ -70,7 +70,7 @@ END SUBROUTINE ana_rot_per_old
 !> Backward wavelet transform, synthesis, periodic
 subroutine syn_rot_per_old(right1,nt,cd,c1)
 
-  use module_base
+  use module_defs, only: wp
   implicit none
   integer, intent(in) :: right1,nt
   real(wp), dimension(0:right1,nt), intent(in) :: cd
