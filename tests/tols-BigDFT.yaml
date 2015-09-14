@@ -1843,7 +1843,7 @@ extendedfrags_write:
  Tr(K): 3.0e-8
  Total charge: 3.0e-11
  charge diff: 3.2e-8
- trace(KS): 2.9e-11
+ trace(KS): 3.3e-11
  eF: 7.0e-9
  Pressure: 5.8e-11
  decay length of error function: 1.1e-6
