@@ -177,6 +177,7 @@ module Poisson_Solver
       type(mpi_environment) :: inplane_mpi,part_mpi !<mpi_environment for internal ini-plane parallelization
       type(FFT_metadata) :: grid !<dimensions of the FFT grid associated to this kernel
       integer :: igpu !< control the usage of the GPU
+      integer :: gpuPCGRed !< control if GPU can be used for PCG reductions
       integer :: initCufftPlan
       integer :: keepGPUmemory
       !parameters for the iterative methods

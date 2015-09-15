@@ -117,7 +117,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   !gpu acceleration
   kernel%igpu=igpu  
 
-  kernel%initCufftPlan = 0
+  kernel%initCufftPlan = 1
   kernel%keepGPUmemory = 1
 
   if (iproc == 0 .and. verb) then 
@@ -170,7 +170,7 @@ subroutine pkernel_free(kernel)
   call f_free_ptr(kernel%epsinnersccs)
   call f_free_ptr(kernel%counts)
   call f_free_ptr(kernel%displs)
-  if (trim(str(kernel%method))=='PCG' .and. kernel%igpu == 1) then
+  if (kernel%gpuPCGRed == 1) then
     if (kernel%keepGPUmemory == 1) then
       call cudafree(kernel%z_GPU)
       call cudafree(kernel%r_GPU)
@@ -266,7 +266,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   real(kind=8) :: alphat,betat,gammat,mu0t,pi
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
-  integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ
+  integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ,gpuPCGRed
   integer,dimension(3) :: n
 
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
@@ -628,13 +628,19 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
      call yaml_mapping_close() !memory
 
   end if
-
+  kernel%gpuPCGRed=0
   if (kernel%igpu >0) then
+    if(trim(str(kernel%method))=='PCG') kernel%gpuPCGRed=1
+      n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
+      n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
+      n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
+      call cuda_estimate_memory_needs(kernel%mpi_env%iproc, n,kernel%geo,kernel%initCufftPlan, kernel%gpuPCGRed) 
+
 
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
     size3=n1*n2*n3
-  if (trim(str(kernel%method))=='PCG' .and. kernel%igpu == 1) then
+  if (kernel%gpuPCGRed==1) then
     if (kernel%keepGPUmemory == 1) then
       call cudamalloc(size3,kernel%z_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc z_GPU (GPU out of memory ?) ')
@@ -702,9 +708,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
       if (dump) call yaml_map('Kernel Copied on GPU',.true.)
 
-      n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
-      n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
-      n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
+
 
       if (kernel%initCufftPlan == 1) then
         call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
