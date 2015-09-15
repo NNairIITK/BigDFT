@@ -434,6 +434,7 @@ contains
   END SUBROUTINE nullify_state_properties
 
 
+  !> Initialized the state_properties structure
   subroutine init_state_properties(outs, nat)
     use module_base
     use dynamic_memory
@@ -447,7 +448,7 @@ contains
     outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
   END SUBROUTINE init_state_properties
 
-  !>clean the outs object with empty (but meaningful)
+  !> Clean the outs object with empty (but meaningful)
   !! values so that the structure can be used for optimization
   subroutine clean_state_properties(outs)
     use module_types, only: energy_terms_null

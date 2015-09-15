@@ -1,4 +1,7 @@
-!! @section LICENCE                                                    
+!> @file
+!! Module to handle CP2K
+!!
+!! @copyright
 !!    Copyright (C) 2015 BigDFT group                                  
 !!    This file is distributed under the terms of the                  
 !!    GNU General Public License, see ~/COPYING file                   
