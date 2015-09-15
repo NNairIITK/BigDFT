@@ -31,9 +31,19 @@ subroutine f_utils_test()
   integer(f_integer), dimension(3) :: i4
   integer(f_long), dimension(3) :: il
   logical(f_byte), dimension(3) :: lb
+  character(len=256) :: path
   logical, dimension(3) :: l
 
   r4=real(10.0,f_quadruple)
+
+  call yaml_map('Long Integer kind',f_long)
+  call yaml_map('Normal Integer kind',f_integer)
+  call yaml_map('Short Integer kind',f_short)
+
+  call yaml_map('Quadruple precision Real kind',f_quadruple)
+  call yaml_map('Double precision Real kind',f_integer)
+  call yaml_map('Single precision Real kind',f_short)
+
 
 !  call expq(r4(1),r4(2))
 
@@ -112,6 +122,9 @@ subroutine f_utils_test()
   call f_delete_file('test3')
   call yaml_mapping_close()
   call yaml_map('If this value is 7 then all files have been correctly closed',f_get_free_unit())
+
+  !create a directory (we should add the test to remove it)
+  !call f_mkdir('testdir',path)
 
 end subroutine f_utils_test
 

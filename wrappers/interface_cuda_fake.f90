@@ -142,10 +142,32 @@
 !!$   !stop 'sg_end'
 !!$ END SUBROUTINE sg_end
 
+subroutine first_reduction_kernel()
+   implicit none
+   stop 'reduction1'
+ END SUBROUTINE first_reduction_kernel
+
+subroutine second_reduction_kernel()
+   implicit none
+   stop 'reduction2'
+ END SUBROUTINE second_reduction_kernel
+
+ subroutine third_reduction_kernel()
+   implicit none
+   stop 'reduction3'
+ END SUBROUTINE third_reduction_kernel
+
+
 subroutine cudamalloc()
    implicit none
    stop 'allocation'
  END SUBROUTINE cudamalloc
+
+subroutine cudamemset()
+   implicit none
+   stop 'memset'
+ END SUBROUTINE cudamemset
+
 
 subroutine cudafree()
    implicit none

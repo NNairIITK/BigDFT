@@ -43,6 +43,7 @@ module public_keys
   character(len = *), parameter :: DISABLE_SYM = "disablesym"
   character(len = *), parameter :: SOLVENT = "solvent"
   character(len = *), parameter :: EXTERNAL_POTENTIAL = "external_potential"
+  character(len = *), parameter :: CHARGE_MULTIPOLES = "charge_multipoles"
 
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"
@@ -77,6 +78,9 @@ module public_keys
   character(len = *), parameter :: BETAX = "betax"
   character(len = *), parameter :: HISTORY = "history"
   character(len = *), parameter :: DTINIT = "dtinit"
+  character(len = *), parameter :: SOCKINET = "sockinet"
+  character(len = *), parameter :: SOCKPORT = "sockport"
+  character(len = *), parameter :: SOCKHOST = "sockhost"
   character(len = *), parameter :: DTMAX = "dtmax"
   character(len = *), parameter :: NEB_RESTART = "restart"
   character(len = *), parameter :: NEB_CLIMBING = "climbing"
@@ -452,6 +456,8 @@ module public_enums
   type(f_enumerator), parameter, public :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994,null())
   type(f_enumerator), parameter, public :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993,null())
   type(f_enumerator), parameter, public :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992,null())
+  type(f_enumerator), parameter, public :: CP2K_RUN_MODE         =f_enumerator('CP2K_RUN_MODE',-991,null())
+  type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
   
 end module public_enums
 

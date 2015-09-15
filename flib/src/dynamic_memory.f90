@@ -10,11 +10,10 @@
 
 !> Module used to manage memory allocations and de-allocations
 module dynamic_memory
-
   use memory_profiling
   use dictionaries, info_length => max_field_length
-  use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
-  use module_f_malloc
+  use yaml_strings, only: yaml_toa,yaml_date_and_time_toa,operator(//)
+  use module_f_malloc !use f_precision
   use yaml_parse, only: yaml_a_todict
   use f_utils, only: f_time
   implicit none
@@ -122,24 +121,29 @@ module dynamic_memory
 
   interface f_memcpy
      module procedure f_memcpy_i0,f_memcpy_i1
-     module procedure f_memcpy_il1
-     module procedure f_memcpy_i1i2,f_memcpy_i2i1
+     module procedure f_memcpy_i0i1,f_memcpy_i1i2,f_memcpy_i2i1,f_memcpy_i2i0
+     module procedure f_memcpy_li0,f_memcpy_li1
+     module procedure f_memcpy_li0li1,f_memcpy_li1li2,f_memcpy_li2li1,f_memcpy_li2li0
      module procedure f_memcpy_r0
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1
      module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3,f_memcpy_d3,f_memcpy_d4,f_memcpy_d1d0
      module procedure f_memcpy_d0d3,f_memcpy_d0d2,f_memcpy_d3d0,f_memcpy_d2d0,f_memcpy_d3d2
-     module procedure f_memcpy_l0,f_memcpy_c1i1,f_memcpy_i1c1,f_memcpy_c0i1
-     module procedure f_memcpy_li0,f_memcpy_li0li1,f_memcpy_i0i1
+     module procedure f_memcpy_l0
+     module procedure f_memcpy_c1i1,f_memcpy_i1c1,f_memcpy_c0i1
+     module procedure f_memcpy_c1li1,f_memcpy_li1c1,f_memcpy_c0li1
   end interface f_memcpy
 
   interface f_maxdiff
      module procedure f_maxdiff_i0,f_maxdiff_i1
-     module procedure f_maxdiff_i1i2,f_maxdiff_i2i1
+     module procedure f_maxdiff_li0,f_maxdiff_li1
+     module procedure f_maxdiff_i0i1,f_maxdiff_i1i2,f_maxdiff_i2i1
+     module procedure f_maxdiff_li0li1,f_maxdiff_li1li2,f_maxdiff_li2li1
      module procedure f_maxdiff_r0
      module procedure f_maxdiff_d0,f_maxdiff_d1,f_maxdiff_d2
      module procedure f_maxdiff_d0d1,f_maxdiff_d1d2,f_maxdiff_d2d1,f_maxdiff_d2d3
-     module procedure f_maxdiff_l0,f_maxdiff_i0i1
-     module procedure f_maxdiff_c1i1,f_maxdiff_li0li1,f_maxdiff_c0i1
+     module procedure f_maxdiff_l0
+     module procedure f_maxdiff_c1i1,f_maxdiff_c0i1
+     module procedure f_maxdiff_c1li1,f_maxdiff_c0li1
   end interface f_maxdiff
 
   !> Public routines
@@ -706,7 +710,7 @@ end if
   subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,iproc)
     use yaml_output!, only: yaml_date_and_time_toa
     use f_utils
-    use yaml_strings, only: f_strcpy
+    use yaml_strings
     implicit none
     !Arguments
     character(len=*), intent(in), optional :: logfile_name   !< Name of the logfile
@@ -744,9 +748,11 @@ end if
           !if iproc is present, overrides
           if (present(iproc)) jproc=iproc
 
-          if (.not. present(logfile_name)) &
+          if (.not. present(logfile_name)) then
                call f_err_throw('Error, f_malloc_set_status needs logfile_name for nontrivial output level',&
                err_id=ERR_INVALID_MALLOC)
+               return
+          end if
           !first, close the previously opened stream
           if (mems(ictrl)%logfile_unit > 0 .and. jproc==0) then
              call yaml_close_stream(unit=mems(ictrl)%logfile_unit)
@@ -755,9 +761,13 @@ end if
           !a previous instance of malloc_set_status, and raise and exception if it is so
           do jctrl=ictrl-1,1,-1
              if (trim(logfile_name)==mems(jctrl)%logfile) &
-                  call f_err_throw('Logfile name "'//trim(logfile_name)//&
-                  '" in f_malloc_set_status invalid, aleady in use for instance No.'//&
-                  trim(yaml_toa(jctrl)),err_id=ERR_INVALID_MALLOC)
+!!$                  call f_err_throw('Logfile name "'//trim(logfile_name)//&
+!!$                  '" in f_malloc_set_status invalid, aleady in use for instance No.'//&
+!!$                  trim(yaml_toa(jctrl)),err_id=ERR_INVALID_MALLOC)
+             call f_err_throw('Logfile name "'//trim(logfile_name)//&
+                  '" in f_malloc_set_status invalid, already in use for instance No.'//jctrl&
+                  ,err_id=ERR_INVALID_MALLOC)
+
              exit
           end do
           unt=-1 !SM: unt otherwise not defined for jproc/=0

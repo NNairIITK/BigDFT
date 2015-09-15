@@ -292,7 +292,7 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
         new = 1
         
         ! Ask to gather density to other procs.
-        call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        !LG: wtf is that? call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
 
      if (denspot%dpbox%ndimrhopot > 0) then
@@ -340,7 +340,7 @@ subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
         new = 1
       
         ! Ask to gather density to other procs.
-        call MPI_BCAST(1, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        !!!call MPI_BCAST(1, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
 
      call MPI_GATHERV(denspot%v_ext(1,1,1,1),max(denspot%dpbox%ndimpot, 1),&
@@ -387,11 +387,11 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
      end if
   else
      do
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
         if (message == SIGNAL_DONE) then
            exit
         else if (message == SIGNAL_DENSITY) then
@@ -440,11 +440,12 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
      end if
   else
      do
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
+        !call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
         if (message == SIGNAL_DONE) then
            exit
         else
@@ -585,7 +586,6 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, except_this_one_A => density_descriptors
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   type(xc_info), intent(in) :: xc
@@ -693,6 +693,7 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
            confpotorder,potentialprefac,Lzd,confinementCenter)
   use module_base
   use module_types
+  use bounds, only: geocode_buffers
   implicit none
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
@@ -734,40 +735,6 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
 
 end subroutine define_confinement_data
 
-subroutine geocode_buffers(geocode_local, geocode_global, nl1, nl2, nl3)
-  implicit none
-  character(len=1), intent(in) :: geocode_local, geocode_global !< @copydoc poisson_solver::doc::geocode
-  integer, intent(out) :: nl1, nl2, nl3
-  !local variables
-  logical :: perx_local, pery_local, perz_local
-  logical :: perx_global,pery_global,perz_global
-  integer :: nr1, nr2, nr3
-
-  !conditions for periodicity in the three directions
-  perx_local=(geocode_local /= 'F')
-  pery_local=(geocode_local == 'P')
-  perz_local=(geocode_local /= 'F')
-  perx_global=(geocode_global /= 'F')
-  pery_global=(geocode_global == 'P')
-  perz_global=(geocode_global /= 'F')
-
-  call ext_buffers(perx_local, nl1, nr1)
-  call ext_buffers(pery_local, nl2, nr2)
-  call ext_buffers(perz_local, nl3, nr3)
-
-  ! If the global box has non-free boundary conditions, the shift is already
-  ! contained in nsi1,nsi2,nsi3 and does not need to be subtracted.
-  if (perx_global) then
-      nl1 = 0
-  end if
-  if (pery_global) then
-      nl2 = 0
-  end if
-  if (perz_global) then
-      nl3 = 0
-  end if
-
-end subroutine geocode_buffers
   
 
 

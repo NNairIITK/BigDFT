@@ -31,9 +31,9 @@
   ntasks=mpisize(mpi_comm)
   if (ntotsend*kind(sendbuf) < ntot*ntasks*kind(recvbuf)) then
      call f_err_throw('Error in mpiscatter; the size of the send buffer ('//&
-          trim(yaml_toa(ntotsend*kind(sendbuf)))//&
-          ') is not large enough to contain '//trim(yaml_toa(ntot*kind(recvbuf)))//&
-          ' * '//trim(yaml_toa(ntasks))//' elements',err_id=ERR_MPI_WRAPPERS)
+          (ntotsend*kind(sendbuf))//&
+          ') is not large enough to contain '//(ntot*kind(recvbuf))//&
+          ' * '//ntasks//' elements',err_id=ERR_MPI_WRAPPERS)
      return
   end if
   !then one can proceed with the MPI operation

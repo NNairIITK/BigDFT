@@ -5,4 +5,4 @@
    ncount_cluster_x: 500
    frac_fluct: 0.0
    forcemax: 1.0E-3
-   betax: 5.0E+0
+   betax: 2.e-3

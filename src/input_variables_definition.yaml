@@ -1,4 +1,4 @@
-# Definitions of the input variables
+## Definitions of the input variables
 ##inputvar: #name of the variable as declared in the code
 ## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile
@@ -50,6 +50,7 @@
      B97-D: -170 #to be verified
      B3LYP: -402
      HF: 100 #Hartree-Fock
+     NONE: 1000
    qcharge:
      COMMENT: Charge of the system. Can be integer or real.
      DESCRIPTION: Total charge of the system. A negative value means that extra electrons are added.
@@ -191,8 +192,8 @@
        sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
      default: vacuum
    external_potential:
-     COMMENT: Multipole moments on an external potential
-     DESCRIPTION: Give the multipole moments up to octopoles
+     COMMENT: Multipole moments of an external potential
+     DESCRIPTION: Give the multipole moments up to quadrupoles
      default: 0.0
 #K points parameters
  kpt:
@@ -295,6 +296,7 @@
        AB6MD:  Molecular dynamics from ABINIT
        DIIS:   Direct inversion of iterative subspace
        FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.
+       SOCK:   Socket communication
        NEB:    Nudged Elastic Band
        SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
        SQNM:   Stabilized quasi-Newton minimzer
@@ -305,6 +307,29 @@
      PROFILE_FROM: method
      default: 50
      none: 1
+   sockinet:
+     COMMENT: Socket either unix (0) or tcp (1)
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SOCK
+     RANGE: [0, 1]
+     default: 1
+   sockport:
+     COMMENT: Socket port number
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SOCK
+     RANGE: [0, 100000]
+     default: 2121
+   sockhost:
+     COMMENT: Socket host name
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SOCK
+     default: 127.0.0.1
    frac_fluct:
      COMMENT: Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
      RANGE: [0., 10.]
@@ -670,7 +695,7 @@
    method:
      COMMENT: Run method of BigDFT call
      EXCLUSIVE:
-       dft: Density Functional Theory
+       dft: Density Functional Theory (BigDFT)
        lj: Lennard-Jones force field
        lensic: Lenosky Force Field for Si clusters
        lensib: Lenosky Force Field for Si bulk
@@ -679,12 +704,14 @@
        morse_slab: Morse slab
        tersoff: Tersoff potential for C and Si
        bmhtf: Born Mayer Huggins Tosi Fumi Potential
+       cp2k: CP2K
+       dftbp: DFTP+
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
      default: default
    mm_paramfile:
-     COMMENT: name of parameter file
+     COMMENT: name of parameter or input file for the selected method or code
      default: none
      
 #Performance parameters
@@ -1098,6 +1125,10 @@
      calculate_onsite_overlap:
        COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
        default: No
+     charge_multipoles:
+       COMMENT: Calculate the atom-centered multipole coefficients of the electronic charge
+       DESCRIPTION: Calculate the multipole expansion coefficients which can then be used to establish a QM/MM coupling
+       default: no
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:

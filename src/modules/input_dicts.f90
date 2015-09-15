@@ -224,7 +224,7 @@ contains
   end subroutine dict_get_run_properties
 
   function run_id_toa()
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     use module_base, only: bigdft_mpi
     implicit none
     character(len=20) :: run_id_toa
@@ -342,7 +342,7 @@ contains
     type(dictionary), pointer :: dict
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
-    integer, parameter :: ntrials=3
+    integer, parameter :: ntrials=1
     integer :: ierror,lgt,unit_log,ierrr,trials
     integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
@@ -371,7 +371,9 @@ contains
 !!$       call MPI_BCAST(path,len(path),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierr)
 !!$       lgt=min(len(writing_directory),len(path))
 !!$       writing_directory(1:lgt)=path(1:lgt)
-       call mpibcast(path,comm=bigdft_mpi%mpi_comm)
+       if (bigdft_mpi%nproc>1) then
+           call mpibcast(path,comm=bigdft_mpi%mpi_comm)
+       end if
        call f_strcpy(src=path,dest=writing_directory)
     end if
     ! Add trailing slash if missing.
@@ -391,7 +393,7 @@ contains
        if (log_to_disk) then
           ! Get Create log file name.
           call dict_get_run_properties(dict, naming_id = run_name)
-          logfilename = "log"+run_name+".yaml"
+          logfilename = "log"//trim(adjustl(run_name))//".yaml"
           path = trim(writing_directory)//trim(logfilename)
           call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
           ! Check if logfile is already connected.
@@ -562,6 +564,7 @@ contains
        & nkpts, nspin, norbsempty, qelec_up, qelec_down, norb_max)
     use module_defs, only: gp
     use dynamic_memory
+    use yaml_strings, only: yaml_toa
     use yaml_output
     implicit none
     type(dictionary), pointer :: dict
@@ -767,6 +770,7 @@ contains
   subroutine occupation_data_file_merge_to_dict(dict, key, filename)
     use module_defs, only: gp, UNINITIALIZED
     use yaml_output
+    use yaml_strings, only: yaml_toa
     implicit none
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: filename, key
@@ -2031,7 +2035,8 @@ contains
     use fragment_base
     use module_input
     use dictionaries
-    use yaml_output, only: yaml_toa,yaml_map
+    use yaml_strings, only: yaml_toa
+    use yaml_output, only: yaml_map
     implicit none
     logical, intent(in) :: shouldexist
     integer, intent(in) :: iproc

@@ -134,6 +134,7 @@ end subroutine test_yaml_output2
 !> Test of sequences
 subroutine test_yaml_output_sequences1()
   use yaml_output
+  use yaml_strings
   implicit none
   !local variables
   integer :: i
@@ -173,6 +174,7 @@ end subroutine test_yaml_output_sequences1
 !> Second test of sequences
 subroutine test_yaml_output_sequences2()
   use yaml_output
+  use yaml_strings
   implicit none
   !local variables
   real(kind=8), dimension(:), allocatable :: dv

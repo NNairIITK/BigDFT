@@ -57,7 +57,7 @@ libflib_1_a_SOURCES = utils.c utilsadd.c \
 	yaml_output.f90 mem_profiling.f90 dynamic_memory.f90 \
 	razero.f90 getadd.f90 time.f90 f_lib_highlev.f90 \
 	yaml_parser.c yaml_parse.f90 \
-	f_input_file.f90 \
+	f_input_file.f90 randomData.f90 \
 	$(flush_files) $(mpi_source) $(getarg_files)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
@@ -70,14 +70,14 @@ DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 
 F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 	f_malloc-base-inc.f90 f_malloc-null-inc.f90 \
-	f_malloc-total-inc.f90 f_malloc-bound-inc.f90 \
-	f_malloc-bounds-inc.f90 f_malloc-simple-inc.f90 \
+	f_malloc-bound-inc.f90 \
+	f_malloc-bounds-inc.f90 f_malloci-simple-inc.f90 f_mallocli-simple-inc.f90 \
 	f_malloc-ptr-inc.f90 f_malloc-check-inc.f90 \
-	f_malloc-null-ptr-inc.f90
+	f_malloc-null-ptr-inc.f90 f_malloc-total-inc.f90
 
 YAML_INCLUDES = yaml_map-inc.f90 yaml_map-arr-inc.f90 \
 	yaml_map-mat-inc.f90 yaml_open-inc.f90
-STRINGS_INCLUDES = yaml_toa-inc.f90 yaml_toa-arr-inc.f90
+STRINGS_INCLUDES = yaml_toa-inc.f90 yaml_toa-arr-inc.f90 yaml_plus-inc.f90
 ERR_INCLUDES = get_err-inc.f90
 DICT_INCLUDES = error_handling.f90 $(ERR_INCLUDES) dict_add-inc.f90 dict_getvec-inc.f90 \
 	set_arr-inc.f90 dict_cont-inc.f90 dict_cont_arr-inc.f90
@@ -106,7 +106,8 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	F_TREES.@MODULE_EXT@ \
 	F_INPUT_FILE.@MODULE_EXT@ \
 	EXCEPTION_CALLBACKS.@MODULE_EXT@ \
-	TIME_PROFILING.@MODULE_EXT@
+	TIME_PROFILING.@MODULE_EXT@ \
+	MODULE_RAZERO.@MODULE_EXT@
 else
 modules = yaml_strings.@MODULE_EXT@ \
 	dictionaries.@MODULE_EXT@ \
@@ -125,7 +126,8 @@ modules = yaml_strings.@MODULE_EXT@ \
 	f_refcnts.@MODULE_EXT@ \
 	f_trees.@MODULE_EXT@ \
 	exception_callbacks.@MODULE_EXT@ \
-	time_profiling.@MODULE_EXT@
+	time_profiling.@MODULE_EXT@ \
+	module_razero.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include) memstatus.yaml
@@ -153,7 +155,7 @@ install-data-hook:
 
 # Dependencies
 $(modules): $(libflib_1_a_OBJECTS)
-yaml_strings.o: $(STRINGS_INCLUDES)
+yaml_strings.o: $(STRINGS_INCLUDES) f_precisions.o
 f_enums.o: yaml_strings.o
 dictionaries_base.o: yaml_strings.o
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
@@ -168,10 +170,11 @@ f_input_file.o: dictionaries.o yaml_output.o dynamic_memory.o f_utils.o
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o yaml_strings.o
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o f_utils.o f_input_file.o
-f_utils.o: dictionaries.o yaml_strings.o f_precisions.o
+f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o
 f_refcnts.o: dictionaries.o yaml_output.o
 f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
-getadd.o: yaml_strings.o $(GETADD_INCLUDES)
+getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
+razero.o: randomData.o f_precisions.o
 $(flush_object): yaml_output.o dictionaries.o
 
 time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers

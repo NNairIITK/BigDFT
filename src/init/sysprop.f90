@@ -188,7 +188,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call init_lzd_linear()
      ! For restart calculations, the suport function distribution must not be modified
      !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
-     if (.not. (inputpsi .hasattr. 'MEMORY')) then
+     !SM: added the ".or. fin%lin%fragment_calculation", as this came from a merge with Laura...
+     if (.not. (inputpsi .hasattr. 'MEMORY') .or. in%lin%fragment_calculation) then
          times_convol = f_malloc(lorbs%norb,id='times_convol')
          call test_preconditioning()
          time_max(1) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
@@ -1448,8 +1449,8 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
      & atoms, qcharge, nspin, mpol, norbsempty)
   use module_atoms, only: atoms_data
   use ao_inguess, only: charge_and_spol
-  use module_base, only: gp, f_err_throw
-  use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
+  use module_base, only: gp, f_err_throw,yaml_toa
+  use yaml_output, only: yaml_warning, yaml_comment
   use dynamic_memory
   !use ao_inguess, only : count_atomic_shells
   implicit none

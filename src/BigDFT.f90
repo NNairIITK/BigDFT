@@ -51,10 +51,13 @@ program BigDFT
       call init_state_properties(outs,bigdft_nat(runObj))
 
       call bigdft_get_run_properties(run, posinp_id = posinp_id)
-      call bigdft_state(runObj,outs,infocode)
+      if(trim(runObj%inputs%geopt_approach)/='SOCK') then
+          call bigdft_state(runObj,outs,infocode)
+      endif
     
       !if (runObj%run_mode /='QM_RUN_MODE')then
       if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
+      if (bigdft_mpi%iproc ==0 ) call yaml_map('Force Norm (Hartree/Bohr)',sqrt(sum(outs%fxyz**2)),fmt='(es24.17)')
       !endif
          if (runObj%inputs%ncount_cluster_x > 1) then
             if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)

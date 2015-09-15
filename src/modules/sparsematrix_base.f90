@@ -84,6 +84,7 @@ module sparsematrix_base
       integer :: nccomm !<number of communications required for the compress distributed in the dense parallel format
       integer,dimension(:,:),pointer :: luccomm !<lookup array for the communications required for the compress distributed in the dense parallel format
       integer,dimension(:),pointer :: on_which_atom !<dimension ntmb, indicates to which atoms a row/column of the matrix belongs
+      character(len=1) :: geocode !< boundary conditions F(ree), W(ire), S(urface), P(eriodic)
   end type sparse_matrix
 
 
@@ -318,18 +319,16 @@ module sparsematrix_base
       type(sparse_matrix),intent(inout):: sparsemat
       ! Local variables
       integer :: i, is, ie
-      if (associated(sparseMat%keyg)) call f_free_ptr(sparseMat%keyg)
-      if (associated(sparseMat%keyv)) call f_free_ptr(sparseMat%keyv)
-      if (associated(sparseMat%nsegline)) call f_free_ptr(sparseMat%nsegline)
-      if (associated(sparseMat%istsegline)) call f_free_ptr(sparseMat%istsegline)
-      if (associated(sparseMat%matrixindex_in_compressed_fortransposed)) &
-          call f_free_ptr(sparseMat%matrixindex_in_compressed_fortransposed)
-      if (associated(sparseMat%matrixindex_in_compressed_arr)) &
-          call f_free_ptr(sparseMat%matrixindex_in_compressed_arr)
-      if (associated(sparseMat%isvctr_par)) call f_free_ptr(sparseMat%isvctr_par)
-      if (associated(sparseMat%nvctr_par)) call f_free_ptr(sparseMat%nvctr_par)
-      if (associated(sparseMat%isfvctr_par)) call f_free_ptr(sparseMat%isfvctr_par)
-      if (associated(sparseMat%nfvctr_par)) call f_free_ptr(sparseMat%nfvctr_par)
+      call f_free_ptr(sparseMat%keyg)
+      call f_free_ptr(sparseMat%keyv)
+      call f_free_ptr(sparseMat%nsegline)
+      call f_free_ptr(sparseMat%istsegline)
+      call f_free_ptr(sparseMat%matrixindex_in_compressed_fortransposed)
+      call f_free_ptr(sparseMat%matrixindex_in_compressed_arr)
+      call f_free_ptr(sparseMat%isvctr_par)
+      call f_free_ptr(sparseMat%nvctr_par)
+      call f_free_ptr(sparseMat%isfvctr_par)
+      call f_free_ptr(sparseMat%nfvctr_par)
       !!if (associated(sparseMat%orb_from_index)) call f_free_ptr(sparseMat%orb_from_index)
       call f_free_ptr(sparseMat%taskgroup_startend)
       call f_free_ptr(sparseMat%taskgroupid)
@@ -341,6 +340,7 @@ module sparsematrix_base
               call mpi_environment_free(sparseMat%mpi_groups(i))
           end do
           deallocate(sparseMat%mpi_groups)
+          nullify(sparseMat%mpi_groups)
       end if
       call f_free_ptr(sparseMat%inwhichtaskgroup)
       call f_free_ptr(sparseMat%tgranks)
@@ -428,7 +428,7 @@ module sparsematrix_base
           smat_ptr = f_malloc_ptr((/smat_info_ptr%smat%nfvctr,smat_info_ptr%smat%smmm%nfvctrp,smat_info_ptr%smat%nspin/),&
                                   id=smat_info_ptr%id)
       case default
-         call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+         call f_err_throw('The action specified for the 3d matrix allocation is invalid',&
               err_name='BIGDFT_RUNTIME_ERROR')
       end select
     end subroutine allocate_smat_d3_ptr
@@ -487,7 +487,7 @@ module sparsematrix_base
       case (DENSE_MATMUL)
           smat = f_malloc((/smat_info%smat%nfvctr,smat_info%smat%smmm%nfvctrp,smat_info%smat%nspin/),id=smat_info%id)
       case default
-         call f_err_throw('The action specified for the 2d matrix allocation is invalid',&
+         call f_err_throw('The action specified for the 3d matrix allocation is invalid',&
               err_name='BIGDFT_RUNTIME_ERROR')
       end select
     end subroutine allocate_smat_d3

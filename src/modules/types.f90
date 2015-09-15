@@ -19,7 +19,7 @@ module module_types
   use gaussians, only: gaussian_basis
   use Poisson_Solver, only: coulomb_operator
   use locregs
-  use psp_projectors
+  use psp_projectors_base
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
   use communications_base, only: comms_linear, comms_cubic, p2pComms
   use sparsematrix_base, only: matrices, sparse_matrix
@@ -457,7 +457,7 @@ module module_types
  !>timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
- integer, parameter, private :: ncls_max=6,ncat_bigdft=149   ! define timimg categories and classes
+ integer, parameter, private :: ncls_max=6,ncat_bigdft=153   ! define timimg categories and classes
  character(len=14), dimension(ncls_max), parameter, private :: clss = (/ &
       'Communications'    ,  &
       'Convolutions  '    ,  &
@@ -621,7 +621,11 @@ module module_types
       'calctrace_comm','Communications' ,'allreduce     ' ,  &
       'determinespars','Other         ' ,'Miscellaneous ' ,  &
       'inittaskgroup ','Other         ' ,'Miscellaneous ' ,  &
+      'write_matrices','Other         ' ,'dump to disk  ' ,  &
       'transformspars','Other         ' ,'Miscellaneous ' ,  &
+      'matrix_extents','Other         ' ,'Miscellaneous ' ,  &
+      'lin_inputguess','Other         ' ,'Miscellaneous ' ,  &
+      'ionic_energy  ','Other         ' ,'Miscellaneous ' ,  &
       'calc_bounds   ','Other         ' ,'Miscellaneous ' /),(/3,ncat_bigdft/))
  integer, dimension(ncat_bigdft), private, save :: cat_ids !< id of the categories to be converted
 
@@ -635,7 +639,7 @@ module module_types
  public :: default_lzd,find_category,old_wavefunction_null,old_wavefunction_free
  public :: bigdft_init_errors,bigdft_init_timing_categories
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
- public :: update_nlpsp,deallocate_paw_objects!,deallocate_wfd,
+ public :: deallocate_paw_objects!,deallocate_wfd,
  public :: old_wavefunction_set
  public :: nullify_locreg_descriptors
  public :: deallocate_rho_descriptors

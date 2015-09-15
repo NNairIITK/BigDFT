@@ -1,4 +1,12 @@
 # Give here the list of existing tests
+SHORT_TESTDIRS = C \
+	NaCl \
+	H2O-CP2K \
+	ElectronGas \
+	taskgroups \
+	O2-Spin \
+	NLCC
+
 TESTDIRS = C \
 	  Li+ \
 	  H2-spin \
@@ -15,7 +23,7 @@ TESTDIRS = C \
 	  ElectronGas \
 	  NLCC \
 	  taskgroups \
-	  CH4-D3 
+	  CH4-D3
 
 tests_cpu_only = H Graphene FeHyb Mn2 SIC H-Rydberg
 tests_ocl_only = OCL

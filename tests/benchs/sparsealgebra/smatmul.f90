@@ -22,11 +22,15 @@ program smatmul
   external :: gather_timings
 
   ! Variables
-  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin, nfvctr, nvctr, isfvctr, nfvctrp, nit, it, verbosity
+  integer :: iproc, nproc, ncol, nnonzero, nseg, ncolp, iscol, ierr, nspin
+  integer :: nfvctr, nvctr, isfvctr, nfvctrp, nit, it, verbosity, nat, ntypes
   !character(len=*),parameter :: filename='matrix.dat'
   character(len=1024) :: filename
-  integer,dimension(:),pointer :: col_ptr, row_ind, keyv, on_which_atom
+  character(len=1) :: geocode
+  integer,dimension(:),pointer :: col_ptr, row_ind, keyv, on_which_atom, nzatom, nelpsp, iatype
   integer,dimension(:,:,:),pointer :: keyg
+  character(len=20),dimension(:),pointer :: atomnames
+  real(kind=8),dimension(:,:),pointer :: rxyz
   type(sparse_matrix) :: smat
   type(matrices) :: matA
   type(matrices),dimension(1) :: matB
@@ -38,6 +42,7 @@ program smatmul
   type(dictionary), pointer :: dict_timing_info
   type(dictionary), pointer :: options
   type(yaml_cl_parse) :: parser !< command line parser
+
 
   ! Initialize
   call f_lib_initialize()
@@ -77,11 +82,13 @@ program smatmul
 
   
   ! Read in a file in the sparse BigDFT format
-  call read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, on_which_atom=on_which_atom)
+  call read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, &
+       mat_compr, nat=nat, ntypes=ntypes, nzatom=nzatom, nelpsp=nelpsp, &
+       atomnames=atomnames, iatype=iatype, rxyz=rxyz, on_which_atom=on_which_atom)
 
   ! Create the corresponding BigDFT sparsity pattern
   call distribute_columns_on_processes_simple(iproc, nproc, nfvctr, nfvctrp, isfvctr)
-  call bigdft_to_sparsebigdft(iproc, nproc, nfvctr, nfvctrp, isfvctr, on_which_atom, nvctr, nseg, keyg, smat)
+  call bigdft_to_sparsebigdft(iproc, nproc, nat, nspin, geocode, nfvctr, nfvctrp, isfvctr, on_which_atom, nvctr, nseg, keyg, smat)
 
   matA = matrices_null()
 
@@ -134,6 +141,11 @@ program smatmul
   call f_free(vector_in)
   call f_free(vector_out)
   call f_free_ptr(on_which_atom)
+  call f_free_ptr(nzatom)
+  call f_free_ptr(nelpsp)
+  call f_free_ptr(iatype)
+  call f_free_str_ptr(int(len(atomnames),kind=4),atomnames)
+  call f_free_ptr(rxyz)
 
   call timing(bigdft_mpi%mpi_comm,'FINISH','PR')
 

@@ -167,7 +167,7 @@ module yaml_output
   public :: yaml_map,yaml_mapping_open,yaml_mapping_close
   public :: yaml_sequence,yaml_sequence_open,yaml_sequence_close
   public :: yaml_comment,yaml_warning,yaml_scalar,yaml_newline
-  public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
+  !public :: yaml_toa,yaml_date_and_time_toa,yaml_date_toa,yaml_time_toa
   public :: yaml_set_stream,yaml_flush_document,yaml_stream_connected
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
@@ -180,7 +180,7 @@ module yaml_output
 contains
 
   !> Initialize the stream to default values
-  function stream_null() result(strm)
+  pure function stream_null() result(strm)
     implicit none
     type(yaml_stream) :: strm
 
@@ -320,7 +320,7 @@ contains
     logical :: unit_is_open,set_default
     integer :: istream,unt,ierr
     !integer(kind=8) :: recl_file
-    integer :: recl_file
+    integer :: recl_file,unt_test
     character(len=15) :: pos
         
     !check that the module has been initialized
@@ -346,6 +346,8 @@ contains
     recl_file=0
     if (present(filename) .and. unt /= 6) then
        !inquire whether unit exists already
+!!$       unt_test=f_get_free_unit(unt)
+!!$       if (unt_test /= unt) then
        inquire(unit=unt,opened=unit_is_open,iostat=ierr)
        if (f_err_raise(ierr /=0,'error in unit inquiring, ierr='//trim(yaml_toa(ierr)),&
                YAML_INVALID)) return
@@ -380,13 +382,6 @@ contains
           ierr=f_get_last_error()
           call f_err_close_try()
           if (present(istat)) istat=ierr
-!!$          open(unit=unt,file=trim(filename),status='unknown',position=trim(pos),iostat=ierr)
-!!$          if (present(istat)) then
-!!$             istat = ierr
-!!$          else
-!!$             if (f_err_raise(ierr /=0,'error in file opening, ierr='//trim(yaml_toa(ierr)),&
-!!$                  YAML_INVALID)) return
-!!$          end if
        end if
        if (ierr == 0 .and. .not. unit_is_open) then
           !inquire the record length for the unit
@@ -403,51 +398,57 @@ contains
     end if
 
     !check if unit has been already assigned
-    do istream=1,active_streams
+    find_stream: do istream=1,active_streams
        if (unt==stream_units(istream)) then
           !raise error if istat is not present
-          if (f_err_raise(.not. present(istat),&
-               'Unit '//trim(yaml_toa(unt))//' already present',&
-               err_id=YAML_STREAM_ALREADY_PRESENT)) then
+          if (.not. present(istat)) then
+             call f_err_throw('Unit '//trim(yaml_toa(unt))//&
+                  ' already present',&
+                  err_id=YAML_STREAM_ALREADY_PRESENT)
              return
           else
              istat=YAML_STREAM_ALREADY_PRESENT
-             return
+             !return
+             exit find_stream
           end if
        end if
-    end do
+    end do find_stream
 
-    !if there is no active streams setdefault cannot be false.
-    !at least open the stdout
-    if (.not. set_default .and. active_streams==0) then
-       !this is equivalent to yaml_set_streams(record_length=92)
-       !assign the unit to the new stream
-       active_streams=active_streams+1
-       !initalize the stream
-       streams(active_streams)=stream_null()
-       streams(active_streams)%unit=6
-       stream_units(active_streams)=6
-       streams(active_streams)%max_record_length=92
-    end if
+    if (.not. set_default .and. active_streams==0) unt=6          
+
+!!$    !if there is no active streams setdefault cannot be false.
+!!$    !at least open the stdout
+!!$    if (.not. set_default .and. active_streams==0) then
+!!$       !this is equivalent to yaml_set_streams(record_length=92)
+!!$       !assign the unit to the new stream
+!!$       active_streams=active_streams+1
+!!$       !initalize the stream
+!!$       streams(active_streams)=stream_null()
+!!$       streams(active_streams)%unit=6
+!!$       stream_units(active_streams)=6
+!!$       streams(active_streams)%max_record_length=92 !leave 95 characters
+!!$    end if
 
     !assign the unit to the new stream
-    active_streams=active_streams+1
-    !initalize the stream
-    streams(active_streams)=stream_null()
-    streams(active_streams)%unit=unt
-    stream_units(active_streams)=unt
+    !initalize the stream if needed
+    if (istream > active_streams) then
+       active_streams=active_streams+1
+       streams(active_streams)=stream_null()
+       streams(active_streams)%unit=unt
+       stream_units(active_streams)=unt
+    end if
 
     ! set last opened stream as default stream
     if (set_default) default_stream=active_streams
 
     if (present(tabbing)) then
-       streams(active_streams)%tabref=tabbing
-       if (tabbing==0) streams(active_streams)%pp_allowed=.false.
+       streams(istream)%tabref=tabbing
+       if (tabbing==0) streams(istream)%pp_allowed=.false.
     end if
     !protect the record length to be lower than the maximum allowed by the processor
     if (present(record_length)) then
        if (recl_file<=0) recl_file=record_length!int(record_length,kind=8)
-       streams(active_streams)%max_record_length=recl_file!int(min(int(record_length,kind=8),recl_file))
+       streams(istream)%max_record_length=recl_file!int(min(int(record_length,kind=8),recl_file))
     end if
   end subroutine yaml_set_stream
 
@@ -615,11 +616,12 @@ contains
 
     !here we should print the warnings which have been obtained
     if (associated(streams(strm)%dict_warning)) then
-       call yaml_newline()
-       call yaml_comment('Warnings obtained during the run, check their relevance!',hfill='-')
-       call yaml_dict_dump(streams(strm)%dict_warning,flow=.false.)
+       call yaml_newline(unit=unt)
+       call yaml_comment('Warnings obtained during the run, check their relevance!',hfill='-',unit=unt)
+       call yaml_dict_dump(streams(strm)%dict_warning,flow=.false.,unit=unt)
        call dict_free(streams(strm)%dict_warning)
     end if
+    call yaml_flush_document(unit=unt)
 
     !Initialize the stream, keeping the file unit
     unit_prev=streams(strm)%unit
@@ -2267,6 +2269,17 @@ contains
             trim(adjustl(yaml_toa(m,fmt=fmt)))//':'//&
             trim(adjustl(yaml_toa(s,fmt=fmt)))//'.'//&
             trim(adjustl(yaml_toa(ns,fmt='(i9.9)'))))
+
+!!$       !test with new API to deal with strings
+!!$       !that would be the best solution
+!!$       call f_strcpy(dest=timestamp,src=&
+!!$            y+'y'//d+'d'//h**fmt+':'+m**fmt+':'+s**fmt+'.'ns**'(i9.9)'
+!!$       !a problem might arise with dictionaries
+!!$       dict//'ciao'//0
+!!$       !can be confused with
+!!$       dict//'ciao 0'
+!!$       !however if it is read from left to right there should be no ambiguity
+
 
     else
        !then put everything in the same string
