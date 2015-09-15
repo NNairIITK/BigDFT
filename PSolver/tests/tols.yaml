@@ -6,7 +6,7 @@ Default tolerances:
 #  Energy differences: 2.1e-10
   Exc: 1.e-8
   EVxc: 4.6e-9
-  Some values: &value 1.1e-10 
+  Some values: &value 1.01e-9 
   Maximum discrepancy: 1.e-14
   Value: *value
   beta: 7.4e-10
@@ -15,7 +15,7 @@ Default tolerances:
   alpha: 5.e-1 #normal for CG
   Total Charge: 6.5e-15
   Potential monopole: 2.31e-13
-  Computed Hartree energy: &en1 3.1e-11 
+  Computed Hartree energy: &en1 2.81e-10 
   Diff of expected-computed Hartree energy: *en1
   Expected hartree energy: 1.88e-15
   Integral of the density in the nonvacuum region: 6.06e-15

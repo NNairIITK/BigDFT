@@ -1630,7 +1630,7 @@ contains
     !> Read psp file and merge to dict
     subroutine psp_file_merge_to_dict(dict, key, filename, lstring)
       use module_defs, only: gp, UNINITIALIZED
-      use yaml_strings
+!      use yaml_strings
       use f_utils
       use yaml_output
       use dictionaries
@@ -1638,8 +1638,8 @@ contains
       implicit none
       !Arguments
       type(dictionary), pointer :: dict
-      character(len = 27), intent(in) :: key
-      character(len = 27), optional, intent(in) :: filename
+      character(len = *), intent(in) :: key
+      character(len = *), optional, intent(in) :: filename
       type(dictionary), pointer, optional :: lstring
       !Local variables
       integer :: nzatom, nelpsp, npspcode, ixcpsp
