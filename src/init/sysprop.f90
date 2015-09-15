@@ -187,7 +187,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call fragment_stuff()
      call init_lzd_linear()
      ! For restart calculations, the suport function distribution must not be modified
-     !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
+     !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
      !SM: added the ".or. fin%lin%fragment_calculation", as this came from a merge with Laura...
      if (.not. (inputpsi .hasattr. 'MEMORY') .or. in%lin%fragment_calculation) then
          times_convol = f_malloc(lorbs%norb,id='times_convol')

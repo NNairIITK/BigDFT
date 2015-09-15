@@ -10,15 +10,20 @@ module multipole
   public :: potential_from_charge_multipoles
   public :: potential_from_multipoles
   public :: multipoles_from_density
+  public :: ionic_energy_of_external_charges
 
   contains
 
 
-    subroutine interaction_multipoles_ions(ep, at, eion, fion)
+    !> Calculate the interaction between the ions and the external multipoles.
+    !! At the moment only the monopoles are taken into account.
+    subroutine interaction_multipoles_ions(iproc, ep, at, eion, fion)
       use module_types, only: atoms_data
+      use yaml_output, only: yaml_map
       implicit none
       
       ! Calling arguments
+      integer,intent(in) :: iproc
       type(external_potential_descriptors),intent(in) :: ep
       type(atoms_data),intent(in) :: at
       real(gp),intent(inout) :: eion
@@ -26,8 +31,14 @@ module multipole
 
       ! Local variables
       integer :: iat, ityp, impl
-      real(gp) :: r, charge
+      real(gp) :: r, charge, emp
 
+      !write(*,*) 'WARNING DEBUG HERE!!!!!!!!!!!!!!!!!!!!!!!!!'
+      !return
+
+      call f_routine(id='interaction_multipoles_ions')
+
+      emp = 0.0_gp
       do iat=1,at%astruct%nat
           ityp=at%astruct%iatype(iat)
           do impl=1,ep%nmpl
@@ -38,7 +49,7 @@ module multipole
                   ! For the multipoles, a positive value corresponds to a
                   ! negative charge! Therefore multiply by -1
                   charge = real(at%nelpsp(ityp),gp)*real(-1.0_gp*ep%mpl(impl)%qlm(0)%q(1),kind=gp)
-                  eion = eion + charge/r
+                  emp = emp + charge/r
                   fion(1,iat) = fion(1,iat) + charge/(r**3)*(at%astruct%rxyz(1,iat)-ep%mpl(impl)%rxyz(1))
                   fion(2,iat) = fion(2,iat) + charge/(r**3)*(at%astruct%rxyz(2,iat)-ep%mpl(impl)%rxyz(2))
                   fion(3,iat) = fion(3,iat) + charge/(r**3)*(at%astruct%rxyz(3,iat)-ep%mpl(impl)%rxyz(3))
@@ -46,7 +57,63 @@ module multipole
           end do
       end do
 
+
+      if (iproc==0) then
+          call yaml_map('Interaction energy ions multipoles',emp)
+      end if
+      eion = eion + emp
+
+
+      call f_release_routine()
+
     end subroutine interaction_multipoles_ions
+
+
+    !> Calculate the interaction between the external multipoles.
+    !! At the moment only the monopoles are taken into account.
+    subroutine ionic_energy_of_external_charges(iproc, ep, at, eion)
+      use module_types, only: atoms_data
+      use yaml_output, only: yaml_map
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: iproc
+      type(external_potential_descriptors),intent(in) :: ep
+      type(atoms_data),intent(in) :: at
+      real(gp),intent(inout) :: eion
+
+      ! Local variables
+      integer :: impl, jmpl
+      real(gp) :: r, charge, emp
+
+      !write(*,*) 'WARNING DEBUG HERE!!!!!!!!!!!!!!!!!!!!!!!!!'
+      !return
+
+      call f_routine(id='ionic_energy_of_external_charges')
+
+      emp = 0.0_gp
+      do impl=1,ep%nmpl
+          do jmpl=impl+1,ep%nmpl
+              r = sqrt((ep%mpl(impl)%rxyz(1)-ep%mpl(jmpl)%rxyz(1))**2 + &
+                       (ep%mpl(impl)%rxyz(2)-ep%mpl(jmpl)%rxyz(2))**2 + &
+                       (ep%mpl(impl)%rxyz(3)-ep%mpl(jmpl)%rxyz(3))**2)
+              if (associated(ep%mpl(impl)%qlm(0)%q)) then
+                  ! For the multipoles, a positive value corresponds to a
+                  ! negative charge, therefore multiply by -1. Actually it doesn't matter
+                  charge = real(-1.0_gp*ep%mpl(impl)%qlm(0)%q(1),kind=gp)*real(-1.0_gp*ep%mpl(jmpl)%qlm(0)%q(1),kind=gp)
+                  emp = emp + charge/r
+              end if
+          end do
+      end do
+
+      if (iproc==0) then
+          call yaml_map('Interaction energy multipoles multipoles',emp)
+      end if
+      eion = eion + emp
+
+      call f_release_routine()
+
+    end subroutine ionic_energy_of_external_charges
 
 
     !> Calculate the external potential arising from the multipoles of the charge density
@@ -66,132 +133,312 @@ module multipole
       real(gp),dimension(is1:ie1,is2:ie2,is3:ie3),intent(inout) :: pot
 
       ! Local variables
-      integer :: i1, i2, i3, ii1, ii2, ii3, impl, l, m, ii, mm
-      real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp, ehart_ps, tt, ttt
+      integer :: i1, i2, i3, ii1, ii2, ii3, impl, l, m, ii, mm, nthread, ithread
+      real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp, ehart_ps, tt, ttt, gg, hhh, tt0, tt1, tt2
       real(dp),dimension(3) :: r
       real(dp),dimension(:,:,:),allocatable :: density
+      real(dp),dimension(:,:,:,:),allocatable :: density_loc, potential_loc
       real(kind=8),dimension(0:lmax) :: sigma
-      real(8),dimension(ep%nmpl) :: monopole
-      real(8),dimension(0:2,1:ep%nmpl) :: norm
-      real(8),dimension(3,ep%nmpl) :: dipole
-      real(8),dimension(5,ep%nmpl) :: quadrupole
+      real(8),dimension(:),allocatable :: monopole
+      real(8),dimension(:,:),allocatable :: norm, dipole, quadrupole, norm_check
+      real(kind=8),dimension(:,:,:),allocatable :: gaussians1, gaussians2, gaussians3
+      logical,dimension(:),allocatable :: norm_ok
+      real(kind=8),parameter :: norm_threshold = 1.d-4
+      real(kind=8),dimension(0:lmax) :: max_error
+      !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
       call f_routine(id='potential_from_charge_multipoles')
 
-      sigma(0) = 5.d0*(hx*hy*hz)**(1.d0/3.d0)
-      sigma(1) = 4.d0*(hx*hy*hz)**(1.d0/3.d0)
-      sigma(2) = 2.d0*(hx*hy*hz)**(1.d0/3.d0)
+      hhh = hx*hy*hz
+
+      sigma(0) = 5.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
+      sigma(1) = 4.d0*hhh**(1.d0/3.d0)
+      sigma(2) = 2.d0*hhh**(1.d0/3.d0)
 
       density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
+      
+      nthread = 1
+      !$ nthread = omp_get_max_threads()
+      density_loc = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3,0.to.nthread-1/),id='density')
+      potential_loc = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3,0.to.nthread-1/),id='potential_loc')
 
-      !!$omp parallel &
-      !!$omp default(none) &
-      !!$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, ep, pot) &
-      !!$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, rnrm1, rnrm2, rnrm3, rnrm5, l, mp)
-      !!$omp do
+      gaussians1 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is1.to.ie1/),id='gaussians1')
+      gaussians2 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is2.to.ie2/),id='gaussians2')
+      gaussians3 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is3.to.ie3/),id='gaussians3')
+
+      !$omp parallel default(none) &
+      !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, ep, sigma) &
+      !$omp shared(gaussians1, gaussians2, gaussians3) &
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l)
+      !$omp do
+      do i3=is3,ie3
+          ii3 = i3 - 15
+          z = real(ii3,kind=8)*hz + shift(3)
+          do impl=1,ep%nmpl
+              tt = z - ep%mpl(impl)%rxyz(3)
+              tt = tt**2
+              do l=0,lmax
+                  gaussians3(l,impl,i3) = gaussian(sigma(l),tt)
+              end do
+          end do
+      end do
+      !$omp end do
+      !$omp do
+      do i2=is2,ie2
+          ii2 = i2 - 15
+          y = real(ii2,kind=8)*hy + shift(2)
+          do impl=1,ep%nmpl
+              tt = y - ep%mpl(impl)%rxyz(2)
+              tt = tt**2
+              do l=0,lmax
+                  ! Undo the normalization for this Gaussian
+                  gaussians2(l,impl,i2) = gaussian(sigma(l),tt)*sqrt(2.d0*pi_param*sigma(l)**2)**3
+              end do
+          end do
+      end do
+      !$omp end do
+      !$omp do
+      do i1=is1,ie1
+          ii1 = i1 - 15
+          x = real(ii1,kind=8)*hx + shift(1)
+          do impl=1,ep%nmpl
+              tt = x - ep%mpl(impl)%rxyz(1)
+              tt = tt**2
+              do l=0,lmax
+                  ! Undo the normalization for this Gaussian
+                  gaussians1(l,impl,i1) = gaussian(sigma(l),tt)*sqrt(2.d0*pi_param*sigma(l)**2)**3
+              end do
+          end do
+      end do
+      !$omp end do
+      !$omp end parallel
+
+
+
+      norm = f_malloc((/0.to.2,1.to.ep%nmpl/),id='norm')
+      norm_check = f_malloc((/0.to.2,1.to.ep%nmpl/),id='norm_check')
+      monopole = f_malloc(ep%nmpl,id='monopole')
+      dipole = f_malloc((/3,ep%nmpl/),id='dipole')
+      quadrupole = f_malloc((/5,ep%nmpl/),id='quadrupole')
+      norm_ok = f_malloc0(ep%nmpl,id='norm_ok')
+
+      ! First calculate the norm of the Gaussians for each multipole
       norm = 0.d0
       monopole = 0.d0
       dipole = 0.d0
       quadrupole = 0.d0
-      do i3=is3,ie3
-          ii3 = i3 - 15
-          z = real(ii3,kind=8)*hz + shift(3)
-          !write(*,'(a,i7,2es16.7)') 'i3, z, ep%mpl(1)%rxyz(3)', i3, z, ep%mpl(1)%rxyz(3)
-          do i2=is2,ie2
-              ii2 = i2 - 15
-              y = real(ii2,kind=8)*hy + shift(2)
-              do i1=is1,ie1
-                  ii1 = i1 - 15
-                  x = real(ii1,kind=8)*hx + shift(1)
-                  tt = 0.d0
-                  do impl=1,ep%nmpl
+      !$omp parallel &
+      !$omp default(none) &
+      !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma, nthread, norm_ok) &
+      !$omp shared(norm, monopole, dipole, quadrupole, density, density_loc, potential_loc) &
+      !$omp shared (gaussians1, gaussians2, gaussians3) &
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ithread) &
+      !$omp private(rnrm1, rnrm2, rnrm3, rnrm5)
+      ithread = 0
+      !$ ithread = omp_get_thread_num()
+      if (ithread<0 .or. ithread>nthread-1) then
+          !SM: Is it possible to call f_err_throw within OpenMP? Anyway this condition should never be true...
+          call f_err_throw('wrong value of ithread',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      !$omp do
+      do impl=1,ep%nmpl
+          do i3=is3,ie3
+              ii3 = i3 - 15
+              do i2=is2,ie2
+                  ii2 = i2 - 15
+                  do i1=is1,ie1
+                      ii1 = i1 - 15
+                      do l=0,lmax
+                          ! Calculate the Gaussian as product of three 1D Gaussians
+                          gg = gaussians1(l,impl,i1)*gaussians2(l,impl,i2)*gaussians3(l,impl,i3)
+                          norm(l,impl) = norm(l,impl) + gg*hhh
+                      end do
+                  end do
+              end do
+          end do
+      end do
+      !$omp end do
+      !$omp end parallel
+
+      ! Sum up the norms of the Gaussians.
+      if (nproc>1) then
+          call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      end if
+
+      ! Check whether they are ok.
+      do impl=1,ep%nmpl
+          norm_ok(impl) = .true.
+          do l=0,lmax !
+              if (abs(1.d0-norm(l,impl))>norm_threshold) then
+                  norm_ok(impl) = .false.
+              end if
+          end do
+      end do
+
+
+
+
+      norm_check = 0.d0
+      monopole = 0.d0
+      dipole = 0.d0
+      quadrupole = 0.d0
+      !$omp parallel &
+      !$omp default(none) &
+      !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma, nthread, norm_ok) &
+      !$omp shared(norm_check, monopole, dipole, quadrupole, density, density_loc, potential_loc) &
+      !$omp shared (gaussians1, gaussians2, gaussians3) &
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ithread) &
+      !$omp private(rnrm1, rnrm2, rnrm3, rnrm5)
+      ithread = 0
+      !$ ithread = omp_get_thread_num()
+      if (ithread<0 .or. ithread>nthread-1) then
+          !SM: Is it possible to call f_err_throw within OpenMP? Anyway this condition should never be true...
+          call f_err_throw('wrong value of ithread',err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+      !$omp do
+      do impl=1,ep%nmpl
+          do i3=is3,ie3
+              ii3 = i3 - 15
+              z = real(ii3,kind=8)*hz + shift(3)
+              do i2=is2,ie2
+                  ii2 = i2 - 15
+                  y = real(ii2,kind=8)*hy + shift(2)
+                  do i1=is1,ie1
+                      ii1 = i1 - 15
+                      x = real(ii1,kind=8)*hx + shift(1)
+                      tt = 0.d0
                       r(1) = x - ep%mpl(impl)%rxyz(1)
                       r(2) = y - ep%mpl(impl)%rxyz(2)
                       r(3) = z - ep%mpl(impl)%rxyz(3)
                       rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
-                      rnrm1 = sqrt(rnrm2)
-                      !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
-                      !if (i1==is1 .and. i2==is2)  then
-                      !    write(*,'(a,i5,3es16.7)') 'impl, rnrm1, g, norm', impl, rnrm1, gaussian(sigma, rnrm1), norm(impl)
-                      !end if
-                      do l=0,lmax
-                          norm(l,impl) = norm(l,impl) + gaussian(sigma(l), rnrm1)*hx*hy*hz
-                          if (associated(ep%mpl(impl)%qlm(l)%q)) then
-                              mm = 0
-                              do m=-l,l
-                                  mm = mm + 1
-                                  !if (l==0) then
-                                  !    charge(impl) = charge(impl) + ep%mpl(impl)%qlm(l)%q(mm)*spherical_harmonic(l, m, r(1), r(2), r(3))*gaussian(sigma, rnrm1)*hx*hy*hz*sqrt(4.d0*pi_param)
-                                  !end if
-                                  !if (l==1) then
-                                  !    dipole(mm,impl) = dipole(mm,impl) + ep%mpl(impl)%qlm(l)%q(mm)*spherical_harmonic(l, m, r(1), r(2), r(3))*gaussian(sigma, rnrm1)*hx*hy*hz*sqrt(4.d0*pi_param)
-                                  !end if
-                                  ttt = ep%mpl(impl)%qlm(l)%q(mm)*&
-                                        spherical_harmonic(l, m, r(1), r(2), r(3))*gaussian(sigma(l), rnrm1)*&
-                                        sqrt(4.d0*pi_param)
-                                  tt = tt + ttt
+                      if (norm_ok(impl)) then
+                          ! Use the method based on the Gaussians
+                          do l=0,lmax
+                              !gg = gaussian(sigma(l),rnrm2)
+                              ! Calculate the Gaussian as product of three 1D Gaussians
+                              gg = gaussians1(l,impl,i1)*gaussians2(l,impl,i2)*gaussians3(l,impl,i3)
+                              !gg = gaussian(sigma(l),r(1)**2)*gaussian(sigma(l),r(2)**2)*gaussian(sigma(l),r(3)**2)
+                              !gg = gg*sqrt(2.d0*pi_param*sigma(l)**2)**6
+                              norm_check(l,impl) = norm_check(l,impl) + gg*hhh
+                              if (associated(ep%mpl(impl)%qlm(l)%q)) then
+                                  mm = 0
+                                  do m=-l,l
+                                      mm = mm + 1
+                                      ttt = ep%mpl(impl)%qlm(l)%q(mm)*&
+                                            spherical_harmonic(l, m, r(1), r(2), r(3))*gg*sqrt(4.d0*pi_param)
+                                      tt = tt + ttt
 
-                                  if (l==0) then
-                                      monopole(impl) = monopole(impl) + ttt*hx*hy*hz
-                                  else if (l==1) then
-                                      if (m==-1) then
-                                          dipole(1,impl) = dipole(1,impl) + ttt*hx*hy*hz*y
-                                      else if (m==0) then
-                                          dipole(2,impl) = dipole(2,impl) + ttt*hx*hy*hz*z
-                                      else if (m==1) then
-                                          dipole(3,impl) = dipole(3,impl) + ttt*hx*hy*hz*x
+                                      if (l==0) then
+                                          monopole(impl) = monopole(impl) + ttt*hhh
+                                      else if (l==1) then
+                                          if (m==-1) then
+                                              dipole(1,impl) = dipole(1,impl) + ttt*hhh*y
+                                          else if (m==0) then
+                                              dipole(2,impl) = dipole(2,impl) + ttt*hhh*z
+                                          else if (m==1) then
+                                              dipole(3,impl) = dipole(3,impl) + ttt*hhh*x
+                                          end if
+                                      else if (l==2) then
+                                          if (m==-2) then
+                                              quadrupole(1,impl) = quadrupole(1,impl) + ttt*hhh*x*y
+                                          else if (m==-1) then
+                                              quadrupole(2,impl) = quadrupole(2,impl) + ttt*hhh*y*z
+                                          else if (m==0) then
+                                              quadrupole(3,impl) = quadrupole(3,impl) + ttt*hhh*(3*z**2-1.d0)
+                                          else if (m==1) then
+                                              quadrupole(4,impl) = quadrupole(4,impl) + ttt*hhh*x*z
+                                          else if (m==2) then
+                                              quadrupole(5,impl) = quadrupole(5,impl) + ttt*hhh*(x**2-y**2)
+                                          end if
                                       end if
-                                  else if (l==2) then
-                                      if (m==-2) then
-                                          quadrupole(1,impl) = quadrupole(1,impl) + ttt*hx*hy*hz*x*y
-                                      else if (m==-1) then
-                                          quadrupole(2,impl) = quadrupole(2,impl) + ttt*hx*hy*hz*y*z
-                                      else if (m==0) then
-                                          quadrupole(3,impl) = quadrupole(3,impl) + ttt*hx*hy*hz*(3*z**2-1.d0)
-                                      else if (m==1) then
-                                          quadrupole(4,impl) = quadrupole(4,impl) + ttt*hx*hy*hz*x*z
-                                      else if (m==2) then
-                                          quadrupole(5,impl) = quadrupole(5,impl) + ttt*hx*hy*hz*(x**2-y**2)
-                                      end if
-                                  end if
-                              end do
-                          end if
-                      end do
+                                  end do
+                              end if
+                          end do
+                          !density_try(i1,i2,i3,ithread) = density_try(i1,i2,i3,ithread) + tt
+                          ! If the norm of the Gaussian is close to one, 
+                          density_loc(i1,i2,i3,ithread) = density_loc(i1,i2,i3,ithread) + tt
+                      else
+                          ! Use the method based on the analytic formula
+                          rnrm1 = sqrt(rnrm2)
+                          rnrm3 = rnrm1*rnrm2
+                          rnrm5 = rnrm3*rnrm2
+                          tt = 0.0_dp
+                          do l=0,lmax
+                              if (associated(ep%mpl(impl)%qlm(l)%q)) then
+                                  select case(l)
+                                  case (0)
+                                      tt = tt + calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
+                                      !write(*,'(a,3es12.4,es16.8)') 'x, y, z, monopole', x, y, z, calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
+                                  case (1)
+                                      tt = tt + calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
+                                      !write(*,*) 'dipole', calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
+                                  case (2)
+                                      tt = tt + calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
+                                      !write(*,*) 'quadrupole', calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
+                                  case (3)
+                                      call f_err_throw('octupole not yet implemented', err_name='BIGDFT_RUNTIME_ERROR')
+                                      !multipole_terms(l) = calc_octopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
+                                  case default
+                                      call f_err_throw('Wrong value of l', err_name='BIGDFT_RUNTIME_ERROR')
+                                  end select
+                              end if
+                          end do
+                          potential_loc(i1,i2,i3,ithread) = potential_loc(i1,i2,i3,ithread) + tt
+                      end if
                   end do
-                  density(i1,i2,i3) = tt
-                  !!do impl=1,ep%nmpl
-                  !!    do l=0,lmax
-                  !!        if (associated(ep%mpl(impl)%qlm(l)%q)) then
-                  !!            mm = 0
-                  !!            do m=-l,l
-                  !!                mm = mm + 1
-                  !!                if (l==0) then
-                  !!                    charge(impl) = charge(impl) + tt*hx*hy*hz
-                  !!                else if (l==1) then
-                  !!                    if (m==-1) then
-                  !!                        dipole(1,impl) = dipole(1,impl) + tt*hx*hy*hz*y
-                  !!                    else if (m==0) then
-                  !!                        dipole(2,impl) = dipole(1,impl) + tt*hx*hy*hz*z
-                  !!                    else if (m==1) then
-                  !!                        dipole(3,impl) = dipole(1,impl) + tt*hx*hy*hz*x
-                  !!                    end if
-                  !!                end if
-                  !!            end do
-                  !!        end if
-                  !!    end do
-                  !!end do
               end do
           end do
-       end do
-       !!$omp end do
-       !!$omp end parallel
+      end do
+      !$omp end do
+      !$omp end parallel
+
+      do ithread=0,nthread-1
+          ! Gather the total density
+          call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_loc(is1,is2,is3,ithread), 1, density(is1,is2,is3), 1)
+          ! Gather the total potential, store it directly in pot
+          call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, potential_loc(is1,is2,is3,ithread), 1, pot(is1,is2,is3), 1)
+      end do
+
+      call f_free(density_loc)
+      call f_free(potential_loc)
+      call f_free(gaussians1)
+      call f_free(gaussians2)
+      call f_free(gaussians3)
+
+      !!tt = 0.d0
+      !!do i3=1,size(density,3)
+      !!    do i2=1,size(density,2)
+      !!        do i1=1,size(density,1)
+      !!            write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+      !!            tt = tt + density(i1,i2,i3)*hhh
+      !!        end do
+      !!    end do
+      !!end do
+      !!write(*,*) 'DEBUG: tt',tt
       
       if (nproc>1) then
-          call mpiallred(norm, mpi_sum, comm=bigdft_mpi%mpi_comm)
+          call mpiallred(norm_check, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(monopole, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(dipole, mpi_sum, comm=bigdft_mpi%mpi_comm)
           call mpiallred(quadrupole, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
+
+
+      ! Check that the norm is the same as above
+      do impl=1,ep%nmpl
+          if (norm_ok(impl)) then
+              do l=0,lmax
+                  if (abs(norm(l,impl)-norm_check(l,impl))>1.d-10) then
+                      call f_err_throw('error in the calculation of the norm of the Gaussian',&
+                          err_name='BIGDFT_RUNTIME_ERROR')
+                  end if
+              end do
+          end if
+      end do
+
+      call f_free(norm_check)
+
+
       if (iproc==0 .and. ep%nmpl > 0) then
               !do iat=1,nat
               !    call yaml_sequence(advance='no')
@@ -213,16 +460,43 @@ module multipole
               !end do
               !call yaml_sequence_close()
           call yaml_mapping_open('Potential from multipoles')
-          call yaml_map('number of multipole centers',ep%nmpl)
-          call yaml_map('sigma of the Gaussians',sigma)
-          call yaml_sequence_open('Values')
+          call yaml_map('Number of multipole centers',ep%nmpl)
+          call yaml_map('Sigma of the Gaussians',sigma)
+          call yaml_map('Threshold for the norm of th Gaussians',norm_threshold)
+          call yaml_sequence_open('Details for each multipole')
           do impl=1,ep%nmpl
               call yaml_sequence(advance='no')
               call yaml_mapping_open(trim(yaml_toa(impl)))
-              call yaml_map('norm of the Gaussians',norm,fmt='(1es16.8)')
-              call yaml_map('monopole',monopole,fmt='(1es16.8)')
-              call yaml_map('dipole',dipole,fmt='(1es16.8)')
-              call yaml_map('quadrupole',quadrupole,fmt='(1es16.8)')
+              if (norm_ok(impl)) then
+                  call yaml_map('Method','Density based on Gaussians')
+                  tt0 = 1.d0-norm(0,impl)
+                  tt1 = 1.d0-norm(1,impl)
+                  tt2 = 1.d0-norm(2,impl)
+                  call yaml_map('Deviation of normaliazation for the Gaussians',&
+                      (/tt0,tt1,tt2/),fmt='(1es10.2)')
+                  max_error(:) = 0.d0
+                  do l=0,lmax
+                      if (associated(ep%mpl(impl)%qlm(l)%q)) then
+                          mm = 0
+                          do m=-l,l
+                              mm = mm + 1
+                              if (l==0) then
+                                  max_error(l) = max(max_error(l),abs(monopole(impl)-ep%mpl(impl)%qlm(l)%q(mm)))
+                              else if (l==1) then
+                                  max_error(l) = max(max_error(l),abs(dipole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
+                              else if (l==2) then
+                                  max_error(l) = max(max_error(l),abs(quadrupole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
+                              end if
+                          end do
+                      end if
+                  end do
+                  call yaml_map('Maximal deviation from the original values',max_error(:),fmt='(1es10.2)')
+              else
+                  call yaml_map('Method','Analytic expression')
+              end if
+              !call yaml_map('monopole',monopole(impl),fmt='(1es16.8)')
+              !call yaml_map('dipole',dipole(:,impl),fmt='(1es16.8)')
+              !call yaml_map('quadrupole',quadrupole(:,impl),fmt='(1es16.8)')
               call yaml_mapping_close()
           end do
           call yaml_sequence_close()
@@ -232,10 +506,17 @@ module multipole
       if (ep%nmpl > 0) then
          call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
               quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
+         !write(*,*) 'ehart_ps',ehart_ps
          !LG: attention to stack overflow here !
          !pot = pot + density
-         call daxpy(size(density),1.d0,density,1,pot,1)
+         call daxpy(size(density),1.0_gp,density,1,pot,1)
       end if
+
+      call f_free(norm)
+      call f_free(monopole)
+      call f_free(dipole)
+      call f_free(quadrupole)
+      call f_free(norm_ok)
 
 
       !ii = 0
@@ -269,16 +550,25 @@ module multipole
       contains
 
 
-        function gaussian(sigma, r) result(g)
+        function gaussian(sigma, r2) result(g)
           use module_base, only: pi => pi_param
           implicit none
           ! Calling arguments
-          real(kind=8),intent(in) :: sigma, r
-          real(kind=8) :: g
-          
-          g = safe_exp(-r**2/(2.d0*sigma**2))
-          g = g/sqrt(2.d0*pi*sigma**2)**3
+          real(kind=8),intent(in) :: sigma, r2
+          real(kind=8) :: tt, g
+
+
+          ! Only calculate the Gaussian if the result will be larger than 10^-30
+          tt = r2/(2.d0*sigma**2)
+          if (tt<=69.07755279d0) then
+              g = safe_exp(-tt)
+              g = g/sqrt(2.d0*pi*sigma**2)**3
+          else
+              g = 0.d0
+          end if
           !g = g/(sigma**3*sqrt(2.d0*pi)**3)
+
+
         end function gaussian
 
         !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
@@ -293,6 +583,11 @@ module multipole
           ! Local variables
           integer,parameter :: l_max=2
           real(kind=8) :: r, r2, rnorm
+          real(kind=8),parameter :: sqrt_1_over_pi = sqrt(1/pi)
+          real(kind=8),parameter :: sqrt_3_over_4pi = sqrt(3.d0/(4.d0*pi))
+          real(kind=8),parameter :: sqrt_15_over_pi = sqrt(15.d0/pi)
+          real(kind=8),parameter :: sqrt_5_over_pi = sqrt(5.d0/pi)
+
 
           if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
           if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
@@ -303,18 +598,18 @@ module multipole
           ! Normalization for a sphere of radius rmax
           select case (l)
           case (0)
-              sh = 0.5d0*sqrt(1/pi)
+              sh = 0.5d0*sqrt_1_over_pi !0.5d0*sqrt(1/pi)
           case (1)
               r = sqrt(x**2+y**2+z**2)
               ! fix for small r (needs proper handling later...)
               if (r==0.d0) r=1.d-20
               select case (m)
               case (-1)
-                  sh = sqrt(3.d0/(4.d0*pi))*y/r
+                  sh = sqrt_3_over_4pi*y/r !sqrt(3.d0/(4.d0*pi))*y/r
               case (0)
-                  sh = sqrt(3.d0/(4.d0*pi))*z/r
+                  sh = sqrt_3_over_4pi*z/r !sqrt(3.d0/(4.d0*pi))*z/r
               case (1)
-                  sh = sqrt(3.d0/(4.d0*pi))*x/r
+                  sh = sqrt_3_over_4pi*x/r !sqrt(3.d0/(4.d0*pi))*x/r
               end select
           case (2)
               r2 = x**2+y**2+z**2
@@ -322,17 +617,18 @@ module multipole
               if (r2==0.d0) r2=1.d-20
               select case (m)
               case (-2)
-                  sh = 0.5d0*sqrt(15.d0/pi)*x*y/r2
+                  sh = 0.5d0*sqrt_15_over_pi*x*y/r2 !0.5d0*sqrt(15.d0/pi)*x*y/r2
               case (-1)
-                  sh = 0.5d0*sqrt(15.d0/pi)*y*z/r2
+                  sh = 0.5d0*sqrt_15_over_pi*y*z/r2 !0.5d0*sqrt(15.d0/pi)*y*z/r2
               case (0)
-                  sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
+                  sh = 0.25d0*sqrt_5_over_pi*(-x**2-y**2+2*z**2)/r2 !0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
               case (1)
-                  sh = 0.5d0*sqrt(15.d0/pi)*z*x/r2
+                  sh = 0.5d0*sqrt_15_over_pi*z*x/r2 !0.5d0*sqrt(15.d0/pi)*z*x/r2
               case (2)
-                  sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
+                  sh = 0.25d0*sqrt_15_over_pi*(x**2-y**2)/r2 !0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
               end select
           end select
+
 
         end function spherical_harmonic
 
@@ -340,12 +636,13 @@ module multipole
 
 
     !> Calculate the external potential arising from the multipoles provided
-    subroutine potential_from_multipoles(ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
+    subroutine potential_from_multipoles(ep, is1, ie1, is2, ie2, is3, ie3, iis3, iie3, hx, hy, hz, shift, pot)
       implicit none
       
       ! Calling arguments
       type(external_potential_descriptors),intent(in) :: ep
-      integer,intent(in) :: is1, ie1, is2, ie2, is3, ie3
+      integer,intent(in) :: is1, ie1, is2, ie2, is3, ie3 !< parallelized box bounds
+      integer,intent(in) :: iis3, iie3 !< non-parallelized box bounds (z direction)
       real(gp),intent(in) :: hx, hy, hz
       real(gp),dimension(3),intent(in) :: shift !< global shift of the atomic positions
       real(gp),dimension(is1:ie1,is2:ie2,is3:ie3),intent(inout) :: pot
@@ -354,133 +651,147 @@ module multipole
       integer :: i1, i2, i3, ii1, ii2, ii3, impl, l
       real(dp) :: x, y, z, rnrm1, rnrm2, rnrm3, rnrm5, mp
       real(dp),dimension(3) :: r
+      real(kind=8),parameter :: buffer = 1.d0
+      real(kind=8) :: xxs, xxe, yys, yye, zzs, zze
 
-      stop 'deprecated'
+      !stop 'deprecated'
+
+      xxs = real(is1-15,kind=8)*hx + shift(1) - buffer
+      xxe = real(ie1-15,kind=8)*hx + shift(1) + buffer
+      yys = real(is2-15,kind=8)*hy + shift(2) - buffer
+      yye = real(ie2-15,kind=8)*hy + shift(2) + buffer
+      zzs = real(iis3-15,kind=8)*hz + shift(3) - buffer
+      zze = real(iie3-15,kind=8)*hz + shift(3) + buffer
 
       !!$omp parallel &
       !!$omp default(none) &
       !!$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, ep, pot) &
       !!$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, rnrm1, rnrm2, rnrm3, rnrm5, l, mp)
       !!$omp do
-      write(*,*) 'shift',shift
-      do i3=is3,ie3
-          ii3 = i3 - 15
-          z = real(ii3,kind=8)*hz + shift(3)
-          !write(*,'(a,i7,2es16.7)') 'i3, z, ep%mpl(1)%rxyz(3)', i3, z, ep%mpl(1)%rxyz(3)
-          do i2=is2,ie2
-              ii2 = i2 - 15
-              y = real(ii2,kind=8)*hy + shift(2)
-              do i1=is1,ie1
-                  ii1 = i1 - 15
-                  x = real(ii1,kind=8)*hx + shift(1)
-                  do impl=1,ep%nmpl
-                      r(1) = ep%mpl(impl)%rxyz(1) - x
-                      r(2) = ep%mpl(impl)%rxyz(2) - y
-                      r(3) = ep%mpl(impl)%rxyz(3) - z 
-                      rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
-                      ! To avoid floating point exception
-                      rnrm2=max(rnrm2,1.d-6)
-                      rnrm1 = sqrt(rnrm2)
-                      rnrm3 = rnrm1*rnrm2
-                      rnrm5 = rnrm3*rnrm2
-                      mp = 0.0_dp
-                      do l=0,lmax
-                          if (associated(ep%mpl(impl)%qlm(l)%q)) then
-                              select case(l)
-                              case (0)
-                                  mp = mp + calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
-                                  !write(*,'(a,3es12.4,es16.8)') 'x, y, z, monopole', x, y, z, calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
-                              case (1)
-                                  mp = mp + calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
-                                  !write(*,*) 'dipole', calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
-                              case (2)
-                                  mp = mp + calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
-                                  !write(*,*) 'quadrupole', calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
-                              case (3)
-                                  call f_err_throw('octupole not yet implemented', err_name='BIGDFT_RUNTIME_ERROR')
-                                  !multipole_terms(l) = calc_octopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
-                              case default
-                                  call f_err_throw('Wrong value of l', err_name='BIGDFT_RUNTIME_ERROR')
-                              end select
-                          end if
+      do impl=1,ep%nmpl
+          ! Only take this atom into account if it lies outside of the simulation box (plus some buffer).
+          ! Otherwise it has already been taken into account by the potential generated via the Poisson Solver
+          if ( ep%mpl(impl)%rxyz(1) <= xxs .or. ep%mpl(impl)%rxyz(1) >= xxe .or. &
+               ep%mpl(impl)%rxyz(2) <= yys .or. ep%mpl(impl)%rxyz(2) >= yye .or. &
+               ep%mpl(impl)%rxyz(3) <= zzs .or. ep%mpl(impl)%rxyz(3) >= zze ) then
+              !write(*,*) ep%mpl(impl)%rxyz(1) <= xxs
+              !write(*,*) ep%mpl(impl)%rxyz(1) >= xxe
+              !write(*,*) ep%mpl(impl)%rxyz(2) <= yys
+              !write(*,*) ep%mpl(impl)%rxyz(2) >= yye
+              !write(*,*) ep%mpl(impl)%rxyz(3) <= zzs
+              !write(*,*) ep%mpl(impl)%rxyz(3) >= zze
+              !write(*,*) 'ok for impl',impl, ep%mpl(impl)%rxyz(1:3), xxs, xxe, yys, yye, zzs, zze
+              do i3=is3,ie3
+                  ii3 = i3 - 15
+                  z = real(ii3,kind=8)*hz + shift(3)
+                  !write(*,'(a,i7,2es16.7)') 'i3, z, ep%mpl(1)%rxyz(3)', i3, z, ep%mpl(1)%rxyz(3)
+                  do i2=is2,ie2
+                      ii2 = i2 - 15
+                      y = real(ii2,kind=8)*hy + shift(2)
+                      do i1=is1,ie1
+                          ii1 = i1 - 15
+                          x = real(ii1,kind=8)*hx + shift(1)
+                          r(1) = ep%mpl(impl)%rxyz(1) - x
+                          r(2) = ep%mpl(impl)%rxyz(2) - y
+                          r(3) = ep%mpl(impl)%rxyz(3) - z 
+                          rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
+                          ! To avoid floating point exception
+                          rnrm2=max(rnrm2,1.d-6)
+                          rnrm1 = sqrt(rnrm2)
+                          rnrm3 = rnrm1*rnrm2
+                          rnrm5 = rnrm3*rnrm2
+                          mp = 0.0_dp
+                          do l=0,lmax
+                              if (associated(ep%mpl(impl)%qlm(l)%q)) then
+                                  select case(l)
+                                  case (0)
+                                      mp = mp + calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
+                                      !write(*,'(a,3es12.4,es16.8)') 'x, y, z, monopole', x, y, z, calc_monopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
+                                  case (1)
+                                      mp = mp + calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
+                                      !write(*,*) 'dipole', calc_dipole(ep%mpl(impl)%qlm(l)%q, r, rnrm3)
+                                  case (2)
+                                      mp = mp + calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
+                                      !write(*,*) 'quadrupole', calc_quadropole(ep%mpl(impl)%qlm(l)%q, r, rnrm5)
+                                  case (3)
+                                      call f_err_throw('octupole not yet implemented', err_name='BIGDFT_RUNTIME_ERROR')
+                                      !multipole_terms(l) = calc_octopole(ep%mpl(impl)%qlm(l)%q, rnrm1)
+                                  case default
+                                      call f_err_throw('Wrong value of l', err_name='BIGDFT_RUNTIME_ERROR')
+                                  end select
+                              end if
+                          end do
+                          pot(i1,i2,i3) = pot(i1,i2,i3) + mp
+                          !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
                       end do
-                      pot(i1,i2,i3) = pot(i1,i2,i3) + mp
-                      write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
                   end do
               end do
-          end do
+              !!$omp end do
+              !!$omp end parallel
+          end if
       end do
-      !!$omp end do
-      !!$omp end parallel
-
-
-      contains
-
-
-        function calc_monopole(q, rnrm1) result(mpm)
-          implicit none
-          ! Calling arguments
-          real(dp),dimension(1),intent(in) :: q
-          real(dp),intent(in) :: rnrm1
-          real(dp) :: mpm
-
-          mpm = -q(1)/rnrm1
-
-        end function calc_monopole
-
-
-        function calc_dipole(q, r, rnrm3) result(dpm)
-          implicit none
-          ! Calling arguments
-          real(dp),dimension(3),intent(in) :: q
-          real(dp),intent(in) :: rnrm3
-          real(dp),dimension(3),intent(in) :: r
-          real(dp) :: dpm
-
-          dpm = q(1)*r(1) + q(2)*r(2) + q(3)*r(3)
-          dpm = -dpm/rnrm3
-
-        end function calc_dipole
-
-
-        function calc_quadropole(q, r, rnrm5) result(qpm)
-          implicit none
-          ! Calling arguments
-          real(dp),dimension(5),intent(in) :: q
-          real(dp),intent(in) :: rnrm5
-          real(dp),dimension(3),intent(in) :: r
-          real(dp) :: qpm
-          ! Local variables
-          real(dp),dimension(3,3) :: qq
-
-          qq(1,1) = q(1)
-          qq(2,1) = q(2)
-          qq(3,1) = q(3)
-          qq(1,2) = qq(2,1)
-          qq(2,2) = q(4)
-          qq(3,2) = q(5)
-          qq(1,3) = qq(3,1)
-          qq(2,3) = qq(3,2)
-          qq(3,3) = 1.0_dp-qq(1,1)-qq(2,2)
-
-          qpm = qq(1,1)*r(1)*r(1) + &
-               qq(2,1)*r(2)*r(1) + &
-               qq(3,1)*r(3)*r(1) + &
-               qq(1,2)*r(1)*r(2) + &
-               qq(2,2)*r(2)*r(2) + &
-               qq(3,2)*r(3)*r(2) + &
-               qq(1,3)*r(1)*r(3) + &
-               qq(2,3)*r(2)*r(3) + &
-               qq(3,3)*r(3)*r(3)
-          qpm = -0.5_dp*qpm/rnrm5
-
-        end function calc_quadropole
-
-
-        !function calc_octopole()
-        !end function calc_octopole
 
     end subroutine potential_from_multipoles
+
+
+    function calc_monopole(q, rnrm1) result(mpm)
+      implicit none
+      ! Calling arguments
+      real(dp),dimension(1),intent(in) :: q
+      real(dp),intent(in) :: rnrm1
+      real(dp) :: mpm
+
+      mpm = -q(1)/rnrm1
+
+    end function calc_monopole
+
+
+    function calc_dipole(q, r, rnrm3) result(dpm)
+      implicit none
+      ! Calling arguments
+      real(dp),dimension(3),intent(in) :: q
+      real(dp),intent(in) :: rnrm3
+      real(dp),dimension(3),intent(in) :: r
+      real(dp) :: dpm
+
+      dpm = q(1)*r(1) + q(2)*r(2) + q(3)*r(3)
+      dpm = -dpm/rnrm3
+
+    end function calc_dipole
+
+
+    function calc_quadropole(q, r, rnrm5) result(qpm)
+      implicit none
+      ! Calling arguments
+      real(dp),dimension(5),intent(in) :: q
+      real(dp),intent(in) :: rnrm5
+      real(dp),dimension(3),intent(in) :: r
+      real(dp) :: qpm
+      ! Local variables
+      real(dp),dimension(3,3) :: qq
+
+      qq(1,1) = q(1)
+      qq(2,1) = q(2)
+      qq(3,1) = q(3)
+      qq(1,2) = qq(2,1)
+      qq(2,2) = q(4)
+      qq(3,2) = q(5)
+      qq(1,3) = qq(3,1)
+      qq(2,3) = qq(3,2)
+      qq(3,3) = 1.0_dp-qq(1,1)-qq(2,2)
+
+      qpm = qq(1,1)*r(1)*r(1) + &
+           qq(2,1)*r(2)*r(1) + &
+           qq(3,1)*r(3)*r(1) + &
+           qq(1,2)*r(1)*r(2) + &
+           qq(2,2)*r(2)*r(2) + &
+           qq(3,2)*r(3)*r(2) + &
+           qq(1,3)*r(1)*r(3) + &
+           qq(2,3)*r(2)*r(3) + &
+           qq(3,3)*r(3)*r(3)
+      qpm = -0.5_dp*qpm/rnrm5
+
+    end function calc_quadropole
 
 
 
@@ -514,7 +825,7 @@ module multipole
       ! Local variables
       integer :: ist, istr, iorb, iiorb, ilr, ii, natp, isat, nr, jproc, iat, n, norb_get, istr_get
       integer :: window, ioffset, methTransformOverlap, l, m, iiat, ityp, norb_per_atom, i1, i2, i3, ind, jorb, jat
-      integer :: ii1, ii2, ii3, jjorb, i
+      integer :: ii1, ii2, ii3, jjorb, i, itype
       real(kind=8),dimension(:),allocatable :: psir
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       type(workarr_sumrho) :: w
@@ -525,7 +836,7 @@ module multipole
       real(kind=8),dimension(:,:,:,:,:,:),allocatable :: sphi
       integer,dimension(:,:),allocatable :: comms
       logical :: can_use_transposed, arr_allocated
-      real(kind=8) :: ddot, x, y, z, tt, rnorm, factor, max_error!, get_normalization, get_test_factor
+      real(kind=8) :: ddot, x, y, z, tt, rnorm, factor, max_error, q!, get_normalization, get_test_factor
       !real(kind=8) ,dimension(2,orbs%norb) :: testarr
       real(kind=8),dimension(:),allocatable :: kernel_ortho, phi_ortho
       integer,dimension(:),allocatable :: n1i, n2i, n3i, ns1i, ns2i, ns3i
@@ -735,11 +1046,18 @@ module multipole
       call f_free(locrad)
       call f_free(locregcenter)
 
+      ! The monopole term should be the net charge, i.e. subtract the atomic charges
+      do iat=1,at%astruct%nat
+          itype = at%astruct%iatype(iat)
+          q = real(at%nelpsp(itype),kind=8)
+          multipoles(0,0,iat) = multipoles(0,0,iat) - q
+      end do
+
       if (iproc==0) then
           !!call write_multipoles(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
           !!     multipoles, rmax, lzd%hgrids, without_normalization=.false.)
           call write_multipoles_new(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
-               at%astruct%rxyz, multipoles, rmax, lzd%hgrids, without_normalization=.false.)
+               at%astruct%rxyz, at%astruct%units, multipoles, rmax, lzd%hgrids, without_normalization=.false.)
       end if
       call f_free(rmax)
       call f_free(psir_get)
@@ -862,7 +1180,7 @@ module multipole
 
           if (iproc==0) then
               !!call write_multipoles(1, 1, (/1/), (/'testatom'/), multipoles, rmax, lzd%hgrids, without_normalization=.true.)
-              call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), &
+              call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), 'fake', &
                    multipoles, rmax, lzd%hgrids, without_normalization=.true.)
               call yaml_mapping_close()
           end if
@@ -1012,7 +1330,8 @@ module multipole
 
 
 
-    subroutine write_multipoles_new(nat, ntypes, iatype, atomnames, rxyz, multipoles, rmax, hgrids, without_normalization)
+    subroutine write_multipoles_new(nat, ntypes, iatype, atomnames, rxyz, units, &
+               multipoles, rmax, hgrids, without_normalization)
       use yaml_output
       implicit none
       
@@ -1021,6 +1340,7 @@ module multipole
       integer,dimension(nat),intent(in) :: iatype
       character(len=*),dimension(ntypes),intent(in) :: atomnames
       real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      character(len=*),intent(in) :: units
       real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(in) :: multipoles
       real(kind=8),dimension(nat),intent(in) :: rmax
       real(kind=8),dimension(3),intent(in) :: hgrids
@@ -1029,8 +1349,9 @@ module multipole
       ! Local variables
       character(len=20) :: atomname
       integer :: i, iat, l, m, nit
-      real(kind=8) :: max_error, factor!, get_normalization, get_test_factor
+      real(kind=8) :: max_error, factor, convert_units!, get_normalization, get_test_factor
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
+
 
           multipoles_tmp = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.nat/),id='multipoles_tmp')
 
@@ -1039,6 +1360,17 @@ module multipole
           else
               nit = 1
           end if
+
+          ! See whether a conversion of the units necessary
+          select case (units)
+          case ('angstroem','angstroemd0')
+              convert_units = 0.52917721092_gp
+          case ('atomic','atomicd0','bohr','bohrd0','reduced')
+              convert_units = 1.d0
+          case default
+              convert_units = 1.d0
+              call yaml_warning('units not recognized, no conversion done')
+          end select
 
           factor = 0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3)
 
@@ -1063,13 +1395,14 @@ module multipole
                       end do
                   end do
               end if
+              call yaml_map('units for atomic positions',trim(units))
               call yaml_sequence_open('Values')
               do iat=1,nat
                   call yaml_sequence(advance='no')
                   atomname=atomnames(iatype(iat))
                   !call yaml_sequence_open(trim(atomname))
-                  call yaml_map('sym',adjustl(trim(atomname)))
-                  call yaml_map('r',rxyz(1:3,iat))
+                  call yaml_map('sym',adjustl(trim(atomname))//' # '//adjustl(trim(yaml_toa(iat,fmt='(i4.4)'))))
+                  call yaml_map('r',convert_units*rxyz(1:3,iat))
                   do l=0,lmax
                       !call yaml_sequence(advance='no')
                       !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')

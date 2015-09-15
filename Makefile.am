@@ -30,9 +30,9 @@ endif
 if BUILD_LIBABINIT
 SUBDIRS += libABINIT/src
 endif
-if BUILD_LIBSGPU
-SUBDIRS += S_GPU
-endif
+#if BUILD_LIBSGPU
+#SUBDIRS += S_GPU
+#endif
 
 # BigDFT itself.
 SUBDIRS += src
