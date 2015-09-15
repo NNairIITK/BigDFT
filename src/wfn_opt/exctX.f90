@@ -1035,7 +1035,8 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   call mpi_win_create(psiw,&
 int(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp, kind=mpi_address_kind)*&
 int(size_of_double, kind=mpi_address_kind), &
-size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win, ierr)
+size_of_double, &
+mpi_info_null, bigdft_mpi%mpi_comm, win, ierr)
         if (ierr /=0)  print *,'error when creating mpi window for psiw',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
   
   dpsiw = f_malloc0((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.3, 1.to.ngroupp /),id='dpsiw')
@@ -1080,41 +1081,39 @@ size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
         
 ! To use MPI_get, we need a window covering psir, which will be used only once
            
-        if (jprocsr(1,jproc,igroup) /= -1) then
+        if (jprocsr(2,jproc,igroup) /= -1) then
            ncommsstep=ncommsstep+1
            if (iprocpm1(1,1,igroup) == itestproc) then
               print *,'step',jproc+1,': sending',nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
                    'elements from',iproc,'to',iprocpm1(1,1,igroup)
            end if
 
-            if (jproc == 0) then
+           if (jproc == 0) then
 
-            call MPI_GET(psiw(1,1,irnow,igroup), &
+              call MPI_GET(psiw(1,1,irnow,igroup), &
         int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-        iprocpm1(2,1,igroup),int(0, kind=mpi_address_kind),int(nvctr_par(jprocsr(2,jproc,igroup),&
+        iprocpm1(2,1,igroup),int((iorbgr(2,iprocpm1(2,1,igroup),igrprarr(igrpr(igroup), iprocpm1(2,1,igroup)))-1)&
+        *(lr%d%n1i*lr%d%n2i*lr%d%n3i), kind=mpi_address_kind),int(nvctr_par(jprocsr(2,jproc,igroup),&
         igrpr(igroup)), kind=mpi_address_kind),&
         mpidtypw,win3,ierr)
-        if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+              if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
  
            else
 
-           call MPI_GET(psiw(1,1,irnow,igroup), &
+              call MPI_GET(psiw(1,1,irnow,igroup), &
         int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-        iprocpm1(2,1,igroup), int((igrprarr(igroup, iprocpm1(2,1,igroup))-1)*&
+        iprocpm1(2,1,igroup), int((igrprarr(igrpr(igroup), iprocpm1(2,1,igroup))-1)*&
         (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*2))&
         + (isnow-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind),&
         int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win,ierr)
-
-        if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
-
+              if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
            end if
-
         end if
 
-           if (iproc == itestproc) then
-              print *,'step',jproc+1,': receiving',nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
-                   'elements from',iprocpm1(2,1,igroup),'to',iproc
-           end if
+        if (iproc == itestproc) then
+           print *,'step',jproc+1,': receiving',nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
+                'elements from',iprocpm1(2,1,igroup),'to',iproc
+        end if
 
      end do
      
@@ -1286,8 +1285,6 @@ size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
         end if
      end do
 
-        call mpi_win_fence( 0, win2 ,ierr);
-
      do igroup=1,ngroupp
         if (jprocsr(4,jproc,igroup) /= -1) then
            ncommsstep2=ncommsstep2+1
@@ -1295,7 +1292,7 @@ size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
            call MPI_GET(dpsiw(1,1,irnow2,igroup),&
             int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
             jprocsr(4,jproc,igroup),&
-            int((igrprarr(igroup, jprocsr(4,jproc,igroup))-1)*&
+            int((igrprarr(igrpr(igroup), jprocsr(4,jproc,igroup))-1)*&
         (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
              + (isnow2-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind) ,&
             int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win2,ierr)
