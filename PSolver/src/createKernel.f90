@@ -1035,19 +1035,29 @@ subroutine pkernel_allocate_cavity(kernel,vacuum)
 end subroutine pkernel_allocate_cavity
 
 !>put in depsdrho array the extra potential
-subroutine sccs_extra_potential(kernel,pot,depsdrho)
+subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
   use yaml_output
   implicit none
   type(coulomb_operator), intent(in) :: kernel
   !>complete potential, needed to calculate the derivative
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: pot
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: depsdrho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: dsurfdrho
+  real(dp), intent(in) :: eps0
   !local variables
   integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03,unt
-  real(dp) :: d2,x
+  real(dp) :: d2,x,pi,gammaSau,alphaSau,betaVau
   real(dp), dimension(:,:,:,:), allocatable :: nabla_pot
   !real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)) :: pot2,depsdrho1,depsdrho2
 
+  real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
+  real(dp), parameter :: alphaS = -69.5d0 ![dyn/cm]
+  real(dp), parameter :: betaV = -0.35d0 ![GPa]
+
+  gammaSau=gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  alphaSau=alphaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  betaVau=betaV/2.942191219d4 ! in atomic unit
+  pi = 4.d0*datan(1.d0)
   n01=kernel%ndims(1)
   n02=kernel%ndims(2)
   n03=kernel%ndims(3)
@@ -1067,7 +1077,9 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho)
               d2 = d2+nabla_pot(i1,i2,i3,i)**2
            end do
            !depsdrho1(i1,i2,i3)=depsdrho(i1,i23)
-           depsdrho(i1,i23)=depsdrho(i1,i23)*d2
+           depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*d2/pi!+(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
+                            !+betaVau*depsdrho(i1,i23)/(1.d0-eps0)
+           !depsdrho(i1,i23)=depsdrho(i1,i23)*d2
            !pot2(i1,i2,i3)=d2
            !depsdrho2(i1,i2,i3)=depsdrho(i1,i23)
         end do
@@ -1140,7 +1152,7 @@ end subroutine polarization_charge
 !!according to the SCF cavity definition given by Andreussi et al. JCP 136, 064102 (2012)
 !! @warning: for the moment the density is supposed to be not distributed as the 
 !! derivatives are calculated sequentially
-subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
+subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
   use numerics, only: safe_exp
   use f_utils
   use yaml_output
@@ -1155,6 +1167,9 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   !> functional derivative of the sc epsilon with respect to 
   !! the electronic density, in distributed memory
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: depsdrho
+  !> functional derivative of the surface integral with respect to 
+  !! the electronic density, in distributed memory
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: dsurfdrho
 
   
   !local variables
@@ -1164,7 +1179,8 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   real(kind=8), parameter :: innervalue = 0.9d0
   integer :: n01,n02,n03,i,i1,i2,i3,i23,i3s,unt
   real(dp) :: oneoeps0,oneosqrteps0,pi,coeff,coeff1,fact1,fact2,fact3,r,t,d2,dtx,dd,x,y,z
-  real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr,epsinner,depsdrho1
+  real(dp) :: de,dde,ddtx,d,c1,c2
+  real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr,epsinner,depsdrho1,cc
   real(dp), dimension(:,:,:,:), allocatable :: nabla_edens
 
   n01=kernel%ndims(1)
@@ -1178,6 +1194,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   ddt_edens=f_malloc(kernel%ndims,id='ddt_edens')
   epsinner=f_malloc(kernel%ndims,id='epsinner')
   depsdrho1=f_malloc(kernel%ndims,id='depsdrho1')
+  cc=f_malloc(kernel%ndims,id='cc')
   if (dumpeps) epscurr=f_malloc(kernel%ndims,id='epscurr')
 
   !build the gradients and the laplacian of the density
@@ -1217,6 +1234,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
                  depsdrho1(i1,i2,i3)=0.d0
+                 dsurfdrho(i1,i23)=0.d0
              else
 
               if (dabs(edens(i1,i2,i3)).gt.edensmax) then
@@ -1230,6 +1248,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
                  depsdrho1(i1,i2,i3)=0.d0
+                 dsurfdrho(i1,i23)=0.d0
               else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
                  !eps(i1,i2,i3)=eps0
                  kernel%cavity(i1,i23)=eps0
@@ -1241,6 +1260,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
                  depsdrho1(i1,i2,i3)=0.d0
+                 dsurfdrho(i1,i23)=0.d0
               else
                  r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
                  t=fact2*(r-sin(r))
@@ -1249,17 +1269,24 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
                  kernel%oneoeps(i1,i23)=safe_exp(-0.5d0*t) !oneosqrteps(i1,i2,i3)
                  coeff=fact3*(1.d0-cos(r))
-                 dtx=-coeff/dabs(edens(i1,i2,i3))
-                 depsdrho(i1,i23)=-safe_exp(t)*0.125d0/pi*dtx
-                 depsdrho1(i1,i2,i3)=-safe_exp(t)*0.125d0/pi*dtx
+                 dtx=-coeff/dabs(edens(i1,i2,i3))  !first derivative of t wrt rho
+                 de=safe_exp(t)*dtx ! derivative of epsilon wrt rho
+                 depsdrho(i1,i23)=de
+                 depsdrho1(i1,i2,i3)=de
+                 ddtx=fact3*(1.d0-cos(r)+fact1*sin(r))/((edens(i1,i2,i3))**2) !second derivative of t wrt rho
+                 dde=de*dtx+safe_exp(t)*ddtx
                  d2=0.d0
                  do i=1,3
                     !dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,isp,i)
                     d2 = d2+nabla_edens(i1,i2,i3,i)**2
                  end do
+                 d=dsqrt(d2)
                  dd = ddt_edens(i1,i2,i3)
                  coeff1=(0.5d0*(coeff**2)+fact3*fact1*sin(r)+coeff)/((edens(i1,i2,i3))**2)
                  kernel%corr(i1,i23)=(0.125d0/pi)*safe_exp(t)*(coeff1*d2+dtx*dd) !corr(i1,i2,i3)
+                 c1=(cc(i1,i2,i3)/d2-dd)/d
+                 dsurfdrho(i1,i23)=(de*c1)/(eps0-1.d0)
+                 !dsurfdrho(i1,i23)=(de*c1+dde*c2)/(eps0-1.d0)
               end if
 
              end if
@@ -1300,7 +1327,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
                  t=fact2*(r-sin(r))
                  coeff=fact3*(1.d0-cos(r))
                  dtx=-coeff/dabs(edens(i1,i2,i3))
-                 depsdrho(i1,i23)=-safe_exp(t)*0.125d0/pi*dtx
+                 depsdrho(i1,i23)=safe_exp(t)*dtx
                  kernel%cavity(i1,i23)=safe_exp(t)
                  !eps(i1,i2,i3)=dexp(t)
                  if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
@@ -1391,6 +1418,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   call f_free(nabla_edens)
   call f_free(epsinner)
   call f_free(depsdrho1)
+  call f_free(cc)
 
 end subroutine pkernel_build_epsilon
   
@@ -1618,7 +1646,7 @@ end subroutine fssnord3DmatNabla3varde2_LG
 !!du(ngrid)   = first derivative values at the grid points
 !!
 !!declare the pass
-subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
+subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids,cc)
   implicit none
 
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -1626,12 +1654,13 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
   real(kind=8), dimension(3), intent(in) :: hgrids
   real(kind=8), dimension(n01,n02,n03,3) :: u
   real(kind=8), dimension(n01,n02,n03) :: du
+  real(kind=8), dimension(n01,n02,n03), intent(out), optional :: cc
 
   !c..local variables
   integer :: n,m,n_cell
   integer :: i,j,ib,i1,i2,i3,ii
   real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-  real(kind=8) :: hx,hy,hz,d1,d2,d3
+  real(kind=8) :: hx,hy,hz,d1,d2,d3,uxy,uyz,uxz
   real(kind=8), parameter :: zero = 0.d0! 1.0d-11
   logical :: perx,pery,perz
 
@@ -1680,15 +1709,21 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
            du(i1,i2,i3) = 0.0d0
 
            d1 = 0.d0
+           uxy = 0.d0
+           uxz = 0.d0
            if (i1.le.m) then
               if (perx) then
                do j=-m,m
                 ii=modulo(i1 + j + n01 - 1, n01 ) + 1
                 d1 = d1 + c1D(j,0)*u(ii,i2,i3,1)!/hx
+                uxy = uxy + c1D(j,0)*u(ii,i2,i3,2)!/hx
+                uxz = uxz + c1D(j,0)*u(ii,i2,i3,3)!/hx
                end do
               else
                do j=-m,m
                  d1 = d1 + c1D(j,i1-m-1)*u(j+m+1,i2,i3,1)!/hx
+                 uxy = uxy + c1D(j,i1-m-1)*u(j+m+1,i2,i3,2)!/hx
+                 uxz = uxz + c1D(j,i1-m-1)*u(j+m+1,i2,i3,3)!/hx
                end do
               end if
            else if (i1.gt.n01-m) then
@@ -1696,29 +1731,40 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
                do j=-m,m
                 ii=modulo(i1 + j - 1, n01 ) + 1
                 d1 = d1 + c1D(j,0)*u(ii,i2,i3,1)!/hx
+                uxy = uxy + c1D(j,0)*u(ii,i2,i3,2)!/hx
+                uxz = uxz + c1D(j,0)*u(ii,i2,i3,3)!/hx
                end do
               else
                do j=-m,m
                  d1 = d1 + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,1)!/hx
+                 uxy = uxy + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,2)!/hx
+                 uxz = uxz + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,3)!/hx
                end do
               end if
            else
               do j=-m,m
                  d1 = d1 + c1D(j,0)*u(i1 + j,i2,i3,1)!/hx
+                 uxy = uxy + c1D(j,0)*u(i1 + j,i2,i3,2)!/hx
+                 uxz = uxz + c1D(j,0)*u(i1 + j,i2,i3,3)!/hx
               end do
            end if
            d1=d1/hx
+           uxy=uxy/hx
+           uxz=uxz/hx
 
            d2 = 0.d0
+           uyz = 0.d0
            if (i2.le.m) then
               if (pery) then
                do j=-m,m
                 ii=modulo(i2 + j + n02 - 1, n02 ) + 1
                 d2 = d2 + c1D(j,0)*u(i1,ii,i3,2)!/hy
+                uyz = uyz + c1D(j,0)*u(i1,ii,i3,3)!/hy
                end do
               else
                do j=-m,m
                  d2 = d2 + c1D(j,i2-m-1)*u(i1,j+m+1,i3,2)!/hy
+                 uyz = uyz + c1D(j,i2-m-1)*u(i1,j+m+1,i3,3)!/hy
                end do
               end if
            else if (i2.gt.n02-m) then
@@ -1726,18 +1772,22 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
                do j=-m,m
                 ii=modulo(i2 + j - 1, n02 ) + 1
                 d2 = d2 + c1D(j,0)*u(i1,ii,i3,2)!/hy
+                uyz = uyz + c1D(j,0)*u(i1,ii,i3,3)!/hy
                end do
               else
                do j=-m,m
                  d2 = d2 + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,2)!/hy
+                 uyz = uyz + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,3)!/hy
                end do
               end if
            else
               do j=-m,m
                  d2 = d2 + c1D(j,0)*u(i1,i2 + j,i3,2)!/hy
+                 uyz = uyz + c1D(j,0)*u(i1,i2 + j,i3,3)!/hy
               end do
            end if
            d2=d2/hy
+           uyz=uyz/hy
 
            d3 = 0.d0
            if (i3.le.m) then
@@ -1770,7 +1820,11 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
            d3=d3/hz
 
            du(i1,i2,i3) = d1+d2+d3
-
+           if (present(cc)) then
+              cc(i1,i2,i3) = (u(i1,i2,i3,1)**2)*d1+(u(i1,i2,i3,2)**2)*d2+(u(i1,i2,i3,3)**2)*d3+&
+                   2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,2)*uxy+2.d0*u(i1,i2,i3,2)*u(i1,i2,i3,3)*uyz+&
+                   2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,3)*uxz
+           end if
         end do
      end do
   end do

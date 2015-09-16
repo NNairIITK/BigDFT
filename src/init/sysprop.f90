@@ -955,16 +955,17 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  oneosqrteps=1.d0
 
   !starting point in third direction
-  i3s=pkernel%grid%istart+1
-  i23=1
-  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
-     do i2=1,pkernel%ndims(2)
-        do i1=1,pkernel%ndims(1)
-           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
-        end do
-        i23=i23+1
-     end do
-  end do
+!  i3s=pkernel%grid%istart+1
+!  i23=1
+!  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
+!     do i2=1,pkernel%ndims(2)
+!        do i1=1,pkernel%ndims(1)
+!           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
+!        end do
+!        i23=i23+1
+!     end do
+!  end do
+  !if(bigdft_mpi%iproc==0) call yaml_map('Im here',1)
 
   select case(trim(f_str(pkernel%method)))
   case('PCG')
