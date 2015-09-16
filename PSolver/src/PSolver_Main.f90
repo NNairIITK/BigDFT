@@ -107,7 +107,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    else
       wrtmsg=.true.
    end if
-   !!!!wrtmsg=.true.
+   wrtmsg=.true.
    wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
    ! rewrite
 
@@ -389,7 +389,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
 !--------------------------------------
 ! Polarization charge
-      call pol_charge(kernel,pot_full,rho,x)
+!      call pol_charge(kernel,pot_full,rho,x)
 !--------------------------------------
 
       !here the harteee energy can be calculated and the ionic potential

@@ -187,7 +187,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call fragment_stuff()
      call init_lzd_linear()
      ! For restart calculations, the suport function distribution must not be modified
-     !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
+     !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
      !SM: added the ".or. fin%lin%fragment_calculation", as this came from a merge with Laura...
      if (.not. (inputpsi .hasattr. 'MEMORY') .or. in%lin%fragment_calculation) then
          times_convol = f_malloc(lorbs%norb,id='times_convol')
@@ -955,16 +955,17 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  oneosqrteps=1.d0
 
   !starting point in third direction
-  i3s=pkernel%grid%istart+1
-  i23=1
-  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
-     do i2=1,pkernel%ndims(2)
-        do i1=1,pkernel%ndims(1)
-           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
-        end do
-        i23=i23+1
-     end do
-  end do
+!  i3s=pkernel%grid%istart+1
+!  i23=1
+!  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
+!     do i2=1,pkernel%ndims(2)
+!        do i1=1,pkernel%ndims(1)
+!           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
+!        end do
+!        i23=i23+1
+!     end do
+!  end do
+  if(bigdft_mpi%iproc==0) call yaml_map('Im here',1)
 
   select case(trim(f_str(pkernel%method)))
   case('PCG')

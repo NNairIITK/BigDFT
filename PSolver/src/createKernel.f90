@@ -1200,7 +1200,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
   !density gradient in du
   call fssnord3DmatNabla3var_LG(kernel%geocode,n01,n02,n03,edens,nabla_edens,kernel%nord,kernel%hgrids)
   !density laplacian in d2u
-  call fssnord3DmatDiv3var_LG(kernel%geocode,n01,n02,n03,nabla_edens,ddt_edens,kernel%nord,kernel%hgrids,cc)
+  call fssnord3DmatDiv3var_LG(kernel%geocode,n01,n02,n03,nabla_edens,ddt_edens,kernel%nord,kernel%hgrids)
 
   pi = 4.d0*datan(1.d0)
   oneoeps0=1.d0/eps0
