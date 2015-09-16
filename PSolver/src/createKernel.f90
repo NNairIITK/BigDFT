@@ -834,12 +834,13 @@ END SUBROUTINE pkernel_set
 
 
 subroutine cuda_estimate_memory_needs(kernel, n)
-  use iso_c_binding
+  use iso_c_binding  
+  use module_base
 implicit none
   type(coulomb_operator), intent(inout) :: kernel
   integer,dimension(3), intent(in) :: n
   integer (kind=C_SIZE_T) :: kernelSize, PCGRedSize, plansSize, maxPlanSize, freeGPUSize, totalGPUSize
-  integer :: size2,sizek,size3,NX,NY,NZ
+  integer :: size2,sizek,size3,NX,NY,NZ,iproc_node,nproc_node
   real(dp) alpha
 
   kernelSize=0
@@ -853,6 +854,8 @@ implicit none
  call cuda_estimate_memory_needs_cu(kernel%mpi_env%iproc,n,&
     kernel%geo,plansSize,maxPlanSize,freeGPUSize, totalGPUSize )
 
+ ! get the number of processes on each node
+ call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
 
 !only the first MPI process of the group needs the GPU for apply_kernel
  if(kernel%mpi_env%iproc==0) then
@@ -872,23 +875,23 @@ implicit none
 
 !print *,"free mem",freeGPUSize,", total",totalGPUSize,". Trying Total : ",kernelSize+plansSize+PCGRedSize,&
 !" with kernel ",kernelSize," plans ",plansSize, "maxplan",&
-!maxPlanSize, "and red ",PCGRedSize
-
- if(freeGPUSize<(kernelSize+maxPlanSize)) then
-    call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
-      trim(yaml_toa(freeGPUSize)) // ", total Memory :"// trim(yaml_toa(totalGPUSize)) //& 
-      ", minimum needed memory :"// trim(yaml_toa(kernelSize+maxPlanSize)) )
-  else if(freeGPUSize < kernelSize+plansSize) then
-    call yaml_warning( "WARNING: not enough free memory for cufftPlans on GPU, performance will be degraded")
-    kernel%initCufftPlan=0
-    kernel%gpuPCGRed=0
-  else if((kernel%gpuPCGRed == 1) .and. (freeGPUSize < kernelSize+plansSize+PCGRedSize)) then
+!maxPlanSize, "and red ",PCGRedSize, "nprocs/node", nproc_node
+ if(freeGPUSize<nproc_node*(kernelSize+maxPlanSize)) then
+     call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
+       trim(yaml_toa(freeGPUSize)) // ", total Memory :"// trim(yaml_toa(totalGPUSize)) //& 
+       ", minimum needed memory :"// trim(yaml_toa(nproc_node*(kernelSize+maxPlanSize))) )
+ else if(freeGPUSize <nproc_node*(kernelSize+plansSize)) then
+     call yaml_warning( "WARNING: not enough free memory for cufftPlans on GPU, performance will be degraded")
+     kernel%initCufftPlan=0
+     kernel%gpuPCGRed=0
+ else if((kernel%gpuPCGRed == 1) .and. (freeGPUSize < nproc_node*(kernelSize+plansSize+PCGRedSize))) then
      call yaml_warning( "WARNING: not enough free memory for GPU PCG reductions, performance will be degraded")
-    kernel%gpuPCGRed=0;
+     kernel%gpuPCGRed=0;
  else
-    call yaml_comment("Memory on the GPU is sufficient for at least one process/node")
-    kernel%initCufftPlan=1;
+     call yaml_comment("Memory on the GPU is sufficient for" // trim(yaml_toa(nproc_node)) // " processes/node")
+     kernel%initCufftPlan=1;
  end if
+
 
 end subroutine cuda_estimate_memory_needs
 !> set the epsilon in the pkernel structure as a function of the seteps variable.
