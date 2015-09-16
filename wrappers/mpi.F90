@@ -45,6 +45,7 @@ module wrapper_MPI
   integer, public, save :: TCAT_ALLGATHER   =TIMING_UNINITIALIZED
   integer, public, save :: TCAT_GATHER      =TIMING_UNINITIALIZED
   integer, public, save :: TCAT_SCATTER     =TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_FENCE     =TIMING_UNINITIALIZED
   
   !error codes
   integer, public, save :: ERR_MPI_WRAPPERS
@@ -566,6 +567,9 @@ contains
     call f_timing_category('Scatter',tgrp_mpi_name,&
          'Scatter operations, in general moderate size arrays',&
          TCAT_SCATTER)
+    call f_timing_category('Fence',tgrp_mpi_name,&
+         'Fence, waiting for a RMA operation to end',&
+         TCAT_FENCE)
 
     call f_err_define(err_name='ERR_MPI_WRAPPERS',err_msg='Error of MPI library',&
          err_id=ERR_MPI_WRAPPERS,&
@@ -1728,6 +1732,32 @@ contains
 
 
   end function mpiwindow_l0
+
+
+  subroutine mpi_fence(window, assert)
+    use dictionaries, only: f_err_throw,f_err_define
+    ! Calling arguments
+    integer,intent(inout) :: window !<window to be synchronized
+    integer,intent(in),optional :: assert
+
+    ! Local variables
+    integer :: ierr, assert_, tcat
+
+    if (present(assert)) then
+       assert_ = assert
+    else
+       assert_ = 0
+    end if
+    tcat=TCAT_FENCE
+    ! Synchronize the communication
+    call f_timer_interrupt(tcat)
+    call mpi_win_fence(assert_, window, ierr)
+    call f_timer_resume()
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+  end subroutine mpi_fence
 
   subroutine mpi_fenceandfree(window, assert)
     use dictionaries, only: f_err_throw,f_err_define

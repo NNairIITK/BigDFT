@@ -1032,27 +1032,16 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
    size_of_double = 8
  end if
 
-  call mpi_win_create(psiw,&
-int(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp, kind=mpi_address_kind)*&
-int(size_of_double, kind=mpi_address_kind), &
-size_of_double, &
-mpi_info_null, bigdft_mpi%mpi_comm, win, ierr)
-        if (ierr /=0)  print *,'error when creating mpi window for psiw',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+  win = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp,psiw(1,1,1,1),bigdft_mpi%mpi_comm)
   
   dpsiw = f_malloc0((/ 1.to.lr%d%n1i*lr%d%n2i*lr%d%n3i, 1.to.maxval(orbs%norb_par(:,0)), 1.to.3, 1.to.ngroupp /),id='dpsiw')
   !partial densities and potentials
   rp_ij = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='rp_ij')
 
-  call mpi_win_create(dpsiw,&
-int(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp, kind=mpi_address_kind)*&
-int(size_of_double, kind=mpi_address_kind), &
-size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win2, ierr)
-  if (ierr /=0)  print *,'error when creating mpi window for dpsiw',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+  win2 = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp,dpsiw(1,1,1,1), bigdft_mpi%mpi_comm)
 
-call mpi_win_create(psir,&
-int(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp, kind=mpi_address_kind)*int(size_of_double, kind=mpi_address_kind), &
-size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
-  if (ierr /=0)  print *,'error when creating mpi window for psir',iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+  win3 = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1), bigdft_mpi%mpi_comm)
+
   !this is the array of the actions of the X potential on psi
   !ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp
   !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1)*2*ngroupp,psiw(1,1,1,1))
@@ -1062,9 +1051,6 @@ size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
   !call to_zero(ii,dpsiw(1,1,1,1))
   
   call f_zero(dpsir)
-  call mpi_win_fence( MPI_MODE_NOPRECEDE, win ,ierr);
-  call mpi_win_fence( MPI_MODE_NOPRECEDE, win2 ,ierr);
-  call mpi_win_fence( MPI_MODE_NOPRECEDE, win3 ,ierr);
   ncalls=0
   !real communication
   isnow=1
@@ -1250,7 +1236,7 @@ size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
         end if
      end do
                  
-      call mpi_win_fence( 0, win2 ,ierr);
+      call mpi_fence(win2);
      if (ncommsstep2 > 0) then
         !verify that the messages have been passed
         !copy the results which have been received (the messages sending are after)
@@ -1302,9 +1288,9 @@ size_of_double, mpi_info_null, bigdft_mpi%mpi_comm, win3, ierr)
      if (jproc>1) isnow2=3-isnow2
      
     if (jproc == 0) then
-      call mpi_win_fence( 0, win3 ,ierr);
+      call mpi_fence(win3);
     else
-      call mpi_win_fence( 0, win ,ierr);
+      call mpi_fence(win);
     endif
 
      isnow=3-isnow
