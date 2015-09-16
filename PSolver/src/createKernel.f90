@@ -835,7 +835,7 @@ END SUBROUTINE pkernel_set
 
 subroutine cuda_estimate_memory_needs(kernel, n)
   use iso_c_binding  
-  use module_base
+!  use module_base
 implicit none
   type(coulomb_operator), intent(inout) :: kernel
   integer,dimension(3), intent(in) :: n
@@ -855,7 +855,10 @@ implicit none
     kernel%geo,plansSize,maxPlanSize,freeGPUSize, totalGPUSize )
 
  ! get the number of processes on each node
- call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+!!TODO: see how to use bigdft_mpi from here, as we can't use module_base, which is not yet compiled
+! call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+ nproc_node=1
+ iproc_node=0
 
 !only the first MPI process of the group needs the GPU for apply_kernel
  if(kernel%mpi_env%iproc==0) then
@@ -894,6 +897,8 @@ implicit none
 
 
 end subroutine cuda_estimate_memory_needs
+
+
 !> set the epsilon in the pkernel structure as a function of the seteps variable.
 !! This routine has to be called each time the dielectric function has to be set
 subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
