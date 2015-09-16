@@ -268,7 +268,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
   integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ,gpuPCGRed
   integer,dimension(3) :: n
-
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
   call f_timing(TCAT_PSOLV_KERNEL,'ON')
 
@@ -634,7 +633,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
       n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
       n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
       n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
-      call cuda_estimate_memory_needs(kernel%mpi_env%iproc, n,kernel%geo,kernel%initCufftPlan, kernel%gpuPCGRed) 
+      call cuda_estimate_memory_needs(kernel, n) 
 
 
     size2=2*n1*n2*n3
@@ -834,6 +833,64 @@ end if
 END SUBROUTINE pkernel_set
 
 
+subroutine cuda_estimate_memory_needs(kernel, n)
+  use iso_c_binding
+implicit none
+  type(coulomb_operator), intent(inout) :: kernel
+  integer,dimension(3), intent(in) :: n
+  integer (kind=C_SIZE_T) :: kernelSize, PCGRedSize, plansSize, maxPlanSize, freeGPUSize, totalGPUSize
+  integer :: size2,sizek,size3,NX,NY,NZ
+  real(dp) alpha
+
+  kernelSize=0
+  PCGRedSize=0
+  plansSize=0
+  maxPlanSize=0
+  freeGPUSize=0
+  totalGPUSize=0
+
+ !estimate with CUDA the free memory size, and the size of the plans
+ call cuda_estimate_memory_needs_cu(kernel%mpi_env%iproc,n,&
+    kernel%geo,plansSize,maxPlanSize,freeGPUSize, totalGPUSize )
+
+
+!only the first MPI process of the group needs the GPU for apply_kernel
+ if(kernel%mpi_env%iproc==0) then
+   size2=2*n(1)*n(2)*n(3)*sizeof(alpha)
+   sizek=(n(1)/2+1)*n(2)*n(3)*sizeof(alpha)
+   kernelSize =2*size2+sizek
+ end if
+
+!all processes can use the GPU for apply_reductions
+ if((kernel%gpuPCGRed)==1) then
+   size3=n(1)*n(2)*n(3)*sizeof(alpha)
+   !add a 10% margin, because we use a little bit more
+   PCGRedSize=(7*size3+4*sizeof(alpha))*1.1
+   !print *,"PCG reductions size : %lu\n", PCGRedSize
+ end if
+
+
+!print *,"free mem",freeGPUSize,", total",totalGPUSize,". Trying Total : ",kernelSize+plansSize+PCGRedSize,&
+!" with kernel ",kernelSize," plans ",plansSize, "maxplan",&
+!maxPlanSize, "and red ",PCGRedSize
+
+ if(freeGPUSize<(kernelSize+maxPlanSize)) then
+    call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
+      trim(yaml_toa(freeGPUSize)) // ", total Memory :"// trim(yaml_toa(totalGPUSize)) //& 
+      ", minimum needed memory :"// trim(yaml_toa(kernelSize+maxPlanSize)) )
+  else if(freeGPUSize < kernelSize+plansSize) then
+    call yaml_warning( "WARNING: not enough free memory for cufftPlans on GPU, performance will be degraded")
+    kernel%initCufftPlan=0
+    kernel%gpuPCGRed=0
+  else if((kernel%gpuPCGRed == 1) .and. (freeGPUSize < kernelSize+plansSize+PCGRedSize)) then
+     call yaml_warning( "WARNING: not enough free memory for GPU PCG reductions, performance will be degraded")
+    kernel%gpuPCGRed=0;
+ else
+    call yaml_comment("Memory on the GPU is sufficient for at least one process/node")
+    kernel%initCufftPlan=1;
+ end if
+
+end subroutine cuda_estimate_memory_needs
 !> set the epsilon in the pkernel structure as a function of the seteps variable.
 !! This routine has to be called each time the dielectric function has to be set
 subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)

@@ -125,9 +125,9 @@ extern "C" void FC_FUNC_(get_gpu_data, GET_GPU_DATA)(int *size, Real *h_data, Re
 
 // determine which method can be used for allocating data on the GPU
 // for now, only valid for 1 MPI process/GPU
-extern "C" void FC_FUNC_(cuda_estimate_memory_needs, CUDA_ESTIMATE_MEMORY_NEEDS)(int* iproc, int *N,int *geo, int* initCufftPlan, int* gpuPCGRed) {
+extern "C" void FC_FUNC_(cuda_estimate_memory_needs_cu, CUDA_ESTIMATE_MEMORY_NEEDS_CU)(int* iproc, int *N,int *geo, size_t* plansSize, size_t* maxPlanSize, size_t* freeSize, size_t* totalSize) {
 
- size_t workSize=0, maxPlanSize=0, totalSize=0, kernelSize=0, PCGRedSize=0;
+ size_t workSize=0;//, maxPlanSize=0, plansSize=0, kernelSize=0, PCGRedSize=0;
 
  int NX = N[0];
  int NY = N[1];
@@ -141,32 +141,25 @@ extern "C" void FC_FUNC_(cuda_estimate_memory_needs, CUDA_ESTIMATE_MEMORY_NEEDS)
 
 //only the first MPI process of the group needs the GPU
 if(*iproc==0){
-     //size for the arrays work1_GPU, work2_GPU, k_GPU
-     size_t size2=2*NX*NY*NZ*sizeof(Real);
-     size_t sizek=(NX/2+1)*NY*NZ*sizeof(Real);
-     kernelSize =2*size2+sizek;
-    // printf("kernelSize = %lu\n",kernelsSize);
-
-
      //size of the cuFFT plans
      // --- Using cufftEstimate1d
      cufftErrchk(cufftEstimate1d(NX, CUFFT_D2Z, ysize*zsize, &workSize));
     // printf("cufftEstimate1d worksize 1 = %lu\n",workSize);
-     totalSize+=workSize;
-     maxPlanSize=workSize;
+     *plansSize+=workSize;
+     *maxPlanSize=workSize;
      cufftErrchk(cufftEstimate1d(NX, CUFFT_Z2D, ysize*zsize, &workSize));
     // printf("cufftEstimate1d worksize 2 = %lu\n",workSize);
-     totalSize+=workSize;
-     maxPlanSize=std::max(maxPlanSize,workSize);
+     *plansSize+=workSize;
+     *maxPlanSize=std::max(*maxPlanSize,workSize);
      cufftErrchk(cufftEstimate1d(NY, Transform, (NX/2+1)*zsize, &workSize));
     // printf("cufftEstimate1d worksize 3 = %lu\n",workSize);
-     totalSize+=workSize;
-     maxPlanSize=std::max(maxPlanSize,workSize);
+     *plansSize+=workSize;
+     *maxPlanSize=std::max(*maxPlanSize,workSize);
      cufftErrchk(cufftEstimate1d(NZ, Transform, (NX/2+1)*NY, &workSize));
     // printf("cufftEstimate1d worksize 4 = %lu\n",workSize);
-     totalSize+=workSize;
-     maxPlanSize=std::max(maxPlanSize,workSize);
-    // printf("workSize = %lu\n",totalSize);
+     *plansSize+=workSize;
+     *maxPlanSize=std::max(*maxPlanSize,workSize);
+    // printf("workSize = %lu\n",plansSize);
 }
     // this method could be more precise, but actually seems to answer the same
     //// --- Using cufftGetSize1d
@@ -181,33 +174,9 @@ if(*iproc==0){
     //   cufftGetSize1d(plan, NZ, Transform, (NX/2+1)*NY, &workSize);
     //   printf("cufftGetSize1d worksize 4 = %lu\n",workSize);
 
-//see if we have enough space to perform PCG reductions on the GPU as well
- if((*gpuPCGRed)==1){
-   int size3=NX*NY*NZ*sizeof(double);
-   PCGRedSize=7*size3+4*sizeof(double);
-   //printf("PCG reductions size : %lu\n", PCGRedSize);
- } 
 
+ gpuErrchk(cudaMemGetInfo(freeSize,totalSize));
 
- size_t total, free;
- gpuErrchk(cudaMemGetInfo(&free,&total));
- //printf("free mem = %lu, total : %lu  . Trying Total : %lu with kernel %lu plans %lu and red %lu \n",free, total, kernelSize+totalSize+PCGRedSize,kernelSize,totalSize,PCGRedSize);
-
-  if(free<(kernelSize+maxPlanSize)){
-    printf("Not Enough memory on the card to allocate GPU kernels, free Memory : %lu, total Memory : %lu, necessary memory : %lu\n", free, total, kernelSize+maxPlanSize);
-    exit(-1);
-  }else if(free < kernelSize+totalSize){
-    printf("Warning : could not allocate all plans on GPU, default to allocating them and freeing them on demand, which will degrade performance\n");
-    *initCufftPlan=0;
-    *gpuPCGRed=0;
-  }else if((*gpuPCGRed) && (free < kernelSize+totalSize+PCGRedSize)){
-    printf("Warning : could not all arrays for GPU PCG reductions, defaulting to CPU ones, which will degrade performance\n");
-    *gpuPCGRed=0;
- }else{
-    printf("Memory on the GPU is OK for %lu processes/node\n", kernelSize+totalSize+PCGRedSize!=0? free/(kernelSize+totalSize+PCGRedSize) : 1000);
-    *initCufftPlan=1;
-
-  }
 }
 
 
