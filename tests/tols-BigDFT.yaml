@@ -1739,7 +1739,7 @@ igortho_44:
  number of corrected points: 8
  net quadropole: 7.1e-5
  net dipole: 1.1e-7
- D: 1.1e-7
+ D: 1.1e-4
  delta: 1.1e-10
  radius for normalization: 1.1e-1
  Keys to ignore:
@@ -1787,3 +1787,64 @@ igortho_94:
  delta: 4.1e-11
  radius for normalization: 1.1e-2
  multiplicator for the confinement: 3.1e-11
+
+extendedfrags_nofrags:
+ eF: 1.6e-9
+ guess for new ef: 2.0e-9
+ charge diff: 1.7e-8
+ Tr(K): 2.1e-8
+ D Tr: 1.0e-9
+ D eF: 1.1e-8
+ ebs_check: 3.6e-11
+ ebs: 3.7e-11
+ EXC: 1.1e-10
+ Pressure: 3.3e-11
+
+extendedfrags_read:
+ Omega: 6.7e-11
+ eF: 8.2e-10
+ charge diff: 2.3e-9
+ Tr(K): 1.1e-8
+ D eF: 1.1e-9
+ guess for new ef: 1.4e-9
+ ebs: 6.1e-11
+ ebs_check: 6.1e-11
+ Epot: 1.1e-10
+ EvXC: 1.1e-10
+ D Tr: 1.1e-10
+ Average noise forces: 1.0e-10
+ Pressure: 5.5e-11
+ Force Norm (Hartree/Bohr): 1.3e-11
+
+extendedfrags_readrotated:
+ Omega: 6.7e-11
+ eF: 6.2e-10
+ D eF: 1.1e-9
+ guess for new ef: 1.0e-9
+ D Tr: 1.1e-10
+ ebs_check: 6.1e-11
+ ebs: 6.1e-11
+ charge diff: 2.0e-9
+ Pressure: 4.6e-11
+ Epot: 1.1e-10
+ Force Norm (Hartree/Bohr): 1.4e-11
+
+extendedfrags_write:
+ Epot: 7.0e-10
+ EH: 7.1e-10
+ Ekin: 1.1e-10
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ D Tr: 3.1e-8
+ D eF: 5.0e-9
+ ebs_check: 6.7e-10
+ ebs: 6.7e-10
+ guess for new ef: 6.0e-9
+ Tr(K): 3.0e-8
+ Total charge: 3.0e-11
+ charge diff: 3.2e-8
+ trace(KS): 3.3e-11
+ eF: 7.0e-9
+ Pressure: 5.8e-11
+ decay length of error function: 1.1e-6
+ Clean forces norm (Ha/Bohr): 1.2e-11
