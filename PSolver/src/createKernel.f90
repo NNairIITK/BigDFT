@@ -839,8 +839,9 @@ subroutine cuda_estimate_memory_needs(kernel, n)
 implicit none
   type(coulomb_operator), intent(inout) :: kernel
   integer,dimension(3), intent(in) :: n
-  integer (kind=C_SIZE_T) :: kernelSize, PCGRedSize, plansSize, maxPlanSize, freeGPUSize, totalGPUSize
-  integer :: size2,sizek,size3,NX,NY,NZ,iproc_node,nproc_node
+  integer(kind=C_SIZE_T) :: maxPlanSize, freeGPUSize, totalGPUSize
+  integer(kind=8) :: size2,sizek,size3,NX,NY,NZ,iproc_node,nproc_node
+  integer(kind=8) :: kernelSize, PCGRedSize, plansSize
   real(dp) alpha
 
   kernelSize=0
