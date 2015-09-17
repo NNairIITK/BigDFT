@@ -87,7 +87,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
    real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z,depsdrho
-   real(dp), dimension(:,:,:), allocatable :: zf,work_full
+   real(dp), dimension(:,:,:), allocatable :: work_full
    !integer, dimension(:,:), allocatable :: gather_arr
 
    call f_routine(id='H_potential')
@@ -156,8 +156,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    end if
    
    !array allocations
+
+   !we need to reallocate the zf array with the right size when called with stress_tensor and gpu
+   if(kernel%igpu==1 .and. .not. cudasolver) then
+     call f_free_ptr(kernel%zf)
+     kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+   end if
    !initalise to zero the zf array
-   zf = f_malloc([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+   call f_zero(kernel%zf)
 
    select case(datacode)
    case('G')
@@ -210,12 +216,12 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    select case(trim(str(kernel%method)))
    case('VAC')
       !core psolver routine
-      call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,zf,.false.)
+      call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%zf,.false.)
 
       call finalize_hartree_results(sumpion,pot_ion,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
-           rhopot(i3start),zf,rhopot(i3start),ehartreeLOC)
+           rhopot(i3start),kernel%zf,rhopot(i3start),ehartreeLOC)
       !gathering the data to obtain the distribution array
       if (datacode == 'G' .and. kernel%mpi_env%nproc > 1) then
          call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
@@ -259,7 +265,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
             end do
          end do
          
-         call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,zf,.true.)
+         call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%zf,.true.)
          !gathering the data to obtain the distribution array
          !this method only works with datacode == 'G'
          if (kernel%mpi_env%nproc > 1) then
@@ -360,7 +366,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
 
          !  Apply the Preconditioner
-         call apply_kernel(cudasolver,kernel,z,offset,strten,zf,.true.)
+         call apply_kernel(cudasolver,kernel,z,offset,strten,kernel%zf,.true.)
 
          call apply_reductions(ip, cudasolver, kernel, r, x, p, q, z, alpha, beta, normr)
 
@@ -404,8 +410,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call f_free(r)
 
    end select
-
-   call f_free(zf)
 
    !if statement for SC cavity to be added
    if (kernel%method .hasattr. PS_SCCS_ENUM) then
@@ -528,7 +532,6 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
   call f_routine(id='apply_kernel')
 
-  call f_zero(zf)
   !this routine builds the values for each process of the potential (zf), multiplying by scal   
   !fill the array with the values of the charge density
   !no more overlap between planes

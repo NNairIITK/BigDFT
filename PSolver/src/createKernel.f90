@@ -170,6 +170,7 @@ subroutine pkernel_free(kernel)
   call f_free_ptr(kernel%epsinnersccs)
   call f_free_ptr(kernel%counts)
   call f_free_ptr(kernel%displs)
+  call f_free_ptr(kernel%zf)
   if (kernel%gpuPCGRed == 1) then
     if (kernel%keepGPUmemory == 1) then
       call cudafree(kernel%z_GPU)
@@ -627,13 +628,20 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
      call yaml_mapping_close() !memory
 
   end if
+
+  if(kernel%igpu == 1) then
+    kernel%zf = f_malloc_ptr([md1, md3, md2/kernel%mpi_env%nproc],id='zf')
+  else 
+    kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+  end if
+
   kernel%gpuPCGRed=0
   if (kernel%igpu >0) then
     if(trim(str(kernel%method))=='PCG') kernel%gpuPCGRed=1
-      n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
-      n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
-      n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
-      call cuda_estimate_memory_needs(kernel, n) 
+    n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
+    n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
+    n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
+    call cuda_estimate_memory_needs(kernel, n) 
 
 
     size2=2*n1*n2*n3

@@ -167,6 +167,7 @@ module Poisson_Solver
       !> inner rigid cavity to be integrated in the sccs method to avoit inner
       !! cavity discontinuity due to near-zero edens near atoms
       real(dp), dimension(:,:), pointer :: epsinnersccs
+      real(dp), dimension(:,:,:), pointer :: zf
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
       real(dp) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
       real(dp) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
