@@ -42,7 +42,7 @@ subroutine init_cp2k(paramfile,geocodeIn)
     logical :: exists
     integer :: ierr
 
-    if(initialized_cp2k)stop'cp2k already initalized'
+    if(initialized_cp2k) stop 'cp2k already initalized'
     if(bigdft_mpi%iproc==0)call yaml_comment('Initializing cp2k',hfill='-')
 
     initialized_cp2k=.false.

@@ -553,6 +553,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   use module_base
   use module_types
   use yaml_output
+  !use wrapper_MPI, only: mpireduce to be written yet
   implicit none
   integer, intent(in) :: iproc,nproc
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -619,6 +620,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   !calculate the deviation from 1 of the orbital norm
   if (nproc > 1) then
      call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
+     !call mpireduce(sendbuf=tt,recvbuf=normdev,count=1,op=MPI_MAX,comm=bigdft_mpi%mpi_comm)
   else
      normdev=tt
   end if

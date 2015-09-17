@@ -1093,7 +1093,7 @@ module sparsematrix
              ts = mpi_wtime()
          end if
          !$omp parallel default(private) shared(smat, a_seq, b, c)
-         !$omp do !!!schedule(guided)
+         !$omp do schedule(guided)
          do iout=1,smat%smmm%nout
              i=smat%smmm%onedimindices_new(1,iout)
              nblock=smat%smmm%onedimindices_new(4,iout)
@@ -1103,7 +1103,7 @@ module sparsematrix
                  jorb = smat%smmm%consecutive_lookup(1,iblock,iout)
                  jjorb = smat%smmm%consecutive_lookup(2,iblock,iout)
                  ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
-        !         tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
+                 !tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
                  !avoid calling ddot from OpenMP region on BG/Q as too expensive
                  tt0=tt0+my_dot(ncount,b(jjorb:jjorb+ncount-1),a_seq(jorb:jorb+ncount-1))
              end do

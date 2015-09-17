@@ -65,7 +65,6 @@ module gaussdaub
   public :: gau_daub_1d,workspace_query_gau_daub_1d
 
   contains
-    
 
     !> convert a shell in contracted Gaussian basis in wavelet
     !! given in a localization region

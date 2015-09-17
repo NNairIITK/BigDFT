@@ -1457,7 +1457,7 @@ contains
              do jorb=1,norbup
                 !sparsemat%matrixindex_in_compressed_arr(iorb,jorb)=compressed_index(iorb,jorb,norbu,sparsemat)
                 sparsemat%matrixindex_in_compressed_arr(iorb,jorb+isorbu) = &
-                  matrixindex_in_compressed(sparsemat, iorb, jorb+isorbu, .true., norbu)
+                     matrixindex_in_compressed(sparsemat, iorb, jorb+isorbu, .true., norbu)
              end do
           end do
           !$omp end parallel do

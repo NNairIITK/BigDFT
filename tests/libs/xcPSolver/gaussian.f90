@@ -23,10 +23,10 @@ program MP_gaussian
   integer, parameter :: nsigma=30         !< Number of different gaussian functions
   integer, parameter :: npts=16           !< Arrays from -npts to npts
   real(gp), parameter :: hgrid = 1.0_gp   !< Step grid
-  integer, parameter :: nw=65536
-  real(gp), dimension(0:nw,2,2) :: work
+  integer :: nw,nwork
+  real(gp), dimension(:,:), allocatable :: work
   integer :: i,j,imoms,pow,istep,isigma,unit
-  integer, parameter :: itype_scf = 16
+  integer, parameter :: itype_scf = 16,nres=8
   integer :: n_scf,untplot,ml1,mu1
   integer :: istart, iend, i0, npf,ierr
   real(gp) :: pgauss,p0gauss,x0,x00,reference,max_phi,max_lag,scalar,tt,hh,diff
@@ -77,12 +77,12 @@ program MP_gaussian
   fj_lag=f_malloc(-npf .to. npf,id='fj_lag')
   fj_coll=f_malloc(-npf .to. npf,id='fj_coll')
   f_mu=f_malloc( [ -npts .to. npts, 1 .to. 2 ], id='f_mu')
-  f_mus=f_malloc( [1.to.nsigma, -npts .to. npts, 1 .to. 2,1 .to. nstep], id='f_mus')
+  f_mus=f_malloc( [1.to.nsigma,1.to.2, -npts .to. npts,1 .to. nstep], id='f_mus')
   call initialize_real_space_conversion(npoints=2**8,isf_m=itype_scf,nmoms=0) !initialize the work arrays needed to integrate with isf
 
   psi_phi=f_malloc(-npf .to. npf,id='psi_phi')
   psi_coll=f_malloc(-npf .to. npf,id='psi_coll')
-  psi_mu=f_malloc( [ -npts .to. npts, 1 .to. 2 ], id='psi_mu')
+  psi_mu=f_malloc( [ 1 .to. 2, -npts .to. npts], id='psi_mu')
 
   call f_open_file(untplot,'Families.dat')
   call polynomial_exactness(npts,16,0,itype_scf,16,16,untplot,0,moments)
@@ -161,6 +161,16 @@ program MP_gaussian
      x0s(istep)=(-0.5_gp+real(istep-1,gp)/real(nstep,gp))*hgrid
   end do
 
+  !perform a workspace query for all the gaussians such as to retrieve the maximum
+  nw=0
+  do istep=1,nstep
+     call  workspace_query_gau_daub_1d(&
+          .false.,nsigma,x0s(istep),0.d0, 1,sqrt(0.5_gp/pgsigma),&
+          hgrid,nres,-npts,2*npts,nwork)
+     nw=max(nw,nwork)
+  end do
+  work=f_malloc([nw,2],id='work')
+
   !Orbital is a gaussian (g0)
   isigma=min(10,nsigma)
   istep=min(5,nstep)
@@ -171,15 +181,16 @@ program MP_gaussian
 !!$  call gauss_to_daub_k(hgrid,0.d0,1,1,1,1.d0,x0,sqrt(0.5_gp/pgauss),0,-npts,2*npts,ml1,mu1,&
 !!$      psi_mu,work,nw,.False.,1.d0) 
   call gau_daub_1d(.false.,1, x0, [ 0 ], 0.d0, 1, [ sqrt(0.5_gp/pgauss) ], &
-       1, [ 1.d0 ], hgrid,4,-npts,2*npts,1,psi_mu,nw,work)
+       1, [ 1.d0 ], hgrid,nres,-npts,2*npts,1,psi_mu,nw,work)
  
   p0gauss=pgauss
   x00=x0
 
   !evaluate the 1d results with the new method
   do istep=1,nstep
-     call gau_daub_1d(.false.,nsigma, x0s(istep), [(0,i=1,nsigma)], 0.d0, 1,sqrt(0.5_gp/pgsigma),1, [(1.d0,i=1,nsigma)], hgrid,4,-npts,2*npts,1,&
-          f_mus(1,-npts,1,istep),nw,work)
+     call gau_daub_1d(.false.,nsigma, x0s(istep), [(0,i=1,nsigma)], 0.d0, 1,sqrt(0.5_gp/pgsigma),&
+          1, [(1.d0,i=1,nsigma)], hgrid,nres,-npts,2*npts,1,&
+          f_mus(1,1,-npts,istep),nw,work)
   end do
 
   ! Calculate for different nsigma sigma
@@ -200,21 +211,21 @@ program MP_gaussian
         call gauss_to_daub_k(hgrid,0.d0,1,1,1,1.d0,x0,sqrt(0.5_gp/pgauss),0,-npts,2*npts,ml1,mu1,&
             f_mu,work,nw,.false.,1.d0) 
 !!$        call gau_daub_1d(.false.,1, x0, [ 0 ], 0.d0, 1, [ sqrt(0.5_gp/pgauss) ], &
-!!$             1, [ 1.d0 ], hgrid,4,-npts,2*npts,1,f_mus,nw,work)
+!!$             1, [ 1.d0 ], hgrid,nres,-npts,2*npts,1,f_mus,nw,work)
         !now calculate the diff with respect to the original
-        call f_diff(size(f_mu),f_mu,f_mus(isigma,:,:,istep),diff)
-        f_mu=f_mus(isigma,:,:,istep)
+        call f_diff(size(f_mu),f_mu,transpose(f_mus(isigma,:,:,istep)),diff)
         !the f_diff routine seems not working here
-        call yaml_map('Diffs',[diff,sum(abs(f_mu-f_mus(isigma,:,:,istep)))])
-        diff=sum(abs(f_mu-f_mus(isigma,:,:,istep)))
+        call yaml_map('Diffs',[diff,sum(abs(f_mu-transpose(f_mus(isigma,:,:,istep))))])
+        diff=sum(abs(f_mu-transpose(f_mus(isigma,:,:,istep))))
+        f_mu=transpose(f_mus(isigma,:,:,istep))
         tt = sqrt(pi_param/(pgauss+p0gauss))*exp(-(x00-x0)**2*(pgauss*p0gauss)/(pgauss+p0gauss))
         call yaml_map('Projector norms', (/ &
              (tt-hh*scpr(2*npf+1,fj_phi,psi_phi))/tt, &
              (tt-hh*scpr(2*npf+1,fj_coll,psi_phi))/tt, &
-             (tt-scpr(4*npts+2,f_mu,psi_mu))/tt, &
+             (tt-scpr(4*npts+2,f_mu,transpose(psi_mu)))/tt, &
              !hh*scpr(2*npf+1,fj_phi,psi_phi), &
              !hh*scpr(2*npf+1,fj_coll,psi_phi), &
-             !scpr(4*npts+2,f_mu,psi_mu), &
+             !scpr(4*npts+2,f_mu,transpose(psi_mu)), &
              sqrt(0.5_gp/pgauss)/hgrid,tt /),fmt='(1pg15.6)',&
               advance='no')
         call yaml_comment(diff**'(1pe12.5)')
@@ -227,7 +238,7 @@ program MP_gaussian
         write(untplot,'(a,2(1pe20.8))') '#<daub|gaussian>',pgauss,sqrt(0.5_gp/pgauss)
         write(untplot,'(a)') '#j,f_mu(j)'
         do j=-npts,npts
-           write(untplot,'(i0,4(1pe26.17e3))')j,(f_mu(j,i),i=1,2),(f_mus(isigma,j,i,istep),i=1,2)
+           write(untplot,'(i0,4(1pe26.17e3))')j,(f_mu(j,i),i=1,2),(f_mus(isigma,i,j,istep),i=1,2)
         end do
         call f_close(untplot)
 
@@ -288,6 +299,7 @@ program MP_gaussian
   call f_free(psi_phi,psi_coll)
   call f_free(f_mu)
   call f_free(f_mus)
+  call f_free(work)
   call f_free(psi_mu)
   call f_free(scf_dat,lag_dat,x_scf)
   call f_lib_finalize()

@@ -106,6 +106,7 @@ libmodules_a_SOURCES = base.f90 \
 	bounds.f90 \
 	locregs_init.f90 \
 	sort.f90 \
+	forces_linear.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -176,6 +177,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	BOUNDS.@MODULE_EXT@ \
 	LOCREGS_INIT.@MODULE_EXT@ \
 	SORT.@MODULE_EXT@ \
+	FORCES_LINEAR.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
 	F90SOCKETS.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
@@ -244,6 +246,7 @@ modules = module_base.@MODULE_EXT@ \
 	orthonormalization.@MODULE_EXT@ \
 	bounds.@MODULE_EXT@ \
 	locregs_init.@MODULE_EXT@ \
+	forces_linear.@MODULE_EXT@ \
 	sort.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
 	f90sockets.@MODULE_EXT@ \
@@ -317,7 +320,7 @@ foe_base.o: base.o defs.o
 foe_common.o: base.o defs.o foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
 fermi_level.o: base.o foe_common.o
 copy_utils.o: base.o
-gaussdaub.o: base.o
+gaussdaub.o: base.o gaussians.o psp_projectors_base.o
 module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o \
 		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
@@ -337,7 +340,7 @@ unitary_tests.o: base.o types.o interfaces.o communications_init.o communication
 		sparsematrix.o transposed_operations.o locregs.o locreg_operations.o rhopotential.o
 matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: base.o types.o
-io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o
+io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o matrix_operations.o
 postprocessing_linear.o: base.o types.o interfaces.o bounds.o communications_base.o communications.o sparsematrix_base.o \
 		sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o locreg_operations.o sort.o
 foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
@@ -350,6 +353,7 @@ orthonormalization.o: base.o types.o communications_base.o communications.o \
 bounds.o: base.o types.o locregs.o
 locregs_init.o: base.o types.o communications.o bounds.o
 sort.o:
+forces_linear.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o locregs.o public_keys.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

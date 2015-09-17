@@ -800,8 +800,8 @@ module module_interfaces
 
       subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
             &   CP2K,wfn_cp2k)
-        use module_defs, only: gp,wp
-         use module_types
+         use module_base
+         use module_types, only: orbitals_data, gaussian_basis
          implicit none
          character(len=*), intent(in) :: basisfile,orbitalfile
          integer, intent(in) :: iproc,nat,ntypes
@@ -2459,7 +2459,7 @@ module module_interfaces
        end subroutine initialize_linear_from_file
 
         subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
-               ref_frags,input_frag,frag_calc,orblist)
+               ref_frags,input_frag,frag_calc,kernel_restart,orblist)
           use module_base
           use module_types
           use module_fragments
@@ -2474,7 +2474,7 @@ module module_interfaces
           character(len=*), intent(in) :: dir_output, filename
           type(fragmentInputParameters), intent(in) :: input_frag
           type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
-          logical, intent(in) :: frag_calc
+          logical, intent(in) :: frag_calc, kernel_restart
           integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
         end subroutine readmywaves_linear_new
 
@@ -2639,7 +2639,7 @@ module module_interfaces
         subroutine cholesky(iproc, nspin,norbIn, psi, &
           orbs, comms, ndim_ovrlp, ovrlp, norbTot, block1, &
           ispinIn, paw)
-          use module_base
+          !use module_base
           use module_types
           use communications_base, only: comms_cubic
           implicit none
@@ -2656,7 +2656,7 @@ module module_interfaces
 
         subroutine gsChol(iproc, nproc, psi, orthpar, nspinor,&
           orbs, nspin,ndim_ovrlp,norbArr,comms,paw)
-          use module_base
+          use module_defs, only: wp
           use module_types
           use communications_base, only: comms_cubic
           implicit none
@@ -2673,7 +2673,7 @@ module module_interfaces
 
         subroutine loewdin(iproc, norbIn, block1, ispinIn,&
           orbs, comms, nspin, psit, ovrlp, ndim_ovrlp, norbTot, paw)
-          use module_base
+          !use module_base
           use module_types
           use communications_base, only: comms_cubic
           implicit none
@@ -2689,7 +2689,7 @@ module module_interfaces
 
         subroutine gramschmidt(iproc, norbIn, psit, ndim_ovrlp, ovrlp, orbs, nspin,&
           nspinor, comms, norbTot, block1, block2, ispinIn,paw)
-          use module_base
+          use module_defs, only: wp !module_base
           use module_types
           use communications_base, only: comms_cubic
           implicit none
@@ -2705,7 +2705,7 @@ module module_interfaces
         end subroutine gramschmidt
 
         subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
-          use module_base
+          use module_defs, only: wp
           use module_types
           use communications_base, only: comms_cubic
           implicit none
@@ -2719,7 +2719,7 @@ module module_interfaces
 
         subroutine calculate_density_kernel(iproc, nproc, isKernel, orbs, orbs_tmb, &
                    coeff, denskern, denskern_, keep_uncompressed_)
-          use module_base
+          !use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix
           implicit none
@@ -2734,7 +2734,7 @@ module module_interfaces
 
         subroutine reconstruct_kernel(iproc, nproc, inversion_method, &
                    blocksize_dsyev, blocksize_pdgemm, orbs, tmb, overlap_calculated)
-          use module_base
+          !use module_base
           use module_types
           implicit none
           integer,intent(in):: iproc, nproc, blocksize_dsyev, blocksize_pdgemm, inversion_method
@@ -2745,7 +2745,7 @@ module module_interfaces
 
         subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize_pdgemm, inversion_method, basis_orbs, &
                    basis_overlap, KS_overlap, basis_overlap_mat, coeff, orbs)
-          use module_base
+          !use module_base
           use module_types
           use sparsematrix_base, only: sparse_matrix, matrices
           implicit none
@@ -2759,21 +2759,21 @@ module module_interfaces
           type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
         end subroutine reorthonormalize_coeff
 
-        subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, GPU, tmb, fpulay)
-          use module_base
-          use module_types
-          implicit none
-          integer,intent(in):: iproc, nproc
-          type(orbitals_data),intent(in):: orbs
-          type(atoms_data),intent(in):: at
-          real(8),dimension(at%astruct%nat),intent(in):: rxyz
-          type(DFT_PSP_projectors), intent(inout) :: nlpsp
-          type(SIC_data),intent(in):: SIC
-          type(DFT_local_fields), intent(inout) :: denspot
-          type(GPU_pointers),intent(inout):: GPU
-          type(DFT_wavefunction),intent(inout):: tmb
-          real(8),dimension(3,at%astruct%nat),intent(out):: fpulay
-        end subroutine pulay_correction
+!!$        subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, GPU, tmb, fpulay)
+!!$          !use module_base
+!!$          use module_types
+!!$          implicit none
+!!$          integer,intent(in):: iproc, nproc
+!!$          type(orbitals_data),intent(in):: orbs
+!!$          type(atoms_data),intent(in):: at
+!!$          real(8),dimension(at%astruct%nat),intent(in):: rxyz
+!!$          type(DFT_PSP_projectors), intent(inout) :: nlpsp
+!!$          type(SIC_data),intent(in):: SIC
+!!$          type(DFT_local_fields), intent(inout) :: denspot
+!!$          type(GPU_pointers),intent(inout):: GPU
+!!$          type(DFT_wavefunction),intent(inout):: tmb
+!!$          real(8),dimension(3,at%astruct%nat),intent(out):: fpulay
+!!$        end subroutine pulay_correction
 
 !!$        subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp, input, at, rxyz, lowaccur_converged)
 !!$          use module_base
