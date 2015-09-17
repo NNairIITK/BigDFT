@@ -663,7 +663,8 @@
      COMMENT: Time-Dependent DFT method
      EXCLUSIVE:
        none: no tddft post-processing
-       TDA: ???
+       TDA: Casida's LR-TDDFT using Tamm-Dancoff Approximation
+       full: Full Casida's LR-TDDFT
      default: none
 #overall run setup
  mode:

@@ -1024,7 +1024,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         end if
 
         !start the Casida's treatment 
-        if (in%tddft_approach=='TDA') then
+        !if (in%tddft_approach=='TDA') then
+        if (in%tddft_approach .ne. 'none') then
 
            !does it make sense to use GPU only for a one-shot sumrho?
            if (GPU%OCLconv) then
@@ -1064,7 +1065,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call tddft_casida(iproc,nproc,atoms,rxyz,&
                 denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
                 denspot%dpbox%n3p,denspot%dpbox%ngatherarr(0,1),&
-                KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,&
+                KSwfn%Lzd%Glr,in%tddft_approach,KSwfn%orbs,VTwfn%orbs,denspot%dpbox%i3s+denspot%dpbox%i3xcsh,&
                 denspot%f_XC,denspot%pkernelseq,KSwfn%psi,VTwfn%psi)
 
            call f_free_ptr(denspot%f_XC)

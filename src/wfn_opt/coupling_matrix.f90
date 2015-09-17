@@ -44,7 +44,7 @@ END SUBROUTINE center_of_charge
 
 
 !> Calculate the coupling matrix needed for Casida's TDDFT approach
-subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,i3s,n3p,&
+subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,orbsocc,orbsvirt,i3s,n3p,&
      hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr)
   use module_base
   use module_types
@@ -53,6 +53,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+  character(len=4), intent(in) :: tddft_approach
   integer, intent(in) :: iproc,nproc,n3p,nspin,i3s
   real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3) :: chargec
@@ -64,7 +65,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   type(coulomb_operator) :: pkernel
   !local variables
   character(len=*), parameter :: subname='coupling_matrix_prelim'
-  logical :: tda=.true.,onlyfxc=.false.,dofxc=.true.,perx,pery,perz
+  logical :: onlyfxc=.false.,dofxc=.true.,perx,pery,perz
+  !logical :: tda=.true.
   integer :: imulti,jmulti,jorba,jorbi,index
   integer :: i1,i2,i3p,iorbi,iorba,indi,inda,ind2,ind3,ntda,ispin,jspin
   integer :: ik,jk,nmulti,lwork,info,nbl1,nbl2,nbl3,nbr3,nbr2,nbr1,ndipoles
@@ -118,18 +120,22 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   !allocate coupling matrix elements
   K = f_malloc0((/ nmulti, nmulti /),id='K')
 
-  !for nspin==1, define an auxiliary matrix for spin-off-diagonal terms (fxc part)
-  if (nspin==1) then
-     Kaux = f_malloc0((/ nmulti, nmulti /),id='Kaux')
-  end if
+  !!for nspin==1, define an auxiliary matrix for spin-off-diagonal terms (fxc part)
+  !if (nspin==1) then
+  !   Kaux = f_malloc0((/ nmulti, nmulti /),id='Kaux')
+  !end if
 
 
   !exponent for Tamm-Dancoff Approximation
-  if (tda) then
+  !write(*,*) 'tddft_approach=', tddft_approach
+  !if (tda) then
+  if (tddft_approach=='TDA') then
      ntda=0
-  else
+  else if (tddft_approach=='full') then
      ntda=1
   end if
+ 
+  !ntda=0
 
   hfac=1.0_gp/(hxh*hyh*hzh)
 
@@ -208,10 +214,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
            !multiplication of the RPA part
            K(ik,jk)=hxh*hyh*hzh*&
                 dot(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,jk),1,v_ias(1,1,1),1)
-           !in the non spin-pol case the RPA part is the same for spin off diagonal
-           if (nspin ==1) then
-              Kaux(ik,jk)=K(ik,jk)
-           end if
+           !!in the non spin-pol case the RPA part is the same for spin off diagonal
+           !if (nspin ==1) then
+           !   Kaux(ik,jk)=K(ik,jk)
+           !end if
 
         end if
         !add the XC contribution
@@ -230,29 +236,29 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
               end do
            end do
 
-           !calculate the spin off-diagonal term for nspin==1
-           if (nspin ==1) then
-              index=2
-              do i3p=1,n3p
-                 do i2=1,lr%d%n2i
-                    do i1=1,lr%d%n1i
-                       Kaux(ik,jk)=Kaux(ik,jk)+hxh*hyh*hzh*&
-                            rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
-                            dvxcdrho(i1,i2,i3p,index)
-                    end do
-                 end do
-              end do
-           end if
+           !!calculate the spin off-diagonal term for nspin==1
+           !if (nspin ==1) then
+           !   index=2
+           !   do i3p=1,n3p
+           !      do i2=1,lr%d%n2i
+           !         do i1=1,lr%d%n1i
+           !            Kaux(ik,jk)=Kaux(ik,jk)+hxh*hyh*hzh*&
+           !                 rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
+           !                 dvxcdrho(i1,i2,i3p,index)
+           !         end do
+           !      end do
+           !   end do
+           !end if
 
 
         end if
         !add factors from energy occupation numbers (for non-tda case)
         K(ik,jk)=K(ik,jk)*(2.0_wp*sqrt(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))*&
              sqrt(orbsvirt%eval(jorba)-orbsocc%eval(jorbi)))**ntda
-        if (nspin ==1) then
-           Kaux(ik,jk)=Kaux(ik,jk)*(2.0_wp*sqrt(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))*&
-                sqrt(orbsvirt%eval(jorba)-orbsocc%eval(jorbi)))**ntda
-        end if
+        !if (nspin ==1) then
+        !   Kaux(ik,jk)=Kaux(ik,jk)*(2.0_wp*sqrt(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))*&
+        !        sqrt(orbsvirt%eval(jorba)-orbsocc%eval(jorbi)))**ntda
+        !end if
 
      end do loop_j
   end do loop_i
@@ -276,13 +282,13 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      end do
   end do
 
-  if (nspin==1) then
-     do imulti=1,nmulti
-        do jmulti=imulti+1,nmulti
-           Kaux(imulti,jmulti)=Kaux(jmulti,imulti)
-        end do
-     end do
-  end if
+  !if (nspin==1) then
+  !   do imulti=1,nmulti
+  !      do jmulti=imulti+1,nmulti
+  !         Kaux(imulti,jmulti)=Kaux(jmulti,imulti)
+  !      end do
+  !   end do
+  !end if
 
   !add the A matrix to the diagonal part
   !overwrite K (Tamm-Dancoff Approx.)
@@ -313,19 +319,19 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      else
         cycle loop_i3
      end if
-!     if (iproc == 0) write(*,*) 'iorba,iorbi,K',iorba,iorbi,K(ik,ik)
+     !if (iproc == 0) write(*,*) 'ik,iorba,iorbi,K',ik,iorba,iorbi,K(ik,ik)
   end do loop_i3
 
   call f_free(v_ias)
 
 
-  if (tda) then
+  if (tddft_approach .ne. 'none') then
 
      !oscillator strength
      fi = f_malloc((/ 3, ndipoles /),id='fi')
 
 
-     if (nspin == 1) then
+     !if (nspin == 1) then
         Kbig = f_malloc0((/ 2*nmulti, 2*nmulti /),id='Kbig')
 
         do ik=1,nmulti
@@ -364,7 +370,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
         
         ! summary of the results and pretty printing
         if (iproc == 0) then
-           if (tda) call yaml_comment('TAMM-DANCOFF APPROXIMATION',hfill='-')
+           !if (tda) call yaml_comment('TAMM-DANCOFF APPROXIMATION',hfill='-')
+           if (tddft_approach=='TDA') call yaml_comment('TAMM-DANCOFF APPROXIMATION',hfill='-')
+           if (tddft_approach=='full') call yaml_comment('FULL TDDFT',hfill='-')
            call yaml_sequence_open('Excitation Energy and Oscillator Strength')
 
            do imulti = 1, 2*nmulti
@@ -385,6 +393,34 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
                    omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
            end do
            close(unit=9)
+
+!          Extracting the excitation energy and the transitions associated to each excitation            
+           ik=0
+           do imulti = 1,2*nmulti
+              do iorbi = 1, orbsocc%norb
+                 do iorba = 1, orbsvirt%norb
+                    jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
+                    if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+                       ik=ik+1
+                    end if
+                 end do
+              end do
+           end do
+           open(unit=10, file='transitions.txt')
+           write(10,*) ik
+           do imulti = 1,2*nmulti
+              do iorbi = 1, orbsocc%norb
+                 do iorba = 1, orbsvirt%norb
+                    jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
+                    if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+                       write(10,*) Ha_eV*omega(imulti), iorbi, orbsocc%eval(iorbi),&
+                              &iorba, orbsvirt%eval(iorba), abs(Kbig(jmulti,imulti)),&
+                              &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+                    end if
+                 end do
+              end do
+           end do
+           close(unit=10)
 
            !write(6,10)
 
@@ -477,7 +513,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
 !!$           call yaml_sequence_close()
 !!$        end if
          
-     end if
+     !end if
      
      call f_free(omega)
      call f_free(work)
