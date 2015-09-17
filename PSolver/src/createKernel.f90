@@ -900,7 +900,7 @@ implicit none
      call yaml_warning( "WARNING: not enough free memory for GPU PCG reductions, performance will be degraded")
      kernel%gpuPCGRed=0;
  else
-     call yaml_comment("Memory on the GPU is sufficient for" // trim(yaml_toa(nproc_node)) // " processes/node")
+     !call yaml_comment("Memory on the GPU is sufficient for" // trim(yaml_toa(nproc_node)) // " processes/node")
      kernel%initCufftPlan=1;
  end if
 
