@@ -169,7 +169,7 @@ module multipole
       !$omp parallel default(none) &
       !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, ep, sigma) &
       !$omp shared(gaussians1, gaussians2, gaussians3) &
-      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l)
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l,impl)
       !$omp do
       do i3=is3,ie3
           ii3 = i3 - 15
