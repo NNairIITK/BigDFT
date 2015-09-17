@@ -779,13 +779,16 @@ end subroutine dynmem_sandbox
 
 subroutine test_pointer_association()
   use dynamic_memory
+  use f_precisions
+  use yaml_output
   implicit none
   type(f_workspace) :: w
+  real(f_double), dimension(:), pointer :: work1
 
   !example of the allocation
   !this should provide a pointer with the correct boundaries that will have to point into the same workspace
   !however this should only work for rank-one pointers
-  work1=f_malloc_ptr(lb.to.lu,id='work1',workspace=w)
+!!$  work1=f_malloc_ptr(lb.to.lu,id='work1',workspace=w)
   
   !then work1 should be used normally
   call yaml_map('work1 associated',associated(work1))
@@ -799,15 +802,15 @@ subroutine test_pointer_association()
   !for example this would not work, as workspace is not accessible
   !this should crash if workspace is not provided
   call f_free_ptr(work1) 
-  !then the correct behaviour would be to do
-  call f_free_ptr(work1,workspace=w)
-  !but it might create defragmentation, therefore the best might be to clean the workspace
-  !instaed of treating separately the arrays
-
-  !we are in the case of a workspace aliasing
-  if (associated(m%w)) then
-     call map_workspace(m%w%pos_d,m%lbounds(1),m%ubounds(1),m%w%ptr_d,m%w%sz_d,array)
-  end if
+!!$  !then the correct behaviour would be to do
+!!$  call f_free_ptr(work1,workspace=w)
+!!$  !but it might create defragmentation, therefore the best might be to clean the workspace
+!!$  !instaed of treating separately the arrays
+!!$
+!!$  !we are in the case of a workspace aliasing
+!!$  if (associated(m%w)) then
+!!$     call map_workspace(m%w%pos_d,m%lbounds(1),m%ubounds(1),m%w%ptr_d,m%w%sz_d,array)
+!!$  end if
 
 end subroutine test_pointer_association
 

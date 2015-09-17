@@ -275,7 +275,7 @@ contains
     use locreg_operations, only: workarr_locham
     use Poisson_Solver, only: coulomb_operator
     use dynamic_memory
-    use module_interfaces, only: psir_to_vpsi
+    use module_interfaces, only: psir_to_vpsi,isf_to_daub_kinetic
     use wrapper_linalg, only: axpy
     implicit none
     type(ket), intent(in) :: psi
@@ -363,7 +363,6 @@ contains
        !eSICi=psi%kwgt*psi%occup*eSICi
        eSIC_DCi=psi%kwgt*psi%occup*eSICi
     end if
-    
     call isf_to_daub_kinetic(hgrids(1),hgrids(2),hgrids(3),&
          psi%kpoint(1),psi%kpoint(2),psi%kpoint(3),psi%nspinor,psi%lr,wrk_lh,&
          psir(1,1),hpsi,ekin)

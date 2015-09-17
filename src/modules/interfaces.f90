@@ -1071,6 +1071,21 @@ module module_interfaces
         real(wp), dimension(:,:,:,:), pointer :: psiscf
       END SUBROUTINE free_wave_to_isf
 
+      subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
+        use module_defs, only: gp,wp
+        use locregs, only: locreg_descriptors
+        use locreg_operations, only: workarr_locham
+        implicit none
+        integer, intent(in) :: nspinor
+        real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
+        type(locreg_descriptors), intent(in) :: lr
+        type(workarr_locham), intent(inout) :: w
+        real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
+        real(gp), intent(out) :: ekin
+        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
+        real(wp), dimension(6), optional :: k_strten
+      end subroutine isf_to_daub_kinetic
+
       subroutine denspot_communications(iproc,nproc,&
            xc,nspin,geocode,SICapproach,dpbox)
         use module_defs, only: gp,dp,wp

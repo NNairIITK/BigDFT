@@ -115,7 +115,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           call pkernel_allocate_cavity(denspot%pkernel,&
           vacuum=.not. (denspot%pkernel%method .hasattr. 'sccs'))
 
-          call epsinnersccs_cavity(atoms,rxyz,denspot%pkernel)
+!!!TEST          call epsinnersccs_cavity(atoms,rxyz,denspot%pkernel)
 
         !if (denspot%pkernel%method .hasattr. 'sccs') &
         !     call pkernel_allocate_cavity(denspot%pkernel)
@@ -908,11 +908,11 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
    case default
     call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
    end select
-!   if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
+   if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
    radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*delta
    radii(i) = fact*radii(i)/Bohr_Ang + 1.22d0*delta
   end do
-!  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
+  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
 
 !--------------------------------------------
 
@@ -956,16 +956,17 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  oneosqrteps=1.d0
 
   !starting point in third direction
-  i3s=pkernel%grid%istart+1
-  i23=1
-  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
-     do i2=1,pkernel%ndims(2)
-        do i1=1,pkernel%ndims(1)
-           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
-        end do
-        i23=i23+1
-     end do
-  end do
+!  i3s=pkernel%grid%istart+1
+!  i23=1
+!  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
+!     do i2=1,pkernel%ndims(2)
+!        do i1=1,pkernel%ndims(1)
+!           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
+!        end do
+!        i23=i23+1
+!     end do
+!  end do
+  !if(bigdft_mpi%iproc==0) call yaml_map('Im here',1)
 
   select case(trim(f_str(pkernel%method)))
   case('PCG')

@@ -20,6 +20,7 @@ SUBDIRS = \
 	CUDA \
 	OpenCL \
 	bindings \
+	geopt \
 	art \
 	mhgps_files \
 	global_files \
@@ -41,6 +42,7 @@ subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	orbitals/liborbitals.a \
+	geopt/libgeopt.a \
 	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
@@ -131,15 +133,9 @@ high_level = cluster.f90 \
 	forces.f90 \
 	tail.f90 \
 	restart.f90 \
-	lbfgs.f90 \
-	geometry.f90 \
 	davidson.f90 \
 	ConstrainedDavidson.f90 \
 	pdos.f90 \
-	sdcg.f90 \
-	bfgs.f90 \
-	sqnm.f90 \
-	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \
 	external.f90 \
@@ -354,8 +350,6 @@ check:
 #dependencies
 convolutions_aux.o linear/convolutions_aux.o: linear/filterModule.f90 filterModule.o
 
-cluster.o geometry.o xabsorber.o: scfloop_API.o
-
 lanczos_interface.o: abscalc_module.o lanczos_base.o
 
 abscalc_init.o abscalc-abscalc.o: esatto.o lanczos_interface.o
@@ -363,8 +357,6 @@ abscalc_init.o abscalc-abscalc.o: esatto.o lanczos_interface.o
 lanczos.o : lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90
-
-geometry.o bfgs.o sdcg.o sqnm.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 

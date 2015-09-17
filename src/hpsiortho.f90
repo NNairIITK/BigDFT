@@ -410,6 +410,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   use module_xc
   use public_enums, only: PSPCODE_PAW
   use psp_projectors_base, only: PSP_APPLY_SKIP
+  use yaml_output
   implicit none
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(in) :: at
@@ -682,6 +683,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                vsicpsir = f_malloc([psi_it%lr%d%n1i*psi_it%lr%d%n2i*psi_it%lr%d%n3i,psi_it%nspinor],id='vsicpsir')
             end if
             !print *,'orbs',psi_it%iorb,psi_it%ilr
+     
             loop_psi_lr: do while(ket_next(psi_it,ilr=psi_it%ilr))
                fi=psi_it%kwgt*psi_it%occup
                hpsi_ptr => ob_ket_map(hpsi,psi_it)

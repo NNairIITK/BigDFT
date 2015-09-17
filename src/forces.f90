@@ -3851,7 +3851,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
      kz=orbs%kpts(3,orbs%iokpt(iorb))
 
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
-          psir,hpsi(1,oidx),ekin,kinstr)
+          psir,hpsi(1,oidx),ekin,k_strten=kinstr)
 
      kinstr = -kinstr*8.0_gp/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
      tens=tens+kinstr*2.0_gp*&

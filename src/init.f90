@@ -1748,10 +1748,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
            irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2)
         end do
      end if
-
      !Now update the potential
      call updatePotential(nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
-
   else
      !Put to zero the density if no Hartree
      irho_add = 1
@@ -1861,7 +1859,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
   call local_potential_dimensions(iproc,Lzde,orbse,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   call default_confinement_data(confdatarr,orbse%norbp)
-
   !spin adaptation for the IG in the spinorial case
   orbse%nspin=nspin
   call full_local_potential(iproc,nproc,orbse,Lzde,Lzde%lintyp,denspot%dpbox,&
@@ -1869,7 +1866,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   orbse%nspin=nspin_ig
 
   !update the locregs in the case of locreg for input guess
-
   !write(*,*) 'size(denspot%pot_work)', size(denspot%pot_work)
   call FullHamiltonianApplication(iproc,nproc,at,orbse,&
        Lzde,nlpsp,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,paw,&
@@ -1879,7 +1875,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 !!$   call  LocalHamiltonianApplication(iproc,nproc,at,orbse,&
 !!$        Lzde,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,&
 !!$        energs,input%SIC,GPUe,3,pkernel=denspot%pkernelseq)
-
   call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
   !restore the good value
   call local_potential_dimensions(iproc,Lzde,orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
@@ -1887,7 +1882,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !deallocate potential
   call free_full_potential(denspot%dpbox%mpi_env%nproc,Lzde%lintyp,&
        & denspot%xc,denspot%pot_work,subname)
-
   call f_free_ptr(orbse%ispot)
 
   deallocate(confdatarr)
@@ -2228,6 +2222,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   case(INPUT_PSI_LCAO,INPUT_PSI_LCAO_GAUSS)
      ! PAW case, generate nlpsp on the fly with psppar data instead of paw data.
+
      npspcode = atoms%npspcode(1)
      if (any(atoms%npspcode == PSPCODE_PAW)) then
         ! Cheating line here.
@@ -2253,7 +2248,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
           nl,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
           Gvirt,nspin,GPU,in,.false.)
-
      if (npspcode == PSPCODE_PAW) then
         call free_DFT_PSP_projectors(nl)
         atoms%npspcode(1) = npspcode

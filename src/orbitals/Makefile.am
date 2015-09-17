@@ -1,4 +1,4 @@
-# To be installed:
+# Not To be installed:
 noinst_LIBRARIES = liborbitals.a
 
 # Source code.

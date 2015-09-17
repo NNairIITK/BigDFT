@@ -1179,6 +1179,7 @@ src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile
 src/bindings/Makefile
+src/geopt/Makefile
 src/art/Makefile
 src/mhgps_files/Makefile
 src/global_files/Makefile

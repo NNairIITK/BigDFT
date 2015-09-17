@@ -25,6 +25,7 @@ program GPS_3D
    ! 3 for real electron density from cube file, 4 for rigid cavity.
    integer :: SetEps! = 1!3 
    logical :: usegpu
+   logical, parameter :: lin_PB = .false.
 
    real(kind=8), parameter :: acell = 10.d0
    real(kind=8), parameter :: rad_cav = 1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
@@ -260,7 +261,7 @@ program GPS_3D
 
    ! Set initial density, and the associated analitical potential for the Standard Poisson Equation.
    call SetInitDensPot(n01,n02,n03,nspden,iproc,nat,eps,dlogeps,sigmaeps,SetEps,&
-        erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz)
+        erfL,erfR,acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyz,lin_PB)
 !   call SetInitDensPot(n01,n02,n03,nspden,iproc,eps,dlogeps,sigmaeps,1,erfL,erfR,&
 !   acell,a_gauss,a2,hx,hy,hz,1,density,potential,geocode,offset,einit,multp)
 
@@ -272,7 +273,7 @@ program GPS_3D
 !------------------------------------------------------------------------
 geocodeprova='F'
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
-   call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,5,multp)
+   call ApplyLaplace(geocodeprova,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,.false.,multp)
 
   if (iproc==0) then
    call yaml_comment('Comparison between Generalized Poisson operator and analytical density',hfill='-')
@@ -282,7 +283,7 @@ geocodeprova='F'
 !------------------------------------------------------------------------
 
    ! Calculate the charge starting from the potential applying the proper Laplace operator.
-   call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,SetEps,multp)
+   call ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,potential,rvApp,acell,eps,nord,lin_PB,multp)
 
   if (iproc==0) then
      call yaml_comment('Comparison between Poisson-Boltzmann operator and analytical density')
@@ -669,6 +670,8 @@ pure function PB_charge(x) result(ions_conc)
   integer :: i,j
   real(8) :: pi,fact,vol_bohr,K_bT,t,fact1,sumc,y,h,l
   real(8), dimension(n_ions) :: c_ratio  !< c_ions/c_max
+  integer, parameter :: PBeq=3 ! Set 1 for linear, 2 for standard, 3 for
+                               ! modified Poisson-Boltzmann equation.
 
   pi = 4.d0*datan(1.d0)
   k_bT = k_b*Temp
@@ -690,33 +693,41 @@ pure function PB_charge(x) result(ions_conc)
    sumc=sumc+c_ratio(i)
   end do
 
-!--------------------------------------------------------
-!  ! Standard Poisson-Boltzmann Equation.
-!  ions_conc = 0.d0
-!  do i=1,n_ions
-!   t = -z_ions(i)*x/k_bT*0.01d0
-!!   t=safe_exp(t) ! Comment this line for linear Poisson-Boltzmann Equation.
-!   t=tanh(t)
-!   ions_conc = ions_conc + z_ions(i)*c_ions(i)*t
-!  end do
-!  ions_conc = ions_conc*fact*1.d3
-  
-!--------------------------------------------------------
-  ! Modified Poisson-Boltzmann Equation.
-  ions_conc = 0.d0
-  do i=1,n_ions
-   y=x/k_bT!*0.05d0
-   t = -z_ions(i)*y 
-!   t=safe_exp(t) ! Comment this line for linear Poisson-Boltzmann Equation.
-   h=0.d0
-   do j=1,n_ions
-    h=h+c_ratio(j)*safe_exp((z_ions(i)-z_ions(j))*y)
+  !--------------------------------------------------------
+  if (PBeq.eq.1) then
+   ! Linear Poisson-Boltzmann Equation.
+   ions_conc = 0.d0
+    do i=1,n_ions
+     t = -z_ions(i)*x/k_bT !*0.01d0
+     ions_conc = ions_conc + z_ions(i)*c_ions(i)*t
+    end do
+    ions_conc = ions_conc*fact!*1.d3  
+  else if (PBeq.eq.2) then
+   ! Standard Poisson-Boltzmann Equation.
+   ions_conc = 0.d0
+    do i=1,n_ions
+     t = -z_ions(i)*x/k_bT!*0.01d0
+     t=safe_exp(t) ! Comment this line for linear Poisson-Boltzmann Equation.
+     ions_conc = ions_conc + z_ions(i)*c_ions(i)*t
+    end do
+    ions_conc = ions_conc*fact!*1.d3  
+  else if (PBeq.eq.3) then  
+   ! Modified Poisson-Boltzmann Equation.
+   ions_conc = 0.d0
+   do i=1,n_ions
+    y=x/k_bT!*0.05d0
+    t = -z_ions(i)*y 
+    h=0.d0
+    do j=1,n_ions
+     h=h+c_ratio(j)*safe_exp((z_ions(i)-z_ions(j))*y)
+    end do
+    l=safe_exp(z_ions(i)*y)*(1.d0-sumc)+h
+    t=1.d0/l
+    ions_conc = ions_conc + z_ions(i)*c_ions(i)*t 
    end do
-   l=safe_exp(z_ions(i)*y)*(1.d0-sumc)+h
-   t=1.d0/l
-   ions_conc = ions_conc + z_ions(i)*c_ions(i)*t 
-  end do
-  ions_conc = ions_conc*fact!*5.0d2
+   ions_conc = ions_conc*fact!*5.0d2
+  end if
+  !--------------------------------------------------------
 
 end function PB_charge
 
@@ -919,7 +930,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,&
 end subroutine PolarizationIteration
 
 subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
-     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset,geocode)
+     acell,eps,SetEps,nord,pkernel,potential,corr3,oneosqrteps,multp,offset,geocode,lin_PB)
 
   use Poisson_Solver
   use yaml_output
@@ -939,6 +950,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   real(kind=8), dimension(n01,n02,n03), intent(in) :: potential,corr3,oneosqrteps
   real(kind=8), dimension(n01,n02,n03,nspden), intent(inout) :: b
   character(len=2), intent(in) :: geocode
+  logical, intent(in) :: lin_PB
 
   real(kind=8), dimension(:,:,:,:), allocatable :: x,r,z,p,q,qold,lv,corr,deps
   !real(kind=8), dimension(n01,n02,n03,3) :: deps
@@ -947,7 +959,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   real(kind=8), parameter :: max_ratioex = 1.0d10
   real(kind=8) :: alpha,beta,beta0,betanew,normb,normr,ratio,k,epsc,zeta,pval,qval,rval,pbval,multvar
   integer :: i,ii,j,i1,i2,i3,isp
-  real(kind=8), parameter :: error = 1.0d-8
+  real(kind=8), parameter :: error = 1.0d-20
   real(kind=8), parameter :: eps0 = 78.36d0
   real(kind=8), dimension(n01,n02,n03) ::pot_ion
   real(kind=8) :: ehartree,pi,switch,rpoints
@@ -969,8 +981,14 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   pi = 4.d0*datan(1.d0)   
   rpoints=product(real([n01,n02,n03],kind=8))
 
-  open(unit=18,file='PCG_normr_'//trim(geocode)//'.dat',status='unknown')
-  open(unit=38,file='PCG_accuracy_'//trim(geocode)//'.dat',status='unknown')
+  if (lin_PB) then
+   open(unit=18,file='LinPB_PCG_normr_'//trim(geocode)//'.dat',status='unknown')
+   open(unit=38,file='LinPB_PCG_accuracy_'//trim(geocode)//'.dat',status='unknown')
+  else
+   open(unit=18,file='PCG_normr_'//trim(geocode)//'.dat',status='unknown')
+   open(unit=38,file='PCG_accuracy_'//trim(geocode)//'.dat',status='unknown')
+  end if
+
 
   if (iproc ==0) then
    write(18,'(1x,a)')'iter normr ratio beta'
@@ -980,7 +998,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   end if
 
   switch=0.0d0
-  if (SetEps.eq.6) then
+  if (lin_PB) then
    switch=1.0d0
   end if
 
@@ -1109,7 +1127,7 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
   do i=1,max_iter
 
    if (normr.lt.error) exit
-   if (ratio.gt.max_ratioex) exit
+   if (normr.gt.max_ratioex) exit
 
 !   if ((modulo(i,20).eq.0) .and.(i.lt.61)) then
 !    multvar=multvar*10.d0
@@ -1170,8 +1188,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dtanh(multp*zeta)
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*(zeta**2)
-!        qval = zeta*epsc+rval+pbval+(beta/beta0)*qval
-        qval = zeta*epsc+rval+(beta/beta0)*qval
+        qval = zeta*epsc+rval+pbval+(beta/beta0)*qval
+!        qval = zeta*epsc+rval+(beta/beta0)*qval
         k = k + pval*qval
         p(i1,i2,i3,isp) = pval
         q(i1,i2,i3,isp) = qval
@@ -2487,7 +2505,7 @@ subroutine FluxSurface(n01,n02,n03,nspden,hx,hy,hz,x,acell,eps,nord)
 
 end subroutine FluxSurface 
 
-subroutine ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,SetEps,multp)
+subroutine ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,lin_PB,multp)
   use dynamic_memory
   implicit none
   character(len=2), intent(in) :: geocode
@@ -2501,7 +2519,7 @@ subroutine ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,S
   real(kind=8), dimension(n01,n02,n03,nspden), intent(in) :: x
   real(kind=8), dimension(n01,n02,n03), intent(in) :: eps
   real(kind=8), dimension(n01,n02,n03,nspden), intent(out) :: y
-  integer, intent(in) :: SetEps
+  logical, intent(in) :: lin_PB
 
   ! Local variables.
   real(kind=8), dimension(:,:,:,:), allocatable :: ddx
@@ -2535,7 +2553,7 @@ subroutine ApplyLaplace(geocode,n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord,S
 
    y(:,:,:,:)=-y(:,:,:,:)/(4.d0*pi)
 
-   if (SetEps.eq.6) then
+   if (lin_PB) then
     isp=1
     do i3=1,n03
      do i2=1,n02
@@ -3574,7 +3592,7 @@ subroutine fssnord3DmatDiv3var(n01,n02,n03,nspden,hx,hy,hz,u,du,nord,acell)
 end subroutine fssnord3DmatDiv3var
 
 subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,SetEps,erfL,erfR,&
-     acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyzreal)
+     acell,a_gauss,a2,hx,hy,hz,Setrho,density,potential,geocode,offset,einit,multp,rxyzreal,lin_PB)
   use dynamic_memory
   use yaml_output
   use f_utils
@@ -3595,6 +3613,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
   character(len=2), intent(in) :: geocode
   real(kind=8), intent(out) :: offset,einit
   real(kind=8), intent(in) :: multp
+  logical, intent(in) :: lin_PB
   real(kind=8), dimension(n01,n02,n03) :: potential1
   real(kind=8), dimension(3,natreal), intent(inout) :: rxyzreal
   real(kind=8), dimension(:,:,:,:), allocatable :: density1,density2
@@ -4038,7 +4057,7 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
    offset=offset*hx*hy*hz
    if (iproc == 0) call yaml_map('offset',offset)
    switch=0.0d0
-   if (SetEps.eq.6) then
+   if (lin_PB) then
     switch=1.0d0
    end if
 
@@ -4115,7 +4134,7 @@ print *,'we should be here for old analytical functions'
 !      write(*,*)'offset',offset
 
   switch=0.0d0
-  if (SetEps.eq.6) then
+  if (lin_PB) then
    switch=1.0d0
   end if
 

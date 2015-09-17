@@ -641,9 +641,6 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
 
   !buffers associated to the geocode
   !conditions for periodicity in the three directions
-  perx=.false.
-  pery=.false.
-  perz=.false.
   perx=(geocode /= 'F')
   pery=(geocode == 'P')
   perz=(geocode /= 'F')
@@ -752,7 +749,7 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
    if (bigdft_mpi%iproc==0) then
 !    write(*,*)plandist
 !    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
-    call yaml_map('nat for pbc',nat)
+      call yaml_map('No of atoms for pbc',nat)
 !    do iat=1,nat
 !     call yaml_map('atom',iat)
 !     call yaml_map('radii',radii(iat))
