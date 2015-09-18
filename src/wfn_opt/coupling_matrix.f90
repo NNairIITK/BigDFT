@@ -70,7 +70,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   integer :: imulti,jmulti,jorba,jorbi,index
   integer :: i1,i2,i3p,iorbi,iorba,indi,inda,ind2,ind3,ntda,ispin,jspin
   integer :: ik,jk,nmulti,lwork,info,nbl1,nbl2,nbl3,nbr3,nbr2,nbr1,ndipoles
-  real(gp) :: ehart,hfac,x,y,z
+  real(gp) :: ehart,hfac,x,y,z,fsumrule_test
   real(wp), dimension(:), allocatable :: omega,work
   real(wp), dimension(:,:), allocatable :: K,Kbig,Kaux,dipoles,fi
   real(wp), dimension(:,:,:), allocatable :: v_ias
@@ -108,11 +108,11 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   rho_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p, nmulti /),id='rho_ias')
   v_ias = f_malloc((/ lr%d%n1i, lr%d%n2i, n3p /),id='v_ias')
 
-  if (nspin == 1) then
-     ndipoles=2*nmulti
-  else
+  !if (nspin == 1) then
+  !   ndipoles=2*nmulti
+  !else
      ndipoles=nmulti
-  end if
+  !end if
 
   dipoles = f_malloc0((/ 3, ndipoles /),id='dipoles')
   !call to_zero(3*ndipoles,dipoles)
@@ -135,9 +135,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
      ntda=1
   end if
  
-  !ntda=0
-
   hfac=1.0_gp/(hxh*hyh*hzh)
+  !write (*,*) hfac, hxh, hyh, hzh
 
   !we can start now to build the partial densities
   !and the corresponding partial potentials
@@ -161,6 +160,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
         cycle loop_i
      end if
 
+     !dipole moments calculation
      do i3p=1,n3p
         ind3=(i3p-1)*lr%d%n1i*lr%d%n2i
         z=real(i3p+i3s-nbl3-1,gp)*hzh-chargec(3)
@@ -172,6 +172,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
               indi=i1+ind2+(iorbi-1)*lr%d%n1i*lr%d%n2i*n3p
               inda=i1+ind2+(iorba-1)*lr%d%n1i*lr%d%n2i*n3p
               rho_ias(i1,i2,i3p,ik)=hfac*psivirtr(inda)*psirocc(indi)
+              !rho_ias(i1,i2,i3p,ik)=psivirtr(inda)*psirocc(indi)/hfac
               !calculate dipole moments
               dipoles(1,ik)=dipoles(1,ik)+x*rho_ias(i1,i2,i3p,ik)
               dipoles(2,ik)=dipoles(2,ik)+y*rho_ias(i1,i2,i3p,ik)
@@ -179,6 +180,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end do
         end do
      end do
+
      if (.not. onlyfxc) then
         !copy the partial density onto the partial potential space to pass it to PSolver
         call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
@@ -192,6 +194,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
      !after the Poisson Solver we can calculate the Upper triangular part of the Coupling matrix
      end if
 
+     
+     !after the Poisson Solver we can calculate the Upper triangular part of the Coupling matrix
      jk=0
      loop_j: do jmulti=1,imulti
         !calculate the orbital index
@@ -265,15 +269,15 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
   if (nproc > 1) then
      call mpiallred(K,MPI_SUM,comm=bigdft_mpi%mpi_comm)
-     if (nspin ==1) call mpiallred(Kaux,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     !if (nspin ==1) call mpiallred(Kaux,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
-  if (nspin==1) then
-     !copy the values of the dipoles in the second part of the array
-     call vcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
-     call dscal(3*ndipoles,hxh*hyh*hzh,dipoles(1,1),1)
-  end if
+  !if (nspin==1) then
+  !   !copy the values of the dipoles in the second part of the array
+  !   call vcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
+  !   call dscal(3*ndipoles,hxh*hyh*hzh,dipoles(1,1),1)
+  !end if
 
   !equal the lower triangular part of the matrix
   do imulti=1,nmulti
@@ -290,8 +294,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   !   end do
   !end if
 
-  !add the A matrix to the diagonal part
-  !overwrite K (Tamm-Dancoff Approx.)
+  !add the diagonal part 
   ik=0
   loop_i2: do imulti=1,orbsvirt%norb*orbsocc%norb
      !calculate the orbital index
@@ -332,23 +335,24 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
 
      !if (nspin == 1) then
-        Kbig = f_malloc0((/ 2*nmulti, 2*nmulti /),id='Kbig')
+        !Kbig = f_malloc0((/ 2*nmulti, 2*nmulti /),id='Kbig')
 
-        do ik=1,nmulti
-           do jk=1,nmulti
-              Kbig(ik,jk)=K(ik,jk)
-              Kbig(ik+nmulti,jk+nmulti)=K(ik,jk)
-              Kbig(ik+nmulti,jk)=Kaux(ik,jk)
-              Kbig(ik,jk+nmulti)=Kaux(ik,jk)
-           end do
-        end do
-        omega = f_malloc(2*nmulti,id='omega')
+        !do ik=1,nmulti
+        !   do jk=1,nmulti
+        !      Kbig(ik,jk)=K(ik,jk)
+        !      Kbig(ik+nmulti,jk+nmulti)=K(ik,jk)
+        !      Kbig(ik+nmulti,jk)=Kaux(ik,jk)
+        !      Kbig(ik,jk+nmulti)=Kaux(ik,jk)
+        !   end do
+        !end do
+        !omega = f_malloc(2*nmulti,id='omega')
+        omega = f_malloc(nmulti,id='omega')
 
-        lwork=6*nmulti !safe value
+        lwork=3*nmulti !safe value
         work = f_malloc(lwork,id='work')
 
 
-        call DSYEV('V','U',2*nmulti,Kbig,2*nmulti,omega,work,lwork,info)
+        call DSYEV('V','U',nmulti,K,nmulti,omega,work,lwork,info)
         if (info /= 0) then
            call yaml_warning('Error, DSYEV' // trim(yaml_toa(info)))
            !write(*,*) 'Error, DSYEV',info
@@ -366,7 +370,12 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
         !transition dipoles
         call gemm('N','N',3,ndipoles,ndipoles,1.0_wp,dipoles(1,1),3,&
-             Kbig(1,1),ndipoles,0.0_wp,fi(1,1),3)
+             K(1,1),ndipoles,0.0_wp,fi(1,1),3)
+        !do ik=1, ndipoles
+        !   fi(1,ik)=dipoles(1,ik)
+        !   fi(2,ik)=dipoles(2,ik)
+        !   fi(3,ik)=dipoles(3,ik)
+        !end do
         
         ! summary of the results and pretty printing
         if (iproc == 0) then
@@ -375,32 +384,63 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            if (tddft_approach=='full') call yaml_comment('FULL TDDFT',hfill='-')
            call yaml_sequence_open('Excitation Energy and Oscillator Strength')
 
-           do imulti = 1, 2*nmulti
-              call yaml_sequence(trim(yaml_toa((/ Ha_eV*omega(imulti),&
+           if (tddft_approach=='TDA') then
+              do imulti = 1, nmulti
+                 call yaml_sequence(trim(yaml_toa((/ Ha_eV*omega(imulti),&
                     omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2) /),&
                     fmt='(1pe10.3)')),advance='no')
-              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+                 call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+              end do
+           else if (tddft_approach=='full') then
+              do imulti = 1, nmulti
+                 call yaml_sequence(trim(yaml_toa((/ Ha_eV*sqrt(omega(imulti)),&
+                    sqrt(omega(imulti))*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2) /),&
+                    fmt='(1pe10.3)')),advance='no')
+                 call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+              end do
+           end if
               !write(6,30) imulti, Ha_eV*omega(imulti),omega(imulti)*(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
 !30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
-           end do
            call yaml_sequence_close()
+
+           !test of the f-sum rule
+           fsumrule_test=0_wp
+           if (tddft_approach=='TDA') then
+              do imulti = 1, nmulti
+                 fsumrule_test = fsumrule_test + omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+              end do
+           else if (tddft_approach=='full') then
+              do imulti = 1, nmulti
+                 fsumrule_test = fsumrule_test + &
+                               sqrt(omega(imulti))*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+              end do
+           end if
+           print*, "fsumrule=", fsumrule_test
 
 !          Extracting the excitation energies and Oscillator strength to plot absorption spectra
            open(unit=9, file='td_spectra.txt')
            write(9,'(a4)')'2  #(results in eV)' 
-           do imulti = 1, min(100,2*nmulti) 
-              write(9,'(f9.4,5x,1pe10.3)') Ha_eV*omega(imulti),&
-                   omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
-           end do
+           if (tddft_approach=='TDA') then
+              do imulti = 1, min(100, nmulti) 
+                 write(9,'(f9.4,5x,1pe10.3)') Ha_eV*omega(imulti),&
+                      omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+              end do
+           else if (tddft_approach=='full') then
+              do imulti = 1, min(100, nmulti) 
+                 write(9,'(f9.4,5x,1pe10.3)') Ha_eV*sqrt(omega(imulti)),&
+                      sqrt(omega(imulti))*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+              end do
+           end if
            close(unit=9)
 
 !          Extracting the excitation energy and the transitions associated to each excitation            
            ik=0
-           do imulti = 1,2*nmulti
+           do imulti = 1, nmulti
               do iorbi = 1, orbsocc%norb
                  do iorba = 1, orbsvirt%norb
                     jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+                    !if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+                    if (abs(K(jmulti,imulti)) > 5.d-02) then
                        ik=ik+1
                     end if
                  end do
@@ -408,27 +448,45 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end do
            open(unit=10, file='transitions.txt')
            write(10,*) ik
-           do imulti = 1,2*nmulti
-              do iorbi = 1, orbsocc%norb
-                 do iorba = 1, orbsvirt%norb
-                    jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
-                       write(10,*) Ha_eV*omega(imulti), iorbi, orbsocc%eval(iorbi),&
-                              &iorba, orbsvirt%eval(iorba), abs(Kbig(jmulti,imulti)),&
-                              &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
-                    end if
+           if (tddft_approach=='TDA') then
+              do imulti = 1, nmulti
+                 do iorbi = 1, orbsocc%norb
+                    do iorba = 1, orbsvirt%norb
+                       jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
+                       !if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+                       if (abs(K(jmulti,imulti)) > 5.d-02) then
+                          write(10,*) Ha_eV*omega(imulti), iorbi, orbsocc%eval(iorbi),&
+                                 &iorba, orbsvirt%eval(iorba), abs(K(jmulti,imulti)),&
+                                 &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+                       end if
+                    end do
                  end do
               end do
-           end do
+           else if (tddft_approach=='full') then
+              do imulti = 1, nmulti
+                 do iorbi = 1, orbsocc%norb
+                    do iorba = 1, orbsvirt%norb
+                       jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
+                       !if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+                       if (abs(K(jmulti,imulti)) > 5.d-02) then
+                          write(10,*) Ha_eV*sqrt(omega(imulti)), iorbi, orbsocc%eval(iorbi),&
+                                 &iorba, orbsvirt%eval(iorba), abs(K(jmulti,imulti)),&
+                                 &sqrt(omega(imulti))*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+                       end if
+                    end do
+                 end do
+              end do
+           end if
            close(unit=10)
 
            !write(6,10)
 
            call yaml_sequence_open('Transition energies (eV)')
-           do imulti = 1,2*nmulti
+           do imulti = 1, nmulti
               call yaml_sequence(advance='no')
               call yaml_sequence_open(advance='no',flow=.true.)
-              call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
+              if (tddft_approach=='TDA') call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
+              if (tddft_approach=='full') call yaml_map('Energy',trim(yaml_toa(Ha_eV*sqrt(omega(imulti)),fmt='(f10.5)')))
               !write(6,40)
 !40            format('================================================')
               !write(6,50) imulti, Ha_eV*omega(imulti) 
@@ -439,12 +497,14 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
               do iorbi = 1, orbsocc%norb
                  do iorba = 1, orbsvirt%norb
                     jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+                    !if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+                    if (abs(K(jmulti,imulti)) > 5.d-02) then
                        if (ik /= 0) call yaml_newline()
                        ik = ik + 1
                        call yaml_mapping_open(flow=.true.)
                           call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
-                          call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti)),fmt='(1pe10.3)')))
+                          !call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti)),fmt='(1pe10.3)')))
+                          call yaml_map('Coeff',trim(yaml_toa(abs(K(jmulti,imulti)),fmt='(1pe10.3)')))
                        call yaml_mapping_close()   
                        !write(6,60) iorbi, iorba,  abs(Kbig(jmulti,imulti))
 !60                     format (i4,'----->',i3,2x,' Coeff =',1pe10.3) 
@@ -455,22 +515,24 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
               !write(6,70)
 
               !ik = 0
-              do iorbi = 1, orbsocc%norb
-                 do iorba = 1, orbsvirt%norb
-                    jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if (abs(Kbig(jmulti+nmulti,imulti)) > 5.d-02) then
-                       if (ik /= 0) call yaml_newline()
-                       ik = ik + 1
-                       call yaml_mapping_open(flow=.true.)
-                          call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
-                          call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti+nmulti,imulti)),fmt='(1pe10.3)')))
-                       call yaml_mapping_close()
-                       !write(6,60) iorbi, iorba,  abs(Kbig(jmulti+nmulti,imulti))
-                    end if
-                 end do
-             end do
-             call yaml_sequence_close(advance='no')
-             call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+              !do iorbi = 1, orbsocc%norb
+              !   do iorba = 1, orbsvirt%norb
+              !      jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
+              !      !if (abs(Kbig(jmulti+nmulti,imulti)) > 5.d-02) then
+              !      if (abs(K(jmulti+nmulti,imulti)) > 5.d-02) then
+              !         if (ik /= 0) call yaml_newline()
+              !         ik = ik + 1
+              !         call yaml_mapping_open(flow=.true.)
+              !            call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
+              !            !call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti+nmulti,imulti)),fmt='(1pe10.3)')))
+              !            call yaml_map('Coeff',trim(yaml_toa(abs(K(jmulti+nmulti,imulti)),fmt='(1pe10.3)')))
+              !         call yaml_mapping_close()
+              !         !write(6,60) iorbi, iorba,  abs(Kbig(jmulti+nmulti,imulti))
+              !      end if
+              !   end do
+              !end do
+              call yaml_sequence_close(advance='no')
+              call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
 
            end do
            call yaml_sequence_close()
@@ -478,14 +540,14 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
         end if
 
-        call f_free(Kbig)
+        !call f_free(Kbig)
      
-        call f_free(omega)
-        omega = f_malloc(nmulti,id='omega')
+        !call f_free(omega)
+        !omega = f_malloc(nmulti,id='omega')
 
-        call f_free(work)
-        lwork=3*nmulti !safe value
-        work = f_malloc(lwork,id='work')
+        !call f_free(work)
+        !lwork=3*nmulti !safe value
+        !work = f_malloc(lwork,id='work')
 
 
         !this second part is not needed
@@ -522,9 +584,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   call f_free(fi)
   call f_free(rho_ias)
 
-  if (nspin ==1 ) then
-     call f_free(Kaux)
-  end if
+  !if (nspin ==1 ) then
+  !   call f_free(Kaux)
+  !end if
 
   call f_free(K)
   call f_free(dipoles)
