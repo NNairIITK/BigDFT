@@ -181,6 +181,7 @@ module Poisson_Solver
       integer :: gpuPCGRed !< control if GPU can be used for PCG reductions
       integer :: initCufftPlan
       integer :: keepGPUmemory
+      integer :: keepzf
       !parameters for the iterative methods
       !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
       integer :: nord
@@ -273,6 +274,7 @@ contains
     k%igpu=0
     k%initCufftPlan=0
     k%keepGPUmemory=1
+    k%keepzf=1
     k%nord=0
     k%max_iter=0
     k%PI_eta=0.0_dp

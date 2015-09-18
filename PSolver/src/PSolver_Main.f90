@@ -158,10 +158,15 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !array allocations
 
    !we need to reallocate the zf array with the right size when called with stress_tensor and gpu
-   if(kernel%igpu==1 .and. .not. cudasolver) then
-     call f_free_ptr(kernel%zf)
-     kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
-   end if
+   if(kernel%keepzf == 1) then
+      if(kernel%igpu==1 .and. .not. cudasolver) then
+          call f_free_ptr(kernel%zf)
+          kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+      end if
+   else
+      kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+   end if 
+
    !initalise to zero the zf array
    call f_zero(kernel%zf)
 
@@ -410,6 +415,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call f_free(r)
 
    end select
+
+   if(kernel%keepzf /= 1) then
+      call f_free_ptr(kernel%zf)
+   end if
 
    !if statement for SC cavity to be added
    if (kernel%method .hasattr. PS_SCCS_ENUM) then
