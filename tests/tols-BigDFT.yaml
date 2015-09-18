@@ -205,7 +205,7 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
- Positions: 2.25e-7
+ Positions: 4.01e-7
  Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
  Average noise forces: 6.2e-8
@@ -675,7 +675,7 @@ fructose:
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
  Energy (Hartree): 4.9e-11
- Charge analysis (charge / net charge): 5.2e-10
+ Charge analysis (charge / net charge): 5.96e-10
  Pseudo Fermi level for occupations: 3.7e-10
  net charge: 1.0e-8
  Keys to ignore:

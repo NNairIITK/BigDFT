@@ -857,6 +857,15 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   real(gp), dimension(:), allocatable :: radii,radii_nofact
   real(gp), dimension(:,:,:), allocatable :: eps,oneoeps,oneosqrteps,corr
   real(gp), dimension(:,:,:,:), allocatable :: dlogeps
+  real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
+  real(dp), parameter :: alphaS = -22.0d0 ![dyn/cm]
+  real(dp), parameter :: betaV = -0.35d0 ![GPa]
+  real(dp) :: gammaSau, alphaSau,betaVau
+
+  gammaSau=gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  alphaSau=alphaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  betaVau=betaV/2.942191219d4 ! in atomic unit
+
   !set the vdW radii for the cavity definition
   !iterate above atoms
 
@@ -947,6 +956,21 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 
+  if (bigdft_mpi%iproc==0) then
+     call yaml_map('Surface integral',IntSur)
+     call yaml_map('Volume integral',IntVol)
+  end if
+  Cavene= gammaSau*IntSur*627.509469d0
+  Repene= alphaSau*IntSur*627.509469d0
+  Disene=  betaVau*IntVol*627.509469d0
+  noeleene=Cavene+Repene+Disene
+  if (bigdft_mpi%iproc==0) then
+     call yaml_map('Cavity energy',Cavene)
+     call yaml_map('Repulsion energy',Repene)
+     call yaml_map('Dispersion energy',Disene)
+     call yaml_map('Total non-electrostatic energy',noeleene)
+  end if
+
   !set the epsilon to the poisson solver kernel
 !  call pkernel_set_epsilon(pkernel,eps=eps)
 
@@ -965,7 +989,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !        i23=i23+1
 !     end do
 !  end do
-  if(bigdft_mpi%iproc==0) call yaml_map('Im here',1)
+  !if(bigdft_mpi%iproc==0) call yaml_map('Im here',1)
 
   select case(trim(f_str(pkernel%method)))
   case('PCG')
