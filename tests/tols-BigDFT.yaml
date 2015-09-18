@@ -1483,7 +1483,7 @@ FF_LJ-lbfgs:
   Forces: 1.01e-5
   Energy: 1.54e-8
   fnrm2: 1.01e-5
-  maxval: 1.71e-7
+  maxval: 1.01e-5
   Keys to ignore:
   - WARNINGS
   - disablesym
