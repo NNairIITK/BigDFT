@@ -545,6 +545,7 @@ module time_profiling
       use dictionaries, only: f_err_raise,f_err_throw
       use f_utils, only: f_time
       use yaml_strings, only: yaml_toa
+      use nvtx
       implicit none
       !Variables
       integer, intent(in) :: cat_id
@@ -552,6 +553,7 @@ module time_profiling
       !Local variables
       integer(kind=8) :: itns
       real(kind=8) :: t1
+      character(len=max_field_length):: catname
       !$ include 'remove_omp-inc.f90'
       
       !first of all, read the time
@@ -578,6 +580,12 @@ module time_profiling
          if (times(ictrl)%cat_on /= 0) return
          times(ictrl)%t0=real(itns,kind=8)*1.d-9
          times(ictrl)%cat_on=cat_id !category which has been activated
+        !catname=f_malloc((/1.to.128/), id="catname")
+        call get_category_name(cat_id, catname)
+         call nvtxrangepusha(catname//CHAR(0));
+        !call f_free(catname)
+
+!call Extrae_event(6000019,cat_id)
       case('OF')
          if (times(ictrl)%cat_paused /=0) then
             !no action except for misuse of interrupts
@@ -590,6 +598,8 @@ module time_profiling
             times(ictrl)%clocks(cat_id)=times(ictrl)%clocks(cat_id)+&
                  t1-times(ictrl)%t0
             times(ictrl)%cat_on=0
+         call nvtxrangepop();
+            !call Extrae_event(6000019,0)
          end if
          !otherwise no action as the off mismatches
       case('IR') !interrupt category
@@ -614,6 +624,9 @@ module time_profiling
          end if
          times(ictrl)%cat_on=cat_id
          times(ictrl)%t0=t1
+         call get_category_name(cat_id, catname)
+         call nvtxrangepusha(catname//CHAR(0));
+
       case('RS') !resume the category by supposing it has been activated by IR
          if (f_err_raise(times(ictrl)%cat_paused==0,&
               'It appears no category has to be resumed',&
@@ -636,6 +649,8 @@ module time_profiling
             times(ictrl)%cat_on=0
          end if
          times(ictrl)%cat_paused=0
+         call nvtxrangepop();
+
       case('RX') !resume the interrupted category, cat_id is ignored here
          !dry run if expert mode active and not initialized categories
          if (times(ictrl)%cat_paused==0 .or. times(ictrl)%cat_on==0) return
@@ -657,6 +672,8 @@ module time_profiling
             times(ictrl)%cat_on=0
          end if
          times(ictrl)%cat_paused=0
+         call nvtxrangepop();
+
       case default
          call f_err_throw('TIMING ACTION UNDEFINED',err_id=TIMING_INVALID)
       end select
