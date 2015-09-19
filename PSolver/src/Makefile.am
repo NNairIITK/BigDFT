@@ -31,7 +31,7 @@ endif
 if USE_CUDA_GPU
 CUDA_SOURCES = cufft.cu
 else
-CUDA_SOURCES =
+CUDA_SOURCES = cufft_fake.f90
 endif
 libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	scaling_function.f90 \

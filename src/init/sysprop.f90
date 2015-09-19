@@ -103,7 +103,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
      !here the initialization of dpbox can be set up
      call dpbox_set(denspot%dpbox,Lzd,denspot%xc,iproc,nproc,bigdft_mpi%mpi_comm, &
-          & in%PSolver_groupsize, in%SIC%approach, atoms%astruct%geocode, in%nspin)
+          & in%PSolver_groupsize, in%SIC%approach, atoms%astruct%geocode, in%nspin,&
+          in%matacc%PSolver_igpu)
 
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)

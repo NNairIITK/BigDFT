@@ -21,6 +21,59 @@
 
 #define TILE_DIM  8
 
+
+static const char *_cufftGetErrorString(cufftResult error)
+{
+    switch (error)
+    {
+        case CUFFT_SUCCESS:
+            return "CUFFT_SUCCESS";
+        case CUFFT_INVALID_PLAN:
+            return "CUFFT_INVALID_PLAN";
+        case CUFFT_ALLOC_FAILED:
+            return "CUFFT_ALLOC_FAILED";
+        case CUFFT_INVALID_TYPE:
+            return "CUFFT_INVALID_TYPE";
+        case CUFFT_INVALID_VALUE:
+            return "CUFFT_INVALID_VALUE";
+        case CUFFT_INTERNAL_ERROR:
+            return "CUFFT_INTERNAL_ERROR";
+        case CUFFT_EXEC_FAILED:
+            return "CUFFT_EXEC_FAILED";
+        case CUFFT_SETUP_FAILED:
+            return "CUFFT_SETUP_FAILED";
+        case CUFFT_INVALID_SIZE:
+            return "CUFFT_INVALID_SIZE";
+        case CUFFT_UNALIGNED_DATA:
+            return "CUFFT_UNALIGNED_DATA";
+    }
+    return "<unknown>";
+}
+
+
+#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
+{
+   if (code != cudaSuccess) 
+   {
+      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
+
+#define cufftErrchk(ans) { __cufftAssert((ans), __FILE__, __LINE__); }
+
+inline void __cufftAssert(cufftResult code, const char *file, const int line, bool abort=true)
+{
+   if(code != CUFFT_SUCCESS) 
+   {
+      fprintf(stderr, "cufftAssert : %s %s %d.\n",
+      _cufftGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
+}
+
 // synchronize blocks
 extern "C" void synchronize_() {
  
@@ -31,16 +84,13 @@ extern "C" void synchronize_() {
 extern "C" void FC_FUNC(cudamalloc, CUDAMALLOC) (int *size, Real **d_data,int *ierr) {
 
   *ierr = cudaMalloc((void**)d_data, sizeof(Real)*(*size));
-  if( cudaGetLastError() != cudaSuccess)
-      printf("allocate error\n");
+  //errors should be treated in the fortran part
 }
 
 // allocate device memory
 extern "C" void FC_FUNC(cudamemset, CUDAMEMSET) (Real **d_data, int* value, int* size,int *ierr) {
 
   *ierr = cudaMemset((void*)*d_data, *value, sizeof(Real)*(*size));
-  if( cudaGetLastError() != cudaSuccess)
-      printf("cudamemset error\n");
 }
 
 extern "C" void FC_FUNC(cudafree, CUDAFREE) (Real **d_data) {
@@ -71,6 +121,64 @@ extern "C" void FC_FUNC_(get_gpu_data, GET_GPU_DATA)(int *size, Real *h_data, Re
  if (cudaGetLastError() != cudaSuccess)
         printf("transfer back error\n");
 }
+
+
+// determine which method can be used for allocating data on the GPU
+// for now, only valid for 1 MPI process/GPU
+extern "C" void FC_FUNC_(cuda_estimate_memory_needs_cu, CUDA_ESTIMATE_MEMORY_NEEDS_CU)(int* iproc, int *N,int *geo, size_t* plansSize, size_t* maxPlanSize, size_t* freeSize, size_t* totalSize) {
+
+ size_t workSize=0;//, maxPlanSize=0, plansSize=0, kernelSize=0, PCGRedSize=0;
+
+ int NX = N[0];
+ int NY = N[1];
+ int NZ = N[2];
+ //int geo1 = geo[0];
+ int geo2 = geo[1];
+ int geo3 = geo[2];
+
+ int ysize = NY/2 + geo2 * NY/2;
+ int zsize = NZ/2 + geo3 * NZ/2;
+
+//only the first MPI process of the group needs the GPU
+if(*iproc==0){
+     //size of the cuFFT plans
+     // --- Using cufftEstimate1d
+     cufftErrchk(cufftEstimate1d(NX, CUFFT_D2Z, ysize*zsize, &workSize));
+    // printf("cufftEstimate1d worksize 1 = %lu\n",workSize);
+     *plansSize+=workSize;
+     *maxPlanSize=workSize;
+     cufftErrchk(cufftEstimate1d(NX, CUFFT_Z2D, ysize*zsize, &workSize));
+    // printf("cufftEstimate1d worksize 2 = %lu\n",workSize);
+     *plansSize+=workSize;
+     *maxPlanSize=std::max(*maxPlanSize,workSize);
+     cufftErrchk(cufftEstimate1d(NY, Transform, (NX/2+1)*zsize, &workSize));
+    // printf("cufftEstimate1d worksize 3 = %lu\n",workSize);
+     *plansSize+=workSize;
+     *maxPlanSize=std::max(*maxPlanSize,workSize);
+     cufftErrchk(cufftEstimate1d(NZ, Transform, (NX/2+1)*NY, &workSize));
+    // printf("cufftEstimate1d worksize 4 = %lu\n",workSize);
+     *plansSize+=workSize;
+     *maxPlanSize=std::max(*maxPlanSize,workSize);
+    // printf("workSize = %lu\n",plansSize);
+}
+    // this method could be more precise, but actually seems to answer the same
+    //// --- Using cufftGetSize1d
+    //   cufftHandle plan;
+    //   cufftCreate(&plan);
+    //   cufftGetSize1d(plan, NX, CUFFT_D2Z, ysize*zsize, &workSize);
+    //   printf("cufftGetSize1d worksize 1 = %lu\n",workSize);
+    //   cufftGetSize1d(plan, NX, CUFFT_Z2D, ysize*zsize, &workSize);
+    //   printf("cufftGetSize1d worksize 2 = %lu\n",workSize);
+    //   cufftGetSize1d(plan, NY, Transform, (NX/2+1)*zsize, &workSize);
+    //   printf("cufftGetSize1d worksize 3 = %lu\n",workSize);
+    //   cufftGetSize1d(plan, NZ, Transform, (NX/2+1)*NY, &workSize);
+    //   printf("cufftGetSize1d worksize 4 = %lu\n",workSize);
+
+
+ gpuErrchk(cudaMemGetInfo(freeSize,totalSize));
+
+}
+
 
 
 // transpose
@@ -944,6 +1052,7 @@ void kern1_red (int i , Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real
   *sum+= (g_odata[i]);
 }
 
+
 __device__
 void kern2_comp_and_red (int i , Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_GPU, Real* z_GPU, Real* corr_GPU, Real* oneoeps_GPU, Real* alpha_GPU, Real* beta_GPU, Real* beta0_GPU, Real* kappa_GPU, Real* g_odata, Real* sum){
   Real zeta=z_GPU[i];
@@ -1182,45 +1291,41 @@ void reduce_step(int s, int threads, int blocks, int reduceOnly,  Real* p_GPU, R
         switch (threads)
         {
             case 512:
-                reduce_kernel<512, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<512, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 256:
-                reduce_kernel<256, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<256, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 128:
-                reduce_kernel<128, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<128, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 64:
-                reduce_kernel<64, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<64, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 32:
-                reduce_kernel<32, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<32, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 16:
-                reduce_kernel<16, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<16, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  8:
-                reduce_kernel<8, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<8, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  4:
-                reduce_kernel<4, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<4, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  2:
-                reduce_kernel<2, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<2, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  1:
-                reduce_kernel<1, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<1, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
         }
     }
 
-  cudaError_t error = cudaGetLastError();
-  if(error != cudaSuccess)
-  {
-    // print the CUDA error message and exit
-    printf("CUDA error in kernel : %s", cudaGetErrorString(error));
-exit(0);
-  }
+//gpuErrchk( cudaPeekAtLastError() );
+//gpuErrchk( cudaDeviceSynchronize() );
+
 }
 
 unsigned int nextPow2(unsigned int x)
@@ -1276,13 +1381,12 @@ void apply_reduction(int n,
 
     Real *d_odata = NULL;
     cudaMalloc((void **) &d_odata, blocks*sizeof(Real));
-  if( cudaGetLastError() != cudaSuccess)
-      printf("allocate error\n");
+    gpuErrchk( cudaPeekAtLastError() );
     //first reduction
+    cudaDeviceSynchronize();
     reduce_step<op1, op2>(n, threads, blocks, 0,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
   
-  if( cudaGetLastError() != cudaSuccess)
-    printf("result during first reduction kernel\n");
+    gpuErrchk( cudaPeekAtLastError() );
 
     int s=blocks;
     //loop and perform as many reductions steps as necessary
@@ -1301,15 +1405,15 @@ void apply_reduction(int n,
         blocks = min(maxBlocks, blocks);
 
         reduce_step<op1, op2>(s, threads, blocks, 1, p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
-        if( cudaGetLastError() != cudaSuccess)
-            printf("result during reduction kernel\n");
+        gpuErrchk( cudaPeekAtLastError() );
         s = (s + (threads*2-1)) / (threads*2);
     }
+
   //TODO: move result copy to user code ?
   cudaMemcpy(result, d_odata, sizeof(Real), cudaMemcpyDeviceToHost);
-  if( cudaGetLastError() != cudaSuccess)
-    printf("result retrieve error\n");
+  gpuErrchk( cudaPeekAtLastError() );
   cudaFree(d_odata);
+  cudaDeviceSynchronize();
 }
 
 //these will be called from fortran, and apply the reduction with the right subkernels

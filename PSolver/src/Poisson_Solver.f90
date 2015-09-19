@@ -167,6 +167,7 @@ module Poisson_Solver
       !> inner rigid cavity to be integrated in the sccs method to avoit inner
       !! cavity discontinuity due to near-zero edens near atoms
       real(dp), dimension(:,:), pointer :: epsinnersccs
+      real(dp), dimension(:,:,:), pointer :: zf
       !> Polarization charge vector for print purpose only.
       real(dp), dimension(:,:), pointer :: pol_charge
       !> Dielectric cavity eps for print purpose only.
@@ -181,8 +182,10 @@ module Poisson_Solver
       type(mpi_environment) :: inplane_mpi,part_mpi !<mpi_environment for internal ini-plane parallelization
       type(FFT_metadata) :: grid !<dimensions of the FFT grid associated to this kernel
       integer :: igpu !< control the usage of the GPU
+      integer :: gpuPCGRed !< control if GPU can be used for PCG reductions
       integer :: initCufftPlan
       integer :: keepGPUmemory
+      integer :: keepzf
       !parameters for the iterative methods
       !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
       integer :: nord
@@ -192,6 +195,8 @@ module Poisson_Solver
       
       integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
       integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
+      integer, dimension(:), pointer :: rhocounts !<array needed to gather the information of the poisson solver on multiple gpus
+      integer, dimension(:), pointer :: rhodispls !<array needed to gather the information of the poisson solver on multiple gpus
    end type coulomb_operator
 
    !intialization of the timings
@@ -275,6 +280,7 @@ contains
     k%igpu=0
     k%initCufftPlan=0
     k%keepGPUmemory=1
+    k%keepzf=1
     k%nord=0
     k%max_iter=0
     k%PI_eta=0.0_dp

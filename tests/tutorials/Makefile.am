@@ -2,19 +2,23 @@
 
 #SUBDIRS = Xabs/pawpatchgen  Xabs/scfpotgen   Xabs/spectra    
 
-TESTDIRS = CH4 \
-	  CH3- \
-	  H2O-slab \
-	  H2O-bader \
-	  scalability \
-	  dev
 EXTRA_TESTDIRS =
-
+SHORT_TESTDIRS =
+LONG_TESTDIRS =
 if USE_OCL
   EXTRA_TESTDIRS += N2
 else
-  TESTDIRS += N2
+  SHORT_TESTDIRS += N2
 endif
+
+SHORT_TESTDIRS += H2O-slab \
+	CH4	
+
+LONG_TESTDIRS += $(SHORT_TESTDIRS) 
+	  CH3- \
+	  H2O-bader \
+	  scalability \
+	  dev
 
 EXTRA_DIST = Figures \
      H1A_first_run.html \

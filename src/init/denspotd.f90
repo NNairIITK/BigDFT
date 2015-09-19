@@ -84,12 +84,12 @@ subroutine initialize_rho_descriptors(rhod)
 end subroutine initialize_rho_descriptors
 
 
-subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin)
+subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin,igpu)
   use module_base
   use module_types
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nproc,mpi_comm,PS_groupsize,nspin
+  integer, intent(in) :: iproc,nproc,mpi_comm,PS_groupsize,nspin,igpu
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=4), intent(in) :: SICapproach
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -112,7 +112,8 @@ subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,
   end if
   call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,npsolver_groupsize)
 
-  call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,xc,nspin,geocode,SICapproach,dpbox)
+  call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,igpu,xc,&
+                              nspin,geocode,SICapproach,dpbox)
 
 end subroutine dpbox_set
 
@@ -212,13 +213,13 @@ subroutine denspot_free_history(denspot)
 end subroutine denspot_free_history
 
 
-subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox)
+subroutine denspot_communications(iproc,nproc,igpu,xc,nspin,geocode,SICapproach,dpbox)
   use module_base
   use module_types
   use module_xc
   use module_interfaces, except_this_one => denspot_communications
   implicit none
-  integer, intent(in) :: nspin,iproc,nproc
+  integer, intent(in) :: nspin,iproc,nproc,igpu
   type(xc_info), intent(in) :: xc
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=4), intent(in) :: SICapproach
@@ -236,7 +237,7 @@ subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox
   !also used for the density
   dpbox%ngatherarr = f_malloc_ptr((/ 0.to.nproc-1, 1.to.3 /),id='dpbox%ngatherarr')
 
-  call dpbox_repartition(iproc,nproc,geocode,'D',xc,dpbox)
+  call dpbox_repartition(iproc,nproc,igpu,geocode,'D',xc,dpbox)
 
   !Allocate Charge density / Potential in real space
   !here the full_density treatment should be put
@@ -520,7 +521,7 @@ END SUBROUTINE allocateRhoPot
 
 
 !> Create the descriptors for the density and the potential
-subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
+subroutine dpbox_repartition(iproc,nproc,igpu,geocode,datacode,xc,dpbox)
 
   use module_base
   use module_types
@@ -528,7 +529,7 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
   use module_xc
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc,nproc,igpu
   type(xc_info), intent(in) :: xc
   character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
@@ -540,7 +541,7 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
      do jproc=0,nproc-1
         call PS_dim4allocation(geocode,datacode,jproc,nproc,&
              dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),xc_isgga(xc),(xc%ixc/=13),&
-             n3d,n3p,n3pi,i3xcsh,i3s)
+             igpu,n3d,n3p,n3pi,i3xcsh,i3s)
         dpbox%nscatterarr(jproc,1)=n3d            !number of planes for the density
         dpbox%nscatterarr(jproc,2)=n3p            !number of planes for the potential
         dpbox%nscatterarr(jproc,3)=i3s+i3xcsh-1   !starting offset for the potential

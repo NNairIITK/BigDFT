@@ -10,6 +10,30 @@
 #  make X.diff: make the difference between the output and the reference (with DIFF envvar)
 #  make X.updateref: update the reference with the output (prompt the overwrite)
 
+#write here a portable way to run only few test in the Makefile.
+#taken as the third solution of the interesting webpage http://gallium.inria.fr/blog/portable-conditionals-in-makefiles/
+#thanks to this trick we can test only few test by typing the command
+# make check checkonly_that=C O2-Spin etc. CHECK_MODE=custom
+
+checkonlyfoo_short= short
+checkonlyfoo_long= long
+checkonlyfoo_custom= that
+
+checkonly_short=$(SHORT_TESTDIRS)
+checkonly_long=$(LONG_TESTDIRS)
+#this fixes the default value
+checkonly_=$(SHORT_TESTDIRS)
+
+TESTDIRS := ${checkonly_${checkonlyfoo_${CHECK_MODE}}}
+
+#reset the values for future use
+#checkonlyfoo_short= 
+#checkonlyfoo_long= 
+#checkonly_short=
+#checkonly_long=
+#checkonly_=
+
+
 if USE_MPI
   mpirun_message = mpirun
 else
@@ -58,8 +82,9 @@ PSPS = psppar.H \
        HGH-K/psppar.Ti \
        extra/psppar.H \
        Xabs/psppar.Fe
+#$(TESTDIRS) 
 
-ALLDIRS = $(EXTRA_TESTDIRS) $(TESTDIRS)
+ALLDIRS = $(EXTRA_TESTDIRS) $(LONG_TESTDIRS)
 
 INS = $(ALLDIRS:=.in)
 RUNS = $(ALLDIRS:=.run)

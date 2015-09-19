@@ -117,8 +117,9 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   !gpu acceleration
   kernel%igpu=igpu  
 
-  kernel%initCufftPlan = 0
+  kernel%initCufftPlan = 1
   kernel%keepGPUmemory = 1
+  kernel%keepzf = 1
 
   if (iproc == 0 .and. verb) then 
      if (mu0t==0.0_gp) then 
@@ -138,7 +139,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   end if
 
   !gpu can be used only for one nproc
-  !if (kernel%nproc > 1) kernel%igpu=0
+  if (nproc > 1) kernel%igpu=0
 
   !-------------------
   nthreads=0
@@ -172,24 +173,33 @@ subroutine pkernel_free(kernel)
   call f_free_ptr(kernel%cavity)
   call f_free_ptr(kernel%counts)
   call f_free_ptr(kernel%displs)
-
+  if(kernel%keepzf == 1) then
+    call f_free_ptr(kernel%zf)
+  end if
+  if (kernel%gpuPCGRed == 1) then
+    if (kernel%keepGPUmemory == 1) then
+      call cudafree(kernel%z_GPU)
+      call cudafree(kernel%r_GPU)
+      call cudafree(kernel%oneoeps_GPU)
+      call cudafree(kernel%p_GPU)
+      call cudafree(kernel%q_GPU)
+      call cudafree(kernel%x_GPU)
+      call cudafree(kernel%corr_GPU)
+      call cudafree(kernel%alpha_GPU)
+      call cudafree(kernel%beta_GPU)
+      call cudafree(kernel%beta0_GPU)
+      call cudafree(kernel%kappa_GPU)
+    end if
+  end if
   !free GPU data
   if (kernel%igpu == 1) then
     if (kernel%mpi_env%iproc == 0) then
+     call f_free_ptr(kernel%rhocounts)
+     call f_free_ptr(kernel%rhodispls)
      if (kernel%keepGPUmemory == 1) then
        call cudafree(kernel%work1_GPU)
        call cudafree(kernel%work2_GPU)
-    call cudafree(kernel%z_GPU)
-    call cudafree(kernel%r_GPU)
-    call cudafree(kernel%oneoeps_GPU)
-    call cudafree(kernel%p_GPU)
-    call cudafree(kernel%q_GPU)
-    call cudafree(kernel%x_GPU)
-    call cudafree(kernel%corr_GPU)
-    call cudafree(kernel%alpha_GPU)
-    call cudafree(kernel%beta_GPU)
-    call cudafree(kernel%beta0_GPU)
-    call cudafree(kernel%kappa_GPU)
+
      endif
      call cudafree(kernel%k_GPU)
      if (kernel%initCufftPlan == 1) then
@@ -262,9 +272,8 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   real(kind=8) :: alphat,betat,gammat,mu0t,pi
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
-  integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23
+  integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ,gpuPCGRed
   integer,dimension(3) :: n
-
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
   call f_timing(TCAT_PSOLV_KERNEL,'ON')
 
@@ -302,9 +311,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
         call yaml_map('Boundary Conditions','Periodic')
      end if
      call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,.false.)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,.false.)
 
-     if (kernel%igpu == 2) then
+     if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
        kernel%kernel = f_malloc_ptr(nd1*nd2*nd3/kernelnproc,id='kernel%kernel')
@@ -363,9 +372,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
      end if
      !Build the Kernel
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu,.false.)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
      
-     if (kernel%igpu == 2) then
+     if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
        kernel%kernel = f_malloc_ptr(nd1*nd2*nd3/kernelnproc,id='kernel%kernel')
@@ -435,9 +444,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 !     print *,'debug',kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3)
      !Build the Kernel
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu,.false.)
+          md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
  
-     if (kernel%igpu == 2) then
+     if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
        !allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
@@ -498,9 +507,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
         call yaml_map('Boundary Conditions','Wire')
      end if
      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu,.false.)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
 
-     if (kernel%igpu == 2) then
+     if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
        kernel%kernel = f_malloc_ptr(nd1*nd2*(nd3/kernelnproc),id='kernel%kernel')
@@ -625,54 +634,63 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
   end if
 
+  if(kernel%keepzf == 1) then
+    if(kernel%igpu == 1) then
+      kernel%zf = f_malloc_ptr([md1, md3, md2/kernel%mpi_env%nproc],id='zf')
+    else 
+      kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+    end if
+  end if 
+
+  kernel%gpuPCGRed=0
   if (kernel%igpu >0) then
+    if(trim(str(kernel%method))=='PCG') kernel%gpuPCGRed=1
+    n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
+    n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
+    n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
+    call cuda_estimate_memory_needs(kernel, n) 
+
 
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
     size3=n1*n2*n3
+  if (kernel%gpuPCGRed==1) then
+    if (kernel%keepGPUmemory == 1) then
+      call cudamalloc(size3,kernel%z_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc z_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%r_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc r_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%oneoeps_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc oneoeps_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%p_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc p_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%q_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc q_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%x_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc x_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%corr_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc corr_GPU (GPU out of memory ?) ')
+      call cudamalloc(sizeof(alpha),kernel%alpha_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc alpha_GPU (GPU out of memory ?) ')
+      call cudamalloc(sizeof(alpha),kernel%beta_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc beta_GPU (GPU out of memory ?) ')
+      call cudamalloc(sizeof(alpha),kernel%beta0_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc beta0_GPU (GPU out of memory ?) ')
+      call cudamalloc(sizeof(alpha),kernel%kappa_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc kappa_GPU (GPU out of memory ?) ')
+    end if 
+  end if
 
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then
       if (kernel%keepGPUmemory == 1) then
         call cudamalloc(size2,kernel%work1_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc work1_GPU (GPU out of memory ?) ')
         call cudamalloc(size2,kernel%work2_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%z_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%r_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%oneoeps_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%p_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%q_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%x_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%corr_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-
-
-        call cudamalloc(sizeof(alpha),kernel%alpha_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(sizeof(alpha),kernel%beta_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(sizeof(alpha),kernel%beta0_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(sizeof(alpha),kernel%kappa_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-
-        call cudamemset(kernel%p_GPU, 0, size3,i_stat)
-        if (i_stat /= 0) print *,'error cudamemset p',i_stat
-        call cudamemset(kernel%q_GPU, 0, size3,i_stat)
-        if (i_stat /= 0) print *,'error cudamemset q',i_stat
-        call cudamemset(kernel%x_GPU, 0, size3,i_stat)
-        if (i_stat /= 0) print *,'error cudamemset x',i_stat
-
+      if (i_stat /= 0) call f_err_throw('error cudamalloc work2_GPU (GPU out of memory ?) ')
       endif
       call cudamalloc(sizek,kernel%k_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      if (i_stat /= 0) call f_err_throw('error cudamalloc k_GPU (GPU out of memory ?) ')
     endif
 
     pkernel2 = f_malloc((n1/2+1)*n2*n3,id='pkernel2')
@@ -704,9 +722,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
       if (dump) call yaml_map('Kernel Copied on GPU',.true.)
 
-      n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
-      n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
-      n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
+
 
       if (kernel%initCufftPlan == 1) then
         call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
@@ -777,6 +793,24 @@ end if
      kernel%displs(jproc)=kernel%grid%m1*kernel%grid%m3*istart
   end do
 
+  ! multi-gpu poisson distribution
+  if (kernel%igpu>0 .and. kernel%mpi_env%iproc ==0) then
+    displ=0
+    kernel%rhocounts=f_malloc_ptr([0.to.kernel%mpi_env%nproc-1], id='rhocounts')
+    kernel%rhodispls=f_malloc_ptr([0.to.kernel%mpi_env%nproc-1], id='rhodispls')
+    do jproc=0,kernel%mpi_env%nproc-1
+      kernel%rhodispls(jproc)=displ
+      istart=jproc*( kernel%grid%md2/kernel%mpi_env%nproc)
+      jend=min((jproc+1)* kernel%grid%md2/kernel%mpi_env%nproc,kernel%grid%m2)
+      if (istart <= kernel%grid%m2-1) then
+         kernel%rhocounts(jproc)=(jend-istart)*kernel%grid%md3*kernel%grid%md1
+      else
+         kernel%rhocounts(jproc)=0
+      end if
+      displ=displ+kernel%rhocounts(jproc)
+    end do
+  end if
+
   select case(trim(str(kernel%method)))
   case('PCG')
   if (present(eps)) then
@@ -812,6 +846,73 @@ end if
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')
 
 END SUBROUTINE pkernel_set
+
+
+subroutine cuda_estimate_memory_needs(kernel, n)
+  use iso_c_binding  
+!  use module_base
+implicit none
+  type(coulomb_operator), intent(inout) :: kernel
+  integer,dimension(3), intent(in) :: n
+  integer(kind=C_SIZE_T) :: maxPlanSize, freeGPUSize, totalGPUSize
+  integer(kind=8) :: size2,sizek,size3,NX,NY,NZ,iproc_node,nproc_node
+  integer(kind=8) :: kernelSize, PCGRedSize, plansSize
+  real(dp) alpha
+
+  kernelSize=0
+  PCGRedSize=0
+  plansSize=0
+  maxPlanSize=0
+  freeGPUSize=0
+  totalGPUSize=0
+
+ !estimate with CUDA the free memory size, and the size of the plans
+ call cuda_estimate_memory_needs_cu(kernel%mpi_env%iproc,n,&
+    kernel%geo,plansSize,maxPlanSize,freeGPUSize, totalGPUSize )
+
+ ! get the number of processes on each node
+!!TODO: see how to use bigdft_mpi from here, as we can't use module_base, which is not yet compiled
+! call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+ nproc_node=1
+ iproc_node=0
+
+!only the first MPI process of the group needs the GPU for apply_kernel
+ if(kernel%mpi_env%iproc==0) then
+   size2=2*n(1)*n(2)*n(3)*sizeof(alpha)
+   sizek=(n(1)/2+1)*n(2)*n(3)*sizeof(alpha)
+   kernelSize =2*size2+sizek
+ end if
+
+!all processes can use the GPU for apply_reductions
+ if((kernel%gpuPCGRed)==1) then
+   size3=n(1)*n(2)*n(3)*sizeof(alpha)
+   !add a 10% margin, because we use a little bit more
+   PCGRedSize=(7*size3+4*sizeof(alpha))*1.1
+   !print *,"PCG reductions size : %lu\n", PCGRedSize
+ end if
+
+
+!print *,"free mem",freeGPUSize,", total",totalGPUSize,". Trying Total : ",kernelSize+plansSize+PCGRedSize,&
+!" with kernel ",kernelSize," plans ",plansSize, "maxplan",&
+!maxPlanSize, "and red ",PCGRedSize, "nprocs/node", nproc_node
+ if(freeGPUSize<nproc_node*(kernelSize+maxPlanSize)) then
+     call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
+       trim(yaml_toa(freeGPUSize)) // ", total Memory :"// trim(yaml_toa(totalGPUSize)) //& 
+       ", minimum needed memory :"// trim(yaml_toa(nproc_node*(kernelSize+maxPlanSize))) )
+ else if(freeGPUSize <nproc_node*(kernelSize+plansSize)) then
+     call yaml_warning( "WARNING: not enough free memory for cufftPlans on GPU, performance will be degraded")
+     kernel%initCufftPlan=0
+     kernel%gpuPCGRed=0
+ else if((kernel%gpuPCGRed == 1) .and. (freeGPUSize < nproc_node*(kernelSize+plansSize+PCGRedSize))) then
+     call yaml_warning( "WARNING: not enough free memory for GPU PCG reductions, performance will be degraded")
+     kernel%gpuPCGRed=0;
+ else
+     !call yaml_comment("Memory on the GPU is sufficient for" // trim(yaml_toa(nproc_node)) // " processes/node")
+     kernel%initCufftPlan=1;
+ end if
+
+
+end subroutine cuda_estimate_memory_needs
 
 
 !> set the epsilon in the pkernel structure as a function of the seteps variable.
@@ -1487,8 +1588,8 @@ subroutine fssnord3DmatNabla3varde2_LG(geocode,n01,n02,n03,u,du,du2,nord,hgrids)
   !c..local variables
   integer :: n,m,n_cell
   integer :: i,j,ib,i1,i2,i3,ii
-  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-  real(kind=8) :: hx,hy,hz
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
+  real(kind=8) :: hx,hy,hz,d
   logical :: perx,pery,perz
 
   n = nord+1
@@ -1528,111 +1629,136 @@ subroutine fssnord3DmatNabla3varde2_LG(geocode,n01,n02,n03,u,du,du2,nord,hgrids)
   end do
 
   include 'FiniteDiffCorff.inc'
-
+  c1D_1 = c1D/hx
+  c1D_2 = c1D/hy
+  c1D_3 = c1D/hz
+  !!!default(shared) private(i1,i2,i3,j,ii, d) 
+  !$omp parallel do default(none) &
+  !$omp private(i3,i2,i1,d,ii,j) &
+  !$omp shared(du2,perx,m,n01,n02,n03,du,c1D_1,u)
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
 
-           du(i1,i2,i3,1) = 0.0d0
+           d = 0.0d0
            du2(i1,i2,i3) = 0.0d0
 
            if (i1.le.m) then
             if (perx) then
              do j=-m,m
               ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+              d = d + c1D_1(j,0)*u(ii,i2,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-m-1)*u(j+m+1,i2,i3)/hx
+              d = d + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3)
              end do
             end if
            else if (i1.gt.n01-m) then
             if (perx) then
              do j=-m,m
               ii=modulo(i1 + j - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+              d = d + c1D_1(j,0)*u(ii,i2,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)/hx
+              d = d + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3)
              end do
             end if
            else
               do j=-m,m
-                 du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(i1 + j,i2,i3)/hx
+                 d = d + c1D_1(j,0)*u(i1 + j,i2,i3)
               end do
            end if
+           du(i1,i2,i3,1)= d
+           du2(i1,i2,i3) = d*d
 
-           du2(i1,i2,i3) = du(i1,i2,i3,1)*du(i1,i2,i3,1)
-           du(i1,i2,i3,2) = 0.0d0
+        end do
+     end do
+  end do
+  !$omp end parallel do
+
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+
+           d = 0.0d0
 
            if (i2.le.m) then
             if (pery) then
              do j=-m,m
               ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+              d = d + c1D_2(j,0)*u(i1,ii,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-m-1)*u(i1,j+m+1,i3)/hy
+              d = d + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3)
              end do
             end if
            else if (i2.gt.n02-m) then
             if (pery) then
              do j=-m,m
               ii=modulo(i2 + j - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+              d = d + c1D_2(j,0)*u(i1,ii,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)/hy
+              d = d + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3)
              end do
             end if
            else
               do j=-m,m
-                 du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,i2 + j,i3)/hy
+                 d = d + c1D_2(j,0)*u(i1,i2 + j,i3)
               end do
            end if
+           du(i1,i2,i3,2)= d
+           du2(i1,i2,i3) = du2(i1,i2,i3) + d*d
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
-           du2(i1,i2,i3) = du2(i1,i2,i3) + du(i1,i2,i3,2)*du(i1,i2,i3,2)
-
-           du(i1,i2,i3,3) = 0.0d0
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii,d) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           d = 0.0d0
 
            if (i3.le.m) then
             if (perz) then
              do j=-m,m
               ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+              d = d + c1D_3(j,0)*u(i1,i2,ii)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-m-1)*u(i1,i2,j+m+1)/hz
+              d = d + c1D_3(j,i3-m-1)*u(i1,i2,j+m+1)
              end do
             end if
            else if (i3.gt.n03-m) then
             if (perz) then
              do j=-m,m
               ii=modulo(i3 + j - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+              d = d + c1D_3(j,0)*u(i1,i2,ii)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)/hz
+              d = d + c1D_3(j,i3-n03+m)*u(i1,i2,n03 + j - m)
              end do
             end if
            else
               do j=-m,m
-                 du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,i3 + j)/hz
+                 d = d + c1D_3(j,0)*u(i1,i2,i3 + j)
               end do
            end if
-
-           du2(i1,i2,i3) = du2(i1,i2,i3) + du(i1,i2,i3,3)*du(i1,i2,i3,3)
+           du(i1,i2,i3,3)=d
+           du2(i1,i2,i3) = du2(i1,i2,i3) + d*d
 
         end do
      end do
   end do
-
+  !$omp end parallel do
 end subroutine fssnord3DmatNabla3varde2_LG
 
 !>this routine computes 'nord' order accurate first derivatives 
@@ -1659,8 +1785,8 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids,cc)
   !c..local variables
   integer :: n,m,n_cell
   integer :: i,j,ib,i1,i2,i3,ii
-  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-  real(kind=8) :: hx,hy,hz,d1,d2,d3,uxy,uyz,uxz
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
+  real(kind=8) :: hx,hy,hz,d1,uxy,uyz,uxz
   real(kind=8), parameter :: zero = 0.d0! 1.0d-11
   logical :: perx,pery,perz
 
@@ -1678,8 +1804,8 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids,cc)
   perz=(geocode /= 'F')
 
   ! Beware that n_cell has to be > than n.
-  if (n_cell.lt.n) then
-     write(*,*)'ngrid in has to be setted > than n=nord + 1'
+  if (n_cell < n) then
+     write(*,*)'ngrid in has to be set > than n=nord + 1'
      stop
   end if
 
@@ -1702,132 +1828,299 @@ subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids,cc)
 
   include 'FiniteDiffCorff.inc'
 
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
+  c1D_1 = c1D/hx
+  c1D_2 = c1D/hy
+  c1D_3 = c1D/hz
 
-           du(i1,i2,i3) = 0.0d0
+!!$  if (present(cc)) then
+!!$     cc(i1,i2,i3) = (u(i1,i2,i3,1)**2)*d1+(u(i1,i2,i3,2)**2)*d2+(u(i1,i2,i3,3)**2)*d3+&
+!!$          2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,2)*uxy+2.d0*u(i1,i2,i3,2)*u(i1,i2,i3,3)*uyz+&
+!!$          2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,3)*uxz
+!!$  end if
 
-           d1 = 0.d0
-           uxy = 0.d0
-           uxz = 0.d0
-           if (i1.le.m) then
-              if (perx) then
-               do j=-m,m
-                ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-                d1 = d1 + c1D(j,0)*u(ii,i2,i3,1)!/hx
-                uxy = uxy + c1D(j,0)*u(ii,i2,i3,2)!/hx
-                uxz = uxz + c1D(j,0)*u(ii,i2,i3,3)!/hx
-               end do
-              else
-               do j=-m,m
-                 d1 = d1 + c1D(j,i1-m-1)*u(j+m+1,i2,i3,1)!/hx
-                 uxy = uxy + c1D(j,i1-m-1)*u(j+m+1,i2,i3,2)!/hx
-                 uxz = uxz + c1D(j,i1-m-1)*u(j+m+1,i2,i3,3)!/hx
-               end do
-              end if
-           else if (i1.gt.n01-m) then
-              if (perx) then
-               do j=-m,m
-                ii=modulo(i1 + j - 1, n01 ) + 1
-                d1 = d1 + c1D(j,0)*u(ii,i2,i3,1)!/hx
-                uxy = uxy + c1D(j,0)*u(ii,i2,i3,2)!/hx
-                uxz = uxz + c1D(j,0)*u(ii,i2,i3,3)!/hx
-               end do
-              else
-               do j=-m,m
-                 d1 = d1 + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,1)!/hx
-                 uxy = uxy + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,2)!/hx
-                 uxz = uxz + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,3)!/hx
-               end do
-              end if
-           else
-              do j=-m,m
-                 d1 = d1 + c1D(j,0)*u(i1 + j,i2,i3,1)!/hx
-                 uxy = uxy + c1D(j,0)*u(i1 + j,i2,i3,2)!/hx
-                 uxz = uxz + c1D(j,0)*u(i1 + j,i2,i3,3)!/hx
-              end do
-           end if
-           d1=d1/hx
-           uxy=uxy/hx
-           uxz=uxz/hx
+ 
+  if (present(cc)) then
+     !$omp parallel do default(none) &
+     !$omp private(i1,i2,i3,j,ii, d1,uxz,uxy) &
+     !$omp shared(du,c1D_1,u,perx,m,hx,n01,n02,n03,cc)
+     do i3=1,n03
+        do i2=1,n02
+           do i1=1,n01
 
-           d2 = 0.d0
-           uyz = 0.d0
-           if (i2.le.m) then
-              if (pery) then
-               do j=-m,m
-                ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-                d2 = d2 + c1D(j,0)*u(i1,ii,i3,2)!/hy
-                uyz = uyz + c1D(j,0)*u(i1,ii,i3,3)!/hy
-               end do
-              else
-               do j=-m,m
-                 d2 = d2 + c1D(j,i2-m-1)*u(i1,j+m+1,i3,2)!/hy
-                 uyz = uyz + c1D(j,i2-m-1)*u(i1,j+m+1,i3,3)!/hy
-               end do
-              end if
-           else if (i2.gt.n02-m) then
-              if (pery) then
-               do j=-m,m
-                ii=modulo(i2 + j - 1, n02 ) + 1
-                d2 = d2 + c1D(j,0)*u(i1,ii,i3,2)!/hy
-                uyz = uyz + c1D(j,0)*u(i1,ii,i3,3)!/hy
-               end do
-              else
-               do j=-m,m
-                 d2 = d2 + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,2)!/hy
-                 uyz = uyz + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,3)!/hy
-               end do
-              end if
-           else
-              do j=-m,m
-                 d2 = d2 + c1D(j,0)*u(i1,i2 + j,i3,2)!/hy
-                 uyz = uyz + c1D(j,0)*u(i1,i2 + j,i3,3)!/hy
-              end do
-           end if
-           d2=d2/hy
-           uyz=uyz/hy
+              du(i1,i2,i3) = 0.0d0
 
-           d3 = 0.d0
-           if (i3.le.m) then
-              if (perz) then
-               do j=-m,m
-                ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-                d3 = d3 + c1D(j,0)*u(i1,i2,ii,3)!/hz
-               end do
+              d1 = 0.d0
+              uxy = 0.d0
+              uxz = 0.d0
+              if (i1.le.m) then
+                 if (perx) then
+                    do j=-m,m
+                       ii=modulo(i1 + j + n01 - 1, n01 ) + 1
+                       d1 = d1 + c1D_1(j,0)*u(ii,i2,i3,1)
+                       uxy = uxy + c1D_1(j,0)*u(ii,i2,i3,2)!/hx
+                       uxz = uxz + c1D_1(j,0)*u(ii,i2,i3,3)!/hx
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3,1)
+                       uxy = uxy + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3,2)!/hx
+                       uxz = uxz + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3,3)!/hx
+                    end do
+                 end if
+              else if (i1.gt.n01-m) then
+                 if (perx) then
+                    do j=-m,m
+                       ii=modulo(i1 + j - 1, n01 ) + 1
+                       d1 = d1 + c1D_1(j,0)*u(ii,i2,i3,1)
+                       uxy = uxy + c1D_1(j,0)*u(ii,i2,i3,2)!/hx
+                       uxz = uxz + c1D_1(j,0)*u(ii,i2,i3,3)!/hx
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3,1)
+                       uxy = uxy + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3,2)!/hx
+                       uxz = uxz + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3,3)!/hx
+                    end do
+                 end if
               else
-               do j=-m,m
-                 d3 = d3 + c1D(j,i3-m-1)*u(i1,i2,j+m+1,3)!/hz
-               end do
+                 do j=-m,m
+                    d1 = d1 + c1D_1(j,0)*u(i1 + j,i2,i3,1)
+                    uxy = uxy + c1D_1(j,0)*u(i1 + j,i2,i3,2)!/hx
+                    uxz = uxz + c1D_1(j,0)*u(i1 + j,i2,i3,3)!/hx
+                 end do
               end if
-           else if (i3.gt.n03-m) then
-              if (perz) then
-               do j=-m,m
-                ii=modulo(i3 + j - 1, n03 ) + 1
-                d3 = d3 + c1D(j,0)*u(i1,i2,ii,3)!/hz
-               end do
-              else
-               do j=-m,m
-                d3 = d3 + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m,3)!/hz
-               end do
-              end if
-           else
-              do j=-m,m
-                 d3 = d3 + c1D(j,0)*u(i1,i2,i3 + j,3)!/hz
-              end do
-           end if
-           d3=d3/hz
+              !uxy=uxy/hx
+              !uxz=uxz/hx
 
-           du(i1,i2,i3) = d1+d2+d3
-           if (present(cc)) then
-              cc(i1,i2,i3) = (u(i1,i2,i3,1)**2)*d1+(u(i1,i2,i3,2)**2)*d2+(u(i1,i2,i3,3)**2)*d3+&
-                   2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,2)*uxy+2.d0*u(i1,i2,i3,2)*u(i1,i2,i3,3)*uyz+&
+              du(i1,i2,i3) =d1
+              cc(i1,i2,i3) = (u(i1,i2,i3,1)**2)*d1 + &
+                   2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,2)*uxy + &
                    2.d0*u(i1,i2,i3,1)*u(i1,i2,i3,3)*uxz
-           end if
+
+           end do
         end do
      end do
-  end do
+     !$omp end parallel do
+
+     !shared) 
+     !$omp parallel do default(none) &
+     !$omp private(i1,i2,i3,j,ii,d1,uyz) &
+     !$omp shared(n01,n02,n03,pery,m,c1D_2,u,du,cc)
+     do i3=1,n03
+        do i2=1,n02
+           do i1=1,n01
+              d1=0.d0
+              uyz = 0.d0
+
+              if (i2.le.m) then
+                 if (pery) then
+                    do j=-m,m
+                       ii=modulo(i2 + j + n02 - 1, n02 ) + 1
+                       d1 = d1 + c1D_2(j,0)*u(i1,ii,i3,2)
+                       uyz = uyz + c1D_2(j,0)*u(i1,ii,i3,3)!/hy
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3,2)
+                       uyz = uyz + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3,3)!/hy
+                    end do
+                 end if
+              else if (i2.gt.n02-m) then
+                 if (pery) then
+                    do j=-m,m
+                       ii=modulo(i2 + j - 1, n02 ) + 1
+                       d1 = d1 + c1D_2(j,0)*u(i1,ii,i3,2)
+                       uyz = uyz + c1D_2(j,0)*u(i1,ii,i3,3)!/hy
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3,2)
+                       uyz = uyz + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3,3)!/hy
+                    end do
+                 end if
+              else
+                 do j=-m,m
+                    d1 = d1 + c1D_2(j,0)*u(i1,i2 + j,i3,2)
+                    uyz = uyz + c1D_2(j,0)*u(i1,i2 + j,i3,3)!/hy
+                 end do
+              end if
+              du(i1,i2,i3) = du(i1,i2,i3) + d1
+              !uyz=uyz/hy
+              cc(i1,i2,i3) = cc(i1,i2,i3) + (u(i1,i2,i3,2)**2)*d1+ &
+                   2.d0*u(i1,i2,i3,2)*u(i1,i2,i3,3)*uyz
+           end do
+        end do
+     end do
+     !$omp end parallel do
+
+
+     !(shared) private(i1,i2,i3,j,ii, d1) 
+     !$omp parallel do default(none) &
+     !$omp private(i1,i2,i3,j,ii,d1) &
+     !$omp shared(n01,n02,n03,perz,m,c1D_3,u,du,cc)
+     do i3=1,n03
+        do i2=1,n02
+           do i1=1,n01
+              d1=0.d0
+              if (i3.le.m) then
+                 if (perz) then
+                    do j=-m,m
+                       ii=modulo(i3 + j + n03 - 1, n03 ) + 1
+                       d1 = d1 + c1D_3(j,0)*u(i1,i2,ii,3)
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_3(j,i3-m-1)*u(i1,i2,j+m+1,3)
+                    end do
+                 end if
+              else if (i3.gt.n03-m) then
+                 if (perz) then
+                    do j=-m,m
+                       ii=modulo(i3 + j - 1, n03 ) + 1
+                       d1 = d1 + c1D_3(j,0)*u(i1,i2,ii,3)
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_3(j,i3-n03+m)*u(i1,i2,n03 + j - m,3)
+                    end do
+                 end if
+              else
+                 do j=-m,m
+                    d1 = d1 + c1D_3(j,0)*u(i1,i2,i3 + j,3)
+                 end do
+              end if
+              du(i1,i2,i3) = du(i1,i2,i3)+d1
+              cc(i1,i2,i3) = cc(i1,i2,i3) + (u(i1,i2,i3,3)**2)*d1
+           end do
+        end do
+     end do
+     !$omp end parallel do
+  else
+
+     !$omp parallel do default(none) &
+     !$omp private(i1,i2,i3,j,ii, d1) &
+     !$omp shared(du,c1D_1,u,perx,m,hx,n01,n02,n03)
+     do i3=1,n03
+        do i2=1,n02
+           do i1=1,n01
+
+              du(i1,i2,i3) = 0.0d0
+
+              d1 = 0.d0
+              if (i1.le.m) then
+                 if (perx) then
+                    do j=-m,m
+                       ii=modulo(i1 + j + n01 - 1, n01 ) + 1
+                       d1 = d1 + c1D_1(j,0)*u(ii,i2,i3,1)
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3,1)
+                    end do
+                 end if
+              else if (i1.gt.n01-m) then
+                 if (perx) then
+                    do j=-m,m
+                       ii=modulo(i1 + j - 1, n01 ) + 1
+                       d1 = d1 + c1D_1(j,0)*u(ii,i2,i3,1)
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3,1)
+                    end do
+                 end if
+              else
+                 do j=-m,m
+                    d1 = d1 + c1D_1(j,0)*u(i1 + j,i2,i3,1)
+                 end do
+              end if
+              du(i1,i2,i3) =d1
+           end do
+        end do
+     end do
+     !$omp end parallel do
+
+     !default(shared) private(i1,i2,i3,j,ii,d1,uyz) 
+     !$omp parallel do default(none) &
+     !$omp private(i1,i2,i3,j,ii,d1) &
+     !$omp shared(c1D_2,u,n01,n02,n03,du,m,pery)
+     do i3=1,n03
+        do i2=1,n02
+           do i1=1,n01
+              d1=0.d0
+              if (i2.le.m) then
+                 if (pery) then
+                    do j=-m,m
+                       ii=modulo(i2 + j + n02 - 1, n02 ) + 1
+                       d1 = d1 + c1D_2(j,0)*u(i1,ii,i3,2)
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3,2)
+                    end do
+                 end if
+              else if (i2.gt.n02-m) then
+                 if (pery) then
+                    do j=-m,m
+                       ii=modulo(i2 + j - 1, n02 ) + 1
+                       d1 = d1 + c1D_2(j,0)*u(i1,ii,i3,2)
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3,2)
+                    end do
+                 end if
+              else
+                 do j=-m,m
+                    d1 = d1 + c1D_2(j,0)*u(i1,i2 + j,i3,2)
+                 end do
+              end if
+              du(i1,i2,i3) = du(i1,i2,i3) + d1
+           end do
+        end do
+     end do
+     !$omp end parallel do
+
+     !$omp parallel do default(none) &
+     !$omp private(i1,i2,i3,j,ii,d1) &
+     !$omp shared(c1D_3,u,n01,n02,n03,du,m,perz)
+     do i3=1,n03
+        do i2=1,n02
+           do i1=1,n01
+              d1=0.d0
+              if (i3.le.m) then
+                 if (perz) then
+                    do j=-m,m
+                       ii=modulo(i3 + j + n03 - 1, n03 ) + 1
+                       d1 = d1 + c1D_3(j,0)*u(i1,i2,ii,3)
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_3(j,i3-m-1)*u(i1,i2,j+m+1,3)
+                    end do
+                 end if
+              else if (i3.gt.n03-m) then
+                 if (perz) then
+                    do j=-m,m
+                       ii=modulo(i3 + j - 1, n03 ) + 1
+                       d1 = d1 + c1D_3(j,0)*u(i1,i2,ii,3)
+                    end do
+                 else
+                    do j=-m,m
+                       d1 = d1 + c1D_3(j,i3-n03+m)*u(i1,i2,n03 + j - m,3)
+                    end do
+                 end if
+              else
+                 do j=-m,m
+                    d1 = d1 + c1D_3(j,0)*u(i1,i2,i3 + j,3)
+                 end do
+              end if
+              du(i1,i2,i3) = du(i1,i2,i3)+d1
+           end do
+        end do
+     end do
+     !$omp end parallel do
+  end if
 
 end subroutine fssnord3DmatDiv3var_LG
 
@@ -1854,8 +2147,8 @@ subroutine fssnord3DmatNabla3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
   !c..local variables
   integer :: n,m,n_cell,ii
   integer :: i,j,ib,i1,i2,i3
-  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-  real(kind=8) :: hx,hy,hz
+  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
+  real(kind=8) :: hx,hy,hz, d
   logical :: perx,pery,perz
 
   n = nord+1
@@ -1897,104 +2190,125 @@ subroutine fssnord3DmatNabla3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
 
   include 'FiniteDiffCorff.inc'
 
+  c1D_1 = c1D/hx
+  c1D_2 = c1D/hy
+  c1D_3 = c1D/hz
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d) 
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
 
-           du(i1,i2,i3,1) = 0.0d0
+           d= 0.0d0
 
            if (i1.le.m) then
             if (perx) then
              do j=-m,m
               ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+              d = d + c1D_1(j,0)*u(ii,i2,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-m-1)*u(j+m+1,i2,i3)/hx
+              d = d + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3)
              end do
             end if
            else if (i1.gt.n01-m) then
             if (perx) then
              do j=-m,m
               ii=modulo(i1 + j - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
+              d = d + c1D_1(j,0)*u(ii,i2,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)/hx
+              d = d + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3)
              end do
             end if
            else
             do j=-m,m
-             du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(i1 + j,i2,i3)/hx
+             d = d + c1D_1(j,0)*u(i1 + j,i2,i3)
             end do
            end if
+           du(i1,i2,i3,1) = d
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
-           du(i1,i2,i3,2) = 0.0d0
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           d = 0.0d0
 
            if (i2.le.m) then
             if (pery) then
              do j=-m,m
               ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+              d = d + c1D_2(j,0)*u(i1,ii,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-m-1)*u(i1,j+m+1,i3)/hy
+              d = d + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3)
              end do
             end if
            else if (i2.gt.n02-m) then
             if (pery) then
              do j=-m,m
               ii=modulo(i2 + j - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
+              d = d + c1D_2(j,0)*u(i1,ii,i3)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)/hy
+              d = d + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3)
              end do
             end if
            else
             do j=-m,m
-             du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,i2 + j,i3)/hy
+             d = d + c1D_2(j,0)*u(i1,i2 + j,i3)
             end do
            end if
+           du(i1,i2,i3,2)=d
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
-           du(i1,i2,i3,3) = 0.0d0
-
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
+           d = 0.0d0
            if (i3.le.m) then
             if (perz) then
              do j=-m,m
               ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+              d = d + c1D_3(j,0)*u(i1,i2,ii)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-m-1)*u(i1,i2,j+m+1)/hz
+              d = d + c1D_3(j,i3-m-1)*u(i1,i2,j+m+1)
              end do
             end if
            else if (i3.gt.n03-m) then
             if (perz) then
              do j=-m,m
               ii=modulo(i3 + j - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
+              d = d + c1D_3(j,0)*u(i1,i2,ii)
              end do
             else
              do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)/hz
+              d = d + c1D_3(j,i3-n03+m)*u(i1,i2,n03 + j - m)
              end do
             end if
            else
             do j=-m,m
-             du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,i3 + j)/hz
+             d = d + c1D_3(j,0)*u(i1,i2,i3 + j)
             end do
            end if
-
+           du(i1,i2,i3,3)=d
         end do
      end do
   end do
-
+  !$omp end parallel do
 end subroutine fssnord3DmatNabla3var_LG
 
 !> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
@@ -2072,12 +2386,11 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
   include 'FiniteDiffCorff.inc'
 
   rhores2=0.d0
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dx) 
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
-
            dx=0.d0
-
            if (i1.le.m) then
               if (perx) then
                do j=-m,m
@@ -2106,7 +2419,15 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
               end do
            end if
            dx=dx/hx
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dy) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
            dy = 0.0d0
            if (i2.le.m) then
               if (pery) then
@@ -2136,7 +2457,15 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
               end do
            end if
            dy=dy/hy
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
+  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dz) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
            dz = 0.0d0
            if (i3.le.m) then
               if (perz) then
@@ -2166,7 +2495,16 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
               end do
            end if
            dz=dz/hz
+        end do
+     end do
+  end do
+  !$omp end parallel do
 
+  !$omp parallel do default(shared) private(i1,i2,i3,res,rho) &
+  !$omp reduction(+:rhores2) 
+  do i3=1,n03
+     do i2=1,n02
+        do i1=1,n01
            !retrieve the previous treatment
            res = dlogeps(1,i1,i2,i3)*dx + &
                 dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
@@ -2176,10 +2514,11 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
            res=eta*res
            rhores2=rhores2+res*res
            rhopol(i1,i2,i3)=res+rho
-
         end do
      end do
   end do
+  !$omp end parallel do
+
 !  rhores2=rhores2/rpoints
 
 end subroutine fssnord3DmatNabla_LG

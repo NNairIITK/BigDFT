@@ -1,10 +1,8 @@
 # Give here the list of existing tests
-TESTDIRS = Davidson-SiH4 \
+LONG_TESTDIRS = Davidson-SiH4 \
 	  TDDFT
-
-EXTRA_DIST = \
-	README \
-	$(TESTDIRS)
+#initialize
+EXTRA_DIST = 
 
 # Give here the pseudo-potentials used by each test.
 Davidson-SiH4.psp: psppar.H psppar.Si

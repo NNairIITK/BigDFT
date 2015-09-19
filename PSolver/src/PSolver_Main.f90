@@ -87,7 +87,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
    real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z,depsdrho,dsurfdrho
-   real(dp), dimension(:,:,:), allocatable :: zf,work_full,pot_full
+   real(dp), dimension(:,:,:), allocatable :: work_full,pot_full
    !integer, dimension(:,:), allocatable :: gather_arr
 
    call f_routine(id='H_potential')
@@ -157,8 +157,19 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    end if
    
    !array allocations
+
+   !we need to reallocate the zf array with the right size when called with stress_tensor and gpu
+   if(kernel%keepzf == 1) then
+      if(kernel%igpu==1 .and. .not. cudasolver) then
+          call f_free_ptr(kernel%zf)
+          kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+      end if
+   else
+      kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+   end if 
+
    !initalise to zero the zf array
-   zf = f_malloc([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+   call f_zero(kernel%zf)
 
    select case(datacode)
    case('G')
@@ -214,12 +225,12 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    select case(trim(str(kernel%method)))
    case('VAC')
       !core psolver routine
-      call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,zf,.false.)
+      call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%zf,.false.)
 
       call finalize_hartree_results(sumpion,pot_ion,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
-           rhopot(i3start),zf,rhopot(i3start),ehartreeLOC)
+           rhopot(i3start),kernel%zf,rhopot(i3start),ehartreeLOC)
       !gathering the data to obtain the distribution array
       if (datacode == 'G' .and. kernel%mpi_env%nproc > 1) then
          call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
@@ -264,7 +275,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
             end do
          end do
          
-         call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,zf,.true.)
+         call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%zf,.true.)
          !gathering the data to obtain the distribution array
          !this method only works with datacode == 'G'
          if (kernel%mpi_env%nproc > 1) then
@@ -368,7 +379,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
 
          !  Apply the Preconditioner
-         call apply_kernel(cudasolver,kernel,z,offset,strten,zf,.true.)
+         call apply_kernel(cudasolver,kernel,z,offset,strten,kernel%zf,.true.)
 
          call apply_reductions(ip, cudasolver, kernel, r, x, p, q, z, alpha, beta, normr)
 
@@ -382,7 +393,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          end if
       end do PCG_loop
       if (wrtmsg) call yaml_sequence_close()
-
+      
+      !only useful for gpu, bring back the x array
+      call update_pot_from_device(cudasolver, kernel, x)
       !if statement for SC cavity
       if (kernel%method .hasattr. PS_SCCS_ENUM)&
            call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,x,eps0)
@@ -417,8 +430,11 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
    end select
 
-   call f_free(zf)
+   if(kernel%keepzf /= 1) then
+      call f_free_ptr(kernel%zf)
+   end if
    if (kernel%method == 'PCG') call f_free(pot_full)
+
 
    !if statement for SC cavity to be added
    if (kernel%method .hasattr. PS_SCCS_ENUM) then
@@ -564,7 +580,6 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
   call f_routine(id='apply_kernel')
 
-  call f_zero(zf)
   !this routine builds the values for each process of the potential (zf), multiplying by scal   
   !fill the array with the values of the charge density
   !no more overlap between planes
@@ -611,9 +626,10 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
      endif
 
      if (kernel%mpi_env%nproc > 1) then
-        zf1 = f_malloc(size1,id='zf1')
-
-        call mpi_gather(zf,size1/kernel%mpi_env%nproc,mpidtypd,zf1,size1/kernel%mpi_env%nproc, &
+        if (kernel%mpi_env%iproc == 0) zf1 = f_malloc0(size1,id='zf1')
+        
+       call mpi_gatherv(zf,kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1,mpidtypd,&
+             zf1,kernel%rhocounts,kernel%rhodispls, &
              mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
 
         if (kernel%mpi_env%iproc == 0) then
@@ -633,11 +649,10 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
            call get_gpu_data(size1,zf1,kernel%work1_GPU)
         endif
 
-        call MPI_Scatter(zf1,size1/kernel%mpi_env%nproc,mpidtypd,zf,size1/kernel%mpi_env%nproc, &
+        call MPI_Scatterv(zf1,kernel%rhocounts,kernel%rhodispls,mpidtypd,zf,kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1, &
              mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
 
-        call f_free(zf1)
-
+        if (kernel%mpi_env%iproc == 0) call f_free(zf1)
      else
 
         !fill the GPU memory
@@ -656,8 +671,6 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
         !take data from GPU
         call get_gpu_data(size1,zf,kernel%work1_GPU)
-
-
      endif
 
      if (kernel%keepGPUmemory == 0) then
@@ -703,8 +716,7 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
   n1=kernel%grid%m1
   beta0 = beta
   beta=0.d0
-!  if (.true.) then !CPU case
-  if (.not. gpu) then !CPU case
+  if (kernel%gpuPCGRed == 0) then !CPU case
          !$omp parallel do default(shared) private(i1,i23,rval,zeta) &
          !$omp reduction(+:beta)
          do i23=1,n23
@@ -723,7 +735,6 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
          if (kernel%mpi_env%nproc > 1) &
               call mpiallred(beta,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
          kappa=0.d0
-
          !$omp parallel do default(shared) private(i1,i23,epsc,zeta)&
          !$omp private(pval,qval,rval) reduction(+:kappa)
          do i23=1,n23
@@ -791,18 +802,17 @@ subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
     if (i_stat /= 0) print *,'error cudamalloc',i_stat
     call cudamalloc(sizeof(kappa),kernel%kappa_GPU,i_stat)
     if (i_stat /= 0) print *,'error cudamalloc',i_stat
+  end if
+
+  if (ip == 1) then 
+    call reset_gpu_data(size1,r,kernel%r_GPU)
+    call reset_gpu_data(size1,kernel%oneoeps,kernel%oneoeps_GPU)
     call cudamemset(kernel%p_GPU, 0, size1,i_stat)
     if (i_stat /= 0) print *,'error cudamemset p',i_stat
     call cudamemset(kernel%q_GPU, 0, size1,i_stat)
     if (i_stat /= 0) print *,'error cudamemset q',i_stat
     call cudamemset(kernel%x_GPU, 0, size1,i_stat)
     if (i_stat /= 0) print *,'error cudamemset x',i_stat
-
-  end if
-
-  if (ip == 1) then 
-    call reset_gpu_data(size1,r,kernel%r_GPU)
-    call reset_gpu_data(size1,kernel%oneoeps,kernel%oneoeps_GPU)
   end if
 
   call reset_gpu_data(size1,z,kernel%z_GPU)
@@ -848,6 +858,7 @@ kernel%x_GPU,kernel%z_GPU,kernel%corr_GPU, kernel%oneoeps_GPU, kernel%alpha_GPU,
   
   call get_gpu_data(size1,z,kernel%z_GPU)
 
+
   if (kernel%keepGPUmemory == 0) then
     call cudafree(kernel%z_GPU)
     call cudafree(kernel%r_GPU)
@@ -865,6 +876,20 @@ kernel%x_GPU,kernel%z_GPU,kernel%corr_GPU, kernel%oneoeps_GPU, kernel%alpha_GPU,
   end if
 
 end subroutine apply_reductions
+
+!at the end of the loop, we have to synchronize potential from gpu
+subroutine update_pot_from_device(gpu, kernel,x)
+  type(coulomb_operator), intent(in) :: kernel 
+  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: x
+  logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
+  integer size1
+!  if (.false.) then !CPU case
+  if (kernel%gpuPCGRed==1) then !CPU case
+    size1=kernel%grid%m3*kernel%grid%n3p*kernel%grid%m1
+    call get_gpu_data(size1,x,kernel%x_GPU)
+  end if 
+end subroutine update_pot_from_device
+
 !> calculate the integral between the array in zf and the array in rho
 !! copy the zf array in pot and sum with the array pot_ion if needed
 subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
@@ -954,7 +979,7 @@ end subroutine EPS_iter_output
 !! @author Luigi Genovese
 !! @date February 2007
 subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradient,use_wb_corr,&
-      n3d,n3p,n3pi,i3xcsh,i3s)
+      igpu,n3d,n3p,n3pi,i3xcsh,i3s)
    implicit none
    character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
    character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
@@ -963,6 +988,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
    integer, intent(in) :: n01,n02,n03  !< Dimensions of the real space grid to be hit with the Poisson Solver
    logical, intent(in) :: use_gradient !< .true. if functional is using the gradient.
    logical, intent(in) :: use_wb_corr  !< .true. if functional is using WB corrections.
+   integer, intent(in) :: igpu         !< Is GPU enabled ?
    !> Third dimension of the density. For distributed data, it takes into account 
    !! the enlarging needed for calculating the XC functionals.
    !! For global data it is simply equal to n03. 
@@ -988,6 +1014,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
    !! The array pot_ion to the planes from i3s+i3xcsh to i3s+i3xcsh+n3pi-1
    !! For global disposition i3s is equal to distributed case with i3xcsh=0.
    integer, intent(out) :: i3s
+
    !local variables
    !n(c) integer, parameter :: nordgr=4
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
@@ -1007,7 +1034,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
         endif
       endif
    case('S')
-      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+      call S_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,igpu,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
         n3pr2=n3/2+1
@@ -1016,7 +1043,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
         endif
       endif
    case('F','H')
-      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+      call F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,igpu,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
         n3pr2=n3/2+1
@@ -1025,7 +1052,7 @@ subroutine PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,use_gradie
         endif
       endif
    case('W')
-      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,0,.false.)
+      call W_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,igpu,.false.)
       if (nproc>2*(n3/2+1)-1 .and. .false.) then
         n3pr1=nproc/(n3/2+1)
         n3pr2=n3/2+1
