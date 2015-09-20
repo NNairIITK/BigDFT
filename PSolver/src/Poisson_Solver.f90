@@ -268,6 +268,7 @@ contains
     nullify(k%epsinnersccs)
     nullify(k%pol_charge)
     nullify(k%cavity)
+    nullify(k%zf)
     k%work1_GPU=0.d0
     k%work2_GPU=0.d0
     k%k_GPU=0.d0

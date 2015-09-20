@@ -2386,7 +2386,10 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
   include 'FiniteDiffCorff.inc'
 
   rhores2=0.d0
-  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dx) 
+  !$omp parallel do default(shared) &
+  !$omp private(i1,i2,i3,j,ii, dx,dy,dz,res,rho)&
+  !!!!$omp shared(m,n01,n02,n03,perx,pery,perz,rhopol,u,hx,hy,hz,c1D,eta,oneo4pi,dlogeps) &
+  !$omp reduction(+:rhores2)
   do i3=1,n03
      do i2=1,n02
         do i1=1,n01
@@ -2419,15 +2422,15 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
               end do
            end if
            dx=dx/hx
-        end do
-     end do
-  end do
-  !$omp end parallel do
-
-  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dy) 
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
+!!$        end do
+!!$     end do
+!!$  end do
+!!$  !$omp end parallel do
+!!$
+!!$  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dy) 
+!!$  do i3=1,n03
+!!$     do i2=1,n02
+!!$        do i1=1,n01
            dy = 0.0d0
            if (i2.le.m) then
               if (pery) then
@@ -2457,15 +2460,15 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
               end do
            end if
            dy=dy/hy
-        end do
-     end do
-  end do
-  !$omp end parallel do
-
-  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dz) 
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
+!!$        end do
+!!$     end do
+!!$  end do
+!!$  !$omp end parallel do
+!!$
+!!$  !$omp parallel do default(shared) private(i1,i2,i3,j,ii, dz) 
+!!$  do i3=1,n03
+!!$     do i2=1,n02
+!!$        do i1=1,n01
            dz = 0.0d0
            if (i3.le.m) then
               if (perz) then
@@ -2495,16 +2498,7 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
               end do
            end if
            dz=dz/hz
-        end do
-     end do
-  end do
-  !$omp end parallel do
 
-  !$omp parallel do default(shared) private(i1,i2,i3,res,rho) &
-  !$omp reduction(+:rhores2) 
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
            !retrieve the previous treatment
            res = dlogeps(1,i1,i2,i3)*dx + &
                 dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
@@ -2514,10 +2508,33 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
            res=eta*res
            rhores2=rhores2+res*res
            rhopol(i1,i2,i3)=res+rho
+
+
         end do
      end do
   end do
   !$omp end parallel do
+
+  !this part should now go inside the open loop
+
+!!$  !$omp parallel do default(shared) private(i1,i2,i3,res,rho) &
+!!$  !$omp reduction(+:rhores2) 
+!!$  do i3=1,n03
+!!$     do i2=1,n02
+!!$        do i1=1,n01
+!!$           !retrieve the previous treatment
+!!$           res = dlogeps(1,i1,i2,i3)*dx + &
+!!$                dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
+!!$           res = res*oneo4pi
+!!$           rho=rhopol(i1,i2,i3)
+!!$           res=res-rho
+!!$           res=eta*res
+!!$           rhores2=rhores2+res*res
+!!$           rhopol(i1,i2,i3)=res+rho
+!!$        end do
+!!$     end do
+!!$  end do
+!!$  !$omp end parallel do
 
 !  rhores2=rhores2/rpoints
 

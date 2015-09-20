@@ -168,9 +168,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
    end if 
 
-   !initalise to zero the zf array
-   call f_zero(kernel%zf)
-
    select case(datacode)
    case('G')
       !starting address of rhopot in the case of global i/o
@@ -224,6 +221,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !now switch the treatment according to the method used
    select case(trim(str(kernel%method)))
    case('VAC')
+      !initalise to zero the zf array 
+      call f_zero(kernel%zf)
+
       !core psolver routine
       call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%zf,.false.)
 
@@ -274,7 +274,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
                irho=irho+1
             end do
          end do
-         
+
+         !initalise to zero the zf array 
+         call f_zero(kernel%zf)
          call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%zf,.true.)
          !gathering the data to obtain the distribution array
          !this method only works with datacode == 'G'
@@ -378,6 +380,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
          if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
 
+         !initalise to zero the zf array 
+         call f_zero(kernel%zf)
          !  Apply the Preconditioner
          call apply_kernel(cudasolver,kernel,z,offset,strten,kernel%zf,.true.)
 
@@ -580,12 +584,14 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
   call f_routine(id='apply_kernel')
 
+  !call f_zero(zf)
   !this routine builds the values for each process of the potential (zf), multiplying by scal   
   !fill the array with the values of the charge density
   !no more overlap between planes
   !still the complex case should be defined
   n3delta=kernel%grid%md3-kernel%grid%m3
-  !$omp parallel do default(shared) private(i1,i23,j23,j3)
+  !$omp parallel default(shared) private(i1,i23,j23,j3)
+  !$omp do
   do i23=1,kernel%grid%n3p*kernel%grid%m3
      j3=(i23-1)/kernel%grid%m3
      !j2=i23-kernel%grid%m3*j3
@@ -593,8 +599,19 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
      do i1=1,kernel%grid%m1
         zf(i1,j23)=rho(i1,i23)
      end do
+!!$     do i1=kernel%grid%m1+1,kernel%grid%md1
+!!$        zf(i1,j23)=0.0_dp
+!!$     end do
   end do
-  !$omp end parallel do
+  !$omp end do
+!!$  !$omp do
+!!$  do i23=kernel%grid%n3p*kernel%grid%md3+1,kernel%grid%md3*2*(kernel%grid%md2/kernel%mpi_env%nproc)
+!!$     do i1=1,kernel%grid%md1
+!!$        zf(i1,i23)=0.0_dp
+!!$     end do
+!!$  end do
+!!$  !$omp end do
+  !$omp end parallel
 
   call f_zero(strten)
   if (.not. gpu) then !CPU case
