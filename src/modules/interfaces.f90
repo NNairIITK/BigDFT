@@ -39,9 +39,9 @@ module module_interfaces
          type(orbitals_data), intent(inout) :: orbs
          real(gp), dimension(nkpt), intent(in) :: wkpt
          real(gp), dimension(3,nkpt), intent(in) :: kpt
-         integer, dimension(0:nproc-1), intent(in), optional :: basedist
-         integer, dimension(0:nproc-1), intent(in), optional :: basedistu
-         integer, dimension(0:nproc-1), intent(in), optional :: basedistd
+         integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedist
+         integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedistu
+         integer, dimension(0:nproc-1,nkpt), intent(in), optional :: basedistd
       END SUBROUTINE orbitals_descriptors
 
 
@@ -1085,30 +1085,6 @@ module module_interfaces
         real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
         real(wp), dimension(6), optional :: k_strten
       end subroutine isf_to_daub_kinetic
-
-      subroutine denspot_communications(iproc,nproc,&
-           xc,nspin,geocode,SICapproach,dpbox)
-        use module_defs, only: gp,dp,wp
-        use module_types
-        use module_xc
-        implicit none
-        integer, intent(in) :: iproc,nproc,nspin
-        type(xc_info), intent(in) :: xc
-        character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-        character(len=4), intent(in) :: SICapproach
-        type(denspot_distribution), intent(inout) :: dpbox
-      end subroutine denspot_communications
-
-      subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
-        use module_defs, only: gp,dp,wp
-        use module_types
-        implicit none
-        integer, intent(in) :: nspin
-        type(locreg_descriptors), intent(in) :: Glr
-        type(atoms_data), intent(in) :: atoms
-        real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
-        type(DFT_local_fields), intent(inout) :: denspot
-      END SUBROUTINE allocateRhoPot
 
       subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,do_iterative_orthogonalization,sf_per_type,&

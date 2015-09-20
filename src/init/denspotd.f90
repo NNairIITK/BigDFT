@@ -217,7 +217,6 @@ subroutine denspot_communications(iproc,nproc,igpu,xc,nspin,geocode,SICapproach,
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, except_this_one => denspot_communications
   implicit none
   integer, intent(in) :: nspin,iproc,nproc,igpu
   type(xc_info), intent(in) :: xc
@@ -465,7 +464,7 @@ END SUBROUTINE denspot_emit_v_ext
 subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
   use module_base
   use module_types
-  use module_interfaces, fake_name => allocateRhoPot
+  use module_interfaces, only: calculate_rhocore
   implicit none
   integer, intent(in) :: nspin
   type(locreg_descriptors), intent(in) :: Glr

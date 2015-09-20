@@ -597,7 +597,8 @@ contains
 
 
     ! Atoms case.
-    atoms = atoms_data_null()
+    !atoms = atoms_data_null()
+    call nullify_atoms_data(atoms)
 
     if (.not. has_key(dict, POSINP)) &
          call f_err_throw("missing posinp",err_name='BIGDFT_INPUT_VARIABLES_ERROR')

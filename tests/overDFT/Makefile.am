@@ -2,8 +2,7 @@
 SHORT_TESTDIRS = FF-LENOSKY \
 	FF-LJ \
 	H2O-slab \
-	H2-freq \
-	IO-wf
+	H2-freq
 
 if HAVE_ETSF_IO
 SHORT_TESTDIRS += IO-wf-ETSF
@@ -28,7 +27,8 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	XabsLanc \
 	Xabsb2B \
 	BigDFT2Wannier \
-	testforces
+	testforces\
+	IO-wf
 
 EXTRA_DIST = MH_taskgroups
 

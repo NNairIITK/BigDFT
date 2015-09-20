@@ -414,13 +414,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
    call MemoryEstimator(nproc,idsx,KSwfn%Lzd%Glr,&
-        &   orbs%norb,orbs%nspinor,orbs%nkpts,nlpsp%nprojel,&
-        &   in%nspin,in%itrpmax,in%iscf,mem)
+        orbs%norb,orbs%nspinor,orbs%nkpts,nlpsp%nprojel,&
+        in%nspin,in%itrpmax,in%iscf,mem)
    if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
    !complete dpbox initialization
    call dpbox_set(dpcom,KSwfn%Lzd,xc,iproc,nproc,MPI_COMM_WORLD,in%PSolver_groupsize, &
-        & in%SIC%approach,atoms%astruct%geocode,nspin)
+        in%SIC%approach,atoms%astruct%geocode,nspin,in%matacc%PSolver_igpu)
 
   call density_descriptors(iproc,nproc,xc,in%nspin,in%crmult,in%frmult,atoms,&
        dpcom,in%rho_commun,rxyz,rhodsc)
