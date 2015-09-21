@@ -661,7 +661,8 @@ subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, 
            unit0_, unitx_, unity_, unitz_)
   use module_base
   use locregs, only: locreg_descriptors
-  use module_types, only: atoms_data,workarr_sumrho
+  use module_types, only: atoms_data
+  use locreg_operations
   implicit none
   !Arguments
   logical,intent(in) :: units_provided
@@ -703,7 +704,7 @@ subroutine plot_wf(units_provided,orbname,nexpo,at,factor,lr,hx,hy,hz,rxyz,psi, 
   n2i=lr%d%n2i
   n3i=lr%d%n3i
 
-  call initialize_work_arrays_sumrho(1,lr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
   psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
   !initialisation

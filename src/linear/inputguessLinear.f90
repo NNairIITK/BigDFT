@@ -31,6 +31,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use public_enums
   use ao_inguess, only: aoig_data, aoig_data_null, aoig_set
   use orthonormalization, only: orthonormalizeLocalized, iterative_orthonormalization
+  use locreg_operations
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc

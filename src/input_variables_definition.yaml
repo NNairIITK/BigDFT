@@ -1,4 +1,4 @@
-# Definitions of the input variables
+## Definitions of the input variables
 ##inputvar: #name of the variable as declared in the code
 ## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile
@@ -945,6 +945,9 @@
    loewdin_charge_analysis:
      COMMENT: linear scaling perform a Loewdin charge analysis at the end of the calculation
      default: No
+   coeff_weight_analysis:
+     COMMENT: linear scaling perform a Loewdin charge analysis of the coefficients for fragment calculations
+     default: No
    check_matrix_compression:
      COMMENT: linear scaling perform a check of the matrix compression routines
      default: Yes
@@ -979,7 +982,7 @@
      default: 8
      RANGE: [0,8]
    adjust_kernel_iterations:
-     COMMENT: enable the addaptive ajustment of the number of kernel iterations
+     COMMENT: enable the adaptive ajustment of the number of kernel iterations
      default: True
    wf_extent_analysis:
      COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
@@ -1096,6 +1099,42 @@
        EXCLUSIVE:
          0:  None
          1:  Plain text
+     output_fragments:
+       COMMENT: output support functions, kernel and coeffs; 0 fragments and full system, 1 fragments only, 2 full system only
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how the support functions should be written to disk at the end of the run:
+                     *  0 => Fragments and full system
+                     *  1 => Fragments only
+                     *  2 => Full system only
+       default: 0
+       EXCLUSIVE:
+         0:  Fragments and full system
+         1:  Fragments only
+         2:  Full system only
+     kernel_restart_mode:
+       COMMENT: method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 support function weights
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how the kernel should be generated for a restart calculation:
+                     *  0 => Density kernel
+                     *  1 => Coefficients
+                     *  2 => Random
+                     *  3 => Diagonal kernel, i.e. support functions scaled by number of electrons (per fragment)
+                     *  4 => Support functions weights
+       default: 0
+       EXCLUSIVE:
+         0:  Density kernel
+         1:  Coefficients
+         2:  Random
+         3:  Diagonal kernel
+         4:  Support function weights
+       #Here follow some shortcuts
+       kernel: 0
+       coeff: 1
+       random: 2
+       diag: 3
+       weight: 4
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical
@@ -1575,8 +1614,8 @@ linear:
    eval_range_foe: [-1.0, 1.0]
    fscale_foe: 5.0E-002
  lin_basis_params:
-   ao_confinement: -1.0
-   confinement: -1.0
+   #ao_confinement: -1.0
+   #confinement: -1.0
    rloc_kernel: 9.0
    rloc_kernel_foe: 10.5
    H:  {nbasis: 1, rloc: 4.5}

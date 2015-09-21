@@ -4,7 +4,7 @@ SUBDIRS = fft \
 	psp \
 	IO-wf \
 	wrappers \
-    overlapgeneral \
+	overlapgeneral \
 	coordinatetransform
 
 if USE_BLACS

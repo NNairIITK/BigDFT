@@ -33,6 +33,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
   use public_enums
   use orthonormalization, only: orthoconstraintNonorthogonal
+  use locreg_operations
   implicit none
 
   ! Calling arguments

@@ -1308,7 +1308,7 @@ program memguess
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
 
-      call astruct_dump_to_file(at%astruct,'posopt',trim(comment))
+      call astruct_dump_to_file(runObj%atoms%astruct,'posopt',trim(comment))
 
 !!$      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,&
 !!$           runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))

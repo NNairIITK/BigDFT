@@ -346,7 +346,6 @@ contains
   !> Deallocate the structure atoms_data.
   subroutine deallocate_atoms_data(atoms) 
     use module_base
-    use dynamic_memory
     use m_pawrad, only: pawrad_destroy
     use m_pawtab, only: pawtab_destroy
     use m_pawang, only: pawang_destroy
@@ -593,7 +592,7 @@ contains
       type(atomic_structure), intent(inout) :: astruct !< Contains all info
       real(gp), intent(out), optional :: energy
       real(gp), dimension(:,:), pointer, optional :: fxyz
-      character(len = *), intent(out), optional :: comment
+      character(len = 1024), intent(out), optional :: comment
       logical, intent(in), optional :: disableTrans
       !Local variables
       integer, parameter :: iunit=99
@@ -817,7 +816,7 @@ contains
       integer, intent(in), optional :: unit
       !> force the format of the output
       !! the default is otherwise used as defined in inputfile_format
-      character(len=*), intent(in), optional :: fmt
+      character(len=256), intent(in), optional :: fmt
 
       !local variables
       character(len = 15) :: arFile
@@ -1630,7 +1629,7 @@ contains
     !> Read psp file and merge to dict
     subroutine psp_file_merge_to_dict(dict, key, filename, lstring)
       use module_defs, only: gp, UNINITIALIZED
-      use yaml_strings
+!      use yaml_strings
       use f_utils
       use yaml_output
       use dictionaries

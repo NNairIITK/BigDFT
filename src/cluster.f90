@@ -39,7 +39,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use communications_base, only: comms_linear_null
   use unitary_tests, only: check_communication_potential, check_communication_sumrho, &
                            check_communications_locreg
-  use multipole, only: potential_from_charge_multipoles, potential_from_multipoles, interaction_multipoles_ions
+  use multipole, only: potential_from_charge_multipoles, potential_from_multipoles, interaction_multipoles_ions, &
+                       ionic_energy_of_external_charges
   use public_enums
   use module_input_keys, only: SIC_data_null,print_dft_parameters,inputpsiid_set_policy,set_inputpsiid
   implicit none
@@ -114,7 +115,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   integer,dimension(2) :: irow, icol, iirow, iicol
   character(len=20) :: comment
 
-  integer :: ishift, extra_states
+  integer :: ishift, extra_states, i1, i2, i3, ii
 
   !debug
   !real(kind=8) :: ddot
@@ -482,7 +483,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
           denspot%pkernel%mpi_env%mpi_comm,&
           denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
-          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+          denspot%dpbox%hgrids,&
           denspot%rhov,energs%excrhoc,tel,KSwfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
      if (iproc==0) call yaml_map('Value for Exc[rhoc]',energs%excrhoc)
      !if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
@@ -500,17 +501,36 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
        denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
        denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
-  call interaction_multipoles_ions(in%ep, atoms, energs%eion, fion)
+  call interaction_multipoles_ions(bigdft_mpi%iproc, in%ep, atoms, energs%eion, fion)
+  !write(*,*) 'eion before', energs%eion
+  call ionic_energy_of_external_charges(bigdft_mpi%iproc, in%ep, atoms, energs%eion)
+  !write(*,*) 'eion after', energs%eion
   !call yaml_map('rxyz',rxyz)
   !call yaml_map('atoms%astruct%rxyz',atoms%astruct%rxyz)
   !call yaml_map('hgrids',(/denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3)/))
-  !call potential_from_multipoles(in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
-  !     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
-  !     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
-  !     denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
+  !!call potential_from_multipoles(in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+  !!     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
+  !!     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
+  !!     1, denspot%dpbox%ndims(3), &
+  !!     denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, denspot%V_ext)
   if (denspot%c_obj /= 0) then
      call denspot_emit_v_ext(denspot, iproc, nproc)
   end if
+
+  !ii = 0
+  !do i3=1,denspot%dpbox%ndims(3)
+  !    do i2=1,denspot%dpbox%ndims(2)
+  !        do i1=1,denspot%dpbox%ndims(1)
+  !            ii = ii + 1
+  !            write(300,*) 'vals', i1, i2, i3, denspot%V_ext(i1,i2,i3,1)
+  !        end do
+  !    end do
+  !end do
+
+  !call mpi_finalize(ii)
+  !stop
+
+
 
   norbv=abs(in%norbv)
 !!$  if (in%inputPsiId == INPUT_PSI_LINEAR_AO .or. &
@@ -571,7 +591,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
       call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
            inputpsi,input_wf_format,norbv,lzd_old,psi_old,rxyz_old,tmb_old,ref_frags,cdft)
    end if
-  
+
   nvirt=in%nvirt
   if(in%nvirt > norbv) then
      nvirt = norbv
@@ -1058,7 +1078,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
            call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%xc,&
-                denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+                denspot%dpbox%hgrids,&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
            call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
 
@@ -1600,6 +1620,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
 
            opt%iter = opt%iter + 1
+!        if (opt%iter == 2) stop
         end do wfn_loop
 
 
@@ -1903,7 +1924,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      ! This seems to be necessary to get the correct value of xcstr.
      call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
           KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%xc,&
-          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+          denspot%dpbox%hgrids,&
           denspot%rhov,exc_fake,evxc_fake,nspin,denspot%rho_C,denspot%V_XC,xcstr)
      !call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
@@ -1934,6 +1955,20 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
 
      call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
           atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
+!---------------------------------------------------
+! giuseppe fisicaro dilectric cavity
+     if (denspot%pkernel%method /= 'VAC') then
+        if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
+
+        call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
+             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%pol_charge)
+
+        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
+
+        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
+             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%cavity)
+     end if
+!---------------------------------------------------
 
      if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
         if (iproc == 0) call yaml_map('Writing core density in file','core_density'//gridformat)

@@ -1045,7 +1045,7 @@ contains
     use dictionaries
     !use yaml_output, only: yaml_map
     use yaml_strings, only: f_strcpy,yaml_toa
-    use module_defs, only: bigdft_mpi
+    use module_base, only: bigdft_mpi
     use module_input_dicts, only: merge_input_file_to_dict,set_dict_run_file
     use f_utils, only: f_file_exists
     use dynamic_memory
@@ -1367,6 +1367,7 @@ contains
     use module_lenosky_si
     use public_enums
     use module_defs
+    use module_base, only: bigdft_mpi,mpibcast
     use dynamic_memory, only: f_memcpy,f_routine,f_release_routine
     use yaml_strings, only: yaml_toa, operator(+)
     use yaml_output
@@ -1377,6 +1378,7 @@ contains
     use module_cp2k
     use module_dftbp
     use f_enums, enum_int => int
+    use wrapper_linalg, only: vscal
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1923,7 +1925,7 @@ contains
     end do
 
     !copy the final value of the energy and of the dfunctional
-    if (.not. experimental_modulebase_var_onlyfion) then !normal case
+    if (.true.) then !.not. experimental_modulebase_var_onlyfion) then !normal case
        call vcopy(3*atoms%astruct%nat,dfunctional(1),1,fxyz(1,1),1)
     else
        call axpy(3*atoms%astruct%nat,2.0_gp*rst%KSwfn%orbs%norb,dfunctional(1),1,fxyz(1,1),1)
@@ -2191,7 +2193,7 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
 END SUBROUTINE run_objects_init_from_run_name
 
 subroutine run_objects_update(runObj, dict)
-  use module_base, only: bigdft_mpi,f_int,f_str => f_char
+  use module_base, only: bigdft_mpi
   use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
   use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
   use yaml_output

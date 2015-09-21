@@ -217,7 +217,6 @@ subroutine denspot_communications(iproc,nproc,igpu,xc,nspin,geocode,SICapproach,
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, except_this_one => denspot_communications
   implicit none
   integer, intent(in) :: nspin,iproc,nproc,igpu
   type(xc_info), intent(in) :: xc
@@ -465,7 +464,7 @@ END SUBROUTINE denspot_emit_v_ext
 subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
   use module_base
   use module_types
-  use module_interfaces, fake_name => allocateRhoPot
+  use module_interfaces, only: calculate_rhocore
   implicit none
   integer, intent(in) :: nspin
   type(locreg_descriptors), intent(in) :: Glr
@@ -660,7 +659,6 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
  
 end subroutine density_descriptors
 
-
 !> routine which initialised the potential data
 subroutine default_confinement_data(confdatarr,norbp)
   use module_base
@@ -673,21 +671,11 @@ subroutine default_confinement_data(confdatarr,norbp)
 
   !initialize the confdatarr
   do iorb=1,norbp
-     confdatarr(iorb)%potorder=0
-     !the rest is not useful
-     confdatarr(iorb)%prefac     =UNINITIALIZED(confdatarr(iorb)%prefac)     
-     confdatarr(iorb)%hh(1)      =UNINITIALIZED(confdatarr(iorb)%hh(1))      
-     confdatarr(iorb)%hh(2)      =UNINITIALIZED(confdatarr(iorb)%hh(2))      
-     confdatarr(iorb)%hh(3)      =UNINITIALIZED(confdatarr(iorb)%hh(3))      
-     confdatarr(iorb)%rxyzConf(1)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(1))
-     confdatarr(iorb)%rxyzConf(2)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(2))
-     confdatarr(iorb)%rxyzConf(3)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(3))
-     confdatarr(iorb)%ioffset(1) =UNINITIALIZED(confdatarr(iorb)%ioffset(1)) 
-     confdatarr(iorb)%ioffset(2) =UNINITIALIZED(confdatarr(iorb)%ioffset(2)) 
-     confdatarr(iorb)%ioffset(3) =UNINITIALIZED(confdatarr(iorb)%ioffset(3)) 
-     confdatarr(iorb)%damping    =UNINITIALIZED(confdatarr(iorb)%damping)
+     call nullify_confpot_data(confdatarr(iorb))
   end do
 end subroutine default_confinement_data
+
+
 
 
 subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&

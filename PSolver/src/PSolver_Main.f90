@@ -86,8 +86,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    real(dp) :: alpha,ratio,normb,normr,norm_nonvac,e_static,rpoints
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
-   real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z,depsdrho
-   real(dp), dimension(:,:,:), allocatable :: work_full
+   real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z,depsdrho,dsurfdrho
+   real(dp), dimension(:,:,:), allocatable :: work_full,pot_full
    !integer, dimension(:,:), allocatable :: gather_arr
 
    call f_routine(id='H_potential')
@@ -107,6 +107,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    else
       wrtmsg=.true.
    end if
+   !wrtmsg=.true.
    wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
    ! rewrite
 
@@ -167,9 +168,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
    end if 
 
-   !initalise to zero the zf array
-   call f_zero(kernel%zf)
-
    select case(datacode)
    case('G')
       !starting address of rhopot in the case of global i/o
@@ -190,16 +188,19 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !in the case of SC cavity, gather the full density and determine the depsdrho
    !here the if statement for the SC cavity should be put
    !print *,'method',trim(char(kernel%method)),associated(kernel%method%family),trim(char(kernel%method%family))
+   if (kernel%method == 'PCG') &
+        pot_full=f_malloc(kernel%ndims,id='pot_full')
    if (kernel%method .hasattr. PS_SCCS_ENUM) then
       work_full=f_malloc(kernel%ndims,id='work_full')
       depsdrho=f_malloc([n1,n23],id='depsdrho')
+      dsurfdrho=f_malloc([n1,n23],id='dsurfdrho')
       if (kernel%mpi_env%nproc > 1) then
          call mpiallgather(rhopot(i3start),recvbuf=work_full(1,1,1),recvcounts=kernel%counts,&
               displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
       else
          call f_memcpy(n=product(kernel%ndims),src=rhopot(i3start),dest=work_full(1,1,1))
       end if
-      call pkernel_build_epsilon(kernel,work_full,eps0,depsdrho)
+      call pkernel_build_epsilon(kernel,work_full,eps0,depsdrho,dsurfdrho)
    end if
 
    !add the ionic density to the potential
@@ -220,6 +221,9 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !now switch the treatment according to the method used
    select case(trim(str(kernel%method)))
    case('VAC')
+      !initalise to zero the zf array 
+      call f_zero(kernel%zf)
+
       !core psolver routine
       call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%zf,.false.)
 
@@ -266,10 +270,13 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
                     rhopol(i1,i23+i23s)
 !!$                       kernel%oneoeps(i1,i2,i3+i3s)*rho(i1,i2,i3)+&
 !!$                       rhopol(i1,i2,i3+i3s)
+               kernel%pol_charge(i1,i23)=rhopot(irho)-rho(i1,i23)
                irho=irho+1
             end do
          end do
-         
+
+         !initalise to zero the zf array 
+         call f_zero(kernel%zf)
          call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%zf,.true.)
          !gathering the data to obtain the distribution array
          !this method only works with datacode == 'G'
@@ -304,7 +311,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       !if statement for SC cavity
       if (kernel%method .hasattr. PS_SCCS_ENUM) &
-           call extra_sccs_potential(kernel,work_full,depsdrho,rhopot(i3start))
+           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,rhopot(i3start),eps0)
 
       !here the harteee energy can be calculated and the ionic potential
       !added
@@ -343,6 +350,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       q=f_malloc0([n1,n23],id='q')
       p=f_malloc0([n1,n23],id='p')
       z=f_malloc([n1,n23],id='z')
+      rho=f_malloc([n1,n23],id='rho')
 
       if (wrtmsg) &
            call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
@@ -357,6 +365,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
            src=rhopot(i3start),dest=r)
+      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
+           src=rhopot(i3start),dest=rho)
 
       !$omp parallel do default(shared) private(i1,i23)
       do i23=1,n23
@@ -370,6 +380,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
          if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
 
+         !initalise to zero the zf array 
+         call f_zero(kernel%zf)
          !  Apply the Preconditioner
          call apply_kernel(cudasolver,kernel,z,offset,strten,kernel%zf,.true.)
 
@@ -390,7 +402,12 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call update_pot_from_device(cudasolver, kernel, x)
       !if statement for SC cavity
       if (kernel%method .hasattr. PS_SCCS_ENUM)&
-           call extra_sccs_potential(kernel,work_full,depsdrho,x)
+           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,x,eps0)
+
+!--------------------------------------
+! Polarization charge
+     call pol_charge(kernel,pot_full,rho,x)
+!--------------------------------------
 
       !here the harteee energy can be calculated and the ionic potential
       !added
@@ -413,17 +430,21 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call f_free(p)
       call f_free(q)
       call f_free(r)
+      call f_free(rho)
 
    end select
 
    if(kernel%keepzf /= 1) then
       call f_free_ptr(kernel%zf)
    end if
+   if (kernel%method == 'PCG') call f_free(pot_full)
+
 
    !if statement for SC cavity to be added
    if (kernel%method .hasattr. PS_SCCS_ENUM) then
       call f_free(work_full)
       call f_free(depsdrho)
+      call f_free(dsurfdrho)
    end if
 
    !check for the presence of the stress tensor
@@ -474,12 +495,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
 END SUBROUTINE H_potential
 
-subroutine extra_sccs_potential(kernel,work_full,depsdrho,pot)
+subroutine extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,pot,eps0)
   implicit none
   type(coulomb_operator), intent(in) :: kernel
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out) :: work_full
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: depsdrho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: dsurfdrho
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p) :: pot !intent in
+  real(dp), intent(in) :: eps0
 
   !first gather the potential to calculate the derivative
   if (kernel%mpi_env%nproc > 1) then
@@ -490,9 +513,29 @@ subroutine extra_sccs_potential(kernel,work_full,depsdrho,pot)
   end if
 
   !then calculate the extra potential and add it to pot
-  call sccs_extra_potential(kernel,work_full,depsdrho)
+  call sccs_extra_potential(kernel,work_full,depsdrho,dsurfdrho,eps0)
   
 end subroutine extra_sccs_potential
+
+subroutine pol_charge(kernel,pot_full,rho,pot)
+  implicit none
+  type(coulomb_operator), intent(inout) :: kernel
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out) :: pot_full
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: rho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p) :: pot !intent in
+
+  !first gather the potential to calculate the derivative
+  if (kernel%mpi_env%nproc > 1) then
+     call mpiallgather(pot,recvbuf=pot_full,recvcounts=kernel%counts,&
+          displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+  else
+     call f_memcpy(src=pot,dest=pot_full)
+  end if
+
+  !lculate the extra potential and add it to pot
+  call polarization_charge(kernel,pot_full,rho)
+  
+end subroutine pol_charge
 
 !> verify that the density is considerably zero in the region where epsilon is different from one
 subroutine nonvacuum_projection(n1,n23,rho,oneoeps,norm)
@@ -541,12 +584,14 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
   call f_routine(id='apply_kernel')
 
+  !call f_zero(zf)
   !this routine builds the values for each process of the potential (zf), multiplying by scal   
   !fill the array with the values of the charge density
   !no more overlap between planes
   !still the complex case should be defined
   n3delta=kernel%grid%md3-kernel%grid%m3
-  !$omp parallel do default(shared) private(i1,i23,j23,j3)
+  !$omp parallel default(shared) private(i1,i23,j23,j3)
+  !$omp do
   do i23=1,kernel%grid%n3p*kernel%grid%m3
      j3=(i23-1)/kernel%grid%m3
      !j2=i23-kernel%grid%m3*j3
@@ -554,8 +599,19 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
      do i1=1,kernel%grid%m1
         zf(i1,j23)=rho(i1,i23)
      end do
+!!$     do i1=kernel%grid%m1+1,kernel%grid%md1
+!!$        zf(i1,j23)=0.0_dp
+!!$     end do
   end do
-  !$omp end parallel do
+  !$omp end do
+!!$  !$omp do
+!!$  do i23=kernel%grid%n3p*kernel%grid%md3+1,kernel%grid%md3*2*(kernel%grid%md2/kernel%mpi_env%nproc)
+!!$     do i1=1,kernel%grid%md1
+!!$        zf(i1,i23)=0.0_dp
+!!$     end do
+!!$  end do
+!!$  !$omp end do
+  !$omp end parallel
 
   call f_zero(strten)
   if (.not. gpu) then !CPU case

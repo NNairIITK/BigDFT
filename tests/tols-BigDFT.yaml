@@ -54,6 +54,7 @@ Keys to ignore:
  - Support function repartition
  - Output grid format # to be removed for updated references
  - Support Function Repartition
+ - Iostat for format
  #- number of tasks
  #- IDs
  #- start / end
@@ -194,7 +195,7 @@ GEOPT-LBFGS:
  
 NaCl:
  Epsilon: 2.e-9
- Mean L2 norm of gaussian-wavelet difference: 1.346e-4
+ Mean L2 norm of gaussian-wavelet difference: 1.358e-4
 
 NH3:
  Epsilon: 1.1e-10
@@ -204,7 +205,7 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
- Positions: 2.25e-7
+ Positions: 4.01e-7
  Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
  Average noise forces: 6.2e-8
@@ -286,7 +287,7 @@ test.minhop.ref.yaml:
  Orbitals: 6.1e-9
  Positions: 1.1e-9
  curv: 5.51e-11
- fd2: 2.83e-10
+ fd2: 2.85e-10
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -310,7 +311,7 @@ mixpotential:
  EXC: 1.1e-10
  EvXC: 1.1e-10
  Enl: 2.1e-11
- Energy (Hartree): 1.49e-11
+ Energy (Hartree): 1.52e-11
 
 IO-wf_plain-read:
  Energies: 1.1e-10
@@ -635,8 +636,12 @@ hybrid-directmin:
  Average noise forces: 1.1e-10
  Energy (Hartree): 2.8e-11
 
+cdft_ohohfoe:
+ Epsilon: 7.1e-10
+
 cdft_ohoh:
  Epsilon: 7.1e-10
+ D: 1.1e-8
 
 cdft_oh-:
  Epot: 1.1e-10
@@ -670,8 +675,8 @@ fructose:
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
  Energy (Hartree): 4.9e-11
- Charge analysis (charge / net charge): 5.2e-10
- Pseudo Fermi level for occupations: 2.5e-10
+ Charge analysis (charge / net charge): 5.96e-10
+ Pseudo Fermi level for occupations: 3.7e-10
  net charge: 1.0e-8
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
@@ -1249,7 +1254,7 @@ geoptconstrained_SDCG:
  Ekin: 2.1e-10
  EXC: 3.1e-11
  EvXC: 4.1e-11
- charge diff: 7.2e-11
+ charge diff: 1.1e-10
  D Tr: 1.1e-9
  Omega: 1.7e-10
  D: 1.1e-10
@@ -1371,7 +1376,7 @@ verysparse:
   - found warnings
 
 expfoegeopt:
- guess for new ef: 4.2e-8
+ guess for new ef: 4.6e-8
  eF: 2.5e-8
  D eF: 2.3e-8
  charge diff: 2.3e-8
@@ -1462,7 +1467,7 @@ FF_LJ-diis:
   - disablesym
 
 FF_LJ-fire:
-  epred: 1.41e-11
+  epred: 1.51e-11
   Keys to ignore:
   - WARNINGS
   - disablesym
@@ -1474,11 +1479,11 @@ FF_LJ-sdcg:
   - disablesym
 
 FF_LJ-lbfgs:
-  etot: 2.11e-8
+  etot: 2.18e-8
   Forces: 1.01e-5
-  Energy: 1.48e-8
+  Energy: 1.54e-8
   fnrm2: 1.01e-5
-  maxval: 1.71e-7
+  maxval: 1.01e-5
   Keys to ignore:
   - WARNINGS
   - disablesym
@@ -1543,7 +1548,7 @@ periodic_water:
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 9.2e-9
- D eF: 1.3e-8
+ D eF: 1.4e-8
  energy: 2.8e-10
  guess for new ef: 9.1e-9
  number of corrected points: 1
@@ -1560,7 +1565,7 @@ periodic_water:
 surface_boronnitride:
  Enl: 1.01e-9
  Epot: 1.0e-9
- Omega: 1.8e-10
+ Omega: 1.9e-10
  energy: 3.2e-11
  Energy (Hartree): 3.2e-11
  Total charge: 1.0e-10
@@ -1623,6 +1628,38 @@ multipoles_water:
  ebs_check: 2.32e-11
  ebs: 2.32e-11
 
+multipoles_CH4:
+ Atomic Forces (Ha/Bohr): 1.5e-11
+ q0: 1.1e-10
+ Charge analysis (charge / net charge): 2.7e-10
+ Pseudo Fermi level for occupations: 5.6e-10
+ net charge: 1.0e-10
+ Energy (Hartree): 1.3e-11
+ Total charge: 1.5e-10
+ net quadropole: 1.1e-7
+ eF: 6.5e-6
+ D eF: 4.8e-6
+ D Tr: 2.3e-9
+ guess for new ef: 6.5e-6
+ ebs: 8.2e-10
+ ebs_check: 1.2e-9
+ relative_diff: 2.6e-10
+ trace(KS): 1.5e-10
+ Tr(K): 2.1e-9
+ energy: 2.2e-11
+ Omega: 2.1e-11
+ charge diff: 2.3e-9
+ total charge correction: 2.5e-8
+ relative diff: 2.6e-10
+ Epot: 8.1e-10
+ EH: 9.1e-10
+ EXC: 2.9e-10
+ EvXC: 3.6e-10
+ Ekin: 1.1e-10
+ diff from reference kernel: 1.1e-9
+ diff: 8.9e-10
+ number of corrected points: 8.0
+
 Xabsb2B.xabs.ref.yaml:
   Keys to ignore:
   - WARNINGS
@@ -1639,7 +1676,7 @@ igortho_19:
  Energy (Hartree): 2.4e-9
  Multipole coefficients: 1.1e-6
  Charge analysis (charge / net charge): 4.1e-7
- Pseudo Fermi level for occupations: 2.1e-8
+ Pseudo Fermi level for occupations: 3.0e-8
  net charge: 1.1e-8
  Average noise forces: 7.8e-7
  eF: 3.6e-5
@@ -1666,7 +1703,7 @@ igortho_19:
  D: 3.0e-8
  Tr(K): 1.7e-8
  total charge correction: 1.5e-11
- multiplicator for the confinement: 2.4e-11
+ multiplicator for the confinement: 2.6e-11
  radius for normalization: 1.1e-2
 
 igortho_44:
@@ -1696,14 +1733,14 @@ igortho_44:
  energy: 6.6e-07
  Omega: 3.0e-10
  Charge analysis (charge / net charge): 1.4e-6
- Pseudo Fermi level for occupations: 1.7e-6
+ Pseudo Fermi level for occupations: 2.48e-6
  net charge: 1.1e-5
  eval: 1.1e-4
  Multipole coefficients: 1.4e-6
  number of corrected points: 8
  net quadropole: 7.1e-5
  net dipole: 1.1e-7
- D: 1.1e-7
+ D: 1.1e-4
  delta: 1.1e-10
  radius for normalization: 1.1e-1
  Keys to ignore:
@@ -1751,3 +1788,65 @@ igortho_94:
  delta: 4.1e-11
  radius for normalization: 1.1e-2
  multiplicator for the confinement: 3.1e-11
+
+extendedfrags_nofrags:
+ eF: 1.6e-9
+ guess for new ef: 2.0e-9
+ charge diff: 1.7e-8
+ Tr(K): 2.1e-8
+ D Tr: 1.0e-9
+ D eF: 1.1e-8
+ ebs_check: 3.6e-11
+ ebs: 3.7e-11
+ EXC: 1.1e-10
+ Pressure: 3.3e-11
+
+extendedfrags_read:
+ Omega: 6.7e-11
+ eF: 8.31e-10
+ charge diff: 2.3e-9
+ Tr(K): 1.1e-8
+ D eF: 1.1e-9
+ guess for new ef: 1.4e-9
+ ebs: 6.1e-11
+ ebs_check: 6.1e-11
+ Epot: 1.1e-10
+ EvXC: 1.1e-10
+ D Tr: 1.1e-10
+ Average noise forces: 1.0e-10
+ Pressure: 5.5e-11
+ Force Norm (Hartree/Bohr): 2.4e-11
+
+extendedfrags_readrotated:
+ Omega: 6.7e-11
+ eF: 6.11e-10
+ D eF: 1.1e-9
+ guess for new ef: 1.0e-9
+ D Tr: 1.1e-10
+ ebs_check: 6.1e-11
+ ebs: 6.1e-11
+ charge diff: 2.0e-9
+ Pressure: 4.6e-11
+ Epot: 1.1e-10
+ Force Norm (Hartree/Bohr): 2.6e-11
+
+extendedfrags_write:
+ Epot: 7.0e-10
+ EH: 7.1e-10
+ Ekin: 1.1e-10
+ EXC: 1.1e-10
+ EvXC: 1.1e-10
+ D Tr: 3.1e-8
+ D eF: 5.0e-9
+ ebs_check: 6.7e-10
+ ebs: 6.7e-10
+ guess for new ef: 6.0e-9
+ Tr(K): 4.01e-8
+ Total charge: 3.0e-11
+ charge diff: 3.2e-8
+ trace(KS): 3.3e-11
+ eF: 7.0e-9
+ Pressure: 5.8e-11
+ decay length of error function: 1.1e-6
+ fnrm2: 2.8e-11
+ Force Norm (Hartree/Bohr): 2.4e-11

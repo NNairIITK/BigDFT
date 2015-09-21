@@ -27,6 +27,23 @@ endif
 flib_noinst =
 endif
 
+if USE_CUDA_GPU
+CUDA_PROF =
+CUDA_MODS = 
+NVTX_DEP = 
+else
+CUDA_PROF = nvtx_fake.f90
+NVTX_DEP = nvtx_fake.o
+# Module files.
+if CAPITALIZE
+CUDA_MODS = NVTX.@MODULE_EXT@
+else
+CUDA_MODS = nvtx.@MODULE_EXT@
+endif
+
+endif
+
+
 # Source code.
 if HAVE_FC_FLUSH
 flush_files = flush.f90
@@ -58,7 +75,7 @@ libflib_1_a_SOURCES = utils.c utilsadd.c \
 	razero.f90 getadd.f90 time.f90 f_lib_highlev.f90 \
 	yaml_parser.c yaml_parse.f90 \
 	f_input_file.f90 randomData.f90 \
-	$(flush_files) $(mpi_source) $(getarg_files)
+	$(flush_files) $(mpi_source) $(getarg_files) $(CUDA_PROF)
 
 DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 	deallocate-c-inc.f90 allocate-c-inc.f90 \
@@ -66,7 +83,7 @@ DYN_INCLUDES =  deallocate-inc.f90 allocate-inc.f90 \
 	malloc_templates-inc.f90 \
 	deallocate-multiple-inc.f90 deallocate-multiple-inc-ptr.f90 \
 	f_memcpy-inc.f90 f_memcpy-base-inc.f90 f_maxdiff-base-inc.f90 \
-	allocate-ptr-inc.f90
+	allocate-ptr-inc.f90 f_map-inc.f90
 
 F_MALLOC_INCLUDES = f_malloc-inc.f90 f_malloc-extra-inc.f90 \
 	f_malloc-base-inc.f90 f_malloc-null-inc.f90 \
@@ -99,6 +116,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	METADATA_INTERFACES.@MODULE_EXT@ \
 	MODULE_F_MALLOC.@MODULE_EXT@ \
 	DYNAMIC_MEMORY.@MODULE_EXT@ \
+	DYNAMIC_MEMORY_BASE.@MODULE_EXT@ \
 	RANDOMDATA.@MODULE_EXT@ \
 	MEMORY_PROFILING.@MODULE_EXT@ \
 	F_UTILS.@MODULE_EXT@ \
@@ -107,7 +125,7 @@ modules = YAML_STRINGS.@MODULE_EXT@ \
 	F_INPUT_FILE.@MODULE_EXT@ \
 	EXCEPTION_CALLBACKS.@MODULE_EXT@ \
 	TIME_PROFILING.@MODULE_EXT@ \
-	MODULE_RAZERO.@MODULE_EXT@
+	MODULE_RAZERO.@MODULE_EXT@ $(CUDA_MODS)
 else
 modules = yaml_strings.@MODULE_EXT@ \
 	dictionaries.@MODULE_EXT@ \
@@ -119,6 +137,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	metadata_interfaces.@MODULE_EXT@ \
 	module_f_malloc.@MODULE_EXT@ \
 	dynamic_memory.@MODULE_EXT@ \
+	dynamic_memory_base.@MODULE_EXT@ \
 	randomdata.@MODULE_EXT@ \
 	memory_profiling.@MODULE_EXT@ \
 	f_utils.@MODULE_EXT@ \
@@ -127,7 +146,7 @@ modules = yaml_strings.@MODULE_EXT@ \
 	f_trees.@MODULE_EXT@ \
 	exception_callbacks.@MODULE_EXT@ \
 	time_profiling.@MODULE_EXT@ \
-	module_razero.@MODULE_EXT@
+	module_razero.@MODULE_EXT@ $(CUDA_MODS)
 endif
 
 CLEANFILES = $(modules) *.@MODULE_EXT@ $(mpi_include) memstatus.yaml
@@ -177,7 +196,7 @@ getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
 razero.o: randomData.o f_precisions.o
 $(flush_object): yaml_output.o dictionaries.o
 
-time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(mpi_include) #this is temporary, mpif.h should only be in wrappers
+time.o: $(NOOMP_INCLUDES) dynamic_memory.o f_utils.o $(NVTX_DEP) $(mpi_include) #this is temporary, mpif.h should only be in wrappers
 
 #Fake mpif.h for serial compilation
 mpif.h:

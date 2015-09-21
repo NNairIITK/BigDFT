@@ -9,11 +9,12 @@
 
 
 !> Module used to manage memory allocations and de-allocations
-module dynamic_memory
+module dynamic_memory_base
   use memory_profiling
   use dictionaries, info_length => max_field_length
   use yaml_strings, only: yaml_toa,yaml_date_and_time_toa,operator(//)
-  use module_f_malloc !use f_precision
+  use module_f_malloc 
+  use f_precisions
   use yaml_parse, only: yaml_a_todict
   use f_utils, only: f_time
   implicit none
@@ -85,7 +86,6 @@ module dynamic_memory
 
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
-!     module procedure il1_all, il2_all
      module procedure l1_all,l2_all,l3_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all,r4_all
@@ -93,7 +93,8 @@ module dynamic_memory
      module procedure li1_all,li2_all,li3_all,li4_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr,d6_ptr
      module procedure i1_ptr,i2_ptr,i3_ptr,i4_ptr
-     module procedure l2_ptr, l3_ptr
+     module procedure l1_ptr, l2_ptr, l3_ptr
+     module procedure li1_ptr
      module procedure z1_ptr
      !strings and pointers for characters
      module procedure c1_all
@@ -115,7 +116,8 @@ module dynamic_memory
      module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free,i4_ptr_free
      module procedure i1_ptr_free_multi
      module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free,d6_ptr_free
-     module procedure l2_ptr_free, l3_ptr_free
+     module procedure l1_ptr_free, l2_ptr_free, l3_ptr_free
+     module procedure li1_ptr_free
      module procedure z1_ptr_free
   end interface
 
@@ -124,6 +126,7 @@ module dynamic_memory
      module procedure f_memcpy_i0i1,f_memcpy_i1i2,f_memcpy_i2i1,f_memcpy_i2i0
      module procedure f_memcpy_li0,f_memcpy_li1
      module procedure f_memcpy_li0li1,f_memcpy_li1li2,f_memcpy_li2li1,f_memcpy_li2li0
+     module procedure f_memcpy_l1
      module procedure f_memcpy_r0
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1
      module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3,f_memcpy_d3,f_memcpy_d4,f_memcpy_d1d0
@@ -146,10 +149,7 @@ module dynamic_memory
      module procedure f_maxdiff_c1li1,f_maxdiff_c0li1
   end interface f_maxdiff
 
-  !> Public routines
-  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
-  public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
-  public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
+  public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr,f_malloc_dump_status
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
   public :: f_memcpy,f_maxdiff,f_update_database,f_purge_database
   public :: assignment(=),operator(.to.)
@@ -209,6 +209,63 @@ contains
     f_malloc_routine_name(1:len(f_malloc_routine_name))=name
     f_malloc_default_profiling=profile
   end subroutine set_routine_info
+
+
+  !> routine to associate the rank-1 array to a workspace 
+  subroutine map_workspace_d(pos,lb,lu,work,wsz,ptr)
+    implicit none
+    real(f_double), dimension(:), pointer :: work,wtmp,ptr
+
+!!$    !include file
+!!$    integer(f_long), intent(in) :: lb,lu
+!!$    integer(f_long), intent(inout) :: pos,wsz
+!!$    !local variables
+!!$    integer(f_long) :: szm1
+!!$    szm1=lu-lb
+!!$    !check if the position and the sizes are compatible with the 
+!!$    !allocation of the pointer, otherwise resize the pointer
+!!$    if (wsz > pos+szm1) then
+!!$       wsz=2*wsz
+!!$       wtmp=>work
+!!$       nullify(work)
+!!$       work = f_malloc_ptr(wsz,id='work_d')
+!!$       call f_memcpy(src=wtmp,dest=work)
+!!$       call f_free_ptr(wtmp)
+!!$    end if
+!!$    call f_map_ptr(lb,lu,work(pos:pos+szm1),ptr)
+!!$    !increment the position
+!!$    pos=pos+szm1+1
+!!$    !end of include file
+    include 'f_map-inc.f90'
+  end subroutine map_workspace_d
+
+  !> routine to associate the rank-1 array to a workspace 
+  subroutine map_workspace_r(pos,lb,lu,work,wsz,ptr)
+    implicit none
+    real(f_double), dimension(:), pointer :: work,wtmp,ptr
+    include 'f_map-inc.f90'
+  end subroutine map_workspace_r
+
+  !> routine to associate the rank-1 array to a workspace 
+  subroutine map_workspace_i(pos,lb,lu,work,wsz,ptr)
+    implicit none
+    integer(f_integer), dimension(:), pointer :: work,wtmp,ptr
+    include 'f_map-inc.f90'
+  end subroutine map_workspace_i
+
+  !> routine to associate the rank-1 array to a workspace 
+  subroutine map_workspace_li(pos,lb,lu,work,wsz,ptr)
+    implicit none
+    integer(f_long), dimension(:), pointer :: work,wtmp,ptr
+    include 'f_map-inc.f90'
+  end subroutine map_workspace_li
+
+  !> routine to associate the rank-1 array to a workspace 
+  subroutine map_workspace_l(pos,lb,lu,work,wsz,ptr)
+    implicit none
+    logical, dimension(:), pointer :: work,wtmp,ptr
+    include 'f_map-inc.f90'
+  end subroutine map_workspace_l
 
   !> Copy the contents of an array into another one
   include 'f_memcpy-inc.f90'
@@ -1103,4 +1160,15 @@ end if
   !---Templates start here
   include 'malloc_templates-inc.f90'
 
+end module dynamic_memory_base
+
+
+module dynamic_memory
+  use module_f_malloc
+  use dynamic_memory_base
+  implicit none
+
+  public 
+
+  private :: ERR_INVALID_MALLOC,f_malloc_namelen
 end module dynamic_memory

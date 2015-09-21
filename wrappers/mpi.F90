@@ -15,9 +15,6 @@
 
 !> Module defining the routines which wrap the MPI calls
 module wrapper_MPI
-  ! TO BE REMOVED with f_malloc
-  !use memory_profiling!, only: ndebug
-  ! TO BE REMOVED with f_malloc
   use time_profiling, only: TIMING_UNINITIALIZED
   use yaml_strings, only: operator(//)
   use f_precisions

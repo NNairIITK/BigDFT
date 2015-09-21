@@ -372,6 +372,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    use module_base
    use module_types
    use module_interfaces
+   use locreg_operations
    implicit none
    logical, intent(in) :: rsflag
    integer, intent(in) :: nproc,nrhotot
@@ -390,7 +391,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    type(workarr_sumrho) :: w
    real(wp), dimension(:,:), allocatable :: psir
 
-   call initialize_work_arrays_sumrho(1,lr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
    !components of wavefunction in real space which must be considered simultaneously
    !and components of the charge density

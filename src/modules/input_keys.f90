@@ -118,10 +118,12 @@ module module_input_keys
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
      real(kind=8) :: max_inversion_error
-     logical :: calculate_onsite_overlap
+    logical :: calculate_onsite_overlap
      integer :: output_mat_format     !< Output Matrices format
      integer :: output_coeff_format   !< Output Coefficients format
+     integer :: output_fragments   !< Output fragments/full system/both
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
+     integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -344,6 +346,9 @@ module module_input_keys
      !> linear scaling: perform a Loewdin charge analysis at the end of the calculation
      logical :: loewdin_charge_analysis
 
+     !> linear scaling: perform a Loewdin charge analysis of the coefficients for fragment calculations
+     logical :: coeff_weight_analysis
+
      !> linear scaling: perform a check of the matrix compression routines
      logical :: check_matrix_compression
 
@@ -541,7 +546,8 @@ contains
   !! contained in the dictionary dict
   !! the dictionary should be completes to fill all the information
   subroutine inputs_from_dict(in, atoms, dict)
-    use module_defs, only: gp,bigdft_mpi,DistProjApply,pi_param
+    use module_defs, only: DistProjApply,pi_param
+    use module_base, only: bigdft_mpi
     use yaml_output
     use dictionaries
     use module_input_dicts
@@ -591,7 +597,8 @@ contains
 
 
     ! Atoms case.
-    atoms = atoms_data_null()
+    !atoms = atoms_data_null()
+    call nullify_atoms_data(atoms)
 
     if (.not. has_key(dict, POSINP)) &
          call f_err_throw("missing posinp",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
@@ -862,7 +869,7 @@ contains
   !> Check the directory of data (create if not present)
   subroutine check_for_data_writing_directory(iproc,in)
     use yaml_output
-    use module_defs, only: bigdft_mpi
+    use module_base, only: bigdft_mpi
     use f_utils, only: f_zero,f_mkdir
     use wrapper_MPI, only: mpibcast
     use yaml_strings, only: f_strcpy
@@ -1417,12 +1424,13 @@ contains
 
   !> Set the dictionary from the input variables
   subroutine input_set_dict(in, level, val)
-    use module_defs, only: DistProjApply, GPUblas, gp
+    use module_defs, only: DistProjApply, gp
+    use wrapper_linalg, only: GPUblas
     use public_enums
     use dynamic_memory
     use yaml_output, only: yaml_warning
     use yaml_strings, only: operator(.eqv.),is_atoi
-    use module_defs, only: bigdft_mpi
+    use module_base, only: bigdft_mpi
     implicit none
     type(input_variables), intent(inout) :: in
     type(dictionary), pointer :: val
@@ -1718,8 +1726,11 @@ contains
           ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
           in%calculate_gap = val
        case (LOEWDIN_CHARGE_ANALYSIS)
-          ! linear scaling: calculate the HOMO LUMO gap even when FOE is used for the kernel calculation
+          ! linear scaling: perform a Loewdin charge analysis at the end of the calculation
           in%loewdin_charge_analysis = val
+       case (COEFF_WEIGHT_ANALYSIS)
+          ! linear scaling: perform a Loewdin charge analysis of the coefficients for fragment calculations
+          in%coeff_weight_analysis = val
        case (CHECK_MATRIX_COMPRESSION)
           ! linear scaling: perform a check of the matrix compression routines
           in%check_matrix_compression = val
@@ -1905,6 +1916,10 @@ contains
           in%lin%output_mat_format = val
        case (OUTPUT_COEFF)
           in%lin%output_coeff_format = val
+       case (OUTPUT_FRAGMENTS)
+          in%lin%output_fragments = val
+       case (KERNEL_RESTART_MODE)
+          in%lin%kernel_restart_mode = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
        case (CALC_PULAY)
@@ -2504,7 +2519,6 @@ contains
     use m_ab6_kpoints
     use yaml_output
     use public_keys
-    use yaml_strings, only: operator(.eqv.)
     implicit none
     !Arguments
     integer, intent(in) :: iproc
@@ -3048,7 +3062,7 @@ contains
   !> Read from all input files and build a dictionary
   subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
-    use module_defs, only: mpi_environment
+    use wrapper_MPI, only: mpi_environment
     use public_keys, only: POSINP,IG_OCCUPATION
     use yaml_output
     use yaml_strings, only: f_strcpy

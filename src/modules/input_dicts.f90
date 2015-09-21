@@ -342,7 +342,7 @@ contains
     type(dictionary), pointer :: dict
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
-    integer, parameter :: ntrials=3
+    integer, parameter :: ntrials=1
     integer :: ierror,lgt,unit_log,ierrr,trials
     integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
@@ -975,10 +975,8 @@ contains
   !! following the input files as defined  by the user
   subroutine read_input_dict_from_files(radical,mpi_env,dict)
     use module_base
-    use wrapper_MPI
     use module_input_dicts, only: merge_input_file_to_dict
     !use yaml_output
-    use dynamic_memory
     implicit none
     character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
     type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
@@ -1721,6 +1719,9 @@ contains
 
     call input_var("loewdin_charge_analysis", .false., "perform a Loewdin charge analysis at the end", dummy_bool)
     call set(dict // LOEWDIN_CHARGE_ANALYSIS, dummy_bool)
+
+    call input_var("coeff_weight_analysis", .false., "Loewdin charge analysis of coefficients for fragment calc", dummy_bool)
+    call set(dict // COEFF_WEIGHT_ANALYSIS, dummy_bool)
 
     call input_var("check_matrix_compression", .true., "perform a check of the matrix compression routines", dummy_bool)
     call set(dict // CHECK_MATRIX_COMPRESSION, dummy_bool)

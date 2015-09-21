@@ -829,6 +829,7 @@ contains
     use module_interfaces
     use module_base
     use communications, only: transpose_v, untranspose_v
+    use locreg_operations
     !Arguments
     implicit none
     integer, intent(in) :: p,i
