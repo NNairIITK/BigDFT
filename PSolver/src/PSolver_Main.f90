@@ -85,7 +85,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    real(dp) :: alpha,ratio,normb,normr,norm_nonvac,e_static,rpoints
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
-   real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z,depsdrho
+   real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z,depsdrho,dsurfdrho
    real(dp), dimension(:,:,:), allocatable :: zf,work_full,pot_full
    !integer, dimension(:,:), allocatable :: gather_arr
 
@@ -106,7 +106,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    else
       wrtmsg=.true.
    end if
-   !!!!wrtmsg=.true.
+   !wrtmsg=.true.
    wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
    ! rewrite
 
@@ -184,13 +184,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    if (kernel%method .hasattr. PS_SCCS_ENUM) then
       work_full=f_malloc(kernel%ndims,id='work_full')
       depsdrho=f_malloc([n1,n23],id='depsdrho')
+      dsurfdrho=f_malloc([n1,n23],id='dsurfdrho')
       if (kernel%mpi_env%nproc > 1) then
          call mpiallgather(rhopot(i3start),recvbuf=work_full(1,1,1),recvcounts=kernel%counts,&
               displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
       else
          call f_memcpy(n=product(kernel%ndims),src=rhopot(i3start),dest=work_full(1,1,1))
       end if
-      call pkernel_build_epsilon(kernel,work_full,eps0,depsdrho)
+      call pkernel_build_epsilon(kernel,work_full,eps0,depsdrho,dsurfdrho)
    end if
 
    !add the ionic density to the potential
@@ -296,7 +297,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       !if statement for SC cavity
       if (kernel%method .hasattr. PS_SCCS_ENUM) &
-           call extra_sccs_potential(kernel,work_full,depsdrho,rhopot(i3start))
+           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,rhopot(i3start),eps0)
 
       !here the harteee energy can be calculated and the ionic potential
       !added
@@ -383,11 +384,11 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       !if statement for SC cavity
       if (kernel%method .hasattr. PS_SCCS_ENUM)&
-           call extra_sccs_potential(kernel,work_full,depsdrho,x)
+           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,x,eps0)
 
 !--------------------------------------
 ! Polarization charge
-      call pol_charge(kernel,pot_full,rho,x)
+     call pol_charge(kernel,pot_full,rho,x)
 !--------------------------------------
 
       !here the harteee energy can be calculated and the ionic potential
@@ -422,6 +423,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    if (kernel%method .hasattr. PS_SCCS_ENUM) then
       call f_free(work_full)
       call f_free(depsdrho)
+      call f_free(dsurfdrho)
    end if
 
    !check for the presence of the stress tensor
@@ -472,12 +474,14 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
 END SUBROUTINE H_potential
 
-subroutine extra_sccs_potential(kernel,work_full,depsdrho,pot)
+subroutine extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,pot,eps0)
   implicit none
   type(coulomb_operator), intent(in) :: kernel
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out) :: work_full
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: depsdrho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: dsurfdrho
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p) :: pot !intent in
+  real(dp), intent(in) :: eps0
 
   !first gather the potential to calculate the derivative
   if (kernel%mpi_env%nproc > 1) then
@@ -488,7 +492,7 @@ subroutine extra_sccs_potential(kernel,work_full,depsdrho,pot)
   end if
 
   !then calculate the extra potential and add it to pot
-  call sccs_extra_potential(kernel,work_full,depsdrho)
+  call sccs_extra_potential(kernel,work_full,depsdrho,dsurfdrho,eps0)
   
 end subroutine extra_sccs_potential
 

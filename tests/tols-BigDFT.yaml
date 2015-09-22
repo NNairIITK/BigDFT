@@ -210,7 +210,7 @@ CH3-:
  gnrm: 1.1e-5
  EKS: 1.6e-8
  D: 1.e-8
- Positions: 2.25e-7
+ Positions: 4.01e-7
  Average CG stepsize in terms of betax: 3.801e-4
  Atomic Forces (Ha/Bohr): 4.0e-7
  Average noise forces: 6.2e-8
@@ -292,7 +292,7 @@ test.minhop.ref.yaml:
  Orbitals: 6.1e-9
  Positions: 1.1e-9
  curv: 5.51e-11
- fd2: 2.83e-10
+ fd2: 2.85e-10
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -682,7 +682,7 @@ fructose:
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
  Energy (Hartree): 1.3e-10
- Charge analysis (charge / net charge): 5.2e-10
+ Charge analysis (charge / net charge): 5.96e-10
  Pseudo Fermi level for occupations: 3.7e-10
  net charge: 1.0e-8
  Keys to ignore:
@@ -1491,9 +1491,9 @@ FF_LJ-sdcg:
   - disablesym
 
 FF_LJ-lbfgs:
-  etot: 2.11e-8
+  etot: 2.18e-8
   Forces: 1.01e-5
-  Energy: 1.48e-8
+  Energy: 1.54e-8
   fnrm2: 1.01e-5
   maxval: 1.71e-7
   Keys to ignore:
@@ -1753,7 +1753,7 @@ igortho_44:
  energy: 6.6e-07
  Omega: 3.0e-10
  Charge analysis (charge / net charge): 1.4e-6
- Pseudo Fermi level for occupations: 1.9e-6
+ Pseudo Fermi level for occupations: 2.48e-6
  net charge: 1.1e-5
  eval: 1.1e-4
  Multipole coefficients: 1.4e-6
@@ -1823,7 +1823,7 @@ extendedfrags_nofrags:
 
 extendedfrags_read:
  Omega: 6.7e-11
- eF: 8.0e-10
+ eF: 8.31e-10
  charge diff: 2.3e-9
  Tr(K): 1.1e-8
  D eF: 1.1e-9
