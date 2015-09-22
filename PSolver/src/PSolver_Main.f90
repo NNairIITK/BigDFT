@@ -190,7 +190,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !print *,'method',trim(char(kernel%method)),associated(kernel%method%family),trim(char(kernel%method%family))
    if (kernel%method == 'PCG') &
         pot_full=f_malloc(kernel%ndims,id='pot_full')
-   if (kernel%method .hasattr. PS_SCCS_ENUM) then
+   if (kernel%method .hasattr. 'sccs') then
       work_full=f_malloc(kernel%ndims,id='work_full')
       depsdrho=f_malloc([n1,n23],id='depsdrho')
       dsurfdrho=f_malloc([n1,n23],id='dsurfdrho')
@@ -205,7 +205,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
    !add the ionic density to the potential
    e_static=0.0_dp
-   if (kernel%method /= PS_VAC_ENUM .and. kernel%grid%n3p>0 .and. sumpion) then
+   if (kernel%method /= 'VAC' .and. kernel%grid%n3p>0 .and. sumpion) then
       !call yaml_map('Rho_ion monopole',sum(rho_ion)*product(kernel%hgrids))
       call finalize_hartree_results(.true.,rho_ion,kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
@@ -289,7 +289,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          end if
 
          !update rhopol and calculate residue
-         call fssnord3DmatNabla_LG(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
+         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
               kernel%ndims(3),&
               rhopot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%dlogeps,rhopol,rhores2)
 
@@ -310,7 +310,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       if (wrtmsg) call yaml_sequence_close()
 
       !if statement for SC cavity
-      if (kernel%method .hasattr. PS_SCCS_ENUM) &
+      if (kernel%method .hasattr. 'sccs') &
            call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,rhopot(i3start),eps0)
 
       !here the harteee energy can be calculated and the ionic potential
@@ -537,29 +537,6 @@ subroutine pol_charge(kernel,pot_full,rho,pot)
   
 end subroutine pol_charge
 
-!> verify that the density is considerably zero in the region where epsilon is different from one
-subroutine nonvacuum_projection(n1,n23,rho,oneoeps,norm)
-  implicit none
-  integer, intent(in) :: n1,n23 !< parallelized box dimensions
-  real(dp), dimension(n1,n23), intent(in) :: rho !<charge density
-  !>inverse of epsilon (might also be inverse of sqrt(eps))
-  real(dp), dimension(n1,n23), intent(in) :: oneoeps 
-  real(dp), intent(out) :: norm !< \int of rho where epsilon /=1
-  !local variables
-  integer :: i1,i23
-  real(dp), parameter :: tol= 5.d-1
- 
-  norm=0.0_dp
-  !$omp parallel do default(shared) private(i1,i23)&
-  !$omp reduction(+:norm)
-  do i23=1,n23
-     do i1=1,n1
-        if (abs(oneoeps(i1,i23) - 1.0_dp) > tol) norm=norm+rho(i1,i23)
-     end do
-  end do
-  !$omp end parallel do
-
-end subroutine nonvacuum_projection
 
 !regroup the psolver from here -------------
 subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)

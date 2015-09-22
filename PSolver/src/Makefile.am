@@ -38,13 +38,15 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	PSolver_Base_new.f90 \
 	wofz.f90 \
 	$(CUDA_SOURCES) \
-	Poisson_Solver.f90
+	Poisson_Solver.f90 \
+	environment.f90
 
 # Modules.
 if CAPITALIZE
-modules = POISSON_SOLVER.@MODULE_EXT@
+modules = POISSON_SOLVER.@MODULE_EXT@ ENVIRONMENT.@MODULE_EXT@
+
 else
-modules = poisson_solver.@MODULE_EXT@
+modules = poisson_solver.@MODULE_EXT@ environment.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules) $(psolver_dynamic_library) $(psolver_library_soname) libPSolver-1.so
@@ -127,7 +129,7 @@ install-data-hook:
 
 #dependencies
 $(modules): $(libPSolver_1_a_OBJECTS)
-Poisson_Solver.o: $(SOURCES_MOD) configure.inc
+Poisson_Solver.o: $(SOURCES_MOD) configure.inc environment.o
 conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
 wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o

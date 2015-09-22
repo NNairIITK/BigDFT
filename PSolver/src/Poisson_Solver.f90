@@ -64,6 +64,7 @@ module Poisson_Solver
    use time_profiling, only: TIMING_UNINITIALIZED, f_timing
    use yaml_output
    use yaml_strings
+   use environment
    !use m_profiling
    ! TO BE REMOVED with f_malloc
    
@@ -71,10 +72,6 @@ module Poisson_Solver
    
    private
    
-   ! General precision, density and the potential types
-   integer, parameter, public :: gp=kind(1.0d0)  !< general-type precision
-   integer, parameter, public :: dp=kind(1.0d0)  !< density-type precision
-   integer, parameter, public :: wp=kind(1.0d0)  !< potential-type precision
    ! Associated MPI precisions.
    integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
    integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
@@ -87,21 +84,6 @@ module Poisson_Solver
    
    include 'configure.inc'
 
-   !> how to set the dielectric function
-   integer, parameter :: PS_EPSILON_VACUUM = -1000
-   integer, parameter :: PS_EPSILON_RIGID_CAVITY = 1001
-   integer, parameter :: PS_EPSILON_SCCS = 1002
-
-   integer, parameter :: PS_PCG = 1234
-   integer, parameter :: PS_PI = 1432
-
-   type(f_enumerator) :: PS_NONE_ENUM=f_enumerator('vacuum',PS_EPSILON_VACUUM,null())
-   type(f_enumerator) :: PS_RIGID_ENUM=f_enumerator('rigid',PS_EPSILON_RIGID_CAVITY,null())
-   type(f_enumerator) :: PS_SCCS_ENUM=f_enumerator('sccs',PS_EPSILON_SCCS,null())
-
-   type(f_enumerator), parameter :: PS_VAC_ENUM=f_enumerator('VAC',PS_EPSILON_VACUUM,null())
-   type(f_enumerator), parameter :: PS_PI_ENUM=f_enumerator('PI',PS_PI,null())
-   type(f_enumerator), parameter :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG,null())
 
   
    !>Defines the internal information for application of the FFT between the kernel and the 
@@ -152,6 +134,7 @@ module Poisson_Solver
       integer, dimension(3) :: ndims   !< dimension of the box of the density
       real(gp), dimension(3) :: hgrids !<grid spacings in each direction
       real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
+      type(cavity_data) :: cavity !< description of the cavity for the dielectric medium
       real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
       !> logaritmic derivative of the dielectric function,
       !! to be used in the case of Polarization Iteration method
@@ -170,8 +153,6 @@ module Poisson_Solver
       real(dp), dimension(:,:,:), pointer :: zf
       !> Polarization charge vector for print purpose only.
       real(dp), dimension(:,:), pointer :: pol_charge
-      !> Dielectric cavity eps for print purpose only.
-      real(dp), dimension(:,:), pointer :: cavity
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
       real(dp) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
       real(dp) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
@@ -209,6 +190,7 @@ module Poisson_Solver
    public :: H_potential 
    ! Calculate the allocation dimensions
    public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions, xc_dimensions
+   public :: dp,gp
 
    !> This structure is used to indicate the arguments of the routine which are used commonly
    !! Doxygen will duplicate the documentation for the arguments
@@ -257,6 +239,7 @@ contains
     k%itype_scf=0
     k%geocode='F'
     call nullify_f_enum(k%method)
+    k%cavity=cavity_default()
     k%mu=0.0_gp
     k%ndims=(/0,0,0/)
     k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
@@ -267,7 +250,6 @@ contains
     nullify(k%corr)
     nullify(k%epsinnersccs)
     nullify(k%pol_charge)
-    nullify(k%cavity)
     nullify(k%zf)
     k%work1_GPU=0.d0
     k%work2_GPU=0.d0
