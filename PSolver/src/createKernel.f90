@@ -1152,7 +1152,7 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
   !real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)) :: pot2,depsdrho1,depsdrho2
 
   real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
-  real(dp), parameter :: alphaS = -69.5d0 ![dyn/cm]
+  real(dp), parameter :: alphaS = -22.0d0 ![dyn/cm]
   real(dp), parameter :: betaV = -0.35d0 ![GPa]
 
   gammaSau=gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
@@ -1178,8 +1178,9 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
               d2 = d2+nabla_pot(i1,i2,i3,i)**2
            end do
            !depsdrho1(i1,i2,i3)=depsdrho(i1,i23)
-           depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*d2/pi!+(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
-                            !+betaVau*depsdrho(i1,i23)/(1.d0-eps0)
+           depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*d2/pi&
+                            +(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
+                            +betaVau*depsdrho(i1,i23)/(1.d0-eps0)
            !depsdrho(i1,i23)=depsdrho(i1,i23)*d2
            !pot2(i1,i2,i3)=d2
            !depsdrho2(i1,i2,i3)=depsdrho(i1,i23)
@@ -1274,7 +1275,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
 
   
   !local variables
-  logical, parameter :: dumpeps=.false.  !.true.
+  logical, parameter :: dumpeps=.true.  !.true.
   real(kind=8), parameter :: edensmax = 0.005d0 !0.0050d0
   real(kind=8), parameter :: edensmin = 0.0001d0
   real(kind=8), parameter :: innervalue = 0.9d0
@@ -1283,6 +1284,17 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
   real(dp) :: de,dde,ddtx,d,c1,c2
   real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr,epsinner,depsdrho1,cc
   real(dp), dimension(:,:,:,:), allocatable :: nabla_edens
+  real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
+  real(dp), parameter :: alphaS = -22.0d0 ![dyn/cm]
+  real(dp), parameter :: betaV = -0.35d0 ![GPa]
+  real(dp) :: gammaSau, alphaSau,betaVau
+  real(gp) :: IntSur,IntVol,noeleene,Cavene,Repene,Disene
+
+  gammaSau=gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  alphaSau=alphaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  betaVau=betaV/2.942191219d4 ! in atomic unit
+  IntSur=0.d0
+  IntVol=0.d0
 
   n01=kernel%ndims(1)
   n02=kernel%ndims(2)
@@ -1302,7 +1314,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
   !density gradient in du
   call fssnord3DmatNabla3var_LG(kernel%geocode,n01,n02,n03,edens,nabla_edens,kernel%nord,kernel%hgrids)
   !density laplacian in d2u
-  call fssnord3DmatDiv3var_LG(kernel%geocode,n01,n02,n03,nabla_edens,ddt_edens,kernel%nord,kernel%hgrids)
+  call fssnord3DmatDiv3var_LG(kernel%geocode,n01,n02,n03,nabla_edens,ddt_edens,kernel%nord,kernel%hgrids,cc)
 
   pi = 4.d0*datan(1.d0)
   oneoeps0=1.d0/eps0
@@ -1386,8 +1398,10 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
                  coeff1=(0.5d0*(coeff**2)+fact3*fact1*sin(r)+coeff)/((edens(i1,i2,i3))**2)
                  kernel%corr(i1,i23)=(0.125d0/pi)*safe_exp(t)*(coeff1*d2+dtx*dd) !corr(i1,i2,i3)
                  c1=(cc(i1,i2,i3)/d2-dd)/d
-                 dsurfdrho(i1,i23)=(de*c1)/(eps0-1.d0)
+                 dsurfdrho(i1,i23)=(-de*c1)/(eps0-1.d0)
                  !dsurfdrho(i1,i23)=(de*c1+dde*c2)/(eps0-1.d0)
+                 IntSur=IntSur - de*d
+                 IntVol=IntVol + (eps0-safe_exp(t))/(eps0-1.d0)
               end if
 
              end if
@@ -1409,6 +1423,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
                  kernel%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
+                 dsurfdrho(i1,i23)=0.d0
              else
 
               if (dabs(edens(i1,i2,i3)).gt.edensmax) then
@@ -1417,22 +1432,37 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
                  kernel%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
+                 dsurfdrho(i1,i23)=0.d0
               else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
                  !eps(i1,i2,i3)=eps0
                  kernel%cavity(i1,i23)=eps0
                  if (dumpeps) epscurr(i1,i2,i3)=eps0
                  kernel%oneoeps(i1,i23)=oneoeps0 !oneoeps(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
+                 dsurfdrho(i1,i23)=0.d0
               else
                  r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
                  t=fact2*(r-sin(r))
                  coeff=fact3*(1.d0-cos(r))
                  dtx=-coeff/dabs(edens(i1,i2,i3))
-                 depsdrho(i1,i23)=safe_exp(t)*dtx
+                 de=safe_exp(t)*dtx ! derivative of epsilon wrt rho
+                 depsdrho(i1,i23)=de
                  kernel%cavity(i1,i23)=safe_exp(t)
                  !eps(i1,i2,i3)=dexp(t)
                  if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
                  kernel%oneoeps(i1,i23)=safe_exp(-t) !oneoeps(i1,i2,i3)
+                 d2=0.d0
+                 do i=1,3
+                    !dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,isp,i)
+                    d2 = d2+nabla_edens(i1,i2,i3,i)**2
+                 end do
+                 d=dsqrt(d2)
+                 dd = ddt_edens(i1,i2,i3)
+                 c1=(cc(i1,i2,i3)/d2-dd)/d
+                 dsurfdrho(i1,i23)=(-de*c1)/(eps0-1.d0)
+                 !dsurfdrho(i1,i23)=(de*c1+dde*c2)/(eps0-1.d0)
+                 IntSur=IntSur - de*d
+                 IntVol=IntVol + (eps0-safe_exp(t))/(eps0-1.d0)
               end if
 
              end if
@@ -1474,6 +1504,23 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
      end do
 
   end select
+
+  IntSur=IntSur*kernel%hgrids(1)*kernel%hgrids(2)*kernel%hgrids(3)/(eps0-1.d0)
+  IntVol=IntVol*kernel%hgrids(1)*kernel%hgrids(2)*kernel%hgrids(3)
+
+  Cavene= gammaSau*IntSur*627.509469d0
+  Repene= alphaSau*IntSur*627.509469d0
+  Disene=  betaVau*IntVol*627.509469d0
+  noeleene=Cavene+Repene+Disene
+
+  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) then
+     call yaml_map('Surface integral',IntSur)
+     call yaml_map('Volume integral',IntVol)
+     call yaml_map('Cavity energy',Cavene)
+     call yaml_map('Repulsion energy',Repene)
+     call yaml_map('Dispersion energy',Disene)
+     call yaml_map('Total non-electrostatic energy',noeleene)
+  end if
 
   if (dumpeps) then
 
