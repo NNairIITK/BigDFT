@@ -1,4 +1,4 @@
-# Definitions of the input variables
+## Definitions of the input variables
 ##inputvar: #name of the variable as declared in the code
 ## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile

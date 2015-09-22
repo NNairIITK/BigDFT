@@ -316,7 +316,7 @@ foe_base.o: base.o defs.o
 foe_common.o: base.o defs.o foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
 fermi_level.o: base.o foe_common.o
 copy_utils.o: base.o
-gaussdaub.o: base.o
+gaussdaub.o: base.o gaussians.o psp_projectors_base.o
 module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
 ab7_mixing.o: defs.o

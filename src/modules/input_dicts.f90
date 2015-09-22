@@ -342,7 +342,7 @@ contains
     type(dictionary), pointer :: dict
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
-    integer, parameter :: ntrials=3
+    integer, parameter :: ntrials=1
     integer :: ierror,lgt,unit_log,ierrr,trials
     integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
