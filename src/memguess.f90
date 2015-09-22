@@ -1752,7 +1752,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    use module_base
    use module_types
    use module_interfaces
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use gaussians, only: gaussian_basis, deallocate_gwf
    use module_xc
    use module_input_keys

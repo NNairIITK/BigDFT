@@ -26,7 +26,7 @@ module rhopotential
     use module_base
     use module_types
     use module_interfaces
-    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+    use Poisson_Solver, except_dp => dp, except_gp => gp
     implicit none
     
     ! Calling arguments

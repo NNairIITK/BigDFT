@@ -39,7 +39,7 @@ program PS_Check
   integer :: n_cell,igpu
   integer, dimension(3) :: nxyz
   integer, dimension(3) :: ndims
-  real(wp), dimension(:,:,:,:), pointer :: rhocore
+  real(dp), dimension(:,:,:,:), pointer :: rhocore
   real(dp), dimension(3) :: hgrids
   type(mpi_environment) :: bigdft_mpi
   character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"

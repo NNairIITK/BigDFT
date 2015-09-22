@@ -231,7 +231,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
   use module_base
   !Rename dp into except_dp in order to avoid conflict with the definitions provided by module_base
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   !Idem
   use module_interfaces, only: calc_gradient
   use module_xc

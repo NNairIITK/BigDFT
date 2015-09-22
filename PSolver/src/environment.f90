@@ -12,6 +12,7 @@ module environment
   use f_enums, only: f_enumerator
   use f_precisions, only: f_double
   use numerics, only: safe_exp
+  use dictionaries, only: f_err_throw
   implicit none
 
   private
@@ -52,8 +53,8 @@ module environment
      real(dp) :: betaV !<proportionality factor for the dispersion free energy in term of the volume integral [GPa]     
   end type cavity_data
 
-  public :: cavity_init,eps,epsprime,epssecond,oneoeps,oneosqrteps,logepsprime,corr_term
-  public :: nabla_u,div_u_i,nabla_u_and_square,cavity_default
+  public :: cavity_init,eps,epsprime,epssecond,oneoeps,oneosqrteps,logepsprime,corr_term,nabla_u_square
+  public :: nabla_u,div_u_i,nabla_u_and_square,cavity_default,nonvacuum_projection,update_rhopol
 
 contains
 

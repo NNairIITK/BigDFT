@@ -562,7 +562,8 @@ END SUBROUTINE wb_correction
 !!           The rest of the array is defined for later use in the wb postprocessing routine.
 subroutine calc_gradient(geocode,n1,n2,n3,n3grad,deltaleft,deltaright,rhoinp,nspden,hx,hy,hz,&
      gradient,rhocore)
-  use Poisson_Solver, only: dp, wp
+  use module_defs, only: wp
+  use Poisson_Solver, only: dp
   use memory_profiling
   use wrapper_linalg
   use dynamic_memory

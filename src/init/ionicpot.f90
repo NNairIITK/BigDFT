@@ -14,7 +14,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      & pot_ion,pkernel,psoffset)
   use module_base, pi => pi_param
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use vdwcorrection
   use yaml_output
   use bounds, only: ext_buffers
@@ -821,34 +821,34 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
      end do
 
      IntSur = IntSur + dsqrt(d12)
-!
-!     dd=0.d0
-!     do jat=1,nat
-!      curr=ddep(jat)
-!      do iat=1,nat-1
-!       curr=curr*ep(modulo(iat+jat-1,nat)+1)
-!      end do
-!      dd = dd + curr
-!     end do
-!
-!      do i=1,3
-!       do iat=1,nat-1
-!        do jat=iat+1,nat
-!         curr=dep(i,iat)*dep(i,jat)
-!         do ii=1,nat
-!          if ((ii.eq.iat).or.(ii.eq.jat)) then
-!          else
-!           curr=curr*ep(ii)
-!          end if
-!         end do
-!         curr=curr*2.d0
-!         dd = dd + curr
-!        end do
-!       end do
-!      end do
 
-!     dd=dd*(epsilon0-1.d0)
-!     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+     dd=0.d0
+     do jat=1,nat
+      curr=ddep(jat)
+      do iat=1,nat-1
+       curr=curr*ep(modulo(iat+jat-1,nat)+1)
+      end do
+      dd = dd + curr
+     end do
+
+      do i=1,3
+       do iat=1,nat-1
+        do jat=iat+1,nat
+         curr=dep(i,iat)*dep(i,jat)
+         do ii=1,nat
+          if ((ii.eq.iat).or.(ii.eq.jat)) then
+          else
+           curr=curr*ep(ii)
+          end if
+         end do
+         curr=curr*2.d0
+         dd = dd + curr
+        end do
+       end do
+      end do
+
+     dd=dd*(epsilon0-1.d0)
+     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
 
     end do
    end do
@@ -1601,7 +1601,7 @@ subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
 !  use module_interfaces, except_this_one => createIonicPotential
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use public_enums, only: PSPCODE_PAW
   use bounds, only: ext_buffers
   implicit none
@@ -2288,7 +2288,7 @@ subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
   use module_base, pi => pi_param
   use module_types
   !use module_interfaces, except_this_one => CounterIonPotential
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_input_dicts
   use public_keys, only: IG_OCCUPATION
   use dictionaries

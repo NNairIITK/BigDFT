@@ -16,7 +16,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use module_base
   use module_types
   use module_interfaces, fake_name => psitohpsi
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use m_ab7_mixing
   use yaml_output
   use psp_projectors_base, only: PSP_APPLY_SKIP
@@ -3107,7 +3107,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   use module_types
   use module_xc
   use module_interfaces, fake_name => integral_equation
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use locreg_operations
   implicit none

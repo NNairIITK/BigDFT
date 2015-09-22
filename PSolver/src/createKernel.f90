@@ -81,7 +81,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%method=PS_PCG_ENUM
         kernel%nord=16
         kernel%max_iter=50
-        kernel%minres=1.0e-6_dp!1.0e-12_dp
+        kernel%minres=1.0e-6_dp! 1.0e-12_dp
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -1168,10 +1168,9 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
 !!$              d2 = d2+nabla_pot(i1,i2,i3,i)**2
 !!$           end do
            !depsdrho1(i1,i2,i3)=depsdrho(i1,i23)
-           !depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*d2/pi&
-           depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*nabla2_pot(i1,i2,i3)/pi&
-                            +(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
-                            +betaVau*depsdrho(i1,i23)/(1.d0-eps0)
+           depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*d2/pi!&
+                            !+(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
+                            !+betaVau*depsdrho(i1,i23)/(1.d0-eps0)
            !depsdrho(i1,i23)=depsdrho(i1,i23)*d2
            !pot2(i1,i2,i3)=d2
            !depsdrho2(i1,i2,i3)=depsdrho(i1,i23)

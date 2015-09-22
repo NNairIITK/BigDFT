@@ -116,7 +116,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           call pkernel_allocate_cavity(denspot%pkernel,&
           vacuum=.not. (denspot%pkernel%method .hasattr. 'sccs'))
 
-!!!TEST          call epsinnersccs_cavity(atoms,rxyz,denspot%pkernel)
+          call epsinnersccs_cavity(atoms,rxyz,denspot%pkernel)
 
         !if (denspot%pkernel%method .hasattr. 'sccs') &
         !     call pkernel_allocate_cavity(denspot%pkernel)
@@ -788,7 +788,7 @@ END SUBROUTINE system_initialization
 subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   use module_types
   use module_xc
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_base
   implicit none
   logical, intent(in) :: verb
@@ -819,7 +819,7 @@ END SUBROUTINE system_initKernels
 subroutine system_createKernels(denspot, verb)
   use module_base
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   implicit none
   logical, intent(in) :: verb
   type(DFT_local_fields), intent(inout) :: denspot
@@ -980,26 +980,27 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  corr=0.d0
 !!$  oneosqrteps=1.d0
 
-  !starting point in third direction
-!  i3s=pkernel%grid%istart+1
-!  i23=1
-!  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
-!     do i2=1,pkernel%ndims(2)
-!        do i1=1,pkernel%ndims(1)
-!           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
-!        end do
-!        i23=i23+1
-!     end do
-!  end do
   !if(bigdft_mpi%iproc==0) call yaml_map('Im here',1)
 
   select case(trim(f_str(pkernel%method)))
   case('PCG')
-!   call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
-   call pkernel_set_epsilon(pkernel,eps=eps)
+   call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
+!   call pkernel_set_epsilon(pkernel,eps=eps)
   case('PI') 
    call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
   end select
+
+!!$  !starting point in third direction
+!!$  i3s=pkernel%grid%istart+1
+!!$  i23=1
+!!$  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
+!!$     do i2=1,pkernel%ndims(2)
+!!$        do i1=1,pkernel%ndims(1)
+!!$           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
+!!$        end do
+!!$        i23=i23+1
+!!$     end do
+!!$  end do
 
 !!$  unt=f_get_free_unit(21)
 !!$  call f_open_file(unt,file='oneoepsilon.dat')
@@ -1063,7 +1064,7 @@ subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
 !  if(bigdft_mpi%iproc==0) call yaml_map('Delta cavity',delta)
 
   do i=1,atoms%astruct%nat
-   radii(i) = 1.5d0/Bohr_Ang
+   radii(i) = 0.5d0/Bohr_Ang
   end do
 !  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
 
