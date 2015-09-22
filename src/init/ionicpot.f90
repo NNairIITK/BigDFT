@@ -820,34 +820,34 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
      end do
 
      IntSur = IntSur + dsqrt(d12)
-!
-!     dd=0.d0
-!     do jat=1,nat
-!      curr=ddep(jat)
-!      do iat=1,nat-1
-!       curr=curr*ep(modulo(iat+jat-1,nat)+1)
-!      end do
-!      dd = dd + curr
-!     end do
-!
-!      do i=1,3
-!       do iat=1,nat-1
-!        do jat=iat+1,nat
-!         curr=dep(i,iat)*dep(i,jat)
-!         do ii=1,nat
-!          if ((ii.eq.iat).or.(ii.eq.jat)) then
-!          else
-!           curr=curr*ep(ii)
-!          end if
-!         end do
-!         curr=curr*2.d0
-!         dd = dd + curr
-!        end do
-!       end do
-!      end do
 
-!     dd=dd*(epsilon0-1.d0)
-!     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+     dd=0.d0
+     do jat=1,nat
+      curr=ddep(jat)
+      do iat=1,nat-1
+       curr=curr*ep(modulo(iat+jat-1,nat)+1)
+      end do
+      dd = dd + curr
+     end do
+
+      do i=1,3
+       do iat=1,nat-1
+        do jat=iat+1,nat
+         curr=dep(i,iat)*dep(i,jat)
+         do ii=1,nat
+          if ((ii.eq.iat).or.(ii.eq.jat)) then
+          else
+           curr=curr*ep(ii)
+          end if
+         end do
+         curr=curr*2.d0
+         dd = dd + curr
+        end do
+       end do
+      end do
+
+     dd=dd*(epsilon0-1.d0)
+     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
 
     end do
    end do

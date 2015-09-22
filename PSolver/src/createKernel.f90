@@ -81,7 +81,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%method=PS_PCG_ENUM
         kernel%nord=16
         kernel%max_iter=50
-        kernel%minres=1.0e-6_dp!1.0e-12_dp
+        kernel%minres=1.0e-12_dp! 1.0e-6_dp!1.0e-12_dp
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -1077,9 +1077,9 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
               d2 = d2+nabla_pot(i1,i2,i3,i)**2
            end do
            !depsdrho1(i1,i2,i3)=depsdrho(i1,i23)
-           depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*d2/pi&
-                            +(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
-                            +betaVau*depsdrho(i1,i23)/(1.d0-eps0)
+           depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*d2/pi!&
+                            !+(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
+                            !+betaVau*depsdrho(i1,i23)/(1.d0-eps0)
            !depsdrho(i1,i23)=depsdrho(i1,i23)*d2
            !pot2(i1,i2,i3)=d2
            !depsdrho2(i1,i2,i3)=depsdrho(i1,i23)
@@ -1297,9 +1297,9 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
                  coeff1=(0.5d0*(coeff**2)+fact3*fact1*sin(r)+coeff)/((edens(i1,i2,i3))**2)
                  kernel%corr(i1,i23)=(0.125d0/pi)*safe_exp(t)*(coeff1*d2+dtx*dd) !corr(i1,i2,i3)
                  c1=(cc(i1,i2,i3)/d2-dd)/d
-                 dsurfdrho(i1,i23)=(-de*c1)/(eps0-1.d0)
+                 dsurfdrho(i1,i23)=(de*c1)/(eps0-1.d0)
                  !dsurfdrho(i1,i23)=(de*c1+dde*c2)/(eps0-1.d0)
-                 IntSur=IntSur - de*d
+                 IntSur=IntSur + de*d
                  IntVol=IntVol + (eps0-safe_exp(t))/(eps0-1.d0)
               end if
 
@@ -1358,9 +1358,9 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
                  d=dsqrt(d2)
                  dd = ddt_edens(i1,i2,i3)
                  c1=(cc(i1,i2,i3)/d2-dd)/d
-                 dsurfdrho(i1,i23)=(-de*c1)/(eps0-1.d0)
+                 dsurfdrho(i1,i23)=(de*c1)/(eps0-1.d0)
                  !dsurfdrho(i1,i23)=(de*c1+dde*c2)/(eps0-1.d0)
-                 IntSur=IntSur - de*d
+                 IntSur=IntSur + de*d
                  IntVol=IntVol + (eps0-safe_exp(t))/(eps0-1.d0)
               end if
 
