@@ -184,6 +184,8 @@ subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_base
   use bigdft_run
   use yaml_output
+  use module_input_keys, only: inputpsiid_set_policy
+  use public_enums, only: ENUM_MEMORY
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -218,7 +220,8 @@ subroutine loop(runObj,outs,nproc,iproc,ncount_bigdft,fail)
         return
      endif
 
-     runObj%inputs%inputPsiId=1
+     !runObj%inputs%inputPsiId=1
+     call inputpsiid_set_policy(ENUM_MEMORY, runObj%inputs%inputPsiId)
      call bigdft_state(runObj, outs, infocode)
      ncount_bigdft = ncount_bigdft + 1
 

@@ -1105,7 +1105,7 @@ END SUBROUTINE system_properties
 subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
   use module_base
   use module_types
-  use psp_projectors, only: PSPCODE_PAW
+  use public_enums, only: PSPCODE_PAW
   use m_pawrad,  only : pawrad_type, pawrad_init, pawrad_free
   use yaml_output
   implicit none
@@ -1250,7 +1250,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
   use module_defs, only: gp, dp, UNINITIALIZED, pi_param, BIGDFT_INPUT_VARIABLES_ERROR
   use module_xc, only: xc_get_id_from_name
   use yaml_strings, only: yaml_toa
-  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_PAW, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC
+  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_PAW, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC
   use ao_inguess
   use dictionaries
   use f_utils
@@ -1442,7 +1442,8 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
 END SUBROUTINE psp_from_stream
 
 subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
-  use module_defs, only: dp, gp, bigdft_mpi, pi_param
+  use module_defs, only: dp, gp, pi_param
+  use module_base, only: bigdft_mpi
   use module_xc
   use abi_defs_basis, only: tol14, fnlen
   use m_pawpsp, only: pawpsp_main

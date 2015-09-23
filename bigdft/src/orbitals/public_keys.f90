@@ -369,6 +369,7 @@ module public_enums
   integer, parameter, public :: INPUT_PSI_LCAO         = 0      !< Input PSI coming from Localised ATomic Orbtials
   integer, parameter, public :: INPUT_PSI_MEMORY_WVL   = 1      !< Input PSI from memory
   integer, parameter, public :: INPUT_PSI_DISK_WVL     = 2      !< Input PSI from disk (wavelet coefficients)
+  integer, parameter, public :: INPUT_PSI_DISK_PW      = 3
   integer, parameter, public :: INPUT_PSI_LCAO_GAUSS   = 10
   integer, parameter, public :: INPUT_PSI_MEMORY_GAUSS = 11
   integer, parameter, public :: INPUT_PSI_DISK_GAUSS   = 12
@@ -476,8 +477,8 @@ module public_enums
   type(f_enumerator), parameter, public :: CP2K_RUN_MODE         =f_enumerator('CP2K_RUN_MODE',-991,null())
   type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
 
-  type(f_enumerator), parameter :: ATOM_MODE_QM      = f_enumerator('QM', 0)
-  type(f_enumerator), parameter :: ATOM_MODE_MM      = f_enumerator('MM', 1)
+  type(f_enumerator), parameter, public :: ATOM_MODE_QM      = f_enumerator('QM', 0)
+  type(f_enumerator), parameter, public :: ATOM_MODE_MM      = f_enumerator('MM', 1)
 end module public_enums
 
 

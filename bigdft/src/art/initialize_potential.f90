@@ -12,6 +12,7 @@
 subroutine initialize_potential( )
    use defs
    use bigdft_forces
+   use module_base
    implicit None
 
    !Local variables

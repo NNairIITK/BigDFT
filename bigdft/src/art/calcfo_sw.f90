@@ -174,6 +174,7 @@ subroutine fit_SW_potential()
    use defs
    use SWpotential
    use random
+   use module_base
    implicit none
 
    integer :: my_counter,trash_evalf
@@ -596,7 +597,8 @@ END SUBROUTINE deriv_diff_square_force
 subroutine SWcalczone(nat,posa,boxl,tmp_force, this_atom,numnei,nei)
 
    use SWpotential
-   use defs, only: boundary,maxnei,MPI_COMM_WORLD
+   use defs, only: boundary,maxnei
+   use module_base, only:MPI_COMM_WORLD
 
    implicit none
 

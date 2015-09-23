@@ -1518,9 +1518,9 @@ END SUBROUTINE input_wf_disk
 subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, psig, denspot, nlpsp, paw)
   use module_defs, only: gp, wp
   use module_types, only: orbitals_data, paw_objects, DFT_local_fields, &
-       & GPU_pointers, local_zone_descriptors, ELECTRONIC_DENSITY, KS_POTENTIAL, &
-       & energy_terms, energy_terms_null
-  use psp_projectors, only: DFT_PSP_projectors
+       & GPU_pointers, local_zone_descriptors, energy_terms, energy_terms_null
+  use public_enums, only: ELECTRONIC_DENSITY, KS_POTENTIAL
+  use psp_projectors_base, only: DFT_PSP_projectors
   use module_atoms
   use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_free_unpacked, pawrhoij_unpack
   use dynamic_memory

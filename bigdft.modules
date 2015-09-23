@@ -45,7 +45,7 @@
   </autotools>
 
   <autotools id="flib" autogenargs="--disable-libpsolver" autogen-sh="autoreconf">
-    <branch repo="local" module="bigdft-1.7.6.8.tar.gz" version="1.7.6.8" checkoutdir="bigdft"/>
+    <branch repo="local" module="bigdft-1.8a.0.tar.gz" version="1.8a.0" checkoutdir="bigdft"/>
     <dependencies>
       <dep package="libyaml"/>
       <if condition-set="testing">
@@ -67,7 +67,7 @@
 
   <autotools id="bigdft" autogenargs="--without-internal-flib" autogen-sh="autoreconf">
     <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
-    <branch repo="local" module="bigdft-1.7.6.8.tar.gz" version="1.7.6.8" checkoutdir="bigdft"/>
+    <branch repo="local" module="bigdft-1.8a.0.tar.gz" version="1.8a.0" checkoutdir="bigdft"/>
     <dependencies>
       <dep package="flib"/>
       <!--<dep package="psolver"/>-->
@@ -122,7 +122,7 @@
     </dependencies>
   </autotools>
 
-  <metamodule id="bigdft-suite-1.7.5">
+  <metamodule id="bigdft-suite">
     <dependencies>
       <dep package="bigdft"/>
       <dep package="pseudo"/>

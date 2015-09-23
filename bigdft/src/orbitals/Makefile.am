@@ -63,7 +63,7 @@ endif
 
 CLEANFILES = $(modules)
 
-AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_FLIB_CFLAGS@
 
 # Hack for MIC compilation.
 if USE_MIC

@@ -1701,7 +1701,8 @@ end subroutine apply_atproj_iorb_paw
 
 !> In this routine cprj will be communicated to all processors
 subroutine gather_cprj(orbs, paw)
-  use module_defs, only: dp, bigdft_mpi
+  use module_defs, only: dp
+  use module_base, only: bigdft_mpi
   use module_types, only: orbitals_data, paw_objects
   use dynamic_memory
   use wrapper_MPI

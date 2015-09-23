@@ -256,7 +256,7 @@ $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
 	@chmod a+x $@
 
-libbigdft-1.so.7: $(bigdft_dynamic_library)
+libbigdft-1.so.8a: $(bigdft_dynamic_library)
 	ln -fs $^ $@
 	ln -fs $@ libbigdft-1.so
 
@@ -314,7 +314,7 @@ memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 utilities_SOURCES = utilities.f90
-utilities_LDADD = $(bigdft_library) @LINALG_LIBS@
+utilities_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
 frequencies_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
@@ -372,7 +372,7 @@ restart.o: i-o.o
 # Introspection for Python bindings
 # ---------------------------------
 if WITH_GOBJECT_INTROSPECTION
-BUILT_GIRSOURCES = BigDFT-1.7.gir
+BUILT_GIRSOURCES = BigDFT-1.8.gir
 
 gir_DATA = $(BUILT_GIRSOURCES)
 typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
@@ -392,7 +392,7 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		--namespace BigDFT \
 		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ --identifier-prefix=Bigdft \
 		--symbol-prefix=f90 --identifier-prefix=f90_ \
-		--nsversion "1.7" \
+		--nsversion "1.8" \
 		--add-include-path=$(girdir) \
 		--include GObject-2.0 \
 		--include GLib-2.0 \

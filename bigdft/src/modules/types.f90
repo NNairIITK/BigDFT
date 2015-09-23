@@ -862,8 +862,6 @@ contains
 
   END SUBROUTINE deallocate_Lzd
 
-    case(INPUT_PSI_DISK_PW)
-       write(input_psi_names, "(A)") "pw on disk"
   !> Nullify a DFT_local_fields structure
   subroutine nullify_DFT_local_fields(denspot)
     implicit none

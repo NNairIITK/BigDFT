@@ -344,7 +344,7 @@ contains
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
     integer, parameter :: ntrials=1
-    integer :: ierror,lgt,unit_log,ierrr,trials
+    integer :: lgt,unit_log,ierrr,trials
     integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
     character(len=500) :: logfilename,path
@@ -518,20 +518,6 @@ contains
 
   END SUBROUTINE merge_input_file_to_dict
 
-  subroutine psp_dict_analyse(dict, atoms, frmult)
-    use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
-    use m_pawrad, only: pawrad_type !, pawrad_nullify
-    type(atoms_data), intent(inout) :: atoms !< Atoms structure to fill up
-    real(gp), intent(in) :: frmult           !< Used to scale the PAW radius projector
-                !call pawrad_nullify(atoms%pawrad(ityp2))
-             atoms%epsatm = f_malloc_ptr(atoms%astruct%ntypes, id = "epsatm")
-          call libxc_functionals_init(atoms%ixcpsp(ityp), 1)
-          call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), &
-               & atoms%epsatm(ityp), trim(fpaw), &
-          atoms%radii_cf(ityp, 3) = atoms%pawtab(ityp)%rpaw !/ frmult + 0.01
-          call libxc_functionals_end()
-    if (has_key(dict, key) .and. trim(dict_value(dict // key)) == TYPE_LIST) &
-         & call dict_remove(dict, key)
   !subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
   !  use module_defs, only: gp
   !  use dictionaries
@@ -997,7 +983,7 @@ contains
     type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
     type(dictionary), pointer :: dict            !< Input dictionary, has to be nullified at input
     !local variables
-    integer :: ierr
+    !integer :: ierr
     logical :: exists_default, exists_user
     character(len = max_field_length) :: fname
 

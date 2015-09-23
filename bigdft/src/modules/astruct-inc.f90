@@ -1269,6 +1269,7 @@ END SUBROUTINE write_extra_info
 subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
   use module_defs, only: Bohr_Ang,UNINITIALIZED
   use yaml_output
+  use yaml_strings, only: yaml_toa
   implicit none
   integer, intent(in) :: iunit
   character(len=*), intent(in) :: comment
@@ -1387,6 +1388,7 @@ end subroutine wtxyz_forces
 subroutine wtascii(iunit,energy,rxyz,astruct,comment)
   use module_defs, only: Bohr_Ang,UNINITIALIZED
   use yaml_output
+  use yaml_strings, only: yaml_toa
   implicit none
   integer, intent(in) :: iunit
   character(len=*), intent(in) :: comment
@@ -1517,6 +1519,7 @@ subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
   use module_defs, only: Bohr_Ang,UNINITIALIZED,Radian_Degree
   use module_base, only: f_err_throw
   use yaml_output
+  use yaml_strings, only: yaml_toa
   implicit none
   integer, intent(in) :: iunit
   character(len=*), intent(in) :: comment

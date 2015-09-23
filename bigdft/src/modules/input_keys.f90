@@ -560,13 +560,13 @@ contains
                     ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
     use yaml_strings, only: f_strcpy
     use m_ab6_symmetry, only: symmetry_get_n_sym
-    use interfaces_42_libpaw
     use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
     use public_enums
     use fragment_base
     use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
     use yaml_strings, only: yaml_toa
+    use abi_interfaces_add_libpaw, only : abi_pawinit
     implicit none
     !Arguments
     type(input_variables), intent(out) :: in
@@ -582,12 +582,13 @@ contains
     type(dictionary), pointer :: dict_minimal, var, lvl, types
 
     integer, parameter :: pawlcutd = 10, pawlmix = 10, pawnphi = 13, pawntheta = 12, pawxcdev = 1
-    integer, parameter :: xclevel = 1, usepotzero = 0
-    integer :: nsym,unt
+    integer, parameter :: usepotzero = 0
+    integer :: nsym,unt, xclevel, iat, mpsang
     real(gp) :: gsqcut_shp, rloc, projr, rlocmin
     real(gp), dimension(2) :: cfrmults
-    type(external_potential_descriptors) :: ep
-    integer :: impl, l
+    !type(external_potential_descriptors) :: ep
+    !integer :: impl, l
+    type(xc_info) :: xc
 
     !  dict => dict//key
 
@@ -718,7 +719,7 @@ contains
          & atoms%astruct%sym, atoms%astruct%geocode, atoms%astruct%cell_dim)
 
     ! Update atoms with pseudo information.
-    call psp_dict_analyse(dict, atoms)
+    call psp_dict_analyse(dict, atoms, in%frmult)
     call atomic_data_set_from_dict(dict,IG_OCCUPATION, atoms, in%nspin)
 
     ! Add multipole preserving information
@@ -735,12 +736,21 @@ contains
 
     ! Complement PAW initialisation.
     if (any(atoms%npspcode == PSPCODE_PAW)) then
-       !gsqcut_shp = two*abs(dtset%diecut)*dtset%dilatmx**2/pi**2
-       gsqcut_shp = 2._gp * 2.2_gp / pi_param ** 2
-       call symmetry_get_n_sym(atoms%astruct%sym%symObj, nsym, ierr)
-       call pawinit(1, gsqcut_shp, pawlcutd, pawlmix, maxval(atoms%pawtab(:)%lmn_size) + 1, &
-            & pawnphi, nsym, pawntheta, atoms%pawang, atoms%pawrad, 0, &
-            & atoms%pawtab, pawxcdev, xclevel, usepotzero)
+     call xc_init(xc, in%ixc, XC_MIXED, 1)
+     xclevel = 1 ! xclevel=XC functional level (1=LDA, 2=GGA)
+     if (xc_isgga(xc)) xclevel = 2
+     call xc_end(xc)
+     !gsqcut_shp = two*abs(dtset%diecut)*dtset%dilatmx**2/pi**2
+     gsqcut_shp = 2._gp * 2.2_gp / pi_param ** 2
+     nsym = 0
+     call symmetry_get_n_sym(atoms%astruct%sym%symObj, nsym, ierr)
+     mpsang = -1
+     do iat = 1, atoms%astruct%nat
+        mpsang = max(mpsang, maxval(atoms%pawtab(iat)%orbitals))
+     end do
+     call abi_pawinit(1, gsqcut_shp, pawlcutd, pawlmix, mpsang + 1, &
+          & pawnphi, nsym, pawntheta, atoms%pawang, atoms%pawrad, 0, &
+          & atoms%pawtab, pawxcdev, xclevel, usepotzero)
     end if
 
     if (in%gen_nkpt > 1 .and. (in%inputpsiid .hasattr. 'GAUSSIAN')) then
@@ -934,10 +944,10 @@ contains
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
     !local variables
-    type(dictionary), pointer :: as_is,nested,no_check
-    character(max_field_length) :: meth, prof
+    type(dictionary), pointer :: as_is,nested
+    character(max_field_length) :: meth
     real(gp) :: dtmax_, betax_
-    logical :: user_defined,free,dftvar
+    logical :: free,dftvar
 
     if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
          err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -1001,7 +1011,6 @@ contains
     character(len = *), intent(inout) :: source !<preserve previous value if present
     !local variables
     type(dictionary), pointer :: dict_tmp
-    if (.not. associated(minimal)) call dict_init(minimal)
 
     call f_zero(source)
     dict_tmp=dict .get. ASTRUCT_PROPERTIES
@@ -1030,8 +1039,7 @@ contains
 
     !local variables
     integer, parameter :: natoms_dump=500
-    integer :: i, dlen, skeys,natoms
-    character(max_field_length), dimension(:), allocatable :: keys
+    integer :: natoms
     character(max_field_length) ::  sourcefile
     logical :: userOnly_
     type(dictionary), pointer :: tmp
@@ -1277,6 +1285,10 @@ contains
        call f_enum_attr(inputPsiid,ENUM_CUBIC)
     case(INPUT_PSI_DISK_WVL     )
        inputPsiid=f_enumerator('INPUT_PSI_DISK_WVL',INPUT_PSI_DISK_WVL,null())
+       call f_enum_attr(inputPsiid,ENUM_FILE)
+       call f_enum_attr(inputPsiid,ENUM_CUBIC)
+    case(INPUT_PSI_DISK_PW      )
+       inputPsiid=f_enumerator('INPUT_PSI_DISK_PW',INPUT_PSI_DISK_PW,null())
        call f_enum_attr(inputPsiid,ENUM_FILE)
        call f_enum_attr(inputPsiid,ENUM_CUBIC)
     case(INPUT_PSI_LCAO_GAUSS   )
@@ -2408,8 +2420,6 @@ contains
     type(input_variables), intent(inout) :: in
     type(atomic_structure), intent(in) :: astruct
 
-    integer :: ierr
-
     call f_routine(id='input_analyze')
 
     ! the PERF variables -----------------------------------------------------
@@ -2516,7 +2526,7 @@ contains
   subroutine kpt_input_analyse(iproc, in, dict, sym, geocode, alat)
     use module_base
     use module_atoms, only: symmetry_data
-    use defs_basis
+    use abi_defs_basis
     use m_ab6_kpoints
     use yaml_output
     use public_keys
@@ -2588,9 +2598,7 @@ contains
        !read the shifts
        shiftk_=0.0_gp
        do i=1,nshiftk
-          shiftk_(1,i) = dict // SHIFTK // (i-1) // 0
-          shiftk_(2,i) = dict // SHIFTK // (i-1) // 1
-          shiftk_(3,i) = dict // SHIFTK // (i-1) // 2
+          shiftk_(1:3,i) = dict // SHIFTK // (i-1)
        end do
 
        !control whether we are giving k-points to Free BC
@@ -2638,9 +2646,7 @@ contains
 !!$     call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
        norm=0.0_gp
        do i=1,in%gen_nkpt
-          in%gen_kpt(1, i) = dict // KPT // (i-1) // 0
-          in%gen_kpt(2, i) = dict // KPT // (i-1) // 1
-          in%gen_kpt(3, i) = dict // KPT // (i-1) // 2
+          in%gen_kpt(1:3, i) = dict // KPT // (i-1)
           if (geocode == 'S' .and. in%gen_kpt(2,i) /= 0.) then
              in%gen_kpt(2,i) = 0.
              if (iproc==0) call yaml_warning('Surface conditions, suppressing k-points along y.')
@@ -2777,7 +2783,7 @@ contains
   !> Print all general parameters
   subroutine print_general_parameters(in,atoms,input_id,posinp_id)
     use module_atoms, only: atoms_data
-    use defs_basis
+    use abi_defs_basis
     use yaml_output
     use yaml_strings, only: operator(.eqv.),yaml_toa
     implicit none

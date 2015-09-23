@@ -3137,9 +3137,11 @@ end subroutine integral_equation
 
 !> Compute the Dij coefficients from the current KS potential.
 subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
-  use module_types, only: paw_objects, atoms_data, DFT_local_fields, KS_POTENTIAL, &
+  use module_types, only: paw_objects, atoms_data, DFT_local_fields, &
        & TCAT_PAW_DIJ, TCAT_LIBPAW
-  use module_defs, only: gp, Ha_eV, bigdft_mpi
+  use public_enums, only: KS_POTENTIAL
+  use module_defs, only: gp, Ha_eV
+  use module_base, only: bigdft_mpi
   use m_paw_an, only: paw_an_reset_flags
   use m_paw_ij, only: paw_ij_reset_flags
   use m_pawdij, only: pawdij
@@ -3357,9 +3359,10 @@ subroutine paw_compute_rhoij(paw, orbs, atoms)
 END SUBROUTINE paw_compute_rhoij
 
 subroutine paw_update_rho(paw, denspot, atoms)
-  use module_defs, only: gp, dp, bigdft_mpi
-  use module_types, only: paw_objects, DFT_local_fields, ELECTRONIC_DENSITY, &
-       & TCAT_LIBPAW, TCAT_PAW_RHOIJ
+  use module_defs, only: gp, dp
+  use module_base, only: bigdft_mpi
+  use module_types, only: paw_objects, DFT_local_fields, TCAT_LIBPAW, TCAT_PAW_RHOIJ
+  use public_enums, only: ELECTRONIC_DENSITY
   use module_atoms
   use yaml_output
   use abi_interfaces_add_libpaw, only: abi_pawmknhat

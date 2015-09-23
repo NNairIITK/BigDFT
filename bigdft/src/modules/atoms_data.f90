@@ -1079,7 +1079,7 @@ contains
       use dictionaries
       use module_defs, only: UNINITIALIZED
       use dynamic_memory
-      use f_enums, only: operator(==), int, char
+      use f_enums, only: operator(==), f_int => int
       implicit none
       type(dictionary), pointer :: dict
       character(len = max_field_length), intent(out), optional :: symbol !< Symbol
@@ -1145,9 +1145,9 @@ contains
             if (present(mode)) then
                str = dict_value(atData)
                if (ATOM_MODE_MM == trim(str)) then
-                  mode = int(ATOM_MODE_MM)
+                  mode = f_int(ATOM_MODE_MM)
                else if (ATOM_MODE_QM == trim(str)) then
-                  mode = int(ATOM_MODE_QM)
+                  mode = f_int(ATOM_MODE_QM)
                end if
             end if
          else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_1) then
@@ -1435,18 +1435,20 @@ contains
     end subroutine allocate_atoms_data
 
     !> Fill up the atoms structure from dict
-    subroutine psp_dict_analyse(dict, atoms)
+    subroutine psp_dict_analyse(dict, atoms, frmult)
       use module_defs, only: gp
-      use m_pawrad, only: pawrad_type, pawrad_nullify
+      use m_pawrad, only: pawrad_type !, pawrad_nullify
       use m_pawtab, only: pawtab_type, pawtab_nullify
       use public_enums, only: PSPCODE_PAW
       use public_keys, only: SOURCE_KEY
       use dynamic_memory
       use dictionaries
+      use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
       implicit none
       !Arguments
       type(dictionary), pointer :: dict        !< Input dictionary
-      type(atoms_data), intent(inout) :: atoms !Atoms structure to fill up
+      type(atoms_data), intent(inout) :: atoms !< Atoms structure to fill up
+      real(gp), intent(in) :: frmult           !< Used to scale the PAW radius projector
       !Local variables
       integer :: ityp, ityp2
       character(len = 27) :: filename
@@ -1486,16 +1488,20 @@ contains
             if (.not. associated(atoms%pawrad)) then
                allocate(atoms%pawrad(atoms%astruct%ntypes))
                allocate(atoms%pawtab(atoms%astruct%ntypes))
+               atoms%epsatm = f_malloc_ptr(atoms%astruct%ntypes, id = "epsatm")
                do ityp2 = 1, atoms%astruct%ntypes
-                  call pawrad_nullify(atoms%pawrad(ityp2))
+                  !call pawrad_nullify(atoms%pawrad(ityp2))
                   call pawtab_nullify(atoms%pawtab(ityp2))
                end do
             end if
             ! Re-read the pseudo for PAW arrays.
             fpaw = dict // filename // SOURCE_KEY
-            !write(*,*) 'Reading of PAW atomic-data, under development', trim(fpaw)
-            call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), trim(fpaw), &
+            call libxc_functionals_init(atoms%ixcpsp(ityp), 1)
+            call paw_from_file(atoms%pawrad(ityp), atoms%pawtab(ityp), &
+                 & atoms%epsatm(ityp), trim(fpaw), &
                  & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%ixcpsp(ityp))
+            atoms%radii_cf(ityp, 3) = atoms%pawtab(ityp)%rpaw !/ frmult + 0.01
+            call libxc_functionals_end()
          end if
       end do
       call nlcc_set_from_dict(dict, atoms)
@@ -1746,7 +1752,8 @@ contains
            & psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
       call f_iostream_release(ios)
 
-      if (has_key(dict, key)) call dict_remove(dict, key)
+      if (has_key(dict, key) .and. trim(dict_value(dict // key)) == TYPE_LIST) &
+           & call dict_remove(dict, key)
       call psp_data_merge_to_dict(dict // key, nzatom, nelpsp, npspcode, ixcpsp, &
            & psppar, radii_cf, rcore, qcore)
       call set(dict // key // "PAW patch", pawpatch)

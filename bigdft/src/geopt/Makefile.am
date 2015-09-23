@@ -17,7 +17,7 @@ endif
 
 CLEANFILES = $(modules)
 
-AM_FCFLAGS = -I. -I$(srcdir) @LIBABINIT_INCLUDE@ -I$(top_builddir)/includes
+AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
 
 #dependencies
 geometry.o bfgs.o sdcg.o sqnm.o: lbfgs.o

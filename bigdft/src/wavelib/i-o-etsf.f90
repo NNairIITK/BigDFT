@@ -17,7 +17,7 @@ module internal_etsf
 
 
    subroutine etsf_error(error)
-      use module_defs
+      use module_base, only: bigdft_mpi
       use etsf_io_low_level
 
       implicit none
@@ -670,6 +670,7 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
    use etsf_io_low_level
    use etsf_io
    use internal_etsf
+   use locreg_operations
 
    implicit none
 
@@ -725,7 +726,7 @@ subroutine readwavetoisf_etsf(lstat, filename, iorbp, hx, hy, hz, &
 
    psiscf = f_malloc_ptr((/ lr%d%n1i, lr%d%n2i, lr%d%n3i, orbsd%nspinor  /),id='psiscf')
 
-   call initialize_work_arrays_sumrho(1,lr,.true.,w)
+   call initialize_work_arrays_sumrho(1, (/ lr /),.true.,w)
 
    do ispinor = 1, orbsd%nspinor, 1
       call read_psi_compress_etsf(ncid, orbsd%nspinor * (iorbp - 1) + ispinor, &
@@ -1242,7 +1243,8 @@ END SUBROUTINE write_waves_etsf
 subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoij)
   use internal_etsf, only: etsf_read_astruct
   use module_defs, only: gp, wp, pi_param
-  use module_types, only: orbitals_data, workarr_sumrho
+  use module_types, only: orbitals_data
+  use locreg_operations
   use module_atoms
   use locregs
   use etsf_io_low_level
@@ -1250,7 +1252,7 @@ subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoi
   use dynamic_memory
   use f_utils
   use dictionaries
-  use yaml_output, only: yaml_toa
+  use yaml_strings, only: yaml_toa
   use module_interfaces, only: plot_wf
   
   implicit none
@@ -1283,7 +1285,7 @@ subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoi
 
   call nullify_atomic_structure(at_old)
   call f_zero(psig)
-  call initialize_work_arrays_sumrho(1,Glr,.true.,w)
+  call initialize_work_arrays_sumrho(1, (/ Glr /),.true.,w)
   
   ! We open the ETSF file
   call etsf_io_low_open_read(ncid, filename, lstat, error_data = error)

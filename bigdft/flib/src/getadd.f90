@@ -596,7 +596,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
+    integer(f_kind), dimension(3), intent(in) :: shp
     double complex, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
     
     call pad_double_complex(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
@@ -781,7 +781,7 @@ contains
     implicit none
     integer(f_long):: li_nan
     !local variables
-    integer(f_long):: linan
+    !integer(f_long):: linan
     integer, dimension(2) :: inan
     !equivalence (linan, inan)
     ! This first assignment is for big-endian machines

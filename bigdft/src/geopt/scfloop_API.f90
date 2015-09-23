@@ -103,7 +103,7 @@ subroutine scfloop_main(acell, epot, fcart, grad, itime, me, natom, rprimd, xred
   use module_base
   use bigdft_run
   use yaml_output
-  use module_input_keys,only: inputpsiid_set_policy
+  use module_input_keys, only: inputpsiid_set_policy
   use public_enums, only: ENUM_MEMORY
   implicit none
 

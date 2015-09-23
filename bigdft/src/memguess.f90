@@ -2205,6 +2205,8 @@ subroutine take_proj_from_file(filename, hx, hy, hz, nl, at, rxyz, &
   use module_types
   use module_defs
   use dynamic_memory
+  use public_enums, only: WF_FORMAT_PLAIN, WF_FORMAT_BINARY, WF_FORMAT_ETSF
+  use module_input_keys, only: wave_format_from_filename
   implicit none
   real(gp), intent(in) :: hx,hy,hz
   integer, intent(inout) :: ikpt, iat, iproj, icplx
@@ -2213,7 +2215,6 @@ subroutine take_proj_from_file(filename, hx, hy, hz, nl, at, rxyz, &
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   
-  integer :: wave_format_from_filename
   integer :: iformat, i
   integer :: nb1,nb2,nb3
   logical :: perx,pery,perz

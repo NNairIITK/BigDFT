@@ -3040,6 +3040,7 @@ subroutine writemyproj(filename,iformat,orbs,hx,hy,hz,at,rxyz,nl)
   use module_base
   use yaml_output
   use gaussians
+  use public_enums, only: WF_FORMAT_ETSF, WF_FORMAT_BINARY
   implicit none
   integer, intent(in) :: iformat
   real(gp), intent(in) :: hx,hy,hz

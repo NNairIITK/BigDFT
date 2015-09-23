@@ -167,7 +167,8 @@ END SUBROUTINE calc_rhocore_iat
 !> Accumulate the contribution of atom iat to core density for PAW atoms.
 subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1i,n2i,n3i,i3s,n3d,core_mesh,rhocore, ncmax, ifftsph, rr, rcart, raux)
-  use module_defs, only: dp, gp, bigdft_mpi, pi_param
+  use module_defs, only: dp, gp, pi_param
+  use module_base, only: bigdft_mpi
   use module_types, only: denspot_distribution
   use module_atoms
   use dynamic_memory
@@ -176,7 +177,7 @@ subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 
   use m_pawrad,  only : pawrad_type, pawrad_init, pawrad_free
   use m_paw_numeric, only: paw_sort_dp, paw_splint
-  use module_interfaces, only: ext_buffers, ind_positions
+  use bounds, only: ext_buffers
 
   implicit none
 

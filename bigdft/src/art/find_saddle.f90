@@ -76,6 +76,7 @@ END MODULE saddles
 subroutine find_saddle( success, saddle_energy )
 
   use defs
+  use module_base
   use saddles, only : type_events
   use bigdft_forces, only : in_system
   implicit none
@@ -201,6 +202,7 @@ END SUBROUTINE global_move
 subroutine local_move( )
 
   use defs
+  use module_base
   use random
   use saddles
   implicit none
@@ -445,6 +447,7 @@ subroutine list_and_local ()
   use defs
   use random
   use saddles
+  use module_base
   implicit none
 
   !Local variables  
@@ -657,6 +660,7 @@ subroutine center_and_norm ( step )
 
   use defs
   use saddles
+  use module_base
   implicit none
 
   !Arguments
@@ -783,6 +787,7 @@ subroutine coord_based_move( )
   use defs
   use random
   use saddles
+  use module_base
   implicit none
  
   !Local variable
@@ -932,6 +937,7 @@ subroutine guess_direction ( )
 
   use defs
   use saddles
+  use module_base
 
   implicit none
 
