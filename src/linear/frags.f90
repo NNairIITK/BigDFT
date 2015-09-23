@@ -627,7 +627,7 @@ end subroutine fragment_coeffs_to_kernel
 !think about cdft and charged systems...
 !random etc should all be external options - use one variable with multiple choices?
 subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,&
-  overlap_calculated,cdft,diagonal_kernel)
+  overlap_calculated,cdft,diagonal_kernel,max_nbasis_env,frag_env_mapping)
   use yaml_output
   use module_base
   use module_types
@@ -649,6 +649,8 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   integer, intent(in) :: iproc
   logical, intent(in) :: cdft
   logical, intent(in) :: diagonal_kernel
+  integer, intent(in) :: max_nbasis_env
+  integer, dimension(input%frag%nfrag,max_nbasis_env,3), intent(in) :: frag_env_mapping
 
   integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag, linstate, jf, pm, ortho_size, s
   integer, allocatable, dimension(:) :: ipiv
@@ -661,7 +663,7 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   integer, allocatable, dimension(:) :: rand_seed
   real(kind=dp) :: rtime, random_noise, rmax
   character(len=10) :: sys_time
-  logical :: random, completely_random 
+  logical :: random, completely_random, env_exists
 
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
 
@@ -767,8 +769,21 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   ! for now working in dense format
   tmb%linmat%kernel_%matrix = sparsematrix_malloc0_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
 
+  ! check if environment exists
+  env_exists=.false.
+  do ifrag_ref=1,input%frag%nfrag_ref
+     if (ref_frags(ifrag_ref)%astruct_env%nat/=0) then
+        env_exists=.true.
+        exit
+     end if
+  end do
+
   if ((.not. diagonal_kernel) .or. completely_random) then
-     call fill_kernel_from_fragments()
+     if (env_exists) then
+        call fill_kernel_from_frag_env()
+     else
+        call fill_kernel_from_fragments()
+     end if
   else if (completely_random) then
       call fill_random_kernel()
   else if (diagonal_kernel) then
@@ -778,6 +793,19 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   if (random .and. (.not. completely_random)) then
      call add_noise_to_kernel()
   end if
+
+
+  if (iproc==0) then
+      open(27)
+      do itmb=1,tmb%orbs%norb
+        do jtmb=1,tmb%orbs%norb
+           write(27,*) itmb,jtmb,tmb%linmat%kernel_%matrix(itmb,jtmb,1)
+        end do
+      end do
+     write(27,*) ''
+     close(27)
+  end if 
+
 
   call compress_matrix(iproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)  
   call f_free_ptr(tmb%linmat%kernel_%matrix) 
@@ -803,8 +831,46 @@ contains
        isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
     end do
 
-
   end subroutine fill_diagonal_kernel
+
+  subroutine fill_kernel_from_frag_env()
+    implicit none
+
+    integer :: itmb_full, jtmb_full, ntmb
+    logical, parameter :: nn_only=.true.
+
+    ! add loop over spin
+
+    do ifrag=1,input%frag%nfrag
+       ifrag_ref=input%frag%frag_index(ifrag)
+
+       ! use frag_env_mapping to figure out where to put elements
+       ! assuming complete symmetry between frag+env i.e. overwriting elements rather than averaging
+
+       ! include frag-environment only
+       if (nn_only) then
+          ntmb=ref_frags(ifrag_ref)%fbasis%forbs%norb
+       ! also include env-env terms
+       else
+          ntmb=ref_frags(ifrag_ref)%nbasis_env
+       end if
+
+       do itmb=1,ntmb
+          itmb_full = frag_env_mapping(ifrag,itmb,1)
+
+          do jtmb=itmb,ref_frags(ifrag_ref)%nbasis_env
+             jtmb_full = frag_env_mapping(ifrag,jtmb,1)
+
+             tmb%linmat%kernel_%matrix(itmb_full,jtmb_full,1) = ref_frags(ifrag_ref)%kernel_env(itmb,jtmb,1)
+             tmb%linmat%kernel_%matrix(jtmb_full,itmb_full,1) = ref_frags(ifrag_ref)%kernel_env(itmb,jtmb,1)
+             !write(*,'(A,3(2(1x,I4),2x),F12.6)') 'Kij',ifrag,ifrag_ref,itmb,jtmb,itmb_full,jtmb_full,ref_frags(ifrag_ref)%kernel_env(itmb,jtmb,1)
+          end do
+       end do
+    end do
+  
+    ! should we purify kernel?
+  
+  end subroutine fill_kernel_from_frag_env
 
   subroutine fill_kernel_from_fragments()
     implicit none

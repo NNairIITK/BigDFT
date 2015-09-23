@@ -637,7 +637,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
           rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
-          fdisp, fion)
+          fdisp,fion)
 
      ! Clean denspot parts only needed in the SCF loop -- NEW
      call denspot_free_history(denspot)

@@ -2129,10 +2129,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(gp), dimension(:), pointer :: in_frag_charge
   integer :: infoCoeff, iorb, nstates_max, order_taylor, npspcode, scf_mode
   real(kind=8) :: pnrm
+  integer, dimension(:,:,:), pointer :: frag_env_mapping
   type(work_mpiaccumulate) :: energs_work
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
-  integer :: itmb, jtmb, ispin
+  integer :: itmb, jtmb, ispin, ifrag_ref, max_nbasis_env, ifrag
   call f_routine(id='input_wf')
 
  !determine the orthogonality parameters
@@ -2405,8 +2406,16 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !     & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
      !     & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
 
+     ! assume we don't need to keep this after init, can't think of a better place to put it...
+     max_nbasis_env=0
+     do ifrag_ref=1,in%frag%nfrag_ref
+        max_nbasis_env = max(max_nbasis_env,ref_frags(ifrag_ref)%nbasis_env)
+     end do
+     frag_env_mapping=f_malloc0_ptr((/in%frag%nfrag,max_nbasis_env,3/),id='frag_env_mapping')
+
      call readmywaves_linear_new(iproc,nproc,trim(in%dir_output),'minBasis',input_wf_format,&
-          atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,in%lin%kernel_restart_mode==LIN_RESTART_KERNEL)
+          atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,in%lin%kernel_restart_mode==LIN_RESTART_KERNEL,&
+          frag_env_mapping)
 
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
      !nullify(tmb%psit_c)                                                                
@@ -2479,12 +2488,21 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! this is overkill as we are recalculating the kernel anyway - fix at some point
      ! or just put into fragment structure to save recalculating for CDFT
 
+
+     !do ifrag=1,in%frag%nfrag
+     !   ifrag_ref=in%frag%frag_index(ifrag) 
+     !         do iorb=1,ref_frags(ifrag_ref)%nbasis_env
+     !            write(*,'(A,5(1x,I4))') 'mapping init: ',ifrag,ifrag_ref,frag_env_mapping(ifrag,iorb,:)
+     !         end do
+     !end do
+
+
      !currently equivalent to diagonal kernel - all these options need tidying/stabilizing
      !atomic weight option needs figuring out - put in with kernel? just use coeffs for coeffs (and random? -> switch this to kernel too, just need to purify)
      if (in%lin%fragment_calculation) then
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
            call fragment_kernels_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
-                in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL)
+                in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL,max_nbasis_env,frag_env_mapping)
         else
            call fragment_coeffs_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
                 nstates_max,in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_RANDOM)
@@ -2527,6 +2545,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call f_free_ptr(ref_frags(1)%eval)
         call f_free_ptr(ref_frags(1)%kernel)
      end if
+
+     call f_free_ptr(frag_env_mapping)
+
 
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
@@ -2675,8 +2696,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call timing(iproc,'constraineddft','OF')
 
-     call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'density.cube', &
-          atoms,rxyz,denspot%dpbox,1,denspot%rhov)
+     !*call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'density.cube', &
+     !*     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
 
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
      call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &

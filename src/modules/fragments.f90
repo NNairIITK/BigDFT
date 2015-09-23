@@ -57,12 +57,13 @@ module module_fragments
      type(atomic_structure) :: astruct_frg !< Number of atoms, positions, atom type etc for fragment
      type(atomic_structure) :: astruct_env !< Number of atoms, positions, atom type etc for fragment environment (includes fragment)
      integer :: nbasis_env !< Number of tmbs for environment (includes fragment)
-     integer, dimension(:,:), pointer :: env_mapping !< contains mapping information between fragment environment and full system
+     !integer, dimension(:,:), pointer :: env_mapping !< contains mapping information between fragment environment and full system
      type(fragment_basis) :: fbasis !< fragment basis, associated only if coherent with positions, pointer - do we really want this to be a pointer?
      ! add coeffs and or kernel
      integer :: nelec
      real(gp), dimension(:,:), pointer :: coeff
      real(gp), dimension(:,:,:), pointer :: kernel
+     real(gp), dimension(:,:,:), pointer :: kernel_env
      real(gp), dimension(:), pointer :: eval
   end type system_fragment
 
@@ -586,8 +587,9 @@ contains
     frag%nbasis_env=0
     nullify(frag%coeff)
     nullify(frag%kernel)
+    nullify(frag%kernel_env)
     nullify(frag%eval)
-    nullify(frag%env_mapping)
+    !nullify(frag%env_mapping)
     call nullify_atomic_structure(frag%astruct_frg)
     call nullify_atomic_structure(frag%astruct_env)
     ! nullify fragment basis
@@ -653,8 +655,9 @@ contains
     !call f_free_ptr(frag%rxyz_env)
     call f_free_ptr(frag%coeff)
     call f_free_ptr(frag%kernel)
+    call f_free_ptr(frag%kernel_env)
     call f_free_ptr(frag%eval)
-    call f_free_ptr(frag%env_mapping)
+    !call f_free_ptr(frag%env_mapping)
     call fragment_basis_free(frag%fbasis)
     frag=fragment_null()
 
@@ -669,8 +672,9 @@ contains
     !frag%rxyz_env=f_malloc_ptr((/3,min(1,frag%nat_env)/),id='frag%rxyz_env')
     frag%coeff=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='frag%coeff')
     frag%kernel=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb,1/),id='frag%kernel') !NEED SPIN HERE
+    frag%kernel_env=f_malloc_ptr((/frag%nbasis_env,frag%nbasis_env,1/),id='frag%kernel_env') !NEED SPIN HERE
     frag%eval=f_malloc_ptr(frag%fbasis%forbs%norb,id='frag%eval')
-    frag%env_mapping=f_malloc_ptr((/frag%nbasis_env,3/),id='frag%env_mapping')
+    !frag%env_mapping=f_malloc0_ptr((/frag%nbasis_env,3/),id='frag%env_mapping')
 
     call f_release_routine()
 

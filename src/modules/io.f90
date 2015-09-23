@@ -194,7 +194,7 @@ module io
     
       if (iformat == WF_FORMAT_ETSF) then
           stop 'Linear scaling with ETSF writing not implemented yet'
-    !     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+      !    call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
       else
          call cpu_time(tr0)
          call system_clock(ncount1,ncount_rate,ncount_max)
