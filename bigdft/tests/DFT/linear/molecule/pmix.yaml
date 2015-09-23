@@ -11,6 +11,8 @@
  perf:
    ef_interpol_det: 0.10E-19
    mixing_after_inputguess: 2
+   correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    nit: [1, 3]
    rpnrm_cv: 1.0E-008

@@ -16,6 +16,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian
   use module_xc
+  use locreg_operations
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,npsidim_orbs
@@ -93,7 +94,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
     ! Wavefunction in real space
     psir = f_malloc0((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='psir')
 
-    call initialize_work_arrays_locham(1,Lzd%Llr(ilr),orbs%nspinor,.true.,wrk_lh)  
+    call initialize_work_arrays_locham(1,[Lzd%Llr(ilr)],orbs%nspinor,.true.,wrk_lh)  
   
     ! wavefunction after application of the self-interaction potential
     if (ipotmethod == 2 .or. ipotmethod == 3) then
@@ -136,7 +137,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
               vsicpsir,eSICi)
       end if
    
-      call psir_to_vpsi(npot,orbs%nspinor,Lzd%Llr(ilr),&
+      call psir_to_vpsi(npot,orbs%nspinor,Lzd%llr(ilr),&
            pot(orbs%ispot(iorb)),psir(1,1),epot,confdata=confdatarr(iorb))
 
 !!$      !this ispot has to be better defined inside denspot structure
@@ -215,6 +216,7 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
   use module_types
   use module_interfaces, except_this_one => psi_to_vlocpsi
   use module_xc
+  use locreg_operations
   implicit none
   integer, intent(in) :: iproc,ipotmethod,npsidim_orbs
   real(gp), intent(in) :: alphaSIC
@@ -276,7 +278,7 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
      if (.not. dosome) cycle loop_lr
 
      !initialise the work arrays
-     call initialize_work_arrays_sumrho(1,lzd%llr(ilr),.false.,w)
+     call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.false.,w)
 
      !box elements size
      nbox=Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i
@@ -411,7 +413,7 @@ END SUBROUTINE psi_to_vlocpsi
 subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => psi_to_kinpsi
+  use locreg_operations
   implicit none
   integer, intent(in) :: iproc,npsidim_orbs
   type(orbitals_data), intent(in) :: orbs
@@ -451,7 +453,7 @@ subroutine psi_to_kinpsi(iproc,npsidim_orbs,orbs,lzd,psi,hpsi,ekin_sum)
     psir = f_malloc0((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, orbs%nspinor /),id='psir')
 
     !initialise the work arrays
-    call initialize_work_arrays_locham(1,Lzd%Llr(ilr),orbs%nspinor,.false.,wrk_lh)  
+    call initialize_work_arrays_locham(1,[Lzd%Llr(ilr)],orbs%nspinor,.false.,wrk_lh)  
 
    
     ispsi=1
@@ -783,7 +785,7 @@ subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
   use module_base
   use module_types
   use yaml_output
-  use psp_projectors, only: PSPCODE_PAW
+  use public_enums, only: PSPCODE_PAW
   implicit none
   integer, intent(in) :: iproc
   real(gp), intent(in) :: hx,hy,hz
@@ -934,7 +936,7 @@ END SUBROUTINE applyprojectorsonthefly
 !> Build the Hifj matrix for PSP
 subroutine build_hgh_hij_matrix(npspcode,psppar,hij)
   use module_base, only: gp
-  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
+  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
   implicit none
   !Arguments
   integer, intent(in) :: npspcode
@@ -989,7 +991,7 @@ subroutine applyprojector(ncplx,l,i,psppar,npspcode,&
      nvctr_c,nvctr_f,nseg_c,nseg_f,keyv,keyg,&
      mbvctr_c,mbvctr_f,mbseg_c,mbseg_f,keyv_p,keyg_p,proj,psi,hpsi,eproj)
   use module_base, only: gp,wp,dp
-  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
+  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
   implicit none
   integer, intent(in) :: i,l,npspcode,ncplx
   integer, intent(in) :: nvctr_c,nvctr_f,nseg_c,nseg_f,mbvctr_c,mbvctr_f,mbseg_c,mbseg_f

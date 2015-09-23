@@ -269,7 +269,7 @@ contains
 
   !> stop the code and warns if the status of the line is not good
   subroutine check_line_integrity()
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     use dictionaries, only: f_err_raise
     implicit none
 
@@ -292,7 +292,6 @@ END SUBROUTINE read_xyz_positions
 !> Read atomic positions of ascii files.
 subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getline,disableTrans_)
   use module_base
-  use dynamic_memory
   use yaml_output
   implicit none
   integer, intent(in) :: ifile
@@ -825,7 +824,7 @@ contains
 
   !> stop the code and warns if the status of the line is not good
   subroutine check_line_integrity()
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     use dictionaries, only: f_err_raise
     implicit none
 
@@ -1168,7 +1167,7 @@ END SUBROUTINE frozen_ftoi
 
 !> Convert ifrztyp into the chain format
 subroutine frozen_itof(ifrztyp,frzchain)
-  use yaml_output, only: yaml_toa
+  use yaml_strings, only: yaml_toa
   implicit none
   integer, intent(in) :: ifrztyp
   character(len=4), intent(out) :: frzchain
@@ -1618,6 +1617,7 @@ END SUBROUTINE wtint
 subroutine check_atoms_positions(astruct, simplify)
   use module_defs, only: gp
   use yaml_output
+  use yaml_strings, only: yaml_toa
   implicit none
   !Arguments
   logical, intent(in) :: simplify

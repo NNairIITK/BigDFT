@@ -16,6 +16,8 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   use module_types
   use module_interfaces, except_this_one => write_orbital_density
   use locreg_operations, only: lpsi_to_global2
+  use public_enums
+  use bounds, only: locreg_bounds
   implicit none
 
   ! Calling arguments
@@ -135,7 +137,7 @@ end subroutine write_orbital_density
 subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor, binary, psi_g)
   use module_base
   use module_types
-  use module_interfaces, only: filename_of_iorb
+  use module_interfaces, only: filename_of_iorb,plot_wf
   implicit none
 
   ! Calling arguments
@@ -166,7 +168,7 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   filex = trim(filebasex)//'.cube'
   filey = trim(filebasey)//'.cube'
   filez = trim(filebasez)//'.cube'
-  write(*,*) 'file0',file0
+  !write(*,*) 'file0',file0
   call f_open_file(iunit0, file=file0, binary=binary)
   call f_open_file(iunitx, file=filex, binary=binary)
   call f_open_file(iunity, file=filey, binary=binary)
@@ -181,13 +183,13 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   call f_close(iunitz)
 
 end subroutine plot_one_orbdens
-
  
 
 !> Plots the orbitals
 subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
    use module_base
    use module_types
+   use locreg_operations
    implicit none
 
    ! Calling arguments
@@ -221,7 +223,7 @@ subroutine plotOrbitals(iproc, tmb, phi, nat, rxyz, hxh, hyh, hzh, it, basename)
 
    phir = f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i,id='phir')
 
-   call initialize_work_arrays_sumrho(1,tmb%lzd%glr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[tmb%lzd%glr],.true.,w)
    rxyzref=-555.55d0
 
    istart=0
@@ -951,20 +953,32 @@ type(orbitals_data), intent(in) :: orbs
 integer :: jproc, jpst, norb0,  norb1
 !integer :: space1, space2, len1, len2, 
 !logical :: written
+logical, parameter :: print_all=.false.
+integer :: minn, maxn
+real(kind=8) :: avn
 
 !!write(*,'(1x,a)') '------------------------------------------------------------------------------------'
 !!written=.false.
 !!write(*,'(1x,a)') '>>>> Partition of the basis functions among the processes.'
-call yaml_mapping_open('Support function repartition')
+call yaml_map('Total No. Support Functions',orbs%norb,fmt='(i6)')
+call yaml_mapping_open('Support Function Repartition')
 jpst=0
+avn=0.0d0
+minn=orbs%norb
+maxn=0
 do jproc=0,nproc-1
     norb0=orbs%norb_par(jproc,0)
     norb1=orbs%norb_par(min(jproc+1,nproc-1),0)
     if (norb0/=norb1 .or. jproc==nproc-1) then
-        call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norb0,fmt='(i0)')
+        if (print_all) then
+            call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//&
+              &trim(yaml_toa(jproc,fmt='(i0)')),norb0,fmt='(i0)')
+        end if
+        minn=min(minn,norb0)
+        maxn=max(maxn,norb0)
         jpst=jproc+1
     end if
-
+    avn=avn+real(norb0,kind=8)
     !!if(orbs%norb_par(jproc,0)<orbs%norb_par(jproc-1,0)) then
     !!    len1=1+ceiling(log10(dble(jproc-1)+1.d-5))+ceiling(log10(dble(orbs%norb_par(jproc-1,0)+1.d-5)))
     !!    len2=ceiling(log10(dble(jproc)+1.d-5))+ceiling(log10(dble(nproc-1)+1.d-5))+&
@@ -984,6 +998,10 @@ do jproc=0,nproc-1
     !!    exit
     !!end if
 end do
+avn=avn/real(nproc,kind=8)
+call yaml_map('Minimum ',minn,fmt='(i0)')
+call yaml_map('Maximum ',maxn,fmt='(i0)')
+call yaml_map('Average ',avn,fmt='(f8.1)')
 call yaml_mapping_close()
 !!if(.not.written) then
 !!    write(*,'(4x,a,2(i0,a),a,a)') '| Processes from 0 to ',nproc-1, &
@@ -1189,11 +1207,12 @@ subroutine analyze_wavefunctions(output, region, lzd, orbs, npsidim, psi, ioffse
   use module_base
   use module_types
   use yaml_output
+  use bounds, only: locreg_bounds
   implicit none
 
   ! Calling arguments
   character(len=*),intent(in) :: output, region
-  type(local_zone_descriptors),intent(in) :: lzd
+  type(local_zone_descriptors),intent(inout) :: lzd
   type(orbitals_data),intent(in) :: orbs
   integer,intent(in) :: npsidim
   real(kind=8),dimension(npsidim),intent(in) :: psi
@@ -1263,6 +1282,7 @@ end subroutine analyze_wavefunctions
 subroutine analyze_one_wavefunction(lr, hgrids, npsidim, psi, ioffset, center, sigma)
   use module_base
   use module_types
+  use locreg_operations
   implicit none
 
   ! Calling arguments
@@ -1280,7 +1300,7 @@ subroutine analyze_one_wavefunction(lr, hgrids, npsidim, psi, ioffset, center, s
   real(kind=8) :: x, y, z, q
   real(kind=8),dimension(3) :: hhgrids, var
 
-  call initialize_work_arrays_sumrho(1, lr, .true., w)
+  call initialize_work_arrays_sumrho(1, [lr], .true., w)
 
   psir = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='psir')
   ! Initialisation
@@ -1361,7 +1381,7 @@ subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
 
   ! Local variables
   integer :: iorb, itmb, jtmb, iat, jat, iunit, nproc, ierr
-  logical :: mpi_init
+  logical :: mpi_initd
   real(kind=8) :: d, asymm, maxdiff, diff
   real(kind=8),dimension(3) :: dist
   real(kind=8),dimension(:,:),allocatable :: kernel_full
@@ -1371,8 +1391,8 @@ subroutine analyze_kernel(ntmb, norb, nat, coeff, kernel, rxyz, on_which_atom)
   call f_routine(id='analyze_kernel')
 
   ! Check that this is a monoproc run
-  call mpi_initialized(mpi_init, ierr)
-  if (mpi_init) then
+  call mpi_initialized(mpi_initd, ierr)
+  if (mpi_initd) then
       call mpi_comm_size(mpi_comm_world, nproc, ierr)
   else
       nproc = 1

@@ -3351,9 +3351,13 @@ module communications_init
           write(*,*) 'ERROR: weight_check/=weight_tot', weight_check, weight_tot
           stop '2: weight_check/=weight_tot'
       else if (abs(weight_check-weight_tot) > 0.d0) then
+!!$         call yaml_warning('The total weight for density seems inconsistent! Ref:'//&
+!!$               trim(yaml_toa(weight_tot,fmt='(1pe25.17)'))//', Check:'//&
+!!$               trim(yaml_toa(weight_check,fmt='(1pe25.17)')))
          call yaml_warning('The total weight for density seems inconsistent! Ref:'//&
-               trim(yaml_toa(weight_tot,fmt='(1pe25.17)'))//', Check:'//&
-               trim(yaml_toa(weight_check,fmt='(1pe25.17)')))
+              weight_tot**'(1pe25.17)'//', Check:'//&
+              weight_check**'(1pe25.17)')
+
       end if
     
     end subroutine determine_num_orbs_per_gridpoint_sumrho
@@ -3810,7 +3814,8 @@ module communications_init
       integer(kind=8) :: ii, iis, iie
       integer(kind=8),dimension(2) :: iiis, iiie, nlen
       integer(kind=8) :: is
-      integer :: n, j
+      integer(kind=8) :: n
+      integer :: j
     
       call f_routine(id='communication_arrays_repartitionrho_general')
 
@@ -3878,7 +3883,7 @@ module communications_init
               end if
               !!write(*,'(a,11i11)') 'iproc, jproc, iis, iie, ise(1), ise(2), n, iiis, iiie', iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), n, iiis, iiie
               !jproc_send=jproc_send+1
-              ncomms_repartitionrho=ncomms_repartitionrho+n
+              ncomms_repartitionrho=ncomms_repartitionrho+int(n,kind=4)
               !end if
           end do
           !@END NEW #####################
@@ -3947,7 +3952,7 @@ module communications_init
                   call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
                   !write(*,'(a,12i8)') 'iproc, iis,iie,istartend(:,jproc), n, iiis, iiie, nlen', iproc, iis,iie,istartend(:,jproc), n, iiis, iiie, nlen
                   ! Do nothing if n==0
-                  do j=1,n
+                  do j=1,int(n,kind=4)
                       !jproc_send=jproc_send+1
                       ioverlaps=ioverlaps+1
                       !call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
@@ -4563,7 +4568,7 @@ module communications_init
     subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
       use module_base
       use module_types
-      use yaml_output, only: yaml_toa
+      use yaml_strings, only: yaml_toa
       implicit none
       integer, intent(in) :: iproc,nproc
       type(locreg_descriptors), intent(in) :: lr
@@ -4638,7 +4643,7 @@ module communications_init
       !from the viewpoint of the BLAS routines (deprecated, not used anymore)
       GPU_for_comp = f_malloc(0.to.nproc-1,id='GPU_for_comp')
     
-      if (nproc > 1 .and. .not. GPUshare) then
+      if (nproc > 1) then
          call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
               bigdft_mpi%mpi_comm,ierr)
       else

@@ -1,7 +1,7 @@
 module module_mixing
 
   use dynamic_memory!m_profiling !this has been moved. No idea how should be treated 
-  use module_defs, only: bigdft_mpi
+  use module_base, only: bigdft_mpi
   use abi_defs_basis
 
   implicit none

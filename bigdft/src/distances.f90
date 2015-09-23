@@ -34,6 +34,8 @@ program MDanalysis
  ! Debug variables
  integer :: timecount, timeread_start, timeread_stop
 
+ call f_lib_initialize()
+
  call system_clock(count_rate = timecount)
 
  inquire(file='input',exist=exists)
@@ -268,6 +270,8 @@ program MDanalysis
  end do
 
  deallocate(iatype,pos)
+
+ call f_lib_finalize()
 
 contains
 

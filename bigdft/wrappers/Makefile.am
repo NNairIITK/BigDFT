@@ -54,6 +54,13 @@ OCL_SOURCES =
 else
 OCL_SOURCES = interface_ocl_fake.f90
 endif
+
+# Hack for MIC compilation.
+if USE_MIC
+cublas_fake.o: cublas_fake.f90
+	$(FCCOMPILE) -offload-attribute-target=mic -c -o $@ $<
+endif
+
 libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 	fft/fft2d.f90 \
 	fft/fft3d.f90 \

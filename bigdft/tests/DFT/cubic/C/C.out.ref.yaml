@@ -292,7 +292,6 @@
      Input wavefunction policy         : wvl. on disk # 2
      Output wavefunction policy        : none # 0
      Output grid policy                : none # 0
-     Output grid format                : text # 0
      Virtual orbitals                  :  0
      Number of plotted density orbitals:  0
    Density/Potential:

@@ -17,6 +17,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
   use module_interfaces, exceptThisOne => local_partial_densityLinear
   use module_xc
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use locreg_operations
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: nproc
@@ -73,7 +74,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i 
 
 
-     call initialize_work_arrays_sumrho(1,Lzd%Llr(ilr),.true.,w)
+     call initialize_work_arrays_sumrho(1,[Lzd%Llr(ilr)],.true.,w)
      rho_p = f_malloc0(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,id='rho_p')
      psir = f_malloc((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, npsir /),id='psir')
   
@@ -601,28 +602,30 @@ end subroutine calculate_density_kernel
 
 
 
-subroutine check_negative_rho(ndimrho, rho, rho_negative)
+subroutine check_negative_rho(nspin,ndimrho, rho, rho_negative)
   use module_base
   use dynamic_memory
   implicit none
 
   ! Calling arguments
-  integer,intent(in) :: ndimrho
-  real(kind=8),dimension(ndimrho),intent(in) :: rho
+  integer,intent(in) :: nspin, ndimrho
+  real(kind=8),dimension(ndimrho,nspin),intent(in) :: rho
   logical,intent(out) :: rho_negative
 
   ! Local variables
-  integer :: i, irho, ierr
+  integer :: ispin, i, irho, ierr
 
   call f_routine(id='check_negative_rho')
 
   irho=0
-  do i=1,ndimrho
-      if (rho(i)<0.d0) then
-          irho=1
-          exit
-      end if
-  end do
+  do ispin=1,nspin
+      do i=1,ndimrho
+          if (rho(i,ispin)<0.d0) then
+              irho=1
+              exit
+          end if
+      end do
+  end do 
 
   if (bigdft_mpi%nproc > 1) then
      call mpiallred(irho, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)

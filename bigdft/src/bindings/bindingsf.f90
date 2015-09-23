@@ -168,26 +168,22 @@ END SUBROUTINE close_file
 
 
 subroutine deallocate_double_1D(array)
-  use BigDFT_API
+  use dynamic_memory, only: f_free_ptr
   implicit none
 
   double precision, dimension(:), pointer :: array
 
-  if (associated(array)) then
-     call f_free_ptr(array)
-  end if
+  call f_free_ptr(array)
+
 end subroutine deallocate_double_1D
 
 
 subroutine deallocate_double_2D(array)
-  use BigDFT_API
+  use dynamic_memory, only: f_free_ptr
   implicit none
 
   double precision, dimension(:,:), pointer :: array
-
-  if (associated(array)) then
-     call f_free_ptr(array)
-  end if
+  call f_free_ptr(array)
 end subroutine deallocate_double_2D
 
 
@@ -369,6 +365,7 @@ end subroutine glr_set_wave_descriptors
 
 subroutine glr_set_bounds(lr)
   use module_types
+  use bounds, only: locreg_bounds
   implicit none
   type(locreg_descriptors), intent(inout) :: lr
   
@@ -521,20 +518,19 @@ end subroutine inputs_new
 
 
 subroutine inputs_free(in)
-  use module_types
+  use module_input_keys
   implicit none
   type(input_variables), pointer :: in
 
   call free_input_variables(in)
   deallocate(in)
+  nullify(in)
 end subroutine inputs_free
 
 
 subroutine inputs_set_dict(in, level, val)
-
   use dictionaries
-  use module_types
-  use yaml_output
+  use module_input_keys, only: input_variables, input_set
   implicit none
   type(input_variables), intent(inout) :: in
   character(len = *), intent(in) :: level
@@ -584,9 +580,9 @@ subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, qcharge, efield, 
   ncong = in%ncong
   idsx = in%idsx
   dispcorr = in%dispersion
-  inpsi = in%inputPsiId
-  outpsi = in%output_wf_format
-  outgrid = in%output_denspot
+!  inpsi = in%inputPsiId
+!  outpsi = in%output_wf_format
+!  outgrid = in%output_denspot
   rbuf = in%rbuf
   ncongt = in%ncongt
   davidson = in%norbv
@@ -674,7 +670,7 @@ END SUBROUTINE inputs_get_perf
 
 
 subroutine inputs_get_linear(linear, inputPsiId)
-  use module_types
+  use public_enums
   implicit none
   integer, intent(out) :: linear
   integer, intent(in) :: inputPsiId
@@ -688,9 +684,10 @@ subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, 
   use module_types
   use module_fragments
   use module_interfaces, only: input_check_psi_id
+  use f_enums
   implicit none
   integer, intent(out) :: input_wf_format
-  integer, intent(inout) :: inputpsi
+  type(f_enumerator), intent(inout) :: inputpsi
   integer, intent(in) :: iproc, ln, nproc
   character(len = ln), intent(in) :: dir_output
   type(orbitals_data), intent(in) :: orbs, lorbs
@@ -884,6 +881,7 @@ END SUBROUTINE orbs_get_onwhichatom
 
 subroutine orbs_open_file(orbs, unitwf, name, ln, iformat, iorbp, ispinor)
   use module_types
+  use public_enums
   use module_interfaces, only: open_filename_of_iorb
   implicit none
   type(orbitals_data), intent(in) :: orbs
@@ -912,7 +910,7 @@ END SUBROUTINE proj_new
 
 
 subroutine proj_free(nlpspd)
-  use psp_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use module_types
   use memory_profiling
   implicit none
@@ -1223,7 +1221,8 @@ end subroutine wf_get_psi_size
 
 subroutine wf_iorbp_to_psi(psir, psi, lr)
   use module_base, only: wp,f_zero
-  use module_types
+  use locregs
+  use locreg_operations
   implicit none
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
@@ -1232,7 +1231,7 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
   character(len=*), parameter :: subname='wf_orb_to_psi'
   type(workarr_sumrho) :: w
 
-  call initialize_work_arrays_sumrho(1,lr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
   !initialisation
   if (lr%geocode == 'F') then
@@ -1447,8 +1446,8 @@ END SUBROUTINE optloop_sync_data
 
 
 subroutine optloop_emit_done(optloop, id, energs, iproc, nproc)
-  use module_base
   use module_types
+  use public_enums
   implicit none
   type(DFT_optimization_loop), intent(inout) :: optloop
   type(energy_terms), intent(in) :: energs
@@ -1694,11 +1693,21 @@ END SUBROUTINE run_objects_nullify_dict
 
 
 subroutine run_objects_nullify_volatile(runObj)
+  use f_enums
   use bigdft_run, only: run_objects
+  use module_defs, only: verbose
+  use yaml_output, only: yaml_sequence_close
+  use module_base, only: bigdft_mpi
   implicit none
   type(run_objects), intent(inout) :: runObj
 
+  if (associated(runObj%run_mode)) then
+    if (bigdft_mpi%iproc==0 .and. (runObj%run_mode /= 'QM_RUN_MODE') .and. verbose > 0)&
+         call yaml_sequence_close()
+  end if
+
   nullify(runObj%inputs)
+  nullify(runObj%run_mode)
   nullify(runObj%atoms)
 END SUBROUTINE run_objects_nullify_volatile
 
@@ -1964,7 +1973,8 @@ END SUBROUTINE dict_init_binding
 
 
 subroutine err_severe_override(callback)
-  use dictionaries, only: f_err_severe_override, f_loc
+  use f_precisions, only: f_loc
+  use dictionaries, only: f_err_severe_override
   implicit none
   external :: callback
   
@@ -1973,7 +1983,6 @@ subroutine err_severe_override(callback)
 end subroutine err_severe_override
 
 subroutine astruct_set_from_dict_binding(astruct, dict)
-  use module_input_dicts, only: astruct_set_from_dict
   use dictionaries, only: dictionary
   use module_atoms
   implicit none

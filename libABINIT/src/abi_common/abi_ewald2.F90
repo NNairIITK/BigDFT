@@ -40,17 +40,19 @@
 #include "config.h"
 #endif
 
-subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
+subroutine abi_ewald2(iproc,nproc,gmet,natom,ntypat,rmet,rprimd,stress,&
 &  typat,ucvol,xred,zion)
 
  use abi_defs_basis
  use abi_interfaces_numeric
 
  implicit none
+ !SM there are probably better ways than this...
+ include 'mpif.h'
 
 !Arguments ------------------------------------
 !scalars
- integer,intent(in) :: natom,ntypat
+ integer,intent(in) :: iproc,nproc,natom,ntypat
  real(dp),intent(in) :: ucvol
 !arrays
  integer,intent(in) :: typat(natom)
@@ -67,8 +69,34 @@ subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
  real(dp) :: term2,term3,term4
 !arrays
  real(dp) :: gprimd(3,3),strg(6),strr(6)
+ real(dp) :: tt
+ integer :: natp, isat, ii, iia, ierr
+ real(dp),dimension(6) :: strr_tmp
 
 ! *************************************************************************
+
+
+!SM: MPI parallelization over the atoms
+ tt = real(natom,kind=dp)/nproc
+ natp = floor(tt) !number of atoms per proc
+ isat = iproc*natp !offset for each proc
+ ii = natom-nproc*natp !remaining atoms
+ if (iproc<ii) then
+     natp = natp+1 !one more atom for this proc
+     isat = isat+iproc !offset increases by the number of additional atoms up to iproc
+ else
+     isat = isat+ii !offset increases by the number of additional atoms
+ end if
+ ! Check
+ ii = natp
+ if (nproc>1) then
+     !call mpiallred(ii, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     iia=0
+     call mpi_allreduce(ii, iia, 1, mpi_integer, mpi_sum, mpi_comm_world, ierr)
+     ii = iia
+ end if
+ !if (ii/=natom) call f_err_throw('ii/=natom',err_name='BIGDFT_RUNTIME_ERROR')
+ if (ii/=natom) stop 'ii/=natom'
 
 !Define dimensional reciprocal space primitive translations gprimd
 !(inverse transpose of rprimd)
@@ -76,9 +104,13 @@ subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 
 !Add up total charge and sum of charge^2 in cell
  ch=0._dp
+ !$omp parallel default(none) shared(natom,zion,typat,ch) private(ia)
+ !$omp do reduction(+:ch) schedule(static)
  do ia=1,natom
    ch=ch+zion(typat(ia))
  end do
+ !$omp end do
+ !$omp end parallel
 
 !Compute eta, the Ewald summation convergence parameter,
 !for approximately optimized summations:
@@ -128,12 +160,17 @@ subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
                term1=exp(-arg1)/arg1
                summr = 0.0_dp
                summi = 0.0_dp
+               !$omp parallel default(none) &
+               !$omp shared(natom,ig1,ig2,ig3,xred,zion,typat,summr,summi)private(ia,arg2)
+               !$omp do reduction(+:summr,summi) schedule(static)
                do ia=1,natom
                  arg2=two_pi*(ig1*xred(1,ia)+ig2*xred(2,ia)+ig3*xred(3,ia))
 !                Sum real and imaginary parts (avoid complex variables)
                  summr=summr+zion(typat(ia))*cos(arg2)
                  summi=summi+zion(typat(ia))*sin(arg2)
                end do
+               !$omp end do
+               !$omp end parallel
 
 !              Avoid underflow error messages
                if (abs(summr)<1.d-16) summr=0.0_dp
@@ -175,6 +212,7 @@ subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 !Conduct real space summations
  reta=sqrt(eta)
  strr(1:6)=0.0_dp
+ strr_tmp(1:6)=0.0_dp
 
 !Loop on shells in r-space as was done in g-space
  nr=0
@@ -188,11 +226,16 @@ subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
          if( abs(ir3)==nr .or. abs(ir2)==nr .or. abs(ir1)==nr&
 &         .or. nr==1 )then
 
-           do ia=1,natom
+           do ia=1,natp!natom
+             iia=isat+ia
 !            Convert reduced atomic coordinates to [0,1)
-             fraca1=xred(1,ia)-aint(xred(1,ia))+0.5_dp-sign(0.5_dp,xred(1,ia))
-             fraca2=xred(2,ia)-aint(xred(2,ia))+0.5_dp-sign(0.5_dp,xred(2,ia))
-             fraca3=xred(3,ia)-aint(xred(3,ia))+0.5_dp-sign(0.5_dp,xred(3,ia))
+             fraca1=xred(1,iia)-aint(xred(1,iia))+0.5_dp-sign(0.5_dp,xred(1,iia))
+             fraca2=xred(2,iia)-aint(xred(2,iia))+0.5_dp-sign(0.5_dp,xred(2,iia))
+             fraca3=xred(3,iia)-aint(xred(3,iia))+0.5_dp-sign(0.5_dp,xred(3,iia))
+             !$omp parallel default(none) &
+             !$omp shared(natom,xred,fraca1,fraca2,fraca3,ir1,ir2,ir3,rprimd,reta,strr_tmp,newr,eta,zion,typat,iia) &
+             !$omp private(ib,fracb1,fracb2,fracb3,r1,r2,r3,r1c,r2c,r3c,rsq,rmagn,arg3,term3,term4,dderfc,derfc_arg)
+             !$omp do reduction(+:strr_tmp,newr)
              do ib=1,natom
                fracb1=xred(1,ib)-aint(xred(1,ib))+0.5_dp-sign(0.5_dp,xred(1,ib))
                fracb2=xred(2,ib)-aint(xred(2,ib))+0.5_dp-sign(0.5_dp,xred(2,ib))
@@ -217,19 +260,19 @@ subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 !                so do not bother with larger arg**2 in exp.
                  arg3=reta*rmagn
                  if (arg3<8.0_dp) then
-                   newr=1
+                   newr=newr+1
 !                  derfc computes the complementary error function
 !                  dderfc is the derivative of the complementary error function
                    dderfc=(-2/sqrt(pi))*exp(-eta*rsq)
                    call abi_derfcf(derfc_arg,arg3)
                    term3=dderfc-derfc_arg/arg3
-                   term4=zion(typat(ia))*zion(typat(ib))*term3
-                   strr(1)=strr(1)+term4*r1c*r1c/rsq
-                   strr(2)=strr(2)+term4*r2c*r2c/rsq
-                   strr(3)=strr(3)+term4*r3c*r3c/rsq
-                   strr(4)=strr(4)+term4*r2c*r3c/rsq
-                   strr(5)=strr(5)+term4*r1c*r3c/rsq
-                   strr(6)=strr(6)+term4*r1c*r2c/rsq
+                   term4=zion(typat(iia))*zion(typat(ib))*term3
+                   strr_tmp(1)=strr_tmp(1)+term4*r1c*r1c/rsq
+                   strr_tmp(2)=strr_tmp(2)+term4*r2c*r2c/rsq
+                   strr_tmp(3)=strr_tmp(3)+term4*r3c*r3c/rsq
+                   strr_tmp(4)=strr_tmp(4)+term4*r2c*r3c/rsq
+                   strr_tmp(5)=strr_tmp(5)+term4*r1c*r3c/rsq
+                   strr_tmp(6)=strr_tmp(6)+term4*r1c*r2c/rsq
 !                  End the condition of not being to large
                  end if
 
@@ -238,6 +281,8 @@ subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
 
 !              End loop over ib:
              end do
+             !$omp end do
+             !$omp end parallel
 
 !            End loop over ia:
            end do
@@ -248,11 +293,28 @@ subroutine abi_ewald2(gmet,natom,ntypat,rmet,rprimd,stress,&
      end do
    end do
 
+   if (nproc>1) then
+     !call mpiallred(newr, mpi_sum, bigdft_mpi%mpi_comm)
+     ii = 0
+     call mpi_allreduce(newr, ii, 1, &
+          mpi_integer, mpi_sum, mpi_comm_world, ierr)
+     newr=ii
+   end if
+
 !  Check if new shell must be calculated
    if(newr==0) exit
 
 !  End loop on new shells
  end do
+
+ if (nproc>1) then
+   !call mpiallred(stress_tmp, mpi_sum, bigdft_mpi%mpi_comm)
+   strr=0.0_dp
+   call mpi_allreduce(strr_tmp, strr, 6, &
+        mpi_double_precision, mpi_sum, mpi_comm_world, ierr)
+ else
+   strr=strr_tmp
+ end if
 
 !Finally assemble stress tensor coming from Ewald energy, stress
 !(note division by unit cell volume in accordance with definition

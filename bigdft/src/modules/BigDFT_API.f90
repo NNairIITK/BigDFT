@@ -16,7 +16,7 @@ module BigDFT_API
   use module_xc
   use module_atoms
   use module_input_dicts
-  use psp_projectors
+  use psp_projectors_base
   use ao_inguess
   use communications_base
   use communications_init

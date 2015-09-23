@@ -13,210 +13,18 @@ module psp_projectors
   use module_base
   use gaussians
   use locregs
+  use psp_projectors_base
   implicit none
 
   private
 
-  !> Type of pseudopotential
-  integer, parameter, public :: PSPCODE_UNINITIALIZED = 1
-  integer, parameter, public :: PSPCODE_GTH = 2
-  integer, parameter, public :: PSPCODE_HGH = 3
-  integer, parameter, public :: PSPCODE_PAW = 7
-  integer, parameter, public :: PSPCODE_HGH_K = 10
-  integer, parameter, public :: PSPCODE_HGH_K_NLCC = 12
-  integer,parameter,public :: NCPLX_MAX = 2
-
-
-  !> Parameters identifying the different strategy for the application of a projector 
-  !! in a localisation region
-  integer, parameter, public :: PSP_APPLY_SKIP=0 !< The projector is not applied. This might happend when ilr and iat does not interact
-  integer, parameter :: PSP_APPLY_MASK=1         !< Use mask arrays. The mask array has to be created before.
-  integer, parameter :: PSP_APPLY_KEYS=2         !< Use keys. No mask nor packing. Equivalend to traditional application
-  integer, parameter :: PSP_APPLY_MASK_PACK=3    !< Use masking and creates a pack arrays from them. 
-                                                 !! Most likely this is the common usage for atoms
-                                                 !! with lots of projectors and localization regions "close" to them
-  integer, parameter :: PSP_APPLY_KEYS_PACK=4    !< Use keys and pack arrays. Useful especially when there is no memory to create a lot of packing arrays, 
-                                                 !! for example when lots of lrs interacts with lots of atoms
-
-
-  !> arrays defining how a given projector and a given wavefunction descriptor should interact
-  type, public :: nlpsp_to_wfd
-     integer :: strategy !< can be MASK,KEYS,MASK_PACK,KEYS_PACK,SKIP
-     integer :: nmseg_c !< number of segments intersecting in the coarse region
-     integer :: nmseg_f !< number of segments intersecting in the fine region
-     integer, dimension(:,:), pointer :: mask !<mask array of dimesion 3,nmseg_c+nmseg_f for psp application
-  end type nlpsp_to_wfd
-
-
-  !> Non local pseudopotential descriptors
-  type, public :: nonlocal_psp_descriptors
-     integer :: mproj !< number of projectors for this descriptor
-     real(gp) :: gau_cut !< cutting radius for the gaussian description of projectors.
-     integer :: nlr !< total no. localization regions potentially interacting with the psp
-     type(locreg_descriptors) :: plr !< localization region descriptor of a given projector (null if nlp=0)
-     type(nlpsp_to_wfd), dimension(:), pointer :: tolr !<maskings for the locregs, dimension noverlap
-     integer,dimension(:),pointer :: lut_tolr !< lookup table for tolr, dimension noverlap
-     integer :: noverlap !< number of locregs which overlap with the projectors of the given atom
-  end type nonlocal_psp_descriptors
-
-
-  type,public :: workarrays_projectors
-    real(wp),pointer,dimension(:,:,:,:) :: wprojx,wprojy,wprojz
-    real(wp),pointer,dimension(:) :: wproj
-    real(wp),pointer,dimension(:,:,:) :: work
-  end type workarrays_projectors
-
-
-  !> describe the information associated to the non-local part of Pseudopotentials
-  type, public :: DFT_PSP_projectors 
-     logical :: on_the_fly             !< strategy for projector creation
-     logical :: normalized             !< .true. if projectors are normalized to one.
-     integer :: nproj,nprojel,natoms   !< Number of projectors and number of elements
-     real(gp) :: zerovol               !< Proportion of zero components.
-     type(gaussian_basis_new) :: proj_G !< Store the projector representations in gaussians.
-     real(wp), dimension(:), pointer :: proj !<storage space of the projectors in wavelet basis
-     type(nonlocal_psp_descriptors), dimension(:), pointer :: pspd !<descriptor per projector, of size natom
-     !>workspace for packing the wavefunctions in the case of multiple projectors
-     real(wp), dimension(:), pointer :: wpack 
-     !> scalar product of the projectors and the wavefuntions, term by term (raw data)
-     real(wp), dimension(:), pointer :: scpr
-     !> full data of the scalar products
-     real(wp), dimension(:), pointer :: cproj
-     !> same quantity after application of the hamiltonian
-     real(wp), dimension(:), pointer :: hcproj
-     type(workarrays_projectors) :: wpr !< contains the workarrays for the projector creation end type DFT_PSP_projectors
-   end type DFT_PSP_projectors 
-
-
-  public :: free_DFT_PSP_projectors,update_nlpsp,hgh_psp_application,DFT_PSP_projectors_null
-  public :: nonlocal_psp_descriptors_null,bounds_to_plr_limits,set_nlpsp_to_wfd,pregion_size
-  public :: deallocate_nonlocal_psp_descriptors
-  public :: workarrays_projectors_null, allocate_workarrays_projectors, deallocate_workarrays_projectors
   public :: projector_has_overlap
+  public :: bounds_to_plr_limits,set_nlpsp_to_wfd,pregion_size
+  public :: hgh_psp_application
+  public :: update_nlpsp
 
-
-contains
-
-
-  !creators
-  pure function nlpsp_to_wfd_null() result(tolr)
-    implicit none
-    type(nlpsp_to_wfd) :: tolr
-    call nullify_nlpsp_to_wfd(tolr)
-  end function nlpsp_to_wfd_null
-  pure subroutine nullify_nlpsp_to_wfd(tolr)
-    implicit none
-    type(nlpsp_to_wfd), intent(out) :: tolr
-    tolr%strategy=PSP_APPLY_SKIP
-    tolr%nmseg_c=0
-    tolr%nmseg_f=0
-    nullify(tolr%mask)
-  end subroutine nullify_nlpsp_to_wfd
-
-  pure function nonlocal_psp_descriptors_null() result(pspd)
-    implicit none
-    type(nonlocal_psp_descriptors) :: pspd
-    call nullify_nonlocal_psp_descriptors(pspd)
-  end function nonlocal_psp_descriptors_null
-
-  pure subroutine nullify_nonlocal_psp_descriptors(pspd)
-    use module_defs, only: UNINITIALIZED
-    implicit none
-    type(nonlocal_psp_descriptors), intent(out) :: pspd
-    pspd%mproj=0
-    pspd%gau_cut = UNINITIALIZED(pspd%gau_cut)
-    pspd%nlr=0
-    call nullify_locreg_descriptors(pspd%plr)
-    nullify(pspd%tolr)
-    nullify(pspd%lut_tolr)
-    pspd%noverlap=0
-  end subroutine nullify_nonlocal_psp_descriptors
-
-  pure function DFT_PSP_projectors_null() result(nl)
-    implicit none
-    type(DFT_PSP_projectors) :: nl
-    call nullify_DFT_PSP_projectors(nl)
-  end function DFT_PSP_projectors_null
-
-  pure subroutine nullify_DFT_PSP_projectors(nl)
-    implicit none
-    type(DFT_PSP_projectors), intent(out) :: nl
-    nl%on_the_fly=.true.
-    nl%nproj=0
-    nl%nprojel=0
-    nl%natoms=0
-    nl%zerovol=100.0_gp
-    call nullify_gaussian_basis_new(nl%proj_G)! = gaussian_basis_null()
-    call nullify_workarrays_projectors(nl%wpr)
-    nullify(nl%proj)
-    nullify(nl%pspd)
-    nullify(nl%wpack)
-    nullify(nl%scpr)
-    nullify(nl%cproj)
-    nullify(nl%hcproj)
-  end subroutine nullify_DFT_PSP_projectors
-
-  !allocators
-
-  !destructors
-  subroutine deallocate_nlpsp_to_wfd(tolr)
-    implicit none
-    type(nlpsp_to_wfd), intent(inout) :: tolr
-    call f_free_ptr(tolr%mask)
-  end subroutine deallocate_nlpsp_to_wfd
-
-
-  subroutine deallocate_nonlocal_psp_descriptors(pspd)
-    implicit none
-    type(nonlocal_psp_descriptors), intent(inout) :: pspd
-    !local variables
-    integer :: ilr
-    if (associated(pspd%tolr)) then
-       do ilr=1,size(pspd%tolr)
-          call deallocate_nlpsp_to_wfd(pspd%tolr(ilr))
-          call nullify_nlpsp_to_wfd(pspd%tolr(ilr))
-       end do
-       deallocate(pspd%tolr)
-       nullify(pspd%tolr)
-    end if
-    call deallocate_locreg_descriptors(pspd%plr)
-    call f_free_ptr(pspd%lut_tolr)
-  end subroutine deallocate_nonlocal_psp_descriptors
-
-
-  subroutine deallocate_DFT_PSP_projectors(nl)
-    implicit none
-    type(DFT_PSP_projectors), intent(inout) :: nl
-    !local variables
-    integer :: iat
-
-    if (associated(nl%pspd)) then
-       do iat=1,nl%natoms
-          call deallocate_nonlocal_psp_descriptors(nl%pspd(iat))
-       end do
-       deallocate(nl%pspd)
-       nullify(nl%pspd)
-    end if
-    nullify(nl%proj_G%rxyz)
-    call gaussian_basis_free(nl%proj_G)
-    call deallocate_workarrays_projectors(nl%wpr)
-    call f_free_ptr(nl%proj)
-    call f_free_ptr(nl%wpack)
-    call f_free_ptr(nl%scpr)
-    call f_free_ptr(nl%cproj)
-    call f_free_ptr(nl%hcproj)
-  END SUBROUTINE deallocate_DFT_PSP_projectors
-
-
-  subroutine free_DFT_PSP_projectors(nl)
-    implicit none
-    type(DFT_PSP_projectors), intent(inout) :: nl
-    call deallocate_DFT_PSP_projectors(nl)
-    call nullify_DFT_PSP_projectors(nl)
-  end subroutine free_DFT_PSP_projectors
-
-
-  !then routines which are typical of the projector application or creation follow
+  !routines which are typical of the projector application or creation follow
+  contains
 
   !> converts the bound of the lr descriptors in local bounds of the plr locregs
   pure subroutine bounds_to_plr_limits(thatway,icoarse,plr,nl1,nl2,nl3,nu1,nu2,nu3)
@@ -404,6 +212,7 @@ contains
   !> initialize the information for matching the localisation region
   !! of each projector to all the localisation regions of the system
   subroutine set_nlpsp_to_wfd(Glr,plr,keyag_lin_cf,nbsegs_cf,noverlap,lut_tolr,tolr,lrs,lr_mask)
+    use locregs_init, only: check_overlap
     implicit none
     type(locreg_descriptors), intent(in) :: Glr !<global simulation domain
     type(locreg_descriptors), intent(in) :: plr !<locreg of the projector
@@ -697,6 +506,83 @@ contains
 
   end subroutine hgh_psp_application
 
+  !> Performs the update of a set of wavefunctions with a projector each one written in Daubechies basis
+  !! with its own descriptors.
+  !! A masking array is used calculated to avoid the calculation of bitonic search for the scalar product
+  !! If the number of projectors is bigger than 1 the wavefunction is also given by packing in the number of components
+  !! of the projector to ease its successive application
+  subroutine scpr_proj_p_hpsi(n_p,wfd_p,proj,n_w,wfd_w,&
+       nmseg_c,nmseg_f,psi_mask,hpsi_pack,scpr,hpsi)
+    implicit none
+    integer, intent(in) :: n_p !< number of projectors (real and imaginary part included)
+    integer, intent(in) :: n_w !< number of wavefunctions (real and imaginary part included)
+    integer, intent(in) :: nmseg_c,nmseg_f !< segments of the masking array
+    type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
+    type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
+    real(wp), dimension(n_w,n_p), intent(in) :: scpr !< array of the scalar product of all the components
+    real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_p), intent(in) :: proj !< components of the projectors
+    integer, dimension(3,nmseg_c+nmseg_f), intent(in) :: psi_mask !<lookup array in the wfn segments
+    !indicating the points where data have to be taken for dot product
+    ! always produced. Has to be initialized to zero first
+    real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w), intent(inout) :: hpsi_pack !< work array of hpsi in projector form
+    !needed only when n_p is bigger than one 
+
+    real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(inout) :: hpsi !< wavefunction result
+    !local variables
+    logical, parameter :: mask=.false.,pack=.true.
+    external :: waxpy_mask_unpack
+    integer :: is_w,is_sw,is_p,is_sp,iw,is_sm
+
+    is_w=wfd_w%nvctr_c+min(wfd_w%nvctr_f,1)
+    is_sw=wfd_w%nseg_c+min(wfd_w%nseg_f,1)
+
+    is_p=wfd_p%nvctr_c+min(wfd_p%nvctr_f,1)
+    is_sp=wfd_p%nseg_c+min(wfd_p%nseg_f,1)
+
+    is_sm=nmseg_c+min(nmseg_f,1)
+
+    if (pack) then
+       !once the coefficients are determined fill the components of the wavefunction with the last projector
+       !linear algebra up to the second last projector
+       !|psi_iw>=O_iw,jp| p_jp>
+
+       if (n_p > 1) then
+          call gemm('N','T',wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w,n_p-1,&
+               1.0_wp,proj(1,1),wfd_p%nvctr_c+7*wfd_p%nvctr_f,&
+               scpr(1,1),n_w,0.0_wp,&
+               hpsi_pack(1,1),wfd_p%nvctr_c+7*wfd_p%nvctr_f)
+       else
+          call f_zero(hpsi_pack)
+       end if
+
+       !then last projector
+       if (mask) then
+          do iw=1,n_w
+             call waxpy_mask_unpack(wfd_w%nvctr_c,wfd_w%nvctr_f,nmseg_c,nmseg_f,&
+                  psi_mask(1,1),psi_mask(1,is_sm),hpsi_pack(1,iw),hpsi_pack(is_p,iw),&
+                  hpsi(1,iw),hpsi(is_w,iw),&
+                  wfd_p%nvctr_c,wfd_p%nvctr_f,proj(1,n_p),proj(is_p,n_p),&
+                  scpr(iw,n_p))
+          end do
+       else
+          do iw=1,n_w
+             call waxpy_keys_unpack(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+                  wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
+                  hpsi(1,iw),hpsi(is_w,iw),&
+                  wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
+                  wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),&
+                  wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
+                  proj(1,n_p),proj(is_p,n_p),&
+                  hpsi_pack(1,iw),hpsi_pack(is_p,iw),scpr(iw,n_p))
+          end do
+       end if
+    else
+
+    end if
+
+  end subroutine scpr_proj_p_hpsi
+
+
   !> routine for applying the coefficients needed HGH-type PSP to the scalar product
   !! among wavefunctions and projectors. The coefficients are real therefore 
   !! there is no need to separate scpr in its real and imaginary part before
@@ -880,48 +766,8 @@ contains
 
   end subroutine full_coefficients
 
-
-  pure function workarrays_projectors_null() result(wp)
-    implicit none
-    type(workarrays_projectors) :: wp
-    call nullify_workarrays_projectors(wp)
-  end function workarrays_projectors_null
-
-  pure subroutine nullify_workarrays_projectors(wp)
-    implicit none
-    type(workarrays_projectors),intent(out) :: wp
-    nullify(wp%wprojx)
-    nullify(wp%wprojy)
-    nullify(wp%wprojz)
-    nullify(wp%wproj)
-    nullify(wp%work)
-  end subroutine nullify_workarrays_projectors
-
-  subroutine allocate_workarrays_projectors(n1, n2, n3, wp)
-    implicit none
-    integer,intent(in) :: n1, n2, n3
-    type(workarrays_projectors),intent(inout) :: wp
-    integer,parameter :: nterm_max=20
-    integer,parameter :: nw=65536
-    wp%wprojx = f_malloc_ptr((/ 1.to.NCPLX_MAX, 0.to.n1, 1.to.2, 1.to.nterm_max /),id='wprojx')
-    wp%wprojy = f_malloc_ptr((/ 1.to.NCPLX_MAX, 0.to.n2, 1.to.2, 1.to.nterm_max /),id='wprojy')
-    wp%wprojz = f_malloc_ptr((/ 1.to.NCPLX_MAX, 0.to.n3, 1.to.2, 1.to.nterm_max /),id='wprojz')
-    wp%wproj = f_malloc_ptr(NCPLX_MAX*(max(n1,n2,n3)+1)*2,id='wprojz')
-    wp%work = f_malloc_ptr((/ 0.to.nw, 1.to.2, 1.to.2 /),id='work')
-  end subroutine allocate_workarrays_projectors
-
-  subroutine deallocate_workarrays_projectors(wp)
-    implicit none
-    type(workarrays_projectors),intent(inout) :: wp
-    call f_free_ptr(wp%wprojx)
-    call f_free_ptr(wp%wprojy)
-    call f_free_ptr(wp%wprojz)
-    call f_free_ptr(wp%wproj)
-    call f_free_ptr(wp%work)
-  end subroutine deallocate_workarrays_projectors
-
-
   function projector_has_overlap(iat, ilr, llr, glr, nl) result(overlap)
+    use locregs_init, only: check_overlap
     implicit none
     ! Calling arguments
     integer,intent(in) :: iat, ilr
@@ -953,6 +799,87 @@ contains
     call check_overlap(llr, nl%pspd(iat)%plr, glr, overlap)
   
     end function projector_has_overlap
+
+    !> Performs the scalar product of a projector with a wavefunction each one writeen in Daubechies basis
+    !! with its own descriptors.
+    !! A masking array is then calculated to avoid the calculation of bitonic search for the scalar product
+    !! If the number of projectors is bigger than 1 the wavefunction is also packed in the number of components
+    !! of the projector to ease its successive application
+    subroutine proj_dot_psi(n_p,wfd_p,proj,n_w,wfd_w,psi,nmseg_c,nmseg_f,psi_mask,psi_pack,scpr)
+      implicit none
+      integer, intent(in) :: n_p !< number of projectors (real and imaginary part included)
+      integer, intent(in) :: n_w !< number of wavefunctions (real and imaginary part included)
+      integer, intent(in) :: nmseg_c,nmseg_f !< segments of the masking array
+      type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
+      type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_p), intent(in) :: proj !< components of the projectors
+      real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(in) :: psi !< components of wavefunction
+      integer, dimension(3,nmseg_c+nmseg_f), intent(in) :: psi_mask !<lookup array in the wfn segments
+      !indicating the points where data have to be taken for dot product
+      ! always produced. Has to be initialized to zero first
+      real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f,n_w), intent(inout) :: psi_pack !< packed array of psi in projector form
+      !needed only when n_p is bigger than one 
+      real(wp), dimension(n_w,n_p), intent(out) :: scpr !< array of the scalar product of all the components
+      !local variables
+      logical, parameter :: mask=.true.,pack=.true.
+      integer :: is_w,is_sw,is_p,is_sp,iw,ip,is_sm
+      !intensive routines
+      external :: wpdot_keys_pack,wpdot_mask_pack
+
+      !calculate starting points of the fine regions
+      !they have to be calculated considering that there could be no fine grid points
+      !therefore the array values should not go out of bounds even though their value is actually not used
+      is_w=wfd_w%nvctr_c+min(wfd_w%nvctr_f,1)
+      is_sw=wfd_w%nseg_c+min(wfd_w%nseg_f,1)
+
+      is_p=wfd_p%nvctr_c+min(wfd_p%nvctr_f,1)
+      is_sp=wfd_p%nseg_c+min(wfd_p%nseg_f,1)
+
+      is_sm=nmseg_c+min(nmseg_f,1)
+
+      if (pack) then
+         if (.not. mask) then
+            do iw=1,n_w
+               call wpdot_keys_pack(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+                    wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
+                    psi(1,iw),psi(is_w,iw),&
+                    wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
+                    wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
+                    proj(1,1),proj(is_p,1),&
+                    psi_pack(1,iw),psi_pack(is_p,iw),scpr(iw,1))
+            end do
+         else 
+            do iw=1,n_w
+               call wpdot_mask_pack(wfd_w%nvctr_c,wfd_w%nvctr_f,nmseg_c,nmseg_f,&
+                    psi_mask(1,1),psi_mask(1,is_sm),psi(1,iw),psi(is_w,iw),&
+                    wfd_p%nvctr_c,wfd_p%nvctr_f,proj(1,1),proj(is_p,1),&
+                    psi_pack(1,iw),psi_pack(is_p,iw),scpr(iw,1))
+            end do
+         end if
+
+         !now that the packed array is constructed linear algebra routine can be used to calculate
+         !use multithreaded dgemm or customized ones in the case of no OMP parallelized algebra
+         !scpr(iw,ip) = < psi_iw| p_ip >
+         if (n_p > 1) then
+            call gemm('T','N',n_w,n_p-1,wfd_p%nvctr_c+7*wfd_p%nvctr_f,1.0_wp,psi_pack(1,1),&
+                 wfd_p%nvctr_c+7*wfd_p%nvctr_f,proj(1,2),wfd_p%nvctr_c+7*wfd_p%nvctr_f,0.0_wp,&
+                 scpr(1,2),n_w)
+         end if
+
+      else
+         do ip=1,n_p
+            do iw=1,n_w
+               call wpdot_keys(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+                    wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
+                    psi(1,iw),psi(is_w,iw),&
+                    wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
+                    wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
+                    proj(1,ip),proj(is_p,ip),&
+                    scpr(iw,ip))
+            end do
+         end do
+      end if
+    end subroutine proj_dot_psi
   
   end module psp_projectors
 
@@ -960,7 +887,7 @@ contains
 !> External routine as the psppar parameters are often passed by address
 subroutine hgh_hij_matrix(npspcode,psppar,hij)
   use module_defs, only: gp
-  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
+  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
   implicit none
   !Arguments
   integer, intent(in) :: npspcode
@@ -1013,8 +940,9 @@ end subroutine hgh_hij_matrix
 subroutine NL_HGH_application(hij,ncplx_p,n_p,wfd_p,proj,&
      ncplx_w,n_w,wfd_w,tolr,psi_pack,scpr,pdpsi,hpdpsi,psi,hpsi,eproj)
   use module_defs, only : gp,wp
-  use psp_projectors, only: hgh_psp_application,nlpsp_to_wfd
+  use psp_projectors, only: hgh_psp_application
   use locregs, only: wavefunctions_descriptors
+  use psp_projectors_base, only: nlpsp_to_wfd
   implicit none
   integer, intent(in) :: ncplx_p,n_p,ncplx_w,n_w
   !> interaction between the wavefuntion and the psp projector
@@ -1041,3 +969,84 @@ subroutine NL_HGH_application(hij,ncplx_p,n_p,wfd_p,proj,&
        ncplx_w,n_w,wfd_w,tolr,psi_pack,scpr,pdpsi,hpdpsi,psi,hpsi,eproj)
 
 end subroutine NL_HGH_application
+
+!> Applies one real projector operator in the form |p> hp <p| onto a set of wavefunctions described by the same descriptors
+!! accumulate the result on the array hpsi and calculate scpr @f$<p|psi_w>$@f such that energy can be expressed in the form @f$\sum_w <psi_w|p> hp <p|psi_w>@f$
+subroutine apply_oneproj_operator(wfd_p,proj,hp,n_w,wfd_w,psi,hpsi,scpr)
+  use module_base
+  use module_types, only: wavefunctions_descriptors
+  implicit none
+  integer, intent(in) :: n_w !< complex components of the wavefunction
+  real(wp), intent(in) :: hp !<coefficient of the projector operator
+  type(wavefunctions_descriptors), intent(in) :: wfd_p !< descriptors of projectors
+  type(wavefunctions_descriptors), intent(in) :: wfd_w !< descriptors of wavefunction
+  !  real(gp), dimension(ncplx_o,ncomp_p,ncomp_p,ncomp_w), intent(in) :: hij !< matrix of operator in nonlocal projectors basis
+  real(wp), dimension(wfd_p%nvctr_c+7*wfd_p%nvctr_f), intent(in) :: proj !< components of the projector
+  real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(in) :: psi !< components of wavefunction
+  real(wp), dimension(wfd_w%nvctr_c+7*wfd_w%nvctr_f,n_w), intent(inout) :: hpsi !<application of NL operator on psi
+  real(wp), dimension(n_w), intent(out) :: scpr !<array of <p|psi_w>, to be used to evaluate energy terms
+  !local variables
+  character(len=*), parameter :: subname='apply_oneproj'
+  integer :: is_w,is_sw,is_p,is_sp,iw
+  integer, dimension(:,:), allocatable :: psi_mask
+  !routines which are optimized in separate files
+  external :: wpdot_keys,wpdot_mask,waxpy_mask
+
+  call f_routine(id=subname)
+
+  !calculate starting points of the fine regions
+  !they have to be calculated considering that there could be no fine grid points
+  !therefore the array values should not go out of bounds even though their value is actually not used
+  is_w=wfd_w%nvctr_c+min(wfd_w%nvctr_f,1)
+  is_sw=wfd_w%nseg_c+min(wfd_w%nseg_f,1)
+
+  is_p=wfd_p%nvctr_c+min(wfd_p%nvctr_f,1)
+  is_sp=wfd_p%nseg_c+min(wfd_p%nseg_f,1)
+
+  !mask array to avoid multiple calls to bitonic search routines
+  psi_mask=f_malloc0((/3,wfd_w%nseg_c+wfd_w%nseg_f/),id='psi_mask')
+  call wpdot_keys(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+       wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
+       psi(1,1),psi(is_w,1),&
+       wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
+       wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
+       proj(1),proj(is_p),&
+       scpr(1))
+  !use now mask arrays to calculate the rest of the scalar product
+  do iw=2,n_w
+  call wpdot_keys(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+       wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),&
+       wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
+       psi(1,iw),psi(is_w,iw),&
+       wfd_p%nvctr_c,wfd_p%nvctr_f,wfd_p%nseg_c,wfd_p%nseg_f,&
+       wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),&
+       wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),&
+       proj(1),proj(is_p),&
+       scpr(iw))
+
+!!$     call wpdot_mask(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+!!$          psi_mask(1,1),psi_mask(1,is_sw),psi(1,iw),psi(is_w,iw),&
+!!$          wfd_p%nvctr_c,wfd_p%nvctr_f,proj(1),proj(is_p),scpr(iw))
+  end do
+
+  !then reduce the projector in the wavefunction
+  do iw=1,n_w
+     call waxpy(hp*scpr(iw),wfd_p%nvctr_c,wfd_p%nvctr_f,&
+          wfd_p%nseg_c,wfd_p%nseg_f,&
+          wfd_p%keyvglob(1),wfd_p%keyvglob(is_sp),&
+          wfd_p%keyglob(1,1),wfd_p%keyglob(1,is_sp),proj(1),proj(is_p),& 
+          wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+          wfd_w%keyvglob(1),wfd_w%keyvglob(is_sw),&
+          wfd_w%keyglob(1,1),wfd_w%keyglob(1,is_sw),&
+          hpsi(1,iw),hpsi(is_w,iw))
+!!$     call waxpy_mask(wfd_w%nvctr_c,wfd_w%nvctr_f,wfd_w%nseg_c,wfd_w%nseg_f,&
+!!$          psi_mask(1,1),psi_mask(1,is_sw),hpsi(1,iw),hpsi(is_w,iw),&
+!!$          wfd_p%nvctr_c,wfd_p%nvctr_f,proj(1),proj(is_p),&
+!!$          hp*scpr(iw))
+  end do
+
+  call f_free(psi_mask)
+
+  call f_release_routine()
+
+end subroutine apply_oneproj_operator

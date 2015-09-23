@@ -829,6 +829,7 @@ contains
     use module_interfaces
     use module_base
     use communications, only: transpose_v, untranspose_v
+    use locreg_operations
     !Arguments
     implicit none
     integer, intent(in) :: p,i
@@ -1650,10 +1651,6 @@ contains
 
     if(iproc==0) write(*,*) " IN ROUTINE LANCZOS "
 
-    if (GPUconv) then
-       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-            &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
-    end if
     GPU%full_locham=.true.
     if (GPU%OCLconv) then
        call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
@@ -1749,9 +1746,7 @@ contains
 
     call EP_free(ha%iproc)
 
-    if (GPUconv) then
-       call free_gpu(GPU,orbs%norbp)
-    else if (GPU%OCLconv) then
+    if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
@@ -1812,11 +1807,6 @@ contains
     if (iproc==0) print *, " IN ROUTINE  chebychev  "
 
     Pi=acos(-1.0_gp)
-
-    if (GPUconv) then
-       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-            &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
-    end if
 
     GPU%full_locham=.true.
 
@@ -1968,9 +1958,7 @@ contains
 
 !!$ this free is already executed by bigdft
 !!$
-    if (GPUconv) then
-       call free_gpu(GPU,orbs%norbp)
-    else if (GPU%OCLconv) then
+    if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
@@ -2060,10 +2048,6 @@ contains
 
     if(iproc==0) print *, " IN ROUTINE xabs_cg "
 
-    if (GPUconv) then
-       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-            &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
-    end if
     GPU%full_locham=.true.
     if (GPU%OCLconv) then
        call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
@@ -2174,9 +2158,7 @@ contains
 
     call EP_free(ha%iproc)
 
-    if (GPUconv) then
-       call free_gpu(GPU,orbs%norbp)
-    else if (GPU%OCLconv) then
+    if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 

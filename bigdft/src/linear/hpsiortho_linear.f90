@@ -29,8 +29,11 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use sparsematrix, only: transform_sparse_matrix, gather_matrix_from_taskgroups_inplace, &
                           transform_sparse_matrix_local
   use constrained_dft, only: cdft_data
-  use module_fragments, only: system_fragment
+  use module_fragments, only: system_fragment,fragmentInputParameters
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
+  use public_enums
+  use orthonormalization, only: orthoconstraintNonorthogonal
+  use locreg_operations
   implicit none
 
   ! Calling arguments
@@ -126,10 +129,13 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! For the non polarized case, a factor of two is already included in the
   ! kernel. Therefore explicitely add this factor for the polarized case 
   ! in order to make the two cases analogous.
-  if (tmb%linmat%l%nspin==2 .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if (tmb%linmat%l%nspin==2 .and. &
+      (target_function==TARGET_FUNCTION_IS_ENERGY .or. target_function==TARGET_FUNCTION_IS_HYBRID)) then
       if (iproc==0) call yaml_warning('multiply the gradient by 2.0, check this!')
-      hpsit_c=2.d0*hpsit_c
-      hpsit_f=2.d0*hpsit_f
+      !hpsit_c=2.d0*hpsit_c
+      !hpsit_f=2.d0*hpsit_f
+      call vscal(tmb%ham_descr%collcom%ndimind_c, 2.d0, hpsit_c(1), 1)
+      call vscal(7*tmb%ham_descr%collcom%ndimind_f, 2.d0, hpsit_f(1), 1)
   end if
 
 
@@ -402,7 +408,8 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! For the polarized case, a factor of two was already multiplied to the
   ! gradient (see above). Therefore now undo this again for the band structure
   ! energy in order to get the analogous result to the non-polarized case.
-  if (tmb%linmat%l%nspin==2 .and. target_function==TARGET_FUNCTION_IS_ENERGY) then
+  if (tmb%linmat%l%nspin==2 .and. &
+      (target_function==TARGET_FUNCTION_IS_ENERGY .or. target_function==TARGET_FUNCTION_IS_HYBRID)) then
       if (iproc==0) call yaml_warning('divide the band stucture energy by 2.0, check this!')
       trH=0.5d0*trH
   end if
@@ -410,6 +417,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   ! trH is now the total energy (name is misleading, correct this)
   ! Multiply by 2 because when minimizing trace we don't have kernel
   if(tmb%orbs%nspin==1 .and. target_function==TARGET_FUNCTION_IS_TRACE) trH=2.d0*trH
+  !write(*,'(a,6es17.8)') 'eh, exc, evxc, eexctX, eion, edisp', energs%eh,energs%exc,energs%evxc,energs%eexctX,energs%eion,energs%edisp
   trH=trH-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
 
 
@@ -797,13 +805,14 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
 end subroutine calculate_residue_ks
 
 
-subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
+subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_orthonormalization, sf_per_type, &
            lphiold, alpha, trH, alpha_mean, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
            experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
   use module_base
   use module_types
   use yaml_output
   use module_interfaces, fake_name_A => hpsitopsi_linear,fake_name_C=>calculate_energy_and_gradient_linear
+  use orthonormalization, only: orthonormalizeLocalized, iterative_orthonormalization
   implicit none
   
   ! Calling arguments
@@ -812,6 +821,9 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
   real(kind=8),intent(in) :: max_inversion_error
   type(localizedDIISParameters), intent(inout) :: ldiis
   type(DFT_wavefunction), target,intent(inout) :: tmb
+  type(atoms_data),intent(in) :: at
+  logical,intent(in) :: do_iterative_orthonormalization
+  integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type 
   real(kind=8), dimension(tmb%npsidim_orbs), intent(inout) :: lphiold
   real(kind=8), intent(in) :: trH, alpha_mean, alpha_max
   real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha, alphaDIIS
@@ -877,9 +889,13 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb,  &
           end do 
       end if
 
-      call orthonormalizeLocalized(iproc, nproc, order_taylor, max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
-           tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
-           tmb%can_use_transposed, tmb%foe_obj)
+      if (do_iterative_orthonormalization) then
+          call iterative_orthonormalization(iproc, nproc, 1, order_taylor, at, tmb%linmat%s%nspin, sf_per_type, tmb)
+      else
+          call orthonormalizeLocalized(iproc, nproc, order_taylor, max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+               tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, &
+               tmb%can_use_transposed)
+       end if
       if (iproc == 0) then
           call yaml_map('Orthogonalization',.true.)
       end if
@@ -925,6 +941,7 @@ subroutine build_gradient(iproc, nproc, tmb, target_function, hpsit_c, hpsit_f, 
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use transposed_operations, only: build_linear_combination_transposed
+  use public_enums
   implicit none
 
   ! Calling arguments

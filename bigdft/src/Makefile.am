@@ -13,13 +13,14 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 # Sub-directories.
 # ---------------
 SUBDIRS = \
+	orbitals \
 	modules \
-	convolutions \
 	xcPSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
 	OpenCL \
 	bindings \
+	geopt \
 	art \
 	mhgps_files \
 	global_files \
@@ -40,7 +41,8 @@ noinst_LIBRARIES = libmain.a libabscalc.a
 subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
-	convolutions/libconvolutions.a \
+	orbitals/liborbitals.a \
+	geopt/libgeopt.a \
 	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
@@ -58,7 +60,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld)
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -66,7 +68,7 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies global globaltool abscalc mhgps mhgpstool
+binaries_sources = bigdft memguess splsad NEB frequencies global globaltool abscalc mhgps mhgpstool utilities
 local_binaries = test_forces
 scripts_sources = NEB_driver.sh bigdft-tool
 sub_dirs_bin = tools tools/bader
@@ -105,6 +107,15 @@ ambertools_wrap= wrap_fake.f90
 amber_ld =
 endif
 
+if HAVE_CP2K
+cp2k_ld= @CP2K_LINKLINE@ @LINALG_LIBS@
+##cp2k_interfacemod = modules/module_cp2k.f90
+##cp2k_interfacemodCAP = MODULES/MODULE_CP2k.F90
+else
+##cp2k_interfacemod = modules/cp2k_fake.f90 modules/module_cp2k.f90
+##cp2k_interfacemodCAP = MODULES/CP2K_FAKE.F90 MODULES/MODULE_CP2K_FAKE.F90
+cp2k_ld =
+endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ \
@@ -119,21 +130,14 @@ high_level = cluster.f90 \
 	init.f90 \
 	initialization.f90 \
 	input_variables.f90 \
-	input_variables_text.f90 \
 	sumrho.f90 \
 	hpsiortho.f90 \
 	forces.f90 \
 	tail.f90 \
 	restart.f90 \
-	lbfgs.f90 \
-	geometry.f90 \
 	davidson.f90 \
 	ConstrainedDavidson.f90 \
 	pdos.f90 \
-	sdcg.f90 \
-	bfgs.f90 \
-	sqnm.f90 \
-	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \
 	external.f90 \
@@ -148,8 +152,6 @@ low_level = \
 	init/gridmanipulation.f90 \
 	init/gauprod.f90 \
 	init/denspotd.f90 \
-	init/logrid.f90 \
-	init/logrid_per.f90 \
 	init/inputguess.f90 \
 	init/rcov.f90 \
 	init/gautowav.f90 \
@@ -183,34 +185,29 @@ low_level = \
 	wavelib/daubisf.f90 \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
-	linear/nullify.f90 \
 	linear/filterModule.f90 \
 	linear/misc.f90 \
 	linear/getLocBasis.f90 \
 	linear/convolutions_aux.f90 \
 	linear/convolutions.f90 \
 	linear/precondLinear.f90 \
-	linear/psitolocReg.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/linearScaling.f90 \
 	linear/initAndUtils.f90 \
 	linear/sumrhoLinear.f90 \
 	linear/inputguessLinear.f90 \
-	linear/orthonormality.f90 \
 	linear/orbitalOptimization.f90 \
 	linear/mixdiis.f90 \
 	linear/copyTypes.f90 \
-	linear/de-allocate.f90 \
 	linear/derivativeBasis.f90 \
-	linear/locReg_linear.f90 \
 	linear/hpsiortho_linear.f90 \
-	linear/init_collective_comms.f90 \
 	linear/optimize_coeffs.f90 \
 	linear/pulay.f90 \
 	linear/transferintegrals.f90 \
 	linear/cdft.f90 \
 	linear/frags.f90\
 	$(ambertools_wrap)
+##	$(cp2k_interfacemod)
 
 # C objects
 c_level = posfiles.c \
@@ -238,7 +235,6 @@ libbigdft_1_a_SOURCES =
 
 input_variables_description.o: input_variables_definition-inc.h
 #build the fortran include file with the stream of input variables into a local string
-#should we check (AC_CHECK_PROG) if sed and echo are available?
 #the sed command below will transform the entire yaml document into a fortran string
 input_variables_definition-inc.h: input_variables_definition.yaml
 	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
@@ -257,7 +253,7 @@ libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
 	@chmod a+x $@
 
 libbigdft-1.so.7: $(bigdft_dynamic_library)
@@ -317,6 +313,9 @@ NEB_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
+utilities_SOURCES = utilities.f90
+utilities_LDADD = $(bigdft_library) @LINALG_LIBS@
+
 frequencies_SOURCES = frequencies.f90
 frequencies_LDADD = $(bigdft_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
@@ -354,8 +353,6 @@ check:
 #dependencies
 convolutions_aux.o linear/convolutions_aux.o: linear/filterModule.f90 filterModule.o
 
-cluster.o geometry.o xabsorber.o: scfloop_API.o
-
 lanczos_interface.o: abscalc_module.o lanczos_base.o
 
 abscalc_init.o abscalc.o: esatto.o lanczos_interface.o
@@ -363,8 +360,6 @@ abscalc_init.o abscalc.o: esatto.o lanczos_interface.o
 lanczos.o : lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90
-
-geometry.o bfgs.o sdcg.o sqnm.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 

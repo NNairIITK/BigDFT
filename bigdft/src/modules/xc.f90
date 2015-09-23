@@ -18,7 +18,6 @@ module module_xc
   use libxc_funcs_m
   use xc_f90_lib_m
   use yaml_output
-  use dictionaries, only: f_err_raise
   use abi_interfaces_xc_lowlevel, only: abi_drivexc,abi_size_dvxc
 
   implicit none
@@ -211,7 +210,7 @@ contains
     type(xc_info), intent(in) :: xcObj
 
     integer :: i, ii
-    type(xc_f90_pointer_t) :: str
+    type(xc_f90_pointer_t) :: str1
     character(len=500) :: message
 
     ! Dump functional information
@@ -230,11 +229,11 @@ contains
           
           ii = 0
           if (xcObj%id(i) > 0) then
-             call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str,message)
+             call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str1,message)
              do while (ii >= 0)
                 !write(*,"(1x,a1,1x,a82)") "|", trim(message)
                 call yaml_sequence('"'//trim(message)//'"')
-                call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str,message)
+                call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str1,message)
              end do
           end if
        end do
@@ -632,7 +631,9 @@ contains
        deallocate(exc_)
        deallocate(vxc_)
     else
-       write(0,*) "ERROR: XC module not initialised."
+       call f_err_throw("XC module not initialised, the object kind is '"//xcObj%kind//&
+            "', which is neither XC_LIBXC ("+XC_LIBXC//") nor XC_ABINIT ("+XC_ABINIT//')',&
+            err_name='BIGDFT_RUNTIME_ERROR')
     end if
 
     call f_release_routine()

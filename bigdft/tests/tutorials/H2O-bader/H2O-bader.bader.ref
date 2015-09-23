@@ -6,7 +6,7 @@
   FFT-grid:   146 x 146 x 174
   CLOSE ... data/electronic_density.cube                                                                                                    
 
-  RUN TIME:    1.85 SECONDS
+  RUN TIME:    0.76 SECONDS
 
   CALCULATING BADER CHARGE DISTRIBUTION
                  0  10  25  50  75  100
@@ -50,13 +50,13 @@
   CHECKED POINTS:         43
   REASSIGNED POINTS:       0
 
-  RUN TIME:      16.98 SECONDS
+  RUN TIME:      13.00 SECONDS
 
   CALCULATING MINIMUM DISTANCES TO ATOMS
                  0  10  25  50  75  100
   PERCENT DONE:  ----------------------
 
-  RUN TIME:    1.23 SECONDS
+  RUN TIME:    0.69 SECONDS
 
   WRITING BADER ATOMIC CHARGES TO ACF.dat
   WRITING BADER VOLUME CHARGES TO BCF.dat
@@ -66,8 +66,7 @@
            NUMBER OF ELECTRONS:        8.00000
 
   CALCULATING DIPOLE MOMENTS
- Writing Bader atomic dipoles          : dipole.yaml
-
+ 
  Memory Consumption Report:
    Tot. No. of Allocations             :  0
    Tot. No. of Deallocations           :  0
@@ -76,6 +75,7 @@
      Peak Value (MB)                   :  0.000
      for the array                     : null
      in the routine                    : null
-     Memory Peak of process            : 149.132 MB
- Max No. of dictionaries used          :  198 #( 153 still in use)
+     Memory Peak of process            : 149.740 MB
+ Walltime since initialization         : 00:00:15.153024576
+ Max No. of dictionaries used          :  214 #( 169 still in use)
  Number of dictionary folders allocated:  1

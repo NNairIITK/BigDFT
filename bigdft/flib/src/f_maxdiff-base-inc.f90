@@ -1,5 +1,5 @@
 !> @file
-!! Include fortran file for axdiff interfaces
+!! Include fortran file for maxdiff interfaces
 !! @author
 !!    Copyright (C) 2012-2014 BigDFT group
 !!    This file is distributed under the terms of the

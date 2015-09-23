@@ -9,6 +9,8 @@ module matrix_operations
     public :: overlap_minus_one_half_serial
     public :: overlap_plus_minus_one_half_exact
     public :: deviation_from_unity_parallel
+    public :: overlap_power_minus_one_half_parallel
+    public :: check_taylor_order
 
 
     contains
@@ -39,7 +41,7 @@ module matrix_operations
                                 sequential_acces_matrix_fast2, sequential_acces_matrix_fast, &
                                 gather_matrix_from_taskgroups, gather_matrix_from_taskgroups_inplace, &
                                 uncompress_matrix2, transform_sparsity_pattern, &
-                                sparsemm_new
+                                sparsemm_new, matrix_matrix_mult_wrapper
         use parallel_linalg, only: dpotrf_parallel, dpotri_parallel
         use ice, only: inverse_chebyshev_expansion
         use yaml_output
@@ -67,10 +69,10 @@ module matrix_operations
         logical :: ovrlp_allocated, inv_ovrlp_allocated
       
         ! new for sparse taylor
-        integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin, iline, icolumn, ist
+        integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin, iline, icolumn, ist, j
         integer,dimension(:,:,:),allocatable :: istindexarr
         real(kind=8),dimension(:),pointer :: ovrlpminone_sparse
-        real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr, tmparr
+        real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr, tmparr, resmat
         real(kind=8),dimension(:),allocatable :: invovrlp_compr_seq, ovrlpminoneoldp_new
         real(kind=8),dimension(:,:),allocatable :: ovrlpminoneoldp, invovrlpp, ovrlp_largep
         real(kind=8),dimension(:,:,:),allocatable :: invovrlpp_arr
@@ -81,7 +83,7 @@ module matrix_operations
         real(kind=8),dimension(:),allocatable :: Amat21_compr, Amat12_seq, Amat21_seq, tmpmat
         integer,parameter :: SPARSE=1
         integer,parameter :: DENSE=2
-        real(kind=8) :: ex, max_error_p, mean_error_p
+        real(kind=8) :: ex, max_error_p, mean_error_p, tt1, tt2
         real(kind=8),dimension(:),allocatable :: factor_arr
         real(kind=8),dimension(:),allocatable :: ovrlp_largep_new, invovrlpp_new
         real(kind=8),dimension(:),allocatable :: Amat12p_new, Amat21p_new
@@ -467,12 +469,25 @@ module matrix_operations
                         if (power(icalc)==1) then
                            if (blocksize<0) then
                               call overlap_minus_one_exact_serial(ovrlp_smat%nfvctr,inv_ovrlp_local(1:,1:,ispin))
+                              !if (iproc==0) then
+                              !    do i=1,ovrlp_smat%nfvctr
+                              !        do j=1,ovrlp_smat%nfvctr
+                              !            write(400,'(2(i6,1x),es19.12)') i, j, inv_ovrlp_local(i,j,ispin)
+                              !        end do
+                              !    end do
+                              !end if
                            else
-                              stop 'check if working - upper half may not be filled'
+                              !stop 'check if working - upper half may not be filled'
                               call dpotrf_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
                                    ovrlp_smat%nfvctr, inv_ovrlp_local(1:,1:,ispin), ovrlp_smat%nfvctr)
                               call dpotri_parallel(iproc, nproc, blocksize, bigdft_mpi%mpi_comm, 'l', &
                                    ovrlp_smat%nfvctr, inv_ovrlp_local(1:,1:,ispin), ovrlp_smat%nfvctr)
+                              !fill upper half...
+                              do i=1,ovrlp_smat%nfvctr
+                                  do j=i,ovrlp_smat%nfvctr
+                                      inv_ovrlp_local(i,j,ispin)=inv_ovrlp_local(j,i,ispin)
+                                  end do
+                              end do
                            end if
                         else if (power(icalc)==2) then
                             call overlap_plus_minus_one_half_exact(bigdft_mpi%nproc,ovrlp_smat%nfvctr, &
@@ -859,6 +874,28 @@ module matrix_operations
                 invovrlp_compr_seq = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSEMM_SEQ, id='ovrlp_large_compr_seq')
                 !!ovrlp_largep = sparsematrix_malloc(inv_ovrlp_smat, iaction=DENSE_MATMUL, id='ovrlp_largep')
                 ovrlp_largep_new = f_malloc(inv_ovrlp_smat%smmm%nvctrp,id='ovrlp_largep')
+
+                !!if (iproc==0) write(*,*) 'TEST ##############################################'
+                !!do icalc=1,ncalc
+                !!    resmat = sparsematrix_malloc(inv_ovrlp_smat, iaction=SPARSE_TASKGROUP, id='resmat')
+                !!    call matrix_matrix_mult_wrapper(iproc, nproc, inv_ovrlp_smat, ovrlp_large_compr, inv_ovrlp_mat(icalc)%matrix_compr, resmat)
+                !!    call deviation_from_unity_parallel_new(iproc, nproc, inv_ovrlp_smat%nfvctr, inv_ovrlp_smat%nfvctrp, inv_ovrlp_smat%isfvctr, &
+                !!         resmat, inv_ovrlp_smat, tt1, tt2)
+                !!    if (iproc==0) then
+                !!        call yaml_map('NEW max mean error',(/tt1,tt2/))
+                !!        do i=1,size(resmat,1)
+                !!            write(500,*) i, resmat(i)
+                !!        end do
+                !!        do i=1,size(ovrlp_large_compr)
+                !!            write(600,*) i, ovrlp_large_compr(i)
+                !!        end do
+                !!        do i=1,size(inv_ovrlp_mat(icalc)%matrix_compr)
+                !!            write(700,*) i, inv_ovrlp_mat(icalc)%matrix_compr(i)
+                !!        end do
+                !!    end if
+                !!    call f_free(resmat)
+                !!end do
+                !!if (iproc==0) write(*,*) 'END TEST ##########################################'
       
                 if (iproc==0) then
                     call yaml_newline()
@@ -1343,6 +1380,7 @@ module matrix_operations
                 else
                    error=ovrlp(i)**2
                 end if
+                !write(*,'(a,3i8,2es16.7)') 'i, iline, icolumn, ovrlp(i), error', i, iline, icolumn, ovrlp(i), error
                 max_deviation=max(error,max_deviation)
                 mean_deviation=mean_deviation+error
                 num=num+1.d0
@@ -1865,7 +1903,7 @@ module matrix_operations
         inv_ovrlp_halfp=f_malloc_ptr((/norb,norbp/), id='inv_ovrlp_halfp')
         ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
         ! This will give S^{+/-1/2}.
-        if(blocksize<0) then
+        !!if(blocksize<0) then
            if (norbp>0) call dgemm('n', 't', norb, norbp, norb, 1.d0, inv_ovrlp_half, &
                 norb, tempArr, norbp, 0.d0, inv_ovrlp_halfp, norb)
            !if (present(orbs).and.bigdft_mpi%nproc>1) then
@@ -1875,11 +1913,11 @@ module matrix_operations
            else
               call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
            end if
-        else
-           call dgemm_parallel(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, bigdft_mpi%mpi_comm, 'n', 't', norb, norb, norb, &
-                1.d0, inv_ovrlp_half, norb, tempArr, norb, 0.d0, inv_ovrlp_halfp, norb)
-           call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
-        end if
+        !!else
+        !!   call dgemm_parallel(bigdft_mpi%iproc, bigdft_mpi%nproc, blocksize, bigdft_mpi%mpi_comm, 'n', 't', norb, norb, norb, &
+        !!        1.d0, inv_ovrlp_half, norb, tempArr, norb, 0.d0, inv_ovrlp_halfp, norb)
+        !!   call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
+        !!end if
       
         call f_free_ptr(inv_ovrlp_halfp)
         call f_free(tempArr)
@@ -2126,6 +2164,305 @@ module matrix_operations
       
       end subroutine max_matrix_diff_parallel_new
 
+
+      subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orbs, ovrlp, ovrlp_mat, &
+                 inv_ovrlp_half, inv_ovrlp_half_)
+        use module_base
+        use module_types
+        use module_interfaces
+        use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
+                                     allocate_matrices, deallocate_matrices
+        use sparsematrix_init, only: matrixindex_in_compressed
+        use sparsematrix, only: synchronize_matrix_taskgroups
+        implicit none
+      
+        ! Calling arguments
+        integer,intent(in) :: iproc, nproc, meth_overlap
+        type(orbitals_data),intent(in) :: orbs
+        type(sparse_matrix),intent(inout) :: ovrlp
+        type(matrices),intent(inout) :: ovrlp_mat
+        type(sparse_matrix),intent(inout) :: inv_ovrlp_half
+        type(matrices),intent(inout) :: inv_ovrlp_half_
+      
+        ! Local variables
+        integer(kind=8) :: ii, iend
+        integer :: i, iorb, n, istat, iall, jorb, korb, jjorb, kkorb!, ilr
+        integer :: iiorb, ierr, iseg, ind, ishift_ovrlp, ishift_inv_ovrlp, ispin
+        real(kind=8) :: error
+        real(kind=8),dimension(:,:),pointer :: ovrlp_tmp, ovrlp_tmp_inv_half
+        logical,dimension(:),allocatable :: in_neighborhood
+        character(len=*),parameter :: subname='overlap_power_minus_one_half_parallel'
+        !type(matrices) :: inv_ovrlp_half_
+        !!integer :: itaskgroups, iitaskgroup, imin, imax
+      
+        !!imin=ovrlp%nvctr
+        !!imax=0
+        !!do itaskgroups=1,ovrlp%ntaskgroupp
+        !!    iitaskgroup = ovrlp%taskgroupid(itaskgroups)
+        !!    imin = min(imin,ovrlp%taskgroup_startend(1,1,iitaskgroup))
+        !!    imax = max(imax,ovrlp%taskgroup_startend(2,1,iitaskgroup))
+        !!end do
+      
+      
+        call f_routine('overlap_power_minus_one_half_parallel')
+        call timing(iproc,'lovrlp^-1/2par','ON')
+      
+        in_neighborhood = f_malloc(ovrlp%nfvctr,id='in_neighborhood')
+      
+        !inv_ovrlp_half_ = matrices_null()
+        !call allocate_matrices(inv_ovrlp_half, allocate_full=.false., matname='inv_ovrlp_half_', mat=inv_ovrlp_half_)
+        call f_zero(inv_ovrlp_half%nvctrp_tg*inv_ovrlp_half%nspin, inv_ovrlp_half_%matrix_compr(1))
+      
+        !DEBUG
+        !if (iproc==0) then
+        !   jjorb=0
+        !   do jorb=1,orbs%norb
+        !      do korb=1,orbs%norb
+        !         ind = ovrlp%matrixindex_in_compressed(korb, jorb)
+        !         if (ind>0) then
+        !            print*, korb,jorb,ovrlp%matrix_compr(ind)
+        !         else
+        !            print*, korb,jorb,0.0d0
+        !         end if
+        !         !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+        !      end do
+        !   end do
+        !end if
+        !call mpi_barrier(bigdft_mpi%mpi_comm,istat)
+      
+        !!ii=0
+        !!do ispin=1,ovrlp%nspin
+        !!    do i=1,ovrlp%nvctr
+        !!        ii=ii+1
+        !!        write(950+iproc,*) 'ii, i, val', ii, i, ovrlp_mat%matrix_compr(ii)
+        !!    end do
+        !!end do
+      
+      
+        spin_loop: do ispin=1,ovrlp%nspin
+      
+            ishift_ovrlp=(ispin-1)*ovrlp%nvctr
+            ishift_inv_ovrlp=(ispin-1)*inv_ovrlp_half%nvctr
+      
+            do iorb=1,ovrlp%nfvctrp
+               iiorb=ovrlp%isfvctr+iorb
+               !ilr=orbs%inwhichlocreg(iiorb)
+               ! We are at the start of a new atom
+               ! Count all orbitals that are in the neighborhood
+      
+               iseg=ovrlp%istsegline(iiorb)
+               iend=int(iiorb,kind=8)*int(ovrlp%nfvctr,kind=8)
+               n=0
+               in_neighborhood(:)=.false.
+               do 
+                  do i=ovrlp%keyg(1,1,iseg),ovrlp%keyg(2,1,iseg)
+                     in_neighborhood(i)=.true.
+                     !if (iproc==0) write(*,*) 'iiorb, iseg, i, n', iiorb, iseg, i, n
+                     n=n+1
+                  end do
+                  iseg=iseg+1
+                  if (iseg>ovrlp%nseg) exit
+                  ii = int((ovrlp%keyg(1,2,iseg)-1),kind=8)*int(ovrlp%nfvctr,kind=8) + &
+                       int(ovrlp%keyg(1,1,iseg),kind=8)
+                  if (ii>iend) exit
+               end do
+               !if (iproc==0) write(*,*) 'iiorb, n', iiorb, n
+      
+               ovrlp_tmp = f_malloc0_ptr((/n,n/),id='ovrlp_tmp')
+      
+               jjorb=0
+               do jorb=1,ovrlp%nfvctr
+                  if (.not.in_neighborhood(jorb)) cycle
+                  jjorb=jjorb+1
+                  kkorb=0
+                  do korb=1,ovrlp%nfvctr
+                     if (.not.in_neighborhood(korb)) cycle
+                     kkorb=kkorb+1
+                     ind = matrixindex_in_compressed(ovrlp,korb,jorb)
+                     if (ind>0) then
+                        !!if (ind<imin) then
+                        !!    write(*,*) 'ind,imin',ind,imin
+                        !!    stop 'ind<imin'
+                        !!end if
+                        !!if (ind>imax) then
+                        !!    write(*,*) 'ind,imax',ind,imax
+                        !!    stop 'ind>imax'
+                        !!end if
+                        ind=ind+ishift_ovrlp
+                        ovrlp_tmp(kkorb,jjorb)=ovrlp_mat%matrix_compr(ind-ovrlp%isvctrp_tg)
+                     else
+                        ovrlp_tmp(kkorb,jjorb)=0.d0
+                     end if
+                     !!write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+                  end do
+               end do
+                    
+               ovrlp_tmp_inv_half = f_malloc_ptr((/n,n/),id='ovrlp_tmp_inv_half')
+               call vcopy(n*n, ovrlp_tmp(1,1), 1, ovrlp_tmp_inv_half(1,1), 1)
+               !!do jorb=1,n
+               !!    do korb=1,n
+               !!        write(900,'(a,2i8,es14.5)') 'jorb, korb, ovrlp_tmp(korb,jorb)', jorb, korb, ovrlp_tmp(korb,jorb)
+               !!    end do
+               !!end do
+      
+               !if (iiorb==orbs%norb) then
+               !print*,''
+               !print*,'ovrlp_tmp',n,iiorb
+               !do jorb=1,n
+               !print*,jorb,ovrlp_tmp(:,jorb)
+               !end do
+               !end if
+      
+      
+               ! Calculate S^-1/2 for the small overlap matrix
+               !!call overlapPowerGeneral(iproc, nproc, meth_overlap, -2, -8, n, orbs, imode=2, check_accur=.true.,&
+               !!     ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
+               !!call overlapPowerGeneral(iproc, 1, meth_overlap, -2, -8, n, orbs, imode=2, &
+               !!     ovrlp_smat=ovrlp, inv_ovrlp_smat=inv_ovrlp_half, &
+               !!     ovrlp_mat=ovrlp_mat, inv_ovrlp_mat=inv_ovrlp_half_, check_accur=.true., &
+               !!     ovrlp=ovrlp_tmp, inv_ovrlp=ovrlp_tmp_inv_half, error=error)
+               call overlap_plus_minus_one_half_exact(1, n, -8, .false., ovrlp_tmp_inv_half,inv_ovrlp_half)
+      
+      
+               !if (iiorb==orbs%norb) then
+               !print*,''
+               !print*,'inv_ovrlp_tmp',n,iiorb,error
+               !do jorb=1,n
+               !print*,jorb,ovrlp_tmp_inv_half(:,jorb)
+               !end do
+               !end if
+      
+               jjorb=0
+               do jorb=1,ovrlp%nfvctr
+                  if (.not.in_neighborhood(jorb)) cycle
+                  jjorb=jjorb+1
+                  kkorb=0
+                  if (jorb==iiorb) then
+                     do korb=1,ovrlp%nfvctr
+                        if (.not.in_neighborhood(korb)) cycle
+                        kkorb=kkorb+1
+                        ind = matrixindex_in_compressed(inv_ovrlp_half,korb,jorb)
+                        if (ind>0) then
+                           ind=ind+ishift_inv_ovrlp
+                           inv_ovrlp_half_%matrix_compr(ind-inv_ovrlp_half%isvctrp_tg)=ovrlp_tmp_inv_half(kkorb,jjorb)
+                           !if (iproc==0) write(*,'(a,6i8,es16.8)') 'ind, inv_ovrlp_half%isvctrp_tg, jorb, korb, jjorb, kkorb, val', &
+                           !                  ind, inv_ovrlp_half%isvctrp_tg, jorb, korb, jjorb, kkorb, ovrlp_tmp_inv_half(kkorb,jjorb)
+                           !if (iiorb==orbs%norb) print*,'problem here?!',iiorb,kkorb,jjorb,korb,jorb,ind,ovrlp_tmp_inv_half(kkorb,jjorb)
+                        end if
+                        !write(1300+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+                     end do
+                     exit !no need to keep looping
+                  end if
+               end do
+      
+      
+               call f_free_ptr(ovrlp_tmp_inv_half)
+               call f_free_ptr(ovrlp_tmp)
+      
+            end do
+      
+            !!if (nproc>1)then
+            !!    call mpiallred(inv_ovrlp_half_%matrix_compr(1), inv_ovrlp_half%nvctr*inv_ovrlp_half%nspin, mpi_sum, bigdft_mpi%mpi_comm)
+            !!end if
+            call synchronize_matrix_taskgroups(iproc, nproc, inv_ovrlp_half, inv_ovrlp_half_)
+      
+        end do spin_loop
+      
+        call f_free(in_neighborhood)
+      
+        !if (iproc==0) then
+        !   jjorb=0
+        !   do jorb=1,orbs%norb
+        !      do korb=1,orbs%norb
+        !         ind = inv_ovrlp_half%matrixindex_in_compressed(korb, jorb)
+        !         if (ind>0) then
+        !            print*, korb,jorb,inv_ovrlp_half%matrix_compr(ind)
+        !         else
+        !            print*, korb,jorb,0.0d0
+        !         end if
+        !         !write(1200+iproc,'(2i8,es20.10)') kkorb, jjorb, ovrlp_tmp(kkorb,jjorb)
+        !      end do
+        !   end do
+        !end if
+        !call mpi_finalize(ind)
+        !stop
+      
+        !call deallocate_matrices(inv_ovrlp_half_)
+      
+      
+        call f_release_routine
+        call timing(iproc,'lovrlp^-1/2par','OF')
+      
+      end subroutine overlap_power_minus_one_half_parallel
+
+
+    subroutine check_taylor_order(error, max_error, order_taylor)
+      use module_base
+      use yaml_output
+      implicit none
+    
+      ! Calling arguments
+      real(kind=8),intent(in) :: error, max_error
+      integer,intent(inout) :: order_taylor
+    
+      ! Local variables
+      character(len=12) :: act
+      integer,parameter :: max_order_positive=50
+      integer,parameter :: max_order_negative=-20
+      logical :: is_ice
+    
+      if (order_taylor>=1000) then
+          order_taylor=order_taylor-1000
+          is_ice=.true.
+      else
+          is_ice=.false.
+      end if
+    
+      if (order_taylor/=0) then
+          ! only do this if approximations (Taylor or "negative thing") are actually used
+          if (error<=1.d-1*max_error) then
+              !! error is very small, so decrease the order of the polynomial
+              !if (order_taylor>20) then
+              !    ! always keep a minimum of 20
+              !    act=' (decreased)'
+              !    if (order_taylor>0) then
+              !        order_taylor = floor(0.9d0*real(order_taylor,kind=8))
+              !    else
+              !        order_taylor = ceiling(0.9d0*real(order_taylor,kind=8))
+              !    end if
+              !end if
+          else if (error>max_error) then
+              ! error is too big, increase the order of the Taylor series by 10%
+              act=' (increased)'
+              if (order_taylor>0) then
+                  order_taylor = ceiling(max(1.1d0*real(order_taylor,kind=8),real(order_taylor+5,kind=8)))
+              else
+                  order_taylor = floor(min(1.1d0*real(order_taylor,kind=8),real(order_taylor-5,kind=8)))
+              end if
+          else
+              ! error is small enough, so do nothing
+              act=' (unchanged)'
+          end if
+          !if (bigdft_mpi%iproc==0) call yaml_map('new Taylor order',trim(yaml_toa(order_taylor,fmt='(i0)'))//act)
+      end if
+    
+      if (order_taylor>0) then
+          if (order_taylor>max_order_positive) then
+              order_taylor=max_order_positive
+              if (bigdft_mpi%iproc==0) call yaml_warning('Taylor order reached maximum')
+          end if
+      else
+          if (order_taylor<max_order_negative) then
+              order_taylor=max_order_negative
+              if (bigdft_mpi%iproc==0) call yaml_warning('Taylor order reached maximum')
+          end if
+      end if
+    
+      if (is_ice) then
+          order_taylor=order_taylor+1000
+      end if
+    
+    end subroutine check_taylor_order
 
 
 end module matrix_operations

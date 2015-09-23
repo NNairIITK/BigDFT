@@ -1228,6 +1228,8 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,psit,nspinor)
            write(*,*) 'info Cholesky factorization',info
         end if
         
+
+        !LG: the following two operations can be replaced by a single dtrsm call?
         ! calculate L^{-1}
         call trtri( 'L','N',norb,ovrlp(1,1,1),norb,info)
         if (info.ne.0) write(6,*) 'info L^-1',info

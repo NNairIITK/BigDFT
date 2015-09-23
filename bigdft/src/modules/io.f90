@@ -1,4 +1,5 @@
 module io
+  use public_enums
   implicit none
 
   private
@@ -11,6 +12,7 @@ module io
   public :: read_coeff_minbasis
   public :: io_read_descr_linear
   public :: write_sparse_matrix
+  public :: write_dense_matrix
   public :: write_linear_matrices
   public :: writeLinearCoefficients
   public :: write_linear_coefficients
@@ -21,6 +23,7 @@ module io
   public :: io_gcoordToLocreg
   public :: read_psig
   public :: read_sparse_matrix
+  public :: read_dense_matrix
 
 
   contains
@@ -132,14 +135,19 @@ module io
     END SUBROUTINE writemywaves_linear
 
 
-    !> Write all my wavefunctions in files by calling writeonewave
+    !> Write all my wavefunctions for fragments
+    ! NB spin needs fixing!
     subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff,&
-         dir_output,input_frag,ref_frags)
+         dir_output,input_frag,ref_frags,linmat,methTransformOverlap,max_inversion_error,orthpar)
       use module_types
       use module_base
       use module_fragments
       use yaml_output
       use module_interfaces
+      use sparsematrix_base, only: sparsematrix_malloc_ptr, assignment(=), DENSE_FULL, &
+           matrices_null, allocate_matrices, deallocate_matrices
+      use sparsematrix, only: uncompress_matrix2
+      !use matrix_operations, only: overlapPowerGeneral, check_taylor_order
       implicit none
       integer, intent(in) :: iproc,iformat,npsidim,nelec
       !integer, intent(in) :: norb   !< number of orbitals, not basis functions
@@ -152,13 +160,26 @@ module io
       character(len=*), intent(in) :: dir_output, filename
       type(fragmentInputParameters), intent(in) :: input_frag
       type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
+      type(linear_matrices), intent(inout) :: linmat
+      integer,intent(inout) :: methTransformOverlap
+      real(kind=8),intent(in) :: max_inversion_error
+      type(orthon_data),intent(in) :: orthpar
       !Local variables
-      integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
-      integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf
+      integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat,onwhichatom_frag,ifr,iatf
+      integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf,ityp,nelec_frag,ifr_ref,ia,ja,io,jo,unitm
+      integer, allocatable, dimension(:,:) :: frag_map
+      real(kind=8), allocatable, dimension(:,:) :: rxyz_frag, coeff_frag, kernel_frag
+      real(kind=8), allocatable, dimension(:) :: eval_frag
       real(kind=4) :: tr0,tr1
       real(kind=8) :: tel
       character(len=256) :: full_filename
       logical, allocatable, dimension(:) :: fragment_written
+      logical :: binary
+
+      type(matrices),dimension(1) :: ovrlp_half_
+      real(kind=8) :: mean_error, max_error
+      logical :: calc_sks=.false.
+      real(kind=8), dimension(:,:,:), pointer :: kernel_orthog
     
       if (iproc == 0) call yaml_map('Write wavefunctions to file', trim(filename)//'.*')
       !if (iproc == 0) write(*,"(1x,A,A,a)") "Write wavefunctions to file: ", trim(filename),'.*'
@@ -183,6 +204,7 @@ module io
          loop_ifrag: do ifrag=1,input_frag%nfrag
             ! find reference fragment this corresponds to and check if we already outputted tmbs for this reference fragment
             ifrag_ref=input_frag%frag_index(ifrag)
+
             if (fragment_written(ifrag_ref)) then
                isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
                isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat   
@@ -191,16 +213,58 @@ module io
             fragment_written(ifrag_ref)=.true.
     
             ! loop over orbitals of this fragment
-            loop_iforb: do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+            !loop_iforb: do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+
+            ! always have at least 1 tmb/atom so this is safe
+            frag_map=f_malloc0((/ref_frags(ifrag_ref)%fbasis%forbs%norb,3/),id='frag_map')
+
                loop_iorb: do iorbp=1,orbs%norbp
                   iiorb=iorbp+orbs%isorb
     
                   ! check if this ref frag orbital corresponds to the orbital we want
-                  if (iiorb/=iforb+isforb) cycle
-    
+                  !if (iiorb/=iforb+isforb) cycle
+                  !NO LONGER TRUE - can reactivate the above once input tmb order is guaranteed to be in fragment order
+                  !for now do more complicated atom based testing
+                  !This also means coeffs and evals are printed wrong, but we're neglecting these anyway so ignore until we tidy
                   ilr=orbs%inwhichlocreg(iiorb)
                   iiat=orbs%onwhichatom(iiorb)
-    
+
+                  if (iiat<=isfat .or. iiat>isfat+ref_frags(ifrag_ref)%astruct_frg%nat) cycle
+                  ! there might be an easier way to figure this out, but in calculations from scratch there's no guarantee the tmbs are arranged by fragment order
+                  ! alternatively modify so they are in this order, but not sure there's any benefit to that approach?
+                  iat=0
+                  onwhichatom_frag=-1
+                  do ifr=1,input_frag%nfrag
+                     ifr_ref=input_frag%frag_index(ifr)
+                     do iatf=1,ref_frags(ifr_ref)%astruct_frg%nat
+                        iat=iat+1
+                        if (iat==iiat) then
+                           onwhichatom_frag=iatf
+                           ! double check
+                           if (ifr/=ifrag) stop 'Error error abort warning' 
+                           exit
+                        end if
+                     end do
+                     if (onwhichatom_frag/=-1) exit
+                  end do
+
+                  iforb=0
+                  do io=1,iiorb
+                     ia=orbs%onwhichatom(io)
+                     if (ia>isfat .and. ia<=isfat+ref_frags(ifrag_ref)%astruct_frg%nat) iforb=iforb+1
+                  end do
+                  !totally arbitrary order here but at least we know we're on the right fragment!
+                  !iforb = iforb+1
+                  !tmb frag -> tmb full
+                  frag_map(iforb,1)=iiorb
+                  !tmb frag -> atom frag
+                  frag_map(iforb,2)=onwhichatom_frag
+                  !atom frag -> atom full
+                  frag_map(onwhichatom_frag,3)=iiat
+
+                  !debug
+                  !print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag,iforb
+
                   shift = 1
                   do jorb = 1, iorbp-1 
                      jlr = orbs%inwhichlocreg(jorb+orbs%isorb)
@@ -228,14 +292,18 @@ module io
                         & Lzd%Llr(ilr)%wfd%keygloc(1:,Lzd%Llr(ilr)%wfd%nseg_c+1:), &
                         & Lzd%Llr(ilr)%wfd%keyvloc(Lzd%Llr(ilr)%wfd%nseg_c+1:), &
                         & psi(shift),psi(Lzd%Llr(ilr)%wfd%nvctr_c+shift),-0.5d0, & !orbs%eval(iiorb),&
-                        & orbs%onwhichatom(iiorb)-isfat)
+                        & onwhichatom_frag)
+                        !& orbs%onwhichatom(iiorb)-isfat) ! only works if reading the rewriting fragment tmbs
     
                      close(unitwf)
     
                   end do loop_ispinor
                end do loop_iorb
-            end do loop_iforb
-    
+            !end do loop_iforb
+
+            if (bigdft_mpi%nproc > 1) then
+               call mpiallred(frag_map, mpi_sum, comm=bigdft_mpi%mpi_comm)
+            end if
     
             ! NEED to think about this - just make it diagonal for now? or random?  or truncate so they're not normalized?  or normalize after truncating?
             ! Or maybe don't write coeffs at all but assume we're always doing frag to frag and can use isolated frag coeffs?
@@ -243,6 +311,82 @@ module io
             ! Now write the coefficients to file
             ! Must be careful, the orbs%norb is the number of basis functions
             ! while the norb is the number of orbitals.
+
+            ! in from scratch case ref_frags(ifrag_ref)%nelec will be empty (zero)
+            ! need to recalculate in this case, so may as well recalculate anyway
+            ! probably also an easier way to do this...
+            nelec_frag=0
+            do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+               !ityp=ref_frags(ifrag_ref)%astruct_frg%iatype(iat)
+               ityp=at%astruct%iatype(iat+isfat)
+               nelec_frag=nelec_frag+at%nelpsp(ityp)
+            end do
+
+            if (nelec_frag/=ref_frags(ifrag_ref)%nelec .and. ref_frags(ifrag_ref)%nelec/=0) &
+                 call f_err_throw('Problem with nelec in fragment output')
+
+            ! order of tmbs not guaranteed so can't do this the simple way
+            ! in fact it makes no sense to be cropping coeffs at all in this case as ks states not divided between fragments
+            ! but don't want to keep all of them
+            ! so either do cropped kernel (to be added) or support function 'charges' as diagonal part
+            ! for the latter assume orthogonal and just take K_aa
+
+            ! should eventually extract this from sparse?
+            linmat%kernel_%matrix = sparsematrix_malloc_ptr(linmat%l,iaction=DENSE_FULL,id='linmat%kernel_%matrix')
+    
+            call uncompress_matrix2(iproc, bigdft_mpi%nproc, linmat%l, &
+                 linmat%kernel_%matrix_compr, linmat%kernel_%matrix)
+
+            !might be better to move this outside of the routine?
+            !if (calc_sks) then
+            !   ovrlp_half_(1) = matrices_null()
+            !   call allocate_matrices(linmat%l, allocate_full=.true., matname='ovrlp_half_(1)', mat=ovrlp_half_(1))
+
+            !   !for case where tmbs aren't properly orthogonal, calculate S^1/2 K S^1/2
+            !   call overlapPowerGeneral(iproc, bigdft_mpi%nproc, methTransformOverlap, 1, (/2/), &
+            !        orthpar%blocksize_pdgemm, &
+            !        imode=1, ovrlp_smat=linmat%s, inv_ovrlp_smat=linmat%l, &
+            !        ovrlp_mat=linmat%ovrlp_, inv_ovrlp_mat=ovrlp_half_, &
+            !        check_accur=.true., mean_error=mean_error, max_error=max_error)!!, &
+            !   !if (iproc==0) call yaml_map('max error',max_error)
+            !   !if (iproc==0) call yaml_map('mean error',mean_error)
+            !   call check_taylor_order(mean_error, max_inversion_error, methTransformOverlap)
+
+            !   call uncompress_matrix2(iproc, bigdft_mpi%nproc, linmat%l, &
+            !        ovrlp_half_(1)%matrix_compr, ovrlp_half_(1)%matrix)
+
+            !   kernel_orthog=f_malloc_ptr(src_ptr=linmat%kernel_%matrix,id='kernel_orthog')
+
+            !   ! do this with sparse instead... fix after testing
+            !   call calculate_coeffMatcoeff(bigdft_mpi%nproc,linmat%kernel_%matrix,orbs,orbs,ovrlp_half_(1)%matrix,kernel_orthog)
+            !else
+               kernel_orthog => linmat%kernel_%matrix
+            !end if
+
+            coeff_frag=f_malloc0((/ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%fbasis%forbs%norb/),id='coeff_frag')
+            do io=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+               coeff_frag(io,io)=kernel_orthog(frag_map(io,1),frag_map(io,1),1)!ispin)
+            end do
+   
+            ! want this to make sense also
+            rxyz_frag=f_malloc0((/3,ref_frags(ifrag_ref)%astruct_frg%nat/),id='rxyz_frag')
+            do ia=1,ref_frags(ifrag_ref)%astruct_frg%nat
+               rxyz_frag(:,ia)=rxyz(:,frag_map(ia,3))
+            end do
+
+            ! evals irrelevant so fill with fake value
+            eval_frag=f_malloc0(ref_frags(ifrag_ref)%fbasis%forbs%norb,id='eval_frag')
+            do io=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+               eval_frag(io)=-0.5d0
+            end do
+
+            !kernel_frag=f_malloc0((/ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%fbasis%forbs%norb/),id='kernel_frag')
+            !do io=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+            !   do jo=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+            !      kernel_frag(io,jo)=kernel_orthog(frag_map(io,1),frag_map(jo,1),1)!ispin)
+            !   end do
+            !end do
+
             if(iproc == 0) then
                full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)
      
@@ -255,15 +399,80 @@ module io
                !end if
                
                ! Not sure whether this is correct for nspin=2...
-               call writeLinearCoefficients(unitwf,(iformat == WF_FORMAT_PLAIN),ref_frags(ifrag_ref)%astruct_frg%nat,&
-                    rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-                    ref_frags(ifrag_ref)%nelec,&
-                    ref_frags(ifrag_ref)%fbasis%forbs%norb, &
-                    coeff(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb,&
-                    isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb),&
-                    orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb)) !-0.5d0
+
+               call writeLinearCoefficients(unitwf, (iformat == WF_FORMAT_PLAIN), ref_frags(ifrag_ref)%astruct_frg%nat, &
+                    rxyz_frag, ref_frags(ifrag_ref)%fbasis%forbs%norb, nelec_frag, &
+                    ref_frags(ifrag_ref)%fbasis%forbs%norb, coeff_frag, eval_frag)
+
+               !call writeLinearCoefficients(unitwf,(iformat == WF_FORMAT_PLAIN),ref_frags(ifrag_ref)%astruct_frg%nat,&
+               !     rxyz(:,isfat+1:isfat+ref_frags(ifrag_ref)%astruct_frg%nat),ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+               !     nelec_frag,&
+               !     ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+               !     coeff(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb,&
+               !     isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb),&
+               !     orbs%eval(isforb+1:isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb)) !-0.5d0
                call f_close(unitwf)
             end if
+            call f_free(coeff_frag)
+            !call f_free(kernel_frag)
+            call f_free(eval_frag)
+
+
+            ! put this in a routine and reuse in write_linear_matrices
+            ! FIX SPIN
+            unitm=99
+            binary=(iformat /= WF_FORMAT_PLAIN)
+            if(iproc == 0) then
+               full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))
+               call f_open_file(unitm, file=trim(full_filename)//'density_kernel.bin',&
+                    binary=binary)
+    
+               if (.not. binary) then
+                   write(unitm,'(a,3i10,a)') '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+                       ref_frags(ifrag_ref)%astruct_frg%nat, linmat%m%nspin, &
+                       '    number of basis functions, number of atoms, number of spins'
+               else
+                   write(unitm) '#  ', ref_frags(ifrag_ref)%fbasis%forbs%norb, &
+                       ref_frags(ifrag_ref)%astruct_frg%nat, linmat%m%nspin, &
+                       '    number of basis functions, number of atoms, number of spins'
+               end if
+               do ia=1,ref_frags(ifrag_ref)%astruct_frg%nat
+                   if (.not. binary) then
+                       write(unitm,'(a,3es24.16)') '#  ',rxyz_frag(1:3,ia)
+                   else
+                       write(unitm) '#  ',rxyz_frag(1:3,ia)
+                   end if
+               end do
+ 
+               ! need to fix spin
+               !do ispin=1,linmat%m%nspin
+                  do io=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+                     ia=frag_map(io,2)
+                     do jo=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+                        ja=frag_map(jo,2)
+                        if (.not. binary) then
+                           write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') io,jo,&
+                                kernel_orthog(frag_map(io,1),frag_map(jo,1),1),ia,ja
+                        else
+                           write(unitm) io,jo,kernel_orthog(frag_map(io,1),frag_map(jo,1),1),ia,ja
+                        end if
+                     end do
+                  end do
+               !end do
+               call f_close(unitm)
+            end if
+
+            call f_free(rxyz_frag)
+
+            !pretty sure these should be moved out of fragment loop...
+            call f_free_ptr(linmat%kernel_%matrix)
+            if (calc_sks) then
+               call deallocate_matrices(ovrlp_half_(1))
+               call f_free_ptr(kernel_orthog)
+            end if
+
+            nullify(kernel_orthog)
+
             call cpu_time(tr1)
             call system_clock(ncount2,ncount_rate,ncount_max)
             tel=dble(ncount2-ncount1)/dble(ncount_rate)
@@ -277,8 +486,10 @@ module io
                call yaml_sequence_close()
             end if
     
+            call f_free(frag_map)
+
             isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
-            isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat    
+            isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat
          end do loop_ifrag
       end if
     
@@ -286,8 +497,6 @@ module io
     
     
     END SUBROUTINE writemywaves_linear_fragments
-
-
 
 
     subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,ns1,ns2,ns3,hx,hy,hz,locregCenter,&
@@ -589,10 +798,82 @@ module io
                exit
             end if
          end do
-         if (j==ntmb+1) print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
+         !if (j==ntmb+1) print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
       end do
     
     END SUBROUTINE read_coeff_minbasis
+
+    !1subroutine read_kernel(unitwf,useFormattedInput,iproc,ntmb,norb_old,kernel,nat,rxyz_old)
+    !1  use module_base
+    !1  use module_types
+    !1  !use internal_io
+    !1  use yaml_output
+    !1  implicit none
+    !1  logical, intent(in) :: useFormattedInput
+    !1  integer, intent(in) :: unitwf,iproc,ntmb
+    !1  integer, intent(out) :: norb_old
+    !1  real(wp), dimension(ntmb,ntmb), intent(out) :: kernel
+    !1  !real(wp), dimension(ntmb), intent(out) :: eval !eliminate use of eval?
+    !1  integer, optional, intent(in) :: nat
+    !1  real(gp), dimension(:,:), optional, intent(out) :: rxyz_old
+    !1
+    !1  !local variables
+    !1  character(len = 256) :: error
+    !1  logical :: lstat
+    !1  integer :: i_stat
+    !1  integer :: ntmb_old, i1, i2,i,j,iorb,iorb_old
+    !1  real(wp) :: tt
+    !1
+    !1  call io_read_descr_kernel(unitwf, useFormattedInput, norb_old, ntmb_old, &
+    !1       & lstat, error, nat, rxyz_old)
+    !1  if (.not. lstat) call io_error(trim(error))
+    !1
+    !1  if (ntmb_old /= ntmb) then
+    !1     if (iproc == 0) write(error,"(A)") 'error in read coeffs, ntmb_old/=ntmb'
+    !1     call io_error(trim(error))
+    !1  end if
+    !1
+    !1  ! read the eigenvalues
+    !1  if (useFormattedInput) then
+    !1     do iorb=1,ntmb
+    !1        read(unitwf,*,iostat=i_stat) iorb_old,eval(iorb)
+    !1        if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+    !1     enddo
+    !1  else 
+    !1     do iorb=1,ntmb
+    !1        read(unitwf,iostat=i_stat) iorb_old,eval(iorb)
+    !1        if (iorb_old /= iorb) stop 'read_coeff_minbasis'
+    !1     enddo
+    !1     if (i_stat /= 0) stop 'Problem reading the eigenvalues'
+    !1  end if
+    !1
+    !1  !if (iproc == 0) write(*,*) 'coefficients need NO reformatting'
+    !1
+    !1  ! Now read the coefficients
+    !1  do i = 1, ntmb
+    !1     do j = 1,nfvctr
+    !1        if (useFormattedInput) then
+    !1           read(unitwf,*,iostat=i_stat) i1,i2,tt
+    !1        else
+    !1           read(unitwf,iostat=i_stat) i1,i2,tt
+    !1        end if
+    !1        if (i_stat /= 0) stop 'Problem reading the coefficients'
+    !1        coeff(j,i) = tt  
+    !1     end do
+    !1  end do
+    !1
+    !1  ! rescale so first significant element is +ve
+    !1  do i = 1, ntmb
+    !1     do j = 1,nfvctr
+    !1        if (abs(coeff(j,i))>1.0e-1) then
+    !1           if (coeff(j,i)<0.0_gp) call dscal(ntmb,-1.0_gp,coeff(1,i),1)
+    !1           exit
+    !1        end if
+    !1     end do
+    !1     !if (j==ntmb+1) print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
+    !1  end do
+    !1
+    !1END SUBROUTINE read_kernel
 
 
     subroutine io_read_descr_linear(unitwf, formatted, iorb_old, eval, n_old1, n_old2, n_old3, &
@@ -712,7 +993,7 @@ module io
 
 
     subroutine io_error(error)
-      use module_defs
+      use module_base, only: bigdft_mpi
   
       implicit none
   
@@ -1066,7 +1347,7 @@ module io
     !> Write a sparse matrix to disk.
     !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
     !! in distributed among the matrix taksgroups
-    subroutine write_sparse_matrix(at, rxyz, smat, mat, filename)
+    subroutine write_sparse_matrix(nat, ntypes, iatype, rxyz, nzatom, nelpsp, atomnames, smat, mat, filename)
       use module_base
       use module_types
       use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, &
@@ -1075,8 +1356,11 @@ module io
       implicit none
       
       ! Calling arguments
-      type(atoms_data),intent(in) :: at
-      real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+      integer,intent(in) :: nat, ntypes
+      integer,dimension(nat),intent(in) :: iatype
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
+      character(len=*),dimension(ntypes),intent(in) :: atomnames
       type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(in) :: mat
       character(len=*),intent(in) :: filename
@@ -1096,14 +1380,14 @@ module io
           iunit = 99
           call f_open_file(iunit, file=trim(filename), binary=.false.)
 
-          write(iunit,'(i10,2i6,a)') at%astruct%nat, at%astruct%ntypes, smat%nspin, &
-              '   # number of atoms, number of atom types, nspin'
-          do itype=1,at%astruct%ntypes
-              write(iunit,'(2i8,3x,a,a)') at%nzatom(itype), at%nelpsp(itype), trim(at%astruct%atomnames(itype)), &
+          write(iunit,'(i10,2i6,3x,a,a)') nat, ntypes, smat%nspin, smat%geocode, &
+              '   # number of atoms, number of atom types, nspin, geocode'
+          do itype=1,ntypes
+              write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
                   '   # nz, nelpsp, name'
           end do
-          do iat=1,at%astruct%nat
-              write(iunit,'(i5, 3es24.16,a,i0)') at%astruct%iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+          do iat=1,nat
+              write(iunit,'(i5, 3es24.16,a,i0)') iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
           end do
           write(iunit,'(3i12,a)') smat%nfvctr, smat%nseg, smat%nvctr, '   # nfvctr, nseg, nvctr'
           do iseg=1,smat%nseg
@@ -1135,7 +1419,115 @@ module io
     end subroutine write_sparse_matrix
 
 
-    subroutine read_sparse_matrix(filename, nspin, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
+    !> Write a dense matrix to disk.
+    !! ATTENTION: This routine must be called by all MPI tasks due to the fact that the matrix 
+    !! in distributed among the matrix taksgroups
+    subroutine write_dense_matrix(nat, ntypes, iatype, rxyz, nzatom, nelpsp, atomnames, smat, mat, filename, binary, orbs)
+      use module_base
+      use module_types
+      use sparsematrix_base, only: sparse_matrix, matrices, DENSE_FULL, &
+                                   assignment(=), sparsematrix_malloc_ptr
+      use sparsematrix, only: uncompress_matrix2
+      implicit none
+      
+      ! Calling arguments
+      integer,intent(in) :: nat, ntypes
+      integer,dimension(nat),intent(in) :: iatype
+      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
+      character(len=*),dimension(ntypes),intent(in) :: atomnames
+      type(sparse_matrix),intent(inout) :: smat
+      type(matrices),intent(inout) :: mat
+      character(len=*),intent(in) :: filename
+      logical, intent(in) :: binary
+      type(orbitals_data), intent(in) :: orbs !to be eventually eliminated? only needed for onwhichatom
+
+      ! Local variables
+      integer :: iunit, iseg, icol, irow, jorb, iat, jat, ind, ispin, itype, iorb
+      real(kind=8),dimension(:),allocatable :: matrix_compr
+
+      call f_routine(id='write_dense_matrix')
+
+
+      mat%matrix = sparsematrix_malloc_ptr(smat, iaction=DENSE_FULL, id='mat%matrix')
+      call uncompress_matrix2(bigdft_mpi%iproc, bigdft_mpi%nproc, smat, &
+           mat%matrix_compr, mat%matrix)
+
+      if (bigdft_mpi%iproc==0) then
+
+          iunit = 99
+          call f_open_file(iunit, file=trim(filename), binary=binary)
+
+          !write(iunit,'(i10,2i6,a)') nat, ntypes, smat%nspin, &
+          !    '   # number of atoms, number of atom types, nspin'
+          !do itype=1,ntypes
+          !    write(iunit,'(2i8,3x,a,a)') nzatom(itype), nelpsp(itype), trim(atomnames(itype)), &
+          !        '   # nz, nelpsp, name'
+          !end do
+          !do iat=1,nat
+          !    write(iunit,'(i5, 3es24.16,a,i0)') iatype(iat), rxyz(1:3,iat), '   # atom no. ',iat
+          !end do
+          !write(iunit,'(3i12,a)') smat%nfvctr, smat%nseg, smat%nvctr, '   # nfvctr, nseg, nvctr'
+          !do iseg=1,smat%nseg
+          !    write(iunit,'(5i12,a)') smat%keyv(iseg), smat%keyg(1,1,iseg), smat%keyg(2,1,iseg), &
+          !        smat%keyg(1,2,iseg), smat%keyg(2,2,iseg), '   # keyv, keyg(1,1), keyg(2,1), keyg(1,2), keyg(2,2)'
+          !end do
+          !ind = 0
+          !do ispin=1,smat%nspin
+          !    do iseg=1,smat%nseg
+          !        icol = smat%keyg(1,2,iseg)
+          !        iat = smat%on_which_atom(icol)
+          !        do jorb=smat%keyg(1,1,iseg),smat%keyg(2,1,iseg)
+          !            irow = jorb
+          !            jat = smat%on_which_atom(irow)
+          !            ind = ind + 1
+          !            write(iunit,'(es24.16,2i12,a)') matrix_compr(ind), jat, iat, '   # matrix, jat, iat'
+          !        end do
+          !    end do
+          !end do
+
+          !unify the structure with write_sparse?
+          if (.not. binary) then
+              write(iunit,'(a,3i10,a)') '#  ',smat%nfvctr, nat, smat%nspin, &
+                  '    number of basis functions, number of atoms, number of spins'
+          else
+              write(iunit) '#  ',smat%nfvctr, nat, smat%nspin, &
+                  '    number of basis functions, number of atoms, number of spins'
+          end if
+          do iat=1,nat
+              if (.not. binary) then
+                  write(iunit,'(a,3es24.16,a,i4.4)') '#  ',rxyz(1:3,iat), '   # position of atom no. ',iat
+              else
+                  write(iunit) '#  ',rxyz(1:3,iat)
+              end if
+          end do
+    
+          do ispin=1,smat%nspin
+             do iorb=1,smat%nfvctr
+                iat=orbs%onwhichatom(iorb)
+                do jorb=1,smat%nfvctr
+                   jat=orbs%onwhichatom(jorb)
+                   if (.not. binary) then
+                      write(iunit,'(2(i6,1x),es19.12,2(1x,i6),a)') iorb,jorb,mat%matrix(iorb,jorb,ispin),iat,jat, &
+                          '   # i, j, mat(i,j), iat, jat'
+                   else
+                      write(iunit) iorb,jorb,mat%matrix(iorb,jorb,ispin),iat,jat
+                   end if
+                end do
+             end do
+          end do
+
+          call f_close(iunit)
+
+          call f_free_ptr(mat%matrix)
+      end if
+
+      call f_release_routine()
+
+    end subroutine write_dense_matrix
+
+
+    subroutine read_sparse_matrix(filename, nspin, geocode, nfvctr, nseg, nvctr, keyv, keyg, mat_compr, &
                nat, ntypes, nzatom, nelpsp, atomnames, iatype, rxyz, on_which_atom)
       use module_base
       use module_types
@@ -1144,6 +1536,7 @@ module io
       ! Calling arguments
       character(len=*),intent(in) :: filename
       integer,intent(out) :: nspin, nfvctr, nseg, nvctr
+      character(len=1),intent(out) :: geocode
       integer,dimension(:),pointer,intent(out) :: keyv
       integer,dimension(:,:,:),pointer,intent(out) :: keyg
       real(kind=8),dimension(:),pointer,intent(out) :: mat_compr
@@ -1182,7 +1575,7 @@ module io
       call f_open_file(iunit, file=trim(filename), binary=.false.)
 
       if (read_rxyz) then
-          read(iunit,*) nat, ntypes, nspin
+          read(iunit,*) nat, ntypes, nspin, geocode
           nzatom = f_malloc_ptr(ntypes,id='nzatom')
           nelpsp = f_malloc_ptr(ntypes,id='nelpsp')
           atomnames = f_malloc0_str_ptr(len(atomnames),ntypes,id='atomnames')
@@ -1196,7 +1589,7 @@ module io
               read(iunit,*) iatype(iat), rxyz(1,iat), rxyz(2,iat), rxyz(3,iat)
           end do
       else
-          read(iunit,*) nat_, ntypes_, nspin
+          read(iunit,*) nat_, ntypes_, nspin, geocode
           do itype=1,ntypes_
               read(iunit,*) dummy_int, dummy_int, dummy_char
           end do
@@ -1210,7 +1603,7 @@ module io
       do iseg=1,nseg
           read(iunit,*) keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg), keyg(1,2,iseg), keyg(2,2,iseg)
       end do
-      mat_compr = f_malloc_ptr(nvctr,id='mat_compr')
+      mat_compr = f_malloc_ptr(nvctr*nspin,id='mat_compr')
       if (read_on_which_atom) then
           nullify(on_which_atom)
           on_which_atom = f_malloc_ptr(nfvctr,id='on_which_atom')
@@ -1245,246 +1638,274 @@ module io
 
     end subroutine read_sparse_matrix
 
+    !subroutine read_dense_matrix(nat, ntypes, iatype, rxyz, nzatom, nelpsp, atomnames, smat, mat, filename, binary, orbs)
+    !eventually have the same header information as write_sparse?
+    !differs in behaviour though as assumes all matrices are alrady allocated to correct size - think more about whether this is the best approach...
+    subroutine read_dense_matrix(filename, binary, nspin, ntmb, mat, nat, rxyz, on_which_atom) 
+               !ntypes, nzatom, nelpsp, atomnames, iatype)
+      use module_base
+      use module_types
+      implicit none
+      
+      ! Calling arguments
+      character(len=*),intent(in) :: filename
+      logical, intent(in) :: binary
+      integer, intent(in) :: ntmb, nat, nspin
+      real(kind=8),dimension(ntmb,ntmb,nspin),intent(inout) :: mat
+      !integer,intent(out),optional :: ntypes
+      !integer,dimension(:),pointer,intent(inout),optional :: nzatom, nelpsp, iatype
+      !character(len=*),dimension(:),pointer,intent(inout),optional :: atomnames
+      real(kind=8),dimension(:,:),pointer,intent(inout),optional :: rxyz
+      integer,dimension(:),pointer,intent(inout),optional :: on_which_atom
+
+      ! Local variables
+      integer :: iunit, dummy_int, ispin, iat, iorb, jorb, ntmb_old, nat_old, nspin_old
+      real(kind=8) :: dummy_double
+      character(len=20) :: dummy_char
+      logical :: read_rxyz, read_on_which_atom
+
+      call f_routine(id='read_dense_matrix')
+
+      if (present(rxyz)) then
+          read_rxyz = .true.
+      else
+          read_rxyz = .false.
+      end if
+      
+      if (present(on_which_atom)) then
+          read_on_which_atom = .true.
+      else
+          read_on_which_atom = .false.
+      end if
+
+      iunit = 99
+      call f_open_file(iunit, file=trim(filename), binary=binary)
+
+      !check heading information is consistent
+      if (.not. binary) then
+          read(iunit,*) dummy_char, ntmb_old, nat_old, nspin_old
+      else
+          read(iunit) dummy_char, ntmb_old, nat_old, nspin_old
+      end if
+      if (ntmb_old/=ntmb) call f_err_throw("Number of tmbs incorrect in read_dense_matrix", &
+           err_name='BIGDFT_RUNTIME_ERROR')
+      if (nat_old/=nat) call f_err_throw("Number of atoms incorrect in read_dense_matrix", &
+           err_name='BIGDFT_RUNTIME_ERROR')
+      if (nspin_old/=nspin) call f_err_throw("Number of spins incorrect in read_dense_matrix", &
+           err_name='BIGDFT_RUNTIME_ERROR')
+
+      if (read_rxyz) then
+          do iat=1,nat
+              if (.not. binary) then
+                  read(iunit,*) dummy_char,rxyz(1:3,iat)
+              else
+                  read(iunit) dummy_char,rxyz(1:3,iat)
+              end if
+          end do  
+      else
+          do iat=1,nat
+              read(iunit,*) dummy_char, dummy_double, dummy_double, dummy_double
+          end do
+      end if
+
+      if (read_on_which_atom) then
+          do ispin=1,nspin
+             do iorb=1,ntmb
+                do jorb=1,ntmb
+                   if (.not. binary) then
+                      read(iunit,*) dummy_int,dummy_int,mat(iorb,jorb,ispin),on_which_atom(iorb),on_which_atom(jorb)
+                   else
+                      read(iunit) dummy_int,dummy_int,mat(iorb,jorb,ispin),on_which_atom(iorb),on_which_atom(jorb)
+                   end if
+                end do
+             end do
+          end do
+      else
+          do ispin=1,nspin
+             do iorb=1,ntmb
+                do jorb=1,ntmb
+                   if (.not. binary) then
+                      read(iunit,*) dummy_int,dummy_int,mat(iorb,jorb,ispin),dummy_int,dummy_int
+                   else
+                      read(iunit) dummy_int,dummy_int,mat(iorb,jorb,ispin),dummy_int,dummy_int
+                   end if
+                end do
+             end do
+          end do
+      end if
+
+      call f_close(iunit)
+
+      call f_release_routine()
+
+    end subroutine read_dense_matrix
+
 
     !> Write Hamiltonian, overlap and kernel matrices in tmb basis
-    subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tmb,at,rxyz,calculate_onsite_overlap)
+    subroutine write_linear_matrices(iproc,nproc,imethod_overlap,filename,iformat,tmb,at,rxyz,norder_taylor, &
+               calculate_onsite_overlap, write_SminusonehalfH)
       use module_types
       use module_base
       use yaml_output
       use module_interfaces, except_this_one => writeonewave
-      use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
-      use sparsematrix, only: uncompress_matrix2
+      use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, matrices_null, &
+                                   DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
+                                   deallocate_matrices
+      use sparsematrix, only: uncompress_matrix2, transform_sparse_matrix_local, matrix_matrix_mult_wrapper
+      use matrix_operations, only: overlapPowerGeneral
       implicit none
-      integer, intent(in) :: iproc,nproc,imethod_overlap,iformat
+      integer, intent(in) :: iproc,nproc,imethod_overlap,norder_taylor
+      integer,intent(in) :: iformat !< 1: plain sparse, 11: plain dense, 21: plain both (later extend to other than plain formats...)
       character(len=*), intent(in) :: filename 
       type(DFT_wavefunction), intent(inout) :: tmb
       type(atoms_data), intent(in) :: at
       real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz
-      logical,intent(in) :: calculate_onsite_overlap
+      logical,intent(in) :: calculate_onsite_overlap, write_SminusonehalfH
       !local variables
       logical :: binary
       integer :: ispin, iorb, jorb, iat, jat,unitm
       !!integer :: i_stat, i_all
       character(len=*),parameter :: subname='write_linear_matrices'
+      logical :: write_sparse, write_dense
+      type(matrices),dimension(1) :: SminusonehalfH
+      real(kind=8),dimension(:),pointer :: ham_large, tmp_large
+      real(kind=8) :: max_error, mean_error
     
       call f_routine(id='write_linear_matrices')
+
+      write_sparse = (1<=iformat .and. iformat<=9) .or. (21<=iformat .and.  iformat<=29)
+      write_dense = (11<=iformat .and. iformat<=19) .or. (21<=iformat .and.  iformat<=29)
     
       unitm=99
-      binary=(iformat /= WF_FORMAT_PLAIN)
+      binary=(mod(iformat,10) /= WF_FORMAT_PLAIN)
     
-      tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, &
-                               iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
-    
-      call uncompress_matrix2(iproc, nproc, tmb%linmat%m, &
-           tmb%linmat%ham_%matrix_compr, tmb%linmat%ham_%matrix)
-    
-      if (iproc==0) then
-    
-         !if(iformat == WF_FORMAT_PLAIN) then
-         call f_open_file(unitm, file=filename//'hamiltonian.bin',&
-              binary=binary)
-         !else
-         !open(99, file=filename//'hamiltonian.bin', status='unknown',form='unformatted')
-         !end if
-    
-         if (.not. binary) then
-             write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-                 '    number of basis functions, number of atoms'
-         else
-             write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-                 '    number of basis functions, number of atoms'
-         end if
-         do iat=1,at%astruct%nat
-             if (.not. binary) then
-                 write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
-             else
-                 write(unitm) '#  ',rxyz(1:3,iat)
-             end if
-         end do
-    
-         do ispin=1,tmb%linmat%m%nspin
-            do iorb=1,tmb%linmat%m%nfvctr
-               iat=tmb%orbs%onwhichatom(iorb)
-               do jorb=1,tmb%linmat%m%nfvctr
-                  jat=tmb%orbs%onwhichatom(jorb)
-                  if (.not. binary) then
-                     write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
-                  else
-                     write(unitm) iorb,jorb,tmb%linmat%ham_%matrix(iorb,jorb,ispin),iat,jat
-                  end if
-               end do
-            end do
-         end do
-    
-         call f_close(unitm)
-    
+      if (write_dense) then
+          call write_dense_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+               at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian.bin'), binary, tmb%orbs)
       end if
 
-      call write_sparse_matrix(at, rxyz, tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+      if (write_sparse) then
+          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+               at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%linmat%m, tmb%linmat%ham_, trim(filename//'hamiltonian_sparse.bin'))
+      end if
     
-      call f_free_ptr(tmb%linmat%ham_%matrix)
     
-    
-      tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
-                                 id='tmb%linmat%ovrlp_%matrix')
-    
-      call uncompress_matrix2(iproc, nproc, tmb%linmat%s, &
-              tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
-    
-      if (iproc==0) then
-    
-         !if(iformat == WF_FORMAT_PLAIN) then
-         call f_open_file(unitm, file=filename//'overlap.bin',&
-              binary=binary)
-         !else
-         !open(99, file=filename//'overlap.bin', status='unknown',form='unformatted')
-         !end if
-    
-         if (.not. binary) then
-             write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-                 '    number of basis functions, number of atoms'
-         else
-             write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-                 '    number of basis functions, number of atoms'
-         end if
-         do iat=1,at%astruct%nat
-             if (.not. binary) then
-                 write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
-             else
-                 write(unitm) '#  ',rxyz(1:3,iat)
-             end if
-         end do
-    
-         do ispin=1,tmb%linmat%s%nspin
-            do iorb=1,tmb%linmat%s%nfvctr
-               iat=tmb%orbs%onwhichatom(iorb)
-               do jorb=1,tmb%linmat%s%nfvctr
-                  jat=tmb%orbs%onwhichatom(jorb)
-                  if (.not. binary) then
-                     write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
-                  else
-                     write(unitm) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
-                  end if
-               end do
-            end do
-         end do
-    
-         call f_close(unitm)
-    
+      if (write_dense) then
+          call write_dense_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+               at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%linmat%s, tmb%linmat%ovrlp_, trim(filename//'overlap.bin'), binary, tmb%orbs)
       end if
 
-      call write_sparse_matrix(at, rxyz, tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
+      if (write_sparse) then
+          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+               at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%linmat%s, tmb%linmat%ovrlp_, filename//'overlap_sparse.bin')
+      end if
     
-      call f_free_ptr(tmb%linmat%ovrlp_%matrix)
     
-    
-      tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
-    
-      call uncompress_matrix2(iproc, nproc, tmb%linmat%l, &
-           tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
-    
-      if (iproc==0) then
-         !if(iformat == WF_FORMAT_PLAIN) then
-         call f_open_file(unitm,file=filename//'density_kernel.bin',&
-              binary=binary)
-         !else
-         !open(99, file=filename//'density_kernel.bin', status='unknown',form='unformatted')
-         !end if
-    
-         if (.not. binary) then
-             write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-                 '    number of basis functions, number of atoms'
-         else
-             write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-                 '    number of basis functions, number of atoms'
-         end if
-         do iat=1,at%astruct%nat
-             if (.not. binary) then
-                 write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
-             else
-                 write(unitm) '#  ',rxyz(1:3,iat)
-             end if
-         end do
-    
-         do ispin=1,tmb%linmat%l%nspin
-            do iorb=1,tmb%linmat%l%nfvctr
-               iat=tmb%orbs%onwhichatom(iorb)
-               do jorb=1,tmb%linmat%l%nfvctr
-                  jat=tmb%orbs%onwhichatom(jorb)
-                  if (.not. binary) then
-                     write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
-                  else
-                     write(unitm) iorb,jorb,tmb%linmat%kernel_%matrix(iorb,jorb,ispin),iat,jat
-                  end if
-               end do
-            end do
-         end do
-    
-         call f_close(unitm)
-    
-     end if
+      if (write_dense) then
+          call write_dense_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+               at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%linmat%l, tmb%linmat%kernel_, trim(filename//'density_kernel.bin'), binary, tmb%orbs)
+      end if
 
-      call write_sparse_matrix(at, rxyz, tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
+      if (write_sparse) then
+          call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+               at%nzatom, at%nelpsp, at%astruct%atomnames, &
+               tmb%linmat%l, tmb%linmat%kernel_, filename//'density_kernel_sparse.bin')
+      end if
     
-      call f_free_ptr(tmb%linmat%kernel_%matrix)
     
       if (calculate_onsite_overlap) then
           ! calculate 'onsite' overlap matrix as well - needs double checking
     
-          !!allocate(tmb%linmat%ovrlp%matrix(tmb%linmat%ovrlp%nfvctr,tmb%linmat%ovrlp%nfvctr), stat=i_stat)
-          !!call memocc(i_stat, tmb%linmat%ovrlp%matrix, 'tmb%linmat%ovrlp%matrix', subname)
-          tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
-                                     id='tmb%linmat%ovrlp_%matrix')
+          if (write_dense) then
+              tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, &
+                                         id='tmb%linmat%ovrlp_%matrix')
     
-          call tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
-          !call tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
+              call tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
+              !call tmb_overlap_onsite_rotate(iproc, nproc, at, tmb, rxyz)
     
-          if (iproc==0) then
-             !if(iformat == WF_FORMAT_PLAIN) then
-             call f_open_file(unitm,file=filename//'overlap_onsite.bin',&
-                  binary=binary)
-             !else
-             !open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
-             !end if
+              if (iproc==0) then
+                 !if(iformat == WF_FORMAT_PLAIN) then
+                 call f_open_file(unitm,file=filename//'overlap_onsite.bin',&
+                      binary=binary)
+                 !else
+                 !open(99, file=filename//'overlap_onsite.bin', status='unknown',form='unformatted')
+                 !end if
     
-             if (.not. binary) then
-                 write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-                     '    number of basis functions, number of atoms'
-             else
-                 write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
-                     '    number of basis functions, number of atoms'
-             end if
-             do iat=1,at%astruct%nat
                  if (.not. binary) then
-                     write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+                     write(unitm,'(a,2i10,a)') '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+                         '    number of basis functions, number of atoms'
                  else
-                     write(unitm) '#  ',rxyz(1:3,iat)
+                     write(unitm) '#  ',tmb%linmat%m%nfvctr, at%astruct%nat, &
+                         '    number of basis functions, number of atoms'
                  end if
-             end do
+                 do iat=1,at%astruct%nat
+                     if (.not. binary) then
+                         write(unitm,'(a,3es24.16)') '#  ',rxyz(1:3,iat)
+                     else
+                         write(unitm) '#  ',rxyz(1:3,iat)
+                     end if
+                 end do
     
-             do ispin=1,tmb%linmat%l%nspin
-                do iorb=1,tmb%linmat%l%nfvctr
-                   iat=tmb%orbs%onwhichatom(iorb)
-                   do jorb=1,tmb%linmat%l%nfvctr
-                      jat=tmb%orbs%onwhichatom(jorb)
-                      if (.not. binary) then
-                         write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
-                      else
-                         write(unitm) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
-                      end if
-                   end do
-                end do
-             end do
+                 do ispin=1,tmb%linmat%l%nspin
+                    do iorb=1,tmb%linmat%l%nfvctr
+                       iat=tmb%orbs%onwhichatom(iorb)
+                       do jorb=1,tmb%linmat%l%nfvctr
+                          jat=tmb%orbs%onwhichatom(jorb)
+                          if (.not. binary) then
+                             write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+                          else
+                             write(unitm) iorb,jorb,tmb%linmat%ovrlp_%matrix(iorb,jorb,ispin),iat,jat
+                          end if
+                       end do
+                    end do
+                 end do
     
-             call f_close(unitm)
+                 call f_close(unitm)
     
+              end if
+
+              call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+
           end if
 
-          !!i_all = -product(shape(tmb%linmat%ovrlp%matrix))*kind(tmb%linmat%ovrlp%matrix)
-          !!deallocate(tmb%linmat%ovrlp%matrix,stat=i_stat)
-          !!call memocc(i_stat,i_all,'tmb%linmat%ovrlp%matrix',subname)
-          call f_free_ptr(tmb%linmat%ovrlp_%matrix)
+      end if
 
+
+      if (write_SminusonehalfH) then
+          SminusonehalfH(1) = matrices_null()
+          SminusonehalfH(1)%matrix_compr = &
+              sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='SminusonehalfH%matrix_compr')
+          ham_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='ham_large')
+          tmp_large = sparsematrix_malloc0_ptr(tmb%linmat%l,iaction=SPARSE_TASKGROUP,id='tmp_large')
+          call transform_sparse_matrix_local(tmb%linmat%m, tmb%linmat%l, &
+               tmb%linmat%ham_%matrix_compr, ham_large, 'small_to_large')
+          ! calculate S^-1/2
+          call overlapPowerGeneral(iproc, nproc, norder_taylor, 1, (/-2/), -1, &
+               imode=1, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
+               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=SminusonehalfH(1), &
+               check_accur=.true., max_error=max_error, mean_error=mean_error)
+          ! Calculate S^-1/2 * H
+          call f_memcpy(src=SminusonehalfH(1)%matrix_compr,dest=tmp_large)
+          call matrix_matrix_mult_wrapper(iproc, nproc, tmb%linmat%l, tmp_large, ham_large, SminusonehalfH(1)%matrix_compr)
+          call f_free_ptr(ham_large)
+          call f_free_ptr(tmp_large)
+          if (write_dense) then
+              call write_dense_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+                   at%nzatom, at%nelpsp, at%astruct%atomnames, &
+                   tmb%linmat%l, SminusonehalfH(1), trim(filename//'SminusonehalfH.bin'), binary, tmb%orbs)
+          end if
+
+          if (write_sparse) then
+              call write_sparse_matrix(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%rxyz, &
+                   at%nzatom, at%nelpsp, at%astruct%atomnames, &
+                   tmb%linmat%s, SminusonehalfH(1), filename//'SminusonehalfH_sparse.bin')
+          end if
+          call deallocate_matrices(SminusonehalfH(1))
       end if
 
       call f_release_routine()
@@ -1537,7 +1958,7 @@ module io
                exit
             end if
          end do
-         if (j==ntmb+1)print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
+         !if (j==ntmb+1)print*,'Error finding significant coefficient, coefficients not scaled to have +ve first element'
     
          do j = 1,nfvctr
               tt = coeff(j,i)

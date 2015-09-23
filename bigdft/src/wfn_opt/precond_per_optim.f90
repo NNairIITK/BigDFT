@@ -48,18 +48,14 @@ subroutine precong_per(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
   !b=x
   call vcopy(nvctr_c+7*nvctr_f,x(1),1,b(1),1) 
 
-  !if GPU is swithced on and there is no call to GPU preconditioner
-  !do not do the FFT preconditioning
-  if (.not. GPUconv) then
-     ! compute the input guess x via a Fourier transform in a cubic box.
-     ! Arrays psifscf and ww serve as work arrays for the Fourier
-     fac=1.d0/scal(0)**2
-     call prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
-          cprecr,hx,hy,hz,x,&
-          psifscf(1),psifscf(n1+2),psifscf(n1+n2+3),ww(1),ww(nd1b*nd2*nd3*4+1),&
-          ww(nd1b*nd2*nd3*4+nd1*nd2*nd3f*4+1),&
-          nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,fac)
-  end if
+  ! compute the input guess x via a Fourier transform in a cubic box.
+  ! Arrays psifscf and ww serve as work arrays for the Fourier
+  fac=1.d0/scal(0)**2
+  call prec_fft_c(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
+       cprecr,hx,hy,hz,x,&
+       psifscf(1),psifscf(n1+2),psifscf(n1+n2+3),ww(1),ww(nd1b*nd2*nd3*4+1),&
+       ww(nd1b*nd2*nd3*4+nd1*nd2*nd3f*4+1),&
+       nd1,nd2,nd3,n1f,n1b,n3f,n3b,nd1f,nd1b,nd3f,nd3b,fac)
 
   call apply_hp_scal(n1,n2,n3,nseg_c,nvctr_c,nseg_f,nvctr_f,keyg,keyv, &
        cprecr,x,d,psifscf,ww,modul1,modul2,modul3,af,bf,cf,ef,scal) ! d:=Ax

@@ -12,7 +12,6 @@
 subroutine get_derivative_supportfunctions(ndim, hgrid, lzd, lorbs, phi, phid)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => get_derivative_supportfunctions
   implicit none
   
   ! Calling arguments

@@ -11,8 +11,8 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
-    calculate_KS_residue,calculate_gap,energs_work,&
-    convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
+    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,&
+    convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff
@@ -28,11 +28,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix_distributed2, gather_matrix_from_taskgroups, &
                           extract_taskgroup, uncompress_matrix2, &
-                          write_sparsematrix
+                          write_sparsematrix, delete_coupling_terms
   use transposed_operations, only: calculate_overlap_transposed
   use parallel_linalg, only: dsygv_parallel
   use matrix_operations, only: deviation_from_unity_parallel
   use foe, only: fermi_operator_expansion
+  use public_enums
+  use locreg_operations, only: small_to_large_locreg
   implicit none
 
   ! Calling arguments
@@ -54,6 +56,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical,intent(in):: communicate_phi_for_lsumrho, purification_quickreturn
   logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
   type(work_mpiaccumulate),intent(inout) :: energs_work
+  logical,intent(in) :: remove_coupling_terms
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
   real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -253,6 +256,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
      call timing(iproc,'constraineddft','ON')
      call daxpy(tmb%linmat%m%nvctr,cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
      call timing(iproc,'constraineddft','OF') 
+  end if
+
+  if (remove_coupling_terms) then
+      call delete_coupling_terms(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_%matrix_compr)
+      call delete_coupling_terms(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr)
+      call delete_coupling_terms(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr)
   end if
 
   if (scf_mode/=LINEAR_FOE) then
@@ -476,6 +485,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   else ! foe
 
+      !same as for directmin/diag
+      ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
+      if (present(cdft)) then
+         call timing(iproc,'constraineddft','ON')
+         call daxpy(tmb%linmat%m%nvctr,cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
+         call timing(iproc,'constraineddft','OF') 
+      end if
 
       ! TEMPORARY #################################################
       if (calculate_gap) then
@@ -512,15 +528,37 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call fermi_operator_expansion(iproc, nproc, tmprtr, &
            energs%ebs, order_taylor, max_inversion_error, purification_quickreturn, &
            invert_overlap_matrix, 2, FOE_ACCURATE, &
-           trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
+           trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
+           //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
            tmb, tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%kernel_, tmb%foe_obj)
 
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
+      !same as for directmin/diag
+      ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
+      if (present(cdft)) then
+         call timing(iproc,'constraineddft','ON')
+         tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
+         call gather_matrix_from_taskgroups(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tmparr)
+         call daxpy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin,-cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmparr,1)
+         call extract_taskgroup(tmb%linmat%m, tmparr, tmb%linmat%ham_%matrix_compr)
+         call f_free(tmparr)
+         call timing(iproc,'constraineddft','OF') 
+
+         ! we have ebs and the kernel already, but only the CDFT function not actual energy for CDFT
+         ! maybe pass both Hamiltonians to FOE to save calculation ebs twice?
+         !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+         !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+              tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
+              tmb%coeff,orbs,tmb%orbs,.false.)
+         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+
+      end if
+
   end if
-
-
 
 
   if (calculate_ham) then
@@ -562,7 +600,7 @@ end subroutine get_coeff
 
 
 subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
-    fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,&
+        fnrm_tmb,infoBasisFunctions,nlpsp,scf_mode,ldiis,SIC,tmb,energs_base,do_iterative_orthogonalization,sf_per_type,&
     nit_precond,target_function,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
@@ -588,11 +626,14 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use sparsematrix_base, only: assignment(=), sparsematrix_malloc, sparsematrix_malloc_ptr, SPARSE_FULL, &
                                SPARSE_TASKGROUP
   use constrained_dft, only: cdft_data
+  use fragment_base, only: fragmentInputParameters
   use module_fragments, only: system_fragment
   use sparsematrix,only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   use transposed_operations, only: calculate_overlap_transposed
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   use foe, only: fermi_operator_expansion
+  use public_enums
+  use locreg_operations
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -615,6 +656,8 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(DFT_wavefunction),target,intent(inout) :: tmb
   type(SIC_data) :: SIC !<parameters for the SIC methods
   type(energy_terms),intent(in) :: energs_base
+  logical,intent(in) :: do_iterative_orthogonalization
+  integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type
   integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint, nit_basis
   real(kind=8),intent(out) :: ratio_deltas
   logical, intent(inout) :: ortho_on
@@ -1215,7 +1258,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       if (ldiis%isx>0) then
           ldiis%mis=mod(ldiis%is,ldiis%isx)+1 !to store the energy at the correct location in the history
       end if
-      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, &
+      call hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_orthogonalization, sf_per_type, &
            lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho_on, psidiff, &
            experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
 
@@ -1241,7 +1284,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! step, given by the product of the force and the "displacement" .
       if (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode) then
           call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%l%nspin, psidiff, &
-               hpsi_noprecond=hpsi_tmp, delta_energy=delta_energy)
+               hpsi_tmp,delta_energy)
           ! This is a hack...
           if (energy_increased) then
               delta_energy=1.d100
@@ -1657,74 +1700,13 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
 
 end subroutine diagonalizeHamiltonian2
 
-subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
-       orbs, phismall, philarge, to_global)
-  use module_base
-  use module_types
-  use locreg_operations, only: lpsi_to_global2
-  implicit none
-  
-  ! Calling arguments
-  integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
-  type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
-  type(orbitals_data),intent(in) :: orbs
-  real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
-  real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
-  logical,intent(in),optional :: to_global
-  
-  ! Local variables
-  integer :: ists, istl, iorb, ilr, sdim, ldim, nspin
-  logical :: global
-
-  call f_routine(id='small_to_large_locreg')
-
-  if (present(to_global)) then
-      global=to_global
-  else
-      global=.false.
-  end if
-
-  call timing(iproc,'small2large','ON') ! lr408t 
-  ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
-  call f_zero(philarge)
-  ists=1
-  istl=1
-  do iorb=1,orbs%norbp
-      ilr = orbs%inwhichLocreg(orbs%isorb+iorb)
-      sdim=lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
-      if (global) then
-          ldim=lzdsmall%glr%wfd%nvctr_c+7*lzdsmall%glr%wfd%nvctr_f
-      else
-          ldim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-      end if
-      nspin=1 !this must be modified later
-      if (global) then
-          call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdsmall%glr, &
-               lzdsmall%llr(ilr), phismall(ists), philarge(istl))
-      else
-          call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdlarge%llr(ilr), &
-               lzdsmall%llr(ilr), phismall(ists), philarge(istl))
-      end if
-      ists=ists+sdim
-      istl=istl+ldim
-  end do
-  if(orbs%norbp>0 .and. ists/=npsidim_orbs_small+1) then
-      write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',ists,'=ists /= npsidim_orbs_small+1=',npsidim_orbs_small+1
-      stop
-  end if
-  if(orbs%norbp>0 .and. istl/=npsidim_orbs_large+1) then
-      write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istl /= npsidim_orbs_large+1=',npsidim_orbs_large+1
-      stop
-  end if
-       call timing(iproc,'small2large','OF') ! lr408t 
-  call f_release_routine()
-end subroutine small_to_large_locreg
 
 
 subroutine large_to_small_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
        orbs, philarge, phismall)
   use module_base
   use module_types
+  use locreg_operations, only: psi_to_locreg2
   implicit none
   
   ! Calling arguments
@@ -1766,8 +1748,9 @@ end subroutine large_to_small_locreg
 subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, orbs, lphi, collcom_sr)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => communicate_basis_for_density_collective
+  !use module_interfaces, except_this_one => communicate_basis_for_density_collective
   use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
+  use locreg_operations
   implicit none
   
   ! Calling arguments
@@ -1796,7 +1779,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inWhichLocreg(iiorb)
-      call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+      call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
       call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
       call deallocate_work_arrays_sumrho(w)
       ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
@@ -2015,7 +1998,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
            orbs, tmb, overlap_calculated)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => reconstruct_kernel
+  use module_interfaces!, except_this_one => reconstruct_kernel
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
@@ -2093,11 +2076,12 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
            basis_overlap, KS_overlap, basis_overlap_mat, coeff, orbs)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => reorthonormalize_coeff
+  use module_interfaces!, except_this_one => reorthonormalize_coeff
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
        allocate_matrices, deallocate_matrices
   use yaml_output, only: yaml_newline, yaml_map
   use matrix_operations, only: overlapPowerGeneral, overlap_minus_one_half_serial, deviation_from_unity_parallel
+  use orthonormalization, only: gramschmidt_coeff_trans
   implicit none
 
   ! Calling arguments
@@ -2588,7 +2572,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => purify_kernel
+  use module_interfaces
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), matrices, &
@@ -2597,7 +2581,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
                           uncompress_matrix2, compress_matrix2, trace_sparse
   use foe_base, only: foe_data_get_real
   use transposed_operations, only: calculate_overlap_transposed
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   implicit none
 
   ! Calling arguments
@@ -2990,7 +2974,6 @@ end subroutine purify_kernel
 subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => get_KS_residue
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                matrices_null, allocate_matrices, deallocate_matrices, &
                                sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
@@ -3184,7 +3167,7 @@ subroutine renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, t
                                matrices
   use sparsematrix_init, only: matrixindex_in_compressed
   use sparsematrix, only: uncompress_matrix
-  use matrix_operations, only: overlapPowerGeneral
+  use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   use foe_common, only: retransform_ext
   implicit none
 
@@ -3305,6 +3288,7 @@ end subroutine renormalize_kernel
 subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
   use module_base, only: gp
   use module_types
+  use locreg_operations
   implicit none
   ! Calling arguments
   type(orbitals_data),intent(in) :: orbs
@@ -3347,6 +3331,7 @@ end subroutine allocate_precond_arrays
 subroutine deallocate_precond_arrays(orbs, lzd, precond_convol_workarrays, precond_workarrays)
   use module_base, only: gp
   use module_types
+  use locreg_operations
   implicit none
   ! Calling arguments
   type(orbitals_data),intent(in) :: orbs
@@ -3388,6 +3373,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
   use sparsematrix_base, only: matrices_null, sparsematrix_malloc_ptr, deallocate_matrices, &
                                SPARSE_TASKGROUP, assignment(=)
   use yaml_output
+  use public_enums
   implicit none
 
   ! Calling arguments

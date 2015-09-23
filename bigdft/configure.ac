@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7.6.8],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.8a.0],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -290,6 +290,19 @@ if test -n "$ac_ambertools_dir" ; then
       AC_MSG_ERROR(["Path to ambertools library is given by user, but nab compiler was not found on the machine."])
   fi
   ac_use_amber="yes"
+fi
+
+
+dnl cp2k
+AC_ARG_WITH(cp2k, AS_HELP_STRING([--with-cp2k],
+            [Give the link-line for cp2k.]),
+            ac_cp2k_linkline=$withval, ac_cp2k_linkline=)
+ac_use_cp2k="no"
+AM_CONDITIONAL(HAVE_CP2K, test x"$ac_cp2k_linkline" != "x")
+if test -n "$ac_cp2k_linkline" ; then
+  CP2K_LINKLINE="$ac_cp2k_linkline"
+  AC_SUBST(CP2K_LINKLINE, $CP2K_LINKLINE)
+  ac_use_cp2k="yes"
 fi
 
 
@@ -705,9 +718,10 @@ fi
 dnl Test S_GPU library.
 ac_build_libsgpu="no"
 ac_use_libsgpu="no"
-AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
+dnl AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
+ac_internal_sgpu="no"
 ac_build_libsgpu=$ac_internal_sgpu
-if test x"$ac_use_cuda_gpu" = "xyes" ; then
+if test x"$ac_use_cuda_gpu" = "xnotdothat" ; then
   dnl Test S_GPU library.
   ac_internal_sgpu="yes"
   AC_ARG_WITH(libsgpu-path, AS_HELP_STRING([--with-libsgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
@@ -804,14 +818,15 @@ src/bigdft-tool
 src/Makefile
 src/modules/Makefile
 src/modules/bigdft_cst.h
-src/modules/configure.inc
 src/modules/configure.c
-src/convolutions/Makefile
+src/orbitals/Makefile
+src/orbitals/configure.inc
 src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile
 src/bindings/Makefile
+src/geopt/Makefile
 src/art/Makefile
 src/mhgps_files/Makefile
 src/global_files/Makefile
@@ -885,6 +900,7 @@ Options:
   With Intel MIC support:    $ac_use_mic
   With AMBERTOOLS compiler:  $ac_use_amber
    | nab Compiler:           $NAB
+  With CP2K:                 $ac_use_cp2k
   With dgemmsy support:      $ac_use_dgemmsy
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc

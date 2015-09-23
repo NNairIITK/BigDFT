@@ -19,13 +19,26 @@ endif
 #mpi_include = mpif.h
 #endif
 
-libmodules_a_SOURCES = base.f90 \
-	defs.f90 \
-	public_keys.f90 \
-	ab7_mixing.f90 \
+if HAVE_CP2K
+cp2k_ld= @CP2K_LINKLINE@ @LINALG_LIBS@
+cp2k_interfacemod = module_cp2k.f90
+cp2k_interfacemodCAP = MODULE_CP2k.F90
+cp2k_interfacemodmod = module_cp2k
+cp2k_interfacemodCAPmod = MODULE_CP2k
+BLACS = 
+else
+cp2k_interfacemod = cp2k_fake.f90 module_cp2k.f90
+cp2k_interfacemodCAP = CP2K_FAKE.F90 MODULE_CP2K.F90
+cp2k_interfacemodmod = cp2k_fake module_cp2k
+cp2k_interfacemodCAPmod = CP2K_FAKE MODULE_CP2K
+cp2k_ld =
+endif
+
+libmodules_a_SOURCES = ab7_mixing.f90 \
 	gaussians.f90 \
 	locregs.f90 \
 	psp_projectors.f90 \
+	psp_projectors_base.f90 \
 	input_keys.f90 \
 	gaussdaub.f90 \
 	input_dicts.f90 \
@@ -43,6 +56,7 @@ libmodules_a_SOURCES = base.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
 	fragments.f90 \
+	fragment_base.f90 \
 	constrained_dft.f90 \
 	diis_module.f90 \
 	ao_inguess.f90 \
@@ -69,29 +83,38 @@ libmodules_a_SOURCES = base.f90 \
 	parallel_linalg.f90 \
 	io.f90 \
 	postprocessing_linear.f90 \
+	orbital_basis.f90 \
 	foe.f90 \
 	ice.f90 \
 	locreg_operations.f90 \
 	bigdft_run.f90 \
+	sockets.c \
+	fsockets.f90 \
 	rhopotential.f90 \
+	multipole_base.f90 \
+	multipole.f90 \
+	orthonormalization.f90 \
+	bounds.f90 \
+	locregs_init.f90 \
+	sort.f90 \
+	forces_linear.f90 \
 	$(bindings_headers) \
 	$(BLACS) \
-	configure.c
+	configure.c \
+	$(cp2k_interfacemod) \
+	module_dftbp.f90
 
 # Modules
 if CAPITALIZE
-modules = MODULE_BASE.@MODULE_EXT@ \
-	MODULE_DEFS.@MODULE_EXT@ \
-	MODULE_TYPES.@MODULE_EXT@ \
+modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_MIXING.@MODULE_EXT@ \
-	PUBLIC_KEYS.@MODULE_EXT@ \
-	PUBLIC_ENUMS.@MODULE_EXT@ \
 	MODULE_INTERFACES.@MODULE_EXT@ \
 	MODULE_PRIVATE_API.@MODULE_EXT@ \
 	MODULE_XC.@MODULE_EXT@ \
 	OVERLAP_POINT_TO_POINT.@MODULE_EXT@ \
 	MODULE_INPUT.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
+	GAUSSDAUB.@MODULE_EXT@ \
 	BIGDFT_API.@MODULE_EXT@ \
 	VDWCORRECTION.@MODULE_EXT@ \
 	MODULE_FRAGMENTS.@MODULE_EXT@ \
@@ -101,6 +124,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	MODULE_INPUT_KEYS.@MODULE_EXT@ \
 	MODULE_INPUT_DICTS.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
+	PSP_PROJECTORS_BASE.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@ \
 	AO_INGUESS.@MODULE_EXT@ \
 	REFORMATTING.@MODULE_EXT@ \
@@ -131,24 +155,33 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	LOCREG_OPERATIONS.@MODULE_EXT@ \
 	BIGDFT_RUN.@MODULE_EXT@ \
 	RHOPOTENTIAL.@MODULE_EXT@ \
+	MULTIPOLE_BASE.@MODULE_EXT@ \
+	FRAGMENT_BASE.@MODULE_EXT@ \
+	MULTIPOLE.@MODULE_EXT@ \
+	ORTHONORMALIZATION.@MODULE_EXT@ \
+	BOUNDS.@MODULE_EXT@ \
+	LOCREGS_INIT.@MODULE_EXT@ \
+	SORT.@MODULE_EXT@ \
+	FORCES_LINEAR.@MODULE_EXT@ \
 	MODULE_LJ.@MODULE_EXT@ \
+	F90SOCKETS.@MODULE_EXT@ \
 	MODULE_LENOSKY_SI.@MODULE_EXT@\
 	MODULE_MORSE_BULK.@MODULE_EXT@\
 	MODULE_TERSOFF.@MODULE_EXT@\
-	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@
+	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
+        MODULE_DFTBP.@MODULE_EXT@ \
+	ORBITALBASIS.@MODULE_EXT@ \
+	MODULE_CP2K.@MODULE_EXT@
 else
-modules = module_base.@MODULE_EXT@ \
-	module_defs.@MODULE_EXT@ \
-	module_types.@MODULE_EXT@ \
+modules = module_types.@MODULE_EXT@ \
 	module_mixing.@MODULE_EXT@ \
-	public_keys.@MODULE_EXT@ \
-	public_enums.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ \
 	module_private_api.@MODULE_EXT@ \
 	module_xc.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
 	gaussians.@MODULE_EXT@ \
+	gaussdaub.@MODULE_EXT@ \
 	bigdft_api.@MODULE_EXT@ \
 	vdwcorrection.@MODULE_EXT@ \
 	module_fragments.@MODULE_EXT@ \
@@ -158,6 +191,7 @@ modules = module_base.@MODULE_EXT@ \
 	module_input_keys.@MODULE_EXT@ \
 	module_input_dicts.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
+	psp_projectors_base.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@ \
 	ao_inguess.@MODULE_EXT@ \
 	reformatting.@MODULE_EXT@ \
@@ -188,18 +222,30 @@ modules = module_base.@MODULE_EXT@ \
 	locreg_operations.@MODULE_EXT@ \
 	bigdft_run.@MODULE_EXT@ \
 	rhopotential.@MODULE_EXT@ \
+	multipole_base.@MODULE_EXT@ \
+	fragment_base.@MODULE_EXT@ \
+	multipole.@MODULE_EXT@ \
+	orthonormalization.@MODULE_EXT@ \
+	bounds.@MODULE_EXT@ \
+	locregs_init.@MODULE_EXT@ \
+	forces_linear.@MODULE_EXT@ \
+	sort.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
+	f90sockets.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
 	module_bornmayerhugginstosifumi.@MODULE_EXT@ \
-	module_lenosky_si.@MODULE_EXT@
+	module_lenosky_si.@MODULE_EXT@ \
+	orbitalbasis.@MODULE_EXT@ \
+        module_dftbp.@MODULE_EXT@ \
+	module_cp2k.@MODULE_EXT@
 endif
 
 AO_INCLUDES = eleconf-inc.f90 
 ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
-EXTRA_DIST = configure.inc.in bigdft_cst.h.in \
+EXTRA_DIST = bigdft_cst.h.in \
 	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
 CLEANFILES = $(modules)
 
@@ -209,77 +255,76 @@ AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT
 PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
 
-# Hack for MIC compilation.
-if USE_MIC
-defs.o: defs.f90 configure.inc
-	$(PPFCCOMPILE) -offload-attribute-target=mic -opt-report-phase:offload -offload-option,mic,compiler,'-g -O0' -c -o $@ $<
-cublas_fake.o: cublas_fake.f90
-	$(FCCOMPILE) -offload-attribute-target=mic -c -o $@ $<
-else
-defs.o: configure.inc 
-endif
-
 #dependencies
 $(modules): $(libmodules_a_OBJECTS)
-input_keys.o: defs.o base.o public_keys.o
-base.o: defs.o public_keys.o
-types.o: base.o gaussians.o locregs.o psp_projectors.o ao_inguess.o atoms_data.o communications_base.o \
-	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o
-input.o: base.o types.o input_keys.o
-interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o
-gaussians.o: base.o
-op2p_module.o : base.o
-BigDFT_API.o: base.o types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o bigdft_run.o public_keys.o gaussians.o
-vdwcorrection.o: base.o types.o
-private_api.o: base.o types.o interfaces.o
-diis_module.o: base.o types.o
-fragments.o: base.o types.o locreg_operations.o 
-constrained_dft.o: base.o types.o sparsematrix_base.o
-input_dicts.o: defs.o ao_inguess.o interfaces.o atoms_data.o input.o public_keys.o
-psp_projectors.o: locregs.o gaussians.o defs.o
-locregs.o: base.o
-ao_inguess.o: $(AO_INCLUDES) base.o psp_projectors.o psp_projectors.o
-atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o
-reformatting.o: base.o
-communications_base.o: base.o
-communications_init.o: base.o types.o communications_base.o
-communications.o: base.o types.o communications_base.o locregs.o locreg_operations.o xc.o
-sparsematrix_base.o: base.o
-sparsematrix_init.o: base.o types.o interfaces.o sparsematrix_base.o locregs.o 
-sparsematrix.o: base.o types.o sparsematrix_base.o sparsematrix_init.o
-foe_base.o: base.o defs.o
-foe_common.o: base.o defs.o foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
-fermi_level.o: base.o foe_common.o
-copy_utils.o: base.o
-gaussdaub.o: base.o
-xc.o: base.o
-module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o
-ab7_mixing.o: defs.o
-module_lj.o: base.o defs.o
-module_morse_bulk.o: base.o
-module_tersoff.o: base.o atoms_data.o
-module_bornmayerhugginstosifumi.o: base.o atoms_data.o
-module_lenosky_si.o: base.o defs.o
-module_fingerprints.o: base.o
-transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o
-module_forces.o: base.o types.o 
-chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
-unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o locregs.o locreg_operations.o rhopotential.o
-matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
-parallel_linalg.o: base.o types.o
-io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o
-postprocessing_linear.o: base.o types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o
-foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
-ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
-locreg_operations.o: base.o types.o atoms_data.o locregs.o
-rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o
+#multipole_base.o: base.o
+#fragment_base.o: public_keys.o
+ao_inguess.o: $(AO_INCLUDES) 
+input.o: fragment_base.o
+input_dicts.o: ao_inguess.o fragment_base.o input.o
+atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o input_dicts.o
+input_keys.o: multipole_base.o atoms_data.o xc.o input.o fragment_base.o
+types.o: gaussians.o locregs.o psp_projectors_base.o ao_inguess.o atoms_data.o communications_base.o input_keys.o \
+	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o
+interfaces.o: types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
+#gaussians.o: base.o
+#op2p_module.o : base.o
+BigDFT_API.o: types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o bigdft_run.o public_keys.o gaussians.o
+vdwcorrection.o: types.o 
+private_api.o: types.o interfaces.o
+diis_module.o: types.o
+fragments.o: input_keys.o types.o locreg_operations.o fragment_base.o
+constrained_dft.o: input_keys.o sparsematrix_base.o
+psp_projectors_base.o: locregs.o gaussians.o
+psp_projectors.o: locregs.o locregs_init.o gaussians.o psp_projectors_base.o
+#locregs.o: base.o
+#reformatting.o: base.o
+#communications_base.o: base.o
+communications_init.o: types.o communications_base.o
+communications.o: types.o communications_base.o locregs.o locreg_operations.o xc.o
+#sparsematrix_base.o: base.o
+sparsematrix_init.o: types.o interfaces.o sparsematrix_base.o locregs.o locregs_init.o
+sparsematrix.o: types.o sparsematrix_base.o sparsematrix_init.o
+#foe_base.o: base.o defs.o
+foe_common.o: foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
+fermi_level.o: foe_common.o
+#copy_utils.o: base.o
+gaussdaub.o: gaussians.o psp_projectors_base.o
+#module_sqn.o: base.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
+#ab7_mixing.o: defs.o
+#module_lj.o: base.o defs.o
+#module_cp2k.o: base.o defs.o
+#module_morse_bulk.o: base.o
+module_dftbp.o: types.o 
+module_tersoff.o: atoms_data.o
+module_bornmayerhugginstosifumi.o: atoms_data.o
+#module_lenosky_si.o: base.o defs.o
+#module_fingerprints.o: base.o
+transposed_operations.o: types.o sparsematrix_base.o sparsematrix.o sparsematrix_init.o communications_base.o
+module_forces.o: types.o 
+chebyshev.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
+unitary_tests.o: types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o locregs.o locreg_operations.o rhopotential.o
+matrix_operations.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
+parallel_linalg.o: types.o
+io.o: types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o matrix_operations.o
+postprocessing_linear.o: types.o interfaces.o bounds.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o locreg_operations.o sort.o
+foe.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
+ice.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
+locreg_operations.o: types.o atoms_data.o locregs.o
+rhopotential.o: types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o sparsematrix_init.o
+multipole.o: multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
+orbital_basis.o: locregs.o types.o communications_base.o interfaces.o
+orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
+bounds.o: types.o locregs.o
+locregs_init.o: types.o communications.o bounds.o
+forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o locregs.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
 install: install-am insmod
 check: check-am insmod
-insmod: $(modules) 
+insmod: $(modules) libmodules.a
 	test -e "$(top_builddir)/includes" || $(INSTALL) -d -m 755 $(top_builddir)/includes
 	for mod in "$(modules)" ; do \
 	  $(INSTALL) -m 644  $$mod $(top_builddir)/includes ; \

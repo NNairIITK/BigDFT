@@ -12,33 +12,37 @@
  perf:
    ef_interpol_det: 0.10E-19
    adjust_kernel_iterations: No
+   correction_co_contra: No
+   purification_quickreturn: Yes
+   coeff_weight_analysis: Yes
  lin_general:
    nit: [0, 1]
-   rpnrm_cv: [1.0000000000000001E-009, 5.0000000000000003E-010]
+   rpnrm_cv: [1.0E-009, 5.0E-010]
    conf_damping: 0.5
+   kernel_restart_mode: coeff
  lin_basis:
    nit: [4, 1]
    idsx: 0
-   gnrm_cv: [5.0000000000000002E-005, 1.0000000000000001E-005]
-   fix_basis: 9.9999999999999994E-012
+   gnrm_cv: [5.0E-005, 1.0E-005]
+   fix_basis: 1.0E-011
  lin_kernel:
    nstep: 6
    nit: [6, 30]
    idsx_coeff: [5, 0]
-   alphamix: 0.9
-   gnrm_cv_coeff: [5.0000000000000001E-003, 1.0E-003]
-   rpnrm_cv: [1.0E-010, 5.0000000000000003E-010]
+   alphamix: 0.5
+   gnrm_cv_coeff: [5.0E-003, 1.0E-003]
+   rpnrm_cv: [1.0E-010, 5.0E-010]
    linear_method: DIRMIN
-   fscale_foe: 5.0000000000000003E-002
+   fscale_foe: 5.0E-002
  lin_basis_params:
    O:
-     ao_confinement: 5.0000000000000001E-003
+     ao_confinement: 5.0E-003
      confinement: [1.0E-003, 0.0]
      rloc_kernel: 7.0
      rloc_kernel_foe: 20.0
    H:
      nbasis: 1
-     ao_confinement: 5.0000000000000001E-003
+     ao_confinement: 5.0E-003
      confinement: [1.0E-003, 0.0]
      rloc_kernel: 7.0
      rloc_kernel_foe: 20.0
@@ -49,7 +53,7 @@
    oh-a:
    - 2
    constrained_dft:
-     Fragment No. 1: -1.000000000000000
+     Fragment No. 1: -1.0
  posinp:
    units: angstroem
    positions:

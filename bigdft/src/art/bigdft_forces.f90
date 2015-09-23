@@ -309,12 +309,14 @@ module bigdft_forces
       if ( first_time ) then              ! This is done by default at the beginning.
 
 
-         runObj%inputs%inputPsiId = 0
+         !runObj%inputs%inputPsiId = 0
+         call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
          call bigdft_state(runObj, outs, infocode )
          evalf_number = evalf_number + 1
 
-         runObj%inputs%inputPsiId = 1
+         call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
+         !runObj%inputs%inputPsiId = 1
          initialised   = .true.
          first_time    = .False.
          new_wf        = .False.
@@ -329,9 +331,11 @@ module bigdft_forces
 
          if ( new_wf ) then               ! if true,  we do not use the previously 
             ! calculated wave function.
-            runObj%inputs%inputPsiId = 0
+            !runObj%inputs%inputPsiId = 0
+            call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
          else 
-            runObj%inputs%inputPsiId = 1
+            call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
+            !runObj%inputs%inputPsiId = 1
          end if
 
          ! Get into BigDFT
@@ -693,7 +697,8 @@ module bigdft_forces
       real(gp)     ::  fmax, fnrm
       !_______________________
 
-      runObj%inputs%inputPsiId = 0 
+      !runObj%inputs%inputPsiId = 0
+      call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj) 
       runObj%inputs%gnrm_cv = gnrm_l 
       ! We transfer acell into 'at'
       runObj%atoms%astruct%cell_dim = boxl/Bohr_Ang
@@ -706,7 +711,8 @@ module bigdft_forces
       call MPI_Barrier(MPI_COMM_WORLD,ierror)
       call bigdft_state(runObj, outs, infocode )
       evalf_number = evalf_number + 1
-      runObj%inputs%inputPsiId = 1
+      !runObj%inputs%inputPsiId = 1
+      call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
 
       call fnrmandforcemax(outs%fxyz,fnrm,fmax, outs%fdim)
 
@@ -723,11 +729,13 @@ module bigdft_forces
          if (ncount_bigdft > runObj%inputs%ncount_cluster_x-1) success = .False.
 
          ! and we clean again here
-         runObj%inputs%inputPsiId = 0 
+         !runObj%inputs%inputPsiId = 0 
+         call bigdft_set_input_policy(INPUT_POLICY_SCRATCH,runObj)
          call MPI_Barrier(MPI_COMM_WORLD,ierror)
          call bigdft_state(runObj, outs, infocode )
          evalf_number = evalf_number + 1
-         runObj%inputs%inputPsiId = 1
+         !runObj%inputs%inputPsiId = 1
+         call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
 
          total_energy = outs%energy * ht2ev
          ! box in ang

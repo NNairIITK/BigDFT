@@ -25,7 +25,7 @@
  lin_general:
    hybrid: Yes
    nit: 100
-   rpnrm_cv: 5.e-7
+   rpnrm_cv: 4.e-6
    max_inversion_error: 5.0e-8
  lin_basis:
    nit: 8

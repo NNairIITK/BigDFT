@@ -71,11 +71,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !in the GPU case, the wavefunction should be copied to the card 
    !at each HamiltonianApplication
    !rebind the GPU pointers to the orbsv structure
-   if (GPUconv) then
-      call free_gpu(GPU,KSwfn%orbs%norbp)
-      call prepare_gpu_for_locham(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,in%nspin,&
-           VTwfn%Lzd%hgrids(1), VTwfn%Lzd%hgrids(2), VTwfn%Lzd%hgrids(3),VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,KSwfn%orbs,in%nspin)    
       call allocate_data_OCL(VTwfn%Lzd%Glr%d%n1,VTwfn%Lzd%Glr%d%n2,VTwfn%Lzd%Glr%d%n3,at%astruct%geocode,&
          &   in%nspin,VTwfn%Lzd%Glr%wfd,VTwfn%orbs,GPU)
@@ -339,9 +335,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    !deallocate potential
    call free_full_potential(dpcom%mpi_env%nproc,0,xc,pot,subname)
 
-   if (GPUconv) then
-      call free_gpu(GPU,VTwfn%orbs%norbp)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,VTwfn%orbs,in%nspin)
    end if
 
@@ -349,7 +343,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
 
    !the plotting should be added here (perhaps build a common routine?)
    call write_eigen_objects(iproc,occorbs,in%nspin,nvirt,in%nplot,VTwfn%Lzd%hgrids(1),VTwfn%Lzd%hgrids(2),VTwfn%Lzd%hgrids(3),&
-        at,rxyz,KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,KSwfn%psi,VTwfn%psi,in%output_wf_format)
+        at,rxyz,KSwfn%Lzd%Glr,KSwfn%orbs,VTwfn%orbs,KSwfn%psi,VTwfn%psi)!,in%output_wf_format)
 
    call f_release_routine()
 
@@ -470,11 +464,7 @@ subroutine davidson(iproc,nproc,in,at,&
    !in the GPU case, the wavefunction should be copied to the card 
    !at each HamiltonianApplication
    !rebind the GPU pointers to the orbsv structure
-   if (GPUconv) then
-      call free_gpu(GPU,orbs%norbp)
-      call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-           Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),Lzd%Glr%wfd,orbsv,GPU)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,orbs,in%nspin)    
       call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
            in%nspin,Lzd%Glr%wfd,orbsv,GPU)
@@ -1264,13 +1254,11 @@ subroutine davidson(iproc,nproc,in,at,&
    !write the results on the screen
    call write_eigen_objects(iproc,occorbs,nspin,nvirt,in%nplot,&
         Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),at,rxyz,Lzd%Glr,&
-        orbs,orbsv,psi,v,in%output_wf_format)
+        orbs,orbsv,psi,v)!,in%output_wf_format)
 
    deallocate(confdatarr)
 
-   if (GPUconv) then
-      call free_gpu(GPU,orbsv%norbp)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call free_gpu_OCL(GPU,orbsv,in%nspin)
    end if
 
@@ -1678,13 +1666,13 @@ END SUBROUTINE psivirt_from_gaussians
 
 !> Write eigenvalues and related quantities
 !! @todo: must add the writing directory to the files
-subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt,output_wf_format)
+subroutine write_eigen_objects(iproc,occorbs,nspin,nvirt,nplot,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)!,output_wf_format)
    use module_base
    use module_types
    use yaml_output
    implicit none
    logical, intent(in) :: occorbs
-   integer, intent(in) :: iproc,nspin,nvirt,nplot,output_wf_format
+   integer, intent(in) :: iproc,nspin,nvirt,nplot!,output_wf_format
    real(gp), intent(in) :: hx,hy,hz
    type(atoms_data), intent(in) :: at
    type(locreg_descriptors), intent(in) :: lr
@@ -1954,6 +1942,7 @@ END SUBROUTINE calculate_HOMO_LUMO_gap
 !! Solutions to a given value
 subroutine add_confining_potential(n1i,n2i,n3i,nspin,eps,dencutoff,rpow,pot,rho)
    use module_base
+   use bounds, only: ext_buffers
    implicit none
    integer, intent(in) :: n1i,n2i,n3i,nspin
    real(gp) , intent(in) :: rpow,eps,dencutoff
@@ -1982,6 +1971,7 @@ END SUBROUTINE add_confining_potential
 
 subroutine add_parabolic_potential(geocode,nat,n1i,n2i,n3i,hxh,hyh,hzh,rlimit,rxyz,pot)
    use module_base
+   use bounds, only: ext_buffers
    implicit none
    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
    integer, intent(in) :: n1i,n2i,n3i,nat

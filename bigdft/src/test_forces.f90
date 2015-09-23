@@ -21,11 +21,11 @@ program test_forces
 
    use module_base
    use bigdft_run
-   use module_types, only: LINEAR_VERSION
+   use public_enums, only: LINEAR_VERSION
    !use module_interfaces
    !use m_ab6_symmetry
    use yaml_output
-
+   use module_input_keys, only: print_general_parameters
    implicit none
    character(len=*), parameter :: subname='test_forces'
    !integer :: iproc,nproc,
@@ -150,13 +150,14 @@ program test_forces
          !update atomic positions along the path
          if(ipath>1) then
             runObj%atoms%astruct%rxyz(:,:)=runObj%atoms%astruct%rxyz(:,:)+drxyz(:,:)
-            runObj%inputs%inputPsiId=1
-            if(runObj%rst%version == LINEAR_VERSION) then
-               runObj%inputs%inputPsiId=101
-               !switch off fragment calculation after this point
-               !runObj%inputs%lin%fragment_calculation=.false.
-               !runObj%inputs%frag%nfrag=1
-            end if
+!!$            runObj%inputs%inputPsiId=1
+!!$            if(runObj%rst%version == LINEAR_VERSION) then
+!!$               runObj%inputs%inputPsiId=101
+!!$               !switch off fragment calculation after this point
+!!$               !runObj%inputs%lin%fragment_calculation=.false.
+!!$               !runObj%inputs%frag%nfrag=1
+!!$            end if
+            call bigdft_set_input_policy(INPUT_POLICY_MEMORY, runObj)
          end if
 
          if (bigdft_mpi%iproc == 0) then

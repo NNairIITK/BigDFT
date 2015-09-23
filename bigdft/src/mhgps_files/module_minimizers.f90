@@ -63,8 +63,8 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,rcov,&
            rxyzio,fxyzio,energyio,energycounter,converged,&
            writePostfix)
 
-   use module_base, except_this_one=> int
-   use module_types
+   use module_base!, except_this_one=> int
+   !use module_types
    use module_interfaces
    use yaml_output
    use module_sqn
@@ -358,7 +358,8 @@ endif
    
       delta=rxyz(:,:,idx(nhist))-rxyzOld
       displr=displr+dnrm2(3*runObj%atoms%astruct%nat,delta(1,1),1)
-      runObj%inputs%inputPsiId=1
+      !runObj%inputs%inputPsiId=1
+      call bigdft_set_input_policy(INPUT_POLICY_MEMORY,runObj)
       call minenergyandforces(mhgpsst,.true.,uinp%imode,runObj,outs,rxyz(1,1,idx(nhist)),&
                              fxyz(1,1,idx(nhist)),fstretch(1,1,idx(nhist)),fxyzraw(1,1,idx(nhist)),&
                              etotp,iconnect,nbond,wold,beta_stretchx,beta_stretch,infocode)
@@ -371,7 +372,12 @@ endif
 
       if (mhgpsst%iproc == 0 .and. uinp%mhgps_verbosity >=4) then
          write(fn4,'(i4.4)') nint(energycounter)
-         write(comment,'(a,1pe10.3)')'SQNM:fnrm= ',fnrm
+         write(fn4,'(i4.4)') nint(energycounter)
+         if (detot.gt.maxrise .and. beta > 1.e-1_gp*betax) then !
+            write(comment,'(a,1pe10.3)')'R SQNM:fnrm= ',fnrm
+         else
+            write(comment,'(a,1pe10.3)')'A SQNM:fnrm= ',fnrm
+         endif
          call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
               mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))&
               //'_posmini'//trim(adjustl(writePostfix))//'_'//fn4, &
@@ -590,11 +596,11 @@ endif
 
 subroutine minenergyandforces(mhgpsst,eeval,imode,runObj,outs,rat,fat,fstretch,&
            fxyzraw,epot,iconnect,nbond_,wold,alpha_stretch0,alpha_stretch,infocode)
-    use module_base, only: gp
+    use module_defs, only: gp
     use module_energyandforces
     use module_sqn
     use bigdft_run, only: run_objects, state_properties
-    use module_mhgps_state
+    use module_mhgps_state, only: mhgps_state
     implicit none
     !parameter
     type(mhgps_state), intent(inout) :: mhgpsst

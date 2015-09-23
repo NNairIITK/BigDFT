@@ -63,6 +63,7 @@ module Poisson_Solver
    use dynamic_memory
    use time_profiling, only: TIMING_UNINITIALIZED, f_timing
    use yaml_output
+   use yaml_strings
    !use m_profiling
    ! TO BE REMOVED with f_malloc
    
@@ -163,7 +164,17 @@ module Poisson_Solver
       !> correction term, given in terms of the multiplicative factor of nabla*eps*nabla
       !! to be used for Preconditioned Conjugate Gradient 
       real(dp), dimension(:,:), pointer :: corr
+      !> inner rigid cavity to be integrated in the sccs method to avoit inner
+      !! cavity discontinuity due to near-zero edens near atoms
+      real(dp), dimension(:,:), pointer :: epsinnersccs
+      real(dp), dimension(:,:,:), pointer :: zf
+      !> Polarization charge vector for print purpose only.
+      real(dp), dimension(:,:), pointer :: pol_charge
+      !> Dielectric cavity eps for print purpose only.
+      real(dp), dimension(:,:), pointer :: cavity
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
+      real(dp) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
+      real(dp) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
       integer, dimension(5) :: plan
       integer, dimension(3) :: geo
       !variables with computational meaning
@@ -171,8 +182,10 @@ module Poisson_Solver
       type(mpi_environment) :: inplane_mpi,part_mpi !<mpi_environment for internal ini-plane parallelization
       type(FFT_metadata) :: grid !<dimensions of the FFT grid associated to this kernel
       integer :: igpu !< control the usage of the GPU
+      integer :: gpuPCGRed !< control if GPU can be used for PCG reductions
       integer :: initCufftPlan
       integer :: keepGPUmemory
+      integer :: keepzf
       !parameters for the iterative methods
       !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
       integer :: nord
@@ -182,6 +195,8 @@ module Poisson_Solver
       
       integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
       integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
+      integer, dimension(:), pointer :: rhocounts !<array needed to gather the information of the poisson solver on multiple gpus
+      integer, dimension(:), pointer :: rhodispls !<array needed to gather the information of the poisson solver on multiple gpus
    end type coulomb_operator
 
    !intialization of the timings
@@ -250,6 +265,10 @@ contains
     nullify(k%dlogeps)
     nullify(k%oneoeps)
     nullify(k%corr)
+    nullify(k%epsinnersccs)
+    nullify(k%pol_charge)
+    nullify(k%cavity)
+    nullify(k%zf)
     k%work1_GPU=0.d0
     k%work2_GPU=0.d0
     k%k_GPU=0.d0
@@ -262,6 +281,7 @@ contains
     k%igpu=0
     k%initCufftPlan=0
     k%keepGPUmemory=1
+    k%keepzf=1
     k%nord=0
     k%max_iter=0
     k%PI_eta=0.0_dp

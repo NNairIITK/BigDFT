@@ -51,7 +51,7 @@ module rhopotential
        call PSolverNC(denspot%pkernel%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
             denspot%dpbox%n3d,denspot%xc,&
-            denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+            denspot%dpbox%hgrids,&
             denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
     
     else
@@ -69,7 +69,7 @@ module rhopotential
        call XC_potential(denspot%pkernel%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
             denspot%pkernel%mpi_env%mpi_comm,&
             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
-            denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+            denspot%dpbox%hgrids,&
             denspot%rhov,energs%exc,energs%evxc,nspin,denspot%rho_C,denspot%rhohat,denspot%V_XC,xcstr)
     
        call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
@@ -115,7 +115,7 @@ module rhopotential
        use module_xc
        use communications_base, only: p2pComms
        use communications, only: synchronize_onesided_communication
-       use locreg_operations, only: global_to_local_parallel
+       use locreg_operations, only: global_to_local_parallel, global_to_local
        implicit none
        !Arguments
        integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid
@@ -231,7 +231,7 @@ module rhopotential
     
        call timing(iproc,'Pot_after_comm','ON')
        
-       if(Lzd%nlr > 1) then
+       if(Lzd%nlr > 1 .or. iflag==2) then !nlr>1 not enough to activate linear scaling (linear scaling with only one locreg is possible...)
           ilrtable = f_malloc(orbs%norbp,id='ilrtable')
           !call f_zero(orbs%norbp*2,ilrtable(1,1))
           ilrtable=0
@@ -318,7 +318,7 @@ module rhopotential
           do iorb=1,nilr
              ilr = ilrtable(iorb)
              ! Cut the potential into locreg pieces
-             call global_to_local(Lzd%Glr,Lzd%Llr(ilr),dpbox%nrhodim,npot,lzd%ndimpotisf,pot1,pot(istl))
+             call global_to_local(Lzd%Glr,Lzd%Llr(ilr),dpbox%nrhodim,npot,lzd%ndimpotisf,pot1,pot(istl:))
              istl = istl + Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*dpbox%nrhodim
           end do
        else
@@ -437,7 +437,17 @@ module rhopotential
                 !!          iproc, ilr, lzd%Llr(ilr)%nsi1, comgp%ise(1:2), lzd%Llr(ilr)%nsi2, comgp%ise(3:4), lzd%Llr(ilr)%nsi3, comgp%ise(5:6)
                 !!call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nspin*comgp%nrecvBuf, size_Lpot,&
                 !!     comgp%recvBuf(ishift+1), pot(ist), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2)
-                call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), 0, comgp%nrecvBuf, size_Lpot,&
+                !write(*,*) 'comgp%nrecvBuf, size_Lpot, size(comgp%recvBuf(ishift+1:)), size(pot(ist:))', &
+                !            comgp%nrecvBuf, size_Lpot, size(comgp%recvBuf(ishift+1:)), size(pot(ist:))
+                !write(*,*) 'i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2', i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2 
+                !write(*,*) 'i1shift, i2shift, i3shift, comgp%ise', i1shift, i2shift, i3shift, comgp%ise
+                !write(*,*) 'kind(comgp%nrecvBuf)', kind(comgp%nrecvBuf)
+                !write(*,*) 'kind(size_Lpot)', kind(size_Lpot)
+                !write(*,*) 'kind(comgp%recvBuf)',kind(comgp%recvBuf)
+                !write(*,*) 'kind(pot)', kind(pot)
+                !write(*,*) 'kind(i1s)', kind(i1s)
+                !write(*,*) 'kind(comgp%ise)',kind(comgp%ise)
+                call global_to_local_parallel(lzd%Glr, lzd%Llr(ilr), comgp%nrecvBuf, size_Lpot,&
                      comgp%recvBuf(ishift+1:), pot(ist:), i1s, i1e, i2s, i2e, i3s, i3e, ni1, ni2, &
                      i1shift, i2shift, i3shift, comgp%ise)
                 !write(*,'(3(a,i0))') 'process ',iproc,' copies data from position ',ishift+1,' to position ',ist
@@ -483,6 +493,7 @@ module rhopotential
       use module_types
       use yaml_output
       use sparsematrix_base, only: sparse_matrix
+      use sparsematrix_init, only: get_modulo_array
       implicit none
     
       ! Calling arguments
@@ -496,15 +507,18 @@ module rhopotential
       logical,intent(in),optional :: print_results
     
       ! Local variables
-      integer :: ipt, ii, i0, iiorb, jjorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
+      integer :: ipt, ii, i0, iiorb, jjorb, iorb, jorb, istat, iall, i, j, ierr, ind, ispin, ishift, ishift_mat, iorb_shift
       real(8) :: tt, total_charge, hxh, hyh, hzh, factor, tt1, rho_neg
       integer,dimension(:),allocatable :: isend_total
+      integer,dimension(:),pointer :: moduloarray
       real(kind=8),dimension(:),allocatable :: rho_local
       character(len=*),parameter :: subname='sumrho_for_TMBs'
       logical :: print_local
       integer :: size_of_double, info, mpisource, istsource, istdest, nsize, jproc, ishift_dest, ishift_source
     
       call f_routine('sumrho_for_TMBs')
+
+      call get_modulo_array(denskern, moduloarray)
     
       ! check whether all entries of the charge density are positive
       rho_negative=.false.
@@ -557,7 +571,7 @@ module rhopotential
           iorb_shift=(ispin-1)*denskern%nfvctr
           ishift_mat=(ispin-1)*denskern%nvctr
           !$omp parallel default(private) &
-          !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local) &
+          !$omp shared(total_charge, collcom_sr, factor, denskern, denskern_, rho_local, moduloarray) &
           !$omp shared(rho_neg, ispin, ishift, ishift_mat, iorb_shift) 
           !$omp do schedule(static,200) reduction(+:total_charge, rho_neg)
           do ipt=1,collcom_sr%nptsp_c
@@ -567,17 +581,23 @@ module rhopotential
               tt=1.e-20_dp
               do i=1,ii
                   iiorb=collcom_sr%indexrecvorbital_c(i0+i) - iorb_shift
+                  iorb=moduloarray(iiorb)
                   !iiorb=mod(iiorb-1,denskern%nfvctr)+1
         !ispin=spinsgn(iiorb) 
                   tt1=collcom_sr%psit_c(i0+i)
-                  ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                  !ind=denskern%matrixindex_in_compressed_fortransposed(iiorb,iiorb)
+                  ind=denskern%matrixindex_in_compressed_fortransposed(iorb,iorb)
+                  !ind=get_transposed_index(denskern,iiorb,iiorb)
                   ind=ind+ishift_mat-denskern%isvctrp_tg
                   tt=tt+denskern_%matrix_compr(ind)*tt1*tt1
         !tt(ispin)=tt(ispin)+denskern_%matrix_compr(ind)*tt1*tt1
                   do j=i+1,ii
                       jjorb=collcom_sr%indexrecvorbital_c(i0+j) - iorb_shift
+                      jorb=moduloarray(jjorb)
                       !jjorb=mod(jjorb-1,denskern%nfvctr)+1
-                      ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      !ind=denskern%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+                      ind=denskern%matrixindex_in_compressed_fortransposed(jorb,iorb)
+                      !ind=get_transposed_index(denskern,jjorb,iiorb)
                       if (ind==0) cycle
                       ind=ind+ishift_mat-denskern%isvctrp_tg
                       tt=tt+2.0_dp*denskern_%matrix_compr(ind)*tt1*collcom_sr%psit_c(i0+j)
@@ -593,6 +613,7 @@ module rhopotential
           !$omp end parallel
       end do
     
+      call f_free_ptr(moduloarray)
     
       !if (print_local .and. iproc==0) write(*,'(a)') 'done.'
     
@@ -708,6 +729,25 @@ module rhopotential
           call f_release_routine()
     
         end subroutine communicate_density
+
+
+        !function get_transposed_index(jorb,iorb) result(ind)
+        !    integer,intent(in) :: jorb, iorb
+        !    integer :: ind
+        !    integer :: jjorb,iiorb
+        !    ! If iorb is smaller than the offset, add a periodic shift
+        !    if (iorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+        !        iiorb = iorb + smat%nfvctr
+        !    else
+        !        iiorb = iorb
+        !    end if
+        !    if (jorb<smat%offset_matrixindex_in_compressed_fortransposed) then
+        !        jjorb = jorb + smat%nfvctr
+        !    else
+        !        jjorb = jorb
+        !    end if
+        !    ind = smat%matrixindex_in_compressed_fortransposed(jjorb,iiorb)
+        !end function get_transposed_index
     
       !!write(*,*) 'after deallocate'
       !!call mpi_finalize(ierr)
@@ -766,7 +806,7 @@ module rhopotential
       charge_correction=0.d0
       do ipt=1,npt
           if (rho(ipt)<0.d0) then
-              if (rho(ipt)>=-1.d-9) then
+              if (rho(ipt)>=-1.d-5) then
                   ! negative, but small, so simply set to zero
                   charge_correction=charge_correction+rho(ipt)
                   !rho(ipt)=0.d0
@@ -774,7 +814,11 @@ module rhopotential
                   ncorrection=ncorrection+1
               else
                   ! negative, but non-negligible, so issue a warning
-                  call yaml_warning('considerable negative rho, value: '//trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+                  ! only print first time this occurs
+                  if (ncorrection==0) then
+                      call yaml_warning('considerable negative rho, value: '//&
+                        &trim(yaml_toa(rho(ipt),fmt='(es12.4)'))) 
+                  end if
                   charge_correction=charge_correction+rho(ipt)
                   !rho(ipt)=0.d0
                   rho(ipt)=1.d-20

@@ -14,6 +14,7 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   use module_defs, only: gp,dp,wp
   use module_types
   use yaml_output
+  use bounds, only: ext_buffers
   implicit none
   integer, intent(in) :: n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
@@ -366,7 +367,7 @@ end function spherical_gaussian_value
 !!                for calculating XC energies and potential. 
 !!                ixc=0 indicates that no XC terms are computed. 
 !!                The XC functional codes follow the ABINIT convention.
-!!    @param hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
+!!    @param hgrids    grid spacings. For the isolated BC case for the moment they are supposed to 
 !!                be equal in the three directions
 !!    @param rho         Main input array. it represents the density values on the grid points
 !!    @param potxc       Main output array, the values on the grid points of the XC potential
@@ -377,7 +378,7 @@ end function spherical_gaussian_value
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,hx,hy,hz,&
+subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,hgrids,&
      rho,exc,vxc,nspin,rhocore,rhohat,potxc,xcstr,dvxcdrho)
   use module_base
   !Rename dp into except_dp in order to avoid conflict with the definitions provided by module_base
@@ -392,7 +393,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
   integer, intent(in) :: iproc,nproc,n01,n02,n03,mpi_comm
   integer, intent(in) :: nspin !< Value of the spin-polarisation
-  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3), intent(in) :: hgrids
   type(xc_info), intent(in) :: xcObj
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
@@ -591,10 +592,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      if(datacode=='G' .and. &
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho_G,nspin,&
-             hx,hy,hz,gradient,rhocore)
+             hgrids(1),hgrids(2),hgrids(3),gradient,rhocore)
      else
         call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho(1+n01*n02*(i3start-1)),nspin,&
-             hx,hy,hz,gradient,rhocore)
+             hgrids(1),hgrids(2),hgrids(3),gradient,rhocore)
      end if
   else
      gradient = f_malloc((/ 1, 1, 1, 1, 1 /),id='gradient')
@@ -621,7 +622,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         !allocation of an auxiliary array for avoiding the shift
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             xcObj,hx,hy,hz,rho_G,gradient,vxci,&
+             xcObj,hgrids(1),hgrids(2),hgrids(3),rho_G,gradient,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
         !restoring the density on the original form
         do ispin=1,nspin
@@ -638,7 +639,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
         call f_free(rho_G)
      else
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             xcObj,hx,hy,hz,rho(1+n01*n02*(i3start-1)),gradient,vxci,&
+             xcObj,hgrids(1),hgrids(2),hgrids(3),rho(1+n01*n02*(i3start-1)),gradient,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
      end if
   else
@@ -718,7 +719,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
         rhocstr=rhocstr/real(n01*n02*n03,dp)
         end if
 
-     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
+     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/product(hgrids)!hx/hy/hz
      call mpiallred(wbstr,MPI_SUM,comm=mpi_comm)
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
@@ -774,7 +775,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
         call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
         rhocstr=rhocstr/real(n01*n02*n03,dp)
         end if
-    xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
+    xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/product(hgrids)!hx/hy/hz
     wbstr=wbstr/real(n01*n02*n03,dp)
     xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
    end if
@@ -821,7 +822,7 @@ subroutine substract_from_vexcu(rhoin)
     !divide the results per two because of the spin multiplicity
     vexcuRC=0.5*vexcuRC
  end if
- vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+ vexcuRC=vexcuRC*product(hgrids)!real(hx*hy*hz,gp)
  !subtract this value from the vexcu
  vexcuLOC=vexcuLOC-vexcuRC
 
@@ -855,7 +856,7 @@ subroutine add_to_vexcu(rhoin)
        end do
     end do
  end if
- vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+ vexcuRC=vexcuRC*product(hgrids)!real(hx*hy*hz,gp)
  !add this value to the vexcu
  vexcuLOC=vexcuLOC+vexcuRC
 

@@ -14,6 +14,8 @@
    ef_interpol_chargediff: 0.10E-02
    evbounds_nsatur: 100
    loewdin_charge_analysis: Yes
+   correction_co_contra: no
+   purification_quickreturn: no
  lin_general:
    hybrid: Yes
    nit: [80, 0]

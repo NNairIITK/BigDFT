@@ -711,11 +711,15 @@ contains
 
 
    subroutine restart_inputs(inputs)
-     use module_types, only: input_variables
+     use module_input_keys
+     use public_enums, only: ENUM_MEMORY
      implicit none
      !Argument
      type(input_variables), intent(inout) :: inputs
-     inputs%inputPsiId=1
+     !inputs%inputPsiId=1
+     
+     call inputpsiid_set_policy(ENUM_MEMORY,inputs%inputPsiId)
+
    END SUBROUTINE restart_inputs
 
 

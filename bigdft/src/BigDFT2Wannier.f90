@@ -11,15 +11,18 @@
 !> Program to calculate all quantities needed by Wannier90
 program BigDFT2Wannier
 
-   use BigDFT_API, int_iter => int
+   use BigDFT_API
    use bigdft_run
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_interfaces
    use yaml_output
    use module_input_dicts
+   use module_input_keys, only: user_dict_from_files,inputs_from_dict,free_input_variables
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use communications, only: transpose_v, untranspose_v
+   use bounds, only: ext_buffers
+   use locreg_operations
    implicit none
    character :: filetype*4
    !etsf
@@ -257,7 +260,7 @@ program BigDFT2Wannier
    ny=lzd%Glr%d%n2i
    nz=lzd%Glr%d%n3i
    n_at=atoms%astruct%nat
-   call initialize_work_arrays_sumrho(1,lzd%Glr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[lzd%Glr],.true.,w)
 
    ! Allocations for Amnk calculation
    npsidim2=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsp%norbp,sum(commsp%ncntt(0:nproc-1)))
@@ -2114,6 +2117,8 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
 
    use BigDFT_API
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use bounds, only: ext_buffers
+   use locreg_operations
    implicit none
    ! I/O variables
    type(locreg_descriptors), intent(in) :: Glr
@@ -2165,7 +2170,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    call split_vectors_for_parallel(0,1,n_virt+n_occ,orbsb)
    call split_vectors_for_parallel(0,1,n_virt,orbsv)
 
-   call initialize_work_arrays_sumrho(1,Glr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[Glr],.true.,w)
 
    ! Read occupied orbitals
    if(n_occ > 0) then

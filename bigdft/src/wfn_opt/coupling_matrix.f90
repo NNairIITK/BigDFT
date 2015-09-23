@@ -50,6 +50,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
+  use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n3p,nspin,i3s

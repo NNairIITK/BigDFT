@@ -1,9 +1,10 @@
+!needs cleaning once we stabilize which options are useful
 subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated,&
-  nstates_max,cdft,use_tmbs_as_coeffs)
+  nstates_max,cdft,completely_random)
   use yaml_output
   use module_base
   use module_types
-  use module_interfaces, except_this_one => fragment_coeffs_to_kernel
+  use module_interfaces
   use module_fragments
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
@@ -21,7 +22,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   integer, intent(in) :: iproc
   integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
   logical, intent(in) :: cdft
-  logical, intent(in) :: use_tmbs_as_coeffs
+  logical, intent(in) :: completely_random!, use_tmbs_as_coeffs
 
   integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag, linstate, jf, pm, ortho_size, s, nelecfrag
   integer, allocatable, dimension(:) :: ipiv
@@ -34,9 +35,11 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   integer, allocatable, dimension(:) :: rand_seed
   real(kind=dp) :: rtime, random_noise, rmax
   character(len=10) :: sys_time
-  logical :: random, completely_random, lincombm, lincombp
+  logical :: random, lincombm, lincombp !completely_random, 
 
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  logical, parameter :: use_tmbs_as_coeffs=.false.
+
 
   call timing(iproc,'kernel_init','ON')
   call f_routine(id='fragment_coeffs_to_kernel')
@@ -55,7 +58,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 
   ! adding random noise to starting to help with local minima problem
   random=.false. ! add a bit of noise
-  completely_random=.false. ! completely random start for coeffs
+  !completely_random=.false. ! completely random start for coeffs
   rmax=0.2d0
   random_noise=0.0d0
   rtime=0.0d0
@@ -149,7 +152,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   ! set coeffs to tmbs with occupancies so each is equally weighted
   ! can only easily be used to get kernel (via FOE) or using diag
   ! occupancies should be reset afterwards
-  if (.not. use_tmbs_as_coeffs) then
+  if (.not. use_tmbs_as_coeffs .or. completely_random) then
      call fill_occupied_coeffs()
 
      ! still experimental and only for specific cases
@@ -173,26 +176,36 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 contains
 
   !still assuming neutral/correct charge distribution given
+  !might delete this option eventually, as now doing via kernel
   subroutine set_coeffs_to_tmbs()
     implicit none
 
+real(kind=dp) :: sumo, sumof
     call f_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
 
     coeff_final=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_final')
 
     jsforb=0
+sumo=0.0d0
     do ifrag=1,input%frag%nfrag
+sumof=0.0d0
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
        call f_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
        nelecfrag=ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
        do jtmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
           tmb%coeff(jsforb+jtmb,jtmb)=1.0d0
-          tmb%orbs%occup(jsforb+jtmb)=real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp)/real(nelecfrag,dp)
+          tmb%orbs%occup(jsforb+jtmb)=real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp) !ref_frags(ifrag_ref)%coeff(jtmb,jtmb) !
           tmb%orbs%eval(jsforb+jtmb)=-0.5d0
+sumo=sumo+ref_frags(ifrag_ref)%coeff(jtmb,jtmb)
+sumof=sumof+ref_frags(ifrag_ref)%coeff(jtmb,jtmb)
+          write(*,'(a,5(2x,I4),4(2x,F6.2))') 'iproc,if,ifr,ntmbf,nef,it,n,nw',ifrag,ifrag_ref,&
+               ref_frags(ifrag_ref)%fbasis%forbs%norb,nelecfrag,jtmb,&
+               real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp),&
+               ref_frags(ifrag_ref)%coeff(jtmb,jtmb),sumof,sumo
        end do
        !if (iproc==0) print*,ifrag,ifrag_ref,ref_frags(ifrag_ref)%fbasis%forbs%norb,nelecfrag,&
-       !      real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp)/real(nelecfrag,dp)
+       !      real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp),tmb%coeff(jtmb,jtmb)
 
        !ortho_size=ref_frags(ifrag_ref)%fbasis%forbs%norb
        !tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, &
@@ -208,6 +221,8 @@ contains
 
        ! update coeff_final matrix following coeff reorthonormalization
        do jtmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+          ! renormalize occupations to compensate for charge leaking
+          !tmb%orbs%occup(jsforb+jtmb)=tmb%orbs%occup(jsforb+jtmb)*nelecfrag/sumof
           do itmb=1,tmb%orbs%norb
              coeff_final(itmb,jsforb+jtmb)=tmb%coeff(itmb,jtmb)
           end do
@@ -439,7 +454,7 @@ contains
 
        !GENERALIZE HERE FOR OTHER CHARGE STATES
        !eval_tmp(jsforb+jtmb-ceiling(jstate_max)+jf)=eval_tmp(jsforb+jtmb-ceiling(jstate_max)+jf)+5.0d0/real(input%frag%nfrag,gp)
-       tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max)+ifrag)=0.0d0
+       tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max)+ifrag-1)=0.0d0
        !version where occupancies are fixed
        !if (lincombp) tmb%orbs%occup(jsforb+jtmb-ceiling(jstate_max)+ifrag)=real(2*input%frag%nfrag-1,gp)/real(input%frag%nfrag,gp)
 
@@ -588,6 +603,9 @@ contains
             ') differs from number of KS states (',ksorbs%norb,') - might have convergence problems'
     end if
 
+    ! shouldn't we actually check if nstates_max is (less than?) equal to ks_e?
+    ! don't think it needs to be an output still...
+
     !!!!!!!!!!!!!!!
     ! need the eigenvalues to be in ksorbs%eval
     call vcopy(ksorbs%norb,tmb%orbs%eval(1),1,ksorbs%eval(1),1)
@@ -606,11 +624,238 @@ end subroutine fragment_coeffs_to_kernel
 
 
 
+!think about cdft and charged systems...
+!random etc should all be external options - use one variable with multiple choices?
+subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,&
+  overlap_calculated,cdft,diagonal_kernel)
+  use yaml_output
+  use module_base
+  use module_types
+  use module_interfaces
+  use module_fragments
+  use communications_base, only: TRANSPOSE_FULL
+  use communications, only: transpose_localized
+  use sparsematrix_base, only: sparsematrix_malloc0_ptr, DENSE_FULL, assignment(=)
+  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
+                          uncompress_matrix2, compress_matrix
+  use transposed_operations, only: calculate_overlap_transposed
+  implicit none
+  type(DFT_wavefunction), intent(inout) :: tmb
+  type(input_variables), intent(in) :: input
+  type(system_fragment), dimension(input%frag%nfrag_ref), intent(inout) :: ref_frags
+  type(orbitals_data), intent(inout) :: ksorbs
+  logical, intent(inout) :: overlap_calculated
+  real(kind=gp), dimension(input%frag%nfrag), intent(in) :: input_frag_charge
+  integer, intent(in) :: iproc
+  logical, intent(in) :: cdft
+  logical, intent(in) :: diagonal_kernel
+
+  integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag, linstate, jf, pm, ortho_size, s
+  integer, allocatable, dimension(:) :: ipiv
+  real(gp), dimension(:,:), allocatable :: coeff_final
+  real(gp) :: nelecorbs, nelecfrag_tot, jstate_max, homo_diff, lag_mult, fac, nelecfrag
+  real(gp), dimension(:), allocatable :: eval_tmp, eval_tmp2
+  character(len=*), parameter :: subname='fragment_coeffs_to_kernel'
+
+  integer :: rand_size
+  integer, allocatable, dimension(:) :: rand_seed
+  real(kind=dp) :: rtime, random_noise, rmax
+  character(len=10) :: sys_time
+  logical :: random, completely_random 
+
+  real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+
+  call timing(iproc,'kernel_init','ON')
+  call f_routine(id='fragment_coeffs_to_kernel')
+
+  !! need to do this properly/rearrange routines
+  !if (cdft) then
+  !   ! otherwise doesn't make sense
+  !   if (input%frag%nfrag_ref==2) homo_diff=(ref_frags(1)%eval(ceiling(ref_frags(1)%nelec/2.0_gp))&
+  !        -ref_frags(2)%eval(ceiling(ref_frags(2)%nelec/2.0_gp)))/2.0d0
+  !   !if (cdft%charge<0) lag_mult=-0.5, otherwise +0.5
+  !   lag_mult=-0.05d0
+  !else
+  !   homo_diff=0.0d0
+  !   lag_mult=0.0d0
+  !end if
+
+  ! adding random noise to kernel to help with local minima problem
+  random=.false. ! add a bit of noise
+  completely_random=.false. ! completely random start for coeffs
+
+  rmax=0.2d0
+  random_noise=0.0d0
+  rtime=0.0d0
+  if (random .or. completely_random) then
+     call random_seed(size=rand_size)
+     allocate(rand_seed(1:rand_size))
+     call date_and_time(time=sys_time)
+     ! coeffs need to be the same across processors
+     if (iproc==0) read(sys_time,*) rtime
+     if (bigdft_mpi%nproc>1) call mpiallred(rtime, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     rand_seed=int(rtime*1000.0_dp)
+     call random_seed(put=rand_seed)
+     deallocate(rand_seed) 
+  end if
+
+  !can we add charge to kernel for cdft?
+  !nelecfrag_tot=0
+  !do ifrag=1,input%frag%nfrag
+  !   ifrag_ref=input%frag%frag_index(ifrag)
+  !   nelecfrag_tot=nelecfrag_tot+ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
+  !end do
+
+  if (completely_random) then
+     if (bigdft_mpi%iproc==0) print*,'Starting kernel is replaced with a random guess'
+  else if (random) then
+     if (bigdft_mpi%iproc==0) print*,'Random noise added to starting kernel'
+  end if
+
+  !!in theory we could add/remove states depending on their energies, but for now we force the user to specify
+  !!need to include occupations as we actually want to compare number of electrons here?
+  !nelecorbs=0
+  !do iorb=1,ksorbs%norb
+  !   nelecorbs=nelecorbs+ksorbs%occup(iorb)
+  !end do
+
+  !for the moment just carry on even if charge is incorrect
+  !if (nint(nelecorbs)/=nelecfrag_tot) then
+  !   print*,'User should specify which fragments charges are added to/removed from in charged fragment calculation',&
+  !        nelecfrag_tot,nelecorbs,ksorbs%norb
+  !end if
+
+  !likewise, ignore extra states
+  !if (mod(input%norbsempty,input%frag%nfrag)/=0) then
+  !   if (bigdft_mpi%iproc==0) call yaml_warning('Number of extra bands does not divide evenly among fragments')
+  !   num_extra_per_frag=(input%norbsempty-mod(input%norbsempty,input%frag%nfrag))/input%frag%nfrag
+  !else
+  !   num_extra_per_frag=input%norbsempty/input%frag%nfrag
+  !end if
+
+  ! Calculate the overlap matrix between the TMBs - why? - I guess for purification/reorthonormalization...
+  !if(.not. overlap_calculated) then
+  !   call timing(iproc,'kernel_init','OF')
+  !   if(.not.tmb%can_use_transposed) then
+  !       if(associated(tmb%psit_c)) then
+  !           call f_free_ptr(tmb%psit_c)
+  !       end if
+  !       if(associated(tmb%psit_f)) then
+  !           call f_free_ptr(tmb%psit_f)
+  !       end if
+  !       tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
+  !       tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
+  !       call transpose_localized(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+  !            TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
+  !       tmb%can_use_transposed=.true.
+  !   end if
+  !
+  !   call calculate_overlap_transposed(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%orbs, tmb%collcom, &
+  !        tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
+  !   !!call gather_matrix_from_taskgroups_inplace(bigdft_mpi%iproc, bigdft_mpi%nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
+  !   ! This can then be deleted if the transition to the new type has been completed.
+  !   !tmb%linmat%ovrlp%matrix_compr=tmb%linmat%ovrlp_%matrix_compr
+  !
+  !   overlap_calculated=.true.
+  !   call timing(iproc,'kernel_init','ON')
+  !end if
+
+  ! set coeffs to tmbs with occupancies so each is equally weighted
+  ! can only easily be used to get kernel (via FOE) or using diag
+  ! occupancies should be reset afterwards
+
+  ! for now working in dense format
+  tmb%linmat%kernel_%matrix = sparsematrix_malloc0_ptr(tmb%linmat%l, DENSE_FULL, id='tmb%linmat%kernel__%matrix')
+
+  if ((.not. diagonal_kernel) .or. completely_random) then
+     call fill_kernel_from_fragments()
+  else if (completely_random) then
+      call fill_random_kernel()
+  else if (diagonal_kernel) then
+     call fill_diagonal_kernel()
+  end if
+
+  if (random .and. (.not. completely_random)) then
+     call add_noise_to_kernel()
+  end if
+
+  call compress_matrix(iproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)  
+  call f_free_ptr(tmb%linmat%kernel_%matrix) 
+
+  call f_release_routine()
+  call timing(iproc,'kernel_init','OF')
+
+contains
+
+  !assuming neutral/correct charge distribution given
+  subroutine fill_diagonal_kernel()
+    implicit none
+
+    isforb=0
+    do ifrag=1,input%frag%nfrag
+       ifrag_ref=input%frag%frag_index(ifrag)
+
+       nelecfrag=ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
+       do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+          tmb%linmat%kernel_%matrix(isforb+itmb,isforb+itmb,1)=nelecfrag/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp)
+       end do
+
+       isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+    end do
 
 
+  end subroutine fill_diagonal_kernel
+
+  subroutine fill_kernel_from_fragments()
+    implicit none
+
+    ! add loop over spin
+
+    isforb=0
+    do ifrag=1,input%frag%nfrag
+       ifrag_ref=input%frag%frag_index(ifrag)
+       do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+          call vcopy(ref_frags(ifrag_ref)%fbasis%forbs%norb,ref_frags(ifrag_ref)%kernel(1,itmb,1),1,&
+               tmb%linmat%kernel_%matrix(1+isforb,itmb+isforb,1),1)
+       end do
+  
+       isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+    end do
+  
+    ! should we purify kernel?
+  
+  end subroutine fill_kernel_from_fragments
+
+  subroutine fill_random_kernel()
+    implicit none
+
+    do itmb=1,tmb%linmat%l%nfvctr
+       do jtmb=1,tmb%linmat%l%nfvctr
+          call random_number(random_noise)
+          random_noise=((random_noise-0.5d0)*2.0d0)*rmax
+          tmb%linmat%kernel_%matrix(itmb,jtmb,1)=random_noise
+       end do
+    end do
+
+    ! almost certainly need purification here - add in all cases?
+
+  end subroutine fill_random_kernel
+
+  subroutine add_noise_to_kernel()
+    implicit none
+
+    do itmb=1,tmb%linmat%l%nfvctr
+       do jtmb=1,tmb%linmat%l%nfvctr
+          call random_number(random_noise)
+          random_noise=((random_noise-0.5d0)*2.0d0)*rmax
+          tmb%linmat%kernel_%matrix(itmb,jtmb,1)=tmb%linmat%kernel_%matrix(itmb,jtmb,1)+random_noise
+       end do
+    end do
+
+  end subroutine add_noise_to_kernel
 
 
-
+end subroutine fragment_kernels_to_kernel
 
 
 

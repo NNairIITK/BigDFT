@@ -12,6 +12,7 @@
 module dictionaries
    use exception_callbacks
    use dictionaries_base
+   use f_precisions, only: f_address,f_loc
    use yaml_strings, only: read_fraction_string,yaml_toa,f_strcpy
    implicit none
 
@@ -83,7 +84,7 @@ module dictionaries
       module procedure get_value,get_integer,get_real,get_double,get_long,get_lg
       module procedure get_rvec,get_dvec,get_ilvec,get_ivec,get_lvec,get_c1vec
       !safe getter from list_container
-      module procedure safe_get_dict,safe_get_integer,safe_get_double,safe_get_real,safe_get_char
+      module procedure safe_get_dict,safe_get_integer,safe_get_double,safe_get_real,safe_get_char,safe_get_logical
    end interface
 
    interface dict_remove
@@ -117,8 +118,6 @@ module dictionaries
    interface dict_new
       module procedure dict_new,dict_new_elems
    end interface
-
-   integer(kind=8), external :: f_loc
 
    !> Public routines
    public :: operator(//),operator(.index.),assignment(=)
@@ -177,7 +176,7 @@ module dictionaries
    public :: f_err_set_callback,f_err_unset_callback
    public :: f_err_open_try,f_err_close_try
    public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
-   public :: f_loc,f_get_past_error,f_get_no_of_errors
+   public :: f_get_past_error,f_get_no_of_errors
 
    !for internal f_lib usage
    public :: dictionaries_errors,TYPE_DICT,TYPE_LIST
@@ -1345,6 +1344,7 @@ contains
      if (f_err_raise(no_key(dict),err_id=DICT_KEY_ABSENT)) return
      if (f_err_raise(no_value(dict),'The key is "'//trim(dict%data%key)//'"',err_id=DICT_VALUE_ABSENT)) return
      call f_strcpy(src=dict%data%value,dest=val)
+     
      !call get_field(dict%data%value,val)
 
    end subroutine get_value
@@ -1542,6 +1542,13 @@ contains
         nullify(dict)
      end if
    end subroutine safe_get_dict
+
+   subroutine safe_get_logical(val,el)
+     implicit none
+     logical, intent(inout) :: val
+     type(list_container), intent(in) :: el
+     if (associated(el%dict)) val=el%dict
+   end subroutine safe_get_logical
 
    subroutine safe_get_integer(val,el)
      implicit none

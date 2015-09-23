@@ -1,5 +1,38 @@
 # Give here the list of existing tests
-TESTDIRS = C \
+tests_cpu_only = Graphene FeHyb
+tests_cpu_only_long = H Mn2 SIC H-Rydberg
+tests_ocl_only = OCL
+
+#initialize
+SHORT_TESTDIRS =
+LONG_TESTDIRS =
+EXTRA_TESTDIRS =
+
+#This will run the automatic tests also for GPU
+if USE_CUDA_GPU
+  SHORT_TESTDIRS += GPU
+else
+  EXTRA_TESTDIRS += GPU
+endif
+if USE_OCL
+  SHORT_TESTDIRS += $(tests_ocl_only)
+  EXTRA_TESTDIRS += $(tests_cpu_only) $(tests_cpu_only_long)
+else
+#Add H (box too small) and Graphene (different algorithm) only if we do not use OCL (see README)
+#OCL not implemented with spin=4 (Fehyb and Mn2)
+  SHORT_TESTDIRS += $(tests_cpu_only)
+  LONG_TESTDIRS += $(tests_cpu_only_long)
+  EXTRA_TESTDIRS += $(tests_ocl_only)
+endif
+
+SHORT_TESTDIRS += C \
+	taskgroups \
+	O2-Spin \
+	NLCC \
+	AgBulk \
+	PAW-GGA
+
+LONG_TESTDIRS += $(SHORT_TESTDIRS) \
 	  Li+ \
 	  H2-spin \
 	  SiH4 \
@@ -7,40 +40,14 @@ TESTDIRS = C \
 	  Ca2 \
 	  H2O-CP2K \
 	  SiBulk \
-	  AgBulk \
 	  TiMix \
 	  TiSmear \
-	  O2-Spin \
 	  ElectField \
 	  ElectronGas \
-	  NLCC \
-	  taskgroups \
 	  CH4-D3 \
-	  PAW \
-	  PAW-GGA
-
-tests_cpu_only = H Graphene FeHyb Mn2 SIC H-Rydberg
-tests_ocl_only = OCL
-
-EXTRA_TESTDIRS =
+	  PAW
 
 EXTRA_DIST = 
-
-#This will run the automatic tests also for GPU
-if USE_CUDA_GPU
-  TESTDIRS += GPU
-else
-  EXTRA_TESTDIRS += GPU
-endif
-if USE_OCL
-  TESTDIRS += $(tests_ocl_only)
-  EXTRA_TESTDIRS += $(tests_cpu_only)
-else
-#Add H (box too small) and Graphene (different algorithm) only if we do not use OCL (see README)
-#OCL not implemented with spin=4 (Fehyb and Mn2)
-  TESTDIRS += $(tests_cpu_only)
-  EXTRA_TESTDIRS += $(tests_ocl_only)
-endif
 
 # Give here the pseudo-potentials used by each test.
 H.psp: psppar.H

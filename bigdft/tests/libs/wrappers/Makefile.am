@@ -1,4 +1,16 @@
 ## Process this file with automake to produce Makefile.in
+chks=wrappers.out.report.yaml posinp.report.yaml $(py_report)
+
+if BUILD_BINDINGS
+SHORT_CHECK = $(chks)
+LONG_CHECK = $(SHORT_CHECK)
+else
+SHORT_CHECK = 
+LONG_CHECK = $(chks)
+endif
+
+include $(srcdir)/../check.mk
+
 
 SUBDIRS =
 
@@ -22,8 +34,6 @@ CLEANFILES = default.* posinp.yaml time.yaml wrappers.out.yaml pywrappers.out.ya
 if WITH_GOBJECT_INTROSPECTION
 py_report = pywrappers.out.report.yaml
 endif
-
-check: wrappers.out.report.yaml posinp.report.yaml $(py_report)
 
 if BUILD_DYNAMIC_LIBS
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
