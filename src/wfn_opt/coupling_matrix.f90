@@ -259,6 +259,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
         !add factors from energy occupation numbers (for non-tda case)
         K(ik,jk)=K(ik,jk)*(2.0_wp*sqrt(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))*&
              sqrt(orbsvirt%eval(jorba)-orbsocc%eval(jorbi)))**ntda
+        !K(ik,jk)=K(ik,jk)*(2.0_wp*sqrt(orbsvirt%eval(jorba)-orbsocc%eval(jorbi)))**ntda
         !if (nspin ==1) then
         !   Kaux(ik,jk)=Kaux(ik,jk)*(2.0_wp*sqrt(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))*&
         !        sqrt(orbsvirt%eval(jorba)-orbsocc%eval(jorbi)))**ntda
@@ -399,11 +400,13 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
                  call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
               end do
            end if
+
+           call yaml_sequence_close()
               !write(6,30) imulti, Ha_eV*omega(imulti),omega(imulti)*(2./3.)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
 !30            format(t2,i3,2x,f9.4,12x,1pe10.3) 
-           call yaml_sequence_close()
 
            !test of the f-sum rule
+!           call yaml_sequence_open('Test of the f-sum rule')
            fsumrule_test=0_wp
            if (tddft_approach=='TDA') then
               do imulti = 1, nmulti
@@ -415,11 +418,13 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
                                sqrt(omega(imulti))*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
               end do
            end if
-           print*, "fsumrule=", fsumrule_test
+           call yaml_map('Test of the f-sum rule',fsumrule_test,fmt='(1pe10.3)')
+           !print*, "fsumrule=", fsumrule_test
 
 !          Extracting the excitation energies and Oscillator strength to plot absorption spectra
            open(unit=9, file='td_spectra.txt')
-           write(9,'(a4)')'2  #(results in eV)' 
+           !write(9,'(i4,5x,a19)') ndipoles, '#(results in eV)' 
+           write(9,'(i4)') ndipoles
            if (tddft_approach=='TDA') then
               do imulti = 1, min(100, nmulti) 
                  write(9,'(f9.4,5x,1pe10.3)') Ha_eV*omega(imulti),&
@@ -447,7 +452,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
               end do
            end do
            open(unit=10, file='transitions.txt')
-           write(10,*) ik
+           write(10,*) ik-1
            if (tddft_approach=='TDA') then
               do imulti = 1, nmulti
                  do iorbi = 1, orbsocc%norb
