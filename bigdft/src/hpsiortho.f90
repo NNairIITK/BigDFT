@@ -121,6 +121,14 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
              denspot%rho_psi,denspot%rhov,unblock_comms_den)
         !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
      end if
+
+     if (wfn%paw%usepaw) then
+        !write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
+        call paw_compute_rhoij(wfn%paw, wfn%orbs, atoms)
+        call paw_update_rho(wfn%paw, denspot, atoms)
+        !write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
+     end if
+
      !in case of GPU do not overlap density communication and projectors
      if ((ithread > 0 .or. nthread==1) .and. .not. whilepot .and. .not. GPU%OCLconv) then
         ! Only the remaining threads do computations (if active) 
@@ -166,13 +174,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      end if
 
      call denspot_set_rhov_status(denspot, ELECTRONIC_DENSITY, itwfn, iproc, nproc)
-
-     if (wfn%paw%usepaw) then
-        !write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
-        call paw_compute_rhoij(wfn%paw, wfn%orbs, atoms)
-        call paw_update_rho(wfn%paw, denspot, atoms)
-        !write(*,*) "DENSITY", sum(denspot%rhov) * product(denspot%dpbox%hgrids)
-     end if
 
      !before creating the potential, save the density in the second part 
      !in the case of NK SIC, so that the potential can be created afterwards
@@ -287,7 +288,10 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
         nullify(denspot%rho_work)
      end if
 
-
+     if (wfn%paw%usepaw) then
+        call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC(1, 1, 1, 1), &
+             & energs%epaw, energs%epawdc, compch_sph)
+     end if
   end if
 
   !debug
@@ -336,11 +340,6 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      call full_local_potential(iproc,nproc,wfn%orbs,wfn%Lzd,linflag,&
           denspot%dpbox,denspot%xc,denspot%rhov,denspot%pot_work)
      !write(*,*) 'node:', iproc, ', thread:', ithread, 'mpi communication finished!!'
-  end if
-
-  if (wfn%paw%usepaw) then
-     call paw_compute_dij(wfn%paw, atoms, denspot, denspot%V_XC(1, 1, 1, 1), &
-          & energs%epaw, energs%epawdc, compch_sph)
   end if
 
   if ((ithread > 0 .or. nthread==1) .and. whilepot .and. .not. GPU%OCLconv) then
@@ -3339,7 +3338,7 @@ subroutine paw_update_rho(paw, denspot, atoms)
   ngfft(1:3) = denspot%dpbox%ndims
   ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
 
-  if (denspot%rhov_is /= ELECTRONIC_DENSITY) stop "rhov must be density here."
+  !if (denspot%rhov_is /= ELECTRONIC_DENSITY) stop "rhov must be density here."
   if (bigdft_mpi%iproc == 0) then
      call yaml_newline()
   end if
