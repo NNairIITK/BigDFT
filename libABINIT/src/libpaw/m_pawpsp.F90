@@ -3454,7 +3454,7 @@ subroutine pawpsp_17in(epsatm,ffspl,icoulomb,ipsp,ixc,lmax,&
    pawtab%tcoredens(1:pawrad%mesh_size,:)=zero
  else
    pawtab%usetcore=1
-   pawtab%tcoredens(1:core_mesh%mesh_size,1)=tncore(1:core_mesh%mesh_size)
+   pawtab%tcoredens(1:pawtab%core_mesh_size,1)=tncore(1:pawtab%core_mesh_size)
  end if
  write(msg,'(a,i1)') &
 & ' Radial grid used for (t)core density is grid ',icoremesh
