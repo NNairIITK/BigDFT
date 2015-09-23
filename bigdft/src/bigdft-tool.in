@@ -454,6 +454,7 @@ class GaussianFit:
     import numpy
     self.id = id
     self.N = N
+    self.l = l
     self.cutoff = cutoff
     self.init = init
 
@@ -465,12 +466,8 @@ class GaussianFit:
         if v > rmax:
           imax = i
           break
-    self.x = x[:imax].copy()
-    self.x[self.x == 0] = 1
-    self.proj = proj[:imax] / (self.x ** l)
     self.x = x[:imax]
-    if l > 0:
-      self.proj[0] = self.proj[1]
+    self.proj = proj[:imax]
 
   def gauss_eval(self, p, prev):
     import numpy
@@ -484,12 +481,16 @@ class GaussianFit:
     C = -D + 1j * v0[:, GaussianFit.I_PHASE]
     Fc = v0[:, GaussianFit.I_FREAL] - 1j * v0[:, GaussianFit.I_FIMAG]
     Cc = -D - 1j * v0[:, GaussianFit.I_PHASE]
-    ret = numpy.zeros(len(self.x), dtype = self.x.dtype)
+    ret = self.x ** self.l
     for (i, xv) in enumerate(self.x):
       a = (F * numpy.exp(C * (xv ** 2)) + Fc * numpy.exp(Cc * (xv ** 2))).sum()
       #ret[i] = (xv ** n) * numpy.real(a)
-      ret[i] = numpy.real(a)
+      ret[i] *= numpy.real(a)
     return ret
+
+  def resid_eval(self, p, prev = None):
+    import numpy
+    return numpy.trapz((self.proj - self.gauss_eval(p, prev)) ** 2, self.x) / self.x.max()
 
   def fit(self):
     import numpy
@@ -568,11 +569,42 @@ def fitPAW(file, N):
     for vals in zip(g.x, g.proj):
       o.write("  - [%15.9g, %15.9g]\n" % vals)
     o.write("  fit:\n")
-    o.write("    residual: %15.9g\n" % (fitHelperResid(p, g, None) ** 2).sum())
+    o.write("    residual: %15.9g\n" % g.resid_eval(p))
     o.write("    gaussians:\n")
     for vals in p:
       o.write("    - {\"factor\": [%15.9g, %15.9g], \"exponent\": [%15.9g, %15.9g]}\n" % tuple(vals))
   o.close()
+
+def gauss2plot(file):
+  import numpy, yaml
+  projs = yaml.load(open(file, "r").read(), Loader = yaml.CLoader)
+  og = open("projG", "w")
+  for (k, v) in projs.items():
+    o = open("proj%s" % k, "w")
+    for vals in v["function"]:
+      o.write("%g %g\n" % tuple(vals))
+    o.close()
+
+    proj = numpy.zeros((len(v["fit"]["gaussians"]), 4))
+    for (i, g) in enumerate(v["fit"]["gaussians"]):
+      proj[i, :] = g["factor"] + g["exponent"]
+    og.write("g_%s(x) = \\\n" % k)
+    for (fr, fi, d, p) in proj:
+      og.write("{%g, %g}*exp({-%g, %g} * (x ** 2)) + {%g, %g}*exp({-%g, %g} * (x ** 2)) + \\\n" % (fr, fi, d, p, fr, -fi, d, -p))
+    og.write("0\n")
+
+def gauss2xml(file):
+  import numpy, yaml
+  projs = yaml.load(open(file, "r").read(), Loader = yaml.CLoader)
+  for (k, v) in projs.items():
+    proj = numpy.zeros((len(v["fit"]["gaussians"]), 4))
+    for (i, g) in enumerate(v["fit"]["gaussians"]):
+      proj[i, :] = g["factor"] + g["exponent"]
+    print "<projector_fit state=\"%s\" residual=\"%g\">" % (k, v["fit"]["residual"])
+    for gauss in proj:
+      print "  <gaussian factor=\"{%g, %g}\" exponent=\"{%g, %g}\" />" % tuple(gauss)
+    print "</projector_fit>"
+
 
 # Start the main script
 if __name__ == "__main__":
@@ -596,17 +628,17 @@ if __name__ == "__main__":
 
     command = None
     # Run memguess
-    if options.action == actions[0]:
+    if options.action == "memory-estimation":
         command = "%s %d %s dd%s" % (memguess, options.n_proc, options.name, options.logging)
-    if options.action == actions[1]:
+    elif options.action == "rotate":
         command = "%s 1 %s dd%s o" % (memguess, options.name, options.logging)
-    if options.action == actions[2]:
+    if options.action == "convert-field":
         if len(args) < 2:
             parser.print_help()
             raise ValueError(
                 "Action '%s' requires two mandatory arguments" % actions[2])
         command = "%s 1 dd%s convert %s %s" % (memguess, options.logging, args[0], args[1])
-    if options.action == actions[3]:
+    if options.action == "export-wf":
         if len(args) < 1:
             parser.print_help()
             raise ValueError(
@@ -614,7 +646,7 @@ if __name__ == "__main__":
         command = "%s 1 %s dd%s exportwf %s %d %d %d %d" % (memguess, options.name,
                                                             options.logging, args[
                                                               0], options.i_band, options.i_spin, options.i_kpt, options.i_complex)
-    if options.action == actions[22]:
+    if options.action == "export-proj":
         if len(args) < 1:
             parser.print_help()
             raise ValueError(
@@ -622,15 +654,15 @@ if __name__ == "__main__":
         command = "%s 1 %s dd%s exportproj %s" % (memguess, options.name,
                                                             options.logging, args[
                                                               0])
-    if options.action == actions[4]:
+    if options.action == "export-grid":
         command = "%s 1 %s dd%s y" % (memguess, options.name, options.logging)
-    if options.action == actions[5]:
+    if options.action == "atomic-wf":
         command = "%s 1 %s dd%s atwf %d" % (
             memguess, options.name, options.logging, options.n_gaussians)
-    if options.action == actions[6]:
+    if options.action == "GPU-test":
         command = "%s 1 %s dd%s GPUtest %d %d" % (
             memguess, options.name, options.logging, options.n_repeats, options.n_orbs)
-    if options.action == actions[7]:
+    if options.action == "convert-positions":
         if len(args) < 2:
             parser.print_help()
             raise ValueError(
@@ -639,7 +671,7 @@ if __name__ == "__main__":
             memguess, options.logging, args[0], args[1])
 
     # input manual
-    if options.action == actions[8]:
+    if options.action == "manual":
         # to parse and document the input variables
         import yaml
         import pprint
@@ -688,7 +720,7 @@ if __name__ == "__main__":
         if options.profile in profs:
             sys.stdout.write(yaml.dump(
                 infiles[options.profile], default_flow_style=False, explicit_start=True))
-    if options.action == actions[9]:
+    if options.action == "wizard":
         # experimental mode to pretty print information with ncurses
         # define the information for printing with ncurses
         menu_yaml_base = \
@@ -834,7 +866,7 @@ options:
                         foundkeys.append(i)
             sys.stdout.write(
                 yaml.dump(doc, default_flow_style=False, explicit_start=True))
-    if options.action == actions[10]:
+    if options.action == "transform-coordinates":
         print 'calling memguess for coordinate conversion'
         infile_names = options.infile.split(".")
         outfile_names = options.outfile.split(".")
@@ -854,54 +886,58 @@ options:
             direction = 'not supported'
         command = "%s 1 %s dd transform-coordinates %s  %s %s" % (memguess, options.name, direction, options.infile, options.outfile)
         print command
-    if options.action == actions[11]:
+    if options.action == "pdos":
         print 'calling memguess for PDOS'
         #infile_names = options.infile.split(".")
         #infile_extension = infile_names[len(infile_names)-1]
         #command = "%s 1 %s dd pdos %s %s %s %d %d %d %e %s %s" % (memguess, options.name, options.coeff_file, options.ham_file, options.overlap_file, options.nbasis, options.norb, options.nat, options.interval, options.pdos_file, options.posinp_file)
         command = "%s 1 %s dd pdos %s %s %s %s" % (memguess, options.name, options.coeff_file, options.ham_file, options.overlap_file, options.pdos_file)
         print command
-    if options.action == actions[12]:
+    if options.action == "kernel-analysis":
         print 'calling memguess for kernel analysis'
         command = "%s 1 %s dd kernel-analysis %s %s %d %d %d" % (memguess, options.name, options.coeff_file, options.kernel_file, options.nbasis, options.norb, options.nat)
         print command
-    if options.action == actions[13]:
+    if options.action == "extract-submatrix":
         print 'calling memguess for submatrix extraction'
         command = "%s 1 %s dd extract-submatrix %s %d %d %d" % (memguess, options.name, options.matrix_file, options.nbasis, options.nat, options.nsubmatrices)
         print command
-    if options.action == actions[14]:
+    if options.action == "solve-eigensystem":
         print 'calling memguess to solve the eigensystem'
         command = "%s 1 %s dd solve-eigensystem %s %s %d %d %s" % (memguess, options.name, options.ham_file, options.overlap_file, options.nbasis, options.nat, options.coeff_file)
-    if options.action == actions[15]:
+    if options.action == "analyse-coeffs":
         print 'calling memguess to analyse the coeffs'
         command = "%s 1 %s dd analyze-coeffs %s %d %d %d %d" % (memguess, options.name, options.coeff_file, options.nbasis, options.norb, options.nat, options.ncategories)
         print command
-    if options.action == actions[16]:
+    if options.action == "peel-matrix":
         print 'calling memguess to peel a matrix'
         command = "%s 1 %s dd peel-matrix %s %d %d %e" % (memguess, options.name, options.matrix_file, options.nbasis, options.nat, options.cutoff)
         print command
-    if options.action == actions[17]:
+    if options.action == "multiply-matrices":
         print 'calling memguess to multiply two matrices'
         command = "%s 1 %s dd multiply-matrices %s %s %s %d %d" % (memguess, options.name, options.amatrix_file, options.bmatrix_file, options.cmatrix_file, options.nbasis, options.nat)
-    if options.action == actions[18]:
+    if options.action == "matrixpower":
         print 'calling memguess to calculate matrix**power'
         command = "%s 1 %s dd matrixpower %s %s %d %d %e" % (memguess, options.name, options.inmatrix_file, options.outmatrix_file, options.nbasis, options.nat, options.power)
         print command
-    if options.action == actions[19]:
+    if options.action == "plot-wavefunction":
         print 'not implemented yet'
-    if options.action == actions[20]:
+    if options.action == "suggest-cutoff":
         print 'calling memguess to suggest cutoff radii'
         command = "%s 1 %s dd suggest-cutoff %s" % (memguess, options.name, options.posinp_file)
         print command
-    if options.action == actions[21]:
+    if options.action == "charge-analysis":
         print 'calling memguess to perform a Loewdin charge analysis'
         command = "%s 1 %s dd charge-analysis %s %s" % (memguess, options.name, options.overlap_file, options.kernel_file)
         print command
-    if options.action == actions[23]:
+    if options.action == "fit-proj":
         if len(args) < 1:
             parser.print_help()
             raise ValueError(
-                "Action '%s' requires one mandatory argument" % actions[22])
-        fitPAW(args[0], options.n_funcs)
+                "Action '%s' requires one mandatory argument" % actions[23])
+        if args[0].endswith(".yaml"):
+          gauss2xml(args[0])
+          gauss2plot(args[0])
+        else:
+          fitPAW(args[0], options.n_funcs)
     if command is not None:
         os.system(command)
