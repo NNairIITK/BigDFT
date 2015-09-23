@@ -118,10 +118,11 @@ module module_input_keys
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
      real(kind=8) :: max_inversion_error
-     logical :: calculate_onsite_overlap
+    logical :: calculate_onsite_overlap
      integer :: output_mat_format     !< Output Matrices format
      integer :: output_coeff_format   !< Output Coefficients format
      integer :: output_fragments   !< Output fragments/full system/both
+     integer :: frag_num_neighbours   !< number of neighbouring atoms per fragment
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
   end type linearInputParameters
@@ -1917,6 +1918,8 @@ contains
           in%lin%output_fragments = val
        case (KERNEL_RESTART_MODE)
           in%lin%kernel_restart_mode = val
+       case (FRAG_NUM_NEIGHBOURS)
+          in%lin%frag_num_neighbours = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
        case (CALC_PULAY)

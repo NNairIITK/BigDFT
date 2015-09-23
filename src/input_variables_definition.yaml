@@ -1135,6 +1135,13 @@
        random: 2
        diag: 3
        weight: 4
+     frag_num_neighbours:
+       COMMENT: number of neighbours to output for each fragment
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how many neighbouring atoms should be written to frag_env.xyz.
+       RANGE: [0,4]
+       default: 0
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical

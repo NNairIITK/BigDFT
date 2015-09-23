@@ -2675,8 +2675,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call timing(iproc,'constraineddft','OF')
 
-     !*call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'density.cube', &
-     !*     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
+     call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'density.cube', &
+          atoms,rxyz,denspot%dpbox,1,denspot%rhov)
 
      ! Must initialize rhopotold (FOR NOW... use the trivial one)
      call vcopy(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)*in%nspin, &
