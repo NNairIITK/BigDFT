@@ -310,7 +310,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       if (wrtmsg) call yaml_sequence_close()
 
       !if statement for SC cavity
-      if (kernel%method .hasattr. 'sccs') &
+      if (kernel%method .hasattr. PS_SCCS_ENUM) &
            call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,rhopot(i3start),eps0)
 
       !here the harteee energy can be calculated and the ionic potential

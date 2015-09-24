@@ -75,13 +75,13 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-9_dp!
+        kernel%minres=1.0e-6_dp!
         kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%method=PS_PCG_ENUM
         kernel%nord=16
         kernel%max_iter=50
-        kernel%minres=1.0e-9_dp! 
+        kernel%minres=1.0e-6_dp! 
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -1205,7 +1205,7 @@ subroutine polarization_charge(kernel,pot,rho)
   type(coulomb_operator), intent(inout) :: kernel
   !>complete potential, needed to calculate the derivative
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: pot
-  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: rho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: rho
   !local variables
   integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03
   real(dp) :: d2,pi
