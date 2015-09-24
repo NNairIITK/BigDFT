@@ -822,12 +822,17 @@ subroutine system_createKernels(denspot, verb)
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   logical, intent(in) :: verb
+  integer(kind=8)  :: iproc_node, nproc_node
   type(DFT_local_fields), intent(inout) :: denspot
-
-  call pkernel_set(denspot%pkernel,verbose=verb)
+  iproc_node=0
+  nproc_node=0
+  call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+  call pkernel_set(denspot%pkernel,iproc_node=iproc_node,&
+                     nproc_node=nproc_node,verbose=verb)
     !create the sequential kernel if pkernelseq is not pkernel
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
-     call pkernel_set(denspot%pkernelseq,verbose=.false.)
+     call pkernel_set(denspot%pkernelseq,iproc_node=iproc_node,&
+                     nproc_node=nproc_node,verbose=.false.)
   else
      denspot%pkernelseq = denspot%pkernel
   end if

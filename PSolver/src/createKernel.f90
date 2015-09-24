@@ -239,7 +239,7 @@ end subroutine pkernel_free
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
 !! @ingroup PSOLVER
-subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !optional arguments
+subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,nproc_node,verbose) !optional arguments
   use yaml_output
   use dynamic_memory
   use time_profiling, only: f_timing
@@ -264,6 +264,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   real(dp), dimension(:,:,:), intent(in), optional :: corr
   real(dp) :: alpha
   logical, intent(in), optional :: verbose 
+  !global number of processes running on the node, for GPU memory estimation
+  integer(kind=8), optional :: iproc_node 
+  integer(kind=8), optional :: nproc_node 
   !local variables
   logical :: dump,wrtmsg
   character(len=*), parameter :: subname='createKernel'
@@ -648,7 +651,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
     n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
     n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
     n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
-    call cuda_estimate_memory_needs(kernel, n) 
+    if(.not. present(iproc_node)) iproc_node=0
+    if(.not. present(nproc_node)) nproc_node=1
+    call cuda_estimate_memory_needs(kernel, n, iproc_node, nproc_node) 
 
 
     size2=2*n1*n2*n3
@@ -850,7 +855,7 @@ end if
 END SUBROUTINE pkernel_set
 
 
-subroutine cuda_estimate_memory_needs(kernel, n)
+subroutine cuda_estimate_memory_needs(kernel, n,iproc_node, nproc_node)
   use iso_c_binding  
 !  use module_base
 implicit none
@@ -872,22 +877,17 @@ implicit none
  call cuda_estimate_memory_needs_cu(kernel%mpi_env%iproc,n,&
     kernel%geo,plansSize,maxPlanSize,freeGPUSize, totalGPUSize )
 
- ! get the number of processes on each node
-!!TODO: see how to use bigdft_mpi from here, as we can't use module_base, which is not yet compiled
-! call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
- nproc_node=1
- iproc_node=0
+   size2=2*n(1)*n(2)*n(3)*sizeof(alpha)
+   sizek=(n(1)/2+1)*n(2)*n(3)*sizeof(alpha)
+   size3=n(1)*n(2)*n(3)*sizeof(alpha)
 
 !only the first MPI process of the group needs the GPU for apply_kernel
  if(kernel%mpi_env%iproc==0) then
-   size2=2*n(1)*n(2)*n(3)*sizeof(alpha)
-   sizek=(n(1)/2+1)*n(2)*n(3)*sizeof(alpha)
-   kernelSize =2*size2+sizek
+   kernelSize =2*size2+size3+sizek
  end if
 
 !all processes can use the GPU for apply_reductions
  if((kernel%gpuPCGRed)==1) then
-   size3=n(1)*n(2)*n(3)*sizeof(alpha)
    !add a 10% margin, because we use a little bit more
    PCGRedSize=(7*size3+4*sizeof(alpha))*1.1
    !print *,"PCG reductions size : %lu\n", PCGRedSize
