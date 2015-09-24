@@ -464,14 +464,14 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!  real(gp) :: forceleaked
 !!!  real(gp) :: yp,zp,zsq,yzsq
   real(gp) :: arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
-  integer :: i1,i2,i3,iat,ityp,nloc,iloc,nrange
+  integer :: i1,i2,i3,iat,ityp,nloc,iloc
   real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
   !Array of coefficients of the derivative
   real(gp), dimension(4) :: cprime 
 
   call f_routine(id='local_forces')
   
-  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
 
   locstrten=0.0_gp
@@ -552,7 +552,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      cutoff=10.d0*rloc
      if (at%multipole_preserving) then
         !We want to have a good accuracy of the last point rloc*10
-        cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+        cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
      end if
 
 !!!     isx=floor((rx-cutoff)/hxh)

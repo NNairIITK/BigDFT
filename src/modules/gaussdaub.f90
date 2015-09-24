@@ -1,7 +1,7 @@
 !> @file
 !!  Gaussian to Daubechies wavelets projection routines
 !! @author
-!!    Copyright (C) 2007-2015 BigDFT group (LG) <br>
+!!    Copyright (C) 2007-2014 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,7 +14,7 @@ module gaussdaub
   implicit none
   private
   
-  !>@todo These parameters has to be modified to avoid naming confusions
+  !!@todo These parameters has to be modified to avoid naming confusions
   integer, parameter :: m=8,mm=m+2
   integer, parameter :: N=m
   integer :: iw !< index for initialization
@@ -483,7 +483,6 @@ module gaussdaub
 
     end subroutine gau_daub_1d
 
-
     !> Project gaussian functions in a mesh of Daubechies scaling functions
     !! Gives the expansion coefficients of :
     !!    factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
@@ -712,7 +711,24 @@ module gaussdaub
     !!   factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
     !! Multiply it for the k-point factor exp(Ikx)
     !! For this reason, a real (cos(kx)) and an imaginary (sin(kx)) part are provided 
+    !! INPUT
+    !!   @param hgrid    step size
+    !!   @param factor   normalisation factor
+    !!   @param gau_cen  center of gaussian function
+    !!   @param gau_a    parameter of gaussian
+    !!   @param n_gau    x**n_gau (polynomial degree)
+    !!   @param nmax     size of the grid
+    !!   @param nwork    size of the work array (ww) >= (nmax+1)*17
+    !!   @param periodic the flag for periodic boundary conditions
+    !!   @param kval     value for the k-point
+    !!   @param ncplx    number of components in the complex direction (must be 2 if kval /=0)
     !!
+    !! OUTPUT
+    !!   @param n_left,n_right  interval where the gaussian is larger than the machine precision
+    !!   @param C(:,1)          array of scaling function coefficients:
+    !!   @param C(:,2)          array of wavelet coefficients:
+    !!   @param WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
+    !!   @param err_norm        normalisation error
     !!@warning 
     !!  In this version, we dephase the projector to wrt the center of the gaussian
     !!  this should not have an impact on the results since the operator is unchanged
@@ -723,23 +739,16 @@ module gaussdaub
       use module_base
       !use gaussians, only: mp_exp
       implicit none
-      logical, intent(in) :: periodic  !< the flag for periodic boundary conditions
-      integer, intent(in) :: n_gau     !< x**n_gau (polynomial degree)
-      integer, intent(in) :: nmax      !< size of the grid
-      integer, intent(in) :: nwork     !< size of the work array (ww) >= (nmax+1)*17
-      integer, intent(in) :: nstart
-      integer, intent(in) :: ncplx_w   !< size of the ww matrix
-      integer, intent(in) :: ncplx_g   !< 1 or 2 for simple or complex gaussians, respectively.
-      integer, intent(in) :: ncplx_k   !< use 2 for k-points.
-      real(gp), intent(in) :: hgrid    !< step size
-      real(gp), intent(in) :: gau_cen  !< center of gaussian function
-      real(gp), intent(in) :: kval     !< value for the k-point
-      real(gp), dimension(ncplx_g), intent(in) :: factor          !< normalisation factor
-      real(gp), dimension(ncplx_g), intent(in) :: gau_a           !< parameter of gaussian
-      real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww !< work arrays that have to be 17 times larger than C
-      integer, intent(out) :: n_left,n_right                      !< interval where the gaussian is larger than the machine precision
-      real(wp), dimension(ncplx_w,0:nmax,2), intent(out) :: c     !< array of scaling function coefficients
-                                                                  !! array of wavelet coefficients:
+      logical, intent(in) :: periodic
+      integer, intent(in) :: n_gau,nmax,nwork,nstart
+      integer, intent(in) :: ncplx_w !< size of the ww matrix
+      integer, intent(in) :: ncplx_g !< 1 or 2 for simple or complex gaussians, respectively.
+      integer, intent(in) :: ncplx_k !< use 2 for k-points.
+      real(gp), intent(in) :: hgrid,gau_cen,kval
+      real(gp),dimension(ncplx_g),intent(in)::factor,gau_a
+      real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww 
+      integer, intent(out) :: n_left,n_right
+      real(wp), dimension(ncplx_w,0:nmax,2), intent(out) :: c
       real(gp), intent(in) :: gau_cut
       !local variables
       character(len=*), parameter :: subname='gauss_to_daub_k'
@@ -835,14 +844,14 @@ module gaussdaub
 
     contains
 
-
       !> Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
       !! are fixed, we get the expansion coefficients in the usual way:
       !! get them on the finest grid by quadrature
       !! then forward transform to get the coeffs on the coarser grid.
       !! All this is done assuming nonperiodic boundary conditions
       !! but will also work in the periodic case if the tails are folded
-      subroutine gauss_to_scf()
+
+      subroutine gauss_to_scf
         n_left=lefts(0)
         n_right=rights(0)
         length=n_right-n_left+1

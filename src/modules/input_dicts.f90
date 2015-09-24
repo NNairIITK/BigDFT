@@ -1075,7 +1075,7 @@ contains
     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
 
     if (mpi_env%iproc==0) then
-       call yaml_warning('Input files read in the old format.'//&
+       call yaml_warning('Input files read in the old format. '//&
             'Use the input_minimal.yaml file to switch to new format. '//&
             'In future versions this will be deprecated')
     end if

@@ -62,7 +62,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   fdisp = f_malloc_ptr((/ 3, at%astruct%nat /),id='fdisp')
 
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   ! Aliasing
   hxh = dpbox%hgrids(1)
@@ -1809,7 +1809,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   call timing(iproc,'CrtLocPot     ','ON')
 
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   ! Aliasing
   hxh = dpbox%hgrids(1)
@@ -2778,7 +2778,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   hzh = dpbox%hgrids(3)
   
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
