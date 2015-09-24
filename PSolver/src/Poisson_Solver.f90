@@ -172,7 +172,7 @@ module Poisson_Solver
       real(dp), dimension(:,:), pointer :: pol_charge
       !> Dielectric cavity eps for print purpose only.
       real(dp), dimension(:,:), pointer :: cavity
-      real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
+      real(dp) :: work1_GPU,work2_GPU,k_GPU, rho_GPU, pot_ionGPU !<addresses for the GPU memory 
       real(dp) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
       real(dp) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
       integer, dimension(5) :: plan
@@ -271,7 +271,20 @@ contains
     nullify(k%zf)
     k%work1_GPU=0.d0
     k%work2_GPU=0.d0
+    k%rho_GPU=0.d0
+    k%pot_ionGPU=0.d0
     k%k_GPU=0.d0
+    k%p_GPU=0.d0
+    k%q_GPU=0.d0
+    k%r_GPU=0.d0
+    k%x_GPU=0.d0
+    k%z_GPU=0.d0
+    k%oneoeps_GPU=0.d0
+    k%corr_GPU=0.d0
+    k%alpha_GPU=0.d0
+    k%beta_GPU=0.d0
+    k%kappa_GPU=0.d0
+    k%beta0_GPU=0.d0
     k%plan=(/0,0,0,0,0/)
     k%geo=(/0,0,0/)
     k%mpi_env=mpi_environment_null()
