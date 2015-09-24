@@ -54,7 +54,7 @@ module environment
   end type cavity_data
 
   public :: cavity_init,eps,epsprime,epssecond,oneoeps,oneosqrteps,logepsprime,corr_term,nabla_u_square
-  public :: nabla_u,div_u_i,nabla_u_and_square,cavity_default,nonvacuum_projection,update_rhopol
+  public :: nabla_u,div_u_i,nabla_u_and_square,cavity_default,nonvacuum_projection,update_rhopol,surf_term
 
 contains
 
@@ -83,47 +83,77 @@ contains
     if (present(betaV )) c%betaV =betaV 
   end function cavity_init
 
-  pure function epsilon_transition(rho,pow,der,cavity) result(epsilon)
+  subroutine dump_cavity(cavity)
+    use yaml_output
+    implicit none
+    type(cavity_data), intent(in) :: cavity
+
+    call yaml_mapping_open('Cavity parameters')
+    call yaml_map('Epsilon',cavity%epsilon0)
+    call yaml_map('edensmax',cavity%edensmax)
+    call yaml_map('edensmin',cavity%edensmin)
+    call yaml_map('gammaS',cavity%gammaS)
+    call yaml_map('alphaS',cavity%alphaS)
+    call yaml_map('betaV',cavity%betaV)
+    call yaml_mapping_close()
+  end subroutine dump_cavity
+
+
+  pure function epsilon_transition(rho,pow,der,cavity) result(eps)
+    implicit none
     character(len=*), intent(in) :: pow !<power to epsilon
     integer, intent(in) :: der !< derivative of epsolin
     real(dp), intent(in) :: rho
     type(cavity_data), intent(in) :: cavity
-    real(gp) :: epsilon
+    real(gp) :: eps
     !local variables
-    real(gp) :: fact1,fact2,fact0,r,zeta,w,dw,dzetao2pi,d2zetao2pi,dzeta2o2pi,d2w
+    real(gp) :: fact1,fact2,fact0,r,zeta,w,dw,dzetao2pi,d2zetao2pi,dzeta2o2pi,d2w,ep,s,l
 
-    epsilon=-1.d0 !this value should always be overwritten
+    eps=-1.d0 !this value should always be overwritten
     fact0=cavity%edensmax/cavity%edensmin
     r=cavity%edensmax/rho
     fact1=1.0_gp/log(fact0)
     fact2=log(r)
     zeta=2.0_gp*pi*fact1*fact2
-    w=(zeta-sin(zeta))/(2.d0*pi)
+    s=sin(zeta)
+    w=(zeta-s)/(2.d0*pi)
     dzetao2pi=-fact1/rho
     dw=(1.d0-cos(zeta))*dzetao2pi
+    ep=cavity%epsilon0**w
+    l=log(cavity%epsilon0)
 
     select case(pow)
     case('1')
        select case(der)
        case(0)
-          epsilon=cavity%epsilon0*safe_exp(w)
+          eps=ep
        case(1)
-          epsilon=cavity%epsilon0*safe_exp(w)*dw
+          eps=ep*dw*l
        case(2)
           d2zetao2pi=fact1/rho**2
           dzeta2o2pi=2.0_gp*pi*dzetao2pi**2
           d2w=sin(zeta)*dzeta2o2pi+(1.d0-cos(zeta))*d2zetao2pi
-          epsilon=cavity%epsilon0*safe_exp(w)*(dw*dw+d2w)
+          !eps=cavity%epsilon0*safe_exp(w)*(dw*dw+d2w)
+          eps=l*ep*(l*dw*dw+d2w)
        end select
     case('-1/2')
-       epsilon=safe_exp(-0.5_gp*w)/sqrt(cavity%epsilon0)
+       eps=cavity%epsilon0**(-0.5_gp*w)
     case('-1')
-       epsilon=safe_exp(-w)/cavity%epsilon0
+       eps=1.0_gp/ep
     case('L')
        select case(der)
        case(1)
-          epsilon=dw
+          eps=dw*l
        end select
+    case('C')
+       !calculate the term 1/2 epsprime*logepsprime -epssecond, needed for the correction term
+       !tt=dw*l
+       !eps=0.5_gp*ep*dw*l*dw*l-l*ep*(l*dw*dw+d2w)
+       d2zetao2pi=fact1/rho**2
+       dzeta2o2pi=2.0_gp*pi*dzetao2pi**2
+       d2w=sin(zeta)*dzeta2o2pi+(1.d0-cos(zeta))*d2zetao2pi
+
+       eps=-l*ep*(0.5_gp*l*dw*dw+d2w)
     end select
 
   end function epsilon_transition
@@ -238,13 +268,63 @@ contains
     type(cavity_data), intent(in) :: cavity
     real(gp) :: corr_term
     !local variables
-    real(gp) :: epspr
+    real(gp) :: epspr,fact1,fact2,fact3,r,t,coeff,coeff1,dtx,ep,w,ct
 
-    epspr=epsprime(rho,cavity)
-    corr_term=-0.125_gp/pi*(0.5_gp*nabla2rho*&
-         (epspr*logepsprime(rho,cavity)-epssecond(rho,cavity))-epspr*deltarho)
+    !we are in a inner region
+    if (rho > cavity%edensmax) then
+       corr_term=0.0_gp
+       !we are in a outer region
+    else if (rho < cavity%edensmin) then
+       corr_term=0.0_gp
+    else
+       epspr=epsprime(rho,cavity)
+       ct=epsilon_transition(rho,'C',0,cavity)
+!!$       corr_term=-0.125_gp/pi*(nabla2rho*&
+!!$            (0.5_gp*epspr*logepsprime(rho,cavity)-epssecond(rho,cavity))-epspr*deltarho)
+       corr_term=-0.125_gp/pi*(nabla2rho*ct-epspr*deltarho)
+
+!!$       !old definition of the correction term
+!!$       fact1=2.d0*pi/log(cavity%edensmax/cavity%edensmin)
+!!$       fact2=(log(cavity%epsilon0))/(2.d0*pi)
+!!$       fact3=(log(cavity%epsilon0))/log(cavity%edensmax/cavity%edensmin)
+!!$
+!!$       r=fact1*(log(cavity%edensmax/rho))
+!!$       t=fact2*(r-sin(r))
+!!$       w=(r-sin(r))/(2.0_gp*pi)
+!!$       ep=cavity%epsilon0**w
+!!$       coeff=fact3*(1.d0-cos(r))
+!!$       dtx=-coeff/rho  !first derivative of t wrt rho
+!!$       coeff1=(0.5d0*(coeff**2)+fact3*fact1*sin(r)+coeff)/(rho**2)
+!!$       !corr_term=(0.125d0/pi)*safe_exp(t)*(coeff1*nabla2rho+dtx*deltarho)
+!!$       corr_term=(0.125d0/pi)*ep*(coeff1*nabla2rho+dtx*deltarho)
+    end if
   end function corr_term
   
+  !>surface term multiplied by epsilon m1
+  function surf_term(rho,nabla2rho,deltarho,ccrho,cavity)
+    implicit none
+    real(gp), intent(in) :: rho !<density
+    real(gp), intent(in) :: nabla2rho !<square of the density gradient
+    real(gp), intent(in) :: deltarho !<square of the density gradient
+    real(gp), intent(in) :: ccrho !< u_i u_j d_i u_j , needed for the surface term where u_i=d_i rho
+    type(cavity_data), intent(in) :: cavity
+    real(gp) :: surf_term
+    !local variables
+    real(gp) :: de,c1,d
+    !we are in a inner region
+    if (rho > cavity%edensmax) then
+       surf_term=0.0_gp
+       !we are in a outer region
+    else if (rho < cavity%edensmin) then
+       surf_term=0.0_gp
+    else
+       de=epsprime(rho,cavity)
+       d=sqrt(nabla2rho)
+       c1=(ccrho/nabla2rho-deltarho)/d
+       surf_term=de*c1
+    end if
+
+  end function surf_term
 
 
   !>This routine computes 'nord' order accurate first derivatives 
@@ -1013,7 +1093,7 @@ contains
     integer, intent(in) :: n01,n02,n03,nord
     real(kind=8), dimension(3), intent(in) :: hgrids
     real(kind=8), dimension(n01,n02,n03), intent(in) :: u !<scalar field
-    real(kind=8), dimension(n01,n02,n03,3) :: du !< nabla d_i u
+    real(kind=8), dimension(n01,n02,n03,3), intent(out) :: du !< nabla d_i u
 
     !c..local variables
     integer :: n,m,n_cell,ii

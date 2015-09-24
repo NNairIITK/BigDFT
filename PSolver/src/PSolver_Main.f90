@@ -86,7 +86,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    real(dp) :: alpha,ratio,normb,normr,norm_nonvac,e_static,rpoints
    !real(dp) :: scal
    real(dp), dimension(6) :: strten
-   real(dp), dimension(:,:), allocatable :: rho,rhopol,x,q,p,r,z,depsdrho,dsurfdrho
+   real(dp), dimension(:,:), allocatable :: rho,rhopol,q,p,z,depsdrho,dsurfdrho
    real(dp), dimension(:,:,:), allocatable :: work_full,pot_full
    !integer, dimension(:,:), allocatable :: gather_arr
 
@@ -107,7 +107,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    else
       wrtmsg=.true.
    end if
-   !wrtmsg=.true.
+   wrtmsg=.true.
    wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
    ! rewrite
 
@@ -345,12 +345,29 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       if (wrtmsg) call yaml_map('Integral of the density in the nonvacuum region',norm_nonvac)
 
 
-      r=f_malloc([n1,n23],id='r')
-      x=f_malloc0([n1,n23],id='x')
+!!$      r=f_malloc([n1,n23],id='r')
+!!$      x=f_malloc0([n1,n23],id='x')
+      !allocate the pointers if they are not already done
+      !in the case of pointers ready we can used the previous results as the input guess
+      if ( all([associated(kernel%res_old),associated(kernel%pot_old)])) then
+         call axpy(kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,1.0_gp,rhopot(i3start),1,kernel%res_old(1,1),1)
+      else
+         if (.not. associated(kernel%pot_old)) kernel%pot_old=f_malloc0_ptr([n1,n23],id='pot_old')
+         if (.not. associated(kernel%res_old)) kernel%res_old=f_malloc_ptr([n1,n23],id='res_old')
+         call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
+              src=rhopot(i3start),dest=kernel%res_old)
+      end if
+!!$      !disable input guess
+      call f_zero(kernel%pot_old)
+      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
+           src=rhopot(i3start),dest=kernel%res_old)      
+
       q=f_malloc0([n1,n23],id='q')
       p=f_malloc0([n1,n23],id='p')
       z=f_malloc([n1,n23],id='z')
       rho=f_malloc([n1,n23],id='rho')
+      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
+           src=rhopot(i3start),dest=rho)
 
       if (wrtmsg) &
            call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
@@ -363,29 +380,23 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
            call mpiallred(normb,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
       normb=sqrt(normb/rpoints)
 
-      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
-           src=rhopot(i3start),dest=r)
-      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
-           src=rhopot(i3start),dest=rho)
 
       !$omp parallel do default(shared) private(i1,i23)
       do i23=1,n23
          do i1=1,n1
-             z(i1,i23)=r(i1,i23)*kernel%oneoeps(i1,i23)
+             z(i1,i23)=kernel%res_old(i1,i23)*kernel%oneoeps(i1,i23)
          end do
       end do
       !$omp end parallel do
 
       PCG_loop: do ip=1,kernel%max_iter
 
-         if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
-
          !initalise to zero the zf array 
          call f_zero(kernel%zf)
          !  Apply the Preconditioner
          call apply_kernel(cudasolver,kernel,z,offset,strten,kernel%zf,.true.)
 
-         call apply_reductions(ip, cudasolver, kernel, r, x, p, q, z, alpha, beta, normr)
+         call apply_reductions(ip, cudasolver, kernel, kernel%res_old, kernel%pot_old, p, q, z, alpha, beta, normr)
 
          normr=sqrt(normr/rpoints)
 
@@ -395,18 +406,22 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
             call yaml_sequence(advance='no')
             call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
          end if
+         if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
       end do PCG_loop
       if (wrtmsg) call yaml_sequence_close()
+
+      !preserve the previous values for the input guess
+      call axpy(size(kernel%res_old),-1.0_gp,rho(1,1),1,kernel%res_old(1,1),1)
       
       !only useful for gpu, bring back the x array
-      call update_pot_from_device(cudasolver, kernel, x)
+      call update_pot_from_device(cudasolver, kernel, kernel%pot_old)
       !if statement for SC cavity
       if (kernel%method .hasattr. PS_SCCS_ENUM)&
-           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,x,eps0)
+           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,kernel%pot_old,eps0)
 
 !--------------------------------------
 ! Polarization charge
-     call pol_charge(kernel,pot_full,rho,x)
+     call pol_charge(kernel,pot_full,rho,kernel%pot_old)
 !--------------------------------------
 
       !here the harteee energy can be calculated and the ionic potential
@@ -414,7 +429,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call finalize_hartree_results(sumpion,pot_ion,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-           rhopot(i3start),x,rhopot(i3start),ehartreeLOC)
+           rhopot(i3start),kernel%pot_old,rhopot(i3start),ehartreeLOC)
 
       if (kernel%method .hasattr. PS_SCCS_ENUM) then
          !then add the extra potential after having calculated the hartree energy
@@ -425,11 +440,11 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
               displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
       end if
-      call f_free(x)
+      !call f_free(x)
       call f_free(z)
       call f_free(p)
       call f_free(q)
-      call f_free(r)
+      !call f_free(r)
       call f_free(rho)
 
    end select
@@ -949,8 +964,9 @@ subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
   !local variables
   character(len=*), parameter :: vrb='(1pe25.17)'!'(1pe16.4)'
 
+  !call yaml_newline()
   call yaml_mapping_open('Iteration quality',flow=.true.)
-  if (beta /= 0.0_dp) call yaml_comment('Iteration '//iter,hfill='_')
+  if (beta /= 0.0_dp) call yaml_comment('Iteration '+iter,hfill='_')
   !write the PCG iteration
   call yaml_map('iter',iter,fmt='(i4)')
   !call yaml_map('rho_norm',normb)

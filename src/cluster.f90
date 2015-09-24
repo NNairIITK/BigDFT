@@ -1932,7 +1932,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   else
      call density_and_hpot(denspot%dpbox,atoms%astruct%sym,KSwfn%orbs,KSwfn%Lzd,&
           denspot%pkernel,denspot%rhod, GPU, denspot%xc, &
-          & KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
+          KSwfn%psi,denspot%rho_work,denspot%pot_work,denspot%rho_ion,hstrten)
   end if
 
   !xc stress, diagonal for the moment
@@ -1963,10 +1963,10 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
         call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
              atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%pol_charge)
 
-        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
-
-        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
-             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%cavity)
+!!$        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
+!!$
+!!$        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
+!!$             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%eps)
      end if
 !---------------------------------------------------
 

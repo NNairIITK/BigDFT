@@ -1302,7 +1302,7 @@ contains
                on_which_atom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
                allocate_full, print_info)
       use yaml_output
-      use yaml_strings, only: yaml_toa
+!      use yaml_strings, only: yaml_toa
       implicit none
       
       ! Calling arguments
@@ -1400,7 +1400,7 @@ contains
           ntot = int(norbu,kind=8)*int(norbu,kind=8)
           call yaml_map('total elements',ntot)
           call yaml_map('non-zero elements',sparsemat%nvctr)
-          call yaml_comment('segments: '//yaml_toa(sparsemat%nseg))
+          call yaml_comment('segments: '//sparsemat%nseg)
           call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=8),kind=8)/real(ntot,kind=8),fmt='(f5.2)')
       end if
     
@@ -1873,7 +1873,7 @@ contains
           !do iseg=iseg_start,nseg
           !    write(*,'(a,4i8)') 'iseg, keyv, keyg', iseg, keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg)
           !end do
-          call f_err_throw('get_line_and_column failed to determine the indices, iel='//yaml_toa(iel), &
+          call f_err_throw('get_line_and_column failed to determine the indices, iel='//iel, &
               err_id=BIGDFT_RUNTIME_ERROR)
       end if
       

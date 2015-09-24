@@ -151,6 +151,8 @@ module Poisson_Solver
       !! cavity discontinuity due to near-zero edens near atoms
       real(dp), dimension(:,:), pointer :: epsinnersccs
       real(dp), dimension(:,:,:), pointer :: zf
+      !> input guess vectors to be preserved for future use
+      real(dp), dimension(:,:), pointer :: rho_old,res_old,pot_old
       !> Polarization charge vector for print purpose only.
       real(dp), dimension(:,:), pointer :: pol_charge
       real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
@@ -250,6 +252,9 @@ contains
     nullify(k%corr)
     nullify(k%epsinnersccs)
     nullify(k%pol_charge)
+    nullify(k%rho_old)
+    nullify(k%pot_old)
+    nullify(k%res_old)
     nullify(k%zf)
     k%work1_GPU=0.d0
     k%work2_GPU=0.d0
