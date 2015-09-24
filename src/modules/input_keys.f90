@@ -1,7 +1,7 @@
 !> @file
 !!  Module to store all dictionary keys of the input files.
 !! @author
-!!    Copyright (C) 2010-2013 BigDFT group
+!!    Copyright (C) 2010-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -400,7 +400,9 @@ module module_input_keys
   public :: user_dict_from_files,inputs_from_dict
   public :: input_keys_dump,input_set,input_keys_fill_all,print_general_parameters
 
+
 contains
+
 
   pure function SIC_data_null() result(SIC)
     implicit none
@@ -412,6 +414,7 @@ contains
     SIC%fref=0.0_gp 
   end function SIC_data_null
 
+
   function material_acceleration_null() result(ma)
     type(material_acceleration) :: ma
     ma%iacceleration=0
@@ -419,6 +422,7 @@ contains
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
     ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
+
 
 !!$  function input_psi_validate(id)
 !!$    integer, intent(in) :: id
@@ -442,6 +446,7 @@ contains
 !!$    output_wf_format_validate = (id >= 0 .and. id < size(wf_format_names))
 !!$  end function output_wf_format_validate
 
+
   subroutine output_denspot_help()
     integer :: i, j
 
@@ -460,6 +465,7 @@ contains
     end do
   end subroutine output_denspot_help
 
+
   function output_denspot_validate(id, fid)
     integer, intent(in) :: id, fid
     logical :: output_denspot_validate
@@ -467,6 +473,7 @@ contains
     output_denspot_validate = (id >= 0 .and. id < size(output_denspot_names)) .and. &
          & (fid >= 0 .and. fid < size(output_denspot_format_names))
   end function output_denspot_validate
+
 
   !> Nullify the linear Input parameters
   subroutine nullifyInputLinparameters(lin)
@@ -485,6 +492,7 @@ contains
     nullify(lin%kernel_cutoff)
 
   end subroutine nullifyInputLinparameters
+
 
   subroutine input_keys_init()
     use yaml_output
@@ -541,6 +549,7 @@ contains
        call dict_free(parameters)
     end if
   END SUBROUTINE input_keys_finalize
+
 
   !> Fill the input_variables and atoms_data structures from the information
   !! contained in the dictionary dict
@@ -864,6 +873,7 @@ contains
 
   end subroutine inputs_from_dict
 
+
   !> Check the directory of data (create if not present)
   subroutine check_for_data_writing_directory(iproc,in)
     use yaml_output
@@ -953,12 +963,10 @@ contains
     nested=>list_new(.item. LIN_BASIS_PARAMS)
 
 
-
     ! Check and complete dictionary.
     call input_keys_init()
 ! call yaml_map('present status',dict)
     call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
-
 
 
     !create a shortened dictionary which will be associated to the given run
@@ -990,7 +998,8 @@ contains
     call f_release_routine()
   end subroutine input_keys_fill_all
 
-  !> takes the posinp filename from the dictionary. Starting point is dict//POSINP
+
+  !> Takes the posinp filename from the dictionary. Starting point is dict//POSINP
   subroutine astruct_dict_get_source(dict, source)
     use public_keys, only: POSINP_SOURCE
     use f_utils, only: f_zero
@@ -1010,6 +1019,7 @@ contains
 !!$            & source = dict_value(dict // ASTRUCT_PROPERTIES // POSINP_SOURCE)
 !!$    end if
   end subroutine astruct_dict_get_source
+
 
   !> Dump the dictionary of the input variables.
   !! Should dump only the keys relative to the input variables and
@@ -1105,6 +1115,7 @@ contains
     call f_release_routine()
 
   end subroutine input_keys_dump
+
 
   subroutine input_set_int(in, key, val)
     implicit none
@@ -2084,8 +2095,9 @@ contains
 
   end subroutine basis_params_set_dict
 
+
   !> Creation of the log file (by default log.yaml)
-  !>  Free all dynamically allocated memory from the kpt input file.
+  !! Free all dynamically allocated memory from the kpt input file.
   subroutine free_kpt_variables(in)
     use dynamic_memory
     implicit none
@@ -2101,6 +2113,7 @@ contains
     nullify(in%kptv)
     nullify(in%nkptsv_group)
   end subroutine free_kpt_variables
+
 
   !>  Free all dynamically allocated memory from the geopt input file.
   subroutine free_geopt_variables(in)
@@ -2552,13 +2565,11 @@ contains
           in%gen_nkpt = 1
 !!$        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
 !!$        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-!!$        in%gen_kpt = 0.
-          in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
-
 !!$        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
 !!$        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
-          in%gen_kpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
-
+          in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
+          in%gen_kpt = 0.
+          in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
           in%gen_wkpt = 1.
        else
           call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &
@@ -2595,13 +2606,13 @@ contains
           if (iproc==0 .and. (maxval(ngkpt_) > 1 .or. maxval(abs(shiftk_)) > 0.)) &
                & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
           in%gen_nkpt = 1
-          in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
 !!$        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
 !!$        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-!!$        in%gen_kpt = 0.
 !!$        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
 !!$        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
-          in%gen_kpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
+          in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
+          in%gen_kpt = 0.
+          in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
           in%gen_wkpt = 1.
        else
           call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &

@@ -753,7 +753,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
         if (ncplx==1) then
            rds(1,i-ist+1,1,ikpt)=0.0_tp
         else
-           zdres=cmplx(0.0_tp,0.0_tp,kind=tp)
+           zdres=cmplx(0.0_tp,0.0_tp)
         end if
         
         ipsi_spin_sh=0

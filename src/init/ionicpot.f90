@@ -39,7 +39,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 !!-  logical :: perx,pery,perz,gox,goy,goz
 !!-  integer ::  nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,n3i,n3pi,i3s
 !!-  integer :: isx,iex,isy,iey,isz,iez,j1,j2,j3,ind,n1i,n2i
-  integer :: nrange
   integer :: i,i1,i2,i3,iat,ii,ityp,jat,jtyp
   real(gp) :: ucvol,rloc,rlocinv2sq,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
@@ -198,7 +197,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
-        !inizialization of the forces
+        !initialization of the forces
         fxion=0.0_gp
         fyion=0.0_gp
         fzion=0.0_gp
@@ -334,7 +333,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            cutoff=10.0_gp*rloc
            if (at%multipole_preserving) then
               !We want to have a good accuracy of the last point rloc*10
-              cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+              !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+              cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
            end if
 
 !!-           isx=floor((rx-cutoff)/hxh)
@@ -470,7 +470,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            cutoff=10.0_gp*rloc
            if (at%multipole_preserving) then
               !We want to have a good accuracy of the last point rloc*10
-              cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+              !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+              cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
            end if
 
 !!-           isx=floor((rx-cutoff)/hxh)
@@ -1785,7 +1786,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 !!-  logical :: perx,pery,perz,gox,goy,goz
   logical :: htoobig=.false.,check_potion=.false.
   integer :: i1,i2,i3,ierr,ityp !n(c) nspin
-  integer :: nloc,iloc,nrange
+  integer :: nloc,iloc
 !! integer  :: i3s,n3pi,nbl1,nbr1,nbl2,nbl3,nbr2,nbr3
 !!- integer :: n1,n2,n3,iat,iex,iey,iez,ind,indj3,indj23,isx,isy,isz,j1,j2,j3
   integer :: n1i,n2i,n3i
@@ -1862,7 +1863,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
         cutoff=10.0_gp*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
-           cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
         end if
 
 !!-        isx=floor((rx-cutoff)/hxh)
@@ -2198,7 +2199,8 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
         cutoff=10.0_gp*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
-           cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+           !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
         end if
 
 !!-        isx=floor((rx-cutoff)/hxh)
@@ -2752,7 +2754,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   logical, parameter :: htoobig=.false.,check_potion=.false.
 !!-  logical :: perx,pery,perz,gox,goy,goz
 !!-  integer :: iat,j1,j2,j3,isx,isy,isz,iex,iey,iez
-  integer :: i1,i2,i3,ityp,nspin,nrange
+  integer :: i1,i2,i3,ityp,nspin
 !!-  integer :: ind,nbl1,nbr1,nbl2,nbr2,n3pi,nbl3,nbr3,i3s
   real(kind=8) :: rloc,rlocinv2sq,charge,cutoff,tt,rx,ry,rz,xp
 !!-  real(kind=8) :: x,y,z,yp,zp,rholeaked,rholeaked_tot
@@ -2853,7 +2855,8 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
         cutoff=10.0_gp*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
-           cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+           !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
         end if
 
 !!-        isx=floor((rx-cutoff)/hxh)
