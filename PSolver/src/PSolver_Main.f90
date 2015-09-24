@@ -1587,7 +1587,7 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  logical, intent(in) :: enlarge_md2
  integer, intent(in) :: n01,n02,n03,nproc,gpu
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
- integer :: l1,l2,l3
+ integer :: l1,l2,l3, mul3
 
  !dimensions of the density in the real space, inverted for convenience
  m1=n01
@@ -1598,8 +1598,10 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  l2=2*m2
  if (gpu.eq.0) then
   l3=m3 !beware of the half dimension
+  mul3=2
  else
   l3=2*m3
+  mul3=4 ! in GPU we still need this dimension's size to be multiple of 4
  endif
  !initialize the n dimension to solve Cray compiler bug
  n1=l1
@@ -1621,7 +1623,7 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  end do
  do
     call fourier_dim(l3,n3)
-    if (modulo(n3,2) == 0) then
+    if (modulo(n3,mul3) == 0) then
        exit
     end if
     l3=l3+1
