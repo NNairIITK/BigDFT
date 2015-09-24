@@ -897,6 +897,8 @@ implicit none
 !print *,"free mem",freeGPUSize,", total",totalGPUSize,". Trying Total : ",kernelSize+plansSize+PCGRedSize,&
 !" with kernel ",kernelSize," plans ",plansSize, "maxplan",&
 !maxPlanSize, "and red ",PCGRedSize, "nprocs/node", nproc_node
+
+if(iproc_node==0) then
  if(freeGPUSize<nproc_node*(kernelSize+maxPlanSize)) then
      call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
        trim(yaml_toa(freeGPUSize)) // ", total Memory :"// trim(yaml_toa(totalGPUSize)) //& 
@@ -912,7 +914,9 @@ implicit none
      !call yaml_comment("Memory on the GPU is sufficient for" // trim(yaml_toa(nproc_node)) // " processes/node")
      kernel%initCufftPlan=1;
  end if
+end if
 
+call mpibarrier()
 
 end subroutine cuda_estimate_memory_needs
 
