@@ -27,6 +27,7 @@ module rhopotential
     use module_types
     use module_interfaces
     use Poisson_Solver, except_dp => dp, except_gp => gp
+    use yaml_output
     implicit none
     
     ! Calling arguments
@@ -74,6 +75,8 @@ module rhopotential
     
        call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
             quiet=denspot%PSquiet,rho_ion=denspot%rho_ion) !optional argument
+
+call yaml_map('ehart_ps',ehart_ps)
     
        if (denspot%pkernel%method /= 'VAC') then
           energs%eelec=ehart_ps

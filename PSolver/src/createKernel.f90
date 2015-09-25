@@ -75,13 +75,13 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-6_dp!
+        kernel%minres=1.0e-11_dp!
         kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%method=PS_PCG_ENUM
         kernel%nord=16
         kernel%max_iter=50
-        kernel%minres=1.0e-6_dp! 
+        kernel%minres=1.0e-11_dp! 
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -1145,7 +1145,7 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
   !local variables
   integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03,unt
   real(dp) :: d2,x,pi,gammaSau,alphaSau,betaVau
-  real(dp), dimension(:,:,:), allocatable :: nabla2_pot
+  real(dp), dimension(:,:,:,:), allocatable :: nabla2_pot
   !real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)) :: pot2,depsdrho1,depsdrho2
 
   gammaSau=kernel%cavity%gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
@@ -1158,20 +1158,22 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
   !starting point in third direction
   i3s=kernel%grid%istart+1
 
-  nabla2_pot=f_malloc([n01,n02,n03],id='nabla_pot')
+  nabla2_pot=f_malloc([n01,n02,n03,3],id='nabla_pot')
   !calculate derivative of the potential
-  call nabla_u_square(kernel%geocode,n01,n02,n03,pot,nabla2_pot,kernel%nord,kernel%hgrids)
+  !call nabla_u_square(kernel%geocode,n01,n02,n03,pot,nabla2_pot,kernel%nord,kernel%hgrids)
+  call nabla_u(kernel%geocode,n01,n02,n03,pot,nabla2_pot,kernel%nord,kernel%hgrids)
+
   i23=1
   do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
      do i2=1,n02
         do i1=1,n01
            !this section has to be inserted into a optimized calculation of the derivative
-!!$           d2=0.0_dp
-!!$           do i=1,3
-!!$              d2 = d2+nabla_pot(i1,i2,i3,i)**2
-!!$           end do
-           !depsdrho1(i1,i2,i3)=depsdrho(i1,i23)
-           d2=nabla2_pot(i1,i2,i3)
+           d2=0.0_dp
+           do i=1,3
+              d2 = d2+nabla2_pot(i1,i2,i3,i)**2
+           end do
+!!$           !depsdrho1(i1,i2,i3)=depsdrho(i1,i23)
+!!$           d2=nabla2_pot(i1,i2,i3)
            depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*d2/pi!&
                             !+(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
                             !+betaVau*depsdrho(i1,i23)/(1.d0-eps0)

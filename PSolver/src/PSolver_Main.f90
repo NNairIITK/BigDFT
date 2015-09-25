@@ -11,7 +11,7 @@
 
 
 !> Calculate the Hartree potential by solving the Poisson equation 
-!! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)@f$
+!! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$@f
 !! from a given @f$\rho@f$, 
 !! for different boundary conditions an for different data distributions.
 !! Following the boundary conditions, it applies the Poisson Kernel previously calculated.
@@ -25,6 +25,32 @@
 !!
 !! @todo
 !!    Wire boundary condition is missing
+!!$subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
+!!$  !> kernel of the coupmb operator, it also contains metadata about the parallelisation scheme
+!!$  !! and the data distributions in the grid.
+!!$  !! can be also used to gather the distributed arrays for data processing or poltting purposes
+!!$  type(coulomb_operator), intent(inout) :: kernel
+!!$  !> on input, density of the (G)Pe. On output, electrostatic potential, possibly corrected with extra term in
+!!$  !! the case of rho-dependent cavity when the suitable variable of the options datatype is set. 
+!!$  !!The latter correction term is useful to define a KS DFT potential for the definition of the Hamiltonian out of 
+!!$  !!the Electrostatic environment defined from rho
+!!$  real(dp), dimension(*), intent(inout) :: rhov
+!!$  !>Datatype controlling the operations of the solver.
+!!$  type(PSolver_options), intent(in) :: options
+!!$  !> Datatype containing the energies and th stress tensor.
+!!$  !! the components are filled accordin to the coulomb operator set ans the options given to the solver.
+!!$  type(PSolver_energies), intent(out) :: energies
+!!$  !> Additional external potential that is added to the output, if present.
+!!$  !! Usually represents the potential of the ions that is needed to define the full electrostatic potential of a Vacuum Poisson Equation
+!!$  real(wp), dimension(*), intent(inout), optional :: pot_ion
+!!$  !> Additional external density that is added to the output input, if present.
+!!$  !! The treatment of the Poisson Equation is done with the sum of the two densities whereas the rho-dependent cavity and some components
+!!$  !! of the energies are calculated only with the input rho.
+!!$  real(wp), dimension(*), intent(inout), optional :: rho_ion
+!!$end subroutine Electrostatic_Solver
+
+
+
 subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       quiet,rho_ion,stress_tensor) !optional argument
    implicit none
@@ -205,7 +231,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
    !add the ionic density to the potential
    e_static=0.0_dp
-   if (kernel%method /= 'VAC' .and. kernel%grid%n3p>0 .and. sumpion) then
+   if (kernel%method /= PS_VAC_ENUM .and. kernel%grid%n3p>0 .and. sumpion) then
       !call yaml_map('Rho_ion monopole',sum(rho_ion)*product(kernel%hgrids))
       call finalize_hartree_results(.true.,rho_ion,kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
@@ -268,8 +294,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
                rhopot(irho)=&
                     kernel%oneoeps(i1,i23)*rho(i1,i23)+&
                     rhopol(i1,i23+i23s)
-!!$                       kernel%oneoeps(i1,i2,i3+i3s)*rho(i1,i2,i3)+&
-!!$                       rhopol(i1,i2,i3+i3s)
                kernel%pol_charge(i1,i23)=rhopot(irho)-rho(i1,i23)
                irho=irho+1
             end do

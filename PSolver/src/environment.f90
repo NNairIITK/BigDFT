@@ -54,7 +54,7 @@ module environment
   end type cavity_data
 
   public :: cavity_init,eps,epsprime,epssecond,oneoeps,oneosqrteps,logepsprime,corr_term,nabla_u_square
-  public :: nabla_u,div_u_i,nabla_u_and_square,cavity_default,nonvacuum_projection,update_rhopol,surf_term
+  public :: nabla_u,div_u_i,nabla_u_and_square,cavity_default,nonvacuum_projection,update_rhopol,surf_term,Apply_GPe_operator
 
 contains
 
@@ -1075,6 +1075,198 @@ contains
 
   end subroutine div_u_i
 
+  subroutine nabla_u_epsilon(geocode,n01,n02,n03,u,du,nord,hgrids,eps)
+    implicit none
+
+    !c..this routine computes 'nord' order accurate first derivatives 
+    !c..on a equally spaced grid with coefficients from 'Matematica' program.
+
+    !c..input:
+    !c..ngrid       = number of points in the grid, 
+    !c..u(ngrid)    = function values at the grid points
+
+    !c..output:
+    !c..du(ngrid)   = first derivative values at the grid points
+
+    !c..declare the pass
+    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+    integer, intent(in) :: n01,n02,n03,nord
+    real(kind=8), dimension(3), intent(in) :: hgrids
+    real(kind=8), dimension(n01,n02,n03), intent(in) :: u !<scalar field
+    real(kind=8), dimension(n01,n02,n03,3), intent(out) :: du !< nabla d_i u
+    real(gp), dimension(n01,n02,n03), intent(in) :: eps !< array of epsilon, multiply the result with that
+    
+    !c..local variables
+    integer :: n,m,n_cell,ii
+    integer :: i,j,ib,i1,i2,i3
+    real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D, c1D_1, c1D_2, c1D_3
+    real(kind=8) :: hx,hy,hz, d,e
+    logical :: perx,pery,perz
+
+    n = nord+1
+    m = nord/2
+    hx = hgrids(1)!acell/real(n01,kind=8)
+    hy = hgrids(2)!acell/real(n02,kind=8)
+    hz = hgrids(3)!acell/real(n03,kind=8)
+    n_cell = max(n01,n02,n03)
+
+    !buffers associated to the geocode
+    !conditions for periodicity in the three directions
+    perx=(geocode /= 'F')
+    pery=(geocode == 'P')
+    perz=(geocode /= 'F')
+
+
+    ! Beware that n_cell has to be > than n.
+    if (n_cell.lt.n) then
+       write(*,*)'ngrid in has to be setted > than n=nord + 1'
+       stop
+    end if
+
+    ! Setting of 'nord' order accurate first derivative coefficient from 'Matematica'.
+    !Only nord=2,4,6,8,16
+
+    select case(nord)
+    case(2,4,6,8,16)
+       !O.K.
+    case default
+       write(*,*)'Only nord-order 2,4,6,8,16 accurate first derivative'
+       stop
+    end select
+
+    do i=-m,m
+       do j=-m,m
+          c1D(i,j)=0.d0
+       end do
+    end do
+
+    include 'FiniteDiffCorff.inc'
+
+    c1D_1 = c1D/hx
+    c1D_2 = c1D/hy
+    c1D_3 = c1D/hz
+    !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d,e) 
+    do i3=1,n03
+       do i2=1,n02
+          do i1=1,n01
+
+             d= 0.0d0
+             e=eps(i1,i2,i3)
+             
+
+             if (i1.le.m) then
+                if (perx) then
+                   do j=-m,m
+                      ii=modulo(i1 + j + n01 - 1, n01 ) + 1
+                      d = d + c1D_1(j,0)*u(ii,i2,i3)
+                   end do
+                else
+                   do j=-m,m
+                      d = d + c1D_1(j,i1-m-1)*u(j+m+1,i2,i3)
+                   end do
+                end if
+             else if (i1.gt.n01-m) then
+                if (perx) then
+                   do j=-m,m
+                      ii=modulo(i1 + j - 1, n01 ) + 1
+                      d = d + c1D_1(j,0)*u(ii,i2,i3)
+                   end do
+                else
+                   do j=-m,m
+                      d = d + c1D_1(j,i1-n01+m)*u(n01 + j - m,i2,i3)
+                   end do
+                end if
+             else
+                do j=-m,m
+                   d = d + c1D_1(j,0)*u(i1 + j,i2,i3)
+                end do
+             end if
+             du(i1,i2,i3,1) = d*e
+          end do
+       end do
+    end do
+    !$omp end parallel do
+
+    !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d,e) 
+    do i3=1,n03
+       do i2=1,n02
+          do i1=1,n01
+             d = 0.0d0
+             e=eps(i1,i2,i3)
+             if (i2.le.m) then
+                if (pery) then
+                   do j=-m,m
+                      ii=modulo(i2 + j + n02 - 1, n02 ) + 1
+                      d = d + c1D_2(j,0)*u(i1,ii,i3)
+                   end do
+                else
+                   do j=-m,m
+                      d = d + c1D_2(j,i2-m-1)*u(i1,j+m+1,i3)
+                   end do
+                end if
+             else if (i2.gt.n02-m) then
+                if (pery) then
+                   do j=-m,m
+                      ii=modulo(i2 + j - 1, n02 ) + 1
+                      d = d + c1D_2(j,0)*u(i1,ii,i3)
+                   end do
+                else
+                   do j=-m,m
+                      d = d + c1D_2(j,i2-n02+m)*u(i1,n02 + j - m,i3)
+                   end do
+                end if
+             else
+                do j=-m,m
+                   d = d + c1D_2(j,0)*u(i1,i2 + j,i3)
+                end do
+             end if
+             du(i1,i2,i3,2)=d*e
+          end do
+       end do
+    end do
+    !$omp end parallel do
+
+    !$omp parallel do default(shared) private(i1,i2,i3,j,ii, d,e) 
+    do i3=1,n03
+       do i2=1,n02
+          do i1=1,n01
+             d = 0.0d0
+             e=eps(i1,i2,i3)
+             if (i3.le.m) then
+                if (perz) then
+                   do j=-m,m
+                      ii=modulo(i3 + j + n03 - 1, n03 ) + 1
+                      d = d + c1D_3(j,0)*u(i1,i2,ii)
+                   end do
+                else
+                   do j=-m,m
+                      d = d + c1D_3(j,i3-m-1)*u(i1,i2,j+m+1)
+                   end do
+                end if
+             else if (i3.gt.n03-m) then
+                if (perz) then
+                   do j=-m,m
+                      ii=modulo(i3 + j - 1, n03 ) + 1
+                      d = d + c1D_3(j,0)*u(i1,i2,ii)
+                   end do
+                else
+                   do j=-m,m
+                      d = d + c1D_3(j,i3-n03+m)*u(i1,i2,n03 + j - m)
+                   end do
+                end if
+             else
+                do j=-m,m
+                   d = d + c1D_3(j,0)*u(i1,i2,i3 + j)
+                end do
+             end if
+             du(i1,i2,i3,3)=d*e
+          end do
+       end do
+    end do
+    !$omp end parallel do
+
+  end subroutine nabla_u_epsilon
+
   subroutine nabla_u(geocode,n01,n02,n03,u,du,nord,hgrids)
     implicit none
 
@@ -1490,6 +1682,28 @@ contains
     !  rhores2=rhores2/rpoints
 
   end subroutine update_rhopol
+
+  subroutine Apply_GPe_operator(nord,geocode,ndims,hgrids,eps,pot,a_pot)
+    use dynamic_memory
+    implicit none
+    integer, intent(in) :: nord
+    character(len=1), intent(in) :: geocode
+    integer, dimension(3), intent(in) :: ndims
+    real(gp), dimension(3), intent(in) :: hgrids
+    real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(in) :: eps
+    real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(in) :: pot
+    real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: a_pot
+    !local variables   
+    real(dp), dimension(:,:,:,:), allocatable :: work
+    !first calculate the derivative of the potential
+    
+    work=f_malloc([ndims(1),ndims(2),ndims(3),3],id='work')
+    call nabla_u_epsilon(geocode,ndims(1),ndims(2),ndims(3),pot,work,nord,hgrids,eps)
+    call div_u_i(geocode,ndims(1),ndims(2),ndims(3),work,a_pot,nord,hgrids)
+
+    call f_free(work)
+
+  end subroutine Apply_GPe_operator
 
   !> verify that the density is considerably zero in the region where epsilon is different from one
   subroutine nonvacuum_projection(n1,n23,rho,oneoeps,norm)
