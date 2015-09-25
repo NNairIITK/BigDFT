@@ -642,7 +642,7 @@ end program sandbox
 subroutine psi_from_gaussians(iproc,nproc,at,orbs,lr,rxyz,hx,hy,hz,nspin,psi)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: gaussian_pswf_basis
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   real(gp), intent(in) :: hx,hy,hz

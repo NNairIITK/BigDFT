@@ -15,7 +15,8 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
      energs,rpnrm,xcstr)
   use module_base
   use module_types
-  use module_interfaces, fake_name => psitohpsi
+  use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, &
+       & XC_potential, communicate_density, free_full_potential, sumrho
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use module_mixing
   use yaml_output
@@ -415,7 +416,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
      energs,SIC,GPU,xc,pkernel,orbsocc,psirocc)
   use module_base
   use module_types
-  use module_interfaces, fake_name => FullHamiltonianApplication
+  use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication
   use module_xc
   use public_enums, only: PSPCODE_PAW
   use psp_projectors_base, only: PSP_APPLY_SKIP
@@ -491,7 +492,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    use module_base
    use module_types
    use module_xc
-   use module_interfaces, except_this_one => LocalHamiltonianApplication
+   use module_interfaces, only: NK_SIC_potential, psi_to_vlocpsi
    use orbitalbasis
    use yaml_output
    use communications_base, only: p2pComms
@@ -1293,7 +1294,7 @@ subroutine calculate_energy_and_gradient(iter,iproc,nproc,GPU,ncong,iscf,&
      energs,wfn,gnrm,gnrm_zero)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => calculate_energy_and_gradient
+  use module_interfaces, only: orthoconstraint, preconditionall2, write_energies
   use yaml_output
   use communications, only: transpose_v, untranspose_v
   use communications, only: toglobal_and_transpose
@@ -1520,7 +1521,7 @@ subroutine hpsitopsi(iproc,nproc,iter,idsx,wfn,&
    at,nlpsp,eproj_sum)
    use module_base
    use module_types
-   use module_interfaces, except_this_one_A => hpsitopsi
+   use module_interfaces, only: orthogonalize
    use yaml_output
    use communications, only: transpose_v, untranspose_v
    use public_enums, only: PSPCODE_PAW
@@ -1675,7 +1676,7 @@ END SUBROUTINE hpsitopsi
 subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
    use module_base
    use module_types
-   use module_interfaces, except_this_one_B => first_orthon
+   use module_interfaces, only: orthogonalize
    use communications_base, only: comms_cubic
    use communications, only: transpose_v, untranspose_v
    implicit none
@@ -1753,7 +1754,6 @@ END SUBROUTINE first_orthon
 subroutine last_orthon(iproc,nproc,iter,wfn,evsum,opt_keeppsit)
    use module_base
    use module_types
-   use module_interfaces, fake_name => last_orthon
    use communications, only: transpose_v, untranspose_v
    implicit none
    integer, intent(in) :: iproc,nproc,iter
@@ -2335,7 +2335,6 @@ END SUBROUTINE calc_moments
 subroutine check_communications(iproc,nproc,orbs,lzd,comms)
    use module_base
    use module_types
-   use module_interfaces, except_this_one => check_communications
    use yaml_output
    use communications_base, only: comms_cubic
    use communications, only: transpose_v, untranspose_v
@@ -3034,7 +3033,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, fake_name => integral_equation
+  use module_interfaces, only: LocalHamiltonianApplication, plot_wf
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use yaml_output
   use locreg_operations

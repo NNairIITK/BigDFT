@@ -11,7 +11,7 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
       &   orbs,orbse,norbsc_arr,locrad,G,psigau,eks,iversion,mapping,quartic_prefactor)
    use module_base
    use module_types
-   use module_interfaces, except_this_one => inputguess_gaussian_orbitals
+   use module_interfaces, only: AtomicOrbitals, orbitals_descriptors
    use yaml_output
    use public_enums
    implicit none
@@ -269,7 +269,6 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig,count_atomic_shells,&
         nmax_occ => nmax_occ_ao
    use module_types
-   use module_interfaces, except_this_one => AtomicOrbitals
    use yaml_output
    implicit none
    integer, intent(in) :: norbe,iproc

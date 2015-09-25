@@ -12,7 +12,7 @@
 subroutine copy_tmbs(iproc, tmbin, tmbout, subname)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: copy_old_coefficients, copy_old_supportfunctions
   implicit none
 
   integer,intent(in) :: iproc

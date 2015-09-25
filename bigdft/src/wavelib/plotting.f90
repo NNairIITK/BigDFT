@@ -593,7 +593,7 @@ END SUBROUTINE plot_density
 subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz,iatypes, znucl, pawrhoij)
   use module_defs, only: dp, gp
-  use module_interfaces, only: read_etsf, read_cube
+  use module_interfaces, only: read_cube, read_etsf
   use m_pawrhoij, only: pawrhoij_type
   use dynamic_memory
   implicit none
@@ -768,7 +768,7 @@ END SUBROUTINE plot_wf
 subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,n2i,n3i,n3p,nspin,hxh,hyh,hzh,pot)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: read_density
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,nspin
   real(gp), intent(in) :: hxh,hyh,hzh

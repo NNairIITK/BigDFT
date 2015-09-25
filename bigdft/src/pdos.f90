@@ -12,7 +12,7 @@
 subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
    use module_base
    use module_types
-   use module_interfaces, except_this_one => local_analysis
+   use module_interfaces, only: gaussian_pswf_basis
    use gaussians, only: deallocate_gwf
    implicit none
    integer, intent(in) :: iproc,nproc

@@ -12,7 +12,6 @@
 subroutine conjgrad(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
   use bigdft_run!module_types
-  use module_interfaces
   use minpar
   use yaml_output
   implicit none
@@ -326,7 +325,6 @@ subroutine steepdes(runObj,outs,nproc,iproc,ncount_bigdft,fnrm,forcemax_sw,nitsd
   use module_base
   use module_atoms, only: move_this_coordinate
   use bigdft_run!module_types
-  use module_interfaces
   use minpar
   use yaml_output
   use internal_coordinates, only : xyzint
@@ -563,7 +561,6 @@ END SUBROUTINE steepdes
 subroutine vstepsd(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
   use bigdft_run!module_types
-  use module_interfaces
   use minpar
   use yaml_output
   implicit none

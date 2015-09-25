@@ -63,7 +63,6 @@ function GetBottom(atoms,nspin)
    use ao_inguess, only: &
         iguess_generator,ao_nspin_ig,nmax_occ_ao
    use module_types
-   use module_interfaces
 
    implicit none
    !Arguments

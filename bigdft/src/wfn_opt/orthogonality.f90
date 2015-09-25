@@ -13,7 +13,7 @@
 subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   use module_base
   use module_types
-  use module_interfaces, except_this_one_A => orthogonalize
+  use module_interfaces, only: cholesky, gsChol, loewdin
   use communications_base, only: comms_cubic
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -198,7 +198,6 @@ END SUBROUTINE check_closed_shell
 subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n(c) wfd (arg:5)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => orthoconstraint
   use communications_base, only: comms_cubic
   implicit none
 
@@ -1732,7 +1731,7 @@ END SUBROUTINE KStrans_p
 subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,norbArr,comms,paw)
   use module_base
   use module_types
-  use module_interfaces, except_this_one_A => gsChol
+  use module_interfaces, only: cholesky, gramschmidt
   use communications_base, only: comms_cubic
   implicit none
 

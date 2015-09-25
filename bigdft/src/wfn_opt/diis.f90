@@ -525,7 +525,6 @@ END SUBROUTINE mix_rhopot
 subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => psimix
   use yaml_output
   use diis_sd_optimization
   use communications_base, only: comms_cubic

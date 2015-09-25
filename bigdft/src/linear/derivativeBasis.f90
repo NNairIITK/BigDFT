@@ -43,7 +43,6 @@ end subroutine get_derivative_supportfunctions
 subroutine get_one_derivative_supportfunction(ilr,hgrid,lzd,phi,phid)
    use module_base
    use module_types
-   use module_interfaces
    implicit none
    
    ! Calling arguments
@@ -439,7 +438,6 @@ end subroutine get_one_derivative_supportfunction
 subroutine get_derivative(idir, ndim, hgrid, orbs, lzd, phi, phider)
   use module_base
   use module_types
-  use module_interfaces!, except_this_one => get_divergence
   implicit none
   
   ! Calling arguments

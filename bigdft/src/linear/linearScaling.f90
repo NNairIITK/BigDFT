@@ -14,7 +14,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
  
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => linearScaling
+  use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
+       & getLocalizedBasis, get_coeff, loewdin, sumrho, write_eigenvalues_data, &
+       & write_energies, write_orbital_density
   use yaml_output
   use module_fragments
   use constrained_dft
@@ -3556,7 +3558,6 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
   use yaml_output
   use module_fragments
   !use internal_io
-  use module_interfaces
   use public_enums
   implicit none
 

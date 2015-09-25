@@ -893,7 +893,6 @@ subroutine local_partial_density_OCL(orbs,&
      nrhotot,lr,hxh,hyh,hzh,nspin,psi,rho_p,GPU)
   use module_base
   use module_types
-  use module_interfaces
   implicit none
   integer, intent(in) :: nrhotot
   type(orbitals_data), intent(in) :: orbs

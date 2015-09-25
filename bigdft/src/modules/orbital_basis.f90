@@ -275,7 +275,7 @@ contains
     use locreg_operations, only: workarr_locham
     use Poisson_Solver, only: coulomb_operator
     use dynamic_memory
-    use module_interfaces, only: psir_to_vpsi,isf_to_daub_kinetic
+    use module_interfaces, only: isf_to_daub_kinetic, psir_to_vpsi
     use wrapper_linalg, only: axpy
     implicit none
     type(ket), intent(in) :: psi

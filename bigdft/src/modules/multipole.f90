@@ -800,7 +800,6 @@ module multipole
                ovrlp, kernel, meth_overlap)
       use module_base
       use module_types
-      use module_interfaces
       use sparsematrix_base, only: sparsematrix_malloc0, SPARSE_FULL, assignment(=)
       use sparsematrix_init, only: matrixindex_in_compressed
       use orthonormalization, only: orthonormalizeLocalized

@@ -16,7 +16,6 @@
 module bigdft_forces
 
    use module_defs, only : gp
-   use module_atoms, only: atoms_data
    use bigdft_run, only: run_objects
    use module_atoms
    use module_interfaces

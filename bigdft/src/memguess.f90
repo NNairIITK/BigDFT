@@ -1782,7 +1782,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
      nspin,ixc,ncong,Lzd,hx,hy,hz,rxyz,ntimes)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, only: gaussian_pswf_basis, local_hamiltonian
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use gaussians, only: gaussian_basis, deallocate_gwf
    use module_xc
@@ -2277,7 +2277,7 @@ end subroutine take_proj_from_file
 subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor,ref_frags)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, only: initialize_linear_from_file
    use module_fragments
    use locreg_operations, only: lpsi_to_global2
    use module_input_keys, only: wave_format_from_filename

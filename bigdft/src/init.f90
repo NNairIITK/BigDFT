@@ -15,7 +15,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => createWavefunctionsDescriptors
+  use module_interfaces, only: export_grids
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: atoms
@@ -450,7 +450,7 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => input_wf_empty
+  use module_interfaces, only: read_density
   use public_enums
   implicit none
   integer, intent(in) :: iproc, nproc
@@ -568,7 +568,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   use module_types
   use yaml_output
   use gaussians, only: deallocate_gwf
-  use module_interfaces, except_this_one => input_wf_cp2k
+  use module_interfaces, only: parse_cp2k_files
   implicit none
 
   integer, intent(in) :: iproc, nproc, nspin
@@ -614,7 +614,6 @@ END SUBROUTINE input_wf_cp2k
 subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,oldpsis,rxyz,Lzd,psi)
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output
   implicit none
   integer, intent(in) :: iproc,wfn_history
@@ -733,7 +732,6 @@ subroutine input_wf_memory(iproc, atoms, &
      & rxyz, lzd, psi, orbs)
   use module_base, only: gp,wp,f_free_ptr
   use module_types
-  use module_interfaces, except_this_one => input_wf_memory
   implicit none
 
   integer, intent(in) :: iproc
@@ -764,7 +762,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   use module_base
   use module_types
-  use module_interfaces, except_this_one => input_memory_linear
+  use module_interfaces, only: inputguessConfinement, reformat_supportfunctions
   use module_fragments
   use yaml_output
   use communications_base, only: deallocate_comms_linear, TRANSPOSE_FULL
@@ -1469,7 +1467,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
      in, atoms, rxyz, wfd, orbs, psi)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => input_wf_disk
+  use module_interfaces, only: readmywaves
   use public_enums
   implicit none
 
@@ -1524,7 +1522,7 @@ subroutine input_wf_disk_pw(filename, iproc, nproc, at, rxyz, GPU, Lzd, orbs, ps
   use module_atoms
   use m_pawrhoij, only: pawrhoij_type, pawrhoij_init_unpacked, pawrhoij_free_unpacked, pawrhoij_unpack
   use dynamic_memory
-  use module_interfaces, only: read_pw_waves, sumrho, communicate_density, write_energies
+  use module_interfaces, only: communicate_density, read_pw_waves, sumrho, write_energies
   use rhopotential, only: updatePotential
   use f_utils, only: f_zero
   
@@ -1606,7 +1604,9 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   ! The files are then read by readwave
   ! @todo pass GPU to be a local variable of this routine (initialized and freed here)
   use module_base
-  use module_interfaces, except_this_one => input_wf_diag
+  use module_interfaces, only: FullHamiltonianApplication, LDiagHam, &
+       & communicate_density, free_full_potential, inputguess_gaussian_orbitals, &
+       & sumrho, write_energies
   use module_types
   use module_xc, only: XC_NO_HARTREE
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
@@ -2170,7 +2170,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      locregcenters)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => input_wf
+  use module_interfaces, only: calculate_density_kernel, createProjectorsArrays, &
+       & first_orthon, get_coeff, input_memory_linear, input_wf_cp2k, &
+       & input_wf_diag, input_wf_disk, input_wf_empty, input_wf_memory, &
+       & input_wf_memory_new, input_wf_random, inputguessConfinement, &
+       & read_gaussian_information, readmywaves, readmywaves_linear_new, &
+       & restart_from_gaussians, sumrho
   use module_fragments
   use constrained_dft
   use dynamic_memory
@@ -2988,7 +2993,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
   use module_types
   use yaml_output
   use module_fragments
-  use module_interfaces, except_this_one=>input_check_psi_id
+  use module_interfaces, only: verify_file_presence
   use dictionaries, only: f_err_throw
   use public_enums
   use f_enums
@@ -3061,7 +3066,6 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   use module_base
   use ao_inguess, only: atomic_info
   use module_types
-  use module_interfaces, except_this_one => input_wf_memory_new
   use locreg_operations
   implicit none
 

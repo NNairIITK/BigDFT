@@ -230,7 +230,6 @@
         use module_atoms, only: astruct_dump_to_file
         use bigdft_run
         use yaml_output
-        use module_interfaces
         use module_sqn
         use module_userinput
         use module_mhgps_state

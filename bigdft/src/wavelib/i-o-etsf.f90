@@ -1253,7 +1253,7 @@ subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoi
   use f_utils
   use dictionaries
   use yaml_strings, only: yaml_toa
-  use module_interfaces, only: plot_wf
+  !use module_interfaces, only: plot_wf
   
   implicit none
 

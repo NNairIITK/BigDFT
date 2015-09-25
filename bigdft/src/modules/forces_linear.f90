@@ -970,7 +970,6 @@ module forces_linear
          collcom, msmat, mmat, lsmat, lmat, tens)
       use module_base
       use module_types
-      use module_interfaces
       !use module_xc
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix, only: trace_sparse

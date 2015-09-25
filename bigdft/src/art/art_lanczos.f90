@@ -52,7 +52,6 @@ subroutine lanczos( maxvec, new_projection, produit )
   use random
   use bigdft_forces
   use module_base
-  use module_interfaces
   implicit none
 
   !Arguments

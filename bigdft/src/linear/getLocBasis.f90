@@ -15,7 +15,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => get_coeff
+  use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, optimize_coeffs
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use constrained_dft
   use diis_sd_optimization
@@ -618,7 +618,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
+  use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, &
+       & calculate_density_kernel, calculate_energy_and_gradient_linear, hpsitopsi, &
+       & hpsitopsi_linear, write_energies
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, TRANSPOSE_GATHER
   use communications, only: transpose_localized, untranspose_localized, start_onesided_communication, &
                             synchronize_onesided_communication
@@ -1500,7 +1502,6 @@ end subroutine getLocalizedBasis
 subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, experimental_mode)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => improveOrbitals
   implicit none
   
   ! Calling arguments
@@ -1566,7 +1567,6 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   !
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output, only: yaml_map
   implicit none
 
@@ -1998,7 +1998,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
            orbs, tmb, overlap_calculated)
   use module_base
   use module_types
-  use module_interfaces!, except_this_one => reconstruct_kernel
+  use module_interfaces, only: calculate_density_kernel
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
@@ -2076,7 +2076,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
            basis_overlap, KS_overlap, basis_overlap_mat, coeff, orbs)
   use module_base
   use module_types
-  use module_interfaces!, except_this_one => reorthonormalize_coeff
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
        allocate_matrices, deallocate_matrices
   use yaml_output, only: yaml_newline, yaml_map
@@ -2572,7 +2571,6 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), matrices, &

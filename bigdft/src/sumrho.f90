@@ -15,7 +15,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, fake_name => density_and_hpot
+  use module_interfaces, only: communicate_density, sumrho
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   !Arguments
@@ -80,7 +80,6 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    use module_base
    use module_types
    use module_xc
-   use module_interfaces, except_this_one => sumrho
    use yaml_output
    implicit none
    !Arguments
@@ -371,7 +370,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
       &   nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, only: partial_density_free
    use locreg_operations
    implicit none
    logical, intent(in) :: rsflag
