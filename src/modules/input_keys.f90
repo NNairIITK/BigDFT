@@ -447,23 +447,23 @@ contains
 !!$  end function output_wf_format_validate
 
 
-  subroutine output_denspot_help()
-    integer :: i, j
-
-    write(*, "(1x,A)") "Available values of output_denspot are:"
-    do i = 0, size(output_denspot_format_names) - 1
-       do j = 0, size(output_denspot_names) - 1
-          if (j == 0 .and. i == 0) then
-             write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_denspot_names(j)), "."
-          else if (j /= 0) then
-             write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_denspot_names(j)), &
-                  & " in ", trim(output_denspot_format_names(i)), " format."
-          end if
-       end do
-    end do
-  end subroutine output_denspot_help
+!!$ subroutine output_denspot_help()
+!!$   integer :: i, j
+!!$
+!!$   write(*, "(1x,A)") "Available values of output_denspot are:"
+!!$   do i = 0, size(output_denspot_format_names) - 1
+!!$      do j = 0, size(output_denspot_names) - 1
+!!$         if (j == 0 .and. i == 0) then
+!!$            write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
+!!$                 & " - ", trim(output_denspot_names(j)), "."
+!!$         else if (j /= 0) then
+!!$            write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
+!!$                 & " - ", trim(output_denspot_names(j)), &
+!!$                 & " in ", trim(output_denspot_format_names(i)), " format."
+!!$         end if
+!!$      end do
+!!$   end do
+!!$ end subroutine output_denspot_help
 
 
   function output_denspot_validate(id, fid)
@@ -594,15 +594,9 @@ contains
     integer :: nsym,unt
     real(gp) :: gsqcut_shp, rloc, projr, rlocmin
     real(gp), dimension(2) :: cfrmults
-    type(external_potential_descriptors) :: ep
-    integer :: impl, l
-
-    !  dict => dict//key
-
-    !  dict = dict//key
+    !integer :: impl, l
 
     call f_routine(id='inputs_from_dict')
-
 
     ! Atoms case.
     atoms = atoms_data_null()
@@ -942,10 +936,10 @@ contains
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
     !local variables
-    type(dictionary), pointer :: as_is,nested,no_check
-    character(max_field_length) :: meth, prof
+    type(dictionary), pointer :: as_is,nested
+    character(max_field_length) :: meth!, prof
     real(gp) :: dtmax_, betax_
-    logical :: user_defined,free,dftvar
+    logical :: free,dftvar!,user_defined
 
     if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
          err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -1037,8 +1031,9 @@ contains
 
     !local variables
     integer, parameter :: natoms_dump=500
-    integer :: i, dlen, skeys,natoms
-    character(max_field_length), dimension(:), allocatable :: keys
+    integer :: natoms
+    !integer :: i, dlen, skeys
+    !character(max_field_length), dimension(:), allocatable :: keys
     character(max_field_length) ::  sourcefile
     logical :: userOnly_
     type(dictionary), pointer :: tmp
@@ -2417,8 +2412,6 @@ contains
     type(input_variables), intent(inout) :: in
     type(atomic_structure), intent(in) :: astruct
 
-    integer :: ierr
-
     call f_routine(id='input_analyze')
 
     ! the PERF variables -----------------------------------------------------
@@ -2575,10 +2568,8 @@ contains
           call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &
                & kptrlen_, ierror)
           if (ierror /= AB7_NO_ERROR) then
-             if (iproc==0) &
-                  & call yaml_warning("ERROR: cannot generate automatic k-point grid." // &
-                  & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
-             stop
+             call f_err_throw('cannot generate automatic k-point grid. Error code is ' &
+                  & + yaml_toa(ierror,fmt='(i0)'),err_name='BIGDFT_RUNTIME_ERROR')
           end if
           !assumes that the allocation went through (arrays allocated by abinit routines)
           in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
@@ -3068,6 +3059,7 @@ contains
 
   END SUBROUTINE print_dft_parameters
 
+
   !> Read from all input files and build a dictionary
   subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
@@ -3081,10 +3073,10 @@ contains
     use module_atoms, only: astruct_file_merge_to_dict,atoms_file_merge_to_dict
     implicit none
     !Arguments
-    type(dictionary), pointer :: dict                  !< Contains (out) all the information
-    character(len = *), intent(in) :: radical          !< Radical for the input files
-    character(len = *), intent(in) :: posinp_name           !< If the dict has no posinp key, use it
-    type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
+    type(dictionary), pointer :: dict               !< Contains (out) all the information
+    character(len = *), intent(in) :: radical       !< Radical for the input files
+    character(len = *), intent(in) :: posinp_name   !< If the dict has no posinp key, use it
+    type(mpi_environment), intent(in) :: mpi_env    !< MPI Environment
     !Local variables
     logical :: exists
     type(dictionary), pointer :: at

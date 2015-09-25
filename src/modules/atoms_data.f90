@@ -648,7 +648,7 @@ contains
          end if
       end if
 
-      ! Test posinp.xyz
+      ! Test file//'.xyz'
       if (.not. file_exists) then
          inquire(FILE = file//'.xyz', EXIST = file_exists)
          files = trim(files) // "'" // trim(file)//".xyz'"
@@ -659,7 +659,7 @@ contains
          end if
       end if
 
-      ! Test posinp.ascii
+      ! Test file//'.ascii'
       if (.not. file_exists) then
          inquire(FILE = file//'.ascii', EXIST = file_exists)
          files = trim(files) // ", '" //trim(file)//".ascii'"
@@ -669,7 +669,7 @@ contains
             open(unit=iunit,file=trim(filename),status='old')
          end if
       end if
-      ! Test posinp.int
+      ! Test file//'.int'
       if (.not. file_exists) then
          inquire(FILE = file//'.int', EXIST = file_exists)
          if (file_exists) then
@@ -678,7 +678,7 @@ contains
             open(unit=99,file=trim(filename),status='old')
          end if
       end if
-      ! Test posinp.yaml
+      ! Test file//'.yaml'
       if (.not. file_exists) then
          inquire(FILE = file//'.yaml', EXIST = file_exists)
          files = trim(files) // ", '" //trim(file)//".yaml'"
@@ -1185,6 +1185,7 @@ contains
       !Check if BIGDFT_INPUT_FILE_ERROR
       ierr = f_get_last_error(msg) 
       call f_err_close_try()
+
       if (ierr == 0) then
          dict_tmp => dict // key
          !No errors: we have all information in astruct and put into dict
@@ -1209,7 +1210,7 @@ contains
       else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
          !Found no file: maybe already inside the yaml file ?
          !Check if posinp is in dict
-         if ( POSINP .notin.  dict) then
+         if (POSINP .notin. dict) then
             ! Raise an error
             call f_strcpy(src='input',dest=radical)
             !modify the radical name if it exists

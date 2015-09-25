@@ -635,7 +635,7 @@ end if
 
   end subroutine close_routine
 
-  !routine which is called for most of the errors of the module
+  !> Routine which is called for most of the errors of the module
   subroutine f_malloc_callback()
     use yaml_output, only: yaml_warning,yaml_flush_document
     use exception_callbacks, only: severe_callback_add 

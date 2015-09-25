@@ -280,6 +280,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call f_free(locrad)
      call f_free(norbsc_arr)
 
+     !Check if orbitals and electrons are present
+     if (orbs%norb*orbs%nkpts == 0) &
+        & call f_err_throw('No electrons in the system! Check your input variables or atomic positions.', &
+        & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
      ! Check the maximum number of orbitals
      if (in%nspin==1 .or. in%nspin==4) then
         if (orbs%norb>norbe) then
@@ -289,7 +293,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            !stop
            call f_err_throw('The number of orbitals ('+yaml_toa(orbs%norb)// &
                 &   ') must not be greater than the number of orbitals ('+yaml_toa(norbe)// &
-                &   ') generated from the input guess.',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+                &   ') generated from the input guess.',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
         end if
      else if (in%nspin == 2) then
         if (orbs%norbu > norbe) then
@@ -299,7 +303,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            !stop
            call f_err_throw('The number of orbitals up ('+yaml_toa(orbs%norbu)// &
                 &   ') must not be greater than the number of orbitals ('+yaml_toa(norbe)// &
-                &   ') generated from the input guess.',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+                &   ') generated from the input guess.',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
         end if
         if (orbs%norbd > norbe) then
            !write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
@@ -308,7 +312,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            !stop
            call f_err_throw('The number of orbitals down ('+yaml_toa(orbs%norbd) //&
                 &   ') must not be greater than the number of orbitals ('+yaml_toa(norbe) //&
-                &   ') generated from the input guess.',err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+                &   ') generated from the input guess.',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
         end if
      end if
   end if
@@ -414,11 +418,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       if(iproc==0) call yaml_warning('Do not call check_communications in the linear scaling version!')
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
-
-  !Check if orbitals and electrons
-  if (orbs%norb*orbs%nkpts == 0) &
-     & call f_err_throw('No electrons in the system! Check your input variables or atomic positions.', &
-     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
 
   call f_release_routine()
   !---end of system definition routine

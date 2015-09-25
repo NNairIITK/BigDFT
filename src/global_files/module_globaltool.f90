@@ -1,11 +1,15 @@
-!! @file
+!> @file
+!!   Define module for the global tool
 !! @author Bastian Schaefer
 !! @section LICENCE
-!!    Copyright (C) 2014 BigDFT group
+!!    Copyright (C) 2014-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module to handle the minima hopping
 module module_globaltool
     use module_base
     use module_atoms, only: atomic_structure
@@ -495,7 +499,7 @@ subroutine write_transitionpairs(gdat)
     integer :: IDmin1, IDmin2
     integer :: kIDmin1, kIDmin2
     real(gp) :: fpd
-integer :: i
+
     call yaml_comment('Transition pairs unified ....',hfill='-')
     write(*,'(a)')'  #Trans IDmin1 IDmin2  Ener1                '//&
          '    Ener2                    |DeltaEner|         '//&
