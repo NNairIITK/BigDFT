@@ -4,7 +4,6 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   use yaml_output
   use module_base
   use module_types
-  use module_interfaces
   use module_fragments
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
@@ -631,7 +630,6 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   use yaml_output
   use module_base
   use module_types
-  use module_interfaces
   use module_fragments
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized

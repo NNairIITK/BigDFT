@@ -71,7 +71,6 @@ MODULE NEB_routines
        use yaml_output
        use yaml_strings
       use dictionaries
-      use module_interfaces
       use module_input_keys, only: input_keys_fill_all,user_dict_from_files
       use module_input_dicts
       use input_old_text_format

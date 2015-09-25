@@ -18,8 +18,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
       &   psigau,hpsigau,orbse,etol,norbsc_arr)
    use module_base
    use module_types
-   use module_interfaces
-  use yaml_output
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc,nproc,natsc,nspin
    real(gp), intent(in) :: etol
@@ -206,7 +205,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      orbse,commse,etol,norbsc_arr) !optional
   use module_base
   use module_types
-  use module_interfaces, except_this_one => LDiagHam
+  use module_interfaces, only: orthogonalize, write_eigenvalues_data
   use yaml_output
   use communications_base, only: comms_cubic
   use communications, only: transpose_v, untranspose_v, toglobal_and_transpose

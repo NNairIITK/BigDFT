@@ -232,7 +232,6 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 
   use module_base
   use module_types
-  use module_interfaces
   use locreg_operations
 
   implicit none

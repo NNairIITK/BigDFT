@@ -910,7 +910,6 @@ contains
        runObj,outs,ngeopt,iproc)!  &
     use module_base
     use module_types
-    use module_interfaces
     use m_ab6_symmetry
     implicit none !real*8 (a-h,o-z)
     integer :: nsoften,mdmin,ngeopt,iproc

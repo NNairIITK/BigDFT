@@ -12,7 +12,6 @@ subroutine optimizeDIIS(iproc, nproc, npsidim, orbs, nspin, lzd, hphi, phi, ldii
 
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => optimizeDIIS
   implicit none
 
   ! Calling arguments

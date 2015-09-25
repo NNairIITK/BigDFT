@@ -11,7 +11,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
   use module_base
   use module_types
-  use module_interfaces, only: local_forces,erf_stress
+  use module_interfaces, only: erf_stress
   use communications_base
   use yaml_output
   use module_forces
@@ -3797,7 +3797,7 @@ end subroutine symmetrise_forces
 subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: isf_to_daub_kinetic
   use module_xc
   use locreg_operations
   implicit none

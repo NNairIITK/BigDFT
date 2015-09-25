@@ -1771,7 +1771,6 @@ end subroutine write_wannier_cube
 
 subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   use BigDFT_API
-  use module_interfaces
   use yaml_output
   implicit none
   integer, intent(in) :: nel,nIG,iproc
@@ -1917,7 +1916,6 @@ end subroutine init_random_seed
 subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, normal, dcp)
    use BigDFT_API
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-   use module_interfaces
    implicit none
    integer, intent(in) :: mode        ! 0= atomic projection, 1=wannier projection
    integer, intent(in) :: natom
@@ -2156,7 +2154,6 @@ end do
 end subroutine shift_stereographic_projection
 
 subroutine build_stereographic_graph_facets(natoms,nsurf, mcenters,maxbond,rxyz,ncenters,Zatoms,nfacets,facets,vertex)
-   use module_interfaces
    use module_defs, only: gp,dp
    use module_types
    implicit none
@@ -2523,7 +2520,6 @@ end subroutine read_eigenvalues
 
 subroutine read_amn_header(filename,nproj,nband,nkpt)
 use module_types
-use module_interfaces
 implicit none
 character(len=*),intent(in) :: filename
 integer, intent(out) :: nproj,nband,nkpt
@@ -2548,7 +2544,6 @@ end subroutine read_amn_header
 subroutine read_amn(filename,amn,nproj,nband,nkpt)
   use module_defs, only :gp
 use module_types
-use module_interfaces
 implicit none
 character(len=*),intent(in) :: filename
 integer, intent(in) :: nproj, nband, nkpt
@@ -2652,7 +2647,6 @@ END SUBROUTINE read_proj
 subroutine character_list(nwann,nproj,tmatrix,plotwann,wann_list,l,mr)
    use BigDFT_API
    use module_types
-   use module_interfaces
    implicit none
    ! I/O variables
    integer, intent(in) :: nwann, nproj,plotwann

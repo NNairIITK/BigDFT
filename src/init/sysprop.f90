@@ -16,7 +16,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
   use module_base
   use module_types
-  use module_interfaces, fake_name => system_initialization
+  use module_interfaces, only: createProjectorsArrays, createWavefunctionsDescriptors, &
+       & init_orbitals_data_for_linear, orbitals_descriptors
   use module_xc
   use module_fragments
   use vdwcorrection
@@ -1087,7 +1088,7 @@ end subroutine epsinnersccs_cavity
 subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: orbitals_descriptors
   use public_enums
   implicit none
   integer, intent(in) :: iproc,nproc

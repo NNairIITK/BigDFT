@@ -62,7 +62,6 @@ subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
            denspot, mixdiis, rhopotold, pnrm)
   use module_base
   use module_types
-  use module_interfaces
   use public_enums
   implicit none
   
@@ -112,7 +111,6 @@ subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, 
   use module_base
   use module_types
   use module_xc
-  use module_interfaces
   implicit none
 
   ! Calling arguments

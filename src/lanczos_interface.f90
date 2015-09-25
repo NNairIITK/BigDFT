@@ -465,7 +465,6 @@ contains
   !
 
   subroutine  EP_copia_per_prova(psi)
-    use module_interfaces
     use communications, only: transpose_v
     !Arguments
     real(wp), dimension(*), target :: psi ! per testare happlication
@@ -484,7 +483,6 @@ contains
   END SUBROUTINE EP_copia_per_prova
 
   subroutine EP_initialize_start()
-    use module_interfaces
     use communications, only: transpose_v
     !Local variables
     integer :: i
@@ -826,7 +824,6 @@ contains
 
 
   subroutine EP_precondition(p,i, ene, gamma)
-    use module_interfaces
     use module_base
     use communications, only: transpose_v, untranspose_v
     use locreg_operations
@@ -979,7 +976,7 @@ contains
 
 
   subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
-    use module_interfaces
+    use module_interfaces, only: FullHamiltonianApplication
     use gaussians, only: gaussian_basis
     use communications, only: transpose_v, untranspose_v
     !Arguments
@@ -1078,7 +1075,7 @@ contains
 
 
   subroutine EP_Moltiplica(p,i)
-    use module_interfaces
+    use module_interfaces, only: FullHamiltonianApplication
     use communications, only: transpose_v, untranspose_v
     !Arguments
     implicit none
@@ -1178,7 +1175,6 @@ contains
   END SUBROUTINE EP_Moltiplica
 
   subroutine EP_ApplySinv(p,i)
-    use module_interfaces
     use communications, only: transpose_v, untranspose_v
     !Arguments
     implicit none
@@ -1246,7 +1242,6 @@ contains
 
 
   subroutine EP_ApplyS(p,i)
-    use module_interfaces
     use communications, only: transpose_v, untranspose_v
     !Arguments
     implicit none
@@ -1619,7 +1614,7 @@ contains
     use module_types
     use module_xc
     use lanczos_base
-    use module_interfaces
+    use module_interfaces, only: free_full_potential
     use communications_init, only: orbitals_communicators
     use communications_base, only: deallocate_comms
     use rhopotential, only: full_local_potential
@@ -1769,7 +1764,7 @@ contains
     use module_xc
     use lanczos_base
     ! per togliere il bug 
-    use module_interfaces
+    use module_interfaces, only: free_full_potential
     use communications_init, only: orbitals_communicators
     use communications_base, only: deallocate_comms
     use rhopotential, only: full_local_potential
@@ -2005,7 +2000,7 @@ contains
     use module_xc
     use communications_base, only: deallocate_comms
     ! per togliere il bug 
-    use module_interfaces
+    use module_interfaces, only: free_full_potential
     use communications_init, only: orbitals_communicators
     use rhopotential, only: full_local_potential
 

@@ -304,7 +304,6 @@ contains
 
   subroutine box_features(whichone,contcar,nrep,nat,ntypes,iatype,pos,factor)
     use BigDFT_API
-    use module_interfaces
     use m_ab6_symmetry
     use module_atoms, only: deallocate_atomic_structure,set_astruct_from_file
     implicit none
@@ -406,7 +405,6 @@ end program MDanalysis
 
 subroutine read_pos(iunit,whichone,nat,pos,nrep)
   use BigDFT_API
-  use module_interfaces
   use m_ab6_symmetry
   use module_atoms, only: deallocate_atomic_structure,set_astruct_from_file
   implicit none

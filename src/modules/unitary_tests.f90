@@ -17,7 +17,6 @@ module unitary_tests
     subroutine check_communication_potential(iproc,denspot,tmb)
       use module_base
       use module_types
-      use module_interfaces
       use yaml_output
       use dictionaries, only: f_err_throw
       use communications, only: start_onesided_communication
@@ -189,7 +188,6 @@ module unitary_tests
     subroutine check_communication_sumrho(iproc, nproc, orbs, lzd, collcom_sr, denspot, denskern, denskern_, check_sumrho)
       use module_base
       use module_types
-      use module_interfaces
       use yaml_output
       use locregs, only: check_whether_bounds_overlap
       use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt

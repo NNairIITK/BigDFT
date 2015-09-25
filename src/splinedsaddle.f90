@@ -242,7 +242,6 @@ end module modulesplinedsaddle
 subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_bigdft)
   use dictionaries
     use module_base
-    use module_interfaces
     use module_types
     !use module_input_keys, only:DFT_VARIABLES, KPT_VARIABLES
     use minimization_sp, only:parameterminimization_sp  !Reza
@@ -582,7 +581,6 @@ end subroutine change_np
 
 subroutine improvepeak(n,nr,np,x,outends,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     use module_base
-    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
@@ -689,7 +687,6 @@ end subroutine improvepeak
 
 subroutine pickbestanchors2(n,np,x,outends,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     use module_base
-    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
@@ -835,7 +832,6 @@ end subroutine pickbestanchors2
 subroutine pickbestanchors(n,np,x,outends,pnow,nproc,iproc,ll_runObj,&
      ncount_bigdft)
     use module_base
-    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
@@ -1054,7 +1050,6 @@ end subroutine readinputsplsad
 
 subroutine neb(n,nr,np,x,parmin,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     use module_base
-    use module_interfaces
     use module_types
     use minimization_sp, only:parameterminimization_sp
     use modulesplinedsaddle, only:parametersplinedsaddle
@@ -1391,7 +1386,6 @@ end subroutine calmaxforcecomponentanchors
 
 subroutine nebforce(n,np,x,outs,fnrmtot,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     use module_base
-    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
@@ -1494,7 +1488,6 @@ end subroutine nebforce
 subroutine splinedsaddle(n,nr,np,x,etmax,f,xtmax,parmin,outends,pnow,nproc, &
     iproc,runObj,ll_runObj,ncount_bigdft,fatsp)
     use module_base
-    use module_interfaces
     use module_types
     use minimization_sp, only:parameterminimization_sp
     use modulesplinedsaddle, only:parametersplinedsaddle
@@ -2145,7 +2138,6 @@ end subroutine testparmin
 
 subroutine perpendicularforce(n,np,x,f,pnow,nproc,iproc,ll_runObj,ncount_bigdft)
     use module_base
-    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
@@ -2219,7 +2211,6 @@ end subroutine perpendicularforce
 subroutine calvmaxanchorforces(istep,n,np,x,xold,outends,etmax,f,xtmax,pnow,pold,ftmax, &
     nproc,iproc,runObj,ll_runObj,ncount_bigdft)
     use module_base
-    use module_interfaces
     use module_types
     use minimization_sp, only:parameterminimization_sp
     use modulesplinedsaddle, only:parametersplinedsaddle
@@ -2410,7 +2401,6 @@ end subroutine checkpathway
 
 subroutine caltmax2(istep,n,np,x,xold,outends,epot,xt,ft,pnow,pold,nproc,iproc,ll_runObj,ncount_bigdft)
     use module_base
-    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
@@ -2906,7 +2896,6 @@ end subroutine calvquintic
 
 subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,ll_runObj,ncount_bigdft)
     use module_base
-    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
@@ -4011,7 +4000,6 @@ end subroutine prepcd1cd2
 
 subroutine func(tt,epot,ett,n,np,x,pnow,mp,xt,ft,nproc,iproc,ll_runObj,ncount_bigdft)
     use module_base
-    use module_interfaces
     use module_types
     use modulesplinedsaddle, only:parametersplinedsaddle
     use bigdft_run
