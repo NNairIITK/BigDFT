@@ -29,7 +29,9 @@ SUBDIRS += \
 
 # Tests subdir is include only if binaries are compiled.
 if BUILD_BINARIES
+if HAVE_PYYAML
 SUBDIRS += tests
+endif
 endif
 
 check report:
