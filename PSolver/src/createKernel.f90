@@ -1036,7 +1036,7 @@ end subroutine pkernel_allocate_cavity
 
 !>put in depsdrho array the extra potential
 subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
-  use module_defs, only: AU_GPa
+  !use module_defs, only: AU_GPa
   use yaml_output
   implicit none
   type(coulomb_operator), intent(in) :: kernel
@@ -1057,7 +1057,7 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
 
   gammaSau=gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
   alphaSau=alphaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
-  betaVau=betaV/AU_GPa!2.942191219d4 ! in atomic unit
+  betaVau=betaV/2.942191219d4 ! in atomic unit
   pi = 4.d0*datan(1.d0)
   n01=kernel%ndims(1)
   n02=kernel%ndims(2)
