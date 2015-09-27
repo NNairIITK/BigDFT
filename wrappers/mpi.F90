@@ -144,7 +144,7 @@ module wrapper_MPI
   end type mpi_environment
 
   public :: mpi_environment_null
-  public :: mpi_environment_free
+  public :: release_mpi_environment
   public :: mpi_environment_set
   public :: mpi_environment_set1 !to be removed
 
@@ -162,37 +162,106 @@ module wrapper_MPI
 
 contains
   
-  pure function mpi_environment_null() result(mpi)
+  pure subroutine nullify_mpi_environment(mpi)
     implicit none
-    type(mpi_environment) :: mpi
-    mpi%refcnt=f_ref_null()
+    type(mpi_environment), intent(out) :: mpi
+    call nullify_f_ref(mpi%refcnt)
     mpi%mpi_comm=MPI_COMM_NULL !better to put an invalid comm?
     mpi%igroup=-1
     mpi%ngroup=-1
     mpi%iproc=-1
     mpi%nproc=-1
+  end subroutine nullify_mpi_environment
+
+  pure function mpi_environment_null() result(mpi)
+    implicit none
+    type(mpi_environment) :: mpi
+    call nullify_mpi_environment(mpi)
   end function mpi_environment_null
 
-  subroutine mpi_environment_free(mpi_env)
+  subroutine release_mpi_environment(mpi_env)
     use yaml_strings, only: yaml_toa
     use dictionaries, only: f_err_throw
     implicit none
     type(mpi_environment), intent(inout) :: mpi_env
     !local variables
-    integer :: ierr
+    integer :: ierr,count
 
-    if (mpi_env%mpi_comm /= MPI_COMM_WORLD .and. &
-         mpi_env%mpi_comm /= MPI_COMM_NULL) then
-       call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
-       if (ierr /=0) then
-          call f_err_throw('Problem in MPI_COMM_FREE, ierr:'//&
-               yaml_toa(ierr),err_name='BIGDFT_MPI_ERROR')
-          return
+    !first check if we are in a nullified status. If so, do nothing
+    if (mpi_env%mpi_comm /= MPI_COMM_NULL .and. f_associated(mpi_env%refcnt)) then
+       call f_unref(mpi_env%refcnt,count=count)
+       !if the communicator is still active, just destroy the structure
+       if (count==0) then
+          call f_ref_free(mpi_env%refcnt)
+          !free the MPI communicator if it is not WORLD
+          !also there is no need to 
+          if (mpi_env%mpi_comm /= MPI_COMM_WORLD) then
+             call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+             if (ierr /=0) then
+                call f_err_throw('Problem in MPI_COMM_FREE, ierr='//ierr,&
+                     err_name='BIGDFT_MPI_ERROR')
+                return
+             end if
+          end if
        end if
     end if
+    !in any case nullify the status of the mpi_env
     mpi_env=mpi_environment_null()
-  end subroutine mpi_environment_free
+  end subroutine release_mpi_environment
 
+  subroutine deepcopy_mpi_environment(dest,src)
+    use dictionaries, only: f_err_throw
+    implicit none
+    ! Calling arguments
+    type(mpi_environment),intent(in) :: src
+    type(mpi_environment),intent(out) :: dest
+    ! Local variables
+    integer :: ierr
+
+    dest=mpi_environment_null()
+ 
+    if (src%mpi_comm/=MPI_COMM_NULL) then
+       call mpi_comm_dup(src%mpi_comm, dest%mpi_comm, ierr)
+       if (ierr /=0) then
+          call f_err_throw('Problem in MPI_COMM_DUP, ierr='//ierr,&
+               err_name='BIGDFT_MPI_ERROR')
+          return
+       end if
+       dest%nproc=mpisize(dest%mpi_comm)
+       dest%iproc=mpirank(dest%mpi_comm)
+       !call mpi_comm_size(dest%mpi_comm, dest%nproc, ierr)
+       !LG: here there was a BIGGG mistake! (nproc instead of iproc)
+       !call mpi_comm_rank(dest%mpi_comm, dest%nproc, ierr)
+       dest%igroup = src%igroup
+       dest%ngroup = src%ngroup
+       !a new reference counter has to be activated
+       dest%refcnt=f_ref_new('mpi_copied')
+    end if
+
+  end subroutine deepcopy_mpi_environment
+
+  !>shallow copy of the mpi_environment.
+  !! it has no effect if the src has a null communicator
+  subroutine copy_mpi_environment(dest,src)
+    implicit none
+    ! Calling arguments
+    type(mpi_environment),intent(in) :: src
+    type(mpi_environment),intent(out) :: dest
+
+    dest=mpi_environment_null()
+
+    if (src%mpi_comm/=MPI_COMM_NULL) then
+       !if meaningful copy the reference counter
+       if (f_associated(src%refcnt)) &
+            call f_ref_associate(src=src%refcnt,dest=dest%refcnt)
+       dest%nproc=src%nproc
+       dest%iproc=src%iproc
+       dest%igroup = src%igroup
+       dest%ngroup = src%ngroup
+       dest%mpi_comm=src%mpi_comm
+    end if
+
+  end subroutine copy_mpi_environment
 
   !> Set the MPI environment (i.e. taskgroup or MPI communicator)
   subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
@@ -230,8 +299,8 @@ contains
           call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
        end if
        call f_free(group_list)
+       mpi_env%refcnt=f_ref_new('MPI_env')
     end if
-
     call f_release_routine()
   end subroutine mpi_environment_set
 
@@ -316,6 +385,7 @@ contains
     !       call yaml_map('Total No. of Taskgroups created',ngroup)
     !    end if
     call f_free(group_list)
+    mpi_env%refcnt=f_ref_new('MPI_env1')
     call f_release_routine()
   end subroutine mpi_environment_set1
 

@@ -427,7 +427,7 @@ MODULE NEB_routines
          deallocate(imgs)
       end if
 
-      call mpi_environment_free(neb_mpi)
+      call release_mpi_environment(neb_mpi)
     END SUBROUTINE deallocation
 
 END MODULE NEB_routines

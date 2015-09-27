@@ -133,9 +133,9 @@ subroutine dpbox_free(dpbox)
      call f_free_ptr(dpbox%ngatherarr)
   end if
   
-  if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
-     call mpi_environment_free(dpbox%mpi_env)
-  end if
+  !if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
+  call release_mpi_environment(dpbox%mpi_env)
+  !end if
 
   dpbox=dpbox_null()
 

@@ -73,7 +73,7 @@ program BigDFT2Wannier
    integer, allocatable, dimension (:,:) :: G_vec
    integer, allocatable, dimension (:) :: excb,ipiv
    integer, allocatable, dimension (:) :: virt_list, amnk_bands_sorted
-   real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
+!   real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
 !   integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
    type(dictionary), pointer :: options

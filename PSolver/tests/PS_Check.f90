@@ -226,7 +226,6 @@ program PS_Check
   call f_timing_checkpoint('Parallel',mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
   !call timing(MPI_COMM_WORLD,'Parallel','PR')
 
-  call pkernel_free(pkernel)
 
   if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
        call yaml_map('Monoprocess run','*MPIrun')
@@ -287,6 +286,7 @@ program PS_Check
   !call yaml_stream_attributes()
   !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
 
+  call pkernel_free(pkernel)
   call f_release_routine()
   if (iproc==0) then
      call yaml_release_document()

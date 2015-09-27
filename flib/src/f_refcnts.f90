@@ -26,7 +26,7 @@ module f_refcnts
 
   !reference counters
   public :: f_ref_new,f_ref_null,f_unref,f_ref_free,f_ref_associate
-  public :: nullify_f_ref,f_ref,f_ref_count
+  public :: nullify_f_ref,f_ref,f_ref_count,f_associated
 
   !for internal f_lib usage
   public :: refcnts_errors
@@ -41,7 +41,12 @@ contains
         err_action='When a reference counter is present each pointer association should be tracked, check for it')
  end subroutine refcnts_errors
 
-    
+ pure function f_associated(f_ref)
+   implicit none
+   type(f_reference_counter), intent(in) :: f_ref
+   logical :: f_associated
+   f_associated=associated(f_ref%iref)
+ end function f_associated
 !!!reference counter objects
   pure function f_ref_null() result(f_ref)
     implicit none

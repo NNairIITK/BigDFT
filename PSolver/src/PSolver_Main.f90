@@ -92,18 +92,6 @@
 !!!>     call yaml_map('MPI tasks',kernel%mpi_env%nproc,fmt='(i5)')
 !!!>     if (cudasolver) call yaml_map('GPU acceleration',.true.)
 !!!>  end if
-!!!>
-!!!>  !we need to reallocate the zf array with the right size when called with stress_tensor and gpu
-!!!>  if(kernel%keepzf == 1) then
-!!!>     if(kernel%igpu==1 .and. .not. cudasolver) then !LG: what means that?
-!!!>        call f_free_ptr(kernel%zf)
-!!!>        kernel%zf = f_malloc_ptr([kernel%grid%md1, kernel%grid%md3, &
-!!!>             2*kernel%grid%md2/kernel%mpi_env%nproc],id='zf')
-!!!>     end if
-!!!>  else
-!!!>     kernel%zf = f_malloc_ptr([kernel%grid%md1, kernel%grid%md3, &
-!!!>          2*kernel%grid%md2/kernel%mpi_env%nproc],id='zf')
-!!!>  end if
 !!!>  
 !!!>  select case(options%datacode)
 !!!>  case('G')
@@ -146,8 +134,7 @@
 !!!>             kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
 !!!>             pot_ion,rhopot(i3start),rhopot(i3start),e_static)
 !!!>     else
-!!!>        call axpy(kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,1.0_dp,&
-!!!>             rho_ion(1),1,rhopot(i3start),1)
+!!!>        call axpy(n1*n23,1.0_dp,rho_ion(1),1,rhopot(i3start),1)
 !!!>     end if
 !!!>     if (wrtmsg) call yaml_map('Summing up ionic density',.true.)
 !!!>  end if
@@ -160,51 +147,28 @@
 !!!>     if (wrtmsg) call yaml_map('Integral of the density in the nonvacuum region',norm_nonvac)
 !!!>  end if
 !!!>  
-!!!>  select case(trim(str(kernel%method)))
-!!!>  case('VAC')
-!!!>  case('PI')
-!!!>     !allocate arrays
-!!!>     rhopol=f_malloc0(kernel%ndims,id='rhopol')
-!!!>     rho=f_malloc([n1,n23],id='rho')
-!!!>     call f_memcpy(n=size(rho),src=rhopot(i3start),dest=rho)
-!!!>  case('PCG')
-!!!>     !allocate the pointers if they are not already done
-!!!>     !in the case of pointers ready we can used the previous results as the input guess
-!!!>     if ( all([associated(kernel%res_old),associated(kernel%pot_old)])) then
-!!!>        call axpy(kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,1.0_gp,rhopot(i3start),1,kernel%res_old(1,1),1)
-!!!>     else
-!!!>        if (.not. associated(kernel%pot_old)) kernel%pot_old=f_malloc0_ptr([n1,n23],id='pot_old')
-!!!>        if (.not. associated(kernel%res_old)) kernel%res_old=f_malloc_ptr([n1,n23],id='res_old')
-!!!>        call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
-!!!>             src=rhopot(i3start),dest=kernel%res_old)
-!!!>     end if
-!!!>!!$      !disable input guess
-!!!>     call f_zero(kernel%pot_old)
-!!!>     call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
-!!!>          src=rhopot(i3start),dest=kernel%res_old)      
-!!!>
-!!!>     q=f_malloc0([n1,n23],id='q')
-!!!>     p=f_malloc0([n1,n23],id='p')
-!!!>     z=f_malloc([n1,n23],id='z')
-!!!>     rho=f_malloc([n1,n23],id='rho')
-!!!>     call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
-!!!>          src=rhopot(i3start),dest=rho)
-!!!>  end select
+!!!>  !the allocation of the rho array is maybe not needed
+!!!>  call PS_allocate_lowlevel_workarrays(cudasolver,options%use_input_guess,&
+!!!>       kernel)
 !!!>
 !!!>  !call the Generalized Poisson Solver
 !!!>  call Parallel_GPS(kernel,cudasolver,options%offset,energies%strten,&
-!!!>       wrtmsg,&
-!!!>       z,p,q,pot_full,rhopol,rhopot(i3start))
+!!!>       wrtmsg,rhopot(i3start))
 !!!>
 !!!>  !>>>>>>>after
 !!!>  select case(trim(str(kernel%method)))
 !!!>  case('VAC')
-!!!>     This has to be done if pot_ion is present SONO ARRIVATO QUI
-!!!>     call finalize_hartree_results(sumpion,pot_ion,&
-!!!>          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-!!!>          kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
-!!!>          rhopot(i3start),kernel%zf,rhopot(i3start),ehartreeLOC)
-!!!>
+!!!>     if (present(pot_ion)) then
+!!!>        call finalize_hartree_results(sumpion,pot_ion,&
+!!!>             kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!!>             kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
+!!!>             rhopot(i3start),kernel%w%zf,rhopot(i3start),ehartreeLOC)
+!!!>     else
+!!!>        call finalize_hartree_results(.false.,rhopot(i3start),&
+!!!>             kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!!>             kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
+!!!>             rhopot(i3start),kernel%w%zf,rhopot(i3start),ehartreeLOC)
+!!!>     end if
 !!!>  case('PI')
 !!!>     !if statement for SC cavity
 !!!>     if (kernel%method .hasattr. PS_SCCS_ENUM) then
@@ -285,25 +249,19 @@
 !!!>  call f_timing(TCAT_PSOLV_COMPUT,'OF')
 !!!>  call f_release_routine()
 !!!>end subroutine Electrostatic_Solver
-!!!>
+
 
 !>Generalized Poisson Solver working with parallel data distribution.
 !!should not allocate memory as the memory handling is supposed to be done 
-!!outside
-subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,&
-     z,p,q,pot_full,rhopol,rho_dist)
+!!outside. the only exception for the moment is represented by
+!! apply_kernel as the inner poisson solver still allocates heap memory.
+subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist)
   implicit none
   logical, intent(in) :: cudasolver,wrtmsg
   real(dp), intent(in) :: offset
   type(coulomb_operator), intent(inout) :: kernel
   !>density in input, distributed version. Not modified even if written as inout
   real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: rho_dist
-  !>polarization density, used for the PI treatment, global distribution. Can be filled on input for the input guess
-  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)), intent(inout) :: rhopol
-  !> work arrays, needed for PCG treatment
-  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: p,q,z
-  !>potential in output, global distribution. Used for PI treatment
-  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)), intent(out) :: pot_full
   real(dp), dimension(6), intent(out) :: strten !<stress tensor
   !local variables
   real(dp), parameter :: max_ratioex = 1.0e10_dp !< just to avoid crazy results
@@ -334,26 +292,27 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,&
         i23s=kernel%grid%istart*kernel%grid%m3
         do i23=1,n23
            do i1=1,n1
-              pot_full(i1,i23+i23s)=&
+              kernel%w%pot(i1,i23+i23s)=& !this is full
               !rhopot(irho)=&
                    kernel%w%oneoeps(i1,i23)*rho_dist(i1,i23)+&
-                   rhopol(i1,i23+i23s)
-              kernel%w%pol_charge(i1,i23)=pot_full(i1,i23+i23s)-rho_dist(i1,i23)
+                   kernel%w%rho(i1,i23+i23s) !this is full
+              kernel%w%rho_pol(i1,i23)=kernel%w%pot(i1,i23+i23s)-rho_dist(i1,i23)
               !irho=irho+1
            end do
         end do
 
         !initalise to zero the zf array 
         call f_zero(kernel%w%zf)
-        call apply_kernel(cudasolver,kernel,pot_full(1,i23s+1),offset,strten,kernel%w%zf,.true.)
+        call apply_kernel(cudasolver,kernel,kernel%w%pot(1,i23s+1),&
+             offset,strten,kernel%w%zf,.true.)
         !gathering the data to obtain the distribution array
-        call PS_gather(pot_full,kernel)
+        call PS_gather(kernel%w%pot,kernel)
 
         !update rhopol and calculate residue
         !reduction of the residue not necessary
         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
              kernel%ndims(3),&
-             pot_full,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%dlogeps,rhopol,rhores2)
+             kernel%w%pot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%dlogeps,kernel%w%rho,rhores2)
 
         rhores2=sqrt(rhores2/rpoints)
 
@@ -368,8 +327,6 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,&
      end do pi_loop
      if (wrtmsg) call yaml_sequence_close()
   case('PCG')
-!!$      r=f_malloc([n1,n23],id='r')
-!!$      x=f_malloc0([n1,n23],id='x')
      if (wrtmsg) &
           call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
      beta=1.d0
@@ -383,7 +340,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,&
      !$omp parallel do default(shared) private(i1,i23)
      do i23=1,n23
         do i1=1,n1
-           z(i1,i23)=kernel%w%res_old(i1,i23)*kernel%w%oneoeps(i1,i23)
+           kernel%w%z(i1,i23)=kernel%w%res(i1,i23)*kernel%w%oneoeps(i1,i23)
         end do
      end do
      !$omp end parallel do
@@ -393,9 +350,11 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,&
         !initalise to zero the zf array 
         call f_zero(kernel%w%zf)
         !  Apply the Preconditioner
-        call apply_kernel(cudasolver,kernel,z,offset,strten,kernel%w%zf,.true.)
+        call apply_kernel(cudasolver,kernel,kernel%w%z,offset,strten,kernel%w%zf,.true.)
 
-        call apply_reductions(ip, cudasolver, kernel, kernel%w%res_old, kernel%w%pot_old, p, q, z, alpha, beta, normr)
+        call apply_reductions(ip,cudasolver,kernel,&
+             kernel%w%res,kernel%w%pot,kernel%w%p,kernel%w%q,kernel%w%z,&
+             alpha,beta,normr)
 
         normr=sqrt(normr/rpoints)
 
@@ -413,7 +372,8 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,&
 end subroutine Parallel_GPS
 
 subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
-      quiet,rho_ion,stress_tensor) !optional argument
+     quiet,rho_ion,stress_tensor) !optional argument
+  use FDder
    implicit none
 
    !> kernel of the Poisson equation. It is provided in distributed case, with
@@ -658,7 +618,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
                rhopot(irho)=&
                     kernel%w%oneoeps(i1,i23)*rho(i1,i23)+&
                     rhopol(i1,i23+i23s)
-               kernel%w%pol_charge(i1,i23)=rhopot(irho)-rho(i1,i23)
+               kernel%w%rho_pol(i1,i23)=rhopot(irho)-rho(i1,i23)
                irho=irho+1
             end do
          end do
@@ -737,18 +697,18 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 !!$      x=f_malloc0([n1,n23],id='x')
       !allocate the pointers if they are not already done
       !in the case of pointers ready we can used the previous results as the input guess
-      if ( all([associated(kernel%w%res_old),associated(kernel%w%pot_old)])) then
-         call axpy(kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,1.0_gp,rhopot(i3start),1,kernel%w%res_old(1,1),1)
+      if ( all([associated(kernel%w%res),associated(kernel%w%pot)])) then
+         call axpy(kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,1.0_gp,rhopot(i3start),1,kernel%w%res(1,1),1)
       else
-         if (.not. associated(kernel%w%pot_old)) kernel%w%pot_old=f_malloc0_ptr([n1,n23],id='pot_old')
-         if (.not. associated(kernel%w%res_old)) kernel%w%res_old=f_malloc_ptr([n1,n23],id='res_old')
+         if (.not. associated(kernel%w%pot)) kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot_old')
+         if (.not. associated(kernel%w%res)) kernel%w%res=f_malloc_ptr([n1,n23],id='res_old')
          call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
-              src=rhopot(i3start),dest=kernel%w%res_old)
+              src=rhopot(i3start),dest=kernel%w%res)
       end if
 !!$      !disable input guess
-      call f_zero(kernel%w%pot_old)
+      call f_zero(kernel%w%pot)
       call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
-           src=rhopot(i3start),dest=kernel%w%res_old)      
+           src=rhopot(i3start),dest=kernel%w%res)      
 
       q=f_malloc0([n1,n23],id='q')
       p=f_malloc0([n1,n23],id='p')
@@ -772,7 +732,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       !$omp parallel do default(shared) private(i1,i23)
       do i23=1,n23
          do i1=1,n1
-             z(i1,i23)=kernel%w%res_old(i1,i23)*kernel%w%oneoeps(i1,i23)
+             z(i1,i23)=kernel%w%res(i1,i23)*kernel%w%oneoeps(i1,i23)
          end do
       end do
       !$omp end parallel do
@@ -784,7 +744,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
          !  Apply the Preconditioner
          call apply_kernel(cudasolver,kernel,z,offset,strten,kernel%w%zf,.true.)
 
-         call apply_reductions(ip, cudasolver, kernel, kernel%w%res_old, kernel%w%pot_old, p, q, z, alpha, beta, normr)
+         call apply_reductions(ip, cudasolver, kernel, kernel%w%res, kernel%w%pot, p, q, z, alpha, beta, normr)
 
          normr=sqrt(normr/rpoints)
 
@@ -799,17 +759,17 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       if (wrtmsg) call yaml_sequence_close()
 
       !preserve the previous values for the input guess
-      call axpy(size(kernel%w%res_old),-1.0_gp,rho(1,1),1,kernel%w%res_old(1,1),1)
+      call axpy(size(kernel%w%res),-1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
       
       !only useful for gpu, bring back the x array
-      call update_pot_from_device(cudasolver, kernel, kernel%w%pot_old)
+      call update_pot_from_device(cudasolver, kernel, kernel%w%pot)
       !if statement for SC cavity
       if (kernel%method .hasattr. PS_SCCS_ENUM)&
-           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,kernel%w%pot_old,eps0)
+           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,kernel%w%pot,eps0)
 
 !--------------------------------------
 ! Polarization charge
-     call pol_charge(kernel,pot_full,rho,kernel%w%pot_old)
+     call pol_charge(kernel,pot_full,rho,kernel%w%pot)
 !--------------------------------------
 
       !here the harteee energy can be calculated and the ionic potential
@@ -817,7 +777,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       call finalize_hartree_results(sumpion,pot_ion,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-           rhopot(i3start),kernel%w%pot_old,rhopot(i3start),ehartreeLOC)
+           rhopot(i3start),kernel%w%pot,rhopot(i3start),ehartreeLOC)
 
       if (kernel%method .hasattr. PS_SCCS_ENUM) then
          !then add the extra potential after having calculated the hartree energy
@@ -939,160 +899,6 @@ subroutine pol_charge(kernel,pot_full,rho,pot)
   call polarization_charge(kernel,pot_full,rho)
   
 end subroutine pol_charge
-
-
-!regroup the psolver from here -------------
-subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
-  use f_utils, only: f_zero
-  use time_profiling, only: f_timing
-  implicit none
-  !>when true, the density is updated with the value of zf
-  logical, intent(in) :: updaterho
-  logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
-  type(coulomb_operator), intent(in) :: kernel 
-  !> Total integral on the supercell of the final potential on output
-  real(dp), intent(in) :: offset
-  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: rho
-  !>work array for the usage of the main routine
-  real(dp), dimension(kernel%grid%md1,kernel%grid%md3*2*(kernel%grid%md2/kernel%mpi_env%nproc)), intent(inout) :: zf
-  real(dp), dimension(6), intent(out) :: strten !< stress tensor associated to the cell
-  !local variables
-  integer, dimension(3) :: n
-  integer :: size1,size2,switch_alg,i_stat,ierr,i23,j23,j3,i1,n3delta
-  real(dp) :: pt,rh
-  real(dp), dimension(:), allocatable :: zf1
-
-  call f_routine(id='apply_kernel')
-
-  !call f_zero(zf)
-  !this routine builds the values for each process of the potential (zf), multiplying by scal   
-  !fill the array with the values of the charge density
-  !no more overlap between planes
-  !still the complex case should be defined
-  n3delta=kernel%grid%md3-kernel%grid%m3
-  !$omp parallel default(shared) private(i1,i23,j23,j3)
-  !$omp do
-  do i23=1,kernel%grid%n3p*kernel%grid%m3
-     j3=(i23-1)/kernel%grid%m3
-     !j2=i23-kernel%grid%m3*j3
-     j23=i23+n3delta*j3!=j2+kernel%grid%md3*j3
-     do i1=1,kernel%grid%m1
-        zf(i1,j23)=rho(i1,i23)
-     end do
-!!$     do i1=kernel%grid%m1+1,kernel%grid%md1
-!!$        zf(i1,j23)=0.0_dp
-!!$     end do
-  end do
-  !$omp end do
-!!$  !$omp do
-!!$  do i23=kernel%grid%n3p*kernel%grid%md3+1,kernel%grid%md3*2*(kernel%grid%md2/kernel%mpi_env%nproc)
-!!$     do i1=1,kernel%grid%md1
-!!$        zf(i1,i23)=0.0_dp
-!!$     end do
-!!$  end do
-!!$  !$omp end do
-  !$omp end parallel
-
-  call f_zero(strten)
-  if (.not. gpu) then !CPU case
-     call f_timing(TCAT_PSOLV_COMPUT,'OF')
-     call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
-          kernel%part_mpi%mpi_comm,kernel%inplane_mpi%iproc,&
-          kernel%inplane_mpi%mpi_comm,kernel%geocode,1,&
-          kernel%grid%n1,kernel%grid%n2,kernel%grid%n3,&
-          kernel%grid%nd1,kernel%grid%nd2,kernel%grid%nd3,&
-          kernel%grid%md1,kernel%grid%md2,kernel%grid%md3,&
-          kernel%kernel,zf,&
-          kernel%grid%scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
-     call f_timing(TCAT_PSOLV_COMPUT,'ON')
-
-  else !GPU case
-
-     n(1)=kernel%grid%n1!kernel%ndims(1)*(2-kernel%geo(1))
-     n(2)=kernel%grid%n3!kernel%ndims(2)*(2-kernel%geo(2))
-     n(3)=kernel%grid%n2!kernel%ndims(3)*(2-kernel%geo(3))
-
-     size1=kernel%grid%md1*kernel%grid%md2*kernel%grid%md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
-
-     if (kernel%keepGPUmemory == 0) then
-        size2=2*kernel%grid%n1*kernel%grid%n2*kernel%grid%n3
-        call cudamalloc(size2,kernel%w%work1_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size2,kernel%w%work2_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-     endif
-
-     if (kernel%mpi_env%nproc > 1) then
-        if (kernel%mpi_env%iproc == 0) zf1 = f_malloc0(size1,id='zf1')
-        
-       call mpi_gatherv(zf,kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1,mpidtypd,&
-             zf1,kernel%rhocounts,kernel%rhodispls, &
-             mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
-
-        if (kernel%mpi_env%iproc == 0) then
-           !fill the GPU memory
-           call reset_gpu_data(size1,zf1,kernel%w%work1_GPU)
-
-           switch_alg=0
-           if (kernel%initCufftPlan == 1) then
-              call cuda_3d_psolver_general(n,kernel%plan,kernel%w%work1_GPU,kernel%w%work2_GPU, &
-                   kernel%w%k_GPU,switch_alg,kernel%geo,kernel%grid%scal)
-           else
-              call cuda_3d_psolver_plangeneral(n,kernel%w%work1_GPU,kernel%w%work2_GPU, &
-                   kernel%w%k_GPU,kernel%geo,kernel%grid%scal)
-           endif
-
-           !take data from GPU
-           call get_gpu_data(size1,zf1,kernel%w%work1_GPU)
-        endif
-
-        call MPI_Scatterv(zf1,kernel%rhocounts,kernel%rhodispls,mpidtypd,zf,kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1, &
-             mpidtypd,0,kernel%mpi_env%mpi_comm,ierr)
-
-        if (kernel%mpi_env%iproc == 0) call f_free(zf1)
-     else
-
-        !fill the GPU memory
-        call reset_gpu_data(size1,zf,kernel%w%work1_GPU)
-
-        switch_alg=0
-
-        if (kernel%initCufftPlan == 1) then
-           call cuda_3d_psolver_general(n,kernel%plan,kernel%w%work1_GPU,kernel%w%work2_GPU, &
-                kernel%w%k_GPU,switch_alg,kernel%geo,kernel%grid%scal)
-        else
-           call cuda_3d_psolver_plangeneral(n,kernel%w%work1_GPU,kernel%w%work2_GPU, &
-                kernel%w%k_GPU,kernel%geo,kernel%grid%scal)
-        endif
-
-
-        !take data from GPU
-        call get_gpu_data(size1,zf,kernel%w%work1_GPU)
-     endif
-
-     if (kernel%keepGPUmemory == 0) then
-        call cudafree(kernel%w%work1_GPU)
-        call cudafree(kernel%w%work2_GPU)
-     endif
-
-  endif
-
-  if (updaterho) then
-     !$omp parallel do default(shared) private(i1,i23,j23,j3)
-     do i23=1,kernel%grid%n3p*kernel%grid%m3
-        j3=(i23-1)/kernel%grid%m3
-        j23=i23+n3delta*j3
-        do i1=1,kernel%grid%m1
-           rho(i1,i23)=zf(i1,j23)
-        end do
-     end do
-     !$omp end parallel do
-  end if
-
-  call f_release_routine()
-
-end subroutine apply_kernel
-
 
 
 subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)

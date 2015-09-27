@@ -471,7 +471,7 @@ end subroutine copy_linear_matrices
 
 subroutine copy_sparse_matrix(smat_in, smat_out)
   use sparsematrix_base, only: sparse_matrix
-  use wrapper_MPI, only: mpi_environment_null
+  use wrapper_MPI, only: mpi_environment_null,deepcopy_mpi_environment
   use dynamic_memory
   implicit none
 
@@ -555,7 +555,7 @@ smat_out%isfvctr_par=f_malloc_ptr(src_ptr=smat_in%isfvctr_par, id='smat_out%isfv
       allocate(smat_out%mpi_groups(is:ie))
       do i=is,ie
           smat_out%mpi_groups(i) = mpi_environment_null()
-          call copy_mpi_environment(smat_in%mpi_groups(i), smat_out%mpi_groups(i))
+          call deepcopy_mpi_environment(smat_in%mpi_groups(i), smat_out%mpi_groups(i))
       end do
   else
       nullify(smat_out%mpi_groups)
@@ -739,24 +739,3 @@ subroutine copy_comms_linear(comms_in, comms_out)
  comms_out%psit_f=f_malloc_ptr(src_ptr=comms_in%psit_f, id='comms_out%psit_f')
 
 end subroutine copy_comms_linear
-
-
-subroutine copy_mpi_environment(mpi_in, mpi_out)
-  use module_base
-  use wrapper_MPI, only: mpi_environment
-  implicit none
-  ! Calling arguments
-  type(mpi_environment),intent(in) :: mpi_in
-  type(mpi_environment),intent(out) :: mpi_out
-  ! Local variables
-  integer :: ierr
-
-  if (mpi_in%mpi_comm/=MPI_COMM_NULL) then
-      call mpi_comm_dup(mpi_in%mpi_comm, mpi_out%mpi_comm, ierr)
-      call mpi_comm_size(mpi_out%mpi_comm, mpi_out%nproc, ierr)
-      call mpi_comm_rank(mpi_out%mpi_comm, mpi_out%nproc, ierr)
-  end if
-  mpi_out%igroup = mpi_in%igroup
-  mpi_out%ngroup = mpi_in%ngroup
-
-end subroutine copy_mpi_environment

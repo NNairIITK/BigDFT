@@ -337,7 +337,7 @@ module sparsematrix_base
           is=lbound(sparseMat%mpi_groups,1)
           ie=ubound(sparseMat%mpi_groups,1)
           do i=is,ie
-              call mpi_environment_free(sparseMat%mpi_groups(i))
+              call release_mpi_environment(sparseMat%mpi_groups(i))
           end do
           deallocate(sparseMat%mpi_groups)
           nullify(sparseMat%mpi_groups)

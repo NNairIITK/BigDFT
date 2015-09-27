@@ -13,6 +13,7 @@ module PStypes
   use wrapper_MPI
   use PSbase
   use environment, only: cavity_data,cavity_default
+  use dynamic_memory
   implicit none
 
   private
@@ -49,11 +50,20 @@ module PStypes
      !> inner rigid cavity to be integrated in the sccs method to avoit inner
      !! cavity discontinuity due to near-zero edens near atoms
      real(dp), dimension(:,:), pointer :: epsinnersccs
+     !>work array needed to store the zero-padded part of the 
+     !!density and the potential. Cannot be used as-is, it must be
+     !!copied back into a distributed array with the 
+     !!finalize_hartree_results routine.
      real(dp), dimension(:,:,:), pointer :: zf
      !> input guess vectors to be preserved for future use
-     real(dp), dimension(:,:), pointer :: rho_old,res_old,pot_old
+     !!or work arrays, might be of variable dimension
+     !!(either full of distributed)
+     real(dp), dimension(:,:), pointer :: rho,pot
      !> Polarization charge vector for print purpose only.
-     real(dp), dimension(:,:), pointer :: pol_charge
+     real(dp), dimension(:,:), pointer :: rho_pol
+     !> arrays for the execution of the PCG algorithm
+     real(dp), dimension(:,:), pointer :: res,z,p,q
+
      integer(f_address) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
      integer(f_address) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
      !> GPU scalars. Event if they are scalars of course their address is needed
@@ -159,12 +169,17 @@ module PStypes
      !> Use the input guess procedure for the solution in the case of a electrostatic medium
      !! this value is ignored in the case of a vacuum solver
      logical :: use_input_guess
+     !> Trigger the calculation of the electrostatic contribution only
+     !! if .true., the code only calculates the electrostatic contribution
+     !! and the cavitation terms are neglected
+     logical :: only_electrostatic
      !> Total integral on the supercell of the final potential on output
      !! clearly meaningful only for Fully periodic BC, ignored in the other cases
      real(gp) :: potential_integral
   end type PSolver_options
 
-  public :: pkernel_null,PSolver_energies_null,pkernel_free
+  public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
+  public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays
 
 contains
 
@@ -207,11 +222,14 @@ contains
     nullify(w%oneoeps)
     nullify(w%corr)
     nullify(w%epsinnersccs)
-    nullify(w%pol_charge)
-    nullify(w%rho_old)
-    nullify(w%pot_old)
-    nullify(w%res_old)
+    nullify(w%rho_pol)
+    nullify(w%rho)
+    nullify(w%pot)
+    nullify(w%res)
     nullify(w%zf)
+    nullify(w%z)
+    nullify(w%p)
+    nullify(w%q)
     call f_zero(w%work1_GPU)
     call f_zero(w%work2_GPU)
     call f_zero(w%k_GPU)
@@ -243,9 +261,9 @@ contains
     k%plan=(/0,0,0,0,0/)
     k%geo=(/0,0,0/)
     call nullify_work_arrays(k%w)
-    k%mpi_env=mpi_environment_null()
-    k%inplane_mpi=mpi_environment_null()
-    k%part_mpi=mpi_environment_null()
+    call nullify_mpi_environment(k%mpi_env)
+    call nullify_mpi_environment(k%inplane_mpi)
+    call nullify_mpi_environment(k%part_mpi)
     k%grid=FFT_metadata_null()
     k%igpu=0
     k%initCufftPlan=0
@@ -260,17 +278,19 @@ contains
   end function pkernel_null
 
   subroutine free_PS_workarrays(iproc,igpu,keepzf,gpuPCGred,keepGPUmemory,w)
-    use dynamic_memory
     integer, intent(in) :: keepzf,gpuPCGred,keepGPUmemory,igpu,iproc
     type(PS_workarrays), intent(inout) :: w
     call f_free_ptr(w%dlogeps)
     call f_free_ptr(w%oneoeps)
     call f_free_ptr(w%corr)
     call f_free_ptr(w%epsinnersccs)
-    call f_free_ptr(w%pol_charge)
-    call f_free_ptr(w%pot_old)
-    call f_free_ptr(w%rho_old)
-    call f_free_ptr(w%res_old)
+    call f_free_ptr(w%rho_pol)
+    call f_free_ptr(w%pot)
+    call f_free_ptr(w%rho)
+    call f_free_ptr(w%res)
+    call f_free_ptr(w%z)
+    call f_free_ptr(w%p)
+    call f_free_ptr(w%q)
     if(keepzf == 1) call f_free_ptr(w%zf)
     if (gpuPCGRed == 1) then
        if (keepGPUmemory == 1) then
@@ -302,7 +322,6 @@ contains
   !> Free memory used by the kernel operation
   !! @ingroup PSOLVER
   subroutine pkernel_free(kernel)
-    use dynamic_memory
     implicit none
     type(coulomb_operator), intent(inout) :: kernel
     integer :: i_stat
@@ -324,11 +343,311 @@ contains
           endif
        endif
     end if
-
-    !cannot yet free the communicators of the poisson kernel
-    !lack of handling of the reference counter
-
+    call release_mpi_environment(kernel%inplane_mpi)
+    call release_mpi_environment(kernel%part_mpi)
+    call release_mpi_environment(kernel%mpi_env)
   end subroutine pkernel_free
 
+  !> allocate the workarrays needed to perform the 
+  !! GPS operation
+  subroutine PS_allocate_lowlevel_workarrays(cudasolver,use_input_guess,rho,kernel)
+    use f_utils, only: f_zero
+    implicit none
+    logical, intent(in) :: cudasolver,use_input_guess
+    type(coulomb_operator), intent(inout) :: kernel
+    real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(in) :: rho !< initial rho, needed for PCG
+    !local variables
+    integer :: n1,n23
+
+    !we need to reallocate the zf array with the right size when called with stress_tensor and gpu
+    if(kernel%keepzf == 1) then
+       if(kernel%igpu==1 .and. .not. cudasolver) then !LG: what means that?
+          call f_free_ptr(kernel%w%zf)
+          kernel%w%zf = f_malloc_ptr([kernel%grid%md1, kernel%grid%md3, &
+               2*kernel%grid%md2/kernel%mpi_env%nproc],id='zf')
+       end if
+    else
+       kernel%w%zf = f_malloc_ptr([kernel%grid%md1, kernel%grid%md3, &
+            2*kernel%grid%md2/kernel%mpi_env%nproc],id='zf')
+    end if
+    n23=kernel%grid%m3*kernel%grid%n3p
+    n1=kernel%grid%m1
+
+    select case(trim(str(kernel%method)))
+    case('PCG')
+       if (use_input_guess .and. &
+            all([associated(kernel%w%res),associated(kernel%w%pot)])) then
+          call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+       else
+          !allocate if it is the first time
+          if (associated(kernel%w%pot)) then
+             call f_zero(kernel%w%pot)
+          else
+             kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot')
+          end if
+          if (.not. associated(kernel%w%res)) &
+               kernel%w%res=f_malloc_ptr([n1,n23],id='res')
+          call f_memcpy(src=rho,dest=kernel%w%res)
+       end if
+       kernel%w%q=f_malloc0_ptr([n1,n23],id='q')
+       kernel%w%p=f_malloc0_ptr([n1,n23],id='p')
+       kernel%w%z=f_malloc_ptr([n1,n23],id='z')
+    case('PI')
+       kernel%w%pot=f_malloc_ptr(kernel%ndims,id='pot')
+       kernel%w%rho=f_malloc0_ptr(kernel%ndims,id='rho')
+       kernel%w%rho_pol=f_malloc_ptr(kernel%ndims,id='rho_pol')
+    end select
+
+  end subroutine PS_allocate_lowlevel_workarrays
+
+!!$  subroutine PS_free_lowlevel_workarrays(kernel)
+!!$    
+!!$  end subroutine PS_free_lowlevel_workarrays
+
+  !> allocate the workarrays for the first initialization
+  !! their allocation depends on the treatment which we are going to
+  !! apply
+  subroutine PS_allocate_cavity_workarrays(n1,n23,ndims,method,w)
+    use environment, only: PS_SCCS_ENUM
+    use dynamic_memory
+    implicit none
+    integer, intent(in) :: n1,n23
+    integer, dimension(3), intent(in) :: ndims
+    type(f_enumerator), intent(in) :: method
+    type(PS_workarrays), intent(inout) :: w
+
+    select case(trim(str(method)))
+    case('PCG')
+       w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol')
+       w%corr=f_malloc_ptr([n1,n23],id='corr')
+       w%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
+    case('PI')
+       w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol')
+       w%dlogeps=f_malloc_ptr([3,ndims(1),ndims(2),ndims(3)],id='dlogeps')
+       w%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
+    end select
+    if (method .hasattr. PS_SCCS_ENUM) w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
+  end subroutine PS_allocate_cavity_workarrays
+
+  !> create the memory space needed to store the arrays for the 
+  !! description of the cavity
+  subroutine pkernel_allocate_cavity(kernel,vacuum)
+    use environment, only: PS_SCCS_ENUM,vacuum_eps
+    use f_utils, only: f_zero
+    implicit none
+    type(coulomb_operator), intent(inout) :: kernel
+    logical, intent(in), optional :: vacuum !<if .true. the cavity is allocated as no cavity exists, i.e. only vacuum
+    !local variables
+    integer :: n1,n23,i1,i23
+
+    n1=kernel%ndims(1)
+    n23=kernel%ndims(2)*kernel%grid%n3p
+!!$    call PS_allocate_cavity_workarrays(n1,n23,kernel%ndims,&
+!!$         kernel%method,kernel%w)
+    if (present(vacuum)) then
+       if (vacuum) then
+          select case(trim(str(kernel%method)))
+          case('PCG')
+             call f_zero(kernel%w%corr)
+             do i23=1,n23
+                do i1=1,n1
+                   kernel%w%oneoeps(i1,i23)=1.0_dp/sqrt(vacuum_eps)
+                end do
+             end do
+          case('PI')
+             call f_zero(kernel%w%dlogeps)
+             do i23=1,n23
+                do i1=1,n1
+                   kernel%w%oneoeps(i1,i23)=1.0_dp/vacuum_eps
+                end do
+             end do
+          end select
+          if (kernel%method .hasattr. PS_SCCS_ENUM) &
+               call f_zero(kernel%w%epsinnersccs)
+       end if
+    end if
+
+  end subroutine pkernel_allocate_cavity
+
+  !> set the epsilon in the pkernel structure as a function of the seteps variable.
+  !! This routine has to be called each time the dielectric function has to be set
+  subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
+    use yaml_strings
+    use dynamic_memory
+    use FDder
+    use dictionaries, only: f_err_throw
+    implicit none
+    !> Poisson Solver kernel
+    type(coulomb_operator), intent(inout) :: kernel
+    !> dielectric function. Needed for non VAC methods, given in full dimensions
+    real(dp), dimension(:,:,:), intent(in), optional :: eps
+    !> logarithmic derivative of epsilon. Needed for PCG method.
+    !! if absent, it will be calculated from the array of epsilon
+    real(dp), dimension(:,:,:,:), intent(in), optional :: dlogeps
+    !> inverse of epsilon. Needed for PI method.
+    !! if absent, it will be calculated from the array of epsilon
+    real(dp), dimension(:,:,:), intent(in), optional :: oneoeps
+    !> inverse square root of epsilon. Needed for PCG method.
+    !! if absent, it will be calculated from the array of epsilon
+    real(dp), dimension(:,:,:), intent(in), optional :: oneosqrteps
+    !> correction term of the Generalized Laplacian
+    !! if absent, it will be calculated from the array of epsilon
+    real(dp), dimension(:,:,:), intent(in), optional :: corr
+    !local variables
+    integer :: n1,n23,i3s,i23,i3,i2,i1
+    real(kind=8) :: pi
+    real(dp), dimension(:,:,:), allocatable :: de2,ddeps
+    real(dp), dimension(:,:,:,:), allocatable :: deps
+
+    pi=4.0_dp*atan(1.0_dp)
+    if (present(corr)) then
+       !check the dimensions (for the moment no parallelism)
+       if (any(shape(corr) /= kernel%ndims)) &
+            call f_err_throw('Error in the dimensions of the array corr,'//&
+            trim(yaml_toa(shape(corr))))
+    end if
+    if (present(eps)) then
+       !check the dimensions (for the moment no parallelism)
+       if (any(shape(eps) /= kernel%ndims)) &
+            call f_err_throw('Error in the dimensions of the array epsilon,'//&
+            trim(yaml_toa(shape(eps))))
+    end if
+    if (present(oneoeps)) then
+       !check the dimensions (for the moment no parallelism)
+       if (any(shape(oneoeps) /= kernel%ndims)) &
+            call f_err_throw('Error in the dimensions of the array oneoeps,'//&
+            trim(yaml_toa(shape(oneoeps))))
+    end if
+    if (present(oneosqrteps)) then
+       !check the dimensions (for the moment no parallelism)
+       if (any(shape(oneosqrteps) /= kernel%ndims)) &
+            call f_err_throw('Error in the dimensions of the array oneosqrteps,'//&
+            trim(yaml_toa(shape(oneosqrteps))))
+    end if
+    if (present(dlogeps)) then
+       !check the dimensions (for the moment no parallelism)
+       if (any(shape(dlogeps) /= &
+            [3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)])) &
+            call f_err_throw('Error in the dimensions of the array dlogeps,'//&
+            trim(yaml_toa(shape(dlogeps))))
+    end if
+
+    !store the arrays needed for the method
+    !the stored arrays are of rank two to collapse indices for
+    !omp parallelism
+    n1=kernel%ndims(1)
+    n23=kernel%ndims(2)*kernel%grid%n3p
+    !starting point in third direction
+    i3s=kernel%grid%istart+1
+    if (kernel%grid%n3p==0) i3s=1
+    select case(trim(str(kernel%method)))
+    case('PCG')
+       !check the dimensions of the associated arrays
+       if (all([associated(kernel%w%corr),associated(kernel%w%oneoeps)])) then
+          !then check the shapes
+          if (any(shape(kernel%w%oneoeps) /= [n1,n23])) &
+               call f_err_throw('Incorrect shape of oneoeps')
+          if (any(shape(kernel%w%corr) /= [n1,n23])) &
+               call f_err_throw('Incorrect shape of corr')
+          if (present(corr)) then
+             call f_memcpy(n=n1*n23,src=corr(1,1,i3s),dest=kernel%w%corr)
+          else if (present(eps)) then
+!!$        !allocate work arrays
+             deps=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='deps')
+             de2 =f_malloc(kernel%ndims,id='de2')
+             ddeps=f_malloc(kernel%ndims,id='ddeps')
+
+             call nabla_u_and_square(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
+                  eps,deps,de2,kernel%nord,kernel%hgrids)
+
+             call div_u_i(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
+                  deps,ddeps,kernel%nord,kernel%hgrids)
+             i23=1
+             do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
+                do i2=1,kernel%ndims(2)
+                   do i1=1,kernel%ndims(1)
+                      kernel%w%corr(i1,i23)=(-0.125d0/pi)*&
+                           (0.5d0*de2(i1,i2,i3)/eps(i1,i2,i3)-ddeps(i1,i2,i3))
+                   end do
+                   i23=i23+1
+                end do
+             end do
+             call f_free(deps)
+             call f_free(ddeps)
+             call f_free(de2)
+          else
+             call f_err_throw('For method "PCG" the arrays corr or epsilon should be present')   
+          end if
+          if (present(oneosqrteps)) then
+             call f_memcpy(n=n1*n23,src=oneosqrteps(1,1,i3s),&
+                  dest=kernel%w%oneoeps)
+          else if (present(eps)) then
+             i23=1
+             do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
+                do i2=1,kernel%ndims(2)
+                   do i1=1,kernel%ndims(1)
+                      kernel%w%oneoeps(i1,i23)=1.0_dp/sqrt(eps(i1,i2,i3))
+                   end do
+                   i23=i23+1
+                end do
+             end do
+          else
+             call f_err_throw('For method "PCG" the arrays oneosqrteps or epsilon should be present')
+          end if
+       else
+          call f_err_throw('For method "PCG" the arrays oneosqrteps'//&
+               ' and corr have to be associated, call PS_allocate_cavity_workarrays')
+       end if
+    case('PI')
+       if (all([associated(kernel%w%dlogeps),associated(kernel%w%oneoeps)])) then
+          !then check the shapes
+          if (any(shape(kernel%w%oneoeps) /= [n1,n23])) &
+               call f_err_throw('Incorrect shape of oneoeps')
+          if (any(shape(kernel%w%dlogeps) /= [3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)])) &
+               call f_err_throw('Incorrect shape of dlogeps')
+          if (present(dlogeps)) then
+             call f_memcpy(src=dlogeps,dest=kernel%w%dlogeps)
+          else if (present(eps)) then
+             !allocate arrays
+             deps=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='deps')
+             call nabla_u(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
+                  eps,deps,kernel%nord,kernel%hgrids)
+             do i3=1,kernel%ndims(3)
+                do i2=1,kernel%ndims(2)
+                   do i1=1,kernel%ndims(1)
+                      !switch and create the logarithmic derivative of epsilon
+                      kernel%w%dlogeps(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
+                      kernel%w%dlogeps(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
+                      kernel%w%dlogeps(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
+                   end do
+                end do
+             end do
+             call f_free(deps)
+          else
+             call f_err_throw('For method "PI" the arrays dlogeps or epsilon should be present')
+          end if
+          if (present(oneoeps)) then
+             call f_memcpy(n=n1*n23,src=oneoeps(1,1,i3s),&
+                  dest=kernel%w%oneoeps)
+          else if (present(eps)) then
+             i23=1
+             do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
+                do i2=1,kernel%ndims(2)
+                   do i1=1,kernel%ndims(1)
+                      kernel%w%oneoeps(i1,i23)=1.0_dp/eps(i1,i2,i3)
+                   end do
+                   i23=i23+1
+                end do
+             end do
+          else
+             call f_err_throw('For method "PI" the arrays oneoeps or epsilon should be present')
+          end if
+       else
+          call f_err_throw('For method "PI" the arrays oneoeps '//&
+               'and dlogeps have to be associated, call PS_allocate_cavity_workarrays')
+       end if
+    end select
+
+  end subroutine pkernel_set_epsilon
 
 end module PStypes
