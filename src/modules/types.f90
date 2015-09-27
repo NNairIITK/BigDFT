@@ -910,55 +910,55 @@ contains
   end subroutine deallocate_denspot_distribution
 
 
-  subroutine nullify_coulomb_operator(coul_op)
-    implicit none
-    type(coulomb_operator),intent(out) :: coul_op
-    nullify(coul_op%kernel)
-  end subroutine nullify_coulomb_operator
-
-
-  subroutine copy_coulomb_operator(coul1,coul2)
-    implicit none
-    type(coulomb_operator),intent(in) :: coul1
-    type(coulomb_operator),intent(inout) :: coul2
-
-    if(associated(coul2%kernel)) then
-      call f_free_ptr(coul2%kernel)
-    end if
-    coul2%kernel   =>coul1%kernel
-    coul2%itype_scf= coul1%itype_scf
-    coul2%mu       = coul1%mu
-    coul2%geocode  = coul1%geocode
-    coul2%ndims    = coul1%ndims
-    coul2%hgrids   = coul1%hgrids
-    coul2%angrad   = coul1%angrad
-    coul2%work1_GPU= coul1%work1_GPU
-    coul2%work2_GPU= coul1%work2_GPU
-    coul2%k_GPU    = coul1%k_GPU
-    coul2%plan     = coul1%plan
-    coul2%geo      = coul1%geo
-    coul2%igpu     = coul1%igpu
-    coul2%initCufftPlan=coul1%initCufftPlan
-    coul2%keepGPUmemory=coul1%keepGPUmemory
-  ! mpi_env:
-    coul2%mpi_env%mpi_comm = coul1%mpi_env%mpi_comm
-    coul2%mpi_env%iproc    = coul1%mpi_env%iproc
-    coul2%mpi_env%nproc    = coul1%mpi_env%nproc
-    coul2%mpi_env%igroup   = coul1%mpi_env%igroup
-    coul2%mpi_env%ngroup   = coul1%mpi_env%ngroup
-
-  end subroutine copy_coulomb_operator
-
-
-  subroutine deallocate_coulomb_operator(coul_op)
-    implicit none
-    type(coulomb_operator),intent(inout) :: coul_op
-
-    if(associated(coul_op%kernel)) then
-      call f_free_ptr(coul_op%kernel)
-    end if
-    call nullify_coulomb_operator(coul_op)
-  end subroutine deallocate_coulomb_operator
+!!$  subroutine nullify_coulomb_operator(coul_op)
+!!$    implicit none
+!!$    type(coulomb_operator),intent(out) :: coul_op
+!!$    nullify(coul_op%kernel)
+!!$  end subroutine nullify_coulomb_operator
+!!$
+!!$
+!!$  subroutine copy_coulomb_operator(coul1,coul2)
+!!$    implicit none
+!!$    type(coulomb_operator),intent(in) :: coul1
+!!$    type(coulomb_operator),intent(inout) :: coul2
+!!$
+!!$    if(associated(coul2%kernel)) then
+!!$      call f_free_ptr(coul2%kernel)
+!!$    end if
+!!$    coul2%kernel   =>coul1%kernel
+!!$    coul2%itype_scf= coul1%itype_scf
+!!$    coul2%mu       = coul1%mu
+!!$    coul2%geocode  = coul1%geocode
+!!$    coul2%ndims    = coul1%ndims
+!!$    coul2%hgrids   = coul1%hgrids
+!!$    coul2%angrad   = coul1%angrad
+!!$    coul2%work1_GPU= coul1%work1_GPU
+!!$    coul2%work2_GPU= coul1%work2_GPU
+!!$    coul2%k_GPU    = coul1%k_GPU
+!!$    coul2%plan     = coul1%plan
+!!$    coul2%geo      = coul1%geo
+!!$    coul2%igpu     = coul1%igpu
+!!$    coul2%initCufftPlan=coul1%initCufftPlan
+!!$    coul2%keepGPUmemory=coul1%keepGPUmemory
+!!$  ! mpi_env:
+!!$    coul2%mpi_env%mpi_comm = coul1%mpi_env%mpi_comm
+!!$    coul2%mpi_env%iproc    = coul1%mpi_env%iproc
+!!$    coul2%mpi_env%nproc    = coul1%mpi_env%nproc
+!!$    coul2%mpi_env%igroup   = coul1%mpi_env%igroup
+!!$    coul2%mpi_env%ngroup   = coul1%mpi_env%ngroup
+!!$
+!!$  end subroutine copy_coulomb_operator
+!!$
+!!$
+!!$  subroutine deallocate_coulomb_operator(coul_op)
+!!$    implicit none
+!!$    type(coulomb_operator),intent(inout) :: coul_op
+!!$
+!!$    if(associated(coul_op%kernel)) then
+!!$      call f_free_ptr(coul_op%kernel)
+!!$    end if
+!!$    call nullify_coulomb_operator(coul_op)
+!!$  end subroutine deallocate_coulomb_operator
 
 
   subroutine nullify_denspot_distribution(dpbox)

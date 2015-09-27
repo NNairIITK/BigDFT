@@ -1201,7 +1201,7 @@ module module_interfaces
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_defs, only: gp,dp,wp
       use module_types
-      use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+      !use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
       use constrained_dft
       use diis_sd_optimization
       use sparsematrix_base, only: sparse_matrix

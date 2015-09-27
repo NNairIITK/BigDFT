@@ -377,7 +377,7 @@ end subroutine rhocore_forces
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
-  use module_base, pi => pi_param
+  use module_base
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
@@ -3891,7 +3891,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   real(kind=8),allocatable :: rhog(:,:,:,:,:)
   real(kind=8),dimension(:),pointer :: rhor
   integer :: ierr
-  real(kind=8) :: pi,p(3),g2,rloc,setv,fac
+  real(kind=8) :: p(3),g2,rloc,setv,fac
   real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
   real(kind=8) :: potg,potg2
   real(kind=8) :: Zion
@@ -3914,7 +3914,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
      rhor => rho        
   end if
 
-  pi = 4.0_gp*atan(1.0_gp)
+!  pi = 4.0_gp*atan(1.0_gp)
   rhog = f_malloc((/2,n1i+1,n2i+1,n3i+1,2/),id='rhog')
   tens(:)=0.0_dp ; p(:)=0.0_dp
 
@@ -3978,7 +3978,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
      p(3)=real(j3,dp)/(n3i*hzh)         
 
      !$omp parallel default(none) &
-     !$omp shared(n3i, inzee, i3, n2i, hyh, n1i, hxh, rx, ry, rz, rhog, Zion, rloc, pi, hzh, tens) &
+     !$omp shared(n3i, inzee, i3, n2i, hyh, n1i, hxh, rx, ry, rz, rhog, Zion, rloc, hzh, tens) &
      !$omp private(i2, j2, i1, j1, sfr, sfi, rhore, rhoim, g2, fac, setv, potg, potg2) &
      !$omp firstprivate(p)
      !$omp do reduction(+:tens)

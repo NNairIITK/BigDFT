@@ -842,7 +842,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use module_atoms
   use ao_inguess, only: atomic_info
   !use yaml_output
-  use module_defs, only : Bohr_Ang
+  use numerics, only : Bohr_Ang
   use module_base, only: bigdft_mpi
   use f_enums, f_str => str
   use yaml_output
@@ -1031,7 +1031,7 @@ subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
   use module_atoms
   use ao_inguess, only: atomic_info
   !use yaml_output
-  use module_defs, only : Bohr_Ang
+  use numerics, only : Bohr_Ang
   use module_base, only: bigdft_mpi
   use f_enums, f_str => str
   use yaml_output
@@ -1078,7 +1078,7 @@ subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
   i3s=pkernel%grid%istart+1
   if (pkernel%grid%n3p==0) i3s=1
 
-  call f_memcpy(n=n1*n23,src=eps(1,1,i3s),dest=pkernel%epsinnersccs)
+  call f_memcpy(n=n1*n23,src=eps(1,1,i3s),dest=pkernel%w%epsinnersccs)
 
   call f_free(radii)
   call f_free(eps)
@@ -1232,7 +1232,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
   logical, intent(inout) ::  donlcc
   
   !ALEX: Some local variables
-  real(gp):: fourpi, sqrt2pi
+  real(gp):: sqrt2pi
   character(len=2) :: symbol
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
@@ -1339,7 +1339,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
      read(line,*) rcore, qcore
      !convert the core charge fraction qcore to the amplitude of the Gaussian
      !multiplied by 4pi. This is the convention used in nlccpar(1,:).
-     fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
+     !fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
      sqrt2pi=sqrt(0.5_gp*fourpi)
      qcore=fourpi*qcore*real(nzatom-nelpsp,gp)/&
           (sqrt2pi*rcore)**3

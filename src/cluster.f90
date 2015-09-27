@@ -1965,7 +1965,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
         if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
 
         call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
-             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%pol_charge)
+             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%w%pol_charge)
 
 !!$        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
 !!$

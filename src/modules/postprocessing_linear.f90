@@ -1523,7 +1523,7 @@ module postprocessing_linear
 
 
     function gaussian(sigma, r) result(g)
-      use module_base, only: pi => pi_param
+      use module_base
       implicit none
       ! Calling arguments
       real(kind=8),intent(in) :: sigma, r
@@ -1537,7 +1537,7 @@ module postprocessing_linear
     !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
     function spherical_harmonic(l, m, x, y, z) result(sh)
       !use module_base, only: pi => pi_param
-      use module_base, pi => pi_param
+      use module_base
       implicit none
       ! Calling arguments
       integer,intent(in) :: l, m

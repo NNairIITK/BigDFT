@@ -39,6 +39,7 @@
 !> Module for NEB calculations
 MODULE NEB_routines
   use module_defs
+  use numerics, only: Ha_eV,Bohr_Ang
   use module_types
   use module_images
   use module_interfaces

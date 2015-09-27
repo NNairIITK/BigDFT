@@ -11,6 +11,7 @@
 !> Modules which contains minimizaton routines for NEB calculation
 MODULE Minimization_routines
   use module_defs
+  use numerics, only: Bohr_Ang,Ha_eV
   use dynamic_memory
   IMPLICIT NONE
   

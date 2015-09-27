@@ -1795,13 +1795,13 @@ contains
     real(wp), dimension(:), pointer  :: pot
 
     real(gp) :: eval_min, eval_max, fact_cheb, cheb_shift
-    real(gp) :: Pi
+!    real(gp) :: Pi
     logical:: dopaw
     real(gp) :: GetBottom
 
     if (iproc==0) print *, " IN ROUTINE  chebychev  "
 
-    Pi=acos(-1.0_gp)
+!    Pi=acos(-1.0_gp)
 
     GPU%full_locham=.true.
 

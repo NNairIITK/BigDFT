@@ -12,7 +12,7 @@
 subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      & rxyz,eion,fion,dispersion,edisp,fdisp,ewaldstr,n1,n2,n3,&
      & pot_ion,pkernel,psoffset)
-  use module_base, pi => pi_param
+  use module_base
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use vdwcorrection
@@ -594,7 +594,7 @@ subroutine epsilon_rigid_cavity(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,del
 subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal,rxyzreal,radiireal,epsilon0,delta,&
      eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
-  use module_defs, only : Bohr_Ang
+  use numerics, only : Bohr_Ang
   use module_base, only: bigdft_mpi
   use f_enums
   use yaml_output
@@ -931,7 +931,7 @@ end subroutine epsilon_rigid_cavity_error_multiatoms_bc
 !! Need the radius of the cavit and its smoothness
 subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal,rxyzreal,radiireal,delta,eps)
   use f_utils
-  use module_defs, only : Bohr_Ang
+  use numerics, only : Bohr_Ang
   use module_base, only: bigdft_mpi
   use f_enums
   use yaml_output
@@ -1161,7 +1161,7 @@ end subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc
 subroutine epsilon_rigid_cavity_error_multiatoms(geocode,ndims,hgrids,nat,rxyz,radii,epsilon0,delta,&
      eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
   use f_utils
-  use module_defs, only : Bohr_Ang
+  use numerics, only : Bohr_Ang
   use module_base, only: bigdft_mpi
   use f_enums
   use yaml_output
@@ -1595,7 +1595,7 @@ END SUBROUTINE createEffectiveIonicPotential
 !> Create the ionic potential
 subroutine createIonicPotential(geocode,iproc,nproc,verb,at,rxyz,&
      hxh,hyh,hzh,elecfield,n1,n2,n3,n3pi,i3s,n1i,n2i,n3i,pkernel,pot_ion,rho_ion,psoffset)
-  use module_base, pi => pi_param
+  use module_base
   use m_splines, only: splint
   use module_types
   use yaml_output
@@ -2238,7 +2238,7 @@ END SUBROUTINE ind_positions_new
 
 
 subroutine sum_erfcr(nat,ntypes,x,y,z,iatype,nelpsp,psppar,rxyz,potxyz)
-  use module_base, pi => pi_param
+  use module_base
   implicit none
   integer, intent(in) :: nat,ntypes
   real(gp) :: x,y,z
@@ -2285,7 +2285,7 @@ END SUBROUTINE sum_erfcr
 !> Read and initialize counter-ions potentials (read psp files)
 subroutine CounterIonPotential(geocode,iproc,nproc,in,shift,&
      hxh,hyh,hzh,grid,n3pi,i3s,pkernel,pot_ion)
-  use module_base, pi => pi_param
+  use module_base
   use module_types
   !use module_interfaces, except_this_one => CounterIonPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp
