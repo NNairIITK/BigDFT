@@ -854,27 +854,27 @@ contains
 
   END SUBROUTINE deallocate_Lzd
 
-  !> Nullify a DFT_local_fields structure
-  subroutine nullify_DFT_local_fields(denspot)
-    implicit none
-    type(DFT_local_fields),intent(out) :: denspot
-
-    nullify(denspot%rhov)
-    nullify(denspot%mix)
-    nullify(denspot%rho_psi)
-    nullify(denspot%rho_C)
-    nullify(denspot%V_ext)
-    nullify(denspot%V_XC)
-    nullify(denspot%Vloc_KS)
-    nullify(denspot%f_XC)
-    nullify(denspot%rho_work)
-    nullify(denspot%pot_work)
-    call nullify_rho_descriptors(denspot%rhod)
-    call nullify_denspot_distribution(denspot%dpbox)
-    call nullify_coulomb_operator(denspot%pkernel)
-    call nullify_coulomb_operator(denspot%pkernelseq)
-    
-  end subroutine nullify_DFT_local_fields
+!!$  !> Nullify a DFT_local_fields structure
+!!$  subroutine nullify_DFT_local_fields(denspot)
+!!$    implicit none
+!!$    type(DFT_local_fields),intent(out) :: denspot
+!!$
+!!$    nullify(denspot%rhov)
+!!$    nullify(denspot%mix)
+!!$    nullify(denspot%rho_psi)
+!!$    nullify(denspot%rho_C)
+!!$    nullify(denspot%V_ext)
+!!$    nullify(denspot%V_XC)
+!!$    nullify(denspot%Vloc_KS)
+!!$    nullify(denspot%f_XC)
+!!$    nullify(denspot%rho_work)
+!!$    nullify(denspot%pot_work)
+!!$    call nullify_rho_descriptors(denspot%rhod)
+!!$    call nullify_denspot_distribution(denspot%dpbox)
+!!$    call nullify_coulomb_operator(denspot%pkernel)
+!!$    call nullify_coulomb_operator(denspot%pkernelseq)
+!!$    
+!!$  end subroutine nullify_DFT_local_fields
   
   pure subroutine nullify_confpot_data(c)
     use module_defs, only: UNINITIALIZED

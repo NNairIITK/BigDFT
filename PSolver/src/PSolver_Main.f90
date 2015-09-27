@@ -256,6 +256,7 @@
 !!outside. the only exception for the moment is represented by
 !! apply_kernel as the inner poisson solver still allocates heap memory.
 subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist)
+  use FDder, only: update_rhopol
   implicit none
   logical, intent(in) :: cudasolver,wrtmsg
   real(dp), intent(in) :: offset

@@ -352,6 +352,7 @@ contains
   !! GPS operation
   subroutine PS_allocate_lowlevel_workarrays(cudasolver,use_input_guess,rho,kernel)
     use f_utils, only: f_zero
+    use wrapper_linalg, only: axpy
     implicit none
     logical, intent(in) :: cudasolver,use_input_guess
     type(coulomb_operator), intent(inout) :: kernel
