@@ -18,6 +18,7 @@ module wrapper_MPI
   use time_profiling, only: TIMING_UNINITIALIZED
   use yaml_strings, only: operator(//)
   use f_precisions
+  use f_refcnts
   implicit none
 
   ! MPI handling
@@ -130,6 +131,9 @@ module wrapper_MPI
 
   !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
+     !>reference counter of the communicator.
+     !!used to understand whether the communicator has to be destroyed
+     type(f_reference_counter) :: refcnt
      integer :: mpi_comm !< MPI communicator
      integer :: iproc    !< Process Id
                          !! @ingroup RESERVED
@@ -161,6 +165,7 @@ contains
   pure function mpi_environment_null() result(mpi)
     implicit none
     type(mpi_environment) :: mpi
+    mpi%refcnt=f_ref_null()
     mpi%mpi_comm=MPI_COMM_NULL !better to put an invalid comm?
     mpi%igroup=-1
     mpi%ngroup=-1
@@ -206,11 +211,9 @@ contains
 
     call f_routine(id='mpi_environment_set')
     mpi_env=mpi_environment_null()
-!!$    mpi_env%igroup=0
-!!$    mpi_env%ngroup=1
-!!$    mpi_env%iproc=iproc
-!!$    mpi_env%nproc=nproc
     mpi_env%mpi_comm=mpi_comm
+    !these assignments would depend on the strategy adopted for 
+    !taskgroup creations
     mpi_env%igroup=iproc/groupsize
     mpi_env%ngroup=nproc/groupsize
     mpi_env%iproc=mod(iproc,groupsize)

@@ -41,14 +41,23 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	Poisson_Solver.f90 \
 	environment.f90 \
 	PStypes.f90 \
-	PSbox.f90
+	PSbox.f90 \
+	PSbase.f90
 
 # Modules.
 if CAPITALIZE
-modules = POISSON_SOLVER.@MODULE_EXT@ ENVIRONMENT.@MODULE_EXT@ PSTYPES.@MODULE_EXT@
+modules = POISSON_SOLVER.@MODULE_EXT@ \
+	ENVIRONMENT.@MODULE_EXT@ \
+	PSTYPES.@MODULE_EXT@ \
+	PSBASE.@MODULE_EXT@ \
+	PSBOX.@MODULE_EXT@
 
 else
-modules = poisson_solver.@MODULE_EXT@ environment.@MODULE_EXT@ pstypes.@MODULE_EXT@
+modules = poisson_solver.@MODULE_EXT@ \
+	environment.@MODULE_EXT@ \
+	pstypes.@MODULE_EXT@ \
+	psbase.@MODULE_EXT@ \
+	psbox.@MODULE_EXT@
 endif
 
 CLEANFILES = $(modules) $(psolver_dynamic_library) $(psolver_library_soname) libPSolver-1.so
@@ -131,8 +140,10 @@ install-data-hook:
 
 #dependencies
 $(modules): $(libPSolver_1_a_OBJECTS)
-Poisson_Solver.o: $(SOURCES_MOD) configure.inc environment.o PStypes.o
+Poisson_Solver.o: $(SOURCES_MOD) configure.inc environment.o PStypes.o PSbox.o PSbase.o
 PStypes.o: environment.o
+PSbox.o: PStypes.o PSbase.o
+environment.o: PSbase.o
 conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
 wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o

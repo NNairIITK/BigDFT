@@ -10,18 +10,14 @@
 !!    For the list of contributors, see ~/AUTHORS 
 module environment
   use f_enums, only: f_enumerator
-  use f_precisions, only: f_double
-  use numerics, only: safe_exp
+  use PSbase
+  use numerics, only: safe_exp,twopi,oneotwopi,oneofourpi,Bohr_Ang,AU_GPa,&
+       dyn_AU,oneoeightpi
   use dictionaries, only: f_err_throw
   implicit none
 
   private
 
-  ! General precision, density and the potential types, to be moved in a low-levle module
-  integer, parameter, public :: gp=f_double  !< general-type precision
-  integer, parameter, public :: dp=f_double  !< density-type precision
-  integer, parameter, public :: wp=f_double  !< potential-type precision
-  real(gp), parameter :: pi=3.141592653589793238462643383279502884197_gp
   real(gp), parameter :: vacuum_eps=1.0_gp
 
 
@@ -41,6 +37,12 @@ module environment
   type(f_enumerator), parameter, public :: PS_PI_ENUM=f_enumerator('PI',PS_PI,null())
   type(f_enumerator), parameter, public :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG,null())
   type(f_enumerator), parameter, public :: PS_PB_ENUM=f_enumerator('PB',PS_PCG,null()) !< poisson boltzmann
+
+  !conversion factors in AU
+
+  !> dyn/cm into atomic units (5.291772109217d-9/8.238722514d-3)
+  real(gp), parameter :: SurfAU=Bohr_Ang*1.e-8/dyn_AU
+  
 
   
   !> define the cavity type
@@ -64,9 +66,9 @@ contains
     c%epsilon0= 78.36_gp !<water at ambient condition 
     c%edensmax = 0.005_gp !0.0050d0
     c%edensmin = 0.0001_gp
-    c%gammaS = 72._gp ![dyn/cm]   
-    c%alphaS = -22.0_gp ![dyn/cm]   end function cavity_default
-    c%betaV = -0.35_gp ![GPa]     
+    c%gammaS = 72._gp*SurfAU ![dyn/cm]   
+    c%alphaS = -22.0_gp*SurfAU ![dyn/cm]   end function cavity_default
+    c%betaV = -0.35_gp/AU_GPa ![GPa]     
   end function cavity_default
 
   !>initialize the cavity parameters
@@ -78,9 +80,9 @@ contains
     if (present(epsilon0)) c%epsilon0=epsilon0
     if (present(edensmax)) c%edensmax=edensmax
     if (present(edensmin)) c%edensmax=edensmin
-    if (present(gammaS)) c%gammaS=gammaS
-    if (present(alphaS)) c%alphaS=alphaS  
-    if (present(betaV )) c%betaV =betaV 
+    if (present(gammaS)) c%gammaS=gammaS*SurfAU
+    if (present(alphaS)) c%alphaS=alphaS*SurfAU  
+    if (present(betaV )) c%betaV =betaV/AU_GPa
   end function cavity_init
 
   subroutine dump_cavity(cavity)
@@ -114,9 +116,9 @@ contains
     r=cavity%edensmax/rho
     fact1=1.0_gp/log(fact0)
     fact2=log(r)
-    zeta=2.0_gp*pi*fact1*fact2
+    zeta=twopi*fact1*fact2
     s=sin(zeta)
-    w=(zeta-s)/(2.d0*pi)
+    w=oneotwopi*(zeta-s)
     dzetao2pi=-fact1/rho
     dw=(1.d0-cos(zeta))*dzetao2pi
     ep=cavity%epsilon0**w
@@ -131,7 +133,7 @@ contains
           eps=ep*dw*l
        case(2)
           d2zetao2pi=fact1/rho**2
-          dzeta2o2pi=2.0_gp*pi*dzetao2pi**2
+          dzeta2o2pi=twopi*dzetao2pi**2
           d2w=sin(zeta)*dzeta2o2pi+(1.d0-cos(zeta))*d2zetao2pi
           !eps=cavity%epsilon0*safe_exp(w)*(dw*dw+d2w)
           eps=l*ep*(l*dw*dw+d2w)
@@ -150,7 +152,7 @@ contains
        !tt=dw*l
        !eps=0.5_gp*ep*dw*l*dw*l-l*ep*(l*dw*dw+d2w)
        d2zetao2pi=fact1/rho**2
-       dzeta2o2pi=2.0_gp*pi*dzetao2pi**2
+       dzeta2o2pi=twopi*dzetao2pi**2
        d2w=sin(zeta)*dzeta2o2pi+(1.d0-cos(zeta))*d2zetao2pi
 
        eps=-l*ep*(0.5_gp*l*dw*dw+d2w)
@@ -281,7 +283,7 @@ contains
        ct=epsilon_transition(rho,'C',0,cavity)
 !!$       corr_term=-0.125_gp/pi*(nabla2rho*&
 !!$            (0.5_gp*epspr*logepsprime(rho,cavity)-epssecond(rho,cavity))-epspr*deltarho)
-       corr_term=-0.125_gp/pi*(nabla2rho*ct-epspr*deltarho)
+       corr_term=-oneoeightpi*(nabla2rho*ct-epspr*deltarho)
 
 !!$       !old definition of the correction term
 !!$       fact1=2.d0*pi/log(cavity%edensmax/cavity%edensmin)
@@ -1487,10 +1489,8 @@ contains
     !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
     real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
     real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
-    real(kind=8) :: oneo4pi,rpoints
+    real(kind=8) :: rpoints
     logical :: perx,pery,perz
-
-    oneo4pi=1.0d0/(16.d0*atan(1.d0))
 
     n = nord+1
     m = nord/2
@@ -1645,7 +1645,7 @@ contains
              !retrieve the previous treatment
              res = dlogeps(1,i1,i2,i3)*dx + &
                   dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
-             res = res*oneo4pi
+             res = res*oneofourpi
              rho=rhopol(i1,i2,i3)
              res=res-rho
              res=eta*res
@@ -1728,8 +1728,34 @@ contains
     !$omp end parallel do
 
   end subroutine nonvacuum_projection
+  
+  !> calculate the Extra potential and add it to the Hartree one
+  !!at the same time evaluate the energy of the extra term given the 
+  !! electronic charge density
+  subroutine add_Vextra(n1,n23,nabla2_pot,depsdrho,dsurfdrho,cavity)
+    implicit none
+    integer, intent(in) :: n1,n23
+    !> on input, square of the gradient of the potential.
+    !! on output, extra term of the potential
+    real(dp), dimension(n1,n23), intent(in) :: depsdrho,dsurfdrho
+    type(cavity_data), intent(in) :: cavity
+    real(dp), dimension(n1,n23), intent(inout) :: nabla2_pot
+    !local variables
+    integer :: i1,i23
+    real(dp) :: ep,sp
 
-
+    !$omp parallel do default(shared) private(i1,i23,ep,sp)
+    do i23=1,n23
+       do i1=1,n1
+          ep=depsdrho(i1,i23)
+          sp=dsurfdrho(i1,i23)
+          nabla2_pot(i1,i23)=-oneoeightpi*ep*nabla2_pot(i1,i23)!&
+          !+(cavity%alphaS+cavity%gammaS)*sp+cavity%betaV*ep/(1.d0-cavity%epsilon0)
+       end do
+    end do
+    !$omp end parallel do
+    
+  end subroutine add_Vextra
 
 end module environment
 

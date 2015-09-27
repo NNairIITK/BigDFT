@@ -13,7 +13,7 @@ program BigDFT2Wannier
 
    use BigDFT_API
    use bigdft_run
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_interfaces
    use yaml_output
    use module_input_dicts
@@ -2116,7 +2116,7 @@ END SUBROUTINE write_mmn
 subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
 
    use BigDFT_API
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use bounds, only: ext_buffers
    use locreg_operations
    implicit none

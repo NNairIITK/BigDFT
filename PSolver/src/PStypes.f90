@@ -11,7 +11,8 @@
 module PStypes
   use f_enums
   use wrapper_MPI
-  use environment
+  use PSbase
+  use environment, only: cavity_data,cavity_default
   implicit none
 
   private
@@ -29,6 +30,35 @@ module PStypes
      integer :: istart,iend,n3p !<start, endpoints and number of planes of the given processor
      real(dp) :: scal !<factor to rescale the solver such that the FFT is unitary, divided by 4pi
   end type FFT_metadata
+
+  !> define the work arrays needed for the treatment of the 
+  !!Poisson Equation. Not all of them are allocated, the actual memory usage 
+  !!depends on the treatment
+  type, public :: PS_workarrays
+     !> logaritmic derivative of the dielectric function,
+     !! to be used in the case of Polarization Iteration method
+     real(dp), dimension(:,:,:,:), pointer :: dlogeps
+     !> inverse of the dielectric function
+     !! in the case of Polarization Iteration method
+     !! inverse of the square root of epsilon
+     !! in the case of the Preconditioned Conjugate Gradient
+     real(dp), dimension(:,:), pointer :: oneoeps
+     !> correction term, given in terms of the multiplicative factor of nabla*eps*nabla
+     !! to be used for Preconditioned Conjugate Gradient 
+     real(dp), dimension(:,:), pointer :: corr
+     !> inner rigid cavity to be integrated in the sccs method to avoit inner
+     !! cavity discontinuity due to near-zero edens near atoms
+     real(dp), dimension(:,:), pointer :: epsinnersccs
+     real(dp), dimension(:,:,:), pointer :: zf
+     !> input guess vectors to be preserved for future use
+     real(dp), dimension(:,:), pointer :: rho_old,res_old,pot_old
+     !> Polarization charge vector for print purpose only.
+     real(dp), dimension(:,:), pointer :: pol_charge
+     integer(f_address) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
+     integer(f_address) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
+     !> GPU scalars. Event if they are scalars of course their address is needed
+     integer(f_address) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
+  end type PS_workarrays
 
   !> Defines the fundamental structure for the kernel
   type, public :: coulomb_operator
@@ -66,30 +96,11 @@ module PStypes
      real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
      type(cavity_data) :: cavity !< description of the cavity for the dielectric medium
      real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
-     !> logaritmic derivative of the dielectric function,
-     !! to be used in the case of Polarization Iteration method
-     real(dp), dimension(:,:,:,:), pointer :: dlogeps
-     !> inverse of the dielectric function
-     !! in the case of Polarization Iteration method
-     !! inverse of the square root of epsilon
-     !! in the case of the Preconditioned Conjugate Gradient
-     real(dp), dimension(:,:), pointer :: oneoeps
-     !> correction term, given in terms of the multiplicative factor of nabla*eps*nabla
-     !! to be used for Preconditioned Conjugate Gradient 
-     real(dp), dimension(:,:), pointer :: corr
-     !> inner rigid cavity to be integrated in the sccs method to avoit inner
-     !! cavity discontinuity due to near-zero edens near atoms
-     real(dp), dimension(:,:), pointer :: epsinnersccs
-     real(dp), dimension(:,:,:), pointer :: zf
-     !> input guess vectors to be preserved for future use
-     real(dp), dimension(:,:), pointer :: rho_old,res_old,pot_old
-     !> Polarization charge vector for print purpose only.
-     real(dp), dimension(:,:), pointer :: pol_charge
-     real(dp) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
-     real(dp) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
-     real(dp) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
      integer, dimension(5) :: plan
      integer, dimension(3) :: geo
+     !>workarrays for the application of the Solver. Might have different
+     !!memory footprints dependently of the treatment.
+     type(PS_workarrays) :: w
      !variables with computational meaning
      type(mpi_environment) :: mpi_env !< complete environment for the POisson Solver
      type(mpi_environment) :: inplane_mpi,part_mpi !<mpi_environment for internal ini-plane parallelization
@@ -125,6 +136,7 @@ module PStypes
      !! clearly this term is calculated only if the potential is corrected. When the cavity is fixed, the eVextra is zero.
      real(gp) :: eVextra
      !> surface and volume term
+     real(gp) :: cavitation
      !> stress tensor, to be calculated when calculate_strten is .true.
      real(gp), dimension(6) :: strten
   end type PSolver_energies
@@ -135,19 +147,36 @@ module PStypes
      character(len=1) :: datacode
      !> integer variable setting the verbosity, from silent (0) to high
      integer :: verbosity_level
+     !> add pot_ion to the final potential
+     logical :: add_pot_ion
+     !> add rho_ion to the initial density potential
+     logical :: add_rho_ion
      !> if .true., and the cavity is set to 'sccs' attribute, then the epsilon is updated according to rhov
      logical :: update_cavity
      !> if .true. calculate the stress tensor components.
      !! The stress tensor calculation are so far validated only for orthorhombic cells and vacuum treatments
      logical :: calculate_strten
+     !> Use the input guess procedure for the solution in the case of a electrostatic medium
+     !! this value is ignored in the case of a vacuum solver
+     logical :: use_input_guess
      !> Total integral on the supercell of the final potential on output
-     !! clearly meaningful only for Fully periodic BC
+     !! clearly meaningful only for Fully periodic BC, ignored in the other cases
      real(gp) :: potential_integral
   end type PSolver_options
 
-  public :: pkernel_null
+  public :: pkernel_null,PSolver_energies_null,pkernel_free
 
 contains
+
+  pure function PSolver_energies_null() result(e)
+    implicit none
+    type(PSolver_energies) :: e
+    e%hartree    =0.0_gp
+    e%elec       =0.0_gp
+    e%eVextra    =0.0_gp
+    e%cavitation =0.0_gp
+    e%strten     =0.0_gp
+  end function PSolver_energies_null
 
   pure function FFT_metadata_null() result(d)
     implicit none
@@ -170,6 +199,35 @@ contains
     d%scal=0.0_dp
   end function FFT_metadata_null
 
+  pure subroutine nullify_work_arrays(w)
+    use f_utils, only: f_zero
+    implicit none
+    type(PS_workarrays), intent(out) :: w
+    nullify(w%dlogeps)
+    nullify(w%oneoeps)
+    nullify(w%corr)
+    nullify(w%epsinnersccs)
+    nullify(w%pol_charge)
+    nullify(w%rho_old)
+    nullify(w%pot_old)
+    nullify(w%res_old)
+    nullify(w%zf)
+    call f_zero(w%work1_GPU)
+    call f_zero(w%work2_GPU)
+    call f_zero(w%k_GPU)
+    call f_zero(w%p_GPU)
+    call f_zero(w%q_GPU)
+    call f_zero(w%r_GPU)
+    call f_zero(w%x_GPU)
+    call f_zero(w%z_GPU)
+    call f_zero(w%oneoeps_GPU)
+    call f_zero(w%corr_GPU)
+    call f_zero(w%alpha_GPU)
+    call f_zero(w%beta_GPU)
+    call f_zero(w%kappa_GPU)
+    call f_zero(w%beta0_GPU)
+  end subroutine nullify_work_arrays
+
   pure function pkernel_null() result(k)
     implicit none
     type(coulomb_operator) :: k
@@ -182,20 +240,9 @@ contains
     k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
     k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
     nullify(k%kernel)
-    nullify(k%dlogeps)
-    nullify(k%oneoeps)
-    nullify(k%corr)
-    nullify(k%epsinnersccs)
-    nullify(k%pol_charge)
-    nullify(k%rho_old)
-    nullify(k%pot_old)
-    nullify(k%res_old)
-    nullify(k%zf)
-    k%work1_GPU=0.d0
-    k%work2_GPU=0.d0
-    k%k_GPU=0.d0
     k%plan=(/0,0,0,0,0/)
     k%geo=(/0,0,0/)
+    call nullify_work_arrays(k%w)
     k%mpi_env=mpi_environment_null()
     k%inplane_mpi=mpi_environment_null()
     k%part_mpi=mpi_environment_null()
@@ -212,6 +259,76 @@ contains
     nullify(k%displs)
   end function pkernel_null
 
-  
+  subroutine free_PS_workarrays(iproc,igpu,keepzf,gpuPCGred,keepGPUmemory,w)
+    use dynamic_memory
+    integer, intent(in) :: keepzf,gpuPCGred,keepGPUmemory,igpu,iproc
+    type(PS_workarrays), intent(inout) :: w
+    call f_free_ptr(w%dlogeps)
+    call f_free_ptr(w%oneoeps)
+    call f_free_ptr(w%corr)
+    call f_free_ptr(w%epsinnersccs)
+    call f_free_ptr(w%pol_charge)
+    call f_free_ptr(w%pot_old)
+    call f_free_ptr(w%rho_old)
+    call f_free_ptr(w%res_old)
+    if(keepzf == 1) call f_free_ptr(w%zf)
+    if (gpuPCGRed == 1) then
+       if (keepGPUmemory == 1) then
+          call cudafree(w%z_GPU)
+          call cudafree(w%r_GPU)
+          call cudafree(w%oneoeps_GPU)
+          call cudafree(w%p_GPU)
+          call cudafree(w%q_GPU)
+          call cudafree(w%x_GPU)
+          call cudafree(w%corr_GPU)
+          call cudafree(w%alpha_GPU)
+          call cudafree(w%beta_GPU)
+          call cudafree(w%beta0_GPU)
+          call cudafree(w%kappa_GPU)
+       end if
+    end if
+    if (igpu == 1) then
+       if (iproc == 0) then
+          if (keepGPUmemory == 1) then
+             call cudafree(w%work1_GPU)
+             call cudafree(w%work2_GPU)
+          endif
+          call cudafree(w%k_GPU)
+       endif
+    end if
+
+  end subroutine free_PS_workarrays
+
+  !> Free memory used by the kernel operation
+  !! @ingroup PSOLVER
+  subroutine pkernel_free(kernel)
+    use dynamic_memory
+    implicit none
+    type(coulomb_operator), intent(inout) :: kernel
+    integer :: i_stat
+    call f_free_ptr(kernel%kernel)
+    call f_free_ptr(kernel%counts)
+    call f_free_ptr(kernel%displs)
+    call free_PS_workarrays(kernel%mpi_env%iproc,kernel%igpu,&
+         kernel%keepzf,kernel%gpuPCGred,kernel%keepGPUmemory,kernel%w)
+    !free GPU data
+    if (kernel%igpu == 1) then
+       if (kernel%mpi_env%iproc == 0) then
+          call f_free_ptr(kernel%rhocounts)
+          call f_free_ptr(kernel%rhodispls)
+          if (kernel%initCufftPlan == 1) then
+             call cufftDestroy(kernel%plan(1))
+             call cufftDestroy(kernel%plan(2))
+             call cufftDestroy(kernel%plan(3))
+             call cufftDestroy(kernel%plan(4))
+          endif
+       endif
+    end if
+
+    !cannot yet free the communicators of the poisson kernel
+    !lack of handling of the reference counter
+
+  end subroutine pkernel_free
+
 
 end module PStypes

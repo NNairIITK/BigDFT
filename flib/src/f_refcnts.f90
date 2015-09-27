@@ -68,9 +68,10 @@ contains
   !! this function should be called whe the associated object starts
   !! to be non-trivial
   function f_ref_new(id,address) result(f_ref)
+    use f_precisions, only: f_address
     implicit none
     character(len=*), intent(in) :: id
-    integer(kind=8), intent(in), optional :: address
+    integer(f_address), intent(in), optional :: address
     type(f_reference_counter) :: f_ref
     !local variables
     type(dictionary), pointer :: dict

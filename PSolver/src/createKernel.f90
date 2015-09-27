@@ -75,13 +75,13 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-11_dp!
+        kernel%minres=1.0e-6_dp!
         kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%method=PS_PCG_ENUM
         kernel%nord=16
         kernel%max_iter=50
-        kernel%minres=1.0e-11_dp! 
+        kernel%minres=1.0e-6_dp! 
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -155,68 +155,6 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   end if
 
 end function pkernel_init
-
-
-!> Free memory used by the kernel operation
-!! @ingroup PSOLVER
-subroutine pkernel_free(kernel)
-  use dynamic_memory
-  implicit none
-  type(coulomb_operator), intent(inout) :: kernel
-  integer :: i_stat
-  call f_free_ptr(kernel%kernel)
-  call f_free_ptr(kernel%dlogeps)
-  call f_free_ptr(kernel%oneoeps)
-  call f_free_ptr(kernel%corr)
-  call f_free_ptr(kernel%epsinnersccs)
-  call f_free_ptr(kernel%pol_charge)
-  call f_free_ptr(kernel%pot_old)
-  call f_free_ptr(kernel%rho_old)
-  call f_free_ptr(kernel%res_old)
-  call f_free_ptr(kernel%counts)
-  call f_free_ptr(kernel%displs)
-  if(kernel%keepzf == 1) then
-    call f_free_ptr(kernel%zf)
-  end if
-  if (kernel%gpuPCGRed == 1) then
-    if (kernel%keepGPUmemory == 1) then
-      call cudafree(kernel%z_GPU)
-      call cudafree(kernel%r_GPU)
-      call cudafree(kernel%oneoeps_GPU)
-      call cudafree(kernel%p_GPU)
-      call cudafree(kernel%q_GPU)
-      call cudafree(kernel%x_GPU)
-      call cudafree(kernel%corr_GPU)
-      call cudafree(kernel%alpha_GPU)
-      call cudafree(kernel%beta_GPU)
-      call cudafree(kernel%beta0_GPU)
-      call cudafree(kernel%kappa_GPU)
-    end if
-  end if
-  !free GPU data
-  if (kernel%igpu == 1) then
-    if (kernel%mpi_env%iproc == 0) then
-     call f_free_ptr(kernel%rhocounts)
-     call f_free_ptr(kernel%rhodispls)
-     if (kernel%keepGPUmemory == 1) then
-       call cudafree(kernel%work1_GPU)
-       call cudafree(kernel%work2_GPU)
-
-     endif
-     call cudafree(kernel%k_GPU)
-     if (kernel%initCufftPlan == 1) then
-       call cufftDestroy(kernel%plan(1))
-       call cufftDestroy(kernel%plan(2))
-       call cufftDestroy(kernel%plan(3))
-       call cufftDestroy(kernel%plan(4))
-     endif
-    endif
-  end if
-
-  !cannot yet free the communicators of the poisson kernel
-  !lack of garbage collector
-
-end subroutine pkernel_free
 
 
 !> Allocate a pointer which corresponds to the zero-padded FFT slice needed for
@@ -638,9 +576,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
   if(kernel%keepzf == 1) then
     if(kernel%igpu == 1) then
-      kernel%zf = f_malloc_ptr([md1, md3, md2/kernel%mpi_env%nproc],id='zf')
+      kernel%w%zf = f_malloc_ptr([md1, md3, md2/kernel%mpi_env%nproc],id='zf')
     else 
-      kernel%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+      kernel%w%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
     end if
   end if 
 
@@ -658,27 +596,27 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
     size3=n1*n2*n3
   if (kernel%gpuPCGRed==1) then
     if (kernel%keepGPUmemory == 1) then
-      call cudamalloc(size3,kernel%z_GPU,i_stat)
+      call cudamalloc(size3,kernel%w%z_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc z_GPU (GPU out of memory ?) ')
-      call cudamalloc(size3,kernel%r_GPU,i_stat)
+      call cudamalloc(size3,kernel%w%r_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc r_GPU (GPU out of memory ?) ')
-      call cudamalloc(size3,kernel%oneoeps_GPU,i_stat)
+      call cudamalloc(size3,kernel%w%oneoeps_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc oneoeps_GPU (GPU out of memory ?) ')
-      call cudamalloc(size3,kernel%p_GPU,i_stat)
+      call cudamalloc(size3,kernel%w%p_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc p_GPU (GPU out of memory ?) ')
-      call cudamalloc(size3,kernel%q_GPU,i_stat)
+      call cudamalloc(size3,kernel%w%q_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc q_GPU (GPU out of memory ?) ')
-      call cudamalloc(size3,kernel%x_GPU,i_stat)
+      call cudamalloc(size3,kernel%w%x_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc x_GPU (GPU out of memory ?) ')
-      call cudamalloc(size3,kernel%corr_GPU,i_stat)
+      call cudamalloc(size3,kernel%w%corr_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc corr_GPU (GPU out of memory ?) ')
-      call cudamalloc(sizeof(alpha),kernel%alpha_GPU,i_stat)
+      call cudamalloc(sizeof(alpha),kernel%w%alpha_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc alpha_GPU (GPU out of memory ?) ')
-      call cudamalloc(sizeof(alpha),kernel%beta_GPU,i_stat)
+      call cudamalloc(sizeof(alpha),kernel%w%beta_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc beta_GPU (GPU out of memory ?) ')
-      call cudamalloc(sizeof(alpha),kernel%beta0_GPU,i_stat)
+      call cudamalloc(sizeof(alpha),kernel%w%beta0_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc beta0_GPU (GPU out of memory ?) ')
-      call cudamalloc(sizeof(alpha),kernel%kappa_GPU,i_stat)
+      call cudamalloc(sizeof(alpha),kernel%w%kappa_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc kappa_GPU (GPU out of memory ?) ')
     end if 
   end if
@@ -686,12 +624,12 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then
       if (kernel%keepGPUmemory == 1) then
-        call cudamalloc(size2,kernel%work1_GPU,i_stat)
+        call cudamalloc(size2,kernel%w%work1_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc work1_GPU (GPU out of memory ?) ')
-        call cudamalloc(size2,kernel%work2_GPU,i_stat)
+        call cudamalloc(size2,kernel%w%work2_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc work2_GPU (GPU out of memory ?) ')
       endif
-      call cudamalloc(sizek,kernel%k_GPU,i_stat)
+      call cudamalloc(sizek,kernel%w%k_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc k_GPU (GPU out of memory ?) ')
     endif
 
@@ -720,7 +658,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then 
-      call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%k_GPU)
+      call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%w%k_GPU)
 
       if (dump) call yaml_map('Kernel Copied on GPU',.true.)
 
@@ -845,7 +783,6 @@ end if
   end select
 
   call f_timing(TCAT_PSOLV_KERNEL,'OF')
-  !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')
 
 END SUBROUTINE pkernel_set
 
@@ -986,12 +923,12 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
   if (kernel%grid%n3p==0) i3s=1
   select case(trim(str(kernel%method)))
   case('PCG')
-     kernel%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
+     kernel%w%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
      if (present(corr)) then
-        kernel%corr=f_malloc_ptr([n1,n23],id='corr')
-        call f_memcpy(n=n1*n23,src=corr(1,1,i3s),dest=kernel%corr)
+        kernel%w%corr=f_malloc_ptr([n1,n23],id='corr')
+        call f_memcpy(n=n1*n23,src=corr(1,1,i3s),dest=kernel%w%corr)
      else if (present(eps)) then
-        kernel%corr=f_malloc_ptr([n1,n23],id='corr')
+        kernel%w%corr=f_malloc_ptr([n1,n23],id='corr')
 !!$        !allocate arrays
         deps=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='deps')
         de2 =f_malloc(kernel%ndims,id='de2')
@@ -1007,7 +944,7 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
         do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
            do i2=1,kernel%ndims(2)
               do i1=1,kernel%ndims(1)
-                 kernel%corr(i1,i23)=(-0.125d0/pi)*&
+                 kernel%w%corr(i1,i23)=(-0.125d0/pi)*&
                       (0.5d0*de2(i1,i2,i3)/eps(i1,i2,i3)-ddeps(i1,i2,i3))
               end do
               i23=i23+1
@@ -1021,16 +958,16 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
         call f_err_throw('For method "PCG" the arrays corr or epsilon should be present')   
      end if
      if (present(oneosqrteps)) then
-        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
+        kernel%w%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
         call f_memcpy(n=n1*n23,src=oneosqrteps(1,1,i3s),&
-             dest=kernel%oneoeps)
+             dest=kernel%w%oneoeps)
      else if (present(eps)) then
-        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
+        kernel%w%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
         i23=1
         do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
            do i2=1,kernel%ndims(2)
               do i1=1,kernel%ndims(1)
-                 kernel%oneoeps(i1,i23)=1.0_dp/sqrt(eps(i1,i2,i3))
+                 kernel%w%oneoeps(i1,i23)=1.0_dp/sqrt(eps(i1,i2,i3))
               end do
               i23=i23+1
            end do
@@ -1039,13 +976,13 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
         call f_err_throw('For method "PCG" the arrays oneosqrteps or epsilon should be present')   
      end if
   case('PI')
-     kernel%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
+     kernel%w%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
      if (present(dlogeps)) then
         !kernel%dlogeps=f_malloc_ptr(src=dlogeps,id='dlogeps')
-        kernel%dlogeps=f_malloc_ptr(shape(dlogeps),id='dlogeps')
-        call f_memcpy(src=dlogeps,dest=kernel%dlogeps)
+        kernel%w%dlogeps=f_malloc_ptr(shape(dlogeps),id='dlogeps')
+        call f_memcpy(src=dlogeps,dest=kernel%w%dlogeps)
      else if (present(eps)) then
-        kernel%dlogeps=f_malloc_ptr([3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],&
+        kernel%w%dlogeps=f_malloc_ptr([3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],&
              id='dlogeps')
         !allocate arrays
         deps=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='deps')
@@ -1055,9 +992,9 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
            do i2=1,kernel%ndims(2)
               do i1=1,kernel%ndims(1)
                  !switch and create the logarithmic derivative of epsilon
-                 kernel%dlogeps(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
-                 kernel%dlogeps(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
-                 kernel%dlogeps(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
+                 kernel%w%dlogeps(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
+                 kernel%w%dlogeps(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
+                 kernel%w%dlogeps(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
               end do
            end do
         end do
@@ -1067,16 +1004,16 @@ subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
      end if
 
      if (present(oneoeps)) then
-        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
+        kernel%w%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
         call f_memcpy(n=n1*n23,src=oneoeps(1,1,i3s),&
-             dest=kernel%oneoeps)
+             dest=kernel%w%oneoeps)
      else if (present(eps)) then
-        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
+        kernel%w%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
         i23=1
         do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
            do i2=1,kernel%ndims(2)
               do i1=1,kernel%ndims(1)
-                 kernel%oneoeps(i1,i23)=1.0_dp/eps(i1,i2,i3)
+                 kernel%w%oneoeps(i1,i23)=1.0_dp/eps(i1,i2,i3)
               end do
               i23=i23+1
            end do
@@ -1101,30 +1038,30 @@ subroutine pkernel_allocate_cavity(kernel,vacuum)
   n23=kernel%ndims(2)*kernel%grid%n3p
   select case(trim(str(kernel%method)))
   case('PCG')
-     kernel%corr=f_malloc_ptr([n1,n23],id='corr')
-     kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
-     kernel%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
-     kernel%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
+     kernel%w%corr=f_malloc_ptr([n1,n23],id='corr')
+     kernel%w%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
+     kernel%w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
+     kernel%w%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
   case('PI')
-     kernel%dlogeps=f_malloc_ptr([3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],&
+     kernel%w%dlogeps=f_malloc_ptr([3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],&
           id='dlogeps')
-     kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
-     kernel%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
-     kernel%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
+     kernel%w%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
+     kernel%w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
+     kernel%w%pol_charge=f_malloc_ptr([n1,n23],id='pol_charge')
   end select
   if (present(vacuum)) then
      if (vacuum) then
         select case(trim(str(kernel%method)))
         case('PCG')
-           call f_zero(kernel%corr)
+           call f_zero(kernel%w%corr)
         case('PI')
-           call f_zero(kernel%dlogeps)
+           call f_zero(kernel%w%dlogeps)
         end select
-        call f_zero(kernel%epsinnersccs)
-        call f_zero(kernel%pol_charge)
+        call f_zero(kernel%w%epsinnersccs)
+        call f_zero(kernel%w%pol_charge)
         do i23=1,n23
            do i1=1,n1
-              kernel%oneoeps(i1,i23)=1.0_dp
+              kernel%w%oneoeps(i1,i23)=1.0_dp
            end do
         end do
      end if
@@ -1184,17 +1121,8 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
         i23=i23+1
      end do
   end do
-
-!     unt=f_get_free_unit(22)
-!     call f_open_file(unt,file='extra_term_line_sccs_x.dat')
-!     do i1=1,n01
-!        x=i1*kernel%hgrids(1)
-!        write(unt,'(1x,I8,5(1x,e22.15))')i1,x,pot(i1,n02/2,n03/2),depsdrho1(i1,n02/2,n03/2),pot2(i1,n02/2,n03/2),depsdrho2(i1,n02/2,n03/2)
-!     end do
-!     call f_close(unt)
  
   call f_free(nabla2_pot)
-!  call yaml_map('extra term here',.true.)
 
   if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
        call yaml_map('Extra SCF potential calculated',.true.)
@@ -1232,7 +1160,7 @@ subroutine polarization_charge(kernel,pot,rho)
         do i1=1,n01
            !this section has to be inserted into a optimized calculation of the
            !derivative
-           kernel%pol_charge(i1,i23)=(-0.25_dp/pi)*lapla_pot(i1,i2,i3)-rho(i1,i23)
+           kernel%w%pol_charge(i1,i23)=(-0.25_dp/pi)*lapla_pot(i1,i2,i3)-rho(i1,i23)
         end do
         i23=i23+1
      end do
@@ -1331,11 +1259,11 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
         !do i3=1,n03
         do i2=1,n02
            do i1=1,n01
-              if (kernel%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+              if (kernel%w%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
                  !eps(i1,i2,i3)=1.d0
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
-                 kernel%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
-                 kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
+                 kernel%w%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
+                 kernel%w%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
  !                depsdrho1(i1,i2,i3)=0.d0
                  dsurfdrho(i1,i23)=0.d0
@@ -1350,8 +1278,8 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
                 de=epsprime(rho,kernel%cavity)
                 if (dumpeps) epscurr(i1,i2,i3)=eps(rho,kernel%cavity)
                 depsdrho(i1,i23)=de
-                kernel%oneoeps(i1,i23)=oneosqrteps(rho,kernel%cavity)
-                kernel%corr(i1,i23)=corr_term(rho,d2,dd,kernel%cavity)
+                kernel%w%oneoeps(i1,i23)=oneosqrteps(rho,kernel%cavity)
+                kernel%w%corr(i1,i23)=corr_term(rho,d2,dd,kernel%cavity)
 !!$                !c1=(cc(i1,i2,i3)/d2-dd)/d
 !!$                dsurfdrho(i1,i23)=surf_term(rho,d2,dd,cc(i1,i2,i3),kernel%cavity)/epsm1
 !!$                !evaluate surfaces and volume integrals
@@ -1423,11 +1351,11 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
      do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
         do i2=1,n02
            do i1=1,n01
-             epsinner(i1,i2,i3)=kernel%epsinnersccs(i1,i23)
-             if (kernel%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+             epsinner(i1,i2,i3)=kernel%w%epsinnersccs(i1,i23)
+             if (kernel%w%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
                  !eps(i1,i2,i3)=1.d0
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
-                 kernel%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
+                 kernel%w%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
                  dsurfdrho(i1,i23)=0.d0
              else
@@ -1442,7 +1370,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
                 de=epsprime(rho,kernel%cavity)
                 if (dumpeps) epscurr(i1,i2,i3)=eps(rho,kernel%cavity)
                 depsdrho(i1,i23)=de
-                kernel%oneoeps(i1,i23)=oneoeps(rho,kernel%cavity) !in pi
+                kernel%w%oneoeps(i1,i23)=oneoeps(rho,kernel%cavity) !in pi
                 !c1=(cc(i1,i2,i3)/d2-dd)/d
                 dsurfdrho(i1,i23)=surf_term(rho,d2,dd,cc(i1,i2,i3),kernel%cavity)/epsm1
                 
@@ -1499,12 +1427,12 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
            do i1=1,n01
              if (epsinner(i1,i2,i3).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
               do i=1,3
-               kernel%dlogeps(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
+               kernel%w%dlogeps(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
               end do
              else
                 logepspr=logepsprime(edens(i1,i2,i3),kernel%cavity)
                 do i=1,3
-                   kernel%dlogeps(i,i1,i2,i3)=nabla_edens(i1,i2,i3,i)*logepspr
+                   kernel%w%dlogeps(i,i1,i2,i3)=nabla_edens(i1,i2,i3,i)*logepspr
                 end do
 
 !!$              if (dabs(edens(i1,i2,i3)).gt.edensmax) then

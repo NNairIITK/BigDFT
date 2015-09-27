@@ -58,6 +58,7 @@ module Poisson_Solver
    use dictionaries, only: f_err_throw
    use f_utils
    use f_enums
+   use PSbase
    use wrapper_linalg
    use wrapper_MPI
    use dynamic_memory
@@ -66,6 +67,7 @@ module Poisson_Solver
    use yaml_strings
    use environment
    use PStypes
+   use PSbox
    !use m_profiling
    ! TO BE REMOVED with f_malloc
    

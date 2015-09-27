@@ -95,7 +95,6 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
      n1dim=n1/2
   end if
   call f_timing(TCAT_PSOLV_COMPUT,'ON')
-  !call timing(iproc,'PSolv_comput  ','ON')
   ! check input
 !!$  !these checks can be moved at the creation
 !!$  if (mod(n1,2) /= 0 .and. .not. perx) stop 'Parallel convolution:ERROR:n1' !this can be avoided
@@ -279,8 +278,6 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
     !input: I1,J2,j3,jp3,(Jp2)
     if (nproc > 1 .and. iproc < n3pr1*n3pr2) then
        call f_timing(TCAT_PSOLV_COMPUT,'OF')
-       !call timing(iproc,'PSolv_comput  ','OF')
-       !call timing(iproc,'PSolv_commun  ','ON')
        call f_timing(TCAT_PSOLV_COMMUN,'ON')
        !communication scheduling
        call MPI_ALLTOALL(zmpi2,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
@@ -288,8 +285,6 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
             zmpi1,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
             MPI_double_precision,planes_comm,ierr)
        call f_timing(TCAT_PSOLV_COMMUN,'OF')
-        !call timing(iproc,'PSolv_commun  ','OF')
-       !call timing(iproc,'PSolv_comput  ','ON')
        call f_timing(TCAT_PSOLV_COMPUT,'ON')
     endif
 
@@ -587,16 +582,9 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   call f_free(btrig3)
   call f_free(ftrig3)
   call f_free(zmpi2)
-  !i_all=-product(shape(zw))*kind(zw)
-  !deallocate(zw,stat=i_stat)
-  !call memocc(i_stat,i_all,'zw',subname)
-  !i_all=-product(shape(zt))*kind(zt)
-  !deallocate(zt,stat=i_stat)
-  !call memocc(i_stat,i_all,'zt',subname)
   if (halffty) then
      call f_free(cosinarr)
   end if
-
   if (nproc > 1) then
      call f_free(zmpi1)
   end if

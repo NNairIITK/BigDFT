@@ -16,7 +16,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use module_types
   use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
        & getLocalizedBasis, get_coeff, loewdin, sumrho, write_eigenvalues_data, &
-       & write_energies, write_orbital_density
+       & write_energies, write_orbital_density,inputguessconfinement
   use yaml_output
   use module_fragments
   use constrained_dft
