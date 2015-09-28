@@ -17,8 +17,7 @@ EXTRA_DIST = \
 	abi_geomoptim/abi_xfpack.F90.inc \
 	symm/symmetry.h \
 	symm/symmetry.c \
-	symm/symmetry-main.c \
-	libpaw/libpaw.h
+	symm/symmetry-main.c
 
 
 ## === libPAW section ===
@@ -48,7 +47,7 @@ DEFS = $(LIBPAW_DEFS) $(MPI_DEFS)
 DEFS_1 = $(DEFS:-D%=@FCDEFS@-D%)
 DEFS_FORTRAN = $(DEFS_1:-U%=@FCDEFS@-U%)
 
-AM_FCFLAGS = @MPI_INCLUDE@ -I$(srcdir)/abi_geomoptim @LIB_FLIB_CFLAGS@ @LIB_XC_CFLAGS@
+AM_FCFLAGS = @MPI_INCLUDE@ -I. -I$(srcdir)/abi_geomoptim @LIB_FLIB_CFLAGS@ @LIB_XC_CFLAGS@
 
 ## Hack for XLF strange DEFS option
 PPFCCOMPILE = $(FC) $(DEFS_FORTRAN) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -179,6 +178,8 @@ mpif.h:
 	 echo "integer, parameter :: MPI_REQUEST_NULL=1, MPI_PACKED=1, MPI_ERRORS_RETURN=1" >> mpif.h
 	 echo "integer, parameter :: MPI_ERR_COMM=1, MPI_ERR_GROUP=1" >> mpif.h
 	 echo "real(kind=8), external :: MPI_WTICK" >> mpif.h
+libpaw.h: $(srcdir)/libpaw/libpaw.h
+	$(SED) -n '1h;1!H;$${;g;s%/\*[^*]*\*/%%g;p;}' $< > $@
 
 # Modules
 if CAPITALIZE

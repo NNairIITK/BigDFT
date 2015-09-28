@@ -15,6 +15,8 @@ dnl Init something, don't know exactly what...
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE(-Wno-portability)
 
+dnl Check for sed and put it in the SED variable
+AC_PROG_SED()
 dnl We defined CC for the ABINIT part.
 AC_PROG_CC()
 
@@ -53,7 +55,7 @@ AC_ARG_WITH(internal-libpaw, AS_HELP_STRING([--with-internal-libpaw],
 AM_CONDITIONAL(BUILD_LIBPAW, test x"$ac_internal_libpaw" = x"yes")
 
 AC_ARG_WITH(libpaw-host, AS_HELP_STRING([--with-libpaw-host],
-                                        [choice of low-level for LibPAW (default = plain Fortran).]),
+                                        [choice of low-level for LibPAW (default = BigDFT).]),
             ac_libpaw_host=$withval, ac_libpaw_host="BigDFT")
 
 LIBPAW_HOST_DEFS=""
@@ -66,7 +68,7 @@ if test x"$ac_internal_libpaw" = x"yes" ; then
   AC_MSG_CHECKING([for libPAW host macro])
   case "$ac_libpaw_host" in
     bigdft | BigDFT) LIBPAW_HOST_DEFS="-DHAVE_LIBPAW_BIGDFT";;
-    abinit | ABINIT) LIBPAW_HOST_DEFS="-DHAVE_LIBPAW_AINIT";;
+    abinit | ABINIT) LIBPAW_HOST_DEFS="-DHAVE_LIBPAW_ABINIT";;
     *) LIBPAW_HOST_DEFS="";;
   esac
   AC_MSG_RESULT([$LIBPAW_HOST_DEFS])
