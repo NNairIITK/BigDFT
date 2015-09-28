@@ -330,8 +330,8 @@ class AutogenModule(MakeModule, DownloadableModule):
         buildscript.execute(['autoreconf', '-fi'], cwd=srcdir,
                 extra_env=extra_env)
         os.chmod(os.path.join(srcdir, 'configure'), 0755)
-    do_dist.depends = [PHASE_CHECKOUT]
-    do_dist.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CLEAN]
+    do_setup.depends = [PHASE_CHECKOUT]
+    do_setup.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CLEAN]
 
     def do_distcheck(self, buildscript):
         buildscript.set_action(_('Dist checking'), self)
