@@ -267,7 +267,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => readmywaves
+  use module_interfaces, only: open_filename_of_iorb
   use public_enums
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3, iformat
@@ -368,7 +368,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   use module_base
   use module_types
   use public_enums
-  use module_interfaces, except_this_one => verify_file_presence
+  use module_interfaces, only: filename_of_iorb
   implicit none
   integer, intent(in) :: nproc
   character(len=*), intent(in) :: filerad
@@ -520,7 +520,7 @@ end subroutine filename_of_iorb
 subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => open_filename_of_iorb
+  use module_interfaces, only: filename_of_iorb
   implicit none
   character(len=*), intent(in) :: filename
   logical, intent(in) :: lbin
@@ -555,7 +555,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   use module_types
   use module_base
   use yaml_output
-  use module_interfaces, except_this_one => writeonewave, except_this_one_A => writemywaves
+  use module_interfaces, only: open_filename_of_iorb
   use public_enums
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,iformat
@@ -618,7 +618,7 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => read_wave_to_isf
+  use module_interfaces, only: readwavetoisf, readwavetoisf_etsf
   use public_enums
   use module_input_keys
   implicit none
@@ -709,7 +709,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   use module_base
   use module_types
   use locregs, only: copy_locreg_descriptors,allocate_wfd,deallocate_wfd
-  use module_interfaces
+  use module_interfaces, only: reformat_one_supportfunction
   use module_fragments
   use communications_base, only: comms_linear_null, deallocate_comms_linear, TRANSPOSE_FULL
   use communications_init, only: init_comms_linear
@@ -1256,7 +1256,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   use module_base
   use module_types
   !use internal_io
-  use module_interfaces
+  use module_interfaces, only: reformat_one_supportfunction
   use yaml_output
   use module_fragments
   use io, only: io_read_descr_linear, io_error, read_psi_compress
@@ -1383,7 +1383,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   use yaml_output
   use module_fragments
   !use internal_io
-  use module_interfaces, except_this_one => readmywaves_linear_new
+  use module_interfaces, only: open_filename_of_iorb, reformat_supportfunctions
   use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error, read_dense_matrix
   use public_enums
   implicit none
@@ -2150,7 +2150,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   use module_defs
   use yaml_output
   use module_fragments
-  use module_interfaces, except_this_one => initialize_linear_from_file
+  use module_interfaces, only: open_filename_of_iorb
   use locregs, only: locreg_null
   use io, only: io_read_descr_linear
   use public_enums
@@ -2477,7 +2477,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   use module_base
   use module_types
   use module_fragments
-  use module_interfaces, except_this_one=>reformat_supportfunctions
+  use module_interfaces, only: reformat_one_supportfunction
   use yaml_output
   use bounds, only: ext_buffers
   implicit none

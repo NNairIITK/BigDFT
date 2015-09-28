@@ -14,9 +14,9 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      nrhotot,Lzd,hxh,hyh,hzh,xc,nspin,orbs,mapping,psi,rho)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => local_partial_densityLinear
+  use module_interfaces, only: partial_density_free
   use module_xc
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use locreg_operations
   implicit none
   logical, intent(in) :: rsflag

@@ -119,7 +119,7 @@ module multipole
     !> Calculate the external potential arising from the multipoles of the charge density
     subroutine potential_from_charge_multipoles(iproc, nproc, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
       use module_types, only: DFT_local_fields
-      use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+      use Poisson_Solver, except_dp => dp, except_gp => gp
       use yaml_output
       implicit none
       
@@ -800,7 +800,6 @@ module multipole
                ovrlp, kernel, meth_overlap)
       use module_base
       use module_types
-      use module_interfaces
       use sparsematrix_base, only: sparsematrix_malloc0, SPARSE_FULL, assignment(=)
       use sparsematrix_init, only: matrixindex_in_compressed
       use orthonormalization, only: orthonormalizeLocalized

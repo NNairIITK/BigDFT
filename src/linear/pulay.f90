@@ -212,7 +212,6 @@ end subroutine pulay_correction_new
 subroutine extract_boundary(tmb, phi_delta, numpoints, numpoints_tot)
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output
   implicit none
 
@@ -461,7 +460,7 @@ end subroutine extract_boundary
 subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, GPU, tmb, fpulay)
   use module_base
   use module_types
-  use module_interfaces!, except_this_one => pulay_correction
+  use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication
   use yaml_output
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication

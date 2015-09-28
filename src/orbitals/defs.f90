@@ -52,26 +52,6 @@ module module_defs
   !> experimental variables to test the add of new functionalities
   logical :: experimental_modulebase_var_onlyfion=.false.
 
-  !> Physical constants.
-  real(gp), parameter, public :: Bohr_Ang = 0.52917721092_gp                    !< 1 AU in angstroem
-  real(gp), parameter, public :: Ha_cmm1=219474.6313705_gp                      !< 1 Hartree, in cm^-1 (from abinit 5.7.x)
-  real(gp), parameter, public :: Ha_eV=27.21138505_gp                           !< 1 Hartree, in eV
-  real(gp), parameter, public :: eV_Ha=3.674932379e-2_gp                        !< 1 ev, in Hartree
-  real(gp), parameter, public :: Ha_K=315774.65_gp                              !< 1 Hartree, in Kelvin
-  real(gp), parameter, public :: Ha_THz=6579.683920722_gp                       !< 1 Hartree, in THz
-  real(gp), parameter, public :: Ha_J=4.35974394d-18                            !< 1 Hartree, in J
-  real(gp), parameter, public :: e_Cb=1.602176487d-19                           !< minus the electron charge, in Coulomb
-  real(gp), parameter, public :: kb_HaK=8.617343d-5/Ha_eV                       !< Boltzmann constant in Ha/K
-  real(gp), parameter, public :: amu_emass=1.660538782e-27_gp/9.10938215e-31_gp !< 1 atomic mass unit, in electronic mass
-  real(gp), parameter, public :: AU_GPa=29421.010901602753_gp                   !< 1 Ha/Bohr^3 in GPa
-  real(gp), parameter, public :: Radian_Degree = 57.29577951308232087679_gp     !< 1 radian in degrees
-  real(gp), parameter, public :: eVAng_HaBohr = Bohr_Ang*eV_Ha                  !< convert forces from eV/Angstroem to hartree/bohr
-  real(gp), parameter, public :: kcalMol_Ha = 0.001593601437458137_gp        !< from kcal_th/mol to hartree
-                                                                     !!(thermochemical calorie used in amber: 1cal_th=4.184J)
-                                                                     !!also see: http://archive.ambermd.org/201009/0039.html
-  real(gp), parameter, public :: kcalMolAng_HaBohr =0.0008432975639921999_gp !<convert forces from kcal_th/mol/angstrom to hartree/bohr
-
-
   !> Evergreen
   real(dp), parameter, public :: pi_param=3.141592653589793238462643383279502884197_dp
 

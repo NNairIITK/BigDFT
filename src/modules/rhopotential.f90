@@ -25,8 +25,9 @@ module rhopotential
     
     use module_base
     use module_types
-    use module_interfaces
-    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+    use module_interfaces, only: XC_potential
+    use Poisson_Solver, except_dp => dp, except_gp => gp
+    use yaml_output
     implicit none
     
     ! Calling arguments
@@ -759,7 +760,6 @@ module rhopotential
 
     subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       use module_types
-      use module_interfaces
       use yaml_output
       use dynamic_memory
       implicit none

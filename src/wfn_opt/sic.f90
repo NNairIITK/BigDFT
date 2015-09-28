@@ -14,8 +14,8 @@ subroutine PZ_SIC_potential(nspin,nspinor,hfac,spinval,lr,xc,&
      hgridsh,pkernel,psir,vpsir,eSICi,eSIC_DCi)
   use module_base
   use module_types
-  use module_interfaces
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use module_interfaces, only: XC_potential, apply_potential, partial_density_free
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_xc
   use locreg_operations
   implicit none
@@ -195,8 +195,8 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hgrids,pkernel,psi,poti,eSIC_DC,pota
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, except_this_one => NK_SIC_potential
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use module_interfaces, only: XC_potential
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use locreg_operations
   implicit none
   real(gp), intent(in) :: fref
@@ -513,7 +513,7 @@ end subroutine NK_SIC_potential
 subroutine psir_to_rhoi(fi,spinval,nspinrho,nspinor,lr,psir,rhoi)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: partial_density_free
   implicit none
   integer, intent(in) :: nspinrho,nspinor
   real(gp), intent(in) :: fi      !< fi occupation number times k-point weigth divided by the volume unit

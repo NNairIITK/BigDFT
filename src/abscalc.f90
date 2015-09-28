@@ -98,7 +98,6 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    use module_base
    use locregs, only: deallocate_locreg_descriptors
    use module_types, only: input_variables,atoms_data
-   use module_interfaces
    use bigdft_run
    use module_atoms, only: astruct_dump_to_file
    implicit none
@@ -155,8 +154,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
      KSwfn,hx_old,hy_old,hz_old,in,GPU,infocode)
    use module_base
    use module_types
-   use module_interfaces
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use module_interfaces, only: IonicEnergyandForces, createProjectorsArrays, &
+        & createWavefunctionsDescriptors, extract_potential_for_spectra, &
+        & orbitals_descriptors, read_cube, read_density
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_xc
    use module_abscalc
    use m_ab6_symmetry
@@ -1433,11 +1434,11 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      nlpsp,pkernel,ixc,psi,G,&
      nspin,potshortcut,symObj,GPU,input)
    use module_base
-   use module_interfaces, except_this_one => extract_potential_for_spectra
+   use module_interfaces, only: XC_potential, communicate_density, inputguess_gaussian_orbitals, sumrho
    use module_types
    use module_xc
    use gaussians, only: gaussian_basis, deallocate_gwf
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use psp_projectors, only: update_nlpsp

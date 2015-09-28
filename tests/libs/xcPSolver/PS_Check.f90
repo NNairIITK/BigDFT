@@ -15,7 +15,7 @@ program PS_Check
    use dictionaries
    use module_xc
    use module_interfaces
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use yaml_output
    use module_types, only: TCAT_EXCHANGECORR
    use gaussians, only: initialize_real_space_conversion,finalize_real_space_conversion

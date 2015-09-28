@@ -13,7 +13,6 @@ subroutine bfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft)
   use module_base
   use module_atoms, only: move_this_coordinate
     use bigdft_run!module_types
-    use module_interfaces
     use yaml_output
     use minpar
     implicit none
@@ -588,7 +587,6 @@ subroutine lbfgsdriver(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_base
   use module_atoms, only: move_this_coordinate
   use bigdft_run!module_types
-  use module_interfaces
 !  use par_driver
   use minpar
   use yaml_output

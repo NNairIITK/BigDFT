@@ -14,7 +14,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
      dpbox,potential,comgp)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => local_hamiltonian
+  use module_interfaces, only: isf_to_daub_kinetic, psir_to_vpsi
   use module_xc
   use locreg_operations
   implicit none
@@ -214,7 +214,7 @@ subroutine psi_to_vlocpsi(iproc,npsidim_orbs,orbs,Lzd,&
      ipotmethod,confdatarr,pot,psi,vpsi,pkernel,xc,alphaSIC,epot_sum,evSIC,vpsi_noconf,econf_sum)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => psi_to_vlocpsi
+  use module_interfaces, only: psir_to_vpsi
   use module_xc
   use locreg_operations
   implicit none
@@ -498,7 +498,6 @@ end subroutine psi_to_kinpsi
 subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,econf)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => psir_to_vpsi
   implicit none
   integer, intent(in) :: npot,nspinor
   type(locreg_descriptors), intent(in) :: lr !< localization region of the wavefunction

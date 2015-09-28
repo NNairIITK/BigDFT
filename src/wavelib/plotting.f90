@@ -593,8 +593,8 @@ END SUBROUTINE plot_density
 subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
      nat,rxyz,iatypes, znucl)
   use module_base
-  use module_types
-  use module_interfaces, except_this_one => read_density
+  use module_interfaces, only: read_cube, read_etsf
+
   implicit none
   character(len=*), intent(in) :: filename
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -752,7 +752,7 @@ END SUBROUTINE plot_wf
 subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,n2i,n3i,n3p,nspin,hxh,hyh,hzh,pot)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: read_density
   implicit none
   integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,nspin
   real(gp), intent(in) :: hxh,hyh,hzh

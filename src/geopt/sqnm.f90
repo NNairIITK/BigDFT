@@ -545,7 +545,6 @@ subroutine minenergyandforces(iproc,nproc,eeval,imode,runObj,outs,nat,rat,fat,fs
     use module_base
     use bigdft_run!module_types
     use module_sqn
-    use module_interfaces
     implicit none
     !parameter
     integer, intent(in)           :: iproc,nproc,imode

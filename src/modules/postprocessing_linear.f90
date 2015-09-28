@@ -887,7 +887,7 @@ module postprocessing_linear
                energy, energyDiff, energyold)
       use module_base
       use module_types
-      use module_interfaces
+      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density
       use communications_base, only: comms_cubic
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v
@@ -1115,7 +1115,7 @@ module postprocessing_linear
                energy, energyDiff, energyold, npsidim_global, phiwork_global)
       use module_base
       use module_types
-      use module_interfaces
+      use module_interfaces, only: get_coeff, write_eigenvalues_data
       use communications_base, only: comms_cubic
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v
@@ -1523,7 +1523,7 @@ module postprocessing_linear
 
 
     function gaussian(sigma, r) result(g)
-      use module_base, only: pi => pi_param
+      use module_base
       implicit none
       ! Calling arguments
       real(kind=8),intent(in) :: sigma, r
@@ -1537,7 +1537,7 @@ module postprocessing_linear
     !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
     function spherical_harmonic(l, m, x, y, z) result(sh)
       !use module_base, only: pi => pi_param
-      use module_base, pi => pi_param
+      use module_base
       implicit none
       ! Calling arguments
       integer,intent(in) :: l, m

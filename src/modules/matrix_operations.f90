@@ -27,7 +27,6 @@ module matrix_operations
            !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
         use module_base
         use module_types
-        use module_interfaces
         use sparsematrix_base, only: sparse_matrix, &
                                 sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc0_ptr, &
                                 assignment(=), &
@@ -1086,7 +1085,6 @@ module matrix_operations
                  smat, max_error, mean_error)
         use module_base
         use module_types
-        use module_interfaces
         use yaml_output
         implicit none
         
@@ -2169,7 +2167,6 @@ module matrix_operations
                  inv_ovrlp_half, inv_ovrlp_half_)
         use module_base
         use module_types
-        use module_interfaces
         use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
                                      allocate_matrices, deallocate_matrices
         use sparsematrix_init, only: matrixindex_in_compressed

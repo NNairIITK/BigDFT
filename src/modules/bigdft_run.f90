@@ -902,7 +902,7 @@ contains
   !! in particular this routine identifies the input and the atoms structure
   subroutine set_run_objects(runObj)
     use module_base, only: f_err_throw
-    use module_interfaces, only: inputs_new, atoms_new
+    use module_interfaces, only: atoms_new, inputs_new
     use module_atoms, only: deallocate_atoms_data
     use module_input_dicts, only: dict_run_validate
     use module_input_keys, only: inputs_from_dict,free_input_variables
@@ -1367,7 +1367,8 @@ contains
     use module_lenosky_si
     use public_enums
     use module_defs
-    use module_base, only: bigdft_mpi,mpibcast
+    use module_base, only: bigdft_mpi,mpibcast,Bohr_Ang,kcalMolAng_HaBohr,&
+         ev_Ha,evang_habohr,Kcalmol_ha
     use dynamic_memory, only: f_memcpy,f_routine,f_release_routine
     use yaml_strings, only: yaml_toa, operator(+)
     use yaml_output

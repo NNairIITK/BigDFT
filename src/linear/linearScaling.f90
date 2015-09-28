@@ -14,12 +14,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
  
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => linearScaling
+  use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
+       & getLocalizedBasis, get_coeff, loewdin, sumrho, write_eigenvalues_data, &
+       & write_energies, write_orbital_density,inputguessconfinement
   use yaml_output
   use module_fragments
   use constrained_dft
   use diis_sd_optimization
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use communications_base, only: work_transpose, allocate_p2pComms_buffer, &
                                  deallocate_p2pComms_buffer, &
                                  work_transpose_null, allocate_work_transpose, deallocate_work_transpose, &
@@ -3556,7 +3558,6 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
   use yaml_output
   use module_fragments
   !use internal_io
-  use module_interfaces
   use public_enums
   implicit none
 

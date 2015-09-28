@@ -58,12 +58,16 @@ module Poisson_Solver
    use dictionaries, only: f_err_throw
    use f_utils
    use f_enums
+   use PSbase
    use wrapper_linalg
    use wrapper_MPI
    use dynamic_memory
    use time_profiling, only: TIMING_UNINITIALIZED, f_timing
    use yaml_output
    use yaml_strings
+   use environment
+   use PStypes
+   use PSbox
    !use m_profiling
    ! TO BE REMOVED with f_malloc
    
@@ -71,10 +75,6 @@ module Poisson_Solver
    
    private
    
-   ! General precision, density and the potential types
-   integer, parameter, public :: gp=kind(1.0d0)  !< general-type precision
-   integer, parameter, public :: dp=kind(1.0d0)  !< density-type precision
-   integer, parameter, public :: wp=kind(1.0d0)  !< potential-type precision
    ! Associated MPI precisions.
    integer, parameter :: mpidtypg=MPI_DOUBLE_PRECISION
    integer, parameter :: mpidtypd=MPI_DOUBLE_PRECISION
@@ -87,120 +87,8 @@ module Poisson_Solver
    
    include 'configure.inc'
 
-   !> how to set the dielectric function
-   integer, parameter :: PS_EPSILON_VACUUM = -1000
-   integer, parameter :: PS_EPSILON_RIGID_CAVITY = 1001
-   integer, parameter :: PS_EPSILON_SCCS = 1002
-
-   integer, parameter :: PS_PCG = 1234
-   integer, parameter :: PS_PI = 1432
-
-   type(f_enumerator) :: PS_NONE_ENUM=f_enumerator('vacuum',PS_EPSILON_VACUUM,null())
-   type(f_enumerator) :: PS_RIGID_ENUM=f_enumerator('rigid',PS_EPSILON_RIGID_CAVITY,null())
-   type(f_enumerator) :: PS_SCCS_ENUM=f_enumerator('sccs',PS_EPSILON_SCCS,null())
-
-   type(f_enumerator), parameter :: PS_VAC_ENUM=f_enumerator('VAC',PS_EPSILON_VACUUM,null())
-   type(f_enumerator), parameter :: PS_PI_ENUM=f_enumerator('PI',PS_PI,null())
-   type(f_enumerator), parameter :: PS_PCG_ENUM=f_enumerator('PCG',PS_PCG,null())
-
-  
-   !>Defines the internal information for application of the FFT between the kernel and the 
-   !!density
-   type, public :: FFT_metadata
-      integer :: m1,m2,m3 !<original real dimension, with m2 in z direction and and m3 in y direction
-      integer :: n1,n2,n3 !<dimension of the FFT operation, taking into account the zero padding if needed
-      integer :: md1,md2,md3 !< Dimension of the real unpadded space, 
-                             !!md2 is further enlarged to be a multiple of number of processes
-      integer :: nd1,nd2,nd3 !<fourier dimensions for which the kernel is injective,
-      !!                formally 1/8 of the fourier grid. Here the dimension nd3 is
-      !!                enlarged to be a multiple of nproc
-      integer :: istart,iend,n3p !<start, endpoints and number of planes of the given processor
-      real(dp) :: scal !<factor to rescale the solver such that the FFT is unitary, divided by 4pi
-   end type FFT_metadata
-
-   !> Defines the fundamental structure for the kernel
-   type, public :: coulomb_operator
-      !variables with physical meaning
-      integer :: itype_scf             !< Order of the ISF family to be used
-      real(gp) :: mu                   !< Inverse screening length for the Helmholtz Eq. (Poisson Eq. -> mu=0)
-       !> geocode is used in all the code to specify the boundary conditions (BC) the problem:
-       !!          - 'F' free BC, isolated systems.
-       !!                The program calculates the solution as if the given density is
-       !!                "alone" in R^3 space.
-       !!          - 'S' surface BC, isolated in y direction, periodic in xz plane                
-       !!                The given density is supposed to be periodic in the xz plane,
-       !!                so the dimensions in these direction mus be compatible with the FFT
-       !!                Beware of the fact that the isolated direction is y!
-       !!          - 'P' periodic BC.
-       !!                The density is supposed to be periodic in all the three directions,
-       !!                then all the dimensions must be compatible with the FFT.
-       !!                No need for setting up the kernel (in principle for Plane Waves)
-       !!          - 'W' Wires BC.
-       !!                The density is supposed to be periodic in z direction, 
-       !!                which has to be compatible with the FFT.
-       !!          - 'H' Helmholtz Equation Solver
-      character(len=1) :: geocode
-      !> method of embedding in the environment
-       !!          - 'VAC' Poisson Equation in vacuum. Default case.
-       !!          - 'PCG' Generalized Poisson Equation, Preconditioned Conjugate Gradient
-       !!          - 'PI'  Generalized Poisson Equation, Polarization Iteration method
-      !character(len=3) :: method 
-      !! this represents the information for the equation and the algorithm to be solved
-      !! this enumerator contains the algorithm and has the attribute associated to the 
-      !! type of cavity to be used
-      type(f_enumerator) :: method
-      integer, dimension(3) :: ndims   !< dimension of the box of the density
-      real(gp), dimension(3) :: hgrids !<grid spacings in each direction
-      real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
-      real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
-      !> logaritmic derivative of the dielectric function,
-      !! to be used in the case of Polarization Iteration method
-      real(dp), dimension(:,:,:,:), pointer :: dlogeps
-      !> inverse of the dielectric function
-      !! in the case of Polarization Iteration method
-      !! inverse of the square root of epsilon
-      !! in the case of the Preconditioned Conjugate Gradient
-      real(dp), dimension(:,:), pointer :: oneoeps
-      !> correction term, given in terms of the multiplicative factor of nabla*eps*nabla
-      !! to be used for Preconditioned Conjugate Gradient 
-      real(dp), dimension(:,:), pointer :: corr
-      !> inner rigid cavity to be integrated in the sccs method to avoit inner
-      !! cavity discontinuity due to near-zero edens near atoms
-      real(dp), dimension(:,:), pointer :: epsinnersccs
-      real(dp), dimension(:,:,:), pointer :: zf
-      !> Polarization charge vector for print purpose only.
-      real(dp), dimension(:,:), pointer :: pol_charge
-      !> Dielectric cavity eps for print purpose only.
-      real(dp), dimension(:,:), pointer :: cavity
-      real(dp) :: work1_GPU,work2_GPU,k_GPU, rho_GPU, pot_ionGPU !<addresses for the GPU memory 
-      real(dp) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
-      real(dp) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
-      integer, dimension(5) :: plan
-      integer, dimension(3) :: geo
-      !variables with computational meaning
-      type(mpi_environment) :: mpi_env !< complete environment for the POisson Solver
-      type(mpi_environment) :: inplane_mpi,part_mpi !<mpi_environment for internal ini-plane parallelization
-      type(FFT_metadata) :: grid !<dimensions of the FFT grid associated to this kernel
-      integer :: igpu !< control the usage of the GPU
-      integer :: gpuPCGRed !< control if GPU can be used for PCG reductions
-      integer :: initCufftPlan
-      integer :: keepGPUmemory
-      integer :: keepzf
-      !parameters for the iterative methods
-      !> Order of accuracy for derivatives into ApplyLaplace subroutine = Total number of points at left and right of the x0 where we want to calculate the derivative.
-      integer :: nord
-      integer :: max_iter !< maximum number of convergence iterations
-      real(dp) :: minres !< convergence criterion for the iteration
-      real(dp) :: PI_eta !<parameter for the update of PI iteration
-      
-      integer, dimension(:), pointer :: counts !<array needed to gather the information of the poisson solver
-      integer, dimension(:), pointer :: displs !<array needed to gather the information of the poisson solver
-      integer, dimension(:), pointer :: rhocounts !<array needed to gather the information of the poisson solver on multiple gpus
-      integer, dimension(:), pointer :: rhodispls !<array needed to gather the information of the poisson solver on multiple gpus
-   end type coulomb_operator
-
    !intialization of the timings
-   public :: PS_initialize_timing_categories
+   public :: PS_initialize_timing_categories,coulomb_operator
    ! Calculate the allocation dimensions
    public :: PS_dim4allocation, PS_getVersion
    ! Routine that creates the kernel
@@ -209,6 +97,7 @@ module Poisson_Solver
    public :: H_potential 
    ! Calculate the allocation dimensions
    public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions, xc_dimensions
+   public :: dp,gp
 
    !> This structure is used to indicate the arguments of the routine which are used commonly
    !! Doxygen will duplicate the documentation for the arguments
@@ -229,79 +118,6 @@ module Poisson_Solver
    end type doc
 
 contains
-
-  pure function FFT_metadata_null() result(d)
-    implicit none
-    type(FFT_metadata) :: d
-    d%m1=0
-    d%m2=0
-    d%m3=0
-    d%n1=0
-    d%n2=0
-    d%n3=0
-    d%md1=0
-    d%md2=0
-    d%md3=0
-    d%nd1=0
-    d%nd2=0
-    d%nd3=0
-    d%istart=0
-    d%iend=0
-    d%n3p=0
-    d%scal=0.0_dp
-  end function FFT_metadata_null
-
-  pure function pkernel_null() result(k)
-    implicit none
-    type(coulomb_operator) :: k
-    k%itype_scf=0
-    k%geocode='F'
-    call nullify_f_enum(k%method)
-    k%mu=0.0_gp
-    k%ndims=(/0,0,0/)
-    k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    k%angrad=(/0.0_gp,0.0_gp,0.0_gp/)
-    nullify(k%kernel)
-    nullify(k%dlogeps)
-    nullify(k%oneoeps)
-    nullify(k%corr)
-    nullify(k%epsinnersccs)
-    nullify(k%pol_charge)
-    nullify(k%cavity)
-    nullify(k%zf)
-    k%work1_GPU=0.d0
-    k%work2_GPU=0.d0
-    k%rho_GPU=0.d0
-    k%pot_ionGPU=0.d0
-    k%k_GPU=0.d0
-    k%p_GPU=0.d0
-    k%q_GPU=0.d0
-    k%r_GPU=0.d0
-    k%x_GPU=0.d0
-    k%z_GPU=0.d0
-    k%oneoeps_GPU=0.d0
-    k%corr_GPU=0.d0
-    k%alpha_GPU=0.d0
-    k%beta_GPU=0.d0
-    k%kappa_GPU=0.d0
-    k%beta0_GPU=0.d0
-    k%plan=(/0,0,0,0,0/)
-    k%geo=(/0,0,0/)
-    k%mpi_env=mpi_environment_null()
-    k%inplane_mpi=mpi_environment_null()
-    k%part_mpi=mpi_environment_null()
-    k%grid=FFT_metadata_null()
-    k%igpu=0
-    k%initCufftPlan=0
-    k%keepGPUmemory=1
-    k%keepzf=1
-    k%nord=0
-    k%max_iter=0
-    k%PI_eta=0.0_dp
-    k%minres=0.0_dp
-    nullify(k%counts)
-    nullify(k%displs)
-  end function pkernel_null
 
   !> switch on the timing categories for the Poisson Solver
   !! shuold be called if the time_profiling module has to be used for profiling the routines

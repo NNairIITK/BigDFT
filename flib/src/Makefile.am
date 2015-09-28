@@ -191,7 +191,7 @@ dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profili
 mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o yaml_strings.o
 f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o $(NVTX_DEP) time.o f_utils.o f_input_file.o
 f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o
-f_refcnts.o: dictionaries.o yaml_output.o
+f_refcnts.o: dictionaries.o yaml_output.o f_precisions.o
 f_trees.o: f_refcnts.o dictionaries.o yaml_output.o
 getadd.o: yaml_strings.o $(GETADD_INCLUDES) f_malloc.o
 razero.o: randomData.o f_precisions.o

@@ -384,7 +384,6 @@ END SUBROUTINE transforce
 subroutine rundiis(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   use module_base
   use bigdft_run
-  use module_interfaces
   implicit none
   !Arguments
   integer, intent(in) :: nproc,iproc
@@ -570,7 +569,6 @@ END SUBROUTINE rundiis
 subroutine fire(runObj,outs,nproc,iproc,ncount_bigdft,fail) 
   use module_base
   use bigdft_run
-  use module_interfaces
   use minpar
   use yaml_output
   use communications_base
@@ -779,7 +777,6 @@ end subroutine geometry_output
 subroutine f2fslave(runObj,outs,nproc,iproc,ncount_bigdft,fail) 
   use module_base
   use bigdft_run
-  use module_interfaces
   use yaml_output
   use communications_base
   use f90sockets, only: open_socket, writebuffer, readbuffer

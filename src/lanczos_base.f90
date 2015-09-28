@@ -1080,7 +1080,6 @@ module lanczos_base
          ! ::::::::::::::::::::::::::::::::::::::
       END SUBROUTINE EP_multbyfact
       subroutine EP_precondition(p,i, ene, gamma)
-         use module_interfaces
          !Arguments
          use module_base
          implicit none

@@ -348,7 +348,7 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,&
       &   crmult,frmult,Glr)
    use module_base, only: gp
    use module_types
-   use module_interfaces, only:createWavefunctionsDescriptors
+   use module_interfaces, only: createWavefunctionsDescriptors
    implicit none
    !Arguments
    type(atoms_data), intent(in) :: atoms
@@ -975,7 +975,7 @@ END SUBROUTINE localfields_get_data
 subroutine localfields_free(denspotd, fion, fdisp)
   use module_base
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use memory_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd
