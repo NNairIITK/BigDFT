@@ -1036,6 +1036,7 @@ end subroutine pkernel_allocate_cavity
 
 !>put in depsdrho array the extra potential
 subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
+  !use module_defs, only: AU_GPa
   use yaml_output
   implicit none
   type(coulomb_operator), intent(in) :: kernel
@@ -1297,9 +1298,9 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
                  coeff1=(0.5d0*(coeff**2)+fact3*fact1*sin(r)+coeff)/((edens(i1,i2,i3))**2)
                  kernel%corr(i1,i23)=(0.125d0/pi)*safe_exp(t)*(coeff1*d2+dtx*dd) !corr(i1,i2,i3)
                  c1=(cc(i1,i2,i3)/d2-dd)/d
-                 dsurfdrho(i1,i23)=(-de*c1)/(eps0-1.d0)
+                 dsurfdrho(i1,i23)=(de*c1)/(eps0-1.d0)
                  !dsurfdrho(i1,i23)=(de*c1+dde*c2)/(eps0-1.d0)
-                 IntSur=IntSur - de*d
+                 IntSur=IntSur + de*d
                  IntVol=IntVol + (eps0-safe_exp(t))/(eps0-1.d0)
               end if
 
@@ -1358,9 +1359,9 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
                  d=dsqrt(d2)
                  dd = ddt_edens(i1,i2,i3)
                  c1=(cc(i1,i2,i3)/d2-dd)/d
-                 dsurfdrho(i1,i23)=(-de*c1)/(eps0-1.d0)
+                 dsurfdrho(i1,i23)=(de*c1)/(eps0-1.d0)
                  !dsurfdrho(i1,i23)=(de*c1+dde*c2)/(eps0-1.d0)
-                 IntSur=IntSur - de*d
+                 IntSur=IntSur + de*d
                  IntVol=IntVol + (eps0-safe_exp(t))/(eps0-1.d0)
               end if
 

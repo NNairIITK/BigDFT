@@ -87,6 +87,7 @@ program GPS_3D
 
    call f_zero(PSol)
    PSol=options .get. 'method'
+   if (len_trim(PSol)==0) call f_strcpy(src='VAC',dest=PSol)
    ndims=options // 'ndim'
 !!$giu
    geocode=options//'geocode'
@@ -596,7 +597,10 @@ subroutine PS_Check_options(parser)
        'Allowed values' .is. &
        dict_new('1' .is. 'Analytical epsilon' ,&
                 '2' .is. 'analytical electron dependence',&
-                '3' .is. 'real electron density from cube file (need electroninc_density.cube)')))
+                '3' .is. 'real electron density from cube file (need electroninc_density.cube)',&
+                '4' .is. 'calculate the caviti and dump it on disk',&
+                '5' .is. 'Solves GPe with PCG customized (should be identical to  2 + PCG)',&
+                '6' .is. 'Modified Poisson Botzmann Equation solver')))
 
   call yaml_cl_parse_option(parser,'accel','No',&
        'GPU Acceleration','a',&
