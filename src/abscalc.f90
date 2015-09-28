@@ -111,8 +111,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: fxyz
    !local variables
    character(len=*), parameter :: subname='call_abscalc'
-   character(len=40) :: comment
-   integer :: ierr
+   !integer :: ierr
    real(gp) :: hx_old, hy_old, hz_old
 
    !put a barrier for all the processes

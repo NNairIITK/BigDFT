@@ -843,7 +843,7 @@ contains
     !check whether a directory name should be associated for the data storage
     call check_for_data_writing_directory(bigdft_mpi%iproc,in)
 
-    if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id,posinp_id)
+    if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id)
 
     if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
        call dict_get_run_properties(dict, input_id = run_id)
@@ -2773,8 +2773,9 @@ contains
     end if
   end function wave_format_from_filename
 
+
   !> Print all general parameters
-  subroutine print_general_parameters(in,atoms,input_id,posinp_id)
+  subroutine print_general_parameters(in,atoms,input_id)
     use module_atoms, only: atoms_data
     use defs_basis
     use yaml_output
@@ -2783,14 +2784,14 @@ contains
     !Arguments
     type(input_variables), intent(in) :: in
     type(atoms_data), intent(in) :: atoms
-    character(len = *), intent(in) :: input_id, posinp_id
+    character(len = *), intent(in) :: input_id
 
     integer :: iat, i
     character(len = 11) :: potden
     character(len = 12) :: dos
 
     ! Output for atoms
-    call yaml_comment('Input Atomic System (file: '//trim(posinp_id)//'.'//trim(atoms%astruct%inputfile_format)//')',hfill='-')
+    call yaml_comment('Input Atomic System (file: '//trim(atoms%astruct%source)//')',hfill='-')
 
     ! Atomic systems
     call yaml_mapping_open('Atomic System Properties')
@@ -3080,31 +3081,66 @@ contains
     !Local variables
     logical :: exists
     type(dictionary), pointer :: at
-    character(len = max_field_length) :: str, rad
+    character(len = max_field_length) :: str, fr, rad
 
-    !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
-    !possible overwrite with a specific posinp file.
-    call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
-
     if (has_key(dict,POSINP)) then
-       str = dict_value(dict //POSINP)
+       str = dict_value(dict // POSINP)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
           !str contains a file name so add atomic positions from it.
           call astruct_file_merge_to_dict(dict,POSINP, trim(str))
+       else if(has_key(dict // POSINP, POSINP_SOURCE) .and. .not. has_key(dict // POSINP, ASTRUCT_POSITIONS)) then
+          !posinp has a section source: define the filename from source
+          str = dict_value(dict // POSINP // POSINP_SOURCE)
+          if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+             !str contains a file name so add atomic positions from it.
+             if (has_key(dict // POSINP, FORMAT_KEY)) then
+                !A format is defined
+                fr = dict_value(dict // POSINP // FORMAT_KEY)
+                if (trim(fr) /= TYPE_DICT .and. trim(fr) /= TYPE_LIST .and. trim(fr) /= "") then
+                   !fr contains a format.
+                   call astruct_file_merge_to_dict(dict,POSINP, trim(str),pos_format=trim(fr))
+                else
+                   call f_err_throw("The key 'format' from posinp section should be contained a valid format.", &
+                        & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+                end if
+             else
+                ! No format specified
+                call astruct_file_merge_to_dict(dict,POSINP, trim(str))
+             end if
+          else
+             call f_err_throw(" The key 'source' from posinp section should be contained an input filename.", &
+                  & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+          end if
        else
-          !The yaml file contains the atomic positions
-          !Only add the format
+          !The yaml file contains the atomic positions: only add the format and the source
           at => dict //POSINP
           if (.not. has_key(at, ASTRUCT_PROPERTIES)) then
              call set(at // ASTRUCT_PROPERTIES // FORMAT_KEY, FORMAT_YAML)
+             call set(at // ASTRUCT_PROPERTIES // POSINP_SOURCE, trim(radical)//trim(FORMAT_YAML))
           else
              at => at // ASTRUCT_PROPERTIES
              if (FORMAT_KEY .notin. at) &
                   call set(at // FORMAT_KEY, FORMAT_YAML)
           end if
+          !Add a warning if source and format keys are at the same positions.
+          if (has_key(dict // POSINP, POSINP_SOURCE)) then 
+            call yaml_warning("The key 'source' in posinp section is ignored when the positions are specified.")
+            !Remove the key source
+            call dict_remove(dict // POSINP, POSINP_SOURCE)
+          end if
+          if (has_key(dict // POSINP, FORMAT_KEY)) then
+            call yaml_warning("The key 'format' in posinp section is ignored when the positions are specified.")
+            ! Remove the key format
+            call dict_remove(dict // POSINP, FORMAT_KEY)
+          end if
        end if
+
+    else
+      !No posinp section
+      !read the input file(s) and transform them into a dictionary
+      call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
     end if
 
     ! Add old psppar
