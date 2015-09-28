@@ -358,9 +358,9 @@ class cmd_distone(Command):
             make_option('-c', '--compress-kind', metavar='MODULE',
                         action='store', dest='compress', default="gz",
                         help=_('compression type (default is gzip)')),
-            make_option('-f', '--full',
-                        action='store_true', dest='full', default=False,
-                        help=_('package also non BigDFT specific libraries')),
+            make_option('-n', '--no-net',
+                        action='store_true', dest='nonet', default=False,
+                        help=_('package also downloadable libraries')),
             ])
 
     def run(self, config, options, args, help=None):
@@ -374,7 +374,7 @@ class cmd_distone(Command):
             self.parser.error(_('This command requires a module parameter.'))
 
         config.compress = options.compress
-        config.full = options.full
+        config.nonet = options.nonet
 
         build = jhbuild.frontends.get_buildscript(config, module_list, module_set=module_set)
         return build.build(phases=['dist'])

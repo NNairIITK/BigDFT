@@ -308,12 +308,16 @@ class AutogenModule(MakeModule, DownloadableModule):
     do_check.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CONFIGURE]
 
     def do_dist(self, buildscript):
+        if not(self.branch.repository.name == "local"):
+            tar = os.path.join(SRCDIR, os.path.basename(self.branch.module))
+            if os.path.exists(tar):
+                return
         buildscript.set_action(_('Creating tarball for'), self)
         makeargs = self.get_makeargs(buildscript)
         cmd = '%s %s dist' % (os.environ.get('MAKE', 'make'), makeargs)
         buildscript.execute(cmd, cwd = self.get_builddir(buildscript),
                     extra_env = self.extra_env)
-    do_dist.depends = [PHASE_CONFIGURE]
+    do_dist.depends = [PHASE_BUILD]
     do_dist.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CONFIGURE]
 
     def do_setup(self, buildscript):

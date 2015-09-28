@@ -409,7 +409,8 @@ def _handle_conditions(config, element):
 
         # check the condition
         condition_true = ((c_if and c_if in config.conditions) or
-                          (c_unless and c_unless not in config.conditions))
+                          (c_unless and c_unless not in config.conditions) or
+                          config.ignore_conditions)
 
         if condition_true:
             # add the child elements of <condition> back into the parent
