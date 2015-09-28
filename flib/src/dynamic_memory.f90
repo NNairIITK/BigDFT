@@ -22,7 +22,7 @@ module dynamic_memory_base
   private 
 
   logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
-  logical, parameter :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
+  logical, parameter :: bigdebug=.true.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
@@ -274,13 +274,14 @@ contains
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
   subroutine f_routine(id,profile)
-    use yaml_output, only: yaml_map,yaml_flush_document !debug
+    use yaml_output, only: yaml_map,yaml_flush_document,yaml_mapping_open
+    use yaml_strings, only: yaml_time_toa
     implicit none
     logical, intent(in), optional :: profile     !< ???
     character(len=*), intent(in), optional :: id !< name of the subprogram
     
     !local variables
-    integer :: lgt,ncalls
+    integer :: lgt,ncalls,unit_dbg
     integer(kind=8) :: itime
 
 
@@ -355,18 +356,41 @@ contains
     end if
     call set_routine_info(mems(ictrl)%present_routine,mems(ictrl)%profile_routine)
     if (bigdebug) then
-       call yaml_map('Entering',mems(ictrl)%present_routine)
-       call yaml_flush_document()
+       unit_dbg=bigdebug_stream()
+       call yaml_mapping_open(mems(ictrl)%present_routine,unit=unit_dbg)
+          call yaml_map('Entering',yaml_time_toa(),unit=unit_dbg)
+       call yaml_flush_document(unit=unit_dbg)
     end if
     call f_timer_resume()
   end subroutine f_routine
 
+  function bigdebug_stream() result(unit_dbg)
+    use f_utils, only: f_get_free_unit
+    use yaml_strings, only: operator(+)
+    use yaml_output, only: yaml_stream_connected,yaml_set_stream
+    implicit none
+    integer :: unit_dbg
+    !local variables
+    integer :: istat, iproc
+    !check if the stream for debugging exist
+    iproc=0
+    iproc= mems(ictrl)%dict_global .get. processid
+    call yaml_stream_connected('Routines-'+iproc, unit_dbg, istat)
+    !otherwise create it
+    if (istat /=0) then
+       unit_dbg=f_get_free_unit(117)
+       call yaml_set_stream(unit_dbg,filename='Routines-'+iproc,position='rewind')
+    end if
+  end function bigdebug_stream
+
   !> Close a previously opened routine
   subroutine f_release_routine()
-    use yaml_output, only: yaml_dict_dump,yaml_map,yaml_flush_document
+    use yaml_output, only: yaml_dict_dump,yaml_map,yaml_flush_document,yaml_mapping_close,&
+         yaml_comment
     use f_utils, only: f_rewind
+    use yaml_strings, only: yaml_time_toa
     implicit none
-    integer :: jproc
+    integer :: jproc,unit_dbg
 
     if (f_err_raise(ictrl == 0,&
          '(f_release_routine): the routine f_malloc_initialize has not been called',&
@@ -381,8 +405,11 @@ contains
     end if
     !call yaml_map('Closing routine',trim(dict_key(dict_codepoint)))
     if (bigdebug) then
-       call yaml_map('Exiting',mems(ictrl)%present_routine)
-       call yaml_flush_document()
+       unit_dbg=bigdebug_stream()
+       call yaml_map('Exiting',yaml_time_toa(),unit=unit_dbg,advance='no')
+       call yaml_comment(mems(ictrl)%present_routine,unit=unit_dbg)
+       call yaml_mapping_close(unit=unit_dbg)
+       call yaml_flush_document(unit=unit_dbg)
     end if
 !test
 if (.not. track_origins) then
