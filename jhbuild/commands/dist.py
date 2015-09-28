@@ -64,6 +64,6 @@ class cmd_dist(Command):
         config.full = options.full
 
         build = jhbuild.frontends.get_buildscript(config, module_list, module_set=module_set)
-        return build.build(phases=['dist'])
+        return build.build(targets=['dist'])
 
 register_command(cmd_dist)
