@@ -217,6 +217,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
   integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ,gpuPCGRed
+  integer(kind=8) :: myiproc_node, mynproc_node
   integer,dimension(3) :: n
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
   call f_timing(TCAT_PSOLV_KERNEL,'ON')
@@ -592,9 +593,17 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
     n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
     n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
     n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
-    if(.not. present(iproc_node)) iproc_node=0
-    if(.not. present(nproc_node)) nproc_node=1
-    call cuda_estimate_memory_needs(kernel, n, iproc_node, nproc_node) 
+    if(.not. present(iproc_node)) then
+        myiproc_node=0
+    else
+        myiproc_node=iproc_node
+    end if
+    if(.not. present(nproc_node)) then 
+        mynproc_node=1
+    else
+        mynproc_node=nproc_node
+    end if
+    call cuda_estimate_memory_needs(kernel, n, myiproc_node, mynproc_node) 
 
 
     size2=2*n1*n2*n3

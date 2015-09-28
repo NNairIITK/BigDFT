@@ -173,18 +173,6 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
   endif
 
-  if (updaterho) then
-     !$omp parallel do default(shared) private(i1,i23,j23,j3)
-     do i23=1,kernel%grid%n3p*kernel%grid%m3
-        j3=(i23-1)/kernel%grid%m3
-        j23=i23+n3delta*j3
-        do i1=1,kernel%grid%m1
-           rho(i1,i23)=zf(i1,j23)
-        end do
-     end do
-     !$omp end parallel do
-  end if
-
   call f_release_routine()
 
 end subroutine apply_kernel
