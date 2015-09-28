@@ -15,7 +15,7 @@
  subroutine pad_data()
    use dictionaries
    call f_err_throw('We should not enter into the pad_data routine')
- end subroutine cuda_estimate_memory_needs_cu
+ end subroutine pad_data
 
  subroutine unpad_data()
    use dictionaries
@@ -25,4 +25,4 @@
  subroutine finalize_reduction_kernel()
    use dictionaries
    call f_err_throw('We should not enter into the finalize_reduction_kernel routine')
- end subroutine cuda_estimate_memory_needs_cu
+ end subroutine finalize_reduction_kernel
