@@ -1828,14 +1828,14 @@ extendedfrags_read:
  guess for new ef: 1.4e-9
  ebs: 6.1e-11
  ebs_check: 6.1e-11
- Epot: 1.1e-10
- EvXC: 1.1e-10
+ Energies: 1.1e-10
  D Tr: 1.1e-10
  Average noise forces: 1.0e-10
  Pressure: 5.5e-11
  Force Norm (Hartree/Bohr): 2.4e-11
 
 extendedfrags_readrotated:
+ energy: 1.4e-11
  Omega: 6.7e-11
  eF: 6.11e-10
  D eF: 1.1e-9
@@ -1864,7 +1864,7 @@ extendedfrags_write:
  charge diff: 3.2e-8
  trace(KS): 3.3e-11
  eF: 7.0e-9
- Pressure: 5.8e-11
+ Pressure: 6.9e-11
  decay length of error function: 1.1e-6
  fnrm2: 2.8e-11
  Force Norm (Hartree/Bohr): 2.4e-11

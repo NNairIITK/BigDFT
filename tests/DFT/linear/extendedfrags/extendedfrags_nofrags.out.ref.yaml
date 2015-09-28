@@ -3922,7 +3922,7 @@
    BC                                  : Periodic
    Box                                 :  [  140,  140,  108 ]
    MPI tasks                           :  6
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces                :  Yes
  Calculate Non Local forces            :  Yes
  Stress Tensor calculated              :  Yes
  Stress Tensor:
