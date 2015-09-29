@@ -425,6 +425,7 @@ contains
   
   !> Test the iterator dpbox_iter
   subroutine check_dpbox_iter(dpbox,idpbox,nbox)
+    use yaml_strings, only: yaml_toa,operator(+)
     implicit none
     !Arguments
     type(denspot_distribution), intent(in) :: dpbox       !< Density-potential descriptors for the box
@@ -435,14 +436,16 @@ contains
     type(dpbox_iterator) :: boxit
     integer :: n1i,n2i,n3i,i3s,n3pi
     integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,isx,isy,isz,iex,iey,iez
-    integer :: i1,i2,i3,j1,j2,j3,indj3,indj23,ind,nt
+    integer :: i1,i2,i3,j1,j2,j3,indj3,indj23,ind,it,nt,niter
     logical :: perx,pery,perz,gox,goy,goz
-    !$ integer :: omp_get_num_threads
+    !$ integer :: omp_get_thread_num,omp_get_num_threads
 
+    it = 0
     nt = 1
+    !$ it = omp_get_thread_num()
     !$ nt = omp_get_num_threads()
     !Do not check if inside an OpenMP section
-    if (nt > 1) return
+    !if (nt > 1) return
 
     !Distributed dimension over dpbox%ndims(3) in parallel
     n1i = dpbox%ndims(1)
@@ -492,6 +495,7 @@ contains
       boxit = dpbox_iter(dpbox,idpbox,check=.false.)
     end if
 
+    niter = it+1
     do i3=isz,iez
        call ind_positions_new(perz,i3,n3i,j3,goz) 
        j3=j3+nbl3+1
@@ -504,18 +508,25 @@ contains
           do i1=isx,iex
              call ind_positions_new(perx,i1,n1i,j1,gox)
              if (j3 >= i3s .and. j3 <= i3s+n3pi-1 .and. goy .and. gox) then
-                ind=j1+indj23
-                if (dpbox_iter_next(boxit)) then
-                  if (ind /= boxit%ind) print *,'Error dpbox_iter: wrong index',ind,boxit%ind
-                else
-                  print *,'Error dpbox_iter: missing index',ind
+                niter = niter -1
+                if (niter == 0) then
+                  !Found one
+                  ind=j1+indj23
+                  if (dpbox_iter_next(boxit)) then
+                    if (ind /= boxit%ind) call f_err_throw('dpbox_iter: wrong index ind='+yaml_toa(ind) &
+                       & // ' boxit%ind='+yaml_toa(boxit%ind),err_name='BIGDFT_RUNTIME_ERROR')
+                  else
+                    call f_err_throw('dpbox_iter: missing index='+yaml_toa(ind),err_name='BIGDFT_RUNTIME_ERROR')
+                  end if
+                  !Found the nt one (for multi-threads)
+                  niter = nt
                 end if
              endif
           enddo
        enddo
     enddo
     do while(dpbox_iter_next(boxit))
-      print *,'Error dpbox_iter: Too many indices',boxit%ind
+      call f_err_throw('dpbox_iter: Too many indices '+yaml_toa(boxit%ind),err_name='BIGDFT_RUNTIME_ERROR')
     end do
     !print *,'dpbox_iter: we test!!!'
     

@@ -459,7 +459,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   type(dpbox_iterator) :: boxit
   integer, dimension(2,3) :: nbox
   real(gp) :: prefactor,cutoff,rloc,rlocinvsq,rlocinv2sq,Vel,rhoel
-  real(gp) :: x,y,z,rx,ry,rz,fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceloc
+  real(gp) :: x,y,z,rx,ry,rz,fxerf,fyerf,fzerf,fxgau,fygau,fzgau,forceloc
 !!!  logical :: perx,pery,perz,gox,goy,goz
 !!!  integer :: j1,j2,j3,ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,isx,isy,isz,iex,iey,iez
 !!!  real(gp) :: forceleaked
@@ -476,7 +476,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 
   !Initialization
   locstrten=0.0_gp
-  charge=0.d0
+  floc=0.0_gp
 
 !!!  do i3=1,n3p
 !!!     do i2=1,n2i
@@ -486,11 +486,13 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!        enddo
 !!!     enddo
 !!!  enddo
+  charge=0.d0
+  !$omp parallel shared(dpbox,rho) private(boxit,tt) reduction(+:charge)
   boxit = dpbox_iter(dpbox,DPB_POT)
   do while(dpbox_iter_next(boxit))
      charge = charge + rho(boxit%ind)
   end do
-  
+  !$omp end parallel
   charge=charge*hxh*hyh*hzh
 
 !!!  if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
@@ -505,40 +507,20 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!  call ext_buffers(pery,nbl2,nbr2)
 !!!  call ext_buffers(perz,nbl3,nbr3)
 
-  !Determine the maximal bounds for mpx, mpy, mpy (1D-integral)
+  !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
   call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
   !Separable function: do 1-D integrals before and store it.
   mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
   mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
   mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
 
-  !Parallelized over atoms and iterator dpbox
   do iat=1,at%astruct%nat
      ityp=at%astruct%iatype(iat)
-     !coordinates of the center
+
+     !Coordinates of the center
      rx=rxyz(1,iat) 
      ry=rxyz(2,iat) 
      rz=rxyz(3,iat)
-     !Initialization of the forces
-     !ion-ion term
-     fxion=0.d0
-     fyion=0.d0
-     fzion=0.d0
-     !ion-electron term, error function part
-     fxerf=0.d0
-     fyerf=0.d0
-     fzerf=0.d0
-     !ion-electron term, gaussian part
-     fxgau=0.d0
-     fygau=0.d0
-     fzgau=0.d0
-     !local stress tensor component for this atom
-     Txx=0.0_gp
-     Tyy=0.0_gp
-     Tzz=0.0_gp
-     Txy=0.0_gp
-     Txz=0.0_gp
-     Tyz=0.0_gp
 
      !building array of coefficients of the derivative of the gaussian part
      cprime(1)=2.d0*at%psppar(0,2,ityp)-at%psppar(0,1,ityp)
@@ -607,6 +589,31 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
         mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
      end do
      
+     !$omp parallel default(none) &
+     !$omp & shared(floc,locstrten,hxh,hyh,hzh,dpbox,rho,pot) &
+     !$omp & shared(mpx,mpy,mpz,iat,ityp,rx,ry,rz) &
+     !$omp & shared(cprime,nloc,rloc,rlocinvsq,prefactor,nbox) &
+     !$omp & private(fxerf,fyerf,fzerf,fxgau,fygau,fzgau) &
+     !$omp & private(Txx,Tyy,Tzz,Txy,Txz,Tyz,boxit,xp,x,y,z,r2,arg,tt,rhoel,forceloc,Vel)
+
+     !Initialization of the forces
+     !ion-electron term, error function part
+     fxerf=0.d0
+     fyerf=0.d0
+     fzerf=0.d0
+     !ion-electron term, gaussian part
+     fxgau=0.d0
+     fygau=0.d0
+     fzgau=0.d0
+     !local stress tensor component for this atom
+     Txx=0.0_gp
+     Tyy=0.0_gp
+     Tzz=0.0_gp
+     Txy=0.0_gp
+     Txz=0.0_gp
+     Tyz=0.0_gp
+
+     !Parallelized over atoms and iterator dpbox
      !Calculate the forces near the atom due to the error function part of the potential
      !Calculate forces for all atoms only in the distributed part of the simulation box
      boxit = dpbox_iter(dpbox,DPB_POT,nbox)
@@ -712,10 +719,11 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!        end do
 !!!     end if
 
+     !$omp critical
      !Final result of the forces
-     floc(1,iat)=fxion+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
-     floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
-     floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
+     floc(1,iat)=floc(1,iat)+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
+     floc(2,iat)=floc(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
+     floc(3,iat)=floc(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
      !The stress tensor here does not add extra overhead therefore we calculate it nonetheless
      locstrten(1)=locstrten(1)+Txx/rloc/rloc
      locstrten(2)=locstrten(2)+Tyy/rloc/rloc
@@ -723,6 +731,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      locstrten(4)=locstrten(4)+Tyz/rloc/rloc
      locstrten(5)=locstrten(5)+Txz/rloc/rloc
      locstrten(6)=locstrten(6)+Txy/rloc/rloc
+     !$omp end critical
 
 
 !!!     !only for testing purposes, printing the components of the forces for each atoms
@@ -732,6 +741,8 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 
      !De-allocate the 1D temporary arrays for separability
      !call f_free(mpx,mpy,mpz)
+
+     !$omp end parallel
 
   end do !iat
 

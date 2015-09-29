@@ -310,7 +310,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         !then calculate the hartree energy and forces of the charge distributions
         !(and save the values for the ionic potential)
 
-        !Determine the maximal bounds for mpx, mpy, mpy (1D-integral)
+        !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
         call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
         !Separable function: do 1-D integrals before and store it.
         mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
@@ -452,7 +452,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !calculate the forces near the atom due to the error function part of the potential
      !calculate forces for all atoms only in the distributed part of the simulation box
      if (dpbox%n3pi >0 ) then
-        !Determine the maximal bounds for mpx, mpy, mpy (1D-integral)
+        !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
         call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
         !Separable function: do 1-D integrals before and store it.
         mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
@@ -1860,7 +1860,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 
   if (dpbox%n3pi >0 .and. .not. htoobig) then
 
-     !Determine the maximal bounds for mpx, mpy, mpy (1D-integral)
+     !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
      call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
      !Separable function: do 1-D integrals before and store it.
      mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
@@ -2209,7 +2209,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 
   if (dpbox%n3pi > 0) then
 
-     !Determine the maximal bounds for mpx, mpy, mpy (1D-integral)
+     !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
      call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
      !Separable function: do 1-D integrals before and store it.
      mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
