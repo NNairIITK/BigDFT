@@ -320,7 +320,8 @@ contains
     logical :: unit_is_open,set_default
     integer :: istream,unt,ierr
     !integer(kind=8) :: recl_file
-    integer :: recl_file,unt_test
+    integer :: recl_file
+!!$    integer :: unt_test
     character(len=15) :: pos
         
     !check that the module has been initialized

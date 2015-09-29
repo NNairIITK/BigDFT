@@ -75,7 +75,6 @@ subroutine add_sadneighb(snghb,ileft,iright,ipair,fminL,fminR)
     character(len=*), intent(in) :: fminL, fminR
     !internal
     integer, parameter :: npairxdef=5
-    integer :: i
     integer, allocatable :: neighbtmp(:,:)
     integer, allocatable :: counttmp(:)
     character(len=600), allocatable :: neighbPathtmp(:,:)
@@ -304,8 +303,9 @@ subroutine identMHminMHGPSmin(MHminPath,mdat,mn)
     integer :: imin
     character(len=600) :: filename
     logical :: exists
-    real(gp) :: rxyz(3,mdat%nat), fp(mdat%nid), epot
-    real(gp) :: en_delta, fp_delta
+    !real(gp), dimension(3,mdat%nat) :: rxyz
+    real(gp), dimension(mdat%nid) :: fp
+    real(gp) :: en_delta, fp_delta, epot
     logical  :: lnew
     integer  :: kid
     integer  :: k_epot

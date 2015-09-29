@@ -2032,7 +2032,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
        denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
        denspot%dpbox%nrhodim,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
        denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
-       ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,imode,tmb,fpulay)
+       ewaldstr,hstrten,xcstr,strten,pressure,denspot%psoffset,imode,tmb,fpulay)
 
   call f_free_ptr(denspot%rho_work)
   !call f_free_ptr(denspot%pot_work)

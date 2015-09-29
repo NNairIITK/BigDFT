@@ -635,7 +635,7 @@ module module_interfaces
 
 !!$      subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz,i3s,n3p,nspin,&
 !!$           refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
-!!$           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
+!!$           ewaldstr,hstrten,xcstr,strten,pressure,psoffset,imode,tmb,fpulay)
 !!$        use module_base
 !!$        use module_types
 !!$        implicit none
@@ -651,7 +651,7 @@ module module_interfaces
 !!$        real(wp), dimension(nsize_psi), intent(in) :: psi
 !!$        real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
 !!$        real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz,fion,fdisp,fpulay
-!!$        real(gp), intent(out) :: fnoise,pressure
+!!$        real(gp), intent(out) :: pressure
 !!$        real(gp), dimension(6), intent(out) :: strten
 !!$        real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
 !!$        type(DFT_wavefunction),intent(inout) :: tmb

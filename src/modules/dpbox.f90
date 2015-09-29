@@ -186,17 +186,28 @@ contains
 
 
   !> Create an iterator dpbox to iterate over points of the (potential) grid 
-  function dpbox_iter(dpbox,idpbox,nbox) result(boxit)
+  recursive function dpbox_iter(dpbox,idpbox,nbox,check) result(boxit)
     implicit none
     !Arguments
     type(denspot_distribution), intent(in), target :: dpbox !< Density-potential descriptors for the box
-    !> Indicate if we iterate over pot_ion (n3pi), over rho (n3d) or over rhov (n3p)
-    integer, intent(in) :: idpbox 
-    !> Box of start and end points which have to be considered
-    integer, dimension(2,3), intent(in), optional :: nbox
+    integer, intent(in) :: idpbox                           !< Indicate if we iterate 
+                                                            !! over pot_ion (n3pi), over rho (n3d) or over rhov (n3p)
+    integer, dimension(2,3), intent(in), optional :: nbox   !< Box of start and end points which have to be considered
+    logical, intent(in), optional :: check                  !< For test purpose: check the whole iterator
     type(dpbox_iterator) :: boxit
     !Local variables
     !$ integer :: omp_get_thread_num, omp_get_num_threads
+
+    !Check the iterator testing if all points are found comparing with the old way
+    if (present(check)) then
+      !Do not test!
+    else
+      if (present(nbox)) then
+        call check_dpbox_iter(dpbox,idpbox,nbox)
+      else
+        call check_dpbox_iter(dpbox,idpbox)
+      end if
+    end if
 
     call nullify_dpbox_iterator(boxit)
 
@@ -219,7 +230,7 @@ contains
     case(DPB_POT)
       boxit%n3_iter = boxit%dpbox_ptr%n3p
     case default
-      call f_err_throw('dpbox_iterator: Wrong choice for the iterations over the z dimension', &
+      call f_err_throw('dpbox_iter: Wrong choice for the iterations over the z dimension', &
            err_name='BIGDFT_RUNTIME_ERROR')
     end select
 
@@ -410,6 +421,105 @@ contains
   !!!  end if
   !!!
   !!!END SUBROUTINE ind_positions
+
+  
+  !> Test the iterator dpbox_iter
+  subroutine check_dpbox_iter(dpbox,idpbox,nbox)
+    implicit none
+    !Arguments
+    type(denspot_distribution), intent(in) :: dpbox       !< Density-potential descriptors for the box
+    integer, intent(in) :: idpbox                         !< Indicate if we iterate 
+                                                          !! over pot_ion (n3pi), over rho (n3d) or over rhov (n3p)
+    integer, dimension(2,3), intent(in), optional :: nbox !< Box of start and end points which have to be considered
+    !Local variables
+    type(dpbox_iterator) :: boxit
+    integer :: n1i,n2i,n3i,i3s,n3pi
+    integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,isx,isy,isz,iex,iey,iez
+    integer :: i1,i2,i3,j1,j2,j3,indj3,indj23,ind,nt
+    logical :: perx,pery,perz,gox,goy,goz
+    !$ integer :: omp_get_num_threads
+
+    nt = 1
+    !$ nt = omp_get_num_threads()
+    !Do not check if inside an OpenMP section
+    if (nt > 1) return
+
+    !Distributed dimension over dpbox%ndims(3) in parallel
+    n1i = dpbox%ndims(1)
+    n2i = dpbox%ndims(2)
+    n3i = dpbox%ndims(3)
+    !This is correct for a potential not a density
+    !Index of the first z plane between 1:n3_iter
+    i3s = dpbox%i3s + dpbox%i3xcsh
+
+    !Select parallel distribution in function of nature of the array
+    select case(idpbox)
+    case(DPB_POT_ION)
+      n3pi = dpbox%n3pi
+    case(DPB_RHO)
+      n3pi = dpbox%n3d
+    case(DPB_POT)
+      n3pi = dpbox%n3p
+    case default
+      call f_err_throw('check_dpbox_iter: Wrong choice for the iterations over the z dimension', &
+           err_name='BIGDFT_RUNTIME_ERROR')
+    end select
+
+    !Conditions for periodicity in the three directions
+    perx=(dpbox%geocode /= 'F')
+    pery=(dpbox%geocode == 'P')
+    perz=(dpbox%geocode /= 'F')
+
+    call ext_buffers(perx,nbl1,nbr1)
+    call ext_buffers(pery,nbl2,nbr2)
+    call ext_buffers(perz,nbl3,nbr3)
+
+    if (present(nbox)) then
+      isx=nbox(1,1)
+      isy=nbox(1,2)
+      isz=nbox(1,3)
+      iex=nbox(2,1)
+      iey=nbox(2,2)
+      iez=nbox(2,3)
+      boxit = dpbox_iter(dpbox,idpbox,nbox,check=.false.)
+    else
+      isz = -nbl3
+      iez = dpbox%ndims(3) - nbl3-1
+      isy = -nbl2
+      iey = dpbox%ndims(2) - nbl2-1
+      isx = -nbl1
+      iex = dpbox%ndims(1) - nbl1-1
+      boxit = dpbox_iter(dpbox,idpbox,check=.false.)
+    end if
+
+    do i3=isz,iez
+       call ind_positions_new(perz,i3,n3i,j3,goz) 
+       j3=j3+nbl3+1
+       if (goz .and. (j3<i3s.or.j3>i3s+n3pi-1)) cycle
+       indj3=(j3-i3s)*n1i*n2i
+       do i2=isy,iey
+          call ind_positions_new(pery,i2,n2i,j2,goy)
+          if (goz.and.(.not.goy)) cycle
+          indj23=1+nbl1+(j2+nbl2)*n1i+indj3
+          do i1=isx,iex
+             call ind_positions_new(perx,i1,n1i,j1,gox)
+             if (j3 >= i3s .and. j3 <= i3s+n3pi-1 .and. goy .and. gox) then
+                ind=j1+indj23
+                if (dpbox_iter_next(boxit)) then
+                  if (ind /= boxit%ind) print *,'Error dpbox_iter: wrong index',ind,boxit%ind
+                else
+                  print *,'Error dpbox_iter: missing index',ind
+                end if
+             endif
+          enddo
+       enddo
+    enddo
+    do while(dpbox_iter_next(boxit))
+      print *,'Error dpbox_iter: Too many indices',boxit%ind
+    end do
+    !print *,'dpbox_iter: we test!!!'
+    
+  end subroutine check_dpbox_iter
 
 
   !> Determine the index in which the potential must be inserted, following the BC

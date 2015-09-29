@@ -13,7 +13,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      dpbox, &
      i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
-     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
+     ewaldstr,hstrten,xcstr,strten,pressure,psoffset,imode,tmb,fpulay)
   use module_base
   use module_dpbox, only: denspot_distribution
   use module_types
@@ -37,21 +37,21 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   real(wp), dimension(nsize_psi), intent(in) :: psi
   real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz,fion,fdisp,fpulay
-  real(gp), intent(out) :: fnoise,pressure
+  real(gp), intent(out) :: pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
   type(DFT_wavefunction),intent(inout) :: tmb
   !Local variables
   logical, parameter :: calculate_strten=.true. !temporary
   integer :: iat,i,j
-  real(gp) :: charge,ucvol,maxdiff
+  real(gp) :: charge,ucvol!,maxdiff
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
   !real(gp), dimension(3,atoms%astruct%nat) :: fxyz_tmp
 
   real(kind=4) :: tr0, tr1, trt0, trt1
-  real(kind=8) :: time0, time1, time2, time3, time4, time5, time6, time7, ttime
+  real(kind=8) :: time0, time1, ttime!, time2, time3, time4, time5, time6, time7
   logical, parameter :: extra_timing=.false.
 
 
@@ -442,6 +442,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use module_atoms, only: nbox_max
   use module_dpbox
   implicit none
   !Arguments
@@ -473,10 +474,10 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   
   if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
-
+  !Initialization
   locstrten=0.0_gp
-
   charge=0.d0
+
 !!!  do i3=1,n3p
 !!!     do i2=1,n2i
 !!!        do i1=1,n1i
@@ -504,13 +505,21 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!  call ext_buffers(pery,nbl2,nbr2)
 !!!  call ext_buffers(perz,nbl3,nbr3)
 
+  !Determine the maximal bounds for mpx, mpy, mpy (1D-integral)
+  call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
+  !Separable function: do 1-D integrals before and store it.
+  mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+  mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+  mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+
+  !Parallelized over atoms and iterator dpbox
   do iat=1,at%astruct%nat
      ityp=at%astruct%iatype(iat)
      !coordinates of the center
      rx=rxyz(1,iat) 
      ry=rxyz(2,iat) 
      rz=rxyz(3,iat)
-     !initialization of the forces
+     !Initialization of the forces
      !ion-ion term
      fxion=0.d0
      fyion=0.d0
@@ -585,9 +594,9 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      nbox(2,3) = ceiling((rz+cutoff)/hzh)
     
      !Separable function: do 1-D integrals before and store it.
-     mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-     mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-     mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+     !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+     !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+     !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
      do i1=nbox(1,1),nbox(2,1)
         mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
      end do
@@ -598,15 +607,14 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
         mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
      end do
      
-     !calculate the forces near the atom due to the error function part of the potential
-     !calculate forces for all atoms only in the distributed part of the simulation box
+     !Calculate the forces near the atom due to the error function part of the potential
+     !Calculate forces for all atoms only in the distributed part of the simulation box
      boxit = dpbox_iter(dpbox,DPB_POT,nbox)
      do while(dpbox_iter_next(boxit))
         xp = mpx(boxit%ibox(1)) * mpy(boxit%ibox(2)) * mpz(boxit%ibox(3))
         x = boxit%x - rx
         y = boxit%y - ry
         z = boxit%z - rz
-       !$omp do reduction(+:Txx,Tyy,Tzz,Txy,Txz,Tyz,fxerf,fyerf,fzerf,fxgau,fygau,fzgau,forceleaked)
         r2 = x**2 + y**2 + z**2
         arg = r2*rlocinvsq
         !gaussian part
@@ -704,28 +712,31 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!        end do
 !!!     end if
 
-     !final result of the forces
-
+     !Final result of the forces
      floc(1,iat)=fxion+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
      floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
      floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
-
-     !the stress tensor here does not add extra overhead therefore we calculate it nonetheless
+     !The stress tensor here does not add extra overhead therefore we calculate it nonetheless
      locstrten(1)=locstrten(1)+Txx/rloc/rloc
      locstrten(2)=locstrten(2)+Tyy/rloc/rloc
      locstrten(3)=locstrten(3)+Tzz/rloc/rloc
      locstrten(4)=locstrten(4)+Tyz/rloc/rloc
      locstrten(5)=locstrten(5)+Txz/rloc/rloc
      locstrten(6)=locstrten(6)+Txy/rloc/rloc
+
+
 !!!     !only for testing purposes, printing the components of the forces for each atoms
 !!!     write(10+iat,'(2(1x,3(1x,1pe12.5)))') &
 !!!          (hxh*hyh*hzh*prefactor)*fxerf,(hxh*hyh*hzh*prefactor)*fyerf,&
 !!!          (hxh*hyh*hzh*prefactor)*fzerf,(hxh*hyh*hzh/rloc**2)*fxgau,(hxh*hyh*hzh/rloc**2)*fygau,(hxh*hyh*hzh/rloc**2)*fzgau
 
      !De-allocate the 1D temporary arrays for separability
-     call f_free(mpx,mpy,mpz)
+     !call f_free(mpx,mpy,mpz)
 
   end do !iat
+
+  !De-allocate the 1D temporary arrays for separability
+  call f_free(mpx,mpy,mpz)
 
   !write(*,*) 'iproc,charge:',iproc,charge
 

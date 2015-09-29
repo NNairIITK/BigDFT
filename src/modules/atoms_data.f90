@@ -111,6 +111,7 @@ module module_atoms
   public :: allocate_atoms_data,move_this_coordinate,frozen_itof
   public :: rxyz_inside_box,check_atoms_positions
   public :: atomic_data_set_from_dict,atoms_iter,atoms_iter_next
+  public :: nbox_max
   ! Dictionary inquire
   public :: astruct_dict_get_types
   ! Types from dictionaries
@@ -2128,6 +2129,32 @@ contains
       call f_release_routine()
 
     end subroutine psp_dict_fill_all
+
+
+    !> Determine the maximum extension of the system from rxyz and a given cutoff
+    subroutine nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
+      implicit none
+      !Arguments
+      type(atoms_data), intent(in) :: at                        !< Atomic data
+      real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz !< Atomic positions
+      real(gp), intent(in) :: hxh,hyh,hzh                       !< hgrids
+      integer, dimension(2,3), intent(out) :: nbox              !< Contains the min extension nbox(1,:) and the max nbox(2,:)
+      !Local variables
+      real(gp) :: rloc,cutoff
+
+      rloc=maxval(at%psppar(0,0,:))
+      cutoff=10.0_gp*rloc
+      if (at%multipole_preserving) then
+         !We want to have a good accuracy of the last point rloc*10
+         cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+      end if
+      nbox(1,1) = floor((minval(rxyz(1,:))-cutoff)/hxh)
+      nbox(1,2) = floor((minval(rxyz(2,:))-cutoff)/hyh)
+      nbox(1,3) = floor((minval(rxyz(3,:))-cutoff)/hzh)
+      nbox(2,1) = ceiling((maxval(rxyz(1,:))+cutoff)/hxh)
+      nbox(2,2) = ceiling((maxval(rxyz(2,:))+cutoff)/hyh)
+      nbox(2,3) = ceiling((maxval(rxyz(3,:))+cutoff)/hzh)
+    end subroutine nbox_max
 
 
 END MODULE module_atoms

@@ -586,7 +586,6 @@ subroutine connect(mhgpsst,fsw,uinp,runObj,outs,rcov,&
     integer :: iloop
     integer :: istat
 !    real(gp) :: scl
-    logical :: dmyl
 
     connected=.false.
     premature_exit = .false.
@@ -1484,7 +1483,7 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
     use module_mhgps_state
     use module_userinput
     implicit none
-    !parameters
+    !rguments
     type(mhgps_state), intent(inout) :: mhgpsst
     type(userinput), intent(in)  :: uinp
     type(run_objects), intent(in) :: runObj
@@ -1493,8 +1492,8 @@ function previously_connected(mhgpsst,uinp,runObj,rxyz1,rxyz2)
     logical :: previously_connected
     !local
     integer :: iatt
-    integer :: i
-    real(gp), dimension(:,:,:,:), allocatable :: attempted_connections_tmp
+    !integer :: i
+    !real(gp), dimension(:,:,:,:), allocatable :: attempted_connections_tmp
 
     previously_connected = .false.
     outer: do iatt = 1 , mhgpsst%nattempted

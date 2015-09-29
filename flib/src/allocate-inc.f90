@@ -11,7 +11,8 @@
      !$ if(not_omp) then
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
      !$ end if
-     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
+     call f_err_throw('Allocation problem (routine_id=' // trim(m%routine_id) // ',id=' // &
+          & trim(m%array_id) // '), error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
      return
   end if
   if (size(shape(array))==m%rank) then
@@ -30,9 +31,9 @@
      !$ if(not_omp) then
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
      !$ end if
-     call f_err_throw('Rank specified by f_malloc ('+yaml_toa(m%rank)// ':id=' // trim(m%array_id) // &
-          ') is not coherent with the one of the array ('+yaml_toa(size(shape(array)))//')',&
-          ERR_INVALID_MALLOC)
+     call f_err_throw('Rank specified by f_malloc ('+yaml_toa(m%rank)// ',routine_id=' // trim(m%routine_id) // &
+          & ',id=' // trim(m%array_id) // ') is not coherent with the one of the array ('+yaml_toa(size(shape(array)))//')',&
+          & ERR_INVALID_MALLOC)
      return
   end if
   !$ if(not_omp) then

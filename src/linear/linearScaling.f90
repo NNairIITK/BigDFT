@@ -3526,7 +3526,7 @@ end if
            denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,denspot%dpbox%nrhodim,&
            .false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
            denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
-           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+           ewaldstr,hstrten,xcstr,strten,pressure,denspot%psoffset,1,tmb,fpulay)
       call clean_forces(iproc,at%astruct,rxyz,fxyz,fnoise)
       if (iproc == 0) call write_forces(at%astruct,fxyz)
 
