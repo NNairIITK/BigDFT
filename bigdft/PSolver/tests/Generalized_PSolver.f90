@@ -394,7 +394,7 @@ geocodeprova='F'
   case(5)
   !else if (any(SetEps == [5])) then
      call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
-          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode)
+          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode,.false.)
      !  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
   case(6)
 !   call Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp)

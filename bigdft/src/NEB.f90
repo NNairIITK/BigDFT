@@ -39,6 +39,7 @@
 !> Module for NEB calculations
 MODULE NEB_routines
   use module_defs
+  use numerics, only: Ha_eV,Bohr_Ang
   use module_types
   use module_images
   use module_interfaces
@@ -426,7 +427,7 @@ MODULE NEB_routines
          deallocate(imgs)
       end if
 
-      call mpi_environment_free(neb_mpi)
+      call release_mpi_environment(neb_mpi)
     END SUBROUTINE deallocation
 
 END MODULE NEB_routines

@@ -29,7 +29,7 @@ module foe_common
     ! Calculates chebychev expansion of fermi distribution.
     ! Taken from numerical receipes: press et al
     subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
-      use module_base, pi => pi_param
+      use module_base
       implicit none
       
       ! Calling arguments
@@ -82,7 +82,7 @@ module foe_common
     ! Calculates chebychev expansion of fermi distribution.
     ! Taken from numerical receipes: press et al
     subroutine chebft2(a,b,n,cc)
-      use module_base, pi => pi_param
+      use module_base
       implicit none
     
       ! Calling arguments
@@ -778,7 +778,7 @@ module foe_common
     ! Calculates chebychev expansion of x**ex, where ex is any value (typically -1, -1/2, 1/2)
     ! Taken from numerical receipes: press et al
     subroutine cheb_exp(A,B,N,cc,ex)
-      use module_base, pi => pi_param
+      use module_base
       implicit none
       
       ! Calling arguments

@@ -11,9 +11,10 @@
 
     !> Read atomic positions from xyz file and create astruct structure from it
     subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine,disableTrans_)
-      use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, BIGDFT_INPUT_VARIABLES_ERROR
+      use module_defs, only: gp,UNINITIALIZED, BIGDFT_INPUT_VARIABLES_ERROR
       use dictionaries, only: f_err_raise, f_err_throw, max_field_length
       use dynamic_memory
+      use numerics, only: Bohr_Ang
       use yaml_strings, only: yaml_toa
       implicit none
       !Arguments
@@ -561,9 +562,10 @@ END SUBROUTINE read_ascii_positions
 
 !> Read atomic positions from int file and create astruct structure from it
 subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine,disableTrans_)
-  use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, Radian_Degree,BIGDFT_INPUT_VARIABLES_ERROR
+  use module_defs, only: gp,UNINITIALIZED,BIGDFT_INPUT_VARIABLES_ERROR
   use dictionaries, only: f_err_raise, max_field_length, f_err_throw
   use dynamic_memory
+  use numerics, only: Bohr_Ang,Radian_Degree
   use yaml_strings, only: yaml_toa
   implicit none
   integer, intent(in) :: iproc,ifile
@@ -1267,7 +1269,8 @@ END SUBROUTINE write_extra_info
 
 !> Write xyz atomic file.
 subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
-  use module_defs, only: Bohr_Ang,UNINITIALIZED
+  use module_defs, only: UNINITIALIZED
+  use numerics, only: Bohr_Ang
   use yaml_output
   use yaml_strings, only: yaml_toa
   implicit none
@@ -1386,7 +1389,8 @@ end subroutine wtxyz_forces
 
 !> Write ascii file (atomic position). 
 subroutine wtascii(iunit,energy,rxyz,astruct,comment)
-  use module_defs, only: Bohr_Ang,UNINITIALIZED
+  use module_defs, only: UNINITIALIZED
+  use numerics, only: Bohr_Ang
   use yaml_output
   use yaml_strings, only: yaml_toa
   implicit none
@@ -1516,7 +1520,8 @@ end subroutine wtascii_forces
 
 !> Write int atomic file.
 subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
-  use module_defs, only: Bohr_Ang,UNINITIALIZED,Radian_Degree
+  use module_defs, only: UNINITIALIZED
+  use numerics, only: Bohr_Ang,Radian_Degree
   use module_base, only: f_err_throw
   use yaml_output
   use yaml_strings, only: yaml_toa

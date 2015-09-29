@@ -1609,7 +1609,7 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
        & sumrho, write_energies
   use module_types
   use module_xc, only: XC_NO_HARTREE
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use gaussians
            use communications_base, only: comms_cubic

@@ -11,7 +11,7 @@
 !> Toy program to use BigDFT API
 program wvl
 
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use BigDFT_API
   use locreg_operations, only: workarr_sumrho,initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
   use bigdft_run

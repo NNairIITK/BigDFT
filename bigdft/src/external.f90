@@ -129,7 +129,7 @@ subroutine bigdft_finalize(ierr)
   !here a routine to free the environment should be called
   call mpibarrier() !over comm world
   !call MPI_BARRIER(MPI_COMM_WORLD,ierr)
-  call mpi_environment_free(bigdft_mpi)
+  call release_mpi_environment(bigdft_mpi)
   !wait all processes before finalisation
   call mpibarrier() !over comm world
   call mpifinalize()

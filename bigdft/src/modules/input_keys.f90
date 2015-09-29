@@ -204,6 +204,8 @@ module module_input_keys
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
+     !> boolean to activate the calculation of the stress tensor
+     logical :: calculate_strten
      character(len=8) :: set_epsilon !< method for setting the dielectric constant
 
      !> For absorption calculations
@@ -2150,6 +2152,7 @@ contains
     nullify(in%gen_wkpt)
     nullify(in%kptv)
     nullify(in%nkptsv_group)
+    call f_zero(in%calculate_strten)
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)
     in%gen_norbd = UNINITIALIZED(0)

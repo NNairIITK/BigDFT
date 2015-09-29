@@ -28,8 +28,8 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hgrids,&
   use module_types
   use module_xc
   use yaml_output
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_interfaces, only: xc_energy
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   !Arguments
   character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
@@ -499,7 +499,7 @@ subroutine PSolverNC(geocode,datacode,iproc,nproc,n01,n02,n03,n3d,xc,hgrids,&
      rhopot,karray,pot_ion,eh,exc,vxc,offset,sumpion,nspin)
   use module_base
   use module_xc
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use dictionaries, only: f_err_raise
   use dynamic_memory
   implicit none

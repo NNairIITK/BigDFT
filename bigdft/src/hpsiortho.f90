@@ -17,7 +17,7 @@ subroutine psitohpsi(iproc,nproc,atoms,scf,denspot,itrp,itwfn,iscf,alphamix,&
   use module_types
   use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, &
        & XC_potential, communicate_density, free_full_potential, sumrho
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_mixing
   use yaml_output
   use psp_projectors_base, only: PSP_APPLY_SKIP
@@ -806,6 +806,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
      if (paw%usepaw) then  
         call gather_cprj(orbs, paw)
      end if
+     call f_release_routine()
      return
   end if
 
@@ -821,8 +822,6 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !time4=0.0d0
   !times=0.0d0
   !call cpu_time(t0)
-
-  call f_routine(id=subname)
 
   !array of the scalar products
   scpr=f_malloc(orbs%norbp*orbs%nspinor,id='scpr')
@@ -1059,7 +1058,6 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   end if
 
   call f_free(scpr)
-  call f_release_routine()
   !call cpu_time(t1)
   !time0=real(t1-t0,kind=8)
 
@@ -1867,7 +1865,7 @@ subroutine evaltoocc(iproc,nproc,filewrite,wf0,orbs,occopt)
    type(orbitals_data), intent(inout) :: orbs
    !local variables
    logical :: exitfermi
-   real(gp), parameter :: pi=3.1415926535897932d0
+!   real(gp), parameter :: pi=3.1415926535897932d0
    real(gp), parameter :: sqrtpi=sqrt(pi)
    real(gp), dimension(1,1,1) :: fakepsi
    integer :: ikpt,iorb,ii !,info_fermi
@@ -3034,7 +3032,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   use module_types
   use module_xc
   use module_interfaces, only: LocalHamiltonianApplication, plot_wf
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use locreg_operations
   implicit none
@@ -3070,7 +3068,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
 
   !now vpsi is a wavefunction array in orbitals parallelization scheme which is associated to Vpsi
   !rescale it to match with the Green's function treatment
-  call vscal(wfn%orbs%npsidim_orbs,-0.5_gp/pi_param,vpsi(1),1)
+  call vscal(wfn%orbs%npsidim_orbs,-0.5_gp/pi,vpsi(1),1)
 
   !helmholtz-based preconditioning
   ilr=1 !for the moment only cubic version

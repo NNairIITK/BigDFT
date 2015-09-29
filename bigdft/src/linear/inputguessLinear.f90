@@ -21,7 +21,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
        & write_eigenvalues_data, write_energies
   use module_types
   use gaussians, only: gaussian_basis, deallocate_gwf, nullify_gaussian_basis
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                sparsematrix_malloc, assignment(=), SPARSE_FULL

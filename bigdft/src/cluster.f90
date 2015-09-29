@@ -26,7 +26,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use gaussians, only: deallocate_gwf
   use module_fragments
   use constrained_dft
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_xc
   use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
   use communications_init, only: orbitals_communicators
@@ -1837,7 +1837,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   use module_base
   use module_types
   use module_interfaces, only: XC_potential, density_and_hpot
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
@@ -1923,7 +1923,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   else
      call density_and_hpot(denspot%dpbox,atoms%astruct%sym,KSwfn%orbs,KSwfn%Lzd,&
           denspot%pkernel,denspot%rhod, GPU, denspot%xc, &
-          & KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
+          KSwfn%psi,denspot%rho_work,denspot%pot_work,denspot%rho_ion,hstrten)
   end if
 
   !xc stress, diagonal for the moment
@@ -1952,12 +1952,12 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
         if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
 
         call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
-             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%pol_charge)
+             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%w%rho_pol)
 
-        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
-
-        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
-             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%cavity)
+!!$        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
+!!$
+!!$        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
+!!$             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%eps)
      end if
 !---------------------------------------------------
 

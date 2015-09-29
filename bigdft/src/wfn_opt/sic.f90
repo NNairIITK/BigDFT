@@ -15,7 +15,7 @@ subroutine PZ_SIC_potential(nspin,nspinor,hfac,spinval,lr,xc,&
   use module_base
   use module_types
   use module_interfaces, only: XC_potential, apply_potential, partial_density_free
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_xc
   use locreg_operations
   implicit none
@@ -196,7 +196,7 @@ subroutine NK_SIC_potential(lr,orbs,xc,fref,hgrids,pkernel,psi,poti,eSIC_DC,pota
   use module_types
   use module_xc
   use module_interfaces, only: XC_potential
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use locreg_operations
   implicit none
   real(gp), intent(in) :: fref

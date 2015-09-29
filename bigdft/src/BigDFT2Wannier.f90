@@ -13,7 +13,7 @@ program BigDFT2Wannier
 
    use BigDFT_API
    use bigdft_run
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_interfaces
    use yaml_output
    use module_input_dicts
@@ -73,7 +73,7 @@ program BigDFT2Wannier
    integer, allocatable, dimension (:,:) :: G_vec
    integer, allocatable, dimension (:) :: excb,ipiv
    integer, allocatable, dimension (:) :: virt_list, amnk_bands_sorted
-   real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
+!   real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
 !   integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
    type(dictionary), pointer :: options
@@ -2116,7 +2116,7 @@ END SUBROUTINE write_mmn
 subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
 
    use BigDFT_API
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use bounds, only: ext_buffers
    use locreg_operations
    use module_interfaces, only: readmywaves

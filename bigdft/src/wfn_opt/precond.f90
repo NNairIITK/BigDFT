@@ -127,7 +127,7 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
                             linear_precond_convol_workarrays, linear_precond_workarrays)
   use module_base
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use locregs
   use locreg_operations

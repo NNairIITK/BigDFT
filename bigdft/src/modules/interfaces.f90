@@ -271,7 +271,7 @@ module module_interfaces
       end interface
 
       interface
-        subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,hstrten)
+      subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,rho_ion,hstrten)
         use module_defs, only: gp,wp,dp
         use module_types
         use module_atoms, only: symmetry_data
@@ -288,6 +288,7 @@ module module_interfaces
         type(GPU_pointers), intent(inout) :: GPU
         real(gp), dimension(6), intent(out) :: hstrten
         real(dp), dimension(:), pointer :: rho,vh
+        real(dp), dimension(:,:,:,:), pointer :: rho_ion
         END SUBROUTINE density_and_hpot
       end interface
 
@@ -621,6 +622,7 @@ module module_interfaces
          real(gp), intent(out) :: epot
         END SUBROUTINE apply_potential
       end interface
+
 
       interface
         subroutine read_pw_waves(filename, iproc, nproc, at, rxyz, Glr, orbs, psig, rhoij)
@@ -1216,7 +1218,7 @@ module module_interfaces
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_defs, only: gp,dp,wp
       use module_types
-      use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+      !use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
       use constrained_dft
       use diis_sd_optimization
       use sparsematrix_base, only: sparse_matrix

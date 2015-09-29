@@ -16,7 +16,8 @@
 module bigdft_forces
 
    use module_defs, only : gp
-   use bigdft_run, only: run_objects
+   use bigdft_run, only: run_objects,state_properties,INPUT_POLICY_SCRATCH,&
+        INPUT_POLICY_MEMORY
    use module_atoms
    use module_interfaces
    use defs, only : iproc

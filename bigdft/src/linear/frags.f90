@@ -11,6 +11,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed
+  use module_interfaces, only: write_eigenvalues_data
   implicit none
   type(DFT_wavefunction), intent(inout) :: tmb
   type(input_variables), intent(in) :: input

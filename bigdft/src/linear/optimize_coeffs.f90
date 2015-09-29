@@ -451,7 +451,7 @@ subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, matrices, sparse_matrix_null, deallocate_sparse_matrix, &
                                sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_FULL, assignment(=), &
-                               matrices_null, allocate_matrices, deallocate_matrices
+                               matrices_null, allocate_matrices, deallocate_matrices,copy_sparse_matrix
   use sparsematrix, only: uncompress_matrix, uncompress_matrix2
   use matrix_operations, only: overlapPowerGeneral
   implicit none

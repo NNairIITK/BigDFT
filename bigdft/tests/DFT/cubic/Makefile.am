@@ -42,6 +42,7 @@ LONG_TESTDIRS += $(SHORT_TESTDIRS) \
 	  SiBulk \
 	  TiMix \
 	  TiSmear \
+	  Cavity \
 	  ElectField \
 	  ElectronGas \
 	  CH4-D3 \

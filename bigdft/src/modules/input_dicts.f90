@@ -138,7 +138,7 @@ contains
        if (trim(run_id) /= "input") then
           call set(run // RADICAL_NAME, trim(run_id))
        else
-          call set(run // RADICAL_NAME, " ")
+          call set(run // RADICAL_NAME, "logfile") !this is if the logfile is then reused as input file
        end if
     end if
     if (present(input_id)) call set(run // INPUT_NAME, trim(input_id))

@@ -16,7 +16,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use module_base
   use module_types
   use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, optimize_coeffs
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use constrained_dft
   use diis_sd_optimization
   use yaml_output

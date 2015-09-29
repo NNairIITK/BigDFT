@@ -157,7 +157,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_interfaces, only: IonicEnergyandForces, createProjectorsArrays, &
         & createWavefunctionsDescriptors, extract_potential_for_spectra, &
         & orbitals_descriptors, read_cube
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_xc
    use module_abscalc
    use m_ab6_symmetry
@@ -1438,7 +1438,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
    use module_types
    use module_xc
    use gaussians, only: gaussian_basis, deallocate_gwf
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use psp_projectors, only: update_nlpsp

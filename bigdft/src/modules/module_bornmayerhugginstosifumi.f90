@@ -346,14 +346,14 @@ subroutine energyandforces_bmhtf(nat,rat,fat,epot)
     !dummy variables
     real(gp)::dx,dy,dz,sclinv,r,rsq,xiat,yiat,ziat,alphainv
     real(gp)::t,tt,tt1,t2,tt3,ttt
-    real(gp)::fx,fy,fz,pi,hspinv,rhspinv,rinv,spf,spfd
+    real(gp)::fx,fy,fz,hspinv,rhspinv,rinv,spf,spfd
     integer::iat,jat,isp
 
     if(.not. initialized)then
         call f_err_throw('BMHTF potential not initialized.')
     endif
 
-    pi=4.0_gp*atan(1.0_gp)
+    !pi=4.0_gp*atan(1.0_gp)
     hspinv=1.0_gp/hsp
     !write(*,*) 'inside shortenergy  hsp=',hsp
     epot=0.0_gp;fat=0.0_gp

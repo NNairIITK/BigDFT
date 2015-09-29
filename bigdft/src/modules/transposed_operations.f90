@@ -596,7 +596,7 @@ module transposed_operations
       call timing(iproc,'ovrlptransComp','OF')
     
       call timing(iproc,'ovrlptransComm','ON')
-    
+
       if (data_strategy==GLOBAL_MATRIX) then
           if(nproc > 1) then
               call mpiallred(ovrlp%matrix_compr(1), smat%nvctr*smat%nspin, mpi_sum,comm=bigdft_mpi%mpi_comm)

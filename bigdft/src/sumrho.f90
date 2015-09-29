@@ -11,12 +11,12 @@
 !> Selfconsistent potential is saved in rhopot, 
 !! new arrays rho,pot for calculation of forces ground state electronic density
 !! Potential from electronic charge density
-subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,hstrten)
+subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,rho_ion,hstrten)
   use module_base
   use module_types
   use module_xc
   use module_interfaces, only: communicate_density, sumrho
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   implicit none
   !Arguments
   type(denspot_distribution), intent(in) :: dpbox
@@ -30,6 +30,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(6), intent(out) :: hstrten
   real(dp), dimension(:), pointer :: rho,vh
+  real(dp), dimension(:,:,:,:), pointer :: rho_ion
   !local variables
   character(len=*), parameter :: subname='density_and_hpot'
   real(gp) :: ehart_fake
@@ -60,7 +61,12 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   if (xc%id(1) /= XC_NO_HARTREE) then
      !Calculate electrostatic potential
      call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
-     call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+     !the ionic denisty is given in the case of the embedded solver
+     if (pkernel%method /= 'VAC') then
+        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.true.,stress_tensor=hstrten,rho_ion=rho_ion)
+     else
+        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+     end if
   else
      !Only to_zero vh
      vh=0.0_dp

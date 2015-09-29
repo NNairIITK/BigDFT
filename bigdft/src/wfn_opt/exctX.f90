@@ -14,7 +14,7 @@ subroutine exact_exchange_potential(iproc,nproc,geocode,xc,nspin,lr,orbs,n3parr,
 
   use module_base
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_xc
   use yaml_output
   use locreg_operations
@@ -418,7 +418,7 @@ subroutine exact_exchange_potential_virt(iproc,nproc,geocode,nspin,lr,orbsocc,or
      hxh,hyh,hzh,pkernel,psirocc,psivirt,psirvirt)
   use module_base
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use locreg_operations
   implicit none
@@ -681,7 +681,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
      hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
   use module_base
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_xc
   use yaml_output
   use locreg_operations

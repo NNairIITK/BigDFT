@@ -1443,7 +1443,8 @@ contains
     use module_lenosky_si
     use public_enums
     use module_defs
-    use module_base, only: bigdft_mpi,mpibcast
+    use module_base, only: bigdft_mpi,mpibcast,Bohr_Ang,kcalMolAng_HaBohr,&
+         ev_Ha,evang_habohr,Kcalmol_ha
     use dynamic_memory, only: f_memcpy,f_routine,f_release_routine
     use yaml_strings, only: yaml_toa, operator(+)
     use yaml_output
