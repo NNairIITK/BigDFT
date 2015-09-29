@@ -64,7 +64,7 @@ module PStypes
      !> arrays for the execution of the PCG algorithm
      real(dp), dimension(:,:), pointer :: res,z,p,q
 
-     integer(f_address) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
+     integer(f_address) :: work1_GPU,work2_GPU,rho_GPU,pot_ion_GPU,k_GPU !<addresses for the GPU memory 
      integer(f_address) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
      !> GPU scalars. Event if they are scalars of course their address is needed
      integer(f_address) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
@@ -232,6 +232,8 @@ contains
     nullify(w%q)
     call f_zero(w%work1_GPU)
     call f_zero(w%work2_GPU)
+    call f_zero(w%rho_GPU)
+    call f_zero(w%pot_ion_GPU)
     call f_zero(w%k_GPU)
     call f_zero(w%p_GPU)
     call f_zero(w%q_GPU)
@@ -312,6 +314,8 @@ contains
           if (keepGPUmemory == 1) then
              call cudafree(w%work1_GPU)
              call cudafree(w%work2_GPU)
+             call cudafree(w%rho_GPU)
+             call cudafree(w%pot_ion_GPU)
           endif
           call cudafree(w%k_GPU)
        endif

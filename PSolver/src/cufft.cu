@@ -113,6 +113,63 @@ extern "C" void FC_FUNC_(reset_gpu_data, RESET_GPU_DATA)(int *size, Real* h_data
 
 }
 
+// set device memory
+extern "C" void FC_FUNC_(send_and_pad_data, SEND_AND_PAD_DATA)(Real* h_data, Real **d_data, int* m1, int* m2, int*m3, int* md1, int*md2, int* md3){
+
+cudaMemset(*d_data, 0, *md1**md2**md3*sizeof(Real));
+cudaMemcpy3DParms cpyParms = {0};
+
+cpyParms.srcPtr = make_cudaPitchedPtr(h_data, ((size_t)*m1)*sizeof(Real), ((size_t)*m2), ((size_t)*m3));
+
+cpyParms.dstPtr = make_cudaPitchedPtr(*d_data, ((size_t)*md1)*sizeof(Real), ((size_t)*md2), ((size_t)*md3));
+
+cpyParms.extent = make_cudaExtent( ((size_t)*m1)*sizeof(Real),  ((size_t)*m3),  ((size_t)*m2));;
+cpyParms.kind = cudaMemcpyHostToDevice;
+
+cudaError_t status = cudaMemcpy3D(&cpyParms);
+
+if(status != cudaSuccess){fprintf(stderr, "%s\n", cudaGetErrorString(status));}
+
+}
+
+// set device memory
+extern "C" void FC_FUNC_(pad_data, PAD_DATA)(Real** h_data, Real **d_data, int* m1, int* m2, int*m3, int* md1, int*md2, int* md3){
+
+cudaMemset(*d_data, 0, *md1**md2**md3*sizeof(Real));
+cudaMemcpy3DParms cpyParms = {0};
+
+cpyParms.srcPtr = make_cudaPitchedPtr(*h_data, ((size_t)*m1)*sizeof(Real), ((size_t)*m2), ((size_t)*m3));
+
+cpyParms.dstPtr = make_cudaPitchedPtr(*d_data, ((size_t)*md1)*sizeof(Real), ((size_t)*md2), ((size_t)*md3));
+
+cpyParms.extent = make_cudaExtent( ((size_t)*m1)*sizeof(Real),  ((size_t)*m3),  ((size_t)*m2));;
+cpyParms.kind = cudaMemcpyDeviceToDevice;
+
+cudaError_t status = cudaMemcpy3D(&cpyParms);
+
+if(status != cudaSuccess){fprintf(stderr, "%s\n", cudaGetErrorString(status));}
+
+}
+
+
+// set device memory
+extern "C" void FC_FUNC_(unpad_data, UNPAD_DATA)(Real** h_data, Real **d_data, int* m1, int* m2, int*m3, int* md1, int*md2, int* md3){
+
+cudaMemcpy3DParms cpyParms = {0};
+
+cpyParms.dstPtr = make_cudaPitchedPtr(*h_data, ((size_t)*m1)*sizeof(Real), ((size_t)*m2), ((size_t)*m3));
+
+cpyParms.srcPtr = make_cudaPitchedPtr(*d_data, ((size_t)*md1)*sizeof(Real), ((size_t)*md2), ((size_t)*md3));
+
+cpyParms.extent = make_cudaExtent( ((size_t)*m1)*sizeof(Real),  ((size_t)*m3),  ((size_t)*m2));;
+cpyParms.kind = cudaMemcpyDeviceToDevice;
+
+cudaError_t status = cudaMemcpy3D(&cpyParms);
+
+if(status != cudaSuccess){fprintf(stderr, "%s\n", cudaGetErrorString(status));}
+
+}
+
 // read device memory
 extern "C" void FC_FUNC_(get_gpu_data, GET_GPU_DATA)(int *size, Real *h_data, Real **d_data) {
 
@@ -343,7 +400,6 @@ __global__ void spread_y_i_r(Real* src, Real* dst)
    dst[tid] = res;
 }
 
-
 // multiply with potential
 __global__ void multiply_kernel(int nx, int ny, int nz, Complex *d_data, Real *d_kernel, Real scal) {
 
@@ -426,10 +482,9 @@ extern "C" void cuda_1d_plan_(int *NX_p, int *Nbatch_p,
 
  int n1d[3]= {NX, 1, 1};
 
- if(cufftPlanMany(plan,  1, n1d,
+ cufftErrchk(cufftPlanMany(plan,  1, n1d,
               NULL, 1, NX,
-              NULL, 1, NX, Transform, Nbatch) != CUFFT_SUCCESS)
-      printf("Error creating plan\n");
+              NULL, 1, NX, Transform, Nbatch));
 
  //cufftPlan1d(plan, NX, Transform, Nbatch );
 
@@ -438,18 +493,14 @@ extern "C" void cuda_1d_plan_(int *NX_p, int *Nbatch_p,
 extern "C" void cuda_1d_forward_(cufftHandle *plan,
                 Complex **d_data, Complex **d_data2) {
 
-   if( TransformExec(*plan, *d_data, *d_data2, CUFFT_FORWARD)!= CUFFT_SUCCESS){
-      printf("error in 1D forward transform\n");
-   }
+   cufftErrchk(TransformExec(*plan, *d_data, *d_data2, CUFFT_FORWARD));
 
 }
 
 extern "C" void cuda_1d_inverse_(cufftHandle *plan,
                 Complex **d_data, Complex **d_data2) {
 
-   if( TransformExec(*plan, *d_data, *d_data2, CUFFT_INVERSE)!= CUFFT_SUCCESS){
-      printf("error in 1D inverse transform\n");
-   }
+   cufftErrchk( TransformExec(*plan, *d_data, *d_data2, CUFFT_INVERSE));
 
 }
 
@@ -464,29 +515,20 @@ extern "C" void cuda_2d_plan_(int *NX_p, int *NY_p, int *Nbatch_p,
 
  int n1d[3]= {NX, NY, 1};
 
- if(cufftPlanMany(plan,  1, n1d,
+ cufftErrchk(cufftPlanMany(plan,  1, n1d,
               NULL, 1, NX*NY,
-              NULL, 1, NX*NY, Transform, Nbatch) != CUFFT_SUCCESS)
-      printf("Error creating plan\n");
+              NULL, 1, NX*NY, Transform, Nbatch));
 
 }
 
 extern "C" void cuda_2d_forward_(cufftHandle *plan,
                 Complex **d_data, Complex **d_data2) {
-
-   if( TransformExec(*plan, *d_data, *d_data2, CUFFT_FORWARD)!= CUFFT_SUCCESS){
-      printf("error in 2D forward transform\n");
-   }
-
+   cufftErrchk(TransformExec(*plan, *d_data, *d_data2, CUFFT_FORWARD));
 }
 
 extern "C" void cuda_2d_inverse_(cufftHandle *plan,
                 Complex **d_data, Complex **d_data2) {
-
-   if( TransformExec(*plan, *d_data, *d_data2, CUFFT_INVERSE)!= CUFFT_SUCCESS){
-      printf("error in 2D inverse transform\n");
-   }
-
+   cufftErrchk(TransformExec(*plan, *d_data, *d_data2, CUFFT_INVERSE));
 }
 
 /************ 3D transform *************/
@@ -499,19 +541,14 @@ extern "C" void cuda_3d_plan_(int *NX_p, int *NY_p, int *NZ_p,
  int NZ = *NZ_p;
 
  int n[3] = { NZ, NY, NX };
- if(cufftPlanMany(plan, 3, n,
+ cufftErrchk(cufftPlanMany(plan, 3, n,
               NULL, 1, NX*NY*NZ,
-              NULL, 1, NX*NY*NZ, Transform, 1) != CUFFT_SUCCESS)
-      printf("Error creating plan\n");
+              NULL, 1, NX*NY*NZ, Transform, 1));
 }
 
 extern "C" void cuda_3d_forward_(cufftHandle *plan,
                 Complex **d_data, Complex **d_data2) {
-
-   if( TransformExec(*plan, *d_data, *d_data2, CUFFT_FORWARD)!= CUFFT_SUCCESS){
-      printf("error in 3D forward transform\n");
-   }
-
+   cufftErrchk(TransformExec(*plan, *d_data, *d_data2, CUFFT_FORWARD));
 }
 
 extern "C" void cuda_3d_inverse_(int *NX_p, int *NY_p, int *NZ_p ,cufftHandle *plan,
@@ -521,9 +558,7 @@ extern "C" void cuda_3d_inverse_(int *NX_p, int *NY_p, int *NZ_p ,cufftHandle *p
    int NY = *NY_p;
    int NZ = *NZ_p;
 
-   if( TransformExec(*plan, *d_data, *d_data2, CUFFT_INVERSE)!= CUFFT_SUCCESS){
-      printf("error in 3D inverse transform\n");
-   }
+   cufftErrchk(TransformExec(*plan, *d_data, *d_data2, CUFFT_INVERSE));
 
    // scale kernel paramters
    int nThreads = NX;
@@ -542,15 +577,13 @@ extern "C" void cuda_3d_psolver_cufft3d_plan_(int *NX_p, int *NY_p, int *NZ_p,
  int NZ = *NZ_p;
 
  int n[3] = { NZ, NY, NX };
- if(cufftPlanMany(plan, 3, n,
+ cufftErrchk(cufftPlanMany(plan, 3, n,
               NULL, 1, NX*NY*NZ,
-              NULL, 1, NX*NY*NZ, CUFFT_D2Z, 1) != CUFFT_SUCCESS)
-      printf("Error creating plan\n");
+              NULL, 1, NX*NY*NZ, CUFFT_D2Z, 1));
 
- if(cufftPlanMany(plan1, 3, n,
+ cufftErrchk(cufftPlanMany(plan1, 3, n,
               NULL, 1, NX*NY*NZ,
-              NULL, 1, NX*NY*NZ, CUFFT_Z2D, 1) != CUFFT_SUCCESS)
-      printf("Error creating plan\n");
+              NULL, 1, NX*NY*NZ, CUFFT_Z2D, 1));
 
 }
 
@@ -619,9 +652,7 @@ extern "C" void cuda_3d_psolver_cufft3d_(int *NX_p, int *NY_p, int *NZ_p,cufftHa
 
    // Forward FFT
 
-   if( cufftExecD2Z(*plan, (Real*)dst, src)!= CUFFT_SUCCESS){
-      printf("error in PSper forward transform\n");
-   }
+   cufftErrchk( cufftExecD2Z(*plan, (Real*)dst, src));
 
    // multiply with kernel
 
@@ -629,9 +660,7 @@ extern "C" void cuda_3d_psolver_cufft3d_(int *NX_p, int *NY_p, int *NZ_p,cufftHa
 
    // Inverse FFT
 
-   if( cufftExecZ2D(*plan1, src, (Real*)dst)!= CUFFT_SUCCESS){
-      printf("error in PSper inverse transform\n");
-   }
+   cufftErrchk( cufftExecZ2D(*plan1, src, (Real*)dst));
 
    if (geo1==0 && geo2==0 && geo3==0)
      copy <<< nblocks, nthreads >>> (NX,NY,NZ, (Real*)dst, (Real*)src);
@@ -674,27 +703,23 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general_plan, CUDA_3D_PSOLVER_GENERAL_P
  int zsize = NZ/2 + geo3 * NZ/2;
 
  n1d[0] = NX;
- if(cufftPlanMany(plan,  1, n1d,
+ cufftErrchk(cufftPlanMany(plan,  1, n1d,
               NULL, 1, NX,
-              NULL, 1, NX, CUFFT_D2Z, ysize*zsize) != CUFFT_SUCCESS)
-      printf("Error creating plan\n");
+              NULL, 1, NX, CUFFT_D2Z, ysize*zsize));
 
- if(cufftPlanMany(plan+1,  1, n1d,
+ cufftErrchk(cufftPlanMany(plan+1,  1, n1d,
               NULL, 1, NX,
-              NULL, 1, NX, CUFFT_Z2D, ysize*zsize) != CUFFT_SUCCESS)
-      printf("Error creating plan\n");
+              NULL, 1, NX, CUFFT_Z2D, ysize*zsize));
 
  n1d[0] = NY;
- if(cufftPlanMany(plan+2,  1, n1d,
+ cufftErrchk(cufftPlanMany(plan+2,  1, n1d,
               NULL, 1, NY,
-              NULL, 1, NY, Transform, (NX/2+1)*zsize) != CUFFT_SUCCESS)
-      printf("Error creating plan\n");
+              NULL, 1, NY, Transform, (NX/2+1)*zsize));
 
  n1d[0] = NZ;
- if(cufftPlanMany(plan+3,  1, n1d,
+ cufftErrchk(cufftPlanMany(plan+3,  1, n1d,
               NULL, 1, NZ,
-              NULL, 1, NZ, Transform, (NX/2+1)*NY) != CUFFT_SUCCESS)
-      printf("Error creating plan\n");
+              NULL, 1, NZ, Transform, (NX/2+1)*NY));
 
  *switch_alg = 0;
 
@@ -760,9 +785,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
      spread<<<nblocks, NX>>>((Real*)src, NX/2, (Real*)dst, NX);
    }
 
-   if( cufftExecD2Z(plan[0], (Real*)dst, src)!= CUFFT_SUCCESS){
-      printf("error in PSolver forward transform 1\n");
-   }
+   cufftErrchk(cufftExecD2Z(plan[0], (Real*)dst, src));
 
    if (geo2==0) {
      transpose_spread <<< grid, threads >>>(src, dst,NX/2+1,ysize*zsize,NY/2);
@@ -771,9 +794,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    }
 
    // Y transform
-   if( TransformExec(plan[2], dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
-      printf("error in PSolver forward transform 2\n");
-   }
+   cufftErrchk(TransformExec(plan[2], dst, src, CUFFT_FORWARD));
 
   // Z transform, on entire cube
   if (!(*switch_alg)) {
@@ -786,9 +807,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
      transpose <<< grid, threads >>>(src, dst,NY,(NX/2+1)*NZ);
    }
 
-   if( TransformExec(plan[3], dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
-      printf("error in PSolver forward transform 3\n");
-   }
+   cufftErrchk(TransformExec(plan[3], dst, src, CUFFT_FORWARD));
   }
   else {
    if (geo3==0) {
@@ -798,9 +817,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    }
 
    for(int k=0; k<NX; ++k){
-     if( TransformExec(plan[4], dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
-      printf("error in PSolver forward transform 3\n");
-     }
+     cufftErrchk(TransformExec(plan[4], dst, src, CUFFT_FORWARD));
      src += NY*NZ;
      dst += NY*NZ;
    }
@@ -817,9 +834,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
 
   // Z transform, on entire cube 
   if (!(*switch_alg)) {
-   if( TransformExec(plan[3], src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
-      printf("error in PSolver inverse transform 1\n");
-   }
+   cufftErrchk(TransformExec(plan[3], src, dst, CUFFT_INVERSE));
 
    grid.x = (zsize*(NX/2+1)+TILE_DIM-1)/TILE_DIM;
    grid.y = (NY+TILE_DIM-1)/TILE_DIM;
@@ -834,9 +849,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
   else {
 
    for(int k=0; k<NX; ++k){
-     if( TransformExec(plan[4], src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
-      printf("error in PSolver inverse transform 3\n");
-     }
+     cufftErrchk(TransformExec(plan[4], src, dst, CUFFT_INVERSE));
      src += NY*NZ;
      dst += NY*NZ;
    }
@@ -850,9 +863,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
 
   // Y transform
 
-   if( TransformExec(plan[2], src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
-      printf("error in PSolver inverse transform 2\n");
-   }
+   cufftErrchk(TransformExec(plan[2], src, dst, CUFFT_INVERSE));
 
    grid.x = (ysize*zsize+TILE_DIM-1)/TILE_DIM;
    grid.y = (NX/2+1+TILE_DIM-1)/TILE_DIM;
@@ -864,9 +875,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
 
    // X transform
 
-   if( cufftExecZ2D(plan[1], src, (Real*)dst)!= CUFFT_SUCCESS){
-      printf("error in PSolver inverse transform 3\n");
-   }
+   cufftErrchk(cufftExecZ2D(plan[1], src, (Real*)dst));
 
    nblocks.x=zsize;
    nblocks.y=ysize;
@@ -912,10 +921,9 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
  int n1d[3]= {1, 1, 1};
 
  n1d[0] = NX;
- if(cufftPlanMany(&plan,  1, n1d,
+ cufftErrchk(cufftPlanMany(&plan,  1, n1d,
               NULL, 1, NX,
-              NULL, 1, NX, CUFFT_D2Z, ysize*zsize) != CUFFT_SUCCESS)
-      printf("Error creating plan 1\n");
+              NULL, 1, NX, CUFFT_D2Z, ysize*zsize));
 
  // X transform 
 
@@ -925,9 +933,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
      spread<<<nblocks, NX>>>((Real*)src, NX/2, (Real*)dst, NX);
    }
 
-   if( cufftExecD2Z(plan, (Real*)dst, src)!= CUFFT_SUCCESS){
-      printf("error in PSolver forward transform 1\n");
-   }
+   cufftErrchk(cufftExecD2Z(plan, (Real*)dst, src));
 
    if (geo2==0) {
      transpose_spread <<< grid, threads >>>(src, dst,NX/2+1,ysize*zsize,NY/2);
@@ -938,15 +944,12 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    cufftDestroy(plan);
 
    n1d[0] = NY;
-   if(cufftPlanMany(&plan,  1, n1d,
+   cufftErrchk(cufftPlanMany(&plan,  1, n1d,
               NULL, 1, NY,
-              NULL, 1, NY, Transform, (NX/2+1)*zsize) != CUFFT_SUCCESS)
-      printf("Error creating plan 2\n");
+              NULL, 1, NY, Transform, (NX/2+1)*zsize));
 
    // Y transform
-   if( TransformExec(plan, dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
-      printf("error in PSolver forward transform 2\n");
-   }
+   cufftErrchk(TransformExec(plan, dst, src, CUFFT_FORWARD));
 
   // Z transform, on entire cube
    grid.x = (NY+TILE_DIM-1)/TILE_DIM;
@@ -960,14 +963,11 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
 
    cufftDestroy(plan);
    n1d[0] = NZ;
-   if(cufftPlanMany(&plan,  1, n1d,
+   cufftErrchk(cufftPlanMany(&plan,  1, n1d,
               NULL, 1, NZ,
-              NULL, 1, NZ, Transform, (NX/2+1)*NY) != CUFFT_SUCCESS)
-      printf("Error creating plan 3\n");
+              NULL, 1, NZ, Transform, (NX/2+1)*NY));
 
-   if( TransformExec(plan, dst, src, CUFFT_FORWARD)!= CUFFT_SUCCESS){
-      printf("error in PSolver forward transform 3\n");
-   }
+   cufftErrchk(TransformExec(plan, dst, src, CUFFT_FORWARD));
 
   // multiply with kernel
 
@@ -976,9 +976,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
   // inverse transform
 
   // Z transform, on entire cube 
-   if( TransformExec(plan, src, dst, CUFFT_INVERSE)!= CUFFT_SUCCESS){
-      printf("error in PSolver inverse transform 1\n");
-   }
+   cufftErrchk(TransformExec(plan, src, dst, CUFFT_INVERSE));
 
    grid.x = (zsize*(NX/2+1)+TILE_DIM-1)/TILE_DIM;
    grid.y = (NY+TILE_DIM-1)/TILE_DIM;
@@ -993,14 +991,11 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
 
    cufftDestroy(plan);
    n1d[0] = NY;
-   if(cufftPlanMany(&plan,  1, n1d,
+   cufftErrchk(cufftPlanMany(&plan,  1, n1d,
               NULL, 1, NY,
-              NULL, 1, NY, Transform, (NX/2+1)*zsize) != CUFFT_SUCCESS)
-      printf("Error creating plan 4\n");
+              NULL, 1, NY, Transform, (NX/2+1)*zsize));
 
-   if( TransformExec(plan, src, dst,CUFFT_INVERSE)!= CUFFT_SUCCESS){
-      printf("error in PSolver inverse transform 2\n");
-   }
+   cufftErrchk(TransformExec(plan, src, dst,CUFFT_INVERSE));
 
    grid.x = (ysize*zsize+TILE_DIM-1)/TILE_DIM;
    grid.y = (NX/2+1+TILE_DIM-1)/TILE_DIM;
@@ -1014,14 +1009,11 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
 
    cufftDestroy(plan);
    n1d[0] = NX;
-   if(cufftPlanMany(&plan,  1, n1d,
+   cufftErrchk(cufftPlanMany(&plan,  1, n1d,
               NULL, 1, NX,
-              NULL, 1, NX, CUFFT_Z2D, ysize*zsize) != CUFFT_SUCCESS)
-      printf("Error creating plan 5\n");
+              NULL, 1, NX, CUFFT_Z2D, ysize*zsize));
 
-   if( cufftExecZ2D(plan, src, (Real*)dst)!= CUFFT_SUCCESS){
-      printf("error in PSolver inverse transform 3\n");
-   }
+   cufftErrchk(cufftExecZ2D(plan, src, (Real*)dst));
 
    nblocks.x=zsize;
    nblocks.y=ysize;
@@ -1071,7 +1063,19 @@ void kern3_comp_and_red (int i , Real* p_GPU, Real* q_GPU, Real* r_GPU, Real* x_
   *sum+=(r_GPU[i]*r_GPU[i]);
 }
 
+__device__
+void kern_finalize_and_red (int i , Real* zf_GPU, Real* rho_GPU, Real* , Real* , Real* , Real* , Real* , Real* , Real* , Real* , Real*, Real* , Real* sum){
+  Real pt =zf_GPU[i];
+  *sum+= (rho_GPU[i]*pt);
+  rho_GPU[i]=pt;
+}
 
+__device__
+void kern_finalize_and_red_sumpion (int i , Real* zf_GPU, Real* rho_GPU, Real* pot_ionGPU, Real* , Real* , Real* , Real* , Real* , Real* , Real* , Real*, Real* , Real* sum){
+  Real pt =zf_GPU[i];
+  *sum+= (rho_GPU[i]*pt);
+  rho_GPU[i]=pt+pot_ionGPU[i];
+}
 
 
 //helper functions for the reduction (reduction taken from NVIDIA cuda samples)
@@ -1441,3 +1445,16 @@ extern "C" void FC_FUNC_(third_reduction_kernel, THIRD_REDUCTION_KERNEL)(int* n1
     apply_reduction<kern3_comp_and_red, kern1_red>(n, *p_GPU, *q_GPU, *r_GPU, *x_GPU, *z_GPU, *corr_GPU, *oneoeps_GPU, *alpha_GPU, *beta_GPU, *beta0_GPU, *kappa_GPU, result);
 
 }
+
+extern "C" void FC_FUNC_(finalize_reduction_kernel, THIRD_REDUCTION_KERNEL)(int* sumpion, int* n1, int* n23,int* m1, int* m23,
+          Real** zf_GPU, Real** rho_GPU, Real** pot_ion_GPU, Real* result) {
+
+    int n=(*n1) * (*n23);
+if(!*sumpion)
+    apply_reduction<kern_finalize_and_red, kern1_red>(n, *zf_GPU, *rho_GPU, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, result);
+else
+    apply_reduction<kern_finalize_and_red_sumpion, kern1_red>(n, *zf_GPU, *rho_GPU, *pot_ion_GPU, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, result);
+
+}
+
+

@@ -1186,13 +1186,17 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                  !do it only for upper triangular results
                  if (jproc /= 0 .or. jorb+jsorb >= iorb+isorb) then
                     if (jproc == 0 ) then
+                       !$omp parallel do default(shared) private(i)
                        do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
                           rp_ij(i)=hfac*psir(i,iorb)*psir(i,jorb)
                        end do
+                       !$omp end parallel do
                     else
+                       !$omp parallel do default(shared) private(i)
                        do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
                           rp_ij(i)=hfac*psir(i,iorb)*psiw(i,jorb-jorbs+1,isnow,igroup)
                        end do
+                       !$omp end parallel do
                     end if
                     ncalls=ncalls+1                    
                     !Poisson solver in sequential
@@ -1225,22 +1229,28 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                     end if
                     !accumulate the results for each of the wavefunctions concerned
                     if (jproc == 0) then
+                       !$omp parallel do default(shared) private(i)
                        do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
                           dpsir(i,iorb)=dpsir(i,iorb)+&
                                hfaci*rp_ij(i)*psir(i,jorb)
                        end do
+                       !$omp end parallel do
                        if (jorb+jsorb /= iorb+isorb) then
+                       !$omp parallel do default(shared) private(i)
                           do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
                              dpsir(i,jorb)=dpsir(i,jorb)+&
                                   hfacj*rp_ij(i)*psir(i,iorb)
                           end do
+                        !$omp end parallel do
                           !write(100+iproc,*)jorb+jsorb,iorb+isorb,igrpr(igroup) 
                        end if
                     else
+                       !$omp parallel do default(shared) private(i)
                        do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
                           dpsir(i,iorb)=dpsir(i,iorb)+&
                                hfaci*rp_ij(i)*psiw(i,jorb-jorbs+1,isnow,igroup)
                        end do
+                       !$omp end parallel do
                     end if
                     !write(100+iproc,*)iorb+isorb,jorb+jsorb,igrpr(igroup)
                  end if
@@ -1249,10 +1259,12 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                  !in the first step the results are self-contained
                  if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
                     !write(100+iproc,*)jorb+jsorb,iorb+isorb,igrpr(igroup) 
+                    !$omp parallel do default(shared) private(i)
                     do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
                        dpsiw(i,jorb-jorbs+1,3,igroup)=dpsiw(i,jorb-jorbs+1,3,igroup)+&
                             hfacj*rp_ij(i)*psir(i,iorb)
                     end do
+                    !$omp end parallel do
                  end if
               end do
            end do

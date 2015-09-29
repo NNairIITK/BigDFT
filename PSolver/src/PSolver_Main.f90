@@ -508,7 +508,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !we need to reallocate the zf array with the right size when called with stress_tensor and gpu
    if(kernel%keepzf == 1) then
       if(kernel%igpu==1 .and. .not. cudasolver) then
-          call f_free_ptr(kernel%w%zf)
+          !call f_free_ptr(kernel%zf)
           kernel%w%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
       end if
    else
@@ -558,7 +558,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
       !and also calculate the integral between the ionic potential
       !and the initial density, which must be considered in the potential
       !energy for subtraction
-      call finalize_hartree_results(.true.,rho_ion,kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+      call finalize_hartree_results(.true.,cudasolver,kernel,rho_ion,&
+           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            pot_ion,rhopot(i3start),rhopot(i3start),e_static)
       if (wrtmsg) then
@@ -572,13 +573,10 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !now switch the treatment according to the method used
    select case(trim(str(kernel%method)))
    case('VAC')
-      !initalise to zero the zf array 
-      call f_zero(kernel%w%zf)
-
       !core psolver routine
       call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%w%zf,.false.)
 
-      call finalize_hartree_results(sumpion,pot_ion,&
+      call finalize_hartree_results(sumpion,cudasolver,kernel,pot_ion,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
            rhopot(i3start),kernel%w%zf,rhopot(i3start),ehartreeLOC)
@@ -624,8 +622,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
             end do
          end do
 
-         !initalise to zero the zf array 
-         call f_zero(kernel%w%zf)
          call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%w%zf,.true.)
          !gathering the data to obtain the distribution array
          !this method only works with datacode == 'G'
@@ -664,7 +660,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       !here the harteee energy can be calculated and the ionic potential
       !added
-      call finalize_hartree_results(sumpion,pot_ion,&
+      call finalize_hartree_results(sumpion,cudasolver,kernel,pot_ion,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            rho,rhopot(i3start),rhopot(i3start),ehartreeLOC)
@@ -740,8 +736,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       PCG_loop: do ip=1,kernel%max_iter
 
-         !initalise to zero the zf array 
-         call f_zero(kernel%w%zf)
          !  Apply the Preconditioner
          call apply_kernel(cudasolver,kernel,z,offset,strten,kernel%w%zf,.true.)
 
@@ -775,7 +769,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
 
       !here the harteee energy can be calculated and the ionic potential
       !added
-      call finalize_hartree_results(sumpion,pot_ion,&
+      call finalize_hartree_results(sumpion,cudasolver,kernel,pot_ion,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
            rhopot(i3start),kernel%w%pot,rhopot(i3start),ehartreeLOC)
@@ -900,7 +894,6 @@ subroutine pol_charge(kernel,pot_full,rho,pot)
   call polarization_charge(kernel,pot_full,rho)
   
 end subroutine pol_charge
-
 
 subroutine apply_reductions(ip, gpu, kernel, r, x, p, q, z, alpha, beta, normr)
   use f_utils, only: f_zero
@@ -1089,12 +1082,14 @@ end subroutine update_pot_from_device
 
 !> calculate the integral between the array in zf and the array in rho
 !! copy the zf array in pot and sum with the array pot_ion if needed
-subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
-     rho,zf,pot,eh)
+subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
+                                    md1,md2,md3p,rho,zf,pot,eh)
   implicit none
   !if .true. the array pot is zf+pot_ion
   !if .false., pot is only zf
   logical, intent(in) :: sumpion
+  logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
+  type(coulomb_operator), intent(in) :: kernel 
   integer, intent(in) :: m1,m2,m3p !< dimension of the grid
   integer, intent(in) :: md1,md2,md3p !< dimension of the zf array
   !> original density and final potential (can point to the same array)
@@ -1108,42 +1103,69 @@ subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
   !>hartree energy, being \int d^3 x \rho(x) V_H(x)
   real(dp), intent(out) :: eh
   !local variables
-  integer :: i1,i23,j23,j3,n3delta
+  integer :: i1,i23,j23,j3,n3delta, i_stat
   real(dp) :: pt,rh
+  
 
   eh=0.0_dp
-  !recollect the final data
-  n3delta=md2-m2 !this is the y dimension
-  if (sumpion) then
-     !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
-     !$omp reduction(+:eh)
-     do i23=1,m2*m3p
-        j3=(i23-1)/m2
-        j23=i23+n3delta*j3
-        do i1=1,m1
-           pt=zf(i1,j23)
-           rh=rho(i1,i23)
-           rh=rh*pt
-           eh=eh+rh
-           pot(i1,i23)=pt+pot_ion(i1,i23)
-        end do
-     end do
-     !$omp end parallel do
+
+
+  if(gpu) then 
+
+    !in VAC case, rho and zf are already on the card and untouched
+    if(trim(str(kernel%method))/='VAC') then
+        call reset_gpu_data(m1*m2*m3p,rho,kernel%w%rho_GPU)
+        call reset_gpu_data(m1*m2*m3p,zf,kernel%w%work1_GPU)
+    end if
+
+    if (sumpion) then
+        if (kernel%w%pot_ion_GPU==0.d0)&
+            call cudamalloc(m1*m2*m3p,kernel%w%pot_ion_GPU,i_stat)
+        call reset_gpu_data(m1*m2*m3p,pot_ion,kernel%w%pot_ion_GPU)
+    end if
+
+    call unpad_data( kernel%w%work2_GPU, kernel%w%work1_GPU, m1,&
+                    m3p,m2, md1, md3p,md2);
+
+    call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU, kernel%w%rho_GPU, kernel%w%pot_ion_GPU, eh)
+
+    call get_gpu_data(m1*m2*m3p,pot,kernel%w%rho_GPU)
+
   else
-     !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
-     !$omp reduction(+:eh)
-     do i23=1,m2*m3p
-        j3=(i23-1)/m2
-        j23=i23+n3delta*j3
-        do i1=1,m1
-           pt=zf(i1,j23)
-           rh=rho(i1,i23)
-           rh=rh*pt      
-           eh=eh+rh
-           pot(i1,i23)=pt
-        end do
-     end do
-     !$omp end parallel do
+  !recollect the final data
+      n3delta=md2-m2 !this is the y dimension
+      if (sumpion) then
+         !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+         !$omp reduction(+:eh)
+         do i23=1,m2*m3p
+            j3=(i23-1)/m2
+            j23=i23+n3delta*j3
+            do i1=1,m1
+               pt=zf(i1,j23)
+               rh=rho(i1,i23)
+               rh=rh*pt
+               eh=eh+rh
+               pot(i1,i23)=pt+pot_ion(i1,i23)
+            end do
+         end do
+         !$omp end parallel do
+      else
+         !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+         !$omp reduction(+:eh)
+         do i23=1,m2*m3p
+            j3=(i23-1)/m2
+            j23=i23+n3delta*j3
+            do i1=1,m1
+               pt=zf(i1,j23)
+               rh=rho(i1,i23)
+               rh=rh*pt      
+               eh=eh+rh
+               pot(i1,i23)=pt
+            end do
+         end do
+         !$omp end parallel do
+      end if
+
   end if
 end subroutine finalize_hartree_results
 
@@ -1726,7 +1748,7 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  logical, intent(in) :: enlarge_md2
  integer, intent(in) :: n01,n02,n03,nproc,gpu
  integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
- integer :: l1,l2,l3
+ integer :: l1,l2,l3, mul3
 
  !dimensions of the density in the real space, inverted for convenience
  m1=n01
@@ -1737,8 +1759,10 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  l2=2*m2
  if (gpu.eq.0) then
   l3=m3 !beware of the half dimension
+  mul3=2
  else
   l3=2*m3
+  mul3=4 ! in GPU we still need this dimension's size to be multiple of 4
  endif
  !initialize the n dimension to solve Cray compiler bug
  n1=l1
@@ -1760,7 +1784,7 @@ subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd
  end do
  do
     call fourier_dim(l3,n3)
-    if (modulo(n3,2) == 0) then
+    if (modulo(n3,mul3) == 0) then
        exit
     end if
     l3=l3+1

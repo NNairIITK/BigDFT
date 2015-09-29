@@ -97,7 +97,6 @@ program GPS_3D
 
    igpu=0
    if (usegpu) igpu=1
-   igpu=0
 
    n01=ndims(1)
    n02=ndims(2)
