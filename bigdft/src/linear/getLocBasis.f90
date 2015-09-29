@@ -619,7 +619,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_types
   use yaml_output
   use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, &
-       & calculate_density_kernel, calculate_energy_and_gradient_linear, hpsitopsi, &
+       & calculate_density_kernel, calculate_energy_and_gradient_linear, &
        & hpsitopsi_linear, write_energies
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, TRANSPOSE_GATHER
   use communications, only: transpose_localized, untranspose_localized, start_onesided_communication, &

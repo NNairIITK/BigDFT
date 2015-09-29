@@ -156,7 +156,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_types
    use module_interfaces, only: IonicEnergyandForces, createProjectorsArrays, &
         & createWavefunctionsDescriptors, extract_potential_for_spectra, &
-        & orbitals_descriptors, read_cube, read_density
+        & orbitals_descriptors, read_cube
    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
    use module_xc
    use module_abscalc

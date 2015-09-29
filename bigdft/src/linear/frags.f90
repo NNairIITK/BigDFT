@@ -526,6 +526,7 @@ sumof=sumof+ref_frags(ifrag_ref)%coeff(jtmb,jtmb)
   end subroutine fill_unoccupied_coeffs
 
   subroutine reorder_and_print_coeffs()
+    use module_interfaces, only: write_eigenvalues_data
     implicit none
 
     !!print*,'nstates_max:',nstates_max,ksorbs%norb,tmb%orbs%norb

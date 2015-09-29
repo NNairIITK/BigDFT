@@ -15,8 +15,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use module_base
   use module_types
   use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
-       & getLocalizedBasis, get_coeff, loewdin, sumrho, write_eigenvalues_data, &
-       & write_energies, write_orbital_density
+       & getLocalizedBasis, get_coeff, write_eigenvalues_data, write_energies, &
+       & write_orbital_density
   use yaml_output
   use module_fragments
   use constrained_dft
@@ -2746,6 +2746,7 @@ end if
     !> This loop is simply copied down here such that it can again be called
     !! in a post-processing way.
     subroutine scf_kernel(nit_scc, remove_coupling_terms, update_phi)
+      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_energies
        implicit none
 
        ! Calling arguments
@@ -3137,6 +3138,7 @@ end if
 
 
     subroutine check_inputguess()
+      use module_interfaces, only: inputguessConfinement
       real(kind=8) :: dnrm2
       if (input%inputPsiId .hasattr. 'MEMORY') then !==101) then           !should we put 102 also?
 
@@ -3286,6 +3288,7 @@ end if
     !> Print a short summary of some values calculated during the last iteration in the self
     !! consistency cycle.
     subroutine print_info(final)
+      use module_interfaces, only: write_energies
       implicit none
 
       real(kind=8) :: energyDiff, mean_conf

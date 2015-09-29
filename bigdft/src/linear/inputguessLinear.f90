@@ -17,7 +17,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      locregcenters)
   use module_base
   use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
-       & getLocalizedBasis, get_coeff, inputguess_gaussian_orbitals, sumrho, &
+       & getLocalizedBasis, get_coeff, inputguess_gaussian_orbitals, &
        & write_eigenvalues_data, write_energies
   use module_types
   use gaussians, only: gaussian_basis, deallocate_gwf, nullify_gaussian_basis

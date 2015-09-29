@@ -423,6 +423,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   contains
 
     subroutine init_linear_orbs(linear_partition)
+      use module_interfaces, only: init_orbitals_data_for_linear
      implicit none
      integer,intent(in) :: linear_partition
 
@@ -475,6 +476,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      end subroutine init_linear_orbs
 
      subroutine init_lzd_linear()
+       use module_interfaces, only: initLocregs, initialize_linear_from_file
        use locregs, only: copy_locreg_descriptors
        implicit none
        call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
@@ -757,6 +759,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
 
      subroutine fragment_stuff()
+       use module_interfaces, only: input_check_psi_id
        implicit none
        frag_allocated=.false.
        if (inputpsi == 'INPUT_PSI_DISK_LINEAR' .or. in%lin%fragment_calculation) then

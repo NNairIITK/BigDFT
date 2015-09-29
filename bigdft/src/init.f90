@@ -2174,8 +2174,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        & first_orthon, get_coeff, input_memory_linear, input_wf_cp2k, &
        & input_wf_diag, input_wf_disk, input_wf_empty, input_wf_memory, &
        & input_wf_memory_new, input_wf_random, inputguessConfinement, &
-       & read_gaussian_information, readmywaves, readmywaves_linear_new, &
-       & restart_from_gaussians, sumrho
+       & read_gaussian_information, readmywaves_linear_new, restart_from_gaussians
   use module_fragments
   use constrained_dft
   use dynamic_memory

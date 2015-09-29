@@ -28,6 +28,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hgrids,&
   use module_types
   use module_xc
   use yaml_output
+  use module_interfaces, only: xc_energy
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   implicit none
   !Arguments
@@ -221,7 +222,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hgrids,&
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         !allocation of an auxiliary array for avoiding the shift 
         call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             xc%ixc,hgrids(1),hgrids(2),hgrids(3),rhopot_G,pot_ion,sumpion,zf,zfionxc,&
+             xc,hgrids(1),hgrids(2),hgrids(3),rhopot_G,pot_ion,sumpion,zf,zfionxc,&
              eexcuLOC,vexcuLOC,nproc,nspin)
         do ispin=1,nspin
            do i3=1,nxt
@@ -243,7 +244,7 @@ subroutine PSolver(geocode,datacode,iproc,nproc,n01,n02,n03,xc,hgrids,&
         call f_free(rhopot_G)
      else
         call xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             xc%ixc,hgrids(1),hgrids(2),hgrids(3),rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
+             xc,hgrids(1),hgrids(2),hgrids(3),rhopot(1+n01*n02*(i3start-1)),pot_ion,sumpion,zf,zfionxc,&
              eexcuLOC,vexcuLOC,nproc,nspin)
      end if
   else if (istart+1 <= nlim) then !this condition ensures we have performed good zero padding

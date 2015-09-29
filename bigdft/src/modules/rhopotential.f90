@@ -620,7 +620,7 @@ module rhopotential
       call timing(iproc,'sumrho_TMB    ','OF')
     
     
-      call communicate_density()
+      call communicate_density_for_TMBs()
     
     
       !!if (nproc > 1) then
@@ -637,7 +637,7 @@ module rhopotential
     
       contains
     
-        subroutine communicate_density()
+        subroutine communicate_density_for_TMBs()
           implicit none
           real(kind=8),dimension(2) :: reducearr
     
@@ -728,7 +728,7 @@ module rhopotential
           call timing(iproc,'sumrho_allred','OF')
           call f_release_routine()
     
-        end subroutine communicate_density
+        end subroutine communicate_density_for_TMBs
 
 
         !function get_transposed_index(jorb,iorb) result(ind)
