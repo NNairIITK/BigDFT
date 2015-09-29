@@ -78,7 +78,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	foe_common.f90 \
 	internal_coordinates.f90 \
 	fermi_level.f90 \
-	copy_utils.f90 \
 	module_sqn.f90 \
 	module_fingerprints.f90 \
 	transposed_operations.f90 \
@@ -146,7 +145,6 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	FOE_COMMON.@MODULE_EXT@ \
 	INTERNAL_COORDINATES.@MODULE_EXT@ \
 	FERMI_LEVEL.@MODULE_EXT@ \
-	COPY_UTILS.@MODULE_EXT@ \
 	MODULE_SQN.@MODULE_EXT@ \
 	MODULE_FORCES.@MODULE_EXT@ \
 	MODULE_FINGERPRINTS.@MODULE_EXT@ \
@@ -213,7 +211,6 @@ modules = module_types.@MODULE_EXT@ \
 	foe_common.@MODULE_EXT@ \
 	internal_coordinates.@MODULE_EXT@ \
 	fermi_level.@MODULE_EXT@ \
-	copy_utils.@MODULE_EXT@ \
 	module_sqn.@MODULE_EXT@ \
 	module_forces.@MODULE_EXT@ \
 	module_fingerprints.@MODULE_EXT@ \
@@ -298,7 +295,6 @@ sparsematrix.o: types.o sparsematrix_base.o sparsematrix_init.o
 #foe_base.o: base.o defs.o
 foe_common.o: foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
 fermi_level.o: foe_common.o
-#copy_utils.o: base.o
 gaussdaub.o: gaussians.o psp_projectors_base.o
 #module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o

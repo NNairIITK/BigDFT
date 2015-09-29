@@ -22,7 +22,7 @@ module dynamic_memory_base
   private 
 
   logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
-  logical, parameter :: bigdebug=.true.      !< Experimental parameter to explore the usage of f_routine as a debugger
+  logical, parameter :: bigdebug=.false.!.true.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
@@ -379,7 +379,7 @@ contains
     !otherwise create it
     if (istat /=0) then
        unit_dbg=f_get_free_unit(117)
-       call yaml_set_stream(unit_dbg,filename='Routines-'+iproc,position='rewind')
+       call yaml_set_stream(unit_dbg,filename='Routines-'+iproc,position='rewind',setdefault=.false.)
     end if
   end function bigdebug_stream
 
