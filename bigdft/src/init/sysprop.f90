@@ -1423,8 +1423,8 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
      !convert the core charge fraction qcore to the amplitude of the Gaussian
      !multiplied by 4pi. This is the convention used in nlccpar(1,:).
      !fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
-     sqrt2pi=sqrt(0.5_gp*fourpi)
-     qcore=fourpi*qcore*real(nzatom-nelpsp,gp)/&
+     sqrt2pi=sqrt(0.5_gp*4.0_gp*pi_param)
+     qcore=4.0_gp*pi_param*qcore*real(nzatom-nelpsp,gp)/&
           (sqrt2pi*rcore)**3
      donlcc=.true.
   else

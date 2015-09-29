@@ -3137,7 +3137,8 @@ subroutine paw_compute_dij(paw, at, denspot, vxc, e_paw, e_pawdc, compch_sph)
   use module_types, only: paw_objects, atoms_data, DFT_local_fields, &
        & TCAT_PAW_DIJ, TCAT_LIBPAW
   use public_enums, only: KS_POTENTIAL
-  use module_defs, only: gp, Ha_eV
+  use module_defs, only: gp
+  use numerics, only: Ha_eV
   use module_base, only: bigdft_mpi
   use m_paw_an, only: paw_an_reset_flags
   use m_paw_ij, only: paw_ij_reset_flags

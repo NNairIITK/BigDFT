@@ -1860,7 +1860,7 @@ END function atomic_z
 !> Give the experimental covalent radius,
 !  for the one arising from the pseudo, use atomic_info() instead.
 function ratom(nzatom)
-  use module_defs, only: Bohr_Ang
+  use numerics, only: Bohr_Ang
   implicit none
   ! Arguments
   real(gp) :: ratom
