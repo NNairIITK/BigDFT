@@ -7,8 +7,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-  integer, intent(in) :: size
+  integer(f_integer), intent(in) :: size
   include 'f_malloc-base-inc.f90'
   m%rank=1
-  m%shape(1)=size
+  m%shape(1)=int(size,f_kind)
   m%ubounds(1)=m%shape(1)

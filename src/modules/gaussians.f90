@@ -75,9 +75,7 @@ module gaussians
      integer :: ishell_s   !< Internal, may change.
      integer :: iexpo      !< Internal, may change.
   end type gaussian_basis_iter
-
   public :: gaussian_iter_start, gaussian_iter_next_shell, gaussian_iter_next_gaussian
-
 
 contains
 
@@ -167,7 +165,6 @@ contains
     G%shid = f_malloc_ptr((/ NSHID_, G%nshltot /),id='G%shid')
   end subroutine init_gaussian_basis
 
-
   subroutine gaussian_basis_from_psp(nat,iatyp,rxyz,psppar,ntyp,G)
     implicit none
     integer, intent(in) :: nat, ntyp
@@ -232,7 +229,6 @@ contains
     call f_release_routine()
 
   end subroutine gaussian_basis_from_psp
-
 
   !> Initialise the gaussian basis from PAW datas.
   subroutine gaussian_basis_from_paw(nat, iatyp, rxyz, pawtab, ntyp, G)
@@ -307,7 +303,6 @@ contains
     end do
   end subroutine gaussian_basis_from_paw
 
-
   !> Start a new iterator on gaussian basis for the shells of a given atom.
   subroutine gaussian_iter_start(G, iat, iter)
     implicit none
@@ -331,7 +326,6 @@ contains
     iter%nshell = G%nshell(iat)
   end subroutine gaussian_iter_start
 
-
   !> Go to the next shell of the current iterator.
   function gaussian_iter_next_shell(G, iter)
     implicit none
@@ -351,7 +345,6 @@ contains
     if (iter%ishell > 1) iter%iexpo = iter%iexpo + G%shid(DOC_, iter%ishell_s + iter%ishell - 1)
     gaussian_iter_next_shell = .true.
   end function gaussian_iter_next_shell
-
 
   !> Go to the next gaussian of the current shell.
   function gaussian_iter_next_gaussian(G, iter, coeff, expo)
@@ -423,57 +416,27 @@ contains
   !> Prepare the array for the evaluation with the interpolating Scaling Functions
   !! one might add also the function to be converted and the 
   !! prescription for integrating knowing the scaling relation of the function
-  subroutine initialize_real_space_conversion(npoints,isf_m,nmoms,nrange)
+  subroutine initialize_real_space_conversion(npoints,isf_m,nmoms)
     implicit none
-    !Arguments
-    integer, intent(in), optional :: npoints !< Number of points for the integration per unity (default 2**6)
-    integer, intent(in), optional :: isf_m   !< Interpolating Scaling Function order
-    integer, intent(in), optional :: nmoms   !< Number of preserved moments for the definition of the dual
-    integer, intent(out), optional :: nrange !< Give the range of the dual functions
-    !Local variables
-    real(gp), dimension(:), allocatable :: x_scf !< to be removed in a future implementation
-    real(gp) :: tt
-    logical :: lifted
+    integer, intent(in), optional :: npoints,isf_m,nmoms
+    !local variables
+    character(len=*), parameter :: subname='initialize_real_space_conversion'
     integer :: n_range,i,nmm
+    real(gp) :: tt
+    real(gp), dimension(:), allocatable :: x_scf !< to be removed in a future implementation
 
-    !Define the order of isf
-    !if (present(isf_m)) then
-    !   itype_scf=isf_m
-    !else
-    !   itype_scf=16
-    !end if
-    !Define the number of preserved moments for the dual function
-    !if (present(nmoms)) then
-    !   nmm=nmoms
-    !else
-    !   nmm=0
-    !end if
-
-    !nmoms define all properties
-    if (present(nmoms)) then
-      if (nmoms < 0) then
-        !We use the dual lifted
-        lifted = .true.
-        nmm = abs(nmoms)
-        itype_scf = 16
-      else if (nmoms == 0) then
-        !Use isf = 16 but from ISF_family
-        lifted = .false.
-        itype_scf = 16
-        nmm = 0
-      else
-        !We use the isf itself
-        lifted = .false.
-        itype_scf = nmoms
-        nmm = 0
-      end if
+    if (present(isf_m)) then
+       itype_scf=isf_m
     else
-      !Use isf = 16
-      lifted = .false.
-      itype_scf = 16
-      nmm = 0
+       itype_scf=16
     end if
-    !Define the number of integrated points per unity
+
+    if (present(nmoms)) then
+       nmm=nmoms
+    else
+       nmm=0
+    end if
+
     if (present(npoints)) then
        n_scf=2*(itype_scf+nmm)*npoints
     else
@@ -485,21 +448,14 @@ contains
 
     scf_data = f_malloc(0.to.n_scf,id='scf_data')
 
-    !Build the dual scaling function external routine coming from Poisson Solver. To be customized accordingly
-    if (lifted) then
-      call ISF_family(itype_scf,nmm,n_scf,n_range,x_scf,scf_data)
-    else
-      call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
+    !Build the scaling function external routine coming from Poisson Solver. To be customized accordingly
+    !call scaling_function(itype_scf,n_scf,n_range,x_scf,scf_data)
     !call wavelet_function(itype_scf,n_scf,x_scf,scf_data)
-    end if
-    
+    call ISF_family(itype_scf,nmm,n_scf,n_range,x_scf,scf_data)
+    !stop 
     call f_free(x_scf)
 
     nrange_scf=n_range
-    if (present(nrange)) then
-      nrange=nrange_scf
-    end if
-
     !define the log of the smallest nonzero value as the 
     !cutoff for multiplying with it
     !this means that the values which are 
@@ -515,7 +471,7 @@ contains
   end subroutine initialize_real_space_conversion
 
  
-  !> Deallocate scf_data for multipole-preserving scheme
+  !> Deallocate scf_data
   subroutine finalize_real_space_conversion()
     implicit none
 

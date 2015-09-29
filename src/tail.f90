@@ -397,10 +397,10 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
 
         if (DistProjApply) then
            if(any(at%npspcode == 7)) then
-             call applyprojectorsonthefly(iproc,orbsb,at,lr,&
+             call applyprojectorsonthefly(0,orbsb,at,lr,&
                   txyz,hgrid(1),hgrid(1),hgrid(1),wfdb,nlpsp,psib,hpsib,eproj,paw)
            else
-             call applyprojectorsonthefly(iproc,orbsb,at,lr,&
+             call applyprojectorsonthefly(0,orbsb,at,lr,&
                   txyz,hgrid(1),hgrid(1),hgrid(1),wfdb,nlpsp,psib,hpsib,eproj)
            end if
            !only the wavefunction descriptors must change

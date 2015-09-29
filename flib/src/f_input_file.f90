@@ -90,6 +90,7 @@ contains
 
   !> Check and complete input file
   subroutine input_file_complete(inputdef,dict,imports,nocheck)
+    use dynamic_memory
     use yaml_output
     implicit none
     !> Dictionary of input definitions
@@ -105,6 +106,8 @@ contains
     !local variables
     logical :: localcheck
     type(dictionary), pointer :: dict_tmp,iter,dict_tmp2
+
+    !call f_routine(id='input_file_complete')
 
     !if present imports, the user dictionary has to be saved for overriding
     if (present(imports) .and. (IMPORT_KEY .in. dict)) then
@@ -139,6 +142,8 @@ contains
        call input_keys_fill(inputdef,dict,trim(dict_key(dict_tmp)),check=localcheck)
        dict_tmp => dict_next(dict_tmp)
     end do
+
+    !call f_release_routine()
 
   end subroutine input_file_complete
 
@@ -533,6 +538,7 @@ contains
   !> This routine is used to create a minimal dictionary which can be used at the place 
   !! of the one provided as an indication on the understood variables in inputdef
   subroutine input_file_minimal(inputdef,dict,minimal,nested,as_is)
+    use dynamic_memory
     use dictionaries
     use yaml_output
     implicit none
@@ -547,6 +553,8 @@ contains
     type(dictionary), pointer :: dict_tmp,min_cat,dict_tmp0
     character(len=max_field_length) :: category,category0
     logical :: cat_found
+
+    !call f_routine(id='input_file_minimal')
 
     nullify(minimal)
 
@@ -609,6 +617,8 @@ contains
        end if
        dict_tmp => dict_next(dict_tmp)
     end do
+
+    !call f_release_routine()
 
   contains
 

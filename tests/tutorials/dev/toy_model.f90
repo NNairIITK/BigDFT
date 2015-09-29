@@ -24,6 +24,7 @@ program wvl
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
   use rhopotential, only: full_local_potential
+  use module_razero
   implicit none
 
   type(input_variables)             :: inputs
@@ -68,7 +69,7 @@ program wvl
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)
    if (iproc == 0) then
-      call print_general_parameters(inputs,atoms,'input','posinp')
+      call print_general_parameters(inputs,atoms,'input')
    end if
    call dict_free(user_inputs)
    GPU%OCLconv = .false.
@@ -211,10 +212,10 @@ program wvl
   ! Wavefunctions can be expressed in interpolating scaling functions, 
   !  in this representation, point coefficients are values on points.
   allocate(psir(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i))
-  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,psir)
+  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,psir(1))
   ! BigDFT cut rho by slices, while here we keep one array for simplicity.
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i))
-  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,rhor)
+  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,rhor(1))
   call initialize_work_arrays_sumrho(1,Lzd%Glr,.true.,wisf)
   do i = 1, orbs%norbp, 1
      ! Calculate values of psi_i on each grid points.

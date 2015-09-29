@@ -39,7 +39,6 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 !!-  logical :: perx,pery,perz,gox,goy,goz
 !!-  integer ::  nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,n3i,n3pi,i3s
 !!-  integer :: isx,iex,isy,iey,isz,iez,j1,j2,j3,ind,n1i,n2i
-  integer :: nrange
   integer :: i,i1,i2,i3,iat,ii,ityp,jat,jtyp
   real(gp) :: ucvol,rloc,rlocinv2sq,twopitothreehalf,atint,shortlength,charge,eself,rx,ry,rz
   real(gp) :: fxion,fyion,fzion,dist,fxerf,fyerf,fzerf,cutoff
@@ -62,7 +61,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
   fdisp = f_malloc_ptr((/ 3, at%astruct%nat /),id='fdisp')
 
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   ! Aliasing
   hxh = dpbox%hgrids(1)
@@ -190,7 +189,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !LR: commented hessian as not currently using it
 
      !$omp parallel default(none) &
-     !$omp private(iat,ityp,rx,ry,rz,fxion,fyion,fzion,jtyp,chgprod,dist) &
+     !$omp private(iat,ityp,rx,ry,rz,fxion,fyion,fzion,jtyp,chgprod,dist,jat) &
      !$omp shared(at,rxyz,fion,eself,eion)
      !$omp do reduction(+:eself,eion)
      do iat=1,at%astruct%nat
@@ -198,7 +197,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         rx=rxyz(1,iat) 
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
-        !inizialization of the forces
+        !initialization of the forces
         fxion=0.0_gp
         fyion=0.0_gp
         fzion=0.0_gp
@@ -334,7 +333,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            cutoff=10.0_gp*rloc
            if (at%multipole_preserving) then
               !We want to have a good accuracy of the last point rloc*10
-              cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+              !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+              cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
            end if
 
 !!-           isx=floor((rx-cutoff)/hxh)
@@ -470,7 +470,8 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            cutoff=10.0_gp*rloc
            if (at%multipole_preserving) then
               !We want to have a good accuracy of the last point rloc*10
-              cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+              !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+              cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
            end if
 
 !!-           isx=floor((rx-cutoff)/hxh)
@@ -818,13 +819,13 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
 !------------------------------------------------------------------------------------------------------
 ! Depending of Free, Periodic or Surface bc, image atoms are or not included.
 
-  if (bigdft_mpi%iproc==0) then
-   do iat=1,natreal
-    call yaml_map('real input atoms',iat)
-    call yaml_map('radii',radiireal(iat))
-    call yaml_map('rxyz',rxyzreal(:,iat))
-   end do
-  end if
+!  if (bigdft_mpi%iproc==0) then
+!   do iat=1,natreal
+!    call yaml_map('real input atoms',iat)
+!    call yaml_map('radii',radiireal(iat))
+!    call yaml_map('rxyz',rxyzreal(:,iat))
+!   end do
+!  end if
 
   px=0
   py=0
@@ -901,14 +902,14 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
    radii(1:nat)=radiitot(1:nat)
 
    if (bigdft_mpi%iproc==0) then
-    write(*,*)plandist
-    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
-    call yaml_map('nat',nat)
-    do iat=1,nat
-     call yaml_map('atom',iat)
-     call yaml_map('radii',radii(iat))
-     call yaml_map('rxyz',rxyz(:,iat))
-    end do
+!    write(*,*)plandist
+!    write(*,'(1x,a,1x,e14.7,1x,a,1x,i4)')'Value min =',valuemin,'at bc side',imin
+      call yaml_map('No of atoms for pbc',nat)
+!    do iat=1,nat
+!     call yaml_map('atom',iat)
+!     call yaml_map('radii',radii(iat))
+!     call yaml_map('rxyz',rxyz(:,iat))
+!    end do
    end if
 
 !------------------------------------------------------------------------------------------------------
@@ -975,34 +976,34 @@ subroutine epsilon_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,natreal
      end do
 
      IntSur = IntSur + dsqrt(d12)
+!
+!     dd=0.d0
+!     do jat=1,nat
+!      curr=ddep(jat)
+!      do iat=1,nat-1
+!       curr=curr*ep(modulo(iat+jat-1,nat)+1)
+!      end do
+!      dd = dd + curr
+!     end do
+!
+!      do i=1,3
+!       do iat=1,nat-1
+!        do jat=iat+1,nat
+!         curr=dep(i,iat)*dep(i,jat)
+!         do ii=1,nat
+!          if ((ii.eq.iat).or.(ii.eq.jat)) then
+!          else
+!           curr=curr*ep(ii)
+!          end if
+!         end do
+!         curr=curr*2.d0
+!         dd = dd + curr
+!        end do
+!       end do
+!      end do
 
-     dd=0.d0
-     do jat=1,nat
-      curr=ddep(jat)
-      do iat=1,nat-1
-       curr=curr*ep(modulo(iat+jat-1,nat)+1)
-      end do
-      dd = dd + curr
-     end do
-
-      do i=1,3
-       do iat=1,nat-1
-        do jat=iat+1,nat
-         curr=dep(i,iat)*dep(i,jat)
-         do ii=1,nat
-          if ((ii.eq.iat).or.(ii.eq.jat)) then
-          else
-           curr=curr*ep(ii)
-          end if
-         end do
-         curr=curr*2.d0
-         dd = dd + curr
-        end do
-       end do
-      end do
-
-     dd=dd*(epsilon0-1.d0)
-     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
+!     dd=dd*(epsilon0-1.d0)
+!     corr(i1,i2,i3)=(-0.125d0/pi)*(0.5d0*d12/eps(i1,i2,i3)-dd)
 
     end do
    end do
@@ -1118,7 +1119,7 @@ subroutine epsinnersccs_rigid_cavity_error_multiatoms_bc(geocode,ndims,hgrids,na
   real(kind=8), dimension(27*natreal) :: radiitot
   real(kind=8), dimension(:), allocatable :: radii
   real(kind=8), dimension(:,:), allocatable :: rxyz
-  logical, parameter :: dumpeps=.false.  !.true.
+  logical, parameter :: dumpeps=.false.
 
   !buffers associated to the geocode
   !conditions for periodicity in the three directions
@@ -1785,7 +1786,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 !!-  logical :: perx,pery,perz,gox,goy,goz
   logical :: htoobig=.false.,check_potion=.false.
   integer :: i1,i2,i3,ierr,ityp !n(c) nspin
-  integer :: nloc,iloc,nrange
+  integer :: nloc,iloc
 !! integer  :: i3s,n3pi,nbl1,nbr1,nbl2,nbl3,nbr2,nbr3
 !!- integer :: n1,n2,n3,iat,iex,iey,iez,ind,indj3,indj23,isx,isy,isz,j1,j2,j3
   integer :: n1i,n2i,n3i
@@ -1809,7 +1810,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   call timing(iproc,'CrtLocPot     ','ON')
 
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   ! Aliasing
   hxh = dpbox%hgrids(1)
@@ -1862,7 +1863,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
         cutoff=10.0_gp*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
-           cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
         end if
 
 !!-        isx=floor((rx-cutoff)/hxh)
@@ -2198,7 +2199,8 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
         cutoff=10.0_gp*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
-           cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+           !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
         end if
 
 !!-        isx=floor((rx-cutoff)/hxh)
@@ -2752,7 +2754,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   logical, parameter :: htoobig=.false.,check_potion=.false.
 !!-  logical :: perx,pery,perz,gox,goy,goz
 !!-  integer :: iat,j1,j2,j3,isx,isy,isz,iex,iey,iez
-  integer :: i1,i2,i3,ityp,nspin,nrange
+  integer :: i1,i2,i3,ityp,nspin
 !!-  integer :: ind,nbl1,nbr1,nbl2,nbr2,n3pi,nbl3,nbr3,i3s
   real(kind=8) :: rloc,rlocinv2sq,charge,cutoff,tt,rx,ry,rz,xp
 !!-  real(kind=8) :: x,y,z,yp,zp,rholeaked,rholeaked_tot
@@ -2778,7 +2780,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   hzh = dpbox%hgrids(3)
   
   !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion(nmoms=at%mp_isf,nrange=nrange)
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   if (iproc.eq.0) then
      write(*,'(1x,a)')&
@@ -2853,7 +2855,8 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
         cutoff=10.0_gp*rloc
         if (at%multipole_preserving) then
            !We want to have a good accuracy of the last point rloc*10
-           cutoff=cutoff+max(hxh,hyh,hzh)*real(nrange/2,kind=gp)
+           !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
         end if
 
 !!-        isx=floor((rx-cutoff)/hxh)

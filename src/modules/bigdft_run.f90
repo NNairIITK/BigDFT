@@ -434,6 +434,7 @@ contains
   END SUBROUTINE nullify_state_properties
 
 
+  !> Initialized the state_properties structure
   subroutine init_state_properties(outs, nat)
     use module_base
     use dynamic_memory
@@ -447,7 +448,7 @@ contains
     outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
   END SUBROUTINE init_state_properties
 
-  !>clean the outs object with empty (but meaningful)
+  !> Clean the outs object with empty (but meaningful)
   !! values so that the structure can be used for optimization
   subroutine clean_state_properties(outs)
     use module_types, only: energy_terms_null
@@ -2202,7 +2203,7 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
 END SUBROUTINE run_objects_init_from_run_name
 
 subroutine run_objects_update(runObj, dict)
-  use module_base, only: bigdft_mpi,f_int
+  use module_base, only: bigdft_mpi
   use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
   use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
   use yaml_output

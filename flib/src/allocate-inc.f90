@@ -2,7 +2,7 @@
 !! Include fortran file for allocation template
 !! 
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -30,8 +30,8 @@
      !$ if(not_omp) then
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
      !$ end if
-     call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
-          ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
+     call f_err_throw('Rank specified by f_malloc ('+yaml_toa(m%rank)// ':id=' // trim(m%array_id) // &
+          ') is not coherent with the one of the array ('+yaml_toa(size(shape(array)))//')',&
           ERR_INVALID_MALLOC)
      return
   end if

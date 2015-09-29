@@ -9,8 +9,9 @@ module locregs_init
   public :: check_overlap
   public :: distribute_on_threads
   public :: check_overlap_from_descriptors_periodic
-  public :: transform_keyglob_to_keygloc
+  !public :: transform_keyglob_to_keygloc
   !public :: determine_wfd_periodicity !is this one deprecated?
+  public :: check_linear_inputguess
 
   contains
 
@@ -2075,50 +2076,117 @@ module locregs_init
 
     end subroutine distribute_on_threads
 
-
-
-    subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
-    
+    ! SM: Don't really know what this is for
+    !> Determine a set of localisation regions from the centers and the radii.
+    !! cut in cubes the global reference system
+    subroutine check_linear_inputguess(iproc,nlr,cxyz,locrad,hx,hy,hz,Glr,linear)
       use module_base
       use module_types
-      !use module_interfaces
       implicit none
-      type(locreg_descriptors),intent(in) :: Glr, Llr
-      integer, intent(in) :: nseg
-      integer, dimension(2,nseg),intent(in) :: keyglob
-      integer, dimension(2,nseg),intent(out) :: keygloc
+      integer, intent(in) :: iproc
+      integer, intent(in) :: nlr
+      logical,intent(out) :: linear
+      real(gp), intent(in) :: hx,hy,hz
+      type(locreg_descriptors), intent(in) :: Glr
+      real(gp), dimension(nlr), intent(in) :: locrad
+      real(gp), dimension(3,nlr), intent(in) :: cxyz
       !local variables
-      integer :: i, j, j0, ii, iz, iy, ix, n1p1, np
+      logical :: warningx,warningy,warningz
+      integer :: ilr,isx,isy,isz,iex,iey,iez
+      integer :: ln1,ln2,ln3
+      real(gp) :: rx,ry,rz,cutoff
+      
+      linear = .true.
     
-      call f_routine(id='transform_keyglob_to_keygloc')
+      !determine the limits of the different localisation regions
+      do ilr=1,nlr
     
-      n1p1=Glr%d%n1+1
-      np=n1p1*(Glr%d%n2+1)
-      do i = 1 , 2
-         do j = 1, nseg
-            ! Writing keyglob in cartesian coordinates
-            j0 = keyglob(i,j)
-            ii = j0-1
-            iz = ii/np
-            ii = ii-iz*np
-            iy = ii/n1p1
-            ix = ii-iy*n1p1
+         !initialize logicals
+         warningx = .false.
+         warningy = .false.
+         warningz = .false.
     
-            ! Checking consistency
-            if(iz < Llr%ns3 .or. iy < Llr%ns2 .or. ix < Llr%ns1) stop 'transform_keyglob_to_keygloc : minimum overflow'
-            if(iz > Llr%ns3+Llr%d%n3 .or. iy > Llr%ns2+Llr%d%n2 .or. ix > Llr%ns1+Llr%d%n1)&
-               stop 'transform_keyglob_to_keygloc : maximum overflow'
+         rx=cxyz(1,ilr)
+         ry=cxyz(2,ilr)
+         rz=cxyz(3,ilr)
     
-            ! Using coordinates to write keygloc      
-            keygloc(i,j) = (iz-Llr%ns3)*(Llr%d%n1+1)*(Llr%d%n2+1) + (iy-Llr%ns2)*(Llr%d%n1+1) + (ix-Llr%ns1) + 1
-         end do
+         cutoff=locrad(ilr)
+    
+         isx=floor((rx-cutoff)/hx)
+         isy=floor((ry-cutoff)/hy)
+         isz=floor((rz-cutoff)/hz)
+    
+         iex=ceiling((rx+cutoff)/hx)
+         iey=ceiling((ry+cutoff)/hy)
+         iez=ceiling((rz+cutoff)/hz)
+    
+         ln1 = iex-isx
+         ln2 = iey-isy
+         ln3 = iez-isz
+    
+         ! First check if localization region fits inside box
+            if (iex - isx >= Glr%d%n1 - 14) then
+               warningx = .true.
+            end if
+            if (iey - isy >= Glr%d%n2 - 14) then
+               warningy = .true.
+            end if
+            if (iez - isz >= Glr%d%n3 - 14) then
+               warningz = .true.
+            end if 
+    
+         !If not, then don't use linear input guess (set linear to false)
+         if(warningx .and. warningy .and. warningz .and. (Glr%geocode .ne. 'F')) then
+           linear = .false.
+           if(iproc == 0) then
+              write(*,*)'Not using the linear scaling input guess, because localization'
+              write(*,*)'region greater or equal to simulation box.'
+           end if
+           exit 
+         end if
       end do
-    
-      call f_release_routine()
-    
-    end subroutine transform_keyglob_to_keygloc
-
-
-
-    
+          
+    end subroutine check_linear_inputguess
+   
 end module locregs_init
+
+!> routine moved as external to the module to avoid the compiler to create temporary arrays in the stack
+subroutine transform_keyglob_to_keygloc(Glr,Llr,nseg,keyglob,keygloc)
+  use module_base
+  use locregs, only: locreg_descriptors
+  !use module_interfaces
+  implicit none
+  type(locreg_descriptors),intent(in) :: Glr, Llr
+  integer, intent(in) :: nseg
+  integer, dimension(2,nseg),intent(in) :: keyglob
+  integer, dimension(2,nseg),intent(out) :: keygloc
+  !local variables
+  integer :: i, j, j0, ii, iz, iy, ix, n1p1, np
+
+  call f_routine(id='transform_keyglob_to_keygloc')
+
+  n1p1=Glr%d%n1+1
+  np=n1p1*(Glr%d%n2+1)
+  do i = 1 , 2
+     do j = 1, nseg
+        ! Writing keyglob in cartesian coordinates
+        j0 = keyglob(i,j)
+        ii = j0-1
+        iz = ii/np
+        ii = ii-iz*np
+        iy = ii/n1p1
+        ix = ii-iy*n1p1
+
+        ! Checking consistency
+        if(iz < Llr%ns3 .or. iy < Llr%ns2 .or. ix < Llr%ns1) stop 'transform_keyglob_to_keygloc : minimum overflow'
+        if(iz > Llr%ns3+Llr%d%n3 .or. iy > Llr%ns2+Llr%d%n2 .or. ix > Llr%ns1+Llr%d%n1)&
+             stop 'transform_keyglob_to_keygloc : maximum overflow'
+
+        ! Using coordinates to write keygloc      
+        keygloc(i,j) = (iz-Llr%ns3)*(Llr%d%n1+1)*(Llr%d%n2+1) + (iy-Llr%ns2)*(Llr%d%n1+1) + (ix-Llr%ns1) + 1
+     end do
+  end do
+
+  call f_release_routine()
+
+end subroutine transform_keyglob_to_keygloc

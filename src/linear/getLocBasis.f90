@@ -12,7 +12,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
     calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,&
-    convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
+    convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
   use module_base
   use module_types
   use module_interfaces, exceptThisOne => get_coeff
@@ -485,6 +485,13 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   else ! foe
 
+      !same as for directmin/diag
+      ! CDFT: add V*w_ab to Hamiltonian here - assuming ham and weight matrix have the same sparsity...
+      if (present(cdft)) then
+         call timing(iproc,'constraineddft','ON')
+         call daxpy(tmb%linmat%m%nvctr,cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmb%linmat%ham_%matrix_compr,1)
+         call timing(iproc,'constraineddft','OF') 
+      end if
 
       ! TEMPORARY #################################################
       if (calculate_gap) then
@@ -521,15 +528,37 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call fermi_operator_expansion(iproc, nproc, tmprtr, &
            energs%ebs, order_taylor, max_inversion_error, purification_quickreturn, &
            invert_overlap_matrix, 2, FOE_ACCURATE, &
-           trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
+           trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
+           //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
            tmb, tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%kernel_, tmb%foe_obj)
 
       ! Eigenvalues not available, therefore take -.5d0
       tmb%orbs%eval=-.5d0
 
+      !same as for directmin/diag
+      ! CDFT: subtract V*w_ab from Hamiltonian so that we are calculating the correct energy
+      if (present(cdft)) then
+         call timing(iproc,'constraineddft','ON')
+         tmparr = sparsematrix_malloc(tmb%linmat%m,iaction=SPARSE_FULL,id='tmparr')
+         call gather_matrix_from_taskgroups(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_%matrix_compr, tmparr)
+         call daxpy(tmb%linmat%m%nvctr*tmb%linmat%m%nspin,-cdft%lag_mult,cdft%weight_matrix_%matrix_compr,1,tmparr,1)
+         call extract_taskgroup(tmb%linmat%m, tmparr, tmb%linmat%ham_%matrix_compr)
+         call f_free(tmparr)
+         call timing(iproc,'constraineddft','OF') 
+
+         ! we have ebs and the kernel already, but only the CDFT function not actual energy for CDFT
+         ! maybe pass both Hamiltonians to FOE to save calculation ebs twice?
+         !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+         !!call extract_taskgroup_inplace(tmb%linmat%m, tmb%linmat%ham_)
+         call calculate_kernel_and_energy(iproc,nproc,tmb%linmat%l,tmb%linmat%m, &
+              tmb%linmat%kernel_, tmb%linmat%ham_, energs%ebs,&
+              tmb%coeff,orbs,tmb%orbs,.false.)
+         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+         !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%m, tmb%linmat%ham_)
+
+      end if
+
   end if
-
-
 
 
   if (calculate_ham) then
@@ -1677,6 +1706,7 @@ subroutine large_to_small_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, 
        orbs, philarge, phismall)
   use module_base
   use module_types
+  use locreg_operations, only: psi_to_locreg2
   implicit none
   
   ! Calling arguments

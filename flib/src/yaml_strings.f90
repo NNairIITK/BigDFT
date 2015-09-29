@@ -45,11 +45,11 @@ module yaml_strings
   end interface
 
   interface operator(+)
-     module procedure combine_strings,attach_ci,attach_cd
+     module procedure combine_strings,attach_ci,attach_cli,attach_cd
   end interface
 
   interface operator(**)
-     module procedure yaml_itoa_fmt,yaml_dtoa_fmt,yaml_ctoa_fmt
+     module procedure yaml_itoa_fmt,yaml_litoa_fmt,yaml_dtoa_fmt,yaml_ctoa_fmt
   end interface operator(**)
   !format test to convert rapidly
   !' test string' + tt**'(1pe25.16)'
@@ -64,14 +64,14 @@ contains
 
   pure function fmt_li(data)
     implicit none
-    integer(kind=8), intent(in) :: data
+    integer(f_long), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_li
     fmt_li=yaml_int_fmt
   end function fmt_li
 
   pure function fmt_i(data)
     implicit none
-    integer, intent(in) :: data
+    integer(f_integer), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_i
     fmt_i=yaml_int_fmt
   end function fmt_i
@@ -97,19 +97,20 @@ contains
     fmt_a=yaml_char_fmt
   end function fmt_a
 
-
-  !> Write the strings as they were written by write
+  !> Write the strings as if they were written by write
   pure subroutine f_strcpy(dest,src)
     implicit none
     character(len=*), intent(out) :: dest
     character(len=*), intent(in) :: src
     !local variables
-    integer :: i
-
-    dest=repeat(' ',len(dest))
-    
-    do i=1,min(len(src),len(dest))
+    integer :: i,n
+    !dest=repeat(' ',len(dest))
+    n=min(len(src),len(dest))
+    do i=1,n
        dest(i:i)=src(i:i)
+    end do
+    do i=n+1,len(dest)
+       dest(i:i)=' '
     end do
     
   end subroutine f_strcpy
@@ -206,14 +207,14 @@ contains
   !> Convert integer to character
   pure function yaml_itoa(data,fmt) result(str)
     implicit none
-    integer, intent(in) :: data
+    integer(f_integer), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_itoa
 
   !> Convert longinteger to character
   pure function yaml_litoa(data,fmt) result(str)
     implicit none
-    integer(kind=8), intent(in) :: data
+    integer(f_long), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_litoa
 
@@ -514,7 +515,7 @@ contains
     
     !fill the string describing the format to be used for reading
     !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
-    write(form,'(a20)')'(i'//adjustl(trim(yaml_itoa(len_trim(str),fmt='(i17)')))//')' 
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_toa(len_trim(str),fmt='(i17)')))//')' 
     read(str,trim(form),iostat=ierr)ival
     yes=ierr==0
   end function is_atoi
@@ -535,7 +536,7 @@ contains
 
     !fill the string describing the format to be used for reading
     !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
-    write(form,'(a20)')'(i'//adjustl(trim(yaml_itoa(len_trim(str),fmt='(i17)')))//')' 
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_toa(len_trim(str),fmt='(i17)')))//')' 
     read(str,trim(form),iostat=ierr)ival
     yes=ierr==0
   end function is_atoli
@@ -678,6 +679,14 @@ contains
     c=trim(s)//trim(adjustl(yaml_toa(num)))
   end function attach_ci
 
+  pure function attach_cli(s,num) result(c)
+    implicit none
+    integer(f_long), intent(in) :: num
+    character(len=*), intent(in) :: s
+    character(len=len_trim(s)+len_trim(adjustl(yaml_litoa(num)))) :: c
+    c=trim(s)//trim(adjustl(yaml_toa(num)))
+  end function attach_cli
+
   pure function attach_cd(s,num) result(c)
     implicit none
     real(f_double), intent(in) :: num
@@ -693,6 +702,14 @@ contains
     character(len=len_trim(adjustl(yaml_itoa(num,fmt)))) :: c
     c=trim(adjustl(yaml_toa(num,fmt)))
   end function yaml_itoa_fmt
+
+  function yaml_litoa_fmt(num,fmt) result(c)
+    implicit none
+    integer(f_long), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+    character(len=len_trim(adjustl(yaml_litoa(num,fmt)))) :: c
+    c=trim(adjustl(yaml_toa(num,fmt)))
+  end function yaml_litoa_fmt
 
   function yaml_dtoa_fmt(num,fmt) result(c)
     implicit none

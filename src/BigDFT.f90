@@ -1,7 +1,7 @@
 !> @file
 !! BigDFT package performing ab initio calculation based on wavelets
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -46,7 +46,9 @@ program BigDFT
       call init_state_properties(outs,bigdft_nat(runObj))
 
       call bigdft_get_run_properties(run, posinp_id = posinp_id)
-      call bigdft_state(runObj,outs,infocode)
+      if(trim(runObj%inputs%geopt_approach)/='SOCK') then
+          call bigdft_state(runObj,outs,infocode)
+      endif
     
       !if (runObj%run_mode /='QM_RUN_MODE')then
       if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')

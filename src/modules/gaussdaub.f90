@@ -1,7 +1,7 @@
 !> @file
 !!  Gaussian to Daubechies wavelets projection routines
 !! @author
-!!    Copyright (C) 2007-2015 BigDFT group (LG) <br>
+!!    Copyright (C) 2007-2014 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,7 +14,7 @@ module gaussdaub
   implicit none
   private
   
-  !>@todo These parameters has to be modified to avoid naming confusions
+  !!@todo These parameters has to be modified to avoid naming confusions
   integer, parameter :: m=8,mm=m+2
   integer, parameter :: N=m
   integer :: iw !< index for initialization
@@ -62,13 +62,328 @@ module gaussdaub
        11.63172839656744892914422411_wp,52.3427777845535201811490084949_wp,&
        287.8852778150443609963195467219_wp/)
 
+  public :: gau_daub_1d,workspace_query_gau_daub_1d
 
-  public :: gau_daub_1d
-
-       
   contains
-    
 
+    !> convert a shell in contracted Gaussian basis in wavelet
+    !! given in a localization region
+    subroutine gaussian_shell_to_daub(Gbasis,iter,factor,idir)
+      use gaussians
+      use psp_projectors_base
+      implicit none
+      integer, intent(in) :: idir !<derivative direction
+      type(gaussian_basis_new), intent(in) :: Gbasis !<reference gaussian basis 
+      real(gp), dimension(Gbasis%ncplx), intent(in) :: factor !<multipliciative factor
+      !>iterator on the gaussians of the shell
+      type(gaussian_basis_iter), intent(inout) :: iter
+      !local variables
+      integer, parameter :: nterm_max=20 !if GTH nterm_max=4
+      !for the moment the number of gaussians per shell is 4 maximum
+      integer, parameter :: ngau_max=4
+      integer :: l,m,n,iex,iey,iez,idir2,nterm,iterm
+      real(gp) :: fg_tmp
+      real(gp), dimension(Gbasis%ncplx) :: coeff, expo,gau_ctmp
+      !here the dimension of the n_gau array has to be inquired
+      integer, dimension(2*iter%l-1) :: ng
+      integer, dimension(ngau_max*nterm_max,3,2*iter%l-1) :: n_gau
+      real(gp), dimension(Gbasis%ncplx,ngau_max*nterm_max,2*iter%l-1) :: gau_a
+      real(gp), dimension(Gbasis%ncplx,ngau_max*nterm_max,2*iter%l-1) :: factors
+      integer, dimension(3) :: nterm_arr
+      integer, dimension(3,nterm_max,3) :: lxyz_arr
+      real(gp), dimension(nterm_max,3) :: fac_arr
+
+      
+      !identify the quantum numbers
+      l=iter%l
+      n=iter%n
+
+      ng=0
+      iex=0
+      iey=0
+      iez=0
+      !seq : 11 22 33 12 23 13
+      if (idir == 4 .or. idir == 9) iex=1
+      if (idir == 5 .or. idir == 7) iey=1
+      if (idir == 6 .or. idir == 8) iez=1
+
+      do while (gaussian_iter_next_gaussian(Gbasis, iter, coeff, expo))
+
+         do m=1,2*l-1
+
+            !set the exponents
+            gau_ctmp(1:Gbasis%ncplx)=gau_c(Gbasis%ncplx,expo)
+            fg_tmp=fgamma(Gbasis%ncplx,gau_ctmp(1),l,n)
+
+            if (idir==0) then !normal projector calculation case
+               idir2=1
+               call calc_coeff_proj(l,n,m,nterm_max,nterm,&
+                    n_gau(ng(m)+1,1,m),n_gau(ng(m)+1,2,m),&
+                    n_gau(ng(m)+1,3,m),&
+                    fac_arr)
+               do iterm=1,nterm
+                  factors(:,ng(m)+iterm,m)=factor(:)*fg_tmp*fac_arr(iterm,idir2)
+               end do
+            else !calculation of projector derivative
+               idir2=mod(idir-1,3)+1
+               call calc_coeff_derproj(l,n,m,nterm_max,gau_ctmp(1),&
+                    nterm_arr,lxyz_arr,fac_arr)
+               nterm=nterm_arr(idir2)
+               do iterm=1,nterm
+                  factors(:,ng(m)+iterm,m)=&
+                       factor(:)*fg_tmp*fac_arr(iterm,idir2)
+                  n_gau(ng(m)+iterm,1,m)=lxyz_arr(1,iterm,idir2)+iex
+                  n_gau(ng(m)+iterm,2,m)=lxyz_arr(2,iterm,idir2)+iey
+                  n_gau(ng(m)+iterm,3,m)=lxyz_arr(3,iterm,idir2)+iez
+               end do
+            end if
+            do iterm=1,nterm
+               gau_a(:,ng(m)+iterm,m)=gau_ctmp(:)
+            end do
+            ng(m)=ng(m)+nterm
+         end do
+      end do
+
+!!$      !now fill the components for each of the shell numbers
+!!$      do m=1,2*l-1
+!!$         !here we can branch from the creation with tensor product decomposition to the one with actual 3d collocation
+!!$         call gauss_to_daub_3d(periodic,ng(m),gau_cen,n_gau(1,1,m),kval,&
+!!$              ncplx_a,gau_a(1,1,m),ncplx_f,factors(1,1,m),&
+!!$              hgrid,nres,ncplx,nwork,ww,c,lr,phi(istart_c))
+!!$         istart_c=istart_c+(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx
+!!$      end do
+
+    end subroutine gaussian_shell_to_daub
+
+    pure function gau_c(ncplx,gau_a)
+      implicit none
+      integer, intent(in) :: ncplx
+      real(gp), dimension(ncplx), intent(in) :: gau_a
+      real(gp), dimension(ncplx) :: gau_c
+      !local variables
+      real(gp) :: fpi,fgamma
+      !this value can also be inserted as a parameter
+      if (ncplx == 1) then
+         gau_c(1) = 1._gp / sqrt(2._gp * gau_a(1))
+      else
+         gau_c(1) = 1._gp / sqrt(2._gp * gau_a(1))
+         gau_c(2) = gau_a(2)
+      end if
+    end function gau_c
+
+    pure function fgamma(ncplx,rloc,l,i)
+      implicit none
+      integer, intent(in) :: ncplx,l,i
+      real(gp), intent(in) :: rloc
+      real(gp) :: fgamma
+      !local variables
+      real(gp) :: fpi
+
+      select case(ncplx)
+      case(1)
+         !fpi=pi^-1/4 pi^-1/2, pi^-1/4 comes from sqrt(gamma(x)) and pi^-1/2 from Ylm.
+         !fpi=(4.0_gp*atan(1.0_gp))**(-.75_gp)
+         fpi=0.42377720812375763_gp
+         fgamma=sqrt(2.0_gp)*fpi/(sqrt(rloc)**(2*(l-1)+4*i-1))
+      case(2)
+         fpi=0.56418958354775628_gp
+         select case(l)
+         case(1)
+            fgamma= 0.70710678118654757_gp !1.0/sqrt(2.0)
+         case(2)
+            fgamma= 0.8660254037844386_gp !sqrt(3)/2.0
+         case(3)
+            fgamma= 1.3693063937629153_gp  !sqrt(3*5)/(2.0*sqrt(2))
+         case(4)
+            fgamma= 2.5617376914898995_gp  !sqrt(7*5*3)/(4.0) 
+         end select
+         fgamma = fgamma * fpi
+      end select
+    end function fgamma
+
+    !>convert a gaussian basis in daubechies basis set
+    !! given by a localization region descriptor
+    !! this routine should be prone to generalizations to non-orthorhombic
+    !! cells
+    subroutine gauss_to_daub_3d(periodic,ng,gau_cen,n_gau,kval,ncplx_a,gau_a,ncplx_f,factor,hgrid,nres,ncplx,nwork,ww,c,lr,phi)
+      use yaml_strings, only: yaml_toa
+      use dictionaries, only: f_err_throw
+      use f_utils, only: f_zero
+      use locregs, only: locreg_descriptors
+      implicit none
+      logical, dimension(3), intent(in) :: periodic !< determine the bc
+      integer, intent(in) :: nwork,nres
+      !> 1 for real gaussians, 2 for complex ones 
+      !! (to be generalized to k-points)
+      integer, intent(in) :: ncplx,ncplx_a,ncplx_f
+      integer, intent(in) :: ng !<number of different gaussians to convert
+      !>principal quantum numbers of any of the gaussians
+      integer, dimension(ng,3), intent(in) :: n_gau 
+      !> localization region descriptors of the resulting array
+      type(locreg_descriptors), intent(in) :: lr
+      !>multiplicative factors which have to be added to the different
+      !!terms
+      real(wp), dimension(ncplx_f,ng), intent(in) :: factor
+      !>standard deviations of the different gaussians (might be complex)
+      real(wp), dimension(ncplx_a,ng), intent(in) :: gau_a
+      real(gp), dimension(3), intent(in) :: hgrid !< grid spacing in wavelets
+      real(gp), dimension(3), intent(in) :: gau_cen !< center of the gaussian
+      real(gp), dimension(3), intent(in) :: kval !< value of k-point
+      !> work array, should be created by a workspace query
+      real(wp), dimension(nwork,2), intent(inout) :: ww
+      !> second work array for building the Gaussian
+      real(wp), dimension(ncplx,ng,2,0:max(lr%d%n1,lr%d%n2,lr%d%n3),3) :: c
+      !> buffer to put the wavelet components
+      real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(inout) :: phi
+      !local variables
+      integer :: iseg,idir,n1p1,np,jj,j0,ii,i3,i2,i0,i1,i0jj,i,ig
+      integer :: j1,ind_c,ind_f,mvctr_c
+      real(wp) :: tt_c,tt_f1,tt_f2,tt_f3,tt_f4,tt_f5,tt_f6,tt_f7
+      integer, dimension(3) :: nmax
+      integer, dimension(3) :: nstart
+
+      nmax(1)=lr%d%n1
+      nmax(2)=lr%d%n2
+      nmax(3)=lr%d%n3
+
+      nstart(1)=lr%ns1
+      nstart(2)=lr%ns2
+      nstart(3)=lr%ns3
+
+      do idir=1,3
+         call gau_daub_1d(periodic(idir),ng,gau_cen(idir),n_gau(1,idir),&
+              kval(idir),ncplx_a,gau_a,ncplx_f,factor,hgrid(idir),nres,nstart(idir),&
+              nmax(idir),ncplx,c(1,1,1,0,idir),nwork,ww)
+      end do
+
+      n1p1=lr%d%n1+1
+      np=n1p1*(lr%d%n2+1)
+      mvctr_c=lr%wfd%nvctr_c
+      !now the arrays for the gaussians are ready to be compressed in wavelet form
+      do iseg=1,lr%wfd%nseg_c
+         jj=lr%wfd%keyvglob(iseg)
+         j0=lr%wfd%keyglob(1,iseg)
+         j1=lr%wfd%keyglob(2,iseg)
+         ii=j0-1
+         i3=ii/(np)
+         ii=ii-i3*np
+         i2=ii/n1p1
+         i0=ii-i2*n1p1
+         i1=i0+j1-j0
+         i0jj=jj-i0
+         do i=i0,i1
+            tt_c=0.0_wp
+            !real case only, the complex case will follow
+            do ig=1,ng
+               tt_c=tt_c+c(1,ig,1,i,1)*c(1,ig,1,i2,2)*c(1,ig,1,i3,3)
+            end do
+            ind_c=i+i0jj
+            phi(ind_c)=tt_c
+         end do
+      end do
+      
+      ! Other terms: fine projector components
+      !$omp do
+      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+         jj=lr%wfd%keyvglob(iseg)
+         j0=lr%wfd%keyglob(1,iseg)
+         j1=lr%wfd%keyglob(2,iseg)
+         ii=j0-1
+         i3=ii/(np)
+         ii=ii-i3*np
+         i2=ii/n1p1
+         i0=ii-i2*n1p1
+         i1=i0+j1-j0
+         i0jj=7*(jj-i0-1)+mvctr_c
+         do i=i0,i1
+            tt_f1=0.0_wp
+            tt_f2=0.0_wp
+            tt_f3=0.0_wp
+            tt_f4=0.0_wp
+            tt_f5=0.0_wp
+            tt_f6=0.0_wp
+            tt_f7=0.0_wp
+            do ig=1,ng
+               tt_f1=tt_f1+c(1,ig,2,i,1)*c(1,ig,1,i2,2)*c(1,ig,1,i3,3)
+               tt_f2=tt_f2+c(1,ig,1,i,1)*c(1,ig,2,i2,2)*c(1,ig,1,i3,3)
+               tt_f3=tt_f3+c(1,ig,2,i,1)*c(1,ig,2,i2,2)*c(1,ig,1,i3,3)
+               tt_f4=tt_f4+c(1,ig,1,i,1)*c(1,ig,1,i2,2)*c(1,ig,2,i3,3)
+               tt_f5=tt_f5+c(1,ig,2,i,1)*c(1,ig,1,i2,2)*c(1,ig,2,i3,3)
+               tt_f6=tt_f6+c(1,ig,1,i,1)*c(1,ig,2,i2,2)*c(1,ig,2,i3,3)
+               tt_f7=tt_f7+c(1,ig,2,i,1)*c(1,ig,2,i2,2)*c(1,ig,2,i3,3)
+            end do
+            ind_f=7*i+i0jj
+            phi(ind_f+1)=tt_f1
+            phi(ind_f+2)=tt_f2
+            phi(ind_f+3)=tt_f3
+            phi(ind_f+4)=tt_f4
+            phi(ind_f+5)=tt_f5
+            phi(ind_f+6)=tt_f6
+            phi(ind_f+7)=tt_f7
+         end do
+      end do
+      
+    end subroutine gauss_to_daub_3d
+
+    subroutine workspace_query_gau_daub_1d(&
+         periodic,ng,gau_cen,kval,ncplx_a,gau_a,hgrid,nres,nstart,nmax,&
+         nwork)
+      use yaml_strings, only: yaml_toa
+      use dictionaries, only: f_err_throw
+      use f_utils, only: f_zero
+      implicit none
+      logical, intent(in) :: periodic !< determine the bc
+      integer, intent(in) :: nmax,nres,nstart
+      !> 1 for real gaussians, 2 for complex ones 
+      !! (to be generalized to k-points)
+      integer, intent(in) :: ncplx_a
+      integer, intent(in) :: ng !<number of different gaussians to convert
+      real(gp), intent(in) :: gau_cen !< center of the gaussian
+      !>standard deviations of the different gaussians (might be complex)
+      real(wp), dimension(ncplx_a,ng), intent(in) :: gau_a
+      real(gp), intent(in) :: hgrid !< grid spacing in wavelets
+      real(gp), intent(in) :: kval !< value of k-point
+      integer, intent(out) :: nwork
+      !local variables
+      integer :: i0,ncplx_w
+      real(wp) :: x0
+      integer, dimension(0:nres+1) :: lefts,rights !< use automatic arrays here, we should use parameters in the module
+      real(gp), dimension(ncplx_a) :: aval
+      real(gp), dimension(ncplx_a,ng) :: a
+
+      !first, determine the cutoffs where the 
+      !bounds are to be calculated
+      x0=gau_cen/hgrid
+      i0=nint(x0) ! the array is centered at i0
+      !here the are the quantities for any of the objects
+      a=gau_a/hgrid
+      aval=maxval(a,dim=2)
+
+      !these are the limits of each of the convolutions
+      !! here maxval does not have sense for a complex numbers
+      call determine_bounds(nres,periodic,nstart,nmax,right_t(aval(1)),&
+           i0,lefts,rights)
+
+      if ( kval /= 0.0_gp .or. ncplx_a==2) then
+         ncplx_w=2
+      else
+         ncplx_w=1
+      end if
+
+      !the total dimension of the work array should be
+      nwork=ng*(rights(nres+1) -lefts(nres+1))*ncplx_w
+
+    end subroutine workspace_query_gau_daub_1d
+
+    !> provides the extreme from which the Gaussian function is
+    !! assumed to be zero
+    pure function right_t(aval)
+      real(gp), intent(in) :: aval
+      integer :: right_t
+
+      right_t=max(ceiling(15.d0*aval),m+2)
+    end function right_t
+    
     !> Convert a gaussian to one-dimensional functions
     !! Gives the expansion coefficients of :
     !!   factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
@@ -76,13 +391,14 @@ module gaussdaub
     !! For this reason, a real (cos(kx)) and an imaginary (sin(kx)) part are provided 
     !! also, the value of factor and  gau_a might be complex.
     !! therefore the result has to be complex accordingly
-    subroutine gau_daub_1d(periodic,ng,gau_cen,n_gau,kval,ncplx_a,gau_a,ncplx_f,factor,hgrid,nres,&
+    subroutine gau_daub_1d(periodic,ng,gau_cen,n_gau,kval,ncplx_a,gau_a,ncplx_f,factor,hgrid,nres,nstart,&
          nmax,ncplx,c,nwork,ww)
       use yaml_strings, only: yaml_toa
       use dictionaries, only: f_err_throw
+      use f_utils, only: f_zero
       implicit none
       logical, intent(in) :: periodic !< determine the bc
-      integer, intent(in) :: nmax,nwork,nres
+      integer, intent(in) :: nmax,nwork,nres,nstart
       !> 1 for real gaussians, 2 for complex ones 
       !! (to be generalized to k-points)
       integer, intent(in) :: ncplx,ncplx_a,ncplx_f
@@ -97,12 +413,13 @@ module gaussdaub
       real(gp), intent(in) :: hgrid !< grid spacing in wavelets
       real(gp), intent(in) :: gau_cen !< center of the gaussian
       real(gp), intent(in) :: kval !< value of k-point
-      real(wp), dimension(ncplx,ng,0:nmax,2), intent(inout) :: c
+      real(wp), dimension(ncplx,ng,2,0:nmax), intent(inout) :: c
       real(wp), dimension(nwork,2), intent(inout) :: ww
       !local variables
-      integer :: i0,right_t,inw,ig,ncplx_w,nwork_tot,icplx
+      integer :: i0,inw,ig,ncplx_w,nwork_tot,icplx,nst
       real(wp) :: x0
       integer, dimension(0:nres+1) :: lefts,rights !< use automatic arrays here, we should use parameters in the module
+      real(gp), dimension(ncplx_a) :: aval
       real(gp), dimension(ncplx_a,ng) :: a
       real(gp), dimension(ncplx_f,ng) :: fac
       real(gp), dimension(ng) :: theor_norm2,error
@@ -115,10 +432,9 @@ module gaussdaub
       i0=nint(x0) ! the array is centered at i0
       !here the are the quantities for any of the objects
       a=gau_a/hgrid
+      aval=maxval(a,dim=2)
 
-      right_t=ceiling(15.d0*maxval(a))
-      !right_t= max(ceiling(15.d0*maxval(a)),i0+m+1)
-
+      !right_t=max(ceiling(15.d0*maxval(a)),m+2)
       !the multiplicative factors for any of the object
       do ig=1,ng
          do icplx=1,ncplx_f
@@ -129,7 +445,9 @@ module gaussdaub
       end do
       
       !these are the limits of each of the convolutions
-      call determine_bounds(nres,periodic,nmax,right_t,i0,&
+      !! here maxval does not have sense for a complex numbers
+      call determine_bounds(nres,periodic,nstart,nmax,right_t(aval(1)),&
+           i0,&
          lefts,rights)
 
       if ( kval /= 0.0_gp .or. ncplx_a==2) then
@@ -140,9 +458,9 @@ module gaussdaub
 
       !the total dimension of the work array should be
       nwork_tot=ng*(rights(nres+1) -lefts(nres+1))*ncplx_w
-
+      
       !then check if the work array has a size which is big enough
-      if (nwork_tot > nwork) then
+      if (nwork_tot > nwork ) then
          call f_err_throw('The size of the work array ('//trim(yaml_toa(nwork))//&
               ') is too little to convert the gaussian in wavelets, put at least the value '//&
               trim(yaml_toa(nwork_tot)),&
@@ -157,12 +475,13 @@ module gaussdaub
       !then come back to the original resolution level
       call magic_idwts(nres,ncplx_w*ng,lefts,rights,nwork,ww,inw)
 
+      nst=nstart
+      if (periodic) nst=0
       !and retrieve the results and the error if desired
-      call retrieve_results(periodic,ng,lefts(0),rights(0),nmax,ncplx_w,&
+      call retrieve_results(periodic,ng,lefts(0),rights(0),nst,nmax,ncplx_w,&
            ww(1,inw),theor_norm2,ncplx_f,fac,ncplx,c,error)
 
     end subroutine gau_daub_1d
-
 
     !> Project gaussian functions in a mesh of Daubechies scaling functions
     !! Gives the expansion coefficients of :
@@ -392,7 +711,24 @@ module gaussdaub
     !!   factor*x**n_gau*exp(-(1/2)*(x/gau_a)**2)
     !! Multiply it for the k-point factor exp(Ikx)
     !! For this reason, a real (cos(kx)) and an imaginary (sin(kx)) part are provided 
+    !! INPUT
+    !!   @param hgrid    step size
+    !!   @param factor   normalisation factor
+    !!   @param gau_cen  center of gaussian function
+    !!   @param gau_a    parameter of gaussian
+    !!   @param n_gau    x**n_gau (polynomial degree)
+    !!   @param nmax     size of the grid
+    !!   @param nwork    size of the work array (ww) >= (nmax+1)*17
+    !!   @param periodic the flag for periodic boundary conditions
+    !!   @param kval     value for the k-point
+    !!   @param ncplx    number of components in the complex direction (must be 2 if kval /=0)
     !!
+    !! OUTPUT
+    !!   @param n_left,n_right  interval where the gaussian is larger than the machine precision
+    !!   @param C(:,1)          array of scaling function coefficients:
+    !!   @param C(:,2)          array of wavelet coefficients:
+    !!   @param WW(:,1),WW(:,2) work arrays that have to be 17 times larger than C
+    !!   @param err_norm        normalisation error
     !!@warning 
     !!  In this version, we dephase the projector to wrt the center of the gaussian
     !!  this should not have an impact on the results since the operator is unchanged
@@ -403,23 +739,16 @@ module gaussdaub
       use module_base
       !use gaussians, only: mp_exp
       implicit none
-      logical, intent(in) :: periodic  !< the flag for periodic boundary conditions
-      integer, intent(in) :: n_gau     !< x**n_gau (polynomial degree)
-      integer, intent(in) :: nmax      !< size of the grid
-      integer, intent(in) :: nwork     !< size of the work array (ww) >= (nmax+1)*17
-      integer, intent(in) :: nstart
-      integer, intent(in) :: ncplx_w   !< size of the ww matrix
-      integer, intent(in) :: ncplx_g   !< 1 or 2 for simple or complex gaussians, respectively.
-      integer, intent(in) :: ncplx_k   !< use 2 for k-points.
-      real(gp), intent(in) :: hgrid    !< step size
-      real(gp), intent(in) :: gau_cen  !< center of gaussian function
-      real(gp), intent(in) :: kval     !< value for the k-point
-      real(gp), dimension(ncplx_g), intent(in) :: factor !< normalisation factor
-      real(gp), dimension(ncplx_g), intent(in) :: gau_a  !< parameter of gaussian
-      real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww !< work arrays that have to be 17 times larger than C
-      integer, intent(out) :: n_left,n_right  !< interval where the gaussian is larger than the machine precision
-      real(wp), dimension(ncplx_w,0:nmax,2), intent(out) :: c !< array of scaling function coefficients
-                                                              !! array of wavelet coefficients:
+      logical, intent(in) :: periodic
+      integer, intent(in) :: n_gau,nmax,nwork,nstart
+      integer, intent(in) :: ncplx_w !< size of the ww matrix
+      integer, intent(in) :: ncplx_g !< 1 or 2 for simple or complex gaussians, respectively.
+      integer, intent(in) :: ncplx_k !< use 2 for k-points.
+      real(gp), intent(in) :: hgrid,gau_cen,kval
+      real(gp),dimension(ncplx_g),intent(in)::factor,gau_a
+      real(wp), dimension(0:nwork,2,ncplx_w), intent(inout) :: ww 
+      integer, intent(out) :: n_left,n_right
+      real(wp), dimension(ncplx_w,0:nmax,2), intent(out) :: c
       real(gp), intent(in) :: gau_cut
       !local variables
       character(len=*), parameter :: subname='gauss_to_daub_k'
@@ -515,14 +844,14 @@ module gaussdaub
 
     contains
 
-
       !> Once the bounds LEFTS(0) and RIGHTS(0) of the expansion coefficient array
       !! are fixed, we get the expansion coefficients in the usual way:
       !! get them on the finest grid by quadrature
       !! then forward transform to get the coeffs on the coarser grid.
       !! All this is done assuming nonperiodic boundary conditions
       !! but will also work in the periodic case if the tails are folded
-      subroutine gauss_to_scf()
+
+      subroutine gauss_to_scf
         n_left=lefts(0)
         n_right=rights(0)
         length=n_right-n_left+1
@@ -543,19 +872,19 @@ module gaussdaub
            return
         end if
 
-        if (ncplx_w==1) then
-           !no kpts and real gaussians
+!!$        if (ncplx_w==1) then
+!!$           !no kpts and real gaussians
 !!$           call gauss_to_scf_1()
-        elseif(ncplx_k==2 .and. ncplx_g==1) then
-           !kpts and real gaussians
+!!$        elseif(ncplx_k==2 .and. ncplx_g==1) then
+!!$           !kpts and real gaussians
 !!$           call gauss_to_scf_2()
-        elseif(ncplx_k==1 .and. ncplx_g==2) then
-           !no kpts and complex gaussians
+!!$        elseif(ncplx_k==1 .and. ncplx_g==2) then
+!!$           !no kpts and complex gaussians
 !!$           call gauss_to_scf_3()
-        elseif(ncplx_k==2 .and. ncplx_g==2) then
-           !kpts and complex gaussians
+!!$        elseif(ncplx_k==2 .and. ncplx_g==2) then
+!!$           !kpts and complex gaussians
 !!$           call gauss_to_scf_4()
-        endif
+!!$        endif
 
 !!$        do icplx=1,ncplx_w
 !!$           !print *,'here',gau_a,gau_cen,n_gau
@@ -1325,11 +1654,13 @@ module gaussdaub
     END SUBROUTINE forward
 
 
-    subroutine determine_bounds(nres,periodic,nmax,right_t,i0,&
+
+    pure subroutine determine_bounds(nres,periodic,nstart,nmax,right_t,i0,&
          lefts,rights)
       implicit none
       logical, intent(in) :: periodic !<boundary conditions
       integer, intent(in) :: nres !< number of level of resolution
+      integer, intent(in) :: nstart !< starting point the output array
       integer, intent(in) :: nmax !< size of the output array
       integer, intent(in) :: i0 !< center in the grid points
       integer, intent(in) :: right_t !< amplitude of the values
@@ -1352,8 +1683,8 @@ module gaussdaub
          rights(0)=i0+right_t
       else
          ! non-periodic: the Gaussian is bounded by the cell borders
-         lefts( 0)=max(i0-right_t,   0)
-         rights(0)=min(i0+right_t,nmax)
+         lefts( 0)=max(i0-right_t,  nstart)
+         rights(0)=min(i0+right_t,nmax+nstart)
       end if
 
       do k=1,nres
@@ -1383,7 +1714,7 @@ module gaussdaub
       !> identify the index of the second dimension of
       !! the ww array where the final data have to be retrieved
       integer, intent(out) :: inw
-      real(gp), dimension(ng,nwork,2), intent(inout) :: ww
+      real(gp), dimension(nwork,2), intent(inout) :: ww
       !local variables
       integer :: resolution,ires,inwo
       real(gp) :: h
@@ -1398,36 +1729,36 @@ module gaussdaub
       !   return
       !end if
 
-      call apply_w(ng,ww(1,1,1),ww(1,1,2),&
+      call apply_w(ng,ww(1,1),ww(1,2),&
            lefts(nres+1),rights(nres+1),lefts(nres),rights(nres),h)
 
       inw=2
       do ires=nres,2,-1
          inwo=3-inw
-         call forward_c(ng,ww(1,1,inw),ww(1,1,inwo),&
+         call forward_c(ng,ww(1,inw),ww(1,inwo),&
               lefts(ires),rights(ires),lefts(ires-1),rights(ires-1)) 
          inw=3-inw
       end do
-      call forward(ng,ww(1,1,inw),ww(1,1,3-inw),&
+      call forward(ng,ww(1,inw),ww(1,3-inw),&
            lefts(1),rights(1),lefts(0),rights(0)) 
-
+      inw=3-inw
     end subroutine magic_idwts
 
     !> One of the tails of the Gaussian is folded periodically
     !! We assume that the situation when we need to fold both tails
     !! will never arise
-    subroutine retrieve_results(periodic,ng,n_left,n_right,nmax,ncplx_w,ww,theor_norm,ncplx_f,fac,ncplx,c,error)
+    subroutine retrieve_results(periodic,ng,n_left,n_right,nst,nmax,ncplx_w,ww,theor_norm,ncplx_f,fac,ncplx,c,error)
       use module_base, only: f_memcpy,dot,f_zero
       implicit none
       logical, intent(in) :: periodic
-      integer, intent(in) :: n_left,n_right,nmax,ng,ncplx_w,ncplx_f,ncplx
+      integer, intent(in) :: n_left,n_right,nmax,ng,ncplx_w,ncplx_f,ncplx,nst
       !> the expected normalization of the gaussian. When different from zero,
       !! control the result and write the error in the error variable
       real(wp), dimension(ng), intent(in) :: theor_norm 
       real(wp), dimension(ncplx_f,ng), intent(in) :: fac
       real(wp), dimension(ncplx_w,ng,n_left:n_right,2), intent(in) :: ww !< the values of the gaussian to be folded
       real(wp), dimension(ng), intent(out) :: error !< the error in the expression of the function
-      real(wp), dimension(ncplx,ng,0:nmax,2), intent(out) :: c !< final results
+      real(wp), dimension(ncplx,ng,2,nst:nmax+nst), intent(out) :: c !< final results
       !local variables
       integer :: i,j,inl,ig
       real(wp) :: cn2,cfr,cfi
@@ -1442,16 +1773,16 @@ module gaussdaub
             do i=n_left,n_right
                j=modulo(i,nmax+1)
                do ig=1,ng
-                  c(1,ig,j,1)=c(1,ig,j,1)+ww(1,ig,i,1)
-                  c(1,ig,j,2)=c(1,ig,j,2)+ww(1,ig,i,2)
+                  c(1,ig,1,j)=c(1,ig,1,j)+ww(1,ig,i,1)
+                  c(1,ig,2,j)=c(1,ig,2,j)+ww(1,ig,i,2)
                   error(ig)=error(ig)+ww(1,ig,i,1)**2+ww(1,ig,i,2)**2
                end do
             end do
          else
             do i=n_left,n_right
                do ig=1,ng
-                  c(1,ig,i,1)=ww(1,ig,i,1)
-                  c(1,ig,i,2)=ww(1,ig,i,2)
+                  c(1,ig,1,i)=ww(1,ig,i,1)
+                  c(1,ig,2,i)=ww(1,ig,i,2)
                   error(ig)=error(ig)+ww(1,ig,i,1)**2+ww(1,ig,i,2)**2
                end do
             end do
@@ -1468,19 +1799,19 @@ module gaussdaub
             do i=n_left,n_right
                j=modulo(i,nmax+1)
                do ig=1,ng
-                  c(1,ig,j,1)=c(1,ig,j,1)+ww(1,ig,i,1)
-                  c(2,ig,j,1)=c(2,ig,j,1)+ww(2,ig,i,1)
-                  c(1,ig,j,2)=c(1,ig,j,2)+ww(1,ig,i,2)
-                  c(2,ig,j,2)=c(2,ig,j,2)+ww(2,ig,i,2)
+                  c(1,ig,1,j)=c(1,ig,1,j)+ww(1,ig,i,1)
+                  c(2,ig,1,j)=c(2,ig,1,j)+ww(2,ig,i,1)
+                  c(1,ig,2,j)=c(1,ig,2,j)+ww(1,ig,i,2)
+                  c(2,ig,2,j)=c(2,ig,2,j)+ww(2,ig,i,2)
                end do
             end do
          else
             do i=n_left,n_right
                do ig=1,ng
-                  c(1,ig,i,1)=ww(1,ig,i,1)
-                  c(2,ig,i,1)=ww(2,ig,i,1)
-                  c(1,ig,i,2)=ww(1,ig,i,2)
-                  c(2,ig,i,2)=ww(2,ig,i,2)
+                  c(1,ig,1,i)=ww(1,ig,i,1)
+                  c(2,ig,1,i)=ww(2,ig,i,1)
+                  c(1,ig,2,i)=ww(1,ig,i,2)
+                  c(2,ig,2,i)=ww(2,ig,i,2)
                end do
             end do
          end if
@@ -1490,33 +1821,33 @@ module gaussdaub
       !
       !RESCALE BACK THE COEFFICIENTS AND THE ERROR
       if (ncplx_f == 1) then
-         do inl=1,2
-            do i=0,nmax
+         do i=nst,nmax+nst
+            do inl=1,2
                do ig=1,ng
-                  cfr=c(1,ig,i,inl)
-                  c(1,ig,i,inl)=fac(1,ig)*cfr
+                  cfr=c(1,ig,inl,i)
+                  c(1,ig,inl,i)=fac(1,ig)*cfr
                end do
             end do
          end do
          error=error*fac(1,:)         
       else if (ncplx_w == 1) then
-         do inl=1,2
-            do i=0,nmax
+         do i=nst,nmax+nst
+            do inl=1,2
                do ig=1,ng
-                  cfr=c(1,ig,i,inl)
-                  c(1,ig,i,inl)=fac(1,ig)*cfr
-                  c(2,ig,i,inl)=fac(2,ig)*cfr
+                  cfr=c(1,ig,inl,i)
+                  c(1,ig,inl,i)=fac(1,ig)*cfr
+                  c(2,ig,inl,i)=fac(2,ig)*cfr
                end do
             end do
          end do
       else
-         do inl=1,2
-            do i=0,nmax
+         do i=nst,nmax+nst
+            do inl=1,2
                do ig=1,ng
-                  cfr=c(1,ig,i,inl)
-                  cfi=c(2,ig,i,inl)
-                  c(1,ig,i,inl)=fac(1,ig)*cfr-fac(2,ig)*cfi
-                  c(2,ig,i,inl)=fac(2,ig)*cfr+fac(1,ig)*cfi
+                  cfr=c(1,ig,inl,i)
+                  cfi=c(2,ig,inl,i)
+                  c(1,ig,inl,i)=fac(1,ig)*cfr-fac(2,ig)*cfi
+                  c(2,ig,inl,i)=fac(2,ig)*cfr+fac(1,ig)*cfi
                end do
             end do
          end do
@@ -1556,7 +1887,8 @@ module gaussdaub
       !the grid point closest to the center
       i0=nint(x0) ! the array is centered at i0
       z0=x0-real(i0,gp)
-  
+
+      !print *,'XXXXXXXXX',ncplx_a,kval,leftx,rightx
       !this part has to be extended to the different cases
       if (ncplx_a==1) then
          if (kval==0.0_gp) then
@@ -1628,6 +1960,7 @@ module gaussdaub
       cv2=cos(k*rk)
       sv2=sin(k*rk)        
       fn=safe_exp(-r2)
+      !fn=mp_exp(hgrid,x0,pgauss,(/(j,j=-npts,npts)/),pow,.true.)
       fn=coeff(n_gau,r)*fn
       func(1)=fn*(cval*cv2-sval*sv2)
       func(2)=fn*(cval*sv2+sval*cv2)
@@ -1663,7 +1996,6 @@ module gaussdaub
       func(2)=fn*sval
 
     end function collocate_gaussian_c0
-
 
     !> real exponent, k-point
     pure function collocate_gaussian_rk(n_gau,a,r,k,rk) result(func)
@@ -1708,7 +2040,6 @@ module gaussdaub
       func=coeff(n_gau,r)*func
 
     end function collocate_gaussian_r0
-
     
     pure function coeff(n_gau,r)
       implicit none

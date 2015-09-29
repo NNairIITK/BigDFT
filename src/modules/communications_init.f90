@@ -3815,7 +3815,8 @@ module communications_init
       integer(kind=8) :: ii, iis, iie
       integer(kind=8),dimension(2) :: iiis, iiie, nlen
       integer(kind=8) :: is
-      integer :: n, j
+      integer(kind=8) :: n
+      integer :: j
     
       call f_routine(id='communication_arrays_repartitionrho_general')
 
@@ -3883,7 +3884,7 @@ module communications_init
               end if
               !!write(*,'(a,11i11)') 'iproc, jproc, iis, iie, ise(1), ise(2), n, iiis, iiie', iproc, jproc, iis, iie, istartend(1,jproc), istartend(2,jproc), n, iiis, iiie
               !jproc_send=jproc_send+1
-              ncomms_repartitionrho=ncomms_repartitionrho+n
+              ncomms_repartitionrho=ncomms_repartitionrho+int(n,kind=4)
               !end if
           end do
           !@END NEW #####################
@@ -3952,7 +3953,7 @@ module communications_init
                   call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)
                   !write(*,'(a,12i8)') 'iproc, iis,iie,istartend(:,jproc), n, iiis, iiie, nlen', iproc, iis,iie,istartend(:,jproc), n, iiis, iiie, nlen
                   ! Do nothing if n==0
-                  do j=1,n
+                  do j=1,int(n,kind=4)
                       !jproc_send=jproc_send+1
                       ioverlaps=ioverlaps+1
                       !call get_extent_of_overlap(iis,iie,istartend(1,jproc),istartend(2,jproc), n, iiis, iiie, nlen)

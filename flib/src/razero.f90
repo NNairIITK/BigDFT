@@ -7,12 +7,128 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 
+!SM: overload subroutines such that they can be called with size n being a 4 or 8 byte integer.
+!!   Define the interface with 
+module module_razero
+
+  private
+
+  public :: razero, razero_complex, razero_simple, razero_integer, razero_integerlong
+
+  interface razero
+    module procedure razero_i_interface, razero_li_interface
+  end interface razero
+
+  interface razero_complex
+    module procedure razero_complex_i_interface, razero_complex_li_interface
+  end interface razero_complex
+
+  interface razero_simple
+    module procedure razero_simple_i_interface, razero_simple_li_interface
+  end interface razero_simple
+
+  interface razero_integer
+    module procedure razero_integer_i_interface, razero_integer_li_interface
+  end interface razero_integer
+
+  interface razero_integerlong
+    module procedure razero_integerlong_i_interface, razero_integerlong_li_interface
+  end interface razero_integerlong
+
+
+  contains
+
+    subroutine razero_i_interface(n,x)
+      implicit none
+      !Arguments
+      integer(kind=4), intent(in) :: n
+      double precision, intent(out) :: x
+      call razero_i(n,x)
+    end subroutine razero_i_interface
+
+    subroutine razero_li_interface(n,x)
+      implicit none
+      !Arguments
+      integer(kind=8), intent(in) :: n
+      double precision, intent(out) :: x
+      call razero_li(n,x)
+    end subroutine razero_li_interface
+
+
+    subroutine razero_complex_i_interface(n,x)
+      implicit none
+      !Arguments
+      integer(kind=4), intent(in) :: n
+      double complex, intent(out) :: x
+      call razero_complex_i(n,x)
+    end subroutine razero_complex_i_interface
+
+    subroutine razero_complex_li_interface(n,x)
+      implicit none
+      !Arguments
+      integer(kind=8), intent(in) :: n
+      double complex, intent(out) :: x
+      call razero_complex_li(n,x)
+    end subroutine razero_complex_li_interface
+
+
+    subroutine razero_simple_i_interface(n,x)
+      implicit none
+      !Arguments
+      integer(kind=4), intent(in) :: n
+      real(kind=4), intent(out) :: x
+      call razero_simple_i(n,x)
+    end subroutine razero_simple_i_interface
+
+    subroutine razero_simple_li_interface(n,x)
+      implicit none
+      !Arguments
+      integer(kind=8), intent(in) :: n
+      real(kind=4), intent(out) :: x
+      call razero_simple_li(n,x)
+    end subroutine razero_simple_li_interface
+
+
+    subroutine razero_integer_i_interface(n,x)
+      implicit none
+      !Arguments
+      integer(kind=4), intent(in) :: n
+      integer(kind=4), intent(out) :: x
+      call razero_integer_i(n,x)
+    end subroutine razero_integer_i_interface
+
+    subroutine razero_integer_li_interface(n,x)
+      implicit none
+      !Arguments
+      integer(kind=8), intent(in) :: n
+      integer(kind=4), intent(out) :: x
+      call razero_integer_li(n,x)
+    end subroutine razero_integer_li_interface
+
+
+    subroutine razero_integerlong_i_interface(n,x)
+      implicit none
+      !Arguments
+      integer(kind=4), intent(in) :: n
+      integer(kind=8), intent(out) :: x
+      call razero_integerlong_i(n,x)
+    end subroutine razero_integerlong_i_interface
+
+    subroutine razero_integerlong_li_interface(n,x)
+      implicit none
+      !Arguments
+      integer(kind=8), intent(in) :: n
+      integer(kind=8), intent(out) :: x
+      call razero_integerlong_li(n,x)
+    end subroutine razero_integerlong_li_interface
+
+end module module_razero
 
 !> Routine initialize double precision arrays to zero
-subroutine razero(n,x)
+subroutine razero_i(n,x)
   implicit none
   !Arguments
-  integer, intent(in) :: n
+  integer(kind=4), intent(in) :: n
   double precision, dimension(n), intent(out) :: x
   !Local variables
   integer :: i
@@ -26,15 +142,74 @@ subroutine razero(n,x)
   end do
   !$omp enddo
   !$omp end parallel
+end subroutine razero_i
 
-end subroutine razero
+subroutine razero_li(n,x)
+  implicit none
+  !Arguments
+  integer(kind=8), intent(in) :: n
+  double precision, dimension(n), intent(out) :: x
+  !Local variables
+  integer :: i
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=0.d0
+  end do
+  !$omp enddo
+  !$omp end parallel
+end subroutine razero_li
+
+
+!> Routine initialize double complex arrays to zero
+subroutine razero_complex_i(n,x)
+  implicit none
+  !Arguments
+  integer(kind=4), intent(in) :: n
+  double complex, dimension(n), intent(out) :: x
+  !Local variables
+  integer :: i
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=(0.d0,0.d0)
+  end do
+  !$omp enddo
+  !$omp end parallel
+end subroutine razero_complex_i
+
+subroutine razero_complex_li(n,x)
+  implicit none
+  !Arguments
+  integer(kind=8), intent(in) :: n
+  double complex, dimension(n), intent(out) :: x
+  !Local variables
+  integer :: i
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=(0.d0,0.d0)
+  end do
+  !$omp enddo
+  !$omp end parallel
+end subroutine razero_complex_li
+
 
 
 !> Set to zero an array x(n)
-subroutine razero_simple(n,x)
+subroutine razero_simple_i(n,x)
   implicit none
   !Arguments
-  integer, intent(in) :: n
+  integer(kind=4), intent(in) :: n
   real(kind=4), intent(out) :: x(n)
   !Local variables
   integer :: i
@@ -49,36 +224,35 @@ subroutine razero_simple(n,x)
   end do
   !$omp enddo
   !$omp end parallel
+END SUBROUTINE razero_simple_i
 
-  !!do i=1,n
-  !!   x(i)=0.e0
-  !!end do
-  !m=mod(n,7)
-  !if (m/=0) then
-  !    do i=1,m
-  !        x(i)=0.e0
-  !    end do
-  !    if (n<7) return
-  !end if
-  !m=m+1
-  !do i=m,n,7
-  !    x(i+0)=0.e0
-  !    x(i+1)=0.e0
-  !    x(i+2)=0.e0
-  !    x(i+3)=0.e0
-  !    x(i+4)=0.e0
-  !    x(i+5)=0.e0
-  !    x(i+6)=0.e0
-  !end do
-END SUBROUTINE razero_simple
+subroutine razero_simple_li(n,x)
+  implicit none
+  !Arguments
+  integer(kind=8), intent(in) :: n
+  real(kind=4), intent(out) :: x(n)
+  !Local variables
+  integer :: i,m
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=0.e0
+  end do
+  !$omp enddo
+  !$omp end parallel
+END SUBROUTINE razero_simple_li
+
 
 
 !> Set to zero an array x(n)
-subroutine razero_integer(n,x)
+subroutine razero_integer_i(n,x)
   implicit none
   !Arguments
-  integer, intent(in) :: n
-  integer, dimension(n), intent(out) :: x
+  integer(kind=4), intent(in) :: n
+  integer(kind=4), dimension(n), intent(out) :: x
   !Local variables
   integer :: i
   !integer :: m
@@ -92,35 +266,34 @@ subroutine razero_integer(n,x)
   end do
   !$omp enddo
   !$omp end parallel
+END SUBROUTINE razero_integer_i
 
-  !!!!do i=1,n
-  !!!!   x(i)=0
-  !!!!end do
-  !!m=mod(n,7)
-  !!if (m/=0) then
-  !!    do i=1,m
-  !!        x(i)=0
-  !!    end do
-  !!    if (n<7) return
-  !!end if
-  !!m=m+1
-  !!do i=m,n,7
-  !!    x(i+0)=0
-  !!    x(i+1)=0
-  !!    x(i+2)=0
-  !!    x(i+3)=0
-  !!    x(i+4)=0
-  !!    x(i+5)=0
-  !!    x(i+6)=0
-  !!end do
-END SUBROUTINE razero_integer
+subroutine razero_integer_li(n,x)
+  implicit none
+  !Arguments
+  integer(kind=8), intent(in) :: n
+  integer(kind=4), dimension(n), intent(out) :: x
+  !Local variables
+  integer :: i,m
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=0
+  end do
+  !$omp enddo
+  !$omp end parallel
+END SUBROUTINE razero_integer_li
+
 
 
 !> Set to zero an array x(n)
-subroutine razero_integerlong(n,x)
+subroutine razero_integerlong_i(n,x)
   implicit none
   !Arguments
-  integer, intent(in) :: n
+  integer(kind=4), intent(in) :: n
   integer(kind=8), dimension(n), intent(out) :: x
   !Local variables
   integer :: i
@@ -135,29 +308,27 @@ subroutine razero_integerlong(n,x)
   end do
   !$omp enddo
   !$omp end parallel
+END SUBROUTINE razero_integerlong_i
 
+subroutine razero_integerlong_li(n,x)
+  implicit none
+  !Arguments
+  integer(kind=8), intent(in) :: n
+  integer(kind=8), dimension(n), intent(out) :: x
+  !Local variables
+  integer :: i,m
+  !$ logical :: omp_in_parallel,do_omp
+  !$ do_omp = n > 1024
+  !$ if (do_omp) do_omp= .not. omp_in_parallel()
+  !$omp parallel if (do_omp) shared(x,n) private(i)
+  !$omp do
+  do i=1,n
+      x(i)=int(0,kind=8)
+  end do
+  !$omp enddo
+  !$omp end parallel
+END SUBROUTINE razero_integerlong_li
 
-  !!!!do i=1,n
-  !!!!   x(i)=0
-  !!!!end do
-  !!m=mod(n,7)
-  !!if (m/=0) then
-  !!    do i=1,m
-  !!        x(i)=int(0,kind=8)
-  !!    end do
-  !!    if (n<7) return
-  !!end if
-  !!m=m+1
-  !!do i=m,n,7
-  !!    x(i+0)=int(0,kind=8)
-  !!    x(i+1)=int(0,kind=8)
-  !!    x(i+2)=int(0,kind=8)
-  !!    x(i+3)=int(0,kind=8)
-  !!    x(i+4)=int(0,kind=8)
-  !!    x(i+5)=int(0,kind=8)
-  !!    x(i+6)=int(0,kind=8)
-  !!end do
-END SUBROUTINE razero_integerlong
 
 !!!> Set to zero an array x(n): omp version of razero
 !!subroutine omp_razero(n,x)
@@ -280,16 +451,6 @@ subroutine icopy(n,dx,incx,dy,incy)
 end subroutine icopy
 
 
-!> Module used in the builtin_rand function (see razero.f90)
-module randomData
-  implicit none
-
-  integer, parameter :: ntab=32
-
-  logical :: start = .true.
-  integer :: iy = 0
-  integer, dimension(NTAB) :: iv
-end module randomData
 
 
 !> Random Number generator from Numerical Recipes
@@ -430,7 +591,7 @@ end subroutine diff_ci
 subroutine f_itoa(n,src,dest)
   implicit none
   integer, intent(in) :: n
-  integer, dimension(n), intent(in) :: src
+  integer(kind=4), dimension(n), intent(in) :: src
   character, dimension(n), intent(out) :: dest
   !local variables
   integer :: i
@@ -442,11 +603,27 @@ subroutine f_itoa(n,src,dest)
 end subroutine f_itoa
 
 
+subroutine f_litoa(n,src,dest)
+  use f_precisions, only: f_long
+  implicit none
+  integer, intent(in) :: n
+  integer(f_long), dimension(n), intent(in) :: src
+  character, dimension(n), intent(out) :: dest
+  !local variables
+  integer :: i
+  
+  do i=1,n
+     dest(i)=achar(src(i))
+  end do
+
+end subroutine f_litoa
+
 subroutine f_atoi(n,src,dest)
+  use f_precisions, only: f_integer
   implicit none
   integer, intent(in) :: n
   character, dimension(n), intent(in) :: src
-  integer, dimension(n), intent(out) :: dest
+  integer(f_integer), dimension(n), intent(out) :: dest
   !local variables
   integer :: i
   
@@ -455,3 +632,44 @@ subroutine f_atoi(n,src,dest)
   end do
 
 end subroutine f_atoi
+
+subroutine f_atoli(n,src,dest)
+  use f_precisions, only: f_long
+  implicit none
+  integer, intent(in) :: n
+  character, dimension(n), intent(in) :: src
+  integer(f_long), dimension(n), intent(out) :: dest
+  !local variables
+  integer :: i
+  
+  do i=1,n
+     dest(i)=ichar(src(i))
+  end do
+
+end subroutine f_atoli
+
+!> set nbytes term to zero
+subroutine setzero(nbytes,x)
+  use f_precisions, only: f_long
+  implicit none
+  integer(f_long), intent(in) :: nbytes
+  character, dimension(nbytes), intent(inout) :: x
+  !local variables
+  integer :: nthreads,ithread
+  !$ integer omp_get_max_threads,omp_get_thread_num
+  integer(f_long) :: nbt,it,nt,nb
+
+  if (nbytes == 0_f_long) return
+  nthreads=1
+  ithread=0
+  !$ nthreads=omp_get_max_threads()
+  nt=int(nthreads,f_long)
+  nbt=(nbytes+nt-1)/nt
+  !$omp parallel private(ithread,it,nb) 
+  !$ ithread=omp_get_thread_num()
+  !calculate the number of elements for each thread
+  it=min(nbt*ithread,nbytes-1)
+  nb=min(nbytes-it,nbt)
+  call memsetzero(x(it+1),nb)
+  !$omp end parallel
+end subroutine setzero
