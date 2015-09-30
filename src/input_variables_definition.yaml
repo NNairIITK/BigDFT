@@ -1139,9 +1139,22 @@
        COMMENT: number of neighbours to output for each fragment
        DESCRIPTION: |
                     possible value: 1 nonnegative-integer number
-                    Indicates how many neighbouring atoms should be written to frag_env.xyz.
+                    Indicates how many neighbouring atoms should be written to frag_env.xyz  - only allow for a small number of neighbours
        RANGE: [0,4]
        default: 0
+     cdft_lag_mult_init:
+       COMMENT: CDFT initial value for Lagrange multiplier
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    The sign is set automatically based on the charge to be constrained
+       default: 0.05d0
+       RANGE: [0.0,10.0]
+     cdft_conv_crit:
+       COMMENT: CDFT convergence threshold for the constrained charge
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+       default: 1.e-2
+       RANGE: [1.e-20,1.0]
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical

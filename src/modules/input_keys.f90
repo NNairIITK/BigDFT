@@ -118,7 +118,9 @@ module module_input_keys
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
      real(kind=8) :: max_inversion_error
-    logical :: calculate_onsite_overlap
+     real(kind=8) :: cdft_lag_mult_init !< Initial value for lagrange multiplier
+     real(kind=8) :: cdft_conv_crit     !< Convergence threshold for cdft charge
+     logical :: calculate_onsite_overlap
      integer :: output_mat_format     !< Output Matrices format
      integer :: output_coeff_format   !< Output Coefficients format
      integer :: output_fragments   !< Output fragments/full system/both
@@ -1920,6 +1922,10 @@ contains
           in%lin%kernel_restart_mode = val
        case (FRAG_NUM_NEIGHBOURS)
           in%lin%frag_num_neighbours = val
+       case (CDFT_LAG_MULT_INIT)
+          in%lin%cdft_lag_mult_init = val
+       case (CDFT_CONV_CRIT)
+          in%lin%cdft_conv_crit = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
        case (CALC_PULAY)

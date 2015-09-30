@@ -795,16 +795,16 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   end if
 
 
-  if (iproc==0) then
-      open(27)
-      do itmb=1,tmb%orbs%norb
-        do jtmb=1,tmb%orbs%norb
-           write(27,*) itmb,jtmb,tmb%linmat%kernel_%matrix(itmb,jtmb,1)
-        end do
-      end do
-     write(27,*) ''
-     close(27)
-  end if 
+  !if (iproc==0) then
+  !    open(27)
+  !    do itmb=1,tmb%orbs%norb
+  !      do jtmb=1,tmb%orbs%norb
+  !         write(27,*) itmb,jtmb,tmb%linmat%kernel_%matrix(itmb,jtmb,1)
+  !      end do
+  !    end do
+  !   write(27,*) ''
+  !   close(27)
+  !end if 
 
 
   call compress_matrix(iproc,tmb%linmat%l,inmat=tmb%linmat%kernel_%matrix,outmat=tmb%linmat%kernel_%matrix_compr)  
@@ -837,7 +837,7 @@ contains
     implicit none
 
     integer :: itmb_full, jtmb_full, ntmb
-    logical, parameter :: nn_only=.true.
+    logical, parameter :: nn_only=.false.
 
     ! add loop over spin
 

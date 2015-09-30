@@ -268,10 +268,13 @@ module io
                   !tmb frag -> atom frag
                   frag_map(iforb,2)=onwhichatom_frag
                   !atom frag -> atom full
-                  frag_map(onwhichatom_frag,3)=iiat
+                  !fill this in after allreduce otherwise might be modifying on more than one mpi
+                  !frag_map(onwhichatom_frag,3)=iiat
 
                   !debug
                   !print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag,iforb
+                  !write(*,'(A,7(1x,I4))') 'iproc,iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',&
+                  !     iproc,iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag,iforb
 
                   shift = 1
                   do jorb = 1, iorbp-1 
@@ -313,7 +316,27 @@ module io
                call mpiallred(frag_map, mpi_sum, comm=bigdft_mpi%mpi_comm)
             end if
 
-    
+            ! reconstruct atom->atom mapping part
+            do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+               !frag_map(iforb,1)=iiorb
+               !frag_map(iforb,2)=onwhichatom_frag
+               iiorb=frag_map(iforb,1)
+               iiat=orbs%onwhichatom(iiorb)
+               onwhichatom_frag=frag_map(iforb,2)
+               frag_map(onwhichatom_frag,3)=iiat
+            end do
+
+            !debug
+            !if (iproc==0) then
+            !   do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+            !      if (iorb<=ref_frags(ifrag_ref)%astruct_frg%nat) then
+            !         write(*,'(A,6(1x,I4),3(1x,F12.6))') 'iproc,ifrag,ifrag_ref',iproc,ifrag,ifrag_ref,frag_map(iorb,:),rxyz(:,frag_map(iorb,3))
+            !      else
+            !         write(*,'(A,6(1x,I4))') 'iproc,ifrag,ifrag_ref',iproc,ifrag,ifrag_ref,frag_map(iorb,:)
+            !      end if
+            !   end do
+            !end if
+
             ! write environment coordinates 
             ! make use of frag_map(onwhichatom_frag,3)=iiat (atom frag -> atom full)
             if (num_neighbours/=0) then

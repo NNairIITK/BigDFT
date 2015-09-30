@@ -1063,7 +1063,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      nullify(in_frag_charge)
      if (input%lin%constrained_dft) then
         call cdft_data_init(cdft,input%frag,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,&
-             input%lin%calc_transfer_integrals)
+             input%lin%calc_transfer_integrals,input%lin%cdft_lag_mult_init)
         if (input%lin%calc_transfer_integrals) then
            in_frag_charge=f_malloc_ptr(input%frag%nfrag,id='in_frag_charge')
            call vcopy(input%frag%nfrag,input%frag%charge(1),1,in_frag_charge(1),1)
@@ -2457,7 +2457,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      nullify(in_frag_charge)
      if (in%lin%constrained_dft) then
         call cdft_data_init(cdft,in%frag,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,&
-             in%lin%calc_transfer_integrals)
+             in%lin%calc_transfer_integrals,in%lin%cdft_lag_mult_init)
         if (in%lin%calc_transfer_integrals) then
            in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
            call vcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
@@ -2696,6 +2696,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call timing(iproc,'constraineddft','OF')
 
+     !call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
+     !     atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
      !*call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'density.cube', &
      !*     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
 

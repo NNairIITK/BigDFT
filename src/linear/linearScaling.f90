@@ -280,7 +280,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      valpha=0.5_gp
      !best_charge_diff=vgrad_old
      coeff_tmp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_tmp')
-     cdft_charge_thresh=1.e-2
+     cdft_charge_thresh=input%lin%cdft_conv_crit
      call timing(iproc,'constraineddft','OF')
      call timing(iproc,'linscalinit','ON')
   end if

@@ -1592,17 +1592,22 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         ifrag_ref=input_frag%frag_index(ifrag)
 
         ! check if we need this fragment transformation on this proc
-        skip=.true.
-        do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-           do iorbp=1,tmb%orbs%norbp
-              iiorb=iorbp+tmb%orbs%isorb
-              ! check if this ref frag orbital corresponds to the orbital we want
-              if (iiorb==iforb+isforb) then
-                 skip=.false.
-                 exit
-              end if
+        ! if this is an environment calculation we need mapping on all mpi, so easier to just calculate all transformations on all procs
+        if (ref_frags(ifrag_ref)%astruct_env%nat/=0) then
+           skip=.false.
+        else
+           skip=.true.
+           do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+              do iorbp=1,tmb%orbs%norbp
+                 iiorb=iorbp+tmb%orbs%isorb
+                 ! check if this ref frag orbital corresponds to the orbital we want
+                 if (iiorb==iforb+isforb) then
+                    skip=.false.
+                    exit
+                 end if
+              end do
            end do
-        end do
+        end if
 
         if (skip) then
            isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
@@ -1664,8 +1669,6 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
               rxyz_frg_new(:,iat)=rxyz(:,isfat+iat)
            end do
-
-           iiat=tmb%orbs%onwhichatom(iiorb)
 
            !this should just be the fragment centre - fragment xyz comes first in rxyz_env so this should be ok
            frag_trans_frag(ifrag)%rot_center=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,&
@@ -1745,7 +1748,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            !then try to find ordering which gives lowest Wahba error
            !also give preference to zero rotation
            !write(*,'(A)') 'Problem matching environment atoms to new coordinates, attempting to find correct order'
-           write(*,'(A)') 'Checking for ordering giving a more accurate transformation/no rotation'
+           !write(*,'(A)') 'Checking for ordering giving a more accurate transformation/no rotation'
         
            num_env=ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat
 
@@ -1797,7 +1800,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            end do
            ! use this as final transformation
            if (minperm/=-1) then
-              write(*,'(A,I3,2x,2(F12.6,2x))') 'Final value of cost function:',minperm,minerror,mintheta
+              write(*,'(A,I3,2x,2(F12.6,2x))') 'Final value of cost function:',minperm,minerror,mintheta/(4.0_gp*atan(1.d0)/180.0_gp)
               do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
                  rxyz_new_trial(:,iat) &
                       = rxyz_new(:,ref_frags(ifrag_ref)%astruct_frg%nat &
@@ -1827,9 +1830,9 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               end do
               if (itmb /= ref_frags(ifrag_ref)%nbasis_env) stop 'Error with nbasis_env'
 
-              do iorb=1,ref_frags(ifrag_ref)%nbasis_env
-                 write(*,'(A,5(1x,I4))') 'mapping: ',ifrag,ifrag_ref,frag_env_mapping(ifrag,iorb,:)
-              end do
+              !do iorb=1,ref_frags(ifrag_ref)%nbasis_env
+              !   write(*,'(A,5(1x,I4))') 'mapping: ',ifrag,ifrag_ref,frag_env_mapping(ifrag,iorb,:)
+              !end do
 
            else
               stop 'Error finding environment transformation'
@@ -1843,17 +1846,17 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
         end if
 
-        write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),2(F12.6,1x))') 'ifrag,ifrag_ref,rot_axis,theta,error',&
-             ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),Werror
-        write(*,*) ''
+        !write(*,'(A,1x,I3,1x,I3,1x,3(F12.6,1x),2(F12.6,1x))') 'ifrag,ifrag_ref,rot_axis,theta,error',&
+        !     ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),Werror
+        !write(*,*) ''
 
         isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
         isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
      end do
 
-     if (bigdft_mpi%nproc > 1) then
-        call mpiallred(frag_env_mapping, mpi_sum, comm=bigdft_mpi%mpi_comm)
-     end if
+     !if (bigdft_mpi%nproc > 1) then
+     !   call mpiallred(frag_env_mapping, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     !end if
 
      allocate(frag_trans_orb(tmb%orbs%norbp))
 
