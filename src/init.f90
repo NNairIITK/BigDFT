@@ -429,8 +429,8 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, only: read_density
   use public_enums
+  use IObox
   implicit none
   integer, intent(in) :: iproc, nproc
   type(orbitals_data), intent(in) :: orbs
@@ -443,8 +443,10 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   real(kind=8), dimension(:), pointer :: hpsi, psit
 
   character(len = *), parameter :: subname = "input_wf_empty"
-  integer :: nspin, n1i, n2i, n3i, ispin, ierr
-  real(gp) :: hxh, hyh, hzh
+  integer :: nspin, ispin, ierr !n1i, n2i, n3i, 
+  !real(gp) :: hxh, hyh, hzh
+  integer, dimension(3) :: ndims
+  real(gp), dimension(3) :: hgrids
 
   !allocate fake psit and hpsi
   hpsi = f_malloc_ptr(max(orbs%npsidim_comp,orbs%npsidim_orbs),id='hpsi')
@@ -459,9 +461,12 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
      if (iproc == 0) then
         call yaml_map('Reading local potential from file:',trim(band_structure_filename))
         !write(*,'(1x,a)')'Reading local potential from file:'//trim(band_structure_filename)
-         call read_density(trim(band_structure_filename),atoms%astruct%geocode,&
-                 n1i,n2i,n3i,nspin,hxh,hyh,hzh,denspot%Vloc_KS)
-        !if (nspin /= input_spin) stop
+        call read_field_dimensions(trim(band_structure_filename),&
+             atoms%astruct%geocode,ndims,nspin)
+        denspot%Vloc_KS = f_malloc_ptr([ndims(1),ndims(2),ndims(3),input_spin],id='denspot%Vloc_KS')
+        !> Read a density file using file format depending on the extension.
+        call read_field(trim(band_structure_filename),&
+             atoms%astruct%geocode,ndims,hgrids,nspin,product(ndims),input_spin,denspot%Vloc_KS)
         if (f_err_raise(nspin /= input_spin,&
              'The value nspin reading from the file is not the same',&
              err_name='BIGDFT_RUNTIME_ERROR')) return

@@ -88,11 +88,11 @@ sub_dirs_libconfig=
 endif
 
 if HAVE_ETSF_IO
-etsf_files = wavelib/plotting-etsf.f90 \
-	wavelib/i-o-etsf.f90
+etsf_files = wavelib/plotting-etsf.f90
 else
 etsf_files = wavelib/etsf_fake.f90
 endif
+
 
 if HAVE_AMBERTOOLS
 amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
@@ -173,7 +173,6 @@ low_level = \
 	wfn_opt/kernel_per_optim.f90 \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/coupling_matrix.f90 \
-	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \
@@ -181,6 +180,7 @@ low_level = \
 	wavelib/un-compress.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
+	$(etsf_files) \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
 	linear/filterModule.f90 \

@@ -93,6 +93,11 @@ module wrapper_MPI
       module procedure mpiscatter_i1i1 
   end interface mpiscatter
 
+  interface mpiscatterv
+     module procedure mpiscatterv_d0
+     module procedure mpiscatterv_d2d3,mpiscatterv_d3d2
+  end interface mpiscatterv
+
   interface mpi_get_to_allgatherv
      module procedure mpi_get_to_allgatherv_double
   end interface mpi_get_to_allgatherv
@@ -1541,6 +1546,36 @@ contains
     include 'scatter-inc.f90'
   end subroutine mpiscatter_i1i1
 
+  subroutine mpiscatterv_d0(sendbuf, sendcounts, displs, recvbuf, recvcount, root, comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    real(f_double) :: sendbuf
+    real(f_double), intent(inout) :: recvbuf
+    include 'scatterv-decl-inc.f90'
+    include 'scatterv-inc.f90'
+  end subroutine mpiscatterv_d0
+
+  subroutine mpiscatterv_d2d3(sendbuf, sendcounts, displs, recvbuf, root, comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    real(f_double), dimension(:,:), intent(in) :: sendbuf
+    real(f_double), dimension(:,:,:), intent(out) :: recvbuf
+    include 'scatterv-decl-inc.f90'
+    recvcount=size(sendbuf)
+    include 'scatterv-inc.f90'
+  end subroutine mpiscatterv_d2d3
+
+  subroutine mpiscatterv_d3d2(sendbuf, sendcounts, displs, recvbuf, root, comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    real(f_double), dimension(:,:,:), intent(in) :: sendbuf
+    real(f_double), dimension(:,:), intent(out) :: recvbuf
+    include 'scatterv-decl-inc.f90'
+    recvcount=size(sendbuf)
+    include 'scatterv-inc.f90'
+  end subroutine mpiscatterv_d3d2
+
+  
   !> Detect the maximum difference between arrays all over a given communicator
   function mpimaxdiff_i0(n,array,root,source,comm,bcast) result(maxdiff)
     use dynamic_memory
@@ -1936,7 +1971,7 @@ contains
     ! Local variables
     integer :: ierr
 
-    call mpi_get(origin,count,mpitype(1.d0),target_rank, &
+    call mpi_get(origin,count,mpitype(origin),target_rank, &
          target_disp,count,mpitype(origin), window, ierr)
     if (ierr/=0) then
        call f_err_throw('Error in mpi_get',&

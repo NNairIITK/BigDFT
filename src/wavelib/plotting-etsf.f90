@@ -304,9 +304,7 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   n2i=2*n2+(1-nby)+2*nl2
   n3=n3t/2-nbz
   n3i=2*n3+(1-nbz)+2*nl3
-  if(associated(rho)) then
-     call f_free_ptr(rho)
-  end if
+  call f_free_ptr(rho)
   rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='rho')
   
   call etsf_io_low_open_read(ncid, trim(filename) // ".etsf.nc", lstat, error_data = error)
