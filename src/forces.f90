@@ -511,9 +511,9 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
   end if
   !Separable function: do 1-D integrals before and store it.
-  mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) /),id='mpx')
-  mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) /),id='mpy')
-  mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) /),id='mpz')
+  mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) + 1 /),id='mpx')
+  mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) + 1 /),id='mpy')
+  mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) + 1 /),id='mpz')
 
   do iat=1,at%astruct%nat
      ityp=at%astruct%iatype(iat)

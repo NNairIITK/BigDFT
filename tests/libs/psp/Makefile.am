@@ -2,7 +2,7 @@
 
 SUBDIRS = 
 
-EXTRA_DIST = psp.out.ref
+EXTRA_DIST = psp.ref.yaml
 
 check_PROGRAMS = check_psp
 
