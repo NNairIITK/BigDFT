@@ -442,7 +442,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
-  use module_atoms, only: nbox_max
   use module_dpbox
   implicit none
   !Arguments
@@ -487,12 +486,10 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!     enddo
 !!!  enddo
   charge=0.d0
-  !$omp parallel shared(dpbox,rho) private(boxit,tt) reduction(+:charge)
   boxit = dpbox_iter(dpbox,DPB_POT)
   do while(dpbox_iter_next(boxit))
      charge = charge + rho(boxit%ind)
   end do
-  !$omp end parallel
   charge=charge*hxh*hyh*hzh
 
 !!!  if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
@@ -508,11 +505,15 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!  call ext_buffers(perz,nbl3,nbr3)
 
   !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-  call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
+  cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+  if (at%multipole_preserving) then
+     !We want to have a good accuracy of the last point rloc*10
+     cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+  end if
   !Separable function: do 1-D integrals before and store it.
-  mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-  mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-  mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+  mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) /),id='mpx')
+  mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) /),id='mpy')
+  mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) /),id='mpz')
 
   do iat=1,at%astruct%nat
      ityp=at%astruct%iatype(iat)
@@ -579,14 +580,15 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
      !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
      !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+     !Use a shift for mpx, mpy, mpz
      do i1=nbox(1,1),nbox(2,1)
-        mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+        mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
      end do
      do i2=nbox(1,2),nbox(2,2)
-        mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+        mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
      end do
      do i3=nbox(1,3),nbox(2,3)
-        mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+        mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
      end do
      
      !$omp parallel default(none) &
@@ -618,7 +620,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      !Calculate forces for all atoms only in the distributed part of the simulation box
      boxit = dpbox_iter(dpbox,DPB_POT,nbox)
      do while(dpbox_iter_next(boxit))
-        xp = mpx(boxit%ibox(1)) * mpy(boxit%ibox(2)) * mpz(boxit%ibox(3))
+        xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
         x = boxit%x - rx
         y = boxit%y - ry
         z = boxit%z - rz

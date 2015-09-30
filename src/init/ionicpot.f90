@@ -311,11 +311,15 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
         !(and save the values for the ionic potential)
 
         !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-        call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
+        cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+        if (at%multipole_preserving) then
+           !We want to have a good accuracy of the last point rloc*10
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+        end if
         !Separable function: do 1-D integrals before and store it.
-        mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-        mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-        mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+        mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) /),id='mpx')
+        mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) /),id='mpy')
+        mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) /),id='mpz')
 
         atit = atoms_iter(at%astruct)
         do while(atoms_iter_next(atit))
@@ -379,13 +383,13 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
            !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
            do i1=nbox(1,1),nbox(2,1)
-              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+              mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
            end do
            do i2=nbox(1,2),nbox(2,2)
-              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+              mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
            end do
            do i3=nbox(1,3),nbox(2,3)
-              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+              mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
        
            boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
@@ -419,7 +423,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 !!-           enddo
 
            do while(dpbox_iter_next(boxit))
-              xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+              xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
               pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
            end do
 
@@ -453,11 +457,15 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
      !calculate forces for all atoms only in the distributed part of the simulation box
      if (dpbox%n3pi >0 ) then
         !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-        call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
+        cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+        if (at%multipole_preserving) then
+           !We want to have a good accuracy of the last point rloc*10
+           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+        end if
         !Separable function: do 1-D integrals before and store it.
-        mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-        mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-        mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+        mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) /),id='mpx')
+        mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) /),id='mpy')
+        mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) /),id='mpz')
 
         atit = atoms_iter(at%astruct)
         do while(atoms_iter_next(atit))
@@ -526,13 +534,13 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
            !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
            do i1=nbox(1,1),nbox(2,1)
-              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+              mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
            end do
            do i2=nbox(1,2),nbox(2,2)
-              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+              mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
            end do
            do i3=nbox(1,3),nbox(2,3)
-              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+              mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
        
            boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
@@ -572,7 +580,7 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
 !!-           end do
 
            do while(dpbox_iter_next(boxit))
-              xp = mpx(boxit%ibox(1)) * mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+              xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
               Vel = pot_ion(boxit%ind)
               fxerf = fxerf + xp*Vel*(boxit%x-rx)
               fyerf = fyerf + xp*Vel*(boxit%y-ry)
@@ -1861,11 +1869,15 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   if (dpbox%n3pi >0 .and. .not. htoobig) then
 
      !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-     call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
+     cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+     if (at%multipole_preserving) then
+        !We want to have a good accuracy of the last point rloc*10
+        cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+     end if
      !Separable function: do 1-D integrals before and store it.
-     mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-     mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-     mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+     mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) /),id='mpx')
+     mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) /),id='mpy')
+     mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) /),id='mpz')
 
      atit = atoms_iter(at%astruct)
      do while(atoms_iter_next(atit))
@@ -1928,13 +1940,13 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
         !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
         !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
         do i1=nbox(1,1),nbox(2,1)
-           mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+           mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
         end do
         do i2=nbox(1,2),nbox(2,2)
-           mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+           mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
         end do
         do i3=nbox(1,3),nbox(2,3)
-           mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+           mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
         end do
     
         boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
@@ -1972,12 +1984,12 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 !!-          enddo
 
            do while(dpbox_iter_next(boxit))
-              xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+              xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
               pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
               !write(*,'(4(i0,1x),2(1pe20.10))') boxit%ibox(1),boxit%ibox(2),boxit%ibox(3),boxit%ind,xp,pot_ion(boxit%ind)
            end do
 
-       else
+        else
 
           !Calculate Ionic Density using splines, PAW case
 !!-          r2paw=at%pawtab(ityp)%rpaw**2
@@ -2032,7 +2044,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 
           r2paw=at%pawtab(atit%ityp)%rpaw**2
           do while(dpbox_iter_next(boxit))
-             xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+             xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
              r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
              rr = sqrt(r2)
              if (1==2) then
@@ -2210,11 +2222,15 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   if (dpbox%n3pi > 0) then
 
      !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-     call nbox_max(at,rxyz,hxh,hyh,hzh,nbox)
+     cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+     if (at%multipole_preserving) then
+        !We want to have a good accuracy of the last point rloc*10
+        cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+     end if
      !Separable function: do 1-D integrals before and store it.
-     mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-     mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-     mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+     mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) /),id='mpx')
+     mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) /),id='mpy')
+     mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) /),id='mpz')
 
      ! Only for HGH pseudos
      atit = atoms_iter(at%astruct)
@@ -2276,13 +2292,13 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
            !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
            !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
            do i1=nbox(1,1),nbox(2,1)
-              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+              mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
            end do
            do i2=nbox(1,2),nbox(2,2)
-              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+              mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
            end do
            do i3=nbox(1,3),nbox(2,3)
-              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+              mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
 
            ! Add the remaining local terms of Eq. (9) in JCP 129, 014109(2008)
@@ -2341,7 +2357,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 
              boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
              do while(dpbox_iter_next(boxit))
-                xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+                xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
                 r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
                 arg = r2*rlocinvsq
                 tt=at%psppar(0,nloc,atit%ityp)
@@ -2412,7 +2428,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 
             boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
             do while(dpbox_iter_next(boxit))
-               xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+               xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
                r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
                arg = r2*rlocinvsq
                rr(1)=sqrt(r2)
@@ -2870,6 +2886,17 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
 
   if (dpbox%n3pi >0 .and. .not. htoobig) then
 
+     !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
+     cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+     if (at%multipole_preserving) then
+        !We want to have a good accuracy of the last point rloc*10
+        cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+     end if
+     !Separable function: do 1-D integrals before and store it.
+     mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) /),id='mpx')
+     mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) /),id='mpy')
+     mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) /),id='mpz')
+
      atit = atoms_iter(at%astruct)
      do while(atoms_iter_next(atit))
        
@@ -2933,17 +2960,17 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
         nbox(2,3)=ceiling((rz+cutoff)/hzh)
     
         !Separable function: do 1-D integrals before and store it.
-        mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-        mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-        mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+        !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+        !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+        !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
         do i1=nbox(1,1),nbox(2,1)
-           mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+           mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
         end do
         do i2=nbox(1,2),nbox(2,2)
-           mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+           mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
         end do
         do i3=nbox(1,3),nbox(2,3)
-           mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+           mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
         end do
     
         boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
@@ -2975,7 +3002,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
 !!-        enddo
 
         do while(dpbox_iter_next(boxit))
-           xp = mpx(boxit%ibox(1))* mpy(boxit%ibox(2)) *  mpz(boxit%ibox(3))
+           xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
            pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
         end do
 
