@@ -33,7 +33,7 @@ subroutine f_utils_test()
   integer(f_integer), dimension(3) :: i4
   integer(f_long), dimension(3) :: il
   logical(f_byte), dimension(3) :: lb
-  character(len=256) :: path
+  !character(len=256) :: path
   logical, dimension(3) :: l
 
   r4=real(10.0,f_quadruple)

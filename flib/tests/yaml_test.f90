@@ -39,9 +39,6 @@ program yaml_test
    
    type(dictionary), pointer :: dict_tmp,run,dict_mp
    type(yaml_cl_parse) :: parser
-   integer :: ilist, imp
-   character(len=2) :: key
-   real(kind=8),dimension(3) :: rxyz
 
    call f_lib_initialize()
    !test output level

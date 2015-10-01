@@ -24,7 +24,6 @@ program PS_Check
   logical :: usegpu
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
-  character(len=50) :: chain
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,extra_ref

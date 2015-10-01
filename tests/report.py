@@ -67,7 +67,7 @@ toysucc = 0
 print "Final report for writings in stdout ('passed' means all significant floats are correct):"
 for file in files:
     dirc = os.path.normpath(os.path.dirname(file))
-    fic = "(%s)" % os.path.basename(file)
+    fic = "%s" % os.path.basename(file)
     dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.report',''))).strip()
     #Max value
     try:
@@ -130,8 +130,8 @@ for file in files:
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
     dirc = os.path.normpath(os.path.dirname(file))
-    fic = "(%s)" % os.path.basename(file)
-    dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.report.yaml',''))).strip()
+    fic = ("%s" % os.path.basename(file)).replace('.report.yaml','')
+    dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.out',''))).strip()
     documents=[a for a in yaml.load_all(open(file, "r").read(), Loader = yaml.CLoader)]
     #find whether all the tests have passed (look at last part)
     try:

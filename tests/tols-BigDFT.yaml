@@ -352,7 +352,7 @@ NLCC: &NLCCs
  EKS: 5.9e-11
  Total electronic charge: 1.2e-11
  norm(P): 1.0e-10
- GPa: 4.4e-11
+ GPa: 4.5e-11
 
 NLCC: &NLCCsnew
  EH: 5.1e-10
