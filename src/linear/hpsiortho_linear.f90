@@ -19,7 +19,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => calculate_energy_and_gradient_linear
+  use module_interfaces, only: preconditionall2
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_GATHER
   use communications, only: transpose_localized, untranspose_localized
   use sparsematrix_base, only: matrices, matrices_null, deallocate_matrices, &
@@ -33,6 +33,7 @@ subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
   use public_enums
   use orthonormalization, only: orthoconstraintNonorthogonal
+  use locreg_operations
   implicit none
 
   ! Calling arguments
@@ -676,9 +677,9 @@ end subroutine calculate_energy_and_gradient_linear
 subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, hpsit_f)
   use module_base
   use module_types
-  use module_interfaces, fake_name => calculate_residue_ks,fake_B=>calculate_energy_and_gradient_linear
+  !use module_interfaces, fake_name => calculate_residue_ks,fake_B=>calculate_energy_and_gradient_linear
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
-                               matrices_null, allocate_matrices, deallocate_matrices
+                               matrices_null, allocate_matrices, deallocate_matrices,copy_sparse_matrix
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed
@@ -810,7 +811,6 @@ subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_ortho
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, fake_name_A => hpsitopsi_linear,fake_name_C=>calculate_energy_and_gradient_linear
   use orthonormalization, only: orthonormalizeLocalized, iterative_orthonormalization
   implicit none
   

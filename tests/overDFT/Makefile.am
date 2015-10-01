@@ -1,35 +1,37 @@
 # Give here the list of existing tests
-TESTDIRS = \
-	C6H6-freq \
-	FF-LENOSKY \
+SHORT_TESTDIRS = FF-LENOSKY \
 	FF-LJ \
+	H2O-slab \
+	H2-freq
+
+if HAVE_ETSF_IO
+SHORT_TESTDIRS += IO-wf-ETSF
+endif
+
+if USE_OCL
+else
+#Add MINHOP (box too small)
+  SHORT_TESTDIRS += MINHOP
+endif
+
+LONG_TESTDIRS = $(SHORT_TESTDIRS) \
+	C6H6-freq \
 	GEOPT-all \
 	GEOPT-BFGS \
 	GEOPT-LBFGS \
 	GEOPT-newIG \
 	NH3 \
-	H2O-slab \
-	H2-freq \
 	NEB \
 	SPLSAD \
 	XabsCheb \
 	XabsLanc \
 	Xabsb2B \
 	BigDFT2Wannier \
-	testforces \
+	testforces\
 	IO-wf
 
 EXTRA_DIST = MH_taskgroups
 
-if HAVE_ETSF_IO
-TESTDIRS += IO-wf-ETSF
-endif
-
-if USE_OCL
-else
-#Add MINHOP (box too small)
-  TESTDIRS += MINHOP
-endif
 
 # Give here the pseudo-potentials used by each test.
 H2-freq.psp: psppar.H

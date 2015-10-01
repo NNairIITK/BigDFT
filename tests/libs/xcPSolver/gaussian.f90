@@ -26,7 +26,7 @@ program MP_gaussian
   integer :: nw,nwork
   real(gp), dimension(:,:), allocatable :: work
   integer :: i,j,imoms,pow,istep,isigma,unit
-  integer, parameter :: itype_scf = 16,nres=8
+  integer, parameter :: itype_scf = 16,nres=3
   integer :: n_scf,untplot,ml1,mu1
   integer :: istart, iend, i0, npf,ierr
   real(gp) :: pgauss,p0gauss,x0,x00,reference,max_phi,max_lag,scalar,tt,hh,diff

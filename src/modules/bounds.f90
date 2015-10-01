@@ -598,7 +598,7 @@ module bounds
     END SUBROUTINE squares
 
 
-    subroutine ext_buffers(periodic,nl,nr)
+    pure subroutine ext_buffers(periodic,nl,nr)
       implicit none
       logical, intent(in) :: periodic
       integer, intent(out) :: nl,nr

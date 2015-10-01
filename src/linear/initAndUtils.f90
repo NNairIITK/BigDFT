@@ -12,7 +12,6 @@ subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locreg
   use module_base
   use module_types
   use module_atoms, only: atomic_structure
-  use module_interfaces, exceptThisOne => initLocregs
   use locregs_init, only: determine_locregsphere_parallel
   implicit none
   
@@ -454,7 +453,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
            norb_par_ref, norbu_par_ref, norbd_par_ref)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => init_orbitals_data_for_linear
+  use module_interfaces, only: assignToLocreg2, orbitals_descriptors
   use public_enums
   implicit none
   
@@ -584,7 +583,6 @@ end subroutine init_orbitals_data_for_linear
 subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   use module_base
   use module_types
-  use module_interfaces
   use locregs, only: locreg_null
   implicit none
   
@@ -659,7 +657,7 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
            orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => update_locreg
+  use module_interfaces, only: initLocregs
   use communications_base, only: p2pComms, comms_linear_null, p2pComms_null, allocate_p2pComms_buffer
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
@@ -828,7 +826,6 @@ end subroutine deallocate_auxiliary_basis_function
 subroutine destroy_new_locregs(iproc, nproc, tmb)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => destroy_new_locregs
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   implicit none
@@ -856,7 +853,6 @@ end subroutine destroy_new_locregs
 subroutine destroy_DFT_wavefunction(wfn)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => destroy_DFT_wavefunction
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use foe_base, only: foe_data_deallocate
@@ -980,7 +976,7 @@ end subroutine update_wavefunctions_size
 subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, rxyz, lowaccur_converged)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: allocate_auxiliary_basis_function, update_locreg
   use psp_projectors, only: update_nlpsp
   implicit none
 
@@ -1090,7 +1086,6 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
      convcrit_dmin, nitdmin, conv_crit_TMB)
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output
   use public_enums
   implicit none
@@ -1252,7 +1247,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use foe_base, only: foe_data_deallocate
   use public_enums
   use locreg_operations, only: small_to_large_locreg
-  use module_interfaces
+  use module_interfaces, only: deallocate_auxiliary_basis_function, update_locreg
   implicit none
   
   ! Calling argument
@@ -1566,7 +1561,6 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
            conv_crit_TMB)
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output
   use public_enums
   implicit none
@@ -1650,7 +1644,6 @@ end subroutine set_variables_for_hybrid
 subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output
   use foe_base, only: foe_data
   implicit none

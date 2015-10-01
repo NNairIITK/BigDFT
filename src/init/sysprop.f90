@@ -16,7 +16,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
   use module_base
   use module_types
-  use module_interfaces, fake_name => system_initialization
+  use module_interfaces, only: createProjectorsArrays, createWavefunctionsDescriptors, &
+       & init_orbitals_data_for_linear, orbitals_descriptors,initlocregs,input_check_psi_id,initialize_linear_from_file
   use module_xc
   use module_fragments
   use vdwcorrection
@@ -26,6 +27,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use communications_init, only: orbitals_communicators
   use Poisson_Solver, only: pkernel_allocate_cavity
   use public_enums
+  use locreg_operations
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
@@ -102,7 +104,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
 
      !here the initialization of dpbox can be set up
      call dpbox_set(denspot%dpbox,Lzd,denspot%xc,iproc,nproc,bigdft_mpi%mpi_comm, &
-          & in%PSolver_groupsize, in%SIC%approach, atoms%astruct%geocode, in%nspin)
+          & in%PSolver_groupsize, in%SIC%approach, atoms%astruct%geocode, in%nspin,&
+          in%matacc%PSolver_igpu)
 
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
@@ -114,7 +117,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
           call pkernel_allocate_cavity(denspot%pkernel,&
           vacuum=.not. (denspot%pkernel%method .hasattr. 'sccs'))
 
-!!!TEST          call epsinnersccs_cavity(atoms,rxyz,denspot%pkernel)
+          call epsinnersccs_cavity(atoms,rxyz,denspot%pkernel)
 
         !if (denspot%pkernel%method .hasattr. 'sccs') &
         !     call pkernel_allocate_cavity(denspot%pkernel)
@@ -152,7 +155,6 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   lzd_lin=default_lzd()
   call nullify_local_zone_descriptors(lzd_lin)
   lzd_lin%nlr = 0
-
 
   ! Create linear orbs data structure.
   !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
@@ -787,7 +789,7 @@ END SUBROUTINE system_initialization
 subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   use module_types
   use module_xc
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_base
   implicit none
   logical, intent(in) :: verb
@@ -818,15 +820,20 @@ END SUBROUTINE system_initKernels
 subroutine system_createKernels(denspot, verb)
   use module_base
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   implicit none
   logical, intent(in) :: verb
+  integer(kind=8)  :: iproc_node, nproc_node
   type(DFT_local_fields), intent(inout) :: denspot
-
-  call pkernel_set(denspot%pkernel,verbose=verb)
+  iproc_node=0
+  nproc_node=0
+  call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+  call pkernel_set(denspot%pkernel,iproc_node=iproc_node,&
+                     nproc_node=nproc_node,verbose=verb)
     !create the sequential kernel if pkernelseq is not pkernel
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
-     call pkernel_set(denspot%pkernelseq,verbose=.false.)
+     call pkernel_set(denspot%pkernelseq,iproc_node=iproc_node,&
+                     nproc_node=nproc_node,verbose=.false.)
   else
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -840,7 +847,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   use module_atoms
   use ao_inguess, only: atomic_info
   !use yaml_output
-  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use numerics, only : Bohr_Ang
+  use module_base, only: bigdft_mpi
   use f_enums, f_str => str
   use yaml_output
   use dictionaries, only: f_err_throw
@@ -857,6 +865,15 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   real(gp), dimension(:), allocatable :: radii,radii_nofact
   real(gp), dimension(:,:,:), allocatable :: eps,oneoeps,oneosqrteps,corr
   real(gp), dimension(:,:,:,:), allocatable :: dlogeps
+  real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
+  real(dp), parameter :: alphaS = -22.0d0 ![dyn/cm]
+  real(dp), parameter :: betaV = -0.35d0 ![GPa]
+  real(dp) :: gammaSau, alphaSau,betaVau
+
+  gammaSau=gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  alphaSau=alphaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  betaVau=betaV/2.942191219d4 ! in atomic unit
+
   !set the vdW radii for the cavity definition
   !iterate above atoms
 
@@ -947,6 +964,21 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
 !       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
 
+  if (bigdft_mpi%iproc==0) then
+     call yaml_map('Surface integral',IntSur)
+     call yaml_map('Volume integral',IntVol)
+  end if
+  Cavene= gammaSau*IntSur*627.509469d0
+  Repene= alphaSau*IntSur*627.509469d0
+  Disene=  betaVau*IntVol*627.509469d0
+  noeleene=Cavene+Repene+Disene
+  if (bigdft_mpi%iproc==0) then
+     call yaml_map('Cavity energy',Cavene)
+     call yaml_map('Repulsion energy',Repene)
+     call yaml_map('Dispersion energy',Disene)
+     call yaml_map('Total non-electrostatic energy',noeleene)
+  end if
+
   !set the epsilon to the poisson solver kernel
 !  call pkernel_set_epsilon(pkernel,eps=eps)
 
@@ -954,26 +986,27 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 !!$  corr=0.d0
 !!$  oneosqrteps=1.d0
 
-  !starting point in third direction
-!  i3s=pkernel%grid%istart+1
-!  i23=1
-!  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
-!     do i2=1,pkernel%ndims(2)
-!        do i1=1,pkernel%ndims(1)
-!           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
-!        end do
-!        i23=i23+1
-!     end do
-!  end do
   !if(bigdft_mpi%iproc==0) call yaml_map('Im here',1)
 
   select case(trim(f_str(pkernel%method)))
   case('PCG')
-!   call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
-   call pkernel_set_epsilon(pkernel,eps=eps)
+   call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
+!   call pkernel_set_epsilon(pkernel,eps=eps)
   case('PI') 
    call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
   end select
+
+!!$  !starting point in third direction
+!!$  i3s=pkernel%grid%istart+1
+!!$  i23=1
+!!$  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
+!!$     do i2=1,pkernel%ndims(2)
+!!$        do i1=1,pkernel%ndims(1)
+!!$           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
+!!$        end do
+!!$        i23=i23+1
+!!$     end do
+!!$  end do
 
 !!$  unt=f_get_free_unit(21)
 !!$  call f_open_file(unt,file='oneoepsilon.dat')
@@ -1003,7 +1036,8 @@ subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
   use module_atoms
   use ao_inguess, only: atomic_info
   !use yaml_output
-  use module_defs, only : Bohr_Ang,bigdft_mpi
+  use numerics, only : Bohr_Ang
+  use module_base, only: bigdft_mpi
   use f_enums, f_str => str
   use yaml_output
   use dictionaries, only: f_err_throw
@@ -1036,7 +1070,7 @@ subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
 !  if(bigdft_mpi%iproc==0) call yaml_map('Delta cavity',delta)
 
   do i=1,atoms%astruct%nat
-   radii(i) = 1.5d0/Bohr_Ang
+   radii(i) = 0.5d0/Bohr_Ang
   end do
 !  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
 
@@ -1049,7 +1083,7 @@ subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
   i3s=pkernel%grid%istart+1
   if (pkernel%grid%n3p==0) i3s=1
 
-  call f_memcpy(n=n1*n23,src=eps(1,1,i3s),dest=pkernel%epsinnersccs)
+  call f_memcpy(n=n1*n23,src=eps(1,1,i3s),dest=pkernel%w%epsinnersccs)
 
   call f_free(radii)
   call f_free(eps)
@@ -1059,7 +1093,7 @@ end subroutine epsinnersccs_cavity
 subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: orbitals_descriptors
   use public_enums
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -1203,7 +1237,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
   logical, intent(inout) ::  donlcc
   
   !ALEX: Some local variables
-  real(gp):: fourpi, sqrt2pi
+  real(gp):: sqrt2pi
   character(len=2) :: symbol
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
@@ -1310,7 +1344,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
      read(line,*) rcore, qcore
      !convert the core charge fraction qcore to the amplitude of the Gaussian
      !multiplied by 4pi. This is the convention used in nlccpar(1,:).
-     fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
+     !fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
      sqrt2pi=sqrt(0.5_gp*fourpi)
      qcore=fourpi*qcore*real(nzatom-nelpsp,gp)/&
           (sqrt2pi*rcore)**3

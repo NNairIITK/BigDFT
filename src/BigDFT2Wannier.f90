@@ -13,7 +13,7 @@ program BigDFT2Wannier
 
    use BigDFT_API
    use bigdft_run
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_interfaces
    use yaml_output
    use module_input_dicts
@@ -22,6 +22,7 @@ program BigDFT2Wannier
    use communications_init, only: orbitals_communicators
    use communications, only: transpose_v, untranspose_v
    use bounds, only: ext_buffers
+   use locreg_operations
    implicit none
    character :: filetype*4
    !etsf
@@ -72,7 +73,7 @@ program BigDFT2Wannier
    integer, allocatable, dimension (:,:) :: G_vec
    integer, allocatable, dimension (:) :: excb,ipiv
    integer, allocatable, dimension (:) :: virt_list, amnk_bands_sorted
-   real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
+!   real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
 !   integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
    type(dictionary), pointer :: options
@@ -259,7 +260,7 @@ program BigDFT2Wannier
    ny=lzd%Glr%d%n2i
    nz=lzd%Glr%d%n3i
    n_at=atoms%astruct%nat
-   call initialize_work_arrays_sumrho(1,lzd%Glr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[lzd%Glr],.true.,w)
 
    ! Allocations for Amnk calculation
    npsidim2=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsp%norbp,sum(commsp%ncntt(0:nproc-1)))
@@ -2115,8 +2116,9 @@ END SUBROUTINE write_mmn
 subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
 
    use BigDFT_API
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use bounds, only: ext_buffers
+   use locreg_operations
    implicit none
    ! I/O variables
    type(locreg_descriptors), intent(in) :: Glr
@@ -2168,7 +2170,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    call split_vectors_for_parallel(0,1,n_virt+n_occ,orbsb)
    call split_vectors_for_parallel(0,1,n_virt,orbsv)
 
-   call initialize_work_arrays_sumrho(1,Glr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[Glr],.true.,w)
 
    ! Read occupied orbitals
    if(n_occ > 0) then

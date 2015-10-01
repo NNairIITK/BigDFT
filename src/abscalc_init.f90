@@ -9,7 +9,6 @@
 
 !> Fill the preconditioning projectors for a given atom 
 subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   initial_istart_c ) 
-  use module_interfaces
   use module_base
   use module_types
   use locregs, only: allocate_wfd,deallocate_wfd
@@ -97,7 +96,6 @@ END SUBROUTINE fillPcProjOnTheFly
 
 !> Fill the preconditioning projectors for a given atom 
 subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   initial_istart_c, geocode, at, iatat) 
-  use module_interfaces
   use module_base
   use ao_inguess, only: atomic_info
   use module_types
@@ -200,7 +198,7 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
   use module_types
   use locregs, only: allocate_wfd,deallocate_wfd
   use module_abscalc
-  use module_interfaces
+  use module_interfaces, only: gaussian_pswf_basis
   use gaussians, only: deallocate_gwf
   use psp_projectors, only: bounds_to_plr_limits
   use psp_projectors_base, only: deallocate_nonlocal_psp_descriptors
@@ -475,7 +473,7 @@ END SUBROUTINE createPcProjectorsArrays
 subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      cpmult,fpmult,hx,hy,hz, &
      PAWD, Glr)
-  use module_interfaces
+  use module_interfaces, only: gaussian_pswf_basis_for_paw
   use module_base
   use module_types
   use locregs, only: allocate_wfd,deallocate_wfd

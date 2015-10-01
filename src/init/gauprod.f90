@@ -199,7 +199,6 @@ subroutine gaussian_pswf_basis(ng,enlargerprb,iproc,nspin,at,rxyz,G,Gocc, gaenes
   use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig,nmax_occ_ao
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => gaussian_pswf_basis
   implicit none
   logical, intent(in) :: enlargerprb
   integer, intent(in) :: iproc,nspin,ng

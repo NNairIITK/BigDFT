@@ -34,6 +34,7 @@ program memguess
    !use postprocessing_linear, only: loewdin_charge_analysis_core
    use public_enums
    use module_input_keys, only: print_dft_parameters
+   use IObox
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
@@ -86,7 +87,7 @@ program memguess
    integer :: iproc, isub, jat, icat, info, itype, iiat, jjat, jtype, ios, ival, iat_prev, ii, iitype, ispin
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
-   integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
+   integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l,nspin2
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:,:),allocatable :: atoms_ref, imin_list
@@ -540,15 +541,16 @@ program memguess
    if (convert) then
       at%astruct%geocode = "P"
       write(*,*) "Read density file..."
-      call read_density(trim(fileFrom), at%astruct%geocode, &
-           & dpbox%ndims(1), dpbox%ndims(2), dpbox%ndims(3), &
-           & nspin, dpbox%hgrids(1), dpbox%hgrids(2), dpbox%hgrids(3), &
-           & rhocoeff, at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
+      call read_field_dimensions(trim(fileFrom),at%astruct%geocode,dpbox%ndims,nspin)
+      rhocoeff=f_malloc_ptr([dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),nspin],id='rhocoeff')
+      call read_field(trim(fileFrom), at%astruct%geocode,dpbox%ndims, &
+           dpbox%hgrids,nspin2,product(dpbox%ndims),nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
       at%astruct%ntypes = size(at%nzatom)
       write(*,*) "Write new density file..."
       dpbox%ngatherarr = f_malloc_ptr((/ 0.to.0, 1.to.2 /),id='dpbox%ngatherarr')
 
       call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
+      call f_free_ptr(rhocoeff)
       write(*,*) "Done"
       stop
    end if
@@ -1308,7 +1310,7 @@ program memguess
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
 
-      call astruct_dump_to_file(at%astruct,'posopt',trim(comment))
+      call astruct_dump_to_file(runObj%atoms%astruct,'posopt',trim(comment))
 
 !!$      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,&
 !!$           runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
@@ -1751,8 +1753,8 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
      nspin,ixc,ncong,Lzd,hx,hy,hz,rxyz,ntimes)
    use module_base
    use module_types
-   use module_interfaces
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use module_interfaces, only: gaussian_pswf_basis, local_hamiltonian
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use gaussians, only: gaussian_basis, deallocate_gwf
    use module_xc
    use module_input_keys
@@ -1841,7 +1843,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !normally nproc=1
    do jproc=0,nproc-1
       call PS_dim4allocation(at%astruct%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,xc_isgga(xc),(ixc/=13),&
-         &   n3d,n3p,n3pi,i3xcsh,i3s)
+         &   0,n3d,n3p,n3pi,i3xcsh,i3s)
       nscatterarr(jproc,1)=n3d
       nscatterarr(jproc,2)=n3p
       nscatterarr(jproc,3)=i3s+i3xcsh-1
@@ -2173,7 +2175,7 @@ END SUBROUTINE compare_data_and_gflops
 subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor,ref_frags)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, only: initialize_linear_from_file
    use module_fragments
    use locreg_operations, only: lpsi_to_global2
    use module_input_keys, only: wave_format_from_filename

@@ -87,6 +87,7 @@ program GPS_3D
 
    call f_zero(PSol)
    PSol=options .get. 'method'
+   if (len_trim(PSol)==0) call f_strcpy(src='VAC',dest=PSol)
    ndims=options // 'ndim'
 !!$giu
    geocode=options//'geocode'
@@ -97,7 +98,6 @@ program GPS_3D
 
    igpu=0
    if (usegpu) igpu=1
-   igpu=0
 
    n01=ndims(1)
    n02=ndims(2)
@@ -394,7 +394,7 @@ geocodeprova='F'
   case(5)
   !else if (any(SetEps == [5])) then
      call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
-          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode)
+          eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode,.false.)
      !  call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
   case(6)
 !   call Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp)
@@ -596,7 +596,10 @@ subroutine PS_Check_options(parser)
        'Allowed values' .is. &
        dict_new('1' .is. 'Analytical epsilon' ,&
                 '2' .is. 'analytical electron dependence',&
-                '3' .is. 'real electron density from cube file (need electroninc_density.cube)')))
+                '3' .is. 'real electron density from cube file (need electroninc_density.cube)',&
+                '4' .is. 'calculate the caviti and dump it on disk',&
+                '5' .is. 'Solves GPe with PCG customized (should be identical to  2 + PCG)',&
+                '6' .is. 'Modified Poisson Botzmann Equation solver')))
 
   call yaml_cl_parse_option(parser,'accel','No',&
        'GPU Acceleration','a',&

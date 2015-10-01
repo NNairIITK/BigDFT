@@ -11,12 +11,12 @@
 !> Selfconsistent potential is saved in rhopot, 
 !! new arrays rho,pot for calculation of forces ground state electronic density
 !! Potential from electronic charge density
-subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,hstrten)
+subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,rho_ion,hstrten)
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, fake_name => density_and_hpot
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use module_interfaces, only: communicate_density, sumrho
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   implicit none
   !Arguments
   type(denspot_distribution), intent(in) :: dpbox
@@ -30,6 +30,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(6), intent(out) :: hstrten
   real(dp), dimension(:), pointer :: rho,vh
+  real(dp), dimension(:,:,:,:), pointer :: rho_ion
   !local variables
   character(len=*), parameter :: subname='density_and_hpot'
   real(gp) :: ehart_fake
@@ -60,7 +61,12 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   if (xc%id(1) /= XC_NO_HARTREE) then
      !Calculate electrostatic potential
      call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
-     call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+     !the ionic denisty is given in the case of the embedded solver
+     if (pkernel%method /= 'VAC') then
+        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.true.,stress_tensor=hstrten,rho_ion=rho_ion)
+     else
+        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+     end if
   else
      !Only to_zero vh
      vh=0.0_dp
@@ -80,7 +86,6 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    use module_base
    use module_types
    use module_xc
-   use module_interfaces, except_this_one => sumrho
    use yaml_output
    implicit none
    !Arguments
@@ -371,7 +376,8 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
       &   nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, only: partial_density_free
+   use locreg_operations
    implicit none
    logical, intent(in) :: rsflag
    integer, intent(in) :: nproc,nrhotot
@@ -390,7 +396,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    type(workarr_sumrho) :: w
    real(wp), dimension(:,:), allocatable :: psir
 
-   call initialize_work_arrays_sumrho(1,lr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
    !components of wavefunction in real space which must be considered simultaneously
    !and components of the charge density

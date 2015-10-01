@@ -62,7 +62,8 @@ contains
   end subroutine cdft_data_free
 
   subroutine cdft_data_allocate(cdft,ham)
-    use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
+    use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
+         SPARSE_FULL, assignment(=),copy_sparse_matrix
     implicit none
     type(cdft_data), intent(inout) :: cdft
     type(sparse_matrix), intent(in) :: ham

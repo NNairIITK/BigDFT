@@ -13,13 +13,14 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 # Sub-directories.
 # ---------------
 SUBDIRS = \
+	orbitals \
 	modules \
-	convolutions \
 	xcPSolver \
 	$(sub_dirs_libconfig) \
 	CUDA \
 	OpenCL \
 	bindings \
+	geopt \
 	art \
 	mhgps_files \
 	global_files \
@@ -40,7 +41,8 @@ noinst_LIBRARIES = libmain.a libabscalc.a
 subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
-	convolutions/libconvolutions.a \
+	orbitals/liborbitals.a \
+	geopt/libgeopt.a \
 	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \
 	bindings/libbindings.a
@@ -86,11 +88,11 @@ sub_dirs_libconfig=
 endif
 
 if HAVE_ETSF_IO
-etsf_files = wavelib/plotting-etsf.f90 \
-	wavelib/i-o-etsf.f90
+etsf_files = wavelib/plotting-etsf.f90
 else
 etsf_files = wavelib/etsf_fake.f90
 endif
+
 
 if HAVE_AMBERTOOLS
 amber_ld= @LIB_AMBERTOOLS@  -lsff -lnab -lpbsa -lcifparse -lrism -lfftw3 -larpack
@@ -131,15 +133,9 @@ high_level = cluster.f90 \
 	forces.f90 \
 	tail.f90 \
 	restart.f90 \
-	lbfgs.f90 \
-	geometry.f90 \
 	davidson.f90 \
 	ConstrainedDavidson.f90 \
 	pdos.f90 \
-	sdcg.f90 \
-	bfgs.f90 \
-	sqnm.f90 \
-	scfloop_API.f90 \
 	tddft.f90 \
 	output.f90 \
 	external.f90 \
@@ -177,7 +173,6 @@ low_level = \
 	wfn_opt/kernel_per_optim.f90 \
 	wfn_opt/kernel_slab_simple.f90 \
 	wfn_opt/coupling_matrix.f90 \
-	$(etsf_files) \
 	wavelib/transwaves.f90 \
 	wavelib/scalprod.f90 \
 	wavelib/plotting.f90 \
@@ -185,6 +180,7 @@ low_level = \
 	wavelib/un-compress.f90 \
 	wavelib/gauss_to_daub.f90 \
 	wavelib/daubisf.f90 \
+	$(etsf_files) \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
 	linear/filterModule.f90 \
@@ -201,7 +197,6 @@ low_level = \
 	linear/orbitalOptimization.f90 \
 	linear/mixdiis.f90 \
 	linear/copyTypes.f90 \
-	linear/de-allocate.f90 \
 	linear/derivativeBasis.f90 \
 	linear/hpsiortho_linear.f90 \
 	linear/optimize_coeffs.f90 \
@@ -355,8 +350,6 @@ check:
 #dependencies
 convolutions_aux.o linear/convolutions_aux.o: linear/filterModule.f90 filterModule.o
 
-cluster.o geometry.o xabsorber.o: scfloop_API.o
-
 lanczos_interface.o: abscalc_module.o lanczos_base.o
 
 abscalc_init.o abscalc-abscalc.o: esatto.o lanczos_interface.o
@@ -364,8 +357,6 @@ abscalc_init.o abscalc-abscalc.o: esatto.o lanczos_interface.o
 lanczos.o : lanczos_interface.o
 
 xabsorber.o init/xabsorber.o : init/xabsorber.f90
-
-geometry.o bfgs.o sdcg.o sqnm.o: lbfgs.o
 
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 

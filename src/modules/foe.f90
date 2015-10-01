@@ -15,7 +15,6 @@ module foe
                accuracy_level, label, tmb, ham_, ovrlp_, kernel_, foe_obj)
       use module_base
       use module_types
-      use module_interfaces
       use yaml_output
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, assignment(=), &
                                    SPARSE_FULL, SPARSE_MATMUL_SMALL, &

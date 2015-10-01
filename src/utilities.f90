@@ -41,7 +41,6 @@ program utilities
    integer,dimension(:,:,:),pointer :: keyg_s, keyg_m, keyg_l
    real(kind=8),dimension(:),pointer :: matrix_compr
    type(matrices) :: ovrlp_mat, hamiltonian_mat, kernel_mat
-   logical :: mpi_init
    type(sparse_matrix) :: smat_s, smat_m, smat_l
    type(dictionary), pointer :: dict_timing_info
    !$ integer :: omp_get_max_threads

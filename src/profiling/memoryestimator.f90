@@ -14,7 +14,7 @@ subroutine MemoryEstimator(nproc,idsx,lr,norb,nspinor,nkpt,nprojel,nspin,itrpmax
   use module_base
   use module_types
   use Poisson_Solver
-
+  use locreg_operations, only: memspace_work_arrays_sumrho,memspace_work_arrays_locham
   implicit none
 
   !Arguments

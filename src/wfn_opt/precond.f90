@@ -127,9 +127,10 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
                             linear_precond_convol_workarrays, linear_precond_workarrays)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => preconditionall2
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
+  use locregs
+  use locreg_operations
   implicit none
   integer, intent(in) :: iproc,nproc,ncong,npsidim
   real(gp), intent(in) :: hx,hy,hz
@@ -393,7 +394,8 @@ END SUBROUTINE cprecr_from_eval
 subroutine precondition_residue(lr,ncplx,ncong,cprecr,&
      hx,hy,hz,kx,ky,kz,x)
   use module_base
-  use module_types
+  use locregs
+  use locreg_operations
   ! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method
   ! x is the right hand side on input and the solution on output
   implicit none
@@ -544,7 +546,8 @@ END SUBROUTINE calculate_rmr_new
 
 subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
   use module_base
-  use module_types
+  use locregs
+  use locreg_operations
   implicit none
   integer, intent(in) :: ncplx
   real(gp), intent(in) :: hx,hy,hz,cprecr
@@ -706,216 +709,11 @@ subroutine precondition_preconditioner(lr,ncplx,hx,hy,hz,scal,cprecr,w,x,b)
 END SUBROUTINE precondition_preconditioner
 
 
-subroutine allocate_work_arrays(geocode,hybrid_on,ncplx,d,w)
-  use module_base
-  use module_types
-  implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  logical, intent(in) :: hybrid_on
-  integer, intent(in) :: ncplx
-  type(grid_dimensions), intent(in) :: d
-  type(workarr_precond), intent(out) :: w
-  !local variables
-  character(len=*), parameter :: subname='allocate_work_arrays'
-  integer, parameter :: lowfil=-14,lupfil=14
-  integer :: nd1,nd2,nd3
-  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
-  integer :: nf
-
-  if (geocode == 'F') then
-
-     nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
-     !allocate work arrays
-     w%xpsig_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%xpsig_c')
-     w%xpsig_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%xpsig_f')
-     w%ypsig_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%ypsig_c')
-     w%ypsig_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%ypsig_f')
-
-     w%x_f1 = f_malloc_ptr(nf,id='w%x_f1')
-     w%x_f2 = f_malloc_ptr(nf,id='w%x_f2')
-     w%x_f3 = f_malloc_ptr(nf,id='w%x_f3')
-    
-  else if (geocode == 'P') then
-     
-     if (hybrid_on) then
-          
-        call dimensions_fft(d%n1,d%n2,d%n3,&
-             nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
-
-        nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
-
-        w%kern_k1 = f_malloc_ptr(0.to.d%n1,id='w%kern_k1')
-        w%kern_k2 = f_malloc_ptr(0.to.d%n2,id='w%kern_k2')
-        w%kern_k3 = f_malloc_ptr(0.to.d%n3,id='w%kern_k3')
-        w%z1 = f_malloc_ptr((/ 2, nd1b, nd2, nd3, 2 /),id='w%z1')
-        w%z3 = f_malloc_ptr((/ 2, nd1, nd2, nd3f, 2 /),id='w%z3')
-        w%x_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%x_c')
-
-        w%x_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%x_f')
-        w%x_f1 = f_malloc_ptr(nf,id='w%x_f1')
-        w%x_f2 = f_malloc_ptr(nf,id='w%x_f2')
-        w%x_f3 = f_malloc_ptr(nf,id='w%x_f3')
-        w%y_f = f_malloc_ptr((/ 1.to.7, d%nfl1.to.d%nfu1, d%nfl2.to.d%nfu2, d%nfl3.to.d%nfu3 /),id='w%y_f')
-        w%ypsig_c = f_malloc_ptr((/ 0.to.d%n1, 0.to.d%n2, 0.to.d%n3 /),id='w%ypsig_c')
-
-
-     else 
-
-        if (ncplx == 1) then
-           !periodic, not k-points
-           w%modul1 = f_malloc_ptr(lowfil.to.d%n1+lupfil,id='w%modul1')
-           w%modul2 = f_malloc_ptr(lowfil.to.d%n2+lupfil,id='w%modul2')
-           w%modul3 = f_malloc_ptr(lowfil.to.d%n3+lupfil,id='w%modul3')
-           w%af = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%af')
-           w%bf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%bf')
-           w%cf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%cf')
-           w%ef = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%ef')
-        end if
-
-        w%psifscf = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2),id='w%psifscf')
-        w%ww = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2),id='w%ww')
-
-     end if
-
-  else if (geocode == 'S') then
-
-     if (ncplx == 1) then
-        w%modul1 = f_malloc_ptr(lowfil.to.d%n1+lupfil,id='w%modul1')
-        w%modul3 = f_malloc_ptr(lowfil.to.d%n3+lupfil,id='w%modul3')
-        w%af = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%af')
-        w%bf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%bf')
-        w%cf = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%cf')
-        w%ef = f_malloc_ptr((/ lowfil.to.lupfil, 1.to.3 /),id='w%ef')
-     end if
-        
-     w%psifscf = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2),id='w%psifscf')
-     w%ww = f_malloc_ptr(ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2),id='w%ww')
-
-  end if
-
-END SUBROUTINE allocate_work_arrays
-
-
-subroutine memspace_work_arrays_precond(geocode,hybrid_on,ncplx,d,memwork)
-  use module_base
-  use module_types
-  implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  logical, intent(in) :: hybrid_on
-  integer, intent(in) :: ncplx
-  type(grid_dimensions), intent(in) :: d
-  integer(kind=8), intent(out) :: memwork
-  !local variables
-  integer, parameter :: lowfil=-14,lupfil=14
-  integer :: nd1,nd2,nd3
-  integer :: n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b
-  integer :: nf
-
-
-  if (geocode == 'F') then
-
-     nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
-
-     memwork=2*(d%n1+1)*(d%n2+1)*(d%n3+1)+2*7*(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)+3*nf
-     
-    
-  else if (geocode == 'P') then
-     
-     if (hybrid_on) then
-          
-        call dimensions_fft(d%n1,d%n2,d%n3,&
-             nd1,nd2,nd3,n1f,n3f,n1b,n3b,nd1f,nd3f,nd1b,nd3b)
-
-        nf=(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)
-
-        memwork=(d%n1+1)+(d%n2+1)+(d%n3+1)+2*nd1b*nd2*nd3*2+2*nd1*nd2*nd3f*2+&
-             (d%n1+1)*(d%n2+1)*(d%n3+1)+2*7*(d%nfu1-d%nfl1+1)*(d%nfu2-d%nfl2+1)*(d%nfu3-d%nfl3+1)+3*nf
-
-     else 
-
-        memwork=0
-        if (ncplx == 1) then
-           memwork=d%n1+d%n2+d%n3+15*(lupfil-lowfil+1)
-        end if
-        memwork=memwork+2*ncplx*(2*d%n1+2)*(2*d%n2+2)*(2*d%n3+2)
-
-     end if
-
-  else if (geocode == 'S') then
-
-     memwork=0
-     if (ncplx == 1) then
-        memwork=d%n1+d%n3+14*(lupfil-lowfil+1)
-     end if
-     memwork=memwork+2*ncplx*(2*d%n1+2)*(2*d%n2+16)*(2*d%n3+2)
-  end if
-
-END SUBROUTINE memspace_work_arrays_precond
-
-
-subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
-  use module_base
-  use module_types
-  implicit none
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  logical, intent(in) :: hybrid_on
-  integer, intent(in) :: ncplx
-  type(workarr_precond), intent(inout) :: w
-  !local variables
-  character(len=*), parameter :: subname='deallocate_work_arrays'
-
-  if (geocode == 'F') then
-
-     call f_free_ptr(w%xpsig_c)
-     call f_free_ptr(w%ypsig_c)
-     call f_free_ptr(w%xpsig_f)
-     call f_free_ptr(w%ypsig_f)
-     call f_free_ptr(w%x_f1)
-     call f_free_ptr(w%x_f2)
-     call f_free_ptr(w%x_f3)
-
-  else if ((geocode == 'P' .and. .not. hybrid_on) .or. geocode == 'S') then
-
-     if (ncplx == 1) then
-        call f_free_ptr(w%modul1)
-        if (geocode /= 'S') then
-           call f_free_ptr(w%modul2)
-        end if
-        call f_free_ptr(w%modul3)
-        call f_free_ptr(w%af)
-        call f_free_ptr(w%bf)
-        call f_free_ptr(w%cf)
-        call f_free_ptr(w%ef)
-     end if
-
-     call f_free_ptr(w%psifscf)
-     call f_free_ptr(w%ww)
-
-  else if (geocode == 'P' .and. hybrid_on) then
-
-     call f_free_ptr(w%z1)
-     call f_free_ptr(w%z3)
-     call f_free_ptr(w%kern_k1)
-     call f_free_ptr(w%kern_k2)
-     call f_free_ptr(w%kern_k3)
-     call f_free_ptr(w%x_c)
-     call f_free_ptr(w%x_f)
-     call f_free_ptr(w%x_f1)
-     call f_free_ptr(w%x_f2)
-     call f_free_ptr(w%x_f3)
-     call f_free_ptr(w%y_f)
-     call f_free_ptr(w%ypsig_c)
-
-
-  end if
-
-END SUBROUTINE deallocate_work_arrays
-
-
 subroutine precond_locham(ncplx,lr,hx,hy,hz,kx,ky,kz,&
      cprecr,x,y,w,scal)! y:=Ax
   use module_base
-  use module_types
+  use locregs
+  use locreg_operations
   implicit none
   integer, intent(in) :: ncplx
   real(gp), intent(in) :: hx,hy,hz,cprecr,kx,ky,kz

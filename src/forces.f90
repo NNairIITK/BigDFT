@@ -11,7 +11,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
   use module_base
   use module_types
-  use module_interfaces, only: local_forces,erf_stress
+  use module_interfaces, only: erf_stress
   use communications_base
   use yaml_output
   use module_forces
@@ -122,7 +122,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   end if
 
   !add to the forces the ionic and dispersion contribution
-  if (.not. experimental_modulebase_var_onlyfion) then !normal case
+  if (.true.) then!.not. experimental_modulebase_var_onlyfion) then !normal case
      if (iproc==0) then
         do iat=1,atoms%astruct%nat
            fxyz(1,iat)=fxyz(1,iat)+fion(1,iat)+fdisp(1,iat)+fpulay(1,iat)
@@ -377,7 +377,7 @@ end subroutine rhocore_forces
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
-  use module_base, pi => pi_param
+  use module_base
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
@@ -3797,8 +3797,9 @@ end subroutine symmetrise_forces
 subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: isf_to_daub_kinetic
   use module_xc
+  use locreg_operations
   implicit none
   real(gp), intent(in) :: hx,hy,hz
   type(orbitals_data), intent(in) :: orbs
@@ -3817,7 +3818,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   call f_routine(id='local_hamiltonian_stress')
 
   !initialise the work arrays
-  call initialize_work_arrays_locham(1,lr,orbs%nspinor,.true.,wrk_lh)  
+  call initialize_work_arrays_locham(1,[lr],orbs%nspinor,.true.,wrk_lh)  
 
   tens=0.d0
 
@@ -3850,7 +3851,7 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
      kz=orbs%kpts(3,orbs%iokpt(iorb))
 
      call isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,orbs%nspinor,lr,wrk_lh,&
-          psir,hpsi(1,oidx),ekin,kinstr)
+          psir,hpsi(1,oidx),ekin,k_strten=kinstr)
 
      kinstr = -kinstr*8.0_gp/(hx*hy*hz)/real(lr%d%n1i*lr%d%n2i*lr%d%n3i,gp)
      tens=tens+kinstr*2.0_gp*&
@@ -3890,7 +3891,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
   real(kind=8),allocatable :: rhog(:,:,:,:,:)
   real(kind=8),dimension(:),pointer :: rhor
   integer :: ierr
-  real(kind=8) :: pi,p(3),g2,rloc,setv,fac
+  real(kind=8) :: p(3),g2,rloc,setv,fac
   real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
   real(kind=8) :: potg,potg2
   real(kind=8) :: Zion
@@ -3913,7 +3914,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
      rhor => rho        
   end if
 
-  pi = 4.0_gp*atan(1.0_gp)
+!  pi = 4.0_gp*atan(1.0_gp)
   rhog = f_malloc((/2,n1i+1,n2i+1,n3i+1,2/),id='rhog')
   tens(:)=0.0_dp ; p(:)=0.0_dp
 
@@ -3977,7 +3978,7 @@ subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr
      p(3)=real(j3,dp)/(n3i*hzh)         
 
      !$omp parallel default(none) &
-     !$omp shared(n3i, inzee, i3, n2i, hyh, n1i, hxh, rx, ry, rz, rhog, Zion, rloc, pi, hzh, tens) &
+     !$omp shared(n3i, inzee, i3, n2i, hyh, n1i, hxh, rx, ry, rz, rhog, Zion, rloc, hzh, tens) &
      !$omp private(i2, j2, i1, j1, sfr, sfi, rhore, rhoim, g2, fac, setv, potg, potg2) &
      !$omp firstprivate(p)
      !$omp do reduction(+:tens)

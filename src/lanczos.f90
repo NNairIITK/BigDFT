@@ -18,7 +18,7 @@ subroutine dirac_hara (rho, E , V)
    real(gp), intent(inout) :: V
    !Local variables
    real(gp), parameter :: f= 1.919158d0  !( 4/(9*pi)**(1/3)  )
-   real(gp), parameter :: pi=3.141592653589793_gp
+!   real(gp), parameter :: pi=3.141592653589793_gp
 
    real(gp) :: Vcorr, rs, xk, EV,x
    integer :: i
@@ -63,7 +63,6 @@ function GetBottom(atoms,nspin)
    use ao_inguess, only: &
         iguess_generator,ao_nspin_ig,nmax_occ_ao
    use module_types
-   use module_interfaces
 
    implicit none
    !Arguments

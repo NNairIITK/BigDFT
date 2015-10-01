@@ -1634,8 +1634,8 @@ linear:
    eval_range_foe: [-1.0, 1.0]
    fscale_foe: 5.0E-002
  lin_basis_params:
-   ao_confinement: -1.0
-   confinement: -1.0
+   #ao_confinement: -1.0
+   #confinement: -1.0
    rloc_kernel: 9.0
    rloc_kernel_foe: 10.5
    H:  {nbasis: 1, rloc: 4.5}

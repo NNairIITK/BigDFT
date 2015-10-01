@@ -10,6 +10,42 @@
 #  make X.diff: make the difference between the output and the reference (with DIFF envvar)
 #  make X.updateref: update the reference with the output (prompt the overwrite)
 
+#write here a portable way to run only few test in the Makefile.
+#taken as the third solution of the interesting webpage http://gallium.inria.fr/blog/portable-conditionals-in-makefiles/
+#thanks to this trick we can test only few test by typing the command
+# make check checkonly_that=C O2-Spin etc. CHECK_MODE=custom
+#if CHECK_MODE has not been defined promote it to long check
+#the following variable is true if we are inside a bzr branch, false otherwise
+CHECK_MODE_INTERNAL = $(shell if test -f $(top_srcdir)/branchfile; then echo true; else echo false;fi)
+
+#this is the policy to be given in the case of explicit CHECK_MODE
+checkonlyfoo_short_true= short
+checkonlyfoo_short_false= short
+checkonlyfoo_long_true= long
+checkonlyfoo_long_false= long
+checkonlyfoo_custom_true= that
+checkonlyfoo_custom_false= that
+#this is what would happen if the CHECK_MODE variable is not defined
+checkonlyfoo__true= long
+checkonlyfoo__false= short
+
+checkonly_short=$(SHORT_TESTDIRS)
+checkonly_long=$(LONG_TESTDIRS)
+#this fixes the default value, if the CHECK_MODE is badly set
+checkonly_=$(SHORT_TESTDIRS)
+
+
+TESTDIRS := ${checkonly_${checkonlyfoo_${CHECK_MODE}_${CHECK_MODE_INTERNAL}}}
+
+
+# here one might also reset the values for future use, but automake would complain
+#checkonlyfoo_short= 
+#checkonlyfoo_long= 
+#checkonly_short=
+#checkonly_long=
+#checkonly_=
+
+
 if USE_MPI
   mpirun_message = mpirun
 else
@@ -58,8 +94,9 @@ PSPS = psppar.H \
        HGH-K/psppar.Ti \
        extra/psppar.H \
        Xabs/psppar.Fe
+#$(TESTDIRS) 
 
-ALLDIRS = $(EXTRA_TESTDIRS) $(TESTDIRS)
+ALLDIRS = $(EXTRA_TESTDIRS) $(LONG_TESTDIRS)
 
 INS = $(ALLDIRS:=.in)
 RUNS = $(ALLDIRS:=.run)
@@ -306,7 +343,7 @@ run_message:
 
 %.recheck: %.in
 	@name=`basename $@ .recheck` ; dir=$$name-test ; \
-        refs="$$dir/*.ref" ; \
+	refs="$$dir/*.ref" ; \
 	for r in $$refs ; do \
 	  rep=`basename $$r .ref`".report" ; \
 	  if ! grep -qs "succeeded\|passed" $$dir/$$rep ; then \

@@ -35,7 +35,7 @@ module io
       use module_types
       use module_base
       use yaml_output
-      use module_interfaces, except_this_one => writeonewave
+      use module_interfaces, only: open_filename_of_iorb
       implicit none
       integer, intent(in) :: iproc,iformat,npsidim,nelec,nfvctr
       !integer, intent(in) :: norb   !< number of orbitals, not basis functions
@@ -145,7 +145,7 @@ module io
       use module_base
       use module_fragments
       use yaml_output
-      use module_interfaces
+      use module_interfaces, only: open_filename_of_iorb
       use sparsematrix_base, only: sparsematrix_malloc_ptr, assignment(=), DENSE_FULL, &
            matrices_null, allocate_matrices, deallocate_matrices
       use sparsematrix, only: uncompress_matrix2
@@ -1245,7 +1245,7 @@ module io
 
 
     subroutine io_error(error)
-      use module_defs
+      use module_base, only: bigdft_mpi
   
       implicit none
   
@@ -1999,7 +1999,6 @@ module io
       use module_types
       use module_base
       use yaml_output
-      use module_interfaces, except_this_one => writeonewave
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, matrices_null, &
                                    DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
                                    deallocate_matrices

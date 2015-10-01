@@ -346,7 +346,6 @@ contains
   !> Deallocate the structure atoms_data.
   subroutine deallocate_atoms_data(atoms) 
     use module_base
-    use dynamic_memory
     use m_pawrad, only: pawrad_destroy
     use m_pawtab, only: pawtab_destroy
     use m_pawang, only: pawang_destroy
@@ -903,7 +902,8 @@ contains
 
     !> Convert astruct to dictionary for later dump.
     subroutine astruct_merge_to_dict(dict, astruct, rxyz, comment)
-      use module_defs, only: gp, UNINITIALIZED, Bohr_Ang
+      use module_defs, only: gp, UNINITIALIZED
+      use numerics, only: Bohr_Ang
       use dictionaries
       use yaml_strings
       use ao_inguess, only: charge_and_spol
@@ -1215,7 +1215,8 @@ contains
     !! retrieve also other information like the energy and the forces if requested
     !! and presend in the dictionary
     subroutine astruct_set_from_dict(dict, astruct, comment)
-      use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
+      use module_defs, only: gp,  UNINITIALIZED
+      use numerics, only: Bohr_Ang
       use dynamic_memory
       use dictionaries
       implicit none

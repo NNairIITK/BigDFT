@@ -11,9 +11,10 @@
 
     !> Read atomic positions from xyz file and create astruct structure from it
     subroutine read_xyz_positions(ifile,filename,astruct,comment,energy,fxyz,getLine,disableTrans_)
-      use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, BIGDFT_INPUT_VARIABLES_ERROR
+      use module_defs, only: gp,UNINITIALIZED, BIGDFT_INPUT_VARIABLES_ERROR
       use dictionaries, only: f_err_raise, f_err_throw
       use dynamic_memory
+      use numerics, only: Bohr_Ang
       implicit none
       !Arguments
       integer, intent(in) :: ifile
@@ -281,7 +282,6 @@ END SUBROUTINE read_xyz_positions
 !> Read atomic positions of ascii files.
 subroutine read_ascii_positions(ifile,filename,astruct,comment,energy,fxyz,getline,disableTrans_)
   use module_base
-  use dynamic_memory
   use yaml_output
   implicit none
   integer, intent(in) :: ifile
@@ -541,9 +541,10 @@ END SUBROUTINE read_ascii_positions
 
 !> Read atomic positions from int file and create astruct structure from it
 subroutine read_int_positions(iproc,ifile,astruct,comment,energy,fxyz,getLine,disableTrans_)
-  use module_defs, only: gp,UNINITIALIZED,Bohr_Ang, Radian_Degree
+  use module_defs, only: gp,UNINITIALIZED
   use dictionaries, only: f_err_raise
   use dynamic_memory
+  use numerics, only: Bohr_Ang,Radian_Degree
   implicit none
   integer, intent(in) :: iproc,ifile
   type(atomic_structure), intent(inout) :: astruct
@@ -1217,7 +1218,8 @@ END FUNCTION move_this_coordinate
 
 !> Write xyz atomic file.
 subroutine wtxyz(iunit,energy,rxyz,astruct,comment)
-  use module_defs, only: Bohr_Ang,UNINITIALIZED
+  use module_defs, only: UNINITIALIZED
+  use numerics, only: Bohr_Ang
   implicit none
   integer, intent(in) :: iunit
   character(len=*), intent(in) :: comment
@@ -1320,7 +1322,8 @@ end subroutine wtxyz_forces
 
 !> Write ascii file (atomic position). 
 subroutine wtascii(iunit,energy,rxyz,astruct,comment)
-  use module_defs, only: Bohr_Ang,UNINITIALIZED
+  use module_defs, only: UNINITIALIZED
+  use numerics, only: Bohr_Ang
   implicit none
   integer, intent(in) :: iunit
   character(len=*), intent(in) :: comment
@@ -1434,7 +1437,8 @@ end subroutine wtascii_forces
 
 !> Write int atomic file.
 subroutine wtint(iunit,energy,rxyz,astruct,comment,na,nb,nc)
-  use module_defs, only: Bohr_Ang,UNINITIALIZED,Radian_Degree
+  use module_defs, only: UNINITIALIZED
+  use numerics, only: Bohr_Ang,Radian_Degree
   use module_base, only: f_err_throw
   implicit none
   integer, intent(in) :: iunit

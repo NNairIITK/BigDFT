@@ -138,7 +138,7 @@ contains
        if (trim(run_id) /= "input") then
           call set(run // RADICAL_NAME, trim(run_id))
        else
-          call set(run // RADICAL_NAME, " ")
+          call set(run // RADICAL_NAME, "logfile") !this is if the logfile is then reused as input file
        end if
     end if
     if (present(input_id)) call set(run // INPUT_NAME, trim(input_id))
@@ -975,10 +975,8 @@ contains
   !! following the input files as defined  by the user
   subroutine read_input_dict_from_files(radical,mpi_env,dict)
     use module_base
-    use wrapper_MPI
     use module_input_dicts, only: merge_input_file_to_dict
     !use yaml_output
-    use dynamic_memory
     implicit none
     character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
     type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
