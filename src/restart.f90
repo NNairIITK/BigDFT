@@ -1418,7 +1418,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   real(gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new, rxyz4_ref, rxyz4_new
   real(gp), dimension(:,:), allocatable :: rxyz_new_all, rxyz_frg_new, rxyz_ref_sorted, rxyz_ref_sorted_trial
   real(gp), dimension(:), allocatable :: dist
-  integer, dimension(:), allocatable :: ipiv, array
+  integer, dimension(:), allocatable :: ipiv, array_tmp
   integer, dimension(:,:), allocatable :: permutations
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
   real(gp) :: max_shift, mindist, Werror, minerror, dtol
@@ -1774,15 +1774,15 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               end do
 
               !assume that we have only a small number of identical distances, or this would become expensive...
-              array=f_malloc(num_deg,id='array')
+              array_tmp=f_malloc(num_deg,id='array_tmp')
               do i=1,num_deg
-                 array(i)=i
+                 array_tmp(i)=i
               end do
 
               np=fact(num_deg)
               permutations=f_malloc((/num_deg,np/),id='permutations')
               c=0
-              call reorder(num_deg,num_deg,c,np,array,permutations)
+              call reorder(num_deg,num_deg,c,np,array_tmp,permutations)
 
               rxyz_ref_sorted_trial = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_env%nat /),id='rxyz_ref_sorted')
 
@@ -1829,7 +1829,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               end if
 
               call f_free(rxyz_ref_sorted_trial)
-              call f_free(array)
+              call f_free(array_tmp)
               call f_free(permutations)
            end if
 

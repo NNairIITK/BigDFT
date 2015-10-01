@@ -3163,7 +3163,8 @@ contains
           call mpiallred(tasks_per_taskgroup, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       !if (iproc==0) write(*,'(a,i7,4x,1000i7)') 'iproc, tasks_per_taskgroup', iproc, tasks_per_taskgroup
-      call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
+      !call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
+      group=mpigroup(bigdft_mpi%mpi_comm)
 
       in_taskgroup = f_malloc0((/0.to.nproc-1,1.to.smat%ntaskgroup/),id='in_taskgroup')
       smat%tgranks = f_malloc_ptr((/0.to.maxval(tasks_per_taskgroup)-1,1.to.smat%ntaskgroup/),id='smat%tgranks')
@@ -3197,16 +3198,18 @@ contains
           end do
           ! Store the ID of the first task of each taskgroup
           !smat%isrank(itaskgroups) = smat%tgranks(1,itaskgroups)
-          if (ii/=tasks_per_taskgroup(itaskgroups)) stop 'ii/=tasks_per_taskgroup(itaskgroups)'
-          call mpi_group_incl(group, ii, smat%tgranks(0,itaskgroups), newgroup, ierr)
-          call mpi_comm_create(bigdft_mpi%mpi_comm, newgroup, smat%mpi_groups(itaskgroups)%mpi_comm, ierr)
-          if (smat%mpi_groups(itaskgroups)%mpi_comm/=MPI_COMM_NULL) then
-              call mpi_comm_size(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%nproc, ierr)
-              call mpi_comm_rank(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%iproc, ierr)
-          end if
-          smat%mpi_groups(itaskgroups)%igroup = itaskgroups
-          smat%mpi_groups(itaskgroups)%ngroup = smat%ntaskgroup
-          call mpi_group_free(newgroup, ierr)
+          if (ii/=tasks_per_taskgroup(itaskgroups)) stop 'ii/=tasks_per_taskgroup(itaskgroups)' !for debugging
+          call mpi_env_create_group(itaskgroups,smat%ntaskgroup,bigdft_mpi%mpi_comm,&
+               group,ii,smat%tgranks(:,itaskgroups),smat%mpi_groups(itaskgroups))
+!!$          call mpi_group_incl(group, ii, smat%tgranks(0,itaskgroups), newgroup, ierr)
+!!$          call mpi_comm_create(bigdft_mpi%mpi_comm, newgroup, smat%mpi_groups(itaskgroups)%mpi_comm, ierr)
+!!$          if (smat%mpi_groups(itaskgroups)%mpi_comm/=MPI_COMM_NULL) then
+!!$              call mpi_comm_size(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%nproc, ierr)
+!!$              call mpi_comm_rank(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%iproc, ierr)
+!!$          end if
+!!$          smat%mpi_groups(itaskgroups)%igroup = itaskgroups
+!!$          smat%mpi_groups(itaskgroups)%ngroup = smat%ntaskgroup
+!!$          call mpi_group_free(newgroup, ierr)
       end do
       call mpi_group_free(group, ierr)
 

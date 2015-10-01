@@ -465,9 +465,7 @@ subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, G
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication
   use rhopotential, only: full_local_potential
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
-                               matrices_null, allocate_matrices, deallocate_matrices, &
-                               sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
+  use sparsematrix_base
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   use transposed_operations, only: calculate_overlap_transposed
   implicit none

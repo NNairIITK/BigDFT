@@ -679,7 +679,7 @@ subroutine calculate_residue_ks(iproc, nproc, num_extra, ksorbs, tmb, hpsit_c, h
   use module_types
   !use module_interfaces, fake_name => calculate_residue_ks,fake_B=>calculate_energy_and_gradient_linear
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
-                               matrices_null, allocate_matrices, deallocate_matrices
+                               matrices_null, allocate_matrices, deallocate_matrices,copy_sparse_matrix
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed

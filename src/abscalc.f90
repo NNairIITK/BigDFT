@@ -156,7 +156,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_types
    use module_interfaces, only: IonicEnergyandForces, createProjectorsArrays, &
         & createWavefunctionsDescriptors, extract_potential_for_spectra, &
-        & orbitals_descriptors, read_cube, read_density
+        & orbitals_descriptors
    use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_xc
    use module_abscalc
@@ -174,6 +174,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use psp_projectors_base, only: free_DFT_PSP_projectors
    use public_enums, only: LINEAR_PARTITION_NONE
    use module_input_keys, only: print_dft_parameters
+   use IObox
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -275,9 +276,11 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(gp) :: potmodified_maxr, potmodified_shift
 
    type(atoms_data) :: atoms_clone
-   integer :: ndeg,nsp, nspinor !n(c) noncoll
+   integer :: ndeg,nsp, nspinor ,nspin2!n(c) noncoll
    integer, parameter :: nelecmax=32,lmax=4 !n(c) nmax=6
    integer, parameter :: noccmax=2
+   integer, dimension(3) :: ndims
+   real(gp), dimension(3) :: hgrids
 
    !! to apply pc_projector
    type(pcproj_data_type) ::PPD
@@ -718,13 +721,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
             if(exists) then
 
-               nullify(pot_bB);
-               call read_cube(trim(filename),atoms%astruct%geocode,n1i_bB,n2i_bB,n3i_bB, &
-                  &   nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
+               nullify(pot_bB)
+               call read_field_dimensions(trim(filename),atoms%astruct%geocode,ndims,nspin)
+               pot_bB=f_malloc_ptr([ndims(1),ndims(2),ndims(3),nspin],id='pot_bB')
+               call read_field(trim(filename),atoms%astruct%geocode,ndims,hgrids,&
+                    nspin2,product(ndims),nspin,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
          !call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
-               hx_old=hx_old*2
-               hy_old=hy_old*2
-               hz_old=hz_old*2
+               hx_old=2*hgrids(1)
+               hy_old=2*hgrids(2)
+               hz_old=2*hgrids(3)
+               n1i_bB=ndims(1)
+               n2i_bB=ndims(2)
+               n3i_bB=ndims(3)
 
 
                if( (atoms%astruct%nat/nat_b2B)*nat_b2B /=  atoms%astruct%nat ) then

@@ -1796,8 +1796,8 @@ extendedfrags_nofrags:
  Tr(K): 2.1e-8
  D Tr: 1.0e-9
  D eF: 1.1e-8
- ebs_check: 3.6e-11
- ebs: 3.7e-11
+ ebs_check: 4.03e-11
+ ebs: 4.07e-11
  EXC: 1.1e-10
  Pressure: 3.3e-11
 

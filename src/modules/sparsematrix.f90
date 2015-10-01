@@ -1881,6 +1881,7 @@ module sparsematrix
       real(kind=8),dimension(:),allocatable :: recvbuf
     
       if (nproc>1) then
+         call f_routine(id='synchronize_matrix_taskgroups')
           request = f_malloc(smat%ntaskgroupp,id='request')
           ncount = 0
           do itg=1,smat%ntaskgroupp
@@ -1899,14 +1900,14 @@ module sparsematrix
                   ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
                   !!call mpi_iallreduce(mat%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
                   !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
-                  if (nproc>1) then
+                  if (smat%mpi_groups(iitg)%nproc>1) then
                       call mpiiallred(mat%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
                            mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
                   else
                       call vcopy(ncount, mat%matrix_compr(ishift+ist_send), 1, recvbuf(ist_recv), 1)
                   end if
               end do
-              if (nproc>1) then
+              if (smat%mpi_groups(iitg)%nproc > 1) then
                   call mpiwaitall(smat%ntaskgroupp, request)
               end if
               ncount = 0
@@ -1921,6 +1922,7 @@ module sparsematrix
           end do
           call f_free(request)
           call f_free(recvbuf)
+          call f_release_routine()
       end if
     end subroutine synchronize_matrix_taskgroups
 

@@ -19,6 +19,7 @@ module wrapper_MPI
   use yaml_strings, only: operator(//)
   use f_precisions
   use f_refcnts
+  use dictionaries, only: f_err_throw
   implicit none
 
   ! MPI handling
@@ -92,6 +93,11 @@ module wrapper_MPI
       module procedure mpiscatter_i1i1 
   end interface mpiscatter
 
+  interface mpiscatterv
+     module procedure mpiscatterv_d0
+     module procedure mpiscatterv_d2d3,mpiscatterv_d3d2
+  end interface mpiscatterv
+
   interface mpi_get_to_allgatherv
      module procedure mpi_get_to_allgatherv_double
   end interface mpi_get_to_allgatherv
@@ -158,7 +164,7 @@ module wrapper_MPI
      integer :: comm
   end type doc
 
-  private :: operator(//)
+  private :: operator(//),f_err_throw
 
 contains
   
@@ -234,7 +240,8 @@ contains
        !call mpi_comm_rank(dest%mpi_comm, dest%nproc, ierr)
        dest%igroup = src%igroup
        dest%ngroup = src%ngroup
-       !a new reference counter has to be activated
+       !a new reference counter has to be activated, if the
+       !source has been 
        dest%refcnt=f_ref_new('mpi_copied')
     end if
 
@@ -275,7 +282,7 @@ contains
     !!  if 0 one taskgroup (MPI_COMM_WORLD)   
     type(mpi_environment), intent(out) :: mpi_env  !< MPI environment (out)
     !local variables
-    integer :: j
+    integer :: j,base_grp
     integer, dimension(:), allocatable :: group_list
 
     call f_routine(id='mpi_environment_set')
@@ -294,12 +301,16 @@ contains
        do j=0,groupsize-1
           group_list(j+1)=mpi_env%igroup*groupsize+j
        enddo
-       call create_group_comm(mpi_comm,groupsize,group_list,mpi_env%mpi_comm)
+       base_grp=mpigroup(mpi_comm)
+       call mpi_env_create_group(iproc/groupsize,nproc/groupsize,mpi_comm,&
+            base_grp,groupsize,group_list,mpi_env)
+       call mpigroup_free(base_grp)
+       !call create_group_comm(mpi_comm,groupsize,group_list,mpi_env%mpi_comm)
        if (iproc == 0) then
           call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
        end if
        call f_free(group_list)
-       mpi_env%refcnt=f_ref_new('MPI_env')
+
     end if
     call f_release_routine()
   end subroutine mpi_environment_set
@@ -389,6 +400,67 @@ contains
     call f_release_routine()
   end subroutine mpi_environment_set1
 
+  !> create a mpi_environment from a group list in a base group
+  subroutine mpi_env_create_group(igrp,ngrp,base_comm,base_grp,group_size,group_list,&
+       mpi_env)
+    implicit none
+    integer, intent(in) :: igrp,ngrp !<id and no of the groups
+    integer, intent(in) :: group_size,base_comm,base_grp
+    integer, dimension(group_size), intent(in) :: group_list
+    type(mpi_environment), intent(out) :: mpi_env
+    !local variables
+    integer :: grp,ierr
+    !create the groups with the list
+    call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
+    if (ierr /= 0) call f_err_throw('Problem in group inclusion, ierr:'//&
+            ierr,err_name='BIGDFT_MPI_ERROR')
+    !create the communicator (the communicator can be also null)
+    call MPI_COMM_CREATE(base_comm,grp,mpi_env%mpi_comm,ierr)
+    if (ierr /= 0) call f_err_throw('Problem in comm_create, ierr:'//&
+         ierr,err_name='BIGDFT_MPI_ERROR')
+    !free temporary group
+    call mpigroup_free(grp)
+    !then fill iproc and nproc
+    if (mpi_env%mpi_comm /= MPI_COMM_NULL) then
+       mpi_env%iproc=mpirank(mpi_env%mpi_comm)
+       mpi_env%nproc=mpisize(mpi_env%mpi_comm) !this should be group_size
+       mpi_env%igroup=igrp
+       mpi_env%ngroup=ngrp
+       mpi_env%refcnt=f_ref_new('MPI_env_from_grp')        
+    end if
+  end subroutine mpi_env_create_group
+
+  function mpigroup(comm)
+    implicit none
+    integer, intent(in), optional :: comm
+    integer :: mpigroup
+    !local variables
+    integer :: ierr,mpi_comm
+
+    if (present(comm)) then
+       mpi_comm=comm
+    else
+       mpi_comm=MPI_COMM_WORLD
+    end if
+    call MPI_COMM_GROUP(mpi_comm,mpigroup,ierr)
+    if (ierr /= 0) then
+       mpigroup=-1
+       call f_err_throw('Problem in group identification, ierr:'//&
+            ierr,err_name='BIGDFT_MPI_ERROR')
+    end if
+  end function mpigroup
+
+  subroutine mpigroup_free(grp)
+    implicit none
+    integer, intent(in) :: grp
+    !local variables
+    integer :: ierr
+    call MPI_GROUP_FREE(grp,ierr)
+    if (ierr /= 0) then
+       call f_err_throw('Problem in group free, ierr:'//&
+            ierr,err_name='BIGDFT_MPI_ERROR')
+    end if
+  end subroutine mpigroup_free
 
   !> Create communicators associated to the groups of size group_size
   subroutine create_group_comm(base_comm,group_size,group_list,group_comm)
@@ -411,12 +483,6 @@ contains
        call check_ierr(ierr,'group inclusion')
        return
     end if
-    !free base group
-    call MPI_GROUP_FREE(base_grp,ierr)
-    if (ierr /= 0) then
-       call check_ierr(ierr,'base_group free')
-       return
-    end if
     !create the communicator (the communicator can be also null)
     call MPI_COMM_CREATE(base_comm,grp,group_comm,ierr)
     if (ierr /= 0) then
@@ -429,6 +495,14 @@ contains
        call check_ierr(ierr,'new_group free')
        return
     end if
+
+    !free base group
+    call MPI_GROUP_FREE(base_grp,ierr)
+    if (ierr /= 0) then
+       call check_ierr(ierr,'base_group free')
+       return
+    end if
+
 
   contains
 
@@ -1472,6 +1546,36 @@ contains
     include 'scatter-inc.f90'
   end subroutine mpiscatter_i1i1
 
+  subroutine mpiscatterv_d0(sendbuf, sendcounts, displs, recvbuf, recvcount, root, comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    real(f_double) :: sendbuf
+    real(f_double), intent(inout) :: recvbuf
+    include 'scatterv-decl-inc.f90'
+    include 'scatterv-inc.f90'
+  end subroutine mpiscatterv_d0
+
+  subroutine mpiscatterv_d2d3(sendbuf, sendcounts, displs, recvbuf, root, comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    real(f_double), dimension(:,:), intent(in) :: sendbuf
+    real(f_double), dimension(:,:,:), intent(out) :: recvbuf
+    include 'scatterv-decl-inc.f90'
+    recvcount=size(sendbuf)
+    include 'scatterv-inc.f90'
+  end subroutine mpiscatterv_d2d3
+
+  subroutine mpiscatterv_d3d2(sendbuf, sendcounts, displs, recvbuf, root, comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    real(f_double), dimension(:,:,:), intent(in) :: sendbuf
+    real(f_double), dimension(:,:), intent(out) :: recvbuf
+    include 'scatterv-decl-inc.f90'
+    recvcount=size(sendbuf)
+    include 'scatterv-inc.f90'
+  end subroutine mpiscatterv_d3d2
+
+  
   !> Detect the maximum difference between arrays all over a given communicator
   function mpimaxdiff_i0(n,array,root,source,comm,bcast) result(maxdiff)
     use dynamic_memory
@@ -1867,7 +1971,7 @@ contains
     ! Local variables
     integer :: ierr
 
-    call mpi_get(origin,count,mpitype(1.d0),target_rank, &
+    call mpi_get(origin,count,mpitype(origin),target_rank, &
          target_disp,count,mpitype(origin), window, ierr)
     if (ierr/=0) then
        call f_err_throw('Error in mpi_get',&
