@@ -65,7 +65,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   type(coulomb_operator) :: pkernel
   !local variables
   character(len=*), parameter :: subname='coupling_matrix_prelim'
-  logical :: onlyfxc=.false.,dofxc=.true.,perx,pery,perz
+  !logical :: onlyfxc=.false.,dofxc=.true.,perx,pery,perz
+  logical :: onlyfxc, dofxc, perx, pery, perz
   !logical :: tda=.true.
   integer :: imulti,jmulti,jorba,jorbi,spinindex
   integer :: i1,i2,i3p,iorbi,iorba,indi,inda,ind2,ind3,ntda,ispin,jspin
@@ -81,8 +82,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   !if(iproc==0) write(*,'(1x,a)')" Linear-Response TDDFT calculations"
 
 
+  !write(*,*) "dofxc=",dofxc,";  onlyfxc=",onlyfxc
   dofxc=.true.
   onlyfxc=.false.
+  write(*,*) "dofxc=",dofxc,";  onlyfxc=",onlyfxc
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -158,6 +161,11 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            if (orbsocc%spinsgn(iorbi) == orbsvirt%spinsgn(iorba)) then
               !if they have the same spin, then increment the counter of transitions
               ik=ik+1
+              !if (orbsocc%spinsgn(iorbi) == 1.0_gp) then
+              !   ispin=1
+              !else if (orbsocc%spinsgn(iorbi) == -1.0_gp) then
+              !   ispin=2
+              !end if
            else
               !if the orbitals do not have the same spin, then cycle
               cycle loop_i
@@ -232,27 +240,32 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
               !Add the XC contribution
               !Map the spin couples to the index of dvxcdrho, in the abinit convention
               if (dofxc) then
-                 !Add the XC contribution to one of the diagonal matrix
+                 !Add the XC contribution
                  do i3p=1,n3p
                     do i2=1,lr%d%n2i
                        do i1=1,lr%d%n1i
+                          !Add the XC contribution to one of the diagonal matrix
                           K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
                                rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
                                dvxcdrho(i1,i2,i3p,1) !index=1
-                       end do
-                    end do
-                 end do
-
-                 !Add the XC contribution to one of the off-diagonal matrix
-                 do i3p=1,n3p
-                    do i2=1,lr%d%n2i
-                       do i1=1,lr%d%n1i
+                          !Add the XC contribution to one of the off-diagonal matrix
                           K(ik+nmulti,jk)=K(ik+nmulti,jk)+hxh*hyh*hzh*&
                                rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
                                dvxcdrho(i1,i2,i3p,2) !index=2
                        end do
                     end do
                  end do
+
+                 !!Add the XC contribution to one of the off-diagonal matrix
+                 !do i3p=1,n3p
+                 !   do i2=1,lr%d%n2i
+                 !      do i1=1,lr%d%n1i
+                 !         K(ik+nmulti,jk)=K(ik+nmulti,jk)+hxh*hyh*hzh*&
+                 !              rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
+                 !              dvxcdrho(i1,i2,i3p,2) !index=2
+                 !      end do
+                 !   end do
+                 !end do
               end if
 
               !Multiply K by the factor 2*\sqrt(\omega_i \omega_j)
@@ -584,53 +597,69 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
               !Map the spin couples to the index of dvxcdrho, in the abinit convention
               if (dofxc) then
 
-                 !Add the right XC contribution (according to the the spins of the transitions)
-                 if ( orbsocc%spinsgn(iorbi) == 1.0_gp .and. orbsocc%spinsgn(jorbi) == 1.0_gp ) then
+                 !fxc depends on the spin sign of the two transitions.
+                 !We define the right spin contribution using the variable spin-index.
+                 !spinindex=1: up-up
+                 !spinindex=2: up-down and down-up
+                 !spinindex=3: down-down
+                 spinindex=ispin+jspin-1
 
-                    do i3p=1,n3p
-                       do i2=1,lr%d%n2i
-                          do i1=1,lr%d%n1i
-                             K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
-                                  rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
-                                  dvxcdrho(i1,i2,i3p,1) !index=1
-                          end do
+                 !Add the right XC contribution
+                 do i3p=1,n3p
+                    do i2=1,lr%d%n2i
+                       do i1=1,lr%d%n1i
+                          K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
+                               rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
+                               dvxcdrho(i1,i2,i3p,spinindex) !index=1, 2 or 3
                        end do
                     end do
+                 end do
 
-                 else if ( (orbsocc%spinsgn(iorbi) == 1.0_gp .and. orbsocc%spinsgn(jorbi) == -1.0_gp) &
-                      .or. (orbsocc%spinsgn(iorbi) == -1.0_gp .and. orbsocc%spinsgn(jorbi) == 1.0_gp) ) then
+                 !!Add the right XC contribution (according to the the spins of the transitions)
+                 !if ( orbsocc%spinsgn(iorbi) == 1.0_gp .and. orbsocc%spinsgn(jorbi) == 1.0_gp ) then
 
-                    do i3p=1,n3p
-                       do i2=1,lr%d%n2i
-                          do i1=1,lr%d%n1i
-                             K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
-                                  rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
-                                  dvxcdrho(i1,i2,i3p,2) !index=2
-                          end do
-                       end do
-                    end do
+                 !   do i3p=1,n3p
+                 !      do i2=1,lr%d%n2i
+                 !         do i1=1,lr%d%n1i
+                 !            K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
+                 !                 rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
+                 !                 dvxcdrho(i1,i2,i3p,1) !index=1
+                 !         end do
+                 !      end do
+                 !   end do
 
-                 else
+                 !else if ( (orbsocc%spinsgn(iorbi) == 1.0_gp .and. orbsocc%spinsgn(jorbi) == -1.0_gp) &
+                 !     .or. (orbsocc%spinsgn(iorbi) == -1.0_gp .and. orbsocc%spinsgn(jorbi) == 1.0_gp) ) then
 
-                    do i3p=1,n3p
-                       do i2=1,lr%d%n2i
-                          do i1=1,lr%d%n1i
-                             K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
-                                  rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
-                                  dvxcdrho(i1,i2,i3p,3) !index=3
-                          end do
-                       end do
-                    end do
+                 !   do i3p=1,n3p
+                 !      do i2=1,lr%d%n2i
+                 !         do i1=1,lr%d%n1i
+                 !            K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
+                 !                 rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
+                 !                 dvxcdrho(i1,i2,i3p,2) !index=2
+                 !         end do
+                 !      end do
+                 !   end do
 
-                 end if
+                 !else
+
+                 !   do i3p=1,n3p
+                 !      do i2=1,lr%d%n2i
+                 !         do i1=1,lr%d%n1i
+                 !            K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
+                 !                 rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
+                 !                 dvxcdrho(i1,i2,i3p,3) !index=3
+                 !         end do
+                 !      end do
+                 !   end do
+
+                 !end if
 
               end if
 
               !Multiply K by the factor 2*\sqrt(\omega_i \omega_j)
               K(ik,jk)=K(ik,jk)*2.0_wp*sqrt(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))*&
                    sqrt(orbsvirt%eval(jorba)-orbsocc%eval(jorbi))
-!              K(ik+nmulti,jk)=K(ik+nmulti,jk)*2.0_wp*sqrt(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))*&
-!                   sqrt(orbsvirt%eval(jorba)-orbsocc%eval(jorbi))
 
            end do loop_j2
         end do loop_i3
@@ -639,7 +668,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
         do imulti=1,nmulti
            do jmulti=imulti+1,nmulti
               K(imulti,jmulti)=K(jmulti,imulti)
-              !K(imulti+nmulti,jmulti)=K(jmulti+nmulti,imulti)
            end do
         end do
 
@@ -660,14 +688,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            K(ik,ik)=K(ik,ik)+(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))**2
            !K(ik+nmulti,ik+nmulti)=K(ik+nmulti,ik+nmulti)+(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))**2
         end do loop_i4
-
-        !!We finally build the two other submatrices
-        !do imulti=1,nmulti
-        !   do jmulti=1,nmulti
-        !      K(imulti,jmulti+nmulti)=K(imulti+nmulti,jmulti)
-        !      K(imulti+nmulti,jmulti+nmulti)=K(imulti,jmulti)
-        !   end do
-        !end do
 
         !If more than one processor, then perform two MPI_all_reduce
         if (nproc > 1) then
@@ -760,9 +780,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
                     if (abs(K(jmulti,imulti)) > 5.d-02) then !We chose a minimal value for the transition to be taken into account
                        ik=ik+1
                     end if
-                    !if (abs(K(jmulti+nmulti,imulti)) > 5.d-02) then
-                    !   ik=ik+1
-                    !end if
                  end do
               end do
            end do
@@ -787,11 +804,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
                               &iorba, orbsvirt%eval(iorba), abs(K(jmulti,imulti)),&
                               &sqrt(omega(imulti))*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
                     end if
-                    !if (abs(K(jmulti+nmulti,imulti)) > 5.d-02) then
-                    !write(10,*) Ha_eV*sqrt(omega(imulti)), iorbi, orbsocc%eval(iorbi),&
-                    !          &iorba, orbsvirt%eval(iorba), abs(K(jmulti+nmulti,imulti)),&
-                    !          &sqrt(omega(imulti))*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
-                    !end if
                  end do
               end do
            end do
@@ -823,14 +835,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
                           call yaml_map('Coeff',trim(yaml_toa(abs(K(jmulti,imulti)),fmt='(1pe10.3)')))
                        call yaml_mapping_close()   
                     end if
-                    !if (abs(K(jmulti+nmulti,imulti)) > 5.d-02) then
-                    !   if (ik /= 0) call yaml_newline()
-                    !   ik = ik + 1
-                    !   call yaml_mapping_open(flow=.true.)
-                    !      call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
-                    !      call yaml_map('Coeff',trim(yaml_toa(abs(K(jmulti+nmulti,imulti)),fmt='(1pe10.3)')))
-                    !   call yaml_mapping_close()
-                    !end if
                  end do
               end do
 
@@ -960,27 +964,31 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
               !Add the XC contribution
               !Map the spin couples to the index of dvxcdrho, in the abinit convention
               if (dofxc) then
-                 !Add the XC contribution to one of the diagonal matrix
                  do i3p=1,n3p
                     do i2=1,lr%d%n2i
                        do i1=1,lr%d%n1i
+                          !Add the XC contribution to one of the diagonal matrix
                           K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
                                rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
                                dvxcdrho(i1,i2,i3p,1) !index=1
-                       end do
-                    end do
-                 end do
-
-                 !Add the XC contribution to one of the off-diagonal matrix
-                 do i3p=1,n3p
-                    do i2=1,lr%d%n2i
-                       do i1=1,lr%d%n1i
+                          !Add the XC contribution to one of the off-diagonal matrix
                           K(ik+nmulti,jk)=K(ik+nmulti,jk)+hxh*hyh*hzh*&
                                rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
                                dvxcdrho(i1,i2,i3p,2) !index=2
                        end do
                     end do
                  end do
+
+                 !!Add the XC contribution to one of the off-diagonal matrix
+                 !do i3p=1,n3p
+                 !   do i2=1,lr%d%n2i
+                 !      do i1=1,lr%d%n1i
+                 !         K(ik+nmulti,jk)=K(ik+nmulti,jk)+hxh*hyh*hzh*&
+                 !              rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
+                 !              dvxcdrho(i1,i2,i3p,2) !index=2
+                 !      end do
+                 !   end do
+                 !end do
               end if
 
               !!Multiply K by the factor 2*\sqrt(\omega_i \omega_j)
@@ -1046,15 +1054,15 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
         lwork = 3*ndipoles !safe value
         work = f_malloc(lwork,id='work')
 
-        !test: print out the matrix elements of K
-        do jmulti = 1, ndipoles
-           fsumrule_test=0.0
-           do imulti = 1, ndipoles
-              write(*,*) jmulti, imulti, K(jmulti, imulti)
-              fsumrule_test=fsumrule_test+K(jmulti, imulti)**2
-           end do
-           write(*,*) jmulti, fsumrule_test
-        end do
+        !!test: print out the matrix elements of K
+        !do jmulti = 1, ndipoles
+        !   fsumrule_test=0.0
+        !   do imulti = 1, ndipoles
+        !      write(*,*) jmulti, imulti, K(jmulti, imulti)
+        !      fsumrule_test=fsumrule_test+K(jmulti, imulti)**2
+        !   end do
+        !   write(*,*) jmulti, fsumrule_test
+        !end do
 
         call DSYEV('V','U',ndipoles,K,ndipoles,omega,work,lwork,info)
         if (info /= 0) then
@@ -1403,14 +1411,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            !K(ik+nmulti,ik+nmulti)=K(ik+nmulti,ik+nmulti)+(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))**2
         end do loop_i8
 
-        !!We finally build the two other submatrices
-        !do imulti=1,nmulti
-        !   do jmulti=1,nmulti
-        !      K(imulti,jmulti+nmulti)=K(imulti+nmulti,jmulti)
-        !      K(imulti+nmulti,jmulti+nmulti)=K(imulti,jmulti)
-        !   end do
-        !end do
-
         !If more than one processor, then perform two MPI_all_reduce
         if (nproc > 1) then
            call mpiallred(K,MPI_SUM,comm=bigdft_mpi%mpi_comm) !MPI_all_reduce of the coupling matrix
@@ -1431,15 +1431,15 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
         lwork = 3*ndipoles !safe value
         work = f_malloc(lwork,id='work')
 
-        !test: print out the matrix elements of K
-        do jmulti = 1, ndipoles
-           fsumrule_test=0.0
-           do imulti = 1, ndipoles
-              write(*,*) jmulti, imulti, K(jmulti, imulti)
-              fsumrule_test=fsumrule_test+K(jmulti, imulti)**2
-           end do
-           write(*,*) jmulti, fsumrule_test
-        end do
+        !!test: print out the matrix elements of K
+        !do jmulti = 1, ndipoles
+        !   fsumrule_test=0.0
+        !   do imulti = 1, ndipoles
+        !      write(*,*) jmulti, imulti, K(jmulti, imulti)
+        !      fsumrule_test=fsumrule_test+K(jmulti, imulti)**2
+        !   end do
+        !   write(*,*) jmulti, fsumrule_test
+        !end do
 
         call DSYEV('V','U',ndipoles,K,ndipoles,omega,work,lwork,info)
         if (info /= 0) then
@@ -1580,7 +1580,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   end if
 
 
-  write(*,*) "dofxc=",dofxc,";  onlyfxc=",onlyfxc
+  !write(*,*) "dofxc=",dofxc,";  onlyfxc=",onlyfxc
 
 
 END SUBROUTINE coupling_matrix_prelim
