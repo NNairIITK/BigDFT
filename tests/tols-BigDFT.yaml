@@ -287,7 +287,7 @@ test.minhop.ref.yaml:
  Orbitals: 6.1e-9
  Positions: 1.1e-9
  curv: 5.51e-11
- fd2: 2.85e-10
+ fd2: 2.93e-10
  Keys to ignore:
    - (MH) cpu(hrs)
    - WARNINGS
@@ -332,7 +332,7 @@ NEB.NEB.ref.yaml:
 CH4-D3:
  EH: &ener 1.1e-10
  Epot: *ener
- EKS: &ener2 3.3e-11
+ EKS: &ener2 3.32e-11
  Eion: *ener
  Ekin: *ener
  Enl: *ener2
@@ -347,7 +347,7 @@ NLCC: &NLCCs
  EKS: 5.9e-11
  Total electronic charge: 1.2e-11
  norm(P): 1.0e-10
- GPa: 3.8e-11
+ GPa: 4.032e-11
 
 NLCC: &NLCCsnew
  EH: 5.1e-10
@@ -1402,10 +1402,10 @@ log_model:
   - Reference Paper
 
 FF_LENOSKY-vssd:
-  etot: 3.54e-7
-  last beta: 3.301
-  beta: 0.501
-  fnrm2: 3.26e-7
+  etot: 3.601e-7
+  last beta: 3.401
+  beta: 0.601
+  fnrm2: 3.32e-7
   maxval: 6.802e-5
   Forces: 8.01e-5
   Keys to ignore:
@@ -1417,7 +1417,7 @@ FF_LENOSKY-ab6md:
 
 
 FF_LENOSKY-sdcg:
-  etot: 3.9e-11
+  etot: 4.2e-11
   maxval: 1.01e-9
   Keys to ignore:
   - WARNINGS
@@ -1517,7 +1517,7 @@ periodic_silicon:
  ebs: 1.2e-10
  Energy (Hartree): 2.9e-11
  energy: 2.9e-11
- Total ionic charge: 2.5e-11
+ Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
  D Tr: 1.0e-9
 
@@ -1543,8 +1543,8 @@ periodic_water:
  EvXC: 1.1e-9
  Ekin: 2.0e-9
  Enl: 1.1e-9
- Energy (Hartree): 7.8e-11
- Omega: 2.7e-10
+ Energy (Hartree): 9.52e-11
+ Omega: 3.27e-10
  ebs_check: 2.5e-9
  ebs: 2.5e-9
  eF: 9.2e-9
@@ -1556,7 +1556,7 @@ periodic_water:
  diff: 1.2e-10
  Tr(K): 5.0e-7
  D Tr: 1.0e-6
- Total ionic charge: 6.0e-11
+ Total ionic charge: 9.41e-11
  Pressure: 6.4e-10
  Clean forces norm (Ha/Bohr): 1.9e-11
  Ion-Ion interaction energy: 1.6e-11
@@ -1565,11 +1565,11 @@ periodic_water:
 surface_boronnitride:
  Enl: 1.01e-9
  Epot: 1.0e-9
- Omega: 1.9e-10
+ Omega: 1.96e-10
  energy: 3.2e-11
  Energy (Hartree): 3.2e-11
  Total charge: 1.0e-10
- Total ionic charge: 2.4e-11
+ Total ionic charge: 4.18e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1812,6 +1812,7 @@ extendedfrags_read:
  ebs_check: 6.1e-11
  Epot: 1.1e-10
  EvXC: 1.1e-10
+ EXC: 1.01e-10
  D Tr: 1.1e-10
  Average noise forces: 1.0e-10
  Pressure: 5.5e-11
