@@ -26,7 +26,7 @@ subroutine tddft_casida(iproc,nproc,atoms,rxyz,hxh,hyh,hzh,n3p,n3parr,Glr,tddft_
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   real(wp), dimension(orbsv%npsidim_orbs), intent(in) :: psiv
   !local variables
-  character(len=*), parameter :: subname='tddft_casida'
+  !character(len=*), parameter :: subname='tddft_casida'
   integer :: i_all,i_stat
   real(gp), dimension(3) :: chargec
   real(wp), dimension(:), allocatable :: psirocc,psirvirt
