@@ -862,11 +862,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
      !if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
      call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
-          atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
+          atoms,rxyz,denspot%pkernel,1,denspot%V_ext)
+!!$     call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
+!!$          atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
      if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
      !if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
      call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
-          atoms,rxyz,denspot%dpbox,in%nspin,denspot%rhov)
+          atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
   end if
 
   call f_free_ptr(denspot%V_ext)
@@ -1958,14 +1960,14 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      if (iproc == 0) call yaml_map('Writing electronic density in file','electronic_density'//gridformat)
 
      call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
-          atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
+          atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work)
 !---------------------------------------------------
 ! giuseppe fisicaro dilectric cavity
      if (denspot%pkernel%method /= 'VAC') then
         if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
 
         call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
-             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%w%rho_pol)
+             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%rho_pol)
 
 !!$        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
 !!$
@@ -1977,14 +1979,14 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
         if (iproc == 0) call yaml_map('Writing core density in file','core_density'//gridformat)
         call plot_density(iproc,nproc,trim(dir_output)//'core_density' // gridformat,&
-             atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,i3xcsh_old+1,1))
+             atoms,rxyz,denspot%pkernel,1,denspot%rho_C(1,1,i3xcsh_old+1,1))
      end if
   end if
   !plot also the electrostatic potential
   if (output_denspot == 'DENSPOT') then
      if (iproc == 0) call yaml_map('Writing Hartree potential in file','hartree_potential'//gridformat)
      call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
-          atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pot_work)
+          atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work)
   end if
 
   !     !plot also the electrostatic potential
