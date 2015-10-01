@@ -40,3 +40,31 @@ subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
   end if
 END SUBROUTINE read_etsf
 
+!> Write a field in the ISF basis in the ETSF format
+subroutine write_etsf_density(filename,message,geocode,&
+     ndims,hgrids,&
+     rho,nspin,nat,rxyz,iatype,nzatom,nelpsp)
+  !n(c) use module_base
+  use PSbase
+  use module_atoms, only: atoms_data
+  implicit none
+  character(len=*), intent(in) :: filename,message
+  !integer,intent(in) :: fileunit0,fileunitx,fileunity,fileunitz
+  character(len=1), intent(in) :: geocode
+  integer, intent(in) :: nspin,nat
+  integer, dimension(3), intent(in) :: ndims
+  real(gp), dimension(3), intent(in) :: hgrids
+  real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(in) :: rho
+  real(gp), dimension(3,nat), intent(in) :: rxyz
+  integer, dimension(nat), intent(in) :: iatype
+  integer, dimension(*), intent(in) :: nzatom !< of dimension ntypes
+  integer, dimension(*), intent(in) :: nelpsp !< of dimension ntypes
+
+  !local variables
+
+  write(0, "(A)") "Illegal call to write_etsf_density(), not compiled with ETSF_IO support."
+  stop
+
+  !To avoid warnings from the compiler
+  write(*,*) filename,message,ndims,hgrids,rho(1,1,1),rxyz(1,1)
+END SUBROUTINE write_etsf_density

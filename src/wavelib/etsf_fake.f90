@@ -8,27 +8,6 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 
-!> Write a field in the ISF basis in the ETSF format
-subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,x)
-  !n(c) use module_base
-  use PSbase
-  use module_atoms, only: atoms_data
-  implicit none
-  character(len=*), intent(in) :: filename,message
-  integer, intent(in) :: n1i,n2i,n3i
-  real(gp), intent(in) :: hxh,hyh,hzh
-  type(atoms_data), intent(in) :: at
-  real(dp), dimension(n1i,n2i,n3i), intent(in) :: x
-  real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  !local variables
-
-  write(0, "(A)") "Illegal call to write_etsf_density(), not compiled with ETSF_IO support."
-  stop
-
-  !To avoid warnings from the compiler
-  write(*,*) filename,message,n1i,n2i,n3i,hxh,hyh,hzh,x(1,1,1),rxyz(1,1)
-END SUBROUTINE write_etsf_density
-
 
 !> Read wavefunctions using ETSF format
 subroutine read_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old,rxyz,  & 
