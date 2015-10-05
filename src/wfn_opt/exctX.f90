@@ -1307,46 +1307,49 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
        !verify that the messages have been passed
        if(.not. use_mpi_get) call MPI_WAITALL(ncommsstep2,mpireq2,mpistat2,ierr)
        !copy the results which have been received (the messages sending are after)
-       do igroup=1,ngroupp
-          if (jprocsr(4,jproc-1,igroup) /= -1) then
-             if (iproc == itestproc) then
-                print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                     ':copying',nvctr_par(jprocsr(4,jproc-1,igroup),igrpr(igroup)),&
-                     'processed elements from',jprocsr(4,jproc-1,igroup),'in',iproc
-             end if
+       !this part is already done by the mpi_accumulate
+       if (.not. (use_mpi_get .and. new_mpi_get)) then
+          do igroup=1,ngroupp
+             if (jprocsr(4,jproc-1,igroup) /= -1) then
+                if (iproc == itestproc) then
+                   print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
+                        ':copying',nvctr_par(jprocsr(4,jproc-1,igroup),igrpr(igroup)),&
+                        'processed elements from',jprocsr(4,jproc-1,igroup),'in',iproc
+                end if
 
-             call axpy(nvctr_par(iproc,igrpr(igroup)),1.0_wp,dpsiw(1,1,irnow2,igroup),1,&
-                  dpsir(1,iorbgr(2,iproc,igrpr(igroup))),1)
-          end if
-       end do
+                call axpy(nvctr_par(iproc,igrpr(igroup)),1.0_wp,dpsiw(1,1,irnow2,igroup),1,&
+                     dpsir(1,iorbgr(2,iproc,igrpr(igroup))),1)
+             end if
+          end do
+       end if
     end if
 
     ncommsstep2=0
     !meanwhile, we can receive the result from the processor which has the psi 
 
     irnow2=3-isnow2
-    do igroup=1,ngroupp
-       if (jprocsr(3,jproc,igroup) /= -1) then
-          ncommsstep2=ncommsstep2+1
-          if (jprocsr(3,jproc,igroup) == itestproc) then
-             print *,'step',jproc+1,'group:',igrpr(igroup),&
-                  ': sending',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
-                  'elements from',iproc,'to',jprocsr(3,jproc,igroup)
-          end if
-          call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
-               dpsiw(1,1,3,igroup),1,dpsiw(1,1,isnow2,igroup),1)
-          if(.not. use_mpi_get) call MPI_ISEND(dpsiw(1,1,isnow2,igroup),&
-               nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),mpidtypw,&
-               jprocsr(3,jproc,igroup),&
-               iproc+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
+ do igroup=1,ngroupp
+    if (jprocsr(3,jproc,igroup) /= -1) then
+       ncommsstep2=ncommsstep2+1
+       if (jprocsr(3,jproc,igroup) == itestproc) then
+          print *,'step',jproc+1,'group:',igrpr(igroup),&
+               ': sending',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
+               'elements from',iproc,'to',jprocsr(3,jproc,igroup)
        end if
-    end do
+       call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
+            dpsiw(1,1,3,igroup),1,dpsiw(1,1,isnow2,igroup),1)
+       if(.not. use_mpi_get) call MPI_ISEND(dpsiw(1,1,isnow2,igroup),&
+            nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),mpidtypw,&
+            jprocsr(3,jproc,igroup),&
+            iproc+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
+    end if
+ end do
 
-    do igroup=1,ngroupp
-       if (jprocsr(4,jproc,igroup) /= -1) then
-          ncommsstep2=ncommsstep2+1
-          if(use_mpi_get) then
-             if (new_mpi_get) then
+ do igroup=1,ngroupp
+    if (jprocsr(4,jproc,igroup) /= -1) then
+       ncommsstep2=ncommsstep2+1
+       if(use_mpi_get) then
+          if (new_mpi_get) then
 !!$                iproc_totake=jprocsr(4,jproc,igroup) !this should always be the same
 !!$                call mpiget(origin=dpsiw(1,1,irnow2,igroup),&
 !!$                     count=nvctr_par(iproc,igrpr(igroup)),& !this one has to be changed for the version with put
@@ -1355,13 +1358,13 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
 !!$                     (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
 !!$                     + (isnow2-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind) ,&
 !!$                     window=win2)
-                !version with accumulate
-                iproc_toput=jprocsr(3,jproc,igroup)
-                call mpiaccumulate(origin=dpsiw(1,1,isnow2,igroup),&
-                     count=nvctr_par(iproc_toput,igrpr(igroup)),& !this one has to be changed for the version with put
-                     target_rank=iproc_toput,&
-                     target_disp=int((iorbgr(2,iproc,igrpr(igroup))-1)*lr%d%n1i*lr%d%n2i*lr%d%n3i, kind=mpi_address_kind),&
-                     op=MPI_SUM,window=win4)
+             !version with accumulate
+             iproc_toput=jprocsr(3,jproc,igroup)
+             call mpiaccumulate(origin=dpsiw(1,1,isnow2,igroup),&
+                  count=nvctr_par(iproc_toput,igrpr(igroup)),& !this one has to be changed for the version with put
+                  target_rank=iproc_toput,&
+                  target_disp=int((iorbgr(2,iproc,igrpr(igroup))-1)*lr%d%n1i*lr%d%n2i*lr%d%n3i, kind=mpi_address_kind),&
+                  op=MPI_SUM,window=win4)
              else
 !!$            call MPI_GET(dpsiw(1,1,irnow2,igroup),&
 !!$            int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
