@@ -699,7 +699,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   character(len=*), parameter :: subname='exact_exchange_potential_round'
   logical :: doit, use_mpi_get,new_mpi_get
   integer :: ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
-  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii,iproc_totake
+  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii,iproc_totake,iproc_toput
   integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
   real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
   integer, dimension(4) :: mpireq,mpireq2
@@ -711,7 +711,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   real(wp), dimension(:), allocatable :: rp_ij
   real(wp), dimension(:,:), allocatable :: psir
   real(wp), dimension(:,:,:,:), allocatable :: psiw,dpsiw
-  integer :: win, win2, win3, size_of_double
+  integer :: win, win2, win3, size_of_double,win4
 
   !call timing(iproc,'Exchangecorr  ','ON')
   use_mpi_get = .true.
@@ -1044,11 +1044,14 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   rp_ij = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='rp_ij')
 
   if(use_mpi_get) then 
-     if (.not. new_mpi_get) win = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp,&
-          psiw(1,1,1,1),bigdft_mpi%mpi_comm)
-    win2 = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp,dpsiw(1,1,1,1), bigdft_mpi%mpi_comm)
+     if (.not. new_mpi_get) then
+        win = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp,&
+             psiw(1,1,1,1),bigdft_mpi%mpi_comm)
+        win2 = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp,dpsiw(1,1,1,1), bigdft_mpi%mpi_comm)
+     end if
     ! To use MPI_get, we need a window covering psir, which will be used only once
     win3 = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1), bigdft_mpi%mpi_comm)
+    if (new_mpi_get) win4 = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir(1,1), bigdft_mpi%mpi_comm)
   end if 
 
   !this is the array of the actions of the X potential on psi
@@ -1189,7 +1192,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
           isorb=iorbgr(1,iproc,igrpr(igroup))
           if (jproc==0) then
              jsorb=isorb
-          else       
+          else
              jsorb=iorbgr(1,jprocsr(2,jproc-1,igroup),igrpr(igroup))
              !if (igrpr(igroup) == 2) jsorb=orbs%norbu+jsorb
           end if
@@ -1221,7 +1224,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                       end do
                       !$omp end parallel do
                    end if
-                   ncalls=ncalls+1                    
+                   ncalls=ncalls+1
                    !Poisson solver in sequential
                    if (iproc == iprocref .and. verbose > 1) then
                       call yaml_comment('Exact exchange calculation: ' // trim(yaml_toa( &
@@ -1281,7 +1284,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                 !fill the set of the vector to be sent to the other processes
                 !in the first step the results are self-contained
                 if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
-                   !write(100+iproc,*)jorb+jsorb,iorb+isorb,igrpr(igroup) 
+                   !write(100+iproc,*)jorb+jsorb,iorb+isorb,igrpr(igroup)
                    !$omp parallel do default(shared) private(i)
                    do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
                       dpsiw(i,jorb-jorbs+1,3,igroup)=dpsiw(i,jorb-jorbs+1,3,igroup)+&
@@ -1293,8 +1296,12 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
           end do
        end if
     end do
-    if(use_mpi_get) then 
-       call mpi_fence(win2)
+    if(use_mpi_get) then
+       if (new_mpi_get) then
+          call mpi_fence(win4)
+       else
+          call mpi_fence(win2)
+       end if
     end if
     if (ncommsstep2 > 0) then
        !verify that the messages have been passed
@@ -1340,14 +1347,21 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
           ncommsstep2=ncommsstep2+1
           if(use_mpi_get) then
              if (new_mpi_get) then
-                iproc_totake=jprocsr(4,jproc,igroup) !this should always be the same
-                call mpiget(origin=dpsiw(1,1,irnow2,igroup),&
-                     count=nvctr_par(iproc,igrpr(igroup)),& !this one has to be changed for the version with put
-                     target_rank=iproc_totake,&
-                     target_disp=int((igrprarr(igrpr(igroup), iproc_totake)-1)*& !this also
-                     (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
-                     + (isnow2-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind) ,&
-                     window=win2)
+!!$                iproc_totake=jprocsr(4,jproc,igroup) !this should always be the same
+!!$                call mpiget(origin=dpsiw(1,1,irnow2,igroup),&
+!!$                     count=nvctr_par(iproc,igrpr(igroup)),& !this one has to be changed for the version with put
+!!$                     target_rank=iproc_totake,&
+!!$                     target_disp=int((igrprarr(igrpr(igroup), iproc_totake)-1)*& !this also
+!!$                     (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
+!!$                     + (isnow2-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind) ,&
+!!$                     window=win2)
+                !version with accumulate
+                iproc_toput=jprocsr(3,jproc,igroup)
+                call mpiaccumulate(origin=dpsiw(1,1,isnow2,igroup),&
+                     count=nvctr_par(iproc_toput,igrpr(igroup)),& !this one has to be changed for the version with put
+                     target_rank=iproc_toput,&
+                     target_disp=int((iorbgr(2,iproc,igrpr(igroup))-1)*lr%d%n1i*lr%d%n2i*lr%d%n3i, kind=mpi_address_kind),&
+                     op=MPI_SUM,window=win4)
              else
 !!$            call MPI_GET(dpsiw(1,1,irnow2,igroup),&
 !!$            int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
@@ -1407,9 +1421,12 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   if (iproc == 0) call yaml_map('Exact Exchange Energy',eexctX,fmt='(1pe18.11)')
   !if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
   if(use_mpi_get) then
-    call mpi_win_free(win, ierr)
-    call mpi_win_free(win2, ierr)
-    call mpi_win_free(win3, ierr)
+     if (.not. new_mpi_get) then
+     call mpi_win_free(win, ierr)
+     call mpi_win_free(win2, ierr)
+  end if
+  call mpi_win_free(win3, ierr)
+  if (new_mpi_get) call mpi_win_free(win4, ierr)
   end if 
   !close(100+iproc)
   call f_free(nvctr_par)
