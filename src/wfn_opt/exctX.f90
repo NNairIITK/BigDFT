@@ -1102,21 +1102,34 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
 
           if(use_mpi_get) then 
             if (jproc == 0) then
-              call MPI_GET(psiw(1,1,irnow,igroup), &
-        int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-        iprocpm1(2,1,igroup),int((iorbgr(2,iprocpm1(2,1,igroup),igrprarr(igrpr(igroup), iprocpm1(2,1,igroup)))-1)&
-        *(lr%d%n1i*lr%d%n2i*lr%d%n3i), kind=mpi_address_kind),int(nvctr_par(jprocsr(2,jproc,igroup),&
-        igrpr(igroup)), kind=mpi_address_kind),&
-        mpidtypw,win3,ierr)
+!!$              call MPI_GET(psiw(1,1,irnow,igroup), &
+!!$        int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
+!!$        iprocpm1(2,1,igroup),int((iorbgr(2,iprocpm1(2,1,igroup),igrprarr(igrpr(igroup), iprocpm1(2,1,igroup)))-1)&
+!!$        *(lr%d%n1i*lr%d%n2i*lr%d%n3i), kind=mpi_address_kind),int(nvctr_par(jprocsr(2,jproc,igroup),&
+!!$        igrpr(igroup)), kind=mpi_address_kind),&
+!!$        mpidtypw,win3,ierr)
+!!$              if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+              call mpiget(origin=psiw(1,1,irnow,igroup), &
+                   count=nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
+                   target_rank=iprocpm1(2,1,igroup),&
+                   target_disp=int((iorbgr(2,iprocpm1(2,1,igroup),igrprarr(igrpr(igroup), iprocpm1(2,1,igroup)))-1)&
+                   *(lr%d%n1i*lr%d%n2i*lr%d%n3i), kind=mpi_address_kind),window=win3)
               if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
-            else
-              call MPI_GET(psiw(1,1,irnow,igroup), &
-        int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-        iprocpm1(2,1,igroup), int((igrprarr(igrpr(igroup), iprocpm1(2,1,igroup))-1)*&
-        (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*2))&
-        + (isnow-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind),&
-        int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win,ierr)
-              if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+
+            else             
+!!$               call MPI_GET(psiw(1,1,irnow,igroup), &
+!!$                    int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
+!!$                    iprocpm1(2,1,igroup), int((igrprarr(igrpr(igroup), iprocpm1(2,1,igroup))-1)*&
+!!$                    (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*2))&
+!!$                    + (isnow-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind),&
+!!$                    int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win,ierr)
+!!$               if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE             
+               call mpiget(origin=psiw(1,1,irnow,igroup), &
+                    count=nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
+                    target_rank=iprocpm1(2,1,igroup),target_disp=int((igrprarr(igrpr(igroup), iprocpm1(2,1,igroup))-1)*&
+                    (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*2))&
+                    + (isnow-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind),&
+                    window=win)
             end if
           else
            call MPI_IRECV(psiw(1,1,irnow,igroup),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
@@ -1316,20 +1329,27 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
         if (jprocsr(4,jproc,igroup) /= -1) then
            ncommsstep2=ncommsstep2+1
           if(use_mpi_get) then
-            call MPI_GET(dpsiw(1,1,irnow2,igroup),&
-            int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-            jprocsr(4,jproc,igroup),&
-            int((igrprarr(igrpr(igroup), jprocsr(4,jproc,igroup))-1)*&
-        (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
+!!$            call MPI_GET(dpsiw(1,1,irnow2,igroup),&
+!!$            int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
+!!$            jprocsr(4,jproc,igroup),&
+!!$            int((igrprarr(igrpr(igroup), jprocsr(4,jproc,igroup))-1)*&
+!!$        (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
+!!$             + (isnow2-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind) ,&
+!!$            int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win2,ierr)
+!!$        if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+        call mpiget(origin=dpsiw(1,1,irnow2,igroup),&
+             count=nvctr_par(iproc,igrpr(igroup)),&
+             target_rank=jprocsr(4,jproc,igroup),&
+             target_disp=int((igrprarr(igrpr(igroup), jprocsr(4,jproc,igroup))-1)*&
+             (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
              + (isnow2-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind) ,&
-            int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win2,ierr)
-        if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+             window=win2)
           else
             call MPI_IRECV(dpsiw(1,1,irnow2,igroup),&
                 nvctr_par(iproc,igrpr(igroup)),mpidtypw,jprocsr(4,jproc,igroup),&
                 jprocsr(4,jproc,igroup)+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
           end if
-        end if
+       end if
      end do
      if (jproc>1) isnow2=3-isnow2
 
