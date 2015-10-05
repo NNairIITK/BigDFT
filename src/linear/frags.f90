@@ -1,6 +1,6 @@
 !needs cleaning once we stabilize which options are useful
 subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated,&
-  nstates_max,cdft,completely_random)
+  nstates_max,cdft,restart_mode)
   use yaml_output
   use module_base
   use module_types
@@ -12,6 +12,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
                           uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed
   use module_interfaces, only: write_eigenvalues_data
+  use public_enums
   implicit none
   type(DFT_wavefunction), intent(inout) :: tmb
   type(input_variables), intent(in) :: input
@@ -22,7 +23,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   integer, intent(in) :: iproc
   integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
   logical, intent(in) :: cdft
-  logical, intent(in) :: completely_random!, use_tmbs_as_coeffs
+  integer, intent(in) :: restart_mode
 
   integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag, linstate, jf, pm, ortho_size, s, nelecfrag
   integer, allocatable, dimension(:) :: ipiv
@@ -35,10 +36,10 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   integer, allocatable, dimension(:) :: rand_seed
   real(kind=dp) :: rtime, random_noise, rmax
   character(len=10) :: sys_time
-  logical :: random, lincombm, lincombp !completely_random, 
+  logical :: random, lincombm, lincombp !
 
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
-  logical, parameter :: use_tmbs_as_coeffs=.false.
+  logical :: completely_random, use_tmbs_as_coeffs
 
 
   call timing(iproc,'kernel_init','ON')
@@ -58,7 +59,17 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 
   ! adding random noise to starting to help with local minima problem
   random=.false. ! add a bit of noise
-  !completely_random=.false. ! completely random start for coeffs
+  completely_random=.false. ! completely random start for coeffs
+  use_tmbs_as_coeffs=.false.
+  if (restart_mode==LIN_RESTART_RANDOM) then
+     completely_random=.true.
+  else if (restart_mode==LIN_RESTART_DIAG_KERNEL) then
+     use_tmbs_as_coeffs=.true.
+     stop 'Error in restart: cannot construct coefficients using diagonal kernel'
+  else if (restart_mode==LIN_RESTART_KERNEL) then
+     stop 'Error in restart: annot construct coefficients using kernel'
+  end if
+
   rmax=0.2d0
   random_noise=0.0d0
   rtime=0.0d0
@@ -176,19 +187,19 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
 contains
 
   !still assuming neutral/correct charge distribution given
-  !might delete this option eventually, as now doing via kernel
+  !might delete this option eventually, as now doing via kernel - unless can think of a way to make this work in direct min case?
   subroutine set_coeffs_to_tmbs()
     implicit none
 
-real(kind=dp) :: sumo, sumof
+    !real(kind=dp) :: sumo, sumof
     call f_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
 
     coeff_final=f_malloc0((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_final')
 
     jsforb=0
-sumo=0.0d0
+    !sumo=0.0d0
     do ifrag=1,input%frag%nfrag
-sumof=0.0d0
+       !sumof=0.0d0
        ! find reference fragment this corresponds to
        ifrag_ref=input%frag%frag_index(ifrag)
        call f_zero(tmb%orbs%norb*tmb%orbs%norb, tmb%coeff(1,1))
@@ -197,12 +208,12 @@ sumof=0.0d0
           tmb%coeff(jsforb+jtmb,jtmb)=1.0d0
           tmb%orbs%occup(jsforb+jtmb)=real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp) !ref_frags(ifrag_ref)%coeff(jtmb,jtmb) !
           tmb%orbs%eval(jsforb+jtmb)=-0.5d0
-sumo=sumo+ref_frags(ifrag_ref)%coeff(jtmb,jtmb)
-sumof=sumof+ref_frags(ifrag_ref)%coeff(jtmb,jtmb)
-          write(*,'(a,5(2x,I4),4(2x,F6.2))') 'iproc,if,ifr,ntmbf,nef,it,n,nw',ifrag,ifrag_ref,&
-               ref_frags(ifrag_ref)%fbasis%forbs%norb,nelecfrag,jtmb,&
-               real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp),&
-               ref_frags(ifrag_ref)%coeff(jtmb,jtmb),sumof,sumo
+          !sumo=sumo+ref_frags(ifrag_ref)%coeff(jtmb,jtmb)
+          !sumof=sumof+ref_frags(ifrag_ref)%coeff(jtmb,jtmb)
+          !write(*,'(a,6(2x,I4),4(2x,F6.2))') 'iproc,if,ifr,ntmbf,nef,it,n,nw',iproc,ifrag,ifrag_ref,&
+          !     ref_frags(ifrag_ref)%fbasis%forbs%norb,nelecfrag,jtmb,&
+          !     real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp),&
+          !     ref_frags(ifrag_ref)%coeff(jtmb,jtmb),sumof,sumo
        end do
        !if (iproc==0) print*,ifrag,ifrag_ref,ref_frags(ifrag_ref)%fbasis%forbs%norb,nelecfrag,&
        !      real(nelecfrag,dp)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp),tmb%coeff(jtmb,jtmb)

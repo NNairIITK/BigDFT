@@ -2472,14 +2472,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            cdft%charge=ref_frags(in%frag%frag_index(cdft%ifrag_charged(1)))%nelec-in_frag_charge(cdft%ifrag_charged(1))&
                 -(ref_frags(in%frag%frag_index(cdft%ifrag_charged(2)))%nelec-in_frag_charge(cdft%ifrag_charged(2)))
            !DEBUG
-           if (iproc==0) then
-              print*,'???????????????????????????????????????????????????????'
-              print*,'ifrag_charged1&2,in_frag_charge1&2,qcharge,cdft%charge',cdft%ifrag_charged(1:2),&
-              in_frag_charge(cdft%ifrag_charged(1)),in_frag_charge(cdft%ifrag_charged(2)),in%qcharge,cdft%charge
-              print*,'??',ref_frags(in%frag%frag_index(cdft%ifrag_charged(1)))%nelec,in_frag_charge(cdft%ifrag_charged(1)),&
-                              ref_frags(in%frag%frag_index(cdft%ifrag_charged(2)))%nelec,in_frag_charge(cdft%ifrag_charged(2))
-              print*,'???????????????????????????????????????????????????????'
-           end if
+           !if (iproc==0) then
+           !   print*,'???????????????????????????????????????????????????????'
+           !   print*,'ifrag_charged1&2,in_frag_charge1&2,qcharge,cdft%charge',cdft%ifrag_charged(1:2),&
+           !   in_frag_charge(cdft%ifrag_charged(1)),in_frag_charge(cdft%ifrag_charged(2)),in%qcharge,cdft%charge
+           !   print*,'??',ref_frags(in%frag%frag_index(cdft%ifrag_charged(1)))%nelec,in_frag_charge(cdft%ifrag_charged(1)),&
+           !                   ref_frags(in%frag%frag_index(cdft%ifrag_charged(2)))%nelec,in_frag_charge(cdft%ifrag_charged(2))
+           !   print*,'???????????????????????????????????????????????????????'
+           !end if
            !END DEBUG
         else
            in_frag_charge=>in%frag%charge
@@ -2503,13 +2503,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      !currently equivalent to diagonal kernel - all these options need tidying/stabilizing
      !atomic weight option needs figuring out - put in with kernel? just use coeffs for coeffs (and random? -> switch this to kernel too, just need to purify)
+     !ADD a check somewhere that diag and kernel only work for FOE
      if (in%lin%fragment_calculation) then
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
            call fragment_kernels_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
                 in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL,max_nbasis_env,frag_env_mapping)
         else
            call fragment_coeffs_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
-                nstates_max,in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_RANDOM)
+                nstates_max,in%lin%constrained_dft,in%lin%kernel_restart_mode)
         end if
 
         !! debug
@@ -2517,12 +2518,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
         !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
         !if (iproc==0) then
-        !    do itmb=1,tmb%orbs%norb
+        !   open(30)
+        !   do itmb=1,tmb%orbs%norb
         !      do jtmb=1,tmb%orbs%norb
         !         write(30,*) itmb,jtmb,tmb%coeff(itmb,jtmb),tmb%linmat%kernel_%matrix(itmb,jtmb,1)
         !      end do
-        !    end do
+        !   end do
         !   write(30,*) ''
+        !   close(30)
         !end if 
         !call f_free_ptr(tmb%linmat%kernel_%matrix) 
         !! end debug
@@ -2533,6 +2536,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            nullify(in_frag_charge)
         end if
      else
+        ! in this case we're currently not using the diagonal guess
+        ! not sure how often it will be useful but should fix this
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
            ! for now assuming reading was from file in dense format
            tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
@@ -2556,7 +2561,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
      tmb%can_use_transposed=.false.
-     if (in%lin%diag_start .or. (in%lin%kernel_restart_mode==LIN_RESTART_TMB_WEIGHT.and.in%lin%fragment_calculation)) then
+     if (in%lin%diag_start .or. (in%lin%fragment_calculation .and. in%lin%kernel_restart_mode==LIN_RESTART_TMB_WEIGHT)) then
         ! not worrying about this case as not currently used anyway
         !call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
         !     tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
@@ -2579,7 +2584,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
         call f_zero(tmb%orbs%occup)
         do iorb=1,kswfn%orbs%norb
-          tmb%orbs%occup(iorb)=Kswfn%orbs%occup(iorb)
+           tmb%orbs%occup(iorb)=Kswfn%orbs%occup(iorb)
         end do
      else
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
@@ -2802,12 +2807,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
      !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
      !if (iproc==0) then
+     !   open(32)
      !   do itmb=1,tmb%orbs%norb
      !      do jtmb=1,tmb%orbs%norb
      !         write(32,*) itmb,jtmb,tmb%coeff(itmb,jtmb),tmb%linmat%kernel_%matrix(itmb,jtmb,1)
      !      end do
      !   end do
      !   write(32,*) ''
+     !   close(32)
      !end if 
      !call f_free_ptr(tmb%linmat%kernel_%matrix) 
      !! end debug
