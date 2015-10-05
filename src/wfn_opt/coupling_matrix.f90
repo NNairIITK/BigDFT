@@ -66,7 +66,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   !local variables
   character(len=*), parameter :: subname='coupling_matrix_prelim'
   !logical :: onlyfxc=.false.,dofxc=.true.,perx,pery,perz
-  logical :: onlyfxc, dofxc, perx, pery, perz
+  logical :: dofH, dofxc, perx, pery, perz
   !logical :: tda=.true.
   integer :: imulti,jmulti,jorba,jorbi,spinindex
   integer :: i1,i2,i3p,iorbi,iorba,indi,inda,ind2,ind3,ntda,ispin,jspin
@@ -82,10 +82,10 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   !if(iproc==0) write(*,'(1x,a)')" Linear-Response TDDFT calculations"
 
 
-  !write(*,*) "dofxc=",dofxc,";  onlyfxc=",onlyfxc
-  dofxc=.true.
-  onlyfxc=.false.
-  write(*,*) "dofxc=",dofxc,";  onlyfxc=",onlyfxc
+  !write(*,*) "dofxc=",dofxc,";  dofH=",dofH
+  dofxc=.true.!.true.
+  dofH=.true.!onlyfxc=.false.
+  !write(*,*) "dofxc=",dofxc,";  dofH=",dofH
 
   !conditions for periodicity in the three directions
   perx=(geocode /= 'F')
@@ -105,8 +105,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   nmulti=0 !initialize the counter of allowed transitions
   do imulti=1,orbsvirt%norb*orbsocc%norb
      !calculate the orbital index
-     iorbi=(imulti-1)/orbsvirt%norb+1 !index of the virtual state considered
-     iorba=imulti-(iorbi-1)*orbsvirt%norb !index of the occupied state considered
+     iorbi=(imulti-1)/orbsvirt%norb+1 !index of the occupied state considered
+     iorba=imulti-(iorbi-1)*orbsvirt%norb !index of the virtual state considered
      !check the spin of both states is the same
      if (orbsocc%spinsgn(iorbi) == orbsvirt%spinsgn(iorba)) then
         !if same spin, then increment the counter of allowed transitions
@@ -199,7 +199,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end do
  
            !Calculate the Hartree potential corresponding to the partial density
-           if (.not. onlyfxc) then
+           if (dofH) then
               !Copy the partial density onto the partial potential space to pass it to PSolver
               call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
               !Partial potential term for each partial density
@@ -230,7 +230,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
               !Calculation of the Hartree part of the coupling matrix K_H(ik,jk)
               !K_H(ik,jk) = \int V_Hartree(x,y,z) \rho_bj(x,y,z) dx dy dz
-              if (.not. onlyfxc) then
+              if (dofH) then
                  K(ik,jk)=hxh*hyh*hzh*&
                       dot(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,jk),1,v_ias(1,1,1),1)
                  !Copy the Hartree term in one of the off-diagonal sub-matrix.
@@ -557,7 +557,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end do
 
            !Calculate the Hartree potential corresponding to the partial density
-           if (.not. onlyfxc) then
+           if (dofH) then
               !Copy the partial density onto the partial potential space to pass it to PSolver
               call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
               !Partial potential term for each partial density
@@ -588,7 +588,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
               !Calculation of the Hartree part of the coupling matrix K_H(ik,jk)
               !K_H(ik,jk) = \int V_Hartree(x,y,z) \rho_bj(x,y,z) dx dy dz
-              if (.not. onlyfxc) then
+              if (dofH) then
                  K(ik,jk)=hxh*hyh*hzh*&
                       dot(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,jk),1,v_ias(1,1,1),1)
               end if
@@ -923,7 +923,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end do
  
            !Calculate the Hartree potential corresponding to the partial density
-           if (.not. onlyfxc) then
+           if (dofH) then
               !Copy the partial density onto the partial potential space to pass it to PSolver
               call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
               !Partial potential term for each partial density
@@ -954,7 +954,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
               !Calculation of the Hartree part of the coupling matrix K_H(ik,jk)
               !K_H(ik,jk) = \int V_Hartree(x,y,z) \rho_bj(x,y,z) dx dy dz
-              if (.not. onlyfxc) then
+              if (dofH) then
                  K(ik,jk)=hxh*hyh*hzh*&
                       dot(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,jk),1,v_ias(1,1,1),1)
                  !Copy the Hartree term in one of the off-diagonal sub-matrix.
@@ -1000,14 +1000,12 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end do loop_j3
         end do loop_i5
 
-        !We now build the lower triangular parts of the two sub-matrices.
-        do imulti=1,nmulti
-           do jmulti=imulti+1,nmulti
-              K(imulti,jmulti)=K(jmulti,imulti)
-              K(imulti+nmulti,jmulti)=K(jmulti+nmulti,imulti)
-           end do
-        end do
-
+        !If more than one processor, then perform two MPI_all_reduce
+        if (nproc > 1) then
+           call mpiallred(K,MPI_SUM,comm=bigdft_mpi%mpi_comm) !MPI_all_reduce of the coupling matrix
+           call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,comm=bigdft_mpi%mpi_comm) !MPI_all_reduce of the dipoles
+        end if
+      
         !Add the diagonal part: \omega_i \delta_{i,j}
         !loop over the transitions
         ik=0 !initialize the transition counter
@@ -1023,8 +1021,16 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end if
            !Add the energy difference of the eigenvalues
            K(ik,ik)=K(ik,ik)+orbsvirt%eval(iorba)-orbsocc%eval(iorbi)
-           !K(ik+nmulti,ik+nmulti)=K(ik+nmulti,ik+nmulti)+(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))**2
+           !K(ik+nmulti,ik+nmulti)=K(ik,ik)
         end do loop_i6
+
+        !We now build the lower triangular parts of the two sub-matrices.
+        do imulti=1,nmulti
+           do jmulti=imulti+1,nmulti
+              K(imulti,jmulti)=K(jmulti,imulti)
+              K(imulti+nmulti,jmulti)=K(jmulti+nmulti,imulti)
+           end do
+        end do
 
         !We finally build the two other submatrices
         do imulti=1,nmulti
@@ -1034,12 +1040,6 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end do
         end do
 
-        !If more than one processor, then perform two MPI_all_reduce
-        if (nproc > 1) then
-           call mpiallred(K,MPI_SUM,comm=bigdft_mpi%mpi_comm) !MPI_all_reduce of the coupling matrix
-           call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,comm=bigdft_mpi%mpi_comm) !MPI_all_reduce of the dipoles
-        end if
-      
         !Copy the values of the dipoles in the second part of the array
         call vcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
         call dscal(3*ndipoles,hxh*hyh*hzh,dipoles(1,1),1)
@@ -1054,15 +1054,15 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
         lwork = 3*ndipoles !safe value
         work = f_malloc(lwork,id='work')
 
-        !!test: print out the matrix elements of K
-        !do jmulti = 1, ndipoles
-        !   fsumrule_test=0.0
-        !   do imulti = 1, ndipoles
-        !      write(*,*) jmulti, imulti, K(jmulti, imulti)
-        !      fsumrule_test=fsumrule_test+K(jmulti, imulti)**2
-        !   end do
-        !   write(*,*) jmulti, fsumrule_test
-        !end do
+        !test: print out the matrix elements of K
+        do jmulti = 1, ndipoles
+           fsumrule_test=0.0
+           do imulti = 1, ndipoles
+              write(*,*) jmulti, imulti, K(jmulti, imulti)
+              fsumrule_test=fsumrule_test+K(jmulti, imulti)**2
+           end do
+           write(*,*) jmulti, fsumrule_test
+        end do
 
         call DSYEV('V','U',ndipoles,K,ndipoles,omega,work,lwork,info)
         if (info /= 0) then
@@ -1094,13 +1094,13 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
 
            !Test of the Thomas-Reiche-Kuhn sum rule
-           !This is not what is actually coded
-           !fsumrule_test=0_wp
-           !do imulti = 1, ndipoles
-           !   fsumrule_test = fsumrule_test + &
-           !                 omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
-           !end do
-           !call yaml_map('Test of the f-sum rule',fsumrule_test,fmt='(1pe10.3)')
+           !This is not what is actually coded ???
+           fsumrule_test=0_wp
+           do imulti = 1, ndipoles
+              fsumrule_test = fsumrule_test + &
+                            omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+           end do
+           call yaml_map('Test of the f-sum rule',fsumrule_test,fmt='(1pe10.3)')
 
            !Write an output file containing excitation energies and oscillator strength.
            !It will be used to plot absorption spectr.a
@@ -1144,7 +1144,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
               !do jmulti = 1, ndipoles
               do iorbi = 1, orbsocc%norb
                  do iorba = 1, orbsvirt%norb
-                    jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
+                    jmulti = (iorbi-1)*orbsvirt%norb + iorba
                     if (abs(K(jmulti,imulti)) > 5.d-02) then
                        !iorbi=jmulti/orbsvirt%norb+1
                        !iorba=jmulti-(iorbi-1)*orbsvirt%norb
@@ -1236,14 +1236,14 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
         ik=0
         loop_i7: do imulti=1,orbsvirt%norb*orbsocc%norb
            !calculate the orbital index
-           iorbi=(imulti-1)/orbsvirt%norb+1
-           iorba=imulti-(iorbi-1)*orbsvirt%norb
+           iorbi=(imulti-1)/orbsvirt%norb+1 !index of the occupied state involved in the first transition of the coupling matrix element
+           iorba=imulti-(iorbi-1)*orbsvirt%norb !index of the virtual state involved in the first transition of the coupling matrix element
 
            !check the spin of the occupied and virtual orbitals considered
            if (orbsocc%spinsgn(iorbi) == orbsvirt%spinsgn(iorba)) then
               !if they have the same spin, then increment the counter of transitions
               ik=ik+1
-              !We memorize the spin sign of the KS states involved in the first transition of the coupling matrix element
+              !We also memorize the spin sign of the KS states involved in the first transition of the coupling matrix element
               if (orbsocc%spinsgn(iorbi) == 1.0_gp) then
                  ispin=1
               else if (orbsocc%spinsgn(iorbi) == -1.0_gp) then
@@ -1268,8 +1268,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
                  do i1=1,lr%d%n1i !loop over x
                     x=real(i1-nbl1-1,gp)*hxh-chargec(1) !x (origin at the center of charge)
                     
-                    indi=i1+ind2+(iorbi-1)*lr%d%n1i*lr%d%n2i*n3p !multiindex giving the right index for the virtual state wavefunction
-                    inda=i1+ind2+(iorba-1)*lr%d%n1i*lr%d%n2i*n3p !multiindex giving the right index for the occupied state wavefunction
+                    indi=i1+ind2+(iorbi-1)*lr%d%n1i*lr%d%n2i*n3p !multiindex giving the right index for the occupied state wavefunction
+                    inda=i1+ind2+(iorba-1)*lr%d%n1i*lr%d%n2i*n3p !multiindex giving the right index for the virtual state wavefunction
                     rho_ias(i1,i2,i3p,ik)=hfac*psivirtr(inda)*psirocc(indi) !partial density, multiplied by the integration factor hfac
 
                     !Calculate dipole moments
@@ -1281,7 +1281,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end do
 
            !Calculate the Hartree potential corresponding to the partial density
-           if (.not. onlyfxc) then
+           if (dofH) then
               !Copy the partial density onto the partial potential space to pass it to PSolver
               call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
               !Partial potential term for each partial density
@@ -1294,8 +1294,8 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            loop_j4: do jmulti=1,imulti 
               !Calculate the orbital index for the second transition of the coupling matrix element
               !We use the same multi index as above for the first transtion
-              jorbi=(jmulti-1)/orbsvirt%norb+1 !index of the vitrual state
-              jorba=jmulti-(jorbi-1)*orbsvirt%norb !index of the occupied state
+              jorbi=(jmulti-1)/orbsvirt%norb+1 !index of the occupied state involved in the second transition of the coupling matrix element
+              jorba=jmulti-(jorbi-1)*orbsvirt%norb !index of the virtual state involved in the second transition of the coupling matrix element
 
               !Check the spin of the occupied and virtual orbitals considered (needed for the exchange correlation part)
               !This is the same convention as above. 
@@ -1313,7 +1313,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
               !Calculation of the Hartree part of the coupling matrix K_H(ik,jk)
               !K_H(ik,jk) = \int V_Hartree(x,y,z) \rho_bj(x,y,z) dx dy dz
-              if (.not. onlyfxc) then
+              if (dofH) then
                  K(ik,jk)=hxh*hyh*hzh*&
                       dot(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,jk),1,v_ias(1,1,1),1)
               end if
@@ -1335,7 +1335,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
                        do i1=1,lr%d%n1i
                           K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
                                rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
-                               dvxcdrho(i1,i2,i3p,spinindex) !index=1
+                               dvxcdrho(i1,i2,i3p,spinindex) !index=1, 2 or 3
                        end do
                     end do
                  end do
@@ -1385,21 +1385,19 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end do loop_j4
         end do loop_i7
 
-        !We now build the lower triangular parts of the two sub-matrices.
-        do imulti=1,nmulti
-           do jmulti=imulti+1,nmulti
-              K(imulti,jmulti)=K(jmulti,imulti)
-              !K(imulti+nmulti,jmulti)=K(jmulti+nmulti,imulti)
-           end do
-        end do
-
+        !If more than one processor, then perform two MPI_all_reduce
+        if (nproc > 1) then
+           call mpiallred(K,MPI_SUM,comm=bigdft_mpi%mpi_comm) !MPI_all_reduce of the coupling matrix
+           call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,comm=bigdft_mpi%mpi_comm) !MPI_all_reduce of the dipoles
+        end if
+      
         !Add the diagonal part: \omega_i \delta_{i,j}
         !loop over the transitions
         ik=0 !initialize the transition counter
         loop_i8: do imulti=1,orbsvirt%norb*orbsocc%norb
            !calculate the orbital index
-           iorbi=(imulti-1)/orbsvirt%norb+1 !virtual orbital index
-           iorba=imulti-(iorbi-1)*orbsvirt%norb !ocupied orbital index
+           iorbi=(imulti-1)/orbsvirt%norb+1 !occupied orbital index
+           iorba=imulti-(iorbi-1)*orbsvirt%norb !virtual orbital index
            !check the spin of the orbitals considered
            if (orbsocc%spinsgn(iorbi) == orbsvirt%spinsgn(iorba)) then
               ik=ik+1
@@ -1411,12 +1409,14 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            !K(ik+nmulti,ik+nmulti)=K(ik+nmulti,ik+nmulti)+(orbsvirt%eval(iorba)-orbsocc%eval(iorbi))**2
         end do loop_i8
 
-        !If more than one processor, then perform two MPI_all_reduce
-        if (nproc > 1) then
-           call mpiallred(K,MPI_SUM,comm=bigdft_mpi%mpi_comm) !MPI_all_reduce of the coupling matrix
-           call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,comm=bigdft_mpi%mpi_comm) !MPI_all_reduce of the dipoles
-        end if
-      
+        !We now build the upper triangular part of the coupling matrix.
+        do imulti=1,nmulti
+           do jmulti=imulti+1,nmulti
+              K(imulti,jmulti)=K(jmulti,imulti)
+              !K(imulti+nmulti,jmulti)=K(jmulti+nmulti,imulti)
+           end do
+        end do
+
         !Copy the values of the dipoles in the second part of the array
         !call vcopy(3*nmulti,dipoles(1,1),1,dipoles(1,nmulti+1),1)
         call dscal(3*ndipoles,hxh*hyh*hzh,dipoles(1,1),1)
@@ -1431,15 +1431,15 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
         lwork = 3*ndipoles !safe value
         work = f_malloc(lwork,id='work')
 
-        !!test: print out the matrix elements of K
-        !do jmulti = 1, ndipoles
-        !   fsumrule_test=0.0
-        !   do imulti = 1, ndipoles
-        !      write(*,*) jmulti, imulti, K(jmulti, imulti)
-        !      fsumrule_test=fsumrule_test+K(jmulti, imulti)**2
-        !   end do
-        !   write(*,*) jmulti, fsumrule_test
-        !end do
+        !test: print out the matrix elements of K
+        do jmulti = 1, ndipoles
+           fsumrule_test=0.0
+           do imulti = 1, ndipoles
+              write(*,*) jmulti, imulti, K(jmulti, imulti)
+              fsumrule_test=fsumrule_test+K(jmulti, imulti)**2
+           end do
+           write(*,*) jmulti, fsumrule_test
+        end do
 
         call DSYEV('V','U',ndipoles,K,ndipoles,omega,work,lwork,info)
         if (info /= 0) then
@@ -1456,7 +1456,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
            !if (tddft_approach=='TDA') call yaml_comment('TAMM-DANCOFF APPROXIMATION',hfill='-')
            !if (tddft_approach=='full') call yaml_comment('FULL TDDFT',hfill='-')
-           call yaml_comment('FULL TDDFT',hfill='-')
+           call yaml_comment('TAMM-DANCOFF APPROXIMATION',hfill='-')
 
            call yaml_sequence_open('Excitation Energy and Oscillator Strength')
 
@@ -1471,13 +1471,13 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
 
            !Test of the Thomas-Reiche-Kuhn sum rule
-           !This is not what is actually coded
-           !fsumrule_test=0_wp
-           !do imulti = 1, ndipoles
-           !   fsumrule_test = fsumrule_test + &
-           !                 sqrt(omega(imulti))*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
-           !end do
-           !call yaml_map('Test of the f-sum rule',fsumrule_test,fmt='(1pe10.3)')
+           !This is not what is actually coded ???
+           fsumrule_test=0_wp
+           do imulti = 1, ndipoles
+              fsumrule_test = fsumrule_test + &
+                            sqrt(omega(imulti))*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+           end do
+           call yaml_map('Test of the f-sum rule',fsumrule_test,fmt='(1pe10.3)')
 
            !Write an output file containing excitation energies and oscillator strength.
            !It will be used to plot absorption spectr.a
@@ -1492,17 +1492,27 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            close(unit=9)
 
            !Count the number of KS transitions needed to account for all true excitations
-           ik=0
+           ik=0 !counter of transitions
            do imulti = 1, ndipoles
            !do imulti = 1, nmulti
+              jk=0 !counter of dipoles
+              do jmulti = 1, orbsocc%norb*orbsvirt%norb
+                 jorbi=(jmulti-1)/orbsvirt%norb+1
+                 jorba=jmulti-(jorbi-1)*orbsvirt%norb  
+                 if (orbsocc%spinsgn(jorbi) == orbsvirt%spinsgn(jorba)) then
+                    jk=jk+1
               !do jmulti = 1, ndipoles
-              do iorbi = 1, orbsocc%norb
-                 do iorba = 1, orbsvirt%norb
-                    jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if (abs(K(jmulti,imulti)) > 5.d-02) then !We chose a minimal value for the transition to be taken into account
+              !do jorbi = 1, orbsocc%norb
+              !   do jorba = 1, orbsvirt%norb
+              !      jmulti =  (jorbi-1)*orbsvirt%norb+ jorba
+              !      write (*,*) "iorbi", iorbi, "iorba", iorba, "jmulti", jmulti
+                    if (abs(K(jk,imulti)) > 5.d-02) then !We chose a minimal value for the transition to be taken into account
                        ik=ik+1
                     end if
-                 end do
+                 else
+                    cycle
+                 end if
+              !   end do
               end do
            end do
 
@@ -1515,18 +1525,29 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            !(K is now containing the coefficients of the KS transitions reproducing the true excitations.)
            do imulti = 1, ndipoles
            !do imulti = 1, nmulti
+              ik=0
+              do jmulti = 1, orbsocc%norb*orbsvirt%norb
+                 jorbi=(jmulti-1)/orbsvirt%norb+1
+                 jorba=jmulti-(jorbi-1)*orbsvirt%norb  
+                 if (orbsocc%spinsgn(jorbi) == orbsvirt%spinsgn(jorba)) then
               !do jmulti = 1, ndipoles
-              do iorbi = 1, orbsocc%norb
-                 do iorba = 1, orbsvirt%norb
-                    jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if (abs(K(jmulti,imulti)) > 5.d-02) then
-                       !iorbi=jmulti/orbsvirt%norb+1
-                       !iorba=jmulti-(iorbi-1)*orbsvirt%norb
-                       write(10,*) Ha_eV*omega(imulti), iorbi, orbsocc%eval(iorbi),&
-                              &iorba, orbsvirt%eval(iorba), abs(K(jmulti,imulti)),&
+              !do jorbi = 1, orbsocc%norb
+              !   do jorba = 1, orbsvirt%norb
+              !      jmulti =  (jorbi-1)*orbsvirt%norb + jorba
+                    ik=ik+1
+                    !write (*,*) "jorbi", jorbi, "jorba", jorba, "jmulti", jmulti, "ik", ik
+                    if (abs(K(ik,imulti)) > 5.d-02) then
+                       !iorbi=(jmulti-1)/orbsvirt%norb+1
+                       !iorba=jmulti-(iorbi-1)*orbsvirt%norb  
+                       !write (*,*) "jorbi", jorbi, "jorba", jorba, "jmulti", jmulti, "ik", ik
+                       write(10,*) Ha_eV*omega(imulti), jorbi, orbsocc%eval(jorbi),&
+                              &jorba, orbsvirt%eval(jorba), abs(K(ik,imulti)),&
                               &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
                     end if
-                 end do
+              !   end do
+                 else 
+                    cycle
+                 end if
               end do
            end do
            close(unit=10)
@@ -1542,22 +1563,28 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
               !if (tddft_approach=='full') call yaml_map('Energy',trim(yaml_toa(Ha_eV*sqrt(omega(imulti)),fmt='(f10.5)')))
               call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
 
-              ik=0
-              !do jmulti = 1, ndipoles
-              do iorbi = 1, orbsocc%norb
-                 do iorba = 1, orbsvirt%norb
-                    jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if (abs(K(jmulti,imulti)) > 5.d-02) then
-                       !iorbi=jmulti/orbsvirt%norb+1
-                       !iorba=jmulti-(iorbi-1)*orbsvirt%norb
+              ik=0 !counter for the yaml_newline
+              jk=0
+              do jmulti = 1, orbsocc%norb*orbsvirt%norb
+                 jorbi=(jmulti-1)/orbsvirt%norb+1
+                 jorba=jmulti-(jorbi-1)*orbsvirt%norb
+                 if (orbsocc%spinsgn(jorbi) == orbsvirt%spinsgn(jorba)) then
+              !do iorbi = 1, orbsocc%norb
+              !   do iorba = 1, orbsvirt%norb
+              !      jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
+                    jk=jk+1 
+                    if (abs(K(jk,imulti)) > 5.d-02) then
                        if (ik /= 0) call yaml_newline()
                        ik = ik + 1
                        call yaml_mapping_open(flow=.true.)
-                          call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
-                          call yaml_map('Coeff',trim(yaml_toa(abs(K(jmulti,imulti)),fmt='(1pe10.3)')))
+                          call yaml_map('Transition',trim(yaml_toa((/ jorbi, jorba /))))
+                          call yaml_map('Coeff',trim(yaml_toa(abs(K(jk,imulti)),fmt='(1pe10.3)')))
                        call yaml_mapping_close()   
                     end if
-                 end do
+              !   end do
+                 else
+                    cycle
+                 end if
               end do
 
               call yaml_sequence_close(advance='no')
@@ -1580,7 +1607,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   end if
 
 
-  !write(*,*) "dofxc=",dofxc,";  onlyfxc=",onlyfxc
+  !write(*,*) "dofxc=",dofxc,";  dofH=", dofH
 
 
 END SUBROUTINE coupling_matrix_prelim
