@@ -1053,7 +1053,10 @@ module postprocessing_linear
     
       if (input%write_orbitals==2) then
           call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
-               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz)
+               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
+      else if (input%write_orbitals==3) then 
+          call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KS', &
+               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
       end if
     
       if (input%wf_extent_analysis) then

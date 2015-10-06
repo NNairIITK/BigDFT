@@ -2122,7 +2122,7 @@ module module_interfaces
 
   interface
      subroutine write_orbital_density(iproc, transform_to_global, iformat, &
-          filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, lzd_l)
+          filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, dens, lzd_l)
        use module_defs, only: gp,dp,wp
        use module_types
        implicit none
@@ -2136,6 +2136,7 @@ module module_interfaces
        type(atoms_data),intent(in) :: at
        real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
        type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
+       logical,intent(in) :: dens !< density of wavefunctions or just wavefunctions
      END SUBROUTINE write_orbital_density
   end interface
 
