@@ -623,61 +623,6 @@ module module_interfaces
         END SUBROUTINE apply_potential
       end interface
 
-
-      interface
-        subroutine read_density(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-            &   nat,rxyz,iatypes, znucl)
-        use module_defs, only: gp,dp
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-         integer, intent(out) :: nspin
-         integer, intent(out) ::  n1i,n2i,n3i
-         real(gp), intent(out) :: hxh,hyh,hzh
-         real(dp), dimension(:,:,:,:), pointer :: rho
-         real(gp), dimension(:,:), pointer, optional :: rxyz
-         integer, intent(out), optional ::  nat
-         integer, dimension(:), pointer, optional :: iatypes, znucl
-        END SUBROUTINE read_density
-      end interface
-
-      interface
-        subroutine read_cube(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-            &   nat,rxyz, iatypes, znucl)
-         use module_defs, only: gp,dp
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-         integer, intent(out) :: nspin
-         integer, intent(out) ::  n1i,n2i,n3i
-         real(gp), intent(out) :: hxh,hyh,hzh
-         real(dp), dimension(:,:,:,:), pointer :: rho
-         real(gp), dimension(:,:), pointer   :: rxyz
-         integer, intent(out)   ::  nat
-         integer, dimension(:), pointer   :: iatypes, znucl
-        END SUBROUTINE read_cube
-      end interface
-
-      interface
-        subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-            &   nat,rxyz, iatypes, znucl)
-        use module_defs, only: gp,dp
-         use module_types
-         implicit none
-         character(len=*), intent(in) :: filename
-         character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-         integer, intent(out) :: nspin
-         integer, intent(out) ::  n1i,n2i,n3i
-         real(gp), intent(out) :: hxh,hyh,hzh
-         real(dp), dimension(:,:,:,:), pointer :: rho
-         real(gp), dimension(:,:), pointer :: rxyz
-         integer, intent(out) ::  nat
-         integer, dimension(:), pointer :: iatypes, znucl
-        END SUBROUTINE read_etsf
-      end interface
-
       interface
         subroutine read_potfile4b2B(filename,n1i,n2i,n3i, rho, alat1, alat2, alat3)
          use module_defs, only: gp,dp,wp

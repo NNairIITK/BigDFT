@@ -2085,6 +2085,7 @@ module locreg_operations
     
     END SUBROUTINE global_to_local
 
+    
 
 end module locreg_operations
 

@@ -793,6 +793,7 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   eproj_sum=0.0_gp
   !quick return if no orbitals on this task
   if (orbs%norbp == 0) then
+     call f_release_routine()
      return
   end if
 
@@ -808,8 +809,6 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !time4=0.0d0
   !times=0.0d0
   !call cpu_time(t0)
-
-  call f_routine(id=subname)
 
   !array of the scalar products
   scpr=f_malloc(orbs%norbp*orbs%nspinor,id='scpr')
@@ -1041,7 +1040,6 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   end if
 
   call f_free(scpr)
-  call f_release_routine()
   !call cpu_time(t1)
   !time0=real(t1-t0,kind=8)
 
@@ -1183,8 +1181,8 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
          energs_work%sendbuf(4) = energs%evsic
          energs_work%receivebuf(:) = 0.d0
          energs_work%window = mpiwindow(1, energs_work%receivebuf(1), bigdft_mpi%mpi_comm)
-         call mpiaccumulate_double(energs_work%sendbuf(1), 4, 0, & 
-              int(0,kind=mpi_address_kind), 4, mpi_sum, energs_work%window)
+         call mpiaccumulate(energs_work%sendbuf(1), 4, 0, & 
+              int(0,kind=mpi_address_kind), mpi_sum, energs_work%window)
       else
          wrkallred(1)=energs%ekin
          wrkallred(2)=energs%epot

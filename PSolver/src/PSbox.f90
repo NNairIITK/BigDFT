@@ -1,5 +1,5 @@
 !> @file
-!!    Modulefile for handling of the Simulation box of the Poisson Solver
+!!    Modulefile for handling of the Parallelization of the Simulation box of the Poisson Solver
 !!
 !! @author
 !!    G. Fisicaro, L. Genovese (September 2015)
@@ -109,4 +109,111 @@ contains
     end if
 
   end subroutine reduce_energies
+
+  !>the invers of gathering. Transforms a full array in a distributed one
+  subroutine PS_scatter(src,dest,kernel)
+    implicit none
+    type(coulomb_operator), intent(in) :: kernel
+    real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: src
+    real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(out), optional :: dest
+
+    call mpiscatterv(sendbuf=src,sendcounts=kernel%counts,&
+         displs=kernel%displs,recvbuf=dest,comm=kernel%mpi_env%mpi_comm)
+    
+  end subroutine PS_scatter
+
+  !>read a field in a distributed way
+  !! only good to read the nspin==1 fields
+  subroutine PS_read_field(filename,kernel,pot,npot)
+    use yaml_output
+    use dynamic_memory
+    use IObox
+    use dictionaries, only: f_err_throw
+    implicit none
+    character(len=*), intent(in) :: filename
+    type(coulomb_operator), intent(in) :: kernel
+    real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p,*), intent(out) :: pot
+    integer, intent(in), optional :: npot
+    !local variables
+    logical :: wrong_spin
+    integer :: nspin,ispin
+    character(len=1) :: geocode
+    integer, dimension(3) :: ndims
+    real(gp), dimension(3) :: hgrids
+    real(dp), dimension(:,:,:,:), allocatable :: pot_from_disk
+
+    if (kernel%mpi_env%iproc==0) then
+       call yaml_map('Reading local potential from file:',filename)
+       call read_field_dimensions(filename,geocode,ndims,nspin)
+       !allocate the potential in full
+       pot_from_disk=f_malloc([ndims(1),ndims(2),ndims(3),nspin],id='pot_from_disk')
+       !> Read a density file using file format depending on the extension.
+       call read_field(filename,&
+            geocode,ndims,hgrids,nspin,product(ndims),nspin,pot_from_disk)
+    else
+       pot_from_disk=f_malloc([1,1,1,1],id='pot_from_disk')
+    end if
+
+    wrong_spin= nspin/=1
+    if (present(npot)) wrong_spin= npot /= nspin
+    if (wrong_spin) call f_err_throw('Error in read_file: the npot is not correct')
+
+
+    !then scatter the result
+    do ispin=1,nspin
+       call PS_scatter(pot_from_disk(1,1,1,ispin),pot(1,1,ispin),kernel)
+    end do
+
+    call f_free(pot_from_disk)
+  end subroutine PS_read_field
+
+!!$  !> Read the densit and put the values in the rhopot arrays according to the parallelization indicated by
+!!$  !! nscatterarr array
+!!$  subroutine read_potential_from_disk(iproc,nproc,filename,geocode,ngatherarr,n1i,n2i,n3i,n3p,nspin,hxh,hyh,hzh,pot)
+!!$    use dynamic_memory
+!!$    implicit none
+!!$    integer, intent(in) :: iproc,nproc,n1i,n2i,n3i,n3p,nspin
+!!$    real(gp), intent(in) :: hxh,hyh,hzh
+!!$    character(len=*), intent(in) :: filename
+!!$    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+!!$    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
+!!$    real(dp), dimension(n1i,n2i,max(n3p,1),nspin), intent(out) :: pot
+!!$    !local variables
+!!$    character(len=*), parameter :: subname='read_potential_from_disk'
+!!$    integer :: n1t,n2t,n3t,nspint,ierror,ierr,ispin
+!!$    real(gp) :: hxt,hyt,hzt
+!!$    real(dp), dimension(:,:,:,:), pointer :: pot_from_disk
+!!$
+!!$    !only the first processor should read this
+!!$    if (iproc == 0) then
+!!$       write(*,'(1x,a)')'Reading local potential from file:'//trim(filename)
+!!$       call read_density(trim(filename),geocode,&
+!!$            n1t,n2t,n3t,nspint,hxt,hyt,hzt,pot_from_disk)
+!!$       if (abs(hxt-hxh) <= 1.e-5_gp .and. abs(hyt-hyh) <= 1.e-5_gp .and. abs(hzt-hzh) <= 1.e-5_gp .and. &
+!!$            nspint == nspin .and. &
+!!$            n1i  == n1t  .and. n2i == n2t .and. n3i == n3t) then
+!!$       else
+!!$          write(*,*)'ERROR (to be documented): some of the parameters do not coincide'
+!!$          write(*,*)hxh,hyh,hzh,hxt,hyt,hzt,nspin,nspint,n1i,n2i,n3i,n1t,n2t,n3t
+!!$       end if
+!!$    else
+!!$       pot_from_disk = f_malloc_ptr((/ 1, 1, 1, nspin /),id='pot_from_disk')
+!!$    end if
+!!$
+!!$    if (nproc > 1) then
+!!$       do ispin=1,nspin
+!!$          call MPI_SCATTERV(pot_from_disk(1,1,1,ispin),&
+!!$               ngatherarr(0,1),ngatherarr(0,2),mpidtypd, &
+!!$               pot(1,1,1,ispin),&
+!!$               n1i*n2i*n3p,mpidtypd,0,%mpi_comm,ierr)
+!!$       end do
+!!$    else
+!!$       call vcopy(n1i*n2i*n3i*nspin,pot_from_disk(1,1,1,1),1,pot(1,1,1,1),1)
+!!$    end if
+!!$
+!!$    call f_free_ptr(pot_from_disk)
+!!$
+!!$  end subroutine read_potential_from_disk
+
+
 end module PSbox

@@ -546,9 +546,11 @@ module communications_init
                       ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
                       !write(*,'(a,9i9)') 'k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p', k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p
                       if (nproc>1) then
-                          call mpiaccumulate(weightloc_c(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
-                               jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
-                               (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
+                         call mpiaccumulate(origin=weightloc_c(0,0,ii), count=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                               target_rank=jproc,&
+                               target_disp=int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),&
+                               kind=mpi_address_kind), &
+                               op=MPI_SUM, window=window_c)
                       else
                           call axpy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), 1.d0, weightloc_c(0,0,ii), 1, &
                                weightppp_c(0,0,1+(ks(k)-i3startend(3,jproc))), 1)
@@ -798,9 +800,12 @@ module communications_init
                       ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
                       !write(*,'(a,7i9)') 'k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii', k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii
                       if (nproc>1) then
-                          call mpiaccumulate(weightloc_f(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
-                               jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
-                               (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_f)
+                          call mpiaccumulate(origin=weightloc_f(0,0,ii), &
+                               count=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                               target_rank=jproc,&
+                               target_disp=int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),&
+                               kind=mpi_address_kind), &
+                               op=mpi_sum, window=window_f)
                       else
                           call axpy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), 1.d0, weightloc_f(0,0,ii), 1, &
                                weightppp_f(0,0,1+(ks(k)-i3startend(3,jproc))), 1)
