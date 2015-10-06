@@ -1349,7 +1349,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
           call mpiaccumulate(origin=dpsiw(1,1,isnow2,igroup),&
                count=nvctr_par(iproc_toput,igrpr(igroup)),& !this one has to be changed for the version with put
                target_rank=iproc_toput,&
-               target_disp=int((iorbgr(2,iproc,igrpr(igroup))-1)*lr%d%n1i*lr%d%n2i*lr%d%n3i, kind=mpi_address_kind),&
+               target_disp=int((iorbgr(2,iproc_toput,igrpr(igroup))-1)*lr%d%n1i*lr%d%n2i*lr%d%n3i, kind=mpi_address_kind),&
                op=MPI_SUM,window=win4)
        end if
     end if
