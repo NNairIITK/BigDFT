@@ -375,31 +375,130 @@ contains
 
   !> calculate the Extra potential and add it to the Hartree one
   !!at the same time evaluate the energy of the extra term given the 
-  !! electronic charge density
-  subroutine add_Vextra(n1,n23,nabla2_pot,depsdrho,dsurfdrho,cavity)
+  !! electronic charge density, and add if needed the ionic potential
+  subroutine add_Vextra(n1,n23,nabla2_pot,depsdrho,dsurfdrho,cavity,&
+       only_es,rho,sumpion,pot_ion,pot,eVextra)
     implicit none
+    !>if .true., the added potential only comes from the 
+    !!electrostatic contribution
+    logical, intent(in) :: only_es,sumpion
     integer, intent(in) :: n1,n23
     !> on input, square of the gradient of the potential.
     !! on output, extra term of the potential
-    real(dp), dimension(n1,n23), intent(in) :: depsdrho,dsurfdrho
+    real(dp), dimension(n1,n23), intent(in) :: depsdrho,dsurfdrho,rho,pot_ion
     type(cavity_data), intent(in) :: cavity
-    real(dp), dimension(n1,n23), intent(inout) :: nabla2_pot
+    real(dp), dimension(n1,n23), intent(in) :: nabla2_pot
+    real(dp), dimension(n1,n23), intent(out) :: pot
+    real(dp), intent(out) :: eVextra
     !local variables
     integer :: i1,i23
-    real(dp) :: ep,sp
+    real(dp) :: ep,sp,rh,pt
 
-    !$omp parallel do default(shared) private(i1,i23,ep,sp)
-    do i23=1,n23
-       do i1=1,n1
-          ep=depsdrho(i1,i23)
-          sp=dsurfdrho(i1,i23)
-          nabla2_pot(i1,i23)=-oneoeightpi*ep*nabla2_pot(i1,i23)!&
-          !+(cavity%alphaS+cavity%gammaS)*sp+cavity%betaV*ep/(1.d0-cavity%epsilon0)
+    eVextra=0.0_dp
+    if (only_es) then
+       if (sumpion) then
+          !$omp parallel do default(shared) private(i1,i23,ep,rh,pt) &
+          !$omp reduction(+:eVextra)       
+          do i23=1,n23
+             do i1=1,n1
+                ep=depsdrho(i1,i23)
+                pt=-oneoeightpi*ep*nabla2_pot(i1,i23)
+                pot(i1,i23)=pt+pot_ion(i1,i23)
+                rh=rho(i1,i23)*pt
+                eVextra=eVextra+rh
+             end do
+          end do
+          !$omp end parallel do
+       else
+          !$omp parallel do default(shared) private(i1,i23,ep,rh,pt) &
+          !$omp reduction(+:eVextra)       
+          do i23=1,n23
+             do i1=1,n1
+                ep=depsdrho(i1,i23)
+                pt=-oneoeightpi*ep*nabla2_pot(i1,i23)
+                pot(i1,i23)=pt
+                rh=rho(i1,i23)*pt
+                eVextra=eVextra+rh
+             end do
+          end do
+          !$omp end parallel do
+       end if
+    else
+       if (sumpion) then
+          !$omp parallel do default(shared) private(i1,i23,ep,sp,rh,pt)&
+          !$omp reduction(+:eVextra)
+          do i23=1,n23
+             do i1=1,n1
+                ep=depsdrho(i1,i23)
+                sp=dsurfdrho(i1,i23)
+                pt=-oneoeightpi*ep*nabla2_pot(i1,i23)+&
+                     (cavity%alphaS+cavity%gammaS)*sp+&
+                     cavity%betaV*ep/(1.d0-cavity%epsilon0)
+                pot(i1,i23)=pt+pot_ion(i1,i23)
+                rh=rho(i1,i23)*pt
+                eVextra=eVextra+rh
+             end do
+          end do
+          !$omp end parallel do
+       else
+          !$omp parallel do default(shared) private(i1,i23,ep,sp,rh,pt)&
+          !$omp reduction(+:eVextra)
+          do i23=1,n23
+             do i1=1,n1
+                ep=depsdrho(i1,i23)
+                sp=dsurfdrho(i1,i23)
+                pt=-oneoeightpi*ep*nabla2_pot(i1,i23)+&
+                     (cavity%alphaS+cavity%gammaS)*sp+&
+                     cavity%betaV*ep/(1.d0-cavity%epsilon0)
+                pot(i1,i23)=pt
+                rh=rho(i1,i23)*pt
+                eVextra=eVextra+rh
+             end do
+          end do
+          !$omp end parallel do
+       end if
+    end if
+  end subroutine add_Vextra
+
+  !> calculate dlogepsilon with respect to rho in the sccs case
+  subroutine dlepsdrho_sccs(ndims,rho,nabla_rho,epsinner,dlogepsilon,cavity)
+    implicit none
+    integer, dimension(3), intent(in) :: ndims
+    type(cavity_data), intent(in) :: cavity
+    real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(in) :: epsinner,rho
+    real(dp), dimension(ndims(1),ndims(2),ndims(3),3), intent(in) :: nabla_rho
+    real(dp), dimension(3,ndims(1),ndims(2),ndims(3)), intent(out) :: dlogepsilon
+
+
+    !local variables
+    real(dp), parameter :: innervalue = 0.9d0 !to be defined differently
+    integer :: i1,i2,i3,i,n01,n02,n03
+    real(dp) :: logepspr
+
+    !aliasing
+    n01=ndims(1)
+    n02=ndims(2)
+    n03=ndims(3)
+
+    do i3=1,n03
+       do i2=1,n02
+          do i1=1,n01
+             if (epsinner(i1,i2,i3).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+                do i=1,3
+                   dlogepsilon(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
+                end do
+             else
+                logepspr=logepsprime(rho(i1,i2,i3),cavity)
+                do i=1,3
+                   dlogepsilon(i,i1,i2,i3)=nabla_rho(i1,i2,i3,i)*logepspr
+                end do
+
+             end if
+          end do
        end do
     end do
-    !$omp end parallel do
+  end subroutine dlepsdrho_sccs
     
-  end subroutine add_Vextra
 
 end module environment
 

@@ -777,6 +777,10 @@ module IObox
 
       fformat=get_file_format(filename,isuffix)
 
+      !fallback to CUBE format if unknown
+      if (fformat == UNKNOWN) fformat=CUBE
+
+
 !!$      if (iproc == 0) then
 
 

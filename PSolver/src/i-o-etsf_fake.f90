@@ -46,7 +46,6 @@ subroutine write_etsf_density(filename,message,geocode,&
      rho,nspin,nat,rxyz,iatype,nzatom,nelpsp)
   !n(c) use module_base
   use PSbase
-  use module_atoms, only: atoms_data
   implicit none
   character(len=*), intent(in) :: filename,message
   !integer,intent(in) :: fileunit0,fileunitx,fileunity,fileunitz

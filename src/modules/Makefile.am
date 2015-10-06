@@ -314,7 +314,7 @@ unitary_tests.o: types.o interfaces.o communications_init.o communications.o spa
 matrix_operations.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: types.o
 io.o: types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o matrix_operations.o
-postprocessing_linear.o: types.o interfaces.o bounds.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o locreg_operations.o sort.o
+postprocessing_linear.o: types.o interfaces.o bounds.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o locreg_operations.o sort.o communications_init.o
 foe.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 locreg_operations.o: types.o atoms_data.o locregs.o
@@ -324,7 +324,7 @@ orbital_basis.o: locregs.o types.o communications_base.o interfaces.o
 orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
 bounds.o: types.o locregs.o
 locregs_init.o: types.o communications.o bounds.o
-forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o locregs.o
+forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o locregs.o transposed_operations.o
 
 # Copy modules in a common include directory.
 all: all-am insmod
