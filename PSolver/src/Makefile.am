@@ -162,7 +162,7 @@ IObox.o: PSbase.o
 environment.o: PSbase.o
 conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
-etsf_fake.o: PSbase.o
+i-o-etsf_fake.o: PSbase.o
 wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o
 
 .cu.o:
