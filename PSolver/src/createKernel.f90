@@ -1339,6 +1339,7 @@ end subroutine pkernel_build_epsilon
 !! any array
 subroutine rebuild_cavity_from_rho(rho_full,nabla_rho,nabla2_rho,delta_rho,cc_rho,depsdrho,dsurfdrho,&
      kernel,IntSur,IntVol)
+  use FDder
   implicit none
   type(coulomb_operator), intent(inout) :: kernel
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: rho_full
@@ -1372,7 +1373,7 @@ subroutine rebuild_cavity_from_rho(rho_full,nabla_rho,nabla2_rho,delta_rho,cc_rh
   if (kernel%method=='PI') then
      !form the inner cavity with a gathering
      call PS_gather(src=kernel%w%epsinnersccs,dest=delta_rho,kernel=kernel)
-     call dlepsdrho_sccs(kernel%ndims,nabla_rho,delta_rho,kernel%w%dlogeps)
+     call dlepsdrho_sccs(kernel%ndims,rho_full,nabla_rho,delta_rho,kernel%w%dlogeps,kernel%cavity)
   end if
     
 end subroutine rebuild_cavity_from_rho

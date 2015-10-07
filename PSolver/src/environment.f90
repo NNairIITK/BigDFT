@@ -56,7 +56,7 @@ module environment
   end type cavity_data
 
   public :: cavity_init,eps,epsprime,epssecond,oneoeps,oneosqrteps,logepsprime,corr_term
-  public :: cavity_default,surf_term,epsle0,epsl,d1eps
+  public :: cavity_default,surf_term,epsle0,epsl,d1eps,dlepsdrho_sccs
 
 contains
 

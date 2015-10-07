@@ -181,7 +181,7 @@ module PStypes
   end type PSolver_options
 
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
-  public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays
+  public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
 
 contains
 
@@ -408,6 +408,7 @@ contains
   end subroutine PS_allocate_lowlevel_workarrays
 
   subroutine PS_deallocate_lowlevel_workarrays(cavity_info,use_input_guess,rho,kernel)
+    use wrapper_linalg, only: axpy
     implicit none
     logical, intent(in) :: cavity_info,use_input_guess
     type(coulomb_operator), intent(inout) :: kernel
