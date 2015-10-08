@@ -182,6 +182,8 @@ module PStypes
 
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
+  public :: ps_allocate_lowlevel_workarrays
+  public :: release_PS_workarrays,PS_release_lowlevel_workarrays
 
 contains
 
@@ -325,6 +327,15 @@ contains
 
   end subroutine free_PS_workarrays
 
+
+  subroutine release_PS_workarrays(keepzf,w)
+    implicit none
+    integer, intent(in) :: keepzf
+    type(PS_workarrays), intent(inout) :: w
+    if(keepzf /= 1) call f_free_ptr(w%zf)
+    call f_free_ptr(w%pot)
+  end subroutine release_PS_workarrays
+
   !> Free memory used by the kernel operation
   !! @ingroup PSOLVER
   subroutine pkernel_free(kernel)
@@ -407,14 +418,14 @@ contains
 
   end subroutine PS_allocate_lowlevel_workarrays
 
-  subroutine PS_deallocate_lowlevel_workarrays(cavity_info,use_input_guess,rho,kernel)
+  !> this is useful to deallocate useless space and to 
+  !! also perform extra treatment for the inputguess
+  subroutine PS_release_lowlevel_workarrays(cavity_info,use_input_guess,rho,kernel)
     use wrapper_linalg, only: axpy
     implicit none
     logical, intent(in) :: cavity_info,use_input_guess
     type(coulomb_operator), intent(inout) :: kernel
     real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(in) :: rho !< initial rho, needed for PCG
-
-
 
     select case(trim(str(kernel%method)))
     case('PCG')
@@ -432,7 +443,7 @@ contains
        call f_free_ptr(kernel%w%rho_pol)
     end select
 
-  end subroutine PS_deallocate_lowlevel_workarrays
+  end subroutine PS_release_lowlevel_workarrays
 
   !> allocate the workarrays for the first initialization
   !! their allocation depends on the treatment which we are going to

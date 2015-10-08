@@ -691,7 +691,7 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,kernel,nspin,rho)
      call f_memcpy(n=size(pot_ion),src=rho(1),dest=pot_ion(1,1,1,1))
   end if
 
-  call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,rho,&
+  call dump_field(filename,at%astruct%geocode,kernel%ndims,kernel%hgrids,nspin,pot_ion,&
        rxyz,at%astruct%iatype,at%nzatom,at%nelpsp)
 
   call f_free(pot_ion)

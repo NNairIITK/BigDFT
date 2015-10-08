@@ -56,7 +56,7 @@ module environment
   end type cavity_data
 
   public :: cavity_init,eps,epsprime,epssecond,oneoeps,oneosqrteps,logepsprime,corr_term
-  public :: cavity_default,surf_term,epsle0,epsl,d1eps,dlepsdrho_sccs
+  public :: cavity_default,surf_term,epsle0,epsl,d1eps,dlepsdrho_sccs,add_Vextra
 
 contains
 
@@ -459,6 +459,7 @@ contains
        end if
     end if
   end subroutine add_Vextra
+
 
   !> calculate dlogepsilon with respect to rho in the sccs case
   subroutine dlepsdrho_sccs(ndims,rho,nabla_rho,epsinner,dlogepsilon,cavity)
