@@ -1,6 +1,6 @@
 !needs cleaning once we stabilize which options are useful
 subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,overlap_calculated,&
-  nstates_max,cdft,restart_mode)
+  nstates_max,cdft,restart_mode,rmax)
   use yaml_output
   use module_base
   use module_types
@@ -24,17 +24,18 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
   integer, intent(out) :: nstates_max ! number of states in total if we consider all partially occupied fragment states to be fully occupied
   logical, intent(in) :: cdft
   integer, intent(in) :: restart_mode
+  real(kind=gp), intent(in) :: rmax
 
   integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag, linstate, jf, pm, ortho_size, s, nelecfrag
   integer, allocatable, dimension(:) :: ipiv
   real(gp), dimension(:,:), allocatable :: coeff_final
-  real(gp) :: nelecorbs, nelecfrag_tot, jstate_max, homo_diff, lag_mult, fac
+  real(gp) :: nelecorbs, nelecfrag_tot, jstate_max, homo_diff, lag_mult, fac, cdft_charge
   real(gp), dimension(:), allocatable :: eval_tmp, eval_tmp2
   character(len=*), parameter :: subname='fragment_coeffs_to_kernel'
 
   integer :: rand_size
   integer, allocatable, dimension(:) :: rand_seed
-  real(kind=dp) :: rtime, random_noise, rmax
+  real(kind=dp) :: rtime, random_noise
   character(len=10) :: sys_time
   logical :: random, lincombm, lincombp !
 
@@ -51,14 +52,22 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      if (input%frag%nfrag_ref==2) homo_diff=(ref_frags(1)%eval(ceiling(ref_frags(1)%nelec/2.0_gp))&
           -ref_frags(2)%eval(ceiling(ref_frags(2)%nelec/2.0_gp)))/2.0d0
      !if (cdft%charge<0) lag_mult=-0.5, otherwise +0.5
-     lag_mult=-0.05d0
+     !lag_mult=-0.05d0
+
+     !kind of unfortunate that we have to recreate this information here -
+     !should maybe move the cdft initialization?
+     cdft_charge=input%frag%charge(1)!(cdft%ifrag_charged(1))
+     if (cdft_charge<0) then
+        lag_mult=-abs(input%lin%cdft_lag_mult_init)
+     else
+        lag_mult=abs(input%lin%cdft_lag_mult_init)
+     end if
   else
      homo_diff=0.0d0
      lag_mult=0.0d0
   end if
 
   ! adding random noise to starting to help with local minima problem
-  random=.false. ! add a bit of noise
   completely_random=.false. ! completely random start for coeffs
   use_tmbs_as_coeffs=.false.
   if (restart_mode==LIN_RESTART_RANDOM) then
@@ -70,7 +79,7 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      stop 'Error in restart: annot construct coefficients using kernel'
   end if
 
-  rmax=0.2d0
+  random=(rmax>0.0d0) ! add a bit of noise
   random_noise=0.0d0
   rtime=0.0d0
   if (random .or. completely_random) then
@@ -179,12 +188,30 @@ subroutine fragment_coeffs_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb
      call f_free(eval_tmp)
   else
      call set_coeffs_to_tmbs()
+
+     if (random) call add_random_noise()
   end if
+
 
   call f_release_routine()
   call timing(iproc,'kernel_init','OF')
 
 contains
+
+  ! used for diagonal case only - in other case we orthonormalize in sections so easier to keep it internal
+  subroutine add_random_noise()
+    implicit none
+
+    do itmb=1,tmb%orbs%norb
+       do jtmb=1,tmb%orbs%norb
+          call random_number(random_noise)
+          random_noise = ((random_noise-0.5d0)*2.0d0)*rmax
+          tmb%coeff(itmb,jtmb) = tmb%coeff(itmb,jtmb) + random_noise
+       end do
+    end do
+
+  end subroutine add_random_noise
+
 
   !still assuming neutral/correct charge distribution given
   !might delete this option eventually, as now doing via kernel - unless can think of a way to make this work in direct min case?
@@ -636,9 +663,9 @@ end subroutine fragment_coeffs_to_kernel
 
 
 !think about cdft and charged systems...
-!random etc should all be external options - use one variable with multiple choices?
+!also still need to activate completely random case, but need to think about purification first as will definitely be necessary
 subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tmb,ksorbs,&
-  overlap_calculated,cdft,diagonal_kernel,max_nbasis_env,frag_env_mapping)
+  overlap_calculated,cdft,diagonal_kernel,max_nbasis_env,frag_env_mapping,rmax)
   use yaml_output
   use module_base
   use module_types
@@ -661,6 +688,7 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   logical, intent(in) :: diagonal_kernel
   integer, intent(in) :: max_nbasis_env
   integer, dimension(input%frag%nfrag,max_nbasis_env,3), intent(in) :: frag_env_mapping
+  real(kind=8), intent(in) :: rmax
 
   integer :: iorb, isforb, jsforb, ifrag, ifrag_ref, itmb, jtmb, num_extra_per_frag, linstate, jf, pm, ortho_size, s
   integer, allocatable, dimension(:) :: ipiv
@@ -671,7 +699,7 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
 
   integer :: rand_size
   integer, allocatable, dimension(:) :: rand_seed
-  real(kind=dp) :: rtime, random_noise, rmax
+  real(kind=dp) :: rtime, random_noise
   character(len=10) :: sys_time
   logical :: random, completely_random, env_exists
 
@@ -693,10 +721,9 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   !end if
 
   ! adding random noise to kernel to help with local minima problem
-  random=.false. ! add a bit of noise
+  random=(rmax>0.0d0) ! add a bit of noise
   completely_random=.false. ! completely random start for coeffs
 
-  rmax=0.2d0
   random_noise=0.0d0
   rtime=0.0d0
   if (random .or. completely_random) then

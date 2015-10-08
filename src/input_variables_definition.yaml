@@ -1148,6 +1148,13 @@
        random: 2
        diag: 3
        weight: 4
+     kernel_restart_noise:
+       COMMENT: add random noise to kernel or coefficients when restarting
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    Indicates how much noise should be added to kernel or coefficients for a restart calculation
+       default: 0.0d0
+       RANGE: [0.0,1.0]
      frag_num_neighbours:
        COMMENT: number of neighbours to output for each fragment
        DESCRIPTION: |

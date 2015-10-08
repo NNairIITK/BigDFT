@@ -38,6 +38,7 @@ module public_keys
   character(len = *), parameter :: OUTPUT_DENSPOT = "output_denspot"
   character(len = *), parameter :: OUTPUT_FRAGMENTS = "output_fragments"
   character(len = *), parameter :: KERNEL_RESTART_MODE = "kernel_restart_mode"
+  character(len = *), parameter :: KERNEL_RESTART_NOISE = "kernel_restart_noise"
   character(len = *), parameter :: FRAG_NUM_NEIGHBOURS = "frag_num_neighbours"
   character(len = *), parameter :: RBUF = "rbuf"
   character(len = *), parameter :: NCONGT = "ncongt"

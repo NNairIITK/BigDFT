@@ -127,6 +127,7 @@ module module_input_keys
      integer :: frag_num_neighbours   !< number of neighbouring atoms per fragment
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
+     real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -1925,6 +1926,8 @@ contains
           in%lin%output_fragments = val
        case (KERNEL_RESTART_MODE)
           in%lin%kernel_restart_mode = val
+       case (KERNEL_RESTART_NOISE)
+          in%lin%kernel_restart_noise = val
        case (FRAG_NUM_NEIGHBOURS)
           in%lin%frag_num_neighbours = val
        case (CDFT_LAG_MULT_INIT)

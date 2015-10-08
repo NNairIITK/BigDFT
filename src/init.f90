@@ -2507,10 +2507,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      if (in%lin%fragment_calculation) then
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
            call fragment_kernels_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
-                in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL,max_nbasis_env,frag_env_mapping)
+                in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL,max_nbasis_env,&
+                frag_env_mapping,in%lin%kernel_restart_noise)
         else
            call fragment_coeffs_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
-                nstates_max,in%lin%constrained_dft,in%lin%kernel_restart_mode)
+                nstates_max,in%lin%constrained_dft,in%lin%kernel_restart_mode,in%lin%kernel_restart_noise)
         end if
 
         !! debug
