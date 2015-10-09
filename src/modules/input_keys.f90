@@ -1573,6 +1573,8 @@ contains
 !!$          end select
        case (EXTERNAL_POTENTIAL)
           ! Do nothing?
+       case(CALCULATE_STRTEN)
+          in%calculate_strten=val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -3091,7 +3093,7 @@ contains
     use yaml_strings, only: f_strcpy
     use f_utils, only: f_file_exists
     use module_input_dicts
-    use input_old_text_format
+    !use input_old_text_format
     use module_atoms, only: astruct_file_merge_to_dict,atoms_file_merge_to_dict
     implicit none
     !Arguments

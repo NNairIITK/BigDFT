@@ -405,6 +405,7 @@ contains
     !nullification and reference counting (when available)
     if (associated(ob%dd)) then
        deallocate(ob%dd)
+       nullify(ob%dd)
     end if
   end subroutine orbital_basis_release
   

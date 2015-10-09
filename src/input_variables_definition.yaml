@@ -195,6 +195,11 @@
      COMMENT: Multipole moments of an external potential
      DESCRIPTION: Give the multipole moments up to quadrupoles
      default: 0.0
+   calculate_strten:
+     COMMENT: Boolean to activate the calculation of the stress tensor. Might be set to No for performance reasons
+     DESCRIPTION: In some cases, for example when doing MD for fixed volume systems, il might be useful to disable the 
+                    calculation of the stress tensor, to save computational time.
+     default: Yes
 #K points parameters
  kpt:
    DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations

@@ -48,6 +48,8 @@ module public_keys
   character(len = *), parameter :: SOLVENT = "solvent"
   character(len = *), parameter :: EXTERNAL_POTENTIAL = "external_potential"
   character(len = *), parameter :: CHARGE_MULTIPOLES = "charge_multipoles"
+  character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
+
 
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"

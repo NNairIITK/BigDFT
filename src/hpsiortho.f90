@@ -1181,8 +1181,8 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
          energs_work%sendbuf(4) = energs%evsic
          energs_work%receivebuf(:) = 0.d0
          energs_work%window = mpiwindow(1, energs_work%receivebuf(1), bigdft_mpi%mpi_comm)
-         call mpiaccumulate_double(energs_work%sendbuf(1), 4, 0, & 
-              int(0,kind=mpi_address_kind), 4, mpi_sum, energs_work%window)
+         call mpiaccumulate(energs_work%sendbuf(1), 4, 0, & 
+              int(0,kind=mpi_address_kind), mpi_sum, energs_work%window)
       else
          wrkallred(1)=energs%ekin
          wrkallred(2)=energs%epot

@@ -25,230 +25,278 @@
 !!
 !! @todo
 !!    Wire boundary condition is missing
-!!!>subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
-!!!>  !> kernel of the coupmb operator, it also contains metadata about the parallelisation scheme
-!!!>  !! and the data distributions in the grid.
-!!!>  !! can be also used to gather the distributed arrays for data processing or poltting purposes
-!!!>  type(coulomb_operator), intent(inout) :: kernel
-!!!>  !> on input, density of the (G)Pe. On output, electrostatic potential, possibly corrected with extra term in
-!!!>  !! the case of rho-dependent cavity when the suitable variable of the options datatype is set. 
-!!!>  !!The latter correction term is useful to define a KS DFT potential for the definition of the Hamiltonian out of 
-!!!>  !!the Electrostatic environment defined from rho
-!!!>  !! the last dimension is either kernel%ndims(3) or kernel%grid%n3p, depending if options%datacode is 'G' or 'D' respectively
-!!!>  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),*), intent(inout) :: rhov
-!!!>  !>Datatype controlling the operations of the solver.
-!!!>  type(PSolver_options), intent(in) :: options
-!!!>  !> Datatype containing the energies and th stress tensor.
-!!!>  !! the components are filled accordin to the coulomb operator set ans the options given to the solver.
-!!!>  type(PSolver_energies), intent(out) :: energies
-!!!>  !> Additional external potential that is added to the output, if present.
-!!!>  !! Usually represents the potential of the ions that is needed to define the full electrostatic potential of a Vacuum Poisson Equation
-!!!>  real(wp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: pot_ion
-!!!>  !> Additional external density that is added to the output input, if present.
-!!!>  !! The treatment of the Poisson Equation is done with the sum of the two densities whereas the rho-dependent cavity and some components
-!!!>  !! of the energies are calculated only with the input rho.
-!!!>  real(wp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: rho_ion
-!!!>  !local variables
-!!!>  logical :: sumpion
-!!!>  !character(len=3) :: quiet
-!!!>
-!!!>   call f_timing(TCAT_PSOLV_COMPUT,'ON')
-!!!>
-!!!>   energies=PSolver_energies_null()
-!!!>
-!!!>  select case(options%verbosity_level)
-!!!>  case(0)
-!!!>     !call f_strcpy(quiet,'YES')
-!!!>     wrtmsg=.false.
-!!!>  case(1)
-!!!>     !call f_strcpy(quiet,'NO')
-!!!>     wrtmsg=.true.
-!!!>  end select
-!!!>  !in any case only master proc writes messages
-!!!>  wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
-!!!>
-!!!>  sumpion = present(pot_ion) .or. present(rho_ion)
-!!!>  cudasolver= (kernel%igpu==1 .and. .not. present(stress_tensor))
-!!!>
-!!!>  !check of the input variables, if needed
-!!!>  if (kernel%method /= PS_VAC_ENUM .and. .not. present(rho_ion)) then
-!!!>     call f_err_throw('Error in H_potential, for a cavity treatment the array rho_ion is needed')
-!!!>  end if
-!!!>  if (kernel%method == PS_PI_ENUM) then
-!!!>     if (.not. associated(kernel%oneoeps) .or. .not. associated(kernel%dlogeps))&
-!!!>          call f_err_throw('The PI method needs the arrays of dlogeps and oneoeps,'//&
-!!!>          ' use pkernel_set_epsilon routine to set them')
-!!!>     if (datacode /= 'G' .and. kernel%mpi_env%nproc > 1) &
-!!!>          call f_err_throw('Error in H_potential, PI method only works with datacode=G')
-!!!>  else if (kernel%method == PS_PCG_ENUM) then
-!!!>     if (.not. associated(kernel%oneoeps) .or. .not. associated(kernel%corr))&
-!!!>          call f_err_throw('The PCG method needs the arrays corr and oneosqrteps,'//&
-!!!>          ' use pkernel_set_epsilon routine to set them')
-!!!>  end if
-!!!>
-!!!>  if (wrtmsg) then
-!!!>     call yaml_mapping_open('Poisson Solver')
-!!!>     call yaml_map('Box',kernel%ndims,fmt='(i5)')
-!!!>     call yaml_map('MPI tasks',kernel%mpi_env%nproc,fmt='(i5)')
-!!!>     if (cudasolver) call yaml_map('GPU acceleration',.true.)
-!!!>  end if
-!!!>  
-!!!>  select case(options%datacode)
-!!!>  case('G')
-!!!>     !starting address of rhopot in the case of global i/o
-!!!>     i3start=kernel%grid%istart*kernel%ndims(1)*kernel%ndims(2)+1
-!!!>     if (kernel%grid%n3p == 0) i3start=1
-!!!>  case('D')
-!!!>     !distributed i/o
-!!!>     i3start=1
-!!!>  case default
-!!!>     call f_err_throw('datacode ("'//options%datacode//&
-!!!>          '") not admitted in PSolver')
-!!!>  end select
-!!!>
-!!!>  rpoints=product(real(kernel%ndims,dp))
-!!!>
-!!!>  n23=kernel%grid%m3*kernel%grid%n3p
-!!!>  n1=kernel%grid%m1
-!!!>
-!!!>  !in the case of SC cavity, gather the full density and determine the depsdrho
-!!!>  !here the if statement for the SC cavity should be put
-!!!>  !print *,'method',trim(char(kernel%method)),associated(kernel%method%family),trim(char(kernel%method%family))
-!!!>  if (kernel%method == 'PCG') &
-!!!>       pot_full=f_malloc(kernel%ndims,id='pot_full')
-!!!>  if (kernel%method .hasattr. 'sccs') then
-!!!>     work_full=f_malloc(kernel%ndims,id='work_full')
-!!!>     depsdrho=f_malloc([n1,n23],id='depsdrho')
-!!!>     dsurfdrho=f_malloc([n1,n23],id='dsurfdrho')
-!!!>     call PS_gather(rhopot(i3start),kernel,dest=work_full)
-!!!>     call pkernel_build_epsilon(kernel,work_full,eps0,depsdrho,dsurfdrho)
-!!!>  end if
-!!!>
-!!!>  !add the ionic density to the potential, calculate also the integral
-!!!>  !between the rho and pot_ion and the extra potential if present
-!!!>  e_static=0.0_dp
-!!!>  if (present(rho_ion)) then
-!!!>     if (present(pot_ion)) then
-!!!>        call finalize_hartree_results(.true.,rho_ion,&
-!!!>             kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-!!!>             kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-!!!>             pot_ion,rhopot(i3start),rhopot(i3start),e_static)
-!!!>     else
-!!!>        call axpy(n1*n23,1.0_dp,rho_ion(1),1,rhopot(i3start),1)
-!!!>     end if
-!!!>     if (wrtmsg) call yaml_map('Summing up ionic density',.true.)
-!!!>  end if
-!!!>   
-!!!>  !>>>>before
-!!!>  if (kernel%method /= PS_VAC_ENUM) then
-!!!>     call nonvacuum_projection(n1,n23,rhopot(i3start),kernel%oneoeps,norm_nonvac)
-!!!>     norm_nonvac=norm_nonvac*product(kernel%hgrids)
-!!!>     call PS_reduce(norm_nonvac,kernel)
-!!!>     if (wrtmsg) call yaml_map('Integral of the density in the nonvacuum region',norm_nonvac)
-!!!>  end if
-!!!>  
-!!!>  !the allocation of the rho array is maybe not needed
-!!!>  call PS_allocate_lowlevel_workarrays(cudasolver,options%use_input_guess,&
-!!!>       kernel)
-!!!>
-!!!>  !call the Generalized Poisson Solver
-!!!>  call Parallel_GPS(kernel,cudasolver,options%offset,energies%strten,&
-!!!>       wrtmsg,rhopot(i3start))
-!!!>
-!!!>  !>>>>>>>after
-!!!>  select case(trim(str(kernel%method)))
-!!!>  case('VAC')
-!!!>     if (present(pot_ion)) then
-!!!>        call finalize_hartree_results(sumpion,pot_ion,&
-!!!>             kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-!!!>             kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
-!!!>             rhopot(i3start),kernel%w%zf,rhopot(i3start),ehartreeLOC)
-!!!>     else
-!!!>        call finalize_hartree_results(.false.,rhopot(i3start),&
-!!!>             kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-!!!>             kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
-!!!>             rhopot(i3start),kernel%w%zf,rhopot(i3start),ehartreeLOC)
-!!!>     end if
-!!!>  case('PI')
-!!!>     !if statement for SC cavity
-!!!>     if (kernel%method .hasattr. PS_SCCS_ENUM) then
-!!!>        call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,rhopot(i3start),eps0)
-!!!>        call add_Vextra(n1,n23,nabla2_pot,depsdrho,dsurfdrho,kernel%cavity)
-!!!>       end if
-!!!>
-!!!>
-!!!>     !here the harteee energy can be calculated and the ionic potential
-!!!>     !added
-!!!>     call finalize_hartree_results(sumpion,pot_ion,&
-!!!>          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-!!!>          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-!!!>          rho,rhopot(i3start),rhopot(i3start),ehartreeLOC)
-!!!>
-!!!>     if (kernel%method .hasattr. PS_SCCS_ENUM) then
-!!!>        !then add the extra potential after having calculated the hartree energy
-!!!>        call axpy(n1*n23,1.0_dp,depsdrho(1,1),1,rhopot(i3start),1)
-!!!>     end if
-!!!>
-!!!>     call f_free(rho)
-!!!>     call f_free(rhopol)
-!!!>  case('PCG')
-!!!>     !preserve the previous values for the input guess
-!!!>     call axpy(size(kernel%res_old),-1.0_gp,rho(1,1),1,kernel%res_old(1,1),1)
-!!!>
-!!!>     !only useful for gpu, bring back the x array
-!!!>     call update_pot_from_device(cudasolver, kernel, kernel%pot_old)
-!!!>     !if statement for SC cavity
-!!!>     if (kernel%method .hasattr. PS_SCCS_ENUM)&
-!!!>          call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,kernel%pot_old,eps0)
-!!!>
-!!!>     !--------------------------------------
-!!!>     ! Polarization charge
-!!!>     call pol_charge(kernel,pot_full,rho,kernel%pot_old)
-!!!>     !--------------------------------------
-!!!>
-!!!>     !here the harteee energy can be calculated and the ionic potential
-!!!>     !added
-!!!>     call finalize_hartree_results(sumpion,pot_ion,&
-!!!>          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-!!!>          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-!!!>          rhopot(i3start),kernel%pot_old,rhopot(i3start),ehartreeLOC)
-!!!>
-!!!>     if (kernel%method .hasattr. PS_SCCS_ENUM) then
-!!!>        !then add the extra potential after having calculated the hartree energy
-!!!>        call axpy(n1*n23,1.0_dp,depsdrho(1,1),1,rhopot(i3start),1)
-!!!>     end if
-!!!>
-!!!>     !call f_free(x)
-!!!>     call f_free(z)
-!!!>     call f_free(p)
-!!!>     call f_free(q)
-!!!>     !call f_free(r)
-!!!>     call f_free(rho)
-!!!>     call f_free(pot_full)
-!!!>  end select
-!!!>
-!!!>  !gather the full result in the case of datacode = G
-!!!>  if (options%datacode == 'G') call PS_gather(rhopot,kernel)
-!!!>
-!!!>  if(kernel%keepzf /= 1) call f_free_ptr(kernel%zf)
-!!!>
-!!!>  !if statement for SC cavity to be added
-!!!>  if (kernel%method .hasattr. PS_SCCS_ENUM) then
-!!!>     call f_free(work_full)
-!!!>     call f_free(depsdrho)
-!!!>     call f_free(dsurfdrho)
-!!!>  end if
-!!!>
-!!!>  !evaluating the total ehartree + e_static if needed
-!!!>  energies%eh=ehartreeLOC*0.5_dp*product(kernel%hgrids)
-!!!>  energies%eVextra=e_static*product(kernel%hgrids)
-!!!>
-!!!>  call PS_reduce(energies,kernel)
-!!!>
-!!!>  if (wrtmsg) call yaml_mapping_close()
-!!!>  call f_timing(TCAT_PSOLV_COMPUT,'OF')
-!!!>  call f_release_routine()
-!!!>end subroutine Electrostatic_Solver
+subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
+  use FDder
+  implicit none
+  !> kernel of the coulomb operator, it also contains metadata about the parallelisation scheme
+  !! and the data distributions in the grid.
+  !! can be also used to gather the distributed arrays for data processing or poltting purposes
+  type(coulomb_operator), intent(inout) :: kernel
+  !> on input, density of the (G)Pe. On output, electrostatic potential, possibly corrected with extra term in
+  !! the case of rho-dependent cavity when the suitable variable of the options datatype is set. 
+  !!The latter correction term is useful to define a KS DFT potential for the definition of the Hamiltonian out of 
+  !!the Electrostatic environment defined from rho
+  !! the last dimension is either kernel%ndims(3) or kernel%grid%n3p, depending if options%datacode is 'G' or 'D' respectively
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),*), intent(inout) :: rhov
+  !>Datatype controlling the operations of the solver.
+  type(PSolver_options), intent(in) :: options
+  !> Datatype containing the energies and th stress tensor.
+  !! the components are filled accordin to the coulomb operator set ans the options given to the solver.
+  type(PSolver_energies), intent(out) :: energies
+  !> Additional external potential that is added to the output, if present.
+  !! Usually represents the potential of the ions that is needed to define the full electrostatic potential of a Vacuum Poisson Equation
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: pot_ion
+  !> Additional external density that is added to the output input, if present.
+  !! The treatment of the Poisson Equation is done with the sum of the two densities whereas the rho-dependent cavity and some components
+  !! of the energies are calculated only with the input rho.
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%grid%n3p), intent(inout), optional, target :: rho_ion
+  !local variables
+  logical :: sum_pi,sum_ri,build_c,is_vextra,plot_cavity,wrtmsg,cudasolver
+  integer :: i3start,n1,n23,i3s
+  real(dp) :: IntSur,IntVol,e_static,norm_nonvac,eVextra,ehartreeLOC
+  real(dp), dimension(:,:), allocatable :: depsdrho,dsurfdrho
+  real(dp), dimension(:,:,:), allocatable :: rhopot_full,nabla2_rhopot,delta_rho,cc_rho
+  real(dp), dimension(:,:,:,:), allocatable :: nabla_rho
+  real(dp), dimension(:,:,:), pointer :: pot_ion_eff,vextra_eff
+  !character(len=3) :: quiet
+
+   call f_timing(TCAT_PSOLV_COMPUT,'ON')
+
+   energies=PSolver_energies_null()
+
+  select case(options%verbosity_level)
+  case(0)
+     !call f_strcpy(quiet,'YES')
+     wrtmsg=.false.
+  case(1)
+     !call f_strcpy(quiet,'NO')
+     wrtmsg=.true.
+  end select
+  !in any case only master proc writes messages
+  wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
+
+  !decide what to do 
+  sum_pi=present(pot_ion)
+  sum_ri=present(rho_ion)
+  build_c=(kernel%method .hasattr. PS_SCCS_ENUM) .and. options%update_cavity
+  is_vextra=sum_pi .or. build_c
+  plot_cavity=options%cavity_info .and. (kernel%method /= PS_VAC_ENUM)
+  cudasolver= (kernel%igpu==1 .and. .not. options%calculate_strten)
+
+  !check of the input variables, if needed
+  if (kernel%method /= PS_VAC_ENUM .and. .not. present(rho_ion)) then
+     call f_err_throw('Error in H_potential, for a cavity treatment the array rho_ion is needed')
+  end if
+  if (kernel%method == PS_PI_ENUM) then
+     if (.not. associated(kernel%w%oneoeps) .or. .not. associated(kernel%w%dlogeps))&
+          call f_err_throw('The PI method needs the arrays of dlogeps and oneoeps,'//&
+          ' use pkernel_set_epsilon routine to set them')
+  else if (kernel%method == PS_PCG_ENUM) then
+     if (.not. associated(kernel%w%oneoeps) .or. .not. associated(kernel%w%corr))&
+          call f_err_throw('The PCG method needs the arrays corr and oneosqrteps,'//&
+          ' use pkernel_set_epsilon routine to set them')
+  end if
+
+  if (wrtmsg) then
+     call yaml_mapping_open('Poisson Solver')
+     call yaml_map('Box',kernel%ndims,fmt='(i5)')
+     call yaml_map('MPI tasks',kernel%mpi_env%nproc,fmt='(i5)')
+     if (cudasolver) call yaml_map('GPU acceleration',.true.)
+  end if
+  
+  select case(options%datacode)
+  case('G')
+     !starting address of rhopot in the case of global i/o
+     i3start=kernel%grid%istart*kernel%ndims(1)*kernel%ndims(2)+1
+     i3s=kernel%grid%istart
+     if (kernel%grid%n3p == 0) then
+        i3start=1
+        i3s=1
+     end if
+  case('D')
+     !distributed i/o
+     i3start=1
+     i3s=1
+  case default
+     call f_err_throw('datacode ("'//options%datacode//&
+          '") not admitted in PSolver')
+  end select
+
+  !aliasing
+  n23=kernel%grid%m3*kernel%grid%n3p
+  n1=kernel%grid%m1
+
+  !in the case of SC cavity, gather the full density and determine the depsdrho
+  !here the if statement for the SC cavity should be put
+  !print *,'method',trim(char(kernel%method)),associated(kernel%method%family),trim(char(kernel%method%family))
+
+  if (build_c) then
+     rhopot_full=f_malloc(kernel%ndims,id='rhopot_full')
+     nabla2_rhopot=f_malloc(kernel%ndims,id='nabla2_rhopot')
+     delta_rho=f_malloc(kernel%ndims,id='delta_rho')
+     cc_rho=f_malloc(kernel%ndims,id='cc_rho')
+     nabla_rho=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='nabla_rho')
+     depsdrho=f_malloc([n1,n23],id='depsdrho')
+     dsurfdrho=f_malloc([n1,n23],id='dsurfdrho')
+     call PS_gather(rhov(1,1,i3s),kernel,dest=rhopot_full)
+     !call pkernel_build_epsilon(kernel,work_full,eps0,depsdrho,dsurfdrho)
+     call rebuild_cavity_from_rho(rhopot_full,nabla_rho,nabla2_rhopot,delta_rho,cc_rho,depsdrho,dsurfdrho,&
+     kernel,IntSur,IntVol)    
+     call f_free(nabla_rho)
+     call f_free(delta_rho)
+     call f_free(cc_rho)
+     if (kernel%method == PS_PI_ENUM) call f_free(rhopot_full)
+  end if
+
+  !add the ionic density to the potential, calculate also the integral
+  !between the rho and pot_ion and the extra potential if present
+  e_static=0.0_dp
+  if (sum_ri) then
+     if (sum_pi) then
+        call finalize_hartree_results(.true.,cudasolver,kernel,rho_ion,&
+             kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+             kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+             pot_ion,rhov(1,1,i3s),rhov(1,1,i3s),e_static)
+     else
+        call axpy(n1*n23,1.0_dp,rho_ion(1,1,1),1,rhov(1,1,i3s),1)
+     end if
+     if (wrtmsg) call yaml_map('Summing up ionic density',.true.)
+  end if
+   
+  !inform about the quantity of charge "outside" the cavity
+  if (kernel%method /= PS_VAC_ENUM) then
+     call nonvacuum_projection(n1,n23,rhov(1,1,i3s),kernel%w%oneoeps,norm_nonvac)
+     norm_nonvac=norm_nonvac*product(kernel%hgrids)
+     call PS_reduce(norm_nonvac,kernel)
+     if (wrtmsg) call yaml_map('Integral of the density in the nonvacuum region',norm_nonvac)
+  end if
+  
+  !the allocation of the rho array is maybe not needed
+  call PS_allocate_lowlevel_workarrays(cudasolver,options%use_input_guess,&
+       rhov(1,1,i3s),kernel)
+
+  !call the Generalized Poisson Solver
+  call Parallel_GPS(kernel,cudasolver,options%potential_integral,energies%strten,&
+       wrtmsg,rhov(1,1,i3s))
+
+  !this part is not important now, to be fixed later
+!!$  if (plot_cavity) then
+!!$     if (kernel%method == PS_PCG_ENUM) then
+!!$        if (options%datacode == 'D') then 
+!!$           call PS_gather(src=rhov,dest=rhopot_full,kernel=kernel)
+!!$           call polarization_charge(kernel%geocode,kernel%ndims,kernel%hgrids,kernel%nord,&
+!!$                rhopot_full,pot,nabla_pot,rho_pol)
+!!$        else
+!!$           call polarization_charge(kernel%geocode,kernel%ndims,kernel%hgrids,kernel%nord,&
+!!$                rhopot,pot,nabla_pot,rho_pol)
+!!$        end if
+!!$     else if (kernel%method == PS_PI_ENUM) then
+!!$        call PS_gather(kernel%w%rho_pol,kernel)
+!!$  end if
+     
+!!$  !here we should extract the information on the cavity
+!!$  !--------------------------------------
+!!$  ! Polarization charge, to be calculated on-demand
+!!$  call pol_charge(kernel,pot_full,rho,kernel%w%pot)
+!!$  !--------------------------------------
+
+
+  call PS_release_lowlevel_workarrays(options%cavity_info,options%use_input_guess,&
+       rhov(1,1,i3s),kernel)
+
+  !the external ionic potential is referenced if present
+  if (sum_pi) then
+     pot_ion_eff=>pot_ion
+  else
+     !point to a temporary array
+     pot_ion_eff=>kernel%w%zf !<however unused
+  end if
+  if (is_vextra) then
+     if (build_c) then
+        vextra_eff=>kernel%w%zf
+     else
+        vextra_eff=>pot_ion_eff
+     end if
+  else
+     nullify(vextra_eff)
+  end if
+  eVextra=0.0_gp
+  select case(trim(str(kernel%method)))
+  case('VAC')
+     call finalize_hartree_results(present(pot_ion),cudasolver,kernel,&
+          pot_ion_eff,&
+          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+          kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
+          rhov(1,1,i3s),kernel%w%zf,rhov(1,1,i3s),ehartreeLOC)
+  case('PI')
+     !if statement for SC cavity
+     if (build_c) then
+        !in the PI method the potential is allocated as a full array
+        call nabla_u(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
+             kernel%w%pot,nabla2_rhopot,kernel%nord,kernel%hgrids)
+ 
+        call add_Vextra(n1,n23,nabla2_rhopot(1,1,kernel%grid%istart+1),&
+             depsdrho,dsurfdrho,kernel%cavity,options%only_electrostatic,&
+             rhov(1,1,i3s),sum_pi,pot_ion_eff,vextra_eff,eVextra)
+       end if
+
+     !here the harteee energy can be calculated and the ionic potential
+     !added
+     call finalize_hartree_results(is_vextra,cudasolver,kernel,&
+          vextra_eff,& 
+          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+          rhov(1,1,i3s),kernel%w%pot,rhov(1,1,i3s),ehartreeLOC)
+
+  case('PCG')
+     !only useful for gpu, bring back the x array
+     call update_pot_from_device(cudasolver, kernel, kernel%w%pot)
+
+     if (build_c) then
+        call PS_gather(src=kernel%w%pot,dest=rhopot_full,kernel=kernel)
+        call nabla_u(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
+             rhopot_full,nabla2_rhopot,kernel%nord,kernel%hgrids)
+        call add_Vextra(n1,n23,nabla2_rhopot(1,1,kernel%grid%istart+1),&
+             depsdrho,dsurfdrho,kernel%cavity,options%only_electrostatic,&
+             rhov(1,1,i3s),sum_pi,pot_ion_eff,vextra_eff,eVextra)
+        call f_free(rhopot_full)
+     end if
+
+     !here the harteee energy can be calculated and the ionic potential
+     !added
+     call finalize_hartree_results(is_vextra,cudasolver,kernel,&
+          vextra_eff,&
+          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+          kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+          rhov(1,1,i3s),kernel%w%pot,rhov(1,1,i3s),ehartreeLOC)
+
+  end select
+
+  if (build_c) then
+     call f_free(nabla2_rhopot)
+     call f_free(depsdrho)
+     call f_free(dsurfdrho)
+  end if
+
+  call release_PS_workarrays(kernel%keepzf,kernel%w)
+
+  !gather the full result in the case of datacode = G
+  if (options%datacode == 'G') call PS_gather(rhov,kernel)
+
+
+  !evaluating the total ehartree + e_static if needed
+  !also cavitation energy can be given
+  energies%hartree=ehartreeLOC*0.5_dp*product(kernel%hgrids)
+  energies%eVextra=(e_static+eVextra)*product(kernel%hgrids)
+  energies%cavitation=(kernel%cavity%gammaS+kernel%cavity%alphaS)*IntSur+&
+       kernel%cavity%betaV*IntVol
+
+  call PS_reduce(energies,kernel)
+
+  if (wrtmsg) call yaml_mapping_close()
+  call f_timing(TCAT_PSOLV_COMPUT,'OF')
+  call f_release_routine()
+end subroutine Electrostatic_Solver
 
 
 !>Generalized Poisson Solver working with parallel data distribution.
@@ -890,7 +938,7 @@ subroutine pol_charge(kernel,pot_full,rho,pot)
      call f_memcpy(src=pot,dest=pot_full)
   end if
 
-  !lculate the extra potential and add it to pot
+  !calculate the extra potential and add it to pot
   call polarization_charge(kernel,pot_full,rho)
   
 end subroutine pol_charge

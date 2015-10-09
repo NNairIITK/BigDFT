@@ -862,11 +862,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
      !if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
      call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
-          atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
+          atoms,rxyz,denspot%pkernel,1,denspot%V_ext)
+!!$     call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
+!!$          atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
      if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
      !if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
      call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
-          atoms,rxyz,denspot%dpbox,in%nspin,denspot%rhov)
+          atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
   end if
 
   call f_free_ptr(denspot%V_ext)
@@ -912,7 +914,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 !!$          & inputpsi == INPUT_PSI_MEMORY_LINEAR, &
           fxyz, fnoise, fion, fdisp, fpulay, &
           & strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpsp, &
-          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, in%nspin)
+          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, in%calculate_strten,in%nspin)
 
      call f_free_ptr(fpulay)
   end if
@@ -1847,7 +1849,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & fxyz, fnoise, fion, fdisp, fpulay, &
      & strten, pressure, ewaldstr, xcstr, &
      & GPU, denspot, atoms, rxyz, nlpsp, &
-     & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, nspin)
+     & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, calculate_strten,nspin)
   use module_base
   use module_types
   use module_interfaces, only: XC_potential, density_and_hpot
@@ -1866,7 +1868,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   type(DFT_local_fields), intent(inout) :: denspot
   type(atoms_data), intent(in) :: atoms
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  logical, intent(in) :: linear, refill_proj, calculate_dipole
+  logical, intent(in) :: linear, refill_proj, calculate_dipole,calculate_strten
   integer, intent(in) :: iproc, nproc, nspin
   type(f_enumerator), intent(in) :: output_denspot
   character(len = *), intent(in) :: dir_output
@@ -1958,14 +1960,14 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      if (iproc == 0) call yaml_map('Writing electronic density in file','electronic_density'//gridformat)
 
      call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
-          atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
+          atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work)
 !---------------------------------------------------
 ! giuseppe fisicaro dilectric cavity
      if (denspot%pkernel%method /= 'VAC') then
         if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
 
         call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
-             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%w%rho_pol)
+             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%rho_pol)
 
 !!$        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
 !!$
@@ -1977,14 +1979,14 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
         if (iproc == 0) call yaml_map('Writing core density in file','core_density'//gridformat)
         call plot_density(iproc,nproc,trim(dir_output)//'core_density' // gridformat,&
-             atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,i3xcsh_old+1,1))
+             atoms,rxyz,denspot%pkernel,1,denspot%rho_C(1,1,i3xcsh_old+1,1))
      end if
   end if
   !plot also the electrostatic potential
   if (output_denspot == 'DENSPOT') then
      if (iproc == 0) call yaml_map('Writing Hartree potential in file','hartree_potential'//gridformat)
      call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
-          atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pot_work)
+          atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work)
   end if
 
   !     !plot also the electrostatic potential
@@ -2034,7 +2036,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
        denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
        denspot%dpbox%nrhodim,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
        denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
-       ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,imode,tmb,fpulay)
+       calculate_strten,ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,imode,tmb,fpulay)
 
   call f_free_ptr(denspot%rho_work)
   !call f_free_ptr(denspot%pot_work)

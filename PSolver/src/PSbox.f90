@@ -18,6 +18,7 @@ module PSbox
   interface PS_reduce
      module procedure reduce_scalar,reduce_array,reduce_energies
   end interface PS_reduce
+  
 
   public :: PS_reduce,PS_gather
 
@@ -26,7 +27,7 @@ contains
   !>gather a distributed array to have a full array
   !!if only src is present this is assumed to be a full array
   !!otherwise it is assumed to be a distributed array
-  subroutine PS_gather(src,kernel,dest)
+  subroutine PS_gather(src,kernel,dest,nsrc)
     use dynamic_memory, only: f_memcpy
     implicit none
     !> input array. If dest is present, the values are assumed to be distributed
@@ -34,20 +35,33 @@ contains
     !!array
     real(dp), dimension(*), intent(inout) :: src
     type(coulomb_operator), intent(in) :: kernel
-    real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out), optional :: dest
+    real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),*), intent(out), optional :: dest
+    integer, intent(in), optional :: nsrc !< number of copies of the array src (useful for spin-polarized)
+    !local variables
+    integer :: ispin,nspin,isrc
 
+    nspin=1
+    if (present(nsrc)) nspin=nsrc
     if (present(dest)) then
        if (kernel%mpi_env%nproc > 1) then
-          call mpiallgather(src(1),recvbuf=dest(1,1,1),&
+          isrc=1
+          do ispin=1,nspin
+             call mpiallgather(src(isrc),recvbuf=dest(1,1,1,isrc),&
                recvcounts=kernel%counts,&
                displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+             isrc=isrc+kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p
+          end do
        else
-          call f_memcpy(n=size(dest),src=src(1),dest=dest(1,1,1))
+          call f_memcpy(n=product(kernel%ndims)*nspin,src=src(1),dest=dest(1,1,1,1))
        end if
     else
        if (kernel%mpi_env%nproc > 1) then
-          call mpiallgather(src(1),recvcounts=kernel%counts,&
-               displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+          isrc=1
+          do ispin=1,nspin
+             call mpiallgather(src(isrc),recvcounts=kernel%counts,&
+                  displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+             isrc=isrc+kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p
+          end do
        end if
     end if
   end subroutine PS_gather
@@ -166,6 +180,38 @@ contains
 
     call f_free(pot_from_disk)
   end subroutine PS_read_field
+
+  !> write a distributed array in the disk
+  subroutine PS_dump_field(kernel,filename,src_dist,src_full,ixyz0)
+    use dynamic_memory
+    use IObox
+    implicit none
+    character(len=*), intent(in) :: filename
+    type(coulomb_operator), intent(in) :: kernel
+    real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), optional :: src_dist
+    real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in), optional :: src_full
+    integer, dimension(3), intent(in), optional :: ixyz0
+    !local variables
+    real(dp), dimension(:,:,:), allocatable :: work_full
+
+    if (present(src_dist)) then
+       work_full=f_malloc(kernel%ndims,id='work_full')
+       call PS_gather(src=src_dist,dest=work_full,kernel=kernel)
+       if (present(ixyz0)) then
+          call dump_field(filename,kernel%geocode,kernel%ndims,kernel%hgrids,1,work_full,ixyz0=ixyz0)
+       else
+          call dump_field(filename,kernel%geocode,kernel%ndims,kernel%hgrids,1,work_full)
+       end if
+          call f_free(work_full)
+    else if (present(src_full)) then
+       if (present(ixyz0)) then
+          call dump_field(filename,kernel%geocode,kernel%ndims,kernel%hgrids,1,src_full,ixyz0=ixyz0)
+       else
+          call dump_field(filename,kernel%geocode,kernel%ndims,kernel%hgrids,1,src_full)
+       end if
+    end if
+
+  end subroutine PS_dump_field
 
 !!$  !> Read the densit and put the values in the rhopot arrays according to the parallelization indicated by
 !!$  !! nscatterarr array

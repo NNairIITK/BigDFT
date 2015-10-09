@@ -51,6 +51,7 @@ program BigDFT
       call init_state_properties(outs,bigdft_nat(runObj))
 
       call bigdft_get_run_properties(run, posinp_id = posinp_id)
+
       if(trim(runObj%inputs%geopt_approach)/='SOCK') then
           call bigdft_state(runObj,outs,infocode)
       endif

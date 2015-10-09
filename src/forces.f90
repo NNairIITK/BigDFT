@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS 
 subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz,i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
-     ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
+     calculate_strten,ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
   use module_base
   use module_types
   use module_interfaces, only: erf_stress
@@ -17,6 +17,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   use module_forces
   use forces_linear, only: nonlocal_forces_linear, local_hamiltonian_stress_linear
   implicit none
+  logical, intent(in) :: calculate_strten
   logical, intent(in) :: refill_proj
   integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize,imode,nsize_psi
   real(gp), intent(in) :: hx,hy,hz,psoffset
@@ -34,7 +35,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
   type(DFT_wavefunction),intent(inout) :: tmb
   !local variables
-  logical, parameter :: calculate_strten=.true. !temporary
   integer :: iat,i,j
   real(gp) :: charge,ucvol,maxdiff
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
