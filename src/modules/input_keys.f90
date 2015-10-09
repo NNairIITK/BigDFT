@@ -1566,6 +1566,8 @@ contains
 !!$          end select
        case (EXTERNAL_POTENTIAL)
           ! Do nothing?
+       case(CALCULATE_STRTEN)
+          in%calculate_strten=val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
