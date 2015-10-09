@@ -55,6 +55,7 @@ module bigdft_forces
    !! Routine to initialize all the positions. uses BigDFT read files
    subroutine init_all_atoms( nat, typa, posa, const_, boxl, boxtype, nproc_, me_, file )
 
+     use numerics, only: Bohr_Ang
       implicit none
 
       !Arguments

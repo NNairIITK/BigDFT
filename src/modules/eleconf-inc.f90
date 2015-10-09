@@ -1815,3 +1815,4 @@ function zatom(symbol)
   end do find_z
 
 END function zatom
+  use numerics, only: Bohr_Ang

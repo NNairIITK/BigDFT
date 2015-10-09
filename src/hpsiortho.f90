@@ -3208,6 +3208,8 @@ end subroutine integral_equation
 subroutine paw_compute_dij(paw, at, denspot, vxc)
   use module_base
   use module_types
+  use module_defs, only: gp
+  use numerics, only: Ha_eV
   use m_pawdij, only: pawdij
   implicit none
   type(paw_objects), intent(inout) :: paw

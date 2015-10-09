@@ -1474,6 +1474,8 @@ contains
              in%run_mode=CP2K_RUN_MODE
           case('dftbp')
              in%run_mode=DFTBP_RUN_MODE
+          case('multi')
+             in%run_mode=MULTI_RUN_MODE
           end select
        case(MM_PARAMSET)
           in%mm_paramset=val
@@ -3065,10 +3067,10 @@ contains
   END SUBROUTINE print_dft_parameters
 
   !> Read from all input files and build a dictionary
-  subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
+  recursive subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use wrapper_MPI, only: mpi_environment
-    use public_keys, only: POSINP,IG_OCCUPATION
+    use public_keys, only: POSINP, IG_OCCUPATION, MODE_VARIABLES, SECTIONS, METHOD_KEY
     use yaml_output
     use yaml_strings, only: f_strcpy
     use f_utils, only: f_file_exists
@@ -3083,15 +3085,16 @@ contains
     type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
     !Local variables
     logical :: exists
-    type(dictionary), pointer :: at
+    type(dictionary), pointer :: at, iter
     character(len = max_field_length) :: str, rad
 
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
     !possible overwrite with a specific posinp file.
-    call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
-
+    if (len_trim(posinp_name) > 0) then
+       call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
+    end if
     if (has_key(dict,POSINP)) then
        str = dict_value(dict //POSINP)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
@@ -3144,6 +3147,24 @@ contains
        end if
     end if
 
+    ! Add section files, if any.
+    if (has_key(dict, MODE_VARIABLES)) then
+       str = dict_value(dict // MODE_VARIABLES // METHOD_KEY)
+       if (trim(str) == 'multi' .and. has_key(dict // MODE_VARIABLES, SECTIONS)) then
+          iter => dict_iter(dict // MODE_VARIABLES // SECTIONS)
+          do while (associated(iter))
+             str = dict_value(dict // dict_value(iter))
+             if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+                if (len_trim(str) > 5 .and. str(max(1,len_trim(str)-4):len_trim(str)) == ".yaml") then
+                   call user_dict_from_files(dict // dict_value(iter), str(1:len_trim(str)-5), "", mpi_env)
+                else
+                   call user_dict_from_files(dict // dict_value(iter), str, "", mpi_env)
+                end if
+             end if
+             iter => dict_next(iter)
+          end do
+       end if
+    end if
   end subroutine user_dict_from_files
 
 

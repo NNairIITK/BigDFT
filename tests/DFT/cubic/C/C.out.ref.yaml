@@ -94,6 +94,8 @@
  #|manual         K-point sampling method                                                    
  #|1              Number of K-points                                                         
  #|0. 0. 0. 1.    K-pt coords, K-pt weigth                                                   
+   purification_quickreturn            : Yes #    linear scaling quick return in purification
+   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data/
  Material acceleration                 :  No #iproc=0

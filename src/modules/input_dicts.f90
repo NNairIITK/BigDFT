@@ -6,7 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
 !> Module reading the old format (before 1.7) for the input
 module input_old_text_format
   use yaml_strings, only: operator(.eqv.)
@@ -1380,6 +1379,8 @@ contains
           call set(run // RADICAL_NAME, trim(run_id))
        else
           call set(run // RADICAL_NAME, LOGFILE) !this is if the logfile is then reused as input file
+          call set(run // INPUT_NAME, " ")
+          call set(run // POSINP, " ")
        end if
     end if
     if (present(input_id)) call set(run // INPUT_NAME, trim(input_id))
@@ -1490,13 +1491,13 @@ contains
     use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
          & GEOPT_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
          & LIN_BASIS, LIN_KERNEL, LIN_BASIS_PARAMS, OCCUPATION, IG_OCCUPATION, FRAG_VARIABLES, &
-         & MODE_VARIABLES
+         & MODE_VARIABLES, SECTIONS
     implicit none
     type(dictionary), pointer :: dict
     !local variables
     character(len=*), parameter :: F_IMPORT_KEY='import'
     logical :: found,loginput
-    type(dictionary), pointer :: valid_entries,valid_patterns
+    type(dictionary), pointer :: valid_entries,valid_patterns,mode,sect
     type(dictionary), pointer :: iter,invalid_entries,iter2
 
 
@@ -1523,9 +1524,21 @@ contains
          .item. OCCUPATION,&
          .item. IG_OCCUPATION,&
          .item. FRAG_VARIABLES,&
-         .item. F_IMPORT_KEY])
+         .item. F_IMPORT_KEY,&
+         .item. PY_HOOKS])
+    ! If we have mode // sections, then, we need to exclude all
+    ! section keys, they will be checked later.
+    nullify(mode)
+    mode = dict .get. MODE_VARIABLES
+    nullify(sect)
+    sect = mode .get. SECTIONS
+    iter=>dict_iter(sect)
+    do while(associated(iter))
+       call add(valid_entries, dict_value(iter))
+       iter=>dict_next(iter)
+    end do
 
-    !then the list of vaid patterns
+    !then the list of valid patterns
     valid_patterns=>list_new(&
          .item. 'psppar' &
          )
@@ -1585,7 +1598,7 @@ contains
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
     integer, parameter :: ntrials=1
-    integer :: ierror,lgt,unit_log,ierrr,trials
+    integer :: lgt,unit_log,ierrr,trials
     integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
     character(len=500) :: logfilename,path
@@ -1898,9 +1911,9 @@ contains
           end if
        end do
     else
-       do ikpt = 0, nkpts - 1, 1
-          call fill_default(ikpt * norb, 1, qelec_up, norbu)
-          call fill_default(ikpt * norb + norbu, 1, qelec_down, norbd)
+       do ikpt = 1, nkpts, 1
+          call fill_default((ikpt - 1) * norb, 1, qelec_up, norbu)
+          call fill_default((ikpt - 1) * norb + norbu, 1, qelec_down, norbd)
           if (associated(occup_src)) then
              write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
              if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
@@ -2130,4 +2143,3 @@ contains
     if (has_key(dict // GEOPT_VARIABLES, NEB_DAMP)) damp_ = dict // GEOPT_VARIABLES // NEB_DAMP
   end subroutine neb_set_from_dict
 end module module_input_dicts
-
