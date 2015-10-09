@@ -346,7 +346,6 @@ contains
   !> Deallocate the structure atoms_data.
   subroutine deallocate_atoms_data(atoms) 
     use module_base
-    use dynamic_memory
     use m_pawrad, only: pawrad_destroy
     use m_pawtab, only: pawtab_destroy
     use m_pawang, only: pawang_destroy
@@ -903,7 +902,8 @@ contains
 
     !> Convert astruct to dictionary for later dump.
     subroutine astruct_merge_to_dict(dict, astruct, rxyz, comment)
-      use module_defs, only: gp, UNINITIALIZED, Bohr_Ang
+      use module_defs, only: gp, UNINITIALIZED
+      use numerics, only: Bohr_Ang
       use dictionaries
       use yaml_strings
       use ao_inguess, only: charge_and_spol
@@ -1215,7 +1215,8 @@ contains
     !! retrieve also other information like the energy and the forces if requested
     !! and presend in the dictionary
     subroutine astruct_set_from_dict(dict, astruct, comment)
-      use module_defs, only: gp, Bohr_Ang, UNINITIALIZED
+      use module_defs, only: gp,  UNINITIALIZED
+      use numerics, only: Bohr_Ang
       use dynamic_memory
       use dictionaries
       implicit none
@@ -1445,7 +1446,7 @@ contains
 
 
     subroutine nlcc_set_from_dict(dict, atoms)
-      use module_defs, only: gp
+      use module_defs, only: gp,UNINITIALIZED
       use dynamic_memory
       use dictionaries
       implicit none
@@ -1459,8 +1460,8 @@ contains
 
       nlcc_dim = 0
       do ityp = 1, atoms%astruct%ntypes, 1
-         atoms%nlcc_ngc(ityp)=0
-         atoms%nlcc_ngv(ityp)=0
+         atoms%nlcc_ngc(ityp)=UNINITIALIZED(atoms%nlcc_ngc(ityp))
+         atoms%nlcc_ngv(ityp)=UNINITIALIZED(atoms%nlcc_ngv(ityp))
          filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
          if (.not. has_key(dict, filename)) cycle    
          if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) cycle
@@ -1630,7 +1631,7 @@ contains
     !> Read psp file and merge to dict
     subroutine psp_file_merge_to_dict(dict, key, filename, lstring)
       use module_defs, only: gp, UNINITIALIZED
-      use yaml_strings
+!      use yaml_strings
       use f_utils
       use yaml_output
       use dictionaries
@@ -1638,8 +1639,8 @@ contains
       implicit none
       !Arguments
       type(dictionary), pointer :: dict
-      character(len = 27), intent(in) :: key
-      character(len = 27), optional, intent(in) :: filename
+      character(len = *), intent(in) :: key
+      character(len = *), optional, intent(in) :: filename
       type(dictionary), pointer, optional :: lstring
       !Local variables
       integer :: nzatom, nelpsp, npspcode, ixcpsp

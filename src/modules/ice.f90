@@ -13,7 +13,6 @@ module ice
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp)
       use module_base
       use module_types
-      use module_interfaces
       use yaml_output
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                    sparsematrix_malloc0_ptr, assignment(=), &

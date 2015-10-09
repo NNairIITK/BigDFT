@@ -65,7 +65,6 @@ subroutine minimizer_sqnm(mhgpsst,uinp,runObj,outs,rcov,&
 
    use module_base!, except_this_one=> int
    !use module_types
-   use module_interfaces
    use yaml_output
    use module_sqn
    use module_mhgps_state

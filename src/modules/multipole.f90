@@ -119,7 +119,7 @@ module multipole
     !> Calculate the external potential arising from the multipoles of the charge density
     subroutine potential_from_charge_multipoles(iproc, nproc, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
       use module_types, only: DFT_local_fields
-      use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+      use Poisson_Solver, except_dp => dp, except_gp => gp
       use yaml_output
       implicit none
       
@@ -169,7 +169,7 @@ module multipole
       !$omp parallel default(none) &
       !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, ep, sigma) &
       !$omp shared(gaussians1, gaussians2, gaussians3) &
-      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l)
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l,impl)
       !$omp do
       do i3=is3,ie3
           ii3 = i3 - 15
@@ -800,11 +800,11 @@ module multipole
                ovrlp, kernel, meth_overlap)
       use module_base
       use module_types
-      use module_interfaces
       use sparsematrix_base, only: sparsematrix_malloc0, SPARSE_FULL, assignment(=)
       use sparsematrix_init, only: matrixindex_in_compressed
       use orthonormalization, only: orthonormalizeLocalized
       use yaml_output
+      use locreg_operations
       implicit none
 
       ! Calling arguments
@@ -882,7 +882,7 @@ module multipole
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
           call daub_to_isf(lzd%Llr(ilr), w, phi_ortho(ist), psir(istr))
           call deallocate_work_arrays_sumrho(w)
           !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
@@ -1598,7 +1598,7 @@ module multipole
                n1i, n2i, n3i, nsi1, nsi2, nsi3, locrad, hgrids, locregcenter, &
                nr, psir1_get, psir2_get, &
                nvctr, matrix_compr, multipoles, rmax, get_index, smatl, matrixindex)
-      use module_types, only: workarr_sumrho
+      use locreg_operations, only: workarr_sumrho      
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: matrixindex_in_compressed
       use yaml_output

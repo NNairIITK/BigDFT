@@ -1,4 +1,4 @@
-# Definitions of the input variables
+## Definitions of the input variables
 ##inputvar: #name of the variable as declared in the code
 ## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile
@@ -195,6 +195,11 @@
      COMMENT: Multipole moments of an external potential
      DESCRIPTION: Give the multipole moments up to quadrupoles
      default: 0.0
+   calculate_strten:
+     COMMENT: Boolean to activate the calculation of the stress tensor. Might be set to No for performance reasons
+     DESCRIPTION: In some cases, for example when doing MD for fixed volume systems, il might be useful to disable the 
+                    calculation of the stress tensor, to save computational time.
+     default: Yes
 #K points parameters
  kpt:
    DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
@@ -1614,8 +1619,8 @@ linear:
    eval_range_foe: [-1.0, 1.0]
    fscale_foe: 5.0E-002
  lin_basis_params:
-   ao_confinement: -1.0
-   confinement: -1.0
+   #ao_confinement: -1.0
+   #confinement: -1.0
    rloc_kernel: 9.0
    rloc_kernel_foe: 10.5
    H:  {nbasis: 1, rloc: 4.5}

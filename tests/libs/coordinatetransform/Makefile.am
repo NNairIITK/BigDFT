@@ -1,5 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
+SHORT_CHECK = test-bigdft-tool.report.yaml
+LONG_CHECK = $(SHORT_CHECK)
+
+include $(srcdir)/../check.mk
+
+
 EXTRA_DIST = test-coordinatetransform.ref.yaml test-bigdft-tool.ref.yaml \
 	posinp1.xyz posinp2.xyz posinp3.xyz posinp4.xyz posinp5.xyz posinp5.fix
 
@@ -24,8 +30,8 @@ driver_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 CLEANFILES = *.yaml posinp.* malloc.prc report
 
-check: test-coordinatetransform.report.yaml
-check: test-bigdft-tool.report.yaml
+#check: test-coordinatetransform.report.yaml
+#check: test-bigdft-tool.report.yaml
 
 test-coordinatetransform.report.yaml: $(srcdir)/test-coordinatetransform.ref.yaml test-coordinatetransform.out.yaml
 	@export PYTHONPATH=${PYTHONPATH} ; \

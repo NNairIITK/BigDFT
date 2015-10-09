@@ -12,6 +12,7 @@
 module dictionaries
    use exception_callbacks
    use dictionaries_base
+   use f_precisions, only: f_address,f_loc
    use yaml_strings, only: read_fraction_string,yaml_toa,f_strcpy
    implicit none
 
@@ -118,8 +119,6 @@ module dictionaries
       module procedure dict_new,dict_new_elems
    end interface
 
-   integer(kind=8), external :: f_loc
-
    !> Public routines
    public :: operator(//),operator(.index.),assignment(=)
    public :: set,dict_init,dict_free,append,prepend,add
@@ -177,7 +176,7 @@ module dictionaries
    public :: f_err_set_callback,f_err_unset_callback
    public :: f_err_open_try,f_err_close_try
    public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
-   public :: f_loc,f_get_past_error,f_get_no_of_errors
+   public :: f_get_past_error,f_get_no_of_errors
 
    !for internal f_lib usage
    public :: dictionaries_errors,TYPE_DICT,TYPE_LIST

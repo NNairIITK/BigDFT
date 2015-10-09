@@ -24,7 +24,6 @@ module module_private_api
      subroutine atoms_new_from_file(lstat, atoms, rxyz, filename, ln)
        use module_base
        use module_types
-       use module_interfaces
        implicit none
        logical, intent(out) :: lstat
        type(atoms_data), pointer :: atoms

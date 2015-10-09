@@ -15,8 +15,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => get_coeff
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, optimize_coeffs
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use constrained_dft
   use diis_sd_optimization
   use yaml_output
@@ -618,7 +618,9 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => getLocalizedBasis, except_this_one_A => writeonewave
+  use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, &
+       & calculate_density_kernel, calculate_energy_and_gradient_linear, hpsitopsi, &
+       & hpsitopsi_linear, write_energies
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, TRANSPOSE_GATHER
   use communications, only: transpose_localized, untranspose_localized, start_onesided_communication, &
                             synchronize_onesided_communication
@@ -633,7 +635,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use matrix_operations, only: overlapPowerGeneral, check_taylor_order
   use foe, only: fermi_operator_expansion
   use public_enums
-  use locreg_operations, only: small_to_large_locreg
+  use locreg_operations
   !  use Poisson_Solver
   !use allocModule
   implicit none
@@ -1284,7 +1286,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
       ! step, given by the product of the force and the "displacement" .
       if (target_function==TARGET_FUNCTION_IS_HYBRID .or. experimental_mode) then
           call estimate_energy_change(tmb%npsidim_orbs, tmb%orbs, tmb%lzd, tmb%linmat%l%nspin, psidiff, &
-               hpsi_noprecond=hpsi_tmp, delta_energy=delta_energy)
+               hpsi_tmp,delta_energy)
           ! This is a hack...
           if (energy_increased) then
               delta_energy=1.d100
@@ -1500,7 +1502,6 @@ end subroutine getLocalizedBasis
 subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, experimental_mode)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => improveOrbitals
   implicit none
   
   ! Calling arguments
@@ -1566,7 +1567,6 @@ subroutine diagonalizeHamiltonian2(iproc, norb, HamSmall, ovrlp, eval)
   !
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output, only: yaml_map
   implicit none
 
@@ -1750,6 +1750,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   use module_types
   !use module_interfaces, except_this_one => communicate_basis_for_density_collective
   use communications, only: transpose_switch_psir, transpose_communicate_psir, transpose_unswitch_psirt
+  use locreg_operations
   implicit none
   
   ! Calling arguments
@@ -1778,7 +1779,7 @@ subroutine communicate_basis_for_density_collective(iproc, nproc, lzd, npsidim, 
   do iorb=1,orbs%norbp
       iiorb=orbs%isorb+iorb
       ilr=orbs%inWhichLocreg(iiorb)
-      call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+      call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
       call daub_to_isf(lzd%Llr(ilr), w, lphi(ist), psir(istr))
       call deallocate_work_arrays_sumrho(w)
       ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
@@ -1997,7 +1998,7 @@ subroutine reconstruct_kernel(iproc, nproc, inversion_method, blocksize_dsyev, b
            orbs, tmb, overlap_calculated)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => reconstruct_kernel
+  use module_interfaces, only: calculate_density_kernel
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=)
@@ -2075,7 +2076,6 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
            basis_overlap, KS_overlap, basis_overlap_mat, coeff, orbs)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => reorthonormalize_coeff
   use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
        allocate_matrices, deallocate_matrices
   use yaml_output, only: yaml_newline, yaml_map
@@ -2571,7 +2571,6 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), matrices, &
@@ -3287,6 +3286,7 @@ end subroutine renormalize_kernel
 subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
   use module_base, only: gp
   use module_types
+  use locreg_operations
   implicit none
   ! Calling arguments
   type(orbitals_data),intent(in) :: orbs
@@ -3329,6 +3329,7 @@ end subroutine allocate_precond_arrays
 subroutine deallocate_precond_arrays(orbs, lzd, precond_convol_workarrays, precond_workarrays)
   use module_base, only: gp
   use module_types
+  use locreg_operations
   implicit none
   ! Calling arguments
   type(orbitals_data),intent(in) :: orbs

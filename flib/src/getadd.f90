@@ -760,12 +760,13 @@ contains
     !local variables
     integer(f_long):: linan
     integer, dimension(2) :: inan
-    equivalence (linan, inan)
+    !equivalence (linan, inan)
     ! This first assignment is for big-endian machines
     inan(1) = 2147483647
     ! The second assignment is for little-endian machines
     inan(2) = 2147483647
-    li_nan = linan
+    !li_nan = linan
+    li_nan=transfer(inan,li_nan)
   end function li_nan
 
 

@@ -1166,7 +1166,7 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
      scal, psi_c, psi_f, &
      work)
   use module_base
-  use module_types
+  use locreg_operations
   implicit none
   integer,intent(in) :: n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, mseg_c, mvctr_c, mseg_f, mvctr_f
   integer,dimension(mseg_c),intent(in) :: keyv_c

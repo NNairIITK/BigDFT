@@ -1122,6 +1122,7 @@ END SUBROUTINE print_memory_estimation
 !> Display information about the box and the grid
 subroutine print_atoms_and_grid(Glr, atoms, rxyz, shift, hx, hy, hz)
   use module_defs
+  use numerics, only: Bohr_Ang
   use module_types
   use yaml_output
   use yaml_strings
@@ -1173,8 +1174,8 @@ END SUBROUTINE print_atoms_and_grid
 !> Write atomic file in yaml format
 subroutine wtyaml(iunit,energy,rxyz,astruct,wrtforces,forces, &
      & wrtlog, shift, hgrids)
-  use module_base, only: f_err_throw
-  use module_defs, only: Bohr_Ang, gp, UNINITIALIZED
+  use module_base, only: f_err_throw,Bohr_Ang
+  use module_defs, only: gp, UNINITIALIZED
   use yaml_output
   use yaml_strings
   use module_atoms, only: atomic_structure,frozen_itof

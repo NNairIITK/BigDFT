@@ -276,7 +276,7 @@ program PSolver_Program
      end if
 
      !dimension needed for allocations
-     call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,(ixc>10),.false.,n3d,n3p,n3pi,i3xcsh,i3s)
+     call PS_dim4allocation(geocode,datacode,iproc,nproc,n01,n02,n03,(ixc>10),.false.,0,n3d,n3p,n3pi,i3xcsh,i3s)
 
      !dimension for comparison in the global or distributed poisson solver
      if (datacode == 'G') then

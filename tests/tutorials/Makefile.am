@@ -2,19 +2,23 @@
 
 #SUBDIRS = Xabs/pawpatchgen  Xabs/scfpotgen   Xabs/spectra    
 
-TESTDIRS = CH4 \
-	  CH3- \
-	  H2O-slab \
-	  H2O-bader \
-	  scalability \
-	  dev
 EXTRA_TESTDIRS =
-
+SHORT_TESTDIRS =
+LONG_TESTDIRS =
 if USE_OCL
   EXTRA_TESTDIRS += N2
 else
-  TESTDIRS += N2
+  SHORT_TESTDIRS += N2
 endif
+
+SHORT_TESTDIRS += H2O-slab \
+	CH4	
+
+LONG_TESTDIRS += $(SHORT_TESTDIRS) \
+	  CH3- \
+	  H2O-bader \
+	  scalability \
+	  dev
 
 EXTRA_DIST = Figures \
      H1A_first_run.html \
@@ -52,9 +56,12 @@ endif
 
 # Additional rules for the dev tutorial.
 dev.check: dev-test/toy_model
+
 dev-test/toy_model: $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90
 	$(FC) -o $@ $(FCFLAGS) $(AM_FCFLAGS) $(abs_top_srcdir)/tests/tutorials/dev/toy_model.f90 \
 			$(AM_LDFLAGS) $(LDFLAGS) -lbigdft-1 $(LIBS)
+
+
 toy_model:
 	cd ..; $(MAKE) dev/toy_model
 dev-N2.out.post-out: dev-N2.out.out toy_model

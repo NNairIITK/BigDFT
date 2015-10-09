@@ -30,5 +30,8 @@ module f_precisions
 
   !> portable carriage return, contains both CR for unix and DOS
   character(len=*), parameter :: f_cr=char(13)//char(10)
+
+  !> function to localize the address of anything
+  integer(f_address), external :: f_loc
   
 end module f_precisions
