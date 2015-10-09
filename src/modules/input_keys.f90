@@ -101,7 +101,7 @@ module module_input_keys
      real(kind=8) :: alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
      real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
      integer :: plotBasisFunctions
-     real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
+     real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix, coeff_factor
      real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
      real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
      real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
@@ -381,6 +381,9 @@ module module_input_keys
 
      !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
      logical :: adjust_kernel_iterations
+
+     !> linear scaling: enable the addaptive ajustment of the kernel convergence threshold according to the support function convergence
+     logical :: adjust_kernel_threshold
 
      !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      logical :: wf_extent_analysis
@@ -1762,8 +1765,11 @@ contains
           ! linear scaling: radius enlargement for the Hamiltonian application (in grid points)
           in%hamapp_radius_incr = val
        case (ADJUST_KERNEL_ITERATIONS) 
-          ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
+          ! linear scaling: enable the adaptive ajustment of the number of kernel iterations
           in%adjust_kernel_iterations = val
+       case (ADJUST_KERNEL_THRESHOLD) 
+          ! linear scaling: enable the adaptive ajustment of the kernel convergence threshold
+          in%adjust_kernel_threshold = val
        case(WF_EXTENT_ANALYSIS)
           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
           in%wf_extent_analysis = val
@@ -2051,6 +2057,8 @@ contains
           in%lin%evhigh = dummy_gp(2)
        case (FSCALE_FOE) 
           in%lin%fscale = val
+       case (COEFF_SCALING_FACTOR) 
+          in%lin%coeff_factor = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

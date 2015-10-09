@@ -985,6 +985,9 @@
    adjust_kernel_iterations:
      COMMENT: enable the adaptive ajustment of the number of kernel iterations
      default: True
+   adjust_kernel_threshold:
+     COMMENT: enable the adaptive ajustment of the kernel convergence threshold according to the support function convergence
+     default: True
    wf_extent_analysis:
      COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      default: False
@@ -1416,6 +1419,14 @@
                     This value will be adjusted automatically if not chosen appropriately.
        RANGE: [1.e-3,5.e-2]
        default: 2.e-2
+     coeff_scaling_factor:
+       COMMENT: factor to scale the gradient in direct minimization
+       DESCRIPTION: |
+                    possible value: 1 non-negative real number
+                    Specifies a scaling factor for the coefficient gradient, recommended to be around 0.1 - 0.5 for CDFT, fragment calculations
+                    or systems where convergence is unstable.
+       default: 1.0
+       RANGE: [1.e-3,1.e1]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:

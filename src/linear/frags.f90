@@ -701,7 +701,7 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   integer, allocatable, dimension(:) :: rand_seed
   real(kind=dp) :: rtime, random_noise
   character(len=10) :: sys_time
-  logical :: random, completely_random, env_exists
+  logical :: random, completely_random, env_exists, neutral
 
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
 
@@ -821,6 +821,20 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
      else
         call fill_kernel_from_fragments()
      end if
+
+     !it seems to work better to just start with the neutral guess, at least for constraining charge differences
+     !should check if adding purification improves the situation
+     !distribute extra charge across tmbs if necessary
+     !neutral=.true.
+     !do ifrag=1,input%frag%nfrag
+     !   if (input_frag_charge(ifrag)/=0) then
+     !      neutral=.false.
+     !      exit
+     !   end if
+     !end do
+
+     !if (.not. neutral) call add_charge_to_diagonal()
+
   else if (completely_random) then
       call fill_random_kernel()
   else if (diagonal_kernel) then
@@ -851,6 +865,26 @@ subroutine fragment_kernels_to_kernel(iproc,input,input_frag_charge,ref_frags,tm
   call timing(iproc,'kernel_init','OF')
 
 contains
+
+  !add excess/deficit of electrons to diagonal elements (for fragment kernel approach) - assume kernels being read in were from neutral systems!
+  subroutine add_charge_to_diagonal()
+    implicit none
+
+    isforb=0
+    do ifrag=1,input%frag%nfrag
+       ifrag_ref=input%frag%frag_index(ifrag)
+
+       !nelecfrag=ref_frags(ifrag_ref)%nelec-input_frag_charge(ifrag)
+       do itmb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+          tmb%linmat%kernel_%matrix(isforb+itmb,isforb+itmb,1) = tmb%linmat%kernel_%matrix(isforb+itmb,isforb+itmb,1) &
+               - input_frag_charge(ifrag)/real(ref_frags(ifrag_ref)%fbasis%forbs%norb,dp)
+       end do
+
+       isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+    end do
+
+  end subroutine add_charge_to_diagonal
+
 
   !assuming neutral/correct charge distribution given
   subroutine fill_diagonal_kernel()

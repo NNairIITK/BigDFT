@@ -216,6 +216,7 @@ module public_keys
   character(len=*), parameter :: NSTEP_PREC      ='nstep_prec'
   character(len=*), parameter :: EVAL_RANGE_FOE  ='eval_range_foe'
   character(len=*), parameter :: FSCALE_FOE      ='fscale_foe'
+  character(len=*), parameter :: COEFF_SCALING_FACTOR='coeff_scaling_factor'
   character(len=*), parameter :: AO_CONFINEMENT  ='ao_confinement'
   character(len=*), parameter :: CONFINEMENT     ='confinement'
   character(len=*), parameter :: RLOC            ='rloc'
@@ -237,6 +238,7 @@ module public_keys
   character(len=*), parameter :: ENABLE_MATRIX_TASKGROUPS='enable_matrix_taskgroups'
   character(len=*), parameter :: HAMAPP_RADIUS_INCR='hamapp_radius_incr'
   character(len=*), parameter :: ADJUST_KERNEL_ITERATIONS='adjust_kernel_iterations'
+  character(len=*), parameter :: ADJUST_KERNEL_THRESHOLD='adjust_kernel_threshold'
   character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
   character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
 
