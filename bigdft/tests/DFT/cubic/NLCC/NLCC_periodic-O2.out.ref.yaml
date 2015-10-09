@@ -403,7 +403,7 @@
  Analytic core charge                  :  0.886280
  NLCC, Calculate core density for atom : O
  Analytic core charge                  :  0.886280
- Total core charge on the grid (To be compared with analytic one):  1.7725610
+ Total core charge on the grid :  1.7725610
  Communication checks:
    Transpositions                      :  Yes
    Reverse transpositions              :  Yes

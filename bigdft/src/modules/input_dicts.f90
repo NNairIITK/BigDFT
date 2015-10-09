@@ -139,6 +139,8 @@ contains
           call set(run // RADICAL_NAME, trim(run_id))
        else
           call set(run // RADICAL_NAME, "logfile") !this is if the logfile is then reused as input file
+          call set(run // INPUT_NAME, " ")
+          call set(run // POSINP, " ")
        end if
     end if
     if (present(input_id)) call set(run // INPUT_NAME, trim(input_id))
@@ -248,13 +250,13 @@ contains
     use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
          & GEOPT_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
          & LIN_BASIS, LIN_KERNEL, LIN_BASIS_PARAMS, OCCUPATION, IG_OCCUPATION, FRAG_VARIABLES, &
-         & MODE_VARIABLES
+         & MODE_VARIABLES, SECTIONS
     implicit none
     type(dictionary), pointer :: dict
     !local variables
     character(len=*), parameter :: F_IMPORT_KEY='import'
     logical :: found,loginput
-    type(dictionary), pointer :: valid_entries,valid_patterns
+    type(dictionary), pointer :: valid_entries,valid_patterns,mode,sect
     type(dictionary), pointer :: iter,invalid_entries,iter2
 
 
@@ -283,8 +285,19 @@ contains
          .item. FRAG_VARIABLES,&
          .item. F_IMPORT_KEY,&
          .item. PY_HOOKS])
+    ! If we have mode // sections, then, we need to exclude all
+    ! section keys, they will be checked later.
+    nullify(mode)
+    mode = dict .get. MODE_VARIABLES
+    nullify(sect)
+    sect = mode .get. SECTIONS
+    iter=>dict_iter(sect)
+    do while(associated(iter))
+       call add(valid_entries, dict_value(iter))
+       iter=>dict_next(iter)
+    end do
 
-    !then the list of vaid patterns
+    !then the list of valid patterns
     valid_patterns=>list_new(&
          .item. 'psppar' &
          )

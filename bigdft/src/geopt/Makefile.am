@@ -3,7 +3,7 @@ noinst_LIBRARIES = libgeopt.a
 
 mod_src = scfloop_API.f90
 routines = \
-	sqnm.f90 sdcg.f90 lbfgs.f90 bfgs.f90 geometry.f90
+	sqnm.f90 sdcg.f90 lbfgs.f90 bfgs.f90 geometry.f90 multimode.f90
 
 libgeopt_a_SOURCES = $(mod_src) $(routines)
 EXTRA_DIST = 

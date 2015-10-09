@@ -393,7 +393,7 @@
    Cumulative size of masking arrays   :  2589
  NLCC, Calculate core density for atom : O_old
  Analytic core charge                  :  0.348261
- Total core charge on the grid (To be compared with analytic one):  0.3482609
+ Total core charge on the grid :  0.3482609
  Communication checks:
    Transpositions                      :  Yes
    Reverse transpositions              :  Yes

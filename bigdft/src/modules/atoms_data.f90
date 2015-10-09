@@ -22,8 +22,7 @@ module module_atoms
        & ASTRUCT_ATT_IGSPIN, ASTRUCT_ATT_IGCHRG, ASTRUCT_ATT_IXYZ_1, &
        & ASTRUCT_ATT_IXYZ_2, ASTRUCT_ATT_IXYZ_3, &
        & ASTRUCT_ATT_RXYZ_INT_1, ASTRUCT_ATT_RXYZ_INT_2, &
-       & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_QMMM
-  use public_enums, only : ATOM_MODE_QM, ATOM_MODE_MM
+       & ASTRUCT_ATT_RXYZ_INT_3, ASTRUCT_ATT_MODE
   use dictionaries, only: dictionary
   use f_trees, only: f_tree
   implicit none
@@ -1093,7 +1092,7 @@ contains
       real(gp), intent(out), optional :: rxyz_add !< Coordinates address.
       real(gp), dimension(3), intent(out), optional :: rxyz_int !< Internal coordinates.
       real(gp), intent(out), optional :: rxyz_int_add !< Internal coordinates address.
-      integer, intent(out), optional :: mode !< QM/MM treatment.
+      character(len = max_field_length), intent(out), optional :: mode !< QM/MM treatment.
 
       type(dictionary), pointer :: atData
       character(len = max_field_length) :: str
@@ -1109,7 +1108,7 @@ contains
       if (present(ifrztyp)) ifrztyp = 0
       if (present(igspin))  igspin = 0
       if (present(igchrg))  igchrg = 0
-      if (present(mode)) mode = UNINITIALIZED(mode)
+      if (present(mode)) write(mode, "(A)") ""
       
       atData => dict_iter(dict)
       do while(associated(atData))
@@ -1142,14 +1141,9 @@ contains
                icoord(3) = atData
                call f_memcpy(ixyz_add, icoord(1), 3)
             end if
-         else if (trim(str) == ASTRUCT_ATT_QMMM) then
+         else if (trim(str) == ASTRUCT_ATT_MODE) then
             if (present(mode)) then
-               str = dict_value(atData)
-               if (ATOM_MODE_MM == trim(str)) then
-                  mode = f_int(ATOM_MODE_MM)
-               else if (ATOM_MODE_QM == trim(str)) then
-                  mode = f_int(ATOM_MODE_QM)
-               end if
+               mode = dict_value(atData)
             end if
          else if (trim(str) == ASTRUCT_ATT_RXYZ_INT_1) then
             if (present(rxyz_int)) rxyz_int(1) = atData
@@ -1378,6 +1372,7 @@ contains
          do while(associated(at))
             iat = dict_item(at) + 1
 
+            call dict_copy(astruct%attributes(iat)%d, at)
             call astruct_at_from_dict(at, str, rxyz_add = astruct%rxyz(1, iat), &
                  & ifrztyp = astruct%ifrztyp(iat), igspin = igspin, igchrg = igchrg, &
                  & ixyz_add = astruct%ixyz_int(1,iat), rxyz_int_add = astruct%rxyz_int(1,iat))
@@ -1537,7 +1532,7 @@ contains
 
 
     subroutine nlcc_set_from_dict(dict, atoms)
-      use module_defs, only: gp
+      use module_defs, only: gp, UNINITIALIZED
       use dynamic_memory
       use dictionaries
       implicit none
@@ -1551,8 +1546,8 @@ contains
 
       nlcc_dim = 0
       do ityp = 1, atoms%astruct%ntypes, 1
-         atoms%nlcc_ngc(ityp)=0
-         atoms%nlcc_ngv(ityp)=0
+         atoms%nlcc_ngc(ityp)=UNINITIALIZED(1)
+         atoms%nlcc_ngv(ityp)=UNINITIALIZED(1)
          filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
          if (.not. has_key(dict, filename)) cycle    
          if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) cycle
@@ -1631,6 +1626,7 @@ contains
       character(len=27) :: key
       logical :: exists
 
+      if (POSINP .notin. dict) return
       ! Loop on types for atomic data.
       call astruct_dict_get_types(dict // POSINP, types)
       if ( .not. associated(types)) return
@@ -2455,6 +2451,7 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
        & deallocate_atomic_neighbours
   use dynamic_memory
   use dictionaries
+  use public_keys, only: ASTRUCT_ATT_ORIG_ID
   use ao_inguess, only: atomic_z, atomic_info
   implicit none
   type(atomic_structure), intent(out) :: asub
@@ -2556,6 +2553,10 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
         if (associated(astruct%attributes(iat)%d)) then
            call dict_copy(asub%attributes(i)%d, astruct%attributes(iat)%d)
         end if
+        if (.not. associated(asub%attributes(iat)%d)) then
+           call dict_init(asub%attributes(iat)%d)
+        end if
+        call set(asub%attributes(iat)%d // ASTRUCT_ATT_ORIG_ID, iat)
      end if
   end do
   s => dict_iter(hlist)
