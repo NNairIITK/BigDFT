@@ -139,6 +139,7 @@ subroutine create_bayes_data()
    use random
    use bayes
    use defs
+   use wrapper_MPI
    implicit none
    integer, parameter :: configs_for_bayes = 1
    real(kind=8) :: dummy

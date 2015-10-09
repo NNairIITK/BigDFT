@@ -11,7 +11,7 @@
 
 !> Module saddles used by ART
 module saddles
-
+  use wrapper_MPI
   implicit none
   
   integer :: natom_displaced    ! # of local atoms displaced
@@ -78,6 +78,7 @@ subroutine find_saddle( success, saddle_energy )
   use defs
   use saddles, only : type_events
   use bigdft_forces, only : in_system
+  use wrapper_MPI
   implicit none
 
   !Arguments
@@ -203,6 +204,7 @@ subroutine local_move( )
   use defs
   use random
   use saddles
+  use wrapper_MPI
   implicit none
 
   !Local variables
@@ -445,6 +447,7 @@ subroutine list_and_local ()
   use defs
   use random
   use saddles
+  use wrapper_MPI
   implicit none
 
   !Local variables  
@@ -657,6 +660,7 @@ subroutine center_and_norm ( step )
 
   use defs
   use saddles
+  use wrapper_MPI
   implicit none
 
   !Arguments

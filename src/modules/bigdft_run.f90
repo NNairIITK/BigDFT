@@ -926,7 +926,7 @@ contains
     use module_input_dicts, only: dict_run_validate
     use module_input_keys, only: inputs_from_dict,free_input_variables
     use dynamic_memory
-    use public_keys, only: MODE_VARIABLES, SECTIONS, PY_HOOKS, POSINP
+    use public_keys, only: MODE_VARIABLES, SECTIONS, POSINP !PY_HOOKS
     use yaml_output
     use dictionaries
     implicit none
@@ -999,9 +999,9 @@ contains
        end if
     end if
 
-    ! Save the python additional code
-    if (PY_HOOKS .in. runObj%user_inputs) then
-       call dict_copy(runObj%py_hooks, runObj%user_inputs // PY_HOOKS)
+!!$    ! Save the python additional code
+!!$    if (PY_HOOKS .in. runObj%user_inputs) then
+!!$       call dict_copy(runObj%py_hooks, runObj%user_inputs // PY_HOOKS)
     call f_release_routine()
 
   END SUBROUTINE set_run_objects

@@ -389,9 +389,9 @@ contains
   !> Deallocate the structure atoms_data.
   subroutine deallocate_atoms_data(atoms) 
     use module_base
-    use m_pawrad, only: pawrad_free
-    use m_pawtab, only: pawtab_free
-    use m_pawang, only: pawang_free
+    use m_pawrad, only: pawrad_destroy
+    use m_pawtab, only: pawtab_destroy
+    use m_pawang, only: pawang_destroy
     implicit none
     type(atoms_data), intent(inout) :: atoms
     !local variables
@@ -437,17 +437,17 @@ contains
     ! Free PAW data.
     if (associated(atoms%pawrad)) then
        do ityp = 1, size(atoms%pawrad)
-          call pawrad_free(atoms%pawrad(ityp))
+          call pawrad_destroy(atoms%pawrad(ityp))
        end do
        deallocate(atoms%pawrad)
     end if
     if (associated(atoms%pawtab)) then
        do ityp = 1, size(atoms%pawtab)
-          call pawtab_free(atoms%pawtab(ityp))
+          call pawtab_destroy(atoms%pawtab(ityp))
        end do
        deallocate(atoms%pawtab)
     end if
-    call pawang_free(atoms%pawang)
+    call pawang_destroy(atoms%pawang)
     if (associated(atoms%epsatm)) then
        call f_free_ptr(atoms%epsatm)
     end if
@@ -1440,12 +1440,13 @@ contains
       use public_keys, only: SOURCE_KEY
       use dynamic_memory
       use dictionaries
-      use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
+      use libxc_functionals, only: libxc_functionals_init, libxc_functionals_end
+      !      use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
       implicit none
       !Arguments
       type(dictionary), pointer :: dict        !< Input dictionary
       type(atoms_data), intent(inout) :: atoms !< Atoms structure to fill up
-      real(gp), intent(in) :: frmult           !< Used to scale the PAW radius projector
+      real(gp), intent(in), optional :: frmult           !< Used to scale the PAW radius projector
       !Local variables
       integer :: ityp, ityp2
       character(len = 27) :: filename
@@ -2178,7 +2179,7 @@ END SUBROUTINE astruct_set_from_file
 subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   use module_base
   use module_atoms, only: atomic_structure,deallocate_symmetry_data
-  use abi_defs_basis
+!  use abi_defs_basis
   use m_ab6_symmetry
   implicit none
   type(atomic_structure), intent(inout) :: astruct
@@ -2254,7 +2255,7 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      call symmetry_get_matrices(astruct%sym%symObj, astruct%sym%nSym, sym, transNon, symAfm, ierr)
      call symmetry_get_group(astruct%sym%symObj, astruct%sym%spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
-     if (ierr == AB7_ERROR_SYM_NOT_PRIMITIVE) write(astruct%sym%spaceGroup, "(A)") "not prim."
+!     if (ierr == AB7_ERROR_SYM_NOT_PRIMITIVE) write(astruct%sym%spaceGroup, "(A)") "not prim."
   else 
      astruct%sym%nSym = 0
      astruct%sym%spaceGroup = 'disabled'
@@ -2372,7 +2373,7 @@ subroutine astruct_neighbours(astruct, rxyz, neighb)
   use module_defs, only: gp
   use module_atoms, only: atomic_structure, atomic_neighbours, nullify_atomic_neighbours
   use dynamic_memory
-  use ao_inguess, only: atomic_z, atomic_info
+  use ao_inguess, only: atomic_info,atomic_z
   implicit none
   type(atomic_structure), intent(in) :: astruct
   real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
@@ -2452,7 +2453,7 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
   use dynamic_memory
   use dictionaries
   use public_keys, only: ASTRUCT_ATT_ORIG_ID
-  use ao_inguess, only: atomic_z, atomic_info
+  use ao_inguess, only: atomic_info,atomic_z 
   implicit none
   type(atomic_structure), intent(out) :: asub
   type(atomic_structure), intent(in) :: astruct
