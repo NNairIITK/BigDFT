@@ -1446,7 +1446,7 @@ contains
 
 
     subroutine nlcc_set_from_dict(dict, atoms)
-      use module_defs, only: gp
+      use module_defs, only: gp,UNINITIALIZED
       use dynamic_memory
       use dictionaries
       implicit none
@@ -1460,8 +1460,8 @@ contains
 
       nlcc_dim = 0
       do ityp = 1, atoms%astruct%ntypes, 1
-         atoms%nlcc_ngc(ityp)=0
-         atoms%nlcc_ngv(ityp)=0
+         atoms%nlcc_ngc(ityp)=UNINITIALIZED(atoms%nlcc_ngc(ityp))
+         atoms%nlcc_ngv(ityp)=UNINITIALIZED(atoms%nlcc_ngv(ityp))
          filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
          if (.not. has_key(dict, filename)) cycle    
          if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) cycle

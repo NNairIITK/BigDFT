@@ -696,7 +696,7 @@ contains
        depsdrho,dsurfdrho,IntSur,IntVol)
     use environment
     implicit none
-    type(coulomb_operator), intent(in) :: kernel
+    type(coulomb_operator), intent(inout) :: kernel
     real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: rho,nabla2_rho,delta_rho,cc_rho
     !> functional derivative of the sc epsilon with respect to 
     !! the electronic density, in distributed memory

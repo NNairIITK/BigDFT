@@ -3071,7 +3071,7 @@ contains
     use yaml_strings, only: f_strcpy
     use f_utils, only: f_file_exists
     use module_input_dicts
-    use input_old_text_format
+    !use input_old_text_format
     use module_atoms, only: astruct_file_merge_to_dict,atoms_file_merge_to_dict
     implicit none
     !Arguments
