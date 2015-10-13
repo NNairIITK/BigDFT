@@ -6,6 +6,7 @@ program GPS_3D
 
    use wrapper_mpi
    use Poisson_Solver
+   use PSbox
    use yaml_output
    use dynamic_memory
    use dictionaries
@@ -390,7 +391,8 @@ geocodeprova='F'
   select case(SetEps)
      !if (any(SetEps == [2,3,4])) then
   case(2,3,4)
-     call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
+     call H_potential('D',pkernel,rhopot(1,1,pkernel%grid%istart+1,1),rhopot(1,1,pkernel%grid%istart+1,1),ehartree,offset,.false.)
+     call PS_gather(src=rhopot,kernel=pkernel)
   case(5)
   !else if (any(SetEps == [5])) then
      call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
