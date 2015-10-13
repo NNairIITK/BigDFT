@@ -122,6 +122,11 @@ contains
     call read_geopt_from_text_format(mpi_env%iproc,vals, trim(f0))
     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
 
+    call set_inputfile(f0, radical, MD_VARIABLES)
+    nullify(vals)
+    call read_md_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//MD_VARIABLES, vals)
+
     call set_inputfile(f0, radical, MIX_VARIABLES)
     nullify(vals)
     call read_mix_from_text_format(mpi_env%iproc,vals, trim(f0))
@@ -391,6 +396,52 @@ contains
     call input_free(.false.)
 
   END SUBROUTINE read_geopt_from_text_format
+
+  !> Read the input variables needed for MD 
+  !! Every argument should be considered as mandatory
+  subroutine read_md_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use public_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: iproc
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    !local variables
+    character(len=*), parameter :: subname='read_md_from_text_format'
+    integer :: i
+    logical :: exists
+
+    character(len = 5) :: dummy_str
+    integer :: dummy_int
+    real(gp) :: dummy_real
+
+    !geometry input parameters
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,MD_VARIABLES)  
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    call input_var(dummy_int,"0",dict // MDSTEPS, comment = "")
+    call input_var(dummy_int,"1",dict // PRINT_FREQUENCY, comment = "")
+    call input_var(dummy_real,'300.0',dict // TEMPERATURE)
+    call input_var(dummy_real,'20.0',dict // TIMESTEP,comment="")
+    call input_var(dummy_str,"NO_TRANSLATION",dict // NO_TRANSLATION, comment = "")
+
+    call input_var(dummy_str,"NOSE_HOOVER_CHAINS",dict // THERMOSTAT, comment = "")
+    call input_var(dummy_int,'3',dict // NOSE_CHAIN_LENGTH,comment="")
+    call input_var(dummy_int,'1',dict // NOSE_MTS_SIZE,comment="")
+    call input_var(dummy_int,'7',dict // NOSE_YOSHIDA_FACTOR,comment="")
+    call input_var(dummy_real,'3000.0',dict // NOSE_FREQUENCY,comment="")
+
+    call input_free(.false.)
+
+  END SUBROUTINE read_md_from_text_format
 
   !> Read the input variables needed for the geometry optmization
   !!    Every argument should be considered as mandatory
@@ -1489,7 +1540,7 @@ contains
     use yaml_strings, only: operator(.eqv.)
     use module_base, only: bigdft_mpi
     use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
-         & GEOPT_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
+         & GEOPT_VARIABLES, MD_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
          & LIN_BASIS, LIN_KERNEL, LIN_BASIS_PARAMS, OCCUPATION, IG_OCCUPATION, FRAG_VARIABLES, &
          & MODE_VARIABLES, SECTIONS
     implicit none
@@ -1514,6 +1565,7 @@ contains
          .item. DFT_VARIABLES,&   
          .item. KPT_VARIABLES,&   
          .item. GEOPT_VARIABLES,& 
+         .item. MD_VARIABLES,& 
          .item. MIX_VARIABLES,&   
          .item. SIC_VARIABLES,&   
          .item. TDDFT_VARIABLES,& 

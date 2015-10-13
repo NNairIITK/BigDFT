@@ -275,6 +275,18 @@ module module_input_keys
      character(len=64) :: mm_paramset
      character(len=64) :: mm_paramfile
 
+     !MD input keywords
+     integer :: mdsteps
+     integer :: md_printfrq
+     real(gp) :: temperature
+     real(gp) :: dt
+     logical  :: no_translation
+     logical  :: nhc
+     integer  :: nhnc
+     integer  :: nmultint
+     integer  :: nsuzuki
+     real(gp) :: nosefrq 
+
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
@@ -1847,6 +1859,39 @@ contains
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
+!NNdbg
+    case (MD_VARIABLES)
+       select case (trim(dict_key(val)))
+       case (MDSTEPS)
+          in%mdsteps = val
+       case (PRINT_FREQUENCY)
+          in%md_printfrq = val
+       case (TEMPERATURE)
+          in%temperature = val
+       case (TIMESTEP)
+          in%dt = val
+       case (NO_TRANSLATION) !.true. or .false. ?
+          in%no_translation = val
+       case (THERMOSTAT) !string
+         str = dict_value(val) 
+         if (trim(str).eqv."nose_hoover_chain") then
+           in%nhc=.true.
+         else
+           in%nhc=.false.
+         end if
+       case (NOSE_CHAIN_LENGTH) 
+         in%nhnc = val
+       case (NOSE_MTS_SIZE)
+         in%nmultint = val
+       case (NOSE_YOSHIDA_FACTOR)
+         in%nsuzuki = val
+       case (NOSE_FREQUENCY)
+         in%nosefrq = val
+       case DEFAULT
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+!NNdbg
     case (MIX_VARIABLES)
        ! the MIX variables ------------------------------------------------------
        select case (trim(dict_key(val)))
@@ -2232,6 +2277,23 @@ contains
 
   END SUBROUTINE geopt_input_variables_default
 
+  !> Assign default values for MD variables
+  subroutine md_input_variables_default(in)
+    use module_defs, only: UNINITIALIZED
+    implicit none
+    type(input_variables), intent(inout) :: in
+
+    in%mdsteps=0
+    in%md_printfrq = 1
+    in%temperature = 300.d0
+    in%dt = 20.d0
+    in%no_translation = .false.
+    in%nhc=.false.
+    in%nhnc = 3
+    in%nmultint = 1
+    in%nsuzuki  = 7
+    in%nosefrq  = 3000.d0
+  END SUBROUTINE md_input_variables_default 
 
   !> Assign default values for self-interaction correction variables
   subroutine sic_input_variables_default(in)
@@ -2881,6 +2943,24 @@ contains
           end if
           call yaml_mapping_close()
        end if
+    end if
+    !MD input
+    if (in%mdsteps > 0) then
+       call yaml_comment('Molecular Dynamics Input Parameters',hfill='-')
+       call yaml_mapping_open('Molecular Dynamics Parameters')
+       call yaml_map('Maximum MD steps',in%mdsteps)
+       call yaml_map('Printing Frequency', in%md_printfrq)
+       call yaml_map('Initial Temperature (K)', in%temperature, fmt='(1pe7.1)')
+       call yaml_map('Time step (a.u.)',in%dt,fmt='(1pe7.1)')
+       call yaml_map('Freeze Translation ', in%no_translation)
+       call yaml_map('Nose Hoover Chain Thermostat', in%nhc)
+       if(in%nhc)then
+         call yaml_map('Length of Nose Hoover Chains', in%nhnc)
+         call yaml_map('Multiple Time Step for Nose Hoover Chains', in%nmultint)
+         call yaml_map('Yoshida-Suzuki factor for Nose Hoover Chains', in%nsuzuki)
+         call yaml_map('Frequency of Nose Hoover Chains', in%nosefrq)
+       end if
+       call yaml_mapping_close()
     end if
 
     !Output for K points
