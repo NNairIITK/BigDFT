@@ -8,7 +8,7 @@
 ##  Value2:  comment of value2
 ## CONDITION: #here the conditions for which the variable makes sense are written
 ##   MASTER_KEY: foo #this means that inputvar makes sense only if foo is specified
-##   WHEN: #provide a list of allowed values of foo for which inputvars is meaningful
+##   WHEN: #provide a list of allowed values of foo for which inputvar is meaningful
 ##     - fooval1
 ##     - fooval2   
 ## PROFILE_FROM: foo #inputvar inherit the profile from the one specified by foo variable
@@ -632,8 +632,7 @@
      default: 20.d0
    no_translation:
      COMMENT: logical input to set translational correction   
-     RANGE: [.true.,.false.]
-     default: .false.     
+     default: No
    thermostat:
      COMMENT: Activates a thermostat for MD
      EXCLUSIVE: 
@@ -658,17 +657,17 @@
      default: 1
    nose_yoshida_factor:
      COMMENT: Yoshida-Suzuki order to integrate the Nose-Hoover Chains equations of motion (integer input)
-#     EXCLUSIVE: |
-#          3 : Order 3
-#          5 : Order 5
-#          7 : Order 7
+     EXCLUSIVE:
+          3: Order 3
+          5: Order 5
+          7: Order 7
      CONDITION:
        MASTER_KEY: thermostat
        WHEN:
        - nose_hoover_chain
      default: 7
    nose_frequency: 
-     COMMENT: Frequency in (cm^-1) correspondig to the inertia of the thermostat degrees of freedom 
+     COMMENT: Frequency in (cm^-1) corresponding to the inertia of the thermostat degrees of freedom 
      RANGE: [1.,100000.0]
      CONDITION:
        MASTER_KEY: thermostat

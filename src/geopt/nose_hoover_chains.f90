@@ -67,6 +67,7 @@ CONTAINS
   !!     -----------------------------------------------------         
   !!
   subroutine nose_init(natoms,ndof,dt,T0ions,amass,vxyz,nhc)
+    use numerics, only: au_to_k=>Ha_K, pi, cubroot => onethird
     implicit none 
     integer :: NATOMS,NDOF
     REAL (KIND=8)   :: dt, T0ions, amass(natoms),vxyz(3,natoms) 
@@ -80,10 +81,7 @@ CONTAINS
 
     !
     !
-    REAL (KIND=8), PARAMETER  :: au_to_k   = 315774.664550534774D0, & 
-         cmi_to_au = 7.26D-7, &
-         pi        = 4.d0*ATAN(1.D0),  &
-         cubroot   = 1.D0/3.D0
+    REAL (KIND=8), PARAMETER  ::  cmi_to_au = 7.26D-7 
 
     nhc%eta_size = nhc%nhnc
 
