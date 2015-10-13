@@ -286,7 +286,7 @@
        - Yes
      default: ''
 
-#Geometry Optimisation  and Molecular Dynamics parameters
+#Geometry Optimisation  and ABINIT Molecular Dynamics parameters
  geopt:
    DESCRIPTION: Parameters for the geometry relaxation and molecular dynamics
    method:
@@ -610,7 +610,72 @@
        WHEN:
        - NEB
      default: 15
-
+#Molecular Dynamics (BigDFT)
+ md:
+   DESCRIPTION: Molecular dynamics parameters 
+   mdsteps:
+     COMMENT: Number of MD steps
+     DESCRIPTION: A value greater than 0 will activate molecular dynamics
+     RANGE: [1, 99999999]
+     default: 0
+   print_frequency:
+     COMMENT: Printing frequency for energy.dat and Trajectory.xyz files
+     RANGE: [1, 999999]
+     default: 1
+   temperature:
+     COMMENT: Initial temperature in Kelvin
+     RANGE: [0, 9999999.0]
+     default: 300.d0
+   timestep:
+     COMMENT: Time step for integration (in a.u.)
+     RANGE: [0, 99999.0]
+     default: 20.d0
+   no_translation:
+     COMMENT: logical input to set translational correction   
+     RANGE: [.true.,.false.]
+     default: .false.     
+   thermostat:
+     COMMENT: Activates a thermostat for MD
+     EXCLUSIVE: 
+       none: no thermostat
+       nose_hoover_chain: Nose-Hoover Chain thermostat
+     default: none 
+   nose_chain_length:
+     COMMENT: Length of the Nose-Hoover Chains (integer input)
+     RANGE: [2, 10]
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 3
+   nose_mts_size:
+     COMMENT: Multiple time steps used to integrate Nose-Hoover Chains equations of motion (integer input)
+     RANGE: [1, 10]
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 1
+   nose_yoshida_factor:
+     COMMENT: Yoshida-Suzuki order to integrate the Nose-Hoover Chains equations of motion (integer input)
+#     EXCLUSIVE: |
+#          3 : Order 3
+#          5 : Order 5
+#          7 : Order 7
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 7
+   nose_frequency: 
+     COMMENT: Frequency in (cm^-1) correspondig to the inertia of the thermostat degrees of freedom 
+     RANGE: [1.,100000.0]
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 3000.0
+#     
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
    DESCRIPTION: Mixing parameters for SCF

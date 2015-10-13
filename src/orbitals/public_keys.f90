@@ -104,6 +104,19 @@ module public_keys
   character(len = *), parameter :: STEEPTHRESH = "steepthresh"
   character(len = *), parameter :: TRUSTR = "trustr"
 
+!MD keywords
+  character(len = *), parameter :: MD_VARIABLES = "md"
+  character(len = *), parameter :: MDSTEPS = "mdsteps"
+  character(len = *), parameter :: PRINT_FREQUENCY = "print_frequency"
+  character(len = *), parameter :: TEMPERATURE = "temperature"
+  character(len = *), parameter :: TIMESTEP = "timestep"
+  character(len = *), parameter :: NO_TRANSLATION = "no_translation"
+  character(len = *), parameter :: THERMOSTAT = "thermostat"
+  character(len = *), parameter :: NOSE_CHAIN_LENGTH = "nose_chain_length"
+  character(len = *), parameter :: NOSE_MTS_SIZE = "nose_mts_size"
+  character(len = *), parameter :: NOSE_YOSHIDA_FACTOR = "nose_yoshida_factor"
+  character(len = *), parameter :: NOSE_FREQUENCY = "nose_frequency"
+
   !mode parameter keywords
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
   character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file

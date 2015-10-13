@@ -66,6 +66,13 @@ program BigDFT
             call geopt(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
          end if
 
+         if (runObj%inputs%mdsteps > 0) then
+            if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+            ! molecular dynamics
+            call md(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc)
+         end if
+
+
          !if there is a last run to be performed do it now before stopping
          if (runObj%inputs%last_run == -1) then
             runObj%inputs%last_run = 1

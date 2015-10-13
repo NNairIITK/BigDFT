@@ -12,53 +12,50 @@ MODULE Nose_Hoover_Chains
   implicit none
 
   type, public :: NHC_data
-     LOGICAL          :: NHCHAIN, NOSPEAT 
-     INTEGER          :: ETA_SIZE, NHNC, NMULTINT, NSUZUKI
-     REAL (KIND=8)    :: NOSEFRQ, ENOSE
-     REAL (KIND=8), DIMENSION(:), pointer :: ETA, VETA, AETA, NOSEQ, DTYS
+     LOGICAL          :: nhchain
+     INTEGER          :: eta_size, nhnc, nmultint, nsuzuki
+     REAL (KIND=8)    :: nosefrq, enose
+     REAL (KIND=8), DIMENSION(:), pointer :: eta, veta, aeta, noseq, dtys
   end type NHC_data
 
 CONTAINS
 
-  pure subroutine nullify_NHC_data(NHC)
+  pure subroutine nullify_NHC_data(nhc)
     implicit none
-    type(NHC_data), intent(out) :: NHC
-    NHC%NHCHAIN=.false.
-    NHC%NOSPEAT=.false.
-    NHC%ETA_SIZE=0
-    NHC%NHNC=0
-    NHC%NMULTINT=0
-    NHC%NSUZUKI=0
-    NHC%NOSEFRQ=0.d0
-    NHC%ENOSE=0.d0
-    nullify(NHC%ETA)
-    nullify(NHC%VETA)
-    nullify(NHC%AETA)
-    nullify(NHC%NOSEQ)
-    nullify(NHC%DTYS)
+    type(NHC_data), intent(out) :: nhc
+    nhc%nhchain=.false.
+    nhc%eta_size=0
+    nhc%nhnc=0
+    nhc%nmultint=0
+    nhc%nsuzuki=0
+    nhc%nosefrq=0.d0
+    nhc%enose=0.d0
+    nullify(nhc%eta)
+    nullify(nhc%veta)
+    nullify(nhc%aeta)
+    nullify(nhc%noseq)
+    nullify(nhc%dtys)
   end subroutine nullify_NHC_data
 
-  subroutine initialize_NHC_data(nhc,nhchain,nospeat,nhnc,nsuzuki,nmultint,nosefrq)
+  subroutine initialize_NHC_data(nhc,nhchain,nhnc,nsuzuki,nmultint,nosefrq)
     implicit none
-    logical, intent(in)  :: NHCHAIN !<Nose Hoover Chain thermostat 
-    logical, intent(in) :: NOSPEAT !<!separate Nose hoover chain for all the atoms
-    INTEGER, intent(in)  :: NHNC, NMULTINT, NSUZUKI
-    REAL (KIND=8), intent(in) :: NOSEFRQ
-    type(NHC_data), intent(out) :: NHC
+    logical, intent(in)  :: nhchain !<Nose Hoover Chain thermostat 
+    INTEGER, intent(in)  :: nhnc, nmultint, nsuzuki
+    REAL (KIND=8), intent(in) :: nosefrq
+    type(NHC_data), intent(out) :: nhc
 
     !perform checks
-    if (all(nsuzuki /= [3,5,7])) then
+    if (nhchain.and.all(nsuzuki /= [3,5,7])) then
        call f_err_throw('Error in the nsuzuki parameter, must be 3,5 or 7, found'//nsuzuki,&
             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
     end if
 
     call nullify_NHC_data(NHC)
-    NHC%NHCHAIN=NHCHAIN
-    NHC%NOSPEAT=NOSPEAT
-    NHC%NHNC=NHNC
-    NHC%NSUZUKI=NSUZUKI
-    NHC%NMULTINT=NMULTINT
-    NHC%NOSEFRQ=NOSEFRQ
+    nhc%nhchain=nhchain
+    nhc%nhnc=nhnc
+    nhc%nsuzuki=nsuzuki
+    nhc%nmultint=nmultint
+    nhc%nosefrq=nosefrq
 
   end subroutine initialize_NHC_data
 
@@ -69,442 +66,232 @@ CONTAINS
   !!                is a.u. 
   !!     -----------------------------------------------------         
   !!
-  SUBROUTINE NOSE_INIT(natoms,ndof,dt,T0ions,amass,vxyz,nhc)
-    !use nose_hoover_chains_data
-    IMPLICIT NONE 
-    INTEGER :: natoms,ndof
+  subroutine nose_init(natoms,ndof,dt,T0ions,amass,vxyz,nhc)
+    implicit none 
+    integer :: NATOMS,NDOF
     REAL (KIND=8)   :: dt, T0ions, amass(natoms),vxyz(3,natoms) 
     type(NHC_data), intent(inout) :: nhc
     !local variables
-    INTEGER         :: I, II, INHC, IATOMS, DOF
-    LOGICAL         :: TO_RESTART
-    REAL (KIND=8)   :: GAUSS, DUMMY, DUM(2) 
-    REAL (KIND=8)   :: KT, FKT, AKIN, sigma 
-    REAL (KIND=8)   :: WYS1, WYS2, WYS3, WYS4
+    integer         :: i, ii, inhc, iatoms, dof
+    logical         :: to_restart
+    real (kind=8)   :: gauss, dummy, dum(2) 
+    real (kind=8)   :: kt, fkt, akin, SIGMA 
+    real (kind=8)   :: wys1, wys2, wys3, wys4
 
     !
     !
-    REAL (KIND=8), PARAMETER  :: AU_TO_K   = 315774.664550534774D0, & 
-         CMI_TO_AU = 7.26D-7, &
+    REAL (KIND=8), PARAMETER  :: au_to_k   = 315774.664550534774D0, & 
+         cmi_to_au = 7.26D-7, &
          pi        = 4.d0*ATAN(1.D0),  &
-         CUBROOT   = 1.D0/3.D0
+         cubroot   = 1.D0/3.D0
 
-    nhc%ETA_SIZE = nhc%NHNC
-    IF(nhc%NOSPEAT)nhc%ETA_SIZE = nhc%ETA_SIZE * NATOMS
+    nhc%eta_size = nhc%nhnc
 
     !ETA_SIZE=ETA_SIZE
 
-    NHC%NOSEQ=f_malloc0_ptr(nhc%ETA_SIZE,id='noseq')
-    NHC%ETA=f_malloc0_ptr(nhc%ETA_SIZE,id='eta')
-    NHC%VETA=f_malloc0_ptr(nhc%ETA_SIZE,id='veta')
-    NHC%AETA=f_malloc0_ptr(nhc%ETA_SIZE,id='aeta')
-    NHC%DTYS=f_malloc0_ptr(7,id='dtys')
+    nhc%noseq=f_malloc0_ptr(nhc%eta_size,id='noseq')
+    nhc%eta=f_malloc0_ptr(nhc%eta_size,id='eta')
+    nhc%veta=f_malloc0_ptr(nhc%eta_size,id='veta')
+    nhc%aeta=f_malloc0_ptr(nhc%eta_size,id='aeta')
+    nhc%dtys=f_malloc0_ptr(7,id='dtys')
     !
-    DOF = ndof
-    IF(nhc%NOSPEAT) DOF = 3
-    !
+    dof = ndof
+
     !   ** To a.u **
-    !
-    KT  = T0ions / AU_TO_K
-    FKT = KT * REAL(DOF,gp)
-    !
+    kt  = T0ions / au_to_k
+    fkt = kt * REAL(dof,gp)
+    
     !   ** Nose freq. in a.u **
-    !
-    nhc%NOSEFRQ = nhc%NOSEFRQ * CMI_TO_AU
-    !
+    nhc%nosefrq = nhc%nosefrq * cmi_to_au
+    
     !   ** Nose masses in a.u **
-    !
-    print *, "done nose init state 0 "
-    IF(.NOT. nhc%NOSPEAT)THEN
-       nhc%NOSEQ(1) = FKT / nhc%NOSEFRQ**2    
-       DO INHC = 2, nhc%NHNC
-          nhc%NOSEQ(INHC) = KT / nhc%NOSEFRQ**2  
-       END DO
-    ELSE
-       DO IATOMS = 1, NATOMS
-          II = (IATOMS - 1) * nhc%NHNC + 1
-          nhc%NOSEQ(II) = FKT / nhc%NOSEFRQ**2
-          DO INHC = 2, nhc%NHNC
-             II = (IATOMS - 1) * nhc%NHNC + INHC
-             nhc%NOSEQ(II) = KT / nhc%NOSEFRQ**2
-          END DO
-       END DO
-    END IF
-    !
+    nhc%noseq(1) = fkt / nhc%nosefrq**2    
+    do inhc = 2, nhc%nhnc
+          nhc%noseq(inhc) = kt / nhc%nosefrq**2  
+    end do
+    
     !  ** Restart Nose Hoover Chain **
     !  FIXME
 
+    ! nhc%veta(1:nhc%nhnc)=0.d0
     !   ** Assign initial nose velocities **
-    !
-    IF(.NOT. nhc%NOSPEAT)THEN
-       DO INHC = 1, nhc%NHNC, 2
-          sigma=DSQRT(KT/nhc%NOSEQ(inhc)) !Sqrt(kT/M_i) 
-          CALL RANDOM_NUMBER(dum(1))
-          CALL RANDOM_NUMBER(dum(2))
-          nhc%VETA(INHC) =sigma*DSQRT(-2.D0*DLOG(dum(2)))*DCOS(2.D0*pi*dum(1))
-          IF(INHC+1.LE.nhc%NHNC)THEN 
-             sigma=DSQRT(KT/nhc%NOSEQ(inhc+1)) !Sqrt(kT/M_i) 
-             nhc%VETA(INHC+1)=sigma*DSQRT(-2.D0*DLOG(dum(2)))*DSIN(2.D0*pi*dum(1))
-          END IF
-       END DO
-       CALL rescale_velocities(nhc%nhnc,1,nhc%nhnc,nhc%noseq,T0ions,nhc%veta,dum(1))
-    ELSE
-       DO IATOMS = 1, NATOMS
-          DO INHC = 1, nhc%NHNC
-             II = (IATOMS - 1) * nhc%NHNC + INHC
-             sigma=DSQRT(KT/nhc%NOSEQ(ii)) !Sqrt(kT/M_i) 
-             CALL RANDOM_NUMBER(dum(1))
-             CALL RANDOM_NUMBER(dum(2))
-             nhc%VETA(II) =sigma*DSQRT(-2.D0*DLOG(dum(2)))*DCOS(2.D0*pi*dum(1))
-             IF(II+1.LE.NATOMS*nhc%NHNC)THEN 
-                sigma=DSQRT(KT/nhc%NOSEQ(ii+1)) !Sqrt(kT/M_i) 
-                nhc%VETA(II+1)=sigma*DSQRT(-2.D0*DLOG(dum(2)))*DSIN(2.D0*pi*dum(1))
-             END IF
-          END DO
-       END DO
-       CALL rescale_velocities(natoms*nhc%nhnc,1,natoms*nhc%nhnc,nhc%noseq,T0ions,nhc%veta,dum(1))
-    END IF
-    !
-    !     ** Calculate mv2 **
-    !
-    AKIN = 0.d0
-    DO I = 1, NATOMS
-       AKIN = AKIN + amass(I)*             &
-            ( vxyz(1,I) * vxyz(1,I) + &
-            vxyz(2,I) * vxyz(2,I) + &
-            vxyz(3,I) * vxyz(3,I) )
-    END DO
-    print *, "done nose init state 2 "
-    !
-    !   ** Calculate the nose accelerations **
-    !
-    IF(.NOT. nhc%NOSPEAT)THEN
-       nhc%AETA(1) = ( AKIN - FKT ) / nhc%NOSEQ(1)
-       DO I = 2, nhc%NHNC
-          nhc%AETA(I) = ( nhc%NOSEQ(I-1) * nhc%VETA(I-1)**2 - KT) / nhc%NOSEQ(I)
-       END DO
-    ELSE
-       DO IATOMS = 1, NATOMS
-          II = (IATOMS - 1) * nhc%NHNC + 1
-          AKIN = amass(IATOMS)*                       &
-               ( vxyz(1,IATOMS) * vxyz(1,IATOMS) + &
-               vxyz(2,IATOMS) * vxyz(2,IATOMS) + &
-               vxyz(3,IATOMS) * vxyz(3,IATOMS) )
-          nhc%AETA(II) = ( AKIN - FKT) / nhc%NOSEQ(II)
-          DO INHC = 2, nhc%NHNC
-             II = (IATOMS - 1) * nhc%NHNC + INHC
-             nhc%AETA(II) = ( nhc%NOSEQ(II-1) * nhc%VETA(II-1) * nhc%VETA(II-1) &
-                  - KT ) / nhc%NOSEQ(II)
-          END DO
-       END DO
-    END IF
-    print *, "done nose init state 3 "
-    !
-    !     ** Initializing factors for Yoshida-Suzuki integration **
-    !
-    IF(nhc%NSUZUKI > 7 )THEN
-       WRITE(*,'(/,A)')' ** MAXIMUM YOSHIKA-SUZUKI ORDER IS 5 **'
-       WRITE(*,'(A)')  ' **         NSUZUKI SET TO  7         **'
-       nhc%NSUZUKI = 7
-    END IF
-    IF(MOD(nhc%NSUZUKI,2)==0)THEN
-       WRITE(*,'(/,A)')' **    NSUZUKI  CAN ONLY BE 3,5 or 7   **'
-       WRITE(*,'(A)')  ' **           NSUZUKI SET TO  7        **'
-       nhc%NSUZUKI = 7
-    END IF
-    IF(nhc%NSUZUKI == 3)THEN
-       nhc%DTYS(1) = 1.d0 / ( 2.d0 - 2.d0**CUBROOT )
-       nhc%DTYS(2) = 1.d0 - 2.d0 * nhc%DTYS(1)
-       nhc%DTYS(3) = nhc%DTYS(1)
-       nhc%DTYS(1) = nhc%DTYS(1) * DT  / REAL(NHC%NMULTINT,gp) 
-       nhc%DTYS(2) = nhc%DTYS(2) * DT  / REAL(NHC%NMULTINT,gp)
-       nhc%DTYS(3) = nhc%DTYS(3) * DT  / REAL(NHC%NMULTINT,gp)
-       nhc%DTYS(4) = 0.d0
-       nhc%DTYS(5) = 0.d0
-       nhc%DTYS(6) = 0.d0
-       nhc%DTYS(7) = 0.d0
-    ELSE IF(nhc%NSUZUKI == 5)THEN
-       nhc%DTYS(1) = 1.d0 / ( 4.d0 - 4.d0**CUBROOT )
-       nhc%DTYS(3) = 1.d0 - 4.d0 * nhc%DTYS(1)
-       nhc%DTYS(1) = nhc%DTYS(1) * DT  / REAL(NHC%NMULTINT,gp)
-       nhc%DTYS(3) = nhc%DTYS(3) * DT  / REAL(NHC%NMULTINT,gp)
-       nhc%DTYS(2) = nhc%DTYS(1)
-       nhc%DTYS(4) = nhc%DTYS(1)
-       nhc%DTYS(5) = nhc%DTYS(1)
-       nhc%DTYS(6) = nhc%DTYS(1)
-       nhc%DTYS(7) = nhc%DTYS(1)
+    do inhc = 1, nhc%nhnc, 2
+       sigma=dsqrt(KT/nhc%noseq(inhc)) 
+       CALL random_number(dum(1))
+       CALL random_number(dum(2))
+       nhc%veta(inhc) =sigma*dsqrt(-2.D0*dlog(dum(2)))*dcos(2.D0*pi*dum(1))
+       if(INHC+1.le.nhc%nhnc)then 
+          sigma=DSQRT(kt/nhc%noseq(inhc+1)) 
+          nhc%veta(inhc+1)=sigma*dsqrt(-2.d0*dlog(dum(2)))*dsin(2.d0*pi*dum(1))
+       end if
+    end do
+    CALL rescale_velocities(nhc%nhnc,1,nhc%nhnc,nhc%noseq,T0ions,nhc%veta,dum(1))
+
+    nhc%eta(1:nhc%nhnc)=0.d0
+
+    !Initializing factors for Yoshida-Suzuki integration 
+    IF(nhc%nsuzuki == 3)THEN
+       nhc%dtys(1) = 1.d0 / ( 2.d0 - 2.d0**cubroot )
+       nhc%dtys(2) = 1.d0 - 2.d0 * nhc%dtys(1)
+       nhc%dtys(3) = nhc%dtys(1)
+       nhc%dtys(1) = nhc%dtys(1) * dt  / real(nhc%nmultint,gp) 
+       nhc%dtys(2) = nhc%dtys(2) * dt  / real(nhc%nmultint,gp)
+       nhc%dtys(3) = nhc%dtys(3) * dt  / real(nhc%nmultint,gp)
+       nhc%dtys(4) = 0.d0
+       nhc%dtys(5) = 0.d0
+       nhc%dtys(6) = 0.d0
+       nhc%dtys(7) = 0.d0
+    ELSE IF(nhc%nsuzuki == 5)THEN
+       nhc%dtys(1) = 1.d0 / ( 4.d0 - 4.d0**cubroot )
+       nhc%dtys(3) = 1.d0 - 4.d0 * nhc%dtys(1)
+       nhc%dtys(1) = nhc%dtys(1) * dt  / real(nhc%nmultint,gp)
+       nhc%dtys(3) = nhc%dtys(3) * dt  / real(nhc%nmultint,gp)
+       nhc%dtys(2) = nhc%dtys(1)
+       nhc%dtys(4) = nhc%dtys(1)
+       nhc%dtys(5) = nhc%dtys(1)
+       nhc%dtys(6) = 0.d0
+       nhc%dtys(7) = 0.d0
     ELSE IF(nhc%NSUZUKI == 7)THEN
-       WYS1    =  0.784513610477560D0
-       WYS2    =  0.235573213359357D0
-       WYS3    = -0.117767998417887D1
-       WYS4    =  1.d0 - 2.d0 * (WYS1 + WYS2 + WYS3 )
-       nhc%DTYS(1) =  WYS3 * DT  / REAL(NHC%NMULTINT,gp)
-       nhc%DTYS(2) =  WYS2 * DT  / REAL(NHC%NMULTINT,gp)       
-       nhc%DTYS(3) =  WYS1 * DT  / REAL(NHC%NMULTINT,gp)
-       nhc%DTYS(4) =  WYS4 * DT  / REAL(NHC%NMULTINT,gp)
-       nhc%DTYS(5) =  WYS1 * DT  / REAL(NHC%NMULTINT,gp)
-       nhc%DTYS(6) =  WYS2 * DT  / REAL(NHC%NMULTINT,gp)
-       nhc%DTYS(7) =  WYS3 * DT  / REAL(NHC%NMULTINT,gp)
+       wys1    =  0.784513610477560D0
+       wys2    =  0.235573213359357D0
+       wys3    = -0.117767998417887D1
+       wys4    =  1.d0 - 2.d0 * (wys1 + wys2 + wys3 )
+       nhc%dtys(1) =  wys3 * dt  / real(nhc%nmultint,gp)
+       nhc%dtys(2) =  wys2 * dt  / real(nhc%nmultint,gp)       
+       nhc%dtys(3) =  wys1 * dt  / real(nhc%nmultint,gp)
+       nhc%dtys(4) =  wys4 * dt  / real(nhc%nmultint,gp)
+       nhc%dtys(5) =  wys1 * dt  / real(nhc%nmultint,gp)
+       nhc%dtys(6) =  wys2 * dt  / real(nhc%nmultint,gp)
+       nhc%dtys(7) =  wys3 * dt  / real(nhc%nmultint,gp)
     END IF
-    !
-    print *, "done nose init state 4 "
+    
     RETURN
-  END SUBROUTINE nose_init
+  end subroutine nose_init
   !
-  SUBROUTINE NOSE_EVOLVE(natoms,ndof,T0ions,amass,vxyz,nhc)
-    !use nose_hoover_chains_data
-    IMPLICIT NONE 
-    !
+  subroutine nose_evolve(natoms,ndof,T0ions,amass,vxyz,nhc)
+    implicit none 
     !   ------------------------------------------------------------------
     !   Function : Integration of Nose Hoover chain equations of motion
     !   ------------------------------------------------------------------
-    !
-    !
-    INTEGER :: natoms,ndof
-    REAL (KIND=8) :: T0ions, amass(*), vxyz(3,*)
+    integer :: natoms,ndof
+    real (kind=8) :: T0ions, amass(*), vxyz(3,*)
     type(NHC_data), intent(inout) :: nhc
     !
-    INTEGER         ::  I, J, K, M, II, INHC, IATOMS, III, DOF
-    REAL (KIND=8)            ::  WFUN
-    REAL (KIND=8)            ::  AKIN, EFR, DTYS2, DTYS4, DTYS8, SCAL, FKT, KT
+    integer       ::  i, j, k, m, ii, inhc, iatoms, iii, dof
+    real (kind=8) ::  wfun
+    real (kind=8) ::  akin, efr, dtys2, dtys4, dtys8, scal, fkt, kt
     !
-    REAL (KIND=8), PARAMETER  :: AMU_TO_AU = 1822.888485D0, &
-         AU_TO_K   = 315774.664550534774D0, & 
-         CMI_TO_AU = 7.26D-7
+    real (kind=8), parameter  :: amu_to_au = 1822.888485D0, &
+         au_to_k   = 315774.664550534774D0, & 
+         cmi_to_au = 7.26D-7
 
+    DOF = ndof
     !
-    IF(.NOT. nhc%NOSPEAT)THEN
-       DOF = ndof
-    ELSE
-       DOF = 3
-    END IF
-    !
-    KT  = T0ions / AU_TO_K
-    FKT = KT * REAL(DOF)
-    !
-    SCAL = 1.d0
-    !
+    kt  = T0ions / au_to_k
+    fkt = kt * real(dof,gp)
+
+    scal = 1.d0
+
     !   ** Calculate kinetic energy **
-    !
-    AKIN = 0.d0
-    DO I = 1, NATOMS
-       AKIN = AKIN + amass(I)*        &
-            ( vxyz(1,I)**2 +   &
-            vxyz(2,I)**2 +   &
-            vxyz(3,I)**2 )
-    END DO
-    !
-    !
-    DO K = 1, NHC%NMULTINT
-       DO J = 1, nhc%NSUZUKI
-          !
-          !
-          DTYS2 = NHC%DTYS(J) / 2.d0
-          DTYS4 = NHC%DTYS(J) / 4.d0
-          DTYS8 = NHC%DTYS(J) / 8.d0
-          !
-          IF(.NOT. NHC%NOSPEAT)THEN
-             NHC%AETA(NHC%NHNC) = (NHC%NOSEQ(NHC%NHNC-1)*NHC%VETA(NHC%NHNC-1)*NHC%VETA(NHC%NHNC-1) & 
-                  - KT)/ NHC%NOSEQ(NHC%NHNC)
-             NHC%VETA(NHC%NHNC) = NHC%VETA(NHC%NHNC) +  DTYS4 * NHC%AETA(NHC%NHNC)
-          ELSE
-             DO IATOMS = 1, NATOMS
-                II = IATOMS * NHC%NHNC
-                NHC%AETA(II) = (nhc%NOSEQ(II-1)*NHC%VETA(II-1)*NHC%VETA(II-1) &
-                     - KT) / nhc%NOSEQ(II)
-                NHC%VETA(II) = NHC%VETA(II) + DTYS4 * NHC%AETA(II)
-             END DO
-          END IF
-          !
-          IF(.NOT. NHC%NOSPEAT)THEN
-             DO II = 1, NHC%NHNC - 2
-                INHC = NHC%NHNC - II
-                EFR  = DEXP(-1.d0 * DTYS8 * NHC%VETA(INHC+1) )
-                NHC%VETA(INHC) = NHC%VETA(INHC) * EFR * EFR &
-                     + DTYS4 * NHC%AETA(INHC) * EFR
-             END DO
-          ELSE
-             DO IATOMS = 1, NATOMS
-                DO INHC = 1, NHC%NHNC - 2
-                   II = IATOMS * NHC%NHNC - INHC
-                   EFR = DEXP(-1.d0 * DTYS8 * NHC%VETA(II+1) )
-                   NHC%VETA(II) = NHC%VETA(II) * EFR * EFR &
-                        +  DTYS4 * NHC%AETA(II) * EFR
-                END DO
-             END DO
-          END IF
-          !
-          !
-          IF(.NOT. NHC%NOSPEAT)THEN
-             EFR = DEXP(-1.d0 * DTYS8 * NHC%VETA(2) )
-             NHC%VETA(1) = NHC%VETA(1) * EFR * EFR + DTYS4 * NHC%AETA(1) * EFR
-          ELSE
-             DO IATOMS = 1, NATOMS
-                II = (IATOMS - 1) * NHC%NHNC + 1
-                EFR = DEXP(-1.d0 * DTYS8 * NHC%VETA(II+1) )
-                NHC%VETA(II) = NHC%VETA(II) * EFR * EFR + DTYS4 * NHC%AETA(II) * EFR
-             END DO
-          END IF
-          !
-          !        ** Operation on position of thermostat **
-          !
-          IF(.NOT. NHC%NOSPEAT)THEN
-             DO INHC = 1, NHC%NHNC
-                nhc%ETA(INHC) = nhc%ETA(INHC) + DTYS2 * NHC%VETA(INHC)
-             END DO
-          ELSE
-             DO IATOMS = 1, NATOMS
-                DO INHC = 1, NHC%NHNC
-                   II = (IATOMS-1)*NHC%NHNC + INHC
-                   nhc%ETA(II) = nhc%ETA(II) + DTYS2 * NHC%VETA(II)
-                END DO
-             END DO
-          END IF
-          !
-          !        ** Operation on particle velocities **
-          !
-          IF(.NOT. NHC%NOSPEAT)THEN
-             EFR = DEXP(-1.d0 * DTYS2 * NHC%VETA(1) )
-             SCAL = SCAL * EFR
-             AKIN = AKIN * EFR * EFR
-          ELSE
-             DO IATOMS = 1, NATOMS
-                II  = (IATOMS-1) * NHC%NHNC + 1
-                EFR = DEXP(-1.d0 * DTYS2 * NHC%VETA(II) )
-                vxyz(1,IATOMS) = vxyz(1,IATOMS) * EFR
-                vxyz(2,IATOMS) = vxyz(2,IATOMS) * EFR
-                vxyz(3,IATOMS) = vxyz(3,IATOMS) * EFR 
-             END DO
-          END IF
-          !
-          !        ** Operations in reverse NHC cylcles **
-          !
-          !
-          IF(.NOT. NHC%NOSPEAT)THEN
-             EFR = DEXP(-1.0 * DTYS8 * NHC%VETA(2) )
-             NHC%AETA(1) = (AKIN - FKT)/nhc%NOSEQ(1)
-             NHC%VETA(1) = NHC%VETA(1) * EFR * EFR + DTYS4 * NHC%AETA(1) * EFR
-          ELSE
-             DO IATOMS = 1, NATOMS
-                II   = (IATOMS-1)*NHC%NHNC + 1
-                EFR  = DEXP(-1.d0 * DTYS8 * NHC%VETA(II+1) )
-                AKIN = amass(IATOMS)*       &
-                     ( vxyz(1,IATOMS)**2 + &
-                     vxyz(2,IATOMS)**2 + &
-                     vxyz(3,IATOMS)**2 )
-                NHC%AETA(II) = (AKIN - FKT)/nhc%NOSEQ(II)
-                NHC%VETA(II) = NHC%VETA(II) * EFR * EFR + DTYS4 * NHC%AETA(II) * EFR
-             END DO
-          END IF
-          !
-          !        ** Operation on V_z(j) **
-          !
-          IF(.NOT. NHC%NOSPEAT)THEN
-             DO INHC = 2, NHC%NHNC - 1
-                EFR  = DEXP(-1.d0 * DTYS8 * NHC%VETA(INHC+1) )
-                NHC%AETA(INHC) = (NHC%NOSEQ(INHC-1)*NHC%VETA(INHC-1)*NHC%VETA(INHC-1) &
-                     - KT)/NHC%NOSEQ(INHC)
-                NHC%VETA(INHC) = NHC%VETA(INHC) * EFR * EFR & 
-                     + DTYS4 * NHC%AETA(INHC) * EFR
-             END DO
-          ELSE 
-             DO IATOMS  = 1, NATOMS
-                DO INHC = 2, NHC%NHNC - 1
-                   II   = (IATOMS - 1)*NHC%NHNC + INHC
-                   EFR  = DEXP(-1.d0 * DTYS8 * NHC%VETA(II+1) )
-                   NHC%AETA(II) = (NHC%NOSEQ(II-1)*NHC%VETA(II-1)*NHC%VETA(II-1) &
-                        - KT)/NHC%NOSEQ(II)
-                   NHC%VETA(II) = NHC%VETA(II) * EFR * EFR &
-                        + DTYS4 * NHC%AETA(II) * EFR
-                END DO
-             END DO
-          END IF
-          !
-          !          ** Operation on V_z(M)**
-          !
-          IF(.NOT. NHC%NOSPEAT)THEN
-             NHC%AETA(NHC%NHNC) = (NHC%NOSEQ(NHC%NHNC-1)*NHC%VETA(NHC%NHNC-1)*NHC%VETA(NHC%NHNC-1) & 
-                  - KT)/ NHC%NOSEQ(NHC%NHNC)
-             NHC%VETA(NHC%NHNC) = NHC%VETA(NHC%NHNC) + DTYS4 * NHC%AETA(NHC%NHNC)
-          ELSE
-             DO IATOMS = 1, NATOMS
-                II = IATOMS * NHC%NHNC
-                NHC%AETA(II) = (NHC%NOSEQ(II-1)*NHC%VETA(II-1)*NHC%VETA(II-1) &
-                     - KT)/ NHC%NOSEQ(II)
-                NHC%VETA(II) = NHC%VETA(II) + DTYS4 * NHC%AETA(II)
-             END DO
-          END IF
-          !
-       END DO
-    END DO
-    !
-    !     ** Scale particles with accumulated scaling factor **
-    !
-    IF(.NOT. NHC%NOSPEAT)THEN
-       DO I = 1, NATOMS
-          vxyz(1:3,I) = vxyz(1:3,I) * SCAL
-       END DO
-    END IF
-    !
-  END SUBROUTINE NOSE_EVOLVE
-  !
-  !     ***************************************************************
-  !     ***************************************************************
-  !
-  SUBROUTINE NOSE_ENERGY(natoms,ndof,T0ions,nhc)
-    !use nose_hoover_chains_data
-    IMPLICIT NONE 
-    !
-    !     ---------------------------------------------------------------
+    akin = 0.d0
+    do i = 1, natoms
+       akin = akin + amass(i)*&
+            (vxyz(1,i)**2 +   &
+             vxyz(2,i)**2 +   &
+             vxyz(3,i)**2 )
+    end do
+
+
+    do k = 1, nhc%nmultint
+       DO j = 1, nhc%nsuzuki
+
+          dtys2 = nhc%dtys(j) / 2.d0
+          dtys4 = nhc%dtys(j) / 4.d0
+          dtys8 = nhc%dtys(j) / 8.d0
+
+          nhc%aeta(nhc%nhnc) = (nhc%noseq(nhc%nhnc-1)*nhc%veta(nhc%nhnc-1)**2 & 
+                                        - kt)/ nhc%noseq(nhc%nhnc)
+          nhc%veta(nhc%nhnc) = nhc%veta(nhc%nhnc) +  dtys4 * nhc%aeta(nhc%nhnc)
+
+          do ii = 1, nhc%nhnc - 2
+             inhc = nhc%nhnc - ii
+             efr  = dexp(-dtys8 * nhc%veta(inhc+1))
+             nhc%veta(inhc) = nhc%veta(inhc)*efr 
+             nhc%aeta(inhc) = (nhc%noseq(inhc-1)*nhc%veta(inhc-1)**2 - kt)/nhc%noseq(inhc)
+             nhc%veta(inhc) = nhc%veta(inhc) + dtys4*nhc%aeta(inhc)
+             nhc%veta(inhc) = nhc%veta(inhc)*efr
+          end do
+          efr = dexp(-dtys8*nhc%veta(2))
+          nhc%veta(1) = nhc%veta(1)*efr 
+          nhc%aeta(1) = (akin-fkt)/nhc%noseq(1)
+          nhc%veta(1) = nhc%veta(1) + dtys4*nhc%aeta(1) 
+          nhc%veta(1) = nhc%veta(1)*efr
+
+          efr=dexp(-dtys2*nhc%veta(1))
+          scal = scal * efr
+          akin = akin * scal * scal  
+
+          do inhc = 1, nhc%nhnc
+             nhc%eta(inhc) = nhc%eta(inhc) + dtys2 * nhc%veta(inhc)
+          end do
+
+          efr = dexp(-dtys8 * nhc%veta(2) )
+          nhc%veta(1) = nhc%veta(1)*efr 
+          nhc%aeta(1) = (akin - fkt)/nhc%noseq(1) !TODO Martyna's paper has a typo here (index of Q)
+          nhc%veta(1) = nhc%veta(1) + dtys4*nhc%aeta(1)
+          nhc%veta(1) = nhc%veta(1)*efr 
+
+          do inhc = 2, nhc%nhnc - 1
+            efr = dexp(-dtys8*nhc%veta(inhc+1))
+            nhc%veta(inhc) = nhc%veta(inhc)*efr
+            nhc%aeta(inhc) = (nhc%noseq(inhc-1)*nhc%veta(inhc-1)**2 &
+                              - kt)/nhc%noseq(inhc)
+            nhc%veta(inhc) = nhc%veta(inhc) + dtys4*nhc%aeta(inhc)
+            nhc%veta(inhc) = nhc%veta(inhc)*efr 
+          end do
+
+           nhc%aeta(nhc%nhnc) = (nhc%noseq(nhc%nhnc-1)*nhc%veta(nhc%nhnc-1)**2 &
+                             - kt)/ nhc%noseq(nhc%nhnc)
+           nhc%veta(nhc%nhnc) = nhc%veta(nhc%nhnc) + dtys4 * nhc%aeta(nhc%nhnc)
+
+          end do
+       end do
+       do i = 1, natoms
+          vxyz(1:3,i) = vxyz(1:3,i) * scal
+       end do
+  end subroutine nose_evolve
+
+  subroutine nose_energy(natoms,ndof,T0ions,nhc)
+    implicit none 
     !     Function : To calculate the energy of extended system variables
-    !     ---------------------------------------------------------------
-    !
-    INTEGER :: natoms, ndof
-    REAL (KIND=8) :: T0ions
+    integer :: natoms, ndof
+    real (kind=8) :: T0ions
     type(NHC_data), intent(inout) :: nhc
     !
-    REAL (KIND=8), PARAMETER  :: AU_TO_K   = 315774.664550534774D0
+    real (kind=8), parameter  :: au_to_k   = 315774.664550534774D0
 
     !
-    INTEGER         :: INHC, IATOMS, II, DOF
-    REAL (KIND=8)            :: KT, FKT
-    print *, "Entering nose energy"
+    integer         :: inhc, iatoms, ii, dof
+    real (kind=8)            :: kt, fkt
+
+    dof = ndof
+    kt  = T0ions / au_to_k 
+    fkt = kt * real(dof,gp)
     !
-    IF(.NOT. NHC%NOSPEAT)THEN
-       DOF = ndof
-    ELSE
-       DOF = 3
-    END IF
-    KT  = T0ions / AU_TO_K 
-    FKT = KT * REAL(DOF)
-    !
-    nhc%ENOSE = 0.D0
+    nhc%enose = 0.D0
     !
     !     ** Kinetic erergy + potential energy of the thermostat **
     !
-    IF(.NOT. NHC%NOSPEAT)THEN
-       DO INHC = 1, NHC%NHNC
-          NHC%ENOSE = NHC%ENOSE + 0.5D0 * NHC%NOSEQ(INHC) * NHC%VETA(INHC) * NHC%VETA(INHC)
-          IF(INHC == 1) THEN
-             NHC%ENOSE = NHC%ENOSE + FKT * nhc%ETA(1)
-          ELSE 
-             NHC%ENOSE = NHC%ENOSE + KT  * nhc%ETA(INHC)
-          END IF
-       END DO
-    ELSE
-       DO IATOMS = 1, NATOMS
-          II = (IATOMS-1)*NHC%NHNC + 1
-          NHC%ENOSE = NHC%ENOSE + 0.5D0 * NHC%NOSEQ(II) * NHC%VETA(II) * NHC%VETA(II)
-          NHC%ENOSE = NHC%ENOSE + FKT * nhc%ETA(II)
-          DO INHC = 2, NHC%NHNC
-             II = (IATOMS-1)*NHC%NHNC + INHC
-             NHC%ENOSE = NHC%ENOSE + 0.5D0 * NHC%NOSEQ(II) * NHC%VETA(II) * NHC%VETA(II)
-             NHC%ENOSE = NHC%ENOSE + KT  * nhc%ETA(II)
-          END DO
-       END DO
-    END IF
+    do inhc = 1, nhc%nhnc
+       nhc%enose = nhc%enose + 0.5d0 * nhc%noseq(inhc) * nhc%veta(inhc) * nhc%veta(inhc)
+       if(inhc == 1) then
+          nhc%enose = nhc%enose + fkt * nhc%eta(1)
+       else 
+          nhc%enose = nhc%enose + kt  * nhc%eta(inhc)
+       end if
+    end do
     !
-  END SUBROUTINE nose_energy
+  end subroutine nose_energy
   !
 
-END MODULE Nose_Hoover_Chains
+end module Nose_Hoover_Chains
