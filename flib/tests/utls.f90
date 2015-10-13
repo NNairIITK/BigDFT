@@ -1,7 +1,7 @@
 !> @file
 !! Routine to tests f_utils module
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

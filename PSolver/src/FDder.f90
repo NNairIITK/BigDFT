@@ -220,7 +220,6 @@ module FDder
       use dictionaries, only: f_err_throw
       implicit none
 
-
       !c..declare the pass
       character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
       integer, intent(in) :: n01,n02,n03,nord
@@ -1418,34 +1417,34 @@ module FDder
 
     end subroutine nonvacuum_projection
 
-!!$    !>calculate polarization charge and epsilon for plotting purposes.
-!!$    !! no need of gathering the results as the arrays are already given in full form
-!!$    subroutine polarization_charge(geocode,ndims,hgrids,nord,rho,pot,nabla_pot,rho_pol)
-!!$      use numerics, only: oneofourpi
-!!$      implicit none
-!!$      integer, intent(in) :: nord
-!!$      character(len=1), intent(in) :: geocode
-!!$      integer, dimension(3), intent(in) :: ndims
-!!$      real(dp), dimension(3), intent(in) :: hgrids
-!!$      real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(in) :: rho,pot
-!!$      real(dp), dimension(ndims(1),ndims(2),ndims(3),3), intent(out) :: nabla_pot
-!!$      real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: rho_pol
-!!$      !local variables
-!!$      integer :: i1,i2,i3
-!!$
-!!$      call nabla_u(geocode,ndims(1),ndims(2),ndims(3),pot,nabla_pot,nord,hgrids)
-!!$      call div_u_i(geocode,ndims(1),ndims(2),ndims(3),nabla_pot,rho_pol,nord,hgrids)
-!!$
-!!$      do i3=1,ndims(3)
-!!$         do i2=1,ndims(2)
-!!$            do i1=1,ndims(1)
-!!$               !this section has to be inserted into a optimized calculation of the
-!!$               !derivative
-!!$               rho_pol(i1,i2,i3)=-oneofourpi*rho_pol(i1,i2,i3)-rho(i1,i2,i3)
-!!$            end do
-!!$         end do
-!!$      end do
-!!$
-!!$    end subroutine polarization_charge
+    !>calculate polarization charge and epsilon for plotting purposes.
+    !! no need of gathering the results as the arrays are already given in full form
+    subroutine polarization_charge(geocode,ndims,hgrids,nord,rho,pot,nabla_pot,rho_pol)
+      use numerics, only: oneofourpi
+      implicit none
+      integer, intent(in) :: nord
+      character(len=1), intent(in) :: geocode
+      integer, dimension(3), intent(in) :: ndims
+      real(dp), dimension(3), intent(in) :: hgrids
+      real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(in) :: rho,pot
+      real(dp), dimension(ndims(1),ndims(2),ndims(3),3), intent(out) :: nabla_pot
+      real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: rho_pol
+      !local variables
+      integer :: i1,i2,i3
+
+      call nabla_u(geocode,ndims(1),ndims(2),ndims(3),pot,nabla_pot,nord,hgrids)
+      call div_u_i(geocode,ndims(1),ndims(2),ndims(3),nabla_pot,rho_pol,nord,hgrids)
+
+      do i3=1,ndims(3)
+         do i2=1,ndims(2)
+            do i1=1,ndims(1)
+               !this section has to be inserted into a optimized calculation of the
+               !derivative
+               rho_pol(i1,i2,i3)=-oneofourpi*rho_pol(i1,i2,i3)-rho(i1,i2,i3)
+            end do
+         end do
+      end do
+
+    end subroutine polarization_charge
 
 end module FDder

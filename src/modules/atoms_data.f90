@@ -365,12 +365,15 @@ contains
        call f_free_ptr(astruct%rxyz)
        call f_free_ptr(astruct%rxyz_int)
        call f_free_ptr(astruct%ixyz_int)
-       do iat = 1, astruct%nat
-          if (associated(astruct%attributes(iat)%d)) then
-             call dict_free(astruct%attributes(iat)%d)
-          end if
-       end do
-       deallocate(astruct%attributes)
+       if (associated(astruct%attributes)) then
+          do iat = 1, astruct%nat
+             if (associated(astruct%attributes(iat)%d)) then
+                call dict_free(astruct%attributes(iat)%d)
+             end if
+          end do
+          deallocate(astruct%attributes)
+          nullify(astruct%attributes)
+       end if
     end if
     if (astruct%ntypes >= 0) then
        call f_free_str_ptr(len(astruct%atomnames),astruct%atomnames)

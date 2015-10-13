@@ -1440,6 +1440,7 @@ contains
     if (present(naming_id)) then
        if (RADICAL_NAME .in. run) then
           naming_id = run // RADICAL_NAME
+          if (trim(naming_id) == LOGFILE) call f_zero(naming_id)
        else
           call f_zero(naming_id)
           !naming_id = " "

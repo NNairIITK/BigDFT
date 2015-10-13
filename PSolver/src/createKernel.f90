@@ -221,7 +221,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
   integer,dimension(3) :: n
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
   call f_timing(TCAT_PSOLV_KERNEL,'ON')
-
+  call f_routine(id='pkernel_set')
   pi=4.0_dp*atan(1.0_dp)
   wrtmsg=.true.
   if (present(verbose)) wrtmsg=verbose
@@ -806,6 +806,7 @@ end if
      end if
   end select
 
+  call f_release_routine()
   call f_timing(TCAT_PSOLV_KERNEL,'OF')
 
 END SUBROUTINE pkernel_set
@@ -1358,7 +1359,7 @@ subroutine rebuild_cavity_from_rho(rho_full,nabla_rho,nabla2_rho,delta_rho,cc_rh
   !calculate the derivatives of the density
   !build the gradients and the laplacian of the density
   !density gradient in du
-  call nabla_u(kernel%geocode,n01,n02,n03,rho_full,nabla_rho,kernel%nord,kernel%hgrids)
+  !call nabla_u(kernel%geocode,n01,n02,n03,rho_full,nabla_rho,kernel%nord,kernel%hgrids)
   call nabla_u_and_square(kernel%geocode,n01,n02,n03,rho_full,nabla_rho,nabla2_rho,&
        kernel%nord,kernel%hgrids)
   !density laplacian in delta_rho
@@ -1366,7 +1367,7 @@ subroutine rebuild_cavity_from_rho(rho_full,nabla_rho,nabla2_rho,delta_rho,cc_rh
 
   !aliasing for the starting point
   i3s=kernel%grid%istart+1
-
+  if (kernel%grid%n3p == 0 ) i3s=1
   call build_cavity_from_rho(rho_full(1,1,i3s),nabla2_rho(1,1,i3s),delta_rho(1,1,i3s),cc_rho(1,1,i3s),&
        kernel,depsdrho,dsurfdrho,IntSur,IntVol)
 

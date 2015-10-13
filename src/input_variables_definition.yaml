@@ -3,9 +3,9 @@
 ## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile
 ## RANGE: [from,to] #always put two numbers (also .inf can be put)
-## EXCLUSIVE: #here follows a list of allowed values (either RANGE or EXCLUSIVE)
-##  - Value1:  comments of value1
-##  - Value2:  comment of value2
+## EXCLUSIVE: #here follows a mapping of allowed values (either RANGE or EXCLUSIVE)
+##  Value1:  comments of value1
+##  Value2:  comment of value2
 ## CONDITION: #here the conditions for which the variable makes sense are written
 ##   MASTER_KEY: foo #this means that inputvar makes sense only if foo is specified
 ##   WHEN: #provide a list of allowed values of foo for which inputvars is meaningful
@@ -305,6 +305,7 @@
        NEB:    Nudged Elastic Band
        SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
        SQNM:   Stabilized quasi-Newton minimzer
+       MD: Molecular dynamics, NVT (Nose-Hoover Chains) or NVE ensemble 
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations

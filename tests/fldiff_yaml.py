@@ -464,7 +464,7 @@ for i in range(len(references)):
     reference = references[i]
     remarks = ""
     # this executes the fldiff procedure
-    compare(datas[i], reference, tols)
+    #compare(datas[i], reference, tols)
     try:
         data = datas[i]
         if data is not None:

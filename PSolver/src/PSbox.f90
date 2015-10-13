@@ -46,7 +46,7 @@ contains
        if (kernel%mpi_env%nproc > 1) then
           isrc=1
           do ispin=1,nspin
-             call mpiallgather(src(isrc),recvbuf=dest(1,1,1,isrc),&
+             call mpiallgather(src(isrc),recvbuf=dest(1,1,1,ispin),&
                recvcounts=kernel%counts,&
                displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
              isrc=isrc+kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p
