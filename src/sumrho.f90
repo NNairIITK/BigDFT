@@ -63,7 +63,7 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
      call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
      !the ionic denisty is given in the case of the embedded solver
      if (pkernel%method /= 'VAC') then
-        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.true.,stress_tensor=hstrten,rho_ion=rho_ion)
+        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten,rho_ion=rho_ion) !only sum up rho_ion
      else
         call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
      end if
