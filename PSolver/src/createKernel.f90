@@ -75,7 +75,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-6_dp!1.0e-12_dp
+        kernel%minres=1.0e-12_dp!1.0e-12_dp
         kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%method=PS_PCG_ENUM
@@ -1046,9 +1046,9 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
   real(dp), intent(in) :: eps0
   !local variables
   integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03,unt
-  real(dp) :: d2,x,pi,gammaSau,alphaSau,betaVau
+  real(dp) :: d2,x,pi,gammaSau,alphaSau,betaVau,tot,tot1,tot2,tot3
   real(dp), dimension(:,:,:,:), allocatable :: nabla_pot
-  !real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)) :: pot2,depsdrho1,depsdrho2
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)) :: pot2,depsdrho1,depsdrho2
 
   real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
   real(dp), parameter :: alphaS = -22.0d0 ![dyn/cm]
@@ -1067,27 +1067,45 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
   nabla_pot=f_malloc([n01,n02,n03,3],id='nabla_pot')
   !calculate derivative of the potential
   call fssnord3DmatNabla3var_LG(kernel%geocode,n01,n02,n03,pot,nabla_pot,kernel%nord,kernel%hgrids)
+
+  tot=0.d0
+  tot1=0.d0
+  tot2=0.d0
+  tot3=0.d0
   i23=1
   do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
      do i2=1,n02
         do i1=1,n01
+           tot1 = tot1 + depsdrho(i1,i23)
+           tot2 = tot2 + pot(i1,i2,i3)
            !this section has to be inserted into a optimized calculation of the derivative
            d2=0.0_dp
            do i=1,3
               d2 = d2+nabla_pot(i1,i2,i3,i)**2
            end do
-           !depsdrho1(i1,i2,i3)=depsdrho(i1,i23)
+           tot3 = tot3 + d2
+           depsdrho1(i1,i2,i3)=depsdrho(i1,i23)
            depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*d2/pi!&
                             !+(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
                             !+betaVau*depsdrho(i1,i23)/(1.d0-eps0)
            !depsdrho(i1,i23)=depsdrho(i1,i23)*d2
-           !pot2(i1,i2,i3)=d2
-           !depsdrho2(i1,i2,i3)=depsdrho(i1,i23)
+           pot2(i1,i2,i3)=d2
+           depsdrho2(i1,i2,i3)=depsdrho(i1,i23)
+           tot = tot + depsdrho(i1,i23)
         end do
         i23=i23+1
      end do
   end do
 
+  
+
+     unt=f_get_free_unit(22)
+     call f_open_file(unt,file='extra_term_line_sccs_x.dat')
+     do i1=1,n01
+        x=i1*kernel%hgrids(1)
+        write(unt,'(1x,I8,5(1x,e22.15))')i1,x,pot(i1,n02/2,n03/2),pot2(i1,n02/2,n03/2),depsdrho1(i1,n02/2,n03/2),depsdrho2(i1,n02/2,n03/2)
+     end do
+     call f_close(unt)
 !     unt=f_get_free_unit(22)
 !     call f_open_file(unt,file='extra_term_line_sccs_x.dat')
 !     do i1=1,n01
@@ -1099,8 +1117,13 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
   call f_free(nabla_pot)
 !  call yaml_map('extra term here',.true.)
 
-  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
+  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) then
        call yaml_map('Extra SCF potential calculated',.true.)
+       call yaml_map('Integral of depsdrho',tot1)
+       call yaml_map('Integral of v_eps',tot)
+       call yaml_map('Integral of pot',tot2)
+       call yaml_map('Integral of nabla2',tot3)
+  end if
 
 end subroutine sccs_extra_potential
 
