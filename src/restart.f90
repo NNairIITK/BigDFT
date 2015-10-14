@@ -31,7 +31,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,psi,&
   !n(c) nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
 !  psi_old=&
-!       f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,!&
+!       f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvc_f)*orbs%norbp*orbs%nspinor,!&
 !       id='psi_old')
   psi_old = f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,id='psi_old')
 
@@ -267,7 +267,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => readmywaves
+  use module_interfaces, only: open_filename_of_iorb
   use public_enums
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3, iformat
@@ -368,7 +368,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   use module_base
   use module_types
   use public_enums
-  use module_interfaces, except_this_one => verify_file_presence
+  use module_interfaces, only: filename_of_iorb
   implicit none
   integer, intent(in) :: nproc
   character(len=*), intent(in) :: filerad
@@ -520,7 +520,7 @@ end subroutine filename_of_iorb
 subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => open_filename_of_iorb
+  use module_interfaces, only: filename_of_iorb
   implicit none
   character(len=*), intent(in) :: filename
   logical, intent(in) :: lbin
@@ -555,7 +555,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   use module_types
   use module_base
   use yaml_output
-  use module_interfaces, except_this_one => writeonewave, except_this_one_A => writemywaves
+  use module_interfaces, only: open_filename_of_iorb
   use public_enums
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,iformat
@@ -618,7 +618,7 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => read_wave_to_isf
+  use module_interfaces, only: readwavetoisf, readwavetoisf_etsf
   use public_enums
   use module_input_keys
   implicit none
@@ -709,7 +709,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   use module_base
   use module_types
   use locregs, only: copy_locreg_descriptors,allocate_wfd,deallocate_wfd
-  use module_interfaces
+  use module_interfaces, only: reformat_one_supportfunction
   use module_fragments
   use communications_base, only: comms_linear_null, deallocate_comms_linear, TRANSPOSE_FULL
   use communications_init, only: init_comms_linear
@@ -1256,7 +1256,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   use module_base
   use module_types
   !use internal_io
-  use module_interfaces
+  use module_interfaces, only: reformat_one_supportfunction
   use yaml_output
   use module_fragments
   use io, only: io_read_descr_linear, io_error, read_psi_compress
@@ -1374,11 +1374,6 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
 
 END SUBROUTINE readonewave_linear
 
-
-
-
-
-
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !! have changed
 subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
@@ -1388,7 +1383,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   use yaml_output
   use module_fragments
   !use internal_io
-  use module_interfaces, except_this_one => readmywaves_linear_new
+  use module_interfaces, only: open_filename_of_iorb, reformat_supportfunctions
   use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error, read_dense_matrix
   use public_enums
   implicit none
@@ -1423,7 +1418,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   real(gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new, rxyz4_ref, rxyz4_new
   real(gp), dimension(:,:), allocatable :: rxyz_new_all, rxyz_frg_new, rxyz_ref_sorted, rxyz_ref_sorted_trial
   real(gp), dimension(:), allocatable :: dist
-  integer, dimension(:), allocatable :: ipiv, array
+  integer, dimension(:), allocatable :: ipiv, array_tmp
   integer, dimension(:,:), allocatable :: permutations
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
   real(gp) :: max_shift, mindist, Werror, minerror, dtol
@@ -1779,15 +1774,15 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               end do
 
               !assume that we have only a small number of identical distances, or this would become expensive...
-              array=f_malloc(num_deg,id='array')
+              array_tmp=f_malloc(num_deg,id='array_tmp')
               do i=1,num_deg
-                 array(i)=i
+                 array_tmp(i)=i
               end do
 
               np=fact(num_deg)
               permutations=f_malloc((/num_deg,np/),id='permutations')
               c=0
-              call reorder(num_deg,num_deg,c,np,array,permutations)
+              call reorder(num_deg,num_deg,c,np,array_tmp,permutations)
 
               rxyz_ref_sorted_trial = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_env%nat /),id='rxyz_ref_sorted')
 
@@ -1834,7 +1829,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               end if
 
               call f_free(rxyz_ref_sorted_trial)
-              call f_free(array)
+              call f_free(array_tmp)
               call f_free(permutations)
            end if
 
@@ -2155,7 +2150,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   use module_defs
   use yaml_output
   use module_fragments
-  use module_interfaces, except_this_one => initialize_linear_from_file
+  use module_interfaces, only: open_filename_of_iorb
   use locregs, only: locreg_null
   use io, only: io_read_descr_linear
   use public_enums
@@ -2482,7 +2477,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   use module_base
   use module_types
   use module_fragments
-  use module_interfaces, except_this_one=>reformat_supportfunctions
+  use module_interfaces, only: reformat_one_supportfunction
   use yaml_output
   use bounds, only: ext_buffers
   implicit none
@@ -2787,7 +2782,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
 
       end if
 
-  end do
+   end do
 
   ! Get the maximal shift among all tasks
   if (nproc>1) then

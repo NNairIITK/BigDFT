@@ -413,3 +413,7 @@ end subroutine mpi_unpack
 subroutine mpi_error_class()
   implicit none
 end subroutine mpi_error_class
+
+subroutine mpi_put()
+  implicit none
+end subroutine mpi_put

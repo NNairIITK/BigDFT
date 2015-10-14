@@ -6,6 +6,7 @@ program GPS_3D
 
    use wrapper_mpi
    use Poisson_Solver
+   use PSbox
    use yaml_output
    use dynamic_memory
    use dictionaries
@@ -90,6 +91,7 @@ program GPS_3D
 
    call f_zero(PSol)
    PSol=options .get. 'method'
+   if (len_trim(PSol)==0) call f_strcpy(src='VAC',dest=PSol)
    ndims=options // 'ndim'
 !!$giu
    geocode=options//'geocode'
@@ -102,7 +104,6 @@ program GPS_3D
 
    igpu=0
    if (usegpu) igpu=1
-   igpu=0
 
    n01=ndims(1)
    n02=ndims(2)
@@ -414,7 +415,8 @@ program GPS_3D
   select case(SetEps)
      !if (any(SetEps == [2,3,4])) then
   case(2,3,4)
-     call H_potential('G',pkernel,rhopot,rhopot,ehartree,offset,.false.)
+     call H_potential('D',pkernel,rhopot(1,1,pkernel%grid%istart+1,1),rhopot(1,1,pkernel%grid%istart+1,1),ehartree,offset,.false.)
+     call PS_gather(src=rhopot,kernel=pkernel)
   case(5)
   !else if (any(SetEps == [5])) then
      call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
@@ -638,7 +640,10 @@ subroutine PS_Check_options(parser)
        'Allowed values' .is. &
        dict_new('1' .is. 'Analytical epsilon' ,&
                 '2' .is. 'analytical electron dependence',&
-                '3' .is. 'real electron density from cube file (need electroninc_density.cube)')))
+                '3' .is. 'real electron density from cube file (need electroninc_density.cube)',&
+                '4' .is. 'calculate the caviti and dump it on disk',&
+                '5' .is. 'Solves GPe with PCG customized (should be identical to  2 + PCG)',&
+                '6' .is. 'Modified Poisson Botzmann Equation solver')))
 
   call yaml_cl_parse_option(parser,'accel','No',&
        'GPU Acceleration','a',&

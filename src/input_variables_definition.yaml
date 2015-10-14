@@ -3,9 +3,9 @@
 ## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile
 ## RANGE: [from,to] #always put two numbers (also .inf can be put)
-## EXCLUSIVE: #here follows a list of allowed values (either RANGE or EXCLUSIVE)
-##  - Value1:  comments of value1
-##  - Value2:  comment of value2
+## EXCLUSIVE: #here follows a mapping of allowed values (either RANGE or EXCLUSIVE)
+##  Value1:  comments of value1
+##  Value2:  comment of value2
 ## CONDITION: #here the conditions for which the variable makes sense are written
 ##   MASTER_KEY: foo #this means that inputvar makes sense only if foo is specified
 ##   WHEN: #provide a list of allowed values of foo for which inputvars is meaningful
@@ -195,6 +195,11 @@
      COMMENT: Multipole moments of an external potential
      DESCRIPTION: Give the multipole moments up to quadrupoles
      default: 0.0
+   calculate_strten:
+     COMMENT: Boolean to activate the calculation of the stress tensor. Might be set to No for performance reasons
+     DESCRIPTION: In some cases, for example when doing MD for fixed volume systems, il might be useful to disable the 
+                    calculation of the stress tensor, to save computational time.
+     default: Yes
 #K points parameters
  kpt:
    DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
@@ -300,6 +305,7 @@
        NEB:    Nudged Elastic Band
        SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
        SQNM:   Stabilized quasi-Newton minimzer
+       MD: Molecular dynamics, NVT (Nose-Hoover Chains) or NVE ensemble 
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations
@@ -706,14 +712,27 @@
        bmhtf: Born Mayer Huggins Tosi Fumi Potential
        cp2k: CP2K
        dftbp: DFTP+
+       multi: Mixed approach where parts of the system are treated with different methods
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
      default: default
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [lj, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf]
    mm_paramfile:
      COMMENT: name of parameter or input file for the selected method or code
      default: none
-     
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [lj, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf]
+   sections:
+     COMMENT: list of labelling subparts to divide the system into
+     default: []
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [multi]
+
 #Performance parameters
  perf:
    debug:
@@ -1614,8 +1633,8 @@ linear:
    eval_range_foe: [-1.0, 1.0]
    fscale_foe: 5.0E-002
  lin_basis_params:
-   ao_confinement: -1.0
-   confinement: -1.0
+   #ao_confinement: -1.0
+   #confinement: -1.0
    rloc_kernel: 9.0
    rloc_kernel_foe: 10.5
    H:  {nbasis: 1, rloc: 4.5}

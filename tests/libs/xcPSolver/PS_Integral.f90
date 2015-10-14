@@ -1013,7 +1013,7 @@ subroutine my_analytic_integral(alpha,x0,ntot,m,fwork,fISF,argument_nf)
 
   !local variables
   integer :: nf
-  real(dp), parameter :: pi=3.1415926535897932384_dp
+  !real(dp), parameter :: pi=3.1415926535897932384_dp
   logical :: flag,flag1,flag2
   integer :: j,q,jz
   real(dp) :: if,r1,r2,res,ypm,ymm,erfcpm,erfcmm,factor,re,ro,factorend
@@ -1160,7 +1160,7 @@ subroutine GcplxInt(alpha,m,q,jm,t,u,v,flag)
   !local variables
   real(dp), parameter :: factor=1.12837916709551257388_dp,rmaxreal=0.5e+154_dp
   real(dp), parameter :: rmaxexp=708.503061461606_dp !n(c) ,rmaxgoni=3.53711887601422e+15_dp
-  real(dp), parameter :: pi=3.1415926535897932384_dp
+  !real(dp), parameter :: pi=3.1415926535897932384_dp
   logical :: a,b
   integer :: j,n,i,kapn,nu,np1,multiple
   real(dp) :: xabs,yabs,x,y,qrho,xquad,yquad,xsum,ysum,xaux,u1,v1,u2,v2,daux,h,qlambda,h2
@@ -1359,7 +1359,7 @@ subroutine GcplxInt2(alpha,m,q,p,t,u,v,flag)
   !local variables
   real(dp), parameter :: factor=1.12837916709551257388_dp,rmaxreal=0.5e+154_dp
   real(dp), parameter :: rmaxexp=708.503061461606_dp !n(c) ,rmaxgoni=3.53711887601422e+15_dp
-  real(dp), parameter :: pi=3.1415926535897932384_dp
+  !real(dp), parameter :: pi=3.1415926535897932384_dp
   logical :: a,b
   integer :: j,n,i,kapn,nu,np1,multiple
   real(dp) :: xabs,yabs,x,y,qrho,xquad,yquad,xsum,ysum,xaux,u1,v1,u2,v2,daux,h,qlambda,h2

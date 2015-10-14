@@ -1238,7 +1238,6 @@ module gaussdaub
       real(gp)  hcutoff
 
       !local variables
-      real(gp), parameter :: pi=3.141592653589793_gp
       integer :: rightx,leftx,right_t,i0,i,k,length,j,ics, icplx
       real(gp) :: a,z0,h,x,r,coff,r2,fac
       real(wp) :: func,cval,sval

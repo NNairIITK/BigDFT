@@ -1,17 +1,23 @@
 # Give here the list of existing tests
-TESTDIRS = Locreg \
-	   base \
+SHORT_TESTDIRS= base \
+	directmin \
+	cdft \
+	rotatesmall \
+	verysparse \
+	periodic \
+	surface \
+	multipoles
+
+LONG_TESTDIRS = $(SHORT_TESTDIRS) \
+	Locreg \
 	   mixpotential \
 	   cleanup \
        onlyhigh \
 	   restartdisk \
-       directmin \
 	   foe \
 	   geopt \
 	   testforces \
 	   fructose \
-       rotatesmall \
-       cdft \
        hybrid-directmin \
        experimentalmode \
 	   linearcubic \
@@ -22,11 +28,7 @@ TESTDIRS = Locreg \
 	   PBE \
 	   geoptconstrained \
 	   O2spin \
-       verysparse \
 	   expfoegeopt \
-	   periodic \
-       surface \
-       multipoles \
 	   igortho \
        extendedfrags
 

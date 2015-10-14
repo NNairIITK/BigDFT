@@ -7,6 +7,270 @@
 !! or http://www.gnu.org/copyleft/gpl.txt .
 !! For the list of contributors, see ~/AUTHORS 
 
+!regroup the psolver from here -------------
+subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
+  use Poisson_Solver
+  use wrapper_MPI
+  use f_utils, only: f_zero
+  use time_profiling, only: f_timing
+  use dynamic_memory
+  implicit none
+  !>when true, the density is updated with the value of zf
+  logical, intent(in) :: updaterho
+  logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
+  type(coulomb_operator), intent(inout) :: kernel 
+  !> Total integral on the supercell of the final potential on output
+  real(dp), intent(in) :: offset
+  real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: rho
+  !>work array for the usage of the main routine
+  real(dp), dimension(kernel%grid%md1,kernel%grid%md3*2*(kernel%grid%md2/kernel%mpi_env%nproc)), intent(inout) :: zf
+  real(dp), dimension(6), intent(out) :: strten !< stress tensor associated to the cell
+  !local variables
+  integer, dimension(3) :: n
+  integer :: size1,size2,switch_alg,i_stat,ierr,i23,j23,j3,i1,n3delta
+  real(dp) :: pt,rh
+  real(dp), dimension(:), allocatable :: zf1
+
+  call f_routine(id='apply_kernel')
+
+  !this routine builds the values for each process of the potential (zf), multiplying by scal   
+  !fill the array with the values of the charge density
+  !no more overlap between planes
+  !still the complex case should be defined
+  call f_zero(strten)
+  if (.not. gpu) then !CPU case
+    call f_zero(zf)
+
+    n3delta=kernel%grid%md3-kernel%grid%m3
+    !$omp parallel do default(shared) private(i1,i23,j23,j3)
+    do i23=1,kernel%grid%n3p*kernel%grid%m3
+       j3=(i23-1)/kernel%grid%m3
+       j23=i23+n3delta*j3
+       do i1=1,kernel%grid%m1
+          zf(i1,j23)=rho(i1,i23)
+       end do
+    end do
+    !$omp end parallel do
+
+     call f_timing(TCAT_PSOLV_COMPUT,'OF')
+     call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
+          kernel%part_mpi%mpi_comm,kernel%inplane_mpi%iproc,&
+          kernel%inplane_mpi%mpi_comm,kernel%geocode,1,&
+          kernel%grid%n1,kernel%grid%n2,kernel%grid%n3,&
+          kernel%grid%nd1,kernel%grid%nd2,kernel%grid%nd3,&
+          kernel%grid%md1,kernel%grid%md2,kernel%grid%md3,&
+          kernel%kernel,zf,&
+          kernel%grid%scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
+     call f_timing(TCAT_PSOLV_COMPUT,'ON')
+
+    if (updaterho) then
+       !$omp parallel do default(shared) private(i1,i23,j23,j3)
+       do i23=1,kernel%grid%n3p*kernel%grid%m3
+          j3=(i23-1)/kernel%grid%m3
+          j23=i23+n3delta*j3
+          do i1=1,kernel%grid%m1
+             rho(i1,i23)=zf(i1,j23)
+          end do
+       end do
+       !$omp end parallel do
+    end if
+
+  else !GPU case
+
+     n(1)=kernel%grid%n1!kernel%ndims(1)*(2-kernel%geo(1))
+     n(2)=kernel%grid%n3!kernel%ndims(2)*(2-kernel%geo(2))
+     n(3)=kernel%grid%n2!kernel%ndims(3)*(2-kernel%geo(3))
+
+     size1=kernel%grid%md1*kernel%grid%md2*kernel%grid%md3! nproc always 1 kernel%ndims(1)*kernel%ndims(2)*kernel%ndims(3)
+
+     if (kernel%keepGPUmemory == 0) then
+        size2=2*kernel%grid%n1*kernel%grid%n2*kernel%grid%n3
+        call cudamalloc(size2,kernel%w%work1_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(size2,kernel%w%work2_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
+             kernel%w%rho_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
+     endif
+
+     if (kernel%mpi_env%nproc > 1) then
+        call f_zero(zf)
+        call reset_gpu_data( kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
+                            rho, kernel%w%rho_GPU)
+
+        call pad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
+                    kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
+                    kernel%grid%md2,kernel%grid%md3);
+
+        !TODO : gpudirect (even if this code is disabled right now)
+        if (kernel%mpi_env%iproc == 0) zf1 = f_malloc0(size1,id='zf1')
+
+        call mpi_gatherv(zf,kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1,mpitype(zf),&
+             zf1,kernel%rhocounts,kernel%rhodispls, &
+             mpitype(zf),0,kernel%mpi_env%mpi_comm,ierr)
+
+        if (kernel%mpi_env%iproc == 0) then
+           !fill the GPU memory
+           call reset_gpu_data(size1,zf1,kernel%w%work1_GPU)
+
+           switch_alg=0
+           if (kernel%initCufftPlan == 1) then
+              call cuda_3d_psolver_general(n,kernel%plan,kernel%w%work1_GPU,kernel%w%work2_GPU, &
+                   kernel%w%k_GPU,switch_alg,kernel%geo,kernel%grid%scal)
+           else
+              call cuda_3d_psolver_plangeneral(n,kernel%w%work1_GPU,kernel%w%work2_GPU, &
+                   kernel%w%k_GPU,kernel%geo,kernel%grid%scal)
+           endif
+
+           !take data from GPU
+           call get_gpu_data(size1,zf1,kernel%w%work1_GPU)
+        endif
+
+        call MPI_Scatterv(zf1,kernel%rhocounts,kernel%rhodispls,&
+             mpitype(zf1),zf,&
+             kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1, &
+             mpitype(zf1),0,kernel%mpi_env%mpi_comm,ierr)
+
+        if (kernel%mpi_env%iproc == 0) call f_free(zf1)
+     else
+
+        !fill the GPU memory
+        call reset_gpu_data( kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
+                            rho, kernel%w%rho_GPU)
+
+        call pad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
+                    kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
+                    kernel%grid%md2,kernel%grid%md3);
+
+        switch_alg=0
+
+        if (kernel%initCufftPlan == 1) then
+           call cuda_3d_psolver_general(n,kernel%plan,kernel%w%work1_GPU,kernel%w%work2_GPU, &
+                kernel%w%k_GPU,switch_alg,kernel%geo,kernel%grid%scal)
+        else
+           call cuda_3d_psolver_plangeneral(n,kernel%w%work1_GPU,kernel%w%work2_GPU, &
+                kernel%w%k_GPU,kernel%geo,kernel%grid%scal)
+        endif
+
+
+        !take data from GPU
+        !call get_gpu_data(size1,zf,kernel%w%work1_GPU)
+     endif
+
+    if (updaterho) then
+        call unpad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
+                    kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
+                    kernel%grid%md2,kernel%grid%md3);
+        call get_gpu_data(kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
+                        rho,kernel%w%rho_GPU)
+    end if
+
+     if (kernel%keepGPUmemory == 0) then
+        call cudafree(kernel%w%work1_GPU)
+        call cudafree(kernel%w%work2_GPU)
+     endif
+
+  endif
+
+  call f_release_routine()
+
+end subroutine apply_kernel
+
+!> calculate the integral between the array in zf and the array in rho
+!! copy the zf array in pot and sum with the array pot_ion if needed
+subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
+     md1,md2,md3p,rho,zf,pot,eh)
+  use f_enums
+  use PSbase
+  use PStypes, only: coulomb_operator
+  implicit none
+  !if .true. the array pot is zf+pot_ion
+  !if .false., pot is only zf
+  logical, intent(in) :: sumpion
+  logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
+  type(coulomb_operator), intent(in) :: kernel 
+  integer, intent(in) :: m1,m2,m3p !< dimension of the grid
+  integer, intent(in) :: md1,md2,md3p !< dimension of the zf array
+  !> original density and final potential (can point to the same array)
+  real(dp), dimension(m1,m2*m3p), intent(in) :: rho
+  real(dp), dimension(m1,m2*m3p), intent(out) :: pot 
+  !> ionic potential, to be added to the potential
+  real(dp), dimension(m1,m2*m3p), intent(in) :: pot_ion
+  !> work array for the usage of the main routine 
+  !!(might have the same dimension of rho, but generally is bigger)
+  real(dp), dimension(md1,md2*md3p), intent(in) :: zf
+  !>hartree energy, being \int d^3 x \rho(x) zf(x) (no volume element)
+  real(dp), intent(out) :: eh
+  !local variables
+  integer :: i1,i23,j23,j3,n3delta, i_stat
+  real(dp) :: pt,rh
+
+
+  eh=0.0_dp
+
+
+  if(gpu) then 
+
+     !in VAC case, rho and zf are already on the card and untouched
+     if(trim(str(kernel%method))/='VAC') then
+        call reset_gpu_data(m1*m2*m3p,rho,kernel%w%rho_GPU)
+        call reset_gpu_data(m1*m2*m3p,zf,kernel%w%work1_GPU)
+     end if
+
+     if (sumpion) then
+
+        if (kernel%w%pot_ion_GPU==0.d0)&
+             call cudamalloc(m1*m2*m3p,kernel%w%pot_ion_GPU,i_stat)
+        call reset_gpu_data(m1*m2*m3p,pot_ion,kernel%w%pot_ion_GPU)
+     end if
+
+     call unpad_data( kernel%w%work2_GPU, kernel%w%work1_GPU, m1,&
+          m3p,m2, md1, md3p,md2);
+
+     call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU, kernel%w%rho_GPU, kernel%w%pot_ion_GPU, eh)
+
+     call get_gpu_data(m1*m2*m3p,pot,kernel%w%rho_GPU)
+
+  else
+     !recollect the final data
+     n3delta=md2-m2 !this is the y dimension
+     if (sumpion) then
+        !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+        !$omp reduction(+:eh)
+        do i23=1,m2*m3p
+           j3=(i23-1)/m2
+           j23=i23+n3delta*j3
+           do i1=1,m1
+              pt=zf(i1,j23)
+              rh=rho(i1,i23)
+              rh=rh*pt
+              eh=eh+rh
+              pot(i1,i23)=pt+pot_ion(i1,i23)
+           end do
+        end do
+        !$omp end parallel do
+     else
+        !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+        !$omp reduction(+:eh)
+        do i23=1,m2*m3p
+           j3=(i23-1)/m2
+           j23=i23+n3delta*j3
+           do i1=1,m1
+              pt=zf(i1,j23)
+              rh=rho(i1,i23)
+              rh=rh*pt      
+              eh=eh+rh
+              pot(i1,i23)=pt
+           end do
+        end do
+        !$omp end parallel do
+     end if
+
+  end if
+end subroutine finalize_hartree_results
+
+
 
 !> Parallel version of Poisson Solver
 !! General version, for each boundary condition
@@ -22,7 +286,8 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   include 'perfdata.inc'
   !Arguments
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(inout) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc,ncplx
+  integer, intent(inout) :: n1,n2,n3,nd1,nd2,nd3,md1,md2,md3,nproc,iproc
+  integer, intent(in) :: ncplx
   integer, intent(in) :: planes_comm,inplane_comm,iproc_inplane
   real(gp), intent(in) :: scal,hx,hy,hz,offset
   real(dp), dimension(nd1,nd2,nd3/nproc), intent(in) :: pot
@@ -95,7 +360,6 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
      n1dim=n1/2
   end if
   call f_timing(TCAT_PSOLV_COMPUT,'ON')
-  !call timing(iproc,'PSolv_comput  ','ON')
   ! check input
 !!$  !these checks can be moved at the creation
 !!$  if (mod(n1,2) /= 0 .and. .not. perx) stop 'Parallel convolution:ERROR:n1' !this can be avoided
@@ -279,8 +543,6 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
     !input: I1,J2,j3,jp3,(Jp2)
     if (nproc > 1 .and. iproc < n3pr1*n3pr2) then
        call f_timing(TCAT_PSOLV_COMPUT,'OF')
-       !call timing(iproc,'PSolv_comput  ','OF')
-       !call timing(iproc,'PSolv_commun  ','ON')
        call f_timing(TCAT_PSOLV_COMMUN,'ON')
        !communication scheduling
        call MPI_ALLTOALL(zmpi2,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
@@ -288,8 +550,6 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
             zmpi1,2*n1dim*(md2/nproc)*(nd3/n3pr2), &
             MPI_double_precision,planes_comm,ierr)
        call f_timing(TCAT_PSOLV_COMMUN,'OF')
-        !call timing(iproc,'PSolv_commun  ','OF')
-       !call timing(iproc,'PSolv_comput  ','ON')
        call f_timing(TCAT_PSOLV_COMPUT,'ON')
     endif
 
@@ -587,16 +847,9 @@ subroutine G_PoissonSolver(iproc,nproc,planes_comm,iproc_inplane,inplane_comm,ge
   call f_free(btrig3)
   call f_free(ftrig3)
   call f_free(zmpi2)
-  !i_all=-product(shape(zw))*kind(zw)
-  !deallocate(zw,stat=i_stat)
-  !call memocc(i_stat,i_all,'zw',subname)
-  !i_all=-product(shape(zt))*kind(zt)
-  !deallocate(zt,stat=i_stat)
-  !call memocc(i_stat,i_all,'zt',subname)
   if (halffty) then
      call f_free(cosinarr)
   end if
-
   if (nproc > 1) then
      call f_free(zmpi1)
   end if

@@ -15,7 +15,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
     factor, itout, it_scc, it_cdft, order_taylor, max_inversion_error, reorder, num_extra)
   use module_base
   use module_types
-  use module_interfaces, fake_name => optimize_coeffs
+  !use module_interfaces, fake_name => optimize_coeffs
   use diis_sd_optimization
   use yaml_output
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
@@ -446,13 +446,12 @@ end subroutine optimize_coeffs
 subroutine coeff_weight_analysis(iproc, nproc, input, ksorbs, tmb, ref_frags)
   use module_base
   use module_types
-  use module_interfaces
   use module_fragments
   use constrained_dft
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, matrices, sparse_matrix_null, deallocate_sparse_matrix, &
                                sparsematrix_malloc_ptr, DENSE_FULL, SPARSE_FULL, assignment(=), &
-                               matrices_null, allocate_matrices, deallocate_matrices
+                               matrices_null, allocate_matrices, deallocate_matrices,copy_sparse_matrix
   use sparsematrix, only: uncompress_matrix, uncompress_matrix2
   use matrix_operations, only: overlapPowerGeneral
   implicit none
@@ -999,7 +998,6 @@ end subroutine order_coeffs_by_energy
 subroutine find_alpha_sd(iproc,nproc,alpha,tmb,orbs,coeffp,grad,energy0,fnrm,pred_e,taylor_order)
   use module_base
   use module_types
-  use module_interfaces
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
   implicit none
   integer, intent(in) :: iproc, nproc, taylor_order
@@ -1141,7 +1139,7 @@ end subroutine calculate_kernel_and_energy
 subroutine calculate_coeff_gradient(iproc,nproc,tmb,order_taylor,max_inversion_error,KSorbs,grad_cov,grad)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: calculate_density_kernel
   use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace
@@ -1534,7 +1532,7 @@ end subroutine calculate_coeff_gradient
 subroutine calculate_coeff_gradient_extra(iproc,nproc,num_extra,tmb,order_taylor,max_inversion_error,KSorbs,grad_cov,grad)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: calculate_density_kernel
   use sparsematrix_base, only: matrices, sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), &
                                matrices_null, allocate_matrices, deallocate_matrices
   use sparsematrix, only: extract_taskgroup_inplace, gather_matrix_from_taskgroups_inplace

@@ -970,13 +970,13 @@ module forces_linear
          collcom, msmat, mmat, lsmat, lmat, tens)
       use module_base
       use module_types
-      use module_interfaces
       !use module_xc
       use sparsematrix_base, only: sparse_matrix, matrices
       use sparsematrix, only: trace_sparse
       use communications_base, only: TRANSPOSE_FULL
       use communications, only: transpose_localized
       use transposed_operations, only: calculate_overlap_transposed
+      use locreg_operations
       implicit none
       integer,intent(in) :: iproc, nproc
       type(orbitals_data), intent(in) :: orbs
@@ -1029,7 +1029,7 @@ module forces_linear
     
     
          !!psir = f_malloc0((/lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i,orbs%nspinor/),id='psir')
-         call initialize_work_arrays_locham(1, Lzd%Llr(ilr), orbs%nspinor, .false., w)
+         call initialize_work_arrays_locham(1, [Lzd%Llr(ilr)], orbs%nspinor, .false., w)
     
          !!call daub_to_isf_locham(orbs%nspinor, lzd%llr(ilr), wrk_lh, psi(ist), psir)
          call uncompress_forstandard(lzd%llr(ilr)%d%n1, lzd%llr(ilr)%d%n2, lzd%llr(ilr)%d%n3, &

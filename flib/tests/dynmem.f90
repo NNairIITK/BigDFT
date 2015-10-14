@@ -16,6 +16,7 @@ subroutine test_dynamic_memory()
    use metadata_interfaces, only: getdp2
    use yaml_strings
    use f_precisions
+   use f_utils, only: f_time,f_zero
    implicit none
 
    type :: dummy_type
@@ -41,8 +42,9 @@ subroutine test_dynamic_memory()
    type(dummy_type) :: dummy_test
    external :: abort2
    real(kind=8) :: total
-   integer :: ithread
+   integer :: ithread,nt
    integer(kind=8) :: iadd
+   integer(f_long) :: it0,it1
    !$ integer :: ierror
    !$ integer(kind=8) :: lock
    !$ integer, external :: omp_get_thread_num
@@ -50,6 +52,44 @@ subroutine test_dynamic_memory()
    !$omp threadprivate(ab)
 
    ithread=0
+   nt=1000
+   !allocate a bigg array and test time for zeroing
+   !let us chose 400 MB
+   i1_ptr=f_malloc_ptr(10**6,id='i1_ptr')
+   it0=f_time()
+   do i=1,nt
+      call f_zero(i1_ptr)
+   end do
+   it1=f_time()
+   call yaml_map('Time for razero',real(it1-it0,f_double)*1.d-9)
+   call yaml_map('Total sum',sum(abs(i1_ptr)))
+
+   it0=f_time()
+   do i=1,nt
+      i1_ptr=1
+   end do
+   it1=f_time()
+   call yaml_map('Time for initialization',real(it1-it0,f_double)*1.d-9)
+   call yaml_map('Total sum',sum(abs(i1_ptr)))
+
+   it0=f_time()
+   do i=1,nt
+      call memsetzero(i1_ptr,int(kind(i1_ptr)*size(i1_ptr),f_long))
+   end do
+   it1=f_time()
+   call yaml_map('Time for memset',real(it1-it0,f_double)*1.d-9)
+   call yaml_map('Total sum',sum(abs(i1_ptr)))
+
+   it0=f_time()
+   do i=1,nt
+      call setzero(int(kind(i1_ptr)*size(i1_ptr),f_long),i1_ptr)
+   end do
+   it1=f_time()
+   call yaml_map('Time for setzero',real(it1-it0,f_double)*1.d-9)
+   call yaml_map('Total sum',sum(abs(i1_ptr)))
+
+   
+   call f_free_ptr(i1_ptr)
 
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
@@ -510,7 +550,7 @@ subroutine verify_heap_allocation_status()
   use yaml_output
   use yaml_strings
   use dynamic_memory
-  use dictionaries, only: f_loc
+  use f_precisions, only: f_loc
   implicit none
   !local variables
   logical, parameter :: traditional=.true.
@@ -736,4 +776,41 @@ subroutine dynmem_sandbox()
 
 end subroutine dynmem_sandbox
 
+
+subroutine test_pointer_association()
+  use dynamic_memory
+  use f_precisions
+  use yaml_output
+  implicit none
+  type(f_workspace) :: w
+  real(f_double), dimension(:), pointer :: work1
+
+  !example of the allocation
+  !this should provide a pointer with the correct boundaries that will have to point into the same workspace
+  !however this should only work for rank-one pointers
+!!$  work1=f_malloc_ptr(lb.to.lu,id='work1',workspace=w)
+  
+  !then work1 should be used normally
+  call yaml_map('work1 associated',associated(work1))
+  call yaml_mapping_open('Work1 bounds and sizes')
+    call yaml_map('lbounds',lbound(work1))
+    call yaml_map('ubounds',ubound(work1))
+    call yaml_map('size',size(work1))
+  call yaml_mapping_close()
+
+  !and also freed, but with the corresponding workspace.
+  !for example this would not work, as workspace is not accessible
+  !this should crash if workspace is not provided
+  call f_free_ptr(work1) 
+!!$  !then the correct behaviour would be to do
+!!$  call f_free_ptr(work1,workspace=w)
+!!$  !but it might create defragmentation, therefore the best might be to clean the workspace
+!!$  !instaed of treating separately the arrays
+!!$
+!!$  !we are in the case of a workspace aliasing
+!!$  if (associated(m%w)) then
+!!$     call map_workspace(m%w%pos_d,m%lbounds(1),m%ubounds(1),m%w%ptr_d,m%w%sz_d,array)
+!!$  end if
+
+end subroutine test_pointer_association
 

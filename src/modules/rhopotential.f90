@@ -25,9 +25,9 @@ module rhopotential
     
     use module_base
     use module_types
-    use module_interfaces
-    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-use yaml_output
+    use module_interfaces, only: XC_potential
+    use Poisson_Solver, except_dp => dp, except_gp => gp
+    use yaml_output
     implicit none
     
     ! Calling arguments
@@ -52,7 +52,7 @@ use yaml_output
        call PSolverNC(denspot%pkernel%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),&
             denspot%dpbox%n3d,denspot%xc,&
-            denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+            denspot%dpbox%hgrids,&
             denspot%rhov,denspot%pkernel%kernel,denspot%V_ext,energs%eh,energs%exc,energs%evxc,0.d0,.true.,4)
     
     else
@@ -70,7 +70,7 @@ use yaml_output
        call XC_potential(denspot%pkernel%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
             denspot%pkernel%mpi_env%mpi_comm,&
             denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
-            denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+            denspot%dpbox%hgrids,&
             denspot%rhov,energs%exc,energs%evxc,nspin,denspot%rho_C,denspot%V_XC,xcstr)
     
        call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
@@ -760,7 +760,6 @@ use yaml_output
 
     subroutine corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       use module_types
-      use module_interfaces
       use yaml_output
       use dynamic_memory
       implicit none

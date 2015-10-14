@@ -415,7 +415,6 @@ end subroutine
 subroutine write_mode(runObj,outs,filename,minmode,rotforce)
     use module_base, only: gp
     use module_types
-    use module_interfaces
     use module_atoms, only: astruct_dump_to_file
     use bigdft_run
     implicit none

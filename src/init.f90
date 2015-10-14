@@ -15,7 +15,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => createWavefunctionsDescriptors
+  use module_interfaces, only: export_grids
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: atoms
@@ -429,8 +429,8 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => input_wf_empty
   use public_enums
+  use IObox
   implicit none
   integer, intent(in) :: iproc, nproc
   type(orbitals_data), intent(in) :: orbs
@@ -443,8 +443,10 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
   real(kind=8), dimension(:), pointer :: hpsi, psit
 
   character(len = *), parameter :: subname = "input_wf_empty"
-  integer :: nspin, n1i, n2i, n3i, ispin, ierr
-  real(gp) :: hxh, hyh, hzh
+  integer :: nspin, ispin, ierr !n1i, n2i, n3i, 
+  !real(gp) :: hxh, hyh, hzh
+  integer, dimension(3) :: ndims
+  real(gp), dimension(3) :: hgrids
 
   !allocate fake psit and hpsi
   hpsi = f_malloc_ptr(max(orbs%npsidim_comp,orbs%npsidim_orbs),id='hpsi')
@@ -459,9 +461,12 @@ subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
      if (iproc == 0) then
         call yaml_map('Reading local potential from file:',trim(band_structure_filename))
         !write(*,'(1x,a)')'Reading local potential from file:'//trim(band_structure_filename)
-         call read_density(trim(band_structure_filename),atoms%astruct%geocode,&
-                 n1i,n2i,n3i,nspin,hxh,hyh,hzh,denspot%Vloc_KS)
-        !if (nspin /= input_spin) stop
+        call read_field_dimensions(trim(band_structure_filename),&
+             atoms%astruct%geocode,ndims,nspin)
+        denspot%Vloc_KS = f_malloc_ptr([ndims(1),ndims(2),ndims(3),input_spin],id='denspot%Vloc_KS')
+        !> Read a density file using file format depending on the extension.
+        call read_field(trim(band_structure_filename),&
+             atoms%astruct%geocode,ndims,hgrids,nspin,product(ndims),input_spin,denspot%Vloc_KS)
         if (f_err_raise(nspin /= input_spin,&
              'The value nspin reading from the file is not the same',&
              err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -547,7 +552,7 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
   use module_types
   use yaml_output
   use gaussians, only: deallocate_gwf
-  use module_interfaces, except_this_one => input_wf_cp2k
+  use module_interfaces, only: parse_cp2k_files
   implicit none
 
   integer, intent(in) :: iproc, nproc, nspin
@@ -593,7 +598,6 @@ END SUBROUTINE input_wf_cp2k
 subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,oldpsis,rxyz,Lzd,psi)
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output
   implicit none
   integer, intent(in) :: iproc,wfn_history
@@ -712,7 +716,6 @@ subroutine input_wf_memory(iproc, atoms, &
      & rxyz, lzd, psi, orbs)
   use module_base, only: gp,wp,f_free_ptr
   use module_types
-  use module_interfaces, except_this_one => input_wf_memory
   implicit none
 
   integer, intent(in) :: iproc
@@ -743,7 +746,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
   use module_base
   use module_types
-  use module_interfaces, except_this_one => input_memory_linear
+  use module_interfaces, only: inputguessConfinement, reformat_supportfunctions
   use module_fragments
   use yaml_output
   use communications_base, only: deallocate_comms_linear, TRANSPOSE_FULL
@@ -1448,7 +1451,7 @@ subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
      in, atoms, rxyz, wfd, orbs, psi)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => input_wf_disk
+  use module_interfaces, only: readmywaves
   use public_enums
   implicit none
 
@@ -1505,10 +1508,12 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   ! The files are then read by readwave
   ! @todo pass GPU to be a local variable of this routine (initialized and freed here)
   use module_base
-  use module_interfaces, except_this_one => input_wf_diag
+  use module_interfaces, only: FullHamiltonianApplication, LDiagHam, &
+       & communicate_density, free_full_potential, inputguess_gaussian_orbitals, &
+       & sumrho, write_energies
   use module_types
   use module_xc, only: XC_NO_HARTREE
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use gaussians
            use communications_base, only: comms_cubic
@@ -1748,10 +1753,8 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
            irho_add=irho_add+Lzde%Glr%d%n1i*Lzde%Glr%d%n2i*denspot%dpbox%nscatterarr(iproc,2)
         end do
      end if
-
      !Now update the potential
      call updatePotential(nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
-
   else
      !Put to zero the density if no Hartree
      irho_add = 1
@@ -1861,7 +1864,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   allocate(confdatarr(orbse%norbp)) !no stat so tho make it crash
   call local_potential_dimensions(iproc,Lzde,orbse,denspot%xc,denspot%dpbox%ngatherarr(0,1))
   call default_confinement_data(confdatarr,orbse%norbp)
-
   !spin adaptation for the IG in the spinorial case
   orbse%nspin=nspin
   call full_local_potential(iproc,nproc,orbse,Lzde,Lzde%lintyp,denspot%dpbox,&
@@ -1869,7 +1871,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   orbse%nspin=nspin_ig
 
   !update the locregs in the case of locreg for input guess
-
   !write(*,*) 'size(denspot%pot_work)', size(denspot%pot_work)
   call FullHamiltonianApplication(iproc,nproc,at,orbse,&
        Lzde,nlpsp,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,paw,&
@@ -1879,7 +1880,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
 !!$   call  LocalHamiltonianApplication(iproc,nproc,at,orbse,&
 !!$        Lzde,confdatarr,denspot%dpbox%ngatherarr,denspot%pot_work,psi,hpsi,&
 !!$        energs,input%SIC,GPUe,3,pkernel=denspot%pkernelseq)
-
   call denspot_set_rhov_status(denspot, KS_POTENTIAL, 0, iproc, nproc)
   !restore the good value
   call local_potential_dimensions(iproc,Lzde,orbs,denspot%xc,denspot%dpbox%ngatherarr(0,1))
@@ -1887,7 +1887,6 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   !deallocate potential
   call free_full_potential(denspot%dpbox%mpi_env%nproc,Lzde%lintyp,&
        & denspot%xc,denspot%pot_work,subname)
-
   call f_free_ptr(orbse%ispot)
 
   deallocate(confdatarr)
@@ -2075,7 +2074,12 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      locregcenters)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => input_wf
+  use module_interfaces, only: calculate_density_kernel, createProjectorsArrays, &
+       & first_orthon, get_coeff, input_memory_linear, input_wf_cp2k, &
+       & input_wf_diag, input_wf_disk, input_wf_empty, input_wf_memory, &
+       & input_wf_memory_new, input_wf_random, inputguessConfinement, &
+       & read_gaussian_information, readmywaves, readmywaves_linear_new, &
+       & restart_from_gaussians, sumrho
   use module_fragments
   use constrained_dft
   use dynamic_memory
@@ -2228,6 +2232,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
   case(INPUT_PSI_LCAO,INPUT_PSI_LCAO_GAUSS)
      ! PAW case, generate nlpsp on the fly with psppar data instead of paw data.
+
      npspcode = atoms%npspcode(1)
      if (any(atoms%npspcode == PSPCODE_PAW)) then
         ! Cheating line here.
@@ -2253,7 +2258,6 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           KSwfn%orbs,norbv,KSwfn%comms,KSwfn%Lzd,energs,rxyz,&
           nl,in%ixc,KSwfn%psi,KSwfn%hpsi,KSwfn%psit,&
           Gvirt,nspin,GPU,in,.false.)
-
      if (npspcode == PSPCODE_PAW) then
         call free_DFT_PSP_projectors(nl)
         atoms%npspcode(1) = npspcode
@@ -2865,7 +2869,7 @@ subroutine input_check_psi_id(inputpsi, input_wf_format, dir_output, orbs, lorbs
   use module_types
   use yaml_output
   use module_fragments
-  use module_interfaces, except_this_one=>input_check_psi_id
+  use module_interfaces, only: verify_file_presence
   use dictionaries, only: f_err_throw
   use public_enums
   use f_enums
@@ -2938,7 +2942,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   use module_base
   use ao_inguess, only: atomic_info
   use module_types
-  use module_interfaces, except_this_one => input_wf_memory_new
+  use locreg_operations
   implicit none
 
   !Global Variables  
@@ -2982,7 +2986,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
 
  ! Daubechies to ISF
   npsir=1
-  call initialize_work_arrays_sumrho(1,Lzd_old%Glr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[Lzd_old%Glr],.true.,w)
   nbox = lzd_old%Glr%d%n1i*Lzd_old%Glr%d%n2i*Lzd_old%Glr%d%n3i
 
   psir_old = f_malloc((/ nbox, npsir, orbs%norbp /),id='psir_old')
@@ -3249,7 +3253,7 @@ subroutine input_wf_memory_new(nproc, iproc, atoms, &
   !$OMP END PARALLEL DO
   end do
 
-  call initialize_work_arrays_sumrho(1,Lzd%Glr,.true.,w) 
+  call initialize_work_arrays_sumrho(1,[Lzd%Glr],.true.,w) 
  
   ist=1
   loop_orbs_back: do iorb=1,orbs%norbp

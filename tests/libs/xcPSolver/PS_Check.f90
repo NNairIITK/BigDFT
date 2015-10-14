@@ -15,7 +15,7 @@ program PS_Check
    use dictionaries
    use module_xc
    use module_interfaces
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use yaml_output
    use module_types, only: TCAT_EXCHANGECORR
    use gaussians, only: initialize_real_space_conversion,finalize_real_space_conversion
@@ -202,7 +202,7 @@ program PS_Check
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
 !print *,'xc',iproc,pkernel%iproc,pkernel%mpi_env%nproc,pkernel%mpi_comm,MPI_COMM_WORLD
-      call XC_potential(geocode,'G',pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,hx,hy,hz,&
+      call XC_potential(geocode,'G',pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,[hx,hy,hz],&
            rhopot,eexcu,vexcu,ispden,rhocore,xc_pot,xcstr)
 !      print *,'xcend',iproc
       !eexcu=0.0_gp
@@ -530,7 +530,7 @@ program PS_Check
 
 
       call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,.false.,.false.,&
-      n3d,n3p,n3pi,i3xcsh,i3s)
+      0,n3d,n3p,n3pi,i3xcsh,i3s)
 
       !starting point of the three-dimensional arrays
       if (distcode == 'D') then
@@ -634,7 +634,7 @@ program PS_Check
       nullify(rhocore)
 
       call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc, &
-                           & n01,n02,n03,xc_isgga(xc), (xc%ixc /= 13), n3d,n3p,n3pi,i3xcsh,i3s)
+           & n01,n02,n03,xc_isgga(xc), (xc%ixc /= 13), 0,n3d,n3p,n3pi,i3xcsh,i3s)
 
       !starting point of the three-dimensional arrays
       if (distcode == 'D') then
@@ -728,20 +728,13 @@ program PS_Check
          istxc=istpot
       end if
 
-      call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,hx,hy,hz,&
+      call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,[hx,hy,hz],&
       rhopot,eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
       call H_potential(distcode,pkernel,rhopot,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
       !compare the values of the analytic results (no dependence on spin)
       call compare(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,nproc,pkernel%mpi_env%mpi_comm,&
            n01,n02,n3p,1,potential(istpot),rhopot(1,1,1,1),&
       'ANACOMPLET ')!//message)
-
-      !!$    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-      !!$         rhopot(1,1,1,1),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,nspden,quiet='yes')
-      !!$    
-      !!$    !compare the values of the analytic results (no dependence on spin)
-      !!$    call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,i3xcsh+1,1),&
-      !!$         'ANACOMPLET '//message)
 
       !compare also the xc_potential
       if (xc%ixc/=0) call compare(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,nproc,&
@@ -776,7 +769,7 @@ program PS_Check
 !!$         call memocc(i_stat,i_all,'xc_temp',subname)
       end if
 
-      call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,hx,hy,hz,&
+      call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,[hx,hy,hz],&
       rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
 
       call H_potential(distcode,pkernel,rhopot(1,1,1,1),pot_ion(istpoti),ehartree,offset,xc%ixc /= 0,quiet='yes') !optional argument
@@ -796,11 +789,6 @@ program PS_Check
       call compare(pkernel%mpi_env%iproc + pkernel%mpi_env%igroup,-1,pkernel%mpi_env%mpi_comm,n01,n02,nspden*n3p,1,test(istpot),&
       rhopot(1,1,1,1),'COMPLETE   ')!)//message)
 
-      !!$    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-      !!$         rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,eexcu,vexcu,offset,.true.,nspden,quiet='yes')
-      !!$    !then compare again, but the complete result
-      !!$    call compare(iproc,nproc,n01,n02,nspden*n3p,1,test(istpot),&
-      !!$         rhopot(1,1,i3xcsh+1,1),'COMPLETE   '//message)
       if (pkernel%mpi_env%iproc + pkernel%mpi_env%igroup==0) then
          call yaml_mapping_open('Energy differences')
          call yaml_map('Hartree',ehref-ehartree,fmt="(1pe20.12)")

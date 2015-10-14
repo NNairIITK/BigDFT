@@ -204,6 +204,7 @@ void FC_FUNC(memsetzero,MEMSETZERO)(void *buf, long long int *ln)
   memset(buf, 0, nbytes);
 }
 
+
 void FC_FUNC(copycbuffer, COPYCBUFFER)(char *to, void **cbuf, long *ln)
 {
   char *from = (char*)*cbuf;

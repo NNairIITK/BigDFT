@@ -19,7 +19,6 @@ module module_xc
   use xc_f90_lib_m
   use interfaces_41_xc_lowlevel
   use yaml_output
-  use dictionaries, only: f_err_raise
 
   implicit none
 
@@ -614,7 +613,9 @@ contains
        deallocate(exc_)
        deallocate(vxc_)
     else
-       write(0,*) "ERROR: XC module not initialised."
+       call f_err_throw("XC module not initialised, the object kind is '"//xcObj%kind//&
+            "', which is neither XC_LIBXC ("+XC_LIBXC//") nor XC_ABINIT ("+XC_ABINIT//')',&
+            err_name='BIGDFT_RUNTIME_ERROR')
     end if
 
     call f_release_routine()

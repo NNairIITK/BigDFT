@@ -59,7 +59,6 @@ module foe_base
 
 
     subroutine foe_data_deallocate(foe_obj)
-      use dynamic_memory
       implicit none
       type(foe_data) :: foe_obj
       call f_free_ptr(foe_obj%ef)

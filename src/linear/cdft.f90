@@ -17,7 +17,6 @@ subroutine calculate_weight_matrix_lowdin_wrapper(cdft,tmb,input,ref_frags,calcu
   use module_types
   use module_fragments
   use constrained_dft
-  use module_interfaces
   implicit none
   integer, intent(in) :: meth_overlap
   type(cdft_data), intent(inout) :: cdft
@@ -58,7 +57,6 @@ subroutine calculate_weight_matrix_lowdin(weight_matrix,weight_matrix_,nfrag_cha
   use module_base
   use module_types
   use module_fragments
-  use module_interfaces, except_this_one => calculate_weight_matrix_lowdin
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
@@ -186,7 +184,6 @@ subroutine calculate_weight_matrix_lowdin_gradient_fd(weight_matrix,weight_matri
   use module_base
   use module_types
   use module_fragments
-  use module_interfaces
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=), &
                                allocate_matrices, deallocate_matrices
@@ -398,7 +395,6 @@ subroutine calculate_weight_matrix_lowdin_gradient(weight_matrix,weight_matrix_,
   use module_base
   use module_types
   use module_fragments
-  use module_interfaces
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized
   use sparsematrix_base, only: matrices, sparse_matrix, sparsematrix_malloc_ptr, &
@@ -653,7 +649,7 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   use module_base
   use module_types
   use constrained_dft, only: cdft_data
-  use module_interfaces
+  use module_interfaces, only: LocalHamiltonianApplication
   use module_fragments
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication
@@ -815,13 +811,13 @@ subroutine calculate_weight_function(in,ref_frags,cdft,ndimrho_all_fragments,rho
   ! plot the weight function, fragment density and initial total density (the denominator) to check
 
   call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'fragment_density.cube', &
-       atoms,rxyz,denspot%dpbox,1,ref_frags(ref_frag_charged)%fbasis%density)
+       atoms,rxyz,denspot%pkernel,1,ref_frags(ref_frag_charged)%fbasis%density)
 
   call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'weight_function.cube', &
-       atoms,rxyz,denspot%dpbox,1,cdft%weight_function)
+       atoms,rxyz,denspot%pkernel,1,cdft%weight_function)
 
   call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'initial_density.cube', &
-       atoms,rxyz,denspot%dpbox,1,denspot%rhov)
+       atoms,rxyz,denspot%pkernel,1,denspot%rhov)
 
   ! deallocate fragment density here as we don't need it any more
   if (associated(ref_frags(ref_frag_charged)%fbasis%density)) call f_free_ptr(ref_frags(ref_frag_charged)%fbasis%density)

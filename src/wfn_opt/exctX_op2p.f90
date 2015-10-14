@@ -69,7 +69,7 @@ contains
      dpsir_i,dpsir_j)
     use module_base
     use module_types
-    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+    use Poisson_Solver, except_dp => dp, except_gp => gp
     implicit none
     logical, intent(in) :: remote_result
     integer, intent(in) :: istep,iproc,igroup,isorb,jsorb,iorbs,jorbs,norbi,norbj
@@ -264,6 +264,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   use module_types
   use module_xc
   use module_exctx_op2p
+  use locreg_operations
   implicit none
   integer, intent(in) :: iproc,nproc
   type(xc_info), intent(in) :: xc
@@ -281,7 +282,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   type(OP2P_descriptors) :: OP2P
   real(wp), dimension(:,:), allocatable :: psir
 
-  call initialize_work_arrays_sumrho(1,lr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
   psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
 
   call f_zero(dpsir)
