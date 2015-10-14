@@ -111,11 +111,10 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
      call system_createKernels(denspot, (verbose > 1))
-     !if (denspot%pkernel%method .hasattr. 'rigid') then
-     !   call epsilon_cavity(atoms,rxyz,denspot%pkernel)
-     !   !allocate cavity, in the case of nonvacuum treatment
-     !else 
-     if (denspot%pkernel%method /= 'VAC') then 
+     if (denspot%pkernel%method .hasattr. 'rigid') then
+        call epsilon_cavity(atoms,rxyz,denspot%pkernel)
+        !allocate cavity, in the case of nonvacuum treatment
+     else if (denspot%pkernel%method /= 'VAC') then 
           call pkernel_allocate_cavity(denspot%pkernel,&
           vacuum=.not. (denspot%pkernel%method .hasattr. 'sccs'))
 
