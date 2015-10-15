@@ -279,6 +279,18 @@ module module_input_keys
      character(len=64) :: mm_paramset
      character(len=64) :: mm_paramfile
 
+     !MD input keywords
+     integer :: mdsteps
+     integer :: md_printfrq
+     real(gp) :: temperature
+     real(gp) :: dt
+     logical  :: no_translation
+     logical  :: nhc
+     integer  :: nhnc
+     integer  :: nmultint
+     integer  :: nsuzuki
+     real(gp) :: nosefrq 
+
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
@@ -1481,6 +1493,8 @@ contains
              in%run_mode=CP2K_RUN_MODE
           case('dftbp')
              in%run_mode=DFTBP_RUN_MODE
+          case('multi')
+             in%run_mode=MULTI_RUN_MODE
           end select
        case(MM_PARAMSET)
           in%mm_paramset=val
@@ -1855,6 +1869,39 @@ contains
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
+!NNdbg
+    case (MD_VARIABLES)
+       select case (trim(dict_key(val)))
+       case (MDSTEPS)
+          in%mdsteps = val
+       case (PRINT_FREQUENCY)
+          in%md_printfrq = val
+       case (TEMPERATURE)
+          in%temperature = val
+       case (TIMESTEP)
+          in%dt = val
+       case (NO_TRANSLATION) !.true. or .false. ?
+          in%no_translation = val
+       case (THERMOSTAT) !string
+         str = dict_value(val) 
+         if (trim(str).eqv."nose_hoover_chain") then
+           in%nhc=.true.
+         else
+           in%nhc=.false.
+         end if
+       case (NOSE_CHAIN_LENGTH) 
+         in%nhnc = val
+       case (NOSE_MTS_SIZE)
+         in%nmultint = val
+       case (NOSE_YOSHIDA_FACTOR)
+         in%nsuzuki = val
+       case (NOSE_FREQUENCY)
+         in%nosefrq = val
+       case DEFAULT
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+!NNdbg
     case (MIX_VARIABLES)
        ! the MIX variables ------------------------------------------------------
        select case (trim(dict_key(val)))
@@ -2250,6 +2297,23 @@ contains
 
   END SUBROUTINE geopt_input_variables_default
 
+  !> Assign default values for MD variables
+  subroutine md_input_variables_default(in)
+    use module_defs, only: UNINITIALIZED
+    implicit none
+    type(input_variables), intent(inout) :: in
+
+    in%mdsteps=0
+    in%md_printfrq = 1
+    in%temperature = 300.d0
+    in%dt = 20.d0
+    in%no_translation = .false.
+    in%nhc=.false.
+    in%nhnc = 3
+    in%nmultint = 1
+    in%nsuzuki  = 7
+    in%nosefrq  = 3000.d0
+  END SUBROUTINE md_input_variables_default 
 
   !> Assign default values for self-interaction correction variables
   subroutine sic_input_variables_default(in)
@@ -2900,6 +2964,24 @@ contains
           call yaml_mapping_close()
        end if
     end if
+    !MD input
+    if (in%mdsteps > 0) then
+       call yaml_comment('Molecular Dynamics Input Parameters',hfill='-')
+       call yaml_mapping_open('Molecular Dynamics Parameters')
+       call yaml_map('Maximum MD steps',in%mdsteps)
+       call yaml_map('Printing Frequency', in%md_printfrq)
+       call yaml_map('Initial Temperature (K)', in%temperature, fmt='(1pe7.1)')
+       call yaml_map('Time step (a.u.)',in%dt,fmt='(1pe7.1)')
+       call yaml_map('Freeze Translation ', in%no_translation)
+       call yaml_map('Nose Hoover Chain Thermostat', in%nhc)
+       if(in%nhc)then
+         call yaml_map('Length of Nose Hoover Chains', in%nhnc)
+         call yaml_map('Multiple Time Step for Nose Hoover Chains', in%nmultint)
+         call yaml_map('Yoshida-Suzuki factor for Nose Hoover Chains', in%nsuzuki)
+         call yaml_map('Frequency of Nose Hoover Chains', in%nosefrq)
+       end if
+       call yaml_mapping_close()
+    end if
 
     !Output for K points
     if (atoms%astruct%geocode /= 'F') then
@@ -3085,10 +3167,10 @@ contains
   END SUBROUTINE print_dft_parameters
 
   !> Read from all input files and build a dictionary
-  subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
+  recursive subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use wrapper_MPI, only: mpi_environment
-    use public_keys, only: POSINP,IG_OCCUPATION
+    use public_keys, only: POSINP, IG_OCCUPATION, MODE_VARIABLES, SECTIONS, METHOD_KEY
     use yaml_output
     use yaml_strings, only: f_strcpy
     use f_utils, only: f_file_exists
@@ -3103,15 +3185,16 @@ contains
     type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
     !Local variables
     logical :: exists
-    type(dictionary), pointer :: at
+    type(dictionary), pointer :: at, iter
     character(len = max_field_length) :: str, rad
 
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
     !possible overwrite with a specific posinp file.
-    call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
-
+    if (len_trim(posinp_name) > 0) then
+       call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
+    end if
     if (has_key(dict,POSINP)) then
        str = dict_value(dict //POSINP)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
@@ -3164,6 +3247,24 @@ contains
        end if
     end if
 
+    ! Add section files, if any.
+    if (has_key(dict, MODE_VARIABLES)) then
+       str = dict_value(dict // MODE_VARIABLES // METHOD_KEY)
+       if (trim(str) == 'multi' .and. has_key(dict // MODE_VARIABLES, SECTIONS)) then
+          iter => dict_iter(dict // MODE_VARIABLES // SECTIONS)
+          do while (associated(iter))
+             str = dict_value(dict // dict_value(iter))
+             if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+                if (len_trim(str) > 5 .and. str(max(1,len_trim(str)-4):len_trim(str)) == ".yaml") then
+                   call user_dict_from_files(dict // dict_value(iter), str(1:len_trim(str)-5), "", mpi_env)
+                else
+                   call user_dict_from_files(dict // dict_value(iter), str, "", mpi_env)
+                end if
+             end if
+             iter => dict_next(iter)
+          end do
+       end if
+    end if
   end subroutine user_dict_from_files
 
 

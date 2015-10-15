@@ -94,7 +94,7 @@ module Poisson_Solver
    ! Routine that creates the kernel
    public :: pkernel_init, pkernel_set, pkernel_free, pkernel_set_epsilon, pkernel_allocate_cavity
    ! Calculate the poisson solver
-   public :: H_potential 
+   public :: H_potential,Electrostatic_Solver
    ! Calculate the allocation dimensions
    public :: P_FFT_dimensions, S_FFT_dimensions, F_FFT_dimensions, W_FFT_dimensions, xc_dimensions
    public :: dp,gp

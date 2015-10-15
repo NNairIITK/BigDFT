@@ -27,6 +27,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use communications_init, only: orbitals_communicators
   use Poisson_Solver, only: pkernel_allocate_cavity
   use public_enums
+  use f_enums
   use locreg_operations
   implicit none
   integer, intent(in) :: iproc,nproc 
@@ -1144,7 +1145,8 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
   character(len=*), parameter :: subname='calculate_rhocore'
   integer :: ityp,iat,j3,i1,i2 !,ierr,ind
   real(wp) :: tt
-  real(gp) :: rx,ry,rz,rloc,cutoff
+  real(gp) :: rx,ry,rz,rloc,cutoff,chgat
+  real(gp), dimension(:), allocatable :: chg_at
   
 
   !check for the need of a nonlinear core correction
@@ -1161,16 +1163,14 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 
   if (at%donlcc) then
      !allocate pointer rhocore
+     chg_at=f_malloc0(at%astruct%ntypes,id='chg_at')
      rhocore = f_malloc0_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
      !perform the loop on any of the atoms which have this feature
      do iat=1,at%astruct%nat
         ityp=at%astruct%iatype(iat)
-!!$        filename = 'nlcc.'//at%astruct%atomnames(ityp)
-!!$        inquire(file=filename,exist=exists)
-!!$        if (exists) then
         if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
              at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
-           if (bigdft_mpi%iproc == 0) call yaml_map('NLCC, Calculate core density for atom',trim(at%astruct%atomnames(ityp)))
+           !if (bigdft_mpi%iproc == 0) call yaml_map('NLCC, Calculate core density for atom',trim(at%astruct%atomnames(ityp)))
            rx=rxyz(1,iat) 
            ry=rxyz(2,iat)
            rz=rxyz(3,iat)
@@ -1179,8 +1179,8 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
            cutoff=10.d0*rloc
 
            call calc_rhocore_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
-
+                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,chgat,rhocore)
+           chg_at(ityp)=chg_at(ityp)+chgat
         end if
      end do
 
@@ -1211,8 +1211,17 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 
      if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      tt=tt*hxh*hyh*hzh
-     if (bigdft_mpi%iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
-
+     if (bigdft_mpi%iproc == 0) then
+        call yaml_mapping_open('Analytic core charges for atom species')
+        do ityp=1,at%astruct%ntypes
+           if (chg_at(ityp) /= 0.0_gp) &
+                call yaml_map(trim(at%astruct%atomnames(ityp)),chg_at(ityp),fmt='(f15.7)')
+        end do
+        call yaml_mapping_close()
+        call yaml_map('Total core charge',sum(chg_at),fmt='(f15.7)')
+        call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
+     end if
+     call f_free(chg_at)
   else
      !No NLCC needed, nullify the pointer 
      nullify(rhocore)
@@ -1345,8 +1354,8 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
      !convert the core charge fraction qcore to the amplitude of the Gaussian
      !multiplied by 4pi. This is the convention used in nlccpar(1,:).
      !fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
-     sqrt2pi=sqrt(0.5_gp*fourpi)
-     qcore=fourpi*qcore*real(nzatom-nelpsp,gp)/&
+     sqrt2pi=sqrt(0.5_gp*4.0_gp*pi_param)
+     qcore=4.0_gp*pi_param*qcore*real(nzatom-nelpsp,gp)/&
           (sqrt2pi*rcore)**3
      donlcc=.true.
   else

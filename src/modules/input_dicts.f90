@@ -6,7 +6,6 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-
 !> Module reading the old format (before 1.7) for the input
 module input_old_text_format
   use yaml_strings, only: operator(.eqv.)
@@ -122,6 +121,11 @@ contains
     nullify(vals)
     call read_geopt_from_text_format(mpi_env%iproc,vals, trim(f0))
     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
+
+    call set_inputfile(f0, radical, MD_VARIABLES)
+    nullify(vals)
+    call read_md_from_text_format(mpi_env%iproc,vals, trim(f0))
+    if (associated(vals)) call set(dict//MD_VARIABLES, vals)
 
     call set_inputfile(f0, radical, MIX_VARIABLES)
     nullify(vals)
@@ -392,6 +396,52 @@ contains
     call input_free(.false.)
 
   END SUBROUTINE read_geopt_from_text_format
+
+  !> Read the input variables needed for MD 
+  !! Every argument should be considered as mandatory
+  subroutine read_md_from_text_format(iproc,dict,filename)
+    use module_base
+    use module_input
+    use public_keys
+    use dictionaries
+    implicit none
+    integer, intent(in) :: iproc
+    character(len=*), intent(in) :: filename
+    type(dictionary), pointer :: dict
+    !local variables
+    character(len=*), parameter :: subname='read_md_from_text_format'
+    integer :: i
+    logical :: exists
+
+    character(len = 5) :: dummy_str
+    integer :: dummy_int
+    real(gp) :: dummy_real
+
+    !geometry input parameters
+    call input_set_file(iproc,(iproc == 0),trim(filename),exists,MD_VARIABLES)  
+    !call the variable, its default value, the line ends if there is a comment
+    if (.not. exists) then
+       call input_free(.false.)
+       return
+    end if
+
+    if (.not. associated(dict)) call dict_init(dict)
+
+    call input_var(dummy_int,"0",dict // MDSTEPS, comment = "")
+    call input_var(dummy_int,"1",dict // PRINT_FREQUENCY, comment = "")
+    call input_var(dummy_real,'300.0',dict // TEMPERATURE)
+    call input_var(dummy_real,'20.0',dict // TIMESTEP,comment="")
+    call input_var(dummy_str,"NO_TRANSLATION",dict // NO_TRANSLATION, comment = "")
+
+    call input_var(dummy_str,"NOSE_HOOVER_CHAINS",dict // THERMOSTAT, comment = "")
+    call input_var(dummy_int,'3',dict // NOSE_CHAIN_LENGTH,comment="")
+    call input_var(dummy_int,'1',dict // NOSE_MTS_SIZE,comment="")
+    call input_var(dummy_int,'7',dict // NOSE_YOSHIDA_FACTOR,comment="")
+    call input_var(dummy_real,'3000.0',dict // NOSE_FREQUENCY,comment="")
+
+    call input_free(.false.)
+
+  END SUBROUTINE read_md_from_text_format
 
   !> Read the input variables needed for the geometry optmization
   !!    Every argument should be considered as mandatory
@@ -1380,6 +1430,8 @@ contains
           call set(run // RADICAL_NAME, trim(run_id))
        else
           call set(run // RADICAL_NAME, LOGFILE) !this is if the logfile is then reused as input file
+          call set(run // INPUT_NAME, " ")
+          call set(run // POSINP, " ")
        end if
     end if
     if (present(input_id)) call set(run // INPUT_NAME, trim(input_id))
@@ -1439,6 +1491,7 @@ contains
     if (present(naming_id)) then
        if (RADICAL_NAME .in. run) then
           naming_id = run // RADICAL_NAME
+          if (trim(naming_id) == LOGFILE) call f_zero(naming_id)
        else
           call f_zero(naming_id)
           !naming_id = " "
@@ -1488,15 +1541,15 @@ contains
     use yaml_strings, only: operator(.eqv.)
     use module_base, only: bigdft_mpi
     use public_keys, only: POSINP, PERF_VARIABLES, DFT_VARIABLES, KPT_VARIABLES, &
-         & GEOPT_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
+         & GEOPT_VARIABLES, MD_VARIABLES, MIX_VARIABLES, SIC_VARIABLES, TDDFT_VARIABLES, LIN_GENERAL, &
          & LIN_BASIS, LIN_KERNEL, LIN_BASIS_PARAMS, OCCUPATION, IG_OCCUPATION, FRAG_VARIABLES, &
-         & MODE_VARIABLES
+         & MODE_VARIABLES, SECTIONS
     implicit none
     type(dictionary), pointer :: dict
     !local variables
     character(len=*), parameter :: F_IMPORT_KEY='import'
     logical :: found,loginput
-    type(dictionary), pointer :: valid_entries,valid_patterns
+    type(dictionary), pointer :: valid_entries,valid_patterns,mode,sect
     type(dictionary), pointer :: iter,invalid_entries,iter2
 
 
@@ -1513,6 +1566,7 @@ contains
          .item. DFT_VARIABLES,&   
          .item. KPT_VARIABLES,&   
          .item. GEOPT_VARIABLES,& 
+         .item. MD_VARIABLES,& 
          .item. MIX_VARIABLES,&   
          .item. SIC_VARIABLES,&   
          .item. TDDFT_VARIABLES,& 
@@ -1524,8 +1578,19 @@ contains
          .item. IG_OCCUPATION,&
          .item. FRAG_VARIABLES,&
          .item. F_IMPORT_KEY])
+    ! If we have mode // sections, then, we need to exclude all
+    ! section keys, they will be checked later.
+    nullify(mode)
+    mode = dict .get. MODE_VARIABLES
+    nullify(sect)
+    sect = mode .get. SECTIONS
+    iter=>dict_iter(sect)
+    do while(associated(iter))
+       call add(valid_entries, dict_value(iter))
+       iter=>dict_next(iter)
+    end do
 
-    !then the list of vaid patterns
+    !then the list of valid patterns
     valid_patterns=>list_new(&
          .item. 'psppar' &
          )
@@ -1585,7 +1650,7 @@ contains
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
     integer, parameter :: ntrials=1
-    integer :: ierror,lgt,unit_log,ierrr,trials
+    integer :: lgt,unit_log,ierrr,trials
     integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
     character(len=500) :: logfilename,path
@@ -1898,9 +1963,9 @@ contains
           end if
        end do
     else
-       do ikpt = 0, nkpts - 1, 1
-          call fill_default(ikpt * norb, 1, qelec_up, norbu)
-          call fill_default(ikpt * norb + norbu, 1, qelec_down, norbd)
+       do ikpt = 1, nkpts, 1
+          call fill_default((ikpt - 1) * norb, 1, qelec_up, norbu)
+          call fill_default((ikpt - 1) * norb + norbu, 1, qelec_down, norbd)
           if (associated(occup_src)) then
              write(kpt_key, "(A)") "K point" // trim(yaml_toa(ikpt, fmt = "(I0)"))
              if (ikpt == 0 .and. .not. has_key(occup_src, kpt_key)) then
@@ -2130,4 +2195,3 @@ contains
     if (has_key(dict // GEOPT_VARIABLES, NEB_DAMP)) damp_ = dict // GEOPT_VARIABLES // NEB_DAMP
   end subroutine neb_set_from_dict
 end module module_input_dicts
-

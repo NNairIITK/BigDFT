@@ -58,7 +58,8 @@ module PStypes
      !> input guess vectors to be preserved for future use
      !!or work arrays, might be of variable dimension
      !!(either full of distributed)
-     real(dp), dimension(:,:), pointer :: rho,pot
+     real(dp), dimension(:,:), pointer :: pot
+     real(dp), dimension(:,:), pointer :: rho
      !> Polarization charge vector for print purpose only.
      real(dp), dimension(:,:), pointer :: rho_pol
      !> arrays for the execution of the PCG algorithm
@@ -157,10 +158,6 @@ module PStypes
      character(len=1) :: datacode
      !> integer variable setting the verbosity, from silent (0) to high
      integer :: verbosity_level
-     !> add pot_ion to the final potential
-     logical :: add_pot_ion
-     !> add rho_ion to the initial density potential
-     logical :: add_rho_ion
      !> if .true., and the cavity is set to 'sccs' attribute, then the epsilon is updated according to rhov
      logical :: update_cavity
      !> if .true. calculate the stress tensor components.
@@ -182,7 +179,7 @@ module PStypes
 
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
-  public :: ps_allocate_lowlevel_workarrays
+  public :: ps_allocate_lowlevel_workarrays,PSolver_options_null
   public :: release_PS_workarrays,PS_release_lowlevel_workarrays
 
 contains
@@ -196,6 +193,21 @@ contains
     e%cavitation =0.0_gp
     e%strten     =0.0_gp
   end function PSolver_energies_null
+
+  pure function PSolver_options_null() result(o)
+    implicit none
+    type(PSolver_options) :: o
+
+    o%datacode           ='X'
+    o%verbosity_level    =0
+    o%update_cavity      =.false.
+    o%calculate_strten   =.false.
+    o%use_input_guess    =.false.
+    o%cavity_info        =.false.
+    o%only_electrostatic =.true.
+    o%potential_integral =0.0_gp
+   end function PSolver_options_null
+
 
   pure function FFT_metadata_null() result(d)
     implicit none
@@ -410,10 +422,11 @@ contains
        kernel%w%q=f_malloc0_ptr([n1,n23],id='q')
        kernel%w%p=f_malloc0_ptr([n1,n23],id='p')
        kernel%w%z=f_malloc_ptr([n1,n23],id='z')
+       kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
     case('PI')
-       kernel%w%pot=f_malloc_ptr(kernel%ndims,id='pot')
-       kernel%w%rho=f_malloc0_ptr(kernel%ndims,id='rho')
-       kernel%w%rho_pol=f_malloc_ptr(kernel%ndims,id='rho_pol')
+       kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
+       kernel%w%rho=f_malloc0_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='rho')
+       kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
     end select
 
   end subroutine PS_allocate_lowlevel_workarrays
@@ -438,9 +451,10 @@ contains
        call f_free_ptr(kernel%w%q)
        call f_free_ptr(kernel%w%p)
        call f_free_ptr(kernel%w%z)
+       call f_free_ptr(kernel%w%rho_pol) !>>>>>>>>>>here the switch
     case('PI')
        call f_free_ptr(kernel%w%rho)
-       call f_free_ptr(kernel%w%rho_pol)
+       call f_free_ptr(kernel%w%rho_pol) !>>>>>>>>>>here the switch
     end select
 
   end subroutine PS_release_lowlevel_workarrays
@@ -459,15 +473,16 @@ contains
 
     select case(trim(str(method)))
     case('PCG')
-       w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol')
+       !w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
        w%corr=f_malloc_ptr([n1,n23],id='corr')
        w%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
        w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
     case('PI')
-       w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol')
+       !w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
        w%dlogeps=f_malloc_ptr([3,ndims(1),ndims(2),ndims(3)],id='dlogeps')
        w%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
-       w%epsinnersccs=f_malloc_ptr([n1,ndims(2)*ndims(3)],id='epsinnersccs')
+       w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
+       !w%epsinnersccs=f_malloc_ptr([n1,ndims(2)*ndims(3)],id='epsinnersccs')
     end select
    end subroutine PS_allocate_cavity_workarrays
 

@@ -1586,6 +1586,7 @@ surface_graphene:
  D eF: 1.1e-9
  diff: 2.101e-11
  Total ionic charge: 1.2e-11
+ Total charge: 1.01e-10
 
 multipoles_OH-:
  eF: 2.6e-6
@@ -1852,3 +1853,7 @@ extendedfrags_write:
  Clean forces norm (Ha/Bohr): 1.2e-11
  fnrm2: 2.8e-11
  Force Norm (Hartree/Bohr): 2.4e-11
+
+Cavity_H2OfrigidPCG:
+ Keys to ignore:
+   - rmult

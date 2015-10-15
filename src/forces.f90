@@ -72,6 +72,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
        0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
 
+
   !for a taksgroup Poisson Solver, multiply by the ratio.
   !it is important that the forces are bitwise identical among the processors.
   if (psolver_groupsize < nproc) call vscal(3*atoms%astruct%nat,real(psolver_groupsize,gp)/real(nproc,gp),fxyz(1,1),1)
@@ -99,7 +100,6 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   end if
   if (extra_timing) call cpu_time(tr1)
   if (extra_timing) time1=real(tr1-tr0,kind=8)
-
 
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   !if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)

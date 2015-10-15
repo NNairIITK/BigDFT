@@ -171,6 +171,6 @@ module defs
   character(len=11),parameter :: pos_units = "angstroemd0"
   
 
-  include 'mpif.h'
+  !include 'mpif.h'
 
 END MODULE defs

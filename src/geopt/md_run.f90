@@ -6,23 +6,46 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+!FIXME: get number of SCF cycles and total CPU time for each SCF
+subroutine md(run_md,outs,nproc,iproc)
+
+   use module_base
+   use bigdft_run
+
+  IMPLICIT NONE
+  TYPE(run_objects), intent(inout) :: run_md
+  TYPE(state_properties), intent(inout) :: outs 
+  integer, intent(in) :: nproc, iproc
+  call f_routine(id='md')
+
+!CASE BOMD (NVT,NVE)
+  call bomd(run_md,outs,nproc,iproc)
+!TODO other cases will be developed soon: CPMD/XL-BOMD (NVT,NVE)
+!TODO NPT
+
+  call f_release_routine()
+END subroutine md
+
 !> routine to use NH MD files inside BigDFT geometry drivers
-subroutine md_run(run_md,outs)
+subroutine bomd(run_md,outs,nproc,iproc)
   !use nose_hoover_chains_data
   use nose_hoover_chains
   use module_base
   use bigdft_run
   use yaml_output
   implicit none
+!
+  TYPE(run_objects), intent(inout) :: run_md
+  TYPE(state_properties), intent(inout) :: outs 
+  integer, intent(in) :: nproc, iproc
+!
+  
   INTEGER ierr, iat, jatm, ii, maxsteps, istep, printfrq, ndof
 
   CHARACTER(LEN=50) :: comment,naming_id
   CHARACTER(LEN=60) :: run_id
 
   INTEGER :: natoms
-
-  TYPE(run_objects) :: run_md
-  TYPE(state_properties) :: outs 
 
   !  TYPE(nhc_type)  :: nhcdata
   !this will become an input variable
@@ -39,30 +62,26 @@ subroutine md_run(run_md,outs)
   character(len=*), parameter :: subname='bigDFT_AIMD'
   LOGICAL :: ionode, no_translation
 
-
-  !FIXME the following keywords >>>>>>>>>>>
+  call f_routine(id='bomd')
 
   natoms=bigdft_nat(run_md)
+
   !Getting a local copy of the coordinates
   rxyz => bigdft_get_rxyz_ptr(run_md)
 
   ionode=.false.
-  IF(bigdft_mpi%iproc==0)ionode=.true. 
+  IF(iproc==0)ionode=.true. 
 
+  maxsteps= run_md%inputs%mdsteps
+  dt= run_md%inputs%dt 
+  T0ions=run_md%inputs%temperature
+  printfrq=run_md%inputs%md_printfrq
+  no_translation=run_md%inputs%no_translation
 
-  maxsteps= run_md%inputs%ncount_cluster_x !FIXME
+  call initialize_NHC_data(nhc,run_md%inputs%nhc, &
+                                run_md%inputs%nhnc, &
+                                run_md%inputs%nsuzuki,run_md%inputs%nmultint,run_md%inputs%nosefrq) 
 
-  dt= run_md%inputs%dtion !FIXME
-
-  T0ions=300.d0 !Setting Temperature  !FIXME this should be read from the input
-
-  printfrq=5
-
-  no_translation=.false.
-
-  call initialize_NHC_data(nhc,nhchain=.false.,nospeat=.false.,nhnc=3,nsuzuki=7,nmultint=1,nosefrq=3600.0d0)
-
-  !FIXME <<<<<< till here
 
 
   if(no_translation)call get_com(natoms,com,rxyz)
@@ -73,18 +92,21 @@ subroutine md_run(run_md,outs)
   else
      ndof=3*natoms
   end if
-
-  ALLOCATE(vxyz(3,natoms))
-  ALLOCATE(fxyz(3,natoms))
-  ALLOCATE(amass(natoms))
-  ALLOCATE(alabel(natoms))
+ 
+  vxyz = f_malloc_ptr([3,natoms],id='vxyz')
+  fxyz = f_malloc_ptr([3,natoms],id='fxyz')
+  amass = f_malloc_ptr(natoms,id='amass')
+  alabel = f_malloc_str_ptr(len(alabel),natoms,id='alabel')
+!!not permitted directly, see http://bigdft.org/Wiki/index.php?title=Coding_Rules#Low_level_operations
+!!$  ALLOCATE(vxyz(3,natoms))
+!!$  ALLOCATE(fxyz(3,natoms))
+!!$  ALLOCATE(amass(natoms))
+!!$  ALLOCATE(alabel(natoms))
 
   DO iat=1,natoms
      ii=run_md%atoms%astruct%iatype(iat)
      amass(iat)  = run_md%atoms%amu(ii)*amu_to_au
      alabel(iat) = run_md%atoms%astruct%atomnames(ii)
-     !    IF (bigdft_mpi%iproc==0)& 
-     !    print "(2x,a,2i8,f16.6,A5)", "AMASS|",iat, ii, amass(iat),alabel(iat)
   END DO
 
 
@@ -95,9 +117,9 @@ subroutine md_run(run_md,outs)
   Tions=T0ions
 
   !Initialize Nose Variables
-  IF(nhc%NHCHAIN)THEN
-     CALL NOSE_INIT(natoms,ndof,dt,T0ions,amass,vxyz,nhc)
-     CALL NOSE_ENERGY(natoms,ndof,T0ions,nhc)
+  IF(nhc%nhchain)THEN
+     call nose_init(natoms,ndof,dt,T0ions,amass,vxyz,nhc)
+     call nose_energy(natoms,ndof,T0ions,nhc)
   END IF
 
 
@@ -113,19 +135,15 @@ subroutine md_run(run_md,outs)
 
   istep=0
 
+
   !MD printout energies
-  IF (bigdft_mpi%iproc==0)THEN 
+  IF (ionode)THEN 
      CALL write_md_trajectory(istep,natoms,alabel,rxyz,vxyz)
      CALL write_md_energy(istep,Tions,eke,epe,ete)
-     call yaml_comment('Starting MD steps',hfill='*')
-     call yaml_map('Time step (dt)',dt)
-     call yaml_map('Maximum number of steps (maxsteps)',maxsteps)
-     call yaml_map('Initial Temperature (T0ions)',T0ions)
-!!$     !print *, "*****************MD**********************"
-!!$     print *, "MD| dt =", dt
-!!$     print *, "MD| maxsteps =", maxsteps
-!!$     print *, "MD| T0ions =", T0ions
-!!$     print *, "*****************************************"
+     call yaml_comment('Starting MD',hfill='*')
+     call yaml_map('Number of Degrees of freedom',ndof)
+!     call yaml_map('Maximum number of steps (maxsteps)',maxsteps)
+!     call yaml_map('Initial Temperature (T0ions)',T0ions)
   END IF
 
 
@@ -157,24 +175,33 @@ subroutine md_run(run_md,outs)
      END IF
 
      CALL temperature(natoms,3,ndof,amass,vxyz,Tions,eke)
-     call yaml_map('enose', nhc%enose)
-     call yaml_map('istep',istep)
+!     call yaml_map('enose', nhc%enose)
+!     call yaml_map('istep',istep)
      !print *, "enose =", nhc%enose, "istep=",istep
 
      ete=epe+eke+nhc%enose
      !    ete=epe+eke
 
-     IF (bigdft_mpi%iproc==0) & 
+     IF (ionode) & 
           CALL write_md_energy(istep,Tions,eke,epe,ete)
 
-     IF (bigdft_mpi%iproc==0.and.mod(istep,printfrq)==0)& 
+     IF (ionode.and.mod(istep,printfrq)==0)& 
           CALL write_md_trajectory(istep,natoms,alabel,rxyz,vxyz)
 
      IF(istep+1.gt.maxsteps)exit MD_loop
   END DO MD_loop !MD loop ends here
   !----------------------------------------------------------------------!
 
-end subroutine md_run
+  !the deallocation of the pointers
+  call finalize_NHC_data(nhc)
+  call f_free_ptr(vxyz)
+  call f_free_ptr(fxyz)
+  call f_free_ptr(amass)
+  call f_free_str_ptr(len(alabel),alabel)
+
+  call f_release_routine()
+
+end subroutine bomd
 
 !>Initialize velocities for MD using Box-Muller Sampling
 SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
@@ -196,7 +223,7 @@ SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
         sigma=DSQRT(T0ions/au_to_k/amass(iat)) !Sqrt(kT/M_i) 
         vxyz(k,iat)=sigma*DSQRT(-2.D0*DLOG(dum(2)))*DCOS(2.D0*pi*dum(1))
         IF(iat+1.LE.natoms)then 
-           sigma=DSQRT(T0ions/au_to_k/amass(iat+1)) !Sqrt(kT/M_i) 
+           sigma=DSQRT(T0ions/au_to_k/amass(iat+1)) 
            vxyz(k,iat+1)=sigma*DSQRT(-2.D0*DLOG(dum(2)))*DSIN(2.D0*pi*dum(1))
         END IF
      END DO
@@ -248,7 +275,7 @@ SUBROUTINE temperature(natoms,ndim,ndof,amass,vxyz,Tinst,eke)
      END DO
   END DO
   eke=0.5d0*mv2
-  Tinst=0.5d0*mv2*au_to_k/DFLOAT(ndof)
+  Tinst=mv2*au_to_k/DFLOAT(ndof)
 END SUBROUTINE temperature
 
 
@@ -288,30 +315,46 @@ SUBROUTINE velocity_verlet_vel(dt,natoms,rxyz,vxyz,fxyz)
 END SUBROUTINE velocity_verlet_vel
 
 SUBROUTINE write_md_trajectory(istep,natoms,alabel,rxyz,vxyz)
+  use f_utils
   IMPLICIT NONE
   INTEGER :: istep, natoms
   REAL(KIND=8) :: rxyz(3,*), vxyz(3,*)
   CHARACTER(LEN=*) :: alabel(*)
   !
-  INTEGER :: iat
-  OPEN(111,FILE='Trajectory.xyz',STATUS='UNKNOWN',ACCESS='APPEND',FORM='FORMATTED')
-  WRITE(111,*)natoms
-  WRITE(111,'(A,I16)')'Step:',istep
+  INTEGER :: iat,unt
+  unt=111
+  call f_open_file(unt,FILE='Trajectory.xyz',status='UNKNOWN',position='APPEND',binary=.false.)
+  WRITE(unt,*)natoms
+  WRITE(unt,'(A,I16)')'Step:',istep
   DO iat=1,natoms
-     WRITE(111,'(A,6f16.6)')alabel(iat),rxyz(1:3,iat)*0.529,vxyz(1:3,iat)*0.529
+     WRITE(unt,'(A,6f16.6)')alabel(iat),rxyz(1:3,iat)*0.529,vxyz(1:3,iat)*0.529
   END DO
-  CLOSE(111)
+  call f_close(unt)
 END SUBROUTINE write_md_trajectory
 
 SUBROUTINE write_md_energy(istep,Tions,eke,epe,ete)
+  use yaml_output
+  use yaml_strings
+  use f_utils
   IMPLICIT NONE
   INTEGER :: istep
   REAL(KIND=8) :: Tions, eke, epe, ete
-  IF(istep.eq.0)PRINT "(2X,A,5A16)", "(MD)","ISTEP","TEMP.","EKE","EPE","ETE"
-  PRINT "(2X,A,I16,4F16.6)","(MD)",istep,Tions,eke,epe,ete
-  OPEN(111,FILE='energy.dat',STATUS='UNKNOWN',ACCESS='APPEND',FORM='FORMATTED')
-  WRITE(111,"(I16,4F16.6)")istep,Tions,eke,epe,ete
-  CLOSE(111)
+  !local variables
+  character(len=*), parameter :: fm='(f16.6)'
+  integer :: unt
+  unt = 111
+  !IF(istep.eq.0)PRINT "(2X,A,5A16)", "(MD)","ISTEP","TEMP.","EKE","EPE","ETE"
+  !PRINT "(2X,A,I16,4F16.6)","(MD)",istep,Tions,eke,epe,ete
+  call yaml_mapping_open("(MD)",flow=.true.)
+  call yaml_map('istep',istep,fmt='(i6)')
+  call yaml_map('T',Tions,fmt=fm)
+  call yaml_map('Eke',eke,fmt=fm)
+  call yaml_map('Epe',epe,fmt=fm)
+  call yaml_map('Ete',ete,fmt=fm)
+  call yaml_mapping_close()
+  call f_open_file(unt,FILE='energy.dat',STATUS='UNKNOWN',position='APPEND',binary=.false.)
+  WRITE(unt,"(I16,4F16.6)")istep,Tions,eke,epe,ete
+  call f_close(unt)
 END SUBROUTINE write_md_energy
 
 SUBROUTINE remove_lin_momentum(natoms,vxyz)
