@@ -10,21 +10,21 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!> Calculate the Hartree potential by solving the Poisson equation 
-!! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$@f
-!! from a given @f$\rho@f$, 
-!! for different boundary conditions an for different data distributions.
-!! Following the boundary conditions, it applies the Poisson Kernel previously calculated.
-!!    
-!! @warning
-!!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
-!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
-!!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
-!!    Moreover, for the cases with the exchange and correlation the density must be initialised
-!!    to 10^-20 and not to zero.
-!!
-!! @todo
-!!    Wire boundary condition is missing
+!!!>!> Calculate the Hartree potential by solving the Poisson equation 
+!!!>!! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$@f
+!!!>!! from a given @f$\rho@f$, 
+!!!>!! for different boundary conditions an for different data distributions.
+!!!>!! Following the boundary conditions, it applies the Poisson Kernel previously calculated.
+!!!>!!    
+!!!>!! @warning
+!!!>!!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
+!!!>!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
+!!!>!!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
+!!!>!!    Moreover, for the cases with the exchange and correlation the density must be initialised
+!!!>!!    to 10^-20 and not to zero.
+!!!>!!
+!!!>!! @todo
+!!!>!!    Wire boundary condition is missing
 subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
   use FDder
   implicit none
@@ -551,420 +551,420 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    if (present(stress_tensor)) stress_tensor=energies%strten
 
 return
-
-   call f_routine(id='H_potential')
-   
-   cudasolver=.false.
-   
-   !do not write anything on screen if quiet is set to yes
-   if (present(quiet)) then
-      if(quiet == 'yes' .or. quiet == 'YES') then
-         wrtmsg=.false.
-      else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
-         wrtmsg=.true.
-      else
-         call f_err_throw('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
-         !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
-      end if
-   else
-      wrtmsg=.true.
-   end if
-   wrtmsg=.true.
-   wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
-   ! rewrite
-
-   if (wrtmsg) call yaml_mapping_open('Poisson Solver')
-   
-   !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
-   call f_timing(TCAT_PSOLV_COMPUT,'ON')
-   !calculate the dimensions wrt the geocode
-   select case(kernel%geocode)
-   case('P')
-      if (wrtmsg) &
-           call yaml_map('BC','Periodic')
-      call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-           md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,.false.)
-   case('S')
-      if (wrtmsg) &
-           call yaml_map('BC','Surface')
-      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-           md1,md2,md3,nd1,nd2,nd3,&
-           kernel%mpi_env%nproc,kernel%igpu,.false.)
-   case('F')
-      if (wrtmsg) &
-           call yaml_map('BC','Free')
-      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-           md1,md2,md3,nd1,nd2,nd3,&
-           kernel%mpi_env%nproc,kernel%igpu,.false.)
-   case('W')
-      if (wrtmsg) &
-           call yaml_map('BC','Wires')
-      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-           md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
-   case default
-      call f_err_throw('geometry code ("'//kernel%geocode//'" not admitted in PSolver')
-      !stop 'PSolver: geometry code not admitted'
-   end select
-
-   if (kernel%method /= PS_VAC_ENUM .and. .not. present(rho_ion) .and. sumpion) then
-      call f_err_throw('Error in H_potential, for a cavity treatment the array rho_ion is needed')
-   end if
-   
-   cudasolver= (kernel%igpu==1 .and. .not. present(stress_tensor))
-   
-   if (wrtmsg) then
-      call yaml_map('Box',kernel%ndims,fmt='(i5)')
-      call yaml_map('MPI tasks',kernel%mpi_env%nproc,fmt='(i5)')
-      if (cudasolver) call yaml_map('GPU acceleration',.true.)
-   end if
-   
-   !array allocations
-
-   !we need to reallocate the zf array with the right size when called with stress_tensor and gpu
-   if(kernel%keepzf == 1) then
-      if(kernel%igpu==1 .and. .not. cudasolver) then
-          !call f_free_ptr(kernel%zf)
-          kernel%w%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
-      end if
-   else
-      kernel%w%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
-   end if 
-
-   select case(datacode)
-   case('G')
-      !starting address of rhopot in the case of global i/o
-      i3start=kernel%grid%istart*kernel%ndims(1)*kernel%ndims(2)+1
-      if (kernel%grid%n3p == 0) i3start=1
-   case('D')
-      !distributed i/o
-      i3start=1
-   case default
-      call f_err_throw('datacode ("'//datacode//'") not admitted in PSolver')
-   end select
-
-   rpoints=product(real(kernel%ndims,dp))
-
-   n23=kernel%grid%m3*kernel%grid%n3p
-   n1=kernel%grid%m1
-
-   !in the case of SC cavity, gather the full density and determine the depsdrho
-   !here the if statement for the SC cavity should be put
-   !print *,'method',trim(char(kernel%method)),associated(kernel%method%family),trim(char(kernel%method%family))
-   if (kernel%method == 'PCG') &
-        pot_full=f_malloc(kernel%ndims,id='pot_full')
-   if (kernel%method .hasattr. 'sccs') then
-      work_full=f_malloc(kernel%ndims,id='work_full')
-      depsdrho=f_malloc([n1,n23],id='depsdrho')
-      dsurfdrho=f_malloc([n1,n23],id='dsurfdrho')
-      if (kernel%mpi_env%nproc > 1) then
-         call mpiallgather(rhopot(i3start),recvbuf=work_full(1,1,1),recvcounts=kernel%counts,&
-              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
-      else
-         call f_memcpy(n=product(kernel%ndims),src=rhopot(i3start),dest=work_full(1,1,1))
-      end if
-      call pkernel_build_epsilon(kernel,work_full,eps0,depsdrho,dsurfdrho)
-   end if
-
-   !add the ionic density to the potential
-   e_static=0.0_dp
-   if (kernel%method /= PS_VAC_ENUM .and. kernel%grid%n3p>0 .and. sumpion) then
-      !call yaml_map('Rho_ion monopole',sum(rho_ion)*product(kernel%hgrids))
-      !add the ionic density to the initial one
-      !and also calculate the integral between the ionic potential
-      !and the initial density, which must be considered in the potential
-      !energy for subtraction
-      call finalize_hartree_results(.true.,cudasolver,kernel,rho_ion,&
-           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-           pot_ion,rhopot(i3start),rhopot(i3start),e_static)
-      if (wrtmsg) then
-         call yaml_map('Rho_ion monopole',sum(rho_ion)*product(kernel%hgrids))
-         call yaml_map('Summing up ionic density',.true.)
-         call yaml_map('Estatic',e_static*product(kernel%hgrids))
-         !call yaml_map('Total monopole',sum(rhopot(i3start:i3start+n1*n23-1)*product(kernel%hgrids)))
-      end if
-   end if
-
-   !now switch the treatment according to the method used
-   select case(trim(str(kernel%method)))
-   case('VAC')
-      !core psolver routine
-      call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%w%zf,.false.)
-
-      call finalize_hartree_results(sumpion,cudasolver,kernel,pot_ion,&
-           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-           kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
-           rhopot(i3start),kernel%w%zf,rhopot(i3start),ehartreeLOC)
-      !gathering the data to obtain the distribution array
-      if (datacode == 'G' .and. kernel%mpi_env%nproc > 1) then
-         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
-              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
-      end if
-   case('PI')
-      if (.not. associated(kernel%w%oneoeps) .or. .not. associated(kernel%w%dlogeps))&
-           call f_err_throw('The PI method needs the arrays of dlogeps and oneoeps,'//&
-           ' use pkernel_set_epsilon routine to set them')
-      
-      if (datacode /= 'G' .and. kernel%mpi_env%nproc > 1) &
-           call f_err_throw('Error in H_potential, PI method only works with datacode=G')
-      !allocate arrays
-      rhopol=f_malloc0(kernel%ndims,id='rhopol')
-      rho=f_malloc([n1,n23],id='rho')
-      call f_memcpy(n=size(rho),src=rhopot(i3start),dest=rho)
-      !check the integrity of rhopot with respect to the vacuum region
-      call nonvacuum_projection(n1,n23,rho,kernel%w%oneoeps,norm_nonvac)
-      norm_nonvac=norm_nonvac*product(kernel%hgrids)
-      if (kernel%mpi_env%nproc > 1) &
-           call mpiallred(norm_nonvac,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
-      if (wrtmsg) call yaml_map('Integral of the density in the nonvacuum region',norm_nonvac)
-
-      if (wrtmsg) &
-           call yaml_sequence_open('Embedded PSolver Polarization Iteration Method')
-      pi_loop: do ip=1,kernel%max_iter
-
-         !update the needed part of rhopot array
-         irho=i3start
-         !i3s=kernel%grid%istart
-         i23s=kernel%grid%istart*kernel%grid%m3
-         do i23=1,n23
-            do i1=1,n1
-               rhopot(irho)=&
-                    kernel%w%oneoeps(i1,i23)*rho(i1,i23)+&
-                    rhopol(i1,i23+i23s)
-               kernel%w%rho_pol(i1,i23)=rhopot(irho)-rho(i1,i23)
-               irho=irho+1
-            end do
-         end do
-
-         call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%w%zf,.true.)
-         !gathering the data to obtain the distribution array
-         !this method only works with datacode == 'G'
-         if (kernel%mpi_env%nproc > 1) then
-            call mpiallgather(rhopot(1),recvcounts=int(kernel%counts,f_integer),&
-                 displs=int(kernel%displs,f_integer),comm=int(kernel%mpi_env%mpi_comm,f_integer))
-            !call MPI_ALLGATHERV(int(MPI_IN_PLACE,f_long),int(kernel%counts(kernel%mpi_env%iproc),f_long),int(mpitype(rhopot(1)),f_long),&
-            !     rhopot,int(kernel%counts,f_long),int(kernel%displs,f_long),int(mpitype(rhopot(1)),f_long),int(kernel%mpi_env%mpi_comm,f_long),ierr)
-
-         end if
-
-         !update rhopol and calculate residue
-         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
-              kernel%ndims(3),&
-              rhopot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%dlogeps,rhopol,rhores2)
-
-         !reduction of the residue not necessary as datacode==G
-         !if (kernel%mpi_env%nproc > 1) &
-         !     call mpiallred(rhores2,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
-         rhores2=sqrt(rhores2/rpoints)
-
-         if (wrtmsg) then 
-            call yaml_newline()
-            call yaml_sequence(advance='no')
-            call EPS_iter_output(ip,0.0_dp,rhores2,0.0_dp,0.0_dp,0.0_dp)
-         end if
-
-         if (rhores2 < kernel%minres) exit pi_loop
-
-      end do pi_loop
-      if (wrtmsg) call yaml_sequence_close()
-
-      !if statement for SC cavity
-      if (kernel%method .hasattr. PS_SCCS_ENUM) &
-           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,rhopot(i3start),eps0)
-
-      !here the harteee energy can be calculated and the ionic potential
-      !added
-      call finalize_hartree_results(sumpion,cudasolver,kernel,pot_ion,&
-           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-           rho,rhopot(i3start),rhopot(i3start),ehartreeLOC)
-      
-      if (kernel%method .hasattr. PS_SCCS_ENUM) then
-           !then add the extra potential after having calculated the hartree energy
-         call axpy(n1*n23,1.0_dp,depsdrho(1,1),1,rhopot(i3start),1)
-      end if
-
-      if (kernel%mpi_env%nproc > 1 .and. sumpion) then
-         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
-              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
-      end if
-
-      call f_free(rho)
-      call f_free(rhopol)
-
-   case('PCG')
-      if (.not. associated(kernel%w%oneoeps) .or. .not. associated(kernel%w%corr))&
-           call f_err_throw('The PCG method needs the arrays corr and oneosqrteps,'//&
-           ' use pkernel_set_epsilon routine to set them')
-
-      call nonvacuum_projection(n1,n23,rhopot(i3start),kernel%w%oneoeps,norm_nonvac)
-      norm_nonvac=norm_nonvac*product(kernel%hgrids)
-      if (kernel%mpi_env%nproc > 1) &
-           call mpiallred(norm_nonvac,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
-      if (wrtmsg) call yaml_map('Integral of the density in the nonvacuum region',norm_nonvac)
-
-
-!!$      r=f_malloc([n1,n23],id='r')
-!!$      x=f_malloc0([n1,n23],id='x')
-      !allocate the pointers if they are not already done
-      !in the case of pointers ready we can used the previous results as the input guess
-      if ( all([associated(kernel%w%res),associated(kernel%w%pot)])) then
-         call axpy(kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,1.0_gp,rhopot(i3start),1,kernel%w%res(1,1),1)
-      else
-         if (.not. associated(kernel%w%pot)) kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot_old')
-         if (.not. associated(kernel%w%res)) kernel%w%res=f_malloc_ptr([n1,n23],id='res_old')
-         call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
-              src=rhopot(i3start),dest=kernel%w%res)
-      end if
-!!$      !disable input guess
-      call f_zero(kernel%w%pot)
-      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
-           src=rhopot(i3start),dest=kernel%w%res)      
-
-      q=f_malloc0([n1,n23],id='q')
-      p=f_malloc0([n1,n23],id='p')
-      z=f_malloc([n1,n23],id='z')
-      rho=f_malloc([n1,n23],id='rho')
-      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
-           src=rhopot(i3start),dest=rho)
-
-      if (wrtmsg) &
-           call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
-      beta=1.d0
-      ratio=1.d0
-      normr=1.d0
-
-      normb=dot(n1*n23,rhopot(i3start),1,rhopot(i3start),1)
-      if (kernel%mpi_env%nproc > 1) &
-           call mpiallred(normb,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
-      normb=sqrt(normb/rpoints)
-
-
-      !$omp parallel do default(shared) private(i1,i23)
-      do i23=1,n23
-         do i1=1,n1
-             z(i1,i23)=kernel%w%res(i1,i23)*kernel%w%oneoeps(i1,i23)
-         end do
-      end do
-      !$omp end parallel do
-
-      PCG_loop: do ip=1,kernel%max_iter
-
-         !  Apply the Preconditioner
-         call apply_kernel(cudasolver,kernel,z,offset,strten,kernel%w%zf,.true.)
-
-         call apply_reductions(ip, cudasolver, kernel, kernel%w%res, kernel%w%pot, p, q, z, alpha, beta, normr)
-
-         normr=sqrt(normr/rpoints)
-
-         ratio=normr/normb
-         if (wrtmsg) then
-            call yaml_newline()
-            call yaml_sequence(advance='no')
-            call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
-         end if
-         if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
-      end do PCG_loop
-      if (wrtmsg) call yaml_sequence_close()
-
-      !preserve the previous values for the input guess
-      call axpy(size(kernel%w%res),-1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
-      
-      !only useful for gpu, bring back the x array
-      call update_pot_from_device(cudasolver, kernel, kernel%w%pot)
-      !if statement for SC cavity
-      if (kernel%method .hasattr. PS_SCCS_ENUM)&
-           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,kernel%w%pot,eps0)
-
-!--------------------------------------
-! Polarization charge
-     call pol_charge(kernel,pot_full,rho,kernel%w%pot)
-!--------------------------------------
-
-      !here the harteee energy can be calculated and the ionic potential
-      !added
-      call finalize_hartree_results(sumpion,cudasolver,kernel,pot_ion,&
-           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
-           rhopot(i3start),kernel%w%pot,rhopot(i3start),ehartreeLOC)
-
-      if (kernel%method .hasattr. PS_SCCS_ENUM) then
-         !then add the extra potential after having calculated the hartree energy
-         call axpy(n1*n23,1.0_dp,depsdrho(1,1),1,rhopot(i3start),1)
-      end if
-
-      if (kernel%mpi_env%nproc > 1 .and. datacode =='G') then
-         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
-              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
-      end if
-      !call f_free(x)
-      call f_free(z)
-      call f_free(p)
-      call f_free(q)
-      !call f_free(r)
-      call f_free(rho)
-
-   end select
-
-   if(kernel%keepzf /= 1) then
-      call f_free_ptr(kernel%w%zf)
-   end if
-   if (kernel%method == 'PCG') call f_free(pot_full)
-
-
-   !if statement for SC cavity to be added
-   if (kernel%method .hasattr. PS_SCCS_ENUM) then
-      call f_free(work_full)
-      call f_free(depsdrho)
-      call f_free(dsurfdrho)
-   end if
-
-   !check for the presence of the stress tensor
-   if (present(stress_tensor)) call f_memcpy(src=strten,dest=stress_tensor)
-
-   !evaluating the total ehartree + e_static if needed
-   eh=(ehartreeLOC*0.5_dp+e_static)*product(kernel%hgrids)
-   if (kernel%mpi_env%nproc > 1) then
-
-      call mpiallred(eh,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
-      !reduce also the value of the stress tensor
-   
-      if (present(stress_tensor)) then
-         call mpiallred(stress_tensor,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
-      end if
-   end if
-   
-      !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
-      !call f_timing(TCAT_PSOLV_COMPUT,'OF')
-
-      if (datacode == 'G') then
-         !building the array of the data to be sent from each process
-         !and the array of the displacement
-   
-!!$         gather_arr = f_malloc((/ 0.to.kernel%mpi_env%nproc-1, 1.to.2 /),id='gather_arr')
-!!$         do jproc=0,kernel%mpi_env%nproc-1
-!!$            istart=min(jproc*(md2/kernel%mpi_env%nproc),m2-1)
-!!$            jend=max(min(md2/kernel%mpi_env%nproc,m2-md2/kernel%mpi_env%nproc*jproc),0)
-!!$            gather_arr(jproc,1)=m1*m3*jend
-!!$            gather_arr(jproc,2)=m1*m3*istart
-!!$         end do
-!!$         !gather all the results in the same rhopot array
-!!$         istart=min(kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc),m2-1)
-!!$   
-!!$         istden=1+kernel%ndims(1)*kernel%ndims(2)*istart
-!!$         istglo=1
-!!$         !call mpiallgatherv(rhopot(istglo), gather_arr(:,1), gather_arr(:,2), &
-         !call mpiallgatherv(rhopot, kernel%counts,kernel%displs, &
-         !     kernel%mpi_env%iproc, kernel%mpi_env%mpi_comm)
-!!$         call f_free(gather_arr)
-         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
-      end if
-!!$   end if
-
-   if (wrtmsg) call yaml_mapping_close()
-   call f_timing(TCAT_PSOLV_COMPUT,'OF')
-   call f_release_routine()
-
+!!!>
+!!!>   call f_routine(id='H_potential')
+!!!>   
+!!!>   cudasolver=.false.
+!!!>   
+!!!>   !do not write anything on screen if quiet is set to yes
+!!!>   if (present(quiet)) then
+!!!>      if(quiet == 'yes' .or. quiet == 'YES') then
+!!!>         wrtmsg=.false.
+!!!>      else if(trim(quiet) == 'no' .or. trim(quiet) == 'NO') then
+!!!>         wrtmsg=.true.
+!!!>      else
+!!!>         call f_err_throw('ERROR: Unrecognised value for "quiet" option: ' // trim(quiet))
+!!!>         !write(*,*)'ERROR: Unrecognised value for "quiet" option:',quiet
+!!!>      end if
+!!!>   else
+!!!>      wrtmsg=.true.
+!!!>   end if
+!!!>   wrtmsg=.true.
+!!!>   wrtmsg=wrtmsg .and. kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0
+!!!>   ! rewrite
+!!!>
+!!!>   if (wrtmsg) call yaml_mapping_open('Poisson Solver')
+!!!>   
+!!!>   !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','ON')
+!!!>   call f_timing(TCAT_PSOLV_COMPUT,'ON')
+!!!>   !calculate the dimensions wrt the geocode
+!!!>   select case(kernel%geocode)
+!!!>   case('P')
+!!!>      if (wrtmsg) &
+!!!>           call yaml_map('BC','Periodic')
+!!!>      call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
+!!!>           md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,.false.)
+!!!>   case('S')
+!!!>      if (wrtmsg) &
+!!!>           call yaml_map('BC','Surface')
+!!!>      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
+!!!>           md1,md2,md3,nd1,nd2,nd3,&
+!!!>           kernel%mpi_env%nproc,kernel%igpu,.false.)
+!!!>   case('F')
+!!!>      if (wrtmsg) &
+!!!>           call yaml_map('BC','Free')
+!!!>      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
+!!!>           md1,md2,md3,nd1,nd2,nd3,&
+!!!>           kernel%mpi_env%nproc,kernel%igpu,.false.)
+!!!>   case('W')
+!!!>      if (wrtmsg) &
+!!!>           call yaml_map('BC','Wires')
+!!!>      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
+!!!>           md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
+!!!>   case default
+!!!>      call f_err_throw('geometry code ("'//kernel%geocode//'" not admitted in PSolver')
+!!!>      !stop 'PSolver: geometry code not admitted'
+!!!>   end select
+!!!>
+!!!>   if (kernel%method /= PS_VAC_ENUM .and. .not. present(rho_ion) .and. sumpion) then
+!!!>      call f_err_throw('Error in H_potential, for a cavity treatment the array rho_ion is needed')
+!!!>   end if
+!!!>   
+!!!>   cudasolver= (kernel%igpu==1 .and. .not. present(stress_tensor))
+!!!>   
+!!!>   if (wrtmsg) then
+!!!>      call yaml_map('Box',kernel%ndims,fmt='(i5)')
+!!!>      call yaml_map('MPI tasks',kernel%mpi_env%nproc,fmt='(i5)')
+!!!>      if (cudasolver) call yaml_map('GPU acceleration',.true.)
+!!!>   end if
+!!!>   
+!!!>   !array allocations
+!!!>
+!!!>   !we need to reallocate the zf array with the right size when called with stress_tensor and gpu
+!!!>   if(kernel%keepzf == 1) then
+!!!>      if(kernel%igpu==1 .and. .not. cudasolver) then
+!!!>          !call f_free_ptr(kernel%zf)
+!!!>          kernel%w%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+!!!>      end if
+!!!>   else
+!!!>      kernel%w%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+!!!>   end if 
+!!!>
+!!!>   select case(datacode)
+!!!>   case('G')
+!!!>      !starting address of rhopot in the case of global i/o
+!!!>      i3start=kernel%grid%istart*kernel%ndims(1)*kernel%ndims(2)+1
+!!!>      if (kernel%grid%n3p == 0) i3start=1
+!!!>   case('D')
+!!!>      !distributed i/o
+!!!>      i3start=1
+!!!>   case default
+!!!>      call f_err_throw('datacode ("'//datacode//'") not admitted in PSolver')
+!!!>   end select
+!!!>
+!!!>   rpoints=product(real(kernel%ndims,dp))
+!!!>
+!!!>   n23=kernel%grid%m3*kernel%grid%n3p
+!!!>   n1=kernel%grid%m1
+!!!>
+!!!>   !in the case of SC cavity, gather the full density and determine the depsdrho
+!!!>   !here the if statement for the SC cavity should be put
+!!!>   !print *,'method',trim(char(kernel%method)),associated(kernel%method%family),trim(char(kernel%method%family))
+!!!>   if (kernel%method == 'PCG') &
+!!!>        pot_full=f_malloc(kernel%ndims,id='pot_full')
+!!!>   if (kernel%method .hasattr. 'sccs') then
+!!!>      work_full=f_malloc(kernel%ndims,id='work_full')
+!!!>      depsdrho=f_malloc([n1,n23],id='depsdrho')
+!!!>      dsurfdrho=f_malloc([n1,n23],id='dsurfdrho')
+!!!>      if (kernel%mpi_env%nproc > 1) then
+!!!>         call mpiallgather(rhopot(i3start),recvbuf=work_full(1,1,1),recvcounts=kernel%counts,&
+!!!>              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+!!!>      else
+!!!>         call f_memcpy(n=product(kernel%ndims),src=rhopot(i3start),dest=work_full(1,1,1))
+!!!>      end if
+!!!>      call pkernel_build_epsilon(kernel,work_full,eps0,depsdrho,dsurfdrho)
+!!!>   end if
+!!!>
+!!!>   !add the ionic density to the potential
+!!!>   e_static=0.0_dp
+!!!>   if (kernel%method /= PS_VAC_ENUM .and. kernel%grid%n3p>0 .and. sumpion) then
+!!!>      !call yaml_map('Rho_ion monopole',sum(rho_ion)*product(kernel%hgrids))
+!!!>      !add the ionic density to the initial one
+!!!>      !and also calculate the integral between the ionic potential
+!!!>      !and the initial density, which must be considered in the potential
+!!!>      !energy for subtraction
+!!!>      call finalize_hartree_results(.true.,cudasolver,kernel,rho_ion,&
+!!!>           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!!>           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!!>           pot_ion,rhopot(i3start),rhopot(i3start),e_static)
+!!!>      if (wrtmsg) then
+!!!>         call yaml_map('Rho_ion monopole',sum(rho_ion)*product(kernel%hgrids))
+!!!>         call yaml_map('Summing up ionic density',.true.)
+!!!>         call yaml_map('Estatic',e_static*product(kernel%hgrids))
+!!!>         !call yaml_map('Total monopole',sum(rhopot(i3start:i3start+n1*n23-1)*product(kernel%hgrids)))
+!!!>      end if
+!!!>   end if
+!!!>
+!!!>   !now switch the treatment according to the method used
+!!!>   select case(trim(str(kernel%method)))
+!!!>   case('VAC')
+!!!>      !core psolver routine
+!!!>      call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%w%zf,.false.)
+!!!>
+!!!>      call finalize_hartree_results(sumpion,cudasolver,kernel,pot_ion,&
+!!!>           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!!>           kernel%grid%md1,kernel%grid%md3,2*(kernel%grid%md2/kernel%mpi_env%nproc),&
+!!!>           rhopot(i3start),kernel%w%zf,rhopot(i3start),ehartreeLOC)
+!!!>      !gathering the data to obtain the distribution array
+!!!>      if (datacode == 'G' .and. kernel%mpi_env%nproc > 1) then
+!!!>         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+!!!>              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+!!!>      end if
+!!!>   case('PI')
+!!!>      if (.not. associated(kernel%w%oneoeps) .or. .not. associated(kernel%w%dlogeps))&
+!!!>           call f_err_throw('The PI method needs the arrays of dlogeps and oneoeps,'//&
+!!!>           ' use pkernel_set_epsilon routine to set them')
+!!!>      
+!!!>      if (datacode /= 'G' .and. kernel%mpi_env%nproc > 1) &
+!!!>           call f_err_throw('Error in H_potential, PI method only works with datacode=G')
+!!!>      !allocate arrays
+!!!>      rhopol=f_malloc0(kernel%ndims,id='rhopol')
+!!!>      rho=f_malloc([n1,n23],id='rho')
+!!!>      call f_memcpy(n=size(rho),src=rhopot(i3start),dest=rho)
+!!!>      !check the integrity of rhopot with respect to the vacuum region
+!!!>      call nonvacuum_projection(n1,n23,rho,kernel%w%oneoeps,norm_nonvac)
+!!!>      norm_nonvac=norm_nonvac*product(kernel%hgrids)
+!!!>      if (kernel%mpi_env%nproc > 1) &
+!!!>           call mpiallred(norm_nonvac,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+!!!>      if (wrtmsg) call yaml_map('Integral of the density in the nonvacuum region',norm_nonvac)
+!!!>
+!!!>      if (wrtmsg) &
+!!!>           call yaml_sequence_open('Embedded PSolver Polarization Iteration Method')
+!!!>      pi_loop: do ip=1,kernel%max_iter
+!!!>
+!!!>         !update the needed part of rhopot array
+!!!>         irho=i3start
+!!!>         !i3s=kernel%grid%istart
+!!!>         i23s=kernel%grid%istart*kernel%grid%m3
+!!!>         do i23=1,n23
+!!!>            do i1=1,n1
+!!!>               rhopot(irho)=&
+!!!>                    kernel%w%oneoeps(i1,i23)*rho(i1,i23)+&
+!!!>                    rhopol(i1,i23+i23s)
+!!!>               kernel%w%rho_pol(i1,i23)=rhopot(irho)-rho(i1,i23)
+!!!>               irho=irho+1
+!!!>            end do
+!!!>         end do
+!!!>
+!!!>         call apply_kernel(cudasolver,kernel,rhopot(i3start),offset,strten,kernel%w%zf,.true.)
+!!!>         !gathering the data to obtain the distribution array
+!!!>         !this method only works with datacode == 'G'
+!!!>         if (kernel%mpi_env%nproc > 1) then
+!!!>            call mpiallgather(rhopot(1),recvcounts=int(kernel%counts,f_integer),&
+!!!>                 displs=int(kernel%displs,f_integer),comm=int(kernel%mpi_env%mpi_comm,f_integer))
+!!!>            !call MPI_ALLGATHERV(int(MPI_IN_PLACE,f_long),int(kernel%counts(kernel%mpi_env%iproc),f_long),int(mpitype(rhopot(1)),f_long),&
+!!!>            !     rhopot,int(kernel%counts,f_long),int(kernel%displs,f_long),int(mpitype(rhopot(1)),f_long),int(kernel%mpi_env%mpi_comm,f_long),ierr)
+!!!>
+!!!>         end if
+!!!>
+!!!>         !update rhopol and calculate residue
+!!!>         call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
+!!!>              kernel%ndims(3),&
+!!!>              rhopot,kernel%nord,kernel%hgrids,kernel%PI_eta,kernel%w%dlogeps,rhopol,rhores2)
+!!!>
+!!!>         !reduction of the residue not necessary as datacode==G
+!!!>         !if (kernel%mpi_env%nproc > 1) &
+!!!>         !     call mpiallred(rhores2,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+!!!>         rhores2=sqrt(rhores2/rpoints)
+!!!>
+!!!>         if (wrtmsg) then 
+!!!>            call yaml_newline()
+!!!>            call yaml_sequence(advance='no')
+!!!>            call EPS_iter_output(ip,0.0_dp,rhores2,0.0_dp,0.0_dp,0.0_dp)
+!!!>         end if
+!!!>
+!!!>         if (rhores2 < kernel%minres) exit pi_loop
+!!!>
+!!!>      end do pi_loop
+!!!>      if (wrtmsg) call yaml_sequence_close()
+!!!>
+!!!>      !if statement for SC cavity
+!!!>      if (kernel%method .hasattr. PS_SCCS_ENUM) &
+!!!>           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,rhopot(i3start),eps0)
+!!!>
+!!!>      !here the harteee energy can be calculated and the ionic potential
+!!!>      !added
+!!!>      call finalize_hartree_results(sumpion,cudasolver,kernel,pot_ion,&
+!!!>           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!!>           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!!>           rho,rhopot(i3start),rhopot(i3start),ehartreeLOC)
+!!!>      
+!!!>      if (kernel%method .hasattr. PS_SCCS_ENUM) then
+!!!>           !then add the extra potential after having calculated the hartree energy
+!!!>         call axpy(n1*n23,1.0_dp,depsdrho(1,1),1,rhopot(i3start),1)
+!!!>      end if
+!!!>
+!!!>      if (kernel%mpi_env%nproc > 1 .and. sumpion) then
+!!!>         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+!!!>              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+!!!>      end if
+!!!>
+!!!>      call f_free(rho)
+!!!>      call f_free(rhopol)
+!!!>
+!!!>   case('PCG')
+!!!>      if (.not. associated(kernel%w%oneoeps) .or. .not. associated(kernel%w%corr))&
+!!!>           call f_err_throw('The PCG method needs the arrays corr and oneosqrteps,'//&
+!!!>           ' use pkernel_set_epsilon routine to set them')
+!!!>
+!!!>      call nonvacuum_projection(n1,n23,rhopot(i3start),kernel%w%oneoeps,norm_nonvac)
+!!!>      norm_nonvac=norm_nonvac*product(kernel%hgrids)
+!!!>      if (kernel%mpi_env%nproc > 1) &
+!!!>           call mpiallred(norm_nonvac,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+!!!>      if (wrtmsg) call yaml_map('Integral of the density in the nonvacuum region',norm_nonvac)
+!!!>
+!!!>
+!!!>!!$      r=f_malloc([n1,n23],id='r')
+!!!>!!$      x=f_malloc0([n1,n23],id='x')
+!!!>      !allocate the pointers if they are not already done
+!!!>      !in the case of pointers ready we can used the previous results as the input guess
+!!!>      if ( all([associated(kernel%w%res),associated(kernel%w%pot)])) then
+!!!>         call axpy(kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,1.0_gp,rhopot(i3start),1,kernel%w%res(1,1),1)
+!!!>      else
+!!!>         if (.not. associated(kernel%w%pot)) kernel%w%pot=f_malloc0_ptr([n1,n23],id='pot_old')
+!!!>         if (.not. associated(kernel%w%res)) kernel%w%res=f_malloc_ptr([n1,n23],id='res_old')
+!!!>         call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
+!!!>              src=rhopot(i3start),dest=kernel%w%res)
+!!!>      end if
+!!!>!!$      !disable input guess
+!!!>      call f_zero(kernel%w%pot)
+!!!>      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
+!!!>           src=rhopot(i3start),dest=kernel%w%res)      
+!!!>
+!!!>      q=f_malloc0([n1,n23],id='q')
+!!!>      p=f_malloc0([n1,n23],id='p')
+!!!>      z=f_malloc([n1,n23],id='z')
+!!!>      rho=f_malloc([n1,n23],id='rho')
+!!!>      call f_memcpy(n=kernel%grid%m1*kernel%grid%m3*kernel%grid%n3p,&
+!!!>           src=rhopot(i3start),dest=rho)
+!!!>
+!!!>      if (wrtmsg) &
+!!!>           call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
+!!!>      beta=1.d0
+!!!>      ratio=1.d0
+!!!>      normr=1.d0
+!!!>
+!!!>      normb=dot(n1*n23,rhopot(i3start),1,rhopot(i3start),1)
+!!!>      if (kernel%mpi_env%nproc > 1) &
+!!!>           call mpiallred(normb,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+!!!>      normb=sqrt(normb/rpoints)
+!!!>
+!!!>
+!!!>      !$omp parallel do default(shared) private(i1,i23)
+!!!>      do i23=1,n23
+!!!>         do i1=1,n1
+!!!>             z(i1,i23)=kernel%w%res(i1,i23)*kernel%w%oneoeps(i1,i23)
+!!!>         end do
+!!!>      end do
+!!!>      !$omp end parallel do
+!!!>
+!!!>      PCG_loop: do ip=1,kernel%max_iter
+!!!>
+!!!>         !  Apply the Preconditioner
+!!!>         call apply_kernel(cudasolver,kernel,z,offset,strten,kernel%w%zf,.true.)
+!!!>
+!!!>         call apply_reductions(ip, cudasolver, kernel, kernel%w%res, kernel%w%pot, p, q, z, alpha, beta, normr)
+!!!>
+!!!>         normr=sqrt(normr/rpoints)
+!!!>
+!!!>         ratio=normr/normb
+!!!>         if (wrtmsg) then
+!!!>            call yaml_newline()
+!!!>            call yaml_sequence(advance='no')
+!!!>            call EPS_iter_output(ip,normb,normr,ratio,alpha,beta)
+!!!>         end if
+!!!>         if (normr < kernel%minres .or. normr > max_ratioex) exit PCG_loop
+!!!>      end do PCG_loop
+!!!>      if (wrtmsg) call yaml_sequence_close()
+!!!>
+!!!>      !preserve the previous values for the input guess
+!!!>      call axpy(size(kernel%w%res),-1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+!!!>      
+!!!>      !only useful for gpu, bring back the x array
+!!!>      call update_pot_from_device(cudasolver, kernel, kernel%w%pot)
+!!!>      !if statement for SC cavity
+!!!>      if (kernel%method .hasattr. PS_SCCS_ENUM)&
+!!!>           call extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,kernel%w%pot,eps0)
+!!!>
+!!!>!--------------------------------------
+!!!>! Polarization charge
+!!!>     call pol_charge(kernel,pot_full,rho,kernel%w%pot)
+!!!>!--------------------------------------
+!!!>
+!!!>      !here the harteee energy can be calculated and the ionic potential
+!!!>      !added
+!!!>      call finalize_hartree_results(sumpion,cudasolver,kernel,pot_ion,&
+!!!>           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!!>           kernel%grid%m1,kernel%grid%m3,kernel%grid%n3p,&
+!!!>           rhopot(i3start),kernel%w%pot,rhopot(i3start),ehartreeLOC)
+!!!>
+!!!>      if (kernel%method .hasattr. PS_SCCS_ENUM) then
+!!!>         !then add the extra potential after having calculated the hartree energy
+!!!>         call axpy(n1*n23,1.0_dp,depsdrho(1,1),1,rhopot(i3start),1)
+!!!>      end if
+!!!>
+!!!>      if (kernel%mpi_env%nproc > 1 .and. datacode =='G') then
+!!!>         call mpiallgather(rhopot(1),recvcounts=kernel%counts,&
+!!!>              displs=kernel%displs,comm=kernel%mpi_env%mpi_comm)
+!!!>      end if
+!!!>      !call f_free(x)
+!!!>      call f_free(z)
+!!!>      call f_free(p)
+!!!>      call f_free(q)
+!!!>      !call f_free(r)
+!!!>      call f_free(rho)
+!!!>
+!!!>   end select
+!!!>
+!!!>   if(kernel%keepzf /= 1) then
+!!!>      call f_free_ptr(kernel%w%zf)
+!!!>   end if
+!!!>   if (kernel%method == 'PCG') call f_free(pot_full)
+!!!>
+!!!>
+!!!>   !if statement for SC cavity to be added
+!!!>   if (kernel%method .hasattr. PS_SCCS_ENUM) then
+!!!>      call f_free(work_full)
+!!!>      call f_free(depsdrho)
+!!!>      call f_free(dsurfdrho)
+!!!>   end if
+!!!>
+!!!>   !check for the presence of the stress tensor
+!!!>   if (present(stress_tensor)) call f_memcpy(src=strten,dest=stress_tensor)
+!!!>
+!!!>   !evaluating the total ehartree + e_static if needed
+!!!>   eh=(ehartreeLOC*0.5_dp+e_static)*product(kernel%hgrids)
+!!!>   if (kernel%mpi_env%nproc > 1) then
+!!!>
+!!!>      call mpiallred(eh,1,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+!!!>      !reduce also the value of the stress tensor
+!!!>   
+!!!>      if (present(stress_tensor)) then
+!!!>         call mpiallred(stress_tensor,MPI_SUM,comm=kernel%mpi_env%mpi_comm)
+!!!>      end if
+!!!>   end if
+!!!>   
+!!!>      !call timing(kernel%mpi_env%iproc,'PSolv_commun  ','OF')
+!!!>      !call f_timing(TCAT_PSOLV_COMPUT,'OF')
+!!!>
+!!!>      if (datacode == 'G') then
+!!!>         !building the array of the data to be sent from each process
+!!!>         !and the array of the displacement
+!!!>   
+!!!>!!$         gather_arr = f_malloc((/ 0.to.kernel%mpi_env%nproc-1, 1.to.2 /),id='gather_arr')
+!!!>!!$         do jproc=0,kernel%mpi_env%nproc-1
+!!!>!!$            istart=min(jproc*(md2/kernel%mpi_env%nproc),m2-1)
+!!!>!!$            jend=max(min(md2/kernel%mpi_env%nproc,m2-md2/kernel%mpi_env%nproc*jproc),0)
+!!!>!!$            gather_arr(jproc,1)=m1*m3*jend
+!!!>!!$            gather_arr(jproc,2)=m1*m3*istart
+!!!>!!$         end do
+!!!>!!$         !gather all the results in the same rhopot array
+!!!>!!$         istart=min(kernel%mpi_env%iproc*(md2/kernel%mpi_env%nproc),m2-1)
+!!!>!!$   
+!!!>!!$         istden=1+kernel%ndims(1)*kernel%ndims(2)*istart
+!!!>!!$         istglo=1
+!!!>!!$         !call mpiallgatherv(rhopot(istglo), gather_arr(:,1), gather_arr(:,2), &
+!!!>         !call mpiallgatherv(rhopot, kernel%counts,kernel%displs, &
+!!!>         !     kernel%mpi_env%iproc, kernel%mpi_env%mpi_comm)
+!!!>!!$         call f_free(gather_arr)
+!!!>         !call timing(kernel%mpi_env%iproc,'PSolv_comput  ','OF')
+!!!>      end if
+!!!>!!$   end if
+!!!>
+!!!>   if (wrtmsg) call yaml_mapping_close()
+!!!>   call f_timing(TCAT_PSOLV_COMPUT,'OF')
+!!!>   call f_release_routine()
+!!!>
 END SUBROUTINE H_potential
 
 subroutine extra_sccs_potential(kernel,work_full,depsdrho,dsurfdrho,pot,eps0)
