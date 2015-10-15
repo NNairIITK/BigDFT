@@ -94,6 +94,10 @@ CONTAINS
     !
     !
     REAL (KIND=8), PARAMETER  ::  cmi_to_au = 7.26D-7 
+    REAL(KIND=4) :: builtin_rand
+    INTEGER      :: idum=0
+
+
 
     nhc%eta_size = nhc%nhnc
 
@@ -127,8 +131,8 @@ CONTAINS
     !   ** Assign initial nose velocities **
     do inhc = 1, nhc%nhnc, 2
        sigma=dsqrt(KT/nhc%noseq(inhc)) 
-       CALL random_number(dum(1))
-       CALL random_number(dum(2))
+       dum(1)=real(builtin_rand(idum),8)
+       dum(2)=real(builtin_rand(idum),8)
        nhc%veta(inhc) =sigma*dsqrt(-2.D0*dlog(dum(2)))*dcos(2.D0*pi*dum(1))
        if(INHC+1.le.nhc%nhnc)then 
           sigma=DSQRT(kt/nhc%noseq(inhc+1)) 
