@@ -16,13 +16,14 @@ subroutine md(run_md,outs,nproc,iproc)
   TYPE(run_objects), intent(inout) :: run_md
   TYPE(state_properties), intent(inout) :: outs 
   integer, intent(in) :: nproc, iproc
-
+  call f_routine(id='md')
 
 !CASE BOMD (NVT,NVE)
   call bomd(run_md,outs,nproc,iproc)
 !TODO other cases will be developed soon: CPMD/XL-BOMD (NVT,NVE)
 !TODO NPT
 
+  call f_release_routine()
 END subroutine md
 
 !> routine to use NH MD files inside BigDFT geometry drivers
@@ -61,6 +62,7 @@ subroutine bomd(run_md,outs,nproc,iproc)
   character(len=*), parameter :: subname='bigDFT_AIMD'
   LOGICAL :: ionode, no_translation
 
+  call f_routine(id='bomd')
 
   natoms=bigdft_nat(run_md)
 
@@ -90,11 +92,16 @@ subroutine bomd(run_md,outs,nproc,iproc)
   else
      ndof=3*natoms
   end if
-
-  ALLOCATE(vxyz(3,natoms))
-  ALLOCATE(fxyz(3,natoms))
-  ALLOCATE(amass(natoms))
-  ALLOCATE(alabel(natoms))
+ 
+  vxyz = f_malloc_ptr([3,natoms],id='vxyz')
+  fxyz = f_malloc_ptr([3,natoms],id='fxyz')
+  amass = f_malloc_ptr(natoms,id='amass')
+  alabel = f_malloc_str_ptr(len(alabel),natoms,id='alabel')
+!!not permitted directly, see http://bigdft.org/Wiki/index.php?title=Coding_Rules#Low_level_operations
+!!$  ALLOCATE(vxyz(3,natoms))
+!!$  ALLOCATE(fxyz(3,natoms))
+!!$  ALLOCATE(amass(natoms))
+!!$  ALLOCATE(alabel(natoms))
 
   DO iat=1,natoms
      ii=run_md%atoms%astruct%iatype(iat)
@@ -184,6 +191,15 @@ subroutine bomd(run_md,outs,nproc,iproc)
      IF(istep+1.gt.maxsteps)exit MD_loop
   END DO MD_loop !MD loop ends here
   !----------------------------------------------------------------------!
+
+  !the deallocation of the pointers
+  call finalize_NHC_data(nhc)
+  call f_free_ptr(vxyz)
+  call f_free_ptr(fxyz)
+  call f_free_ptr(amass)
+  call f_free_str_ptr(len(alabel),alabel)
+
+  call f_release_routine()
 
 end subroutine bomd
 
@@ -299,30 +315,46 @@ SUBROUTINE velocity_verlet_vel(dt,natoms,rxyz,vxyz,fxyz)
 END SUBROUTINE velocity_verlet_vel
 
 SUBROUTINE write_md_trajectory(istep,natoms,alabel,rxyz,vxyz)
+  use f_utils
   IMPLICIT NONE
   INTEGER :: istep, natoms
   REAL(KIND=8) :: rxyz(3,*), vxyz(3,*)
   CHARACTER(LEN=*) :: alabel(*)
   !
-  INTEGER :: iat
-  OPEN(111,FILE='Trajectory.xyz',STATUS='UNKNOWN',ACCESS='APPEND',FORM='FORMATTED')
-  WRITE(111,*)natoms
-  WRITE(111,'(A,I16)')'Step:',istep
+  INTEGER :: iat,unt
+  unt=111
+  call f_open_file(unt,FILE='Trajectory.xyz',status='UNKNOWN',position='APPEND',binary=.false.)
+  WRITE(unt,*)natoms
+  WRITE(unt,'(A,I16)')'Step:',istep
   DO iat=1,natoms
-     WRITE(111,'(A,6f16.6)')alabel(iat),rxyz(1:3,iat)*0.529,vxyz(1:3,iat)*0.529
+     WRITE(unt,'(A,6f16.6)')alabel(iat),rxyz(1:3,iat)*0.529,vxyz(1:3,iat)*0.529
   END DO
-  CLOSE(111)
+  call f_close(unt)
 END SUBROUTINE write_md_trajectory
 
 SUBROUTINE write_md_energy(istep,Tions,eke,epe,ete)
+  use yaml_output
+  use yaml_strings
+  use f_utils
   IMPLICIT NONE
   INTEGER :: istep
   REAL(KIND=8) :: Tions, eke, epe, ete
-  IF(istep.eq.0)PRINT "(2X,A,5A16)", "(MD)","ISTEP","TEMP.","EKE","EPE","ETE"
-  PRINT "(2X,A,I16,4F16.6)","(MD)",istep,Tions,eke,epe,ete
-  OPEN(111,FILE='energy.dat',STATUS='UNKNOWN',ACCESS='APPEND',FORM='FORMATTED')
-  WRITE(111,"(I16,4F16.6)")istep,Tions,eke,epe,ete
-  CLOSE(111)
+  !local variables
+  character(len=*), parameter :: fm='(f16.6)'
+  integer :: unt
+  unt = 111
+  !IF(istep.eq.0)PRINT "(2X,A,5A16)", "(MD)","ISTEP","TEMP.","EKE","EPE","ETE"
+  !PRINT "(2X,A,I16,4F16.6)","(MD)",istep,Tions,eke,epe,ete
+  call yaml_mapping_open("(MD)",flow=.true.)
+  call yaml_map('istep',istep,fmt='(i6)')
+  call yaml_map('T',Tions,fmt=fm)
+  call yaml_map('Eke',eke,fmt=fm)
+  call yaml_map('Epe',epe,fmt=fm)
+  call yaml_map('Ete',ete,fmt=fm)
+  call yaml_mapping_close()
+  call f_open_file(unt,FILE='energy.dat',STATUS='UNKNOWN',position='APPEND',binary=.false.)
+  WRITE(unt,"(I16,4F16.6)")istep,Tions,eke,epe,ete
+  call f_close(unt)
 END SUBROUTINE write_md_energy
 
 SUBROUTINE remove_lin_momentum(natoms,vxyz)

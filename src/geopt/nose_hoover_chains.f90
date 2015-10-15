@@ -59,6 +59,18 @@ CONTAINS
 
   end subroutine initialize_NHC_data
 
+  subroutine finalize_NHC_data(nhc)
+    implicit none
+    type(NHC_data), intent(inout) :: nhc
+    call f_free_ptr(nhc%eta)
+    call f_free_ptr(nhc%veta)
+    call f_free_ptr(nhc%aeta)
+    call f_free_ptr(nhc%noseq)
+    call f_free_ptr(nhc%dtys)
+    call nullify_NHC_data(nhc)
+  end subroutine finalize_NHC_data
+  
+
   !
   !     -----------------------------------------------------
   !>     Function : Nose-Hoover-chains are initialized 
