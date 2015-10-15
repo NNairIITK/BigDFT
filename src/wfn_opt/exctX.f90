@@ -870,7 +870,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
 
      !do not send anything if there is only one member in the group
      if (nprocgr > 1) then
-        do kproc=0,(nprocgr-1)/2
+        do kproc=0,(nprocgr-1)/2-1
            !define the arrays for send-receive of data
            if(use_mpi_get .and. new_mpi_get) then
                jprocsr(1,kproc,igroup)= iprocpm1(1,kproc+1,igroup)
@@ -889,31 +889,29 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
               jprocsr(4,kproc,igroup)=iprocpm1(1,kproc,igroup)
            end if
         end do
-!        kproc=(nprocgr-1)/2
-!        !the last step behaves differently if the group number is odd or even
-!        if (modulo(nprocgr,2) == 0) then
-!           if(use_mpi_get .and. new_mpi_get) then
-!               jprocsr(1,kproc,igroup)= iprocpm1(1,0,igroup)
-!               jprocsr(2,kproc,igroup)= iprocpm1(1,0,igroup)
-
-!                print *, 'lastiproc ', iproc, 'step ', kproc, 'to', jprocsr(1,kproc,igroup), 'from', jprocsr(2,kproc,igroup)
-!           else
-!           jprocsr(1,kproc,igroup)=iprocpm1(2,kproc,igroup)
-!           jprocsr(2,kproc,igroup)=iprocpm1(2,kproc+1,igroup)
-!end if
-!           if (iproc == iprocref) then
-!              ncalltot=ncalltot+&
-!                   (nvctr_par(jprocsr(2,kproc,igroup),igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))*&
-!                   (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))
-!           end if
-!           if (kproc > 0) then
-!              jprocsr(3,kproc,igroup)=iprocpm1(2,kproc,igroup)
-!              jprocsr(4,kproc,igroup)=iprocpm1(1,kproc,igroup)
-!           end if
-!        else
-!           jprocsr(3,kproc,igroup)=iprocpm1(2,kproc,igroup)
-!           jprocsr(4,kproc,igroup)=iprocpm1(1,kproc,igroup)
-!        end if
+        kproc=(nprocgr-1)/2
+        !the last step behaves differently if the group number is odd or even
+        if (modulo(nprocgr,2) == 0) then
+           if(use_mpi_get .and. new_mpi_get) then
+               jprocsr(1,kproc,igroup)= iprocpm1(1,kproc+1,igroup)
+               jprocsr(2,kproc,igroup)= iprocpm1(2,kproc+1,igroup)
+           else
+               jprocsr(1,kproc,igroup)=iprocpm1(2,kproc,igroup)
+               jprocsr(2,kproc,igroup)=iprocpm1(2,kproc+1,igroup)
+           end if
+           if (iproc == iprocref) then
+              ncalltot=ncalltot+&
+                   (nvctr_par(jprocsr(2,kproc,igroup),igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))*&
+                   (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))
+           end if
+           if (kproc > 0) then
+              jprocsr(3,kproc,igroup)=iprocpm1(2,kproc,igroup)
+              jprocsr(4,kproc,igroup)=iprocpm1(1,kproc,igroup)
+           end if
+        else
+           jprocsr(3,kproc,igroup)=iprocpm1(2,kproc,igroup)
+           jprocsr(4,kproc,igroup)=iprocpm1(1,kproc,igroup)
+        end if
      end if
   end do
 
