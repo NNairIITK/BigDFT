@@ -11,7 +11,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
-    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,&
+    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
   use module_base
   use module_types
@@ -57,6 +57,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
   type(work_mpiaccumulate),intent(inout) :: energs_work
   logical,intent(in) :: remove_coupling_terms
+  real(kind=8), intent(in) :: factor
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
   real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -74,7 +75,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
   logical :: update_kernel
   character(len=*),parameter :: subname='get_coeff'
-  real(kind=gp) :: tmprtr, factor
+  real(kind=gp) :: tmprtr
   real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff
 
   call f_routine(id='get_coeff')
@@ -105,19 +106,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   end if
 
    if (iproc==0) call yaml_mapping_open('Kernel update')
-  ! should eventually make this an input variable
-  if (scf_mode==LINEAR_DIRECT_MINIMIZATION) then
-      ! maybe need this for fragment calculations also, or make it an input?
-     if (present(cdft)) then
-        ! factor for scaling gradient
-        factor=0.1d0
-     else
-        factor=1.0d0
-     end if
-  end if
-
-
-
 
 
   ! Calculate the Hamiltonian matrix if it is not already present.

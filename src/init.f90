@@ -1066,7 +1066,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
      nullify(in_frag_charge)
      if (input%lin%constrained_dft) then
         call cdft_data_init(cdft,input%frag,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,&
-             input%lin%calc_transfer_integrals)
+             input%lin%calc_transfer_integrals,input%lin%cdft_lag_mult_init)
         if (input%lin%calc_transfer_integrals) then
            in_frag_charge=f_malloc_ptr(input%frag%nfrag,id='in_frag_charge')
            call vcopy(input%frag%nfrag,input%frag%charge(1),1,in_frag_charge(1),1)
@@ -2133,10 +2133,11 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   real(gp), dimension(:), pointer :: in_frag_charge
   integer :: infoCoeff, iorb, nstates_max, order_taylor, npspcode, scf_mode
   real(kind=8) :: pnrm
+  integer, dimension(:,:,:), pointer :: frag_env_mapping
   type(work_mpiaccumulate) :: energs_work
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
-  integer :: itmb, jtmb, ispin
+  integer :: itmb, jtmb, ispin, ifrag_ref, max_nbasis_env, ifrag
   call f_routine(id='input_wf')
 
  !determine the orthogonality parameters
@@ -2409,8 +2410,16 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !     & input_wf_format,tmb%npsidim_orbs,tmb%lzd,tmb%orbs, &
      !     & atoms,rxyz_old,rxyz,tmb%psi,tmb%coeff)
 
+     ! assume we don't need to keep this after init, can't think of a better place to put it...
+     max_nbasis_env=0
+     do ifrag_ref=1,in%frag%nfrag_ref
+        max_nbasis_env = max(max_nbasis_env,ref_frags(ifrag_ref)%nbasis_env)
+     end do
+     frag_env_mapping=f_malloc0_ptr((/in%frag%nfrag,max_nbasis_env,3/),id='frag_env_mapping')
+
      call readmywaves_linear_new(iproc,nproc,trim(in%dir_output),'minBasis',input_wf_format,&
-          atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,in%lin%kernel_restart_mode==LIN_RESTART_KERNEL)
+          atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,in%lin%kernel_restart_mode==LIN_RESTART_KERNEL,&
+          frag_env_mapping)
 
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
      !nullify(tmb%psit_c)                                                                
@@ -2452,7 +2461,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      nullify(in_frag_charge)
      if (in%lin%constrained_dft) then
         call cdft_data_init(cdft,in%frag,KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d,&
-             in%lin%calc_transfer_integrals)
+             in%lin%calc_transfer_integrals,in%lin%cdft_lag_mult_init)
         if (in%lin%calc_transfer_integrals) then
            in_frag_charge=f_malloc_ptr(in%frag%nfrag,id='in_frag_charge')
            call vcopy(in%frag%nfrag,in%frag%charge(1),1,in_frag_charge(1),1)
@@ -2463,14 +2472,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            cdft%charge=ref_frags(in%frag%frag_index(cdft%ifrag_charged(1)))%nelec-in_frag_charge(cdft%ifrag_charged(1))&
                 -(ref_frags(in%frag%frag_index(cdft%ifrag_charged(2)))%nelec-in_frag_charge(cdft%ifrag_charged(2)))
            !DEBUG
-           if (iproc==0) then
-              print*,'???????????????????????????????????????????????????????'
-              print*,'ifrag_charged1&2,in_frag_charge1&2,qcharge,cdft%charge',cdft%ifrag_charged(1:2),&
-              in_frag_charge(cdft%ifrag_charged(1)),in_frag_charge(cdft%ifrag_charged(2)),in%qcharge,cdft%charge
-              print*,'??',ref_frags(in%frag%frag_index(cdft%ifrag_charged(1)))%nelec,in_frag_charge(cdft%ifrag_charged(1)),&
-                              ref_frags(in%frag%frag_index(cdft%ifrag_charged(2)))%nelec,in_frag_charge(cdft%ifrag_charged(2))
-              print*,'???????????????????????????????????????????????????????'
-           end if
+           !if (iproc==0) then
+           !   print*,'???????????????????????????????????????????????????????'
+           !   print*,'ifrag_charged1&2,in_frag_charge1&2,qcharge,cdft%charge',cdft%ifrag_charged(1:2),&
+           !   in_frag_charge(cdft%ifrag_charged(1)),in_frag_charge(cdft%ifrag_charged(2)),in%qcharge,cdft%charge
+           !   print*,'??',ref_frags(in%frag%frag_index(cdft%ifrag_charged(1)))%nelec,in_frag_charge(cdft%ifrag_charged(1)),&
+           !                   ref_frags(in%frag%frag_index(cdft%ifrag_charged(2)))%nelec,in_frag_charge(cdft%ifrag_charged(2))
+           !   print*,'???????????????????????????????????????????????????????'
+           !end if
            !END DEBUG
         else
            in_frag_charge=>in%frag%charge
@@ -2483,15 +2492,26 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      ! this is overkill as we are recalculating the kernel anyway - fix at some point
      ! or just put into fragment structure to save recalculating for CDFT
 
+
+     !do ifrag=1,in%frag%nfrag
+     !   ifrag_ref=in%frag%frag_index(ifrag) 
+     !         do iorb=1,ref_frags(ifrag_ref)%nbasis_env
+     !            write(*,'(A,5(1x,I4))') 'mapping init: ',ifrag,ifrag_ref,frag_env_mapping(ifrag,iorb,:)
+     !         end do
+     !end do
+
+
      !currently equivalent to diagonal kernel - all these options need tidying/stabilizing
      !atomic weight option needs figuring out - put in with kernel? just use coeffs for coeffs (and random? -> switch this to kernel too, just need to purify)
+     !ADD a check somewhere that diag and kernel only work for FOE
      if (in%lin%fragment_calculation) then
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
            call fragment_kernels_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
-                in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL)
+                in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL,max_nbasis_env,&
+                frag_env_mapping,in%lin%kernel_restart_noise)
         else
            call fragment_coeffs_to_kernel(iproc,in,in_frag_charge,ref_frags,tmb,KSwfn%orbs,overlap_calculated,&
-                nstates_max,in%lin%constrained_dft,in%lin%kernel_restart_mode==LIN_RESTART_RANDOM)
+                nstates_max,in%lin%constrained_dft,in%lin%kernel_restart_mode,in%lin%kernel_restart_noise)
         end if
 
         !! debug
@@ -2499,12 +2519,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
         !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
         !if (iproc==0) then
-        !    do itmb=1,tmb%orbs%norb
+        !   open(30)
+        !   do itmb=1,tmb%orbs%norb
         !      do jtmb=1,tmb%orbs%norb
         !         write(30,*) itmb,jtmb,tmb%coeff(itmb,jtmb),tmb%linmat%kernel_%matrix(itmb,jtmb,1)
         !      end do
-        !    end do
+        !   end do
         !   write(30,*) ''
+        !   close(30)
         !end if 
         !call f_free_ptr(tmb%linmat%kernel_%matrix) 
         !! end debug
@@ -2515,6 +2537,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
            nullify(in_frag_charge)
         end if
      else
+        ! in this case we're currently not using the diagonal guess
+        ! not sure how often it will be useful but should fix this
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
            ! for now assuming reading was from file in dense format
            tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
@@ -2532,10 +2556,13 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         call f_free_ptr(ref_frags(1)%kernel)
      end if
 
+     call f_free_ptr(frag_env_mapping)
+
+
      ! hack occup to make density neutral with full occupations, then unhack after extra diagonalization (using nstates max)
      ! use nstates_max - tmb%orbs%occup set in fragment_coeffs_to_kernel
      tmb%can_use_transposed=.false.
-     if (in%lin%diag_start .or. (in%lin%kernel_restart_mode==LIN_RESTART_TMB_WEIGHT.and.in%lin%fragment_calculation)) then
+     if (in%lin%diag_start .or. (in%lin%fragment_calculation .and. in%lin%kernel_restart_mode==LIN_RESTART_TMB_WEIGHT)) then
         ! not worrying about this case as not currently used anyway
         !call reconstruct_kernel(iproc, nproc, in%lin%order_taylor, tmb%orthpar%blocksize_pdsyev, &
         !     tmb%orthpar%blocksize_pdgemm, tmb%orbs, tmb, overlap_calculated)  
@@ -2558,7 +2585,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
         !call to_zero(tmb%orbs%norb,tmb%orbs%occup(1))
         call f_zero(tmb%orbs%occup)
         do iorb=1,kswfn%orbs%norb
-          tmb%orbs%occup(iorb)=Kswfn%orbs%occup(iorb)
+           tmb%orbs%occup(iorb)=Kswfn%orbs%occup(iorb)
         end do
      else
         if (in%lin%kernel_restart_mode==LIN_RESTART_KERNEL .or. in%lin%kernel_restart_mode==LIN_RESTART_DIAG_KERNEL) then
@@ -2679,6 +2706,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call timing(iproc,'constraineddft','OF')
 
+     !call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
+     !     atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
      !*call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'density.cube', &
      !*     atoms,rxyz,denspot%dpbox,1,denspot%rhov)
 
@@ -2743,7 +2772,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
-             energs_work,.false.) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             energs_work,.false.,in%lin%coeff_factor) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         call deallocate_work_mpiaccumulate(energs_work)
 
@@ -2779,12 +2808,14 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      !!call uncompress_matrix(bigdft_mpi%iproc,tmb%linmat%kernel_)
      !call uncompress_matrix2(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
      !if (iproc==0) then
+     !   open(32)
      !   do itmb=1,tmb%orbs%norb
      !      do jtmb=1,tmb%orbs%norb
      !         write(32,*) itmb,jtmb,tmb%coeff(itmb,jtmb),tmb%linmat%kernel_%matrix(itmb,jtmb,1)
      !      end do
      !   end do
      !   write(32,*) ''
+     !   close(32)
      !end if 
      !call f_free_ptr(tmb%linmat%kernel_%matrix) 
      !! end debug

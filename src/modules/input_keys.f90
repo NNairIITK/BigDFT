@@ -101,7 +101,7 @@ module module_input_keys
      real(kind=8) :: alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
      real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
      integer :: plotBasisFunctions
-     real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
+     real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix, coeff_factor
      real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
      real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
      real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
@@ -118,12 +118,16 @@ module module_input_keys
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
      real(kind=8) :: max_inversion_error
-    logical :: calculate_onsite_overlap
+     real(kind=8) :: cdft_lag_mult_init !< Initial value for lagrange multiplier
+     real(kind=8) :: cdft_conv_crit     !< Convergence threshold for cdft charge
+     logical :: calculate_onsite_overlap
      integer :: output_mat_format     !< Output Matrices format
      integer :: output_coeff_format   !< Output Coefficients format
      integer :: output_fragments   !< Output fragments/full system/both
+     integer :: frag_num_neighbours   !< number of neighbouring atoms per fragment
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
+     real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -389,6 +393,9 @@ module module_input_keys
 
      !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
      logical :: adjust_kernel_iterations
+
+     !> linear scaling: enable the addaptive ajustment of the kernel convergence threshold according to the support function convergence
+     logical :: adjust_kernel_threshold
 
      !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      logical :: wf_extent_analysis
@@ -1774,8 +1781,11 @@ contains
           ! linear scaling: radius enlargement for the Hamiltonian application (in grid points)
           in%hamapp_radius_incr = val
        case (ADJUST_KERNEL_ITERATIONS) 
-          ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
+          ! linear scaling: enable the adaptive ajustment of the number of kernel iterations
           in%adjust_kernel_iterations = val
+       case (ADJUST_KERNEL_THRESHOLD) 
+          ! linear scaling: enable the adaptive ajustment of the kernel convergence threshold
+          in%adjust_kernel_threshold = val
        case(WF_EXTENT_ANALYSIS)
           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
           in%wf_extent_analysis = val
@@ -1971,6 +1981,14 @@ contains
           in%lin%output_fragments = val
        case (KERNEL_RESTART_MODE)
           in%lin%kernel_restart_mode = val
+       case (KERNEL_RESTART_NOISE)
+          in%lin%kernel_restart_noise = val
+       case (FRAG_NUM_NEIGHBOURS)
+          in%lin%frag_num_neighbours = val
+       case (CDFT_LAG_MULT_INIT)
+          in%lin%cdft_lag_mult_init = val
+       case (CDFT_CONV_CRIT)
+          in%lin%cdft_conv_crit = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
        case (CALC_PULAY)
@@ -2088,6 +2106,8 @@ contains
           in%lin%evhigh = dummy_gp(2)
        case (FSCALE_FOE) 
           in%lin%fscale = val
+       case (COEFF_SCALING_FACTOR) 
+          in%lin%coeff_factor = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

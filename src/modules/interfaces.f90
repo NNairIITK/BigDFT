@@ -1142,7 +1142,7 @@ module module_interfaces
       subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn,&
-        calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,&
+        calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_defs, only: gp,dp,wp
       use module_types
@@ -1170,6 +1170,7 @@ module module_interfaces
       logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
       type(work_mpiaccumulate),intent(inout) :: energs_work
       logical,intent(in) :: remove_coupling_terms
+      real(kind=8), intent(in) :: factor
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -1660,7 +1661,7 @@ module module_interfaces
 
         interface
           subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
-               ref_frags,input_frag,frag_calc,kernel_restart,orblist)
+               ref_frags,input_frag,frag_calc,kernel_restart,frag_env_mapping,orblist)
           use module_defs, only: gp,dp,wp
           use module_types
           use module_fragments
@@ -1675,6 +1676,7 @@ module module_interfaces
           type(fragmentInputParameters), intent(in) :: input_frag
           type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
           logical, intent(in) :: frag_calc, kernel_restart
+          integer, dimension(:,:,:), pointer :: frag_env_mapping
           integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
           END SUBROUTINE readmywaves_linear_new
         end interface
@@ -2121,7 +2123,7 @@ module module_interfaces
 
   interface
      subroutine write_orbital_density(iproc, transform_to_global, iformat, &
-          filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, lzd_l)
+          filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, dens, lzd_l)
        use module_defs, only: gp,dp,wp
        use module_types
        implicit none
@@ -2135,6 +2137,7 @@ module module_interfaces
        type(atoms_data),intent(in) :: at
        real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
        type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
+       logical,intent(in) :: dens !< density of wavefunctions or just wavefunctions
      END SUBROUTINE write_orbital_density
   end interface
 

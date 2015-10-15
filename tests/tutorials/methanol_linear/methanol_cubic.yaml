@@ -1,0 +1,5 @@
+ dft:
+   hgrids: 0.4
+   rmult: [5.0, 7.0]
+   ixc: LDA (ABINIT)
+   disablesym: Yes

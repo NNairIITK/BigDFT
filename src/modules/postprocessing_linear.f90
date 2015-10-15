@@ -966,7 +966,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work, .false.)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
     
       if (bigdft_mpi%iproc ==0) then
@@ -1053,7 +1053,10 @@ module postprocessing_linear
     
       if (input%write_orbitals==2) then
           call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
-               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz)
+               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
+      else if (input%write_orbitals==3) then 
+          call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KS', &
+               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
       end if
     
       if (input%wf_extent_analysis) then
@@ -1093,7 +1096,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., updatekernel=.false.)
+           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, updatekernel=.false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
@@ -1185,7 +1188,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,energs_work, .false.)
+           input%calculate_KS_residue,input%calculate_gap,energs_work, .false., input%lin%coeff_factor)
     
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
@@ -1306,7 +1309,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., updatekernel=.false.)
+           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, updatekernel=.false.)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
       energyold=energy
