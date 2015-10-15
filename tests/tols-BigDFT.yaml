@@ -1586,6 +1586,7 @@ surface_graphene:
  D eF: 1.1e-9
  diff: 2.101e-11
  Total ionic charge: 1.2e-11
+ Total charge: 1.01e-10
 
 multipoles_OH-:
  eF: 2.6e-6

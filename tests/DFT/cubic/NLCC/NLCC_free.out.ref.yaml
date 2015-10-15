@@ -399,9 +399,10 @@
    Size of workspaces                  :  65648
    Maximum size of masking arrays for a projector:  2034
    Cumulative size of masking arrays   :  2034
- NLCC, Calculate core density for atom : O
- Analytic core charge                  :  0.886280
- Total core charge on the grid :  0.8862805
+ Analytic core charges for atom species:
+   O                                   :  0.8862805
+ Total core charge                     :  0.8862805
+ Total core charge on the grid (To be compared with analytic one):  0.8862805
  Communication checks:
    Transpositions                      :  Yes
    Reverse transpositions              :  Yes
