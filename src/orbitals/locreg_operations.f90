@@ -754,7 +754,6 @@ module locreg_operations
 
     END SUBROUTINE memspace_work_arrays_precond
 
-
     subroutine deallocate_work_arrays(geocode,hybrid_on,ncplx,w)
       implicit none
       character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -2571,6 +2570,7 @@ module locreg_operations
       end select
 
     END SUBROUTINE isf_to_daub_kinetic
+
 
 
 end module locreg_operations

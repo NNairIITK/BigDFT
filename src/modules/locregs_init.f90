@@ -6,7 +6,7 @@ module locregs_init
   !> Public routines
   public :: initLocregs,determine_locregsphere_parallel
   public :: determine_locreg_parallel !is this one deprecated?
-  public :: check_overlap
+!  public :: check_overlap
   public :: distribute_on_threads
   public :: check_overlap_from_descriptors_periodic
   !public :: transform_keyglob_to_keygloc
@@ -2062,26 +2062,6 @@ module locregs_init
       end if
     
     END SUBROUTINE fracture_periodic_zone
-
-
-    subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
-      use locregs, only: locreg_descriptors, check_overlap_cubic_periodic
-      implicit none
-    
-      ! Calling arguments
-      type(locreg_descriptors),intent(in) :: Llr_i, Llr_j, Glr
-      logical, intent(out) :: overlap
-    
-      ! Local variables
-      integer :: onseg
-    
-        call check_overlap_cubic_periodic(Glr,Llr_i,Llr_j,overlap)
-        if(overlap) then
-          call check_overlap_from_descriptors_periodic(Llr_i%wfd%nseg_c, Llr_j%wfd%nseg_c,&
-               Llr_i%wfd%keyglob, Llr_j%wfd%keyglob, overlap, onseg)
-        end if
-    
-    end subroutine check_overlap
 
 
     ! check if Llrs overlap from there descriptors

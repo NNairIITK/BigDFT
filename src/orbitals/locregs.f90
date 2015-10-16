@@ -77,7 +77,7 @@ module locregs
   public :: nullify_locreg_descriptors,locreg_null
   public :: deallocate_locreg_descriptors,deallocate_wfd
   public :: allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
-  public :: check_overlap_cubic_periodic
+  public :: check_overlap_cubic_periodic,check_overlap
   public :: check_whether_bounds_overlap
   public :: get_extent_of_overlap
 
@@ -843,5 +843,23 @@ contains
       end if
 
     end subroutine get_extent_of_overlap_long
+
+    subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
+      implicit none
+
+      ! Calling arguments
+      type(locreg_descriptors),intent(in) :: Llr_i, Llr_j, Glr
+      logical, intent(out) :: overlap
+
+      ! Local variables
+      integer :: onseg
+
+      call check_overlap_cubic_periodic(Glr,Llr_i,Llr_j,overlap)
+      if(overlap) then
+         call check_overlap_from_descriptors_periodic(Llr_i%wfd%nseg_c, Llr_j%wfd%nseg_c,&
+              Llr_i%wfd%keyglob, Llr_j%wfd%keyglob, overlap, onseg)
+      end if
+
+    end subroutine check_overlap
 
 end module locregs

@@ -2085,6 +2085,7 @@ contains
 
     subroutine get_arrays_for_sequential_acces_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, ivectorindex)
       use locregs_init, only: distribute_on_threads
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -2316,6 +2317,7 @@ contains
     subroutine init_sequential_acces_matrix_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, &
                indices_extract_sequential)
       use locregs_init, only: distribute_on_threads
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
