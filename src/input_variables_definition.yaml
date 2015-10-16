@@ -969,14 +969,14 @@
      default: No
    check_sumrho:
      COMMENT: Enables linear sumrho check
-     default: 2
+     default: 1
      EXCLUSIVE:
        0: No check
        1: Light check
        2: Full check
    check_overlap:
      COMMENT: Enables linear overlap check
-     default: 2
+     default: 1
      EXCLUSIVE:
        0: No check
        1: Light check
@@ -993,7 +993,7 @@
        2: In addition output wavefunction densities in interpolating scaling functions (cube file)
        3: In addition output wavefunctions in interpolating scaling functions (cube file)
    explicit_locregcenters:
-     COMMENT: Linear scaling explicitely specify localization centers 
+     COMMENT: Linear scaling explicitly specify localization centers 
      default: No
    calculate_KS_residue:
      COMMENT: Linear scaling calculate Kohn-Sham residue
