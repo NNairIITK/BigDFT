@@ -207,7 +207,7 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
 
   !call the Generalized Poisson Solver
   call Parallel_GPS(kernel,cudasolver,options%potential_integral,energies%strten,&
-       wrtmsg,rhov(1,1,i3s))
+       wrtmsg,rhov(1,1,i3s),options%use_input_guess)
 
   !this part is not important now, to be fixed later
 !!$  if (plot_cavity) then
@@ -309,7 +309,7 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
   end if
   nullify(vextra_eff,pot_ion_eff)
 
-  call release_PS_workarrays(kernel%keepzf,kernel%w)
+  call release_PS_workarrays(kernel%keepzf,kernel%w,options%use_input_guess)
   
   !gather the full result in the case of datacode = G
   if (options%datacode == 'G') call PS_gather(rhov,kernel)
@@ -333,8 +333,8 @@ end subroutine Electrostatic_Solver
 !!should not allocate memory as the memory handling is supposed to be done 
 !!outside. the only exception for the moment is represented by
 !! apply_kernel as the inner poisson solver still allocates heap memory.
-subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist)
-  use FDder, only: update_rhopol
+subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_input_guess)
+  use FDder!, only: update_rhopol
   implicit none
   logical, intent(in) :: cudasolver,wrtmsg
   real(dp), intent(in) :: offset
@@ -342,6 +342,7 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist)
   !>density in input, distributed version. Not modified even if written as inout
   real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(inout) :: rho_dist
   real(dp), dimension(6), intent(out) :: strten !<stress tensor
+  logical, intent(in) :: use_input_guess
   !local variables
   real(dp), parameter :: max_ratioex = 1.0e10_dp !< just to avoid crazy results
   integer :: n1,n23,i1,i23,ip,i23s
@@ -364,6 +365,15 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist)
 
      if (wrtmsg) &
           call yaml_sequence_open('Embedded PSolver Polarization Iteration Method')
+
+     if (use_input_guess) then
+        !gathering the data to obtain the distribution array
+        call PS_gather(kernel%w%pot,kernel)
+        call update_rhopol(kernel%geocode,kernel%ndims(1),kernel%ndims(2),&
+             kernel%ndims(3),&
+             kernel%w%pot,kernel%nord,kernel%hgrids,1.0_dp,kernel%w%dlogeps,kernel%w%rho,rhores2)
+     end if
+
      pi_loop: do ip=1,kernel%max_iter
 
         !update the needed part of rhopot array
@@ -411,6 +421,14 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist)
         call yaml_newline()
           call yaml_sequence_open('Embedded PSolver, Preconditioned Conjugate Gradient Method')
        end if
+
+     if (use_input_guess) then
+        !gathering the data to obtain the distribution array
+        call PS_gather(kernel%w%pot,kernel)
+        call Apply_GPe_operator(kernel%nord,kernel%geocode,kernel%ndims,&
+                   kernel%hgrids,kernel%w%eps,kernel%w%pot,kernel%w%res)
+     end if
+
      beta=1.d0
      ratio=1.d0
      normr=1.d0
@@ -528,7 +546,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    options%cavity_info=.false.
    options%update_cavity= kernel%method .hasattr. PS_SCCS_ENUM
    options%only_electrostatic=.true.
-   options%use_input_guess=.false.
+   options%use_input_guess=.true. !.false.
    !override the verbosity for the cavity treatment for the moment
    options%verbosity_level=1
    if (present(quiet)) then

@@ -991,7 +991,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
   select case(trim(f_str(pkernel%method)))
   case('PCG')
-   call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
+   call pkernel_set_epsilon(pkernel,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
 !   call pkernel_set_epsilon(pkernel,eps=eps)
   case('PI') 
    call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)

@@ -85,7 +85,7 @@ module bigdft_run
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
   public :: bigdft_dot,bigdft_nrm2
   public :: bigdft_get_input_policy
-  public :: bigdft_set_input_policy
+  public :: bigdft_set_input_policy,process_run
 
   !> Input policies
   integer,parameter,public :: INPUT_POLICY_SCRATCH = 10000 !< Start the calculation from scratch
@@ -1599,6 +1599,56 @@ contains
     call f_release_routine()
 
   end subroutine bigdft_state
+
+  !>this routine treats the run_objects and provides the I/O in the outs structure
+  subroutine process_run(id,runObj,outs)
+    use module_base
+    use yaml_output
+    implicit none
+    character(len=*), intent(in) :: id
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
+    !local variables
+    integer :: infocode,ncount_bigdft
+    character(len=60) :: filename
+
+    call f_routine(id='process_run (id="'+id+'")')
+    if(trim(runObj%inputs%geopt_approach)/='SOCK') call bigdft_state(runObj,outs,infocode)
+
+    if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
+    if (bigdft_mpi%iproc ==0 ) call yaml_map('Force Norm (Hartree/Bohr)',sqrt(sum(outs%fxyz**2)),fmt='(es24.17)')
+    if (runObj%inputs%ncount_cluster_x > 1) then
+       if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+       ! geometry optimization
+       call geopt(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+    end if
+
+    if (runObj%inputs%mdsteps > 0) then
+       if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+       ! molecular dynamics
+       call md(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc)
+    end if
+
+    !if there is a last run to be performed do it now before stopping
+    if (runObj%inputs%last_run == -1) then
+       runObj%inputs%last_run = 1
+       call bigdft_state(runObj, outs,infocode)
+    end if
+
+    if (runObj%inputs%ncount_cluster_x > 1) then
+       call f_strcpy(src='final_'+id,dest=filename)
+       call bigdft_write_atomic_file(runObj,outs,filename,&
+            'FINAL CONFIGURATION',cwd_path=.true.)
+
+    else
+       call f_strcpy(src='forces_'+id,dest=filename)
+       call bigdft_write_atomic_file(runObj,outs,filename,&
+            'Geometry + metaData forces',cwd_path=.true.)
+
+    end if
+
+    call f_release_routine()
+  end subroutine process_run
 
   !> Routine to use BigDFT as a blackbox
   subroutine quantum_mechanical_state(runObj,outs,infocode)

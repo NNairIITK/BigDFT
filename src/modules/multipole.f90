@@ -294,6 +294,11 @@ module multipole
       if (ithread<0 .or. ithread>nthread-1) then
           !SM: Is it possible to call f_err_throw within OpenMP? Anyway this condition should never be true...
           call f_err_throw('wrong value of ithread',err_name='BIGDFT_RUNTIME_ERROR')
+          !LG: yes it is possible but not advised to, as running conditions might arise. we will not be sure of
+          !! the actual status of the shared variable on exit as some threads might not have called the error
+          !! or even the routine has been called more than once by different threads. 
+          !! it is better to raise exceptions outside OMP parallel regions. BTW, by construction this error can never happen
+          !! unless the OMP implementation is buggy.
       end if
       !$omp do
       do impl=1,ep%nmpl
@@ -505,11 +510,29 @@ module multipole
 
       if (ep%nmpl > 0) then
          call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
-              quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
+              quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
          !write(*,*) 'ehart_ps',ehart_ps
          !LG: attention to stack overflow here !
          !pot = pot + density
          call daxpy(size(density),1.0_gp,density,1,pot,1)
+!!$
+!!$         !what if this API for axpy? Maybe complicated to understand
+!!$         pot = f_axpy(1.d0,density)
+!!$         !otherwise this is more explicit, but more verbose
+!!$         call f_axpy(a=1.d0,x=density,y=pot)
+!!$         !or this one, for a coefficient of 1
+!!$         pot = .plus_equal. density
+!!$         !maybe this is the better solution?
+!!$         pot = pot .plus. density
+!!$         !as it might be generalized for multiplications and gemms
+!!$         pot= pot .plus. (1.d0 .times. density)
+!!$         !for two matrices in the gemm API
+!!$         C = alpha .times. (A .times. B) .plus. (beta .times. C)
+!!$         !which might be shortcut as
+!!$         C = alpha .t. (A .t. B) .p. (beta .t. C)
+!!$         ! and for transposition
+!!$         C = alpha .t. (A**'t' .t. B) .p. (beta .t. C)
+
       end if
 
       call f_free(norm)
