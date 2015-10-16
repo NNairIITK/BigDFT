@@ -1746,6 +1746,20 @@ neleconf(7,0)=1.d-18
      neleconf(6,1)=6
      amu=222.0d0
 
+  case(92*1000+14)
+     ! -----------------------         128
+     ! U          86           14     Symbol, Z, Zion
+     symbol = "U"
+     rcov=2.7d0
+     rprb=5.20d0
+     ehomo=-0.130948d0
+     neleconf(5,3)=3
+     neleconf(6,0)=2 
+     neleconf(6,1)=6
+     neleconf(6,2)=1
+     neleconf(7,0)=2
+     amu=238.0d0
+
   case default
      call f_err_throw("Electronic configuration "//&
           trim(yaml_toa([nzatom,nvalelec]))//" not found!",&
@@ -1878,7 +1892,7 @@ function ratom(nzatom)
   & -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.60, 1.50, & ! Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu, Hf
   & 1.38, 1.46, 1.59, 1.28, 1.37, 1.28, 1.44, 1.49, 1.48, & ! Ta, W, Re, Os, Ir, Pt, Au, Hg, Tl
   & 1.47, 1.46, -1.0, -1.0, 1.45, & ! Pb, Bi, Po, At, Rn
-  & -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0 /) ! Fr, Ra, Ac, Th, Pa, U, Np, Pu
+  & -1.0, -1.0, -1.0, -1.0, -1.0, 1.42, -1.0, -1.0 /) ! Fr, Ra, Ac, Th, Pa, U, Np, Pu
 
   if (nzatom > 0 .and. nzatom < size(rcov_)) then
      ratom = rcov_(nzatom) / Bohr_Ang
