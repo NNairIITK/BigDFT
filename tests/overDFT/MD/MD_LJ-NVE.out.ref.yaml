@@ -25,30 +25,20 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
-
+ 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.0
- Timestamp of this run                 : 2015-10-15 12:02:28.283
- Root process Hostname                 : athelas
+ Timestamp of this run                 : 2015-10-16 10:23:41.598
+ Root process Hostname                 : maia.cluster.bc2.ch
  Number of MPI tasks                   :  1
- OpenMP parallelization                :  Yes
- Maximal OpenMP threads per MPI task   :  2
+ OpenMP parallelization                :  No
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
-   Configure arguments:
-     " 'FCFLAGS=-O2 -fopenmp -g -fbounds-check -fbacktrace 
-     -ffpe-trap=invalid,zero,overflow,denormal' 
-     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 
-     -L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt -liomp5 -lm' 
-     '--with-blas=no' '--with-lapack=no' 'CFLAGS=-O2 -fopenmp' 'CC=mpicc.openmpi' 
-     'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 'F77=mpif77.openmpi'"
-
-   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
+   Configure arguments                 : " 'FC=mpif90' 'CC=icc' 'CXX=icpc' 'F77=ifort'"
+   Compilers (CC, FC, CXX)             :  [ icc, mpif90, icpc ]
    Compiler flags:
-     CFLAGS                            : -O2 -fopenmp
-                                        
-     FCFLAGS:
-       -O2 -fopenmp -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal
+     CFLAGS                            : -g -O2
+     FCFLAGS                           : -g
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : LJ-NVE
@@ -357,31 +347,31 @@
  Initializing LENNARD_JONES_RUN_MODE:
  - LENNARD_JONES_RUN_MODE: {Energy: -170.9994633715879}
    Energy (Hartree)                    : -1.70999463371587865E+02
-   Force Norm (Hartree/Bohr)           :  1.24350522280333494E-02
+   Force Norm (Hartree/Bohr)           :  1.24350522280334379E-02
    Wavefunction Optimization Finished, exit signal:  0
    (MD): {istep:  0, T:  300.000000, Eke:  0.054153, Epe: -170.999463, Ete: -170.945311}
     #*************************************************************************** Starting MD
-   Number of Degrees of freedom        :  114
- - LENNARD_JONES_RUN_MODE: {Energy: -170.99921861232}
-   (MD): {istep:  1, T:  298.646281, Eke:  0.053908, Epe: -170.999219, Ete: -170.945310}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9984984252103}
-   (MD): {istep:  2, T:  294.663479, Eke:  0.053189, Epe: -170.998498, Ete: -170.945309}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9973230368093}
-   (MD): {istep:  3, T:  288.163358, Eke:  0.052016, Epe: -170.997323, Ete: -170.945307}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9957255132804}
-   (MD): {istep:  4, T:  279.328644, Eke:  0.050421, Epe: -170.995726, Ete: -170.945304}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9937504357035}
-   (MD): {istep:  5, T:  268.405703, Eke:  0.048450, Epe: -170.993750, Ete: -170.945301}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9914521463528}
-   (MD): {istep:  6, T:  255.694858, Eke:  0.046155, Epe: -170.991452, Ete: -170.945297}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9888926528456}
-   (MD): {istep:  7, T:  241.538815, Eke:  0.043600, Epe: -170.988893, Ete: -170.945293}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9861392912662}
-   (MD): {istep:  8, T:  226.309754, Eke:  0.040851, Epe: -170.986139, Ete: -170.945288}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9832622580419}
-   (MD): {istep:  9, T:  210.395694, Eke:  0.037978, Epe: -170.983262, Ete: -170.945284}
- - LENNARD_JONES_RUN_MODE: {Energy: -170.9803321232631}
-   (MD): {istep:  10, T:  194.186756, Eke:  0.035052, Epe: -170.980332, Ete: -170.945280}
+   Number of degrees of freedom        :  114
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9992338426779}
+   (MD): {istep:  1, T:  298.730972, Eke:  0.053923, Epe: -170.999234, Ete: -170.945310}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9985502715514}
+   (MD): {istep:  2, T:  294.951494, Eke:  0.053241, Epe: -170.998550, Ete: -170.945309}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.99743407203}
+   (MD): {istep:  3, T:  288.779898, Eke:  0.052127, Epe: -170.997434, Ete: -170.945307}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9959199169948}
+   (MD): {istep:  4, T:  280.407780, Eke:  0.050616, Epe: -170.995920, Ete: -170.945304}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.994054337695}
+   (MD): {istep:  5, T:  270.092271, Eke:  0.048754, Epe: -170.994054, Ete: -170.945300}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9918938498868}
+   (MD): {istep:  6, T:  258.145676, Eke:  0.046597, Epe: -170.991894, Ete: -170.945296}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9895026927227}
+   (MD): {istep:  7, T:  244.922991, Eke:  0.044211, Epe: -170.989503, Ete: -170.945292}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9869502843798}
+   (MD): {istep:  8, T:  230.807846, Eke:  0.041663, Epe: -170.986950, Ete: -170.945288}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9843085113972}
+   (MD): {istep:  9, T:  216.197529, Eke:  0.039025, Epe: -170.984309, Ete: -170.945283}
+ - LENNARD_JONES_RUN_MODE: {Energy: -170.9816489757904}
+   (MD): {istep:  10, T:  201.487780, Eke:  0.036370, Epe: -170.981649, Ete: -170.945279}
  Memory Consumption Report:
    Tot. No. of Allocations             :  53
    Tot. No. of Deallocations           :  53
@@ -390,7 +380,7 @@
      Peak Value (MB)                   :  0.059
      for the array                     : params
      in the routine                    : input_keys_init
-     Memory Peak of process            : 15.524 MB
- Walltime since initialization         : 00:00:00.067231232
+     Memory Peak of process            : 21.436 MB
+ Walltime since initialization         : 00:00:00.936382796
  Max No. of dictionaries used          :  4185 #( 877 still in use)
  Number of dictionary folders allocated:  1
