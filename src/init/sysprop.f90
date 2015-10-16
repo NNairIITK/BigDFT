@@ -584,7 +584,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
                call solvePrecondEquation(iproc, nproc, lzd_lin%llr(ilr), ncplx, 6, -0.5d0, &
                     lzd_lin%hgrids(1), lzd_lin%hgrids(2), lzd_lin%hgrids(3), &
                     lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), &
-                    phi(1+ist), lzd_lin%llr(ilr)%locregCenter, lorbs,&
+                    phi(1+ist), lzd_lin%llr(ilr)%locregCenter,&
                     1.d-3, 4, precond_convol_workarrays(iorb), precond_workarrays(iorb))
                t2 = mpi_wtime()
                times(i) = t2-t1

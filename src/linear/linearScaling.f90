@@ -3713,7 +3713,7 @@ subroutine get_boundary_weight(iproc, nproc, orbs, lzd, atoms, crmult, nsize_psi
   maxweight = 0.d0
   meanweight = 0.d0
   if (orbs%norbp>0) then
-     ind = 0
+     ind = 1
      do iorb=1,orbs%norbp
         iiorb = orbs%isorb + iorb
         ilr = orbs%inwhichlocreg(iiorb)
@@ -3738,7 +3738,7 @@ subroutine get_boundary_weight(iproc, nproc, orbs, lzd, atoms, crmult, nsize_psi
            nwarnings_types(iatype) = nwarnings_types(iatype) + 1
         end if
      end do
-     if (ind/=nsize_psi) then
+     if (ind/=nsize_psi+1) then
         call f_err_throw('ind/=nsize_psi ('//trim(yaml_toa(ind))//'/='//trim(yaml_toa(nsize_psi))//')', &
              err_name='BIGDFT_RUNTIME_ERROR')
      end if

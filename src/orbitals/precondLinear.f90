@@ -13,11 +13,10 @@
 !! Solves (KE+cprecr*I)*xx=yy by conjugate gradient method.
 !! x is the right hand side on input and the solution on output
 subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
-     hx,hy,hz,kx,ky,kz,x,  rxyzParab, orbs, potentialPrefac, confPotOrder, &
+     hx,hy,hz,kx,ky,kz,x,  rxyzParab, potentialPrefac, confPotOrder, &
      work_conv, w)
 
   use module_base
-  use module_types
   use locregs
   use locreg_operations
 
@@ -34,7 +33,7 @@ subroutine solvePrecondEquation(iproc,nproc,lr,ncplx,ncong,cprecr,&
   !! on output: the solution of the equation (i.e. x)
   real(wp), dimension((lr%wfd%nvctr_c+7*lr%wfd%nvctr_f)*ncplx), intent(inout) :: x
   real(kind=8), dimension(3), intent(in) :: rxyzParab !> the center of the confinement potential
-  type(orbitals_data), intent(in) :: orbs     !> type describing the orbitals
+!  type(orbitals_data), intent(in) :: orbs     !> type describing the orbitals
   real(kind=8) :: potentialPrefac             !> prefactor for the confinement potential
   type(workarrays_quartic_convolutions),intent(inout):: work_conv !< workarrays for the convolutions
   type(workarr_precond),intent(inout) :: w !< workarrays
@@ -279,7 +278,6 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
   ! Apply the  following operators to the wavefunctions: kinetic energy + cprec*Id + r^4.
   if(confPotOrder==4) then
      call timing(iproc,'convolQuartic ','ON')
-      call f_routine(id='call_to_ConvolQuartic4')
       call ConvolQuartic4(iproc, nproc, n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, &
            hx, hy, hz, ns1, ns2, ns3, ibyz_c, ibxz_c, ibxy_c, ibyz_f, ibxz_f, ibxy_f, &
            rxyzParab, parabPrefac, .true., cprecr, max(n1,n2,n3), &
@@ -304,7 +302,6 @@ subroutine applyOperator(iproc,nproc,n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3, ns1
 !           work_conv%ceff0_2, work_conv%ceff1_2, work_conv%ceff2_2, work_conv%ceff3_2, &
 !           work_conv%eeff0_2, work_conv%eeff1_2, work_conv%eeff2_2, work_conv%eeff3_2, & 
            work_conv%y_c, work_conv%y_f)
-      call f_release_routine()
       call timing(iproc,'convolQuartic ','OF')
   else if(confPotOrder==6) then
 

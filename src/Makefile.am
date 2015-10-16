@@ -178,7 +178,6 @@ low_level = \
 	wavelib/i-o.f90 \
 	wavelib/un-compress.f90 \
 	wavelib/gauss_to_daub.f90 \
-	wavelib/daubisf.f90 \
 	$(etsf_files) \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
@@ -187,7 +186,6 @@ low_level = \
 	linear/getLocBasis.f90 \
 	linear/convolutions_aux.f90 \
 	linear/convolutions.f90 \
-	linear/precondLinear.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/linearScaling.f90 \
 	linear/initAndUtils.f90 \

@@ -47,7 +47,9 @@ routines = $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
 	convolut_simple_slab_k.f90 \
 	scalar_product.f90 \
 	potential.f90 \
-	locregs_basics.f90
+	locregs_basics.f90 \
+	precondLinear.f90 \
+	daubisf.f90
 
 liborbitals_a_SOURCES = $(mod_src) $(routines)
 # convolut_ib_sse.c \ #to be verified, not working yet
@@ -90,7 +92,7 @@ locregs.o: base.o
 gaussians.o: base.o
 locreg_operations.o: locregs.o
 potential.o: locreg_operations.o
-locregs_basics.o: locreg_operations.o
+daubisf.o precondLinear.o locregs_basics.o: locreg_operations.o
 $(routines:.f90=.o): defs.o
 
 convolut_common_per.o conv_per_common.o conv_per_optim.o: base.o
