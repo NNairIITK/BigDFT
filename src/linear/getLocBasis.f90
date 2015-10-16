@@ -607,8 +607,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use module_types
   use yaml_output
   use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication, &
-       & calculate_density_kernel, calculate_energy_and_gradient_linear, hpsitopsi, &
-       & hpsitopsi_linear, write_energies
+       & calculate_density_kernel, hpsitopsi, write_energies
   use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, TRANSPOSE_GATHER
   use communications, only: transpose_localized, untranspose_localized, start_onesided_communication, &
                             synchronize_onesided_communication
@@ -690,6 +689,82 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   type(matrices) :: ovrlp_old
   integer :: iiorb, ilr, i, ist
   real(kind=8) :: max_error, mean_error
+  interface
+     subroutine calculate_energy_and_gradient_linear(iproc, nproc, it, &
+          ldiis, fnrmOldArr, fnrm_old, alpha, trH, trHold, fnrm, alpha_mean, alpha_max, &
+          energy_increased, tmb, lhphiold, overlap_calculated, &
+          energs, hpsit_c, hpsit_f, nit_precond, target_function, correction_orthoconstraint, &
+          hpsi_small, experimental_mode, calculate_inverse, correction_co_contra, hpsi_noprecond, &
+          norder_taylor, max_inversion_error, method_updatekernel, precond_convol_workarrays, precond_workarrays,&
+          wt_hphi, wt_philarge, wt_hpsinoprecond, &
+          cdft, input_frag, ref_frags)
+       use module_defs, only: gp,dp,wp
+       use module_types
+       use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
+       use communications_base, only: work_transpose
+       use sparsematrix_base, only: matrices
+       use constrained_dft, only: cdft_data
+       use module_fragments, only: system_fragment,fragmentInputParameters
+       implicit none
+       integer, intent(in) :: iproc, nproc, it, method_updatekernel
+       integer,intent(inout) :: norder_taylor
+       real(kind=8),intent(in) :: max_inversion_error
+       type(DFT_wavefunction), target, intent(inout):: tmb
+       type(localizedDIISParameters), intent(inout) :: ldiis
+       real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: fnrmOldArr
+       real(kind=8),intent(inout) :: fnrm_old
+       real(kind=8), dimension(tmb%orbs%norbp), intent(inout) :: alpha
+       real(kind=8), intent(out):: trH, alpha_mean, alpha_max
+       type(work_mpiaccumulate), intent(inout):: fnrm
+       real(kind=8), intent(in):: trHold
+       logical,intent(out) :: energy_increased
+       real(kind=8), dimension(tmb%npsidim_orbs), intent(inout):: lhphiold
+       logical, intent(inout):: overlap_calculated
+       type(energy_terms), intent(in) :: energs
+       real(kind=8),dimension(tmb%ham_descr%collcom%ndimind_c) :: hpsit_c
+       real(kind=8),dimension(7*tmb%ham_descr%collcom%ndimind_f) :: hpsit_f
+       integer, intent(in) :: nit_precond, target_function, correction_orthoconstraint
+       logical, intent(in) :: experimental_mode, calculate_inverse, correction_co_contra
+       real(kind=8), dimension(tmb%npsidim_orbs), intent(out) :: hpsi_small
+       real(kind=8), dimension(tmb%npsidim_orbs),intent(out) :: hpsi_noprecond
+       type(workarrays_quartic_convolutions),dimension(tmb%orbs%norbp),intent(inout) :: precond_convol_workarrays
+       type(workarr_precond),dimension(tmb%orbs%norbp),intent(inout) :: precond_workarrays
+       type(work_transpose),intent(inout) :: wt_hphi
+       type(work_transpose),intent(inout) :: wt_philarge
+       type(work_transpose),intent(out) :: wt_hpsinoprecond
+       type(cdft_data),intent(inout),optional :: cdft
+       type(fragmentInputParameters), optional, intent(in) :: input_frag
+       type(system_fragment), dimension(:), optional, intent(in) :: ref_frags
+     END SUBROUTINE calculate_energy_and_gradient_linear
+  end interface
+  interface
+     subroutine hpsitopsi_linear(iproc, nproc, it, ldiis, tmb, at, do_iterative_orthonormalization, sf_per_type, &
+          lphiold, alpha, trH, meanAlpha, alpha_max, alphaDIIS, hpsi_small, ortho, psidiff, &
+          experimental_mode, order_taylor, max_inversion_error, trH_ref, kernel_best, complete_reset)
+       use module_defs, only: gp,dp,wp
+       use module_types
+       implicit none
+       integer,intent(in) :: iproc, nproc, it
+       integer,intent(inout) :: order_taylor
+       real(kind=8),intent(in) :: max_inversion_error
+       type(localizedDIISParameters),intent(inout):: ldiis
+       type(DFT_wavefunction),target,intent(inout):: tmb
+       type(atoms_data),intent(in) :: at
+       logical,intent(in) :: do_iterative_orthonormalization
+       integer,dimension(at%astruct%ntypes),intent(in) :: sf_per_type 
+       real(8),dimension(tmb%orbs%npsidim_orbs),intent(inout):: lphiold
+       real(8),intent(in):: trH, meanAlpha, alpha_max
+       real(8),dimension(tmb%orbs%norbp),intent(inout):: alpha, alphaDIIS
+       real(kind=8),dimension(tmb%orbs%npsidim_orbs),intent(inout) :: hpsi_small
+       real(kind=8),dimension(tmb%orbs%npsidim_orbs),optional,intent(out) :: psidiff
+       logical, intent(in) :: ortho, experimental_mode
+       real(kind=8),intent(out) :: trH_ref
+       real(kind=8),dimension(tmb%linmat%l%nvctrp_tg*tmb%linmat%l%nspin),intent(inout) :: kernel_best
+       logical,intent(out) :: complete_reset
+     END SUBROUTINE hpsitopsi_linear
+  end interface
+
+
 
   call f_routine(id='getLocalizedBasis')
 

@@ -4,7 +4,7 @@ module locregs_init
   private
 
   !> Public routines
-  public :: determine_locregsphere_parallel
+  public :: initLocregs!determine_locregsphere_parallel
   public :: determine_locreg_parallel !is this one deprecated?
   public :: check_overlap
   public :: distribute_on_threads
@@ -14,6 +14,74 @@ module locregs_init
   public :: check_linear_inputguess
 
   contains
+
+    ! lzd%llr already allocated, locregcenter and locrad already filled - could tidy this!
+    subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
+      use module_base
+      use module_types
+      use module_atoms, only: atomic_structure
+      implicit none
+
+      ! Calling arguments
+      integer, intent(in) :: iproc, nproc
+      type(local_zone_descriptors), intent(inout) :: lzd
+      real(kind=8), intent(in) :: hx, hy, hz
+      type(atomic_structure), intent(in) :: astruct
+      type(orbitals_data), intent(in) :: orbs
+      type(locreg_descriptors), intent(in) :: Glr
+      character(len=1), intent(in) :: locregShape
+      type(orbitals_data),optional,intent(in) :: lborbs
+
+      ! Local variables
+      integer :: jorb, jjorb, jlr
+      character(len=*), parameter :: subname='initLocregs'
+      logical,dimension(:), allocatable :: calculateBounds
+
+      call f_routine(id=subname)
+
+
+      calculateBounds = f_malloc(lzd%nlr,id='calculateBounds')
+      calculateBounds=.false.
+
+      do jorb=1,orbs%norbp
+         jjorb=orbs%isorb+jorb
+         jlr=orbs%inWhichLocreg(jjorb)
+         calculateBounds(jlr)=.true.
+      end do
+
+      if(present(lborbs)) then
+         do jorb=1,lborbs%norbp
+            jjorb=lborbs%isorb+jorb
+            jlr=lborbs%inWhichLocreg(jjorb)
+            calculateBounds(jlr)=.true.
+         end do
+      end if
+
+      if(locregShape=='c') then
+         stop 'locregShape c is deprecated'
+      else if(locregShape=='s') then
+         call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, hx, hy, hz, &
+              astruct, orbs, Glr, lzd%Llr, calculateBounds)
+      end if
+
+      call f_free(calculateBounds)
+
+      !DEBUG
+      !do ilr=1,lin%nlr
+      !    if(iproc==0) write(*,'(1x,a,i0)') '>>>>>>> zone ', ilr
+      !    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
+      !    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
+      !    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
+      !    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
+      !end do
+      !END DEBUG
+
+      lzd%linear=.true.
+
+      call f_release_routine()
+
+    end subroutine initLocregs
+
 
 
     subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)

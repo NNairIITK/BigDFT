@@ -17,7 +17,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use module_base
   use module_types
   use module_interfaces, only: createProjectorsArrays, createWavefunctionsDescriptors, &
-       & init_orbitals_data_for_linear, orbitals_descriptors,initlocregs,input_check_psi_id,initialize_linear_from_file
+       init_orbitals_data_for_linear, orbitals_descriptors,input_check_psi_id,initialize_linear_from_file
   use module_xc
   use module_fragments
   use vdwcorrection
@@ -29,6 +29,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use public_enums
   use f_enums
   use locreg_operations
+  use locregs_init, only: initLocregs
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump

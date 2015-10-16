@@ -67,7 +67,7 @@ module orbitalbasis
      real(wp), dimension(:), pointer :: phis_wvl !<coefficients in compact form for all the local sf
   end type orbital_basis
 
-  public :: local_hamiltonian_ket, ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next
+  public :: ob_ket_map,orbital_basis_iterator,ket_next_locreg,ket_next,local_hamiltonian_ket
   public :: orbital_basis_associate,orbital_basis_release,test_iterator
 
 contains
@@ -274,7 +274,7 @@ contains
     use module_xc, only: xc_info, xc_exctXfac
     use locreg_operations, only: workarr_locham
     use Poisson_Solver, only: coulomb_operator
-    use dynamic_memory
+    use dynamic_memory, only : f_memcpy
     use module_interfaces, only: isf_to_daub_kinetic, psir_to_vpsi
     use wrapper_linalg, only: axpy
     implicit none
@@ -313,7 +313,7 @@ contains
     call daub_to_isf_locham(psi%nspinor,psi%lr,wrk_lh,psi%phi_wvl,psir)
 
     !calculate the ODP, to be added to VPsi array
-    
+
     !Perdew-Zunger SIC scheme
     eSIC_DCi=0.0_gp
     if (ipotmethod == 2) then
@@ -322,7 +322,7 @@ contains
 !!$            hh,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
        fi=psi%kwgt*psi%occup
        hfac=fi/product(hh)
-       
+
        call PZ_SIC_potential(psi%nspin,psi%nspinor,hfac,psi%spinval,psi%lr,xc,&
             hh,pkernel,psir,vsicpsir,eSICi,eSIC_DCi)
 
@@ -359,7 +359,7 @@ contains
        call axpy(npoints*psi%nspinor,alphaSIC,vsicpsir(1,1),1,psir(1,1),1)
        epot=epot+alphaSIC*eSICi
        !accumulate the Double-Counted SIC energy
-       !!!!done eSIC_DC=eSIC_DC+alphaSIC*psi%kwgt*psi%occup*eSICi
+!!!!done eSIC_DC=eSIC_DC+alphaSIC*psi%kwgt*psi%occup*eSICi
        !eSICi=psi%kwgt*psi%occup*eSICi
        eSIC_DCi=psi%kwgt*psi%occup*eSICi
     end if

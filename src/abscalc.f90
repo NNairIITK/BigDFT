@@ -155,8 +155,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use module_base
    use module_types
    use module_interfaces, only: IonicEnergyandForces, createProjectorsArrays, &
-        & createWavefunctionsDescriptors, extract_potential_for_spectra, &
-        & orbitals_descriptors
+        & createWavefunctionsDescriptors, orbitals_descriptors
    use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_xc
    use module_abscalc
@@ -286,6 +285,39 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    type(pcproj_data_type) ::PPD
    !! to apply paw projectors
    type(PAWproj_data_type) ::PAWD
+
+   interface
+      subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpbox,&
+           orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+           nlpsp,pkernel,ixc,psi,G,&
+           nspin,potshortcut,symObj,GPU,input)
+        use module_defs, only: gp,dp,wp
+        use module_types
+        use communications_base, only: comms_cubic
+        implicit none
+        !Arguments
+        integer, intent(in) :: iproc,nproc,ixc
+        integer, intent(inout) :: nspin,nvirt
+        real(gp), intent(in) :: hx,hy,hz
+        type(atoms_data), intent(inout) :: at
+        type(rho_descriptors),intent(in) :: rhod
+        type(denspot_distribution), intent(in) :: dpbox
+        type(orbitals_data), intent(inout) :: orbs
+        type(DFT_PSP_projectors), intent(inout) :: nlpsp
+        type(local_zone_descriptors), intent(inout) :: Lzd
+        type(comms_cubic), intent(in) :: comms
+        type(GPU_pointers), intent(inout) :: GPU
+        type(input_variables):: input
+        type(symmetry_data), intent(in) :: symObj
+        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+        real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
+        type(gaussian_basis), intent(out) :: G !basis for davidson IG
+        real(wp), dimension(:), pointer :: psi
+        real(wp), dimension(:,:,:,:), pointer :: rhocore
+        type(coulomb_operator), intent(inout) :: pkernel
+        integer, intent(in) ::potshortcut
+      END SUBROUTINE extract_potential_for_spectra
+   end interface
 
    energs= energy_terms_null()
    if (in%potshortcut==0) then
