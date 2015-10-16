@@ -1762,7 +1762,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
 
            opt%iter = opt%iter + 1
-!        if (opt%iter == 2) stop
+        !if (opt%iter == 2) stop
         end do wfn_loop
 
 

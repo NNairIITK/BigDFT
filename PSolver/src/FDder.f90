@@ -13,7 +13,7 @@ module FDder
   implicit none
   private
 
-  public :: nabla_u_square,update_rhopol,Apply_GPe_operator
+  public :: nabla_u_square,update_rhopol,Delta_GPe_operator
   public :: nabla_u,div_u_i,nabla_u_and_square,nonvacuum_projection
 
   contains
@@ -1372,7 +1372,10 @@ module FDder
 
     end subroutine update_rhopol
 
-    subroutine Apply_GPe_operator(nord,geocode,ndims,hgrids,eps,pot,a_pot,work)
+    !subroutine Apply_GPe_operator(nord,geocode,ndims,hgrids,eps,pot,a_pot,work)
+    subroutine Delta_GPe_operator(nord,geocode,ndims,hgrids,eps,pot,a_pot)
+      use wrapper_linalg, only: axpy
+      use numerics, only: oneofourpi
       implicit none
       integer, intent(in) :: nord
       character(len=1), intent(in) :: geocode
@@ -1381,17 +1384,34 @@ module FDder
       !>dielectric function
       real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(in) :: eps
       real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(in) :: pot
-      real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(out) :: a_pot
+      real(dp), dimension(ndims(1),ndims(2),ndims(3)), intent(inout) :: a_pot
       !>work array containing in output the gradient of the potential
       !!multiplied by the dielectric function
-      real(dp), dimension(ndims(1),ndims(2),ndims(3),3), intent(out) :: work
-      !local variables   
+      !real(dp), dimension(ndims(1),ndims(2),ndims(3),3), intent(out) :: work
+      !LG @GF: work arrays should not be used that way, there creates stack overflows
+      real(dp), dimension(ndims(1),ndims(2),ndims(3),3) :: work
+      real(dp), dimension(ndims(1),ndims(2),ndims(3)) :: work1
+!      real(dp) :: pi
+      integer :: i1,i2,i3
+     !local variables   
       !first calculate the derivative of the potential
 
-      call nabla_u_epsilon(geocode,ndims(1),ndims(2),ndims(3),pot,work,nord,hgrids,eps)
-      call div_u_i(geocode,ndims(1),ndims(2),ndims(3),work,a_pot,nord,hgrids)
+!!$      pi = 4.0_dp*datan(1.0_dp)
+!!$      f = -0.25_dp/pi
 
-    end subroutine Apply_GPe_operator
+      !-1/4*pi is inside nabla_u_epsilon which should be used only here!!!
+      call nabla_u_epsilon(geocode,ndims(1),ndims(2),ndims(3),pot,work,nord,hgrids,eps)
+      call div_u_i(geocode,ndims(1),ndims(2),ndims(3),work,work1,nord,hgrids)
+
+      do i3=1,ndims(3)
+       do i2=1,ndims(2)
+        do i1=1,ndims(1)
+         a_pot(i1,i2,i3)=a_pot(i1,i2,i3) - oneofourpi*work1(i1,i2,i3)
+        end do
+       end do
+      end do
+
+    end subroutine Delta_GPe_operator
 
     !> verify that the density is considerably zero in the region where epsilon is different from one
     subroutine nonvacuum_projection(n1,n23,rho,oneoeps,norm)
