@@ -1516,13 +1516,14 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use gaussians
-           use communications_base, only: comms_cubic
-           use communications_init, only: orbitals_communicators
-           use communications, only: transpose_v
+  use communications_base, only: comms_cubic
+  use communications_init, only: orbitals_communicators
+  use communications, only: transpose_v
   use communications, only: toglobal_and_transpose
   use rhopotential, only: full_local_potential, updatePotential
   use public_enums
   use psp_projectors, only: update_nlpsp
+  use locreg_operations, only: confpot_data
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc

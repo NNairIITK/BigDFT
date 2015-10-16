@@ -5,6 +5,17 @@ module locreg_operations
 
   private
 
+  !> Information for the confining potential to be used in TMB scheme
+  !! The potential is supposed to be defined as prefac*(r-rC)**potorder
+  type, public :: confpot_data
+     integer :: potorder                !< Order of the confining potential
+     integer, dimension(3) :: ioffset   !< Offset for the coordinates of potential lr in global region
+     real(gp) :: prefac                 !< Prefactor
+     real(gp), dimension(3) :: hh       !< Grid spacings in ISF grid
+     real(gp), dimension(3) :: rxyzConf !< Confining potential center in global coordinates
+     real(gp) :: damping                !< Damping factor to be used after the restart
+  end type confpot_data
+
   !> Contains the work arrays needed for expressing wavefunction in real space
   !! with all the BC
   type, public :: workarr_sumrho
@@ -53,10 +64,11 @@ module locreg_operations
   end type workarrays_quartic_convolutions
 
 
+  public :: psir_to_vpsi,isf_to_daub_kinetic
+  public :: nullify_confpot_data 
   public :: Lpsi_to_global2
   public :: global_to_local_parallel
-  public :: get_boundary_weight
-  public :: small_to_large_locreg
+  public :: boundary_weight
   public :: psi_to_locreg2
   public :: global_to_local
   public :: initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
@@ -1410,340 +1422,435 @@ module locreg_operations
     
     END SUBROUTINE global_to_local_parallel
 
-
-    !> Check the relative weight which the support functions have at the
-    !! boundaries of the localization regions.
-    subroutine get_boundary_weight(iproc, nproc, orbs, lzd, atoms, crmult, nsize_psi, psi, crit)
-      use module_types, only: orbitals_data, local_zone_descriptors
-      use module_atoms, only: atoms_data
-      use yaml_output
+    function boundary_weight(hgrids,glr,lr,rad,psi) result(weight_normalized)
       implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc
-      type(orbitals_data),intent(in) :: orbs
-      type(local_zone_descriptors),intent(in) :: lzd
-      type(atoms_data),intent(in) :: atoms
-      real(kind=8),intent(in) :: crmult
-      integer,intent(in) :: nsize_psi
-      real(kind=8),dimension(nsize_psi),intent(in) :: psi
-      real(kind=8),intent(in) :: crit
-
-      ! Local variables
-      integer :: iorb, iiorb, ilr, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ind, iat, iatype
-      integer :: ij3, ij2, ij1, jj3, jj2, jj1, ijs3, ijs2, ijs1, ije3, ije2, ije1, nwarnings
+      real(gp), intent(in) :: rad
+      real(gp), dimension(3) :: hgrids
+      type(locreg_descriptors), intent(in) :: glr,lr
+      real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
+      real(gp) :: weight_normalized
+      !local variables
+      integer :: iorb, iiorb, ilr, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ind 
+      integer :: ij3, ij2, ij1, jj3, jj2, jj1, ijs3, ijs2, ijs1, ije3, ije2, ije1
       real(kind=8) :: h, x, y, z, d, weight_inside, weight_boundary, points_inside, points_boundary, ratio
-      real(kind=8) :: atomrad, rad, boundary, weight_normalized, maxweight, meanweight
-      real(kind=8),dimension(:),allocatable :: maxweight_types, meanweight_types
-      integer,dimension(:),allocatable :: nwarnings_types, nsf_per_type
+      real(kind=8) :: boundary
       logical :: perx, pery, perz, on_boundary
 
-      call f_routine(id='get_boundary_weight')
-
-      maxweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
-      meanweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
-      nwarnings_types = f_malloc0(atoms%astruct%ntypes,id='nwarnings_types')
-      nsf_per_type = f_malloc0(atoms%astruct%ntypes,id='nsf_per_type')
-
-      if (iproc==0) then
-          call yaml_sequence(advance='no')
-      end if
 
       ! mean value of the grid spacing
-      h = sqrt(lzd%hgrids(1)**2+lzd%hgrids(2)**2+lzd%hgrids(3)**2)
+      h = sqrt(hgrids(1)**2+hgrids(2)**2+hgrids(3)**2)
 
       ! periodicity in the three directions
-      perx=(lzd%glr%geocode /= 'F')
-      pery=(lzd%glr%geocode == 'P')
-      perz=(lzd%glr%geocode /= 'F')
+      perx=(glr%geocode /= 'F')
+      pery=(glr%geocode == 'P')
+      perz=(glr%geocode /= 'F')
 
       ! For perdiodic boundary conditions, one has to check also in the neighboring
       ! cells (see in the loop below)
       if (perx) then
-          ijs1 = -1
-          ije1 = 1
+         ijs1 = -1
+         ije1 = 1
       else
-          ijs1 = 0
-          ije1 = 0
+         ijs1 = 0
+         ije1 = 0
       end if
       if (pery) then
-          ijs2 = -1
-          ije2 = 1
+         ijs2 = -1
+         ije2 = 1
       else
-          ijs2 = 0
-          ije2 = 0
+         ijs2 = 0
+         ije2 = 0
       end if
       if (perz) then
-          ijs3 = -1
-          ije3 = 1
+         ijs3 = -1
+         ije3 = 1
       else
-          ijs3 = 0
-          ije3 = 0
+         ijs3 = 0
+         ije3 = 0
       end if
 
-      nwarnings = 0
-      maxweight = 0.d0
-      meanweight = 0.d0
-      if (orbs%norbp>0) then
-          ind = 0
-          do iorb=1,orbs%norbp
-              iiorb = orbs%isorb + iorb
-              ilr = orbs%inwhichlocreg(iiorb)
 
-              iat = orbs%onwhichatom(iiorb)
-              iatype = atoms%astruct%iatype(iat)
-              atomrad = atoms%radii_cf(iatype,1)*crmult
-              rad = atoms%radii_cf(atoms%astruct%iatype(iat),1)*crmult
+      boundary = min(rad,lr%locrad)
 
-              boundary = min(rad,lzd%llr(ilr)%locrad)
-              !write(*,*) 'rad, locrad, boundary', rad, lzd%llr(ilr)%locrad, boundary
-
-              nsf_per_type(iatype) = nsf_per_type(iatype ) + 1
-
-              weight_boundary = 0.d0
-              weight_inside = 0.d0
-              points_inside = 0.d0
-              points_boundary = 0.d0
-              do iseg=1,lzd%llr(ilr)%wfd%nseg_c
-                  jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
-                  j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
-                  j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
-                  ii=j0-1
-                  i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-                  ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-                  i2=ii/(lzd%glr%d%n1+1)
-                  i0=ii-i2*(lzd%glr%d%n1+1)
-                  i1=i0+j1-j0
-                  do i=i0,i1
-                      ind = ind + 1
-                      on_boundary = .false.
-                      do ij3=ijs3,ije3!-1,1
-                          jj3=i3+ij3*(lzd%glr%d%n3+1)
-                          z = real(jj3,kind=8)*lzd%hgrids(3)
-                          do ij2=ijs2,ije2!-1,1
-                              jj2=i2+ij2*(lzd%glr%d%n2+1)
-                              y = real(jj2,kind=8)*lzd%hgrids(2)
-                              do ij1=ijs1,ije1!-1,1
-                                  jj1=i+ij1*(lzd%glr%d%n1+1)
-                                  x = real(i,kind=8)*lzd%hgrids(1)
-                                  d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
-                                           (y-lzd%llr(ilr)%locregcenter(2))**2 + &
-                                           (z-lzd%llr(ilr)%locregcenter(3))**2)
-                                  if (abs(d-boundary)<h) then
-                                      on_boundary=.true.
-                                  end if
-                              end do
-                          end do
-                      end do
-                      if (on_boundary) then
-                          ! This value is on the boundary
-                          !write(*,'(a,2f9.2,3i8,3es16.8)') 'on boundary: boundary, d, i1, i2, i3, x, y, z', &
-                          !    boundary, d, i, i2, i3, x, y, z
-                          weight_boundary = weight_boundary + psi(ind)**2
-                          points_boundary = points_boundary + 1.d0
-                      else
-                          weight_inside = weight_inside + psi(ind)**2
-                          points_inside = points_inside + 1.d0
-                      end if
+      weight_boundary = 0.d0
+      weight_inside = 0.d0
+      points_inside = 0.d0
+      points_boundary = 0.d0
+      ind = 0
+      do iseg=1,lr%wfd%nseg_c
+         jj=lr%wfd%keyvglob(iseg)
+         j0=lr%wfd%keyglob(1,iseg)
+         j1=lr%wfd%keyglob(2,iseg)
+         ii=j0-1
+         i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
+         ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
+         i2=ii/(glr%d%n1+1)
+         i0=ii-i2*(glr%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+            ind = ind + 1
+            on_boundary = .false.
+            do ij3=ijs3,ije3!-1,1
+               jj3=i3+ij3*(glr%d%n3+1)
+               z = real(jj3,kind=8)*hgrids(3)
+               do ij2=ijs2,ije2!-1,1
+                  jj2=i2+ij2*(glr%d%n2+1)
+                  y = real(jj2,kind=8)*hgrids(2)
+                  do ij1=ijs1,ije1!-1,1
+                     jj1=i+ij1*(glr%d%n1+1)
+                     x = real(i,kind=8)*hgrids(1)
+                     d = sqrt((x-lr%locregcenter(1))**2 + &
+                          (y-lr%locregcenter(2))**2 + &
+                          (z-lr%locregcenter(3))**2)
+                     if (abs(d-boundary)<h) then
+                        on_boundary=.true.
+                     end if
                   end do
-              end do
-              ! fine part, to be done only if nseg_f is nonzero
-              do iseg=lzd%llr(ilr)%wfd%nseg_c+1,lzd%llr(ilr)%wfd%nseg_c+lzd%llr(ilr)%wfd%nseg_f
-                  jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
-                  j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
-                  j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
-                  ii=j0-1
-                  i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
-                  ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
-                  i2=ii/(lzd%glr%d%n1+1)
-                  i0=ii-i2*(lzd%glr%d%n1+1)
-                  i1=i0+j1-j0
-                  do i=i0,i1
-                      ind = ind + 7
-                      on_boundary = .false.
-                      do ij3=ijs3,ije3!-1,1
-                          jj3=i3+ij3*(lzd%glr%d%n3+1)
-                          z = real(jj3,kind=8)*lzd%hgrids(3)
-                          do ij2=ijs2,ije2!-1,1
-                              jj2=i2+ij2*(lzd%glr%d%n2+1)
-                              y = real(jj2,kind=8)*lzd%hgrids(2)
-                              do ij1=ijs1,ije1!-1,1
-                                  jj1=i+ij1*(lzd%glr%d%n1+1)
-                                  x = real(i,kind=8)*lzd%hgrids(1)
-                                  d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
-                                           (y-lzd%llr(ilr)%locregcenter(2))**2 + &
-                                           (z-lzd%llr(ilr)%locregcenter(3))**2)
-                                  if (abs(d-boundary)<h) then
-                                      on_boundary=.true.
-                                  end if
-                              end do
-                          end do
-                      end do
-                      if (on_boundary) then
-                          ! This value is on the boundary
-                          !write(*,'(a,f9.2,3i8,3es16.8)') 'on boundary: d, i1, i2, i3, x, y, z', d, i, i2, i3, x, y, z
-                          weight_boundary = weight_boundary + psi(ind-6)**2
-                          weight_boundary = weight_boundary + psi(ind-5)**2
-                          weight_boundary = weight_boundary + psi(ind-4)**2
-                          weight_boundary = weight_boundary + psi(ind-3)**2
-                          weight_boundary = weight_boundary + psi(ind-2)**2
-                          weight_boundary = weight_boundary + psi(ind-1)**2
-                          weight_boundary = weight_boundary + psi(ind-0)**2
-                          points_boundary = points_boundary + 7.d0
-                      else
-                          weight_inside = weight_inside + psi(ind-6)**2
-                          weight_inside = weight_inside + psi(ind-5)**2
-                          weight_inside = weight_inside + psi(ind-4)**2
-                          weight_inside = weight_inside + psi(ind-3)**2
-                          weight_inside = weight_inside + psi(ind-2)**2
-                          weight_inside = weight_inside + psi(ind-1)**2
-                          weight_inside = weight_inside + psi(ind-0)**2
-                          points_inside = points_inside + 7.d0
-                      end if
+               end do
+            end do
+            if (on_boundary) then
+               ! This value is on the boundary
+               !write(*,'(a,2f9.2,3i8,3es16.8)') 'on boundary: boundary, d, i1, i2, i3, x, y, z', &
+               !    boundary, d, i, i2, i3, x, y, z
+               weight_boundary = weight_boundary + psi(ind)**2
+               points_boundary = points_boundary + 1.d0
+            else
+               weight_inside = weight_inside + psi(ind)**2
+               points_inside = points_inside + 1.d0
+            end if
+         end do
+      end do
+      ! fine part, to be done only if nseg_f is nonzero
+      do iseg=lr%wfd%nseg_c+1,lr%wfd%nseg_c+lr%wfd%nseg_f
+         jj=lr%wfd%keyvglob(iseg)
+         j0=lr%wfd%keyglob(1,iseg)
+         j1=lr%wfd%keyglob(2,iseg)
+         ii=j0-1
+         i3=ii/((glr%d%n1+1)*(glr%d%n2+1))
+         ii=ii-i3*(glr%d%n1+1)*(glr%d%n2+1)
+         i2=ii/(glr%d%n1+1)
+         i0=ii-i2*(glr%d%n1+1)
+         i1=i0+j1-j0
+         do i=i0,i1
+            ind = ind + 7
+            on_boundary = .false.
+            do ij3=ijs3,ije3!-1,1
+               jj3=i3+ij3*(glr%d%n3+1)
+               z = real(jj3,kind=8)*hgrids(3)
+               do ij2=ijs2,ije2!-1,1
+                  jj2=i2+ij2*(glr%d%n2+1)
+                  y = real(jj2,kind=8)*hgrids(2)
+                  do ij1=ijs1,ije1!-1,1
+                     jj1=i+ij1*(glr%d%n1+1)
+                     x = real(i,kind=8)*hgrids(1)
+                     d = sqrt((x-lr%locregcenter(1))**2 + &
+                          (y-lr%locregcenter(2))**2 + &
+                          (z-lr%locregcenter(3))**2)
+                     if (abs(d-boundary)<h) then
+                        on_boundary=.true.
+                     end if
                   end do
-              end do
-              ! Ratio of the points on the boundary with resepct to the total number of points
-              ratio = points_boundary/(points_boundary+points_inside)
-              weight_normalized = weight_boundary/ratio
-              meanweight = meanweight + weight_normalized
-              maxweight = max(maxweight,weight_normalized)
-              meanweight_types(iatype) = meanweight_types(iatype) + weight_normalized
-              maxweight_types(iatype) = max(maxweight_types(iatype),weight_normalized)
-              if (weight_normalized>crit) then
-                  nwarnings = nwarnings + 1
-                  nwarnings_types(iatype) = nwarnings_types(iatype) + 1
-              end if
-              !write(*,'(a,i7,2f9.1,4es16.6)') 'iiorb, pi, pb, weight_inside, weight_boundary, ratio, xi', &
-              !    iiorb, points_inside, points_boundary, weight_inside, weight_boundary, &
-              !    points_boundary/(points_boundary+points_inside), &
-              !    weight_boundary/ratio
-          end do
-          if (ind/=nsize_psi) then
-              call f_err_throw('ind/=nsize_psi ('//trim(yaml_toa(ind))//'/='//trim(yaml_toa(nsize_psi))//')', &
-                   err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-      end if
-
-      ! Sum up among all tasks... could use workarrays
-      if (nproc>1) then
-          call mpiallred(nwarnings, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          call mpiallred(meanweight, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          call mpiallred(maxweight, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
-          call mpiallred(nwarnings_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          call mpiallred(meanweight_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          call mpiallred(maxweight_types, mpi_max, comm=bigdft_mpi%mpi_comm)
-          call mpiallred(nsf_per_type, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      end if
-      meanweight = meanweight/real(orbs%norb,kind=8)
-      do iatype=1,atoms%astruct%ntypes
-          meanweight_types(iatype) = meanweight_types(iatype)/real(nsf_per_type(iatype),kind=8)
+               end do
+            end do
+            if (on_boundary) then
+               ! This value is on the boundary
+               !write(*,'(a,f9.2,3i8,3es16.8)') 'on boundary: d, i1, i2, i3, x, y, z', d, i, i2, i3, x, y, z
+               weight_boundary = weight_boundary + psi(ind-6)**2
+               weight_boundary = weight_boundary + psi(ind-5)**2
+               weight_boundary = weight_boundary + psi(ind-4)**2
+               weight_boundary = weight_boundary + psi(ind-3)**2
+               weight_boundary = weight_boundary + psi(ind-2)**2
+               weight_boundary = weight_boundary + psi(ind-1)**2
+               weight_boundary = weight_boundary + psi(ind-0)**2
+               points_boundary = points_boundary + 7.d0
+            else
+               weight_inside = weight_inside + psi(ind-6)**2
+               weight_inside = weight_inside + psi(ind-5)**2
+               weight_inside = weight_inside + psi(ind-4)**2
+               weight_inside = weight_inside + psi(ind-3)**2
+               weight_inside = weight_inside + psi(ind-2)**2
+               weight_inside = weight_inside + psi(ind-1)**2
+               weight_inside = weight_inside + psi(ind-0)**2
+               points_inside = points_inside + 7.d0
+            end if
+         end do
       end do
-      if (iproc==0) then
-          call yaml_sequence_open('Check boundary values')
-          call yaml_sequence(advance='no')
-          call yaml_mapping_open(flow=.true.)
-          call yaml_map('type','overall')
-          call yaml_map('mean / max value',(/meanweight,maxweight/),fmt='(2es9.2)')
-          call yaml_map('warnings',nwarnings)
-          call yaml_mapping_close()
-          do iatype=1,atoms%astruct%ntypes
-              call yaml_sequence(advance='no')
-              call yaml_mapping_open(flow=.true.)
-              call yaml_map('type',trim(atoms%astruct%atomnames(iatype)))
-              call yaml_map('mean / max value',(/meanweight_types(iatype),maxweight_types(iatype)/),fmt='(2es9.2)')
-              call yaml_map('warnings',nwarnings_types(iatype))
-              call yaml_mapping_close()
-          end do
-          call yaml_sequence_close()
-      end if
-
-      ! Print the warnings
-      if (nwarnings>0) then
-          if (iproc==0) then
-              call yaml_warning('The support function localization radii might be too small, got'&
-                  &//trim(yaml_toa(nwarnings))//' warnings')
-          end if
-      end if
-
-      call f_free(maxweight_types)
-      call f_free(meanweight_types)
-      call f_free(nwarnings_types)
-      call f_free(nsf_per_type)
-
-      call f_release_routine()
-
-    end subroutine get_boundary_weight
-
-
-    subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
-           orbs, phismall, philarge, to_global)
-      use module_base
-      use module_types, only: orbitals_data, local_zone_descriptors
-      implicit none
+      ! Ratio of the points on the boundary with resepct to the total number of points
+      ratio = points_boundary/(points_boundary+points_inside)
+      weight_normalized = weight_boundary/ratio
+      !write(*,'(a,2f9.1,4es16.6)') 'iiorb, pi, pb, weight_inside, weight_boundary, ratio, xi', &
+      !    points_inside, points_boundary, weight_inside, weight_boundary, &
+      !    points_boundary/(points_boundary+points_inside), &
+      !    weight_boundary/ratio
       
-      ! Calling arguments
-      integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
-      type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
-      type(orbitals_data),intent(in) :: orbs
-      real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
-      real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
-      logical,intent(in),optional :: to_global
-      
-      ! Local variables
-      integer :: ists, istl, iorb, ilr, sdim, ldim, nspin
-      logical :: global
-    
-      call f_routine(id='small_to_large_locreg')
-    
-      if (present(to_global)) then
-          global=to_global
-      else
-          global=.false.
-      end if
-    
-      call timing(iproc,'small2large','ON') ! lr408t 
-      ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
-      call f_zero(philarge)
-      ists=1
-      istl=1
-      do iorb=1,orbs%norbp
-          ilr = orbs%inwhichLocreg(orbs%isorb+iorb)
-          sdim=lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
-          if (global) then
-              ldim=lzdsmall%glr%wfd%nvctr_c+7*lzdsmall%glr%wfd%nvctr_f
-          else
-              ldim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
-          end if
-          nspin=1 !this must be modified later
-          if (global) then
-              call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdsmall%glr, &
-                   lzdsmall%llr(ilr), phismall(ists), philarge(istl))
-          else
-              call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdlarge%llr(ilr), &
-                   lzdsmall%llr(ilr), phismall(ists), philarge(istl))
-          end if
-          ists=ists+sdim
-          istl=istl+ldim
-      end do
-      if(orbs%norbp>0 .and. ists/=npsidim_orbs_small+1) then
-          write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',ists,'=ists /= npsidim_orbs_small+1=',npsidim_orbs_small+1
-          stop
-      end if
-      if(orbs%norbp>0 .and. istl/=npsidim_orbs_large+1) then
-          write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istl /= npsidim_orbs_large+1=',npsidim_orbs_large+1
-          stop
-      end if
-           call timing(iproc,'small2large','OF') ! lr408t 
-      call f_release_routine()
-    end subroutine small_to_large_locreg
+    end function boundary_weight
 
+!!$    !> Check the relative weight which the support functions have at the
+!!$    !! boundaries of the localization regions.
+!!$    subroutine get_boundary_weight(iproc, nproc, orbs, lzd, atoms, crmult, nsize_psi, psi, crit)
+!!$      use module_types, only: orbitals_data, local_zone_descriptors
+!!$      use module_atoms, only: atoms_data
+!!$      use yaml_output
+!!$      implicit none
+!!$
+!!$      ! Calling arguments
+!!$      integer,intent(in) :: iproc, nproc
+!!$      type(orbitals_data),intent(in) :: orbs
+!!$      type(local_zone_descriptors),intent(in) :: lzd
+!!$      type(atoms_data),intent(in) :: atoms
+!!$      real(kind=8),intent(in) :: crmult
+!!$      integer,intent(in) :: nsize_psi
+!!$      real(kind=8),dimension(nsize_psi),intent(in) :: psi
+!!$      real(kind=8),intent(in) :: crit
+!!$
+!!$      ! Local variables
+!!$      integer :: iorb, iiorb, ilr, iseg, jj, j0, j1, ii, i3, i2, i0, i1, i, ind, iat, iatype
+!!$      integer :: ij3, ij2, ij1, jj3, jj2, jj1, ijs3, ijs2, ijs1, ije3, ije2, ije1, nwarnings
+!!$      real(kind=8) :: h, x, y, z, d, weight_inside, weight_boundary, points_inside, points_boundary, ratio
+!!$      real(kind=8) :: atomrad, rad, boundary, weight_normalized, maxweight, meanweight
+!!$      real(kind=8),dimension(:),allocatable :: maxweight_types, meanweight_types
+!!$      integer,dimension(:),allocatable :: nwarnings_types, nsf_per_type
+!!$      logical :: perx, pery, perz, on_boundary
+!!$
+!!$      call f_routine(id='get_boundary_weight')
+!!$
+!!$      maxweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
+!!$      meanweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
+!!$      nwarnings_types = f_malloc0(atoms%astruct%ntypes,id='nwarnings_types')
+!!$      nsf_per_type = f_malloc0(atoms%astruct%ntypes,id='nsf_per_type')
+!!$
+!!$      if (iproc==0) then
+!!$         call yaml_sequence(advance='no')
+!!$      end if
+!!$
+!!$      ! mean value of the grid spacing
+!!$      h = sqrt(lzd%hgrids(1)**2+lzd%hgrids(2)**2+lzd%hgrids(3)**2)
+!!$
+!!$      ! periodicity in the three directions
+!!$      perx=(lzd%glr%geocode /= 'F')
+!!$      pery=(lzd%glr%geocode == 'P')
+!!$      perz=(lzd%glr%geocode /= 'F')
+!!$
+!!$      ! For perdiodic boundary conditions, one has to check also in the neighboring
+!!$      ! cells (see in the loop below)
+!!$      if (perx) then
+!!$         ijs1 = -1
+!!$         ije1 = 1
+!!$      else
+!!$         ijs1 = 0
+!!$         ije1 = 0
+!!$      end if
+!!$      if (pery) then
+!!$         ijs2 = -1
+!!$         ije2 = 1
+!!$      else
+!!$         ijs2 = 0
+!!$         ije2 = 0
+!!$      end if
+!!$      if (perz) then
+!!$         ijs3 = -1
+!!$         ije3 = 1
+!!$      else
+!!$         ijs3 = 0
+!!$         ije3 = 0
+!!$      end if
+!!$
+!!$      nwarnings = 0
+!!$      maxweight = 0.d0
+!!$      meanweight = 0.d0
+!!$      if (orbs%norbp>0) then
+!!$         ind = 0
+!!$         do iorb=1,orbs%norbp
+!!$            iiorb = orbs%isorb + iorb
+!!$            ilr = orbs%inwhichlocreg(iiorb)
+!!$
+!!$            iat = orbs%onwhichatom(iiorb)
+!!$            iatype = atoms%astruct%iatype(iat)
+!!$            atomrad = atoms%radii_cf(iatype,1)*crmult
+!!$            rad = atoms%radii_cf(atoms%astruct%iatype(iat),1)*crmult
+!!$
+!!$              boundary = min(rad,lzd%llr(ilr)%locrad)
+!!$              !write(*,*) 'rad, locrad, boundary', rad, lzd%llr(ilr)%locrad, boundary
+!!$
+!!$              nsf_per_type(iatype) = nsf_per_type(iatype ) + 1
+!!$
+!!$              weight_boundary = 0.d0
+!!$              weight_inside = 0.d0
+!!$              points_inside = 0.d0
+!!$              points_boundary = 0.d0
+!!$              do iseg=1,lzd%llr(ilr)%wfd%nseg_c
+!!$                 jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
+!!$                 j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+!!$                 j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
+!!$                 ii=j0-1
+!!$                 i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+!!$                 ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+!!$                 i2=ii/(lzd%glr%d%n1+1)
+!!$                 i0=ii-i2*(lzd%glr%d%n1+1)
+!!$                 i1=i0+j1-j0
+!!$                 do i=i0,i1
+!!$                    ind = ind + 1
+!!$                    on_boundary = .false.
+!!$                    do ij3=ijs3,ije3!-1,1
+!!$                       jj3=i3+ij3*(lzd%glr%d%n3+1)
+!!$                       z = real(jj3,kind=8)*lzd%hgrids(3)
+!!$                       do ij2=ijs2,ije2!-1,1
+!!$                          jj2=i2+ij2*(lzd%glr%d%n2+1)
+!!$                          y = real(jj2,kind=8)*lzd%hgrids(2)
+!!$                          do ij1=ijs1,ije1!-1,1
+!!$                             jj1=i+ij1*(lzd%glr%d%n1+1)
+!!$                             x = real(i,kind=8)*lzd%hgrids(1)
+!!$                             d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
+!!$                                  (y-lzd%llr(ilr)%locregcenter(2))**2 + &
+!!$                                  (z-lzd%llr(ilr)%locregcenter(3))**2)
+!!$                             if (abs(d-boundary)<h) then
+!!$                                on_boundary=.true.
+!!$                             end if
+!!$                          end do
+!!$                       end do
+!!$                    end do
+!!$                    if (on_boundary) then
+!!$                       ! This value is on the boundary
+!!$                       !write(*,'(a,2f9.2,3i8,3es16.8)') 'on boundary: boundary, d, i1, i2, i3, x, y, z', &
+!!$                       !    boundary, d, i, i2, i3, x, y, z
+!!$                       weight_boundary = weight_boundary + psi(ind)**2
+!!$                       points_boundary = points_boundary + 1.d0
+!!$                    else
+!!$                       weight_inside = weight_inside + psi(ind)**2
+!!$                       points_inside = points_inside + 1.d0
+!!$                    end if
+!!$                 end do
+!!$              end do
+!!$              ! fine part, to be done only if nseg_f is nonzero
+!!$              do iseg=lzd%llr(ilr)%wfd%nseg_c+1,lzd%llr(ilr)%wfd%nseg_c+lzd%llr(ilr)%wfd%nseg_f
+!!$                 jj=lzd%llr(ilr)%wfd%keyvglob(iseg)
+!!$                 j0=lzd%llr(ilr)%wfd%keyglob(1,iseg)
+!!$                 j1=lzd%llr(ilr)%wfd%keyglob(2,iseg)
+!!$                 ii=j0-1
+!!$                 i3=ii/((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1))
+!!$                 ii=ii-i3*(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)
+!!$                 i2=ii/(lzd%glr%d%n1+1)
+!!$                 i0=ii-i2*(lzd%glr%d%n1+1)
+!!$                 i1=i0+j1-j0
+!!$                 do i=i0,i1
+!!$                    ind = ind + 7
+!!$                    on_boundary = .false.
+!!$                    do ij3=ijs3,ije3!-1,1
+!!$                       jj3=i3+ij3*(lzd%glr%d%n3+1)
+!!$                       z = real(jj3,kind=8)*lzd%hgrids(3)
+!!$                       do ij2=ijs2,ije2!-1,1
+!!$                          jj2=i2+ij2*(lzd%glr%d%n2+1)
+!!$                          y = real(jj2,kind=8)*lzd%hgrids(2)
+!!$                          do ij1=ijs1,ije1!-1,1
+!!$                             jj1=i+ij1*(lzd%glr%d%n1+1)
+!!$                             x = real(i,kind=8)*lzd%hgrids(1)
+!!$                             d = sqrt((x-lzd%llr(ilr)%locregcenter(1))**2 + &
+!!$                                  (y-lzd%llr(ilr)%locregcenter(2))**2 + &
+!!$                                  (z-lzd%llr(ilr)%locregcenter(3))**2)
+!!$                             if (abs(d-boundary)<h) then
+!!$                                on_boundary=.true.
+!!$                             end if
+!!$                          end do
+!!$                       end do
+!!$                    end do
+!!$                    if (on_boundary) then
+!!$                       ! This value is on the boundary
+!!$                       !write(*,'(a,f9.2,3i8,3es16.8)') 'on boundary: d, i1, i2, i3, x, y, z', d, i, i2, i3, x, y, z
+!!$                       weight_boundary = weight_boundary + psi(ind-6)**2
+!!$                       weight_boundary = weight_boundary + psi(ind-5)**2
+!!$                       weight_boundary = weight_boundary + psi(ind-4)**2
+!!$                       weight_boundary = weight_boundary + psi(ind-3)**2
+!!$                       weight_boundary = weight_boundary + psi(ind-2)**2
+!!$                       weight_boundary = weight_boundary + psi(ind-1)**2
+!!$                       weight_boundary = weight_boundary + psi(ind-0)**2
+!!$                       points_boundary = points_boundary + 7.d0
+!!$                    else
+!!$                       weight_inside = weight_inside + psi(ind-6)**2
+!!$                       weight_inside = weight_inside + psi(ind-5)**2
+!!$                       weight_inside = weight_inside + psi(ind-4)**2
+!!$                       weight_inside = weight_inside + psi(ind-3)**2
+!!$                       weight_inside = weight_inside + psi(ind-2)**2
+!!$                       weight_inside = weight_inside + psi(ind-1)**2
+!!$                       weight_inside = weight_inside + psi(ind-0)**2
+!!$                       points_inside = points_inside + 7.d0
+!!$                    end if
+!!$                 end do
+!!$              end do
+!!$              ! Ratio of the points on the boundary with resepct to the total number of points
+!!$              ratio = points_boundary/(points_boundary+points_inside)
+!!$              weight_normalized = weight_boundary/ratio
+!!$              meanweight = meanweight + weight_normalized
+!!$              maxweight = max(maxweight,weight_normalized)
+!!$              meanweight_types(iatype) = meanweight_types(iatype) + weight_normalized
+!!$              maxweight_types(iatype) = max(maxweight_types(iatype),weight_normalized)
+!!$              if (weight_normalized>crit) then
+!!$                 nwarnings = nwarnings + 1
+!!$                 nwarnings_types(iatype) = nwarnings_types(iatype) + 1
+!!$              end if
+!!$              !write(*,'(a,i7,2f9.1,4es16.6)') 'iiorb, pi, pb, weight_inside, weight_boundary, ratio, xi', &
+!!$              !    iiorb, points_inside, points_boundary, weight_inside, weight_boundary, &
+!!$              !    points_boundary/(points_boundary+points_inside), &
+!!$              !    weight_boundary/ratio
+!!$           end do
+!!$           if (ind/=nsize_psi) then
+!!$              call f_err_throw('ind/=nsize_psi ('//trim(yaml_toa(ind))//'/='//trim(yaml_toa(nsize_psi))//')', &
+!!$                   err_name='BIGDFT_RUNTIME_ERROR')
+!!$           end if
+!!$        end if
+!!$
+!!$        ! Sum up among all tasks... could use workarrays
+!!$        if (nproc>1) then
+!!$           call mpiallred(nwarnings, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!$           call mpiallred(meanweight, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!$           call mpiallred(maxweight, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+!!$           call mpiallred(nwarnings_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!$           call mpiallred(meanweight_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!$           call mpiallred(maxweight_types, mpi_max, comm=bigdft_mpi%mpi_comm)
+!!$           call mpiallred(nsf_per_type, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!$        end if
+!!$        meanweight = meanweight/real(orbs%norb,kind=8)
+!!$        do iatype=1,atoms%astruct%ntypes
+!!$           meanweight_types(iatype) = meanweight_types(iatype)/real(nsf_per_type(iatype),kind=8)
+!!$        end do
+!!$        if (iproc==0) then
+!!$           call yaml_sequence_open('Check boundary values')
+!!$           call yaml_sequence(advance='no')
+!!$           call yaml_mapping_open(flow=.true.)
+!!$           call yaml_map('type','overall')
+!!$           call yaml_map('mean / max value',(/meanweight,maxweight/),fmt='(2es9.2)')
+!!$           call yaml_map('warnings',nwarnings)
+!!$           call yaml_mapping_close()
+!!$           do iatype=1,atoms%astruct%ntypes
+!!$              call yaml_sequence(advance='no')
+!!$              call yaml_mapping_open(flow=.true.)
+!!$              call yaml_map('type',trim(atoms%astruct%atomnames(iatype)))
+!!$              call yaml_map('mean / max value',(/meanweight_types(iatype),maxweight_types(iatype)/),fmt='(2es9.2)')
+!!$              call yaml_map('warnings',nwarnings_types(iatype))
+!!$              call yaml_mapping_close()
+!!$           end do
+!!$           call yaml_sequence_close()
+!!$        end if
+!!$
+!!$        ! Print the warnings
+!!$        if (nwarnings>0) then
+!!$           if (iproc==0) then
+!!$              call yaml_warning('The support function localization radii might be too small, got'&
+!!$                   &//trim(yaml_toa(nwarnings))//' warnings')
+!!$           end if
+!!$        end if
+!!$
+!!$        call f_free(maxweight_types)
+!!$        call f_free(meanweight_types)
+!!$        call f_free(nwarnings_types)
+!!$        call f_free(nsf_per_type)
+!!$
+!!$        call f_release_routine()
+!!$
+!!$      end subroutine get_boundary_weight
 
     !> Tranform one wavefunction between Global region and localisation region
     subroutine psi_to_locreg2(iproc, ldim, gdim, Llr, Glr, gpsi, lpsi)
     
-      use module_base
-      use module_types
-     
      implicit none
     
       ! Subroutine Scalar Arguments
@@ -1922,10 +2029,6 @@ module locreg_operations
     !!   This routine supposes that the region Blr is contained in the region Alr.
     !!   This should always be the case, if we concentrate on the overlap between two regions.
     subroutine shift_locreg_indexes(Alr,Blr,keymask,nseg)
-    
-      use module_base
-      use module_types
-     
      implicit none
     
     ! Arguments
@@ -1994,9 +2097,6 @@ module locreg_operations
     !> Projects a quantity stored with the global indexes (i1,i2,i3) within the localisation region.
     !! @warning: The quantity must not be stored in a compressed form.
     subroutine global_to_local(Glr,Llr,nspin,size_rho,size_Lrho,rho,Lrho)
-    
-     use module_base
-     use module_types
      
      implicit none
     
@@ -2085,343 +2185,392 @@ module locreg_operations
     
     END SUBROUTINE global_to_local
 
-    
+    pure subroutine nullify_confpot_data(c)
+      use module_defs, only: UNINITIALIZED
+      implicit none
+      type(confpot_data), intent(out) :: c
+      c%potorder=0
+      !the rest is not useful
+      c%prefac     =UNINITIALIZED(c%prefac)     
+      c%hh(1)      =UNINITIALIZED(c%hh(1))      
+      c%hh(2)      =UNINITIALIZED(c%hh(2))      
+      c%hh(3)      =UNINITIALIZED(c%hh(3))      
+      c%rxyzConf(1)=UNINITIALIZED(c%rxyzConf(1))
+      c%rxyzConf(2)=UNINITIALIZED(c%rxyzConf(2))
+      c%rxyzConf(3)=UNINITIALIZED(c%rxyzConf(3))
+      c%ioffset(1) =UNINITIALIZED(c%ioffset(1)) 
+      c%ioffset(2) =UNINITIALIZED(c%ioffset(2)) 
+      c%ioffset(3) =UNINITIALIZED(c%ioffset(3)) 
+      c%damping    =UNINITIALIZED(c%damping)
+
+    end subroutine nullify_confpot_data
+
+
+    !> apply the potential to the psir wavefunction and calculate potential energy
+    subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,econf)
+      use dynamic_memory
+      implicit none
+      integer, intent(in) :: npot,nspinor
+      type(locreg_descriptors), intent(in) :: lr !< localization region of the wavefunction
+      real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,npot), intent(in) :: pot
+      real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
+      real(gp), intent(out) :: epot
+      type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
+      real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout), optional :: vpsir_noconf !< wavefunction with  the potential without confinement applied
+      real(gp), intent(out),optional :: econf !< confinement energy
+      !local variables
+      logical :: confining
+      integer, dimension(3) :: ishift !temporary variable in view of wavefunction creation
+
+      call f_routine(id='psir_to_vpsi')
+
+      !write(*,'(a,a4,2l5)') 'in psir_to_vpsi: lr%geocode, present(vpsir_noconf), present(econf)', lr%geocode, present(vpsir_noconf), present(econf)
+
+      epot=0.0_gp
+      ishift=(/0,0,0/)
+      confining=present(confdata)
+      if (confining) confining= (confdata%potorder /=0)
+
+      if (confining) then
+         if (lr%geocode == 'F') then
+            if (present(vpsir_noconf)) then
+               if (.not.present(econf)) stop 'ERROR: econf must be present when vpsir_noconf is present!'
+               !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+               call apply_potential_lr_conf_noconf(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                    lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                    ishift,lr%d%n2,lr%d%n3,&
+                    nspinor,npot,vpsir,pot,epot,&
+                    confdata,lr%bounds%ibyyzz_r,vpsir_noconf,econf)
+               !confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r,psir_noconf=vpsir_noconf,econf=econf)
+            else
+               !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+               call apply_potential_lr_conf(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                    lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                    ishift,lr%d%n2,lr%d%n3,&
+                    nspinor,npot,vpsir,pot,epot,&
+                    confdata,lr%bounds%ibyyzz_r)
+               !confdata=confdata,ibyyzz_r=lr%bounds%ibyyzz_r)
+            end if
+         else
+!!!if (present(vpsir_noconf)) then
+!!!if (.not.present(econf)) stop 'ERROR: econf must be present when vpsir_noconf is present!'
+!!!!call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+!!!    call apply_potential_lr_conf_noconf_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+!!!         lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+!!!         ishift,lr%d%n2,lr%d%n3,&
+!!!         nspinor,npot,vpsir,pot,epot,&
+!!!         confdata,vpsir_noconf,econf)
+!!!         !confdata=confdata)
+!!!else
+            call apply_potential_lr_conf_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 ishift,lr%d%n2,lr%d%n3,&
+                 nspinor,npot,vpsir,pot,epot,&
+                 confdata)
+            !confdata=confdata)
+!!! end if
+         end if
+
+      else
+
+         if (lr%geocode == 'F') then
+            !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+            call apply_potential_lr_bounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 ishift,lr%d%n2,lr%d%n3,&
+                 nspinor,npot,vpsir,pot,epot,&
+                 lr%bounds%ibyyzz_r)
+            !     ibyyzz_r=lr%bounds%ibyyzz_r)
+         else
+            !call apply_potential_lr(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+            call apply_potential_lr_nobounds(lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 lr%d%n1i,lr%d%n2i,lr%d%n3i,&
+                 ishift,lr%d%n2,lr%d%n3,&
+                 nspinor,npot,vpsir,pot,epot)
+         end if
+      end if
+
+      call f_release_routine()
+
+    end subroutine psir_to_vpsi
+   
+    subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
+      implicit none
+      integer, intent(in) :: nspinor
+      real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
+      type(locreg_descriptors), intent(in) :: lr
+      type(workarr_locham), intent(inout) :: w
+      real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
+      real(gp), intent(out) :: ekin
+      real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
+      real(wp), dimension(6), optional :: k_strten
+      !Local variables
+      logical :: usekpts
+      integer :: idx,i,i_f,iseg_f,ipsif,isegf
+      real(gp) :: ekino
+      real(wp), dimension(0:3) :: scal
+      real(gp), dimension(3) :: hgridh
+      real(wp), dimension(6) :: kstrten,kstrteno
+
+
+      !control whether the k points are to be used
+      !real k-point different from Gamma still not implemented
+      usekpts = kx**2+ky**2+kz**2 > 0.0_gp .or. nspinor == 2
+
+      hgridh(1)=hx*.5_gp
+      hgridh(2)=hy*.5_gp
+      hgridh(3)=hz*.5_gp
+
+      do i=0,3
+         scal(i)=1.0_wp
+      enddo
+
+      !starting point for the fine degrees, to avoid boundary problems
+      i_f=min(1,lr%wfd%nvctr_f)
+      iseg_f=min(1,lr%wfd%nseg_f)
+      ipsif=lr%wfd%nvctr_c+i_f
+      isegf=lr%wfd%nseg_c+iseg_f
+
+      !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
+      ekin=0.0_gp
+
+      kstrten=0.0_wp
+      select case(lr%geocode)
+      case('F')
+
+         !here kpoints cannot be used (for the moment, to be activated for the 
+         !localisation region scheme
+         if (usekpts) stop 'K points not allowed for Free BC locham'
+
+         do idx=1,nspinor
+
+            call comb_shrink(lr%d%n1,lr%d%n2,lr%d%n3,&
+                 lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
+                 w%w1,w%w2,psir(1,idx),&
+                 lr%bounds%kb%ibxy_c,lr%bounds%sb%ibzzx_c,lr%bounds%sb%ibyyzz_c,&
+                 lr%bounds%sb%ibxy_ff,lr%bounds%sb%ibzzx_f,lr%bounds%sb%ibyyzz_f,&
+                 w%y_c(1,idx),w%y_f(1,idx))
+
+            call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
+                 lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+                 hx,hy,hz,&      !here the grid spacings are supposed to be equal.  SM: not any more
+                 lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
+                 lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
+                 w%x_c(1,idx),w%x_f(1,idx),&
+                 w%y_c(1,idx),w%y_f(1,idx),ekino, &
+                 w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),111)
+            ekin=ekin+ekino
+
+            !new compression routine in standard form
+            call compress_and_accumulate_standard(lr%d,lr%wfd,&
+                 lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                 lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                 w%y_c(1,idx),w%y_f(1,idx),&
+                 hpsi(1,idx),hpsi(ipsif,idx))
+!!$        call compress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+!!$             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$             lr%wfd%keygloc(1,1),lr%wfd%keyv(1),&
+!!$             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$             lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   &
+!!$             scal,w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx))
+
+         end do
+
+      case('S')
+
+         if (usekpts) then
+            !first calculate the proper arrays then transpose them before passing to the
+            !proper routine
+            do idx=1,nspinor
+               call convolut_magic_t_slab_self(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                    psir(1,idx),w%y_c(1,idx))
+            end do
+
+            !Transposition of the work arrays (use psir as workspace)
+            call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
+                 w%x_c,psir,.true.)
+            call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
+                 w%y_c,psir,.true.)
+
+            ! compute the kinetic part and add  it to psi_out
+            ! the kinetic energy is calculated at the same time
+            ! do this thing for both components of the spinors
+            do idx=1,nspinor,2
+               call convolut_kinetic_slab_T_k(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                    hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kx,ky,kz)
+               ekin=ekin+ekino        
+            end do
+
+            !re-Transposition of the work arrays (use psir as workspace)
+            call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
+                 w%y_c,psir,.false.)
+
+            do idx=1,nspinor
+               !new compression routine in mixed form
+               call analyse_slab_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                    w%y_c(1,idx),psir(1,idx))
+               call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                    lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                    lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                    psir(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+!!$           call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                lr%wfd%keygloc(1,1),lr%wfd%keyv(1),   & 
+!!$                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
+!!$                w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
+            end do
+
+         else
+            do idx=1,nspinor
+               call convolut_magic_t_slab_self(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                    psir(1,idx),w%y_c(1,idx))
+
+               ! compute the kinetic part and add  it to psi_out
+               ! the kinetic energy is calculated at the same time
+               call convolut_kinetic_slab_T(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
+                    hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
+               ekin=ekin+ekino
+
+               !new compression routine in mixed form
+               call analyse_slab_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                    w%y_c(1,idx),psir(1,idx))
+               call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                    lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                    lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                    psir(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+!!$           call compress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                lr%wfd%keygloc(1,1),lr%wfd%keyv(1),   & 
+!!$                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),   & 
+!!$                w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
+            end do
+         end if
+
+      case('P')
+
+         if (lr%hybrid_on) then
+
+            !here kpoints cannot be used, such BC are used in general to mimic the Free BC
+            if (usekpts) stop 'K points not allowed for hybrid BC locham'
+
+            !here the grid spacing is not halved
+            hgridh(1)=hx
+            hgridh(2)=hy
+            hgridh(3)=hz
+            do idx=1,nspinor
+               call comb_shrink_hyb(lr%d%n1,lr%d%n2,lr%d%n3,&
+                    lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,&
+                    w%w2,w%w1,psir(1,idx),w%y_c(1,idx),w%y_f(1,idx),lr%bounds%sb)
+
+               call convolut_kinetic_hyb_T(lr%d%n1,lr%d%n2,lr%d%n3, &
+                    lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
+                    hgridh,w%x_c(1,idx),w%x_f(1,idx),w%y_c(1,idx),w%y_f(1,idx),kstrteno,&
+                    w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),lr%bounds%kb%ibyz_f,&
+                    lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
+               kstrten=kstrten+kstrteno
+               !ekin=ekin+ekino
+
+               call compress_and_accumulate_standard(lr%d,lr%wfd,&
+                    lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                    lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                    w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+!!$           call compress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                lr%wfd%keygloc(1,1),lr%wfd%keyv(1),& 
+!!$                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f), & 
+!!$                w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),&
+!!$                lr%d%nfl1,lr%d%nfl2,lr%d%nfl3,lr%d%nfu1,lr%d%nfu2,lr%d%nfu3)
+            end do
+         else
+
+            if (usekpts) then
+               !first calculate the proper arrays then transpose them before passing to the
+               !proper routine
+               do idx=1,nspinor
+                  call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                       psir(1,idx),w%y_c(1,idx))
+               end do
+
+               !Transposition of the work arrays (use psir as workspace)
+               call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                    w%x_c,psir,.true.)
+               call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                    w%y_c,psir,.true.)
+
+
+               ! compute the kinetic part and add  it to psi_out
+               ! the kinetic energy is calculated at the same time
+               do idx=1,nspinor,2
+                  !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
+
+                  call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                       hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kx,ky,kz)
+                  kstrten=kstrten+kstrteno
+                  !ekin=ekin+ekino
+               end do
+
+               !Transposition of the work arrays (use psir as workspace)
+               call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
+                    w%y_c,psir,.false.)
+
+               do idx=1,nspinor
+
+                  call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                       w%y_c(1,idx),psir(1,idx))
+                  call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                       lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                       lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                       psir(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+!!$              call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                   lr%wfd%keygloc(1,1),lr%wfd%keyv(1),& 
+!!$                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                   lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),&
+!!$                   w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
+               end do
+            else
+               !first calculate the proper arrays then transpose them before passing to the
+               !proper routine
+               do idx=1,nspinor
+                  call convolut_magic_t_per_self(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                       psir(1,idx),w%y_c(1,idx))
+                  ! compute the kinetic part and add  it to psi_out
+                  ! the kinetic energy is calculated at the same time
+                  call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
+                       hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno)
+                  kstrten=kstrten+kstrteno
+
+                  call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
+                       w%y_c(1,idx),psir(1,idx))
+                  call compress_and_accumulate_mixed(lr%d,lr%wfd,&
+                       lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
+                       lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
+                       psir(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
+
+!!$              call compress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
+!!$                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
+!!$                   lr%wfd%keygloc(1,1),lr%wfd%keyv(1),& 
+!!$                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
+!!$                   lr%wfd%keygloc(1,lr%wfd%nseg_c+iseg_f),lr%wfd%keyv(lr%wfd%nseg_c+iseg_f),& 
+!!$                   w%y_c(1,idx),hpsi(1,idx),hpsi(lr%wfd%nvctr_c+i_f,idx),psir(1,idx))
+               end do
+            end if
+
+         end if
+         ekin=ekin+kstrten(1)+kstrten(2)+kstrten(3)
+         if (present(k_strten)) k_strten=kstrten 
+
+      end select
+
+    END SUBROUTINE isf_to_daub_kinetic
+
 
 end module locreg_operations
-
-subroutine psi_to_tpsi(hgrids,kptv,nspinor,lr,psi,w,hpsi,ekin,k_strten)
-  use module_base
-  use locregs, only: locreg_descriptors
-  use locreg_operations, only: workarr_locham
-  implicit none
-  integer, intent(in) :: nspinor
-  real(gp), dimension(3), intent(in) :: hgrids,kptv
-  type(locreg_descriptors), intent(in) :: lr
-  type(workarr_locham), intent(inout) :: w
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psi
-  real(gp), intent(out) :: ekin
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
-  real(wp), dimension(6), optional :: k_strten
-  !Local variables
-  logical, parameter :: transpose=.false.
-  logical :: usekpts
-  integer :: idx,i,i_f,iseg_f,ipsif,isegf
-  real(gp) :: ekino
-  real(wp), dimension(0:3) :: scal
-  real(gp), dimension(3) :: hgridh
-  real(wp), dimension(6) :: kstrten,kstrteno
-
-
-  !control whether the k points are to be used
-  !real k-point different from Gamma still not implemented
-  usekpts = nrm2(3,kptv(1),1) > 0.0_gp .or. nspinor == 2
-
-  hgridh=.5_gp*hgrids
-
-  do i=0,3
-     scal(i)=1.0_wp
-  enddo
-
-  !starting point for the fine degrees, to avoid boundary problems
-  i_f=min(1,lr%wfd%nvctr_f)
-  iseg_f=min(1,lr%wfd%nseg_f)
-  ipsif=lr%wfd%nvctr_c+i_f
-  isegf=lr%wfd%nseg_c+iseg_f
-
-  !call MPI_COMM_RANK(bigdft_mpi%mpi_comm,iproc,ierr)
-  ekin=0.0_gp
-
-  kstrten=0.0_wp
-  select case(lr%geocode)
-  case('F')
-
-     !here kpoints cannot be used (for the moment, to be activated for the 
-     !localisation region scheme
-     if (usekpts) stop 'K points not allowed for Free BC locham'
-
-     do idx=1,nspinor
-        call uncompress_forstandard(lr%d%n1,lr%d%n2,lr%d%n3,&
-             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  & 
-             lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-             lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),  & 
-             lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-             lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
-             scal,psi(1,idx),psi(ipsif,idx),  &
-             w%x_c(1,idx),w%x_f(1,idx),&
-             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx))
-
-        call f_zero(w%nyc,w%y_c(1,idx))
-        call f_zero(w%nyf,w%y_f(1,idx))
-
-        call ConvolkineticT(lr%d%n1,lr%d%n2,lr%d%n3,&
-             lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-             hgrids(1),hgrids(2),hgrids(3), &        !here the grid spacings are supposed to be equal. SM: not any more
-             lr%bounds%kb%ibyz_c,lr%bounds%kb%ibxz_c,lr%bounds%kb%ibxy_c,&
-             lr%bounds%kb%ibyz_f,lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f, &
-             w%x_c(1,idx),w%x_f(1,idx),&
-             w%y_c(1,idx),w%y_f(1,idx),ekino, &
-             w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),111)
-        ekin=ekin+ekino
-
-        !new compression routine in standard form
-        call compress_and_accumulate_standard(lr%d,lr%wfd,&
-             lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
-             lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
-             w%y_c(1,idx),w%y_f(1,idx),&
-             hpsi(1,idx),hpsi(ipsif,idx))
-
-     end do
-
-  case('S')
-
-     if (usekpts) then
-        !first calculate the proper arrays then transpose them before passing to the
-        !proper routine
-        do idx=1,nspinor
-           call uncompress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
-                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
-                psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
-        end do
-
-        !Transposition of the work arrays (use y_c as workspace)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
-             w%x_c,w%y_c,.true.)
-        call f_zero(nspinor*w%nyc,w%y_c(1,1))
-
-        ! compute the kinetic part and add  it to psi_out
-        ! the kinetic energy is calculated at the same time
-        ! do this thing for both components of the spinors
-        do idx=1,nspinor,2
-           call convolut_kinetic_slab_T_k(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
-                hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino,kptv(1),kptv(2),kptv(3))
-           ekin=ekin+ekino        
-        end do
-
-        !re-Transposition of the work arrays (use x_c as workspace)
-        call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+31,2*lr%d%n3+2,&
-             w%y_c,w%x_c,.false.)
-
-        do idx=1,nspinor
-           !new compression routine in mixed form
-           call analyse_slab_self(lr%d%n1,lr%d%n2,lr%d%n3,&
-                w%y_c(1,idx),w%x_c(1,idx))
-           call compress_and_accumulate_mixed(lr%d,lr%wfd,&
-                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
-                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
-                w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
-
-        end do
-
-     else
-        do idx=1,nspinor
-           call uncompress_slab(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
-                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
-                psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
-
-           call f_zero(w%nyc,w%y_c(1,idx))
-           ! compute the kinetic part and add  it to psi_out
-           ! the kinetic energy is calculated at the same time
-           call convolut_kinetic_slab_T(2*lr%d%n1+1,2*lr%d%n2+15,2*lr%d%n3+1,&
-                hgridh,w%x_c(1,idx),w%y_c(1,idx),ekino)
-           ekin=ekin+ekino
-
-           !new compression routine in mixed form
-           call analyse_slab_self(lr%d%n1,lr%d%n2,lr%d%n3,&
-                w%y_c(1,idx),w%x_c(1,idx))
-           call compress_and_accumulate_mixed(lr%d,lr%wfd,&
-                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
-                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
-                w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
-        end do
-     end if
-
-  case('P')
-
-     if (lr%hybrid_on) then
-
-        !here kpoints cannot be used, such BC are used in general to mimic the Free BC
-        if (usekpts) stop 'K points not allowed for hybrid BC locham'
-
-        !here the grid spacing is not halved
-        hgridh=hgrids
-        do idx=1,nspinor
-           call uncompress_per_f(lr%d%n1,lr%d%n2,lr%d%n3,&
-                lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
-                lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
-                psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%x_f(1,idx),&
-                w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),&
-                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3)
-
-           call f_zero(w%nyc,w%y_c(1,idx))
-           call f_zero(w%nyf,w%y_f(1,idx))
-
-           call convolut_kinetic_hyb_T(lr%d%n1,lr%d%n2,lr%d%n3, &
-                lr%d%nfl1,lr%d%nfu1,lr%d%nfl2,lr%d%nfu2,lr%d%nfl3,lr%d%nfu3,  &
-                hgridh,w%x_c(1,idx),w%x_f(1,idx),w%y_c(1,idx),w%y_f(1,idx),kstrteno,&
-                w%x_f1(1,idx),w%x_f2(1,idx),w%x_f3(1,idx),lr%bounds%kb%ibyz_f,&
-                lr%bounds%kb%ibxz_f,lr%bounds%kb%ibxy_f)
-           kstrten=kstrten+kstrteno
-           !ekin=ekin+ekino
-
-           call compress_and_accumulate_standard(lr%d,lr%wfd,&
-                lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
-                lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
-                w%y_c(1,idx),w%y_f(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
-
-        end do
-     else
-
-        if (usekpts) then
-
-           do idx=1,nspinor
-              call uncompress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                   lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
-                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
-                   psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
-           end do
-
-           if (transpose) then
-              !Transposition of the work arrays (use psir as workspace)
-              call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                   w%x_c,w%y_c,.true.)
-
-              call f_zero(w%y_c)
-              ! compute the kinetic part and add  it to psi_out
-              ! the kinetic energy is calculated at the same time
-              do idx=1,nspinor,2
-                 !print *,'AAA',2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,hgridh
-
-                 call convolut_kinetic_per_T_k(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                      hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
-                 kstrten=kstrten+kstrteno
-                 !ekin=ekin+ekino
-              end do
-
-              !Transposition of the work arrays (use psir as workspace)
-              call transpose_for_kpoints(nspinor,2*lr%d%n1+2,2*lr%d%n2+2,2*lr%d%n3+2,&
-                   w%y_c,w%x_c,.false.)
-
-           else
-              call f_zero(w%y_c)
-              do idx=1,nspinor,2
-                 call convolut_kinetic_per_T_k_notranspose(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                      hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno,kptv(1),kptv(2),kptv(3))
-                 kstrten=kstrten+kstrteno
-              end do
-           end if
-
-           do idx=1,nspinor
-
-              call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
-                   w%y_c(1,idx),w%x_c(1,idx))
-              call compress_and_accumulate_mixed(lr%d,lr%wfd,&
-                   lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
-                   lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
-                   w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
-
-           end do
-        else
-           !first calculate the proper arrays then transpose them before passing to the
-           !proper routine
-           do idx=1,nspinor
-              call uncompress_per(lr%d%n1,lr%d%n2,lr%d%n3,&
-                   lr%wfd%nseg_c,lr%wfd%nvctr_c,&
-                   lr%wfd%keygloc(1,1),lr%wfd%keyvloc(1),   &
-                   lr%wfd%nseg_f,lr%wfd%nvctr_f,&
-                   lr%wfd%keygloc(1,isegf),lr%wfd%keyvloc(isegf),   &
-                   psi(1,idx),psi(ipsif,idx),w%x_c(1,idx),w%y_c(1,idx))
-
-              call f_zero(w%nyc,w%y_c(1,idx))
-              ! compute the kinetic part and add  it to psi_out
-              ! the kinetic energy is calculated at the same time
-              call convolut_kinetic_per_t(2*lr%d%n1+1,2*lr%d%n2+1,2*lr%d%n3+1,&
-                   hgridh,w%x_c(1,idx),w%y_c(1,idx),kstrteno)
-              kstrten=kstrten+kstrteno
-
-              call analyse_per_self(lr%d%n1,lr%d%n2,lr%d%n3,&
-                   w%y_c(1,idx),w%x_c(1,idx))
-              call compress_and_accumulate_mixed(lr%d,lr%wfd,&
-                   lr%wfd%keyvloc(1),lr%wfd%keyvloc(isegf),&
-                   lr%wfd%keygloc(1,1),lr%wfd%keygloc(1,isegf),&
-                   w%x_c(1,idx),hpsi(1,idx),hpsi(ipsif,idx))
-
-           end do
-        end if
-
-     end if
-     ekin=ekin+kstrten(1)+kstrten(2)+kstrten(3)
-     if (present(k_strten)) k_strten=kstrten 
-
-  end select
-
-END SUBROUTINE psi_to_tpsi
-
-
-!> In 3d,            
-!! Applies the magic filter transposed, then analysis wavelet transformation.
-!! The size of the data is forced to shrink
-!! The input array y is not overwritten
-subroutine comb_shrink_hyb(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,w1,w2,y,xc,xf,sb)
-  use module_defs, only: wp
-  use locregs, only: shrink_bounds
-  implicit none
-  type(shrink_bounds),intent(in):: sb
-  integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3
-  real(wp), dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(in) :: y
-  real(wp), dimension(max(2*(2*n2+2)*(2*n3+2)*(nfu1-nfl1+1),&
-       (2*n2+2)*(2*n3+2)*(n1+1))), intent(inout) :: w1
-  real(wp), dimension(max(4*(2*n3+2)*(nfu1-nfl1+1)*(nfu2-nfl2+1),&
-       (2*n3+2)*(n1+1)*(n2+1))), intent(inout) :: w2
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(inout) :: xc
-  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(inout) :: xf
-
-  integer nt
-
-  !perform the combined transform    
-
-  call comb_shrink_hyb_c(n1,n2,n3,w1,w2,y,xc)
-
-  ! I1,I2,I3 -> I2,I3,i1
-  nt=(2*n2+2)*(2*n3+2)
-  call comb_rot_shrink_hyb_1_ib(nt,n1,nfl1,nfu1,y,w1,sb%ibyyzz_f)
-
-  ! I2,I3,i1 -> I3,i1,i2
-  nt=(2*n3+2)*(nfu1-nfl1+1)
-  call comb_rot_shrink_hyb_2_ib(nt,w1,w2,nfl2,nfu2,n2,sb%ibzzx_f)
-
-  ! I3,i1,i2 -> i1,i2,i3
-  nt=(nfu1-nfl1+1)*(nfu2-nfl2+1)
-  call comb_rot_shrink_hyb_3_ib(nt,w2,xf,nfl3,nfu3,n3,sb%ibxy_ff)
-
-END SUBROUTINE comb_shrink_hyb
-
-subroutine comb_grow_all_hybrid(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2&
-     ,w1,w2,xc,xf,y,gb)
-  use module_defs, only: wp
-  use locregs, only: grow_bounds
-  implicit none
-  type(grow_bounds),intent(in):: gb
-  integer,intent(in)::n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nw1,nw2
-  real(wp), dimension(0:n1,0:n2,0:n3), intent(in) :: xc
-  real(wp), dimension(7,nfl1:nfu1,nfl2:nfu2,nfl3:nfu3), intent(in) :: xf
-  real(wp), dimension(nw1), intent(inout) :: w1 !work
-  real(wp), dimension(nw2), intent(inout) :: w2 ! work
-  real(wp), dimension(0:2*n1+1,0:2*n2+1,0:2*n3+1), intent(out) :: y
-
-  call comb_grow_c_simple(n1,n2,n3,w1,w2,xc,y)
-
-  call comb_rot_grow_ib_1(n1      ,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,xf,w1,gb%ibyz_ff,gb%ibzxx_f)
-  call comb_rot_grow_ib_2(n1,n2   ,          nfl2,nfu2,nfl3,nfu3,w1,w2,gb%ibzxx_f,gb%ibxxyy_f)
-  call comb_rot_grow_ib_3(n1,n2,n3,                    nfl3,nfu3,w2,y,gb%ibxxyy_f)
-
-END SUBROUTINE comb_grow_all_hybrid

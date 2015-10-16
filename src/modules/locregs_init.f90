@@ -4,7 +4,7 @@ module locregs_init
   private
 
   !> Public routines
-  public :: initLocregs!determine_locregsphere_parallel
+  public :: initLocregs,determine_locregsphere_parallel
   public :: determine_locreg_parallel !is this one deprecated?
   public :: check_overlap
   public :: distribute_on_threads
@@ -12,6 +12,8 @@ module locregs_init
   !public :: transform_keyglob_to_keygloc
   !public :: determine_wfd_periodicity !is this one deprecated?
   public :: check_linear_inputguess
+  public :: small_to_large_locreg
+
 
   contains
 
@@ -82,6 +84,68 @@ module locregs_init
 
     end subroutine initLocregs
 
+    subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
+         orbs, phismall, philarge, to_global)
+      use module_base
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use locreg_operations, only: lpsi_to_global2
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
+      type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
+      type(orbitals_data),intent(in) :: orbs
+      real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
+      real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
+      logical,intent(in),optional :: to_global
+
+      ! Local variables
+      integer :: ists, istl, iorb, ilr, sdim, ldim, nspin
+      logical :: global
+
+      call f_routine(id='small_to_large_locreg')
+
+      if (present(to_global)) then
+         global=to_global
+      else
+         global=.false.
+      end if
+
+      call timing(iproc,'small2large','ON') ! lr408t 
+      ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
+      call f_zero(philarge)
+      ists=1
+      istl=1
+      do iorb=1,orbs%norbp
+         ilr = orbs%inwhichLocreg(orbs%isorb+iorb)
+         sdim=lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
+         if (global) then
+            ldim=lzdsmall%glr%wfd%nvctr_c+7*lzdsmall%glr%wfd%nvctr_f
+         else
+            ldim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+         end if
+         nspin=1 !this must be modified later
+         if (global) then
+            call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdsmall%glr, &
+                 lzdsmall%llr(ilr), phismall(ists), philarge(istl))
+         else
+            call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdlarge%llr(ilr), &
+                 lzdsmall%llr(ilr), phismall(ists), philarge(istl))
+         end if
+         ists=ists+sdim
+         istl=istl+ldim
+      end do
+      if(orbs%norbp>0 .and. ists/=npsidim_orbs_small+1) then
+         write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',ists,'=ists /= npsidim_orbs_small+1=',npsidim_orbs_small+1
+         stop
+      end if
+      if(orbs%norbp>0 .and. istl/=npsidim_orbs_large+1) then
+         write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istl /= npsidim_orbs_large+1=',npsidim_orbs_large+1
+         stop
+      end if
+      call timing(iproc,'small2large','OF') ! lr408t 
+      call f_release_routine()
+    end subroutine small_to_large_locreg
 
 
     subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
@@ -1783,8 +1847,6 @@ module locregs_init
       end if
     
     END SUBROUTINE num_segkeys_periodic
-    
-    
     
     
     subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&

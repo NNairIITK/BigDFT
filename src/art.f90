@@ -16,6 +16,7 @@ program art90
   use random 
   use lanczos_defs, only: projection, LANCZOS_MIN
   use module_base, only: bigdft_mpi, mpi_environment, mpi_environment_set
+  use wrapper_MPI
   implicit None
 
   integer :: ierror, ierr

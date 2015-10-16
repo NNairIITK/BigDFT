@@ -34,7 +34,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use matrix_operations, only: deviation_from_unity_parallel
   use foe, only: fermi_operator_expansion
   use public_enums
-  use locreg_operations, only: small_to_large_locreg
+  use locregs_init, only: small_to_large_locreg
+  use locreg_operations, only: confpot_data
   implicit none
 
   ! Calling arguments
@@ -623,6 +624,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   use foe, only: fermi_operator_expansion
   use public_enums
   use locreg_operations
+  use locregs_init, only: small_to_large_locreg
   !  use Poisson_Solver
   !use allocModule
   implicit none

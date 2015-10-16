@@ -1019,6 +1019,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   use module_types
   use yaml_output
   use public_enums
+  use locreg_operations, only: confpot_data
   implicit none
   
   ! Calling arguments
@@ -1177,7 +1178,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
                                init_matrix_taskgroups, check_local_matrix_extents
   use foe_base, only: foe_data_deallocate
   use public_enums
-  use locreg_operations, only: small_to_large_locreg
+  use locregs_init, only: small_to_large_locreg
   use module_interfaces, only: deallocate_auxiliary_basis_function, update_locreg
   implicit none
   
@@ -1494,6 +1495,7 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
   use module_types
   use yaml_output
   use public_enums
+  use locreg_operations, only: confpot_data
   implicit none
 
   ! Calling arguments
@@ -1631,6 +1633,7 @@ subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locra
   use module_base
   use module_types
   use yaml_output
+  use locreg_operations, only: confpot_data
   implicit none
   
   ! Calling arguments

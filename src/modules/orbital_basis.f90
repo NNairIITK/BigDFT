@@ -13,9 +13,10 @@ module orbitalbasis
   use module_defs, only: gp,wp
   use locregs
   use f_enums
-  use module_types, only: confpot_data, orbitals_data,local_zone_descriptors
+  use module_types, only: orbitals_data,local_zone_descriptors
   use communications_base, only: comms_linear, comms_cubic
   use dictionaries, only: f_err_throw
+  use locreg_operations, only: confpot_data
   implicit none
   private
 
@@ -76,7 +77,7 @@ contains
 
   pure subroutine nullify_ket(k)
     use module_defs, only: UNINITIALIZED
-    use module_types, only: nullify_confpot_data
+    use locreg_operations, only: nullify_confpot_data
     implicit none
     type(ket), intent(inout) :: k
     !the orbital id
@@ -272,10 +273,9 @@ contains
 
   subroutine local_hamiltonian_ket(psi,hgrids,ipotmethod,xc,pkernel,wrk_lh,psir,vsicpsir,hpsi,pot,eSIC_DCi,alphaSIC,epot,ekin)
     use module_xc, only: xc_info, xc_exctXfac
-    use locreg_operations, only: workarr_locham
+    use locreg_operations, only: workarr_locham,psir_to_vpsi, isf_to_daub_kinetic
     use Poisson_Solver, only: coulomb_operator
     use dynamic_memory, only : f_memcpy
-    use module_interfaces, only: isf_to_daub_kinetic, psir_to_vpsi
     use wrapper_linalg, only: axpy
     implicit none
     type(ket), intent(in) :: psi
@@ -286,7 +286,7 @@ contains
     real(gp), intent(in) :: alphaSIC
     real(gp), intent(out) :: eSIC_DCi, epot, ekin
     real(wp), dimension(psi%lr%d%n1i*psi%lr%d%n2i*psi%lr%d%n3i,psi%nspinor), intent(inout) :: psir !to be unified with vsicpsir
-    real(wp), dimension(:), intent(in) :: pot
+    real(wp), dimension(*), intent(in) :: pot
     !> the PSolver kernel which should be associated for the SIC schemes
     type(coulomb_operator), intent(in) :: pkernel
     real(wp), dimension(:,:), allocatable, intent(inout) :: vsicpsir

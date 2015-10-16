@@ -171,6 +171,7 @@ module module_interfaces
          use module_defs, only: gp,dp,wp
          use module_types
          use module_xc
+         use locreg_operations, only: confpot_data
          implicit none
          integer, intent(in) :: PotOrKin !< if true, only the potential operator is applied
          integer, intent(in) :: iproc,nproc,npsidim_orbs
@@ -249,7 +250,7 @@ module module_interfaces
                  linear_precond_convol_workarrays, linear_precond_workarrays)
         use module_defs, only: gp,dp,wp
         use module_types
-        use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
+        use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond,confpot_data
         implicit none
         integer, intent(in) :: iproc,nproc,ncong,npsidim
         real(gp), intent(in) :: hx,hy,hz
@@ -634,33 +635,6 @@ module module_interfaces
       end interface
 
       interface
-        subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
-           ipotmethod,confdatarr,pot,psi,hpsi,pkernel,xc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
-           dpbox,potential,comgp)
-        use module_defs, only: gp,dp,wp
-        use module_types
-        use module_xc
-        implicit none
-        integer, intent(in) :: iproc,nproc,ipotmethod,npsidim_orbs
-        real(gp), intent(in) :: hx,hy,hz,alphaSIC
-        type(orbitals_data), intent(in) :: orbs
-        type(local_zone_descriptors), intent(in) :: Lzd
-        type(confpot_data), dimension(orbs%norbp), intent(in) :: confdatarr
-        type(xc_info), intent(in) :: xc
-        real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi !this dimension will be modified
-        real(wp), dimension(:),pointer :: pot !< the potential, with the dimension compatible with the ipotmethod flag
-        !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
-        real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
-        real(wp), dimension(orbs%npsidim_orbs), intent(inout) :: hpsi
-        type(coulomb_operator), intent(inout) :: pkernel !< the PSolver kernel which should be associated for the SIC schemes
-        type(denspot_distribution),intent(in),optional :: dpbox
-        !!real(wp), dimension(max(dpbox%ndimrhopot,orbs%nspin)), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
-        real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
-        type(p2pComms),intent(inout), optional:: comgp
-        END SUBROUTINE local_hamiltonian
-      end interface
-
-      interface
         subroutine NK_SIC_potential(lr,orbs,xc,fref,hgrids,pkernel,psi,poti,eSIC_DC,potandrho,wxdsave)
         use module_defs, only: gp,wp,dp
         use module_types
@@ -792,23 +766,6 @@ module module_interfaces
         implicit none
         real(wp), dimension(:,:,:,:), pointer :: psiscf
         END SUBROUTINE free_wave_to_isf
-      end interface
-
-      interface
-        subroutine isf_to_daub_kinetic(hx,hy,hz,kx,ky,kz,nspinor,lr,w,psir,hpsi,ekin,k_strten)
-        use module_defs, only: gp,wp
-        use locregs, only: locreg_descriptors
-        use locreg_operations, only: workarr_locham
-        implicit none
-        integer, intent(in) :: nspinor
-        real(gp), intent(in) :: hx,hy,hz,kx,ky,kz
-        type(locreg_descriptors), intent(in) :: lr
-        type(workarr_locham), intent(inout) :: w
-        real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(in) :: psir
-        real(gp), intent(out) :: ekin
-        real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,nspinor), intent(inout) :: hpsi
-        real(wp), dimension(6), optional :: k_strten
-        END SUBROUTINE isf_to_daub_kinetic
       end interface
 
       interface
@@ -976,6 +933,7 @@ module module_interfaces
        use module_types
        use module_xc
        use gaussians, only: gaussian_basis
+       use locreg_operations, only: confpot_data
        implicit none
        integer, intent(in) :: iproc,nproc!,nspin
        type(atoms_data), intent(in) :: at
@@ -999,42 +957,6 @@ module module_interfaces
        type(paw_objects),intent(inout)::paw
        END SUBROUTINE FullHamiltonianApplication
      end interface
-
-       interface
-         subroutine apply_potential_lr(n1i,n2i,n3i,n1ip,n2ip,n3ip,ishift,n2,n3,nspinor,npot,&
-            psir,pot,epot,&
-            confdata,ibyyzz_r,psir_noconf,econf) !optional
-         use module_defs, only: gp,dp,wp
-         use module_types
-         implicit none
-         integer, intent(in) :: n1i,n2i,n3i,n1ip,n2ip,n3ip,n2,n3,nspinor,npot
-         integer, dimension(3), intent(in) :: ishift !<offset of potential box in wfn box coords.
-         real(wp), dimension(n1i,n2i,n3i,nspinor), intent(inout) :: psir !< real-space wfn in lr
-         real(wp), dimension(n1ip,n2ip,n3ip,npot), intent(in) :: pot !< real-space pot in lrb
-         type(confpot_data), intent(in), optional, target :: confdata !< data for the confining potential
-         integer, dimension(2,-14:2*n2+16,-14:2*n3+16), intent(in), optional :: ibyyzz_r !< bounds in lr
-         real(gp), intent(out) :: epot
-         real(wp),dimension(n1i,n2i,n3i,nspinor),intent(inout),optional :: psir_noconf !< real-space wfn in lr where only the potential (without confinement) will be applied
-         real(gp), intent(out),optional :: econf
-         END SUBROUTINE apply_potential_lr
-       end interface
-
-       interface
-         subroutine psir_to_vpsi(npot,nspinor,lr,pot,vpsir,epot,confdata,vpsir_noconf,econf)
-         use module_defs, only: gp,dp,wp
-         use module_types
-         implicit none
-         integer, intent(in) :: npot,nspinor
-         type(locreg_descriptors), intent(in) :: lr !< localization region of the wavefunction
-         !real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,npot), intent(in) :: pot
-         real(wp), intent(in) :: pot
-         real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout) :: vpsir
-         real(gp), intent(out) :: epot
-         type(confpot_data), intent(in), optional :: confdata !< data for the confining potential
-         real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,nspinor), intent(inout), optional :: vpsir_noconf !< wavefunction with  the potential without confinement applied
-         real(gp), intent(out),optional :: econf !< confinement energy
-         END SUBROUTINE psir_to_vpsi
-       end interface
 
        interface
          subroutine export_grids(fname, atoms, rxyz, hx, hy, hz, n1, n2, n3, logrid_c, logrid_f)
@@ -1183,6 +1105,7 @@ module module_interfaces
          use module_defs, only: gp,dp,wp
          use module_types
          use module_xc
+         use locreg_operations, only: confpot_data
          implicit none
          integer, intent(in) :: iproc,ipotmethod,npsidim_orbs
          real(gp), intent(in) :: alphaSIC
@@ -1569,7 +1492,7 @@ module module_interfaces
   interface
      subroutine allocate_precond_arrays(orbs, lzd, confdatarr, precond_convol_workarrays, precond_workarrays)
        use module_types
-       use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
+       use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond,confpot_data
        implicit none
        type(orbitals_data),intent(in) :: orbs
        type(local_zone_descriptors),intent(in) :: lzd
