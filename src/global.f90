@@ -2581,7 +2581,11 @@ subroutine identical(iproc,nlminx,nlmin,nid,e_wpos,wfp,en_arr,fp_arr,en_delta,fp
 !  do i=1,nlmin
 !     if (iproc.eq.0) write(*,'(a,i3,5(e24.17))') '(MH) enarr ',i,en_arr(i),(fp_arr(l,i),l=1,2)
 !  enddo
-  if (iproc.eq.0) write(*,'(a,e24.17,i3,5(e24.17))') '(MH) e_wpos,k_e_wpos ',e_wpos,k_e_wpos!,(wfp(l),l=1,2)
+  !if (iproc.eq.0) write(*,'(a,e24.17,i3,5(e24.17))') '(MH) e_wpos,k_e_wpos ',e_wpos,k_e_wpos!,(wfp(l),l=1,2)
+  if (iproc == 0) then
+     call yaml_map('(MH) e_wpos,k_e_wpos ',e_wpos)
+     call yaml_map('(MH) k_e_wpos ',k_e_wpos)
+  end if
 
   ! find lowest configuration that might be identical
   klow=k_e_wpos

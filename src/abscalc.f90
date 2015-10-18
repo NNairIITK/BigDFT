@@ -766,7 +766,6 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
                n2i_bB=ndims(2)
                n3i_bB=ndims(3)
 
-
                if( (atoms%astruct%nat/nat_b2B)*nat_b2B /=  atoms%astruct%nat ) then
                   if(iproc==0) write(*,*)  "   b2B_xanes cube  is not compatible with actual positions" 
                   if(nproc>1) call MPI_Finalize(ierr)

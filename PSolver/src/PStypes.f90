@@ -249,6 +249,7 @@ contains
     nullify(w%z)
     nullify(w%p)
     nullify(w%q)
+    nullify(w%eps)
     call f_zero(w%work1_GPU)
     call f_zero(w%work2_GPU)
     call f_zero(w%rho_GPU)

@@ -421,11 +421,14 @@ program GPS_3D
   !else if (any(SetEps == [5])) then
      call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
           eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,.false.)
-   if (PIstart) call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode,PIstart)
-  !     call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
+   if (PIstart) call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+        eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode,PIstart)
+  !     call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
+   ! eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode)
   case(6)
 !   call Poisson_Boltzmann(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp)
-!   call Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp)
+!   call Poisson_Boltzmann_improved(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
+    ! eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp)
    call Poisson_Boltzmann_improved2(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,eps,SetEps,nord,pkernel,&
         potential,corr,oneosqrteps,multp)
   case(7)
@@ -433,7 +436,8 @@ program GPS_3D
      call Prec_conjugate_gradient_restart(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,acell,&
           eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,multp,offset,geocode,lin_PB)
   case(8)
-       call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode,.false.)
+       call PolarizationIteration(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
+            eps,nord,pkernel,potential,oneoeps,dlogeps,multp,offset,geocode,.false.)
    if (PCGstart) call Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,rhopot,density,acell,&
           eps,SetEps,nord,pkernel,potential,corr,oneosqrteps,dlogeps,multp,offset,geocode,lin_PB,PCGstart)
   case(9)
@@ -1279,7 +1283,8 @@ subroutine Prec_conjugate_gradient(n01,n02,n03,nspden,iproc,hx,hy,hz,b,bb,&
         qval=q(i1,i2,i3,isp)
         rval=r(i1,i2,i3,isp)
         pval = zeta+(beta/beta0)*pval
-        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+        ! Additional contribution to the Generalized Poisson operator
+        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) 
                                                                           ! for the Poisson-Boltzmann solution.
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*zeta)
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta*dcosh(multp*x(i1,i2,i3,isp))
@@ -1601,7 +1606,8 @@ subroutine Prec_conjugate_gradient_PSD(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
          qval = -0.25d0*divprod*eps(i1,i2,i3)/pi + rval
         else
          pval = zeta+betak*(beta/beta0)*pval
-         pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+         ! Additional contribution to the Generalized Poisson operator
+         pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) 
                                                                           ! for the Poisson-Boltzmann solution.
          qval = zeta*epsc+rval+pbval+betak*(beta/beta0)*qval
         end if
@@ -1947,7 +1953,8 @@ subroutine Prec_conjugate_gradient_restart(n01,n02,n03,nspden,iproc,hx,hy,hz,b,&
         qval=q(i1,i2,i3,isp)
         rval=r(i1,i2,i3,isp)
         pval = zeta+(beta/beta0)*pval
-        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) ! Additional contribution to the Generalized Poisson operator
+        ! Additional contribution to the Generalized Poisson operator
+        pbval=-switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*PB_charge(zeta) 
                                                                           ! for the Poisson-Boltzmann solution.
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*dsinh(multp*zeta)
 !        pbval=switch*((eps(i1,i2,i3)-1.0d0)/(eps0-1.0d0))*multp*zeta*dcosh(multp*x(i1,i2,i3,isp))

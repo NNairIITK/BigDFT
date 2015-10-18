@@ -1123,7 +1123,6 @@ module module_interfaces
          END SUBROUTINE psi_to_vlocpsi
        end interface
 
-
        interface
          subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,Lzd,&
               iformat,dir_output,filename,ref_frags,orblist)
