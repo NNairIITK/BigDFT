@@ -439,12 +439,12 @@ contains
           if (associated(kernel%w%pot)) then
              call f_zero(kernel%w%pot)
           else
-       kernel%w%pot=f_malloc_ptr(kernel%ndims,id='pot')
+       kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
           end if
        end if
 
        !kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
-       kernel%w%rho=f_malloc0_ptr(kernel%ndims,id='rho')
+       kernel%w%rho=f_malloc0_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='rho')
        kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
     end select
 

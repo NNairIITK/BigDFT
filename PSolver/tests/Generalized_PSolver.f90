@@ -98,7 +98,8 @@ program GPS_3D
    SetEps =options//'seteps'
    usegpu = options // 'accel'
    logyes= options // 'logfile'
-   delta= options // 'deltacav'
+   delta=0.3d0
+   delta= options .get. 'deltacav'
    call dict_free(options)
 
 
