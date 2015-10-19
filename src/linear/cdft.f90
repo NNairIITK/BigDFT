@@ -657,7 +657,8 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   use transposed_operations, only: calculate_overlap_transposed
   use rhopotential, only: full_local_potential
-  use locreg_operations, only: small_to_large_locreg
+  use locregs_init, only: small_to_large_locreg
+  use locreg_operations, only: confpot_data
   implicit none
   integer,intent(in) :: iproc
   type(cdft_data), intent(inout) :: cdft

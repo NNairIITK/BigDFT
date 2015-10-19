@@ -224,8 +224,12 @@ contains
 
 
   pure subroutine nullify_symmetry_data(sym)
+    use f_utils, only: f_zero
+    implicit none
     type(symmetry_data), intent(out) :: sym
     sym%symObj=-1
+    sym%nsym=-1
+    call f_zero(sym%spaceGroup)
     nullify(sym%irrzon)
     nullify(sym%phnons)
   end subroutine nullify_symmetry_data
@@ -916,7 +920,7 @@ contains
       if (present(rxyz)) rxyz_ => rxyz
       formt=astruct%inputfile_format
       if (present(fmt)) call f_strcpy(src=fmt,dest=formt)
-      iunit=9
+      iunit=f_get_free_unit(9)
       if (present(unit)) iunit=unit
 
       if (trim(filename) == "stdout") then

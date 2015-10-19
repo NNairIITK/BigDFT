@@ -456,12 +456,9 @@
    Total number of components          :  21744
    Percent of zero components          :  0
    Size of workspaces                  :  43520
- NLCC, Calculate core density for atom : O
- Analytic core charge                  :  0.421051
- NLCC, Calculate core density for atom : H
- Analytic core charge                  :  0.000000
- NLCC, Calculate core density for atom : H
- Analytic core charge                  :  0.000000
+ Analytic core charges for atom species:
+   O                                   :  0.4210514
+ Total core charge                     :  0.4210514
  Total core charge on the grid (To be compared with analytic one):  0.4210514
   #WARNING: Do not call check_communications in the linear scaling version!
   #-------------------------------------------------------- Estimation of Memory Consumption

@@ -661,8 +661,7 @@ end subroutine density_descriptors
 
 !> routine which initialised the potential data
 subroutine default_confinement_data(confdatarr,norbp)
-  use module_base
-  use module_types
+  use locreg_operations, only: confpot_data,nullify_confpot_data
   implicit none
   integer, intent(in) :: norbp
   type(confpot_data), dimension(norbp), intent(out) :: confdatarr
@@ -682,6 +681,7 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
            confpotorder,potentialprefac,Lzd,confinementCenter)
   use module_base
   use module_types
+  use locreg_operations, only: confpot_data
   use bounds, only: geocode_buffers
   implicit none
   real(gp), intent(in) :: hx,hy,hz

@@ -2085,6 +2085,7 @@ contains
 
     subroutine get_arrays_for_sequential_acces_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, ivectorindex)
       use locregs_init, only: distribute_on_threads
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -2316,6 +2317,7 @@ contains
     subroutine init_sequential_acces_matrix_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, &
                indices_extract_sequential)
       use locregs_init, only: distribute_on_threads
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -4386,17 +4388,14 @@ contains
 
     subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
           use module_types
-          use locregs, only: check_overlap_cubic_periodic
-          use locregs_init, only: check_overlap_from_descriptors_periodic
+          use locregs, only: check_overlap_cubic_periodic,check_overlap_from_descriptors_periodic
           implicit none
-        
           ! Calling arguments
           integer, intent(in) :: iproc, nproc
           type(orbitals_data), intent(in) :: orbs
           type(local_zone_descriptors), intent(in) :: lzd
           integer, intent(out) :: nnonzero
           integer, dimension(:,:), pointer,intent(out) :: nonzero
-        
           ! Local variables
           integer :: iorb, jorb, ioverlaporb, ilr, jlr, ilrold
           integer :: iiorb, ii

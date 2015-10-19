@@ -1753,12 +1753,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
      nspin,ixc,ncong,Lzd,hx,hy,hz,rxyz,ntimes)
    use module_base
    use module_types
-   use module_interfaces, only: gaussian_pswf_basis, local_hamiltonian
+   use module_interfaces, only: gaussian_pswf_basis
    use Poisson_Solver, except_dp => dp, except_gp => gp
    use gaussians, only: gaussian_basis, deallocate_gwf
    use module_xc
    use module_input_keys
-
+   use locreg_operations, only: confpot_data
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
    real(gp), intent(in) :: hx,hy,hz
@@ -1965,7 +1965,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    do j=1,ntimes
       pottmp = f_malloc_ptr(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin),id='pottmp')
       call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin),pot(1,1,1,1),1,pottmp(1),1)
-      call local_hamiltonian(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
+      call local_hamiltonian_old(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
            fake_pkernelSIC,xc,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
       call f_free_ptr(pottmp)
    end do

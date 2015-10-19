@@ -11,11 +11,10 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      calculate_strten,ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
   use module_base
   use module_types
-  use module_interfaces, only: erf_stress
   use communications_base
   use yaml_output
   use module_forces
-  use forces_linear, only: nonlocal_forces_linear, local_hamiltonian_stress_linear
+  use forces_linear
   implicit none
   logical, intent(in) :: calculate_strten
   logical, intent(in) :: refill_proj
@@ -3797,7 +3796,6 @@ end subroutine symmetrise_forces
 subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   use module_base
   use module_types
-  use module_interfaces, only: isf_to_daub_kinetic
   use module_xc
   use locreg_operations
   implicit none
@@ -3869,188 +3867,6 @@ subroutine local_hamiltonian_stress(orbs,lr,hx,hy,hz,psi,tens)
   call f_release_routine()
 
 END SUBROUTINE local_hamiltonian_stress
-
-
-
-
-subroutine erf_stress(at,rxyz,hxh,hyh,hzh,n1i,n2i,n3i,n3p,iproc,nproc,ngatherarr,rho,tens)
-  use module_base
-  use module_types
-  use module_fft_sg
-  implicit none
-  !passed var
-  type(atoms_data), intent(in) :: at
-  real(gp), dimension(3,at%astruct%nat), target, intent(in) :: rxyz
-  real(gp), intent(in) :: hxh,hyh,hzh
-  integer,intent(in) :: n1i,n2i,n3i,n3p,iproc,nproc
-  real(kind=8), dimension(n1i*n2i*max(n3p,1)), intent(in), target :: rho
-  integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
-  real(dp),dimension(6), intent(out) :: tens
-  !local var
-  character(len=*), parameter :: subname='erf_stress'
-  real(kind=8),allocatable :: rhog(:,:,:,:,:)
-  real(kind=8),dimension(:),pointer :: rhor
-  integer :: ierr
-  real(kind=8) :: p(3),g2,rloc,setv,fac
-  real(kind=8) :: rx,ry,rz,sfr,sfi,rhore,rhoim
-  real(kind=8) :: potg,potg2
-  real(kind=8) :: Zion
-  integer :: iat,ityp,iout,iiout,nout,noutp,ii,isout,jproc
-  integer :: j1,j2,j3,i1,i2,i3,inzee,ind
-  real(kind=8) :: routp
-  integer,dimension(:),allocatable :: nout_par
-
-  call f_routine(id='erf_stress')
-
-  !write(*,*) 'iproc,n3i,n3p',iproc,n3i,n3p
-  !write(*,*) 'iproc',iproc, ngatherarr(iproc-1,1),ngatherarr(iproc-1,2)
-
-  if (nproc > 1) then
-     rhor = f_malloc_ptr(n1i*n2i*n3i,id='rhor')
-     call MPI_ALLGATHERV(rho(1),ngatherarr(iproc,1),&
-          &   mpidtypw,rhor(1),ngatherarr(0,1),&
-          ngatherarr(0,2),mpidtypw,bigdft_mpi%mpi_comm,ierr)
-  else
-     rhor => rho        
-  end if
-
-!  pi = 4.0_gp*atan(1.0_gp)
-  rhog = f_malloc((/2,n1i+1,n2i+1,n3i+1,2/),id='rhog')
-  tens(:)=0.0_dp ; p(:)=0.0_dp
-
-  ! calculate total rho(G)
-  rhog=0.0_dp
-  do i3=1,n3i
-     do i2=1,n2i
-        do i1=1,n1i
-           ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-           rhog(1,i1,i2,i3,1)=rhor(ind)
-           rhog(2,i1,i2,i3,1)=0.d0
-        end do
-     end do
-  end do
-
-  ! DO FFT OF DENSITY: Rho(r) -FFT-> Rho(G)
-  inzee=1
-  call FFT(n1i,n2i,n3i,n1i+1,n2i+1,n3i+1,rhog,-1,inzee)   
-  rhog=rhog/real(n1i*n2i*n3i,kind=8)
-
-  tens=0.0_dp
-
-  ! Collapse the loops over nat and n3i
-  nout = at%astruct%nat*n3i
-  routp = real(nout,kind=8)/real(nproc,kind=8)
-  noutp = floor(routp)
-  ii = nout - noutp*nproc
-  if (iproc<ii) noutp = noutp + 1
-  nout_par = f_malloc0(0.to.nproc,id='nout_par')
-  nout_par(iproc) = noutp
-  if (nproc>1) then
-     call mpiallred(nout_par(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
-  end if
-  if (sum(nout_par)/=nout) then
-     call f_err_throw('wrong partition of the outer loop',err_name='BIGDT_RUNTIME_ERROR')
-  end if
-  isout = 0
-  do jproc=0,iproc-1
-     isout = isout + nout_par(jproc)
-  end do
-
-  !do iat=1,at%astruct%nat                          ! SUM OVER ATOMS
-  do iout=1,noutp!at%astruct%nat*n3i
-
-     iiout = isout + iout
-
-     iat = (iiout-1)/n3i + 1
-     ityp=at%astruct%iatype(iat)                ! ityp
-     rloc=at%psppar(0,0,ityp)           ! take corresp. r_loc
-     Zion = real(at%nelpsp(ityp),kind=8)
-
-     !coordinates of new center (atom)
-     rx=real(rxyz(1,iat),kind=8) 
-     ry=real(rxyz(2,iat),kind=8) 
-     rz=real(rxyz(3,iat),kind=8)
-
-     potg=0.0_dp
-
-     i3 = modulo(iiout-1,n3i) + 1
-     j3=i3-(i3/(n3i/2+2))*n3i-1
-     p(3)=real(j3,dp)/(n3i*hzh)         
-
-     !$omp parallel default(none) &
-     !$omp shared(n3i, inzee, i3, n2i, hyh, n1i, hxh, rx, ry, rz, rhog, Zion, rloc, hzh, tens) &
-     !$omp private(i2, j2, i1, j1, sfr, sfi, rhore, rhoim, g2, fac, setv, potg, potg2) &
-     !$omp firstprivate(p)
-     !$omp do reduction(+:tens)
-     do i2=1,n2i
-        j2=i2-(i2/(n2i/2+2))*n2i-1
-        p(2)=real(j2,dp)/(n2i*hyh)    
-
-        do i1=1,n1i
-           j1=i1-(i1/(n1i/2+2))*n1i-1
-           p(1)=real(j1,dp)/(n1i*hxh)
-
-           ! calculate structural factor exp(-2*pi*i*R*G)
-           sfr=cos(-2.0_gp*pi*(rx*p(1)+ry*p(2)+rz*p(3)))
-           sfi=sin(-2.0_gp*pi*(rx*p(1)+ry*p(2)+rz*p(3)))
-
-           ! multiply density by shift /structural/ factor 
-           rhore=rhog(1,i1,i2,i3,inzee)*sfr
-           rhoim=rhog(2,i1,i2,i3,inzee)*sfi
-
-           ! use analytical expression for rhog^el
-           ! multiply by  Kernel 1/pi/G^2 in reciprocal space
-
-           g2=real(p(1)**2+p(2)**2+p(3)**2,kind=8)
-
-           !set = rhog^el (analytic)
-           fac=(Zion/rloc**3.0_gp)/sqrt(2.0_gp*pi)/(2.0_gp*pi)
-           fac=fac/real(n1i*hxh*n2i*hyh*n3i*hzh,kind=8)                    !Division by Volume
-           setv=((sqrt(pi*2.0_gp*rloc**2.0_gp))**3)*fac*exp(-pi*pi*g2*2.0_gp*rloc**2.0_gp)
-
-           if (g2 /= 0.d0) then
-
-              potg = -setv/(pi*g2)  ! V^el(G)
-              potg2 = (setv/pi)*((real(1.d0,kind=8)/g2**2.d0)&
-                   +real(pi*pi*2.d0*rloc**2.d0/g2,kind=8))
-
-              !STRESS TENSOR
-              tens(1)=tens(1)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(1)+potg)
-              tens(2)=tens(2)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(2)+potg)
-              tens(3)=tens(3)-(rhore+rhoim)*(potg2*2.0_gp*p(3)*p(3)+potg)
-              tens(6)=tens(6)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(2))
-              tens(5)=tens(5)-(rhore+rhoim)*(potg2*2.0_gp*p(1)*p(3))
-              tens(4)=tens(4)-(rhore+rhoim)*(potg2*2.0_gp*p(2)*p(3))
-
-           end if  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! g2 /=0
-        end do !i1
-     end do !i2
-     !$omp end do
-     !$omp end parallel
-
-  end do !iat -atoms
-
-!!$  !not needed as the stress tensor is reduced afterwards
-!!$  if (nproc>1) then
-!!$      call mpiallred(tens(1), 6, mpi_sum, comm=bigdft_mpi%mpi_comm)
-!!$  end if
-
-
-  call f_free(nout_par)
-
-  if (nproc>1) then
-     call f_free_ptr(rhor)
-  else
-     nullify(rhor)
-  end if
-  call f_free(rhog)
-
-  call f_release_routine()
-
-END SUBROUTINE erf_stress
-
-
-
 
 subroutine internal_forces(nat, rxyz, ixyz_int, ifrozen, fxyz)
   use module_base

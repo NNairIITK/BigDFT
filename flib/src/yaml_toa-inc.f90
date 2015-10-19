@@ -10,7 +10,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-  integer :: ipos
+  integer :: ipos,bpos
   character(len=max_value_length) :: str
   character(len=*), optional, intent(in) :: fmt
 
@@ -24,8 +24,11 @@
         write(str,cnv_fmt(data)) data
      else
         !another source of failure is the exponent too short like 10+300 instead of 10E+300
+        !first find the place of the last blank for a string which is too long
+        bpos=index(trim(str),' ',back=.true.)
         ipos=max(index(str,'+',back=.true.),index(str,'-',back=.true.)) !only one of these should be present
-        if (ipos > 2) then
+        if (ipos - bpos > 2) then 
+           !detect if there was an exponent there, otherwise rewrite the number
            if (str(ipos-1:ipos-1) /= 'E' .and. str(ipos-1:ipos-1) /= 'e')&
                 write(str,cnv_fmt(data)) data
         end if

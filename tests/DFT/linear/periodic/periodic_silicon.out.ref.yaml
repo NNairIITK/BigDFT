@@ -1048,7 +1048,7 @@
    -  [ -1.443765654448E-05,  3.762421877324E-06, -1.302656097383E-02 ]
    Pressure:
      Ha/Bohr^3                         : -1.29376650572169E-02
-     GPa                               : -380.6391846896634
+     GPa                               : -380.639
      PV (Ha)                           : -111.8140518396505
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
