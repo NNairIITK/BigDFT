@@ -205,6 +205,7 @@ end subroutine bomd
 
 !>Initialize velocities for MD using Box-Muller Sampling
 SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
+  use numerics, only: pi,au_to_k => Ha_K 
   IMPLICIT NONE
   INTEGER, INTENT(IN):: natoms, ndof, ndim
   REAL(KIND=8), INTENT(IN) :: T0ions, amass(natoms)
@@ -212,8 +213,6 @@ SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
   !
   REAL(KIND=8) :: sigma, dum(2)
   INTEGER      :: iat, k
-  REAL(KIND=8), PARAMETER :: pi=4.d0*ATAN(1.D0), &
-                             au_to_k=315774.664550534774D0
   REAL(KIND=4) :: builtin_rand
   INTEGER      :: idum=0
 
@@ -259,13 +258,13 @@ END SUBROUTINE rescale_velocities
 
 !> Subroutine to Compute Instantaneous Temperature Tinst
 SUBROUTINE temperature(natoms,ndim,ndof,amass,vxyz,Tinst,eke)
+  use numerics, only: au_to_k => Ha_K
   IMPLICIT NONE
   INTEGER :: natoms, ndim, ndof
   REAL(KIND=8) :: vxyz(ndim,natoms), Tinst, amass(natoms), eke 
   !
   INTEGER :: iat, k
   REAL(KIND=8) :: mv2
-  REAL(KIND=8), PARAMETER :: au_to_k=315774.664550534774D0
 
   !FIXME: ndof should be properly computed (constraints, bulk, gasphase etc.)
   !  ndof=3*natoms-3
