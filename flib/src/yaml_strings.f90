@@ -58,6 +58,10 @@ module yaml_strings
      module procedure attach_c_msg,attach_msg_c
   end interface
 
+  interface assignment(=)
+     module procedure msg_to_string
+  end interface assignment(=)
+
   interface operator(**)
      module procedure yaml_itoa_fmt,yaml_litoa_fmt,yaml_dtoa_fmt,yaml_ctoa_fmt
   end interface operator(**)
@@ -68,7 +72,7 @@ module yaml_strings
   public :: yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
-  public :: operator(.eqv.),operator(+),operator(//),operator(**)
+  public :: operator(.eqv.),operator(+),operator(//),operator(**),assignment(=)
 contains
 
 
@@ -777,8 +781,14 @@ contains
 !!$    type(f_string) :: c
 !!$    call f_strcpy(c%msg,a//trim(yaml_toa(num)))
   end function msg_and_string
-  
 
+  pure subroutine msg_to_string(string,msg)
+    implicit none
+    character(len=*), intent(out) :: string
+    type(f_string), intent(in) :: msg
+    call f_strcpy(string,msg%msg)
+  end subroutine msg_to_string
+  
   !function which attach two strings each other
   pure function attach_ci(s,num) result(c)
     implicit none
