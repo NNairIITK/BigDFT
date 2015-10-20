@@ -398,10 +398,13 @@ module multipole
       !$omp end parallel
 
       do ithread=0,nthread-1
-          ! Gather the total density
-          call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_loc(is1,is2,is3,ithread), 1, density(is1,is2,is3), 1)
-          ! Gather the total potential, store it directly in pot
-          call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, potential_loc(is1,is2,is3,ithread), 1, pot(is1,is2,is3), 1)
+          ! to prevent out of bounds error
+          if (ie3>=is3) then
+             ! Gather the total density
+             call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_loc(is1,is2,is3,ithread), 1, density(is1,is2,is3), 1)
+             ! Gather the total potential, store it directly in pot
+             call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, potential_loc(is1,is2,is3,ithread), 1, pot(is1,is2,is3), 1)
+          end if
       end do
 
       call f_free(density_loc)

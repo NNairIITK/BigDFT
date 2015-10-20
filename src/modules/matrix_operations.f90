@@ -90,7 +90,7 @@ module matrix_operations
       
       
         !!write(*,*) 'iorder',iorder
-      
+
       
         call f_routine(id='overlapPowerGeneral')
         call timing(iproc,'lovrlp^-1     ','ON')
@@ -121,8 +121,8 @@ module matrix_operations
         else
             nspin=ovrlp_smat%nspin
         end if
-      
-      
+
+
         if (iproc==0) then
             call yaml_newline()
             call yaml_mapping_open('calculate S^x')
@@ -1015,7 +1015,7 @@ module matrix_operations
       
         call timing(iproc,'lovrlp^-1     ','OF')
         call f_release_routine()
-      
+
       
       end subroutine overlapPowerGeneral
 
@@ -1291,8 +1291,8 @@ module matrix_operations
                max_error=0.5d0*max_error
                mean_error=0.5d0*mean_error
            else
-               max_error=0.d0
-               mean_error=0.d0
+               !still have to call routine so that allreduce is called by all mpi, but avoid explicit out of bounds reference for ovrlp
+               call max_matrix_diff_parallel(iproc, norb, norbp, isorb, tmpp, ovrlp, smat, max_error, mean_error)
            end if
         else if (power==-2) then
            if (norbp>0) then
@@ -1896,7 +1896,7 @@ module matrix_operations
         end do
         !$omp end parallel do
       
-      
+ 
         call f_free(eval)
         inv_ovrlp_halfp=f_malloc_ptr((/norb,norbp/), id='inv_ovrlp_halfp')
         ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
@@ -1916,7 +1916,7 @@ module matrix_operations
         !!        1.d0, inv_ovrlp_half, norb, tempArr, norb, 0.d0, inv_ovrlp_halfp, norb)
         !!   call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
         !!end if
-      
+  
         call f_free_ptr(inv_ovrlp_halfp)
         call f_free(tempArr)
       
