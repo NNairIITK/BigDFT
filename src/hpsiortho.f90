@@ -412,6 +412,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   use public_enums, only: PSPCODE_PAW
   use psp_projectors_base, only: PSP_APPLY_SKIP
   use yaml_output
+  use locreg_operations, only: confpot_data
   implicit none
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(in) :: at

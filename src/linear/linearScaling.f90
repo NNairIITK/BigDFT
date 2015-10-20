@@ -42,7 +42,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals, calculate_theta, &
                                    projector_for_charge_analysis
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
-  use locreg_operations, only: get_boundary_weight, small_to_large_locreg,workarrays_quartic_convolutions,workarr_precond
+  use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
+  use locregs_init, only: small_to_large_locreg
   use public_enums
   use multipole, only: multipoles_from_density
   use transposed_operations, only: calculate_overlap_transposed
@@ -3668,3 +3669,127 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
    end if
 
 end subroutine output_fragment_rotations
+
+!> Check the relative weight which the support functions have at the
+!! boundaries of the localization regions.
+subroutine get_boundary_weight(iproc, nproc, orbs, lzd, atoms, crmult, nsize_psi, psi, crit)
+  use module_base
+  use module_types, only: orbitals_data, local_zone_descriptors
+  use module_atoms, only: atoms_data
+  use yaml_output
+  use dynamic_memory
+  use locreg_operations, only: boundary_weight
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(atoms_data),intent(in) :: atoms
+  real(kind=8),intent(in) :: crmult
+  integer,intent(in) :: nsize_psi
+  real(kind=8),dimension(nsize_psi),intent(in) :: psi
+  real(kind=8),intent(in) :: crit
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, ind, iat, iatype, nwarnings
+  real(kind=8) :: atomrad, rad, boundary, weight_normalized, maxweight, meanweight
+  real(kind=8),dimension(:),allocatable :: maxweight_types, meanweight_types
+  integer,dimension(:),allocatable :: nwarnings_types, nsf_per_type
+
+  call f_routine(id='get_boundary_weight')
+
+  maxweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
+  meanweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
+  nwarnings_types = f_malloc0(atoms%astruct%ntypes,id='nwarnings_types')
+  nsf_per_type = f_malloc0(atoms%astruct%ntypes,id='nsf_per_type')
+
+  if (iproc==0) then
+     call yaml_sequence(advance='no')
+  end if
+
+
+  nwarnings = 0
+  maxweight = 0.d0
+  meanweight = 0.d0
+  if (orbs%norbp>0) then
+     ind = 1
+     do iorb=1,orbs%norbp
+        iiorb = orbs%isorb + iorb
+        ilr = orbs%inwhichlocreg(iiorb)
+
+        iat = orbs%onwhichatom(iiorb)
+        iatype = atoms%astruct%iatype(iat)
+        atomrad = atoms%radii_cf(iatype,1)*crmult
+        rad = atoms%radii_cf(atoms%astruct%iatype(iat),1)*crmult
+
+        nsf_per_type(iatype) = nsf_per_type(iatype ) + 1
+
+        weight_normalized = boundary_weight(lzd%hgrids,lzd%glr,lzd%llr(ilr),rad,psi(ind))
+
+        ind = ind + lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+
+        meanweight = meanweight + weight_normalized
+        maxweight = max(maxweight,weight_normalized)
+        meanweight_types(iatype) = meanweight_types(iatype) + weight_normalized
+        maxweight_types(iatype) = max(maxweight_types(iatype),weight_normalized)
+        if (weight_normalized>crit) then
+           nwarnings = nwarnings + 1
+           nwarnings_types(iatype) = nwarnings_types(iatype) + 1
+        end if
+     end do
+     if (ind/=nsize_psi+1) then
+        call f_err_throw('ind/=nsize_psi ('//trim(yaml_toa(ind))//'/='//trim(yaml_toa(nsize_psi))//')', &
+             err_name='BIGDFT_RUNTIME_ERROR')
+     end if
+  end if
+
+  ! Sum up among all tasks... could use workarrays
+  if (nproc>1) then
+     call mpiallred(nwarnings, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(meanweight, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(maxweight, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(nwarnings_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(meanweight_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(maxweight_types, mpi_max, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(nsf_per_type, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  end if
+  meanweight = meanweight/real(orbs%norb,kind=8)
+  do iatype=1,atoms%astruct%ntypes
+     meanweight_types(iatype) = meanweight_types(iatype)/real(nsf_per_type(iatype),kind=8)
+  end do
+  if (iproc==0) then
+     call yaml_sequence_open('Check boundary values')
+     call yaml_sequence(advance='no')
+     call yaml_mapping_open(flow=.true.)
+     call yaml_map('type','overall')
+     call yaml_map('mean / max value',(/meanweight,maxweight/),fmt='(2es9.2)')
+     call yaml_map('warnings',nwarnings)
+     call yaml_mapping_close()
+     do iatype=1,atoms%astruct%ntypes
+        call yaml_sequence(advance='no')
+        call yaml_mapping_open(flow=.true.)
+        call yaml_map('type',trim(atoms%astruct%atomnames(iatype)))
+        call yaml_map('mean / max value',(/meanweight_types(iatype),maxweight_types(iatype)/),fmt='(2es9.2)')
+        call yaml_map('warnings',nwarnings_types(iatype))
+        call yaml_mapping_close()
+     end do
+     call yaml_sequence_close()
+  end if
+
+  ! Print the warnings
+  if (nwarnings>0) then
+     if (iproc==0) then
+        call yaml_warning('The support function localization radii might be too small, got'&
+             &//trim(yaml_toa(nwarnings))//' warnings')
+     end if
+  end if
+
+  call f_free(maxweight_types)
+  call f_free(meanweight_types)
+  call f_free(nwarnings_types)
+  call f_free(nsf_per_type)
+
+  call f_release_routine()
+
+end subroutine get_boundary_weight

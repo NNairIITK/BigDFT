@@ -924,8 +924,6 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
                             !+(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
                             !+betaVau*depsdrho(i1,i23)/(1.d0-eps0)
            !depsdrho(i1,i23)=depsdrho(i1,i23)*d2
-           !pot2(i1,i2,i3)=d2
-           !depsdrho2(i1,i2,i3)=depsdrho(i1,i23)
         end do
         i23=i23+1
      end do
@@ -933,8 +931,9 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
  
   call f_free(nabla2_pot)
 
-  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
+  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) then
        call yaml_map('Extra SCF potential calculated',.true.)
+  end if
 
 end subroutine sccs_extra_potential
 

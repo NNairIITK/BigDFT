@@ -1516,13 +1516,14 @@ subroutine input_wf_diag(iproc,nproc,at,denspot,&
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use gaussians
-           use communications_base, only: comms_cubic
-           use communications_init, only: orbitals_communicators
-           use communications, only: transpose_v
+  use communications_base, only: comms_cubic
+  use communications_init, only: orbitals_communicators
+  use communications, only: transpose_v
   use communications, only: toglobal_and_transpose
   use rhopotential, only: full_local_potential, updatePotential
   use public_enums
   use psp_projectors, only: update_nlpsp
+  use locreg_operations, only: confpot_data
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc,ixc
@@ -2075,9 +2076,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   use module_base
   use module_types
   use module_interfaces, only: calculate_density_kernel, createProjectorsArrays, &
-       & first_orthon, get_coeff, input_memory_linear, input_wf_cp2k, &
-       & input_wf_diag, input_wf_disk, input_wf_empty, input_wf_memory, &
-       & input_wf_memory_new, input_wf_random, inputguessConfinement, &
+        get_coeff, inputguessConfinement, &
        & read_gaussian_information, readmywaves, readmywaves_linear_new, &
        & restart_from_gaussians, sumrho
   use module_fragments
@@ -2138,6 +2137,176 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
   !!real(gp), dimension(:,:), allocatable :: ks, ksk
   !!real(gp) :: nonidem
   integer :: itmb, jtmb, ispin, ifrag_ref, max_nbasis_env, ifrag
+  interface
+     subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, input, &
+          rxyz_old, rxyz, denspot0, energs, nlpsp, GPU, ref_frags, cdft)
+       use module_defs, only: gp,dp,wp
+       use module_types, only: DFT_wavefunction,DFT_local_fields,input_variables,&
+            energy_terms,Dft_psp_projectors,GPU_pointers,atoms_data
+       use module_fragments, only: system_fragment
+       use constrained_dft, only: cdft_data
+       implicit none
+       integer,intent(in) :: iproc, nproc
+       type(atoms_data), intent(inout) :: at
+       type(DFT_wavefunction),intent(inout):: KSwfn
+       type(DFT_wavefunction),intent(inout):: tmb, tmb_old
+       type(DFT_local_fields), intent(inout) :: denspot
+       type(input_variables),intent(in):: input
+       real(gp),dimension(3,at%astruct%nat),intent(in) :: rxyz_old, rxyz
+       real(8),dimension(max(denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p,1)),intent(out):: denspot0
+       type(energy_terms),intent(inout):: energs
+       type(DFT_PSP_projectors), intent(inout) :: nlpsp
+       type(GPU_pointers), intent(inout) :: GPU
+       type(system_fragment), dimension(:), intent(in) :: ref_frags
+       type(cdft_data), intent(inout) :: cdft
+     end subroutine input_memory_linear
+  end interface
+  interface
+     subroutine input_wf_empty(iproc, nproc, psi, hpsi, psit, orbs, &
+          & band_structure_filename, input_spin, atoms, d, denspot)
+       use module_defs, only: wp
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc, nproc
+       type(orbitals_data), intent(in) :: orbs
+       character(len = *), intent(in) :: band_structure_filename
+       integer, intent(in) :: input_spin
+       type(atoms_data), intent(in) :: atoms
+       type(grid_dimensions), intent(in) :: d
+       type(DFT_local_fields), intent(inout) :: denspot
+       real(wp), dimension(:), pointer :: psi
+       real(kind=8), dimension(:), pointer :: hpsi, psit
+     END SUBROUTINE input_wf_empty
+  end interface
+
+  interface
+     subroutine input_wf_random(psi, orbs)
+       use module_defs, only: wp
+       use module_types
+       implicit none
+       type(orbitals_data), intent(inout) :: orbs
+       real(wp), dimension(:), pointer :: psi
+     END SUBROUTINE input_wf_random
+  end interface
+  interface
+     subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
+          & psi, orbs)
+       use module_defs, only: wp,gp
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc, nproc, nspin
+       type(atoms_data), intent(in) :: atoms
+       real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+       type(local_zone_descriptors), intent(in) :: Lzd
+       type(orbitals_data), intent(inout) :: orbs
+       real(wp), dimension(:), pointer :: psi
+     END SUBROUTINE input_wf_cp2k
+  end interface
+  interface
+     subroutine input_wf_memory(iproc, atoms, &
+          & rxyz_old, hx_old, hy_old, hz_old, d_old, wfd_old, psi_old, &
+          & rxyz, lzd, psi, orbs)
+       use module_defs, only: gp,wp
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc
+       type(atoms_data), intent(in) :: atoms
+       real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
+       real(gp), intent(in) :: hx_old, hy_old, hz_old
+       type(local_zone_descriptors), intent(in) :: lzd
+       type(grid_dimensions), intent(in) :: d_old
+       type(wavefunctions_descriptors), intent(in) :: wfd_old
+       type(orbitals_data), intent(in) :: orbs
+       real(wp), dimension(:), pointer :: psi, psi_old
+     END SUBROUTINE input_wf_memory
+  end interface
+  interface
+     subroutine input_wf_disk(iproc, nproc, input_wf_format, d, hx, hy, hz, &
+          in, atoms, rxyz, wfd, orbs, psi)
+       use module_defs
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc, nproc, input_wf_format
+       type(grid_dimensions), intent(in) :: d
+       real(gp), intent(in) :: hx, hy, hz
+       type(input_variables), intent(in) :: in
+       type(atoms_data), intent(in) :: atoms
+       real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+       !real(gp), dimension(3, atoms%astruct%nat), intent(out) :: rxyz_old
+       type(wavefunctions_descriptors), intent(in) :: wfd
+       type(orbitals_data), intent(inout) :: orbs
+       real(wp), dimension(:), pointer :: psi
+     END SUBROUTINE input_wf_disk
+  end interface
+  interface
+     subroutine input_wf_diag(iproc,nproc,at,denspot,&
+          orbs,nvirt,comms,Lzd,energs,rxyz,&
+          nlpsp,ixc,psi,hpsi,psit,G,&
+          nspin,GPU,input,onlywf)!,paw)
+       ! Input wavefunctions are found by a diagonalization in a minimal basis set
+       ! Each processors write its initial wavefunctions into the wavefunction file
+       ! The files are then read by readwave
+       ! @todo pass GPU to be a local variable of this routine (initialized and freed here)
+       use module_defs, only: gp,dp,wp
+       use module_types
+       use gaussians
+       use communications_base, only: comms_cubic
+       implicit none
+       !Arguments
+       integer, intent(in) :: iproc,nproc,ixc
+       integer, intent(inout) :: nspin,nvirt
+       logical, intent(in) :: onlywf  !if .true. finds only the WaveFunctions and return
+       type(atoms_data), intent(in) :: at
+       type(DFT_PSP_projectors), intent(inout) :: nlpsp
+       type(local_zone_descriptors), intent(inout) :: Lzd
+       type(comms_cubic), intent(in) :: comms
+       type(orbitals_data), intent(inout) :: orbs
+       type(energy_terms), intent(inout) :: energs
+       type(DFT_local_fields), intent(inout) :: denspot
+       type(GPU_pointers), intent(in) :: GPU
+       type(input_variables), intent(in) :: input
+       !type(symmetry_data), intent(in) :: symObj
+       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+       type(gaussian_basis), intent(out) :: G !basis for davidson IG
+       real(wp), dimension(:), pointer :: psi,hpsi,psit
+       !type(paw_objects),optional,intent(inout)::paw
+     END SUBROUTINE input_wf_diag
+  end interface
+  interface
+     subroutine first_orthon(iproc,nproc,orbs,lzd,comms,psi,hpsi,psit,orthpar,paw)
+       use module_defs, only: wp
+       use module_types
+       use communications_base, only: comms_cubic
+       implicit none
+       integer, intent(in) :: iproc,nproc
+       type(orbitals_data), intent(in) :: orbs
+       type(local_zone_descriptors),intent(in) :: lzd
+       type(comms_cubic), intent(in) :: comms
+       type(orthon_data):: orthpar
+       type(paw_objects),optional,intent(inout)::paw
+       real(wp), dimension(:) , pointer :: psi,hpsi,psit
+     END SUBROUTINE first_orthon
+  end interface
+  interface
+     subroutine input_wf_memory_new(nproc,iproc, atoms, &
+          rxyz_old, hx_old, hy_old, hz_old, psi_old,lzd_old, &
+          rxyz,psi,orbs,lzd)
+       use module_defs
+       use module_types
+       implicit none
+       integer, intent(in) :: iproc,nproc
+       type(atoms_data), intent(in) :: atoms
+       real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz, rxyz_old
+       real(gp), intent(in) :: hx_old, hy_old, hz_old
+       type(orbitals_data), intent(in) :: orbs
+       type(local_zone_descriptors), intent(in) :: lzd_old
+       type(local_zone_descriptors), intent(in) :: lzd
+       real(wp), dimension(:), pointer :: psi, psi_old
+     END SUBROUTINE input_wf_memory_new
+  end interface
+
+
+
   call f_routine(id='input_wf')
 
  !determine the orthogonality parameters

@@ -301,13 +301,13 @@ subroutine preconditionall2(iproc,nproc,orbs,Lzd,hx,hy,hz,ncong,npsidim,hpsi,con
                  call solvePrecondEquation(iproc,nproc,Lzd%Llr(ilr),ncplx,ncong,&
                       cprecr,&
                       hx,hy,hz,kx,ky,kz,hpsi(1+ist),&
-                      Lzd%Llr(ilr)%locregCenter, orbs,&
+                      Lzd%Llr(ilr)%locregCenter,&
                       confdatarr(iorb)%prefac,&
                       confdatarr(iorb)%potorder,&
                       linear_precond_convol_workarrays(iorb),linear_precond_workarrays(iorb))
 
 !                 call solvePrecondEquation(Lzd%Llr(ilr),ncplx,ncong,cprecr,&
-!                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr), orbs,&                         !here should change rxyz to be center of Locreg
+!                   hx,hy,hz,kx,ky,kz,hpsi(1+ist), rxyz(1,ilr),&                         !here should change rxyz to be center of Locreg
 !                   potentialPrefac(ilr), confPotOrder, 1)                         ! should depend on locreg not atom type? 'it' is commented in lower routines, so put 1
               else
                  call precondition_residue(Lzd%Llr(ilr),ncplx,ncong,cprecr,&

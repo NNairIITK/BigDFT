@@ -29,6 +29,10 @@ module diis_sd_optimization
      real(gp) :: alpha_coeff
   end type DIIS_obj
 
+  private
+
+  public :: diis_set,diis_free,diis_update_psi,diis_update_errors,diis_step
+
 contains
 
 !!$  function DIIS_ctrl_init() result(ctrl)
@@ -359,7 +363,7 @@ contains
 end module diis_sd_optimization
 
 subroutine diis_opt(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,ndim_psi,psi,hpsi,diis)
-    use module_types
+    use module_defs, only: wp
     use diis_sd_optimization
     implicit none
     ! Arguments

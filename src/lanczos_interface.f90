@@ -979,6 +979,7 @@ contains
     use module_interfaces, only: FullHamiltonianApplication
     use gaussians, only: gaussian_basis
     use communications, only: transpose_v, untranspose_v
+    use locreg_operations, only: confpot_data
     !Arguments
     implicit none
     integer, intent(in) :: p,i
@@ -1077,6 +1078,7 @@ contains
   subroutine EP_Moltiplica(p,i)
     use module_interfaces, only: FullHamiltonianApplication
     use communications, only: transpose_v, untranspose_v
+    use locreg_operations, only: confpot_data
     !Arguments
     implicit none
     integer, intent(in) :: p,i

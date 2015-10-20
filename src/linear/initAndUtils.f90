@@ -7,75 +7,6 @@
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
 
-! lzd%llr already allocated, locregcenter and locrad already filled - could tidy this!
-subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
-  use module_base
-  use module_types
-  use module_atoms, only: atomic_structure
-  use locregs_init, only: determine_locregsphere_parallel
-  implicit none
-  
-  ! Calling arguments
-  integer, intent(in) :: iproc, nproc
-  type(local_zone_descriptors), intent(inout) :: lzd
-  real(kind=8), intent(in) :: hx, hy, hz
-  type(atomic_structure), intent(in) :: astruct
-  type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: Glr
-  character(len=1), intent(in) :: locregShape
-  type(orbitals_data),optional,intent(in) :: lborbs
-  
-  ! Local variables
-  integer :: jorb, jjorb, jlr
-  character(len=*), parameter :: subname='initLocregs'
-  logical,dimension(:), allocatable :: calculateBounds
-
-  call f_routine(id=subname)
-
-  
-  calculateBounds = f_malloc(lzd%nlr,id='calculateBounds')
-  calculateBounds=.false.
-  
-  do jorb=1,orbs%norbp
-     jjorb=orbs%isorb+jorb
-     jlr=orbs%inWhichLocreg(jjorb)
-     calculateBounds(jlr)=.true.
-  end do
-
-  if(present(lborbs)) then
-     do jorb=1,lborbs%norbp
-        jjorb=lborbs%isorb+jorb
-        jlr=lborbs%inWhichLocreg(jjorb)
-        calculateBounds(jlr)=.true.
-     end do
-  end if
-  
-  if(locregShape=='c') then
-      stop 'locregShape c is deprecated'
-  else if(locregShape=='s') then
-      call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, hx, hy, hz, &
-           astruct, orbs, Glr, lzd%Llr, calculateBounds)
-  end if
-  
-  call f_free(calculateBounds)
-  
-  !DEBUG
-  !do ilr=1,lin%nlr
-  !    if(iproc==0) write(*,'(1x,a,i0)') '>>>>>>> zone ', ilr
-  !    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
-  !    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
-  !    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
-  !    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
-  !end do
-  !END DEBUG
-  
-  lzd%linear=.true.
-
-  call f_release_routine()
-
-end subroutine initLocregs
-
-
 
 subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
   use module_base
@@ -657,12 +588,12 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
            orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
   use module_base
   use module_types
-  use module_interfaces, only: initLocregs
   use communications_base, only: p2pComms, comms_linear_null, p2pComms_null, allocate_p2pComms_buffer
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   use foe_base, only: foe_data, foe_data_null
   use locregs, only: locreg_null,copy_locreg_descriptors
+  use locregs_init, only: initLocregs
   implicit none
   
   ! Calling arguments
@@ -1088,6 +1019,7 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
   use module_types
   use yaml_output
   use public_enums
+  use locreg_operations, only: confpot_data
   implicit none
   
   ! Calling arguments
@@ -1246,7 +1178,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
                                init_matrix_taskgroups, check_local_matrix_extents
   use foe_base, only: foe_data_deallocate
   use public_enums
-  use locreg_operations, only: small_to_large_locreg
+  use locregs_init, only: small_to_large_locreg
   use module_interfaces, only: deallocate_auxiliary_basis_function, update_locreg
   implicit none
   
@@ -1563,6 +1495,7 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
   use module_types
   use yaml_output
   use public_enums
+  use locreg_operations, only: confpot_data
   implicit none
 
   ! Calling arguments
@@ -1700,6 +1633,7 @@ subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locra
   use module_base
   use module_types
   use yaml_output
+  use locreg_operations, only: confpot_data
   implicit none
   
   ! Calling arguments

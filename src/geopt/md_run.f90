@@ -59,7 +59,7 @@ subroutine bomd(run_md,outs,nproc,iproc)
        com(3)
   REAL(KIND=8), PARAMETER :: amu_to_au=1822.888485D0
 
-  character(len=*), parameter :: subname='bigDFT_AIMD'
+  character(len=*), parameter :: subname='bomd'
   LOGICAL :: ionode, no_translation
 
   call f_routine(id='bomd')
@@ -141,7 +141,7 @@ subroutine bomd(run_md,outs,nproc,iproc)
      CALL write_md_trajectory(istep,natoms,alabel,rxyz,vxyz)
      CALL write_md_energy(istep,Tions,eke,epe,ete)
      call yaml_comment('Starting MD',hfill='*')
-     call yaml_map('Number of Degrees of freedom',ndof)
+     call yaml_map('Number of degrees of freedom',ndof)
 !     call yaml_map('Maximum number of steps (maxsteps)',maxsteps)
 !     call yaml_map('Initial Temperature (T0ions)',T0ions)
   END IF
@@ -205,6 +205,7 @@ end subroutine bomd
 
 !>Initialize velocities for MD using Box-Muller Sampling
 SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
+  use numerics, only: pi,au_to_k => Ha_K 
   IMPLICIT NONE
   INTEGER, INTENT(IN):: natoms, ndof, ndim
   REAL(KIND=8), INTENT(IN) :: T0ions, amass(natoms)
@@ -212,14 +213,14 @@ SUBROUTINE init_velocities(natoms,ndim,ndof,amass,T0ions,vxyz,eke)
   !
   REAL(KIND=8) :: sigma, dum(2)
   INTEGER      :: iat, k
-  REAL(KIND=8), PARAMETER :: pi=4.d0*ATAN(1.D0), &
-       au_to_k=315774.664550534774D0
-  !   CALL RANDOM_SEED
+  REAL(KIND=4) :: builtin_rand
+  INTEGER      :: idum=0
+
   !FIXME: a proper ndof has to be determined
   DO iat=1,natoms,2
      DO k=1,ndim
-        CALL RANDOM_NUMBER(dum(1))
-        CALL RANDOM_NUMBER(dum(2))
+        dum(1)=real(builtin_rand(idum),8)
+        dum(2)=real(builtin_rand(idum),8)
         sigma=DSQRT(T0ions/au_to_k/amass(iat)) !Sqrt(kT/M_i) 
         vxyz(k,iat)=sigma*DSQRT(-2.D0*DLOG(dum(2)))*DCOS(2.D0*pi*dum(1))
         IF(iat+1.LE.natoms)then 
@@ -257,13 +258,13 @@ END SUBROUTINE rescale_velocities
 
 !> Subroutine to Compute Instantaneous Temperature Tinst
 SUBROUTINE temperature(natoms,ndim,ndof,amass,vxyz,Tinst,eke)
+  use numerics, only: au_to_k => Ha_K
   IMPLICIT NONE
   INTEGER :: natoms, ndim, ndof
   REAL(KIND=8) :: vxyz(ndim,natoms), Tinst, amass(natoms), eke 
   !
   INTEGER :: iat, k
   REAL(KIND=8) :: mv2
-  REAL(KIND=8), PARAMETER :: au_to_k=315774.664550534774D0
 
   !FIXME: ndof should be properly computed (constraints, bulk, gasphase etc.)
   !  ndof=3*natoms-3
