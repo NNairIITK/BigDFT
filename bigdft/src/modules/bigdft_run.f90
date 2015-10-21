@@ -190,7 +190,7 @@ contains
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
        call init_lj(inputs%mm_paramset,&
-            inputs%mm_paramfile,astruct%units)
+            inputs%mm_paramfile,"bohr")
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
           if (size(mm_rst%rf_extra) == astruct%nat) then
@@ -294,19 +294,7 @@ contains
        call finalize_bmhtf()
     case('CP2K_RUN_MODE') ! CP2K run mode
        call finalize_cp2k()
-    case('DFTBP_RUN_MODE') ! DFTB+ run mode
-    case('LENNARD_JONES_RUN_MODE')
-    case('MORSE_SLAB_RUN_MODE')
-    case('MORSE_BULK_RUN_MODE')
-    case('TERSOFF_RUN_MODE')
-    case('LENOSKY_SI_CLUSTERS_RUN_MODE')
-    case('LENOSKY_SI_BULK_RUN_MODE')
-    case('AMBER_RUN_MODE')
-    case('QM_RUN_MODE')
     case default
-       call f_err_throw('Following method for evaluation of '//&
-            'energies and forces is unknown: '+enum_int(mm_rst%run_mode),&
-            err_name='BIGDFT_RUNTIME_ERROR')
     end select
 
     
@@ -603,17 +591,7 @@ contains
     real(gp), intent(inout), optional :: rxyz0 !<fake intent(in)
 
     !associate only meaningful objects
-    if (f_ref_count(rst%refcnt) >= 0) then
-       if (associated(runObj%rst)) call f_unref(runObj%rst%refcnt)
-       runObj%rst    => rst
-       call f_ref(runObj%rst%refcnt)
-    end if
-
-    if (f_ref_count(mm_rst%refcnt) >= 0) then
-       if (associated(runObj%mm_rst)) call f_unref(runObj%mm_rst%refcnt)
-       runObj%mm_rst    => mm_rst
-       call f_ref(runObj%mm_rst%refcnt)
-    end if
+    call associate_restart_objects(runObj, rst, mm_rst)
 
     if (f_ref_count(atoms%refcnt) >= 0) then
        if (associated(runObj%atoms)) call f_unref(runObj%atoms%refcnt)
@@ -867,10 +845,10 @@ contains
     type(run_objects), intent(inout) :: runObj
     !local variables
     integer :: count, i
-    if (associated(runObj%run_mode)) then
-      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
-           call yaml_sequence_close()
-    end if
+!!$    if (associated(runObj%run_mode)) then
+!!$      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+!!$           call yaml_sequence_close()
+!!$    end if
 
     if (associated(runObj%rst)) then
        call f_unref(runObj%rst%refcnt,count=count)
@@ -929,11 +907,11 @@ contains
     logical :: release
     integer :: claim, i
 
-    if (associated(runObj%run_mode)) then
-      !@todo in/out in a freeing routine of an object, how strange !
-      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
-           call yaml_sequence_close()
-    end if
+!!$    if (associated(runObj%run_mode)) then
+!!$      !@todo in/out in a freeing routine of an object, how strange !
+!!$      if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
+!!$           call yaml_sequence_close()
+!!$    end if
 
     ! Fortran release ownership
     release = .true.
@@ -981,24 +959,15 @@ contains
   !> Parse the input dictionary and create all run_objects
   !! in particular this routine identifies the input and the atoms structure
   subroutine set_run_objects(runObj)
-    use module_base, only: f_err_throw
     use module_interfaces, only: atoms_new, inputs_new
-    use module_atoms, only: deallocate_atoms_data, atomic_structure, astruct_at_from_dict, &
-         & astruct_merge_to_dict, deallocate_atomic_structure
+    use module_atoms, only: deallocate_atoms_data
     use module_input_dicts, only: dict_run_validate
     use module_input_keys, only: inputs_from_dict,free_input_variables
     use dynamic_memory
-    use public_keys, only: MODE_VARIABLES, SECTIONS, PY_HOOKS, POSINP
-    use yaml_output
+    use public_keys, only: PY_HOOKS
     use dictionaries
     implicit none
     type(run_objects), intent(inout) :: runObj
-    character(len=*), parameter :: subname = "run_objects_parse"
-    integer :: ln, i, iat
-    type(dictionary), pointer :: sect
-    logical, dimension(:), allocatable :: mask
-    type(atomic_structure) :: asub
-    character(len = max_field_length) :: mode
 
     call f_routine(id='set_run_objects')
 
@@ -1024,42 +993,6 @@ contains
 
     !associate the run_mode
     runObj%run_mode => runObj%inputs%run_mode
-    if (runObj%run_mode == 'MULTI_RUN_MODE' .and. &
-         & has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) then
-       ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
-       if (ln > 0) then
-          sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
-          allocate(runObj%sections(ln))
-          do i = 1, ln
-             call nullify_run_objects(runObj%sections(i))
-             call dict_copy(runObj%sections(i)%user_inputs, runObj%user_inputs // dict_value(sect))
-             ! Generate posinp if necessary.
-             if (POSINP .notin. runObj%sections(i)%user_inputs) then
-                ! Generate the mask from the MODE atomic attribute.
-                mask = f_malloc(runObj%atoms%astruct%nat, id = "mask")
-                do iat = 1, runObj%atoms%astruct%nat
-                   call astruct_at_from_dict(runObj%atoms%astruct%attributes(iat)%d, mode = mode)
-                   mask(iat) = (mode == dict_value(sect))
-                end do
-                call astruct_from_subset(asub, runObj%atoms%astruct, runObj%atoms%astruct%rxyz, mask, .true.)
-                call f_free(mask)
-                call astruct_merge_to_dict(runObj%sections(i)%user_inputs // POSINP, asub, &
-                     & asub%rxyz, "Extracted for mode " // trim(dict_value(sect)))
-                call deallocate_atomic_structure(asub)
-             end if
-             ! Currently the routine is not recursive, we keep two levels, that's all.
-             call dict_run_validate(runObj%sections(i)%user_inputs)
-             call atoms_new(runObj%sections(i)%atoms)
-             call inputs_new(runObj%sections(i)%inputs)
-             call yaml_mapping_open(trim(dict_value(sect)) // " inputs")
-             call inputs_from_dict(runObj%sections(i)%inputs, runObj%sections(i)%atoms, &
-                  & runObj%sections(i)%user_inputs)
-             call yaml_mapping_close()
-
-             sect => dict_next(sect)
-          end do
-       end if
-    end if
 
     ! Save the python additional code
     if (PY_HOOKS .in. runObj%user_inputs) then
@@ -1068,6 +1001,89 @@ contains
     
     call f_release_routine()
   END SUBROUTINE set_run_objects
+
+  !> Currently, set_run_objects() is not set recursively.
+  !  This routine, handle a subpar of it for sections.
+  subroutine set_section_objects(runObj)
+    use module_base, only: bigdft_mpi
+    use module_interfaces, only: atoms_new, inputs_new
+    use module_atoms, only: atomic_structure, astruct_at_from_dict, &
+         & astruct_merge_to_dict, deallocate_atomic_structure, astruct_dump_to_file
+    use public_keys, only: MODE_VARIABLES, SECTIONS, POSINP, SECTION_BUFFER, SECTION_PASSIVATION
+    use module_input_dicts, only: dict_run_validate
+    use module_input_keys, only: inputs_from_dict
+    use dynamic_memory
+    use dictionaries
+    use yaml_output
+    implicit none
+    type(run_objects), intent(inout) :: runObj
+
+    integer :: ln, i, iat
+    type(dictionary), pointer :: sect
+    logical, dimension(:), allocatable :: mask, passivation
+    integer, dimension(:), allocatable :: buf
+    type(atomic_structure) :: asub
+    character(len = max_field_length) :: mode
+
+    if (associated(runObj%sections)) then
+       do i = 1, size(runObj%sections)
+          call release_run_objects(runObj%sections(i))
+       end do
+       deallocate(runObj%sections)
+       nullify(runObj%sections)
+    end if
+
+    if (runObj%run_mode /= 'MULTI_RUN_MODE' .or. &
+         & .not. has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) return
+
+    ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
+    if (ln == 0) return
+
+    buf = f_malloc(ln, id = "buf")
+    buf = runObj%user_inputs // MODE_VARIABLES // SECTION_BUFFER
+    passivation = f_malloc(ln, id = "passivation")
+    passivation = runObj%user_inputs // MODE_VARIABLES // SECTION_PASSIVATION
+    allocate(runObj%sections(ln))
+    sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
+    do while (associated(sect))
+       i = dict_item(sect) + 1
+       call nullify_run_objects(runObj%sections(i))
+       ! We just do a shallow copy here, because we don't need to store the input dictionary.
+       runObj%sections(i)%user_inputs => runObj%user_inputs // dict_value(sect)
+       ! Generate posinp if necessary.
+       if (POSINP .notin. runObj%sections(i)%user_inputs) then
+          ! Generate the mask from the MODE atomic attribute.
+          mask = f_malloc(runObj%atoms%astruct%nat, id = "mask")
+          do iat = 1, runObj%atoms%astruct%nat
+             call astruct_at_from_dict(runObj%atoms%astruct%attributes(iat)%d, mode = mode)
+             mask(iat) = (mode == dict_value(sect)) .or. &
+                  & (i == ln .and. len_trim(mode) == 0)
+          end do
+          call astruct_from_subset(asub, runObj%atoms%astruct, runObj%atoms%astruct%rxyz, &
+               & mask, passivation(i), buf(i), "yes")
+          call f_free(mask)
+          call astruct_merge_to_dict(runObj%sections(i)%user_inputs // POSINP, asub, &
+               & asub%rxyz, "Extracted for mode " // trim(dict_value(sect)))
+          call astruct_dump_to_file(asub, trim(mode), "pouet")
+          call deallocate_atomic_structure(asub)
+       end if
+       ! Currently the routine is not recursive, we keep two levels, that's all.
+       call dict_run_validate(runObj%sections(i)%user_inputs)
+       call atoms_new(runObj%sections(i)%atoms)
+       call inputs_new(runObj%sections(i)%inputs)
+       if (bigdft_mpi%iproc == 0) call yaml_mapping_open(trim(dict_value(sect)) // " inputs")
+       call inputs_from_dict(runObj%sections(i)%inputs, runObj%sections(i)%atoms, &
+            & runObj%sections(i)%user_inputs)
+       if (bigdft_mpi%iproc == 0) call yaml_mapping_close()
+       runObj%sections(i)%run_mode => runObj%sections(i)%inputs%run_mode
+
+       nullify(runObj%sections(i)%user_inputs)
+
+       sect => dict_next(sect)
+    end do
+    call f_free(passivation)
+    call f_free(buf)
+  end subroutine set_section_objects
 
   !> Read all input files and create the objects to run BigDFT
   subroutine run_objects_init(runObj,run_dict,source)
@@ -1097,7 +1113,7 @@ contains
     type(run_objects), intent(in), optional :: source
     !local variables
     logical :: dict_from_files
-    integer :: ierr
+    integer :: ierr, i
     character(len=max_field_length) :: radical, posinp_id
 
     call f_routine(id='run_objects_init')
@@ -1119,37 +1135,17 @@ contains
 
        !this will fill atoms and inputs by parsing the input dictionary.
        call set_run_objects(runObj)
+       ! Create sections if any.
+       call set_section_objects(runObj)
 
        !the user input is not needed anymore
        if (dict_from_files) call dict_free(runObj%user_inputs)
 
        !decide what to do with restart
        if (present(source)) then
-          if (associated(runObj%rst)) call f_unref(runObj%rst%refcnt)
-          runObj%rst => source%rst
-          call f_ref(runObj%rst%refcnt)
-          !check the restart coherence
-          ! Number of atoms should not change during the calculation
-          if (runObj%rst%nat > 0 .and. &
-               runObj%rst%nat /= runObj%atoms%astruct%nat) then
-             call f_err_throw("The number of atoms changed!",&
-                  err_name='BIGDFT_RUNTIME_ERROR')
-          end if
-          if (associated(runObj%mm_rst)) call f_unref(runObj%mm_rst%refcnt)
-          runObj%mm_rst => source%mm_rst
-          call f_ref(runObj%mm_rst%refcnt)
-
+          call associate_restart_objects(runObj, source%rst, source%mm_rst)
        else
-          ! Allocate persistent structures.
-          allocate(runObj%rst)
-          call nullify_QM_restart_objects(runObj%rst)
-          !init and update the restart objects
-          call init_QM_restart_objects(bigdft_mpi%iproc,&
-               runObj%inputs,runObj%atoms,runObj%rst)
-
-          allocate(runObj%mm_rst)
-          call nullify_MM_restart_objects(runObj%mm_rst)
-          call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
+          call init_restart_objects(runObj, bigdft_mpi%iproc)
        end if
        ! Start the signaling loop in a thread if necessary.
        if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
@@ -1172,11 +1168,58 @@ contains
             source%inputs,source%atoms,source%rst,source%mm_rst)
     end if
 
-    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') &
-         call yaml_sequence_open('Initializing '//trim(f_str(runObj%run_mode)))
+    do i = 1, size(runObj%sections)
+       call init_restart_objects(runObj%sections(i), bigdft_mpi%iproc)
+    end do
+
+!!$    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') &
+!!$         call yaml_sequence_open('Initializing '//trim(f_str(runObj%run_mode)))
     call f_release_routine()
 
   END SUBROUTINE run_objects_init
+
+  subroutine associate_restart_objects(runObj, rst, mm_rst)
+    use f_refcnts
+    implicit none
+    type(run_objects), intent(inout) :: runObj
+    type(QM_restart_objects), intent(in), target :: rst
+    type(MM_restart_objects), intent(in), target :: mm_rst
+    
+    if (f_ref_count(rst%refcnt) >= 0) then
+       if (associated(runObj%rst)) call f_unref(runObj%rst%refcnt)
+       runObj%rst => rst
+       call f_ref(runObj%rst%refcnt)
+       !check the restart coherence
+       ! Number of atoms should not change during the calculation
+       if (runObj%rst%nat > 0 .and. &
+            runObj%rst%nat /= runObj%atoms%astruct%nat) then
+          call f_err_throw("The number of atoms changed!",&
+               err_name='BIGDFT_RUNTIME_ERROR')
+       end if
+    end if
+
+    if (f_ref_count(mm_rst%refcnt) >= 0) then
+       if (associated(runObj%mm_rst)) call f_unref(runObj%mm_rst%refcnt)
+       runObj%mm_rst => mm_rst
+       call f_ref(runObj%mm_rst%refcnt)
+    end if
+  END SUBROUTINE associate_restart_objects
+
+  subroutine init_restart_objects(runObj, iproc)
+    implicit none
+    type(run_objects), intent(inout) :: runObj
+    integer, intent(in) :: iproc
+
+    ! Allocate persistent structures.
+    allocate(runObj%rst)
+    call nullify_QM_restart_objects(runObj%rst)
+    !init and update the restart objects
+    call init_QM_restart_objects(iproc,runObj%inputs,runObj%atoms,runObj%rst)
+
+    allocate(runObj%mm_rst)
+    call nullify_MM_restart_objects(runObj%mm_rst)
+    call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
+  END SUBROUTINE init_restart_objects
 
   subroutine bigdft_init(options, with_taskgroups)
     use yaml_parse
@@ -1573,13 +1616,14 @@ contains
     !    The new document has been substituted by sequence, not to have multiple documents for FF runs
     !    However this hybrid scheme has to be tested in the case of QM/MM runs
     !    In any case the verbosity value is used to (un)mute the output
-    write_mapping= runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0 .and. verbose > 0
-    !open the document if the run_mode has not it inside
-    if (write_mapping) then
-       call yaml_sequence(advance='no')
-       call yaml_mapping_open(trim(f_str(runObj%run_mode)),flow=.true.)
-       !call yaml_new_document()
-      end if
+!!$    write_mapping= runObj%run_mode /= 'QM_RUN_MODE' .and. bigdft_mpi%iproc==0 .and. verbose > 0
+!!$    !open the document if the run_mode has not it inside
+!!$    if (write_mapping) then
+!!$       call yaml_sequence(advance='no')
+!!$       call yaml_mapping_open(trim(f_str(runObj%run_mode)),flow=.true.)
+!!$       !call yaml_new_document()
+!!$      end if
+
     infocode = 0
     !choose what to do by following the mode prescription
     select case(trim(f_str(runObj%run_mode)))
@@ -1649,6 +1693,7 @@ contains
     case('MULTI_RUN_MODE')
        call multi_mode_state(runObj,outs,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('Multi mode infocode',infocode)
+
     case default
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '+ enum_int(runObj%run_mode)//&
@@ -1676,11 +1721,11 @@ contains
        if (ierr /= 0) stop
     end if
     
-    if (write_mapping) then
-       !call yaml_release_document()
-       call yaml_map('Energy',outs%energy)
-       call yaml_mapping_close()
-    end if
+!!$    if (write_mapping) then
+!!$       !call yaml_release_document()
+!!$       call yaml_map('Energy',outs%energy)
+!!$       call yaml_mapping_close()
+!!$    end if
 
     call f_release_routine()
 
