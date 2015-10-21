@@ -107,6 +107,8 @@ module public_keys
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
   character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
   character(len = *), parameter :: SECTIONS = "sections"
+  character(len = *), parameter :: SECTION_BUFFER = "section_buffer"
+  character(len = *), parameter :: SECTION_PASSIVATION = "section_passivation"
 
   character(len = *), parameter :: MIX_VARIABLES = "mix"
   character(len = *), parameter :: ISCF = "iscf"
