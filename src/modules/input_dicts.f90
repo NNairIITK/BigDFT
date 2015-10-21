@@ -1499,6 +1499,8 @@ contains
        if (len_trim(naming_id) == 0) then
           !naming_id = trim(run_id_toa())
           call f_strcpy(src=trim(run_id_toa()),dest=naming_id)
+          !if it is still empty then use the logfile
+          if (len_trim(naming_id)==0) call f_strcpy(naming_id,LOGFILE)
        else
           call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
           !naming_id = "-" // trim(naming_id)

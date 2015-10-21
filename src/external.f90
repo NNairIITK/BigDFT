@@ -216,20 +216,27 @@ end function bigdft_error_ret
 subroutine bigdft_severe_abort()
   use module_base
   use yaml_output, only: yaml_comment,yaml_flush_document
-  use yaml_strings, only: yaml_toa
   implicit none
   integer :: ierr
   !local variables
-  character(len=128) :: filename
+  character(len=128) :: filename,debugdir
   !the MPI_ABORT works only in MPI_COMM_WORLD
-  filename(1:len(filename))='bigdft-err-'//trim(adjustl(yaml_toa(bigdft_mpi%iproc)))//&
-       '-'//trim(adjustl(yaml_toa(bigdft_mpi%igroup)))//'.yaml'
+  if (bigdft_mpi%ngroup > 1) then
+     call f_strcpy(src='bigdft-err-'+bigdft_mpi%iproc+'-'+bigdft_mpi%igroup+'.yaml',&
+       dest=filename)
+  else
+     call f_strcpy(src='bigdft-err-'+bigdft_mpi%iproc+'.yaml',&
+          dest=filename)
+  end if
+  !create the directory debug if it does not exists
+  call f_mkdir('debug',debugdir)
+  call f_strcpy(dest=filename,src=debugdir+filename)
   call f_malloc_dump_status(filename=filename)
   if (bigdft_mpi%iproc ==0) then
      call f_dump_all_errors(-1)
      call yaml_comment('Error raised!',hfill='^')
      call yaml_comment('Messages are above, dumping run status in file(s) '//&
-          'bigdft-err-*.yaml',hfill='^')
+          'bigdft-err-*.yaml of directory debug/',hfill='^')
      call yaml_comment('Exiting...',hfill='~')
      call yaml_flush_document() !might help, sometimes..
   end if

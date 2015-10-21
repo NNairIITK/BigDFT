@@ -565,7 +565,7 @@ end if
     if (present(address)) iadd=address
     ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
     !address of first element (not needed for deallocation)
-    if (track_origins .and. iadd/=int(0,kind=8)) then
+    if (track_origins .and. iadd/=int(0,f_address)) then
        !hopefully only address is necessary for the deallocation
 
        !search in the dictionaries the address
