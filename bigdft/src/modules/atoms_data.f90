@@ -893,7 +893,7 @@ contains
       integer, intent(in), optional :: unit
       !> force the format of the output
       !! the default is otherwise used as defined in inputfile_format
-      character(len=256), intent(in), optional :: fmt
+      character(len=*), intent(in), optional :: fmt
 
       !local variables
       character(len = 15) :: arFile
@@ -926,7 +926,8 @@ contains
                  & record_length = 92, tabbing = 0, setdefault = .false.)
          else
             call yaml_set_stream(unit = iunit, filename = trim(fname), &
-                 & record_length = 4096, tabbing = 0, setdefault = .false.)
+                 & record_length = 4096, tabbing = 0, setdefault = .false., &
+                 & position = "REWIND")
          end if
       end if
 
@@ -1062,6 +1063,7 @@ contains
             call set(at // ASTRUCT_ATT_RXYZ_INT_2, astruct%rxyz_int(2,iat))
             call set(at // ASTRUCT_ATT_RXYZ_INT_3, astruct%rxyz_int(3,iat))
          end if
+         call dict_update(at, astruct%attributes(iat)%d)
          call add(pos, at, last)
       end do
 
@@ -1372,7 +1374,6 @@ contains
          do while(associated(at))
             iat = dict_item(at) + 1
 
-            call dict_copy(astruct%attributes(iat)%d, at)
             call astruct_at_from_dict(at, str, rxyz_add = astruct%rxyz(1, iat), &
                  & ifrztyp = astruct%ifrztyp(iat), igspin = igspin, igchrg = igchrg, &
                  & ixyz_add = astruct%ixyz_int(1,iat), rxyz_int_add = astruct%rxyz_int(1,iat))
@@ -1401,6 +1402,12 @@ contains
             else if (astruct%geocode == 'W') then
                astruct%rxyz(3,iat)=modulo(astruct%rxyz(3,iat),astruct%cell_dim(3))
             end if
+
+            ! Copy attributes, except the coordinates.
+            call dict_copy(astruct%attributes(iat)%d, at)
+            call dict_remove(astruct%attributes(iat)%d, &
+                 & trim(astruct%atomnames(astruct%iatype(iat))))
+
             at => dict_next(at)
          end do
       else
@@ -2444,14 +2451,14 @@ subroutine astruct_neighbours(astruct, rxyz, neighb)
   call f_free(tmp_nei)  
 END SUBROUTINE astruct_neighbours
 
-subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
+subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate, bufNeighbours, frozen)
   use module_defs, only: gp
   use module_atoms, only: atomic_structure, nullify_atomic_structure, &
        & atomic_neighbours, astruct_neighbours_iter, astruct_neighbours_next, &
        & deallocate_atomic_neighbours
   use dynamic_memory
   use dictionaries
-  use public_keys, only: ASTRUCT_ATT_ORIG_ID
+  use public_keys, only: ASTRUCT_ATT_ORIG_ID, ASTRUCT_ATT_FROZEN
   use ao_inguess, only: atomic_z, atomic_info
   implicit none
   type(atomic_structure), intent(out) :: asub
@@ -2459,6 +2466,8 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
   real(gp), dimension(3, astruct%nat), intent(in) :: rxyz
   logical, dimension(astruct%nat), intent(in) :: mask !< .true. for atoms in the subset.
   logical, intent(in) :: passivate
+  integer, intent(in) :: bufNeighbours !< add a buffer layer made from the nth neighbours
+  character(len = *), intent(in) :: frozen !< frozen attribute to apply to passivation and buffer layer.
 
   type(atomic_neighbours) :: nei
   integer :: i, iat, jat, nsub
@@ -2467,14 +2476,29 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
   logical, dimension(3) :: per
   real(gp), dimension(3) :: dxyz
   real(gp), dimension(:), allocatable :: rcuts
+  logical, dimension(:), allocatable :: work
+  logical, dimension(:), allocatable :: mask_
   
   call nullify_atomic_structure(asub)
+
+  if (passivate .or. bufNeighbours > 0) then
+     call astruct_neighbours(astruct, rxyz, nei)
+  end if
+
+  mask_ = f_malloc(astruct%nat, id = "mask_")
+  mask_ = mask
+  if (bufNeighbours > 0) then
+     work = f_malloc(astruct%nat, id = "nmask")
+     do i = 1, bufNeighbours
+        call expand(astruct%nat, mask_, work)
+     end do
+     call f_free(work)
+  end if
 
   call dict_init(hlist)
   if (passivate) then 
      ! In case of passivation, every old neighbours that are cut, are replaced
      ! by an hydrogen.
-     call astruct_neighbours(astruct, rxyz, nei)
 
      select case(astruct%geocode)
      case ("P")
@@ -2495,15 +2519,15 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
 
      nullify(s)
      do iat = 1, astruct%nat
-        if (mask(iat)) then
+        if (mask_(iat)) then
            call astruct_neighbours_iter(nei, iat)
            do while(astruct_neighbours_next(nei, jat))
-              if ( .not. mask(jat)) then
+              if ( .not. mask_(jat)) then
                  dxyz(:) = rxyz(:, jat) - rxyz(:, iat)
                  where (per) dxyz = dxyz - astruct%cell_dim * nint(dxyz / astruct%cell_dim)
                  fact = (rcuts(astruct%iatype(iat)) + rcutH) / &
                       & sqrt(dxyz(1) * dxyz(1) + dxyz(2) * dxyz(2) + dxyz(3) * dxyz(3))
-                 dxyz(:) = rxyz(:, iat) + dxyz(:) *fact
+                 dxyz(:) = rxyz(:, iat) + dxyz(:) * fact
                  call add(hlist, list_new((/ .item. dxyz(1), .item. dxyz(2), .item. dxyz(3) /)), s)
               endif
            enddo
@@ -2511,6 +2535,9 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
      enddo
 
      call f_free(rcuts)
+  end if
+
+  if (passivate .or. bufNeighbours > 0) then
      call deallocate_atomic_neighbours(nei)
   end if
 
@@ -2523,7 +2550,7 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
   ! Count the number of types in the subset.
   call dict_init(types)  
   do iat = 1, astruct%nat
-     if (mask(iat) .and. .not. (trim(astruct%atomnames(astruct%iatype(iat))) .in. types)) &
+     if (mask_(iat) .and. .not. (trim(astruct%atomnames(astruct%iatype(iat))) .in. types)) &
           & call set(types // trim(astruct%atomnames(astruct%iatype(iat))), dict_size(types))
   end do
   if (dict_len(hlist) > 0 .and. .not. ("H" .in. types)) &
@@ -2540,12 +2567,12 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
   ! Count the number of atoms in the subset.
   nsub = 0
   do iat = 1, astruct%nat
-     if (mask(iat)) nsub = nsub + 1
+     if (mask_(iat)) nsub = nsub + 1
   end do
   call astruct_set_n_atoms(asub, nsub + dict_len(hlist))
   i = 0
   do iat = 1, astruct%nat
-     if (mask(iat)) then
+     if (mask_(iat)) then
         i = i + 1
         asub%iatype(i) = types // trim(astruct%atomnames(astruct%iatype(iat)))
         asub%input_polarization(i) = astruct%input_polarization(iat)
@@ -2553,10 +2580,13 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
         if (associated(astruct%attributes(iat)%d)) then
            call dict_copy(asub%attributes(i)%d, astruct%attributes(iat)%d)
         end if
-        if (.not. associated(asub%attributes(iat)%d)) then
-           call dict_init(asub%attributes(iat)%d)
+        if (.not. associated(asub%attributes(i)%d)) then
+           call dict_init(asub%attributes(i)%d)
         end if
-        call set(asub%attributes(iat)%d // ASTRUCT_ATT_ORIG_ID, iat)
+        call set(asub%attributes(i)%d // ASTRUCT_ATT_ORIG_ID, iat)
+        if (len_trim(frozen) > 0 .and. .not. mask(iat)) then
+           call set(asub%attributes(i)%d // ASTRUCT_ATT_FROZEN, frozen)
+        end if
      end if
   end do
   s => dict_iter(hlist)
@@ -2564,9 +2594,37 @@ subroutine astruct_from_subset(asub, astruct, rxyz, mask, passivate)
      i = i + 1
      asub%iatype(i) = types // "H"
      asub%rxyz(:, i) = s
+     if (len_trim(frozen) > 0) then
+        call dict_init(asub%attributes(i)%d)
+        call set(asub%attributes(i)%d // ASTRUCT_ATT_FROZEN, frozen)
+     end if
      s => dict_next(s)
   end do
 
   call dict_free(types)
   call dict_free(hlist)
+  call f_free(mask_)
+
+contains
+
+  subroutine expand(nat, mask_, nmask)
+    implicit none
+    integer, intent(in) :: nat
+    logical, dimension(nat), intent(inout) :: mask_
+    logical, dimension(nat), intent(out) :: nmask
+    integer :: iat, jat
+
+    nmask = .false.
+    do iat = 1, nat
+       if (mask_(iat)) then
+          call astruct_neighbours_iter(nei, iat)
+          do while(astruct_neighbours_next(nei, jat))
+             nmask(jat) = .true.
+          end do
+       end if
+    end do
+    do iat = 1, nat
+       mask_(iat) = mask_(iat) .or. nmask(iat)
+    end do
+  end subroutine expand
 END SUBROUTINE astruct_from_subset
