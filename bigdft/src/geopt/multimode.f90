@@ -11,24 +11,29 @@ subroutine multi_mode_state(runObj, outs, infocode)
   integer, intent(inout) :: infocode
   ! Local variables
   type(state_properties) :: subouts
-  integer :: ln, i, iat, nat
+  integer :: ln, i, iat, nat, icode
   integer, dimension(:), allocatable :: map
   real(gp), dimension(:), allocatable :: coeffs
 
   ln = size(runObj%sections)
+  infocode = 0
 
   ! Run subparts and accumulate forces.
   do i = 1, ln
      nat = bigdft_nat(runObj%sections(i))
      call init_state_properties(subouts, nat)
-     call bigdft_state(runObj%sections(i), subouts, infocode)
+     call bigdft_state(runObj%sections(i), subouts, icode)
+     infocode = max(infocode, icode)
 
      map = f_malloc((/ nat /), id = "maps")
-     coeffs = f_malloc((/ nat /), id = "coeffs")
+     map = 1
+     coeffs = f_malloc0((/ nat /), id = "coeffs")
      do iat = 1, nat
-        map(iat) = runObj%sections(i)%atoms%astruct%attributes(iat)%d // ASTRUCT_ATT_ORIG_ID
-        ! Simple model, coefficients are unity.
-        coeffs(iat) = 1._gp
+        if (ASTRUCT_ATT_ORIG_ID .in. runObj%sections(i)%atoms%astruct%attributes(iat)%d) then
+           map(iat) = runObj%sections(i)%atoms%astruct%attributes(iat)%d // ASTRUCT_ATT_ORIG_ID
+           ! Simple model, coefficients are unity.
+           coeffs(iat) = 1._gp
+        end if
      end do
 
      ! Mix the outs.
