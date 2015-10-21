@@ -176,8 +176,6 @@
    Source                              : psppar.Si
  mode:
    method                              : dft #    Run method of BigDFT call
-   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
-   mm_paramfile                        : none #   name of parameter file
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -452,8 +450,6 @@
    Source                              : psppar.Si
  mode:
    method                              : dft #    Run method of BigDFT call
-   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
-   mm_paramfile                        : none #   name of parameter file
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -4584,8 +4580,8 @@
  -  {Si: [ 2.052776120517E-03,  4.764317367204E-02, -2.166654950273E-19]} # 0001
  -  {Si: [ 4.423197188742E-02, -2.197685422955E-02, -2.647685996724E-19]} # 0002
  -  {Si: [-4.628474800794E-02, -2.566631944249E-02, -3.520463253985E-19]} # 0003
- (MH) soften: {it:  1, curv: -0.2077318208366946, fd2: -0.2334852431447840, 
-               dE: -2.0955954591741488E-003, res:  0.08210, (MH) eps_vxyz:  0.13398}
+ (MH) soften: {it:  1, curv: -0.20773, fd2: -0.23349,
+               dE: -0.0021, res:  0.08210, (MH) eps_vxyz:  0.13398}
   #(MH) NEGATIVE CURVATURE
  (MH) torque                           :  [ -7.616E-17,  1.061E-16, -1.665E-16 ]
  (MH) MINHOP start MD                  :  [  9,  0 ]

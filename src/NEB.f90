@@ -74,7 +74,7 @@ MODULE NEB_routines
       use dictionaries
       use module_input_keys, only: input_keys_fill_all,user_dict_from_files
       use module_input_dicts
-      use input_old_text_format
+      !use input_old_text_format
       use module_atoms, only: atomic_structure, &
            deallocate_atomic_structure, &
            read_atomic_file => set_astruct_from_file, &

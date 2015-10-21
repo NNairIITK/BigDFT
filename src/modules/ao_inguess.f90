@@ -44,7 +44,7 @@ module ao_inguess
   end type aoig_data
 
 
-  public :: atomic_info
+  public :: atomic_info, atomic_z
   public :: iguess_generator,count_atomic_shells,print_eleconf
   public :: ao_nspin_ig,ao_ig_charge,aoig_set_from_dict,aoig_set,aoig_data_null
   public :: set_aocc_from_string,charge_and_spol
@@ -331,11 +331,12 @@ contains
   !> Retrieve the information from the atom.
   !! Different information can be obtained according to the usage which is needed
   subroutine atomic_info(zatom,zion,symbol,elconf,amu,rcov,rprb,ehomo,nsccode,maxpol,maxchg)
+    use module_defs, only: UNINITIALIZED
     use yaml_strings, only: yaml_toa
     implicit none
     ! Arguments
     integer, intent(in) :: zatom            !< Z number of atom
-    integer, intent(in) :: zion             !< Number of valence electrons of the ion (PSP should be in agreement)
+    integer, intent(in), optional :: zion   !< Number of valence electrons of the ion (PSP should be in agreement)
     character(len=2), intent(out), optional :: symbol  !< Atomic symbol of Z, from the periodic table of elements
     double precision, intent(out), optional :: rcov        !< Covalent radius, atomic units
     double precision, intent(out), optional :: rprb        !< Parabolic radius for the input guess, of interest in the subroutine "gatom"
@@ -358,8 +359,22 @@ contains
     double precision :: rprb_,ehomo_,rcov_,amu_
     double precision, dimension(nmax_ao,0:lmax_ao) :: releconf !<these dimensions have to be modified in the following
 
-    !extract all the information from the tabulated values of eleconf-inc.f90 file
-    call eleconf(zatom,zion,symbol_,rcov_,rprb_,ehomo_,releconf,nsccode_,mxpl_,mxchg_,amu_)
+    if (present(zion)) then
+       ! Value related to the choice of the pseudo.
+       !extract all the information from the tabulated values of eleconf-inc.f90 file
+       call eleconf(zatom,zion,symbol_,rcov_,rprb_,ehomo_,releconf,nsccode_,mxpl_,mxchg_,amu_)
+    else
+       ! Experimental value case.
+       rcov_    = ratom(zatom)
+       call nzsymbol(zatom, symbol_)
+       amu_     = UNINITIALIZED(amu_) ! should be tabulated independantly of zion
+       rprb_    = UNINITIALIZED(rprb_)
+       ehomo_   = UNINITIALIZED(ehomo_)
+       nsccode_ = UNINITIALIZED(nsccode_)
+       mxpl_    = UNINITIALIZED(mxpl_)
+       mxchg_   = UNINITIALIZED(mxchg_)
+       releconf = UNINITIALIZED(releconf(1,1))
+    end if
 
     !then assign the requested values
     if (present(elconf)) then

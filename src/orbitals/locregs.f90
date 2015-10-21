@@ -77,7 +77,7 @@ module locregs
   public :: nullify_locreg_descriptors,locreg_null
   public :: deallocate_locreg_descriptors,deallocate_wfd
   public :: allocate_wfd,copy_locreg_descriptors,copy_grid_dimensions,nullify_wfd
-  public :: check_overlap_cubic_periodic
+  public :: check_overlap,check_overlap_cubic_periodic,check_overlap_from_descriptors_periodic
   public :: check_whether_bounds_overlap
   public :: get_extent_of_overlap
 
@@ -729,8 +729,8 @@ contains
       if (nlen(2)<0) then
          call f_err_throw('nlen(2)<0: i1='//  i1//&
               ', i2='//i2//&
-              (', j1='//j1//&
-              ', j2='//j2)//&
+              ', j1='//j1//&
+              ', j2='//j2//&
               ', ks='//ks(2)//&
               ', ke='//ke(2)&
               ,err_name='BIGDFT_RUNTIME_ERROR')
@@ -825,8 +825,8 @@ contains
       if (nlen(1)<0) then
           call f_err_throw('nlen(1)<0: i1='//  i1//&
                &', i2='//i2//&
-               &(', j1='//j1//&
-               &', j2='//j2)//&
+               &', j1='//j1//&
+               &', j2='//j2//&
                &', ks='//ks(1)//&
                &', ke='//ke(1)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
@@ -835,13 +835,95 @@ contains
       if (nlen(2)<0) then
           call f_err_throw('nlen(2)<0: i1='//  i1//&
                &', i2='//i2//&
-               &(', j1='//j1//&
-               &', j2='//j2)//&
+               &', j1='//j1//&
+               &', j2='//j2//&
                &', ks='//ks(2)//&
                &', ke='//ke(2)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
     end subroutine get_extent_of_overlap_long
+
+    subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
+      implicit none
+
+      ! Calling arguments
+      type(locreg_descriptors),intent(in) :: Llr_i, Llr_j, Glr
+      logical, intent(out) :: overlap
+
+      ! Local variables
+      integer :: onseg
+
+      call check_overlap_cubic_periodic(Glr,Llr_i,Llr_j,overlap)
+      if(overlap) then
+         call check_overlap_from_descriptors_periodic(Llr_i%wfd%nseg_c, Llr_j%wfd%nseg_c,&
+              Llr_i%wfd%keyglob, Llr_j%wfd%keyglob, overlap, onseg)
+      end if
+
+    end subroutine check_overlap
+
+    ! check if Llrs overlap from there descriptors
+    ! The periodicity is hidden in the fact that we are using the keyglobs
+    ! which are correctly defined. 
+    subroutine check_overlap_from_descriptors_periodic(nseg_i, nseg_j, keyg_i, keyg_j,  &
+         isoverlap, onseg)
+      implicit none
+      ! Calling arguments
+      integer :: nseg_i, nseg_j
+      integer,dimension(2,nseg_i),intent(in) :: keyg_i
+      integer,dimension(2,nseg_j),intent(in) :: keyg_j
+      logical,intent(out) :: isoverlap
+      integer, intent(out) :: onseg
+      ! Local variables
+      integer :: iseg, jseg, istart, jstart, kstartg
+      integer :: iend, jend, kendg, nseg_k
+
+
+      ! Initialize some counters
+      iseg=1
+      jseg=1
+      nseg_k=0
+      isoverlap = .false.
+      onseg = 0  ! in case they don't overlap
+      ! Check whether all segments of both localization regions have been processed.
+      if(iseg>=nseg_i .and. jseg>=nseg_j) return
+
+      segment_loop: do
+
+         ! Starting point already in global coordinates
+         istart=keyg_i(1,iseg)
+         jstart=keyg_j(1,jseg)
+
+         ! Ending point already in global coordinates
+         iend=keyg_i(2,iseg)
+         jend=keyg_j(2,jseg)
+         ! Determine starting and ending point of the common segment in global coordinates.
+         kstartg=max(istart,jstart)
+         kendg=min(iend,jend)
+
+         ! Check whether this common segment has a non-zero length
+         if(kendg-kstartg+1>0) then
+            isoverlap = .true.
+            nseg_k=nseg_k+1
+         end if
+
+         ! Check whether all segments of both localization regions have been processed.
+         if(iseg>=nseg_i .and. jseg>=nseg_j) exit segment_loop
+
+         ! Increase the segment index
+         if((iend<=jend .and. iseg<nseg_i) .or. jseg==nseg_j) then
+            iseg=iseg+1
+         else if(jseg<nseg_j) then
+            jseg=jseg+1
+         end if
+
+      end do segment_loop
+
+      if(isoverlap) then
+         onseg = nseg_k
+      end if
+
+    end subroutine check_overlap_from_descriptors_periodic
+
 
 end module locregs

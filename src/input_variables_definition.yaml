@@ -3,12 +3,12 @@
 ## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile
 ## RANGE: [from,to] #always put two numbers (also .inf can be put)
-## EXCLUSIVE: #here follows a list of allowed values (either RANGE or EXCLUSIVE)
-##  - Value1:  comments of value1
-##  - Value2:  comment of value2
+## EXCLUSIVE: #here follows a mapping of allowed values (either RANGE or EXCLUSIVE)
+##  Value1:  comments of value1
+##  Value2:  comment of value2
 ## CONDITION: #here the conditions for which the variable makes sense are written
 ##   MASTER_KEY: foo #this means that inputvar makes sense only if foo is specified
-##   WHEN: #provide a list of allowed values of foo for which inputvars is meaningful
+##   WHEN: #provide a list of allowed values of foo for which inputvar is meaningful
 ##     - fooval1
 ##     - fooval2   
 ## PROFILE_FROM: foo #inputvar inherit the profile from the one specified by foo variable
@@ -195,6 +195,11 @@
      COMMENT: Multipole moments of an external potential
      DESCRIPTION: Give the multipole moments up to quadrupoles
      default: 0.0
+   calculate_strten:
+     COMMENT: Boolean to activate the calculation of the stress tensor. Might be set to No for performance reasons
+     DESCRIPTION: In some cases, for example when doing MD for fixed volume systems, il might be useful to disable the 
+                    calculation of the stress tensor, to save computational time.
+     default: Yes
 #K points parameters
  kpt:
    DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
@@ -281,7 +286,7 @@
        - Yes
      default: ''
 
-#Geometry Optimisation  and Molecular Dynamics parameters
+#Geometry Optimisation  and ABINIT Molecular Dynamics parameters
  geopt:
    DESCRIPTION: Parameters for the geometry relaxation and molecular dynamics
    method:
@@ -300,6 +305,7 @@
        NEB:    Nudged Elastic Band
        SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
        SQNM:   Stabilized quasi-Newton minimzer
+       MD: Molecular dynamics, NVT (Nose-Hoover Chains) or NVE ensemble 
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations
@@ -604,7 +610,71 @@
        WHEN:
        - NEB
      default: 15
-
+#Molecular Dynamics (BigDFT)
+ md:
+   DESCRIPTION: Molecular dynamics parameters 
+   mdsteps:
+     COMMENT: Number of MD steps
+     DESCRIPTION: A value greater than 0 will activate molecular dynamics
+     RANGE: [1, 99999999]
+     default: 0
+   print_frequency:
+     COMMENT: Printing frequency for energy.dat and Trajectory.xyz files
+     RANGE: [1, 999999]
+     default: 1
+   temperature:
+     COMMENT: Initial temperature in Kelvin
+     RANGE: [0, 9999999.0]
+     default: 300.d0
+   timestep:
+     COMMENT: Time step for integration (in a.u.)
+     RANGE: [0, 99999.0]
+     default: 20.d0
+   no_translation:
+     COMMENT: logical input to set translational correction   
+     default: No
+   thermostat:
+     COMMENT: Activates a thermostat for MD
+     EXCLUSIVE: 
+       none: no thermostat
+       nose_hoover_chain: Nose-Hoover Chain thermostat
+     default: none 
+   nose_chain_length:
+     COMMENT: Length of the Nose-Hoover Chains (integer input)
+     RANGE: [2, 10]
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 3
+   nose_mts_size:
+     COMMENT: Multiple time steps used to integrate Nose-Hoover Chains equations of motion (integer input)
+     RANGE: [1, 10]
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 1
+   nose_yoshida_factor:
+     COMMENT: Yoshida-Suzuki order to integrate the Nose-Hoover Chains equations of motion (integer input)
+     EXCLUSIVE:
+          3: Order 3
+          5: Order 5
+          7: Order 7
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 7
+   nose_frequency: 
+     COMMENT: Frequency in (cm^-1) corresponding to the inertia of the thermostat degrees of freedom 
+     RANGE: [1.,100000.0]
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 3000.0
+#     
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
    DESCRIPTION: Mixing parameters for SCF
@@ -706,14 +776,27 @@
        bmhtf: Born Mayer Huggins Tosi Fumi Potential
        cp2k: CP2K
        dftbp: DFTP+
+       multi: Mixed approach where parts of the system are treated with different methods
      default: dft
    mm_paramset:
      COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
      default: default
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [lj, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf]
    mm_paramfile:
      COMMENT: name of parameter or input file for the selected method or code
      default: none
-     
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [lj, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf]
+   sections:
+     COMMENT: list of labelling subparts to divide the system into
+     default: []
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [multi]
+
 #Performance parameters
  perf:
    debug:
@@ -906,8 +989,9 @@
      default: 0
      EXCLUSIVE:
        0: No output
-       1: Output in in wavelet basis
-       2: In addition output in interpolating scaling functions (cube file)
+       1: Output in wavelet basis
+       2: In addition output wavefunction densities in interpolating scaling functions (cube file)
+       3: In addition output wavefunctions in interpolating scaling functions (cube file)
    explicit_locregcenters:
      COMMENT: Linear scaling explicitely specify localization centers 
      default: No
@@ -983,6 +1067,9 @@
      RANGE: [0,8]
    adjust_kernel_iterations:
      COMMENT: enable the adaptive ajustment of the number of kernel iterations
+     default: True
+   adjust_kernel_threshold:
+     COMMENT: enable the adaptive ajustment of the kernel convergence threshold according to the support function convergence
      default: True
    wf_extent_analysis:
      COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
@@ -1060,9 +1147,13 @@
                      *  2 => Wavelet, Fortran binary
                      *  3 => Wavelet, ETSF file format
                      * 10 => None
-                     * 11 => Wavelet and Interpolating Scaling Function, Plain text
-                     * 12 => Wavelet and Interpolating Scaling Function, Fortran binary
-                     * 13 => Wavelet and Interpolating Scaling Function, ETSF file format
+                     * 11 => Wavelet and Interpolating Scaling Function (density), Plain text
+                     * 12 => Wavelet and Interpolating Scaling Function (density), Fortran binary
+                     * 13 => Wavelet and Interpolating Scaling Function (density), ETSF file format
+                     * 20 => None
+                     * 21 => Wavelet and Interpolating Scaling Function (wavefunction), Plain text
+                     * 22 => Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
+                     * 23 => Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
        default: 0
        EXCLUSIVE:
          0:  None
@@ -1073,6 +1164,14 @@
          11: Wavelet and Interpolating Scaling Function, Plain text
          12: Wavelet and Interpolating Scaling Function, Fortran binary
          13: Wavelet and Interpolating Scaling Function, ETSF file format
+         10: None
+         11: Wavelet and Interpolating Scaling Function (density), Plain text
+         12: Wavelet and Interpolating Scaling Function (density), Fortran binary
+         13: Wavelet and Interpolating Scaling Function (density), ETSF file format
+         20: None
+         21: Wavelet and Interpolating Scaling Function (wavefunction), Plain text
+         22: Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
+         23: Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
      output_mat:
        COMMENT: output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 formatted both
        DESCRIPTION: |
@@ -1135,6 +1234,33 @@
        random: 2
        diag: 3
        weight: 4
+     kernel_restart_noise:
+       COMMENT: add random noise to kernel or coefficients when restarting
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    Indicates how much noise should be added to kernel or coefficients for a restart calculation
+       default: 0.0d0
+       RANGE: [0.0,1.0]
+     frag_num_neighbours:
+       COMMENT: number of neighbours to output for each fragment
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how many neighbouring atoms should be written to frag_env.xyz  - only allow for a small number of neighbours
+       RANGE: [0,4]
+       default: 0
+     cdft_lag_mult_init:
+       COMMENT: CDFT initial value for Lagrange multiplier
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    The sign is set automatically based on the charge to be constrained
+       default: 0.05d0
+       RANGE: [0.0,10.0]
+     cdft_conv_crit:
+       COMMENT: CDFT convergence threshold for the constrained charge
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+       default: 1.e-2
+       RANGE: [1.e-20,1.0]
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical
@@ -1376,6 +1502,14 @@
                     This value will be adjusted automatically if not chosen appropriately.
        RANGE: [1.e-3,5.e-2]
        default: 2.e-2
+     coeff_scaling_factor:
+       COMMENT: factor to scale the gradient in direct minimization
+       DESCRIPTION: |
+                    possible value: 1 non-negative real number
+                    Specifies a scaling factor for the coefficient gradient, recommended to be around 0.1 - 0.5 for CDFT, fragment calculations
+                    or systems where convergence is unstable.
+       default: 1.0
+       RANGE: [1.e-3,1.e1]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:

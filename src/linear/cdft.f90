@@ -657,7 +657,8 @@ subroutine calculate_weight_matrix_using_density(iproc,cdft,tmb,at,input,GPU,den
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   use transposed_operations, only: calculate_overlap_transposed
   use rhopotential, only: full_local_potential
-  use locreg_operations, only: small_to_large_locreg
+  use locregs_init, only: small_to_large_locreg
+  use locreg_operations, only: confpot_data
   implicit none
   integer,intent(in) :: iproc
   type(cdft_data), intent(inout) :: cdft
@@ -811,13 +812,13 @@ subroutine calculate_weight_function(in,ref_frags,cdft,ndimrho_all_fragments,rho
   ! plot the weight function, fragment density and initial total density (the denominator) to check
 
   call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'fragment_density.cube', &
-       atoms,rxyz,denspot%dpbox,1,ref_frags(ref_frag_charged)%fbasis%density)
+       atoms,rxyz,denspot%pkernel,1,ref_frags(ref_frag_charged)%fbasis%density)
 
   call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'weight_function.cube', &
-       atoms,rxyz,denspot%dpbox,1,cdft%weight_function)
+       atoms,rxyz,denspot%pkernel,1,cdft%weight_function)
 
   call plot_density(bigdft_mpi%iproc,bigdft_mpi%nproc,'initial_density.cube', &
-       atoms,rxyz,denspot%dpbox,1,denspot%rhov)
+       atoms,rxyz,denspot%pkernel,1,denspot%rhov)
 
   ! deallocate fragment density here as we don't need it any more
   if (associated(ref_frags(ref_frag_charged)%fbasis%density)) call f_free_ptr(ref_frags(ref_frag_charged)%fbasis%density)

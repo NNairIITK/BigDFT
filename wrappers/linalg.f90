@@ -13,6 +13,9 @@ module wrapper_linalg
   use time_profiling, only: TIMING_UNINITIALIZED
   implicit none
 
+
+!!$  type, private :: 
+
   !> Flag for GPU computing, if CUDA libraries are present
   !! in that case if a GPU is present a given MPI processor may or not perform a GPU calculation
   !! this value can be changed in the read_input_variables routine

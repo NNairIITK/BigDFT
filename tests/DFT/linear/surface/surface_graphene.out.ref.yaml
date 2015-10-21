@@ -266,8 +266,6 @@
    tddft_approach                      : none #   Time-Dependent DFT method
  mode:
    method                              : dft #    Run method of BigDFT call
-   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
-   mm_paramfile                        : none #   name of parameter file
  posinp:
     #---------------------------------------------------------------------- Atomic positions
    cell: [23.069401, .inf, 23.97438]
@@ -538,126 +536,9 @@
    Total number of components          :  5192
    Percent of zero components          :  0
    Size of workspaces                  :  10416
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
- NLCC, Calculate core density for atom : C
- Analytic core charge                  :  1.152468
+ Analytic core charges for atom species:
+   C                                   :  69.1480823
+ Total core charge                     :  69.1480823
  Total core charge on the grid (To be compared with analytic one):  69.1480823
   #WARNING: Do not call check_communications in the linear scaling version!
   #-------------------------------------------------------- Estimation of Memory Consumption

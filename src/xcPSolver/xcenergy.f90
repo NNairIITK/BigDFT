@@ -10,19 +10,21 @@
 
 !> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
+     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,charge,rhocore) 
   use module_defs, only: gp,dp,wp
   use module_types
   use yaml_output
   use bounds, only: ext_buffers
+  use numerics, only: oneo4pi => oneofourpi
   implicit none
   integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(dp), dimension(n1i*n2i*n3d,0:9), intent(inout) :: rhocore
+  real(gp),intent(out) :: charge
   !local variables
   !n(c) character(len=*), parameter :: subname='calc_rhocore'
-  real(gp), parameter :: oneo4pi=.079577471545947_wp
+!  real(gp), parameter :: oneo4pi=.079577471545947_wp
   logical :: gox,goy,perx,pery,perz
   integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,ilcc,islcc
@@ -56,7 +58,8 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   !close(unit=79)
 
  
-  if (iproc == 0) call yaml_map('Analytic core charge',chc-chv,fmt='(f12.6)')
+!  if (iproc == 0) call yaml_map('Analytic core charge',chc-chv,fmt='(f12.6)')
+  charge=chc-chv
   !if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
 
   !conditions for periodicity in the three directions

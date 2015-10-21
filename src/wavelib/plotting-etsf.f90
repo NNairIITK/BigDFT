@@ -8,14 +8,13 @@
 !!    For the list of contributors, see ~/AUTHORS 
 
 !>   Write a field in the ISF basis in the ETSF format
-subroutine write_etsf_density(filename,message,at,rxyz,n1i,n2i,n3i,hxh,hyh,hzh,&
-     x, nspin)
+subroutine write_etsf_density(filename,message,geocode,ndims,hgrids,&
+     x,nspin,nat,rxyz,iatype,nzatom,nelpsp,ixyz0)
   use module_base
   use module_types
   use ao_inguess, only: atomic_info
   use etsf_io_low_level
   use etsf_io
-
   implicit none
   character(len=*), intent(in) :: filename,message
   integer, intent(in) :: n1i,n2i,n3i,nspin

@@ -12,7 +12,7 @@
 module dynamic_memory_base
   use memory_profiling
   use dictionaries, info_length => max_field_length
-  use yaml_strings, only: yaml_toa,yaml_date_and_time_toa,operator(//)
+  use yaml_strings!, only: yaml_toa,yaml_date_and_time_toa,operator(//),f_string
   use module_f_malloc 
   use f_precisions
   use yaml_parse, only: yaml_a_todict
@@ -372,14 +372,16 @@ contains
     integer :: unit_dbg
     !local variables
     integer :: istat, iproc
+    character(len=32) :: strm
     !check if the stream for debugging exist
     iproc=0
     iproc= mems(ictrl)%dict_global .get. processid
-    call yaml_stream_connected('Routines-'+iproc, unit_dbg, istat)
+    call f_strcpy(dest=strm,src='Routines-'+iproc)
+    call yaml_stream_connected(strm, unit_dbg, istat)
     !otherwise create it
     if (istat /=0) then
        unit_dbg=f_get_free_unit(117)
-       call yaml_set_stream(unit_dbg,filename='Routines-'+iproc,position='rewind',setdefault=.false.)
+       call yaml_set_stream(unit_dbg,filename=strm,position='rewind',setdefault=.false.)
     end if
   end function bigdebug_stream
 
@@ -931,6 +933,7 @@ end if
        end if
 
        if (dump_status .and. dict_size(mems(ictrl)%dict_global) /= 2) then
+          call yaml_warning('Heap memory has not be completely freed! See status at finalization to find where.')
           call yaml_map('Size of the global database',dict_size(mems(ictrl)%dict_global))
           !call yaml_map('Raw version',mems(ictrl)%dict_global)
           call yaml_mapping_open('Status of the memory at finalization')
