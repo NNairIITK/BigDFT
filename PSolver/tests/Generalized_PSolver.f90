@@ -27,11 +27,11 @@ program GPS_3D
    integer :: SetEps! = 1!3 
    logical :: usegpu
    logical, parameter :: lin_PB = .false.
-   logical, parameter :: PCGstart = .true. !.true.
-   logical, parameter :: PIstart = .true. !.true.
+   logical, parameter :: PCGstart = .false. !.true.
+   logical, parameter :: PIstart = .false. !.true.
 
-   real(kind=8), parameter :: acell = 20.d0 !10.d0
-   real(kind=8), parameter :: rad_cav = 2.5d0 !1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
+   real(kind=8), parameter :: acell = 10.d0 !10.d0
+   real(kind=8), parameter :: rad_cav = 1.7d0 !1.7d0 ! Radius of the dielectric rigid cavity = rad_cav*acell (with nat=1).
    real(kind=8), parameter :: multp = 1.d0
    integer :: nat = 1 ! Number of atoms to build rigid cavity with nat=1.
    real(kind=8) :: erfL  ! To set 1 for Vacuum and correct analitic comparison with gaussian potential.
@@ -370,11 +370,11 @@ program GPS_3D
 !!$   else
 !!$     call pkernel_set(pkernel,verbose=.true.,eps=eps)
 !!$   end if
-!     if (any(SetEps == [2,3,4]))  then
-!        call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
-!     else
+     if (any(SetEps == [2,3,4]))  then
+        call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr,eps=eps)
+     else
         call pkernel_set_epsilon(pkernel,eps=eps)
-!     end if
+     end if
 !!$     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
 !!$     if (iproc==0) call writeroutinePot(n01,n02,n03,nspden,rhopot,pkernel%max_iter,&
 !!$          potential)
@@ -393,11 +393,11 @@ program GPS_3D
 !!$   else
 !!$     call pkernel_set(pkernel,verbose=.true.,eps=eps)
 !!$   end if
-!   if (any(SetEps == [2,3,4])) then
-!      call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
-!   else
+   if (any(SetEps == [2,3,4])) then
+      call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
+   else
       call pkernel_set_epsilon(pkernel,eps=eps)
-!   end if
+   end if
 
 !!$     call H_potential('G',pkernel,rhopot,rhopot,ehartree,0.d0,.false.)
 !!$     if (iproc==0) then
@@ -638,7 +638,7 @@ subroutine PS_Check_options(parser)
        dict_new("PI" .is. 'Polarization iteration Method',&
                 "PCG" .is. 'Preconditioned Conjugate Gradient')))
 
-  call yaml_cl_parse_option(parser,'seteps','2',&
+  call yaml_cl_parse_option(parser,'seteps','4',&
        'Epsilon determination method','e',&
        dict_new('Usage' .is. &
        'Set the dielectric constant determination method.',&
@@ -647,8 +647,12 @@ subroutine PS_Check_options(parser)
                 '2' .is. 'analytical electron dependence',&
                 '3' .is. 'real electron density from cube file (need electroninc_density.cube)',&
                 '4' .is. 'calculate the caviti and dump it on disk',&
-                '5' .is. 'Solves GPe with PCG customized (should be identical to  2 + PCG)',&
-                '6' .is. 'Modified Poisson Botzmann Equation solver')))
+                '5' .is. 'Solves GPe with PCG customized (should be identical to 4 + PCG)',&
+                '6' .is. 'Modified Poisson Botzmann Equation solver',&
+                '7' .is. 'Solves GPe with PCG customized and a restart is implemented',&
+                '8' .is. 'Solves GPe with PI customized (should be identical to 4 + PI)',&
+                '9' .is. 'Solves GPe with PSD',&
+                '10' .is. 'Solves GPe with PCG customized and is coupled with PSD')))
 
   call yaml_cl_parse_option(parser,'accel','No',&
        'GPU Acceleration','a',&
@@ -820,7 +824,7 @@ subroutine PolarizationIteration(n01,n02,n03,nspden,iproc,&
 
   real(kind=8), dimension(n01,n02,n03)  :: pot_ion
   real(kind=8), parameter :: eta = 0.6d0 !1.0d0 ! Polarization Iterative Method parameter.
-  real(kind=8), parameter :: taupol = 1.0d-4 ! Polarization Iterative Method parameter.
+  real(kind=8), parameter :: taupol = 1.0d-12 ! Polarization Iterative Method parameter.
   integer, parameter :: maxiterpol=50
   !real(kind=8), dimension(n01,n02,n03,nspden,3) :: dlv
   real(kind=8), dimension(:,:,:,:), allocatable :: dlv,deps,rhosol,rhopol,rhotot
@@ -5091,10 +5095,10 @@ subroutine SetInitDensPot(n01,n02,n03,nspden,iproc,natreal,eps,dlogeps,sigmaeps,
       potential(i1,i2,i3) = potential(i1,i2,i3) + potential1(i1,i2,i3)
       sump=sump+potential(i1,i2,i3)
       offset=offset+potential(i1,i2,i3)
-      if (i1.eq.nn.and.i2.eq.nn.and.i3.eq.nn) then
-       write(*,*)i1,i2,i3
-       write(*,*)x1,x2,x3,rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),potential(i1,i2,i3)
-      end if
+!      if (i1.eq.nn.and.i2.eq.nn.and.i3.eq.nn) then
+!       write(*,*)i1,i2,i3
+!       write(*,*)x1,x2,x3,rxyz(1,iat),rxyz(2,iat),rxyz(3,iat),potential(i1,i2,i3)
+!      end if
      end do
     end do
    end do

@@ -325,12 +325,12 @@ contains
 
     !local variables
     integer, parameter :: NO_ERRORS           = 0
-    logical :: unit_is_open,set_default
+    logical :: unit_is_open,set_default,again
     integer :: istream,unt,ierr
     !integer(kind=8) :: recl_file
     integer :: recl_file,unt_test
     character(len=15) :: pos
-        
+
     !check that the module has been initialized
     call assure_initialization()
 
@@ -422,24 +422,29 @@ contains
        end if
     end do find_stream
 
-    if (.not. set_default .and. active_streams==0) unt=6          
-
-!!$    !if there is no active streams setdefault cannot be false.
-!!$    !at least open the stdout
-!!$    if (.not. set_default .and. active_streams==0) then
-!!$       !this is equivalent to yaml_set_streams(record_length=92)
-!!$       !assign the unit to the new stream
-!!$       active_streams=active_streams+1
-!!$       !initalize the stream
-!!$       streams(active_streams)=stream_null()
-!!$       streams(active_streams)%unit=6
-!!$       stream_units(active_streams)=6
-!!$       streams(active_streams)%max_record_length=92 !leave 95 characters
-!!$    end if
+    !we are here in the first call to set_stream
+    !in the case we are asking not to have the set_default
+    !this means that the default should become the stdout
+!!$    if (.not. set_default .and. active_streams==0) unt=6          
+    !if there is no active streams setdefault cannot be false.
+    !at least open the stdout
+    again=.false.
+    if (.not. set_default .and. active_streams==0) then
+       !this is equivalent to yaml_set_stream(record_length=92)
+       !assign the unit to the new stream
+       active_streams=active_streams+1
+       !initalize the stream
+       streams(active_streams)=stream_null()
+       streams(active_streams)%unit=6
+       stream_units(active_streams)=6
+       streams(active_streams)%max_record_length=92 !leave 95 characters
+       default_stream=active_streams
+       again= unt /= 6 
+    end if
 
     !assign the unit to the new stream
     !initalize the stream if needed
-    if (istream > active_streams) then
+    if (istream > active_streams .or. again) then
        active_streams=active_streams+1
        streams(active_streams)=stream_null()
        streams(active_streams)%unit=unt
@@ -647,11 +652,9 @@ contains
     !local variables
     integer :: unt,istatus,strm,funt
     type(dictionary), pointer :: iter
-
     unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm,istat=istatus)
-
     !unit 6 cannot be closed
     if (f_err_raise(unt==6,'Stream of unit 6 cannot be closed',&
          err_id=YAML_INVALID)) return
@@ -1427,7 +1430,6 @@ contains
     call assure_initialization()
 
     if (present(istat)) istat=0
-
     if (unt==DEFAULT_STREAM_ID) then
        !if there are no active streams activate them (to circumvent g95 bug)
        if (active_streams==0) call yaml_set_stream(record_length=92,istat=ierr)

@@ -620,7 +620,7 @@
    mdsteps:
      COMMENT: Number of MD steps
      DESCRIPTION: A value greater than 0 will activate molecular dynamics
-     RANGE: [1, 99999999]
+     RANGE: [0, 99999999]
      default: 0
    print_frequency:
      COMMENT: Printing frequency for energy.dat and Trajectory.xyz files
