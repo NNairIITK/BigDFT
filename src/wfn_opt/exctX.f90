@@ -1129,24 +1129,24 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                  grp_put=p2p_group(base_group,p1=iproc,p2=jprocsr(1,jproc,igroup))
               end if
               if (igroup==1) then
-                 call mpiwinpost(grp_put,win3)
+                 call mpiwinpost(grp_put,win3,MPI_MODE_NOCHECK+MPI_MODE_NOSTORE+MPI_MODE_NOPUT)
                  get_post=.true.
               end if
            end if
-        else if (new_mpi_get .and. use_mpi_get) then
-           if (ngroupp==2 .and. jprocsr(1,jproc,ngroupp) /= -1) then
-              if (igroup==1) then
-                 grp_put=p2p_group(base_group,p1=iproc,p2=jprocsr(1,jproc,2))
-                 call mpiwinpost(grp_put,win3)
-                 get_post=.true.
-              end if
-           end if
+!        else if (new_mpi_get .and. use_mpi_get) then
+!           if (ngroupp==2 .and. jprocsr(1,jproc,ngroupp) /= -1) then
+!              if (igroup==1) then
+!                 grp_put=p2p_group(base_group,p1=iproc,p2=jprocsr(1,jproc,2))
+!                 call mpiwinpost(grp_put,win3,MPI_MODE_NOCHECK+MPI_MODE_NOSTORE)
+!                 get_post=.true.
+!              end if
+!           end if
         end if
 
         if (jprocsr(2,jproc,igroup) == -1 .and. igroup==1 .and. new_mpi_get .and. use_mpi_get) then
            if (ngroupp==2 .and. jprocsr(2,jproc,ngroupp) /= -1) then
               grp_get=p2p_group(base_group,p1=iproc,p2=jprocsr(2,jproc,2))
-              call mpiwinstart(grp_get,win3)
+              call mpiwinstart(grp_get,win3,MPI_MODE_NOCHECK)
               get_start=.true.
            end if
         end if
@@ -1168,7 +1168,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                     if (.not. get_start) grp_get=p2p_group(base_group,p1=iproc,p2=jprocsr(2,jproc,igroup))
                  end if
                  if (.not. get_start) then
-                    call mpiwinstart(grp_get,win3)
+                    call mpiwinstart(grp_get,win3,MPI_MODE_NOCHECK)
                     get_start=.true.
                  end if
                  call mpiget(origin=psiw(1,1,irnow,igroup), &
@@ -1426,7 +1426,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
               !version with accumulate
               !print *,'XXXXXXXXXXXXXXXXhere',jprocsr(3,jproc,igroup),jproc,igroup,
               if (.not. acc_start) then
-                 call mpiwinstart(grp_acc_start(isnow2),win4)
+                 call mpiwinstart(grp_acc_start(isnow2),win4,MPI_MODE_NOCHECK)
                  acc_start=.true.
               end if
               iproc_toput=jprocsr(3,jproc,igroup)
@@ -1470,7 +1470,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                    window=win2)
            else if (new_mpi_get .and. use_mpi_get) then
               if (.not. acc_post) then
-                 call mpiwinpost(grp_acc_post(irnow2),win4)
+                 call mpiwinpost(grp_acc_post(irnow2),win4,MPI_MODE_NOCHECK+MPI_MODE_NOSTORE)
                  acc_post=.true.
               end if
            else
