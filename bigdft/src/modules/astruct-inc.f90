@@ -1115,7 +1115,7 @@ subroutine frozen_ftoi(frzchain,ifrztyp,ierr)
   select case(frzchain)
   case('')
      ifrztyp = 0
-  case('f','fxyz')
+  case('f','fxyz','yes','Yes')
      ifrztyp = 111
   case('fx')
      ifrztyp = 100
