@@ -280,17 +280,14 @@ program PS_Check
    end if
 
    call timing(MPI_COMM_WORLD,'Parallel','PR')
-   call pkernel_free(pkernel)
 
-   if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
+   if (pkernel%mpi_env%nproc == 1 .and. pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
         call yaml_map('Monoprocess run','*MPIrun')
 
    !do not do the sequential calculation if it has been already done
    if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 .and. pkernel%mpi_env%nproc > 1 ) then
       call yaml_mapping_open('Monoprocess run')
       rhopot=f_malloc(n01*n02*n03*2,id='rhopot')
-!!$      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
-!!$      call memocc(i_stat,rhopot,'rhopot',subname)
 
      do ispden = 1, 2 
        if (ixc < 0) then
@@ -326,39 +323,18 @@ program PS_Check
        call xc_end(xc)    
      enddo
      call f_free(rhopot)
-!!$     i_all=-product(shape(rhopot))*kind(rhopot)
-!!$     deallocate(rhopot,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'rhopot',subname)
 
      call yaml_mapping_close()
    endif
+   call pkernel_free(pkernel)
 
    call timing(MPI_COMM_WORLD,'Serial','PR')
 
    !call f_malloc_dump_status()
 
-!!$   i_all=-product(shape(pkernel))*kind(pkernel)
-!!$   deallocate(pkernel,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'pkernel',subname)
    call f_free(density,potential,pot_ion,xc_pot,extra_ref)
 
    if (mp) call finalize_real_space_conversion()
-
-!!$   i_all=-product(shape(density))*kind(density)
-!!$   deallocate(density,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'density',subname)
-!!$   i_all=-product(shape(potential))*kind(potential)
-!!$   deallocate(potential,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'potential',subname)
-!!$   i_all=-product(shape(pot_ion))*kind(pot_ion)
-!!$   deallocate(pot_ion,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'pot_ion',subname)
-!!$   i_all=-product(shape(xc_pot))*kind(xc_pot)
-!!$   deallocate(xc_pot,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'xc_pot',subname)
-!!$   i_all=-product(shape(extra_ref))*kind(extra_ref)
-!!$   deallocate(extra_ref,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'extra_ref',subname)
 
    call f_timing_stop(mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
    !call timing(MPI_COMM_WORLD,'              ','RE')

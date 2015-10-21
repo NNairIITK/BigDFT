@@ -579,7 +579,7 @@ contains
     !  use input_old_text_format, only: dict_from_frag
     use module_atoms!, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,&
                     ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
-    use yaml_strings, only: f_strcpy
+    use yaml_strings
     use m_ab6_symmetry, only: symmetry_get_n_sym
     use interfaces_42_libpaw
     use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
@@ -587,7 +587,6 @@ contains
     use fragment_base
     use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
-    use yaml_strings, only: yaml_toa
     implicit none
     !Arguments
     type(input_variables), intent(out) :: in
