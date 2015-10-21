@@ -103,7 +103,6 @@ contains
 
 !> De-Allocate gaussian_basis type
   subroutine deallocate_gwf(G)
-    use module_base
     implicit none
     type(gaussian_basis), intent(inout) :: G
 

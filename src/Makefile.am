@@ -163,7 +163,6 @@ low_level = \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
-	wfn_opt/potential.f90 \
 	wfn_opt/exctX.f90 \
 	wfn_opt/exctX_op2p.f90 \
 	wfn_opt/sic.f90 \
@@ -179,7 +178,6 @@ low_level = \
 	wavelib/i-o.f90 \
 	wavelib/un-compress.f90 \
 	wavelib/gauss_to_daub.f90 \
-	wavelib/daubisf.f90 \
 	$(etsf_files) \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
@@ -188,7 +186,6 @@ low_level = \
 	linear/getLocBasis.f90 \
 	linear/convolutions_aux.f90 \
 	linear/convolutions.f90 \
-	linear/precondLinear.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/linearScaling.f90 \
 	linear/initAndUtils.f90 \

@@ -718,7 +718,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
 
   !call timing(iproc,'Exchangecorr  ','ON')
   use_mpi_get = .true.
-  new_mpi_get=.true.
+  new_mpi_get=.false.
 
   exctXfac = xc_exctXfac(xc)
 

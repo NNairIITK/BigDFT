@@ -19,7 +19,7 @@ module psp_projectors
   private
 
   public :: projector_has_overlap
-  public :: bounds_to_plr_limits,set_nlpsp_to_wfd,pregion_size
+  public :: bounds_to_plr_limits,pregion_size,set_nlpsp_to_wfd
   public :: hgh_psp_application
   public :: update_nlpsp
 
@@ -212,7 +212,6 @@ module psp_projectors
   !> initialize the information for matching the localisation region
   !! of each projector to all the localisation regions of the system
   subroutine set_nlpsp_to_wfd(Glr,plr,keyag_lin_cf,nbsegs_cf,noverlap,lut_tolr,tolr,lrs,lr_mask)
-    use locregs_init, only: check_overlap
     implicit none
     type(locreg_descriptors), intent(in) :: Glr !<global simulation domain
     type(locreg_descriptors), intent(in) :: plr !<locreg of the projector
@@ -761,7 +760,6 @@ module psp_projectors
   end subroutine full_coefficients
 
   function projector_has_overlap(iat, ilr, llr, glr, nl) result(overlap)
-    use locregs_init, only: check_overlap
     implicit none
     ! Calling arguments
     integer,intent(in) :: iat, ilr

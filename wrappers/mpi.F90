@@ -195,8 +195,8 @@ contains
   end function mpi_environment_null
 
   subroutine release_mpi_environment(mpi_env)
-    use yaml_strings, only: yaml_toa
-    use dictionaries, only: f_err_throw
+    use yaml_strings!, only: yaml_toa,operator(//),f_string
+!    use dictionaries, only: f_err_throw
     implicit none
     type(mpi_environment), intent(inout) :: mpi_env
     !local variables
@@ -225,7 +225,6 @@ contains
   end subroutine release_mpi_environment
 
   subroutine deepcopy_mpi_environment(dest,src)
-    use dictionaries, only: f_err_throw
     implicit none
     ! Calling arguments
     type(mpi_environment),intent(in) :: src

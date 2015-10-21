@@ -412,6 +412,7 @@ subroutine FullHamiltonianApplication(iproc,nproc,at,orbs,&
   use public_enums, only: PSPCODE_PAW
   use psp_projectors_base, only: PSP_APPLY_SKIP
   use yaml_output
+  use locreg_operations, only: confpot_data
   implicit none
   integer, intent(in) :: iproc,nproc
   type(atoms_data), intent(in) :: at
@@ -3208,6 +3209,8 @@ end subroutine integral_equation
 subroutine paw_compute_dij(paw, at, denspot, vxc)
   use module_base
   use module_types
+  use module_defs, only: gp
+  use numerics, only: Ha_eV
   use m_pawdij, only: pawdij
   implicit none
   type(paw_objects), intent(inout) :: paw

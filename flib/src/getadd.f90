@@ -633,7 +633,7 @@ contains
     integer(f_kind) :: i
 
     !if (init .and. ndim_tot>0) call razero(ndim_tot,array(lbound(array,1)))
-    if (init .and. ndim_tot>0) call setzero(int(ndim_extra,f_long)*kind(array),array)
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)=d_nan()
     end do
@@ -648,7 +648,7 @@ contains
     integer(f_kind) :: i
 
     !if (init .and. ndim_tot>0) call razero_complex(ndim_tot,array(lbound(array,1)))
-    if (init .and. ndim_tot>0) call setzero(int(ndim_extra,f_long)*kind(array)*2,array)
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array)*2,array)
     do i=ndim_tot+1,ndim_extra
        array(i)=(1.d0,1.d0)*d_nan()
     end do
@@ -666,7 +666,7 @@ contains
     !equivalence (r_nan1,i_nan)
 
     !if (init .and. ndim_tot>0) call razero_simple(ndim_tot,array(lbound(array,1)))
-    if (init .and. ndim_tot>0) call setzero(int(ndim_extra,f_long)*kind(array),array)
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)=r_nan()
     end do
@@ -699,7 +699,7 @@ contains
     integer(f_kind) :: i
 
     !if (init .and. ndim_tot>0) call razero_integer(ndim_tot,array(lbound(array,1)))
-    if (init .and. ndim_tot>0) call setzero(int(ndim_extra,f_long)*kind(array),array)
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)= 2147483647 !i_nan
     end do
@@ -714,7 +714,7 @@ contains
     integer(f_kind) :: i
 
     !if (init .and. ndim_tot>0) call razero_integerlong(ndim_tot,array(lbound(array,1)))
-    if (init .and. ndim_tot>0) call setzero(int(ndim_extra,f_long)*kind(array),array)
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)=li_nan()
     end do

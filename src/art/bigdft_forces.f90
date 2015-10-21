@@ -16,8 +16,7 @@
 module bigdft_forces
 
    use module_base!, only : gp,wp,dp,Bohr_Ang
-   use bigdft_run, only: run_objects,state_properties,INPUT_POLICY_SCRATCH,&
-        INPUT_POLICY_MEMORY
+   use bigdft_run   
    use module_atoms
    use module_interfaces
    use defs, only : iproc
@@ -56,6 +55,7 @@ module bigdft_forces
    !! Routine to initialize all the positions. uses BigDFT read files
    subroutine init_all_atoms( nat, typa, posa, const_, boxl, boxtype, nproc_, me_, file )
 
+     use numerics, only: Bohr_Ang
       implicit none
 
       !Arguments

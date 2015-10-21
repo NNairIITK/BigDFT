@@ -46,7 +46,7 @@ END MODULE lanczos_defs
 !> ART lanczos
 !! Determine lowest frequencies
 subroutine lanczos( maxvec, new_projection, produit )
-
+  use wrapper_MPI
   use defs
   use lanczos_defs
   use random

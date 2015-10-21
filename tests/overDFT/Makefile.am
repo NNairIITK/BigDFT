@@ -2,7 +2,8 @@
 SHORT_TESTDIRS = FF-LENOSKY \
 	FF-LJ \
 	H2O-slab \
-	H2-freq
+	H2-freq \
+	MD
 
 if HAVE_ETSF_IO
 SHORT_TESTDIRS += IO-wf-ETSF

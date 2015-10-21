@@ -38,6 +38,8 @@ module public_keys
   character(len = *), parameter :: OUTPUT_DENSPOT = "output_denspot"
   character(len = *), parameter :: OUTPUT_FRAGMENTS = "output_fragments"
   character(len = *), parameter :: KERNEL_RESTART_MODE = "kernel_restart_mode"
+  character(len = *), parameter :: KERNEL_RESTART_NOISE = "kernel_restart_noise"
+  character(len = *), parameter :: FRAG_NUM_NEIGHBOURS = "frag_num_neighbours"
   character(len = *), parameter :: RBUF = "rbuf"
   character(len = *), parameter :: NCONGT = "ncongt"
   character(len = *), parameter :: NORBV = "norbv", NVIRT = "nvirt"
@@ -46,6 +48,8 @@ module public_keys
   character(len = *), parameter :: SOLVENT = "solvent"
   character(len = *), parameter :: EXTERNAL_POTENTIAL = "external_potential"
   character(len = *), parameter :: CHARGE_MULTIPOLES = "charge_multipoles"
+  character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
+
 
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"
@@ -102,10 +106,23 @@ module public_keys
   character(len = *), parameter :: STEEPTHRESH = "steepthresh"
   character(len = *), parameter :: TRUSTR = "trustr"
 
-  !Force field parameter keyword
+!MD keywords
+  character(len = *), parameter :: MD_VARIABLES = "md"
+  character(len = *), parameter :: MDSTEPS = "mdsteps"
+  character(len = *), parameter :: PRINT_FREQUENCY = "print_frequency"
+  character(len = *), parameter :: TEMPERATURE = "temperature"
+  character(len = *), parameter :: TIMESTEP = "timestep"
+  character(len = *), parameter :: NO_TRANSLATION = "no_translation"
+  character(len = *), parameter :: THERMOSTAT = "thermostat"
+  character(len = *), parameter :: NOSE_CHAIN_LENGTH = "nose_chain_length"
+  character(len = *), parameter :: NOSE_MTS_SIZE = "nose_mts_size"
+  character(len = *), parameter :: NOSE_YOSHIDA_FACTOR = "nose_yoshida_factor"
+  character(len = *), parameter :: NOSE_FREQUENCY = "nose_frequency"
+
+  !mode parameter keywords
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
   character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
-
+  character(len = *), parameter :: SECTIONS = "sections"
 
   character(len = *), parameter :: MIX_VARIABLES = "mix"
   character(len = *), parameter :: ISCF = "iscf"
@@ -203,6 +220,8 @@ module public_keys
   character(len=*), parameter :: CONF_DAMPING    ='conf_damping'
   character(len=*), parameter :: TAYLOR_ORDER    ='taylor_order'
   character(len=*), parameter :: CALC_DIPOLE     ='calc_dipole'
+  character(len=*), parameter :: CDFT_LAG_MULT_INIT='cdft_lag_mult_init'
+  character(len=*), parameter :: CDFT_CONV_CRIT  ='cdft_conv_crit'
   character(len=*), parameter :: CALC_PULAY      ='calc_pulay'
   character(len=*), parameter :: SUBSPACE_DIAG   ='subspace_diag'
   character(len=*), parameter :: ALPHA_DIIS      ='alpha_diis'
@@ -212,6 +231,7 @@ module public_keys
   character(len=*), parameter :: NSTEP_PREC      ='nstep_prec'
   character(len=*), parameter :: EVAL_RANGE_FOE  ='eval_range_foe'
   character(len=*), parameter :: FSCALE_FOE      ='fscale_foe'
+  character(len=*), parameter :: COEFF_SCALING_FACTOR='coeff_scaling_factor'
   character(len=*), parameter :: AO_CONFINEMENT  ='ao_confinement'
   character(len=*), parameter :: CONFINEMENT     ='confinement'
   character(len=*), parameter :: RLOC            ='rloc'
@@ -233,6 +253,7 @@ module public_keys
   character(len=*), parameter :: ENABLE_MATRIX_TASKGROUPS='enable_matrix_taskgroups'
   character(len=*), parameter :: HAMAPP_RADIUS_INCR='hamapp_radius_incr'
   character(len=*), parameter :: ADJUST_KERNEL_ITERATIONS='adjust_kernel_iterations'
+  character(len=*), parameter :: ADJUST_KERNEL_THRESHOLD='adjust_kernel_threshold'
   character(len=*), parameter :: WF_EXTENT_ANALYSIS='wf_extent_analysis'
   character(len=*), parameter :: CALCULATE_ONSITE_OVERLAP='calculate_onsite_overlap'
 
@@ -247,9 +268,11 @@ module public_keys
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_1 = 'int_ref_atoms_1' 
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_2 = 'int_ref_atoms_2' 
   character(len=*), parameter :: ASTRUCT_ATT_IXYZ_3 = 'int_ref_atoms_3' 
+  character(len=*), parameter :: ASTRUCT_ATT_MODE = 'mode' 
   character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_1 = 'rxyz_int_atoms_1' 
   character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_2 = 'rxyz_int_atoms_2' 
   character(len=*), parameter :: ASTRUCT_ATT_RXYZ_INT_3 = 'rxyz_int_atoms_3' 
+  character(len=*), parameter :: ASTRUCT_ATT_ORIG_ID = 'fromNode' 
 
   character(len=*), parameter :: GOUT_ENERGY = 'energy (Ha)' 
   character(len=*), parameter :: GOUT_FORCES = 'forces (Ha/Bohr)' 
@@ -474,6 +497,7 @@ module public_enums
   type(f_enumerator), parameter, public :: CP2K_RUN_MODE         =f_enumerator('CP2K_RUN_MODE',-991,null())
   type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
   
+  type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-989,null())
 end module public_enums
 
 

@@ -189,7 +189,7 @@ def compare_map(map, ref, tols, always_fails=False, keyword=""):
 
 
 def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
-    "Compare the scalars and return the tolerance it the results are ok"
+    "Compare the scalars and return the tolerance if the results are ok"
     global failed_checks, discrepancy, biggest_tol, remarks
     failed = always_fails
     ret = (failed, None)
@@ -198,7 +198,7 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
     diff = None
     if isinstance(ref,str):
         if not(scl == ref):
-            ret = (True, scl)
+            ret = (True, tols)
     elif not always_fails:
         # infinity case
         if scl == ref:

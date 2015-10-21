@@ -34,6 +34,7 @@
    rpnrm_cv: [1.0E-010, 5.0E-010]
    linear_method: DIRMIN
    fscale_foe: 5.0E-002
+   coeff_scaling_factor: 0.1
  lin_basis_params:
    O:
      ao_confinement: 5.0E-003
