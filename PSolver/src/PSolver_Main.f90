@@ -243,6 +243,9 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
   end if
   if (is_vextra) then
      if (build_c) then
+        if(.not. associated(kernel%w%zf)) then 
+           kernel%w%zf = f_malloc_ptr([kernel%grid%md1, kernel%grid%md3, 2*kernel%grid%md2/kernel%mpi_env%nproc],id='zf')
+        end if
         vextra_eff=>kernel%w%zf
      else
         vextra_eff=>pot_ion_eff
