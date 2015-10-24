@@ -802,6 +802,9 @@
    debug:
      COMMENT: Debug option
      default: No
+   profiling_depth:
+     COMMENT: maximum level of the profiling for the tracking of the routines
+     default: -1
    fftcache:
      COMMENT: Cache size for the FFT
      default: 8192
