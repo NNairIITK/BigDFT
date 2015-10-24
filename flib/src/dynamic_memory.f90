@@ -912,12 +912,12 @@ contains
     if (present(profiling_depth)) then
        !set the limit of the profiling to the maximum
        !it cannot be lower than the present depth
-       mems(ictrl)%profiling_depth=max(profiling_depth,mems(ictrl)%depth)
-       if (profiling_depth == -1) mems(ictrl)%profiling_depth=-1 !to disable
        if (profiling_depth < mems(ictrl)%profiling_depth) then
           call f_err_throw('The profiling_depth level cannot be lowered',&
                err_id=ERR_INVALID_MALLOC)
        end if
+       mems(ictrl)%profiling_depth=max(profiling_depth,mems(ictrl)%depth)
+       if (profiling_depth == -1) mems(ictrl)%profiling_depth=-1 !to disab
        
     end if
 
