@@ -25,7 +25,8 @@ module yaml_strings
   character(len=*), parameter :: yaml_char_fmt = '(a)'                       !< Default format for strings
 
   !> structure containing the string and its length
-  !! for the moment implment it basically
+  !! for the moment implement it basically, we might then 
+  !! identifty a strategy to allocate the string according to the needs
   type, public :: f_string
      character(len=4*max_value_length) :: msg
   end type f_string
