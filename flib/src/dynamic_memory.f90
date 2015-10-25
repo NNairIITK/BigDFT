@@ -918,7 +918,6 @@ contains
        end if
        mems(ictrl)%profiling_depth=max(profiling_depth,mems(ictrl)%depth)
        if (profiling_depth == -1) mems(ictrl)%profiling_depth=-1 !to disab
-       
     end if
 
   end subroutine f_malloc_set_status
