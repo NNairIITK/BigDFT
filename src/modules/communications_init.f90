@@ -4573,7 +4573,6 @@ module communications_init
     subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
       use module_base
       use module_types
-      use yaml_strings, only: yaml_toa
       implicit none
       integer, intent(in) :: iproc,nproc
       type(locreg_descriptors), intent(in) :: lr

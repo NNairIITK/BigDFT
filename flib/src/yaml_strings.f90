@@ -25,7 +25,8 @@ module yaml_strings
   character(len=*), parameter :: yaml_char_fmt = '(a)'                       !< Default format for strings
 
   !> structure containing the string and its length
-  !! for the moment implment it basically
+  !! for the moment implement it basically, we might then 
+  !! identifty a strategy to allocate the string according to the needs
   type, public :: f_string
      character(len=4*max_value_length) :: msg
   end type f_string
@@ -73,8 +74,8 @@ module yaml_strings
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
   public :: operator(.eqv.),operator(+),operator(//),operator(**),assignment(=)
-contains
 
+contains
 
   pure function fmt_li(data)
     implicit none
@@ -770,7 +771,6 @@ contains
 !!$    type(f_string) :: c
 !!$    call f_strcpy(c%msg,a//trim(yaml_toa(num)))
   end function msg_and_msg
-
 
   pure function msg_and_string(a,num) result(c)
     implicit none

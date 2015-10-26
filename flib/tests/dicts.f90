@@ -493,7 +493,7 @@ subroutine test_dictionaries1()
    !fill a list and iterate over it
    dictA=>dict_new()
    do i=1,10
-      call add(dictA,'Value'+i)
+      call add(dictA,'Value'+yaml_toa(i))
    end do
 
    !perform an iterator on dict
@@ -631,14 +631,14 @@ subroutine test_dictionaries1()
    dictA2=> dictA // 0 // name
    call yaml_map('Dictionary',dictA2)
    do i=1,dict_len(dictA2)
-      call yaml_map('i='+i,dictA2//(i-1))
+      call yaml_map('i='+yaml_toa(i),dictA2//(i-1))
    end do
 
    dictA2=> dict_iter(dictA // 0 .get. name)
    i=0
    do while(associated(dictA2))
       i=i+1
-      call yaml_map('i2='+i,dictA2)
+      call yaml_map('i2='+yaml_toa(i),dictA2)
       dictA2 => dict_next(dictA2)
    end do
    

@@ -608,9 +608,9 @@ subroutine verify_heap_allocation_status()
         if (traditional) then
            allocate(pool(ibuf)%buffer(nsize))
            call f_update_database(int(nsize,kind=8),kind(1.d0),1,f_loc(pool(ibuf)%buffer),&
-                'buf'+ibuf,subname)
+                'buf'+yaml_toa(ibuf),subname)
         else
-           pool(ibuf)%buffer=f_malloc_ptr(nsize,id='buf'+ibuf)
+           pool(ibuf)%buffer=f_malloc_ptr(nsize,id='buf'+yaml_toa(ibuf))
         end if
         do i=1,nsize
            call random_number(tt)
@@ -629,7 +629,7 @@ subroutine verify_heap_allocation_status()
         chk=-sum(pool(ibuf)%buffer)
         if (traditional) then
            call f_purge_database(int(nsize,kind=8),kind(1.d0),f_loc(pool(ibuf)%buffer),&
-                'buf'+ibuf,subname)
+                'buf'+yaml_toa(ibuf),subname)
            deallocate(pool(ibuf)%buffer)
         else
            call f_free_ptr(pool(ibuf)%buffer)

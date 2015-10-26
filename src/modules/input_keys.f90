@@ -158,6 +158,7 @@ module module_input_keys
      character(len=100) :: file_lin   
      character(len=100) :: file_frag   !< Fragments
      character(len=max_field_length) :: dir_output  !< Strings of the directory which contains all data output files
+     character(len=max_field_length) :: naming_id
      !integer :: files                  !< Existing files.
 
      !> Miscellaneous variables
@@ -294,6 +295,7 @@ module module_input_keys
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
+     integer :: profiling_depth
      real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
      real(gp) :: symTol    !< Tolerance for symmetry detection.
      integer :: linear
@@ -579,7 +581,7 @@ contains
     !  use input_old_text_format, only: dict_from_frag
     use module_atoms!, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,&
                     ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
-    use yaml_strings, only: f_strcpy
+    use yaml_strings
     use m_ab6_symmetry, only: symmetry_get_n_sym
     use interfaces_42_libpaw
     use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
@@ -587,7 +589,6 @@ contains
     use fragment_base
     use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
-    use yaml_strings, only: yaml_toa
     implicit none
     !Arguments
     type(input_variables), intent(out) :: in
@@ -683,7 +684,7 @@ contains
     call f_zero(outdir)
     call dict_get_run_properties(dict, naming_id = run_id, posinp_id = posinp_id, input_id = input_id, outdir_id = outdir)
     call f_strcpy(dest = in%dir_output, src = trim(outdir) // "data" // trim(run_id))
-
+    call f_strcpy(dest= in%naming_id, src=trim(run_id))
     call set_cache_size(in%ncache_fft)
 
     !status of the allocation verbosity and profiling
@@ -692,12 +693,12 @@ contains
          dest=filename)
     if (.not. in%debug) then
        if (in%verbosity==3) then
-          call f_malloc_set_status(output_level=1, iproc=bigdft_mpi%iproc,logfile_name=filename)
+          call f_malloc_set_status(output_level=1, iproc=bigdft_mpi%iproc,logfile_name=filename,profiling_depth=in%profiling_depth)
        else
-          call f_malloc_set_status(output_level=0, iproc=bigdft_mpi%iproc)
+          call f_malloc_set_status(output_level=0, iproc=bigdft_mpi%iproc,profiling_depth=in%profiling_depth)
        end if
     else
-       call f_malloc_set_status(output_level=2, iproc=bigdft_mpi%iproc,logfile_name=filename)
+       call f_malloc_set_status(output_level=2, iproc=bigdft_mpi%iproc,logfile_name=filename,profiling_depth=in%profiling_depth)
     end if
 
     call nullifyInputLinparameters(in%lin)
@@ -1598,6 +1599,8 @@ contains
        select case (trim(dict_key(val)))       
        case (DEBUG)
           in%debug = val
+       case (PROFILING_DEPTH)
+          in%profiling_depth = val
        case (FFTCACHE)
           in%ncache_fft = val
        case (VERBOSITY)
@@ -2204,11 +2207,14 @@ contains
     !in%output_wf_format = WF_FORMAT_NONE
     !in%output_denspot_format = output_denspot_FORMAT_CUBE
     call f_zero(in%set_epsilon)
+    call f_zero(in%dir_output)
+    call f_zero(in%naming_id)
     nullify(in%gen_kpt)
     nullify(in%gen_wkpt)
     nullify(in%kptv)
     nullify(in%nkptsv_group)
     call f_zero(in%calculate_strten)
+    in%profiling_depth=-1
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)
     in%gen_norbd = UNINITIALIZED(0)

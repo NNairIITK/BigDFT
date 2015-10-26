@@ -352,6 +352,7 @@ class BigDFTiming:
       self.quitButton = Button(plt.axes([0.0, 0.0, 0.1, 0.075]), 'Quit')
       self.quitButton.on_clicked(self.onclick_quitButton)
       self.barfig.canvas.mpl_connect('pick_event',self.onclick_ev)
+      self.barfig.canvas.mpl_connect('key_press_event',self.onkey_ev)
 
   def find_items(self,category,dict_list):
     """For a given category find the items which has them"""
@@ -389,7 +390,19 @@ class BigDFTiming:
         print 'EXCEPTION FOUND',e
         print "category",cat,"not present everywhere"
     return catsdats
-    
+
+  def onkey_ev(self,event):
+    number=event.key
+    try:
+      number=int(number)
+      if self.routines[number] is not None:
+        toplt=self.routines[number]
+        data=dump_timing_level(toplt)
+        plt=polar_axis(data)
+        plt.show()
+    except:
+      print 'not present or out of range'
+
   def onclick_ev(self,event):
     import matplotlib.pyplot as plt
     thisline = event.artist
