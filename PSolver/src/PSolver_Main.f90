@@ -423,12 +423,12 @@ subroutine Parallel_GPS(kernel,cudasolver,offset,strten,wrtmsg,rho_dist,use_inpu
        end if
 
        !LG commented out, arrays  are distributed here
-!!$     if (use_input_guess) then
-!!$        !gathering the data to obtain the distribution array
-!!$        call PS_gather(kernel%w%pot,kernel)
-!!$        call Apply_GPe_operator(kernel%nord,kernel%geocode,kernel%ndims,&
-!!$                   kernel%hgrids,kernel%w%eps,kernel%w%pot,kernel%w%res)
-!!$     end if
+     if (use_input_guess) then
+        !gathering the data to obtain the distribution array
+        call PS_gather(kernel%w%pot,kernel)
+        call Delta_GPe_operator(kernel%nord,kernel%geocode,kernel%ndims,&
+                   kernel%hgrids,kernel%w%eps,kernel%w%pot,kernel%w%res)
+     end if
 
      beta=1.d0
      ratio=1.d0

@@ -1396,17 +1396,13 @@ module FDder
      !local variables   
       !first calculate the derivative of the potential
 
-!!$      pi = 4.0_dp*datan(1.0_dp)
-!!$      f = -0.25_dp/pi
-
-      !-1/4*pi is inside nabla_u_epsilon which should be used only here!!!
       call nabla_u_epsilon(geocode,ndims(1),ndims(2),ndims(3),pot,work,nord,hgrids,eps)
       call div_u_i(geocode,ndims(1),ndims(2),ndims(3),work,work1,nord,hgrids)
 
       do i3=1,ndims(3)
        do i2=1,ndims(2)
         do i1=1,ndims(1)
-         a_pot(i1,i2,i3)=a_pot(i1,i2,i3) - oneofourpi*work1(i1,i2,i3)
+         a_pot(i1,i2,i3)=a_pot(i1,i2,i3) + oneofourpi*work1(i1,i2,i3)
         end do
        end do
       end do
