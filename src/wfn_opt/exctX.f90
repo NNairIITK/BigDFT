@@ -697,7 +697,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_round'
-  logical :: doit, use_mpi_get,new_mpi_get
+  logical :: doit, use_mpi_get,new_mpi_pattern
   logical :: get_post,get_start,acc_post,acc_start
   integer :: ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
   integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii,iproc_totake,iproc_toput
@@ -717,8 +717,8 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   integer :: grp_put,grp_get
 
   !call timing(iproc,'Exchangecorr  ','ON')
-  use_mpi_get = .true.
-  new_mpi_get=.false.
+  use_mpi_get = .false.
+  new_mpi_pattern=.true.
 
   exctXfac = xc_exctXfac(xc)
 
@@ -872,7 +872,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
      if (nprocgr > 1) then
         do kproc=0,(nprocgr-1)/2-1
            !define the arrays for send-receive of data
-           if(use_mpi_get .and. new_mpi_get) then
+           if(new_mpi_pattern) then
                jprocsr(1,kproc,igroup)= iprocpm1(1,kproc+1,igroup)
                jprocsr(2,kproc,igroup)= iprocpm1(2,kproc+1,igroup)
            else
@@ -892,7 +892,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
         kproc=(nprocgr-1)/2
         !the last step behaves differently if the group number is odd or even
         if (modulo(nprocgr,2) == 0) then
-           if(use_mpi_get .and. new_mpi_get) then
+           if(new_mpi_pattern) then
                jprocsr(1,kproc,igroup)= iprocpm1(1,kproc+1,igroup)
                jprocsr(2,kproc,igroup)= iprocpm1(2,kproc+1,igroup)
            else
@@ -1057,14 +1057,14 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   rp_ij = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='rp_ij')
 
   if(use_mpi_get) then 
-     if (.not. new_mpi_get) then
+     if (.not. new_mpi_pattern) then
         win = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*2*ngroupp,&
              psiw(1,1,1,1),bigdft_mpi%mpi_comm)
         win2 = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))*3*ngroupp,dpsiw(1,1,1,1), bigdft_mpi%mpi_comm)
      end if
      ! To use MPI_get, we need a window covering psir, which will be used only once
      win3 = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1), bigdft_mpi%mpi_comm)
-     if (new_mpi_get) then
+     if (new_mpi_pattern) then
         win=MPI_WIN_NULL
         win2=MPI_WIN_NULL
         win4 = mpiwindow(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,dpsir(1,1), bigdft_mpi%mpi_comm)
@@ -1109,16 +1109,22 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                    'elements from',iproc,'to',jprocsr(1,jproc,igroup)
            end if
            if( .not. use_mpi_get) then    
-              if (jproc == 0) then
+             if (.not. new_mpi_pattern) then
+               if (jproc == 0) then
                  call MPI_ISEND(psir(1,iorbgr(2,iproc,igrpr(igroup))),nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
                       mpidtypw,iprocpm1(1,1,igroup),&
                       iproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
-              else
+               else
                  call MPI_ISEND(psiw(1,1,isnow,igroup),nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
                       mpidtypw,iprocpm1(1,1,igroup),&
                       iproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
-              end if
-           else if (new_mpi_get) then
+               end if
+             else
+             call MPI_ISEND(psir(1,iorbgr(2,iproc,igrpr(igroup))),nvctr_par(iproc,igrpr(igroup)),&
+                      mpidtypw,jprocsr(1,jproc,igroup),&
+                      iproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+             end if
+           else if (new_mpi_pattern) then
               !create exposure epoch for the window win3
               !create the passive group, that should match the creation of an active group on a remote proc
               if (ngroupp==2 .and. jprocsr(1,jproc,ngroupp) /= -1) then
@@ -1126,6 +1132,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                                         p2=jprocsr(1,jproc,igroup),p3=jprocsr(1,jproc,2))
 
               else
+
                  grp_put=p2p_group(base_group,p1=iproc,p2=jprocsr(1,jproc,igroup))
               end if
               if (igroup==1) then
@@ -1133,17 +1140,9 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                  get_post=.true.
               end if
            end if
-!        else if (new_mpi_get .and. use_mpi_get) then
-!           if (ngroupp==2 .and. jprocsr(1,jproc,ngroupp) /= -1) then
-!              if (igroup==1) then
-!                 grp_put=p2p_group(base_group,p1=iproc,p2=jprocsr(1,jproc,2))
-!                 call mpiwinpost(grp_put,win3,MPI_MODE_NOCHECK+MPI_MODE_NOSTORE)
-!                 get_post=.true.
-!              end if
-!           end if
         end if
 
-        if (jprocsr(2,jproc,igroup) == -1 .and. igroup==1 .and. new_mpi_get .and. use_mpi_get) then
+        if (jprocsr(2,jproc,igroup) == -1 .and. igroup==1 .and. new_mpi_pattern .and. use_mpi_get) then
            if (ngroupp==2 .and. jprocsr(2,jproc,ngroupp) /= -1) then
               grp_get=p2p_group(base_group,p1=iproc,p2=jprocsr(2,jproc,2))
               call mpiwinstart(grp_get,win3,MPI_MODE_NOCHECK)
@@ -1159,7 +1158,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
            end if
 
            if(use_mpi_get) then 
-              if (new_mpi_get) then
+              if (new_mpi_pattern) then
                  iproc_totake=jprocsr(2,jproc,igroup) !this should always be the same
                  !create the active group, that should match the creation of a passive group on a remote proc
                  if (ngroupp==2 .and. jprocsr(2,jproc,ngroupp) /= -1) then
@@ -1178,26 +1177,12 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                       *(lr%d%n1i*lr%d%n2i*lr%d%n3i), kind=mpi_address_kind),window=win3)
               else
                  if (jproc == 0) then
-!!$              call MPI_GET(psiw(1,1,irnow,igroup), &
-!!$        int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-!!$        iprocpm1(2,1,igroup),int((iorbgr(2,iprocpm1(2,1,igroup),igrprarr(igrpr(igroup), iprocpm1(2,1,igroup)))-1)&
-!!$        *(lr%d%n1i*lr%d%n2i*lr%d%n3i), kind=mpi_address_kind),int(nvctr_par(jprocsr(2,jproc,igroup),&
-!!$        igrpr(igroup)), kind=mpi_address_kind),&
-!!$        mpidtypw,win3,ierr)
-!!$              if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
                     call mpiget(origin=psiw(1,1,irnow,igroup), &
                          count=nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
                          target_rank=iprocpm1(2,1,igroup),&
                          target_disp=int((iorbgr(2,iprocpm1(2,1,igroup),igrprarr(igrpr(igroup), iprocpm1(2,1,igroup)))-1)&
                          *(lr%d%n1i*lr%d%n2i*lr%d%n3i), kind=mpi_address_kind),window=win3)
                  else             
-!!$               call MPI_GET(psiw(1,1,irnow,igroup), &
-!!$                    int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-!!$                    iprocpm1(2,1,igroup), int((igrprarr(igrpr(igroup), iprocpm1(2,1,igroup))-1)*&
-!!$                    (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*2))&
-!!$                    + (isnow-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind),&
-!!$                    int(nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win,ierr)
-!!$               if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE             
                     call mpiget(origin=psiw(1,1,irnow,igroup), &
                          count=nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
                          target_rank=iprocpm1(2,1,igroup),&
@@ -1208,9 +1193,16 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                  end if
               end if
            else
+             if (.not. new_mpi_pattern) then
               call MPI_IRECV(psiw(1,1,irnow,igroup),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
                    mpidtypw,iprocpm1(2,1,igroup),&
                    iprocpm1(2,1,igroup)+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+             else 
+              call MPI_IRECV(psiw(1,1,irnow,igroup),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
+                   mpidtypw,jprocsr(2,jproc,igroup),&
+                   jprocsr(2,jproc,igroup),bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+
+             end if
            end if
         end if
      end do
@@ -1362,7 +1354,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
         end if
      end do
      if(use_mpi_get) then
-        if (new_mpi_get) then
+        if (new_mpi_pattern) then
            !here at the first passage the group has not yet been created
            !if (jproc/=0) then 
            !here assert=MPI_MODE_NOPRECEDE for jproc==0
@@ -1387,7 +1379,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
         if(.not. use_mpi_get) call MPI_WAITALL(ncommsstep2,mpireq2,mpistat2,ierr)
         !copy the results which have been received (the messages sending are after)
         !this part is already done by the mpi_accumulate
-        if (.not. (use_mpi_get .and. new_mpi_get)) then
+        if (.not. (use_mpi_get .and. new_mpi_pattern)) then
            do igroup=1,ngroupp
               if (jprocsr(4,jproc-1,igroup) /= -1) then
                  if (iproc == itestproc) then
@@ -1422,7 +1414,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                    nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),mpidtypw,&
                    jprocsr(3,jproc,igroup),&
                    iproc+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
-           else if (new_mpi_get) then
+           else if (new_mpi_pattern) then
               !version with accumulate
               !print *,'XXXXXXXXXXXXXXXXhere',jprocsr(3,jproc,igroup),jproc,igroup,
               if (.not. acc_start) then
@@ -1442,25 +1434,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
      do igroup=1,ngroupp
         if (jprocsr(4,jproc,igroup) /= -1) then
            ncommsstep2=ncommsstep2+1
-           if(use_mpi_get .and. .not. new_mpi_get) then
-              !if (new_mpi_get) then
-!!$                iproc_totake=jprocsr(4,jproc,igroup) !this should always be the same
-!!$                call mpiget(origin=dpsiw(1,1,irnow2,igroup),&
-!!$                     count=nvctr_par(iproc,igrpr(igroup)),& !this one has to be changed for the version with put
-!!$                     target_rank=iproc_totake,&
-!!$                     target_disp=int((igrprarr(igrpr(igroup), iproc_totake)-1)*& !this also
-!!$                     (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
-!!$                     + (isnow2-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind) ,&
-!!$                     window=win2)
-
-!!$            call MPI_GET(dpsiw(1,1,irnow2,igroup),&
-!!$            int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,&
-!!$            jprocsr(4,jproc,igroup),&
-!!$            int((igrprarr(igrpr(igroup), jprocsr(4,jproc,igroup))-1)*&
-!!$        (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
-!!$             + (isnow2-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind) ,&
-!!$            int(nvctr_par(iproc,igrpr(igroup)), kind=mpi_address_kind),mpidtypw,win2,ierr)
-!!$        if (ierr /=0)  print *,'mpi get error',jproc+1,iproc,ierr,mpistat2 !,MPI_STATUSES_IGNORE
+           if(use_mpi_get .and. .not. new_mpi_pattern) then
               call mpiget(origin=dpsiw(1,1,irnow2,igroup),&
                    count=nvctr_par(iproc,igrpr(igroup)),&
                    target_rank=jprocsr(4,jproc,igroup),&
@@ -1468,7 +1442,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
                    (lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0)*3))&
                    + (isnow2-1)*(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))), kind=mpi_address_kind) ,&
                    window=win2)
-           else if (new_mpi_get .and. use_mpi_get) then
+           else if (new_mpi_pattern .and. use_mpi_get) then
               if (.not. acc_post) then
                  call mpiwinpost(grp_acc_post(irnow2),win4,MPI_MODE_NOCHECK+MPI_MODE_NOSTORE)
                  acc_post=.true.
@@ -1482,7 +1456,7 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
      end do
 
      if(use_mpi_get) then
-        if (new_mpi_get) then
+        if (new_mpi_pattern) then
            !here assert=MPI_MODE_NOPUT
            !call mpi_fence(win3)
            if (get_post) then
@@ -1538,12 +1512,12 @@ subroutine exact_exchange_potential_round(iproc,nproc,xc,nspin,lr,orbs,&
   if (iproc == 0) call yaml_map('Exact Exchange Energy',eexctX,fmt='(1pe18.11)')
   !if (iproc == 0) write(*,'(1x,a,1x,1pe18.11)')'Exact Exchange Energy:',eexctX
   if(use_mpi_get) then
-     if (.not. new_mpi_get) then
+     if (.not. new_mpi_pattern) then
         call mpi_win_free(win, ierr)
         call mpi_win_free(win2, ierr)
      end if
      call mpi_win_free(win3, ierr)
-     if (new_mpi_get) then
+     if (new_mpi_pattern) then
         call mpigroup_free(grp_get)
         call mpigroup_free(grp_put)
         call mpigroup_free(grp_acc_start(1))
