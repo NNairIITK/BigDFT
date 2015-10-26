@@ -55,7 +55,6 @@ SUBROUTINE div_u_i(geocode, n01, n02, n03, u, du, nord, hgrids, cc)
   bc0 = 0
   bc1 = 0
   bc2 = 0
-  du=0.0_wp
   a0 = (1.0) / (hgrids(0))
   a1 = (1.0) / (hgrids(1))
   a2 = (1.0) / (hgrids(2))
@@ -68,7 +67,6 @@ SUBROUTINE div_u_i(geocode, n01, n02, n03, u, du, nord, hgrids, cc)
   end if
   if (present(cc)) then
     allocate( tmp(0:n01 - (1), 0:n02 - (1), 0:n03 - (1), 0:4) )
-tmp=0.0_wp
     call Poisson_broker(nord, 0, nn, bc0,  u(0, 0, 0, 0), du, a0)
     call Poisson_broker(nord, 1, nn, bc1,  u(0, 0, 0, 1), tmp(0, 0, 0, 0), a1)
     call Poisson_broker(nord, 2, nn, bc2,  u(0, 0, 0, 2), tmp(0, 0, 0, 1), a2)
@@ -77,47 +75,47 @@ tmp=0.0_wp
     call Poisson_broker(nord, 1, nn, bc1,  u(0, 0, 0, 2), tmp(0, 0, 0, 4), a1)
 !$omp parallel  default(shared) private(i1, i2, i3, u0, u1, u2)
 !$omp do 
-    do i3 = 0, n03-1, 1
-      do i2 = 0, n02-1, 1
-        do i1 = 0, n01-1, 5
+    do i3 = 0, n03 - (1), 1
+      do i2 = 0, n02 - (1), 1
+        do i1 = 0, n01 - (1), 5
           u0 = u(i1 + 0, i2, i3, 0)
           u1 = u(i1 + 0, i2, i3, 1)
           u2 = u(i1 + 0, i2, i3, 2)
           cc(i1 + 0, i2, i3) = ((u0) * (u0)) * (du(i1 + 0, i2, i3)) + &
-((u1) * (u1)) * (tmp(i1 + 0, i2, i3, 0)) + ((u2) * (u2)) * (tmp(i1 + 0, i2, i3, 1)) +&
-(2.0) * (((u0) * (u1)) * (tmp(i1 + 0, i2, i3, 2)) + &
+((u1) * (u1)) * (tmp(i1 + 0, i2, i3, 0)) + ((u2) * (u2)) * (tmp(i1 + 0, i2, i3, 1))&
+ + (2.0) * (((u0) * (u1)) * (tmp(i1 + 0, i2, i3, 2)) + &
 ((u0) * (u2)) * (tmp(i1 + 0, i2, i3, 3)) + ((u1) * (u2)) * (tmp(i1 + 0, i2, i3, 4)))
           du(i1 + 0, i2, i3) = du(i1 + 0, i2, i3) + tmp(i1 + 0, i2, i3, 0) + tmp(i1 + 0, i2, i3, 1)
           u0 = u(i1 + 1, i2, i3, 0)
           u1 = u(i1 + 1, i2, i3, 1)
           u2 = u(i1 + 1, i2, i3, 2)
           cc(i1 + 1, i2, i3) = ((u0) * (u0)) * (du(i1 + 1, i2, i3)) + &
-((u1) * (u1)) * (tmp(i1 + 1, i2, i3, 0)) + ((u2) * (u2)) * (tmp(i1 + 1, i2, i3, 1)) +&
- (2.0) * (((u0) * (u1)) * (tmp(i1 + 1, i2, i3, 2)) +&
- ((u0) * (u2)) * (tmp(i1 + 1, i2, i3, 3)) + ((u1) * (u2)) * (tmp(i1 + 1, i2, i3, 4)))
+((u1) * (u1)) * (tmp(i1 + 1, i2, i3, 0)) + ((u2) * (u2)) * (tmp(i1 + 1, i2, i3, 1))&
+ + (2.0) * (((u0) * (u1)) * (tmp(i1 + 1, i2, i3, 2)) + &
+((u0) * (u2)) * (tmp(i1 + 1, i2, i3, 3)) + ((u1) * (u2)) * (tmp(i1 + 1, i2, i3, 4)))
           du(i1 + 1, i2, i3) = du(i1 + 1, i2, i3) + tmp(i1 + 1, i2, i3, 0) + tmp(i1 + 1, i2, i3, 1)
           u0 = u(i1 + 2, i2, i3, 0)
           u1 = u(i1 + 2, i2, i3, 1)
           u2 = u(i1 + 2, i2, i3, 2)
-          cc(i1 + 2, i2, i3) = ((u0) * (u0)) * (du(i1 + 2, i2, i3)) +&
- ((u1) * (u1)) * (tmp(i1 + 2, i2, i3, 0)) + ((u2) * (u2)) * (tmp(i1 + 2, i2, i3, 1)) +&
- (2.0) * (((u0) * (u1)) * (tmp(i1 + 2, i2, i3, 2)) + &
+          cc(i1 + 2, i2, i3) = ((u0) * (u0)) * (du(i1 + 2, i2, i3)) + &
+((u1) * (u1)) * (tmp(i1 + 2, i2, i3, 0)) + ((u2) * (u2)) * (tmp(i1 + 2, i2, i3, 1))&
+ + (2.0) * (((u0) * (u1)) * (tmp(i1 + 2, i2, i3, 2)) + &
 ((u0) * (u2)) * (tmp(i1 + 2, i2, i3, 3)) + ((u1) * (u2)) * (tmp(i1 + 2, i2, i3, 4)))
           du(i1 + 2, i2, i3) = du(i1 + 2, i2, i3) + tmp(i1 + 2, i2, i3, 0) + tmp(i1 + 2, i2, i3, 1)
           u0 = u(i1 + 3, i2, i3, 0)
           u1 = u(i1 + 3, i2, i3, 1)
           u2 = u(i1 + 3, i2, i3, 2)
-          cc(i1 + 3, i2, i3) = ((u0) * (u0)) * (du(i1 + 3, i2, i3)) +&
- ((u1) * (u1)) * (tmp(i1 + 3, i2, i3, 0)) + ((u2) * (u2)) * (tmp(i1 + 3, i2, i3, 1)) +&
- (2.0) * (((u0) * (u1)) * (tmp(i1 + 3, i2, i3, 2)) + &
-((u0) * (u2)) * (tmp(i1 + 3, i2, i3, 3)) + ((u1) * (u2)) * (tmp(i1 + 3, i2, i3, 4)))
+          cc(i1 + 3, i2, i3) = ((u0) * (u0)) * (du(i1 + 3, i2, i3)) + &
+((u1) * (u1)) * (tmp(i1 + 3, i2, i3, 0)) + ((u2) * (u2)) * (tmp(i1 + 3, i2, i3, 1))&
+ + (2.0) * (((u0) * (u1)) * (tmp(i1 + 3, i2, i3, 2)) +&
+ ((u0) * (u2)) * (tmp(i1 + 3, i2, i3, 3)) + ((u1) * (u2)) * (tmp(i1 + 3, i2, i3, 4)))
           du(i1 + 3, i2, i3) = du(i1 + 3, i2, i3) + tmp(i1 + 3, i2, i3, 0) + tmp(i1 + 3, i2, i3, 1)
           u0 = u(i1 + 4, i2, i3, 0)
           u1 = u(i1 + 4, i2, i3, 1)
           u2 = u(i1 + 4, i2, i3, 2)
           cc(i1 + 4, i2, i3) = ((u0) * (u0)) * (du(i1 + 4, i2, i3)) + &
-((u1) * (u1)) * (tmp(i1 + 4, i2, i3, 0)) + ((u2) * (u2)) * (tmp(i1 + 4, i2, i3, 1)) +&
- (2.0) * (((u0) * (u1)) * (tmp(i1 + 4, i2, i3, 2)) + &
+((u1) * (u1)) * (tmp(i1 + 4, i2, i3, 0)) + ((u2) * (u2)) * (tmp(i1 + 4, i2, i3, 1))&
+ + (2.0) * (((u0) * (u1)) * (tmp(i1 + 4, i2, i3, 2)) + &
 ((u0) * (u2)) * (tmp(i1 + 4, i2, i3, 3)) + ((u1) * (u2)) * (tmp(i1 + 4, i2, i3, 4)))
           du(i1 + 4, i2, i3) = du(i1 + 4, i2, i3) + tmp(i1 + 4, i2, i3, 0) + tmp(i1 + 4, i2, i3, 1)
         end do
@@ -127,9 +125,21 @@ tmp=0.0_wp
 !$omp end parallel 
     deallocate( tmp )
   else
-    call Poisson_broker(nord, 0, nn, bc0,  u(0, 0, 0, 0), du, a0)
-    call Poisson_broker(nord, 1, nn, bc1,  u(0, 0, 0, 1), du, a1)
-    call Poisson_broker(nord, 2, nn, bc2,  u(0, 0, 0, 2), du, a2)
+    allocate( tmp(0:n01 - (1), 0:n02 - (1), 0:n03 - (1), 0:2) )
+    call Poisson_broker(nord, 0, nn, bc0,  u(0, 0, 0, 0), tmp(0, 0, 0, 0), a0)
+    call Poisson_broker(nord, 1, nn, bc1,  u(0, 0, 0, 1), tmp(0, 0, 0, 1), a1)
+    call Poisson_broker(nord, 2, nn, bc2,  u(0, 0, 0, 2), tmp(0, 0, 0, 2), a2)
+!$omp parallel  default(shared) private(i1, i2, i3)
+!$omp do 
+    do i3 = 0, n03 - (1), 1
+      do i2 = 0, n02 - (1), 1
+        do i1 = 0, n01 - (1), 1
+          du(i1, i2, i3) = tmp(i1, i2, i3, 0) + tmp(i1, i2, i3, 1) + tmp(i1, i2, i3, 2)
+        end do
+      end do
+    end do
+!$omp end do 
+!$omp end parallel 
   end if
 END SUBROUTINE div_u_i
 SUBROUTINE nabla_u_and_square(geocode, n01, n02, n03, u, du, ddu, nord, hgrids)
@@ -139,7 +149,7 @@ SUBROUTINE nabla_u_and_square(geocode, n01, n02, n03, u, du, ddu, nord, hgrids)
   integer(kind=4), intent(in) :: n02
   integer(kind=4), intent(in) :: n03
   real(kind=8), intent(in), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1)) :: u
-  real(kind=8), intent(out), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1),0:2) :: du
+  real(kind=8), intent(out), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1), 0:2) :: du
   real(kind=8), intent(out), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1)) :: ddu
   integer(kind=4), intent(in) :: nord
   real(kind=8), intent(in), dimension(0:2) :: hgrids
@@ -162,7 +172,6 @@ SUBROUTINE nabla_u_and_square(geocode, n01, n02, n03, u, du, ddu, nord, hgrids)
   bc0 = 0
   bc1 = 0
   bc2 = 0
-  du=0.0_wp
   if (geocode == 'F') then
     bc0 = -2
     bc2 = -2
@@ -178,12 +187,12 @@ SUBROUTINE nabla_u_and_square(geocode, n01, n02, n03, u, du, ddu, nord, hgrids)
   call Poisson_broker(nord, 2, nn, bc2, u,  du(0, 0, 0, 2), a2)
 !$omp parallel  default(shared) private(i1, i2, i3)
 !$omp do 
-    do i3 = 0, n03-1, 1
-      do i2 = 0, n02-1, 1
-        do i1 = 0, n01-1, 1
-        ddu(i1, i2, i3) = (du(i1, i2, i3, 0)) * (du(i1, i2, i3, 0)) +&
-                          (du(i1, i2, i3, 1)) * (du(i1, i2, i3, 1)) +&
-                          (du(i1, i2, i3, 2)) * (du(i1, i2, i3, 2))
+  do i3 = 0, n03 - (1), 1
+    do i2 = 0, n02 - (1), 1
+      do i1 = 0, n01 - (1), 1
+        ddu(i1, i2, i3) = (du(i1, i2, i3, 0)) * (du(i1, i2, i3, 0)) + &
+(du(i1, i2, i3, 1)) * (du(i1, i2, i3, 1)) + &
+(du(i1, i2, i3, 2)) * (du(i1, i2, i3, 2))
       end do
     end do
   end do
@@ -224,7 +233,7 @@ SUBROUTINE update_rhopol(geocode, n01, n02, n03, u, nord, hgrids, eta, dlogeps, 
   i1 = 0
   i2 = 0
   i3 = 0
-  oneo4pi = 0.07957747154594766788444188168625718101722982287022822437383367203_wp
+  oneo4pi = 0.07957747154594767_wp
   bc0 = 0
   bc1 = 0
   bc2 = 0
@@ -239,19 +248,18 @@ SUBROUTINE update_rhopol(geocode, n01, n02, n03, u, nord, hgrids, eta, dlogeps, 
   a1 = (1.0) / (hgrids(1))
   a2 = (1.0) / (hgrids(2))
   allocate( du(0:n01 - (1), 0:n02 - (1), 0:n03 - (1), 0:2) )
-  du=0.0_wp
   call Poisson_broker(nord, 0, nn, bc0, u,  du(0, 0, 0, 0), a0)
   call Poisson_broker(nord, 1, nn, bc1, u,  du(0, 0, 0, 1), a1)
   call Poisson_broker(nord, 2, nn, bc2, u,  du(0, 0, 0, 2), a2)
   tmp_rhores2 = 0.0_wp
 !$omp parallel  default(shared) private(i1, i2, i3, res, rho) reduction(+: tmp_rhores2)
 !$omp do 
-    do i3 = 0, n03-1, 1
-      do i2 = 0, n02-1, 1
-        do i1 = 0, n01-1, 1
+  do i3 = 0, n03 - (1), 1
+    do i2 = 0, n02 - (1), 1
+      do i1 = 0, n01 - (1), 1
         res = (dlogeps(1, i1, i2, i3)) * (du(i1, i2, i3, 0)) + &
-              (dlogeps(2, i1, i2, i3)) * (du(i1, i2, i3, 1)) + &
-              (dlogeps(3, i1, i2, i3)) * (du(i1, i2, i3, 2))
+(dlogeps(2, i1, i2, i3)) * (du(i1, i2, i3, 1)) + &
+(dlogeps(3, i1, i2, i3)) * (du(i1, i2, i3, 2))
         res = (res) * (oneo4pi)
         rho = rhopol(i1, i2, i3)
         res = (res - (rho)) * (eta)
@@ -272,7 +280,7 @@ SUBROUTINE nabla_u(geocode, n01, n02, n03, u, du, nord, hgrids)
   integer(kind=4), intent(in) :: n02
   integer(kind=4), intent(in) :: n03
   real(kind=8), intent(in), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1)) :: u
-  real(kind=8), intent(out), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1),0:2) :: du
+  real(kind=8), intent(out), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1), 0:2) :: du
   integer(kind=4), intent(in) :: nord
   real(kind=8), intent(in), dimension(0:2) :: hgrids
   integer(kind=4), dimension(3) :: nn
@@ -288,7 +296,6 @@ SUBROUTINE nabla_u(geocode, n01, n02, n03, u, du, nord, hgrids)
   bc0 = 0
   bc1 = 0
   bc2 = 0
-  du=0.0_wp
   if (geocode == 'F') then
     bc0 = -2
     bc2 = -2
@@ -310,7 +317,7 @@ SUBROUTINE nabla_u_epsilon(geocode, n01, n02, n03, u, du, nord, hgrids, eps)
   integer(kind=4), intent(in) :: n02
   integer(kind=4), intent(in) :: n03
   real(kind=8), intent(in), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1)) :: u
-  real(kind=8), intent(out), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1),0:2) :: du
+  real(kind=8), intent(out), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1), 0:2) :: du
   integer(kind=4), intent(in) :: nord
   real(kind=8), intent(in), dimension(0:2) :: hgrids
   real(kind=8), intent(in), dimension(0:n01 - (1), 0:n02 - (1), 0:n03 - (1)) :: eps
@@ -333,7 +340,6 @@ SUBROUTINE nabla_u_epsilon(geocode, n01, n02, n03, u, du, nord, hgrids, eps)
   bc0 = 0
   bc1 = 0
   bc2 = 0
-  du=0.0_wp
   if (geocode == 'F') then
     bc0 = -2
     bc2 = -2
@@ -349,9 +355,9 @@ SUBROUTINE nabla_u_epsilon(geocode, n01, n02, n03, u, du, nord, hgrids, eps)
   call Poisson_broker(nord, 2, nn, bc2, u,  du(0, 0, 0, 2), a2)
 !$omp parallel  default(shared) private(i1, i2, i3)
 !$omp do 
-    do i3 = 0, n03-1, 1
-      do i2 = 0, n02-1, 1
-        do i1 = 0, n01-1, 1
+  do i3 = 0, n03 - (1), 1
+    do i2 = 0, n02 - (1), 1
+      do i1 = 0, n01 - (1), 1
         du(i1, i2, i3, 0) = (du(i1, i2, i3, 0)) * (eps(i1, i2, i3))
         du(i1, i2, i3, 1) = (du(i1, i2, i3, 1)) * (eps(i1, i2, i3))
         du(i1, i2, i3, 2) = (du(i1, i2, i3, 2)) * (eps(i1, i2, i3))
@@ -402,18 +408,17 @@ SUBROUTINE nabla_u_square(geocode, n01, n02, n03, u, ddu, nord, hgrids)
   a1 = (1.0) / (hgrids(1))
   a2 = (1.0) / (hgrids(2))
   allocate( du(0:n01 - (1), 0:n02 - (1), 0:n03 - (1), 0:2) )
-  du=0.0_wp
   call Poisson_broker(nord, 0, nn, bc0, u,  du(0, 0, 0, 0), a0)
   call Poisson_broker(nord, 1, nn, bc1, u,  du(0, 0, 0, 1), a1)
   call Poisson_broker(nord, 2, nn, bc2, u,  du(0, 0, 0, 2), a2)
 !$omp parallel  default(shared) private(i1, i2, i3)
 !$omp do 
-    do i3 = 0, n03-1, 1
-      do i2 = 0, n02-1, 1
-        do i1 = 0, n01-1, 1
+  do i3 = 0, n03 - (1), 1
+    do i2 = 0, n02 - (1), 1
+      do i1 = 0, n01 - (1), 1
         ddu(i1, i2, i3) = (du(i1, i2, i3, 0)) * (du(i1, i2, i3, 0)) + &
-                          (du(i1, i2, i3, 1)) * (du(i1, i2, i3, 1)) + &
-                          (du(i1, i2, i3, 2)) * (du(i1, i2, i3, 2))
+(du(i1, i2, i3, 1)) * (du(i1, i2, i3, 1)) + &
+(du(i1, i2, i3, 2)) * (du(i1, i2, i3, 2))
       end do
     end do
   end do
