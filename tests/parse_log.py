@@ -544,7 +544,7 @@ class BigDFTiming:
       tmp=np.array(["max","min"])
     pylab.ylabel('Load Unbalancing wrt average')
     pylab.title('Work Load of different classes')
-    if tmp is not None: pylab.xticks(ind+width/2., tmp)
+    if tmp is not None: pylab.xticks(ind+width/2., tmp,rotation=90,verticalalignment='bottom')
     pylab.yticks(pylab.np.arange(0,2,0.25))
     pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
     newfig.show()
