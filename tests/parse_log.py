@@ -315,6 +315,7 @@ class BigDFTiming:
     self.axbars = None
     self.newfigs =[]
     self.radio = None
+    self.toggle_unbalancing = False
     self.quitButton = None
     for doc in self.log:
         self.routines.append(doc.get("Routines timing and number of calls"))
@@ -393,13 +394,21 @@ class BigDFTiming:
 
   def onkey_ev(self,event):
     number=event.key
+    if number == 'u' or number == 'U':
+      self.toggle_unbalancing = not self.toggle_unbalancing
+      print 'Unbalancing',self.toggle_unbalancing
     try:
       number=int(number)
-      if self.routines[number] is not None:
-        toplt=self.routines[number]
-        data=dump_timing_level(toplt)
-        plt=polar_axis(data)
-        plt.show()
+      if not self.toggle_unbalancing:
+        if self.routines[number] is not None:
+          toplt=self.routines[number]
+          data=dump_timing_level(toplt)
+          plt=polar_axis(data)
+          plt.show()
+      else:
+        if self.scf[number] is not None:
+          self.load_unbalancing(self.scf[number]["Classes"],self.hostnames[number])
+          plt.show()
     except:
       print 'not present or out of range'
 
@@ -490,9 +499,10 @@ class BigDFTiming:
         ipiv.append(i)
     return ipiv
 
-  def load_unbalancing(self,dict):
+  def load_unbalancing(self,dict,hosts):
     """Extract the data for plotting the hostname balancings between different categories in bar chart"""
-    import pylab
+    import matplotlib.pyplot as plt
+    import numpy as np
     width=0.50
     plts=[]
     key_legend=[]
@@ -500,18 +510,20 @@ class BigDFTiming:
     icol=1.0
     print "dict",dict
     #open a new figure
-    pylab.figure()
+    newfig=plt.figure()
+    newax=newfig.add_subplot(111)
     for cat in self.classes:
       try:
-        dat=pylab.np.array([dict[cat][0]])
+        dat=np.array([dict[cat][0]])
         print 'data',dat
-        unb=pylab.np.array(dict[cat][2:])
+        unb=np.array(dict[cat][2:])
         print 'unbalancing',unb
         unb2=self.find_unbalanced(unb)
         print 'unbalanced objects',cat
-        if self.hostnames is not None and (cat=='Convolutions' or cat =='Communications'):
-          print 'vals',[ [i,unb[i],self.hostnames[i]] for i in unb2]
-        ind=pylab.np.arange(len(unb))
+        if hosts is not None and (cat=='Convolutions' or cat =='Communications'):
+          print 'unb2',unb2,len(unb),len(hosts)
+          print 'vals',[ [i,unb[i],hosts[i]] for i in unb2]
+        ind=np.arange(len(unb))
         plt=pylab.bar(ind,unb,width,color=pylab.cm.jet(icol/len(self.classes)))
         plts.append(plt)
         key_legend.append(plt[0])
@@ -524,17 +536,19 @@ class BigDFTiming:
         print "cat",cat,"not found"
 
     if len(ind) > 2:
-      if self.hostnames is not None:
-        tmp=pylab.np.array(self.hostnames)
+      if hosts is not None:
+        tmp=np.array(hosts)
       else:
         tmp=None
     else:
-      tmp=pylab.np.array(["max","min"])
+      tmp=np.array(["max","min"])
     pylab.ylabel('Load Unbalancing wrt average')
     pylab.title('Work Load of different classes')
     if tmp is not None: pylab.xticks(ind+width/2., tmp)
     pylab.yticks(pylab.np.arange(0,2,0.25))
     pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
+    newfig.show()
+    self.newfigs.append((newfig,newax))
 
 
 if __name__ == "__main__":
