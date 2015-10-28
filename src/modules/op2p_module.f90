@@ -16,6 +16,7 @@ module overlap_point_to_point
    !By default variables are internal to the module
    private
    public :: initialize_OP2P_descriptors,OP2P_communication,OP2P_descriptors,free_OP2P_descriptors
+   public :: local_data_init,set_local_data,free_local_data
 
    type OP2P_descriptors
       logical :: forsymop !< descriptor for symmetric operation
@@ -29,7 +30,102 @@ module overlap_point_to_point
       integer, dimension(:,:,:,:), pointer :: communication_schedule !< processes to send and receive at each step
    end type OP2P_descriptors
 
+   type, public :: local_data
+      integer :: nobj !< number of objects to treat locally
+      integer :: nvctr !<total number of elements of resident data
+      integer :: nvctr_res !<total number of elements of processed resident data
+      integer, dimension(:), pointer :: id_glb !<ids of the local data in the global distribution
+      integer, dimension(:), pointer :: displ !<displacements of each of the local data
+      integer, dimension(:), pointer :: displ_res !<displacements of each of the local results
+      real(wp), dimension(:), pointer :: data !< array of local data
+      real(wp), dimension(:), pointer :: res !< array of local results
+   end type local_data
+
    contains
+
+     pure subroutine nullify_local_data(ld)
+       implicit none
+       type(local_data), intent(out) :: ld
+       ld%nobj=0
+       ld%nvctr=0
+       ld%nvctr_res=0
+       nullify(ld%id_glb)
+       nullify(ld%displ)
+       nullify(ld%displ_res)
+       nullify(ld%data)
+       nullify(ld%res)
+     end subroutine nullify_local_data
+
+     pure function local_data_init(norb,ndim) result(ld)
+       implicit none
+       integer, intent(in) :: norb,ndim
+       type(local_data) :: ld
+       !local variables
+       call nullify_local_data(ld)
+
+       ld%nobj=norb
+       ld%nvctr=ndim*norb
+       ld%nvctr_res=ld%nvctr
+     end function local_data_init
+
+     subroutine set_local_data(ld,isorb,ngr,ngr1,ldgr,psir,dpsir)
+       implicit none
+       type(local_data), intent(inout) :: ld
+       integer, intent(in) :: isorb,ldgr,ngr1,ngr
+       real(wp), dimension((ld%nvctr/ld%nobj)*ldgr*ngr), intent(in), target :: psir
+       real(wp), dimension((ld%nvctr_res/ld%nobj)*ldgr*ngr), intent(in), target :: dpsir
+       !local variables
+       integer :: iorb,ndim,ntot,jorb
+
+       ld%id_glb=f_malloc_ptr(ld%nobj,id='id_glb')
+       ld%displ=f_malloc_ptr(ld%nobj,id='displ')
+       ld%displ_res=f_malloc_ptr(ld%nobj,id='displ_res')
+
+       ndim=ld%nvctr/ld%nobj
+       do iorb=1,ld%nobj
+          ld%id_glb(iorb)=iorb+isorb
+       end do
+
+       if (ngr==1) then
+          ntot=0
+          do iorb=1,ld%nobj
+             ld%displ(iorb)=ntot
+             ld%displ_res(iorb)=ntot
+             ntot=ntot+ndim
+          end do
+       else
+          ntot=0
+          iorb=1
+          do jorb=1,ngr1
+             ld%displ(iorb)=ntot
+             ld%displ_res(iorb)=ntot
+             ntot=ntot+ndim
+             iorb=iorb+1
+          end do
+          ntot=ldgr*ndim
+          do jorb=ngr1,ld%nobj
+             ld%displ(iorb)=ntot
+             ld%displ_res(iorb)=ntot
+             ntot=ntot+ndim
+             iorb=iorb+1
+          end do
+       end if
+
+       !basic pointer association, no further allocation
+       ld%data=>psir
+       ld%res=>dpsir
+     end subroutine set_local_data
+
+     subroutine free_local_data(ld)
+       implicit none
+       type(local_data), intent(inout) :: ld
+
+       call f_free_ptr(ld%id_glb)
+       call f_free_ptr(ld%displ)
+       call f_free_ptr(ld%displ_res)
+       call nullify_local_data(ld)
+
+     end subroutine free_local_data
 
    !<initialise the data needed to manage communication operations
    !objects_attributes(:,1) <= group to which the object belongs
