@@ -379,7 +379,7 @@ module communications_init
           isize = isize + lzd%llr(ilr)%wfd%nvctr_c
           ii3s = lzd%llr(ilr)%ns3
           ii3e = ii3s + lzd%llr(ilr)%d%n3
-          !!write(*,'(a,6i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e', iproc, iorb, ii3s, ii3e, i3s, i3e
+          !write(*,'(a,12i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e, ilr, ns1, ns2, ns3, owa', iproc, iorb, ii3s, ii3e, i3s, i3e,ilr,lzd%nlr,lzd%llr(ilr)%ns1,lzd%llr(ilr)%ns2,lzd%llr(ilr)%ns3,orbs%onwhichatom(iorb)
           !if (ii3s+1>i3e .or. ii3e+1<i3s) cycle !+1 since ns3 starts at 0, but is3 at 1
 
           !n1p1=lzd%llr(ilr)%d%n1+1
@@ -1044,7 +1044,7 @@ module communications_init
           !write(*,*) 'n3p, sum(weightppp_c(:,:,1:n3p))', n3p, sum(weightppp_c(:,:,1:n3p))
 
           tt = weight_prev
-          ! number of gris points handled by processes 0..iproc-1
+          ! number of grid points handled by processes 0..iproc-1
           iitot = sum(points_per_process(0:iproc-1)) !total number of grid points up to iproc-1
           !!write(*,'(a,i7,f14.1,2i9)') 'start: iproc, tt, iitot, jjproc', iproc, tt, iitot, jjproc
           !!write(*,'(a,i5,100f12.1)') 'iproc, weights_c_startend', iproc, weights_c_startend
@@ -2044,7 +2044,7 @@ module communications_init
           stop
       end if
       !write(*,'(a,2i10)') 'sum(nsendcounts_c), 7*sum(nsendcounts_f)', sum(nsendcounts_c), 7*sum(nsendcounts_f)
-      
+
       ! now nsenddspls
       nsenddspls_c(0)=0
       do jproc=1,nproc-1

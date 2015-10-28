@@ -1239,7 +1239,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end do outerLoop
 
 
-  
   call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
 
   ! Moved down for tests
@@ -3219,7 +3218,12 @@ end if
               if (input%lin%scf_mode==LINEAR_FOE) then
                  nit_lowaccuracy=input%lin%nit_lowaccuracy
               else
-                 nit_lowaccuracy=0
+                 ! double check that nit_high /= 0 and we're not in hybrid mode (otherwise we won't be doiung any iterations...)
+                 if (input%lin%nit_highaccuracy /=0 .and. input%lin%nlevel_accuracy==2) then
+                    nit_lowaccuracy=0
+                 else
+                    nit_lowaccuracy=input%lin%nit_lowaccuracy
+                 end if
               end if
               nit_highaccuracy=input%lin%nit_highaccuracy
           end if

@@ -1513,7 +1513,7 @@
                     Specifies a scaling factor for the coefficient gradient, recommended to be around 0.1 - 0.5 for CDFT, fragment calculations
                     or systems where convergence is unstable.
        default: 1.0
-       RANGE: [1.e-3,1.e1]
+       RANGE: [0.0,1.e1]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
