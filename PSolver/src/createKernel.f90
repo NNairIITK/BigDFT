@@ -855,23 +855,25 @@ implicit none
 !" with kernel ",kernelSize," plans ",plansSize, "maxplan",&
 !maxPlanSize, "and red ",PCGRedSize, "nprocs/node", nproc_node
 
-if(iproc_node==0) then
  if(freeGPUSize<nproc_node*(kernelSize+maxPlanSize)) then
-     call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
+     if(kernel%mpi_env%iproc==0)then
+       call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
        trim(yaml_toa(freeGPUSize)) // ", total Memory :"// trim(yaml_toa(totalGPUSize)) //& 
        ", minimum needed memory :"// trim(yaml_toa(nproc_node*(kernelSize+maxPlanSize))) )
+     end if
  else if(freeGPUSize <nproc_node*(kernelSize+plansSize)) then
-     call yaml_warning( "WARNING: not enough free memory for cufftPlans on GPU, performance will be degraded")
+     if(kernel%mpi_env%iproc==0) &
+       call yaml_warning( "WARNING: not enough free memory for cufftPlans on GPU, performance will be degraded")
      kernel%initCufftPlan=0
      kernel%gpuPCGRed=0
  else if((kernel%gpuPCGRed == 1) .and. (freeGPUSize < nproc_node*(kernelSize+plansSize+PCGRedSize))) then
-     call yaml_warning( "WARNING: not enough free memory for GPU PCG reductions, performance will be degraded")
+     if(kernel%mpi_env%iproc==0) &
+      call yaml_warning( "WARNING: not enough free memory for GPU PCG reductions, performance will be degraded")
      kernel%gpuPCGRed=0;
  else
      !call yaml_comment("Memory on the GPU is sufficient for" // trim(yaml_toa(nproc_node)) // " processes/node")
      kernel%initCufftPlan=1;
  end if
-end if
 
 call mpibarrier()
 
