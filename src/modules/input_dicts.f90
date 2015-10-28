@@ -1500,7 +1500,7 @@ contains
           !naming_id = trim(run_id_toa())
           call f_strcpy(src=trim(run_id_toa()),dest=naming_id)
           !if it is still empty then use the logfile
-          if (len_trim(naming_id)==0) call f_strcpy(naming_id,LOGFILE)
+          !if (len_trim(naming_id)==0) call f_strcpy(naming_id,LOGFILE)
        else
           call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
           !naming_id = "-" // trim(naming_id)
@@ -1702,7 +1702,7 @@ contains
        if (log_to_disk) then
           ! Get Create log file name.
           call dict_get_run_properties(dict, naming_id = run_name)
-          logfilename = "log"//trim(adjustl(run_name))//".yaml"
+          logfilename = "log"+run_name+".yaml"
           path = trim(writing_directory)//trim(logfilename)
           call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
           ! Check if logfile is already connected.

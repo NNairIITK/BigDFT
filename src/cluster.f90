@@ -280,7 +280,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   end if
 
   !Time initialization
-  call f_timing_reset(filename=trim(in%dir_output)//'time.yaml',master=iproc==0,&
+  call f_timing_reset(filename=trim(in%dir_output)//'time'+in%naming_id+'.yaml',master=iproc==0,&
        verbose_mode=verbose>2 .and. nproc>1)
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)

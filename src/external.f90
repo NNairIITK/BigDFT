@@ -229,7 +229,7 @@ subroutine bigdft_severe_abort()
           dest=filename)
   end if
   !create the directory debug if it does not exists
-  call f_mkdir('debug',debugdir)
+  call f_mkdir('debug',debugdir) !this in principle should not crash if multiple cores are doing it simultaneously
   call f_strcpy(dest=filename,src=debugdir+filename)
   call f_malloc_dump_status(filename=filename)
   if (bigdft_mpi%iproc ==0) then

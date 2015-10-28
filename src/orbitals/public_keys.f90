@@ -144,6 +144,7 @@ module public_keys
 
   character(len = *), parameter :: PERF_VARIABLES = "perf"
   character(len = *), parameter :: DEBUG = "debug"
+  character(len = *), parameter :: PROFILING_DEPTH = "profiling_depth"
   character(len = *), parameter :: FFTCACHE = "fftcache"
   character(len = *), parameter :: ACCEL = "accel"
   character(len = *), parameter :: OCL_PLATFORM = "ocl_platform"
