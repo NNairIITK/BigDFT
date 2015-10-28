@@ -418,10 +418,9 @@ contains
     type(mpi_environment), intent(out) :: mpi_env
     !local variables
     integer :: grp,ierr
+
     !create the groups with the list
-    call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
-    if (ierr /= 0) call f_err_throw('Problem in group inclusion, ierr:'//&
-            ierr,err_name='BIGDFT_MPI_ERROR')
+    grp=mpigroupincl(base_grp,group_size,group_list)
     !create the communicator (the communicator can be also null)
     call MPI_COMM_CREATE(base_comm,grp,mpi_env%mpi_comm,ierr)
     if (ierr /= 0) call f_err_throw('Problem in comm_create, ierr:'//&
@@ -437,6 +436,22 @@ contains
        mpi_env%refcnt=f_ref_new('MPI_env_from_grp')        
     end if
   end subroutine mpi_env_create_group
+
+  !> function that returns the handle of the group of different
+  !! processes that will belong to a rma communication
+  function mpigroupincl(base_grp,group_size,group_list) result(grp)
+    implicit none
+    integer, intent(in) :: base_grp,group_size
+    !>ranks of the groups in the rma access pattern
+    integer, dimension(group_size), intent(in) :: group_list
+    integer :: grp
+    !local variables
+    integer :: ierr
+    !create the groups with the list
+    call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
+    if (ierr /= 0) call f_err_throw('Problem in group inclusion, ierr:'//&
+         ierr,err_name='BIGDFT_MPI_ERROR')
+  end function mpigroupincl
 
   function mpigroup(comm)
     implicit none
@@ -458,16 +473,24 @@ contains
     end if
   end function mpigroup
 
+  pure function mpigroup_null() result(grp)
+    implicit none
+    integer :: grp
+    grp=MPI_GROUP_NULL
+  end function mpigroup_null
+
   subroutine mpigroup_free(grp)
     implicit none
-    integer, intent(in) :: grp
+    integer, intent(inout) :: grp
     !local variables
     integer :: ierr
-    call MPI_GROUP_FREE(grp,ierr)
+    ierr=0
+    if (grp /= MPI_GROUP_NULL) call MPI_GROUP_FREE(grp,ierr)
     if (ierr /= 0) then
        call f_err_throw('Problem in group free, ierr:'//&
             ierr,err_name='BIGDFT_MPI_ERROR')
     end if
+    grp=MPI_GROUP_NULL
   end subroutine mpigroup_free
 
   !> Create communicators associated to the groups of size group_size
@@ -1915,6 +1938,48 @@ contains
 
   end function mpiwindow_l0
 
+  !> create a peer_to_peer group, to use RMA calls instead of send-receive
+  function p2p_group(base_grp,p1,p2,p3) result(grp)
+    use yaml_strings, only: yaml_toa
+    implicit none
+    integer, intent(in) :: base_grp
+    integer, intent(in) :: p1,p2
+    integer, intent(in), optional :: p3
+    integer :: grp
+    !local variables
+    integer :: ierr,i,nlist
+    integer, dimension(3) :: list,ipiv,list2
+
+    if (present(p3)) then
+       list(1)=p1
+       list(2)=p2
+       list(3)=p3
+       call sort_positions(3,real(list,kind=8),ipiv)
+       nlist=3
+       do i=1,3
+          if (i > 1) then
+             if (list(ipiv(i))==list2(i-1)) then
+                nlist=nlist-1
+             else
+                list2(i)=list(ipiv(i))
+             end if
+          else
+             list2(i)=list(ipiv(i))
+          end if
+       end do
+       grp=mpigroupincl(base_grp,nlist,list2)
+    else
+       list(1)=min(p1,p2)
+       list(2)=max(p1,p2)
+       grp=mpigroupincl(base_grp,2,list)
+    end if
+    if (grp==MPI_GROUP_NULL) then
+       call f_err_throw('Error in the group creation for list='//trim(yaml_toa(list)),&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+  end function p2p_group
+
 
   subroutine mpi_fence(window, assert)
     use dictionaries, only: f_err_throw,f_err_define
@@ -1940,6 +2005,82 @@ contains
             err_id=ERR_MPI_WRAPPERS)  
     end if
   end subroutine mpi_fence
+
+  subroutine mpiwinstart(grp,win,assert)
+    implicit none
+    integer, intent(in) :: grp
+    integer, intent(in) :: win
+    integer, intent(in), optional :: assert
+    !local variables
+    integer :: assert_,ierr
+    assert_=0
+    if (present(assert)) assert_=assert
+
+    if (grp==mpigroup_null()) then
+       call f_err_throw('Error in mpi_win_start, passed a null group',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    
+    call MPI_WIN_START(grp,assert_,win,ierr)
+    if (ierr /=0) then
+       call f_err_throw('Error in mpi_win_start',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+
+  end subroutine mpiwinstart
+
+  subroutine mpiwinpost(grp,win,assert)
+    implicit none
+    integer, intent(in) :: grp
+    integer, intent(in) :: win
+    integer, intent(in), optional :: assert
+    !local variables
+    integer :: assert_,ierr
+    assert_=0
+    if (present(assert)) assert_=assert
+    
+    if (grp==mpigroup_null()) then
+       call f_err_throw('Error in mpi_win_post, passed a null group',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    call MPI_WIN_POST(grp,assert_,win,ierr)
+    if (ierr /=0) then
+       call f_err_throw('Error in mpi_win_post',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+
+  end subroutine mpiwinpost
+
+  subroutine mpiwincomplete(win)
+    implicit none
+    integer, intent(in) :: win
+    !local variables
+    integer :: ierr
+
+    call MPI_WIN_COMPLETE(win,ierr)
+    if (ierr /=0) then
+       call f_err_throw('Error in mpi_win_complete',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+    
+  end subroutine mpiwincomplete
+
+  subroutine mpiwinwait(win)
+    implicit none
+    integer, intent(in) :: win
+    !local variables
+    integer :: ierr
+
+    call MPI_WIN_WAIT(win,ierr)
+    if (ierr /=0) then
+       call f_err_throw('Error in mpi_win_wait',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+
+  end subroutine mpiwinwait
+
 
   subroutine mpi_fenceandfree(window, assert)
     use dictionaries, only: f_err_throw,f_err_define
