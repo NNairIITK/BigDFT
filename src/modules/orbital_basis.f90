@@ -73,6 +73,16 @@ module orbitalbasis
 
 contains
 
+  pure subroutine nullify_orbital_basis(ob)
+    implicit none
+    type(orbital_basis), intent(out) :: ob
+    nullify(ob%dd)
+    nullify(ob%orbs)
+    !type(transposed_descriptor) :: td
+    nullify(ob%confdatarr)
+    nullify(ob%phis_wvl)
+  end subroutine nullify_orbital_basis
+
   
 
   pure subroutine nullify_ket(k)
@@ -222,7 +232,7 @@ contains
     k%kwgt=k%ob%orbs%kwgts(ikpt)
     k%occup=k%ob%orbs%occup(k%iorb)
     k%spinval=k%ob%orbs%spinsgn(k%iorb)
-    k%confdata=k%ob%confdatarr(k%iorbp)
+    if (associated(k%ob%confdatarr)) k%confdata=k%ob%confdatarr(k%iorbp)
     !shifts metadata
     k%ispot=k%ob%orbs%ispot(k%iorbp)
     !find the psi shift for the association
@@ -381,6 +391,7 @@ contains
     integer :: ilr,iorb
 
     !nullification
+    call nullify_orbital_basis(ob)
 
     if (present(orbs)) ob%orbs => orbs
     
@@ -407,6 +418,7 @@ contains
        deallocate(ob%dd)
        nullify(ob%dd)
     end if
+    call nullify_orbital_basis(ob)
   end subroutine orbital_basis_release
   
 

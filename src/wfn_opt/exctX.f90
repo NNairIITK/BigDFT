@@ -1549,7 +1549,7 @@ END SUBROUTINE exact_exchange_potential_round
 !! within the symmetric round-robin scheme
 !! the psi is already given in the real-space form
 subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
-     hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
+     pkernel,psir,dpsir,eexctX)
   use module_base
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp
@@ -1559,11 +1559,13 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   use overlap_point_to_point
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
-  real(gp), intent(in) :: hxh,hyh,hzh
+  !real(gp), intent(in) :: hxh,hyh,hzh
   type(xc_info), intent(in) :: xc
   type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+!  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(in) :: psir
+    
   type(coulomb_operator), intent(inout) :: pkernel
   real(gp), intent(out) :: eexctX
   real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir
@@ -1574,16 +1576,16 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   integer, parameter :: DATA_=1,RES_=2
   logical :: doit,symmetric
   integer :: ierr,ndata_comms,nres_comms,isnow,irnow,isnow2,irnow2,jsorb,norbp,source,dest,nstep_max,nsteps
-  integer :: i,iorb,jorb,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii,count,istep,jproc
+  integer :: i,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii,count,istep,jproc,iorb,jorbs_tmp
   integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
-  real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
+  real(gp) :: ehart,exctXfac,sfac
   integer, dimension(4) :: mpireq,mpireq2
   type(workarr_sumrho) :: w
   integer, dimension(:), allocatable :: igrpr,ndatac
   integer, dimension(:,:), allocatable :: nvctr_par
   integer, dimension(:,:,:), allocatable :: jprocsr,iprocpm1,ndatas,iorbgr
   real(wp), dimension(:), allocatable :: rp_ij
-  real(wp), dimension(:,:), allocatable :: psir
+!  real(wp), dimension(:,:), allocatable :: psir
   real(wp), dimension(:,:,:,:), allocatable :: psiw,dpsiw
   type(local_data) :: phi_i,phi_j
 
@@ -1609,7 +1611,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      ngroup=1
   end if
 
-  hfac=1.0_gp/(hxh*hyh*hzh)
 
   !here we can start with the round-robin scheme
   !since the orbitals are all occupied we have to use the symmetric scheme
@@ -1749,7 +1750,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
            !define the arrays for send-receive of data
            jprocsr(SEND_DATA,igroup,istep)= iprocpm1(1,istep+1,igroup)
            jprocsr(RECV_DATA,igroup,istep)= iprocpm1(2,istep+1,igroup)
-           if (iproc == iprocref) then
+           if (iproc == iprocref .and. jprocsr(RECV_DATA,igroup,istep) /= mpirank_null()) then
               ncalltot=ncalltot+&
                    (nvctr_par(jprocsr(RECV_DATA,igroup,istep),igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))*&
                    (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))
@@ -1765,7 +1766,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
         if (modulo(nprocgr,2) == 0 .or. .not. symmetric) then
            jprocsr(SEND_DATA,igroup,istep)= iprocpm1(1,istep+1,igroup)
            jprocsr(RECV_DATA,igroup,istep)= iprocpm1(2,istep+1,igroup)
-           if (iproc == iprocref) then
+           if (iproc == iprocref .and. jprocsr(RECV_DATA,igroup,istep) /= mpirank_null()) then
               ncalltot=ncalltot+&
                    (nvctr_par(jprocsr(RECV_DATA,igroup,istep),igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))*&
                    (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))
@@ -1787,18 +1788,18 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   ndatas = f_malloc0((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='ndatas')
 
 
-  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
-  psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
-
-  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))
-
-  !uncompress the wavefunction in the real grid
-  do iorb=1,orbs%norbp
-     !here ispinor is equal to one
-     call daub_to_isf(lr,w,psi(1,1,iorb),psir(1,iorb))
-  end do
-
-  call deallocate_work_arrays_sumrho(w)
+!!$  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
+!!$  psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
+!!$
+!!$  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))
+!!$
+!!$  !uncompress the wavefunction in the real grid
+!!$  do iorb=1,orbs%norbp
+!!$     !here ispinor is equal to one
+!!$     call daub_to_isf(lr,w,psi(1,1,iorb),psir(1,iorb))
+!!$  end do
+!!$
+!!$  call deallocate_work_arrays_sumrho(w)
 
   psiw = f_malloc0([ lr%d%n1i*lr%d%n2i*lr%d%n3i, maxval(orbs%norb_par(:,0)), ngroupp,2],id='psiw')
   dpsiw = f_malloc0([lr%d%n1i*lr%d%n2i*lr%d%n3i, maxval(orbs%norb_par(:,0)), ngroupp,3],id='dpsiw')
@@ -1808,9 +1809,12 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
 
   call f_zero(dpsir)
 
-!!$  phi_i=local_data_init(orbs%norbp,lr%d%n1i*lr%d%n2i*lr%d%n3i)
-!!$  call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,1),1,orbs%norbp,orbs%norbp,&
-!!$       psir,dpsir)
+  if (ngroupp>0) then
+     phi_i=local_data_init(orbs%norbp,lr%d%n1i*lr%d%n2i*lr%d%n3i)
+     call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,igrpr(1)),1,orbs%norbp,orbs%norbp,&
+          psir,dpsir)
+  end if
+
 
   ncalls=0
   !real communication
@@ -1857,64 +1861,52 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      loop_nocomm: do igroup=1,ngroupp
         if (istep == 0) then
            doit=.true.
-           ndatac(igroup)=ndatac(igroup)+nvctr_par(iproc,igrpr(igroup))
+           source=iproc
         else if (jprocsr(RECV_DATA,igroup,istep-1) /= mpirank_null()) then
            doit=.true.
-           ndatac(igroup)=ndatac(igroup)+&
-                nvctr_par(jprocsr(RECV_DATA,igroup,istep-1),igrpr(igroup))  
+           source=jprocsr(RECV_DATA,igroup,istep-1)
            if (iproc == itestproc) then
               print '(5(1x,a,i8))','step',istep+1,'group:',igrpr(igroup),&
-                   ':processing',nvctr_par(jprocsr(RECV_DATA,igroup,istep-1),igrpr(igroup)),&
-                   'elements in',iproc,'from',jprocsr(RECV_DATA,igroup,istep-1)
+                   ':processing',nvctr_par(source,igrpr(igroup)),&
+                   'elements in',iproc,'from',source
            end if
         else
            doit=.false.
         end if
         if (doit) then
+           ndatac(igroup)=ndatac(igroup)+nvctr_par(source,igrpr(igroup))
            !calculation of the partial densities and potentials
            !starting point of the loop
            !here there is the calculation routine
            !number of orbitals to be treated locally
            norbi=nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i)
-           if (istep == 0) then
-              norbj=norbi
-           else
-              norbj=nvctr_par(jprocsr(RECV_DATA,igroup,istep-1),igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i)
-           end if
+           norbj=nvctr_par(source,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i)
+
            !calculating the starting orbitals locally
            iorbs=iorbgr(LOCAL_,iproc,igrpr(igroup))
-           if (istep == 0) then
-              jorbs=iorbs
-           else
-              jorbs=iorbgr(LOCAL_,jprocsr(RECV_DATA,igroup,istep-1),igrpr(igroup))
-           end if
+           jorbs=iorbgr(LOCAL_,source,igrpr(igroup))
+
            !calculate the starting orbital globally
            isorb=iorbgr(GLOBAL_,iproc,igrpr(igroup))
-           if (istep==0) then
-              jsorb=isorb
-           else
-              jsorb=iorbgr(GLOBAL_,jprocsr(RECV_DATA,igroup,istep-1),igrpr(igroup))
-              !if (igrpr(igroup) == 2) jsorb=orbs%norbu+jsorb
-           end if          
+           jsorb=iorbgr(GLOBAL_,source,igrpr(igroup))
 
+!!$           phi_i=local_data_init(norbi,lr%d%n1i*lr%d%n2i*lr%d%n3i)
+!!$           call set_local_data(phi_i,isorb+iorbs-1,1,norbi,norbi,&
+!!$                psir(1,iorbs),dpsir(1,iorbs))
 
-           phi_i=local_data_init(norbi,lr%d%n1i*lr%d%n2i*lr%d%n3i)
-           call set_local_data(phi_i,isorb+iorbs-1,1,norbi,norbi,&
-                psir(1,iorbs),dpsir(1,iorbs))
 
            if (istep/=0) then
               phi_j=local_data_init(norbj,lr%d%n1i*lr%d%n2i*lr%d%n3i)
               call set_local_data(phi_j,jsorb+jorbs-1,1,&
                    norbj,norbj,&
                    psiw(1,1,igroup,isnow),dpsiw(1,1,igroup,3))
+              jorbs_tmp=1
            else
               phi_j=phi_i
+              jorbs_tmp=iorbs
            end if
-
            call internal_calculation_exctx(istep,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
-                jprocsr(SEND_RES,igroup,istep) /= mpirank_null(),norbi,norbj,&
-                [(i,i=1,norbi)],[(i,i=1,norbj)],&
-                ![(i,i=iorbs,iorbs+norbi-1)],[(i,i=1,norbj)],&
+                jprocsr(SEND_RES,igroup,istep) /= mpirank_null(),norbi,norbj,iorbs,jorbs_tmp,&
                 phi_i,phi_j,eexctX,rp_ij)
            if (iproc == iprocref .and. verbose > 1 .and. igroup==1) then
               if (istep == 0) then
@@ -1925,7 +1917,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
               call yaml_comment('Exact exchange calculation: '+nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp)**'(i3)'+'%')
            end if
 
-           call free_local_data(phi_i)
+!!$           call free_local_data(phi_i)
            if (istep/=0) call free_local_data(phi_j)
 
 
@@ -1990,7 +1982,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      ndata_comms=0
   end do
 
-
+  if (ngroupp>0) call free_local_data(phi_i)
 
   !unitary tests of the calculation
   if (itestproc > -1) then
@@ -2028,7 +2020,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   call f_free(rp_ij)
   call f_free(psiw)
   call f_free(dpsiw)
-  call f_free(psir)
+!  call f_free(psir)
   call f_free(igrpr)
   call f_free(iprocpm1)
   call f_free(jprocsr)
