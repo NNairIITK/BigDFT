@@ -1573,7 +1573,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   integer, parameter :: SEND_DATA=1,RECV_DATA=2,SEND_RES=3,RECV_RES=4
   integer, parameter :: DATA_=1,RES_=2
   logical :: doit,symmetric
-  integer :: ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,norbp,source,dest,nstep_max,nsteps
+  integer :: ierr,ndata_comms,nres_comms,isnow,irnow,isnow2,irnow2,jsorb,norbp,source,dest,nstep_max,nsteps
   integer :: i,iorb,jorb,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii,count,istep,jproc
   integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
   real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
@@ -1619,8 +1619,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
 
   iorbgr = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='iorbgr')
 
-  !test array for data sending
-  ndatas = f_malloc0((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='ndatas')
 
 
   if (ngroup==2) then
@@ -1785,6 +1783,10 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
 
   itestproc=mpirank_null()-1! =no debug verbosity
 
+  !test array for data sending
+  ndatas = f_malloc0((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='ndatas')
+
+
   call initialize_work_arrays_sumrho(1,[lr],.true.,w)
   psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
 
@@ -1805,36 +1807,41 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
 
 
   call f_zero(dpsir)
+
+!!$  phi_i=local_data_init(orbs%norbp,lr%d%n1i*lr%d%n2i*lr%d%n3i)
+!!$  call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,1),1,orbs%norbp,orbs%norbp,&
+!!$       psir,dpsir)
+
   ncalls=0
   !real communication
   isnow=1
   isnow2=1
   nend=(nproc-1)/2+1
-  ncommsstep2=0
+  nres_comms=0
 
   do istep=0,nstep_max!nend
      irnow=3-isnow
-     ncommsstep=0
+     ndata_comms=0
      !sending receiving data
      do igroup=1,ngroupp
         dest=jprocsr(SEND_DATA,igroup,istep)
         if (dest /= mpirank_null()) then
            count=nvctr_par(iproc,igrpr(igroup))
-           ncommsstep=ncommsstep+1
+           ndata_comms=ndata_comms+1
            !send the fixed array to the processor which comes in the list
            ndatas(DATA_,dest,igrpr(igroup))=ndatas(DATA_,dest,igrpr(igroup))+nvctr_par(dest,igrpr(igroup))
            call mpisend(psir(1,iorbgr(LOCAL_,iproc,igrpr(igroup))),count,&
-                dest=dest,tag=iproc,comm=bigdft_mpi%mpi_comm,request=mpireq(ncommsstep),&
+                dest=dest,tag=iproc,comm=bigdft_mpi%mpi_comm,request=mpireq(ndata_comms),&
                 verbose= dest==itestproc)
         end if
 
         source=jprocsr(RECV_DATA,igroup,istep)
         if (source /= mpirank_null()) then
            count=nvctr_par(source,igrpr(igroup))
-           ncommsstep=ncommsstep+1
+           ndata_comms=ndata_comms+1
            ndatas(DATA_,iproc,igrpr(igroup))=ndatas(DATA_,iproc,igrpr(igroup))-count
            call mpirecv(psiw(1,1,igroup,irnow),count,&
-                source=source,tag=source,comm=bigdft_mpi%mpi_comm,request=mpireq(ncommsstep),verbose= source == itestproc)
+                source=source,tag=source,comm=bigdft_mpi%mpi_comm,request=mpireq(ndata_comms),verbose= source == itestproc)
         end if
      end do
 
@@ -1890,6 +1897,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
               !if (igrpr(igroup) == 2) jsorb=orbs%norbu+jsorb
            end if          
 
+
            phi_i=local_data_init(norbi,lr%d%n1i*lr%d%n2i*lr%d%n3i)
            call set_local_data(phi_i,isorb+iorbs-1,1,norbi,norbi,&
                 psir(1,iorbs),dpsir(1,iorbs))
@@ -1903,25 +1911,10 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
               phi_j=phi_i
            end if
 
-!!$           phi_i=local_data_init(orbs%norbp,lr%d%n1i*lr%d%n2i*lr%d%n3i)
-!!$           call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,1),ngroupp,&
-!!$                nvctr_par(iproc,igrpr(1))/(lr%d%n1i*lr%d%n2i*lr%d%n3i),nvctr_par(iproc,igrpr(1))/(lr%d%n1i*lr%d%n2i*lr%d%n3i),&
-!!$                psir,dpsir)
-!!$
-!!$           if (istep/=0) then
-!!$              phi_j=local_data_init(maxval(orbs%norb_par(:,0)),lr%d%n1i*lr%d%n2i*lr%d%n3i)
-!!$              call set_local_data(phi_j,iorbgr(GLOBAL_,jprocsr(2,igroup,istep-1),1),ngroupp,&
-!!$                   nvctr_par(istepsr(2,jproc-1,igroup),igrpr(1))/(lr%d%n1i*lr%d%n2i*lr%d%n3i),&
-!!$                   maxval(orbs%norb_par(:,0)),&
-!!$                   psiw(1,1,1,isnow),dpsiw(1,1,1,3))
-!!$           else
-!!$              phi_j=phi_i
-!!$           end if
-
            call internal_calculation_exctx(istep,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
                 jprocsr(SEND_RES,igroup,istep) /= mpirank_null(),norbi,norbj,&
-                ![(i,i=iorbs,iorbs+norbi-1)],[(i,i=jorbs,jorbs+norbj-1)],&
                 [(i,i=1,norbi)],[(i,i=1,norbj)],&
+                ![(i,i=iorbs,iorbs+norbi-1)],[(i,i=1,norbj)],&
                 phi_i,phi_j,eexctX,rp_ij)
            if (iproc == iprocref .and. verbose > 1 .and. igroup==1) then
               if (istep == 0) then
@@ -1940,9 +1933,9 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      end do loop_nocomm
 
 
-     if (ncommsstep2 > 0) then
+     if (nres_comms > 0) then
         !verify that the messages have been passed
-        call mpiwaitall(ncommsstep2,mpireq2)
+        call mpiwaitall(nres_comms,mpireq2)
         !copy the results which have been received (the messages sending are after)
         !this part is already done by the mpi_accumulate
         do igroup=1,ngroupp
@@ -1960,42 +1953,44 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
            end if
         end do
      end if
-     ncommsstep2=0
+     nres_comms=0
      !meanwhile, we can receive the result from the processor which has the psi 
 
      irnow2=3-isnow2
      do igroup=1,ngroupp
         dest=jprocsr(SEND_RES,igroup,istep)
         if (dest /= mpirank_null()) then
-           ncommsstep2=ncommsstep2+1
+           nres_comms=nres_comms+1
            call f_memcpy(n=nvctr_par(dest,igrpr(igroup)),src=dpsiw(1,1,igroup,3),&
                 dest=dpsiw(1,1,igroup,isnow2))
            call mpisend(dpsiw(1,1,igroup,isnow2),&
                 nvctr_par(dest,igrpr(igroup)),&
                 dest=dest,tag=iproc+nproc+2*nproc*istep,comm=bigdft_mpi%mpi_comm,&
-                request=mpireq2(ncommsstep2))
+                request=mpireq2(nres_comms))
            ndatas(RES_,dest,igrpr(igroup))=ndatas(RES_,dest,igrpr(igroup))+nvctr_par(dest,igrpr(igroup))
         end if
      end do
      do igroup=1,ngroupp
         source=jprocsr(RECV_RES,igroup,istep)
         if (source /= mpirank_null()) then
-           ncommsstep2=ncommsstep2+1
+           nres_comms=nres_comms+1
            call mpirecv(dpsiw(1,1,igroup,irnow2),&
                 nvctr_par(iproc,igrpr(igroup)),source=source,&
-                tag=source+nproc+2*nproc*istep,comm=bigdft_mpi%mpi_comm,request=mpireq2(ncommsstep2))
+                tag=source+nproc+2*nproc*istep,comm=bigdft_mpi%mpi_comm,request=mpireq2(nres_comms))
            ndatas(RES_,iproc,igrpr(igroup))=ndatas(RES_,iproc,igrpr(igroup))-nvctr_par(iproc,igrpr(igroup))
         end if
      end do
 
-     if (ncommsstep /=0) then
+     if (ndata_comms /=0) then
         !verify that the messages have been passed
-        call mpiwaitall(ncommsstep,mpireq)
+        call mpiwaitall(ndata_comms,mpireq)
      end if
      if (istep>1) isnow2=3-isnow2
      isnow=3-isnow
-     ncommsstep=0
+     ndata_comms=0
   end do
+
+
 
   !unitary tests of the calculation
   if (itestproc > -1) then
@@ -2014,6 +2009,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
         end if
      end do
   end if
+
+
 
   !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
