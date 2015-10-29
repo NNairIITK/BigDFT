@@ -1570,16 +1570,16 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_round'
   integer, parameter :: LOCAL_=2,GLOBAL_=1
+  integer, parameter :: SEND_DATA=1,RECV_DATA=2,SEND_RES=3,RECV_RES=4
   logical :: doit
-  integer :: ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
+  integer :: ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp,source,dest
   integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii
   integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
   real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
   integer, dimension(4) :: mpireq,mpireq2
-  integer, dimension(MPI_STATUS_SIZE,4) :: mpistat,mpistat2
   type(workarr_sumrho) :: w
   integer, dimension(:), allocatable :: igrpr,ndatac
-  integer, dimension(:,:), allocatable :: nvctr_par,igrprarr
+  integer, dimension(:,:), allocatable :: nvctr_par
   integer, dimension(:,:,:), allocatable :: jprocsr,iprocpm1,ndatas,iorbgr
   real(wp), dimension(:), allocatable :: rp_ij
   real(wp), dimension(:,:), allocatable :: psir
@@ -1670,7 +1670,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
 
   !determine the array of the groups which are of interest for this processor
   igrpr = f_malloc(ngroupp,id='igrpr')
-  igrprarr= f_malloc0((/ 1.to.ngroup, 0.to.nproc-1 /),id='igrprarr')
   iprocpm1 = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroupp /),id='iprocpm1')
 
   !test array for data calculation
@@ -1713,7 +1712,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      do igroup=1,ngroup
         if (nvctr_par(kproc,igroup) > 0) then
            icount=icount+1
-           igrprarr(igroup,kproc)=icount
         end if
      end do
      if (icount > icountmax) then
@@ -1725,8 +1723,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   !calculate the list of send-receive operations which have to be performed per group
   !allocate it at the maximum size needed
   jprocsr = f_malloc((/ 1.to.4, 0.to.nproc/2+1, 1.to.ngroupp /),id='jprocsr')
-  !initalise array to minus one
-  jprocsr=-1
+  !initalise array to rank_null
+  jprocsr=mpirank_null()
 
   ncalltot=0
   do igroup=1,ngroupp
@@ -1776,7 +1774,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      end if
   end do
 
-  itestproc=-1! -1=no debug verbosity
+  itestproc=mpirank_null()-1! =no debug verbosity
+
   if (itestproc > -1) then
      !simulation of communication
      isnow=1
@@ -1787,25 +1786,14 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
 
      do jproc=0,nend
         irnow=3-isnow
-        ncommsstep=0
         !sending receiving data
         do igroup=1,ngroupp
            if (jprocsr(1,jproc,igroup) /= -1) then
-              ncommsstep=ncommsstep+1
               !send the fixed array to the processor which comes in the list
-              if (jprocsr(1,jproc,igroup) == itestproc) then
-                 print *,'step',jproc+1,': sending',nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
-                      'elements from',iproc,'to',jprocsr(1,jproc,igroup)
-              end if
               ndatas(1,jprocsr(1,jproc,igroup),igrpr(igroup))=ndatas(1,jprocsr(1,jproc,igroup),igrpr(igroup))+&
                    nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup))
            end if
            if (jprocsr(2,jproc,igroup) /= -1) then
-              ncommsstep=ncommsstep+1
-              if (iproc == itestproc) then
-                 print *,'step',jproc+1,': receiving',nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
-                      'elements from',jprocsr(2,jproc,igroup),'to',iproc
-              end if
               ndatas(1,iproc,igrpr(igroup))=ndatas(1,iproc,igrpr(igroup))-&
                    nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup))
            end if
@@ -1832,11 +1820,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
         if (ncommsstep2 > 0) then
            do igroup=1,ngroupp
               if (jprocsr(4,jproc-1,igroup) /= -1) then
-                 if (iproc == itestproc) then
-                    print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                         ':copying',nvctr_par(jprocsr(4,jproc-1,igroup),igrpr(igroup)),&
-                         'elements from',jprocsr(4,jproc-1,igroup),'in',iproc
-                 end if
                  ndatac(igroup)=ndatac(igroup)+&
                       nvctr_par(jprocsr(4,jproc-1,igroup),igrpr(igroup)) 
               end if
@@ -1848,21 +1831,11 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
         do igroup=1,ngroupp
            if (jprocsr(3,jproc,igroup) /= -1) then
               ncommsstep2=ncommsstep2+1
-              if (jprocsr(3,jproc,igroup) == itestproc) then
-                 print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                      ': sending',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
-                      'elements from',iproc,'to',jprocsr(3,jproc,igroup)
-              end if
               ndatas(2,jprocsr(3,jproc,igroup),igrpr(igroup))=ndatas(2,jprocsr(3,jproc,igroup),igrpr(igroup))+&
                    nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup))
            end if
            if (jprocsr(4,jproc,igroup) /= -1) then
               ncommsstep2=ncommsstep2+1
-              if (iproc == itestproc) then
-                 print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                      ': receiving',nvctr_par(iproc,igrpr(igroup)),&
-                      'elements from',jprocsr(4,jproc,igroup),'to',iproc
-              end if
               ndatas(2,iproc,igrpr(igroup))=ndatas(2,iproc,igrpr(igroup))-&
                    nvctr_par(iproc,igrpr(igroup))
            end if
@@ -1920,36 +1893,40 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      ncommsstep=0
      !sending receiving data
      do igroup=1,ngroupp
-
-        if (jprocsr(1,jproc,igroup) /= -1) then
+        dest=jprocsr(SEND_DATA,jproc,igroup)
+        if (dest /= mpirank_null()) then
            ncommsstep=ncommsstep+1
-           if (iprocpm1(1,1,igroup) == itestproc) then
-              print *,'step',jproc+1,': sending',nvctr_par(iproc,igrpr(igroup)),&
-                   'elements from',iproc,'to',jprocsr(1,jproc,igroup)
-           end if
-           call MPI_ISEND(psir(1,iorbgr(LOCAL_,iproc,igrpr(igroup))),nvctr_par(iproc,igrpr(igroup)),&
-                mpidtypw,jprocsr(1,jproc,igroup),&
-                iproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+!!$           if (iprocpm1(1,1,igroup) == itestproc) then
+!!$              print *,'step',jproc+1,': sending',nvctr_par(iproc,igrpr(igroup)),&
+!!$                   'elements from',iproc,'to',jprocsr(1,jproc,igroup)
+!!$           end if
+!!$           call MPI_ISEND(psir(1,iorbgr(LOCAL_,iproc,igrpr(igroup))),nvctr_par(iproc,igrpr(igroup)),&
+!!$                mpidtypw,jprocsr(1,jproc,igroup),&
+!!$                iproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+           call mpisend(psir(1,iorbgr(LOCAL_,iproc,igrpr(igroup))),nvctr_par(iproc,igrpr(igroup)),&
+                dest=dest,tag=iproc,comm=bigdft_mpi%mpi_comm,request=mpireq(ncommsstep),&
+                verbose= dest==itestproc)
         end if
-        
-        if (jprocsr(2,jproc,igroup) /= -1) then
-           ncommsstep=ncommsstep+1
-           if (iproc == itestproc) then
-              print *,'step',jproc+1,': receiving',nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
-                   'elements from',jprocsr(2,jproc,igroup),'to',iproc
-           end if
 
-           call MPI_IRECV(psiw(1,1,igroup,irnow),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
-                   mpidtypw,jprocsr(2,jproc,igroup),&
-                   jprocsr(2,jproc,igroup),bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+        source=jprocsr(RECV_DATA,jproc,igroup)
+        if (source /= mpirank_null()) then
+           ncommsstep=ncommsstep+1
+!!$           if (iproc == itestproc) then
+!!$              print *,'step',jproc+1,': receiving',nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
+!!$                   'elements from',jprocsr(2,jproc,igroup),'to',iproc
+!!$           end if
+!!$           call MPI_IRECV(psiw(1,1,igroup,irnow),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
+!!$                   mpidtypw,jprocsr(2,jproc,igroup),&
+!!$                   jprocsr(2,jproc,igroup),bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+           call mpirecv(psiw(1,1,igroup,irnow),nvctr_par(source,igrpr(igroup)),&
+                source=source,tag=source,comm=bigdft_mpi%mpi_comm,request=mpireq(ncommsstep),verbose= source == itestproc)
         end if
      end do
 
      do igroup=1,ngroupp
-        if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
+        if (jproc /= 0 .and. jprocsr(SEND_RES,jproc,igroup) /= mpirank_null()) then
            !put to zero the sending element
            ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))
-           !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1),dpsiw(1,1,3,igroup))
            call f_zero(ii,dpsiw(1,1,igroup,3))
         end if
      end do
@@ -1958,7 +1935,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      loop_nocomm: do igroup=1,ngroupp
         if (jproc == 0) then
            doit=.true.
-        else if (jprocsr(2,jproc-1,igroup) /=-1) then
+        else if (jprocsr(RECV_DATA,jproc-1,igroup) /= mpirank_null()) then
            doit=.true.
         else
            doit=.false.
@@ -2018,10 +1995,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
 !!$              phi_j=phi_i
 !!$           end if
 
-
-
            call internal_calculation_exctx(jproc,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
-                jprocsr(3,jproc,igroup) /= -1,norbi,norbj,&
+                jprocsr(SEND_RES,jproc,igroup) /= mpirank_null(),norbi,norbj,&
                 ![(i,i=iorbs,iorbs+norbi-1)],[(i,i=jorbs,jorbs+norbj-1)],&
                 [(i,i=1,norbi)],[(i,i=1,norbj)],&
                 phi_i,phi_j,eexctX,rp_ij)
@@ -2139,15 +2114,17 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
 
      if (ncommsstep2 > 0) then
         !verify that the messages have been passed
-        call MPI_WAITALL(ncommsstep2,mpireq2,mpistat2,ierr)
+        !call MPI_WAITALL(ncommsstep2,mpireq2,mpistat2,ierr)
+        call mpiwaitall(ncommsstep2,mpireq2)
         !copy the results which have been received (the messages sending are after)
         !this part is already done by the mpi_accumulate
         do igroup=1,ngroupp
-           if (jprocsr(4,jproc-1,igroup) /= -1) then
+           source=jprocsr(RECV_RES,jproc-1,igroup)
+           if (source /= mpirank_null()) then
               if (iproc == itestproc) then
                  print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                      ':copying',nvctr_par(jprocsr(4,jproc-1,igroup),igrpr(igroup)),&
-                      'processed elements from',jprocsr(4,jproc-1,igroup),'in',iproc
+                      ':copying',nvctr_par(source,igrpr(igroup)),&
+                      'processed elements from',source,'in',iproc
               end if
               call axpy(nvctr_par(iproc,igrpr(igroup)),1.0_wp,dpsiw(1,1,igroup,irnow2),1,&
                    dpsir(1,iorbgr(LOCAL_,iproc,igrpr(igroup))),1)
@@ -2159,36 +2136,48 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
 
      irnow2=3-isnow2
      do igroup=1,ngroupp
-        if (jprocsr(3,jproc,igroup) /= -1) then
+        dest=jprocsr(SEND_RES,jproc,igroup)
+        if (dest /= mpirank_null()) then
            ncommsstep2=ncommsstep2+1
-           if (jprocsr(3,jproc,igroup) == itestproc) then
-              print *,'step',jproc+1,'group:',igrpr(igroup),&
-                   ': accum',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
-                   'elements from',iproc,'to',jprocsr(3,jproc,igroup)
-           end if
-           call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
-                dpsiw(1,1,igroup,3),1,dpsiw(1,1,igroup,isnow2),1)
-           call MPI_ISEND(dpsiw(1,1,igroup,isnow2),&
-                nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),mpidtypw,&
-                jprocsr(3,jproc,igroup),&
-                iproc+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
+!!$           if (jprocsr(3,jproc,igroup) == itestproc) then
+!!$              print *,'step',jproc+1,'group:',igrpr(igroup),&
+!!$                   ': accum',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
+!!$                   'elements from',iproc,'to',jprocsr(3,jproc,igroup)
+!!$           end if
+!!$           call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
+!!$                dpsiw(1,1,igroup,3),1,dpsiw(1,1,igroup,isnow2),1)
+!!$           call MPI_ISEND(dpsiw(1,1,igroup,isnow2),&
+!!$                nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),mpidtypw,&
+!!$                jprocsr(3,jproc,igroup),&
+!!$                iproc+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
+           call f_memcpy(n=nvctr_par(dest,igrpr(igroup)),src=dpsiw(1,1,igroup,3),&
+                dest=dpsiw(1,1,igroup,isnow2))
+           call mpisend(dpsiw(1,1,igroup,isnow2),&
+                nvctr_par(dest,igrpr(igroup)),&
+                dest=dest,tag=iproc+nproc+2*nproc*jproc,comm=bigdft_mpi%mpi_comm,&
+                request=mpireq2(ncommsstep2))
         end if
      end do
 
      do igroup=1,ngroupp
-        if (jprocsr(4,jproc,igroup) /= -1) then
+        source=jprocsr(RECV_RES,jproc,igroup)
+        if (source /= mpirank_null()) then
            ncommsstep2=ncommsstep2+1
-           call MPI_IRECV(dpsiw(1,1,igroup,irnow2),&
-                nvctr_par(iproc,igrpr(igroup)),mpidtypw,jprocsr(4,jproc,igroup),&
-                jprocsr(4,jproc,igroup)+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
+           call mpirecv(dpsiw(1,1,igroup,irnow2),&
+                nvctr_par(iproc,igrpr(igroup)),source=source,&
+                tag=source+nproc+2*nproc*jproc,comm=bigdft_mpi%mpi_comm,request=mpireq2(ncommsstep2))
+!!$           call MPI_IRECV(dpsiw(1,1,igroup,irnow2),&
+!!$                nvctr_par(iproc,igrpr(igroup)),mpidtypw,jprocsr(4,jproc,igroup),&
+!!$                jprocsr(4,jproc,igroup)+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
         end if
      end do
 
      if (ncommsstep /=0) then
         !verify that the messages have been passed
         !print *,'waiting,iproc',iproc
-        call MPI_WAITALL(ncommsstep,mpireq,mpistat,ierr)
-        if (ierr /=0) print *,'step,ierr',jproc+1,iproc,ierr,mpistat !,MPI_STATUSES_IGNORE
+        !call MPI_WAITALL(ncommsstep,mpireq,mpistat,ierr)
+        call mpiwaitall(ncommsstep,mpireq)
+        !if (ierr /=0) print *,'step,ierr',jproc+1,iproc,ierr,mpistat !,MPI_STATUSES_IGNORE
         !print *,'done,iproc',iproc
      end if
      if (jproc>1) isnow2=3-isnow2
@@ -2214,7 +2203,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   call f_free(dpsiw)
   call f_free(psir)
   call f_free(igrpr)
-  call f_free(igrprarr)
   call f_free(iprocpm1)
   call f_free(jprocsr)
   !call timing(iproc,'Exchangecorr  ','OF')
