@@ -1857,5 +1857,38 @@ extendedfrags_write:
  Force Norm (Hartree/Bohr): 2.4e-11
 
 Cavity_H2OfrigidPCG:
+ Atomic Forces (Ha/Bohr): 2.5e-8
+ Force Norm (Hartree/Bohr): 2.1e-8
+ maxval: 5.8e-8
+ fnrm2: 3.0e-8
+ Iteration quality: 2.0e-7
+ alpha: 8.0e-3
+ ratio: 2.1e-7
+ Energies: 4.e-10
+ Epot: 1.2e-7
+ EH: 1.2e-7
+ EKS: &energy 1.4e-9
+ Energy (Hartree): *energy 
+ Average noise forces: 6.01e-8
+ Integral of the density in the nonvacuum region: 3.3e-11
  Keys to ignore:
    - rmult
+
+Cavity_H2OfsccsPCG:
+ Atomic Forces (Ha/Bohr): 1.9e-10
+ Force Norm (Hartree/Bohr): 1.3e-10
+ Iteration quality: 9.0e-8
+ alpha: 6.2e-3
+ ratio: 1.5e-7
+ Epot: 6.2e-9
+ EH: 6.3e-9
+ EKS: 4.5e-11
+ Energy (Hartree): 4.5e-11
+ Energies: 5.1e-10
+ maxval: 1.81e-10
+ fnrm2: 1.1e-10
+ Integral of the density in the nonvacuum region: 3.6e-11
+ Total electronic charge: 2.1e-11
+ Average noise forces: 2.e-11
+ Keys to ignore:
+   - Electronic charge changed by rho compression
