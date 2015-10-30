@@ -115,6 +115,13 @@ else
 cp2k_ld =
 endif
 
+if USE_OCL
+OCL_CONV = interface_ocl.f90
+else
+OCL_CONV =
+endif
+
+
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
@@ -138,6 +145,7 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	tddft.f90 \
 	output.f90 \
+	$(OCL_CONV) \
 	external.f90 \
 	images.f90
 
