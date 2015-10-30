@@ -96,7 +96,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	multipole_base.f90 \
 	multipole.f90 \
 	orthonormalization.f90 \
-	bounds.f90 \
 	locregs_init.f90 \
 	sort.f90 \
 	forces_linear.f90 \
@@ -158,7 +157,6 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	FRAGMENT_BASE.@MODULE_EXT@ \
 	MULTIPOLE.@MODULE_EXT@ \
 	ORTHONORMALIZATION.@MODULE_EXT@ \
-	BOUNDS.@MODULE_EXT@ \
 	LOCREGS_INIT.@MODULE_EXT@ \
 	SORT.@MODULE_EXT@ \
 	FORCES_LINEAR.@MODULE_EXT@ \
@@ -221,7 +219,6 @@ modules = module_types.@MODULE_EXT@ \
 	fragment_base.@MODULE_EXT@ \
 	multipole.@MODULE_EXT@ \
 	orthonormalization.@MODULE_EXT@ \
-	bounds.@MODULE_EXT@ \
 	locregs_init.@MODULE_EXT@ \
 	forces_linear.@MODULE_EXT@ \
 	sort.@MODULE_EXT@ \
@@ -303,15 +300,14 @@ unitary_tests.o: types.o interfaces.o communications_init.o communications.o spa
 matrix_operations.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: types.o
 io.o: types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o matrix_operations.o
-postprocessing_linear.o: types.o interfaces.o bounds.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o sort.o communications_init.o locregs_init.o
+postprocessing_linear.o: types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o sort.o communications_init.o locregs_init.o
 foe.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 rhopotential.o: types.o interfaces.o xc.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o
 multipole.o: multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
 orbital_basis.o:  types.o communications_base.o interfaces.o
 orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
-bounds.o: types.o
-locregs_init.o: types.o communications.o bounds.o
+locregs_init.o: types.o communications.o
 forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o transposed_operations.o
 
 # Copy modules in a common include directory.

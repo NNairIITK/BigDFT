@@ -192,7 +192,7 @@ def compare_map(map, ref, tols, always_fails=False, keyword=[]):
                 docmiss_it.append(key)
                 #print "WARNING!!", key, "not found", ref[key]
                 #remarks += "KEY NOT FOUND: %s'%s' with value=%s\n" % (keyword,key,ref[key])
-                datatmp={key+'('+keyword+')':ref[key]}
+                datatmp={key: ref[key], "Path":keyword}
                 if "KEY NOT FOUND" in remarks:
                     remarks["KEY NOT FOUND"].append(datatmp)
                 else:
@@ -287,6 +287,8 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=[]):
             #        (keyword,str(scl), str(ref), str(diff), str(tols), str(biggest_tol))
             list_tmp={"Path": [keyword], "val":scl, "ref":ref, "diff": diff, "tols":tols,"bigtol":biggest_tol}
             item=keyword[-1]
+            if type(item) == type([]):
+                item=keyword[-2]
             if "FAILURE" not in remarks:
                 remarks["FAILURE"]={item: list_tmp}
             elif item not in remarks["FAILURE"]:

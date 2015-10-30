@@ -38,7 +38,8 @@ routines = $(CONV_SOURCES) \
 	potential.f90 \
 	locregs_basics.f90 \
 	precondLinear.f90 \
-	daubisf.f90
+	daubisf.f90 \
+	bounds.f90
 
 liborbitals_a_SOURCES = $(mod_src) $(routines)
 # convolut_ib_sse.c \ #to be verified, not working yet
@@ -51,6 +52,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	PUBLIC_KEYS.@MODULE_EXT@ \
 	PUBLIC_ENUMS.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
+	BOUNDS.@MODULE_EXT@ \
 	LOCREG_OPERATIONS.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@
 else
@@ -59,6 +61,7 @@ modules = module_base.@MODULE_EXT@ \
 	public_keys.@MODULE_EXT@ \
 	public_enums.@MODULE_EXT@ \
 	gaussians.@MODULE_EXT@ \
+	bounds.@MODULE_EXT@ \
 	locreg_operations.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@
 endif
@@ -78,6 +81,7 @@ endif
 #dependencies
 base.o: defs.o public_keys.o
 locregs.o: base.o
+bounds.o: locregs.o
 gaussians.o: base.o
 locreg_operations.o: locregs.o
 potential.o: locreg_operations.o
