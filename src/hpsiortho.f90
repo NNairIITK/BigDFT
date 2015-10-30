@@ -618,7 +618,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             end do
             call orbital_basis_release(psi_ob)
 
-            call exact_exchange_potential_round_clean(iproc,nproc,xc,orbs%nspin,Lzd%Glr,orbs,&
+            call exact_exchange_potential_round_clean(iproc,nproc,xc,orbs%nspin,&
+                 Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,orbs,&
                  !0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
                  pkernel,psir,pot(ispot),energs%eexctX)
             call f_free(psir)
