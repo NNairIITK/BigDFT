@@ -498,6 +498,7 @@ contains
       use dictionaries
       use yaml_output, only: yaml_warning, yaml_dict_dump
       use yaml_strings, only: f_strcpy, yaml_toa
+      use module_base, only: bigdft_mpi
       use dynamic_memory
       implicit none
       type(dictionary), pointer :: dict
@@ -545,7 +546,7 @@ contains
                atoms%aoig(it%iat)=aoig_set_from_dict(dict_tmp,nspin,atoms%aoig(it%iat))
                !check the total number of electrons
                elec=ao_ig_charge(nspin,atoms%aoig(it%iat)%aocc)
-               if (nint(elec) /= atoms%nelpsp(it%ityp)) then
+               if (nint(elec) /= atoms%nelpsp(it%ityp) .and. bigdft_mpi%iproc==0) then
                   call print_eleconf(nspin,atoms%aoig(it%iat)%aocc,atoms%aoig(it%iat)%nl_sc)
                   call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
                        ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(it%ityp))))

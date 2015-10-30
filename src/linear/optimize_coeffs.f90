@@ -149,7 +149,7 @@ subroutine optimize_coeffs(iproc, nproc, orbs, tmb, ldiis_coeff, fnrm, fnrm_crit
      end if
      fnrm=2.0_gp*tt
 
-     !scale the gradient (not sure if we always want this or just fragments/constrained!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!)
+     !scale the gradient - useful for fragments/constrained
      if (present(num_extra)) then
         call dscal(tmb%linmat%m%nfvctr*tmb%orbs%norbp,factor,grad,1)
      else

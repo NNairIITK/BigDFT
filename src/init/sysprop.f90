@@ -456,13 +456,21 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            !use onwhichatom to build the new inwhichlocreg (because the old inwhichlocreg can be ordered differently)
            ii = 0
            do iat=1, atoms%astruct%nat
-              do iorb=1,lorbs%norb
+              !only want to do this for spin=1!
+              do iorb=1,lorbs%norbu
                  if(iat ==  lorbs%onwhichatom(iorb)) then
                     ii = ii + 1
                     lorbs%inwhichlocreg(iorb)= ii
                  end if
               end do 
            end do
+
+           ! LR: not sure if this is the best way to do this but it seems to work...
+           ! Correction for spin polarized systems. For non polarized systems, norbu=norb and the loop does nothing.
+           do iorb=lorbs%norbu+1,lorbs%norb
+               lorbs%inwhichlocreg(iorb)=lorbs%inwhichlocreg(iorb-lorbs%norbu)+lorbs%norbu
+           end do
+
            !i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
            !deallocate(inwhichlocreg_old,stat=i_stat)
            !call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
