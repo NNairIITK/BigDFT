@@ -592,6 +592,7 @@ END SUBROUTINE finish_hamiltonian_OCL
 subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   use module_base
   use module_types
+  use locreg_operations, only: workarr_precond,allocate_work_arrays,deallocate_work_arrays
   implicit none
   type(orbitals_data), intent(in) :: orbs
   integer, intent(in) :: ncong

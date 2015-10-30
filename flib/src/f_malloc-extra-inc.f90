@@ -20,7 +20,7 @@
         m%rank=size(sizes)
      else if (m%rank/=size(sizes)) then
         call f_err_throw('sizes not conformal with lbounds'//&
-             ',array "'+m%array_id+'", routine "'+m%routine_id+'"',ERR_INVALID_MALLOC)
+             ',array "'//trim(m%array_id)//'", routine "'//trim(m%routine_id)//'"',ERR_INVALID_MALLOC)
         return
      end if
      m%shape(1:m%rank)=int(sizes,f_kind)
@@ -30,13 +30,13 @@
      if (present(ubounds)) then
         if (m%rank/=size(ubounds)) then
            call f_err_throw('sizes not conformal with ubounds'//&
-             ',array "'+m%array_id+'", routine "'+m%routine_id+'"',ERR_INVALID_MALLOC)
+             ',array "'//trim(m%array_id)//'", routine "'//trim(m%routine_id)//'"',ERR_INVALID_MALLOC)
            return
         end if
         do i=1,m%rank
            if (m%ubounds(i) /=int(ubounds(i),f_kind)) then
               call f_err_throw('ubounds not conformal with sizes and lbounds'//&
-                   ',array "'+m%array_id+'", routine "'+m%routine_id+'"',ERR_INVALID_MALLOC)
+              ',array "'//trim(m%array_id)//'", routine "'//trim(m%routine_id)//'"',ERR_INVALID_MALLOC)
               return
            end if
         end do
@@ -47,7 +47,7 @@
            m%rank=size(ubounds)
         else if (m%rank/=size(ubounds)) then
            call f_err_throw('ubounds not conformal with lbounds'//&
-                ',array "'+m%array_id+'", routine "'+m%routine_id+'"',ERR_INVALID_MALLOC)
+               ',array "'//trim(m%array_id)//'", routine "'//trim(m%routine_id)//'"',ERR_INVALID_MALLOC)
            return
         end if
         m%ubounds(1:m%rank)=int(ubounds,f_kind)
@@ -56,7 +56,7 @@
         end do
      else
         call f_err_throw('at least sizes or ubounds should be defined'//&
-             ',array "'+m%array_id+'", routine "'+m%routine_id+'"',ERR_INVALID_MALLOC)
+            ',array "'//trim(m%array_id)//'", routine "'//trim(m%routine_id)//'"',ERR_INVALID_MALLOC)
         return
      end if
   end if

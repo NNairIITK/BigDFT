@@ -1,17 +1,6 @@
 # Not To be installed:
 noinst_LIBRARIES = liborbitals.a
 
-# Source code.
-#if USE_CUDA_GPU
-#CUDA_CONV = convolut_common_interface_cuda.f90
-#else
-CUDA_CONV =
-#endif
-if USE_OCL
-OCL_CONV = convolut_common_interface_ocl.f90
-else
-OCL_CONV =
-endif
 if USE_OPTI_CONVOLUT
 CONV_SOURCES = combined_shrink_optim.f90 \
 	combined_grow_optim.f90 \
@@ -36,7 +25,7 @@ mod_src = defs.f90 base.f90 \
 	gaussians.f90 \
 	locreg_operations.f90
 
-routines = $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
+routines = $(CONV_SOURCES) \
 	growshrink.f90 \
 	growshrink_hyb_common.f90 \
 	conv_per_common.f90 \
