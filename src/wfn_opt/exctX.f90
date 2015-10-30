@@ -1558,10 +1558,9 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
   use locreg_operations
   use overlap_point_to_point
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin
+  integer, intent(in) :: iproc,nproc,nspin,ndim
   !real(gp), intent(in) :: hxh,hyh,hzh
   type(xc_info), intent(in) :: xc
-  type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
 !  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
   real(wp), dimension(ndim,orbs%norbp), intent(in) :: psir

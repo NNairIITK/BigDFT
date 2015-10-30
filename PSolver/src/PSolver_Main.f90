@@ -251,7 +251,7 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
         vextra_eff=>pot_ion_eff
      end if
   else
-     nullify(vextra_eff)
+     vextra_eff=>kernel%w%zf !hovever unused
   end if
 
   ehartreeLOC=0.0_gp
