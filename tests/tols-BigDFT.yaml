@@ -1804,7 +1804,7 @@ extendedfrags_nofrags:
 
 extendedfrags_read:
  Omega: 6.7e-11
- eF: 8.31e-10
+ eF: 1.4e-9
  charge diff: 2.3e-9
  Tr(K): 1.1e-8
  D eF: 1.1e-9
@@ -1821,16 +1821,18 @@ extendedfrags_read:
 
 extendedfrags_readrotated:
  Omega: 6.7e-11
- eF: 6.2e-10
- D eF: 1.1e-9
+ eF: 7.21e-10
+ D eF: 1.1e-8
  guess for new ef: 1.0e-9
- D Tr: 1.1e-10
+ D Tr: 1.1e-9
  ebs_check: 6.1e-11
  ebs: 6.1e-11
  charge diff: 2.0e-9
  Pressure: 4.6e-11
  Epot: 1.1e-10
+ EvXC: 1.01e-10
  Force Norm (Hartree/Bohr): 2.6e-11
+ fnrm2: 3.01e-11
 
 extendedfrags_write:
  Epot: 7.0e-10

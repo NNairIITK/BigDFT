@@ -2436,6 +2436,9 @@ contains
     ! Local variables
     integer :: ierr
 
+    !no wait if no requests
+    if (ncount==0) return
+
     if (present(array_of_statuses)) then
        call mpi_waitall(ncount, array_of_requests,array_of_statuses, ierr)
     else

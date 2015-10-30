@@ -1548,7 +1548,7 @@ END SUBROUTINE exact_exchange_potential_round
 !> Calculate the exact exchange potential on occupied orbitals
 !! within the symmetric round-robin scheme
 !! the psi is already given in the real-space form
-subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
+subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
      pkernel,psir,dpsir,eexctX)
   use module_base
   use module_types
@@ -1558,17 +1558,16 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   use locreg_operations
   use overlap_point_to_point
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin
+  integer, intent(in) :: iproc,nproc,nspin,ndim
   !real(gp), intent(in) :: hxh,hyh,hzh
   type(xc_info), intent(in) :: xc
-  type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
 !  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(in) :: psir
+  real(wp), dimension(ndim,orbs%norbp), intent(in) :: psir
     
   type(coulomb_operator), intent(inout) :: pkernel
   real(gp), intent(out) :: eexctX
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir
+  real(wp), dimension(ndim,orbs%norbp), intent(out) :: dpsir
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_round'
   integer, parameter :: LOCAL_=2,GLOBAL_=1
@@ -1632,7 +1631,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
            iorbgr(GLOBAL_,jproc,1)=0
            !iorbgr(GLOBAL_,jproc,2)=0
         end if
-        nvctr_par(jproc,1)=norbp*lr%d%n1i*lr%d%n2i*lr%d%n3i
+        nvctr_par(jproc,1)=norbp*ndim
         iorbgr(GLOBAL_,jproc,2)=isorb
         iorbgr(LOCAL_,jproc,2)=norbp+1
         norbp=max(isorb+orbs%norb_par(jproc,0)-max(orbs%norbu,isorb),0)
@@ -1640,7 +1639,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
            iorbgr(GLOBAL_,jproc,2)=0
            iorbgr(LOCAL_,jproc,2)=1
         end if
-        nvctr_par(jproc,2)=norbp*lr%d%n1i*lr%d%n2i*lr%d%n3i
+        nvctr_par(jproc,2)=norbp*ndim
         isorb=isorb+orbs%norb_par(jproc,0)
      end do
   else
@@ -1648,7 +1647,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      do jproc=0,nproc-1
         iorbgr(GLOBAL_,jproc,1)=isorb
         iorbgr(LOCAL_,jproc,1)=1
-        nvctr_par(jproc,1)=orbs%norb_par(jproc,0)*lr%d%n1i*lr%d%n2i*lr%d%n3i
+        nvctr_par(jproc,1)=orbs%norb_par(jproc,0)*ndim
         isorb=isorb+orbs%norb_par(jproc,0)
      end do
   end if
@@ -1732,8 +1731,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   ncalltot=0
   do igroup=1,ngroupp
      ncalltot=ncalltot+&
-          (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))*&
-          (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i)+1)/2
+          (nvctr_par(iproc,igrpr(igroup))/(ndim))*&
+          (nvctr_par(iproc,igrpr(igroup))/(ndim)+1)/2
      !calculate the number of processors per group
      nprocgr=0
      do jproc=0,nproc-1
@@ -1752,8 +1751,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
            jprocsr(RECV_DATA,igroup,istep)= iprocpm1(2,istep+1,igroup)
            if (iproc == iprocref .and. jprocsr(RECV_DATA,igroup,istep) /= mpirank_null()) then
               ncalltot=ncalltot+&
-                   (nvctr_par(jprocsr(RECV_DATA,igroup,istep),igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))*&
-                   (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))
+                   (nvctr_par(jprocsr(RECV_DATA,igroup,istep),igrpr(igroup))/(ndim))*&
+                   (nvctr_par(iproc,igrpr(igroup))/(ndim))
            end if
            if (istep > 0 .and. symmetric) then
               jprocsr(SEND_RES,igroup,istep)=iprocpm1(2,istep,igroup)
@@ -1768,8 +1767,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
            jprocsr(RECV_DATA,igroup,istep)= iprocpm1(2,istep+1,igroup)
            if (iproc == iprocref .and. jprocsr(RECV_DATA,igroup,istep) /= mpirank_null()) then
               ncalltot=ncalltot+&
-                   (nvctr_par(jprocsr(RECV_DATA,igroup,istep),igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))*&
-                   (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))
+                   (nvctr_par(jprocsr(RECV_DATA,igroup,istep),igrpr(igroup))/(ndim))*&
+                   (nvctr_par(iproc,igrpr(igroup))/(ndim))
            end if
            if (istep > 0 .and. symmetric) then
               jprocsr(SEND_RES,igroup,istep)=iprocpm1(2,istep,igroup)
@@ -1787,34 +1786,19 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   !test array for data sending
   ndatas = f_malloc0((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='ndatas')
 
-
-!!$  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
-!!$  psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
-!!$
-!!$  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))
-!!$
-!!$  !uncompress the wavefunction in the real grid
-!!$  do iorb=1,orbs%norbp
-!!$     !here ispinor is equal to one
-!!$     call daub_to_isf(lr,w,psi(1,1,iorb),psir(1,iorb))
-!!$  end do
-!!$
-!!$  call deallocate_work_arrays_sumrho(w)
-
-  psiw = f_malloc0([ lr%d%n1i*lr%d%n2i*lr%d%n3i, maxval(orbs%norb_par(:,0)), ngroupp,2],id='psiw')
-  dpsiw = f_malloc0([lr%d%n1i*lr%d%n2i*lr%d%n3i, maxval(orbs%norb_par(:,0)), ngroupp,3],id='dpsiw')
+  psiw = f_malloc0([ ndim, maxval(orbs%norb_par(:,0)), ngroupp,2],id='psiw')
+  dpsiw = f_malloc0([ndim, maxval(orbs%norb_par(:,0)), ngroupp,3],id='dpsiw')
   !partial densities and potentials
-  rp_ij = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='rp_ij')
+  rp_ij = f_malloc(ndim,id='rp_ij')
 
 
   call f_zero(dpsir)
 
   if (ngroupp>0) then
-     phi_i=local_data_init(orbs%norbp,lr%d%n1i*lr%d%n2i*lr%d%n3i)
+     phi_i=local_data_init(orbs%norbp,ndim)
      call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,igrpr(1)),1,orbs%norbp,orbs%norbp,&
           psir,dpsir)
   end if
-
 
   ncalls=0
   !real communication
@@ -1852,7 +1836,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      do igroup=1,ngroupp
         if (istep /= 0 .and. jprocsr(SEND_RES,igroup,istep) /= mpirank_null()) then
            !put to zero the sending element
-           ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))
+           ii=ndim*maxval(orbs%norb_par(:,0))
            call f_zero(ii,dpsiw(1,1,igroup,3))
         end if
      end do
@@ -1879,8 +1863,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
            !starting point of the loop
            !here there is the calculation routine
            !number of orbitals to be treated locally
-           norbi=nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i)
-           norbj=nvctr_par(source,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i)
+           norbi=nvctr_par(iproc,igrpr(igroup))/(ndim)
+           norbj=nvctr_par(source,igrpr(igroup))/(ndim)
 
            !calculating the starting orbitals locally
            iorbs=iorbgr(LOCAL_,iproc,igrpr(igroup))
@@ -1890,13 +1874,13 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
            isorb=iorbgr(GLOBAL_,iproc,igrpr(igroup))
            jsorb=iorbgr(GLOBAL_,source,igrpr(igroup))
 
-!!$           phi_i=local_data_init(norbi,lr%d%n1i*lr%d%n2i*lr%d%n3i)
+!!$           phi_i=local_data_init(norbi,ndim)
 !!$           call set_local_data(phi_i,isorb+iorbs-1,1,norbi,norbi,&
 !!$                psir(1,iorbs),dpsir(1,iorbs))
 
 
            if (istep/=0) then
-              phi_j=local_data_init(norbj,lr%d%n1i*lr%d%n2i*lr%d%n3i)
+              phi_j=local_data_init(norbj,ndim)
               call set_local_data(phi_j,jsorb+jorbs-1,1,&
                    norbj,norbj,&
                    psiw(1,1,igroup,isnow),dpsiw(1,1,igroup,3))
@@ -1973,10 +1957,9 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
         end if
      end do
 
-     if (ndata_comms /=0) then
-        !verify that the messages have been passed
-        call mpiwaitall(ndata_comms,mpireq)
-     end if
+     !verify that the messages have been passed
+     call mpiwaitall(ndata_comms,mpireq)
+
      if (istep>1) isnow2=3-isnow2
      isnow=3-isnow
      ndata_comms=0

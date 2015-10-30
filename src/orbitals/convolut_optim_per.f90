@@ -1346,7 +1346,7 @@ subroutine convolut_kinetic_per_T_1D(n1,n2,n3,hgrid,jdim,x,y)
   !ekin_array(ithread+1,1)=ekin1
   !ekin_array(ithread+1,2)=ekin2
   !ekin_array(ithread+1,3)=ekin3
-  !$omp critical 
+  !!$omp critical 
 
 !yk
 !!kstrten(1)=kstrten(1)+ekin1
@@ -1354,7 +1354,7 @@ subroutine convolut_kinetic_per_T_1D(n1,n2,n3,hgrid,jdim,x,y)
 !!kstrten(3)=kstrten(3)+ekin3
 
 !     ekin_out=ekin_out+ekin1+ekin2+ekin3
-  !$omp end critical
+  !!$omp end critical
   !$omp end parallel
 
 
