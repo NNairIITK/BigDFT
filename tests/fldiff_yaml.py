@@ -72,6 +72,13 @@ def combine_dicts(dest,src):
                 res[key]=val
     return res
 
+def suggestion_for_tolerances(remarks):
+    res={}
+    if "FAILURE" in remarks:
+        for key in remarks["FAILURE"]:
+            res[key]=remarks["FAILURE"][key]["diff"]
+    return res
+
 def compare(data, ref, tols=None, always_fails=False,keyword=[]):
     """Generic document comparison routine
        descend recursively in the dictionary until a scalar is found
@@ -568,7 +575,11 @@ for i in range(len(references)):
         else:
             labl=''
         #newreport.write(yaml.dump({"Remarks"+labl: remarks}, default_style="|", explicit_start=False))
-        newreport.write(yaml.dump({"Remarks"+labl: remarks},default_style=""))
+        newreport.write(yaml.dump({"Remarks"+labl: remarks}))
+        sugg=suggestion_for_tolerances(remarks)
+        if len(sugg) > 0:
+            newreport.write(yaml.dump({"Suggestion for tolerances (WARNING! Beware of too high values)": sugg},
+                                      default_flow_style=False,explicit_start=True))
         newreport.close()
         reports.write(open(options_remarks.input, "rb").read())
         highlight_iftty(options_remarks)

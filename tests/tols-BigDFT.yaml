@@ -55,6 +55,8 @@ Keys to ignore:
  - Output grid format # to be removed for updated references
  - Support Function Repartition
  - Iostat for format
+ - check_overlap
+ - check_sumrho
  #- number of tasks
  #- IDs
  #- start / end
@@ -1863,32 +1865,35 @@ Cavity_H2OfrigidPCG:
  fnrm2: 3.0e-8
  Iteration quality: 2.0e-7
  alpha: 8.0e-3
+ beta: 1.06e-6
  ratio: 2.1e-7
- Energies: 4.e-10
- Epot: 1.2e-7
- EH: 1.2e-7
- EKS: &energy 1.4e-9
+ Epot: 3.4e-7
+ EH: 3.6e-7
+ Energies: 5.1e-10
+ EKS: &energy 3.95e-9
+ Ekin: 1.31e-9
  Energy (Hartree): *energy 
  Average noise forces: 6.01e-8
- Integral of the density in the nonvacuum region: 3.3e-11
+ Integral of the density in the nonvacuum region: 3.6e-10
+ Total electronic charge: 2.01e-11
  Keys to ignore:
    - rmult
+   - Electronic charge changed by rho compression
 
 Cavity_H2OfsccsPCG:
- Atomic Forces (Ha/Bohr): 1.9e-10
- Force Norm (Hartree/Bohr): 1.3e-10
- Iteration quality: 9.0e-8
- alpha: 6.2e-3
- ratio: 1.5e-7
- Epot: 6.2e-9
- EH: 6.3e-9
- EKS: 4.5e-11
- Energy (Hartree): 4.5e-11
- Energies: 5.1e-10
- maxval: 1.81e-10
- fnrm2: 1.1e-10
- Integral of the density in the nonvacuum region: 3.6e-11
- Total electronic charge: 2.1e-11
- Average noise forces: 2.e-11
+ Atomic Forces (Ha/Bohr): 9.4e-10
+ Force Norm (Hartree/Bohr): 1.1e-9
+ Iteration quality: 6.8e-7
+ alpha: 1.71e-2
+ Epot: 4.8e-8
+ EH: 4.21e-8
+ EKS: 1.93e-10
+ Energy (Hartree): 6.17e-11
+ Energies: 4.01e-9
+ maxval: 1.61e-9
+ fnrm2: 9.2e-10
+ Integral of the density in the nonvacuum region: 2.6e-10
+ Total electronic charge: 1.7e-10
+ Average noise forces: 1.01e-9
  Keys to ignore:
    - Electronic charge changed by rho compression
