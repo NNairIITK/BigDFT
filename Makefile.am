@@ -34,8 +34,8 @@ endif
 #SUBDIRS += S_GPU
 #endif
 
-# BigDFT itself.
-SUBDIRS += src
+# BigDFT itself and structure prediction library.
+SUBDIRS += src spred
 
 # Additional tools around BigDFT.
 if BUILD_BINARIES_PSEUDO

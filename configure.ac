@@ -1180,11 +1180,14 @@ src/OpenCL/Makefile
 src/convolutions-c/Makefile
 src/bindings/Makefile
 src/geopt/Makefile
-src/art/Makefile
-src/mhgps_files/Makefile
-src/global_files/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
+spred/Makefile
+spred/src/Makefile
+spred/src/art/Makefile
+spred/src/mhgps_files/Makefile
+spred/src/global_files/Makefile
+spred/tests/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
 pseudo/Makefile
