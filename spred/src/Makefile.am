@@ -49,7 +49,7 @@ endif
 if BUILD_BINARIES
 binaries_sources = splsad NEB global globaltool mhgps mhgpstool
 scripts_sources = NEB_driver.sh
-EXTRA_PROGRAMS = bart NEB_images
+EXTRA_PROGRAMS = bart #NEB_images
 else
 binaries_sources =
 local_binaries =
@@ -114,8 +114,8 @@ install-data-hook:
 	  ln -fs $(spred_library) libspred-1.so ; \
 	fi
 
-NEB_images_SOURCES = BigDFT.f90
-NEB_images_LDADD = $(spred_library)
+#NEB_images_SOURCES = NEB_images.f90
+#NEB_images_LDADD = $(spred_library)
 
 splsad_SOURCES = splinedsaddle.f90
 splsad_LDADD = $(spred_library) @LINALG_LIBS@

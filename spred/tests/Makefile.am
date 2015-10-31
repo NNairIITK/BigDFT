@@ -20,7 +20,7 @@ MINHOP-test.post-in:
 # Additional NEB in.
 NEB-test.post-in:
 	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
-	if ! test -L NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/src/NEB_driver.sh ; fi
+	if ! test -L NEB_driver.sh ; then ln -fs $(abs_top_srcdir)/spred/src/NEB_driver.sh ; fi
 	rm -f neb.NEB.restart
 NEB-test.post-clean:
 	rm -f NEB_include.sh NEB_driver.sh
