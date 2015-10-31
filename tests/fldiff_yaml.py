@@ -578,7 +578,7 @@ for i in range(len(references)):
         newreport.write(yaml.dump({"Remarks"+labl: remarks}))
         sugg=suggestion_for_tolerances(remarks)
         if len(sugg) > 0:
-            newreport.write(yaml.dump({"Suggestion for tolerances (WARNING! Beware of too high values)": sugg},
+            newreport.write(yaml.dump({"Suggestion for tolerances (WARNING! Beware of too high values)": {args.label: sugg}},
                                       default_flow_style=False,explicit_start=True))
         newreport.close()
         reports.write(open(options_remarks.input, "rb").read())

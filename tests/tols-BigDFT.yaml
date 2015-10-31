@@ -1288,6 +1288,7 @@ O2spin_diag:
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
+ Force Norm (Hartree/Bohr): 1.23e-9
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 1.5e-8
@@ -1316,6 +1317,7 @@ O2spin_foe:
  relative diff: 3.6e-11
  fnrm2: 4.19e-8
  Energy (Hartree): 2.4e-10
+ Force Norm (Hartree/Bohr): 3.63e-11
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 1.5e-5
@@ -1342,6 +1344,7 @@ O2spin_dirmin:
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
  delta: 1.1e-10
  delta out: 1.1e-10
+ Force Norm (Hartree/Bohr): 1.22e-6
 
 verysparse:
  Total charge: 2.3e-8

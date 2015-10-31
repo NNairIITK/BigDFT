@@ -41,6 +41,31 @@ module overlap_point_to_point
       real(wp), dimension(:), pointer :: res !< array of local results
    end type local_data
 
+   !> type to control the communication scheduling
+   type, public :: OP2P_data
+      integer :: istep !<actual step of the communication
+      integer :: nstep !<maximum number of steps
+      integer :: irecv_data !<position of the recv data in the work array
+      integer :: isend_data !<position of the send data in the work array
+      integer :: irecv_res !<position of the recv result in the work array
+      integer :: isend_res !<position of the send result in the work array
+
+      integer :: ndata_comms !<number of communication performed in the loop for the data
+      integer :: nres_comms !<number of communication performed in the loop for the result
+      integer :: igroup !<present group
+      integer :: ngroupp !<number of groups treated by the present process
+      integer :: ndim !< size of the data per each object (can be generalized to an array)
+      integer :: OP2P_comm !<handle of the communicator
+      !> id of the group belonging to the local process
+      integer, dimension(:), pointer :: group_id
+      !>ranks of the processes interested to the communication in the given communicator
+      integer, dimension(:,:,:), pointer :: OP2P_ranks 
+      !>number of objects for each of the ranks and groups
+      integer, dimension(:,:), pointer :: nobj_par
+      !> id of the objects per rank and per group
+      integer, dimension(:,:,:), pointer :: objects_id
+   end type OP2P_data
+
    contains
 
      pure subroutine nullify_local_data(ld)

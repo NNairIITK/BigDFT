@@ -1878,7 +1878,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
 !!$           call set_local_data(phi_i,isorb+iorbs-1,1,norbi,norbi,&
 !!$                psir(1,iorbs),dpsir(1,iorbs))
 
-
            if (istep/=0) then
               phi_j=local_data_init(norbj,ndim)
               call set_local_data(phi_j,jsorb+jorbs-1,1,&
@@ -1889,6 +1888,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
               phi_j=phi_i
               jorbs_tmp=iorbs
            end if
+
            call internal_calculation_exctx(istep,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
                 jprocsr(SEND_RES,igroup,istep) /= mpirank_null(),norbi,norbj,iorbs,jorbs_tmp,&
                 phi_i,phi_j,eexctX,rp_ij)
@@ -1903,7 +1903,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
 
 !!$           call free_local_data(phi_i)
            if (istep/=0) call free_local_data(phi_j)
-
 
         end if
      end do loop_nocomm
@@ -1984,8 +1983,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
         end if
      end do
   end if
-
-
 
   !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
