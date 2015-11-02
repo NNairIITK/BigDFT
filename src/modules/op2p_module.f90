@@ -19,6 +19,7 @@ module overlap_point_to_point
    integer, parameter :: LOCAL_=2,GLOBAL_=1
    integer, parameter :: SEND_DATA=1,RECV_DATA=2,SEND_RES=3,RECV_RES=4
    integer, parameter :: DATA_=1,RES_=2
+   integer, parameter :: AFTER_=1,BEFORE_=2
 
    type(f_enumerator), parameter :: OP2P_START=f_enumerator('START',0,null())
    type(f_enumerator), parameter :: OP2P_CALCULATE=f_enumerator('CALCULATE',1,null())
@@ -79,6 +80,7 @@ module overlap_point_to_point
       integer :: ngroupp !<number of groups treated by the present process
       integer :: ndim !< size of the data per each object (can be generalized to an array)
       integer :: mpi_comm !<handle of the communicator
+      integer :: ncouples !<total number of couples considered
       !>stores the requests for the data
       integer, dimension(4) :: requests_data 
       !>stores the requests for the result
@@ -97,6 +99,10 @@ module overlap_point_to_point
       integer, dimension(:,:), pointer :: nobj_par
       !> id of the objects per rank and per group
       integer, dimension(:,:,:), pointer :: objects_id
+      !> work arrays for the communication of the data
+      real(wp), dimension(:,:,:,:), pointer :: dataw
+      !> work arrays for the communication of the results, in the symmatric case
+      real(wp), dimension(:,:,:,:), pointer :: resw
    end type OP2P_data
 
    contains
@@ -124,6 +130,38 @@ module overlap_point_to_point
        nullify(ld%data)
        nullify(ld%res)
      end subroutine nullify_local_data
+
+     !> type to control the communication scheduling
+     pure subroutine nullify_OP2P_data(OP2P)
+       type(OP2P_data), intent(out) :: OP2P
+        OP2P%simulate=.false.
+        OP2P%do_calculation=.false. !<tell is the calculation has to be done
+        OP2P%iproc_dump=mpirank_null()-1
+        OP2P%istep=0
+        OP2P%nstep=-1
+        OP2P%irecv_data=2
+        OP2P%isend_data=1
+        OP2P%irecv_res=2
+        OP2P%isend_res=1
+        OP2P%ndata_comms=0
+        OP2P%nres_comms=0
+        OP2P%igroup=0
+        OP2P%ngroup=-1
+        OP2P%ngroupp=-1
+        OP2P%ndim=0
+        OP2P%mpi_comm=mpicomm_null() !<handle of the communicator
+        OP2P%requests_data=mpirequest_null()
+        OP2P%requests_res=mpirequest_null()
+        !then nullifications
+        nullify(OP2P%ndatac)
+        nullify(OP2P%ndatas)
+        nullify(OP2P%group_id)
+        nullify(OP2P%ranks)
+        nullify(OP2P%nobj_par)
+        nullify(OP2P%objects_id)
+        nullify(OP2P%dataw)
+        nullify(OP2P%resw)
+      end subroutine nullify_OP2P_data
 
      pure function local_data_init(norb,ndim) result(ld)
        implicit none
@@ -196,12 +234,184 @@ module overlap_point_to_point
 
      end subroutine free_local_data
 
+     
+     subroutine initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+       implicit none
+       !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
+       logical, intent(in) :: symmetric
+       integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim
+       integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
+       type(OP2P_data), intent(out) :: OP2P
+
+       !local variables
+       integer :: igroup,icount,icountmax,iprocgrs,iprocgrr,jproc,igr,nobjp,nprocgr
+       integer :: istep,nsteps
+       integer, dimension(:,:,:), allocatable :: iprocpm1
+       
+
+       call nullify_OP2P_data(OP2P)
+      
+       OP2P%ngroup=ngroup
+       OP2P%ndim=ndim
+       OP2P%mpi_comm=mpi_comm
+
+       OP2P%nobj_par=f_malloc_ptr([0.to.nproc-1,1.to.ngroup],id='nobj_par')
+       call f_memcpy(src=nobj_par,dest=OP2P%nobj_par)      
+
+       !here we can allocate the working arrays giving the maximum
+       !between the components for each group
+       OP2P%ngroupp=0
+       do igroup=1,OP2P%ngroup
+          if (nobj_par(iproc,igroup) > 0) then
+             OP2P%ngroupp=OP2P%ngroupp+1
+          end if
+       end do
+
+       !determine the array of the groups which are of interest for this processor
+       OP2P%group_id = f_malloc_ptr(OP2P%ngroupp,id='group_id')
+       !determine for each processor the groups which has to be used
+       icount=0
+       do igroup=1,ngroup
+          if (OP2P%nobj_par(iproc,igroup) > 0) then
+             icount=icount+1
+             OP2P%group_id(icount)=igroup
+          end if
+       end do
+       
+       !find the processor whih has the maximum number of groups
+       icountmax=0
+       do jproc=0,nproc-1
+          icount=count(OP2P%nobj_par(jproc,:) > 0)
+          if (icount > icountmax) then
+             OP2P%iproc_dump=jproc
+             icountmax=icount
+          end if
+       end do
+
+       !decide the strategy for the communication
+       if (symmetric) then
+          OP2P%nstep=(nproc-1)/2+1!nproc/2+1
+       else
+          OP2P%nstep=nproc-1
+       end if
+
+       iprocpm1 = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.OP2P%ngroupp /),id='iprocpm1')
+       !calculate the processor which lies after and before the present in the list
+       iprocpm1=mpirank_null()
+
+       !test array for data calculation
+       OP2P%ndatac = f_malloc0_ptr(OP2P%ngroupp,id='ndatac')
+
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          iprocgrs=-1
+          iprocgrr=-1
+
+          !define the number of data to calculate in total
+          do jproc=0,nproc-1
+             OP2P%ndatac(igroup)=OP2P%ndatac(igroup)-OP2P%ndim*OP2P%nobj_par(jproc,igr)
+             if (OP2P%nobj_par(modulo(iproc+jproc,nproc),igr) > 0 .and. .true.) then
+                iprocgrs=iprocgrs+1
+                iprocpm1(AFTER_,iprocgrs,igroup)=modulo(iproc+jproc,nproc)
+             end if
+             if (OP2P%nobj_par(modulo(iproc-jproc,nproc),igr) > 0 .and. .true.) then
+                iprocgrr=iprocgrr+1
+                iprocpm1(BEFORE_,iprocgrr,igroup)=modulo(iproc-jproc,nproc)
+             end if
+          end do
+       end do
+
+       !calculate the list of send-receive operations which have to be performed per group
+       !allocate it at the maximum size needed
+       OP2P%ranks = f_malloc_ptr([1.to.4, 1.to.OP2P%ngroupp, 0.to.OP2P%nstep],id='ranks')
+       !initalise array to rank_null
+       OP2P%ranks=mpirank_null()
+
+       OP2P%ncouples=0
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          nobjp=OP2P%nobj_par(iproc,igr)
+          OP2P%ncouples=OP2P%ncouples+(nobjp*(nobjp+1))/2
+          !calculate the number of processors per group
+          nprocgr=count(OP2P%nobj_par(:,igr)>0)
+          !do not send anything if there is only one member
+          if (nprocgr > 1) then
+             if (symmetric) then
+                nsteps=(nprocgr-1)/2
+             else
+                nsteps=nprocgr-1
+             end if
+             do istep=0,nsteps-1
+                !define the arrays for send-receive of data
+                OP2P%ranks(SEND_DATA,igroup,istep)= iprocpm1(AFTER_,istep+1,igroup)
+                OP2P%ranks(RECV_DATA,igroup,istep)= iprocpm1(BEFORE_,istep+1,igroup)
+                if (iproc == OP2P%iproc_dump .and. OP2P%ranks(RECV_DATA,igroup,istep) /= mpirank_null()) then
+                   OP2P%ncouples=OP2P%ncouples+&
+                        OP2P%nobj_par(OP2P%ranks(RECV_DATA,igroup,istep),igr)*OP2P%nobj_par(iproc,igr)
+                end if
+                if (istep > 0 .and. symmetric) then
+                   OP2P%ranks(SEND_RES,igroup,istep)=iprocpm1(BEFORE_,istep,igroup)
+                   OP2P%ranks(RECV_RES,igroup,istep)=iprocpm1(AFTER_,istep,igroup)
+                end if
+             end do
+             !last case
+             istep=nsteps!(nprocgr-1)/2
+             !the last step behaves differently if the number of members is odd or even
+             if (modulo(nprocgr,2) == 0 .or. .not. symmetric) then
+                OP2P%ranks(SEND_DATA,igroup,istep)= iprocpm1(AFTER_,istep+1,igroup)
+                OP2P%ranks(RECV_DATA,igroup,istep)= iprocpm1(BEFORE_,istep+1,igroup)
+                if (iproc == OP2P%iproc_dump .and. OP2P%ranks(RECV_DATA,igroup,istep) /= mpirank_null()) then
+                   OP2P%ncouples=OP2P%ncouples+&
+                        OP2P%nobj_par(OP2P%ranks(RECV_DATA,igroup,istep),igr)*OP2P%nobj_par(iproc,igr)
+                end if
+                if (istep > 0 .and. symmetric) then
+                   OP2P%ranks(SEND_RES,igroup,istep)=iprocpm1(BEFORE_,istep,igroup)
+                   OP2P%ranks(RECV_RES,igroup,istep)=iprocpm1(AFTER_,istep,igroup)
+                end if
+             else
+                OP2P%ranks(SEND_RES,igroup,istep)=iprocpm1(BEFORE_,istep,igroup)
+                OP2P%ranks(RECV_RES,igroup,istep)=iprocpm1(AFTER_,istep,igroup)
+             end if
+          end if
+       end do
+       call f_free(iprocpm1)
+
+       !real communication
+       OP2P%iproc_dump=mpirank_null()-1! =no debug verbosity
+
+       OP2P%dataw= f_malloc0_ptr([OP2P%ndim, maxval(OP2P%nobj_par), OP2P%ngroupp,2],id='dataw')
+       if (symmetric) then
+          OP2P%resw = f_malloc0_ptr([OP2P%ndim, maxval(OP2P%nobj_par), OP2P%ngroupp,3],id='resw')
+       else
+          OP2P%resw = f_malloc0_ptr([1,1,1,1],id='resw') !just to avoid boundary problems
+       end if
+       !test array for data sending
+       OP2P%ndatas = f_malloc0_ptr([1.to.2, 0.to.nproc-1, 1.to.OP2P%ngroup],id='ndatas')
+
+     end subroutine initialize_OP2P_data
+
+     !> type to control the communication scheduling
+     subroutine free_OP2P_data(OP2P)
+       type(OP2P_data), intent(inout) :: OP2P
+       !then nullifications
+       call f_free_ptr(OP2P%ndatac)
+       call f_free_ptr(OP2P%ndatas)
+       call f_free_ptr(OP2P%group_id)
+       call f_free_ptr(OP2P%ranks)
+       call f_free_ptr(OP2P%nobj_par)
+       call f_free_ptr(OP2P%objects_id)
+       call f_free_ptr(OP2P%dataw)
+       call f_free_ptr(OP2P%resw)
+       call nullify_OP2P_data(OP2P)
+     end subroutine free_OP2P_data
+
+
      subroutine P2P_data(iproc,OP2P,norbp,norbp_max,psir,psiw)
        implicit none
        integer, intent(in) :: iproc,norbp,norbp_max
        type(OP2P_data), intent(inout) :: OP2P
        real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
-       real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup), intent(inout) :: psiw
+       real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,2), intent(inout) :: psiw
        !local variables
        integer :: igroup,dest,source,count,igr,iobj_local
 
@@ -230,7 +440,7 @@ module overlap_point_to_point
              OP2P%ndata_comms=OP2P%ndata_comms+1
              OP2P%ndatas(DATA_,iproc,igr)=&
                   OP2P%ndatas(DATA_,iproc,igr)-count
-             call mpirecv(psiw(1,1,igroup),count,&
+             call mpirecv(psiw(1,1,igroup,OP2P%irecv_data),count,&
                   source=source,tag=source,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose= source == OP2P%iproc_dump,simulate=OP2P%simulate)
@@ -375,7 +585,7 @@ module overlap_point_to_point
 
 
      subroutine OP2P_communication_step(iproc,OP2P,norbp,norbp_max,&
-          iter,phi_i,phi_j,psir,dpsir,psiw,dpsiw,event)
+          iter,phi_i,phi_j,psir,dpsir,event)
        implicit none
        integer, intent(in) :: iproc,norbp,norbp_max
        type(OP2P_data), intent(inout) :: OP2P
@@ -383,8 +593,6 @@ module overlap_point_to_point
        type(OP2P_iterator), intent(out) :: iter
        real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
        real(wp), dimension(OP2P%ndim,norbp), intent(inout) :: dpsir
-       real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,2), intent(inout) :: psiw
-       real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,3), intent(inout) :: dpsiw
        type(local_data), intent(inout) :: phi_i,phi_j
 
        !local variables
@@ -397,12 +605,12 @@ module overlap_point_to_point
              OP2P%irecv_data=3-OP2P%isend_data
              OP2P%ndata_comms=0
 
-             call P2P_data(iproc,OP2P,norbp,norbp_max,psir,psiw(1,1,1,OP2P%irecv_data))
+             call P2P_data(iproc,OP2P,norbp,norbp_max,psir,OP2P%dataw)
 
              do igroup=1,OP2P%ngroupp
                 if (OP2P%istep /= 0 .and. OP2P%ranks(SEND_RES,igroup,OP2P%istep) /= mpirank_null()) then
                    !put to zero the sending element
-                   call f_zero(OP2P%ndim*norbp_max,dpsiw(1,1,igroup,3))
+                   call f_zero(OP2P%ndim*norbp_max,OP2P%resw(1,1,igroup,3))
                 end if
              end do
 
@@ -411,7 +619,7 @@ module overlap_point_to_point
           end if
           group_loop: do
              if (.not. OP2P%do_calculation) then
-                call prepare_calculation(iproc,OP2P,norbp_max,psiw,dpsiw,phi_i,phi_j,iter)
+                call prepare_calculation(iproc,OP2P,norbp_max,OP2P%dataw,OP2P%resw,phi_i,phi_j,iter)
              end if
 
              if (OP2P%do_calculation .and. event==OP2P_START) then
@@ -428,7 +636,7 @@ module overlap_point_to_point
              if (OP2P%igroup > OP2P%ngroupp) exit group_loop
           end do group_loop
           !if we come here this section can be done nonetheless
-          call P2P_res(iproc,OP2P,norbp,norbp_max,dpsir,dpsiw)
+          call P2P_res(iproc,OP2P,norbp,norbp_max,dpsir,OP2P%resw)
 
           !verify that the messages have been passed
           call mpiwaitall(OP2P%ndata_comms,OP2P%requests_data)
@@ -443,6 +651,12 @@ module overlap_point_to_point
      end subroutine OP2P_communication_step
 
 !!$   !example of the usage of the loop
+!!$       if (ngroupp>0) then
+!!$          phi_i=local_data_init(orbs%norbp,ndim)
+!!$          call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,OP2P%group_id(1)),1,orbs%norbp,orbs%norbp,&
+!!$               psir,dpsir)
+!!$       end if
+!!$       ncalls=0
 !!$   OP2P_loop: do 
 !!$      call OP2P_communication_step(OP2P,iter,phi_i,phi_j,event)
 !!$      if (event == OP2P_EXIT) exit 
@@ -456,7 +670,7 @@ module overlap_point_to_point
 !!$         else
 !!$            ncalls=ncalls+(norbi-iorbs+1)*(norbj-jorbs+1)
 !!$         end if
-!!$         call yaml_comment('OP2P Simulation: '+nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp)**'(i3)'+'%')
+!!$         call yaml_comment('OP2P Simulation: '+nint(real(ncalls,gp)/real(OP2P%ncouples,gp)*100.0_gp)**'(i3)'+'%')
 !!$      end if
 !!$   end do OP2P_loop
 !!$

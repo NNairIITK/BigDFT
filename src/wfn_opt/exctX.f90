@@ -1651,6 +1651,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
   end if
 
 
+  !> initialization
+
   !here we can allocate the working arrays giving the maximum
   !between the components for each group
   ngroupp=0

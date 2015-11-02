@@ -493,6 +493,19 @@ contains
     iproc=MPI_PROC_NULL
   end function mpirank_null
 
+  pure function mpicomm_null() result(comm)
+    implicit none
+    integer :: comm
+    comm=MPI_PROC_NULL
+  end function mpicomm_null
+
+  pure function mpirequest_null() result(request)
+    implicit none
+    integer :: request
+    request=MPI_REQUEST_NULL
+  end function mpirequest_null
+
+
   subroutine mpigroup_free(grp)
     implicit none
     integer, intent(inout) :: grp
