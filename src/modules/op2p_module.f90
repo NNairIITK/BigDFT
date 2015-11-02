@@ -245,7 +245,7 @@ module overlap_point_to_point
 
        !local variables
        integer :: igroup,icount,icountmax,iprocgrs,iprocgrr,jproc,igr,nobjp,nprocgr
-       integer :: istep,nsteps
+       integer :: istep,nsteps,isobj,iobj_local
        integer, dimension(:,:,:), allocatable :: iprocpm1
        
 
@@ -265,6 +265,19 @@ module overlap_point_to_point
           if (nobj_par(iproc,igroup) > 0) then
              OP2P%ngroupp=OP2P%ngroupp+1
           end if
+       end do
+
+       OP2P%objects_id = f_malloc_ptr((/ 1.to.2, 0.to.nproc-1, 1.to.OP2P%ngroup /),id='objects_id')
+
+       isobj=0
+       do jproc=0,nproc-1
+          iobj_local=1
+          do igroup=1,OP2P%ngroup
+             OP2P%objects_id(GLOBAL_,jproc,igroup)=isobj+iobj_local-1
+             OP2P%objects_id(LOCAL_,jproc,igroup)=iobj_local
+             iobj_local=iobj_local+OP2P%nobj_par(jproc,igroup)
+          end do
+          isobj=isobj+iobj_local-1
        end do
 
        !determine the array of the groups which are of interest for this processor
@@ -648,32 +661,87 @@ module overlap_point_to_point
           if (OP2P%istep > OP2P%nstep) exit step_loop
        end do step_loop
        event=OP2P_EXIT
+       iter=OP2P_iter_null()
      end subroutine OP2P_communication_step
 
-!!$   !example of the usage of the loop
-!!$       if (ngroupp>0) then
-!!$          phi_i=local_data_init(orbs%norbp,ndim)
-!!$          call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,OP2P%group_id(1)),1,orbs%norbp,orbs%norbp,&
-!!$               psir,dpsir)
-!!$       end if
-!!$       ncalls=0
-!!$   OP2P_loop: do 
-!!$      call OP2P_communication_step(OP2P,iter,phi_i,phi_j,event)
-!!$      if (event == OP2P_EXIT) exit 
-!!$      !otherwise calculate
-!!$      call simulate_OP2P_calculation(iter%istep,iter%remote_result,&
-!!$           iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
-!!$           phi_i,phi_j,etot)
-!!$      if (iproc == iprocref .and. verbose > 1 .and. igroup==1) then
-!!$         if (OP2P%istep == 0) then
-!!$            ncalls=ncalls+((norbi-iorbs+1)*(norbj-jorbs+1+1))/2
-!!$         else
-!!$            ncalls=ncalls+(norbi-iorbs+1)*(norbj-jorbs+1)
-!!$         end if
-!!$         call yaml_comment('OP2P Simulation: '+nint(real(ncalls,gp)/real(OP2P%ncouples,gp)*100.0_gp)**'(i3)'+'%')
-!!$      end if
-!!$   end do OP2P_loop
-!!$
+     
+     subroutine OP2P_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+       implicit none
+       !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
+       logical, intent(in) :: symmetric
+       integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim
+       integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
+       !local variables
+       integer :: norbp,ncalls
+       real(wp) :: etot
+       type(OP2P_data) :: OP2P
+       type(OP2P_iterator) :: iter
+       type(local_data) :: phi_i,phi_j
+       type(f_enumerator) :: event
+       real(wp), dimension(:,:), allocatable :: data,res
+
+       norbp=sum(nobj_par(iproc,:))
+       !allocate and fill the data
+       data=f_malloc([ndim,norbp],id='data')
+       res=f_malloc([ndim,norbp],id='res')
+
+       !first initialize the OP2P data
+       call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+
+       !then create the local data object
+       if (OP2P%ngroupp>0) then
+          phi_i=local_data_init(norbp,ndim)
+          call set_local_data(phi_i,OP2P%objects_id(GLOBAL_,iproc,OP2P%group_id(1)),1,norbp,norbp,&
+               data,res)
+       end if
+       !example of the usage of the loop
+       event=OP2P_START
+       ncalls=0
+       etot=0.0_wp
+       OP2P_loop: do 
+          call OP2P_communication_step(iproc,OP2P,norbp,maxval(OP2P%nobj_par),&
+               iter,phi_i,phi_j,data,res,event)
+          if (event == OP2P_EXIT) exit 
+          !otherwise calculate
+          call simulate_OP2P_calculation(iter%istep,iter%remote_result,&
+               iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
+               phi_i,phi_j,etot)
+          if (iter%istep == 0) then
+             ncalls=ncalls+(iter%nloc_i*(iter%nloc_j+1))/2
+          else
+             ncalls=ncalls+iter%nloc_i*iter%nloc_j
+          end if
+          if (iproc==0) call yaml_comment('OP2P Simulation: '+nint(real(ncalls,gp)/real(OP2P%ncouples,gp)*100.0_gp)**'(i3)'+'%')
+       end do OP2P_loop
+
+       !free the loop variables
+       call free_OP2P_data(OP2P)
+       call free_local_data(phi_i)
+
+       !then check that the result coincide with the calculation
+
+       call f_free(data)
+       call f_free(res)
+     end subroutine OP2P_test
+
+     subroutine test_data(iproc,OP2P,norbp,data)
+       implicit none
+       integer, intent(in) :: norbp,iproc
+       type(OP2P_data), intent(in) :: OP2P
+       real(wp), dimension(OP2P%ndim,norbp), intent(out) :: data
+       !local variables
+       integer :: iobj,igroup,igr,iobj_loc,iobj_glob,i
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          do iobj=1,OP2P%nobj_par(iproc,igr)
+             iobj_glob=OP2P%objects_id(GLOBAL_,iproc,igr)+iobj
+             iobj_loc=OP2P%objects_id(LOCAL_,iproc,igr)+iobj
+             do i=1,OP2P%ndim
+                data(i,iobj_loc)=1.d0!test_value(i,iobj_glob,igr)
+             end do
+          end do
+       end do
+     end subroutine test_data
 
    subroutine simulate_OP2P_calculation(istep,remote_result,&
         nloc_i,nloc_j,isloc_i,isloc_j,&
