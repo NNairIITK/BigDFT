@@ -1619,8 +1619,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
 
   iorbgr = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='iorbgr')
 
-
-
   if (ngroup==2) then
      isorb=0
      do jproc=0,nproc-1
@@ -1668,7 +1666,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
 
   !test array for data calculation
   ndatac = f_malloc0(ngroupp,id='ndatac')
-
 
   !determine for each processor the groups which has to be used
   icount=0
@@ -1781,13 +1778,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
      end if
   end do
 
-  itestproc=mpirank_null()-1! =no debug verbosity
 
-  !test array for data sending
-  ndatas = f_malloc0((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='ndatas')
-
-  psiw = f_malloc0([ ndim, maxval(orbs%norb_par(:,0)), ngroupp,2],id='psiw')
-  dpsiw = f_malloc0([ndim, maxval(orbs%norb_par(:,0)), ngroupp,3],id='dpsiw')
   !partial densities and potentials
   rp_ij = f_malloc(ndim,id='rp_ij')
 
@@ -1802,10 +1793,19 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
 
   ncalls=0
   !real communication
+  itestproc=mpirank_null()-1! =no debug verbosity
+    
+  psiw = f_malloc0([ ndim, maxval(orbs%norb_par(:,0)), ngroupp,2],id='psiw')
+  dpsiw = f_malloc0([ndim, maxval(orbs%norb_par(:,0)), ngroupp,3],id='dpsiw')
+
+  !test array for data sending
+  ndatas = f_malloc0((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='ndatas')
+
   isnow=1
   isnow2=1
   nend=(nproc-1)/2+1
   nres_comms=0
+
 
   do istep=0,nstep_max!nend
      irnow=3-isnow
