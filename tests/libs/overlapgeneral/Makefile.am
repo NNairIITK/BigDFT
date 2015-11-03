@@ -1,5 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
+SHORT_CHECK = test-overlapgeneral.report.yaml
+LONG_CHECK = $(SHORT_CHECK)
+
+include $(srcdir)/../check.mk
+
 EXTRA_DIST = test-overlapgeneral.ref.yaml \
 	inputdata1.fake inputdata2.fake inputdata3.fake
 
@@ -26,8 +31,6 @@ driver_singlerun_LDADD = -lbigdft-1 @LINALG_LIBS@
 
 
 CLEANFILES = test-overlapgeneral.out.yaml test-overlapgeneral.report.yaml test-overlapgeneral.report
-
-check: test-overlapgeneral.report.yaml
 
 test-overlapgeneral.report.yaml: $(srcdir)/test-overlapgeneral.ref.yaml test-overlapgeneral.out.yaml
 	@export PYTHONPATH=${PYTHONPATH} ; \

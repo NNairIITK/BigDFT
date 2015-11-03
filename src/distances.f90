@@ -34,6 +34,8 @@ program MDanalysis
  ! Debug variables
  integer :: timecount, timeread_start, timeread_stop
 
+ call f_lib_initialize()
+
  call system_clock(count_rate = timecount)
 
  inquire(file='input',exist=exists)
@@ -269,6 +271,8 @@ program MDanalysis
 
  deallocate(iatype,pos)
 
+ call f_lib_finalize()
+
 contains
 
   !> calculate the smearing of the istogram
@@ -300,7 +304,6 @@ contains
 
   subroutine box_features(whichone,contcar,nrep,nat,ntypes,iatype,pos,factor)
     use BigDFT_API
-    use module_interfaces
     use m_ab6_symmetry
     use module_atoms, only: deallocate_atomic_structure,set_astruct_from_file
     implicit none
@@ -402,7 +405,6 @@ end program MDanalysis
 
 subroutine read_pos(iunit,whichone,nat,pos,nrep)
   use BigDFT_API
-  use module_interfaces
   use m_ab6_symmetry
   use module_atoms, only: deallocate_atomic_structure,set_astruct_from_file
   implicit none

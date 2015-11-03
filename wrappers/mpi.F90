@@ -15,12 +15,11 @@
 
 !> Module defining the routines which wrap the MPI calls
 module wrapper_MPI
-  ! TO BE REMOVED with f_malloc
-  !use memory_profiling!, only: ndebug
-  ! TO BE REMOVED with f_malloc
   use time_profiling, only: TIMING_UNINITIALIZED
   use yaml_strings, only: operator(//)
   use f_precisions
+  use f_refcnts
+  use dictionaries, only: f_err_throw
   implicit none
 
   ! MPI handling
@@ -45,6 +44,7 @@ module wrapper_MPI
   integer, public, save :: TCAT_ALLGATHER   =TIMING_UNINITIALIZED
   integer, public, save :: TCAT_GATHER      =TIMING_UNINITIALIZED
   integer, public, save :: TCAT_SCATTER     =TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_FENCE     =TIMING_UNINITIALIZED
   
   !error codes
   integer, public, save :: ERR_MPI_WRAPPERS
@@ -93,6 +93,11 @@ module wrapper_MPI
       module procedure mpiscatter_i1i1 
   end interface mpiscatter
 
+  interface mpiscatterv
+     module procedure mpiscatterv_d0
+     module procedure mpiscatterv_d2d3,mpiscatterv_d3d2
+  end interface mpiscatterv
+
   interface mpi_get_to_allgatherv
      module procedure mpi_get_to_allgatherv_double
   end interface mpi_get_to_allgatherv
@@ -101,6 +106,23 @@ module wrapper_MPI
     module procedure mpiget_d0
   end interface mpiget
 
+  interface mpisend
+     module procedure mpisend_d0
+  end interface mpisend
+
+  interface mpirecv
+     module procedure mpirecv_d0
+  end interface mpirecv
+
+  interface mpiput
+     module procedure mpiput_d0
+  end interface mpiput
+
+  interface mpiaccumulate
+     module procedure mpiaccumulate_d0
+  end interface mpiaccumulate
+
+  
   interface mpitypesize
     module procedure mpitypesize_d0, mpitypesize_d1, mpitypesize_i0, mpitypesize_l0
   end interface mpitypesize
@@ -126,12 +148,15 @@ module wrapper_MPI
       module procedure mpiialltoallv_double
   end interface mpiialltoallv
 
-  interface mpiaccumulate
-      module procedure mpiaccumulate_double
-  end interface mpiaccumulate
+!!$  interface mpiaccumulate
+!!$      module procedure mpiaccumulate_double
+!!$  end interface mpiaccumulate
 
   !> Global MPI communicator which contains all information related to the MPI process
   type, public :: mpi_environment
+     !>reference counter of the communicator.
+     !!used to understand whether the communicator has to be destroyed
+     type(f_reference_counter) :: refcnt
      integer :: mpi_comm !< MPI communicator
      integer :: iproc    !< Process Id
                          !! @ingroup RESERVED
@@ -142,7 +167,7 @@ module wrapper_MPI
   end type mpi_environment
 
   public :: mpi_environment_null
-  public :: mpi_environment_free
+  public :: release_mpi_environment
   public :: mpi_environment_set
   public :: mpi_environment_set1 !to be removed
 
@@ -156,40 +181,110 @@ module wrapper_MPI
      integer :: comm
   end type doc
 
-  private :: operator(//)
+  private :: operator(//),f_err_throw
 
 contains
   
-  pure function mpi_environment_null() result(mpi)
+  pure subroutine nullify_mpi_environment(mpi)
     implicit none
-    type(mpi_environment) :: mpi
+    type(mpi_environment), intent(out) :: mpi
+    call nullify_f_ref(mpi%refcnt)
     mpi%mpi_comm=MPI_COMM_NULL !better to put an invalid comm?
     mpi%igroup=-1
     mpi%ngroup=-1
     mpi%iproc=-1
     mpi%nproc=-1
+  end subroutine nullify_mpi_environment
+
+  pure function mpi_environment_null() result(mpi)
+    implicit none
+    type(mpi_environment) :: mpi
+    call nullify_mpi_environment(mpi)
   end function mpi_environment_null
 
-  subroutine mpi_environment_free(mpi_env)
-    use yaml_strings, only: yaml_toa
-    use dictionaries, only: f_err_throw
+  subroutine release_mpi_environment(mpi_env)
+    use yaml_strings!, only: yaml_toa,operator(//),f_string
+!    use dictionaries, only: f_err_throw
     implicit none
     type(mpi_environment), intent(inout) :: mpi_env
     !local variables
-    integer :: ierr
+    integer :: ierr,count
 
-    if (mpi_env%mpi_comm /= MPI_COMM_WORLD .and. &
-         mpi_env%mpi_comm /= MPI_COMM_NULL) then
-       call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
-       if (ierr /=0) then
-          call f_err_throw('Problem in MPI_COMM_FREE, ierr:'//&
-               yaml_toa(ierr),err_name='BIGDFT_MPI_ERROR')
-          return
+    !first check if we are in a nullified status. If so, do nothing
+    if (mpi_env%mpi_comm /= MPI_COMM_NULL .and. f_associated(mpi_env%refcnt)) then
+       call f_unref(mpi_env%refcnt,count=count)
+       !if the communicator is still active, just destroy the structure
+       if (count==0) then
+          call f_ref_free(mpi_env%refcnt)
+          !free the MPI communicator if it is not WORLD
+          !also there is no need to 
+          if (mpi_env%mpi_comm /= MPI_COMM_WORLD) then
+             call MPI_COMM_FREE(mpi_env%mpi_comm,ierr)
+             if (ierr /=0) then
+                call f_err_throw('Problem in MPI_COMM_FREE, ierr='//ierr,&
+                     err_name='BIGDFT_MPI_ERROR')
+                return
+             end if
+          end if
        end if
     end if
+    !in any case nullify the status of the mpi_env
     mpi_env=mpi_environment_null()
-  end subroutine mpi_environment_free
+  end subroutine release_mpi_environment
 
+  subroutine deepcopy_mpi_environment(dest,src)
+    implicit none
+    ! Calling arguments
+    type(mpi_environment),intent(in) :: src
+    type(mpi_environment),intent(out) :: dest
+    ! Local variables
+    integer :: ierr
+
+    dest=mpi_environment_null()
+ 
+    if (src%mpi_comm/=MPI_COMM_NULL) then
+       call mpi_comm_dup(src%mpi_comm, dest%mpi_comm, ierr)
+       if (ierr /=0) then
+          call f_err_throw('Problem in MPI_COMM_DUP, ierr='//ierr,&
+               err_name='BIGDFT_MPI_ERROR')
+          return
+       end if
+       dest%nproc=mpisize(dest%mpi_comm)
+       dest%iproc=mpirank(dest%mpi_comm)
+       !call mpi_comm_size(dest%mpi_comm, dest%nproc, ierr)
+       !LG: here there was a BIGGG mistake! (nproc instead of iproc)
+       !call mpi_comm_rank(dest%mpi_comm, dest%nproc, ierr)
+       dest%igroup = src%igroup
+       dest%ngroup = src%ngroup
+       !a new reference counter has to be activated, if the
+       !source has been 
+       dest%refcnt=f_ref_new('mpi_copied')
+    end if
+
+  end subroutine deepcopy_mpi_environment
+
+  !>shallow copy of the mpi_environment.
+  !! it has no effect if the src has a null communicator
+  subroutine copy_mpi_environment(dest,src)
+    implicit none
+    ! Calling arguments
+    type(mpi_environment),intent(in) :: src
+    type(mpi_environment),intent(out) :: dest
+
+    dest=mpi_environment_null()
+
+    if (src%mpi_comm/=MPI_COMM_NULL) then
+       !if meaningful copy the reference counter
+       if (f_associated(src%refcnt)) &
+            call f_ref_associate(src=src%refcnt,dest=dest%refcnt)
+       dest%nproc=src%nproc
+       dest%iproc=src%iproc
+       dest%igroup = src%igroup
+       dest%ngroup = src%ngroup
+       dest%mpi_comm=src%mpi_comm
+    end if
+
+  end subroutine copy_mpi_environment
 
   !> Set the MPI environment (i.e. taskgroup or MPI communicator)
   subroutine mpi_environment_set(mpi_env,iproc,nproc,mpi_comm,groupsize)
@@ -203,16 +298,14 @@ contains
     !!  if 0 one taskgroup (MPI_COMM_WORLD)   
     type(mpi_environment), intent(out) :: mpi_env  !< MPI environment (out)
     !local variables
-    integer :: j
+    integer :: j,base_grp
     integer, dimension(:), allocatable :: group_list
 
     call f_routine(id='mpi_environment_set')
     mpi_env=mpi_environment_null()
-!!$    mpi_env%igroup=0
-!!$    mpi_env%ngroup=1
-!!$    mpi_env%iproc=iproc
-!!$    mpi_env%nproc=nproc
     mpi_env%mpi_comm=mpi_comm
+    !these assignments would depend on the strategy adopted for 
+    !taskgroup creations
     mpi_env%igroup=iproc/groupsize
     mpi_env%ngroup=nproc/groupsize
     mpi_env%iproc=mod(iproc,groupsize)
@@ -224,13 +317,17 @@ contains
        do j=0,groupsize-1
           group_list(j+1)=mpi_env%igroup*groupsize+j
        enddo
-       call create_group_comm(mpi_comm,groupsize,group_list,mpi_env%mpi_comm)
+       base_grp=mpigroup(mpi_comm)
+       call mpi_env_create_group(iproc/groupsize,nproc/groupsize,mpi_comm,&
+            base_grp,groupsize,group_list,mpi_env)
+       call mpigroup_free(base_grp)
+       !call create_group_comm(mpi_comm,groupsize,group_list,mpi_env%mpi_comm)
        if (iproc == 0) then
           call yaml_map('Total No. of Taskgroups created',nproc/mpi_env%nproc)
        end if
        call f_free(group_list)
-    end if
 
+    end if
     call f_release_routine()
   end subroutine mpi_environment_set
 
@@ -315,9 +412,113 @@ contains
     !       call yaml_map('Total No. of Taskgroups created',ngroup)
     !    end if
     call f_free(group_list)
+    mpi_env%refcnt=f_ref_new('MPI_env1')
     call f_release_routine()
   end subroutine mpi_environment_set1
 
+  !> create a mpi_environment from a group list in a base group
+  subroutine mpi_env_create_group(igrp,ngrp,base_comm,base_grp,group_size,group_list,&
+       mpi_env)
+    implicit none
+    integer, intent(in) :: igrp,ngrp !<id and no of the groups
+    integer, intent(in) :: group_size,base_comm,base_grp
+    integer, dimension(group_size), intent(in) :: group_list
+    type(mpi_environment), intent(out) :: mpi_env
+    !local variables
+    integer :: grp,ierr
+
+    !create the groups with the list
+    grp=mpigroupincl(base_grp,group_size,group_list)
+    !create the communicator (the communicator can be also null)
+    call MPI_COMM_CREATE(base_comm,grp,mpi_env%mpi_comm,ierr)
+    if (ierr /= 0) call f_err_throw('Problem in comm_create, ierr:'//&
+         ierr,err_name='BIGDFT_MPI_ERROR')
+    !free temporary group
+    call mpigroup_free(grp)
+    !then fill iproc and nproc
+    if (mpi_env%mpi_comm /= MPI_COMM_NULL) then
+       mpi_env%iproc=mpirank(mpi_env%mpi_comm)
+       mpi_env%nproc=mpisize(mpi_env%mpi_comm) !this should be group_size
+       mpi_env%igroup=igrp
+       mpi_env%ngroup=ngrp
+       mpi_env%refcnt=f_ref_new('MPI_env_from_grp')        
+    end if
+  end subroutine mpi_env_create_group
+
+  !> function that returns the handle of the group of different
+  !! processes that will belong to a rma communication
+  function mpigroupincl(base_grp,group_size,group_list) result(grp)
+    implicit none
+    integer, intent(in) :: base_grp,group_size
+    !>ranks of the groups in the rma access pattern
+    integer, dimension(group_size), intent(in) :: group_list
+    integer :: grp
+    !local variables
+    integer :: ierr
+    !create the groups with the list
+    call MPI_GROUP_INCL(base_grp,group_size,group_list,grp,ierr)
+    if (ierr /= 0) call f_err_throw('Problem in group inclusion, ierr:'//&
+         ierr,err_name='BIGDFT_MPI_ERROR')
+  end function mpigroupincl
+
+  function mpigroup(comm)
+    implicit none
+    integer, intent(in), optional :: comm
+    integer :: mpigroup
+    !local variables
+    integer :: ierr,mpi_comm
+
+    if (present(comm)) then
+       mpi_comm=comm
+    else
+       mpi_comm=MPI_COMM_WORLD
+    end if
+    call MPI_COMM_GROUP(mpi_comm,mpigroup,ierr)
+    if (ierr /= 0) then
+       mpigroup=-1
+       call f_err_throw('Problem in group identification, ierr:'//&
+            ierr,err_name='BIGDFT_MPI_ERROR')
+    end if
+  end function mpigroup
+
+  pure function mpigroup_null() result(grp)
+    implicit none
+    integer :: grp
+    grp=MPI_GROUP_NULL
+  end function mpigroup_null
+
+  pure function mpirank_null() result(iproc)
+    implicit none
+    integer :: iproc
+    iproc=MPI_PROC_NULL
+  end function mpirank_null
+
+  pure function mpicomm_null() result(comm)
+    implicit none
+    integer :: comm
+    comm=MPI_PROC_NULL
+  end function mpicomm_null
+
+  pure function mpirequest_null() result(request)
+    implicit none
+    integer :: request
+    request=MPI_REQUEST_NULL
+  end function mpirequest_null
+
+
+  subroutine mpigroup_free(grp)
+    implicit none
+    integer, intent(inout) :: grp
+    !local variables
+    integer :: ierr
+    ierr=0
+    if (grp /= MPI_GROUP_NULL) call MPI_GROUP_FREE(grp,ierr)
+    if (ierr /= 0) then
+       call f_err_throw('Problem in group free, ierr:'//&
+            ierr,err_name='BIGDFT_MPI_ERROR')
+    end if
+    grp=MPI_GROUP_NULL
+  end subroutine mpigroup_free
 
   !> Create communicators associated to the groups of size group_size
   subroutine create_group_comm(base_comm,group_size,group_list,group_comm)
@@ -340,12 +541,6 @@ contains
        call check_ierr(ierr,'group inclusion')
        return
     end if
-    !free base group
-    call MPI_GROUP_FREE(base_grp,ierr)
-    if (ierr /= 0) then
-       call check_ierr(ierr,'base_group free')
-       return
-    end if
     !create the communicator (the communicator can be also null)
     call MPI_COMM_CREATE(base_comm,grp,group_comm,ierr)
     if (ierr /= 0) then
@@ -358,6 +553,14 @@ contains
        call check_ierr(ierr,'new_group free')
        return
     end if
+
+    !free base group
+    call MPI_GROUP_FREE(base_grp,ierr)
+    if (ierr /= 0) then
+       call check_ierr(ierr,'base_group free')
+       return
+    end if
+
 
   contains
 
@@ -566,6 +769,9 @@ contains
     call f_timing_category('Scatter',tgrp_mpi_name,&
          'Scatter operations, in general moderate size arrays',&
          TCAT_SCATTER)
+    call f_timing_category('Fence',tgrp_mpi_name,&
+         'Fence, waiting for a RMA operation to end',&
+         TCAT_FENCE)
 
     call f_err_define(err_name='ERR_MPI_WRAPPERS',err_msg='Error of MPI library',&
          err_id=ERR_MPI_WRAPPERS,&
@@ -1398,6 +1604,36 @@ contains
     include 'scatter-inc.f90'
   end subroutine mpiscatter_i1i1
 
+  subroutine mpiscatterv_d0(sendbuf, sendcounts, displs, recvbuf, recvcount, root, comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    real(f_double) :: sendbuf
+    real(f_double), intent(inout) :: recvbuf
+    include 'scatterv-decl-inc.f90'
+    include 'scatterv-inc.f90'
+  end subroutine mpiscatterv_d0
+
+  subroutine mpiscatterv_d2d3(sendbuf, sendcounts, displs, recvbuf, root, comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    real(f_double), dimension(:,:), intent(in) :: sendbuf
+    real(f_double), dimension(:,:,:), intent(out) :: recvbuf
+    include 'scatterv-decl-inc.f90'
+    recvcount=size(sendbuf)
+    include 'scatterv-inc.f90'
+  end subroutine mpiscatterv_d2d3
+
+  subroutine mpiscatterv_d3d2(sendbuf, sendcounts, displs, recvbuf, root, comm)
+    use dictionaries, only: f_err_throw
+    implicit none
+    real(f_double), dimension(:,:,:), intent(in) :: sendbuf
+    real(f_double), dimension(:,:), intent(out) :: recvbuf
+    include 'scatterv-decl-inc.f90'
+    recvcount=size(sendbuf)
+    include 'scatterv-inc.f90'
+  end subroutine mpiscatterv_d3d2
+
+  
   !> Detect the maximum difference between arrays all over a given communicator
   function mpimaxdiff_i0(n,array,root,source,comm,bcast) result(maxdiff)
     use dynamic_memory
@@ -1729,6 +1965,150 @@ contains
 
   end function mpiwindow_l0
 
+  !> create a peer_to_peer group, to use RMA calls instead of send-receive
+  function p2p_group(base_grp,p1,p2,p3) result(grp)
+    use yaml_strings, only: yaml_toa
+    implicit none
+    integer, intent(in) :: base_grp
+    integer, intent(in) :: p1,p2
+    integer, intent(in), optional :: p3
+    integer :: grp
+    !local variables
+    integer :: ierr,i,nlist
+    integer, dimension(3) :: list,ipiv,list2
+
+    if (present(p3)) then
+       list(1)=p1
+       list(2)=p2
+       list(3)=p3
+       call sort_positions(3,real(list,kind=8),ipiv)
+       nlist=3
+       do i=1,3
+          if (i > 1) then
+             if (list(ipiv(i))==list2(i-1)) then
+                nlist=nlist-1
+             else
+                list2(i)=list(ipiv(i))
+             end if
+          else
+             list2(i)=list(ipiv(i))
+          end if
+       end do
+       grp=mpigroupincl(base_grp,nlist,list2)
+    else
+       list(1)=min(p1,p2)
+       list(2)=max(p1,p2)
+       grp=mpigroupincl(base_grp,2,list)
+    end if
+    if (grp==MPI_GROUP_NULL) then
+       call f_err_throw('Error in the group creation for list='//trim(yaml_toa(list)),&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+  end function p2p_group
+
+
+  subroutine mpi_fence(window, assert)
+    use dictionaries, only: f_err_throw,f_err_define
+    ! Calling arguments
+    integer,intent(inout) :: window !<window to be synchronized
+    integer,intent(in),optional :: assert
+
+    ! Local variables
+    integer :: ierr, assert_, tcat
+
+    if (present(assert)) then
+       assert_ = assert
+    else
+       assert_ = 0
+    end if
+    tcat=TCAT_FENCE
+    ! Synchronize the communication
+    call f_timer_interrupt(tcat)
+    call mpi_win_fence(assert_, window, ierr)
+    call f_timer_resume()
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_win_fence',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+  end subroutine mpi_fence
+
+  subroutine mpiwinstart(grp,win,assert)
+    implicit none
+    integer, intent(in) :: grp
+    integer, intent(in) :: win
+    integer, intent(in), optional :: assert
+    !local variables
+    integer :: assert_,ierr
+    assert_=0
+    if (present(assert)) assert_=assert
+
+    if (grp==mpigroup_null()) then
+       call f_err_throw('Error in mpi_win_start, passed a null group',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    
+    call MPI_WIN_START(grp,assert_,win,ierr)
+    if (ierr /=0) then
+       call f_err_throw('Error in mpi_win_start',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+
+  end subroutine mpiwinstart
+
+  subroutine mpiwinpost(grp,win,assert)
+    implicit none
+    integer, intent(in) :: grp
+    integer, intent(in) :: win
+    integer, intent(in), optional :: assert
+    !local variables
+    integer :: assert_,ierr
+    assert_=0
+    if (present(assert)) assert_=assert
+    
+    if (grp==mpigroup_null()) then
+       call f_err_throw('Error in mpi_win_post, passed a null group',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+
+    call MPI_WIN_POST(grp,assert_,win,ierr)
+    if (ierr /=0) then
+       call f_err_throw('Error in mpi_win_post',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+
+  end subroutine mpiwinpost
+
+  subroutine mpiwincomplete(win)
+    implicit none
+    integer, intent(in) :: win
+    !local variables
+    integer :: ierr
+
+    call MPI_WIN_COMPLETE(win,ierr)
+    if (ierr /=0) then
+       call f_err_throw('Error in mpi_win_complete',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+    
+  end subroutine mpiwincomplete
+
+  subroutine mpiwinwait(win)
+    implicit none
+    integer, intent(in) :: win
+    !local variables
+    integer :: ierr
+
+    call MPI_WIN_WAIT(win,ierr)
+    if (ierr /=0) then
+       call f_err_throw('Error in mpi_win_wait',&
+            err_id=ERR_MPI_WRAPPERS)  
+    end if
+
+  end subroutine mpiwinwait
+
+
   subroutine mpi_fenceandfree(window, assert)
     use dictionaries, only: f_err_throw,f_err_define
     ! Calling arguments
@@ -1767,13 +2147,50 @@ contains
     ! Local variables
     integer :: ierr
 
-    call mpi_get(origin,count,mpitype(1.d0),target_rank, &
+    call mpi_get(origin,count,mpitype(origin),target_rank, &
          target_disp,count,mpitype(origin), window, ierr)
     if (ierr/=0) then
        call f_err_throw('Error in mpi_get',&
             err_id=ERR_MPI_WRAPPERS)
     end if
   end subroutine mpiget_d0
+
+  subroutine mpiput_d0(origin,count,target_rank,target_disp,window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    double precision,intent(inout) :: origin !<fake intent(in)
+    integer,intent(in) :: count, target_rank,window
+    integer(kind=mpi_address_kind),intent(in) :: target_disp
+
+    ! Local variables
+    integer :: ierr
+
+    call mpi_put(origin,count,mpitype(origin),target_rank, &
+         target_disp,count,mpitype(origin), window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_put',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+  end subroutine mpiput_d0
+
+  subroutine mpiaccumulate_d0(origin,count,target_rank,target_disp,op,window)
+    use dictionaries, only: f_err_throw,f_err_define
+    implicit none
+    double precision,intent(inout) :: origin !<fake intent(in)
+    integer,intent(in) :: count, target_rank,window,op
+    integer(kind=mpi_address_kind),intent(in) :: target_disp
+
+    ! Local variables
+    integer :: ierr
+
+    call mpi_accumulate(origin,count,mpitype(origin),target_rank, &
+         target_disp,count,mpitype(origin), op, window, ierr)
+    if (ierr/=0) then
+       call f_err_throw('Error in mpi_accumulate',&
+            err_id=ERR_MPI_WRAPPERS)
+    end if
+  end subroutine mpiaccumulate_d0
+
 
   subroutine mpi_get_to_allgatherv_double(sendbuf,sendcount,recvbuf,recvcounts,displs,comm,check_,window_)
     use dictionaries, only: f_err_throw,f_err_define
@@ -1825,31 +2242,31 @@ contains
   end subroutine mpi_get_to_allgatherv_double
 
 
-  subroutine mpiaccumulate_double(origin_addr, origin_count, target_rank, target_disp, target_count, op, wind)
-    use dictionaries, only: f_err_throw,f_err_define
-    use yaml_strings, only: yaml_toa
-    implicit none
-    double precision,intent(in) :: origin_addr
-    integer,intent(in) :: origin_count, target_rank, target_count, op
-    integer(kind=mpi_address_kind),intent(in) :: target_disp
-    integer,intent(inout) :: wind
-    !local variables
-    integer :: nproc,jproc,nrecvbuf,ierr
-    external :: getall
-    logical :: check
-    integer,target:: window
-
-
-    call mpi_accumulate(origin_addr, origin_count, mpitype(origin_addr), &
-         target_rank, target_disp, target_count, mpitype(origin_addr), op, wind, ierr)
-    if (ierr/=0) then
-       call f_err_throw('An error in calling to MPI_ACCUMULATE occured',&
-            err_id=ERR_MPI_WRAPPERS)
-       return
-    end if
-
-  end subroutine mpiaccumulate_double
-
+!!$  subroutine mpiaccumulate_double(origin_addr, origin_count, target_rank, target_disp, target_count, op, wind)
+!!$    use dictionaries, only: f_err_throw,f_err_define
+!!$    use yaml_strings, only: yaml_toa
+!!$    implicit none
+!!$    double precision,intent(in) :: origin_addr
+!!$    integer,intent(in) :: origin_count, target_rank, target_count, op
+!!$    integer(kind=mpi_address_kind),intent(in) :: target_disp
+!!$    integer,intent(inout) :: wind
+!!$    !local variables
+!!$    integer :: nproc,jproc,nrecvbuf,ierr
+!!$    external :: getall
+!!$    logical :: check
+!!$    integer,target:: window
+!!$
+!!$
+!!$    call mpi_accumulate(origin_addr, origin_count, mpitype(origin_addr), &
+!!$         target_rank, target_disp, target_count, mpitype(origin_addr), op, wind, ierr)
+!!$    if (ierr/=0) then
+!!$       call f_err_throw('An error in calling to MPI_ACCUMULATE occured',&
+!!$            err_id=ERR_MPI_WRAPPERS)
+!!$       return
+!!$    end if
+!!$
+!!$  end subroutine mpiaccumulate_double
+!!$
 
   subroutine mpiiallred_double(sendbuf, recvbuf, ncount, op, comm, request)
     use dictionaries, only: f_err_throw,f_err_define
@@ -1915,17 +2332,131 @@ contains
 
   end subroutine mpiialltoallv_double
 
+  subroutine mpisend_d0(buf,count,dest,tag,comm,request,simulate,verbose)
+    use yaml_output
+    implicit none
+    real(f_double) :: buf !fake intent(in)
+    integer, intent(in) :: count
+    integer, intent(in) :: dest
+    integer, intent(in), optional :: tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional :: request !<toggle the isend operation
+    logical, intent(in), optional :: simulate,verbose
+    !local variables
+    logical :: verb,sim
+    integer :: mpi_comm,ierr,tag_
+    
+    mpi_comm=MPI_COMM_WORLD
+    if (present(comm)) mpi_comm=comm
+    if (present(tag)) then
+       tag_=tag
+    else
+       tag_=mpirank(mpi_comm)
+    end if
 
-  subroutine mpiwaitall(ncount, array_of_requests)
+    verb=.false.
+    if (present(verbose)) verb=verbose .and. dest /=mpirank_null()
+    
+    if (verb) then
+       call yaml_mapping_open('MPI_(I)SEND')
+       call yaml_map('Elements',count)
+       call yaml_map('Source',mpirank(mpi_comm))
+       call yaml_map('Dest',dest)
+       call yaml_map('Tag',tag_)
+       call yaml_mapping_close()
+    end if
+
+    sim=.false.
+    if (present(simulate)) sim=simulate
+    if (sim) return
+
+    if (present(request)) then
+       call MPI_ISEND(buf,count,mpitype(buf),dest,tag,mpi_comm,request,ierr)
+    else
+       call MPI_SEND(buf,count,mpitype(buf),dest,tag,mpi_comm,ierr)
+    end if
+
+    if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)SEND occured',&
+            err_id=ERR_MPI_WRAPPERS)
+
+  end subroutine mpisend_d0
+
+  subroutine mpirecv_d0(buf,count,source,tag,comm,status,request,simulate,verbose)
+    use yaml_output
+    implicit none
+    real(f_double), intent(inout) :: buf !fake intent(out)
+    integer, intent(in) :: count
+    integer, intent(in), optional :: source
+    integer, intent(in), optional :: tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional :: request !<toggle the isend operation
+    integer, dimension(MPI_STATUS_SIZE), intent(out), optional :: status !<for the blocking operation
+    logical, intent(in), optional :: simulate,verbose
+    !local variables
+    logical :: verb,sim
+    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag
+
+    mpi_comm=MPI_COMM_WORLD
+    if (present(comm)) mpi_comm=comm
+    mpi_source=MPI_ANY_SOURCE
+    mpi_tag=MPI_ANY_TAG
+    if (present(source)) then
+       mpi_source=source
+       mpi_tag=source
+    end if
+    if (present(tag)) mpi_tag=tag
+    verb=.false.
+    if (present(verbose)) verb=verbose .and. source /= mpirank_null()
+    if (verb) call yaml_comment('Receiving'//count//'elements from'//source//'in'//mpirank(mpi_comm))
+
+    if (verb) then
+       call yaml_mapping_open('MPI_(I)RECV')
+       call yaml_map('Elements',count)
+       call yaml_map('Source',source)
+       call yaml_map('Dest',mpirank(mpi_comm))
+       call yaml_map('Tag',mpi_tag)
+       call yaml_mapping_close()
+    end if
+
+    sim=.false.
+    if (present(simulate)) sim=simulate
+    if (sim) return
+
+    if (present(request)) then
+       call MPI_IRECV(buf,count,mpitype(buf),mpi_source,mpi_tag,mpi_comm,request,ierr)
+    else
+       if (present(status)) then
+          call MPI_RECV(buf,count,mpitype(buf),mpi_source,mpi_tag,mpi_comm,status,ierr)
+       else
+          call MPI_RECV(buf,count,mpitype(buf),mpi_source,mpi_tag,mpi_comm,MPI_STATUS_IGNORE,ierr)
+       end if
+    end if
+
+    if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)RECV occured',&
+         err_id=ERR_MPI_WRAPPERS)
+
+  end subroutine mpirecv_d0
+
+  
+
+  subroutine mpiwaitall(ncount, array_of_requests,array_of_statuses)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
     ! Local variables
-    integer,intent(in) :: ncount
-    integer,dimension(ncount),intent(in) :: array_of_requests
+    integer, intent(in) :: ncount
+    integer, dimension(ncount),intent(in) :: array_of_requests
+    integer, dimension(MPI_STATUS_SIZE,ncount), intent(out), optional :: array_of_statuses
     ! Local variables
     integer :: ierr
 
-    call mpi_waitall(ncount, array_of_requests, MPI_STATUSES_IGNORE, ierr)
+    !no wait if no requests
+    if (ncount==0) return
+
+    if (present(array_of_statuses)) then
+       call mpi_waitall(ncount, array_of_requests,array_of_statuses, ierr)
+    else
+       call mpi_waitall(ncount, array_of_requests, MPI_STATUSES_IGNORE, ierr)
+    end if
     if (ierr/=0) then
        call f_err_throw('An error in calling to MPI_WAITALL occured',&
             err_id=ERR_MPI_WRAPPERS)

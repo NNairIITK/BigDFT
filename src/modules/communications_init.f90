@@ -379,7 +379,7 @@ module communications_init
           isize = isize + lzd%llr(ilr)%wfd%nvctr_c
           ii3s = lzd%llr(ilr)%ns3
           ii3e = ii3s + lzd%llr(ilr)%d%n3
-          !!write(*,'(a,6i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e', iproc, iorb, ii3s, ii3e, i3s, i3e
+          !write(*,'(a,12i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e, ilr, ns1, ns2, ns3, owa', iproc, iorb, ii3s, ii3e, i3s, i3e,ilr,lzd%nlr,lzd%llr(ilr)%ns1,lzd%llr(ilr)%ns2,lzd%llr(ilr)%ns3,orbs%onwhichatom(iorb)
           !if (ii3s+1>i3e .or. ii3e+1<i3s) cycle !+1 since ns3 starts at 0, but is3 at 1
 
           !n1p1=lzd%llr(ilr)%d%n1+1
@@ -546,9 +546,11 @@ module communications_init
                       ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
                       !write(*,'(a,9i9)') 'k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p', k, ks(k), ke(k), nlen(k), i3start, ii, ks(k), i3startend(3,jproc), n3p
                       if (nproc>1) then
-                          call mpiaccumulate(weightloc_c(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
-                               jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
-                               (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_c)
+                         call mpiaccumulate(origin=weightloc_c(0,0,ii), count=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                               target_rank=jproc,&
+                               target_disp=int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),&
+                               kind=mpi_address_kind), &
+                               op=MPI_SUM, window=window_c)
                       else
                           call axpy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), 1.d0, weightloc_c(0,0,ii), 1, &
                                weightppp_c(0,0,1+(ks(k)-i3startend(3,jproc))), 1)
@@ -798,9 +800,12 @@ module communications_init
                       ii=modulo(ks(k)-i3start-1,(lzd%glr%d%n3+1))+1
                       !write(*,'(a,7i9)') 'k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii', k, ks(k), ke(k), nlen(k), i3start, ks(k)-i3startend(3,jproc), ii
                       if (nproc>1) then
-                          call mpiaccumulate(weightloc_f(0,0,ii), (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
-                               jproc, int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),kind=mpi_address_kind), &
-                               (lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), mpi_sum, window_f)
+                          call mpiaccumulate(origin=weightloc_f(0,0,ii), &
+                               count=(lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), &
+                               target_rank=jproc,&
+                               target_disp=int((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*(ks(k)-i3startend(3,jproc)),&
+                               kind=mpi_address_kind), &
+                               op=mpi_sum, window=window_f)
                       else
                           call axpy((lzd%glr%d%n1+1)*(lzd%glr%d%n2+1)*nlen(k), 1.d0, weightloc_f(0,0,ii), 1, &
                                weightppp_f(0,0,1+(ks(k)-i3startend(3,jproc))), 1)
@@ -1039,7 +1044,7 @@ module communications_init
           !write(*,*) 'n3p, sum(weightppp_c(:,:,1:n3p))', n3p, sum(weightppp_c(:,:,1:n3p))
 
           tt = weight_prev
-          ! number of gris points handled by processes 0..iproc-1
+          ! number of grid points handled by processes 0..iproc-1
           iitot = sum(points_per_process(0:iproc-1)) !total number of grid points up to iproc-1
           !!write(*,'(a,i7,f14.1,2i9)') 'start: iproc, tt, iitot, jjproc', iproc, tt, iitot, jjproc
           !!write(*,'(a,i5,100f12.1)') 'iproc, weights_c_startend', iproc, weights_c_startend
@@ -2039,7 +2044,7 @@ module communications_init
           stop
       end if
       !write(*,'(a,2i10)') 'sum(nsendcounts_c), 7*sum(nsendcounts_f)', sum(nsendcounts_c), 7*sum(nsendcounts_f)
-      
+
       ! now nsenddspls
       nsenddspls_c(0)=0
       do jproc=1,nproc-1
@@ -4568,7 +4573,6 @@ module communications_init
     subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
       use module_base
       use module_types
-      use yaml_strings, only: yaml_toa
       implicit none
       integer, intent(in) :: iproc,nproc
       type(locreg_descriptors), intent(in) :: lr
@@ -4641,16 +4645,16 @@ module communications_init
     
       !create an array which indicate which processor has a GPU associated 
       !from the viewpoint of the BLAS routines (deprecated, not used anymore)
-      GPU_for_comp = f_malloc(0.to.nproc-1,id='GPU_for_comp')
-    
-      if (nproc > 1) then
-         call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
-              bigdft_mpi%mpi_comm,ierr)
-      else
-         GPU_for_comp(0)=GPUblas
-      end if
-    
-      call f_free(GPU_for_comp)
+!!$      GPU_for_comp = f_malloc(0.to.nproc-1,id='GPU_for_comp')
+!!$    
+!!$      if (nproc > 1) then
+!!$         call MPI_ALLGATHER(GPUblas,1,MPI_LOGICAL,GPU_for_comp(0),1,MPI_LOGICAL,&
+!!$              bigdft_mpi%mpi_comm,ierr)
+!!$      else
+!!$         GPU_for_comp(0)=GPUblas
+!!$      end if
+!!$    
+!!$      call f_free(GPU_for_comp)
     
       !old k-point repartition
     !!$  !decide the repartition for the components in the same way as the orbitals

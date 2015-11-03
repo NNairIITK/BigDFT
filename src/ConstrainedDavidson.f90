@@ -52,7 +52,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      hx,hy,hz,rxyz,rhopot,psi,v,dpcom,xc,GPU)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => constrained_davidson
+  use module_interfaces, only: free_full_potential, orthogonalize, write_eigen_objects
   use module_xc
   use yaml_output
   use communications, only: transpose_v, untranspose_v

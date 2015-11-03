@@ -2,6 +2,11 @@
 
 SUBDIRS = 
 
+SHORT_CHECK=
+LONG_CHECK=psp.report
+
+include $(srcdir)/../check.mk
+
 EXTRA_DIST = psp.out.ref
 
 check_PROGRAMS = check_psp
@@ -19,8 +24,6 @@ check_psp_SOURCES = check_psp.f90
 check_psp_LDADD = -lbigdft-1
 
 CLEANFILES = psp.out psp.report
-
-check: psp.report
 
 psp.report: $(srcdir)/psp.out.ref psp.out
 	python $(top_srcdir)/tests/fldiff.py $^ | tee $@

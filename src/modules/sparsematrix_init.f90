@@ -85,8 +85,8 @@ contains
     do ilr=1,lzd%nlr
        !write(*,*) 'lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locrad_kernel', lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locrad_kernel
        if (lzd%llr(ilr)%locrad_mult<lzd%llr(ilr)%locrad_kernel) then
-          call f_err_throw('locrad_mult ('//trim(yaml_toa(lzd%llr(ilr)%locrad_mult,fmt='(f5.2)'))//&
-               &') too small, must be at least as big as locrad_kernel('&
+          call f_err_throw('rloc_kernel_foe ('//trim(yaml_toa(lzd%llr(ilr)%locrad_mult,fmt='(f5.2)'))//&
+               &') too small, must be at least as big as rloc_kernel('&
                &//trim(yaml_toa(lzd%llr(ilr)%locrad_kernel,fmt='(f5.2)'))//')', err_id=BIGDFT_RUNTIME_ERROR)
        end if
     end do
@@ -1302,7 +1302,7 @@ contains
                on_which_atom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
                allocate_full, print_info)
       use yaml_output
-      use yaml_strings, only: yaml_toa
+!      use yaml_strings, only: yaml_toa
       implicit none
       
       ! Calling arguments
@@ -1400,7 +1400,7 @@ contains
           ntot = int(norbu,kind=8)*int(norbu,kind=8)
           call yaml_map('total elements',ntot)
           call yaml_map('non-zero elements',sparsemat%nvctr)
-          call yaml_comment('segments: '//yaml_toa(sparsemat%nseg))
+          call yaml_comment('segments: '//sparsemat%nseg)
           call yaml_map('sparsity in %',1.d2*real(ntot-int(sparsemat%nvctr,kind=8),kind=8)/real(ntot,kind=8),fmt='(f5.2)')
       end if
     
@@ -1873,7 +1873,7 @@ contains
           !do iseg=iseg_start,nseg
           !    write(*,'(a,4i8)') 'iseg, keyv, keyg', iseg, keyv(iseg), keyg(1,1,iseg), keyg(2,1,iseg)
           !end do
-          call f_err_throw('get_line_and_column failed to determine the indices, iel='//yaml_toa(iel), &
+          call f_err_throw('get_line_and_column failed to determine the indices, iel='//iel, &
               err_id=BIGDFT_RUNTIME_ERROR)
       end if
       
@@ -2085,6 +2085,7 @@ contains
 
     subroutine get_arrays_for_sequential_acces_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, ivectorindex)
       use locregs_init, only: distribute_on_threads
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -2316,6 +2317,7 @@ contains
     subroutine init_sequential_acces_matrix_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, &
                indices_extract_sequential)
       use locregs_init, only: distribute_on_threads
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -3163,7 +3165,8 @@ contains
           call mpiallred(tasks_per_taskgroup, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
       !if (iproc==0) write(*,'(a,i7,4x,1000i7)') 'iproc, tasks_per_taskgroup', iproc, tasks_per_taskgroup
-      call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
+      !call mpi_comm_group(bigdft_mpi%mpi_comm, group, ierr)
+      group=mpigroup(bigdft_mpi%mpi_comm)
 
       in_taskgroup = f_malloc0((/0.to.nproc-1,1.to.smat%ntaskgroup/),id='in_taskgroup')
       smat%tgranks = f_malloc_ptr((/0.to.maxval(tasks_per_taskgroup)-1,1.to.smat%ntaskgroup/),id='smat%tgranks')
@@ -3197,16 +3200,18 @@ contains
           end do
           ! Store the ID of the first task of each taskgroup
           !smat%isrank(itaskgroups) = smat%tgranks(1,itaskgroups)
-          if (ii/=tasks_per_taskgroup(itaskgroups)) stop 'ii/=tasks_per_taskgroup(itaskgroups)'
-          call mpi_group_incl(group, ii, smat%tgranks(0,itaskgroups), newgroup, ierr)
-          call mpi_comm_create(bigdft_mpi%mpi_comm, newgroup, smat%mpi_groups(itaskgroups)%mpi_comm, ierr)
-          if (smat%mpi_groups(itaskgroups)%mpi_comm/=MPI_COMM_NULL) then
-              call mpi_comm_size(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%nproc, ierr)
-              call mpi_comm_rank(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%iproc, ierr)
-          end if
-          smat%mpi_groups(itaskgroups)%igroup = itaskgroups
-          smat%mpi_groups(itaskgroups)%ngroup = smat%ntaskgroup
-          call mpi_group_free(newgroup, ierr)
+          if (ii/=tasks_per_taskgroup(itaskgroups)) stop 'ii/=tasks_per_taskgroup(itaskgroups)' !for debugging
+          call mpi_env_create_group(itaskgroups,smat%ntaskgroup,bigdft_mpi%mpi_comm,&
+               group,ii,smat%tgranks(:,itaskgroups),smat%mpi_groups(itaskgroups))
+!!$          call mpi_group_incl(group, ii, smat%tgranks(0,itaskgroups), newgroup, ierr)
+!!$          call mpi_comm_create(bigdft_mpi%mpi_comm, newgroup, smat%mpi_groups(itaskgroups)%mpi_comm, ierr)
+!!$          if (smat%mpi_groups(itaskgroups)%mpi_comm/=MPI_COMM_NULL) then
+!!$              call mpi_comm_size(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%nproc, ierr)
+!!$              call mpi_comm_rank(smat%mpi_groups(itaskgroups)%mpi_comm, smat%mpi_groups(itaskgroups)%iproc, ierr)
+!!$          end if
+!!$          smat%mpi_groups(itaskgroups)%igroup = itaskgroups
+!!$          smat%mpi_groups(itaskgroups)%ngroup = smat%ntaskgroup
+!!$          call mpi_group_free(newgroup, ierr)
       end do
       call mpi_group_free(group, ierr)
 
@@ -4273,7 +4278,7 @@ contains
       integer,dimension(ncol),intent(in) :: col_ptr
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(nnonzero),intent(in) :: val
-      type(matrices),intent(out) :: mat
+      type(matrices),intent(inout) :: mat
 
       ! Local variables
       integer :: icol, irow, i, ii
@@ -4383,17 +4388,14 @@ contains
 
     subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
           use module_types
-          use locregs, only: check_overlap_cubic_periodic
-          use locregs_init, only: check_overlap_from_descriptors_periodic
+          use locregs, only: check_overlap_cubic_periodic,check_overlap_from_descriptors_periodic
           implicit none
-        
           ! Calling arguments
           integer, intent(in) :: iproc, nproc
           type(orbitals_data), intent(in) :: orbs
           type(local_zone_descriptors), intent(in) :: lzd
           integer, intent(out) :: nnonzero
           integer, dimension(:,:), pointer,intent(out) :: nonzero
-        
           ! Local variables
           integer :: iorb, jorb, ioverlaporb, ilr, jlr, ilrold
           integer :: iiorb, ii

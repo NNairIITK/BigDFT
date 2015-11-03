@@ -119,7 +119,7 @@ module multipole
     !> Calculate the external potential arising from the multipoles of the charge density
     subroutine potential_from_charge_multipoles(iproc, nproc, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
       use module_types, only: DFT_local_fields
-      use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+      use Poisson_Solver, except_dp => dp, except_gp => gp
       use yaml_output
       implicit none
       
@@ -169,7 +169,7 @@ module multipole
       !$omp parallel default(none) &
       !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, ep, sigma) &
       !$omp shared(gaussians1, gaussians2, gaussians3) &
-      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l)
+      !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l,impl)
       !$omp do
       do i3=is3,ie3
           ii3 = i3 - 15
@@ -294,6 +294,11 @@ module multipole
       if (ithread<0 .or. ithread>nthread-1) then
           !SM: Is it possible to call f_err_throw within OpenMP? Anyway this condition should never be true...
           call f_err_throw('wrong value of ithread',err_name='BIGDFT_RUNTIME_ERROR')
+          !LG: yes it is possible but not advised to, as running conditions might arise. we will not be sure of
+          !! the actual status of the shared variable on exit as some threads might not have called the error
+          !! or even the routine has been called more than once by different threads. 
+          !! it is better to raise exceptions outside OMP parallel regions. BTW, by construction this error can never happen
+          !! unless the OMP implementation is buggy.
       end if
       !$omp do
       do impl=1,ep%nmpl
@@ -392,13 +397,15 @@ module multipole
       !$omp end do
       !$omp end parallel
 
-      do ithread=0,nthread-1
-          ! Gather the total density
-          call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_loc(is1,is2,is3,ithread), 1, density(is1,is2,is3), 1)
-          ! Gather the total potential, store it directly in pot
-          call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, potential_loc(is1,is2,is3,ithread), 1, pot(is1,is2,is3), 1)
-      end do
-
+      if ((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1) > 0) then
+         do ithread=0,nthread-1
+            ! Gather the total density
+            call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, density_loc(is1,is2,is3,ithread), 1, density(is1,is2,is3), 1)
+            ! Gather the total potential, store it directly in pot
+            call axpy((ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1), 1.0_gp, potential_loc(is1,is2,is3,ithread), 1, pot(is1,is2,is3), 1)
+         end do
+      end if
+         
       call f_free(density_loc)
       call f_free(potential_loc)
       call f_free(gaussians1)
@@ -505,11 +512,29 @@ module multipole
 
       if (ep%nmpl > 0) then
          call H_potential('D',denspot%pkernel,density,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
-              quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
+              quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
          !write(*,*) 'ehart_ps',ehart_ps
          !LG: attention to stack overflow here !
          !pot = pot + density
          call daxpy(size(density),1.0_gp,density,1,pot,1)
+!!$
+!!$         !what if this API for axpy? Maybe complicated to understand
+!!$         pot = f_axpy(1.d0,density)
+!!$         !otherwise this is more explicit, but more verbose
+!!$         call f_axpy(a=1.d0,x=density,y=pot)
+!!$         !or this one, for a coefficient of 1
+!!$         pot = .plus_equal. density
+!!$         !maybe this is the better solution?
+!!$         pot = pot .plus. density
+!!$         !as it might be generalized for multiplications and gemms
+!!$         pot= pot .plus. (1.d0 .times. density)
+!!$         !for two matrices in the gemm API
+!!$         C = alpha .times. (A .times. B) .plus. (beta .times. C)
+!!$         !which might be shortcut as
+!!$         C = alpha .t. (A .t. B) .p. (beta .t. C)
+!!$         ! and for transposition
+!!$         C = alpha .t. (A**'t' .t. B) .p. (beta .t. C)
+
       end if
 
       call f_free(norm)
@@ -800,11 +825,11 @@ module multipole
                ovrlp, kernel, meth_overlap)
       use module_base
       use module_types
-      use module_interfaces
       use sparsematrix_base, only: sparsematrix_malloc0, SPARSE_FULL, assignment(=)
       use sparsematrix_init, only: matrixindex_in_compressed
       use orthonormalization, only: orthonormalizeLocalized
       use yaml_output
+      use locreg_operations
       implicit none
 
       ! Calling arguments
@@ -882,7 +907,7 @@ module multipole
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
           call daub_to_isf(lzd%Llr(ilr), w, phi_ortho(ist), psir(istr))
           call deallocate_work_arrays_sumrho(w)
           !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
@@ -1598,7 +1623,7 @@ module multipole
                n1i, n2i, n3i, nsi1, nsi2, nsi3, locrad, hgrids, locregcenter, &
                nr, psir1_get, psir2_get, &
                nvctr, matrix_compr, multipoles, rmax, get_index, smatl, matrixindex)
-      use module_types, only: workarr_sumrho
+      use locreg_operations, only: workarr_sumrho      
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: matrixindex_in_compressed
       use yaml_output

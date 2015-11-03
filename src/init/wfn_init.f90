@@ -18,8 +18,7 @@ subroutine Gaussian_DiagHam(iproc,nproc,natsc,nspin,orbs,G,mpirequests,&
       &   psigau,hpsigau,orbse,etol,norbsc_arr)
    use module_base
    use module_types
-   use module_interfaces
-  use yaml_output
+   use yaml_output
    implicit none
    integer, intent(in) :: iproc,nproc,natsc,nspin
    real(gp), intent(in) :: etol
@@ -206,7 +205,7 @@ subroutine LDiagHam(iproc,nproc,natsc,nspin,orbs,Lzd,Lzde,comms,&
      orbse,commse,etol,norbsc_arr) !optional
   use module_base
   use module_types
-  use module_interfaces, except_this_one => LDiagHam
+  use module_interfaces, only: orthogonalize, write_eigenvalues_data
   use yaml_output
   use communications_base, only: comms_cubic
   use communications, only: transpose_v, untranspose_v, toglobal_and_transpose
@@ -1038,7 +1037,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
    complex(kind=8):: zdotc, zz
   integer :: stat(mpi_status_size)
   character(len=*),parameter :: subname='inputguessParallel'
-
+  type(mpi_environment) :: fake_mpi_env,fake_mpi_envu,fake_mpi_envd
    ! Start the timing for the input guess.
    call timing(iproc, 'Input_comput', 'ON')
 
@@ -1300,6 +1299,7 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
       if(ispin==2 .and. .not.simul) then
          call f_free(newID)
       end if
+      wholeGroup=mpigroup(bigdft_mpi%mpi_comm)
       if(.not.simul) then
          newID = f_malloc(0.to.nprocSub-1,id='newID')
          ! Assign the IDs of the active processes to newID.
@@ -1307,9 +1307,14 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
             newID(iorb)=iorb
          end do
          ! Create the new communicator newComm.
-         call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
-         call mpi_group_incl(wholeGroup, nprocSub, newID, newGroup, ierr)
-         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroup, newComm, ierr)
+         !call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
+         call mpi_env_create_group(0,1,bigdft_mpi%mpi_comm,&
+            wholeGroup,nprocSub,newID,fake_mpi_env)
+!!$         call mpi_group_incl(wholeGroup, nprocSub, newID, newGroup, ierr)
+!!$         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroup, newComm, ierr)
+         !this would create a leakage in the communicator
+         !if we do not free them
+         newComm=fake_mpi_env%mpi_comm
       else
          newIDu = f_malloc(0.to.nprocSubu-1,id='newIDu')
          newIDd = f_malloc(0.to.nprocSubd-1,id='newIDd')
@@ -1317,20 +1322,28 @@ subroutine inputguessParallel(iproc, nproc, orbs, norbscArr, hamovr, psi,&
          do iorb=0,nprocSubu-1
             newIDu(iorb)=iorb
          end do
-         ! Create the new communicator newCommu.
-         call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
-         call mpi_group_incl(wholeGroup, nprocSubu, newIDu, newGroupu, ierr)
-         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroupu, newCommu, ierr)
+         call mpi_env_create_group(0,2,bigdft_mpi%mpi_comm,&
+              wholeGroup,nprocSubu,newIDu,fake_mpi_envu)
+         newCommu=fake_mpi_envu%mpi_comm
+!!$         ! Create the new communicator newCommu.
+!!$         !call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
+!!$         call mpi_group_incl(wholeGroup, nprocSubu, newIDu, newGroupu, ierr)
+!!$         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroupu, newCommu, ierr)
          ! Assign the IDs of the processes handling the down orbitals to newIDd
+         !LG: not sure of the way it is used...
          do iorb=0,nprocSubd-1
             newIDd(iorb)=nprocSubu+iorb
          end do
-         ! Create the new communicator newCommd.
-         call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
-         call mpi_group_incl(wholeGroup, nprocSubd, newIDd, newGroupd, ierr)
-         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroupd, newCommd, ierr)
+         call mpi_env_create_group(1,2,bigdft_mpi%mpi_comm,&
+              wholeGroup,nprocSubd,newIDd,fake_mpi_envd)
+         newCommd=fake_mpi_envd%mpi_comm
+!!$
+!!$         ! Create the new communicator newCommd.
+!!$         call mpi_comm_group(bigdft_mpi%mpi_comm, wholeGroup, ierr)
+!!$         call mpi_group_incl(wholeGroup, nprocSubd, newIDd, newGroupd, ierr)
+!!$         call mpi_comm_create(bigdft_mpi%mpi_comm, newGroupd, newCommd, ierr)
       end if
-
+      call mpigroup_free(wholeGroup)
 
       ! In order to symplify the transposing/untransposing, the orbitals are padded with zeros such that 
       ! they can be distributed evenly over all processes when being transposed. The new length of the 

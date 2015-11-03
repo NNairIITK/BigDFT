@@ -1,5 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
+SHORT_CHECK = PS_Check.out.yaml PS_Check.out.yaml.report
+LONG_CHECK = $(SHORT_CHECK)
+
+include $(srcdir)/../check.mk
+
+
 EXTRA_DIST = PS_Check.ref.yaml tols.yaml
 
 check_PROGRAMS = PS_Check PS_Integral gaussian gaussian2D gaussian3D
@@ -52,14 +58,12 @@ PS_Check.out.yaml: PS_Check
 	cat tmp | grep -v 'Unable to read mpd.hosts' > PS_Check.out.yaml
 	rm -f tmp
 
-
-check: PS_Check.out.yaml
+PS_Check.out.yaml.report: PS_Check.out.yaml
 	export PYTHONPATH=${PYTHONPATH} ; \
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py \
 		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
-
 
 report: 
 	export PYTHONPATH=${PYTHONPATH} ; \

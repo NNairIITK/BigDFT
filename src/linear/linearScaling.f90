@@ -14,12 +14,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
  
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => linearScaling
+  use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
+       & getLocalizedBasis, get_coeff, loewdin, sumrho, write_eigenvalues_data, &
+       & write_energies, write_orbital_density,inputguessconfinement
   use yaml_output
   use module_fragments
   use constrained_dft
   use diis_sd_optimization
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use communications_base, only: work_transpose, allocate_p2pComms_buffer, &
                                  deallocate_p2pComms_buffer, &
                                  work_transpose_null, allocate_work_transpose, deallocate_work_transpose, &
@@ -40,7 +42,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals, calculate_theta, &
                                    projector_for_charge_analysis
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
-  use locreg_operations, only: get_boundary_weight, small_to_large_locreg
+  use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
+  use locregs_init, only: small_to_large_locreg
   use public_enums
   use multipole, only: multipoles_from_density
   use transposed_operations, only: calculate_overlap_transposed
@@ -280,7 +283,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
      valpha=0.5_gp
      !best_charge_diff=vgrad_old
      coeff_tmp=f_malloc((/tmb%orbs%norb,tmb%orbs%norb/),id='coeff_tmp')
-     cdft_charge_thresh=1.e-2
+     cdft_charge_thresh=input%lin%cdft_conv_crit
      call timing(iproc,'constraineddft','OF')
      call timing(iproc,'linscalinit','ON')
   end if
@@ -466,7 +469,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%purification_quickreturn,&
-                     input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,&
+                     input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor,&
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
                 !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
              end if
@@ -740,7 +743,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
          end if
          ! @NEW: adjust the convergence criterion for the kernel optimization
          ! The better the support functions are converged, the better the kernel sould be converged
-         convCritMix = convCritMix_init*fnrm_tmb
+         ! make this optional, otherwise sometimes the threshold becomes too long and it takes a really long time to converge
+         if (input%adjust_kernel_threshold) then
+            convCritMix = convCritMix_init*fnrm_tmb
+         else
+            convCritMix = convCritMix_init
+         end if
+
          call scf_kernel(nit_scc, .false., update_phi)
          !!!kernel_loop : do it_scc=1,nit_scc
          !!!    dmin_diag_it=dmin_diag_it+1
@@ -1230,7 +1239,6 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   end do outerLoop
 
 
-  
   call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
 
   ! Moved down for tests
@@ -1409,7 +1417,7 @@ end if
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel)
+           input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel,input%lin%coeff_factor)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1443,7 +1451,7 @@ end if
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,energs_work,.false.)
+           input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
@@ -2598,17 +2606,22 @@ end if
         !!     mod(input%lin%plotBasisFunctions,10),tmb,at,rxyz,input%lin%calculate_onsite_overlap)
         !!call write_linear_coefficients(0, trim(input%dir_output)//'KS_coeffs.bin', at, rxyz, &
         !!     tmb%linmat%l%nfvctr, tmb%orbs%norb, tmb%linmat%l%nspin, tmb%coeff, tmb%orbs%eval)
-        if (input%lin%plotBasisFunctions>10) then
+        if (input%lin%plotBasisFunctions>20) then
+            call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFun', &
+                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, .false., tmb%lzd)
+        else if (input%lin%plotBasisFunctions>10) then
             call write_orbital_density(iproc, .true., mod(input%lin%plotBasisFunctions,10), 'SupFunDens', &
-                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, tmb%lzd)
+                 tmb%npsidim_orbs, tmb%psi, input, tmb%orbs, KSwfn%lzd, at, rxyz, .true., tmb%lzd)
+
         end if
      end if
      !write as fragments - for now don't write matrices, think later if this is useful/worth the effort
+     !(now kernel is done internally in writemywaves)
      if (write_fragments .and. input%lin%fragment_calculation) then
         call writemywaves_linear_fragments(iproc,'minBasis',mod(input%lin%plotBasisFunctions,10),&
              max(tmb%npsidim_orbs,tmb%npsidim_comp),tmb%Lzd,tmb%orbs,nelec,at,rxyz,tmb%psi,tmb%coeff, &
              trim(input%dir_output),input%frag,ref_frags,tmb%linmat,norder_taylor,input%lin%max_inversion_error,&
-             tmb%orthpar)
+             tmb%orthpar,input%lin%frag_num_neighbours)
 
 !      call orthonormalizeLocalized(iproc, nproc, norder_taylor, input%lin%max_inversion_error, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
 !           tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
@@ -2782,14 +2795,14 @@ end if
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                       .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
-                      input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,&
+                      input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
               else
                  call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                       .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
-                      input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,&
+                      input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
               end if
            else
@@ -2798,14 +2811,14 @@ end if
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                       .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
-                      input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,&
+                      input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
               else
                  call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                       .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
-                      input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,&
+                      input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
               end if
            end if
@@ -3205,7 +3218,12 @@ end if
               if (input%lin%scf_mode==LINEAR_FOE) then
                  nit_lowaccuracy=input%lin%nit_lowaccuracy
               else
-                 nit_lowaccuracy=0
+                 ! double check that nit_high /= 0 and we're not in hybrid mode (otherwise we won't be doiung any iterations...)
+                 if (input%lin%nit_highaccuracy /=0 .and. input%lin%nlevel_accuracy==2) then
+                    nit_lowaccuracy=0
+                 else
+                    nit_lowaccuracy=input%lin%nit_lowaccuracy
+                 end if
               end if
               nit_highaccuracy=input%lin%nit_highaccuracy
           end if
@@ -3513,19 +3531,15 @@ end if
       call vcopy(denspot%dpbox%ndimpot,denspot%rho_work(1),1,denspot%pot_work(1),1)
       call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
            0.0_dp,.false.,stress_tensor=hstrten)
-
-
       
       KSwfn%psi=f_malloc_ptr(1,id='KSwfn%psi')
-
-
       fpulay=0.d0
       call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,KSwfn%orbs,nlpsp,rxyz,& 
            KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
            denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
            denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
            denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
-           ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+           input%calculate_strten,ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
       call clean_forces(iproc,at%astruct,rxyz,fxyz,fnoise)
       if (iproc == 0) call write_forces(at%astruct,fxyz)
 
@@ -3556,7 +3570,6 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
   use yaml_output
   use module_fragments
   !use internal_io
-  use module_interfaces
   use public_enums
   implicit none
 
@@ -3660,3 +3673,127 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
    end if
 
 end subroutine output_fragment_rotations
+
+!> Check the relative weight which the support functions have at the
+!! boundaries of the localization regions.
+subroutine get_boundary_weight(iproc, nproc, orbs, lzd, atoms, crmult, nsize_psi, psi, crit)
+  use module_base
+  use module_types, only: orbitals_data, local_zone_descriptors
+  use module_atoms, only: atoms_data
+  use yaml_output
+  use dynamic_memory
+  use locreg_operations, only: boundary_weight
+  implicit none
+
+  ! Calling arguments
+  integer,intent(in) :: iproc, nproc
+  type(orbitals_data),intent(in) :: orbs
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(atoms_data),intent(in) :: atoms
+  real(kind=8),intent(in) :: crmult
+  integer,intent(in) :: nsize_psi
+  real(kind=8),dimension(nsize_psi),intent(in) :: psi
+  real(kind=8),intent(in) :: crit
+
+  ! Local variables
+  integer :: iorb, iiorb, ilr, ind, iat, iatype, nwarnings
+  real(kind=8) :: atomrad, rad, boundary, weight_normalized, maxweight, meanweight
+  real(kind=8),dimension(:),allocatable :: maxweight_types, meanweight_types
+  integer,dimension(:),allocatable :: nwarnings_types, nsf_per_type
+
+  call f_routine(id='get_boundary_weight')
+
+  maxweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
+  meanweight_types = f_malloc0(atoms%astruct%ntypes,id='maxweight_types')
+  nwarnings_types = f_malloc0(atoms%astruct%ntypes,id='nwarnings_types')
+  nsf_per_type = f_malloc0(atoms%astruct%ntypes,id='nsf_per_type')
+
+  if (iproc==0) then
+     call yaml_sequence(advance='no')
+  end if
+
+
+  nwarnings = 0
+  maxweight = 0.d0
+  meanweight = 0.d0
+  if (orbs%norbp>0) then
+     ind = 1
+     do iorb=1,orbs%norbp
+        iiorb = orbs%isorb + iorb
+        ilr = orbs%inwhichlocreg(iiorb)
+
+        iat = orbs%onwhichatom(iiorb)
+        iatype = atoms%astruct%iatype(iat)
+        atomrad = atoms%radii_cf(iatype,1)*crmult
+        rad = atoms%radii_cf(atoms%astruct%iatype(iat),1)*crmult
+
+        nsf_per_type(iatype) = nsf_per_type(iatype ) + 1
+
+        weight_normalized = boundary_weight(lzd%hgrids,lzd%glr,lzd%llr(ilr),rad,psi(ind))
+
+        ind = ind + lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f
+
+        meanweight = meanweight + weight_normalized
+        maxweight = max(maxweight,weight_normalized)
+        meanweight_types(iatype) = meanweight_types(iatype) + weight_normalized
+        maxweight_types(iatype) = max(maxweight_types(iatype),weight_normalized)
+        if (weight_normalized>crit) then
+           nwarnings = nwarnings + 1
+           nwarnings_types(iatype) = nwarnings_types(iatype) + 1
+        end if
+     end do
+     if (ind/=nsize_psi+1) then
+        call f_err_throw('ind/=nsize_psi ('//trim(yaml_toa(ind))//'/='//trim(yaml_toa(nsize_psi))//')', &
+             err_name='BIGDFT_RUNTIME_ERROR')
+     end if
+  end if
+
+  ! Sum up among all tasks... could use workarrays
+  if (nproc>1) then
+     call mpiallred(nwarnings, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(meanweight, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(maxweight, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(nwarnings_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(meanweight_types, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(maxweight_types, mpi_max, comm=bigdft_mpi%mpi_comm)
+     call mpiallred(nsf_per_type, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  end if
+  meanweight = meanweight/real(orbs%norb,kind=8)
+  do iatype=1,atoms%astruct%ntypes
+     meanweight_types(iatype) = meanweight_types(iatype)/real(nsf_per_type(iatype),kind=8)
+  end do
+  if (iproc==0) then
+     call yaml_sequence_open('Check boundary values')
+     call yaml_sequence(advance='no')
+     call yaml_mapping_open(flow=.true.)
+     call yaml_map('type','overall')
+     call yaml_map('mean / max value',(/meanweight,maxweight/),fmt='(2es9.2)')
+     call yaml_map('warnings',nwarnings)
+     call yaml_mapping_close()
+     do iatype=1,atoms%astruct%ntypes
+        call yaml_sequence(advance='no')
+        call yaml_mapping_open(flow=.true.)
+        call yaml_map('type',trim(atoms%astruct%atomnames(iatype)))
+        call yaml_map('mean / max value',(/meanweight_types(iatype),maxweight_types(iatype)/),fmt='(2es9.2)')
+        call yaml_map('warnings',nwarnings_types(iatype))
+        call yaml_mapping_close()
+     end do
+     call yaml_sequence_close()
+  end if
+
+  ! Print the warnings
+  if (nwarnings>0) then
+     if (iproc==0) then
+        call yaml_warning('The support function localization radii might be too small, got'&
+             &//trim(yaml_toa(nwarnings))//' warnings')
+     end if
+  end if
+
+  call f_free(maxweight_types)
+  call f_free(meanweight_types)
+  call f_free(nwarnings_types)
+  call f_free(nsf_per_type)
+
+  call f_release_routine()
+
+end subroutine get_boundary_weight

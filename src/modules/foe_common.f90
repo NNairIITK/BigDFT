@@ -29,7 +29,7 @@ module foe_common
     ! Calculates chebychev expansion of fermi distribution.
     ! Taken from numerical receipes: press et al
     subroutine chebft(A,B,N,cc,ef,fscale,tmprtr)
-      use module_base, pi => pi_param
+      use module_base
       implicit none
       
       ! Calling arguments
@@ -82,7 +82,7 @@ module foe_common
     ! Calculates chebychev expansion of fermi distribution.
     ! Taken from numerical receipes: press et al
     subroutine chebft2(a,b,n,cc)
-      use module_base, pi => pi_param
+      use module_base
       implicit none
     
       ! Calling arguments
@@ -653,8 +653,7 @@ module foe_common
       integer,parameter :: ALLGATHERV=51, GET=52, GLOBAL_MATRIX=101, SUBMATRIX=102
       integer,parameter :: comm_strategy=GET
       integer,parameter :: data_strategy=SUBMATRIX!GLOBAL_MATRIX
-    
-      
+
     
       call f_routine(id='scale_and_shift_matrix')
       call timing(iproc,'foe_aux_mcpy  ','ON')
@@ -708,7 +707,7 @@ module foe_common
                       end if
                   end if
                   ii=matrixindex_in_compressed(smatl, i, j)
-                  !write(*,*) 'i, ii, tt1, tt2', i, ii, tt1, tt2
+                  !write(*,*) 'i, ii, ii1, tt1, tt2', i, ii, ii1, tt1, tt2, i1shift, smat1%isvctrp_tg, i1shift+ii1-smat1%isvctrp_tg
                   matscal_compr(ii-smatl%isvctrp_tg)=scale_factor*(tt1-shift_value*tt2)
               end do
           end do
@@ -778,7 +777,7 @@ module foe_common
     ! Calculates chebychev expansion of x**ex, where ex is any value (typically -1, -1/2, 1/2)
     ! Taken from numerical receipes: press et al
     subroutine cheb_exp(A,B,N,cc,ex)
-      use module_base, pi => pi_param
+      use module_base
       implicit none
       
       ! Calling arguments
