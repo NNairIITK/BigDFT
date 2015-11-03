@@ -666,6 +666,7 @@ module overlap_point_to_point
 
      
      subroutine OP2P_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+       use yaml_output
        implicit none
        !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
        logical, intent(in) :: symmetric
