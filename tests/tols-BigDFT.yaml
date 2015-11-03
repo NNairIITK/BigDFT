@@ -1121,6 +1121,7 @@ DIIShistory:
  Atomic Forces (Ha/Bohr): 1.9e-9
  Clean forces norm (Ha/Bohr): 1.1e-9
  Raw forces norm (Ha/Bohr): 1.7e-9
+ Force Norm (Hartree/Bohr): 5.3e-11
  Average noise forces: 2.1e-10
  e: 7.1e-9
  EH: 4.2e-7
@@ -1193,6 +1194,7 @@ PBE_potmixdiis:
  Atomic Forces (Ha/Bohr): 6.3e-8
  Clean forces norm (Ha/Bohr): 6.3e-8
  Raw forces norm (Ha/Bohr): 2.6e-8
+ Force Norm (Hartree/Bohr): 3.0e-10
  Average noise forces: 3.0e-8
  Orbitals: 6.3e-8
  energy: 2.5e-7
@@ -1344,7 +1346,7 @@ O2spin_dirmin:
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
  delta: 1.1e-10
  delta out: 1.1e-10
- Force Norm (Hartree/Bohr): 1.22e-6
+ Force Norm (Hartree/Bohr): 7.3e-6
 
 verysparse:
  Total charge: 2.3e-8
@@ -1571,10 +1573,11 @@ surface_boronnitride:
  Enl: 1.01e-9
  Epot: 1.0e-9
  Omega: 1.96e-10
- energy: 3.2e-11
- Energy (Hartree): 3.2e-11
+ energy: 3.3e-11
+ Energy (Hartree): 3.3e-11
  Total charge: 1.0e-10
  Total ionic charge: 4.18e-11
+ Clean forces norm (Ha/Bohr): 1.3e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1592,6 +1595,8 @@ surface_graphene:
  diff: 2.101e-11
  Total ionic charge: 1.2e-11
  Total charge: 1.01e-10
+ Energy (Hartree): 1.2e-11
+ energy: 1.2e-11
 
 multipoles_OH-:
  eF: 2.6e-6
@@ -1809,7 +1814,7 @@ extendedfrags_nofrags:
 
 extendedfrags_read:
  Omega: 6.7e-11
- eF: 1.4e-9
+ eF: 1.5e-9
  charge diff: 2.3e-9
  Tr(K): 1.1e-8
  D eF: 1.1e-9
@@ -1838,6 +1843,7 @@ extendedfrags_readrotated:
  EvXC: 1.01e-10
  Force Norm (Hartree/Bohr): 2.6e-11
  fnrm2: 3.01e-11
+ energy: 1.2e-11
 
 extendedfrags_write:
  Epot: 7.0e-10
