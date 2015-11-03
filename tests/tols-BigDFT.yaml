@@ -55,6 +55,8 @@ Keys to ignore:
  - Output grid format # to be removed for updated references
  - Support Function Repartition
  - Iostat for format
+ - check_overlap
+ - check_sumrho
  #- number of tasks
  #- IDs
  #- start / end
@@ -1286,6 +1288,7 @@ O2spin_diag:
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
+ Force Norm (Hartree/Bohr): 1.23e-9
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 1.5e-8
@@ -1314,6 +1317,7 @@ O2spin_foe:
  relative diff: 3.6e-11
  fnrm2: 4.19e-8
  Energy (Hartree): 2.4e-10
+ Force Norm (Hartree/Bohr): 3.63e-11
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 1.5e-5
@@ -1340,6 +1344,7 @@ O2spin_dirmin:
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
  delta: 1.1e-10
  delta out: 1.1e-10
+ Force Norm (Hartree/Bohr): 1.22e-6
 
 verysparse:
  Total charge: 2.3e-8
@@ -1804,7 +1809,7 @@ extendedfrags_nofrags:
 
 extendedfrags_read:
  Omega: 6.7e-11
- eF: 8.31e-10
+ eF: 1.4e-9
  charge diff: 2.3e-9
  Tr(K): 1.1e-8
  D eF: 1.1e-9
@@ -1821,16 +1826,18 @@ extendedfrags_read:
 
 extendedfrags_readrotated:
  Omega: 6.7e-11
- eF: 6.2e-10
- D eF: 1.1e-9
+ eF: 7.21e-10
+ D eF: 1.1e-8
  guess for new ef: 1.0e-9
- D Tr: 1.1e-10
+ D Tr: 1.1e-9
  ebs_check: 6.1e-11
  ebs: 6.1e-11
  charge diff: 2.0e-9
  Pressure: 4.6e-11
  Epot: 1.1e-10
+ EvXC: 1.01e-10
  Force Norm (Hartree/Bohr): 2.6e-11
+ fnrm2: 3.01e-11
 
 extendedfrags_write:
  Epot: 7.0e-10
@@ -1855,5 +1862,41 @@ extendedfrags_write:
  Force Norm (Hartree/Bohr): 2.4e-11
 
 Cavity_H2OfrigidPCG:
+ Atomic Forces (Ha/Bohr): 2.5e-8
+ Force Norm (Hartree/Bohr): 2.1e-8
+ maxval: 5.8e-8
+ fnrm2: 3.0e-8
+ Iteration quality: 2.0e-7
+ alpha: 8.0e-3
+ beta: 1.06e-6
+ ratio: 2.1e-7
+ Epot: 3.4e-7
+ EH: 3.6e-7
+ Energies: 5.1e-10
+ EKS: &energy 3.95e-9
+ Ekin: 1.31e-9
+ Energy (Hartree): *energy 
+ Average noise forces: 6.01e-8
+ Integral of the density in the nonvacuum region: 3.6e-10
+ Total electronic charge: 2.01e-11
  Keys to ignore:
    - rmult
+   - Electronic charge changed by rho compression
+
+Cavity_H2OfsccsPCG:
+ Atomic Forces (Ha/Bohr): 9.4e-10
+ Force Norm (Hartree/Bohr): 1.1e-9
+ Iteration quality: 6.8e-7
+ alpha: 1.71e-2
+ Epot: 4.8e-8
+ EH: 4.21e-8
+ EKS: 1.93e-10
+ Energy (Hartree): 6.17e-11
+ Energies: 4.01e-9
+ maxval: 1.61e-9
+ fnrm2: 9.2e-10
+ Integral of the density in the nonvacuum region: 2.6e-10
+ Total electronic charge: 1.7e-10
+ Average noise forces: 1.01e-9
+ Keys to ignore:
+   - Electronic charge changed by rho compression

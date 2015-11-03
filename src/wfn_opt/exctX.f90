@@ -1548,8 +1548,8 @@ END SUBROUTINE exact_exchange_potential_round
 !> Calculate the exact exchange potential on occupied orbitals
 !! within the symmetric round-robin scheme
 !! the psi is already given in the real-space form
-subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
-     hxh,hyh,hzh,pkernel,psi,dpsir,eexctX)
+subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
+     pkernel,psir,dpsir,eexctX)
   use module_base
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp
@@ -1558,31 +1558,33 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   use locreg_operations
   use overlap_point_to_point
   implicit none
-  integer, intent(in) :: iproc,nproc,nspin
-  real(gp), intent(in) :: hxh,hyh,hzh
+  integer, intent(in) :: iproc,nproc,nspin,ndim
+  !real(gp), intent(in) :: hxh,hyh,hzh
   type(xc_info), intent(in) :: xc
-  type(locreg_descriptors), intent(in) :: lr
   type(orbitals_data), intent(in) :: orbs
-  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+!  real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi
+  real(wp), dimension(ndim,orbs%norbp), intent(in) :: psir
+    
   type(coulomb_operator), intent(inout) :: pkernel
   real(gp), intent(out) :: eexctX
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir
+  real(wp), dimension(ndim,orbs%norbp), intent(out) :: dpsir
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_round'
   integer, parameter :: LOCAL_=2,GLOBAL_=1
-  logical :: doit
-  integer :: ierr,ncommsstep,ncommsstep2,isnow,irnow,isnow2,irnow2,jsorb,kproc,norbp
-  integer :: i,iorb,jorb,jproc,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii
+  integer, parameter :: SEND_DATA=1,RECV_DATA=2,SEND_RES=3,RECV_RES=4
+  integer, parameter :: DATA_=1,RES_=2
+  logical :: doit,symmetric
+  integer :: ierr,ndata_comms,nres_comms,isnow,irnow,isnow2,irnow2,jsorb,norbp,source,dest,nstep_max,nsteps
+  integer :: i,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii,count,istep,jproc,iorb,jorbs_tmp
   integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
-  real(gp) :: ehart,hfac,exctXfac,sfac,hfaci,hfacj,hfac2
+  real(gp) :: ehart,exctXfac,sfac
   integer, dimension(4) :: mpireq,mpireq2
-  integer, dimension(MPI_STATUS_SIZE,4) :: mpistat,mpistat2
   type(workarr_sumrho) :: w
   integer, dimension(:), allocatable :: igrpr,ndatac
-  integer, dimension(:,:), allocatable :: nvctr_par,igrprarr
+  integer, dimension(:,:), allocatable :: nvctr_par
   integer, dimension(:,:,:), allocatable :: jprocsr,iprocpm1,ndatas,iorbgr
   real(wp), dimension(:), allocatable :: rp_ij
-  real(wp), dimension(:,:), allocatable :: psir
+!  real(wp), dimension(:,:), allocatable :: psir
   real(wp), dimension(:,:,:,:), allocatable :: psiw,dpsiw
   type(local_data) :: phi_i,phi_j
 
@@ -1608,7 +1610,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      ngroup=1
   end if
 
-  hfac=1.0_gp/(hxh*hyh*hzh)
 
   !here we can start with the round-robin scheme
   !since the orbitals are all occupied we have to use the symmetric scheme
@@ -1617,10 +1618,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   nvctr_par = f_malloc((/ 0.to.nproc-1, 1.to.ngroup /),id='nvctr_par')
 
   iorbgr = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='iorbgr')
-
-  !test array for data sending
-  ndatas = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='ndatas')
-
 
   if (ngroup==2) then
      isorb=0
@@ -1632,7 +1629,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
            iorbgr(GLOBAL_,jproc,1)=0
            !iorbgr(GLOBAL_,jproc,2)=0
         end if
-        nvctr_par(jproc,1)=norbp*lr%d%n1i*lr%d%n2i*lr%d%n3i
+        nvctr_par(jproc,1)=norbp*ndim
         iorbgr(GLOBAL_,jproc,2)=isorb
         iorbgr(LOCAL_,jproc,2)=norbp+1
         norbp=max(isorb+orbs%norb_par(jproc,0)-max(orbs%norbu,isorb),0)
@@ -1640,24 +1637,21 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
            iorbgr(GLOBAL_,jproc,2)=0
            iorbgr(LOCAL_,jproc,2)=1
         end if
-        nvctr_par(jproc,2)=norbp*lr%d%n1i*lr%d%n2i*lr%d%n3i
+        nvctr_par(jproc,2)=norbp*ndim
         isorb=isorb+orbs%norb_par(jproc,0)
      end do
-!!$     if (iproc ==0) then
-!!$        print '(a,10(1x,i8))','iproc,nvctr_parA',iproc,nvctr_par(:,1)/(lr%d%n1i*lr%d%n2i*lr%d%n3i)
-!!$        print '(a,10(1x,i8))','iproc,nvctr_parB',iproc,nvctr_par(:,2)/(lr%d%n1i*lr%d%n2i*lr%d%n3i)
-!!$        print '(a,10(1x,i8))','iproc,iorbgr',iproc,iorbgr
-!!$     end if
   else
      isorb=0
      do jproc=0,nproc-1
         iorbgr(GLOBAL_,jproc,1)=isorb
         iorbgr(LOCAL_,jproc,1)=1
-        nvctr_par(jproc,1)=orbs%norb_par(jproc,0)*lr%d%n1i*lr%d%n2i*lr%d%n3i
+        nvctr_par(jproc,1)=orbs%norb_par(jproc,0)*ndim
         isorb=isorb+orbs%norb_par(jproc,0)
      end do
   end if
 
+
+  !> initialization
 
   !here we can allocate the working arrays giving the maximum
   !between the components for each group
@@ -1670,12 +1664,10 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
 
   !determine the array of the groups which are of interest for this processor
   igrpr = f_malloc(ngroupp,id='igrpr')
-  igrprarr= f_malloc0((/ 1.to.ngroup, 0.to.nproc-1 /),id='igrprarr')
   iprocpm1 = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroupp /),id='iprocpm1')
 
   !test array for data calculation
-  ndatac = f_malloc(ngroupp,id='ndatac')
-
+  ndatac = f_malloc0(ngroupp,id='ndatac')
 
   !determine for each processor the groups which has to be used
   icount=0
@@ -1686,347 +1678,224 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
      end if
   end do
 
-  !calculate the processor which lies after and before the present in the list
-  iprocpm1=-1
-  do igroup=1,ngroupp
-     iprocgrs=-1
-     iprocgrr=-1
-     !define the number of data to calculate in total
-     ndatac(igroup)=0
-     do kproc=0,nproc-1
-        ndatac(igroup)=ndatac(igroup)-nvctr_par(kproc,igrpr(igroup))
-        if (nvctr_par(modulo(iproc+kproc,nproc),igrpr(igroup)) > 0) then
-           iprocgrs=iprocgrs+1
-           iprocpm1(1,iprocgrs,igroup)=modulo(iproc+kproc,nproc)
-        end if
-        if (nvctr_par(modulo(iproc-kproc,nproc),igrpr(igroup)) > 0) then
-           iprocgrr=iprocgrr+1
-           iprocpm1(2,iprocgrr,igroup)=modulo(iproc-kproc,nproc)
-        end if
-     end do
-  end do
 
   !find the processor whih has the maximum number of groups
   icountmax=0
-  do kproc=0,nproc-1
+  do jproc=0,nproc-1
      icount=0
      do igroup=1,ngroup
-        if (nvctr_par(kproc,igroup) > 0) then
+        if (nvctr_par(jproc,igroup) > 0) then
            icount=icount+1
-           igrprarr(igroup,kproc)=icount
         end if
      end do
      if (icount > icountmax) then
-        iprocref=kproc
+        iprocref=jproc
         icountmax=icount
      end if
   end do
 
+  !decide the strategy for the communication
+  symmetric=.true.
+  if (symmetric) then
+     nstep_max=(nproc-1)/2+1!nproc/2+1
+  else
+     nstep_max=nproc-1
+  end if
+
+  !calculate the processor which lies after and before the present in the list
+  iprocpm1=mpirank_null()
+  do igroup=1,ngroupp
+     iprocgrs=-1
+     iprocgrr=-1
+     !define the number of data to calculate in total
+     do jproc=0,nproc-1
+        ndatac(igroup)=ndatac(igroup)-nvctr_par(jproc,igrpr(igroup))
+        if (nvctr_par(modulo(iproc+jproc,nproc),igrpr(igroup)) > 0 .and. .true.) then
+           iprocgrs=iprocgrs+1
+           iprocpm1(1,iprocgrs,igroup)=modulo(iproc+jproc,nproc)
+        end if
+        if (nvctr_par(modulo(iproc-jproc,nproc),igrpr(igroup)) > 0 .and. .true.) then
+           iprocgrr=iprocgrr+1
+           iprocpm1(2,iprocgrr,igroup)=modulo(iproc-jproc,nproc)
+        end if
+     end do
+  end do
+
   !calculate the list of send-receive operations which have to be performed per group
   !allocate it at the maximum size needed
-  jprocsr = f_malloc((/ 1.to.4, 0.to.nproc/2+1, 1.to.ngroupp /),id='jprocsr')
-  !initalise array to minus one
-  jprocsr=-1
+  jprocsr = f_malloc([1.to.4, 1.to.ngroupp, 0.to.nstep_max],id='jprocsr')
+  !initalise array to rank_null
+  jprocsr=mpirank_null()
 
   ncalltot=0
   do igroup=1,ngroupp
      ncalltot=ncalltot+&
-          (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))*&
-          (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i)+1)/2
+          (nvctr_par(iproc,igrpr(igroup))/(ndim))*&
+          (nvctr_par(iproc,igrpr(igroup))/(ndim)+1)/2
      !calculate the number of processors per group
      nprocgr=0
-     do kproc=0,nproc-1
-        if (nvctr_par(kproc,igrpr(igroup)) > 0) nprocgr=nprocgr+1
+     do jproc=0,nproc-1
+        if (nvctr_par(jproc,igrpr(igroup)) > 0) nprocgr=nprocgr+1
      end do
-
-     !do not send anything if there is only one member in the group
+     !do not send anything if there is only one member
      if (nprocgr > 1) then
-        do kproc=0,(nprocgr-1)/2-1
+        if (symmetric) then
+           nsteps=(nprocgr-1)/2
+        else
+           nsteps=nprocgr-1
+        end if
+        do istep=0,nsteps-1
            !define the arrays for send-receive of data
-           jprocsr(1,kproc,igroup)= iprocpm1(1,kproc+1,igroup)
-           jprocsr(2,kproc,igroup)= iprocpm1(2,kproc+1,igroup)
-           if (iproc == iprocref) then
+           jprocsr(SEND_DATA,igroup,istep)= iprocpm1(1,istep+1,igroup)
+           jprocsr(RECV_DATA,igroup,istep)= iprocpm1(2,istep+1,igroup)
+           if (iproc == iprocref .and. jprocsr(RECV_DATA,igroup,istep) /= mpirank_null()) then
               ncalltot=ncalltot+&
-                   (nvctr_par(jprocsr(2,kproc,igroup),igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))*&
-                   (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))
+                   (nvctr_par(jprocsr(RECV_DATA,igroup,istep),igrpr(igroup))/(ndim))*&
+                   (nvctr_par(iproc,igrpr(igroup))/(ndim))
            end if
-           if (kproc > 0) then
-              jprocsr(3,kproc,igroup)=iprocpm1(2,kproc,igroup)
-              jprocsr(4,kproc,igroup)=iprocpm1(1,kproc,igroup)
+           if (istep > 0 .and. symmetric) then
+              jprocsr(SEND_RES,igroup,istep)=iprocpm1(2,istep,igroup)
+              jprocsr(RECV_RES,igroup,istep)=iprocpm1(1,istep,igroup)
            end if
         end do
-        kproc=(nprocgr-1)/2
-        !the last step behaves differently if the group number is odd or even
-        if (modulo(nprocgr,2) == 0) then
-           jprocsr(1,kproc,igroup)= iprocpm1(1,kproc+1,igroup)
-           jprocsr(2,kproc,igroup)= iprocpm1(2,kproc+1,igroup)
-           if (iproc == iprocref) then
+        !last case
+        istep=nsteps!(nprocgr-1)/2
+        !the last step behaves differently if the number of members is odd or even
+        if (modulo(nprocgr,2) == 0 .or. .not. symmetric) then
+           jprocsr(SEND_DATA,igroup,istep)= iprocpm1(1,istep+1,igroup)
+           jprocsr(RECV_DATA,igroup,istep)= iprocpm1(2,istep+1,igroup)
+           if (iproc == iprocref .and. jprocsr(RECV_DATA,igroup,istep) /= mpirank_null()) then
               ncalltot=ncalltot+&
-                   (nvctr_par(jprocsr(2,kproc,igroup),igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))*&
-                   (nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i))
+                   (nvctr_par(jprocsr(RECV_DATA,igroup,istep),igrpr(igroup))/(ndim))*&
+                   (nvctr_par(iproc,igrpr(igroup))/(ndim))
            end if
-           if (kproc > 0) then
-              jprocsr(3,kproc,igroup)=iprocpm1(2,kproc,igroup)
-              jprocsr(4,kproc,igroup)=iprocpm1(1,kproc,igroup)
+           if (istep > 0 .and. symmetric) then
+              jprocsr(SEND_RES,igroup,istep)=iprocpm1(2,istep,igroup)
+              jprocsr(RECV_RES,igroup,istep)=iprocpm1(1,istep,igroup)
            end if
         else
-           jprocsr(3,kproc,igroup)=iprocpm1(2,kproc,igroup)
-           jprocsr(4,kproc,igroup)=iprocpm1(1,kproc,igroup)
+           jprocsr(SEND_RES,igroup,istep)=iprocpm1(2,istep,igroup)
+           jprocsr(RECV_RES,igroup,istep)=iprocpm1(1,istep,igroup)
         end if
      end if
   end do
 
-  itestproc=-1! -1=no debug verbosity
-  if (itestproc > -1) then
-     !simulation of communication
-     isnow=1
-     isnow2=1
-     nend=(nproc-1)/2+1
-     ncommsstep2=0
-     ndatas=0
 
-     do jproc=0,nend
-        irnow=3-isnow
-        ncommsstep=0
-        !sending receiving data
-        do igroup=1,ngroupp
-           if (jprocsr(1,jproc,igroup) /= -1) then
-              ncommsstep=ncommsstep+1
-              !send the fixed array to the processor which comes in the list
-              if (jprocsr(1,jproc,igroup) == itestproc) then
-                 print *,'step',jproc+1,': sending',nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup)),&
-                      'elements from',iproc,'to',jprocsr(1,jproc,igroup)
-              end if
-              ndatas(1,jprocsr(1,jproc,igroup),igrpr(igroup))=ndatas(1,jprocsr(1,jproc,igroup),igrpr(igroup))+&
-                   nvctr_par(jprocsr(1,jproc,igroup),igrpr(igroup))
-           end if
-           if (jprocsr(2,jproc,igroup) /= -1) then
-              ncommsstep=ncommsstep+1
-              if (iproc == itestproc) then
-                 print *,'step',jproc+1,': receiving',nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
-                      'elements from',jprocsr(2,jproc,igroup),'to',iproc
-              end if
-              ndatas(1,iproc,igrpr(igroup))=ndatas(1,iproc,igrpr(igroup))-&
-                   nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup))
-           end if
-        end do
-
-        !calculation for orbitals to be performed
-        loop_nocomm_sim: do igroup=1,ngroupp
-           if (jproc==0) then
-              ndatac(igroup)=ndatac(igroup)+nvctr_par(iproc,igrpr(igroup))
-           else
-              if (jprocsr(2,jproc-1,igroup) /=-1) then
-                 ndatac(igroup)=ndatac(igroup)+&
-                      nvctr_par(jprocsr(2,jproc-1,igroup),igrpr(igroup))  
-                 if (iproc == itestproc) then
-                    print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                         ':processing',nvctr_par(jprocsr(2,jproc-1,igroup),igrpr(igroup)),&
-                         'elements in',iproc,'from',jprocsr(2,jproc-1,igroup)
-                 end if
-              end if
-           end if
-        end do loop_nocomm_sim
-
-        !copy the results which have been received
-        if (ncommsstep2 > 0) then
-           do igroup=1,ngroupp
-              if (jprocsr(4,jproc-1,igroup) /= -1) then
-                 if (iproc == itestproc) then
-                    print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                         ':copying',nvctr_par(jprocsr(4,jproc-1,igroup),igrpr(igroup)),&
-                         'elements from',jprocsr(4,jproc-1,igroup),'in',iproc
-                 end if
-                 ndatac(igroup)=ndatac(igroup)+&
-                      nvctr_par(jprocsr(4,jproc-1,igroup),igrpr(igroup)) 
-              end if
-           end do
-        end if
-
-        !send-receive of the results
-        ncommsstep2=0
-        do igroup=1,ngroupp
-           if (jprocsr(3,jproc,igroup) /= -1) then
-              ncommsstep2=ncommsstep2+1
-              if (jprocsr(3,jproc,igroup) == itestproc) then
-                 print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                      ': sending',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
-                      'elements from',iproc,'to',jprocsr(3,jproc,igroup)
-              end if
-              ndatas(2,jprocsr(3,jproc,igroup),igrpr(igroup))=ndatas(2,jprocsr(3,jproc,igroup),igrpr(igroup))+&
-                   nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup))
-           end if
-           if (jprocsr(4,jproc,igroup) /= -1) then
-              ncommsstep2=ncommsstep2+1
-              if (iproc == itestproc) then
-                 print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                      ': receiving',nvctr_par(iproc,igrpr(igroup)),&
-                      'elements from',jprocsr(4,jproc,igroup),'to',iproc
-              end if
-              ndatas(2,iproc,igrpr(igroup))=ndatas(2,iproc,igrpr(igroup))-&
-                   nvctr_par(iproc,igrpr(igroup))
-           end if
-        end do
-     end do
-
-     if (nproc > 1) call mpiallred(ndatas,MPI_SUM,comm=bigdft_mpi%mpi_comm)
-     !if(iproc ==0)print *,'iproc,datas',iproc,ndatas
-
-     do igroup=1,ngroupp
-        if (ndatac(igroup) /=0) then
-           write(*,*)'ERROR: OP2P communication simulation failed: processor',iproc,&
-                ' has calculated',ndatac(igroup),' data more than needed'
-           stop
-        end if
-        if (ndatas(1,iproc,igrpr(igroup)) /=0 .or. ndatas(2,iproc,igrpr(igroup)) /=0) then
-           write(*,*)'ERROR: OP2P communication simulation failed: processor',iproc,&
-                ' has not a zero balance of send-receive calls',ndatas(1:2,iproc,igrpr(igroup))
-           stop
-        end if
-     end do
-  end if
-  !stop
-  !open(100+iproc)  
-
-  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
-  psir = f_malloc0((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
-
-  !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*orbs%norbp,psir(1,1))
-
-  !uncompress the wavefunction in the real grid
-  do iorb=1,orbs%norbp
-     !here ispinor is equal to one
-     call daub_to_isf(lr,w,psi(1,1,iorb),psir(1,iorb))
-  end do
-
-  call deallocate_work_arrays_sumrho(w)
-
-  psiw = f_malloc0([ lr%d%n1i*lr%d%n2i*lr%d%n3i, maxval(orbs%norb_par(:,0)), ngroupp,2],id='psiw')
-  dpsiw = f_malloc0([lr%d%n1i*lr%d%n2i*lr%d%n3i, maxval(orbs%norb_par(:,0)), ngroupp,3],id='dpsiw')
   !partial densities and potentials
-  rp_ij = f_malloc(lr%d%n1i*lr%d%n2i*lr%d%n3i,id='rp_ij')
+  rp_ij = f_malloc(ndim,id='rp_ij')
 
 
   call f_zero(dpsir)
+
+  if (ngroupp>0) then
+     phi_i=local_data_init(orbs%norbp,ndim)
+     call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,igrpr(1)),1,orbs%norbp,orbs%norbp,&
+          psir,dpsir)
+  end if
+
   ncalls=0
   !real communication
+  itestproc=mpirank_null()-1! =no debug verbosity
+    
+  psiw = f_malloc0([ ndim, maxval(orbs%norb_par(:,0)), ngroupp,2],id='psiw')
+  dpsiw = f_malloc0([ndim, maxval(orbs%norb_par(:,0)), ngroupp,3],id='dpsiw')
+
+  !test array for data sending
+  ndatas = f_malloc0((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='ndatas')
+
   isnow=1
   isnow2=1
   nend=(nproc-1)/2+1
-  ncommsstep2=0
+  nres_comms=0
 
-  do jproc=0,nend
+
+  do istep=0,nstep_max!nend
      irnow=3-isnow
-     ncommsstep=0
+     ndata_comms=0
      !sending receiving data
      do igroup=1,ngroupp
-
-        if (jprocsr(1,jproc,igroup) /= -1) then
-           ncommsstep=ncommsstep+1
-           if (iprocpm1(1,1,igroup) == itestproc) then
-              print *,'step',jproc+1,': sending',nvctr_par(iproc,igrpr(igroup)),&
-                   'elements from',iproc,'to',jprocsr(1,jproc,igroup)
-           end if
-           call MPI_ISEND(psir(1,iorbgr(LOCAL_,iproc,igrpr(igroup))),nvctr_par(iproc,igrpr(igroup)),&
-                mpidtypw,jprocsr(1,jproc,igroup),&
-                iproc,bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+        dest=jprocsr(SEND_DATA,igroup,istep)
+        if (dest /= mpirank_null()) then
+           count=nvctr_par(iproc,igrpr(igroup))
+           ndata_comms=ndata_comms+1
+           !send the fixed array to the processor which comes in the list
+           ndatas(DATA_,dest,igrpr(igroup))=ndatas(DATA_,dest,igrpr(igroup))+nvctr_par(dest,igrpr(igroup))
+           call mpisend(psir(1,iorbgr(LOCAL_,iproc,igrpr(igroup))),count,&
+                dest=dest,tag=iproc,comm=bigdft_mpi%mpi_comm,request=mpireq(ndata_comms),&
+                verbose= dest==itestproc)
         end if
-        
-        if (jprocsr(2,jproc,igroup) /= -1) then
-           ncommsstep=ncommsstep+1
-           if (iproc == itestproc) then
-              print *,'step',jproc+1,': receiving',nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
-                   'elements from',jprocsr(2,jproc,igroup),'to',iproc
-           end if
 
-           call MPI_IRECV(psiw(1,1,igroup,irnow),nvctr_par(jprocsr(2,jproc,igroup),igrpr(igroup)),&
-                   mpidtypw,jprocsr(2,jproc,igroup),&
-                   jprocsr(2,jproc,igroup),bigdft_mpi%mpi_comm,mpireq(ncommsstep),ierr)
+        source=jprocsr(RECV_DATA,igroup,istep)
+        if (source /= mpirank_null()) then
+           count=nvctr_par(source,igrpr(igroup))
+           ndata_comms=ndata_comms+1
+           ndatas(DATA_,iproc,igrpr(igroup))=ndatas(DATA_,iproc,igrpr(igroup))-count
+           call mpirecv(psiw(1,1,igroup,irnow),count,&
+                source=source,tag=source,comm=bigdft_mpi%mpi_comm,request=mpireq(ndata_comms),verbose= source == itestproc)
         end if
      end do
 
      do igroup=1,ngroupp
-        if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
+        if (istep /= 0 .and. jprocsr(SEND_RES,igroup,istep) /= mpirank_null()) then
            !put to zero the sending element
-           ii=lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par(:,0))
-           !call to_zero(lr%d%n1i*lr%d%n2i*lr%d%n3i*maxval(orbs%norb_par,1),dpsiw(1,1,3,igroup))
+           ii=ndim*maxval(orbs%norb_par(:,0))
            call f_zero(ii,dpsiw(1,1,igroup,3))
         end if
      end do
 
      !calculation for orbitals to be performed
      loop_nocomm: do igroup=1,ngroupp
-        if (jproc == 0) then
+        if (istep == 0) then
            doit=.true.
-        else if (jprocsr(2,jproc-1,igroup) /=-1) then
+           source=iproc
+        else if (jprocsr(RECV_DATA,igroup,istep-1) /= mpirank_null()) then
            doit=.true.
+           source=jprocsr(RECV_DATA,igroup,istep-1)
+           if (iproc == itestproc) then
+              print '(5(1x,a,i8))','step',istep+1,'group:',igrpr(igroup),&
+                   ':processing',nvctr_par(source,igrpr(igroup)),&
+                   'elements in',iproc,'from',source
+           end if
         else
            doit=.false.
         end if
         if (doit) then
+           ndatac(igroup)=ndatac(igroup)+nvctr_par(source,igrpr(igroup))
            !calculation of the partial densities and potentials
            !starting point of the loop
            !here there is the calculation routine
            !number of orbitals to be treated locally
-           norbi=nvctr_par(iproc,igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i)
-           if (jproc == 0) then
-              norbj=norbi
-           else
-              norbj=nvctr_par(jprocsr(2,jproc-1,igroup),igrpr(igroup))/(lr%d%n1i*lr%d%n2i*lr%d%n3i)
-           end if
+           norbi=nvctr_par(iproc,igrpr(igroup))/(ndim)
+           norbj=nvctr_par(source,igrpr(igroup))/(ndim)
+
            !calculating the starting orbitals locally
            iorbs=iorbgr(LOCAL_,iproc,igrpr(igroup))
-           if (jproc == 0) then
-              jorbs=iorbs
-           else
-              jorbs=iorbgr(LOCAL_,jprocsr(2,jproc-1,igroup),igrpr(igroup))
-           end if
+           jorbs=iorbgr(LOCAL_,source,igrpr(igroup))
+
            !calculate the starting orbital globally
            isorb=iorbgr(GLOBAL_,iproc,igrpr(igroup))
-           if (jproc==0) then
-              jsorb=isorb
-           else
-              jsorb=iorbgr(GLOBAL_,jprocsr(2,jproc-1,igroup),igrpr(igroup))
-              !if (igrpr(igroup) == 2) jsorb=orbs%norbu+jsorb
-           end if          
+           jsorb=iorbgr(GLOBAL_,source,igrpr(igroup))
 
-           phi_i=local_data_init(norbi,lr%d%n1i*lr%d%n2i*lr%d%n3i)
-           call set_local_data(phi_i,isorb+iorbs-1,1,norbi,norbi,&
-                psir(1,iorbs),dpsir(1,iorbs))
+!!$           phi_i=local_data_init(norbi,ndim)
+!!$           call set_local_data(phi_i,isorb+iorbs-1,1,norbi,norbi,&
+!!$                psir(1,iorbs),dpsir(1,iorbs))
 
-           if (jproc/=0) then
-              phi_j=local_data_init(norbj,lr%d%n1i*lr%d%n2i*lr%d%n3i)
+           if (istep/=0) then
+              phi_j=local_data_init(norbj,ndim)
               call set_local_data(phi_j,jsorb+jorbs-1,1,&
                    norbj,norbj,&
                    psiw(1,1,igroup,isnow),dpsiw(1,1,igroup,3))
+              jorbs_tmp=1
            else
               phi_j=phi_i
+              jorbs_tmp=iorbs
            end if
 
-!!$           phi_i=local_data_init(orbs%norbp,lr%d%n1i*lr%d%n2i*lr%d%n3i)
-!!$           call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,1),ngroupp,&
-!!$                nvctr_par(iproc,igrpr(1))/(lr%d%n1i*lr%d%n2i*lr%d%n3i),nvctr_par(iproc,igrpr(1))/(lr%d%n1i*lr%d%n2i*lr%d%n3i),&
-!!$                psir,dpsir)
-!!$
-!!$           if (jproc/=0) then
-!!$              phi_j=local_data_init(maxval(orbs%norb_par(:,0)),lr%d%n1i*lr%d%n2i*lr%d%n3i)
-!!$              call set_local_data(phi_j,iorbgr(GLOBAL_,jprocsr(2,jproc-1,igroup),1),ngroupp,&
-!!$                   nvctr_par(jprocsr(2,jproc-1,igroup),igrpr(1))/(lr%d%n1i*lr%d%n2i*lr%d%n3i),&
-!!$                   maxval(orbs%norb_par(:,0)),&
-!!$                   psiw(1,1,1,isnow),dpsiw(1,1,1,3))
-!!$           else
-!!$              phi_j=phi_i
-!!$           end if
-
-
-
-           call internal_calculation_exctx(jproc,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
-                jprocsr(3,jproc,igroup) /= -1,norbi,norbj,&
-                ![(i,i=iorbs,iorbs+norbi-1)],[(i,i=jorbs,jorbs+norbj-1)],&
-                [(i,i=1,norbi)],[(i,i=1,norbj)],&
+           call internal_calculation_exctx(istep,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
+                jprocsr(SEND_RES,igroup,istep) /= mpirank_null(),norbi,norbj,iorbs,jorbs_tmp,&
                 phi_i,phi_j,eexctX,rp_ij)
            if (iproc == iprocref .and. verbose > 1 .and. igroup==1) then
-              if (jproc == 0) then
+              if (istep == 0) then
                  ncalls=ncalls+((norbi-iorbs+1)*(norbj-jorbs+1+1))/2
               else
                  ncalls=ncalls+(norbi-iorbs+1)*(norbj-jorbs+1)
@@ -2034,167 +1903,88 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
               call yaml_comment('Exact exchange calculation: '+nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp)**'(i3)'+'%')
            end if
 
-           call free_local_data(phi_i)
-           if (jproc/=0) call free_local_data(phi_j)
+!!$           call free_local_data(phi_i)
+           if (istep/=0) call free_local_data(phi_j)
 
-
-!!$           !loop over all the orbitals
-!!$           !for the first step do only the upper triangular part
-!!$           do iorb=iorbs,iorbs+norbi-1
-!!$              hfacj=-sfac*orbs%occup(iorb+isorb)
-!!$              do jorb=jorbs,jorbs+norbj-1
-!!$                 !first cross-check whether the spin indices are the same
-!!$                 if (orbs%spinsgn(isorb+iorb) /= orbs%spinsgn(jsorb+jorb)) then
-!!$                    write(*,*)'ERROR in partitioning the orbitals',&
-!!$                         iorb+isorb,jorb+jsorb,igroup,jsorb,iproc
-!!$                    stop
-!!$                 end if
-!!$                 hfaci=-sfac*orbs%occup(jorb+jsorb)
-!!$                 !do it only for upper triangular results
-!!$                 if (jproc /= 0 .or. jorb+jsorb >= iorb+isorb) then
-!!$                    if (jproc == 0 ) then
-!!$                       !$omp parallel do default(shared) private(i)
-!!$                       do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
-!!$                          rp_ij(i)=hfac*psir(i,iorb)*psir(i,jorb)
-!!$                       end do
-!!$                       !$omp end parallel do
-!!$                    else
-!!$                       !$omp parallel do default(shared) private(i)
-!!$                       do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
-!!$                          rp_ij(i)=hfac*psir(i,iorb)*psiw(i,jorb-jorbs+1,igroup,isnow)
-!!$                       end do
-!!$                       !$omp end parallel do
-!!$                    end if
-!!$                    ncalls=ncalls+1
-!!$                    !Poisson solver in sequential
-!!$                    if (iproc == iprocref .and. verbose > 1) then
-!!$                       call yaml_comment('Exact exchange calculation: ' // trim(yaml_toa( &
-!!$                            nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp),fmt='(i3)')) //'%')
-!!$                    end if
-!!$
-!!$                    call H_potential('D',pkernel,rp_ij,rp_ij,ehart,0.0_dp,.false.,&
-!!$                         quiet='YES')
-!!$
-!!$                    !this factor is only valid with one k-point
-!!$                    !can be easily generalised to the k-point case
-!!$                    hfac2=sfac*orbs%occup(iorb+isorb)*orbs%occup(jorb+jsorb)
-!!$
-!!$                    !exact exchange energy
-!!$                    if (iorb+isorb == jorb+jsorb) then
-!!$                       eexctX=eexctX+hfac2*real(ehart,gp)
-!!$                    else
-!!$                       !if the result has to be sent away
-!!$                       if (jprocsr(3,jproc,igroup) /= -1 .or. jproc==0) then
-!!$                          eexctX=eexctX+2.0_gp*hfac2*real(ehart,gp)
-!!$                       else !otherwise other processors are already calculating it
-!!$                          eexctX=eexctX+hfac2*real(ehart,gp)
-!!$                       end if
-!!$                    end if
-!!$                    !accumulate the results for each of the wavefunctions concerned
-!!$                    if (jproc == 0) then
-!!$                       !$omp parallel do default(shared) private(i)
-!!$                       do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
-!!$                          dpsir(i,iorb)=dpsir(i,iorb)+&
-!!$                               hfaci*rp_ij(i)*psir(i,jorb)
-!!$                       end do
-!!$                       !$omp end parallel do
-!!$                       if (jorb+jsorb /= iorb+isorb) then
-!!$                          !$omp parallel do default(shared) private(i)
-!!$                          do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
-!!$                             dpsir(i,jorb)=dpsir(i,jorb)+&
-!!$                                  hfacj*rp_ij(i)*psir(i,iorb)
-!!$                          end do
-!!$                          !$omp end parallel do
-!!$                          !write(100+iproc,*)jorb+jsorb,iorb+isorb,igrpr(igroup) 
-!!$                       end if
-!!$                    else
-!!$                       !this part is summed on the win4 in the new version,
-!!$                       !to be controlled if it conflicts with the mpi_accumulate
-!!$                       !$omp parallel do default(shared) private(i)
-!!$                       do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
-!!$                          dpsir(i,iorb)=dpsir(i,iorb)+&
-!!$                               hfaci*rp_ij(i)*psiw(i,jorb-jorbs+1,igroup,isnow)
-!!$                       end do
-!!$                       !$omp end parallel do
-!!$                    end if
-!!$                    !write(100+iproc,*)iorb+isorb,jorb+jsorb,igrpr(igroup)
-!!$                 end if
-!!$
-!!$                 !fill the set of the vector to be sent to the other processes
-!!$                 !in the first step the results are self-contained
-!!$                 if (jproc /= 0 .and. jprocsr(3,jproc,igroup) /= -1) then
-!!$                    !write(100+iproc,*)jorb+jsorb,iorb+isorb,igrpr(igroup)
-!!$                    !$omp parallel do default(shared) private(i)
-!!$                    do i=1,lr%d%n1i*lr%d%n2i*lr%d%n3i
-!!$                       dpsiw(i,jorb-jorbs+1,igroup,3)=dpsiw(i,jorb-jorbs+1,igroup,3)+&
-!!$                            hfacj*rp_ij(i)*psir(i,iorb)
-!!$                    end do
-!!$                    !$omp end parallel do
-!!$                 end if
-!!$              end do
-!!$           end do
         end if
      end do loop_nocomm
 
 
-     if (ncommsstep2 > 0) then
+     if (nres_comms > 0) then
         !verify that the messages have been passed
-        call MPI_WAITALL(ncommsstep2,mpireq2,mpistat2,ierr)
+        call mpiwaitall(nres_comms,mpireq2)
         !copy the results which have been received (the messages sending are after)
         !this part is already done by the mpi_accumulate
         do igroup=1,ngroupp
-           if (jprocsr(4,jproc-1,igroup) /= -1) then
+           source=jprocsr(RECV_RES,igroup,istep-1)
+           if (source /= mpirank_null()) then
               if (iproc == itestproc) then
-                 print '(5(1x,a,i8))','step',jproc+1,'group:',igrpr(igroup),&
-                      ':copying',nvctr_par(jprocsr(4,jproc-1,igroup),igrpr(igroup)),&
-                      'processed elements from',jprocsr(4,jproc-1,igroup),'in',iproc
+                 print '(5(1x,a,i8))','step',istep+1,'group:',igrpr(igroup),&
+                      ':copying',nvctr_par(source,igrpr(igroup)),&
+                      'processed elements from',source,'in',iproc
               end if
+              ndatac(igroup)=ndatac(igroup)+nvctr_par(source,igrpr(igroup))
+              !WARNING: should here source == iproc?
               call axpy(nvctr_par(iproc,igrpr(igroup)),1.0_wp,dpsiw(1,1,igroup,irnow2),1,&
                    dpsir(1,iorbgr(LOCAL_,iproc,igrpr(igroup))),1)
            end if
         end do
      end if
-     ncommsstep2=0
+     nres_comms=0
      !meanwhile, we can receive the result from the processor which has the psi 
 
      irnow2=3-isnow2
      do igroup=1,ngroupp
-        if (jprocsr(3,jproc,igroup) /= -1) then
-           ncommsstep2=ncommsstep2+1
-           if (jprocsr(3,jproc,igroup) == itestproc) then
-              print *,'step',jproc+1,'group:',igrpr(igroup),&
-                   ': accum',nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
-                   'elements from',iproc,'to',jprocsr(3,jproc,igroup)
-           end if
-           call vcopy(nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),&
-                dpsiw(1,1,igroup,3),1,dpsiw(1,1,igroup,isnow2),1)
-           call MPI_ISEND(dpsiw(1,1,igroup,isnow2),&
-                nvctr_par(jprocsr(3,jproc,igroup),igrpr(igroup)),mpidtypw,&
-                jprocsr(3,jproc,igroup),&
-                iproc+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
+        dest=jprocsr(SEND_RES,igroup,istep)
+        if (dest /= mpirank_null()) then
+           nres_comms=nres_comms+1
+           call f_memcpy(n=nvctr_par(dest,igrpr(igroup)),src=dpsiw(1,1,igroup,3),&
+                dest=dpsiw(1,1,igroup,isnow2))
+           call mpisend(dpsiw(1,1,igroup,isnow2),&
+                nvctr_par(dest,igrpr(igroup)),&
+                dest=dest,tag=iproc+nproc+2*nproc*istep,comm=bigdft_mpi%mpi_comm,&
+                request=mpireq2(nres_comms))
+           ndatas(RES_,dest,igrpr(igroup))=ndatas(RES_,dest,igrpr(igroup))+nvctr_par(dest,igrpr(igroup))
         end if
      end do
-
      do igroup=1,ngroupp
-        if (jprocsr(4,jproc,igroup) /= -1) then
-           ncommsstep2=ncommsstep2+1
-           call MPI_IRECV(dpsiw(1,1,igroup,irnow2),&
-                nvctr_par(iproc,igrpr(igroup)),mpidtypw,jprocsr(4,jproc,igroup),&
-                jprocsr(4,jproc,igroup)+nproc+2*nproc*jproc,bigdft_mpi%mpi_comm,mpireq2(ncommsstep2),ierr)
+        source=jprocsr(RECV_RES,igroup,istep)
+        if (source /= mpirank_null()) then
+           nres_comms=nres_comms+1
+           call mpirecv(dpsiw(1,1,igroup,irnow2),&
+                nvctr_par(iproc,igrpr(igroup)),source=source,&
+                tag=source+nproc+2*nproc*istep,comm=bigdft_mpi%mpi_comm,request=mpireq2(nres_comms))
+           ndatas(RES_,iproc,igrpr(igroup))=ndatas(RES_,iproc,igrpr(igroup))-nvctr_par(iproc,igrpr(igroup))
         end if
      end do
 
-     if (ncommsstep /=0) then
-        !verify that the messages have been passed
-        !print *,'waiting,iproc',iproc
-        call MPI_WAITALL(ncommsstep,mpireq,mpistat,ierr)
-        if (ierr /=0) print *,'step,ierr',jproc+1,iproc,ierr,mpistat !,MPI_STATUSES_IGNORE
-        !print *,'done,iproc',iproc
-     end if
-     if (jproc>1) isnow2=3-isnow2
+     !verify that the messages have been passed
+     call mpiwaitall(ndata_comms,mpireq)
+
+     if (istep>1) isnow2=3-isnow2
      isnow=3-isnow
-     ncommsstep=0
+     ndata_comms=0
   end do
+
+  if (ngroupp>0) call free_local_data(phi_i)
+
+  !unitary tests of the calculation
+  if (itestproc > -1) then
+     if (nproc > 1) call mpiallred(ndatas,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     !if(iproc ==0)print *,'iproc,datas',iproc,ndatas
+     do igroup=1,ngroupp
+        if (ndatac(igroup) /=0) then
+           write(*,*)'ERROR: OP2P communication simulation failed: processor',iproc,&
+                ' has calculated',ndatac(igroup),' data more than needed'
+           stop
+        end if
+        if (ndatas(DATA_,iproc,igrpr(igroup)) /=0 .or. ndatas(RES_,iproc,igrpr(igroup)) /=0) then
+           write(*,*)'ERROR: OP2P communication simulation failed: processor',iproc,&
+                ' has not a zero balance of send-receive calls',ndatas(:,iproc,igrpr(igroup))
+           stop
+        end if
+     end do
+  end if
 
   !call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
   if (nproc>1) call mpiallred(eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
@@ -2212,9 +2002,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,lr,orbs,&
   call f_free(rp_ij)
   call f_free(psiw)
   call f_free(dpsiw)
-  call f_free(psir)
+!  call f_free(psir)
   call f_free(igrpr)
-  call f_free(igrprarr)
   call f_free(iprocpm1)
   call f_free(jprocsr)
   !call timing(iproc,'Exchangecorr  ','OF')

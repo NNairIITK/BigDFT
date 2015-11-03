@@ -777,7 +777,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(energy_terms),intent(inout):: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(GPU_pointers), intent(inout) :: GPU
-  type(system_fragment), dimension(:), intent(in) :: ref_frags
+  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
   type(cdft_data), intent(inout) :: cdft
 
   ! Local variables
@@ -2174,7 +2174,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        type(energy_terms),intent(inout):: energs
        type(DFT_PSP_projectors), intent(inout) :: nlpsp
        type(GPU_pointers), intent(inout) :: GPU
-       type(system_fragment), dimension(:), intent(in) :: ref_frags
+       type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
        type(cdft_data), intent(inout) :: cdft
      end subroutine input_memory_linear
   end interface

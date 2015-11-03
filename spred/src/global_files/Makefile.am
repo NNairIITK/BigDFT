@@ -1,8 +1,7 @@
 vpath %.h ../modules
 
 
-globalf_objects = \
-               module_globaltool.f90
+globalf_objects = module_globaltool.f90
 
 globalf_SOURCES = $(globalf_objects)
 
@@ -21,5 +20,3 @@ noinst_LIBRARIES = libglobalf.a
 
 libglobalf_a_SOURCES = $(globalf_SOURCES)
 #dependencies
-
-module_globaltool.o: ../modules/BigDFT_API.o

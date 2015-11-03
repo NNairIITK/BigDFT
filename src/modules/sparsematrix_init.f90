@@ -4278,7 +4278,7 @@ contains
       integer,dimension(ncol),intent(in) :: col_ptr
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(nnonzero),intent(in) :: val
-      type(matrices),intent(out) :: mat
+      type(matrices),intent(inout) :: mat
 
       ! Local variables
       integer :: icol, irow, i, ii

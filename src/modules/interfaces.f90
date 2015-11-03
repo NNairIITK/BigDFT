@@ -1353,7 +1353,7 @@ module module_interfaces
        logical, intent(in) :: add_derivatives
        character(len=*), intent(in) :: input_dir
        type(fragmentInputParameters), intent(in) :: input_frag
-       type(system_fragment), dimension(:), intent(in) :: ref_frags
+       type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
        real(gp),intent(out) :: max_shift
      END SUBROUTINE reformat_supportfunctions
   end interface
