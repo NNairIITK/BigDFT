@@ -20,13 +20,15 @@ module overlap_point_to_point
    integer, parameter :: SEND_DATA=1,RECV_DATA=2,SEND_RES=3,RECV_RES=4
    integer, parameter :: DATA_=1,RES_=2
    integer, parameter :: AFTER_=1,BEFORE_=2
+   real(wp), parameter :: group_delta=10.0_wp,obj_delta=1.0_wp,elem_delta=1.e-4_wp
+   
 
    type(f_enumerator), parameter :: OP2P_START=f_enumerator('START',0,null())
    type(f_enumerator), parameter :: OP2P_CALCULATE=f_enumerator('CALCULATE',1,null())
    type(f_enumerator), parameter :: OP2P_EXIT=f_enumerator('EXIT',-1,null())
 
    public :: initialize_OP2P_descriptors,OP2P_communication,OP2P_descriptors,free_OP2P_descriptors
-   public :: local_data_init,set_local_data,free_local_data
+   public :: local_data_init,set_local_data,free_local_data,OP2P_unitary_test
 
    type OP2P_descriptors
       logical :: forsymop !< descriptor for symmetric operation
@@ -39,6 +41,10 @@ module overlap_point_to_point
       integer, dimension(:,:,:,:), pointer :: iprocpm1  !< ascending and descending order for processors in the same group
       integer, dimension(:,:,:,:), pointer :: communication_schedule !< processes to send and receive at each step
    end type OP2P_descriptors
+
+   type, public :: OP2P_pointer
+      real(wp), dimension(:,:), pointer :: ptr
+   end type OP2P_pointer
 
    type, public :: local_data
       integer :: nobj !< number of objects to treat locally
@@ -82,9 +88,9 @@ module overlap_point_to_point
       integer :: mpi_comm !<handle of the communicator
       integer :: ncouples !<total number of couples considered
       !>stores the requests for the data
-      integer, dimension(4) :: requests_data 
+      integer, dimension(:), pointer :: requests_data 
       !>stores the requests for the result
-      integer, dimension(4) :: requests_res
+      integer, dimension(:), pointer :: requests_res
       !>data treated, to be used when simulating to 
       !! see if the calculation is correct
       integer, dimension(:), pointer :: ndatac
@@ -100,9 +106,9 @@ module overlap_point_to_point
       !> id of the objects per rank and per group
       integer, dimension(:,:,:), pointer :: objects_id
       !> work arrays for the communication of the data
-      real(wp), dimension(:,:,:,:), pointer :: dataw
+      type(OP2P_pointer), dimension(:,:), pointer :: dataw
       !> work arrays for the communication of the results, in the symmatric case
-      real(wp), dimension(:,:,:,:), pointer :: resw
+      type(OP2P_pointer), dimension(:,:), pointer :: resw
    end type OP2P_data
 
    contains
@@ -150,9 +156,9 @@ module overlap_point_to_point
         OP2P%ngroupp=-1
         OP2P%ndim=0
         OP2P%mpi_comm=mpicomm_null() !<handle of the communicator
-        OP2P%requests_data=mpirequest_null()
-        OP2P%requests_res=mpirequest_null()
         !then nullifications
+        nullify(OP2P%requests_data)
+        nullify(OP2P%requests_res)
         nullify(OP2P%ndatac)
         nullify(OP2P%ndatas)
         nullify(OP2P%group_id)
@@ -162,6 +168,26 @@ module overlap_point_to_point
         nullify(OP2P%dataw)
         nullify(OP2P%resw)
       end subroutine nullify_OP2P_data
+
+      subroutine free_OP2P_pointer(ptr)
+        implicit none
+        type(OP2P_pointer), dimension(:,:), pointer :: ptr
+        !local variables
+        integer :: i,j
+        integer, dimension(2) :: lb,ub
+
+        if (associated(ptr)) then
+           lb=lbound(ptr)
+           ub=ubound(ptr)
+           do j=lb(2),ub(2)
+              do i=lb(1),ub(1)
+                 call f_free_ptr(ptr(i,j)%ptr)
+              end do
+           end do
+           deallocate(ptr)
+           nullify(ptr)
+        end if
+      end subroutine free_OP2P_pointer
 
      pure function local_data_init(norb,ndim) result(ld)
        implicit none
@@ -175,12 +201,12 @@ module overlap_point_to_point
        ld%nvctr_res=ld%nvctr
      end function local_data_init
 
-     subroutine set_local_data(ld,isorb,ngr,ngr1,ldgr,psir,dpsir)
+     subroutine set_local_data(ld,isorb,psir,dpsir)
        implicit none
        type(local_data), intent(inout) :: ld
-       integer, intent(in) :: isorb,ldgr,ngr1,ngr
-       real(wp), dimension((ld%nvctr/ld%nobj)*ldgr*ngr), intent(in), target :: psir
-       real(wp), dimension((ld%nvctr_res/ld%nobj)*ldgr*ngr), intent(in), target :: dpsir
+       integer, intent(in) :: isorb
+       real(wp), dimension(ld%nvctr), intent(in), target :: psir
+       real(wp), dimension(ld%nvctr_res), intent(in), target, optional :: dpsir
        !local variables
        integer :: iorb,ndim,ntot,jorb
 
@@ -193,34 +219,20 @@ module overlap_point_to_point
           ld%id_glb(iorb)=iorb+isorb
        end do
 
-       if (ngr==1) then
-          ntot=0
-          do iorb=1,ld%nobj
-             ld%displ(iorb)=ntot
-             ld%displ_res(iorb)=ntot
-             ntot=ntot+ndim
-          end do
-       else
-          ntot=0
-          iorb=1
-          do jorb=1,ngr1
-             ld%displ(iorb)=ntot
-             ld%displ_res(iorb)=ntot
-             ntot=ntot+ndim
-             iorb=iorb+1
-          end do
-          ntot=ldgr*ndim
-          do jorb=ngr1,ld%nobj
-             ld%displ(iorb)=ntot
-             ld%displ_res(iorb)=ntot
-             ntot=ntot+ndim
-             iorb=iorb+1
-          end do
-       end if
+       ntot=0
+       do iorb=1,ld%nobj
+          ld%displ(iorb)=ntot
+          ld%displ_res(iorb)=ntot
+          ntot=ntot+ndim
+       end do
 
        !basic pointer association, no further allocation
        ld%data=>psir
-       ld%res=>dpsir
+       if (present(dpsir)) then
+          ld%res=>dpsir
+       else
+          nullify(ld%res)
+       end if
      end subroutine set_local_data
 
      subroutine free_local_data(ld)
@@ -245,7 +257,7 @@ module overlap_point_to_point
 
        !local variables
        integer :: igroup,icount,icountmax,iprocgrs,iprocgrr,jproc,igr,nobjp,nprocgr
-       integer :: istep,nsteps,isobj,iobj_local
+       integer :: istep,nsteps,isobj,iobj_local,i
        integer, dimension(:,:,:), allocatable :: iprocpm1
        
 
@@ -262,10 +274,13 @@ module overlap_point_to_point
        !between the components for each group
        OP2P%ngroupp=0
        do igroup=1,OP2P%ngroup
-          if (nobj_par(iproc,igroup) > 0) then
+          if (OP2P%nobj_par(iproc,igroup) > 0) then
              OP2P%ngroupp=OP2P%ngroupp+1
           end if
        end do
+
+       OP2P%requests_data=f_malloc_ptr(2*OP2P%ngroupp,id='requests_data')
+       OP2P%requests_res= f_malloc_ptr(2*OP2P%ngroupp,id='requests_res')
 
        OP2P%objects_id = f_malloc_ptr((/ 1.to.2, 0.to.nproc-1, 1.to.OP2P%ngroup /),id='objects_id')
 
@@ -381,7 +396,7 @@ module overlap_point_to_point
                    OP2P%ranks(SEND_RES,igroup,istep)=iprocpm1(BEFORE_,istep,igroup)
                    OP2P%ranks(RECV_RES,igroup,istep)=iprocpm1(AFTER_,istep,igroup)
                 end if
-             else
+             else if (symmetric) then
                 OP2P%ranks(SEND_RES,igroup,istep)=iprocpm1(BEFORE_,istep,igroup)
                 OP2P%ranks(RECV_RES,igroup,istep)=iprocpm1(AFTER_,istep,igroup)
              end if
@@ -390,14 +405,37 @@ module overlap_point_to_point
        call f_free(iprocpm1)
 
        !real communication
-       OP2P%iproc_dump=mpirank_null()-1! =no debug verbosity
+       OP2P%iproc_dump=iproc!mpirank_null()-1! =no debug verbosity
 
-       OP2P%dataw= f_malloc0_ptr([OP2P%ndim, maxval(OP2P%nobj_par), OP2P%ngroupp,2],id='dataw')
-       if (symmetric) then
-          OP2P%resw = f_malloc0_ptr([OP2P%ndim, maxval(OP2P%nobj_par), OP2P%ngroupp,3],id='resw')
-       else
-          OP2P%resw = f_malloc0_ptr([1,1,1,1],id='resw') !just to avoid boundary problems
-       end if
+       allocate(OP2P%dataw(OP2P%ngroupp,2))
+       do i=1,2
+          do igroup=1,OP2P%ngroupp
+             OP2P%dataw(igroup,i)%ptr=&
+                  f_malloc_ptr([OP2P%ndim, maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))],&
+                  id='dataw'+yaml_toa(igroup)+yaml_toa(i))
+          end do
+       end do
+
+       allocate(OP2P%resw(OP2P%ngroupp,3))
+       do i=1,3
+          do igroup=1,OP2P%ngroupp
+             if (symmetric) then
+                OP2P%resw(igroup,i)%ptr=&
+                     f_malloc_ptr([OP2P%ndim, maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))],&
+                     id='resw'+yaml_toa(igroup)+yaml_toa(i))
+             else
+                nullify(OP2P%resw(igroup,i)%ptr)
+             end if
+          end do
+       end do
+!!$
+!!$
+!!$       OP2P%dataw= f_malloc0_ptr([OP2P%ndim, maxval(OP2P%nobj_par), OP2P%ngroupp,2],id='dataw')
+!!$       if (symmetric) then
+!!$          OP2P%resw = f_malloc0_ptr([OP2P%ndim, maxval(OP2P%nobj_par), OP2P%ngroupp,3],id='resw')
+!!$       else
+!!$          OP2P%resw = f_malloc0_ptr([1,1,1,1],id='resw') !just to avoid boundary problems
+!!$       end if
        !test array for data sending
        OP2P%ndatas = f_malloc0_ptr([1.to.2, 0.to.nproc-1, 1.to.OP2P%ngroup],id='ndatas')
 
@@ -406,25 +444,49 @@ module overlap_point_to_point
      !> type to control the communication scheduling
      subroutine free_OP2P_data(OP2P)
        type(OP2P_data), intent(inout) :: OP2P
+       !local variables
+       integer :: iproc
+
+       iproc=mpirank(OP2P%mpi_comm)
+       if (any(OP2P%ndatac /=0)) then
+          call f_err_throw('ERROR: OP2P communication simulation failed: processor '&
+               +yaml_toa(iproc)+&
+               ' has calculated'+ yaml_toa(OP2P%ndatac)+&
+               ' data more than needed',err_name='BIGDFT_RUNTIME_ERROR')
+       end if
+
+       !check the total amount of communication and calculations
+       if (mpisize(OP2P%mpi_comm) > 1) &
+            call mpiallred(OP2P%ndatas,MPI_SUM,comm=OP2P%mpi_comm)
+       if (any(OP2P%ndatas(:,iproc,OP2P%group_id) /=0)) then
+          call f_err_throw('ERROR: OP2P communication simulation failed: processor '+yaml_toa(iproc)+&
+               ' has not a zero balance of send-receive calls'+&
+               yaml_toa(reshape(OP2P%ndatas(:,iproc,OP2P%group_id),&
+               [2*OP2P%ngroupp])),&
+               err_name='BIGDFT_RUNTIME_ERROR')
+          stop
+       end if
+
        !then nullifications
+       call f_free_ptr(OP2P%requests_res)
+       call f_free_ptr(OP2P%requests_data)
        call f_free_ptr(OP2P%ndatac)
        call f_free_ptr(OP2P%ndatas)
        call f_free_ptr(OP2P%group_id)
        call f_free_ptr(OP2P%ranks)
        call f_free_ptr(OP2P%nobj_par)
        call f_free_ptr(OP2P%objects_id)
-       call f_free_ptr(OP2P%dataw)
-       call f_free_ptr(OP2P%resw)
+       call free_OP2P_pointer(OP2P%dataw)
+       call free_OP2P_pointer(OP2P%resw)
        call nullify_OP2P_data(OP2P)
      end subroutine free_OP2P_data
 
 
-     subroutine P2P_data(iproc,OP2P,norbp,norbp_max,psir,psiw)
+     subroutine P2P_data(iproc,OP2P,norbp,psir)!,psiw)
        implicit none
-       integer, intent(in) :: iproc,norbp,norbp_max
+       integer, intent(in) :: iproc,norbp!,norbp_max
        type(OP2P_data), intent(inout) :: OP2P
        real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
-       real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,2), intent(inout) :: psiw
        !local variables
        integer :: igroup,dest,source,count,igr,iobj_local
 
@@ -436,15 +498,14 @@ module overlap_point_to_point
              count=OP2P%nobj_par(iproc,igr)*OP2P%ndim
              iobj_local=OP2P%objects_id(LOCAL_,iproc,igr)
              OP2P%ndata_comms=OP2P%ndata_comms+1
-
+print *,'iobjlocal',iobj_local,OP2P%iproc_dump,igr,norbp!,norbp_max
              !send the fixed array to the processor which comes in the list
              OP2P%ndatas(DATA_,dest,igr)=&
-                  OP2P%ndatas(DATA_,dest,igr)+&
-                  OP2P%ndim*OP2P%nobj_par(dest,igr)
+                  OP2P%ndatas(DATA_,dest,igr)+count
              call mpisend(psir(1,iobj_local),count,&
                   dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
-                  verbose= dest==OP2P%iproc_dump,simulate=OP2P%simulate)
+                  verbose=.true.,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
           end if
 
           source=OP2P%ranks(RECV_DATA,igroup,OP2P%istep)
@@ -453,21 +514,21 @@ module overlap_point_to_point
              OP2P%ndata_comms=OP2P%ndata_comms+1
              OP2P%ndatas(DATA_,iproc,igr)=&
                   OP2P%ndatas(DATA_,iproc,igr)-count
-             call mpirecv(psiw(1,1,igroup,OP2P%irecv_data),count,&
+             call mpirecv(OP2P%dataw(igroup,OP2P%irecv_data)%ptr(1,1),count,&!psiw(1,1,igroup,OP2P%irecv_data),count,&
                   source=source,tag=source,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
-                  verbose= source == OP2P%iproc_dump,simulate=OP2P%simulate)
+                  verbose=.true.,simulate=OP2P%simulate) ! source == OP2P%iproc_dump
           end if
        end do
 
      end subroutine P2P_data
 
-     subroutine P2P_res(iproc,OP2P,norbp,norbp_max,dpsir,dpsiw)
+     subroutine P2P_res(iproc,OP2P,norbp,dpsir)!,dpsiw)
        implicit none
-       integer, intent(in) :: iproc,norbp,norbp_max
+       integer, intent(in) :: iproc,norbp!,norbp_max
        type(OP2P_data), intent(inout) :: OP2P
        real(wp), dimension(OP2P%ndim,norbp), intent(inout) :: dpsir
-       real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,3), intent(inout) :: dpsiw
+       !real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,3), intent(inout) :: dpsiw
        !local variables
        integer :: igroup,dest,source,count,igr,iobj_local,nproc
 
@@ -483,14 +544,15 @@ module overlap_point_to_point
              igr=OP2P%group_id(igroup)
              if (source /= mpirank_null()) then
                 if (iproc == OP2P%iproc_dump) then
-                   print '(5(1x,a,i8))','step',OP2P%istep+1,'group:',igr,&
+                   print '(5(1x,a,i8))','step',OP2P%istep,'group:',igr,&
                         ':copying',OP2P%ndim*OP2P%nobj_par(source,igr),&
                         'processed elements from',source,'in',iproc
                 end if
                 OP2P%ndatac(igroup)=OP2P%ndatac(igroup)+&
                      OP2P%ndim*OP2P%nobj_par(source,igr)
                 !WARNING: should here source == iproc?
-                call axpy(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,dpsiw(1,1,igroup,OP2P%irecv_res),1,&
+                call axpy(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),1,&
+                     !dpsiw(1,1,igroup,OP2P%irecv_res),1,&
                      dpsir(1,OP2P%objects_id(LOCAL_,iproc,igr)),1)
              end if
           end do
@@ -505,12 +567,13 @@ module overlap_point_to_point
           if (dest /= mpirank_null()) then
              OP2P%nres_comms=OP2P%nres_comms+1
              count=OP2P%ndim*OP2P%nobj_par(dest,igr)
-             call f_memcpy(n=count,src=dpsiw(1,1,igroup,3),&
-                  dest=dpsiw(1,1,igroup,OP2P%isend_res))
-             call mpisend(dpsiw(1,1,igroup,OP2P%isend_res),&
+             !here we can swap pointers
+             call f_memcpy(src=OP2P%resw(igroup,3)%ptr,&!dpsiw(1,1,igroup,3),&
+                  dest=OP2P%resw(igroup,OP2P%isend_res)%ptr)!dpsiw(1,1,igroup,OP2P%isend_res))
+             call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),&!dpsiw(1,1,igroup,OP2P%isend_res),&
                   count,dest=dest,&
                   tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
-                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate)
+                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=.true.)
              OP2P%ndatas(RES_,dest,igr)=OP2P%ndatas(RES_,dest,igr)+&
                   OP2P%ndim*OP2P%nobj_par(dest,igr)
           end if
@@ -521,25 +584,21 @@ module overlap_point_to_point
           if (source /= mpirank_null()) then
              OP2P%nres_comms=OP2P%nres_comms+1
              count=OP2P%ndim*OP2P%nobj_par(iproc,igr)
-             call mpirecv(dpsiw(1,1,igroup,OP2P%irecv_res),count,&
+             call mpirecv(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
                   source=source,tag=source+nproc+2*nproc*OP2P%istep,&
                   comm=OP2P%mpi_comm,&
-                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate)
-             OP2P%ndatas(RES_,iproc,igr)=OP2P%ndatas(RES_,iproc,igr)-&
-                  OP2P%ndim*OP2P%nobj_par(iproc,igr)
+                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=.true.)
+             OP2P%ndatas(RES_,iproc,igr)=OP2P%ndatas(RES_,iproc,igr)-count
           end if
        end do
 
      end subroutine P2P_res
 
-
-     subroutine prepare_calculation(iproc,OP2P,norbp_max,psiw,dpsiw,phi_i,phi_j,iter)
+     subroutine prepare_calculation(iproc,OP2P,phi_i,phi_j,iter)
        implicit none
-       integer, intent(in) :: iproc,norbp_max
+       integer, intent(in) :: iproc!,norbp_max
        type(OP2P_data), intent(inout) :: OP2P
        type(local_data), intent(inout) :: phi_i,phi_j
-       real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,2), intent(inout) :: psiw
-       real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,3), intent(inout) :: dpsiw
        type(OP2P_iterator), intent(out) :: iter
        !local variables
        integer :: igr,source,isorb,jsorb,jorbs
@@ -556,7 +615,7 @@ module overlap_point_to_point
           OP2P%do_calculation=.true.
           source=OP2P%ranks(RECV_DATA,OP2P%igroup,OP2P%istep-1)
           if (iproc == OP2P%iproc_dump) then
-             print '(5(1x,a,i8))','step',OP2P%istep+1,'group:',igr,&
+             print '(5(1x,a,i8))','step',OP2P%istep,'group:',igr,&
                   ':processing',OP2P%ndim*OP2P%nobj_par(source,igr),&
                   'elements in',iproc,'from',source
           end if
@@ -583,11 +642,18 @@ module overlap_point_to_point
        isorb=OP2P%objects_id(GLOBAL_,iproc,igr)
        jsorb=OP2P%objects_id(GLOBAL_,source,igr)
 
+print *,'iproc,source,isorb,jsorb,',iproc,source,isorb,jsorb,iter%nloc_i,iter%nloc_j,igr
+
        if (OP2P%istep/=0) then
           phi_j=local_data_init(iter%nloc_j,OP2P%ndim)
-          call set_local_data(phi_j,jsorb+iter%isloc_j-1,1,&
-               iter%nloc_j,iter%nloc_j,&
-               psiw(1,1,OP2P%igroup,OP2P%isend_data),dpsiw(1,1,OP2P%igroup,3))
+          if (iter%remote_result) then
+             call set_local_data(phi_j,jsorb,&
+                  OP2P%dataw(OP2P%igroup,OP2P%isend_data)%ptr,OP2P%resw(OP2P%igroup,3)%ptr)
+             !OP2P%dataw(1,1,OP2P%igroup,OP2P%isend_data),OP2P%resw(1,1,OP2P%igroup,3))
+          else
+             call set_local_data(phi_j,jsorb,&
+                  OP2P%dataw(OP2P%igroup,OP2P%isend_data)%ptr)!OP2P%dataw(1,1,OP2P%igroup,OP2P%isend_data))
+          end if
           !jorbs_tmp=1
           iter%isloc_j=1
        else
@@ -596,11 +662,10 @@ module overlap_point_to_point
        end if
      end subroutine prepare_calculation
 
-
-     subroutine OP2P_communication_step(iproc,OP2P,norbp,norbp_max,&
+     subroutine OP2P_communication_step(iproc,OP2P,norbp,&!,norbp_max,&
           iter,phi_i,phi_j,psir,dpsir,event)
        implicit none
-       integer, intent(in) :: iproc,norbp,norbp_max
+       integer, intent(in) :: iproc,norbp!,norbp_max
        type(OP2P_data), intent(inout) :: OP2P
        type(f_enumerator), intent(inout) :: event
        type(OP2P_iterator), intent(out) :: iter
@@ -614,16 +679,18 @@ module overlap_point_to_point
        if (event==OP2P_START) OP2P%istep=0 !to be moved at the initialization
 
        step_loop: do
+print *,'entering',iproc,OP2P%istep,OP2P%do_calculation
           if (.not. OP2P%do_calculation) then
              OP2P%irecv_data=3-OP2P%isend_data
              OP2P%ndata_comms=0
 
-             call P2P_data(iproc,OP2P,norbp,norbp_max,psir,OP2P%dataw)
+             call P2P_data(iproc,OP2P,norbp,psir)!,OP2P%dataw)
 
              do igroup=1,OP2P%ngroupp
                 if (OP2P%istep /= 0 .and. OP2P%ranks(SEND_RES,igroup,OP2P%istep) /= mpirank_null()) then
                    !put to zero the sending element
-                   call f_zero(OP2P%ndim*norbp_max,OP2P%resw(1,1,igroup,3))
+                   !call f_zero(OP2P%ndim*norbp_max,OP2P%resw(1,1,igroup,3))
+                   call f_zero(OP2P%resw(igroup,3)%ptr)
                 end if
              end do
 
@@ -632,7 +699,7 @@ module overlap_point_to_point
           end if
           group_loop: do
              if (.not. OP2P%do_calculation) then
-                call prepare_calculation(iproc,OP2P,norbp_max,OP2P%dataw,OP2P%resw,phi_i,phi_j,iter)
+                call prepare_calculation(iproc,OP2P,phi_i,phi_j,iter)
              end if
 
              if (OP2P%do_calculation .and. event==OP2P_START) then
@@ -649,9 +716,10 @@ module overlap_point_to_point
              if (OP2P%igroup > OP2P%ngroupp) exit group_loop
           end do group_loop
           !if we come here this section can be done nonetheless
-          call P2P_res(iproc,OP2P,norbp,norbp_max,dpsir,OP2P%resw)
+          call P2P_res(iproc,OP2P,norbp,dpsir)!,OP2P%resw)
 
           !verify that the messages have been passed
+print *,'waithere',iproc,OP2P%istep,OP2P%ndata_comms
           call mpiwaitall(OP2P%ndata_comms,OP2P%requests_data)
 
           if (OP2P%istep>1) OP2P%isend_res=3-OP2P%isend_res
@@ -665,7 +733,7 @@ module overlap_point_to_point
      end subroutine OP2P_communication_step
 
      
-     subroutine OP2P_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+     subroutine OP2P_unitary_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
        use yaml_output
        implicit none
        !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
@@ -674,7 +742,7 @@ module overlap_point_to_point
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
        !local variables
        integer :: norbp,ncalls
-       real(wp) :: etot
+       real(wp) :: etot,maxdiff
        type(OP2P_data) :: OP2P
        type(OP2P_iterator) :: iter
        type(local_data) :: phi_i,phi_j
@@ -684,15 +752,18 @@ module overlap_point_to_point
        norbp=sum(nobj_par(iproc,:))
        !allocate and fill the data
        data=f_malloc([ndim,norbp],id='data')
-       res=f_malloc([ndim,norbp],id='res')
+       res=f_malloc0([ndim,norbp],id='res')
 
        !first initialize the OP2P data
        call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
 
+       call test_data(iproc,OP2P,norbp,data)
+
        !then create the local data object
        if (OP2P%ngroupp>0) then
           phi_i=local_data_init(norbp,ndim)
-          call set_local_data(phi_i,OP2P%objects_id(GLOBAL_,iproc,OP2P%group_id(1)),1,norbp,norbp,&
+          print *,'starting',iproc,norbp,OP2P%objects_id(GLOBAL_,iproc,OP2P%group_id(1))
+          call set_local_data(phi_i,OP2P%objects_id(GLOBAL_,iproc,OP2P%group_id(1)),&
                data,res)
        end if
        !example of the usage of the loop
@@ -700,30 +771,38 @@ module overlap_point_to_point
        ncalls=0
        etot=0.0_wp
        OP2P_loop: do 
-          call OP2P_communication_step(iproc,OP2P,norbp,maxval(OP2P%nobj_par),&
+          call OP2P_communication_step(iproc,OP2P,norbp,&!,maxval(OP2P%nobj_par),&
                iter,phi_i,phi_j,data,res,event)
           if (event == OP2P_EXIT) exit 
           !otherwise calculate
           call simulate_OP2P_calculation(iter%istep,iter%remote_result,&
                iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
-               phi_i,phi_j,etot)
+               OP2P%ndim,phi_i,phi_j,etot)
           if (iter%istep == 0) then
              ncalls=ncalls+(iter%nloc_i*(iter%nloc_j+1))/2
           else
              ncalls=ncalls+iter%nloc_i*iter%nloc_j
           end if
-          if (iproc==0) call yaml_comment('OP2P Simulation: '+nint(real(ncalls,gp)/real(OP2P%ncouples,gp)*100.0_gp)**'(i3)'+'%')
+          !if (iproc==0) 
+          call yaml_comment('OP2P Simulation: '+iproc+'-'+iter%istep)
+               !+nint(real(ncalls,gp)/real(OP2P%ncouples,gp)*100.0_gp)**'(i3)'+'%')
        end do OP2P_loop
 
        !free the loop variables
-       call free_OP2P_data(OP2P)
        call free_local_data(phi_i)
 
        !then check that the result coincide with the calculation
+       call check_result(iproc,OP2P,norbp,res,maxdiff)
 
-       call f_free(data)
-       call f_free(res)
-     end subroutine OP2P_test
+!       if (nproc > 1) call mpiallred(maxdiff,1,op=MPI_MAX,comm=OP2P%mpi_comm)
+
+!       if (iproc==0) 
+call yaml_map('OP2P unitary test'+yaml_toa(iproc),maxdiff)
+
+       call free_OP2P_data(OP2P)
+!       call f_free(data)
+!       call f_free(res)
+     end subroutine OP2P_unitary_test
 
      subroutine test_data(iproc,OP2P,norbp,data)
        implicit none
@@ -736,27 +815,85 @@ module overlap_point_to_point
           igr=OP2P%group_id(igroup)
           do iobj=1,OP2P%nobj_par(iproc,igr)
              iobj_glob=OP2P%objects_id(GLOBAL_,iproc,igr)+iobj
-             iobj_loc=OP2P%objects_id(LOCAL_,iproc,igr)+iobj
+             iobj_loc=OP2P%objects_id(LOCAL_,iproc,igr)-1+iobj
              do i=1,OP2P%ndim
-                data(i,iobj_loc)=1.d0!test_value(i,iobj_glob,igr)
+                data(i,iobj_loc)=data_val(i,iobj_glob,igr)
              end do
           end do
        end do
      end subroutine test_data
 
+     subroutine check_result(iproc,OP2P,norbp,res,maxdiff)
+       implicit none
+       integer, intent(in) :: norbp,iproc
+       type(OP2P_data), intent(in) :: OP2P
+       real(wp), dimension(OP2P%ndim,norbp), intent(in) :: res
+       real(wp), intent(out) :: maxdiff
+       !local variables
+       integer :: iobj,igroup,igr,iobj_loc,iobj_glob,i,nobj
+
+       maxdiff=0.0_wp
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          nobj=sum(OP2P%nobj_par(:,igr))
+          do iobj=1,OP2P%nobj_par(iproc,igr)
+
+             iobj_glob=OP2P%objects_id(GLOBAL_,iproc,igr)+iobj
+             iobj_loc=OP2P%objects_id(LOCAL_,iproc,igr)-1+iobj
+             do i=1,OP2P%ndim
+                maxdiff=max(maxdiff,abs(res(i,iobj_loc)-res_val(i,iobj_glob,igr,OP2P%ndim,nobj)))
+             end do
+          end do
+       end do
+     end subroutine check_result
+
+     !>define test value 
+     pure function data_val(i,iobj,igroup)
+       implicit none
+       integer, intent(in) :: i,iobj,igroup
+       real(wp) :: data_val
+       data_val=1.d0!igroup*group_delta*(obj_delta*iobj)*i*elem_delta
+     end function data_val
+
+     !>define the application of the operator to have a test result
+     pure function op_val(ndim,iobj,jobj,igroup)
+       implicit none
+       integer, intent(in) :: iobj,jobj,igroup,ndim
+       real(wp) :: op_val
+
+       op_val=real(ndim,wp)!0.5_wp*(ndim*elem_delta)*(ndim+1)*elem_delta*(group_delta*igroup)**2*obj_delta**2*iobj*jobj
+       
+     end function op_val
+       
+     !>define test result
+     pure function res_val(i,iobj,igroup,ndim,nobj)
+       implicit none
+       integer, intent(in) :: i,iobj,igroup,nobj,ndim
+       real(wp) :: res_val
+       !local variables
+       integer :: jobj
+
+       res_val=0.0_wp
+       do jobj=1,nobj
+          res_val=res_val+op_val(ndim,iobj,jobj,igroup)*data_val(i,jobj,igroup)
+       end do
+       
+     end function res_val
+
    subroutine simulate_OP2P_calculation(istep,remote_result,&
         nloc_i,nloc_j,isloc_i,isloc_j,&
-        phi_i,phi_j,rtot)
+        ndim,phi_i,phi_j,rtot)
      implicit none
      logical, intent(in) :: remote_result
      integer, intent(in) :: istep !<step of the calculation
      integer, intent(in) :: nloc_i,nloc_j !<number of local elements to  be treated
      integer, intent(in) :: isloc_i !<starting point of the elements for phi_i
      integer, intent(in) :: isloc_j !<starting point of the elements for phi_j
+     integer, intent(in) :: ndim
      type(local_data), intent(inout) :: phi_i,phi_j
      real(wp), intent(inout) :: rtot
      !local variables
-     integer :: iorb,jorb,ndim,iorb_glb,jorb_glb,ishift,jshift,ishift_res,jshift_res,i
+     integer :: iorb,jorb,iorb_glb,jorb_glb,ishift,jshift,ishift_res,jshift_res,i
      real(wp) :: rint_ij
      real(gp) :: hfac,hfaci,hfacj,hfac2,ehart
      !loop over all the orbitals
@@ -764,6 +901,7 @@ module overlap_point_to_point
      !do iorb=iorbs,iorbs+norbi-1
 !!$  do ind=1,nloc_i
 !!$     iorb=
+
      do iorb=isloc_i,nloc_i+isloc_i-1
         do jorb=isloc_j,nloc_j+isloc_j-1
            !aliasing
@@ -773,32 +911,33 @@ module overlap_point_to_point
            jshift=phi_j%displ(jorb)
            ishift_res=phi_i%displ_res(iorb)
            jshift_res=phi_j%displ_res(jorb)
+print *,'iorb_glb,jorb_glb,ishift,jshift',istep,iorb_glb,jorb_glb,ishift,jshift
            rint_ij=0.0_wp
            !do it only for upper triangular results 
            if (istep /= 0 .or. jorb_glb >= iorb_glb) then
               do i=1,ndim
                  rint_ij=rint_ij+phi_i%data(i+ishift)*phi_j%data(i+jshift)
               end do
-
               !exact exchange energy
               if (iorb_glb == jorb_glb) then
                  rtot=rtot+rint_ij**2
               else
                  !if the result has to be sent away
                  if (remote_result .or. istep==0) then
-                    rtot=rtot+2.0_gp*rint_ij**2!hfac2*real(ehart,gp)
+                    rtot=rtot+2.0_gp*rint_ij**2
                  else !otherwise other processors are already calculating it
-                    rtot=rtot+rint_ij**2!real(ehart,gp)
+                    rtot=rtot+rint_ij**2
                  end if
               end if
               !accumulate the results for each of the wavefunctions concerned
               !$omp parallel do default(shared) private(i)
               do i=1,ndim
+                 !if (istep >0) print *,'c,a,b',i,phi_i%res(i+ishift_res),rint_ij,phi_j%data(i+jshift)
                  phi_i%res(i+ishift_res)=phi_i%res(i+ishift_res)+rint_ij*phi_j%data(i+jshift)
               end do
               !$omp end parallel do
 
-              if (iorb_glb /= jorb_glb .or. remote_result) then
+              if ((iorb_glb /= jorb_glb .and. istep==0) .or. remote_result) then
                  !$omp parallel do default(shared) private(i)
                  do i=1,ndim
                     phi_j%res(i+jshift_res)=phi_j%res(i+jshift_res)+rint_ij*phi_i%data(i+ishift)

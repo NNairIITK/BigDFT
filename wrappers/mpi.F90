@@ -475,7 +475,7 @@ contains
     end if
     call MPI_COMM_GROUP(mpi_comm,mpigroup,ierr)
     if (ierr /= 0) then
-       mpigroup=-1
+       mpigroup=mpigroup_null()
        call f_err_throw('Problem in group identification, ierr:'//&
             ierr,err_name='BIGDFT_MPI_ERROR')
     end if
@@ -1337,7 +1337,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
-    double precision, intent(inout) :: sendbuf
+    double precision :: sendbuf
     double precision, intent(inout), optional :: recvbuf
     double precision, dimension(:), allocatable :: copybuf
     include 'allreduce-inc.f90'
