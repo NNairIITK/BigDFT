@@ -569,8 +569,7 @@ contains
 !!$    type(dictionary), pointer :: child
 
     !local variables
-    type(dictionary), pointer :: iter
-
+!!$    type(dictionary), pointer :: iter
 !!$    !eliminate recursion
 !!$    iter => child
 !!$    do while(associated(iter))

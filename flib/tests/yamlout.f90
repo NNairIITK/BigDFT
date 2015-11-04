@@ -1,7 +1,7 @@
 !> @file
 !! Routine to tests yaml_output module
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,8 +12,8 @@
 subroutine test_yaml_output1()
   use yaml_output
   implicit none
-  !local variables
-  character, dimension(5) :: totarr
+  !Local variables
+!!$  character, dimension(5) :: totarr
 
   call yaml_mapping_open("Test")
    call yaml_map("Short sentence",.true.)
@@ -83,9 +83,11 @@ end subroutine test_yaml_output1
 !> Second yaml document
 subroutine test_yaml_output2()
   use yaml_output
+  use yaml_strings, only: buffer_string
   implicit none
   !local variables
-  integer :: i
+  character(len=30) :: buf
+  integer :: i,istat
 
   call yaml_mapping_open("Test")
     call yaml_map("I have a very long sentence in order to test if yaml_output fails to print that",.true.)
@@ -127,7 +129,15 @@ subroutine test_yaml_output2()
    call yaml_warning('Test warning 2')
    call yaml_warning('Test warning 1, should not be repeated again')
 
-!stop
+   !Test of buffer_string
+   i=2
+   buf = repeat('-',len(buf))
+   call buffer_string(buf,len(buf),'X',i,.true.,istat)
+   call yaml_map('Test buffer_string (back=.true.)',buf)
+   call yaml_map('Position',i)
+   call buffer_string(buf,len(buf),'X',i,.false.,istat)
+   call yaml_map('Test buffer_string (back=.false.)',buf)
+   call yaml_map('Position',i)
 end subroutine test_yaml_output2
 
 
@@ -141,7 +151,6 @@ subroutine test_yaml_output_sequences1()
   character(len=10), dimension(:), allocatable :: cv
   integer, dimension(:), allocatable :: iv
   real(kind=8), dimension(:), allocatable :: dv
-  
   
   allocate(cv(0))
   allocate(iv(0))

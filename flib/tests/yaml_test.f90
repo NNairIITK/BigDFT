@@ -1,7 +1,7 @@
 !> @file
 !! Test yaml_output module
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -37,9 +37,6 @@ program yaml_test
    
    type(dictionary), pointer :: dict_tmp,run,dict_mp
    type(yaml_cl_parse) :: parser
-   integer :: ilist, imp
-   character(len=2) :: key
-   real(kind=8),dimension(3) :: rxyz
 
    call f_lib_initialize()
    !test output level
@@ -297,7 +294,7 @@ subroutine check_multipoles(parser)
   real(kind=8),dimension(3) :: rxyz
   real(kind=8),dimension(7) :: mp
 
-   !!!before freeing the options just test aputative way of inserting multipoles
+   !!!before freeing the options just test a putative way of inserting multipoles
    !!!first retrieve the dictionary if it has been entered
    dict_mp = parser%args .get. 'test_mp'
    !!call yaml_map('Multipole list found',associated(dict_mp))

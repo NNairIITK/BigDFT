@@ -641,7 +641,7 @@ subroutine test_dictionaries1()
       call yaml_map('i2='+i,dictA2)
       dictA2 => dict_next(dictA2)
    end do
-   
+
    call dict_free(dict_tmp)
 
  end subroutine test_dictionaries1
@@ -779,6 +779,7 @@ subroutine test_dictionary_for_atoms()
 
 
   contains
+
     subroutine print_one_atom(atomname,rxyz,hgrids,id)
       implicit none
       integer, intent(in) :: id
@@ -837,7 +838,8 @@ subroutine test_dictionary_for_atoms()
 
 end subroutine test_dictionary_for_atoms
 
-!> test the usage of the new f_trees structure
+
+!> Test the usage of the new f_trees structure
 subroutine test_f_trees()
   use f_trees
   use yaml_output
@@ -858,7 +860,8 @@ subroutine test_f_trees()
   call f_tree_free(dict1)
 end subroutine test_f_trees
 
-!> this routine consider the usage of dictionaries for intensive data storage (of course to be avoided)
+
+!> This routine consider the usage of dictionaries for intensive data storage (of course to be avoided)
 !! and compares it to the usage of an array for doing similar things
 subroutine profile_dictionary_usage()
   use dictionaries

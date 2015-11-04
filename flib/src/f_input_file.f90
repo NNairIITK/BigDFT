@@ -795,10 +795,11 @@ contains
     !local variables
     integer, parameter :: natoms_dump=500
     logical :: userOnly_,todump
-    integer :: i, dlen, skeys,natoms
-    character(max_field_length), dimension(:), allocatable :: keys
-    character(max_field_length) ::  sourcefile
-    type(dictionary), pointer :: tmp,iter
+!!$    integer :: i, dlen, skeys,natoms
+!!$    character(max_field_length), dimension(:), allocatable :: keys
+!!$    character(max_field_length) ::  sourcefile
+!!$    type(dictionary), pointer :: tmp
+    type(dictionary), pointer :: iter
 
     userOnly_ = .false.
     if (present(userOnly)) userOnly_ = userOnly

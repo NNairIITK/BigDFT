@@ -1,7 +1,7 @@
 !> @file
 !! Test the dynamic memory allocation of the flib library
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -26,16 +26,19 @@ subroutine test_dynamic_memory()
 
    !logical :: fl
    integer :: i
+   complex(kind=8), dimension(:,:), allocatable :: cpot
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
    real(kind=8), dimension(:,:), save, allocatable :: ab
    real(kind=8), dimension(:,:), allocatable :: b
+   integer, dimension(:), pointer :: arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH
+   integer, dimension(:), allocatable :: i_arrA,i_arrB,i_arrC,i_arrD,i_arrE,i_arrF,i_arrG,i_arrH
    integer, dimension(:), allocatable :: i1_all,i1_src
    integer, dimension(:), pointer :: i1_ptr,ptr1
    integer, dimension(:), pointer :: ptr2
 
-   integer,dimension(:,:,:),allocatable :: weight
-   integer,dimension(:,:,:,:),allocatable :: orbital_id
+   integer,dimension(:,:,:), allocatable :: weight
+   integer,dimension(:,:,:,:), allocatable :: orbital_id
    character(len=20), dimension(:), allocatable :: str_arr
    character(len=20), dimension(:), pointer :: str_ptr
 
@@ -331,14 +334,45 @@ call f_free(weight)
    !XC potential
    xc_pot=f_malloc(3*2,id='xc_pot')
 
-   !   call f_malloc_dump_status()
+   ! call f_malloc_dump_status()
    extra_ref=f_malloc_ptr(0,id='extra_ref')
 
    rhopot=f_malloc(3*2,id='rhopot')
-
-    call f_malloc_dump_status()
-
+   call f_malloc_dump_status()
    call f_free(rhopot)
+
+   !Test errors
+   call f_err_open_try()
+   rhopot=f_malloc( (/30,20/),id='rhopot')
+   call f_dump_last_error()
+   cpot=f_malloc(30,id='cpot')
+   call f_dump_last_error()
+   !Allocate a huge amount of memory
+   cpot=f_malloc(huge(1),id="cpot")
+   call f_dump_last_error()
+   call f_err_close_try()
+
+   !Test multiple freed
+   i_arrA = f_malloc(100,id='i_arrA')
+   i_arrB = f_malloc(100,id='i_arrB')
+   i_arrC = f_malloc(100,id='i_arrC')
+   i_arrD = f_malloc(100,id='i_arrD')
+   i_arrE = f_malloc(100,id='i_arrE')
+   i_arrF = f_malloc(100,id='i_arrF')
+   i_arrG = f_malloc(100,id='i_arrG')
+   i_arrH = f_malloc(100,id='i_arrH')
+   call f_free(i_arrA,i_arrB,i_arrC,i_arrD,i_arrE,i_arrF,i_arrG,i_arrH)
+
+   arrayA = f_malloc_ptr(100,id='arrayA')
+   arrayB = f_malloc_ptr(100,id='arrayB')
+   arrayC = f_malloc_ptr(100,id='arrayC')
+   arrayD = f_malloc_ptr(100,id='arrayD')
+   arrayE = f_malloc_ptr(100,id='arrayE')
+   arrayF = f_malloc_ptr(100,id='arrayF')
+   arrayG = f_malloc_ptr(100,id='arrayG')
+   arrayH = f_malloc_ptr(100,id='arrayH')
+   call f_free_ptr(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
+
 !!$
 !!$   !   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
 
@@ -544,8 +578,8 @@ call f_free(weight)
      end subroutine free_dummy
 end subroutine test_dynamic_memory
 
-!> this subroutine performs random allocations and operations on different arrays 
-!! in order to verify if the memory statis is in agreement with the process usage
+!> This subroutine performs random allocations and operations on different arrays 
+!! in order to verify if the memory status is in agreement with the process usage
 subroutine verify_heap_allocation_status()
   use yaml_output
   use yaml_strings
@@ -655,6 +689,7 @@ subroutine verify_heap_allocation_status()
   call f_release_routine()
 end subroutine verify_heap_allocation_status
 
+!> Sandbox routine
 subroutine dynmem_sandbox()
   use yaml_output
   use dictionaries, dict_char_len=> max_field_length
@@ -782,7 +817,7 @@ subroutine test_pointer_association()
   use f_precisions
   use yaml_output
   implicit none
-  type(f_workspace) :: w
+!!$  type(f_workspace) :: w
   real(f_double), dimension(:), pointer :: work1
 
   !example of the allocation

@@ -12,7 +12,7 @@
 module dynamic_memory_base
   use memory_profiling
   use dictionaries, info_length => max_field_length
-  use yaml_strings, only: yaml_toa,yaml_date_and_time_toa,operator(//)
+  use yaml_strings, only: yaml_toa,yaml_date_and_time_toa,operator(//),operator(+)
   use module_f_malloc 
   use f_precisions
   use yaml_parse, only: yaml_a_todict

@@ -4,8 +4,7 @@
      shorthelp                         : Decide what to test (--help for more info)
      shortname                         : t
      help:
-       Usage:
-         Specify, as a yaml list, the functionalities which have to be tested
+       Usage                           : Specify, as a yaml list, the functionalities which have to be tested
        Allowed values:
        - yaml
        - yaml_extras
@@ -25,8 +24,8 @@
      shortname                         : T
      help:
        Usage:
-         Unused option3, just for testing the command line parser, also the long help lines 
-         have to be tested in order to understand if it works
+         Unused option3, just for testing the command line parser, also the long help lines have to be 
+         understand if it works
      conflicts: [test2, test]
    test_mp:
      default                           : None
@@ -39,14 +38,11 @@
    test2                               : 1
  Multipole list found                  :  No
   #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-  #BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
-  #B
-  #CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-  #CC
-  #DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-  #DDD
+  #BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+  #CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+  #DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 ---
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Yaml Output Module Test
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Yaml Output Module Test
  Test:
    Short sentence                      :  Yes
    Foo: {one:  1, two:  2}
@@ -105,6 +101,10 @@
   #WARNING: Test warning 1, should not be repeated again
   #WARNING: Test warning 2
   #WARNING: Test warning 1, should not be repeated again
+ Test buffer_string (back=.true.)      : X-----------------------------
+ Position                              :  3
+ Test buffer_string (back=.false.)     : X--X--------------------------
+ Position                              :  4
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Test warning 1
@@ -784,6 +784,27 @@
      2015-07-03 21:38:20.283
    Process Id:
      0
+ ERR_INVALID_MALLOC:
+   Id                                  : 22
+   Message                             : Invalid specification of f_malloc
+   Action                              : Put coherent data for the memory space allocation
+   Callback Procedure Address          : 5337848
+ Additional Info:
+   Rank specified by f_malloc (2) is not coherent with the one of the array (1)
+ ERR_INVALID_MALLOC:
+   Id                                  : 22
+   Message                             : Invalid specification of f_malloc
+   Action                              : Put coherent data for the memory space allocation
+   Callback Procedure Address          : 5338088
+ Additional Info:
+   Rank specified by f_malloc (1) is not coherent with the one of the array (2)
+ ERR_ALLOCATE:
+   Id                                  : 18
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 5344453
+ Additional Info                       : Allocation problem, error code 5014
  Parsed string:
  -  [elem1, 1.d0, elem2, 3.d0]
  Associated after pop                  :  No
