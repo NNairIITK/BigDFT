@@ -724,6 +724,12 @@ contains
 
   end subroutine mpiinit
 
+  pure function mpiworld()
+    implicit none
+    integer :: mpiworld
+    mpiworld=MPI_COMM_WORLD
+  end function mpiworld
+
   !> Finalization of the mpi
   subroutine mpifinalize()
     use dictionaries, only: f_err_throw

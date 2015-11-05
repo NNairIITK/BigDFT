@@ -20,7 +20,7 @@ module overlap_point_to_point
    integer, parameter :: SEND_DATA=1,RECV_DATA=2,SEND_RES=3,RECV_RES=4
    integer, parameter :: DATA_=1,RES_=2
    integer, parameter :: AFTER_=1,BEFORE_=2
-   real(wp), parameter :: group_delta=10.0_wp,obj_delta=1.0_wp,elem_delta=1.e-4_wp
+   real(wp), parameter :: group_delta=2.0_wp,obj_delta=1.0_wp,elem_delta=1.e-5_wp
    
 
    type(f_enumerator), parameter :: OP2P_START=f_enumerator('START',0,null())
@@ -61,6 +61,7 @@ module overlap_point_to_point
    type, public :: OP2P_iterator
       logical :: remote_result !<the work array for the sending results has to be preparated
       integer :: istep !<step of the calculation
+      integer :: igroup !<group being treated
       integer :: nloc_i,nloc_j !<number of local elements to  be treated
       integer :: isloc_i !<starting point of the elements for phi_i
       integer :: isloc_j !<starting point of the elements for phi_j
@@ -69,6 +70,7 @@ module overlap_point_to_point
    !> type to control the communication scheduling
    type, public :: OP2P_data
       logical :: simulate !<toggle the simulation of the communication
+      logical :: verbose !<verbosiry of the communication
       logical :: do_calculation !<tell is the calculation has to be done
       integer :: iproc_dump !<rank which dumps the communication
       integer :: istep !<actual step of the communication
@@ -117,6 +119,7 @@ module overlap_point_to_point
        implicit none
        type(OP2P_iterator) :: it
        it%remote_result=.false.
+       it%igroup=0
        it%istep=-1
        it%nloc_i=-1
        it%nloc_j=-1
@@ -141,6 +144,7 @@ module overlap_point_to_point
      pure subroutine nullify_OP2P_data(OP2P)
        type(OP2P_data), intent(out) :: OP2P
         OP2P%simulate=.false.
+        OP2P%verbose=.false.
         OP2P%do_calculation=.false. !<tell is the calculation has to be done
         OP2P%iproc_dump=mpirank_null()-1
         OP2P%istep=0
@@ -373,7 +377,7 @@ module overlap_point_to_point
                 !define the arrays for send-receive of data
                 OP2P%ranks(SEND_DATA,igroup,istep)= iprocpm1(AFTER_,istep+1,igroup)
                 OP2P%ranks(RECV_DATA,igroup,istep)= iprocpm1(BEFORE_,istep+1,igroup)
-                if (iproc == OP2P%iproc_dump .and. OP2P%ranks(RECV_DATA,igroup,istep) /= mpirank_null()) then
+                if (OP2P%ranks(RECV_DATA,igroup,istep) /= mpirank_null()) then
                    OP2P%ncouples=OP2P%ncouples+&
                         OP2P%nobj_par(OP2P%ranks(RECV_DATA,igroup,istep),igr)*OP2P%nobj_par(iproc,igr)
                 end if
@@ -405,7 +409,7 @@ module overlap_point_to_point
        call f_free(iprocpm1)
 
        !real communication
-       OP2P%iproc_dump=iproc!mpirank_null()-1! =no debug verbosity
+       OP2P%iproc_dump=mpirank_null()-1! =no debug verbosity
 
        allocate(OP2P%dataw(OP2P%ngroupp,2))
        do i=1,2
@@ -498,14 +502,13 @@ module overlap_point_to_point
              count=OP2P%nobj_par(iproc,igr)*OP2P%ndim
              iobj_local=OP2P%objects_id(LOCAL_,iproc,igr)
              OP2P%ndata_comms=OP2P%ndata_comms+1
-print *,'iobjlocal',iobj_local,OP2P%iproc_dump,igr,norbp!,norbp_max
              !send the fixed array to the processor which comes in the list
              OP2P%ndatas(DATA_,dest,igr)=&
                   OP2P%ndatas(DATA_,dest,igr)+count
              call mpisend(psir(1,iobj_local),count,&
                   dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
-                  verbose=.true.,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
+                  verbose=OP2P%verbose,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
           end if
 
           source=OP2P%ranks(RECV_DATA,igroup,OP2P%istep)
@@ -517,7 +520,7 @@ print *,'iobjlocal',iobj_local,OP2P%iproc_dump,igr,norbp!,norbp_max
              call mpirecv(OP2P%dataw(igroup,OP2P%irecv_data)%ptr(1,1),count,&!psiw(1,1,igroup,OP2P%irecv_data),count,&
                   source=source,tag=source,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
-                  verbose=.true.,simulate=OP2P%simulate) ! source == OP2P%iproc_dump
+                  verbose=OP2P%verbose,simulate=OP2P%simulate) ! source == OP2P%iproc_dump
           end if
        end do
 
@@ -543,14 +546,14 @@ print *,'iobjlocal',iobj_local,OP2P%iproc_dump,igr,norbp!,norbp_max
              source=OP2P%ranks(RECV_RES,igroup,OP2P%istep-1)
              igr=OP2P%group_id(igroup)
              if (source /= mpirank_null()) then
-                if (iproc == OP2P%iproc_dump) then
+                if (OP2P%verbose) then
                    print '(5(1x,a,i8))','step',OP2P%istep,'group:',igr,&
-                        ':copying',OP2P%ndim*OP2P%nobj_par(source,igr),&
+                        ':copying',OP2P%ndim*OP2P%nobj_par(iproc,igr),&
                         'processed elements from',source,'in',iproc
                 end if
                 OP2P%ndatac(igroup)=OP2P%ndatac(igroup)+&
                      OP2P%ndim*OP2P%nobj_par(source,igr)
-                !WARNING: should here source == iproc?
+
                 call axpy(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),1,&
                      !dpsiw(1,1,igroup,OP2P%irecv_res),1,&
                      dpsir(1,OP2P%objects_id(LOCAL_,iproc,igr)),1)
@@ -573,7 +576,7 @@ print *,'iobjlocal',iobj_local,OP2P%iproc_dump,igr,norbp!,norbp_max
              call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),&!dpsiw(1,1,igroup,OP2P%isend_res),&
                   count,dest=dest,&
                   tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
-                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=.true.)
+                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
              OP2P%ndatas(RES_,dest,igr)=OP2P%ndatas(RES_,dest,igr)+&
                   OP2P%ndim*OP2P%nobj_par(dest,igr)
           end if
@@ -584,10 +587,10 @@ print *,'iobjlocal',iobj_local,OP2P%iproc_dump,igr,norbp!,norbp_max
           if (source /= mpirank_null()) then
              OP2P%nres_comms=OP2P%nres_comms+1
              count=OP2P%ndim*OP2P%nobj_par(iproc,igr)
-             call mpirecv(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
+             call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
                   source=source,tag=source+nproc+2*nproc*OP2P%istep,&
                   comm=OP2P%mpi_comm,&
-                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=.true.)
+                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
              OP2P%ndatas(RES_,iproc,igr)=OP2P%ndatas(RES_,iproc,igr)-count
           end if
        end do
@@ -605,7 +608,7 @@ print *,'iobjlocal',iobj_local,OP2P%iproc_dump,igr,norbp!,norbp_max
 
        igr=OP2P%group_id(OP2P%igroup)
        iter=OP2P_iter_null()
-
+       iter%igroup=igr
        iter%istep=OP2P%istep
 
        if (OP2P%istep == 0) then
@@ -642,8 +645,6 @@ print *,'iobjlocal',iobj_local,OP2P%iproc_dump,igr,norbp!,norbp_max
        isorb=OP2P%objects_id(GLOBAL_,iproc,igr)
        jsorb=OP2P%objects_id(GLOBAL_,source,igr)
 
-print *,'iproc,source,isorb,jsorb,',iproc,source,isorb,jsorb,iter%nloc_i,iter%nloc_j,igr
-
        if (OP2P%istep/=0) then
           phi_j=local_data_init(iter%nloc_j,OP2P%ndim)
           if (iter%remote_result) then
@@ -679,7 +680,6 @@ print *,'iproc,source,isorb,jsorb,',iproc,source,isorb,jsorb,iter%nloc_i,iter%nl
        if (event==OP2P_START) OP2P%istep=0 !to be moved at the initialization
 
        step_loop: do
-print *,'entering',iproc,OP2P%istep,OP2P%do_calculation
           if (.not. OP2P%do_calculation) then
              OP2P%irecv_data=3-OP2P%isend_data
              OP2P%ndata_comms=0
@@ -719,7 +719,6 @@ print *,'entering',iproc,OP2P%istep,OP2P%do_calculation
           call P2P_res(iproc,OP2P,norbp,dpsir)!,OP2P%resw)
 
           !verify that the messages have been passed
-print *,'waithere',iproc,OP2P%istep,OP2P%ndata_comms
           call mpiwaitall(OP2P%ndata_comms,OP2P%requests_data)
 
           if (OP2P%istep>1) OP2P%isend_res=3-OP2P%isend_res
@@ -762,7 +761,6 @@ print *,'waithere',iproc,OP2P%istep,OP2P%ndata_comms
        !then create the local data object
        if (OP2P%ngroupp>0) then
           phi_i=local_data_init(norbp,ndim)
-          print *,'starting',iproc,norbp,OP2P%objects_id(GLOBAL_,iproc,OP2P%group_id(1))
           call set_local_data(phi_i,OP2P%objects_id(GLOBAL_,iproc,OP2P%group_id(1)),&
                data,res)
        end if
@@ -775,7 +773,7 @@ print *,'waithere',iproc,OP2P%istep,OP2P%ndata_comms
                iter,phi_i,phi_j,data,res,event)
           if (event == OP2P_EXIT) exit 
           !otherwise calculate
-          call simulate_OP2P_calculation(iter%istep,iter%remote_result,&
+          call simulate_OP2P_calculation(iter%igroup,iter%istep,iter%remote_result,&
                iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
                OP2P%ndim,phi_i,phi_j,etot)
           if (iter%istep == 0) then
@@ -783,9 +781,8 @@ print *,'waithere',iproc,OP2P%istep,OP2P%ndata_comms
           else
              ncalls=ncalls+iter%nloc_i*iter%nloc_j
           end if
-          !if (iproc==0) 
-          call yaml_comment('OP2P Simulation: '+iproc+'-'+iter%istep)
-               !+nint(real(ncalls,gp)/real(OP2P%ncouples,gp)*100.0_gp)**'(i3)'+'%')
+          if (iproc==0) call yaml_comment('OP2P Simulation: '+&
+               nint(real(ncalls,gp)/real(OP2P%ncouples,gp)*100.0_gp)**'(i3)'+'%')
        end do OP2P_loop
 
        !free the loop variables
@@ -794,14 +791,13 @@ print *,'waithere',iproc,OP2P%istep,OP2P%ndata_comms
        !then check that the result coincide with the calculation
        call check_result(iproc,OP2P,norbp,res,maxdiff)
 
-!       if (nproc > 1) call mpiallred(maxdiff,1,op=MPI_MAX,comm=OP2P%mpi_comm)
+       if (nproc > 1) call mpiallred(maxdiff,1,op=MPI_MAX,comm=OP2P%mpi_comm)
 
-!       if (iproc==0) 
-call yaml_map('OP2P unitary test'+yaml_toa(iproc),maxdiff)
+       if (iproc==0) call yaml_map('OP2P unitary test error',maxdiff)
 
        call free_OP2P_data(OP2P)
-!       call f_free(data)
-!       call f_free(res)
+       call f_free(data)
+       call f_free(res)
      end subroutine OP2P_unitary_test
 
      subroutine test_data(iproc,OP2P,norbp,data)
@@ -831,6 +827,7 @@ call yaml_map('OP2P unitary test'+yaml_toa(iproc),maxdiff)
        real(wp), intent(out) :: maxdiff
        !local variables
        integer :: iobj,igroup,igr,iobj_loc,iobj_glob,i,nobj
+       real(wp) :: ref
 
        maxdiff=0.0_wp
        do igroup=1,OP2P%ngroupp
@@ -840,8 +837,12 @@ call yaml_map('OP2P unitary test'+yaml_toa(iproc),maxdiff)
 
              iobj_glob=OP2P%objects_id(GLOBAL_,iproc,igr)+iobj
              iobj_loc=OP2P%objects_id(LOCAL_,iproc,igr)-1+iobj
+!!$             ref=
+!!$             print *,'res',nobj,res(1,iobj_loc),res_val(1,iobj_glob,igr,OP2P%ndim,nobj),&
+!!$                  (res(1,iobj_loc)-res_val(1,iobj_glob,igr,OP2P%ndim))/OP2P%ndim
              do i=1,OP2P%ndim
-                maxdiff=max(maxdiff,abs(res(i,iobj_loc)-res_val(i,iobj_glob,igr,OP2P%ndim,nobj)))
+                ref=res_val(i,iobj_glob,igr,OP2P%ndim,mpisize(OP2P%mpi_comm),OP2P%ngroup,OP2P%nobj_par)
+                maxdiff=max(maxdiff,abs(res(i,iobj_loc)-ref))
              end do
           end do
        end do
@@ -852,7 +853,8 @@ call yaml_map('OP2P unitary test'+yaml_toa(iproc),maxdiff)
        implicit none
        integer, intent(in) :: i,iobj,igroup
        real(wp) :: data_val
-       data_val=1.d0!igroup*group_delta*(obj_delta*iobj)*i*elem_delta
+       !1.0_wp
+       data_val=(obj_delta*iobj)*(igroup)*group_delta!*i*elem_delta   
      end function data_val
 
      !>define the application of the operator to have a test result
@@ -860,31 +862,45 @@ call yaml_map('OP2P unitary test'+yaml_toa(iproc),maxdiff)
        implicit none
        integer, intent(in) :: iobj,jobj,igroup,ndim
        real(wp) :: op_val
+       !local variables
+       real(wp) :: els
 
-       op_val=real(ndim,wp)!0.5_wp*(ndim*elem_delta)*(ndim+1)*elem_delta*(group_delta*igroup)**2*obj_delta**2*iobj*jobj
+       els=real(ndim,wp)!0.5_wp*elem_delta**2*ndim*(ndim+1)!
+       op_val=(els*obj_delta**2)*iobj*jobj*(group_delta*(igroup))**2
        
      end function op_val
        
      !>define test result
-     pure function res_val(i,iobj,igroup,ndim,nobj)
+     !pure 
+     function res_val(i,iobj,igroup,ndim,nproc,ngroup,nobj_par)
        implicit none
-       integer, intent(in) :: i,iobj,igroup,nobj,ndim
+       integer, intent(in) :: i,iobj,igroup,ndim,nproc,ngroup
+       integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
        real(wp) :: res_val
        !local variables
-       integer :: jobj
+       integer :: jobj,jproc,kobj,jgroup
 
        res_val=0.0_wp
-       do jobj=1,nobj
-          res_val=res_val+op_val(ndim,iobj,jobj,igroup)*data_val(i,jobj,igroup)
+       kobj=0
+       do jproc=0,nproc-1
+          do jgroup=1,ngroup
+             do jobj=1,nobj_par(jproc,jgroup)
+                kobj=kobj+1
+                if (jgroup==igroup) res_val=res_val+&
+                     op_val(ndim,iobj,kobj,igroup)*data_val(i,kobj,igroup)
+             end do
+          end do
        end do
        
      end function res_val
 
-   subroutine simulate_OP2P_calculation(istep,remote_result,&
+   subroutine simulate_OP2P_calculation(igroup,istep,remote_result,&
         nloc_i,nloc_j,isloc_i,isloc_j,&
         ndim,phi_i,phi_j,rtot)
+     use yaml_output, only: yaml_map
      implicit none
      logical, intent(in) :: remote_result
+     integer, intent(in) :: igroup
      integer, intent(in) :: istep !<step of the calculation
      integer, intent(in) :: nloc_i,nloc_j !<number of local elements to  be treated
      integer, intent(in) :: isloc_i !<starting point of the elements for phi_i
@@ -898,10 +914,6 @@ call yaml_map('OP2P unitary test'+yaml_toa(iproc),maxdiff)
      real(gp) :: hfac,hfaci,hfacj,hfac2,ehart
      !loop over all the orbitals
      !for the first step do only the upper triangular part
-     !do iorb=iorbs,iorbs+norbi-1
-!!$  do ind=1,nloc_i
-!!$     iorb=
-
      do iorb=isloc_i,nloc_i+isloc_i-1
         do jorb=isloc_j,nloc_j+isloc_j-1
            !aliasing
@@ -911,13 +923,15 @@ call yaml_map('OP2P unitary test'+yaml_toa(iproc),maxdiff)
            jshift=phi_j%displ(jorb)
            ishift_res=phi_i%displ_res(iorb)
            jshift_res=phi_j%displ_res(jorb)
-print *,'iorb_glb,jorb_glb,ishift,jshift',istep,iorb_glb,jorb_glb,ishift,jshift
            rint_ij=0.0_wp
            !do it only for upper triangular results 
            if (istep /= 0 .or. jorb_glb >= iorb_glb) then
               do i=1,ndim
                  rint_ij=rint_ij+phi_i%data(i+ishift)*phi_j%data(i+jshift)
               end do
+              if (abs(rint_ij-op_val(ndim,iorb_glb,jorb_glb,igroup)) > 0.1_wp*obj_delta**2) &
+                   call yaml_map('Error for orbs '+yaml_toa([iorb_glb,jorb_glb]),&
+                   [rint_ij,op_val(ndim,iorb_glb,jorb_glb,igroup)])
               !exact exchange energy
               if (iorb_glb == jorb_glb) then
                  rtot=rtot+rint_ij**2
@@ -932,7 +946,6 @@ print *,'iorb_glb,jorb_glb,ishift,jshift',istep,iorb_glb,jorb_glb,ishift,jshift
               !accumulate the results for each of the wavefunctions concerned
               !$omp parallel do default(shared) private(i)
               do i=1,ndim
-                 !if (istep >0) print *,'c,a,b',i,phi_i%res(i+ishift_res),rint_ij,phi_j%data(i+jshift)
                  phi_i%res(i+ishift_res)=phi_i%res(i+ishift_res)+rint_ij*phi_j%data(i+jshift)
               end do
               !$omp end parallel do
@@ -1084,7 +1097,6 @@ print *,'iorb_glb,jorb_glb,ishift,jshift',istep,iorb_glb,jorb_glb,ishift,jshift
          OP2P%ngroupp_max=max(OP2P%ngroupp_max,OP2P%ngroupp(jproc))
       end do
 
-      !print *,'ngroupp_max,nproc,ngroupp',ngroupp_max,nproc,ngroupp
 
       OP2P%nprocgr = f_malloc_ptr(OP2P%ngroup,id='OP2P%nprocgr')
 
@@ -1156,7 +1168,8 @@ print *,'iorb_glb,jorb_glb,ishift,jshift',istep,iorb_glb,jorb_glb,ishift,jshift
       do jproc=0,nproc-1
          do igroup=1,OP2P%ngroupp(jproc)
             if (OP2P%forsymop) then
-               nstepsm1=(OP2P%nprocgr(OP2P%igrpr(igroup,jproc))-1)/2-1 !here the number of steps should be changed for non-symmetric operation
+               !here the number of steps should be changed for non-symmetric operation
+               nstepsm1=(OP2P%nprocgr(OP2P%igrpr(igroup,jproc))-1)/2-1
             else
                nstepsm1=(OP2P%nprocgr(OP2P%igrpr(igroup,jproc))-1)
             end if
