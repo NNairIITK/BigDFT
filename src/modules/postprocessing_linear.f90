@@ -2864,15 +2864,18 @@ module postprocessing_linear
    type(DFT_local_fields), intent(inout) :: denspot
    real(kind=8),dimension(-lmax:lmax,0:lmax,tmb%orbs%norb),optional :: multipoles
  
-   integer :: ist, istr, iorb, iiorb, ilr, i, iat, iter
-   real(kind=8),dimension(1) :: rmax
+   integer :: ist, istr, iorb, iiorb, ilr, i, iat, iter, itype
+   real(kind=8),dimension(:),allocatable :: rmax
+   real(kind=8),dimension(:,:),allocatable :: centers
    real(kind=8),dimension(3) :: charge_center_elec
    real(kind=8),dimension(:),allocatable :: phir, phir_one
    type(workarr_sumrho) :: w
    character(len=20) :: atomname
+   integer,dimension(:),allocatable :: iatype_tmp
  
    call f_routine(id='support_function_multipoles')
  
+   rmax = f_malloc0(tmb%orbs%norb,id='rmax')
    phir = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir')
    phir_one = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir_one')
    phir_one = 1.d0
@@ -2912,11 +2915,11 @@ module postprocessing_linear
                call multipole_analysis_core(0, 1, 1, 0, 1, 1, 1, &
                     (/1/), (/1/), (/1/), (/1/), &
                     (/tmb%lzd%Llr(ilr)%d%n1i/), (/tmb%lzd%Llr(ilr)%d%n2i/), (/tmb%lzd%Llr(ilr)%d%n3i/), &
-                    (/tmb%lzd%Llr(ilr)%nsi1/), (/tmb%lzd%Llr(ilr)%nsi2/), (/tmb%lzd%Llr(ilr)%nsi3/), rmax, &
+                    (/tmb%lzd%Llr(ilr)%nsi1/), (/tmb%lzd%Llr(ilr)%nsi2/), (/tmb%lzd%Llr(ilr)%nsi3/), rmax(iiorb), &
                     tmb%lzd%hgrids, tmb%lzd%llr(ilr)%locregcenter, &
                     tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i, &
                     phir(istr), phir_one(istr), &
-                    1, (/1.d0/), multipoles(:,:,iiorb), rmax, 102, matrixindex=(/1/))
+                    1, (/1.d0/), multipoles(:,:,iiorb), rmax(iiorb), 102, matrixindex=(/1/))
            end if
            !write(*,*) 'charge_center', charge_center_elec
            ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
@@ -2930,35 +2933,50 @@ module postprocessing_linear
  
        if (bigdft_mpi%nproc>1) then
            call mpiallred(multipoles, mpi_sum, comm=bigdft_mpi%mpi_comm)
+           call mpiallred(rmax, mpi_sum, comm=bigdft_mpi%mpi_comm)
        end if
  
        if (iproc==0) then
            call yaml_sequence_open('Gross support functions moments (iter='//trim(adjustl(yaml_toa(iter)))//')')
+           !do iorb=1,tmb%orbs%norb
+           !    iat=tmb%orbs%onwhichatom(iorb)
+           !    atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
+           !    call yaml_sequence_open('number'//trim(yaml_toa(iorb))// &
+           !         ' (atom number ='//trim(yaml_toa(iat))//', type = '//trim(atomname)//')')
+           !    call yaml_sequence(advance='no')
+           !    call yaml_map('monopole',multipoles(0,0,iorb),fmt='(es18.10)')
+           !    call yaml_map('dinopole',multipoles(-1:1,1,iorb),fmt='(es18.10)')
+           !    !call yaml_sequence(advance='no')
+           !    !call yaml_sequence_open('net quadropole')
+           !    !do i=1,3
+           !    !   call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3,iorb),fmt='(es15.8)')))
+           !    !end do
+           !    !call yaml_sequence_close()
+           !    call yaml_sequence_close()
+           !end do
+           !do iorb=1,tmb%orbs%norb
+           !    call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), 'letssee', &
+           !         multipoles(:,:,iorb), rmax, tmb%lzd%hgrids, without_normalization=.true.)
+           !end do
+           iatype_tmp = f_malloc(tmb%orbs%norb,id='iatype_tmp')
+           centers = f_malloc((/3,tmb%orbs%norb/),id='centers')
            do iorb=1,tmb%orbs%norb
-               iat=tmb%orbs%onwhichatom(iorb)
-               atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
-               call yaml_sequence_open('number'//trim(yaml_toa(iorb))// &
-                    ' (atom number ='//trim(yaml_toa(iat))//', type = '//trim(atomname)//')')
-               call yaml_sequence(advance='no')
-               call yaml_map('monopole',multipoles(0,0,iorb),fmt='(es18.10)')
-               call yaml_map('dinopole',multipoles(-1:1,1,iorb),fmt='(es18.10)')
-               !call yaml_sequence(advance='no')
-               !call yaml_sequence_open('net quadropole')
-               !do i=1,3
-               !   call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3,iorb),fmt='(es15.8)')))
-               !end do
-               !call yaml_sequence_close()
-               call yaml_sequence_close()
+               iat = tmb%orbs%onwhichatom(iorb)
+               ilr = tmb%orbs%inwhichlocreg(iorb)
+               itype = atoms%astruct%iatype(iat)
+               iatype_tmp(iorb) = itype
+               centers(1:3,iorb) = tmb%lzd%llr(ilr)%locregcenter(1:3)
            end do
+           call write_multipoles_new(tmb%orbs%norb, atoms%astruct%ntypes, iatype_tmp, &
+                atoms%astruct%atomnames, centers, atoms%astruct%units, &
+                multipoles, rmax, tmb%lzd%hgrids, without_normalization=.false.)
+           call f_free(centers)
            call yaml_sequence_close()
-           do iorb=1,tmb%orbs%norb
-               call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), 'letssee', &
-                    multipoles(:,:,iorb), rmax, tmb%lzd%hgrids, without_normalization=.true.)
-            end do
        end if
 
    end do iter_loop
  
+   call f_free(rmax)
    call f_free(phir)
    call f_free(phir_one)
    call f_release_routine()

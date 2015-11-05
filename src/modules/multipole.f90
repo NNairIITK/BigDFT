@@ -1386,6 +1386,7 @@ module multipole
       
       ! Local variables
       character(len=20) :: atomname
+      character(len=9) :: function_type
       integer :: i, iat, l, m, nit
       real(kind=8) :: max_error, factor, convert_units!, get_normalization, get_test_factor
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
@@ -1454,6 +1455,8 @@ module multipole
                   end do
                   !call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
                   !call yaml_sequence_close()
+                  function_type = guess_type(multipoles_tmp(:,:,iat))
+                  call yaml_map('type',trim(function_type))
               end do
               call yaml_sequence_close()
               if (i==2) then
@@ -1464,6 +1467,66 @@ module multipole
 
 
           call f_free(multipoles_tmp)
+
+
+          contains
+            ! Try to guess the type (s, p, etc.) of a support function
+            function guess_type(mp) result(gt)
+              implicit none
+              ! Calling arguments
+              real(kind=8),dimension(-lmax:lmax,0:lmax),intent(in) :: mp
+              character(len=9) :: gt
+              ! Local variables
+              integer :: il, im, ilmax, immax
+              real(kind=8) :: maxvalue1, maxvalue2
+
+              
+              ! A type is recognized if an element is at least four times as large as all other elements
+              maxvalue1 = 0.d0 !the largest element
+              maxvalue2 = 0.d0 !the second largest element
+              do il=0,lmax
+                  do im=-il,il
+                      if (abs(mp(im,il))>maxvalue1) then
+                          maxvalue2 = maxvalue1
+                          maxvalue1 = abs(mp(im,il))
+                          ilmax = il
+                          immax = im
+                      end if
+                  end do
+              end do
+              if (maxvalue1 > 4.d0*maxvalue2) then
+                  ! type recognized
+                  select case (ilmax)
+                  case (0)
+                      gt = 's'
+                  case (1)
+                      select case(immax)
+                      case (-1)
+                          gt = 'p_y'
+                      case ( 0)
+                          gt = 'p_z'
+                      case ( 1)
+                          gt = 'p_x'
+                      end select
+                  case (2)
+                      select case(immax)
+                      case (-2)
+                          gt = 'd_xy'
+                      case (-1)
+                          gt = 'd_yz'
+                      case ( 0)
+                          gt = 'd_z^2'
+                      case ( 1)
+                          gt = 'd_xz'
+                      case ( 2)
+                          gt = 'd_x^2-y^2'
+                      end select
+                  end select
+              else
+                  ! type unknown
+                  gt = 'unknown'
+              end if
+            end function guess_type
 
     end subroutine write_multipoles_new
 

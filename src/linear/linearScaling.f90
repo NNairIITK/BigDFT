@@ -2523,6 +2523,9 @@ end if
           call yaml_mapping_close()
       end if
       call support_function_multipoles(iproc, tmb, at, denspot)
+      multipoles = f_malloc0((/-lmax.to.lmax,0.to.lmax,1.to.tmb%orbs%norb/),id='multipoles')
+      call support_function_gross_multipoles(iproc, tmb, at, denspot, multipoles)
+      call f_free(multipoles)
 
   end if
 
