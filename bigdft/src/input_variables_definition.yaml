@@ -708,6 +708,7 @@
        bmhtf: Born Mayer Huggins Tosi Fumi Potential
        cp2k: CP2K
        dftbp: DFTP+
+       sw: Stillinger-Weber for Si
        multi: Mixed approach where parts of the system are treated with different methods
      default: dft
    mm_paramset:

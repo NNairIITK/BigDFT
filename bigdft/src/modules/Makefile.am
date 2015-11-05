@@ -101,7 +101,8 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	$(BLACS) \
 	configure.c \
 	$(cp2k_interfacemod) \
-	module_dftbp.f90
+	module_dftbp.f90 \
+	sw_potential.f90
 
 # Modules
 if CAPITALIZE
@@ -169,7 +170,8 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
         MODULE_DFTBP.@MODULE_EXT@ \
 	ORBITALBASIS.@MODULE_EXT@ \
-	MODULE_CP2K.@MODULE_EXT@
+	MODULE_CP2K.@MODULE_EXT@ \
+	SWPOTENTIAL.@MODULE_EXT@
 else
 modules = module_types.@MODULE_EXT@ \
 	module_mixing.@MODULE_EXT@ \
@@ -235,7 +237,8 @@ modules = module_types.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@ \
 	orbitalbasis.@MODULE_EXT@ \
         module_dftbp.@MODULE_EXT@ \
-	module_cp2k.@MODULE_EXT@
+	module_cp2k.@MODULE_EXT@ \
+	swpotential.@MODULE_EXT@
 endif
 
 AO_INCLUDES = eleconf-inc.f90 
@@ -287,7 +290,7 @@ foe_common.o: foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
 fermi_level.o: foe_common.o
 gaussdaub.o: gaussians.o psp_projectors_base.o
 #module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o sw_potential.o
 #ab7_mixing.o: defs.o
 #module_lj.o: base.o defs.o
 #module_cp2k.o: base.o defs.o
@@ -315,6 +318,7 @@ orthonormalization.o: types.o communications_base.o communications.o sparsematri
 bounds.o: types.o locregs.o
 locregs_init.o: types.o communications.o bounds.o
 forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o locregs.o
+sw_potential.o: atoms_data.o xc.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

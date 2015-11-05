@@ -480,6 +480,7 @@ module public_enums
   type(f_enumerator), parameter, public :: CP2K_RUN_MODE         =f_enumerator('CP2K_RUN_MODE',-991,null())
   type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
   type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-989,null())
+  type(f_enumerator), parameter, public :: SW_RUN_MODE         =f_enumerator('SW_RUN_MODE',-988,null())
 
 end module public_enums
 

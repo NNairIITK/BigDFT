@@ -46,6 +46,7 @@ module bigdft_run
   !> Public container to be used with bigdft_state().
   type, public :: run_objects
      type(f_enumerator), pointer :: run_mode
+     character(len = max_field_length) :: label
      !> user input specifications
      type(dictionary), pointer :: user_inputs
      !> structure of BigDFT input variables
@@ -177,6 +178,7 @@ contains
     use module_lenosky_si
     use module_cp2k
     use yaml_output
+    use SWpotential
     implicit none
     type(MM_restart_objects), intent(inout) :: mm_rst
     type(input_variables), intent(in) :: inputs
@@ -267,6 +269,12 @@ contains
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
        call init_cp2k(inputs%mm_paramfile,astruct%geocode)
+    case ('SW_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       !@todo SW is missing the rescalling here.
+       call init_potential_SW(astruct%nat, astruct%ntypes, ixc = inputs%ixc)
     case default
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -283,6 +291,7 @@ contains
     use module_BornMayerHugginsTosiFumi
     use f_enums, enum_int => int
     use yaml_strings
+    use SWpotential
     implicit none
     type(MM_restart_objects), intent(inout) :: mm_rst
     !check if the object can be freed
@@ -294,6 +303,8 @@ contains
        call finalize_bmhtf()
     case('CP2K_RUN_MODE') ! CP2K run mode
        call finalize_cp2k()
+    case('SW_RUN_MODE')
+       call free_potential_SW()
     case default
     end select
 
@@ -818,6 +829,7 @@ contains
     use module_types
     implicit none
     type(run_objects), intent(out) :: runObj
+    write(runObj%label, "(A)") " "
     nullify(runObj%run_mode)
     nullify(runObj%user_inputs)
     nullify(runObj%inputs)
@@ -1018,10 +1030,8 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
 
-    integer :: ln, i, iat
+    integer :: ln, i
     type(dictionary), pointer :: sect
-    logical, dimension(:), allocatable :: mask, passivation
-    integer, dimension(:), allocatable :: buf
     type(atomic_structure) :: asub
     character(len = max_field_length) :: mode
 
@@ -1039,10 +1049,11 @@ contains
     ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     if (ln == 0) return
 
-    buf = f_malloc(ln, id = "buf")
-    buf = runObj%user_inputs // MODE_VARIABLES // SECTION_BUFFER
-    passivation = f_malloc(ln, id = "passivation")
-    passivation = runObj%user_inputs // MODE_VARIABLES // SECTION_PASSIVATION
+    runObj%inputs%multi_buf = f_malloc_ptr(ln, id = "in%multi_buf")
+    runObj%inputs%multi_buf = runObj%user_inputs // MODE_VARIABLES // SECTION_BUFFER
+    runObj%inputs%multi_pass = f_malloc_ptr(ln, id = "in%multi_pass")
+    runObj%inputs%multi_pass = runObj%user_inputs // MODE_VARIABLES // SECTION_PASSIVATION
+          
     allocate(runObj%sections(ln))
     sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
     do while (associated(sect))
@@ -1052,22 +1063,15 @@ contains
        runObj%sections(i)%user_inputs => runObj%user_inputs // dict_value(sect)
        ! Generate posinp if necessary.
        if (POSINP .notin. runObj%sections(i)%user_inputs) then
-          ! Generate the mask from the MODE atomic attribute.
-          mask = f_malloc(runObj%atoms%astruct%nat, id = "mask")
-          do iat = 1, runObj%atoms%astruct%nat
-             call astruct_at_from_dict(runObj%atoms%astruct%attributes(iat)%d, mode = mode)
-             mask(iat) = (mode == dict_value(sect)) .or. &
-                  & (i == ln .and. len_trim(mode) == 0)
-          end do
-          call astruct_from_subset(asub, runObj%atoms%astruct, runObj%atoms%astruct%rxyz, &
-               & mask, passivation(i), buf(i), "yes")
-          call f_free(mask)
+          call multi_mode_extract(asub, runObj, trim(dict_value(sect)), &
+               & runObj%inputs%multi_pass(i), runObj%inputs%multi_buf(i), (i == ln))
           call astruct_merge_to_dict(runObj%sections(i)%user_inputs // POSINP, asub, &
                & asub%rxyz, "Extracted for mode " // trim(dict_value(sect)))
           call astruct_dump_to_file(asub, trim(mode), "pouet")
           call deallocate_atomic_structure(asub)
        end if
        ! Currently the routine is not recursive, we keep two levels, that's all.
+       runObj%sections(i)%label = dict_value(sect)
        call dict_run_validate(runObj%sections(i)%user_inputs)
        call atoms_new(runObj%sections(i)%atoms)
        call inputs_new(runObj%sections(i)%inputs)
@@ -1081,8 +1085,6 @@ contains
 
        sect => dict_next(sect)
     end do
-    call f_free(passivation)
-    call f_free(buf)
   end subroutine set_section_objects
 
   !> Read all input files and create the objects to run BigDFT
@@ -1559,6 +1561,7 @@ contains
     use module_BornMayerHugginsTosiFumi
     use module_cp2k
     use module_dftbp
+    use SWpotential
     use f_enums, enum_int => int
     use wrapper_linalg, only: vscal
     implicit none
@@ -1567,7 +1570,7 @@ contains
     type(state_properties), intent(inout) :: outs
     integer, intent(inout) :: infocode
     !local variables
-    logical :: write_mapping
+    !logical :: write_mapping
     integer :: nat, ierr
     integer :: icc !for amber
     real(gp) :: maxdiff
@@ -1690,6 +1693,9 @@ contains
              bigdft_get_astruct_ptr(runObj),bigdft_get_geocode(runObj),rxyz_ptr,&
              outs%fxyz,outs%strten,outs%energy,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('DFTB+ infocode',infocode)
+    case('SW_RUN_MODE')
+       call SWcalcforce(runObj%atoms%astruct, rxyz_ptr, outs%fxyz, outs%energy, infocode)
+       if (bigdft_mpi%iproc==0) call yaml_map('SW mode infocode',infocode)
     case('MULTI_RUN_MODE')
        call multi_mode_state(runObj,outs,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('Multi mode infocode',infocode)
@@ -2256,7 +2262,7 @@ contains
     integer,parameter :: MODE_EMPTY    = 205
     integer,parameter :: MODE_RANDOM   = 206
     type(f_enumerator) :: policy_enum
-
+    integer :: i
 
     ! Set the new ID for the input guess
     select case(policy)
@@ -2270,6 +2276,12 @@ contains
 
     call inputpsiid_set_policy(policy_enum,runObj%inputs%inputPsiId)
     
+    !@todo: discuss if the policy should be propagated to sections.
+    if (associated(runObj%sections)) then
+       do i = 1, size(runObj%sections)
+          call inputpsiid_set_policy(policy_enum, runObj%sections(i)%inputs%inputPsiId)
+       end do
+    end if
 !!$
 !!$    ! Check which type of run this is, based on the current value of inputPsiId
 !!$    select case (runObj%inputs%inputPsiId)

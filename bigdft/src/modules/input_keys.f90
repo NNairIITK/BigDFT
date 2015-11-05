@@ -275,6 +275,10 @@ module module_input_keys
      character(len=64) :: mm_paramset
      character(len=64) :: mm_paramfile
 
+     !Multi section parameters
+     logical, dimension(:), pointer :: multi_pass
+     integer, dimension(:), pointer :: multi_buf
+
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
@@ -1487,6 +1491,8 @@ contains
              in%run_mode=CP2K_RUN_MODE
           case('dftbp')
              in%run_mode=DFTBP_RUN_MODE
+          case('sw')
+             in%run_mode=SW_RUN_MODE
           case('multi')
              in%run_mode=MULTI_RUN_MODE
           end select
@@ -1494,6 +1500,7 @@ contains
           in%mm_paramset=val
        case(MM_PARAMFILE)
           in%mm_paramfile=val
+       case(SECTIONS)
        case(SECTION_BUFFER)
        case(SECTION_PASSIVATION)
        case DEFAULT
@@ -2192,6 +2199,8 @@ contains
     nullify(in%frag%frag_index)
     nullify(in%frag%charge)
     in%ep = external_potential_descriptors_null()
+    nullify(in%multi_pass)
+    nullify(in%multi_buf)
   END SUBROUTINE default_input_variables
 
 
@@ -2282,6 +2291,8 @@ contains
     call free_geopt_variables(in)
     call free_kpt_variables(in)
     call f_free_ptr(in%gen_occup)
+    call f_free_ptr(in%multi_buf)
+    call f_free_ptr(in%multi_pass)
     call deallocateBasicArraysInput(in%lin)
     call deallocateInputFragArrays(in%frag)
     call deallocate_external_potential_descriptors(in%ep)
