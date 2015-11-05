@@ -11,6 +11,8 @@ module multipole
   public :: potential_from_multipoles
   public :: multipoles_from_density
   public :: ionic_energy_of_external_charges
+  public :: multipole_analysis_core !should better be private...
+  public :: write_multipoles_new !should better be private
 
   contains
 
@@ -820,9 +822,10 @@ module multipole
 
 
 
+    !> Calculates the multipole moments for each atom 
     subroutine multipoles_from_density(iproc, nproc, at, lzd, smats, smatl, orbs, &
                npsidim, lphi, norbsPerType, collcom, collcom_sr, orthpar, &
-               ovrlp, kernel, meth_overlap)
+               ovrlp, kernel, meth_overlap, multipoles_out)
       use module_base
       use module_types
       use sparsematrix_base, only: sparsematrix_malloc0, SPARSE_FULL, assignment(=)
@@ -845,6 +848,7 @@ module multipole
       type(orthon_data),intent(in) :: orthpar
       type(matrices),intent(in) :: kernel
       type(matrices),intent(inout) :: ovrlp !in principle also intent(in)
+      real(kind=8),dimension(-lmax:lmax,0:lmax,1:at%astruct%nat),intent(out),optional :: multipoles_out
 
       ! Local variables
       integer :: ist, istr, iorb, iiorb, ilr, ii, natp, isat, nr, jproc, iat, n, norb_get, istr_get
@@ -864,7 +868,8 @@ module multipole
       !real(kind=8) ,dimension(2,orbs%norb) :: testarr
       real(kind=8),dimension(:),allocatable :: kernel_ortho, phi_ortho
       integer,dimension(:),allocatable :: n1i, n2i, n3i, ns1i, ns2i, ns3i
-      real(kind=8),dimension(-lmax:lmax,0:lmax,at%astruct%nat) :: multipoles
+      !real(kind=8),dimension(-lmax:lmax,0:lmax,at%astruct%nat) :: multipoles
+      real(kind=8),dimension(:,:,:),allocatable :: multipoles
       real(kind=8) :: factor_normalization
       character(len=20) :: atomname
       real(kind=8),dimension(-lmax:lmax,0:lmax) :: norm
@@ -872,6 +877,9 @@ module multipole
       !testarr = 0.d0
 
       call f_routine(id='multipoles_from_density')
+
+
+      multipoles = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='multipoles')
 
       if (iproc==0) call yaml_comment('Multipole analysis',hfill='-')
 
@@ -1091,6 +1099,12 @@ module multipole
       if (iproc==0) then
           call yaml_mapping_close()
       end if
+
+
+      if (present(multipoles_out)) then
+          call f_memcpy(src=multipoles,dest=multipoles_out)
+      end if
+      call f_free(multipoles)
 
       call f_release_routine()
 

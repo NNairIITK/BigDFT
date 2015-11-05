@@ -39,8 +39,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_init, only: matrixindex_in_compressed
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
-  use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals, calculate_theta, &
-                                   projector_for_charge_analysis
+  use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, support_function_gross_multipoles, &
+                                   build_ks_orbitals, calculate_theta, projector_for_charge_analysis
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
   use locregs_init, only: small_to_large_locreg
@@ -54,6 +54,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use transposed_operations, only: calculate_overlap_transposed
   use bounds, only: geocode_buffers
   use orthonormalization, only : orthonormalizeLocalized
+  use multipole_base, only: lmax
 
   implicit none
 
@@ -126,7 +127,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=8),dimension(:,:),pointer :: com
   real(kind=8),dimension(:,:),allocatable :: tmat, coeff, ovrlp_full
   real(kind=8),dimension(:),allocatable :: projector_compr
-  real(kind=8),dimension(:,:,:),allocatable :: matrixElements, coeff_all
+  real(kind=8),dimension(:,:,:),allocatable :: matrixElements, coeff_all, multipoles_out, multipoles
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
@@ -2474,9 +2475,29 @@ end if
       !    iat = tmb%linmat%s%on_which_atom(i)
       !    com(1:3,i) = rxyz(1:3,iat)
       !end do
+
+      !!! TEST ##########################################################
+      !!multipoles_out = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='multipoles_out')
+      !!call multipoles_from_density(iproc, nproc, at, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%orbs, &
+      !!     tmb%npsidim_orbs, tmb%psi, input%lin%norbsPerType, tmb%collcom, tmb%collcom_sr, tmb%orthpar, &
+      !!     tmb%linmat%ovrlp_, tmb%linmat%kernel_, meth_overlap=norder_taylor, &
+      !!     multipoles_out=multipoles_out)
+      !!! END TEST ######################################################
+
+      !! Calculate the support function multipoles
+      !multipoles = f_malloc0((/-lmax.to.lmax,0.to.lmax,1.to.tmb%orbs%norb/),id='multipoles')
+      !call support_function_gross_multipoles(iproc, tmb, at, denspot, multipoles)
+
+      !write(*,*) 'call with multipoles'
+      !call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
+      !     rxyz, calculate_centers=.false., multipoles=multipoles)
       call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
            rxyz, calculate_centers=.false.)
+      !call f_free(multipoles)
+      !call f_free(multipoles_out)
+
       !call f_free_ptr(com)
       if (iproc==0) then
           call yaml_mapping_close()
@@ -2502,6 +2523,7 @@ end if
           call yaml_mapping_close()
       end if
       call support_function_multipoles(iproc, tmb, at, denspot)
+
   end if
 
   if (input%lin%charge_multipoles) then

@@ -8,6 +8,7 @@ module postprocessing_linear
   public :: loewdin_charge_analysis
   public :: loewdin_charge_analysis_core
   public :: support_function_multipoles
+  public :: support_function_gross_multipoles
   public :: build_ks_orbitals
   public :: calculate_theta
   !public :: supportfunction_centers
@@ -1694,7 +1695,8 @@ module postprocessing_linear
 
     subroutine projector_for_charge_analysis(at, smats, smatm, smatl, &
                ovrlp_, ham_, kernel_, rxyz, calculate_centers, &
-               lzd, nphirdim, psi, orbs)
+               lzd, nphirdim, psi, orbs, &
+               multipoles)
       use module_base
       use module_types, only: local_zone_descriptors, orbitals_data
       use module_atoms, only: atoms_data
@@ -1707,6 +1709,7 @@ module postprocessing_linear
       use sparsematrix, only: matrix_matrix_mult_wrapper, transform_sparse_matrix
       use matrix_operations, only: overlapPowerGeneral, overlap_plus_minus_one_half_exact
       use yaml_output
+      use multipole_base, only: lmax
       implicit none
 
       ! Calling arguments
@@ -1721,6 +1724,7 @@ module postprocessing_linear
       integer,intent(in),optional :: nphirdim
       real(kind=8),dimension(:),intent(in),optional :: psi
       type(orbitals_data),intent(in),optional :: orbs
+      real(kind=8),dimension(-lmax:lmax,0:lmax,1:smats%nfvctr),intent(in),optional :: multipoles
 
       ! Local variables
       integer :: kat, iat, jat, i, j, ii, jj, icheck, n, indm, inds, ntot, ist, ind, iq, itype, ieval, ij, nmax, indl, lwork
@@ -1745,9 +1749,14 @@ module postprocessing_linear
       real(kind=8) :: kT
       !real(kind=8),parameter :: alpha = 5.d-1
       real(kind=8) :: alpha, alpha_up, alpha_low, convergence_criterion
+      real(kind=8),dimension(:,:,:),allocatable :: multipoles_fake, penalty_matrices
+      real(kind=8),dimension(:),allocatable :: alpha_calc
+      character(len=*),parameter :: mode='old'
 
 
       call f_routine(id='projector_for_charge_analysis')
+
+      write(*,*) 'present(multipoles)', present(multipoles)
 
       kT = 1.d-2
 
@@ -1894,6 +1903,9 @@ module postprocessing_linear
       ilup = f_malloc((/2,nmax,nmax,natp/),id='ilup')
       n_all = f_malloc(natp,id='n_all')
 
+      penalty_matrices = f_malloc((/nmax,nmax,natp/),id='penalty_matrices')
+      alpha_calc = f_malloc(natp,id='natp')
+
 
       ! Centers of the support functions
       com = f_malloc0((/3,smats%nfvctr/),id='com')
@@ -1938,7 +1950,7 @@ module postprocessing_linear
       bound_low_ok = .false.
       bound_up_ok = .false.
 
-      alpha_loop: do! ialpha=1,100
+      alpha_loop: do ialpha=1,100
 
           if (bigdft_mpi%iproc==0) then
               call yaml_sequence(advance='no')
@@ -2030,8 +2042,41 @@ module postprocessing_linear
               call f_free(tmpmat2d)
 
               ! Add the penalty term
-              call add_penalty_term(smats%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
-                   at%astruct%cell_dim, com, alpha, n, ovrlp, ham)
+              if (mode=='old') then
+                  call add_penalty_term(smats%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
+                       at%astruct%cell_dim, com, alpha, n, ovrlp, ham)
+              else if (mode=='new') then
+                  multipoles_fake = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.smats%nfvctr/),id='multipoles_fake')
+                  multipoles_fake = 0.d0
+                  multipoles_fake(0,0,:) = 1.d0
+                  if (ialpha==1) then
+                      if (present(multipoles)) then
+                          write(*,*) 'call with multipoles'
+                          call add_penalty_term_new(smats%geocode, at%astruct%nat, smats%nfvctr, &
+                               neighbor(1:,kat), rxyz(1:,kkat), smats%on_which_atom, &
+                               multipoles, at%astruct%cell_dim, com, alpha, n, ham, &
+                               nmax, penalty_matrices(1:n,1:n,kat))
+                      else
+                          write(*,*) 'call with multipoles_fake'
+                          call add_penalty_term_new(smats%geocode, at%astruct%nat, smats%nfvctr, &
+                               neighbor(1:,kat), rxyz(1:,kkat), smats%on_which_atom, &
+                               multipoles_fake, at%astruct%cell_dim, com, alpha, n, ham, &
+                               nmax, penalty_matrices(1:n,1:n,kat))
+                      end if
+                      alpha_calc(kat) = alpha
+                  else
+                      tt = alpha/alpha_calc(kat)
+                      !write(*,*) 'tt',tt
+                      !do i=1,n
+                      !    do j=1,n
+                      !        write(*,*) 'i, j, penmat', i, j, penalty_matrices(j,i,kat)
+                      !    end do
+                      !end do
+                      ham(1:n,1:n) = ham(1:n,1:n) + tt*penalty_matrices(1:n,1:n,kat)
+                  end if
+                  call f_free(multipoles_fake)
+              end if
+
               !!icheck = 0
               !!ii = 0
               !!do i=1,smats%nfvctr
@@ -2267,6 +2312,7 @@ module postprocessing_linear
 
 
           if (abs(charge_net)<convergence_criterion) then
+          !if (.true.) then
               if (bigdft_mpi%iproc==0) then
                   call yaml_sequence_close()
                   call yaml_map('number of states to be occupied (without smearing)',iq)
@@ -2345,6 +2391,8 @@ module postprocessing_linear
       call f_free(ilup)
       call f_free(n_all)
       call f_free(ovrlp_minusonehalf)
+      call f_free(penalty_matrices)
+      call f_free(alpha_calc)
     
       !if (bigdft_mpi%iproc==0) then
       !    call yaml_mapping_close()
@@ -2535,6 +2583,7 @@ module postprocessing_linear
                                 end do
                             end do
                         end do
+                        !write(*,*) 'i, j, ii, jj, tt', ii, jj, alpha*rr2**3
                         ham(jj,ii) = ham(jj,ii) + alpha*rr2**3*ovrlp(jj,ii)
                     end if
                 end if
@@ -2549,6 +2598,160 @@ module postprocessing_linear
     call f_release_routine()
 
   end subroutine add_penalty_term
+
+
+
+
+  subroutine add_penalty_term_new(geocode, nat, nfvctr, neighbor, rxyz, on_which_atom, &
+             multipoles, cell_dim, com, alpha, n, ham, nmax, penalty_matrix)
+    use module_base
+    use multipole_base, only: lmax
+    use module_base
+    implicit none
+ 
+    ! Calling arguments
+    character(len=1),intent(in) :: geocode
+    integer,intent(in) :: nat, nfvctr, n, nmax
+    logical,dimension(nfvctr),intent(in) :: neighbor
+    real(kind=8),dimension(3),intent(in) :: rxyz, cell_dim
+    integer,dimension(nfvctr),intent(in) :: on_which_atom
+    real(kind=8),dimension(-lmax:lmax,0:lmax,nfvctr) :: multipoles
+    real(kind=8),dimension(3,nfvctr),intent(in) :: com
+    real(kind=8),intent(in) :: alpha
+    real(kind=8),dimension(n,n),intent(inout) :: ham
+    real(kind=8),dimension(n,n),intent(out) :: penalty_matrix
+
+    ! Local variables
+    logical :: perx, pery, perz
+    integer :: is1, ie1, is2, ie2, is3, ie3, icheck, ii, i, jj, j, i1, i2, i3
+    integer :: il, jl, im, jm, ix, iy, iz, iat, jat
+    real(kind=8) :: rr2, x, y, z, ttx, tty, ttz, tt, argi, argj, expi, expj, silim, sjljm, rr, xx, yy, zz
+    real(kind=8),dimension(1:3) :: rip, rjp
+    integer,parameter :: nn=25
+    real(kind=8),parameter :: hh=0.35d0
+    real(kind=8),parameter :: sigma2 = 1.d-1
+ 
+    call f_routine(id='add_penalty_term_new')
+
+    call f_zero(penalty_matrix)
+ 
+    ! Determine the periodicity...
+    !write(*,*) 'geocode',geocode
+    perx=(geocode /= 'F')
+    pery=(geocode == 'P')
+    perz=(geocode /= 'F')
+    if (perx) then
+        is1 = -1
+        ie1 = 1
+    else
+        is1 = 0
+        ie1 = 0
+    end if
+    if (pery) then
+        is2 = -1
+        ie2 = 1
+    else
+        is2 = 0
+        ie2 = 0
+    end if
+    if (perz) then
+        is3 = -1
+        ie3 = 1
+    else
+        is3 = 0
+        ie3 = 0
+    end if
+ 
+    ! FOR THE MOMENT NOT WORKING FOR PERIODIC SYSTEMS! NEED TO TAKE THIS INTO ACCOUNT.
+
+
+    ! Loop over all elements to be calculated
+    icheck = 0
+    ii = 0
+    do i=1,nfvctr
+        if (neighbor(i)) then
+            iat = on_which_atom(i)
+            jj = 0
+            do j=1,nfvctr
+                if (neighbor(j)) then
+                    !!write(*,*) 'i, j', i, j
+                    jat = on_which_atom(j)
+                    icheck = icheck + 1
+                    jj = jj + 1
+                    if (jj==1) ii = ii + 1 !new column if we are at the first line element of a a column
+                    !if (i==j) then
+                        ! distances from the atoms iat and jat (respectively the sup fun centered on them) to the one for which the projector should be calculated
+                        rip(1:3) = com(1:3,i) - rxyz(1:3)
+                        rjp(1:3) = com(1:3,j) - rxyz(1:3)
+                        ! Do the summation over l,l' and m,m'
+                        tt = 0.d0
+                        do il=0,lmax
+                            do jl=0,lmax
+                                do im=-il,il
+                                    do jm=-jl,jl
+                                        ! Do the integration
+                                        rr = 0.d0
+                                        do ix=-nn,nn
+                                            x = real(ix,kind=8)*hh
+                                            xx = x + rxyz(1)
+                                            do iy=-nn,nn
+                                                y = real(iy,kind=8)*hh
+                                                yy = y + rxyz(2)
+                                                do iz=-nn,nn
+                                                    z = real(iz,kind=8)*hh
+                                                    zz = z + rxyz(3)
+                                                    argi = ((x-rip(1))**2 + (y-rip(2))**2 + (z-rip(3))**2)/(2*sigma2)
+                                                    argj = ((x-rjp(1))**2 + (y-rjp(2))**2 + (z-rjp(3))**2)/(2*sigma2)
+                                                    !expi = safe_exp(-argi)/(2*pi*sigma2)**(3.d0/2.d0)
+                                                    !expj = safe_exp(-argj)/(2*pi*sigma2)**(3.d0/2.d0)
+                                                    expi = safe_exp(-argi)/(1.d0*pi*sigma2)**(3.d0/4.d0)
+                                                    expj = safe_exp(-argj)/(1.d0*pi*sigma2)**(3.d0/4.d0)
+                                                    silim = spherical_harmonic(il,im,xx,yy,zz)*sqrt(4.d0*pi)
+                                                    sjljm = spherical_harmonic(jl,jm,xx,yy,zz)*sqrt(4.d0*pi)
+                                                    !if (abs(argi)>1000.d0) write(*,*) 'WARNING argi'
+                                                    !if (abs(argj)>1000.d0) write(*,*) 'WARNING argj'
+                                                    !if (abs(expi)>1000.d0) write(*,*) 'WARNING expi'
+                                                    !if (abs(expj)>1000.d0) write(*,*) 'WARNING expj'
+                                                    !if (abs(silim)>1000.d0) write(*,*) 'WARNING silim'
+                                                    !if (abs(sjljm)>1000.d0) write(*,*) 'WARNING sjljm'
+                                                    !rr = rr + silim*expi*alpha*(x**2+y**2+z**2)*sjljm*expj*hh**3
+                                                    !rr = rr + silim*expi*sjljm*expj*hh**3*sqrt(4.d0*pi)
+                                                    !write(*,*) 'argi, expi, argj, expj', argi, argj, expi, expj
+                                                    rr = rr + silim*expi*alpha*(x**2+y**2+z**2)**3*sjljm*expj*hh**3
+                                                    !rr = rr + silim*expi*sjljm*expj*hh**3
+                                                end do
+                                            end do
+                                        end do
+                                        !write(*,*) 'i, j, il, im, jl, jm, rr', i, j, il, im, jl, jm, rr
+                                        !tt = tt + multipoles(im,il,iat)*multipoles(jm,jl,jat)*rr
+                                        !if (il==0 .and. jl==0) then
+                                            tt = tt + multipoles(im,il,i)*multipoles(jm,jl,j)*rr
+                                        !end if
+                                        !if (abs(multipoles(im,il,iat))>1000.d0) write(*,*) 'WARNING multipoles(im,il,iat)'
+                                        !if (abs(multipoles(jm,jl,jat))>1000.d0) write(*,*) 'WARNING multipoles(jm,jl,jat)'
+                                    end do
+                                end do
+                            end do
+                        end do
+                        write(*,*) 'i, j, ii, jj, tt', ii, jj, tt
+                        ham(jj,ii) = ham(jj,ii) + tt
+                        penalty_matrix(jj,ii) = tt
+                    !end if
+                end if
+            end do
+        end if
+    end do
+    
+    if (icheck>n**2) then
+        call f_err_throw('icheck('//adjustl(trim(yaml_toa(icheck)))//') > n**2('//&
+            &adjustl(trim(yaml_toa(n**2)))//')',err_name='BIGDFT_RUNTIME_ERROR')
+    end if
+
+    call f_release_routine()
+
+  end subroutine add_penalty_term_new
+
+
 
 
   subroutine order_eigenvalues(n, eigenvalues, ids)
@@ -2642,5 +2845,230 @@ module postprocessing_linear
    call f_release_routine()
 
  end subroutine calculate_projector
+
+
+
+ !> SM: similar to support_function_multipoles. This one calculates the "gross" multipoles (i.e. without taking into account the "core" contribution)
+ subroutine support_function_gross_multipoles(iproc, tmb, atoms, denspot, multipoles)
+   use module_base
+   use module_types
+   use locreg_operations
+   use yaml_output
+   use multipole_base, only: lmax
+   use multipole, only: multipole_analysis_core, write_multipoles_new
+   
+   ! Calling arguments
+   integer,intent(in) :: iproc
+   type(DFT_wavefunction),intent(in) :: tmb
+   type(atoms_data),intent(in) :: atoms
+   type(DFT_local_fields), intent(inout) :: denspot
+   real(kind=8),dimension(-lmax:lmax,0:lmax,tmb%orbs%norb),optional :: multipoles
+ 
+   integer :: ist, istr, iorb, iiorb, ilr, i, iat, iter
+   real(kind=8),dimension(1) :: rmax
+   real(kind=8),dimension(3) :: charge_center_elec
+   real(kind=8),dimension(:),allocatable :: phir, phir_one
+   type(workarr_sumrho) :: w
+   character(len=20) :: atomname
+ 
+   call f_routine(id='support_function_multipoles')
+ 
+   phir = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir')
+   phir_one = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir_one')
+   phir_one = 1.d0
+ 
+   !call to_zero(3*tmb%orbs%norb, dipole_net(1,1))
+   !call to_zero(9*tmb%orbs%norb, quadropole_net(1,1,1))
+
+
+   iter_loop: do iter=1,1
+
+       multipoles = 0.d0
+ 
+       ist=1
+       istr=1
+       do iorb=1,tmb%orbs%norbp
+           iiorb=tmb%orbs%isorb+iorb
+           ilr=tmb%orbs%inwhichlocreg(iiorb)
+           iat=tmb%orbs%onwhichatom(iiorb)
+           call initialize_work_arrays_sumrho(1,[tmb%lzd%Llr(ilr)],.true.,w)
+           ! Transform the support function to real space
+           call daub_to_isf(tmb%lzd%llr(ilr), w, tmb%psi(ist), phir(istr))
+           call deallocate_work_arrays_sumrho(w)
+           ! Calculate the charge center
+           !call charge_center(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, &
+           !     denspot%dpbox%hgrids, phir(istr), charge_center_elec)
+           !write(*,*) 'ilr, tmb%lzd%llr(ilr)%locregcenter', iat, tmb%lzd%llr(ilr)%locregcenter
+           atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
+           ! OLD VERSION #######################################################
+           if (iter==2) then
+               write(*,*) 'call to calculate_multipoles_of_one_supportfunction commented'
+               !!call calculate_multipoles_of_one_supportfunction(tmb%lzd%llr(ilr)%d%n1i, &
+               !!     tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, &
+               !!     denspot%dpbox%hgrids, phir(istr), tmb%lzd%llr(ilr)%locregcenter, &
+               !!     multipoles(:,:,iiorb))
+           ! NEW VERSION #######################################################
+           else if (iter==1) then
+               call multipole_analysis_core(0, 1, 1, 0, 1, 1, 1, &
+                    (/1/), (/1/), (/1/), (/1/), &
+                    (/tmb%lzd%Llr(ilr)%d%n1i/), (/tmb%lzd%Llr(ilr)%d%n2i/), (/tmb%lzd%Llr(ilr)%d%n3i/), &
+                    (/tmb%lzd%Llr(ilr)%nsi1/), (/tmb%lzd%Llr(ilr)%nsi2/), (/tmb%lzd%Llr(ilr)%nsi3/), rmax, &
+                    tmb%lzd%hgrids, tmb%lzd%llr(ilr)%locregcenter, &
+                    tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i, &
+                    phir(istr), phir_one(istr), &
+                    1, (/1.d0/), multipoles(:,:,iiorb), rmax, 102, matrixindex=(/1/))
+           end if
+           !write(*,*) 'charge_center', charge_center_elec
+           ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
+           istr = istr + tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i
+       end do
+       if(istr/=tmb%collcom_sr%ndimpsi_c+1) then
+           write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=tmb%collcom_sr%ndimpsi_c+1'
+           stop
+       end if
+ 
+ 
+       if (bigdft_mpi%nproc>1) then
+           call mpiallred(multipoles, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       end if
+ 
+       if (iproc==0) then
+           call yaml_sequence_open('Gross support functions moments (iter='//trim(adjustl(yaml_toa(iter)))//')')
+           do iorb=1,tmb%orbs%norb
+               iat=tmb%orbs%onwhichatom(iorb)
+               atomname=trim(atoms%astruct%atomnames(atoms%astruct%iatype(iat)))
+               call yaml_sequence_open('number'//trim(yaml_toa(iorb))// &
+                    ' (atom number ='//trim(yaml_toa(iat))//', type = '//trim(atomname)//')')
+               call yaml_sequence(advance='no')
+               call yaml_map('monopole',multipoles(0,0,iorb),fmt='(es18.10)')
+               call yaml_map('dinopole',multipoles(-1:1,1,iorb),fmt='(es18.10)')
+               !call yaml_sequence(advance='no')
+               !call yaml_sequence_open('net quadropole')
+               !do i=1,3
+               !   call yaml_sequence(trim(yaml_toa(quadropole_net(i,1:3,iorb),fmt='(es15.8)')))
+               !end do
+               !call yaml_sequence_close()
+               call yaml_sequence_close()
+           end do
+           call yaml_sequence_close()
+           do iorb=1,tmb%orbs%norb
+               call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), 'letssee', &
+                    multipoles(:,:,iorb), rmax, tmb%lzd%hgrids, without_normalization=.true.)
+            end do
+       end if
+
+   end do iter_loop
+ 
+   call f_free(phir)
+   call f_free(phir_one)
+   call f_release_routine()
+ 
+ end subroutine support_function_gross_multipoles
+
+
+ !! THIS IS PROBABLY WRONG
+ !> SM: similar to calculate_multipoles. This one calculates the "gross" multipoles of one 
+ !! support function (i.e. without taking !into account the "core" contribution
+ subroutine calculate_multipoles_of_one_supportfunction(n1i, n2i, n3i, hgrids, phir, rxyz_center, &
+            multipoles)
+   use yaml_output
+   use module_base
+   use multipole_base, only: lmax
+   implicit none
+   ! Calling arguments
+   integer,intent(in) :: n1i, n2i, n3i
+   real(kind=8),dimension(3),intent(in) :: hgrids
+   real(kind=8),dimension(n1i*n2i*n3i),intent(in) :: phir
+   real(kind=8),dimension(3),intent(in) :: rxyz_center
+   real(kind=8),dimension(-lmax:lmax,0:lmax),intent(out) :: multipoles
+ 
+   integer :: i1, i2, i3, jj, iz, iy, ix, ii, i, j
+   real(kind=8) :: q, x, y, z, qtot, ri, rj, delta_term
+   real(kind=8),dimension(3) :: dipole_center, dipole_el
+   real(kind=8),dimension(3,3) :: quadropole_center, quadropole_el
+ 
+   stop 'MOST LIKELY BUGGY (DIPOLE SEEMS TO BE WRONG)'
+ 
+   !!call yaml_map('rxyz_center',rxyz_center,fmt='(es16.6)')
+   !!call yaml_map('charge_center_elec',charge_center_elec,fmt='(es16.6)')
+   !!call yaml_map('sum phir',sum(phir),fmt='(es16.6)')
+ 
+   dipole_el=0.d0
+   quadropole_el=0.d0
+
+   call f_zero(multipoles)
+   qtot=0.d0
+   jj=0
+   do i3=1,n3i
+       do i2=1,n2i
+           do i1=1,n1i
+               jj=jj+1
+               ! z component of point jj
+               iz=jj/(n2i*n1i)
+               ! Subtract the 'lower' xy layers
+               ii=jj-iz*(n2i*n1i)
+               ! y component of point jj
+               iy=ii/n1i
+               ! Subtract the 'lower' y rows
+               ii=ii-iy*n1i
+               ! x component
+               ix=ii
+ 
+               ! Shift the values due to the convolutions bounds
+               ix=ix-14
+               iy=iy-14
+               iz=iz-14
+ 
+               q = phir(jj)!**2 !* product(hgrids)
+               x = (ix*hgrids(1) - rxyz_center(1))
+               y = (iy*hgrids(2) - rxyz_center(2))
+               z = (iz*hgrids(3) - rxyz_center(3))
+
+               ! Monopole part
+               multipoles(0,0) = multipoles(0,0) + q
+ 
+               ! Dipole part
+               multipoles(-1,1) = multipoles(-1,1) + q*y
+               multipoles( 0,1) = multipoles( 0,1) + q*z
+               multipoles( 1,1) = multipoles( 1,1) + q*x
+
+ 
+               !!! Quadrupole part not ready yet
+               !!do i=1,3
+               !!    ri=get_r(i, x, y, z)
+               !!    do j=1,3
+               !!        rj=get_r(j, x, y, z)
+               !!        if (i==j) then
+               !!            delta_term = x**2 + y**2 + z**2
+               !!        else
+               !!            delta_term=0.d0
+               !!        end if
+               !!        quadropole_el(j,i) = quadropole_el(j,i) + q*(3.d0*rj*ri-delta_term)
+               !!    end do
+               !!end do
+           end do
+       end do
+   end do
+ 
+   contains
+ 
+     function get_r(i, x, y, z)
+       integer,intent(in) :: i
+       real(kind=8),intent(in) :: x, y, z
+       real(kind=8) :: get_r
+ 
+       select case (i)
+       case (1)
+           get_r=x
+       case (2)
+           get_r=y
+       case (3)
+           get_r=z
+       case default
+           stop 'wrong value of i'
+       end select
+     end function get_r
+ 
+ end subroutine calculate_multipoles_of_one_supportfunction
 
 end module postprocessing_linear
