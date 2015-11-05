@@ -214,6 +214,8 @@ module overlap_point_to_point
        !local variables
        integer :: iorb,ndim,ntot,jorb
 
+       if (ld%nobj == 0) return
+
        ld%id_glb=f_malloc_ptr(ld%nobj,id='id_glb')
        ld%displ=f_malloc_ptr(ld%nobj,id='displ')
        ld%displ_res=f_malloc_ptr(ld%nobj,id='displ_res')
@@ -389,10 +391,10 @@ module overlap_point_to_point
              !last case
              istep=nsteps!(nprocgr-1)/2
              !the last step behaves differently if the number of members is odd or even
-             if (modulo(nprocgr,2) == 0 .or. .not. symmetric) then
+             if ((modulo(nprocgr,2) == 0 .or. .not. symmetric) .and. istep+1 <= nproc-1) then
                 OP2P%ranks(SEND_DATA,igroup,istep)= iprocpm1(AFTER_,istep+1,igroup)
                 OP2P%ranks(RECV_DATA,igroup,istep)= iprocpm1(BEFORE_,istep+1,igroup)
-                if (iproc == OP2P%iproc_dump .and. OP2P%ranks(RECV_DATA,igroup,istep) /= mpirank_null()) then
+                if (OP2P%ranks(RECV_DATA,igroup,istep) /= mpirank_null()) then
                    OP2P%ncouples=OP2P%ncouples+&
                         OP2P%nobj_par(OP2P%ranks(RECV_DATA,igroup,istep),igr)*OP2P%nobj_par(iproc,igr)
                 end if
@@ -679,7 +681,7 @@ module overlap_point_to_point
        
        if (event==OP2P_START) OP2P%istep=0 !to be moved at the initialization
 
-       step_loop: do
+       step_loop: do while (OP2P%istep <= OP2P%nstep)
           if (.not. OP2P%do_calculation) then
              OP2P%irecv_data=3-OP2P%isend_data
              OP2P%ndata_comms=0
@@ -697,7 +699,7 @@ module overlap_point_to_point
              !calculation for orbitals to be performed
              OP2P%igroup=1
           end if
-          group_loop: do
+          group_loop: do while(OP2P%igroup <= OP2P%ngroupp)
              if (.not. OP2P%do_calculation) then
                 call prepare_calculation(iproc,OP2P,phi_i,phi_j,iter)
              end if
@@ -759,8 +761,8 @@ module overlap_point_to_point
        call test_data(iproc,OP2P,norbp,data)
 
        !then create the local data object
+       phi_i=local_data_init(norbp,ndim)
        if (OP2P%ngroupp>0) then
-          phi_i=local_data_init(norbp,ndim)
           call set_local_data(phi_i,OP2P%objects_id(GLOBAL_,iproc,OP2P%group_id(1)),&
                data,res)
        end if
