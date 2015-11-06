@@ -116,6 +116,8 @@ for file in files:
             state = "can not parse file.    failed"
             print "%s%-74s%s%s" % (start,dirfic,state,end)
 
+suggestions={}
+sugg_key=None            
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
     dirc = os.path.normpath(os.path.dirname(file))
@@ -128,6 +130,11 @@ for file in yaml_files:
         thedoc=-1
     elif "Test succeeded" in documents[-2]:
         thedoc=-2
+        #assume that the second dictionary has only one key (which is loong and tedious to remember)
+        if sugg_key is None:
+            sugg_key=documents[-1].keys()[0]
+            suggestions[sugg_key]={}
+        suggestions[sugg_key].update(documents[-1][sugg_key])
     try:
         discrepancy=documents[thedoc]["Test succeeded"]
         #test failes
@@ -165,5 +172,8 @@ if Exit==0:
     print "Test set succeeded!"
 else:
     print "Test set failed, check the above report!"
+    if len(suggestions) > 0:
+        sys.stdout.write(yaml.dump(suggestions, default_flow_style=False, explicit_start=True))
+
 #Error code
 sys.exit(Exit)

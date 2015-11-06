@@ -425,211 +425,233 @@
  rad_cav                     :  1.7
  multp                       :  1.0
  Delta cavity                :  0.3
- radii                       :  [  1.7 ]
+ radii                       :  [  2.0 ]
  atom                        :  1
-
- rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
  nbl1                        :  0
  nbl2                        :  0
  nbl3                        :  0
  real input atoms            :  1
- radii                       :  1.7
-
- rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
+ radii                       :  2.0
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
  nat                         :  1
  atom                        :  1
- radii                       :  1.7
-
- rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
+ radii                       :  2.0
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ Starting initial potential calculation: Yes
  nbl1                        :  0
  nbl2                        :  0
  nbl3                        :  0
  real input atoms            :  1
-
- rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
  nat                         :  1
  atom                        :  1
-
- rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
- offset                      :  0.99999999999994
- Total Charge                :  4.1276274954654746E-009
- Potential monopole          :  0.99999999999994
- Potential at the boundary 1 n02/2 1:  4.7787876529128167E-043
- Density at the boundary 1 n02/2 1: -2.2711541712282457E-039
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ offset                      :  0.9999999999999596
+ Total Charge                :  1.5480202524889015E-009
+ Potential monopole          :  0.9999999999999597
+ Potential at the boundary 1 n02/2 1:  1.732498312834022E-044
+ Density at the boundary 1 n02/2 1: -8.5205212778188711E-041
   #------------------ Comparison between Generalized Poisson operator and analytical density
  Inf. Norm difference with reference:
-   Value                     :  5.825823136268766E-03
+   Value                     :  4.578332286965341E-03
+   Point                     :  [  28,  49,  31 ]
+   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
+  #---------------- Comparison between Generalized Poisson operator 2 and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  9.045796963507610E-04
    Point                     :  [  29,  1,  32 ]
-   Some values: [-4.531680376873570E-05, -7.403571098186104E-07,  2.319853322472690E-08]
+   Some values: [-1.669882803145839E-07,  1.410225315375007E-07,  2.741444257770549E-09]
   #Comparison between Poisson-Boltzmann operator and analytical density
  Inf. Norm difference with reference:
-   Value                     :  5.825823136268766E-03
-   Point                     :  [  29,  1,  32 ]
-   Some values: [-4.531680376873570E-05, -7.403571098186104E-07,  2.319853322472690E-08]
+   Value                     :  4.578332286965341E-03
+   Point                     :  [  28,  49,  31 ]
+   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                 :  4
+   MPI tasks                 :  2
+   OpenMP threads per MPI task:  2
    Iterative method for Generalised Equation: PI
  Poisson Kernel Creation:
    Boundary Conditions       : Free
    Memory Requirements per MPI task:
-     Density (MB)            :  0.37
-     Kernel (MB)             :  0.39
+     Density (MB)            :  0.73
+     Kernel (MB)             :  0.77
      Full Grid Arrays (MB)   :  1.34
      Load Balancing of calculations:
        Density:
-         MPI tasks 0-2       : 100%
-         MPI task 3          : 94%
+         MPI tasks 0-0       : 100%
+         MPI task1           : 97%
        Kernel:
-         MPI tasks 0- 2      : 100%
-         MPI task 3          :  92%
+         MPI tasks 0- 0      : 100%
+         MPI task 1          :  96%
        Complete LB per task  : 1/3 LB_density + 2/3 LB_kernel
  Poisson Solver:
    BC                        : Free
    Box                       :  [  57,  49,  63 ]
-   MPI tasks                 :  4
-   Integral of the density in the nonvacuum region: -0.3567517638998449
+   MPI tasks                 :  2
+   Integral of the density in the nonvacuum region: -0.1367061999282162
    Embedded PSolver Polarization Iteration Method:
-   - Iteration quality: {iter:  1, res:  7.86448858525262869E-03}
-   - Iteration quality: {iter:  2, res:  6.20631328099666753E-03}
-   - Iteration quality: {iter:  3, res:  1.74797956800593545E-03}
-   - Iteration quality: {iter:  4, res:  5.58249569908817757E-04}
-   - Iteration quality: {iter:  5, res:  1.73527025024891102E-04}
-   - Iteration quality: {iter:  6, res:  7.78010515160616626E-05}
-   - Iteration quality: {iter:  7, res:  2.19358905001597794E-05}
-   - Iteration quality: {iter:  8, res:  8.10825362583972195E-06}
-   - Iteration quality: {iter:  9, res:  3.47401470831166249E-06}
-   - Iteration quality: {iter:  10, res:  1.19619177738183759E-06}
-   - Iteration quality: {iter:  11, res:  4.78474029077788197E-07}
+   - Iteration quality: {iter:  1, res:  2.26802467317273760E-03}
+   - Iteration quality: {iter:  2, res:  1.98288312730661963E-03}
+   - Iteration quality: {iter:  3, res:  6.24373254090212419E-04}
+   - Iteration quality: {iter:  4, res:  1.84008383776307734E-04}
+   - Iteration quality: {iter:  5, res:  6.41747789277000087E-05}
+   - Iteration quality: {iter:  6, res:  2.74897514698658606E-05}
+   - Iteration quality: {iter:  7, res:  7.62756722837951116E-06}
+   - Iteration quality: {iter:  8, res:  3.06843042842240090E-06}
+   - Iteration quality: {iter:  9, res:  1.28023077272013033E-06}
+   - Iteration quality: {iter:  10, res:  4.45691089804823491E-07}
  Inf. Norm difference with reference:
-   Value                     :  1.635387457274082E-05
-   Point                     :  [  29,  18,  32 ]
-   Some values: [-3.319267890877775E-06, -2.155854037508688E-06, -2.990512310396256E-06]
- Expected hartree energy     :  5.1863395854877335E-002
- Computed Hartree energy     :  5.1864364702337948E-002
- Diff of expected-computed Hartree energy: -9.6884746061259852E-007
+   Value                     :  1.856666227328680E-05
+   Point                     :  [  24,  25,  42 ]
+   Some values: [ 1.420386891565206E-05,  5.498652497387818E-06,  7.901491941467557E-06]
+ Expected hartree energy     :  4.3393317352253109E-002
+ Computed Hartree energy     :  4.3393537117483935E-002
+ Diff of expected-computed Hartree energy: -2.1976523082584132E-007
+  #-------- Comparison between numerical and starting analytical density with old GPoperator
+ Inf. Norm difference with reference:
+   Value                     :  8.095744492718444E-03
+   Point                     :  [  29,  1,  32 ]
+   Some values: [ 1.307067035105636E-06, -7.955922915093029E-06, -1.810225854939597E-07]
+  #------ Comparison between numerical and starting analytical density witn new 2 GPoperator
+ Inf. Norm difference with reference:
+   Value                     :  4.242340491271814E-03
+   Point                     :  [  29,  1,  32 ]
+   Some values: [-1.748405677459708E-07, -4.862489572590425E-06, -1.396769826660007E-07]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  416
-   Tot. No. of Deallocations :  416
+   Tot. No. of Allocations   :  419
+   Tot. No. of Deallocations :  419
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  33.734
+     Peak Value (MB)         :  39.925
      for the array           : zmpi1
      in the routine          : G_PoissonSolver
-     Memory Peak of process  : 50.852 MB
- Walltime since initialization: 00:00:02.106473412
- Max No. of dictionaries used:  246 #( 170 still in use)
+     Memory Peak of process  : 61.224 MB
+ Walltime since initialization: 00:00:01.022064730
+ Max No. of dictionaries used:  258 #( 170 still in use)
  Number of dictionary folders allocated:  1
 ---
  rad_cav                     :  1.7
  multp                       :  1.0
  Delta cavity                :  0.3
- radii                       :  [  1.7 ]
+ radii                       :  [  2.0 ]
  atom                        :  1
-
- rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
  nbl1                        :  0
  nbl2                        :  0
  nbl3                        :  0
  real input atoms            :  1
- radii                       :  1.7
-
- rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
+ radii                       :  2.0
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
  nat                         :  1
  atom                        :  1
- radii                       :  1.7
-
- rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
+ radii                       :  2.0
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ Starting initial potential calculation: Yes
  nbl1                        :  0
  nbl2                        :  0
  nbl3                        :  0
  real input atoms            :  1
-
- rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
  nat                         :  1
  atom                        :  1
-
- rxyz                        :  [  4.912280701754385,  4.897959183673469,  4.92063492063492 ]
- offset                      :  0.99999999999994
- Total Charge                :  4.1276274954654746E-009
- Potential monopole          :  0.99999999999994
- Potential at the boundary 1 n02/2 1:  4.7787876529128167E-043
- Density at the boundary 1 n02/2 1: -2.2711541712282457E-039
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ offset                      :  0.9999999999999596
+ Total Charge                :  1.5480202524889015E-009
+ Potential monopole          :  0.9999999999999597
+ Potential at the boundary 1 n02/2 1:  1.732498312834022E-044
+ Density at the boundary 1 n02/2 1: -8.5205212778188711E-041
   #------------------ Comparison between Generalized Poisson operator and analytical density
  Inf. Norm difference with reference:
-   Value                     :  5.825823136268766E-03
+   Value                     :  4.578332286965341E-03
+   Point                     :  [  28,  49,  31 ]
+   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
+  #---------------- Comparison between Generalized Poisson operator 2 and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  9.045796963507610E-04
    Point                     :  [  29,  1,  32 ]
-   Some values: [-4.531680376873570E-05, -7.403571098186104E-07,  2.319853322472690E-08]
+   Some values: [-1.669882803145839E-07,  1.410225315375007E-07,  2.741444257770549E-09]
   #Comparison between Poisson-Boltzmann operator and analytical density
  Inf. Norm difference with reference:
-   Value                     :  5.825823136268766E-03
-   Point                     :  [  29,  1,  32 ]
-   Some values: [-4.531680376873570E-05, -7.403571098186104E-07,  2.319853322472690E-08]
+   Value                     :  4.578332286965341E-03
+   Point                     :  [  28,  49,  31 ]
+   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                 :  4
+   MPI tasks                 :  2
+   OpenMP threads per MPI task:  2
    Iterative method for Generalised Equation: PCG
  Poisson Kernel Creation:
    Boundary Conditions       : Free
    Memory Requirements per MPI task:
-     Density (MB)            :  0.37
-     Kernel (MB)             :  0.39
+     Density (MB)            :  0.73
+     Kernel (MB)             :  0.77
      Full Grid Arrays (MB)   :  1.34
      Load Balancing of calculations:
        Density:
-         MPI tasks 0-2       : 100%
-         MPI task 3          : 94%
+         MPI tasks 0-0       : 100%
+         MPI task1           : 97%
        Kernel:
-         MPI tasks 0- 2      : 100%
-         MPI task 3          :  92%
+         MPI tasks 0- 0      : 100%
+         MPI task 1          :  96%
        Complete LB per task  : 1/3 LB_density + 2/3 LB_kernel
  Poisson Solver:
    BC                        : Free
    Box                       :  [  57,  49,  63 ]
-   MPI tasks                 :  4
-   Integral of the density in the nonvacuum region: -0.5600950457602277
+   MPI tasks                 :  2
+   Integral of the density in the nonvacuum region: -0.1743253445532359
    Embedded PSolver, Preconditioned Conjugate Gradient Method:
-   - Iteration quality: { #______________________________________________________ Iteration
- iter:  1, res:  9.74369659406270662E-03, ratio:  6.43421631395722615E-01, 
-         alpha:  1.10571662379799179E-01, beta:  6.13899611461733912E+01}
-   - Iteration quality: { #______________________________________________________ Iteration
- iter:  2, res:  3.40410683251264482E-03, ratio:  2.24789016209233194E-01, 
-         alpha:  7.72223660387181376E-01, beta:  1.47150988389883537E+01}
-   - Iteration quality: { #______________________________________________________ Iteration
- iter:  3, res:  9.38722350164650221E-04, ratio:  6.19882054146275660E-02, 
-         alpha:  9.69751125966204164E-01, beta:  8.13038226287248894E-02}
-   - Iteration quality: { #______________________________________________________ Iteration
- iter:  4, res:  2.84346097015877256E-04, ratio:  1.87766960780003066E-02, 
-         alpha:  1.73542161160687769E+00, beta:  1.22082062870082584E-02}
-   - Iteration quality: { #______________________________________________________ Iteration
- iter:  5, res:  4.98340280878290911E-05, ratio:  3.29077279262056897E-03, 
-         alpha:  8.19067660879930215E-01, beta:  5.33443230251161868E-04}
-   - Iteration quality: { #______________________________________________________ Iteration
- iter:  6, res:  7.74825019712491583E-06, ratio:  5.11653019382210398E-04, 
-         alpha:  4.04181396576243634E-01, beta:  8.56398675850677231E-05}
-   - Iteration quality: { #______________________________________________________ Iteration
- iter:  7, res:  1.48058301687392124E-06, ratio:  9.77697869527574401E-05, 
-         alpha:  7.92382378137437060E-01, beta:  3.20534038439742193E-07}
-   - Iteration quality: { #______________________________________________________ Iteration
- iter:  8, res:  1.52225182808369837E-07, ratio:  1.00521372475571452E-05, 
-         alpha:  6.47857530437834672E-01, beta:  2.04671874427507230E-08}
-   Polarization charge calculated:  Yes
+   - Iteration quality: { #_____________________________________________________ Iteration1
+ iter:  1, res:  1.25239132461045979E-02, ratio:  1.52812471509638637E+00, 
+         alpha:  3.18476473573888585E-01, beta:  1.72764608142072511E+01}
+   - Iteration quality: { #_____________________________________________________ Iteration2
+ iter:  2, res:  1.20284696742850258E-03, ratio:  1.46767239862344967E-01, 
+         alpha:  2.34170888965735347E-01, beta:  3.82148450555631598E+01}
+   - Iteration quality: { #_____________________________________________________ Iteration3
+ iter:  3, res:  2.48853119208619319E-04, ratio:  3.03641996250492430E-02, 
+         alpha:  8.19493151339834913E-01, beta:  1.35206246211302897E-02}
+   - Iteration quality: { #_____________________________________________________ Iteration4
+ iter:  4, res:  1.18227892678848150E-04, ratio:  1.44257598456700512E-02, 
+         alpha:  2.11268090191002056E+00, beta:  6.53001325974008912E-04}
+   - Iteration quality: { #_____________________________________________________ Iteration5
+ iter:  5, res:  5.90405988805335472E-05, ratio:  7.20393031878415174E-03, 
+         alpha:  5.35040354108021754E-01, beta:  1.55848060136030720E-04}
+   - Iteration quality: { #_____________________________________________________ Iteration6
+ iter:  6, res:  4.37673226250447111E-06, ratio:  5.34033780837078536E-04, 
+         alpha:  5.87801729468004575E-01, beta:  5.18279239679959828E-05}
+   - Iteration quality: { #_____________________________________________________ Iteration7
+ iter:  7, res:  1.67159331652091522E-06, ratio:  2.03962053263189239E-04, 
+         alpha:  5.51312071374950530E-01, beta:  2.37632772479480855E-07}
+   - Iteration quality: { #_____________________________________________________ Iteration8
+ iter:  8, res:  1.27813685744006825E-07, ratio:  1.55953852661611018E-05, 
+         alpha:  7.95190390207255127E-01, beta:  1.43994867438935352E-08}
  Inf. Norm difference with reference:
-   Value                     :  1.753348484435924E-04
-   Point                     :  [  29,  30,  32 ]
-   Some values: [ 2.182758649771355E-06,  1.716161382781280E-07,  2.415958277671234E-07]
- Expected hartree energy     :  5.1863395854877335E-002
- Computed Hartree energy     :  5.1863900697696738E-002
- Diff of expected-computed Hartree energy: -5.0484281940293974E-007
+   Value                     :  2.986599684292809E-05
+   Point                     :  [  29,  19,  34 ]
+   Some values: [ 9.462759354983419E-07, -3.071195038501519E-08, -4.315428192561243E-08]
+ Expected hartree energy     :  4.3393317352253109E-002
+ Computed Hartree energy     :  4.3393349694823474E-002
+ Diff of expected-computed Hartree energy: -3.2342570364940482E-008
+  #-------- Comparison between numerical and starting analytical density with old GPoperator
+ Inf. Norm difference with reference:
+   Value                     :  1.074395547093221E-01
+   Point                     :  [  30,  49,  32 ]
+   Some values: [-1.378115944050684E-05, -7.152095426906259E-05, -9.388836662274370E-07]
+  #------ Comparison between numerical and starting analytical density witn new 2 GPoperator
+ Inf. Norm difference with reference:
+   Value                     :  1.061561747149636E-01
+   Point                     :  [  30,  49,  32 ]
+   Some values: [-1.535375177574849E-05, -6.902506233993356E-05, -9.159698826880163E-07]
  Memory Consumption Report:
-   Tot. No. of Allocations   :  396
-   Tot. No. of Deallocations :  396
+   Tot. No. of Allocations   :  405
+   Tot. No. of Deallocations :  405
    Remaining Memory (B)      :  0
    Memory occupation:
-     Peak Value (MB)         :  34.063
-     for the array           : lapla_pot
-     in the routine          : H_potential
-     Memory Peak of process  : 54.100 MB
- Walltime since initialization: 00:00:01.847158749
- Max No. of dictionaries used:  251 #( 170 still in use)
+     Peak Value (MB)         :  37.986
+     for the array           : zmpi1
+     in the routine          : G_PoissonSolver
+     Memory Peak of process  : 60.460 MB
+ Walltime since initialization: 00:00:00.693081657
+ Max No. of dictionaries used:  259 #( 170 still in use)
  Number of dictionary folders allocated:  1
