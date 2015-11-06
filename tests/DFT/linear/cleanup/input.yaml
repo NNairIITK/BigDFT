@@ -16,6 +16,8 @@
    foe_gap: Yes
    correction_co_contra: no
    purification_quickreturn: no
+   check_sumrho: 2
+   check_overlap: 2
  lin_general:
    nit: [1, 2]
    rpnrm_cv: 9.9999999999999994E-012

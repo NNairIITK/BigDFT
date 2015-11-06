@@ -85,8 +85,8 @@ contains
     do ilr=1,lzd%nlr
        !write(*,*) 'lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locrad_kernel', lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locrad_kernel
        if (lzd%llr(ilr)%locrad_mult<lzd%llr(ilr)%locrad_kernel) then
-          call f_err_throw('locrad_mult ('//trim(yaml_toa(lzd%llr(ilr)%locrad_mult,fmt='(f5.2)'))//&
-               &') too small, must be at least as big as locrad_kernel('&
+          call f_err_throw('rloc_kernel_foe ('//trim(yaml_toa(lzd%llr(ilr)%locrad_mult,fmt='(f5.2)'))//&
+               &') too small, must be at least as big as rloc_kernel('&
                &//trim(yaml_toa(lzd%llr(ilr)%locrad_kernel,fmt='(f5.2)'))//')', err_id=BIGDFT_RUNTIME_ERROR)
        end if
     end do
@@ -4278,7 +4278,7 @@ contains
       integer,dimension(ncol),intent(in) :: col_ptr
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(nnonzero),intent(in) :: val
-      type(matrices),intent(out) :: mat
+      type(matrices),intent(inout) :: mat
 
       ! Local variables
       integer :: icol, irow, i, ii

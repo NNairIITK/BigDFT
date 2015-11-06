@@ -524,6 +524,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    type(ket) :: psi_it
    type(orbital_basis) :: psi_ob
    type(workarr_locham) :: wrk_lh
+   type(workarr_sumrho) :: w
    real(wp), dimension(:,:), allocatable :: vsicpsir
    real(wp), dimension(:,:), allocatable :: psir
    real(wp), dimension(:), pointer :: hpsi_ptr
@@ -600,9 +601,29 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 !!$                0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
 !!$                pkernel,psi,pot(ispot),energs%eexctX)
 !!$
-            call exact_exchange_potential_round_clean(iproc,nproc,xc,orbs%nspin,Lzd%Glr,orbs,&
-                 0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
-                 pkernel,psi,pot(ispot),energs%eexctX)
+
+
+            psir = f_malloc0([Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, orbs%norbp],id='psir')
+            !initialize the orbital basis object, for psi and hpsi
+            call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
+            !iterate over the orbital_basis
+            psi_it=orbital_basis_iterator(psi_ob)
+            do while(ket_next_locreg(psi_it))
+               call initialize_work_arrays_sumrho(1,[psi_it%lr],.true.,w)
+               do while(ket_next(psi_it,ilr=psi_it%ilr))
+                  call daub_to_isf(psi_it%lr,w,psi_it%phi_wvl,psir(1,psi_it%iorbp))
+               end do
+               !deallocations of work arrays
+               call deallocate_work_arrays_sumrho(w)
+            end do
+            call orbital_basis_release(psi_ob)
+
+            call exact_exchange_potential_round_clean(iproc,nproc,xc,orbs%nspin,&
+                 Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,orbs,&
+                 !0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
+                 pkernel,psir,pot(ispot),energs%eexctX)
+            call f_free(psir)
+
 
             !call exact_exchange_potential_op2p(iproc,nproc,xc,Lzd%Glr,orbs,pkernel,psi,pot(ispot),energs%eexctX)
 

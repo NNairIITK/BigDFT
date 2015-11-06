@@ -106,6 +106,14 @@ module wrapper_MPI
     module procedure mpiget_d0
   end interface mpiget
 
+  interface mpisend
+     module procedure mpisend_d0
+  end interface mpisend
+
+  interface mpirecv
+     module procedure mpirecv_d0
+  end interface mpirecv
+
   interface mpiput
      module procedure mpiput_d0
   end interface mpiput
@@ -467,7 +475,7 @@ contains
     end if
     call MPI_COMM_GROUP(mpi_comm,mpigroup,ierr)
     if (ierr /= 0) then
-       mpigroup=-1
+       mpigroup=mpigroup_null()
        call f_err_throw('Problem in group identification, ierr:'//&
             ierr,err_name='BIGDFT_MPI_ERROR')
     end if
@@ -478,6 +486,25 @@ contains
     integer :: grp
     grp=MPI_GROUP_NULL
   end function mpigroup_null
+
+  pure function mpirank_null() result(iproc)
+    implicit none
+    integer :: iproc
+    iproc=MPI_PROC_NULL
+  end function mpirank_null
+
+  pure function mpicomm_null() result(comm)
+    implicit none
+    integer :: comm
+    comm=MPI_PROC_NULL
+  end function mpicomm_null
+
+  pure function mpirequest_null() result(request)
+    implicit none
+    integer :: request
+    request=MPI_REQUEST_NULL
+  end function mpirequest_null
+
 
   subroutine mpigroup_free(grp)
     implicit none
@@ -696,6 +723,12 @@ contains
          err_id=ERR_MPI_WRAPPERS)
 
   end subroutine mpiinit
+
+  pure function mpiworld()
+    implicit none
+    integer :: mpiworld
+    mpiworld=MPI_COMM_WORLD
+  end function mpiworld
 
   !> Finalization of the mpi
   subroutine mpifinalize()
@@ -1310,7 +1343,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
-    double precision, intent(inout) :: sendbuf
+    double precision :: sendbuf
     double precision, intent(inout), optional :: recvbuf
     double precision, dimension(:), allocatable :: copybuf
     include 'allreduce-inc.f90'
@@ -2305,17 +2338,131 @@ contains
 
   end subroutine mpiialltoallv_double
 
+  subroutine mpisend_d0(buf,count,dest,tag,comm,request,simulate,verbose)
+    use yaml_output
+    implicit none
+    real(f_double) :: buf !fake intent(in)
+    integer, intent(in) :: count
+    integer, intent(in) :: dest
+    integer, intent(in), optional :: tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional :: request !<toggle the isend operation
+    logical, intent(in), optional :: simulate,verbose
+    !local variables
+    logical :: verb,sim
+    integer :: mpi_comm,ierr,tag_
+    
+    mpi_comm=MPI_COMM_WORLD
+    if (present(comm)) mpi_comm=comm
+    if (present(tag)) then
+       tag_=tag
+    else
+       tag_=mpirank(mpi_comm)
+    end if
 
-  subroutine mpiwaitall(ncount, array_of_requests)
+    verb=.false.
+    if (present(verbose)) verb=verbose .and. dest /=mpirank_null()
+    
+    if (verb) then
+       call yaml_mapping_open('MPI_(I)SEND')
+       call yaml_map('Elements',count)
+       call yaml_map('Source',mpirank(mpi_comm))
+       call yaml_map('Dest',dest)
+       call yaml_map('Tag',tag_)
+       call yaml_mapping_close()
+    end if
+
+    sim=.false.
+    if (present(simulate)) sim=simulate
+    if (sim) return
+
+    if (present(request)) then
+       call MPI_ISEND(buf,count,mpitype(buf),dest,tag,mpi_comm,request,ierr)
+    else
+       call MPI_SEND(buf,count,mpitype(buf),dest,tag,mpi_comm,ierr)
+    end if
+
+    if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)SEND occured',&
+            err_id=ERR_MPI_WRAPPERS)
+
+  end subroutine mpisend_d0
+
+  subroutine mpirecv_d0(buf,count,source,tag,comm,status,request,simulate,verbose)
+    use yaml_output
+    implicit none
+    real(f_double), intent(inout) :: buf !fake intent(out)
+    integer, intent(in) :: count
+    integer, intent(in), optional :: source
+    integer, intent(in), optional :: tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional :: request !<toggle the isend operation
+    integer, dimension(MPI_STATUS_SIZE), intent(out), optional :: status !<for the blocking operation
+    logical, intent(in), optional :: simulate,verbose
+    !local variables
+    logical :: verb,sim
+    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag
+
+    mpi_comm=MPI_COMM_WORLD
+    if (present(comm)) mpi_comm=comm
+    mpi_source=MPI_ANY_SOURCE
+    mpi_tag=MPI_ANY_TAG
+    if (present(source)) then
+       mpi_source=source
+       mpi_tag=source
+    end if
+    if (present(tag)) mpi_tag=tag
+    verb=.false.
+    if (present(verbose)) verb=verbose .and. source /= mpirank_null()
+    if (verb) call yaml_comment('Receiving'//count//'elements from'//source//'in'//mpirank(mpi_comm))
+
+    if (verb) then
+       call yaml_mapping_open('MPI_(I)RECV')
+       call yaml_map('Elements',count)
+       call yaml_map('Source',source)
+       call yaml_map('Dest',mpirank(mpi_comm))
+       call yaml_map('Tag',mpi_tag)
+       call yaml_mapping_close()
+    end if
+
+    sim=.false.
+    if (present(simulate)) sim=simulate
+    if (sim) return
+
+    if (present(request)) then
+       call MPI_IRECV(buf,count,mpitype(buf),mpi_source,mpi_tag,mpi_comm,request,ierr)
+    else
+       if (present(status)) then
+          call MPI_RECV(buf,count,mpitype(buf),mpi_source,mpi_tag,mpi_comm,status,ierr)
+       else
+          call MPI_RECV(buf,count,mpitype(buf),mpi_source,mpi_tag,mpi_comm,MPI_STATUS_IGNORE,ierr)
+       end if
+    end if
+
+    if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)RECV occured',&
+         err_id=ERR_MPI_WRAPPERS)
+
+  end subroutine mpirecv_d0
+
+  
+
+  subroutine mpiwaitall(ncount, array_of_requests,array_of_statuses)
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
     ! Local variables
-    integer,intent(in) :: ncount
-    integer,dimension(ncount),intent(in) :: array_of_requests
+    integer, intent(in) :: ncount
+    integer, dimension(ncount),intent(in) :: array_of_requests
+    integer, dimension(MPI_STATUS_SIZE,ncount), intent(out), optional :: array_of_statuses
     ! Local variables
     integer :: ierr
 
-    call mpi_waitall(ncount, array_of_requests, MPI_STATUSES_IGNORE, ierr)
+    !no wait if no requests
+    if (ncount==0) return
+
+    if (present(array_of_statuses)) then
+       call mpi_waitall(ncount, array_of_requests,array_of_statuses, ierr)
+    else
+       call mpi_waitall(ncount, array_of_requests, MPI_STATUSES_IGNORE, ierr)
+    end if
     if (ierr/=0) then
        call f_err_throw('An error in calling to MPI_WAITALL occured',&
             err_id=ERR_MPI_WRAPPERS)

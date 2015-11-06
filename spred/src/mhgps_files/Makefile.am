@@ -35,31 +35,25 @@ EXTRA_DIST = \
 libmhgps_a_SOURCES = $(mhgps_SOURCES)
 #dependencies
 
-module_mhgps_state.o : ../modules/BigDFT_API.o mhgps_version_number-inc.f90
+module_mhgps_state.o : mhgps_version_number-inc.f90
 
-module_energyandforces.o : module_mhgps_state.o \
-                           ../modules/BigDFT_API.o
-module_userinput.o : module_mhgps_state.o ../modules/BigDFT_API.o 
+module_energyandforces.o : module_mhgps_state.o
+module_userinput.o : module_mhgps_state.o
 module_saddle.o : module_userinput.o module_mhgps_state.o\
-                  module_energyandforces.o ../modules/module_sqn.o\
-                  ../modules/module_forces.o ../modules/BigDFT_API.o
+                  module_energyandforces.o
 module_minimizers.o : module_userinput.o module_mhgps_state.o\
-                      module_energyandforces.o\
-                      ../modules/module_sqn.o\
-                      ../modules/BigDFT_API.o
-module_io.o : module_userinput.o module_mhgps_state.o module_connect_object.o ../modules/BigDFT_API.o
+                      module_energyandforces.o
+module_io.o : module_userinput.o module_mhgps_state.o module_connect_object.o
 module_freezingstring.o : module_energyandforces.o module_interpol.o \
-                          module_userinput.o module_mhgps_state.o\
-                          ../modules/module_forces.o ../modules/BigDFT_API.o
-module_interpol.o : module_userinput.o module_mhgps_state.o ../modules/module_forces.o ../modules/BigDFT_API.o
-module_connect_object.o: ../modules/BigDFT_API.o
+                          module_userinput.o module_mhgps_state.o
+module_interpol.o : module_userinput.o module_mhgps_state.o
 module_connect.o: module_connect_object.o module_io.o module_userinput.o module_misc.o module_ls_rmsd.o\
                   module_mhgps_state.o module_saddle.o\
-                  module_freezingstring.o module_minimizers.o\
-                  ../modules/BigDFT_API.o
-module_ls_rmsd.o: module_misc.o ../modules/BigDFT_API.o
-module_misc.o: ../modules/BigDFT_API.o
-module_hessian.o: module_userinput.o ../modules/BigDFT_API.o module_mhgps_state.o module_energyandforces.o
-mhgpstool.o: ../modules/BigDFT_API.o module_mhgpstool.o
+                  module_freezingstring.o module_minimizers.o
 
-module_mhgpstool.o: ../modules/BigDFT_API.o module_io.o
+module_ls_rmsd.o: module_misc.o
+
+module_hessian.o: module_userinput.o module_mhgps_state.o module_energyandforces.o
+mhgpstool.o: module_mhgpstool.o
+
+module_mhgpstool.o: module_io.o

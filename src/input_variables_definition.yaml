@@ -137,10 +137,14 @@
        1: Wavelet, Plain text
        2: Wavelet, Fortran binary
        3: Wavelet, ETSF file format
-       10: None
-       11: Wavelet and Interpolating Scaling Function, Plain text
-       12: Wavelet and Interpolating Scaling Function, Fortran binary
-       13: Wavelet and Interpolating Scaling Function, ETSF file format
+       #10: None
+       #11: Wavelet and Interpolating Scaling Function, Plain text
+       #12: Wavelet and Interpolating Scaling Function, Fortran binary
+       #13: Wavelet and Interpolating Scaling Function, ETSF file format
+       #20: None
+       #21: Wavelet and Interpolating Scaling Function (wavefunction), Plain text
+       #22: Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
+       #23: Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
    output_denspot:
      COMMENT: Output of the density or the potential
      default: 0
@@ -972,14 +976,14 @@
      default: No
    check_sumrho:
      COMMENT: Enables linear sumrho check
-     default: 2
+     default: 1
      EXCLUSIVE:
        0: No check
        1: Light check
        2: Full check
    check_overlap:
      COMMENT: Enables linear overlap check
-     default: 2
+     default: 1
      EXCLUSIVE:
        0: No check
        1: Light check
@@ -996,7 +1000,7 @@
        2: In addition output wavefunction densities in interpolating scaling functions (cube file)
        3: In addition output wavefunctions in interpolating scaling functions (cube file)
    explicit_locregcenters:
-     COMMENT: Linear scaling explicitely specify localization centers 
+     COMMENT: Linear scaling explicitly specify localization centers 
      default: No
    calculate_KS_residue:
      COMMENT: Linear scaling calculate Kohn-Sham residue
@@ -1512,7 +1516,7 @@
                     Specifies a scaling factor for the coefficient gradient, recommended to be around 0.1 - 0.5 for CDFT, fragment calculations
                     or systems where convergence is unstable.
        default: 1.0
-       RANGE: [1.e-3,1.e1]
+       RANGE: [0.0,1.e1]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:

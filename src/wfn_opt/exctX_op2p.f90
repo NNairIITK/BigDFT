@@ -256,7 +256,8 @@ contains
 
 end module module_exctx_op2p
 
-subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,remote_result,nloc_i,nloc_j,ipiv_i,ipiv_j,&
+subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,remote_result,&
+     nloc_i,nloc_j,isloc_i,isloc_j,&
      phi_i,phi_j,eexctX,rp_ij)
   use module_defs, only: wp
   use overlap_point_to_point
@@ -266,16 +267,16 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
   integer, intent(in) :: istep !<step of the calculation
   integer, intent(in) :: norb
   integer, intent(in) :: nloc_i,nloc_j !<number of local elements to  be treated
-  real(gp), intent(in) :: factor
-  integer, dimension(nloc_i), intent(in) :: ipiv_i !<list of these elements for phi_i
-  integer, dimension(nloc_j), intent(in) :: ipiv_j !<list of these elements for phi_j
+  integer, intent(in) :: isloc_i !<starting point of the elements for phi_i
+  integer, intent(in) :: isloc_j !<starting point of the elements for phi_j
+  real(gp), intent(in) :: factor !<overall factor to treat the data
   real(gp), dimension(norb), intent(in) :: occup,spinsgn !<to treat the data
   type(coulomb_operator), intent(inout) :: pkernel
   type(local_data), intent(inout) :: phi_i,phi_j
   real(gp), intent(inout) :: eexctX
   real(wp), dimension(product(pkernel%ndims)), intent(out) :: rp_ij
   !local variables
-  integer :: iorb,jorb,ind,jnd,ndim,iorb_glb,jorb_glb,ishift,jshift,ishift_res,jshift_res,i
+  integer :: iorb,jorb,ndim,iorb_glb,jorb_glb,ishift,jshift,ishift_res,jshift_res,i
   real(gp) :: hfac,hfaci,hfacj,hfac2,ehart
 !loop over all the orbitals
 !for the first step do only the upper triangular part
@@ -284,11 +285,9 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
 !!$     iorb=
   ndim=product(pkernel%ndims)
   hfac=1.0_gp/product(pkernel%hgrids)
-  do ind=1,nloc_i
-  do jnd=1,nloc_j
+  do iorb=isloc_i,nloc_i+isloc_i-1
+  do jorb=isloc_j,nloc_j+isloc_j-1
      !aliasing
-     iorb=ipiv_i(ind)
-     jorb=ipiv_j(jnd)
      jorb_glb=phi_j%id_glb(jorb)
      iorb_glb=phi_i%id_glb(iorb)
      hfaci=-factor*occup(jorb_glb)

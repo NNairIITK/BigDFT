@@ -12,14 +12,14 @@
 program NEB_images
 
    use BigDFT_API
-
+   use bigdft_run
    implicit none     !< As a general policy, we will have "implicit none" by assuming the same
    integer :: iproc,nproc,ierr,infocode
    integer :: ncount_bigdft
    !input variables
    type(run_objects) :: runObj
    !output variables
-   type(DFT_global_output) :: outs
+   type(state_properties) :: outs
    character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: run_id
    !information for mpi_initalization
@@ -51,7 +51,7 @@ program NEB_images
          !print *,'iconfig,arr_radical(iconfig),arr_posinp(iconfig)',arr_radical(iconfig),arr_posinp(iconfig),iconfig,igroup
          ! Read all input files. This should be the sole routine which is called to initialize the run.
          call run_objects_init_from_files(runObj, arr_radical(iconfig),arr_posinp(iconfig))
-         call init_global_output(outs, runObj%atoms%nat)
+         c!all init_global_output(outs, runObj%atoms%nat)
          call call_bigdft(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)
 
          call call_bigdft(runObj, outs, bigdft_mpi%nproc,bigdft_mpi%iproc,infocode)

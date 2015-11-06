@@ -1,5 +1,5 @@
 module bounds
-
+  use locregs
   implicit none
 
   private
@@ -19,7 +19,6 @@ module bounds
     !> Calculates the bounds arrays needed for convolutions
     subroutine locreg_bounds(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,wfd,bounds)
       use module_base
-      use locregs
       !use module_interfaces, except_this_one => locreg_bounds
       implicit none
       !Arguments
@@ -83,7 +82,6 @@ module bounds
 
     subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
       use module_base
-      use module_types
       implicit none
       !Arguments
       integer, intent(in) :: n1,n2,n3

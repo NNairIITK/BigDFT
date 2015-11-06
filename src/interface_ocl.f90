@@ -166,22 +166,6 @@ subroutine allocate_data_OCL(n1,n2,n3,geocode,nspin,wfd,orbs,GPU)
      GPU%bprecond_host=f_malloc_ptr(2*orbs%nspinor,id='bprecond_host')
   end if
 
-!!$  allocate(GPU%ekin(2,orbs%norbp+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,GPU%ekin,'ekin',subname)
-!!$  allocate(GPU%epot(2,orbs%norbp+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,GPU%epot,'epot',subname)
-
-!!$  !allocate arrays for tracing  pinning of the memory
-!!$  allocate(GPU%ekinpot_host(orbs%nspinor,orbs%norbp,2+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,GPU%ekinpot_host,'ekinpot_host',subname)
-!!$
-!!$  allocate(GPU%psicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,GPU%psicf_host,'psicf_host',subname)
-!!$  allocate(GPU%hpsicf_host(2*orbs%nspinor,orbs%norbp+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,GPU%hpsicf_host,'hpsicf_host',subname)
-!!$  allocate(GPU%bprecond_host(2*orbs%nspinor+ndebug),stat=i_stat)
-!!$  call memocc(i_stat,GPU%bprecond_host,'bprecond_host',subname)
-
   !pin the memory of the orbitals energies
   if (pin) then
      do iorb=1,orbs%norbp
@@ -213,14 +197,6 @@ subroutine free_gpu_OCL(GPU,orbs,nspin)
 
   call f_free_ptr(GPU%ekin)
   call f_free_ptr(GPU%epot)
-
-!!$  i_all=-product(shape(GPU%ekin))*kind(GPU%ekin)
-!!$  deallocate(GPU%ekin,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'ekin',subname)
-!!$
-!!$  i_all=-product(shape(GPU%epot))*kind(GPU%epot)
-!!$  deallocate(GPU%epot,stat=i_stat)
-!!$  call memocc(i_stat,i_all,'epot',subname)
 
 
   call ocl_release_mem_object(GPU%d)
@@ -616,6 +592,7 @@ END SUBROUTINE finish_hamiltonian_OCL
 subroutine preconditionall_OCL(orbs,lr,hx,hy,hz,ncong,hpsi,gnrm,gnrm_zero,GPU)
   use module_base
   use module_types
+  use locreg_operations, only: workarr_precond,allocate_work_arrays,deallocate_work_arrays
   implicit none
   type(orbitals_data), intent(in) :: orbs
   integer, intent(in) :: ncong
