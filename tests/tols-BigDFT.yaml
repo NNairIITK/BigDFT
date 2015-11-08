@@ -915,7 +915,7 @@ experimentalfoe_long:
  decay length of error function: 1.1e-5
  ebs: 2.1e-9
  relative diff: 3.3e-11
- Energy (Hartree): 1.2e-10
+ Energy (Hartree): 1.21e-10
 
 experimentalfoe_short:
  EH: 2.0e-05
@@ -1138,6 +1138,7 @@ DIIShistory:
  Pulay forces (Ha/Bohr): 7.8e-09
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
  Energy (Hartree): 5.2e-11
+ Force Norm (Hartree/Bohr): 1.12e-10
 
 sparsity:
  Total charge: 1.1e-10
@@ -1289,7 +1290,7 @@ O2spin_diag:
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
- Force Norm (Hartree/Bohr): 1.23e-9
+ Force Norm (Hartree/Bohr): 1.91e-8
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 1.5e-8
@@ -1318,7 +1319,7 @@ O2spin_foe:
  relative diff: 3.6e-11
  fnrm2: 4.19e-8
  Energy (Hartree): 2.4e-10
- Force Norm (Hartree/Bohr): 3.63e-11
+ Force Norm (Hartree/Bohr): 2.88e-10
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 1.6e-5
@@ -1522,15 +1523,15 @@ periodic_silicon:
  ebs_check: 1.1e-10
  charge diff: 5.0e-10
  ebs: 1.2e-10
- Energy (Hartree): 2.9e-11
- energy: 2.9e-11
+ Energy (Hartree): 2.91e-11
+ energy: 2.91e-11
  Total ionic charge: 6.7e-11
  Pressure: 1.5e-10
  D Tr: 1.0e-9
 
 periodic_wateredge:
  Epot: 1.1e-9
- Omega: 1.8e-10
+ Omega: 1.81e-10
  Enl: 2.1e-10
  EH: 1.0e-9
  EXC: 1.1e-10
@@ -1839,7 +1840,7 @@ extendedfrags_readrotated:
  Epot: 1.1e-10
  EvXC: 1.01e-10
  Force Norm (Hartree/Bohr): 2.6e-11
- fnrm2: 3.01e-11
+ fnrm2: 5.81e-11
 
 extendedfrags_write:
  Epot: 7.0e-10
@@ -1871,20 +1872,22 @@ Cavity_H2OfrigidPCG:
  Iteration quality: 4.0e-7
  alpha: 0.6
  beta: 8.06e-5
- ratio: 8.5e-6
  Epot: 5.7e-5
  EH: 5.7e-5
  Energies: 5.1e-7
  EKS: &energy 4.95e-7
- Ekin: 1.2e-7
  Energy (Hartree): *energy 
  Average noise forces: 6.01e-8
  Integral of the density in the nonvacuum region: 3.6e-8
- Total electronic charge: 4.01e-10
- total: 4.96e-6
- x: 2.42e-06
- y: 4.91e-06
- z: 1.53e-07
+ Ekin: 1.66e-07
+ Total electronic charge: 1.25e-09
+ beta: 0.000101
+ norm(P): 1.01e-8
+ ratio: 1.01e-05
+ total: 5.121e-06
+ x: 2.55e-06
+ y: 5.09e-06
+ z: 1.63e-07
  Keys to ignore:
    - rmult
    - Electronic charge changed by rho compression
@@ -1896,19 +1899,11 @@ Cavity_H2OfsccsPCG:
  Average noise forces: 1.01e-9
  EH: 4.6e-05
  EKS: 2.43e-07
- EXC: 3.9e-08
- Ekin: 1.84e-07
  Energy (Hartree): 2.43e-07
- Enl: 1.58e-08
  Epot: 4.2-05
- EvXC: 4.9e-08
  Force Norm (Hartree/Bohr): 4.59e-07
  H: 9.8e-07
- Integral of the density in the nonvacuum region: 1.4e-08
  O: 1.95e-07
- Total electronic charge: 5.0e-10
- alpha: 0.31
- beta: 6.9e-06
  fnrm2: 4.3e-07
  maxval: 5.3e-07
  ratio: 5.81e-06
@@ -1916,6 +1911,14 @@ Cavity_H2OfsccsPCG:
  x: 2.77e-07
  y: 5.9e-07
  z: 1.33e-07
-
+ EXC: 2.40e-07
+ Ekin: 1.07e-06
+ Enl: 1.45e-07
+ EvXC: 3.01e-07
+ Integral of the density in the nonvacuum region: 7.73e-08
+ P vector: 1.01e-07
+ Total electronic charge: 1.46e-09
+ alpha: 0.397
+ beta: 0.00019
  Keys to ignore:
    - Electronic charge changed by rho compression
