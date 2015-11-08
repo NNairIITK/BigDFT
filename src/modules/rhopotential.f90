@@ -116,6 +116,7 @@ module rhopotential
        use communications_base, only: p2pComms
        use communications, only: synchronize_onesided_communication
        use locreg_operations, only: global_to_local_parallel, global_to_local
+       use module_dpbox, only: denspot_distribution
        implicit none
        !Arguments
        integer, intent(in) :: iproc,nproc,iflag!,nspin,ndimpot,ndimgrid

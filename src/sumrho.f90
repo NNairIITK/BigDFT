@@ -1,7 +1,7 @@
 !> @file
 !!    Calculate the electronic density (rho)
 !! @author
-!!    Copyright (C) 2007-2012 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,6 +13,7 @@
 !! Potential from electronic charge density
 subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,hstrten)
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
   use module_xc
   use module_interfaces, fake_name => density_and_hpot
@@ -78,6 +79,7 @@ END SUBROUTINE density_and_hpot
 !> Calculates the charge density by summing the square of all orbitals
 subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_xc
    use module_interfaces, except_this_one => sumrho
@@ -174,6 +176,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
 !> Starting point for the communication routine of the density
 subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
   use yaml_output
   implicit none

@@ -156,7 +156,7 @@ contains
 
   end subroutine dict_set_run_properties
 
-  !> get the parameters of the run 
+  !> Get the parameters of the run 
   subroutine dict_get_run_properties(run,run_id,input_id,posinp_id,naming_id, &
        & outdir_id,log_to_disk,run_from_files)
     use public_keys, only: POSINP
@@ -343,7 +343,7 @@ contains
     logical, intent(out) :: dict_from_files !<identifies if the dictionary comes from files
     !local variables
     integer, parameter :: ntrials=1
-    integer :: ierror,lgt,unit_log,ierrr,trials
+    integer :: lgt,unit_log,ierrr,trials !, ierror
     integer(kind=4) :: ierr
     character(len = max_field_length) :: writing_directory, run_name
     character(len=500) :: logfilename,path
@@ -516,6 +516,7 @@ contains
     call f_release_routine()
 
   END SUBROUTINE merge_input_file_to_dict
+
 
   !subroutine aocc_to_dict(dict, nspin, noncoll, nstart, aocc, nelecmax, lmax, nsccode)
   !  use module_defs, only: gp
@@ -980,11 +981,11 @@ contains
     !use yaml_output
     use dynamic_memory
     implicit none
+    !Arguments
     character(len = *), intent(in) :: radical    !< The name of the run. use "input" if empty
     type(mpi_environment), intent(in) :: mpi_env !< The environment where the variables have to be updated
     type(dictionary), pointer :: dict            !< Input dictionary, has to be nullified at input
-    !local variables
-    integer :: ierr
+    !Local variables
     logical :: exists_default, exists_user
     character(len = max_field_length) :: fname
 
@@ -1074,7 +1075,7 @@ contains
     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
 
     if (mpi_env%iproc==0) then
-       call yaml_warning('Input files read in the old format.'//&
+       call yaml_warning('Input files read in the old format. '//&
             'Use the input_minimal.yaml file to switch to new format. '//&
             'In future versions this will be deprecated')
     end if

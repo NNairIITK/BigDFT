@@ -16,8 +16,8 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   use yaml_strings, only: f_strcpy
   use dictionaries, only: f_loc
   implicit none
-  logical, intent(in) :: verb       !< verbosity
-  integer, intent(in) :: itype_scf
+  logical, intent(in) :: verb       !< Verbosity
+  integer, intent(in) :: itype_scf  !< Type of interpolating scaling function
   integer, intent(in) :: iproc      !< Proc Id
   integer, intent(in) :: nproc      !< Number of processes
   integer, intent(in) :: igpu
@@ -161,7 +161,7 @@ end function pkernel_init
 subroutine pkernel_free(kernel)
   use dynamic_memory
   implicit none
-  type(coulomb_operator), intent(inout) :: kernel
+  type(coulomb_operator), intent(inout) :: kernel !< kernel structure to be freed
   integer :: i_stat
   call f_free_ptr(kernel%kernel)
   call f_free_ptr(kernel%dlogeps)
@@ -1901,7 +1901,7 @@ subroutine fssnord3DmatNabla3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
 
   !c..local variables
   integer :: n,m,n_cell,ii
-  integer :: i,j,ib,i1,i2,i3
+  integer :: i,j,i1,i2,i3
   real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
   real(kind=8) :: hx,hy,hz
   logical :: perx,pery,perz
@@ -2077,7 +2077,7 @@ subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rh
   integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max,ii
   !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
   real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
-  real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
+  real(kind=8) :: hx,hy,hz,dx,dy,dz,res,rho
   real(kind=8) :: oneo4pi,rpoints
   logical :: perx,pery,perz
 

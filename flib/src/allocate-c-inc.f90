@@ -2,7 +2,7 @@
 !! Include fortran file for allocation template
 !! 
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,7 +12,8 @@
 !  call timing(0,'Init to Zero  ','IR') 
   !then perform all the checks and profile the allocation procedure
   if (ierror/=0) then
-     call f_err_throw('Allocation problem, error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
+     call f_err_throw('Allocation problem (routine_id=' // trim(m%routine_id) // ',id=' // &
+          & trim(m%array_id) // '), error code '//trim(yaml_toa(ierror)),ERR_ALLOCATE)
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
      return
   end if
@@ -26,9 +27,9 @@
         call profile(iadd)
      end if
   else
-     call f_err_throw('Rank specified by f_malloc ('//trim(yaml_toa(m%rank))//&
-          ') is not coherent with the one of the array ('//trim(yaml_toa(size(shape(array))))//')',&
-          ERR_INVALID_MALLOC)
+     call f_err_throw('Rank specified by f_malloc ('+yaml_toa(m%rank)// ',routine_id=' // trim(m%routine_id) // &
+          & ',id=' // trim(m%array_id) // ') is not coherent with the one of the array ('+yaml_toa(size(shape(array)))//')',&
+          & ERR_INVALID_MALLOC)
      call f_timer_resume()!TCAT_ARRAY_ALLOCATIONS
      return
   end if

@@ -1,7 +1,7 @@
 !> @file
 !! BigDFT package performing ab initio calculation based on wavelets
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -25,13 +25,8 @@ program BigDFT
    type(run_objects) :: runObj
    !output variables
    type(state_properties) :: outs
-   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
+!!$   character(len=60), dimension(:), allocatable :: arr_posinp,arr_radical
    character(len=60) :: filename,posinp_id!, run_id
-   integer :: iconfig,nconfig!,ngroups,igroup
-   real(kind=8),dimension(:,:),allocatable :: fxyz
-   integer :: iat
-   logical :: file_exists
-   integer,dimension(:),allocatable :: atoms_ref
    type(dictionary), pointer :: run,options
 
    call f_lib_initialize()

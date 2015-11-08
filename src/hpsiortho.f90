@@ -479,6 +479,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
      Lzd,confdatarr,ngatherarr,pot,psi,hpsi,&
      energs,SIC,GPU,PotOrKin,xc,pkernel,orbsocc,psirocc,dpbox,potential,comgp,hpsi_noconf,econf)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_xc
    use module_interfaces, except_this_one => LocalHamiltonianApplication
@@ -977,10 +978,8 @@ subroutine NonLocalHamiltonianApplication(iproc,at,npsidim_orbs,orbs,&
   !used on the on-the-fly projector creation
   if (nwarnings /= 0 .and. iproc == 0) then
      call yaml_map('Calculating wavelets expansion of projectors, found warnings',nwarnings,fmt='(i0)')
-     if (nwarnings /= 0) then
-        call yaml_newline()
-        call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
-     end if
+      call yaml_newline()
+      call yaml_warning('Projectors too rough: Consider modifying hgrid and/or the localisation radii.')
   end if
 
   call f_free(scpr)
@@ -1157,8 +1156,6 @@ subroutine SynchronizeHamiltonianApplication(nproc,npsidim_orbs,orbs,Lzd,GPU,xc,
    call f_release_routine()
 
 END SUBROUTINE SynchronizeHamiltonianApplication
-
-
 
 
 subroutine free_full_potential(nproc,flag,xc,pot,subname)

@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to reformat wavefunctions
 !! @author
-!!    Copyright (C) 2010-2013 BigDFT group 
+!!    Copyright (C) 2010-2015 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -695,7 +695,8 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      enddo
   enddo
 
-  if (verbose >= 2) call yaml_comment(trim(yaml_toa(iorb)) //'th wavefunction written')
+  if (bigdft_mpi%iproc == 0 .and. verbose >= 2) &
+     & call yaml_comment(trim(yaml_toa(iorb)) //'th wavefunction written')
   !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 END SUBROUTINE writeonewave
@@ -956,8 +957,9 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
       real(gp), dimension(3,3), intent(in) :: rmat !< rotation matrix
       integer, dimension(3) :: irp
       !local variables
-      integer :: i,isgn
+      integer :: i
       integer, dimension(3) :: ib1,ib3
+!!$      integer :: isgn
 !!$      real(gp), dimension(3) :: rrow
 
       !determine ideal sequence for rotation, for important rows

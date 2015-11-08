@@ -160,8 +160,6 @@ module gaussdaub
       integer, intent(in) :: ncplx
       real(gp), dimension(ncplx), intent(in) :: gau_a
       real(gp), dimension(ncplx) :: gau_c
-      !local variables
-      real(gp) :: fpi,fgamma
       !this value can also be inserted as a parameter
       if (ncplx == 1) then
          gau_c(1) = 1._gp / sqrt(2._gp * gau_a(1))

@@ -666,7 +666,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -7.9908E+01, -7.9908E+01, -4.1174E+01 ]
    norm(P)                             :  1.202735E+02
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate NLCC forces                 :  Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -9.50763591E-08, y: -9.50763566E-08, z: -6.52492223E-06, 

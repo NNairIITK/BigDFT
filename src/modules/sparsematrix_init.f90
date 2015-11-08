@@ -1,7 +1,7 @@
 !> @file
 !!  File defining the structures to deal with the sparse matrices
 !! @author
-!!    Copyright (C) 2014-2014 BigDFT group
+!!    Copyright (C) 2014-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -36,7 +36,9 @@ module sparsematrix_init
   !public :: get_transposed_index
   public :: get_modulo_array
 
+
 contains
+
 
   subroutine init_sparse_matrix_wrapper(iproc, nproc, nspin, orbs, lzd, astruct, store_index, imode, smat, smat_ref)
     use module_types
@@ -121,7 +123,8 @@ contains
       integer,intent(in),optional :: n_
     
       ! Local variables
-      integer :: ii, ispin, iiorb, jjorb
+      integer :: ispin, iiorb, jjorb
+      !integer :: ii
       logical :: lispin, ljspin, init
 
       if (present(init_)) then
@@ -744,7 +747,8 @@ contains
       integer,dimension(:),allocatable :: nseq_per_line, norb_par_ideal, isorb_par_ideal, nout_par, nseq_per_pt
       integer,dimension(:,:),allocatable :: istartend_dj, istartend_mm
       integer,dimension(:,:),allocatable :: temparr
-      real(kind=8) :: rseq, rseq_ideal, tt, ratio_before, ratio_after
+      real(kind=8) :: rseq, rseq_ideal, ratio_before, ratio_after
+      !real(kind=8) :: tt
       logical :: printable
       real(kind=8),dimension(2) :: rseq_max, rseq_average
       real(kind=8),dimension(:),allocatable :: rseq_per_line
@@ -1316,8 +1320,8 @@ contains
       logical,intent(in),optional :: allocate_full, print_info
       
       ! Local variables
-      integer :: jproc, iorb, jorb, iiorb, iseg, segn, ind
-      integer :: jst_line, jst_seg
+      integer :: jproc, iorb, jorb, iiorb, iseg
+      !integer :: jst_line, jst_seg, segn, ind
       integer :: ist, ivctr
       logical,dimension(:),allocatable :: lut
       integer :: nseg_mult, nvctr_mult, ivctr_mult
@@ -2498,16 +2502,17 @@ contains
 
       ! Local variables
       integer :: ipt, ii, i0, i0i, iiorb, j, i0j, jjorb, ind, ind_min, ind_max, iseq
-      integer :: ntaskgroups, jproc, jstart, jend, kkproc, kproc, itaskgroups, lproc, llproc
+      integer :: ntaskgroups, jproc, itaskgroups
       integer :: nfvctrp, isfvctr, isegstart, isegend, jorb, istart, iend, iistg, iietg, itg
-      integer,dimension(:,:),allocatable :: iuse_startend, itaskgroups_startend, ranks
-      integer,dimension(:),allocatable :: tasks_per_taskgroup
+      integer, dimension(:,:), allocatable :: iuse_startend, itaskgroups_startend
+      integer, dimension(:), allocatable :: tasks_per_taskgroup
       integer :: ntaskgrp_calc, ntaskgrp_use, i, ncount, iitaskgroup, group, ierr, iitaskgroups, newgroup, iseg
-      logical :: go_on
+      !logical :: go_on
       integer,dimension(:,:),allocatable :: in_taskgroup
-      integer :: iproc_start, iproc_end, imin, imax, ii_ref, iorb
+      integer :: iproc_start, iproc_end, imin, imax
       logical :: found, found_start, found_end
-      integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
+      !integer :: jstart, kkproc, kproc, jend, lproc, llproc
+      !integer :: iprocstart_current, iprocend_current, iprocend_prev, iprocstart_next
       integer :: irow, icol, inc, ist, ind_min1, ind_max1
       integer,dimension(:),pointer :: isvctr_par, nvctr_par
       logical, parameter :: print_full=.false.
@@ -3324,9 +3329,6 @@ contains
       call f_free(iuse_startend)
       call f_free(itaskgroups_startend)
       call f_free(tasks_per_taskgroup)
-      !!call f_free(ranks)
-
-
       call timing(iproc,'inittaskgroup','OF')
       call f_release_routine()
 
@@ -4197,10 +4199,11 @@ contains
       type(sparse_matrix),intent(out) :: smat
 
       ! Local variables
-      integer :: icol, irow, i, ii, iseg, ncolpx
+      integer :: icol, irow, i, ii, iseg
+      !integer :: ncolpx
       integer,dimension(:,:),allocatable :: nonzero
       logical,dimension(:,:),allocatable :: mat
-      real(kind=8) :: tt
+      !real(kind=8) :: tt
       type(comms_linear) :: collcom_dummy
 
 

@@ -1,7 +1,7 @@
 !> @file
 !!  Module to store all dictionary keys of the input files.
 !! @author
-!!    Copyright (C) 2010-2013 BigDFT group
+!!    Copyright (C) 2010-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -400,7 +400,9 @@ module module_input_keys
   public :: user_dict_from_files,inputs_from_dict
   public :: input_keys_dump,input_set,input_keys_fill_all,print_general_parameters
 
+
 contains
+
 
   pure function SIC_data_null() result(SIC)
     implicit none
@@ -412,6 +414,7 @@ contains
     SIC%fref=0.0_gp 
   end function SIC_data_null
 
+
   function material_acceleration_null() result(ma)
     type(material_acceleration) :: ma
     ma%iacceleration=0
@@ -419,6 +422,7 @@ contains
     ma%OCL_platform=repeat(' ',len(ma%OCL_platform))
     ma%OCL_platform=repeat(' ',len(ma%OCL_devices))
   end function material_acceleration_null
+
 
 !!$  function input_psi_validate(id)
 !!$    integer, intent(in) :: id
@@ -442,23 +446,25 @@ contains
 !!$    output_wf_format_validate = (id >= 0 .and. id < size(wf_format_names))
 !!$  end function output_wf_format_validate
 
-  subroutine output_denspot_help()
-    integer :: i, j
 
-    write(*, "(1x,A)") "Available values of output_denspot are:"
-    do i = 0, size(output_denspot_format_names) - 1
-       do j = 0, size(output_denspot_names) - 1
-          if (j == 0 .and. i == 0) then
-             write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_denspot_names(j)), "."
-          else if (j /= 0) then
-             write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
-                  & " - ", trim(output_denspot_names(j)), &
-                  & " in ", trim(output_denspot_format_names(i)), " format."
-          end if
-       end do
-    end do
-  end subroutine output_denspot_help
+!!$ subroutine output_denspot_help()
+!!$   integer :: i, j
+!!$
+!!$   write(*, "(1x,A)") "Available values of output_denspot are:"
+!!$   do i = 0, size(output_denspot_format_names) - 1
+!!$      do j = 0, size(output_denspot_names) - 1
+!!$         if (j == 0 .and. i == 0) then
+!!$            write(*, "(1x,A,I5,A,A,A)") " | ", i * 10 + j, &
+!!$                 & " - ", trim(output_denspot_names(j)), "."
+!!$         else if (j /= 0) then
+!!$            write(*, "(1x,A,I5,A,A,A,A,A)") " | ", i * 10 + j, &
+!!$                 & " - ", trim(output_denspot_names(j)), &
+!!$                 & " in ", trim(output_denspot_format_names(i)), " format."
+!!$         end if
+!!$      end do
+!!$   end do
+!!$ end subroutine output_denspot_help
+
 
   function output_denspot_validate(id, fid)
     integer, intent(in) :: id, fid
@@ -467,6 +473,7 @@ contains
     output_denspot_validate = (id >= 0 .and. id < size(output_denspot_names)) .and. &
          & (fid >= 0 .and. fid < size(output_denspot_format_names))
   end function output_denspot_validate
+
 
   !> Nullify the linear Input parameters
   subroutine nullifyInputLinparameters(lin)
@@ -485,6 +492,7 @@ contains
     nullify(lin%kernel_cutoff)
 
   end subroutine nullifyInputLinparameters
+
 
   subroutine input_keys_init()
     use yaml_output
@@ -542,6 +550,7 @@ contains
     end if
   END SUBROUTINE input_keys_finalize
 
+
   !> Fill the input_variables and atoms_data structures from the information
   !! contained in the dictionary dict
   !! the dictionary should be completes to fill all the information
@@ -585,15 +594,9 @@ contains
     integer :: nsym,unt
     real(gp) :: gsqcut_shp, rloc, projr, rlocmin
     real(gp), dimension(2) :: cfrmults
-    type(external_potential_descriptors) :: ep
-    integer :: impl, l
-
-    !  dict => dict//key
-
-    !  dict = dict//key
+    !integer :: impl, l
 
     call f_routine(id='inputs_from_dict')
-
 
     ! Atoms case.
     atoms = atoms_data_null()
@@ -840,7 +843,7 @@ contains
     !check whether a directory name should be associated for the data storage
     call check_for_data_writing_directory(bigdft_mpi%iproc,in)
 
-    if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id,posinp_id)
+    if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id)
 
     if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
        call dict_get_run_properties(dict, input_id = run_id)
@@ -863,6 +866,7 @@ contains
     call f_release_routine()
 
   end subroutine inputs_from_dict
+
 
   !> Check the directory of data (create if not present)
   subroutine check_for_data_writing_directory(iproc,in)
@@ -932,10 +936,10 @@ contains
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
     !local variables
-    type(dictionary), pointer :: as_is,nested,no_check
-    character(max_field_length) :: meth, prof
+    type(dictionary), pointer :: as_is,nested
+    character(max_field_length) :: meth!, prof
     real(gp) :: dtmax_, betax_
-    logical :: user_defined,free,dftvar
+    logical :: free,dftvar!,user_defined
 
     if (f_err_raise(.not. associated(dict),'The input dictionary has to be associated',&
          err_name='BIGDFT_RUNTIME_ERROR')) return
@@ -953,12 +957,10 @@ contains
     nested=>list_new(.item. LIN_BASIS_PARAMS)
 
 
-
     ! Check and complete dictionary.
     call input_keys_init()
 ! call yaml_map('present status',dict)
     call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
-
 
 
     !create a shortened dictionary which will be associated to the given run
@@ -990,7 +992,8 @@ contains
     call f_release_routine()
   end subroutine input_keys_fill_all
 
-  !> takes the posinp filename from the dictionary. Starting point is dict//POSINP
+
+  !> Takes the posinp filename from the dictionary. Starting point is dict//POSINP
   subroutine astruct_dict_get_source(dict, source)
     use public_keys, only: POSINP_SOURCE
     use f_utils, only: f_zero
@@ -1011,6 +1014,7 @@ contains
 !!$    end if
   end subroutine astruct_dict_get_source
 
+
   !> Dump the dictionary of the input variables.
   !! Should dump only the keys relative to the input variables and
   !! print out warnings for the ignored keys
@@ -1027,8 +1031,9 @@ contains
 
     !local variables
     integer, parameter :: natoms_dump=500
-    integer :: i, dlen, skeys,natoms
-    character(max_field_length), dimension(:), allocatable :: keys
+    integer :: natoms
+    !integer :: i, dlen, skeys
+    !character(max_field_length), dimension(:), allocatable :: keys
     character(max_field_length) ::  sourcefile
     logical :: userOnly_
     type(dictionary), pointer :: tmp
@@ -1105,6 +1110,7 @@ contains
     call f_release_routine()
 
   end subroutine input_keys_dump
+
 
   subroutine input_set_int(in, key, val)
     implicit none
@@ -2084,8 +2090,9 @@ contains
 
   end subroutine basis_params_set_dict
 
+
   !> Creation of the log file (by default log.yaml)
-  !>  Free all dynamically allocated memory from the kpt input file.
+  !! Free all dynamically allocated memory from the kpt input file.
   subroutine free_kpt_variables(in)
     use dynamic_memory
     implicit none
@@ -2101,6 +2108,7 @@ contains
     nullify(in%kptv)
     nullify(in%nkptsv_group)
   end subroutine free_kpt_variables
+
 
   !>  Free all dynamically allocated memory from the geopt input file.
   subroutine free_geopt_variables(in)
@@ -2404,8 +2412,6 @@ contains
     type(input_variables), intent(inout) :: in
     type(atomic_structure), intent(in) :: astruct
 
-    integer :: ierr
-
     call f_routine(id='input_analyze')
 
     ! the PERF variables -----------------------------------------------------
@@ -2552,22 +2558,18 @@ contains
           in%gen_nkpt = 1
 !!$        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
 !!$        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-!!$        in%gen_kpt = 0.
-          in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
-
 !!$        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
 !!$        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
-          in%gen_kpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
-
+          in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
+          in%gen_kpt = 0.
+          in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
           in%gen_wkpt = 1.
        else
           call kpoints_get_auto_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &
                & kptrlen_, ierror)
           if (ierror /= AB7_NO_ERROR) then
-             if (iproc==0) &
-                  & call yaml_warning("ERROR: cannot generate automatic k-point grid." // &
-                  & " Error code is " // trim(yaml_toa(ierror,fmt='(i0)')))
-             stop
+             call f_err_throw('cannot generate automatic k-point grid. Error code is ' &
+                  & + yaml_toa(ierror,fmt='(i0)'),err_name='BIGDFT_RUNTIME_ERROR')
           end if
           !assumes that the allocation went through (arrays allocated by abinit routines)
           in%gen_kpt=f_malloc_ptr(src_ptr=gen_kpt,id='gen_kpt')
@@ -2595,13 +2597,13 @@ contains
           if (iproc==0 .and. (maxval(ngkpt_) > 1 .or. maxval(abs(shiftk_)) > 0.)) &
                & call yaml_warning('Found input k-points with Free Boundary Conditions, reduce run to Gamma point')
           in%gen_nkpt = 1
-          in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
 !!$        allocate(in%gen_kpt(3, in%gen_nkpt+ndebug),stat=i_stat)
 !!$        call memocc(i_stat,in%gen_kpt,'in%gen_kpt',subname)
-!!$        in%gen_kpt = 0.
 !!$        allocate(in%gen_wkpt(in%gen_nkpt+ndebug),stat=i_stat)
 !!$        call memocc(i_stat,in%gen_wkpt,'in%gen_wkpt',subname)
-          in%gen_kpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
+          in%gen_kpt=f_malloc0_ptr([3, in%gen_nkpt],id='gen_kpt')
+          in%gen_kpt = 0.
+          in%gen_wkpt=f_malloc_ptr(in%gen_nkpt,id='gen_wkpt')
           in%gen_wkpt = 1.
        else
           call kpoints_get_mp_k_grid(sym%symObj, in%gen_nkpt, gen_kpt, gen_wkpt, &
@@ -2771,8 +2773,9 @@ contains
     end if
   end function wave_format_from_filename
 
+
   !> Print all general parameters
-  subroutine print_general_parameters(in,atoms,input_id,posinp_id)
+  subroutine print_general_parameters(in,atoms,input_id)
     use module_atoms, only: atoms_data
     use defs_basis
     use yaml_output
@@ -2781,14 +2784,14 @@ contains
     !Arguments
     type(input_variables), intent(in) :: in
     type(atoms_data), intent(in) :: atoms
-    character(len = *), intent(in) :: input_id, posinp_id
+    character(len = *), intent(in) :: input_id
 
     integer :: iat, i
     character(len = 11) :: potden
     character(len = 12) :: dos
 
     ! Output for atoms
-    call yaml_comment('Input Atomic System (file: '//trim(posinp_id)//'.'//trim(atoms%astruct%inputfile_format)//')',hfill='-')
+    call yaml_comment('Input Atomic System (file: '//trim(atoms%astruct%source)//')',hfill='-')
 
     ! Atomic systems
     call yaml_mapping_open('Atomic System Properties')
@@ -3057,6 +3060,7 @@ contains
 
   END SUBROUTINE print_dft_parameters
 
+
   !> Read from all input files and build a dictionary
   subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
@@ -3070,38 +3074,73 @@ contains
     use module_atoms, only: astruct_file_merge_to_dict,atoms_file_merge_to_dict
     implicit none
     !Arguments
-    type(dictionary), pointer :: dict                  !< Contains (out) all the information
-    character(len = *), intent(in) :: radical          !< Radical for the input files
-    character(len = *), intent(in) :: posinp_name           !< If the dict has no posinp key, use it
-    type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
+    type(dictionary), pointer :: dict               !< Contains (out) all the information
+    character(len = *), intent(in) :: radical       !< Radical for the input files
+    character(len = *), intent(in) :: posinp_name   !< If the dict has no posinp key, use it
+    type(mpi_environment), intent(in) :: mpi_env    !< MPI Environment
     !Local variables
     logical :: exists
     type(dictionary), pointer :: at
-    character(len = max_field_length) :: str, rad
+    character(len = max_field_length) :: str, fr, rad
 
-    !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
-    !possible overwrite with a specific posinp file.
-    call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
-
     if (has_key(dict,POSINP)) then
-       str = dict_value(dict //POSINP)
+       str = dict_value(dict // POSINP)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
           !str contains a file name so add atomic positions from it.
           call astruct_file_merge_to_dict(dict,POSINP, trim(str))
+       else if(has_key(dict // POSINP, POSINP_SOURCE) .and. .not. has_key(dict // POSINP, ASTRUCT_POSITIONS)) then
+          !posinp has a section source: define the filename from source
+          str = dict_value(dict // POSINP // POSINP_SOURCE)
+          if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+             !str contains a file name so add atomic positions from it.
+             if (has_key(dict // POSINP, FORMAT_KEY)) then
+                !A format is defined
+                fr = dict_value(dict // POSINP // FORMAT_KEY)
+                if (trim(fr) /= TYPE_DICT .and. trim(fr) /= TYPE_LIST .and. trim(fr) /= "") then
+                   !fr contains a format.
+                   call astruct_file_merge_to_dict(dict,POSINP, trim(str),pos_format=trim(fr))
+                else
+                   call f_err_throw("The key 'format' from posinp section should be contained a valid format.", &
+                        & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+                end if
+             else
+                ! No format specified
+                call astruct_file_merge_to_dict(dict,POSINP, trim(str))
+             end if
+          else
+             call f_err_throw(" The key 'source' from posinp section should be contained an input filename.", &
+                  & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+          end if
        else
-          !The yaml file contains the atomic positions
-          !Only add the format
+          !The yaml file contains the atomic positions: only add the format and the source
           at => dict //POSINP
           if (.not. has_key(at, ASTRUCT_PROPERTIES)) then
              call set(at // ASTRUCT_PROPERTIES // FORMAT_KEY, FORMAT_YAML)
+             call set(at // ASTRUCT_PROPERTIES // POSINP_SOURCE, trim(radical)//trim(FORMAT_YAML))
           else
              at => at // ASTRUCT_PROPERTIES
              if (FORMAT_KEY .notin. at) &
                   call set(at // FORMAT_KEY, FORMAT_YAML)
           end if
+          !Add a warning if source and format keys are at the same positions.
+          if (has_key(dict // POSINP, POSINP_SOURCE)) then 
+            call yaml_warning("The key 'source' in posinp section is ignored when the positions are specified.")
+            !Remove the key source
+            call dict_remove(dict // POSINP, POSINP_SOURCE)
+          end if
+          if (has_key(dict // POSINP, FORMAT_KEY)) then
+            call yaml_warning("The key 'format' in posinp section is ignored when the positions are specified.")
+            ! Remove the key format
+            call dict_remove(dict // POSINP, FORMAT_KEY)
+          end if
        end if
+
+    else
+      !No posinp section
+      !read the input file(s) and transform them into a dictionary
+      call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
     end if
 
     ! Add old psppar

@@ -713,7 +713,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [  5.7642E+00, -8.4720E-01,  6.4969E-03 ]
    norm(P)                             :  5.826091E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

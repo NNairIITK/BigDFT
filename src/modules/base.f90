@@ -1,7 +1,7 @@
 !> @file
 !!  Module base of BigDFT package
 !! @author Luigi Genovese
-!!    Copyright (C) 2008-2011 BigDFT group
+!!    Copyright (C) 2008-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

@@ -1956,7 +1956,7 @@
    BC                                  : Free
    Box                                 :  [  97,  101,  107 ]
    MPI tasks                           :  8
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -3610,7 +3610,7 @@
    BC                                  : Free
    Box                                 :  [  97,  101,  107 ]
    MPI tasks                           :  8
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -5217,7 +5217,7 @@
    BC                                  : Free
    Box                                 :  [  97,  101,  107 ]
    MPI tasks                           :  8
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -7024,7 +7024,7 @@
    BC                                  : Free
    Box                                 :  [  97,  101,  107 ]
    MPI tasks                           :  8
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -8829,7 +8829,7 @@
    BC                                  : Free
    Box                                 :  [  97,  101,  107 ]
    MPI tasks                           :  8
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -10593,7 +10593,7 @@
    BC                                  : Free
    Box                                 :  [  97,  101,  107 ]
    MPI tasks                           :  8
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:

@@ -1,7 +1,9 @@
 !> @file
 !! Test the dynamic memory allocation of the flib library
+!! @example dynmem.f90
+!! Examples abou the dynamic memory allocations
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -319,7 +321,7 @@ call f_free(weight)
 
    call yaml_comment('Entering in OpenMP section if available',hfill='-')
 
-   !!define the lock
+   ! define the lock
    !$ call OMP_init_lock(lock)
 
    !open try-catch section
@@ -504,236 +506,236 @@ call f_free(weight)
      end subroutine free_dummy
 end subroutine test_dynamic_memory
 
-!> this subroutine performs random allocations and operations on different arrays 
+
+
+!> This subroutine performs random allocations and operations on different arrays 
 !! in order to verify if the memory statis is in agreement with the process usage
-subroutine verify_heap_allocation_status()
-  use yaml_output
-  use yaml_strings
-  use dynamic_memory
-  use dictionaries, only: f_loc
-  implicit none
-  !local variables
-  logical, parameter :: traditional=.true.
-  character(len=*), parameter :: subname='verify_heap_allocation_status' 
-  logical :: all
-  integer :: maxnum,maxmem,i,nall,ndeall,nsize,ibuf
-  real :: tt,total_time,t0,t1,tel
-  double precision :: checksum,chk
-  type :: to_alloc
-     double precision, dimension(:), pointer :: buffer
-  end type to_alloc
-  type(to_alloc), dimension(:), allocatable :: pool
-  call f_routine(id=subname)
-
-  !decide total cpu time of the run (seconds)
-  total_time=30.e0
-
-  !maximum simultaenously allocated arrays
-  maxnum=1000
-  
-  !maximum value of memory to be used, in MB
-  maxmem=100
-
-  !size of each chunk 
-  nsize=int((int(maxmem,kind=8)*1024*1024/8)/maxnum)
-  !start timer
-  call cpu_time(t0)
-  !elapsed time
-  tel=0.e0
-  !prepare the pool for allocations
-  allocate(pool(maxnum))
-  do i=1,maxnum
-     nullify(pool(i)%buffer)
-  end do
-
-  checksum=0.d0
-  nall=0
-  ndeall=0
-  do while (tel < total_time)
-
-     !extract the allocation action
-     call random_number(tt)
-     all= (tt < 0.5e0) 
-     ibuf=-1 !failsafe
-     !find the first unallocated
-     if (all) then
-        do i=1,maxnum
-           if (.not. associated(pool(i)%buffer)) then
-              ibuf=i
-              exit
-           end if
-        end do
-        if (ibuf==-1) cycle !try again
-        !allocate
-        if (traditional) then
-           allocate(pool(ibuf)%buffer(nsize))
-           call f_update_database(int(nsize,kind=8),kind(1.d0),1,f_loc(pool(ibuf)%buffer),&
-                'buf'+ibuf,subname)
-        else
-           pool(ibuf)%buffer=f_malloc_ptr(nsize,id='buf'+ibuf)
-        end if
-        do i=1,nsize
-           call random_number(tt)
-           pool(ibuf)%buffer(i)=dble(tt)
-        end do
-        chk=sum(pool(ibuf)%buffer)
-        nall=nall+1
-     else !find the first allocated
-        do i=1,maxnum
-           if (associated(pool(i)%buffer)) then
-              ibuf=i
-              exit
-           end if
-        end do
-        if (ibuf==-1) cycle !try again
-        chk=-sum(pool(ibuf)%buffer)
-        if (traditional) then
-           call f_purge_database(int(nsize,kind=8),kind(1.d0),f_loc(pool(ibuf)%buffer),&
-                'buf'+ibuf,subname)
-           deallocate(pool(ibuf)%buffer)
-        else
-           call f_free_ptr(pool(ibuf)%buffer)
-        end if
-        ndeall=ndeall+1
-     end if
-     checksum=checksum+chk
-     call cpu_time(t1)
-     tel=t1-t0
-  end do
-
-  !deallocate all the residual
-  do i=1,maxnum
-     call f_free_ptr(pool(i)%buffer)
-  end do
-
-  deallocate(pool)
-
-  call yaml_map('Total elapsed time',tel)
-  call yaml_map('Allocations, deallocations',[nall,ndeall])
-  call yaml_map('Checksum value',checksum)
-
-  call f_release_routine()
-end subroutine verify_heap_allocation_status
-
-subroutine dynmem_sandbox()
-  use yaml_output
-  use dictionaries, dict_char_len=> max_field_length
-  type(dictionary), pointer :: dict2,dictA
-  character(len=dict_char_len) :: routinename
-
-  call yaml_comment('Sandbox')  
-   !let used to imagine a routine-tree creation
-   nullify(dict2)
-   call dict_init(dictA)
-   dict2=>dictA//'Routine Tree'
-!   call yaml_map('Length',dict_len(dict2))
-   call add_routine(dict2,'Routine 0')
-   call close_routine(dict2,'Routine 0')
-   call add_routine(dict2,'Routine A')
-   call close_routine(dict2,'Routine A')
-   call add_routine(dict2,'Routine B')
-   call close_routine(dict2,'Routine B')
-   call add_routine(dict2,'Routine C')
-   call close_routine(dict2,'Routine C')
-   call add_routine(dict2,'Routine D')
-
-   call open_routine(dict2)
-   call add_routine(dict2,'SubCase 1')
-   call close_routine(dict2,'SubCase 1')
-
-   call add_routine(dict2,'Subcase 2')
-   call open_routine(dict2)
-   call add_routine(dict2,'SubSubCase1')
-   call close_routine(dict2,'SubSubCase1')
-
-   call close_routine(dict2,'SubSubCase1')
-   
-!   call close_routine(dict2)
-   call add_routine(dict2,'SubCase 3')
-   call close_routine(dict2,'SubCase 3')
-   call close_routine(dict2,'SubCase 3')
-
-   call add_routine(dict2,'Routine E')
-   call close_routine(dict2,'Routine E')
-
-   call add_routine(dict2,'Routine F')
-!   call yaml_comment('Look Below',hfill='v')
-
-   call yaml_mapping_open('Test Case before implementation')
-   call yaml_dict_dump(dictA)
-   call yaml_mapping_close()
-!   call yaml_comment('Look above',hfill='^')
-
-   call dict_free(dictA)
-
- contains
-
-   subroutine open_routine(dict)
-     implicit none
-     type(dictionary), pointer :: dict
-     !local variables
-     integer :: ival
-     type(dictionary), pointer :: dict_tmp
-
-     !now imagine that a new routine is created
-     ival=dict_len(dict)-1
-     routinename=dict//ival
-
-     !call yaml_map('The routine which has to be converted is',trim(routinename))
-
-     call dict_remove(dict,ival)
-
-     dict_tmp=>dict//ival//trim(routinename)
-     dict => dict_tmp
-     nullify(dict_tmp)
-
-   end subroutine open_routine
-
-   subroutine close_routine(dict,name)
-     implicit none
-     type(dictionary), pointer :: dict
-     character(len=*), intent(in), optional :: name
-     !local variables
-     logical :: jump_up
-     type(dictionary), pointer :: dict_tmp
-
-     if (.not. associated(dict)) stop 'ERROR, routine not associated' 
-
-     !       call yaml_map('Key of the dictionary',trim(dict%data%key))
-
-     if (present(name)) then
-        !jump_up=(trim(dict%data%key) /= trim(name))
-        jump_up=(trim(routinename) /= trim(name))
-     else
-        jump_up=.true.
-     end if
-
-     !       call yaml_map('Would like to jump up',jump_up)
-     if (jump_up) then
-        !now the routine has to be closed
-        !we should jump at the upper level
-        dict_tmp=>dict%parent 
-        if (associated(dict_tmp%parent)) then
-           nullify(dict)
-           !this might be null if we are at the topmost level
-           dict=>dict_tmp%parent
-        end if
-        nullify(dict_tmp)
-     end if
-
-     routinename=repeat(' ',len(routinename))
-   end subroutine close_routine
-
-   subroutine add_routine(dict,name)
-     implicit none
-     type(dictionary), pointer :: dict
-     character(len=*), intent(in) :: name
-
-     routinename=trim(name)
-     call add(dict,trim(name))
-
-   end subroutine add_routine
-
-end subroutine dynmem_sandbox
+! subroutine verify_heap_allocation_status()
+!   use yaml_output
+!   use dynamic_memory
+!   use dictionaries, only: f_loc
+!   implicit none
+!   !local variables
+!   logical, parameter :: traditional=.true.
+!   character(len=*), parameter :: subname='verify_heap_allocation_status' 
+!   logical :: all
+!   integer :: maxnum,maxmem,i,nall,ndeall,nsize,ibuf
+!   real :: tt,total_time,t0,t1,tel
+!   double precision :: checksum,chk
+!   type :: to_alloc
+!      double precision, dimension(:), pointer :: buffer
+!   end type to_alloc
+!   type(to_alloc), dimension(:), allocatable :: pool
+!   call f_routine(id=subname)
+! 
+!   !decide total cpu time of the run (seconds)
+!   total_time=30.e0
+! 
+!   !maximum simultaenously allocated arrays
+!   maxnum=1000
+!   
+!   !maximum value of memory to be used, in MB
+!   maxmem=100
+! 
+!   !size of each chunk 
+!   nsize=int((int(maxmem,kind=8)*1024*1024/8)/maxnum)
+!   !start timer
+!   call cpu_time(t0)
+!   !elapsed time
+!   tel=0.e0
+!   !prepare the pool for allocations
+!   allocate(pool(maxnum))
+!   do i=1,maxnum
+!      nullify(pool(i)%buffer)
+!   end do
+! 
+!   checksum=0.d0
+!   nall=0
+!   ndeall=0
+!   do while (tel < total_time)
+! 
+!      !extract the allocation action
+!      call random_number(tt)
+!      all= (tt < 0.5e0) 
+!      ibuf=-1 !failsafe
+!      !find the first unallocated
+!      if (all) then
+!         do i=1,maxnum
+!            if (.not. associated(pool(i)%buffer)) then
+!               ibuf=i
+!               exit
+!            end if
+!         end do
+!         if (ibuf==-1) cycle !try again
+!         !allocate
+!         if (traditional) then
+!            allocate(pool(ibuf)%buffer(nsize))
+!            call f_update_database(int(nsize,kind=8),kind(1.d0),1,f_loc(pool(ibuf)%buffer),&
+!                 'buf'//trim(adjustl(yaml_toa(ibuf))),subname)
+!         else
+!            pool(ibuf)%buffer=f_malloc_ptr(nsize,id='buf'//trim(adjustl(yaml_toa(ibuf))))
+!         end if
+!         do i=1,nsize
+!            call random_number(tt)
+!            pool(ibuf)%buffer(i)=dble(tt)
+!         end do
+!         chk=sum(pool(ibuf)%buffer)
+!         nall=nall+1
+!      else !find the first allocated
+!         do i=1,maxnum
+!            if (associated(pool(i)%buffer)) then
+!               ibuf=i
+!               exit
+!            end if
+!         end do
+!         if (ibuf==-1) cycle !try again
+!         chk=-sum(pool(ibuf)%buffer)
+!         if (traditional) then
+!            call f_purge_database(int(nsize,kind=8),kind(1.d0),f_loc(pool(ibuf)%buffer),&
+!                 'buf'//trim(adjustl(yaml_toa(ibuf))),subname)
+!            deallocate(pool(ibuf)%buffer)
+!         else
+!            call f_free_ptr(pool(ibuf)%buffer)
+!         end if
+!         ndeall=ndeall+1
+!      end if
+!      checksum=checksum+chk
+!      call cpu_time(t1)
+!      tel=t1-t0
+!   end do
+! 
+!   !deallocate all the residual
+!   do i=1,maxnum
+!      call f_free_ptr(pool(i)%buffer)
+!   end do
+! 
+!   deallocate(pool)
+! 
+!   call yaml_map('Total elapsed time',tel)
+!   call yaml_map('Allocations, deallocations',[nall,ndeall])
+!   call yaml_map('Checksum value',checksum)
+! 
+!   call f_release_routine()
+! end subroutine verify_heap_allocation_status
 
 
+! subroutine dynmem_sandbox()
+!   use yaml_output
+!   use dictionaries, dict_char_len=> max_field_length
+!   type(dictionary), pointer :: dict2,dictA
+!   character(len=dict_char_len) :: routinename
+! 
+!   call yaml_comment('Sandbox')  
+!    !let used to imagine a routine-tree creation
+!    nullify(dict2)
+!    call dict_init(dictA)
+!    dict2=>dictA//'Routine Tree'
+! !   call yaml_map('Length',dict_len(dict2))
+!    call add_routine(dict2,'Routine 0')
+!    call close_routine(dict2,'Routine 0')
+!    call add_routine(dict2,'Routine A')
+!    call close_routine(dict2,'Routine A')
+!    call add_routine(dict2,'Routine B')
+!    call close_routine(dict2,'Routine B')
+!    call add_routine(dict2,'Routine C')
+!    call close_routine(dict2,'Routine C')
+!    call add_routine(dict2,'Routine D')
+! 
+!    call open_routine(dict2)
+!    call add_routine(dict2,'SubCase 1')
+!    call close_routine(dict2,'SubCase 1')
+! 
+!    call add_routine(dict2,'Subcase 2')
+!    call open_routine(dict2)
+!    call add_routine(dict2,'SubSubCase1')
+!    call close_routine(dict2,'SubSubCase1')
+! 
+!    call close_routine(dict2,'SubSubCase1')
+!    
+! !   call close_routine(dict2)
+!    call add_routine(dict2,'SubCase 3')
+!    call close_routine(dict2,'SubCase 3')
+!    call close_routine(dict2,'SubCase 3')
+! 
+!    call add_routine(dict2,'Routine E')
+!    call close_routine(dict2,'Routine E')
+! 
+!    call add_routine(dict2,'Routine F')
+! !   call yaml_comment('Look Below',hfill='v')
+! 
+!    call yaml_mapping_open('Test Case before implementation')
+!    call yaml_dict_dump(dictA)
+!    call yaml_mapping_close()
+! !   call yaml_comment('Look above',hfill='^')
+! 
+!    call dict_free(dictA)
+! 
+!  contains
+! 
+!    subroutine open_routine(dict)
+!      implicit none
+!      type(dictionary), pointer :: dict
+!      !local variables
+!      integer :: ival
+!      type(dictionary), pointer :: dict_tmp
+! 
+!      !now imagine that a new routine is created
+!      ival=dict_len(dict)-1
+!      routinename=dict//ival
+! 
+!      !call yaml_map('The routine which has to be converted is',trim(routinename))
+! 
+!      call dict_remove(dict,ival)
+! 
+!      dict_tmp=>dict//ival//trim(routinename)
+!      dict => dict_tmp
+!      nullify(dict_tmp)
+! 
+!    end subroutine open_routine
+! 
+!    subroutine close_routine(dict,name)
+!      implicit none
+!      type(dictionary), pointer :: dict
+!      character(len=*), intent(in), optional :: name
+!      !local variables
+!      logical :: jump_up
+!      type(dictionary), pointer :: dict_tmp
+! 
+!      if (.not. associated(dict)) stop 'ERROR, routine not associated' 
+! 
+!      !       call yaml_map('Key of the dictionary',trim(dict%data%key))
+! 
+!      if (present(name)) then
+!         !jump_up=(trim(dict%data%key) /= trim(name))
+!         jump_up=(trim(routinename) /= trim(name))
+!      else
+!         jump_up=.true.
+!      end if
+! 
+!      !       call yaml_map('Would like to jump up',jump_up)
+!      if (jump_up) then
+!         !now the routine has to be closed
+!         !we should jump at the upper level
+!         dict_tmp=>dict%parent 
+!         if (associated(dict_tmp%parent)) then
+!            nullify(dict)
+!            !this might be null if we are at the topmost level
+!            dict=>dict_tmp%parent
+!         end if
+!         nullify(dict_tmp)
+!      end if
+! 
+!      routinename=repeat(' ',len(routinename))
+!    end subroutine close_routine
+! 
+!    subroutine add_routine(dict,name)
+!      implicit none
+!      type(dictionary), pointer :: dict
+!      character(len=*), intent(in) :: name
+! 
+!      routinename=trim(name)
+!      call add(dict,trim(name))
+! 
+!    end subroutine add_routine
+! 
+! end subroutine dynmem_sandbox

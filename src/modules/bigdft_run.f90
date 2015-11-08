@@ -434,6 +434,7 @@ contains
   END SUBROUTINE nullify_state_properties
 
 
+  !> Initialized the state_properties structure
   subroutine init_state_properties(outs, nat)
     use module_base
     use dynamic_memory
@@ -447,7 +448,7 @@ contains
     outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
   END SUBROUTINE init_state_properties
 
-  !>clean the outs object with empty (but meaningful)
+  !> Clean the outs object with empty (but meaningful)
   !! values so that the structure can be used for optimization
   subroutine clean_state_properties(outs)
     use module_types, only: energy_terms_null
@@ -592,6 +593,7 @@ contains
 
   END SUBROUTINE run_objects_associate
 
+
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
   subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz,energy,disableTrans)
@@ -725,6 +727,7 @@ contains
 
   end subroutine bigdft_write_atomic_file
 
+
   !> Import positions for the run object from a given array
   subroutine bigdft_set_rxyz(runObj,rxyz_add,rxyz)
     use dynamic_memory, only: f_memcpy
@@ -759,6 +762,7 @@ contains
     end if
 
   end subroutine bigdft_set_rxyz
+
 
   subroutine state_properties_set_from_dict(outs, dict)
     use dictionaries
@@ -1040,6 +1044,7 @@ contains
 
   END SUBROUTINE run_objects_init
 
+
   subroutine bigdft_init(options, with_taskgroups)
     use yaml_parse
     use dictionaries
@@ -1203,7 +1208,8 @@ contains
 
   end subroutine bigdft_command_line_options
 
-  !> retrieve the number of runs for a given set of options
+
+  !> Retrieve the number of runs for a given set of options
   !! gives 0 if the option dictionary is invalid
   function bigdft_nruns(options)
     implicit none
@@ -1215,8 +1221,10 @@ contains
     if (bigdft_nruns < 0) bigdft_nruns=0
   end function bigdft_nruns
 
+
   !accessors for external programs
-  !> Get the number of orbitals of the run in rst
+
+  !> Return the number of atoms
   function bigdft_nat(runObj,filename) result(nat)
     use module_atoms, only: atomic_structure,nullify_atomic_structure,&
          set_astruct_from_file,deallocate_atomic_structure
@@ -1228,6 +1236,7 @@ contains
     !local
     type(atomic_structure) :: astruct
 
+    nat=-1
     if (present(runObj) .eqv. present(filename)) then
        call f_err_throw('Error in bigdft_nat: runObj *xor* filename '//&
             'should be present',err_name='BIGDFT_RUNTIME_ERROR')
@@ -1253,6 +1262,8 @@ contains
 
   end function bigdft_nat
 
+
+  !> Get the number of orbitals of the run in rst
   function bigdft_norb(runObj) result(norb)
     implicit none
     type(run_objects), intent(in) :: runObj
@@ -1356,13 +1367,13 @@ contains
 
   end function bigdft_get_cell_ptr
 
-  !=====================================================================
+  
+  !> Do a calculation using runObjs and return outs²
+  !! returns energies in hartree and
+  !! forces in hartree/bohr
+  !! (except for LJ)
+  !! receives distances in Bohr
   subroutine bigdft_state(runObj,outs,infocode)
-    !IMPORTANT:
-    !returns energies in hartree and
-    !forces in hartree/bohr
-    !(except for LJ)
-    !receives distances in Bohr
     use module_lj
     use module_lenosky_si
     use public_enums
@@ -1528,6 +1539,7 @@ contains
     call f_release_routine()
 
   end subroutine bigdft_state
+
 
   !> Routine to use BigDFT as a blackbox
   subroutine quantum_mechanical_state(runObj,outs,infocode)

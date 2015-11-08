@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to plot wavefunctions
 !! @author
-!!    Copyright (C) 2010-2011 BigDFT group 
+!!    Copyright (C) 2010-2015 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -424,21 +424,23 @@ subroutine write_cube_fields(fileunit0,fileunitx,fileunity,fileunitz, &
 END SUBROUTINE write_cube_fields
 
 
-subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
+subroutine plot_density(iproc,nproc,filename,at,rxyz,dpbox,nspin,rho)
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   type(atoms_data), intent(in) :: at
-  type(denspot_distribution), intent(in) :: box
+  type(denspot_distribution), intent(in) :: dpbox
   character(len=*), intent(in) :: filename
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(dp), dimension(max(box%ndimpot,1),nspin), intent(in) :: rho !, target,
+  real(dp), dimension(max(dpbox%ndimpot,1),nspin), intent(in) :: rho !, target,
   !local variables
   character(len=*), parameter :: subname='plot_density'
   character(len=5) :: suffix
   character(len=65) :: message
-  integer :: ierr,ia,ib,isuffix,fformat,n1i,n2i,n3i
+  integer :: ia,ib,isuffix,fformat,n1i,n2i,n3i
+!!$  integer :: ierr
   real(dp) :: a,b
   real(gp) :: hxh,hyh,hzh
   real(dp), dimension(:,:), pointer :: pot_ion
@@ -447,33 +449,33 @@ subroutine plot_density(iproc,nproc,filename,at,rxyz,box,nspin,rho)
   integer,parameter :: unity = 24
   integer,parameter :: unitz = 25
 
-  n1i=box%ndims(1)
-  n2i=box%ndims(2)
-  n3i=box%ndims(3)
+  n1i=dpbox%ndims(1)
+  n2i=dpbox%ndims(2)
+  n3i=dpbox%ndims(3)
 
-  hxh=box%hgrids(1)
-  hyh=box%hgrids(2)
-  hzh=box%hgrids(3)
+  hxh=dpbox%hgrids(1)
+  hyh=dpbox%hgrids(2)
+  hzh=dpbox%hgrids(3)
 
   if (nproc > 1) then
      !allocate full density in pot_ion array
-     pot_ion = f_malloc_ptr((/ box%ndimgrid, nspin /),id='pot_ion')
+     pot_ion = f_malloc_ptr((/ dpbox%ndimgrid, nspin /),id='pot_ion')
      
-     call mpiallgather(sendbuf=rho(1,1),sendcount=box%ndimpot,&
-          recvbuf=pot_ion(1,1),recvcounts=box%ngatherarr(:,1),&
-          displs=box%ngatherarr(:,2),comm=box%mpi_env%mpi_comm)
-!!$     call MPI_ALLGATHERV(rho(1,1),box%ndimpot,&
-!!$          mpidtypd,pot_ion(1,1),box%ngatherarr(0,1),&
-!!$          box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
+     call mpiallgather(sendbuf=rho(1,1),sendcount=dpbox%ndimpot,&
+          recvbuf=pot_ion(1,1),recvcounts=dpbox%ngatherarr(:,1),&
+          displs=dpbox%ngatherarr(:,2),comm=dpbox%mpi_env%mpi_comm)
+!!$     call MPI_ALLGATHERV(rho(1,1),dpbox%ndimpot,&
+!!$          mpidtypd,pot_ion(1,1),dpbox%ngatherarr(0,1),&
+!!$          dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
 
      !case for npspin==2
      if (nspin==2) then
-        call mpiallgather(sendbuf=rho(1,2),sendcount=box%ndimpot,&
-             recvbuf=pot_ion(1,2),recvcounts=box%ngatherarr(:,1),&
-             displs=box%ngatherarr(:,2),comm=box%mpi_env%mpi_comm)
-!!$        call MPI_ALLGATHERV(rho(1,2),box%ndimpot,&
-!!$             mpidtypd,pot_ion(1,2),box%ngatherarr(0,1),&
-!!$             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
+        call mpiallgather(sendbuf=rho(1,2),sendcount=dpbox%ndimpot,&
+             recvbuf=pot_ion(1,2),recvcounts=dpbox%ngatherarr(:,1),&
+             displs=dpbox%ngatherarr(:,2),comm=dpbox%mpi_env%mpi_comm)
+!!$        call MPI_ALLGATHERV(rho(1,2),dpbox%ndimpot,&
+!!$             mpidtypd,pot_ion(1,2),dpbox%ngatherarr(0,1),&
+!!$             dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
      end if
 
   else
@@ -1051,16 +1053,17 @@ END SUBROUTINE read_cube_field
 
 !> Calculate the dipole of a Field given in the rho array.
 !! The parallel distribution used is the one of the potential
-subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
+subroutine calc_dipole(dpbox,nspin,at,rxyz,rho,calculate_quadropole)
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
   use yaml_output
   implicit none
   integer, intent(in) :: nspin
-  type(denspot_distribution), intent(in) :: box
+  type(denspot_distribution), intent(in) :: dpbox
   type(atoms_data), intent(in) :: at
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
-  real(dp), dimension(box%ndims(1),box%ndims(2),max(box%n3p, 1),nspin), target, intent(in) :: rho
+  real(dp), dimension(dpbox%ndims(1),dpbox%ndims(2),max(dpbox%n3p, 1),nspin), target, intent(in) :: rho
   logical,intent(in) :: calculate_quadropole
 
   character(len=*), parameter :: subname='calc_dipole'
@@ -1073,12 +1076,12 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
   real(dp), dimension(:,:,:,:), pointer :: ele_rho
 !!$  real(dp), dimension(:,:,:,:), pointer :: rho_buf
   
-  n1i=box%ndims(1)
-  n2i=box%ndims(2)
-  n3i=box%ndims(3)
-  n3p=box%n3p
+  n1i=dpbox%ndims(1)
+  n2i=dpbox%ndims(2)
+  n3i=dpbox%ndims(3)
+  n3p=dpbox%n3p
 
-  if (box%mpi_env%nproc > 1) then
+  if (dpbox%mpi_env%nproc > 1) then
      !allocate full density in pot_ion array
      ele_rho = f_malloc_ptr((/ n1i, n2i, n3i, nspin /),id='ele_rho')
 
@@ -1098,8 +1101,8 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
      do ispin=1,nspin
         call MPI_ALLGATHERV(rho(1,1,1,ispin),n1i*n2i*n3p,&
-             mpidtypd,ele_rho(1,1,1,ispin),box%ngatherarr(0,1),&
-             box%ngatherarr(0,2),mpidtypd,box%mpi_env%mpi_comm,ierr)
+             mpidtypd,ele_rho(1,1,1,ispin),dpbox%ngatherarr(0,1),&
+             dpbox%ngatherarr(0,2),mpidtypd,dpbox%mpi_env%mpi_comm,ierr)
      end do
 
   else
@@ -1139,7 +1142,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
            do i1=0,nc1 - 1
               !ind=i1+nl1+(i2+nl2-1)*n1i+(i3+nl3-1)*n1i*n2i
               !q= ( ele_rho(ind,ispin) ) * hxh*hyh*hzh 
-              q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(box%hgrids)
+              q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
               qtot=qtot+q
               dipole_el(1)=dipole_el(1)+ q* at%astruct%cell_dim(1)/real(nc1,dp)*i1 
               dipole_el(2)=dipole_el(2)+ q* at%astruct%cell_dim(2)/real(nc2,dp)*i2
@@ -1216,7 +1219,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
       !!    i2=nint((at%astruct%rxyz(2,iat)/at%astruct%cell_dim(2))*real(nc2,dp))+nl2
       !!    i3=nint((at%astruct%rxyz(3,iat)/at%astruct%cell_dim(3))*real(nc3,dp))+nl3
       !!    if (bigdft_mpi%iproc==0) write(*,*) 'iat,i1,i2,i3',iat,i1,i2,i3
-      !!    ele_rho(i1,i2,i3,1)=real(at%nelpsp(at%astruct%iatype(iat)))/product(box%hgrids)
+      !!    ele_rho(i1,i2,i3,1)=real(at%nelpsp(at%astruct%iatype(iat)))/product(dpbox%hgrids)
       !!end do
 
 
@@ -1227,7 +1230,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
           do i3=0,nc3 - 1
               do i2=0,nc2 - 1
                   do i1=0,nc1 - 1
-                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(box%hgrids)
+                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
                       x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
                       y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
                       z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
@@ -1246,7 +1249,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
           do i3=0,nc3 - 1
               do i2=0,nc2 - 1
                   do i1=0,nc1 - 1
-                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(box%hgrids)
+                      q= - ele_rho(i1+nl1,i2+nl2,i3+nl3,ispin) * product(dpbox%hgrids)
                       x=at%astruct%cell_dim(1)/real(nc1,dp)*i1
                       y=at%astruct%cell_dim(2)/real(nc2,dp)*i2
                       z=at%astruct%cell_dim(3)/real(nc3,dp)*i3
@@ -1300,7 +1303,7 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
 
   end if
 
-  if(box%mpi_env%iproc==0) then
+  if(bigdft_mpi%iproc==0) then
      !dipole_el=dipole_el        !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !dipole_cores=dipole_cores  !/0.393430307_gp  for e.bohr to Debye2or  /0.20822678_gp  for e.A2Debye
      !write(*,*) 'dipole_cores', dipole_cores
@@ -1338,11 +1341,9 @@ subroutine calc_dipole(box,nspin,at,rxyz,rho,calculate_quadropole)
           call yaml_sequence_close()
       end if
 
-
-
   endif
 
-  if (box%mpi_env%nproc > 1) then
+  if (dpbox%mpi_env%nproc > 1) then
      call f_free_ptr(ele_rho)
   else
      nullify(ele_rho)

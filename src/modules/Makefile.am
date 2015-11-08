@@ -46,6 +46,7 @@ libmodules_a_SOURCES = base.f90 \
 	ab7_mixing.f90 \
 	gaussians.f90 \
 	locregs.f90 \
+	dpbox.f90 \
 	psp_projectors.f90 \
 	psp_projectors_base.f90 \
 	input_keys.f90 \
@@ -139,6 +140,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	PSP_PROJECTORS_BASE.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@ \
+	MODULE_DPBOX.@MODULE_EXT@ \
 	AO_INGUESS.@MODULE_EXT@ \
 	REFORMATTING.@MODULE_EXT@ \
 	MODULE_ATOMS.@MODULE_EXT@ \
@@ -208,6 +210,7 @@ modules = module_base.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	psp_projectors_base.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@ \
+	module_dpbox.@MODULE_EXT@ \
 	ao_inguess.@MODULE_EXT@ \
 	reformatting.@MODULE_EXT@ \
 	module_atoms.@MODULE_EXT@ \
@@ -305,6 +308,7 @@ constrained_dft.o: base.o input_keys.o sparsematrix_base.o
 psp_projectors_base.o: locregs.o gaussians.o defs.o
 psp_projectors.o: locregs.o locregs_init.o gaussians.o defs.o psp_projectors_base.o
 locregs.o: base.o
+dpbox.o: base.o 
 reformatting.o: base.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o
@@ -318,7 +322,8 @@ fermi_level.o: base.o foe_common.o
 copy_utils.o: base.o
 gaussdaub.o: base.o gaussians.o psp_projectors_base.o
 module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o \
+		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
 ab7_mixing.o: defs.o
 module_lj.o: base.o defs.o
 module_cp2k.o: base.o defs.o
@@ -331,17 +336,20 @@ module_fingerprints.o: base.o
 transposed_operations.o: base.o types.o sparsematrix_base.o sparsematrix.o sparsematrix_init.o communications_base.o
 module_forces.o: base.o types.o 
 chebyshev.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
-unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o locregs.o locreg_operations.o rhopotential.o
+unitary_tests.o: base.o types.o interfaces.o communications_init.o communications.o sparsematrix_base.o sparsematrix_init.o \
+		sparsematrix.o transposed_operations.o locregs.o locreg_operations.o rhopotential.o
 matrix_operations.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: base.o types.o
 io.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o matrix_operations.o
-postprocessing_linear.o: base.o types.o interfaces.o bounds.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o locreg_operations.o sort.o
+postprocessing_linear.o: base.o types.o interfaces.o bounds.o communications_base.o communications.o sparsematrix_base.o \
+		sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o locreg_operations.o sort.o
 foe.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 locreg_operations.o: base.o types.o atoms_data.o locregs.o
 rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communications.o locreg_operations.o sparsematrix_base.o sparsematrix_init.o
 multipole.o: base.o multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
-orthonormalization.o: base.o types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
+orthonormalization.o: base.o types.o communications_base.o communications.o \
+		sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
 bounds.o: base.o types.o locregs.o
 locregs_init.o: base.o types.o communications.o bounds.o
 sort.o:

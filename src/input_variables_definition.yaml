@@ -27,7 +27,11 @@
      DESCRIPTION: |
       Grid spacing in three directions (Bohr units) of the coarse mesh as [0.5, 0.45, 0.4].
       A scalar can also be given as 0.45.
-     RANGE: [0., 2.]
+      The grid spacing of the Cartesian grid, in Bohr.
+      As described in the wavelet formalism section, the nodes of this grid serve as the centers for the scaling 
+      function/wavelet basis.
+      Values are in most cases between 0.3 and 0.6 bohr.
+     RANGE: [0., 4.]
      default: [0.45, 0.45, 0.45]
      fast: [0.55, 0.55, 0.55]
      accurate: [0.30, 0.30, 0.30]
@@ -39,7 +43,21 @@
      default: [5., 8.]
    ixc:
      COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)
-     DESCRIPTION: Determine the exchange-correlation functional.
+     DESCRIPTION: |
+       Determine the exchange-correlation functional.
+       Integer specifying which exchange correlation functional will be used.
+       The Abinit conventions are used and detailed information can be found on the Abinit Web page.
+       Here is only a short summary of some wide-ly used functionals
+       
+       - Pade LDA from Abinit XC library;
+       - PBE from Abinit XC library;
+       - Pade LDA from libXC;
+       - PBE from libXC;
+       - PBEsol from libXC;
+       - PBE0 Hybrid functional (local part from libXC).
+       
+       A positive integer refers to a functional from ABINIT library and a negative one from libXC library.
+       In this case, you concatenate the codes for the exchange part and for the correlation part (see the table of codes).
      default: 1
      #Here follow a number of possibilities for the different XC functionals
      LDA (ABINIT): 1
@@ -53,11 +71,16 @@
      NONE: 1000
    qcharge:
      COMMENT: Charge of the system. Can be integer or real.
-     DESCRIPTION: Total charge of the system. A negative value means that extra electrons are added.
+     DESCRIPTION: | 
+      Total charge of the system.
+      A positive qcharge means that electrons are taken away and a negative one means that extra electrons are added.
      RANGE: [-500., 500.]
      default: 0
    elecfield:
      COMMENT: Electric field (Ex,Ey,Ez)
+     DESCRIPTION: | 
+      Uniform electric field Ex, Ey, Ez in units of Ha/Bohr.
+      The electric field can not have components in periodic directions, e.g. Ex = Ez = 0 in case surface BC is used.
      default: [0., 0., 0.]
    nspin:
      COMMENT: Spin polarization treatment
@@ -73,19 +96,25 @@
      default: 1
    mpol:
      COMMENT: Total magnetic moment
-     DESCRIPTION: Total magnetic moment which has to be the same parity 
-                  as the total number of electrons (nelec_up-nelec_down=mpol).
-                  You should also define the keyword 'IGSpin' or add a spin per atom to specify the polarisation for the input guess.
+     DESCRIPTION: |
+       Total magnetic moment which has to be the same parity as the total number of electrons (nelec_up-nelec_down=mpol).
+       You should also define the keyword 'IGSpin' or add a spin per atom to specify the polarisation for the input guess.
      default: 0
    gnrm_cv:
      COMMENT: convergence criterion gradient
-     DESCRIPTION: Maximal value of the norm 2 of the electronic orbitals used as convergence criterion
-     RANGE: [0., 1.]
+     DESCRIPTION: |
+       Convergence criterion for the wavefunction optimization (norm of the gradient).
+       Reasonable values are in most cases between 1.d-4 and 1.d-5.
+     RANGE: [1.e-20, 1.]
      default: 1.e-4
      fast: 1.e-3
      accurate: 1.e-5
    itermax:
      COMMENT: Max. iterations of wfn. opt. steps
+     DESCRIPTION: |
+       Maximum number of gradient evaluations for a single cycle in a wavefunction optimization and maximum number of
+       cycles. At the end of each cycle a subspace diagonalization is done which helps in cases where one has near
+       degeneracy between the HOMO and LUMO orbitals. 50 and 2 are usually sufficient.
      RANGE: [0, 10000]
      default: 50
    itermin:
@@ -94,24 +123,96 @@
      default: 0
    nrepmax:
      COMMENT: Max. number of re-diag. runs
+     DESCRIPTION: |
+       Maximum number of gradient evaluations for a single cycle in a wavefunction optimization and maximum number of
+       cycles. At the end of each cycle a subspace diagonalization is done which helps in cases where one has near
+       degeneracy between the HOMO and LUMO orbitals. 50 and 2 are usually sufficient.
      RANGE: [0, 1000]
      default: 1
      accurate: 10
    ncong:
      COMMENT: No. of CG it. for preconditioning eq.
+     DESCRIPTION: |
+       ncong gives the number of iterations in the solution of the preconditioning equation. For free boundary
+       conditions 5 is a good value whereas for other boundary condition a value from 0 to 2 is in general sufficient.
+       
+       Large values of ncong lead to a smaller number of iterations in the wavefunction optimization and better
+       forces, but each iteration is more costly.
+       So an optimal compromise value has to be found. idsx gives the history length of the DIIS convergence
+       acceleration in the wavefunction optimization. 6 is usually a good value for fast convergence.
+       
+       In case of convergence problems it can be advantageous to switch off DIIS by setting idsx = 0. The memory
+       requirements grow considerably with large values of idsx.
+       
+       If memory is the limiting factor one has to choose idsx smaller than the value which gives the fastest
+       convergence.
+       The bigdft-tool tool can be used to predict the memory requirements for different choices of idsx.
      RANGE: [0, 20]
      default: 6
    idsx:
      COMMENT: Wfn. diis history
+     DESCRIPTION: |
+       ncong gives the number of iterations in the solution of the preconditioning equation. For free boundary
+       conditions 5 is a good value whereas for other boundary condition a value from 0 to 2 is in general sufficient.
+       
+       Large values of ncong lead to a smaller number of iterations in the wavefunction optimization and better
+       forces, but each iteration is more costly.
+       So an optimal compromise value has to be found. idsx gives the history length of the DIIS convergence
+       acceleration in the wavefunction optimization. 6 is usually a good value for fast convergence.
+       
+       In case of convergence problems it can be advantageous to switch off DIIS by setting idsx = 0. The memory
+       requirements grow considerably with large values of idsx.
+       
+       If memory is the limiting factor one has to choose idsx smaller than the value which gives the fastest
+       convergence.
+       The bigdft-tool tool can be used to predict the memory requirements for different choices of idsx.
      RANGE: [0, 15]
      default: 6
      low_memory: 2
    dispersion:
      COMMENT: Dispersion correction potential (values 1,2,3,4,5), 0=none
+     DESCRIPTION: |
+       A non-zero values activates an empirical add-on treatment of dispersion effects.
+       
+       The values 1, 2 and 3 specify different switching on functions using the convention.
      RANGE: [0, 5]
      default: 0
    inputpsiid:
      COMMENT: Input guess wavefunctions
+     DESCRIPTION: |
+       specifies how the input guess wavefunction is generated
+       
+       - InputPsiId = -2 Random numbers are used as input guess.
+       his is of course a poor input guess which will need many iterations of the wavefunction optimization
+       and might even lead to divergences.
+       
+        - InputPsiId = -1 The input wavefunction is imported from the CP2K code which uses Gaussian functions.
+        The basis set should be contained in a file named gaubasis.dat whereas the coefficients should appear
+        in the gaucoeff.dat file. Both files are the output files of CP2K code. See the H2O-CP2K test for an example. 
+        
+        - InputPsiId = 0 A subspace diagonalization in a minimal atomic basis set is used. This input guess should be
+        used in general if one starts a new calculation.
+       
+        - InputPsiId = 1 The previously calculated wavefunctions (for instance from the previous geometry optimization
+        step) are used as input guess. Setting InputPsiId to this value does only make sense from within a main program
+        where call_cluster() subroutine was called previously. The old wavefunction is passed to the new call via the
+        data structure restart.
+        
+        - InputPsiId = 2 The input wavefunction is read from the wavefunction. files which contain all the scaling
+        function and wavelet coefficients. In case some parameters such as hgrids or crmult have changed, compared to
+        the previous run, the wavefunctions will be also transformed to the new parameter set. Use also this value to
+        restart from ETSF file format wavefunction-etsf.nc.
+        
+#        - InputPsiId = 10 The same as 0 but activates the ’Gaussian help’ after convergence the wavefunctions are projected
+#        onto the localised basis set used for the input guess, and Mulliken Charge Population Analysis (MCPA) is performed on
+#        this basis. The user has the possibility to perform MCPA with separate basis set (functionality to be added).
+#        
+#        -  InputPsiId = 11 Restart with Gaussian approximation contained in the ’restart’ data structure.
+#        
+#        - InputPsiId = 12 The input wavefunction is read from the wavefunctions.gau file, which contains an approximation in
+#        a minimal Gaussian basis set of the previously calculated wavefunctions.
+#        
+#        - InputPsiId = 13 To be described
      default: 0
      EXCLUSIVE:
        -1000: Empty
@@ -131,6 +232,22 @@
      linear_restart: 102
    output_wf:
      COMMENT: Output of the support functions
+     DESCRIPTION: |
+       controls the output of wavefunctions on disk at the end of the calculation
+       
+          - output_wf = 0, Do not write the wavefunctions to disk.
+          
+          - output_wf = 1, The output wavefunctions are written at the end of the wavefunction optimization into
+          plain text files. If InputPsiId was greater than 10 the wavefunction will be written in the Gaussian
+          approximation into a single wavefunctions.gau file otherwise into wavefunction. files. Writing a 
+          wavefunction. file for each orbital can take a considerable amount of time and disk space.
+          
+          - output_wf = 2, The output wavefunctions are written at the end of the wavefunction optimization into
+          Fortran binary files. This format is not portable between compilers and machines.
+          
+          - output_wf = 3, The output wavefunctions are written at the end of the wavefunction optimization into
+          ETSF binary files. This format is portable between compilers and machines since based on NetCDF. Parallel
+          IO are taken into account. 
      default: 0
      EXCLUSIVE:
        0: None
@@ -143,6 +260,29 @@
        13: Wavelet and Interpolating Scaling Function, ETSF file format
    output_denspot:
      COMMENT: Output of the density or the potential
+     DESCRIPTION: |
+       controls the output of density and pontentials on disk at the end of the calculation
+       
+       - output_denspot = 0, No output density is written.
+       
+       - output_denspot = 1, Output electronic density is written in the .pot format of V_Sim into the file
+       electronic_density.pot (deprecated, use 11 instead).
+       
+       - output_denspot = 2, In addition to the electronic density, the potential (local_potential.pot) and its 
+       components (external_potential.pot and Hartree_potential.pot) are also output in plain text .pot 
+       files (deprecated, use 12 instead).
+       
+       - output_denspot = 11, Same as output_denspot = 1, but files are written in ETSF file format 
+       (portable binary format based on NetCDF).
+       
+       - output_denspot = 12, Same as output_denspot = 2, but files are written in ETSF file format 
+       (portable binary format based on NetCDF).
+       
+       - output_denspot = 21, Same as output_denspot = 1, but files are written in .cube file format 
+       (plain text).
+       
+       - output_denspot = 22, Same as output_denspot = 2, but files are written in .cube file format
+       (plain text). 
      default: 0
      EXCLUSIVE:
        0:  None
@@ -154,34 +294,100 @@
        22: Density and potentials in cube file format
    rbuf:
      COMMENT: Length of the tail (AU)
+     description: |
+       Far reaching tails of the wavefunctions decaying into the vacuum are added in a perturbative treatment if
+       the variable rbuf is set to a strictly positive value. 
+       This allows to do a calculation with some moderate value of crmult and then to extrapolate to the limit of
+       large crmult. This procedure is not variational and gives too low energies.
+       
+       The true energy is in between the two energies and in general much closer to the extrapolated energy. 
+       
+       This procedure can also be used to judge whether the chosen value of crmult is large enough for a certain
+       required precision. rbuf gives the amount by which the radii for the coarse resolution region are increased
+       in atomic units. ncongt gives the number of iterations used in the perturbation calculation.
+       
+       Reasonable values for ncongt are around 30. 
      RANGE: [0., 10.]
      default: 0.
      #Here shortcut
      with tails: 5.
    ncongt:
      COMMENT: No. of tail CG iterations
+     DESCRIPTION: |
+       Far reaching tails of the wavefunctions decaying into the vacuum are added in a perturbative treatment if
+       the variable rbuf is set to a strictly positive value. 
+       This allows to do a calculation with some moderate value of crmult and then to extrapolate to the limit of
+       large crmult. This procedure is not variational and gives too low energies.
+       
+       The true energy is in between the two energies and in general much closer to the extrapolated energy. 
+       
+       This procedure can also be used to judge whether the chosen value of crmult is large enough for a certain
+       required precision. rbuf gives the amount by which the radii for the coarse resolution region are increased
+       in atomic units. ncongt gives the number of iterations used in the perturbation calculation.
+       
+       Reasonable values for ncongt are around 30. 
      RANGE: [0, 50]
      default: 30
    norbv:
      COMMENT: Davidson subspace dimension (No. virtual orbitals)
-     DESCRIPTION: Determine the dimension of the subspace i.e. the number of virtual orbitals
-                  to calculate via a Davidson diagonalisation.
+     DESCRIPTION: |
+        Determine the dimension of the subspace i.e. the number of virtual orbitals
+        to calculate via a Davidson diagonalisation.
+        
+        Usually unoccupied orbitals are not calculated since they are not needed for the total energy and other
+        physical properties of the electronic ground state. 
+        
+        Putting norbv to a non-zero value will result in the calculation of norbv virtual orbitals in a postprocessing
+        routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . nplot
+        of these orbitals will be written in the virtual.*.pot files and nplot (if that many exist) of the highest
+        occupied orbitals will be written in the orbital.*.pot file The Kohn Sham eigenvalues are written in the
+        ordinary output file. nvirt corresponds to the actual number of orbitals the convergence process is taking
+        care of during the Davidson iterations.
      RANGE: [-9999, 9999]
      default: 0
    nvirt:
      COMMENT: No. of virtual orbs
-     DESCRIPTION: Number of virtual (unoccupied) orbital to optimize
-                  (should be < norbv)
+     DESCRIPTION: |
+        Determine the dimension of the subspace i.e. the number of virtual orbitals
+        to calculate via a Davidson diagonalisation. (should be < norbv)
+        
+        Usually unoccupied orbitals are not calculated since they are not needed for the total energy and other
+        physical properties of the electronic ground state. 
+        
+        Putting norbv to a non-zero value will result in the calculation of norbv virtual orbitals in a postprocessing
+        routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . nplot
+        of these orbitals will be written in the virtual.*.pot files and nplot (if that many exist) of the highest
+        occupied orbitals will be written in the orbital.*.pot file The Kohn Sham eigenvalues are written in the
+        ordinary output file. nvirt corresponds to the actual number of orbitals the convergence process is taking
+        care of during the Davidson iterations.
      RANGE: [0, 9999]
      default: 0
    nplot:
      COMMENT: No. of plotted orbs
-     DESCRIPTION: Number of orbitals to be plotted
+     DESCRIPTION: |
+        Number of orbitals to be plotted
+        
+        Determine the dimension of the subspace i.e. the number of virtual orbitals
+        to calculate via a Davidson diagonalisation.
+        
+        Usually unoccupied orbitals are not calculated since they are not needed for the total energy and other
+        physical properties of the electronic ground state. 
+        
+        Putting norbv to a non-zero value will result in the calculation of norbv virtual orbitals in a postprocessing
+        routine after the occupied orbitals have been calculated, which uses Davidson iterative treatment . nplot
+        of these orbitals will be written in the virtual.*.pot files and nplot (if that many exist) of the highest
+        occupied orbitals will be written in the orbital.*.pot file The Kohn Sham eigenvalues are written in the
+        ordinary output file. nvirt corresponds to the actual number of orbitals the convergence process is taking
+        care of during the Davidson iterations.
      RANGE: [0, 9999]
      default: 0
    disablesym:
      COMMENT: Disable the symmetry detection
-     DESCRIPTION: Disable the symmetry detection (by default No except for isolated systems)
+     DESCRIPTION: |
+       Disable the symmetry detection (by default No except for isolated systems)
+       
+       By default symmetries are used to update the density in periodic boundary condition calculations, and surface
+       boundary conditions also. 
      default: No
    solvent:
      COMMENT: Electrostatic environment for Poisson Equation
@@ -283,7 +489,34 @@
 
 #Geometry Optimisation  and Molecular Dynamics parameters
  geopt:
-   DESCRIPTION: Parameters for the geometry relaxation and molecular dynamics
+   DESCRIPTION: |
+          This character string specifies the method used for the geometry optimization.
+          
+          - VSSD Variable Stepsize Steepest Descent method.
+          
+          - SDCG A combination of Steepest Descent and Conjugate Gradient.
+          
+          - LBFGS Limited Memory BFGS.
+          
+     #    - BFGS Preconditioned steepest descent with energy feedback. A preconditioning matrix is build
+     #    up according to the BFGS algorithm. The initial Hessian is a diagonal matrix where the 
+     #    diagonal elements are the inverse of the step size. This method is usually the most efficient
+     #    one.
+     #     
+     #     - PBFGS Same as BFGS except that an initial Hessian is obtained from a force field. Force field
+     #     parameters are only available for systems consisting of H,C,N,O. For such systems the method
+     #     is the most efficient one in general
+     #     
+     #    - FIRE The Fast Inertial Relaxation Engine as described by Bitzek et al.[1] with optimized 
+     #    parameters. An additional line is required in the input.geopt file with two parameters
+     #    initial time step dtinit and the maximum time step dtmax. 
+     ###    A good starting point to estimate dtmax is by using dtmax=0.25 pi sqrt(betax_(VSSD)) and
+     #    dtinit=0.5dtmax, and gradually increasing dtmax. betax is not used.
+          
+     #    - AB6MD The molecular dynamic routines from ABINIT 6.
+     #    
+     #    - DIIS a Direct Inversion of Iterative Subspace. In that case, an additional parameter is required
+     #    qqwith the history length (default is 4) on the line of betax. 
    method:
      COMMENT: Geometry optimisation method
      EXCLUSIVE:
@@ -303,6 +536,8 @@
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations
+     DESCRIPTION: |
+       Maximum number of force evaluations to be used for the geometry optimization.
      RANGE: [0, 2000]
      PROFILE_FROM: method
      default: 50
@@ -332,20 +567,74 @@
      default: 127.0.0.1
    frac_fluct:
      COMMENT: Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+     DESCRIPTION: |
+       Convergence criteria for the geometry optimization.
+       
+       The geometry optimization stops either if the norm of the individual forces acting on any atom in the
+       system is smaller than forcemax or if the forces get noisy.
+       Noise is present because of the underlying integration grid. The parameter frac_fluct specifies how
+       small the forces should become compared to the noise level to stop the geometry optimization.
+       
+       Values in between 1 and 10 is are reasonable for this parameter. A value of 2 means that the geometry
+       optimization will stop when the largest atomic force is comparable to the 2 times the average noise
+       in the forces themselves.
+       For values of frac_fluct smaller than 1 one can under certain circumstances obtain better relaxed 
+       geometries but one risks that the geometry optimization will not converge since the forces are too 
+       noisy.
+       
+       In such a case one should closely monitor the progress of the geometry optimization by looking at the
+       posout. files which are written at each step of the geometry optimization and at the data/geopt.mon 
+       file.
      RANGE: [0., 10.]
      default: 1.
    forcemax:
      COMMENT: Max forces criterion when stop
+     DESCRIPTION: |
+       Convergence criteria for the geometry optimization.
+       
+       The geometry optimization stops either if the norm of the individual forces acting on any atom in the
+       system is smaller than forcemax or if the forces get noisy.
+       Noise is present because of the underlying integration grid. The parameter frac_fluct specifies how
+       small the forces should become compared to the noise level to stop the geometry optimization.
+       
+       Values in between 1 and 10 is are reasonable for this parameter. A value of 2 means that the geometry
+       optimization will stop when the largest atomic force is comparable to the 2 times the average noise
+       in the forces themselves.
+       For values of frac_fluct smaller than 1 one can under certain circumstances obtain better relaxed 
+       geometries but one risks that the geometry optimization will not converge since the forces are too 
+       noisy.
+       
+       In such a case one should closely monitor the progress of the geometry optimization by looking at the
+       posout. files which are written at each step of the geometry optimization and at the data/geopt.mon 
+       file.
      RANGE: [0., 10.]
      PROFILE_FROM: method
      default: 0.
      NEB: 5e-3
    randdis:
      COMMENT: Random displacement amplitude
+     DESCRIPTION: |
+       This parameter allows to add random displacements with amplitude randdis to the atomic positions in
+       the input file posinp.
+       
+       This can for instance be useful to break degeneracies (which would lead to convergence problems in
+       the wavefunction optimization) in highly symmetric structures. 
      RANGE: [0., 10.]
      default: 0.
    betax:
      COMMENT: Stepsize for the geometry optimization
+     DESCRIPTION: |
+       This is the stepsize for the geometry optimization.
+       
+       This stepsize is system dependent and it has therefore to be determined for each system.
+       If the VSSD method is used one can start with a small stepsize of around 1 and VSSD will suggest than
+       a better value for {betax} in the last line of the data/geopt.mon file. Whether the stepsize is correct
+       can also be seen from the data/geopt.mon output of the SDCG method.
+       
+       In this case the average stepsize in terms of betax should be around 4 (after a brief initial period
+       where it is around 8).
+       In contrast to the SDCG method, the BFGS method is not very sensitive to the correct stepsize but 
+       nevertheless one should try to find reasonable values also in this case. 
      CONDITION:
        MASTER_KEY: method
        WHEN:
@@ -607,10 +896,20 @@
 
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
-   DESCRIPTION: Mixing parameters for SCF
+   DESCRIPTION: |
+     This file contains all the parameters required to use a density (or potential)
+     mixing scheme for the self consistent field loop, which may imply a smearing
+     of the occupancies for finite temperature DFT calculations.
+     
+     It is named input.mix.
    iscf:
      COMMENT: Mixing parameters
-     DESCRIPTION: Describe the scheme used to solve the self-consistent field
+     DESCRIPTION: |
+       An integer giving the mixing scheme and the mixing target.
+       
+       It follows the ABINIT convention. For values lower than 10, the potential is mixed, while
+       for values greater than 10, the density is mixed. A recommended option is Pulay mixing
+       (7 or 17 for potential or charge mixing, respectively) 
      EXCLUSIVE:
        -1: Reserved, do not use it.
        0:  Direct minimization
@@ -628,22 +927,38 @@
      default: 0
    itrpmax:
      COMMENT: Maximum number of diagonalisation iterations
+     DESCRIPTION: |
+       Maximum number of repeats for the mixing scheme. Each iteration implies an optimization
+       of the wavefunctions at constant potential according to the settings in input.dft. 
      RANGE: [0, 10000]
      default: 1
    rpnrm_cv:
      COMMENT: Stop criterion on the residue of potential or density
+     DESCRIPTION: |
+       The stop criterion on the residue of the potential or the density. Typical values are in
+       the order of 1e-10 to 1e-12. 
      RANGE: [0., 10.]
      default: 1e-4
    norbsempty:
      COMMENT: No. of additional bands
+     DESCRIPTION: |
+       The maximum number of additional (initially unoccupied) bands considered.
+       If a larger value is given, The maximum of orbitals available via the input guess
+       procedure will be used automatically 
      RANGE: [0, 10000]
      default: 0
    tel:
      COMMENT: Electronic temperature
+     DESCRIPTION: |
+       The electronic temperature in energy units (Ha).
      RANGE: [0., 1e6]
      default: 0.
    occopt:
      COMMENT: Smearing method
+     DESCRIPTION: |
+       The smearing function to determine the occupation. The conventions differ from those
+       used by ABINIT. 1 = Gaussian, 2 = Fermi, 3 = Marzari (bumb minimization), 4 = Marzari
+       (monotonic tail), 5 = Methfessel and Paxton. 
      EXCLUSIVE:
        1: Error function smearing
        2: Normal Fermi distribution
@@ -653,10 +968,22 @@
      default: 1
    alphamix:
      COMMENT: Multiplying factors for the mixing
+     DESCRIPTION: |
+       The closer this value gets to one, the more cautious will be the mixing of the charge or potential.
+       
+       In the case of straight mixing, it corresponds to alpha according to
+       
+       rho_{new} <-- alpha rho_{old} + (1-alpha) - rho_{new}
+       
+       alphamix must be larger than one half.
+       
+       A typical choice for metals is 0.95. 
      RANGE: [0, 1.]
      default: 0.
    alphadiis:
      COMMENT: Multiplying factors for the electronic DIIS
+     DESCRIPTION: |
+       The DIIS multiplier used for preconditioning the wavefunctions at constant potential.
      RANGE: [0., 10.]
      default: 2.
 
@@ -718,12 +1045,19 @@
  perf:
    debug:
      COMMENT: Debug option
+     DESCRIPTION: |
+       The debug mode is enable mainly for memory profiling.
      default: No
    fftcache:
      COMMENT: Cache size for the FFT
+     DESCRIPTION: |
+       Specify the cache size for FFT in kBytes.
      default: 8192
    accel:
-     COMMENT: Acceleration (hardware) 
+     COMMENT: Acceleration (hardware)
+     DESCRIPTION: |
+       Specify the use of CUDA (resp. OCL) versions of various subroutines. For CUDA,
+       a GPU.config file is needed.
      EXCLUSIVE:
        NO:      No material acceleration
        CUDAGPU: CUDA
@@ -739,6 +1073,8 @@
      default: ~
    blas:
      COMMENT: CUBLAS acceleration
+     DESCRIPTION: |
+        Use or not the CUBlas acceleration.
      default: No
    projrad:
      COMMENT: Radius of the projector as a function of the maxrad
@@ -838,21 +1174,7 @@
      COMMENT: (EXPERIMENTAL) Preserve the multipole moment of the ionic density
      default: No
    mp_isf:
-     COMMENT: (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
-     EXCLUSIVE:
-       2: isf 2
-       4: isf 4
-       6: isf 6
-       8: isf 8
-       14: isf 14
-       16: isf 16
-       20: isf 20
-       24: isf 24
-       30: isf 30
-       40: isf 40
-       50: isf 50
-       60: isf 60
-       100: isf 100
+     COMMENT: (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole preserving
      default: 16
    pdsyev_blocksize:
      COMMENT: SCALAPACK linear scaling blocksize
@@ -875,7 +1197,7 @@
      RANGE: [0., 1000.]
      default: 10.
    mixing_after_inputguess:
-     COMMENT: Mixing step after linear input gues
+     COMMENT: Mixing step after linear input guess
      EXCLUSIVE:
        0: keep the initial input guess density
        1: perform a mixing step with the default mixing parameter

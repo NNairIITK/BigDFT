@@ -2356,7 +2356,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3656E+00,  8.5857E-01,  8.8656E-01 ]
    norm(P)                             :  1.840666E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -4456,7 +4456,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3765E+00,  8.5138E-01,  8.7485E-01 ]
    norm(P)                             :  1.839825E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -6557,7 +6557,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3874E+00,  8.4415E-01,  8.6306E-01 ]
    norm(P)                             :  1.839123E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -8658,7 +8658,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.3985E+00,  8.3691E-01,  8.5120E-01 ]
    norm(P)                             :  1.838650E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -10759,7 +10759,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.4095E+00,  8.2973E-01,  8.3922E-01 ]
    norm(P)                             :  1.838358E+00
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:

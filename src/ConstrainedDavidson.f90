@@ -1,7 +1,7 @@
 !> @file 
 !!   Routines to do diagonalisation (Davidson)
 !! @author
-!!   Copyright (C) 2010-2011 BigDFT group 
+!!   Copyright (C) 2010-2015 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -51,6 +51,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
      orbs,orbsv,nvirt,Lzd,comms,commsv,&
      hx,hy,hz,rxyz,rhopot,psi,v,dpcom,xc,GPU)
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
   use module_interfaces, except_this_one => constrained_davidson
   use module_xc
@@ -78,7 +79,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   character(len=*), parameter :: subname='davidson'
   logical :: msg,exctX,occorbs !extended output
   integer :: nrhodim,i3rho_add !n(c) occnorb, occnorbu, occnorbd
-  integer :: ierr,i_stat,i_all,iorb,jorb,iter,nwork,norb,nspinor,imin
+  integer :: i_stat,iorb,jorb,iter,nwork,norb,nspinor,imin
   integer :: ise,ispsi,ikpt,ikptp,nvctrp,ncplx,ncomp,norbs,ispin,ish1,ish2,nspin
   real(gp) :: tt,gnrm,gnrm_fake,emin,diff_max,this_e
   integer, dimension(:,:), allocatable :: ndimovrlp
@@ -151,8 +152,6 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   if (exctX) then
      psirocc=f_malloc_ptr(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
           dpcom%ngatherarr(0,1)*orbs%norb),1),id='psirocc')
-!!$     allocate(psirocc(max(max(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*orbs%norbp,&
-!!$          dpcom%ngatherarr(0,1)*orbs%norb),1)+ndebug),stat=i_stat)
 
      call prepare_psirocc(iproc,nproc,Lzd%Glr,orbs,dpcom%nscatterarr(iproc,2),dpcom%ngatherarr(0,1),psi,psirocc)
   end if

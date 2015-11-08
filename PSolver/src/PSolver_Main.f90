@@ -78,9 +78,8 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    real(dp), parameter :: max_ratioex = 1.0e10_dp,eps0=78.36d0 !to be inserted in pkernel
    logical :: wrtmsg,cudasolver
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
-   integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
-   integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
-   integer :: nxc,istden,istglo,ip,irho,i3s,i23,i23s,n23
+   integer :: i1,i3start
+   integer :: ip,irho,i23,i23s,n23
    integer(f_integer) :: ierr_4
    real(dp) :: ehartreeLOC,pot,rhores2,beta
    real(dp) :: alpha,ratio,normb,normr,norm_nonvac,e_static,rpoints
@@ -559,7 +558,6 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
   !local variables
   integer, dimension(3) :: n
   integer :: size1,size2,switch_alg,i_stat,ierr,i23,j23,j3,i1,n3delta
-  real(dp) :: pt,rh
   real(dp), dimension(:), allocatable :: zf1
 
   call f_routine(id='apply_kernel')
@@ -923,6 +921,7 @@ subroutine finalize_hartree_results(sumpion,pot_ion,m1,m2,m3p,md1,md2,md3p,&
   end if
 end subroutine finalize_hartree_results
 
+
 subroutine EPS_iter_output(iter,normb,normr,ratio,alpha,beta)
   implicit none
   integer, intent(in) :: iter
@@ -1073,26 +1072,21 @@ END SUBROUTINE PS_dim4allocation
 
 !> Calculate the dimensions to be used for the XC part, taking into account also
 !! the White-bird correction which should be made for some GGA functionals
-!!
-!! SYNOPSIS
-!!    @param use_gradient .true. if functional is using the gradient.
-!!    @param use_wb_corr  .true. if functional is using WB corrections.
-!!    @param m2        dimension to be parallelised
-!!    @param nxc       size of the parallelised XC potential
-!!    @param ncxl,ncxr left and right buffers for calculating the WB correction after call drivexc
-!!    @param nwbl,nwbr left and right buffers for calculating the gradient to pass to drivexc    
-!!    @param i3s       starting addres of the distributed dimension
-!!    @param i3xcsh    shift to be applied to i3s for having the striting address of the potential
-!!
 !! @warning It is imperative that iend <=m2
 subroutine xc_dimensions(geocode,use_gradient,use_wb_corr,&
      & istart,iend,m2,nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh)
   implicit none
 
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  logical, intent(in) :: use_gradient, use_wb_corr
-  integer, intent(in) :: istart,iend,m2
-  integer, intent(out) :: nxc,nxcl,nxcr,nwbl,nwbr,i3s,i3xcsh
+  logical, intent(in) :: use_gradient     !< .true. if functional is using the gradient.
+  logical, intent(in) :: use_wb_corr      !< .true. if functional is using WB corrections.
+  integer, intent(in) :: istart,iend      
+  integer, intent(in) :: m2               !< dimension to be parallelised
+  integer, intent(out) :: nxc             !< size of the parallelised XC potential
+  integer, intent(out) :: nxcl,nxcr       !< left and right buffers for calculating the WB correction after call drivexc
+  integer, intent(out) :: nwbl,nwbr       !< left and right buffers for calculating the gradient to pass to drivexc    
+  integer, intent(out) :: i3s             !< starting addres of the distributed dimension
+  integer, intent(out) :: i3xcsh          !< shift to be applied to i3s for having the striting address of the potential
   !local variables
   integer, parameter :: nordgr=4 !the order of the finite-difference gradient (fixed)
 
@@ -1472,22 +1466,6 @@ END SUBROUTINE W_FFT_dimensions
 !> Calculate four sets of dimension needed for the calculation of the
 !! zero-padded convolution
 !!
-!!    @param n01,n02,n03 original real dimensions (input)
-!!
-!!    @param m1,m2,m3 original real dimension with the dimension 2 and 3 exchanged
-!!
-!!    @param n1,n2 the first FFT even dimensions greater that 2*m1, 2*m2
-!!    @param n3    the double of the first FFT even dimension greater than m3
-!!          (improved for the HalFFT procedure)
-!!
-!!    @param md1,md2,md3 half of n1,n2,n3 dimension. They contain the real unpadded space,
-!!                which has been properly enlarged to be compatible with the FFT dimensions n_i.
-!!                md2 is further enlarged to be a multiple of nproc
-!!
-!!    @param nd1,nd2,nd3 fourier dimensions for which the kernel FFT is injective,
-!!                formally 1/8 of the fourier grid. Here the dimension nd3 is
-!!                enlarged to be a multiple of nproc
-!!
 !! @warning
 !!    The dimension m2 and m3 correspond to n03 and n02 respectively
 !!    this is needed since the convolution routine manage arrays of dimension
@@ -1496,9 +1474,21 @@ END SUBROUTINE W_FFT_dimensions
 !! @date February 2006
 subroutine F_FFT_dimensions(n01,n02,n03,m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,nproc,gpu,enlarge_md2)
  implicit none
+ !Arguments
  logical, intent(in) :: enlarge_md2
- integer, intent(in) :: n01,n02,n03,nproc,gpu
- integer, intent(out) :: m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3
+ integer, intent(in) :: n01,n02,n03  !< Original real dimensions
+ integer, intent(in) :: nproc,gpu
+ integer, intent(out) :: m1,m2,m3    !< Original real dimension with the dimension 2 and 3 exchanged
+ integer, intent(out) :: n1,n2       !< The first FFT even dimensions greater that 2*m1, 2*m2
+ integer, intent(out) :: n3          !< The double of the first FFT even dimension greater than m3
+                                     !! (improved for the HalFFT procedure)
+ integer, intent(out) :: md1,md2,md3 !< Half of n1,n2,n3 dimension. They contain the real unpadded space,
+                                     !! which has been properly enlarged to be compatible with the FFT dimensions n_i.
+                                     !! md2 is further enlarged to be a multiple of nproc
+ integer, intent(out) :: nd1,nd2,nd3 !< Fourier dimensions for which the kernel FFT is injective,
+                                     !! formally 1/8 of the fourier grid. Here the dimension nd3 is
+                                     !! enlarged to be a multiple of nproc
+ !Local variables
  integer :: l1,l2,l3
 
  !dimensions of the density in the real space, inverted for convenience

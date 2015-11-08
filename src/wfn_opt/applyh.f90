@@ -13,6 +13,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
      ipotmethod,confdatarr,pot,psi,hpsi,pkernel,xc,alphaSIC,ekin_sum,epot_sum,eSIC_DC,&
      dpbox,potential,comgp)
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
   use module_interfaces, except_this_one => local_hamiltonian
   use module_xc
@@ -34,7 +35,7 @@ subroutine local_hamiltonian(iproc,nproc,npsidim_orbs,orbs,Lzd,hx,hy,hz,&
   real(gp), intent(out) :: ekin_sum,epot_sum,eSIC_DC
   real(wp), dimension(npsidim_orbs), intent(inout) :: hpsi
   type(coulomb_operator), intent(in) :: pkernel                     !< the PSolver kernel which should be associated for the SIC schemes
-  type(denspot_distribution),intent(in),optional :: dpbox
+  type(denspot_distribution), intent(in),optional :: dpbox
   real(wp), dimension(*), intent(in), optional, target :: potential !< Distributed potential. Might contain the density for the SIC treatments
   type(p2pComms),intent(inout), optional:: comgp
   !!real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i*nspin) :: pot
@@ -775,8 +776,8 @@ subroutine apply_potential(n1,n2,n3,nl1,nl2,nl3,nbuf,nspinor,npot,psir,pot,epot,
 
 END SUBROUTINE apply_potential
 
-!>   Calculate on-the fly each projector for each atom, then applies the projectors 
-!!   to all distributed orbitals
+!> Calculate on-the fly each projector for each atom, then applies the projectors 
+!! to all distributed orbitals
 subroutine applyprojectorsonthefly(iproc,orbs,at,lr,&
      rxyz,hx,hy,hz,wfd,nlpsp,psi,hpsi,eproj_sum,&
      paw)

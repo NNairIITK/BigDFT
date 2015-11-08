@@ -1,7 +1,7 @@
 !> @file
 !!  Module defining a dictionary
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -22,6 +22,7 @@ module dictionaries
       character(len=max_field_length) :: val=' '
       type(dictionary), pointer :: dict => null()
    end type list_container
+
    !> Public to be used in dict_new() constructor.
    type, public :: dictionary_container
       character(len=max_field_length) :: key=' '
@@ -37,7 +38,7 @@ module dictionaries
    integer, save, public :: DICT_INVALID_LIST
    integer, save, public :: DICT_INVALID
 
-   !control the error enviromnment (see error_handling.f90)
+   !> Control the error enviromnment (see error_handling.f90)
    logical :: try_environment=.false.
 
    interface operator(.index.)
@@ -132,6 +133,7 @@ module dictionaries
    public :: operator(.pop.),operator(.notin.)
    public :: operator(==),operator(/=),operator(.in.),operator(.get.)
    public :: dictionary,max_field_length,dict_get_num
+
 
    interface dict_next_build
       module procedure dict_next_build_list
@@ -335,7 +337,7 @@ contains
        character(len=*), intent(in) :: key
        logical, intent(in) :: dst
        !local variables
-       type(dictionary), pointer :: dict_first !<in case of first occurrence
+!!$       type(dictionary), pointer :: dict_first !<in case of first occurrence
        type(dictionary), pointer :: iter !to iterate over the dictionaries
        logical :: key_found
        type(dictionary), pointer :: dict_update      !< iterator for list renumbering
@@ -844,7 +846,7 @@ contains
        integer, intent(in) :: item
        logical, intent(in) :: dst
        !local variables
-       type(dictionary), pointer :: dict_first !<in case of first occurrence
+!!$       type(dictionary), pointer :: dict_first !<in case of first occurrence
        type(dictionary), pointer :: iter !to iterate over the dictionaries
        logical :: item_found
        type(dictionary), pointer :: dict_update      !< iterator for list renumbering
@@ -1092,7 +1094,7 @@ contains
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: brother
      !local variables
-     type(dictionary), pointer :: iter
+!!$     type(dictionary), pointer :: iter
 
      if (.not. associated(dict)) then
         !this should be verifyed by passing a dictionary which is not in the beginning
@@ -1140,7 +1142,8 @@ contains
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: brother
      !local variables
-     type(dictionary), pointer :: dict_tmp,iter
+     type(dictionary), pointer :: dict_tmp
+!!$     type(dictionary), pointer :: iter
 
      if (.not. associated(brother)) return
 
@@ -1739,7 +1742,7 @@ contains
          character(max_field_length), dimension(:), allocatable :: keys
          character(len = max_field_length) :: val
          !local variables
-         type(dictionary), pointer :: iter
+!!$         type(dictionary), pointer :: iter
 
          if (dict_len(ref) > 0) then
             ! List case.

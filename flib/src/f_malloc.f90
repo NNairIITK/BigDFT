@@ -14,9 +14,8 @@ module module_f_malloc
   use dictionaries, only: f_loc,f_err_throw,f_err_raise
   use yaml_strings, only: f_strcpy,operator(+)
 
-  integer, parameter :: f_kind=f_long
-  !>global parameter of the module telling if the profile has to be activated
-  !! this parameter can be modified only by dynamic memory module
+  integer, parameter :: f_kind=f_long !< Global parameter of the module telling if the profile has to be activated
+                                      !! this parameter can be modified only by dynamic memory module
   integer(f_integer), parameter :: f_malloc_namelen=32          !< length of the character variables
   integer, parameter :: max_rank=7          !< maximum rank in fortran
 

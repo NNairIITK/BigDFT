@@ -1,8 +1,9 @@
 !> @file
 !!  High level routines which needs more medium-level modules of the f_lib.
 !!  They should be external, in the sense that no interface should be needed to call them.
+
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -166,7 +167,8 @@ subroutine f_lib_err_severe_external(message)
   call f_err_severe()
 end subroutine f_lib_err_severe_external
 
-!> Routine which finalize f_lib and dummp the finalization information
+
+!> Routine which finalize f_lib and dump the finalization information
 subroutine f_lib_finalize()
   use dictionaries_base, only: dictionary_check_leak
   use dictionaries, only: f_err_finalize,dict_get_num
@@ -196,7 +198,8 @@ subroutine f_lib_finalize()
   call dictionary_check_leak()
 end subroutine f_lib_finalize
 
-!> finalize f_lib but do not print out report information
+
+!> Finalize f_lib but do not print out report information
 subroutine f_lib_finalize_noreport()
   use dynamic_memory, only: f_malloc_finalize
   use dictionaries, only: f_err_finalize

@@ -1,7 +1,7 @@
 !> @file
 !!  Daubechies to Interpolation scaling functions routines
 !! @author
-!!    Copyright (C) 2010-2012 BigDFT group
+!!    Copyright (C) 2010-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
