@@ -413,7 +413,7 @@ subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
                                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
                                       end do
                                       !forces in all the directions for the given atom
-                                      ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i+ispinsh
+                                      ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i!+ispinsh
                                       drhodr2=drhoc-drhov
                                       frcx=frcx+potxc(ind,ispin)*x*drhodr2
                                       frcy=frcy+potxc(ind,ispin)*y*drhodr2
@@ -602,18 +602,27 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!! mpy = f_malloc( (/ isy.to.iey /),id='mpy')
 !!! mpz = f_malloc( (/ isz.to.iez /),id='mpz')
         do i1=isx,iex
-           mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+           mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
         end do
         do i2=isy,iey
-           mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+           mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
         end do
         do i3=isz,iez
-           mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+           mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
         end do
 
      end if
 
      forceleaked=0.d0
+
+     !$omp parallel default(none) &
+     !$omp & shared(floc,locstrten,hxh,hyh,hzh,dpbox,rho,pot,n1i,n2i,n3i) &
+     !$omp & shared(nbl1,nbl2,nbl3,isz,iez,isy,iey,isx,iex,i3s) &
+     !$omp & shared(mpx,mpy,mpz,iat,ityp,rx,ry,rz,n3p,perx,pery,perz,forceleaked) &
+     !$omp & shared(cprime,nloc,rloc,rlocinvsq,prefactor,nbox) &
+     !$omp & private(fxerf,fyerf,fzerf,fxgau,fygau,fzgau) &
+     !$omp & private(Txx,Tyy,Tzz,Txy,Txz,Tyz,boxit,xp,x,y,z,r2,arg,tt,rhoel,forceloc,Vel) &
+     !$omp & private(iloc,i3,zp,zsq,j3,yp,ysq,goy,gox,goz,i1,i2,j1,j2,ind,yzsq) 
 
      !Initialization of the forces
      !ion-electron term, error function part
@@ -631,15 +640,6 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      Txy=0.0_gp
      Txz=0.0_gp
      Tyz=0.0_gp
-
-     !$omp parallel default(none) &
-     !$omp & shared(floc,locstrten,hxh,hyh,hzh,dpbox,rho,pot,n1i,n2i,n3i) &
-     !$omp & shared(nbl1,nbl2,nbl3,isz,iez,isy,iey,isx,iex,i3s) &
-     !$omp & shared(mpx,mpy,mpz,iat,ityp,rx,ry,rz,n3p,perx,pery,perz,forceleaked) &
-     !$omp & shared(cprime,nloc,rloc,rlocinvsq,prefactor,nbox) &
-     !$omp & private(fxerf,fyerf,fzerf,fxgau,fygau,fzgau) &
-     !$omp & private(Txx,Tyy,Tzz,Txy,Txz,Tyz,boxit,xp,x,y,z,r2,arg,tt,rhoel,forceloc,Vel) &
-     !$omp & private(iloc,i3,zp,zsq,j3,yp,ysq,goy,gox,goz,i1,i2,j1,j2,ind,yzsq) 
 
      if (use_iterator) then
 
@@ -689,21 +689,21 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
         if (n3p > 0) then
            !$omp do reduction(+:forceleaked)
            do i3=isz,iez
-              zp = mpz(i3)
+              zp = mpz(i3-isz)
               z=real(i3,kind=8)*hzh-rz
               zsq=z**2
               !call ind_positions(perz,i3,n3,j3,goz) 
               call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               do i2=isy,iey
-                 yp = zp*mpy(i2)
+                 yp = zp*mpy(i2-isy)
                  y=real(i2,kind=8)*hyh-ry
                  yzsq=y**2+zsq
                  !call ind_positions(pery,i2,n2,j2,goy)
                  call ind_positions_new(pery,i2,n2i,j2,goy)
                  do i1=isx,iex
                     x=real(i1,kind=8)*hxh-rx
-                    xp = yp*mpx(i1)
+                    xp = yp*mpx(i1-isx)
                     !call ind_positions(perx,i1,n1,j1,gox)
                     call ind_positions_new(perx,i1,n1i,j1,gox)
                     r2=x**2+yzsq
@@ -738,7 +738,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
                        fxerf=fxerf+xp*Vel*x
                        fyerf=fyerf+xp*Vel*y
                        fzerf=fzerf+xp*Vel*z
-                       write(*,'(i0,1x,5(1x,1pe24.17))') ind,pot(ind),rho(ind),fxerf,fyerf,fzerf
+                       !write(*,'(i0,1x,5(1x,1pe24.17))') ind,pot(ind),rho(ind),fxerf,fyerf,fzerf
                     else if (.not. goz) then
                        !derivative of the polynomial
                        tt=cprime(nloc)

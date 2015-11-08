@@ -558,30 +558,30 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
            !!mpy = f_malloc( (/ isy.to.iey /),id='mpy')
            !!mpz = f_malloc( (/ isz.to.iez /),id='mpz')
            do i1=isx,iex
-              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+              mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
            end do
            do i2=isy,iey
-              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+              mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
            end do
            do i3=isz,iez
-              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+              mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
 
            do i3=isz,iez
               z=real(i3,gp)*hzh-rz
-              zp = mpz(i3)
+              zp = mpz(i3-isz)
               if (abs(zp) < mp_tiny) cycle
               !call ind_positions(perz,i3,n3,j3,goz) 
               call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               do i2=isy,iey
-                 yp = zp*mpy(i2)
+                 yp = zp*mpy(i2-isy)
                  if (abs(yp) < mp_tiny) cycle
                  y=real(i2,gp)*hyh-ry
                  !call ind_positions(pery,i2,n2,j2,goy)
                  call ind_positions_new(pery,i2,n2i,j2,goy)
                  do i1=isx,iex
-                    xp = yp*mpx(i1)
+                    xp = yp*mpx(i1-isx)
                     if (abs(xp) < mp_tiny) cycle
                     x=real(i1,gp)*hxh-rx
                     !call ind_positions(perx,i1,n1,j1,gox)
@@ -1826,7 +1826,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   integer :: i1,i2,i3,ierr,ityp !n(c) nspin
   integer :: nloc,iloc
   integer  :: i3s,n3pi,nbl1,nbr1,nbl2,nbl3,nbr2,nbr3
-  integer :: n1,n2,n3,iat,iex,iey,iez,ind,indj3,indj23,isx,isy,isz,j1,j2,j3
+  integer :: iat,iex,iey,iez,ind,indj3,indj23,isx,isy,isz,j1,j2,j3
   integer :: n1i,n2i,n3i
   real(gp) :: hxh,hyh,hzh
   real(gp) :: rloc,charge,cutoff,r2,arg,xp,tt,rx,ry,rz
@@ -1890,7 +1890,6 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
      mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) + 1 /),id='mpx')
      mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) + 1 /),id='mpy')
      mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) + 1 /),id='mpz')
-
      atit = atoms_iter(at%astruct)
      do while(atoms_iter_next(atit))
 
@@ -1948,6 +1947,21 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
         iey=ceiling((ry+cutoff)/hyh)
         iez=ceiling((rz+cutoff)/hzh)
 
+        !Separable function: do 1-D integrals before and store it.
+        !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
+        !!mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+        !!mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+        !!mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+        do i1=isx,iex
+           mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+        end do
+        do i2=isy,iey
+           mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+        end do
+        do i3=isz,iez
+           mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+        end do
+
      end if
 
         if ( .not. any(at%npspcode == PSPCODE_PAW) ) then
@@ -1961,38 +1975,24 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
               end do
            else
 
-              !Separable function: do 1-D integrals before and store it.
-              !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
-              !!mpx = f_malloc( (/ isx.to.iex /),id='mpx')
-              !!mpy = f_malloc( (/ isy.to.iey /),id='mpy')
-              !!mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-              do i1=isx,iex
-                 mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
-              end do
-              do i2=isy,iey
-                 mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
-              end do
-              do i3=isz,iez
-                 mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
-              end do
 
               !Calculate Ionic Density using HGH parameters.
               !Eq. 1.104, T. Deutsch and L. Genovese, JDN. 12, 2011
               do i3=isz,iez
-                 zp = mpz(i3)
+                 zp = mpz(i3-isz)
                  !call ind_positions(perz,i3,n3,j3,goz)
                  call ind_positions_new(perz,i3,n3i,j3,goz) 
                  j3=j3+nbl3+1
                  if ( goz .and. (j3<i3s.or.j3>i3s+n3pi-1) ) cycle
                  indj3=(j3-i3s)*n1i*n2i
                  do i2=isy,iey
-                    yp = zp*mpy(i2)
+                    yp = zp*mpy(i2-isy)
                     !call ind_positions(pery,i2,n2,j2,goy)
                     call ind_positions_new(pery,i2,n2i,j2,goy)
                     if (goz.and.(.not.goy)) cycle
                     indj23=1+nbl1+(j2+nbl2)*n1i+indj3
                     do i1=isx,iex
-                       xp = yp*mpx(i1)
+                       xp = yp*mpx(i1-isx)
                        !call ind_positions(perx,i1,n1,j1,gox)
                        call ind_positions_new(perx,i1,n1i,j1,gox)
                        if (j3 >= i3s .and. j3 <= i3s+n3pi-1 .and. goy .and. gox) then
@@ -2034,7 +2034,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
               !Calculate Ionic Density using splines, PAW case
               r2paw=at%pawtab(ityp)%rpaw**2
               do i3=isz,iez
-                 zp = mpz(i3)
+                 zp = mpz(i3-isz)
                  if (abs(zp) < mp_tiny) cycle
                  !call ind_positions(perz,i3,n3,j3,goz)
                  call ind_positions_new(perz,i3,n3i,j3,goz) 
@@ -2043,7 +2043,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                  z=real(i3,gp)*hzh-rz
                  zsq=z**2
                  do i2=isy,iey
-                    yp = zp*mpy(i2)
+                    yp = zp*mpy(i2-isy)
                     if (abs(yp) < mp_tiny) cycle
                     !call ind_positions(pery,i2,n2,j2,goy)
                     call ind_positions_new(pery,i2,n2i,j2,goy)
@@ -2051,7 +2051,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                     y=real(i2,gp)*hyh-ry
                     yzsq=y**2+zsq
                     do i1=isx,iex
-                       xp = yp*mpx(i1)
+                       xp = yp*mpx(i1-isx)
                        if (abs(xp) < mp_tiny) cycle
                        !call ind_positions(perx,i1,n1,j1,gox)
                        call ind_positions_new(perx,i1,n1i,j1,gox)
@@ -2091,6 +2091,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
      enddo
 
      !De-allocate for multipole preserving
+
      call f_free(mpx,mpy,mpz)
 
   end if
@@ -2105,9 +2106,9 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   else
      do j3=1,n3pi
         indj3=(j3-1)*n1i*n2i
-        do i2= -nbl2,2*n2+1+nbr2
+        do i2= -nbl2,n2i-nbl2-1!2*n2+1+nbr2
            indj23=1+nbl1+(i2+nbl2)*n1i+indj3
-           do i1= -nbl1,2*n1+1+nbr1
+           do i1= -nbl1,n1i-nbl1-1!2*n1+1+nbr1
               ind=i1+indj23
               tt=tt+pot_ion(ind)
            enddo
@@ -2323,13 +2324,13 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
               !mpy = f_malloc( (/ isy.to.iey /),id='mpy')
               !mpz = f_malloc( (/ isz.to.iez /),id='mpz')
               do i1=isx,iex
-                 mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+                 mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
               end do
               do i2=isy,iey
-                 mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+                 mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
               end do
               do i3=isz,iez
-                 mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+                 mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
               end do
            end if
 
@@ -2366,7 +2367,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                     j3=j3+nbl3+1
                     indj3=(j3-i3s)*n1i*n2i
                     if (goz .and. j3 >= i3s .and. j3 <=  i3s+n3pi-1) then
-                       zp = mpz(i3)
+                       zp = mpz(i3-isz)
                        if (abs(zp) < mp_tiny) cycle
                        z=real(i3,gp)*hzh-rz
                        zsq=z**2
@@ -2375,7 +2376,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                           call ind_positions_new(pery,i2,n2i,j2,goy)
                           indj23=1+nbl1+(j2+nbl2)*n1i+indj3
                           if (goy) then
-                             yp = zp*mpy(i2)
+                             yp = zp*mpy(i2-isy)
                              if (abs(yp) < mp_tiny) cycle
                              y=real(i2,gp)*hyh-ry
                              yzsq=y**2+zsq
@@ -2383,14 +2384,14 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                                 !call ind_positions(perx,i1,n1,j1,gox)
                                 call ind_positions_new(perx,i1,n1i,j1,gox)
                                 if (gox) then
-                                   xp = yp*mpx(i1)
+                                   xp = yp*mpx(i1-isx)
                                    if (abs(xp) < mp_tiny) cycle
                                    x=real(i1,gp)*hxh-rx
                                    r2=x**2+yzsq
                                    arg=r2*rlocinvsq
-                                   tt=at%psppar(0,nloc,ityp)
+                                   tt=at%psppar(0,nloc,atit%ityp)
                                    do iloc=nloc-1,1,-1
-                                      tt=arg*tt+at%psppar(0,iloc,ityp)
+                                      tt=arg*tt+at%psppar(0,iloc,atit%ityp)
                                    enddo
                                    ind=j1+indj23
                                    pot_ion(ind)=pot_ion(ind)+xp*tt
@@ -2474,10 +2475,10 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                                    call interpol_vloc(rr(1),rloc,charge,raux2)
                                 end if
                                 !2) V^PAW from splines
-                                call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
-                                     & at%pawtab(ityp)%wvl%rholoc%rad, &
-                                     & at%pawtab(ityp)%wvl%rholoc%d(:,3), &
-                                     & at%pawtab(ityp)%wvl%rholoc%d(:,4), &
+                                call splint(at%pawtab(atit%ityp)%wvl%rholoc%msz, &
+                                     & at%pawtab(atit%ityp)%wvl%rholoc%rad, &
+                                     & at%pawtab(atit%ityp)%wvl%rholoc%d(:,3), &
+                                     & at%pawtab(atit%ityp)%wvl%rholoc%d(:,4), &
                                      & 1,rr,raux,ierr)
 
                                 ind=j1+indj23
@@ -2525,7 +2526,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
      end if
 
   end if
- 
+
 
 !!-  !calculate the value of the offset to be put
 !!-  tt_tot=0.d0
@@ -3020,27 +3021,27 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
            !mpy = f_malloc( (/ isy.to.iey /),id='mpy')
            !mpz = f_malloc( (/ isz.to.iez /),id='mpz')
            do i1=isx,iex
-              mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+              mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
            end do
            do i2=isy,iey
-              mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+              mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
            end do
            do i3=isz,iez
-              mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+              mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
            end do
            do i3=isz,iez
-              zp = mpz(i3)
+              zp = mpz(i3-isz)
               if (abs(zp) < mp_tiny) cycle
               !call ind_positions(perz,i3,grid%n3,j3,goz) 
               call ind_positions_new(perz,i3,n3i,j3,goz) 
               j3=j3+nbl3+1
               do i2=isy,iey
-                 yp = zp*mpy(i2)
+                 yp = zp*mpy(i2-isy)
                  if (abs(yp) < mp_tiny) cycle
                  !call ind_positions(pery,i2,grid%n2,j2,goy)
                  call ind_positions_new(pery,i2,n2i,j2,goy)
                  do i1=isx,iex
-                    xp = yp*mpx(i1)
+                    xp = yp*mpx(i1-isx)
                     if (abs(xp) < mp_tiny) cycle
                     !call ind_positions(perx,i1,grid%n1,j1,gox)
                     call ind_positions_new(perx,i1,n1i,j1,gox)

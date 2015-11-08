@@ -295,7 +295,7 @@ input_dicts.o: defs.o ao_inguess.o public_keys.o fragment_base.o input.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o input_dicts.o
 input_keys.o: defs.o base.o public_keys.o multipole_base.o atoms_data.o xc.o input.o fragment_base.o
 types.o: base.o gaussians.o locregs.o psp_projectors_base.o ao_inguess.o atoms_data.o communications_base.o input_keys.o \
-	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o
+	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o dpbox.o
 interfaces.o: base.o types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
 gaussians.o: base.o
 op2p_module.o : base.o
@@ -350,7 +350,7 @@ rhopotential.o: base.o types.o interfaces.o xc.o communications_base.o communica
 multipole.o: base.o multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
 orthonormalization.o: base.o types.o communications_base.o communications.o \
 		sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
-bounds.o: base.o types.o locregs.o
+bounds.o: base.o locregs.o
 locregs_init.o: base.o types.o communications.o bounds.o
 sort.o:
 forces_linear.o: base.o types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o locregs.o public_keys.o
