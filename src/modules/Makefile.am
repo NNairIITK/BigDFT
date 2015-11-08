@@ -308,7 +308,7 @@ constrained_dft.o: base.o input_keys.o sparsematrix_base.o
 psp_projectors_base.o: locregs.o gaussians.o defs.o
 psp_projectors.o: locregs.o locregs_init.o gaussians.o defs.o psp_projectors_base.o
 locregs.o: base.o
-dpbox.o: base.o 
+dpbox.o: base.o bounds.o
 reformatting.o: base.o
 communications_base.o: base.o
 communications_init.o: base.o types.o communications_base.o

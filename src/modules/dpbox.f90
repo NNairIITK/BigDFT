@@ -12,6 +12,7 @@
 module module_dpbox
 
   use module_base, only: gp,mpi_environment,mpi_environment_null,f_err_throw
+  use bounds, only: ext_buffers
 
   implicit none
 
@@ -382,20 +383,20 @@ contains
   end function dpbox_iter_next
 
 
-  !> Calculate the size of the buffers in each direction
-  subroutine ext_buffers(periodic,nl,nr)
-    implicit none
-    logical, intent(in) :: periodic !< Periodic or not
-    integer, intent(out) :: nl,nr   !< Size of left and right buffer
-
-    if (periodic) then
-       nl=0
-       nr=0
-    else
-       nl=14
-       nr=15
-    end if
-  END SUBROUTINE ext_buffers
+!!$  !> Calculate the size of the buffers in each direction
+!!$  subroutine ext_buffers(periodic,nl,nr)
+!!$    implicit none
+!!$    logical, intent(in) :: periodic !< Periodic or not
+!!$    integer, intent(out) :: nl,nr   !< Size of left and right buffer
+!!$
+!!$    if (periodic) then
+!!$       nl=0
+!!$       nr=0
+!!$    else
+!!$       nl=14
+!!$       nr=15
+!!$    end if
+!!$  END SUBROUTINE ext_buffers
 
 
   !> Determine the index in which the potential must be inserted, following the BC

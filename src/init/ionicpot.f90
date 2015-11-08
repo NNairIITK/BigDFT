@@ -1800,6 +1800,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
 !  use module_interfaces, except_this_one => createIonicPotential
   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
   use public_enums, only: PSPCODE_PAW
+  use bounds, only: ext_buffers
 
   implicit none
 
@@ -2838,6 +2839,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   use module_atoms
   use module_dpbox
+  use bounds, only: ext_buffers
   implicit none
   !Arguments
   integer, intent(in) :: iproc
