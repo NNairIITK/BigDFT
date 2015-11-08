@@ -258,7 +258,7 @@ subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
   integer :: ilcc,ityp,iat,jtyp,islcc,ngv,ngc,ig,ispin
   logical :: perx,pery,perz,gox,goy,goz
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,isx,isy,isz,iex,iey,iez
-  integer :: ispin,i1,i2,i3,j1,j2,j3,ispinsh,ind
+  integer :: i1,i2,i3,j1,j2,j3,ispinsh,ind,n1i,n2i,n3i,i3s,n3pi,n3p
   real(gp) :: spinfac,rx,ry,rz,frcx,frcy,frcz,rloc,cutoff,x,y,z,r2,hxh,hyh,hzh
   real(gp) :: spherical_gaussian_value,drhoc,drhov,drhodr2
 
@@ -267,6 +267,13 @@ subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
   hxh = dpbox%hgrids(1)
   hyh = dpbox%hgrids(2)
   hzh = dpbox%hgrids(3)
+  n1i=dpbox%ndims(1)
+  n2i=dpbox%ndims(2)
+  n3i=dpbox%ndims(3)
+  n3pi = dpbox%n3pi
+  n3p = dpbox%n3p
+  i3s = dpbox%i3s + dpbox%i3xcsh
+
 
   if (atoms%donlcc) then
      !if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate NLCC forces...'
@@ -370,7 +377,6 @@ subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
                  iey=ceiling((ry+cutoff)/hyh)
                  iez=ceiling((rz+cutoff)/hzh)
 
-
                  do ispin=1,nspin
                     ispinsh=0
                     if (ispin==2) ispinsh=n1i*n2i*n3p
@@ -409,9 +415,9 @@ subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
                                       !forces in all the directions for the given atom
                                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i+ispinsh
                                       drhodr2=drhoc-drhov
-                                      frcx=frcx+potxc(ind)*x*drhodr2
-                                      frcy=frcy+potxc(ind)*y*drhodr2
-                                      frcz=frcz+potxc(ind)*z*drhodr2
+                                      frcx=frcx+potxc(ind,ispin)*x*drhodr2
+                                      frcy=frcy+potxc(ind,ispin)*y*drhodr2
+                                      frcz=frcz+potxc(ind,ispin)*z*drhodr2
                                       !write(*,'(i0,1x,6(1x,1pe24.17))') ind,potxc(ind),drhoc,drhov,x,y,z
                                    endif
                                 enddo
@@ -466,10 +472,10 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
   integer, dimension(2,3) :: nbox
   real(gp) :: prefactor,cutoff,rloc,rlocinvsq,rlocinv2sq,Vel,rhoel
   real(gp) :: x,y,z,rx,ry,rz,fxerf,fyerf,fzerf,fxgau,fygau,fzgau,forceloc
-!!!  logical :: perx,pery,perz,gox,goy,goz
-!!!  integer :: j1,j2,j3,ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,isx,isy,isz,iex,iey,iez
-!!!  real(gp) :: forceleaked
-!!!  real(gp) :: yp,zp,zsq,yzsq
+  logical :: perx,pery,perz,gox,goy,goz
+  integer :: j1,j2,j3,ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,isx,isy,isz,iex,iey,iez
+  real(gp) :: forceleaked
+  real(gp) :: yp,zp,zsq,yzsq,ysq
   real(gp) :: arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
   integer :: i1,i2,i3,iat,ityp,nloc,iloc
   real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
@@ -626,11 +632,13 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      Tyz=0.0_gp
 
      !$omp parallel default(none) &
-     !$omp & shared(floc,locstrten,hxh,hyh,hzh,dpbox,rho,pot) &
-     !$omp & shared(mpx,mpy,mpz,iat,ityp,rx,ry,rz) &
+     !$omp & shared(floc,locstrten,hxh,hyh,hzh,dpbox,rho,pot,n1i,n2i,n3i) &
+     !$omp & shared(nbl1,nbl2,nbl3,isz,iez,isy,iey,isx,iex,i3s) &
+     !$omp & shared(mpx,mpy,mpz,iat,ityp,rx,ry,rz,n3p,perx,pery,perz,forceleaked) &
      !$omp & shared(cprime,nloc,rloc,rlocinvsq,prefactor,nbox) &
      !$omp & private(fxerf,fyerf,fzerf,fxgau,fygau,fzgau) &
-     !$omp & private(Txx,Tyy,Tzz,Txy,Txz,Tyz,boxit,xp,x,y,z,r2,arg,tt,rhoel,forceloc,Vel) 
+     !$omp & private(Txx,Tyy,Tzz,Txy,Txz,Tyz,boxit,xp,x,y,z,r2,arg,tt,rhoel,forceloc,Vel) &
+     !$omp & private(iloc,i3,zp,zsq,j3,yp,ysq,goy,gox,goz,i1,i2,j1,j2,ind,yzsq) 
 
      if (use_iterator) then
 
@@ -678,9 +686,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      else        
 
         if (n3p > 0) then
-
-
-
+           !$omp do reduction(+:forceleaked)
            do i3=isz,iez
               zp = mpz(i3)
               z=real(i3,kind=8)*hzh-rz
@@ -743,6 +749,7 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
                  end do
               end do
            end do
+           !$omp end do
         end if
      end if
 
