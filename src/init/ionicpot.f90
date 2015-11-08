@@ -395,31 +395,31 @@ subroutine IonicEnergyandForces(iproc,nproc,dpbox,at,elecfield,&
               !!mpy = f_malloc( (/ isy.to.iey /),id='mpy')
               !!mpz = f_malloc( (/ isz.to.iez /),id='mpz')
               do i1=isx,iex
-                 mpx(i1) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+                 mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
               end do
               do i2=isy,iey
-                 mpy(i2) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+                 mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
               end do
               do i3=isz,iez
-                 mpz(i3) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+                 mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
               end do
 
               !these nested loops will be used also for the actual ionic forces, to be recalculated
               do i3=isz,iez
-                 zp = mpz(i3)
+                 zp = mpz(i3-isz)
                  if (abs(zp) < mp_tiny) cycle
                  z=real(i3,gp)*hzh-rz
                  !call ind_positions(perz,i3,n3,j3,goz) 
                  call ind_positions_new(perz,i3,n3i,j3,goz) 
                  j3=j3+nbl3+1
                  do i2=isy,iey
-                    yp = zp*mpy(i2)
+                    yp = zp*mpy(i2-isy)
                     if (abs(yp) < mp_tiny) cycle
                     y=real(i2,gp)*hyh-ry
                     !call ind_positions(pery,i2,n2,j2,goy)
                     call ind_positions_new(pery,i2,n2i,j2,goy)
                     do i1=isx,iex
-                       xp = yp*mpx(i1)
+                       xp = yp*mpx(i1-isx)
                        if (abs(xp) < mp_tiny) cycle
                        x=real(i1,gp)*hxh-rx
                        !call ind_positions(perx,i1,n1,j1,gox)
