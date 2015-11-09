@@ -2916,7 +2916,7 @@ module postprocessing_linear
                write(*,*) 'SUM(phir)',SUM(phir)
                write(*,*) 'SUM(phir)*sqrt(product(tmb%lzd%hgrids))',SUM(phir)*sqrt(product(tmb%lzd%hgrids))
                call multipole_analysis_core(0, 1, 1, 0, 1, 1, 1, &
-                    .false.,  (/1/), (/1/), (/1/), (/1/), &
+                    -1,  (/1/), (/1/), (/1/), (/1/), &
                     (/tmb%lzd%Llr(ilr)%d%n1i/), (/tmb%lzd%Llr(ilr)%d%n2i/), (/tmb%lzd%Llr(ilr)%d%n3i/), &
                     (/tmb%lzd%Llr(ilr)%nsi1/), (/tmb%lzd%Llr(ilr)%nsi2/), (/tmb%lzd%Llr(ilr)%nsi3/), rmax(iiorb), &
                     tmb%lzd%hgrids, tmb%lzd%llr(ilr)%locregcenter, &
@@ -2974,6 +2974,7 @@ module postprocessing_linear
                 atoms%astruct%atomnames, centers, atoms%astruct%units, &
                 multipoles, rmax, tmb%lzd%hgrids, without_normalization=.true.)
            call f_free(centers)
+           call f_free(iatype_tmp)
            call yaml_sequence_close()
        end if
 

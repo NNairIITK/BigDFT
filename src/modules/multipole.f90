@@ -1064,7 +1064,7 @@ module multipole
       end do
       rmax = f_malloc(at%astruct%nat,id='rmax')
       call multipole_analysis_core(iproc, nproc, natp, isat, at%astruct%nat, at%astruct%ntypes, orbs%norb, &
-           .true., at%astruct%iatype, norbsPerType, orbs%inwhichlocreg, orbs%onwhichatom, &
+           0, at%astruct%iatype, norbsPerType, orbs%inwhichlocreg, orbs%onwhichatom, &
            n1i, n2i, n3i, ns1i, ns2i, ns3i, locrad, lzd%hgrids, locregcenter, &
            nr, psir_get, psir_get, &
            smatl%nvctr, kernel_ortho, multipoles, rmax, 101, smatl)!, matrixindex)
@@ -1207,7 +1207,7 @@ module multipole
               !     nr, psir_get_fake(:,1), psir_get_fake(:,2), &
               !     1, (/1.d0/), multipoles, rmax, 102, matrixindex=(/1/))
               call multipole_analysis_core(0, 1, 1, 0, 1, 1, 1, &
-                   .true., (/1/), (/1/), (/1/), (/1/), &
+                   0, (/1/), (/1/), (/1/), (/1/), &
                    (/n1i/), (/n2i/), (/n3i/), &
                    (/nsi1/), (/nsi2/), (/nsi3/), rmax, &
                    lzd%hgrids, locregcenter, &
@@ -1427,8 +1427,8 @@ module multipole
                           do m=-l,l
                               !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)/((get_normalization(rmax, l, m)*0.821583836)**2)
                               !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*((get_normalization(rmax, l, m)*0.106726871))
-                              !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax(iat),l,m)**2*factor
-                              multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*sqrt(factor)
+                              multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax(iat),l,m)**2*factor
+                              !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*sqrt(factor)
                               !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax(iat),l,m)**1*sqrt(factor)
                               max_error = max(max_error,abs(multipoles_tmp(m,l,iat)-get_test_factor(l,m)))
                               !write(*,'(a,3i5,2es14.5)') 'iat, l, m, multipoles(m,l,iat), ref', iat, l, m, multipoles(m,l,iat), get_test_factor(l,m)
@@ -1618,14 +1618,16 @@ module multipole
     end function get_test_factor
 
 
-    !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
-    !! The functions are normalized to one within a sphere of radius rmax. (SM: really needed)?
-    !! There is an option  to multiply the result by r^l
-    function spherical_harmonic(with_r, rmax, l, m, x, y, z) result(sh)
+    !> Calculates the real spherical harmonic S_lm (multplied by a power or r) for given values of l, m, x, y, z.
+    !! The functions are normalized to one within a sphere of radius rmax.
+    !! The S_lm are a priori defined without any r, e.g. S_10 = sqrt(3/4pi)z
+    !! r_exponent indicates how the function is multiplied by r: The final result is given by S_lm*r^(r_exponent*l), with the
+    !! definition of the S_lm ar given above. r_exponent can also be negative, e.g. -1 to yield the "real" spherical harmonics.
+    function spherical_harmonic(r_exponent, rmax, l, m, x, y, z) result(sh)
       use module_base, only: pi => pi_param
       implicit none
       ! Calling arguments
-      logical,intent(in) :: with_r
+      integer,intent(in) :: r_exponent
       integer,intent(in) :: l, m
       real(kind=8),intent(in) :: rmax, x, y, z
       real(kind=8) :: sh
@@ -1643,6 +1645,7 @@ module multipole
       ! Normalization for a sphere of radius rmax
       select case (l)
       case (0)
+          ! No need for r, as l=0
           rnorm = sqrt(rmax**3/3.d0)
           !sh = sqrt(4.d0*pi)*0.5d0*sqrt(1/pi)
           sh = 0.5d0*sqrt(1/pi)/rnorm
@@ -1657,18 +1660,20 @@ module multipole
               !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*y/r
               !sh = sqrt(3.d0/(4.d0*pi))*y/r
               sh = sqrt(3.d0/(4.d0*pi))*y/rnorm
-              if (.not. with_r) sh = sh/r
+              !if (.not. with_r) sh = sh/r
           case (0)
               !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*z/r
               !sh = sqrt(3.d0/(4.d0*pi))*z/r
               sh = sqrt(3.d0/(4.d0*pi))*z/rnorm
-              if (.not. with_r) sh = sh/r
+              !if (.not. with_r) sh = sh/r
           case (1)
               !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*x/r
               !sh = sqrt(3.d0/(4.d0*pi))*x/r
               sh = sqrt(3.d0/(4.d0*pi))*x/rnorm
-              if (.not. with_r) sh = sh/r
+              !if (.not. with_r) sh = sh/r
           end select
+          ! Multiply by r^{2l}
+          sh = sh*r**r_exponent
       case (2)
           rnorm = sqrt(rmax**7/7.d0)
           r2 = x**2+y**2+z**2
@@ -1680,35 +1685,37 @@ module multipole
               !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*x*y/r2
               !sh = 0.5d0*sqrt(15.d0/pi)*x*y/r2
               sh = 0.5d0*sqrt(15.d0/pi)*x*y/rnorm
-              if (.not. with_r) sh = sh/r2
+              !if (.not. with_r) sh = sh/r2
           case (-1)
               !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*y*z/r2
               !sh = 0.5d0*sqrt(15.d0/pi)*y*z/r2
               sh = 0.5d0*sqrt(15.d0/pi)*y*z/rnorm
-              if (.not. with_r) sh = sh/r2
+              !if (.not. with_r) sh = sh/r2
           case (0)
               !sh = sqrt(4.d0*pi/5.d0)*0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
               !sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
               sh = 0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/rnorm
-              if (.not. with_r) sh = sh/r2
+              !if (.not. with_r) sh = sh/r2
           case (1)
               !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*z*x/r2
               !sh = 0.5d0*sqrt(15.d0/pi)*z*x/r2
               sh = 0.5d0*sqrt(15.d0/pi)*z*x/rnorm
-              if (.not. with_r) sh = sh/r2
+              !if (.not. with_r) sh = sh/r2
           case (2)
               !sh = sqrt(4.d0*pi/5.d0)*0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
               !sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
               sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/rnorm
-              if (.not. with_r) sh = sh/r2
+              !if (.not. with_r) sh = sh/r2
           end select
+          ! Multiply by r^{2l}
+          sh = sh*r2**r_exponent
       end select
 
     end function spherical_harmonic
 
 
     subroutine multipole_analysis_core(iproc, nproc, natp, isat, nat, ntypes, norb, &
-               with_rl, iatype, norbsPerType, inwhichlocreg, onwhichatom, &
+               r_exponent, iatype, norbsPerType, inwhichlocreg, onwhichatom, &
                n1i, n2i, n3i, nsi1, nsi2, nsi3, locrad, hgrids, locregcenter, &
                nr, psir1_get, psir2_get, &
                nvctr, matrix_compr, multipoles, rmax, get_index, smatl, matrixindex)
@@ -1720,11 +1727,11 @@ module multipole
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
       !real(kind=8),intent(in) :: rmax
-      integer,intent(in) :: natp, isat, nat, ntypes, norb, nr, nvctr, get_index
+      integer,intent(in) :: natp, isat, nat, ntypes, norb, nr, nvctr, get_index, r_exponent
       integer,dimension(nat),intent(in) :: iatype
       integer,dimension(ntypes),intent(in) :: norbsPerType
       integer,dimension(norb),intent(in) :: inwhichlocreg, onwhichatom
-      logical,intent(in) :: with_rl !if true, the spherical harmonics are multiplied by r^l, otherwise not
+      !logical,intent(in) :: with_rl !if true, the spherical harmonics are multiplied by r^l, otherwise not
       integer,dimension(norb),intent(in) :: n1i, n2i, n3i, nsi1, nsi2, nsi3
       real(kind=8),dimension(norb),intent(in) :: locrad
       real(kind=8),dimension(3),intent(in) :: hgrids
@@ -1844,7 +1851,7 @@ module multipole
                               !    iiat, iorb, ist, ind, psir2_get(ist+ind)
                               do l=0,lmax
                                   do m=-l,l
-                                      tt = spherical_harmonic(with_rl, rmax(iiat), l, m, x, y, z)
+                                      tt = spherical_harmonic(r_exponent, rmax(iiat), l, m, x, y, z)
                                       !tt = factor_normalization*tt
                                       !sphi(i1,i2,i3,m,l,iiorb) = factor_normalization*tt*phi1(i1,i2,i3,iiorb)
                                       !norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
