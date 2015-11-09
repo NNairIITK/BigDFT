@@ -97,8 +97,14 @@ yaml_test:
    - time
 
 xc:
+ nosp: 2.01e-6
+ scol: 2.2e-5
  Patterns to ignore:
    - time
+
+psp:
+  checksum: 1.43e-14
+
 
 #Runs which update and override the default
 AgBulk:
@@ -1463,7 +1469,7 @@ FF_LENOSKY-bfgs:
   etot: 1.5e-10
   maxval: 1.0e-10
   fnrm2: 1.01e-10
-  Energy: 1.2e-10
+  Energy: 1.48e-10
   Keys to ignore:
   - WARNINGS
 

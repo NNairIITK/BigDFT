@@ -89,7 +89,7 @@ program wvl
 !!$  !the arguments of this routine should be changed
 !!$  posinp_name='posinp'
 !!$  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, atoms%astruct%rxyz,1,'input',0)
-
+   nullify(rho_ion)
 !  allocate(radii_cf(atoms%astruct%ntypes,3))
   call system_properties(iproc,nproc,inputs,atoms,orbs)!,radii_cf)
   
@@ -267,6 +267,7 @@ program wvl
   !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
   !     ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
+  allocate(rho_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
   call createIonicPotential(iproc,(iproc==0),atoms,atoms%astruct%rxyz,&
        & inputs%elecfield, dpcom, pkernel,pot_ion,rho_ion,psoffset)
   !allocate the potential in the full box

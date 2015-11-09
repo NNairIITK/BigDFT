@@ -23,7 +23,8 @@ CLEANFILES = psp.out.yaml psp.report.yaml
 check: psp.report.yaml
 
 psp.report.yaml: psp.out.yaml
-	python $(top_srcdir)/tests/fldiff_yaml.py -r $(srcdir)/psp.ref.yaml -d $^ -o $@
+	python $(top_srcdir)/tests/fldiff_yaml.py -r $(srcdir)/psp.ref.yaml -d $^ -o $@ \
+		-t $(top_srcdir)/tests/tols-BigDFT.yaml --label=psp
 
 psp.out.yaml: check_psp
 	echo "Test LDA:" > $@

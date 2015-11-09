@@ -2016,7 +2016,7 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
                  r2 = (boxit%x-rx)**2 + (boxit%y-ry)**2 + (boxit%z-rz)**2
                  rr = sqrt(r2)
                  if (1==2) then
-                    !This converges very slow                
+                    !This converges very slow
                     call splint(at%pawtab(ityp)%wvl%rholoc%msz, &
                          & at%pawtab(ityp)%wvl%rholoc%rad, &
                          & at%pawtab(ityp)%wvl%rholoc%d(:,1), &
