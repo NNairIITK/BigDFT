@@ -40,14 +40,13 @@ The <tt>tests</tt> directory contains some useful examples and tests.
 @brief flib error handling routines
 @details
 The flib library provides routines to handle the exceptions and the errors with a mechanism of callback routines
-(see the file callbacks.f90).
-There are many examples in the file errs.f90.
+
+We specify the use of the @ref dictionaries module:
+@snippet errs.f90 Use
 
 First, we define an error using the routine @ref f_err_define as:
-@code{.f90}
-use dictionary
-call f_err_define(err_name='ERROR_ONE', err_msg='This is an error',err_id=error_one)
-@endcode
+@snippet errs.f90 Error Define
+
 The optional argument <tt>err_id</tt> is optional and is the way to have the id of the associated error.
 The module dictionary contains the dictionary type and also the error handling routines.
 Then, we can raise an exception use @ref f_err_throw as:
@@ -77,6 +76,7 @@ Nested trys are allowed. When the f_err_close_try is done, the error stack of th
 
 It is also possible to check using the routine @ref f_err_check.
 
+Here are many examples from the file @ref errs.f90.
 
 
 @defgroup FLIB_DICTIONARY   Dictionary type and methods (flib)
@@ -87,8 +87,6 @@ flib provides an object called dictionary which is strictly speaking not only a 
 It can be a list or a dictionary as in python language.
 The other difference is that it keeps the order of the element which is very useful to have the same yaml output.
 These dictionaries are used in the other parts of the flib library.
-There are many examples in the file dicts.f90.
-
 The fortran type is dictionary and we can build a dict as:
 @code{.f90}
 use dictionary
@@ -127,6 +125,10 @@ do while(associated(dict_tmp))
 end do
 @endcode
 In this example, the functions dict_key and dict_value are used to get respectively the key and the value.
+
+There are many examples in the file @ref dicts.f90 as:
+
+@snippet dicts.f90 Creation
 
 @defgroup FLIB_YAML  Routines to write YAML output (flib)
 @ingroup FLIB

@@ -148,7 +148,8 @@ if bigdft:
             or "--" in line \
             or "Walltime since initialization" in line \
             or "Max No. of dictionaries used" in line \
-            or "Version Number" in line
+            or "Version Number" in line \
+            or "RUN TIME" in line
 #	    or "GEOPT" in line
 elif neb:
     # Test if the line should not be compared (NEB output)

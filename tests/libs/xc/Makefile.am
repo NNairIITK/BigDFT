@@ -8,7 +8,7 @@ include $(srcdir)/../check.mk
 
 SUBDIRS = 
 
-EXTRA_DIST = xc.out.ref
+EXTRA_DIST =
 
 CLEANFILES = xc.out xc.tmp.* xc.report
 
@@ -25,11 +25,11 @@ endif
 test_xc_SOURCES = test_xc.f90 
 test_xc_LDADD = -lbigdft-1
 
-xc.out: test_xc
-	-$(run_parallel) ./test_xc > xc.out
+check: xc.report.yaml
 
-xc.out.report: xc.out xc.out.ref
-	@cut -b -70 xc.out > xc.tmp.out
-	@cut -b -70 $(srcdir)/xc.out.ref > xc.tmp.ref
-	python $(top_srcdir)/tests/fldiff.py --discrepancy=9e-6 xc.tmp.out xc.tmp.ref | tee xc.report
-	@rm -f xc.tmp.*
+xc.out.yaml: test_xc
+	-$(run_parallel) ./test_xc > $@
+
+xc.report.yaml: xc.out.yaml
+	python $(top_srcdir)/tests/fldiff_yaml.py -r $(srcdir)/xc.ref.yaml -d $^ -o $@ \
+			-t $(top_srcdir)/tests/tols-BigDFT.yaml --label=xc

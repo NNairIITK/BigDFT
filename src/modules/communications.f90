@@ -1,7 +1,7 @@
 !> @file
 !!  File defining the structures and the routines for the communication between processes
 !! @author
-!!    Copyright (C) 2014-2014 BigDFT group
+!!    Copyright (C) 2014-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -775,7 +775,6 @@ module communications
       type(work_transpose),intent(inout),target,optional :: wt_
       
       ! Local variables
-      real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
       type(work_transpose),pointer :: wt
 
       call f_routine(id='untranspose_localized')
@@ -1004,7 +1003,6 @@ module communications
     end subroutine transpose_unswitch_psirt
     
     
-    
     subroutine start_onesided_communication(iproc, nproc, n1, n2, n3p, sendbuf, nrecvbuf, recvbuf, comm, lzd)
       use module_base
       use module_types, only: local_zone_descriptors
@@ -1024,7 +1022,8 @@ module communications
       !character(len=*), parameter :: subname='start_onesided_communication'
       integer :: joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
       integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, isend_shift
-      integer :: islices, ilines, ist1, ish1, ish2, i, iel, it, ind, ii, ncount
+      integer :: i,iel,ii,ind,it,ncount
+      !integer :: islices, ilines, ist1, ish1, ish2
       integer,dimension(:),allocatable :: npotarr, blocklengths, types
       integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements
       integer(kind=mpi_address_kind) :: lb, extent
@@ -1262,7 +1261,8 @@ module communications
       type(p2pComms),intent(inout):: comm
       
       ! Local variables
-      integer:: ierr, joverlap, mpisource, mpidest
+      integer:: ierr, joverlap
+      !integer :: mpidest, mpisource
       
       call timing(iproc, 'Pot_comm start', 'ON')      
 

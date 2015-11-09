@@ -3069,7 +3069,7 @@
    BC                                  : Free
    Box                                 :  [  93,  89,  69 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -3301,7 +3301,7 @@
    BC                                  : Free
    Box                                 :  [  91,  89,  69 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -3533,7 +3533,7 @@
    BC                                  : Free
    Box                                 :  [  91,  89,  69 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -3765,7 +3765,7 @@
    BC                                  : Free
    Box                                 :  [  91,  89,  69 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -3997,7 +3997,7 @@
    BC                                  : Free
    Box                                 :  [  91,  89,  69 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -4229,7 +4229,7 @@
    BC                                  : Free
    Box                                 :  [  91,  89,  69 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -7462,7 +7462,7 @@
    BC                                  : Free
    Box                                 :  [  69,  89,  83 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -7707,7 +7707,7 @@
    BC                                  : Free
    Box                                 :  [  69,  87,  83 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -7949,7 +7949,7 @@
    BC                                  : Free
    Box                                 :  [  69,  87,  81 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -8191,7 +8191,7 @@
    BC                                  : Free
    Box                                 :  [  69,  87,  81 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -8433,7 +8433,7 @@
    BC                                  : Free
    Box                                 :  [  69,  87,  81 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
@@ -8675,7 +8675,7 @@
    BC                                  : Free
    Box                                 :  [  69,  87,  81 ]
    MPI tasks                           :  2
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

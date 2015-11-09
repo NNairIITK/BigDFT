@@ -1,7 +1,7 @@
 !> @file
 !!  Define the fortran types
 !! @author
-!!    Copyright (C) 2008-2013 BigDFT group (LG)
+!!    Copyright (C) 2008-2015 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -21,6 +21,7 @@ module module_types
   use locregs
   use psp_projectors_base
   use module_atoms, only: atoms_data,symmetry_data,atomic_structure
+  use module_dpbox, only: denspot_distribution,dpbox_null
   use communications_base, only: comms_linear, comms_cubic, p2pComms
   use sparsematrix_base, only: matrices, sparse_matrix
   use foe_base, only: foe_data
@@ -42,7 +43,7 @@ module module_types
      real(gp) :: exc     !< Exchange-correlation energy
      real(gp) :: evxc    !< Energy from the exchange-correlation potential
      real(gp) :: eion    !< Ion-Ion interaction
-     real(gp) :: edisp   !< Dispersion force
+     real(gp) :: edisp   !< Dispersion force energy
      real(gp) :: ekin    !< Kinetic term
      real(gp) :: epot    !< local potential energy
      real(gp) :: eproj   !< energy of PSP projectors
@@ -50,15 +51,15 @@ module module_types
      real(gp) :: eelec   !< electrostatic energy. Replaces the hartree energy for cavities
      real(gp) :: ebs     
      real(gp) :: eKS     
-     real(gp) :: trH     
+     real(gp) :: trH     !< Trace of Hamiltonian i.e. band structure 
      real(gp) :: evsum   
      real(gp) :: evsic   
      real(gp) :: excrhoc 
      real(gp) :: eTS     
-     real(gp) :: ePV     !< pressure term
-     real(gp) :: energy  !< the functional which is minimized
-     real(gp) :: e_prev  !< the previous value, to show the delta
-     real(gp) :: trH_prev!< the previous value, to show the delta
+     real(gp) :: ePV     !< Pressure term
+     real(gp) :: energy  !< The functional which is minimized
+     real(gp) :: e_prev  !< The previous value, to show the delta
+     real(gp) :: trH_prev!< The previous value, to show the delta
      !real(gp), dimension(:,:), pointer :: fion,f
 
      integer(kind = 8) :: c_obj !< Storage of the C wrapper object.
@@ -89,24 +90,6 @@ module module_types
      integer, dimension(:,:), pointer :: spkey,dpkey
      integer, dimension(:), pointer :: cseg_b,fseg_b
   end type rho_descriptors
-
-
-
-  !> Define the structure used for the atomic positions
-  !> Structure to store the density / potential distribution among processors.
-  type, public :: denspot_distribution
-     integer :: n3d,n3p,n3pi,i3xcsh,i3s,nrhodim
-     !> Integer which controls the presence of a density after the potential array
-     !! if different than zero, at the address ndimpot*nspin+i3rho_add starts the spin up component of the density
-     !! the spin down component can be found at the ndimpot*nspin+i3rho_add+ndimpot, contiguously
-     !! the same holds for non-collinear calculations
-     integer :: i3rho_add
-     integer :: ndimpot,ndimgrid,ndimrhopot 
-     integer, dimension(3) :: ndims !< box containing the grid dimensions in ISF basis
-     real(gp), dimension(3) :: hgrids !< grid spacings of the box (half of wavelet ones)
-     integer, dimension(:,:), pointer :: nscatterarr, ngatherarr
-     type(mpi_environment) :: mpi_env
-  end type denspot_distribution
 
 
   !> Structures of basis of gaussian functions of the form exp(-a*r2)cos/sin(b*r2)
@@ -174,13 +157,13 @@ module module_types
 
   !> Contains all the descriptors necessary for splitting the calculation in different locregs 
   type, public :: local_zone_descriptors
-     logical :: linear                         !< if true, use linear part of the code
-     integer :: nlr                            !< Number of localization regions 
-     integer :: lintyp                         !< If 0 cubic, 1 locreg and 2 TMB
-     integer :: ndimpotisf                     !< Total dimension of potential in isf (including exctX)
-     real(gp), dimension(3) :: hgrids          !< Grid spacings of wavelet grid
-     type(locreg_descriptors) :: Glr           !< Global region descriptors
-     type(locreg_descriptors), dimension(:), pointer :: Llr                !< Local region descriptors (dimension = nlr)
+     logical :: linear                                      !< if true, use linear part of the code
+     integer :: nlr                                         !< Number of localization regions 
+     integer :: lintyp                                      !< If 0 cubic, 1 locreg and 2 TMB
+     integer :: ndimpotisf                                  !< Total dimension of potential in isf (including exctX)
+     real(gp), dimension(3) :: hgrids                       !< Grid spacings of wavelet grid (coarser resolution)
+     type(locreg_descriptors) :: Glr                        !< Global region descriptors
+     type(locreg_descriptors), dimension(:), pointer :: Llr !< Local region descriptors (dimension = nlr)
   end type local_zone_descriptors
 
 
@@ -269,7 +252,7 @@ module module_types
   !> Densities and potentials, and related metadata, needed for their creation/application
   !! Not all these quantities are available, some of them may point to the same memory space
   type, public :: DFT_local_fields
-     real(dp), dimension(:), pointer :: rhov          !< generic workspace. What is there is indicated by rhov_is
+     real(dp), dimension(:), pointer :: rhov          !< Generic workspace. What is there is indicated by rhov_is
      type(ab7_mixing_object), pointer :: mix          !< History of rhov, allocated only when using diagonalisation
      !> Local fields which are associated to their name
      !! normally given in parallel distribution
@@ -281,27 +264,27 @@ module module_types
      real(wp), dimension(:,:,:,:), pointer :: f_XC    !< dV_XC[rho]/d_rho
      real(wp), dimension(:,:,:,:), pointer :: rho_ion !< charge density of the ions, to be passed to PSolver
      !temporary arrays
-     real(wp), dimension(:), pointer :: rho_work,pot_work !<full grid arrays
+     real(wp), dimension(:), pointer :: rho_work,pot_work !< Full grid arrays
      !metadata
      integer :: rhov_is
-     real(gp) :: psoffset                 !< offset of the Poisson Solver in the case of Periodic BC
-     type(rho_descriptors) :: rhod        !< descriptors of the density for parallel communication
-     type(denspot_distribution) :: dpbox  !< distribution of density and potential box
-     type(xc_info) :: xc                  !< structure about the used xc functionals
+     real(gp) :: psoffset                 !< Offset of the Poisson Solver in the case of Periodic BC
+     type(rho_descriptors) :: rhod        !< Descriptors of the density for parallel communication
+     type(denspot_distribution) :: dpbox  !< Distribution of density and potential box
+     type(xc_info) :: xc                  !< Structure about the used xc functionals
      character(len=3) :: PSquiet
-     !real(gp), dimension(3) :: hgrids    !< grid spacings of denspot grid (half of the wvl grid)
-     type(coulomb_operator) :: pkernel    !< kernel of the Poisson Solver used for V_H[rho]
-     type(coulomb_operator) :: pkernelseq !< for monoproc PS (useful for exactX, SIC,...)
+     !real(gp), dimension(3) :: hgrids    !< Grid spacings of denspot grid (half of the wvl grid)
+     type(coulomb_operator) :: pkernel    !< Kernel of the Poisson Solver used for V_H[rho]
+     type(coulomb_operator) :: pkernelseq !< For monoproc PS (useful for exactX, SIC,...)
 
      integer(kind = 8) :: c_obj = 0       !< Storage of the C wrapper object.
   end type DFT_local_fields
 
-  !check if all comms are necessary here
+  !> Check if all comms are necessary here
   type, public :: hamiltonian_descriptors
      integer :: npsidim_orbs             !< Number of elements inside psi in the orbitals distribution scheme
      integer :: npsidim_comp             !< Number of elements inside psi in the components distribution scheme
      type(local_zone_descriptors) :: Lzd !< Data on the localisation regions, if associated
-     type(comms_linear) :: collcom ! describes collective communication
+     type(comms_linear) :: collcom       !< describes collective communication
      type(p2pComms) :: comgp             !< Describing p2p communications for distributing the potential
      real(wp), dimension(:), pointer :: psi,psit_c,psit_f !< these should eventually be eliminated
      logical :: can_use_transposed
@@ -390,7 +373,9 @@ module module_types
   end type DFT_optimization_loop
 
 
- !>timing categories
+ !> Define generic subroutine
+
+ !> Timing categories
  character(len=*), parameter, private :: tgrp_pot='Potential'
  integer, save, public :: TCAT_EXCHANGECORR=TIMING_UNINITIALIZED
  integer, parameter, private :: ncls_max=6,ncat_bigdft=153   ! define timimg categories and classes
@@ -571,7 +556,7 @@ module module_types
  public :: wavefunctions_descriptors,atoms_data,DFT_PSP_projectors
  public :: grid_dimensions,p2pComms,comms_linear,sparse_matrix,matrices
  public :: coulomb_operator,symmetry_data,atomic_structure,comms_cubic
- public :: nonlocal_psp_descriptors,dpbox_null
+ public :: nonlocal_psp_descriptors
  public :: default_lzd,find_category,old_wavefunction_null,old_wavefunction_free
  public :: bigdft_init_errors,bigdft_init_timing_categories
  public :: deallocate_orbs,deallocate_locreg_descriptors,nullify_wfd
@@ -588,8 +573,10 @@ module module_types
  public :: SIC_data,orthon_data,input_variables
 
 
+
 contains
 
+  !> Nullify all energy terms
   pure function energy_terms_null() result(en)
     implicit none
     type(energy_terms) :: en
@@ -617,6 +604,8 @@ contains
     en%c_obj   =int(0,kind=8) 
   end function energy_terms_null
 
+
+  !> Nullify the data structure associated to Self-Interaction Correction (SIC)
   function old_wavefunction_null() result(wfn)
     implicit none
     type(old_wavefunction) :: wfn
@@ -625,26 +614,6 @@ contains
     nullify(wfn%rxyz)
   end function old_wavefunction_null
 
-
-  function dpbox_null() result(dd)
-    implicit none
-    type(denspot_distribution) :: dd
-    dd%n3d=0
-    dd%n3p=0
-    dd%n3pi=0
-    dd%i3xcsh=0
-    dd%i3s=0
-    dd%nrhodim=0
-    dd%i3rho_add=0
-    dd%ndimpot=0
-    dd%ndimgrid=0
-    dd%ndimrhopot=0
-    dd%ndims=(/0,0,0/)
-    dd%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
-    nullify(dd%nscatterarr)
-    nullify(dd%ngatherarr)
-    dd%mpi_env=mpi_environment_null()
-  end function dpbox_null
 
   function default_lzd() result(lzd)
     type(local_zone_descriptors) :: lzd
@@ -864,20 +833,6 @@ contains
 !!$  end subroutine nullify_DFT_local_fields
   
 
-  subroutine deallocate_denspot_distribution(dpbox)
-    implicit none
-    type(denspot_distribution),intent(inout)::dpbox
-    
-    if(associated(dpbox%nscatterarr)) then
-      call f_free_ptr(dpbox%nscatterarr)
-    end if
-    if(associated(dpbox%ngatherarr)) then
-      call f_free_ptr(dpbox%ngatherarr)
-    end if
-
-  end subroutine deallocate_denspot_distribution
-
-
 !!$  subroutine nullify_coulomb_operator(coul_op)
 !!$    implicit none
 !!$    type(coulomb_operator),intent(out) :: coul_op
@@ -927,15 +882,6 @@ contains
 !!$    end if
 !!$    call nullify_coulomb_operator(coul_op)
 !!$  end subroutine deallocate_coulomb_operator
-
-
-  subroutine nullify_denspot_distribution(dpbox)
-    implicit none
-    type(denspot_distribution),intent(out) :: dpbox
-    
-    nullify(dpbox%nscatterarr)
-    nullify(dpbox%ngatherarr)
-  end subroutine nullify_denspot_distribution
 
 
   subroutine nullify_rho_descriptors(rhod)

@@ -920,7 +920,7 @@
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
    MPI tasks                           :  6
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -1559,7 +1559,7 @@
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
    MPI tasks                           :  6
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -2205,7 +2205,7 @@
    BC                                  : Free
    Box                                 :  [  135,  145,  143 ]
    MPI tasks                           :  6
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -2850,7 +2850,7 @@
    BC                                  : Free
    Box                                 :  [  135,  143,  141 ]
    MPI tasks                           :  6
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -3496,7 +3496,7 @@
    BC                                  : Free
    Box                                 :  [  135,  145,  143 ]
    MPI tasks                           :  6
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
