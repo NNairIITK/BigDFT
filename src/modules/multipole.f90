@@ -153,9 +153,12 @@ module multipole
 
       hhh = hx*hy*hz
 
-      sigma(0) = 5.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
-      sigma(1) = 4.d0*hhh**(1.d0/3.d0)
-      sigma(2) = 2.d0*hhh**(1.d0/3.d0)
+      !sigma(0) = 5.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
+      !sigma(1) = 4.d0*hhh**(1.d0/3.d0)
+      !sigma(2) = 2.d0*hhh**(1.d0/3.d0)
+      sigma(0) = 3.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
+      sigma(1) = 3.d0*hhh**(1.d0/3.d0)
+      sigma(2) = 3.d0*hhh**(1.d0/3.d0)
 
       density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
       
@@ -307,6 +310,7 @@ module multipole
           do i3=is3,ie3
               ii3 = i3 - 15
               z = real(ii3,kind=8)*hz + shift(3)
+              !write(*,*) 'impl, z, ep%mpl(impl)%rxyz(3)', impl, z, ep%mpl(impl)%rxyz(3)
               do i2=is2,ie2
                   ii2 = i2 - 15
                   y = real(ii2,kind=8)*hy + shift(2)
@@ -331,8 +335,18 @@ module multipole
                                   mm = 0
                                   do m=-l,l
                                       mm = mm + 1
+                                      !ttt = ep%mpl(impl)%qlm(l)%q(mm)*&
+                                      !      spherical_harmonic(l, m, r(1), r(2), r(3))*gg*sqrt(4.d0*pi_param)
                                       ttt = ep%mpl(impl)%qlm(l)%q(mm)*&
-                                            spherical_harmonic(l, m, r(1), r(2), r(3))*gg*sqrt(4.d0*pi_param)
+                                            spherical_harmonic(-2, 1.d0, l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
+                                      !if (l==0) then
+                                      !    ttt = ttt/sqrt(3.d0)
+                                      !else if (l==1) then
+                                      !    ttt = ttt/sqrt(5.d0)
+                                      !else if (l==2) then
+                                      !    ttt = ttt/sqrt(7.d0)
+                                      !end if
+                                      ttt = ttt/get_normalization(1.d0, l, m)!*(0.5d0*sqrt(1/pi_param))
                                       tt = tt + ttt
 
                                       if (l==0) then
@@ -414,16 +428,17 @@ module multipole
       call f_free(gaussians2)
       call f_free(gaussians3)
 
-      !!tt = 0.d0
-      !!do i3=1,size(density,3)
-      !!    do i2=1,size(density,2)
-      !!        do i1=1,size(density,1)
-      !!            write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-      !!            tt = tt + density(i1,i2,i3)*hhh
-      !!        end do
-      !!    end do
-      !!end do
-      !!write(*,*) 'DEBUG: tt',tt
+      tt = 0.d0
+      do i3=1,size(density,3)
+          do i2=1,size(density,2)
+              do i1=1,size(density,1)
+                  !write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+                  write(400+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+                  tt = tt + density(i1,i2,i3)*hhh
+              end do
+          end do
+      end do
+      write(*,*) 'DEBUG: tt',tt
       
       if (nproc>1) then
           call mpiallred(norm_check, mpi_sum, comm=bigdft_mpi%mpi_comm)
@@ -546,28 +561,28 @@ module multipole
       call f_free(norm_ok)
 
 
-      !ii = 0
-      !do i3=is3,ie3
-      !    ii3 = i3 - 15
-      !    do i2=is2,ie2
-      !        ii2 = i2 - 15
-      !        do i1=is1,ie1
-      !            ii1 = i1 - 15
-      !            ii = ii + 1
-      !            write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-      !            !do impl=1,ep%nmpl
-      !            !    r(1) = ep%mpl(impl)%rxyz(1) - x
-      !            !    r(2) = ep%mpl(impl)%rxyz(2) - y
-      !            !    r(3) = ep%mpl(impl)%rxyz(3) - z 
-      !            !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
-      !            !    rnrm1 = sqrt(rnrm2)
-      !            !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
-      !            !    density(i1,i2,i3) =+ tt
-      !            !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
-      !            !end do
-      !        end do
-      !    end do
-      !end do
+      ii = 0
+      do i3=is3,ie3
+          ii3 = i3 - 15
+          do i2=is2,ie2
+              ii2 = i2 - 15
+              do i1=is1,ie1
+                  ii1 = i1 - 15
+                  ii = ii + 1
+                  write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+                  !do impl=1,ep%nmpl
+                  !    r(1) = ep%mpl(impl)%rxyz(1) - x
+                  !    r(2) = ep%mpl(impl)%rxyz(2) - y
+                  !    r(3) = ep%mpl(impl)%rxyz(3) - z 
+                  !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
+                  !    rnrm1 = sqrt(rnrm2)
+                  !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
+                  !    density(i1,i2,i3) =+ tt
+                  !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
+                  !end do
+              end do
+          end do
+      end do
 
       call f_free(density)
 
@@ -598,66 +613,66 @@ module multipole
 
         end function gaussian
 
-        !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
-        function spherical_harmonic(l, m, x, y, z) result(sh)
-          use module_base, only: pi => pi_param
-          implicit none
-          ! Calling arguments
-          integer,intent(in) :: l, m
-          real(kind=8),intent(in) :: x, y, z
-          real(kind=8) :: sh
+        !!!> Calculates the real spherical harmonic for given values of l, m, x, y, z.
+        !!function spherical_harmonic(l, m, x, y, z) result(sh)
+        !!  use module_base, only: pi => pi_param
+        !!  implicit none
+        !!  ! Calling arguments
+        !!  integer,intent(in) :: l, m
+        !!  real(kind=8),intent(in) :: x, y, z
+        !!  real(kind=8) :: sh
 
-          ! Local variables
-          integer,parameter :: l_max=2
-          real(kind=8) :: r, r2, rnorm
-          real(kind=8),parameter :: sqrt_1_over_pi = sqrt(1/pi)
-          real(kind=8),parameter :: sqrt_3_over_4pi = sqrt(3.d0/(4.d0*pi))
-          real(kind=8),parameter :: sqrt_15_over_pi = sqrt(15.d0/pi)
-          real(kind=8),parameter :: sqrt_5_over_pi = sqrt(5.d0/pi)
-
-
-          if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
-          if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
-              err_name='BIGDFT_RUNTIME_ERROR')
-          if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
+        !!  ! Local variables
+        !!  integer,parameter :: l_max=2
+        !!  real(kind=8) :: r, r2, rnorm
+        !!  real(kind=8),parameter :: sqrt_1_over_pi = sqrt(1/pi)
+        !!  real(kind=8),parameter :: sqrt_3_over_4pi = sqrt(3.d0/(4.d0*pi))
+        !!  real(kind=8),parameter :: sqrt_15_over_pi = sqrt(15.d0/pi)
+        !!  real(kind=8),parameter :: sqrt_5_over_pi = sqrt(5.d0/pi)
 
 
-          ! Normalization for a sphere of radius rmax
-          select case (l)
-          case (0)
-              sh = 0.5d0*sqrt_1_over_pi !0.5d0*sqrt(1/pi)
-          case (1)
-              r = sqrt(x**2+y**2+z**2)
-              ! fix for small r (needs proper handling later...)
-              if (r==0.d0) r=1.d-20
-              select case (m)
-              case (-1)
-                  sh = sqrt_3_over_4pi*y/r !sqrt(3.d0/(4.d0*pi))*y/r
-              case (0)
-                  sh = sqrt_3_over_4pi*z/r !sqrt(3.d0/(4.d0*pi))*z/r
-              case (1)
-                  sh = sqrt_3_over_4pi*x/r !sqrt(3.d0/(4.d0*pi))*x/r
-              end select
-          case (2)
-              r2 = x**2+y**2+z**2
-              ! fix for small r2 (needs proper handling later...)
-              if (r2==0.d0) r2=1.d-20
-              select case (m)
-              case (-2)
-                  sh = 0.5d0*sqrt_15_over_pi*x*y/r2 !0.5d0*sqrt(15.d0/pi)*x*y/r2
-              case (-1)
-                  sh = 0.5d0*sqrt_15_over_pi*y*z/r2 !0.5d0*sqrt(15.d0/pi)*y*z/r2
-              case (0)
-                  sh = 0.25d0*sqrt_5_over_pi*(-x**2-y**2+2*z**2)/r2 !0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
-              case (1)
-                  sh = 0.5d0*sqrt_15_over_pi*z*x/r2 !0.5d0*sqrt(15.d0/pi)*z*x/r2
-              case (2)
-                  sh = 0.25d0*sqrt_15_over_pi*(x**2-y**2)/r2 !0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
-              end select
-          end select
+        !!  if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
+        !!  if (l>l_max) call f_err_throw('spherical harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
+        !!      err_name='BIGDFT_RUNTIME_ERROR')
+        !!  if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
 
 
-        end function spherical_harmonic
+        !!  ! Normalization for a sphere of radius rmax
+        !!  select case (l)
+        !!  case (0)
+        !!      sh = 0.5d0*sqrt_1_over_pi !0.5d0*sqrt(1/pi)
+        !!  case (1)
+        !!      r = sqrt(x**2+y**2+z**2)
+        !!      ! fix for small r (needs proper handling later...)
+        !!      if (r==0.d0) r=1.d-20
+        !!      select case (m)
+        !!      case (-1)
+        !!          sh = sqrt_3_over_4pi*y/r !sqrt(3.d0/(4.d0*pi))*y/r
+        !!      case (0)
+        !!          sh = sqrt_3_over_4pi*z/r !sqrt(3.d0/(4.d0*pi))*z/r
+        !!      case (1)
+        !!          sh = sqrt_3_over_4pi*x/r !sqrt(3.d0/(4.d0*pi))*x/r
+        !!      end select
+        !!  case (2)
+        !!      r2 = x**2+y**2+z**2
+        !!      ! fix for small r2 (needs proper handling later...)
+        !!      if (r2==0.d0) r2=1.d-20
+        !!      select case (m)
+        !!      case (-2)
+        !!          sh = 0.5d0*sqrt_15_over_pi*x*y/r2 !0.5d0*sqrt(15.d0/pi)*x*y/r2
+        !!      case (-1)
+        !!          sh = 0.5d0*sqrt_15_over_pi*y*z/r2 !0.5d0*sqrt(15.d0/pi)*y*z/r2
+        !!      case (0)
+        !!          sh = 0.25d0*sqrt_5_over_pi*(-x**2-y**2+2*z**2)/r2 !0.25d0*sqrt(5.d0/pi)*(-x**2-y**2+2*z**2)/r2
+        !!      case (1)
+        !!          sh = 0.5d0*sqrt_15_over_pi*z*x/r2 !0.5d0*sqrt(15.d0/pi)*z*x/r2
+        !!      case (2)
+        !!          sh = 0.25d0*sqrt_15_over_pi*(x**2-y**2)/r2 !0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/r2
+        !!      end select
+        !!  end select
+
+
+        !!end function spherical_harmonic
 
     end subroutine potential_from_charge_multipoles
 
@@ -1647,10 +1662,12 @@ module multipole
       case (0)
           ! No need for r, as l=0
           rnorm = sqrt(rmax**3/3.d0)
+          !rnorm = 1.d0
           !sh = sqrt(4.d0*pi)*0.5d0*sqrt(1/pi)
           sh = 0.5d0*sqrt(1/pi)/rnorm
       case (1)
           rnorm = sqrt(rmax**5/5.d0)
+          !rnorm = 1.d0
           r = sqrt(x**2+y**2+z**2)
           !r = 1.d0
           ! fix for small r (needs proper handling later...)
@@ -1672,10 +1689,12 @@ module multipole
               sh = sqrt(3.d0/(4.d0*pi))*x/rnorm
               !if (.not. with_r) sh = sh/r
           end select
-          ! Multiply by r^{2l}
+          ! Multiply by r^{r_exp*l}
           sh = sh*r**r_exponent
+          !sh = sh/r
       case (2)
           rnorm = sqrt(rmax**7/7.d0)
+          !rnorm = 1.d0
           r2 = x**2+y**2+z**2
           !r2=1.d0
           ! fix for small r2 (needs proper handling later...)
@@ -1707,8 +1726,9 @@ module multipole
               sh = 0.25d0*sqrt(15.d0/pi)*(x**2-y**2)/rnorm
               !if (.not. with_r) sh = sh/r2
           end select
-          ! Multiply by r^{2l}
+          ! Multiply by r^{r_exp*l}
           sh = sh*r2**r_exponent
+          !sh = sh/r2
       end select
 
     end function spherical_harmonic
