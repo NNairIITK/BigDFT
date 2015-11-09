@@ -63,7 +63,7 @@ subroutine multi_mode_state(runObj, outs, infocode)
      call bigdft_state(runObj%sections(i), subouts, icode)
      infocode = max(infocode, icode)
 
-     map = f_malloc0((/ nat /), id = "maps")
+     map = f_malloc0((/ nat /), id = "map")
      coeffs = f_malloc0((/ nat /), id = "coeffs")
      do iat = 1, nat
         if (ASTRUCT_ATT_ORIG_ID .in. runObj%sections(i)%atoms%astruct%attributes(iat)%d) then

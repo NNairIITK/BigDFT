@@ -1020,7 +1020,7 @@ contains
     use module_base, only: bigdft_mpi
     use module_interfaces, only: atoms_new, inputs_new
     use module_atoms, only: atomic_structure, astruct_at_from_dict, &
-         & astruct_merge_to_dict, deallocate_atomic_structure, astruct_dump_to_file
+         & astruct_merge_to_dict, deallocate_atomic_structure
     use public_keys, only: MODE_VARIABLES, SECTIONS, POSINP, SECTION_BUFFER, SECTION_PASSIVATION
     use module_input_dicts, only: dict_run_validate
     use module_input_keys, only: inputs_from_dict
@@ -1067,7 +1067,6 @@ contains
                & runObj%inputs%multi_pass(i), runObj%inputs%multi_buf(i), (i == ln))
           call astruct_merge_to_dict(runObj%sections(i)%user_inputs // POSINP, asub, &
                & asub%rxyz, "Extracted for mode " // trim(dict_value(sect)))
-          call astruct_dump_to_file(asub, trim(mode), "pouet")
           call deallocate_atomic_structure(asub)
        end if
        ! Currently the routine is not recursive, we keep two levels, that's all.
@@ -1170,9 +1169,11 @@ contains
             source%inputs,source%atoms,source%rst,source%mm_rst)
     end if
 
-    do i = 1, size(runObj%sections)
-       call init_restart_objects(runObj%sections(i), bigdft_mpi%iproc)
-    end do
+    if (associated(runObj%sections)) then
+       do i = 1, size(runObj%sections)
+          call init_restart_objects(runObj%sections(i), bigdft_mpi%iproc)
+       end do
+    end if
 
 !!$    if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE') &
 !!$         call yaml_sequence_open('Initializing '//trim(f_str(runObj%run_mode)))
