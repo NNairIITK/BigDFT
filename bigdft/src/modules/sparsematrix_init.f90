@@ -85,8 +85,8 @@ contains
     do ilr=1,lzd%nlr
        !write(*,*) 'lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locrad_kernel', lzd%llr(ilr)%locrad_mult, lzd%llr(ilr)%locrad_kernel
        if (lzd%llr(ilr)%locrad_mult<lzd%llr(ilr)%locrad_kernel) then
-          call f_err_throw('locrad_mult ('//trim(yaml_toa(lzd%llr(ilr)%locrad_mult,fmt='(f5.2)'))//&
-               &') too small, must be at least as big as locrad_kernel('&
+          call f_err_throw('rloc_kernel_foe ('//trim(yaml_toa(lzd%llr(ilr)%locrad_mult,fmt='(f5.2)'))//&
+               &') too small, must be at least as big as rloc_kernel('&
                &//trim(yaml_toa(lzd%llr(ilr)%locrad_kernel,fmt='(f5.2)'))//')', err_id=BIGDFT_RUNTIME_ERROR)
        end if
     end do
@@ -2084,6 +2084,7 @@ contains
 
     subroutine get_arrays_for_sequential_acces_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, ivectorindex)
       use locregs_init, only: distribute_on_threads
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -2315,6 +2316,7 @@ contains
     subroutine init_sequential_acces_matrix_new(nout, ispt, nseg, nseq, keyv, keyg, smat, istsegline, &
                indices_extract_sequential)
       use locregs_init, only: distribute_on_threads
+      use dynamic_memory
       implicit none
     
       ! Calling arguments
@@ -4275,7 +4277,7 @@ contains
       integer,dimension(ncol),intent(in) :: col_ptr
       type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(nnonzero),intent(in) :: val
-      type(matrices),intent(out) :: mat
+      type(matrices),intent(inout) :: mat
 
       ! Local variables
       integer :: icol, irow, i, ii
@@ -4385,17 +4387,14 @@ contains
 
     subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
           use module_types
-          use locregs, only: check_overlap_cubic_periodic
-          use locregs_init, only: check_overlap_from_descriptors_periodic
+          use locregs, only: check_overlap_cubic_periodic,check_overlap_from_descriptors_periodic
           implicit none
-        
           ! Calling arguments
           integer, intent(in) :: iproc, nproc
           type(orbitals_data), intent(in) :: orbs
           type(local_zone_descriptors), intent(in) :: lzd
           integer, intent(out) :: nnonzero
           integer, dimension(:,:), pointer,intent(out) :: nonzero
-        
           ! Local variables
           integer :: iorb, jorb, ioverlaporb, ilr, jlr, ilrold
           integer :: iiorb, ii

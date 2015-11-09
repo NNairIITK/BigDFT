@@ -224,8 +224,12 @@ contains
 
 
   pure subroutine nullify_symmetry_data(sym)
+    use f_utils, only: f_zero
+    implicit none
     type(symmetry_data), intent(out) :: sym
     sym%symObj=-1
+    sym%nsym=-1
+    call f_zero(sym%spaceGroup)
     nullify(sym%irrzon)
     nullify(sym%phnons)
   end subroutine nullify_symmetry_data
@@ -365,12 +369,15 @@ contains
        call f_free_ptr(astruct%rxyz)
        call f_free_ptr(astruct%rxyz_int)
        call f_free_ptr(astruct%ixyz_int)
-       do iat = 1, astruct%nat
-          if (associated(astruct%attributes(iat)%d)) then
-             call dict_free(astruct%attributes(iat)%d)
-          end if
-       end do
-       deallocate(astruct%attributes)
+       if (associated(astruct%attributes)) then
+          do iat = 1, astruct%nat
+             if (associated(astruct%attributes(iat)%d)) then
+                call dict_free(astruct%attributes(iat)%d)
+             end if
+          end do
+          deallocate(astruct%attributes)
+          nullify(astruct%attributes)
+       end if
     end if
     if (astruct%ntypes >= 0) then
        call f_free_str_ptr(len(astruct%atomnames),astruct%atomnames)
@@ -491,6 +498,7 @@ contains
       use dictionaries
       use yaml_output, only: yaml_warning, yaml_dict_dump
       use yaml_strings, only: f_strcpy, yaml_toa
+      use module_base, only: bigdft_mpi
       use dynamic_memory
       implicit none
       type(dictionary), pointer :: dict
@@ -538,7 +546,7 @@ contains
                atoms%aoig(it%iat)=aoig_set_from_dict(dict_tmp,nspin,atoms%aoig(it%iat))
                !check the total number of electrons
                elec=ao_ig_charge(nspin,atoms%aoig(it%iat)%aocc)
-               if (nint(elec) /= atoms%nelpsp(it%ityp)) then
+               if (nint(elec) /= atoms%nelpsp(it%ityp) .and. bigdft_mpi%iproc==0) then
                   call print_eleconf(nspin,atoms%aoig(it%iat)%aocc,atoms%aoig(it%iat)%nl_sc)
                   call yaml_warning('The total atomic charge '//trim(yaml_toa(elec))//&
                        ' is different from the PSP charge '//trim(yaml_toa(atoms%nelpsp(it%ityp))))
@@ -913,7 +921,7 @@ contains
       if (present(rxyz)) rxyz_ => rxyz
       formt=astruct%inputfile_format
       if (present(fmt)) call f_strcpy(src=fmt,dest=formt)
-      iunit=9
+      iunit=f_get_free_unit(9)
       if (present(unit)) iunit=unit
 
       if (trim(filename) == "stdout") then
@@ -1374,6 +1382,7 @@ contains
          do while(associated(at))
             iat = dict_item(at) + 1
 
+            call dict_copy(astruct%attributes(iat)%d, at)
             call astruct_at_from_dict(at, str, rxyz_add = astruct%rxyz(1, iat), &
                  & ifrztyp = astruct%ifrztyp(iat), igspin = igspin, igchrg = igchrg, &
                  & ixyz_add = astruct%ixyz_int(1,iat), rxyz_int_add = astruct%rxyz_int(1,iat))
@@ -1447,12 +1456,13 @@ contains
       use public_keys, only: SOURCE_KEY
       use dynamic_memory
       use dictionaries
-      use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
+      use libxc_functionals, only: libxc_functionals_init, libxc_functionals_end
+      !      use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
       implicit none
       !Arguments
       type(dictionary), pointer :: dict        !< Input dictionary
       type(atoms_data), intent(inout) :: atoms !< Atoms structure to fill up
-      real(gp), intent(in) :: frmult           !< Used to scale the PAW radius projector
+      real(gp), intent(in), optional :: frmult           !< Used to scale the PAW radius projector
       !Local variables
       integer :: ityp, ityp2
       character(len = 27) :: filename
@@ -1553,8 +1563,8 @@ contains
 
       nlcc_dim = 0
       do ityp = 1, atoms%astruct%ntypes, 1
-         atoms%nlcc_ngc(ityp)=UNINITIALIZED(1)
-         atoms%nlcc_ngv(ityp)=UNINITIALIZED(1)
+         atoms%nlcc_ngc(ityp)=UNINITIALIZED(atoms%nlcc_ngc(ityp))
+         atoms%nlcc_ngv(ityp)=UNINITIALIZED(atoms%nlcc_ngv(ityp))
          filename = 'psppar.' // trim(atoms%astruct%atomnames(ityp))
          if (.not. has_key(dict, filename)) cycle    
          if (.not. has_key(dict // filename, 'Non Linear Core Correction term')) cycle
@@ -2185,7 +2195,7 @@ END SUBROUTINE astruct_set_from_file
 subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
   use module_base
   use module_atoms, only: atomic_structure,deallocate_symmetry_data
-  use abi_defs_basis
+!  use abi_defs_basis
   use m_ab6_symmetry
   implicit none
   type(atomic_structure), intent(inout) :: astruct
@@ -2261,7 +2271,7 @@ subroutine astruct_set_symmetries(astruct, disableSym, tol, elecfield, nspin)
      call symmetry_get_matrices(astruct%sym%symObj, astruct%sym%nSym, sym, transNon, symAfm, ierr)
      call symmetry_get_group(astruct%sym%symObj, astruct%sym%spaceGroup, &
           & spaceGroupId, pointGroupMagn, genAfm, ierr)
-     if (ierr == AB7_ERROR_SYM_NOT_PRIMITIVE) write(astruct%sym%spaceGroup, "(A)") "not prim."
+!     if (ierr == AB7_ERROR_SYM_NOT_PRIMITIVE) write(astruct%sym%spaceGroup, "(A)") "not prim."
   else 
      astruct%sym%nSym = 0
      astruct%sym%spaceGroup = 'disabled'
@@ -2379,7 +2389,7 @@ subroutine astruct_neighbours(astruct, rxyz, neighb)
   use module_defs, only: gp
   use module_atoms, only: atomic_structure, atomic_neighbours, nullify_atomic_neighbours
   use dynamic_memory
-  use ao_inguess, only: atomic_z, atomic_info
+  use ao_inguess, only: atomic_info,atomic_z
   implicit none
   type(atomic_structure), intent(in) :: astruct
   real(gp), dimension(3, astruct%nat), intent(in) :: rxyz

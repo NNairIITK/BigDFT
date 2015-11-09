@@ -93,6 +93,7 @@ subroutine covalent_radius(symbol,rcov)
   case( "Po" ); rcov=2.80d0
   case( "At" ); rcov=2.60d0
   case( "Rn" ); rcov=2.60d0
+  case( "U" ); rcov=3.38d0
   case default
      stop 'covalent radius cannot be determined, invalid symbol'
   end select

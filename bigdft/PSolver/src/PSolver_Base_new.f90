@@ -33,37 +33,25 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
   call f_routine(id='apply_kernel')
 
-  !call f_zero(zf)
   !this routine builds the values for each process of the potential (zf), multiplying by scal   
   !fill the array with the values of the charge density
   !no more overlap between planes
   !still the complex case should be defined
-  n3delta=kernel%grid%md3-kernel%grid%m3
-  !$omp parallel default(shared) private(i1,i23,j23,j3)
-  !$omp do
-  do i23=1,kernel%grid%n3p*kernel%grid%m3
-     j3=(i23-1)/kernel%grid%m3
-     !j2=i23-kernel%grid%m3*j3
-     j23=i23+n3delta*j3!=j2+kernel%grid%md3*j3
-     do i1=1,kernel%grid%m1
-        zf(i1,j23)=rho(i1,i23)
-     end do
-!!$     do i1=kernel%grid%m1+1,kernel%grid%md1
-!!$        zf(i1,j23)=0.0_dp
-!!$     end do
-  end do
-  !$omp end do
-!!$  !$omp do
-!!$  do i23=kernel%grid%n3p*kernel%grid%md3+1,kernel%grid%md3*2*(kernel%grid%md2/kernel%mpi_env%nproc)
-!!$     do i1=1,kernel%grid%md1
-!!$        zf(i1,i23)=0.0_dp
-!!$     end do
-!!$  end do
-!!$  !$omp end do
-  !$omp end parallel
-
   call f_zero(strten)
   if (.not. gpu) then !CPU case
+    call f_zero(zf)
+
+    n3delta=kernel%grid%md3-kernel%grid%m3
+    !$omp parallel do default(shared) private(i1,i23,j23,j3)
+    do i23=1,kernel%grid%n3p*kernel%grid%m3
+       j3=(i23-1)/kernel%grid%m3
+       j23=i23+n3delta*j3
+       do i1=1,kernel%grid%m1
+          zf(i1,j23)=rho(i1,i23)
+       end do
+    end do
+    !$omp end parallel do
+
      call f_timing(TCAT_PSOLV_COMPUT,'OF')
      call G_PoissonSolver(kernel%mpi_env%iproc,kernel%mpi_env%nproc,&
           kernel%part_mpi%mpi_comm,kernel%inplane_mpi%iproc,&
@@ -74,6 +62,18 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
           kernel%kernel,zf,&
           kernel%grid%scal,kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3),offset,strten)
      call f_timing(TCAT_PSOLV_COMPUT,'ON')
+
+    if (updaterho) then
+       !$omp parallel do default(shared) private(i1,i23,j23,j3)
+       do i23=1,kernel%grid%n3p*kernel%grid%m3
+          j3=(i23-1)/kernel%grid%m3
+          j23=i23+n3delta*j3
+          do i1=1,kernel%grid%m1
+             rho(i1,i23)=zf(i1,j23)
+          end do
+       end do
+       !$omp end parallel do
+    end if
 
   else !GPU case
 
@@ -89,9 +89,21 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
         if (i_stat /= 0) print *,'error cudamalloc',i_stat
         call cudamalloc(size2,kernel%w%work2_GPU,i_stat)
         if (i_stat /= 0) print *,'error cudamalloc',i_stat
+        call cudamalloc(kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
+             kernel%w%rho_GPU,i_stat)
+        if (i_stat /= 0) print *,'error cudamalloc',i_stat
      endif
 
      if (kernel%mpi_env%nproc > 1) then
+        call f_zero(zf)
+        call reset_gpu_data( kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
+                            rho, kernel%w%rho_GPU)
+
+        call pad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
+                    kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
+                    kernel%grid%md2,kernel%grid%md3);
+
+        !TODO : gpudirect (even if this code is disabled right now)
         if (kernel%mpi_env%iproc == 0) zf1 = f_malloc0(size1,id='zf1')
 
         call mpi_gatherv(zf,kernel%grid%n3p*kernel%grid%md3*kernel%grid%md1,mpitype(zf),&
@@ -124,7 +136,12 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
      else
 
         !fill the GPU memory
-        call reset_gpu_data(size1,zf,kernel%w%work1_GPU)
+        call reset_gpu_data( kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
+                            rho, kernel%w%rho_GPU)
+
+        call pad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
+                    kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
+                    kernel%grid%md2,kernel%grid%md3);
 
         switch_alg=0
 
@@ -138,8 +155,16 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
 
         !take data from GPU
-        call get_gpu_data(size1,zf,kernel%w%work1_GPU)
+        !call get_gpu_data(size1,zf,kernel%w%work1_GPU)
      endif
+
+    if (updaterho) then
+        call unpad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
+                    kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
+                    kernel%grid%md2,kernel%grid%md3);
+        call get_gpu_data(kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
+                        rho,kernel%w%rho_GPU)
+    end if
 
      if (kernel%keepGPUmemory == 0) then
         call cudafree(kernel%w%work1_GPU)
@@ -148,21 +173,102 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
 
   endif
 
-  if (updaterho) then
-     !$omp parallel do default(shared) private(i1,i23,j23,j3)
-     do i23=1,kernel%grid%n3p*kernel%grid%m3
-        j3=(i23-1)/kernel%grid%m3
-        j23=i23+n3delta*j3
-        do i1=1,kernel%grid%m1
-           rho(i1,i23)=zf(i1,j23)
-        end do
-     end do
-     !$omp end parallel do
-  end if
-
   call f_release_routine()
 
 end subroutine apply_kernel
+
+!> calculate the integral between the array in zf and the array in rho
+!! copy the zf array in pot and sum with the array pot_ion if needed
+subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
+     md1,md2,md3p,rho,zf,pot,eh)
+  use f_enums
+  use PSbase
+  use PStypes, only: coulomb_operator
+  implicit none
+  !if .true. the array pot is zf+pot_ion
+  !if .false., pot is only zf
+  logical, intent(in) :: sumpion
+  logical, intent(in) :: gpu !< logical variable controlling the gpu acceleration
+  type(coulomb_operator), intent(in) :: kernel 
+  integer, intent(in) :: m1,m2,m3p !< dimension of the grid
+  integer, intent(in) :: md1,md2,md3p !< dimension of the zf array
+  !> original density and final potential (can point to the same array)
+  real(dp), dimension(m1,m2*m3p), intent(in) :: rho
+  real(dp), dimension(m1,m2*m3p), intent(out) :: pot 
+  !> ionic potential, to be added to the potential
+  real(dp), dimension(m1,m2*m3p), intent(in) :: pot_ion
+  !> work array for the usage of the main routine 
+  !!(might have the same dimension of rho, but generally is bigger)
+  real(dp), dimension(md1,md2*md3p), intent(in) :: zf
+  !>hartree energy, being \int d^3 x \rho(x) zf(x) (no volume element)
+  real(dp), intent(out) :: eh
+  !local variables
+  integer :: i1,i23,j23,j3,n3delta, i_stat
+  real(dp) :: pt,rh
+
+
+  eh=0.0_dp
+
+
+  if(gpu) then 
+
+     !in VAC case, rho and zf are already on the card and untouched
+     if(trim(str(kernel%method))/='VAC') then
+        call reset_gpu_data(m1*m2*m3p,rho,kernel%w%rho_GPU)
+        call reset_gpu_data(m1*m2*m3p,zf,kernel%w%work1_GPU)
+     end if
+
+     if (sumpion) then
+
+        if (kernel%w%pot_ion_GPU==0.d0)&
+             call cudamalloc(m1*m2*m3p,kernel%w%pot_ion_GPU,i_stat)
+        call reset_gpu_data(m1*m2*m3p,pot_ion,kernel%w%pot_ion_GPU)
+     end if
+
+     call unpad_data( kernel%w%work2_GPU, kernel%w%work1_GPU, m1,&
+          m3p,m2, md1, md3p,md2);
+
+     call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU, kernel%w%rho_GPU, kernel%w%pot_ion_GPU, eh)
+
+     call get_gpu_data(m1*m2*m3p,pot,kernel%w%rho_GPU)
+
+  else
+     !recollect the final data
+     n3delta=md2-m2 !this is the y dimension
+     if (sumpion) then
+        !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+        !$omp reduction(+:eh)
+        do i23=1,m2*m3p
+           j3=(i23-1)/m2
+           j23=i23+n3delta*j3
+           do i1=1,m1
+              pt=zf(i1,j23)
+              rh=rho(i1,i23)
+              rh=rh*pt
+              eh=eh+rh
+              pot(i1,i23)=pt+pot_ion(i1,i23)
+           end do
+        end do
+        !$omp end parallel do
+     else
+        !$omp parallel do default(shared) private(i1,i23,j23,j3,pt,rh) &
+        !$omp reduction(+:eh)
+        do i23=1,m2*m3p
+           j3=(i23-1)/m2
+           j23=i23+n3delta*j3
+           do i1=1,m1
+              pt=zf(i1,j23)
+              rh=rho(i1,i23)
+              rh=rh*pt      
+              eh=eh+rh
+              pot(i1,i23)=pt
+           end do
+        end do
+        !$omp end parallel do
+     end if
+
+  end if
+end subroutine finalize_hartree_results
 
 
 

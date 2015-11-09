@@ -92,7 +92,7 @@ module bigdft_run
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
   public :: bigdft_dot,bigdft_nrm2
   public :: bigdft_get_input_policy
-  public :: bigdft_set_input_policy
+  public :: bigdft_set_input_policy,process_run
 
   !> Input policies
   integer,parameter,public :: INPUT_POLICY_SCRATCH = 10000 !< Start the calculation from scratch
@@ -1554,7 +1554,7 @@ contains
     use module_base, only: bigdft_mpi,mpibcast,Bohr_Ang,kcalMolAng_HaBohr,&
          ev_Ha,evang_habohr,Kcalmol_ha
     use dynamic_memory, only: f_memcpy,f_routine,f_release_routine
-    use yaml_strings, only: yaml_toa, operator(+)
+    use yaml_strings
     use yaml_output
     use module_forces, only: clean_forces
     use module_morse_bulk
@@ -1737,6 +1737,56 @@ contains
     call f_release_routine()
 
   end subroutine bigdft_state
+
+  !>this routine treats the run_objects and provides the I/O in the outs structure
+  subroutine process_run(id,runObj,outs)
+    use module_base
+    use yaml_output
+    implicit none
+    character(len=*), intent(in) :: id
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
+    !local variables
+    integer :: infocode,ncount_bigdft
+    character(len=60) :: filename
+
+    call f_routine(id='process_run (id="'+id+'")')
+    if(trim(runObj%inputs%geopt_approach)/='SOCK') call bigdft_state(runObj,outs,infocode)
+
+    if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
+    if (bigdft_mpi%iproc ==0 ) call yaml_map('Force Norm (Hartree/Bohr)',sqrt(sum(outs%fxyz**2)),fmt='(es24.17)')
+    if (runObj%inputs%ncount_cluster_x > 1) then
+       if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+       ! geometry optimization
+       call geopt(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+    end if
+
+    if (runObj%inputs%mdsteps > 0) then
+       if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+       ! molecular dynamics
+       call md(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc)
+    end if
+
+    !if there is a last run to be performed do it now before stopping
+    if (runObj%inputs%last_run == -1) then
+       runObj%inputs%last_run = 1
+       call bigdft_state(runObj, outs,infocode)
+    end if
+
+    if (runObj%inputs%ncount_cluster_x > 1) then
+       call f_strcpy(src='final_'+id,dest=filename)
+       call bigdft_write_atomic_file(runObj,outs,filename,&
+            'FINAL CONFIGURATION',cwd_path=.true.)
+
+    else
+       call f_strcpy(src='forces_'+id,dest=filename)
+       call bigdft_write_atomic_file(runObj,outs,filename,&
+            'Geometry + metaData forces',cwd_path=.true.)
+
+    end if
+
+    call f_release_routine()
+  end subroutine process_run
 
   !> Routine to use BigDFT as a blackbox
   subroutine quantum_mechanical_state(runObj,outs,infocode)
@@ -2024,7 +2074,7 @@ contains
     energy_ref=energy
 
     !assign the reference
-    functional_ref=functional_definition(iorb_ref,energy)
+    functional_ref=functional_definition(rst%KSwfn%orbs%HLgap,rst%KSwfn%orbs%eval(abs(iorb_ref)),iorb_ref,energy)
 
     if (order == -1) then
        n_order = 1
@@ -2099,7 +2149,7 @@ contains
                   rst%rxyz_old,inputs,rst%GPU,infocode)
 
              !assign the quantity which should be differentiated
-             functional(km)=functional_definition(iorb_ref,energy)
+             functional(km)=functional_definition(rst%KSwfn%orbs%HLgap,rst%KSwfn%orbs%eval(abs(iorb_ref)),iorb_ref,energy)
 
           end do
           ! Build the finite-difference quantity if the calculation has converged properly
@@ -2153,48 +2203,46 @@ contains
     call f_free(rxyz_ref)
     call f_free(fxyz_fake)
 
-  contains
-
-    function functional_definition(iorb_ref,energy)
-      use module_base
-      use module_types
-      implicit none
-      integer, intent(in) :: iorb_ref
-      real(gp), intent(in) :: energy
-      real(gp) :: functional_definition
-      !local variables
-      real(gp) :: mu
-
-      !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
-      !definition which brings to Chemical Potential
-      if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap) .and. iorb_ref< -1) then
-         mu=-abs(rst%KSwfn%orbs%eval(-iorb_ref)+ 0.5_gp*rst%KSwfn%orbs%HLgap)
-      else
-         mu=UNINITIALIZED(1.0_gp)
-      end if
-
-      !assign the reference
-      if (iorb_ref==0) then
-         functional_definition=energy
-      else if (iorb_ref == -1) then
-         if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
-            functional_definition=rst%KSwfn%orbs%HLgap !here we should add the definition which brings to Fukui function
-         else
-            stop ' ERROR (FDforces): gap not defined'
-         end if
-      else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
-         if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
-            functional_definition=mu!-mu*real(2*orbs%norb,gp)+energy
-         else
-            stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated'
-         end if
-      else
-         functional_definition=rst%KSwfn%orbs%eval(iorb_ref)
-      end if
-
-    end function functional_definition
-
   end subroutine forces_via_finite_differences
+
+  function functional_definition(HLgap,eval,iorb_ref,energy)
+    use module_base, only: gp, UNINITIALIZED
+    implicit none
+    integer, intent(in) :: iorb_ref
+    real(gp), intent(in) :: energy,HLgap,eval !<here the eval is the energy of orbs%eval(abs(iorb_ref))
+    real(gp) :: functional_definition
+    !local variables
+    real(gp) :: mu
+
+    !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
+    !definition which brings to Chemical Potential
+    if (HLgap/=UNINITIALIZED(HLgap) .and. iorb_ref< -1) then
+       mu=-abs(eval+ 0.5_gp*HLgap)
+    else
+       mu=UNINITIALIZED(1.0_gp)
+    end if
+
+    !assign the reference
+    if (iorb_ref==0) then
+       functional_definition=energy
+    else if (iorb_ref == -1) then
+       if (HLgap/=UNINITIALIZED(HLgap)) then
+          functional_definition=HLgap !here we should add the definition which brings to Fukui function
+       else
+          stop ' ERROR (FDforces): gap not defined'
+       end if
+    else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
+       if (HLgap/=UNINITIALIZED(HLgap)) then
+          functional_definition=mu!-mu*real(2*orbs%norb,gp)+energy
+       else
+          stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated'
+       end if
+    else
+       functional_definition=eval
+    end if
+
+  end function functional_definition
+
 
 
   !> Get the current run policy

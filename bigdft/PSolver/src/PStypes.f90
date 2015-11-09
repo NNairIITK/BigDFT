@@ -36,6 +36,9 @@ module PStypes
   !!Poisson Equation. Not all of them are allocated, the actual memory usage 
   !!depends on the treatment
   type, public :: PS_workarrays
+     !> dielectric function epsilon, continuous and differentiable in the whole
+     !domain, to be used in the case of Preconditioned Conjugate Gradient method
+     real(dp), dimension(:,:), pointer :: eps
      !> logaritmic derivative of the dielectric function,
      !! to be used in the case of Polarization Iteration method
      real(dp), dimension(:,:,:,:), pointer :: dlogeps
@@ -58,13 +61,14 @@ module PStypes
      !> input guess vectors to be preserved for future use
      !!or work arrays, might be of variable dimension
      !!(either full of distributed)
-     real(dp), dimension(:,:), pointer :: rho,pot
+     real(dp), dimension(:,:), pointer :: pot
+     real(dp), dimension(:,:), pointer :: rho
      !> Polarization charge vector for print purpose only.
      real(dp), dimension(:,:), pointer :: rho_pol
      !> arrays for the execution of the PCG algorithm
      real(dp), dimension(:,:), pointer :: res,z,p,q
 
-     integer(f_address) :: work1_GPU,work2_GPU,k_GPU !<addresses for the GPU memory 
+     integer(f_address) :: work1_GPU,work2_GPU,rho_GPU,pot_ion_GPU,k_GPU !<addresses for the GPU memory 
      integer(f_address) :: p_GPU,q_GPU,r_GPU,x_GPU,z_GPU,oneoeps_GPU,corr_GPU!<addresses for the GPU memory 
      !> GPU scalars. Event if they are scalars of course their address is needed
      integer(f_address) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
@@ -157,10 +161,6 @@ module PStypes
      character(len=1) :: datacode
      !> integer variable setting the verbosity, from silent (0) to high
      integer :: verbosity_level
-     !> add pot_ion to the final potential
-     logical :: add_pot_ion
-     !> add rho_ion to the initial density potential
-     logical :: add_rho_ion
      !> if .true., and the cavity is set to 'sccs' attribute, then the epsilon is updated according to rhov
      logical :: update_cavity
      !> if .true. calculate the stress tensor components.
@@ -172,6 +172,8 @@ module PStypes
      !> Trigger the calculation of the electrostatic contribution only
      !! if .true., the code only calculates the electrostatic contribution
      !! and the cavitation terms are neglected
+     !> extract the polarization charge and the dielectric function, to be used for plotting purposes
+     logical :: cavity_info
      logical :: only_electrostatic
      !> Total integral on the supercell of the final potential on output
      !! clearly meaningful only for Fully periodic BC, ignored in the other cases
@@ -179,7 +181,9 @@ module PStypes
   end type PSolver_options
 
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
-  public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays
+  public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
+  public :: ps_allocate_lowlevel_workarrays,PSolver_options_null
+  public :: release_PS_workarrays,PS_release_lowlevel_workarrays
 
 contains
 
@@ -192,6 +196,21 @@ contains
     e%cavitation =0.0_gp
     e%strten     =0.0_gp
   end function PSolver_energies_null
+
+  pure function PSolver_options_null() result(o)
+    implicit none
+    type(PSolver_options) :: o
+
+    o%datacode           ='X'
+    o%verbosity_level    =0
+    o%update_cavity      =.false.
+    o%calculate_strten   =.false.
+    o%use_input_guess    =.false.
+    o%cavity_info        =.false.
+    o%only_electrostatic =.true.
+    o%potential_integral =0.0_gp
+   end function PSolver_options_null
+
 
   pure function FFT_metadata_null() result(d)
     implicit none
@@ -230,8 +249,11 @@ contains
     nullify(w%z)
     nullify(w%p)
     nullify(w%q)
+    nullify(w%eps)
     call f_zero(w%work1_GPU)
     call f_zero(w%work2_GPU)
+    call f_zero(w%rho_GPU)
+    call f_zero(w%pot_ion_GPU)
     call f_zero(w%k_GPU)
     call f_zero(w%p_GPU)
     call f_zero(w%q_GPU)
@@ -280,6 +302,7 @@ contains
   subroutine free_PS_workarrays(iproc,igpu,keepzf,gpuPCGred,keepGPUmemory,w)
     integer, intent(in) :: keepzf,gpuPCGred,keepGPUmemory,igpu,iproc
     type(PS_workarrays), intent(inout) :: w
+    call f_free_ptr(w%eps)
     call f_free_ptr(w%dlogeps)
     call f_free_ptr(w%oneoeps)
     call f_free_ptr(w%corr)
@@ -312,12 +335,25 @@ contains
           if (keepGPUmemory == 1) then
              call cudafree(w%work1_GPU)
              call cudafree(w%work2_GPU)
+             call cudafree(w%rho_GPU)
+             call cudafree(w%pot_ion_GPU)
           endif
           call cudafree(w%k_GPU)
        endif
     end if
 
   end subroutine free_PS_workarrays
+
+
+  subroutine release_PS_workarrays(keepzf,w,use_input_guess)
+    implicit none
+    integer, intent(in) :: keepzf
+    type(PS_workarrays), intent(inout) :: w
+    logical, intent(in) :: use_input_guess
+    if(keepzf /= 1) call f_free_ptr(w%zf)
+!    call f_free_ptr(w%pot)
+    if (.not. use_input_guess) call f_free_ptr(w%pot)
+  end subroutine release_PS_workarrays
 
   !> Free memory used by the kernel operation
   !! @ingroup PSOLVER
@@ -378,7 +414,8 @@ contains
     case('PCG')
        if (use_input_guess .and. &
             all([associated(kernel%w%res),associated(kernel%w%pot)])) then
-          call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+          !call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+          call f_memcpy(src=rho,dest=kernel%w%res)
        else
           !allocate if it is the first time
           if (associated(kernel%w%pot)) then
@@ -393,17 +430,54 @@ contains
        kernel%w%q=f_malloc0_ptr([n1,n23],id='q')
        kernel%w%p=f_malloc0_ptr([n1,n23],id='p')
        kernel%w%z=f_malloc_ptr([n1,n23],id='z')
+       kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
     case('PI')
-       kernel%w%pot=f_malloc_ptr(kernel%ndims,id='pot')
-       kernel%w%rho=f_malloc0_ptr(kernel%ndims,id='rho')
-       kernel%w%rho_pol=f_malloc_ptr(kernel%ndims,id='rho_pol')
+       if (use_input_guess .and. &
+            associated(kernel%w%pot)) then
+       else
+          !allocate if it is the first time
+          if (associated(kernel%w%pot)) then
+             call f_zero(kernel%w%pot)
+          else
+       kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
+          end if
+       end if
+
+       !kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
+       kernel%w%rho=f_malloc0_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='rho')
+       kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
     end select
 
   end subroutine PS_allocate_lowlevel_workarrays
 
-!!$  subroutine PS_free_lowlevel_workarrays(kernel)
-!!$    
-!!$  end subroutine PS_free_lowlevel_workarrays
+  !> this is useful to deallocate useless space and to 
+  !! also perform extra treatment for the inputguess
+  subroutine PS_release_lowlevel_workarrays(cavity_info,use_input_guess,rho,kernel)
+    use wrapper_linalg, only: axpy
+    implicit none
+    logical, intent(in) :: cavity_info,use_input_guess
+    type(coulomb_operator), intent(inout) :: kernel
+    real(dp), dimension(kernel%grid%m1,kernel%grid%m3*kernel%grid%n3p), intent(in) :: rho !< initial rho, needed for PCG
+
+    select case(trim(str(kernel%method)))
+    case('PCG')
+!       if (use_input_guess) then
+!          !preserve the previous values for the input guess
+!          call axpy(size(kernel%w%res),-1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+!       else
+!          call f_free_ptr(kernel%w%res)
+!       end if
+       if (.not. use_input_guess) call f_free_ptr(kernel%w%res)
+       call f_free_ptr(kernel%w%q)
+       call f_free_ptr(kernel%w%p)
+       call f_free_ptr(kernel%w%z)
+       call f_free_ptr(kernel%w%rho_pol) !>>>>>>>>>>here the switch
+    case('PI')
+       call f_free_ptr(kernel%w%rho)
+       call f_free_ptr(kernel%w%rho_pol) !>>>>>>>>>>here the switch
+    end select
+
+  end subroutine PS_release_lowlevel_workarrays
 
   !> allocate the workarrays for the first initialization
   !! their allocation depends on the treatment which we are going to
@@ -419,16 +493,19 @@ contains
 
     select case(trim(str(method)))
     case('PCG')
-       w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol')
+       !w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
+       w%eps=f_malloc_ptr([n1,n23],id='eps')
        w%corr=f_malloc_ptr([n1,n23],id='corr')
        w%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
+       w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
     case('PI')
-       w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol')
+       !w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
        w%dlogeps=f_malloc_ptr([3,ndims(1),ndims(2),ndims(3)],id='dlogeps')
        w%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
+       w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
+       !w%epsinnersccs=f_malloc_ptr([n1,ndims(2)*ndims(3)],id='epsinnersccs')
     end select
-    if (method .hasattr. PS_SCCS_ENUM) w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
-  end subroutine PS_allocate_cavity_workarrays
+   end subroutine PS_allocate_cavity_workarrays
 
   !> create the memory space needed to store the arrays for the 
   !! description of the cavity
@@ -452,6 +529,7 @@ contains
              call f_zero(kernel%w%corr)
              do i23=1,n23
                 do i1=1,n1
+                   kernel%w%eps(i1,i23)=vacuum_eps
                    kernel%w%oneoeps(i1,i23)=1.0_dp/sqrt(vacuum_eps)
                 end do
              end do
@@ -595,6 +673,12 @@ contains
           else
              call f_err_throw('For method "PCG" the arrays oneosqrteps or epsilon should be present')
           end if
+          if (present(eps)) then
+             call f_memcpy(n=n1*n23,src=eps(1,1,i3s),&
+                  dest=kernel%w%eps)
+          else
+             call f_err_throw('For method "PCG" the arrays eps should be present')
+          end if
        else
           call f_err_throw('For method "PCG" the arrays oneosqrteps'//&
                ' and corr have to be associated, call PS_allocate_cavity_workarrays')
@@ -650,5 +734,105 @@ contains
     end select
 
   end subroutine pkernel_set_epsilon
+
+  subroutine build_cavity_from_rho(rho,nabla2_rho,delta_rho,cc_rho,kernel,&
+       depsdrho,dsurfdrho,IntSur,IntVol)
+    use environment
+    implicit none
+    type(coulomb_operator), intent(inout) :: kernel
+    real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: rho,nabla2_rho,delta_rho,cc_rho
+    !> functional derivative of the sc epsilon with respect to 
+    !! the electronic density, in distributed memory
+    real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: depsdrho
+    !> functional derivative of the surface integral with respect to 
+    !! the electronic density, in distributed memory
+    real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: dsurfdrho
+    real(dp), intent(out) :: IntSur,IntVol
+    !local variables
+    real(dp), parameter :: innervalue = 0.9d0 !to be defined differently
+    integer :: n01,n02,n03,i3s,i1,i2,i3,i23
+    real(dp) :: rh,d2,d,dd,de,epsm1
+
+    IntSur=0.d0
+    IntVol=0.d0
+
+    n01=kernel%ndims(1)
+    n02=kernel%ndims(2)
+    n03=kernel%ndims(3)
+    !starting point in third direction
+    i3s=kernel%grid%istart+1
+    epsm1=(kernel%cavity%epsilon0-1.0_gp)
+    !now fill the pkernel arrays according the the chosen method
+    select case(trim(str(kernel%method)))
+    case('PCG')
+       !in PCG we only need corr, oneosqrtepsilon
+       i23=1
+       do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
+          !do i3=1,n03
+          do i2=1,n02
+             do i1=1,n01
+                if (kernel%w%epsinnersccs(i1,i23).gt.innervalue) then 
+                   kernel%w%eps(i1,i23)=1.d0 !eps(i1,i2,i3)
+                   kernel%w%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
+                   kernel%w%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
+                   depsdrho(i1,i23)=0.d0
+                   dsurfdrho(i1,i23)=0.d0
+                else
+                   rh=rho(i1,i23)
+                   d2=nabla2_rho(i1,i23)
+                   d=sqrt(d2)
+                   dd = delta_rho(i1,i23)
+                   de=epsprime(rh,kernel%cavity)
+                   depsdrho(i1,i23)=de
+                   kernel%w%eps(i1,i23)=eps(rh,kernel%cavity)
+                   kernel%w%oneoeps(i1,i23)=oneosqrteps(rh,kernel%cavity)
+                   kernel%w%corr(i1,i23)=corr_term(rh,d2,dd,kernel%cavity)
+                   dsurfdrho(i1,i23)=surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
+                   !evaluate surfaces and volume integrals
+                   IntSur=IntSur + de*d/epsm1
+                   IntVol=IntVol + (kernel%cavity%epsilon0-eps(rh,kernel%cavity))/epsm1
+                end if
+             end do
+             i23=i23+1
+          end do
+       end do
+    case('PI')
+       !for PI we need  dlogeps,oneoeps
+       !first oneovereps
+       i23=1
+       do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
+          do i2=1,n02
+             do i1=1,n01
+                if (kernel%w%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+                   kernel%w%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
+                   depsdrho(i1,i23)=0.d0
+                   dsurfdrho(i1,i23)=0.d0
+                else
+                   rh=rho(i1,i23)
+                   d2=nabla2_rho(i1,i23)
+                   d=sqrt(d2)
+                   dd = delta_rho(i1,i23)
+                   de=epsprime(rh,kernel%cavity)
+                   depsdrho(i1,i23)=de
+                   kernel%w%oneoeps(i1,i23)=oneoeps(rh,kernel%cavity) 
+                   dsurfdrho(i1,i23)=surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1
+
+                   !evaluate surfaces and volume integrals
+                   IntSur=IntSur + de*d/epsm1
+                   IntVol=IntVol + (kernel%cavity%epsilon0-eps(rh,kernel%cavity))/epsm1
+                end if
+             end do
+             i23=i23+1
+          end do
+       end do
+    end select
+
+    IntSur=IntSur*product(kernel%hgrids)
+    IntVol=IntVol*product(kernel%hgrids)
+
+
+  end subroutine build_cavity_from_rho
+
+
 
 end module PStypes

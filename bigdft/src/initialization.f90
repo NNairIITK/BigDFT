@@ -292,7 +292,7 @@ subroutine ensure_log_file(writing_directory, logfile, ierr)
      call f_strcpy(src=logfile_dir + logfile,dest=logfile_old)
      !change the name of the existing logfile
      lgt=index(logfile_old,'.yaml')
-     call buffer_string(logfile_old,len(logfile_old),yaml_time_toa()+'.yaml',lgt)
+     call buffer_string(logfile_old,len(logfile_old),adjustl(yaml_time_toa())+'.yaml',lgt)
      call movefile(trim(filepath),int(len_trim(filepath),kind=4),trim(logfile_old),int(len_trim(logfile_old),kind=4),ierr)
      if (ierr /= 0) then
         write(*,*) "ERROR: cannot move logfile '"//trim(logfile)

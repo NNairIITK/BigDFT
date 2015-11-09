@@ -75,7 +75,7 @@ module rhopotential
     
        call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
             quiet=denspot%PSquiet,rho_ion=denspot%rho_ion) !optional argument
-    
+
        if (denspot%pkernel%method /= 'VAC') then
           energs%eelec=ehart_ps
           energs%eh=0.0_gp

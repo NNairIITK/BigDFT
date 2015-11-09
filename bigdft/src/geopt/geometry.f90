@@ -62,7 +62,7 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   character(len=40) :: comment
   character(len=60) :: filename
   !-------------------------------------------
-
+  call f_routine(id='geopt')
   !Geometry Initialization
   call geopt_init()
 
@@ -169,7 +169,6 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   case default
      call f_err_throw('Geometry optimization method undefined ('//trim(parmin%approach)//')',&
           err_name='BIGDFT_RUNTIME_ERROR')
-     return
   end select
 
   if (iproc==0) call yaml_close_stream(unit=ugeopt)
@@ -177,6 +176,8 @@ subroutine geopt(runObj,outs,nproc,iproc,ncount_bigdft)
   if (iproc==0) call yaml_map('End of minimization using ',parmin%approach)
 
   if (iproc==0) call finaliseCompress()
+
+  call f_release_routine()
 END SUBROUTINE geopt
 
 !> Loop mode
@@ -256,11 +257,12 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   integer, dimension(3,3,1) :: symrel
   integer :: nxfh, iat, idim, iexit, i_stat,i_all
 
+  call f_routine(id='ab6md')
+
   ! We save pointers on data used to call bigdft() routine.
   if (ncount_bigdft == 0) then
      call scfloop_init(nproc, runObj)
   end if
-
   ! Prepare the objects used by ABINIT.
   amass = f_malloc(runObj%atoms%astruct%nat,id='amass')
   xfhist = f_malloc((/ 3, runObj%atoms%astruct%nat + 4, 2, runObj%inputs%ncount_cluster_x+1 /),id='xfhist')
@@ -301,6 +303,7 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   end do
   !read the velocities from input file, if present
   call read_velocities(iproc,'velocities.xyz',runObj%atoms,vel)
+
   !vel(:,:) = zero
   ! Call the ABINIT routine.
   ! currently, we force optcell == 0
@@ -324,8 +327,11 @@ subroutine ab6md(runObj,outs,nproc,iproc,ncount_bigdft,fail)
   call f_free(vel)
   call f_free(amass)
   call f_free(xfhist)
+
   call scfloop_finalise()
   fail = (iexit == 0)
+
+  call f_release_routine()
 END SUBROUTINE ab6md
 
 
@@ -336,14 +342,15 @@ subroutine timeleft(tt)
   implicit none
   real(gp), intent(out) :: tt
   !local variables
-  integer :: ierr
+  integer :: ierr,unt
   real(kind=4) :: tcpu
   real(gp) :: timelimit
 
-  open(unit=55,file='CPUlimit',status='unknown')
-  read(55,*,iostat=ierr) timelimit ! in hours
+  unt=55
+  call f_open_file(unit=unt,file='CPUlimit',status='unknown')
+  read(unt,*,iostat=ierr) timelimit ! in hours
   if(ierr/=0)timelimit=1d6
-  close(55)
+  call f_close(unt)
   call cpu_time(tcpu)
   tt=timelimit-real(tcpu,gp)/3600._gp ! in hours
 END SUBROUTINE timeleft

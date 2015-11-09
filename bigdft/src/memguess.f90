@@ -34,6 +34,7 @@ program memguess
    !use postprocessing_linear, only: loewdin_charge_analysis_core
    use public_enums
    use module_input_keys, only: print_dft_parameters
+   use IObox
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
@@ -86,7 +87,7 @@ program memguess
    integer :: iproc, isub, jat, icat, info, itype, iiat, jjat, jtype, ios, ival, iat_prev, ii, iitype, ispin
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
-   integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
+   integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l,nspin2
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:,:),allocatable :: atoms_ref, imin_list
@@ -546,15 +547,16 @@ program memguess
    if (convert) then
       at%astruct%geocode = "P"
       write(*,*) "Read density file..."
-      call read_density(trim(fileFrom), at%astruct%geocode, &
-           & dpbox%ndims(1), dpbox%ndims(2), dpbox%ndims(3), &
-           & nspin, dpbox%hgrids(1), dpbox%hgrids(2), dpbox%hgrids(3), &
-           & rhocoeff, at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
+      call read_field_dimensions(trim(fileFrom),at%astruct%geocode,dpbox%ndims,nspin)
+      rhocoeff=f_malloc_ptr([dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),nspin],id='rhocoeff')
+      call read_field(trim(fileFrom), at%astruct%geocode,dpbox%ndims, &
+           dpbox%hgrids,nspin2,product(dpbox%ndims),nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
       at%astruct%ntypes = size(at%nzatom)
       write(*,*) "Write new density file..."
       dpbox%ngatherarr = f_malloc_ptr((/ 0.to.0, 1.to.2 /),id='dpbox%ngatherarr')
 
       call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
+      call f_free_ptr(rhocoeff)
       write(*,*) "Done"
       stop
    end if
@@ -1782,12 +1784,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
      nspin,ixc,ncong,Lzd,hx,hy,hz,rxyz,ntimes)
    use module_base
    use module_types
-   use module_interfaces, only: gaussian_pswf_basis, local_hamiltonian
+   use module_interfaces, only: gaussian_pswf_basis
    use Poisson_Solver, except_dp => dp, except_gp => gp
    use gaussians, only: gaussian_basis, deallocate_gwf
    use module_xc
    use module_input_keys
-
+   use locreg_operations, only: confpot_data
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
    real(gp), intent(in) :: hx,hy,hz
@@ -1994,7 +1996,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    do j=1,ntimes
       pottmp = f_malloc_ptr(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin),id='pottmp')
       call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin),pot(1,1,1,1),1,pottmp(1),1)
-      call local_hamiltonian(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
+      call local_hamiltonian_old(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
            fake_pkernelSIC,xc,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
       call f_free_ptr(pottmp)
    end do

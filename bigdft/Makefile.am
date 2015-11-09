@@ -21,6 +21,8 @@ endif
 if BUILD_LIB_BIGDFT
 # BigDFT itself.
 SUBDIRS += src
+# And structure prediction library
+SUBDIRS += spred
 endif
 
 SUBDIRS += \

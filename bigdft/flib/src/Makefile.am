@@ -28,9 +28,9 @@ flib_noinst =
 endif
 
 if USE_CUDA_GPU
-CUDA_PROF =
+CUDA_PROF = nvtx_fake.f90#nvtx.f90
 CUDA_MODS = 
-NVTX_DEP = 
+NVTX_DEP = nvtx.o
 else
 CUDA_PROF = nvtx_fake.f90
 NVTX_DEP = nvtx_fake.o
@@ -180,6 +180,7 @@ dictionaries_base.o: yaml_strings.o
 dictionaries.o: yaml_strings.o dictionaries_base.o $(DICT_INCLUDES) callbacks.o
 dictionaries_base.o: yaml_strings.o
 callbacks.o: $(NOOMP_INCLUDES)
+$(NVTX_DEP): $(NOOMP_INCLUDES)
 #mem_profiling.o : error_handling.o
 yaml_output.o : dictionaries.o f_utils.o $(YAML_INCLUDES)
 yaml_parse.o : dictionaries.o yaml_output.o
@@ -188,7 +189,7 @@ f_malloc.o: dictionaries.o $(F_MALLOC_INCLUDES)
 f_input_file.o: dictionaries.o yaml_output.o dynamic_memory.o f_utils.o
 dynamic_memory.o: getadd.o yaml_strings.o yaml_output.o yaml_parse.o mem_profiling.o f_malloc.o f_utils.o $(DYN_INCLUDES)
 mem_profiling.o: yaml_output.o $(mpi_include) yaml_parse.o yaml_strings.o
-f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o time.o f_utils.o f_input_file.o
+f_lib_highlev.o: dictionaries.o yaml_output.o dynamic_memory.o yaml_parse.o $(NVTX_DEP) time.o f_utils.o f_input_file.o
 f_utils.o: dictionaries.o yaml_strings.o f_precisions.o razero.o
 f_refcnts.o: dictionaries.o yaml_output.o f_precisions.o
 f_trees.o: f_refcnts.o dictionaries.o yaml_output.o

@@ -29,6 +29,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use public_enums
   use f_enums
   use locreg_operations
+  use locregs_init, only: initLocregs
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
@@ -460,13 +461,21 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            !use onwhichatom to build the new inwhichlocreg (because the old inwhichlocreg can be ordered differently)
            ii = 0
            do iat=1, atoms%astruct%nat
-              do iorb=1,lorbs%norb
+              !only want to do this for spin=1!
+              do iorb=1,lorbs%norbu
                  if(iat ==  lorbs%onwhichatom(iorb)) then
                     ii = ii + 1
                     lorbs%inwhichlocreg(iorb)= ii
                  end if
               end do 
            end do
+
+           ! LR: not sure if this is the best way to do this but it seems to work...
+           ! Correction for spin polarized systems. For non polarized systems, norbu=norb and the loop does nothing.
+           do iorb=lorbs%norbu+1,lorbs%norb
+               lorbs%inwhichlocreg(iorb)=lorbs%inwhichlocreg(iorb-lorbs%norbu)+lorbs%norbu
+           end do
+
            !i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
            !deallocate(inwhichlocreg_old,stat=i_stat)
            !call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
@@ -589,7 +598,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
                call solvePrecondEquation(iproc, nproc, lzd_lin%llr(ilr), ncplx, 6, -0.5d0, &
                     lzd_lin%hgrids(1), lzd_lin%hgrids(2), lzd_lin%hgrids(3), &
                     lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), &
-                    phi(1+ist), lzd_lin%llr(ilr)%locregCenter, lorbs,&
+                    phi(1+ist), lzd_lin%llr(ilr)%locregCenter,&
                     1.d-3, 4, precond_convol_workarrays(iorb), precond_workarrays(iorb))
                t2 = mpi_wtime()
                times(i) = t2-t1
@@ -831,12 +840,17 @@ subroutine system_createKernels(denspot, verb)
   use Poisson_Solver, except_dp => dp, except_gp => gp
   implicit none
   logical, intent(in) :: verb
+  integer(kind=8)  :: iproc_node, nproc_node
   type(DFT_local_fields), intent(inout) :: denspot
-
-  call pkernel_set(denspot%pkernel,verbose=verb)
+  iproc_node=0
+  nproc_node=0
+  call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+  call pkernel_set(denspot%pkernel,iproc_node=iproc_node,&
+                     nproc_node=nproc_node,verbose=verb)
     !create the sequential kernel if pkernelseq is not pkernel
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
-     call pkernel_set(denspot%pkernelseq,verbose=.false.)
+     call pkernel_set(denspot%pkernelseq,iproc_node=iproc_node,&
+                     nproc_node=nproc_node,verbose=.false.)
   else
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -993,7 +1007,7 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
 
   select case(trim(f_str(pkernel%method)))
   case('PCG')
-   call pkernel_set_epsilon(pkernel,oneosqrteps=oneosqrteps,corr=corr)
+   call pkernel_set_epsilon(pkernel,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
 !   call pkernel_set_epsilon(pkernel,eps=eps)
   case('PI') 
    call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
@@ -1147,7 +1161,8 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
   character(len=*), parameter :: subname='calculate_rhocore'
   integer :: ityp,iat,j3,i1,i2,ncmax,i !,ierr,ind
   real(wp) :: tt
-  real(gp) :: rx,ry,rz,rloc,cutoff
+  real(gp) :: rx,ry,rz,rloc,cutoff,chgat
+  real(gp), dimension(:), allocatable :: chg_at
   logical :: donlcc
   type(pawrad_type)::core_mesh
   !allocatable arrays
@@ -1172,6 +1187,7 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
   end if
 
   !allocate pointer rhocore
+     chg_at=f_malloc0(at%astruct%ntypes,id='chg_at')
   rhocore = f_malloc0_ptr((/ dpbox%ndims(1) , dpbox%ndims(2) , dpbox%n3d , 10 /), id = 'rhocore')
   !perform the loop on any of the atoms which have this feature
   do ityp = 1, at%astruct%ntypes
@@ -1226,10 +1242,10 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
            call calc_rhocore_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,&
                 & dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3), &
                 & dpbox%ndims(1), dpbox%ndims(2),dpbox%ndims(3), &
-                & dpbox%i3s,dpbox%n3d,rhocore)
+                & dpbox%i3s,dpbox%n3d,chgat,rhocore)
+           chg_at(ityp)=chg_at(ityp)+chgat
         end if
      end do
-
      !  Deallocate
      if (at%npspcode(ityp) == PSPCODE_PAW) then
         call pawrad_free(core_mesh)
@@ -1267,9 +1283,18 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
 
   if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   tt=tt*product(dpbox%hgrids)
-  if (bigdft_mpi%iproc == 0) then
-     call yaml_map('Total core charge on the grid', tt,fmt='(f15.7)', advance = "no")
-     call yaml_comment('To be compared with analytic one')
+     if (bigdft_mpi%iproc == 0) then
+        call yaml_mapping_open('Analytic core charges for atom species')
+        do ityp=1,at%astruct%ntypes
+           if (chg_at(ityp) /= 0.0_gp) &
+                call yaml_map(trim(at%astruct%atomnames(ityp)),chg_at(ityp),fmt='(f15.7)')
+        end do
+        call yaml_mapping_close()
+        call yaml_map('Total core charge',sum(chg_at),fmt='(f15.7)')
+        call yaml_map('Total core charge on the grid', tt,fmt='(f15.7)', advance = "no")
+        call yaml_comment('To be compared with analytic one')
+     end if
+     call f_free(chg_at)
   end if
 
 END SUBROUTINE calculate_rhocore

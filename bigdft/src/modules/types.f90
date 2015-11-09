@@ -31,7 +31,7 @@ module module_types
   use m_pawrhoij, only: pawrhoij_type
   use module_input_keys, only: SIC_data,orthon_data,input_variables
   use fragment_base, only: fragmentInputParameters
-
+  use locreg_operations,only: confpot_data
   implicit none
 
   private
@@ -257,18 +257,6 @@ module module_types
     logical, dimension(:), pointer :: withConfPot          !< Use confinement potentials
     real(kind=8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potentiar : Prefac * f(r) 
   end type precond_data
-
-
-  !> Information for the confining potential to be used in TMB scheme
-  !! The potential is supposed to be defined as prefac*(r-rC)**potorder
-  type, public :: confpot_data
-     integer :: potorder                !< Order of the confining potential
-     integer, dimension(3) :: ioffset   !< Offset for the coordinates of potential lr in global region
-     real(gp) :: prefac                 !< Prefactor
-     real(gp), dimension(3) :: hh       !< Grid spacings in ISF grid
-     real(gp), dimension(3) :: rxyzConf !< Confining potential center in global coordinates
-     real(gp) :: damping                !< Damping factor to be used after the restart
-  end type confpot_data
 
 
   !> Defines the important information needed to reformat a old wavefunctions
@@ -602,7 +590,6 @@ module module_types
  public :: local_zone_descriptors_null
  public :: energy_terms_null, work_mpiaccumulate_null
  public :: allocate_work_mpiaccumulate, deallocate_work_mpiaccumulate
- public :: nullify_confpot_data
  public :: nullify_orbitals_data
  public :: SIC_data,orthon_data,input_variables
 
@@ -884,25 +871,6 @@ contains
 !!$    
 !!$  end subroutine nullify_DFT_local_fields
   
-  pure subroutine nullify_confpot_data(c)
-    use module_defs, only: UNINITIALIZED
-    implicit none
-    type(confpot_data), intent(out) :: c
-    c%potorder=0
-    !the rest is not useful
-    c%prefac     =UNINITIALIZED(c%prefac)     
-    c%hh(1)      =UNINITIALIZED(c%hh(1))      
-    c%hh(2)      =UNINITIALIZED(c%hh(2))      
-    c%hh(3)      =UNINITIALIZED(c%hh(3))      
-    c%rxyzConf(1)=UNINITIALIZED(c%rxyzConf(1))
-    c%rxyzConf(2)=UNINITIALIZED(c%rxyzConf(2))
-    c%rxyzConf(3)=UNINITIALIZED(c%rxyzConf(3))
-    c%ioffset(1) =UNINITIALIZED(c%ioffset(1)) 
-    c%ioffset(2) =UNINITIALIZED(c%ioffset(2)) 
-    c%ioffset(3) =UNINITIALIZED(c%ioffset(3)) 
-    c%damping    =UNINITIALIZED(c%damping)
-
-  end subroutine nullify_confpot_data
 
   subroutine deallocate_denspot_distribution(dpbox)
     implicit none
