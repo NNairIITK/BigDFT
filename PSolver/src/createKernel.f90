@@ -16,8 +16,8 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   use yaml_strings, only: f_strcpy
   use f_precisions, only: f_loc
   implicit none
-  logical, intent(in) :: verb       !< verbosity
-  integer, intent(in) :: itype_scf
+  logical, intent(in) :: verb       !< Verbosity
+  integer, intent(in) :: itype_scf  !< Type of interpolating scaling function
   integer, intent(in) :: iproc      !< Proc Id
   integer, intent(in) :: nproc      !< Number of processes
   integer, intent(in) :: igpu

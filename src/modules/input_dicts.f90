@@ -6,6 +6,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 !> Module reading the old format (before 1.7) for the input
 module input_old_text_format
   use yaml_strings, only: operator(.eqv.)
@@ -88,6 +89,7 @@ contains
     end do
   end subroutine output_wf_format_help
 
+    !Arguments
   subroutine input_from_old_text_format(radical,mpi_env,dict)
     use public_keys
     use wrapper_MPI
@@ -151,7 +153,7 @@ contains
     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
 
     if (mpi_env%iproc==0) then
-       call yaml_warning('Input files read in the old format.'//&
+       call yaml_warning('Input files read in the old format. '//&
             'Use the input_minimal.yaml file to switch to new format. '//&
             'In future versions this will be deprecated')
     end if

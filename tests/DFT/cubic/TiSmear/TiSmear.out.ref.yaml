@@ -643,7 +643,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.6089E+01, -8.5204E-02, -8.5642E-02 ]
    norm(P)                             :  1.608920E+01
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!

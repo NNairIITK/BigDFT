@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 28/01/2014
+# Date: 05/08/2015
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -58,10 +58,16 @@ Exit = 0
 #Total time for the tests
 totime=0
 
+#Number of succeeded and failed files
+tofail = 0
+tosucc = 0
+toyfail = 0
+toysucc = 0
+
 print "Final report for writings in stdout ('passed' means all significant floats are correct):"
 for file in files:
     dirc = os.path.normpath(os.path.dirname(file))
-    fic = "(%s)" % os.path.basename(file)
+    fic = "%s" % os.path.basename(file)
     dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.report',''))).strip()
     #Max value
     try:
@@ -109,18 +115,25 @@ for file in files:
             time = "%8ss" % time[0]
         else:
             time = ""
+        if start == start_fail:
+            tofail += 1
+        else:
+            tosucc += 1
         print "%s%-67s%s%s%s" % (start,dirfic,state,time,end)
     else:
         if not empty_file:
+            tofail +=1
             start = start_fail
             state = "can not parse file.    failed"
             print "%s%-74s%s%s" % (start,dirfic,state,end)
 
+suggestions={}
+sugg_key=None            
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
     dirc = os.path.normpath(os.path.dirname(file))
-    fic = "(%s)" % os.path.basename(file)
-    dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.report.yaml',''))).strip()
+    fic = ("%s" % os.path.basename(file)).replace('.report.yaml','')
+    dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.out',''))).strip()
     documents=[a for a in yaml.load_all(open(file, "r").read(), Loader = yaml.CLoader)]
     #find whether all the tests have passed (look at last part)
     thedoc=-1
@@ -128,6 +141,11 @@ for file in yaml_files:
         thedoc=-1
     elif "Test succeeded" in documents[-2]:
         thedoc=-2
+        #assume that the second dictionary has only one key (which is loong and tedious to remember)
+        if sugg_key is None:
+            sugg_key=documents[-1].keys()[0]
+            suggestions[sugg_key]={}
+        suggestions[sugg_key].update(documents[-1][sugg_key])
     try:
         discrepancy=documents[thedoc]["Test succeeded"]
         #test failes
@@ -152,8 +170,16 @@ for file in yaml_files:
         start = start_fail
         state = "Failed: Can not parse file!"
         print "%s%-66s %s%s" % (start,dirfic,state,end)
+    if start == start_fail:
+        toyfail += 1
+    else:
+        toysucc += 1
 
 
+#Number of tests
+tosucc += toysucc
+tofail += toyfail
+totest = tosucc + tofail
 #Hours, minutes and seconds
 totimeh = int(totime/3600)
 totimem = int(totime-totimeh*3600)/60
@@ -162,8 +188,11 @@ p_time  = "%sh %sm %ss" % (totimeh,totimem,totimes)
 print 105*"-"
 print 63*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
 if Exit==0:
-    print "Test set succeeded!"
+    print "Test set (%d tests) succeeded!" % totest
 else:
-    print "Test set failed, check the above report!"
+    print "Test set failed (%d failed, %d succeeded), check the above report!" % (tofail,tosucc)
+    if len(suggestions) > 0:
+        sys.stdout.write(yaml.dump(suggestions, default_flow_style=False, explicit_start=True))
+
 #Error code
 sys.exit(Exit)

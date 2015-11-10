@@ -3,7 +3,7 @@
 !!  In the spirit of this module each error message is handled separately.
 !!  The user of this module is able to define the stopping routine, the new error and the error codes.
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .

@@ -1424,7 +1424,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   integer, dimension(:,:), allocatable :: permutations
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
   real(gp) :: max_shift, mindist, Werror, minerror, mintheta, dtol
-  logical :: perx, pery, perz
+  logical :: perx, pery, perz, wrong_atom
+  character(len=2) :: atom_ref, atom_trial
 
   logical :: skip, binary
   integer :: itmb, jtmb, jat
@@ -1771,6 +1772,23 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
            !test each permutation
            do i=1,np
+              wrong_atom=.false.
+              !first check that the atom types are coherent - if not reject this transformation
+              do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
+                 atom_ref = trim(ref_frags(ifrag_ref)%astruct_env%atomnames(ref_frags(ifrag_ref)%astruct_env%iatype(iat)))
+                 atom_trial = trim(at%astruct%atomnames(at%astruct%iatype(frag_env_mapping(ifrag,&
+                      permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,i)+ref_frags(ifrag_ref)%astruct_frg%nat,2))))
+                 !write(*,'(a,4(i3,2x),2(a2,2x),3(i3,2x))') 'ifrag,ifrag_ref,i,iat,atom_ref,atom_trial',ifrag,ifrag_ref,i,iat,&
+                 !     trim(atom_ref),trim(atom_trial),&
+                 !      frag_env_mapping(ifrag,iat,2),permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,i),&
+                 !      frag_env_mapping(ifrag,permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,i)+ref_frags(ifrag_ref)%astruct_frg%nat,2)
+                 if (trim(atom_ref)/=trim(atom_trial)) then
+                    wrong_atom=.true.
+                    exit
+                 end if
+              end do
+              if (wrong_atom) cycle
+
               do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
                  rxyz_new_trial(:,iat) &
                       = rxyz_new(:,ref_frags(ifrag_ref)%astruct_frg%nat &

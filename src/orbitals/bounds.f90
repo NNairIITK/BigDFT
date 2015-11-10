@@ -78,10 +78,9 @@ module bounds
     
     END SUBROUTINE locreg_bounds
 
-
-
     subroutine wfd_to_logrids(n1,n2,n3,wfd,logrid_c,logrid_f)
       use module_base
+      use locregs
       implicit none
       !Arguments
       integer, intent(in) :: n1,n2,n3

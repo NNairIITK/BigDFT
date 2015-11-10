@@ -1,7 +1,7 @@
 !> @file
 !! Routines associated to the generation of data for atoms of the system
 !! @author
-!!    Copyright (C) 2007-2014 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -48,15 +48,16 @@ module module_atoms
      integer :: iat, ind
   end type atomic_neighbours
   
-  !>Structure of the system. This derived type contains the information about the physical properties
+  !> Structure of the system. This derived type contains the information about the physical properties
   type, public :: atomic_structure
-     character(len=1) :: geocode          !< @copydoc poisson_solver::doc::geocode
-     character(len=5) :: inputfile_format !< Can be xyz, ascii or yaml
-     character(len=20) :: units           !< Can be angstroem or bohr 
-     character(len=20) :: angle           !< Can be radian or degree
-     integer :: nat                       !< Number of atoms
-     integer :: ntypes                    !< Number of atomic species in the structure
-     real(gp), dimension(3) :: cell_dim   !< Dimensions of the simulation domain (each one periodic or free according to geocode)
+     character(len=1) :: geocode           !< @copydoc poisson_solver::doc::geocode
+     character(len=5) :: inputfile_format  !< Can be xyz, ascii, int or yaml
+     character(len=256) :: source          !< Name of the file or origin
+     character(len=20) :: units            !< Can be angstroem or bohr 
+     character(len=20) :: angle            !< Can be radian or degree
+     integer :: nat                        !< Number of atoms
+     integer :: ntypes                     !< Number of atomic species in the structure
+     real(gp), dimension(3) :: cell_dim    !< Dimensions of the simulation domain (each one periodic or free according to geocode)
      !pointers
      real(gp), dimension(:,:), pointer :: rxyz             !< Atomic positions (always in AU, units variable is considered for I/O only)
      real(gp), dimension(:,:), pointer :: rxyz_int         !< Atomic positions in internal coordinates (Z matrix)
@@ -97,7 +98,7 @@ module module_atoms
      type(pawang_type) :: pawang                         !< PAW angular mesh definition.
      real(gp), dimension(:), pointer :: epsatm !< PAW pseudoatom energy for each type of atom
 
-     !! for abscalc with pawpatch
+     !> for abscalc with pawpatch
      integer, dimension(:), pointer ::  paw_NofL, paw_l, paw_nofchannels
      integer, dimension(:), pointer ::  paw_nofgaussians
      real(gp), dimension(:), pointer :: paw_Greal, paw_Gimag, paw_Gcoeffs
@@ -105,17 +106,18 @@ module module_atoms
      integer :: iat_absorber 
   end type atoms_data
 
-  !> iterator on atoms object
+  !> Iterator on atoms object
   type, public :: atoms_iterator
-     integer :: iat !< atom number
-     integer :: ityp !<atom type
-     character(len=20) :: name !< atom name
-     logical, dimension(3) :: frz !< array of frozen coordinate of the atom
-     real(gp), dimension(3) :: rxyz !< atom positions
-     !> private pointer to the atomic structure from which it derives
-     type(atomic_structure), pointer :: astruct_ptr
+     integer :: iat                                 !< Atom number
+     integer :: ityp                                !< Atom type
+     character(len=20) :: name                      !< Atom name
+     logical, dimension(3) :: frz                   !< Array of frozen coordinate of the atom
+     real(gp), dimension(3) :: rxyz                 !< Atom positions
+     type(atomic_structure), pointer :: astruct_ptr !< Private pointer to the atomic structure from which it derives
   end type atoms_iterator
 
+
+  !Public routines
   public :: atoms_data_null,nullify_atoms_data,deallocate_atoms_data
   public :: atomic_structure_null,nullify_atomic_structure,deallocate_atomic_structure
   public :: astruct_merge_to_dict, astruct_at_from_dict
@@ -134,26 +136,11 @@ module module_atoms
   public :: psp_dict_analyse, nlcc_set_from_dict,psp_set_from_dict
   public :: atoms_file_merge_to_dict,psp_dict_fill_all
 
+
 contains
 
-  !> iterate on atomic positions
-  function atoms_iter(astruct) result(it)
-    implicit none
-    type(atomic_structure), intent(in), target :: astruct
-    type(atoms_iterator) :: it
 
-    it=atoms_iterator_null()
-    !start counting
-    it%astruct_ptr => astruct
-    it%iat=0
-    it%ityp=0
-  end function atoms_iter
-  pure function atoms_iterator_null() result(it)
-    implicit none
-    type(atoms_iterator) :: it
-    
-    call nullify_atoms_iterator(it)
-  end function atoms_iterator_null
+  !> Nullify an iterator over atoms
   pure subroutine nullify_atoms_iterator(it)
     implicit none
     type(atoms_iterator), intent(out) :: it
@@ -165,9 +152,33 @@ contains
     nullify(it%astruct_ptr)
   end subroutine nullify_atoms_iterator
 
-  !> increment a valid iterator
+
+  !> Function to nullify an iterator avor atoms
+  pure function atoms_iterator_null() result(it)
+    implicit none
+    type(atoms_iterator) :: it
+    
+    call nullify_atoms_iterator(it)
+  end function atoms_iterator_null
+
+
+  !> Create an iterator over atoms (atomic_structure)
+  function atoms_iter(astruct) result(it)
+    implicit none
+    type(atomic_structure), intent(in), target :: astruct
+    type(atoms_iterator) :: it
+
+    it=atoms_iterator_null()
+    ! Start counting
+    it%astruct_ptr => astruct
+    it%iat=0
+    it%ityp=0
+  end function atoms_iter
+
+
+  !> Increment a valid iterator
   !! the control for validity has to be done outside
-  pure subroutine refresh_iterator(it)
+  pure subroutine atoms_refresh_iterator(it)
     use yaml_strings, only: f_strcpy
     implicit none
     type(atoms_iterator), intent(inout) :: it
@@ -177,10 +188,11 @@ contains
     it%frz(2)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),2)
     it%frz(3)=move_this_coordinate(it%astruct_ptr%ifrztyp(it%iat),3)    
     it%rxyz=it%astruct_ptr%rxyz(:,it%iat)
-  end subroutine refresh_iterator
+  end subroutine atoms_refresh_iterator
 
-  !increment, and nullify if ended
-  !if the iterator is nullified, it does nothing
+
+  !> Increment, and nullify if ended
+  !! if the iterator is nullified, it does nothing
   pure subroutine increment_atoms_iter(it)
     implicit none
     type(atoms_iterator), intent(inout) :: it
@@ -188,7 +200,7 @@ contains
     if (associated(it%astruct_ptr)) then
        if (it%iat < it%astruct_ptr%nat) then
           it%iat=it%iat+1
-          call refresh_iterator(it)
+          call atoms_refresh_iterator(it)
        else
           !end iteration, the iterator is destroyed
           call nullify_atoms_iterator(it)
@@ -196,7 +208,8 @@ contains
     end if
   end subroutine increment_atoms_iter
 
-  !>logical function, returns .true. if the iterator is still valid
+
+  !> Logical function, returns .true. if the iterator is still valid
   pure function atoms_iter_is_valid(it)
     implicit none
     type(atoms_iterator), intent(in) :: it
@@ -205,7 +218,8 @@ contains
     atoms_iter_is_valid=associated(it%astruct_ptr)
   end function atoms_iter_is_valid
 
-  !>logical function for iterating above atoms
+
+  !> Logical function for iterating above atoms
   function atoms_iter_next(it)
     implicit none
     type(atoms_iterator), intent(inout) :: it
@@ -214,6 +228,7 @@ contains
     call increment_atoms_iter(it)
     atoms_iter_next=atoms_iter_is_valid(it)
   end function atoms_iter_next
+
 
   !> Creators and destructors
   pure function symmetry_data_null() result(sym)
@@ -255,6 +270,7 @@ contains
     type(atomic_structure), intent(out) :: astruct
     astruct%geocode='X'
     astruct%inputfile_format=repeat(' ',len(astruct%inputfile_format))
+    astruct%source=repeat(' ',len(astruct%source))
     astruct%units=repeat(' ',len(astruct%units))
     astruct%angle=repeat(' ',len(astruct%angle))
     astruct%nat=-1
@@ -360,7 +376,6 @@ contains
     !local variables
     character(len=*), parameter :: subname='deallocate_atomic_structure' !remove
     integer :: iat
-
     ! Deallocations for the geometry part.
     if (astruct%nat >= 0) then
        call f_free_ptr(astruct%ifrztyp)
@@ -519,9 +534,9 @@ contains
 !!!!!$omp parallel private(it)
       !iterate above atoms
       it=atoms_iter(atoms%astruct) !,omp=.true.)
-      !python metod
+      !python method
       do while(atoms_iter_next(it))
-!!$      !fortran metod
+!!$      !fortran method
 !!$      call increment_atoms_iter(it)
 !!$      do while(atoms_iter_is_valid(it))
          !only amu is extracted here
@@ -605,7 +620,8 @@ contains
 
     end subroutine atomic_data_set_from_dict
 
-    !> set irreductible Brillouin zone
+
+    !> Set irreductible Brillouin zone
     subroutine set_symmetry_data(sym, geocode, n1i, n2i, n3i, nspin)
       use module_base
       use m_ab6_kpoints
@@ -665,18 +681,20 @@ contains
 
 
     !> Read atomic file
-    subroutine set_astruct_from_file(file,iproc,astruct,comment,energy,fxyz,disableTrans)
+    subroutine set_astruct_from_file(file,iproc,astruct,comment,energy,fxyz,disableTrans,pos_format)
       use module_base
       use dictionaries, only: set, dictionary
       use yaml_strings, only : yaml_toa
       use internal_coordinates, only: internal_to_cartesian
+      use yaml_output, only: yaml_dict_dump
       implicit none
       !Arguments
-      character(len=*), intent(in) :: file  !< File name containing the atomic positions
+      character(len=*), intent(in) :: file                  !< File name containing the atomic positions
       integer, intent(in) :: iproc
-      type(atomic_structure), intent(inout) :: astruct !< Contains all info
+      type(atomic_structure), intent(inout) :: astruct      !< Contains all info
       real(gp), intent(out), optional :: energy
       real(gp), dimension(:,:), pointer, optional :: fxyz
+      character(len=*), intent(in), optional :: pos_format  !< Explicit format of the file
       character(len = 1024), intent(out), optional :: comment
       logical, intent(in), optional :: disableTrans
       !Local variables
@@ -714,48 +732,60 @@ contains
             archive = .true.
             write(filename, "(A)") file//'.'//trim(ext)
             write(astruct%inputfile_format, "(A)") trim(ext)
+            write(astruct%source, "(A)") trim(filename)
          end if
       end if
 
-      ! Test posinp.xyz
+      ! Test file//'.xyz'
       if (.not. file_exists) then
          inquire(FILE = file//'.xyz', EXIST = file_exists)
          files = trim(files) // "'" // trim(file)//".xyz'"
          if (file_exists) then
             write(filename, "(A)") file//'.xyz'!"posinp.xyz"
             write(astruct%inputfile_format, "(A)") "xyz"
+            write(astruct%source, "(A)") trim(filename)
             open(unit=iunit,file=trim(filename),status='old')
          end if
       end if
 
-      ! Test posinp.ascii
+      ! Test file//'.ascii'
       if (.not. file_exists) then
          inquire(FILE = file//'.ascii', EXIST = file_exists)
          files = trim(files) // ", '" //trim(file)//".ascii'"
          if (file_exists) then
             write(filename, "(A)") file//'.ascii'!"posinp.ascii"
             write(astruct%inputfile_format, "(A)") "ascii"
+            write(astruct%source, "(A)") trim(filename)
             open(unit=iunit,file=trim(filename),status='old')
          end if
       end if
-      ! Test posinp.int
+      ! Test file//'.int'
       if (.not. file_exists) then
          inquire(FILE = file//'.int', EXIST = file_exists)
          if (file_exists) then
             write(filename, "(A)") file//'.int'!"posinp.int
             write(astruct%inputfile_format, "(A)") "int"
+            write(astruct%source, "(A)") trim(filename)
             open(unit=99,file=trim(filename),status='old')
          end if
       end if
-      ! Test posinp.yaml
+      ! Test file//'.yaml'
       if (.not. file_exists) then
          inquire(FILE = file//'.yaml', EXIST = file_exists)
          files = trim(files) // ", '" //trim(file)//".yaml'"
          if (file_exists) then
             write(filename, "(A)") file//'.yaml'!"posinp.yaml
             write(astruct%inputfile_format, "(A)") "yaml"
+            write(astruct%source, "(A)") trim(filename)
             ! Pb if toto.yaml because means that there is no key posinp!!
          end if
+      end if
+
+      ! Check if the format of the file detected corresponds to the specified format
+      if (file_exists .and. present(pos_format)) then
+         if (astruct%inputfile_format /= pos_format) &
+            & call f_err_throw("The detected filename '"//trim(filename)//"' has not the specified format '" // &
+            &      trim(pos_format) // "'.", err_name='BIGDFT_INPUT_VARIABLES_ERROR')
       end if
 
       ! Test the name directly
@@ -764,19 +794,26 @@ contains
          files = trim(files) // ", '" //trim(file) // "'"
          if (file_exists) then
             write(filename, "(A)") file
-            l = len(file)
-            if (file(l-3:l) == ".xyz") then
-               write(astruct%inputfile_format, "(A)") "xyz"
-            else if (file(l-5:l) == ".ascii") then
-               write(astruct%inputfile_format, "(A)") "ascii"
-            else if (file(l-3:l) == ".int") then
-               write(astruct%inputfile_format, "(A)") "int"
-            else if (file(l-4:l) == ".yaml") then
-               write(astruct%inputfile_format, "(A)") "yaml"
+            write(astruct%source, "(A)") trim(filename)
+            if (.not.present(pos_format)) then
+               l = len(file)
+               if (file(l-3:l) == ".xyz") then
+                  write(astruct%inputfile_format, "(A)") "xyz"
+               else if (file(l-5:l) == ".ascii") then
+                  write(astruct%inputfile_format, "(A)") "ascii"
+               else if (file(l-3:l) == ".int") then
+                  write(astruct%inputfile_format, "(A)") "int"
+               else if (file(l-4:l) == ".yaml") then
+                  write(astruct%inputfile_format, "(A)") "yaml"
+               else
+                  !We assume that the format of the file is 'xyz'
+                  write(astruct%inputfile_format, "(A)") "xyz"
+                  !call f_err_throw(err_msg="Atomic input file '" // trim(file) // "', format not recognised."// &
+                  !   & " File should be *.yaml, *.int, *.ascii or *.xyz.",err_id=BIGDFT_INPUT_FILE_ERROR)
+               end if
             else
-               call f_err_throw(err_msg="Atomic input file '" // trim(file) // "', format not recognised."// &
-                  & " File should be *.yaml, *.ascii or *.xyz.",err_id=BIGDFT_INPUT_FILE_ERROR)
-               return
+               ! The format is specified
+               write(astruct%inputfile_format, "(A)") trim(pos_format)
             end if
             if (trim(astruct%inputfile_format) /= "yaml") then
                open(unit=iunit,file=trim(filename),status='old')
@@ -785,7 +822,7 @@ contains
       end if
 
       if (f_err_raise(.not.file_exists, &
-         &  "Atomic input file not found. Files looked for were "//trim(files) //".", &
+         &  "Atomic input file not found. Files looked for were " // trim(files) //".", &
            &  err_id=BIGDFT_INPUT_FILE_ERROR)) return
 
       !We found a file
@@ -832,11 +869,15 @@ contains
              &  err_name='BIGDFT_RUNTIME_ERROR')) then
             return
          else
-            !There is a radical and the atomic positions are already dict; need to raise an exception
+            !There is a radical and the atomic positions are in already dict: need to raise an exception
             call f_err_throw("Atomic input file not found. Files looked for were "//trim(files) //".", &
            &  err_id=BIGDFT_INPUT_FILE_ERROR)
             return
          end if
+
+      case default
+         call f_err_throw(err_msg="The specified format '" // trim(astruct%inputfile_format) // "' is not recognised."// &
+            & " The format should be 'yaml', 'int', 'ascii' or 'xyz'.",err_id=BIGDFT_INPUT_FILE_ERROR)
 
       end select
       !if an error has been produced return
@@ -882,6 +923,7 @@ contains
 
     END SUBROUTINE set_astruct_from_file
 
+
     !> Write an atomic file
     !! Yaml output included
     subroutine astruct_dump_to_file(astruct,filename,comment,energy,rxyz,forces,fmt,unit)
@@ -916,7 +958,7 @@ contains
       character(len=len(astruct%inputfile_format)) :: formt
 
       energy_=0.0_gp
-      if (present(energy)) energy_ =energy
+      if (present(energy)) energy_ = energy
       rxyz_ => astruct%rxyz
       if (present(rxyz)) rxyz_ => rxyz
       formt=astruct%inputfile_format
@@ -979,6 +1021,7 @@ contains
          end if
       end if
     END SUBROUTINE astruct_dump_to_file
+
 
     !> Convert astruct to dictionary for later dump.
     subroutine astruct_merge_to_dict(dict, astruct, rxyz, comment)
@@ -1081,6 +1124,7 @@ contains
       if (len_trim(astruct%inputfile_format) > 0) &
            & call set(dict // ASTRUCT_PROPERTIES // "format", astruct%inputfile_format)
     end subroutine astruct_merge_to_dict
+
 
     subroutine astruct_at_from_dict(dict, symbol, rxyz, rxyz_add, ifrztyp, igspin, igchrg, &
                ixyz, ixyz_add, rxyz_int, rxyz_int_add, mode)
@@ -1218,84 +1262,163 @@ contains
       end do
     end subroutine astruct_dict_get_types
 
-    !> Read Atomic positions and merge into dict
-    subroutine astruct_file_merge_to_dict(dict, key, filename)
-      use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
-           & BIGDFT_INPUT_FILE_ERROR,f_free_ptr
-      use public_keys, only: POSINP,GOUT_FORCES,GOUT_ENERGY,POSINP_SOURCE
-      use yaml_strings
-      use dictionaries
-      use module_input_dicts, only: dict_get_run_properties
-      implicit none
-      !Arguments
-      type(dictionary), pointer :: dict          !< Contains (out) all the information
-      character(len = *), intent(in) :: key      !< Key of the dictionary where it should be have the information
-      character(len = *), intent(in) :: filename !< Name of the filename where the astruct should be read
-      !Local variables
-      type(atomic_structure) :: astruct
-      !type(DFT_global_output) :: outs
-      character(len=max_field_length) :: msg,radical
-      integer :: ierr,iat
-      real(gp) :: energy
-      real(gp), dimension(:,:), pointer :: fxyz
-      type(dictionary), pointer :: dict_tmp,pos
 
+   !> Read Atomic positions and merge into dict
+   subroutine astruct_file_merge_to_dict(dict, key, filename, pos_format)
+     use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
+          & BIGDFT_INPUT_FILE_ERROR,f_free_ptr
+     use public_keys, only: POSINP,GOUT_FORCES,GOUT_ENERGY,POSINP_SOURCE
+     use yaml_strings
+     use dictionaries
+     use module_input_dicts, only: dict_get_run_properties
+     implicit none
+     !Arguments
+     type(dictionary), pointer :: dict                      !< Contains (out) all the information
+     character(len = *), intent(in) :: key                  !< Key of the dictionary where it should be have the information
+     character(len = *), intent(in) :: filename             !< Name of the filename where the astruct should be read
+     character(len = *), optional, intent(in) :: pos_format !< Explicit specified format
+     !Local variables
+     type(atomic_structure) :: astruct
+     !type(DFT_global_output) :: outs
+     character(len=max_field_length) :: msg,radical
+     integer :: ierr,iat
+     real(gp) :: energy
+     real(gp), dimension(:,:), pointer :: fxyz
+     type(dictionary), pointer :: dict_tmp,pos
 
-      call f_routine(id='astruct_file_merge_to_dict')
-      ! Read atomic file, old way
-      call nullify_atomic_structure(astruct)
-      !call nullify_global_output(outs)
-      !Try to read the atomic coordinates from files
-      call f_err_open_try()
-      nullify(fxyz)
-      call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
-           energy = energy, fxyz = fxyz)
-      !print *,'test2',associated(fxyz)
-      !Check if BIGDFT_INPUT_FILE_ERROR
-      ierr = f_get_last_error(msg) 
-      call f_err_close_try()
-      if (ierr == 0) then
-         dict_tmp => dict // key
-         !No errors: we have all information in astruct and put into dict
+     call f_routine(id='astruct_file_merge_to_dict')
 
-         call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
+     call nullify_atomic_structure(astruct)
 
-         call set(dict_tmp // ASTRUCT_PROPERTIES // POSINP_SOURCE, filename)
-
-         if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
-         if (associated(fxyz)) then
-            pos => dict_tmp // GOUT_FORCES
-            do iat=1,astruct%nat
-               call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. fxyz(:,iat)))
-            end do
-         end if
-
-         if (GOUT_ENERGY .in. dict_tmp) call dict_remove(dict_tmp, GOUT_ENERGY)
-         if (energy /= UNINITIALIZED(energy)) call set(dict_tmp // GOUT_ENERGY, energy)
-         !call global_output_merge_to_dict(dict // key, outs, astruct)
-         call deallocate_atomic_structure(astruct)
-
-      else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
-         !Found no file: maybe already inside the yaml file ?
-         !Check if posinp is in dict
-         if ( POSINP .notin.  dict) then
-            ! Raise an error
-            call f_strcpy(src='input',dest=radical)
-            !modify the radical name if it exists
-            call dict_get_run_properties(dict, input_id = radical)
-            msg = "No section 'posinp' for the atomic positions in the file '"//&
-                 trim(radical) // ".yaml'. " // trim(msg)
-            call f_err_throw(err_msg=msg,err_id=ierr)
-         end if
-      else 
-         ! Raise an error
-         call f_err_throw(err_msg=msg,err_id=ierr)
+     !Try to read the atomic coordinates from files (old way)
+     call f_err_open_try()
+     nullify(fxyz)
+     if (present(pos_format)) then
+       call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
+          & energy = energy, fxyz = fxyz, pos_format=pos_format)
+     else
+       call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
+          & energy = energy, fxyz = fxyz)
       end if
-      call f_free_ptr(fxyz)
-      !call deallocate_global_output(outs)
-      call f_release_routine()
+     !print *,'test2',associated(fxyz)
+     !Check if BIGDFT_INPUT_FILE_ERROR
+     ierr = f_get_last_error(msg) 
+     call f_err_close_try()
 
-    end subroutine astruct_file_merge_to_dict
+     if (ierr == 0) then
+       dict_tmp => dict // key
+       !No errors: we have all information in astruct and put into dict
+       call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
+       call set(dict_tmp // ASTRUCT_PROPERTIES // POSINP_SOURCE, astruct%source)
+
+       if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
+       if (associated(fxyz)) then
+          pos => dict_tmp // GOUT_FORCES
+          do iat=1,astruct%nat
+             call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. fxyz(:,iat)))
+          end do
+       end if
+
+       if (GOUT_ENERGY .in. dict_tmp) call dict_remove(dict_tmp, GOUT_ENERGY)
+       if (energy /= UNINITIALIZED(energy)) call set(dict_tmp // GOUT_ENERGY, energy)
+       !call global_output_merge_to_dict(dict // key, outs, astruct)
+       call deallocate_atomic_structure(astruct)
+
+     else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
+       !Found no file, raise an error
+       call f_strcpy(src='input',dest=radical)
+       !modify the radical name if it exists
+       call dict_get_run_properties(dict, input_id = radical)
+       msg = "No section 'posinp' for the atomic positions in the file '"//&
+             & trim(radical) // ".yaml'. " // trim(msg)
+       call f_err_throw(err_msg=msg,err_id=ierr)
+     else 
+       ! Raise an error
+       call f_err_throw(err_msg=msg,err_id=ierr)
+     end if
+
+     call f_free_ptr(fxyz)
+     call f_release_routine()
+
+   end subroutine astruct_file_merge_to_dict
+
+
+!!$  !> Read Atomic positions and merge into dict
+!!$  subroutine astruct_file_merge_to_dict(dict, key, filename)
+!!$    use module_base, only: gp, UNINITIALIZED, bigdft_mpi,f_routine,f_release_routine, &
+!!$         & BIGDFT_INPUT_FILE_ERROR,f_free_ptr
+!!$    use public_keys, only: POSINP,GOUT_FORCES,GOUT_ENERGY,POSINP_SOURCE
+!!$    use yaml_strings
+!!$    use dictionaries
+!!$    use module_input_dicts, only: dict_get_run_properties
+!!$    implicit none
+!!$    !Arguments
+!!$    type(dictionary), pointer :: dict          !< Contains (out) all the information
+!!$    character(len = *), intent(in) :: key      !< Key of the dictionary where it should be have the information
+!!$    character(len = *), intent(in) :: filename !< Name of the filename where the astruct should be read
+!!$    !Local variables
+!!$    type(atomic_structure) :: astruct
+!!$    !type(DFT_global_output) :: outs
+!!$    character(len=max_field_length) :: msg,radical
+!!$    integer :: ierr,iat
+!!$    real(gp) :: energy
+!!$    real(gp), dimension(:,:), pointer :: fxyz
+!!$    type(dictionary), pointer :: dict_tmp,pos
+!!$
+!!$    call f_routine(id='astruct_file_merge_to_dict')
+!!$    ! Read atomic file, old way
+!!$    call nullify_atomic_structure(astruct)
+!!$    !Try to read the atomic coordinates from files
+!!$    call f_err_open_try()
+!!$    nullify(fxyz)
+!!$    call set_astruct_from_file(filename, bigdft_mpi%iproc, astruct, &
+!!$         energy = energy, fxyz = fxyz)
+!!$    !print *,'test2',associated(fxyz)
+!!$    !Check if BIGDFT_INPUT_FILE_ERROR
+!!$    ierr = f_get_last_error(msg) 
+!!$    call f_err_close_try()
+!!$
+!!$    if (ierr == 0) then
+!!$       dict_tmp => dict // key
+!!$       !No errors: we have all information in astruct and put into dict
+!!$
+!!$       call astruct_merge_to_dict(dict_tmp, astruct, astruct%rxyz)
+!!$
+!!$       call set(dict_tmp // ASTRUCT_PROPERTIES // POSINP_SOURCE, filename)
+!!$
+!!$       if (GOUT_FORCES .in. dict_tmp) call dict_remove(dict_tmp, GOUT_FORCES)
+!!$       if (associated(fxyz)) then
+!!$          pos => dict_tmp // GOUT_FORCES
+!!$          do iat=1,astruct%nat
+!!$             call add(pos, dict_new(astruct%atomnames(astruct%iatype(iat)) .is. fxyz(:,iat)))
+!!$          end do
+!!$       end if
+!!$
+!!$       if (GOUT_ENERGY .in. dict_tmp) call dict_remove(dict_tmp, GOUT_ENERGY)
+!!$       if (energy /= UNINITIALIZED(energy)) call set(dict_tmp // GOUT_ENERGY, energy)
+!!$       !call global_output_merge_to_dict(dict // key, outs, astruct)
+!!$       call deallocate_atomic_structure(astruct)
+!!$
+!!$    else if (ierr == BIGDFT_INPUT_FILE_ERROR) then
+!!$       !Found no file: maybe already inside the yaml file ?
+!!$       !Check if posinp is in dict
+!!$       if (POSINP .notin. dict) then
+!!$          ! Raise an error
+!!$          call f_strcpy(src='input',dest=radical)
+!!$          !modify the radical name if it exists
+!!$          call dict_get_run_properties(dict, input_id = radical)
+!!$          msg = "No section 'posinp' for the atomic positions in the file '"//&
+!!$               trim(radical) // ".yaml'. " // trim(msg)
+!!$          call f_err_throw(err_msg=msg,err_id=ierr)
+!!$       end if
+!!$    else 
+!!$       ! Raise an error
+!!$       call f_err_throw(err_msg=msg,err_id=ierr)
+!!$    end if
+!!$    call f_free_ptr(fxyz)
+!!$    call f_release_routine()
+!!$
+!!$  end subroutine astruct_file_merge_to_dict
 
 
     !> Allocate the astruct variable from the dictionary of input data
@@ -1419,6 +1542,7 @@ contains
          pos => dict // ASTRUCT_PROPERTIES
          if (has_key(pos, "info") .and. present(comment)) comment = pos // "info"
          if (has_key(pos, "format")) astruct%inputfile_format = pos // "format"
+         if (has_key(pos, "source")) astruct%source = pos // "source"
       end if
 
       call dict_free(types)
@@ -1428,6 +1552,7 @@ contains
     end subroutine astruct_set_from_dict
 
     include 'astruct-inc.f90'
+
 
     !> Terminate the allocation of the memory in the pointers of atoms
     subroutine allocate_atoms_data(atoms)
@@ -1624,7 +1749,7 @@ contains
     subroutine atoms_file_merge_to_dict(dict)
       use dictionaries
       use yaml_output, only: yaml_warning
-      use public_keys, only: POSINP,SOURCE_KEY
+      use public_keys, only: POSINP,SOURCE_KEY,PSPXC_KEY
       implicit none
       type(dictionary), pointer :: dict
 
@@ -1659,13 +1784,13 @@ contains
                else
                   call psp_file_merge_to_dict(dict, key, lstring = dict // key)
                end if
-               if (.not. has_key(dict // key, 'Pseudopotential XC')) then
+               if (.not. has_key(dict // key, PSPXC_KEY)) then
                   call yaml_warning("Pseudopotential file '" // trim(str) // &
                        & "' not found. Fallback to file '" // trim(key) // &
                        & "' or hard-coded pseudopotential.")
                end if
             end if
-            exists = has_key(dict // key, 'Pseudopotential XC')
+            exists = has_key(dict // key, PSPXC_KEY)
          end if
          if (.not. exists) call psp_file_merge_to_dict(dict, key, key)
 
@@ -1676,6 +1801,7 @@ contains
       deallocate(keys)
       call dict_free(types)
     end subroutine atoms_file_merge_to_dict
+
 
     subroutine nlcc_file_merge_to_dict(dict, key, filename)
       use module_defs, only: gp, UNINITIALIZED
@@ -1770,6 +1896,7 @@ contains
          call set(dict // key // SOURCE_KEY, "In-line")
       end if
     end subroutine psp_file_merge_to_dict
+
 
     !> Set the value for atoms_data from the dictionary
     subroutine psp_set_from_dict(dict, valid, &
@@ -1888,6 +2015,7 @@ contains
 
     end subroutine psp_set_from_dict
 
+
     !> Merge all psp data (coming from a file) in the dictionary
     subroutine psp_data_merge_to_dict(dict, nzatom, nelpsp, npspcode, ixcpsp, &
          & psppar, radii_cf, rcore, qcore)
@@ -1967,6 +2095,7 @@ contains
       end if
 
     end subroutine psp_data_merge_to_dict
+
 
     !> Fill up the dict with all pseudopotential information
     subroutine psp_dict_fill_all(dict, atomname, run_ixc, projrad, crmult, frmult)
@@ -2097,7 +2226,6 @@ contains
 
     end subroutine psp_dict_fill_all
 
-
 END MODULE module_atoms
 
 !> Allocation of the arrays inside the structure atoms_data, considering the part which is associated to astruct%nat
@@ -2138,7 +2266,7 @@ subroutine astruct_set_n_atoms(astruct, nat)
 END SUBROUTINE astruct_set_n_atoms
 
 
-!> allocation of the memory space associated to the number of types astruct%ntypes
+!> Allocation of the memory space associated to the number of types astruct%ntypes
 subroutine astruct_set_n_types(astruct, ntypes)
   use module_base
   use module_atoms, only: atomic_structure
@@ -2171,9 +2299,9 @@ subroutine astruct_set_from_file(lstat, astruct, filename)
   use module_atoms, only: atomic_structure,read_atomic_file=>set_astruct_from_file
   implicit none
   !Arguments
-  logical, intent(out) :: lstat
-  type(atomic_structure), intent(inout) :: astruct
-  character(len = *), intent(in) :: filename
+  logical, intent(out) :: lstat                     !< Error state
+  type(atomic_structure), intent(inout) :: astruct  !< atomic positions structure
+  character(len = *), intent(in) :: filename        !< Name of the file
 
   call f_err_open_try()
   call read_atomic_file(filename, 0, astruct)
@@ -2347,6 +2475,7 @@ subroutine atoms_free(atoms)
   call deallocate_atoms_data(atoms)
   deallocate(atoms)
 END SUBROUTINE atoms_free
+
 
 !> Add a displacement of atomic positions and put in the box
 subroutine astruct_set_displacement(astruct, randdis)

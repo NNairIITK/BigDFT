@@ -36,7 +36,7 @@ contains
       real(gp), allocatable, dimension(:) :: tpos,grad,eval,workf
       real(gp) :: h,twelfth,twothird,etot,cmx,cmy,cmz,dm,tt
       real(gp) :: s
-      integer :: i,j,k,lworkf,infocode,idir,jat,jdir
+      integer :: i,j,lworkf,infocode,idir,jat,jdir
       integer, dimension(:), allocatable :: ifrztyp0 !< To avoid to freeze the atoms for bigdft_state
       integer :: ifree, jfree,nfree
 

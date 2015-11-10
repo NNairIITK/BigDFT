@@ -125,7 +125,7 @@ module multipole_base
       integer :: l, ilen, impl
       type(dictionary),pointer :: iter
       character(len=2) :: key
-      real(kind=8),dimension(3) :: rxyz
+      !real(kind=8),dimension(3) :: rxyz
       !integer,parameter :: lmax=3
       real(kind=8),dimension(2*lmax+1) :: mp_tmp
       real(dp) :: norm, dnrm2

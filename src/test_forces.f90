@@ -1,7 +1,7 @@
 !> @file 
 !!   Routines to test atomic forces
 !! @author
-!!   Copyright (C) 2005-2013 BigDFT group 
+!!   Copyright (C) 2005-2015 BigDFT group 
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -162,7 +162,7 @@ program test_forces
 
          if (bigdft_mpi%iproc == 0) then
             call bigdft_get_run_properties(run, input_id = input_id, posinp_id = posinp_id)
-            call print_general_parameters(runObj%inputs,runObj%atoms,input_id,posinp_id) ! to know the new positions
+            call print_general_parameters(runObj%inputs,runObj%atoms,input_id) ! to know the new positions
          end if
 
          call bigdft_state(runObj, outs,infocode)

@@ -89,6 +89,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
 END SUBROUTINE createWavefunctionsDescriptors
 
 
+!> Calculate wavelet descriptors from the the grids
 subroutine wfd_from_grids(logrid_c, logrid_f, calculate_bounds, Glr)
   use module_base
    use locregs

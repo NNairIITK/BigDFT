@@ -1,7 +1,9 @@
 !> @file
 !! Routine to tests yaml_output module
+!! @example yamlout.f90
+!! Other series of tests on yaml output generation
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,8 +14,6 @@
 subroutine test_yaml_output1()
   use yaml_output
   implicit none
-  !local variables
-  character, dimension(5) :: totarr
 
   call yaml_mapping_open("Test")
    call yaml_map("Short sentence",.true.)
@@ -171,7 +171,7 @@ subroutine test_yaml_output_sequences1()
 end subroutine test_yaml_output_sequences1
 
 
-!> Second test of sequences
+!> Second test of sequences (long comments and sequences)
 subroutine test_yaml_output_sequences2()
   use yaml_output
   use yaml_strings
@@ -196,6 +196,29 @@ subroutine test_yaml_output_sequences2()
   call yaml_comment(repeat('y',200),hfill='-')
   call yaml_comment(repeat('y',200),tabbing=9,hfill='-')
   call yaml_mapping_close()
+
+  !Check long sequence
+  call yaml_sequence_open('Check long sequences')
+  call yaml_sequence('Length=' // trim(yaml_toa(0)))
+  call yaml_sequence(repeat('a',0))
+  call yaml_sequence('Length=90')
+  call yaml_sequence(repeat('a',89)//'-')
+  call yaml_sequence('Length=91')
+  call yaml_sequence(repeat('a',90)//'-')
+  call yaml_sequence('Length=92')
+  call yaml_sequence(repeat('a',91)//'-')
+  call yaml_sequence('Length=92+label')
+  call yaml_sequence(repeat('a',91)//'-',label='label')
+  call yaml_sequence('Length=93')
+  call yaml_sequence(repeat('a',92)//'-')
+  call yaml_sequence('Length=300')
+  call yaml_sequence(repeat('a',399)//'-')
+  call yaml_sequence(repeat('b',20))
+  call yaml_sequence(padding=10)
+  call yaml_sequence(label='l1',padding=10)
+  call yaml_sequence('a',padding=10)
+  call yaml_sequence('a',label='l2',padding=10)
+  call yaml_sequence_close()
 
   deallocate(dv)
 end subroutine test_yaml_output_sequences2

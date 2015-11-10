@@ -456,7 +456,7 @@
    BC                                  : Free
    Box                                 :  [  109,  107,  95 ]
    MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  2.75053714E-05, y: -2.42818973E-05, z:  3.48557454E-04, 
                     total:  3.50483173E-04}
@@ -733,7 +733,7 @@
    BC                                  : Free
    Box                                 :  [  109,  107,  95 ]
    MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.55882808E-05, y: -3.44777637E-04, z:  3.12006690E-04, 
                     total:  4.65255616E-04}
@@ -1015,7 +1015,7 @@
    BC                                  : Free
    Box                                 :  [  109,  107,  95 ]
    MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  7.47404390E-05, y:  3.25494256E-04, z:  2.11016546E-04, 
                     total:  3.95045094E-04}
@@ -1297,7 +1297,7 @@
    BC                                  : Free
    Box                                 :  [  109,  107,  95 ]
    MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.02950172E-04, y:  9.12976756E-04, z:  6.02141800E-05, 
                     total:  9.20733970E-04}
@@ -1561,7 +1561,7 @@
    BC                                  : Free
    Box                                 :  [  109,  107,  95 ]
    MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  8.28105032E-05, y:  8.70457518E-04, z:  1.57211735E-04, 
                     total:  8.88408352E-04}
@@ -1816,7 +1816,7 @@
    BC                                  : Free
    Box                                 :  [  109,  107,  95 ]
    MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.01058413E-04, y:  8.98998980E-04, z:  1.36680239E-04, 
                     total:  9.14928116E-04}
@@ -2071,7 +2071,7 @@
    BC                                  : Free
    Box                                 :  [  109,  107,  95 ]
    MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  7.60689485E-05, y:  9.05099002E-04, z:  1.13632294E-04, 
                     total:  9.15370409E-04}
@@ -2326,7 +2326,7 @@
    BC                                  : Free
    Box                                 :  [  109,  107,  95 ]
    MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  8.40450907E-05, y:  9.11639257E-04, z:  6.93825907E-05, 
                     total:  9.18130523E-04}
@@ -2572,7 +2572,7 @@
    BC                                  : Free
    Box                                 :  [  109,  107,  95 ]
    MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  8.15642952E-05, y:  9.12160421E-04, z:  5.54902792E-05, 
                     total:  9.17479449E-04}
@@ -2809,7 +2809,7 @@
    BC                                  : Free
    Box                                 :  [  109,  107,  95 ]
    MPI tasks                           :  3
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  8.19737067E-05, y:  9.14176761E-04, z:  4.55543373E-05, 
                     total:  9.18974449E-04}

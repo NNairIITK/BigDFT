@@ -1,3 +1,14 @@
+!> @file
+!!  Unitary tests for the communication subroutines (potential and density)
+!! @author
+!!    Copyright (C) 2015-2015 BigDFT group
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
+
+
+!> Module containing unitary tests for the potential and density communications
 module unitary_tests
   use module_base
   implicit none
@@ -27,7 +38,7 @@ module unitary_tests
       type(DFT_local_fields), intent(inout) :: denspot
       !local variables
       logical :: dosome, abort
-      integer :: i1,i2,i3,ind,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,i_stat,i_all,ishift,ispin
+      integer :: i1,i2,i3,ind,n3p,ilr,iorb,ilr_orb,n2i,n1i,ierr,numtot,ishift,ispin
       integer :: i1s, i1e, i2s, i2e, i3s, i3e, ii1, ii2, ii3
       real(dp) :: maxdiff,sumdiff,testval
       real(dp),parameter :: tol_calculation_mean=1.d-12
@@ -837,9 +848,10 @@ module unitary_tests
        !local variables
        character(len=*), parameter :: subname='check_communications'
        integer, parameter :: ilog=6
-       integer :: i,ispinor,iorb,indspin,i_stat,i_all,ikptsp
+       integer :: i,ispinor,iorb,indspin,ikptsp
        integer :: ikpt,ierr,i0,ifine,ii,iiorb,ipt,jorb,indorb_tmp
-       integer :: icomp,ispin
+       integer :: ispin
+       !integer :: icomp
        !!$integer :: ipsi,ipsic,ipsif,ipsiworkc,ipsiworkf,jcomp,jkpt
        real(wp) :: psival,maxdiff,tt
        real(wp), dimension(:), allocatable :: psi,psit_c,psit_f

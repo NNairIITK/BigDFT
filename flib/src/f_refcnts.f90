@@ -215,14 +215,15 @@ contains
 
   end subroutine f_ref_associate
 
-  subroutine f_ref_identify(dest,src)
-    implicit none
-    type(f_reference_counter), intent(out) :: dest
-    type(f_reference_counter), intent(in) :: src
-    
-    !the destination is completely scratched
-    call nullify_f_ref(dest)
-    call f_ref_associate(src,dest)
-  end subroutine f_ref_identify
+  !Not used
+!!$  subroutine f_ref_identify(dest,src)
+!!$    implicit none
+!!$    type(f_reference_counter), intent(out) :: dest
+!!$    type(f_reference_counter), intent(in) :: src
+!!$    
+!!$    !the destination is completely scratched
+!!$    call nullify_f_ref(dest)
+!!$    call f_ref_associate(src,dest)
+!!$  end subroutine f_ref_identify
 
 end module f_refcnts
