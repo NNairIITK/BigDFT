@@ -28,6 +28,7 @@
    output_wf: 1
    output_mat: 11
    #calculate_onsite_overlap: Yes
+   frag_num_neighbours: 2 
  lin_basis:
    nit: 5
    idsx: 5

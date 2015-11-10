@@ -21,9 +21,6 @@ SUBDIRS = \
 	OpenCL \
 	bindings \
 	geopt \
-	art \
-	mhgps_files \
-	global_files \
 	$(sub_dirs_bin)
 
 EXTRA_DIST = \
@@ -31,7 +28,6 @@ EXTRA_DIST = \
 	wavelib/recs16.inc \
 	wavelib/sym_16.inc \
 	init/pspconf.in.f90 \
-	NEB_driver.sh \
 	input_variables_definition.yaml
 
 # Build targets, binaries and libraries.
@@ -66,11 +62,11 @@ else
 lib_bigdft =
 endif
 if BUILD_BINARIES
-binaries_sources = bigdft memguess splsad NEB frequencies global globaltool abscalc mhgps mhgpstool utilities
+binaries_sources = bigdft memguess frequencies abscalc utilities
 local_binaries = test_forces
-scripts_sources = NEB_driver.sh bigdft-tool
+scripts_sources = bigdft-tool
 sub_dirs_bin = tools tools/bader
-EXTRA_PROGRAMS = MDanalysis bart BigDFT2Wannier WaCo NEB_images
+EXTRA_PROGRAMS = MDanalysis BigDFT2Wannier WaCo
 else
 binaries_sources =
 local_binaries =
@@ -115,6 +111,13 @@ else
 cp2k_ld =
 endif
 
+if USE_OCL
+OCL_CONV = interface_ocl.f90
+else
+OCL_CONV =
+endif
+
+
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
@@ -138,8 +141,8 @@ high_level = cluster.f90 \
 	pdos.f90 \
 	tddft.f90 \
 	output.f90 \
-	external.f90 \
-	images.f90
+	$(OCL_CONV) \
+	external.f90
 
 #objects which can be compiled only with module_base
 low_level = \
@@ -163,7 +166,6 @@ low_level = \
 	wfn_opt/orthogonality.f90 \
 	wfn_opt/diis.f90 \
 	wfn_opt/applyh.f90 \
-	wfn_opt/potential.f90 \
 	wfn_opt/exctX.f90 \
 	wfn_opt/exctX_op2p.f90 \
 	wfn_opt/sic.f90 \
@@ -179,7 +181,6 @@ low_level = \
 	wavelib/i-o.f90 \
 	wavelib/un-compress.f90 \
 	wavelib/gauss_to_daub.f90 \
-	wavelib/daubisf.f90 \
 	$(etsf_files) \
 	profiling/memoryestimator.f90 \
 	linear/cleanup.f90 \
@@ -188,7 +189,6 @@ low_level = \
 	linear/getLocBasis.f90 \
 	linear/convolutions_aux.f90 \
 	linear/convolutions.f90 \
-	linear/precondLinear.f90 \
 	linear/locReg_orbitals.f90 \
 	linear/linearScaling.f90 \
 	linear/initAndUtils.f90 \
@@ -269,12 +269,6 @@ install-data-hook:
 bigdft_SOURCES = BigDFT.f90
 bigdft_LDADD = $(bigdft_library)
 
-NEB_images_SOURCES = BigDFT.f90
-NEB_images_LDADD = $(bigdft_library)
-
-splsad_SOURCES = splinedsaddle.f90
-splsad_LDADD = $(bigdft_library) @LINALG_LIBS@
-
 #rism_SOURCES = rism.f90 rismlowlevel.f90
 #rism_LDADD = $(bigdft_library)
 
@@ -303,9 +297,6 @@ abscalc_LDADD = libabscalc.a $(bigdft_library) @LINALG_LIBS@
 test_forces_SOURCES = test_forces.f90
 test_forces_LDADD = $(bigdft_library)
 
-NEB_SOURCES = NEB.f90
-NEB_LDADD = $(bigdft_library) @LINALG_LIBS@
-
 #to be adjusted: when the compiler has MPI built-in libraries the linker finds multiple definitions
 memguess_SOURCES = memguess.f90 $(top_srcdir)/flib/src/MPIfake.f90
 memguess_LDADD = $(bigdft_library) @LINALG_LIBS@
@@ -315,25 +306,6 @@ utilities_LDADD = $(bigdft_library) @LINALG_LIBS@
 
 frequencies_SOURCES = frequencies.f90
 frequencies_LDADD = $(bigdft_library) @LINALG_LIBS@
-
-bart_SOURCES = art.f90
-bart_FCFLAGS = -I. -Iart -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-bart_LDADD = art/libart.a $(bigdft_library) @LINALG_LIBS@
-
-mhgps_SOURCES = mhgps.f90
-mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-mhgps_LDADD = mhgps_files/libmhgps.a $(bigdft_library) @LINALG_LIBS@
-
-mhgpstool_SOURCES = mhgpstool.f90
-mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-mhgpstool_LDADD = mhgps_files/libmhgps.a $(bigdft_library)  @LINALG_LIBS@
-
-global_SOURCES = global.f90
-global_LDADD = $(bigdft_library) @LINALG_LIBS@
-
-globaltool_SOURCES = globaltool.f90
-globaltool_FCFLAGS = -I. -Iglobal_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-globaltool_LDADD = global_files/libglobalf.a $(bigdft_library)  @LINALG_LIBS@
 
 CLEANFILES = *.@MODULE_EXT@ bindings_dbus.* introspect libbigdft-1.* input_variables_definition-inc.h
 clean-local:
@@ -361,8 +333,6 @@ xabsorber.o init/xabsorber.o : init/xabsorber.f90
 initAndUtils.o linear/initAndUtils.o: linear/initAndUtils.f90 cleanup.o
 
 linearScaling.o transferintegrals.o: i-o.o
-
-NEB.o: images.o
 
 restart.o: i-o.o
 

@@ -101,7 +101,7 @@ module module_input_keys
      real(kind=8) :: alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
      real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
      integer :: plotBasisFunctions
-     real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
+     real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix, coeff_factor
      real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
      real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
      real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
@@ -118,12 +118,16 @@ module module_input_keys
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
      real(kind=8) :: max_inversion_error
-    logical :: calculate_onsite_overlap
+     real(kind=8) :: cdft_lag_mult_init !< Initial value for lagrange multiplier
+     real(kind=8) :: cdft_conv_crit     !< Convergence threshold for cdft charge
+     logical :: calculate_onsite_overlap
      integer :: output_mat_format     !< Output Matrices format
      integer :: output_coeff_format   !< Output Coefficients format
      integer :: output_fragments   !< Output fragments/full system/both
+     integer :: frag_num_neighbours   !< number of neighbouring atoms per fragment
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
+     real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -154,6 +158,7 @@ module module_input_keys
      character(len=100) :: file_lin   
      character(len=100) :: file_frag   !< Fragments
      character(len=max_field_length) :: dir_output  !< Strings of the directory which contains all data output files
+     character(len=max_field_length) :: naming_id
      !integer :: files                  !< Existing files.
 
      !> Miscellaneous variables
@@ -275,9 +280,22 @@ module module_input_keys
      character(len=64) :: mm_paramset
      character(len=64) :: mm_paramfile
 
+     !MD input keywords
+     integer :: mdsteps
+     integer :: md_printfrq
+     real(gp) :: temperature
+     real(gp) :: dt
+     logical  :: no_translation
+     logical  :: nhc
+     integer  :: nhnc
+     integer  :: nmultint
+     integer  :: nsuzuki
+     real(gp) :: nosefrq 
+
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
+     integer :: profiling_depth
      real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
      real(gp) :: symTol    !< Tolerance for symmetry detection.
      integer :: linear
@@ -377,6 +395,9 @@ module module_input_keys
 
      !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
      logical :: adjust_kernel_iterations
+
+     !> linear scaling: enable the addaptive ajustment of the kernel convergence threshold according to the support function convergence
+     logical :: adjust_kernel_threshold
 
      !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      logical :: wf_extent_analysis
@@ -560,7 +581,7 @@ contains
     !  use input_old_text_format, only: dict_from_frag
     use module_atoms!, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,&
                     ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
-    use yaml_strings, only: f_strcpy
+    use yaml_strings
     use m_ab6_symmetry, only: symmetry_get_n_sym
     use interfaces_42_libpaw
     use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
@@ -568,7 +589,6 @@ contains
     use fragment_base
     use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
-    use yaml_strings, only: yaml_toa
     implicit none
     !Arguments
     type(input_variables), intent(out) :: in
@@ -664,7 +684,7 @@ contains
     call f_zero(outdir)
     call dict_get_run_properties(dict, naming_id = run_id, posinp_id = posinp_id, input_id = input_id, outdir_id = outdir)
     call f_strcpy(dest = in%dir_output, src = trim(outdir) // "data" // trim(run_id))
-
+    call f_strcpy(dest= in%naming_id, src=trim(run_id))
     call set_cache_size(in%ncache_fft)
 
     !status of the allocation verbosity and profiling
@@ -673,12 +693,12 @@ contains
          dest=filename)
     if (.not. in%debug) then
        if (in%verbosity==3) then
-          call f_malloc_set_status(output_level=1, iproc=bigdft_mpi%iproc,logfile_name=filename)
+          call f_malloc_set_status(output_level=1, iproc=bigdft_mpi%iproc,logfile_name=filename,profiling_depth=in%profiling_depth)
        else
-          call f_malloc_set_status(output_level=0, iproc=bigdft_mpi%iproc)
+          call f_malloc_set_status(output_level=0, iproc=bigdft_mpi%iproc,profiling_depth=in%profiling_depth)
        end if
     else
-       call f_malloc_set_status(output_level=2, iproc=bigdft_mpi%iproc,logfile_name=filename)
+       call f_malloc_set_status(output_level=2, iproc=bigdft_mpi%iproc,logfile_name=filename,profiling_depth=in%profiling_depth)
     end if
 
     call nullifyInputLinparameters(in%lin)
@@ -1474,6 +1494,8 @@ contains
              in%run_mode=CP2K_RUN_MODE
           case('dftbp')
              in%run_mode=DFTBP_RUN_MODE
+          case('multi')
+             in%run_mode=MULTI_RUN_MODE
           end select
        case(MM_PARAMSET)
           in%mm_paramset=val
@@ -1577,6 +1599,8 @@ contains
        select case (trim(dict_key(val)))       
        case (DEBUG)
           in%debug = val
+       case (PROFILING_DEPTH)
+          in%profiling_depth = val
        case (FFTCACHE)
           in%ncache_fft = val
        case (VERBOSITY)
@@ -1760,8 +1784,11 @@ contains
           ! linear scaling: radius enlargement for the Hamiltonian application (in grid points)
           in%hamapp_radius_incr = val
        case (ADJUST_KERNEL_ITERATIONS) 
-          ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
+          ! linear scaling: enable the adaptive ajustment of the number of kernel iterations
           in%adjust_kernel_iterations = val
+       case (ADJUST_KERNEL_THRESHOLD) 
+          ! linear scaling: enable the adaptive ajustment of the kernel convergence threshold
+          in%adjust_kernel_threshold = val
        case(WF_EXTENT_ANALYSIS)
           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
           in%wf_extent_analysis = val
@@ -1845,6 +1872,39 @@ contains
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
+!NNdbg
+    case (MD_VARIABLES)
+       select case (trim(dict_key(val)))
+       case (MDSTEPS)
+          in%mdsteps = val
+       case (PRINT_FREQUENCY)
+          in%md_printfrq = val
+       case (TEMPERATURE)
+          in%temperature = val
+       case (TIMESTEP)
+          in%dt = val
+       case (NO_TRANSLATION) !.true. or .false. ?
+          in%no_translation = val
+       case (THERMOSTAT) !string
+         str = dict_value(val) 
+         if (trim(str).eqv."nose_hoover_chain") then
+           in%nhc=.true.
+         else
+           in%nhc=.false.
+         end if
+       case (NOSE_CHAIN_LENGTH) 
+         in%nhnc = val
+       case (NOSE_MTS_SIZE)
+         in%nmultint = val
+       case (NOSE_YOSHIDA_FACTOR)
+         in%nsuzuki = val
+       case (NOSE_FREQUENCY)
+         in%nosefrq = val
+       case DEFAULT
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+!NNdbg
     case (MIX_VARIABLES)
        ! the MIX variables ------------------------------------------------------
        select case (trim(dict_key(val)))
@@ -1924,6 +1984,14 @@ contains
           in%lin%output_fragments = val
        case (KERNEL_RESTART_MODE)
           in%lin%kernel_restart_mode = val
+       case (KERNEL_RESTART_NOISE)
+          in%lin%kernel_restart_noise = val
+       case (FRAG_NUM_NEIGHBOURS)
+          in%lin%frag_num_neighbours = val
+       case (CDFT_LAG_MULT_INIT)
+          in%lin%cdft_lag_mult_init = val
+       case (CDFT_CONV_CRIT)
+          in%lin%cdft_conv_crit = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
        case (CALC_PULAY)
@@ -2041,6 +2109,8 @@ contains
           in%lin%evhigh = dummy_gp(2)
        case (FSCALE_FOE) 
           in%lin%fscale = val
+       case (COEFF_SCALING_FACTOR) 
+          in%lin%coeff_factor = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2137,11 +2207,14 @@ contains
     !in%output_wf_format = WF_FORMAT_NONE
     !in%output_denspot_format = output_denspot_FORMAT_CUBE
     call f_zero(in%set_epsilon)
+    call f_zero(in%dir_output)
+    call f_zero(in%naming_id)
     nullify(in%gen_kpt)
     nullify(in%gen_wkpt)
     nullify(in%kptv)
     nullify(in%nkptsv_group)
     call f_zero(in%calculate_strten)
+    in%profiling_depth=-1
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)
     in%gen_norbd = UNINITIALIZED(0)
@@ -2230,6 +2303,23 @@ contains
 
   END SUBROUTINE geopt_input_variables_default
 
+  !> Assign default values for MD variables
+  subroutine md_input_variables_default(in)
+    use module_defs, only: UNINITIALIZED
+    implicit none
+    type(input_variables), intent(inout) :: in
+
+    in%mdsteps=0
+    in%md_printfrq = 1
+    in%temperature = 300.d0
+    in%dt = 20.d0
+    in%no_translation = .false.
+    in%nhc=.false.
+    in%nhnc = 3
+    in%nmultint = 1
+    in%nsuzuki  = 7
+    in%nosefrq  = 3000.d0
+  END SUBROUTINE md_input_variables_default 
 
   !> Assign default values for self-interaction correction variables
   subroutine sic_input_variables_default(in)
@@ -2880,6 +2970,24 @@ contains
           call yaml_mapping_close()
        end if
     end if
+    !MD input
+    if (in%mdsteps > 0) then
+       call yaml_comment('Molecular Dynamics Input Parameters',hfill='-')
+       call yaml_mapping_open('Molecular Dynamics Parameters')
+       call yaml_map('Maximum MD steps',in%mdsteps)
+       call yaml_map('Printing Frequency', in%md_printfrq)
+       call yaml_map('Initial Temperature (K)', in%temperature, fmt='(1pe7.1)')
+       call yaml_map('Time step (a.u.)',in%dt,fmt='(1pe7.1)')
+       call yaml_map('Freeze Translation ', in%no_translation)
+       call yaml_map('Nose Hoover Chain Thermostat', in%nhc)
+       if(in%nhc)then
+         call yaml_map('Length of Nose Hoover Chains', in%nhnc)
+         call yaml_map('Multiple Time Step for Nose Hoover Chains', in%nmultint)
+         call yaml_map('Yoshida-Suzuki factor for Nose Hoover Chains', in%nsuzuki)
+         call yaml_map('Frequency of Nose Hoover Chains', in%nosefrq)
+       end if
+       call yaml_mapping_close()
+    end if
 
     !Output for K points
     if (atoms%astruct%geocode /= 'F') then
@@ -3065,10 +3173,10 @@ contains
   END SUBROUTINE print_dft_parameters
 
   !> Read from all input files and build a dictionary
-  subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
+  recursive subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
     use wrapper_MPI, only: mpi_environment
-    use public_keys, only: POSINP,IG_OCCUPATION
+    use public_keys, only: POSINP, IG_OCCUPATION, MODE_VARIABLES, SECTIONS, METHOD_KEY
     use yaml_output
     use yaml_strings, only: f_strcpy
     use f_utils, only: f_file_exists
@@ -3083,15 +3191,16 @@ contains
     type(mpi_environment), intent(in) :: mpi_env       !< MPI Environment
     !Local variables
     logical :: exists
-    type(dictionary), pointer :: at
+    type(dictionary), pointer :: at, iter
     character(len = max_field_length) :: str, rad
 
     !read the input file(s) and transform them into a dictionary
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
 
     !possible overwrite with a specific posinp file.
-    call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
-
+    if (len_trim(posinp_name) > 0) then
+       call astruct_file_merge_to_dict(dict,POSINP, trim(posinp_name))
+    end if
     if (has_key(dict,POSINP)) then
        str = dict_value(dict //POSINP)
        if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
@@ -3144,6 +3253,24 @@ contains
        end if
     end if
 
+    ! Add section files, if any.
+    if (has_key(dict, MODE_VARIABLES)) then
+       str = dict_value(dict // MODE_VARIABLES // METHOD_KEY)
+       if (trim(str) == 'multi' .and. has_key(dict // MODE_VARIABLES, SECTIONS)) then
+          iter => dict_iter(dict // MODE_VARIABLES // SECTIONS)
+          do while (associated(iter))
+             str = dict_value(dict // dict_value(iter))
+             if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+                if (len_trim(str) > 5 .and. str(max(1,len_trim(str)-4):len_trim(str)) == ".yaml") then
+                   call user_dict_from_files(dict // dict_value(iter), str(1:len_trim(str)-5), "", mpi_env)
+                else
+                   call user_dict_from_files(dict // dict_value(iter), str, "", mpi_env)
+                end if
+             end if
+             iter => dict_next(iter)
+          end do
+       end if
+    end if
   end subroutine user_dict_from_files
 
 

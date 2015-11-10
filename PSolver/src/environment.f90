@@ -377,7 +377,7 @@ contains
   !!at the same time evaluate the energy of the extra term given the 
   !! electronic charge density, and add if needed the ionic potential
   subroutine add_Vextra(n1,n23,nabla2_pot,depsdrho,dsurfdrho,cavity,&
-       only_es,rho,sumpion,pot_ion,pot,eVextra)
+       only_es,sumpion,pot_ion,pot)
     implicit none
     !>if .true., the added potential only comes from the 
     !!electrostatic contribution
@@ -385,48 +385,39 @@ contains
     integer, intent(in) :: n1,n23
     !> on input, square of the gradient of the potential.
     !! on output, extra term of the potential
-    real(dp), dimension(n1,n23), intent(in) :: depsdrho,dsurfdrho,rho,pot_ion
+    real(dp), dimension(n1,n23), intent(in) :: depsdrho,dsurfdrho,pot_ion
     type(cavity_data), intent(in) :: cavity
     real(dp), dimension(n1,n23), intent(in) :: nabla2_pot
     real(dp), dimension(n1,n23), intent(out) :: pot
-    real(dp), intent(out) :: eVextra
     !local variables
     integer :: i1,i23
-    real(dp) :: ep,sp,rh,pt
+    real(dp) :: ep,sp,pt
 
-    eVextra=0.0_dp
     if (only_es) then
        if (sumpion) then
-          !$omp parallel do default(shared) private(i1,i23,ep,rh,pt) &
-          !$omp reduction(+:eVextra)       
+          !$omp parallel do default(shared) private(i1,i23,ep,pt)
           do i23=1,n23
              do i1=1,n1
                 ep=depsdrho(i1,i23)
                 pt=-oneoeightpi*ep*nabla2_pot(i1,i23)
                 pot(i1,i23)=pt+pot_ion(i1,i23)
-                rh=rho(i1,i23)*pt
-                eVextra=eVextra+rh
              end do
           end do
           !$omp end parallel do
        else
-          !$omp parallel do default(shared) private(i1,i23,ep,rh,pt) &
-          !$omp reduction(+:eVextra)       
+          !$omp parallel do default(shared) private(i1,i23,ep,pt)
           do i23=1,n23
              do i1=1,n1
                 ep=depsdrho(i1,i23)
                 pt=-oneoeightpi*ep*nabla2_pot(i1,i23)
                 pot(i1,i23)=pt
-                rh=rho(i1,i23)*pt
-                eVextra=eVextra+rh
              end do
           end do
           !$omp end parallel do
        end if
     else
        if (sumpion) then
-          !$omp parallel do default(shared) private(i1,i23,ep,sp,rh,pt)&
-          !$omp reduction(+:eVextra)
+          !$omp parallel do default(shared) private(i1,i23,ep,sp,pt)
           do i23=1,n23
              do i1=1,n1
                 ep=depsdrho(i1,i23)
@@ -435,14 +426,11 @@ contains
                      (cavity%alphaS+cavity%gammaS)*sp+&
                      cavity%betaV*ep/(1.d0-cavity%epsilon0)
                 pot(i1,i23)=pt+pot_ion(i1,i23)
-                rh=rho(i1,i23)*pt
-                eVextra=eVextra+rh
              end do
           end do
           !$omp end parallel do
        else
-          !$omp parallel do default(shared) private(i1,i23,ep,sp,rh,pt)&
-          !$omp reduction(+:eVextra)
+          !$omp parallel do default(shared) private(i1,i23,ep,sp,pt)
           do i23=1,n23
              do i1=1,n1
                 ep=depsdrho(i1,i23)
@@ -451,8 +439,6 @@ contains
                      (cavity%alphaS+cavity%gammaS)*sp+&
                      cavity%betaV*ep/(1.d0-cavity%epsilon0)
                 pot(i1,i23)=pt
-                rh=rho(i1,i23)*pt
-                eVextra=eVextra+rh
              end do
           end do
           !$omp end parallel do

@@ -123,26 +123,32 @@ for file in yaml_files:
     dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.report.yaml',''))).strip()
     documents=[a for a in yaml.load_all(open(file, "r").read(), Loader = yaml.CLoader)]
     #find whether all the tests have passed (look at last part)
+    thedoc=-1
+    if "Test succeeded" in documents[-1]:
+        thedoc=-1
+    elif "Test succeeded" in documents[-2]:
+        thedoc=-2
     try:
-        discrepancy=documents[-1]["Test succeeded"]
+        discrepancy=documents[thedoc]["Test succeeded"]
         #test failes
         if not discrepancy:
             Exit = 1
             start = start_fail
             state = "Failed:    %7.1e > %7.1e (%s)" % \
-                    (documents[-1]["Maximum discrepancy"], \
-                     documents[-1]["Maximum tolerance applied"], \
-                     documents[-1]["Failure reason"])
+                    (documents[thedoc]["Maximum discrepancy"], \
+                     documents[thedoc]["Maximum tolerance applied"], \
+                     documents[thedoc]["Failure reason"])
         else:
             start = start_success
             state = "Succeeded: %7.1e (%7.1e) " % \
-                    (documents[-1]["Maximum discrepancy"], \
-                     documents[-1]["Maximum tolerance applied"])
+                    (documents[thedoc]["Maximum discrepancy"], \
+                     documents[thedoc]["Maximum tolerance applied"])
         #Test if time is present
-        time = documents[-1]["Seconds needed for the test"]
+        time = documents[thedoc]["Seconds needed for the test"]
         totime += time
         print "%s%-66s %s%8.2fs%s" % (start,dirfic,state,time,end)
-    except:
+    except Exception,e:
+        print e
         start = start_fail
         state = "Failed: Can not parse file!"
         print "%s%-66s %s%s" % (start,dirfic,state,end)

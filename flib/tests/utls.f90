@@ -1,7 +1,7 @@
 !> @file
 !! Routine to tests f_utils module
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,10 +13,10 @@ subroutine f_utils_test()
   use f_enums
   implicit none
   !local variables
-  type(f_enumerator) :: greetings=f_enumerator('Greetings',10) 
-  type(f_enumerator) :: f1=f_enumerator('Ciao',1)              
-  type(f_enumerator) :: f2=f_enumerator('Hello',2)             
-  type(f_enumerator) :: f3=f_enumerator('Pizza',3)             
+  type(f_enumerator) :: greetings=f_enumerator('Greetings',10,null()) 
+  type(f_enumerator) :: f1=f_enumerator('Ciao',1,null())              
+  type(f_enumerator) :: f2=f_enumerator('Hello',2,null())             
+  type(f_enumerator) :: f3=f_enumerator('Pizza',3,null())             
   integer :: unt,unt2,u
   !  double precision :: t0
   integer, parameter :: nstep=3

@@ -36,6 +36,9 @@ module PStypes
   !!Poisson Equation. Not all of them are allocated, the actual memory usage 
   !!depends on the treatment
   type, public :: PS_workarrays
+     !> dielectric function epsilon, continuous and differentiable in the whole
+     !domain, to be used in the case of Preconditioned Conjugate Gradient method
+     real(dp), dimension(:,:), pointer :: eps
      !> logaritmic derivative of the dielectric function,
      !! to be used in the case of Polarization Iteration method
      real(dp), dimension(:,:,:,:), pointer :: dlogeps
@@ -58,7 +61,8 @@ module PStypes
      !> input guess vectors to be preserved for future use
      !!or work arrays, might be of variable dimension
      !!(either full of distributed)
-     real(dp), dimension(:,:), pointer :: rho,pot
+     real(dp), dimension(:,:), pointer :: pot
+     real(dp), dimension(:,:), pointer :: rho
      !> Polarization charge vector for print purpose only.
      real(dp), dimension(:,:), pointer :: rho_pol
      !> arrays for the execution of the PCG algorithm
@@ -157,10 +161,6 @@ module PStypes
      character(len=1) :: datacode
      !> integer variable setting the verbosity, from silent (0) to high
      integer :: verbosity_level
-     !> add pot_ion to the final potential
-     logical :: add_pot_ion
-     !> add rho_ion to the initial density potential
-     logical :: add_rho_ion
      !> if .true., and the cavity is set to 'sccs' attribute, then the epsilon is updated according to rhov
      logical :: update_cavity
      !> if .true. calculate the stress tensor components.
@@ -182,7 +182,7 @@ module PStypes
 
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
-  public :: ps_allocate_lowlevel_workarrays
+  public :: ps_allocate_lowlevel_workarrays,PSolver_options_null
   public :: release_PS_workarrays,PS_release_lowlevel_workarrays
 
 contains
@@ -196,6 +196,21 @@ contains
     e%cavitation =0.0_gp
     e%strten     =0.0_gp
   end function PSolver_energies_null
+
+  pure function PSolver_options_null() result(o)
+    implicit none
+    type(PSolver_options) :: o
+
+    o%datacode           ='X'
+    o%verbosity_level    =0
+    o%update_cavity      =.false.
+    o%calculate_strten   =.false.
+    o%use_input_guess    =.false.
+    o%cavity_info        =.false.
+    o%only_electrostatic =.true.
+    o%potential_integral =0.0_gp
+   end function PSolver_options_null
+
 
   pure function FFT_metadata_null() result(d)
     implicit none
@@ -234,6 +249,7 @@ contains
     nullify(w%z)
     nullify(w%p)
     nullify(w%q)
+    nullify(w%eps)
     call f_zero(w%work1_GPU)
     call f_zero(w%work2_GPU)
     call f_zero(w%rho_GPU)
@@ -286,6 +302,7 @@ contains
   subroutine free_PS_workarrays(iproc,igpu,keepzf,gpuPCGred,keepGPUmemory,w)
     integer, intent(in) :: keepzf,gpuPCGred,keepGPUmemory,igpu,iproc
     type(PS_workarrays), intent(inout) :: w
+    call f_free_ptr(w%eps)
     call f_free_ptr(w%dlogeps)
     call f_free_ptr(w%oneoeps)
     call f_free_ptr(w%corr)
@@ -328,12 +345,14 @@ contains
   end subroutine free_PS_workarrays
 
 
-  subroutine release_PS_workarrays(keepzf,w)
+  subroutine release_PS_workarrays(keepzf,w,use_input_guess)
     implicit none
     integer, intent(in) :: keepzf
     type(PS_workarrays), intent(inout) :: w
+    logical, intent(in) :: use_input_guess
     if(keepzf /= 1) call f_free_ptr(w%zf)
-    call f_free_ptr(w%pot)
+!    call f_free_ptr(w%pot)
+    if (.not. use_input_guess) call f_free_ptr(w%pot)
   end subroutine release_PS_workarrays
 
   !> Free memory used by the kernel operation
@@ -395,7 +414,8 @@ contains
     case('PCG')
        if (use_input_guess .and. &
             all([associated(kernel%w%res),associated(kernel%w%pot)])) then
-          call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+          !call axpy(n1*n23,1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+          call f_memcpy(src=rho,dest=kernel%w%res)
        else
           !allocate if it is the first time
           if (associated(kernel%w%pot)) then
@@ -410,10 +430,22 @@ contains
        kernel%w%q=f_malloc0_ptr([n1,n23],id='q')
        kernel%w%p=f_malloc0_ptr([n1,n23],id='p')
        kernel%w%z=f_malloc_ptr([n1,n23],id='z')
+       kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
     case('PI')
-       kernel%w%pot=f_malloc_ptr(kernel%ndims,id='pot')
-       kernel%w%rho=f_malloc0_ptr(kernel%ndims,id='rho')
-       kernel%w%rho_pol=f_malloc_ptr(kernel%ndims,id='rho_pol')
+       if (use_input_guess .and. &
+            associated(kernel%w%pot)) then
+       else
+          !allocate if it is the first time
+          if (associated(kernel%w%pot)) then
+             call f_zero(kernel%w%pot)
+          else
+       kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
+          end if
+       end if
+
+       !kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
+       kernel%w%rho=f_malloc0_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='rho')
+       kernel%w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
     end select
 
   end subroutine PS_allocate_lowlevel_workarrays
@@ -429,18 +461,20 @@ contains
 
     select case(trim(str(kernel%method)))
     case('PCG')
-       if (use_input_guess) then
-          !preserve the previous values for the input guess
-          call axpy(size(kernel%w%res),-1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
-       else
-          call f_free_ptr(kernel%w%res)
-       end if
+!       if (use_input_guess) then
+!          !preserve the previous values for the input guess
+!          call axpy(size(kernel%w%res),-1.0_gp,rho(1,1),1,kernel%w%res(1,1),1)
+!       else
+!          call f_free_ptr(kernel%w%res)
+!       end if
+       if (.not. use_input_guess) call f_free_ptr(kernel%w%res)
        call f_free_ptr(kernel%w%q)
        call f_free_ptr(kernel%w%p)
        call f_free_ptr(kernel%w%z)
+       call f_free_ptr(kernel%w%rho_pol) !>>>>>>>>>>here the switch
     case('PI')
        call f_free_ptr(kernel%w%rho)
-       call f_free_ptr(kernel%w%rho_pol)
+       call f_free_ptr(kernel%w%rho_pol) !>>>>>>>>>>here the switch
     end select
 
   end subroutine PS_release_lowlevel_workarrays
@@ -459,15 +493,17 @@ contains
 
     select case(trim(str(method)))
     case('PCG')
-       w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol')
+       !w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
+       w%eps=f_malloc_ptr([n1,n23],id='eps')
        w%corr=f_malloc_ptr([n1,n23],id='corr')
        w%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
        w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
     case('PI')
-       w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol')
+       !w%rho_pol=f_malloc_ptr([n1,n23],id='rho_pol') !>>>>>>>>>>here the switch
        w%dlogeps=f_malloc_ptr([3,ndims(1),ndims(2),ndims(3)],id='dlogeps')
        w%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
-       w%epsinnersccs=f_malloc_ptr([n1,ndims(2)*ndims(3)],id='epsinnersccs')
+       w%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
+       !w%epsinnersccs=f_malloc_ptr([n1,ndims(2)*ndims(3)],id='epsinnersccs')
     end select
    end subroutine PS_allocate_cavity_workarrays
 
@@ -493,6 +529,7 @@ contains
              call f_zero(kernel%w%corr)
              do i23=1,n23
                 do i1=1,n1
+                   kernel%w%eps(i1,i23)=vacuum_eps
                    kernel%w%oneoeps(i1,i23)=1.0_dp/sqrt(vacuum_eps)
                 end do
              end do
@@ -636,6 +673,12 @@ contains
           else
              call f_err_throw('For method "PCG" the arrays oneosqrteps or epsilon should be present')
           end if
+          if (present(eps)) then
+             call f_memcpy(n=n1*n23,src=eps(1,1,i3s),&
+                  dest=kernel%w%eps)
+          else
+             call f_err_throw('For method "PCG" the arrays eps should be present')
+          end if
        else
           call f_err_throw('For method "PCG" the arrays oneosqrteps'//&
                ' and corr have to be associated, call PS_allocate_cavity_workarrays')
@@ -729,6 +772,7 @@ contains
           do i2=1,n02
              do i1=1,n01
                 if (kernel%w%epsinnersccs(i1,i23).gt.innervalue) then 
+                   kernel%w%eps(i1,i23)=1.d0 !eps(i1,i2,i3)
                    kernel%w%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
                    kernel%w%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
                    depsdrho(i1,i23)=0.d0
@@ -740,6 +784,7 @@ contains
                    dd = delta_rho(i1,i23)
                    de=epsprime(rh,kernel%cavity)
                    depsdrho(i1,i23)=de
+                   kernel%w%eps(i1,i23)=eps(rh,kernel%cavity)
                    kernel%w%oneoeps(i1,i23)=oneosqrteps(rh,kernel%cavity)
                    kernel%w%corr(i1,i23)=corr_term(rh,d2,dd,kernel%cavity)
                    dsurfdrho(i1,i23)=surf_term(rh,d2,dd,cc_rho(i1,i23),kernel%cavity)/epsm1

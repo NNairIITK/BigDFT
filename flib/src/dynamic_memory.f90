@@ -12,16 +12,16 @@
 module dynamic_memory_base
   use memory_profiling
   use dictionaries, info_length => max_field_length
-  use yaml_strings, only: yaml_toa,yaml_date_and_time_toa,operator(//)
+  use yaml_strings!, only: yaml_toa,yaml_date_and_time_toa,operator(//),f_string
   use module_f_malloc 
   use f_precisions
   use yaml_parse, only: yaml_a_todict
-  use f_utils, only: f_time
+  use f_utils, only: f_time,f_zero
   implicit none
 
   private 
 
-  logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
+  logical :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
   logical, parameter :: bigdebug=.false.!.true.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
@@ -67,6 +67,8 @@ module dynamic_memory_base
      character(len=256) :: logfile !<file in which reports are written
      integer :: logfile_unit !< unit of the logfile stream
      integer :: output_level !< decide the level of reporting
+     integer :: depth !< present level of depth of the routine
+     integer :: profiling_depth !< maximum value of the profiling level
      !> Dictionaries needed for profiling storage
      type(dictionary), pointer :: dict_global    !<status of the memory at higher level
      type(dictionary), pointer :: dict_routine   !<status of the memory inside the routine
@@ -103,14 +105,14 @@ module dynamic_memory_base
 
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
-!     module procedure il1_all_free, il2_all_free
+     !     module procedure il1_all_free, il2_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free,r4_all_free
      module procedure z2_all_free
      module procedure li1_all_free,li2_all_free,li3_all_free,li4_all_free
-  end interface
+  end interface f_free
 
   interface f_free_ptr
      module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free,i4_ptr_free
@@ -119,10 +121,10 @@ module dynamic_memory_base
      module procedure l1_ptr_free, l2_ptr_free, l3_ptr_free
      module procedure li1_ptr_free
      module procedure z1_ptr_free
-  end interface
+  end interface f_free_ptr
 
   interface f_memcpy
-     module procedure f_memcpy_i0,f_memcpy_i1
+     module procedure f_memcpy_i0,f_memcpy_i1,f_memcpy_i2
      module procedure f_memcpy_i0i1,f_memcpy_i1i2,f_memcpy_i2i1,f_memcpy_i2i0
      module procedure f_memcpy_li0,f_memcpy_li1
      module procedure f_memcpy_li0li1,f_memcpy_li1li2,f_memcpy_li2li1,f_memcpy_li2li0
@@ -169,10 +171,12 @@ contains
     mem%profile_initialized=.false. 
     mem%routine_opened=.false.      
     mem%profile_routine=.true.
-    mem%present_routine=repeat(' ',namelen)
+    call f_zero(mem%present_routine)!=repeat(' ',namelen)
     mem%logfile=repeat(' ',len(mem%logfile))
     mem%logfile_unit=-1 !< not initialized
     mem%output_level=0
+    mem%depth=0
+    mem%profiling_depth=-1 !<disabled
     !> Dictionaries needed for profiling storage
     nullify(mem%dict_global)
     nullify(mem%dict_routine)
@@ -189,7 +193,7 @@ contains
   !pure 
   subroutine initialize_mem_ctrl(mem)
     implicit none
-    type(mem_ctrl), intent(out) :: mem
+    type(mem_ctrl), intent(inout) :: mem
     mem%profile_initialized=.true.
     !initalize the dictionary with the allocation information
     nullify(mem%dict_routine)
@@ -270,6 +274,15 @@ contains
   !> Copy the contents of an array into another one
   include 'f_memcpy-inc.f90'
 
+  subroutine set_depth(depth)
+    implicit none
+    integer, intent(in) :: depth
+    mems(ictrl)%depth=mems(ictrl)%depth+depth
+    track_origins = &
+         mems(ictrl)%depth <= mems(ictrl)%profiling_depth .or. &
+         mems(ictrl)%profiling_depth ==-1
+  end subroutine set_depth
+
   !> This routine adds the corresponding subprogram name to the dictionary
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
@@ -279,7 +292,7 @@ contains
     implicit none
     logical, intent(in), optional :: profile     !< ???
     character(len=*), intent(in), optional :: id !< name of the subprogram
-    
+
     !local variables
     integer :: lgt,ncalls,unit_dbg
     integer(kind=8) :: itime
@@ -297,6 +310,8 @@ contains
     !profile the profiling
     call f_timer_interrupt(TCAT_ROUTINE_PROFILING)
 
+    call set_depth(1)
+
     !desactivate profile_routine if the mother routine has desactivated it
     if (present(profile)) mems(ictrl)%profile_routine=mems(ictrl)%profile_routine .and. profile
 
@@ -313,15 +328,15 @@ contains
 !!$      call yaml_mapping_close()
 !!$    call yaml_mapping_close()
     !end debug  
-!test
+    !test
     if (track_origins) then !.true.) then
        if(associated(mems(ictrl)%dict_routine)) then
-!          call yaml_map('adding routine; '//trim(id),&
-!               (/dict_size(mems(ictrl)%dict_global),dict_size(mems(ictrl)%dict_routine)/))
-!          call yaml_map('Dict to add',mems(ictrl)%dict_routine)
+          !          call yaml_map('adding routine; '//trim(id),&
+          !               (/dict_size(mems(ictrl)%dict_global),dict_size(mems(ictrl)%dict_routine)/))
+          !          call yaml_map('Dict to add',mems(ictrl)%dict_routine)
           call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
-!          call yaml_map('verify; '//trim(id),dict_size(mems(ictrl)%dict_global))
-          
+          !          call yaml_map('verify; '//trim(id),dict_size(mems(ictrl)%dict_global))
+
           nullify(mems(ictrl)%dict_routine)
        end if
        !this means that the previous routine has not been closed yet
@@ -343,14 +358,14 @@ contains
           !create a new dictionary
           call set(mems(ictrl)%dict_codepoint//trim(id),&
                dict_new((/no_of_calls .is. yaml_toa(1), t0_time .is. yaml_toa(itime),&
-                             tot_time .is. yaml_toa(0.d0,fmt='(f4.1)'), &
-                             prof_enabled .is. yaml_toa(mems(ictrl)%profile_routine)/)))
+               tot_time .is. yaml_toa(0.d0,fmt='(f4.1)'), &
+               prof_enabled .is. yaml_toa(mems(ictrl)%profile_routine)/)))
        end if
        !then fix the new codepoint from this one
        mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint//trim(id)
 
        lgt=min(len(id),namelen)
-       mems(ictrl)%present_routine=repeat(' ',namelen)
+       call f_zero(mems(ictrl)%present_routine)
        mems(ictrl)%present_routine(1:lgt)=id(1:lgt)
 
     end if
@@ -358,7 +373,7 @@ contains
     if (bigdebug) then
        unit_dbg=bigdebug_stream()
        call yaml_mapping_open(mems(ictrl)%present_routine,unit=unit_dbg)
-          call yaml_map('Entering',yaml_time_toa(),unit=unit_dbg)
+       call yaml_map('Entering',yaml_time_toa(),unit=unit_dbg)
        call yaml_flush_document(unit=unit_dbg)
     end if
     call f_timer_resume()
@@ -372,14 +387,16 @@ contains
     integer :: unit_dbg
     !local variables
     integer :: istat, iproc
+    character(len=32) :: strm
     !check if the stream for debugging exist
     iproc=0
     iproc= mems(ictrl)%dict_global .get. processid
-    call yaml_stream_connected('Routines-'+iproc, unit_dbg, istat)
+    call f_strcpy(dest=strm,src='Routines-'+iproc)
+    call yaml_stream_connected(strm, unit_dbg, istat)
     !otherwise create it
     if (istat /=0) then
        unit_dbg=f_get_free_unit(117)
-       call yaml_set_stream(unit_dbg,filename='Routines-'+iproc,position='rewind',setdefault=.false.)
+       call yaml_set_stream(unit_dbg,filename=strm,position='rewind',setdefault=.false.)
     end if
   end function bigdebug_stream
 
@@ -399,6 +416,7 @@ contains
     !profile the profiling
     call f_timer_interrupt(TCAT_ROUTINE_PROFILING)
 
+
     if (associated(mems(ictrl)%dict_routine)) then
        call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
        nullify(mems(ictrl)%dict_routine)
@@ -411,11 +429,12 @@ contains
        call yaml_mapping_close(unit=unit_dbg)
        call yaml_flush_document(unit=unit_dbg)
     end if
-!test
-if (.not. track_origins) then
-call f_timer_resume()
-return
-end if
+    !test
+    if (.not. track_origins) then
+       call set_depth(-1)
+       call f_timer_resume()
+       return
+    end if
     call close_routine(mems(ictrl)%dict_codepoint,.not. mems(ictrl)%routine_opened)!trim(dict_key(dict_codepoint)))
 
 !!$    if (f_err_check()) then
@@ -479,7 +498,7 @@ end if
           call dump_status_line(memstate,mems(ictrl)%logfile_unit,mems(ictrl)%present_routine)
        end if
     end if
-
+    call set_depth(-1)
     call f_timer_resume()
   end subroutine f_release_routine
 
@@ -563,14 +582,15 @@ end if
     if (present(address)) iadd=address
     ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
     !address of first element (not needed for deallocation)
-    if (track_origins .and. iadd/=int(0,kind=8)) then
+    nullify(dict_add)
+    if (track_origins .and. iadd/=int(0,f_address)) then
        !hopefully only address is necessary for the deallocation
 
        !search in the dictionaries the address
        dict_add=>find_key(mems(ictrl)%dict_routine,long_toa(iadd))
        if (.not. associated(dict_add)) then
           dict_add=>find_key(mems(ictrl)%dict_global,long_toa(iadd))
-          if (.not. associated(dict_add)) then
+          if (.not. associated(dict_add) .and. mems(ictrl)%profiling_depth == -1) then
              call f_err_throw('Address '//trim(long_toa(iadd))//&
                   ' not present in dictionary',ERR_INVALID_MALLOC)
              return
@@ -581,29 +601,32 @@ end if
           use_global=.false.
        end if
 
-       !transform the dict_add in a list
-       !retrieve the string associated to the database
-       array_info=dict_add
-       dict_add => yaml_a_todict(array_info)
-       !then retrieve the array information
-       array_id=dict_add//0
-       routine_id=dict_add//1
-       jlsize=dict_add//2
+       if (associated(dict_add)) then
+          !transform the dict_add in a list
+          !retrieve the string associated to the database
+          array_info=dict_add
+          dict_add => yaml_a_todict(array_info)
+          !then retrieve the array information
+          array_id=dict_add//0
+          routine_id=dict_add//1
+          jlsize=dict_add//2
 
-       call dict_free(dict_add)
+          call dict_free(dict_add)
 
-       if (ilsize /= jlsize) then
-          call f_err_throw('Size of array '//trim(array_id)//&
-               ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
-               trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
-          return
+          if (ilsize /= jlsize) then
+             call f_err_throw('Size of array '//trim(array_id)//&
+                  ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
+                  trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
+             return
+          end if
+          if (use_global) then
+             call dict_remove(mems(ictrl)%dict_global,long_toa(iadd))
+          else
+             call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
+          end if
        end if
-       if (use_global) then
-          call dict_remove(mems(ictrl)%dict_global,long_toa(iadd))
-       else
-          call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
-       end if
-    else
+    end if
+    if (.not. associated(dict_add)) then
        if (present(id)) then
           call f_strcpy(dest=array_id,src=id)
        else
@@ -791,7 +814,7 @@ end if
   end subroutine f_malloc_initialize
 
   !> Initialize the library
-  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,iproc)
+  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,iproc,profiling_depth)
     use yaml_output!, only: yaml_date_and_time_toa
     use f_utils
     use yaml_strings
@@ -802,6 +825,8 @@ end if
     integer, intent(in), optional :: output_level            !< Level of output for memocc
                                                              !! 0 no file, 1 light, 2 full
     integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default 0)
+    !> innermost profiling level that will be applied to the code
+    integer, intent(in), optional :: profiling_depth
     !local variables
     integer :: unt,jctrl,jproc
 
@@ -883,6 +908,18 @@ end if
     if (present(memory_limit)) call f_set_memory_limit(memory_limit)
        
     if (present(iproc)) call set(mems(ictrl)%dict_global//processid,iproc)
+
+    if (present(profiling_depth)) then
+       !set the limit of the profiling to the maximum
+       !it cannot be lower than the present depth
+       if (profiling_depth < mems(ictrl)%profiling_depth) then
+          call f_err_throw('The profiling_depth level cannot be lowered',&
+               err_id=ERR_INVALID_MALLOC)
+       end if
+       mems(ictrl)%profiling_depth=max(profiling_depth,mems(ictrl)%depth)
+       if (profiling_depth == -1) mems(ictrl)%profiling_depth=-1 !to disab
+    end if
+
   end subroutine f_malloc_set_status
 
   !> Finalize f_malloc (Display status)
@@ -931,6 +968,7 @@ end if
        end if
 
        if (dump_status .and. dict_size(mems(ictrl)%dict_global) /= 2) then
+          call yaml_warning('Heap memory has not be completely freed! See status at finalization to find where.')
           call yaml_map('Size of the global database',dict_size(mems(ictrl)%dict_global))
           !call yaml_map('Raw version',mems(ictrl)%dict_global)
           call yaml_mapping_open('Status of the memory at finalization')

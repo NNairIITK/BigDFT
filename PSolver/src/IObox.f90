@@ -76,7 +76,8 @@ module IObox
       character(len=*), intent(in) :: filename
       integer, intent(out) :: isuffix
       integer :: fformat
-
+      !local variables
+      integer :: ipos
 
       ! Format = 1 -> cube (default)
       ! Format = 2 -> ETSF
@@ -97,7 +98,14 @@ module IObox
             fformat=UNKNOWN
          end if
       end if
-      
+      !fallback to CUBE format if there is no other extension for the file
+      if (fformat == UNKNOWN) then
+         !eliminate slashes
+         ipos=index(filename, "/",back=.true.)
+         ipos=max(ipos,1)
+         if (index(filename(ipos:), ".") == 0) fformat=CUBE
+      end if
+         
     end function get_file_format
 
     subroutine read_cube_header(filename,geocode,ndims,hgrids,&
@@ -120,12 +128,12 @@ module IObox
       integer, dimension(:), allocatable :: znucl_
 
       call startend_buffers(geocode,nl1,nl2,nl3,nbx,nby,nbz)
-      unt=f_get_free_unit(22)
+      unt=22
       call f_open_file(unit=unt,file=trim(filename)//".cube",status='old')
       read(unt,*)! 'CUBE file for charge density'
       read(unt,*)! 'Case for '//trim(message)
 
-      read(unt,'(i5,3(f12.6),a)') nat, dum1, dum2, dum3 
+      read(unt,'(i5,3(f12.6))') nat, dum1, dum2, dum3 
       read(unt,'(i5,3(f12.6))') n1t , hxh  , dum1 , dum2
       read(unt,'(i5,3(f12.6))') n2t , dum1 , hyh  , dum2
       read(unt,'(i5,3(f12.6))') n3t , dum1 , dum2 , hzh
@@ -777,8 +785,6 @@ module IObox
 
       fformat=get_file_format(filename,isuffix)
 
-      !fallback to CUBE format if unknown
-      if (fformat == UNKNOWN) fformat=CUBE
 
 
 !!$      if (iproc == 0) then

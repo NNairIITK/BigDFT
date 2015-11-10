@@ -30,11 +30,8 @@ endif
 if BUILD_LIBABINIT
 SUBDIRS += libABINIT/src
 endif
-#if BUILD_LIBSGPU
-#SUBDIRS += S_GPU
-#endif
 
-# BigDFT itself.
+# BigDFT itself and structure prediction library.
 SUBDIRS += src
 
 # Additional tools around BigDFT.
@@ -57,6 +54,9 @@ endif
 if BUILD_BINARIES
 SUBDIRS += tests
 endif
+
+#also add structure prediction library
+SUBDIRS += spred
 
 check report:
 	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}; python $(top_srcdir)/tests/report.py

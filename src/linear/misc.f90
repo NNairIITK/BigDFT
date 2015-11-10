@@ -11,7 +11,7 @@
 !> Write the square of the wave functions (i.e. the orbital densities).
 !! This routine can also be used to print the "support functions densities".
 subroutine write_orbital_density(iproc, transform_to_global, iformat, &
-           filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, lzd_l)
+           filename, npsidim, psi, input, orbs, lzd_g, at, rxyz, dens, lzd_l)
   use module_base
   use module_types
   !use module_interface2, except_this_one => write_orbital_density
@@ -30,6 +30,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   type(local_zone_descriptors),intent(inout) :: lzd_g !< global descriptors
   type(atoms_data),intent(in) :: at
   real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
+  logical,intent(in) :: dens !< density of wavefunctions or just wavefunctions
   type(local_zone_descriptors),intent(in),optional :: lzd_l !< local descriptors
 
   ! Local variables
@@ -62,11 +63,14 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
   binary = (iformat==WF_FORMAT_BINARY)
 
   ! Need to create the convolution bounds
-  call locreg_bounds(lzd_g%glr%d%n1, lzd_g%glr%d%n2, lzd_g%glr%d%n3, &
-       lzd_g%glr%d%nfl1, lzd_g%glr%d%nfu1, &
-       lzd_g%glr%d%nfl2, lzd_g%glr%d%nfu2, &
-       lzd_g%glr%d%nfl3, lzd_g%glr%d%nfu3, &
-       lzd_g%glr%wfd, lzd_g%glr%bounds)
+  ! check first if already allocated - maybe should be more thorough than just checking one array?
+  if (.not. associated(lzd_g%glr%bounds%kb%ibyz_c)) then
+     call locreg_bounds(lzd_g%glr%d%n1, lzd_g%glr%d%n2, lzd_g%glr%d%n3, &
+          lzd_g%glr%d%nfl1, lzd_g%glr%d%nfu1, &
+          lzd_g%glr%d%nfl2, lzd_g%glr%d%nfu2, &
+          lzd_g%glr%d%nfl3, lzd_g%glr%d%nfu3, &
+          lzd_g%glr%wfd, lzd_g%glr%bounds)
+  end if
 
   ist = 1
   ncount = lzd_g%glr%wfd%nvctr_c+7*lzd_g%glr%wfd%nvctr_f
@@ -87,7 +91,7 @@ subroutine write_orbital_density(iproc, transform_to_global, iformat, &
       do ispinor=1,orbs%nspinor
           if (orbs%nspinor/=1) stop 'write_orbital_density not implemented for nspinor/=1'
           call plot_one_orbdens(lzd_g%glr, at, orbs, rxyz, lzd_g%hgrids, trim(input%dir_output)//filename, &
-               iorb, ispinor, binary, psi_g)
+               iorb, ispinor, binary, psi_g, dens)
           !iunit0 = 101
           !iunit0 = 102
           !iunit0 = 103
@@ -134,7 +138,7 @@ end subroutine write_orbital_density
 
 
 
-subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor, binary, psi_g)
+subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor, binary, psi_g, dens)
   use module_base
   use module_types
   use module_interfaces, only: filename_of_iorb, plot_wf
@@ -150,6 +154,7 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   integer,intent(in) :: iorb, ispinor
   logical,intent(in) :: binary
   real(kind=8),dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f),intent(in) :: psi_g
+  logical,intent(in) :: dens !< density of wavefunction or just wavefunction
 
   ! Local variables
   integer :: iunit0, iunitx, iunity, iunitz, iorb_out0, iorb_outx, iorb_outy, iorb_outz
@@ -161,22 +166,29 @@ subroutine plot_one_orbdens(lr, at, orbs, rxyz, hgrids, filename, iorb, ispinor,
   iunity = 103
   iunitz = 104
   call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebase0, iorb_out0)
-  call filename_of_iorb(binary, filename//'_x', orbs, iorb, ispinor, filebasex, iorb_outx)
-  call filename_of_iorb(binary, filename//'_y', orbs, iorb, ispinor, filebasey, iorb_outy)
-  call filename_of_iorb(binary, filename//'_z', orbs, iorb, ispinor, filebasez, iorb_outz)
+  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebasex, iorb_outx)
+  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebasey, iorb_outy)
+  call filename_of_iorb(binary, filename, orbs, iorb, ispinor, filebasez, iorb_outz)
   file0 = trim(filebase0)//'.cube'
-  filex = trim(filebasex)//'.cube'
-  filey = trim(filebasey)//'.cube'
-  filez = trim(filebasez)//'.cube'
+  filex = trim(filebasex)//'_x'
+  filey = trim(filebasey)//'_y'
+  filez = trim(filebasez)//'_z'
   !write(*,*) 'file0',file0
   call f_open_file(iunit0, file=file0, binary=binary)
   call f_open_file(iunitx, file=filex, binary=binary)
   call f_open_file(iunity, file=filey, binary=binary)
   call f_open_file(iunitz, file=filez, binary=binary)
-  call plot_wf(.true.,'', 2, at, 1.d0, lr, &
-       hgrids(1), hgrids(2), hgrids(2), &
-       rxyz, psi_g, &
-       iunit0, iunitx, iunity, iunitz)
+  if (dens) then
+     call plot_wf(.true.,trim(filebase0), 2, at, 1.d0, lr, &
+          hgrids(1), hgrids(2), hgrids(2), &
+          rxyz, psi_g, &
+          iunit0, iunitx, iunity, iunitz)
+  else
+     call plot_wf(.true.,trim(filebase0), 1, at, 1.d0, lr, &
+          hgrids(1), hgrids(2), hgrids(2), &
+          rxyz, psi_g, &
+          iunit0, iunitx, iunity, iunitz)
+  end if
   call f_close(iunit0)
   call f_close(iunitx)
   call f_close(iunity)

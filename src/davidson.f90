@@ -402,6 +402,7 @@ subroutine davidson(iproc,nproc,in,at,&
    use communications_base, only: comms_cubic
    use communications, only: transpose_v, untranspose_v
    use rhopotential, only: full_local_potential
+   use locreg_operations, only: confpot_data
    implicit none
    integer, intent(in) :: iproc,nproc
    integer, intent(in) :: nvirt

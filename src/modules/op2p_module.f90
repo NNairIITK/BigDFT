@@ -15,7 +15,20 @@ module overlap_point_to_point
 
    !By default variables are internal to the module
    private
+
+   integer, parameter :: LOCAL_=2,GLOBAL_=1
+   integer, parameter :: SEND_DATA=1,RECV_DATA=2,SEND_RES=3,RECV_RES=4
+   integer, parameter :: DATA_=1,RES_=2
+   integer, parameter :: AFTER_=1,BEFORE_=2
+   real(wp), parameter :: group_delta=10.0_wp,obj_delta=1.0_wp,elem_delta=1.e-4_wp
+   
+
+   type(f_enumerator), parameter :: OP2P_START=f_enumerator('START',0,null())
+   type(f_enumerator), parameter :: OP2P_CALCULATE=f_enumerator('CALCULATE',1,null())
+   type(f_enumerator), parameter :: OP2P_EXIT=f_enumerator('EXIT',-1,null())
+
    public :: initialize_OP2P_descriptors,OP2P_communication,OP2P_descriptors,free_OP2P_descriptors
+   public :: local_data_init,set_local_data,free_local_data,OP2P_unitary_test
 
    type OP2P_descriptors
       logical :: forsymop !< descriptor for symmetric operation
@@ -29,7 +42,914 @@ module overlap_point_to_point
       integer, dimension(:,:,:,:), pointer :: communication_schedule !< processes to send and receive at each step
    end type OP2P_descriptors
 
+   type, public :: OP2P_pointer
+      real(wp), dimension(:,:), pointer :: ptr
+   end type OP2P_pointer
+
+   type, public :: local_data
+      integer :: nobj !< number of objects to treat locally
+      integer :: nvctr !<total number of elements of resident data
+      integer :: nvctr_res !<total number of elements of processed resident data
+      integer, dimension(:), pointer :: id_glb !<ids of the local data in the global distribution
+      integer, dimension(:), pointer :: displ !<displacements of each of the local data
+      integer, dimension(:), pointer :: displ_res !<displacements of each of the local results
+      real(wp), dimension(:), pointer :: data !< array of local data
+      real(wp), dimension(:), pointer :: res !< array of local results
+   end type local_data
+
+   !>structure exposing the local variable to be passed to the calculation routine
+   type, public :: OP2P_iterator
+      logical :: remote_result !<the work array for the sending results has to be preparated
+      integer :: istep !<step of the calculation
+      integer :: nloc_i,nloc_j !<number of local elements to  be treated
+      integer :: isloc_i !<starting point of the elements for phi_i
+      integer :: isloc_j !<starting point of the elements for phi_j
+   end type OP2P_iterator
+
+   !> type to control the communication scheduling
+   type, public :: OP2P_data
+      logical :: simulate !<toggle the simulation of the communication
+      logical :: do_calculation !<tell is the calculation has to be done
+      integer :: iproc_dump !<rank which dumps the communication
+      integer :: istep !<actual step of the communication
+      integer :: nstep !<maximum number of steps
+      integer :: irecv_data !<position of the recv data in the work array
+      integer :: isend_data !<position of the send data in the work array
+      integer :: irecv_res !<position of the recv result in the work array
+      integer :: isend_res !<position of the send result in the work array
+
+      integer :: ndata_comms !<number of communication performed in the loop for the data
+      integer :: nres_comms !<number of communication performed in the loop for the result
+      integer :: igroup !<present group
+      !> total number of groups
+      integer :: ngroup
+      integer :: ngroupp !<number of groups treated by the present process
+      integer :: ndim !< size of the data per each object (can be generalized to an array)
+      integer :: mpi_comm !<handle of the communicator
+      integer :: ncouples !<total number of couples considered
+      !>stores the requests for the data
+      integer, dimension(:), pointer :: requests_data 
+      !>stores the requests for the result
+      integer, dimension(:), pointer :: requests_res
+      !>data treated, to be used when simulating to 
+      !! see if the calculation is correct
+      integer, dimension(:), pointer :: ndatac
+      !>data sent, to be used when simulating to 
+      !! see if the communication is correct
+      integer, dimension(:,:,:), pointer :: ndatas
+      !> id of the group belonging to the local process
+      integer, dimension(:), pointer :: group_id
+      !>ranks of the processes interested to the communication in the given communicator
+      integer, dimension(:,:,:), pointer :: ranks 
+      !>number of objects for each of the ranks and groups
+      integer, dimension(:,:), pointer :: nobj_par
+      !> id of the objects per rank and per group
+      integer, dimension(:,:,:), pointer :: objects_id
+      !> work arrays for the communication of the data
+      type(OP2P_pointer), dimension(:,:), pointer :: dataw
+      !> work arrays for the communication of the results, in the symmatric case
+      type(OP2P_pointer), dimension(:,:), pointer :: resw
+   end type OP2P_data
+
    contains
+
+     pure function OP2P_iter_null() result(it)
+       implicit none
+       type(OP2P_iterator) :: it
+       it%remote_result=.false.
+       it%istep=-1
+       it%nloc_i=-1
+       it%nloc_j=-1
+       it%isloc_i=0
+       it%isloc_j=0
+     end function OP2P_iter_null
+
+     pure subroutine nullify_local_data(ld)
+       implicit none
+       type(local_data), intent(out) :: ld
+       ld%nobj=0
+       ld%nvctr=0
+       ld%nvctr_res=0
+       nullify(ld%id_glb)
+       nullify(ld%displ)
+       nullify(ld%displ_res)
+       nullify(ld%data)
+       nullify(ld%res)
+     end subroutine nullify_local_data
+
+     !> type to control the communication scheduling
+     pure subroutine nullify_OP2P_data(OP2P)
+       type(OP2P_data), intent(out) :: OP2P
+        OP2P%simulate=.false.
+        OP2P%do_calculation=.false. !<tell is the calculation has to be done
+        OP2P%iproc_dump=mpirank_null()-1
+        OP2P%istep=0
+        OP2P%nstep=-1
+        OP2P%irecv_data=2
+        OP2P%isend_data=1
+        OP2P%irecv_res=2
+        OP2P%isend_res=1
+        OP2P%ndata_comms=0
+        OP2P%nres_comms=0
+        OP2P%igroup=0
+        OP2P%ngroup=-1
+        OP2P%ngroupp=-1
+        OP2P%ndim=0
+        OP2P%mpi_comm=mpicomm_null() !<handle of the communicator
+        !then nullifications
+        nullify(OP2P%requests_data)
+        nullify(OP2P%requests_res)
+        nullify(OP2P%ndatac)
+        nullify(OP2P%ndatas)
+        nullify(OP2P%group_id)
+        nullify(OP2P%ranks)
+        nullify(OP2P%nobj_par)
+        nullify(OP2P%objects_id)
+        nullify(OP2P%dataw)
+        nullify(OP2P%resw)
+      end subroutine nullify_OP2P_data
+
+      subroutine free_OP2P_pointer(ptr)
+        implicit none
+        type(OP2P_pointer), dimension(:,:), pointer :: ptr
+        !local variables
+        integer :: i,j
+        integer, dimension(2) :: lb,ub
+
+        if (associated(ptr)) then
+           lb=lbound(ptr)
+           ub=ubound(ptr)
+           do j=lb(2),ub(2)
+              do i=lb(1),ub(1)
+                 call f_free_ptr(ptr(i,j)%ptr)
+              end do
+           end do
+           deallocate(ptr)
+           nullify(ptr)
+        end if
+      end subroutine free_OP2P_pointer
+
+     pure function local_data_init(norb,ndim) result(ld)
+       implicit none
+       integer, intent(in) :: norb,ndim
+       type(local_data) :: ld
+       !local variables
+       call nullify_local_data(ld)
+
+       ld%nobj=norb
+       ld%nvctr=ndim*norb
+       ld%nvctr_res=ld%nvctr
+     end function local_data_init
+
+     subroutine set_local_data(ld,isorb,psir,dpsir)
+       implicit none
+       type(local_data), intent(inout) :: ld
+       integer, intent(in) :: isorb
+       real(wp), dimension(ld%nvctr), intent(in), target :: psir
+       real(wp), dimension(ld%nvctr_res), intent(in), target, optional :: dpsir
+       !local variables
+       integer :: iorb,ndim,ntot,jorb
+
+       ld%id_glb=f_malloc_ptr(ld%nobj,id='id_glb')
+       ld%displ=f_malloc_ptr(ld%nobj,id='displ')
+       ld%displ_res=f_malloc_ptr(ld%nobj,id='displ_res')
+
+       ndim=ld%nvctr/ld%nobj
+       do iorb=1,ld%nobj
+          ld%id_glb(iorb)=iorb+isorb
+       end do
+
+       ntot=0
+       do iorb=1,ld%nobj
+          ld%displ(iorb)=ntot
+          ld%displ_res(iorb)=ntot
+          ntot=ntot+ndim
+       end do
+
+       !basic pointer association, no further allocation
+       ld%data=>psir
+       if (present(dpsir)) then
+          ld%res=>dpsir
+       else
+          nullify(ld%res)
+       end if
+     end subroutine set_local_data
+
+     subroutine free_local_data(ld)
+       implicit none
+       type(local_data), intent(inout) :: ld
+
+       call f_free_ptr(ld%id_glb)
+       call f_free_ptr(ld%displ)
+       call f_free_ptr(ld%displ_res)
+       call nullify_local_data(ld)
+
+     end subroutine free_local_data
+
+     
+     subroutine initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+       implicit none
+       !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
+       logical, intent(in) :: symmetric
+       integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim
+       integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
+       type(OP2P_data), intent(out) :: OP2P
+
+       !local variables
+       integer :: igroup,icount,icountmax,iprocgrs,iprocgrr,jproc,igr,nobjp,nprocgr
+       integer :: istep,nsteps,isobj,iobj_local,i
+       integer, dimension(:,:,:), allocatable :: iprocpm1
+       
+
+       call nullify_OP2P_data(OP2P)
+      
+       OP2P%ngroup=ngroup
+       OP2P%ndim=ndim
+       OP2P%mpi_comm=mpi_comm
+
+       OP2P%nobj_par=f_malloc_ptr([0.to.nproc-1,1.to.ngroup],id='nobj_par')
+       call f_memcpy(src=nobj_par,dest=OP2P%nobj_par)      
+
+       !here we can allocate the working arrays giving the maximum
+       !between the components for each group
+       OP2P%ngroupp=0
+       do igroup=1,OP2P%ngroup
+          if (OP2P%nobj_par(iproc,igroup) > 0) then
+             OP2P%ngroupp=OP2P%ngroupp+1
+          end if
+       end do
+
+       OP2P%requests_data=f_malloc_ptr(2*OP2P%ngroupp,id='requests_data')
+       OP2P%requests_res= f_malloc_ptr(2*OP2P%ngroupp,id='requests_res')
+
+       OP2P%objects_id = f_malloc_ptr((/ 1.to.2, 0.to.nproc-1, 1.to.OP2P%ngroup /),id='objects_id')
+
+       isobj=0
+       do jproc=0,nproc-1
+          iobj_local=1
+          do igroup=1,OP2P%ngroup
+             OP2P%objects_id(GLOBAL_,jproc,igroup)=isobj+iobj_local-1
+             OP2P%objects_id(LOCAL_,jproc,igroup)=iobj_local
+             iobj_local=iobj_local+OP2P%nobj_par(jproc,igroup)
+          end do
+          isobj=isobj+iobj_local-1
+       end do
+
+       !determine the array of the groups which are of interest for this processor
+       OP2P%group_id = f_malloc_ptr(OP2P%ngroupp,id='group_id')
+       !determine for each processor the groups which has to be used
+       icount=0
+       do igroup=1,ngroup
+          if (OP2P%nobj_par(iproc,igroup) > 0) then
+             icount=icount+1
+             OP2P%group_id(icount)=igroup
+          end if
+       end do
+       
+       !find the processor whih has the maximum number of groups
+       icountmax=0
+       do jproc=0,nproc-1
+          icount=count(OP2P%nobj_par(jproc,:) > 0)
+          if (icount > icountmax) then
+             OP2P%iproc_dump=jproc
+             icountmax=icount
+          end if
+       end do
+
+       !decide the strategy for the communication
+       if (symmetric) then
+          OP2P%nstep=(nproc-1)/2+1!nproc/2+1
+       else
+          OP2P%nstep=nproc-1
+       end if
+
+       iprocpm1 = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.OP2P%ngroupp /),id='iprocpm1')
+       !calculate the processor which lies after and before the present in the list
+       iprocpm1=mpirank_null()
+
+       !test array for data calculation
+       OP2P%ndatac = f_malloc0_ptr(OP2P%ngroupp,id='ndatac')
+
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          iprocgrs=-1
+          iprocgrr=-1
+
+          !define the number of data to calculate in total
+          do jproc=0,nproc-1
+             OP2P%ndatac(igroup)=OP2P%ndatac(igroup)-OP2P%ndim*OP2P%nobj_par(jproc,igr)
+             if (OP2P%nobj_par(modulo(iproc+jproc,nproc),igr) > 0 .and. .true.) then
+                iprocgrs=iprocgrs+1
+                iprocpm1(AFTER_,iprocgrs,igroup)=modulo(iproc+jproc,nproc)
+             end if
+             if (OP2P%nobj_par(modulo(iproc-jproc,nproc),igr) > 0 .and. .true.) then
+                iprocgrr=iprocgrr+1
+                iprocpm1(BEFORE_,iprocgrr,igroup)=modulo(iproc-jproc,nproc)
+             end if
+          end do
+       end do
+
+       !calculate the list of send-receive operations which have to be performed per group
+       !allocate it at the maximum size needed
+       OP2P%ranks = f_malloc_ptr([1.to.4, 1.to.OP2P%ngroupp, 0.to.OP2P%nstep],id='ranks')
+       !initalise array to rank_null
+       OP2P%ranks=mpirank_null()
+
+       OP2P%ncouples=0
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          nobjp=OP2P%nobj_par(iproc,igr)
+          OP2P%ncouples=OP2P%ncouples+(nobjp*(nobjp+1))/2
+          !calculate the number of processors per group
+          nprocgr=count(OP2P%nobj_par(:,igr)>0)
+          !do not send anything if there is only one member
+          if (nprocgr > 1) then
+             if (symmetric) then
+                nsteps=(nprocgr-1)/2
+             else
+                nsteps=nprocgr-1
+             end if
+             do istep=0,nsteps-1
+                !define the arrays for send-receive of data
+                OP2P%ranks(SEND_DATA,igroup,istep)= iprocpm1(AFTER_,istep+1,igroup)
+                OP2P%ranks(RECV_DATA,igroup,istep)= iprocpm1(BEFORE_,istep+1,igroup)
+                if (iproc == OP2P%iproc_dump .and. OP2P%ranks(RECV_DATA,igroup,istep) /= mpirank_null()) then
+                   OP2P%ncouples=OP2P%ncouples+&
+                        OP2P%nobj_par(OP2P%ranks(RECV_DATA,igroup,istep),igr)*OP2P%nobj_par(iproc,igr)
+                end if
+                if (istep > 0 .and. symmetric) then
+                   OP2P%ranks(SEND_RES,igroup,istep)=iprocpm1(BEFORE_,istep,igroup)
+                   OP2P%ranks(RECV_RES,igroup,istep)=iprocpm1(AFTER_,istep,igroup)
+                end if
+             end do
+             !last case
+             istep=nsteps!(nprocgr-1)/2
+             !the last step behaves differently if the number of members is odd or even
+             if (modulo(nprocgr,2) == 0 .or. .not. symmetric) then
+                OP2P%ranks(SEND_DATA,igroup,istep)= iprocpm1(AFTER_,istep+1,igroup)
+                OP2P%ranks(RECV_DATA,igroup,istep)= iprocpm1(BEFORE_,istep+1,igroup)
+                if (iproc == OP2P%iproc_dump .and. OP2P%ranks(RECV_DATA,igroup,istep) /= mpirank_null()) then
+                   OP2P%ncouples=OP2P%ncouples+&
+                        OP2P%nobj_par(OP2P%ranks(RECV_DATA,igroup,istep),igr)*OP2P%nobj_par(iproc,igr)
+                end if
+                if (istep > 0 .and. symmetric) then
+                   OP2P%ranks(SEND_RES,igroup,istep)=iprocpm1(BEFORE_,istep,igroup)
+                   OP2P%ranks(RECV_RES,igroup,istep)=iprocpm1(AFTER_,istep,igroup)
+                end if
+             else if (symmetric) then
+                OP2P%ranks(SEND_RES,igroup,istep)=iprocpm1(BEFORE_,istep,igroup)
+                OP2P%ranks(RECV_RES,igroup,istep)=iprocpm1(AFTER_,istep,igroup)
+             end if
+          end if
+       end do
+       call f_free(iprocpm1)
+
+       !real communication
+       OP2P%iproc_dump=iproc!mpirank_null()-1! =no debug verbosity
+
+       allocate(OP2P%dataw(OP2P%ngroupp,2))
+       do i=1,2
+          do igroup=1,OP2P%ngroupp
+             OP2P%dataw(igroup,i)%ptr=&
+                  f_malloc_ptr([OP2P%ndim, maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))],&
+                  id='dataw'+yaml_toa(igroup)+yaml_toa(i))
+          end do
+       end do
+
+       allocate(OP2P%resw(OP2P%ngroupp,3))
+       do i=1,3
+          do igroup=1,OP2P%ngroupp
+             if (symmetric) then
+                OP2P%resw(igroup,i)%ptr=&
+                     f_malloc_ptr([OP2P%ndim, maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))],&
+                     id='resw'+yaml_toa(igroup)+yaml_toa(i))
+             else
+                nullify(OP2P%resw(igroup,i)%ptr)
+             end if
+          end do
+       end do
+!!$
+!!$
+!!$       OP2P%dataw= f_malloc0_ptr([OP2P%ndim, maxval(OP2P%nobj_par), OP2P%ngroupp,2],id='dataw')
+!!$       if (symmetric) then
+!!$          OP2P%resw = f_malloc0_ptr([OP2P%ndim, maxval(OP2P%nobj_par), OP2P%ngroupp,3],id='resw')
+!!$       else
+!!$          OP2P%resw = f_malloc0_ptr([1,1,1,1],id='resw') !just to avoid boundary problems
+!!$       end if
+       !test array for data sending
+       OP2P%ndatas = f_malloc0_ptr([1.to.2, 0.to.nproc-1, 1.to.OP2P%ngroup],id='ndatas')
+
+     end subroutine initialize_OP2P_data
+
+     !> type to control the communication scheduling
+     subroutine free_OP2P_data(OP2P)
+       type(OP2P_data), intent(inout) :: OP2P
+       !local variables
+       integer :: iproc
+
+       iproc=mpirank(OP2P%mpi_comm)
+       if (any(OP2P%ndatac /=0)) then
+          call f_err_throw('ERROR: OP2P communication simulation failed: processor '&
+               +yaml_toa(iproc)+&
+               ' has calculated'+ yaml_toa(OP2P%ndatac)+&
+               ' data more than needed',err_name='BIGDFT_RUNTIME_ERROR')
+       end if
+
+       !check the total amount of communication and calculations
+       if (mpisize(OP2P%mpi_comm) > 1) &
+            call mpiallred(OP2P%ndatas,MPI_SUM,comm=OP2P%mpi_comm)
+       if (any(OP2P%ndatas(:,iproc,OP2P%group_id) /=0)) then
+          call f_err_throw('ERROR: OP2P communication simulation failed: processor '+yaml_toa(iproc)+&
+               ' has not a zero balance of send-receive calls'+&
+               yaml_toa(reshape(OP2P%ndatas(:,iproc,OP2P%group_id),&
+               [2*OP2P%ngroupp])),&
+               err_name='BIGDFT_RUNTIME_ERROR')
+          stop
+       end if
+
+       !then nullifications
+       call f_free_ptr(OP2P%requests_res)
+       call f_free_ptr(OP2P%requests_data)
+       call f_free_ptr(OP2P%ndatac)
+       call f_free_ptr(OP2P%ndatas)
+       call f_free_ptr(OP2P%group_id)
+       call f_free_ptr(OP2P%ranks)
+       call f_free_ptr(OP2P%nobj_par)
+       call f_free_ptr(OP2P%objects_id)
+       call free_OP2P_pointer(OP2P%dataw)
+       call free_OP2P_pointer(OP2P%resw)
+       call nullify_OP2P_data(OP2P)
+     end subroutine free_OP2P_data
+
+
+     subroutine P2P_data(iproc,OP2P,norbp,psir)!,psiw)
+       implicit none
+       integer, intent(in) :: iproc,norbp!,norbp_max
+       type(OP2P_data), intent(inout) :: OP2P
+       real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
+       !local variables
+       integer :: igroup,dest,source,count,igr,iobj_local
+
+       !sending receiving data
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          dest=OP2P%ranks(SEND_DATA,igroup,OP2P%istep)
+          if (dest /= mpirank_null()) then
+             count=OP2P%nobj_par(iproc,igr)*OP2P%ndim
+             iobj_local=OP2P%objects_id(LOCAL_,iproc,igr)
+             OP2P%ndata_comms=OP2P%ndata_comms+1
+print *,'iobjlocal',iobj_local,OP2P%iproc_dump,igr,norbp!,norbp_max
+             !send the fixed array to the processor which comes in the list
+             OP2P%ndatas(DATA_,dest,igr)=&
+                  OP2P%ndatas(DATA_,dest,igr)+count
+             call mpisend(psir(1,iobj_local),count,&
+                  dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
+                  request=OP2P%requests_data(OP2P%ndata_comms),&
+                  verbose=.true.,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
+          end if
+
+          source=OP2P%ranks(RECV_DATA,igroup,OP2P%istep)
+          if (source /= mpirank_null()) then
+             count=OP2P%ndim*OP2P%nobj_par(source,igr)
+             OP2P%ndata_comms=OP2P%ndata_comms+1
+             OP2P%ndatas(DATA_,iproc,igr)=&
+                  OP2P%ndatas(DATA_,iproc,igr)-count
+             call mpirecv(OP2P%dataw(igroup,OP2P%irecv_data)%ptr(1,1),count,&!psiw(1,1,igroup,OP2P%irecv_data),count,&
+                  source=source,tag=source,comm=OP2P%mpi_comm,&
+                  request=OP2P%requests_data(OP2P%ndata_comms),&
+                  verbose=.true.,simulate=OP2P%simulate) ! source == OP2P%iproc_dump
+          end if
+       end do
+
+     end subroutine P2P_data
+
+     subroutine P2P_res(iproc,OP2P,norbp,dpsir)!,dpsiw)
+       implicit none
+       integer, intent(in) :: iproc,norbp!,norbp_max
+       type(OP2P_data), intent(inout) :: OP2P
+       real(wp), dimension(OP2P%ndim,norbp), intent(inout) :: dpsir
+       !real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,3), intent(inout) :: dpsiw
+       !local variables
+       integer :: igroup,dest,source,count,igr,iobj_local,nproc
+
+
+       nproc=mpisize(OP2P%mpi_comm)
+       if (OP2P%nres_comms > 0) then
+          !verify that the messages have been passed
+          call mpiwaitall(OP2P%nres_comms,OP2P%requests_res)
+          !copy the results which have been received (the messages sending are after)
+          !this part is already done by the mpi_accumulate
+          do igroup=1,OP2P%ngroupp
+             source=OP2P%ranks(RECV_RES,igroup,OP2P%istep-1)
+             igr=OP2P%group_id(igroup)
+             if (source /= mpirank_null()) then
+                if (iproc == OP2P%iproc_dump) then
+                   print '(5(1x,a,i8))','step',OP2P%istep,'group:',igr,&
+                        ':copying',OP2P%ndim*OP2P%nobj_par(source,igr),&
+                        'processed elements from',source,'in',iproc
+                end if
+                OP2P%ndatac(igroup)=OP2P%ndatac(igroup)+&
+                     OP2P%ndim*OP2P%nobj_par(source,igr)
+                !WARNING: should here source == iproc?
+                call axpy(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),1,&
+                     !dpsiw(1,1,igroup,OP2P%irecv_res),1,&
+                     dpsir(1,OP2P%objects_id(LOCAL_,iproc,igr)),1)
+             end if
+          end do
+       end if
+
+       OP2P%nres_comms=0
+       !meanwhile, we can receive the result from the processor which has the psi 
+       OP2P%irecv_res=3-OP2P%isend_res
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          dest=OP2P%ranks(SEND_RES,igroup,OP2P%istep)
+          if (dest /= mpirank_null()) then
+             OP2P%nres_comms=OP2P%nres_comms+1
+             count=OP2P%ndim*OP2P%nobj_par(dest,igr)
+             !here we can swap pointers
+             call f_memcpy(src=OP2P%resw(igroup,3)%ptr,&!dpsiw(1,1,igroup,3),&
+                  dest=OP2P%resw(igroup,OP2P%isend_res)%ptr)!dpsiw(1,1,igroup,OP2P%isend_res))
+             call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),&!dpsiw(1,1,igroup,OP2P%isend_res),&
+                  count,dest=dest,&
+                  tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
+                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=.true.)
+             OP2P%ndatas(RES_,dest,igr)=OP2P%ndatas(RES_,dest,igr)+&
+                  OP2P%ndim*OP2P%nobj_par(dest,igr)
+          end if
+       end do
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          source=OP2P%ranks(RECV_RES,igroup,OP2P%istep)
+          if (source /= mpirank_null()) then
+             OP2P%nres_comms=OP2P%nres_comms+1
+             count=OP2P%ndim*OP2P%nobj_par(iproc,igr)
+             call mpirecv(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
+                  source=source,tag=source+nproc+2*nproc*OP2P%istep,&
+                  comm=OP2P%mpi_comm,&
+                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=.true.)
+             OP2P%ndatas(RES_,iproc,igr)=OP2P%ndatas(RES_,iproc,igr)-count
+          end if
+       end do
+
+     end subroutine P2P_res
+
+     subroutine prepare_calculation(iproc,OP2P,phi_i,phi_j,iter)
+       implicit none
+       integer, intent(in) :: iproc!,norbp_max
+       type(OP2P_data), intent(inout) :: OP2P
+       type(local_data), intent(inout) :: phi_i,phi_j
+       type(OP2P_iterator), intent(out) :: iter
+       !local variables
+       integer :: igr,source,isorb,jsorb,jorbs
+
+       igr=OP2P%group_id(OP2P%igroup)
+       iter=OP2P_iter_null()
+
+       iter%istep=OP2P%istep
+
+       if (OP2P%istep == 0) then
+          OP2P%do_calculation=.true.
+          source=iproc
+       else if (OP2P%ranks(RECV_DATA,OP2P%igroup,OP2P%istep-1) /= mpirank_null()) then
+          OP2P%do_calculation=.true.
+          source=OP2P%ranks(RECV_DATA,OP2P%igroup,OP2P%istep-1)
+          if (iproc == OP2P%iproc_dump) then
+             print '(5(1x,a,i8))','step',OP2P%istep,'group:',igr,&
+                  ':processing',OP2P%ndim*OP2P%nobj_par(source,igr),&
+                  'elements in',iproc,'from',source
+          end if
+       else
+          OP2P%do_calculation=.false.
+       end if
+       if (.not. OP2P%do_calculation) return
+
+       iter%remote_result=OP2P%ranks(SEND_RES,OP2P%igroup,OP2P%istep) /= mpirank_null()
+       OP2P%ndatac(OP2P%igroup)=OP2P%ndatac(OP2P%igroup)+&
+            OP2P%ndim*OP2P%nobj_par(source,igr)
+       !calculation of the partial densities and potentials
+       !starting point of the loop
+       !here there is the calculation routine
+       !number of orbitals to be treated locally
+       iter%nloc_i=OP2P%nobj_par(iproc,igr)
+       iter%nloc_j=OP2P%nobj_par(source,igr)
+
+       !calculating the starting orbitals locally
+       iter%isloc_i=OP2P%objects_id(LOCAL_,iproc,igr)
+       iter%isloc_j=OP2P%objects_id(LOCAL_,source,igr)
+
+       !calculate the starting orbital globally
+       isorb=OP2P%objects_id(GLOBAL_,iproc,igr)
+       jsorb=OP2P%objects_id(GLOBAL_,source,igr)
+
+print *,'iproc,source,isorb,jsorb,',iproc,source,isorb,jsorb,iter%nloc_i,iter%nloc_j,igr
+
+       if (OP2P%istep/=0) then
+          phi_j=local_data_init(iter%nloc_j,OP2P%ndim)
+          if (iter%remote_result) then
+             call set_local_data(phi_j,jsorb,&
+                  OP2P%dataw(OP2P%igroup,OP2P%isend_data)%ptr,OP2P%resw(OP2P%igroup,3)%ptr)
+             !OP2P%dataw(1,1,OP2P%igroup,OP2P%isend_data),OP2P%resw(1,1,OP2P%igroup,3))
+          else
+             call set_local_data(phi_j,jsorb,&
+                  OP2P%dataw(OP2P%igroup,OP2P%isend_data)%ptr)!OP2P%dataw(1,1,OP2P%igroup,OP2P%isend_data))
+          end if
+          !jorbs_tmp=1
+          iter%isloc_j=1
+       else
+          phi_j=phi_i
+          iter%isloc_j=iter%isloc_i
+       end if
+     end subroutine prepare_calculation
+
+     subroutine OP2P_communication_step(iproc,OP2P,norbp,&!,norbp_max,&
+          iter,phi_i,phi_j,psir,dpsir,event)
+       implicit none
+       integer, intent(in) :: iproc,norbp!,norbp_max
+       type(OP2P_data), intent(inout) :: OP2P
+       type(f_enumerator), intent(inout) :: event
+       type(OP2P_iterator), intent(out) :: iter
+       real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
+       real(wp), dimension(OP2P%ndim,norbp), intent(inout) :: dpsir
+       type(local_data), intent(inout) :: phi_i,phi_j
+
+       !local variables
+       integer :: igroup,igr
+       
+       if (event==OP2P_START) OP2P%istep=0 !to be moved at the initialization
+
+       step_loop: do
+print *,'entering',iproc,OP2P%istep,OP2P%do_calculation
+          if (.not. OP2P%do_calculation) then
+             OP2P%irecv_data=3-OP2P%isend_data
+             OP2P%ndata_comms=0
+
+             call P2P_data(iproc,OP2P,norbp,psir)!,OP2P%dataw)
+
+             do igroup=1,OP2P%ngroupp
+                if (OP2P%istep /= 0 .and. OP2P%ranks(SEND_RES,igroup,OP2P%istep) /= mpirank_null()) then
+                   !put to zero the sending element
+                   !call f_zero(OP2P%ndim*norbp_max,OP2P%resw(1,1,igroup,3))
+                   call f_zero(OP2P%resw(igroup,3)%ptr)
+                end if
+             end do
+
+             !calculation for orbitals to be performed
+             OP2P%igroup=1
+          end if
+          group_loop: do
+             if (.not. OP2P%do_calculation) then
+                call prepare_calculation(iproc,OP2P,phi_i,phi_j,iter)
+             end if
+
+             if (OP2P%do_calculation .and. event==OP2P_START) then
+                event=OP2P_CALCULATE
+                return
+             end if
+             event=OP2P_START
+
+             if (OP2P%do_calculation) then !this means that we have done the calculation before
+                if (OP2P%istep/=0) call free_local_data(phi_j)
+             end if
+             OP2P%igroup=OP2P%igroup+1
+             OP2P%do_calculation=.false. !now the loop can cycle
+             if (OP2P%igroup > OP2P%ngroupp) exit group_loop
+          end do group_loop
+          !if we come here this section can be done nonetheless
+          call P2P_res(iproc,OP2P,norbp,dpsir)!,OP2P%resw)
+
+          !verify that the messages have been passed
+print *,'waithere',iproc,OP2P%istep,OP2P%ndata_comms
+          call mpiwaitall(OP2P%ndata_comms,OP2P%requests_data)
+
+          if (OP2P%istep>1) OP2P%isend_res=3-OP2P%isend_res
+          OP2P%isend_data=3-OP2P%isend_data
+          OP2P%ndata_comms=0
+          OP2P%istep=OP2P%istep+1
+          if (OP2P%istep > OP2P%nstep) exit step_loop
+       end do step_loop
+       event=OP2P_EXIT
+       iter=OP2P_iter_null()
+     end subroutine OP2P_communication_step
+
+     
+     subroutine OP2P_unitary_test(mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+       use yaml_output
+       implicit none
+       !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
+       logical, intent(in) :: symmetric
+       integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim
+       integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
+       !local variables
+       integer :: norbp,ncalls
+       real(wp) :: etot,maxdiff
+       type(OP2P_data) :: OP2P
+       type(OP2P_iterator) :: iter
+       type(local_data) :: phi_i,phi_j
+       type(f_enumerator) :: event
+       real(wp), dimension(:,:), allocatable :: data,res
+
+       norbp=sum(nobj_par(iproc,:))
+       !allocate and fill the data
+       data=f_malloc([ndim,norbp],id='data')
+       res=f_malloc0([ndim,norbp],id='res')
+
+       !first initialize the OP2P data
+       call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+
+       call test_data(iproc,OP2P,norbp,data)
+
+       !then create the local data object
+       if (OP2P%ngroupp>0) then
+          phi_i=local_data_init(norbp,ndim)
+          print *,'starting',iproc,norbp,OP2P%objects_id(GLOBAL_,iproc,OP2P%group_id(1))
+          call set_local_data(phi_i,OP2P%objects_id(GLOBAL_,iproc,OP2P%group_id(1)),&
+               data,res)
+       end if
+       !example of the usage of the loop
+       event=OP2P_START
+       ncalls=0
+       etot=0.0_wp
+       OP2P_loop: do 
+          call OP2P_communication_step(iproc,OP2P,norbp,&!,maxval(OP2P%nobj_par),&
+               iter,phi_i,phi_j,data,res,event)
+          if (event == OP2P_EXIT) exit 
+          !otherwise calculate
+          call simulate_OP2P_calculation(iter%istep,iter%remote_result,&
+               iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
+               OP2P%ndim,phi_i,phi_j,etot)
+          if (iter%istep == 0) then
+             ncalls=ncalls+(iter%nloc_i*(iter%nloc_j+1))/2
+          else
+             ncalls=ncalls+iter%nloc_i*iter%nloc_j
+          end if
+          !if (iproc==0) 
+          call yaml_comment('OP2P Simulation: '+iproc+'-'+iter%istep)
+               !+nint(real(ncalls,gp)/real(OP2P%ncouples,gp)*100.0_gp)**'(i3)'+'%')
+       end do OP2P_loop
+
+       !free the loop variables
+       call free_local_data(phi_i)
+
+       !then check that the result coincide with the calculation
+       call check_result(iproc,OP2P,norbp,res,maxdiff)
+
+!       if (nproc > 1) call mpiallred(maxdiff,1,op=MPI_MAX,comm=OP2P%mpi_comm)
+
+!       if (iproc==0) 
+call yaml_map('OP2P unitary test'+yaml_toa(iproc),maxdiff)
+
+       call free_OP2P_data(OP2P)
+!       call f_free(data)
+!       call f_free(res)
+     end subroutine OP2P_unitary_test
+
+     subroutine test_data(iproc,OP2P,norbp,data)
+       implicit none
+       integer, intent(in) :: norbp,iproc
+       type(OP2P_data), intent(in) :: OP2P
+       real(wp), dimension(OP2P%ndim,norbp), intent(out) :: data
+       !local variables
+       integer :: iobj,igroup,igr,iobj_loc,iobj_glob,i
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          do iobj=1,OP2P%nobj_par(iproc,igr)
+             iobj_glob=OP2P%objects_id(GLOBAL_,iproc,igr)+iobj
+             iobj_loc=OP2P%objects_id(LOCAL_,iproc,igr)-1+iobj
+             do i=1,OP2P%ndim
+                data(i,iobj_loc)=data_val(i,iobj_glob,igr)
+             end do
+          end do
+       end do
+     end subroutine test_data
+
+     subroutine check_result(iproc,OP2P,norbp,res,maxdiff)
+       implicit none
+       integer, intent(in) :: norbp,iproc
+       type(OP2P_data), intent(in) :: OP2P
+       real(wp), dimension(OP2P%ndim,norbp), intent(in) :: res
+       real(wp), intent(out) :: maxdiff
+       !local variables
+       integer :: iobj,igroup,igr,iobj_loc,iobj_glob,i,nobj
+
+       maxdiff=0.0_wp
+       do igroup=1,OP2P%ngroupp
+          igr=OP2P%group_id(igroup)
+          nobj=sum(OP2P%nobj_par(:,igr))
+          do iobj=1,OP2P%nobj_par(iproc,igr)
+
+             iobj_glob=OP2P%objects_id(GLOBAL_,iproc,igr)+iobj
+             iobj_loc=OP2P%objects_id(LOCAL_,iproc,igr)-1+iobj
+             do i=1,OP2P%ndim
+                maxdiff=max(maxdiff,abs(res(i,iobj_loc)-res_val(i,iobj_glob,igr,OP2P%ndim,nobj)))
+             end do
+          end do
+       end do
+     end subroutine check_result
+
+     !>define test value 
+     pure function data_val(i,iobj,igroup)
+       implicit none
+       integer, intent(in) :: i,iobj,igroup
+       real(wp) :: data_val
+       data_val=1.d0!igroup*group_delta*(obj_delta*iobj)*i*elem_delta
+     end function data_val
+
+     !>define the application of the operator to have a test result
+     pure function op_val(ndim,iobj,jobj,igroup)
+       implicit none
+       integer, intent(in) :: iobj,jobj,igroup,ndim
+       real(wp) :: op_val
+
+       op_val=real(ndim,wp)!0.5_wp*(ndim*elem_delta)*(ndim+1)*elem_delta*(group_delta*igroup)**2*obj_delta**2*iobj*jobj
+       
+     end function op_val
+       
+     !>define test result
+     pure function res_val(i,iobj,igroup,ndim,nobj)
+       implicit none
+       integer, intent(in) :: i,iobj,igroup,nobj,ndim
+       real(wp) :: res_val
+       !local variables
+       integer :: jobj
+
+       res_val=0.0_wp
+       do jobj=1,nobj
+          res_val=res_val+op_val(ndim,iobj,jobj,igroup)*data_val(i,jobj,igroup)
+       end do
+       
+     end function res_val
+
+   subroutine simulate_OP2P_calculation(istep,remote_result,&
+        nloc_i,nloc_j,isloc_i,isloc_j,&
+        ndim,phi_i,phi_j,rtot)
+     implicit none
+     logical, intent(in) :: remote_result
+     integer, intent(in) :: istep !<step of the calculation
+     integer, intent(in) :: nloc_i,nloc_j !<number of local elements to  be treated
+     integer, intent(in) :: isloc_i !<starting point of the elements for phi_i
+     integer, intent(in) :: isloc_j !<starting point of the elements for phi_j
+     integer, intent(in) :: ndim
+     type(local_data), intent(inout) :: phi_i,phi_j
+     real(wp), intent(inout) :: rtot
+     !local variables
+     integer :: iorb,jorb,iorb_glb,jorb_glb,ishift,jshift,ishift_res,jshift_res,i
+     real(wp) :: rint_ij
+     real(gp) :: hfac,hfaci,hfacj,hfac2,ehart
+     !loop over all the orbitals
+     !for the first step do only the upper triangular part
+     !do iorb=iorbs,iorbs+norbi-1
+!!$  do ind=1,nloc_i
+!!$     iorb=
+
+     do iorb=isloc_i,nloc_i+isloc_i-1
+        do jorb=isloc_j,nloc_j+isloc_j-1
+           !aliasing
+           jorb_glb=phi_j%id_glb(jorb)
+           iorb_glb=phi_i%id_glb(iorb)
+           ishift=phi_i%displ(iorb)
+           jshift=phi_j%displ(jorb)
+           ishift_res=phi_i%displ_res(iorb)
+           jshift_res=phi_j%displ_res(jorb)
+print *,'iorb_glb,jorb_glb,ishift,jshift',istep,iorb_glb,jorb_glb,ishift,jshift
+           rint_ij=0.0_wp
+           !do it only for upper triangular results 
+           if (istep /= 0 .or. jorb_glb >= iorb_glb) then
+              do i=1,ndim
+                 rint_ij=rint_ij+phi_i%data(i+ishift)*phi_j%data(i+jshift)
+              end do
+              !exact exchange energy
+              if (iorb_glb == jorb_glb) then
+                 rtot=rtot+rint_ij**2
+              else
+                 !if the result has to be sent away
+                 if (remote_result .or. istep==0) then
+                    rtot=rtot+2.0_gp*rint_ij**2
+                 else !otherwise other processors are already calculating it
+                    rtot=rtot+rint_ij**2
+                 end if
+              end if
+              !accumulate the results for each of the wavefunctions concerned
+              !$omp parallel do default(shared) private(i)
+              do i=1,ndim
+                 !if (istep >0) print *,'c,a,b',i,phi_i%res(i+ishift_res),rint_ij,phi_j%data(i+jshift)
+                 phi_i%res(i+ishift_res)=phi_i%res(i+ishift_res)+rint_ij*phi_j%data(i+jshift)
+              end do
+              !$omp end parallel do
+
+              if ((iorb_glb /= jorb_glb .and. istep==0) .or. remote_result) then
+                 !$omp parallel do default(shared) private(i)
+                 do i=1,ndim
+                    phi_j%res(i+jshift_res)=phi_j%res(i+jshift_res)+rint_ij*phi_i%data(i+ishift)
+                 end do
+                 !$omp end parallel do
+              end if
+           end if
+        end do
+     end do
+
+   end subroutine simulate_OP2P_calculation
+
 
    !<initialise the data needed to manage communication operations
    !objects_attributes(:,1) <= group to which the object belongs
