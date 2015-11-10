@@ -2856,6 +2856,7 @@ module postprocessing_linear
    use yaml_output
    use multipole_base, only: lmax
    use multipole, only: multipole_analysis_core, write_multipoles_new
+   use bounds, only: geocode_buffers
    
    ! Calling arguments
    integer,intent(in) :: iproc
@@ -2864,11 +2865,12 @@ module postprocessing_linear
    type(DFT_local_fields), intent(inout) :: denspot
    real(kind=8),dimension(-lmax:lmax,0:lmax,tmb%orbs%norb),optional :: multipoles
  
-   integer :: ist, istr, iorb, iiorb, ilr, i, iat, iter, itype
+   integer :: ist, istr, iorb, iiorb, ilr, i, iat, iter, itype, i1, i2, i3, ii1, ii2, ii3, nl1, nl2, nl3, ii
    real(kind=8),dimension(:),allocatable :: rmax
    real(kind=8),dimension(:,:),allocatable :: centers
    real(kind=8),dimension(3) :: charge_center_elec
    real(kind=8),dimension(:),allocatable :: phir, phir_one
+   real(kind=8) :: hxh, hyh, hzh, tt, x, y, z, weight
    type(workarr_sumrho) :: w
    character(len=20) :: atomname
    integer,dimension(:),allocatable :: iatype_tmp
@@ -2898,6 +2900,42 @@ module postprocessing_linear
            ! Transform the support function to real space
            call daub_to_isf(tmb%lzd%llr(ilr), w, tmb%psi(ist), phir(istr))
            call deallocate_work_arrays_sumrho(w)
+
+           ! NEW: CALCULATE THE WEIGHT CENTER OF THE SUPPORT FUNCTION ############################
+           hxh = 0.5d0*tmb%lzd%hgrids(1)
+           hyh = 0.5d0*tmb%lzd%hgrids(2)
+           hzh = 0.5d0*tmb%lzd%hgrids(3)
+           ii = istr
+           call geocode_buffers(tmb%lzd%Llr(ilr)%geocode, tmb%lzd%glr%geocode, nl1, nl2, nl3)
+           !write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+           !com(1:3,iorb) = 0.d0
+           weight = 0.d0
+           charge_center_elec(:) = 0.d0
+           do i3=1,tmb%lzd%llr(ilr)%d%n3i
+               ii3 = tmb%lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
+               z = ii3*hzh
+               do i2=1,tmb%lzd%llr(ilr)%d%n2i
+                   ii2 = tmb%lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
+                   y = ii2*hyh
+                   do i1=1,tmb%lzd%llr(ilr)%d%n1i
+                       ii1 = tmb%lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
+                       x = ii1*hxh
+                       tt = phir(ii)**2
+                       charge_center_elec(1) = charge_center_elec(1) + x*tt
+                       charge_center_elec(2) = charge_center_elec(2) + y*tt
+                       charge_center_elec(3) = charge_center_elec(3) + z*tt
+                       weight = weight + tt
+                       ii = ii + 1
+                   end do
+               end do
+           end do
+           !call yaml_map('weight',weight)
+           charge_center_elec(1:3) = charge_center_elec(1:3)/weight
+           write(*,'(a,i4,3es13.4)') 'iorb, charge_center_elec(1:3)', iorb, charge_center_elec(1:3)
+           ! ######################################################################################
+
+
+
            ! Calculate the charge center
            !call charge_center(tmb%lzd%llr(ilr)%d%n1i, tmb%lzd%llr(ilr)%d%n2i, tmb%lzd%llr(ilr)%d%n3i, &
            !     denspot%dpbox%hgrids, phir(istr), charge_center_elec)

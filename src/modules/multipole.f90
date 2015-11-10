@@ -156,9 +156,9 @@ module multipole
       !sigma(0) = 5.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
       !sigma(1) = 4.d0*hhh**(1.d0/3.d0)
       !sigma(2) = 2.d0*hhh**(1.d0/3.d0)
-      sigma(0) = 3.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
-      sigma(1) = 3.d0*hhh**(1.d0/3.d0)
-      sigma(2) = 3.d0*hhh**(1.d0/3.d0)
+      sigma(0) = 5.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
+      sigma(1) = 4.d0*hhh**(1.d0/3.d0)
+      sigma(2) = 2.d0*hhh**(1.d0/3.d0)
 
       density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
       
@@ -278,6 +278,7 @@ module multipole
                   norm_ok(impl) = .false.
               end if
           end do
+          write(*,*) 'impl, norm_ok(impl)', impl, norm_ok(impl)
       end do
 
 
@@ -848,6 +849,7 @@ module multipole
       use orthonormalization, only: orthonormalizeLocalized
       use yaml_output
       use locreg_operations
+      use bounds, only: geocode_buffers
       implicit none
 
       ! Calling arguments
@@ -882,12 +884,14 @@ module multipole
       real(kind=8) :: ddot, x, y, z, tt, rnorm, factor, max_error, q!, get_normalization, get_test_factor
       !real(kind=8) ,dimension(2,orbs%norb) :: testarr
       real(kind=8),dimension(:),allocatable :: kernel_ortho, phi_ortho
+      real(kind=8),dimension(:,:),allocatable :: weight_centers
       integer,dimension(:),allocatable :: n1i, n2i, n3i, ns1i, ns2i, ns3i
       !real(kind=8),dimension(-lmax:lmax,0:lmax,at%astruct%nat) :: multipoles
       real(kind=8),dimension(:,:,:),allocatable :: multipoles
-      real(kind=8) :: factor_normalization
+      real(kind=8) :: factor_normalization, hxh, hyh, hzh, weight
       character(len=20) :: atomname
       real(kind=8),dimension(-lmax:lmax,0:lmax) :: norm
+      integer :: nl1, nl2, nl3
       !real(kind=8),parameter :: rmax=5.d0
       !testarr = 0.d0
 
@@ -945,6 +949,51 @@ module multipole
           write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
           stop
       end if
+
+
+      !! NEW: CALCULATE THE WEIGHT CENTER OF EACH SUPPORT FUNCTION ############################
+      !weight_centers = f_malloc0((/3,orbs%norb/),id='weight_centers')
+      !hxh = 0.5d0*lzd%hgrids(1)
+      !hyh = 0.5d0*lzd%hgrids(2)
+      !hzh = 0.5d0*lzd%hgrids(3)
+
+      !istr = 1
+      !do iorb=1,orbs%norbp
+      !    iiorb=orbs%isorb+iorb
+      !    ilr=orbs%inwhichlocreg(iiorb)
+      !    call geocode_buffers(lzd%Llr(ilr)%geocode, lzd%glr%geocode, nl1, nl2, nl3)
+      !    !write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+      !    !com(1:3,iorb) = 0.d0
+      !    weight = 0.d0
+      !    do i3=1,lzd%llr(ilr)%d%n3i
+      !        ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
+      !        z = ii3*hzh
+      !        do i2=1,lzd%llr(ilr)%d%n2i
+      !            ii2 = lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
+      !            y = ii2*hyh
+      !            do i1=1,lzd%llr(ilr)%d%n1i
+      !                ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
+      !                x = ii1*hxh
+      !                tt = psir(istr)**2
+      !                weight_centers(1,iiorb) = weight_centers(1,iiorb) + x*tt
+      !                weight_centers(2,iiorb) = weight_centers(2,iiorb) + y*tt
+      !                weight_centers(3,iiorb) = weight_centers(3,iiorb) + z*tt
+      !                weight = weight + tt
+      !                istr = istr + 1
+      !            end do
+      !        end do
+      !    end do
+      !    !call yaml_map('weight',weight)
+      !    weight_centers(1:3,iorb) = weight_centers(1:3,iorb)/weight
+      !end do
+      !call mpiallred(weight_centers, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      !if (iproc==0) then
+      !    do iorb=1,orbs%norb
+      !        write(*,'(a,i4,3es13.4)') 'iorb, weight_centers(1:3,iorb)', iorb, weight_centers(1:3,iorb)
+      !    end do
+      !end if
+      !call f_free(weight_centers)
+      !! ######################################################################################
 
 
       ! Switch to a partition over the atoms
