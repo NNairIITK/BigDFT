@@ -5,7 +5,7 @@
 !!     
 !! @author Bastian Schaefer
 !! @section LICENCE
-!!    Copyright (C) 2015-2015 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -44,7 +44,7 @@ subroutine lstpthpnt(runObj,mhgpsst,uinp,rxyzR,rxyzP,lambda,rxyz)
                                           !path that corresponds
                                           !to lambda
     !internal
-    real(gp) :: oml
+!    real(gp) :: oml
     real(gp) :: fxyz(3,runObj%atoms%astruct%nat), epot
     real(gp) :: drxyz(3,runObj%atoms%astruct%nat)
 

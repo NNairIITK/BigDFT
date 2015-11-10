@@ -1430,7 +1430,6 @@ subroutine mincurvforce(mhgpsst,imode,runObj,outs,diff,rxyz1,fxyz1,&
     real(gp), intent(inout)  :: alpha_stretch
     integer,  intent(in)     :: iconnect(2,nbond_)
     !internal
-    integer :: infocode
     real(gp) :: rxyz2(3,runObj%atoms%astruct%nat)
     real(gp) :: maxdiff
 

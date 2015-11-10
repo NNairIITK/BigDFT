@@ -1,7 +1,9 @@
 !> @file
 !! Routine to tests f_utils module
+!! @example utls.f90
+!! Examples using the @ref f_utils objects (units and timers)
 !! @author
-!!    Copyright (C) 2015-2015 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,9 +21,9 @@ subroutine f_utils_test()
   type(f_enumerator) :: f3=f_enumerator('Pizza',3,null())             
   integer :: unt,unt2,u
   !  double precision :: t0
+  integer(kind=8) :: i0
   integer, parameter :: nstep=3
   integer :: istep
-  integer(kind=8) :: i0,i1
   real(f_simple), dimension(3) :: r1
   real(f_double), dimension(3) :: r2
   real(f_quadruple), dimension(3) :: r4
@@ -32,7 +34,7 @@ subroutine f_utils_test()
   integer(f_integer), dimension(3) :: i4
   integer(f_long), dimension(3) :: il
   logical(f_byte), dimension(3) :: lb
-  character(len=256) :: path
+  !character(len=256) :: path
   logical, dimension(3) :: l
 
   r4=real(10.0,f_quadruple)

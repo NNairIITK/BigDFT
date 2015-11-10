@@ -1,7 +1,7 @@
 !> @file
 !!  Module defining a dictionary
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -563,13 +563,14 @@ contains
   !> Define the same parent(dict) for any of the elements of the linked chain (child)
   recursive subroutine define_parent(dict,child)
     implicit none
+    !Arguments
     type(dictionary), target :: dict
     type(dictionary) :: child
 !!$    type(dictionary), pointer :: dict
 !!$    type(dictionary), pointer :: child
 
     !local variables
-    type(dictionary), pointer :: iter
+!!$    type(dictionary), pointer :: iter
 
 !!$    !eliminate recursion
 !!$    iter => child

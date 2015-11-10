@@ -1,7 +1,7 @@
 !> @file
 !! Manage dynamic memory allocation
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -742,7 +742,7 @@ contains
 
   end subroutine close_routine
 
-  !routine which is called for most of the errors of the module
+  !> Routine which is called for most of the errors of the module
   subroutine f_malloc_callback()
     use yaml_output, only: yaml_warning,yaml_flush_document
     use exception_callbacks, only: severe_callback_add 

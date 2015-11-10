@@ -1,11 +1,13 @@
 !! @file
 !! @author Bastian Schaefer
-!! @section LICENCE
-!!    Copyright (C) 2015-2015 BigDFT group
+!!    Copyright (C) 2014-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module fo minimum hopping guided path search method
 module module_mhgpstool
     use module_base
     use module_atoms, only: atomic_structure
@@ -73,7 +75,6 @@ subroutine add_sadneighb(snghb,ileft,iright,ipair,fminL,fminR)
     character(len=*), intent(in) :: fminL, fminR
     !internal
     integer, parameter :: npairxdef=5
-    integer :: i
     integer, allocatable :: neighbtmp(:,:)
     integer, allocatable :: counttmp(:)
     character(len=600), allocatable :: neighbPathtmp(:,:)
@@ -246,7 +247,8 @@ subroutine read_folders(nfolder,folders)
     enddo
     close(u)
 end subroutine read_folders
-!=====================================================================
+
+
 subroutine count_saddle_points(nfolder,folders,nsad)
     use yaml_output
     use module_io, only: check_struct_file_exists
@@ -258,9 +260,9 @@ subroutine count_saddle_points(nfolder,folders,nsad)
     !local
     integer :: ifolder
     integer :: isad, isadfolder
-    character(len=5) :: isadc
     character(len=600) :: fsaddle, fminR, fminL
     logical :: fsaddleEx, fminRex, fminLex
+
     fsaddleEx=.false.; fminRex=.false.; fminLex=.false.
     call yaml_comment('Saddle counts ....',hfill='-')
     isad=0
@@ -284,7 +286,7 @@ subroutine count_saddle_points(nfolder,folders,nsad)
     enddo
     call yaml_map('TOTAL',sum(nsad))
 end subroutine count_saddle_points
-!=====================================================================
+
 subroutine identMHminMHGPSmin(MHminPath,mdat,mn)
     use module_base
     use yaml_output
@@ -301,8 +303,9 @@ subroutine identMHminMHGPSmin(MHminPath,mdat,mn)
     integer :: imin
     character(len=600) :: filename
     logical :: exists
-    real(gp) :: rxyz(3,mdat%nat), fp(mdat%nid), epot
-    real(gp) :: en_delta, fp_delta
+    !real(gp), dimension(3,mdat%nat) :: rxyz
+    real(gp), dimension(mdat%nid) :: fp
+    real(gp) :: en_delta, fp_delta, epot
     logical  :: lnew
     integer  :: kid
     integer  :: k_epot
@@ -358,8 +361,8 @@ subroutine read_and_merge_data(folders,nsad,mdat)
     integer :: ifolder
     integer :: isad
     character(len=600) :: fsaddle, fminR, fminL
-    real(gp) :: rxyz(3,mdat%nat), fp(mdat%nid), epot
-    real(gp) :: en_delta, fp_delta
+    real(gp), dimension(mdat%nid) :: fp
+    real(gp) :: epot,en_delta, fp_delta
     real(gp) :: en_delta_sad, fp_delta_sad
     logical  :: lnew
     integer  :: kid
@@ -492,7 +495,8 @@ write(*,*)trim(fsaddle)
     enddo
     
 end subroutine read_and_merge_data
-!=====================================================================
+
+
 subroutine write_data(mdat)
     use yaml_output
     use module_base
@@ -503,10 +507,10 @@ subroutine write_data(mdat)
     integer :: u, u2, u3, u4, u5
     integer :: imin, isad
     integer, allocatable :: mn(:)
-    integer :: ipair, it
+    integer :: ipair
     logical :: exclude
     character(len=9) :: ci
-    integer :: isadc, iminc
+    integer :: isadc
     integer :: imin_well_aligned
 
     mn = f_malloc((/mdat%nmin/),id='mn')

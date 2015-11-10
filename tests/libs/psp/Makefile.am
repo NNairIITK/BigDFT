@@ -2,12 +2,12 @@
 
 SUBDIRS = 
 
+EXTRA_DIST = psp.ref.yaml
 SHORT_CHECK=
 LONG_CHECK=psp.report
 
 include $(srcdir)/../check.mk
 
-EXTRA_DIST = psp.out.ref
 
 check_PROGRAMS = check_psp
 
@@ -23,23 +23,19 @@ endif
 check_psp_SOURCES = check_psp.f90
 check_psp_LDADD = -lbigdft-1
 
-CLEANFILES = psp.out psp.report
+CLEANFILES = psp.out.yaml psp.report.yaml
 
-psp.report: $(srcdir)/psp.out.ref psp.out
-	python $(top_srcdir)/tests/fldiff.py $^ | tee $@
+check: psp.report.yaml
+psp.report.yaml: psp.out.yaml
+	python $(top_srcdir)/tests/fldiff_yaml.py -r $(srcdir)/psp.ref.yaml -d $^ -o $@ \
+		-t $(top_srcdir)/tests/tols-BigDFT.yaml --label=psp
 
-psp.out: check_psp
-	echo "test LDA" > $@
-	@rm -f lda.out
+psp.out.yaml: check_psp
+	echo "Test LDA:" > $@
 	for psp in $(top_srcdir)/utils/PSPfiles/Krach-LDA/*-q* ; do \
-	  ./check_psp $$psp >> lda.out ; \
+	  ./check_psp $$psp >> $@ ; \
 	done
-	@LANG=C sort -k5 -g lda.out >> $@
-	@rm -f lda.out
-	echo "test PBE" >> $@
-	@rm -f pbe.out
+	echo "Test PBE:" >> $@
 	for psp in $(top_srcdir)/utils/PSPfiles/Krach-PBE/*-q* ; do \
-	  ./check_psp $$psp >> pbe.out ; \
+	  ./check_psp $$psp >> $@ ; \
 	done
-	@LANG=C sort -k5 -g pbe.out >> $@
-	@rm -f pbe.out
