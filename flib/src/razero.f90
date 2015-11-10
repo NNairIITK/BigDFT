@@ -204,6 +204,7 @@ subroutine razero_complex_li(n,x)
 end subroutine razero_complex_li
 
 
+
 !> Set to zero an array x(n)
 subroutine razero_simple_i(n,x)
   implicit none
@@ -211,7 +212,8 @@ subroutine razero_simple_i(n,x)
   integer(kind=4), intent(in) :: n
   real(kind=4), intent(out) :: x(n)
   !Local variables
-  integer :: i,m
+  integer :: i
+  !integer :: m
   !$ logical :: omp_in_parallel,do_omp
   !$ do_omp = n > 1024
   !$ if (do_omp) do_omp= .not. omp_in_parallel()
@@ -244,14 +246,16 @@ subroutine razero_simple_li(n,x)
 END SUBROUTINE razero_simple_li
 
 
-!>   Set to zero an array x(n)
+
+!> Set to zero an array x(n)
 subroutine razero_integer_i(n,x)
   implicit none
   !Arguments
   integer(kind=4), intent(in) :: n
   integer(kind=4), dimension(n), intent(out) :: x
   !Local variables
-  integer :: i,m
+  integer :: i
+  !integer :: m
   !$ logical :: omp_in_parallel,do_omp
   !$ do_omp = n > 1024
   !$ if (do_omp) do_omp= .not. omp_in_parallel()
@@ -284,14 +288,16 @@ subroutine razero_integer_li(n,x)
 END SUBROUTINE razero_integer_li
 
 
-!>   Set to zero an array x(n)
+
+!> Set to zero an array x(n)
 subroutine razero_integerlong_i(n,x)
   implicit none
   !Arguments
   integer(kind=4), intent(in) :: n
   integer(kind=8), dimension(n), intent(out) :: x
   !Local variables
-  integer :: i,m
+  integer :: i
+  !integer :: m
   !$ logical :: omp_in_parallel,do_omp
   !$ do_omp = n > 1024
   !$ if (do_omp) do_omp= .not. omp_in_parallel()
@@ -324,7 +330,7 @@ subroutine razero_integerlong_li(n,x)
 END SUBROUTINE razero_integerlong_li
 
 
-!!!>   Set to zero an array x(n): omp version of razero
+!!!> Set to zero an array x(n): omp version of razero
 !!subroutine omp_razero(n,x)
 !!  use module_base
 !!  implicit none
@@ -355,7 +361,7 @@ END SUBROUTINE razero_integerlong_li
 !!END SUBROUTINE omp_razero
 
 
-!>   Set to 10^-20 an array x(n) for exchange-correlation function of ABINIT
+!> Set to 10^-20 an array x(n) for exchange-correlation function of ABINIT
 subroutine tenminustwenty(n,x,nproc)
   implicit none
 ! Arguments
@@ -368,9 +374,10 @@ subroutine tenminustwenty(n,x,nproc)
   end do
 END SUBROUTINE tenminustwenty
 
-!>   Set to 10^-10 an array x(n) for exchange-correlation function of ABINIT.
-!!   We use 10^-10 here since the array will be squared later and we then arrive at
-!!   the desired 10^-20.
+
+!> Set to 10^-10 an array x(n) for exchange-correlation function of ABINIT.
+!! We use 10^-10 here since the array will be squared later and we then arrive at
+!! the desired 10^-20.
 subroutine tenminusten(n,x,nproc)
   implicit none
 ! Arguments
@@ -384,6 +391,7 @@ subroutine tenminusten(n,x,nproc)
 END SUBROUTINE tenminusten
 
 
+!> Routine doing daxpy with dx in real(kind=4)
 subroutine dasxpdy(n,da,dx,incx,dy,incy)
   implicit none
   integer, intent(in) :: n,incx,incy
@@ -402,6 +410,8 @@ subroutine dasxpdy(n,da,dx,incx,dy,incy)
   end do
 end subroutine dasxpdy
 
+
+!> Copy from real(kind=4) into real(kind=8)
 subroutine dscopy(n,dx,incx,dy,incy)
   implicit none
   integer, intent(in) :: n,incx,incy
@@ -420,6 +430,8 @@ subroutine dscopy(n,dx,incx,dy,incy)
 
 end subroutine dscopy
 
+
+!> dcopy for integer arrays
 subroutine icopy(n,dx,incx,dy,incy)
   implicit none
   integer, intent(in) :: n,incx,incy
@@ -478,6 +490,7 @@ function builtin_rand(idum)
   builtin_rand=min(am*iy,rnmx)
 END FUNCTION builtin_rand
 
+
 subroutine diff_i(n,a,b,diff)
   implicit none
   integer, intent(in) :: n
@@ -492,6 +505,8 @@ subroutine diff_i(n,a,b,diff)
      diff=max(diff,abs(a(i)-b(i)))
   end do
 end subroutine diff_i
+
+
 subroutine diff_li(n,a,b,diff)
   implicit none
   integer, intent(in) :: n
@@ -506,6 +521,8 @@ subroutine diff_li(n,a,b,diff)
      diff=max(diff,abs(a(i)-b(i)))
   end do
 end subroutine diff_li
+
+
 subroutine diff_r(n,a,b,diff)
   implicit none
   integer, intent(in) :: n
@@ -520,6 +537,8 @@ subroutine diff_r(n,a,b,diff)
      diff=max(diff,abs(a(i)-b(i)))
   end do
 end subroutine diff_r
+
+
 subroutine diff_d(n,a,b,diff)
   implicit none
   integer, intent(in) :: n
@@ -534,6 +553,8 @@ subroutine diff_d(n,a,b,diff)
      diff=max(diff,abs(a(i)-b(i)))
   end do
 end subroutine diff_d
+
+
 subroutine diff_l(n,a,b,diff)
   implicit none
   integer, intent(in) :: n
@@ -550,6 +571,7 @@ subroutine diff_l(n,a,b,diff)
   end do
 end subroutine diff_l
 
+
 subroutine diff_ci(n,a,b,diff)
   implicit none
   integer, intent(in) :: n
@@ -565,6 +587,7 @@ subroutine diff_ci(n,a,b,diff)
   end do
 end subroutine diff_ci
 
+
 subroutine f_itoa(n,src,dest)
   implicit none
   integer, intent(in) :: n
@@ -578,6 +601,7 @@ subroutine f_itoa(n,src,dest)
   end do
 
 end subroutine f_itoa
+
 
 subroutine f_litoa(n,src,dest)
   use f_precisions, only: f_long

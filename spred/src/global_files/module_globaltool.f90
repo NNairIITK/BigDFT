@@ -1,11 +1,15 @@
-!! @file
+!> @file
+!!   Define module for the global tool
 !! @author Bastian Schaefer
 !! @section LICENCE
-!!    Copyright (C) 2014 BigDFT group
+!!    Copyright (C) 2014-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
+!> Module to handle the minima hopping
 module module_globaltool
     use module_base
     use module_atoms, only: atomic_structure
@@ -123,7 +127,8 @@ subroutine unpair(pairID,IDmin1,IDmin2)
     IDmin1 = min(k1,k2)
     IDmin2 = max(k1,k2)
 end subroutine unpair
-!=====================================================================
+
+
 subroutine count_poslocm(gdat)
     use module_base
     use yaml_output
@@ -153,7 +158,8 @@ subroutine count_poslocm(gdat)
     enddo
     call yaml_map('Total poslocms found',gdat%nminmax)
 end subroutine count_poslocm
-!=====================================================================
+
+
 subroutine construct_filename(gdat,idict,ifile,filename)
     implicit none
     !parameters
@@ -272,7 +278,8 @@ subroutine finalize_gt_data(gdat)
     call f_free(gdat%mn)
     call f_free_str(1,gdat%gmon_stat)
 end subroutine finalize_gt_data
-!=====================================================================
+
+
 subroutine read_globaltool_uinp(gdat)
     use module_base
     use yaml_output
@@ -287,7 +294,6 @@ subroutine read_globaltool_uinp(gdat)
     character(len=2000) :: line
     character(len=1024) :: comment
     real(gp) :: energy
-    real(gp) :: rdmy
     logical :: exists
 
     inquire(file='globaltool.inp',exist=exists)
@@ -493,7 +499,7 @@ subroutine write_transitionpairs(gdat)
     integer :: IDmin1, IDmin2
     integer :: kIDmin1, kIDmin2
     real(gp) :: fpd
-integer :: i
+
     call yaml_comment('Transition pairs unified ....',hfill='-')
     write(*,'(a)')'  #Trans IDmin1 IDmin2  Ener1                '//&
          '    Ener2                    |DeltaEner|         '//&
@@ -746,8 +752,7 @@ subroutine read_globalmon(gdat,idict)
     real(gp) :: ristep
     real(gp) :: energy
     real(gp) :: rdmy
-    real(gp) :: fp(gdat%nid)
-integer :: itmp
+    integer :: itmp
 
 
     u=f_get_free_unit()

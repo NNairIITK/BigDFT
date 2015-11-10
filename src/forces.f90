@@ -1,15 +1,21 @@
 !>  @file
 !!  Routines to calculate the local part of atomic forces
 !! @author
-!!    Copyright (C) 2007-2012 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
-subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz,i3s,n3p,nspin,&
+
+
+!> Calculate atomic forces
+subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,rxyz,hx,hy,hz, &
+     dpbox, &
+     i3s,n3p,nspin,&
      refill_proj,ngatherarr,rho,pot,potxc,nsize_psi,psi,fion,fdisp,fxyz,&
-     calculate_strten,ewaldstr,hstrten,xcstr,strten,fnoise,pressure,psoffset,imode,tmb,fpulay)
+     calculate_strten,ewaldstr,hstrten,xcstr,strten,pressure,psoffset,imode,tmb,fpulay)
   use module_base
+  use module_dpbox, only: denspot_distribution
   use module_types
   use communications_base
   use yaml_output
@@ -20,6 +26,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   logical, intent(in) :: refill_proj
   integer, intent(in) :: iproc,nproc,i3s,n3p,nspin,psolver_groupsize,imode,nsize_psi
   real(gp), intent(in) :: hx,hy,hz,psoffset
+  type(denspot_distribution), intent(in) :: dpbox
   type(locreg_descriptors), intent(in) :: Glr
   type(atoms_data), intent(in) :: atoms
   type(orbitals_data), intent(in) :: orbs
@@ -29,25 +36,24 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   real(wp), dimension(nsize_psi), intent(in) :: psi
   real(gp), dimension(6), intent(in) :: ewaldstr,hstrten,xcstr
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz,fion,fdisp,fpulay
-  real(gp), intent(out) :: fnoise,pressure
+  real(gp), intent(out) :: pressure
   real(gp), dimension(6), intent(out) :: strten
   real(gp), dimension(3,atoms%astruct%nat), intent(out) :: fxyz
   type(DFT_wavefunction),intent(inout) :: tmb
-  !local variables
+  !Local variables
   integer :: iat,i,j
-  real(gp) :: charge,ucvol,maxdiff
+  real(gp) :: charge,ucvol!,maxdiff
   real(gp), dimension(6,4) :: strtens!local,nonlocal,kin,erf
   character(len=16), dimension(4) :: messages
 
   !real(gp), dimension(3,atoms%astruct%nat) :: fxyz_tmp
 
   real(kind=4) :: tr0, tr1, trt0, trt1
-  real(kind=8) :: time0, time1, time2, time3, time4, time5, time6, time7, ttime
+  real(kind=8) :: time0, time1, ttime!, time2, time3, time4, time5, time6, time7
   logical, parameter :: extra_timing=.false.
 
 
   call f_routine(id='calculate_forces')
-
   if (extra_timing) call cpu_time(trt0)
 
   call f_zero(strten)
@@ -57,8 +63,8 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   if (extra_timing) call cpu_time(tr0)
 
   call local_forces(iproc,atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,&
-       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,rho,pot,fxyz,strtens(1,1),charge)
-
+       dpbox, &
+       Glr%d%n1,Glr%d%n2,Glr%d%n3,n3p,i3s,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,rho,pot,fxyz,strtens(1,1),charge)
   if (extra_timing) call cpu_time(tr1)
   if (extra_timing) time0=real(tr1-tr0,kind=8)
 
@@ -68,8 +74,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !!end do
 
   !calculate forces originated by rhocore
-  call rhocore_forces(iproc,atoms,nspin,Glr%d%n1,Glr%d%n2,Glr%d%n3,Glr%d%n1i,Glr%d%n2i,n3p,i3s,&
-       0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,rxyz,potxc,fxyz)
+  call rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
 
 
   !for a taksgroup Poisson Solver, multiply by the ratio.
@@ -79,12 +84,13 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
   !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)',advance='no')'Calculate nonlocal forces...'
 
   if (extra_timing) call cpu_time(tr0)
-  if (imode==0) then
+  select case(imode)
+  case(0)
      !cubic version of nonlocal forces
      call nonlocal_forces(Glr,hx,hy,hz,atoms,rxyz,&
           orbs,nlpsp,Glr%wfd,psi,fxyz,refill_proj,&
           calculate_strten .and. (atoms%astruct%geocode == 'P'),strtens(1,2))
-  else if (imode==1) then
+  case(1)
      !linear version of nonlocal forces
      !fxyz_tmp = fxyz
      call nonlocal_forces_linear(iproc,nproc,tmb%npsidim_orbs,tmb%lzd%glr,hx,hy,hz,atoms,rxyz,&
@@ -93,15 +99,13 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      !fxyz_tmp = fxyz - fxyz_tmp
      !do iat=1,atoms%astruct%nat
      !    write(1000+iproc,'(a,2i8,3es15.6)') 'iproc, iat, fxyz(:,iat)', iproc, iat, fxyz(:,iat)
-     !end do
-  else
-     stop 'wrong imode'
-  end if
+  case default
+     call f_err_throw('Wrong imode',err_name='BIGDFT_RUNTIME_ERROR')
+     !stop 'wrong imode'
+  end select
   if (extra_timing) call cpu_time(tr1)
   if (extra_timing) time1=real(tr1-tr0,kind=8)
 
-  !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
-  !if (iproc == 0 .and. verbose > 1) call yaml_map('Non Local forces calculated',.true.)
   if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate Non Local forces',(nlpsp%nprojel > 0))
 
   !LG: can we relax the constraint for psolver taskgroups in the case of stress tensors?
@@ -117,7 +121,7 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
      end if
 
      call erf_stress(atoms,rxyz,0.5_gp*hx,0.5_gp*hy,0.5_gp*hz,Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,n3p,&
-          iproc,nproc,ngatherarr,rho,strtens(1,4)) 
+          iproc,nproc,ngatherarr,rho,strtens(1,4)) !should not be reduced for the moment
   end if
 
   !add to the forces the ionic and dispersion contribution
@@ -188,9 +192,11 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
         ucvol=atoms%astruct%cell_dim(1)*atoms%astruct%cell_dim(2)*atoms%astruct%cell_dim(3) !orthorombic cell
         if (iproc==0) call yaml_mapping_open('Stress Tensor')
         !sum and symmetrize results
-        if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
-        if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
-        if (iproc==0 .and. verbose > 2)call write_strten_info(.false.,xcstr,ucvol,pressure,'XC')
+     if (iproc==0 .and. verbose > 2) then
+        call write_strten_info(.false.,ewaldstr,ucvol,pressure,'Ewald')
+        call write_strten_info(.false.,hstrten,ucvol,pressure,'Hartree')
+        call write_strten_info(.false.,xcstr,ucvol,pressure,'XC')
+     end if
         do j=1,6
            strten(j)=ewaldstr(j)+hstrten(j)+xcstr(j)
         end do
@@ -225,29 +231,47 @@ subroutine calculate_forces(iproc,nproc,psolver_groupsize,Glr,atoms,orbs,nlpsp,r
 end subroutine calculate_forces
 
 
-!> calculate the contribution to the forces given by the core density charge
-subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh,rxyz,potxc,fxyz)
+!> Calculate the contribution to the forces given by the core density charge
+subroutine rhocore_forces(iproc,atoms,dpbox,nspin,rxyz,potxc,fxyz)
   use module_base
+  use module_dpbox
   use module_types
   use yaml_output
   use bounds, only: ext_buffers
   implicit none
-  integer, intent(in) :: iproc,n1i,n2i,n3p,i3s,nspin,n1,n2,n3
-  real(gp), intent(in) :: hxh,hyh,hzh
+  !Arguments
+  integer, intent(in) :: iproc,nspin
+!!!  integer, intent(in) :: n1i,n2i,n3i,n3p,i3s,n1,n2,n3
+  type(denspot_distribution), intent(in) :: dpbox
+!!!  real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
-  real(wp), dimension(n1i*n2i*n3p*nspin), intent(in) :: potxc
+  real(wp), dimension(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3p,nspin), intent(in) :: potxc
   real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: fxyz
-  !local variables
+  !Local variables
+  logical, parameter :: use_iterator=.false.
   real(gp), parameter :: oneo4pi=.079577471545947_wp
+  type(dpbox_iterator) :: boxit
+  integer, dimension(2,3) :: nbox
+  integer :: ilcc,ityp,iat,jtyp,islcc,ngv,ngc,ig,ispin
   logical :: perx,pery,perz,gox,goy,goz
-  integer :: ispin,ilcc,ityp,iat,jtyp,islcc,ngv,ngc,ig,ispinsh,ind
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,isx,isy,isz,iex,iey,iez
-  integer :: i1,i2,i3,j1,j2,j3
-  real(gp) :: spinfac,rx,ry,rz,frcx,frcy,frcz,rloc,cutoff,x,y,z,r2
+  integer :: i1,i2,i3,j1,j2,j3,ispinsh,ind,n1i,n2i,n3i,i3s,n3pi,n3p
+  real(gp) :: spinfac,rx,ry,rz,frcx,frcy,frcz,rloc,cutoff,x,y,z,r2,hxh,hyh,hzh
   real(gp) :: spherical_gaussian_value,drhoc,drhov,drhodr2
 
   call f_routine(id='rhocore_forces')
+
+  hxh = dpbox%hgrids(1)
+  hyh = dpbox%hgrids(2)
+  hzh = dpbox%hgrids(3)
+  n1i=dpbox%ndims(1)
+  n2i=dpbox%ndims(2)
+  n3i=dpbox%ndims(3)
+  n3pi = dpbox%n3pi
+  n3p = dpbox%n3p
+  i3s = dpbox%i3s + dpbox%i3xcsh
+
 
   if (atoms%donlcc) then
      !if (iproc == 0) write(*,'(1x,a)',advance='no')'Calculate NLCC forces...'
@@ -257,9 +281,10 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
      else if (nspin ==2) then
         spinfac=1.0_gp
      end if
+
      !perform the loop on any of the atoms which have this feature
      do iat=1,atoms%astruct%nat
-        rx=rxyz(1,iat) 
+        rx=rxyz(1,iat)
         ry=rxyz(2,iat)
         rz=rxyz(3,iat)
 
@@ -293,79 +318,125 @@ subroutine rhocore_forces(iproc,atoms,nspin,n1,n2,n3,n1i,n2i,n3p,i3s,hxh,hyh,hzh
            cutoff=10.d0*rloc
 
            !conditions for periodicity in the three directions
-           perx=(atoms%astruct%geocode /= 'F')
-           pery=(atoms%astruct%geocode == 'P')
-           perz=(atoms%astruct%geocode /= 'F')
+           if (.not. use_iterator) then
+              perx=(atoms%astruct%geocode /= 'F')
+              pery=(atoms%astruct%geocode == 'P')
+              perz=(atoms%astruct%geocode /= 'F')
 
-           call ext_buffers(perx,nbl1,nbr1)
-           call ext_buffers(pery,nbl2,nbr2)
-           call ext_buffers(perz,nbl3,nbr3)
+              call ext_buffers(perx,nbl1,nbr1)
+              call ext_buffers(pery,nbl2,nbr2)
+              call ext_buffers(perz,nbl3,nbr3)
+           end if
 
-           if (n3p >0) then
+           if (dpbox%n3p > 0) then
 
-              isx=floor((rx-cutoff)/hxh)
-              isy=floor((ry-cutoff)/hyh)
-              isz=floor((rz-cutoff)/hzh)
+              if (use_iterator) then
+                 nbox(1,1) = floor((rx-cutoff)/hxh)
+                 nbox(1,2) = floor((ry-cutoff)/hyh)
+                 nbox(1,3) = floor((rz-cutoff)/hzh)
+                 nbox(2,1) = ceiling((rx+cutoff)/hxh)
+                 nbox(2,2) = ceiling((ry+cutoff)/hyh)
+                 nbox(2,3) = ceiling((rz+cutoff)/hzh)
+                 do ispin=1,nspin
+                    boxit = dpbox_iter(dpbox,DPB_POT,nbox=nbox)
+                    do while(dpbox_iter_next(boxit))
+                       x = boxit%x - rx
+                       y = boxit%y - ry
+                       z = boxit%z - rz
+                       r2 = x**2 + y**2 + z**2
+                       ilcc=islcc
+                       drhov=0.0_dp
+                       do ig=1,(ngv*(ngv+1))/2
+                          ilcc=ilcc+1
+                          !derivative wrt r2
+                          drhov=drhov+&
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+                       end do
+                       drhoc=0.0_dp
+                       do ig=1,(ngc*(ngc+1))/2
+                          ilcc=ilcc+1
+                          !derivative wrt r2
+                          drhoc=drhoc+&
+                               spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+                       end do
+                       !forces in all the directions for the given atom
+                       drhodr2=drhoc-drhov
+                       frcx = frcx + potxc(boxit%ind,ispin)*x*drhodr2
+                       frcy = frcy + potxc(boxit%ind,ispin)*y*drhodr2
+                       frcz = frcz + potxc(boxit%ind,ispin)*z*drhodr2
+                       !write(*,'(i0,1x,6(1x,1pe24.17))') boxit%ind,potxc(boxit%ind),drhoc,drhov,x,y,z
+                    end do
+                 end do
+              else
+                 isx=floor((rx-cutoff)/hxh)
+                 isy=floor((ry-cutoff)/hyh)
+                 isz=floor((rz-cutoff)/hzh)
+                 iex=ceiling((rx+cutoff)/hxh)
+                 iey=ceiling((ry+cutoff)/hyh)
+                 iez=ceiling((rz+cutoff)/hzh)
 
-              iex=ceiling((rx+cutoff)/hxh)
-              iey=ceiling((ry+cutoff)/hyh)
-              iez=ceiling((rz+cutoff)/hzh)
-              do ispin=1,nspin
-                 ispinsh=0
-                 if (ispin==2) ispinsh=n1i*n2i*n3p
-                 do i3=isz,iez
-                    z=real(i3,kind=8)*hzh-rz
-                    call ind_positions(perz,i3,n3,j3,goz)
-                    j3=j3+nbl3+1
-                    if (j3 >= i3s .and. j3 <= i3s+n3p-1) then
-                       do i2=isy,iey
-                          y=real(i2,kind=8)*hyh-ry
-                          call ind_positions(pery,i2,n2,j2,goy)
-                          if (goy) then
-                             do i1=isx,iex
-                                x=real(i1,kind=8)*hxh-rx
-                                call ind_positions(perx,i1,n1,j1,gox)
-                                if (gox) then
-                                   r2=x**2+y**2+z**2
-                                   ilcc=islcc
-                                   drhov=0.0_dp
-                                   do ig=1,(ngv*(ngv+1))/2
-                                      ilcc=ilcc+1
-                                      !derivative wrt r2
-                                      drhov=drhov+&
-                                           spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
-                                   end do
-                                   drhoc=0.0_dp
-                                   do ig=1,(ngc*(ngc+1))/2
-                                      ilcc=ilcc+1
-                                      !derivative wrt r2
-                                      drhoc=drhoc+&
-                                           spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
-                                   end do
-                                   !forces in all the directions for the given atom
-                                   ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i+ispinsh
-                                   drhodr2=drhoc-drhov
-                                   frcx=frcx+potxc(ind)*x*drhodr2
-                                   frcy=frcy+potxc(ind)*y*drhodr2
-                                   frcz=frcz+potxc(ind)*z*drhodr2
-                                endif
-                             enddo
-                          end if
-                       enddo
-                    end if
-                 enddo
-              end do
+                 do ispin=1,nspin
+                    ispinsh=0
+                    if (ispin==2) ispinsh=n1i*n2i*n3p
+                    do i3=isz,iez
+                       z=real(i3,kind=8)*hzh-rz
+                       !call ind_positions(perz,i3,n3,j3,goz)
+                       call ind_positions_new(perz,i3,n3i,j3,goz)
+                       j3=j3+nbl3+1
+                       if (j3 >= i3s .and. j3 <= i3s+n3p-1) then
+                          do i2=isy,iey
+                             y=real(i2,kind=8)*hyh-ry
+                             !call ind_positions(pery,i2,n2,j2,goy)
+                             call ind_positions_new(pery,i2,n2i,j2,goy)
+                             if (goy) then
+                                do i1=isx,iex
+                                   x=real(i1,kind=8)*hxh-rx
+                                   !call ind_positions(perx,i1,n1,j1,gox)
+                                   call ind_positions_new(perx,i1,n1i,j1,gox)
+                                   if (gox) then
+                                      r2=x**2+y**2+z**2
+                                      ilcc=islcc
+                                      drhov=0.0_dp
+                                      do ig=1,(ngv*(ngv+1))/2
+                                         ilcc=ilcc+1
+                                         !derivative wrt r2
+                                         drhov=drhov+&
+                                              spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+                                      end do
+                                      drhoc=0.0_dp
+                                      do ig=1,(ngc*(ngc+1))/2
+                                         ilcc=ilcc+1
+                                         !derivative wrt r2
+                                         drhoc=drhoc+&
+                                              spherical_gaussian_value(r2,atoms%nlccpar(0,ilcc),atoms%nlccpar(1,ilcc),1)
+                                      end do
+                                      !forces in all the directions for the given atom
+                                      ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i!+ispinsh
+                                      drhodr2=drhoc-drhov
+                                      frcx=frcx+potxc(ind,ispin)*x*drhodr2
+                                      frcy=frcy+potxc(ind,ispin)*y*drhodr2
+                                      frcz=frcz+potxc(ind,ispin)*z*drhodr2
+                                      !write(*,'(i0,1x,6(1x,1pe24.17))') ind,potxc(ind),drhoc,drhov,x,y,z
+                                   endif
+                                enddo
+                             end if
+                          enddo
+                       end if
+                    enddo
+                 end do
+              end if
            end if
         end if
+
         !assign contribution per atom
         fxyz(1,iat)=fxyz(1,iat)+frcx*hxh*hyh*hzh*spinfac*oneo4pi
         fxyz(2,iat)=fxyz(2,iat)+frcy*hxh*hyh*hzh*spinfac*oneo4pi
         fxyz(3,iat)=fxyz(3,iat)+frcz*hxh*hyh*hzh*spinfac*oneo4pi
+
         !print *,'iat,iproc',iat,iproc,frcx*hxh*hyh*hzh*spinfac*oneo4pi
      end do
 
      if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate NLCC forces',.true.)
-     !if (iproc == 0 .and. verbose > 1) write( *,'(1x,a)')'done.'
   end if
 
   call f_release_routine()
@@ -375,73 +446,183 @@ end subroutine rhocore_forces
 
 !> Calculates the local forces acting on the atoms belonging to iproc
 subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
-     n1,n2,n3,n3pi,i3s,n1i,n2i,rho,pot,floc,locstrten,charge)
+     dpbox, &
+     n1,n2,n3,n3p,i3s,n1i,n2i,n3i,rho,pot,floc,locstrten,charge)
   use module_base
   use module_types
   use yaml_output
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
+  use module_dpbox
   use bounds, only: ext_buffers
   implicit none
-  !Arguments---------
+  !Arguments
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: iproc,n1,n2,n3,n3pi,i3s,n1i,n2i
-  real(gp), intent(in) :: hxh,hyh,hzh 
+  integer, intent(in) :: iproc,n1,n2,n3,n3p,i3s,n1i,n2i,n3i
+  real(gp), intent(in) :: hxh,hyh,hzh
+  type(denspot_distribution), intent(in) :: dpbox
   real(gp),intent(out) :: charge
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(dp), dimension(*), intent(in) :: rho,pot
   real(gp), dimension(3,at%astruct%nat), intent(out) :: floc
   real(gp), dimension(6), intent(out) :: locstrten
-  !Local variables---------
+  !Local variables
+  logical, parameter :: use_iterator=.false.
+  type(dpbox_iterator) :: boxit
+  integer, dimension(2,3) :: nbox
+  real(gp) :: prefactor,cutoff,rloc,rlocinvsq,rlocinv2sq,Vel,rhoel
+  real(gp) :: x,y,z,rx,ry,rz,fxerf,fyerf,fzerf,fxgau,fygau,fzgau,forceloc
   logical :: perx,pery,perz,gox,goy,goz
-  real(kind=8) :: prefactor,cutoff,rloc,Vel,rhoel
-  real(kind=8) :: fxerf,fyerf,fzerf,fxion,fyion,fzion,fxgau,fygau,fzgau,forceleaked,forceloc
-  real(kind=8) :: rx,ry,rz,x,y,z,arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
-  integer :: i1,i2,i3,ind,iat,ityp,nloc,iloc
-  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,j1,j2,j3,isx,isy,isz,iex,iey,iez
-  !array of coefficients of the derivative
-  real(kind=8), dimension(4) :: cprime 
+  integer :: j1,j2,j3,ind,nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,isx,isy,isz,iex,iey,iez
+  real(gp) :: forceleaked
+  real(gp) :: yp,zp,zsq,yzsq,ysq
+  real(gp) :: arg,r2,xp,tt,Txx,Tyy,Tzz,Txy,Txz,Tyz
+  integer :: i1,i2,i3,iat,ityp,nloc,iloc
+  real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
+  !Array of coefficients of the derivative
+  real(gp), dimension(4) :: cprime
 
   call f_routine(id='local_forces')
 
   if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
+  !Initialization
   locstrten=0.0_gp
+  floc=0.0_gp
 
   charge=0.d0
-  do i3=1,n3pi
-     do i2=1,n2i
-        do i1=1,n1i
-           ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
-           charge=charge+rho(ind)
+  if (use_iterator) then
+     boxit = dpbox_iter(dpbox,DPB_POT)
+     do while(dpbox_iter_next(boxit))
+        charge = charge + rho(boxit%ind)
+     end do
+  else
+     do i3=1,n3p
+        do i2=1,n2i
+           do i1=1,n1i
+              ind=i1+(i2-1)*n1i+(i3-1)*n1i*n2i
+              charge=charge+rho(ind)
+           enddo
         enddo
      enddo
-  enddo
+  end if
+
   charge=charge*hxh*hyh*hzh
 
-  !if (iproc == 0 .and. verbose > 1) write(*,'(1x,a)',advance='no')'Calculate local forces...'
-  if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
-  forceleaked=0.d0
 
-  !conditions for periodicity in the three directions
-  perx=(at%astruct%geocode /= 'F')
-  pery=(at%astruct%geocode == 'P')
-  perz=(at%astruct%geocode /= 'F')
+!!!  if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
 
-  call ext_buffers(perx,nbl1,nbr1)
-  call ext_buffers(pery,nbl2,nbr2)
-  call ext_buffers(perz,nbl3,nbr3)
+  !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
+  cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+  if (at%multipole_preserving) then
+     !We want to have a good accuracy of the last point rloc*10
+     cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+  end if
+  !Separable function: do 1-D integrals before and store it.
+  mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) + 1 /),id='mpx')
+  mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) + 1 /),id='mpy')
+  mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) + 1 /),id='mpz')
 
   do iat=1,at%astruct%nat
      ityp=at%astruct%iatype(iat)
-     !coordinates of the center
-     rx=rxyz(1,iat) 
-     ry=rxyz(2,iat) 
+
+     !Coordinates of the center
+     rx=rxyz(1,iat)
+     ry=rxyz(2,iat)
      rz=rxyz(3,iat)
-     !inizialization of the forces
-     !ion-ion term
-     fxion=0.d0
-     fyion=0.d0
-     fzion=0.d0
+
+     !building array of coefficients of the derivative of the gaussian part
+     cprime(1)=2.d0*at%psppar(0,2,ityp)-at%psppar(0,1,ityp)
+     cprime(2)=4.d0*at%psppar(0,3,ityp)-at%psppar(0,2,ityp)
+     cprime(3)=6.d0*at%psppar(0,4,ityp)-at%psppar(0,3,ityp)
+     cprime(4)=-at%psppar(0,4,ityp)
+
+     ! determine number of local terms
+     nloc=0
+     do iloc=1,4
+        if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
+     enddo
+
+     !local part
+     rloc=at%psppar(0,0,ityp)
+     rlocinvsq=1.0_gp/rloc**2
+     rlocinv2sq=0.5_gp/rloc**2
+     prefactor=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
+     !maximum extension of the gaussian
+     cutoff=10.d0*rloc
+     if (at%multipole_preserving) then
+        !We want to have a good accuracy of the last point rloc*10
+        cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+     end if
+
+     if (use_iterator) then
+        nbox(1,1) = floor((rx-cutoff)/hxh)
+        nbox(1,2) = floor((ry-cutoff)/hyh)
+        nbox(1,3) = floor((rz-cutoff)/hzh)
+        nbox(2,1) = ceiling((rx+cutoff)/hxh)
+        nbox(2,2) = ceiling((ry+cutoff)/hyh)
+        nbox(2,3) = ceiling((rz+cutoff)/hzh)
+
+        !Separable function: do 1-D integrals before and store it.
+        !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+        !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+        !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+        !Use a shift for mpx, mpy, mpz
+        do i1=nbox(1,1),nbox(2,1)
+           mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+        end do
+        do i2=nbox(1,2),nbox(2,2)
+           mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+        end do
+        do i3=nbox(1,3),nbox(2,3)
+           mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+        end do
+     else
+
+        !conditions for periodicity in the three directions
+        perx=(at%astruct%geocode /= 'F')
+        pery=(at%astruct%geocode == 'P')
+        perz=(at%astruct%geocode /= 'F')
+
+        call ext_buffers(perx,nbl1,nbr1)
+        call ext_buffers(pery,nbl2,nbr2)
+        call ext_buffers(perz,nbl3,nbr3)
+
+        isx=floor((rx-cutoff)/hxh)
+        isy=floor((ry-cutoff)/hyh)
+        isz=floor((rz-cutoff)/hzh)
+
+        iex=ceiling((rx+cutoff)/hxh)
+        iey=ceiling((ry+cutoff)/hyh)
+        iez=ceiling((rz+cutoff)/hzh)
+
+        !Separable function: do 1-D integrals before and store it.
+!!! mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+!!! mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+!!! mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+        do i1=isx,iex
+           mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+        end do
+        do i2=isy,iey
+           mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+        end do
+        do i3=isz,iez
+           mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+        end do
+
+     end if
+
+     forceleaked=0.d0
+
+     !$omp parallel default(none) &
+     !$omp & shared(floc,locstrten,hxh,hyh,hzh,dpbox,rho,pot,n1i,n2i,n3i) &
+     !$omp & shared(nbl1,nbl2,nbl3,isz,iez,isy,iey,isx,iex,i3s) &
+     !$omp & shared(mpx,mpy,mpz,iat,ityp,rx,ry,rz,n3p,perx,pery,perz,forceleaked) &
+     !$omp & shared(cprime,nloc,rloc,rlocinvsq,prefactor,nbox) &
+     !$omp & private(fxerf,fyerf,fzerf,fxgau,fygau,fzgau) &
+     !$omp & private(Txx,Tyy,Tzz,Txy,Txz,Tyz,boxit,xp,x,y,z,r2,arg,tt,rhoel,forceloc,Vel) &
+     !$omp & private(iloc,i3,zp,zsq,j3,yp,ysq,goy,gox,goz,i1,i2,j1,j2,ind,yzsq) 
+
+     !Initialization of the forces
      !ion-electron term, error function part
      fxerf=0.d0
      fyerf=0.d0
@@ -458,150 +639,169 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
      Txz=0.0_gp
      Tyz=0.0_gp
 
-     !building array of coefficients of the derivative of the gaussian part
-     cprime(1)=2.d0*at%psppar(0,2,ityp)-at%psppar(0,1,ityp)
-     cprime(2)=4.d0*at%psppar(0,3,ityp)-at%psppar(0,2,ityp)
-     cprime(3)=6.d0*at%psppar(0,4,ityp)-at%psppar(0,3,ityp)
-     cprime(4)=-at%psppar(0,4,ityp)
+     if (use_iterator) then
 
-     ! determine number of local terms
-     nloc=0
-     do iloc=1,4
-        if (at%psppar(0,iloc,ityp) /= 0.d0) nloc=iloc
-     enddo
+        !Parallelized over atoms and iterator dpbox
+        !Calculate the forces near the atom due to the error function part of the potential
+        !Calculate forces for all atoms only in the distributed part of the simulation box
+        boxit = dpbox_iter(dpbox,DPB_POT,nbox)
+        do while(dpbox_iter_next(boxit))
+           xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
+           x = boxit%x - rx
+           y = boxit%y - ry
+           z = boxit%z - rz
+           r2 = x**2 + y**2 + z**2
+           arg = r2*rlocinvsq
+           !gaussian part
+           tt=0.d0
+           if (nloc /= 0) then
+              !derivative of the polynomial
+              tt=cprime(nloc)
+              do iloc=nloc-1,1,-1
+                 tt=arg*tt+cprime(iloc)
+              end do
+              rhoel=rho(boxit%ind)
+              forceloc=xp*tt*rhoel
+              fxgau = fxgau + forceloc*x
+              fygau = fygau + forceloc*y
+              fzgau = fzgau + forceloc*z
+              if (r2 /= 0.0_gp) then
+                 Txx = Txx + forceloc*x*x
+                 Tyy = Tyy + forceloc*y*y
+                 Tzz = Tzz + forceloc*z*z
+                 Txy = Txy + forceloc*x*y
+                 Txz = Txz + forceloc*x*z
+                 Tyz = Tyz + forceloc*y*z
+              end if
+           end if
+           !error function part
+           Vel=pot(boxit%ind)
+           fxerf = fxerf + xp*Vel*x
+           fyerf = fyerf + xp*Vel*y
+           fzerf = fzerf + xp*Vel*z
+           !write(*,'(i0,1x,5(1x,1pe24.17))') boxit%ind,pot(boxit%ind),rho(boxit%ind),fxerf,fyerf,fzerf
+        end do
 
-     !local part
-     rloc=at%psppar(0,0,ityp)
-     prefactor=real(at%nelpsp(ityp),kind=8)/(2.d0*pi*sqrt(2.d0*pi)*rloc**5)
-     !maximum extension of the gaussian
-     cutoff=10.d0*rloc
-     if (at%multipole_preserving) then
-        !We want to have a good accuracy of the last point rloc*10
-        cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
-     end if
+     else        
 
-     isx=floor((rx-cutoff)/hxh)
-     isy=floor((ry-cutoff)/hyh)
-     isz=floor((rz-cutoff)/hzh)
+        if (n3p > 0) then
+           !$omp do reduction(+:forceleaked)
+           do i3=isz,iez
+              zp = mpz(i3-isz)
+              z=real(i3,kind=8)*hzh-rz
+              zsq=z**2
+              !call ind_positions(perz,i3,n3,j3,goz) 
+              call ind_positions_new(perz,i3,n3i,j3,goz) 
+              j3=j3+nbl3+1
+              do i2=isy,iey
+                 yp = zp*mpy(i2-isy)
+                 y=real(i2,kind=8)*hyh-ry
+                 yzsq=y**2+zsq
+                 !call ind_positions(pery,i2,n2,j2,goy)
+                 call ind_positions_new(pery,i2,n2i,j2,goy)
+                 do i1=isx,iex
+                    x=real(i1,kind=8)*hxh-rx
+                    xp = yp*mpx(i1-isx)
+                    !call ind_positions(perx,i1,n1,j1,gox)
+                    call ind_positions_new(perx,i1,n1i,j1,gox)
+                    r2=x**2+yzsq
+                    arg=r2*rlocinvsq
 
-     iex=ceiling((rx+cutoff)/hxh)
-     iey=ceiling((ry+cutoff)/hyh)
-     iez=ceiling((rz+cutoff)/hzh)
-
-     !calculate the forces near the atom due to the error function part of the potential
-     !calculate forces for all atoms only in the distributed part of the simulation box
-     if (n3pi > 0) then
-       !$omp parallel default(none) &
-       !$omp private(i1,i2,i3,x,y,z,j1,j2,j3,gox,goy,goz,r2,arg,xp,ind,tt,iloc,rhoel,forceloc,Vel) &
-       !$omp shared(Txx,Tyy,Tzz,Txy,Txz,Tyz,fxgau,fygau,fzgau,fxerf,fyerf,fzerf,forceleaked) &
-       !$omp shared(n3pi,isx,isy,isz,iex,iey,iez,perx,pery,perz,hxh,hyh,hzh,rx,ry,rz) &
-       !$omp shared(n1,n2,n3,nbl1,nbl2,nbl3,rloc,n1i,n2i,nloc,at,i3s,prefactor,cprime,rho,pot)
-       !$omp do reduction(+:Txx,Tyy,Tzz,Txy,Txz,Tyz,fxerf,fyerf,fzerf,fxgau,fygau,fzgau,forceleaked)
-        do i3=isz,iez
-           z=real(i3,kind=8)*hzh-rz
-           call ind_positions(perz,i3,n3,j3,goz) 
-           j3=j3+nbl3+1
-           do i2=isy,iey
-              y=real(i2,kind=8)*hyh-ry
-              call ind_positions(pery,i2,n2,j2,goy)
-              do i1=isx,iex
-                 x=real(i1,kind=8)*hxh-rx
-                 call ind_positions(perx,i1,n1,j1,gox)
-                 r2=x**2+y**2+z**2
-                 arg=r2/rloc**2
-
-                 if (at%multipole_preserving) then
-                    !use multipole-preserving function
-                    xp=mp_exp(hxh,rx,0.5_gp/(rloc**2),i1,0,.true.)*&
-                         mp_exp(hyh,ry,0.5_gp/(rloc**2),i2,0,.true.)*&
-                         mp_exp(hzh,rz,0.5_gp/(rloc**2),i3,0,.true.)
-                 else
-                    xp=exp(-.5d0*arg)
-                 end if
-
-                 if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                    ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
-                    !gaussian part
-                    tt=0.d0
-                    if (nloc /= 0) then
+                    if (j3 >= i3s .and. j3 <= i3s+n3p-1  .and. goy  .and. gox ) then
+                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s+1-1)*n1i*n2i
+                       !gaussian part
+                       tt=0.d0
+                       if (nloc /= 0) then
+                          !derivative of the polynomial
+                          tt=cprime(nloc)
+                          do iloc=nloc-1,1,-1
+                             tt=arg*tt+cprime(iloc)
+                          enddo
+                          rhoel=rho(ind)
+                          forceloc=xp*tt*rhoel
+                          fxgau=fxgau+forceloc*x
+                          fygau=fygau+forceloc*y
+                          fzgau=fzgau+forceloc*z
+                          if (r2 /= 0.0_gp) then
+                             Txx=Txx+forceloc*x*x
+                             Tyy=Tyy+forceloc*y*y
+                             Tzz=Tzz+forceloc*z*z
+                             Txy=Txy+forceloc*x*y
+                             Txz=Txz+forceloc*x*z
+                             Tyz=Tyz+forceloc*y*z
+                          end if
+                       end if
+                       !error function part
+                       Vel=pot(ind)
+                       fxerf=fxerf+xp*Vel*x
+                       fyerf=fyerf+xp*Vel*y
+                       fzerf=fzerf+xp*Vel*z
+                       !write(*,'(i0,1x,5(1x,1pe24.17))') ind,pot(ind),rho(ind),fxerf,fyerf,fzerf
+                    else if (.not. goz) then
                        !derivative of the polynomial
                        tt=cprime(nloc)
                        do iloc=nloc-1,1,-1
                           tt=arg*tt+cprime(iloc)
                        enddo
-                       rhoel=rho(ind)
-                       forceloc=xp*tt*rhoel
-                       fxgau=fxgau+forceloc*x
-                       fygau=fygau+forceloc*y
-                       fzgau=fzgau+forceloc*z
-                       if (r2 /= 0.0_gp) then
-                          Txx=Txx+forceloc*x*x
-                          Tyy=Tyy+forceloc*y*y
-                          Tzz=Tzz+forceloc*z*z
-                          Txy=Txy+forceloc*x*y
-                          Txz=Txz+forceloc*x*z
-                          Tyz=Tyz+forceloc*y*z
-                       end if
-                    end if
-                    !error function part
-                    Vel=pot(ind)
-                    fxerf=fxerf+xp*Vel*x
-                    fyerf=fyerf+xp*Vel*y
-                    fzerf=fzerf+xp*Vel*z
-                 else if (.not. goz) then
-                    !derivative of the polynomial
-                    tt=cprime(nloc)
-                    do iloc=nloc-1,1,-1
-                       tt=arg*tt+cprime(iloc)
-                    enddo
-                    forceleaked=forceleaked+prefactor*xp*tt*rho(1) !(as a sample value)
-                 endif
+                       forceleaked=forceleaked+prefactor*xp*tt*rho(1) !(as a sample value)
+                    endif
+                 end do
               end do
            end do
-        end do
-       !$omp end do
-       !$omp end parallel
+           !$omp end do
+        end if
      end if
 
-     !final result of the forces
-
-     floc(1,iat)=fxion+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
-     floc(2,iat)=fyion+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
-     floc(3,iat)=fzion+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
-
-     !the stress tensor here does not add extra overhead therefore we calculate it nonetheless
+     !$omp critical
+     !Final result of the forces
+     floc(1,iat)=floc(1,iat)+(hxh*hyh*hzh*prefactor)*fxerf+(hxh*hyh*hzh/rloc**2)*fxgau
+     floc(2,iat)=floc(2,iat)+(hxh*hyh*hzh*prefactor)*fyerf+(hxh*hyh*hzh/rloc**2)*fygau
+     floc(3,iat)=floc(3,iat)+(hxh*hyh*hzh*prefactor)*fzerf+(hxh*hyh*hzh/rloc**2)*fzgau
+     !The stress tensor here does not add extra overhead therefore we calculate it nonetheless
      locstrten(1)=locstrten(1)+Txx/rloc/rloc
      locstrten(2)=locstrten(2)+Tyy/rloc/rloc
      locstrten(3)=locstrten(3)+Tzz/rloc/rloc
      locstrten(4)=locstrten(4)+Tyz/rloc/rloc
      locstrten(5)=locstrten(5)+Txz/rloc/rloc
      locstrten(6)=locstrten(6)+Txy/rloc/rloc
+     !$omp end critical
+
+
 !!!     !only for testing purposes, printing the components of the forces for each atoms
 !!!     write(10+iat,'(2(1x,3(1x,1pe12.5)))') &
 !!!          (hxh*hyh*hzh*prefactor)*fxerf,(hxh*hyh*hzh*prefactor)*fyerf,&
 !!!          (hxh*hyh*hzh*prefactor)*fzerf,(hxh*hyh*hzh/rloc**2)*fxgau,(hxh*hyh*hzh/rloc**2)*fygau,(hxh*hyh*hzh/rloc**2)*fzgau
 
+     !De-allocate the 1D temporary arrays for separability
+     !call f_free(mpx,mpy,mpz)
+
+     !$omp end parallel
+
   end do !iat
+
+  !De-allocate the 1D temporary arrays for separability
+  call f_free(mpx,mpy,mpz)
 
   !write(*,*) 'iproc,charge:',iproc,charge
 
-  !locstrten(1:3)=locstrten(1:3)+charge*psoffset/(hxh*hyh*hzh)/real(n1i*n2i*n3pi,kind=8)
+!locstrten(1:3)=locstrten(1:3)+charge*psoffset/(hxh*hyh*hzh)/real(n1i*n2i*n3p,kind=8)
 
-  forceleaked=forceleaked*hxh*hyh*hzh
+!!!  forceleaked=forceleaked*hxh*hyh*hzh
   !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
 
   !if (iproc == 0 .and. verbose > 1) write(*,'(a,1pe12.5)') 'done. Leaked force: ',forceleaked
-  if (iproc == 0 .and. verbose > 1) then
-     call yaml_map('Leaked force',trim(yaml_toa(forceleaked,fmt='(1pe12.5)')))
-     call yaml_mapping_close()
-  end if
+!!!  if (iproc == 0 .and. verbose > 1) then
+!!!     call yaml_map('Leaked force',trim(yaml_toa(forceleaked,fmt='(1pe12.5)')))
+!!!     call yaml_mapping_close()
+!!!  end if
+
+  if (iproc == 0 .and. verbose > 1) call yaml_map('Calculate local forces',.true.)
 
   if (at%multipole_preserving) call finalize_real_space_conversion()
 
   call f_release_routine()
 
 END SUBROUTINE local_forces
-
 
 !> Calculates the nonlocal forces on all atoms arising from the wavefunctions 
 !! belonging to iproc and adds them to the force array
@@ -878,8 +1078,10 @@ subroutine nonlocal_forces(lr,hx,hy,hz,at,rxyz,&
                              ! scalar product with the derivatives in all the directions
                              sp0=real(scalprod(icplx,0,m,i,l,iat,jorb),gp)
                              !!write(200+iproc,'(a,9i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,sp0', &
-                             !!                                   iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
-                             !write(250+iproc,'(a,7i8,es20.10)') 'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
+                             !                                   iorb,jorb,icplx,0,m,i,l,iat,iat,sp0
+                             !write(250+iproc,'(a,7i8,es20.10)') & 
+                             !      'icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)',&
+                             !        icplx,0,m,i,l,iat,iorb,scalprod(icplx,0,m,i,l,iat,iorb)
                              do idir=1,3
                                 spi=real(scalprod(icplx,idir,m,i,l,iat,jorb),gp)
                                 !write(*,'(a,10i6,es18.8)') 'iorb,jorb,icplx,0,m,i,l,iat,iiat,&
@@ -4051,10 +4253,10 @@ subroutine keep_internal_coordinates_constraints(nat, rxyz_int, ixyz_int, ifroze
   real(gp),dimension(3,nat),intent(inout) :: rxyz
 
   ! Local variables
-  integer :: iat, i, ii
+  integer :: iat, ii
   integer,dimension(:),allocatable :: na, nb, nc
   real(gp),parameter :: degree=57.29578d0
-  real(gp),dimension(:,:),allocatable :: geo, geo_ref
+  real(gp),dimension(:,:),allocatable :: geo
   real(gp),parameter :: alpha=1.d0
   real(kind=8),dimension(3) :: shift
   logical :: fix_bond, fix_phi, fix_theta

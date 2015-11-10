@@ -1,7 +1,8 @@
 !> @file
 !! Wrapper for the MPI call (this file is preprocessed.)
+!! Use error handling
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -38,15 +39,15 @@ module wrapper_MPI
   integer, parameter :: smallsize=5 !< limit for a communication with small size
   character(len=*), parameter, public :: tgrp_mpi_name='Communications'
   !timing categories
-  integer, public, save :: TCAT_ALLRED_SMALL=TIMING_UNINITIALIZED
-  integer, public, save :: TCAT_ALLRED_LARGE=TIMING_UNINITIALIZED
-  integer, public, save :: TCAT_ALLGATHERV  =TIMING_UNINITIALIZED
-  integer, public, save :: TCAT_ALLGATHER   =TIMING_UNINITIALIZED
-  integer, public, save :: TCAT_GATHER      =TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLRED_SMALL = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLRED_LARGE = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLGATHERV   = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_ALLGATHER    = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_GATHER       = TIMING_UNINITIALIZED
   integer, public, save :: TCAT_SCATTER     =TIMING_UNINITIALIZED
   integer, public, save :: TCAT_FENCE     =TIMING_UNINITIALIZED
   
-  !error codes
+  !> Error codes
   integer, public, save :: ERR_MPI_WRAPPERS
 
   !> Interface for MPITYPE routine
@@ -291,11 +292,11 @@ contains
     use dynamic_memory
     use yaml_output
     implicit none
-    integer, intent(in) :: iproc     !<  Proc id
-    integer, intent(in) :: nproc     !<  Total number of MPI processes
-    integer, intent(in) :: mpi_comm  !<  Global MPI_communicator
-    integer, intent(in) :: groupsize !<  Number of MPI processes by (task)group
-    !!  if 0 one taskgroup (MPI_COMM_WORLD)   
+    integer, intent(in) :: iproc                   !< Proc id
+    integer, intent(in) :: nproc                   !< Total number of MPI processes
+    integer, intent(in) :: mpi_comm                !< Global MPI_communicator
+    integer, intent(in) :: groupsize               !< Number of MPI processes by (task)group
+                                                   !! if 0 one taskgroup (MPI_COMM_WORLD)   
     type(mpi_environment), intent(out) :: mpi_env  !< MPI environment (out)
     !local variables
     integer :: j,base_grp
@@ -475,7 +476,7 @@ contains
     end if
     call MPI_COMM_GROUP(mpi_comm,mpigroup,ierr)
     if (ierr /= 0) then
-       mpigroup=-1
+       mpigroup=mpigroup_null()
        call f_err_throw('Problem in group identification, ierr:'//&
             ierr,err_name='BIGDFT_MPI_ERROR')
     end if
@@ -723,6 +724,12 @@ contains
          err_id=ERR_MPI_WRAPPERS)
 
   end subroutine mpiinit
+
+  pure function mpiworld()
+    implicit none
+    integer :: mpiworld
+    mpiworld=MPI_COMM_WORLD
+  end function mpiworld
 
   !> Finalization of the mpi
   subroutine mpifinalize()
@@ -1337,7 +1344,7 @@ contains
     use dynamic_memory
     use dictionaries, only: f_err_throw,f_err_define
     implicit none
-    double precision, intent(inout) :: sendbuf
+    double precision :: sendbuf
     double precision, intent(inout), optional :: recvbuf
     double precision, dimension(:), allocatable :: copybuf
     include 'allreduce-inc.f90'
@@ -1659,7 +1666,7 @@ contains
     integer(f_long), dimension(:,:), allocatable :: array_glob
     integer(f_long) :: maxdiff 
     include 'maxdiff-decl-inc.f90'
-    ndims = n
+    ndims = int(n,kind=4)
     maxdiff=int(0,f_long)
     include 'maxdiff-inc.f90'
   end function mpimaxdiff_li0

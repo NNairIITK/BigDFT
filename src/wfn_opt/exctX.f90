@@ -1575,7 +1575,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
   integer, parameter :: DATA_=1,RES_=2
   logical :: doit,symmetric
   integer :: ierr,ndata_comms,nres_comms,isnow,irnow,isnow2,irnow2,jsorb,norbp,source,dest,nstep_max,nsteps
-  integer :: i,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii,count,istep,jproc,iorb,jorbs_tmp
+  integer :: i,igroup,ngroup,ngroupp,nend,isorb,iorbs,jorbs,ii,count,istep,jproc,iorb,jorbs_tmp,norbpu,norbpd
   integer :: icount,nprocgr,iprocgrs,iprocgrr,itestproc,norbi,norbj,ncalltot,icountmax,iprocref,ncalls
   real(gp) :: ehart,exctXfac,sfac
   integer, dimension(4) :: mpireq,mpireq2
@@ -1590,8 +1590,8 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
 
 
   !call timing(iproc,'Exchangecorr  ','ON')
-  !use_mpi_get = .false.
-  !new_mpi_pattern=.true.
+  !decide the strategy for the communication
+  symmetric=.true.
 
   exctXfac = xc_exctXfac(xc)
 
@@ -1610,12 +1610,35 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
      ngroup=1
   end if
 
+  !construct the OP2P scheme and test it
+  !use temporaryly tyhe nvrct_par array
+  nvctr_par = f_malloc0((/ 0.to.nproc-1, 1.to.ngroup /),id='nvctr_par')
+  isorb=0
+  do jproc=0,nproc-1
+     norbp=orbs%norb_par(jproc,0)
+     !transition region
+     if (isorb+norbp > orbs%norbu .and. isorb < orbs%norbu) then
+        nvctr_par(jproc,1)=orbs%norbu-isorb
+        if (ngroup==2) nvctr_par(jproc,2)=isorb+norbp-orbs%norbu
+     else if (isorb >= orbs%norbu .and. ngroup==2) then
+        nvctr_par(jproc,2)=norbp
+     else
+        nvctr_par(jproc,1)=norbp
+     end if
+     isorb=isorb+norbp
+  end do
+!!$  call yaml_map('Orbital repartition'+yaml_toa(iproc),[orbs%norbu,orbs%norbd,sum(orbs%norb_par(:,0))])
+  !if (iproc==0)call yaml_map('Orbital repartition'+yaml_toa(iproc),nvctr_par)
+  if (any(sum(nvctr_par,dim=1) /= [orbs%norbu,orbs%norbd])) &
+       call f_err_throw('Error in orbital repartition'+yaml_toa(iproc)+';'+yaml_toa(sum(nvctr_par,dim=1)),&
+       err_name='BIGDFT_RUNTIME_ERROR')
+  call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nvctr_par,.true.)
 
   !here we can start with the round-robin scheme
   !since the orbitals are all occupied we have to use the symmetric scheme
   !we have first to define the number of groups, which correspond to the repartition 
   !of spin up and spin down orbitals
-  nvctr_par = f_malloc((/ 0.to.nproc-1, 1.to.ngroup /),id='nvctr_par')
+!  nvctr_par = f_malloc((/ 0.to.nproc-1, 1.to.ngroup /),id='nvctr_par')
 
   iorbgr = f_malloc((/ 1.to.2, 0.to.nproc-1, 1.to.ngroup /),id='iorbgr')
 
@@ -1694,8 +1717,6 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
      end if
   end do
 
-  !decide the strategy for the communication
-  symmetric=.true.
   if (symmetric) then
      nstep_max=(nproc-1)/2+1!nproc/2+1
   else
@@ -1789,7 +1810,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
 
   if (ngroupp>0) then
      phi_i=local_data_init(orbs%norbp,ndim)
-     call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,igrpr(1)),1,orbs%norbp,orbs%norbp,&
+     call set_local_data(phi_i,iorbgr(GLOBAL_,iproc,igrpr(1)),&
           psir,dpsir)
   end if
 
@@ -1877,13 +1898,12 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
            jsorb=iorbgr(GLOBAL_,source,igrpr(igroup))
 
 !!$           phi_i=local_data_init(norbi,ndim)
-!!$           call set_local_data(phi_i,isorb+iorbs-1,1,norbi,norbi,&
+!!$           call set_local_data(phi_i,isorb+iorbs-1,&
 !!$                psir(1,iorbs),dpsir(1,iorbs))
 
            if (istep/=0) then
               phi_j=local_data_init(norbj,ndim)
-              call set_local_data(phi_j,jsorb+jorbs-1,1,&
-                   norbj,norbj,&
+              call set_local_data(phi_j,jsorb+jorbs-1,&
                    psiw(1,1,igroup,isnow),dpsiw(1,1,igroup,3))
               jorbs_tmp=1
            else

@@ -1,7 +1,7 @@
 !> @file
 !! BigDFT package performing ab initio calculation based on wavelets
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -42,8 +42,7 @@ program NEB_images
    allocate(arr_radical(abs(nconfig)))
    allocate(arr_posinp(abs(nconfig)))
 
-   !here we call  a routine which
-   ! Read a possible radical format argument.
+   !Here we call  a routine which reads a possible radical format argument.
    call bigdft_get_run_ids(nconfig,trim(run_id),arr_radical,arr_posinp,ierr)
 
    do iconfig=1,abs(nconfig)
