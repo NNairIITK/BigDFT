@@ -1856,6 +1856,7 @@ extendedfrags_read:
  Total charge: 2.1e-11
  Force Norm (Hartree/Bohr): 4.5e-11
  Atomic Forces (Ha/Bohr): 1.7e-11
+ Keys to ignore: [WARNINGS]
 
 extendedfrags_readrotated:
  energy: 1.4e-11
@@ -1874,6 +1875,7 @@ extendedfrags_readrotated:
  Force Norm (Hartree/Bohr): 4.8e-11
  Atomic Forces (Ha/Bohr): 1.7e-11
  Omega: 3.01e-11
+ Keys to ignore: [WARNINGS]
 
 
 extendedfrags_write:
