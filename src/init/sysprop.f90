@@ -1518,7 +1518,9 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
      & atoms, qcharge, nspin, mpol, norbsempty)
   use module_atoms, only: atoms_data
   use ao_inguess, only: charge_and_spol
-  use module_base, only: gp, f_err_throw,yaml_toa
+  use module_defs, only: gp
+  use dictionaries, only: f_err_throw
+  use yaml_strings
   use yaml_output, only: yaml_warning, yaml_comment
   use dynamic_memory
   !use ao_inguess, only : count_atomic_shells
@@ -1566,7 +1568,7 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
   else 
      if (mod(nel+mpol,2) /=0) then
           call f_err_throw('The mpol polarization should have the same parity of the (rounded) number of electrons. ' // &
-            & '(mpol=' // trim(yaml_toa(mpol)) // ' and qelec=' // trim(yaml_toa(qelec)) // ')', &
+            & '(mpol='+mpol+' and qelec='+qelec+')', &
             & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
 
      end if

@@ -1,7 +1,7 @@
 ## Process this file with automake to produce Makefile.in
 
 SHORT_CHECK=
-LONG_CHECK=xc.out xc.out.ref xc.out.report
+LONG_CHECK=xc.out.yaml xc.ref.yaml xc.report.yaml
 
 include $(srcdir)/../check.mk
 

@@ -857,11 +857,11 @@ contains
        J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
     end do
 
-    !here yaml output
-    !make it optional whether to print the warning from here or leave it to external function
-    if (J>1.0e-3) then
-       write(*,'(a,2es18.8)') "Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-    end if
+!!$    !here yaml output
+!!$    !make it optional whether to print the warning from here or leave it to external function
+!!$    if (J>1.0e-3) then
+!!$       write(*,'(a,2es18.8)') "Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+!!$    end if
 
     !check the pertinence of the suggested rotation
     !if (abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) print*,'frag_trans%theta=',frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
