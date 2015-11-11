@@ -1432,8 +1432,8 @@ contains
           call set(run // RADICAL_NAME, trim(run_id))
        else
           call set(run // RADICAL_NAME, LOGFILE) !this is if the logfile is then reused as input file
-          call set(run // INPUT_NAME, " ")
-          call set(run // POSINP, " ")
+          !call set(run // INPUT_NAME, " ")
+          !call set(run // POSINP, " ")
        end if
     end if
     if (present(input_id)) call set(run // INPUT_NAME, trim(input_id))

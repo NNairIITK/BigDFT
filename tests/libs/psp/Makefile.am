@@ -4,7 +4,7 @@ SUBDIRS =
 
 EXTRA_DIST = psp.ref.yaml
 SHORT_CHECK=
-LONG_CHECK=psp.report
+LONG_CHECK =psp.report.yaml
 
 include $(srcdir)/../check.mk
 
