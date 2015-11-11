@@ -1045,6 +1045,8 @@ contains
     call nullify_run_objects(runObj)
 
     if (present(run_dict)) then
+       !call yaml_map('Test dict',run_dict)
+       !stop
        !here the control of the logfile can be inserted, driven by run_dict and
        ! not anymore by user_inputs
        call create_log_file(run_dict,dict_from_files)

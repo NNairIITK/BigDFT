@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SHORT_CHECK = check_lib_plain.report check_lib_binary.report $(etsf_tests) $(bindings_tests)
+SHORT_CHECK = check_lib_plain.report.yaml check_lib_binary.report.yaml $(etsf_tests) $(bindings_tests)
 LONG_CHECK = $(SHORT_CHECK)
 
 include $(srcdir)/../check.mk
