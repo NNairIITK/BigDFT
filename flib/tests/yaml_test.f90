@@ -300,6 +300,7 @@ subroutine check_multipoles(parser)
   character(len=2) :: key
   real(kind=8),dimension(3) :: rxyz
   real(kind=8),dimension(7) :: mp
+  character(len=20) :: sym
 
    !!!before freeing the options just test aputative way of inserting multipoles
    !!!first retrieve the dictionary if it has been entered
@@ -313,8 +314,10 @@ subroutine check_multipoles(parser)
        do ilist=0,nmplist-1
           call yaml_sequence()
           call yaml_map('Size of element'//trim(yaml_toa(ilist)),dict_size(dict_mp//ilist))
-          !retrieve atomic positions, compulsory
           iter => dict_mp//ilist
+          ! Retrieve the description of the multipole center (typically atom type)
+          sym = iter//'name'
+          !retrieve atomic positions, compulsory
           if ('r' .notin. iter) call f_err_throw('For the item .. the r should  be present')
           rxyz = iter//'r'
           call yaml_map('rxyz',rxyz)

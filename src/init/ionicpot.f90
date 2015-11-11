@@ -2857,7 +2857,6 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,npot_ion,pot_ion)
      call ext_buffers(perz,nbl3,nbr3)
   end if
 
-  write(*,*) 'dpbox%n3pi',dpbox%n3pi
   if (dpbox%n3pi >0 .and. .not. htoobig) then
 
      !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
@@ -3217,6 +3216,8 @@ subroutine gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i
         rlocinv2sq=0.5_gp/rloc**2
         charge=real(zion,gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
 
+        write(*,*) 'rloc, charge', rloc, charge
+
         !cutoff of the range
         cutoff=10.0_gp*rloc
         if (multipole_preserving) then
@@ -3299,6 +3300,7 @@ subroutine gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i
            do i3=isz,iez
               mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,multipole_preserving)
            end do
+
            do i3=isz,iez
               zp = mpz(i3-isz)
               if (abs(zp) < mp_tiny) cycle
@@ -3324,6 +3326,8 @@ subroutine gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i
                  enddo
               enddo
            enddo
+
+           write(*,*) 'sum(pot_ion)',sum(pot_ion)
 
         end if
 end subroutine gaussian_density

@@ -119,14 +119,17 @@ module multipole
 
 
     !> Calculate the external potential arising from the multipoles of the charge density
-    subroutine potential_from_charge_multipoles(iproc, nproc, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
+    subroutine potential_from_charge_multipoles(iproc, nproc, at, denspot, ep, is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, pot)
       use module_types, only: DFT_local_fields
       use Poisson_Solver, except_dp => dp, except_gp => gp
+      use module_atoms, only: atoms_data
+      use bounds, only: ext_buffers
       use yaml_output
       implicit none
       
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
+      type(atoms_data),intent(in) :: at
       type(DFT_local_fields),intent(inout) :: denspot
       type(external_potential_descriptors),intent(in) :: ep
       integer,intent(in) :: is1, ie1, is2, ie2, is3, ie3
@@ -147,6 +150,16 @@ module multipole
       logical,dimension(:),allocatable :: norm_ok
       real(kind=8),parameter :: norm_threshold = 1.d-4
       real(kind=8),dimension(0:lmax) :: max_error
+      integer :: ixc
+      integer :: nbl1, nbl2, nbl3, nbr1, nbr2, nbr3, n3pi, i3s
+      integer,dimension(:),allocatable :: nzatom, nelpsp, npspcode
+      real(gp),dimension(:,:,:),allocatable :: psppar
+      logical :: exists, perx, pery, perz
+      logical,parameter :: use_iterator = .false.
+      real(kind=8) :: cutoff, rholeaked, hxh, hyh, hzh
+      integer :: n1i, n2i, n3i
+      integer :: nmpx, nmpy, nmpz, ndensity
+      real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
       !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
       call f_routine(id='potential_from_charge_multipoles')
@@ -280,6 +293,74 @@ module multipole
           end do
           write(*,*) 'impl, norm_ok(impl)', impl, norm_ok(impl)
       end do
+
+
+      ! Get the parameters for each multipole, required to compensate for the pseudopotential part
+      nzatom = f_malloc(ep%nmpl,id='nzatom')
+      nelpsp = f_malloc(ep%nmpl,id='nelpsp')
+      npspcode = f_malloc(ep%nmpl,id='npspcode')
+      psppar = f_malloc( (/0.to.4,0.to.6,1.to.ep%nmpl/),id='psppar')
+      do impl=1,ep%nmpl
+          ixc = 1
+          write(*,*) 'WARNING: USE ixc = 1 IN POTENTIAL_FROM_CHARGE_MULTIPOLES'
+          call psp_from_data(ep%mpl(impl)%sym, nzatom(impl), nelpsp(impl), npspcode(impl), ixc, psppar(:,:,impl), exists)
+          if (.not.exists) then
+              call f_err_throw('No PSP available for external multipole type '//trim(ep%mpl(impl)%sym), &
+                   err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+          end if
+      end do
+     perx = (denspot%dpbox%geocode /= 'F')
+     pery = (denspot%dpbox%geocode == 'P')
+     perz = (denspot%dpbox%geocode /= 'F')
+     n3pi = denspot%dpbox%n3pi
+     i3s = denspot%dpbox%i3s + denspot%dpbox%i3xcsh
+     hxh = denspot%dpbox%hgrids(1)
+     hyh = denspot%dpbox%hgrids(2)
+     hzh = denspot%dpbox%hgrids(3)
+     n1i = denspot%dpbox%ndims(1)
+     n2i = denspot%dpbox%ndims(2)
+     n3i = denspot%dpbox%ndims(3)
+     call ext_buffers(perx,nbl1,nbr1)
+     call ext_buffers(pery,nbl2,nbr2)
+     call ext_buffers(perz,nbl3,nbr3)
+     write(*,*) 'n1i, n2i, n3i', n1i, n2i, n3i
+
+     !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
+     cutoff=10.0_gp*maxval(psppar(0,0,:))
+     if (at%multipole_preserving) then
+        !We want to have a good accuracy of the last point rloc*10
+        cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+     end if
+     !Separable function: do 1-D integrals before and store it.
+     nmpx = (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) + 1
+     nmpy = (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) + 1
+     nmpz = (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) + 1
+     mpx = f_malloc( (/ 0 .to. nmpx /),id='mpx')
+     mpy = f_malloc( (/ 0 .to. nmpy /),id='mpy')
+     mpz = f_malloc( (/ 0 .to. nmpz /),id='mpz')
+
+
+     ! Generate the density that comes from the pseudopotential atoms
+     ndensity = (ie1-is1+1)*(ie2-is2+1)*(ie3-is3+1)
+     do impl=1,ep%nmpl
+         call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
+              ep%mpl(impl)%rxyz(1), ep%mpl(impl)%rxyz(2), ep%mpl(impl)%rxyz(3), &
+              psppar(0,0,impl), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
+              denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density(is1:,is2:,is3:), rholeaked)
+     end do
+      do i3=is3,ie3
+          do i2=is2,ie2
+              do i1=is1,ie1
+                 !write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+                 write(500+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+                 tt = tt + density(i1,i2,i3)*hhh
+             end do
+         end do
+     end do
+
+     call f_free(mpx)
+     call f_free(mpy)
+     call f_free(mpz)
 
 
 
@@ -430,9 +511,9 @@ module multipole
       call f_free(gaussians3)
 
       tt = 0.d0
-      do i3=1,size(density,3)
-          do i2=1,size(density,2)
-              do i1=1,size(density,1)
+      do i3=is3,ie3
+          do i2=is2,ie2
+              do i1=is1,ie1
                   !write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
                   write(400+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
                   tt = tt + density(i1,i2,i3)*hhh
