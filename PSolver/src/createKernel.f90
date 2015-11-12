@@ -221,7 +221,7 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
   integer,dimension(3) :: n
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
   call f_timing(TCAT_PSOLV_KERNEL,'ON')
-
+  call f_routine(id='pkernel_set')
   pi=4.0_dp*atan(1.0_dp)
   wrtmsg=.true.
   if (present(verbose)) wrtmsg=verbose
@@ -806,6 +806,7 @@ end if
      end if
   end select
 
+  call f_release_routine()
   call f_timing(TCAT_PSOLV_KERNEL,'OF')
 
 END SUBROUTINE pkernel_set
@@ -854,23 +855,25 @@ implicit none
 !" with kernel ",kernelSize," plans ",plansSize, "maxplan",&
 !maxPlanSize, "and red ",PCGRedSize, "nprocs/node", nproc_node
 
-if(iproc_node==0) then
  if(freeGPUSize<nproc_node*(kernelSize+maxPlanSize)) then
-     call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
+     if(kernel%mpi_env%iproc==0)then
+       call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
        trim(yaml_toa(freeGPUSize)) // ", total Memory :"// trim(yaml_toa(totalGPUSize)) //& 
        ", minimum needed memory :"// trim(yaml_toa(nproc_node*(kernelSize+maxPlanSize))) )
+     end if
  else if(freeGPUSize <nproc_node*(kernelSize+plansSize)) then
-     call yaml_warning( "WARNING: not enough free memory for cufftPlans on GPU, performance will be degraded")
+     if(kernel%mpi_env%iproc==0) &
+       call yaml_warning( "WARNING: not enough free memory for cufftPlans on GPU, performance will be degraded")
      kernel%initCufftPlan=0
      kernel%gpuPCGRed=0
  else if((kernel%gpuPCGRed == 1) .and. (freeGPUSize < nproc_node*(kernelSize+plansSize+PCGRedSize))) then
-     call yaml_warning( "WARNING: not enough free memory for GPU PCG reductions, performance will be degraded")
+     if(kernel%mpi_env%iproc==0) &
+      call yaml_warning( "WARNING: not enough free memory for GPU PCG reductions, performance will be degraded")
      kernel%gpuPCGRed=0;
  else
      !call yaml_comment("Memory on the GPU is sufficient for" // trim(yaml_toa(nproc_node)) // " processes/node")
      kernel%initCufftPlan=1;
  end if
-end if
 
 call mpibarrier()
 
@@ -923,8 +926,6 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
                             !+(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
                             !+betaVau*depsdrho(i1,i23)/(1.d0-eps0)
            !depsdrho(i1,i23)=depsdrho(i1,i23)*d2
-           !pot2(i1,i2,i3)=d2
-           !depsdrho2(i1,i2,i3)=depsdrho(i1,i23)
         end do
         i23=i23+1
      end do
@@ -932,8 +933,9 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
  
   call f_free(nabla2_pot)
 
-  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
+  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) then
        call yaml_map('Extra SCF potential calculated',.true.)
+  end if
 
 end subroutine sccs_extra_potential
 
@@ -961,6 +963,7 @@ subroutine polarization_charge(kernel,pot,rho)
   nabla_pot=f_malloc([n01,n02,n03,3],id='nabla_pot')
   lapla_pot=f_malloc([n01,n02,n03],id='lapla_pot')
   !calculate derivative of the potential
+
   call nabla_u(kernel%geocode,n01,n02,n03,pot,nabla_pot,kernel%nord,kernel%hgrids)
   call div_u_i(kernel%geocode,n01,n02,n03,nabla_pot,lapla_pot,kernel%nord,kernel%hgrids)
   i23=1
@@ -1332,7 +1335,51 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
   call f_free(cc)
 
 end subroutine pkernel_build_epsilon
-  
+
+!>new version of the pkernel_build epsilon Routine, 
+!! with explicit workarrays. This version is supposed not to allocate 
+!! any array
+subroutine rebuild_cavity_from_rho(rho_full,nabla_rho,nabla2_rho,delta_rho,cc_rho,depsdrho,dsurfdrho,&
+     kernel,IntSur,IntVol)
+  use FDder
+  implicit none
+  type(coulomb_operator), intent(inout) :: kernel
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: rho_full
+  real(gp), intent(out) :: IntSur,IntVol
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out) :: delta_rho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out) :: cc_rho,nabla2_rho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3), intent(out) :: nabla_rho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: depsdrho,dsurfdrho
+  !local variables
+  integer :: n01,n02,n03,i3s
+
+  n01=kernel%ndims(1)
+  n02=kernel%ndims(2)
+  n03=kernel%ndims(3)
+
+  !calculate the derivatives of the density
+  !build the gradients and the laplacian of the density
+  !density gradient in du
+  !call nabla_u(kernel%geocode,n01,n02,n03,rho_full,nabla_rho,kernel%nord,kernel%hgrids)
+  call nabla_u_and_square(kernel%geocode,n01,n02,n03,rho_full,nabla_rho,nabla2_rho,&
+       kernel%nord,kernel%hgrids)
+  !density laplacian in delta_rho
+  call div_u_i(kernel%geocode,n01,n02,n03,nabla_rho,delta_rho,kernel%nord,kernel%hgrids,cc_rho)
+
+  !aliasing for the starting point
+  i3s=kernel%grid%istart+1
+  if (kernel%grid%n3p == 0 ) i3s=1
+  call build_cavity_from_rho(rho_full(1,1,i3s),nabla2_rho(1,1,i3s),delta_rho(1,1,i3s),cc_rho(1,1,i3s),&
+       kernel,depsdrho,dsurfdrho,IntSur,IntVol)
+
+  if (kernel%method=='PI') then
+     !form the inner cavity with a gathering
+     call PS_gather(src=kernel%w%epsinnersccs,dest=delta_rho,kernel=kernel)
+     call dlepsdrho_sccs(kernel%ndims,rho_full,nabla_rho,delta_rho,kernel%w%dlogeps,kernel%cavity)
+  end if
+    
+end subroutine rebuild_cavity_from_rho
+
 subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mpi,n3pr1,n3pr2)
   use wrapper_mpi
   use yaml_output

@@ -4,16 +4,148 @@ module locregs_init
   private
 
   !> Public routines
-  public :: determine_locregsphere_parallel
+  public :: initLocregs,determine_locregsphere_parallel
   public :: determine_locreg_parallel !is this one deprecated?
-  public :: check_overlap
+!  public :: check_overlap
   public :: distribute_on_threads
-  public :: check_overlap_from_descriptors_periodic
+!  public :: check_overlap_from_descriptors_periodic
   !public :: transform_keyglob_to_keygloc
   !public :: determine_wfd_periodicity !is this one deprecated?
   public :: check_linear_inputguess
+  public :: small_to_large_locreg
+
 
   contains
+
+    ! lzd%llr already allocated, locregcenter and locrad already filled - could tidy this!
+    subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
+      use module_base
+      use module_types
+      use module_atoms, only: atomic_structure
+      implicit none
+
+      ! Calling arguments
+      integer, intent(in) :: iproc, nproc
+      type(local_zone_descriptors), intent(inout) :: lzd
+      real(kind=8), intent(in) :: hx, hy, hz
+      type(atomic_structure), intent(in) :: astruct
+      type(orbitals_data), intent(in) :: orbs
+      type(locreg_descriptors), intent(in) :: Glr
+      character(len=1), intent(in) :: locregShape
+      type(orbitals_data),optional,intent(in) :: lborbs
+
+      ! Local variables
+      integer :: jorb, jjorb, jlr
+      character(len=*), parameter :: subname='initLocregs'
+      logical,dimension(:), allocatable :: calculateBounds
+
+      call f_routine(id=subname)
+
+
+      calculateBounds = f_malloc(lzd%nlr,id='calculateBounds')
+      calculateBounds=.false.
+
+      do jorb=1,orbs%norbp
+         jjorb=orbs%isorb+jorb
+         jlr=orbs%inWhichLocreg(jjorb)
+         calculateBounds(jlr)=.true.
+      end do
+
+      if(present(lborbs)) then
+         do jorb=1,lborbs%norbp
+            jjorb=lborbs%isorb+jorb
+            jlr=lborbs%inWhichLocreg(jjorb)
+            calculateBounds(jlr)=.true.
+         end do
+      end if
+
+      if(locregShape=='c') then
+         stop 'locregShape c is deprecated'
+      else if(locregShape=='s') then
+         call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, hx, hy, hz, &
+              astruct, orbs, Glr, lzd%Llr, calculateBounds)
+      end if
+
+      call f_free(calculateBounds)
+
+      !DEBUG
+      !do ilr=1,lin%nlr
+      !    if(iproc==0) write(*,'(1x,a,i0)') '>>>>>>> zone ', ilr
+      !    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
+      !    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
+      !    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
+      !    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
+      !end do
+      !END DEBUG
+
+      lzd%linear=.true.
+
+      call f_release_routine()
+
+    end subroutine initLocregs
+
+    subroutine small_to_large_locreg(iproc, npsidim_orbs_small, npsidim_orbs_large, lzdsmall, lzdlarge, &
+         orbs, phismall, philarge, to_global)
+      use module_base
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use locreg_operations, only: lpsi_to_global2
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, npsidim_orbs_small, npsidim_orbs_large
+      type(local_zone_descriptors),intent(in) :: lzdsmall, lzdlarge
+      type(orbitals_data),intent(in) :: orbs
+      real(kind=8),dimension(npsidim_orbs_small),intent(in) :: phismall
+      real(kind=8),dimension(npsidim_orbs_large),intent(out) :: philarge
+      logical,intent(in),optional :: to_global
+
+      ! Local variables
+      integer :: ists, istl, iorb, ilr, sdim, ldim, nspin
+      logical :: global
+
+      call f_routine(id='small_to_large_locreg')
+
+      if (present(to_global)) then
+         global=to_global
+      else
+         global=.false.
+      end if
+
+      call timing(iproc,'small2large','ON') ! lr408t 
+      ! No need to put arrays to zero, Lpsi_to_global2 will handle this.
+      call f_zero(philarge)
+      ists=1
+      istl=1
+      do iorb=1,orbs%norbp
+         ilr = orbs%inwhichLocreg(orbs%isorb+iorb)
+         sdim=lzdsmall%llr(ilr)%wfd%nvctr_c+7*lzdsmall%llr(ilr)%wfd%nvctr_f
+         if (global) then
+            ldim=lzdsmall%glr%wfd%nvctr_c+7*lzdsmall%glr%wfd%nvctr_f
+         else
+            ldim=lzdlarge%llr(ilr)%wfd%nvctr_c+7*lzdlarge%llr(ilr)%wfd%nvctr_f
+         end if
+         nspin=1 !this must be modified later
+         if (global) then
+            call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdsmall%glr, &
+                 lzdsmall%llr(ilr), phismall(ists), philarge(istl))
+         else
+            call Lpsi_to_global2(iproc, sdim, ldim, orbs%norb, orbs%nspinor, nspin, lzdlarge%llr(ilr), &
+                 lzdsmall%llr(ilr), phismall(ists), philarge(istl))
+         end if
+         ists=ists+sdim
+         istl=istl+ldim
+      end do
+      if(orbs%norbp>0 .and. ists/=npsidim_orbs_small+1) then
+         write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',ists,'=ists /= npsidim_orbs_small+1=',npsidim_orbs_small+1
+         stop
+      end if
+      if(orbs%norbp>0 .and. istl/=npsidim_orbs_large+1) then
+         write(*,'(3(a,i0))') 'ERROR on process ',iproc,': ',istl,'=istl /= npsidim_orbs_large+1=',npsidim_orbs_large+1
+         stop
+      end if
+      call timing(iproc,'small2large','OF') ! lr408t 
+      call f_release_routine()
+    end subroutine small_to_large_locreg
 
 
     subroutine determine_locregSphere_parallel(iproc,nproc,nlr,hx,hy,hz,astruct,orbs,Glr,Llr,calculateBounds)!,outofzone)
@@ -1717,8 +1849,6 @@ module locregs_init
     END SUBROUTINE num_segkeys_periodic
     
     
-    
-    
     subroutine segkeys_periodic(n1,n2,n3,i1sc,i1ec,i2sc,i2ec,i3sc,i3ec,nseg,nvctr,keyg,keyv,&
          nseg_loc,nvctr_loc,keygloc,keyglob,keyvloc,keyvglob,outofzone)
       use module_base
@@ -1934,90 +2064,6 @@ module locregs_init
     END SUBROUTINE fracture_periodic_zone
 
 
-    subroutine check_overlap(Llr_i, Llr_j, Glr, overlap)
-      use locregs, only: locreg_descriptors, check_overlap_cubic_periodic
-      implicit none
-    
-      ! Calling arguments
-      type(locreg_descriptors),intent(in) :: Llr_i, Llr_j, Glr
-      logical, intent(out) :: overlap
-    
-      ! Local variables
-      integer :: onseg
-    
-        call check_overlap_cubic_periodic(Glr,Llr_i,Llr_j,overlap)
-        if(overlap) then
-          call check_overlap_from_descriptors_periodic(Llr_i%wfd%nseg_c, Llr_j%wfd%nseg_c,&
-               Llr_i%wfd%keyglob, Llr_j%wfd%keyglob, overlap, onseg)
-        end if
-    
-    end subroutine check_overlap
-
-
-    ! check if Llrs overlap from there descriptors
-    ! The periodicity is hidden in the fact that we are using the keyglobs
-    ! which are correctly defined. 
-    subroutine check_overlap_from_descriptors_periodic(nseg_i, nseg_j, keyg_i, keyg_j,  &
-               isoverlap, onseg)
-      use module_base
-      use module_types
-      implicit none
-      ! Calling arguments
-      integer :: nseg_i, nseg_j
-      integer,dimension(2,nseg_i),intent(in) :: keyg_i
-      integer,dimension(2,nseg_j),intent(in) :: keyg_j
-      logical,intent(out) :: isoverlap
-      integer, intent(out) :: onseg
-      ! Local variables
-      integer :: iseg, jseg, istart, jstart, kstartg
-      integer :: iend, jend, kendg, nseg_k
-    
-    
-      ! Initialize some counters
-      iseg=1
-      jseg=1
-      nseg_k=0
-      isoverlap = .false.
-      onseg = 0  ! in case they don't overlap
-      ! Check whether all segments of both localization regions have been processed.
-      if(iseg>=nseg_i .and. jseg>=nseg_j) return
-    
-      segment_loop: do
-    
-          ! Starting point already in global coordinates
-          istart=keyg_i(1,iseg)
-          jstart=keyg_j(1,jseg)
-    
-          ! Ending point already in global coordinates
-          iend=keyg_i(2,iseg)
-          jend=keyg_j(2,jseg)
-          ! Determine starting and ending point of the common segment in global coordinates.
-          kstartg=max(istart,jstart)
-          kendg=min(iend,jend)
-    
-          ! Check whether this common segment has a non-zero length
-          if(kendg-kstartg+1>0) then
-              isoverlap = .true.
-              nseg_k=nseg_k+1
-          end if
-    
-          ! Check whether all segments of both localization regions have been processed.
-          if(iseg>=nseg_i .and. jseg>=nseg_j) exit segment_loop
-    
-          ! Increase the segment index
-          if((iend<=jend .and. iseg<nseg_i) .or. jseg==nseg_j) then
-              iseg=iseg+1
-          else if(jseg<nseg_j) then
-              jseg=jseg+1
-          end if
-    
-      end do segment_loop
-    
-      if(isoverlap) then
-         onseg = nseg_k
-      end if
-    
-    end subroutine check_overlap_from_descriptors_periodic
     
 
     subroutine distribute_on_threads(nout, nthread, ise)

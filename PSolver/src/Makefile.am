@@ -34,6 +34,8 @@ etsf_files = i-o-etsf_fake.f90
 endif
 
 
+fdder_file=FDder.f90
+
 # Code source.
 if USE_CUDA_GPU
 CUDA_SOURCES = cufft.cu
@@ -50,7 +52,7 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	PStypes.f90 \
 	PSbox.f90 \
 	PSbase.f90 \
-	FDder.f90 \
+	$(fdder_file) \
 	IObox.f90 \
 	$(etsf_files)
 
@@ -162,7 +164,7 @@ IObox.o: PSbase.o
 environment.o: PSbase.o
 conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
-etsf_fake.o: PSbase.o
+i-o-etsf_fake.o: PSbase.o
 wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o
 
 .cu.o:

@@ -173,7 +173,7 @@ program PS_Check
   !stop
   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) then
      !compare the values of the analytic results (pkernel%mpi_env%nproc == -1 indicates that it is serial)
-     call compare (0,-1,pkernel%mpi_env%mpi_comm,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
+     call compare(0,-1,pkernel%mpi_env%mpi_comm,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
   end if
   !if the latter test pass, we have a reference for all the other calculations
   !build the reference quantities (based on the numerical result, not the analytic)

@@ -1,7 +1,7 @@
 !> @file
 !!    Fake functions for MPI in the case of serial version
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group 
+!!    Copyright (C) 2007-2015 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -261,13 +261,33 @@ END SUBROUTINE  MPI_WIN_CREATE
 
 subroutine mpi_win_lock()
   implicit none
-  stop 'MPIFAKE: mpi_win_create'
+  stop 'MPIFAKE: mpi_win_lock'
 END SUBROUTINE  MPI_WIN_LOCK
 
 subroutine mpi_win_unlock()
   implicit none
-  stop 'MPIFAKE: mpi_win_create'
+  stop 'MPIFAKE: mpi_win_unlock'
 END SUBROUTINE  MPI_WIN_UNLOCK
+
+subroutine mpi_win_wait()
+  implicit none
+  stop 'MPIFAKE: mpi_win_wait'
+END SUBROUTINE  MPI_WIN_WAIT
+
+subroutine mpi_win_complete()
+  implicit none
+  stop 'MPIFAKE: mpi_win_complete'
+END SUBROUTINE  MPI_WIN_COMPLETE
+
+subroutine mpi_win_post()
+  implicit none
+  stop 'MPIFAKE: mpi_win_post'
+END SUBROUTINE  MPI_WIN_POST
+
+subroutine mpi_win_start()
+  implicit none
+  stop 'MPIFAKE: mpi_win_start'
+END SUBROUTINE  MPI_WIN_START
 
 subroutine mpi_get()
   implicit none
@@ -413,3 +433,7 @@ end subroutine mpi_unpack
 subroutine mpi_error_class()
   implicit none
 end subroutine mpi_error_class
+
+subroutine mpi_put()
+  implicit none
+end subroutine mpi_put

@@ -18,7 +18,12 @@ module numerics
   real(db), parameter, public :: oneopi=0.3183098861837906715377675267450287240689192914809128974953346881_db
   real(db), parameter, public :: oneotwopi=0.1591549430918953357688837633725143620344596457404564487476673441_db
   real(db), parameter, public :: oneofourpi=0.07957747154594766788444188168625718101722982287022822437383367203_db
-  real(db), parameter, public :: oneoeightpi=0.03978873577297383394222094084312859050861491143511411218691683601
+  real(db), parameter, public :: oneoeightpi=0.03978873577297383394222094084312859050861491143511411218691683601_db
+  !rationals
+  real(db), parameter, public :: onehalf=0.5_db
+  real(db), parameter, public :: onethird=0.33333333333333333333333333333333333333333333333333333333333333333333_db
+  real(db), parameter, public :: onequarter=0.25_db
+  
 
   !>> Physical constants.
   !> 1 AU in angstroem
@@ -28,7 +33,7 @@ module numerics
   !> 1 Hartree, in eV
   real(db), parameter, public :: Ha_eV=27.21138505_db                           
   real(db), parameter, public :: eV_Ha=3.674932379e-2_db                        !< 1 ev, in Hartree
-  real(db), parameter, public :: Ha_K=315774.65_db                              !< 1 Hartree, in Kelvin
+  real(db), parameter, public :: Ha_K=315774.664550534774_db                    !< 1 Hartree, in Kelvin
   real(db), parameter, public :: Ha_THz=6579.683920722_db                       !< 1 Hartree, in THz
   real(db), parameter, public :: Ha_J=4.35974394d-18                            !< 1 Hartree, in J
   real(db), parameter, public :: e_Cb=1.602176487d-19                           !< minus the electron charge, in Coulomb

@@ -164,6 +164,14 @@ module dictionaries
 
    type(error_stack), pointer :: error_pipelines=>null() !< Stack of errors for try clause
  
+   interface f_err_throw
+      module procedure f_err_throw_c,f_err_throw_str
+   end interface
+
+   interface f_err_raise
+      module procedure f_err_raise,f_err_raise_str
+   end interface
+
 
    !> Public variables of the error handling module
    public :: f_err_initialize,f_err_finalize

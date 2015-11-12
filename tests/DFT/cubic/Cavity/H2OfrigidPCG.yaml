@@ -6,7 +6,7 @@
    rmult: 8.0
    ixc: PBE
    gnrm_cv: accurate
-   itermax: 200
+   itermax: 2
    solvent: rigid
  perf:
    projrad: 8.000

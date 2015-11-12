@@ -16,6 +16,8 @@
    loewdin_charge_analysis: Yes
    correction_co_contra: no
    purification_quickreturn: no
+   check_sumrho: 2
+   check_overlap: 2
  lin_general:
    hybrid: Yes
    nit: [80, 0]

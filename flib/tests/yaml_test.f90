@@ -305,7 +305,7 @@ subroutine check_multipoles(parser)
        call yaml_sequence_open('Values')
        do ilist=0,nmplist-1
           call yaml_sequence()
-          call yaml_map('Size of element'//ilist,dict_size(dict_mp//ilist))
+          call yaml_map('Size of element'//trim(yaml_toa(ilist)),dict_size(dict_mp//ilist))
           !retrieve atomic positions, compulsory
           iter => dict_mp//ilist
           if ('r' .notin. iter) call f_err_throw('For the item .. the r should  be present')
