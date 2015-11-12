@@ -968,7 +968,7 @@ contains
        end if
 
        if (dump_status .and. dict_size(mems(ictrl)%dict_global) /= 2) then
-          call yaml_warning('Heap memory has not be completely freed! See status at finalization to find where.')
+          call yaml_warning('Heap memory has not been completely freed! See status at finalization to find where.')
           call yaml_map('Size of the global database',dict_size(mems(ictrl)%dict_global))
           !call yaml_map('Raw version',mems(ictrl)%dict_global)
           call yaml_mapping_open('Status of the memory at finalization')
