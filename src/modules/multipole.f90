@@ -160,6 +160,7 @@ module multipole
       integer :: n1i, n2i, n3i
       integer :: nmpx, nmpy, nmpz, ndensity
       real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
+      real(kind=8),dimension(:),allocatable :: rmax
       !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
       call f_routine(id='potential_from_charge_multipoles')
@@ -245,6 +246,8 @@ module multipole
           dipole = f_malloc((/3,ep%nmpl/),id='dipole')
           quadrupole = f_malloc((/5,ep%nmpl/),id='quadrupole')
           norm_ok = f_malloc0(ep%nmpl,id='norm_ok')
+
+
     
           ! First calculate the norm of the Gaussians for each multipole
           norm = 0.d0
@@ -380,6 +383,13 @@ module multipole
          call f_free(mpz)
     
     
+          ! Calculate the density only within a sphere of radius rmax
+          rmax = f_malloc(ep%nmpl,id='rmax')
+          do impl=1,ep%nmpl
+              rmax(impl) = min(denspot%dpbox%ndims(1)*0.25d0*hx, &
+                               denspot%dpbox%ndims(2)*0.25d0*hy, &
+                               denspot%dpbox%ndims(3)*0.25d0*hz)
+          end do
     
     
           norm_check = 0.d0
@@ -390,7 +400,7 @@ module multipole
           !$omp default(none) &
           !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma, nthread, norm_ok) &
           !$omp shared(norm_check, monopole, dipole, quadrupole, density, density_loc, potential_loc) &
-          !$omp shared (gaussians1, gaussians2, gaussians3, nelpsp) &
+          !$omp shared (gaussians1, gaussians2, gaussians3, nelpsp, rmax) &
           !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ithread) &
           !$omp private(rnrm1, rnrm2, rnrm3, rnrm5, qq)
           ithread = 0
@@ -430,57 +440,61 @@ module multipole
                                   !gg = gaussian(sigma(l),r(1)**2)*gaussian(sigma(l),r(2)**2)*gaussian(sigma(l),r(3)**2)
                                   !gg = gg*sqrt(2.d0*pi_param*sigma(l)**2)**6
                                   norm_check(l,impl) = norm_check(l,impl) + gg*hhh
-                                  if (associated(ep%mpl(impl)%qlm(l)%q)) then
-                                      mm = 0
-                                      do m=-l,l
-                                          mm = mm + 1
-                                          !ttt = ep%mpl(impl)%qlm(l)%q(mm)*&
-                                          !      spherical_harmonic(l, m, r(1), r(2), r(3))*gg*sqrt(4.d0*pi_param)
-                                          ! For the monopole term, the atomic core charge (which has been expressed using a Gaussian
-                                          ! above) has to be added in order to compensate it.
-                                          if (l==0) then
-                                              qq = ep%mpl(impl)%qlm(l)%q(mm) + real(nelpsp(impl),kind=8)
-                                          else
-                                              qq = ep%mpl(impl)%qlm(l)%q(mm)
-                                          end if
-                                          ttt = qq*&
-                                                spherical_harmonic(-2, 5.d0, l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
-                                          !ttt = qq*&
-                                          !      spherical_harmonic(-2, 5.d0, l, m, r(1), r(2), r(3))
-                                          !if (l==0) then
-                                          !    ttt = ttt/sqrt(3.d0)
-                                          !else if (l==1) then
-                                          !    ttt = ttt/sqrt(5.d0)
-                                          !else if (l==2) then
-                                          !    ttt = ttt/sqrt(7.d0)
-                                          !end if
-                                          ttt = ttt/get_normalization(5.d0, l, m)!*(0.5d0*sqrt(1/pi_param))
-                                          tt = tt + ttt
+                                  if (rnrm2<=rmax(impl)**2) then
+                                      if (associated(ep%mpl(impl)%qlm(l)%q)) then
+                                          mm = 0
+                                          do m=-l,l
+                                              mm = mm + 1
+                                              !ttt = ep%mpl(impl)%qlm(l)%q(mm)*&
+                                              !      spherical_harmonic(l, m, r(1), r(2), r(3))*gg*sqrt(4.d0*pi_param)
+                                              ! For the monopole term, the atomic core charge (which has been expressed using a Gaussian
+                                              ! above) has to be added in order to compensate it.
+                                              if (l==0) then
+                                                  qq = ep%mpl(impl)%qlm(l)%q(mm) + real(nelpsp(impl),kind=8)
+                                              else
+                                                  qq = ep%mpl(impl)%qlm(l)%q(mm)
+                                              end if
+                                              !ttt = qq*&
+                                              !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
+                                              ttt = qq*&
+                                                    spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))**2
+                                              !if (l==0) then
+                                              !    ttt = ttt/sqrt(3.d0)
+                                              !else if (l==1) then
+                                              !    ttt = ttt/sqrt(5.d0)
+                                              !else if (l==2) then
+                                              !    ttt = ttt/sqrt(7.d0)
+                                              !end if
+                                              !ttt = ttt/get_normalization(rmax(impl), l, m)!*(0.5d0*sqrt(1/pi_param))
+                                              !ttt = ttt*get_normalization(rmax(impl), l, m)!*sqrt(4.d0*pi_param)
+                                              !ttt = ttt**2!*get_normalization(rmax(impl), l, m)!*sqrt(4.d0*pi_param)
+                                              tt = tt + ttt
     
-                                          if (l==0) then
-                                              monopole(impl) = monopole(impl) + ttt*hhh
-                                          else if (l==1) then
-                                              if (m==-1) then
-                                                  dipole(1,impl) = dipole(1,impl) + ttt*hhh*y
-                                              else if (m==0) then
-                                                  dipole(2,impl) = dipole(2,impl) + ttt*hhh*z
-                                              else if (m==1) then
-                                                  dipole(3,impl) = dipole(3,impl) + ttt*hhh*x
+                                              if (l==0) then
+                                                  monopole(impl) = monopole(impl) + ttt*hhh
+                                              else if (l==1) then
+                                                  if (m==-1) then
+                                                      dipole(1,impl) = dipole(1,impl) + ttt*hhh*y
+                                                  else if (m==0) then
+                                                      dipole(2,impl) = dipole(2,impl) + ttt*hhh*z
+                                                  else if (m==1) then
+                                                      dipole(3,impl) = dipole(3,impl) + ttt*hhh*x
+                                                  end if
+                                              else if (l==2) then
+                                                  if (m==-2) then
+                                                      quadrupole(1,impl) = quadrupole(1,impl) + ttt*hhh*x*y
+                                                  else if (m==-1) then
+                                                      quadrupole(2,impl) = quadrupole(2,impl) + ttt*hhh*y*z
+                                                  else if (m==0) then
+                                                      quadrupole(3,impl) = quadrupole(3,impl) + ttt*hhh*(3*z**2-1.d0)
+                                                  else if (m==1) then
+                                                      quadrupole(4,impl) = quadrupole(4,impl) + ttt*hhh*x*z
+                                                  else if (m==2) then
+                                                      quadrupole(5,impl) = quadrupole(5,impl) + ttt*hhh*(x**2-y**2)
+                                                  end if
                                               end if
-                                          else if (l==2) then
-                                              if (m==-2) then
-                                                  quadrupole(1,impl) = quadrupole(1,impl) + ttt*hhh*x*y
-                                              else if (m==-1) then
-                                                  quadrupole(2,impl) = quadrupole(2,impl) + ttt*hhh*y*z
-                                              else if (m==0) then
-                                                  quadrupole(3,impl) = quadrupole(3,impl) + ttt*hhh*(3*z**2-1.d0)
-                                              else if (m==1) then
-                                                  quadrupole(4,impl) = quadrupole(4,impl) + ttt*hhh*x*z
-                                              else if (m==2) then
-                                                  quadrupole(5,impl) = quadrupole(5,impl) + ttt*hhh*(x**2-y**2)
-                                              end if
-                                          end if
-                                      end do
+                                          end do
+                                      end if
                                   end if
                               end do
                               !density_try(i1,i2,i3,ithread) = density_try(i1,i2,i3,ithread) + tt
@@ -1734,7 +1748,8 @@ module multipole
           rnorm = sqrt(rmax**3/3.d0)
           fn = 0.5d0*sqrt(1/pi)/rnorm
       case (1)
-          rnorm = sqrt(rmax**5/5.d0)
+          !rnorm = sqrt(rmax**5/5.d0)
+          rnorm = sqrt(rmax**1/1.d0)
           select case (m)
           case (-1)
               fn = sqrt(3.d0/(4.d0*pi))/rnorm
@@ -1744,7 +1759,7 @@ module multipole
               fn = sqrt(3.d0/(4.d0*pi))/rnorm
           end select
       case (2)
-          rnorm = sqrt(rmax**7/7.d0)
+          rnorm = sqrt(rmax**3/3.d0)
           select case (m)
           case (-2)
               fn = 0.5d0*sqrt(15.d0/pi)/rnorm
@@ -1828,7 +1843,8 @@ module multipole
           !sh = sqrt(4.d0*pi)*0.5d0*sqrt(1/pi)
           sh = 0.5d0*sqrt(1/pi)/rnorm
       case (1)
-          rnorm = sqrt(rmax**5/5.d0)
+          !rnorm = sqrt(rmax**5/5.d0)
+          rnorm = sqrt(rmax**2/2.d0)
           !rnorm = 1.d0
           r = sqrt(x**2+y**2+z**2)
           !r = 1.d0
@@ -1855,7 +1871,8 @@ module multipole
           sh = sh*r**r_exponent
           !sh = sh/r
       case (2)
-          rnorm = sqrt(rmax**7/7.d0)
+          !rnorm = sqrt(rmax**7/7.d0)
+          rnorm = sqrt(rmax**3/3.d0)
           !rnorm = 1.d0
           r2 = x**2+y**2+z**2
           !r2=1.d0
