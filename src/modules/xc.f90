@@ -466,10 +466,10 @@ contains
              call drivexc(exc,ixc,npts,nspden_tmp,order,rho_tmp,vxc_tmp,&
                   ndvxc_tmp,ngr2_tmp,nd2vxc_tmp,nvxcdgr_tmp, dvxc=dvxci_tmp)
 
-             write(*,*) '!!!!!!!!!!!here!!!!!!!!!!'
-             write(*,*) 'avant', 106+((106-1)+(25-1)*213)*213, vxc_tmp(106+((106-1)+(25-1)*213)*213,1),&
-                         vxc_tmp(106+((106-1)+(25-1)*213)*213,2)
-             write(*,*) 'avant', 25, vxc_tmp(25,1), vxc_tmp(25,2)
+             !write(*,*) '!!!!!!!!!!!here!!!!!!!!!!'
+             !write(*,*) 'avant', 106+((106-1)+(25-1)*213)*213, vxc_tmp(106+((106-1)+(25-1)*213)*213,1),&
+             !            vxc_tmp(106+((106-1)+(25-1)*213)*213,2)
+             !write(*,*) 'avant', 25, vxc_tmp(25,1), vxc_tmp(25,2)
              !write(*,*) 'avant', 100, vxc_tmp(100,1), vxc_tmp(100,2)
 
              !fill the true vxc
@@ -478,9 +478,9 @@ contains
              !fill the true dvxci
              call f_memcpy(n=2*npts,src=dvxci_tmp(1,1),dest=dvxci(1,1))
 
-             write(*,*) 'après', 106+((106-1)+(25-1)*213)*213, vxc(106+((106-1)+(25-1)*213)*213,1),&
-                             vxc(106+((106-1)+(25-1)*213)*213,2)
-             write(*,*) 'après', 25, vxc(25,1), vxc(25,2)
+             !write(*,*) 'après', 106+((106-1)+(25-1)*213)*213, vxc(106+((106-1)+(25-1)*213)*213,1),&
+             !                vxc(106+((106-1)+(25-1)*213)*213,2)
+             !write(*,*) 'après', 25, vxc(25,1), vxc(25,2)
              !write(*,*) 'après', 100, vxc(100,1), vxc(100,2)
 
              !free the temporary variables

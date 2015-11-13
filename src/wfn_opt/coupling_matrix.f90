@@ -322,16 +322,16 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
                     K(ik,jk)=K(ik,jk)+hxh*hyh*hzh*&
                          rho_ias(i1,i2,i3p,ik)*rho_ias(i1,i2,i3p,jk)*&
                          dvxcdrho(i1,i2,i3p,spinindex)
-                    !begin test
-                    if(iproc==0 .and. ik==2 .and. jk==1 .and. i1==lr%d%n1i/2 .and. i2==lr%d%n2i/2) then
-                       write(*,*) iproc, spinindex, i1, i2, i3p, dvxcdrho(i1,i2,i3p,spinindex)
-                       write(*,*) iproc, 2, i1, i2, i3p, dvxcdrho(i1,i2,i3p,2)
-                    end if
-                    if(iproc==2 .and. ik==2 .and. jk==1 .and. i1==lr%d%n1i/2 .and. i2==lr%d%n2i/2) then
-                       write(*,*) iproc, spinindex, i1, i2, i3p, dvxcdrho(i1,i2,i3p,spinindex)
-                       write(*,*) iproc, 2, i1, i2, i3p, dvxcdrho(i1,i2,i3p,2)
-                    end if
-                    !end test
+                    !!begin test
+                    !if(iproc==0 .and. ik==2 .and. jk==1 .and. i1==lr%d%n1i/2 .and. i2==lr%d%n2i/2) then
+                    !   write(*,'(5(i4),1x,e16.9e2)') iproc, spinindex, i1, i2, i3p, dvxcdrho(i1,i2,i3p,spinindex)
+                    !   write(*,'(5(i4),1x,e16.9e2)') iproc, 2, i1, i2, i3p, dvxcdrho(i1,i2,i3p,2)
+                    !end if
+                    !if(iproc==2 .and. ik==2 .and. jk==1 .and. i1==lr%d%n1i/2 .and. i2==lr%d%n2i/2) then
+                    !   write(*,'(5(i4),1x,e16.9e2)') iproc, spinindex, i1, i2, i3p, dvxcdrho(i1,i2,i3p,spinindex)
+                    !   write(*,'(5(i4),1x,e16.9e2)') iproc, 2, i1, i2, i3p, dvxcdrho(i1,i2,i3p,2)
+                    !end if
+                    !!end test
                  end do
               end do
            end do
