@@ -2557,11 +2557,11 @@ end if
           end do
       end do
 
-      write(*,*) 'BEFORE: sum(rhov)',sum(denspot%rhov)
-      write(*,*) 'BEFORE: sum(V_ext)',sum(denspot%V_ext)
+      !write(*,*) 'BEFORE: sum(rhov)',sum(denspot%rhov)
+      !write(*,*) 'BEFORE: sum(V_ext)',sum(denspot%V_ext)
       call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
            quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
-      write(*,*) 'AFTER: sum(rhov)',sum(denspot%rhov)
+      !write(*,*) 'AFTER: sum(rhov)',sum(denspot%rhov)
       is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
       ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
       is2 = 1

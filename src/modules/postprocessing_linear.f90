@@ -1756,7 +1756,6 @@ module postprocessing_linear
 
       call f_routine(id='projector_for_charge_analysis')
 
-      write(*,*) 'present(multipoles)', present(multipoles)
 
       kT = 1.d-2
 
@@ -2931,7 +2930,7 @@ module postprocessing_linear
            end do
            !call yaml_map('weight',weight)
            charge_center_elec(1:3) = charge_center_elec(1:3)/weight
-           write(*,'(a,i4,3es13.4)') 'iorb, charge_center_elec(1:3)', iorb, charge_center_elec(1:3)
+           !write(*,'(a,i4,3es13.4)') 'iorb, charge_center_elec(1:3)', iorb, charge_center_elec(1:3)
            ! ######################################################################################
 
 
@@ -2950,9 +2949,9 @@ module postprocessing_linear
                !!     multipoles(:,:,iiorb))
            ! NEW VERSION #######################################################
            else if (iter==1) then
-               write(*,*) 'SUM(phir**2)',SUM(phir**2)
-               write(*,*) 'SUM(phir)',SUM(phir)
-               write(*,*) 'SUM(phir)*sqrt(product(tmb%lzd%hgrids))',SUM(phir)*sqrt(product(tmb%lzd%hgrids))
+               !write(*,*) 'SUM(phir**2)',SUM(phir**2)
+               !write(*,*) 'SUM(phir)',SUM(phir)
+               !write(*,*) 'SUM(phir)*sqrt(product(tmb%lzd%hgrids))',SUM(phir)*sqrt(product(tmb%lzd%hgrids))
                call multipole_analysis_core(0, 1, 1, 0, 1, 1, 1, &
                     -1,  (/1/), (/1/), (/1/), (/1/), &
                     (/tmb%lzd%Llr(ilr)%d%n1i/), (/tmb%lzd%Llr(ilr)%d%n2i/), (/tmb%lzd%Llr(ilr)%d%n3i/), &
