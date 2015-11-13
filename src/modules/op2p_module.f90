@@ -23,12 +23,13 @@ module overlap_point_to_point
    real(wp), parameter :: group_delta=2.0_wp,obj_delta=1.0_wp,elem_delta=1.e-5_wp
    
 
-   type(f_enumerator), parameter :: OP2P_START=f_enumerator('START',0,null())
-   type(f_enumerator), parameter :: OP2P_CALCULATE=f_enumerator('CALCULATE',1,null())
-   type(f_enumerator), parameter :: OP2P_EXIT=f_enumerator('EXIT',-1,null())
+   type(f_enumerator), parameter, public :: OP2P_START=f_enumerator('START',0,null())
+   type(f_enumerator), parameter, public :: OP2P_CALCULATE=f_enumerator('CALCULATE',1,null())
+   type(f_enumerator), parameter, public :: OP2P_EXIT=f_enumerator('EXIT',-1,null())
 
    public :: initialize_OP2P_descriptors,OP2P_communication,OP2P_descriptors,free_OP2P_descriptors
-   public :: local_data_init,set_local_data,free_local_data,OP2P_unitary_test
+   public :: local_data_init,set_local_data,free_local_data,OP2P_unitary_test,initialize_OP2P_data
+   public :: set_OP2P_iterator,OP2P_communication_step,OP2P_info,free_OP2P_data,OP2P_test
 
    type OP2P_descriptors
       logical :: forsymop !< descriptor for symmetric operation
