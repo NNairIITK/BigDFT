@@ -454,10 +454,10 @@ module multipole
                                               else
                                                   qq = ep%mpl(impl)%qlm(l)%q(mm)
                                               end if
-                                              !ttt = qq*&
-                                              !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
                                               ttt = qq*&
-                                                    spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))**2
+                                                    spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
+                                              !ttt = qq*&
+                                              !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))**2
                                               !if (l==0) then
                                               !    ttt = ttt/sqrt(3.d0)
                                               !else if (l==1) then
@@ -465,7 +465,7 @@ module multipole
                                               !else if (l==2) then
                                               !    ttt = ttt/sqrt(7.d0)
                                               !end if
-                                              !ttt = ttt/get_normalization(rmax(impl), l, m)!*(0.5d0*sqrt(1/pi_param))
+                                              ttt = ttt/get_normalization(rmax(impl), l, m)!*(0.5d0*sqrt(1/pi_param))
                                               !ttt = ttt*get_normalization(rmax(impl), l, m)!*sqrt(4.d0*pi_param)
                                               !ttt = ttt**2!*get_normalization(rmax(impl), l, m)!*sqrt(4.d0*pi_param)
                                               tt = tt + ttt
@@ -627,7 +627,8 @@ module multipole
                               do m=-l,l
                                   mm = mm + 1
                                   if (l==0) then
-                                      max_error(l) = max(max_error(l),abs(monopole(impl)-ep%mpl(impl)%qlm(l)%q(mm)))
+                                      max_error(l) = max(max_error(l), &
+                                                      abs(monopole(impl)-(ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8))))
                                   else if (l==1) then
                                       max_error(l) = max(max_error(l),abs(dipole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
                                   else if (l==2) then
@@ -1748,8 +1749,8 @@ module multipole
           rnorm = sqrt(rmax**3/3.d0)
           fn = 0.5d0*sqrt(1/pi)/rnorm
       case (1)
-          !rnorm = sqrt(rmax**5/5.d0)
-          rnorm = sqrt(rmax**1/1.d0)
+          rnorm = sqrt(rmax**5/5.d0)
+          !rnorm = sqrt(rmax**1/1.d0)
           select case (m)
           case (-1)
               fn = sqrt(3.d0/(4.d0*pi))/rnorm
@@ -1759,7 +1760,7 @@ module multipole
               fn = sqrt(3.d0/(4.d0*pi))/rnorm
           end select
       case (2)
-          rnorm = sqrt(rmax**3/3.d0)
+          rnorm = sqrt(rmax**7/7.d0)
           select case (m)
           case (-2)
               fn = 0.5d0*sqrt(15.d0/pi)/rnorm
@@ -1843,8 +1844,8 @@ module multipole
           !sh = sqrt(4.d0*pi)*0.5d0*sqrt(1/pi)
           sh = 0.5d0*sqrt(1/pi)/rnorm
       case (1)
-          !rnorm = sqrt(rmax**5/5.d0)
-          rnorm = sqrt(rmax**2/2.d0)
+          rnorm = sqrt(rmax**5/5.d0)
+          !rnorm = sqrt(rmax**2/2.d0)
           !rnorm = 1.d0
           r = sqrt(x**2+y**2+z**2)
           !r = 1.d0
@@ -1871,8 +1872,8 @@ module multipole
           sh = sh*r**r_exponent
           !sh = sh/r
       case (2)
-          !rnorm = sqrt(rmax**7/7.d0)
-          rnorm = sqrt(rmax**3/3.d0)
+          rnorm = sqrt(rmax**7/7.d0)
+          !rnorm = sqrt(rmax**3/3.d0)
           !rnorm = 1.d0
           r2 = x**2+y**2+z**2
           !r2=1.d0
