@@ -1634,6 +1634,7 @@ subroutine exact_exchange_potential_round_clean(iproc,nproc,xc,nspin,ndim,orbs,&
        err_name='BIGDFT_RUNTIME_ERROR')
   call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nvctr_par,.true.)
 
+
   !here we can start with the round-robin scheme
   !since the orbitals are all occupied we have to use the symmetric scheme
   !we have first to define the number of groups, which correspond to the repartition 

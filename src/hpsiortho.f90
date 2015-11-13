@@ -601,8 +601,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
 !!$            call exact_exchange_potential_round(iproc,nproc,xc,orbs%nspin,Lzd%Glr,orbs,&
 !!$                0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
 !!$                pkernel,psi,pot(ispot),energs%eexctX)
-!!$
-
 
             psir = f_malloc0([Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, orbs%norbp],id='psir')
             !initialize the orbital basis object, for psi and hpsi
@@ -618,6 +616,57 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
                call deallocate_work_arrays_sumrho(w)
             end do
             call orbital_basis_release(psi_ob)
+
+!!$            if (nspin==2) then
+!!$               sfac=1.0_gp
+!!$               ngroup=2
+!!$            else 
+!!$               sfac=0.5_gp
+!!$               ngroup=1
+!!$            end if
+!!$            !construct the OP2P scheme and test it
+!!$            !use temporaryly tyhe nvrct_par array
+!!$            nobj_par = f_malloc0((/ 0.to.nproc-1, 1.to.ngroup /),id='nobj_par')
+!!$            isorb=0
+!!$            do jproc=0,nproc-1
+!!$               norbp=orbs%norb_par(jproc,0)
+!!$               !transition region
+!!$               if (isorb+norbp > orbs%norbu .and. isorb < orbs%norbu) then
+!!$                  nobj_par(jproc,1)=orbs%norbu-isorb
+!!$                  if (ngroup==2) nobj_par(jproc,2)=isorb+norbp-orbs%norbu
+!!$               else if (isorb >= orbs%norbu .and. ngroup==2) then
+!!$                  nobj_par(jproc,2)=norbp
+!!$               else
+!!$                  nobj_par(jproc,1)=norbp
+!!$               end if
+!!$               isorb=isorb+norbp
+!!$            end do
+!!$            ndim=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i
+!!$            call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
+!!$            !allocate work array for the internal exctx calculation
+!!$            rp_ij = f_malloc(ndim,id='rp_ij')
+!!$            energs%eexctX=0.0_gp
+!!$            !initialize the OP2P descriptor for the communication
+!!$            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,data,res)
+!!$            !main loop
+!!$            OP2P_exctx_loop: do
+!!$               call OP2P_communication_step(iproc,OP2P,iter)
+!!$               if (iter%event == OP2P_EXIT) exit OP2P_exctx_loop
+!!$               call internal_calculation_exctx(iter%istep,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
+!!$                    iter%remote_result,iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
+!!$                    iter%phi_i,iter%phi_j,energs%eexctX,rp_ij)
+!!$               call OP2P_info(iter,OP2P,prc,tel,trm)
+!!$               call yaml_comment('Exact exchange calculation: 'prc**'(i3)'+&
+!!$                    '%; Time (s): Elapsed='+tel**'(1pg12.2)'&
+!!$                  +', Remaining='+trm**'(1pg12.2)')
+!!$            end do OP2P_exctx_loop
+!!$
+!!$            call free_OP2P_data(OP2P)
+!!$            if (nproc>1) call mpiallred(energs%eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+!!$            !the exact exchange energy is half the Hartree energy (which already has another half)
+!!$            energs%eexctX=-xc_exctXfac(xc)*energs%eexctX
+!!$            if (iproc == 0) call yaml_map('Exact Exchange Energy',eexctX,fmt='(1pe18.11)')
+
 
             call exact_exchange_potential_round_clean(iproc,nproc,xc,orbs%nspin,&
                  Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,orbs,&

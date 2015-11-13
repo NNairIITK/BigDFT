@@ -142,6 +142,24 @@ subroutine f_utils_test()
   end do
   t1=f_time()
   call yaml_map('Count f_increment (ns)',[int(icount,f_long),t1-t0])
+  t0=f_time()
+  icount=0
+  !$omp parallel do default(private) firstprivate(icount)
+  do istep=1,n_inc
+     icount=icount+1
+  end do
+  !$omp end parallel do
+  t1=f_time()
+  call yaml_map('Count omp (ns)',[int(icount,f_long),t1-t0])
+  t0=f_time()
+  icount=0
+  !$omp parallel do default(private) firstprivate(icount)
+  do istep=1,n_inc
+     call f_increment(icount)
+  end do
+  !$omp end parallel do
+  t1=f_time()
+  call yaml_map('Count f_increment omp (ns)',[int(icount,f_long),t1-t0])
 
 
 !we cannot flush a unit with advance no, we would lose the output
