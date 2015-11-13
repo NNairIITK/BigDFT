@@ -297,6 +297,7 @@ module IObox
          nat,rxyz,iatypes,znucl)
       use dynamic_memory
       use dictionaries, only: f_err_throw
+      use IOboxETSF, only: read_etsf
       implicit none
       character(len=*), intent(in) :: filename
       character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
@@ -330,7 +331,7 @@ module IObox
               nat_read,rxyz_read, iatypes_read, znucl_read)
       case(ETSF)
          call read_etsf(filename(1:isuffix),geocode,&
-              ndims(1),ndims(2),ndims(3),nspin,hgrids(1),hgrids(2),hgrids(3),rho,&
+              ndims(1),ndims(2),ndims(3),nspin,hgrids(1),hgrids(2),hgrids(3),ldrho,nrho,rho,&
               nat_read,rxyz_read, iatypes_read, znucl_read)
          if (ldrho < product(ndims) .or. nrho < nspin) &
               call f_err_throw('Severe error, the sizes of the rho array have revealed not to be sufficient. '//&
@@ -677,6 +678,7 @@ module IObox
          rxyz,iatype,nzatom,nelpsp,ixyz0)
       use dynamic_memory
       use f_utils
+      use IOboxETSF, only: write_etsf_density
       implicit none
       !integer,intent(in) :: fileunit0,fileunitx,fileunity,fileunitz
       integer, intent(in) :: nspin
@@ -809,7 +811,7 @@ module IObox
             else
                call write_etsf_density(filename(:isuffix),message,geocode,&
                     ndims,hgrids,&
-                    rho, 1,nat,rxyz_,iatype_,nzatom_,nelpsp_)
+                    rho, 1,nat,rxyz_,iatype_,size(nzatom_),nzatom_)
             end if
          else
             if (fformat == CUBE) then
@@ -853,7 +855,7 @@ module IObox
                message = 'spin up, down, total, difference'
                call write_etsf_density(filename(:isuffix),message,geocode,&
                     ndims,hgrids,&
-                    rho, 2,nat,rxyz_,iatype_,nzatom_,nelpsp_)
+                    rho, 2,nat,rxyz_,iatype_,size(nzatom_),nzatom_)
             end if
 
          end if

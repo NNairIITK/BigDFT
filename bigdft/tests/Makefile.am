@@ -60,7 +60,7 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
 report.py: report.py.in
-	sed							\
+	@sed							\
 		-e s!\@prefix\@!$(prefix)!			\
 		-e s!\@exec_prefix\@!$(exec_prefix)!		\
 		-e s!\@pyexecdir\@!$(pyexecdir)!		\
@@ -69,7 +69,7 @@ report.py: report.py.in
 		< $< > $@
 
 fldiff_yaml.py: fldiff_yaml.py.in
-	sed							\
+	@sed							\
 		-e s!\@prefix\@!$(prefix)!			\
 		-e s!\@exec_prefix\@!$(exec_prefix)!		\
 		-e s!\@pyexecdir\@!$(pyexecdir)!		\

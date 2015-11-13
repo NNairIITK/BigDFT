@@ -1,5 +1,6 @@
 #include <config.h>
 
+#include "bigdft_spred.h"
 #include "bigdft.h"
 #include "bindings.h"
 #include "bindings_api.h"

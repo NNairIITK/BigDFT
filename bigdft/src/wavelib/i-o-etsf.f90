@@ -17,7 +17,7 @@ module internal_etsf
 
 
    subroutine etsf_error(error)
-      use module_base, only: bigdft_mpi
+      use wrapper_MPI, only: MPI_COMM_WORLD
       use etsf_io_low_level
 
       implicit none
@@ -26,11 +26,10 @@ module internal_etsf
       integer :: ierr
 
       call etsf_warning(error)
-      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
+      call MPI_ABORT(MPI_COMM_WORLD, ierr)
    END SUBROUTINE etsf_error
 
    subroutine etsf_warning(error)
-      use module_defs
       use etsf_io_low_level
 
       implicit none
@@ -129,7 +128,7 @@ module internal_etsf
       character(len = *), parameter :: subname = "etsf_read_descr"
       type(etsf_dims) :: dims
       real(dp) :: rprimd(3,3)
-      integer :: i, iat, i_stat
+      integer :: i, iat
 
       call etsf_io_dims_get(ncid, dims, lstat, error)
       if (.not. lstat) return
@@ -218,7 +217,7 @@ module internal_etsf
       subroutine sortEvals(orbsd)
          type(orbitals_data), intent(inout) :: orbsd
 
-         integer :: i, ik, ikd, isd, i_stat, i_all
+         integer :: i, ik, ikd, isd
          real(wp), dimension(:), allocatable :: eval
 
          eval = f_malloc(size(orbsd%eval),id='eval')
@@ -251,8 +250,8 @@ module internal_etsf
       type(locreg_descriptors), intent(out) :: lr
 
       character(len = *), parameter :: subname = "etsf_gcoordToLocreg"
-      integer :: i, i_stat, i_all
       logical, dimension(:,:,:), allocatable :: logrid_c, logrid_f
+      integer :: i
 
       lr%geocode = "P"
       lr%hybrid_on = .false.

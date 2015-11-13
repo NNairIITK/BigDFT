@@ -256,7 +256,7 @@ types.o: psp_projectors_base.o ao_inguess.o atoms_data.o communications_base.o i
 	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o
 interfaces.o: types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
 #op2p_module.o : base.o
-BigDFT_API.o: types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o bigdft_run.o gaussians.o
+BigDFT_API.o: types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o bigdft_run.o
 vdwcorrection.o: types.o 
 private_api.o: types.o interfaces.o
 diis_module.o: types.o

@@ -86,9 +86,9 @@ sub_dirs_libconfig=
 endif
 
 if HAVE_ETSF_IO
-etsf_files = wavelib/plotting-etsf.f90
+etsf_files = wavelib/i-o-etsf.f90
 else
-etsf_files = wavelib/etsf_fake.f90
+etsf_files = wavelib/i-o-etsf_fake.f90
 endif
 
 
@@ -256,7 +256,7 @@ $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
 	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
 	@chmod a+x $@
 
-libbigdft-1.so.8a: $(bigdft_dynamic_library)
+libbigdft-1.so.@BIGDFT_MINOR_VERSION@: $(bigdft_dynamic_library)
 	ln -fs $^ $@
 	ln -fs $@ libbigdft-1.so
 
@@ -342,7 +342,7 @@ restart.o: i-o.o
 # Introspection for Python bindings
 # ---------------------------------
 if WITH_GOBJECT_INTROSPECTION
-BUILT_GIRSOURCES = BigDFT-1.8.gir
+BUILT_GIRSOURCES = BigDFT-1.@BIGDFT_MINOR_VERSION@.gir
 
 gir_DATA = $(BUILT_GIRSOURCES)
 typelibs_DATA = $(BUILT_GIRSOURCES:.gir=.typelib)
@@ -362,7 +362,7 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		--namespace BigDFT \
 		--symbol-prefix=bigdft --identifier-prefix=BigDFT_ --identifier-prefix=Bigdft \
 		--symbol-prefix=f90 --identifier-prefix=f90_ \
-		--nsversion "1.8" \
+		--nsversion "1.@BIGDFT_MINOR_VERSION@" \
 		--add-include-path=$(girdir) \
 		--include GObject-2.0 \
 		--include GLib-2.0 \
@@ -378,8 +378,9 @@ $(gir_DATA): $(G_IR_SCANNER) $(bigdft_library)
 		$(srcdir)/bindings/wrappers.c \
 		$(srcdir)/bindings/wrapper_inputs.c \
 		$(srcdir)/bindings/wrapper_run.c \
-		$(srcdir)/bindings/wrapper_neb.c \
 		$(srcdir)/bindings/wrapper_atoms.c
+
+#		$(srcdir)/bindings/wrapper_neb.c
 
 $(typelibs_DATA): $(gir_DATA) $(G_IR_COMPILER)
 	$(G_IR_COMPILER) \

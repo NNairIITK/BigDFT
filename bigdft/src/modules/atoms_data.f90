@@ -1456,8 +1456,7 @@ contains
       use public_keys, only: SOURCE_KEY
       use dynamic_memory
       use dictionaries
-      use libxc_functionals, only: libxc_functionals_init, libxc_functionals_end
-      !      use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
+      use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
       implicit none
       !Arguments
       type(dictionary), pointer :: dict        !< Input dictionary

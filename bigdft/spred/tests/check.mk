@@ -59,16 +59,11 @@ oclrun_message =
 accel_in_message =
 endif
 
-if BUILD_LIBYAML
-LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
-PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
-endif
-
 if BUILD_DYNAMIC_LIBS
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
 endif
 
-AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@  @MPI_INCLUDE@
+AM_FCFLAGS = -I$(top_builddir)/includes -I$(top_srcdir)/PSolver/src -I. @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@  @MPI_INCLUDE@
 
 PSPS = psppar.H \
        psppar.C \
@@ -127,7 +122,7 @@ distclean: $(CLEANS)
 failed-check: $(FAILEDCHECKS) report
 
 report:
-	@if test $(MAKELEVEL) = 0 ; then	export PYTHONPATH=${PYTHONPATH}; export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ;python $(top_srcdir)/tests/report.py ; fi
+	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi
 
 #Binary dependencies
 $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90 $(abs_top_srcdir)/src/WaCo.f90

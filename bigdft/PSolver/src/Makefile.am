@@ -28,11 +28,12 @@ psolver_noinst =
 endif
 
 if HAVE_ETSF_IO
-etsf_files = i-o-etsf.f90
+etsf_files = IOetsf.f90
+etsf_dep   = IOetsf.o
 else
-etsf_files = i-o-etsf_fake.f90
+etsf_files = IOetsf_fake.f90
+etsf_dep   = IOetsf_fake.o
 endif
-
 
 fdder_file=FDder.f90
 
@@ -160,11 +161,12 @@ Poisson_Solver.o: $(SOURCES_MOD) configure.inc environment.o PStypes.o PSbox.o P
 PStypes.o: environment.o FDder.o
 PSbox.o: PStypes.o PSbase.o IObox.o
 FDder.o: PSbase.o
-IObox.o: PSbase.o
+IObox.o: PSbase.o $(etsf_dep)
 environment.o: PSbase.o
 conv_check_fft.o: cufft.o
 conv_check_fftw.o: fftw.o
-i-o-etsf_fake.o: PSbase.o
+IOetsf.o: PSbase.o
+IOetsf_fake.o: PSbase.o
 wofz.o Build_Kernel.o scaling_function.o PSolver_Base_new.o: Poisson_Solver.o
 
 .cu.o:

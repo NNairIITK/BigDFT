@@ -504,7 +504,6 @@ module public_enums
   type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-989,null())
   type(f_enumerator), parameter, public :: SW_RUN_MODE         =f_enumerator('SW_RUN_MODE',-988,null())
 
-  type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-989,null())
 end module public_enums
 
 

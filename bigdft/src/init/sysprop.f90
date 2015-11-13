@@ -486,7 +486,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      end subroutine init_linear_orbs
 
      subroutine init_lzd_linear()
-       use module_interfaces, only: initLocregs, initialize_linear_from_file
+       use module_interfaces, only: initialize_linear_from_file
+       use locregs_init, only: initLocregs
        use locregs, only: copy_locreg_descriptors
        implicit none
        call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
@@ -1283,19 +1284,18 @@ subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
 
   if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   tt=tt*product(dpbox%hgrids)
-     if (bigdft_mpi%iproc == 0) then
-        call yaml_mapping_open('Analytic core charges for atom species')
-        do ityp=1,at%astruct%ntypes
-           if (chg_at(ityp) /= 0.0_gp) &
-                call yaml_map(trim(at%astruct%atomnames(ityp)),chg_at(ityp),fmt='(f15.7)')
-        end do
-        call yaml_mapping_close()
-        call yaml_map('Total core charge',sum(chg_at),fmt='(f15.7)')
-        call yaml_map('Total core charge on the grid', tt,fmt='(f15.7)', advance = "no")
-        call yaml_comment('To be compared with analytic one')
-     end if
-     call f_free(chg_at)
+  if (bigdft_mpi%iproc == 0) then
+     call yaml_mapping_open('Analytic core charges for atom species')
+     do ityp=1,at%astruct%ntypes
+        if (chg_at(ityp) /= 0.0_gp) &
+             call yaml_map(trim(at%astruct%atomnames(ityp)),chg_at(ityp),fmt='(f15.7)')
+     end do
+     call yaml_mapping_close()
+     call yaml_map('Total core charge',sum(chg_at),fmt='(f15.7)')
+     call yaml_map('Total core charge on the grid', tt,fmt='(f15.7)', advance = "no")
+     call yaml_comment('To be compared with analytic one')
   end if
+  call f_free(chg_at)
 
 END SUBROUTINE calculate_rhocore
 

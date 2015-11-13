@@ -71,17 +71,17 @@ cp2k_ld =
 endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
-	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
+	@LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
-AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @LIBSGPU_INCLUDE@ -I$(srcdir)/modules -Imodules
+AM_CPPFLAGS = @LIB_ARCHIVE_CFLAGS@ @LIBSGPU_INCLUDE@
 
-AM_CFLAGS = @CUDA_INCLUDE@
+AM_CFLAGS = -I$(top_srcdir)/src/bindings -I$(top_srcdir)/src/modules -I$(top_builddir)/src/modules @GLIB_CFLAGS@
 
 #objects which depends from module_types
 high_level = images.f90
 
-libmain_a_SOURCES = $(high_level)
+libmain_a_SOURCES = $(high_level) wrapper_neb.c
 
 libspred_1_a_SOURCES =
 
@@ -102,7 +102,7 @@ $(spred_dynamic_library): $(libmain_a_OBJECTS) tmp-libspred/extract.stamp
 	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(spred_library) -o $@ $(libmain_a_OBJECTS) tmp-libspred/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
 	@chmod a+x $@
 
-libspred-1.so.7: $(spred_dynamic_library)
+libspred-1.so.@BIGDFT_MINOR_VERSION@: $(spred_dynamic_library)
 	ln -fs $^ $@
 	ln -fs $@ libspred-1.so
 
@@ -132,8 +132,8 @@ mhgps_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
 mhgps_LDADD = mhgps_files/libmhgps.a $(spred_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 mhgpstool_SOURCES = mhgpstool.f90
-mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@
-mhgpstool_LDADD = mhgps_files/libmhgps.a $(spred_library)  @LINALG_LIBS@
+mhgpstool_FCFLAGS = -I. -Imhgps_files -I$(top_builddir)/includes @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@
+mhgpstool_LDADD = mhgps_files/libmhgps.a $(spred_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@
 
 global_SOURCES = global.f90
 global_LDADD = $(spred_library) @LIB_FLIB_LIBS@ @LINALG_LIBS@

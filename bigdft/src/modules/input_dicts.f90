@@ -174,8 +174,6 @@ contains
        write(filename, "(A,A,A)") "input", ".", trim(ext)
     else
        write(filename, "(A,A,A)") trim(radical), ".", trim(ext)
-          call set(run // INPUT_NAME, " ")
-          call set(run // POSINP, " ")
     end if
 
     inquire(file=trim(filename),exist=exists)
