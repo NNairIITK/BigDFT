@@ -20,7 +20,7 @@ module overlap_point_to_point
    integer, parameter :: SEND_DATA=1,RECV_DATA=2,SEND_RES=3,RECV_RES=4
    integer, parameter :: DATA_=1,RES_=2
    integer, parameter :: AFTER_=1,BEFORE_=2
-   real(wp), parameter :: group_delta=2.0_wp,obj_delta=1.0_wp,elem_delta=1.e-5_wp
+   real(wp), parameter :: group_delta=2.0_wp,obj_delta=1.0_wp,elem_delta=1.e-6_wp
    
 
    type(f_enumerator), parameter, public :: OP2P_START=f_enumerator('START',0,null())
@@ -816,7 +816,7 @@ module overlap_point_to_point
        call initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
 
        if (.not. OP2P_test(iproc,nproc,OP2P,maxdiff)) &
-            call f_err_throw('OP2P Unitary test not passed, maxdiff='+maxdiff**'(1.pe12.5)')
+            call f_err_throw('OP2P Unitary test not passed, maxdiff='+maxdiff**'(1pe12.5)')
 
        if (iproc==0)  call yaml_map('OP2P unitary test error',maxdiff)
        call free_OP2P_data(OP2P)
@@ -942,7 +942,8 @@ module overlap_point_to_point
        !local variables
        real(wp) :: els
 
-       els=real(ndim,wp)!0.5_wp*elem_delta**2*ndim*(ndim+1)!
+       els=real(ndim,wp)
+       !els=(ndim*0.5_wp)*(ndim+1)*elem_delta**2!
        op_val=(els*obj_delta**2)*iobj*jobj*(group_delta*(igroup))**2
        
      end function op_val

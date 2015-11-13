@@ -532,7 +532,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    type(OP2P_iterator) :: iter
    integer, dimension(:,:), allocatable :: nobj_par
    real(wp), dimension(:,:), allocatable :: vsicpsir
-   real(wp), dimension(:,:), allocatable :: psir
+   real(wp), dimension(:,:), allocatable :: psir,vpsi_tmp
    real(wp), dimension(:), allocatable :: rp_ij
    real(wp), dimension(:), pointer :: hpsi_ptr
    real(gp) :: eSIC_DCi,fi
@@ -623,6 +623,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             end do
             call orbital_basis_release(psi_ob)
 
+            !starting new approach for the exact exchange
+            !vpsi_tmp = f_malloc0([Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, orbs%norbp],id='vpsi_tmp')
             if (orbs%nspin==2) then
                sfac=1.0_gp
                ngroup=2
@@ -649,6 +651,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             end do
             ndim=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i
 
+            call f_zero(ndim*orbs%norbp,pot(ispot))
+            !if (iproc==0) call yaml_map('Orbital repartition',nobj_par)
             call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
 
             call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
@@ -657,8 +661,9 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             rp_ij = f_malloc(ndim,id='rp_ij')
             energs%eexctX=0.0_gp
             !initialize the OP2P descriptor for the communication
-            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot))
+            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot))!vpsi_tmp)
             !main loop
+            if (iproc == 0) call yaml_newline()
             OP2P_exctx_loop: do
                call OP2P_communication_step(iproc,OP2P,iter)
                if (iter%event == OP2P_EXIT) exit OP2P_exctx_loop
@@ -678,15 +683,19 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             !the exact exchange energy is half the Hartree energy (which already has another half)
             energs%eexctX=-xc_exctXfac(xc)*energs%eexctX
             if (iproc == 0) call yaml_map('Exact Exchange Energy',energs%eexctX,fmt='(1pe18.11)')
-!!$
-!!$
+
+            !call f_memcpy(n=ndim*orbs%norbp,src=vpsi_tmp(1,1),dest=pot(ispot))
+            call f_free(nobj_par)
+            call f_free(rp_ij)
+            !call f_free(vpsi_tmp)
+
+
 !!$            call exact_exchange_potential_round_clean(iproc,nproc,xc,orbs%nspin,&
 !!$                 Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,orbs,&
 !!$                 !0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
 !!$                 pkernel,psir,pot(ispot),energs%eexctX)
+
             call f_free(psir)
-            call f_free(nobj_par)
-            call f_free(rp_ij)
 
 
             !call exact_exchange_potential_op2p(iproc,nproc,xc,Lzd%Glr,orbs,pkernel,psi,pot(ispot),energs%eexctX)
