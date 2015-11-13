@@ -818,6 +818,11 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   ! Do the calculation.
   if (abs(order) == 1) then
      call xc_getvxc(xc, npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr)
+!!MM
+!     do i3=1,nxt
+!        write(*,*) nspden, rho(m1/2,m3/2,i3,nspden)
+!     end do
+!!MM
   else if (abs(order) == 2) then
      call xc_getvxc(xc, npts,exci,nspden,rho(1,1,offset,1),vxci,gradient,dvxcdgr,dvxci)
   end if
