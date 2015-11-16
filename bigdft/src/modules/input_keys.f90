@@ -279,6 +279,7 @@ module module_input_keys
      !Force Field Parameter
      character(len=64) :: mm_paramset
      character(len=64) :: mm_paramfile
+     real(gp) :: sw_factor
 
      !Multi section parameters
      logical, dimension(:), pointer :: multi_pass

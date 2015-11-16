@@ -35,12 +35,10 @@ module SWpotential
 contains
 
   !> This subroutine initializes the SW parameters.
-  subroutine init_potential_SW(natoms, ntypes, acell, ixc)
-    use module_xc
+  subroutine init_potential_SW(natoms, ntypes, factor)
     implicit none
     integer, intent(in) :: natoms, ntypes
-    real(gp), intent(in), optional :: acell
-    integer, intent(in), optional :: ixc
+    real(gp), intent(in) :: factor
 
     real(gp) :: RCUT, EPSILON
     character(len=500) :: name_ixc, name_xcpsp(2)
@@ -61,23 +59,7 @@ contains
 
     ! SW_parameters(:,1) =  2.095037426_GP
     ! we change sigma so that cell size is 5.4 and not 5.43 to emulate LDA
-    fcell = 1._gp
-    if (present(acell)) then
-       fcell = acell / 5.43_gp
-    else if (present(ixc)) then
-       if (ixc < 0) then
-          call xc_get_name(name_ixc, ixc, XC_MIXED)
-       else
-          call xc_get_name(name_ixc, ixc, XC_ABINIT)
-       end if
-       call xc_get_name(name_xcpsp(1),  1, XC_ABINIT)
-       call xc_get_name(name_xcpsp(2), 11, XC_ABINIT)
-       if (name_ixc == name_xcpsp(1)) then
-          fcell = 5.4_gp / 5.43_gp
-       else if (name_ixc == name_xcpsp(2)) then
-          fcell = 5.465_gp / 5.43_gp
-       end if
-    end if
+    fcell = factor
     SW_parameters(:,1) = 2.095037426_gp * fcell
 
     SW_parameters(:,2) = 7.049556277_GP

@@ -123,6 +123,7 @@ module public_keys
   !mode parameter keywords
   character(len = *), parameter :: MM_PARAMSET = "mm_paramset" !for hard-coded parameter sets
   character(len = *), parameter :: MM_PARAMFILE = "mm_paramfile" !for parameter sets given by file
+  character(len = *), parameter :: SW_EQFACTOR = "sw_eqfactor"
   character(len = *), parameter :: SECTIONS = "sections"
   character(len = *), parameter :: SECTION_BUFFER = "section_buffer"
   character(len = *), parameter :: SECTION_PASSIVATION = "section_passivation"

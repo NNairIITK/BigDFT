@@ -274,7 +274,7 @@ contains
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
        !@todo SW is missing the rescalling here.
-       call init_potential_SW(astruct%nat, astruct%ntypes, ixc = inputs%ixc)
+       call init_potential_SW(astruct%nat, astruct%ntypes, inputs%sw_factor)
     case default
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter

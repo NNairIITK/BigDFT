@@ -816,6 +816,14 @@
      CONDITION:
        MASTER_KEY: method
        WHEN: [multi]
+   sw_eqfactor:
+     COMMENT: Factor on sigma value, rule the equilibrium bond length for the Stillinger-Weber potential
+     default: 1.
+     PBE_Si: 1.006445672 # 5.465 / 5.430
+     LDA_Si: 0.994475138 # 5.400 / 5.430
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [sw]
 
 #Performance parameters
  perf:
