@@ -8,6 +8,10 @@ LONG_CHECK =psp.report.yaml
 
 include $(srcdir)/../check.mk
 
+if BUILD_LIBYAML
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
+endif
 
 check_PROGRAMS = check_psp
 
@@ -27,6 +31,8 @@ CLEANFILES = psp.out.yaml psp.report.yaml
 
 check: psp.report.yaml
 psp.report.yaml: psp.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -r $(srcdir)/psp.ref.yaml -d $^ -o $@ \
 		-t $(top_srcdir)/tests/tols-BigDFT.yaml --label=psp
 

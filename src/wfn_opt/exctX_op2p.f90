@@ -340,7 +340,7 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
         end do
         !$omp end parallel do
 
-        if (iorb_glb /= jorb_glb .or. remote_result) then
+        if ((iorb_glb /= jorb_glb .and. istep==0) .or. remote_result) then
            !$omp parallel do default(shared) private(i)
            do i=1,ndim
               phi_j%res(i+jshift_res)=phi_j%res(i+jshift_res)+hfacj*rp_ij(i)*phi_i%data(i+ishift)
