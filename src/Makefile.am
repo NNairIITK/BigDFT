@@ -228,7 +228,7 @@ libbigdft_1_a_SOURCES =
 
 input_variables_description.o: input_variables_definition-inc.h
 #build the fortran include file with the stream of input variables into a local string
-#the sed command below will transform the entire yaml document into a fortran string
+#the sed command below will transform the entire yaml document into a c string, to be passed to fortran
 input_variables_definition-inc.h: input_variables_definition.yaml
 	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
 

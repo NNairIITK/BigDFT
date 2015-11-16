@@ -5,6 +5,11 @@ LONG_CHECK=xc.out.yaml xc.ref.yaml xc.report.yaml
 
 include $(srcdir)/../check.mk
 
+if BUILD_LIBYAML
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
+endif
+
 
 SUBDIRS = 
 
@@ -31,5 +36,7 @@ xc.out.yaml: test_xc
 	-$(run_parallel) ./test_xc > $@
 
 xc.report.yaml: xc.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -r $(srcdir)/xc.ref.yaml -d $^ -o $@ \
 			-t $(top_srcdir)/tests/tols-BigDFT.yaml --label=xc

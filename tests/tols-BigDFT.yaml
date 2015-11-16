@@ -1226,7 +1226,7 @@ PBE_potmixdiis:
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
  Energy (Hartree): 2.2e-9
- Force Norm (Hartree/Bohr): 2.39e-10
+ Force Norm (Hartree/Bohr): 2.75e-10
 
 PBE_densmixdiis:
  Epot: 1.1e-10
@@ -1281,7 +1281,7 @@ geoptconstrained_SDCG:
  D Tr: 1.1e-9
  Omega: 1.7e-10
  D: 1.1e-10
- tr(KS) before purification: 1.5e-11
+ tr(KS) before purification: 1.53e-11
  Clean forces norm (Ha/Bohr): 2.1e-9
  Atomic Forces (Ha/Bohr): 3.4e-9
  Average noise forces: 2.0e-9
@@ -1361,7 +1361,7 @@ O2spin_dirmin:
  Energy (Hartree): 1.68e-6
  Omega: 6.1e-6
  D: 1.1e-4
- DIIS weights: 3.9
+ DIIS weights: 4.101
  Max deviation from unity in reorthonormalize_coeff: 1.1e-6
  Mean deviation from unity in reorthonormalize_coeff: 1.1e-7
  delta: 1.1e-10
@@ -1828,7 +1828,7 @@ igortho_94:
 extendedfrags_nofrags:
  eF: 1.6e-9
  guess for new ef: 2.0e-9
- charge diff: 1.7e-8
+ charge diff: 1.8e-8
  Tr(K): 2.1e-8
  D Tr: 1.0e-9
  D eF: 1.1e-8
@@ -1856,6 +1856,7 @@ extendedfrags_read:
  Total charge: 2.1e-11
  Force Norm (Hartree/Bohr): 4.5e-11
  Atomic Forces (Ha/Bohr): 1.7e-11
+ Keys to ignore: [WARNINGS]
 
 extendedfrags_readrotated:
  energy: 1.4e-11
@@ -1873,7 +1874,8 @@ extendedfrags_readrotated:
  fnrm2: 5.81e-11
  Force Norm (Hartree/Bohr): 4.8e-11
  Atomic Forces (Ha/Bohr): 1.7e-11
- Omega: 3.01e-11
+ Omega: 4.47e-11
+ Keys to ignore: [WARNINGS]
 
 
 extendedfrags_write:
@@ -1907,7 +1909,6 @@ Cavity_H2OfrigidPCG:
  fnrm2: 2.8e-6
  Iteration quality: 4.0e-7
  alpha: 0.6
- beta: 8.06e-5
  Epot: 5.7e-5
  EH: 5.7e-5
  Energies: 5.1e-7
@@ -1917,8 +1918,8 @@ Cavity_H2OfrigidPCG:
  Integral of the density in the nonvacuum region: 3.6e-8
  Ekin: 1.66e-07
  Total electronic charge: 1.25e-09
- beta: 0.000101
- norm(P): 1.01e-8
+ beta: 0.00011
+ norm(P): 1.01e-6
  ratio: 1.01e-05
  total: 5.121e-06
  x: 2.55e-06
@@ -1936,15 +1937,15 @@ Cavity_H2OfsccsPCG:
  EH: 4.6e-05
  Epot: 4.2-05
  ratio: 5.81e-06
- EXC: 2.40e-07
- Ekin: 1.07e-06
- Enl: 1.45e-07
- EvXC: 3.01e-07
- Integral of the density in the nonvacuum region: 7.73e-08
+ EXC: 2.44e-07
+ Ekin: 1.8e-06
+ Enl: 1.49e-07
+ EvXC: 3.05e-07
+ Integral of the density in the nonvacuum region: 7.84e-08
  P vector: 1.01e-07
  Total electronic charge: 1.46e-09
  alpha: 0.397
- beta: 0.00019
+ beta: 0.0002
  EKS: 2.44e-07
  Energy (Hartree): 2.44e-07
  Force Norm (Hartree/Bohr): 4.68e-07

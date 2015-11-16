@@ -1401,9 +1401,10 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   integer, dimension(:,:,:), pointer :: frag_env_mapping
   integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
   !Local variables
+  real(gp), parameter :: W_tol=1.e-3_gp !< wahba's tolerance
   integer :: ncount1,ncount_rate,ncount_max,ncount2
   integer :: iorb_out,ispinor,ilr,iorb_old
-  integer :: confPotOrder,onwhichatom_tmp,unitwf
+  integer :: confPotOrder,onwhichatom_tmp,unitwf,itoo_big
   real(gp) :: confPotprefac
 !!$ real(gp), dimension(3) :: mol_centre, mol_centre_new
   real(kind=4) :: tr0,tr1
@@ -1576,8 +1577,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   nullify(psi_old)
 
   !if several fragments do this, otherwise find 3 nearest neighbours (use sort in time.f90) and send rxyz arrays with 4 atoms
-
-  if (input_frag%nfrag>1) then
+  itoo_big=0
+  fragment_if: if (input_frag%nfrag>1) then
      ! Find fragment transformations for each fragment, then put in frag_trans array for each orb
      allocate(frag_trans_frag(input_frag%nfrag))
 
@@ -1631,6 +1632,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            end do
 
            call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans_frag(ifrag),Werror)
+
+           if (Werror > W_tol) call f_increment(itoo_big)
 
            call f_free(rxyz_ref)
            call f_free(rxyz_new)
@@ -1796,6 +1799,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               end do
               call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_new_trial,&
                    rxyz_ref,frag_trans_frag(ifrag),Werror)
+              if (Werror > W_tol) call f_increment(itoo_big)
 
               !do iat=1,ref_frags(ifrag_ref)%astruct_env%nat
               !   write(*,'(A,3(I3,2x),2x,2(3(F12.6,1x),2x))') 'ifrag,ifrag_ref,iat,rxyz_new,rxyz_ref',&
@@ -1813,8 +1817,9 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            end do
            ! use this as final transformation
            if (minperm/=-1) then
-              write(*,'(A,I3,2x,2(F12.6,2x))') 'Final value of cost function:',&
-                   minperm,minerror,mintheta/(4.0_gp*atan(1.d0)/180.0_gp)
+              !LG: commented it out, maybe it might be useful for debugging
+              !write(*,'(A,I3,2x,2(F12.6,2x))') 'Final value of cost function:',&
+              !     minperm,minerror,mintheta/(4.0_gp*atan(1.d0)/180.0_gp)
               do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
                  rxyz_new_trial(:,iat) &
                       = rxyz_new(:,ref_frags(ifrag_ref)%astruct_frg%nat &
@@ -1822,7 +1827,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               end do
               call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_new_trial,&
                    rxyz_ref,frag_trans_frag(ifrag),Werror)
-
+              if (Werror > W_tol) call f_increment(itoo_big)
+           
               do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
                  frag_env_mapping(ifrag,iat,3) = frag_env_mapping(ifrag,iat,2)
               end do
@@ -1967,6 +1973,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               end do
 
               call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,frag_trans_orb(iorbp),Werror)
+              if (Werror > W_tol) call f_increment(itoo_big)
 
 !!$              print *,'transformation of the fragment, iforb',iforb
 !!$              write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
@@ -1987,7 +1994,12 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
      call f_free(rxyz4_ref)
      call f_free(rxyz4_new)
 
-  end if
+  end if fragment_if
+
+  !reduce the number of warnings
+  if (nproc >1) call mpiallred(itoo_big,1,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
+  if (itoo_big > 0 .and. iproc==0) call yaml_warning('Found '//itoo_big//' warning of high Wahba cost functions')
 
   call timing(iproc,'tmbrestart','OF')
   call reformat_supportfunctions(iproc,nproc,&

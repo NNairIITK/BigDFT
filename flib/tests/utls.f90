@@ -22,8 +22,9 @@ subroutine f_utils_test()
   integer :: unt,unt2,u
   !  double precision :: t0
   integer(kind=8) :: i0
-  integer, parameter :: nstep=3
-  integer :: istep
+  integer, parameter :: nstep=3,n_inc=10**7
+  integer :: istep,icount
+  integer(f_long) :: t0,t1
   real(f_simple), dimension(3) :: r1
   real(f_double), dimension(3) :: r2
   real(f_quadruple), dimension(3) :: r4
@@ -125,6 +126,41 @@ subroutine f_utils_test()
   call f_delete_file('test3')
   call yaml_mapping_close()
   call yaml_map('If this value is 7 then all files have been correctly closed',f_get_free_unit())
+
+  !test the performance of f_increment function, to realize that it should not be used in intensive loops
+  icount=0
+  t0=f_time()
+  do istep=1,n_inc
+     icount=icount+1
+  end do
+  t1=f_time()
+  call yaml_map('Count (ns)',[int(icount,f_long),t1-t0])
+  icount=0
+  t0=f_time()
+  do istep=1,n_inc
+     call f_increment(icount)
+  end do
+  t1=f_time()
+  call yaml_map('Count f_increment (ns)',[int(icount,f_long),t1-t0])
+  t0=f_time()
+  icount=0
+  !$omp parallel do default(private) firstprivate(icount)
+  do istep=1,n_inc
+     icount=icount+1
+  end do
+  !$omp end parallel do
+  t1=f_time()
+  call yaml_map('Count omp (ns)',[int(icount,f_long),t1-t0])
+  t0=f_time()
+  icount=0
+  !$omp parallel do default(private) firstprivate(icount)
+  do istep=1,n_inc
+     call f_increment(icount)
+  end do
+  !$omp end parallel do
+  t1=f_time()
+  call yaml_map('Count f_increment omp (ns)',[int(icount,f_long),t1-t0])
+
 
 !we cannot flush a unit with advance no, we would lose the output
 !!$  !test the counter with advance no
