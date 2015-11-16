@@ -40,7 +40,7 @@ subroutine multi_mode_state(runObj, outs, infocode)
   integer, intent(inout) :: infocode
   ! Local variables
   type(state_properties) :: subouts
-  integer :: ln, i, iat, nat, icode
+  integer :: ln, i, iat, nat
   integer, dimension(:), allocatable :: map
   real(gp), dimension(:), allocatable :: coeffs
   type(atomic_structure) :: asub
@@ -60,8 +60,7 @@ subroutine multi_mode_state(runObj, outs, infocode)
 
      nat = bigdft_nat(runObj%sections(i))
      call init_state_properties(subouts, nat)
-     call bigdft_state(runObj%sections(i), subouts, icode)
-     infocode = max(infocode, icode)
+     call process_run(trim(runObj%sections(i)%label), runObj%sections(i), subouts)
 
      map = f_malloc0((/ nat /), id = "map")
      coeffs = f_malloc0((/ nat /), id = "coeffs")

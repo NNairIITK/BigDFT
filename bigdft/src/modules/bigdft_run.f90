@@ -1005,6 +1005,10 @@ contains
 
     !associate the run_mode
     runObj%run_mode => runObj%inputs%run_mode
+    !@todo Decorate the run mode, ugly here.
+    if (runObj%run_mode == QM_RUN_MODE .or. runObj%run_mode == MULTI_RUN_MODE) then
+       call f_enum_attr(runObj%run_mode, RUN_MODE_CREATE_DOCUMENT)
+    end if
 
     ! Save the python additional code
     if (PY_HOOKS .in. runObj%user_inputs) then
@@ -1581,6 +1585,13 @@ contains
 !!integer :: iat , l
 !!real(gp) :: anoise,tt
     call f_routine(id='bigdft_state')
+
+    if (bigdft_mpi%iproc==0 .and. .not. (runObj%run_mode .hasattr. RUN_MODE_CREATE_DOCUMENT)) then
+       call yaml_sequence(advance='no')
+       call yaml_mapping_open(trim(str(runObj%run_mode)),flow=.true.)
+       !call yaml_new_document()
+    end if
+
     rxyz_ptr => bigdft_get_rxyz_ptr(runObj)
     nat=bigdft_nat(runObj)
 
@@ -1742,6 +1753,7 @@ contains
   subroutine process_run(id,runObj,outs)
     use module_base
     use yaml_output
+    use f_enums
     implicit none
     character(len=*), intent(in) :: id
     type(run_objects), intent(inout) :: runObj
@@ -1751,6 +1763,11 @@ contains
     character(len=60) :: filename
 
     call f_routine(id='process_run (id="'+id+'")')
+
+    if (bigdft_mpi%iproc==0 .and. .not. (runObj%run_mode .hasattr. RUN_MODE_CREATE_DOCUMENT)) &
+         call yaml_sequence_open('Initializing '//trim(str(runObj%run_mode)))
+    call f_release_routine()
+
     if(trim(runObj%inputs%geopt_approach)/='SOCK') call bigdft_state(runObj,outs,infocode)
 
     if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
@@ -1783,6 +1800,10 @@ contains
        call bigdft_write_atomic_file(runObj,outs,filename,&
             'Geometry + metaData forces',cwd_path=.true.)
 
+    end if
+
+    if (bigdft_mpi%iproc==0 .and. .not. (runObj%run_mode .hasattr. RUN_MODE_CREATE_DOCUMENT)) then
+       call yaml_sequence_close()
     end if
 
     call f_release_routine()

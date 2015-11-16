@@ -489,21 +489,37 @@ module public_enums
   integer, parameter, public :: PSPCODE_HGH_K = 10
   integer, parameter, public :: PSPCODE_HGH_K_NLCC = 12
 
-  !run modes
-  type(f_enumerator), parameter, public :: LENNARD_JONES_RUN_MODE      =f_enumerator('LENNARD_JONES_RUN_MODE',-1000,null())
-  type(f_enumerator), parameter, public :: LENOSKY_SI_CLUSTERS_RUN_MODE=f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999,null())
-  type(f_enumerator), parameter, public :: LENOSKY_SI_BULK_RUN_MODE    =f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998,null())
-  type(f_enumerator), parameter, public :: AMBER_RUN_MODE              =f_enumerator('AMBER_RUN_MODE',-997,null())
-  type(f_enumerator), parameter, public :: MORSE_BULK_RUN_MODE         =f_enumerator('MORSE_BULK_RUN_MODE',-996,null())
-  type(f_enumerator), parameter, public :: MORSE_SLAB_RUN_MODE         =f_enumerator('MORSE_SLAB_RUN_MODE',-995,null())
-  type(f_enumerator), parameter, public :: QM_RUN_MODE                 =f_enumerator('QM_RUN_MODE',-994,null())
-  type(f_enumerator), parameter, public :: TERSOFF_RUN_MODE         =f_enumerator('TERSOFF_RUN_MODE',-993,null())
-  type(f_enumerator), parameter, public :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992,null())
-  type(f_enumerator), parameter, public :: CP2K_RUN_MODE         =f_enumerator('CP2K_RUN_MODE',-991,null())
-  type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
-  type(f_enumerator), parameter, public :: MULTI_RUN_MODE         =f_enumerator('MULTI_RUN_MODE',-989,null())
-  type(f_enumerator), parameter, public :: SW_RUN_MODE         =f_enumerator('SW_RUN_MODE',-988,null())
+  !> Output for run modes
+  type(f_enumerator), public :: RUN_MODE_CREATE_DOCUMENT = &
+       & f_enumerator('RUN_MODE_CREATE_DOCUMENT',1,null())
 
+  !run modes
+  type(f_enumerator), parameter, public :: LENNARD_JONES_RUN_MODE      = &
+       & f_enumerator('LENNARD_JONES_RUN_MODE',-1000,null())
+  type(f_enumerator), parameter, public :: LENOSKY_SI_CLUSTERS_RUN_MODE= &
+       & f_enumerator('LENOSKY_SI_CLUSTERS_RUN_MODE',-999,null())
+  type(f_enumerator), parameter, public :: LENOSKY_SI_BULK_RUN_MODE    = &
+       & f_enumerator('LENOSKY_SI_BULK_RUN_MODE',-998,null())
+  type(f_enumerator), parameter, public :: AMBER_RUN_MODE              = &
+       & f_enumerator('AMBER_RUN_MODE',-997,null())
+  type(f_enumerator), parameter, public :: MORSE_BULK_RUN_MODE         = &
+       & f_enumerator('MORSE_BULK_RUN_MODE',-996,null())
+  type(f_enumerator), parameter, public :: MORSE_SLAB_RUN_MODE         = &
+       & f_enumerator('MORSE_SLAB_RUN_MODE',-995,null())
+  type(f_enumerator), parameter, public :: QM_RUN_MODE                 = &
+       & f_enumerator('QM_RUN_MODE',-994,null())
+  type(f_enumerator), parameter, public :: TERSOFF_RUN_MODE            = &
+       & f_enumerator('TERSOFF_RUN_MODE',-993,null())
+  type(f_enumerator), parameter, public :: BMHTF_RUN_MODE              = &
+       & f_enumerator('BMHTF_RUN_MODE',-992,null())
+  type(f_enumerator), parameter, public :: CP2K_RUN_MODE               = &
+       & f_enumerator('CP2K_RUN_MODE',-991,null())
+  type(f_enumerator), parameter, public :: DFTBP_RUN_MODE              = &
+       & f_enumerator('DFTBP_RUN_MODE',-990,null())
+  type(f_enumerator), parameter, public :: MULTI_RUN_MODE              = &
+       & f_enumerator('MULTI_RUN_MODE',-989,null())
+  type(f_enumerator), parameter, public :: SW_RUN_MODE                 = &
+       & f_enumerator('SW_RUN_MODE',-988,null())
 end module public_enums
 
 
