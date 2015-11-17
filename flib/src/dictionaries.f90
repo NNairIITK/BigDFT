@@ -1485,6 +1485,7 @@ contains
 
    !> Set and get routines for different types
    subroutine get_real(rval,dict)
+     use yaml_strings
      implicit none
      real(kind=4), intent(out) :: rval
      type(dictionary), intent(in) :: dict
@@ -1498,7 +1499,16 @@ contains
      !look at conversion
      call read_fraction_string(val, dval, ierror)
      rval = real(dval)
-
+     if (ierror /=0) then
+        !first check if we are not dealing with infinities
+        if (trim(val) .eqv. '.inf') then
+           rval=huge(rval)
+           ierror=0
+        else if (trim(val) .eqv. '-.inf') then
+           rval=-huge(rval)
+           ierror=0
+        end if
+     end if
      if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
 
    end subroutine get_real
@@ -1527,6 +1537,8 @@ contains
 
    !> Set and get routines for different types
    subroutine get_double(dval,dict)
+     use yaml_strings
+     implicit none
      real(kind=8), intent(out) :: dval
      type(dictionary), intent(in) :: dict
      !local variables
@@ -1537,6 +1549,14 @@ contains
      val=dict
      !look at conversion
      call read_fraction_string(val, dval, ierror)
+     !first check if we are not dealing with infinities
+     if (trim(val) .eqv. '.inf') then
+        dval=huge(dval)
+        ierror=0
+     else if (trim(val) .eqv. '-.inf') then
+        dval=-huge(dval)
+        ierror=0
+     end if
 
      if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
 

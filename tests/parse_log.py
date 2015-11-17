@@ -145,6 +145,9 @@ def parse_arguments():
                     help="set the output file (default: /dev/null)", metavar='FILE')
   parser.add_option('-t', '--timedata', dest='timedata',default=False,action="store_true",
                     help="BigDFT time.yaml file, a quick report is dumped on screen if this option is given", metavar='FILE')
+  parser.add_option('-n', '--name', dest='name',default=None,
+                    help="Give a name to the set of the plot represented", metavar='FILE')
+
 
   #Return the parsing
   return parser
@@ -323,16 +326,19 @@ class BigDFTiming:
         scf=doc.get("WFN_OPT")
         if scf is not None:
             self.scf.append(scf)
-            mpit=doc.get("CPU parallelism")
-            if mpit is not None:
-                self.ids.append(mpit["MPI tasks"])
+            if "Run name" in doc:
+                self.ids.append(doc["Run name"])
             else:
-                self.ids.append("Unknown")
+                mpit=doc.get("CPU parallelism")
+                if mpit is not None:
+                    self.ids.append(mpit["MPI tasks"])
+                else:
+                    self.ids.append("Unknown")
     self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
             "Other","PS Computation","Potential",
             "Flib LowLevel","Initialization"]
 
-  def bars_data(self,vals='Percent'):
+  def bars_data(self,vals='Percent',title='Time bar chart'):
     """Extract the data for plotting the different categories in bar chart"""
     import numpy as np
     import matplotlib.pyplot as plt
@@ -343,10 +349,10 @@ class BigDFTiming:
       self.barfig, self.axbars = plt.subplots()
     dict_list=self.scf
     self.plts=[]
-    self.draw_barplot(self.axbars,self.collect_categories(dict_list,vals),vals)
+    self.draw_barplot(self.axbars,self.collect_categories(dict_list,vals),vals,title=title)
     if self.vals == 'Percent': self.axbars.set_yticks(np.arange(0,100,10))
     if self.radio is None:
-      self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.1, 0.11], axisbg='lightgoldenrodyellow'), ('Percent', 'Seconds'))
+      self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.08, 0.11], axisbg='lightgoldenrodyellow'), ('Percent', 'Seconds'))
       self.radio.on_clicked(self.replot)
 
     if self.quitButton is None:
@@ -472,8 +478,9 @@ class BigDFTiming:
     pylab.close(self.barfig)
     
   def replot(self,label):
+    title=self.axbars.get_title()
     self.axbars.cla()
-    self.bars_data(vals=label)
+    self.bars_data(vals=label,title=title)
     self.barfig.canvas.draw()
     for figax in self.newfigs:
       ax=figax[1]
@@ -561,6 +568,10 @@ if __name__ == "__main__":
 if args.timedata:
   import pylab
   print 'args of time',args.timedata,argcl
+  if args.name is not None:
+    title=args.name
+  else:
+    title='Time bar chart'
   #in the case of more than one file to analyse
   #or in the case of more than one yaml document per file
   #just load the bars data script
@@ -569,7 +580,7 @@ if args.timedata:
   bt=BigDFTiming(argcl)
   print "hosts",bt.hostnames
   if bt.scf is not None:
-    bt.bars_data() #timing["WFN_OPT"]["Classes"])
+    bt.bars_data(title=title) #timing["WFN_OPT"]["Classes"])
     
   if bt.scf[0] is not None and False:
     bt.load_unbalancing(bt.scf[0]["Classes"]) #timing["WFN_OPT"]["Classes"])

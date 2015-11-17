@@ -65,6 +65,7 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	PSbase.f90 \
 	$(fdder_file) \
 	IObox.f90 \
+	$(c_level) \
 	$(etsf_files)
 
 # Modules.

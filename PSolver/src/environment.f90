@@ -43,8 +43,6 @@ module environment
   !> dyn/cm into atomic units (5.291772109217d-9/8.238722514d-3)
   real(gp), parameter :: SurfAU=Bohr_Ang*1.e-8/dyn_AU
   
-
-  
   !> define the cavity type
   type, public :: cavity_data
      real(gp) :: epsilon0 !< dielectriv constant of the medium

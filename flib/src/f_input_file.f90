@@ -180,8 +180,6 @@ contains
        if (.not.set_(dict, ref)) then
           !to see if the f_release_routine has to be controlled automatically
           ! call f_release_routine() !to be called before raising the error
-!!$       if (f_err_raise(.not.set_(dict, ref), err_id = INPUT_VAR_ILLEGAL, &
-!!$            & err_msg = trim(file) // "/" // trim(key) // " is not allowed in this context.")) then
           call f_err_throw(err_id = INPUT_VAR_ILLEGAL, &
                err_msg = trim(file) // "/" // trim(key) // " is not allowed in this context.")
           return

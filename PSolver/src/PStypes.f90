@@ -384,6 +384,56 @@ contains
     call release_mpi_environment(kernel%mpi_env)
   end subroutine pkernel_free
 
+  !>routine to fill the input variables of the kernel
+  subroutine PS_input_dict(dict)
+    use dictionaries
+    use f_input_file
+    use yaml_parse
+    implicit none
+    !>input dictionary, a copy of the user input, to be filled
+    !!with all the variables on exit
+    type(dictionary), pointer :: dict
+    !local variables
+    !local variables
+    integer(f_integer) :: params_size
+    !integer(kind = 8) :: cbuf_add !< address of c buffer
+    character, dimension(:), allocatable :: params
+    type(dictionary), pointer :: parameters
+    type(dictionary), pointer :: parsed_parameters
+    type(dictionary), pointer :: profiles
+
+    call f_routine(id='PS_input_dict')
+
+    nullify(parameters,parsed_parameters,profiles)
+
+    !alternative filling of parameters from hard-coded source file
+    !call getstaticinputdef(cbuf_add,params_size)
+    call getpsinputdefsize(params_size)
+    !allocate array
+    params=f_malloc_str(1,params_size,id='params')
+    !fill it and parse dictionary
+    call getpsinputdef(params)
+
+    call yaml_parse_from_char_array(parsed_parameters,params)
+    !there is only one document in the input variables specifications
+    parameters=>parsed_parameters//0
+    profiles => parsed_parameters//1
+    call f_free_str(1,params)
+
+    call input_file_complete(parameters,dict,imports=profiles)
+
+    if (associated(parsed_parameters)) then
+       call dict_free(parsed_parameters)
+       nullify(parameters)
+       nullify(profiles)
+    else
+       call dict_free(parameters)
+    end if
+
+    call f_release_routine()
+       
+  end subroutine PS_input_dict
+
   !> allocate the workarrays needed to perform the 
   !! GPS operation
   subroutine PS_allocate_lowlevel_workarrays(cudasolver,use_input_guess,rho,kernel)

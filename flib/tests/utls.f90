@@ -144,7 +144,7 @@ subroutine f_utils_test()
   call yaml_map('Count f_increment (ns)',[int(icount,f_long),t1-t0])
   t0=f_time()
   icount=0
-  !$omp parallel do default(private) firstprivate(icount)
+  !$omp parallel do default(private) shared(icount)
   do istep=1,n_inc
      icount=icount+1
   end do
@@ -153,7 +153,7 @@ subroutine f_utils_test()
   call yaml_map('Count omp (ns)',[int(icount,f_long),t1-t0])
   t0=f_time()
   icount=0
-  !$omp parallel do default(private) firstprivate(icount)
+  !$omp parallel do default(private) shared(icount)
   do istep=1,n_inc
      call f_increment(icount)
   end do
@@ -227,7 +227,8 @@ subroutine f_inputfile_test()
        '    ixc: #a variable with several profiles                                                  '//f_cr//&
        '      COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)                                '//f_cr//&
        '      DESCRIPTION: Determine the exchange-correlation functional.                           '//f_cr//&
-       '      default: 1                                                                            '//f_cr//&
+       '      default: 1                                                                             '//f_cr//&
+       '      EXCLUSIVE: { 1: LDA, 11: PBE}                                                         '//f_cr//&
        '      #Here follow a number of possibilities for the different XC functionals               '//f_cr//&
        '      LDA (ABINIT): 1                                                                       '//f_cr//&
        '      PBE (ABINIT): 11                                                                      '//f_cr//&
@@ -276,9 +277,9 @@ subroutine f_inputfile_test()
        '        - NEB                                                                               '//f_cr//&
        '        - SBFGS                                                                             '//f_cr//&
        '        - SQNM                                                                              '//f_cr//&
-       '        - none                                                                              '//f_cr//&
+!       '       WHEN_NOT: [none]                                                                              '//f_cr//&
        '      PROFILE_FROM: method                                                                  '//f_cr//&
-       '      RANGE: [0., 100.]                                                                     '//f_cr//&
+       '      RANGE: [0., .inf ]                                                                     '//f_cr//&
        '      default: 4.                                                                           '//f_cr//&
        '      DIIS: 2.                                                                              '//f_cr//&
        '      NEB: 0.5                                                                              '//f_cr
@@ -289,7 +290,7 @@ subroutine f_inputfile_test()
   type(dictionary), pointer :: dict_profiles
   !> input file
   type(dictionary), pointer :: input
-  !> minuimal input file
+  !> minimal input file
   type(dictionary), pointer :: input_minimal
   type(dictionary), pointer :: as_is,nested
   character(len=*), parameter :: example1='                                                         '//f_cr//&
@@ -298,7 +299,8 @@ subroutine f_inputfile_test()
        ' ixc: B3LYP     '//f_cr//&
        ' bidon: 2       '//f_cr//&
        'geopt:           '//f_cr//&
-       ' method: DIIS   '//f_cr
+       ' betax: 2.e+40      '//f_cr//&
+       ' method: none   '//f_cr
   character(len=*), parameter :: profiles='                                                         '//f_cr//&
        ' simple:  '//f_cr//&
        '   dft:             '//f_cr//&
