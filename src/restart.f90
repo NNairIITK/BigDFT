@@ -1414,6 +1414,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
   integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, ind, num_env, i, np, c, minperm, iorb
+  integer :: iatt, iatf, ityp, ipiv_shift
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
@@ -1421,7 +1422,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   real(gp), dimension(:,:), allocatable :: rxyz_new, rxyz4_ref, rxyz4_new
   real(gp), dimension(:,:), allocatable :: rxyz_new_all, rxyz_frg_new, rxyz_new_trial, rxyz_ref
   real(gp), dimension(:), allocatable :: dist
-  integer, dimension(:), allocatable :: ipiv, array_tmp
+  integer, dimension(:), allocatable :: ipiv, array_tmp, num_neighbours_type
   integer, dimension(:,:), allocatable :: permutations
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
   real(gp) :: max_shift, mindist, Werror, minerror, mintheta, dtol
@@ -1655,6 +1656,22 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               rxyz_ref(:,iat)=ref_frags(ifrag_ref)%astruct_env%rxyz(:,iat)
            end do
 
+           !also add up how many atoms of each type (don't include fragment itself)
+           num_neighbours_type=f_malloc0(at%astruct%ntypes,id='num_neighbours_type')
+           do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
+              !be careful here as atom types not necessarily in same order in env file as in main file (or even same number thereof)
+              do ityp=1,at%astruct%ntypes
+                 if (trim(at%astruct%atomnames(ityp)) &
+                      ==trim(ref_frags(ifrag_ref)%astruct_env%atomnames(ref_frags(ifrag_ref)%astruct_env%iatype(iat)))) then
+                    num_neighbours_type(ityp) = num_neighbours_type(ityp)+1
+                    exit
+                 end if
+              end do
+           end do
+           if (sum(num_neighbours_type)/=ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat) &
+                stop 'Error with num_neighbours_type in fragment environment restart'
+           !print*,ifrag,ifrag_ref,sum(num_neighbours_type),num_neighbours_type
+
            !take all atoms not in this fragment (might be overcomplicating this...)
            do iat=1,isfat
               rxyz_new_all(:,iat)=rxyz(:,iat)
@@ -1719,15 +1736,29 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               frag_env_mapping(ifrag,iat,2) = isfat+iat
            end do
 
-           do iat=1,ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat
-              rxyz_new(:,iat+ref_frags(ifrag_ref)%astruct_frg%nat)=rxyz_new_all(:,ipiv(iat))
-              if (ipiv(iat)<=isfat) then
-                 frag_env_mapping(ifrag,iat+ref_frags(ifrag_ref)%astruct_frg%nat,2) = ipiv(iat)
-              else
-                 frag_env_mapping(ifrag,iat+ref_frags(ifrag_ref)%astruct_frg%nat,2) &
-                      = ipiv(iat)+ref_frags(ifrag_ref)%astruct_frg%nat
-              end if
+           iatf=0
+           do ityp=1,at%astruct%ntypes
+              iatt=0
+              if (num_neighbours_type(ityp)==0) cycle
+              do iat=1,at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat
+                 !ipiv_shift needed for quantities which reference full rxyz, not rxyz_new_all which has already eliminated frag atoms
+                 if (ipiv(iat)<=isfat) then
+                    ipiv_shift=ipiv(iat)
+                 else
+                    ipiv_shift=ipiv(iat)+ref_frags(ifrag_ref)%astruct_frg%nat
+                 end if
+                 if (at%astruct%iatype(ipiv_shift)/=ityp) cycle
+                 iatf=iatf+1
+                 iatt=iatt+1
+                 rxyz_new(:,iatf+ref_frags(ifrag_ref)%astruct_frg%nat)=rxyz_new_all(:,ipiv(iat))
+                 frag_env_mapping(ifrag,iatf+ref_frags(ifrag_ref)%astruct_frg%nat,2) = ipiv_shift
+                 if (iatt==num_neighbours_type(ityp)) exit
+              end do
+              !write(*,'(a,7(i3,2x))')'ityp',ityp,at%astruct%ntypes,iatt,iatf,num_neighbours_type(ityp),ifrag,ifrag_ref
            end do
+           !print*,'iatf,sum',iatf,sum(num_neighbours_type)
+           if (iatf/=sum(num_neighbours_type)) stop 'Error num_neighbours_tot/=iatf'
+           call f_free(num_neighbours_type)
 
            call f_free(dist)
            call f_free(ipiv)
@@ -1797,9 +1828,9 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
                       = rxyz_new(:,ref_frags(ifrag_ref)%astruct_frg%nat &
                         + permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,i))
               end do
-              call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_new_trial,&
-                   rxyz_ref,frag_trans_frag(ifrag),Werror)
-              if (Werror > W_tol) call f_increment(itoo_big)
+              call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_ref,&
+                   rxyz_new_trial,frag_trans_frag(ifrag),Werror)
+              !if (Werror > W_tol) call f_increment(itoo_big)
 
               !do iat=1,ref_frags(ifrag_ref)%astruct_env%nat
               !   write(*,'(A,3(I3,2x),2x,2(3(F12.6,1x),2x))') 'ifrag,ifrag_ref,iat,rxyz_new,rxyz_ref',&
@@ -1825,8 +1856,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
                       = rxyz_new(:,ref_frags(ifrag_ref)%astruct_frg%nat &
                         + permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,minperm))
               end do
-              call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_new_trial,&
-                   rxyz_ref,frag_trans_frag(ifrag),Werror)
+              call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_ref,&
+                   rxyz_new_trial,frag_trans_frag(ifrag),Werror)
               if (Werror > W_tol) call f_increment(itoo_big)
            
               do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
@@ -1852,6 +1883,12 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
 
               !do iorb=1,ref_frags(ifrag_ref)%nbasis_env
               !   write(*,'(A,5(1x,I4))') 'mapping: ',ifrag,ifrag_ref,frag_env_mapping(ifrag,iorb,:)
+              !end do
+
+              !debug
+              !do iat=1,ref_frags(ifrag_ref)%astruct_env%nat
+              !   write(*,'(a,4(i3,2x),a,2(3(f8.2,1x),4x))') 'if,ifr,ia,m,t',ifrag,ifrag_ref,iat,frag_env_mapping(ifrag,iat,3),&
+              !        trim(at%astruct%atomnames(at%astruct%iatype(frag_env_mapping(ifrag,iat,3)))),rxyz_new_trial(:,iat),rxyz_ref(:,iat)
               !end do
 
            else
@@ -2018,36 +2055,23 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   call f_free(rxyz_old)
   call deallocate_local_zone_descriptors(lzd_old)
 
-if (.false.) then
-  ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
-  ind=1
-  gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
-  do iorbp=1,tmb%orbs%norbp
-     iiorb=iorbp+tmb%orbs%isorb
-     ilr = tmb%orbs%inwhichlocreg(iiorb)
-  
-     !call f_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-     call f_zero(gpsi)
-     call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
-          tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-          1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), &
-          tmb%psi(ind:ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f), gpsi)
-     !call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
-     !     tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-     !     1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
-   
-     !call plot_wf(trim(dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
-     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
-     call plot_wf(.false.,trim(dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
-          tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
-     !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
-     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
-   
-     ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
-  end do
-  call f_free(gpsi)
-  ! END DEBUG 
-end if
+  !! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
+  !ind=1
+  !gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
+  !do iorbp=1,tmb%orbs%norbp
+  !   iiorb=iorbp+tmb%orbs%isorb
+  !   ilr = tmb%orbs%inwhichlocreg(iiorb)
+  !   call f_zero(gpsi)
+  !   call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+  !        tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+  !        1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), &
+  !        tmb%psi(ind:ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f), gpsi)
+  !   call plot_wf(.false.,trim(dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
+  !        tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
+  !   ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+  !end do
+  !call f_free(gpsi)
+  !! END DEBUG 
 
   ! Read the coefficient file for each fragment and assemble total coeffs
   ! coeffs should eventually go into ref_frag array and then point? or be copied to (probably copied as will deallocate frag)

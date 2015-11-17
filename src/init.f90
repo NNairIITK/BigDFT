@@ -2608,6 +2608,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,in%lin%kernel_restart_mode==LIN_RESTART_KERNEL,&
           frag_env_mapping)
 
+     !call write_orbital_density(iproc, .true., 1, 'SupFun', &
+     !     tmb%npsidim_orbs, tmb%psi, in, tmb%orbs, KSwfn%lzd, atoms, rxyz, .false., tmb%lzd)
+
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
      !nullify(tmb%psit_c)                                                                
      !nullify(tmb%psit_f)  
