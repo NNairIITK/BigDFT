@@ -547,73 +547,137 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
      !Count the number of KS transitions needed to account for all true excitations
      !This number is written in the first line of transitions.txt.
      ik=0 !initialization of the counter of transitions
-     do imulti = 1, ndipoles
-        jk=0 !initialization of the counter of allowed transitions
-        do jmulti = 1, orbsocc%norb*orbsvirt%norb
-           jorbi=(jmulti-1)/orbsvirt%norb+1
-           jorba=jmulti-(jorbi-1)*orbsvirt%norb
-           if (orbsocc%spinsgn(jorbi) == orbsvirt%spinsgn(jorba)) then
-              jk=jk+1
-              if ( abs(K(jk,imulti)) > 5.d-02 ) then !We chose a minimal value for the transition to be taken into account
-                 ik=ik+1
-              end if
-              if (nspin==1) then
-                 if ( abs(K(jk+nmulti,imulti)) > 5.d-02 ) then
-                    ik=ik+1
-                 end if
-              end if
-           !else
-           !   cycle
-           end if
+     !if (nspin==1) then
+     !   do imulti = 1, nmulti
+     !      !jk=0 !initialization of the counter of allowed transitions
+     !      do jmulti = 1, nmulti!orbsocc%norb*orbsvirt%norb
+     !         !jorbi=(jmulti-1)/orbsvirt%norb+1
+     !         !jorba=jmulti-(jorbi-1)*orbsvirt%norb
+     !         !if (orbsocc%spinsgn(jorbi) == orbsvirt%spinsgn(jorba)) then
+     !         !   jk=jk+1
+     !            if ( abs(Kbig(imulti       ,jmulti       )) > 5.d-02 ) ik=ik+1 !We chose a minimal value for the transition to be taken into account
+     !            if ( abs(Kbig(imulti+nmulti,jmulti       )) > 5.d-02 ) ik=ik+1 !We chose a minimal value for the transition to be taken into account
+     !            if ( abs(Kbig(imulti       ,jmulti+nmulti)) > 5.d-02 ) ik=ik+1 !We chose a minimal value for the transition to be taken into account
+     !            if ( abs(Kbig(imulti+nmulti,jmulti+nmulti)) > 5.d-02 ) ik=ik+1 !We chose a minimal value for the transition to be taken into account
+     !         !else
+     !         !   cycle
+     !         !end if
+     !      end do
+     !   end do
+     !else
+     !   do imulti = 1, nmulti
+     !      !jk=0 !initialization of the counter of allowed transitions
+     !      do jmulti = 1, nmulti !orbsocc%norb*orbsvirt%norb
+     !         !jorbi=(jmulti-1)/orbsvirt%norb+1
+     !         !jorba=jmulti-(jorbi-1)*orbsvirt%norb
+     !         !if (orbsocc%spinsgn(jorbi) == orbsvirt%spinsgn(jorba)) then
+     !         !   jk=jk+1
+     !            if ( abs(K(imulti,jmulti)) > 5.d-02 ) ik=ik+1
+     !         !else
+     !         !   cycle
+     !         !end if
+     !      end do
+     !   end do
+     !end if
+     if (nspin==1) then
+        do imulti = 1, ndipoles
+           do jmulti = 1, ndipoles
+              if ( abs(Kbig(imulti,jmulti)) > 5.d-02 ) ik=ik+1 !We chose a minimal value for the transition to be taken into account
+           end do
         end do
-     end do
+     else
+        do imulti = 1, ndipoles
+           do jmulti = 1, ndipoles
+              if ( abs(K(imulti,jmulti)) > 5.d-02 ) ik=ik+1 !We chose a minimal value for the transition to be taken into account
+           end do
+        end do
+     end if
 
      write(10,*) ik !number of transitions written
 
      !Then we loop ever the matrix elements of K 
      !(K is now containing the coefficients of the KS transitions reproducing the true excitations.)
-     do imulti = 1,ndipoles
-        call yaml_sequence(advance='no')
-        call yaml_sequence_open(advance='no',flow=.true.)
-!        if (tddft_approach=='TDA') call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
-!        if (tddft_approach=='full') call yaml_map('Energy',trim(yaml_toa(Ha_eV*sqrt(omega(imulti)),fmt='(f10.5)')))
-        call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
-        ik=0 !transition counter when nspin=1, identifier of the need of a new line when nspin=2
+     if (nspin==1) then
 
-        if (nspin==1) then
-
-           !No need to check the spin sign
-           do iorbi = 1, orbsocc%norb
-              do iorba = 1, orbsvirt%norb
-                 jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
-                    if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
-                       if (ik /= 0) call yaml_newline()
-                       ik = ik + 1
-                       call yaml_mapping_open(flow=.true.)
-                          call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
-                          call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti))**2,fmt='(1pe10.3)')))
-                       call yaml_mapping_close()   
-                       write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti), iorbi,&
-                               orbsocc%eval(iorbi), iorba, orbsvirt%eval(iorba), abs(Kbig(jmulti,imulti)),&
-                              &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
-                    end if
-                    !We must consider the fact that ndipoles=2*nmulti, so we explicitly have to search in the second half of the Kbig-matrix
-                    if (abs(Kbig(jmulti+nmulti,imulti)) > 5.d-02) then
-                       if (ik /= 0) call yaml_newline()
-                       ik = ik + 1
-                       call yaml_mapping_open(flow=.true.)
-                          call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
-                          call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti+nmulti,imulti))**2,fmt='(1pe10.3)')))
-                       call yaml_mapping_close()
-                       write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti), iorbi,&
-                               orbsocc%eval(iorbi), iorba, orbsvirt%eval(iorba), abs(Kbig(jmulti+nmulti,imulti)),&
-                              &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
-                    end if
+        do imulti=1,nmulti
+           call yaml_sequence(advance='no')
+           call yaml_sequence_open(advance='no',flow=.true.)
+           call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
+           ik=0 !transition counter when nspin=1
+           do jorbi = 1, orbsocc%norb
+              do jorba = 1, orbsvirt%norb
+                 jmulti =  (jorbi-1)*orbsvirt%norb+ jorba
+                 if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+                    if (ik /= 0) call yaml_newline()
+                    ik = ik + 1
+                    call yaml_mapping_open(flow=.true.)
+                       call yaml_map('Transition',trim(yaml_toa((/ jorbi, jorba /))))
+                       call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti))**2,fmt='(1pe10.3)')))
+                    call yaml_mapping_close()
+                    write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti), jorbi,&
+                            orbsocc%eval(jorbi), jorba, orbsvirt%eval(jorba), abs(Kbig(jmulti,imulti)),&
+                            omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+                 end if
+                 if (abs(Kbig(jmulti+nmulti,imulti)) > 5.d-02) then
+                    if (ik /= 0) call yaml_newline()
+                    ik = ik + 1
+                    call yaml_mapping_open(flow=.true.)
+                       call yaml_map('Transition',trim(yaml_toa((/ jorbi+orbsocc%norb, jorba+orbsvirt%norb /))))
+                       call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti+nmulti,imulti))**2,fmt='(1pe10.3)')))
+                    call yaml_mapping_close()
+                    write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti), jorbi,&
+                            orbsocc%eval(jorbi), jorba, orbsvirt%eval(jorba), abs(Kbig(jmulti+nmulti,imulti)),&
+                            omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+                 end if
               end do
            end do
+           call yaml_sequence_close(advance='no')
+           call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+        end do
+        do imulti=1,nmulti
+           call yaml_sequence(advance='no')
+           call yaml_sequence_open(advance='no',flow=.true.)
+           call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti+nmulti),fmt='(f10.5)')))
+           do jorbi = 1, orbsocc%norb
+              do jorba = 1, orbsvirt%norb
+                 jmulti =  (jorbi-1)*orbsvirt%norb+ jorba
+                 if (abs(Kbig(jmulti,imulti+nmulti)) > 5.d-02) then
+                    if (ik /= 0) call yaml_newline()
+                    ik = ik + 1
+                    call yaml_mapping_open(flow=.true.)
+                       call yaml_map('Transition',trim(yaml_toa((/ jorbi, jorba /))))
+                       call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti+nmulti))**2,fmt='(1pe10.3)')))
+                    call yaml_mapping_close()
+                    write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti+nmulti), jorbi,&
+                            orbsocc%eval(jorbi), jorba, orbsvirt%eval(jorba), abs(Kbig(jmulti,imulti+nmulti)),&
+                            omega(imulti+nmulti)*(2.0_gp/3.0_gp)*&
+                            (fi(1,imulti+nmulti)**2+fi(2,imulti+nmulti)**2+fi(3,imulti+nmulti)**2)
+                 end if
+                 if (abs(Kbig(jmulti+nmulti,imulti+nmulti)) > 5.d-02) then
+                    if (ik /= 0) call yaml_newline()
+                    ik = ik + 1
+                    call yaml_mapping_open(flow=.true.)
+                       call yaml_map('Transition',trim(yaml_toa((/ jorbi+orbsocc%norb, jorba+orbsvirt%norb /))))
+                       call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti+nmulti,imulti+nmulti))**2,fmt='(1pe10.3)')))
+                    call yaml_mapping_close()
+                    write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti+nmulti), jorbi,&
+                            orbsocc%eval(jorbi), jorba, orbsvirt%eval(jorba), abs(Kbig(jmulti+nmulti,imulti+nmulti)),&
+                            omega(imulti+nmulti)*(2.0_gp/3.0_gp)*&
+                            (fi(1,imulti+nmulti)**2+fi(2,imulti+nmulti)**2+fi(3,imulti+nmulti)**2)
+                 end if
+              end do
+           end do
+           call yaml_sequence_close(advance='no')
+           call yaml_comment(trim(yaml_toa(imulti+nmulti,fmt='(i4.4)')))
+        end do
 
-        else 
+     else
 
+        do imulti=1,ndipoles
+           call yaml_sequence(advance='no')
+           call yaml_sequence_open(advance='no',flow=.true.)
+           call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
+           ik=0 !identifier of the need of a new line when nspin=2
            !We have to check the spin sign, and therefore use a new transition counter.
            jk=0 !transition counter
            do jmulti = 1, orbsocc%norb*orbsvirt%norb
@@ -632,17 +696,112 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
                             orbsocc%eval(jorbi), jorba, orbsvirt%eval(jorba), abs(K(jk,imulti)),&
                            &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
                  end if
-              else
-                 cycle
+              !else
+              !   cycle
               end if
            end do
+           call yaml_sequence_close(advance='no')
+           call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+        end do
 
-        end if
+     end if
 
-        call yaml_sequence_close(advance='no')
-        call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
 
-     end do !imulti
+!     do imulti = 1,nmulti
+!        call yaml_sequence(advance='no')
+!        call yaml_sequence_open(advance='no',flow=.true.)
+!!        if (tddft_approach=='TDA') call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
+!!        if (tddft_approach=='full') call yaml_map('Energy',trim(yaml_toa(Ha_eV*sqrt(omega(imulti)),fmt='(f10.5)')))
+!        call yaml_map('Energy',trim(yaml_toa(Ha_eV*omega(imulti),fmt='(f10.5)')))
+!        ik=0 !transition counter when nspin=1, identifier of the need of a new line when nspin=2
+!
+!        if (nspin==1) then
+!
+!           !No need to check the spin sign
+!           do iorbi = 1, orbsocc%norb
+!              do iorba = 1, orbsvirt%norb
+!                 jmulti =  (iorbi-1)*orbsvirt%norb+ iorba
+!                 if (abs(Kbig(jmulti,imulti)) > 5.d-02) then
+!                    if (ik /= 0) call yaml_newline()
+!                    ik = ik + 1
+!                    call yaml_mapping_open(flow=.true.)
+!                       call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
+!                       call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti))**2,fmt='(1pe10.3)')))
+!                    call yaml_mapping_close()   
+!                    write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti), iorbi,&
+!                            orbsocc%eval(iorbi), iorba, orbsvirt%eval(iorba), abs(Kbig(jmulti,imulti)),&
+!                           &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+!                 end if
+!                 !We must consider the fact that ndipoles=2*nmulti, so we explicitly have to search in the second half of the Kbig-matrix
+!                 if (abs(Kbig(jmulti+nmulti,imulti)) > 5.d-02) then
+!                    if (ik /= 0) call yaml_newline()
+!                    ik = ik + 1
+!                    call yaml_mapping_open(flow=.true.)
+!                       call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
+!                       call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti+nmulti,imulti))**2,fmt='(1pe10.3)')))
+!                    call yaml_mapping_close()
+!                    write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti), iorbi,&
+!                            orbsocc%eval(iorbi), iorba, orbsvirt%eval(iorba), abs(Kbig(jmulti+nmulti,imulti)),&
+!                           &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+!                 end if
+!                 if (abs(Kbig(jmulti,imulti+nmulti)) > 5.d-02) then
+!                    if (ik /= 0) call yaml_newline()
+!                    ik = ik + 1
+!                    call yaml_mapping_open(flow=.true.)
+!                       call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
+!                       call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti,imulti+nmulti))**2,fmt='(1pe10.3)')))
+!                    call yaml_mapping_close()
+!                    write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti+nmulti), iorbi,&
+!                            orbsocc%eval(iorbi), iorba, orbsvirt%eval(iorba), abs(Kbig(jmulti,imulti+nmulti)),&
+!                           &omega(imulti+nmulti)*(2.0_gp/3.0_gp)*(fi(1,imulti+nmulti)**2+fi(2,imulti+nmulti)**2+&
+!                           &fi(3,imulti+nmulti)**2)
+!                 end if
+!                 if (abs(Kbig(jmulti+nmulti,imulti+nmulti)) > 5.d-02) then
+!                    if (ik /= 0) call yaml_newline()
+!                    ik = ik + 1
+!                    call yaml_mapping_open(flow=.true.)
+!                       call yaml_map('Transition',trim(yaml_toa((/ iorbi, iorba /))))
+!                       call yaml_map('Coeff',trim(yaml_toa(abs(Kbig(jmulti+nmulti,imulti+nmulti))**2,fmt='(1pe10.3)')))
+!                    call yaml_mapping_close()
+!                    write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti+nmulti), iorbi,&
+!                            orbsocc%eval(iorbi), iorba, orbsvirt%eval(iorba), abs(Kbig(jmulti+nmulti,imulti+nmulti)),&
+!                           &omega(imulti+nmulti)*(2.0_gp/3.0_gp)*(fi(1,imulti+nmulti)**2+fi(2,imulti+nmulti)**2+&
+!                           &fi(3,imulti+nmulti)**2)
+!                 end if
+!              end do
+!           end do
+!
+!        else 
+!
+!           !We have to check the spin sign, and therefore use a new transition counter.
+!           jk=0 !transition counter
+!           do jmulti = 1, orbsocc%norb*orbsvirt%norb
+!              jorbi=(jmulti-1)/orbsvirt%norb+1
+!              jorba=jmulti-(jorbi-1)*orbsvirt%norb
+!              if (orbsocc%spinsgn(jorbi) == orbsvirt%spinsgn(jorba)) then
+!                 jk=jk+1
+!                 if (abs(K(jk,imulti)) > 5.d-02) then
+!                    if (ik /= 0) call yaml_newline()
+!                    ik = ik + 1
+!                    call yaml_mapping_open(flow=.true.)
+!                       call yaml_map('Transition',trim(yaml_toa((/ jorbi, jorba /))))
+!                       call yaml_map('Coeff',trim(yaml_toa(abs(K(jk,imulti))**2,fmt='(1pe10.3)')))
+!                    call yaml_mapping_close()
+!                    write(10,'(f16.12,2(2x,i4,2x,E16.9E2),2(2x,E16.9E2))') Ha_eV*omega(imulti), jorbi,&
+!                            orbsocc%eval(jorbi), jorba, orbsvirt%eval(jorba), abs(K(jk,imulti)),&
+!                           &omega(imulti)*(2.0_gp/3.0_gp)*(fi(1,imulti)**2+fi(2,imulti)**2+fi(3,imulti)**2)
+!                 end if
+!              else
+!                 cycle
+!              end if
+!           end do
+!
+!        end if
+!
+!        call yaml_sequence_close(advance='no')
+!        call yaml_comment(trim(yaml_toa(imulti,fmt='(i4.4)')))
+!
+!     end do !imulti
 
      call yaml_sequence_close()
      close(unit=10)
