@@ -455,6 +455,7 @@ module public_enums
   type(f_enumerator), parameter, public :: BMHTF_RUN_MODE         =f_enumerator('BMHTF_RUN_MODE',-992,null())
   type(f_enumerator), parameter, public :: CP2K_RUN_MODE         =f_enumerator('CP2K_RUN_MODE',-991,null())
   type(f_enumerator), parameter, public :: DFTBP_RUN_MODE         =f_enumerator('DFTBP_RUN_MODE',-990,null())
+  type(f_enumerator), parameter, public :: TDPOT_RUN_MODE      =f_enumerator('TDPOT_RUN_MODE',-989,null())
   
 end module public_enums
 

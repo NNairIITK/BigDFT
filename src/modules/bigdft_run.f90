@@ -152,6 +152,7 @@ contains
     use module_lj
     use module_lenosky_si
     use module_cp2k
+    use module_tdpot
     use yaml_output
     implicit none
     type(run_objects), intent(inout) :: runObj
@@ -161,6 +162,13 @@ contains
 
     !then check if extra workspaces have to be allocated
     select case(trim(f_str(run_mode)))
+    case('TDPOT_RUN_MODE')
+       call nullify_MM_restart_objects(mm_rst)
+       !create reference counter
+       mm_rst%refcnt=f_ref_new('mm_rst')
+       call init_tdpot(runObj%inputs%mm_paramset,&
+            runObj%inputs%mm_paramfile,runObj%atoms%astruct%units)
+        
     case('LENNARD_JONES_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -271,6 +279,7 @@ contains
     case('CP2K_RUN_MODE') ! CP2K run mode
        call finalize_cp2k()
     case('DFTBP_RUN_MODE') ! DFTB+ run mode
+    case('TDPOT_RUN_MODE')
     case('LENNARD_JONES_RUN_MODE')
     case('MORSE_SLAB_RUN_MODE')
     case('MORSE_BULK_RUN_MODE')
@@ -1376,6 +1385,7 @@ contains
     use module_BornMayerHugginsTosiFumi
     use module_cp2k
     use module_dftbp
+    use module_tdpot
     use f_enums, enum_int => int
     implicit none
     !parameters
@@ -1436,6 +1446,8 @@ contains
     infocode = 0
     !choose what to do by following the mode prescription
     select case(trim(f_str(runObj%run_mode)))
+    case('TDPOT_RUN_MODE')
+        call tdpot(nat,rxyz_ptr,outs%fxyz,outs%energy)
     case('LENNARD_JONES_RUN_MODE')
        call lenjon(nat,rxyz_ptr,outs%fxyz,outs%energy)
        !         if (bigdft_mpi%iproc == 0) then

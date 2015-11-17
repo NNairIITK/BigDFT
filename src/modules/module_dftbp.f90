@@ -48,8 +48,8 @@ subroutine dftbp_energy_forces(policy,nat,alat,astruct,geocode,rxyz, fxyz,strten
     cell(2,1)=0.0d0
     cell(3,1)=0.0d0
     cell(1,2)=0.0d0
-    cell(2,2)=0.0d0
-    cell(3,2)=alat(2)
+    cell(2,2)=alat(2)
+    cell(3,2)=0.0d0
     cell(1,3)=0.0d0
     cell(2,3)=0.0d0
     cell(3,3)=alat(3)
