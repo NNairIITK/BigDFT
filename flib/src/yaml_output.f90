@@ -2,7 +2,7 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markup Language -> Y Ain't a Markup Language (Human readable ML)
 !! @author
-!!    Copyright (C) 2011-2015 BigDFT group <br>
+!!    Copyright (C) 2011-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -438,7 +438,7 @@ contains
        streams(active_streams)=stream_null()
        streams(active_streams)%unit=6
        stream_units(active_streams)=6
-       streams(active_streams)%max_record_length=92 !leave 95 characters
+       streams(active_streams)%max_record_length=92 !leave 92 characters
        default_stream=active_streams
        again= unt /= 6 
     end if
@@ -450,6 +450,7 @@ contains
        streams(active_streams)=stream_null()
        streams(active_streams)%unit=unt
        stream_units(active_streams)=unt
+       istream = active_streams !for the following instructions
     end if
 
     ! set last opened stream as default stream
@@ -813,10 +814,8 @@ contains
     character(len=*), optional, intent(in) :: hfill   !< If present fill the line with the given character
     integer, optional, intent(in) :: tabbing          !< Number of space for tabbing
     !Local variables
-    integer :: unt,strm,msg_lgt,tb,ipos
-    integer :: lstart,lend,lmsg,lspace,hmax
+    integer :: unt,strm
     character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
 
     unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit

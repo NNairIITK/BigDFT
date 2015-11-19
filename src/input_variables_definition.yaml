@@ -417,7 +417,7 @@
      COMMENT: K-point sampling method
      EXCLUSIVE:
        auto:   Based on kptrlen
-       MPGrid: Monkhorst-Pack
+       mpgrid: Monkhorst-Pack
        manual: Based on raw coordinates
      default:  manual
    kptrlen:
@@ -433,7 +433,7 @@
      CONDITION:
        MASTER_KEY: method
        WHEN:
-       - MPGrid
+       - mpgrid
      RANGE: [1, 10000]
      default: [1, 1, 1]
    shiftk:
@@ -441,7 +441,7 @@
      CONDITION:
        MASTER_KEY: method
        WHEN:
-       - MPGrid
+       - mpgrid
      default: [[0., 0., 0.]]
    kpt:
      COMMENT: Kpt coordinates
