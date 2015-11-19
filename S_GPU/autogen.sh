@@ -6,7 +6,7 @@ aclocal -I m4
 echo "Generate config.h.in"
 autoheader
 echo "Libtool generation"
-glibtoolize --automake
+libtoolize --automake
 echo "Creating configure script  with 'autoconf'."
 autoconf
 echo "Creating required files for autotools."

@@ -25,9 +25,9 @@ if test -n "$GDBUS_CODEGEN" ; then
   cd -
 fi
 echo "Autotoolize the libXC source tree."
-cd libxc-2.0.x; glibtoolize -fc; autoreconf -fi; cd -
+cd libxc-2.0.x; libtoolize -fc; autoreconf -fi; cd -
 echo "Autotoolize the libyaml source tree."
-cd yaml-0.1.4; glibtoolize -fc; autoreconf -fi; cd -
+cd yaml-0.1.4; libtoolize -fc; autoreconf -fi; cd -
 echo "Autotoolize the S_GPU source tree."
 cd S_GPU; ./autogen.sh; cd -
 
