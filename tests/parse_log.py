@@ -153,6 +153,8 @@ def parse_arguments():
                     help="Show the plot statically for screenshot use", metavar='FILE')
   parser.add_option('-f', '--fontsize', dest='fontsize',default=15,
                     help="Determine fontsize of the bar chart plot", metavar='FILE')
+  parser.add_option('-k', '--remove-key', dest='nokey',default=False,action="store_true",
+                    help="Remove the visualisation of the key from the main plot", metavar='FILE')
 
   
   #Return the parsing
@@ -329,6 +331,7 @@ class BigDFTiming:
     self.plot_start=args.plottype
     self.static = args.static
     self.fontsize=args.fontsize
+    self.nokey=args.nokey
     for doc in self.log:
         self.routines.append(doc.get("Routines timing and number of calls"))
         self.hostnames.append(doc.get("Hostnames"))
@@ -362,7 +365,7 @@ class BigDFTiming:
       if self.static: self.barfig.patch.set_facecolor("white")
     dict_list=self.scf
     self.plts=[]
-    self.draw_barplot(self.axbars,self.collect_categories(dict_list,self.vals),self.vals,title=title)
+    self.draw_barplot(self.axbars,self.collect_categories(dict_list,self.vals),self.vals,title=title,nokey=self.nokey)
     active=0
     if self.vals == 'Percent':
       self.axbars.set_yticks(np.arange(0,100,10))
@@ -460,7 +463,7 @@ class BigDFTiming:
     self.newfigs.append((newfig,newax))
   
     
-  def draw_barplot(self,axbars,data,vals,title='Time bar chart',static=False):
+  def draw_barplot(self,axbars,data,vals,title='Time bar chart',static=False,nokey=False):
     import numpy as np
     import matplotlib.pyplot as plt
     from pylab import cm as cm
@@ -484,8 +487,9 @@ class BigDFTiming:
     axbars.set_ylabel(vals,fontsize=self.fontsize)
     axbars.set_xticks(ind+width/2.)
     axbars.set_xticklabels(np.array(self.ids),size=self.fontsize)
-    self.leg = axbars.legend(loc='upper right',fontsize=self.fontsize)
-    self.leg.get_frame().set_alpha(0.4)  
+    if not nokey:
+      self.leg = axbars.legend(loc='upper right',fontsize=self.fontsize)
+      self.leg.get_frame().set_alpha(0.4)  
           
   def onclick_quitButton(self,event):
     print "Good bye!"
