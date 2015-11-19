@@ -26,10 +26,10 @@
 ## DO NOT USE the character ':' and "" in the COMMENT of DESCRIPTION
 ############################################
  #geometry parameters
- ndims: 100
- hgrids: 0.3
- BC: free
- angrad: 90.0
+ #ndims: 100
+ #hgrids: 0.3
+ #BC: free
+ #angrad: 90.0
  kernel:
   DESCRIPTION: Parameters of  the Coulomb Kernel
   screening: 
@@ -158,7 +158,7 @@
     default: No
   verbose: 
     COMMENT: Verbosity switch
-    deafult: Yes
+    default: Yes
   output: 
     COMMENT: Quantities to be plotted after the main solver routine
     DESCRIPTION: Might be a list containing kewywords like cavity, potential or density

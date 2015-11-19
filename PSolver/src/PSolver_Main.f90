@@ -524,7 +524,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !local variables
    character(len=*), parameter :: subname='H_potential'
    real(dp), parameter :: max_ratioex = 1.0e10_dp,eps0=78.36d0 !to be inserted in pkernel
-   logical :: wrtmsg,cudasolver
+   logical :: wrtmsg,cudasolver,global,verb
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
    integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
@@ -540,21 +540,19 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    type(PSolver_energies) :: energies
 
    kernel%opt=PSolver_options_null()
-   !use H_potential as a wrapper to electrostatic solver
-   kernel%opt%datacode=datacode
-   kernel%opt%calculate_strten=present(stress_tensor)
-   kernel%opt%potential_integral=offset
-   kernel%opt%cavity_info=.false.
-   kernel%opt%update_cavity= kernel%method .hasattr. PS_SCCS_ENUM
-   kernel%opt%only_electrostatic=.true.
-   kernel%opt%use_input_guess=.false.
-   !override the verbosity for the cavity treatment for the moment
-   kernel%opt%verbosity_level=1
+   global=.false.
+   global=datacode=='G'
+   verb=.true.
    if (present(quiet)) then
       if ((quiet .eqv. 'yes') .and. kernel%method == PS_VAC_ENUM) &
-           kernel%opt%verbosity_level=0
+           verb=.false.
    end if
 
+   call PS_set_options(kernel,global_data=global,&
+        calculate_strten=present(stress_tensor),verbose=verb,&
+        update_cavity=kernel%method .hasattr. PS_SCCS_ENUM,&
+        potential_integral=offset)
+   
    if (sumpion .and. present(rho_ion) .and. kernel%method /= PS_VAC_ENUM) then
       call Electrostatic_Solver(kernel,rhopot,energies,pot_ion,rho_ion)
    else if (sumpion) then

@@ -40,7 +40,7 @@ module PStypes
   character(len=*), parameter :: SETUP_VARIABLES         = 'setup'
   character(len=*), parameter :: ACCEL                   = 'accel' 
   character(len=*), parameter :: KEEP_GPU_MEMORY         = 'keep_gpu_memory' 
-  character(len=*), parameter :: TASKGROUP_SIZE          = 'taskgroup_size' 
+  character(len=*), parameter :: TASKGROUP_SIZE_KEY      = 'taskgroup_size' 
   character(len=*), parameter :: GLOBAL_DATA             = 'global_data' 
   character(len=*), parameter :: VERBOSITY               = 'verbose' 
   character(len=*), parameter :: OUTPUT                  = 'output' 
@@ -213,7 +213,7 @@ module PStypes
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
   public :: ps_allocate_lowlevel_workarrays,PSolver_options_null
-  public :: release_PS_workarrays,PS_release_lowlevel_workarrays
+  public :: release_PS_workarrays,PS_release_lowlevel_workarrays,PS_set_options,pkernel_init_new
 
 contains
 
@@ -376,7 +376,6 @@ contains
 
   end subroutine free_PS_workarrays
 
-
   subroutine release_PS_workarrays(keepzf,w,use_input_guess)
     implicit none
     integer, intent(in) :: keepzf
@@ -418,13 +417,14 @@ contains
 
   !> Initialization of the Poisson kernel
   !! @ingroup PSOLVER
-  function pkernel_init(iproc,nproc,dict,geocode,ndims,hgrids,angrad,mpi_env) result(kernel)
+  function pkernel_init_new(iproc,nproc,dict,geocode,ndims,hgrids,angrad,mpi_env) result(kernel)
     use yaml_output
     use dictionaries
     use numerics
     use wrapper_MPI
     use f_enums
     use environment
+    use f_input_file, only: input_file_dump
     implicit none
     integer, intent(in) :: iproc      !< Proc Id
     integer, intent(in) :: nproc      !< Number of processes
@@ -451,13 +451,13 @@ contains
     if (present(angrad)) then
        kernel%angrad=angrad
     else
-       kernel%angrad= [ twopi, twopi, twopi ]
+       kernel%angrad=onehalf* [ pi, pi, pi ]
     end if
 
     !new treatment for the kernel input variables
+    kernel%method=PS_VAC_ENUM
     call PS_input_dict(dict) !complete the dictionary
 
-    !we might also perform an input_file dump if needed
     
     call PS_fill_variables(kernel,kernel%opt,dict) !fill the structure with basic results
 
@@ -467,8 +467,9 @@ contains
     if (present(mpi_env)) then
        call copy_mpi_environment(src=mpi_env,dest=kernel%mpi_env)
     else
+
        !specialized treatment
-       taskgroup_size=dict//SETUP_VARIABLES//TASKGROUP_SIZE
+       taskgroup_size=dict//SETUP_VARIABLES//TASKGROUP_SIZE_KEY
 
        group_size=nproc
        !if the taskgroup size is not a divisor of nproc do not create taskgroups
@@ -492,6 +493,8 @@ contains
           call yaml_mapping_open('Helmholtz Kernel Initialization')
           call yaml_map('Screening Length (AU)',1.0_gp/kernel%mu,fmt='(g25.17)')
        end if
+       !we might also perform an input_file dump if needed
+       call input_file_dump(dict)
        !$ nthreads = omp_get_max_threads()
        call yaml_map('MPI tasks',kernel%mpi_env%nproc)
        if (nthreads /=0) call yaml_map('OpenMP threads per MPI task',nthreads)
@@ -502,7 +505,41 @@ contains
        call yaml_mapping_close() !kernel
     end if
 
-  end function pkernel_init
+  end function pkernel_init_new
+
+  !>modifies the options of the poisson solver to switch certain options
+  subroutine PS_set_options(kernel,global_data,calculate_strten,verbose,&
+       update_cavity,use_input_guess,cavity_info,cavitation_terms,&
+       potential_integral)
+    implicit none
+    type(coulomb_operator), intent(inout) :: kernel
+    logical, intent(in), optional :: global_data,calculate_strten,verbose
+    logical, intent(in), optional :: update_cavity,use_input_guess
+    logical, intent(in), optional :: cavity_info,cavitation_terms
+    real(gp), intent(in), optional :: potential_integral
+
+    if (present(global_data     )) then
+       if (global_data) then
+          kernel%opt%datacode='G'
+       else
+          kernel%opt%datacode='D'
+       end if
+    end if
+    if (present(calculate_strten)) kernel%opt%calculate_strten=calculate_strten
+    if (present(verbose         )) then
+       if (verbose) then
+          kernel%opt%verbosity_level=1
+       else
+          kernel%opt%verbosity_level=0
+       end if
+    end if
+    if (present(update_cavity   )) kernel%opt%update_cavity=update_cavity
+    if (present(use_input_guess )) kernel%opt%use_input_guess=use_input_guess
+    if (present(cavity_info     )) kernel%opt%cavity_info=cavity_info
+    if (present(cavitation_terms)) kernel%opt%only_electrostatic=.not. cavitation_terms
+    if (present(potential_integral)) kernel%opt%potential_integral =potential_integral
+
+  end subroutine PS_set_options
 
 
   !>routine to fill the input variables of the kernel
@@ -686,7 +723,7 @@ contains
           else
              k%keepGPUmemory=0
           end if
-       case (TASKGROUP_SIZE)
+       case (TASKGROUP_SIZE_KEY)
 
        case (GLOBAL_DATA)
           dummy_l=val
