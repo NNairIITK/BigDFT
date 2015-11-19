@@ -41,13 +41,14 @@ module environment
   !conversion factors in AU
 
   !> dyn/cm into atomic units (5.291772109217d-9/8.238722514d-3)
-  real(gp), parameter :: SurfAU=Bohr_Ang*1.e-8/dyn_AU
+  real(gp), parameter, public :: SurfAU=Bohr_Ang*1.e-8/dyn_AU
   
   !> define the cavity type
   type, public :: cavity_data
      real(gp) :: epsilon0 !< dielectriv constant of the medium
      real(gp) :: edensmax !<maximum value of the density for the cavity
      real(gp) :: edensmin !<minimum  value of the density for the cavity
+     real(gp) :: delta !<parameter for the PCM cavity in the case of rigid
      real(dp) :: gammaS !< surface tension of the solvent [dyn/cm]
      real(dp) :: alphaS !< proportionality factor for the repulsion free energy in term of the surface integral [dyn/cm]
      real(dp) :: betaV !<proportionality factor for the dispersion free energy in term of the volume integral [GPa]     
@@ -64,20 +65,24 @@ contains
     c%epsilon0= 78.36_gp !<water at ambient condition 
     c%edensmax = 0.005_gp !0.0050d0
     c%edensmin = 0.0001_gp
+    c%delta = 0.0_gp
     c%gammaS = 72._gp*SurfAU ![dyn/cm]   
     c%alphaS = -22.0_gp*SurfAU ![dyn/cm]   end function cavity_default
     c%betaV = -0.35_gp/AU_GPa ![GPa]     
   end function cavity_default
 
   !>initialize the cavity parameters
-  function cavity_init(epsilon0,edensmax,edensmin,gammaS,alphaS,betaV) result(c)
+  function cavity_init(epsilon0,edensmax,edensmin,delta,gammaS,alphaS,betaV) result(c)
     implicit none
-    real(gp), intent(in), optional :: epsilon0,edensmax,edensmin,gammaS,alphaS,betaV
+    real(gp), intent(in), optional :: epsilon0,edensmax,edensmin,gammaS,alphaS,betaV,delta
     type(cavity_data) :: c
     c=cavity_default()
+    if (present(delta) .and. (present(edensmax) .or. present(edensmin)))&
+         call f_err_throw('Only delta or edensmax(min) should be present')
     if (present(epsilon0)) c%epsilon0=epsilon0
     if (present(edensmax)) c%edensmax=edensmax
     if (present(edensmin)) c%edensmax=edensmin
+    if (present(delta)) c%delta=delta
     if (present(gammaS)) c%gammaS=gammaS*SurfAU
     if (present(alphaS)) c%alphaS=alphaS*SurfAU  
     if (present(betaV )) c%betaV =betaV/AU_GPa

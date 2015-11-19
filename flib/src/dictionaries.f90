@@ -1,7 +1,7 @@
 !> @file
 !!  Module defining a dictionary
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2015 BigDFT group <br>
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -411,48 +411,48 @@ contains
 !!$   !>extract the dictionary from its present context
 !!$   !! in the case of a list renumber the items
 !!$   !! return an object which is ready to be freed
-   function dict_extract(dict) result(dict_first)
-     implicit none
-     type(dictionary), pointer, intent(inout) :: dict
-     type(dictionary), pointer :: dict_first
-     !local variables
-     type(dictionary), pointer :: dict_update
-
-     !normal association initially
-     dict_first => dict
-     !then check if there are brothers which have to be linked
-     if (associated(dict%next)) then
-        !this is valid if we are not at the first element
-        if (associated(dict%previous)) then
-           call define_brother(dict%previous,dict%next) !dict%next%previous => dict%previous
-           dict%previous%next => dict%next
-        else
-           nullify(dict%next%previous)
-           !the next should now become me
-           dict => dict%next
-        end if
-        !in case we were in a list, renumber the other brothers
-        ! Update data%item for all next.
-        if (dict_first%data%item >= 0) then
-           dict_update => dict_first%next
-           do while( associated(dict_update) )
-              dict_update%data%item = dict_update%data%item - 1
-              dict_update => dict_update%next
-           end do
-        end if
-     else
-        nullify(dict)
-     end if
-     !never follow the brothers, the extracted dictionary is 
-     !intended to be alone
-     nullify(dict_first%next,dict_first%previous)
-     dict_first%data%item=-1
-     !the extraction should provide the child in the case of 
-     !a dict value or otherwise a dictionary with only a value
-     !in the case of a scalar value
-     
-
-   end function dict_extract
+!!$   function dict_extract(dict) result(dict_first)
+!!$     implicit none
+!!$     type(dictionary), pointer, intent(inout) :: dict
+!!$     type(dictionary), pointer :: dict_first
+!!$     !local variables
+!!$     type(dictionary), pointer :: dict_update
+!!$ 
+!!$     !normal association initially
+!!$     dict_first => dict
+!!$     !then check if there are brothers which have to be linked
+!!$     if (associated(dict%next)) then
+!!$        !this is valid if we are not at the first element
+!!$        if (associated(dict%previous)) then
+!!$           call define_brother(dict%previous,dict%next) !dict%next%previous => dict%previous
+!!$           dict%previous%next => dict%next
+!!$        else
+!!$           nullify(dict%next%previous)
+!!$           !the next should now become me
+!!$           dict => dict%next
+!!$        end if
+!!$        !in case we were in a list, renumber the other brothers
+!!$        ! Update data%item for all next.
+!!$        if (dict_first%data%item >= 0) then
+!!$           dict_update => dict_first%next
+!!$           do while( associated(dict_update) )
+!!$              dict_update%data%item = dict_update%data%item - 1
+!!$              dict_update => dict_update%next
+!!$           end do
+!!$        end if
+!!$     else
+!!$        nullify(dict)
+!!$     end if
+!!$     !never follow the brothers, the extracted dictionary is 
+!!$     !intended to be alone
+!!$     nullify(dict_first%next,dict_first%previous)
+!!$     dict_first%data%item=-1
+!!$     !the extraction should provide the child in the case of 
+!!$     !a dict value or otherwise a dictionary with only a value
+!!$     !in the case of a scalar value
+!!$     
+!!$ 
+!!$   end function dict_extract
 
    !> Add to a list
    subroutine add_char(dict,val, last_item_ptr)
@@ -577,7 +577,7 @@ contains
 
 
    !> Defines a new dictionary from a key and a value
-   !pure 
+   !! pure 
    function dict_cont_new_with_value(key, val) result(cont)
      implicit none
      character(len = *), intent(in) :: val

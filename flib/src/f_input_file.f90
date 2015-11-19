@@ -31,6 +31,7 @@ module f_input_file
   character(len = *), parameter :: DEFAULT = "default"
   character(len = *), parameter :: COND = "CONDITION"
   character(len = *), parameter :: WHEN = "WHEN"
+  character(len = *), parameter :: WHEN_NOT = "WHEN_NOT"
   character(len = *), parameter :: MASTER_KEY = "MASTER_KEY"
   character(len = *), parameter :: IMPORT_KEY = "import"
 
@@ -198,25 +199,33 @@ contains
 !!$             rg(2) = ref // RANGE // 1
              rg = ref // RANGE
              call validate(dict // key, key, rg)
-          else if (has_key(ref, EXCLUSIVE)) then
+!!$          else if (has_key(ref, EXCLUSIVE)) then
+!!$             failed_exclusive => ref // EXCLUSIVE
+!!$             allocate(keys(dict_size(failed_exclusive)))
+!!$             keys = dict_keys(failed_exclusive)
+!!$             found = .false.
+!!$             skeys = size(keys)
+!!$             do i = 1, skeys, 1
+!!$                found = trim(val) .eqv. trim(keys(i))
+!!$                if (found) exit
+!!$             end do
+!!$             deallocate(keys)
+!!$             if (.not. found) then
+!!$                call f_err_throw(err_id = INPUT_VAR_NOT_IN_LIST, &
+!!$                     err_msg = trim(key) // " = '" // trim(val) //&
+!!$                     "' is not allowed, see above the allowed values.")
+!!$                nullify(failed_exclusive)
+!!$                return
+!!$             end if
+          else if (EXCLUSIVE .in. ref) then
              failed_exclusive => ref // EXCLUSIVE
-             allocate(keys(dict_size(failed_exclusive)))
-             keys = dict_keys(failed_exclusive)
-             found = .false.
-             skeys = size(keys)
-             do i = 1, skeys, 1
-                found = trim(val) .eqv. trim(keys(i))
-                if (found) exit
-             end do
-             deallocate(keys)
-             if (.not. found) then
+             if (val .notin. failed_exclusive) then
                 call f_err_throw(err_id = INPUT_VAR_NOT_IN_LIST, &
                      err_msg = trim(key) // " = '" // trim(val) //&
                      "' is not allowed, see above the allowed values.")
                 nullify(failed_exclusive)
                 return
              end if
-
           end if
        end if
     else
@@ -258,24 +267,36 @@ contains
       logical :: set_
 
       integer :: j
-      type(dictionary), pointer :: tmp
+      type(dictionary), pointer :: tmp,tmp0,tmp_not
       character(max_field_length) :: mkey, val_master, val_when
 
-      set_ = .true.
-      if (has_key(ref, COND)) then
-         mkey = ref // COND // MASTER_KEY
-         if (.not. has_key(dict, mkey)) then
-            set_ = .false.
-            return
-         end if
-         val_master = dict // mkey
-         set_ = .false.
-         tmp => ref // COND // WHEN
-         do j = 0, dict_len(tmp) - 1, 1
-            val_when = tmp // j
-            set_ = set_ .or. (trim(val_master) .eqv. trim(val_when))
-         end do
-      end if
+!!$      set_ = .true.
+!!$      if (has_key(ref, COND)) then
+!!$         mkey = ref // COND // MASTER_KEY
+!!$         if (.not. has_key(dict, mkey)) then
+!!$            set_ = .false.
+!!$            return
+!!$         end if
+!!$         val_master = dict // mkey
+!!$         set_ = .false.
+!!$         tmp => ref // COND // WHEN
+!!$         do j = 0, dict_len(tmp) - 1, 1
+!!$            val_when = tmp // j
+!!$            set_ = set_ .or. (trim(val_master) .eqv. trim(val_when))
+!!$         end do
+!!$      end if
+
+      set_ = COND .notin. ref
+      if (set_) return !there are no conditions on the reference variable
+      tmp0 => ref // COND
+      mkey = tmp0 // MASTER_KEY
+      set_ = mkey .in. dict
+      if (.not. set_) return !the variable is not present, not coherent
+      val_master = dict // mkey
+      tmp = tmp0 .get. WHEN
+      tmp_not = tmp0 .get. WHEN_NOT
+      set_ = (val_master .in. tmp) .and. (val_master .notin. tmp_not)
+
     end function set_
 
     recursive subroutine validate(dict, key, rg)
@@ -794,6 +815,7 @@ contains
     !local variables
     integer, parameter :: natoms_dump=500
     logical :: userOnly_,todump
+
     type(dictionary), pointer :: iter
 
     userOnly_ = .false.

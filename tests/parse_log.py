@@ -147,8 +147,14 @@ def parse_arguments():
                     help="BigDFT time.yaml file, a quick report is dumped on screen if this option is given", metavar='FILE')
   parser.add_option('-n', '--name', dest='name',default=None,
                     help="Give a name to the set of the plot represented", metavar='FILE')
+  parser.add_option('-p', '--plot', dest='plottype',default='Seconds',
+                    help="Decide the starting point for the plotting", metavar='FILE')
+  parser.add_option('-s', '--static', dest='static',default=False,action="store_true",
+                    help="Show the plot statically for screenshot use", metavar='FILE')
+  parser.add_option('-f', '--fontsize', dest='fontsize',default=15,
+                    help="Determine fontsize of the bar chart plot", metavar='FILE')
 
-
+  
   #Return the parsing
   return parser
 
@@ -208,13 +214,13 @@ class polar_axis():
                           width=self.width,
                           bottom=self.step*self.bot,picker=True)
     self.names=data["names"]
-
+    
     ilev=0
     #maxlev=max(self.bot)
     for r,bar,ilev in zip(self.radii, self.bars,self.theta):
        #print ilev,'hello',float(ilev)/float(N),maxlev
        #bar.set_facecolor( pylab.cm.jet(float(ilev)/maxlev))
-       bar.set_facecolor( pylab.cm.jet(float(ilev)/(2*pylab.np.pi)))
+       bar.set_facecolor(pylab.cm.jet(float(ilev)/(2*pylab.np.pi)))
        bar.set_alpha(0.5)
        ilev+=1
 
@@ -292,7 +298,7 @@ class polar_axis():
     self.fig.canvas.draw()
       
 class BigDFTiming:
-  def __init__(self,filenames):
+  def __init__(self,filenames,args):
     #here a try-catch section should be added for multiple documents
     #if (len(filename) > 1
     self.log=[]
@@ -320,6 +326,9 @@ class BigDFTiming:
     self.radio = None
     self.toggle_unbalancing = False
     self.quitButton = None
+    self.plot_start=args.plottype
+    self.static = args.static
+    self.fontsize=args.fontsize
     for doc in self.log:
         self.routines.append(doc.get("Routines timing and number of calls"))
         self.hostnames.append(doc.get("Hostnames"))
@@ -338,24 +347,31 @@ class BigDFTiming:
             "Other","PS Computation","Potential",
             "Flib LowLevel","Initialization"]
 
-  def bars_data(self,vals='Percent',title='Time bar chart'):
+  def bars_data(self,vals=None,title='Time bar chart'):
     """Extract the data for plotting the different categories in bar chart"""
     import numpy as np
     import matplotlib.pyplot as plt
     from pylab import cm as cm
     from matplotlib.widgets import Button,RadioButtons
-    self.vals=vals
+    if vals is None:
+      self.vals=self.plot_start
+    else:
+      self.vals=vals
     if self.barfig is None:
       self.barfig, self.axbars = plt.subplots()
+      if self.static: self.barfig.patch.set_facecolor("white")
     dict_list=self.scf
     self.plts=[]
-    self.draw_barplot(self.axbars,self.collect_categories(dict_list,vals),vals,title=title)
-    if self.vals == 'Percent': self.axbars.set_yticks(np.arange(0,100,10))
-    if self.radio is None:
-      self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.08, 0.11], axisbg='lightgoldenrodyellow'), ('Percent', 'Seconds'))
+    self.draw_barplot(self.axbars,self.collect_categories(dict_list,self.vals),self.vals,title=title)
+    active=0
+    if self.vals == 'Percent':
+      self.axbars.set_yticks(np.arange(0,100,10))
+      active=1
+    if self.radio is None and not self.static:
+      self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.08, 0.11], axisbg='lightgoldenrodyellow'), ('Seconds', 'Percent'),active=1)
       self.radio.on_clicked(self.replot)
 
-    if self.quitButton is None:
+    if self.quitButton is None and not self.static:
       self.quitButton = Button(plt.axes([0.0, 0.0, 0.1, 0.075]), 'Quit')
       self.quitButton.on_clicked(self.onclick_quitButton)
       self.barfig.canvas.mpl_connect('pick_event',self.onclick_ev)
@@ -365,7 +381,7 @@ class BigDFTiming:
     """For a given category find the items which has them"""
     import numpy as np
     items={}
-    for idoc in range(len(dict_list)):
+    for idoc in range( len(dict_list) ):
         for cat in dict_list[idoc]["Categories"]:
             dicat=dict_list[idoc]["Categories"][cat]
             if dicat["Class"] == category:
@@ -422,12 +438,12 @@ class BigDFTiming:
     import matplotlib.pyplot as plt
     thisline = event.artist
     xdata, ydata = thisline.get_xy()
-    print 'data',xdata,ydata
+    #print 'data',xdata,ydata
     #find the category which has been identified
     y0data=0.0
     for cat in self.values_legend:
       y0data+=self.scf[xdata]["Classes"][cat][self.iprc]
-      print 'cat,y0data',cat,y0data,ydata
+      #print 'cat,y0data',cat,y0data,ydata
       if y0data > ydata:
         category=cat
         break
@@ -444,7 +460,7 @@ class BigDFTiming:
     self.newfigs.append((newfig,newax))
   
     
-  def draw_barplot(self,axbars,data,vals,title='Time bar chart'):
+  def draw_barplot(self,axbars,data,vals,title='Time bar chart',static=False):
     import numpy as np
     import matplotlib.pyplot as plt
     from pylab import cm as cm
@@ -464,11 +480,11 @@ class BigDFTiming:
       bot+=dat
       icol+=1.0
     drawn_classes=np.array(self.values_legend)
-    axbars.set_title(title)
-    axbars.set_ylabel(vals)
+    axbars.set_title(title,fontsize=self.fontsize*1.2)
+    axbars.set_ylabel(vals,fontsize=self.fontsize)
     axbars.set_xticks(ind+width/2.)
-    axbars.set_xticklabels(np.array(self.ids))
-    self.leg = axbars.legend(loc='upper right')
+    axbars.set_xticklabels(np.array(self.ids),size=self.fontsize)
+    self.leg = axbars.legend(loc='upper right',fontsize=self.fontsize)
     self.leg.get_frame().set_alpha(0.4)  
           
   def onclick_quitButton(self,event):
@@ -489,6 +505,7 @@ class BigDFTiming:
       ax.cla()
       self.draw_barplot(ax,self.find_items(category,self.scf),self.vals,title=category)
       fi.canvas.draw()
+
 
   def func(self,label):
     print 'label,cid',label,self.cid
@@ -577,7 +594,7 @@ if args.timedata:
   #just load the bars data script
   
   #load the first yaml document
-  bt=BigDFTiming(argcl)
+  bt=BigDFTiming(argcl,args)
   print "hosts",bt.hostnames
   if bt.scf is not None:
     bt.bars_data(title=title) #timing["WFN_OPT"]["Classes"])

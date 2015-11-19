@@ -83,6 +83,13 @@ subroutine f_utils_test()
   call yaml_map('Greetings 3b',f3 .hasattr. 10)
   call yaml_map('Greetings 3c',f3 .hasattr. greetings) 
 
+  !now update the f3 enum
+  call f_enum_update(src=f1,dest=f3)
+  call yaml_map('Greetings 3a-2',f3 .hasattr. 'Greetings') 
+  call yaml_map('Greetings 3b-2',f3 .hasattr. 10)
+  call yaml_map('Greetings 3c-2',f3 .hasattr. greetings) 
+
+
   !wait one second
   !t0=dble(f_time())*1.d-9
   i0=f_time()
@@ -218,7 +225,7 @@ subroutine f_inputfile_test()
        '    hgrids: #a variable with range                                                          '//f_cr//&
        '      COMMENT: Grid spacing in the three directions (bohr)                                  '//f_cr//&
        '      DESCRIPTION: |                                                                        '//f_cr//&
-       '       Grid spacing in three directions (Bohr units) of the coarse mesh.  '//f_cr//&
+       '       Grid spacing in three directions (Bohr units) of the coarse mesh.                    '//f_cr//&
        '       A scalar can also be given as 0.45.                                                  '//f_cr//&
        '      RANGE: [0., 2.]                                                                       '//f_cr//&
        '      default: [0.45, 0.45, 0.45]                                                           '//f_cr//&
@@ -228,7 +235,7 @@ subroutine f_inputfile_test()
        '      COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)                                '//f_cr//&
        '      DESCRIPTION: Determine the exchange-correlation functional.                           '//f_cr//&
        '      default: 1                                                                             '//f_cr//&
-       '      EXCLUSIVE: { 1: LDA, 11: PBE}                                                         '//f_cr//&
+       '      EXCLUSIVE: [ 1, 11, -20, -101130, -406, -170, -402, 100 ]                             '//f_cr//&
        '      #Here follow a number of possibilities for the different XC functionals               '//f_cr//&
        '      LDA (ABINIT): 1                                                                       '//f_cr//&
        '      PBE (ABINIT): 11                                                                      '//f_cr//&
@@ -276,8 +283,7 @@ subroutine f_inputfile_test()
        '        - FIRE                                                                              '//f_cr//&
        '        - NEB                                                                               '//f_cr//&
        '        - SBFGS                                                                             '//f_cr//&
-       '        - SQNM                                                                              '//f_cr//&
-!       '       WHEN_NOT: [none]                                                                              '//f_cr//&
+       '        WHEN_NOT: [none ]                                                                   '//f_cr//&
        '      PROFILE_FROM: method                                                                  '//f_cr//&
        '      RANGE: [0., .inf ]                                                                     '//f_cr//&
        '      default: 4.                                                                           '//f_cr//&
@@ -296,7 +302,7 @@ subroutine f_inputfile_test()
   character(len=*), parameter :: example1='                                                         '//f_cr//&
        'dft:             '//f_cr//&
        ' hgrids: 0.45    '//f_cr//&
-       ' ixc: B3LYP     '//f_cr//&
+       ' ixc:  B3LYP     '//f_cr//&
        ' bidon: 2       '//f_cr//&
        'geopt:           '//f_cr//&
        ' betax: 2.e+40      '//f_cr//&

@@ -643,7 +643,7 @@ subroutine test_dictionaries1()
       call yaml_map('i2='+yaml_toa(i),dictA2)
       dictA2 => dict_next(dictA2)
    end do
-   
+
    call dict_free(dict_tmp)
 
  end subroutine test_dictionaries1
@@ -785,6 +785,7 @@ subroutine test_dictionary_for_atoms()
 
 
   contains
+
     subroutine print_one_atom(atomname,rxyz,hgrids,id)
       implicit none
       integer, intent(in) :: id

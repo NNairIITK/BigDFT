@@ -421,7 +421,7 @@ module module_input_keys
   public :: inputpsiid_get_policy,inputpsiid_set_policy,set_inputpsiid
   ! Main creation routine
   public :: user_dict_from_files,inputs_from_dict
-  public :: input_keys_dump,input_set,input_keys_fill_all,print_general_parameters
+  public :: input_keys_dump,input_keys_fill_all,print_general_parameters,input_set
 
 
 contains

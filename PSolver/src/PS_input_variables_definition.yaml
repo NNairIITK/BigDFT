@@ -73,7 +73,7 @@
       WHEN: [sccs]
   delta: 
     COMMENT: Amplitude of the transition region in the rigid cavity (AU)
-    default: 3.0 #to be controlled
+    default: 2.0
     CONDITION:
       MASTER_KEY: cavity
       WHEN: [rigid]
@@ -111,8 +111,8 @@
     COMMENT: Algorithm for the Generalised Poisson Equation
     default: PCG
     EXCLUSIVE:
-      - PI: Polarization Iteration method
-      - PCG: Preconditioned Conjugate Gradient
+      PI: Polarization Iteration method
+      PCG: Preconditioned Conjugate Gradient
     CONDITION: 
       MASTER_KEY: cavity
       WHEN_NOT: [none]
