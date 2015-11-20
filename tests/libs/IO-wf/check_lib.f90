@@ -1,7 +1,7 @@
 !> @file
 !!  Check the input/output routines for the wavefunctions
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -10,7 +10,9 @@
 
 !>  Program to check the input/output routines for the wavefunctions
 program IO_wf_test
+
   use BigDFT_API
+  use yaml_output
 
   implicit none
 
@@ -31,11 +33,12 @@ program IO_wf_test
 
   call get_command_argument(1, value = filename)
 
-  write(*,"(3A)") " --- Test read_wave_to_isf_etsf() from ", trim(filename) ," ---"
+  !write(*,"(3A)") " --- Test read_wave_to_isf_etsf() from ", trim(filename) ," ---"
+  call yaml_map('Test read_wave_to_isf_etsf() from ',filename)
   call read_wave_descr(lstat, trim(filename), len(trim(filename)), &
        & norbu, norbd, iorb, ispin, nkpt, ikpt, nspinor, ispinor)
-  write(*, "(A,2x,4I7)") " ETSF wavefunction file (nou, nod, nk, sp):", &
-       norbu, norbd, nkpt, nspinor
+  !write(*, "(A,2x,4I7)") " ETSF wavefunction file (nou, nod, nk, sp):", norbu, norbd, nkpt, nspinor
+  call yaml_map('ETSF wavefunction file (nou, nod, nk, sp)', [ norbu, norbd, nkpt, nspinor ])
   if (.not. lstat) stop
 
   call read_wave_to_isf(lstat, trim(filename), len(trim(filename)), iorbp, hx, hy, hz, &
@@ -53,9 +56,12 @@ program IO_wf_test
         end do
      end do
   end do
-  write(*,"(A,3F10.6)") " hgrid values for iscf representation:    ", hx, hy, hz
-  write(*,"(A,3I10)")   " number of points in iscf representation: ", n1, n2, n3
-  write(*,"(A,I2,A,22x,F12.8)")  " norm of orbital ", iorbp, ":", nrm
+  !write(*,"(A,3F10.6)") " hgrid values for iscf representation:    ", hx, hy, hz
+  !write(*,"(A,3I10)")   " number of points in iscf representation: ", n1, n2, n3
+  !write(*,"(A,I2,A,22x,F12.8)")  " norm of orbital ", iorbp, ":", nrm
+  call yaml_map('hgrid values for iscf representation', [hx, hy, hz], fmt='(f10.6)')
+  call yaml_map('number of points in iscf representation', [n1, n2, n3])
+  call yaml_map('norm of orbital'//yaml_toa(iorbp), nrm,fmt='(f12.8)')
 
   call f_free_ptr(psiscf)
   !call free_wave_to_isf(psiscf)

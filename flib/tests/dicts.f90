@@ -1,7 +1,9 @@
 !> @file
 !! Test the dictionaries of flib
+!! @example dicts.f90
+!! Some examples about dictionaries
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group <br>
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -46,9 +48,11 @@ subroutine test_dictionaries0()
   !alternative way of initializing a dictionary
   !call dict_init(dict1)
 
+!!! [Creation]
   dict1=>dict_new()
   call f_err_open_try()
-  ival=dict1//'Toto' 
+  ival=dict1//'Toto'
+!!! [Creation]
 
   call yaml_map('ival not existing, fake value',ival)
 
@@ -199,14 +203,12 @@ subroutine test_dictionaries0()
 
   call dict_free(dict1)
 
-
 !!$
 !!$  !new test, build list on-the-fly
 !!$  dict1=list_new((/ .item. 'Val1', .item. 'Val2', .item. 'Val3' ,&
 !!$       .item. 'Val4'/))
 !!$  call yaml_dict_dump(dict1)
 !!$  call dict_free(dict1)
-
   
 end subroutine test_dictionaries0
 
@@ -735,6 +737,8 @@ subroutine test_dictionary_for_atoms()
 
   !now print some double precision values to understand which is the best format
   tt=real(0.5e0,kind=8) !use a conversion from float
+  call yaml_map('Test clean_zeroes',clean_zeroes(yaml_toa('20')))
+  call yaml_map('Retest clean_zeroes',clean_zeroes(yaml_toa('20.0e+00')))
   call yaml_map('Real without format',clean_zeroes(yaml_toa('0.2000000000000000000')))
   fmts(1:len(fmts))='(1pe25.17)'
   call yaml_map('Real with format '//trim(fmts),clean_zeroes(yaml_toa(tt,fmt=fmts)))
@@ -750,11 +754,13 @@ subroutine test_dictionary_for_atoms()
   call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(i3)'
   call yaml_map('Integer with too little format '//trim(fmts),10000,fmt=fmts)
-  write(tmp,fmt=fmts,iostat=ierr)10000
+  write(tmp,fmt=fmts,iostat=ierr) 10000
   call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(f3.2)'
   call yaml_map('Float with too little format '//trim(fmts),1000.4,fmt=fmts)
-  write(tmp,fmt=fmts,iostat=ierr)1000.4
+  fmts(1:len(fmts))='(f3.0)'
+  call yaml_map('Real as integer '//trim(fmts),10.0,fmt=fmts)
+  write(tmp,fmt=fmts,iostat=ierr) 1000.4
   call yaml_map('Iostat for format',ierr)
   fmts(1:len(fmts))='(f3.2)'
   call yaml_map('Double with too little format '//trim(fmts),1000.4d0,fmt=fmts)
@@ -799,7 +805,7 @@ subroutine test_dictionary_for_atoms()
     end subroutine print_one_atom
 
     !> when str represents a real number, clean it if there are lot of zeroes after the decimal point
-    !pure 
+    !! pure 
     function clean_zeroes(str)
       implicit none
       integer, parameter:: max_value_length=95
@@ -844,7 +850,7 @@ subroutine test_f_trees()
   use f_trees
   use yaml_output
   implicit none
-  type(f_tree) :: dict1,dict2
+  type(f_tree) :: dict1
 
   !initialization
   dict1=f_tree_new()

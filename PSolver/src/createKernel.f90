@@ -16,8 +16,8 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   use yaml_strings, only: f_strcpy
   use f_precisions, only: f_loc
   implicit none
-  logical, intent(in) :: verb       !< verbosity
-  integer, intent(in) :: itype_scf
+  logical, intent(in) :: verb       !< Verbosity
+  integer, intent(in) :: itype_scf  !< Type of interpolating scaling function
   integer, intent(in) :: iproc      !< Proc Id
   integer, intent(in) :: nproc      !< Number of processes
   integer, intent(in) :: igpu
@@ -39,17 +39,15 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   !integer :: ierr
   !$ integer :: omp_get_max_threads
 
-  group_size=nproc
-  if (present(taskgroup_size)) then
-     !if the taskgroup size is not a divisor of nproc do not create taskgroups
-     if (nproc >1 .and. taskgroup_size > 0 .and. taskgroup_size < nproc .and.&
-          mod(nproc,taskgroup_size)==0) then
-        group_size=taskgroup_size
-     end if
-  end if
-     
+  
   !nullification
   kernel=pkernel_null()
+
+  !geocode and ISF family
+  kernel%geocode=geocode
+  !dimensions and grid spacings
+  kernel%ndims=ndims
+  kernel%hgrids=hgrids
 
   if (present(angrad)) then
      kernel%angrad=angrad
@@ -59,11 +57,17 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      gammat = 2.0_dp*datan(1.0_dp)
      kernel%angrad=(/alphat,betat,gammat/)
   end if
+
+
+  !old approach of input variables, before dictionary
   if (.not. present(mu0_screening)) then
      mu0t=0.0_gp
   else
      mu0t=mu0_screening
   end if
+
+
+
   kernel%mu=mu0t
 
   if (present(alg)) then
@@ -106,13 +110,8 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      call f_enum_attr(kernel%method,PS_NONE_ENUM)
   end if
 
-  !geocode and ISF family
-  kernel%geocode=geocode
   kernel%itype_scf=itype_scf
 
-  !dimensions and grid spacings
-  kernel%ndims=ndims
-  kernel%hgrids=hgrids
 
   !gpu acceleration
   kernel%igpu=igpu  
@@ -131,6 +130,16 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      end if
   end if
   
+  group_size=nproc
+  if (present(taskgroup_size)) then
+     !if the taskgroup size is not a divisor of nproc do not create taskgroups
+     if (nproc >1 .and. taskgroup_size > 0 .and. taskgroup_size < nproc .and.&
+          mod(nproc,taskgroup_size)==0) then
+        group_size=taskgroup_size
+     end if
+  end if
+
+
   !import the mpi_environment if present
   if (present(mpi_env)) then
      call copy_mpi_environment(src=mpi_env,dest=kernel%mpi_env)

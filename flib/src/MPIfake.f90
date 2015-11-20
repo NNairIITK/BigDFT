@@ -110,16 +110,21 @@ subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)
 END SUBROUTINE MPI_BARRIER
 
 
-! These routines in serial version should not be called.
-! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
-! is implemented whenever possible
+!> These routines in serial version should not be called.
+!! A stop is added when necessary, otherwise for copying routines, the corresponding copy 
+!! is implemented whenever possible
 subroutine MPI_REDUCE()
   implicit none
   stop 'MPIFAKE: REDUCE'
 END SUBROUTINE MPI_REDUCE
 
-subroutine  MPI_ALLREDUCE()
+subroutine  MPI_ALLREDUCE(i1,i2,i3,i4,op,mpi_comm,ierr)
   implicit none
+  integer :: i1,i2,i3,i4
+  integer, intent(in) :: op, mpi_comm
+  integer, intent(out) :: ierr
+  !Initialize ierr in case when MPI_ALLREDUCE is called
+  ierr = 0
   !stop 'MPIFAKE: ALLREDUCE' eliminated due to ABINIT module
 END SUBROUTINE MPI_ALLREDUCE
 
@@ -219,7 +224,7 @@ subroutine mpi_attr_get ()
   stop 'MPIFAKE: mpi_attr_get'
 END SUBROUTINE  MPI_ATTR_GET
 
-subroutine mpi_type_size ()
+subroutine mpi_type_size()
   implicit none
   stop 'MPIFAKE: mpi_type_size'
 END SUBROUTINE  MPI_TYPE_SIZE

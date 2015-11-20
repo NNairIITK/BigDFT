@@ -2,7 +2,7 @@
 !! Manage different low-level operations
 !! like operations on external files and basic operations in memory
 !! @author
-!!    Copyright (C) 2012-2014 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -66,6 +66,10 @@ module f_utils
      module procedure put_to_zero_long3
   end interface f_zero
 
+  interface f_increment
+     module procedure f_inc_i0
+  end interface f_increment
+
   !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
   interface
      pure subroutine nanosec(itime)
@@ -78,7 +82,7 @@ module f_utils
   public :: f_diff,f_file_unit,f_mkdir
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
-  public :: f_iostream_from_file,f_iostream_from_lstring
+  public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
 
 contains
@@ -86,9 +90,9 @@ contains
   subroutine f_utils_errors()
 
     call f_err_define('INPUT_OUTPUT_ERROR',&
-         'Some of intrinsic I/O fortan routines returned an error code',&
+         'Some of intrinsic I/O fortran routines returned an error code.',&
          INPUT_OUTPUT_ERROR,&
-         err_action='Check if you have correct file system permission in i/o library or check the fortan runtime library')
+         err_action='Check if you have correct file system permission in I/O library or check the fortran runtime library.')
 
   end subroutine f_utils_errors
 
@@ -244,7 +248,7 @@ contains
     unt2=unt
   end function f_get_free_unit
 
-  !>create a directory from CWD path
+  !> Create a directory from CWD path
   subroutine f_mkdir(dir,path)
     use f_precisions, only: f_integer
     implicit none
@@ -488,6 +492,20 @@ contains
     ios%iunit = 0
     nullify(ios%lstring)
   end subroutine f_iostream_release
+  
+  !>increment a integer, to be used in low-performance routines
+  !to improve readability
+  pure elemental subroutine f_inc_i0(i,inc)
+    implicit none
+    integer, intent(inout) :: i
+    integer, intent(in), optional :: inc
+    !local variables
+    integer :: inc_
+
+    inc_=1
+    if (present(inc))inc_=inc
+    i=i+inc_
+  end subroutine f_inc_i0
 
   !>perform a difference of two objects (of similar kind)
   subroutine f_diff_i(n,a_add,b_add,diff)

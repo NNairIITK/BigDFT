@@ -1,5 +1,7 @@
 !> @file
 !! Test yaml_output module
+!! @example yaml_test.f90
+!! Extensive tests about yaml output generations
 !! @author
 !!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
@@ -39,6 +41,7 @@ program yaml_test
    type(yaml_cl_parse) :: parser
 
    call f_lib_initialize()
+!   call yaml_set_stream(record_length=92)
    !test output level
    call f_malloc_set_status(output_level=2,logfile_name='memstatus.yaml')
 
@@ -63,8 +66,6 @@ program yaml_test
         'sandbox to test the I/O of point multipoles','m',&
         dict_new('Usage' .is. &
         'Just to test the format of the multipoles'))
-
-
 
    !verify the parsing
    call yaml_cl_parse_cmd_line(parser)
@@ -214,6 +215,11 @@ program yaml_test
 
    !prepare the finalization of the library
    call f_lib_finalize()
+
+  call f_lib_initialize()
+  !Finalize without report
+  call f_lib_finalize_noreport()
+
 
 end program yaml_test
 

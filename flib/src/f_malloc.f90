@@ -21,8 +21,7 @@ module module_f_malloc
   private
 
   integer, parameter, public :: f_kind=f_long
-  !>global parameter of the module telling if the profile has to be activated
-  !! this parameter can be modified only by dynamic memory module
+                                      !! this parameter can be modified only by dynamic memory module
   integer(f_integer), parameter, public :: f_malloc_namelen=32          !< length of the character variables
   integer, parameter :: max_rank=7          !< maximum rank in fortran
 

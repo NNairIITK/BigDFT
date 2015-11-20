@@ -67,12 +67,15 @@ bigdft-tool -a atomic-wf [options]:
 - @link pseudo.f90 pseudo @endlink The pseudopotential generation tool
 
 @section D Documentation
-This documentation can be generated in the <tt>doc</tt> directory by typing <tt>make doxygen-doc</tt> using the tool
-doxygen. We describe the main rule to develop this documentation in the page 
+This documentation can be generated in the <tt>doc</tt> directory by typing<br>
+<tt>make doxygen-doc</tt><br>
+using the tool doxygen. 
+We describe the main rule to develop this documentation in the page 
 @ref DOCUMENTATION "Developing the BigDFT documentation and some coding rules".
 
 @author
-     Copyright (C) 2008-2013 BigDFT Group
+@parblock
+     Copyright (C) 2008-2015 BigDFT Group
 
      This file is part of BigDFT.
 
@@ -90,10 +93,5 @@ doxygen. We describe the main rule to develop this documentation in the page
      along with this program; see the file COPYING. If not, write to
      the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
-
-
-@defgroup RESERVED Reserved Names of some common arguments
-@brief Convention of naming for some common arguments
-@details
-Some common names of arguments of routines are reserved.
+@endparblock
 */

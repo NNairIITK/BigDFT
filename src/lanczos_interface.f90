@@ -1613,6 +1613,7 @@ contains
        energs,xc,nspin,GPU,in_iat_absorber,&
        in , PAWD , orbs )! add to interface
     use module_base
+    use module_dpbox, only: denspot_distribution
     use module_types
     use module_xc
     use lanczos_base
@@ -1762,6 +1763,7 @@ contains
        energs,xc,nspin,GPU,in_iat_absorber,in, PAWD , orbs  )
 
     use module_base
+    use module_dpbox, only: denspot_distribution
     use module_types
     use module_xc
     use lanczos_base
@@ -1997,6 +1999,7 @@ contains
        energs,xc,nspin,GPU,in_iat_absorber,&
        in , rhoXanes, PAWD , PPD, orbs )
     use module_base
+    use module_dpbox, only: denspot_distribution
     use module_types
     use lanczos_base
     use module_xc

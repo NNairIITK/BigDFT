@@ -5,9 +5,19 @@
 @page NEWS News about BigDFT
 @brief History of the BigDFT project
 
++ 2014-11-02 Version 1.7.6
+  New stable production version of BigDFT code
+  Improve robustness of order N part
++ 2014-07-18 Version 1.7.5
+  Towards 1.8: Flib fully used
++ 2013/12/13 Version 1.7.1
 + 2013/06/26 Version 1.7.0.31
-  Give dev naming and use 1.7.0.31 (nano numebering)
+  Give dev naming and use 1.7.0.31 (nano numbering)
   - Flib library stabilized
++ 2013/02/21 
+  Creation of bigdft.org website
++ 2013/02/13 
+  Use Launchpad website for bug report
 + 2012/11/22 
   Creation of the master branch
 + 2012/08/30 

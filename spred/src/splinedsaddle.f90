@@ -26,7 +26,7 @@ program splined_saddle
   !character(len=60) :: run_id
   !character(len=60) :: filename
   ! atomic coordinates, forces
-!!$  integer :: iconfig,nconfig
+  ! integer :: iconfig,nconfig
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
   !integer, dimension(4) :: mpi_info
   type(dictionary), pointer :: run,options

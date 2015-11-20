@@ -31,6 +31,7 @@ module f_input_file
   character(len = *), parameter :: DEFAULT = "default"
   character(len = *), parameter :: COND = "CONDITION"
   character(len = *), parameter :: WHEN = "WHEN"
+  character(len = *), parameter :: WHEN_NOT = "WHEN_NOT"
   character(len = *), parameter :: MASTER_KEY = "MASTER_KEY"
   character(len = *), parameter :: IMPORT_KEY = "import"
 
@@ -87,19 +88,20 @@ contains
 
   end subroutine input_file_errors
 
+
   !> Check and complete input file
   subroutine input_file_complete(inputdef,dict,imports,nocheck)
     use dynamic_memory
     use yaml_output
     implicit none
-    !> dictionary of input definitions
+    !> Dictionary of input definitions
     type(dictionary), pointer :: inputdef
-    !>dictionary of the input files
+    !> Dictionary of the input files
     type(dictionary), pointer :: dict
-    !>list of the keys which should not be checked
+    !> List of the keys which should not be checked
     type(dictionary), pointer, optional :: nocheck
-    !>dictionary of the preloaded input parameters associated to the importing
-    !!for the input file
+    !> Dictionary of the preloaded input parameters associated to the importing
+    !! for the input file
     type(dictionary), pointer, optional :: imports
 
     !local variables
@@ -179,8 +181,6 @@ contains
        if (.not.set_(dict, ref)) then
           !to see if the f_release_routine has to be controlled automatically
           ! call f_release_routine() !to be called before raising the error
-!!$       if (f_err_raise(.not.set_(dict, ref), err_id = INPUT_VAR_ILLEGAL, &
-!!$            & err_msg = trim(file) // "/" // trim(key) // " is not allowed in this context.")) then
           call f_err_throw(err_id = INPUT_VAR_ILLEGAL, &
                err_msg = trim(file) // "/" // trim(key) // " is not allowed in this context.")
           return
@@ -199,25 +199,33 @@ contains
 !!$             rg(2) = ref // RANGE // 1
              rg = ref // RANGE
              call validate(dict // key, key, rg)
-          else if (has_key(ref, EXCLUSIVE)) then
+!!$          else if (has_key(ref, EXCLUSIVE)) then
+!!$             failed_exclusive => ref // EXCLUSIVE
+!!$             allocate(keys(dict_size(failed_exclusive)))
+!!$             keys = dict_keys(failed_exclusive)
+!!$             found = .false.
+!!$             skeys = size(keys)
+!!$             do i = 1, skeys, 1
+!!$                found = trim(val) .eqv. trim(keys(i))
+!!$                if (found) exit
+!!$             end do
+!!$             deallocate(keys)
+!!$             if (.not. found) then
+!!$                call f_err_throw(err_id = INPUT_VAR_NOT_IN_LIST, &
+!!$                     err_msg = trim(key) // " = '" // trim(val) //&
+!!$                     "' is not allowed, see above the allowed values.")
+!!$                nullify(failed_exclusive)
+!!$                return
+!!$             end if
+          else if (EXCLUSIVE .in. ref) then
              failed_exclusive => ref // EXCLUSIVE
-             allocate(keys(dict_size(failed_exclusive)))
-             keys = dict_keys(failed_exclusive)
-             found = .false.
-             skeys = size(keys)
-             do i = 1, skeys, 1
-                found = trim(val) .eqv. trim(keys(i))
-                if (found) exit
-             end do
-             deallocate(keys)
-             if (.not. found) then
+             if (val .notin. failed_exclusive) then
                 call f_err_throw(err_id = INPUT_VAR_NOT_IN_LIST, &
                      err_msg = trim(key) // " = '" // trim(val) //&
                      "' is not allowed, see above the allowed values.")
                 nullify(failed_exclusive)
                 return
              end if
-
           end if
        end if
     else
@@ -259,24 +267,36 @@ contains
       logical :: set_
 
       integer :: j
-      type(dictionary), pointer :: tmp
+      type(dictionary), pointer :: tmp,tmp0,tmp_not
       character(max_field_length) :: mkey, val_master, val_when
 
-      set_ = .true.
-      if (has_key(ref, COND)) then
-         mkey = ref // COND // MASTER_KEY
-         if (.not. has_key(dict, mkey)) then
-            set_ = .false.
-            return
-         end if
-         val_master = dict // mkey
-         set_ = .false.
-         tmp => ref // COND // WHEN
-         do j = 0, dict_len(tmp) - 1, 1
-            val_when = tmp // j
-            set_ = set_ .or. (trim(val_master) .eqv. trim(val_when))
-         end do
-      end if
+!!$      set_ = .true.
+!!$      if (has_key(ref, COND)) then
+!!$         mkey = ref // COND // MASTER_KEY
+!!$         if (.not. has_key(dict, mkey)) then
+!!$            set_ = .false.
+!!$            return
+!!$         end if
+!!$         val_master = dict // mkey
+!!$         set_ = .false.
+!!$         tmp => ref // COND // WHEN
+!!$         do j = 0, dict_len(tmp) - 1, 1
+!!$            val_when = tmp // j
+!!$            set_ = set_ .or. (trim(val_master) .eqv. trim(val_when))
+!!$         end do
+!!$      end if
+
+      set_ = COND .notin. ref
+      if (set_) return !there are no conditions on the reference variable
+      tmp0 => ref // COND
+      mkey = tmp0 // MASTER_KEY
+      set_ = mkey .in. dict
+      if (.not. set_) return !the variable is not present, not coherent
+      val_master = dict // mkey
+      tmp = tmp0 .get. WHEN
+      tmp_not = tmp0 .get. WHEN_NOT
+      set_ = (val_master .in. tmp) .and. (val_master .notin. tmp_not)
+
     end function set_
 
     recursive subroutine validate(dict, key, rg)
@@ -535,20 +555,20 @@ contains
 
 
   !> This routine is used to create a minimal dictionary which can be used at the place 
-  !! of the one provided as an indication on the understood variables
+  !! of the one provided as an indication on the understood variables in inputdef
   subroutine input_file_minimal(inputdef,dict,minimal,nested,as_is)
     use dynamic_memory
     use dictionaries
     use yaml_output
     implicit none
-    !> dictionaries of the input definitions
-    type(dictionary), pointer :: inputdef
-    !> user input file
-    type(dictionary), pointer, intent(in) :: dict
-    type(dictionary), pointer, intent(in) :: as_is,nested
-    type(dictionary), pointer, intent(out) :: minimal
-    !> list of keys that remain which require special treatments
-    !local variables
+    !Arguments
+    type(dictionary), pointer :: inputdef             !< Dictionary of the input definitions
+    type(dictionary), pointer, intent(in) :: dict     !< User input file
+    type(dictionary), pointer, intent(in) :: as_is    !< Add keys in as_is and not in inputdef
+    type(dictionary), pointer, intent(in) :: nested   !< Add other keys (extracted by subcategories of nested elements)
+    type(dictionary), pointer, intent(out) :: minimal !< List of keys in dict that remain which require special treatments
+                                                      !! which are also in inputdef (with different values) or in as_is
+    !Local variables
     type(dictionary), pointer :: dict_tmp,min_cat,dict_tmp0
     character(len=max_field_length) :: category,category0
     logical :: cat_found
@@ -787,7 +807,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict   !< Dictionary to dump
     logical, intent(in), optional :: userOnly
-    !>message to be written as comment in the beginning
+    !> Message to be written as comment in the beginning
     !! do not write anything if present and empty
     character(len=*), intent(in), optional :: msg
     type(dictionary), pointer, optional :: nodump_list !<list containing keys not to dump
@@ -795,10 +815,7 @@ contains
     !local variables
     integer, parameter :: natoms_dump=500
     logical :: userOnly_,todump
-!!$    integer :: i, dlen, skeys,natoms
-!!$    character(max_field_length), dimension(:), allocatable :: keys
-!!$    character(max_field_length) ::  sourcefile
-!!$    type(dictionary), pointer :: tmp
+
     type(dictionary), pointer :: iter
 
     userOnly_ = .false.
