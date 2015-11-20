@@ -50,7 +50,7 @@ module pexsi
       !> @file f_driver_ksdft.f90
       !> @brief FORTRAN version of the driver for solving KSDFT.
       !> @date 2014-04-02
-      subroutine f_driver_ksdft(Hfile, Sfile, charge, nsize_kernel, kernel, energy)
+      subroutine f_driver_ksdft(Hfile, Sfile, charge, npoles, nsize_kernel, kernel, energy)
       use module_base
       use f_ppexsi_interface
       use iso_c_binding
@@ -60,7 +60,7 @@ module pexsi
       ! Calling arguments
       character(len=*),intent(in) :: Hfile, Sfile
       real(kind=8),intent(in) :: charge
-      integer,intent(in) :: nsize_kernel
+      integer,intent(in) :: npoles, nsize_kernel
       real(kind=8),dimension(nsize_kernel),intent(out) :: kernel
       real(kind=8),intent(out) :: energy
       
@@ -200,7 +200,7 @@ module pexsi
       options%muMax0   = 1.5d0 
       options%mu0      = 1.0d0
       options%deltaE   = 20d0 
-      options%numPole  = 60
+      options%numPole  = npoles
       options%temperature = 0.005d0   ! 3000 K
       options%muPEXSISafeGuard = 0.2d0
       options%numElectronPEXSITolerance = 1d-3

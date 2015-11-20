@@ -943,21 +943,18 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
   !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
 
-  if (input%lin%scf_mode==LINEAR_FOE) then
-      call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
+  if (input%lin%scf_mode==LINEAR_FOE .or. input%lin%scf_mode==LINEAR_PEXSI) then
+      call get_coeff(iproc,nproc,input%lin%scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
-   else if (input%lin%scf_mode==LINEAR_PEXSI) then
-      call get_coeff(iproc,nproc,LINEAR_PEXSI,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
-           input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
-           input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor,&
+           input%lin%pexsi_npoles)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
+           input%lin%pexsi_npoles)
 
       !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)

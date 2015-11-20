@@ -11,7 +11,7 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
-    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
+    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,pexsi_npoles,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
   use module_base
   use module_types
@@ -61,6 +61,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(work_mpiaccumulate),intent(inout) :: energs_work
   logical,intent(in) :: remove_coupling_terms
   real(kind=8), intent(in) :: factor
+  integer,intent(in) :: pexsi_npoles
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
   real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -520,7 +521,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call write_pexsi_matrices(nproc, tmb%linmat%m, tmb%linmat%s, tmb%linmat%ham_%matrix_compr, tmb%linmat%ovrlp_%matrix_compr)
           ! AT the moment not working for nspin>1
           call f_driver_ksdft('hamiltonian_sparse_PEXSI.bin', 'overlap_sparse_PEXSI.bin', &
-               foe_data_get_real(tmb%foe_obj,"charge",1), tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr, energs%ebs)
+               foe_data_get_real(tmb%foe_obj,"charge",1), pexsi_npoles, &
+               tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr, energs%ebs)
       else if (scf_mode==LINEAR_FOE) then
           call fermi_operator_expansion(iproc, nproc, tmprtr, &
                energs%ebs, order_taylor, max_inversion_error, purification_quickreturn, &

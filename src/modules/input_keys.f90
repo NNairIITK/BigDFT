@@ -127,6 +127,7 @@ module module_input_keys
      integer :: frag_num_neighbours   !< number of neighbouring atoms per fragment
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
+     integer :: pexsi_npoles !< number of poles used by PEXSI
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
   end type linearInputParameters
 
@@ -2119,6 +2120,8 @@ contains
           in%lin%fscale = val
        case (COEFF_SCALING_FACTOR) 
           in%lin%coeff_factor = val
+       case (PEXSI_NPOLES)
+          in%lin%pexsi_npoles = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

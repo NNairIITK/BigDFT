@@ -1841,6 +1841,11 @@
                     or systems where convergence is unstable.
        default: 1.0
        RANGE: [0.0,1.e1]
+     pexsi_npoles:
+       COMMENT: number of poles used by PEXSI
+       DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
+       default: 40
+       RANGE: [20,200]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
