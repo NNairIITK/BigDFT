@@ -1793,10 +1793,12 @@
                      * DIRMIN => direct minimization
                      * DIAG => diagonalization with density mixing
                      * FOE => Fermi Operator Expansion
+                     * PEXSI => PEXSI library
        EXCLUSIVE:
          DIRMIN: direct minimization
          DIAG: diagonalization
          FOE: Fermi Operator Expansion
+         PEXSI: external PEXSI lbrary
        default: DIAG
      mixing_method:
        COMMENT: quantity to be mixed

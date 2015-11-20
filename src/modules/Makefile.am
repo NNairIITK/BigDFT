@@ -100,6 +100,8 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	locregs_init.f90 \
 	sort.f90 \
 	forces_linear.f90 \
+	pexsi.f90 \
+	f_interface.f90 \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -168,8 +170,10 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_MORSE_BULK.@MODULE_EXT@\
 	MODULE_TERSOFF.@MODULE_EXT@\
 	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
-        MODULE_DFTBP.@MODULE_EXT@ \
+    MODULE_DFTBP.@MODULE_EXT@ \
 	ORBITALBASIS.@MODULE_EXT@ \
+	F_PPEXSI_INTERFACE.@MODULE_EXT@ \
+	PEXSI.@MODULE_EXT@ \
 	MODULE_CP2K.@MODULE_EXT@
 else
 modules = module_types.@MODULE_EXT@ \
@@ -232,7 +236,9 @@ modules = module_types.@MODULE_EXT@ \
 	module_bornmayerhugginstosifumi.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@ \
 	orbitalbasis.@MODULE_EXT@ \
-        module_dftbp.@MODULE_EXT@ \
+    module_dftbp.@MODULE_EXT@ \
+	f_ppexsi_interface.@MODULE_EXT@ \
+	pexsi.@MODULE_EXT@ \
 	module_cp2k.@MODULE_EXT@
 else
 

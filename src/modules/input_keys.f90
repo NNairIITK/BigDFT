@@ -2096,6 +2096,8 @@ contains
              in%lin%kernel_mode = KERNELMODE_DIAG
           case('FOE')
              in%lin%kernel_mode = KERNELMODE_FOE
+          case('PEXSI')
+             in%lin%kernel_mode = KERNELMODE_PEXSI
           end select
        case (MIXING_METHOD)
           dummy_char = val
@@ -2597,6 +2599,8 @@ contains
        end select
     case (KERNELMODE_FOE)
        in%lin%scf_mode = LINEAR_FOE
+    case (KERNELMODE_PEXSI)
+       in%lin%scf_mode = LINEAR_PEXSI
     case default
        call f_err_throw('wrong value of in%lin%kernel_mode',&
             err_name='BIGDFT_INPUT_VARIABLES_ERROR')

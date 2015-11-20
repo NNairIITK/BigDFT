@@ -1753,7 +1753,6 @@ module postprocessing_linear
       real(kind=8),dimension(:),allocatable :: alpha_calc
       character(len=*),parameter :: mode='old'
 
-
       call f_routine(id='projector_for_charge_analysis')
 
 
@@ -2241,6 +2240,12 @@ module postprocessing_linear
                   !end do
     
                   ! Calculate ktilde * proj
+                  write(*,*) 'ktilde'
+                  do i=1,n
+                      write(*,'(10es9.2)') ktilde(i,1:n)
+                  end do
+                  !!write(*,*) 'WARNING: COPY KHACK TO KTILDE'
+                  !!ktilde = khack(1:7,1:7,kat)
                   call gemm('n', 'n', n, n, n, 1.d0, ktilde(1,1), n, proj(1,1), n, 0.d0, kp(1,1), n)
                   tt = 0
                   do i=1,n

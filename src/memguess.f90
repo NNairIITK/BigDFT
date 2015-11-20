@@ -171,7 +171,7 @@ program memguess
       write(*,'(1x,a)')&
            &   '"analyse-coeffs" <coeff.bin>" ' 
       write(*,'(1x,a)')&
-           & 'analyse the coefficients by assiging them in to ncategories categories'
+           & 'analyse the coefficients by assigning them in to ncategories categories'
       write(*,'(1x,a)')&
            &   '"peel-matrix" <matrix.bin>" ' 
       write(*,'(1x,a)')&
@@ -1006,6 +1006,7 @@ program memguess
        call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
        call f_close(iunit01)
        call diagonalizeHamiltonian2(iproc, ntmb, ham, overlap, eval)
+       !write(*,*) '2.d0*sum(eval(1:4))',2.d0*sum(eval(1:4))
        call f_open_file(iunit01, file=trim(coeff_file), binary=.false.)
        call writeLinearCoefficients(iunit01, .true., nat, rxyz, &
             ntmb, ntmb, ntmb, ham, eval)

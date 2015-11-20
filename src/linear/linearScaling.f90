@@ -3043,7 +3043,8 @@ end if
            ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
            ! switch off for FOE at the moment
            ! switch off for directmin too, unless we decide to reactivate calculating the expectation values the output is meaningless
-           if (input%lin%scf_mode/=LINEAR_FOE .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+           if (input%lin%scf_mode/=LINEAR_FOE .and. input%lin%scf_mode/=LINEAR_PEXSI .and. &
+               input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
                !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
                ! Copy the spin up eigenvalues (or all in the case of a non-polarized calculation)
                call vcopy(kswfn%orbs%norbu,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
@@ -3299,12 +3300,14 @@ end if
               call yaml_map('kernel method','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
               call yaml_map('kernel method','FOE')
+          else if (input%lin%scf_mode==LINEAR_PEXSI) then
+              call yaml_map('kernel method','PEXSI')
           else
               call yaml_map('kernel method','DIAG')
           end if
 
           if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or.  input%lin%scf_mode==LINEAR_FOE &
-              .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+              .or. input%lin%scf_mode==LINEAR_PEXSI .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
               call yaml_map('mix entity','DENS')
           else if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
               call yaml_map('mix entity','POT')

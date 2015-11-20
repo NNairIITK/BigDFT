@@ -710,7 +710,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
              ! Pulay mixing
              linear_iscf = 7
          end if
-     case (LINEAR_FOE)
+     case (LINEAR_FOE,LINEAR_PEXSI)
          if (in%lin%mixHist_lowaccuracy==0) then
              ! simple mixing
              linear_iscf = 12

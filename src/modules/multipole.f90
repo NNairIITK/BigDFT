@@ -177,9 +177,9 @@ module multipole
           !sigma(0) = 7.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
           !sigma(1) = 7.d0*hhh**(1.d0/3.d0)
           !sigma(2) = 7.d0*hhh**(1.d0/3.d0)
-          sigma(0) = 1.d0
-          sigma(1) = 1.d0
-          sigma(2) = 1.d0
+          sigma(0) = 1.0d0
+          sigma(1) = 1.0d0
+          sigma(2) = 0.3d0
     
           density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
           
@@ -364,10 +364,11 @@ module multipole
                  ry = ep%mpl(impl)%rxyz(2) - shift(2)
                  rz = ep%mpl(impl)%rxyz(3) - shift(3)
                  !write(*,*) 'nelpsp(impl)',nelpsp(impl)
-                 call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
-                      rx, ry, rz, &
-                      psppar(0,0,impl), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
-                      denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density(is1:,is2:,is3:), rholeaked)
+          write(*,*) 'WARNING: GAUSSIAN_DENSITY COMMENTED!!!'
+          !       call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
+          !            rx, ry, rz, &
+          !            psppar(0,0,impl), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
+          !            denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density(is1:,is2:,is3:), rholeaked)
              end if
          end do
           do i3=is3,ie3
@@ -459,6 +460,8 @@ module multipole
                                               ttt = qq*&
                                                     spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
                                               !ttt = qq*&
+                                              !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg*4.d0*pi_param
+                                              !ttt = qq*&
                                               !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))**2
                                               !if (l==0) then
                                               !    ttt = ttt/sqrt(3.d0)
@@ -468,6 +471,7 @@ module multipole
                                               !    ttt = ttt/sqrt(7.d0)
                                               !end if
                                               ttt = ttt/get_normalization(rmax(impl), l, m)!*(0.5d0*sqrt(1/pi_param))
+                                              !ttt = ttt*get_normalization(rmax(impl), l, m)*4.d0*pi_param!*(0.5d0*sqrt(1/pi_param))
                                               !ttt = ttt*get_normalization(rmax(impl), l, m)!*sqrt(4.d0*pi_param)
                                               !ttt = ttt**2!*get_normalization(rmax(impl), l, m)!*sqrt(4.d0*pi_param)
                                               tt = tt + ttt
@@ -562,6 +566,9 @@ module multipole
                   end do
               end do
           end do
+          call plot_density(iproc,nproc,'data'//'multipoles'//'.cube',&
+                        at,at%astruct%rxyz,denspot%pkernel,1,density)
+
           !write(*,*) 'DEBUG: tt',tt
           
           if (nproc>1) then
@@ -1853,7 +1860,7 @@ module multipole
           r = sqrt(x**2+y**2+z**2)
           !r = 1.d0
           ! fix for small r (needs proper handling later...)
-          if (r==0.d0) r=1.d-20
+          if (r<1.d-3) r=1.d-3
           select case (m)
           case (-1)
               !sh = sqrt(4*pi/3.d0)*sqrt(3.d0/(4.d0*pi))*y/r
@@ -1872,8 +1879,10 @@ module multipole
               !if (.not. with_r) sh = sh/r
           end select
           ! Multiply by r^{r_exp*l}
+          if (r<1.d0) write(*,*) 'BEFORE: r, m, sh', r, m, sh
           sh = sh*r**r_exponent
           !sh = sh/r
+          if (r<1.d0) write(*,*) 'AFTER: r, m, sh, x, y, z', r, m, sh, x, y, z
       case (2)
           rnorm = sqrt(rmax**7/7.d0)
           !rnorm = sqrt(rmax**3/3.d0)
@@ -1881,7 +1890,7 @@ module multipole
           r2 = x**2+y**2+z**2
           !r2=1.d0
           ! fix for small r2 (needs proper handling later...)
-          if (r2==0.d0) r2=1.d-20
+          if (r2==0.d0) r2=1.d-12
           select case (m)
           case (-2)
               !sh = sqrt(4.d0*pi/5.d0)*0.5d0*sqrt(15.d0/pi)*x*y/r2
@@ -1913,6 +1922,10 @@ module multipole
           sh = sh*r2**r_exponent
           !sh = sh/r2
       end select
+
+      if (abs(sh)>10.d0) then
+          write(*,*) 'LARGE VALUE', sh
+      end if
 
     end function spherical_harmonic
 
@@ -1970,6 +1983,40 @@ module multipole
       !real(kind=8),dimension(3) :: com
       real(kind=8) :: dnrm2
       !real(kind=8) :: rmax
+      real(kind=8),dimension(7,7,4) :: khack
+
+ khack(1:7,1,1) = (/ 2.00E+00,-1.31E-04,-3.27E-05,-5.84E-08,-5.84E-08, 7.84E-05,-6.15E-09/)
+ khack(1:7,2,1) = (/-1.31E-04, 5.91E-01,-3.51E-01,-6.28E-04,-6.28E-04, 8.43E-01,-6.61E-05/)
+ khack(1:7,3,1) = (/-3.27E-05,-3.51E-01, 1.91E+00,-1.56E-04,-1.56E-04, 2.10E-01,-1.65E-05/)
+ khack(1:7,4,1) = (/-5.84E-08,-6.28E-04,-1.56E-04, 2.00E+00,-2.80E-07, 3.76E-04,-2.95E-08/)
+ khack(1:7,5,1) = (/-5.84E-08,-6.28E-04,-1.56E-04,-2.80E-07, 2.00E+00, 3.76E-04,-2.95E-08/)
+ khack(1:7,6,1) = (/ 7.84E-05, 8.43E-01, 2.10E-01, 3.76E-04, 3.76E-04, 1.50E+00, 3.95E-05/)
+ khack(1:7,7,1) = (/-6.15E-09,-6.61E-05,-1.65E-05,-2.95E-08,-2.95E-08, 3.95E-05, 2.00E+00/)
+
+ khack(1:7,1,2) = (/  2.00E+00,-1.31E-04,-3.27E-05,-5.84E-08,-5.84E-08, 7.84E-05,-6.15E-09/)
+ khack(1:7,2,2) = (/ -1.31E-04, 5.91E-01,-3.51E-01,-6.28E-04,-6.28E-04, 8.43E-01,-6.61E-05/)
+ khack(1:7,3,2) = (/ -3.27E-05,-3.51E-01, 1.91E+00,-1.56E-04,-1.56E-04, 2.10E-01,-1.65E-05/)
+ khack(1:7,4,2) = (/ -5.84E-08,-6.28E-04,-1.56E-04, 2.00E+00,-2.80E-07, 3.76E-04,-2.95E-08/)
+ khack(1:7,5,2) = (/ -5.84E-08,-6.28E-04,-1.56E-04,-2.80E-07, 2.00E+00, 3.76E-04,-2.95E-08/)
+ khack(1:7,6,2) = (/  7.84E-05, 8.43E-01, 2.10E-01, 3.76E-04, 3.76E-04, 1.50E+00, 3.95E-05/)
+ khack(1:7,7,2) = (/ -6.15E-09,-6.61E-05,-1.65E-05,-2.95E-08,-2.95E-08, 3.95E-05, 2.00E+00/)
+
+ khack(1:7,1,3) = (/  2.00E+00,-1.31E-04,-3.27E-05,-5.84E-08,-5.84E-08, 7.84E-05,-6.15E-09/)
+ khack(1:7,2,3) = (/ -1.31E-04, 5.91E-01,-3.51E-01,-6.28E-04,-6.28E-04, 8.43E-01,-6.61E-05/)
+ khack(1:7,3,3) = (/ -3.27E-05,-3.51E-01, 1.91E+00,-1.56E-04,-1.56E-04, 2.10E-01,-1.65E-05/)
+ khack(1:7,4,3) = (/ -5.84E-08,-6.28E-04,-1.56E-04, 2.00E+00,-2.80E-07, 3.76E-04,-2.95E-08/)
+ khack(1:7,5,3) = (/ -5.84E-08,-6.28E-04,-1.56E-04,-2.80E-07, 2.00E+00, 3.76E-04,-2.95E-08/)
+ khack(1:7,6,3) = (/  7.84E-05, 8.43E-01, 2.10E-01, 3.76E-04, 3.76E-04, 1.50E+00, 3.95E-05/)
+ khack(1:7,7,3) = (/ -6.15E-09,-6.61E-05,-1.65E-05,-2.95E-08,-2.95E-08, 3.95E-05, 2.00E+00/)
+
+ khack(1:7,1,4) = (/  2.00E+00,-1.31E-04,-3.27E-05,-5.84E-08,-5.84E-08, 7.84E-05,-6.15E-09/)
+ khack(1:7,2,4) = (/ -1.31E-04, 5.91E-01,-3.51E-01,-6.28E-04,-6.28E-04, 8.43E-01,-6.61E-05/)
+ khack(1:7,3,4) = (/ -3.27E-05,-3.51E-01, 1.91E+00,-1.56E-04,-1.56E-04, 2.10E-01,-1.65E-05/)
+ khack(1:7,4,4) = (/ -5.84E-08,-6.28E-04,-1.56E-04, 2.00E+00,-2.80E-07, 3.76E-04,-2.95E-08/)
+ khack(1:7,5,4) = (/ -5.84E-08,-6.28E-04,-1.56E-04,-2.80E-07, 2.00E+00, 3.76E-04,-2.95E-08/)
+ khack(1:7,6,4) = (/  7.84E-05, 8.43E-01, 2.10E-01, 3.76E-04, 3.76E-04, 1.50E+00, 3.95E-05/)
+ khack(1:7,7,4) = (/ -6.15E-09,-6.61E-05,-1.65E-05,-2.95E-08,-2.95E-08, 3.95E-05, 2.00E+00/)
+
 
       !! Check that rmax does remains within the box.
       !if (rmax>=0.5d0*(0.5d0*hgrids(1)*maxval(n1i)+0.5d0*hgrids(2)*maxval(n2i)+0.5d0*hgrids(3)*maxval(n3i))) then
@@ -2059,6 +2106,12 @@ module multipole
                                       !sphi(i1,i2,i3,m,l,iiorb) = factor_normalization*tt*phi1(i1,i2,i3,iiorb)
                                       !norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
                                       sphi(i1,i2,i3,m,l,iiorb) = tt*phi1(i1,i2,i3,iiorb)
+                                      if (iat==1 .and. abs(x)<1.d0 .and. abs(y)<1.d0) then
+                                          write(*,*) 'with S: l, m, x, y, z, val', &
+                                                      l, m, x, y, z, sphi(i1,i2,i3,m,l,iiorb)*phi2(i1,i2,i3,iiorb)
+                                          write(*,*) 'pure: l, m, x, y, z, val', &
+                                                      l, m, x, y, z, phi2(i1,i2,i3,iiorb)**2
+                                      end if
                                       !sphi(i1,i2,i3,m,l,iiorb) = tt**2*phi1(i1,i2,i3,iiorb)
                                       !sphi(i1,i2,i3,m,l,iiorb) = phi1(i1,i2,i3,iiorb)
                                       !norm(m,l) = norm(m,l) + tt**2
@@ -2132,6 +2185,7 @@ module multipole
                           !tt = tt/((get_normalization(rmax,0,0))**1)
                           tt = tt/((get_normalization(rmax(iiat),l,m))**1)
                           multipoles(m,l,iiat) = multipoles(m,l,iiat) + matrix_compr(ind)*tt
+                          !multipoles(m,l,iiat) = multipoles(m,l,iiat) + khack(jjorb,iiorb,iat)*tt
                           tt2 = ddot(n1i(iilr)*n2i(iilr)*n3i(iilr), phi1(1,1,1,iorb), 1, phi2(1,1,1,jorb), 1)
                           !tt = tt*real(ii,kind=8)
                           !write(*,'(a,5i8,2es16.8)') 'iproc, l, m, iorb, jorb, ddots', &

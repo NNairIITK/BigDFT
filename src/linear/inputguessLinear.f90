@@ -598,7 +598,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   if (input%lin%mixing_after_inputguess==0 .or.  input%lin%mixing_after_inputguess==1) then
       if(input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE &
-           .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+           .or. input%lin%scf_mode==LINEAR_PEXSI .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
           call vcopy(max(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*denspot%dpbox%n3d,1)*input%nspin, denspot%rhov(1), 1, rhopotold(1), 1)
           ! initial setting of the old charge density
           call mix_rhopot(iproc,nproc,denspot%mix%nfft*denspot%mix%nspden,0.0d0,denspot%mix,&
@@ -948,6 +948,11 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
+   else if (input%lin%scf_mode==LINEAR_PEXSI) then
+      call get_coeff(iproc,nproc,LINEAR_PEXSI,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
+           input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
+           input%purification_quickreturn,&
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
@@ -998,7 +1003,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!!call plot_density(iproc,nproc,'initial',at,rxyz,denspot%dpbox,input%nspin,denspot%rhov)
 
   ! Mix the density.
-  if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. input%lin%scf_mode==LINEAR_FOE) then
+  if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or. &
+      input%lin%scf_mode==LINEAR_FOE .or. input%lin%scf_mode==LINEAR_PEXSI) then
       if (input%lin%mixing_after_inputguess==1) then
          !!if (input%experimental_mode) then
          !!    !if (iproc==0) write(*,*) 'WARNING: TAKE 1.d0 MIXING PARAMETER!'

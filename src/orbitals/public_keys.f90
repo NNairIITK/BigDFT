@@ -446,9 +446,11 @@ module public_enums
   integer, parameter, public :: LINEAR_MIXDENS_SIMPLE=101
   integer, parameter, public :: LINEAR_MIXPOT_SIMPLE=102
   integer, parameter, public :: LINEAR_FOE=103
+  integer, parameter, public :: LINEAR_PEXSI=104
   integer, parameter, public :: KERNELMODE_DIRMIN = 10
   integer, parameter, public :: KERNELMODE_DIAG = 11
   integer, parameter, public :: KERNELMODE_FOE = 12
+  integer, parameter, public :: KERNELMODE_PEXSI = 13
   integer, parameter, public :: MIXINGMODE_DENS = 20
   integer, parameter, public :: MIXINGMODE_POT = 21
   integer,parameter, public :: FOE_ACCURATE = 30
