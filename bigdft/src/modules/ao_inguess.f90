@@ -12,7 +12,7 @@
 !> Handling of input guess creation from basis of atomic orbitals
 module ao_inguess
   use module_base, only: gp,f_err_raise,f_zero,f_err_throw,bigdft_mpi
-  use psp_projectors, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
+  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC, PSPCODE_PAW
 
   implicit none
 
@@ -44,7 +44,7 @@ module ao_inguess
   end type aoig_data
 
 
-  public :: atomic_info
+  public :: atomic_info, atomic_z
   public :: iguess_generator,count_atomic_shells,print_eleconf
   public :: ao_nspin_ig,ao_ig_charge,aoig_set_from_dict,aoig_set,aoig_data_null
   public :: set_aocc_from_string,charge_and_spol
@@ -68,7 +68,7 @@ contains
 
   !> Control the variables associated to the spin
   subroutine spin_variables(nspin_in,nspin,nspinor,noncoll)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none
     integer, intent(in) :: nspin_in !<value of nspin: 1=averaged, 2=collinear, 4=spinorial
     integer, intent(out), optional :: nspin !< value of the spin, 2 for collinear, default 1
@@ -117,7 +117,7 @@ contains
   subroutine iguess_generator(izatom,ielpsp,zion,nspin,occupIG,&
        psppar,npspcode,ngv,ngc,nlccpar,ng,&
        expo,psiat,enlargerprb,quartic_prefactor,gaenes_aux)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     use dynamic_memory
     implicit none
     logical, intent(in) :: enlargerprb
@@ -331,11 +331,12 @@ contains
   !> Retrieve the information from the atom.
   !! Different information can be obtained according to the usage which is needed
   subroutine atomic_info(zatom,zion,symbol,elconf,amu,rcov,rprb,ehomo,nsccode,maxpol,maxchg)
-    use yaml_output, only: yaml_toa
+    use module_defs, only: UNINITIALIZED
+    use yaml_strings, only: yaml_toa
     implicit none
     ! Arguments
     integer, intent(in) :: zatom            !< Z number of atom
-    integer, intent(in) :: zion             !< Number of valence electrons of the ion (PSP should be in agreement)
+    integer, intent(in), optional :: zion   !< Number of valence electrons of the ion (PSP should be in agreement)
     character(len=2), intent(out), optional :: symbol  !< Atomic symbol of Z, from the periodic table of elements
     double precision, intent(out), optional :: rcov        !< Covalent radius, atomic units
     double precision, intent(out), optional :: rprb        !< Parabolic radius for the input guess, of interest in the subroutine "gatom"
@@ -358,8 +359,22 @@ contains
     double precision :: rprb_,ehomo_,rcov_,amu_
     double precision, dimension(nmax_ao,0:lmax_ao) :: releconf !<these dimensions have to be modified in the following
 
-    !extract all the information from the tabulated values of eleconf-inc.f90 file
-    call eleconf(zatom,zion,symbol_,rcov_,rprb_,ehomo_,releconf,nsccode_,mxpl_,mxchg_,amu_)
+    if (present(zion)) then
+       ! Value related to the choice of the pseudo.
+       !extract all the information from the tabulated values of eleconf-inc.f90 file
+       call eleconf(zatom,zion,symbol_,rcov_,rprb_,ehomo_,releconf,nsccode_,mxpl_,mxchg_,amu_)
+    else
+       ! Experimental value case.
+       rcov_    = ratom(zatom)
+       call nzsymbol(zatom, symbol_)
+       amu_     = UNINITIALIZED(amu_) ! should be tabulated independantly of zion
+       rprb_    = UNINITIALIZED(rprb_)
+       ehomo_   = UNINITIALIZED(ehomo_)
+       nsccode_ = UNINITIALIZED(nsccode_)
+       mxpl_    = UNINITIALIZED(mxpl_)
+       mxchg_   = UNINITIALIZED(mxchg_)
+       releconf = UNINITIALIZED(releconf(1,1))
+    end if
 
     !then assign the requested values
     if (present(elconf)) then
@@ -387,7 +402,7 @@ contains
 
   !> Count the number of atomic shells
   subroutine count_atomic_shells(nspin_in,elecorbs,occup,nl)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none
     integer, intent(in) :: nspin_in
     real(gp), dimension(nelecmax_ao), intent(in) :: elecorbs
@@ -434,7 +449,7 @@ contains
 
   !> Fill the corresponding arrays with atomic information, compressed as indicated in the module. start from input polarization and charge if present
   function aoig_set(zatom,zion,input_pol,nspin) result(aoig)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none
     integer, intent(in) :: zatom       !< Z number of atom
     integer, intent(in) :: zion        !< Number of valence electrons of the ion (PSP should be in agreement)
@@ -517,7 +532,8 @@ contains
   function aoig_set_from_dict(dict,nspin_in,aoig_source) result(aoig)
     use module_defs, only: gp, UNINITIALIZED
     use dictionaries
-    use yaml_output, only: yaml_toa,yaml_map
+    use yaml_output, only: yaml_map
+    use yaml_strings, only: yaml_toa
     use public_keys, only: EXTRA_SHELLS_KEY, IG_OCCUPATION
     use yaml_strings, only: is_atoi
     implicit none
@@ -1207,7 +1223,7 @@ contains
   !> Read the electronic configuration, with the semicore orbitals
   subroutine set_aocc_from_string(string_in,aocc,nl_sc,ndeg)
     use module_defs, only: UNINITIALIZED
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none
     character(len=*), intent(in) :: string_in
     integer, intent(out) :: ndeg

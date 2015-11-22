@@ -94,7 +94,7 @@ class BuildScript:
         '''
         raise NotImplementedError
 
-    def build(self, phases=None):
+    def build(self, phases=None, targets=None):
         '''start the build of the current configuration'''
         self.start_build()
         
@@ -128,7 +128,7 @@ class BuildScript:
                 continue
 
             if not phases:
-                build_phases = self.get_build_phases(module)
+                build_phases = self.get_build_phases(module, targets)
             else:
                 build_phases = phases
             phase = None

@@ -9,9 +9,9 @@
 
 !> Fill the preconditioning projectors for a given atom 
 subroutine fillPcProjOnTheFly(PPD, Glr, iat, at, hx,hy,hz,startjorb,ecut_pc,   initial_istart_c ) 
-  use module_interfaces
   use module_base
   use module_types
+  use locregs, only: allocate_wfd,deallocate_wfd
   use module_abscalc
   implicit none
   type(pcproj_data_type),  intent(in) ::PPD
@@ -96,10 +96,10 @@ END SUBROUTINE fillPcProjOnTheFly
 
 !> Fill the preconditioning projectors for a given atom 
 subroutine fillPawProjOnTheFly(PAWD, Glr, iat,  hx,hy,hz,kx,ky,kz,startjorb,   initial_istart_c, geocode, at, iatat) 
-  use module_interfaces
   use module_base
   use ao_inguess, only: atomic_info
   use module_types
+  use locregs, only: allocate_wfd,deallocate_wfd
   use module_abscalc
   implicit none
   type(pawproj_data_type),  intent(in) ::PAWD
@@ -196,10 +196,12 @@ subroutine createPcProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      PPD, Glr)
   use module_base
   use module_types
+  use locregs, only: allocate_wfd,deallocate_wfd
   use module_abscalc
-  use module_interfaces
+  use module_interfaces, only: gaussian_pswf_basis
   use gaussians, only: deallocate_gwf
-  use psp_projectors
+  use psp_projectors, only: bounds_to_plr_limits
+  use psp_projectors_base, only: deallocate_nonlocal_psp_descriptors
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz
@@ -471,10 +473,12 @@ END SUBROUTINE createPcProjectorsArrays
 subroutine createPawProjectorsArrays(iproc,n1,n2,n3,rxyz,at,orbs,&
      cpmult,fpmult,hx,hy,hz, &
      PAWD, Glr)
-  use module_interfaces
+  use module_interfaces, only: gaussian_pswf_basis_for_paw
   use module_base
   use module_types
-  use psp_projectors
+  use locregs, only: allocate_wfd,deallocate_wfd
+  use psp_projectors_base, only: DFT_PSP_projectors_null
+  use psp_projectors, only: bounds_to_plr_limits
   use module_abscalc
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
@@ -702,7 +706,8 @@ subroutine localize_projectors_paw(iproc,n1,n2,n3,hx,hy,hz,cpmult,fpmult,rxyz,&
   use module_base
   use module_types
   use module_abscalc
-  use psp_projectors
+  use psp_projectors_base, only: nonlocal_psp_descriptors_null, deallocate_nonlocal_psp_descriptors
+  use psp_projectors, only: pregion_size, bounds_to_plr_limits
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3
   real(gp), intent(in) :: cpmult,fpmult,hx,hy,hz

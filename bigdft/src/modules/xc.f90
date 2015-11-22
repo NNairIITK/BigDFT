@@ -17,9 +17,8 @@ module module_xc
   use xc_f90_types_m
   use libxc_funcs_m
   use xc_f90_lib_m
-  use interfaces_41_xc_lowlevel
   use yaml_output
-  use dictionaries, only: f_err_raise
+  use abi_interfaces_xc_lowlevel, only: abi_drivexc,abi_size_dvxc
 
   implicit none
 
@@ -68,7 +67,8 @@ module module_xc
        &    xc_isgga, &
        &    xc_exctXfac, &
        &    xc_end, &
-       &    xc_get_name
+       &    xc_get_name, &
+       &    xc_get_id_from_name
 
 
 
@@ -210,7 +210,7 @@ contains
     type(xc_info), intent(in) :: xcObj
 
     integer :: i, ii
-    type(xc_f90_pointer_t) :: str
+    type(xc_f90_pointer_t) :: str1
     character(len=500) :: message
 
     ! Dump functional information
@@ -229,11 +229,11 @@ contains
           
           ii = 0
           if (xcObj%id(i) > 0) then
-             call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str,message)
+             call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str1,message)
              do while (ii >= 0)
                 !write(*,"(1x,a1,1x,a82)") "|", trim(message)
                 call yaml_sequence('"'//trim(message)//'"')
-                call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str,message)
+                call xc_f90_info_refs(xcObj%funcs(i)%info,ii,str1,message)
              end do
           end if
        end do
@@ -255,6 +255,23 @@ contains
     call obj_get_name_(xcObj, name)
     call obj_free_(xcObj)
   end subroutine xc_get_name
+
+  !> Get the XC id from the name
+  subroutine xc_get_id_from_name(id, name)
+    implicit none
+    
+    integer, intent(out) :: id
+    character(len = *), intent(in) :: name
+
+    integer :: i
+
+    i = index(name, "+")
+    if (i > 0) then
+       id = -xc_f90_functional_get_number(name(1:i - 1)) - 1000 * xc_f90_functional_get_number(name(i+1:len(name)))
+    else
+       id = -xc_f90_functional_get_number(name)
+    end if
+  end subroutine xc_get_id_from_name
 
   !>  Dump XC info on screen.
   subroutine xc_dump(ixc,kind,nspden)
@@ -411,6 +428,8 @@ contains
     real(dp), allocatable :: rho_(:,:), exc_(:), vxc_(:,:)
     !n(c) character(len=*), parameter :: subname='xc_getvxc'
 
+    call f_routine(id='xc_getvxc')
+
     if (xcObj%kind == XC_ABINIT) then
        ! ABINIT case, call drivexc
        ixc = xcObj%id(1)
@@ -419,27 +438,27 @@ contains
        if (present(dvxci) .and. nspden == 1) order = -2
        if (present(dvxci) .and. nspden == 2) order = +2
 
-       call size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
+       call abi_size_dvxc(ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
        !let us apply ABINIT routines
        select case (xcObj%family(1))
        case (XC_FAMILY_LDA)
           if (order**2 <=1 .or. ixc >= 31 .and. ixc <= 34) then
-             call drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
+             call abi_drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
                   ndvxc,ngr2,nd2vxc,nvxcdgr)
           else
-             call drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
+             call abi_drivexc(exc,ixc,npts,nspden,order,rho,vxc,&
                   ndvxc,ngr2,nd2vxc,nvxcdgr,&
                   dvxc=dvxci)
           end if
        case (XC_FAMILY_GGA)
           !case with gradient, no big order
           if (ixc /= 13) then             
-             call drivexc(exc,ixc,npts,nspden,order,rho,&
+             call abi_drivexc(exc,ixc,npts,nspden,order,rho,&
                   vxc,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                   grho2_updn=grho2,vxcgr=vxcgr) 
           else
-             call drivexc(exc,ixc,npts,nspden,order,rho,&
+             call abi_drivexc(exc,ixc,npts,nspden,order,rho,&
                   vxc,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                   grho2_updn=grho2) 
           end if
@@ -612,8 +631,12 @@ contains
        deallocate(exc_)
        deallocate(vxc_)
     else
-       write(0,*) "ERROR: XC module not initialised."
+       call f_err_throw("XC module not initialised, the object kind is '"//xcObj%kind//&
+            "', which is neither XC_LIBXC ("+XC_LIBXC//") nor XC_ABINIT ("+XC_ABINIT//')',&
+            err_name='BIGDFT_RUNTIME_ERROR')
     end if
+
+    call f_release_routine()
 
   end subroutine xc_getvxc
 

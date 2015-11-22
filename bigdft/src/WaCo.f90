@@ -13,14 +13,21 @@ program WaCo
 
    use module_base
    use module_types
-   use module_interfaces, except_this_one => writeonewave
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use module_interfaces
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use yaml_output
    use module_input_dicts
    use module_atoms, only: deallocate_atoms_data
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
+   use io, only: writeonewave_linear, writeLinearCoefficients
    use bigdft_run
+   use locregs, only: copy_locreg_descriptors
+   use public_enums, only: LINEAR_PARTITION_NONE, WF_FORMAT_BINARY, WF_FORMAT_ETSF, WF_FORMAT_NONE
+   use module_input_keys, only: user_dict_from_files, inputs_from_dict, free_input_variables
+   use locregs_init, only: determine_locregsphere_parallel
+   use locreg_operations, only: psi_to_locreg2,workarr_sumrho,&
+        initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -715,14 +722,14 @@ program WaCo
      nvirtd = 0
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsw,.false.)
+         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsw,LINEAR_PARTITION_NONE)
      call orbitals_communicators(iproc,nproc,Glr,orbsw,commsw)
 
      nvirtu = n_virt
      nvirtd = 0
      if (input%nspin==2) nvirtd=0!nvirtu
      call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
+         & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,LINEAR_PARTITION_NONE)
 
      if(linear)then
        cxyz = f_malloc_ptr((/ 3, nwannCon /),id='cxyz')
@@ -809,14 +816,14 @@ program WaCo
      call f_free_ptr(orbs%iokpt)
      orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
      orbs%iokpt=1
+     nullify(orbs%eval)
+     orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
      if(orbs%norbp > 0) then
-        nullify(orbs%eval)
-        orbs%eval = f_malloc_ptr(orbs%norb*orbs%nkpts,id='orbs%eval')
         filename=trim(input%dir_output) // 'wavefunction'
         call readmywaves(iproc,filename,iformat,orbs,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
              & input%hx,input%hy,input%hz,atoms,rxyz_old,atoms%astruct%rxyz,  & 
              Glr%wfd,psi(1,1))
-        call f_free_ptr(orbs%eval)
+        !call f_free_ptr(orbs%eval)
      end if
 
      ! For the non-occupied orbitals, need to change norbp,isorb
@@ -871,7 +878,7 @@ program WaCo
 
      wann = f_malloc(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,id='wann')
      wannr = f_malloc(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,id='wannr')
-     call initialize_work_arrays_sumrho(1,Glr,.true.,w)
+     call initialize_work_arrays_sumrho(1,[Glr],.true.,w)
 
 
      ! Separate plotwann
@@ -958,13 +965,15 @@ program WaCo
                  !call write_wannier_cube(ifile,trim(seedname)//'_test_'//num//'.cube',atoms,Glr,input,rxyz,wannr)
                  !stop 
                 !END DEBUG
-                 call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,input%hx,input%hy,input%hz, &
+                 call writeonewave_linear(ifile,outformat,iiwann,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+                   Glr%ns1,Glr%ns2,Glr%ns3,input%hx,input%hy,input%hz, &
                    (/cxyz(1,iwann),cxyz(2,iwann),cxyz(3,iwann) /),locrad(iwann),4,0.0d0,atoms%astruct%nat,atoms%astruct%rxyz,  & 
-                   Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1,1),&
-                   Lzd%Llr(iiwann)%wfd%keyvglob(1),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
-                   Lzd%Llr(iiwann)%wfd%keyglob(1,Lzd%Llr(iiwann)%wfd%nseg_c+1),&
-                   Lzd%Llr(iiwann)%wfd%keyvglob(Lzd%Llr(iiwann)%wfd%nseg_c+1), & 
-                   lwann(1),lwann(Lzd%Llr(iiwann)%wfd%nvctr_c+1), ham(1,iwann,iwann))
+                   Lzd%Llr(iiwann)%wfd%nseg_c,Lzd%Llr(iiwann)%wfd%nvctr_c,Lzd%Llr(iiwann)%wfd%keyglob(1:,1:),&
+                   Lzd%Llr(iiwann)%wfd%keyvglob(1:),Lzd%Llr(iiwann)%wfd%nseg_f,Lzd%Llr(iiwann)%wfd%nvctr_f,&
+                   Lzd%Llr(iiwann)%wfd%keyglob(1:,Lzd%Llr(iiwann)%wfd%nseg_c+1:),&
+                   Lzd%Llr(iiwann)%wfd%keyvglob(Lzd%Llr(iiwann)%wfd%nseg_c+1:), & 
+                   lwann(1),lwann(Lzd%Llr(iiwann)%wfd%nvctr_c+1), ham(1,iwann,iwann),&
+                   -1) !SM: Not sure about the value of onwhichatom, so simply pass -1 to indicate that it is fake
                   call f_free(lwann)
               else if(hamilana) then
                 ! open(ifile, file=trim(seedname)//'_'//num//'.bin', status='unknown',form='formatted')
@@ -981,7 +990,7 @@ program WaCo
                    Glr%wfd%nseg_f,Glr%wfd%nvctr_f,Glr%wfd%keygloc(1,Glr%wfd%nseg_c+1),Glr%wfd%keyvloc(Glr%wfd%nseg_c+1), & 
                    wann(1),wann(Glr%wfd%nvctr_c+1), -0.5d0)
               end if
-              close(ifile)
+              call f_close(ifile)
            else
               stop 'ETSF not implemented yet'                
               ! should be write_wave_etsf  (only one orbital)
@@ -1012,9 +1021,12 @@ program WaCo
         else 
            open(unit=99, file='minBasis'//'_coeff.bin', status='unknown',form='unformatted')
         end if
-        call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
-             & input%hx,input%hy,input%hz,atoms%astruct%nat,atoms%astruct%rxyz,&
-             nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
+        stop 'THE FOLLOWING CALL IS NOT TESTED!!'
+        !!call writeLinearCoefficients(99,outformat,Glr%d%n1,Glr%d%n2,Glr%d%n3,&
+        !!     & input%hx,input%hy,input%hz,atoms%astruct%nat,atoms%astruct%rxyz,&
+        !!     nbandCon,nwannCon,Glr%wfd%nvctr_c,Glr%wfd%nvctr_f,umnt)
+        call writeLinearCoefficients(99,outformat,atoms%astruct%nat,atoms%astruct%rxyz,&
+             nband,nbandCon,nwannCon,umnt,orbs%eval)
         close(unit=99)
      end if
 
@@ -1130,6 +1142,8 @@ program WaCo
      call f_free(wannr)
      call f_free(psi)
   end if
+
+  call f_free_ptr(orbs%eval)
 
   if(.not. WannCon) then
      call f_free(virt_list)
@@ -1467,6 +1481,7 @@ subroutine read_umn(iproc,nwann,nband,seedname,umn)
   use module_defs, only: gp
    use module_types
    use yaml_output
+   use yaml_strings
    implicit none
    integer, intent(in) :: iproc
    integer, intent(in) :: nwann, nband
@@ -1501,10 +1516,10 @@ subroutine read_umn(iproc,nwann,nband,seedname,umn)
 
    if(nwann_umn .ne. nwann .or. nband_umn .ne. nband) then
      if(iproc == 0) then
-       call yaml_warning('Number of wannier functions in umn,' // trim(yaml_toa(nwann_umn)) // &
-          & 'not equal number of Wannier functions used:' // trim(yaml_toa(nwann)))
-       call yaml_warning('Number of orbitals in umn,' // trim(yaml_toa(nband_umn)) // &
-          & 'not equal number of orbitals used:' // trim(yaml_toa(nband)))
+       call yaml_warning('Number of wannier functions in umn,' // nwann_umn // &
+          & 'not equal number of Wannier functions used:' // nwann)
+       call yaml_warning('Number of orbitals in umn,' // nband_umn // &
+          & 'not equal number of orbitals used:' // nband)
        !write(*,'(A,I4)') 'ERROR : number of wannier functions in umn,',nwann_umn
        !write(*,'(A,I4)') 'not equal number of Wannier functions used:',nwann
        !write(*,'(A,I4)') 'ERROR : number of orbitals in umn,',nband_umn
@@ -1694,12 +1709,14 @@ subroutine read_hamiltonian(iproc,nrpts,nwann,seedname,ham)
    
 end subroutine read_hamiltonian
 
-subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
-  use module_defs, only: gp,dp
+subroutine write_wannier_cube(jfile,filename,atoms,Glr,input,rxyz,wannr)
+   use module_defs, only: gp,dp
+   use f_utils
    use module_types
+   use bounds, only: ext_buffers
    implicit none
    character(len=*), intent(in) :: filename
-   integer, intent(in) :: ifile
+   integer, intent(in) :: jfile
    type(atoms_data),intent(in) :: atoms
    type(locreg_descriptors), intent(in) :: Glr
    type(input_variables),intent(in) :: input
@@ -1708,7 +1725,7 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
    ! Local variables
    logical :: perx, pery, perz
    integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3,rem
-   integer :: i,j,ix,iy,iz,ind
+   integer :: i,j,ix,iy,iz,ind,ifile
    
    perx=(Glr%geocode /= 'F')
    pery=(Glr%geocode == 'P')
@@ -1721,8 +1738,10 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
    if(nbr3 > 0) nbr3 = nbr3 + 2
    ! Volumetric data in batches of 6 values per line, 'z'-direction first.
    rem=Glr%d%n3i-floor(real(Glr%d%n3i/6))*6
+   ifile=jfile
    
-   open(unit=ifile, file=filename, status='unknown')
+   call f_open_file(unit=ifile,file=filename)
+   !open(unit=ifile, file=filename, status='unknown')
    write(ifile,*) ' CUBE file for ISF field'
    write(ifile,*) ' Case for'
    write(ifile,'(I4,1X,F12.6,2(1X,F12.6))') atoms%astruct%nat, real(0.d0), real(0.d0), real(0.d0)
@@ -1746,14 +1765,13 @@ subroutine write_wannier_cube(ifile,filename,atoms,Glr,input,rxyz,wannr)
          end do
       end do
    end do
-   close(unit=ifile)
+   call f_close(unit=ifile)
 
 end subroutine write_wannier_cube
 
 
 subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   use BigDFT_API
-  use module_interfaces
   use yaml_output
   implicit none
   integer, intent(in) :: nel,nIG,iproc
@@ -1898,8 +1916,7 @@ end subroutine init_random_seed
 
 subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, normal, dcp)
    use BigDFT_API
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-   use module_interfaces
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    implicit none
    integer, intent(in) :: mode        ! 0= atomic projection, 1=wannier projection
    integer, intent(in) :: natom
@@ -2138,7 +2155,6 @@ end do
 end subroutine shift_stereographic_projection
 
 subroutine build_stereographic_graph_facets(natoms,nsurf, mcenters,maxbond,rxyz,ncenters,Zatoms,nfacets,facets,vertex)
-   use module_interfaces
    use module_defs, only: gp,dp
    use module_types
    implicit none
@@ -2505,7 +2521,6 @@ end subroutine read_eigenvalues
 
 subroutine read_amn_header(filename,nproj,nband,nkpt)
 use module_types
-use module_interfaces
 implicit none
 character(len=*),intent(in) :: filename
 integer, intent(out) :: nproj,nband,nkpt
@@ -2530,7 +2545,6 @@ end subroutine read_amn_header
 subroutine read_amn(filename,amn,nproj,nband,nkpt)
   use module_defs, only :gp
 use module_types
-use module_interfaces
 implicit none
 character(len=*),intent(in) :: filename
 integer, intent(in) :: nproj, nband, nkpt
@@ -2634,7 +2648,6 @@ END SUBROUTINE read_proj
 subroutine character_list(nwann,nproj,tmatrix,plotwann,wann_list,l,mr)
    use BigDFT_API
    use module_types
-   use module_interfaces
    implicit none
    ! I/O variables
    integer, intent(in) :: nwann, nproj,plotwann

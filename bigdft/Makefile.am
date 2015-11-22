@@ -10,7 +10,9 @@ pkgconfig_DATA = bigdft.pc
 SUBDIRS =
 
 # Low level libraries provided by BigDFT team.
+if BUILD_FLIB
 SUBDIRS += flib
+endif
 
 if BUILD_LIB_PSOLVER
 SUBDIRS += wrappers PSolver
@@ -19,6 +21,8 @@ endif
 if BUILD_LIB_BIGDFT
 # BigDFT itself.
 SUBDIRS += src
+# And structure prediction library
+SUBDIRS += spred
 endif
 
 SUBDIRS += \
@@ -27,7 +31,9 @@ SUBDIRS += \
 
 # Tests subdir is include only if binaries are compiled.
 if BUILD_BINARIES
+if HAVE_PYYAML
 SUBDIRS += tests
+endif
 endif
 
 check report:

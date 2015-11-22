@@ -578,7 +578,7 @@ class MetaModule(Package):
         # Scan all available tars to add to the tarball.
         for mod in module_list:
             if mod.branch is not None and (mod.branch.repository.name == "local" or
-                                           buildscript.config.full):
+                                           buildscript.config.nonet):
                 tar = os.path.join(mod.get_builddir(buildscript), os.path.basename(mod.branch.module))
                 try:
                     shutil.copy(tar, destdir)

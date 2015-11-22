@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7.6.3],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.8a.1],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -143,6 +143,13 @@ if test x"$ac_use_glib" = x"yes"; then
     AC_SUBST([G_IR_COMPILER], [$($PKG_CONFIG --variable=g_ir_compiler gobject-introspection-1.0)])
     dnl Force dynamic library building.
     ac_build_dynamic="yes"
+
+    dnl Add Python support for the PythonGI plug-in.
+    AC_LANG_PUSH(C)
+    AM_CHECK_PYTHON_HEADERS([AC_DEFINE([HAVE_PYTHON], [], [If set, we can call Python.h])],[AC_MSG_WARN(could not find Python headers)])
+    PYTHON_LIBS="`python-config --libs`"
+    AC_SUBST(PYTHON_LIBS)
+    AC_LANG_POP(C)
   fi
 else
   have_glib=no
@@ -283,6 +290,19 @@ if test -n "$ac_ambertools_dir" ; then
       AC_MSG_ERROR(["Path to ambertools library is given by user, but nab compiler was not found on the machine."])
   fi
   ac_use_amber="yes"
+fi
+
+
+dnl cp2k
+AC_ARG_WITH(cp2k, AS_HELP_STRING([--with-cp2k],
+            [Give the link-line for cp2k.]),
+            ac_cp2k_linkline=$withval, ac_cp2k_linkline=)
+ac_use_cp2k="no"
+AM_CONDITIONAL(HAVE_CP2K, test x"$ac_cp2k_linkline" != "x")
+if test -n "$ac_cp2k_linkline" ; then
+  CP2K_LINKLINE="$ac_cp2k_linkline"
+  AC_SUBST(CP2K_LINKLINE, $CP2K_LINKLINE)
+  ac_use_cp2k="yes"
 fi
 
 
@@ -430,6 +450,21 @@ if test x"$ac_use_mic" = "xyes" ; then
 fi
 AM_CONDITIONAL(USE_MIC, test "$ac_use_mic" = "yes")
 
+dnl Use external FLib.
+AC_ARG_WITH(internal-flib, AS_HELP_STRING([--with-internal-flib], [Compile internal FLib (default = yes).]), internalflib=$withval, internalflib="yes")
+if test x"$internalflib" != x"yes" ; then
+  AX_FLIB()
+  if test "$ac_use_flib" = "no" ; then
+    AC_MSG_ERROR([FLib is not available, install FLib and provide paths --with-flib-libs --with-flib-incs.])
+  fi
+else
+  LIB_FLIB_CFLAGS='-I$(top_builddir)/includes'
+  AC_SUBST(LIB_FLIB_CFLAGS)
+  LIB_FLIB_LIBS=""
+  AC_SUBST(LIB_FLIB_LIBS)
+fi
+AM_CONDITIONAL(BUILD_FLIB, test "$internalflib" = "yes")
+
 dnl Use ETSF_IO
 ac_use_etsfio=no
 AC_ARG_WITH(etsf-io, AS_HELP_STRING([--with-etsf-io], [Link with ETSF_IO library (default = no).]), etsfio=$withval, etsfio="yes")
@@ -491,6 +526,10 @@ AC_CHECK_LIB(config++, config_init, withconfig=yes, withconfig=no)
 AM_CONDITIONAL(HAVE_LIBCONFIG, test "$withconfig" = "yes")
 AC_LANG_POP(C++)
 
+AC_LANG_PUSH(C)
+AC_CHECK_FUNCS([strndup])
+AC_LANG_POP(C)
+
 dnl AM_CONDITIONAL for the different libraries, set default values.
 dnl the BigDFT library.
 ac_build_lib_BigDFT="yes"
@@ -536,14 +575,13 @@ if test "$ac_build_bin_cluster" = "yes" ; then
 fi # End of the if library compilation
 
 dnl Archive input file support
-ac_use_archive="yes"
 AC_ARG_WITH([archives],
             AS_HELP_STRING([--with-archives], [add support of archives for output files.]),
             [ac_use_archive=$withval], [ac_use_archive=$ac_build_lib_BigDFT])
 AC_ARG_WITH([archives-path],
             AS_HELP_STRING([--with-archives-path], [give a path to find libarchive.]),
             [ac_path_archive=$withval])
-if test x"$ac_use_archive" != x"no" ; then
+if test x"$ac_use_archive" == x"yes" ; then
    if test x"$ac_path_archive" == x"" ; then
       PKG_CHECK_MODULES([LIB_ARCHIVE],
                         [libarchive >= 2.4],
@@ -568,9 +606,6 @@ if test x"$ac_use_archive" != x"no" ; then
       AC_MSG_WARN([libarchive is not available])
    fi
 fi
-AC_LANG_PUSH(C)
-AC_CHECK_FUNCS([strndup])
-AC_LANG_POP(C)
 AM_CONDITIONAL(HAVE_LIB_ARCHIVE, test x"$ac_use_archive" = x"yes")
 AC_SUBST(LIB_ARCHIVE_CFLAGS)
 AC_SUBST(LIB_ARCHIVE_LIBS)
@@ -608,7 +643,9 @@ dnl Python YAML support.
 AX_PYYAML()
 
 dnl Test the libXC library
-AX_LIBXC()
+if test "$ac_build_lib_BigDFT" = "yes" ; then
+  AX_LIBXC()
+fi
 
 dnl Test the ABINIT library
 AC_ARG_WITH(libabinit-incs, AS_HELP_STRING([--with-libabinit-incs],
@@ -619,6 +656,8 @@ AC_ARG_WITH(libabinit-incs, AS_HELP_STRING([--with-libabinit-incs],
             ac_libabinit_libs=$withval, ac_libabinit_libs="")
 
 dnl Test the given implementation of libabinit.
+ac_use_libabinit="no"
+if test "$ac_build_lib_BigDFT" = "yes" ; then
 AC_MSG_CHECKING([for libABINIT modules])
 FCFLAGS_SVG=$FCFLAGS
 if test -n "$ac_libabinit_incs" ; then
@@ -630,7 +669,7 @@ elif test -n "$C_INCLUDE_PATH" ; then
   FCFLAGS="$FCFLAGS $ac_libabinit_incs"
 fi
 AC_COMPILE_IFELSE([[program main
-  use ab6_moldyn
+  use m_ab6_moldyn
   use m_ab6_symmetry
   use m_ab6_kpoints
 
@@ -645,14 +684,14 @@ if test -n "$ac_libabinit_libs" ; then
 else
   ac_libabinit_libs="-labinit"
 fi
-AC_CHECK_LIB(abinit, symbrav, withlibabinit=yes, withlibabinit=no)
+AC_CHECK_LIB(abinit, abi_symbrav, withlibabinit=yes, withlibabinit=no)
 LIBS=$LIBS_SVG
 
-ac_use_libabinit="no"
 if test "$withlibabinit" = "yes" -a "$withabinitmod" = "yes"; then
   ac_use_libabinit="yes"
 else
   AC_MSG_ERROR([Missing libABINIT, consider using --with-libabinit-[incs,libs].])
+fi
 fi
 
 dnl Test the libPAW library.
@@ -679,9 +718,10 @@ fi
 dnl Test S_GPU library.
 ac_build_libsgpu="no"
 ac_use_libsgpu="no"
-AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
+dnl AC_ARG_ENABLE(internal-libsgpu, AS_HELP_STRING([--disable-internal-libsgpu], [Do not build and link with internal S_GPU library (default = yes).]), ac_internal_sgpu=$enableval, ac_internal_sgpu="no")
+ac_internal_sgpu="no"
 ac_build_libsgpu=$ac_internal_sgpu
-if test x"$ac_use_cuda_gpu" = "xyes" ; then
+if test x"$ac_use_cuda_gpu" = "xnotdothat" ; then
   dnl Test S_GPU library.
   ac_internal_sgpu="yes"
   AC_ARG_WITH(libsgpu-path, AS_HELP_STRING([--with-libsgpu-path], [Give the path for an external S_GPU library, lib and module files (default = None).]),
@@ -726,9 +766,9 @@ dnl Agregate all flags.
 LDFLAGS="$LDFLAGS $LDFLAGS_MIC"
 
 dnl Agregate all the optional libs.
-LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS"
+LIBS_EXT_DEPS="$LIBCUDA_LIBS $LIBOCL_LIBS $LIBETSFIO_LIBS $LINALG_LIBS $LIB_ARCHIVE_LIBS $LIB_YAML_LIBS $GLIB_LIBS $MPI_LDFLAGS $MPI_LIBS $PYTHON_LIBS"
 AC_SUBST(LIBS_EXT_DEPS, [$LIBS_EXT_DEPS])
-LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
+LIBS_SHORT_DEPS="$LIB_ABINIT_LIBS $LIB_XC_LIBS $LIB_FLIB_LIBS $LIBSGPU_LIBS $LIBS_EXT_DEPS"
 AC_SUBST(LIBS_SHORT_DEPS, [$LIBS_SHORT_DEPS])
 
 dnl Test for the documentation.
@@ -778,18 +818,23 @@ src/bigdft-tool
 src/Makefile
 src/modules/Makefile
 src/modules/bigdft_cst.h
-src/modules/configure.inc
 src/modules/configure.c
-src/convolutions/Makefile
+src/orbitals/Makefile
+src/orbitals/configure.inc
 src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile
 src/bindings/Makefile
-src/art/Makefile
-src/mhgps_files/Makefile
+src/geopt/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
+spred/Makefile
+spred/src/Makefile
+spred/src/art/Makefile
+spred/src/mhgps_files/Makefile
+spred/src/global_files/Makefile
+spred/tests/Makefile
 tests/Makefile
 tests/libs/Makefile
 tests/libs/fft/Makefile
@@ -805,6 +850,8 @@ tests/libs/wrappers/Makefile
 tests/libs/psp/Makefile
 tests/libs/overlapgeneral/Makefile
 tests/libs/coordinatetransform/Makefile
+tests/benchs/Makefile
+tests/benchs/sparsealgebra/Makefile
 tests/DFT/Makefile
 tests/DFT/cubic/Makefile
 tests/DFT/linear/Makefile
@@ -856,6 +903,7 @@ Options:
   With Intel MIC support:    $ac_use_mic
   With AMBERTOOLS compiler:  $ac_use_amber
    | nab Compiler:           $NAB
+  With CP2K:                 $ac_use_cp2k
   With dgemmsy support:      $ac_use_dgemmsy
   With libXC:                $ac_use_libxc
    | internal built:         $ac_build_libxc

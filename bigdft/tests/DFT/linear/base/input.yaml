@@ -1,0 +1,66 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   rmult: [5.0, 7.0]
+   gnrm_cv: accurate
+   itermax: 100
+   ncong: 5
+   idsx: 10
+   inputpsiid: linear
+   disablesym: Yes
+ perf:
+   psp_onfly: No
+   ef_interpol_det: 0.10E-19
+   mixing_after_inputguess: 2
+   foe_gap: yes
+   ef_interpol_det: 1.e-12
+   correction_co_contra: No
+   purification_quickreturn: no
+   loewdin_charge_analysis: yes
+   check_overlap: 2
+   check_sumrho: 2
+ lin_general:
+   nit: [2, 3]
+   rpnrm_cv: 9.9999999999999994E-012
+   conf_damping: 0.5
+   calc_dipole: Yes
+   calc_pulay: old
+   charge_multipoles: yes
+ lin_basis:
+   idsx: [5, 0]
+   gnrm_cv: 4.0000000000000003E-005
+   fix_basis: 9.9999999999999994E-012
+ lin_kernel:
+   rpnrm_cv: 1.0E-013
+   fscale_foe: 5.0000000000000003E-002
+ lin_basis_params:
+   Si:
+     nbasis: 9
+     ao_confinement: 4.0000000000000001E-002
+     confinement: [4.0000000000000001E-002, 0.0]
+     rloc: [6.0, 7.0]
+     rloc_kernel: 7.0
+     rloc_kernel_foe: 20.0
+   H:
+     nbasis: 1
+     ao_confinement: 4.0000000000000001E-002
+     confinement: [4.0000000000000001E-002, 0.0]
+     rloc: [6.0, 7.0]
+     rloc_kernel: 7.0
+     rloc_kernel_foe: 20.0
+ ig_occupation:
+   Si:
+     3s: 2.0
+     3p: [2/3, 2/3, 2/3]
+     3d: 0.0
+ posinp:
+   positions:
+   - Si: [0.2629801630973816, 3.7207301706075668E-002, 0.2071341574192047]
+   - H: [1.757244348526001, 1.673845648765564, -1.517748594284058]
+   - H: [-0.4041601121425629, 1.484101414680481, 2.52013373374939]
+   - H: [-2.085475444793701, -0.7933043241500854, -1.089041948318481]
+   - H: [1.781385540962219, -2.217728137969971, 0.9118762016296387]
+   properties:
+     format: xyz
+     source: posinp

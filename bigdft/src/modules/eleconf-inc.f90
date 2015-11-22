@@ -109,6 +109,18 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
      nsccode=1
      amu=9.012182d0
 
+  case(5*1000+5)
+     ! -----------------------           7
+     ! B            5           5     Symbol, Z, Zion
+     symbol = "B"
+     rcov=1.55d0
+     rprb=3.10d0
+     ehomo=-0.136603d0
+     neleconf(1,0)=2
+     neleconf(2,0)=2
+     neleconf(2,1)=1
+     amu=10.811d0
+
   case(5*1000+3)
      ! -----------------------           7
      ! B            5           3     Symbol, Z, Zion
@@ -157,6 +169,19 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
      neleconf(2,1)=3
      amu=14.00674d0
 
+  case(7*1000+7)
+     ! -----------------------           9
+     ! N            7           7     Symbol, Z, Zion
+     symbol = "N"
+     rcov=1.42d0
+     rprb=2.84d0
+     ehomo=-0.266297d0
+     neleconf(1,0)=2
+     neleconf(2,0)=2
+     neleconf(2,1)=3
+     amu=14.00674d0
+
+
   case(8*1000+6)
      ! -----------------------          10
      ! O            8           6     Symbol, Z, Zion
@@ -188,6 +213,18 @@ subroutine eleconf(nzatom,nvalelec,symbol,rcov,rprb,ehomo,neleconf,nsccode,mxpl,
      rcov=1.35d0
      rprb=2.72d0
      ehomo=-0.415606d0
+     neleconf(2,0)=2
+     neleconf(2,1)=5
+     amu=18.9984032d0
+
+  case(9*1000+9)
+     ! -----------------------          11
+     ! F            9           9     Symbol, Z, Zion
+     symbol = "F"
+     rcov=1.35d0
+     rprb=2.72d0
+     ehomo=-0.415606d0
+     neleconf(1,0)=2
      neleconf(2,0)=2
      neleconf(2,1)=5
      amu=18.9984032d0
@@ -617,6 +654,20 @@ amu=63.546d0
      neleconf(4,0)=1
      amu=63.546d0
 
+  case(30*1000+20)
+     ! -----------------------          45
+     ! Zn          30          20     Symbol, Z, Zion
+     symbol = "Zn"
+     rcov=2.30d0
+     rprb=4.60d0
+     ehomo=-0.222725d0
+     neleconf(3,0)=2
+     neleconf(3,1)=6
+     neleconf(3,2)=10
+     neleconf(4,0)=2
+     nsccode=123
+     amu=65.39d0
+
   case(30*1000+12)
      ! -----------------------          45
      ! Zn          30          12     Symbol, Z, Zion
@@ -974,6 +1025,21 @@ neleconf(5,0)=1.d-18
      neleconf(5,0)=1
      nsccode=3
      amu=107.8682d0
+
+  case(47*1000+19)
+     ! -----------------------          74
+     ! Ag          47          19     Symbol, Z, Zion
+     symbol = "Ag"
+     rcov=2.30d0
+     rprb=4.60d0
+     ehomo=-0.157407d0
+     neleconf(4,0)=2
+     neleconf(4,1)=6
+     neleconf(4,2)=10
+     neleconf(5,0)=1
+     nsccode=3
+     amu=107.8682d0
+
 
   case(47*1000+1)
      ! -----------------------          75
@@ -1597,6 +1663,20 @@ amu=196.96654d0
      neleconf(6,1)=1
      amu=204.3833d0
 
+  case(82*1000+14)
+     ! -----------------------         124
+     ! Pb          82          14     Symbol, Z, Zion
+     symbol = "Pb"
+     rcov=3.30d0
+     rprb=6.60d0
+     ehomo=-0.141831d0
+     neleconf(5,2)=10
+     neleconf(6,0)=2
+neleconf(7,0)=1.d-18
+     neleconf(6,1)=2
+     nsccode=13
+     amu=207.2d0
+
   case(82*1000+4)
      ! -----------------------         124
      ! Pb          82           4     Symbol, Z, Zion
@@ -1608,6 +1688,19 @@ amu=196.96654d0
 neleconf(7,0)=1.d-18
      neleconf(6,1)=2
      amu=207.2d0
+
+  case(83*1000+15)
+     ! -----------------------         125
+     ! Bi          83          15     Symbol, Z, Zion
+     symbol = "Bi"
+     rcov=2.90d0
+     rprb=5.80d0
+     ehomo=-0.180198d0
+     neleconf(5,2)=10
+     neleconf(6,0)=2
+     neleconf(6,1)=3
+     nsccode=13
+     amu=208.98037d0
 
   case(83*1000+5)
      ! -----------------------         125
@@ -1653,10 +1746,25 @@ neleconf(7,0)=1.d-18
      neleconf(6,1)=6
      amu=222.0d0
 
+  case(92*1000+14)
+     ! -----------------------         128
+     ! U          86           14     Symbol, Z, Zion
+     symbol = "U"
+     rcov=3.38d0
+     rprb=6.77d0
+     ehomo=-0.130948d0
+     neleconf(5,3)=3
+     neleconf(6,0)=2 
+     neleconf(6,1)=6
+     neleconf(6,2)=1
+     neleconf(7,0)=2
+     amu=238.0d0
+
   case default
      call f_err_throw("Electronic configuration "//&
           trim(yaml_toa([nzatom,nvalelec]))//" not found!",&
           err_name='BIGDFT_RUNTIME_ERROR')
+     return
   end select
 
   !as now the symbol has been found overridde the psp rcov with the physical
@@ -1733,10 +1841,10 @@ subroutine nzsymbol(nzatom, symbol)
 END SUBROUTINE nzsymbol
 
 !> Give the atomic number from Sybmol.
-function zatom(symbol)
+function atomic_z(symbol)
   implicit none
   ! Arguments
-  integer :: zatom
+  integer :: atomic_z
   character(len=*), intent(in) :: symbol
   !local variables
   character(len=2), parameter :: symbol_(94)=(/' H','He',        &
@@ -1753,12 +1861,42 @@ function zatom(symbol)
        &   'Fr','Ra','Ac','Th','Pa',' U','Np','Pu'/)
   integer :: iat
 
-  zatom=-1
+  atomic_z=-1
   find_z: do iat=1,size(symbol_)
      if (trim(adjustl(symbol)) == trim(adjustl(symbol_(iat)))) then
-        zatom=iat
+        atomic_z=iat
         exit find_z
      end if
   end do find_z
 
-END function zatom
+END function atomic_z
+
+!> Give the experimental covalent radius,
+!  for the one arising from the pseudo, use atomic_info() instead.
+function ratom(nzatom)
+  use numerics, only: Bohr_Ang
+  implicit none
+  ! Arguments
+  real(gp) :: ratom
+  integer :: nzatom
+  !local variables
+  real(gp), dimension(94), parameter :: rcov_ = (/ &
+  & 0.37, 0.32, & ! H, He
+  & 1.34, 0.90, 0.82, 0.77, 0.75, 0.73, 0.71, 0.69, & ! Li, Be, B, C, N, O, F, Ne
+  & 1.54, 1.30, 1.18, 1.11, 1.06, 1.02, 0.99, 0.97, & ! Na, Mg, Al, Si, P, S, Cl, Ar
+  & 1.96, 1.74, 1.44, 1.36, 1.25, 1.27, 1.39, 1.25, 1.26, & ! K, Ca, Sc, Ti, V, Cr, Mn, Fe, Co
+  & 1.21, 1.38, 1.31, 1.26, 1.22, 1.19, 1.16, 1.14, 1.10, & ! Ni, Cu, Zn, Ga, Ge, As, Se, Br, Kr
+  & 2.11, 1.92, 1.62, 1.48, 1.37, 1.45, 1.56, 1.26, 1.35, & ! Rb, Sr, Y, Zr, Nb, Mo, Tc, Ru, Rh
+  & 1.31, 1.53, 1.48, 1.44, 1.41, 1.38, 1.35, 1.33, 1.30, & ! Pd, Ag, Cd, In, Sn, Sb, Te, I, Xe
+  & 2.25, 1.98, 1.69, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, & ! Cs, Ba, La, Ce, Pr, Nd, Pm, Sm, Eu
+  & -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.60, 1.50, & ! Gd, Tb, Dy, Ho, Er, Tm, Yb, Lu, Hf
+  & 1.38, 1.46, 1.59, 1.28, 1.37, 1.28, 1.44, 1.49, 1.48, & ! Ta, W, Re, Os, Ir, Pt, Au, Hg, Tl
+  & 1.47, 1.46, -1.0, -1.0, 1.45, & ! Pb, Bi, Po, At, Rn
+  & -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0 /) ! Fr, Ra, Ac, Th, Pa, U, Np, Pu
+
+  if (nzatom > 0 .and. nzatom < size(rcov_)) then
+     ratom = rcov_(nzatom) / Bohr_Ang
+  else
+     ratom = -1.0
+  end if
+end function ratom

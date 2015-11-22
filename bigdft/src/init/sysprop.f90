@@ -12,10 +12,12 @@
 subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_run,&
      & in,atoms,rxyz,OCLconv,&
      orbs,lnpsidim_orbs,lnpsidim_comp,lorbs,Lzd,Lzd_lin,nlpsp,comms,shift,&
-     ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old,output_grid)
+     ref_frags, denspot, locregcenters, inwhichlocreg_old, onwhichatom_old, &
+     norb_par_ref, norbu_par_ref, norbd_par_ref,output_grid)
   use module_base
   use module_types
-  use module_interfaces, fake_name => system_initialization
+  use module_interfaces, only: createProjectorsArrays, createWavefunctionsDescriptors, &
+       & init_orbitals_data_for_linear, orbitals_descriptors
   use module_xc
   use module_fragments
   use vdwcorrection
@@ -23,11 +25,16 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   use module_atoms, only: set_symmetry_data
   use communications_base, only: comms_cubic
   use communications_init, only: orbitals_communicators
+  use Poisson_Solver, only: pkernel_allocate_cavity
+  use public_enums
+  use f_enums
+  use locreg_operations
+  use locregs_init, only: initLocregs
   implicit none
   integer, intent(in) :: iproc,nproc 
   logical, intent(in) :: dry_run, dump
   integer, intent(out) :: input_wf_format, lnpsidim_orbs, lnpsidim_comp
-  integer, intent(inout) :: inputpsi
+  type(f_enumerator), intent(inout) :: inputpsi
   type(input_variables), intent(in) :: in 
   type(atoms_data), intent(inout) :: atoms
   real(gp), dimension(3,atoms%astruct%nat), intent(inout) :: rxyz
@@ -41,6 +48,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   type(system_fragment), dimension(:), pointer :: ref_frags
   real(kind=8),dimension(3,atoms%astruct%nat),intent(inout),optional :: locregcenters
   integer,dimension(:),pointer,optional:: inwhichlocreg_old, onwhichatom_old
+  integer,dimension(0:nproc-1),optional:: norb_par_ref, norbu_par_ref, norbd_par_ref !< support function distribution to be used as a reference
   type(DFT_local_fields), intent(out), optional :: denspot
   logical, intent(in), optional :: output_grid
   !local variables
@@ -49,10 +57,15 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   real(gp), dimension(3) :: h_input
   logical:: present_inwhichlocreg_old, present_onwhichatom_old, output_grid_, frag_allocated, calculate_bounds
   integer, dimension(:,:), allocatable :: norbsc_arr
-  real(kind=8), dimension(:), allocatable :: locrad
+  integer, dimension(:), allocatable :: norb_par, norbu_par, norbd_par
+  real(kind=8), dimension(:), allocatable :: locrad, times_convol
   integer :: ilr, iilr
+  real(kind=8),dimension(:),allocatable :: totaltimes
+  real(kind=8),dimension(2) :: time_max, time_average
+  !real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
   call f_routine(id=subname)
+
 
   output_grid_ = .false.
   if (present(output_grid)) output_grid_ = output_grid
@@ -76,31 +89,48 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   if (present(locregcenters)) then
       do iat=1,atoms%astruct%nat
           locregcenters(1:3,iat)=locregcenters(1:3,iat)-shift(1:3)
-          if (locregcenters(1,iat)<dble(0)*lzd%hgrids(1) .or. locregcenters(1,iat)>dble(lzd%glr%d%n1)*lzd%hgrids(1) .or. &
-              locregcenters(2,iat)<dble(0)*lzd%hgrids(2) .or. locregcenters(2,iat)>dble(lzd%glr%d%n2)*lzd%hgrids(2) .or. &
-              locregcenters(3,iat)<dble(0)*lzd%hgrids(3) .or. locregcenters(3,iat)>dble(lzd%glr%d%n3)*lzd%hgrids(3)) then
+          if (locregcenters(1,iat)<dble(0)*lzd%hgrids(1) .or. locregcenters(1,iat)>dble(lzd%glr%d%n1+1)*lzd%hgrids(1) .or. &
+              locregcenters(2,iat)<dble(0)*lzd%hgrids(2) .or. locregcenters(2,iat)>dble(lzd%glr%d%n2+1)*lzd%hgrids(2) .or. &
+              locregcenters(3,iat)<dble(0)*lzd%hgrids(3) .or. locregcenters(3,iat)>dble(lzd%glr%d%n3+1)*lzd%hgrids(3)) then
+              !write(*,'(a,2es16.6)') 'locregcenters(1,iat), dble(lzd%glr%d%n1+1)*lzd%hgrids(1)', locregcenters(1,iat), dble(lzd%glr%d%n1+1)*lzd%hgrids(1)
+              !write(*,'(a,2es16.6)') 'locregcenters(2,iat), dble(lzd%glr%d%n2+1)*lzd%hgrids(2)', locregcenters(2,iat), dble(lzd%glr%d%n2+1)*lzd%hgrids(2)
+              !write(*,'(a,2es16.6)') 'locregcenters(3,iat), dble(lzd%glr%d%n3+1)*lzd%hgrids(3)', locregcenters(3,iat), dble(lzd%glr%d%n3+1)*lzd%hgrids(3)
+              !write(*,'(a,3es16.6)') 'atoms%astruct%rxyz(1:3,iat)', atoms%astruct%rxyz(1:3,iat)
               stop 'locregcenter outside of global box!'
           end if
       end do
   end if
-
 
   if (present(denspot)) then
      call initialize_DFT_local_fields(denspot, in%ixc, in%nspin)
 
      !here the initialization of dpbox can be set up
      call dpbox_set(denspot%dpbox,Lzd,denspot%xc,iproc,nproc,bigdft_mpi%mpi_comm, &
-          & in%PSolver_groupsize, in%SIC%approach, atoms%astruct%geocode, in%nspin)
+          & in%PSolver_groupsize, in%SIC%approach, atoms%astruct%geocode, in%nspin,&
+          in%matacc%PSolver_igpu)
 
      ! Create the Poisson solver kernels.
      call system_initKernels(.true.,iproc,nproc,atoms%astruct%geocode,in,denspot)
      call system_createKernels(denspot, (verbose > 1))
+     if (denspot%pkernel%method .hasattr. 'rigid') then
+        call epsilon_cavity(atoms,rxyz,denspot%pkernel)
+        !allocate cavity, in the case of nonvacuum treatment
+     else if (denspot%pkernel%method /= 'VAC') then 
+          call pkernel_allocate_cavity(denspot%pkernel,&
+          vacuum=.not. (denspot%pkernel%method .hasattr. 'sccs'))
+
+          call epsinnersccs_cavity(atoms,rxyz,denspot%pkernel)
+
+        !if (denspot%pkernel%method .hasattr. 'sccs') &
+        !     call pkernel_allocate_cavity(denspot%pkernel)
+     end if
   end if
 
   ! Create wavefunctions descriptors and allocate them inside the global locreg desc.
-  calculate_bounds = (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
-                      inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
-                      inputpsi /= INPUT_PSI_MEMORY_LINEAR)
+  calculate_bounds = .not. (inputpsi .hasattr. 'LINEAR')
+!!$  (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+!!$                      inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+!!$                      inputpsi /= INPUT_PSI_MEMORY_LINEAR)
   call createWavefunctionsDescriptors(iproc,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),atoms,&
        rxyz,in%crmult,in%frmult,calculate_bounds,Lzd%Glr, output_grid_)
   if (iproc == 0 .and. dump) call print_wfd(Lzd%Glr%wfd)
@@ -112,7 +142,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      nspinor=1
   end if
   call orbitals_descriptors(iproc, nproc,in%gen_norb,in%gen_norbu,in%gen_norbd,in%nspin,nspinor,&
-       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
+       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,LINEAR_PARTITION_NONE)
   !!write(*,*) 'orbs%norbu', orbs%norbu
   !!write(*,*) 'orbs%norbd', orbs%norbd
   !!write(*,*) 'orbs%norb', orbs%norb
@@ -121,46 +151,112 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !!write(*,*) 'orbs%norbp', orbs%norbp
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (dump .and. iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
-  ! Create linear orbs data structure.
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     if (present(locregcenters)) then
-         call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, locregcenters, lorbs)
-     else
-         call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, atoms%astruct%rxyz, lorbs)
-     end if
 
-     ! There are needed for the restart (at least if the atoms have moved...)
-     present_inwhichlocreg_old = present(inwhichlocreg_old)
-     present_onwhichatom_old = present(onwhichatom_old)
-     if (present_inwhichlocreg_old .and. .not.present_onwhichatom_old &
-         .or. present_onwhichatom_old .and. .not.present_inwhichlocreg_old) then
-         call yaml_warning('inwhichlocreg_old and onwhichatom_old should be present at the same time')
-         stop 
+  ! See if linear scaling should be activated and build the correct Lzd 
+  call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
+  lzd_lin=default_lzd()
+  call nullify_local_zone_descriptors(lzd_lin)
+  lzd_lin%nlr = 0
+
+  ! Create linear orbs data structure.
+  !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+  !    .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi .hasattr. 'LINEAR') then
+     !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
+     if (.not. (inputpsi .hasattr. 'MEMORY')) then ! == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR) then
+         ! First do a simple redistribution
+         call init_linear_orbs(LINEAR_PARTITION_SIMPLE)
+     else
+         ! Directly used the reference distribution
+         norb_par = f_malloc(0.to.nproc-1,id='norb_par')
+         norbu_par = f_malloc(0.to.nproc-1,id='norbu_par')
+         norbd_par = f_malloc(0.to.nproc-1,id='norbd_par')
+         if (.not.present(norb_par_ref)) then
+             call f_err_throw('norb_par_ref not present', err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         call vcopy(nproc, norb_par_ref(0), 1, norb_par(0), 1)
+         if (.not.present(norbu_par_ref)) then
+             call f_err_throw('norbu_par_ref not present', err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         call vcopy(nproc, norbu_par_ref(0), 1, norbu_par(0), 1)
+         if (.not.present(norbd_par_ref)) then
+             call f_err_throw('norbd_par_ref not present', err_name='BIGDFT_RUNTIME_ERROR')
+         end if
+         call vcopy(nproc, norbd_par_ref(0), 1, norbd_par(0), 1)
+         call init_linear_orbs(LINEAR_PARTITION_OPTIMAL)
+         call f_free(norb_par)
+         call f_free(norbu_par)
+         call f_free(norbd_par)
      end if
-     if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
-         call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
-         !call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
-         !use onwhichatom to build the new inwhichlocreg (because the old inwhichlocreg can be ordered differently)
-         ii = 0
-         do iat=1, atoms%astruct%nat
-            do iorb=1,lorbs%norb
-               if(iat ==  lorbs%onwhichatom(iorb)) then
-                  ii = ii + 1
-                  lorbs%inwhichlocreg(iorb)= ii
-               end if
-            end do 
-         end do
-         !i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
-         !deallocate(inwhichlocreg_old,stat=i_stat)
-         !call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
-         !i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
-         !deallocate(onwhichatom_old,stat=i_stat)
-         !call memocc(i_stat,i_all,'onwhichatom_old',subname)
+     call fragment_stuff()
+     call init_lzd_linear()
+     ! For restart calculations, the suport function distribution must not be modified
+     !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
+     !SM: added the ".or. fin%lin%fragment_calculation", as this came from a merge with Laura...
+     if (.not. (inputpsi .hasattr. 'MEMORY') .or. in%lin%fragment_calculation) then
+         times_convol = f_malloc(lorbs%norb,id='times_convol')
+         call test_preconditioning()
+         time_max(1) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
+         time_average(1) = time_max(1)/real(nproc,kind=8)
+         norb_par = f_malloc(0.to.nproc-1,id='norb_par')
+         norbu_par = f_malloc(0.to.nproc-1,id='norbu_par')
+         norbd_par = f_malloc(0.to.nproc-1,id='norbd_par')
+         call optimize_loadbalancing2()
+         call deallocate_orbitals_data(lorbs)
+         call deallocate_local_zone_descriptors(lzd_lin)
+         lzd_lin=default_lzd()
+         call nullify_local_zone_descriptors(lzd_lin)
+         lzd_lin%nlr = 0
+         ! Deallocate here fragment stuff
+         !if (.not.(frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR)) then
+         !if (frag_allocated) then
+         !if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
+         if (frag_allocated) then
+             do ifrag=1,in%frag%nfrag_ref
+                call fragment_free(ref_frags(ifrag))
+                ref_frags(ifrag)%astruct_frg%nat=-1
+                ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+                !ref_frags(ifrag)=fragment_null()
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%iatype)
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%ifrztyp)
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%input_polarization)
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%rxyz)
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%rxyz_int)
+                !!call f_free_ptr(ref_frags(ifrag)%astruct_frg%ixyz_int)
+             end do
+            deallocate(ref_frags)
+         end if
+         call init_linear_orbs(LINEAR_PARTITION_OPTIMAL)
+         totaltimes = f_malloc0(nproc,id='totaltimes')
+         call fragment_stuff()
+         call init_lzd_linear()
+         call test_preconditioning()
+         time_max(2) = sum(times_convol(lorbs%isorb+1:lorbs%isorb+lorbs%norbp))
+         time_average(2) = time_max(2)/real(nproc,kind=8)
+         totaltimes(iproc+1) = time_max(2)
+         if (nproc>1) then
+             call mpiallred(time_max, mpi_max, comm=bigdft_mpi%mpi_comm)
+             call mpiallred(time_average, mpi_sum, comm=bigdft_mpi%mpi_comm)
+             call mpiallred(totaltimes, mpi_sum, comm=bigdft_mpi%mpi_comm)
+         end if
+         !ratio_before = real(time_max(1),kind=8)/real(max(1.d0,time_min(1)),kind=8) !max to prevent divide by zero
+         !ratio_after = real(time_max(2),kind=8)/real(max(1.d0,time_min(2)),kind=8) !max to prevent divide by zero
+         !if (iproc==0) call yaml_map('preconditioning load balancing min/max before',(/time_min(1),time_max(1)/),fmt='(es9.2)')
+         !if (iproc==0) call yaml_map('preconditioning load balancing min/max after',(/time_min(2),time_max(2)/),fmt='(es9.2)')
+         if (iproc==0) call yaml_map('preconditioning load balancing before',time_max(1)/time_average(1),fmt='(es9.2)')
+         if (iproc==0) call yaml_map('preconditioning load balancing after',time_max(2)/time_average(2),fmt='(es9.2)')
+         if (iproc==0) call yaml_map('task with max load',maxloc(totaltimes)-1)
+         call f_free(norb_par)
+         call f_free(norbu_par)
+         call f_free(norbd_par)
+         call f_free(times_convol)
+         call f_free(totaltimes)
      end if
   end if
+
+
   !In the case in which the number of orbitals is not "trivial" check whether they are too many
-  if (inputpsi /= INPUT_PSI_RANDOM) then
+  if (inputpsi /= 'INPUT_PSI_RANDOM') then
 
      ! Allocations for readAtomicOrbitals (check inguess.dat and psppar files)
      norbsc_arr = f_malloc((/ atoms%natsc+1, in%nspin /),id='norbsc_arr')
@@ -214,8 +310,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   !allocate communications arrays (allocate it before Projectors because of the definition
   !of iskpts and nkptsp)
   call orbitals_communicators(iproc,nproc,Lzd%Glr,orbs,comms)  
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-      .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  !if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
+  !.or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
+  if (inputpsi .hasattr. 'LINEAR') then
      if(iproc==0 .and. dump) call print_orbital_distribution(iproc, nproc, lorbs)
   end if
 
@@ -227,87 +324,60 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call yaml_map('Wavefunctions memory occupation for root MPI process',&
           trim(yaml_toa(nMB,fmt='(i5)'))//' MB'//trim(yaml_toa(nKB,fmt='(i5)'))//&
           ' KB'//trim(yaml_toa(nB,fmt='(i5)'))//' B')
-!!$     write(*,'(1x,a,3(i5,a))') &
-!!$       'Wavefunctions memory occupation for root MPI process: ',&
-!!$       nMB,' MB ',nKB,' KB ',nB,' B'
+ !!$     write(*,'(1x,a,3(i5,a))') &
+ !!$       'Wavefunctions memory occupation for root MPI process: ',&
+ !!$       nMB,' MB ',nKB,' KB ',nB,' B'
   end if
   ! Done orbs
 
-  ! fragment initializations - if not a fragment calculation, set to appropriate dummy values
-  frag_allocated=.false.
-  if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
-     allocate(ref_frags(in%frag%nfrag_ref))
-     do ifrag=1,in%frag%nfrag_ref
-        ref_frags(ifrag)=fragment_null()
-     end do
-     call init_fragments(in,lorbs,atoms%astruct,ref_frags)
-    frag_allocated=.true.
-  else
-     nullify(ref_frags)
+  !!! fragment initializations - if not a fragment calculation, set to appropriate dummy values
+  !if (inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+  !    .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if (.not. (inputpsi .hasattr. 'LINEAR')) then
+      call fragment_stuff()
   end if
+  !!frag_allocated=.false.
+  !!if (inputpsi == INPUT_PSI_DISK_LINEAR .or. in%lin%fragment_calculation) then
+  !!   allocate(ref_frags(in%frag%nfrag_ref))
+  !!   do ifrag=1,in%frag%nfrag_ref
+  !!      ref_frags(ifrag)=fragment_null()
+  !!   end do
+  !!   call init_fragments(in,lorbs,atoms%astruct,ref_frags)
+  !!  frag_allocated=.true.
+  !!else
+  !!   nullify(ref_frags)
+  !!end if
 
-  call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
-       orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
+  !!call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
+  !!     orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
 
-  ! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
-  if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
-      do ifrag=1,in%frag%nfrag_ref
-         ref_frags(ifrag)%astruct_frg%nat=-1
-         ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
-         call fragment_free(ref_frags(ifrag))
-         !ref_frags(ifrag)=fragment_null()
-      end do
-     deallocate(ref_frags)
-  end if
+  !!! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
+  !!if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= INPUT_PSI_DISK_LINEAR) then
+  !!    do ifrag=1,in%frag%nfrag_ref
+  !!       ref_frags(ifrag)%astruct_frg%nat=-1
+  !!       ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+  !!       call fragment_free(ref_frags(ifrag))
+  !!       !ref_frags(ifrag)=fragment_null()
+  !!    end do
+  !!   deallocate(ref_frags)
+  !!end if
 
-  ! See if linear scaling should be activated and build the correct Lzd 
-  call check_linear_and_create_Lzd(iproc,nproc,in%linear,Lzd,atoms,orbs,in%nspin,rxyz)
-
-  lzd_lin=default_lzd()
-  call nullify_local_zone_descriptors(lzd_lin)
-  lzd_lin%nlr = 0
-
-  if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_DISK_LINEAR &
-     .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-     call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
-     call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
-     if (inputpsi == INPUT_PSI_LINEAR_AO .or. inputpsi == INPUT_PSI_MEMORY_LINEAR) then
-         !!write(*,*) 'rxyz',rxyz
-         !!write(*,*) 'locregcenters',locregcenters
-         if (present(locregcenters)) then
-            call lzd_init_llr(iproc, nproc, in, atoms%astruct, locregcenters, lorbs, lzd_lin)
-        else
-            call lzd_init_llr(iproc, nproc, in, atoms%astruct, atoms%astruct%rxyz, lorbs, lzd_lin)
-        end if
-
-     else
-        call initialize_linear_from_file(iproc,nproc,in%frag,atoms%astruct,rxyz,lorbs,lzd_lin,&
-             input_wf_format,in%dir_output,'minBasis',ref_frags)
-        !what to do with derivatives?
-        ! These values are not read from file, not very nice this way
-        do ilr=1,lzd_lin%nlr
-            iilr=mod(ilr-1,lorbs%norbu)+1 !correct value for a spin polarized system
-            lzd_lin%llr(ilr)%locrad_kernel=in%lin%locrad_kernel(iilr)
-            lzd_lin%llr(ilr)%locrad_mult=in%lin%locrad_mult(iilr)
-        end do
-     end if
-
-     call initLocregs(iproc, nproc, lzd_lin, Lzd_lin%hgrids(1), Lzd_lin%hgrids(2),Lzd_lin%hgrids(3), &
-          atoms%astruct, lorbs, Lzd_lin%Glr, 's')
-     call update_wavefunctions_size(lzd_lin,lnpsidim_orbs,lnpsidim_comp,lorbs,iproc,nproc)
-
-  end if
 
   ! Calculate all projectors, or allocate array for on-the-fly calculation
   ! SM: For a linear scaling calculation, some parts can be done later.
   ! SM: The following flag is false for linear scaling and true otherwise.
-  init_projectors_completely = (inputpsi /= INPUT_PSI_LINEAR_AO .and. &
-                                inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
-                                inputpsi /= INPUT_PSI_MEMORY_LINEAR)
+  init_projectors_completely =   .not.(inputpsi .hasattr. 'LINEAR')
+  !(inputpsi /= INPUT_PSI_LINEAR_AO .and. &
+  !                              inputpsi /= INPUT_PSI_DISK_LINEAR .and. &
+  !                              inputpsi /= INPUT_PSI_MEMORY_LINEAR)
   call createProjectorsArrays(Lzd%Glr,rxyz,atoms,orbs,&
        in%frmult,in%frmult,Lzd%hgrids(1),Lzd%hgrids(2),&
        Lzd%hgrids(3),dry_run,nlpsp,init_projectors_completely)
   if (iproc == 0 .and. dump) call print_nlpsp(nlpsp)
+  if (iproc == 0 .and. .not. nlpsp%on_the_fly .and. .false.) then
+     call writemyproj("proj",WF_FORMAT_BINARY,orbs,Lzd%hgrids(1),Lzd%hgrids(2),&
+       Lzd%hgrids(3),atoms,rxyz,nlpsp)
+  end if
   !the complicated part of the descriptors has not been filled
   if (dry_run) then
      call f_release_routine()
@@ -333,8 +403,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   call vdwcorrection_initializeparams(in%ixc, in%dispersion)
 
   !check the communication distribution
-  if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
-     .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  !if(inputpsi /= INPUT_PSI_LINEAR_AO .and. inputpsi /= INPUT_PSI_DISK_LINEAR &
+  !   .and. inputpsi /= INPUT_PSI_MEMORY_LINEAR) then
+  if (.not.(inputpsi .hasattr. 'LINEAR')) then
      call check_communications(iproc,nproc,orbs,Lzd,comms)
   else
       ! Do not call check_communication, since the value of orbs%npsidim_orbs is wrong
@@ -350,13 +421,393 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   call f_release_routine()
   !---end of system definition routine
 
+
+  contains
+
+    subroutine init_linear_orbs(linear_partition)
+      use module_interfaces, only: init_orbitals_data_for_linear
+     implicit none
+     integer,intent(in) :: linear_partition
+
+     if (linear_partition==LINEAR_PARTITION_SIMPLE) then
+         if (present(locregcenters)) then
+             call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, locregcenters, lorbs)
+         else
+             call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, atoms%astruct%rxyz, lorbs)
+         end if
+     else if (linear_partition==LINEAR_PARTITION_OPTIMAL) then
+         if (present(locregcenters)) then
+             call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, locregcenters, lorbs, &
+                  norb_par, norbu_par, norbd_par)
+         else
+             call init_orbitals_data_for_linear(iproc, nproc, orbs%nspinor, in, atoms%astruct, atoms%astruct%rxyz, lorbs, &
+                  norb_par, norbu_par, norbd_par)
+         end if
+     else
+         stop 'init_linear_orbs: wrong value of linear_partition'
+     end if
+
+       ! There are needed for the restart (at least if the atoms have moved...)
+       present_inwhichlocreg_old = present(inwhichlocreg_old)
+       present_onwhichatom_old = present(onwhichatom_old)
+       if (present_inwhichlocreg_old .and. .not.present_onwhichatom_old &
+           .or. present_onwhichatom_old .and. .not.present_inwhichlocreg_old) then
+           call yaml_warning('inwhichlocreg_old and onwhichatom_old should be present at the same time')
+           stop 
+       end if
+       if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
+           call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
+           !call vcopy(lorbs%norb, inwhichlocreg_old(1), 1, lorbs%inwhichlocreg(1), 1)
+           !use onwhichatom to build the new inwhichlocreg (because the old inwhichlocreg can be ordered differently)
+           ii = 0
+           do iat=1, atoms%astruct%nat
+              !only want to do this for spin=1!
+              do iorb=1,lorbs%norbu
+                 if(iat ==  lorbs%onwhichatom(iorb)) then
+                    ii = ii + 1
+                    lorbs%inwhichlocreg(iorb)= ii
+                 end if
+              end do 
+           end do
+
+           ! LR: not sure if this is the best way to do this but it seems to work...
+           ! Correction for spin polarized systems. For non polarized systems, norbu=norb and the loop does nothing.
+           do iorb=lorbs%norbu+1,lorbs%norb
+               lorbs%inwhichlocreg(iorb)=lorbs%inwhichlocreg(iorb-lorbs%norbu)+lorbs%norbu
+           end do
+
+           !i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
+           !deallocate(inwhichlocreg_old,stat=i_stat)
+           !call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
+           !i_all=-product(shape(onwhichatom_old))*kind(onwhichatom_old)
+           !deallocate(onwhichatom_old,stat=i_stat)
+           !call memocc(i_stat,i_all,'onwhichatom_old',subname)
+       end if
+     end subroutine init_linear_orbs
+
+     subroutine init_lzd_linear()
+       use module_interfaces, only: initialize_linear_from_file
+       use locregs_init, only: initLocregs
+       use locregs, only: copy_locreg_descriptors
+       implicit none
+       call copy_locreg_descriptors(Lzd%Glr, lzd_lin%glr)
+       call lzd_set_hgrids(lzd_lin, Lzd%hgrids)
+       if (inputpsi == 'INPUT_PSI_LINEAR_AO' .or. inputpsi == 'INPUT_PSI_MEMORY_LINEAR') then
+           !!write(*,*) 'rxyz',rxyz
+           !!write(*,*) 'locregcenters',locregcenters
+           if (present(locregcenters)) then
+              call lzd_init_llr(iproc, nproc, in, atoms%astruct, locregcenters, lorbs, lzd_lin)
+          else
+              call lzd_init_llr(iproc, nproc, in, atoms%astruct, atoms%astruct%rxyz, lorbs, lzd_lin)
+          end if
+
+       else
+          call initialize_linear_from_file(iproc,nproc,in%frag,atoms%astruct,rxyz,lorbs,lzd_lin,&
+               input_wf_format,in%dir_output,'minBasis',ref_frags)
+          !what to do with derivatives?
+          ! These values are not read from file, not very nice this way
+          do ilr=1,lzd_lin%nlr
+              iilr=mod(ilr-1,lorbs%norbu)+1 !correct value for a spin polarized system
+              lzd_lin%llr(ilr)%locrad_kernel=in%lin%locrad_kernel(iilr)
+              lzd_lin%llr(ilr)%locrad_mult=in%lin%locrad_mult(iilr)
+          end do
+       end if
+
+       call initLocregs(iproc, nproc, lzd_lin, Lzd_lin%hgrids(1), Lzd_lin%hgrids(2),Lzd_lin%hgrids(3), &
+            atoms%astruct, lorbs, Lzd_lin%Glr, 's')
+       call update_wavefunctions_size(lzd_lin,lnpsidim_orbs,lnpsidim_comp,lorbs,iproc,nproc)
+     end subroutine init_lzd_linear
+
+
+     subroutine test_preconditioning()
+       implicit none
+
+       !Local variables
+       integer :: iorb, iiorb, ilr, ncplx, ist, i, ierr, ii, jj
+       logical :: with_confpot
+       real(gp) :: kx, ky, kz
+       type(workarrays_quartic_convolutions),dimension(:),allocatable :: precond_convol_workarrays
+       type(workarr_precond),dimension(:),allocatable :: precond_workarrays
+       real(kind=8),dimension(:),allocatable :: phi
+       real(kind=8) :: t1, t2, time, tt, maxtime
+       integer,parameter :: nit=5
+       real(kind=8),dimension(2*nit+1) :: times
+
+      call f_zero(times_convol)
+      do iorb=1,lorbs%norbp
+          iiorb=lorbs%isorb+iorb
+          ilr=lorbs%inwhichlocreg(iiorb)
+          ii = (lzd_lin%llr(ilr)%d%n1+1)*(lzd_lin%llr(ilr)%d%n2+1)*(lzd_lin%llr(ilr)%d%n3+1)
+          jj = 7*(lzd_lin%llr(ilr)%d%nfu1-lzd_lin%llr(ilr)%d%nfl1+1)*&
+                 (lzd_lin%llr(ilr)%d%nfu2-lzd_lin%llr(ilr)%d%nfl2+1)*&
+                 (lzd_lin%llr(ilr)%d%nfu3-lzd_lin%llr(ilr)%d%nfl3+1)
+          times_convol(iiorb) = real(ii+jj,kind=8)
+      end do
+      if (nproc>1) then
+          call mpiallred(times_convol, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      end if
+
+      return !###############################################3
+
+       phi = f_malloc(lnpsidim_orbs,id='phi')
+       phi=1.d-5
+
+      allocate(precond_convol_workarrays(lorbs%norbp))
+      allocate(precond_workarrays(lorbs%norbp))
+      do iorb=1,lorbs%norbp
+          iiorb=lorbs%isorb+iorb
+          ilr=lorbs%inwhichlocreg(iiorb)
+          with_confpot = .true.
+          call init_local_work_arrays(lzd_lin%llr(ilr)%d%n1, lzd_lin%llr(ilr)%d%n2, lzd_lin%llr(ilr)%d%n3, &
+               lzd_lin%llr(ilr)%d%nfl1, lzd_lin%llr(ilr)%d%nfu1, &
+               lzd_lin%llr(ilr)%d%nfl2, lzd_lin%llr(ilr)%d%nfu2, &
+               lzd_lin%llr(ilr)%d%nfl3, lzd_lin%llr(ilr)%d%nfu3, &
+               with_confpot, precond_convol_workarrays(iorb))
+          kx=lorbs%kpts(1,lorbs%iokpt(iorb))
+          ky=lorbs%kpts(2,lorbs%iokpt(iorb))
+          kz=lorbs%kpts(3,lorbs%iokpt(iorb))
+          if (kx**2+ky**2+kz**2 > 0.0_gp .or. lorbs%nspinor==2 ) then
+             ncplx=2
+          else
+             ncplx=1
+          end if
+          call allocate_work_arrays(lzd_lin%llr(ilr)%geocode, lzd_lin%llr(ilr)%hybrid_on, &
+               ncplx, lzd_lin%llr(ilr)%d, precond_workarrays(iorb))
+      end do
+
+
+      call f_zero(times_convol)
+
+      if (nproc>1) then
+          call mpi_barrier(bigdft_mpi%mpi_comm, ierr)
+      end if
+       ist=0
+       tt = 0.d0
+       do iorb=1,lorbs%norbp
+           iiorb = lorbs%isorb + iorb
+           ilr = lorbs%inwhichlocreg(iiorb)
+           kx=lorbs%kpts(1,lorbs%iokpt(iorb))
+           ky=lorbs%kpts(2,lorbs%iokpt(iorb))
+           kz=lorbs%kpts(3,lorbs%iokpt(iorb))
+           if (kx**2+ky**2+kz**2 > 0.0_gp .or. lorbs%nspinor==2 ) then
+              ncplx=2
+           else
+              ncplx=1
+           end if
+           do i=1,2*nit+1
+               t1 = mpi_wtime()
+               call solvePrecondEquation(iproc, nproc, lzd_lin%llr(ilr), ncplx, 6, -0.5d0, &
+                    lzd_lin%hgrids(1), lzd_lin%hgrids(2), lzd_lin%hgrids(3), &
+                    lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), lorbs%kpts(1,lorbs%iokpt(iorb)), &
+                    phi(1+ist), lzd_lin%llr(ilr)%locregCenter,&
+                    1.d-3, 4, precond_convol_workarrays(iorb), precond_workarrays(iorb))
+               t2 = mpi_wtime()
+               times(i) = t2-t1
+           end do
+           ! Take the median
+           write(20000+iproc,'(a,i7,2es13.2,5x,11es12.2)') 'iiorb, time, tottime, alltimes', iiorb, time, tt, times
+           maxtime = maxval(times)
+           do i=1,nit
+               times(minloc(times,1)) = maxtime
+           end do
+           do i=1,2*nit
+               times(maxloc(times,1)) = 0.d0
+           end do
+           time = maxval(times)
+           tt = tt + time
+           write(20000+iproc,'(a,i7,2es13.2,5x,11es12.2)') 'iiorb, time, tottime, alltimes', iiorb, time, tt, times
+           times_convol(iiorb) = time
+           ist = ist + (lzd_lin%llr(ilr)%wfd%nvctr_c+7*lzd_lin%llr(ilr)%wfd%nvctr_f)*ncplx
+       end do
+       write(20000+iproc,'(a)') '==========================='
+
+       do iorb=1,lorbs%norbp
+           iiorb=lorbs%isorb+iorb
+           ilr=lorbs%inwhichlocreg(iiorb)
+           call deallocate_workarrays_quartic_convolutions(precond_convol_workarrays(iorb))
+           kx=lorbs%kpts(1,lorbs%iokpt(iorb))
+           ky=lorbs%kpts(2,lorbs%iokpt(iorb))
+           kz=lorbs%kpts(3,lorbs%iokpt(iorb))
+           if (kx**2+ky**2+kz**2 > 0.0_gp .or. lorbs%nspinor==2 ) then
+              ncplx=2
+           else
+              ncplx=1
+           end if
+           call deallocate_work_arrays(lzd_lin%llr(ilr)%geocode, lzd_lin%llr(ilr)%hybrid_on, &
+                ncplx, precond_workarrays(iorb))
+       end do
+       deallocate(precond_convol_workarrays)
+       deallocate(precond_workarrays)
+
+       call f_free(phi)
+
+       if (nproc>1) then
+           call mpiallred(times_convol, mpi_sum, comm=bigdft_mpi%mpi_comm)
+       end if
+
+     end subroutine test_preconditioning
+
+     !!subroutine optimize_loadbalancing()
+     !!  implicit none
+
+     !!  ! Local variables
+     !!  integer(kind=8) :: isize, isize_ideal
+
+     !!  ! Sum up the total size of all support functions
+     !!  isize = int(lnpsidim_orbs,kind=8)
+     !!  if (nproc>1) then
+     !!      call mpiallred(isize, 1, mpi_sum, bigdft_mpi%mpi_comm)
+     !!  end if
+
+     !!  ! Ideal size per task (integer division)
+     !!  isize_ideal = isize/int(nproc,kind=8)
+
+     !!  ! Redistribute the support functions such that the load balancing is optimal
+     !!  call redistribute(lorbs%norb, isize_ideal, norb_par)
+
+     !!  ! The same for the up and down orbitals
+     !!  isize_ideal = isize_ideal/int(in%nspin,kind=8)
+     !!  call redistribute(lorbs%norbu, isize_ideal, norbu_par)
+     !!  call redistribute(lorbs%norbd, isize_ideal, norbd_par)
+
+     !!end subroutine optimize_loadbalancing
+
+     !!subroutine redistribute(norb, isize_ideal, norb_par)
+     !!  implicit none
+     !!  integer,intent(in) :: norb
+     !!  integer(kind=8),intent(in) :: isize_ideal
+     !!  integer,dimension(0:nproc-1),intent(out) :: norb_par
+     !!  integer :: jjorbtot, jjorb, jproc, jlr, jorb
+     !!  integer(kind=8) :: ncount
+
+     !!  call f_zero(norb_par)
+     !!  ncount = int(0,kind=8)
+     !!  jproc = 0
+     !!  jjorb = 0
+     !!  jjorbtot = 0
+     !!  do jorb=1,norb
+     !!      jjorb = jjorb + 1
+     !!      jlr = lorbs%inwhichlocreg(jorb)
+     !!      ncount = ncount + int(lzd_lin%llr(jlr)%wfd%nvctr_c+7*lzd_lin%llr(jlr)%wfd%nvctr_f,kind=8)
+     !!      if (ncount>=isize_ideal*int(jproc+1,kind=8)) then
+     !!          norb_par(jproc) = jjorb
+     !!          jjorbtot = jjorbtot + jjorb
+     !!          jjorb = 0
+     !!          jproc = jproc + 1
+     !!      end if
+     !!      if (jproc==nproc-1) exit
+     !!  end do
+     !!  norb_par(nproc-1) = (norb - jjorbtot) !+jjorb -> why was this needed?! !take the rest
+     !!  do jproc=0,nproc-1
+     !!      !if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+     !!  end do
+     !!end subroutine redistribute
+
+
+     subroutine optimize_loadbalancing2()
+       use sparsematrix_init, only: redistribute
+       implicit none
+
+       ! Local variables
+       real(kind=8) :: time, time_ideal
+
+       ! Sum up the total size of all support functions
+       time = sum(times_convol)
+
+       ! Ideal size per task (integer division)
+       time_ideal = time/int(nproc,kind=8)
+
+       ! Redistribute the support functions such that the load balancing is optimal
+       !!call redistribute2(lorbs%norb, time_ideal, norb_par)
+       call redistribute(nproc, lorbs%norb, times_convol, time_ideal, norb_par)
+
+       ! The same for the up and down orbitals
+       time_ideal = time_ideal/int(in%nspin,kind=8)
+       !!call redistribute2(lorbs%norbu, time_ideal, norbu_par)
+       !!call redistribute2(lorbs%norbd, time_ideal, norbd_par)
+       call redistribute(nproc, lorbs%norbu, times_convol, time_ideal, norbu_par)
+       call redistribute(nproc, lorbs%norbd, times_convol, time_ideal, norbd_par)
+
+     end subroutine optimize_loadbalancing2
+
+     !!subroutine redistribute2(norb, time_ideal, norb_par)
+     !!  implicit none
+     !!  integer,intent(in) :: norb
+     !!  real(kind=8),intent(in) :: time_ideal
+     !!  integer,dimension(0:nproc-1),intent(out) :: norb_par
+     !!  integer :: jjorbtot, jjorb, jproc, jlr, jorb
+     !!  real(kind=8) :: tcount
+
+     !!  call f_zero(norb_par)
+     !!  if (norb>=nproc) then
+     !!      tcount = 0.d0
+     !!      jproc = 0
+     !!      jjorb = 0
+     !!      jjorbtot = 0
+     !!      do jorb=1,norb
+     !!          if (jproc==nproc-1) exit
+     !!          jjorb = jjorb + 1
+     !!          if(jorb==norb) exit !just to besure that no out of bound happens
+     !!          tcount = tcount + times_convol(jorb)
+     !!          !if (iproc==0) write(*,'(a,2i8,2es14.5)') 'jorb, jproc, tcount, diff to target', jorb, jproc, tcount, abs(tcount-time_ideal*real(jproc+1,kind=8))
+     !!          if (abs(tcount-time_ideal*real(jproc+1,kind=8)) <= &
+     !!                  abs(tcount+times_convol(jorb+1)-time_ideal*real(jproc+1,kind=8))) then
+     !!              norb_par(jproc) = jjorb
+     !!              jjorbtot = jjorbtot + jjorb
+     !!              jjorb = 0
+     !!              jproc = jproc + 1
+     !!          end if
+     !!      end do
+     !!      norb_par(nproc-1) = jjorb + (norb - jjorbtot) !take the rest
+     !!      !do jproc=0,nproc-1
+     !!      !    if (iproc==0) write(*,*) 'jproc, norb_par(jproc)', jproc, norb_par(jproc)
+     !!      !end do
+     !!  else
+     !!      ! Equal distribution
+     !!      norb_par(0:norb-1) = 1
+     !!  end if
+     !!end subroutine redistribute2
+
+
+     subroutine fragment_stuff()
+       use module_interfaces, only: input_check_psi_id
+       implicit none
+       frag_allocated=.false.
+       if (inputpsi == 'INPUT_PSI_DISK_LINEAR' .or. in%lin%fragment_calculation) then
+          allocate(ref_frags(in%frag%nfrag_ref))
+          do ifrag=1,in%frag%nfrag_ref
+             ref_frags(ifrag)=fragment_null()
+          end do
+          call init_fragments(in,lorbs,atoms%astruct,ref_frags)
+         frag_allocated=.true.
+       else
+          nullify(ref_frags)
+         frag_allocated=.false.
+       end if
+
+       call input_check_psi_id(inputpsi, input_wf_format, in%dir_output, &
+            orbs, lorbs, iproc, nproc, in%frag%nfrag_ref, in%frag%dirname, ref_frags)
+
+       ! we need to deallocate the fragment arrays we just allocated as not a restart calculation so this is no longer needed
+       if (frag_allocated .and. (.not. in%lin%fragment_calculation) .and. inputpsi /= 'INPUT_PSI_DISK_LINEAR') then
+           do ifrag=1,in%frag%nfrag_ref
+              call fragment_free(ref_frags(ifrag))
+              ref_frags(ifrag)%astruct_frg%nat=-1
+              ref_frags(ifrag)%fbasis%forbs=minimal_orbitals_data_null()
+              !ref_frags(ifrag)=fragment_null()
+           end do
+          deallocate(ref_frags)
+         frag_allocated=.false.
+       end if
+     end subroutine fragment_stuff
+
 END SUBROUTINE system_initialization
 
 
 subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   use module_types
   use module_xc
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_base
   implicit none
   logical, intent(in) :: verb
@@ -368,14 +819,16 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
   integer, parameter :: ndegree_ip = 16
 
   denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,mpi_env=denspot%dpbox%mpi_env)
+       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+       mpi_env=denspot%dpbox%mpi_env,alg=in%GPS_method,cavity=in%set_epsilon)
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac(denspot%xc) /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is bigdft_mpi%mpi_comm
      !this might pose problems when using SIC or exact exchange with taskgroups
      denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
-          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip)
+          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+          alg=in%GPS_method,cavity=in%set_epsilon)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -385,27 +838,281 @@ END SUBROUTINE system_initKernels
 subroutine system_createKernels(denspot, verb)
   use module_base
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   implicit none
   logical, intent(in) :: verb
+  integer(kind=8)  :: iproc_node, nproc_node
   type(DFT_local_fields), intent(inout) :: denspot
-
-  call pkernel_set(denspot%pkernel,verb)
+  iproc_node=0
+  nproc_node=0
+  call processor_id_per_node(bigdft_mpi%iproc,bigdft_mpi%nproc,iproc_node,nproc_node)
+  call pkernel_set(denspot%pkernel,iproc_node=iproc_node,&
+                     nproc_node=nproc_node,verbose=verb)
     !create the sequential kernel if pkernelseq is not pkernel
   if (denspot%pkernelseq%mpi_env%nproc == 1 .and. denspot%pkernel%mpi_env%nproc /= 1) then
-     call pkernel_set(denspot%pkernelseq,.false.)
+     call pkernel_set(denspot%pkernelseq,iproc_node=iproc_node,&
+                     nproc_node=nproc_node,verbose=.false.)
   else
      denspot%pkernelseq = denspot%pkernel
   end if
 
 END SUBROUTINE system_createKernels
 
+!> calculate the dielectric function for the cavitBy
+subroutine epsilon_cavity(atoms,rxyz,pkernel)
+  use dynamic_memory
+  use Poisson_Solver
+  use module_atoms
+  use ao_inguess, only: atomic_info
+  !use yaml_output
+  use numerics, only : Bohr_Ang
+  use module_base, only: bigdft_mpi
+  use f_enums, f_str => str
+  use yaml_output
+  use dictionaries, only: f_err_throw
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  type(coulomb_operator), intent(inout) :: pkernel
+  !local variables
+  real(gp), parameter :: epsilon0=78.36d0 ! Constant dielectric permittivity of water.
+  real(gp), parameter :: fact=1.2d0 ! Multiplying factor to enlarge the rigid cavity.
+  integer :: i,i3s,i23
+  real(gp) :: delta,IntSur,IntVol,noeleene,Cavene,Repene,Disene
+  type(atoms_iterator) :: it
+  real(gp), dimension(:), allocatable :: radii,radii_nofact
+  real(gp), dimension(:,:,:), allocatable :: eps,oneoeps,oneosqrteps,corr
+  real(gp), dimension(:,:,:,:), allocatable :: dlogeps
+  real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
+  real(dp), parameter :: alphaS = -22.0d0 ![dyn/cm]
+  real(dp), parameter :: betaV = -0.35d0 ![GPa]
+  real(dp) :: gammaSau, alphaSau,betaVau
+
+  gammaSau=gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  alphaSau=alphaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  betaVau=betaV/2.942191219d4 ! in atomic unit
+
+  !set the vdW radii for the cavity definition
+  !iterate above atoms
+
+  radii=f_malloc(atoms%astruct%nat,id='radii')
+  radii_nofact=f_malloc(atoms%astruct%nat,id='radii_nofact')
+  eps=f_malloc(pkernel%ndims,id='eps')
+  dlogeps=f_malloc([3,pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3)],id='dlogeps')
+  oneoeps=f_malloc(pkernel%ndims,id='oneoeps')
+  oneosqrteps=f_malloc(pkernel%ndims,id='oneosqrteps')
+  corr=f_malloc(pkernel%ndims,id='corr')
+
+  it=atoms_iter(atoms%astruct)
+  !python metod
+  do while(atoms_iter_next(it))
+     !only amu is extracted here
+     call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
+          rcov=radii(it%iat))
+  end do
+  if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
+
+!  radii(1)=1.5d0/Bohr_Ang
+!  radii(2)=1.2d0/Bohr_Ang
+!  radii(3)=1.2d0/Bohr_Ang
+
+!  delta=4.0*maxval(pkernel%hgrids)
+  delta=2.0d0
+!  if(bigdft_mpi%iproc==0) call yaml_map('Delta cavity',delta)
+  delta=delta*0.25d0 ! Divided by 4 because both rigid cavities are 4*delta widespread 
+
+  do i=1,atoms%astruct%nat
+!   write(*,*)atoms%astruct%atomnames(atoms%astruct%iatype(i))
+   ! Set the Pauling's set of atomic radii [R.C. Weast, ed., Handbook of chemistry and physics (CRC Press, Cleveland, 1981)].
+   select case(trim(atoms%astruct%atomnames(atoms%astruct%iatype(i))))
+   case('H')
+    radii(i)=1.0d0
+   case('C')
+    radii(i)=1.5d0
+   case('N')
+    radii(i)=1.5d0
+   case('O')
+    radii(i)=1.4d0
+   case('P')
+    radii(i)=1.8d0
+   case('Cl')
+    radii(i)=1.8d0
+   case('Ti')
+    radii(i)=1.8d0
+   case default
+    call f_err_throw('For rigid cavity a radius should be fixed for each atom type')
+   end select
+   if (bigdft_mpi%iproc==0) call yaml_map('Atomic type',atoms%astruct%atomnames(atoms%astruct%iatype(i)))
+   radii_nofact(i) = radii(i)/Bohr_Ang +1.05d0*delta
+   radii(i) = fact*radii(i)/Bohr_Ang + 1.22d0*delta
+  end do
+  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
+
+!--------------------------------------------
+
+! Calculation of non-electrostatic contribution. Use of raddi without fact
+! multiplication.
+!  call epsilon_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,&
+!       atoms%astruct%nat,rxyz,radii_nofact,&
+!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+!  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii_nofact,&
+!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+
+!  if (bigdft_mpi%iproc==0) then
+!     call yaml_map('Surface integral',IntSur)
+!     call yaml_map('Volume integral',IntVol)
+!  end if
+!  Cavene= 72.d-13*Bohr_Ang*IntSur/8.238722514d-8*627.509469d0
+!  Repene=-22.d-13*Bohr_Ang*IntSur/8.238722514d-8*627.509469d0
+!  Disene=-0.35d9*IntVol*2.942191219d-13*627.509469d0
+!  noeleene=Cavene+Repene+Disene
+!  if (bigdft_mpi%iproc==0) then
+!     call yaml_map('Cavity energy',Cavene)
+!     call yaml_map('Repulsion energy',Repene)
+!     call yaml_map('Dispersion energy',Disene)
+!     call yaml_map('Total non-electrostatic energy',noeleene)
+!  end if
+
+!--------------------------------------------
+
+!  call epsilon_rigid_cavity(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+!       epsilon0,delta,eps)
+  call epsilon_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+!  call epsilon_rigid_cavity_new_multiatoms(atoms%astruct%geocode,pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,&
+!       epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr,IntSur,IntVol)
+
+  if (bigdft_mpi%iproc==0) then
+     call yaml_map('Surface integral',IntSur)
+     call yaml_map('Volume integral',IntVol)
+  end if
+  Cavene= gammaSau*IntSur*627.509469d0
+  Repene= alphaSau*IntSur*627.509469d0
+  Disene=  betaVau*IntVol*627.509469d0
+  noeleene=Cavene+Repene+Disene
+  if (bigdft_mpi%iproc==0) then
+     call yaml_map('Cavity energy',Cavene)
+     call yaml_map('Repulsion energy',Repene)
+     call yaml_map('Dispersion energy',Disene)
+     call yaml_map('Total non-electrostatic energy',noeleene)
+  end if
+
+  !set the epsilon to the poisson solver kernel
+!  call pkernel_set_epsilon(pkernel,eps=eps)
+
+  !!!!!set the fake cavity to restore the value in vacuum
+!!$  corr=0.d0
+!!$  oneosqrteps=1.d0
+
+  !if(bigdft_mpi%iproc==0) call yaml_map('Im here',1)
+
+  select case(trim(f_str(pkernel%method)))
+  case('PCG')
+   call pkernel_set_epsilon(pkernel,eps=eps,oneosqrteps=oneosqrteps,corr=corr)
+!   call pkernel_set_epsilon(pkernel,eps=eps)
+  case('PI') 
+   call pkernel_set_epsilon(pkernel,oneoeps=oneoeps,dlogeps=dlogeps)
+  end select
+
+!!$  !starting point in third direction
+!!$  i3s=pkernel%grid%istart+1
+!!$  i23=1
+!!$  do i3=i3s,i3s+pkernel%grid%n3p-1!kernel%ndims(3)
+!!$     do i2=1,pkernel%ndims(2)
+!!$        do i1=1,pkernel%ndims(1)
+!!$           pkernel%cavity(i1,i23)=eps(i1,i2,i3)
+!!$        end do
+!!$        i23=i23+1
+!!$     end do
+!!$  end do
+
+!!$  unt=f_get_free_unit(21)
+!!$  call f_open_file(unt,file='oneoepsilon.dat')
+!!$  i1=1!n03/2
+!!$  do i2=1,pkernel%ndims(2)
+!!$     do i3=1,pkernel%ndims(3)
+!!$        write(unt,'(2(1x,I4),2(1x,e14.7))')i2,i3,pkernel%oneoeps(i1,i2+(i3-1)*pkernel%ndims(2)),&
+!!$             pkernel%oneoeps(pkernel%ndims(1)/2,i2+(i3-1)*pkernel%ndims(2))
+!!$     end do
+!!$  end do
+!!$  call f_close(unt)
+
+  call f_free(radii)
+  call f_free(radii_nofact)
+  call f_free(eps)
+  call f_free(dlogeps)
+  call f_free(oneoeps)
+  call f_free(oneosqrteps)
+  call f_free(corr)
+end subroutine epsilon_cavity
+
+!> calculate the inner cavity for a sccs run to avoit discontinuity in epsilon
+!! due to near-zero edens near atoms
+subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
+  use dynamic_memory
+  use Poisson_Solver
+  use module_atoms
+  use ao_inguess, only: atomic_info
+  !use yaml_output
+  use numerics, only : Bohr_Ang
+  use module_base, only: bigdft_mpi
+  use f_enums, f_str => str
+  use yaml_output
+  use dictionaries, only: f_err_throw
+  implicit none
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3,atoms%astruct%nat), intent(in) :: rxyz
+  type(coulomb_operator), intent(inout) :: pkernel
+
+  !local variables
+  integer :: i,n1,n23,i3s
+  real(gp) :: delta
+  type(atoms_iterator) :: it
+  real(gp), dimension(:), allocatable :: radii
+  real(gp), dimension(:,:,:), allocatable :: eps
+
+  radii=f_malloc(atoms%astruct%nat,id='radii')
+  eps=f_malloc(pkernel%ndims,id='eps')
+
+  it=atoms_iter(atoms%astruct)
+  !python metod
+  do while(atoms_iter_next(it))
+     !only amu is extracted here
+     call atomic_info(atoms%nzatom(it%ityp),atoms%nelpsp(it%ityp),&
+          rcov=radii(it%iat))
+  end do
+
+!  if(bigdft_mpi%iproc==0) call yaml_map('Bohr_Ang',Bohr_Ang)
+
+  delta=2.0*maxval(pkernel%hgrids)
+!  if(bigdft_mpi%iproc==0) call yaml_map('Delta cavity',delta)
+
+  do i=1,atoms%astruct%nat
+   radii(i) = 0.5d0/Bohr_Ang
+  end do
+!  if (bigdft_mpi%iproc==0) call yaml_map('Covalent radii',radii)
+
+  call epsinnersccs_rigid_cavity_error_multiatoms_bc(atoms%astruct%geocode,&
+       pkernel%ndims,pkernel%hgrids,atoms%astruct%nat,rxyz,radii,delta,eps)
+
+  n1=pkernel%ndims(1)
+  n23=pkernel%ndims(2)*pkernel%grid%n3p
+  !starting point in third direction
+  i3s=pkernel%grid%istart+1
+  if (pkernel%grid%n3p==0) i3s=1
+
+  call f_memcpy(n=n1*n23,src=eps(1,1,i3s),dest=pkernel%w%epsinnersccs)
+
+  call f_free(radii)
+  call f_free(eps)
+end subroutine epsinnersccs_cavity
 
 !> Calculate the important objects related to the physical properties of the system
 subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => system_properties
+  use module_interfaces, only: orbitals_descriptors
+  use public_enums
   implicit none
   integer, intent(in) :: iproc,nproc
   type(input_variables), intent(in) :: in
@@ -417,8 +1124,8 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
   integer :: nspinor
 
 !  radii_cf = atoms%radii_cf
-!!$  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
-!!$  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
+ !!$  call read_radii_variables(atoms, radii_cf, in%crmult, in%frmult, in%projrad)
+ !!$  call read_atomic_variables(atoms, trim(in%file_igpop),in%nspin)
   if (iproc == 0) call print_atomic_variables(atoms, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
   if(in%nspin==4) then
      nspinor=4
@@ -426,7 +1133,7 @@ subroutine system_properties(iproc,nproc,in,atoms,orbs)!,radii_cf)
      nspinor=1
   end if
   call orbitals_descriptors(iproc, nproc,in%gen_norb,in%gen_norbu,in%gen_norbd,in%nspin,nspinor,&
-       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,.false.)
+       in%gen_nkpt,in%gen_kpt,in%gen_wkpt,orbs,LINEAR_PARTITION_NONE)
   orbs%occup(1:orbs%norb*orbs%nkpts) = in%gen_occup
   if (iproc==0) call print_orbitals(orbs, atoms%astruct%geocode)
 
@@ -440,63 +1147,118 @@ END SUBROUTINE system_properties
 
 !> Check for the need of a core density and fill the rhocore array which
 !! should be passed at the rhocore pointer
-subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
+subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
   use module_base
   use module_types
+  use public_enums, only: PSPCODE_PAW
+  use m_pawrad,  only : pawrad_type, pawrad_init, pawrad_free
   use yaml_output
   implicit none
-  integer, intent(in) :: i3s,n3d,i3xcsh,n3p
-  real(gp), intent(in) :: hxh,hyh,hzh
   type(atoms_data), intent(in) :: at
-  type(grid_dimensions), intent(in) :: d
+  type(denspot_distribution), intent(in) :: dpbox
   real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
   real(wp), dimension(:,:,:,:), pointer :: rhocore
   !local variables
   character(len=*), parameter :: subname='calculate_rhocore'
-  integer :: ityp,iat,j3,i1,i2 !,ierr,ind
+  integer :: ityp,iat,j3,i1,i2,ncmax,i !,ierr,ind
   real(wp) :: tt
-  real(gp) :: rx,ry,rz,rloc,cutoff
-  
+  real(gp) :: rx,ry,rz,rloc,cutoff,chgat
+  real(gp), dimension(:), allocatable :: chg_at
+  logical :: donlcc
+  type(pawrad_type)::core_mesh
+  !allocatable arrays
+  integer,allocatable :: ifftsph(:)
+  real(gp),allocatable:: rr(:), raux(:), rcart(:,:)
 
   !check for the need of a nonlinear core correction
-!!$  donlcc=.false.
-!!$  chk_nlcc: do ityp=1,at%astruct%ntypes
-!!$     filename = 'nlcc.'//at%astruct%atomnames(ityp)
-!!$
-!!$     inquire(file=filename,exist=exists)
-!!$     if (exists) then
-!!$        donlcc=.true.
-!!$        exit chk_nlcc
-!!$     end if
-!!$  end do chk_nlcc
+  donlcc=.false.
+  chk_nlcc: do ityp=1,at%astruct%ntypes
+     if (at%nlcc_ngv(ityp) /= UNINITIALIZED(1) .or. &
+          & at%nlcc_ngc(ityp) /= UNINITIALIZED(1) .or. &
+          & at%npspcode(ityp) == PSPCODE_PAW) then
+        donlcc = .true.
+        exit
+     end if
+  end do chk_nlcc
+  
+  if (.not. donlcc) then
+     !No NLCC needed, nullify the pointer 
+     nullify(rhocore)
+     return
+  end if
 
-  if (at%donlcc) then
-     !allocate pointer rhocore
-     rhocore = f_malloc0_ptr((/ d%n1i , d%n2i , n3d , 10 /),id='rhocore')
-     !perform the loop on any of the atoms which have this feature
-     do iat=1,at%astruct%nat
-        ityp=at%astruct%iatype(iat)
-!!$        filename = 'nlcc.'//at%astruct%atomnames(ityp)
-!!$        inquire(file=filename,exist=exists)
-!!$        if (exists) then
-        if (at%nlcc_ngv(ityp)/=UNINITIALIZED(1) .or.&
-             at%nlcc_ngc(ityp)/=UNINITIALIZED(1) ) then
-           if (bigdft_mpi%iproc == 0) call yaml_map('NLCC, Calculate core density for atom',trim(at%astruct%atomnames(ityp)))
-           rx=rxyz(1,iat) 
-           ry=rxyz(2,iat)
-           rz=rxyz(3,iat)
+  !allocate pointer rhocore
+     chg_at=f_malloc0(at%astruct%ntypes,id='chg_at')
+  rhocore = f_malloc0_ptr((/ dpbox%ndims(1) , dpbox%ndims(2) , dpbox%n3d , 10 /), id = 'rhocore')
+  !perform the loop on any of the atoms which have this feature
+  do ityp = 1, at%astruct%ntypes
+     if (at%npspcode(ityp) == PSPCODE_PAW) then
+        !  Create mesh_core object
+        !  since core_mesh_size can be bigger than pawrad%mesh_size, 
+        call pawrad_init(core_mesh, mesh_size = at%pawtab(ityp)%core_mesh_size, &
+             & mesh_type = at%pawrad(ityp)%mesh_type, &
+             & rstep = at%pawrad(ityp)%rstep, &
+             & lstep = at%pawrad(ityp)%lstep)
 
-           rloc=at%psppar(0,0,ityp)
-           cutoff=10.d0*rloc
+        !  Set radius size:
+        do i = 1, size(at%pawtab(ityp)%tcoredens, 1) - 1
+           if (core_mesh%rad(i) > at%pawtab(ityp)%rpaw .and. &
+                & at%pawtab(ityp)%tcoredens(i, 1) < 1e-10) exit
+        end do
+        rloc = core_mesh%rad(i)
+        cutoff = rloc * 1.1d0
 
-           call calc_rhocore_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-                d%n1,d%n2,d%n3,d%n1i,d%n2i,d%n3i,i3s,n3d,rhocore)
+        !  allocate arrays
+        if (dpbox%n3p > 0) then
+           ! ncmax=1+int(1.1_dp*nfft*four_pi/(three*ucvol)*rshp**3)
+           ! ncmax=1+int(1.1d0*((rshp/dpbox%hgrids(1))*(rshp/dpbox%hgrids(2))*pi_param))
+           ! Calculation is done per z plane.
+           ncmax = 1 + int(4._gp * pi_param * rloc ** 2 / dpbox%hgrids(1) / dpbox%hgrids(2))
+        else
+           ncmax = 1
+        end if
+        ifftsph = f_malloc(ncmax, id = "ifftsph_tmp")
+        rr = f_malloc(ncmax, id = "rr")
+        raux = f_malloc(ncmax, id = "raux")
+        rcart = f_malloc((/ 3, ncmax /), id = "rcart")
+     else
+        rloc = at%psppar(0,0,ityp)
+        cutoff = 10.d0 * rloc
+     end if
 
+     do iat = 1, at%astruct%nat
+        if (at%astruct%iatype(iat) /= ityp) cycle
+
+        rx=rxyz(1,iat) 
+        ry=rxyz(2,iat)
+        rz=rxyz(3,iat)
+        
+        if (at%npspcode(ityp) == PSPCODE_PAW) then
+           call mkcore_paw_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,&
+                & dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3), &
+                & dpbox%ndims(1), dpbox%ndims(2),dpbox%ndims(3), &
+                & dpbox%i3s,dpbox%n3d,core_mesh, rhocore, ncmax, ifftsph, &
+                & rr, rcart, raux)
+        else
+           call calc_rhocore_iat(bigdft_mpi%iproc,at,ityp,rx,ry,rz,cutoff,&
+                & dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3), &
+                & dpbox%ndims(1), dpbox%ndims(2),dpbox%ndims(3), &
+                & dpbox%i3s,dpbox%n3d,chgat,rhocore)
+           chg_at(ityp)=chg_at(ityp)+chgat
         end if
      end do
+     !  Deallocate
+     if (at%npspcode(ityp) == PSPCODE_PAW) then
+        call pawrad_free(core_mesh)
+        call f_free(ifftsph)
+        call f_free(rr)
+        call f_free(raux)
+        call f_free(rcart)
+     end if
+  end do
 
-     !calculate total core charge in the grid
-     !In general this should be really bad
+  !calculate total core charge in the grid
+  !In general this should be really bad
 
 !!$     do j3=1,n3d
 !!$        tt=0.0_wp
@@ -510,33 +1272,41 @@ subroutine calculate_rhocore(at,d,rxyz,hxh,hyh,hzh,i3s,i3xcsh,n3d,n3p,rhocore)
 !!$     enddo
 !!$call MPI_BARRIER(bigdft_mpi%mpi_comm,ierr)
 !!$stop
-     tt=0.0_wp
-     do j3=1,n3p
-        do i2=1,d%n2i
-           do i1=1,d%n1i
-              !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
-              tt=tt+rhocore(i1,i2,j3+i3xcsh,1)
-           enddo
+  tt=0.0_wp
+  do j3=1,dpbox%n3p
+     do i2=1,dpbox%ndims(2)
+        do i1=1,dpbox%ndims(1)
+           !ind=i1+(i2-1)*d%n1i+(j3+i3xcsh-1)*d%n1i*d%n2i
+           tt=tt+rhocore(i1,i2,j3+dpbox%i3xcsh,1)
         enddo
      enddo
+  enddo
 
-     if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,bigdft_mpi%mpi_comm)
-     tt=tt*hxh*hyh*hzh
-     if (bigdft_mpi%iproc == 0) call yaml_map('Total core charge on the grid (To be compared with analytic one)', tt,fmt='(f15.7)')
-
-  else
-     !No NLCC needed, nullify the pointer 
-     nullify(rhocore)
+  if (bigdft_mpi%nproc > 1) call mpiallred(tt,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+  tt=tt*product(dpbox%hgrids)
+  if (bigdft_mpi%iproc == 0) then
+     call yaml_mapping_open('Analytic core charges for atom species')
+     do ityp=1,at%astruct%ntypes
+        if (chg_at(ityp) /= 0.0_gp) &
+             call yaml_map(trim(at%astruct%atomnames(ityp)),chg_at(ityp),fmt='(f15.7)')
+     end do
+     call yaml_mapping_close()
+     call yaml_map('Total core charge',sum(chg_at),fmt='(f15.7)')
+     call yaml_map('Total core charge on the grid', tt,fmt='(f15.7)', advance = "no")
+     call yaml_comment('To be compared with analytic one')
   end if
+  call f_free(chg_at)
 
 END SUBROUTINE calculate_rhocore
 
 
 subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
      & ixcpsp, psppar, donlcc, rcore, qcore, radii_cf, pawpatch)
-  use module_base
+  use module_defs, only: gp, dp, UNINITIALIZED, pi_param, BIGDFT_INPUT_VARIABLES_ERROR
+  use module_xc, only: xc_get_id_from_name
+  use yaml_strings, only: yaml_toa
+  use public_enums, only: PSPCODE_GTH, PSPCODE_HGH, PSPCODE_PAW, PSPCODE_HGH_K, PSPCODE_HGH_K_NLCC
   use ao_inguess
-  use m_pawpsp, only: pawpsp_read_header_2
   use dictionaries
   use f_utils
   implicit none
@@ -548,12 +1318,11 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
   logical, intent(inout) ::  donlcc
   
   !ALEX: Some local variables
-  real(gp):: fourpi, sqrt2pi
+  real(gp):: sqrt2pi
   character(len=2) :: symbol
 
   integer :: ierror, ierror1, i, j, nn, nlterms, nprl, l, nzatom_, nelpsp_, npspcode_
-  integer :: lmax,lloc,mmax
-  integer:: pspversion,basis_size,lmn_size
+  integer :: lmax,lloc,mmax, ixc_
   real(dp) :: nelpsp_dp,nzatom_dp,r2well
   character(len=max_field_length) :: line
   logical :: exists, eof
@@ -572,21 +1341,51 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
   !   stop
   !end if
   call f_iostream_get_line(ios, line)
-  call f_iostream_get_line(ios, line)
-  read(line,*) nzatom_dp, nelpsp_dp
-  nzatom=int(nzatom_dp); nelpsp=int(nelpsp_dp)
-  call f_iostream_get_line(ios, line)
-  read(line,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
+  if (line(1:5)/='<?xml') then
+     call f_iostream_get_line(ios, line)
+     read(line,*) nzatom_dp, nelpsp_dp
+     nzatom=int(nzatom_dp); nelpsp=int(nelpsp_dp)
+     call f_iostream_get_line(ios, line)
+     read(line,*) npspcode, ixcpsp, lmax, lloc, mmax, r2well
+  else
+     npspcode = PSPCODE_PAW ! XML pseudo, try to get nzatom, nelpsp and ixcpsp by hand
+     nzatom = 0
+     nelpsp = 0
+     ixcpsp = 0
+     do
+        call f_iostream_get_line(ios, line, eof)
+        if (eof .or. (nzatom > 0 .and. nelpsp > 0 .and. ixcpsp > 0)) exit
+        
+        if (line(1:6) == "<atom ") then
+           i = index(line, " Z")
+           i = i + index(line(i:max_field_length), '"')
+           j = i + index(line(i:max_field_length), '"') - 2
+           read(line(i:j), *) nzatom_dp
+           i = index(line, " valence")
+           i = i + index(line(i:max_field_length), '"')
+           j = i + index(line(i:max_field_length), '"') - 2
+           read(line(i:j), *) nelpsp_dp
+           nzatom = int(nzatom_dp)
+           nelpsp = int(nelpsp_dp)
+        end if
+        if (line(1:15) == "<xc_functional ") then
+           i = index(line, "name")
+           i = i + index(line(i:max_field_length), '"')
+           j = i + index(line(i:max_field_length), '"') - 2
+           call xc_get_id_from_name(ixcpsp, line(i:j))
+        end if
+     end do
+  end if
 
   psppar(:,:)=0._gp
-  if (npspcode == 2) then !GTH case
+  if (npspcode == PSPCODE_GTH) then !GTH case
      call f_iostream_get_line(ios, line)
      read(line,*) (psppar(0,j),j=0,4)
      do i=1,2
         call f_iostream_get_line(ios, line)
         read(line,*) (psppar(i,j),j=0,3-i)
      enddo
-  else if (npspcode == 3) then !HGH case
+  else if (npspcode == PSPCODE_HGH) then !HGH case
      call f_iostream_get_line(ios, line)
      read(line,*) (psppar(0,j),j=0,4)
      call f_iostream_get_line(ios, line)
@@ -598,19 +1397,13 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
         call f_iostream_get_line(ios, line)
         !read(11,*) skip !k coefficients, not used for the moment (no spin-orbit coupling)
      enddo
-  else if (npspcode == 7) then !PAW Pseudos
-     ! Need NC psp for input guess.
-     call atomic_info(nzatom, nelpsp, symbol = symbol)
-     call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixcpsp, &
-          & psppar, exists)
-     if (.not.exists) stop "Implement here."
-
+  else if (npspcode == PSPCODE_PAW) then !PAW Pseudos
      ! PAW format using libPAW.
-     call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
+     !call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
      ! PAW data will not be saved in the input dictionary,
      ! we keep their reading for later.
      pawpatch = .true.
-  else if (npspcode == 10) then !HGH-K case
+  else if (npspcode == PSPCODE_HGH_K) then !HGH-K case
      call f_iostream_get_line(ios, line)
      read(line,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
      call f_iostream_get_line(ios, line)
@@ -631,7 +1424,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
         end do
      end do prjloop
   !ALEX: Add support for reading NLCC from psppar
-  else if (npspcode == 12) then !HGH-NLCC: Same as HGH-K + one additional line
+  else if (npspcode == PSPCODE_HGH_K_NLCC) then !HGH-NLCC: Same as HGH-K + one additional line
      call f_iostream_get_line(ios, line)
      read(line,*) psppar(0,0),nn,(psppar(0,j),j=1,nn) !local PSP parameters
      call f_iostream_get_line(ios, line)
@@ -655,9 +1448,9 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
      read(line,*) rcore, qcore
      !convert the core charge fraction qcore to the amplitude of the Gaussian
      !multiplied by 4pi. This is the convention used in nlccpar(1,:).
-     fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
-     sqrt2pi=sqrt(0.5_gp*fourpi)
-     qcore=fourpi*qcore*real(nzatom-nelpsp,gp)/&
+     !fourpi=4.0_gp*pi_param!8.0_gp*dacos(0.0_gp)
+     sqrt2pi=sqrt(0.5_gp*4.0_gp*pi_param)
+     qcore=4.0_gp*pi_param*qcore*real(nzatom-nelpsp,gp)/&
           (sqrt2pi*rcore)**3
      donlcc=.true.
   else
@@ -665,7 +1458,7 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
           err_id=BIGDFT_INPUT_VARIABLES_ERROR)
   end if
 
-  if (npspcode /= 7) then
+  if (npspcode /= PSPCODE_PAW) then
      
      !old way of calculating the radii, requires modification of the PSP files
      call f_iostream_get_line(ios, line, eof)
@@ -687,29 +1480,52 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
         if (eof .or. pawpatch) exit
         pawpatch = (trim(line) == "PAWPATCH")
      end do
+  else
+     ! Need NC psp for input guess.
+     call atomic_info(nzatom, nelpsp, symbol = symbol)
+     ixc_ = ixcpsp ! Because psp_from_data() will change ixc_.
+     call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixc_, &
+          & psppar, exists)
+     ! Fallback to LDA case, anyway, this is only for input guess.
+     if (.not.exists) then
+        ixc_ = 1
+        call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixc_, &
+             & psppar, exists)
+        if (.not. exists) stop 'Serious issue'
+     end if
   end if
 END SUBROUTINE psp_from_stream
 
-subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
-  use module_base
+subroutine paw_from_file(pawrad, pawtab, epsatm, filename, nzatom, nelpsp, ixc)
+  use module_defs, only: dp, gp, pi_param
+  use module_base, only: bigdft_mpi
+  use module_xc
+  use abi_defs_basis, only: tol14, fnlen
   use m_pawpsp, only: pawpsp_main
-  use defs_basis, only: tol14, fnlen
-  use m_pawrad, only: pawrad_type, pawrad_nullify
+  use m_pawxmlps, only: paw_setup, rdpawpsxml, ipsp2xml, paw_setup_free
+  use m_pawrad, only: pawrad_type !, pawrad_nullify
   use m_pawtab, only: pawtab_type, pawtab_nullify
+  use dictionaries, only: max_field_length
+  use dynamic_memory
+  use f_utils
+
   implicit none
 
   type(pawrad_type), intent(out) :: pawrad
   type(pawtab_type), intent(out) :: pawtab
+  real(gp), intent(out) :: epsatm
   character(len = *), intent(in) :: filename
   integer, intent(in) :: nzatom, nelpsp, ixc
 
-  integer:: icoulomb,ipsp
+  integer:: icoulomb,ipsp !, ib, i, ii
   integer:: pawxcdev,usewvl,usexcnhat,xclevel
   integer::pspso
-  real(dp):: xc_denpos
-  real(dp)::epsatm,xcccrc
-  character(len=fnlen):: filpsp   ! name of the psp file
-  !  type(paw_setup_t),optional,intent(in) :: psxml
+  real(dp) :: xc_denpos
+  real(dp) :: xcccrc
+  character(len = fnlen) :: filpsp   ! name of the psp file
+  character(len = max_field_length) :: line
+  type(io_stream) :: ios
+  type(xc_info) :: xc
   !!arrays
   integer:: wvl_ngauss(2)
   integer, parameter :: mqgrid_ff = 0, mqgrid_vl = 0
@@ -717,9 +1533,8 @@ subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
   real(dp):: ffspl(mqgrid_ff,2,1)
   real(dp):: vlspl(mqgrid_vl,2)
 
-  call pawrad_nullify(pawrad)
+  !call pawrad_nullify(pawrad)
   call pawtab_nullify(pawtab)
-
   !These should be passed as arguments:
   !Defines the number of Gaussian functions for projectors
   !See ABINIT input files documentation
@@ -727,21 +1542,51 @@ subroutine paw_from_file(pawrad, pawtab, filename, nzatom, nelpsp, ixc)
   icoulomb= 1 !Fake argument, this only indicates that we are inside bigdft..
   !do not change, even if icoulomb/=1
   ipsp=1      !This is relevant only for XML.
-  !This is not yet working
-  xclevel=1 ! xclevel=XC functional level (1=LDA, 2=GGA)
   ! For the moment, it will just work for LDA
   pspso=0 !No spin-orbit for the moment
+
+  call xc_init(xc, ixc, XC_MIXED, 1)
+  xclevel = 1 ! xclevel=XC functional level (1=LDA, 2=GGA)
+  if (xc_isgga(xc)) xclevel = 2
+  call xc_end(xc)
 
   ! Define parameters:
   pawxcdev=1; usewvl=1 ; usexcnhat=0 !default
   xc_denpos=tol14
   filpsp=trim(filename)
 
+  ! Always allocate paw_setup, but fill it only for iproc == 0.
+  allocate(paw_setup(1))
+  if (bigdft_mpi%iproc == 0) then
+     ! Parse the PAW file if in XML format
+     call f_iostream_from_file(ios, trim(filename))
+     call f_iostream_get_line(ios, line)
+     call f_iostream_release(ios)
+     if (line(1:5) == "<?xml") then
+        call rdpawpsxml(filpsp, paw_setup(1), 789)
+        ipsp2xml = f_malloc(1, id = "ipsp2xml")
+        ipsp2xml(1) = 1
+     end if
+  end if
+
   call pawpsp_main( &
        & pawrad,pawtab,&
        & filpsp,usewvl,icoulomb,ixc,xclevel,pawxcdev,usexcnhat,&
        & qgrid_ff,qgrid_vl,ffspl,vlspl,epsatm,xcccrc,real(nelpsp, dp),real(nzatom, dp),&
-       & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm)
+       & wvl_ngauss,comm_mpi=bigdft_mpi%mpi_comm,psxml = paw_setup(1))
+
+  call paw_setup_free(paw_setup(1))
+  deallocate(paw_setup)
+  if (allocated(ipsp2xml)) call f_free(ipsp2xml)
+
+!!$  ii = 0
+!!$  do ib = 1, pawtab%basis_size
+!!$     do i = 1, pawtab%wvl%pngau(ib)
+!!$        ii = ii + 1
+!!$        write(80 + ib,*) pawtab%wvl%pfac(:, ii), pawtab%wvl%parg(:, ii)
+!!$     end do
+!!$     close(80 + ib)
+!!$  end do
 END SUBROUTINE paw_from_file
 
 
@@ -791,127 +1636,117 @@ END SUBROUTINE nlcc_dim_from_file
 
 
 !> Calculate the number of electrons and check the polarisation (mpol)
-subroutine read_n_orbitals(iproc, nelec_up, nelec_down, norbe, &
-     & atoms, ncharge, nspin, mpol, norbsempty)
+subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
+     & atoms, qcharge, nspin, mpol, norbsempty)
   use module_atoms, only: atoms_data
   use ao_inguess, only: charge_and_spol
-  use module_base, only: gp, f_err_throw
-  use yaml_output, only: yaml_toa , yaml_warning, yaml_comment
+  use module_base, only: gp, f_err_throw,yaml_toa
+  use yaml_output, only: yaml_warning, yaml_comment
   use dynamic_memory
   !use ao_inguess, only : count_atomic_shells
   implicit none
   !Arguments
   type(atoms_data), intent(in) :: atoms
-  integer, intent(out) :: nelec_up, nelec_down, norbe
-  integer, intent(in) :: ncharge, nspin, mpol, norbsempty, iproc
+  integer, intent(out) :: norbe
+  real(gp), intent(out) :: qelec_up, qelec_down
+  real(gp), intent(in) :: qcharge
+  integer, intent(in) :: nspin, mpol, norbsempty, iproc
   !Local variables
-  integer :: nelec, iat, ityp, ispinsum, ichgsum, ichg, ispol!, nspinor
-  !integer, parameter :: nelecmax=32,lmax=4,noccmax=2
-  !integer, dimension(lmax) :: nl
-  !real(gp), dimension(noccmax,lmax) :: occup
+  integer :: nel, nel_up,nel_dwn,nchg,iat, ityp, ispinsum, ichgsum, ichg, ispol,iabspol!, nspinor
+  real(gp) :: qelec
 
   call f_routine(id='read_n_orbitals')
 
   !calculate number of electrons and orbitals
   ! Number of electrons and number of semicore atoms
-  nelec=0
+  qelec=0
   do iat=1,atoms%astruct%nat
      ityp=atoms%astruct%iatype(iat)
-     nelec=nelec+atoms%nelpsp(ityp)
+     qelec=qelec+real(atoms%nelpsp(ityp),gp)
   enddo
-  nelec=nelec-ncharge
+  qelec=qelec-qcharge
+  !roundoff of the charge
+  nel=nint(qelec)
+  if (qelec - real(nel,gp) > 1.e-12_gp) nel=nel+1
+  nchg=nint(-qcharge)
+  if (-qcharge - real(nchg,gp) > 1.e-12_gp) nchg=nchg+1
+  nchg=-nchg
 
-  if(nelec < 0.0 ) then
-    !if(iproc==0) write(*,*)'ERROR: Number of electrons is negative:',nelec,'.'
-    !if(iproc==0) write(*,*)'FIX: decrease charge of system.'
-    !call mpi_finalize(iat)
-    !stop
-    call f_err_throw('Number of electrons is negative:' // trim(yaml_toa(nelec)) // &
-      & '. FIX: decrease charge of system.', err_name='BIGDFT_RUNTIME_ERROR')
+
+  if(qelec < 0.0_gp ) then
+    call f_err_throw('Number of electrons is negative:' // trim(yaml_toa(qelec)) // &
+      & '. FIX: decrease value of qcharge.', err_name='BIGDFT_RUNTIME_ERROR')
   end if
 
   ! Number of orbitals
   if (nspin==1) then
-     nelec_up=nelec
-     nelec_down=0
+     qelec_up=qelec
+     qelec_down=0.0_gp
   else if(nspin==4) then
-     nelec_up=nelec
-     nelec_down=0
+     qelec_up=qelec
+     qelec_down=0.0_gp
   else 
-     if (mod(nelec+mpol,2) /=0) then
-          call f_err_throw('The mpol polarization should have the same parity of the number of electrons. ' // &
-            & '(mpol=' // trim(yaml_toa(mpol)) // ' and nelec=' // trim(yaml_toa(nelec)) // ')', &
+     if (mod(nel+mpol,2) /=0) then
+          call f_err_throw('The mpol polarization should have the same parity of the (rounded) number of electrons. ' // &
+            & '(mpol=' // trim(yaml_toa(mpol)) // ' and qelec=' // trim(yaml_toa(qelec)) // ')', &
             & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
-        !write(*,*)'ERROR: '
-        !stop
+
      end if
-     nelec_up=min((nelec+mpol)/2,nelec)
-     nelec_down=nelec-nelec_up
+     !put the charge according to the polarization.
+     !non-integer part always goes to the upper spin shell
+     !nelec_up=min((nelec+mpol)/2,nelec) !this is the integer part (rounded)
+     nel_up=min((nel+mpol)/2,nel)
+     nel_dwn=nel-nel_up
+     qelec_down=real(nel_dwn,gp)
+     !then the elec_up part is redefined with the actual charge
+     qelec_up=qelec-qelec_down
 
      !test if the spin is compatible with the input guess polarisations
      ispinsum=0
      ichgsum=0
+     iabspol=0
      do iat=1,atoms%astruct%nat
         call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
         ispinsum=ispinsum+ispol
         ichgsum=ichgsum+ichg
+        iabspol=iabspol+abs(ispol)
      end do
 
-     if (ispinsum /= nelec_up-nelec_down) then
-        !call yaml_warning('Total input polarisation (found ' // trim(yaml_toa(ispinsum)) &
-        !     & // ') must be equal to nelec_up-nelec_down.')
-        !call yaml_comment('With nelec=' // trim(yaml_toa(nelec)) &
-        !     & // ' and mpol=' // trim(yaml_toa(mpol)) // &
-        !     & ' nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))))
-        !stop
-        call f_err_throw('Total polarisation for the input guess (found ' // trim(yaml_toa(ispinsum)) // &
-           & ') must be equal to nelec_up-nelec_down ' // &
-           & '(nelec=' // trim(yaml_toa(nelec)) // ', mpol=' // trim(yaml_toa(mpol)) // &
-           & ', nelec_up-nelec_down=' // trim((yaml_toa(nelec_up-nelec_down))) // &
-           & ', nelec_up=' // trim((yaml_toa(nelec_up))) // &
-           & ', nelec_down=' // trim((yaml_toa(nelec_down))) // &
-           & '). Use the keyword "IGSpin" or add a spin component for the input guess per atom.', &
-           & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+     if (ispinsum /= nel_up-nel_dwn) then
+        call f_err_throw('Total polarisation for the input guess (found ' // &
+             trim(yaml_toa(ispinsum)) // &
+             ') must be equal to rounded nel_up-nel_dwn ' // &
+             '(nelec=' // trim(yaml_toa(qelec)) // ', mpol=' // trim(yaml_toa(mpol)) // &
+             ', nel_up-nel_dwn=' // trim((yaml_toa(nel_up-nel_dwn))) // &
+             ', nel_up=' // trim((yaml_toa(nel_up))) // &
+             ', nel_dwn=' // trim((yaml_toa(nel_dwn))) // &
+             '). Use the keyword "IGSpin" or add a spin component for the input guess per atom.', &
+             err_name='BIGDFT_INPUT_VARIABLES_ERROR')
      end if
 
-     if (ichgsum /= ncharge .and. ichgsum /= 0) then
-        !call yaml_warning('Total input charge (found ' // trim(yaml_toa(ichgsum)) &
-        !     & // ') cannot be different than charge.')
-        !call yaml_comment('With charge =' // trim(yaml_toa(ncharge)) &
-        !     & // ' and input charge=' // trim(yaml_toa(ichgsum)))
-        !stop
+     if (ichgsum /= nchg .and. ichgsum /= 0) then
         call f_err_throw('Total input charge (found ' // trim(yaml_toa(ichgsum)) // &
-             & ') cannot be different than charge. With charge =' // trim(yaml_toa(ncharge)) // &
+             & ') cannot be different than rounded charge. With charge =' // trim(yaml_toa(qcharge)) // &
              & ' and input charge=' // trim(yaml_toa(ichgsum)), &
              & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
      end if
 
      !now warn if there is no input guess spin polarisation
-     ispinsum=0
-     do iat=1,atoms%astruct%nat
-        call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
-        ispinsum=ispinsum+abs(ispol)
-     end do
-     if (ispinsum == 0) then
-        if (iproc==0 .and. norbsempty == 0) &
-             call yaml_warning('Found no input polarisation, add it for a correct input guess')
-        !write(*,'(1x,a)')&
-        !     'WARNING: Found no input polarisation, add it for a correct input guess'
-        !stop
-     end if
+!!$     ispinsum=0
+!!$     do iat=1,atoms%astruct%nat
+!!$        call charge_and_spol(atoms%astruct%input_polarization(iat),ichg,ispol)
+!!$        ispinsum=ispinsum+abs(ispol)
+!!$     end do
+!!$     if (ispinsum == 0) then
+     if (iabspol == 0 .and. iproc==0 .and. norbsempty == 0) &
+          call yaml_warning('Found no input polarisation, add it for a correct input guess')
   end if
 
   norbe = 0
-  !if(nspin==4) then
-  !   nspinor=4
-  !else
-  !   nspinor=1
-  !end if
   do iat=1,atoms%astruct%nat
-     !ityp=atoms%astruct%iatype(iat)
-     !call count_atomic_shells(nspin,atoms%aoig(iat)%aocc,occup,nl)
-     norbe=norbe+atoms%aoig(iat)%nao!nl(1)+3*nl(2)+5*nl(3)+7*nl(4)
+     norbe=norbe+atoms%aoig(iat)%nao
   end do
+  if (norbe == 0) norbe = nel !elec_up + nelec_down ! electron gas case
 
   call f_release_routine()
 
@@ -1490,7 +2325,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   integer, dimension(0:nproc-1), intent(out) :: nobj_par
   !local variables
   integer :: n_i,n_ip,rs_i,N_a,N_b,N_c,ikpt,jproc,i,ntmp
-!!$  real(gp) :: rtmp
+ !!$  real(gp) :: rtmp
 
   ! Strategy to divide between k points.
   ! There is an nproc length to divide into orbs%nkpts segments.
@@ -1525,7 +2360,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
 
      rs_i=ikpt*nproc
      n_ip=rs_i/nkpts
-!!$     print *,'ikpt,ni,nip',ikpt,n_i,n_ip
+ !!$     print *,'ikpt,ni,nip',ikpt,n_i,n_ip
      ! Calculation of N_a, N_b and N_c from given n_i and n_ip.
      if (n_ip >= n_i) then
         ntmp = (n_i*nkpts-(ikpt-1)*nproc) * nobj
@@ -1534,11 +2369,11 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
         else
            N_a = (ntmp - modulo(ntmp, nproc) + nproc) / nproc
         end if
-!!$        ntmp=n_i*nkpts-(ikpt-1)*nproc
-!!$        rtmp=real(nobj,gp)/real(nproc,gp)
-!!$        rtmp=rtmp*real(ntmp,gp)
-!!$        N_a=floor(rtmp)
-!!$        if (iproc == 0) print *,'ikpts,rtmp',ikpt,rtmp
+ !!$        ntmp=n_i*nkpts-(ikpt-1)*nproc
+ !!$        rtmp=real(nobj,gp)/real(nproc,gp)
+ !!$        rtmp=rtmp*real(ntmp,gp)
+ !!$        N_a=floor(rtmp)
+ !!$        if (iproc == 0) print *,'ikpts,rtmp',ikpt,rtmp
         ntmp = (ikpt*nproc-n_ip*nkpts) * nobj
         if (modulo(ntmp, nproc) == 0) then
            N_c = ntmp / nproc
@@ -1546,11 +2381,11 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
            N_c = (ntmp - modulo(ntmp, nproc) + nproc) / nproc
         end if
 
-!!$        ntmp=ikpt*nproc-n_ip*nkpts
-!!$        rtmp=real(nobj,gp)/real(nproc,gp)
-!!$        rtmp=rtmp*real(ntmp,gp)
-!!$        N_c=ceiling(rtmp)
-!!$        if (iproc == 0) print *,'ikpts,rtmp2',ikpt,rtmp,N_a,N_c
+ !!$        ntmp=ikpt*nproc-n_ip*nkpts
+ !!$        rtmp=real(nobj,gp)/real(nproc,gp)
+ !!$        rtmp=rtmp*real(ntmp,gp)
+ !!$        N_c=ceiling(rtmp)
+ !!$        if (iproc == 0) print *,'ikpts,rtmp2',ikpt,rtmp,N_a,N_c
         !the corrections above are to avoid the 32 bit integer overflow
         !N_a=nint(real(nobj*(n_i*nkpts-(ikpt-1)*nproc),gp)/real(nproc,gp))
         !N_c=nint(real(nobj*(ikpt*nproc-n_ip*nkpts),gp)/real(nproc,gp))
@@ -1563,7 +2398,7 @@ subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
         N_c = N_c - 1
         N_b = 0
      end if
-!!$     write(*,*) ikpt, N_a, N_b, N_c
+ !!$     write(*,*) ikpt, N_a, N_b, N_c
      if (nkpts > 1 .and. N_b < n_ip - n_i) stop 'ERROR:parallel_repartion_with_kpoints'
      !assign to procs the objects.
      if (N_a>0) nobj_par(n_i-1)=nobj_par(n_i-1)+N_a
@@ -1645,8 +2480,8 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   implicit none
   character(len=*), intent(in) :: filename
   type(atoms_data), intent(inout) :: atoms
-  integer , intent(IN):: ityp 
-  integer , intent(INOUT):: paw_tot_l, paw_tot_q, paw_tot_coefficients, paw_tot_matrices
+  integer , intent(in):: ityp 
+  integer , intent(inout):: paw_tot_l, paw_tot_q, paw_tot_coefficients, paw_tot_matrices
   logical, intent(in) :: storeit
 
 !! local variables  
@@ -1827,23 +2662,32 @@ subroutine pawpatch_from_file( filename, atoms,ityp, paw_tot_l, &
   endif
 end subroutine pawpatch_from_file
 
-subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
-  use module_base
-  use module_types
+subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb, nkpts)
+  !use module_base
+  use module_defs, only: gp
+  use module_types, only: atoms_data, paw_objects, nullify_paw_objects, &
+       & denspot_distribution
+  use locregs, only: grid_dimensions
+  use dynamic_memory
   use m_paw_an, only: paw_an_init
   use m_paw_ij, only: paw_ij_init
   use m_pawcprj, only: pawcprj_alloc, pawcprj_getdim
   use m_pawfgrtab, only: pawfgrtab_init
-  use interfaces_42_libpaw, only: initrhoij
+  use abi_interfaces_add_libpaw, only: abi_initrhoij, abi_wvl_nhatgrid
+  use abi_interfaces_geometry, only: abi_metric
   implicit none
   type(paw_objects), intent(out) :: paw
   type(atoms_data), intent(in) :: at
-  integer, intent(in) :: nspinor, nspin, npsidim, norb
+  real(gp), dimension(3, at%astruct%nat), intent(in) :: rxyz
+  type(grid_dimensions), intent(in) :: d
+  type(denspot_distribution), intent(in) :: dpbox
+  integer, intent(in) :: iproc, nspinor, npsidim, norb, nkpts
 
-  integer, parameter :: cplex = 1, pawxcdev = 1, pawcpxocc = 1, pawspnorb = 0
+  integer, parameter :: pawxcdev = 1, pawspnorb = 0, nspinor_ = 1, cplex = 1
   integer :: i
-  integer, dimension(:), allocatable :: nlmn, nattyp, l_size_atm, lexexch, lpawu
+  integer, dimension(:), allocatable :: nlmn, nattyp, l_size_atm, lexexch, lpawu, atindx1
   real(gp), dimension(:,:), allocatable :: spinat
+  integer, parameter :: optcut = 0, optgr0 = 1, optgr1 = 0, optgr2 = 0, optrad = 0
 
   call nullify_paw_objects(paw)
   if (.not. associated(at%pawtab)) return
@@ -1854,19 +2698,19 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   paw%lmnmax = maxval(at%pawtab(:)%lmn_size)
 
   allocate(paw%paw_an(at%astruct%nat))
-  call paw_an_init(paw%paw_an, at%astruct%nat, at%astruct%ntypes, 0, nspin, cplex, pawxcdev, &
+  call paw_an_init(paw%paw_an, at%astruct%nat, at%astruct%ntypes, 0, dpbox%nrhodim, 1, pawxcdev, &
        & at%astruct%iatype, at%pawang, at%pawtab, &
        & has_vxc=1, has_vxc_ex=1, has_vhartree=1) !, &
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
 
   allocate(paw%paw_ij(at%astruct%nat))
-  call paw_ij_init(paw%paw_ij,cplex,nspinor,nspin,nspin,&
+  call paw_ij_init(paw%paw_ij,cplex,nspinor_,dpbox%nrhodim,dpbox%nrhodim,&
        &   0,at%astruct%nat,at%astruct%ntypes,at%astruct%iatype,at%pawtab,&
        &   has_dij=1,has_dijhartree=1,has_dijso=0,has_dijhat=0,&
        &   has_pawu_occ=1,has_exexch_pot=1) !,&
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
 
-  allocate(paw%cprj(at%astruct%nat, nspinor * nspin * norb))
+  allocate(paw%cprj(at%astruct%nat, norb * nkpts * nspinor_))
   nlmn = f_malloc(at%astruct%nat, id = "nlmn")
   nattyp = f_malloc0(at%astruct%ntypes, id = "nattyp")
   do i = 1, at%astruct%nat
@@ -1874,18 +2718,31 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   end do
   call pawcprj_getdim(nlmn, at%astruct%nat, nattyp, at%astruct%ntypes, &
        & at%astruct%iatype, at%pawtab, 'O')
-  call f_free(nattyp)
   call pawcprj_alloc(paw%cprj, 0, nlmn)
   call f_free(nlmn)
 
-  allocate(paw%pawfgrtab(at%astruct%nat))
+  allocate(paw%fgrtab(at%astruct%nat))
   l_size_atm = f_malloc(at%astruct%nat, id = "l_size_atm")
   do i = 1, at%astruct%nat
      l_size_atm(i) = at%pawtab(at%astruct%iatype(i))%lcut_size
   end do
-  call pawfgrtab_init(paw%pawfgrtab, cplex, l_size_atm, nspin, at%astruct%iatype) !,&
+  call pawfgrtab_init(paw%fgrtab, cplex, l_size_atm, dpbox%nrhodim, at%astruct%iatype) !,&
   !&     mpi_atmtab=mpi_enreg%my_atmtab,mpi_comm_atom=mpi_enreg%comm_atom)
   call f_free(l_size_atm)
+  atindx1 = f_malloc(at%astruct%nat, id = "atindx1")
+  do i = 1, at%astruct%nat
+     atindx1(i) = i
+  end do
+  !ucvol = product(denspot%dpbox%ndims) * product(denspot%dpbox%hgrids)
+  call abi_wvl_nhatgrid(atindx1, at%astruct%geocode, dpbox%hgrids, dpbox%i3s + dpbox%i3xcsh, &
+       & size(at%pawtab), at%astruct%nat, nattyp, at%astruct%ntypes, &
+       & d%n1, d%n1i, d%n2, d%n2i, d%n3, dpbox%n3pi, &
+       & optcut, optgr0, optgr1, optgr2, optrad, &
+       & paw%fgrtab, at%pawtab, 0, rxyz) !,&
+  !&         mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab,&
+  !&         mpi_comm_fft=spaceComm_fft,distribfft=mpi_enreg%distribfft)
+  call f_free(atindx1)
+  call f_free(nattyp)
 
   allocate(paw%pawrhoij(at%astruct%nat))
   spinat = f_malloc0((/3, at%astruct%nat/), id = "spinat")
@@ -1894,8 +2751,8 @@ subroutine paw_init(paw, at, nspinor, nspin, npsidim, norb)
   lexexch = -1
   lpawu = f_malloc(at%astruct%ntypes, id = "lpawu")
   lpawu = -1
-  call initrhoij(pawcpxocc, lexexch, lpawu, &
-       & at%astruct%nat, at%astruct%nat, nspin, nspinor, nspin, &
+  call abi_initrhoij(cplex, lexexch, lpawu, &
+       & at%astruct%nat, at%astruct%nat, dpbox%nrhodim, nspinor_, dpbox%nrhodim, &
        & at%astruct%ntypes, paw%pawrhoij, pawspnorb, at%pawtab, spinat, at%astruct%iatype) !,&
   !&   mpi_comm_atom=mpi_enreg%comm_atom,mpi_atmtab=mpi_enreg%my_atmtab)
   call f_free(lpawu)
@@ -1928,7 +2785,7 @@ subroutine system_signaling(iproc, signaling, gmainloop, KSwfn, tmb, energs, den
         call wf_new_wrapper(tmb%c_obj, tmb, 1)
         call wf_copy_from_fortran(tmb%c_obj, radii_cf, crmult, frmult)
         call bigdft_signals_add_wf(gmainloop, KSwfn%c_obj, tmb%c_obj)
-        call energs_new_wrapper(energs%c_obj, energs)
+        !call energs_new_wrapper(energs%c_obj, energs)
         call bigdft_signals_add_energs(gmainloop, energs%c_obj)
         call localfields_new_wrapper(denspot%c_obj, denspot)
         call bigdft_signals_add_denspot(gmainloop, denspot%c_obj)

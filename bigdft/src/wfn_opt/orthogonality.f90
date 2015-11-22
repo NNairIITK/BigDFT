@@ -13,7 +13,7 @@
 subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   use module_base
   use module_types
-  use module_interfaces, except_this_one_A => orthogonalize
+  use module_interfaces, only: cholesky, gsChol, loewdin
   use communications_base, only: comms_cubic
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -30,7 +30,7 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   character(len=*), parameter :: subname='orthogonalize'
   !integer :: i,idx
   integer :: ispin,nspin,nspinor
-  logical :: usepaw=.false.
+  logical :: usepaw
   integer, dimension(:,:), allocatable :: ndim_ovrlp
   real(wp), dimension(:), allocatable :: ovrlp
   integer,dimension(:),allocatable:: norbArr
@@ -43,9 +43,10 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   else 
      nspin=1
   end if
-
+  usepaw=.false.
   !Determine whether we are in a paw calculation:
-  if(present(paw)) usepaw=paw%usepaw
+  usepaw = .false.
+  if(present(paw)) usepaw = paw%usepaw
 
   ! ndim_ovrlp describes the shape of the overlap matrix.
   ndim_ovrlp = f_malloc((/ 1.to.nspin, 0.to.orbs%nkpts /),id='ndim_ovrlp')
@@ -166,6 +167,8 @@ subroutine orthogonalize(iproc,nproc,orbs,comms,psi,orthpar,paw)
   call f_free(norbArr)
   call f_free(ndim_ovrlp)
 
+!!$  if (usepaw) call checkortho_paw(iproc,orbs%norb*orbs%nspinor,&
+!!$       comms%nvctr_par(iproc,0),psi,paw%spsi)
 
   call timing(iproc,trim(category)//'_comput','OF')
 
@@ -195,7 +198,6 @@ END SUBROUTINE check_closed_shell
 subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n(c) wfd (arg:5)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => orthoconstraint
   use communications_base, only: comms_cubic
   implicit none
 
@@ -215,7 +217,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
   real(dp) :: occ !n(c) tt
   real(gp), dimension(2) :: aij,aji
   integer, dimension(:,:), allocatable :: ndim_ovrlp
-  real(wp), dimension(:), allocatable :: alag,paw_ovrlp
+  real(wp), dimension(:), allocatable :: alag
 
   !separate the orthogonalisation procedure for up and down orbitals 
   !and for different k-points
@@ -235,14 +237,8 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
 
   call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
 
-          alag = f_malloc0(ndim_ovrlp(nspin, orbs%nkpts),id='alag')
+  alag = f_malloc0(ndim_ovrlp(nspin, orbs%nkpts),id='alag')
   
-  !Allocate ovrlp for PAW: 
-  if(present(spsi)) then
-    norb=max(orbs%norbu,orbs%norbd,1)
-    paw_ovrlp = f_malloc(norb,id='paw_ovrlp')
-  end if
-
   !put to zero all the k-points which are not needed
   !call to_zero(ndim_ovrlp(nspin,orbs%nkpts),alag)
 
@@ -271,43 +267,11 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
                    alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
            end if
         else
-        !this part should be recheck in the case of nspinor == 2
-        call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
-             max(1,ncomp*nvctrp), &
-             hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-             alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
-        end if
-        !In PAW we should do <psi|H|psi>/<psi|S|psi>
-        !However when the overlap is too large (usually when we have a bad initial guess)
-        !Dividing by <psi|S|psi> is not a good idea since |gnrm> might get too large.
-        !Hence the following part is not done:
-        if (present(spsi) .and. 1==2) then
-          if(nspinor==1) then
-             !dgemmsy desactivated for the moment due to SIC
-             !call gemmsy('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-             call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-                  max(1,nvctrp),psi(ispsi),max(1,nvctrp),0.0_wp,&
-                  paw_ovrlp(1),norb)
-                  !write(*,*)'orthoconstraint l260, erase me:'
-                  !write(*,*)'<psi|psi>',paw_ovrlp
-             call gemm('T','N',norb,norb,nvctrp,1.0_wp,psi(ispsi),&
-                  max(1,nvctrp),spsi(ispsi),max(1,nvctrp),1.0_wp,&
-                  paw_ovrlp(1),norb)
-          else
-             !this part should be recheck in the case of nspinor == 2
-             call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
-                  max(1,ncomp*nvctrp), &
-                  psi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
-                  paw_ovrlp(1),norb)
-             call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
-                  max(1,ncomp*nvctrp), &
-                  spsi(ispsi),max(1,ncomp*nvctrp),(1.0_wp,0.0_wp),&
-                  paw_ovrlp(1),norb)
-          end if
-          if(nproc>1) call mpiallred(paw_ovrlp(1),1,MPI_SUM,bigdft_mpi%mpi_comm)
-          alag(ialag:ialag+norb)=alag(ialag:ialag+norb)/paw_ovrlp(1:norb)
-          !write(*,*)'orthoconstraint l268, erase me:'
-          !write(*,*)'<psi|S|psi>',paw_ovrlp
+           !this part should be recheck in the case of nspinor == 2
+           call c_gemm('C','N',norb,norb,ncomp*nvctrp,(1.0_wp,0.0_wp),psi(ispsi),&
+                max(1,ncomp*nvctrp), &
+                hpsi(ispsi),max(1,ncomp*nvctrp),(0.0_wp,0.0_wp),&
+                alag(ndim_ovrlp(ispin,ikpt-1)+1),norb)
         end if
         ispsi=ispsi+nvctrp*norb*nspinor
      end do
@@ -316,7 +280,7 @@ subroutine orthoconstraint(iproc,nproc,orbs,comms,symm,psi,hpsi,scprsum,spsi) !n
 if (nproc > 1) then
   call timing(iproc,'LagrM_comput  ','OF')
   call timing(iproc,'LagrM_commun  ','ON')
-  call mpiallred(alag(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+  call mpiallred(alag,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   call timing(iproc,'LagrM_commun  ','OF')
   call timing(iproc,'LagrM_comput  ','ON')
 end if
@@ -400,17 +364,17 @@ do ikptp=1,orbs%nkptsp
                         alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
                 end if
 
-        !Only for PAW:
-        if (present(spsi)) then
-          if(nspinor==1 .and. nvctrp /= 0) then
-             call gemm('N','N',nvctrp,norb,norb,-1.0_wp,spsi(ispsi),max(1,nvctrp),&
-                  alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
-                  hpsi(ispsi),max(1,nvctrp))
-          else if (nvctrp /= 0) then
-             call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),spsi(ispsi),max(1,ncomp*nvctrp),&
-                  alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
-          end if
-        end if
+                if (present(spsi)) then
+                   !Only for PAW, add <Psi|H|Psi>|S|Psi>:
+                   if(nspinor==1 .and. nvctrp /= 0) then
+                      call gemm('N','N',nvctrp,norb,norb,-1.0_wp,spsi(ispsi),max(1,nvctrp),&
+                           alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,1.0_wp,&
+                           hpsi(ispsi),max(1,nvctrp))
+                   else if (nvctrp /= 0) then
+                      call c_gemm('N','N',ncomp*nvctrp,norb,norb,(-1.0_wp,0.0_wp),spsi(ispsi),max(1,ncomp*nvctrp),&
+                           alag(ndim_ovrlp(ispin,ikpt-1)+1),norb,(1.0_wp,0.0_wp),hpsi(ispsi),max(1,ncomp*nvctrp))
+                   end if
+                end if
 
                 ispsi=ispsi+nvctrp*norb*nspinor
              end do
@@ -418,15 +382,11 @@ do ikptp=1,orbs%nkptsp
 
           if (nproc > 1) then
              !n(c) tt=scprsum
-             call mpiallred(scprsum,1,MPI_SUM,bigdft_mpi%mpi_comm)
+             call mpiallred(scprsum,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
              !call MPI_ALLREDUCE(tt,scprsum,1,mpidtypd,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
           end if
 
           call f_free(alag)
-
-  if(present(spsi)) then
-    call f_free(paw_ovrlp)
-  end if
 
   call f_free(ndim_ovrlp)
 
@@ -730,7 +690,7 @@ subroutine subspace_diagonalisation(iproc,nproc,orbs,comms,psi,hpsi,evsum)
 
   if (nproc > 1) then
      !evsumtmp=evsum
-     call mpiallred(evsum,1,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(evsum,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
   call f_free(psiw)
@@ -840,7 +800,7 @@ subroutine orthon_virt_occup(iproc,nproc,orbs,orbsv,comms,commsv,psi_occ,psi_vir
           if (nproc > 1) then
              call timing(iproc,'LagrM_comput  ','OF')
              call timing(iproc,'LagrM_commun  ','ON')
-             call mpiallred(alag(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+             call mpiallred(alag,MPI_SUM,comm=bigdft_mpi%mpi_comm)
              !call MPI_ALLREDUCE (alag(1,2),alag(1,1),ndim_ovrlp(nspin,orbs%nkpts),&
              !     mpidtypw,MPI_SUM,bigdft_mpi%mpi_comm,ierr)
              call timing(iproc,'LagrM_commun  ','OF')
@@ -1267,6 +1227,8 @@ subroutine orthon_p(iproc,nproc,norb,nvctrp,psit,nspinor)
            write(*,*) 'info Cholesky factorization',info
         end if
         
+
+        !LG: the following two operations can be replaced by a single dtrsm call?
         ! calculate L^{-1}
         call trtri( 'L','N',norb,ovrlp(1,1,1),norb,info)
         if (info.ne.0) write(6,*) 'info L^-1',info
@@ -1769,7 +1731,7 @@ END SUBROUTINE KStrans_p
 subroutine gsChol(iproc, nproc, psi, orthpar, nspinor, orbs, nspin,ndim_ovrlp,norbArr,comms,paw)
   use module_base
   use module_types
-  use module_interfaces, except_this_one_A => gsChol
+  use module_interfaces, only: cholesky, gramschmidt
   use communications_base, only: comms_cubic
   implicit none
 
@@ -2092,7 +2054,7 @@ type(paw_objects),optional,intent(inout)::paw
 ! Local variables
 character(len=*), parameter :: subname='cholesky'
 real(kind=8), dimension(:,:), allocatable :: raux
-integer :: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor
+integer :: ist, info, ispin, ikptp, ikpt, ncomp, norbs, norb,nspinor, iscprj
 integer :: iat
 logical :: usepaw=.false.
 
@@ -2155,35 +2117,32 @@ do ikptp=1,orbs%nkptsp
             end if
 
             if(usepaw) then
-              !Pending: check that this works in parallel, and with nspinor=2
-              !update cprj
-              raux = f_malloc((/ 2*paw%lmnmax, norb*nspinor /),id='raux')
-              do iat=1,paw%natom
-                raux=0.d0
-                !copy cprj%cp objet to a simple array 'raux'
-                call cprj_to_array(paw%cprj(iat,:),raux,norb,nspinor,ndim_ovrlp(ispin,ikpt-1),1)
-                ! Calculate the matrix product cprj*L^{-1}=cprj.
-                if(nspinor==1) then
-                   call dtrmm('r', 'l', 't', 'n', 2*paw%lmnmax, norb, 1.d0, &
-                        ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, raux, 2*paw%lmnmax)
-                else
-                   call ztrmm('r', 'l', 'c', 'n', ncomp*2*paw%lmnmax, norb, (1.d0,0.d0),&
-                        ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, raux, ncomp*2*paw%lmnmax)
-                end if
-                !
-                !copy back raux to cprj%cp
-                call cprj_to_array(paw%cprj(iat,:),raux,norb,nspinor,ndim_ovrlp(ispin,ikpt-1),2)
-              end do
-              call f_free(raux)
- 
+               !Pending: check that this works in parallel, and with nspinor=2
+               !update cprj
+               raux = f_malloc((/ 2*paw%lmnmax, norb /),id='raux')
+               iscprj = (ikpt - 1) * sum(norbTot) + (ispin - 1) * norbTot(1)
+               do iat = 1, size(paw%cprj, 1)
+                  call f_zero(raux)
+                  !copy cprj%cp objet to a simple array 'raux'
+                  call cprj_to_array(paw%cprj, raux, iat, norb, iscprj , 1)
+                  ! Calculate the matrix product cprj*L^{-1}=cprj.
+                  if(nspinor==1) then
+                     call dtrmm('r', 'l', 't', 'n', 2*paw%lmnmax, norb, 1.d0, &
+                          ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, raux, 2*paw%lmnmax)
+                  else
+                     call ztrmm('r', 'l', 'c', 'n', paw%lmnmax, norb, (1.d0,0.d0),&
+                          ovrlp(ndim_ovrlp(ispin,ikpt-1)+1,1), norb, raux, paw%lmnmax)
+                  end if
+                  !copy back raux to cprj%cp
+                  call cprj_to_array(paw%cprj, raux, iat, norb, iscprj, 2)
+               end do
+               call f_free(raux)
+
             end if !usepaw
         end if !InSpin
-
-
  
         ! Increase the starting index.
         ist=ist+nvctrp*(norbTot(ispin)-block1+1)*nspinor
-
     end do
 end do         
 
@@ -2471,7 +2430,7 @@ subroutine getOverlap(iproc,nproc,nspin,norbIn,orbs,comms,&
   if (nproc > 1) then
      call timing(iproc, trim(category)//'_comput', 'OF')
      call timing(iproc, trim(category)//'_commun', 'ON')
-     call mpiallred(ovrlp(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(ovrlp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      call timing(iproc, trim(category)//'_commun', 'OF')
      call timing(iproc, trim(category)//'_comput', 'ON')
   end if
@@ -2589,7 +2548,7 @@ subroutine getOverlap_paw(iproc,nproc,nspin,norbIn,orbs,comms,&
   if (nproc > 1) then
      call timing(iproc, trim(category)//'_comput', 'OF')
      call timing(iproc, trim(category)//'_commun', 'ON')
-     call mpiallred(ovrlp(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(ovrlp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      !call MPI_ALLREDUCE (ovrlp(1,2),ovrlp(1,1),ndim_ovrlp(nspin,orbs%nkpts),mpidtypw,MPI_SUM,MPI_COMM_WORLD,ierr)
      call timing(iproc, trim(category)//'_commun', 'OF')
      call timing(iproc, trim(category)//'_comput', 'ON')
@@ -2684,7 +2643,7 @@ subroutine getOverlapDifferentPsi(iproc, nproc, nspin, norbIn, orbs, comms,&
      !call timing(iproc,'GramS_commun  ','ON')
      call timing(iproc,trim(category)//'_comput','OF')
      call timing(iproc,trim(category)//'_commun','ON')
-     call mpiallred(ovrlp(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(ovrlp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      !call mpi_allreduce(ovrlp(1,2),ovrlp(1,1),ndim_ovrlp(nspin,orbs%nkpts),mpi_double_precision,mpi_sum,bigdft_mpi%mpi_comm,ierr)
      call timing(iproc,trim(category)//'_commun','OF')
      call timing(iproc,trim(category)//'_comput','ON')
@@ -2809,7 +2768,7 @@ subroutine getOverlapDifferentPsi_paw(iproc, nproc, nspin, norbIn, orbs, comms,&
      !call timing(iproc,'GramS_commun  ','ON')
      call timing(iproc,trim(category)//'_comput','OF')
      call timing(iproc,trim(category)//'_commun','ON')
-     call mpiallred(ovrlp(1),ndim_ovrlp(nspin,orbs%nkpts),MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(ovrlp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
      !call mpi_allreduce(ovrlp(1,2),ovrlp(1,1),ndim_ovrlp(nspin,orbs%nkpts),mpi_double_precision,mpi_sum,mpi_comm_world,ierr)
      call timing(iproc,trim(category)//'_commun','OF')
      call timing(iproc,trim(category)//'_comput','ON')

@@ -10,8 +10,9 @@
 
 !> Module containing variables used for the timing for BigDFT
 module time_profiling
+  use f_precisions
   use dictionaries
-  use dynamic_memory, only: f_time
+  use f_utils, only: f_time
   implicit none
 
   private 
@@ -19,7 +20,7 @@ module time_profiling
   !>maximum number of allowed categories
   integer, parameter :: ncat_max=200
   !>maximum number of partial counters active
-  integer, parameter :: nctr_max=10
+  integer, parameter :: nctr_max=20
   !>integer indicating the file unit
   integer, parameter :: timing_unit=60
   !>integer indicating the tabbing of the file unit
@@ -48,6 +49,7 @@ module time_profiling
      integer :: cat_paused !<id of paused category when interrupt action
      integer :: timing_ncat !<number of categories
      integer :: timing_nctr !<number of partial counters
+     integer(f_long) :: epoch !<time of the creation of the routine
      double precision :: time0 !<reference time since last checkpoint
      double precision :: t0 !<reference time since last opening action
      double precision, dimension(ncat_max+1) :: clocks !< timings of different categories
@@ -63,7 +65,7 @@ module time_profiling
 
   public :: f_timing_reset,f_timing,f_timing_checkpoint,f_timing_stop,timing_errors
   public :: f_timing_category,f_timing_category_group,f_timing_finalize,f_timing_initialize
-  public :: get_category_name
+  public :: get_category_name,f_clock
 
   contains
 
@@ -82,6 +84,7 @@ module time_profiling
       time%cat_paused=0 
       time%timing_ncat=0 
       time%timing_nctr=0
+      time%epoch=f_time() !take the initial time
       time%time0=0.d0
       time%t0=0.d0
       time%clocks=0.d0
@@ -164,7 +167,7 @@ module time_profiling
 
     !> define a new timing category with its description
     subroutine f_timing_category(cat_name,grp_name,cat_info,cat_id)
-      use yaml_output, only: yaml_toa
+      use yaml_strings, only: yaml_toa
       implicit none
       character(len=*), intent(in) :: cat_name !< name of the category
       character(len=*), intent(in) :: grp_name !<class to which category belongs (see f_timing_class)
@@ -207,7 +210,7 @@ module time_profiling
 
     !initialize the timing by putting to zero all the chronometers
     subroutine f_timing_initialize()
-      use yaml_output, only: yaml_toa
+      use yaml_strings, only: yaml_toa
       implicit none
       !create the general category for unspecified timings
       ictrl=ictrl+1
@@ -232,14 +235,23 @@ module time_profiling
       times(ictrl)%timing_ncat=0
     end subroutine f_timing_initialize
 
+    !> get the walltime since most recent call of the f_timing initialize
+    function f_clock()
+      implicit none
+      integer(f_long) :: f_clock !< elapsed walltime since last call of the initialize
+      f_clock=f_time()-times(ictrl)%epoch
+    end function f_clock
+
     !finalize the timing by putting to zero all the chronometers
-    subroutine f_timing_finalize()
+    subroutine f_timing_finalize(walltime)
       use yaml_output
       implicit none
+      integer(f_long), intent(out), optional :: walltime !< elapsed walltime since last call of the initialize
       !create the general category for unspecified timings
       call dict_free(times(ictrl)%dict_timing_categories)
       call dict_free(times(ictrl)%dict_timing_groups)
       !put to zero the number of categories
+      if (present(walltime)) walltime=f_clock()
       times(ictrl)=time_ctrl_null()
       ictrl=ictrl-1
     end subroutine f_timing_finalize
@@ -302,7 +314,8 @@ module time_profiling
     !! the last active category is halted and a summary of the timing 
     !! is printed out
     subroutine f_timing_checkpoint(ctr_name,mpi_comm,nproc,gather_routine)
-      use yaml_output, only: yaml_map,yaml_toa
+      use yaml_output, only: yaml_map
+      use yaml_strings, only: yaml_toa
       use dynamic_memory
       implicit none
       !> name of the partial counter for checkpoint identification
@@ -530,8 +543,9 @@ module time_profiling
     !> The same timing routine but with system_clock (in case of a supported specs)
     subroutine f_timing(cat_id,action)
       use dictionaries, only: f_err_raise,f_err_throw
-      use dynamic_memory, only: f_time
-      use yaml_output, only: yaml_toa
+      use f_utils, only: f_time
+      use yaml_strings, only: yaml_toa
+      use nvtx !for nvidia profiler
       implicit none
       !Variables
       integer, intent(in) :: cat_id
@@ -539,6 +553,7 @@ module time_profiling
       !Local variables
       integer(kind=8) :: itns
       real(kind=8) :: t1
+      character(len=max_field_length):: catname
       !$ include 'remove_omp-inc.f90'
       
       !first of all, read the time
@@ -565,6 +580,12 @@ module time_profiling
          if (times(ictrl)%cat_on /= 0) return
          times(ictrl)%t0=real(itns,kind=8)*1.d-9
          times(ictrl)%cat_on=cat_id !category which has been activated
+        !catname=f_malloc((/1.to.128/), id="catname")
+        call get_category_name(cat_id, catname)
+         call nvtxrangepusha(catname//CHAR(0));
+        !call f_free(catname)
+
+!call Extrae_event(6000019,cat_id)
       case('OF')
          if (times(ictrl)%cat_paused /=0) then
             !no action except for misuse of interrupts
@@ -577,6 +598,8 @@ module time_profiling
             times(ictrl)%clocks(cat_id)=times(ictrl)%clocks(cat_id)+&
                  t1-times(ictrl)%t0
             times(ictrl)%cat_on=0
+         call nvtxrangepop();
+            !call Extrae_event(6000019,0)
          end if
          !otherwise no action as the off mismatches
       case('IR') !interrupt category
@@ -601,6 +624,9 @@ module time_profiling
          end if
          times(ictrl)%cat_on=cat_id
          times(ictrl)%t0=t1
+         call get_category_name(cat_id, catname)
+         call nvtxrangepusha(catname//CHAR(0));
+
       case('RS') !resume the category by supposing it has been activated by IR
          if (f_err_raise(times(ictrl)%cat_paused==0,&
               'It appears no category has to be resumed',&
@@ -623,6 +649,8 @@ module time_profiling
             times(ictrl)%cat_on=0
          end if
          times(ictrl)%cat_paused=0
+         call nvtxrangepop();
+
       case('RX') !resume the interrupted category, cat_id is ignored here
          !dry run if expert mode active and not initialized categories
          if (times(ictrl)%cat_paused==0 .or. times(ictrl)%cat_on==0) return
@@ -644,6 +672,8 @@ module time_profiling
             times(ictrl)%cat_on=0
          end if
          times(ictrl)%cat_paused=0
+         call nvtxrangepop();
+
       case default
          call f_err_throw('TIMING ACTION UNDEFINED',err_id=TIMING_INVALID)
       end select
@@ -681,6 +711,7 @@ module time_profiling
     !> dump the line of the timings for time.yaml form
     subroutine timing_dump_line(name,tabbing,pc,secs,unit,loads)
       use yaml_output
+      use yaml_strings
       implicit none
       integer, intent(in) :: tabbing !<vlue of the tabbing for pretty printing
       double precision, intent(in) :: pc !< percent of the time for line id
@@ -753,6 +784,7 @@ module time_profiling
     !>dump the final information of the partial counters
     subroutine timing_dump_counters(ncounters,nproc,pcnames,timecnt,dict_info)
       use yaml_output
+      use yaml_strings, only: yaml_date_and_time_toa
       implicit none
       integer, intent(in) :: ncounters,nproc
       character(len=10), dimension(ncounters), intent(in) :: pcnames
@@ -790,6 +822,7 @@ module time_profiling
     subroutine timing_dump_results(ncat,nproc,message,timeall)
       use dynamic_memory
       use yaml_output
+      use yaml_strings
       implicit none
       integer, intent(in) :: ncat,nproc
       character(len=*), intent(in) :: message
@@ -821,8 +854,8 @@ module time_profiling
          dict_cat=>dict_next(dict_cat)
          
          if (.not. associated(dict_cat)) then
-            call f_err_throw('Dictionary of categories not compatible with total number, icat='//&
-                 trim(yaml_toa(icat)),err_id=TIMING_INVALID)
+            call f_err_throw('Dictionary of categories not compatible with total number, icat='//icat,&
+                 err_id=TIMING_INVALID)
             exit
          end if
          name=dict_cat//grpname

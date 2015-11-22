@@ -1,0 +1,20 @@
+psppar.C: 
+  Source: C.LDA-PW-paw.abinit.wvl
+  Radii of active regions (AU):
+    Coarse: 1.5843663028121528
+    Fine: 0.29150693999999999
+    Coarse PSP: 0.93793662140607648
+posinp:
+  positions:
+  - {C: [0, 0, 0]}
+dft:
+  hgrids: 0.4
+  #rmult: [5, 7]
+  #itermax: 1
+  ixc: -20
+occupation:
+  K point 1:
+    Orbital 2: 2/3
+    Orbital 3: 2/3
+    Orbital 4: 2/3
+

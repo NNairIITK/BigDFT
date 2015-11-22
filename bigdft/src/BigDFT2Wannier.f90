@@ -13,13 +13,16 @@ program BigDFT2Wannier
 
    use BigDFT_API
    use bigdft_run
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_interfaces
    use yaml_output
    use module_input_dicts
+   use module_input_keys, only: user_dict_from_files,inputs_from_dict,free_input_variables
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use communications, only: transpose_v, untranspose_v
+   use bounds, only: ext_buffers
+   use locreg_operations
    implicit none
    character :: filetype*4
    !etsf
@@ -70,7 +73,7 @@ program BigDFT2Wannier
    integer, allocatable, dimension (:,:) :: G_vec
    integer, allocatable, dimension (:) :: excb,ipiv
    integer, allocatable, dimension (:) :: virt_list, amnk_bands_sorted
-   real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
+!   real(kind=8), parameter :: pi=3.141592653589793238462643383279d0
 !   integer, dimension(4) :: mpi_info
    type(dictionary), pointer :: user_inputs
    type(dictionary), pointer :: options
@@ -108,12 +111,6 @@ program BigDFT2Wannier
    call dict_free(user_inputs)
    call dict_free(options)
 
-!!$   if (input%verbosity > 2) then
-!!$      nproctiming=-nproc !timing in debug mode
-!!$   else
-!!$      nproctiming=nproc
-!!$   end if
-
    !call timing(nproctiming,'b2w_time.prc','IN')
    call f_timing_reset(filename=trim(input%dir_output)//'b2w_time.yaml',&
         master=iproc==0,&
@@ -135,10 +132,6 @@ program BigDFT2Wannier
          call yaml_comment('is smaller than number of desired states' // trim(yaml_toa(n_virt)))
          call yaml_comment('CORRECTION: Increase total number of virtual states')
          call yaml_comment('or decrease the number of desired states')
-         !write(*,'(A,1x,I4)') 'ERROR: total number of virtual states :',n_virt_tot
-         !write(*,'(A,1x,I4)') 'smaller than number of desired states:',n_virt
-         !write(*,'(A)') 'CORRECTION: Increase total number of virtual states'
-         !write(*,'(A)') 'or decrease the number of desired states'
       end if
       call mpi_finalize(ierr)
       stop
@@ -205,7 +198,7 @@ program BigDFT2Wannier
    call read_nnkp_int_alloc(iproc,seedname, n_kpts, n_proj, n_nnkpts, n_excb)
    call allocate_initial()
    call orbitals_descriptors(iproc,nproc,n_proj,n_proj,0,1,1,&
-        1,(/ 0.0_dp,0.0_dp,0.0_dp /),(/0.0_dp/),orbsp,.false.) 
+        1,(/ 0.0_dp,0.0_dp,0.0_dp /),(/0.0_dp/),orbsp,LINEAR_PARTITION_NONE) 
    if(residentity) n_virt = n_proj
 
    ! Set-up number of virtual states
@@ -221,7 +214,7 @@ program BigDFT2Wannier
    end if
    if (input%nspin==2) nvirtd=nvirtu
    call orbitals_descriptors(iproc,nproc,nvirtu+nvirtd,nvirtu,nvirtd, &
-      &   orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,.false.)
+      & orbs%nspin,orbs%nspinor,orbs%nkpts,orbs%kpts,orbs%kwgts,orbsv,LINEAR_PARTITION_NONE)
 
    ! Read Wannier90 .nnkp file.
    ! The most important informations to be read are : 
@@ -267,7 +260,7 @@ program BigDFT2Wannier
    ny=lzd%Glr%d%n2i
    nz=lzd%Glr%d%n3i
    n_at=atoms%astruct%nat
-   call initialize_work_arrays_sumrho(1,lzd%Glr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[lzd%Glr],.true.,w)
 
    ! Allocations for Amnk calculation
    npsidim2=max((lzd%Glr%wfd%nvctr_c+7*lzd%Glr%wfd%nvctr_f)*orbsp%norbp,sum(commsp%ncntt(0:nproc-1)))
@@ -488,7 +481,7 @@ program BigDFT2Wannier
 
       !Setup the description of the new subspace (they are similar to orbitals)
       call orbitals_descriptors(iproc,nproc,orbs%norb,orbs%norbu,orbs%norbd,orbs%nspin,orbs%nspinor,&
-           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb,.false.)
+           orbs%nkpts,orbs%kpts,orbs%kwgts,orbsb,LINEAR_PARTITION_NONE)
 
       ! Initialise the arrays n_bands_par, isband_par
       call split_vectors_for_parallel(iproc,nproc,n_virt,orbsv)
@@ -2123,7 +2116,10 @@ END SUBROUTINE write_mmn
 subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt_list,nx,ny,nz,nk,s,iformat)
 
    use BigDFT_API
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
+   use bounds, only: ext_buffers
+   use locreg_operations
+   use module_interfaces, only: readmywaves
    implicit none
    ! I/O variables
    type(locreg_descriptors), intent(in) :: Glr
@@ -2175,7 +2171,7 @@ subroutine write_unk_bin(Glr,orbs,orbsv,orbsb,input,atoms,rxyz,n_occ,n_virt,virt
    call split_vectors_for_parallel(0,1,n_virt+n_occ,orbsb)
    call split_vectors_for_parallel(0,1,n_virt,orbsv)
 
-   call initialize_work_arrays_sumrho(1,Glr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[Glr],.true.,w)
 
    ! Read occupied orbitals
    if(n_occ > 0) then

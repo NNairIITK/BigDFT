@@ -11,17 +11,20 @@
 !> Toy program to use BigDFT API
 program wvl
 
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use BigDFT_API
+  use locreg_operations, only: workarr_sumrho,initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
   use bigdft_run
   use dynamic_memory
   use yaml_output
   use module_input_dicts
-  use module_interfaces, only: inputs_from_dict
+  use module_input_keys
   use module_atoms, only: deallocate_atoms_data
   use communications_base, only: deallocate_comms
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
+  use rhopotential, only: full_local_potential
+  use module_razero
   implicit none
 
   type(input_variables)             :: inputs
@@ -43,7 +46,7 @@ program wvl
 !  real(gp), allocatable :: radii_cf(:,:)
   real(gp), dimension(3) :: shift
   real(gp), dimension(:,:), pointer :: rxyz_old
-  real(dp), dimension(:), pointer   :: rhor, pot_ion, potential
+  real(dp), dimension(:), pointer   :: rhor, pot_ion, potential,rho_ion
   real(wp), dimension(:), pointer   :: w
   real(wp), dimension(:,:), pointer :: ovrlp
   real(dp), dimension(:,:), pointer :: rho_p => null() !needs to be nullified
@@ -67,7 +70,7 @@ program wvl
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)
    if (iproc == 0) then
-      call print_general_parameters(inputs,atoms)
+      call print_general_parameters(inputs,atoms,'input','posinp')
    end if
    call dict_free(user_inputs)
    GPU%OCLconv = .false.
@@ -108,7 +111,7 @@ program wvl
 
   !grid spacings and box of the density
   call dpbox_set(dpcom,Lzd,xc,iproc,nproc,MPI_COMM_WORLD,inputs%PSolver_groupsize, &
-       & inputs%SIC%approach,atoms%astruct%geocode, inputs%nspin)
+       & inputs%SIC%approach,atoms%astruct%geocode, inputs%nspin,inputs%matacc%PSolver_igpu)
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))
@@ -210,11 +213,11 @@ program wvl
   ! Wavefunctions can be expressed in interpolating scaling functions, 
   !  in this representation, point coefficients are values on points.
   allocate(psir(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i))
-  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,psir)
+  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,psir(1))
   ! BigDFT cut rho by slices, while here we keep one array for simplicity.
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i))
-  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,rhor)
-  call initialize_work_arrays_sumrho(1,Lzd%Glr,.true.,wisf)
+  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,rhor(1))
+  call initialize_work_arrays_sumrho(1,[Lzd%Glr],.true.,wisf)
   do i = 1, orbs%norbp, 1
      ! Calculate values of psi_i on each grid points.
      call daub_to_isf(Lzd%Glr,wisf, &
@@ -259,17 +262,18 @@ program wvl
   pkernel=pkernel_init(.true.,iproc,nproc,0,&
        atoms%astruct%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
        (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
-  call pkernel_set(pkernel,.false.)
+  call pkernel_set(pkernel,verbose=.false.)
   !call createKernel(iproc,nproc,atoms%astruct%geocode,&
   !     (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
   !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
   !     ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
+  allocate(rho_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
   call createIonicPotential(atoms%astruct%geocode,iproc,nproc,(iproc==0),atoms,atoms%astruct%rxyz,&
        & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
        & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
        & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
-       & pkernel,pot_ion,psoffset)
+       & pkernel,pot_ion,rho_ion,psoffset)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,pot_ion,potential)
 !!$  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &
@@ -293,7 +297,7 @@ program wvl
   !if (iproc == 0) write(*,*) "System pseudo energy is", epot_sum, "Ht."
   if (iproc == 0) call yaml_map("System pseudo energy (Ha)", epot_sum)
 
-  deallocate(pot_ion)
+  deallocate(pot_ion,rho_ion)
   deallocate(psir)
   call deallocate_work_arrays_sumrho(wisf)
 
@@ -302,9 +306,8 @@ program wvl
   deallocate(psi)
 
   call deallocate_comms(comms)
-  call deallocate_wfd(Lzd%Glr%wfd)
-
-  call deallocate_bounds(Lzd%Glr%geocode,Lzd%Glr%hybrid_on,Lzd%Glr%bounds)
+  
+  call deallocate_locreg_descriptors(Lzd%Glr)
 
   call deallocate_Lzd_except_Glr(Lzd)
   !deallocate(Lzd%Glr%projflg)

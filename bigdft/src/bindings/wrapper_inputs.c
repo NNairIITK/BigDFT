@@ -1,7 +1,8 @@
 /* @file
  * Bindings for the BigDFT package
+ *
  * @author
- * Copyright (C) 2013-2013 BigDFT group
+ * Copyright (C) 2013-2015 BigDFT group
  * This file is distributed under the terms of the
  * GNU General Public License, see ~/COPYING file
  * or http://www.gnu.org/copyleft/gpl.txt .
@@ -34,7 +35,7 @@ void _inputs_sync(BigDFT_Inputs *in)
 
   FC_FUNC_(inputs_get_dft, INPUTS_GET_DFT)(F_TYPE(in->data), in->h, in->h + 1, in->h + 2,
                                            &in->crmult, &in->frmult, &in->ixc,
-                                           &in->ncharge, in->elecfield, &in->nspin,
+                                           &in->qcharge, in->elecfield, &in->nspin,
                                            &in->mpol, &in->gnrm_cv, (int*)&in->itermax,
                                            (int*)&in->nrepmax, &in->ncong, (int*)&in->idsx,
                                            &in->dispersion, &in->inputPsiId,

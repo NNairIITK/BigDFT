@@ -156,6 +156,49 @@
 
   end function f_err_check
 
+  function f_err_raise_str(condition,err_msg,err_id,err_name,callback,callback_data) result(f_err_raise)
+    use yaml_strings, only: yaml_toa,f_string
+    !use yaml_output, only: yaml_dict_dump,yaml_map
+    implicit none
+    logical, intent(in) :: condition             !< the condition which raise the error
+    integer, intent(in), optional :: err_id                !< the code of the error to be raised.
+    !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name     !< error name
+    type(f_string), intent(in) :: err_msg      !< error message
+    integer(kind=8), intent(in), optional :: callback_data !< ??? not really sure
+    external :: callback                                   !< action to be performed ???
+    optional :: callback
+    logical :: f_err_raise
+    !local variables
+    !    integer :: new_errcode
+    integer(kind=8) :: clbk_data_add
+
+    f_err_raise=condition
+    !once the error has been identified add it to the present errors and call callback function if needed
+    if (f_err_raise) then
+       clbk_data_add=callback_data_add
+       if (present(callback_data)) clbk_data_add=callback_data
+
+       if (present(callback)) then
+          if (present(err_id)) then
+             call f_err_throw(err_msg%msg,err_id=err_id,callback=callback,callback_data=clbk_data_add)
+          else if (present(err_name)) then
+             call f_err_throw(err_msg%msg,err_name=err_name,callback=callback,callback_data=clbk_data_add) 
+          else
+             call f_err_throw(err_msg%msg,callback=callback,callback_data=clbk_data_add)
+          end if
+       else
+          if (present(err_id)) then
+             call f_err_throw(err_msg%msg,err_id=err_id,callback_data=clbk_data_add)
+          else if (present(err_name)) then
+             call f_err_throw(err_msg%msg,err_name=err_name,callback_data=clbk_data_add)
+          else
+             call f_err_throw(err_msg%msg,callback_data=clbk_data_add)
+          end if
+       end if
+    end if
+  end function f_err_raise_str
+
 
   !> This routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
@@ -186,10 +229,8 @@
     else
        f_err_raise=.true.
     end if
-
     !once the error has been identified add it to the present errors and call callback function if needed
     if (f_err_raise) then
-
        !throw the error with the annoying stuff of optional variables
        if (present(err_msg)) then
           message(1:len(message))=err_msg
@@ -222,7 +263,9 @@
 
 
   !> Raise the error indicated
-  subroutine f_err_throw(err_msg,err_id,err_name,callback,callback_data)
+  !! @warning:  This routine might formally call itself, i.e. it uses methods that might raise exceptions
+  !! it is developer's responsibility to avoid deadlocks
+  recursive subroutine f_err_throw_c(err_msg,err_id,err_name,callback,callback_data) 
     use yaml_strings, only: yaml_toa
     implicit none
     integer, intent(in), optional :: err_id                    !< The code of the error to be raised.
@@ -245,7 +288,6 @@
        write(0,*) 'error_handling library not initialized'
        call f_err_severe()
     end if
-
     !search the error ID (the generic error is always the first)
     new_errcode=ERR_GENERIC
     if (present(err_name)) then
@@ -256,7 +298,7 @@
                '. Errorcode found='//trim(yaml_toa(new_errcode))//&
                '; index function returned'//trim(yaml_toa(dict_errors .index. err_name)))
        end if
-       else if (present(err_id)) then
+    else if (present(err_id)) then
        new_errcode=ERR_GENERIC
        if (err_id < dict_len(dict_errors)) then
           new_errcode=err_id
@@ -311,8 +353,43 @@
        end if
     end if
     call err_abort(clbk_add,clbk_data_add)
-    
-  end subroutine f_err_throw
+  end subroutine f_err_throw_c
+
+  subroutine f_err_throw_str(message,err_id,err_name,callback,callback_data) 
+    use yaml_strings, only: f_string
+    implicit none
+    integer, intent(in), optional :: err_id                    !< The code of the error to be raised.
+    !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name         !< error name
+    type(f_string), intent(in) :: message         !< error message
+    !type(dictionary), pointer, optional :: err_dict           !< Add a dictionary instead of a message
+    integer(kind=8), intent(in), optional :: callback_data     !< ??? not really sure
+    external :: callback
+    optional :: callback
+    !local variables
+    integer(kind=8) :: clbk_add,clbk_data_add
+
+    clbk_data_add=callback_data_add
+    if (present(callback_data)) clbk_data_add=callback_data
+
+    if (present(callback)) then
+       if (present(err_id)) then
+          call f_err_throw_c(message%msg,err_id=err_id,callback=callback,callback_data=clbk_data_add)
+       else if (present(err_name)) then
+          call f_err_throw_c(message%msg,err_name=err_name,callback=callback,callback_data=clbk_data_add) 
+       else
+          call f_err_throw_c(message%msg,callback=callback,callback_data=clbk_data_add)
+       end if
+    else
+       if (present(err_id)) then
+          call f_err_throw_c(message%msg,err_id=err_id,callback_data=clbk_data_add)
+       else if (present(err_name)) then
+          call f_err_throw_c(message%msg,err_name=err_name,callback_data=clbk_data_add)
+       else
+          call f_err_throw_c(message%msg,callback_data=clbk_data_add)
+       end if
+    end if
+  end subroutine f_err_throw_str
 
 
   !> Get the error ierror as a dictionary
@@ -382,7 +459,7 @@
   end subroutine get_error_msg
 
 
-  !> Identify id of last error occured (public)
+  !> Identify id of last error occurred (public)
   function f_get_last_error(add_msg)
     implicit none
     character(len=*), intent(out), optional :: add_msg

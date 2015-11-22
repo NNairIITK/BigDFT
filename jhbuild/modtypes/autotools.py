@@ -80,8 +80,8 @@ class AutogenModule(MakeModule, DownloadableModule):
 
     def get_builddir(self, buildscript):
         if buildscript.config.buildroot and self.supports_non_srcdir_builds:
-            d = buildscript.config.builddir_pattern % (
-                self.branch.checkoutdir or self.branch.get_module_basename())
+            d = buildscript.config.builddir_pattern % (self.name)
+            #self.branch.checkoutdir or self.branch.get_module_basename())
             return os.path.join(buildscript.config.buildroot, d)
         else:
             return self.get_srcdir(buildscript)
@@ -141,6 +141,9 @@ class AutogenModule(MakeModule, DownloadableModule):
         # (GNOME #580272)
         if not '--exec-prefix' in template:
             cmd = cmd.replace('${exec_prefix}', vars['prefix'])
+
+        # To be able to rerun make outside jhbuild.
+        cmd += ' LDFLAGS="%s" C_INCLUDE_PATH="%s"' % (os.environ['LDFLAGS'], os.environ['C_INCLUDE_PATH'])
 
         self.configure_cmd = cmd
         return cmd
@@ -219,7 +222,7 @@ class AutogenModule(MakeModule, DownloadableModule):
         except:
             pass
 
-        if self.autogen_sh == 'autoreconf':
+        if self.autogen_sh == 'autoreconf' and not(os.path.exists(os.path.join(srcdir, 'configure'))):
             # autoreconf doesn't honour ACLOCAL_FLAGS, therefore we pass
             # a crafted ACLOCAL variable.  (GNOME bug 590064)
             extra_env = {}
@@ -305,12 +308,16 @@ class AutogenModule(MakeModule, DownloadableModule):
     do_check.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CONFIGURE]
 
     def do_dist(self, buildscript):
+        if not(self.branch.repository.name == "local"):
+            tar = os.path.join(SRCDIR, os.path.basename(self.branch.module))
+            if os.path.exists(tar):
+                return
         buildscript.set_action(_('Creating tarball for'), self)
         makeargs = self.get_makeargs(buildscript)
         cmd = '%s %s dist' % (os.environ.get('MAKE', 'make'), makeargs)
         buildscript.execute(cmd, cwd = self.get_builddir(buildscript),
                     extra_env = self.extra_env)
-    do_dist.depends = [PHASE_CONFIGURE]
+    do_dist.depends = [PHASE_BUILD]
     do_dist.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CONFIGURE]
 
     def do_setup(self, buildscript):
@@ -327,8 +334,8 @@ class AutogenModule(MakeModule, DownloadableModule):
         buildscript.execute(['autoreconf', '-fi'], cwd=srcdir,
                 extra_env=extra_env)
         os.chmod(os.path.join(srcdir, 'configure'), 0755)
-    do_dist.depends = [PHASE_CHECKOUT]
-    do_dist.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CLEAN]
+    do_setup.depends = [PHASE_CHECKOUT]
+    do_setup.error_phases = [PHASE_FORCE_CHECKOUT, PHASE_CLEAN]
 
     def do_distcheck(self, buildscript):
         buildscript.set_action(_('Dist checking'), self)

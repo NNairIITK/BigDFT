@@ -161,6 +161,13 @@ void FC_FUNC(getr3, GETR3)(void *ptr,long long int *address)
   return;
 }
 
+void FC_FUNC(getr4, GETR4)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
 void FC_FUNC(getdp1, GETDP1)(void *ptr,long long int *address)
 {
   *address=0;
@@ -217,6 +224,12 @@ void FC_FUNC(getz2, GETZ2)(void *ptr,long long int *address)
   return;
 }
 
+void FC_FUNC(getz3, GETZ3)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
 
 void FC_FUNC(getdp1ptr, GETDP1PTR)(void *ptr,long long int *address)
 {
@@ -282,6 +295,13 @@ void FC_FUNC(geti3ptr, GETI3PTR)(void *ptr,long long int *address)
 }
 
 void FC_FUNC(geti4ptr, GETI4PTR)(void *ptr,long long int *address)
+{
+  *address=0;
+  *address = (long long int)ptr;
+  return;
+}
+
+void FC_FUNC(getl1ptr, GETL1PTR)(void *ptr,long long int *address)
 {
   *address=0;
   *address = (long long int)ptr;

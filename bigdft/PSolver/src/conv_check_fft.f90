@@ -264,7 +264,7 @@ ntimes=1
 
    !calculate the kernel in parallel for each processor
    pkernel=pkernel_init(.true.,0,1,0,'P',ndim,hgriddim,16)
-   call pkernel_set(pkernel,verbose >1)
+   call pkernel_set(pkernel,verbose=verbose >1)
    !pkernel%igpu=0
    !call createKernel(0,1,'P',ndim,hgriddim,16,pkernel,(verbose > 1))
 
@@ -281,7 +281,7 @@ ntimes=1
 
    !here the GPU part
    pkernel2=pkernel_init(.true.,0,1,1,'P',ndim,hgriddim,16)
-   call pkernel_set(pkernel2,verbose >1)
+   call pkernel_set(pkernel2,verbose=verbose >1)
 
    !pkernel2%igpu=1
    !call createKernel(0,1,'P',ndim,hgriddim,16,pkernel2,(verbose > 1))
@@ -313,7 +313,7 @@ ntimes=1
    ndim(3)=n3/2
 
    pkernel=pkernel_init(.true.,0,1,0,'F',ndim,hgriddim,16)
-   call pkernel_set(pkernel,verbose >1)
+   call pkernel_set(pkernel,verbose=verbose >1)
 
    !pkernel%igpu=0
    !call createKernel(0,1,'F',ndim,hgriddim,16,pkernel,(verbose > 1))
@@ -331,7 +331,7 @@ print *,'ehartree',ehartree
 
    !here the GPU part
    pkernel2=pkernel_init(.true.,0,1,1,'F',ndim,hgriddim,16)
-   call pkernel_set(pkernel2,verbose >1)
+   call pkernel_set(pkernel2,verbose=verbose >1)
 
    !pkernel2%igpu=1
    !call createKernel(0,1,'F',ndim,hgriddim,16,pkernel2,(verbose > 1))
@@ -365,7 +365,7 @@ print *,'ehartree',ehartree
    ndim(3)=n3
 
    pkernel=pkernel_init(.true.,0,1,0,'S',ndim,hgriddim,16)
-   call pkernel_set(pkernel,verbose >1)
+   call pkernel_set(pkernel,verbose=verbose >1)
 
    !pkernel%igpu=0
    !call createKernel(0,1,'S',ndim,hgriddim,16,pkernel,(verbose > 1))
@@ -382,7 +382,7 @@ print *,'ehartree',ehartree
 
    !here the GPU part
    pkernel2=pkernel_init(.true.,0,1,1,'S',ndim,hgriddim,16)
-   call pkernel_set(pkernel2,verbose >1)
+   call pkernel_set(pkernel2,verbose=verbose >1)
 
 !!$   !pkernel2%igpu=1
 !!$   !call createKernel(0,1,'S',ndim,hgriddim,16,pkernel2,(verbose > 1))
@@ -414,7 +414,7 @@ print *,'ehartree',ehartree
    ndim(2)=n2/2
    ndim(3)=n3
    pkernel=pkernel_init(.true.,0,1,0,'W',ndim,hgriddim,16)
-   call pkernel_set(pkernel,verbose >1)
+   call pkernel_set(pkernel,verbose=verbose >1)
 
 !!$  ! pkernel%igpu=0
 !!$  ! call createKernel(0,1,'W',ndim,hgriddim,16,pkernel,(verbose > 1))
@@ -431,7 +431,7 @@ print *,'ehartree',ehartree
 
    !here the GPU part
    pkernel2=pkernel_init(.true.,0,1,1,'W',ndim,hgriddim,16)
-   call pkernel_set(pkernel2,verbose >1)
+   call pkernel_set(pkernel2,verbose=verbose >1)
 
 !!$  ! pkernel2%igpu=1
 !!$  ! call createKernel(0,1,'W',ndim,hgriddim,16,pkernel2,(verbose > 1))

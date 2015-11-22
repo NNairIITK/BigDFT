@@ -238,7 +238,7 @@ static void _sync_geometry(BigDFT_Atoms *atoms)
  * @atoms: 
  * @geocode: 
  * @alat: (array fixed-size=3):
- * @units: 
+ * @units: (allow-none):
  *
  * 
  **/
@@ -248,7 +248,8 @@ void bigdft_atoms_set_geometry(BigDFT_Atoms *atoms, gchar geocode, double alat[3
   atoms->alat[0] = alat[0];
   atoms->alat[1] = alat[1];
   atoms->alat[2] = alat[2];
-  strncpy(atoms->units, units, 20);
+  if (units)
+    strncpy(atoms->units, units, 20);
   _sync_geometry(atoms);
 }
 void bigdft_atoms_set_default_file_format(BigDFT_Atoms *atoms, const gchar *format)
@@ -420,8 +421,8 @@ gchar* bigdft_atoms_get_extra_as_label(const BigDFT_Atoms *atoms, guint iat)
   gchar buf[50], *ret;
   guint i, j;
 
-  FC_FUNC_(write_extra_info, WRITE_EXTRA_INFO)(buf, (int*)atoms->natpol + iat,
-                                               atoms->ifrztyp + iat, 50);
+  /* FC_FUNC_(write_extra_info, WRITE_EXTRA_INFO)(buf, (int*)atoms->natpol + iat, */
+  /*                                              atoms->ifrztyp + iat, 50); */
   for (i = 50; i > 0 && buf[i - 1] == ' '; i--);
   if (i == 0)
     return (gchar*)0;

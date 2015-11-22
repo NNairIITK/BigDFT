@@ -37,7 +37,7 @@ subroutine f_dump_all_errors(unit)
   !> if positive, write also the errors in the corresponding stream
   integer, intent(in) :: unit 
   !local variables
-  integer :: ierr,iunit_def
+  integer :: ierr,iunit_def,err_past
   character(len=max_field_length) :: add_msg
 
   !retrieve current unit
@@ -55,9 +55,8 @@ subroutine f_dump_all_errors(unit)
 !!$
 !!$  if (unit > 0 .and. unit /= iunit_def) then
      do ierr=0,f_get_no_of_errors()-1
-        call yaml_dict_dump(&
-             f_get_error_dict(f_get_past_error(ierr,add_msg)),&
-             unit=iunit_def)
+        err_past=f_get_past_error(ierr,add_msg)
+        call yaml_dict_dump(f_get_error_dict(err_past),unit=iunit_def)
         if (trim(add_msg)/= 'UNKNOWN') &
              call yaml_map('Additional Info',add_msg,unit=iunit_def)
      end do
@@ -95,7 +94,9 @@ subroutine initialize_flib_errors()
   use f_utils, only: f_utils_errors
   use yaml_parse, only: yaml_parse_errors
   use dynamic_memory, only: dynamic_memory_errors
+  use f_refcnts, only: refcnts_errors
   use time_profiling, only: timing_errors
+  use f_input_file, only: input_file_errors
   implicit none
 
   call dictionaries_errors()
@@ -103,8 +104,10 @@ subroutine initialize_flib_errors()
   call yaml_output_errors()
   !Intilialize the error to parse yaml documents
   call yaml_parse_errors()
+  call refcnts_errors()
   call dynamic_memory_errors()
   call timing_errors()
+  call input_file_errors()
   
 end subroutine initialize_flib_errors
 
@@ -163,24 +166,25 @@ subroutine f_lib_err_severe_external(message)
   call f_err_severe()
 end subroutine f_lib_err_severe_external
 
-
 !> Routine which finalize f_lib and dummp the finalization information
 subroutine f_lib_finalize()
   use dictionaries_base, only: dictionary_check_leak
   use dictionaries, only: f_err_finalize,dict_get_num
   use dynamic_memory, only: f_malloc_finalize
-  use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment,yaml_toa
+  use yaml_output, only: yaml_close_all_streams,yaml_map,yaml_comment,yaml_walltime_toa
   use yaml_parse, only: yaml_parse_errors_finalize
-  use time_profiling, only: f_timing_finalize
+  use time_profiling, only: f_timing_finalize,f_clock
+  use yaml_strings, only: operator(//)
   implicit none
   !local variables
   integer :: ndict,ndict_max,iproc,nlibs,nlibs_max
   call f_malloc_finalize(process_id=iproc)
   !print maximal value of dictionary usage
   if (iproc == 0) then
+     call yaml_map('Walltime since initialization',yaml_walltime_toa(f_clock()))
      call dict_get_num(ndict,ndict_max,nlibs,nlibs_max)
      call yaml_map('Max No. of dictionaries used',ndict_max, advance='no')
-     call yaml_comment('('//trim(yaml_toa(ndict))//' still in use)')
+     call yaml_comment('('//ndict//' still in use)')
      !general finalization, the f_lib should come back to uninitialized status
      call yaml_map('Number of dictionary folders allocated',nlibs_max)
   end if

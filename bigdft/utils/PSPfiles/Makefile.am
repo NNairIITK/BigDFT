@@ -255,4 +255,5 @@ EXTRA_DIST = \
 	Krach-PBE/Xe-q8 \
 	Krach-PBE/Y-q11 \
 	Krach-PBE/Zn-q12 \
-	Krach-PBE/Zr-q12
+	Krach-PBE/Zr-q12 \
+	C.GGA_PBE-JTH.xml

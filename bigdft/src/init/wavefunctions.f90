@@ -12,11 +12,12 @@
 !! It uses the cubic strategy for partitioning the orbitals
 !! @param basedist   optional argument indicating the base orbitals distribution to start from
 subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,kpt,wkpt,&
-     orbs,simple,basedist,basedistu,basedistd)
+     orbs,linear_partition,basedist,basedistu,basedistd)
   use module_base
   use module_types
+  use public_enums
   implicit none
-  logical, intent(in) :: simple !< simple calculation of the repartition
+  integer, intent(in) :: linear_partition !< repartition mode for the linear scaling version
   integer, intent(in) :: iproc,nproc,norb,norbu,norbd,nkpt,nspin
   integer, intent(in) :: nspinor
   type(orbitals_data), intent(inout) :: orbs
@@ -66,20 +67,20 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   orbs%nspin = nspin
 
 
-  !create an array which indicate which processor has a GPU associated 
-  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
-  if (.not. GPUshare) then
-     GPU_for_orbs = f_malloc(0.to.nproc-1,id='GPU_for_orbs')
-     
-     if (nproc > 1) then
-        call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
-             bigdft_mpi%mpi_comm,ierr)
-     else
-        GPU_for_orbs(0)=GPUconv
-     end if
-     
-     call f_free(GPU_for_orbs)
-  end if
+!!$  !create an array which indicate which processor has a GPU associated 
+!!$  !from the viewpoint of the BLAS routines (deprecated, not used anymore)
+!!$  if (.not. GPUshare) then
+!!$     GPU_for_orbs = f_malloc(0.to.nproc-1,id='GPU_for_orbs')
+!!$     
+!!$     if (nproc > 1) then
+!!$        call MPI_ALLGATHER(GPUconv,1,MPI_LOGICAL,GPU_for_orbs(0),1,MPI_LOGICAL,&
+!!$             bigdft_mpi%mpi_comm,ierr)
+!!$     else
+!!$        GPU_for_orbs(0)=GPUconv
+!!$     end if
+!!$     
+!!$     call f_free(GPU_for_orbs)
+!!$  end if
 
   norb_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norb_par')
   norbu_par = f_malloc((/ 0.to.nproc-1, 1.to.orbs%nkpts /),id='norbu_par')
@@ -210,13 +211,26 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
 
 
  ! Modify these values
-  if (simple) then
-     call repartitionOrbitals2(iproc,nproc,orbs%norb,orbs%norb_par,&
-          orbs%norbp,orbs%isorb)
-     call repartitionOrbitals2(iproc,nproc,orbs%norbu,orbs%norbu_par,&
-          orbs%norbup,orbs%isorbu)
-     call repartitionOrbitals2(iproc,nproc,orbs%norbd,orbs%norbd_par,&
-          orbs%norbdp,orbs%isorbd)
+  if (linear_partition==LINEAR_PARTITION_SIMPLE) then
+      call repartitionOrbitals2(iproc,nproc,orbs%norb,orbs%norb_par,&
+           orbs%norbp,orbs%isorb)
+      call repartitionOrbitals2(iproc,nproc,orbs%norbu,orbs%norbu_par,&
+           orbs%norbup,orbs%isorbu)
+      call repartitionOrbitals2(iproc,nproc,orbs%norbd,orbs%norbd_par,&
+           orbs%norbdp,orbs%isorbd)
+  else if (linear_partition==LINEAR_PARTITION_OPTIMAL) then
+      if (.not.present(basedist)) stop 'basedist not present'
+      call repartition_orbitals_optimal(iproc,nproc,basedist,orbs%norb_par,&
+           orbs%norbp,orbs%isorb)
+      if (.not.present(basedistu)) stop 'basedistu not present'
+      call repartition_orbitals_optimal(iproc,nproc,basedistu,orbs%norbu_par,&
+           orbs%norbup,orbs%isorbu)
+      if (.not.present(basedistd)) stop 'basedistd not present'
+      call repartition_orbitals_optimal(iproc,nproc,basedistd,orbs%norbd_par,&
+           orbs%norbdp,orbs%isorbd)
+  else if (linear_partition==LINEAR_PARTITION_NONE) then
+  else
+      stop 'wrong value of linear_partition'
   end if
 
   orbs%iokpt = f_malloc_ptr(orbs%norbp,id='orbs%iokpt')
@@ -285,7 +299,7 @@ subroutine orbitals_descriptors(iproc,nproc,norb,norbu,norbd,nspin,nspinor,nkpt,
   !this mpiflag is added to make memguess working
   call MPI_Initialized(mpiflag,ierr)
   if(nproc >1 .and. mpiflag /= 0) &
-       call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,bigdft_mpi%mpi_comm)
+       call mpiallred(orbs%isorb_par(0),nproc,mpi_sum,comm=bigdft_mpi%mpi_comm)
 
 END SUBROUTINE orbitals_descriptors
 
@@ -337,7 +351,7 @@ subroutine repartitionOrbitals(iproc,nproc,norb,norb_par,norbp,isorb_par,isorb,o
   end do
   !call MPI_Initialized(mpiflag,ierr)
   if(nproc >1) &!mpiflag /= 0) 
-       call mpiallred(isorb_par(0), nproc, mpi_sum, bigdft_mpi%mpi_comm)
+       call mpiallred(isorb_par(0), nproc, mpi_sum, comm=bigdft_mpi%mpi_comm)
 
 end subroutine repartitionOrbitals
 
@@ -376,6 +390,35 @@ subroutine repartitionOrbitals2(iproc, nproc, norb, norb_par, norbp, isorb)
 
 end subroutine repartitionOrbitals2
 
+
+subroutine repartition_orbitals_optimal(iproc, nproc, norb_par_ref, norb_par, norbp, isorb)
+  use module_base
+  implicit none
+  
+  ! Calling arguments
+  integer,intent(in):: iproc, nproc
+  integer,dimension(0:nproc-1),intent(in):: norb_par_ref
+  integer,dimension(0:nproc-1),intent(out):: norb_par
+  integer,intent(out):: norbp, isorb
+
+  ! Local variables
+  integer:: jproc
+
+
+  ! Take norb_par from the reference
+  call vcopy(nproc, norb_par_ref(0), 1, norb_par(0), 1)
+
+  ! Determine norbp
+  norbp=norb_par(iproc)
+
+  ! Determine isorb
+  isorb=0
+  do jproc=0,iproc-1
+      isorb=isorb+norb_par(jproc)
+  end do
+
+end subroutine repartition_orbitals_optimal
+
 subroutine lzd_set_hgrids(Lzd, hgrids)
   use module_base
   use module_types
@@ -386,197 +429,197 @@ subroutine lzd_set_hgrids(Lzd, hgrids)
   Lzd%hgrids = hgrids
 END SUBROUTINE lzd_set_hgrids
 
-!> Fill the arrays occup and spinsgn
-!! if iunit /=0 this means that the file 'input.occ' does exist and it opens
-subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
-  use module_base
-  use module_input
-  use yaml_output
-  use yaml_strings, only: read_fraction_string
-  implicit none
-  ! Arguments
-  logical, intent(in) :: verb
-  integer, intent(in) :: nelec,nspin,norb,norbu,iunit,norbuempty,norbdempty
-  real(gp), dimension(norb), intent(out) :: occup,spinsgn
-  ! Local variables
-  integer :: iorb,nt,ne,it,ierror,iorb1,i
-  real(gp) :: rocc
-  character(len=20) :: string
-  character(len=100) :: line
-
-  do iorb=1,norb
-     spinsgn(iorb)=1.0_gp
-  end do
-  if (nspin/=1) then
-     do iorb=1,norbu
-        spinsgn(iorb)=1.0_gp
-     end do
-     do iorb=norbu+1,norb
-        spinsgn(iorb)=-1.0_gp
-     end do
-  end if
-  ! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
-
-  ! First fill the occupation numbers by default
-  nt=0
-  if (nspin==1) then
-     ne=(nelec+1)/2
-     do iorb=1,ne
-        it=min(2,nelec-nt)
-        occup(iorb)=real(it,gp)
-        nt=nt+it
-     enddo
-     do iorb=ne+1,norb
-        occup(iorb)=0._gp
-     end do
-  else
-     if (norbuempty+norbdempty == 0) then
-        if (norb > nelec) then
-           do iorb=1,min(norbu,norb/2+1)
-              it=min(1,nelec-nt)
-              occup(iorb)=real(it,gp)
-              nt=nt+it
-           enddo
-           do iorb=min(norbu,norb/2+1)+1,norbu
-              occup(iorb)=0.0_gp
-           end do
-           do iorb=norbu+1,norbu+min(norb-norbu,norb/2+1)
-              it=min(1,nelec-nt)
-              occup(iorb)=real(it,gp)
-              nt=nt+it
-           enddo
-           do iorb=norbu+min(norb-norbu,norb/2+1)+1,norb
-              occup(iorb)=0.0_gp
-           end do
-        else
-           do iorb=1,norb
-              occup(iorb)=1.0_gp
-           end do
-        end if
-     else
-        do iorb=1,norbu-norbuempty
-           occup(iorb)=1.0_gp
-        end do
-        do iorb=norbu-norbuempty+1,norbu
-           occup(iorb)=0.0_gp
-        end do
-        do iorb=1,norb-norbu-norbdempty
-           occup(norbu+iorb)=1.0_gp
-        end do
-        do iorb=norb-norbu-norbdempty+1,norb-norbu
-           occup(norbu+iorb)=0.0_gp
-        end do
-     end if
-  end if
-  ! Then read the file "input.occ" if does exist
-  if (iunit /= 0) then
-     nt=0
-     do
-        read(unit=iunit,fmt='(a100)',iostat=ierror) line
-        if (ierror /= 0) then
-           exit
-        end if
-        !Transform the line in case there are slashes (to ease the parsing)
-        do i=1,len(line)
-           if (line(i:i) == '/') then
-              line(i:i) = ':'
-           end if
-        end do
-        read(line,*,iostat=ierror) iorb,string
-        call read_fraction_string(string,rocc,ierror) 
-        if (ierror /= 0) then
-           exit
-        end if
-
-        if (ierror/=0) then
-           exit
-        else
-           nt=nt+1
-           if (iorb<0 .or. iorb>norb) then
-              !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
-              write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
-              !end if
-              stop
-           elseif (rocc<0._gp .or. rocc>2._gp) then
-              !if (iproc==0) then
-              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
-              write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
-              !end if
-              stop
-           else
-              occup(iorb)=rocc
-           end if
-        end if
-     end do
-     if (verb) then
-        call yaml_comment('('//adjustl(trim(yaml_toa(nt)))//'lines read)')
-        !write(*,'(1x,a,i0,a)') &
-        !     'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
-     end if
-     close(unit=iunit)
-
-     if (nspin/=1) then
-!!!        !Check if the polarisation is respected (mpol)
-!!!        rup=sum(occup(1:norbu))
-!!!        rdown=sum(occup(norbu+1:norb))
-!!!        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
-!!!           if (iproc==0) then
-!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "input.occ", the polarization ',rup-rdown,&
-!!!                             ' is not equal to ',norbu-norbd
-!!!           end if
-!!!           stop
-!!!        end if
-        !Fill spinsgn
-        do iorb=1,norbu
-           spinsgn(iorb)=1.0_gp
-        end do
-        do iorb=norbu+1,norb
-           spinsgn(iorb)=-1.0_gp
-        end do
-     end if
-  end if
-  if (verb) then 
-     call yaml_sequence(advance='no')
-     call yaml_mapping_open('Occupation Numbers',flow=.true.)
-     !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
-     iorb1=1
-     rocc=occup(1)
-     do iorb=1,norb
-        if (occup(iorb) /= rocc) then
-           if (iorb1 == iorb-1) then
-              call yaml_map('Orbital No.'//trim(yaml_toa(iorb1)),rocc,fmt='(f6.4)')
-              !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
-           else
-           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
-                adjustl(trim(yaml_toa(iorb-1))),rocc,fmt='(f6.4)')
-           !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
-           end if
-           rocc=occup(iorb)
-           iorb1=iorb
-        end if
-     enddo
-     if (iorb1 == norb) then
-        call yaml_map('Orbital No.'//trim(yaml_toa(norb)),occup(norb),fmt='(f6.4)')
-        !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
-     else
-        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
-             adjustl(trim(yaml_toa(norb))),occup(norb),fmt='(f6.4)')
-        !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
-     end if
-     call yaml_mapping_close()
-  endif
-
-  !Check if sum(occup)=nelec
-  rocc=sum(occup)
-  if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
-     call yaml_warning('ERROR in determining the occupation numbers: the total number of electrons ' &
-        & // trim(yaml_toa(rocc,fmt='(f13.6)')) // ' is not equal to' // trim(yaml_toa(nelec)))
-     !if (iproc==0) then
-     !write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
-     !     ' is not equal to ',nelec
-     !end if
-     stop
-  end if
-
-END SUBROUTINE occupation_input_variables
+!!$!> Fill the arrays occup and spinsgn
+!!$!! if iunit /=0 this means that the file 'input.occ' does exist and it opens
+!!$subroutine occupation_input_variables(verb,iunit,nelec,norb,norbu,norbuempty,norbdempty,nspin,occup,spinsgn)
+!!$  use module_base
+!!$  !use module_input
+!!$  use yaml_output
+!!$  use yaml_strings, only: read_fraction_string
+!!$  implicit none
+!!$  ! Arguments
+!!$  logical, intent(in) :: verb
+!!$  integer, intent(in) :: nelec,nspin,norb,norbu,iunit,norbuempty,norbdempty
+!!$  real(gp), dimension(norb), intent(out) :: occup,spinsgn
+!!$  ! Local variables
+!!$  integer :: iorb,nt,ne,it,ierror,iorb1,i
+!!$  real(gp) :: rocc
+!!$  character(len=20) :: string
+!!$  character(len=100) :: line
+!!$
+!!$  do iorb=1,norb
+!!$     spinsgn(iorb)=1.0_gp
+!!$  end do
+!!$  if (nspin/=1) then
+!!$     do iorb=1,norbu
+!!$        spinsgn(iorb)=1.0_gp
+!!$     end do
+!!$     do iorb=norbu+1,norb
+!!$        spinsgn(iorb)=-1.0_gp
+!!$     end do
+!!$  end if
+!!$  ! write(*,'(1x,a,5i4,30f6.2)')'Spins: ',norb,norbu,norbd,norbup,norbdp,(spinsgn(iorb),iorb=1,norb)
+!!$
+!!$  ! First fill the occupation numbers by default
+!!$  nt=0
+!!$  if (nspin==1) then
+!!$     ne=(nelec+1)/2
+!!$     do iorb=1,ne
+!!$        it=min(2,nelec-nt)
+!!$        occup(iorb)=real(it,gp)
+!!$        nt=nt+it
+!!$     enddo
+!!$     do iorb=ne+1,norb
+!!$        occup(iorb)=0._gp
+!!$     end do
+!!$  else
+!!$     if (norbuempty+norbdempty == 0) then
+!!$        if (norb > nelec) then
+!!$           do iorb=1,min(norbu,norb/2+1)
+!!$              it=min(1,nelec-nt)
+!!$              occup(iorb)=real(it,gp)
+!!$              nt=nt+it
+!!$           enddo
+!!$           do iorb=min(norbu,norb/2+1)+1,norbu
+!!$              occup(iorb)=0.0_gp
+!!$           end do
+!!$           do iorb=norbu+1,norbu+min(norb-norbu,norb/2+1)
+!!$              it=min(1,nelec-nt)
+!!$              occup(iorb)=real(it,gp)
+!!$              nt=nt+it
+!!$           enddo
+!!$           do iorb=norbu+min(norb-norbu,norb/2+1)+1,norb
+!!$              occup(iorb)=0.0_gp
+!!$           end do
+!!$        else
+!!$           do iorb=1,norb
+!!$              occup(iorb)=1.0_gp
+!!$           end do
+!!$        end if
+!!$     else
+!!$        do iorb=1,norbu-norbuempty
+!!$           occup(iorb)=1.0_gp
+!!$        end do
+!!$        do iorb=norbu-norbuempty+1,norbu
+!!$           occup(iorb)=0.0_gp
+!!$        end do
+!!$        do iorb=1,norb-norbu-norbdempty
+!!$           occup(norbu+iorb)=1.0_gp
+!!$        end do
+!!$        do iorb=norb-norbu-norbdempty+1,norb-norbu
+!!$           occup(norbu+iorb)=0.0_gp
+!!$        end do
+!!$     end if
+!!$  end if
+!!$  ! Then read the file "input.occ" if does exist
+!!$  if (iunit /= 0) then
+!!$     nt=0
+!!$     do
+!!$        read(unit=iunit,fmt='(a100)',iostat=ierror) line
+!!$        if (ierror /= 0) then
+!!$           exit
+!!$        end if
+!!$        !Transform the line in case there are slashes (to ease the parsing)
+!!$        do i=1,len(line)
+!!$           if (line(i:i) == '/') then
+!!$              line(i:i) = ':'
+!!$           end if
+!!$        end do
+!!$        read(line,*,iostat=ierror) iorb,string
+!!$        call read_fraction_string(string,rocc,ierror) 
+!!$        if (ierror /= 0) then
+!!$           exit
+!!$        end if
+!!$
+!!$        if (ierror/=0) then
+!!$           exit
+!!$        else
+!!$           nt=nt+1
+!!$           if (iorb<0 .or. iorb>norb) then
+!!$              !if (iproc==0) then
+!!$              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
+!!$              write(*,'(10x,a,i0,a)') 'The orbital index ',iorb,' is incorrect'
+!!$              !end if
+!!$              stop
+!!$           elseif (rocc<0._gp .or. rocc>2._gp) then
+!!$              !if (iproc==0) then
+!!$              write(*,'(1x,a,i0,a)') 'ERROR in line ',nt+1,' of the file "[name].occ"'
+!!$              write(*,'(10x,a,f5.2,a)') 'The occupation number ',rocc,' is not between 0. and 2.'
+!!$              !end if
+!!$              stop
+!!$           else
+!!$              occup(iorb)=rocc
+!!$           end if
+!!$        end if
+!!$     end do
+!!$     if (verb) then
+!!$        call yaml_comment('('//adjustl(trim(yaml_toa(nt)))//'lines read)')
+!!$        !write(*,'(1x,a,i0,a)') &
+!!$        !     'The occupation numbers are read from the file "[name].occ" (',nt,' lines read)'
+!!$     end if
+!!$     close(unit=iunit)
+!!$
+!!$     if (nspin/=1) then
+!!$!!!        !Check if the polarisation is respected (mpol)
+!!$!!!        rup=sum(occup(1:norbu))
+!!$!!!        rdown=sum(occup(norbu+1:norb))
+!!$!!!        if (abs(rup-rdown-real(norbu-norbd,gp))>1.e-6_gp) then
+!!$!!!           if (iproc==0) then
+!!$!!!              write(*,'(1x,a,f13.6,a,i0)') 'From the file "input.occ", the polarization ',rup-rdown,&
+!!$!!!                             ' is not equal to ',norbu-norbd
+!!$!!!           end if
+!!$!!!           stop
+!!$!!!        end if
+!!$        !Fill spinsgn
+!!$        do iorb=1,norbu
+!!$           spinsgn(iorb)=1.0_gp
+!!$        end do
+!!$        do iorb=norbu+1,norb
+!!$           spinsgn(iorb)=-1.0_gp
+!!$        end do
+!!$     end if
+!!$  end if
+!!$  if (verb) then 
+!!$     call yaml_sequence(advance='no')
+!!$     call yaml_mapping_open('Occupation Numbers',flow=.true.)
+!!$     !write(*,'(1x,a,t28,i8)') 'Total Number of Orbitals',norb
+!!$     iorb1=1
+!!$     rocc=occup(1)
+!!$     do iorb=1,norb
+!!$        if (occup(iorb) /= rocc) then
+!!$           if (iorb1 == iorb-1) then
+!!$              call yaml_map('Orbital No.'//trim(yaml_toa(iorb1)),rocc,fmt='(f6.4)')
+!!$              !write(*,'(1x,a,i0,a,f6.4)') 'occup(',iorb1,')= ',rocc
+!!$           else
+!!$           call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+!!$                adjustl(trim(yaml_toa(iorb-1))),rocc,fmt='(f6.4)')
+!!$           !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',iorb-1,')= ',rocc
+!!$           end if
+!!$           rocc=occup(iorb)
+!!$           iorb1=iorb
+!!$        end if
+!!$     enddo
+!!$     if (iorb1 == norb) then
+!!$        call yaml_map('Orbital No.'//trim(yaml_toa(norb)),occup(norb),fmt='(f6.4)')
+!!$        !write(*,'(1x,a,i0,a,f6.4)') 'occup(',norb,')= ',occup(norb)
+!!$     else
+!!$        call yaml_map('Orbitals No.'//trim(yaml_toa(iorb1))//'-'//&
+!!$             adjustl(trim(yaml_toa(norb))),occup(norb),fmt='(f6.4)')
+!!$        !write(*,'(1x,a,i0,a,i0,a,f6.4)') 'occup(',iorb1,':',norb,')= ',occup(norb)
+!!$     end if
+!!$     call yaml_mapping_close()
+!!$  endif
+!!$
+!!$  !Check if sum(occup)=nelec
+!!$  rocc=sum(occup)
+!!$  if (abs(rocc-real(nelec,gp))>1.e-6_gp) then
+!!$     call yaml_warning('ERROR in determining the occupation numbers: the total number of electrons ' &
+!!$        & // trim(yaml_toa(rocc,fmt='(f13.6)')) // ' is not equal to' // trim(yaml_toa(nelec)))
+!!$     !if (iproc==0) then
+!!$     !write(*,'(1x,a,f13.6,a,i0)') 'ERROR in determining the occupation numbers: the total number of electrons ',rocc,&
+!!$     !     ' is not equal to ',nelec
+!!$     !end if
+!!$     stop
+!!$  end if
+!!$
+!!$END SUBROUTINE occupation_input_variables

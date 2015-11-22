@@ -1,0 +1,1574 @@
+---
+ Code logo:
+   "__________________________________ A fast and precise DFT wavelet code
+   |     |     |     |     |     |
+   |     |     |     |     |     |      BBBB         i       gggggg
+   |_____|_____|_____|_____|_____|     B    B               g
+   |     |  :  |  :  |     |     |    B     B        i     g
+   |     |-0+--|-0+--|     |     |    B    B         i     g        g
+   |_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g
+   |  :  |     |     |  :  |     |    B    B         i     g         g
+   |--+0-|     |     |-0+--|     |    B     B     iiii     g         g
+   |__:__|_____|_____|__:__|_____|    B     B        i      g        g
+   |     |  :  |  :  |     |     |    B BBBB        i        g      g
+   |     |-0+--|-0+--|     |     |    B        iiiii          gggggg
+   |_____|__:__|__:__|_____|_____|__BBBBB
+   |     |     |     |  :  |     |                           TTTTTTTTT
+   |     |     |     |--+0-|     |  DDDDDD          FFFFF        T
+   |_____|_____|_____|__:__|_____| D      D        F        TTTT T
+   |     |     |     |  :  |     |D        D      F        T     T
+   |     |     |     |--+0-|     |D         D     FFFF     T     T
+   |_____|_____|_____|__:__|_____|D___      D     F         T    T
+   |     |     |  :  |     |     |D         D     F          TTTTT
+   |     |     |--+0-|     |     | D        D     F         T    T
+   |_____|_____|__:__|_____|_____|          D     F        T     T
+   |     |     |     |     |     |         D               T    T
+   |     |     |     |     |     |   DDDDDD       F         TTTT
+   |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
+
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.7.6.6
+ Timestamp of this run                 : 2015-03-24 14:48:40.000
+ Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
+ MPI tasks of root process node        :  2
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments:
+     " 'FCFLAGS=-O2 -fopenmp -g -fbounds-check -fbacktrace 
+     -ffpe-trap=invalid,zero,overflow,denormal' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 
+     -L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 -lmkl_rt -liomp5 -lm' 
+     'CFLAGS=-O2 -fopenmp' 'CC=mpicc.openmpi' 'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 
+     'F77=mpif77.openmpi' '--with-blas=no' '--with-lapack=no'"
+
+   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
+   Compiler flags:
+     CFLAGS                            : -O2 -fopenmp
+                                        
+     FCFLAGS:
+       -O2 -fopenmp -g -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow,denormal
+     CXXFLAGS                          : -g -O2
+  #------------------------------------------------------------------------ Input parameters
+ radical                               : LENOSKY-fire
+ outdir                                : ./
+ logfile                               : Yes
+ run_from_files                        : Yes
+ mode:
+   method                              : lensib # Run method of BigDFT call
+   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+   mm_paramfile                        : none #   name of parameter file
+ geopt:
+   method                              : FIRE #   Geometry optimisation method
+   ncount_cluster_x                    : 500 #    Maximum number of force evaluations
+   frac_fluct                          : 0.0 #    Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+   forcemax                            : 1.0E-4 # Max forces criterion when stop
+   dtinit                              : 1.0 #    Initial time step for the FIRE method
+   dtmax                               : 2.0 #    Maximal time step for the FIRE method
+   randdis                             : 0. #     Random displacement amplitude
+   betax                               : 4. #     Stepsize for the geometry optimization
+ posinp:
+   units                               : angstroem
+   cell: [ 25.0,  25.0,  25.0]
+   positions:
+   - Si: [15.83633899688721, 12.06140232086182, 13.07706928253174]
+   - Si: [11.97898483276367, 14.41138648986816, 10.36060810089111]
+   - Si: [11.01325607299805, 11.72996997833252, 10.34267807006836]
+   - Si: [12.54591369628906, 10.00936603546143, 11.35790729522705]
+   - Si: [10.69509696960449, 14.18153667449951, 14.28646945953369]
+   - Si: [10.63320732116699, 15.3451042175293, 12.44081783294678]
+   - Si: [9.105777740478516, 12.44273376464844, 12.55424976348877]
+   - Si: [15.20534133911133, 14.0150728225708, 11.67320537567139]
+   - Si: [11.72766780853272, 9.400177955627441, 13.49430084228516]
+   - Si: [10.28946876525879, 10.54689121246338, 12.24635124206543]
+   - Si: [9.765847206115723, 13.84446430206299, 10.8253116607666]
+   - Si: [14.64565372467041, 13.01049041748047, 14.90087795257568]
+   - Si: [13.32097721099854, 12.45216846466064, 10.74146461486816]
+   - Si: [13.50776290893555, 10.82381153106689, 15.09267330169678]
+   - Si: [13.01336288452148, 14.69769096374512, 14.16423511505127]
+   - Si: [12.72242832183838, 12.58404636383057, 13.24282169342041]
+   - Si: [13.17438411712646, 15.58343124389648, 12.0091438293457]
+   - Si: [15.35318851470947, 11.26613235473633, 10.4263744354248]
+   - Si: [14.78244495391846, 10.02921199798584, 12.35942268371582]
+   - Si: [10.68289566040039, 11.56491088867188, 14.40401840209961]
+   properties:
+     format                            : ascii
+     source                            : LENOSKY-fire
+ dft:
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
+   rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+   ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
+   qcharge                             : 0 #      Charge of the system. Can be integer or real.
+   elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
+   nspin                               : 1 #      Spin polarization treatment
+   mpol                                : 0 #      Total magnetic moment
+   gnrm_cv                             : 1.e-4 #  convergence criterion gradient
+   itermax                             : 50 #     Max. iterations of wfn. opt. steps
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   nrepmax                             : 1 #      Max. number of re-diag. runs
+   ncong                               : 6 #      No. of CG it. for preconditioning eq.
+   idsx                                : 6 #      Wfn. diis history
+   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
+   inputpsiid                          : 0 #      Input guess wavefunctions
+   output_wf                           : 0 #      Output of the support functions
+   output_denspot                      : 0 #      Output of the density or the potential
+   rbuf                                : 0. #     Length of the tail (AU)
+   ncongt                              : 30 #     No. of tail CG iterations
+   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
+   nvirt                               : 0 #      No. of virtual orbs
+   nplot                               : 0 #      No. of plotted orbs
+   disablesym                          : No #     Disable the symmetry detection
+ perf:
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
+   ocl_platform                        : ~ #      Chosen OCL platform
+   ocl_devices                         : ~ #      Chosen OCL devices
+   blas                                : No #     CUBLAS acceleration
+   projrad                             : 15. #    Radius of the projector as a function of the maxrad
+   exctxpar                            : OP2P #   Exact exchange parallelisation scheme
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
+   methortho                           : 0 #      Orthogonalisation
+   rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
+   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
+   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
+   unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
+   linear                              : OFF #    Linear Input Guess approach
+   tolsym                              : 1.0e-8 # Tolerance for symmetry detection
+   signaling                           : No #     Expose calculation results on Network
+   signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
+   domain                              : ~ #      Domain to add to the hostname to find the IP
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
+   psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
+   multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
+   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
+   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
+   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
+   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
+   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
+   iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
+   check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
+   experimental_mode                   : No #     Activate the experimental mode in linear scaling
+   write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
+   calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
+   intermediate_forces                 : No #     Linear scaling calculate intermediate forces
+   kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
+   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
+   method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
+    #                                              purification, 1 FOE, 2 renormalization)
+   purification_quickreturn            : Yes #    linear scaling quick return in purification
+   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
+   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
+   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
+   check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
+   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
+   fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
+   fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
+   FOE_restart                         : 0 #      Restart method to be used for the FOE method
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
+   enable_matrix_taskgroups            : True #   enable the matrix taskgroups
+   hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
+   adjust_kernel_iterations            : True #   enable the addaptive ajustment of the number of kernel iterations
+   wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
+ kpt:
+   method                              : manual # K-point sampling method
+   kpt: #                                         Kpt coordinates
+   -  [0., 0., 0.]
+   wkpt: [1.] #                                   Kpt weights
+   bands                               : No #     For doing band structure calculation
+ mix:
+   iscf                                : 0 #      Mixing parameters
+   itrpmax                             : 1 #      Maximum number of diagonalisation iterations
+   rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
+   norbsempty                          : 0 #      No. of additional bands
+   tel                                 : 0. #     Electronic temperature
+   occopt                              : 1 #      Smearing method
+   alphamix                            : 0. #     Multiplying factors for the mixing
+   alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
+ sic:
+   sic_approach                        : none #   SIC (self-interaction correction) method
+   sic_alpha                           : 0. #     SIC downscaling parameter
+ tddft:
+   tddft_approach                      : none #   Time-Dependent DFT method
+ lin_general:
+   hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
+   nit: [100, 100] #                              number of iteration with low/high accuracy
+   rpnrm_cv: [1.e-12, 1.e-12] #                   convergence criterion for low/high accuracy
+   conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
+    #                                              automatic
+   taylor_order                        : 0 #      order of the Taylor approximation; 0 -> exact
+   max_inversion_error                 : 1.d0 #   linear scaling maximal error of the Taylor approximations to calculate the inverse of 
+    #                                              the overlap matrix
+   output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+   calc_dipole                         : No #     calculate dipole
+   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
+   subspace_diag                       : No #     diagonalization at the end
+   extra_states                        : 0 #      extra states to optimize (dmin only)
+ lin_basis:
+   nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
+    #                                              support functions
+   idsx: [6, 6] #                                 DIIS history for optimization of the support functions 
+    #                                              (low/high accuracy); 0 -> SD
+   gnrm_cv: [1.e-2, 1.e-4] #                      convergence criterion for the optimization of the support functions 
+    #                                              (low/high accuracy)
+   deltae_cv                           : 1.e-4 #  total relative energy difference to stop the optimization ('experimental_mode' only)
+   gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
+   min_gnrm_for_dynamic                : 1.e-3 #  minimal gnrm to active the dynamic gnrm criterion
+   alpha_diis                          : 1.0 #    multiplicator for DIIS
+   alpha_sd                            : 1.0 #    initial step size for SD
+   nstep_prec                          : 5 #      number of iterations in the preconditioner
+   fix_basis                           : 1.e-10 # fix the support functions if the density change is below this threshold
+   correction_orthoconstraint          : 1 #      correction for the slight non-orthonormality in the orthoconstraint
+ lin_kernel:
+   nstep: [1, 1] #                                number of steps taken when updating the coefficients via 
+    #                                              direct minimization for each iteration of 
+    #                                              the density kernel loop
+   nit: [5, 5] #                                  number of iterations in the (self-consistent) 
+    #                                              optimization of the density kernel
+   idsx_coeff: [0, 0] #                           DIIS history for direct mininimization
+   idsx: [0, 0] #                                 mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+   alphamix: [0.5, 0.5] #                         mixing parameter (low/high accuracy)
+   gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
+   rpnrm_cv: [1.e-10, 1.e-10] #                   convergence criterion (change in density/potential) for the kernel 
+    #                                              optimization
+   linear_method                       : DIAG #   method to optimize the density kernel
+   mixing_method                       : DEN #    quantity to be mixed
+   alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
+   alpha_fit_coeff                     : No #     update the SD step size by fitting a quadratic polynomial to the energy along the 
+    #                                              direction of the gradient during direct 
+    #                                              mininimization.
+   eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
+    #                                              automatically if chosen unproperly
+   fscale_foe                          : 2.e-2 #  decay length of the error function
+ lin_basis_params:
+   nbasis                              : 4 #      number of support functions per atom
+   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             localization radius for the support functions
+   rloc_kernel                         : 9.0 #    localization radius for the density kernel
+   rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
+ psppar.Si:
+   Pseudopotential type                : HGH-K
+   Atomic number                       : 14
+   No. of Electrons                    : 4
+   Pseudopotential XC                  : 1
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.44
+     Coefficients (c1 .. c4): [-7.33610297, 0.0, 0.0, 0.0]
+   NonLocal PSP Parameters:
+   - Channel (l)                       : 0
+     Rloc                              : 0.42273813
+     h_ij terms: [5.90692831, 3.25819622, 0.0, -1.26189397, 0.0, 0.0]
+   - Channel (l)                       : 1
+     Rloc                              : 0.48427842
+     h_ij terms: [2.72701346, 0.0, 0.0, 0.0, 0.0, 0.0]
+   Source                              : Hard-Coded
+   Radii of active regions (AU):
+     Coarse                            : 1.806025343502968
+     Fine                              : 0.42273813
+     Coarse PSP                        : 0.9080220375
+     Source                            : Hard-Coded
+  #--------------------------------------------------------------------------------------- |
+ Data Writing directory                : ./data-LENOSKY-fire/
+  #--------------------------------------- Input Atomic System (file: __not_a_value__.ascii)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  20
+   Types of atoms                      :  [ Si ]
+   Boundary Conditions                 : Periodic #Code: P
+   Box Sizes (AU)                      :  [  4.72432E+01,  4.72432E+01,  4.72432E+01 ]
+   Number of Symmetries                :  1
+   Space group                         : P 1
+  #----------------------- Geometry optimization Input Parameters (file: LENOSKY-fire.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  500
+   Algorithm                           : FIRE
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  0.0E+00
+   Maximum in forces                   :  1.0E-04
+   Steepest descent step               :  4.0E+00
+  #------------------- K points description (Reduced and Brillouin zone coordinates, Weight)
+ K points:
+ -  {Rc:  [  0.0000,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  1.0000} # 0001
+ Material acceleration                 :  No #iproc=0
+ Initializing LENOSKY_SI_BULK_RUN_MODE:
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Energy (Hartree)                    : -2.52891298656997110E+00
+   Wavefunction Optimization Finished, exit signal:  0
+    #------------------------------------------------------ Geometry minimization using FIRE
+   Begin of minimization using         : FIRE
+   ENTERING FIRE                       :  0
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  1
+     Geometry step                     :  1
+     FORCES norm(Ha/Bohr): { maxval:  4.13846E-02, fnrm2:  1.06399E-02, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.53462369052467E+00, -2.53462369052467E+00 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  1.06E-01
+     nstep                             :  1
+     P                                 :  1.09E-02
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  2
+     Geometry step                     :  2
+     FORCES norm(Ha/Bohr): { maxval:  3.85449E-02, fnrm2:  8.13423E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.54973359001712E+00, -1.51098994924528E-02 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  2.02E-01
+     nstep                             :  2
+     P                                 :  1.81E-02
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  3
+     Geometry step                     :  3
+     FORCES norm(Ha/Bohr): { maxval:  3.42293E-02, fnrm2:  5.60400E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.5696350811352E+00, -1.99014911180773E-02 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  2.83E-01
+     nstep                             :  3
+     P                                 :  2.04E-02
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  4
+     Geometry step                     :  4
+     FORCES norm(Ha/Bohr): { maxval:  2.81664E-02, fnrm2:  3.84935E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.5900324932367E+00, -2.03974121014978E-02 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  3.45E-01
+     nstep                             :  4
+     P                                 :  1.92E-02
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  5
+     Geometry step                     :  5
+     FORCES norm(Ha/Bohr): { maxval:  1.96433E-02, fnrm2:  2.85763E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.60829390963343E+00, -1.82614163967303E-02 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  3.88E-01
+     nstep                             :  5
+     P                                 :  1.60E-02
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  6
+     Geometry step                     :  6
+     FORCES norm(Ha/Bohr): { maxval:  1.87453E-02, fnrm2:  2.78926E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.62346873279273E+00, -1.51748231593061E-02 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  4.09E-01
+     nstep                             :  6
+     P                                 :  1.26E-02
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  7
+     Geometry step                     :  7
+     FORCES norm(Ha/Bohr): { maxval:  2.68031E-02, fnrm2:  2.91327E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.63671089594082E+00, -1.32421631480812E-02 ]
+     Alpha                             :  2.47E-1
+     dt                                :  1.10E+0
+     vnrm                              :  4.08E-01
+     nstep                             :  7
+     P                                 :  7.96E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  8
+     Geometry step                     :  8
+     FORCES norm(Ha/Bohr): { maxval:  2.31560E-02, fnrm2:  2.66175E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.6464091636244E+00, -9.69826768358351E-03 ]
+     Alpha                             :  2.45E-1
+     dt                                :  1.21E+0
+     vnrm                              :  3.82E-01
+     nstep                             :  8
+     P                                 :  4.08E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  9
+     Geometry step                     :  9
+     FORCES norm(Ha/Bohr): { maxval:  2.02184E-02, fnrm2:  2.72170E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.6529803749048E+00, -6.57121128039773E-03 ]
+     Alpha                             :  2.43E-1
+     dt                                :  1.33E+0
+     vnrm                              :  3.40E-01
+     nstep                             :  9
+     P                                 :  1.67E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  10
+     Geometry step                     :  10
+     FORCES norm(Ha/Bohr): { maxval:  2.26661E-02, fnrm2:  2.13192E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.6594573701535E+00, -6.47699524870227E-03 ]
+     Alpha                             :  2.40E-1
+     dt                                :  1.46E+0
+     vnrm                              :  3.00E-01
+     nstep                             :  10
+     P                                 :  2.83E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  11
+     Geometry step                     :  11
+     FORCES norm(Ha/Bohr): { maxval:  1.85981E-02, fnrm2:  1.37994E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.66478008153911E+00, -5.32271138560825E-03 ]
+     Alpha                             :  2.38E-1
+     dt                                :  1.61E+0
+     vnrm                              :  2.72E-01
+     nstep                             :  11
+     P                                 :  4.55E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  12
+     Geometry step                     :  12
+     FORCES norm(Ha/Bohr): { maxval:  1.78380E-02, fnrm2:  1.44146E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.66672961507889E+00, -1.94953353978633E-03 ]
+     Alpha                             :  2.35E-1
+     dt                                :  1.77E+0
+     vnrm                              :  2.28E-01
+     nstep                             :  12
+     P                                 : -6.50E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  13
+     Geometry step                     :  13
+     FORCES norm(Ha/Bohr): { maxval:  1.70493E-02, fnrm2:  1.31431E-03, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.66728228262411E+00, -5.52667545216323E-04 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  3.29E-02
+     nstep                             :  1
+     P                                 :  1.19E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  14
+     Geometry step                     :  14
+     FORCES norm(Ha/Bohr): { maxval:  1.48271E-02, fnrm2:  9.96598E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.6687462456756E+00, -1.46396305149121E-03 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  6.28E-02
+     nstep                             :  2
+     P                                 :  1.97E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  15
+     Geometry step                     :  15
+     FORCES norm(Ha/Bohr): { maxval:  1.15977E-02, fnrm2:  6.41432E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.6706430314151E+00, -1.89678573950181E-03 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  8.75E-02
+     nstep                             :  3
+     P                                 :  2.14E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  16
+     Geometry step                     :  16
+     FORCES norm(Ha/Bohr): { maxval:  7.96579E-03, fnrm2:  3.98917E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.67246528156417E+00, -1.82225014907100E-03 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  1.06E-01
+     nstep                             :  4
+     P                                 :  1.84E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  17
+     Geometry step                     :  17
+     FORCES norm(Ha/Bohr): { maxval:  6.96359E-03, fnrm2:  3.14183E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.67399024383002E+00, -1.52496226585042E-03 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  1.17E-01
+     nstep                             :  5
+     P                                 :  1.49E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  18
+     Geometry step                     :  18
+     FORCES norm(Ha/Bohr): { maxval:  6.80906E-03, fnrm2:  2.71245E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.67532687874975E+00, -1.33663491972591E-03 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  1.22E-01
+     nstep                             :  6
+     P                                 :  1.34E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  19
+     Geometry step                     :  19
+     FORCES norm(Ha/Bohr): { maxval:  6.03544E-03, fnrm2:  2.10575E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.67664986115004E+00, -1.32298240029405E-03 ]
+     Alpha                             :  2.47E-1
+     dt                                :  9.74E-1
+     vnrm                              :  1.25E-01
+     nstep                             :  7
+     P                                 :  1.15E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  20
+     Geometry step                     :  20
+     FORCES norm(Ha/Bohr): { maxval:  5.32885E-03, fnrm2:  1.76363E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.67788132356702E+00, -1.23146241697958E-03 ]
+     Alpha                             :  2.45E-1
+     dt                                :  1.07E+0
+     vnrm                              :  1.26E-01
+     nstep                             :  8
+     P                                 :  9.61E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  21
+     Geometry step                     :  21
+     FORCES norm(Ha/Bohr): { maxval:  5.05477E-03, fnrm2:  1.42336E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.67905423348161E+00, -1.17290991458319E-03 ]
+     Alpha                             :  2.43E-1
+     dt                                :  1.18E+0
+     vnrm                              :  1.25E-01
+     nstep                             :  9
+     P                                 :  8.15E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  22
+     Geometry step                     :  22
+     FORCES norm(Ha/Bohr): { maxval:  5.18596E-03, fnrm2:  1.14679E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.68009616368058E+00, -1.04193019896792E-03 ]
+     Alpha                             :  2.40E-1
+     dt                                :  1.30E+0
+     vnrm                              :  1.23E-01
+     nstep                             :  10
+     P                                 :  5.82E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  23
+     Geometry step                     :  23
+     FORCES norm(Ha/Bohr): { maxval:  3.46517E-03, fnrm2:  1.09306E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.68093175342506E+00, -8.35589744489607E-04 ]
+     Alpha                             :  2.38E-1
+     dt                                :  1.43E+0
+     vnrm                              :  1.17E-01
+     nstep                             :  11
+     P                                 :  3.88E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  24
+     Geometry step                     :  24
+     FORCES norm(Ha/Bohr): { maxval:  3.86999E-03, fnrm2:  9.75911E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.68166085925405E+00, -7.29105828985777E-04 ]
+     Alpha                             :  2.35E-1
+     dt                                :  1.57E+0
+     vnrm                              :  1.08E-01
+     nstep                             :  12
+     P                                 :  3.24E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  25
+     Geometry step                     :  25
+     FORCES norm(Ha/Bohr): { maxval:  3.27364E-03, fnrm2:  7.97476E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.68232084691746E+00, -6.59987663405470E-04 ]
+     Alpha                             :  2.33E-1
+     dt                                :  1.73E+0
+     vnrm                              :  1.00E-01
+     nstep                             :  13
+     P                                 :  2.41E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  26
+     Geometry step                     :  26
+     FORCES norm(Ha/Bohr): { maxval:  3.02997E-03, fnrm2:  7.98256E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.68292067991071E+00, -5.99832993253280E-04 ]
+     Alpha                             :  2.31E-1
+     dt                                :  1.90E+0
+     vnrm                              :  9.30E-02
+     nstep                             :  14
+     P                                 :  2.37E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  27
+     Geometry step                     :  27
+     FORCES norm(Ha/Bohr): { maxval:  3.31649E-03, fnrm2:  6.74721E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.68360091696223E+00, -6.80237051522870E-04 ]
+     Alpha                             :  2.28E-1
+     dt                                :  2.00E+0
+     vnrm                              :  8.85E-02
+     nstep                             :  15
+     P                                 :  3.05E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  28
+     Geometry step                     :  28
+     FORCES norm(Ha/Bohr): { maxval:  3.03317E-03, fnrm2:  7.31611E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.68442727053059E+00, -8.26353568357252E-04 ]
+     Alpha                             :  2.26E-1
+     dt                                :  2.00E+0
+     vnrm                              :  8.89E-02
+     nstep                             :  16
+     P                                 :  4.38E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  29
+     Geometry step                     :  29
+     FORCES norm(Ha/Bohr): { maxval:  3.80057E-03, fnrm2:  8.91906E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.68557687200123E+00, -1.14960147063981E-03 ]
+     Alpha                             :  2.24E-1
+     dt                                :  2.00E+0
+     vnrm                              :  9.51E-02
+     nstep                             :  17
+     P                                 :  6.57E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  30
+     Geometry step                     :  30
+     FORCES norm(Ha/Bohr): { maxval:  4.79828E-03, fnrm2:  1.37224E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.68729038873814E+00, -1.71351673690978E-03 ]
+     Alpha                             :  2.22E-1
+     dt                                :  2.00E+0
+     vnrm                              :  1.08E-01
+     nstep                             :  18
+     P                                 :  1.05E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  31
+     Geometry step                     :  31
+     FORCES norm(Ha/Bohr): { maxval:  5.53284E-03, fnrm2:  1.95005E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.68996197294241E+00, -2.67158420427505E-03 ]
+     Alpha                             :  2.19E-1
+     dt                                :  2.00E+0
+     vnrm                              :  1.28E-01
+     nstep                             :  19
+     P                                 :  1.62E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  32
+     Geometry step                     :  32
+     FORCES norm(Ha/Bohr): { maxval:  8.71501E-03, fnrm2:  3.49589E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.69323590558921E+00, -3.27393264679365E-03 ]
+     Alpha                             :  2.17E-1
+     dt                                :  2.00E+0
+     vnrm                              :  1.49E-01
+     nstep                             :  20
+     P                                 :  1.59E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  33
+     Geometry step                     :  33
+     FORCES norm(Ha/Bohr): { maxval:  6.76235E-03, fnrm2:  3.09005E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.69723496996501E+00, -3.99906437580189E-03 ]
+     Alpha                             :  2.15E-1
+     dt                                :  2.00E+0
+     vnrm                              :  1.64E-01
+     nstep                             :  21
+     P                                 :  2.06E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  34
+     Geometry step                     :  34
+     FORCES norm(Ha/Bohr): { maxval:  7.34583E-03, fnrm2:  3.36292E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.70176100868138E+00, -4.52603871637036E-03 ]
+     Alpha                             :  2.13E-1
+     dt                                :  2.00E+0
+     vnrm                              :  1.82E-01
+     nstep                             :  22
+     P                                 :  2.27E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  35
+     Geometry step                     :  35
+     FORCES norm(Ha/Bohr): { maxval:  6.78628E-03, fnrm2:  3.03865E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.70679685054805E+00, -5.03584186667227E-03 ]
+     Alpha                             :  2.11E-1
+     dt                                :  2.00E+0
+     vnrm                              :  1.99E-01
+     nstep                             :  23
+     P                                 :  2.39E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  36
+     Geometry step                     :  36
+     FORCES norm(Ha/Bohr): { maxval:  6.95647E-03, fnrm2:  3.04772E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71130944632411E+00, -4.51259577606145E-03 ]
+     Alpha                             :  2.09E-1
+     dt                                :  2.00E+0
+     vnrm                              :  2.10E-01
+     nstep                             :  24
+     P                                 :  1.77E-03
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  37
+     Geometry step                     :  37
+     FORCES norm(Ha/Bohr): { maxval:  6.25852E-03, fnrm2:  2.41772E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71421511791248E+00, -2.90567158836197E-03 ]
+     Alpha                             :  2.07E-1
+     dt                                :  2.00E+0
+     vnrm                              :  2.05E-01
+     nstep                             :  25
+     P                                 :  4.55E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  38
+     Geometry step                     :  38
+     FORCES norm(Ha/Bohr): { maxval:  1.14965E-02, fnrm2:  4.39462E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71474006183291E+00, -5.24943920435561E-04 ]
+     Alpha                             :  2.04E-1
+     dt                                :  2.00E+0
+     vnrm                              :  1.76E-01
+     nstep                             :  26
+     P                                 : -5.10E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  39
+     Geometry step                     :  39
+     FORCES norm(Ha/Bohr): { maxval:  1.06140E-02, fnrm2:  3.83497E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.714952493591E+00, -2.12431758086051E-04 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  2.03E-02
+     nstep                             :  1
+     P                                 :  3.97E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  40
+     Geometry step                     :  40
+     FORCES norm(Ha/Bohr): { maxval:  8.27492E-03, fnrm2:  2.56989E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71548389741628E+00, -5.31403825282162E-04 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  3.80E-02
+     nstep                             :  2
+     P                                 :  6.02E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  41
+     Geometry step                     :  41
+     FORCES norm(Ha/Bohr): { maxval:  5.32438E-03, fnrm2:  1.42732E-04, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71609934401165E+00, -6.15446595373825E-04 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  5.14E-02
+     nstep                             :  3
+     P                                 :  5.73E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  42
+     Geometry step                     :  42
+     FORCES norm(Ha/Bohr): { maxval:  4.47373E-03, fnrm2:  8.45938E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71662337122327E+00, -5.24027211614264E-04 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  6.01E-02
+     nstep                             :  4
+     P                                 :  4.38E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  43
+     Geometry step                     :  43
+     FORCES norm(Ha/Bohr): { maxval:  4.06681E-03, fnrm2:  5.46070E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71701859059195E+00, -3.95219368681587E-04 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  6.41E-02
+     nstep                             :  5
+     P                                 :  3.10E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  44
+     Geometry step                     :  44
+     FORCES norm(Ha/Bohr): { maxval:  3.04819E-03, fnrm2:  3.72486E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71730345087794E+00, -2.84860285989286E-04 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  6.44E-02
+     nstep                             :  6
+     P                                 :  2.10E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  45
+     Geometry step                     :  45
+     FORCES norm(Ha/Bohr): { maxval:  2.50170E-03, fnrm2:  2.64739E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.7175178587834E+00, -2.14407905465563E-04 ]
+     Alpha                             :  2.47E-1
+     dt                                :  1.10E+0
+     vnrm                              :  6.20E-02
+     nstep                             :  7
+     P                                 :  1.27E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  46
+     Geometry step                     :  46
+     FORCES norm(Ha/Bohr): { maxval:  1.83592E-03, fnrm2:  2.34179E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71766252750358E+00, -1.44668720179375E-04 ]
+     Alpha                             :  2.45E-1
+     dt                                :  1.21E+0
+     vnrm                              :  5.72E-02
+     nstep                             :  8
+     P                                 :  6.10E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  47
+     Geometry step                     :  47
+     FORCES norm(Ha/Bohr): { maxval:  2.54573E-03, fnrm2:  2.59406E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71777543149703E+00, -1.12903993449986E-04 ]
+     Alpha                             :  2.43E-1
+     dt                                :  1.33E+0
+     vnrm                              :  5.04E-02
+     nstep                             :  9
+     P                                 :  4.89E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  48
+     Geometry step                     :  48
+     FORCES norm(Ha/Bohr): { maxval:  2.49078E-03, fnrm2:  2.60670E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71787840067171E+00, -1.02969174681444E-04 ]
+     Alpha                             :  2.40E-1
+     dt                                :  1.46E+0
+     vnrm                              :  4.46E-02
+     nstep                             :  10
+     P                                 :  4.06E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  49
+     Geometry step                     :  49
+     FORCES norm(Ha/Bohr): { maxval:  2.46601E-03, fnrm2:  2.45784E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71799671414972E+00, -1.18313478010279E-04 ]
+     Alpha                             :  2.38E-1
+     dt                                :  1.61E+0
+     vnrm                              :  4.04E-02
+     nstep                             :  11
+     P                                 :  5.95E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  50
+     Geometry step                     :  50
+     FORCES norm(Ha/Bohr): { maxval:  1.79036E-03, fnrm2:  1.88912E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71814824728356E+00, -1.51533133832871E-04 ]
+     Alpha                             :  2.35E-1
+     dt                                :  1.77E+0
+     vnrm                              :  3.89E-02
+     nstep                             :  12
+     P                                 :  7.23E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  51
+     Geometry step                     :  51
+     FORCES norm(Ha/Bohr): { maxval:  1.27669E-03, fnrm2:  1.55430E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71831134169151E+00, -1.63094407947373E-04 ]
+     Alpha                             :  2.33E-1
+     dt                                :  1.95E+0
+     vnrm                              :  3.90E-02
+     nstep                             :  13
+     P                                 :  6.90E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  52
+     Geometry step                     :  52
+     FORCES norm(Ha/Bohr): { maxval:  1.30475E-03, fnrm2:  1.29689E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71846269941541E+00, -1.51357723902734E-04 ]
+     Alpha                             :  2.31E-1
+     dt                                :  2.00E+0
+     vnrm                              :  3.90E-02
+     nstep                             :  14
+     P                                 :  5.98E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  53
+     Geometry step                     :  53
+     FORCES norm(Ha/Bohr): { maxval:  1.39985E-03, fnrm2:  1.02867E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71860177083598E+00, -1.39071420576897E-04 ]
+     Alpha                             :  2.28E-1
+     dt                                :  2.00E+0
+     vnrm                              :  3.86E-02
+     nstep                             :  15
+     P                                 :  5.88E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  54
+     Geometry step                     :  54
+     FORCES norm(Ha/Bohr): { maxval:  1.24591E-03, fnrm2:  8.32227E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71873141756354E+00, -1.29646727553112E-04 ]
+     Alpha                             :  2.26E-1
+     dt                                :  2.00E+0
+     vnrm                              :  3.83E-02
+     nstep                             :  16
+     P                                 :  5.40E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  55
+     Geometry step                     :  55
+     FORCES norm(Ha/Bohr): { maxval:  1.47310E-03, fnrm2:  1.27656E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71885571505085E+00, -1.24297487313907E-04 ]
+     Alpha                             :  2.24E-1
+     dt                                :  2.00E+0
+     vnrm                              :  3.82E-02
+     nstep                             :  17
+     P                                 :  6.32E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  56
+     Geometry step                     :  56
+     FORCES norm(Ha/Bohr): { maxval:  2.47719E-03, fnrm2:  1.74018E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71903717547152E+00, -1.81460420663360E-04 ]
+     Alpha                             :  2.22E-1
+     dt                                :  2.00E+0
+     vnrm                              :  3.95E-02
+     nstep                             :  18
+     P                                 :  1.09E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  57
+     Geometry step                     :  57
+     FORCES norm(Ha/Bohr): { maxval:  3.20244E-03, fnrm2:  2.51519E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71934544006234E+00, -3.08264590826113E-04 ]
+     Alpha                             :  2.19E-1
+     dt                                :  2.00E+0
+     vnrm                              :  4.47E-02
+     nstep                             :  19
+     P                                 :  1.92E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  58
+     Geometry step                     :  58
+     FORCES norm(Ha/Bohr): { maxval:  3.22624E-03, fnrm2:  3.39903E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.71983251571202E+00, -4.87075649680424E-04 ]
+     Alpha                             :  2.17E-1
+     dt                                :  2.00E+0
+     vnrm                              :  5.36E-02
+     nstep                             :  20
+     P                                 :  2.92E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  59
+     Geometry step                     :  59
+     FORCES norm(Ha/Bohr): { maxval:  3.41268E-03, fnrm2:  3.26627E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.7204661956049E+00, -6.33679892875438E-04 ]
+     Alpha                             :  2.15E-1
+     dt                                :  2.00E+0
+     vnrm                              :  6.35E-02
+     nstep                             :  21
+     P                                 :  3.15E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  60
+     Geometry step                     :  60
+     FORCES norm(Ha/Bohr): { maxval:  3.84962E-03, fnrm2:  2.89306E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72106959559568E+00, -6.03399990780407E-04 ]
+     Alpha                             :  2.13E-1
+     dt                                :  2.00E+0
+     vnrm                              :  7.09E-02
+     nstep                             :  22
+     P                                 :  2.61E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  61
+     Geometry step                     :  61
+     FORCES norm(Ha/Bohr): { maxval:  3.31049E-03, fnrm2:  2.60632E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.7215696013261E+00, -5.00005730426523E-04 ]
+     Alpha                             :  2.11E-1
+     dt                                :  2.00E+0
+     vnrm                              :  7.41E-02
+     nstep                             :  23
+     P                                 :  2.07E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  62
+     Geometry step                     :  62
+     FORCES norm(Ha/Bohr): { maxval:  2.64142E-03, fnrm2:  1.92702E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72199831019803E+00, -4.28708871929917E-04 ]
+     Alpha                             :  2.09E-1
+     dt                                :  2.00E+0
+     vnrm                              :  7.42E-02
+     nstep                             :  24
+     P                                 :  1.77E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  63
+     Geometry step                     :  63
+     FORCES norm(Ha/Bohr): { maxval:  2.23537E-03, fnrm2:  2.43205E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72235355145141E+00, -3.55241253371386E-04 ]
+     Alpha                             :  2.07E-1
+     dt                                :  2.00E+0
+     vnrm                              :  7.33E-02
+     nstep                             :  25
+     P                                 :  1.40E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  64
+     Geometry step                     :  64
+     FORCES norm(Ha/Bohr): { maxval:  2.68047E-03, fnrm2:  3.30269E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72269402550245E+00, -3.40474051044204E-04 ]
+     Alpha                             :  2.04E-1
+     dt                                :  2.00E+0
+     vnrm                              :  7.05E-02
+     nstep                             :  26
+     P                                 :  1.58E-04
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  65
+     Geometry step                     :  65
+     FORCES norm(Ha/Bohr): { maxval:  4.89648E-03, fnrm2:  6.20492E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72282748065864E+00, -1.33455156193563E-04 ]
+     Alpha                             :  2.02E-1
+     dt                                :  2.00E+0
+     vnrm                              :  6.47E-02
+     nstep                             :  27
+     P                                 : -8.86E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  66
+     Geometry step                     :  66
+     FORCES norm(Ha/Bohr): { maxval:  4.61097E-03, fnrm2:  5.38833E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72285742765267E+00, -2.99469940299169E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  7.61E-03
+     nstep                             :  1
+     P                                 :  5.58E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  67
+     Geometry step                     :  67
+     FORCES norm(Ha/Bohr): { maxval:  3.78969E-03, fnrm2:  3.57270E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72293181494742E+00, -7.43872947501778E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  1.42E-02
+     nstep                             :  2
+     P                                 :  8.39E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  68
+     Geometry step                     :  68
+     FORCES norm(Ha/Bohr): { maxval:  2.55132E-03, fnrm2:  2.03815E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.7230170637201E+00, -8.52487726752393E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  1.92E-02
+     nstep                             :  3
+     P                                 :  7.85E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  69
+     Geometry step                     :  69
+     FORCES norm(Ha/Bohr): { maxval:  1.68274E-03, fnrm2:  1.35359E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72308883408936E+00, -7.17703692574290E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  2.23E-02
+     nstep                             :  4
+     P                                 :  5.95E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  70
+     Geometry step                     :  70
+     FORCES norm(Ha/Bohr): { maxval:  2.03376E-03, fnrm2:  1.00859E-05, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72314521397982E+00, -5.63798904629209E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  2.36E-02
+     nstep                             :  5
+     P                                 :  4.59E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  71
+     Geometry step                     :  71
+     FORCES norm(Ha/Bohr): { maxval:  1.92788E-03, fnrm2:  7.81804E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72319105336582E+00, -4.58393860016670E-05 ]
+     Alpha                             :  2.50E-1
+     dt                                :  1.00E+0
+     vnrm                              :  2.38E-02
+     nstep                             :  6
+     P                                 :  3.74E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  72
+     Geometry step                     :  72
+     FORCES norm(Ha/Bohr): { maxval:  1.27289E-03, fnrm2:  6.18514E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.7232335959127E+00, -4.25425468746354E-05 ]
+     Alpha                             :  2.47E-1
+     dt                                :  1.10E+0
+     vnrm                              :  2.36E-02
+     nstep                             :  7
+     P                                 :  3.18E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  73
+     Geometry step                     :  73
+     FORCES norm(Ha/Bohr): { maxval:  1.07272E-03, fnrm2:  5.24828E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72327372367847E+00, -4.01277657751109E-05 ]
+     Alpha                             :  2.45E-1
+     dt                                :  1.21E+0
+     vnrm                              :  2.33E-02
+     nstep                             :  8
+     P                                 :  2.73E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  74
+     Geometry step                     :  74
+     FORCES norm(Ha/Bohr): { maxval:  7.21274E-04, fnrm2:  4.49910E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72331493293146E+00, -4.12092529851193E-05 ]
+     Alpha                             :  2.43E-1
+     dt                                :  1.33E+0
+     vnrm                              :  2.30E-02
+     nstep                             :  9
+     P                                 :  2.77E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  75
+     Geometry step                     :  75
+     FORCES norm(Ha/Bohr): { maxval:  5.38210E-04, fnrm2:  2.68364E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72335664584097E+00, -4.17129095180435E-05 ]
+     Alpha                             :  2.40E-1
+     dt                                :  1.46E+0
+     vnrm                              :  2.29E-02
+     nstep                             :  10
+     P                                 :  2.28E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  76
+     Geometry step                     :  76
+     FORCES norm(Ha/Bohr): { maxval:  4.78108E-04, fnrm2:  1.32829E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.7233898967706E+00, -3.32509296248062E-05 ]
+     Alpha                             :  2.38E-1
+     dt                                :  1.61E+0
+     vnrm                              :  2.26E-02
+     nstep                             :  11
+     P                                 :  1.18E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  77
+     Geometry step                     :  77
+     FORCES norm(Ha/Bohr): { maxval:  1.48927E-03, fnrm2:  6.00221E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72338612476047E+00,  3.77201012424777E-06 ]
+     Alpha                             :  2.35E-1
+     dt                                :  1.77E+0
+     vnrm                              :  2.02E-02
+     nstep                             :  12
+     P                                 : -1.52E-05
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  78
+     Geometry step                     :  78
+     FORCES norm(Ha/Bohr): { maxval:  1.37752E-03, fnrm2:  4.90874E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72338836562878E+00, -2.24086830469261E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  2.07E-03
+     nstep                             :  1
+     P                                 :  4.58E-06
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  79
+     Geometry step                     :  79
+     FORCES norm(Ha/Bohr): { maxval:  1.06381E-03, fnrm2:  2.57086E-06, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72339347348836E+00, -5.10785957930082E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  3.74E-03
+     nstep                             :  2
+     P                                 :  5.92E-06
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  80
+     Geometry step                     :  80
+     FORCES norm(Ha/Bohr): { maxval:  6.15289E-04, fnrm2:  9.14340E-07, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.7233980614287E+00, -4.58794034363663E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  4.77E-03
+     nstep                             :  3
+     P                                 :  3.68E-06
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  81
+     Geometry step                     :  81
+     FORCES norm(Ha/Bohr): { maxval:  4.00978E-04, fnrm2:  7.61409E-07, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340027599836E+00, -2.21456965476818E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  5.05E-03
+     nstep                             :  4
+     P                                 :  1.03E-06
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  82
+     Geometry step                     :  82
+     FORCES norm(Ha/Bohr): { maxval:  5.10629E-04, fnrm2:  8.65214E-07, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.7234014852902E+00, -1.20929184177498E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  4.54E-03
+     nstep                             :  5
+     P                                 :  9.03E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  83
+     Geometry step                     :  83
+     FORCES norm(Ha/Bohr): { maxval:  4.19212E-04, fnrm2:  5.65189E-07, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340284181728E+00, -1.35652708310730E-06 ]
+     Alpha                             :  2.50E-1
+     dt                                :  8.86E-1
+     vnrm                              :  4.15E-03
+     nstep                             :  6
+     P                                 :  1.20E-06
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  84
+     Geometry step                     :  84
+     FORCES norm(Ha/Bohr): { maxval:  1.98702E-04, fnrm2:  2.30050E-07, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340398312848E+00, -1.14131120065863E-06 ]
+     Alpha                             :  2.47E-1
+     dt                                :  9.74E-1
+     vnrm                              :  3.93E-03
+     nstep                             :  7
+     P                                 :  5.02E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  85
+     Geometry step                     :  85
+     FORCES norm(Ha/Bohr): { maxval:  2.68895E-04, fnrm2:  2.58466E-07, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.7234042396152E+00, -2.56486719418803E-07 ]
+     Alpha                             :  2.45E-1
+     dt                                :  1.07E+0
+     vnrm                              :  3.43E-03
+     nstep                             :  8
+     P                                 : -3.49E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  86
+     Geometry step                     :  86
+     FORCES norm(Ha/Bohr): { maxval:  2.57797E-04, fnrm2:  2.43288E-07, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340427617367E+00, -3.65584735817492E-08 ]
+     Alpha                             :  2.50E-1
+     dt                                :  5.36E-1
+     vnrm                              :  2.68E-04
+     nstep                             :  1
+     P                                 :  1.32E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  87
+     Geometry step                     :  87
+     FORCES norm(Ha/Bohr): { maxval:  2.25420E-04, fnrm2:  2.02284E-07, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340437730368E+00, -1.01130003038463E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  5.36E-1
+     vnrm                              :  5.21E-04
+     nstep                             :  2
+     P                                 :  2.34E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  88
+     Geometry step                     :  88
+     FORCES norm(Ha/Bohr): { maxval:  1.74657E-04, fnrm2:  1.47690E-07, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340452004218E+00, -1.42738498798423E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  5.36E-1
+     vnrm                              :  7.44E-04
+     nstep                             :  3
+     P                                 :  2.84E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  89
+     Geometry step                     :  89
+     FORCES norm(Ha/Bohr): { maxval:  1.31273E-04, fnrm2:  9.51800E-08, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340467437172E+00, -1.54329542034759E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  5.36E-1
+     vnrm                              :  9.25E-04
+     nstep                             :  4
+     P                                 :  2.77E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  90
+     Geometry step                     :  90
+     FORCES norm(Ha/Bohr): { maxval:  1.01013E-04, fnrm2:  5.86236E-08, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340481386855E+00, -1.39496826534469E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  5.36E-1
+     vnrm                              :  1.06E-03
+     nstep                             :  5
+     P                                 :  2.31E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  91
+     Geometry step                     :  91
+     FORCES norm(Ha/Bohr): { maxval:  7.63342E-05, fnrm2:  4.20076E-08, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340492672334E+00, -1.12854798839379E-07 ]
+     Alpha                             :  2.50E-1
+     dt                                :  5.36E-1
+     vnrm                              :  1.14E-03
+     nstep                             :  6
+     P                                 :  1.79E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  92
+     Geometry step                     :  92
+     FORCES norm(Ha/Bohr): { maxval:  7.21108E-05, fnrm2:  3.69326E-08, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340502731207E+00, -1.00588730234108E-07 ]
+     Alpha                             :  2.47E-1
+     dt                                :  5.89E-1
+     vnrm                              :  1.18E-03
+     nstep                             :  7
+     P                                 :  1.47E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  93
+     Geometry step                     :  93
+     FORCES norm(Ha/Bohr): { maxval:  8.91994E-05, fnrm2:  3.12201E-08, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340512655081E+00, -9.92387394482819E-08 ]
+     Alpha                             :  2.45E-1
+     dt                                :  6.48E-1
+     vnrm                              :  1.19E-03
+     nstep                             :  8
+     P                                 :  1.38E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  94
+     Geometry step                     :  94
+     FORCES norm(Ha/Bohr): { maxval:  6.87631E-05, fnrm2:  2.11877E-08, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340522740791E+00, -1.00857099560869E-07 ]
+     Alpha                             :  2.43E-1
+     dt                                :  7.13E-1
+     vnrm                              :  1.20E-03
+     nstep                             :  9
+     P                                 :  1.24E-07
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  95
+     Geometry step                     :  95
+     FORCES norm(Ha/Bohr): { maxval:  4.41858E-05, fnrm2:  1.53949E-08, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.72340531959253E+00, -9.21846199375409E-08 ]
+     Alpha                             :  2.40E-1
+     dt                                :  7.85E-1
+     vnrm                              :  1.21E-03
+     nstep                             :  10
+     P                                 :  9.64E-08
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Geometry:
+     Geometry Method                   : GEOPT_FIRE
+     Ncount_BigDFT                     :  96
+     Geometry step                     :  96
+     FORCES norm(Ha/Bohr): { maxval:  6.35031E-05, fnrm2:  1.69984E-08, 
+                              fluct:  0.00000E+00}
+     epred                             :  [ -2.7234054034889E+00, -8.38963623017719E-08 ]
+     Alpha                             :  2.38E-1
+     dt                                :  8.63E-1
+     vnrm                              :  1.20E-03
+     nstep                             :  11
+     P                                 :  8.58E-08
+   Iterations when FIRE converged      :  96
+   End of minimization using           : FIRE
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  343
+   Tot. No. of Deallocations           :  343
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  0.048
+     for the array                     : params
+     in the routine                    : input_keys_fill_all
+     Memory Peak of process            : 21.912 MB
+ Max No. of dictionaries used          :  3365 #( 857 still in use)
+ Number of dictionary folders allocated:  1

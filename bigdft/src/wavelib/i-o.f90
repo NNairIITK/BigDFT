@@ -275,375 +275,12 @@ subroutine ext_buffers_coarse(periodic,nb)
 END SUBROUTINE ext_buffers_coarse
 
 
-!> Module used by the linear scaling version
-module internal_io
-  implicit none
-
-  private
-
-  public :: io_error, io_warning, io_open
-  public :: io_read_descr, read_psi_compress
-  public :: io_gcoordToLocreg
-  public :: read_psig
-
-contains
-
-
-  subroutine io_error(error)
-    use module_defs
-
-    implicit none
-
-    character(len = *), intent(in) :: error
-    integer :: ierr
-
-    call io_warning(error)
-    call MPI_ABORT(bigdft_mpi%mpi_comm, ierr)
-  END SUBROUTINE io_error
-
-
-  subroutine io_warning(error)
-    use module_defs
-
-    implicit none
-
-    character(len = *), intent(in) :: error
-
-    write(0,"(2A)") "WARNING! ", trim(error)
-  END SUBROUTINE io_warning
-
-
-  !> Read the input/output descriptors (for a wavefunction for instance)
-  subroutine io_read_descr(unitwf, formatted, iorb_old, eval, n1_old, n2_old, n3_old, &
-       & hx_old, hy_old, hz_old, lstat, error, nvctr_c_old, nvctr_f_old, rxyz_old, nat)
-    use module_base
-    use module_types
-
-    implicit none
-
-    integer, intent(in) :: unitwf
-    logical, intent(in) :: formatted
-    integer, intent(out) :: iorb_old
-    integer, intent(out) :: n1_old, n2_old, n3_old
-    real(gp), intent(out) :: hx_old, hy_old, hz_old
-    logical, intent(out) :: lstat
-    real(wp), intent(out) :: eval
-    character(len =256), intent(out) :: error
-    ! Optional arguments
-    integer, intent(out), optional :: nvctr_c_old, nvctr_f_old
-    integer, intent(in), optional :: nat
-    real(gp), dimension(:,:), intent(out), optional :: rxyz_old
-
-    integer :: i, iat, i_stat, nat_
-    real(gp) :: rxyz(3)
-
-    lstat = .false.
-    write(error, "(A)") "cannot read psi description."
-    if (formatted) then
-       read(unitwf,*,iostat=i_stat) iorb_old,eval
-       if (i_stat /= 0) return
-       read(unitwf,*,iostat=i_stat) hx_old,hy_old,hz_old
-       if (i_stat /= 0) return
-       read(unitwf,*,iostat=i_stat) n1_old,n2_old,n3_old
-       if (i_stat /= 0) return
-       !write(*,*) 'reading ',nat,' atomic positions'
-       if (present(nat) .And. present(rxyz_old)) then
-          read(unitwf,*,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          ! Sanity check
-          if (size(rxyz_old, 2) /= nat) call io_error("Mismatch in coordinate array size.")
-          if (nat_ /= nat) call io_error("Mismatch in coordinate array size.")
-          do iat=1,nat
-             read(unitwf,*,iostat=i_stat) (rxyz_old(i,iat),i=1,3)
-             if (i_stat /= 0) return
-          enddo
-       else
-          read(unitwf,*,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          do iat=1,nat_
-             read(unitwf,*,iostat=i_stat)
-             if (i_stat /= 0) return
-          enddo
-       end if
-       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
-          read(unitwf,*,iostat=i_stat) nvctr_c_old, nvctr_f_old
-          if (i_stat /= 0) return
-       else
-          read(unitwf,*,iostat=i_stat) i, iat
-          if (i_stat /= 0) return
-       end if
-    else
-       read(unitwf,iostat=i_stat) iorb_old,eval
-       if (i_stat /= 0) return
-       read(unitwf,iostat=i_stat) hx_old,hy_old,hz_old
-       if (i_stat /= 0) return
-       read(unitwf,iostat=i_stat) n1_old,n2_old,n3_old
-       if (i_stat /= 0) return
-       if (present(nat) .And. present(rxyz_old)) then
-          read(unitwf,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          ! Sanity check
-          if (size(rxyz_old, 2) /= nat) call io_error("Mismatch in coordinate array size.")
-          if (nat_ /= nat) call io_error("Mismatch in coordinate array size.")
-          do iat=1,nat
-             read(unitwf,iostat=i_stat)(rxyz_old(i,iat),i=1,3)
-             if (i_stat /= 0) return
-          enddo
-       else
-          read(unitwf,iostat=i_stat) nat_
-          if (i_stat /= 0) return
-          do iat=1,nat_
-             read(unitwf,iostat=i_stat) rxyz
-             if (i_stat /= 0) return
-          enddo
-       end if
-       if (present(nvctr_c_old) .and. present(nvctr_f_old)) then
-          read(unitwf,iostat=i_stat) nvctr_c_old, nvctr_f_old
-          if (i_stat /= 0) return
-       else
-          read(unitwf,iostat=i_stat) i, iat
-          if (i_stat /= 0) return
-       end if
-    end if
-    lstat = .true.
-  END SUBROUTINE io_read_descr
-
-
-  subroutine io_gcoordToLocreg(n1, n2, n3, nvctr_c, nvctr_f, gcoord_c, gcoord_f, lr)
-    use module_base
-    use locregs
-
-    implicit none
-    !Arguments
-    integer, intent(in) :: n1, n2, n3, nvctr_c, nvctr_f
-    integer, dimension(3, nvctr_c), intent(in) :: gcoord_c
-    integer, dimension(3, nvctr_f), intent(in) :: gcoord_f
-    type(locreg_descriptors), intent(out) :: lr
-    !Local variables
-    character(len = *), parameter :: subname = "io_gcoordToLocreg"
-    integer :: i
-    logical, dimension(:,:,:), allocatable :: logrid_c, logrid_f
-
-    call f_routine(id=subname)
-
-    lr%geocode = "P"
-    lr%hybrid_on = .false.
-
-    lr%ns1 = 0
-    lr%ns2 = 0
-    lr%ns3 = 0
-
-    lr%d%n1 = n1
-    lr%d%n2 = n2
-    lr%d%n3 = n3
-
-    lr%d%n1i = 2 * n1 + 2
-    lr%d%n2i = 2 * n2 + 2
-    lr%d%n3i = 2 * n3 + 2
-
-    logrid_c = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_c')
-    logrid_f = f_malloc((/ 0.to.n1, 0.to.n2, 0.to.n3 /),id='logrid_f')
-
-    lr%d%nfl1 = n1
-    lr%d%nfl2 = n2
-    lr%d%nfl3 = n3
-    lr%d%nfu1 = 0
-    lr%d%nfu2 = 0
-    lr%d%nfu3 = 0
-
-    logrid_c(:,:,:) = .false.
-    do i = 1, nvctr_c, 1
-       logrid_c(gcoord_c(1, i), gcoord_c(2, i), gcoord_c(3, i)) = .true.
-    end do
-    logrid_f(:,:,:) = .false.
-    do i = 1, nvctr_f, 1
-       logrid_f(gcoord_f(1, i), gcoord_f(2, i), gcoord_f(3, i)) = .true.
-       lr%d%nfl1 = min(lr%d%nfl1, gcoord_f(1, i))
-       lr%d%nfl2 = min(lr%d%nfl2, gcoord_f(2, i))
-       lr%d%nfl3 = min(lr%d%nfl3, gcoord_f(3, i))
-       lr%d%nfu1 = max(lr%d%nfu1, gcoord_f(1, i))
-       lr%d%nfu2 = max(lr%d%nfu2, gcoord_f(2, i))
-       lr%d%nfu3 = max(lr%d%nfu3, gcoord_f(3, i))
-    end do
-
-    !correct the values of the delimiter if there are no wavelets
-    if (lr%d%nfl1 == n1 .and. lr%d%nfu1 == 0) then
-       lr%d%nfl1 = n1 / 2
-       lr%d%nfu1 = n1 / 2
-    end if
-    if (lr%d%nfl2 == n2 .and. lr%d%nfu2 == 0) then
-       lr%d%nfl2 = n2 / 2
-       lr%d%nfu2 = n2 / 2
-    end if
-    if (lr%d%nfl3 == n3 .and. lr%d%nfu3 == 0) then
-       lr%d%nfl3 = n3 / 2
-       lr%d%nfu3 = n3 / 2
-    end if
-
-    call wfd_from_grids(logrid_c, logrid_f, .true., lr)
-
-    call f_free(logrid_c)
-    call f_free(logrid_f)
-
-    call f_release_routine()
-
-  END SUBROUTINE io_gcoordToLocreg
-
-  subroutine read_psi_compress(unitwf, formatted, nvctr_c, nvctr_f, psi, lstat, error, gcoord_c, gcoord_f)
-    use module_base
-    use module_types
-
-    implicit none
-
-    integer, intent(in) :: unitwf, nvctr_c, nvctr_f
-    logical, intent(in) :: formatted
-    real(wp), dimension(nvctr_c+7*nvctr_f), intent(out) :: psi
-    logical, intent(out) :: lstat
-    character(len =256), intent(out) :: error
-    integer, dimension(3, nvctr_c), optional, intent(out) :: gcoord_c
-    integer, dimension(3, nvctr_f), optional, intent(out) :: gcoord_f
-
-    integer :: j, i1, i2, i3, i_stat
-    real(wp) :: tt,t1,t2,t3,t4,t5,t6,t7
-
-    lstat = .false.
-    write(error, "(A)") "cannot read psi values."
-    if (present(gcoord_c)) then
-       do j=1,nvctr_c
-          if (formatted) then
-             read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
-          else
-             read(unitwf,iostat=i_stat) i1,i2,i3,tt
-          end if
-          if (i_stat /= 0) return
-          psi(j)=tt
-          gcoord_c(:, j) = (/ i1, i2, i3 /)
-       enddo
-    else
-       do j=1,nvctr_c
-          if (formatted) then
-             read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
-          else
-             read(unitwf,iostat=i_stat) i1,i2,i3,tt
-          end if
-          if (i_stat /= 0) return
-          psi(j)=tt
-       enddo
-    end if
-    if (present(gcoord_f)) then
-       do j=1,7*nvctr_f-6,7
-          if (formatted) then
-             read(unitwf,*,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
-          else
-             read(unitwf,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
-          end if
-          if (i_stat /= 0) return
-          psi(nvctr_c+j+0)=t1
-          psi(nvctr_c+j+1)=t2
-          psi(nvctr_c+j+2)=t3
-          psi(nvctr_c+j+3)=t4
-          psi(nvctr_c+j+4)=t5
-          psi(nvctr_c+j+5)=t6
-          psi(nvctr_c+j+6)=t7
-          gcoord_f(:, (j - 1) / 7 + 1) = (/ i1, i2, i3 /)
-       enddo
-    else
-       do j=1,7*nvctr_f-6,7
-          if (formatted) then
-             read(unitwf,*,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
-          else
-             read(unitwf,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
-          end if
-          if (i_stat /= 0) return
-          psi(nvctr_c+j+0)=t1
-          psi(nvctr_c+j+1)=t2
-          psi(nvctr_c+j+2)=t3
-          psi(nvctr_c+j+3)=t4
-          psi(nvctr_c+j+4)=t5
-          psi(nvctr_c+j+5)=t6
-          psi(nvctr_c+j+6)=t7
-       enddo
-    end if
-    lstat = .true.
-  END SUBROUTINE read_psi_compress
-
-
-  subroutine read_psig(unitwf, formatted, nvctr_c, nvctr_f, n1, n2, n3, psig, lstat, error)
-    use module_base
-    use module_types
-
-    implicit none
-
-    integer, intent(in) :: unitwf, nvctr_c, nvctr_f, n1, n2, n3
-    logical, intent(in) :: formatted
-    real(wp), dimension(0:n1,2,0:n2,2,0:n3,2), intent(out) :: psig
-    logical, intent(out) :: lstat
-    character(len =256), intent(out) :: error
-
-    integer :: i1, i2, i3, i_stat, iel
-    real(wp) :: tt, t1, t2, t3, t4, t5, t6, t7
-
-    lstat = .false.
-    write(error, "(A)") "cannot read psig values."
-
-    call f_zero(psig)
-    do iel=1,nvctr_c
-       if (formatted) then
-          read(unitwf,*,iostat=i_stat) i1,i2,i3,tt
-       else
-          read(unitwf,iostat=i_stat) i1,i2,i3,tt
-       end if
-       if (i_stat /= 0) return
-       psig(i1,1,i2,1,i3,1)=tt
-    enddo
-    do iel=1,nvctr_f
-       if (formatted) then
-          read(unitwf,*,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
-       else
-          read(unitwf,iostat=i_stat) i1,i2,i3,t1,t2,t3,t4,t5,t6,t7
-       end if
-       if (i_stat /= 0) return
-       psig(i1,2,i2,1,i3,1)=t1
-       psig(i1,1,i2,2,i3,1)=t2
-       psig(i1,2,i2,2,i3,1)=t3
-       psig(i1,1,i2,1,i3,2)=t4
-       psig(i1,2,i2,1,i3,2)=t5
-       psig(i1,1,i2,2,i3,2)=t6
-       psig(i1,2,i2,2,i3,2)=t7
-    enddo
-    lstat = .true.
-  END SUBROUTINE read_psig
-
-  subroutine io_open(unitwf, filename, formatted)
-    character(len = *), intent(in) :: filename
-    logical, intent(in) :: formatted
-    integer, intent(out) :: unitwf
-
-    integer :: i_stat
-
-    ! We open the Fortran file
-    unitwf = 99
-    if (.not. formatted) then
-       open(unit=unitwf,file=trim(filename),status='unknown',form="unformatted", iostat=i_stat)
-    else
-       open(unit=unitwf,file=trim(filename),status='unknown', iostat=i_stat)
-    end if
-    if (i_stat /= 0) then
-       call io_warning("Cannot open file '" // trim(filename) // "'.")
-       unitwf = -1
-       return
-    end if
-  END SUBROUTINE io_open
-
-END MODULE internal_io
-
-
 !> Read one wavefunction
 subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
      & hx,hy,hz,at,wfd,rxyz_old,rxyz,psi,eval,psifscf)
   use module_base
   use module_types
-  use internal_io
+  use io, only: io_read_descr, io_error, read_psi_compress
   use yaml_output
   implicit none
   logical, intent(in) :: useFormattedInput
@@ -750,13 +387,13 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
 END SUBROUTINE readonewave
 
-
 subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
   use module_base
-  use module_types
-  use internal_io
-
+!  use module_types
+  use io, only: io_open, io_read_descr, io_warning, read_psi_compress, io_gcoordtolocreg
+  use locregs
+  use locreg_operations
   implicit none
 
   character(len = *), intent(in) :: filename
@@ -780,6 +417,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 
   call f_routine(id=subname)
 
+
   ! We open the Fortran file
   call io_open(unitwf, filename, formatted)
   if (unitwf < 0) then
@@ -789,7 +427,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 
   ! We read the basis set description and the atomic definition.
   call io_read_descr(unitwf, formatted, iorb, eval, n1, n2, n3, &
-       & hx, hy, hz, lstat, error, lr%wfd%nvctr_c, lr%wfd%nvctr_f)
+       & hx, hy, hz, lstat, error,  nvctr_c_old, nvctr_f_old)
   if (.not. lstat) then
      call io_warning(trim(error))
      call f_release_routine()
@@ -804,23 +442,22 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
   end if
 
   ! Initial allocations.
-  gcoord_c = f_malloc((/ 3, lr%wfd%nvctr_c  /),id='gcoord_c')
-  gcoord_f = f_malloc((/ 3, lr%wfd%nvctr_f  /),id='gcoord_f')
-  psi = f_malloc(lr%wfd%nvctr_c + 7 * lr%wfd%nvctr_f ,id='psi')
-
+  gcoord_c = f_malloc((/ 3, nvctr_c_old  /),id='gcoord_c')
+  gcoord_f = f_malloc((/ 3, nvctr_f_old  /),id='gcoord_f')
+  psi = f_malloc( nvctr_c_old + 7 * nvctr_f_old ,id='psi')
   ! Read psi and the basis-set
-  call read_psi_compress(unitwf, formatted, lr%wfd%nvctr_c, lr%wfd%nvctr_f, psi, lstat, error, gcoord_c, gcoord_f)
+  call read_psi_compress(unitwf, formatted, nvctr_c_old, nvctr_f_old, psi, lstat, error, gcoord_c, gcoord_f)
   if (.not. lstat) then
      call io_warning(trim(error))
      call deallocate_local()
      return
   end if
-  call io_gcoordToLocreg(n1, n2, n3, lr%wfd%nvctr_c, lr%wfd%nvctr_f, &
+  call io_gcoordToLocreg(n1, n2, n3, nvctr_c_old, nvctr_f_old, &
        & gcoord_c, gcoord_f, lr)
 
   psiscf = f_malloc_ptr((/ lr%d%n1i, lr%d%n2i, lr%d%n3i, nspinor  /),id='psiscf')
 
-  call initialize_work_arrays_sumrho(1,lr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
   ! Magic-filter to isf
   call daub_to_isf(lr, w, psi, psiscf(1,1,1,ispinor))
@@ -852,6 +489,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
         call deallocate_local()
         return
      end if
+
      ! Check consistency of the basis-set.
      if (n1_old == n1 .and. n2_old == n2 .and. n3_old == n3 .and. &
           & hx_old == hx .and. hy_old == hy .and. hz_old == hz .and. &
@@ -901,10 +539,9 @@ contains
     if (associated(w%x_c)) then
        call deallocate_work_arrays_sumrho(w)
     end if
-    if (associated(lr%bounds%kb%ibyz_f)) then
-       call deallocate_bounds(lr%geocode, lr%hybrid_on, lr%bounds)
-    end if
-    call deallocate_wfd(lr%wfd)
+    call deallocate_locreg_descriptors(lr)
+    !call deallocate_convolutions_bounds(lr%bounds)
+    !call deallocate_wfd(lr%wfd)
     
     call f_release_routine()
   END SUBROUTINE deallocate_local
@@ -1072,6 +709,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   use module_fragments
   use reformatting
   use yaml_output
+  use locreg_operations
   implicit none
   integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
@@ -1282,7 +920,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
      call f_free(psig)
      call f_free(ww)
   else
-     call initialize_work_arrays_sumrho(1,llr,.true.,w)
+     call initialize_work_arrays_sumrho(1,[llr],.true.,w)
      call f_zero(psi)
 !!$     write(*,*) 'iproc,norm psirnew ',dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
      call isf_to_daub(llr,w,psir,psi)

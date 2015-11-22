@@ -478,6 +478,9 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   !include 'intots.inc'! HERE WE KEEP THE ANALYTICAL NORMS OF GAUSSIANS
   include 'sym_16.inc'! WAVELET FILTERS
 
+
+  !call f_routine(id='gauss_to_daub_k')
+
   !rescale the parameters so that hgrid goes to 1.d0  
   !when calculating "r2" in gauss_to_scf 
   a1=gau_a(1)/hgrid
@@ -530,10 +533,18 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
      if(ncplx_g==1) then
         do icplx=1,ncplx_w
            ! non-periodic: no tails to fold
+           !$omp parallel default(none) shared(length,icplx,n_left,c,ww) private(i)
+           !$omp sections 
+           !$omp section
            do i=0,length-1
               c(icplx,i+n_left,1)=ww(i       ,2,icplx)
+           end do
+           !$omp section
+           do i=0,length-1
               c(icplx,i+n_left,2)=ww(i+length,2,icplx) 
            end do
+           !$omp end sections
+           !$omp end parallel
         end do
      else !ncplx_g==2
      !use a temporary array cc instead
@@ -549,13 +560,16 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
 
 ! Apply factor:
   if(ncplx_g==1) then
-     c=fac(1)*c
+     !c=fac(1)*c
+     call vscal(ncplx_w*(nmax+1)*2, fac(1), c(1,0,1), 1)
   else
      c(1,:,:)=fac(1)*cc(1,:,:)-fac(2)*cc(2,:,:)
      c(2,:,:)=fac(1)*cc(2,:,:)+fac(2)*cc(1,:,:)
  
      call f_free(cc)
   end if
+
+  !call f_release_routine()
 
 contains
 
@@ -583,7 +597,8 @@ contains
 
     !stop the code if the gaussian is too extended
     if (rightx-leftx > nwork) then
-       !STOP 'gaustodaub'
+       write(*,*) nwork, rightx, leftx
+       STOP 'gaustodaub'
        return
     end if
 
@@ -628,6 +643,9 @@ contains
        !corrected for avoiding 0**0 problem
        icplx = 1
        if (n_gau == 0) then
+!!$          !$omp parallel default(none) &
+!!$          !$omp shared(leftx,rightx,i0,h,z0,a1,ww,icplx) private(i,x,r,r2,func)
+!!$          !$omp do schedule(static)
           do i=leftx,rightx
              x=real(i-i0*16,gp)*h
              r=x-z0
@@ -638,7 +656,12 @@ contains
              !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
              ww(i-leftx,1,icplx)=func
           enddo
+!!$          !$omp end do
+!!$          !$omp end parallel
        else
+!!$          !$omp parallel default(none) &
+!!$          !$omp shared(leftx,rightx,i0,h,z0,n_gau,a1,ww,icplx) private(i,x,r,coeff,r2,func)
+!!$          !$omp do schedule(static)
           do i=leftx,rightx
              x=real(i-i0*16,gp)*h
              r=x-z0
@@ -651,6 +674,8 @@ contains
              func=coeff*func
              ww(i-leftx,1,icplx)=func
           enddo
+!!$          !$omp end do
+!!$          !$omp end parallel
        end if
 
   END SUBROUTINE gauss_to_scf_1
@@ -764,18 +789,22 @@ contains
        do i=leftx,rightx
           x=real(i-i0*16,gp)*h
           r=x-z0
-          r2=r*r
-          cval=cos(a2*r2)
-          sval=sin(a2*r2)
-          rk=real(i,gp)*h
-          cval2=cos(kval*rk)
-          sval2=sin(kval*rk)
-          coeff=r**n_gau
-          r2=0.5_gp*r2/(a1**2)
-          func=safe_exp(-r2)
-          func=coeff*func
-          ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
-          ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
+          if( abs(r)-gcut < 1e-8 ) then
+             r2=r*r
+             cval=cos(a2*r2)
+             sval=sin(a2*r2)
+             rk=real(i,gp)*h
+             cval2=cos(kval*rk)
+             sval2=sin(kval*rk)
+             coeff=r**n_gau
+             r2=0.5_gp*r2/(a1**2)
+             func=safe_exp(-r2)
+             func=coeff*func
+             ww(i-leftx,1,1)=func*(cval*cval2-sval*sval2)
+             ww(i-leftx,1,2)=func*(cval*sval2+sval*cval2)
+          else
+            ww(i-leftx,1,1:2)=0.0_wp
+          end if
        enddo
     end if
   END SUBROUTINE gauss_to_scf_4
@@ -918,14 +947,23 @@ contains
     !modification of the calculation.
     !at this stage the values of c are fixed to zero
     !print *,'ncplx',ncplx,n_left,n_right,nwork,length
-    do icplx=1,ncplx_w
-       do i=n_left,n_right
-          j=modulo(i,nmax+1)
-          c(icplx,j,1)=c(icplx,j,1)+ww(i-n_left       ,2,icplx)
-          c(icplx,j,2)=c(icplx,j,2)+ww(i-n_left+length,2,icplx)
+    if (ncplx_g == 1) then
+       do icplx=1,ncplx_w
+          do i=n_left,n_right
+             j=modulo(i,nmax+1)
+             c(icplx,j,1)=c(icplx,j,1)+ww(i-n_left       ,2,icplx)
+             c(icplx,j,2)=c(icplx,j,2)+ww(i-n_left+length,2,icplx)
+          end do
        end do
-    end do
-
+    else
+       do icplx=1,ncplx_w
+          do i=n_left,n_right
+             j=modulo(i,nmax+1)
+             cc(icplx,j,1)=cc(icplx,j,1)+ww(i-n_left       ,2,icplx)
+             cc(icplx,j,2)=cc(icplx,j,2)+ww(i-n_left+length,2,icplx)
+          end do
+       end do
+    end if
 
   END SUBROUTINE fold_tail
 
@@ -947,7 +985,7 @@ subroutine gauss_c_to_daub_k(hgrid,kval,ncplx,gau_bf,ncs_s,factor , &
   real(gp)  hcutoff
 
   !local variables
-  real(gp), parameter :: pi=3.141592653589793_gp
+!  real(gp), parameter :: pi=3.141592653589793_gp
   integer :: rightx,leftx,right_t,i0,i,k,length,j,ics, icplx
   real(gp) :: a,z0,h,x,r,coeff,r2,fac
   real(wp) :: func,cval,sval
@@ -1213,7 +1251,7 @@ subroutine apply_w(cx,c,leftx,rightx,left,right,h)
 
   sqh=real(sqrt(h),wp)
 
-!!  !$omp parallel do default(shared) private(i,ci,j)
+ !$omp parallel do schedule(static) default(shared) private(i,ci,j)
   do i=left,right
      ci=0.0_wp
      do j=-n,n
@@ -1221,7 +1259,7 @@ subroutine apply_w(cx,c,leftx,rightx,left,right,h)
      enddo
      c(i)=ci*sqh
   enddo
-!!  !$omp end parallel do
+ !$omp end parallel do
 
 END SUBROUTINE apply_w
 
@@ -1264,7 +1302,7 @@ subroutine forward_c(c,c_1,left,right,left_1,right_1)
   include 'sym_16.inc'
 
   ! get the coarse scfunctions and wavelets
-!!  !$omp parallel do default(shared) private(i,i2,j,ci)
+  !$omp parallel do schedule(static) default(shared) private(i,i2,ci,j)
   do i=left_1,right_1
      i2=2*i
      ci=0.0_wp
@@ -1273,7 +1311,7 @@ subroutine forward_c(c,c_1,left,right,left_1,right_1)
      enddo
      c_1(i)=ci
   enddo
-!!  !$end parallel do
+  !$end parallel do
 
 END SUBROUTINE forward_c
 
@@ -1291,6 +1329,7 @@ subroutine forward(c,cd_1,left,right,left_1,right_1)
   include 'sym_16.inc'
 
   ! get the coarse scfunctions and wavelets
+  !$omp parallel do schedule(static) default(shared) private(i,i2,ci,di,j)
   do i=left_1,right_1
      i2=2*i
      ci=0.d0
@@ -1302,5 +1341,6 @@ subroutine forward(c,cd_1,left,right,left_1,right_1)
      cd_1(i,1)=ci
      cd_1(i,2)=di
   enddo
+  !$omp end parallel do
 
 END SUBROUTINE forward

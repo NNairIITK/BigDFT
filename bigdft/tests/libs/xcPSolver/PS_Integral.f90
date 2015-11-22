@@ -16,6 +16,7 @@ program PS_Integral
   use dynamic_memory
   use m_profiling
   use reformatting
+  use yaml_strings
   implicit none
   integer :: n_points, n_range, n_scf, itype_scf
   integer, dimension(1:7) :: n_points_list = 0
@@ -40,7 +41,7 @@ program PS_Integral
   logical :: timings_switch = .false. 
   real(dp), dimension(0:2048) :: fISF
 
-  integer :: n1,n1_old,n2,n2_old,n3,n3_old,nb1,nb2,nb3,itype,nd,i_all,nrange
+  integer :: n1,n1_old,n2,n2_old,n3,n3_old,nb1,nb2,nb3,itype,nd,nrange
   real(dp) :: hx,x,hy,y,hz,z,dy,dz,xgauss,ygauss,theta,sum,sum2,sumx,sumx2,sumy,sumy2,xmin,xmax,ymin,ymax,shift
   real(dp), dimension(:), allocatable :: x_phi
   real(dp), dimension(:,:), allocatable :: y_phi
@@ -523,7 +524,7 @@ stop
         !compare the gaussians together
 !        n_range=200
         if (i==1) call discretize_gaussian(n_range,1.d0,pgauss(j),0.1_gp,&
-             hgrid,'gaussian'//trim(adjustl(yaml_toa(j))))
+             hgrid,'gaussian'+j)
      end do
 
 !stop
@@ -1012,7 +1013,7 @@ subroutine my_analytic_integral(alpha,x0,ntot,m,fwork,fISF,argument_nf)
 
   !local variables
   integer :: nf
-  real(dp), parameter :: pi=3.1415926535897932384_dp
+  !real(dp), parameter :: pi=3.1415926535897932384_dp
   logical :: flag,flag1,flag2
   integer :: j,q,jz
   real(dp) :: if,r1,r2,res,ypm,ymm,erfcpm,erfcmm,factor,re,ro,factorend
@@ -1159,7 +1160,7 @@ subroutine GcplxInt(alpha,m,q,jm,t,u,v,flag)
   !local variables
   real(dp), parameter :: factor=1.12837916709551257388_dp,rmaxreal=0.5e+154_dp
   real(dp), parameter :: rmaxexp=708.503061461606_dp !n(c) ,rmaxgoni=3.53711887601422e+15_dp
-  real(dp), parameter :: pi=3.1415926535897932384_dp
+  !real(dp), parameter :: pi=3.1415926535897932384_dp
   logical :: a,b
   integer :: j,n,i,kapn,nu,np1,multiple
   real(dp) :: xabs,yabs,x,y,qrho,xquad,yquad,xsum,ysum,xaux,u1,v1,u2,v2,daux,h,qlambda,h2
@@ -1358,7 +1359,7 @@ subroutine GcplxInt2(alpha,m,q,p,t,u,v,flag)
   !local variables
   real(dp), parameter :: factor=1.12837916709551257388_dp,rmaxreal=0.5e+154_dp
   real(dp), parameter :: rmaxexp=708.503061461606_dp !n(c) ,rmaxgoni=3.53711887601422e+15_dp
-  real(dp), parameter :: pi=3.1415926535897932384_dp
+  !real(dp), parameter :: pi=3.1415926535897932384_dp
   logical :: a,b
   integer :: j,n,i,kapn,nu,np1,multiple
   real(dp) :: xabs,yabs,x,y,qrho,xquad,yquad,xsum,ysum,xaux,u1,v1,u2,v2,daux,h,qlambda,h2
@@ -1562,7 +1563,7 @@ subroutine my_interpolate_and_transpose(t0,nphi,nrange,phi,ndat,nin,psi_in,nout,
  real(gp), dimension(ndat,nout), intent(out) :: psi_out !< input wavefunction psifscf
  !local variables
  character(len=*), parameter :: subname='interpolate_and_transpose'
- integer :: i_all,i_stat,nunit,m_isf,ish,ipos,i,j,l,ms,me
+ integer :: nunit,m_isf,ish,ipos,i,j,l,ms,me
  real(gp) :: dt, tt
  real(gp), dimension(:), allocatable :: shf !< shift filter
 
@@ -1648,7 +1649,7 @@ subroutine scaling_function4b2B_again(itype,nd,nrange,a,x)
    !Local variables
    character(len=*), parameter :: subname='scaling_function4b2B'
    real(kind=8), dimension(:), allocatable :: y
-   integer :: i,nt,ni,i_all,i_stat  
+   integer :: i,nt,ni  
 
    !Only itype=8,14,16,20,24,30,40,50,60,100
    select case(itype)

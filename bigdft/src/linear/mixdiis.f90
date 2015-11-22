@@ -42,7 +42,7 @@ subroutine mixPotential(iproc, nproc, n3d, n3p, Glr, input, alphaMix, rhopotOld,
   end do
 
   if (nproc > 1) then
-    call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+    call mpiallred(pnrm, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   pnrm=sqrt(pnrm)/(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i*input%nspin)
@@ -62,7 +62,7 @@ subroutine mix_main(iproc, nproc, mix_mode, mixHist, input, glr, alpha_mix, &
            denspot, mixdiis, rhopotold, pnrm)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => mix_main
+  use public_enums
   implicit none
   
   ! Calling arguments
@@ -111,7 +111,6 @@ subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, 
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, exceptThisOne => mixrhopotDIIS
   implicit none
 
   ! Calling arguments
@@ -162,7 +161,7 @@ subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, 
   end do
 
   if (nproc > 1) then
-    call mpiallred(pnrm, 1, mpi_sum, bigdft_mpi%mpi_comm)
+    call mpiallred(pnrm, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   pnrm=sqrt(pnrm)/(glr%d%n1i*glr%d%n2i*glr%d%n3i)
@@ -206,7 +205,8 @@ subroutine mixrhopotDIIS(iproc, nproc, n3d, n3p, glr, input, rhopot, rhopotold, 
 
   ! Sum up over all processes.
   if (nproc > 1) then
-    call mpiallred(mixdiis%mat(1,min(mixdiis%isx,mixdiis%is)), min(mixdiis%is,mixdiis%isx), mpi_sum, bigdft_mpi%mpi_comm)
+    call mpiallred(mixdiis%mat(1,min(mixdiis%isx,mixdiis%is)), min(mixdiis%is,mixdiis%isx), &
+         mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   ! Copy the matrix to an auxiliary array and fill with the zeros and ones.

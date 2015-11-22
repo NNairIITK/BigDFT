@@ -186,6 +186,7 @@ class Config:
         modify_conditions(self._config['conditions'], conditions_modifiers)
         self.load(filename)
         modify_conditions(self.conditions, conditions_modifiers)
+        self.ignore_conditions = False
 
         self.create_directories()
 

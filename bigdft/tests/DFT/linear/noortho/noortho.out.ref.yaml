@@ -92,7 +92,7 @@
    hgrids: [0.45000, 0.45000, 0.45000] #          grid spacing in the three directions (bohr)
    rmult: [4.00, 5.00] #                          c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-basec radius
    ixc                                 : 1 #      exchange-correlation parameter (LDA=1,PBE=11)
-   ncharge                             : 0 #      charge of the system
+   qcharge                             : 0 #      charge of the system
    elecfield: [0.0000, 0.0000, 0.0000] #          electric field (Ex,Ey,Ez)
    nspin                               : 1 #      spin polarization
    mpol                                : 0 #      total magnetic moment
@@ -383,7 +383,7 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
-   MPI tasks                           :  3
+#   MPI tasks                           :  3
    OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
    Boundary Conditions                 : Free
@@ -408,15 +408,15 @@
  Total Number of Electrons             :  122
  Spin treatment                        : Averaged
  Orbitals Repartition:
-   MPI tasks  0- 1                     :  20
-   MPI tasks  2- 2                     :  21
+#   MPI tasks  0- 1                     :  20
+#   MPI tasks  2- 2                     :  21
  Total Number of Orbitals              :  61
  Occupation numbers coming from        : System properties
  Input Occupation Numbers:
  - Occupation Numbers: {Orbitals No. 1-61:  2.0000}
- Support function repartition:
-   MPI tasks  0- 1                     :  37
-   MPI tasks  2- 2                     :  36
+ #Support function repartition::
+#   MPI tasks  0- 1                     :  37
+#   MPI tasks  2- 2                     :  36
  Wavefunctions memory occupation for root MPI process:  15 MB 755 KB 448 B
  NonLocal PSP Projectors Descriptors:
    Creation strategy                   : On-the-fly
@@ -468,13 +468,13 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  193,  133,  117 ]
-   MPI tasks                           :  3
+#   MPI tasks                           :  3
   #------------------------------------------------------------ Input Wavefunctions Creation
  Input Hamiltonian:
    Total No. of Atomic Input Orbitals  :  110
    Inputguess Orbitals Repartition:
-     MPI tasks  0- 1                   :  37
-     MPI tasks  2- 2                   :  36
+  #   MPI tasks  0- 1                   :  37
+  #   MPI tasks  2- 2                   :  36
    Atomic Input Orbital Generation:
    -  {Atom Type: S, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
    -  {Atom Type: O, Electronic configuration: {s: [ 2.00], p: [ 4/3,  4/3,  4/3]}}
@@ -487,7 +487,7 @@
    Poisson Solver:
      BC                                : Free
      Box                               :  [  193,  133,  117 ]
-     MPI tasks                         :  3
+  #   MPI tasks                         :  3
    orthonormalization of input guess   : standard
     #-------------------------------------------- Extended input guess for experimental mode
    Extended input guess:
@@ -12290,7 +12290,7 @@
  Poisson Solver:
    BC                                  : Free
    Box                                 :  [  193,  133,  117 ]
-   MPI tasks                           :  3
+#   MPI tasks                           :  3
  Calculate local forces: {Leaked force:  0.00000E+00}
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.15590626E-02, y:  3.06698544E-02, z:  2.58748656E-02, 

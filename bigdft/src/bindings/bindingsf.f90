@@ -168,26 +168,22 @@ END SUBROUTINE close_file
 
 
 subroutine deallocate_double_1D(array)
-  use BigDFT_API
+  use dynamic_memory, only: f_free_ptr
   implicit none
 
   double precision, dimension(:), pointer :: array
 
-  if (associated(array)) then
-     call f_free_ptr(array)
-  end if
+  call f_free_ptr(array)
+
 end subroutine deallocate_double_1D
 
 
 subroutine deallocate_double_2D(array)
-  use BigDFT_API
+  use dynamic_memory, only: f_free_ptr
   implicit none
 
   double precision, dimension(:,:), pointer :: array
-
-  if (associated(array)) then
-     call f_free_ptr(array)
-  end if
+  call f_free_ptr(array)
 end subroutine deallocate_double_2D
 
 
@@ -202,6 +198,7 @@ end subroutine glr_new
 
 subroutine glr_copy(glr, d, wfd, from)
   use module_types
+  use locregs, only: copy_locreg_descriptors
   implicit none
   type(locreg_descriptors), pointer :: glr
   type(grid_dimensions), pointer :: d
@@ -334,6 +331,7 @@ end subroutine glr_get_locreg_data
 
 subroutine glr_set_wfd_dims(glr, nseg_c, nseg_f, nvctr_c, nvctr_f)
   use module_types
+  use locregs, only: allocate_wfd
   implicit none
   type(locreg_descriptors), intent(inout) :: glr
   integer, intent(in) :: nseg_c, nseg_f, nvctr_c, nvctr_f
@@ -350,7 +348,7 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,&
       &   crmult,frmult,Glr)
    use module_base, only: gp
    use module_types
-   use module_interfaces, only:createWavefunctionsDescriptors
+   use module_interfaces, only: createWavefunctionsDescriptors
    implicit none
    !Arguments
    type(atoms_data), intent(in) :: atoms
@@ -367,6 +365,7 @@ end subroutine glr_set_wave_descriptors
 
 subroutine glr_set_bounds(lr)
   use module_types
+  use bounds, only: locreg_bounds
   implicit none
   type(locreg_descriptors), intent(inout) :: lr
   
@@ -509,7 +508,7 @@ END SUBROUTINE lzd_get_llr
 subroutine inputs_new(in)
   use module_types
   use dictionaries
-  use dynamic_memory
+  use f_refcnts, only: nullify_f_ref
   implicit none
   type(input_variables), pointer :: in
   allocate(in)
@@ -519,20 +518,19 @@ end subroutine inputs_new
 
 
 subroutine inputs_free(in)
-  use module_types
+  use module_input_keys
   implicit none
   type(input_variables), pointer :: in
 
   call free_input_variables(in)
   deallocate(in)
+  nullify(in)
 end subroutine inputs_free
 
 
 subroutine inputs_set_dict(in, level, val)
-
   use dictionaries
-  use module_types
-  use yaml_output
+  use module_input_keys, only: input_variables, input_set
   implicit none
   type(input_variables), intent(inout) :: in
   character(len = *), intent(in) :: level
@@ -554,15 +552,15 @@ subroutine inputs_get_output(in, dir_output)
 END SUBROUTINE inputs_get_output
 
 
-subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspin, mpol, &
+subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, qcharge, efield, nspin, mpol, &
      & gnrm, itermax, nrepmax, ncong, idsx, dispcorr, inpsi, outpsi, outgrid, &
      & rbuf, ncongt, davidson, nvirt, nplottedvirt, sym, last_run)
   use module_defs, only: gp
   use module_types
   implicit none
   type(input_variables), intent(in) :: in
-  real(gp), intent(out) :: hx, hy, hz, crmult, frmult, efield(3), gnrm, rbuf
-  integer, intent(out) :: ixc, chg, nspin, mpol, itermax, nrepmax, ncong, idsx, &
+  real(gp), intent(out) :: hx, hy, hz, crmult, frmult, efield(3), gnrm, rbuf, qcharge
+  integer, intent(out) :: ixc, nspin, mpol, itermax, nrepmax, ncong, idsx, &
        & dispcorr, inpsi, outpsi, outgrid, ncongt, davidson, nvirt, nplottedvirt, &
        & sym, last_run
   
@@ -572,7 +570,7 @@ subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspi
   crmult = in%crmult
   frmult = in%frmult
   ixc = in%ixc
-  chg = in%ncharge
+  qcharge= in%qcharge !only works for integer values
   efield = in%elecfield
   nspin = in%nspin
   mpol = in%mpol
@@ -582,9 +580,9 @@ subroutine inputs_get_dft(in, hx, hy, hz, crmult, frmult, ixc, chg, efield, nspi
   ncong = in%ncong
   idsx = in%idsx
   dispcorr = in%dispersion
-  inpsi = in%inputPsiId
-  outpsi = in%output_wf_format
-  outgrid = in%output_denspot
+!  inpsi = in%inputPsiId
+!  outpsi = in%output_wf_format
+!  outgrid = in%output_denspot
   rbuf = in%rbuf
   ncongt = in%ncongt
   davidson = in%norbv
@@ -672,7 +670,7 @@ END SUBROUTINE inputs_get_perf
 
 
 subroutine inputs_get_linear(linear, inputPsiId)
-  use module_types
+  use public_enums
   implicit none
   integer, intent(out) :: linear
   integer, intent(in) :: inputPsiId
@@ -686,9 +684,10 @@ subroutine inputs_check_psi_id(inputpsi, input_wf_format, dir_output, ln, orbs, 
   use module_types
   use module_fragments
   use module_interfaces, only: input_check_psi_id
+  use f_enums
   implicit none
   integer, intent(out) :: input_wf_format
-  integer, intent(inout) :: inputpsi
+  type(f_enumerator), intent(inout) :: inputpsi
   integer, intent(in) :: iproc, ln, nproc
   character(len = ln), intent(in) :: dir_output
   type(orbitals_data), intent(in) :: orbs, lorbs
@@ -882,11 +881,13 @@ END SUBROUTINE orbs_get_onwhichatom
 
 subroutine orbs_open_file(orbs, unitwf, name, ln, iformat, iorbp, ispinor)
   use module_types
+  use public_enums
   use module_interfaces, only: open_filename_of_iorb
   implicit none
   type(orbitals_data), intent(in) :: orbs
-  integer, intent(in) :: unitwf, ln, iformat, iorbp, ispinor
+  integer, intent(in) :: ln, iformat, iorbp, ispinor
   character(len = 1), dimension(ln), intent(in) :: name
+  integer, intent(inout) :: unitwf
 
   character(len = ln) :: filename
   integer :: i, iorb_out
@@ -909,7 +910,7 @@ END SUBROUTINE proj_new
 
 
 subroutine proj_free(nlpspd)
-  use psp_projectors
+  use psp_projectors_base, only: free_DFT_PSP_projectors
   use module_types
   use memory_profiling
   implicit none
@@ -934,7 +935,7 @@ subroutine kernel_get_comm(pkernel, igroup, ngroup, iproc_grp, &
      & nproc_grp, mpi_comm)
   use module_types
   implicit none
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   integer, intent(out) :: igroup, ngroup, iproc_grp, nproc_grp, mpi_comm
   igroup = pkernel%mpi_env%igroup
   ngroup = pkernel%mpi_env%ngroup
@@ -974,7 +975,7 @@ END SUBROUTINE localfields_get_data
 subroutine localfields_free(denspotd, fion, fdisp)
   use module_base
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use memory_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd
@@ -1220,7 +1221,8 @@ end subroutine wf_get_psi_size
 
 subroutine wf_iorbp_to_psi(psir, psi, lr)
   use module_base, only: wp,f_zero
-  use module_types
+  use locregs
+  use locreg_operations
   implicit none
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
@@ -1229,7 +1231,7 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
   character(len=*), parameter :: subname='wf_orb_to_psi'
   type(workarr_sumrho) :: w
 
-  call initialize_work_arrays_sumrho(1,lr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
   !initialisation
   if (lr%geocode == 'F') then
@@ -1271,37 +1273,38 @@ subroutine orbs_get_iorbp(orbs, iorbp, isorb, iproc, ikpt, iorb, ispin, ispinor)
 END SUBROUTINE orbs_get_iorbp
 
 
-subroutine state_properties_new(self, outs, energs, fxyz, nat)
-  use module_defs, only: gp
-  use module_types,only: energy_terms
+subroutine state_properties_alloc(outs, nat)
   use bigdft_run
   implicit none
-  integer(kind = 8), intent(in) :: self
   type(state_properties), pointer :: outs
-  type(energy_terms), pointer :: energs
-  real(gp), dimension(:,:), pointer :: fxyz
   integer, intent(in) :: nat
 
   type(state_properties), pointer :: intern
 
   allocate(intern)
   call init_state_properties(intern, nat)
-  energs => intern%energs
-  fxyz => intern%fxyz
-  intern%energs%c_obj = self
   outs => intern
-END SUBROUTINE state_properties_new
+END SUBROUTINE state_properties_alloc
+subroutine state_properties_copy(outs, from)
+  use bigdft_run
+  implicit none
+  type(state_properties), pointer :: outs
+  type(state_properties), intent(in) :: from
 
+  type(state_properties), pointer :: intern
 
-subroutine state_properties_free(outs)
+  allocate(intern)
+  intern = from
+  outs => intern
+END SUBROUTINE state_properties_copy
+subroutine state_properties_delete(outs)
   use bigdft_run
   implicit none
   type(state_properties), pointer :: outs
 
   call deallocate_state_properties(outs)
   deallocate(outs)
-END SUBROUTINE state_properties_free
-
+END SUBROUTINE state_properties_delete
 
 subroutine state_properties_get(outs, energs, fxyz, fdim, fnoise, pressure, strten, etot)
   use module_defs, only: gp
@@ -1326,6 +1329,23 @@ subroutine state_properties_get(outs, energs, fxyz, fdim, fnoise, pressure, strt
 
   etot = outs%energy
 END SUBROUTINE state_properties_get
+
+subroutine state_properties_set_c_obj(outs, c_obj)
+  use bigdft_run
+  implicit none
+  type(state_properties), intent(inout) :: outs
+  integer(kind = 8), intent(in) :: c_obj
+  
+  outs%c_obj = c_obj
+END SUBROUTINE state_properties_set_c_obj
+subroutine state_properties_c_obj(outs, c_obj)
+  use bigdft_run
+  implicit none
+  type(state_properties), intent(in) :: outs
+  integer(kind = 8), intent(out) :: c_obj
+  
+  c_obj = outs%c_obj
+END SUBROUTINE state_properties_c_obj
 
 
 subroutine energs_copy_data(energs, eh, exc, evxc, eion, edisp, ekin, epot, &
@@ -1426,8 +1446,8 @@ END SUBROUTINE optloop_sync_data
 
 
 subroutine optloop_emit_done(optloop, id, energs, iproc, nproc)
-  use module_base
   use module_types
+  use public_enums
   implicit none
   type(DFT_optimization_loop), intent(inout) :: optloop
   type(energy_terms), intent(in) :: energs
@@ -1537,6 +1557,18 @@ subroutine run_objects_new(runObj)
   allocate(runObj%mm_rst)
   call nullify_MM_restart_objects(runObj%mm_rst)
 END SUBROUTINE run_objects_new
+subroutine run_objects_copy(run, from)
+  use bigdft_run
+  implicit none
+  type(run_objects), pointer :: run
+  type(run_objects), intent(in) :: from
+
+  type(run_objects), pointer :: intern
+
+  allocate(intern)
+  intern = from
+  run => intern
+END SUBROUTINE run_objects_copy
 
 
 subroutine run_objects_destroy(runObj)
@@ -1549,6 +1581,22 @@ subroutine run_objects_destroy(runObj)
   deallocate(runObj)
 end subroutine run_objects_destroy
 
+subroutine run_objects_set_c_obj(run, c_obj)
+  use bigdft_run
+  implicit none
+  type(run_objects), intent(inout) :: run
+  integer(kind = 8), intent(in) :: c_obj
+  
+  run%c_obj = c_obj
+END SUBROUTINE run_objects_set_c_obj
+subroutine run_objects_c_obj(run, c_obj)
+  use bigdft_run
+  implicit none
+  type(run_objects), intent(in) :: run
+  integer(kind = 8), intent(out) :: c_obj
+  
+  c_obj = run%c_obj
+END SUBROUTINE run_objects_c_obj
 
 subroutine run_objects_get(runObj, dict, inputs, atoms)
   use bigdft_run
@@ -1578,11 +1626,11 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
   integer, intent(in) :: ln
   integer, intent(out) :: iostat
   type(dictionary), pointer :: dict
-  character(len = ln), intent(in) :: fname
+  character, dimension(ln), intent(in) :: fname
   logical, intent(in) :: userOnly
 
   integer, parameter :: iunit_true = 145214 !< Hopefully being unique...
-  integer :: iunit_def,iunit
+  integer :: iunit_def,iunit,iln
   real(gp), dimension(3), parameter :: dummy = (/ 0._gp, 0._gp, 0._gp /)
   character(len=256) :: filetmp
 
@@ -1594,7 +1642,11 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
      iostat = 1
      return
   end if
-  call f_strcpy(src=fname,dest=filetmp)
+  !call f_strcpy(src=fname(1:ln),dest=filetmp)
+  do iln=1,ln
+     filetmp(iln:iln)=fname(iln)
+  end do
+
   open(unit = iunit, file =trim(filetmp), iostat = iostat)
   if (iostat /= 0) return
   call yaml_set_stream(unit = iunit, tabbing = 40, record_length = 100, istat = iostat)
@@ -1641,11 +1693,21 @@ END SUBROUTINE run_objects_nullify_dict
 
 
 subroutine run_objects_nullify_volatile(runObj)
+  use f_enums
   use bigdft_run, only: run_objects
+  use module_defs, only: verbose
+  use yaml_output, only: yaml_sequence_close
+  use module_base, only: bigdft_mpi
   implicit none
   type(run_objects), intent(inout) :: runObj
 
+  if (associated(runObj%run_mode)) then
+    if (bigdft_mpi%iproc==0 .and. (runObj%run_mode /= 'QM_RUN_MODE') .and. verbose > 0)&
+         call yaml_sequence_close()
+  end if
+
   nullify(runObj%inputs)
+  nullify(runObj%run_mode)
   nullify(runObj%atoms)
 END SUBROUTINE run_objects_nullify_volatile
 
@@ -1911,7 +1973,8 @@ END SUBROUTINE dict_init_binding
 
 
 subroutine err_severe_override(callback)
-  use dictionaries, only: f_err_severe_override, f_loc
+  use f_precisions, only: f_loc
+  use dictionaries, only: f_err_severe_override
   implicit none
   external :: callback
   
@@ -1920,7 +1983,6 @@ subroutine err_severe_override(callback)
 end subroutine err_severe_override
 
 subroutine astruct_set_from_dict_binding(astruct, dict)
-  use module_input_dicts, only: astruct_set_from_dict
   use dictionaries, only: dictionary
   use module_atoms
   implicit none

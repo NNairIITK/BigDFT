@@ -1,7 +1,7 @@
 ---
  Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
- Version Number              : 1.7-dev.21
- Timestamp of this run       : 2012-11-20 21:04:15.209
+ Version Number              : PSolver 1.7.7
+ Timestamp of this run       : 2015-09-13 15:02:38.758
  Root process Hostname       : athelas
  Boundary Conditions         : Isolated
  Multiprocessor run: &MPIrun
@@ -9,7 +9,6 @@
    Poisson Kernel Initialization:
      Total No. of Taskgroups created:  2
      MPI tasks               :  2
-     OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Free
      Memory Requirements per MPI task:
@@ -18,8 +17,8 @@
        Full Grid Arrays (MB) :  1.32
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 0    : 100%
-           MPI task 1        :  97%
+           MPI tasks 0-0     : 100%
+           MPI task 1        : 97%
          Kernel:
            MPI tasks 0- 0    : 100%
            MPI task 1        :  96%
@@ -32,7 +31,7 @@
    Energies: {Hartree:  3.989422803955E-01}
    Comparison with a reference run:
      ANALYTIC:
-       Difference in Inf. Norm:  3.442615081894E-10
+       Difference in Inf. Norm:  3.442617302341E-10
         #WARNING: Calculation possibly wrong, check if the diff is meaningful
        Max. diff coordinates :  [  28,  24,  31 ]
        Result                :  1.128379166751E+00
@@ -93,7 +92,6 @@
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
      MPI tasks               :  1
-     OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Free
      Memory Requirements per MPI task:
@@ -105,41 +103,48 @@
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
-         Hartree             : -5.551115123126E-17
+         Hartree             :  5.168088179630E-14
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              :  1.212023455656E-01
          Original            :  1.212023455656E-001
        Energy differences:
-         Hartree             : -5.551115123126E-17
+         Hartree             :  5.168088179630E-14
      Distributed data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
-         Hartree             : -5.551115123126E-17
+         Hartree             :  5.168088179630E-14
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              :  1.212023455656E-01
          Original            :  1.212023455656E-001
        Energy differences:
-         Hartree             : -5.551115123126E-17
+         Hartree             :  5.168088179630E-14
  Timings for root process:
-   CPU time (s)              :  1.15
-   Elapsed time (s)          :  1.16
+   CPU time (s)              :  1.08
+   Elapsed time (s)          :  1.08
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Calculation possibly wrong, check if the diff is meaningful
  Memory Consumption Report:
-   Tot. No. of Allocations  : 460
-   Tot. No. of Deallocations: 460
-   Remaining Memory (B)     : 0
-   Memory occupation: 
-      Peak Value (MB): 24
-      for the array: cosinarr
-      in the routine: G_Poisson_Solver
+   Tot. No. of Allocations             :  700
+   Tot. No. of Deallocations           :  700
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  21.728
+     for the array                     : cosinarr
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 38.508 MB
+ Walltime since initialization         : 00:00:02.172189567
+ Max No. of dictionaries used          :  336 #( 224 still in use)
+ Number of dictionary folders allocated:  1
 ---
  Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
- Version Number              : 1.7-dev.21
- Timestamp of this run       : 2012-11-20 21:04:31.291
+ Version Number              : PSolver 1.7.7
+ Timestamp of this run       : 2015-09-13 15:02:40.894
  Root process Hostname       : athelas
  Boundary Conditions         : Periodic
  Multiprocessor run: &MPIrun
@@ -147,7 +152,6 @@
    Poisson Kernel Initialization:
      Total No. of Taskgroups created:  2
      MPI tasks               :  2
-     OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Periodic
      Memory Requirements per MPI task:
@@ -156,7 +160,7 @@
        Full Grid Arrays (MB) :  2.00
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 1    : 100%
+           MPI tasks 0-1     : 100%
          Kernel:
            MPI tasks 0- 0    : 100%
            MPI task 1        :  94%
@@ -229,7 +233,6 @@
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
      MPI tasks               :  1
-     OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Periodic
      Memory Requirements per MPI task:
@@ -241,41 +244,45 @@
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
-         Hartree             :  3.637978807092E-12
+         Hartree             : -2.837623469532E-10
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -6.256427529162E-01
          Original            : -6.256427529162E-001
        Energy differences:
-         Hartree             :  3.637978807092E-12
+         Hartree             : -2.837623469532E-10
      Distributed data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
-         Hartree             :  3.637978807092E-12
+         Hartree             : -2.837623469532E-10
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
          Result              : -6.256427529162E-01
          Original            : -6.256427529162E-001
        Energy differences:
-         Hartree             :  3.637978807092E-12
+         Hartree             : -2.837623469532E-10
  Timings for root process:
-   CPU time (s)              :  0.62
-   Elapsed time (s)          :  0.62
+   CPU time (s)              :  0.41
+   Elapsed time (s)          :  0.42
  Memory Consumption Report:
-   Tot. No. of Allocations  : 265
-   Tot. No. of Deallocations: 265
-   Remaining Memory (B)     : 0
-   Memory occupation: 
-      Peak Value (MB): 28
-      for the array: zmpi2
-      in the routine: G_Poisson_Solver
+   Tot. No. of Allocations             :  149
+   Tot. No. of Deallocations           :  149
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  24.343
+     for the array                     : zmpi2
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 40.516 MB
+ Walltime since initialization         : 00:00:01.452538839
+ Max No. of dictionaries used          :  332 #( 224 still in use)
+ Number of dictionary folders allocated:  1
 ---
  Reference Paper             : The Journal of Chemical Physics 137, 134108 (2012)
- Version Number              : 1.7-dev.21
- Timestamp of this run       : 2012-11-20 21:04:46.738
+ Version Number              : PSolver 1.7.7
+ Timestamp of this run       : 2015-09-13 15:02:42.366
  Root process Hostname       : athelas
  Boundary Conditions         : Surface
  Multiprocessor run: &MPIrun
@@ -283,7 +290,6 @@
    Poisson Kernel Initialization:
      Total No. of Taskgroups created:  2
      MPI tasks               :  2
-     OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Surface
      Memory Requirements per MPI task:
@@ -292,7 +298,7 @@
        Full Grid Arrays (MB) :  0.75
        Load Balancing of calculations:
          Density:
-           MPI tasks 0- 1    : 100%
+           MPI tasks 0-1     : 100%
          Kernel:
            MPI tasks 0- 0    : 100%
            MPI task 1        :  97%
@@ -305,10 +311,10 @@
    Energies: {Hartree:  2.969431884210E+01}
    Comparison with a reference run:
      ANALYTIC:
-       Difference in Inf. Norm:  5.449597508646E-10
+       Difference in Inf. Norm:  5.449597607637E-10
         #WARNING: Calculation possibly wrong, check if the diff is meaningful
-       Max. diff coordinates :  [  1,  58,  25 ]
-       Result                : -1.455736585414E-06
+       Max. diff coordinates :  [  1,  8,  25 ]
+       Result                : -1.455736585424E-06
        Original              : -1.455191625663E-006
      Global data:
        ANACOMPLET:
@@ -318,8 +324,8 @@
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
-         Result              :  3.577078001238E-11
-         Original            :  3.577078001238E-011
+         Result              :  3.577067101649E-11
+         Original            :  3.577067101649E-011
        Energy differences:
          Hartree             :  0.000000000000E+00
      Distributed data:
@@ -330,8 +336,8 @@
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
-         Result              :  3.577078001238E-11
-         Original            :  3.577078001238E-011
+         Result              :  3.577067101649E-11
+         Original            :  3.577067101649E-011
        Energy differences:
          Hartree             :  0.000000000000E+00
  Complex run:
@@ -339,26 +345,26 @@
      CPLXREAL:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
-       Result                :  3.577078001238E-11
-       Original              :  3.577078001238E-011
+       Result                :  3.577067101649E-11
+       Original              :  3.577067101649E-011
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
-       Result                :  3.577078001238E-11
-       Original              :  3.577078001238E-011
+       Result                :  3.577067101649E-11
+       Original              :  3.577067101649E-011
      Energy differences:
        Hartree               :  0.000000000000E+00
    Distributed data:
      CPLXREAL:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
-       Result                :  3.577078001238E-11
-       Original              :  3.577078001238E-011
+       Result                :  3.577067101649E-11
+       Original              :  3.577067101649E-011
      CPLXIMAG:
        Difference in Inf. Norm:  0.000000000000E+00
        Max. diff coordinates :  [  1,  1,  1 ]
-       Result                :  3.577078001238E-11
-       Original              :  3.577078001238E-011
+       Result                :  3.577067101649E-11
+       Original              :  3.577067101649E-011
      Energy differences:
        Hartree               :  0.000000000000E+00
  Monoprocess run:
@@ -366,7 +372,6 @@
     #----------------------------------------------------------------- Kernel Initialization
    Poisson Kernel Initialization:
      MPI tasks               :  1
-     OpenMP threads per task :  1
    Poisson Kernel Creation:
      Boundary Conditions     : Surface
      Memory Requirements per MPI task:
@@ -378,34 +383,275 @@
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
-         Hartree             :  0.000000000000E+00
+         Hartree             : -3.694822225953E-13
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
-         Result              :  3.577078001238E-11
-         Original            :  3.577078001238E-011
+         Result              :  3.577067101649E-11
+         Original            :  3.577067101649E-011
        Energy differences:
-         Hartree             :  0.000000000000E+00
+         Hartree             : -3.694822225953E-13
      Distributed data:
        ANACOMPLET:
          Difference in Inf. Norm:  0.000000000000E+00
        Energy differences:
-         Hartree             :  0.000000000000E+00
+         Hartree             : -3.694822225953E-13
        COMPLETE:
          Difference in Inf. Norm:  0.000000000000E+00
          Max. diff coordinates:  [  1,  1,  1 ]
-         Result              :  3.577078001238E-11
-         Original            :  3.577078001238E-011
+         Result              :  3.577067101649E-11
+         Original            :  3.577067101649E-011
        Energy differences:
-         Hartree             :  0.000000000000E+00
+         Hartree             : -3.694822225953E-13
  Timings for root process:
-   CPU time (s)              :  0.37
-   Elapsed time (s)          :  0.38
+   CPU time (s)              :  0.38
+   Elapsed time (s)          :  0.39
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Calculation possibly wrong, check if the diff is meaningful
  Memory Consumption Report:
-   Tot. No. of Allocations  : 1584
-   Tot. No. of Deallocations: 1584
-   Remaining Memory (B)     : 0
-   Memory occupation: 
-      Peak Value (MB): 11
-      for the array: cosinarr
-      in the routine: G_Poisson_Solver
+   Tot. No. of Allocations             :  1468
+   Tot. No. of Deallocations           :  1468
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  9.991
+     for the array                     : cosinarr
+     in the routine                    : G_PoissonSolver
+     Memory Peak of process            : 29.100 MB
+ Walltime since initialization         : 00:00:01.413935853
+ Max No. of dictionaries used          :  336 #( 224 still in use)
+ Number of dictionary folders allocated:  1
+---
+ rad_cav                     :  1.7
+ multp                       :  1.0
+ Delta cavity                :  0.3
+ radii                       :  [  2.0 ]
+ atom                        :  1
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ nbl1                        :  0
+ nbl2                        :  0
+ nbl3                        :  0
+ real input atoms            :  1
+ radii                       :  2.0
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ nat                         :  1
+ atom                        :  1
+ radii                       :  2.0
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ Starting initial potential calculation: Yes
+ nbl1                        :  0
+ nbl2                        :  0
+ nbl3                        :  0
+ real input atoms            :  1
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ nat                         :  1
+ atom                        :  1
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ offset                      :  0.9999999999999596
+ Total Charge                :  1.5480202524889015E-009
+ Potential monopole          :  0.9999999999999597
+ Potential at the boundary 1 n02/2 1:  1.732498312834022E-044
+ Density at the boundary 1 n02/2 1: -8.5205212778188711E-041
+  #------------------ Comparison between Generalized Poisson operator and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  4.578332286965341E-03
+   Point                     :  [  28,  49,  31 ]
+   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
+  #---------------- Comparison between Generalized Poisson operator 2 and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  9.045796963507610E-04
+   Point                     :  [  29,  1,  32 ]
+   Some values: [-1.669882803145839E-07,  1.410225315375007E-07,  2.741444257770549E-09]
+  #Comparison between Poisson-Boltzmann operator and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  4.578332286965341E-03
+   Point                     :  [  28,  49,  31 ]
+   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+   MPI tasks                 :  2
+   OpenMP threads per MPI task:  2
+   Iterative method for Generalised Equation: PI
+ Poisson Kernel Creation:
+   Boundary Conditions       : Free
+   Memory Requirements per MPI task:
+     Density (MB)            :  0.73
+     Kernel (MB)             :  0.77
+     Full Grid Arrays (MB)   :  1.34
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0-0       : 100%
+         MPI task1           : 97%
+       Kernel:
+         MPI tasks 0- 0      : 100%
+         MPI task 1          :  96%
+       Complete LB per task  : 1/3 LB_density + 2/3 LB_kernel
+ Poisson Solver:
+   BC                        : Free
+   Box                       :  [  57,  49,  63 ]
+   MPI tasks                 :  2
+   Integral of the density in the nonvacuum region: -0.1367061999282162
+   Embedded PSolver Polarization Iteration Method:
+   - Iteration quality: {iter:  1, res:  2.26802467317273760E-03}
+   - Iteration quality: {iter:  2, res:  1.98288312730661963E-03}
+   - Iteration quality: {iter:  3, res:  6.24373254090212419E-04}
+   - Iteration quality: {iter:  4, res:  1.84008383776307734E-04}
+   - Iteration quality: {iter:  5, res:  6.41747789277000087E-05}
+   - Iteration quality: {iter:  6, res:  2.74897514698658606E-05}
+   - Iteration quality: {iter:  7, res:  7.62756722837951116E-06}
+   - Iteration quality: {iter:  8, res:  3.06843042842240090E-06}
+   - Iteration quality: {iter:  9, res:  1.28023077272013033E-06}
+   - Iteration quality: {iter:  10, res:  4.45691089804823491E-07}
+ Inf. Norm difference with reference:
+   Value                     :  1.856666227328680E-05
+   Point                     :  [  24,  25,  42 ]
+   Some values: [ 1.420386891565206E-05,  5.498652497387818E-06,  7.901491941467557E-06]
+ Expected hartree energy     :  4.3393317352253109E-002
+ Computed Hartree energy     :  4.3393537117483935E-002
+ Diff of expected-computed Hartree energy: -2.1976523082584132E-007
+  #-------- Comparison between numerical and starting analytical density with old GPoperator
+ Inf. Norm difference with reference:
+   Value                     :  8.095744492718444E-03
+   Point                     :  [  29,  1,  32 ]
+   Some values: [ 1.307067035105636E-06, -7.955922915093029E-06, -1.810225854939597E-07]
+  #------ Comparison between numerical and starting analytical density witn new 2 GPoperator
+ Inf. Norm difference with reference:
+   Value                     :  4.242340491271814E-03
+   Point                     :  [  29,  1,  32 ]
+   Some values: [-1.748405677459708E-07, -4.862489572590425E-06, -1.396769826660007E-07]
+ Memory Consumption Report:
+   Tot. No. of Allocations   :  419
+   Tot. No. of Deallocations :  419
+   Remaining Memory (B)      :  0
+   Memory occupation:
+     Peak Value (MB)         :  39.925
+     for the array           : zmpi1
+     in the routine          : G_PoissonSolver
+     Memory Peak of process  : 61.224 MB
+ Walltime since initialization: 00:00:01.022064730
+ Max No. of dictionaries used:  258 #( 170 still in use)
+ Number of dictionary folders allocated:  1
+---
+ rad_cav                     :  1.7
+ multp                       :  1.0
+ Delta cavity                :  0.3
+ radii                       :  [  2.0 ]
+ atom                        :  1
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ nbl1                        :  0
+ nbl2                        :  0
+ nbl3                        :  0
+ real input atoms            :  1
+ radii                       :  2.0
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ nat                         :  1
+ atom                        :  1
+ radii                       :  2.0
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ Starting initial potential calculation: Yes
+ nbl1                        :  0
+ nbl2                        :  0
+ nbl3                        :  0
+ real input atoms            :  1
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ nat                         :  1
+ atom                        :  1
+ rxyz                        :  [  5.0,  5.0,  5.0 ]
+ offset                      :  0.9999999999999596
+ Total Charge                :  1.5480202524889015E-009
+ Potential monopole          :  0.9999999999999597
+ Potential at the boundary 1 n02/2 1:  1.732498312834022E-044
+ Density at the boundary 1 n02/2 1: -8.5205212778188711E-041
+  #------------------ Comparison between Generalized Poisson operator and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  4.578332286965341E-03
+   Point                     :  [  28,  49,  31 ]
+   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
+  #---------------- Comparison between Generalized Poisson operator 2 and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  9.045796963507610E-04
+   Point                     :  [  29,  1,  32 ]
+   Some values: [-1.669882803145839E-07,  1.410225315375007E-07,  2.741444257770549E-09]
+  #Comparison between Poisson-Boltzmann operator and analytical density
+ Inf. Norm difference with reference:
+   Value                     :  4.578332286965341E-03
+   Point                     :  [  28,  49,  31 ]
+   Some values: [ 1.315593650741409E-06, -3.015883444265577E-06, -3.853770792771686E-08]
+  #------------------------------------------------------------------- Kernel Initialization
+ Poisson Kernel Initialization:
+   MPI tasks                 :  2
+   OpenMP threads per MPI task:  2
+   Iterative method for Generalised Equation: PCG
+ Poisson Kernel Creation:
+   Boundary Conditions       : Free
+   Memory Requirements per MPI task:
+     Density (MB)            :  0.73
+     Kernel (MB)             :  0.77
+     Full Grid Arrays (MB)   :  1.34
+     Load Balancing of calculations:
+       Density:
+         MPI tasks 0-0       : 100%
+         MPI task1           : 97%
+       Kernel:
+         MPI tasks 0- 0      : 100%
+         MPI task 1          :  96%
+       Complete LB per task  : 1/3 LB_density + 2/3 LB_kernel
+ Poisson Solver:
+   BC                        : Free
+   Box                       :  [  57,  49,  63 ]
+   MPI tasks                 :  2
+   Integral of the density in the nonvacuum region: -0.1743253445532359
+   Embedded PSolver, Preconditioned Conjugate Gradient Method:
+   - Iteration quality: { #_____________________________________________________ Iteration1
+ iter:  1, res:  1.25239132461045979E-02, ratio:  1.52812471509638637E+00, 
+         alpha:  3.18476473573888585E-01, beta:  1.72764608142072511E+01}
+   - Iteration quality: { #_____________________________________________________ Iteration2
+ iter:  2, res:  1.20284696742850258E-03, ratio:  1.46767239862344967E-01, 
+         alpha:  2.34170888965735347E-01, beta:  3.82148450555631598E+01}
+   - Iteration quality: { #_____________________________________________________ Iteration3
+ iter:  3, res:  2.48853119208619319E-04, ratio:  3.03641996250492430E-02, 
+         alpha:  8.19493151339834913E-01, beta:  1.35206246211302897E-02}
+   - Iteration quality: { #_____________________________________________________ Iteration4
+ iter:  4, res:  1.18227892678848150E-04, ratio:  1.44257598456700512E-02, 
+         alpha:  2.11268090191002056E+00, beta:  6.53001325974008912E-04}
+   - Iteration quality: { #_____________________________________________________ Iteration5
+ iter:  5, res:  5.90405988805335472E-05, ratio:  7.20393031878415174E-03, 
+         alpha:  5.35040354108021754E-01, beta:  1.55848060136030720E-04}
+   - Iteration quality: { #_____________________________________________________ Iteration6
+ iter:  6, res:  4.37673226250447111E-06, ratio:  5.34033780837078536E-04, 
+         alpha:  5.87801729468004575E-01, beta:  5.18279239679959828E-05}
+   - Iteration quality: { #_____________________________________________________ Iteration7
+ iter:  7, res:  1.67159331652091522E-06, ratio:  2.03962053263189239E-04, 
+         alpha:  5.51312071374950530E-01, beta:  2.37632772479480855E-07}
+   - Iteration quality: { #_____________________________________________________ Iteration8
+ iter:  8, res:  1.27813685744006825E-07, ratio:  1.55953852661611018E-05, 
+         alpha:  7.95190390207255127E-01, beta:  1.43994867438935352E-08}
+ Inf. Norm difference with reference:
+   Value                     :  2.986599684292809E-05
+   Point                     :  [  29,  19,  34 ]
+   Some values: [ 9.462759354983419E-07, -3.071195038501519E-08, -4.315428192561243E-08]
+ Expected hartree energy     :  4.3393317352253109E-002
+ Computed Hartree energy     :  4.3393349694823474E-002
+ Diff of expected-computed Hartree energy: -3.2342570364940482E-008
+  #-------- Comparison between numerical and starting analytical density with old GPoperator
+ Inf. Norm difference with reference:
+   Value                     :  1.074395547093221E-01
+   Point                     :  [  30,  49,  32 ]
+   Some values: [-1.378115944050684E-05, -7.152095426906259E-05, -9.388836662274370E-07]
+  #------ Comparison between numerical and starting analytical density witn new 2 GPoperator
+ Inf. Norm difference with reference:
+   Value                     :  1.061561747149636E-01
+   Point                     :  [  30,  49,  32 ]
+   Some values: [-1.535375177574849E-05, -6.902506233993356E-05, -9.159698826880163E-07]
+ Memory Consumption Report:
+   Tot. No. of Allocations   :  405
+   Tot. No. of Deallocations :  405
+   Remaining Memory (B)      :  0
+   Memory occupation:
+     Peak Value (MB)         :  37.986
+     for the array           : zmpi1
+     in the routine          : G_PoissonSolver
+     Memory Peak of process  : 60.460 MB
+ Walltime since initialization: 00:00:00.693081657
+ Max No. of dictionaries used:  259 #( 170 still in use)
+ Number of dictionary folders allocated:  1

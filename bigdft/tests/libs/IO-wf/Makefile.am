@@ -1,5 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
+SHORT_CHECK = check_lib_plain.report check_lib_binary.report $(etsf_tests) $(bindings_tests)
+LONG_CHECK = $(SHORT_CHECK)
+
+include $(srcdir)/../check.mk
+
 SUBDIRS = 
 
 EXTRA_DIST = \
@@ -9,7 +14,7 @@ EXTRA_DIST = \
 	posinp.xyz \
 	write.out.ref \
 	read.out.ref \
-        check_lib.out.ref
+    check_lib.out.ref
 
 PPFILES = psppar.O
 
@@ -28,8 +33,6 @@ endif
 #	read_plain.report read_binary.report \
 #	exportwf.report check_lib_plain.report check_lib_binary.report \
 #	$(etsf_tests) $(bindings_tests)
-
-check: check_lib_plain.report check_lib_binary.report $(etsf_tests) $(bindings_tests)
 
 report:
 	@if test $(MAKELEVEL) = 0 ; then python $(top_builddir)/tests/report.py ; fi

@@ -31,7 +31,7 @@ END SUBROUTINE atoms_write
 !> Deallocate a new atoms_data type, for bindings.
 subroutine atoms_empty(atoms)
   use module_atoms, only: atoms_data, deallocate_atoms_data
-  use dynamic_memory
+  use f_refcnts, only: f_ref_new
   implicit none
   type(atoms_data), intent(inout) :: atoms
 
@@ -350,34 +350,6 @@ subroutine astruct_copy_alat(astruct, alat)
   alat(2) = astruct%cell_dim(2)
   alat(3) = astruct%cell_dim(3)
 END SUBROUTINE astruct_copy_alat
-
-!>Write the extra info necessary for the output file
-subroutine write_extra_info(extra,natpol,ifrztyp)
-  use module_atoms, only: frozen_itof
-  use ao_inguess, only: charge_and_spol
-  implicit none 
-  integer, intent(in) :: natpol,ifrztyp
-  character(len=50), intent(out) :: extra
-  !local variables
-  character(len=4) :: frzchain
-  integer :: ispol,ichg
-
-  call charge_and_spol(natpol,ichg,ispol)
-
-  call frozen_itof(ifrztyp,frzchain)
-
-  !takes into account the blocked atoms and the input polarisation
-  if (ispol == 0 .and. ichg == 0 ) then
-     write(extra,'(2x,a4)')frzchain
-  else if (ispol /= 0 .and. ichg == 0) then
-     write(extra,'(i7,2x,a4)')ispol,frzchain
-  else if (ichg /= 0) then
-     write(extra,'(2(i7),2x,a4)')ispol,ichg,frzchain
-  else
-     write(extra,'(2x,a4)') ''
-  end if
-
-END SUBROUTINE write_extra_info
 
 !>Calculate the scalar product between atomic positions by considering
 !!   only non-blocked atoms

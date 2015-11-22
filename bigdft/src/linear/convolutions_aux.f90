@@ -1166,7 +1166,7 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
      scal, psi_c, psi_f, &
      work)
   use module_base
-  use module_types
+  use locreg_operations
   implicit none
   integer,intent(in) :: n1, n2, n3, nfl1, nfu1, nfl2, nfu2, nfl3, nfu3, mseg_c, mvctr_c, mseg_f, mvctr_f
   integer,dimension(mseg_c),intent(in) :: keyv_c
@@ -1179,6 +1179,8 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
   type(workarrays_quartic_convolutions),intent(inout) :: work
   !local variables
   integer :: iseg,jj,j0,j1,ii,i1,i2,i3,i0,i
+
+  call f_routine(id='uncompress_for_quartic_convolutions')
 
   !$omp parallel default(private) &
   !$omp shared(scal) &
@@ -1250,5 +1252,6 @@ subroutine uncompress_for_quartic_convolutions(n1, n2, n3, nfl1, nfu1, nfl2, nfu
  !$omp enddo
  !$omp end parallel
  
+  call f_release_routine()
 
 END SUBROUTINE uncompress_for_quartic_convolutions

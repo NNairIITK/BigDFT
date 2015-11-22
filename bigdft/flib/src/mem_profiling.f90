@@ -150,7 +150,7 @@ contains
   subroutine dump_status_line(memstate,unit,routine,array)
     use yaml_output
     use dictionaries
-    use yaml_strings, only: f_strcpy
+    use yaml_strings, only: f_strcpy,yaml_toa
     implicit none
     integer, intent(in) :: unit
     type(memory_state), intent(in) :: memstate

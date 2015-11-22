@@ -1,0 +1,1243 @@
+---
+ Code logo:
+   "__________________________________ A fast and precise DFT wavelet code
+   |     |     |     |     |     |
+   |     |     |     |     |     |      BBBB         i       gggggg
+   |_____|_____|_____|_____|_____|     B    B               g
+   |     |  :  |  :  |     |     |    B     B        i     g
+   |     |-0+--|-0+--|     |     |    B    B         i     g        g
+   |_____|__:__|__:__|_____|_____|___ BBBBB          i     g         g
+   |  :  |     |     |  :  |     |    B    B         i     g         g
+   |--+0-|     |     |-0+--|     |    B     B     iiii     g         g
+   |__:__|_____|_____|__:__|_____|    B     B        i      g        g
+   |     |  :  |  :  |     |     |    B BBBB        i        g      g
+   |     |-0+--|-0+--|     |     |    B        iiiii          gggggg
+   |_____|__:__|__:__|_____|_____|__BBBBB
+   |     |     |     |  :  |     |                           TTTTTTTTT
+   |     |     |     |--+0-|     |  DDDDDD          FFFFF        T
+   |_____|_____|_____|__:__|_____| D      D        F        TTTT T
+   |     |     |     |  :  |     |D        D      F        T     T
+   |     |     |     |--+0-|     |D         D     FFFF     T     T
+   |_____|_____|_____|__:__|_____|D___      D     F         T    T
+   |     |     |  :  |     |     |D         D     F          TTTTT
+   |     |     |--+0-|     |     | D        D     F         T    T
+   |_____|_____|__:__|_____|_____|          D     F        T     T
+   |     |     |     |     |     |         D               T    T
+   |     |     |     |     |     |   DDDDDD       F         TTTT
+   |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
+ 
+ Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
+ Version Number                        : 1.7.6.6
+ Timestamp of this run                 : 2015-03-29 19:40:00.307
+ Root process Hostname                 : athelas
+ Number of MPI tasks                   :  2
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
+ MPI tasks of root process node        :  2
+  #------------------------------------------------------------------ Code compiling options
+ Compilation options:
+   Configure arguments:
+     " 'FCFLAGS=-O2 -openmp' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt 
+     -liomp5 -lm' 'CFLAGS=-O2 -openmp' 'CC=mpicc' 'CXX=mpicxx' 'FC=mpifc' 'F77=mpif77'"
+   Compilers (CC, FC, CXX)             :  [ mpicc, mpifc, mpicxx ]
+   Compiler flags:
+     CFLAGS                            : -O2 -openmp
+     FCFLAGS                           : -O2 -openmp
+     CXXFLAGS                          : -g -O2
+  #------------------------------------------------------------------------ Input parameters
+ radical                               : LENOSKY-bfgs
+ outdir                                : ./
+ logfile                               : Yes
+ run_from_files                        : Yes
+ mode:
+   method                              : lensib # Run method of BigDFT call
+   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+   mm_paramfile                        : none #   name of parameter file
+ geopt:
+   method                              : BFGS #   Geometry optimisation method
+   ncount_cluster_x                    : 500 #    Maximum number of force evaluations
+   frac_fluct                          : 0.0 #    Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
+   forcemax                            : 1.0E-4 # Max forces criterion when stop
+   betax                               : 7.0E+0 # Stepsize for the geometry optimization
+   randdis                             : 0. #     Random displacement amplitude
+ posinp:
+   units                               : angstroem
+   cell: [ 25.0,  25.0,  25.0]
+   positions:
+   - Si: [15.83633899688721, 12.06140232086182, 13.07706928253174]
+   - Si: [11.97898483276367, 14.41138648986816, 10.36060810089111]
+   - Si: [11.01325607299805, 11.72996997833252, 10.34267807006836]
+   - Si: [12.54591369628906, 10.00936603546143, 11.35790729522705]
+   - Si: [10.69509696960449, 14.18153667449951, 14.28646945953369]
+   - Si: [10.63320732116699, 15.3451042175293, 12.44081783294678]
+   - Si: [9.105777740478516, 12.44273376464844, 12.55424976348877]
+   - Si: [15.20534133911133, 14.0150728225708, 11.67320537567139]
+   - Si: [11.72766780853272, 9.400177955627441, 13.49430084228516]
+   - Si: [10.28946876525879, 10.54689121246338, 12.24635124206543]
+   - Si: [9.765847206115723, 13.84446430206299, 10.8253116607666]
+   - Si: [14.64565372467041, 13.01049041748047, 14.90087795257568]
+   - Si: [13.32097721099854, 12.45216846466064, 10.74146461486816]
+   - Si: [13.50776290893555, 10.82381153106689, 15.09267330169678]
+   - Si: [13.01336288452148, 14.69769096374512, 14.16423511505127]
+   - Si: [12.72242832183838, 12.58404636383057, 13.24282169342041]
+   - Si: [13.17438411712646, 15.58343124389648, 12.0091438293457]
+   - Si: [15.35318851470947, 11.26613235473633, 10.4263744354248]
+   - Si: [14.78244495391846, 10.02921199798584, 12.35942268371582]
+   - Si: [10.68289566040039, 11.56491088867188, 14.40401840209961]
+   properties:
+     format                            : ascii
+     source                            : LENOSKY-bfgs
+ dft:
+   hgrids: [0.45, 0.45, 0.45] #                   Grid spacing in the three directions (bohr)
+   rmult: [5., 8.] #                              c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
+   ixc                                 : 1 #      Exchange-correlation parameter (LDA=1,PBE=11)
+   qcharge                             : 0 #      Charge of the system. Can be integer or real.
+   elecfield: [0., 0., 0.] #                      Electric field (Ex,Ey,Ez)
+   nspin                               : 1 #      Spin polarization treatment
+   mpol                                : 0 #      Total magnetic moment
+   gnrm_cv                             : 1.e-4 #  convergence criterion gradient
+   itermax                             : 50 #     Max. iterations of wfn. opt. steps
+   itermin                             : 0 #      Min. iterations of wfn. opt. steps
+   nrepmax                             : 1 #      Max. number of re-diag. runs
+   ncong                               : 6 #      No. of CG it. for preconditioning eq.
+   idsx                                : 6 #      Wfn. diis history
+   dispersion                          : 0 #      Dispersion correction potential (values 1,2,3,4,5), 0=none
+   inputpsiid                          : 0 #      Input guess wavefunctions
+   output_wf                           : 0 #      Output of the support functions
+   output_denspot                      : 0 #      Output of the density or the potential
+   rbuf                                : 0. #     Length of the tail (AU)
+   ncongt                              : 30 #     No. of tail CG iterations
+   norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
+   nvirt                               : 0 #      No. of virtual orbs
+   nplot                               : 0 #      No. of plotted orbs
+   disablesym                          : No #     Disable the symmetry detection
+ perf:
+   debug                               : No #     Debug option
+   fftcache                            : 8192 #   Cache size for the FFT
+   accel                               : NO #     Acceleration (hardware)
+   ocl_platform                        : ~ #      Chosen OCL platform
+   ocl_devices                         : ~ #      Chosen OCL devices
+   blas                                : No #     CUBLAS acceleration
+   projrad                             : 15. #    Radius of the projector as a function of the maxrad
+   exctxpar                            : OP2P #   Exact exchange parallelisation scheme
+   ig_diag                             : Yes #    Input guess (T=Direct, F=Iterative) diag. of Ham.
+   ig_norbp                            : 5 #      Input guess Orbitals per process for iterative diag.
+   ig_blocks: [300, 800] #                        Input guess Block sizes for orthonormalisation
+   ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
+   methortho                           : 0 #      Orthogonalisation
+   rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
+   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
+   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
+   unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
+   linear                              : OFF #    Linear Input Guess approach
+   tolsym                              : 1.0e-8 # Tolerance for symmetry detection
+   signaling                           : No #     Expose calculation results on Network
+   signaltimeout                       : 0 #      Time out on startup for signal connection (in seconds)
+   domain                              : ~ #      Domain to add to the hostname to find the IP
+   inguess_geopt                       : 0 #      Input guess to be used during the optimization
+   store_index                         : Yes #    Store indices or recalculate them for linear scaling
+   verbosity                           : 2 #      Verbosity of the output
+   psp_onfly                           : Yes #    Calculate pseudopotential projectors on the fly
+   multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
+   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
+   pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
+   maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
+   maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
+   ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
+   ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
+   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
+   iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
+   check_sumrho                        : 2 #      Enables linear sumrho check
+   check_overlap                       : 2 #      Enables linear overlap check
+   experimental_mode                   : No #     Activate the experimental mode in linear scaling
+   write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
+   explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
+   calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
+   intermediate_forces                 : No #     Linear scaling calculate intermediate forces
+   kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
+   evbounds_nsatur                     : 3 #      Number of FOE cycles before the eigenvalue bounds are shrinked (linear)
+   evboundsshrink_nsatur               : 4 #      maximal number of unsuccessful eigenvalue bounds shrinkings
+   method_updatekernel                 : 0 #      linear scaling update density kernel during the sup. func. optimization (0 
+    #                                              purification, 1 FOE, 2 renormalization)
+   purification_quickreturn            : Yes #    linear scaling quick return in purification
+   adjust_FOE_temperature              : Yes #    linear scaling dynamic adjustment of the decay length of the FOE error function
+   calculate_gap                       : No #     linear scaling calculate the HOMO LUMO gap
+   loewdin_charge_analysis             : No #     linear scaling perform a Loewdin charge analysis at the end of the calculation
+   check_matrix_compression            : Yes #    linear scaling perform a check of the matrix compression routines
+   correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
+   fscale_lowerbound                   : 5.e-3 #  linear scaling lower bound for the error function decay length
+   fscale_upperbound                   : 5.e-2 #  linear scaling upper bound for the error function decay length
+   FOE_restart                         : 0 #      Restart method to be used for the FOE method
+   imethod_overlap                     : 1 #      method to calculate the overlap matrices (1=old, 2=new)
+   enable_matrix_taskgroups            : True #   enable the matrix taskgroups
+   hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
+   adjust_kernel_iterations            : True #   enable the addaptive ajustment of the number of kernel iterations
+   wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
+ kpt:
+   method                              : manual # K-point sampling method
+   kpt: #                                         Kpt coordinates
+   -  [0., 0., 0.]
+   wkpt: [1.] #                                   Kpt weights
+   bands                               : No #     For doing band structure calculation
+ mix:
+   iscf                                : 0 #      Mixing parameters
+   itrpmax                             : 1 #      Maximum number of diagonalisation iterations
+   rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
+   norbsempty                          : 0 #      No. of additional bands
+   tel                                 : 0. #     Electronic temperature
+   occopt                              : 1 #      Smearing method
+   alphamix                            : 0. #     Multiplying factors for the mixing
+   alphadiis                           : 2. #     Multiplying factors for the electronic DIIS
+ sic:
+   sic_approach                        : none #   SIC (self-interaction correction) method
+   sic_alpha                           : 0. #     SIC downscaling parameter
+ tddft:
+   tddft_approach                      : none #   Time-Dependent DFT method
+ lin_general:
+   hybrid                              : No #     activate the hybrid mode; if activated, only the low accuracy values will be relevant
+   nit: [100, 100] #                              number of iteration with low/high accuracy
+   rpnrm_cv: [1.e-12, 1.e-12] #                   convergence criterion for low/high accuracy
+   conf_damping                        : -0.5 #   how the confinement should be decreased, only relevant for hybrid mode; negative -> 
+    #                                              automatic
+   taylor_order                        : 0 #      order of the Taylor approximation; 0 -> exact
+   max_inversion_error                 : 1.d0 #   linear scaling maximal error of the Taylor approximations to calculate the inverse of 
+    #                                              the overlap matrix
+   output_wf                           : 0 #      output basis functions; 0 no output, 1 formatted output, 2 Fortran bin, 3 ETSF
+   calc_dipole                         : No #     calculate dipole
+   calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
+   subspace_diag                       : No #     diagonalization at the end
+   extra_states                        : 0 #      extra states to optimize (dmin only)
+ lin_basis:
+   nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
+    #                                              support functions
+   idsx: [6, 6] #                                 DIIS history for optimization of the support functions 
+    #                                              (low/high accuracy); 0 -> SD
+   gnrm_cv: [1.e-2, 1.e-4] #                      convergence criterion for the optimization of the support functions 
+    #                                              (low/high accuracy)
+   deltae_cv                           : 1.e-4 #  total relative energy difference to stop the optimization ('experimental_mode' only)
+   gnrm_dyn                            : 1.e-4 #  dynamic convergence criterion ('experimental_mode' only)
+   min_gnrm_for_dynamic                : 1.e-3 #  minimal gnrm to active the dynamic gnrm criterion
+   alpha_diis                          : 1.0 #    multiplicator for DIIS
+   alpha_sd                            : 1.0 #    initial step size for SD
+   nstep_prec                          : 5 #      number of iterations in the preconditioner
+   fix_basis                           : 1.e-10 # fix the support functions if the density change is below this threshold
+   correction_orthoconstraint          : 1 #      correction for the slight non-orthonormality in the orthoconstraint
+ lin_kernel:
+   nstep: [1, 1] #                                number of steps taken when updating the coefficients via 
+    #                                              direct minimization for each iteration of 
+    #                                              the density kernel loop
+   nit: [5, 5] #                                  number of iterations in the (self-consistent) 
+    #                                              optimization of the density kernel
+   idsx_coeff: [0, 0] #                           DIIS history for direct mininimization
+   idsx: [0, 0] #                                 mixing method; 0 -> linear mixing, >=1 -> Pulay mixing
+   alphamix: [0.5, 0.5] #                         mixing parameter (low/high accuracy)
+   gnrm_cv_coeff: [1.e-5, 1.e-5] #                convergence criterion on the gradient for direct minimization
+   rpnrm_cv: [1.e-10, 1.e-10] #                   convergence criterion (change in density/potential) for the kernel 
+    #                                              optimization
+   linear_method                       : DIAG #   method to optimize the density kernel
+   mixing_method                       : DEN #    quantity to be mixed
+   alpha_sd_coeff                      : 0.2 #    initial step size for SD for direct minimization
+   alpha_fit_coeff                     : No #     update the SD step size by fitting a quadratic polynomial to the energy along the 
+    #                                              direction of the gradient during direct 
+    #                                              mininimization.
+   eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
+    #                                              automatically if chosen unproperly
+   fscale_foe                          : 2.e-2 #  decay length of the error function
+ lin_basis_params:
+   nbasis                              : 4 #      number of support functions per atom
+   ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
+   confinement: [8.3e-3, 0.0] #                   prefactor for the confining potential (low/high accuracy)
+   rloc: [7.0, 7.0] #                             localization radius for the support functions
+   rloc_kernel                         : 9.0 #    localization radius for the density kernel
+   rloc_kernel_foe                     : 14.0 #   cutoff radius for the FOE matrix vector multiplications
+ psppar.Si:
+   Pseudopotential type                : HGH-K
+   Atomic number                       : 14
+   No. of Electrons                    : 4
+   Pseudopotential XC                  : 1
+   Local Pseudo Potential (HGH convention):
+     Rloc                              : 0.44
+     Coefficients (c1 .. c4): [-7.33610297, 0.0, 0.0, 0.0]
+   NonLocal PSP Parameters:
+   - Channel (l)                       : 0
+     Rloc                              : 0.42273813
+     h_ij terms: [5.90692831, 3.25819622, 0.0, -1.26189397, 0.0, 0.0]
+   - Channel (l)                       : 1
+     Rloc                              : 0.48427842
+     h_ij terms: [2.72701346, 0.0, 0.0, 0.0, 0.0, 0.0]
+   Source                              : Hard-Coded
+   Radii of active regions (AU):
+     Coarse                            : 1.806025343502968
+     Fine                              : 0.42273813
+     Coarse PSP                        : 0.9080220375
+     Source                            : Hard-Coded
+  #--------------------------------------------------------------------------------------- |
+ Data Writing directory                : ./data-LENOSKY-bfgs/
+  #--------------------------------------- Input Atomic System (file: __not_a_value__.ascii)
+ Atomic System Properties:
+   Number of atomic types              :  1
+   Number of atoms                     :  20
+   Types of atoms                      :  [ Si ]
+   Boundary Conditions                 : Periodic #Code: P
+   Box Sizes (AU)                      :  [  4.72432E+01,  4.72432E+01,  4.72432E+01 ]
+   Number of Symmetries                :  1
+   Space group                         : P 1
+  #----------------------- Geometry optimization Input Parameters (file: LENOSKY-bfgs.geopt)
+ Geometry Optimization Parameters:
+   Maximum steps                       :  500
+   Algorithm                           : BFGS
+   Random atomic displacement          :  0.0E+00
+   Fluctuation in forces               :  0.0E+00
+   Maximum in forces                   :  1.0E-04
+   Steepest descent step               :  7.0E+00
+  #------------------- K points description (Reduced and Brillouin zone coordinates, Weight)
+ K points:
+ -  {Rc:  [  0.0000,  0.0000,  0.0000 ], Bz:  [  0.0000,  0.0000,  0.0000 ], Wgt:  1.0000} # 0001
+ Material acceleration                 :  No #iproc=0
+ Initializing LENOSKY_SI_BULK_RUN_MODE:
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   Energy (Hartree)                    : -2.52891298656997110E+00
+   Wavefunction Optimization Finished, exit signal:  0
+    #------------------------------------------------------ Geometry minimization using BFGS
+   Begin of minimization using         : BFGS
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  1
+     Geometry step                     :  0
+     FORCES norm(Ha/Bohr): { maxval:  4.23823E-02, fnrm2:  1.08151E-01, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.52891298656997E+00
+     de                                :  0.00E+00
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  8.00E-1
+     isatur                            :  0
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  2
+     Geometry step                     :  1
+     FORCES norm(Ha/Bohr): { maxval:  3.06862E-02, fnrm2:  6.66112E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.58081914195491E+00
+     de                                : -5.19E-02
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  8.80E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  3
+     Geometry step                     :  2
+     FORCES norm(Ha/Bohr): { maxval:  2.48888E-02, fnrm2:  6.29575E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.62066507369357E+00
+     de                                : -3.98E-02
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  4
+     Geometry step                     :  3
+     FORCES norm(Ha/Bohr): { maxval:  2.47961E-02, fnrm2:  5.45954E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.63877464919891E+00
+     de                                : -1.81E-02
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  5
+     Geometry step                     :  4
+     FORCES norm(Ha/Bohr): { maxval:  2.07040E-02, fnrm2:  5.13516E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.65287267797059E+00
+     de                                : -1.41E-02
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  6
+     Geometry step                     :  5
+     FORCES norm(Ha/Bohr): { maxval:  1.17043E-02, fnrm2:  2.79045E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.66113587922736E+00
+     de                                : -8.26E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  7
+     Geometry step                     :  6
+     FORCES norm(Ha/Bohr): { maxval:  8.80454E-03, fnrm2:  2.11710E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.66667685653152E+00
+     de                                : -5.54E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  8
+     Geometry step                     :  7
+     FORCES norm(Ha/Bohr): { maxval:  8.28893E-03, fnrm2:  1.97816E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.67045337454298E+00
+     de                                : -3.78E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  9
+     Geometry step                     :  8
+     FORCES norm(Ha/Bohr): { maxval:  7.04262E-03, fnrm2:  1.93229E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.67324011571753E+00
+     de                                : -2.79E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  10
+     Geometry step                     :  9
+     FORCES norm(Ha/Bohr): { maxval:  6.69926E-03, fnrm2:  1.97369E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.67620255051568E+00
+     de                                : -2.96E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  11
+     Geometry step                     :  10
+     FORCES norm(Ha/Bohr): { maxval:  7.95703E-03, fnrm2:  1.57631E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.67817155083621E+00
+     de                                : -1.97E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  12
+     Geometry step                     :  11
+     FORCES norm(Ha/Bohr): { maxval:  5.35710E-03, fnrm2:  1.26780E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.67987552907707E+00
+     de                                : -1.70E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  1
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  13
+     Geometry step                     :  12
+     FORCES norm(Ha/Bohr): { maxval:  3.78119E-03, fnrm2:  1.10813E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.68084949340229E+00
+     de                                : -9.74E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  2
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  14
+     Geometry step                     :  13
+     FORCES norm(Ha/Bohr): { maxval:  3.58020E-03, fnrm2:  9.09513E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.68173279317875E+00
+     de                                : -8.83E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  3
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  15
+     Geometry step                     :  14
+     FORCES norm(Ha/Bohr): { maxval:  3.72197E-03, fnrm2:  9.25280E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.68251042538939E+00
+     de                                : -7.78E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  4
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  16
+     Geometry step                     :  15
+     FORCES norm(Ha/Bohr): { maxval:  3.94156E-03, fnrm2:  9.47323E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.68309995139113E+00
+     de                                : -5.90E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  5
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  17
+     Geometry step                     :  16
+     FORCES norm(Ha/Bohr): { maxval:  3.75851E-03, fnrm2:  1.00001E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.68393187479740E+00
+     de                                : -8.32E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  6
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  18
+     Geometry step                     :  17
+     FORCES norm(Ha/Bohr): { maxval:  1.17964E-02, fnrm2:  2.57879E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.68760785634856E+00
+     de                                : -3.68E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  19
+     Geometry step                     :  18
+     FORCES norm(Ha/Bohr): { maxval:  1.20073E-02, fnrm2:  2.56648E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.69063437863104E+00
+     de                                : -3.03E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  20
+     Geometry step                     :  19
+     FORCES norm(Ha/Bohr): { maxval:  3.04365E-02, fnrm2:  5.55782E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.69130502724206E+00
+     de                                : -6.71E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  21
+     Geometry step                     :  20
+     FORCES norm(Ha/Bohr): { maxval:  7.92057E-03, fnrm2:  2.43244E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.69971071723772E+00
+     de                                : -8.41E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  22
+     Geometry step                     :  21
+     FORCES norm(Ha/Bohr): { maxval:  1.01095E-02, fnrm2:  1.96713E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.70217503250490E+00
+     de                                : -2.46E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  23
+     Geometry step                     :  22
+     FORCES norm(Ha/Bohr): { maxval:  9.19051E-03, fnrm2:  2.52308E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.70740306027319E+00
+     de                                : -5.23E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  24
+     Geometry step                     :  23
+     FORCES norm(Ha/Bohr): { maxval:  1.16883E-02, fnrm2:  2.92867E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.70947273271587E+00
+     de                                : -2.07E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  25
+     Geometry step                     :  24
+     FORCES norm(Ha/Bohr): { maxval:  7.49863E-03, fnrm2:  1.79997E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71230141508176E+00
+     de                                : -2.83E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  26
+     Geometry step                     :  25
+     FORCES norm(Ha/Bohr): { maxval:  6.96830E-03, fnrm2:  1.74301E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71435679829081E+00
+     de                                : -2.06E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  27
+     Geometry step                     :  26
+     FORCES norm(Ha/Bohr): { maxval:  4.78525E-03, fnrm2:  1.35417E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71596475278936E+00
+     de                                : -1.61E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  1
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  28
+     Geometry step                     :  27
+     FORCES norm(Ha/Bohr): { maxval:  2.73701E-03, fnrm2:  8.08796E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71684332772123E+00
+     de                                : -8.79E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  2
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  29
+     Geometry step                     :  28
+     FORCES norm(Ha/Bohr): { maxval:  2.15741E-03, fnrm2:  5.84140E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71717033336080E+00
+     de                                : -3.27E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  3
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  30
+     Geometry step                     :  29
+     FORCES norm(Ha/Bohr): { maxval:  1.37624E-03, fnrm2:  3.75545E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71735489960859E+00
+     de                                : -1.85E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  4
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  31
+     Geometry step                     :  30
+     FORCES norm(Ha/Bohr): { maxval:  1.00648E-03, fnrm2:  2.25762E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71742483114729E+00
+     de                                : -6.99E-05
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  5
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  32
+     Geometry step                     :  31
+     FORCES norm(Ha/Bohr): { maxval:  5.69625E-04, fnrm2:  1.69952E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71746839379740E+00
+     de                                : -4.36E-05
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  6
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  33
+     Geometry step                     :  32
+     FORCES norm(Ha/Bohr): { maxval:  5.21091E-04, fnrm2:  1.26802E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71748423670083E+00
+     de                                : -1.58E-05
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  7
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  34
+     Geometry step                     :  33
+     FORCES norm(Ha/Bohr): { maxval:  3.75026E-04, fnrm2:  9.07240E-04, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71749264373237E+00
+     de                                : -8.41E-06
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  8
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  35
+     Geometry step                     :  34
+     FORCES norm(Ha/Bohr): { maxval:  2.33385E-04, fnrm2:  5.71171E-04, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71749676643549E+00
+     de                                : -4.12E-06
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  9
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  36
+     Geometry step                     :  35
+     FORCES norm(Ha/Bohr): { maxval:  2.43922E-04, fnrm2:  5.79752E-04, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71749991648110E+00
+     de                                : -3.15E-06
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  10
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  37
+     Geometry step                     :  36
+     FORCES norm(Ha/Bohr): { maxval:  4.38365E-04, fnrm2:  9.24680E-04, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71750664338901E+00
+     de                                : -6.73E-06
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  11
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  38
+     Geometry step                     :  37
+     FORCES norm(Ha/Bohr): { maxval:  9.03349E-04, fnrm2:  2.06141E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71752817018330E+00
+     de                                : -2.15E-05
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  12
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  39
+     Geometry step                     :  38
+     FORCES norm(Ha/Bohr): { maxval:  3.94265E-02, fnrm2:  7.00844E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.70242344199082E+00
+     de                                :  1.51E-02
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 6.03961E-14 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  40
+     Geometry step                     :  39
+     FORCES norm(Ha/Bohr): { maxval:  6.41697E-03, fnrm2:  1.56867E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71754525907936E+00
+     de                                : -1.51E-02
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  41
+     Geometry step                     :  40
+     FORCES norm(Ha/Bohr): { maxval:  3.32337E-03, fnrm2:  8.76763E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71848312571574E+00
+     de                                : -9.38E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  1
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  42
+     Geometry step                     :  41
+     FORCES norm(Ha/Bohr): { maxval:  3.08856E-03, fnrm2:  7.86915E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71881884693841E+00
+     de                                : -3.36E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  2
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  43
+     Geometry step                     :  42
+     FORCES norm(Ha/Bohr): { maxval:  4.41963E-03, fnrm2:  9.64371E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.71990652713982E+00
+     de                                : -1.09E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  3
+    #WARNING: Input positions not identical! (difference: 1.06581E-14 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  44
+     Geometry step                     :  43
+     FORCES norm(Ha/Bohr): { maxval:  3.66860E-02, fnrm2:  6.23770E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.70664005640165E+00
+     de                                :  1.33E-02
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  45
+     Geometry step                     :  44
+     FORCES norm(Ha/Bohr): { maxval:  8.10731E-03, fnrm2:  1.66772E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72031772476998E+00
+     de                                : -1.37E-02
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 7.10543E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  46
+     Geometry step                     :  45
+     FORCES norm(Ha/Bohr): { maxval:  4.77675E-03, fnrm2:  8.38763E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72171971789493E+00
+     de                                : -1.40E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  1
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  47
+     Geometry step                     :  46
+     FORCES norm(Ha/Bohr): { maxval:  2.87024E-03, fnrm2:  5.27528E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72213366390691E+00
+     de                                : -4.14E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  2
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  48
+     Geometry step                     :  47
+     FORCES norm(Ha/Bohr): { maxval:  2.22463E-03, fnrm2:  4.15627E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72234828240526E+00
+     de                                : -2.15E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  3
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  49
+     Geometry step                     :  48
+     FORCES norm(Ha/Bohr): { maxval:  3.82193E-03, fnrm2:  7.37246E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72276896613400E+00
+     de                                : -4.21E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  4
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  50
+     Geometry step                     :  49
+     FORCES norm(Ha/Bohr): { maxval:  1.86267E-02, fnrm2:  2.53159E-02, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72010953826383E+00
+     de                                :  2.66E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  0
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  51
+     Geometry step                     :  50
+     FORCES norm(Ha/Bohr): { maxval:  3.97981E-03, fnrm2:  7.26263E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72297458626748E+00
+     de                                : -2.87E-03
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  1
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  52
+     Geometry step                     :  51
+     FORCES norm(Ha/Bohr): { maxval:  1.88620E-03, fnrm2:  3.99582E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72314400114334E+00
+     de                                : -1.69E-04
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  2
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  53
+     Geometry step                     :  52
+     FORCES norm(Ha/Bohr): { maxval:  1.50094E-03, fnrm2:  2.70603E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72321368845315E+00
+     de                                : -6.97E-05
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  3
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  54
+     Geometry step                     :  53
+     FORCES norm(Ha/Bohr): { maxval:  9.64231E-04, fnrm2:  2.29537E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72329108642122E+00
+     de                                : -7.74E-05
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  4
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  55
+     Geometry step                     :  54
+     FORCES norm(Ha/Bohr): { maxval:  9.09867E-04, fnrm2:  2.10279E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72335340602301E+00
+     de                                : -6.23E-05
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  5
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  56
+     Geometry step                     :  55
+     FORCES norm(Ha/Bohr): { maxval:  7.97931E-04, fnrm2:  1.86047E-03, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72338649986989E+00
+     de                                : -3.31E-05
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  6
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  57
+     Geometry step                     :  56
+     FORCES norm(Ha/Bohr): { maxval:  3.22622E-04, fnrm2:  8.31968E-04, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72339813354034E+00
+     de                                : -1.16E-05
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  7
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  58
+     Geometry step                     :  57
+     FORCES norm(Ha/Bohr): { maxval:  3.70292E-04, fnrm2:  6.22790E-04, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72340220762523E+00
+     de                                : -4.07E-06
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  8
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  0
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  59
+     Geometry step                     :  58
+     FORCES norm(Ha/Bohr): { maxval:  1.28482E-04, fnrm2:  3.34784E-04, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72340386390653E+00
+     de                                : -1.66E-06
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  9
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  1
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  60
+     Geometry step                     :  59
+     FORCES norm(Ha/Bohr): { maxval:  9.83576E-05, fnrm2:  2.50531E-04, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72340478631126E+00
+     de                                : -9.22E-07
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  10
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  2
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  61
+     Geometry step                     :  60
+     FORCES norm(Ha/Bohr): { maxval:  7.88874E-05, fnrm2:  1.95319E-04, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72340563347365E+00
+     de                                : -8.47E-07
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  11
+    #WARNING: Input positions not identical! (difference: 3.55271E-15 ), broadcasting from 
+    #master node
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  3
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  62
+     Geometry step                     :  61
+     FORCES norm(Ha/Bohr): { maxval:  6.39126E-05, fnrm2:  1.45989E-04, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72340587595394E+00
+     de                                : -2.42E-07
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  12
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  4
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  63
+     Geometry step                     :  62
+     FORCES norm(Ha/Bohr): { maxval:  4.12266E-05, fnrm2:  7.85955E-05, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72340599852977E+00
+     de                                : -1.23E-07
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  13
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  5
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  64
+     Geometry step                     :  63
+     FORCES norm(Ha/Bohr): { maxval:  2.74836E-05, fnrm2:  5.57544E-05, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72340604123498E+00
+     de                                : -4.27E-08
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  14
+ - LENOSKY_SI_BULK_RUN_MODE: {}
+   ICHECK                              :  6
+   Geometry:
+     Geometry Method                   : BFGS
+     Ncount_BigDFT                     :  65
+     Geometry step                     :  64
+     FORCES norm(Ha/Bohr): { maxval:  1.69794E-05, fnrm2:  4.27190E-05, 
+                              fluct:  0.00000E+00}
+     etot                              : -2.72340606442174E+00
+     de                                : -2.32E-08
+     flt                               :  [  0.0E+00,  0.00E+00 ]
+     Alpha                             :  9.00E-1
+     isatur                            :  15
+   BFGS FINISHED: {It:  64, Etot: -2.723406064421736, Forces: [ 4.2719002003879371E-005, 
+  1.6979386972427414E-005]}
+   End of minimization using           : BFGS
+ Memory Consumption Report:
+   Tot. No. of Allocations             :  253
+   Tot. No. of Deallocations           :  253
+   Remaining Memory (B)                :  0
+   Memory occupation:
+     Peak Value (MB)                   :  0.122
+     for the array                     : array_diff
+     in the routine                    : Main_program
+     Memory Peak of process            : 19.400 MB
+ Max No. of dictionaries used          :  3357 #( 863 still in use)
+ Number of dictionary folders allocated:  1
+  #-------------------------------- Warnings obtained during the run, check their relevance!
+ WARNINGS:
+ - Input positions not identical! (difference: 3.55271E-15 ), broadcasting from master node
+ - Input positions not identical! (difference: 6.03961E-14 ), broadcasting from master node
+ - Input positions not identical! (difference: 1.06581E-14 ), broadcasting from master node
+ - Input positions not identical! (difference: 7.10543E-15 ), broadcasting from master node

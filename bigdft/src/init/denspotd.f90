@@ -13,13 +13,16 @@ subroutine initialize_DFT_local_fields(denspot, ixc, nspden)
   use module_base
   use module_types
   use module_xc
+  use public_enums
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
   integer, intent(in) :: ixc, nspden
 
   denspot%rhov_is = EMPTY
   nullify(denspot%rho_C)
+  nullify(denspot%rhohat)
   nullify(denspot%V_ext)
+  nullify(denspot%rho_ion)
   nullify(denspot%Vloc_KS)
   nullify(denspot%rho_psi)
   nullify(denspot%V_XC)
@@ -82,12 +85,12 @@ subroutine initialize_rho_descriptors(rhod)
 end subroutine initialize_rho_descriptors
 
 
-subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin)
+subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,geocode,nspin,igpu)
   use module_base
   use module_types
   use module_xc
   implicit none
-  integer, intent(in) :: iproc,nproc,mpi_comm,PS_groupsize,nspin
+  integer, intent(in) :: iproc,nproc,mpi_comm,PS_groupsize,nspin,igpu
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=4), intent(in) :: SICapproach
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -110,7 +113,8 @@ subroutine dpbox_set(dpbox,Lzd,xc,iproc,nproc,mpi_comm,PS_groupsize,SICapproach,
   end if
   call mpi_environment_set(dpbox%mpi_env,iproc,nproc,mpi_comm,npsolver_groupsize)
 
-  call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,xc,nspin,geocode,SICapproach,dpbox)
+  call denspot_communications(dpbox%mpi_env%iproc,dpbox%mpi_env%nproc,igpu,xc,&
+                              nspin,geocode,SICapproach,dpbox)
 
 end subroutine dpbox_set
 
@@ -130,9 +134,9 @@ subroutine dpbox_free(dpbox)
      call f_free_ptr(dpbox%ngatherarr)
   end if
   
-  if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
-     call mpi_environment_free(dpbox%mpi_env)
-  end if
+  !if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
+  call release_mpi_environment(dpbox%mpi_env)
+  !end if
 
   dpbox=dpbox_null()
 
@@ -156,17 +160,15 @@ subroutine dpbox_set_box(dpbox,Lzd)
 end subroutine dpbox_set_box
 
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!>todo: remove n1i and n2i
-subroutine denspot_set_history(denspot, iscf, nspin, &
-     & n1i, n2i, & !to be removed arguments when denspot has dimensions
+subroutine denspot_set_history(denspot, iscf, &
      npulayit)
   use module_base
   use module_types
-  use m_ab7_mixing
+  use module_mixing
+  use public_enums, only: SCF_KIND_DIRECT_MINIMIZATION
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
-  integer, intent(in) :: iscf, n1i, n2i, nspin
+  integer, intent(in) :: iscf
   integer,intent(in),optional :: npulayit
   
   integer :: potden, npoints, ierr
@@ -174,20 +176,20 @@ subroutine denspot_set_history(denspot, iscf, nspin, &
 
   if (iscf < 10) then
      potden = AB7_MIXING_POTENTIAL
-     npoints = n1i*n2i*denspot%dpbox%n3p
+     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3p
   else
      potden = AB7_MIXING_DENSITY
-     npoints = n1i*n2i*denspot%dpbox%n3d
+     npoints = denspot%dpbox%ndims(1)*denspot%dpbox%ndims(2)*denspot%dpbox%n3d
   end if
   if (iscf > SCF_KIND_DIRECT_MINIMIZATION) then
      allocate(denspot%mix)
      if (present(npulayit)) then
          call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
-              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
+              AB7_MIXING_REAL_SPACE, npoints, denspot%dpbox%nrhodim, 0, &
               ierr, errmess, npulayit=npulayit, useprec = .false.)
      else
          call ab7_mixing_new(denspot%mix, modulo(iscf, 10), potden, &
-              AB7_MIXING_REAL_SPACE, npoints, nspin, 0, &
+              AB7_MIXING_REAL_SPACE, npoints, denspot%dpbox%nrhodim, 0, &
               ierr, errmess, useprec = .false.)
      end if
      call ab7_mixing_eval_allocate(denspot%mix)
@@ -198,7 +200,7 @@ end subroutine denspot_set_history
 
 subroutine denspot_free_history(denspot)
   use module_types
-  use m_ab7_mixing
+  use module_mixing
   implicit none
   type(DFT_local_fields), intent(inout) :: denspot
   
@@ -209,13 +211,12 @@ subroutine denspot_free_history(denspot)
 end subroutine denspot_free_history
 
 
-subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox)
+subroutine denspot_communications(iproc,nproc,igpu,xc,nspin,geocode,SICapproach,dpbox)
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, except_this_one => denspot_communications
   implicit none
-  integer, intent(in) :: nspin,iproc,nproc
+  integer, intent(in) :: nspin,iproc,nproc,igpu
   type(xc_info), intent(in) :: xc
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=4), intent(in) :: SICapproach
@@ -233,7 +234,7 @@ subroutine denspot_communications(iproc,nproc,xc,nspin,geocode,SICapproach,dpbox
   !also used for the density
   dpbox%ngatherarr = f_malloc_ptr((/ 0.to.nproc-1, 1.to.3 /),id='dpbox%ngatherarr')
 
-  call dpbox_repartition(iproc,nproc,geocode,'D',xc,dpbox)
+  call dpbox_repartition(iproc,nproc,igpu,geocode,'D',xc,dpbox)
 
   !Allocate Charge density / Potential in real space
   !here the full_density treatment should be put
@@ -289,7 +290,7 @@ subroutine denspot_full_density(denspot, rho_full, iproc, new)
         new = 1
         
         ! Ask to gather density to other procs.
-        call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        !LG: wtf is that? call MPI_BCAST(0, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
 
      if (denspot%dpbox%ndimrhopot > 0) then
@@ -337,7 +338,7 @@ subroutine denspot_full_v_ext(denspot, pot_full, iproc, new)
         new = 1
       
         ! Ask to gather density to other procs.
-        call MPI_BCAST(1, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        !!!call MPI_BCAST(1, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
      end if
 
      call MPI_GATHERV(denspot%v_ext(1,1,1,1),max(denspot%dpbox%ndimpot, 1),&
@@ -384,11 +385,11 @@ subroutine denspot_emit_rhov(denspot, iter, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
      end if
   else
      do
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
         if (message == SIGNAL_DONE) then
            exit
         else if (message == SIGNAL_DENSITY) then
@@ -437,11 +438,12 @@ subroutine denspot_emit_v_ext(denspot, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
      end if
   else
      do
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
+        !call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
         if (message == SIGNAL_DONE) then
            exit
         else
@@ -460,7 +462,7 @@ END SUBROUTINE denspot_emit_v_ext
 subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
   use module_base
   use module_types
-  use module_interfaces, fake_name => allocateRhoPot
+  use module_interfaces, only: calculate_rhocore
   implicit none
   integer, intent(in) :: nspin
   type(locreg_descriptors), intent(in) :: Glr
@@ -481,6 +483,17 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
      denspot%V_XC = f_malloc_ptr((/ 1 , 1 , 1 , nspin /),id='denspot%V_XC')
   end if
 
+  !allocate ionic density in the case of a cavity calculation
+  if (denspot%pkernel%method /= 'VAC') then
+     if (denspot%dpbox%n3pi > 0) then
+        denspot%rho_ion = f_malloc_ptr([ Glr%d%n1i , Glr%d%n2i , denspot%dpbox%n3pi , 1 ],id='denspot%rho_ion')
+     else
+        denspot%rho_ion = f_malloc_ptr([ 1 , 1 , 1 , 1 ],id='denspot%rho_ion')
+     end if
+  else
+     denspot%rho_ion = f_malloc_ptr([ 1 , 1 , 1 , 1 ],id='denspot%rho_ion')
+  end if
+
   if (denspot%dpbox%n3d >0) then
      denspot%rhov = f_malloc_ptr(Glr%d%n1i*Glr%d%n2i*denspot%dpbox%n3d*&
           denspot%dpbox%nrhodim,id='denspot%rhov')
@@ -490,10 +503,7 @@ subroutine allocateRhoPot(Glr,nspin,atoms,rxyz,denspot)
   !check if non-linear core correction should be applied, and allocate the 
   !pointer if it is the case
   !print *,'i3xcsh',denspot%dpbox%i3s,denspot%dpbox%i3xcsh,denspot%dpbox%n3d
-  call calculate_rhocore(atoms,Glr%d,rxyz,&
-       denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
-       denspot%dpbox%i3s,denspot%dpbox%i3xcsh,&
-       denspot%dpbox%n3d,denspot%dpbox%n3p,denspot%rho_C)
+  call calculate_rhocore(atoms,rxyz,denspot%dpbox,denspot%rho_C)
 
 END SUBROUTINE allocateRhoPot
 
@@ -505,7 +515,7 @@ END SUBROUTINE allocateRhoPot
 
 
 !> Create the descriptors for the density and the potential
-subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
+subroutine dpbox_repartition(iproc,nproc,igpu,geocode,datacode,xc,dpbox)
 
   use module_base
   use module_types
@@ -513,7 +523,7 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
   use module_xc
   implicit none
   !Arguments
-  integer, intent(in) :: iproc,nproc
+  integer, intent(in) :: iproc,nproc,igpu
   type(xc_info), intent(in) :: xc
   character(len=1), intent(in) :: geocode  !< @copydoc poisson_solver::doc::geocode
   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
@@ -525,7 +535,7 @@ subroutine dpbox_repartition(iproc,nproc,geocode,datacode,xc,dpbox)
      do jproc=0,nproc-1
         call PS_dim4allocation(geocode,datacode,jproc,nproc,&
              dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),xc_isgga(xc),(xc%ixc/=13),&
-             n3d,n3p,n3pi,i3xcsh,i3s)
+             igpu,n3d,n3p,n3pi,i3xcsh,i3s)
         dpbox%nscatterarr(jproc,1)=n3d            !number of planes for the density
         dpbox%nscatterarr(jproc,2)=n3p            !number of planes for the potential
         dpbox%nscatterarr(jproc,3)=i3s+i3xcsh-1   !starting offset for the potential
@@ -571,7 +581,6 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, except_this_one_A => density_descriptors
   implicit none
   integer, intent(in) :: iproc,nproc,nspin
   type(xc_info), intent(in) :: xc
@@ -612,7 +621,7 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
 !!$     rhodsc%icomm=1
 !!$  end if
 
-  !in the case of taskgroups the RSC scheme should be overrided
+  !in the case of taskgroups the RSC scheme should be overridden
   if (rhodsc%icomm==1 .and. size(dpbox%nscatterarr,1) < nproc) then
      if (atoms%astruct%geocode.eq.'F') then
         rhodsc%icomm=2
@@ -645,11 +654,9 @@ subroutine density_descriptors(iproc,nproc,xc,nspin,crmult,frmult,atoms,dpbox,&
  
 end subroutine density_descriptors
 
-
 !> routine which initialised the potential data
 subroutine default_confinement_data(confdatarr,norbp)
-  use module_base
-  use module_types
+  use locreg_operations, only: confpot_data,nullify_confpot_data
   implicit none
   integer, intent(in) :: norbp
   type(confpot_data), dimension(norbp), intent(out) :: confdatarr
@@ -658,27 +665,19 @@ subroutine default_confinement_data(confdatarr,norbp)
 
   !initialize the confdatarr
   do iorb=1,norbp
-     confdatarr(iorb)%potorder=0
-     !the rest is not useful
-     confdatarr(iorb)%prefac     =UNINITIALIZED(confdatarr(iorb)%prefac)     
-     confdatarr(iorb)%hh(1)      =UNINITIALIZED(confdatarr(iorb)%hh(1))      
-     confdatarr(iorb)%hh(2)      =UNINITIALIZED(confdatarr(iorb)%hh(2))      
-     confdatarr(iorb)%hh(3)      =UNINITIALIZED(confdatarr(iorb)%hh(3))      
-     confdatarr(iorb)%rxyzConf(1)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(1))
-     confdatarr(iorb)%rxyzConf(2)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(2))
-     confdatarr(iorb)%rxyzConf(3)=UNINITIALIZED(confdatarr(iorb)%rxyzConf(3))
-     confdatarr(iorb)%ioffset(1) =UNINITIALIZED(confdatarr(iorb)%ioffset(1)) 
-     confdatarr(iorb)%ioffset(2) =UNINITIALIZED(confdatarr(iorb)%ioffset(2)) 
-     confdatarr(iorb)%ioffset(3) =UNINITIALIZED(confdatarr(iorb)%ioffset(3)) 
-
+     call nullify_confpot_data(confdatarr(iorb))
   end do
 end subroutine default_confinement_data
+
+
 
 
 subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
            confpotorder,potentialprefac,Lzd,confinementCenter)
   use module_base
   use module_types
+  use locreg_operations, only: confpot_data
+  use bounds, only: geocode_buffers
   implicit none
   real(gp), intent(in) :: hx,hy,hz
   type(atoms_data), intent(in) :: at
@@ -705,34 +704,22 @@ subroutine define_confinement_data(confdatarr,orbs,rxyz,at,hx,hy,hz,&
      confdatarr(iorb)%hh(2)=.5_gp*hy
      confdatarr(iorb)%hh(3)=.5_gp*hz
      confdatarr(iorb)%rxyzConf(1:3)=rxyz(1:3,icenter)!Lzd%Llr(ilr)%locregCenter(1:3)
-     call geocode_buffers(Lzd%Llr(ilr)%geocode,nl1,nl2,nl3)
+     call geocode_buffers(Lzd%Llr(ilr)%geocode, lzd%glr%geocode, nl1, nl2, nl3)
      confdatarr(iorb)%ioffset(1)=lzd%llr(ilr)%nsi1-nl1-1
      confdatarr(iorb)%ioffset(2)=lzd%llr(ilr)%nsi2-nl2-1
      confdatarr(iorb)%ioffset(3)=lzd%llr(ilr)%nsi3-nl3-1
+     !confdatarr(iorb)%ioffset(1)=lzd%llr(ilr)%nsi1-1
+     !confdatarr(iorb)%ioffset(2)=lzd%llr(ilr)%nsi2-1
+     !confdatarr(iorb)%ioffset(3)=lzd%llr(ilr)%nsi3-1
+     !confdatarr(iorb)%ioffset(1)=modulo(lzd%llr(ilr)%nsi1-1,lzd%glr%d%n1i)+1-nl1-1
+     !confdatarr(iorb)%ioffset(2)=modulo(lzd%llr(ilr)%nsi2-1,lzd%glr%d%n2i)+1-nl2-1
+     !confdatarr(iorb)%ioffset(3)=modulo(lzd%llr(ilr)%nsi3-1,lzd%glr%d%n3i)+1-nl3-1
+     confdatarr(iorb)%damping   =1.0_gp
   end do
 
-contains
-
-    subroutine geocode_buffers(geocode,nl1,nl2,nl3)
-      implicit none
-      character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-      integer, intent(out) :: nl1,nl2,nl3
-      !local variables
-      logical :: perx,pery,perz
-      integer :: nr1,nr2,nr3
-
-      !conditions for periodicity in the three directions
-      perx=(geocode /= 'F')
-      pery=(geocode == 'P')
-      perz=(geocode /= 'F')
-
-      call ext_buffers(perx,nl1,nr1)
-      call ext_buffers(pery,nl2,nr2)
-      call ext_buffers(perz,nl3,nr3)
-
-    end subroutine geocode_buffers
-  
 end subroutine define_confinement_data
+
+  
 
 
 !> Print the distribution schemes

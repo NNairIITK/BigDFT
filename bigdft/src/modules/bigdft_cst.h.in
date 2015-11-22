@@ -1,7 +1,7 @@
 /* @file
  * Bindings for the BigDFT package
  * @author
- * Copyright (C) 2013-2013 BigDFT group
+ * Copyright (C) 2013-2015 BigDFT group
  * This file is distributed under the terms of the
  * GNU General Public License, see ~/COPYING file
  * or http://www.gnu.org/copyleft/gpl.txt .
@@ -75,7 +75,7 @@ typedef struct _GObject {guint ref_count;} GObject;
 /* Internal types for Fortran datatypes. */
 /* Basic types, used for minimal bindings only. */
 #define F_TYPE(T) (T.add)
-#define F_DEFINE_TYPE(T) typedef void f90_ ## T;                                  \
+#define F_DEFINE_TYPE(T) typedef void f90_ ## T;                        \
  typedef struct {f90_ ## T *add; char buf[64];} f90_ ## T ## _pointer
 
 F_DEFINE_TYPE(dictionary);
@@ -86,7 +86,7 @@ F_DEFINE_TYPE(symmetry_data);
 F_DEFINE_TYPE(input_variables);
 F_DEFINE_TYPE(restart_objects);
 F_DEFINE_TYPE(run_objects);
-F_DEFINE_TYPE(DFT_global_output);
+F_DEFINE_TYPE(state_properties);
 F_DEFINE_TYPE(DFT_PSP_projectors);
 F_DEFINE_TYPE(energy_terms);
 F_DEFINE_TYPE(run_image);

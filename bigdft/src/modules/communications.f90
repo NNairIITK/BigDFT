@@ -28,6 +28,7 @@ module communications
   public :: communicate_locreg_descriptors_keys
   public :: transpose_v
   public :: untranspose_v
+  public :: toglobal_and_transpose
 
 
   contains
@@ -141,7 +142,7 @@ module communications
                psiwork_c, psiwork_f, wt, psitwork_c, psitwork_f)
       use module_base
       use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, &
-                                     TRANSPOSE_GATHER, ERR_LINEAR_TRANSPOSITION
+                                     TRANSPOSE_GATHER
       implicit none
       
       ! Calling arguments
@@ -154,7 +155,8 @@ module communications
       real(kind=8),dimension(7*collcom%ndimind_f),intent(out) :: psitwork_f
       
       ! Local variables
-      integer :: ierr, ist, ist_c, ist_f, iisend, iirecv, jproc
+      integer :: ist, ist_c, ist_f, iisend, iirecv, jproc
+      !integer :: ierr
       !!real(kind=8),dimension(:),allocatable :: psiwork, psitwork
       !!integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
       !!character(len=*),parameter :: subname='transpose_communicate_psi'
@@ -164,12 +166,12 @@ module communications
     
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
-          wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
-          wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
-          wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
-          wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
-          wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
-          wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
+          !!wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+          !!wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+          !!wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+          !!wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+          !!wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+          !!wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
     
           ist=1
           ist_c=1
@@ -241,12 +243,12 @@ module communications
               ist=ist+7*collcom%nrecvcounts_f(jproc)
           end do
     
-          call f_free_ptr(wt%psiwork)
-          call f_free_ptr(wt%psitwork)
-          call f_free_ptr(wt%nsendcounts)
-          call f_free_ptr(wt%nsenddspls)
-          call f_free_ptr(wt%nrecvcounts)
-          call f_free_ptr(wt%nrecvdspls)
+          !!call f_free_ptr(wt%psiwork)
+          !!call f_free_ptr(wt%psitwork)
+          !!call f_free_ptr(wt%nsendcounts)
+          !!call f_free_ptr(wt%nsenddspls)
+          !!call f_free_ptr(wt%nrecvcounts)
+          !!call f_free_ptr(wt%nrecvdspls)
       end if
     
     
@@ -388,7 +390,7 @@ module communications
                psitwork_c, psitwork_f, wt, psiwork_c, psiwork_f)
       use module_base
       use communications_base, only: work_transpose, TRANSPOSE_FULL, TRANSPOSE_POST, &
-                                     TRANSPOSE_GATHER, ERR_LINEAR_TRANSPOSITION
+                                     TRANSPOSE_GATHER
       implicit none
     
       ! Calling arguments
@@ -401,8 +403,8 @@ module communications
       real(kind=8),dimension(7*collcom%ndimpsi_f),intent(out) :: psiwork_f
       
       ! Local variables
-      integer :: ierr
       integer :: ist, ist_c, ist_f, jproc, iisend, iirecv
+      !integer :: ierr
       !!real(kind=8),dimension(:),allocatable :: psiwork, psitwork
       !!integer,dimension(:),allocatable :: nsendcounts, nsenddspls, nrecvcounts, nrecvdspls
       !!character(len=*),parameter :: subname='transpose_communicate_psit'
@@ -412,12 +414,12 @@ module communications
     
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
-          wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
-          wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
-          wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
-          wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
-          wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
-          wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
+          !!wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+          !!wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+          !!wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+          !!wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+          !!wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+          !!wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
     
           ist=1
           ist_c=1
@@ -442,22 +444,21 @@ module communications
               iisend=iisend+wt%nsendcounts(jproc)
               iirecv=iirecv+wt%nrecvcounts(jproc)
           end do
-      end if
     
+          !!! coarse part
+          !! call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
+          !!      collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     
-      !!! coarse part
-      !! call mpi_alltoallv(psitwork_c, collcom%nrecvcounts_c, collcom%nrecvdspls_c, mpi_double_precision, psiwork_c, &
-      !!      collcom%nsendcounts_c, collcom%nsenddspls_c, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-    
-      !!! fine part
-      !! call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
-      !!      7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
-      if (nproc>1) then
-          call mpiialltoallv(wt%psitwork(1), wt%nrecvcounts(0), wt%nrecvdspls(0), mpi_double_precision, wt%psiwork(1), &
-               wt%nsendcounts(0), wt%nsenddspls(0), mpi_double_precision, bigdft_mpi%mpi_comm, wt%request)
-      else
-          call vcopy(wt%nrecvcounts(0), wt%psitwork(1), 1, wt%psiwork(1), 1)
-          wt%request = MPI_REQUEST_NULL
+          !!! fine part
+          !! call mpi_alltoallv(psitwork_f, 7*collcom%nrecvcounts_f, 7*collcom%nrecvdspls_f, mpi_double_precision, psiwork_f, &
+          !!      7*collcom%nsendcounts_f, 7*collcom%nsenddspls_f, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
+          if (nproc>1) then
+              call mpiialltoallv(wt%psitwork(1), wt%nrecvcounts(0), wt%nrecvdspls(0), mpi_double_precision, wt%psiwork(1), &
+                   wt%nsendcounts(0), wt%nsenddspls(0), mpi_double_precision, bigdft_mpi%mpi_comm, wt%request)
+          else
+              call vcopy(wt%nrecvcounts(0), wt%psitwork(1), 1, wt%psiwork(1), 1)
+              wt%request = MPI_REQUEST_NULL
+          end if
       end if
     
       if (transpose_action == TRANSPOSE_FULL .or. &
@@ -483,12 +484,12 @@ module communications
               ist=ist+7*collcom%nsendcounts_f(jproc)
           end do
     
-          call f_free_ptr(wt%psiwork)
-          call f_free_ptr(wt%psitwork)
-          call f_free_ptr(wt%nsendcounts)
-          call f_free_ptr(wt%nsenddspls)
-          call f_free_ptr(wt%nrecvcounts)
-          call f_free_ptr(wt%nrecvdspls)
+          !!call f_free_ptr(wt%psiwork)
+          !!call f_free_ptr(wt%psitwork)
+          !!call f_free_ptr(wt%nsendcounts)
+          !!call f_free_ptr(wt%nsenddspls)
+          !!call f_free_ptr(wt%nrecvcounts)
+          !!call f_free_ptr(wt%nrecvdspls)
       end if
     
     end subroutine transpose_communicate_psit
@@ -621,7 +622,7 @@ module communications
       type(work_transpose),intent(inout),target,optional :: wt_
       
       ! Local variables
-      real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
+      !!real(kind=8),dimension(:),allocatable :: psiwork_c, psiwork_f, psitwork_c, psitwork_f
       character(len=*),parameter :: subname='transpose_localized'
       type(work_transpose),pointer :: wt
 
@@ -644,50 +645,103 @@ module communications
           end if
       end if
 
-      ! Point to the provided work arrays
+      ! Point to the provided work arrays, otherwise allocate
       if (present(wt_)) then
           wt => wt_
+          if (.not.associated(wt%psiwork_c) .or. &
+              .not.associated(wt%psiwork_c) .or. &
+              .not.associated(wt%psiwork_f) .or. &
+              .not.associated(wt%psitwork_c) .or. &
+              .not.associated(wt%psitwork_f) .or. &
+              .not.associated(wt%psiwork) .or. &
+              .not.associated(wt%psitwork) .or. &
+              .not.associated(wt%nsendcounts) .or. &
+              .not.associated(wt%nsenddspls) .or. &
+              .not.associated(wt%nrecvcounts) .or. &
+              .not.associated(wt%nrecvdspls)) then
+              call f_err_throw('not all workarrays are associated', err_id=ERR_LINEAR_TRANSPOSITION)
+          end if
       else
-          allocate(wt)
+          if (transpose_action == TRANSPOSE_FULL .or. &
+              transpose_action == TRANSPOSE_POST) then
+              allocate(wt)
+              wt = work_transpose_null()
+              wt%psiwork_c = f_malloc_ptr(collcom%ndimpsi_c,id='psiwork_c')
+              wt%psiwork_f = f_malloc_ptr(7*collcom%ndimpsi_f,id='psiwork_f')
+              wt%psitwork_c = f_malloc_ptr(collcom%ndimind_c,id='psitwork_c')
+              wt%psitwork_f = f_malloc_ptr(7*collcom%ndimind_f,id='psitwork_f')
+              wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+              wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+              wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+              wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+              wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+              wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
+          end if
       end if
 
-      if (transpose_action == TRANSPOSE_FULL .or. &
-          transpose_action == TRANSPOSE_POST) then
-          wt = work_transpose_null()
-      end if
 
       
-      psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
-      psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
-      psitwork_c = f_malloc(collcom%ndimind_c,id='psitwork_c')
-      psitwork_f = f_malloc(7*collcom%ndimind_f,id='psitwork_f')
+      !!psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
+      !!psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
+      !!psitwork_c = f_malloc(collcom%ndimind_c,id='psitwork_c')
+      !!psitwork_f = f_malloc(7*collcom%ndimind_f,id='psitwork_f')
+      !##wt%psiwork_c = f_malloc_ptr(collcom%ndimpsi_c,id='psiwork_c')
+      !##wt%psiwork_f = f_malloc_ptr(7*collcom%ndimpsi_f,id='psiwork_f')
+      !##wt%psitwork_c = f_malloc_ptr(collcom%ndimind_c,id='psitwork_c')
+      !##wt%psitwork_f = f_malloc_ptr(7*collcom%ndimind_f,id='psitwork_f')
 
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
-          call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, psiwork_c, psiwork_f, lzd)
+          call transpose_switch_psi(npsidim_orbs, orbs, collcom, psi, wt%psiwork_c, wt%psiwork_f, lzd)
+          !#wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+          !#wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+          !#wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+          !#wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+          !#wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+          !#wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
       end if
       call timing(iproc,'Un-TransSwitch','OF')
     
       call timing(iproc,'Un-TransComm  ','ON')
       call transpose_communicate_psi(iproc, nproc, collcom, transpose_action, &
-           psiwork_c, psiwork_f, wt, psitwork_c, psitwork_f)
+           wt%psiwork_c, wt%psiwork_f, wt, wt%psitwork_c, wt%psitwork_f)
       call timing(iproc,'Un-TransComm  ','OF')
     
       call timing(iproc,'Un-TransSwitch','ON')
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
-          call transpose_unswitch_psit(collcom, psitwork_c, psitwork_f, psit_c, psit_f)
+          !##call f_free_ptr(wt%psiwork)
+          !##call f_free_ptr(wt%psitwork)
+          !##call f_free_ptr(wt%nsendcounts)
+          !##call f_free_ptr(wt%nsenddspls)
+          !##call f_free_ptr(wt%nrecvcounts)
+          !##call f_free_ptr(wt%nrecvdspls)
+          call transpose_unswitch_psit(collcom, wt%psitwork_c, wt%psitwork_f, psit_c, psit_f)
       end if
 
       
-      call f_free(psiwork_c)
-      call f_free(psiwork_f)
-      call f_free(psitwork_c)
-      call f_free(psitwork_f)
+      !!call f_free(psiwork_c)
+      !!call f_free(psiwork_f)
+      !!call f_free(psitwork_c)
+      !!call f_free(psitwork_f)
+      !##call f_free_ptr(wt%psiwork_c)
+      !##call f_free_ptr(wt%psiwork_f)
+      !##call f_free_ptr(wt%psitwork_c)
+      !##call f_free_ptr(wt%psitwork_f)
 
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
           if (.not.present(wt_)) then
+              call f_free_ptr(wt%psiwork)
+              call f_free_ptr(wt%psitwork)
+              call f_free_ptr(wt%nsendcounts)
+              call f_free_ptr(wt%nsenddspls)
+              call f_free_ptr(wt%nrecvcounts)
+              call f_free_ptr(wt%nrecvdspls)
+              call f_free_ptr(wt%psiwork_c)
+              call f_free_ptr(wt%psiwork_f)
+              call f_free_ptr(wt%psitwork_c)
+              call f_free_ptr(wt%psitwork_f)
               deallocate(wt)
               nullify(wt)
           end if
@@ -742,50 +796,99 @@ module communications
           end if
       end if
 
-      ! Point to the provided work arrays
+      ! Point to the provided work arrays, otherwise allocate
       if (present(wt_)) then
           wt => wt_
+          if (.not.associated(wt%psiwork_c) .or. &
+              .not.associated(wt%psiwork_c) .or. &
+              .not.associated(wt%psiwork_f) .or. &
+              .not.associated(wt%psitwork_c) .or. &
+              .not.associated(wt%psitwork_f) .or. &
+              .not.associated(wt%psiwork) .or. &
+              .not.associated(wt%psitwork) .or. &
+              .not.associated(wt%nsendcounts) .or. &
+              .not.associated(wt%nsenddspls) .or. &
+              .not.associated(wt%nrecvcounts) .or. &
+              .not.associated(wt%nrecvdspls)) then
+              call f_err_throw('not all workarrays are associated', err_id=ERR_LINEAR_TRANSPOSITION)
+          end if
       else
-          allocate(wt)
+          if (transpose_action == TRANSPOSE_FULL .or. &
+              transpose_action == TRANSPOSE_POST) then
+              allocate(wt)
+              wt = work_transpose_null()
+              wt%psiwork_c = f_malloc_ptr(collcom%ndimpsi_c,id='psiwork_c')
+              wt%psiwork_f = f_malloc_ptr(7*collcom%ndimpsi_f,id='psiwork_f')
+              wt%psitwork_c = f_malloc_ptr(collcom%ndimind_c,id='psitwork_c')
+              wt%psitwork_f = f_malloc_ptr(7*collcom%ndimind_f,id='psitwork_f')
+              wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+              wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+              wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+              wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+              wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+              wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
+          end if
       end if
 
-      if (transpose_action == TRANSPOSE_FULL .or. &
-          transpose_action == TRANSPOSE_POST) then
-          wt = work_transpose_null()
-      end if
+      !##if (transpose_action == TRANSPOSE_FULL .or. &
+      !##    transpose_action == TRANSPOSE_POST) then
+      !##    wt = work_transpose_null()
+      !##end if
       
-      psiwork_c = f_malloc(collcom%ndimpsi_c,id='psiwork_c')
-      psiwork_f = f_malloc(7*collcom%ndimpsi_f,id='psiwork_f')
-      psitwork_c = f_malloc(collcom%ndimind_c,id='psitwork_c')
-      psitwork_f = f_malloc(7*collcom%ndimind_f,id='psitwork_f')
+      !##wt%psiwork_c = f_malloc_ptr(collcom%ndimpsi_c,id='psiwork_c')
+      !##wt%psiwork_f = f_malloc_ptr(7*collcom%ndimpsi_f,id='psiwork_f')
+      !##wt%psitwork_c = f_malloc_ptr(collcom%ndimind_c,id='psitwork_c')
+      !##wt%psitwork_f = f_malloc_ptr(7*collcom%ndimind_f,id='psitwork_f')
     
       call timing(iproc,'Un-TransSwitch','ON')
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_POST) then
-          call transpose_switch_psit(collcom, psit_c, psit_f, psitwork_c, psitwork_f)
+          call transpose_switch_psit(collcom, psit_c, psit_f, wt%psitwork_c, wt%psitwork_f)
+          !##wt%psiwork = f_malloc_ptr(max(collcom%ndimpsi_c+7*collcom%ndimpsi_f,1),id='wt%psiwork')
+          !##wt%psitwork = f_malloc_ptr(max(sum(collcom%nrecvcounts_c)+7*sum(collcom%nrecvcounts_f),1),id='wt%psitwork')
+          !##wt%nsendcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nsendcounts')
+          !##wt%nsenddspls = f_malloc_ptr(0.to.nproc-1,id='wt%nsenddspls')
+          !##wt%nrecvcounts = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvcounts')
+          !##wt%nrecvdspls = f_malloc_ptr(0.to.nproc-1,id='wt%nrecvdspls')
       end if
       call timing(iproc,'Un-TransSwitch','OF')
     
       call timing(iproc,'Un-TransComm  ','ON')
       call transpose_communicate_psit(iproc, nproc, collcom, transpose_action, &
-           psitwork_c, psitwork_f, wt, psiwork_c, psiwork_f)
+           wt%psitwork_c, wt%psitwork_f, wt, wt%psiwork_c, wt%psiwork_f)
       call timing(iproc,'Un-TransComm  ','OF')
     
       call timing(iproc,'Un-TransSwitch','ON')
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
-          call transpose_unswitch_psi(npsidim_orbs, orbs, collcom, psiwork_c, psiwork_f, psi, lzd)
+          !##call f_free_ptr(wt%psiwork)
+          !##call f_free_ptr(wt%psitwork)
+          !##call f_free_ptr(wt%nsendcounts)
+          !##call f_free_ptr(wt%nsenddspls)
+          !##call f_free_ptr(wt%nrecvcounts)
+          !##call f_free_ptr(wt%nrecvdspls)
+          call transpose_unswitch_psi(npsidim_orbs, orbs, collcom, wt%psiwork_c, wt%psiwork_f, psi, lzd)
       end if
       call timing(iproc,'Un-TransSwitch','OF')
       
-      call f_free(psiwork_c)
-      call f_free(psiwork_f)
-      call f_free(psitwork_c)
-      call f_free(psitwork_f)
+      !##call f_free_ptr(wt%psiwork_c)
+      !##call f_free_ptr(wt%psiwork_f)
+      !##call f_free_ptr(wt%psitwork_c)
+      !##call f_free_ptr(wt%psitwork_f)
 
       if (transpose_action == TRANSPOSE_FULL .or. &
           transpose_action == TRANSPOSE_GATHER) then
           if (.not.present(wt_)) then
+              call f_free_ptr(wt%psiwork)
+              call f_free_ptr(wt%psitwork)
+              call f_free_ptr(wt%nsendcounts)
+              call f_free_ptr(wt%nsenddspls)
+              call f_free_ptr(wt%nrecvcounts)
+              call f_free_ptr(wt%nrecvdspls)
+              call f_free_ptr(wt%psiwork_c)
+              call f_free_ptr(wt%psiwork_f)
+              call f_free_ptr(wt%psitwork_c)
+              call f_free_ptr(wt%psitwork_f)
               deallocate(wt)
               nullify(wt)
           end if
@@ -905,7 +1008,8 @@ module communications
     subroutine start_onesided_communication(iproc, nproc, n1, n2, n3p, sendbuf, nrecvbuf, recvbuf, comm, lzd)
       use module_base
       use module_types, only: local_zone_descriptors
-      use communications_base, only: p2pComms
+      use communications_base, only: p2pComms, bgq, RMA_SYNC_ACTIVE, RMA_SYNC_PASSIVE, rma_sync, &
+                                     TYPES_NESTED, TYPES_SIMPLE, type_strategy
       implicit none
       
       ! Calling arguments
@@ -918,21 +1022,41 @@ module communications
       
       ! Local variables
       !character(len=*), parameter :: subname='start_onesided_communication'
-      integer :: jproc, joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
-      integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, npot, isend_shift
-      integer,dimension(:),allocatable :: npotarr
+      integer :: joverlap, mpisource, istsource, mpidest, istdest, ierr, nit, ispin, ispin_shift
+      integer :: ioffset_send, ist, i2, i3, ist2, ist3, info, nsize, size_of_double, isend_shift
+      integer :: islices, ilines, ist1, ish1, ish2, i, iel, it, ind, ii, ncount
+      integer,dimension(:),allocatable :: npotarr, blocklengths, types
+      integer(kind=mpi_address_kind),dimension(:),allocatable :: displacements
+      integer(kind=mpi_address_kind) :: lb, extent
+
+
+!!integer :: itemsize
+!!type(c_ptr) :: baseptr
+
+      !!! if on BG/Q avoid mpi_get etc. as unstable
+      !!logical, parameter :: bgq=.false.
 
 
       !!do ist=1,nsendbuf
       !!    write(5400,'(a,2i12,es18.7)') 'iproc, ist, sendbuf(ist)', iproc, ist, sendbuf(ist)
       !!end do
-      !!recvbuf=123456789.d0
+      !recvbuf=-123456789.d0
 
       !write(*,'(a,i12,es16.8)') 'in start_onesided_communication: nsendbuf, sum(sendbuf)', nsendbuf, sum(sendbuf)
     
     
       call f_routine(id='start_onesided_communication')
       call timing(iproc, 'Pot_comm start', 'ON')
+
+      blocklengths = f_malloc(comm%onedtypeovrlp*maxval(comm%comarr(5,:)),id='blocklengths')
+      displacements = f_malloc(comm%onedtypeovrlp*maxval(comm%comarr(5,:)),id='displacements')
+      types = f_malloc(comm%onedtypeovrlp*maxval(comm%comarr(5,:)),id='types')
+      types(:) = mpi_double_precision
+
+!!call mpi_type_extent(mpi_double_precision, itemsize, ierr)
+!!!call mpi_type_size(mpi_double_precision, itemsize, ierr)
+!!call mpi_alloc_mem(int(n1*n2*n3p(iproc)*comm%nspin*itemsize,kind=mpi_address_kind), MPI_INFO_NULL, baseptr, ierr)
+!!call c_f_pointer(baseptr, sendbuf, (/n1*n2*n3p(iproc)*comm%nspin/))
 
       ! the size of the potential without spin (maybe need to find a better way to determine this...)
       npotarr = f_malloc(0.to.nproc-1,id='npotarr')
@@ -944,22 +1068,32 @@ module communications
     
       if(.not.comm%communication_complete) stop 'ERROR: there is already a p2p communication going on...'
 
-      spin_loop: do ispin=1,comm%nspin
+      !nproc_if: if (nproc>1) then
 
-          ispin_shift = (ispin-1)*comm%nrecvbuf
-    
-          nproc_if: if (nproc>1) then
+          spin_loop: do ispin=1,comm%nspin
+
+              ispin_shift = (ispin-1)*comm%nrecvbuf
     
               ! Allocate MPI memory window. Only necessary in the first iteration.
               if (ispin==1) then
-                  call mpi_type_size(mpi_double_precision, size_of_double, ierr)
-                  call mpi_info_create(info, ierr)
-                  call mpi_info_set(info, "no_locks", "true", ierr)
-                  call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*size_of_double,kind=mpi_address_kind), &
-                       size_of_double, info, bigdft_mpi%mpi_comm, comm%window, ierr)
-                  call mpi_info_free(info, ierr)
+                  if (nproc>1) then
+                      call mpi_type_size(mpi_double_precision, size_of_double, ierr)
+                  else
+                      size_of_double = 8
+                  end if
+                  if (nproc>1 .and. rma_sync==RMA_SYNC_ACTIVE) then
+                      comm%window = mpiwindow(n1*n2*n3p(iproc)*comm%nspin, sendbuf(1), bigdft_mpi%mpi_comm)
+                  else if (nproc>1 .and. rma_sync==RMA_SYNC_PASSIVE) then
+                      call mpi_win_create(sendbuf(1), int(n1*n2*n3p(iproc)*comm%nspin*size_of_double,kind=mpi_address_kind), &
+                           size_of_double, MPI_INFO_NULL, bigdft_mpi%mpi_comm, comm%window, ierr)
+                  end if
     
-                  call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
+                  !!if (rma_sync==RMA_SYNC_ACTIVE) then
+                  !!    call mpi_win_fence(mpi_mode_noprecede, comm%window, ierr)
+                  !!end if
+                  !!if (rma_sync==RMA_SYNC_PASSIVE) then
+                  !!    call mpi_win_lock_all(0, comm%window, ierr)
+                  !!end if
               end if
               
               do joverlap=1,comm%noverlaps
@@ -972,54 +1106,145 @@ module communications
                   isend_shift = (ispin-1)*npotarr(mpisource)
                   ! only create the derived data types in the first iteration, otherwise simply reuse them
                   if (ispin==1) then
-                      call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
-                           comm%mpi_datatypes(0), comm%mpi_datatypes(joverlap), ierr)
-                      call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
-                  end if
-                  if (iproc==mpidest) then
-                      call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
-                      nsize=nsize/size_of_double
-                      if(nsize>0) then
-                          !!write(*,'(7(a,i0))') 'proc ',iproc,' gets ',nsize,' elements at ',ispin_shift+istdest, &
-                          !!                     ' from proc ',mpisource,' at ',isend_shift+istsource,&
-                          !!                     '; size(send)=',size(sendbuf),', size(recv)=',size(recvbuf)
-                          call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
-                               mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
-                               1, comm%mpi_datatypes(joverlap), comm%window, ierr)
+                      if (nproc>1 .and. type_strategy==TYPES_NESTED) then
+                          call mpi_type_create_hvector(nit, 1, int(size_of_double*ioffset_send,kind=mpi_address_kind), &
+                               comm%mpi_datatypes(0), comm%mpi_datatypes(joverlap), ierr)
+                          call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
+                      end if
+                      iel=0
+                      !nsize = 0
+                      ii = 1
+                      do it=1,nit
+                          do i=1,comm%onedtypeovrlp
+                              iel = iel + 1
+                              displacements(iel) = int(((it-1)*ioffset_send+comm%onedtypearr(1,i))*&
+                                                       size_of_double, &
+                                                       kind=mpi_address_kind)
+                              blocklengths(iel) = comm%onedtypearr(2,i)
+                              !nsize = nsize + blocklengths(iel)
+                              !if (iproc==0) write(*,*) 'ist, ncount, ind', &
+                              !int(displacements(iel)/size_of_double,kind=8)+1, blocklengths(iel), ii
+                              ii = ii + blocklengths(iel)
+                          end do
+                      end do
+                      if (nproc>1 .and. type_strategy==TYPES_SIMPLE) then
+                          call mpi_type_create_struct(iel, blocklengths, displacements, types, &
+                               comm%mpi_datatypes(joverlap), ierr)
+                          call mpi_type_commit(comm%mpi_datatypes(joverlap), ierr)
                       end if
                   end if
+                  if (iproc==mpidest) then
+                      if (.not.bgq) then
+                           if (nproc>1) then
+                               !ii = nsize
+                               call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                               call mpi_type_get_extent(comm%mpi_datatypes(joverlap), lb, extent, ierr)
+                               extent=extent/size_of_double
+                               nsize=nsize/size_of_double
+                               !if (ii/=nsize) then
+                               !    write(*,*) 'ispin, ii, nsize', ispin, ii, nsize
+                               !    stop 'ii/=nsize'
+                               !end if
+                           else
+                               nsize = 0
+                               do i=1,comm%onedtypeovrlp
+                                   nsize = nsize + nit*comm%onedtypearr(2,i)
+                               end do
+                           end if
+                           if(nsize>0) then
+                               if (nproc>1) then
+                                   if (isend_shift+istsource+extent-1 > npotarr(mpisource)*comm%nspin) then
+                                       call f_err_throw('out of window: ist='//trim(yaml_toa(isend_shift+istsource,fmt='(i0)'))//&
+                                            &', n='//trim(yaml_toa(int(extent,kind=8),fmt='(i0)'))//&
+                                            &', nwin='//trim(yaml_toa(npotarr(mpisource)*comm%nspin,fmt='(i0)')),&
+                                            err_name='BIGDFT_RUNTIME_ERROR')
+                                   end if
+                               end if
+                               if (nproc> 1 .and. rma_sync==RMA_SYNC_PASSIVE) then
+                                   call mpi_win_lock(MPI_LOCK_EXCLUSIVE, mpisource, 0, comm%window, ierr)
+                               end if
+                               if (nproc>1) then
+                                   call mpi_get(recvbuf(ispin_shift+istdest), nsize, &
+                                        mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
+                                        1, comm%mpi_datatypes(joverlap), comm%window, ierr)
+                               else
+                                   ind = 0
+                                   do i=1,iel
+                                      ist = int(displacements(i)/size_of_double,kind=4) + 1
+                                      ncount = blocklengths(i)
+                                      !!write(*,*) 'joverlap, ist, ncount, ind', &
+                                      !!    joverlap, isend_shift+istsource-1+ist, ncount, ispin_shift+istdest+ind, &
+                                      call f_memcpy(n=ncount, src=sendbuf(isend_shift+istsource-1+ist), &
+                                           dest=recvbuf(ispin_shift+istdest+ind))
+                                      ind = ind + ncount
+                                   end do
+                               end if
+                               if (nproc> 1 .and. rma_sync==RMA_SYNC_PASSIVE) then
+                                   call mpi_win_unlock(mpisource, comm%window, ierr)
+                               end if
+                           end if
+                       else
+                           call mpi_get(recvbuf(ispin_shift+istdest), nit*lzd%glr%d%n1i*lzd%glr%d%n2i, &
+                                mpi_double_precision, mpisource, int((isend_shift+istsource-1),kind=mpi_address_kind), &
+                                nit*lzd%glr%d%n1i*lzd%glr%d%n2i, mpi_double_precision, comm%window, ierr)
+                       end if
+                       !!else
+                       !!    call mpi_type_size(comm%mpi_datatypes(joverlap), nsize, ierr)
+                       !!    nsize=nsize/size_of_double
+                       !!    if(nsize>0) then
+                       !!        nsize=nsize/nit
+                       !!        ist1=ispin_shift+istdest
+                       !!        ish1=isend_shift+istsource-1
+                       !!        do islices=1,nit
+                       !!            ist2=ist1
+                       !!            ish2=ish1
+                       !!            if (islices<nit) then
+                       !!                call mpi_get(recvbuf(ist1), nsize, &
+                       !!                     mpi_double_precision, mpisource,&
+                       !!                     int(ish1,kind=mpi_address_kind), &
+                       !!                     1, comm%mpi_datatypes(0), comm%window,ierr)
+                       !!            else
+                       !!                do ilines=1,comm%ise(4)-comm%ise(3)+1
+                       !!                    write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2)-comm%ise(1)+1, &
+                       !!                        ' elements at position ',ist2,' from position ',ish2+1,' on proc ',mpisource
+                       !!                    call mpi_get(recvbuf(ist2), comm%ise(2)-comm%ise(1)+1, &
+                       !!                         mpi_double_precision, mpisource,&
+                       !!                         int(ish2,kind=mpi_address_kind), &
+                       !!                         comm%ise(2)-comm%ise(1)+1, mpi_double_precision, comm%window,ierr)
+                       !!                    ist2=ist2+comm%ise(2)-comm%ise(1)+1
+                       !!                    ish2=ish2+lzd%glr%d%n1i
+                       !!                end do
+                       !!            end if
+                       !!            ist1=ist1+nsize
+                       !!            ish1=ish1+ioffset_send
+                       !!        end do
+                       !!    end if
+                       !!end if
+                  end if
               end do
     
-          else nproc_if
-    
-              ist=1
-              isend_shift = (ispin-1)*npotarr(iproc)
-              do i3=comm%ise(5),comm%ise(6)
-                  ist3=(i3-1)*lzd%glr%d%n1i*lzd%glr%d%n2i
-                  do i2=comm%ise(3),comm%ise(4)
-                      ist2=(i2-1)*lzd%glr%d%n1i
-                      !call vcopy(comm%ise(2,iproc)-comm%ise(1,iproc)+1, sendbuf(ist3+ist2+1), 1, recvbuf(ist), 1)
-                      !write(*,'(5(a,i0))') 'proc ',iproc,' gets ',comm%ise(2,iproc)-comm%ise(1,iproc)+1, &
-                      !                     ' elements at ',ispin_shift+ist,' from proc ',iproc,' at ', &
-                      !                     isend_shift+ist3+ist2+comm%ise(1,iproc)
-                      call vcopy(comm%ise(2)-comm%ise(1)+1, &
-                                 sendbuf(isend_shift+ist3+ist2+comm%ise(1)), 1, recvbuf(ispin_shift+ist), 1)
-                      ist=ist+comm%ise(2)-comm%ise(1)+1
-                  end do
-              end do
-    
-          end if nproc_if
+          end do spin_loop
+
+          if (nproc>1) then
+              comm%communication_complete=.false.
+          else
+              comm%communication_complete=.true.
+          end if
+
+      !else nproc_if
+
+      !    !call vcopy(lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i, sendbuf(1), 1, recvbuf(1), 1)
+      !    !write(*,*) 'lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*comm%nspin', lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*comm%nspin
+      !    call f_memcpy(n=lzd%glr%d%n1i*lzd%glr%d%n2i*lzd%glr%d%n3i*comm%nspin, src=sendbuf(1), dest=recvbuf(1))
+      !    comm%communication_complete=.true.
+
+      !end if nproc_if
       
-      end do spin_loop
-      
-      ! Flag indicating whether the communication is complete or not
-      if(nproc>1) then
-          comm%communication_complete=.false.
-      else
-          comm%communication_complete=.true.
-      end if
 
       call f_free(npotarr)
+      call f_free(blocklengths)
+      call f_free(displacements)
+      call f_free(types)
     
       call timing(iproc, 'Pot_comm start', 'OF')
       call f_release_routine()
@@ -1029,7 +1254,7 @@ module communications
     
     subroutine synchronize_onesided_communication(iproc, nproc, comm)
       use module_base
-      use communications_base, only: p2pComms
+      use communications_base, only: p2pComms, bgq, RMA_SYNC_ACTIVE, RMA_SYNC_PASSIVE, rma_sync
       implicit none
       
       ! Calling arguments
@@ -1037,20 +1262,39 @@ module communications
       type(p2pComms),intent(inout):: comm
       
       ! Local variables
-      integer:: ierr, jproc, joverlap
+      integer:: ierr, joverlap, mpisource, mpidest
       
-      
+      call timing(iproc, 'Pot_comm start', 'ON')      
+
       if(.not.comm%communication_complete) then
-          call mpi_win_fence(0, comm%window, ierr)
+          if (rma_sync==RMA_SYNC_ACTIVE) then
+              !!call mpi_win_fence(mpi_mode_nosucceed, comm%window, ierr)
+              !!call mpi_win_free(comm%window, ierr)
+
+              call mpi_fenceandfree(comm%window, mpi_mode_nosucceed)
+          else if (rma_sync==RMA_SYNC_PASSIVE) then
+            !!  !!call mpi_win_unlock_all(comm%window, ierr)
+            !!  do joverlap=1,comm%noverlaps
+            !!      mpisource=comm%comarr(1,joverlap)
+            !!      mpidest=comm%comarr(3,joverlap)
+            !!      if (iproc==mpidest) then
+            !!          if (.not.bgq) then
+            !!               call mpi_win_unlock(mpisource, comm%window, ierr)
+            !!           end if
+            !!      end if
+            !!  end do
+            call mpi_win_free(comm%window, ierr)
+          end if
           do joverlap=1,comm%noverlaps
               call mpi_type_free(comm%mpi_datatypes(joverlap), ierr)
           end do
-          call mpi_win_free(comm%window, ierr)
       end if
     
       ! Flag indicating that the communication is complete
       comm%communication_complete=.true.
-    
+          
+      call timing(iproc, 'Pot_comm start', 'OF')      
+
     end subroutine synchronize_onesided_communication
 
 
@@ -1138,6 +1382,8 @@ module communications
            orbs%isorb_par, mpi_logical, bigdft_mpi%mpi_comm, ierr)
       call mpi_allgatherv(worksend_int, 27*orbs%norbp, mpi_integer, workrecv_int, 27*orbs%norb_par(:,0), &
            27*orbs%isorb_par, mpi_integer, bigdft_mpi%mpi_comm, ierr)
+!!$      call mpiallgather(sendbuf=worksend_int,sendcount=27*orbs%norbp,recvbuf=workrecv_int,recvcounts=27*orbs%norb_par(:,0), &
+!!$           displs=27*orbs%isorb_par, comm=bigdft_mpi%mpi_comm)
       call mpi_allgatherv(worksend_dbl, 6*orbs%norbp, mpi_double_precision, workrecv_dbl, 6*orbs%norb_par(:,0), &
            6*orbs%isorb_par, mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
     
@@ -1246,7 +1492,7 @@ module communications
     subroutine communicate_locreg_descriptors_keys(iproc, nproc, nlr, glr, llr, orbs, rootarr, onwhichmpi)
        use module_base
        use module_types, only: orbitals_data, locreg_descriptors
-       use locregs, only: allocate_wfd
+       use locregs, only: allocate_wfd, check_overlap_cubic_periodic
        use yaml_output
        implicit none
     
@@ -1259,15 +1505,19 @@ module communications
        integer,dimension(orbs%norb),intent(in) :: onwhichmpi
     
        ! Local variables
-       integer:: ierr, jorb, ilr, jlr, jtask, root, icomm, nrecv, nalloc, max_sim_comms
-       integer :: maxrecvdim, maxsenddim, ilr_old, ioffset, window, ist_dest, ist_source
-       integer :: iorb, jjorb, ncount, iiorb, size_of_int, info
+       integer :: ierr, jorb, ilr, jlr, root, max_sim_comms
+       !integer :: icomm, ilr_old, jtask, nalloc, nrecv
+       integer :: maxrecvdim, maxsenddim, ioffset, window, ist_dest, ist_source
+       integer :: iorb, jjorb, ncount, iiorb, size_of_int, info, jproc, ii, iilr
        logical :: isoverlap
-       character(len=*),parameter:: subname='communicate_locreg_descriptors_keys'
-       integer,dimension(:),allocatable :: requests
-       integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
-       integer,dimension(:),allocatable :: worksend, workrecv
+       character(len=*), parameter:: subname='communicate_locreg_descriptors_keys'
+       !integer,dimension(:),allocatable :: requests
+       !integer,dimension(:,:),allocatable :: worksend_int, workrecv_int
+       integer,dimension(:),allocatable :: worksend, workrecv, ncomm, nrecvcounts, types, derived_types!, tmparr_int, istarr
+       integer,dimension(:,:),allocatable :: blocklengths
+       integer(kind=mpi_address_kind),dimension(:,:),allocatable :: displacements
        logical,dimension(:,:),allocatable :: covered
+       !integer(kind=mpi_address_kind),dimension(:),allocatable :: tmparr_long
        !integer :: total_sent, total_recv
 
        call f_routine(id=subname)
@@ -1291,10 +1541,22 @@ module communications
                    covered(ilr,iproc)=.true.
                end if
            end do
+           ! For spin polarized calculations, norbup and norbp are different,
+           ! therefore one also has to check this distribution.
+           do jorb=1,orbs%norbup
+               jjorb=orbs%isorbu+jorb
+               jlr=orbs%inwhichlocreg(jjorb)
+               ! don't communicate to ourselves, or if we've already sent this locreg
+               if (iproc == root .or. covered(ilr,iproc)) cycle
+               call check_overlap_cubic_periodic(glr,llr(ilr),llr(jlr),isoverlap)
+               if (isoverlap) then         
+                   covered(ilr,iproc)=.true.
+               end if
+           end do
        end do
 
        ! Each process makes its data available in a contiguous workarray.
-       maxsenddim=0.d0
+       maxsenddim=0
        do iorb=1,orbs%norbp
            iiorb=orbs%isorb+iorb
            ilr=orbs%inwhichlocreg(iiorb)
@@ -1302,26 +1564,35 @@ module communications
        end do
        worksend = f_malloc(max(maxsenddim,1),id='worksend_int')
 
+       ! Copy the keys to a contiguous array, ordered by the locreg ID (which
+       ! is not necessarily identical to the orbital ID order).
        ioffset=0
-       do iorb=1,orbs%norbp
-           iiorb=orbs%isorb+iorb
-           ilr=orbs%inwhichlocreg(iiorb)
-           ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
-           call vcopy(2*ncount, llr(ilr)%wfd%keygloc(1,1), 1, worksend(ioffset+1), 1)
-           call vcopy(2*ncount, llr(ilr)%wfd%keyglob(1,1), 1, worksend(ioffset+2*ncount+1), 1)
-           call vcopy(ncount, llr(ilr)%wfd%keyvloc(1), 1, worksend(ioffset+4*ncount+1), 1)
-           call vcopy(ncount, llr(ilr)%wfd%keyvglob(1), 1, worksend(ioffset+5*ncount+1), 1)
-           ioffset=ioffset+6*ncount
+       do iilr=1,nlr
+           do iorb=1,orbs%norbp
+               iiorb=orbs%isorb+iorb
+               ilr=orbs%inwhichlocreg(iiorb)
+               if (ilr==iilr) then
+                   !write(*,*) 'COPY: iproc, ilr', iproc, ilr
+                   ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                   call vcopy(2*ncount, llr(ilr)%wfd%keygloc(1,1), 1, worksend(ioffset+1), 1)
+                   call vcopy(2*ncount, llr(ilr)%wfd%keyglob(1,1), 1, worksend(ioffset+2*ncount+1), 1)
+                   call vcopy(ncount, llr(ilr)%wfd%keyvloc(1), 1, worksend(ioffset+4*ncount+1), 1)
+                   call vcopy(ncount, llr(ilr)%wfd%keyvglob(1), 1, worksend(ioffset+5*ncount+1), 1)
+                   ioffset=ioffset+6*ncount
+               end if
+           end do
        end do
 
        ! Initialize the MPI window
+       !!call mpi_type_size(mpi_integer, size_of_int, ierr)
+       !!call mpi_info_create(info, ierr)
+       !!call mpi_info_set(info, "no_locks", "true", ierr)
+       !!call mpi_win_create(worksend(1), int(maxsenddim*size_of_int,kind=mpi_address_kind), size_of_int, &
+       !!     info, bigdft_mpi%mpi_comm, window, ierr)
+       !!call mpi_info_free(info, ierr)
+       !!call mpi_win_fence(mpi_mode_noprecede, window, ierr)
        call mpi_type_size(mpi_integer, size_of_int, ierr)
-       call mpi_info_create(info, ierr)
-       call mpi_info_set(info, "no_locks", "true", ierr)
-       call mpi_win_create(worksend(1), int(maxsenddim*size_of_int,kind=mpi_address_kind), size_of_int, &
-            info, bigdft_mpi%mpi_comm, window, ierr)
-       call mpi_info_free(info, ierr)
-       call mpi_win_fence(mpi_mode_noprecede, window, ierr)
+       window =  mpiwindow(maxsenddim, worksend(1),  bigdft_mpi%mpi_comm)
 
        ! Allocate the receive buffer
        maxrecvdim=0
@@ -1334,37 +1605,127 @@ module communications
        end do
        workrecv = f_malloc(maxrecvdim,id='workrecv')
 
-       ! Do the communication
-       ist_dest=1
+       ! Do the communication. Communicate only once for each pair of MPI tasks using a derived datatype.
+       ncomm = f_malloc0(0.to.nproc-1,id='ncomm')
+       nrecvcounts = f_malloc0(0.to.nproc-1,id='nrecvcounts')
+       blocklengths = f_malloc0((/1.to.maxval(orbs%norb_par(:,0)),0.to.nproc-1/),id='blocklengths')
+       displacements = f_malloc0((/1.to.maxval(orbs%norb_par(:,0)),0.to.nproc-1/),id='displacements')
        do ilr=1,nlr
            root=rootarr(ilr)
            if (covered(ilr,iproc)) then
+               ncomm(root) = ncomm(root) + 1
                ncount=6*(llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f)
                ist_source=get_offset(root,ilr)
-               call mpi_get(workrecv(ist_dest), ncount, mpi_integer, root, &
-                    int(ist_source,kind=mpi_address_kind), ncount, mpi_integer, window, ierr)
-               ist_dest=ist_dest+ncount
+               !write(*,'(a,4i8)') 'iproc, ilr, root, ist_source', iproc, ilr, root, ist_source
+               blocklengths(ncomm(root),root) = ncount
+               displacements(ncomm(root),root) = int(ist_source*size_of_int,kind=mpi_address_kind)
+               nrecvcounts(root) = nrecvcounts(root) + ncount
            end if
        end do
+       !!! The values in displacements must be sorted...
+       !!!tmparr_long = f_malloc(maxval(ncomm(:)),id='tmparr')
+       !!!tmparr_int = f_malloc(maxval(ncomm(:)),id='tmparr')
+       !!!istarr = f_malloc(maxval(ncomm(:)),id='istarr')
+       !!do jproc=0,nproc-1
+       !!    !tmparr_long = displacements(1:ncomm(jproc),jproc)
+       !!    !tmparr_int = blocklengths(1:ncomm(jproc),jproc)
+       !!    ii = 0
+       !!    do icomm=1,ncomm(jproc)
+       !!        iloc = minloc(tmparr_long(1:ncomm(jproc),1)
+       !!        displacements(icomm,jproc) = tmparr_long(iloc)
+       !!        blocklengths(icomm,jproc) = tmparr_int(iloc)
+       !!        !istarr(icomm) = ii
+       !!        ii = ii + tmparr_int(iloc)
+       !!    end do
+       !!end do
+
+       derived_types = f_malloc(0.to.nproc-1,id='derived_types')
+       types = f_malloc(maxval(ncomm),id='types')
+       types(:) = mpi_integer
+       ist_dest=1
+       do jproc=0,nproc-1
+           !write(*,'(a,11i8)') 'iproc, jproc, ist_dest, blocklengths(1:ncomm(jproc)), displacements(1:ncomm(jproc))', iproc, jproc, ist_dest, blocklengths(1:ncomm(jproc),jproc), displacements(1:ncomm(jproc),jproc)
+           call mpi_type_create_struct(ncomm(jproc), blocklengths(1,jproc), displacements(1,jproc), &
+                types, derived_types(jproc), ierr)
+           call mpi_type_commit(derived_types(jproc), ierr)
+           !call mpi_type_size(types(1), ii, ierr)
+           !write(*,*) 'size types', ii
+           call mpi_type_size(derived_types(jproc), ii, ierr)
+           if (ii/=nrecvcounts(jproc)*size_of_int) then
+               !write(*,'(a,5i8)') 'iproc, jproc, ncomm(jproc), ii, nrecvcounts(jproc)*size_of_int', iproc, jproc, ncomm(jproc), ii, nrecvcounts(jproc)*size_of_int
+               !write(*,'(a,10i8)') 'iproc, jproc, blocklengths(1:ncomm(jproc)), displacements(1:ncomm(jproc))', iproc, jproc, blocklengths(1:ncomm(jproc),jproc), displacements(1:ncomm(jproc),jproc)
+               call f_err_throw('wrong size of derived_types(jproc)',err_name='BIGDFT_RUNTIME_ERROR')
+           end if
+           if (nrecvcounts(jproc)>0) then
+               call mpi_get(workrecv(ist_dest), nrecvcounts(jproc), mpi_integer, jproc, &
+                    int(0,kind=mpi_address_kind), 1, derived_types(jproc), window, ierr)
+           end if
+           ist_dest = ist_dest + nrecvcounts(jproc)
+       end do
+
+           !    call mpi_get(workrecv(ist_dest), ncount, mpi_integer, root, &
+           !         int(ist_source,kind=mpi_address_kind), ncount, mpi_integer, window, ierr)
+           !    ist_dest=ist_dest+ncount
+           !end if
+       !end do
 
        ! Synchronize the communication
-       call mpi_win_fence(0, window, ierr)
+       call mpi_win_fence(mpi_mode_nosucceed, window, ierr)
+       do jproc=0,nproc-1
+           call mpi_type_free(derived_types(jproc), ierr)
+       end do
        call mpi_win_free(window, ierr)
+       call f_free(derived_types)
+
+       call f_free(ncomm)
+       call f_free(nrecvcounts)
+       call f_free(blocklengths)
+       call f_free(displacements)
+       call f_free(types)
+
+       !do ii=1,size(workrecv)
+       !    write(100+iproc,*) ii, workrecv(ii)
+       !end do
 
 
        ! Copy the date from the workarrays to the correct locations
        call f_free(worksend)
        ist_dest=0
-       do ilr=1,nlr
-           if (covered(ilr,iproc)) then
-               call allocate_wfd(llr(ilr)%wfd)
-               ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
-               call vcopy(2*ncount, workrecv(ist_dest+1), 1, llr(ilr)%wfd%keygloc(1,1), 1)
-               call vcopy(2*ncount, workrecv(ist_dest+2*ncount+1), 1, llr(ilr)%wfd%keyglob(1,1), 1)
-               call vcopy(ncount, workrecv(ist_dest+4*ncount+1), 1, llr(ilr)%wfd%keyvloc(1), 1)
-               call vcopy(ncount, workrecv(ist_dest+5*ncount+1), 1, llr(ilr)%wfd%keyvglob(1), 1)
-               ist_dest=ist_dest+6*ncount
-           end if
+       do jproc=0,nproc-1
+           do ilr=1,nlr
+               if (.not.covered(ilr,iproc)) cycle
+               do jorb=1,orbs%norb_par(jproc,0)
+                   jjorb = orbs%isorb_par(jproc) + jorb
+                   jlr = orbs%inwhichlocreg(jjorb)
+                   if (ilr==jlr) then
+                       !!write(*,*) 'iproc, jproc, ilr', iproc, jproc, ilr
+                       !do ilr=1,nlr
+                       !if (covered(ilr,iproc)) then
+                           call allocate_wfd(llr(ilr)%wfd)
+                           ncount=llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                           call vcopy(2*ncount, workrecv(ist_dest+1), 1, llr(ilr)%wfd%keygloc(1,1), 1)
+                           call vcopy(2*ncount, workrecv(ist_dest+2*ncount+1), 1, llr(ilr)%wfd%keyglob(1,1), 1)
+                           call vcopy(ncount, workrecv(ist_dest+4*ncount+1), 1, llr(ilr)%wfd%keyvloc(1), 1)
+                           call vcopy(ncount, workrecv(ist_dest+5*ncount+1), 1, llr(ilr)%wfd%keyvglob(1), 1)
+                           ist_dest=ist_dest+6*ncount
+                       !end if
+                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keygloc(1,ii)
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keygloc(2,ii)
+                       !end do
+                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyglob(1,ii)
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyglob(2,ii)
+                       !end do
+                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyvloc(ii)
+                       !end do
+                       !do ii=1,llr(ilr)%wfd%nseg_c+llr(ilr)%wfd%nseg_f
+                       !    write(200+iproc,*) ilr, llr(ilr)%wfd%keyvglob(ii)
+                       !end do
+                   end if
+               end do
+           end do
        end do
        call f_free(workrecv)
        call f_free(covered)
@@ -1554,16 +1915,21 @@ module communications
        integer,intent(in) :: iiproc, iilr
        integer :: get_offset
        ! Local variables
-       integer :: jorb, jjorb, jlr, ncount
+       integer :: ilr, jorb, jjorb, jlr, ncount
 
        get_offset=0
-       do jorb=1,orbs%norb_par(iiproc,0)
-           jjorb=orbs%isorb_par(iiproc)+jorb
-           jlr=orbs%inwhichlocreg(jjorb)
-           if (jlr==iilr) exit ! locreg found
-           ncount=6*(llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
-           get_offset=get_offset+ncount
-       end do
+       ilr_loop: do ilr=1,nlr
+           do jorb=1,orbs%norb_par(iiproc,0)
+               jjorb=orbs%isorb_par(iiproc)+jorb
+               jlr=orbs%inwhichlocreg(jjorb)
+               !if (iproc==0) write(*,*) 'ilr, jlr, go', ilr, jlr, get_offset
+               if (jlr==ilr) then
+                   if (jlr==iilr) exit ilr_loop! locreg found
+                   ncount=6*(llr(jlr)%wfd%nseg_c+llr(jlr)%wfd%nseg_f)
+                   get_offset=get_offset+ncount
+               end if
+           end do
+       end do ilr_loop
      end function get_offset
     
     END SUBROUTINE communicate_locreg_descriptors_keys
@@ -1669,6 +2035,111 @@ module communications
       call timing(iproc,'Un-TransSwitch','OF')
     END SUBROUTINE untranspose_v
     
+
+    !> Transposition of the arrays, variable version (non homogeneous)
+    subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
+         work,outadd) !optional
+      use module_base
+      use module_types
+      use communications_base, only: comms_cubic
+      use locreg_operations, only: Lpsi_to_global2
+      implicit none
+      integer, intent(in) :: iproc,nproc
+      type(orbitals_data), intent(in) :: orbs
+      type(local_zone_descriptors), intent(in) :: Lzd
+      type(comms_cubic), intent(in) :: comms
+      real(wp), dimension(:), pointer :: psi
+      real(wp), dimension(:), pointer, optional :: work
+      real(wp), dimension(*), intent(out), optional :: outadd
+      !local variables
+      character(len=*), parameter :: subname='toglobal_and_transpose'
+      integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
+      real(wp) :: workdum
+      real(wp), dimension(:), pointer :: workarr
+    
+      call timing(iproc,'Un-TransSwitch','ON')
+    
+      !for linear scaling must project the wavefunctions to whole simulation box
+      if(Lzd%linear) then
+    !     if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
+         psishift1 = 1
+         totshift = 1
+         Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
+               sum(comms%ncntt(0:nproc-1)))
+         workarr = f_malloc0_ptr(Gdim,id='workarr')
+         !call to_zero(Gdim,workarr)
+         do iorb=1,orbs%norbp
+            ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
+            ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
+    
+            !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
+            !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
+            call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
+                 orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1:), workarr(totshift:))
+            psishift1 = psishift1 + ldim
+            totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
+         end do
+    
+         !reallocate psi to the global dimensions
+         call f_free_ptr(psi)
+         psi = f_malloc_ptr(Gdim,id='psi')
+         call vcopy(Gdim,workarr(1),1,psi(1),1) !psi=work
+         call f_free_ptr(workarr)
+      end if
+    
+      if (nproc > 1 .and. .not. associated(work)) then
+         call f_err_throw('The working pointer must be associated',&
+              err_name='BIGDFT_RUNTIME_ERROR')
+      end if
+    
+      if (present(outadd)) then
+          call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1),outadd(1))
+      else
+         if (.not. associated(work)) then
+            call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),workdum)
+         else
+            call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1))
+         end if
+      end if
+    
+      !!if (nproc > 1) then
+      !!   !control check
+      !!   if (.not. present(work) .or. .not. associated(work)) then
+      !!      if(iproc == 0) write(*,'(1x,a)')&
+      !!           "ERROR: Unproper work array for transposing in parallel"
+      !!      stop
+      !!   end if
+    
+    
+      !!   !!call switch_waves_v(nproc,orbs,&
+      !!   !!     Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
+      !!   call switch_waves_v(nproc,orbs,&
+      !!        Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par,psi,work)
+    
+      !!   call timing(iproc,'Un-TransSwitch','OF')
+      !!   call timing(iproc,'Un-TransComm  ','ON')
+      !!   if (present(outadd)) then
+      !!      call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+      !!           outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+      !!   else
+      !!      call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
+      !!           psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
+      !!   end if
+    
+      !!   call timing(iproc,'Un-TransComm  ','OF')
+      !!   call timing(iproc,'Un-TransSwitch','ON')
+      !!else
+      !!   if(orbs%nspinor /= 1) then
+      !!      !for only one processor there is no need to transform this
+      !!      call psitransspi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs,psi,.true.)
+      !!   end if
+      !!end if
+    
+      !!call timing(iproc,'Un-TransSwitch','OF')
+    
+    END SUBROUTINE toglobal_and_transpose
+
+
 
 
 end module communications
@@ -1938,105 +2409,3 @@ END SUBROUTINE psitransspi
 
 
 
-!> Transposition of the arrays, variable version (non homogeneous)
-subroutine toglobal_and_transpose(iproc,nproc,orbs,Lzd,comms,psi,&
-     work,outadd) !optional
-  use module_base
-  use module_types
-  use communications_base, only: comms_cubic
-  use communications, only: transpose_v
-  implicit none
-  integer, intent(in) :: iproc,nproc
-  type(orbitals_data), intent(in) :: orbs
-  type(local_zone_descriptors), intent(in) :: Lzd
-  type(comms_cubic), intent(in) :: comms
-  real(wp), dimension(:), pointer :: psi
-  real(wp), dimension(:), pointer, optional :: work
-  real(wp), dimension(*), intent(out), optional :: outadd
-  !local variables
-  character(len=*), parameter :: subname='toglobal_and_transpose'
-  integer :: psishift1,totshift,iorb,ilr,ldim,Gdim
-  real(wp) :: workdum
-  real(wp), dimension(:), pointer :: workarr
-
-  call timing(iproc,'Un-TransSwitch','ON')
-
-  !for linear scaling must project the wavefunctions to whole simulation box
-  if(Lzd%linear) then
-!     if(.not. present(work) .or. .not. associated(work)) stop 'transpose_v needs optional argument work with Linear Scaling'
-     psishift1 = 1
-     totshift = 1
-     Gdim = max((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%norb_par(iproc,0)*orbs%nspinor,&
-           sum(comms%ncntt(0:nproc-1)))
-     workarr = f_malloc0_ptr(Gdim,id='workarr')
-     !call to_zero(Gdim,workarr)
-     do iorb=1,orbs%norbp
-        ilr = orbs%inwhichlocreg(iorb+orbs%isorb)
-        ldim = (Lzd%Llr(ilr)%wfd%nvctr_c+7*Lzd%Llr(ilr)%wfd%nvctr_f)*orbs%nspinor
-
-        !!call Lpsi_to_global(Lzd%Glr,Gdim,Lzd%Llr(ilr),psi(psishift1),&
-        !!     ldim,orbs%norbp,orbs%nspinor,orbs%nspin,totshift,workarr)
-        call Lpsi_to_global2(iproc, ldim, gdim, orbs%norbp, orbs%nspinor, &
-             orbs%nspin, lzd%glr, lzd%llr(ilr), psi(psishift1), workarr(totshift))
-        psishift1 = psishift1 + ldim
-        totshift = totshift + (Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor
-     end do
-
-     !reallocate psi to the global dimensions
-     call f_free_ptr(psi)
-     psi = f_malloc_ptr(Gdim,id='psi')
-     call vcopy(Gdim,workarr(1),1,psi(1),1) !psi=work
-     call f_free_ptr(workarr)
-  end if
-
-  if (nproc > 1 .and. .not. associated(work)) then
-     call f_err_throw('The working pointer must be associated',&
-          err_name='BIGDFT_RUNTIME_ERROR')
-  end if
-
-  if (present(outadd)) then
-      call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1),outadd(1))
-  else
-     if (.not. associated(work)) then
-        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),workdum)
-     else
-        call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),work(1))
-     end if
-  end if
-
-  !!if (nproc > 1) then
-  !!   !control check
-  !!   if (.not. present(work) .or. .not. associated(work)) then
-  !!      if(iproc == 0) write(*,'(1x,a)')&
-  !!           "ERROR: Unproper work array for transposing in parallel"
-  !!      stop
-  !!   end if
-
-
-  !!   !!call switch_waves_v(nproc,orbs,&
-  !!   !!     Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par(0,1),psi,work)
-  !!   call switch_waves_v(nproc,orbs,&
-  !!        Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,comms%nvctr_par,psi,work)
-
-  !!   call timing(iproc,'Un-TransSwitch','OF')
-  !!   call timing(iproc,'Un-TransComm  ','ON')
-  !!   if (present(outadd)) then
-  !!      call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-  !!           outadd,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
-  !!   else
-  !!      call MPI_ALLTOALLV(work,comms%ncntd,comms%ndspld,mpidtypw, &
-  !!           psi,comms%ncntt,comms%ndsplt,mpidtypw,bigdft_mpi%mpi_comm,ierr)
-  !!   end if
-
-  !!   call timing(iproc,'Un-TransComm  ','OF')
-  !!   call timing(iproc,'Un-TransSwitch','ON')
-  !!else
-  !!   if(orbs%nspinor /= 1) then
-  !!      !for only one processor there is no need to transform this
-  !!      call psitransspi(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs,psi,.true.)
-  !!   end if
-  !!end if
-
-  !!call timing(iproc,'Un-TransSwitch','OF')
-
-END SUBROUTINE toglobal_and_transpose

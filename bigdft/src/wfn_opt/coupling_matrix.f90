@@ -48,8 +48,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
      hxh,hyh,hzh,chargec,pkernel,dvxcdrho,psirocc,psivirtr)
   use module_base
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
+  use bounds, only: ext_buffers
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   integer, intent(in) :: iproc,nproc,n3p,nspin,i3s
@@ -257,9 +258,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,nspin,lr,orbsocc,orbsvirt,
   end do loop_i
 
   if (nproc > 1) then
-     call mpiallred(K(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm)
-     if (nspin ==1) call mpiallred(Kaux(1,1),nmulti**2,MPI_SUM,bigdft_mpi%mpi_comm)
-     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(K,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     if (nspin ==1) call mpiallred(Kaux,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     call mpiallred(dipoles(1,1),3*nmulti,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
   if (nspin==1) then

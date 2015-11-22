@@ -1,8 +1,8 @@
-module m_ab7_mixing
+module module_mixing
 
   use dynamic_memory!m_profiling !this has been moved. No idea how should be treated 
-  use defs_basis
-  use module_defs, only: bigdft_mpi
+  use module_base, only: bigdft_mpi
+  use abi_defs_basis
 
   implicit none
 
@@ -300,18 +300,12 @@ contains
 
   subroutine ab7_mixing_eval_allocate(mix, istep)
 
-    !This section has been created automatically by the script Abilint (TD).
-    !Do not modify the following lines by hand.
-    use interfaces_18_timing
-    !End of the abilint section
-
     implicit none
 
     type(ab7_mixing_object), intent(inout) :: mix
     integer, intent(in), optional :: istep
 
     integer :: istep_, usepaw
-    real(dp) :: tsec(2)
     character(len = *), parameter :: subname = "ab7_mixing_eval_allocate"
 
     istep_ = 1
@@ -322,12 +316,10 @@ contains
        mix%f_fftgr=f_malloc_ptr((/mix%space*mix%nfft,mix%nspden,mix%n_fftgr/),id='mix%f_fftgr')
        mix%f_fftgr(:,:,:)=zero
        if (mix%mffmem == 0 .and. istep_ > 1) then
-          call timab(83,1,tsec)
           open(unit=tmp_unit,file=mix%diskCache,form='unformatted',status='old')
           rewind(tmp_unit)
           read(tmp_unit) mix%f_fftgr
           if (mix%n_pawmix == 0) close(unit=tmp_unit)
-          call timab(83,2,tsec)
        end if
     end if
     ! Allocate PAW work array.
@@ -340,7 +332,6 @@ contains
           if (mix%mffmem == 0 .and. istep_ > 1) then
              read(tmp_unit) mix%f_paw
              close(unit=tmp_unit)
-             call timab(83,2,tsec)
           end if
        end if
     end if
@@ -352,22 +343,15 @@ contains
 
   subroutine ab7_mixing_eval_deallocate(mix)
 
-    !This section has been created automatically by the script Abilint (TD).
-    !Do not modify the following lines by hand.
-    use interfaces_18_timing
-    !End of the abilint section
-
     implicit none
 
     type(ab7_mixing_object), intent(inout) :: mix
 
     integer :: i_all
-    real(dp) :: tsec(2)
     character(len = *), parameter :: subname = "ab7_mixing_eval_deallocate"
 
     ! Save on disk and deallocate work array in case on disk cache only.
     if (mix%mffmem == 0) then
-       call timab(83,1,tsec)
        open(unit=tmp_unit,file=mix%diskCache,form='unformatted',status='unknown')
        rewind(tmp_unit)
        ! VALGRIND complains not all of f_fftgr_disk is initialized
@@ -376,7 +360,6 @@ contains
           write(tmp_unit) mix%f_paw
        end if
        close(unit=tmp_unit)
-       call timab(83,2,tsec)
        i_all = -product(shape(mix%f_fftgr))*kind(mix%f_fftgr)
        call f_free_ptr(mix%f_fftgr)
        nullify(mix%f_fftgr)
@@ -396,7 +379,7 @@ contains
 
     !This section has been created automatically by the script Abilint (TD).
     !Do not modify the following lines by hand.
-    use interfaces_56_mixing
+    use abi_interfaces_mixing
     !End of the abilint section
 
     implicit none
@@ -510,7 +493,7 @@ contains
     resnrm_ = 0.d0
     if (mix%iscf == AB7_MIXING_EIG) then
        !  This routine compute the eigenvalues of the SCF operator
-       call scfeig(istep, mix%space * mix%nfft, mix%nspden, &
+       call abi_scfeig(istep, mix%space * mix%nfft, mix%nspden, &
             & mix%f_fftgr(:,:,mix%i_vrespc(1)), arr, &
             & mix%f_fftgr(:,:,1), mix%f_fftgr(:,:,4:5), errid, errmess)
     else if (mix%iscf == AB7_MIXING_SIMPLE .or. &
@@ -518,12 +501,12 @@ contains
          & mix%iscf == AB7_MIXING_ANDERSON_2 .or. &
          & mix%iscf == AB7_MIXING_PULAY) then
        if (present(user_data)) then
-          call scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
+          call abi_scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
                & mix%i_vrespc,mix%i_vtrial, mix%nfft,mix%n_pawmix,mix%nspden, &
                & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr_, &
                & resnrm_, arr, fnrm, fdot, user_data, errid, errmess)
        else
-          call scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
+          call abi_scfopt(mix%space, mix%f_fftgr,mix%f_paw,mix%iscf,istep,&
                & mix%i_vrespc,mix%i_vtrial, mix%nfft,mix%n_pawmix,mix%nspden, &
                & mix%n_fftgr,mix%n_index,mix%kind,pawoptmix_,usepaw,pawarr_, &
                & resnrm_, arr, fnrm_default, fdot_default, user_data_, errid, errmess)
@@ -552,7 +535,7 @@ contains
           mix%dtn_pc = f_malloc_ptr((/ 3, 0 /),id='mix%dtn_pc')
        end if
        if (present(user_data)) then
-          call scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
+          call abi_scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
                & mix%f_fftgr,initialized,mix%iscf,isecur_,istep,&
                & mix%i_rhor,mix%i_vresid,mix%i_vrespc,moveAtm,&
                & mix%n_atom,mix%nfft,nfftot,&
@@ -560,7 +543,7 @@ contains
                & response_,potden,ucvol,arr,mix%xred, &
                & fnrm, fdot, user_data, errid, errmess)
        else
-          call scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
+          call abi_scfcge(mix%space,dbl_nnsclo,mix%dtn_pc,etotal,mix%f_atm,&
                & mix%f_fftgr,initialized,mix%iscf,isecur_,istep,&
                & mix%i_rhor,mix%i_vresid,mix%i_vrespc,moveAtm,&
                & mix%n_atom,mix%nfft,nfftot,&
@@ -615,7 +598,7 @@ contains
     double precision :: fnrm_default
     real(dp) :: resid_new(1)
 
-    call sqnormm_v(cplex,1,user_data(2),(user_data(1) /= 0),1,&
+    call abi_sqnormm_v(cplex,1,user_data(2),(user_data(1) /= 0),1,&
          & nfft,resid_new,1,nspden,opt_denpot,x)
     fnrm_default = resid_new(1)
   end function fnrm_default
@@ -628,7 +611,7 @@ contains
     double precision :: fdot_default
     real(dp) :: prod_resid(1)
 
-    call dotprodm_v(cplex,1,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
+    call abi_dotprodm_v(cplex,1,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
          & nfft,1,1,nspden,opt_denpot,x,y)
     fdot_default = prod_resid(1)
   end function fdot_default
@@ -641,7 +624,7 @@ contains
     double precision :: fdotn_default
     real(dp) :: prod_resid(1,1,1)
 
-    call dotprodm_vn(cplex,1,x,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
+    call abi_dotprodm_vn(cplex,1,x,prod_resid,1,1,user_data(2),(user_data(1) /= 0),1,1,&
          & 1,nfft,1,nspden,y)
     fdotn_default = prod_resid(1,1,1)
   end function fdotn_default
@@ -770,7 +753,7 @@ contains
     ! Summarize on processors
     fdot_denpot = dot_local
     if (bigdft_mpi%nproc>1) then
-       call mpiallred(dot_local,1,MPI_SUM,bigdft_mpi%mpi_comm,&
+       call mpiallred(dot_local,1,MPI_SUM,comm=bigdft_mpi%mpi_comm,&
             recvbuf=fdot_denpot)
 !!$       call MPI_ALLREDUCE(dot_local, fdot_denpot, 1, &
 !!$            & MPI_DOUBLE_PRECISION, MPI_SUM, bigdft_mpi%mpi_comm, ierr)
@@ -790,7 +773,7 @@ contains
     double precision, dimension(*), intent(in) :: x
     integer, dimension(:), intent(in) :: user_data
     !Local variables
-    integer :: ierr, ie, iproc, npoints, ishift, ioffset, ispin
+    integer :: ierr, iproc, npoints, ishift, ioffset, ispin
     double precision :: fnrm_denpot_forlinear, ar, nrm_local, dnrm2, tt
 
     ! In case of density, we use nscatterarr.
@@ -852,7 +835,7 @@ contains
     double precision, intent(in) :: x(*), y(*)
     integer, intent(in) :: user_data(:)
 
-    integer :: ierr, ie, iproc, npoints, ishift, ioffset, ispin
+    integer :: ierr, iproc, npoints, ishift, ioffset, ispin
     double precision :: fdot_denpot_forlinear, ar, dot_local, ddot
 
     ! In case of density, we use nscatterarr.
@@ -919,7 +902,7 @@ contains
     ! Summarize on processors
     fdot_denpot_forlinear = dot_local
     if (bigdft_mpi%nproc>1) then
-        call mpiallred(dot_local,1,MPI_SUM,bigdft_mpi%mpi_comm,&
+        call mpiallred(dot_local,1,MPI_SUM,comm=bigdft_mpi%mpi_comm,&
              recvbuf=fdot_denpot_forlinear)
     else
         fdot_denpot_forlinear = dot_local
@@ -927,4 +910,4 @@ contains
     end if
   end function fdot_denpot_forlinear
 
-end module m_ab7_mixing
+end module module_mixing

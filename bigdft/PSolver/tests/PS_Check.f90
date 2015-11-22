@@ -17,9 +17,11 @@ program PS_Check
   use dynamic_memory
   use dictionaries
   use time_profiling
+  use yaml_strings
   implicit none
   !Length of the box
   character(len=*), parameter :: subname='PS_Check'
+  logical :: usegpu
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
   character(len=50) :: chain
@@ -34,10 +36,10 @@ program PS_Check
   integer :: ncount0,ncount1,ncount_rate,ncount_max
   integer :: n01,n02,n03,itype_scf!,i_all,i_stat
   integer :: iproc,nproc,namelen,ierr,ispden
-  integer :: n_cell
+  integer :: n_cell,igpu
   integer, dimension(3) :: nxyz
   integer, dimension(3) :: ndims
-  real(wp), dimension(:,:,:,:), pointer :: rhocore
+  real(dp), dimension(:,:,:,:), pointer :: rhocore
   real(dp), dimension(3) :: hgrids
   type(mpi_environment) :: bigdft_mpi
   character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"
@@ -81,32 +83,19 @@ program PS_Check
   !Start global timing
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
-!!$
-!!$  !the first proc read the data and then send them to the others
-!!$  if (iproc==0) then
-!!$     !Use arguments
-!!$     call get_command_argument(1,value=chain)
-!!$     read(unit=chain,fmt=*) nxyz(1)
-!!$     call get_command_argument(2,value=chain)
-!!$     read(unit=chain,fmt=*) nxyz(2)
-!!$     call get_command_argument(3,value=chain)
-!!$     read(unit=chain,fmt=*) nxyz(3)
-!!$     call get_command_argument(4,value=chain)
-!!$     read(unit=chain,fmt=*) geocode
-!!$  end if
-!!$
-!!$  call MPI_BCAST(nxyz,3,MPI_INTEGER,0,MPI_COMM_WORLD,ierr)
-!!$  call MPI_BCAST(geocode,1,MPI_CHARACTER,0,MPI_COMM_WORLD,ierr)
 
 
   nxyz=options//'ndim'
   geocode=options//'geocode'
+  usegpu = options // 'accel'
+
 
   call dict_free(options)
   n01=nxyz(1)
   n02=nxyz(2)
   n03=nxyz(3)
-
+  igpu=0
+  if (usegpu) igpu=1
   !print *,iproc,n01,n02,n03
 
   !Step size
@@ -136,9 +125,9 @@ program PS_Check
   ndims=(/n01,n02,n03/)
   hgrids=(/hx,hy,hz/)
 
-  pkernel=pkernel_init(.true.,iproc,nproc,0,&
+  pkernel=pkernel_init(.true.,iproc,nproc,igpu,&
        geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
-  call pkernel_set(pkernel,.true.)
+  call pkernel_set(pkernel,verbose=.true.)
 
   !Allocations, considering also spin density
   !Density
@@ -157,7 +146,7 @@ program PS_Check
 
   if (iproc == 0) then
      call yaml_map('Number of Spins',ispden,advance='no')
-     call yaml_comment('nspden:'//trim(yaml_toa(ispden)),hfill='-')
+     call yaml_comment('nspden:'//ispden,hfill='-')
   end if
 
   !if (iproc == 0) call yaml_comment('nspden:'//yaml_toa(ispden,fmt='(i0)'),hfill='=')
@@ -184,15 +173,15 @@ program PS_Check
   !stop
   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) then
      !compare the values of the analytic results (pkernel%mpi_env%nproc == -1 indicates that it is serial)
-     call compare (0,-1,pkernel%mpi_env%mpi_comm,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
+     call compare(0,-1,pkernel%mpi_env%mpi_comm,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
   end if
   !if the latter test pass, we have a reference for all the other calculations
   !build the reference quantities (based on the numerical result, not the analytic)
   potential(:)=rhopot(1:n01*n02*n03)
   extra_ref=potential
 
-  !now the parallel calculation part
-  call f_free(rhopot)
+      !now the parallel calculation part
+      call f_free(rhopot)
 !!$      i_all=-product(shape(rhopot))*kind(rhopot)
 !!$      deallocate(rhopot,stat=i_stat)
 !!$      call memocc(i_stat,i_all,'rhopot',subname)
@@ -237,7 +226,6 @@ program PS_Check
   call f_timing_checkpoint('Parallel',mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
   !call timing(MPI_COMM_WORLD,'Parallel','PR')
 
-  call pkernel_free(pkernel)
 
   if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
        call yaml_map('Monoprocess run','*MPIrun')
@@ -246,8 +234,6 @@ program PS_Check
   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 .and. pkernel%mpi_env%nproc > 1 ) then
      call yaml_mapping_open('Monoprocess run')
      rhopot=f_malloc(n01*n02*n03*2,id='rhopot')
-!!$      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
-!!$      call memocc(i_stat,rhopot,'rhopot',subname)
 
      ispden = 1
      call yaml_map('Number of Spins',ispden)
@@ -258,9 +244,9 @@ program PS_Check
      !calculate the Poisson potential in parallel
      !with the global data distribution (also for xc potential)
      pkernelseq=pkernel_init(.true.,0,1,0,geocode,ndims,hgrids,itype_scf)
-     call pkernel_set(pkernelseq,.true.)
+     call pkernel_set(pkernelseq,verbose=.true.)
 
-!!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
+
      call yaml_mapping_open('Comparison with a reference run')
 
      call compare_with_reference(1,geocode,'G',n01,n02,n03,ispden,offset,ehartree,&
@@ -273,9 +259,6 @@ program PS_Check
      call yaml_mapping_close() !comparison
 
      call f_free(rhopot)
-!!$     i_all=-product(shape(rhopot))*kind(rhopot)
-!!$     deallocate(rhopot,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'rhopot',subname)
 
      call yaml_mapping_close()
   endif
@@ -303,6 +286,7 @@ program PS_Check
   !call yaml_stream_attributes()
   !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
 
+  call pkernel_free(pkernel)
   call f_release_routine()
   if (iproc==0) then
      call yaml_release_document()
@@ -328,7 +312,7 @@ contains
     real(kind=8), intent(in) :: ehref,offset
     real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
     real(kind=8), dimension(n01*n02*n03*2), intent(in) :: density
-    type(coulomb_operator), intent(in) :: pkernel
+    type(coulomb_operator), intent(inout) :: pkernel
     !local varaibles
     character(len=*), parameter :: subname='compare_cplx_calculations'
     character(len=20) :: message
@@ -355,7 +339,7 @@ contains
 
 
     call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,.false.,.false.,&
-         n3d,n3p,n3pi,i3xcsh,i3s)
+         0,n3d,n3p,n3pi,i3xcsh,i3s)
 
     !starting point of the three-dimensional arrays
     if (distcode == 'D') then
@@ -441,7 +425,7 @@ contains
     real(kind=8), dimension(n01*n02*n03), intent(in) :: potential
     real(kind=8), dimension(n01*n02*n03*nspden), intent(in) :: density
     real(kind=8), dimension(n01*n02*n03), intent(inout) :: pot_ion
-    type(coulomb_operator), intent(in) :: pkernel
+    type(coulomb_operator), intent(inout) :: pkernel
     !local variables
     character(len=*), parameter :: subname='compare_with_reference'
     character(len=100) :: message
@@ -457,7 +441,7 @@ contains
     nullify(rhocore)
 
     call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,n01,n02,n03,.false.,.false.,&
-         n3d,n3p,n3pi,i3xcsh,i3s)
+         0,n3d,n3p,n3pi,i3xcsh,i3s)
 
     !starting point of the three-dimensional arrays
     if (distcode == 'D') then
@@ -707,8 +691,9 @@ contains
     real(kind=8) :: x1,x2,x3,length,denval,pi,a2,derf_tt,factor,r,r2
     real(kind=8) :: fx,fx2,fy,fy2,fz,fz2,a,ax,ay,az,bx,by,bz,tt
 
-    if (trim(geocode) == 'P' .or. trim(geocode)=='W') then
-
+    select case (geocode)
+       !if (trim(geocode) == 'P' .or. trim(geocode)=='W') then
+    case('P')
        !parameters for the test functions
        length=acell
        a=0.5d0/a_gauss**2
@@ -755,7 +740,8 @@ contains
 
        denval=0.d0
 
-    else if (trim(geocode) == 'S') then
+    !else if (trim(geocode) == 'S') then
+    case('S')
        !parameters for the test functions
        length=acell
        a=0.5d0/a_gauss**2
@@ -796,8 +782,8 @@ contains
 
        denval=0.d0
 
-    else if (trim(geocode) == 'F') then
-
+    !else if (trim(geocode) == 'F') then
+    case('F')
        !grid for the free BC case
        !hgrid=max(hx,hy,hz)
 
@@ -831,12 +817,12 @@ contains
 
        denval=0.d0
 
-    else
+       case default
+!    else
+          print *,'geometry code not admitted',geocode
+          stop
 
-       print *,'geometry code not admitted',geocode
-       stop
-
-    end if
+    end select
 
     ! For ixc/=0 the XC potential is added to the solution, and an analytic comparison is no more
     ! possible. In that case the only possible comparison is between the serial and the parallel case
@@ -1009,6 +995,19 @@ subroutine PS_Check_options(parser)
        'Set the boundary conditions of the run',&
        'Allowed values' .is. &
        'String scalar. "F","S","W","P" boundary conditions are allowed'))
+
+  call yaml_cl_parse_option(parser,'method','None',&
+       'Embedding method','m',&
+       dict_new('Usage' .is. &
+       'Set the embedding method used. A non present value implies vacuum treatment.',&
+       'Allowed values' .is. &
+       dict_new("PI" .is. 'Polarization iteration Method',&
+               "PCG" .is. 'Preconditioned Conjugate Gradient')))
+  call yaml_cl_parse_option(parser,'accel','No',&
+       'GPU Acceleration','a',&
+       dict_new('Usage' .is. &
+       'Boolean, set the GPU acceleration'))
+
 
 end subroutine PS_Check_options
 

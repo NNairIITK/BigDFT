@@ -12,17 +12,24 @@
 !> Module defining all yaml strings for output.
 !! This module must be only used by the module yaml_output
 module yaml_strings
-
+  use f_precisions
   implicit none
 
   private
 
-  integer :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
+  integer, parameter :: max_value_length=95 !< Not a parameter in order to be used by C bindings but constant
 
   character(len=*), parameter :: yaml_int_fmt  = '(i0)'                      !< Default format for integer
   character(len=*), parameter :: yaml_real_fmt = '(1pe18.9)'                 !< Default format for single
   character(len=*), parameter :: yaml_dble_fmt = '(1pg26.16e3)'!'(1pe25.17)' !< Default format for double
   character(len=*), parameter :: yaml_char_fmt = '(a)'                       !< Default format for strings
+
+  !> structure containing the string and its length
+  !! for the moment implement it basically, we might then 
+  !! identifty a strategy to allocate the string according to the needs
+  type, public :: f_string
+     character(len=4*max_value_length) :: msg
+  end type f_string
 
   interface yaml_toa             !< Convert into a character string yaml_toa(xxx,fmt)
      module procedure yaml_itoa,yaml_litoa,yaml_ftoa,yaml_dtoa,yaml_ltoa,yaml_ctoa
@@ -34,44 +41,66 @@ module yaml_strings
      module procedure fmt_i,fmt_r,fmt_d,fmt_a,fmt_li
   end interface
 
+  interface f_strcpy
+     module procedure f_strcpy,f_strcpy_str
+  end interface
+
   interface operator(.eqv.)
      module procedure case_insensitive_equiv
   end interface operator(.eqv.)
 
+  interface operator(//)
+     module procedure string_and_integer,string_and_double,string_and_long,string_and_msg,msg_and_string
+     module procedure integer_and_string,integer_and_msg,msg_and_msg
+  end interface
+
+  interface operator(+)
+     module procedure combine_strings,attach_ci,attach_cli,attach_cd,combine_msg
+     module procedure attach_c_msg,attach_msg_c
+  end interface
+
+  interface assignment(=)
+     module procedure msg_to_string
+  end interface assignment(=)
+
+  interface operator(**)
+     module procedure yaml_itoa_fmt,yaml_litoa_fmt,yaml_dtoa_fmt,yaml_ctoa_fmt
+  end interface operator(**)
+  !format test to convert rapidly
+  !' test string' + tt**'(1pe25.16)'
 
   !Public routines
-  public ::  yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
+  public :: yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
-  public :: operator(.eqv.)
+  public :: operator(.eqv.),operator(+),operator(//),operator(**),assignment(=)
 
 contains
 
-
   pure function fmt_li(data)
     implicit none
-    integer(kind=8), intent(in) :: data
+    integer(f_long), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_li
     fmt_li=yaml_int_fmt
   end function fmt_li
 
   pure function fmt_i(data)
     implicit none
-    integer, intent(in) :: data
+    integer(f_integer), intent(in) :: data
     character(len=len(yaml_int_fmt)) :: fmt_i
     fmt_i=yaml_int_fmt
   end function fmt_i
 
   pure function fmt_r(data)
     implicit none
-    real, intent(in) :: data
+    real(f_simple), intent(in) :: data
     character(len=len(yaml_real_fmt)) :: fmt_r
     fmt_r=yaml_real_fmt
   end function fmt_r
 
   pure function fmt_d(data)
     implicit none
-    double precision, intent(in) :: data
+    real(f_double), intent(in) :: data
     character(len=len(yaml_dble_fmt)) :: fmt_d
     fmt_d=yaml_dble_fmt
   end function fmt_d
@@ -83,23 +112,34 @@ contains
     fmt_a=yaml_char_fmt
   end function fmt_a
 
-
-  !> Write the strings as they were written by write
+  !> Write the strings as if they were written by write
   pure subroutine f_strcpy(dest,src)
     implicit none
     character(len=*), intent(out) :: dest
     character(len=*), intent(in) :: src
     !local variables
-    integer :: i
-
-    dest=repeat(' ',len(dest))
-    
-    do i=1,min(len(src),len(dest))
+    integer :: i,n
+    !dest=repeat(' ',len(dest))
+    n=min(len(src),len(dest))
+    do i=1,n
        dest(i:i)=src(i:i)
+    end do
+    do i=n+1,len(dest)
+       dest(i:i)=' '
     end do
     
   end subroutine f_strcpy
+  
+  pure subroutine f_strcpy_str(dest,src)
+    implicit none
+    character(len=*), intent(out) :: dest
+    type(f_string), intent(in) :: src
+    !local variables
+    integer :: i,n
+    call f_strcpy(dest=dest,src=src%msg)
+  end subroutine f_strcpy_str
 
+  
 
   !> Add a buffer to a string and increase its length
   pure subroutine buffer_string(string,string_lgt,buffer,string_pos,back,istat)
@@ -192,28 +232,28 @@ contains
   !> Convert integer to character
   pure function yaml_itoa(data,fmt) result(str)
     implicit none
-    integer, intent(in) :: data
+    integer(f_integer), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_itoa
 
   !> Convert longinteger to character
   pure function yaml_litoa(data,fmt) result(str)
     implicit none
-    integer(kind=8), intent(in) :: data
+    integer(f_long), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_litoa
 
   !> Convert float to character
   pure function yaml_ftoa(data,fmt) result(str)
     implicit none
-    real, intent(in) :: data
+    real(f_simple), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_ftoa
 
   !> Convert double to character
   pure function yaml_dtoa(data,fmt) result(str)
     implicit none
-    real(kind=8), intent(in) :: data
+    real(f_double), intent(in) :: data
     include 'yaml_toa-inc.f90'
   end function yaml_dtoa
 
@@ -313,7 +353,7 @@ contains
   !> Convert vector of integer to character
   pure function yaml_ivtoa(vec,fmt) result(vec_toa)
     implicit none
-    integer, dimension(:), intent(in) :: vec
+    integer(kind=4), dimension(:), intent(in) :: vec
     include 'yaml_toa-arr-inc.f90'
   end function yaml_ivtoa
 
@@ -500,7 +540,7 @@ contains
     
     !fill the string describing the format to be used for reading
     !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
-    write(form,'(a20)')'(i'//adjustl(trim(yaml_itoa(len_trim(str),fmt='(i17)')))//')' 
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_toa(len_trim(str),fmt='(i17)')))//')' 
     read(str,trim(form),iostat=ierr)ival
     yes=ierr==0
   end function is_atoi
@@ -521,7 +561,7 @@ contains
 
     !fill the string describing the format to be used for reading
     !use the trimmed string and the yaml_toa function as i0 can add extra zeros in the specifications
-    write(form,'(a20)')'(i'//adjustl(trim(yaml_itoa(len_trim(str),fmt='(i17)')))//')' 
+    write(form,'(a20)')'(i'//adjustl(trim(yaml_toa(len_trim(str),fmt='(i17)')))//')' 
     read(str,trim(form),iostat=ierr)ival
     yes=ierr==0
   end function is_atoli
@@ -620,6 +660,205 @@ contains
     end do
 
   end function case_insensitive_equiv
+
+  !define the strings which combine them, without the need of using trim or adjustl specifications
+  pure function combine_strings(a,b) result(c)
+    implicit none
+    character(len=*), intent(in) :: a
+    character(len=*), intent(in) :: b
+    character(len=len_trim(a)+len_trim(adjustl(b))) :: c
+    c=trim(a)//trim(adjustl(b))
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,trim(a)//trim(adjustl(b)))
+  end function combine_strings
+
+  !define the strings which combine them, without the need of using trim or adjustl specifications
+  pure function combine_msg(a,b) result(c)
+    implicit none
+    type(f_string), intent(in) :: a
+    type(f_string), intent(in) :: b
+    character(len=len_trim(a%msg)+len_trim(adjustl(b%msg))) :: c
+    c=trim(a%msg)//trim(adjustl(b%msg))
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,trim(a%msg)//trim(adjustl(b%msg)))
+  end function combine_msg
+
+  !define the strings which combine them, without the need of using trim or adjustl specifications
+  pure function attach_msg_c(a,b) result(c)
+    implicit none
+    type(f_string), intent(in) :: a
+    character(len=*), intent(in) :: b
+    character(len=len_trim(a%msg)+len_trim(adjustl(b))) :: c
+    c=trim(a%msg)//trim(adjustl(b))
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,trim(a%msg)//trim(adjustl(b%msg)))
+  end function attach_msg_c
+
+  !define the strings which combine them, without the need of using trim or adjustl specifications
+  pure function attach_c_msg(a,b) result(c)
+    implicit none
+    character(len=*), intent(in) :: a
+    type(f_string), intent(in) :: b
+    character(len=len_trim(a)+len_trim(adjustl(b%msg))) :: c
+    c=trim(a)//trim(adjustl(b%msg))
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,trim(a%msg)//trim(adjustl(b%msg)))
+  end function attach_c_msg
+
+  pure function string_and_integer(a,num) result(c)
+    implicit none
+    integer(f_integer), intent(in) :: num
+    character(len=*), intent(in) :: a
+    !character(len=len_trim(adjustl(a))+len_trim(yaml_itoa(num))) :: c
+    type(f_string) :: c
+    call f_strcpy(c%msg,a//trim(yaml_toa(num)))
+  end function string_and_integer
+
+  pure function integer_and_string(a,num) result(c)
+    implicit none
+    integer(f_integer), intent(in) :: a
+    character(len=*), intent(in) :: num
+    !character(len=len_trim(adjustl(a))+len_trim(yaml_itoa(num))) :: c
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(yaml_toa(a)))//trim(num))
+  end function integer_and_string
+
+  pure function integer_and_msg(a,num) result(c)
+    implicit none
+    integer(f_integer), intent(in) :: a
+    type(f_string), intent(in) :: num
+    !character(len=len_trim(adjustl(a))+len_trim(yaml_itoa(num))) :: c
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(yaml_toa(a)))//trim(num%msg))
+  end function integer_and_msg
+
+  pure function string_and_long(a,num) result(c)
+    implicit none
+    integer(f_long), intent(in) :: num
+    character(len=*), intent(in) :: a
+!!$    character(len=len_trim(adjustl(a))+len_trim(yaml_litoa(num))) :: c
+!!$    c=a//trim(yaml_toa(num))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
+  end function string_and_long
+
+  pure function string_and_double(a,num) result(c)
+    implicit none
+    real(f_double), intent(in) :: num
+    character(len=*), intent(in) :: a
+!!$    character(len=len_trim(adjustl(a))+len_trim(yaml_dtoa(num))) :: c
+!!$    c=a//trim(yaml_toa(num))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
+  end function string_and_double
+
+  pure function string_and_msg(a,num) result(c)
+    implicit none
+    type(f_string), intent(in) :: num
+    character(len=*), intent(in) :: a
+    character(len=len_trim(adjustl(a))+len_trim(num%msg)) :: c
+    c=trim(adjustl(a))//trim(num%msg)
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,a//trim(yaml_toa(num)))
+  end function string_and_msg
+
+  pure function msg_and_msg(a,num) result(c)
+    implicit none
+    type(f_string), intent(in) :: num
+    type(f_string), intent(in) :: a
+    character(len=len_trim(adjustl(a%msg))+len_trim(num%msg)) :: c
+    c=trim(adjustl(a%msg))//trim(num%msg)
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,a//trim(yaml_toa(num)))
+  end function msg_and_msg
+
+  pure function msg_and_string(a,num) result(c)
+    implicit none
+    type(f_string), intent(in) :: a
+    character(len=*), intent(in) :: num
+    character(len=len_trim(adjustl(a%msg))+len_trim(num)) :: c
+    c=trim(adjustl(a%msg))//trim(num)
+!!$    type(f_string) :: c
+!!$    call f_strcpy(c%msg,a//trim(yaml_toa(num)))
+  end function msg_and_string
+
+  pure subroutine msg_to_string(string,msg)
+    implicit none
+    character(len=*), intent(out) :: string
+    type(f_string), intent(in) :: msg
+    call f_strcpy(string,msg%msg)
+  end subroutine msg_to_string
+  
+  !function which attach two strings each other
+  pure function attach_ci(s,num) result(c)
+    implicit none
+    integer(f_integer), intent(in) :: num
+    character(len=*), intent(in) :: s
+!!$    character(len=len_trim(s)+len_trim(adjustl(yaml_itoa(num)))) :: c
+!!$    c=trim(s)//trim(adjustl(yaml_toa(num)))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
+  end function attach_ci
+
+  pure function attach_cli(s,num) result(c)
+    implicit none
+    integer(f_long), intent(in) :: num
+    character(len=*), intent(in) :: s
+!!$    character(len=len_trim(s)+len_trim(adjustl(yaml_litoa(num)))) :: c
+!!$    c=trim(s)//trim(adjustl(yaml_toa(num)))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
+  end function attach_cli
+
+  pure function attach_cd(s,num) result(c)
+    implicit none
+    real(f_double), intent(in) :: num
+    character(len=*), intent(in) :: s
+!!$    character(len=len_trim(s)+len_trim(adjustl(yaml_dtoa(num)))) :: c
+!!$    c=trim(s)//trim(adjustl(yaml_toa(num)))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(s)//trim(adjustl(yaml_toa(num))))
+  end function attach_cd
+  
+  function yaml_itoa_fmt(num,fmt) result(c)
+    implicit none
+    integer(f_integer), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+!!$    character(len=len_trim(adjustl(yaml_itoa(num,fmt)))) :: c
+!!$    c=trim(adjustl(yaml_toa(num,fmt)))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+  end function yaml_itoa_fmt
+
+  function yaml_litoa_fmt(num,fmt) result(c)
+    implicit none
+    integer(f_long), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+!!$    character(len=len_trim(adjustl(yaml_litoa(num,fmt)))) :: c
+!!$    c=trim(adjustl(yaml_toa(num,fmt)))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+  end function yaml_litoa_fmt
+
+  function yaml_dtoa_fmt(num,fmt) result(c)
+    implicit none
+    real(f_double), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+!!$    character(len=len_trim(adjustl(yaml_dtoa(num,fmt)))) :: c
+!!$    c=trim(adjustl(yaml_toa(num,fmt)))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+  end function yaml_dtoa_fmt
+
+  function yaml_ctoa_fmt(num,fmt) result(c)
+    implicit none
+    character(len=*), intent(in) :: num
+    character(len=*), intent(in) :: fmt
+!!$    character(len=len_trim(adjustl(yaml_ctoa(num,fmt)))) :: c
+!!$    c=trim(adjustl(yaml_toa(num,fmt)))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(yaml_toa(num,fmt))))
+  end function yaml_ctoa_fmt
 
 
   !> Shifts characters in in the string 'str' n positions (positive values

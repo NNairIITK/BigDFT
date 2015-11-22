@@ -25,13 +25,26 @@ pdfs =
 endif
 
 if BUILD_DEVDOC
-devdocs = doxygen-doc
+insdevdocs = install-devdoc
+uninsdevdocs = uninstall-devdoc
 else
-devdocs =
+insdevdocs =
+uninsdevdocs =
 endif
 
-doc_DATA = $(pdfs) $(devdocs)
+doc_DATA = $(pdfs)
 noinst_DATA = tests.xml
+
+install-data-hook: $(insdevdocs)
+
+uninstall-local: $(uninsdevdocs)
+
+install-devdoc: Doxygen/html
+	test -z "$(docdir)" || /bin/mkdir -p "$(docdir)"
+	cp -rp Doxygen/html '$(docdir)'
+
+uninstall-devdoc:
+	rm -rf '$(docdir)/html'
 
 doxygen-doc: Doxygen/html
 
@@ -94,3 +107,4 @@ tests.xml:
 clean-local:
 	rm -rf *.aux *.log cluster.pdf halFFT.pdf BigDFT-manual.pdf *.toc Doxygen *.stamp doxygen.warnings
 
+PHONY = install-devdoc

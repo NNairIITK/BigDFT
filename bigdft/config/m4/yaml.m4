@@ -48,10 +48,11 @@ EOF
         ;;
       *)
         AC_MSG_RESULT([no])
-        AC_MSG_ERROR([PyYAML not available, use --with-pyyaml-path to specify the module location.])
+        AC_MSG_WARN([PyYAML not available, use --with-pyyaml-path to specify the module location.])
         ax_have_pyyaml="no"
         ;;
     esac
   fi
+  AM_CONDITIONAL(HAVE_PYYAML, test x"$ax_have_pyyaml" = x"yes")
   AC_SUBST(AX_PYYAML_PATH)
 ])

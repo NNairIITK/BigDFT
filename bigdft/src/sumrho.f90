@@ -11,12 +11,12 @@
 !> Selfconsistent potential is saved in rhopot, 
 !! new arrays rho,pot for calculation of forces ground state electronic density
 !! Potential from electronic charge density
-subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,hstrten)
+subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,vh,rho_ion,hstrten)
   use module_base
   use module_types
   use module_xc
-  use module_interfaces, fake_name => density_and_hpot
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use module_interfaces, only: communicate_density, sumrho
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   implicit none
   !Arguments
   type(denspot_distribution), intent(in) :: dpbox
@@ -24,12 +24,13 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
   type(symmetry_data), intent(in) :: symObj
-  type(coulomb_operator), intent(in) :: pkernel
+  type(coulomb_operator), intent(inout) :: pkernel
   type(xc_info), intent(in) :: xc
   real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
   type(GPU_pointers), intent(inout) :: GPU
   real(gp), dimension(6), intent(out) :: hstrten
   real(dp), dimension(:), pointer :: rho,vh
+  real(dp), dimension(:,:,:,:), pointer :: rho_ion
   !local variables
   character(len=*), parameter :: subname='density_and_hpot'
   real(gp) :: ehart_fake
@@ -60,7 +61,12 @@ subroutine density_and_hpot(dpbox,symObj,orbs,Lzd,pkernel,rhodsc,GPU,xc,psi,rho,
   if (xc%id(1) /= XC_NO_HARTREE) then
      !Calculate electrostatic potential
      call vcopy(dpbox%ndimpot,rho(1),1,vh(1),1)
-     call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+     !the ionic denisty is given in the case of the embedded solver
+     if (pkernel%method /= 'VAC') then
+        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten,rho_ion=rho_ion) !only sum up rho_ion
+     else
+        call H_potential('D',pkernel,vh,vh,ehart_fake,0.0_dp,.false.,stress_tensor=hstrten)
+     end if
   else
      !Only to_zero vh
      vh=0.0_dp
@@ -80,7 +86,6 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    use module_base
    use module_types
    use module_xc
-   use module_interfaces, except_this_one => sumrho
    use yaml_output
    implicit none
    !Arguments
@@ -107,7 +112,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
    call timing(dpbox%mpi_env%iproc,'Rho_comput    ','ON')
 
    if (writeout) then
-      call yaml_map('GPU acceleration',(GPUconv .or. GPU%OCLconv))
+      call yaml_map('GPU acceleration',GPU%OCLconv)
    end if
 
    !components of the charge density
@@ -127,10 +132,7 @@ subroutine sumrho(dpbox,orbs,Lzd,GPU,symObj,rhodsc,xc,psi,rho_p,mapping)
 
    !switch between GPU/CPU treatment of the density
    !here also one might decide to save the value of psir and of its laplacian 
-   if (GPUconv) then
-      call local_partial_density_GPU(orbs,rhodsc%nrhotot,Lzd%Glr,&
-           dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,psi,rho_p,GPU)
-   else if (GPU%OCLconv) then
+   if (GPU%OCLconv) then
       call local_partial_density_OCL(orbs,rhodsc%nrhotot,Lzd%Glr,&
            dpbox%hgrids(1),dpbox%hgrids(2),dpbox%hgrids(3),orbs%nspin,psi,rho_p,GPU)
    else if(Lzd%linear) then
@@ -227,7 +229,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
              rhotot_dbl=rhotot_dbl+rho_p(irho,ispin)*product(dpbox%hgrids)!hxh*hyh*hzh
            enddo
         enddo
-        call mpiallred(rhotot_dbl,1,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(rhotot_dbl,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
 
         !call system_clock(ncount0,ncount_rate,ncount_max)
 
@@ -237,8 +239,8 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
 
         !call system_clock(ncount1,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED1',real(ncount1-ncount0)/real(ncount_rate)
-        call mpiallred(sprho_comp(1,1),rhodsc%sp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm)
-        call mpiallred(dprho_comp(1,1),rhodsc%dp_size*nspin,MPI_SUM,bigdft_mpi%mpi_comm)
+        call mpiallred(sprho_comp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+        call mpiallred(dprho_comp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
         !call system_clock(ncount2,ncount_rate,ncount_max)
         !write(*,*) 'TIMING:ARED2',real(ncount2-ncount1)/real(ncount_rate)
 
@@ -257,7 +259,7 @@ subroutine communicate_density(dpbox,nspin,rhodsc,rho_p,rho,keep_rhop)
      else if (rhodsc%icomm==0) then
         if (dump) call yaml_map('Rho Commun','ALLRED')
         call mpiallred(rho_p(1,1),dpbox%ndimgrid*nspin,&
-             &   MPI_SUM,bigdft_mpi%mpi_comm)
+             &   MPI_SUM,comm=bigdft_mpi%mpi_comm)
          !call system_clock(ncount1,ncount_rate,ncount_max)
          !write(*,*) 'TIMING:DBL',real(ncount1-ncount0)/real(ncount_rate)
      else
@@ -374,7 +376,8 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
       &   nrhotot,lr,hxh,hyh,hzh,nspin,orbs,psi,rho_p)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, only: partial_density_free
+   use locreg_operations
    implicit none
    logical, intent(in) :: rsflag
    integer, intent(in) :: nproc,nrhotot
@@ -393,7 +396,7 @@ subroutine local_partial_density(nproc,rsflag,nscatterarr,&
    type(workarr_sumrho) :: w
    real(wp), dimension(:,:), allocatable :: psir
 
-   call initialize_work_arrays_sumrho(1,lr,.true.,w)
+   call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
    !components of wavefunction in real space which must be considered simultaneously
    !and components of the charge density
@@ -721,7 +724,7 @@ subroutine symmetrise_density(iproc,nproc,geocode,n1i,n2i,n3i,nspin,rho,& !n(c) 
   integer, pointer :: symAfm(:)
   real(gp), pointer :: transNon(:,:)
 
-  call symmetry_get_matrices_p(sym%symObj, nSym, symRel, transNon, symAfm, errno)
+  call symmetry_get_matrices_p(sym%symObj, nSym, symRel, transNon, symAfm, errno = errno)
   if (nSym == 1) return
   if (geocode == 'F') then
      !call yaml_warning('The symmetrization of the density is not implemented for the isolated systems')

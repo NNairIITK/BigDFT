@@ -5,7 +5,8 @@ module_DATA = $(modules)
 MPI_INCLUDES = allreduce-inc.f90 allreduce-arr-inc.f90 gather-inc.f90 \
 	gather-inner-inc.f90 maxdiff-arr-inc.f90 maxdiff-inc.f90 \
 	bcast-inc.f90 bcast-decl-inc.f90 bcast-decl-arr-inc.f90 \
-	maxdiff-decl-inc.f90 maxdiff-end-inc.f90
+	maxdiff-decl-inc.f90 maxdiff-end-inc.f90 alltoallv-inc.f90 \
+	allgather-inc.f90 scatter-inc.f90 scatterv-inc.f90 scatterv-decl-inc.f90
 
 if USE_MPI
 #mpi_source =
@@ -27,7 +28,8 @@ mpif.h:
 	echo "integer, parameter :: MPI_MAX_PROCESSOR_NAME=10, MPI_STATUS_SIZE=1, MPI_LAND=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_REQUEST_NULL=1, MPI_STATUS_IGNORE=1" >> mpif.h &&\
 	echo "integer, parameter :: MPI_TAG_UB=1, MPI_ADDRESS_KIND=8, MPI_INFO_NULL=0" >> mpif.h &&\
-	echo "integer, parameter :: MPI_MODE_NOPRECEDE=0" >> mpif.h &&\
+	echo "integer, parameter :: MPI_MODE_NOPRECEDE=0, MPI_MODE_NOSUCCEED=0" >> mpif.h &&\
+	echo "integer, parameter :: MPI_LOCK_EXCLUSIVE=0, MPI_LOCK_SHARED=0" >> mpif.h &&\
 	echo "real(kind=8), external :: mpi_wtime" >> mpif.h
 
 
@@ -52,11 +54,19 @@ OCL_SOURCES =
 else
 OCL_SOURCES = interface_ocl_fake.f90
 endif
+
+# Hack for MIC compilation.
+if USE_MIC
+cublas_fake.o: cublas_fake.f90
+	$(FCCOMPILE) -offload-attribute-target=mic -c -o $@ $<
+endif
+
 libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 	fft/fft2d.f90 \
 	fft/fft3d.f90 \
 	linalg.f90 \
-	mpi.F90
+	mpi.F90 \
+	numerics.f90
 
 # Dependencies
 $(modules): $(libwrappers_a_OBJECTS)
@@ -66,8 +76,7 @@ interface_dgemmsy_fake.o: linalg.o
 interface_dgemmsy_fake.o: linalg.o
 mpi.o: $(mpi_include)
 
-
-AM_FCFLAGS = -I$(top_builddir)/includes @MPI_INCLUDE@
+AM_FCFLAGS = @LIB_FLIB_CFLAGS@ @MPI_INCLUDE@
 AM_CPPFLAGS = @DGEMMSY_CPPFLAGS@
 if USE_CUDA_GPU
 AM_CPPFLAGS += -I@CUDA_PATH@/include @LIBSGPU_INCLUDE@
@@ -77,11 +86,13 @@ endif
 if CAPITALIZE
 modules = MODULE_FFT_SG.@MODULE_EXT@ \
 	WRAPPER_LINALG.@MODULE_EXT@ \
-	WRAPPER_MPI.@MODULE_EXT@
+	WRAPPER_MPI.@MODULE_EXT@ \
+	NUMERICS.@MODULE_EXT@
 else
 modules = module_fft_sg.@MODULE_EXT@ \
 	wrapper_linalg.@MODULE_EXT@ \
-	wrapper_mpi.@MODULE_EXT@
+	wrapper_mpi.@MODULE_EXT@ \
+	numerics.@MODULE_EXT@
 endif
 CLEANFILES = $(modules) mpif.h
 

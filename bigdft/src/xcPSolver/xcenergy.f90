@@ -10,18 +10,21 @@
 
 !> Calculate the array of the core density for the atom iat
 subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
-     n1,n2,n3,n1i,n2i,n3i,i3s,n3d,rhocore) 
+     n1i,n2i,n3i,i3s,n3d,charge,rhocore) 
   use module_defs, only: gp,dp,wp
   use module_types
   use yaml_output
+  use bounds, only: ext_buffers
+  use numerics, only: oneo4pi => oneofourpi
   implicit none
-  integer, intent(in) :: n1,n2,n3,n1i,n2i,n3i,i3s,n3d,iproc,ityp 
+  integer, intent(in) :: n1i,n2i,n3i,i3s,n3d,iproc,ityp 
   real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
   type(atoms_data), intent(in) :: atoms
   real(dp), dimension(n1i*n2i*n3d,0:9), intent(inout) :: rhocore
+  real(gp),intent(out) :: charge
   !local variables
   !n(c) character(len=*), parameter :: subname='calc_rhocore'
-  real(gp), parameter :: oneo4pi=.079577471545947_wp
+!  real(gp), parameter :: oneo4pi=.079577471545947_wp
   logical :: gox,goy,perx,pery,perz
   integer :: ig,ngv,ngc,isx,isy,isz,iex,iey,iez
   integer :: nbl1,nbl2,nbl3,nbr1,nbr2,nbr3,ilcc,islcc
@@ -54,8 +57,11 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
 
   !close(unit=79)
 
- 
-  if (iproc == 0) call yaml_map('Analytic core charge',chc-chv,fmt='(f12.6)')
+  if (iproc == 0) &
+       & call yaml_map('NLCC, Calculate core density for atom',trim(atoms%astruct%atomnames(ityp)))
+
+!  if (iproc == 0) call yaml_map('Analytic core charge',chc-chv,fmt='(f12.6)')
+  charge=chc-chv
   !if (iproc == 0) write(*,'(1x,a,f12.6)',advance='no')' analytic core charge: ',chc-chv
 
   !conditions for periodicity in the three directions
@@ -94,11 +100,11 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         if (j3 >= i3s .and. j3 <= i3s+n3d-1) then
            do i2=isy,iey
               y=real(i2,kind=8)*hyh-ry
-              call ind_positions(pery,i2,n2,j2,goy)
+              call ind_positions_new(pery,i2,n2i,j2,goy)
               if (goy) then
                  do i1=isx,iex
                     x=real(i1,kind=8)*hxh-rx
-                    call ind_positions(perx,i1,n1,j1,gox)
+                    call ind_positions_new(perx,i1,n1i,j1,gox)
                     if (gox) then
                        r2=x**2+y**2+z**2
                        !here we can sum up the gaussians for the
@@ -161,6 +167,156 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
   
 END SUBROUTINE calc_rhocore_iat
 
+!> Accumulate the contribution of atom iat to core density for PAW atoms.
+subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
+     n1i,n2i,n3i,i3s,n3d,core_mesh,rhocore, ncmax, ifftsph, rr, rcart, raux)
+  use module_defs, only: dp, gp, pi_param
+  use module_base, only: bigdft_mpi
+  use module_types, only: denspot_distribution
+  use module_atoms
+  use dynamic_memory
+  use dictionaries, only: f_err_raise
+  use f_utils
+
+  use m_pawrad,  only : pawrad_type, pawrad_init, pawrad_free
+  use m_paw_numeric, only: paw_sort_dp, paw_splint
+  use bounds, only: ext_buffers
+
+  implicit none
+
+  !Arguments ---------------------------------------------
+  !scalars
+  integer, intent(in) :: n1i,n2i,n3i,i3s,n3d,iproc,ityp, ncmax
+  real(gp), intent(in) :: rx,ry,rz,cutoff,hxh,hyh,hzh
+  type(atoms_data), intent(in) :: atoms
+  type(pawrad_type), intent(in) ::core_mesh
+  real(dp), dimension(n1i*n2i*n3d,0:9), intent(inout) :: rhocore
+  integer, dimension(ncmax), intent(inout) :: ifftsph
+  real(gp), dimension(ncmax), intent(inout) :: rr, raux
+  real(gp), dimension(3,ncmax), intent(inout) :: rcart
+
+  !Local variables ------------------------------
+  !scalars
+  !buffer to be added at the end of the last dimension of an array to control bounds_check
+  integer :: i1,i2,i3,ii,jj
+  integer :: iex,iey,iez,isx,isy,isz,ind,j1,j2,j3
+  integer :: nbl1,nbr1,nbl2,nbr2,nbl3,nbr3
+  integer :: nfgd,nfgd_r0
+  real(gp) :: factor, ucvol,rr2,r2shp
+  real(gp) :: xx,yy,zz
+  logical :: perx,pery,perz,gox,goy,goz
+  integer, dimension(:), allocatable :: iperm
+
+  ! *************************************************************************
+
+  !mpi
+  ucvol = n1i * n2i * n3i / hxh / hyh / hzh
+
+  !Conditions for periodicity in the three directions
+  perx=(atoms%astruct%geocode /= 'F')
+  pery=(atoms%astruct%geocode == 'P')
+  perz=(atoms%astruct%geocode /= 'F')
+
+  !Compute values of external buffers
+  call ext_buffers(perx,nbl1,nbr1) 
+  call ext_buffers(pery,nbl2,nbr2)
+  call ext_buffers(perz,nbl3,nbr3)
+
+  iperm = f_malloc(ncmax, id = "iperm")
+
+  if (n3d >0) then
+     isx=floor((rx-cutoff)/hxh)
+     isy=floor((ry-cutoff)/hyh)
+     isz=floor((rz-cutoff)/hzh)
+
+     iex=ceiling((rx+cutoff)/hxh)
+     iey=ceiling((ry+cutoff)/hyh)
+     iez=ceiling((rz+cutoff)/hzh)
+     
+     r2shp = cutoff * cutoff
+     !    
+     do i3=isz,iez
+        zz=real(i3,gp)*hzh-rz
+        call ind_positions_new(perz,i3,n3i,j3,goz)
+        j3=j3+nbl3+1
+        if (j3 < i3s .or. j3 > i3s+n3d-1) cycle
+
+        !      Initialize counters
+        nfgd=0
+        nfgd_r0=0
+        !      
+        do i2=isy,iey
+           yy=real(i2,gp)*hyh-ry
+           call ind_positions_new(pery,i2,n2i,j2,goy)
+           !        
+           do i1=isx,iex
+              xx=real(i1,gp)*hxh-rx
+              call ind_positions_new(perx,i1,n1i,j1,gox)
+              rr2=xx**2+yy**2+zz**2
+              if (goy .and. gox .and. rr2<=r2shp) then
+                 ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
+
+                 nfgd=nfgd+1
+                 rr(nfgd)=(rr2)**0.5
+                 ifftsph(nfgd)=ind
+                 rcart(1, nfgd) = xx
+                 rcart(2, nfgd) = yy
+                 rcart(3, nfgd) = zz
+                 iperm(nfgd) = nfgd
+              end if !j3..
+           end do !i1
+        end do !i2
+
+        !      All of the following  could be done inside or outside the loops (i2,i1,i3)
+        !      Outside the loops: the memory consuption increases.
+        !      Inside the inner loop: the time of calculation increases.
+        !      Here, I chose to do it here, somewhere in the middle.
+        if(nfgd==0)      cycle
+
+        call paw_sort_dp(nfgd, rr(1), iperm(1), 1.d-16)
+        !  Evaluate spline fit of core charge density
+        !  from tcoredens(:,1) and tcoredens(:,3)
+        call paw_splint(atoms%pawtab(ityp)%core_mesh_size, core_mesh%rad,&
+             & atoms%pawtab(ityp)%tcoredens(1,1), atoms%pawtab(ityp)%tcoredens(1,3),&
+             & nfgd,rr(1),raux(1))
+        !  Accumulate contributions to core density on the entire cell
+        do ii=1,nfgd
+           jj=ifftsph(iperm(ii))
+           rhocore(jj, 0) = rhocore(jj, 0) + raux(ii)
+        end do
+        !  Evaluate spline fit of first derivative core charge density
+        !  from tcoredens(:,2) and tcoredens(:,4)
+        call paw_splint(atoms%pawtab(ityp)%core_mesh_size, core_mesh%rad,&
+             & atoms%pawtab(ityp)%tcoredens(1,2), atoms%pawtab(ityp)%tcoredens(1,4),&
+             & nfgd,rr(1),raux(1))
+        !  Accumulate contributions to derivative of core density on the entire cell
+        do ii=1,nfgd
+           jj=ifftsph(iperm(ii))
+           if (rr(ii) > 0._gp) then
+              factor = 0.5_gp / rr(ii)
+              xx = rcart(1, iperm(ii)) * factor
+              yy = rcart(2, iperm(ii)) * factor
+              zz = rcart(3, iperm(ii)) * factor
+           else
+              xx = 1._gp; yy = 1._gp; zz = 1._gp
+           end if
+           rhocore(jj,1) = rhocore(jj,1) + xx * raux(ii)
+           rhocore(jj,2) = rhocore(jj,2) + yy * raux(ii)
+           rhocore(jj,3) = rhocore(jj,3) + zz * raux(ii)
+           !stress components
+           rhocore(jj,4) = rhocore(jj,4) + rcart(1, iperm(ii)) * xx * raux(ii)
+           rhocore(jj,5) = rhocore(jj,5) + rcart(2, iperm(ii)) * yy * raux(ii)
+           rhocore(jj,6) = rhocore(jj,6) + rcart(3, iperm(ii)) * zz * raux(ii)
+           rhocore(jj,7) = rhocore(jj,7) + rcart(2, iperm(ii)) * zz * raux(ii)
+           rhocore(jj,8) = rhocore(jj,8) + rcart(1, iperm(ii)) * zz * raux(ii)
+           rhocore(jj,9) = rhocore(jj,9) + rcart(1, iperm(ii)) * yy * raux(ii)
+        end do
+     end do !i3
+  end if
+
+  call f_free(iperm)
+
+end subroutine mkcore_paw_iat
 
 !> Calculate the core charge described by a sum of spherical harmonics of s-channel with 
 !! principal quantum number increased with a given exponent.
@@ -215,7 +371,7 @@ end function spherical_gaussian_value
 !!                for calculating XC energies and potential. 
 !!                ixc=0 indicates that no XC terms are computed. 
 !!                The XC functional codes follow the ABINIT convention.
-!!    @param hx,hy,hz    grid spacings. For the isolated BC case for the moment they are supposed to 
+!!    @param hgrids    grid spacings. For the isolated BC case for the moment they are supposed to 
 !!                be equal in the three directions
 !!    @param rho         Main input array. it represents the density values on the grid points
 !!    @param potxc       Main output array, the values on the grid points of the XC potential
@@ -226,29 +382,30 @@ end function spherical_gaussian_value
 !!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
 !!    Moreover, for the cases with the exchange and correlation the density must be initialised
 !!    to 10^-20 and not to zero.
-subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,hx,hy,hz,&
-     rho,exc,vxc,nspin,rhocore,potxc,xcstr,dvxcdrho,rhohat)
+subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,hgrids,&
+     rho,exc,vxc,nspin,rhocore,rhohat,potxc,xcstr,dvxcdrho)
   use module_base
   !Rename dp into except_dp in order to avoid conflict with the definitions provided by module_base
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   !Idem
   use module_interfaces, only: calc_gradient
   use module_xc
   use module_types, only: TCAT_EXCHANGECORR
+  use abi_interfaces_xc_lowlevel, only: abi_mkdenpos
   implicit none
   character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
   character(len=1), intent(in) :: datacode !< @copydoc poisson_solver::doc::datacode
   integer, intent(in) :: iproc,nproc,n01,n02,n03,mpi_comm
   integer, intent(in) :: nspin !< Value of the spin-polarisation
-  real(gp), intent(in) :: hx,hy,hz
+  real(gp), dimension(3), intent(in) :: hgrids
   type(xc_info), intent(in) :: xcObj
   real(gp), intent(out) :: exc,vxc
   real(dp), dimension(*), intent(inout) :: rho
   real(wp), dimension(:,:,:,:), pointer :: rhocore !associated if useful
+  real(wp), dimension(:,:,:,:), pointer :: rhohat !associated if useful
   real(wp), dimension(*), intent(out) :: potxc
   real(dp), dimension(6), intent(out) :: xcstr
   real(dp), dimension(:,:,:,:), target, intent(out), optional :: dvxcdrho
-  real(wp), dimension(:,:,:,:), optional :: rhohat
   !local variables
   character(len=*), parameter :: subname='XC_potential'
   logical :: wrtmsg
@@ -340,6 +497,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      vxc=0.0_gp
      call f_timing(TCAT_EXCHANGECORR,'OF')
      !call timing(iproc,'Exchangecorr  ','OF')
+     call f_release_routine()
      return
   end if
   
@@ -355,12 +513,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
 !!$ !    end if
 !!$ ! end if
  
-  !if rhohat is present, substract it from charge density
-  if (present(rhohat)) then
-        call axpy(m1*m3*nxt*nspin,-1.0_wp,rhohat(1,1,1,1),1,rho(1),1)
-        call mkdenpos(iwarn,m1*m3*nxt,nspin,0,rho,tol20)
-  end if
-
   if (datacode=='G') then
      !starting address of rho in the case of global i/o
      i3start=istart+2-nxcl-nwbl
@@ -387,12 +539,24 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      stop 'PSolver: datacode not admitted'
   end if
 
+  !if rhohat is present, substract it from charge density
+  if (associated(rhohat) .and. m1*m3*nxc > 0) then
+     if (datacode=='G' .and. (i3start <=0 .or. i3start+nxc-1 > n03 )) then
+        call axpy(m1*m3*nxc,-1._wp,rhohat(1,1,1,1),1,rho_G(1),1)
+        if (nspin==2) call axpy(m1*m3*nxc,-1._wp,rhohat(1,1,1,2),1,&
+             rho_G(1+m1*m3*nxt),1)
+     else
+        call axpy(m1*m3*nxc,-1._wp,rhohat(1,1,1,1),1,rho(1+n01*n02*i3xcsh_fake),1)
+        if (nspin==2) call axpy(m1*m3*nxc,-1._wp,rhohat(1,1,1,2),1,&
+             rho(1+n01*n02*i3xcsh_fake+m1*m3*nxt),1)
+     end if
+  end if
+
   !print *,'density must go from',min(istart+1,m2),'to',iend,'with n2/2=',n2/2
   !print *,'        it goes from',i3start+nwbl+nxcl-1,'to',i3start+nxc-1
   !print *,'istart',i3start,nxcl,nwbl,istart,iproc,geocode
 
   !rescale the density to apply that to ABINIT routines
-
   if (nspin==1) then !rho_g does not enter here
      if (datacode=='G' .and. (i3start <=0 .or. i3start+nxt-1 > n03 )) then
         call vscal(m1*m3*nxt,0.5_dp,rho_G(1),1)
@@ -432,10 +596,10 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
      if(datacode=='G' .and. &
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho_G,nspin,&
-             hx,hy,hz,gradient,rhocore)
+             hgrids(1),hgrids(2),hgrids(3),gradient,rhocore)
      else
         call calc_gradient(geocode,m1,m3,nxt,nwb,nwbl,nwbr,rho(1+n01*n02*(i3start-1)),nspin,&
-             hx,hy,hz,gradient,rhocore)
+             hgrids(1),hgrids(2),hgrids(3),gradient,rhocore)
      end if
   else
      gradient = f_malloc((/ 1, 1, 1, 1, 1 /),id='gradient')
@@ -454,7 +618,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   end if
 
 
-
   !if (present(dvxcdrho)) then
   !   write(*,*)'Array of second derivatives of Exc allocated, dimension',ndvxc,m1,m3,nwb
   !end if
@@ -463,7 +626,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
           ((nspin==2 .and. nproc > 1) .or. i3start <=0 .or. i3start+nxt-1 > n03 )) then
         !allocation of an auxiliary array for avoiding the shift
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             xcObj,hx,hy,hz,rho_G,gradient,vxci,&
+             xcObj,hgrids(1),hgrids(2),hgrids(3),rho_G,gradient,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
         !restoring the density on the original form
         do ispin=1,nspin
@@ -480,7 +643,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
         call f_free(rho_G)
      else
         call xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,nxcl,nxcr,&
-             xcObj,hx,hy,hz,rho(1+n01*n02*(i3start-1)),gradient,vxci,&
+             xcObj,hgrids(1),hgrids(2),hgrids(3),rho(1+n01*n02*(i3start-1)),gradient,vxci,&
              eexcuLOC,vexcuLOC,order,ndvxc,dvxci,nspin,wbstr)
      end if
   else
@@ -519,14 +682,14 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
   end if
 
   !if rhohat is present, add it to charge density
-  if(present(rhohat)) then
-     do ispin=1,nspin
-       call axpy(m1*m3*nxc,1.0_wp,rhohat(1,1,i3xcsh_fake+1,ispin),1,rho(1),1)
-     end do
+  if(associated(rhohat) .and. m1*m3*nxc .gt.0) then
+     call axpy(m1*m3*nxc,1._wp,rhohat(1,1,1,1),1,rho(1),1)
+     if (nspin==2) call axpy(m1*m3*nxc,1._wp,rhohat(1,1,1,2),1,&
+          rho(1+m1*m3*nxt),1)
      !This will add V_xc(n) nhat to V_xc(n) n, to get: V_xc(n) (n+nhat)
-     call add_to_vexcu(rhohat)
+     ! Only if usexcnhat /= 0, not the default case.
+     !call add_to_vexcu(rhohat)
   end if
-
 
   !if rhocore is associated we then remove it from the charge density
   !and subtract its contribution from the evaluation of the XC potential integral vexcu
@@ -538,8 +701,6 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
 !print *,' aaaa', vexcuRC,vexcuLOC,eexcuLOC
   end if
 
-
-!stop
   !gathering the data to obtain the distribution array
   !evaluating the total ehartree,eexcu,vexcu
   if (nproc > 1) then
@@ -549,7 +710,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
 
      energies_mpi(1)=eexcuLOC
      energies_mpi(2)=vexcuLOC
-     call mpiallred(energies_mpi(1), 2,MPI_SUM,mpi_comm,recvbuf=energies_mpi(3))
+     call mpiallred(energies_mpi(1), 2,MPI_SUM,comm=mpi_comm,recvbuf=energies_mpi(3))
      exc=energies_mpi(3)
      vxc=energies_mpi(4)
 
@@ -558,12 +719,12 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
 
         if (associated(rhocore)) then
         call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
-        call mpiallred(rhocstr,MPI_SUM,mpi_comm)
+        call mpiallred(rhocstr,MPI_SUM,comm=mpi_comm)
         rhocstr=rhocstr/real(n01*n02*n03,dp)
         end if
 
-     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
-     call mpiallred(wbstr,MPI_SUM,mpi_comm)
+     xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/product(hgrids)!hx/hy/hz
+     call mpiallred(wbstr,MPI_SUM,comm=mpi_comm)
      wbstr=wbstr/real(n01*n02*n03,dp)
      xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
   end if
@@ -618,7 +779,7 @@ subroutine XC_potential(geocode,datacode,iproc,nproc,mpi_comm,n01,n02,n03,xcObj,
         call calc_rhocstr(rhocstr,nxc,nxt,m1,m3,i3xcsh_fake,nspin,potxc,rhocore)
         rhocstr=rhocstr/real(n01*n02*n03,dp)
         end if
-    xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/hx/hy/hz
+    xcstr(1:3)=(exc-vxc)/real(n01*n02*n03,dp)/product(hgrids)!hx/hy/hz
     wbstr=wbstr/real(n01*n02*n03,dp)
     xcstr(:)=xcstr(:)+wbstr(:)+rhocstr(:)
    end if
@@ -665,7 +826,7 @@ subroutine substract_from_vexcu(rhoin)
     !divide the results per two because of the spin multiplicity
     vexcuRC=0.5*vexcuRC
  end if
- vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+ vexcuRC=vexcuRC*product(hgrids)!real(hx*hy*hz,gp)
  !subtract this value from the vexcu
  vexcuLOC=vexcuLOC-vexcuRC
 
@@ -699,7 +860,7 @@ subroutine add_to_vexcu(rhoin)
        end do
     end do
  end if
- vexcuRC=vexcuRC*real(hx*hy*hz,gp)
+ vexcuRC=vexcuRC*product(hgrids)!real(hx*hy*hz,gp)
  !add this value to the vexcu
  vexcuLOC=vexcuLOC+vexcuRC
 
@@ -772,6 +933,7 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   integer :: i1,i2,i3,j1,j2,j3,jp2,jppp2
   logical :: use_gradient
 
+  call f_routine(id='xc_energy_new')
 
   !check for the dimensions
   if (nwb/=nxcl+nxc+nxcr-2 .or. nxt/=nwbr+nwb+nwbl) then
@@ -926,6 +1088,9 @@ subroutine xc_energy_new(geocode,m1,m3,nxc,nwb,nxt,nwbl,nwbr,&
   call f_free(exci)
 !  call MPI_BARRIER(bigdft_mpi%mpi_comm,i_stat)
 !stop
+
+  call f_release_routine()
+
 END SUBROUTINE xc_energy_new
 
 
@@ -986,7 +1151,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
   use module_base
   use module_xc
-  use interfaces_41_xc_lowlevel
+  use abi_interfaces_xc_lowlevel, only: abi_drivexc,abi_size_dvxc
   use module_interfaces, only: calc_gradient
 
   implicit none
@@ -1022,7 +1187,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      print *,'nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr',nxc,nwb,nxt,nxcl,nxcr,nwbl,nwbr
      stop
   end if
-  
+
   nullify(rhocore_fake)
 
   !these are always the same
@@ -1055,7 +1220,7 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
 
      !Allocations of the exchange-correlation terms, depending on the ixc value
      nd2vxc=1
-     call size_dvxc(xc%ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
+     call abi_size_dvxc(xc%ixc,ndvxc,ngr2,nd2vxc,nspden,nvxcdgr,order)
 
      if (use_gradient) then
         !computation of the gradient
@@ -1103,26 +1268,26 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
      if (xc%ixc >= 11 .and. xc%ixc <= 16) then
         if (order**2 <= 1 .or. xc%ixc == 16) then
            if (xc%ixc /= 13) then             
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &grho2_updn=gradient) 
            end if
         else if (order /= 3) then
            if (xc%ixc /= 13) then             
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,grho2_updn=gradient) 
            end if
         else if (order == 3) then
            if (xc%ixc /= 13) then             
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient,vxcgr=dvxcdgr) 
            else
-              call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+              call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                    &dvxc=dvxci,d2vxc=d2vxci,grho2_updn=gradient) 
            end if
         end if
@@ -1130,17 +1295,17 @@ subroutine xc_energy(geocode,m1,m3,md1,md2,md3,nxc,nwb,nxt,nwbl,nwbr,&
         !cases without gradient
      else if (xc%ixc >= 0) then
         if (order**2 <=1 .or. xc%ixc >= 31 .and. xc%ixc<=34) then
-           call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr)
+           call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr)
         else if (order==3 .and. (xc%ixc==3 .or. xc%ixc>=7 .and. xc%ixc<=10)) then
-           call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+           call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 &dvxc=dvxci,d2vxc=d2vxci)
         else
-           call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
+           call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,&
                 &dvxc=dvxci)
         end if
         !case with libXC, with and without gradient
      else if (xc%ixc < 0) then
-        call drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,     &
+        call abi_drivexc(exci,xc%ixc,npts,nspden,order,rhopot(1,1,offset,1),vxci,ndvxc,ngr2,nd2vxc,nvxcdgr,     &
              &      grho2_updn=gradient,vxcgr=dvxcdgr)
      end if
 
@@ -1414,6 +1579,8 @@ gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
   real(dp) :: dnexcdgog,grad_i,rho_up,rho_down,rho_tot
   real(dp), dimension(:,:,:,:,:), allocatable :: f_i
 
+  call f_routine(id='vxcpostprocessing')
+
   !Body
 
   f_i = f_malloc((/ n01, n02, n03, 3, nspden /),id='f_i')
@@ -1494,6 +1661,8 @@ gradient,hx,hy,hz,dvxcdgr,wb_vxc,wbstr)
 
 
   call f_free(f_i)
+
+  call f_release_routine()
 
 END SUBROUTINE vxcpostprocessing
 

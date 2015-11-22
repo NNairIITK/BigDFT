@@ -29,6 +29,10 @@ module diis_sd_optimization
      real(gp) :: alpha_coeff
   end type DIIS_obj
 
+  private
+
+  public :: diis_set,diis_free,diis_update_psi,diis_update_errors,diis_step
+
 contains
 
 !!$  function DIIS_ctrl_init() result(ctrl)
@@ -82,7 +86,7 @@ contains
 
   !> fill the diis matrices with the error of the previous step
   subroutine DIIS_update_errors(ngrp,isgrp,ngrpp,ncomp_grp,ndim_psi,psi,hpsi,diis)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none 
     integer, intent(in) :: ngrp,isgrp,ngrpp
     integer, intent(in) :: ndim_psi !< should be greater or equal to sum(ncomp_grp(isgrp+1:isgrp+ngrpp)
@@ -117,7 +121,7 @@ contains
 
   !> fill the psi array with the diis combination of previous errors
   subroutine DIIS_update_psi(ngrp,isgrp,ngrpp,ncomp_grp,ndim_psi,psi,diis)
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none 
     integer, intent(in) :: ngrp,isgrp,ngrpp
     integer, intent(in) :: ndim_psi !< should be greater or equal to sum(ncomp_grp(isgrp+1:isgrp+ngrpp)
@@ -149,7 +153,7 @@ contains
   !! vectors (preconditioned gradients) hpsidst
   subroutine diis_step(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,diis)
     use module_types
-    use yaml_output, only: yaml_toa
+    use yaml_strings, only: yaml_toa
     implicit none
     ! Arguments
     integer, intent(in) :: nproc,iproc,ngrp,isgrp,ngrpp
@@ -199,7 +203,7 @@ contains
        ispsidst=ispsidst+ncomp*diis%idsx
     end do
     if (nproc > 1) then
-       call mpiallred(rds(1,1),(diis%idsx+1)*ngrp,MPI_SUM,bigdft_mpi%mpi_comm)
+       call mpiallred(rds,MPI_SUM,comm=bigdft_mpi%mpi_comm)
        if (f_err_raise(f_err_check(err_name='ERR_MPI_WRAPPERS'),&
             'Error in allreduce operation, '//subname,BIGDFT_MPI_ERROR)) then
           call free_and_exit()
@@ -359,7 +363,7 @@ contains
 end module diis_sd_optimization
 
 subroutine diis_opt(iproc,nproc,ngrp,isgrp,ngrpp,igrpproc,ncomp_grp,ndim_psi,psi,hpsi,diis)
-    use module_types
+    use module_defs, only: wp
     use diis_sd_optimization
     implicit none
     ! Arguments

@@ -11,8 +11,9 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
       &   orbs,orbse,norbsc_arr,locrad,G,psigau,eks,iversion,mapping,quartic_prefactor)
    use module_base
    use module_types
-   use module_interfaces, except_this_one => inputguess_gaussian_orbitals
+   use module_interfaces, only: AtomicOrbitals, orbitals_descriptors
    use yaml_output
+   use public_enums
    implicit none
    integer, intent(in) :: iproc,nproc,nspin
    integer, intent(inout) :: nvirt
@@ -34,6 +35,9 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    integer :: norbe,norbme,norbyou,norbsc,nvirte,ikpt
    integer :: ispin,jproc,ist,jpst,nspinorfororbse,noncoll
    integer, dimension(:), allocatable :: iorbtolr
+   logical, parameter :: print_all=.false.
+   integer :: minn, maxn
+   real(kind=8) :: avn
 
    !Generate the input guess via the inguess_generator
    !here we should allocate the gaussian basis descriptors 
@@ -88,11 +92,12 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
    case(1)
        ! SM: use for basedistd the same basedist as for the up orbitals. CHECK THIS!!!
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.false.,&
+            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,LINEAR_PARTITION_NONE,&
             basedist=orbs%norb_par(0:,1:),basedistu=orbs%norbu_par(0:,1:),basedistd=orbs%norbu_par(0:,1:))
    case(2)
        call orbitals_descriptors(iproc,nproc,nspin*noncoll*norbe,noncoll*norbe,(nspin-1)*norbe, &
-            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,.true.)
+            nspin,nspinorfororbse,orbs%nkpts,orbs%kpts,orbs%kwgts,orbse,LINEAR_PARTITION_OPTIMAL, &
+            orbs%norb_par, orbs%norbu_par, orbs%norbd_par)
    case default
        call f_err_throw('wrong value of iversion',err_id=BIGDFT_RUNTIME_ERROR)
    end select
@@ -110,17 +115,30 @@ subroutine inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin,&
       call yaml_newline()
       call yaml_mapping_open('Inputguess Orbitals Repartition')
       jpst=0
+      avn=0.0d0
+      minn=orbse%norb
+      maxn=0
       do jproc=0,nproc-1
          norbme=orbse%norb_par(jproc,0)
          norbyou=orbse%norb_par(min(jproc+1,nproc-1),0)
          if (norbme /= norbyou .or. jproc == nproc-1) then
-            call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
+            if (print_all) then
+                call yaml_map('MPI tasks '//trim(yaml_toa(jpst,fmt='(i0)'))//'-'//&
+                  &trim(yaml_toa(jproc,fmt='(i0)')),norbme,fmt='(i0)')
+            end if
             !!this is a screen output that must be modified
             !write(*,'(3(a,i0),a)')&
             !   &   ' Processes from ',jpst,' to ',jproc,' treat ',norbme,' inguess orbitals '
             jpst=jproc+1
+            minn=min(minn,norbme)
+            maxn=max(maxn,norbme)
          end if
+         avn=avn+real(norbme,kind=8)
       end do
+      avn=avn/real(nproc,kind=8)
+      call yaml_map('Minimum ',minn,fmt='(i0)')
+      call yaml_map('Maximum ',maxn,fmt='(i0)')
+      call yaml_map('Average ',avn,fmt='(f8.1)')
       call yaml_mapping_close()
       !write(*,'(3(a,i0),a)')&
          !     ' Processes from ',jpst,' to ',nproc-1,' treat ',norbyou,' inguess orbitals '
@@ -251,7 +269,6 @@ subroutine AtomicOrbitals(iproc,at,rxyz,norbe,orbse,norbsc,&
    use ao_inguess, only: iguess_generator,print_eleconf,ao_nspin_ig,count_atomic_shells,&
         nmax_occ => nmax_occ_ao
    use module_types
-   use module_interfaces, except_this_one => AtomicOrbitals
    use yaml_output
    implicit none
    integer, intent(in) :: norbe,iproc
@@ -745,7 +762,7 @@ END SUBROUTINE AtomicOrbitals
 subroutine atomkin(l,ng,xp,psiat,psiatn,ek)
    use module_base
    !use module_types, only: f_err_throw, BIGDFT_RUNTIME_ERROR
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    integer, intent(in) :: l,ng
    real(gp), dimension(ng), intent(in) :: xp,psiat
@@ -812,7 +829,7 @@ END SUBROUTINE atomkin
 
 subroutine calc_coeff_inguess(l,m,nterm_max,nterm,lx,ly,lz,fac_arr)
    use module_base
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    integer, intent(in) :: l,m,nterm_max
    integer, intent(out) :: nterm
@@ -1136,7 +1153,8 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
       &   zion,alpz,gpot,alpl,hsep,alps,ngv,ngc,nlccpar,vh,xp,rmt,fact,nintp,&
       &   aeval,ng,psi,res,chrg,iorder)
    use module_base, only: gp,f_err_throw,BIGDFT_RUNTIME_ERROR,safe_exp
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
+   use abi_interfaces_numeric, only: abi_derf_ab
    implicit none
    integer, parameter :: n_int=100
    !Arguments
@@ -1469,7 +1487,7 @@ subroutine gatom(rcov,rprb,lmax,lpx,noccmax,occup,&
          do i=0,ng
             d=xp(i)+xp(j)
             sd=sqrt(d)
-            call derf_ab(terf, sd*rcov) 
+            call abi_derf_ab(terf, sd*rcov) 
             texp=exp(-d*rcov**2)
 
             tt=0.4431134627263791_gp*terf/sd**3 - 0.5_gp*rcov*texp/d
@@ -1564,6 +1582,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
       &   ng,res,zion,alpz,alpl,gpot,pp1,pp2,pp3,alps,hsep,fact,n_int,&
       &   potgrd,xcgrd,noproj)
    use module_base, only: gp,safe_exp
+   use abi_interfaces_numeric, only: abi_derf_ab
    implicit real(gp) (a-h,o-z)
    logical :: noproj
    dimension psi(0:ng,noccmax,lmax+1),rho(0:ng,0:ng,lmax+1),&
@@ -1576,7 +1595,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
    dr=fact*rprb/real(n_int,gp)
    do k=1,n_int
       r=(real(k,gp)-.5_gp)*dr
-      call derf_ab(derf_val, r/(sqrt(2._gp)*alpz))
+      call abi_derf_ab(derf_val, r/(sqrt(2._gp)*alpz))
       potgrd(k)= .5_gp*(r/rprb**2)**2 - &
          &   zion*derf_val/r &
          &   + safe_exp(-.5_gp*(r/alpl)**2)*&
@@ -1588,7 +1607,7 @@ subroutine resid(lmax,lpx,noccmax,rprb,xp,aeval,psi,rho,&
             d=xp(i)+xp(j)
             sd=sqrt(d)
             tx=safe_exp(-d*r**2)
-            call derf_ab(tt, sd*r)
+            call abi_derf_ab(tt, sd*r)
             tt=spi*tt
             u_gp=tt/(4._gp*sd**3*r)
             potgrd(k)=potgrd(k)+u_gp*rho(i,j,1)
@@ -1661,7 +1680,7 @@ END SUBROUTINE resid
 
 subroutine crtvh(ng,lmax,xp,vh,rprb,fact,n_int,rmt)
    use module_base, only: gp,f_err_throw,BIGDFT_RUNTIME_ERROR,safe_exp
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    !implicit real(gp) (a-h,o-z)
    !Arguments
@@ -1818,7 +1837,7 @@ END FUNCTION emuxc
 !> Restricted version of the Gamma function
 function gamma_restricted(x)
    use module_base, only: gp,f_err_throw,BIGDFT_RUNTIME_ERROR
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    !Arguments
    real(gp), intent(in) :: x

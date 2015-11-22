@@ -12,7 +12,7 @@
 subroutine local_analysis(iproc,nproc,hx,hy,hz,at,rxyz,lr,orbs,orbsv,psi,psivirt)
    use module_base
    use module_types
-   use module_interfaces, except_this_one => local_analysis
+   use module_interfaces, only: gaussian_pswf_basis
    use gaussians, only: deallocate_gwf
    implicit none
    integer, intent(in) :: iproc,nproc
@@ -212,8 +212,8 @@ subroutine mulliken_charge_population(iproc,nproc,orbs,Gocc,G,coeff,duals)
 
   !reduce the results
   if (nproc > 1) then
-     call mpiallred(mchg(1,1),2*G%ncoeff,MPI_SUM,bigdft_mpi%mpi_comm)
-     call mpiallred(magn(1,1),3*G%ncoeff,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(mchg,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+     call mpiallred(magn,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 
   if (iproc == 0) then
@@ -552,13 +552,15 @@ END SUBROUTINE shell_name
 
 
 !> Perform a total DOS output.
-subroutine global_analysis(orbs,wf,occopt)
+subroutine global_analysis(orbs,wf,occopt,filename)
    use module_base
    use module_types
+   use public_enums
    implicit none
    type(orbitals_data), intent(in) :: orbs
    real(gp), intent(in) :: wf
    integer , intent(in) :: occopt
+   character(len = *), intent(in) :: filename
 
    integer, parameter :: DOS = 123456
    integer :: ikpt, iorb, index, i
@@ -566,7 +568,7 @@ subroutine global_analysis(orbs,wf,occopt)
 
 
    ! We define a Gnuplot file.
-   open(unit = DOS, file = "dos.gnuplot", action = "write")
+   open(unit = DOS, file = trim(filename), action = "write")
 
    minE = 999_dp
    maxE = -999_dp

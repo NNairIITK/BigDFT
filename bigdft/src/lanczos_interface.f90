@@ -465,7 +465,6 @@ contains
   !
 
   subroutine  EP_copia_per_prova(psi)
-    use module_interfaces
     use communications, only: transpose_v
     !Arguments
     real(wp), dimension(*), target :: psi ! per testare happlication
@@ -484,7 +483,6 @@ contains
   END SUBROUTINE EP_copia_per_prova
 
   subroutine EP_initialize_start()
-    use module_interfaces
     use communications, only: transpose_v
     !Local variables
     integer :: i
@@ -826,9 +824,9 @@ contains
 
 
   subroutine EP_precondition(p,i, ene, gamma)
-    use module_interfaces
     use module_base
     use communications, only: transpose_v, untranspose_v
+    use locreg_operations
     !Arguments
     implicit none
     integer, intent(in) :: p,i
@@ -978,9 +976,10 @@ contains
 
 
   subroutine EP_Moltiplica4spectra(p,i, ene, gamma)
-    use module_interfaces
+    use module_interfaces, only: FullHamiltonianApplication
     use gaussians, only: gaussian_basis
     use communications, only: transpose_v, untranspose_v
+    use locreg_operations, only: confpot_data
     !Arguments
     implicit none
     integer, intent(in) :: p,i
@@ -1077,8 +1076,9 @@ contains
 
 
   subroutine EP_Moltiplica(p,i)
-    use module_interfaces
+    use module_interfaces, only: FullHamiltonianApplication
     use communications, only: transpose_v, untranspose_v
+    use locreg_operations, only: confpot_data
     !Arguments
     implicit none
     integer, intent(in) :: p,i
@@ -1177,7 +1177,6 @@ contains
   END SUBROUTINE EP_Moltiplica
 
   subroutine EP_ApplySinv(p,i)
-    use module_interfaces
     use communications, only: transpose_v, untranspose_v
     !Arguments
     implicit none
@@ -1245,7 +1244,6 @@ contains
 
 
   subroutine EP_ApplyS(p,i)
-    use module_interfaces
     use communications, only: transpose_v, untranspose_v
     !Arguments
     implicit none
@@ -1618,9 +1616,10 @@ contains
     use module_types
     use module_xc
     use lanczos_base
-    use module_interfaces
+    use module_interfaces, only: free_full_potential
     use communications_init, only: orbitals_communicators
     use communications_base, only: deallocate_comms
+    use rhopotential, only: full_local_potential
     implicit none
     integer, intent(in) :: iproc,nproc,nspin
     real(gp), intent(in) :: hx,hy,hz
@@ -1649,10 +1648,6 @@ contains
 
     if(iproc==0) write(*,*) " IN ROUTINE LANCZOS "
 
-    if (GPUconv) then
-       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-            &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
-    end if
     GPU%full_locham=.true.
     if (GPU%OCLconv) then
        call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
@@ -1748,9 +1743,7 @@ contains
 
     call EP_free(ha%iproc)
 
-    if (GPUconv) then
-       call free_gpu(GPU,orbs%norbp)
-    else if (GPU%OCLconv) then
+    if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
@@ -1773,9 +1766,10 @@ contains
     use module_xc
     use lanczos_base
     ! per togliere il bug 
-    use module_interfaces
+    use module_interfaces, only: free_full_potential
     use communications_init, only: orbitals_communicators
     use communications_base, only: deallocate_comms
+    use rhopotential, only: full_local_potential
 
     implicit none
     integer  :: iproc,nproc,nspin
@@ -1803,18 +1797,13 @@ contains
     real(wp), dimension(:), pointer  :: pot
 
     real(gp) :: eval_min, eval_max, fact_cheb, cheb_shift
-    real(gp) :: Pi
+!    real(gp) :: Pi
     logical:: dopaw
     real(gp) :: GetBottom
 
     if (iproc==0) print *, " IN ROUTINE  chebychev  "
 
-    Pi=acos(-1.0_gp)
-
-    if (GPUconv) then
-       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-            &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
-    end if
+!    Pi=acos(-1.0_gp)
 
     GPU%full_locham=.true.
 
@@ -1966,9 +1955,7 @@ contains
 
 !!$ this free is already executed by bigdft
 !!$
-    if (GPUconv) then
-       call free_gpu(GPU,orbs%norbp)
-    else if (GPU%OCLconv) then
+    if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 
@@ -2015,8 +2002,9 @@ contains
     use module_xc
     use communications_base, only: deallocate_comms
     ! per togliere il bug 
-    use module_interfaces
+    use module_interfaces, only: free_full_potential
     use communications_init, only: orbitals_communicators
+    use rhopotential, only: full_local_potential
 
     implicit none
 
@@ -2057,10 +2045,6 @@ contains
 
     if(iproc==0) print *, " IN ROUTINE xabs_cg "
 
-    if (GPUconv) then
-       call prepare_gpu_for_locham(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,in%nspin,&
-            &   hx,hy,hz,Lzd%Glr%wfd,orbs,GPU)
-    end if
     GPU%full_locham=.true.
     if (GPU%OCLconv) then
        call allocate_data_OCL(Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,at%astruct%geocode,&
@@ -2171,9 +2155,7 @@ contains
 
     call EP_free(ha%iproc)
 
-    if (GPUconv) then
-       call free_gpu(GPU,orbs%norbp)
-    else if (GPU%OCLconv) then
+    if (GPU%OCLconv) then
        call free_gpu_OCL(GPU,orbs,in%nspin)
     end if
 

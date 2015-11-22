@@ -14,7 +14,7 @@ subroutine MemoryEstimator(nproc,idsx,lr,norb,nspinor,nkpt,nprojel,nspin,itrpmax
   use module_base
   use module_types
   use Poisson_Solver
-
+  use locreg_operations, only: memspace_work_arrays_sumrho,memspace_work_arrays_locham
   implicit none
 
   !Arguments
@@ -133,7 +133,7 @@ END SUBROUTINE MemoryEstimator
 !> old timing routine, should disappear as soon as the f_timing routine is called
 subroutine timing(iproc,category,action)
   use dictionaries, only: max_field_length,f_err_raise
-  use yaml_output, only: yaml_toa
+  use yaml_strings, only: yaml_toa
   use module_types, only: find_category
   use time_profiling 
   implicit none

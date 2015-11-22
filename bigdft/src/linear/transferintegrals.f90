@@ -272,8 +272,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   use module_types
   use yaml_output
   use module_fragments
-  use internal_io
-  use module_interfaces, except_this_one => calc_transfer_integral
+  !use internal_io
   use sparsematrix_base, only: sparse_matrix
   implicit none
 
@@ -308,7 +307,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ham, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(homo_ham, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   !call f_free_ptr(ham%matrix)
@@ -328,7 +327,7 @@ subroutine calc_transfer_integral(iproc,nproc,nstates,orbs,ham,ham_mat,ovrlp,ovr
   end if
 
   if (nproc>1) then
-      call mpiallred(homo_ovrlp, mpi_sum, bigdft_mpi%mpi_comm)
+      call mpiallred(homo_ovrlp, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
   !call f_free_ptr(ovrlp%matrix)
@@ -347,11 +346,11 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   use module_types
   use yaml_output
   use module_fragments
-  use internal_io
-  use module_interfaces, except_this_one => calc_site_energies_transfer_integrals
+  !use internal_io
+  !use module_interfaces, except_this_one => calc_site_energies_transfer_integrals
   use sparsematrix_base, only: sparse_matrix, matrices, sparsematrix_malloc_ptr, &
                                DENSE_FULL, assignment(=)
-  use sparsematrix, only: uncompress_matrix
+  use sparsematrix, only: uncompress_matrix, uncompress_matrix2
   implicit none
 
   integer, intent(in) :: iproc, nproc, meth_overlap
@@ -388,7 +387,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   homo_coeffs=f_malloc0((/ovrlp%nfvctr,nstates/), id='homo_coeffs')
   !coeffs_tmp=f_malloc((/ovrlp%nfvctr,ovrlp%nfvctr/), id='coeffs_tmp')
   ovrlp_mat%matrix = sparsematrix_malloc_ptr(ovrlp, iaction=DENSE_FULL, id='ovrlp_mat%matrix')
-  call uncompress_matrix(iproc, ovrlp, inmat=ovrlp_mat%matrix_compr, outmat=ovrlp_mat%matrix)
+  call uncompress_matrix2(iproc, nproc, ovrlp, ovrlp_mat%matrix_compr, ovrlp_mat%matrix)
 
   istate=1
   ind=1
@@ -412,18 +411,39 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
   !call f_free(coeffs_tmp)
 
   ham_mat%matrix = sparsematrix_malloc_ptr(ham, iaction=DENSE_FULL, id='ham_%matrix')
-  call uncompress_matrix(iproc, ham, inmat=ham_mat%matrix_compr, outmat=ham_mat%matrix)
+  call uncompress_matrix2(iproc, nproc, ham, ham_mat%matrix_compr, ham_mat%matrix)
   if (separate_site_energies .or. input_frag%nfrag==1) call calc_transfer_integral(iproc,nproc,nstates,&
        orbs,ham,ham_mat,ovrlp,ovrlp_mat,homo_coeffs,homo_coeffs,homo_ham,homo_ovrlp)
 
   ! orthogonalize
   coeffs_tmp=f_malloc0((/orbs%norb,orbs%norb/), id='coeffs_tmp')
   call vcopy(orbs%norb*nstates,homo_coeffs(1,1),1,coeffs_tmp(1,1),1)
+
+  !debug
+  !open(8000+bigdft_mpi%iproc)
+  !do istate=1,nstates
+  !do ih=1,orbs%norb
+  !write(8000+bigdft_mpi%iproc,*) istate,ih,coeffs_tmp(ih,istate)
+  !end do
+  !write(8000+bigdft_mpi%iproc,*) ''
+  !end do
+  !close(8000+bigdft_mpi%iproc)
+
   call reorthonormalize_coeff(iproc, nproc, nstates, -8, -8, meth_overlap, orbs, ovrlp, KS_overlap, &
        ovrlp_mat, coeffs_tmp(1,1), orbs)
   coeffs_orthog=f_malloc((/orbs%norb,nstates/), id='coeffs_orthog')
   call vcopy(orbs%norb*nstates,coeffs_tmp(1,1),1,coeffs_orthog(1,1),1)
   call f_free(coeffs_tmp)
+
+  !debug
+  !open(9000+bigdft_mpi%iproc)
+  !do istate=1,nstates
+  !do ih=1,orbs%norb
+  !write(9000+bigdft_mpi%iproc,*) istate,ih,coeffs_orthog(ih,istate)
+  !end do
+  !write(9000+bigdft_mpi%iproc,*) ''
+  !end do
+  !close(9000+bigdft_mpi%iproc)
 
   ! only calculate site energies separately if specified or if not calculating them below
   if (separate_site_energies .or. input_frag%nfrag==1) then
@@ -459,7 +479,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
            if (ih<ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
               write(str,'(I2)') abs(ih-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp))
               !if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO-'//trim(adjustl(str))
-              if (iproc==0) call yaml_map('state','HOMO-'//trim(adjustl(str)))
+              if (iproc==0) call yaml_map('state','HOMO-'+str)
            else if (ih==ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)) then
               !if (iproc==0) write(*,'(a8)',advance='NO') ' HOMO'
               if (iproc==0) call yaml_map('state','HOMO')
@@ -469,7 +489,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
            else
               write(str,'(I2)') ih-1-ceiling(ref_frags(ifrag_ref)%nelec/2.0_gp)
               !if (iproc==0) write(*,'(a8)',advance='NO') ' LUMO+'//trim(adjustl(str))
-              if (iproc==0) call yaml_map('state','LUMO+'//trim(adjustl(str)))
+              if (iproc==0) call yaml_map('state','LUMO+'+str)
            end if
            !if (iproc==0) write(*,'(1x,5(F20.12,1x))',advance='NO') homo_ham(istate), homo_ham_orthog(istate), &
            !     ref_frags(ifrag_ref)%eval(ih), homo_ovrlp(istate), homo_ovrlp_orthog(istate)
@@ -579,7 +599,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
                        !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO-'//trim(adjustl(str))
                        call yaml_map('label',trim(input_frag%label(ifrag_ref1)))
                        call yaml_map('i',ifrag)
-                       call yaml_map('s1','HOMO-'//trim(adjustl(str)))
+                       call yaml_map('s1','HOMO-'+str)
                     else if (ih==0) then
                        !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' HOMO  '
                        call yaml_map('label',trim(input_frag%label(ifrag_ref1)))
@@ -595,7 +615,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
                        !write(*,'(a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref1)),ifrag,' LUMO+'//trim(adjustl(str))
                        call yaml_map('label',trim(input_frag%label(ifrag_ref1)))
                        call yaml_map('i',ifrag)
-                       call yaml_map('s1','LUMO+'//trim(adjustl(str)))
+                       call yaml_map('s1','LUMO+'+str)
                     end if
                  end if
 
@@ -606,7 +626,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
                        !     ' HOMO-'//trim(adjustl(str))
                        call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
                        call yaml_map('j',jfrag)
-                       call yaml_map('s1','HOMO-'//trim(adjustl(str)))
+                       call yaml_map('s1','HOMO-'+str)
                     else if (jh==0) then
                        !write(*,'(3x,a,I3,a8)',advance='NO') trim(input_frag%label(ifrag_ref2)),jfrag,' HOMO  '
                        call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
@@ -623,7 +643,7 @@ subroutine calc_site_energies_transfer_integrals(iproc,nproc,meth_overlap,input_
                        !     ' LUMO+'//trim(adjustl(str))
                        call yaml_map('label',trim(input_frag%label(ifrag_ref2)))
                        call yaml_map('j',jfrag)
-                       call yaml_map('s1','LUMO+'//trim(adjustl(str)))
+                       call yaml_map('s1','LUMO+'+str)
                     end if
                  end if
 

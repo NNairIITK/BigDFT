@@ -15,9 +15,9 @@ bader_objects = kind_mod.f90       \
 bader_SOURCES = main.f90 $(bader_objects)
 
 #Use the flib library (use only yaml_output)
-bader_LDADD = $(top_builddir)/flib/src/libflib-1.a @LIB_YAML_LIBS@
+bader_LDADD = @LIB_FLIB_LIBS@ @LIB_YAML_LIBS@
 
-AM_FCFLAGS = -I. -I$(top_builddir)/includes
+AM_FCFLAGS = -I. @LIB_FLIB_CFLAGS@
 
 CLEANFILES = *.@MODULE_EXT@ 
 
@@ -26,7 +26,7 @@ main.o : $(bader_objects:.f90=.o)
 
 ions_mod.o matrix_mod.o options_mod.o: kind_mod.o
 
-charge_mod.o chgcar_mod.o bader_mod.o dipole_mod.o voronoi_mod.o : matrix_mod.o
+charge_mod.o chgcar_mod.o bader_mod.o dipole_mod.o voronoi_mod.o : matrix_mod.o ions_mod.o
 
 io_mod.o cube_mod.o : ions_mod.o charge_mod.o
 

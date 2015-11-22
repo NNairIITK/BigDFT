@@ -1,14 +1,14 @@
-# Definitions of the input variables
+## Definitions of the input variables
 ##inputvar: #name of the variable as declared in the code
 ## DESCRIPTION: Extended description of the variable to be used for documentation
 ## COMMENT: This is the description of the variable as will appear in the logfile
 ## RANGE: [from,to] #always put two numbers (also .inf can be put)
-## EXCLUSIVE: #here follows a list of allowed values (either RANGE or EXCLUSIVE)
-##  - Value1:  comments of value1
-##  - Value2:  comment of value2
+## EXCLUSIVE: #here follows a mapping of allowed values (either RANGE or EXCLUSIVE)
+##  Value1:  comments of value1
+##  Value2:  comment of value2
 ## CONDITION: #here the conditions for which the variable makes sense are written
 ##   MASTER_KEY: foo #this means that inputvar makes sense only if foo is specified
-##   WHEN: #provide a list of allowed values of foo for which inputvars is meaningful
+##   WHEN: #provide a list of allowed values of foo for which inputvar is meaningful
 ##     - fooval1
 ##     - fooval2   
 ## PROFILE_FROM: foo #inputvar inherit the profile from the one specified by foo variable
@@ -50,8 +50,9 @@
      B97-D: -170 #to be verified
      B3LYP: -402
      HF: 100 #Hartree-Fock
-   ncharge:
-     COMMENT: Charge of the system
+     NONE: 1000
+   qcharge:
+     COMMENT: Charge of the system. Can be integer or real.
      DESCRIPTION: Total charge of the system. A negative value means that extra electrons are added.
      RANGE: [-500., 500.]
      default: 0
@@ -119,6 +120,7 @@
        0:     LCAO
        1:     Wvl. in memory
        2:     Wvl. on disk
+       3:     Plane-waves on disk
        10:    LCAO + gauss.
        11:    Gauss. in memory
        12:    Gauss. on disk
@@ -129,13 +131,21 @@
      linear: 100
      linear_restart: 102
    output_wf:
-     COMMENT: Output of the wavefunctions
+     COMMENT: Output of the support functions
      default: 0
      EXCLUSIVE:
        0: None
-       1: Plain text
-       2: Fortran binary
-       3: ETSF file format
+       1: Wavelet, Plain text
+       2: Wavelet, Fortran binary
+       3: Wavelet, ETSF file format
+       #10: None
+       #11: Wavelet and Interpolating Scaling Function, Plain text
+       #12: Wavelet and Interpolating Scaling Function, Fortran binary
+       #13: Wavelet and Interpolating Scaling Function, ETSF file format
+       #20: None
+       #21: Wavelet and Interpolating Scaling Function (wavefunction), Plain text
+       #22: Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
+       #23: Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
    output_denspot:
      COMMENT: Output of the density or the potential
      default: 0
@@ -178,10 +188,26 @@
      COMMENT: Disable the symmetry detection
      DESCRIPTION: Disable the symmetry detection (by default No except for isolated systems)
      default: No
-
+   solvent:
+     COMMENT: Electrostatic environment for Poisson Equation
+     DESCRIPTION: Define the method to set the dielectric function as a function of the position
+     EXCLUSIVE:
+       vacuum: No Solvent method, ordinary Poisson Equation
+       rigid:  Rigid (smoothed) cavity around the atoms, given as superposition of spheres
+       sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
+     default: vacuum
+   external_potential:
+     COMMENT: Multipole moments of an external potential
+     DESCRIPTION: Give the multipole moments up to quadrupoles
+     default: 0.0
+   calculate_strten:
+     COMMENT: Boolean to activate the calculation of the stress tensor. Might be set to No for performance reasons
+     DESCRIPTION: In some cases, for example when doing MD for fixed volume systems, il might be useful to disable the 
+                    calculation of the stress tensor, to save computational time.
+     default: Yes
 #K points parameters
  kpt:
-   DESCRIPTION: K points defined in the Brillouin zone for periodic system calculations
+   DESCRIPTION: K points XXXXXXX defined in the Brillouin zone for periodic system calculations
    method:
      COMMENT: K-point sampling method
      EXCLUSIVE:
@@ -265,7 +291,7 @@
        - Yes
      default: ''
 
-#Geometry Optimisation  and Molecular Dynamics parameters
+#Geometry Optimisation  and ABINIT Molecular Dynamics parameters
  geopt:
    DESCRIPTION: Parameters for the geometry relaxation and molecular dynamics
    method:
@@ -280,9 +306,12 @@
        AB6MD:  Molecular dynamics from ABINIT
        DIIS:   Direct inversion of iterative subspace
        FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.
+       SOCK:   Socket communication
        NEB:    Nudged Elastic Band
        SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future release
        SQNM:   Stabilized quasi-Newton minimzer
+       MD: Molecular dynamics, NVT (Nose-Hoover Chains) or NVE ensemble 
+       LOOP:   Do nothing except looping, forces should be changed externally
      default: none
    ncount_cluster_x:
      COMMENT: Maximum number of force evaluations
@@ -290,6 +319,29 @@
      PROFILE_FROM: method
      default: 50
      none: 1
+   sockinet:
+     COMMENT: Socket either unix (0) or tcp (1)
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SOCK
+     RANGE: [0, 1]
+     default: 1
+   sockport:
+     COMMENT: Socket port number
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SOCK
+     RANGE: [0, 100000]
+     default: 2121
+   sockhost:
+     COMMENT: Socket host name
+     CONDITION:
+       MASTER_KEY: method
+       WHEN:
+       - SOCK
+     default: 127.0.0.1
    frac_fluct:
      COMMENT: Fraction of force fluctuations. Stop if fmax < forces_fluct*frac_fluct
      RANGE: [0., 10.]
@@ -436,7 +488,7 @@
      COMMENT: Temperature of molecular dynamics
      CONDITION:
        MASTER_KEY: ionmov
-       WHEN: [8, 9, 12, 13]
+       WHEN: [6, 8, 9, 12, 13]
 #       - 6
      RANGE: [0, 1e9]
      default: 300.
@@ -564,7 +616,71 @@
        WHEN:
        - NEB
      default: 15
-
+#Molecular Dynamics (BigDFT)
+ md:
+   DESCRIPTION: Molecular dynamics parameters 
+   mdsteps:
+     COMMENT: Number of MD steps
+     DESCRIPTION: A value greater than 0 will activate molecular dynamics
+     RANGE: [0, 99999999]
+     default: 0
+   print_frequency:
+     COMMENT: Printing frequency for energy.dat and Trajectory.xyz files
+     RANGE: [1, 999999]
+     default: 1
+   temperature:
+     COMMENT: Initial temperature in Kelvin
+     RANGE: [0, 9999999.0]
+     default: 300.d0
+   timestep:
+     COMMENT: Time step for integration (in a.u.)
+     RANGE: [0, 99999.0]
+     default: 20.d0
+   no_translation:
+     COMMENT: logical input to set translational correction   
+     default: No
+   thermostat:
+     COMMENT: Activates a thermostat for MD
+     EXCLUSIVE: 
+       none: no thermostat
+       nose_hoover_chain: Nose-Hoover Chain thermostat
+     default: none 
+   nose_chain_length:
+     COMMENT: Length of the Nose-Hoover Chains (integer input)
+     RANGE: [2, 10]
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 3
+   nose_mts_size:
+     COMMENT: Multiple time steps used to integrate Nose-Hoover Chains equations of motion (integer input)
+     RANGE: [1, 10]
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 1
+   nose_yoshida_factor:
+     COMMENT: Yoshida-Suzuki order to integrate the Nose-Hoover Chains equations of motion (integer input)
+     EXCLUSIVE:
+          3: Order 3
+          5: Order 5
+          7: Order 7
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 7
+   nose_frequency: 
+     COMMENT: Frequency in (cm^-1) corresponding to the inertia of the thermostat degrees of freedom 
+     RANGE: [1.,100000.0]
+     CONDITION:
+       MASTER_KEY: thermostat
+       WHEN:
+       - nose_hoover_chain
+     default: 3000.0
+#     
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
    DESCRIPTION: Mixing parameters for SCF
@@ -655,18 +771,68 @@
    method:
      COMMENT: Run method of BigDFT call
      EXCLUSIVE:
-       dft: Density Functional Theory
+       dft: Density Functional Theory (BigDFT)
        lj: Lennard-Jones force field
-       lensic: Lenosky Tight-Binding for Si clusters
-       lensib: Lenosky Tight-Binding for Si bulk
+       lensic: Lenosky Force Field for Si clusters
+       lensib: Lenosky Force Field for Si bulk
        amber: AMBER Force Fields Package (requires AMBERtools)
+       morse_bulk: Morse bulk
+       morse_slab: Morse slab
+       tersoff: Tersoff potential for C and Si
+       bmhtf: Born Mayer Huggins Tosi Fumi Potential
+       cp2k: CP2K
+       dftbp: DFTP+
+       sw: Stillinger-Weber for Si
+       multi: Mixed approach where parts of the system are treated with different methods
      default: dft
-     
+   mm_paramset:
+     COMMENT: Name of the hard-coded parameter set. Must be compatible to the chosen force field.
+     default: default
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [lj, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf]
+   mm_paramfile:
+     COMMENT: Name of parameter or input file for the selected method or code
+     default: none
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [lj, lensic, lensib, amber, morse_bulk, morse_slab, tersoff, bmhtf]
+   sections:
+     COMMENT: List of labelling subparts to divide the system into
+     default: []
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [multi]
+   section_buffer:
+     COMMENT: Level of neighbours added to posinp sections
+     default: 1
+     RANGE: [0, 10]
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [multi]
+   section_passivation:
+     COMMENT: Level of neighbours added to posinp sections
+     default: Yes
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [multi]
+   sw_eqfactor:
+     COMMENT: Factor on sigma value, rule the equilibrium bond length for the Stillinger-Weber potential
+     default: 1.
+     PBE_Si: 1.006445672 # 5.465 / 5.430
+     LDA_Si: 0.994475138 # 5.400 / 5.430
+     CONDITION:
+       MASTER_KEY: method
+       WHEN: [sw]
+
 #Performance parameters
  perf:
    debug:
      COMMENT: Debug option
      default: No
+   profiling_depth:
+     COMMENT: maximum level of the profiling for the tracking of the routines
+     default: -1
    fftcache:
      COMMENT: Cache size for the FFT
      default: 8192
@@ -788,6 +954,9 @@
    mp_isf:
      COMMENT: (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
      EXCLUSIVE:
+       2: isf 2
+       4: isf 4
+       6: isf 6
        8: isf 8
        14: isf 14
        16: isf 16
@@ -831,14 +1000,14 @@
      default: No
    check_sumrho:
      COMMENT: Enables linear sumrho check
-     default: 2
+     default: 1
      EXCLUSIVE:
        0: No check
        1: Light check
        2: Full check
    check_overlap:
      COMMENT: Enables linear overlap check
-     default: 2
+     default: 1
      EXCLUSIVE:
        0: No check
        1: Light check
@@ -848,9 +1017,14 @@
      default: No
    write_orbitals:
      COMMENT: Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
-     default: No
+     default: 0
+     EXCLUSIVE:
+       0: No output
+       1: Output in wavelet basis
+       2: In addition output wavefunction densities in interpolating scaling functions (cube file)
+       3: In addition output wavefunctions in interpolating scaling functions (cube file)
    explicit_locregcenters:
-     COMMENT: Linear scaling explicitely specify localization centers 
+     COMMENT: Linear scaling explicitly specify localization centers 
      default: No
    calculate_KS_residue:
      COMMENT: Linear scaling calculate Kohn-Sham residue
@@ -876,7 +1050,7 @@
        2: renormalization
    purification_quickreturn:
      COMMENT: linear scaling quick return in purification
-     default: No
+     default: Yes
    adjust_FOE_temperature:
      COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
      default: Yes
@@ -886,12 +1060,15 @@
    loewdin_charge_analysis:
      COMMENT: linear scaling perform a Loewdin charge analysis at the end of the calculation
      default: No
+   coeff_weight_analysis:
+     COMMENT: linear scaling perform a Loewdin charge analysis of the coefficients for fragment calculations
+     default: No
    check_matrix_compression:
      COMMENT: linear scaling perform a check of the matrix compression routines
      default: Yes
    correction_co_contra:
      COMMENT: linear scaling correction covariant / contravariant gradient
-     default: No
+     default: Yes
    fscale_lowerbound:
      COMMENT: linear scaling lower bound for the error function decay length
      RANGE: [1.e-4,1.e-2]
@@ -903,8 +1080,8 @@
    FOE_restart:
      COMMENT: Restart method to be used for the FOE method
      EXCLUSVE:
-       0: REFORMAT
-       1: AO
+       0: AO
+       1: REFORMAT
      default: 0 
    imethod_overlap:
      COMMENT: method to calculate the overlap matrices (1=old, 2=new)
@@ -915,6 +1092,29 @@
    enable_matrix_taskgroups:
      COMMENT: enable the matrix taskgroups
      default: True
+   hamapp_radius_incr:
+     COMMENT: radius enlargement for the Hamiltonian application (in grid points)
+     default: 8
+     RANGE: [0,8]
+   adjust_kernel_iterations:
+     COMMENT: enable the adaptive ajustment of the number of kernel iterations
+     default: True
+   adjust_kernel_threshold:
+     COMMENT: enable the adaptive ajustment of the kernel convergence threshold according to the support function convergence
+     default: True
+   wf_extent_analysis:
+     COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
+     default: False
+   gps_method:
+     COMMENT: method for the Generalized Poisson Equation
+     EXCLUSIVE:
+        VAC: Vacuum (ordinary treatment)
+        PI: Polarization Iteration
+        PCG: Preconditioned Conjugate Gradient
+     default: VAC
+   foe_gap:
+     COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
+     default: False
  lin_general:
      hybrid: 
        COMMENT: activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -973,16 +1173,125 @@
        DESCRIPTION: |
                     possible value: 1 nonnegative-integer number
                     Indicates how the support functions should be written to disk at the end of the run:
-                     * 0 => no output
-                     * 1 => formatted output
-                     * 2 => Fortran bin
-                     * 3 => ETSF
-       EXCLUSIVE:
-         0: no output
-         1: formatted output
-         2: Fortran bin
-         3: ETSF
+                     *  0 => None
+                     *  1 => Wavelet, Plain text
+                     *  2 => Wavelet, Fortran binary
+                     *  3 => Wavelet, ETSF file format
+                     * 10 => None
+                     * 11 => Wavelet and Interpolating Scaling Function (density), Plain text
+                     * 12 => Wavelet and Interpolating Scaling Function (density), Fortran binary
+                     * 13 => Wavelet and Interpolating Scaling Function (density), ETSF file format
+                     * 20 => None
+                     * 21 => Wavelet and Interpolating Scaling Function (wavefunction), Plain text
+                     * 22 => Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
+                     * 23 => Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
        default: 0
+       EXCLUSIVE:
+         0:  None
+         1:  Wavelet, Plain text
+         2:  Wavelet, Fortran binary
+         3:  Wavelet, ETSF file format
+         10: None
+         11: Wavelet and Interpolating Scaling Function, Plain text
+         12: Wavelet and Interpolating Scaling Function, Fortran binary
+         13: Wavelet and Interpolating Scaling Function, ETSF file format
+         10: None
+         11: Wavelet and Interpolating Scaling Function (density), Plain text
+         12: Wavelet and Interpolating Scaling Function (density), Fortran binary
+         13: Wavelet and Interpolating Scaling Function (density), ETSF file format
+         20: None
+         21: Wavelet and Interpolating Scaling Function (wavefunction), Plain text
+         22: Wavelet and Interpolating Scaling Function (wavefunction), Fortran binary
+         23: Wavelet and Interpolating Scaling Function (wavefunction), ETSF file format
+     output_mat:
+       COMMENT: output sparse matrices; 0 no output, 1 formatted sparse, 11 formatted dense, 21 formatted both
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how the support functions should be written to disk at the end of the run:
+                     *  0 => None
+                     *  1 => Plain text in sparse format
+                     * 11 => Plain text in dense format
+                     * 21 => Plain text in both formats
+       default: 0
+       EXCLUSIVE:
+         0:  None
+         1:  Plain text sparse
+         11: Plain text dense
+         21: Plain text sparse and dense
+     output_coeff:
+       COMMENT: output KS coefficients; 0 no output, 1 formatted output
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how the support functions should be written to disk at the end of the run:
+                     *  0 => None
+                     *  1 => Plain text
+       default: 0
+       EXCLUSIVE:
+         0:  None
+         1:  Plain text
+     output_fragments:
+       COMMENT: output support functions, kernel and coeffs; 0 fragments and full system, 1 fragments only, 2 full system only
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how the support functions should be written to disk at the end of the run:
+                     *  0 => Fragments and full system
+                     *  1 => Fragments only
+                     *  2 => Full system only
+       default: 0
+       EXCLUSIVE:
+         0:  Fragments and full system
+         1:  Fragments only
+         2:  Full system only
+     kernel_restart_mode:
+       COMMENT: method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 support function weights
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how the kernel should be generated for a restart calculation:
+                     *  0 => Density kernel
+                     *  1 => Coefficients
+                     *  2 => Random
+                     *  3 => Diagonal kernel, i.e. support functions scaled by number of electrons (per fragment)
+                     *  4 => Support functions weights
+       default: 0
+       EXCLUSIVE:
+         0:  Density kernel
+         1:  Coefficients
+         2:  Random
+         3:  Diagonal kernel
+         4:  Support function weights
+       #Here follow some shortcuts
+       kernel: 0
+       coeff: 1
+       random: 2
+       diag: 3
+       weight: 4
+     kernel_restart_noise:
+       COMMENT: add random noise to kernel or coefficients when restarting
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    Indicates how much noise should be added to kernel or coefficients for a restart calculation
+       default: 0.0d0
+       RANGE: [0.0,1.0]
+     frag_num_neighbours:
+       COMMENT: number of neighbours to output for each fragment
+       DESCRIPTION: |
+                    possible value: 1 nonnegative-integer number
+                    Indicates how many neighbouring atoms should be written to frag_env.xyz  - only allow for a small number of neighbours
+       RANGE: [0,4]
+       default: 0
+     cdft_lag_mult_init:
+       COMMENT: CDFT initial value for Lagrange multiplier
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+                    The sign is set automatically based on the charge to be constrained
+       default: 0.05d0
+       RANGE: [0.0,10.0]
+     cdft_conv_crit:
+       COMMENT: CDFT convergence threshold for the constrained charge
+       DESCRIPTION: |
+                    possible value: 1 positive real number
+       default: 1.e-2
+       RANGE: [1.e-20,1.0]
      calc_dipole:
        DESCRIPTION: |
                     possible value: 1 logical
@@ -1003,12 +1312,19 @@
        COMMENT: diagonalization at the end
        DESCRIPTION: |
                     possible value: logical
-                    Indicates whether a diagonliazation shall be performed at the end of the run
+                    Indicates whether a diagonalization shall be performed at the end of the run
        default: No
      extra_states:
        COMMENT: extra states to optimize (dmin only)
        default: 0
        RANGE: [0, 10000]
+     calculate_onsite_overlap:
+       COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
+       default: No
+     charge_multipoles:
+       COMMENT: Calculate the atom-centered multipole coefficients of the electronic charge
+       DESCRIPTION: Calculate the multipole expansion coefficients which can then be used to establish a QM/MM coupling
+       default: no
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
@@ -1020,6 +1336,10 @@
                     If the hybrid mode is used, only the first value is taken into account.
        RANGE: [0,100]
        default: [4,5]
+     nit_ig:
+       COMMENT:  maximal number of iterations to optimize the support functions in the extended input guess (experimental mode only)
+       RANGE: [0,100]
+       default: 50 #just for backward compatibility, should be smaller
      idsx:
        COMMENT: DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
        DESCRIPTION: |
@@ -1038,6 +1358,10 @@
                     When the hybrid mode is used, only the first entry is taken into account.
        RANGE: [1.e-6,1.0]
        default: [1.e-2,1.e-4]
+     gnrm_ig:
+       COMMENT: convergence criterion for the optimization of the support functions in the extended input guess (experimental mode only)
+       RANGE: [1.e-5,10.0]
+       default: 1.e-3 #just for backward compatibility, should be larger
      deltae_cv:
        COMMENT: total relative energy difference to stop the optimization ('experimental_mode' only)
        DESCRIPTION: |
@@ -1119,7 +1443,7 @@
                     Indicates the number of iterations in the (self-consistent) optimization of the density kernel.
                     The first entry is used for the low accuracy part, the second one for the high accuracy part.
                     When the hybrid mode is used, only the first entry is taken into account.
-       RANGE: [0,100]
+       RANGE: [0,1000]
        default: [5,5]
 # check whether there are different DIIS histories...
      idsx_coeff:
@@ -1209,6 +1533,14 @@
                     This value will be adjusted automatically if not chosen appropriately.
        RANGE: [1.e-3,5.e-2]
        default: 2.e-2
+     coeff_scaling_factor:
+       COMMENT: factor to scale the gradient in direct minimization
+       DESCRIPTION: |
+                    possible value: 1 non-negative real number
+                    Specifies a scaling factor for the coefficient gradient, recommended to be around 0.1 - 0.5 for CDFT, fragment calculations
+                    or systems where convergence is unstable.
+       default: 1.0
+       RANGE: [0.0,1.e1]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:
@@ -1267,7 +1599,7 @@
                     Must be at least as large as the kernel cutoff.
        RANGE: [2.0,1000]
        default: 14.0
---- #here starts the document of possible input files
+--- #here starts the document of possible profiles, that have to be evoked with the 'import' keyword
 linear_accurate:
   COMMENT: appropriate input parameters for a high accuracy linear scaling calculation
   DESCRIPTION: This profile should be chosen if highly accurate energy differences are required
@@ -1376,3 +1708,92 @@ structural:
     ixc: PBE
   geopt:
     method: FIRE
+mixing:
+  COMMENT: to be used for metallic systems
+  dft:
+   gnrm_cv: 1.e-6
+   nrepmax: 1
+   itermax: 3
+   ncong: 5
+   idsx: 0
+  mix:
+   iscf: 17
+   itrpmax: 200
+   rpnrm_cv: 1.E-12
+   norbsempty: 120
+   tel: 0.01
+   alphamix: 0.8
+   alphadiis: 1.d0
+linear:
+ COMMENT: linear parameters sufficient for PDoS, charge analysis, MD
+ dft:
+   gnrm_cv: accurate
+   itermax: 50
+   nrepmax: 10
+   ncong: 5
+   idsx: 6
+   disablesym: Yes
+   inputpsiid: linear
+ perf:
+   ef_interpol_chargediff: 1.0
+   check_sumrho: 1
+   check_overlap: 1
+   experimental_mode: Yes
+   calculate_KS_residue: No
+   method_updatekernel: 2
+   purification_quickreturn: Yes
+   check_matrix_compression: No
+   correction_co_contra: Yes
+   store_index: No
+   mixing_after_inputguess: 1
+   kappa_conv: 0.1
+   FOE_restart: 1
+   hamapp_radius_incr: 6
+ lin_general:
+   hybrid: Yes
+   nit: 50
+   taylor_order: 1020
+   max_inversion_error: 5.0e-8
+   rpnrm_cv: 1.0e-11
+   output_mat: 1
+   output_coeff: 1
+ lin_basis:
+   nit: 8
+   idsx: 8
+   gnrm_cv: 2.0e-3
+   deltae_cv: 1.0e-4
+   min_gnrm_for_dynamic: 4.0e-3
+   alpha_diis: 0.5
+   alpha_sd: 0.5
+   nstep_prec: 6
+   fix_basis: 1.0e-12
+   correction_orthoconstraint: 0
+   gnrm_ig: 1.e-1
+ lin_kernel:
+   nstep: 10
+   nit: 6
+   idsx_coeff: [6, 0]
+   idsx: 6
+   alphamix: 0.1
+   linear_method: FOE
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002
+ lin_basis_params:
+   #ao_confinement: -1.0
+   #confinement: -1.0
+   rloc_kernel: 9.0
+   rloc_kernel_foe: 10.5
+   H:  {nbasis: 1, rloc: 4.5}
+   C:  {nbasis: 4, rloc: 5.0}
+   N:  {nbasis: 4, rloc: 5.0}
+   O:  {nbasis: 4, rloc: 5.0}
+   P:  {nbasis: 4, rloc: 5.5}
+   Cl: {nbasis: 4, rloc: 5.5}
+   K:  {nbasis: 1, rloc: 7.0}
+md:
+  COMMENT: Molecular dynamics Input file for H2O molecules
+  geopt:
+    method: AB6MD
+    ionmov: 8
+    dtion: 20.0
+    noseinert: 30.0

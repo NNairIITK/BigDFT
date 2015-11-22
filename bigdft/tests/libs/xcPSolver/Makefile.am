@@ -1,5 +1,11 @@
 ## Process this file with automake to produce Makefile.in
 
+SHORT_CHECK = PS_Check.out.yaml PS_Check.out.yaml.report
+LONG_CHECK = $(SHORT_CHECK)
+
+include $(srcdir)/../check.mk
+
+
 EXTRA_DIST = PS_Check.ref.yaml tols.yaml
 
 check_PROGRAMS = PS_Check PS_Integral gaussian gaussian2D gaussian3D
@@ -31,28 +37,26 @@ gaussian3D_LDADD = -lbigdft-1 @LINALG_LIBS@
 CLEANFILES = PS_Check.out.yaml fldiff.report.yaml malloc.prc time.prc
 
 PS_Check.out.yaml: PS_Check
-	$(run_parallel) ./PS_Check 57 48 63  0 F  > PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 57 48 63  1 F >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 57 48 63 11 F >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 57 48 63 13 F >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 64 64 64  0 P >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 64 64 64  1 P >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 64 64 64 11 P >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 64 64 64 13 P >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 32 64 48  0 S >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 32 64 48  1 S >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 32 64 48 11 S >> PS_Check.out.yaml
-	$(run_parallel) ./PS_Check 32 64 48 13 S >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[57,48,63] --ixc=0  --geocode=F  > PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[57,48,63] --ixc=1  --geocode=F >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[57,48,63] --ixc=11 --geocode=F >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[57,48,63] --ixc=13 --geocode=F >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[64,64,64] --ixc=0  --geocode=P >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[64,64,64] --ixc=1  --geocode=P >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[64,64,64] --ixc=11 --geocode=P >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[64,64,64] --ixc=13 --geocode=P >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[32,64,48] --ixc=0  --geocode=S >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[32,64,48] --ixc=1  --geocode=S >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[32,64,48] --ixc=11 --geocode=S >> PS_Check.out.yaml
+	$(run_parallel) ./PS_Check --ndim=[32,64,48] --ixc=13 --geocode=S >> PS_Check.out.yaml
 	cp -f PS_Check.out.yaml tmp
 	cat tmp | grep -v 'Unable to read mpd.hosts' > PS_Check.out.yaml
 	rm -f tmp
 
-
-check: PS_Check.out.yaml
+PS_Check.out.yaml.report: PS_Check.out.yaml
 	python $(top_builddir)/tests/fldiff_yaml.py \
 		-r $(abs_srcdir)/PS_Check.ref.yaml -d PS_Check.out.yaml -t $(abs_srcdir)/tols.yaml \
 	        --output fldiff.report.yaml
-
 
 report: 
 	python $(top_builddir)/tests/report.py

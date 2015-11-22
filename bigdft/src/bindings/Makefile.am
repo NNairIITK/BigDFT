@@ -18,7 +18,7 @@ bindings_files = bindingsf_fake.f90
 endif
 libbindings_a_SOURCES = bindingsf.f90 bindings_api.h bindings.h input_keys.h \
 	wrappers.c wrapper_inputs.c wrapper_run.c \
-	wrapper_atoms.c wrapper_neb.c $(bindings_files)
+	wrapper_atoms.c $(bindings_files)
 nodist_libbindings_a_SOURCES = $(nodist_bindings_files)
 
 EXTRA_DIST = bindings_dbus.xml
@@ -32,7 +32,7 @@ bindings_dbus.c: bindings_dbus.xml
                       --c-generate-object-manager $(srcdir)/bindings_dbus.xml
 
 AM_FCFLAGS = -I$(top_builddir)/includes @LIBABINIT_INCLUDE@
-AM_CPPFLAGS = -I. -I../modules -I$(top_srcdir)/src/modules -I$(top_builddir)
+AM_CPPFLAGS = -I. -I../modules -I$(top_srcdir)/src/modules @PYTHON_INCLUDES@
 AM_CFLAGS = @GLIB_CFLAGS@ @GDBUS_CFLAGS@
 
 CLEANFILES = $(nodist_bindings_files)

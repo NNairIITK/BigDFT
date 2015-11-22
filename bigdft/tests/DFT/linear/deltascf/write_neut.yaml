@@ -1,0 +1,80 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.4
+   rmult: [6.0, 8.0]
+   gnrm_cv: accurate
+   nrepmax: accurate
+   inputpsiid: linear
+   disablesym: Yes
+ perf:
+   ef_interpol_det: 0.10E-19
+   mixing_after_inputguess: 2
+   adjust_kernel_iterations: No
+   purification_quickreturn: no
+   correction_co_contra: no
+ lin_general:
+   nit: [2, 4]
+   rpnrm_cv: 1.0E-008
+   conf_damping: 0.5
+   output_wf: 1
+ lin_basis:
+   nit: [4, 2]
+   idsx: 0
+   gnrm_cv: [5.0000000000000004E-006, 9.9999999999999995E-007]
+ lin_kernel:
+   idsx_coeff: 4
+   alphamix: 1.0
+   linear_method: DIRMIN
+   fscale_foe: 5.0000000000000003E-002
+ lin_basis_params:
+   C:
+     ao_confinement: 1.0E-004
+     confinement: [1.0E-004, 0.0]
+     rloc_kernel: 7.0
+     rloc_kernel_foe: 20.0
+   S:
+     ao_confinement: 1.0E-004
+     confinement: [1.0E-004, 0.0]
+     rloc_kernel: 7.0
+     rloc_kernel_foe: 20.0
+   H:
+     nbasis: 1
+     ao_confinement: 1.0E-004
+     confinement: [1.0E-004, 0.0]
+     rloc_kernel: 7.0
+     rloc_kernel_foe: 20.0
+ posinp:
+   units: angstroem
+   positions:
+   - C: [-3.36733603477478, -1.628931164741516, 1.9999999552965164E-002]
+   - C: [-1.399999976158142, 0.0, 0.0]
+   - C: [-1.940811991691589, -1.253498673439026, 0.0]
+   - S: [-0.699999988079071, -2.505999565124512, 0.0]
+   - H: [-3.988582372665405, -0.7227600812911987, 0.0]
+   - H: [-3.659527778625488, -2.202507257461548, -0.871307373046875]
+   - H: [-3.623505115509033, -2.243303537368774, 0.9012763500213623]
+   - H: [-2.011343479156494, 0.9037467837333679, 0.0]
+   - C: [0.0, 0.0, 0.0]
+   - C: [0.5244492292404175, -1.298057436943054, 0.0]
+   - C: [2.448898553848267, 0.0, 0.0]
+   - C: [1.92444920539856, -1.298057436943054, 0.0]
+   - S: [1.224449276924133, 1.207942128181458, 0.0]
+   - S: [3.148898363113403, -2.505999565124512, 0.0]
+   - C: [3.848898410797119, 0.0, 0.0]
+   - C: [4.373347759246826, -1.298057436943054, 0.0]
+   - C: [6.297796726226807, 0.0, 0.0]
+   - C: [5.773347854614258, -1.298057436943054, 0.0]
+   - S: [5.073347568511963, 1.207942128181458, 0.0]
+   - S: [6.997797012329102, -2.505999565124512, 0.0]
+   - C: [7.697796821594238, 0.0, 0.0]
+   - C: [8.238609313964844, -1.253498673439026, 0.0]
+   - C: [9.665132522583008, -1.628931164741516, 1.9999999552965164E-002]
+   - H: [10.28637981414795, -0.7227600812911987, 0.0]
+   - H: [9.957324981689453, -2.202507257461548, -0.871307373046875]
+   - H: [9.92130184173584, -2.243303537368774, 0.9012763500213623]
+   - H: [8.309140205383301, 0.9037467837333679, 0.0]
+   properties:
+     format: xyz
+     source: write_neut

@@ -42,16 +42,24 @@ class cmd_dist(Command):
             make_option('-c', '--compress-kind', metavar='COMP',
                         action='store', dest='compress', default="gz",
                         help=_('compression type (default is gzip)')),
-            make_option('-f', '--full',
-                        action='store_true', dest='full', default=False,
-                        help=_('package also non BigDFT specific libraries')),
+            make_option('-n', '--no-net',
+                        action='store_true', dest='nonet', default=False,
+                        help=_('package also downloadable libraries')),
+            make_option('-i', '--ignore-conditions',
+                        action='store_true', dest='ignore_conditions', default=False,
+                        help=_('package also libraries depending on a condition')),
+            make_option('-d', '--dist-only',
+                        action='store_true', dest='dist_only', default=False,
+                        help=_('only do make dist, without calling any previous configure steps')),
             ])
 
     def run(self, config, options, args, help=None):
         for item in options.skip:
             config.skip += item.split(',')
 
+        config.ignore_conditions = options.ignore_conditions
         module_set = jhbuild.moduleset.load(config)
+        config.ignore_conditions = False
         module_list = module_set.get_module_list(args or config.modules, config.skip)
         # remove modules up to startat
         if options.startat:
@@ -61,9 +69,12 @@ class cmd_dist(Command):
                 raise FatalError(_('%s not in module list') % options.startat)
 
         config.compress = options.compress
-        config.full = options.full
+        config.nonet = options.nonet
 
         build = jhbuild.frontends.get_buildscript(config, module_list, module_set=module_set)
-        return build.build(phases=['dist'])
+        if options.dist_only:
+            return build.build(phases=['dist'])
+        else:
+            return build.build(targets=['dist'])
 
 register_command(cmd_dist)

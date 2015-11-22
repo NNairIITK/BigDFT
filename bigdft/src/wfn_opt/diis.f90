@@ -448,8 +448,8 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      & n1,n2,n3,ucvol,rpnrm,nscatterarr)
   use module_base
   use module_types
-  use defs_basis, only: AB7_NO_ERROR
-  use m_ab7_mixing
+  use abi_defs_basis, only: AB7_NO_ERROR
+  use module_mixing
   implicit none
   integer, intent(in) :: npoints, istep, n1, n2, n3, nproc, iproc
   real(gp), intent(in) :: alphamix, ucvol
@@ -463,6 +463,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   character(len = 500) :: errmess
   integer, allocatable :: user_data(:)
   real(8) :: ddot !debug
+  integer(kind=8) :: nsize
 
   call f_routine(id='mix_rhopot')
 
@@ -471,17 +472,21 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   ! Calculate the residue and put it in rhopot
   if (istep > 1) then
      ! rhopot = vin - v(out-1)
-     call axpy(npoints, -1.d0, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
-          & rhopot(1), 1)
-     call dscal(npoints, 1.d0 - alphamix, rhopot(1), 1)
+     if (npoints>0) then
+        call axpy(npoints, -1.d0, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
+              & rhopot(1), 1)
+        call dscal(npoints, 1.d0 - alphamix, rhopot(1), 1)
+     end if
      ! rhopot = alpha(vin - v(out-1))
   !write(*,'(a,i7,es16.7)') 'in mix_rhopot, after axpy: iproc, ddot', iproc, ddot(npoints,rhopot,1,rhopot,1)
   else
      mix%f_fftgr(:,:, mix%i_vrespc(1)) = 0.d0
   end if
   ! rhopot = v(out-1) and fftgr = alpha(vin - v(out-1))
-  call dswap(npoints, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
-       & rhopot(1), 1)
+  if (npoints>0) then
+     call dswap(npoints, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1, &
+          & rhopot(1), 1)
+  end if
 
   ! Store the scattering of rho in user_data
   user_data = f_malloc(3 * nproc,id='user_data')
@@ -501,13 +506,16 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
      call MPI_ABORT(bigdft_mpi%mpi_comm, ierr, ie)
   end if
   !write(*,'(a,i7,2es16.7)') 'in mix_rhopot: iproc, rpnrm, ddot', iproc, rpnrm, ddot(npoints,rhopot,1,rhopot,1)
-  rpnrm = sqrt(rpnrm) / real(n1 * n2 * n3, gp)
+  nsize = int(n1,kind=8)*int(n2,kind=8)*int(n3,kind=8)
+  rpnrm = sqrt(rpnrm) / real(nsize, gp)
   rpnrm = rpnrm / (1.d0 - alphamix)
   !write(*,*) 'in mix_rhopot 2: iproc, rpnrm', iproc, rpnrm
 
   call f_free(user_data)
   ! Copy new in vrespc
-  call vcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
+  if (npoints>0) then
+     call vcopy(npoints, rhopot(1), 1, mix%f_fftgr(1,1, mix%i_vrespc(1)), 1)
+  end if
 
   call f_release_routine()
 
@@ -517,7 +525,6 @@ END SUBROUTINE mix_rhopot
 subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => psimix
   use yaml_output
   use diis_sd_optimization
   use communications_base, only: comms_cubic
@@ -775,7 +782,7 @@ subroutine diisstp(iproc,nproc,orbs,comms,diis)
      ispsidst=ispsidst+nvctrp*orbs%norb*orbs%nspinor*diis%idsx
   end do
   if (nproc > 1) then
-     call mpiallred(rds(1,1,1,1),ncplx*ngroup*(diis%idsx+1)*orbs%nkpts,MPI_SUM,bigdft_mpi%mpi_comm)
+     call mpiallred(rds,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   endif
 
   ispsi=1

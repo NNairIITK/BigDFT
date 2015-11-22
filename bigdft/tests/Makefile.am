@@ -8,6 +8,7 @@ EXTRA_DIST = \
 	yaml_hl.py \
 	parse_log.py \
 	tols-BigDFT.yaml \
+	yaml_hl_remarks.cfg \
 	fldiff_yaml.py.in \
 	report.py.in
 
@@ -15,7 +16,8 @@ SUBDIRS = \
 	  DFT \
 	  overDFT \
 	  tutorials \
-	  libs
+	  libs \
+	  benchs
 
 if USE_OCL
 oclrun_message = oclrun
@@ -58,19 +60,21 @@ check:
 	@if test $(MAKELEVEL) = 0 ; then $(MAKE) report ; fi
 
 report.py: report.py.in
-	sed							\
+	@sed							\
 		-e s!\@prefix\@!$(prefix)!			\
 		-e s!\@exec_prefix\@!$(exec_prefix)!		\
 		-e s!\@pyexecdir\@!$(pyexecdir)!		\
 		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
+		-e s!\@abs_srcdir\@!$(abs_srcdir)!		\
 		< $< > $@
 
 fldiff_yaml.py: fldiff_yaml.py.in
-	sed							\
+	@sed							\
 		-e s!\@prefix\@!$(prefix)!			\
 		-e s!\@exec_prefix\@!$(exec_prefix)!		\
 		-e s!\@pyexecdir\@!$(pyexecdir)!		\
 		-e s!\@AX_PYYAML_PATH\@!$(AX_PYYAML_PATH)!	\
+		-e s!\@abs_srcdir\@!$(abs_srcdir)!		\
 		< $< > $@
 
 report:

@@ -21,10 +21,11 @@
    purification_quickreturn: Yes
    check_matrix_compression: No
    correction_co_contra: Yes
+   foe_gap: yes
  lin_general:
    hybrid: Yes
    nit: 100
-   rpnrm_cv: 5.e-7
+   rpnrm_cv: 4.e-6
    max_inversion_error: 5.0e-8
  lin_basis:
    nit: 8

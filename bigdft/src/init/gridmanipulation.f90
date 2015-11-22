@@ -14,7 +14,7 @@
 subroutine system_size(atoms,rxyz,crmult,frmult,hx,hy,hz,OCLconv,Glr,shift)
    use module_base
    use module_types
-   use yaml_output, only: yaml_toa
+   use yaml_strings, only: yaml_toa
    implicit none
    type(atoms_data), intent(inout) :: atoms
    real(gp), intent(in) :: crmult,frmult
@@ -277,7 +277,7 @@ END SUBROUTINE system_size
 !! allow the fft for the preconditioner and for Poisson Solver
 subroutine correct_grid(a,h,n)
    use module_base
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    implicit none
    real(gp), intent(in) :: a
    integer, intent(inout) :: n
@@ -645,86 +645,3 @@ subroutine fill_logrid(geocode,n1,n2,n3,nl1,nu1,nl2,nu2,nl3,nu3,nbuf,nat,  &
 END SUBROUTINE fill_logrid
 
 
-subroutine make_bounds(n1,n2,n3,logrid,ibyz,ibxz,ibxy)
-   implicit none
-   integer, intent(in) :: n1,n2,n3
-   logical, dimension(0:n1,0:n2,0:n3), intent(in) :: logrid
-   integer, dimension(2,0:n2,0:n3), intent(out) :: ibyz
-   integer, dimension(2,0:n1,0:n3), intent(out) :: ibxz
-   integer, dimension(2,0:n1,0:n2), intent(out) :: ibxy
-   !local variables
-   integer :: i1,i2,i3
-
-   !$omp parallel default(shared) private(i3,i2,i1)
-   !$omp do
-   do i3=0,n3 
-      do i2=0,n2 
-         ibyz(1,i2,i3)= 1000
-         ibyz(2,i2,i3)=-1000
-
-         loop_i1s: do i1=0,n1
-            if (logrid(i1,i2,i3)) then 
-               ibyz(1,i2,i3)=i1
-               exit loop_i1s
-            endif
-         enddo loop_i1s
-
-         loop_i1e: do i1=n1,0,-1
-            if (logrid(i1,i2,i3)) then 
-               ibyz(2,i2,i3)=i1
-               exit loop_i1e
-            endif
-         enddo loop_i1e
-      end do
-   end do
-   !$omp end do
-
-   !$omp do
-   do i3=0,n3 
-      do i1=0,n1
-         ibxz(1,i1,i3)= 1000
-         ibxz(2,i1,i3)=-1000
-
-         loop_i2s: do i2=0,n2 
-            if (logrid(i1,i2,i3)) then 
-               ibxz(1,i1,i3)=i2
-               exit loop_i2s
-            endif
-         enddo loop_i2s
-
-         loop_i2e: do i2=n2,0,-1
-            if (logrid(i1,i2,i3)) then 
-               ibxz(2,i1,i3)=i2
-               exit loop_i2e
-            endif
-         enddo loop_i2e
-
-      end do
-   end do
-   !$omp end do
-
-   !$omp do
-   do i2=0,n2 
-      do i1=0,n1 
-         ibxy(1,i1,i2)= 1000
-         ibxy(2,i1,i2)=-1000
-
-         loop_i3s: do i3=0,n3
-            if (logrid(i1,i2,i3)) then 
-               ibxy(1,i1,i2)=i3
-               exit loop_i3s
-            endif
-         enddo loop_i3s
-
-         loop_i3e: do i3=n3,0,-1
-            if (logrid(i1,i2,i3)) then 
-               ibxy(2,i1,i2)=i3
-               exit loop_i3e
-            endif
-         enddo loop_i3e
-      end do
-   end do
-   !$omp end do
-   !$omp end parallel
-
-END SUBROUTINE make_bounds

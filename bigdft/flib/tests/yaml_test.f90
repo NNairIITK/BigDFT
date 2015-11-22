@@ -24,18 +24,22 @@ program yaml_test
    character(len=isize), parameter :: TREES              ='trees'
    character(len=isize), parameter :: TREES_EXTRAS       ='trees_extras'
    character(len=isize), parameter :: ALLOCATIONS        ='allocations'
-   character(len=isize), dimension(7), parameter :: FUNCTIONALITIES=&
+   character(len=isize), parameter :: UTILS              ='utils'
+   character(len=isize), dimension(8), parameter :: FUNCTIONALITIES=&
         [ YAML               ,&
           YAML_EXTRAS        ,&
           YAML_PARSER        ,&
           EXCEPTIONS         ,&
-          TREES       ,&
-          TREES_EXTRAS,&
+          TREES              ,&
+          TREES_EXTRAS       ,&
+          UTILS              ,&
           ALLOCATIONS        ]
    
-   type(dictionary), pointer :: dict_tmp,run
+   type(dictionary), pointer :: dict_tmp,run,dict_mp
    type(yaml_cl_parse) :: parser
-   !logical :: fl
+   integer :: ilist, imp
+   character(len=2) :: key
+   real(kind=8),dimension(3) :: rxyz
 
    call f_lib_initialize()
    !test output level
@@ -58,6 +62,12 @@ program yaml_test
         'Unused option3, just for testing the command line parser, '//&
         'also the long help lines have to be tested in order to understand if it works'),&
         conflicts='[test2,test]')
+   call yaml_cl_parse_option(parser,'test_mp','None',&
+        'sandbox to test the I/O of point multipoles','m',&
+        dict_new('Usage' .is. &
+        'Just to test the format of the multipoles'))
+
+
 
    !verify the parsing
    call yaml_cl_parse_cmd_line(parser)
@@ -74,6 +84,22 @@ program yaml_test
       call dict_copy(run,dict_tmp)
    end if
    nullify(dict_tmp)
+
+   dict_mp = parser%args .get. 'test_mp'
+   call yaml_map('Multipole list found',associated(dict_mp))
+   if (associated(dict_mp)) then
+       call check_multipoles(parser)
+   end if
+
+!    call dict_init(dict_tmp)
+!   !call set(dict_tmp//'Ciao','1')
+!    call set(dict_tmp//0,'1')
+!    call set(dict_tmp//1,'5')
+!    dict_tmp=>dict_new() !d={}
+!    dict_tmp=>dict_new('Ciao' .is. '1')
+!    dict_tmp=>list_new() !d=[]
+!    dict_tmp=>list_new([.item. '1',.item. '5']) !d=[1,5]
+!    dict_tmp=>list_new(.item. ['1','ciao']) !d=[1,ciao]
 
    call yaml_cl_parse_free(parser)
 !!$
@@ -158,6 +184,12 @@ program yaml_test
       call yaml_new_document()
       call test_copy_merge()
       call yaml_release_document()
+
+
+      call yaml_new_document()
+      call test_f_trees()
+      call yaml_release_document()
+
    end if
 
    if (YAML_PARSER .in. run) then
@@ -176,9 +208,13 @@ program yaml_test
 !!$   if (ALLOCATIONS .in. run) then
 !!$      call verify_heap_allocation_status()
 !!$   end if
-
+   if (UTILS .in. run) then
+      call f_utils_test()
+      call f_inputfile_test()
+   end if
 
    call dict_free(run)
+
    !prepare the finalization of the library
    call f_lib_finalize()
 
@@ -188,9 +224,9 @@ subroutine yaml_parse_file_and_string()
   use dictionaries
   use yaml_parse
   use yaml_output
+  use f_precisions, only: cr=>f_cr
   implicit none
   type(dictionary), pointer :: dict_parse
-  character(len=*), parameter :: cr=char(13)//char(10) !carriage return
   character(len=*), parameter ::stream=&
        "---"//cr//&
        "Key1: field1"//cr//&
@@ -242,3 +278,59 @@ end subroutine yaml_parse_file_and_string
   end subroutine help_screen
 
 
+
+subroutine check_multipoles(parser)
+  use yaml_output
+  use yaml_strings
+   use dictionaries
+   !use dynamic_memory
+   use yaml_parse
+   !use f_utils
+  implicit none
+  ! Calling arguments
+  type(yaml_cl_parse) :: parser
+
+  ! Local variables
+  type(dictionary), pointer :: dict_mp, iter
+  integer :: ilist, imp, nmplist
+  character(len=2) :: key
+  real(kind=8),dimension(3) :: rxyz
+  real(kind=8),dimension(7) :: mp
+
+   !!!before freeing the options just test aputative way of inserting multipoles
+   !!!first retrieve the dictionary if it has been entered
+   dict_mp = parser%args .get. 'test_mp'
+   !!call yaml_map('Multipole list found',associated(dict_mp))
+
+   if  (associated(dict_mp)) then
+       nmplist = dict_len(dict_mp)
+       call yaml_map('Size of the mp list',nmplist)
+       call yaml_sequence_open('Values')
+       do ilist=0,nmplist-1
+          call yaml_sequence()
+          call yaml_map('Size of element'//trim(yaml_toa(ilist)),dict_size(dict_mp//ilist))
+          !retrieve atomic positions, compulsory
+          iter => dict_mp//ilist
+          if ('r' .notin. iter) call f_err_throw('For the item .. the r should  be present')
+          rxyz = iter//'r'
+          call yaml_map('rxyz',rxyz)
+          do imp=0,3
+               key='q'+imp
+               if (key .in. iter) then
+                 if (dict_len(iter//key)/=2*imp+1) then
+                     call f_err_throw('Wrong len ('//dict_len(iter//key)//') of the mutipole')
+                 end if
+                 mp(1:2*imp+1) = iter//key
+                 !call yaml_map('dict_size of '//key,dict_size(iter//key))  
+                 !call yaml_map('dict_len of '//key,dict_len(iter//key))  
+                 call yaml_map(key,mp(1:2*imp+1))
+                 !call yaml_map('key',key)
+                 !call yaml_map('key',iter//key)
+                 !call yaml_dict_dump(iter//key)  
+               end if
+          end do 
+       end do
+       call yaml_sequence_close()
+   end if
+
+end subroutine check_multipoles

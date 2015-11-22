@@ -16,8 +16,9 @@ END SUBROUTINE MPI_INIT
         
 subroutine MPI_INITIALIZED(init,ierr)
   implicit none
-  integer, intent(out) :: init,ierr
-  init=0
+  logical, intent(out) :: init
+  integer, intent(out) :: ierr
+  init=.false.
   ierr=0
 END SUBROUTINE  MPI_INITIALIZED
 
@@ -95,8 +96,10 @@ subroutine  MPI_FINALIZE(ierr)
   ierr=0
 END SUBROUTINE MPI_FINALIZE
 
-subroutine MPI_BCAST()
+subroutine MPI_BCAST(buffer,n,mpitype,root,comm,ierr)
   implicit none
+  integer :: buffer,n,mpitype,root,comm,ierr
+  ierr=0
 END SUBROUTINE MPI_BCAST
 
 subroutine  MPI_BARRIER(MPI_COMM_WORLD,ierr)
@@ -256,10 +259,25 @@ subroutine mpi_win_create()
   stop 'MPIFAKE: mpi_win_create'
 END SUBROUTINE  MPI_WIN_CREATE
 
+subroutine mpi_win_lock()
+  implicit none
+  stop 'MPIFAKE: mpi_win_create'
+END SUBROUTINE  MPI_WIN_LOCK
+
+subroutine mpi_win_unlock()
+  implicit none
+  stop 'MPIFAKE: mpi_win_create'
+END SUBROUTINE  MPI_WIN_UNLOCK
+
 subroutine mpi_get()
   implicit none
   stop 'MPIFAKE: mpi_get'
 END SUBROUTINE  MPI_GET
+
+subroutine mpi_accumulate()
+  implicit none
+  stop 'MPIFAKE: mpi_accumulate'
+END SUBROUTINE  MPI_ACCUMULATE
 
 subroutine mpi_get_address()
   implicit none
@@ -315,6 +333,11 @@ subroutine mpi_info_free()
   implicit none
   stop 'MPIFAKE: mpi_info_free'
 END SUBROUTINE  MPI_INFO_FREE
+
+subroutine mpi_type_get_extent
+  implicit none
+  stop 'MPIFAKE: mpi_type_get_extent'
+END SUBROUTINE mpi_type_get_extent
 
 real(kind=8) function mpi_wtime()
   implicit none
@@ -390,3 +413,7 @@ end subroutine mpi_unpack
 subroutine mpi_error_class()
   implicit none
 end subroutine mpi_error_class
+
+subroutine mpi_put()
+  implicit none
+end subroutine mpi_put

@@ -16,13 +16,24 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      rxyz, nlpsp, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs, &
      locregcenters)
   use module_base
-  use module_interfaces, exceptThisOne => inputguessConfinement
+  use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
+       & getLocalizedBasis, get_coeff, inputguess_gaussian_orbitals, &
+       & write_eigenvalues_data, write_energies
   use module_types
   use gaussians, only: gaussian_basis, deallocate_gwf, nullify_gaussian_basis
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix
+  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
+                               sparsematrix_malloc, assignment(=), SPARSE_FULL
   use sparsematrix_init, only: matrixindex_in_compressed
+  use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
+  use communications_base, only: work_transpose, &
+                                 work_transpose_null, allocate_work_transpose, deallocate_work_transpose
+  use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
+  use public_enums
+  use ao_inguess, only: aoig_data, aoig_data_null, aoig_set
+  use orthonormalization, only: orthonormalizeLocalized, iterative_orthonormalization
+  use locreg_operations
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -42,7 +53,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   ! Local variables
   type(gaussian_basis) :: G !basis for davidson IG
   character(len=*), parameter :: subname='inputguessConfinement'
-  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,methTransformOverlap
+  integer :: istat,iall,iat,nspin_ig,iorb,nvirt,norbat,methTransformOverlap,ind
   real(gp) :: hxh,hyh,hzh,eks,fnrm,V3prb,x0,tt
   integer, dimension(:,:), allocatable :: norbsc_arr
   real(gp), dimension(:), allocatable :: locrad
@@ -50,9 +61,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   integer, dimension(:), allocatable :: norbsPerAt, mapping, inversemapping, minorbs_type, maxorbs_type
   logical, dimension(:), allocatable :: covered, type_covered
   !real(kind=8), dimension(:,:), allocatable :: aocc
-  integer, dimension(:,:), allocatable :: nl_copy 
+  integer, dimension(:,:), allocatable :: nl_default
   integer :: ist,jorb,iadd,ii,jj,ityp,itype,iortho
-  integer :: jlr,iiorb,ispin
+  integer :: jlr,iiorb,ispin,ispinshift
   integer :: infoCoeff, jproc
   type(orbitals_data) :: orbs_gauss
   type(GPU_pointers) :: GPUe
@@ -68,8 +79,19 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   logical :: ortho_on, reduce_conf, rho_negative
   type(localizedDIISParameters) :: ldiis
   real(wp), dimension(:,:,:), pointer :: mom_vec_fake
+  real(kind=8),dimension(:),allocatable :: tmparr, prefactor_inguess
+  real(kind=8) :: prefac
+  character(len=20) :: atomname
+  type(workarrays_quartic_convolutions),dimension(:),pointer :: precond_convol_workarrays
+  type(workarr_precond),dimension(:),pointer :: precond_workarrays
+  type(work_transpose) :: wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi
+  type(work_mpiaccumulate) :: fnrm_work, energs_work
+  type(aoig_data),dimension(:),allocatable :: aoig_default
+
 
   call f_routine(id=subname)
+
+  call timing(iproc,'lin_inputguess','ON')
 
   call nullify_orbitals_data(orbs_gauss)
   call nullify_gaussian_basis(G)
@@ -93,12 +115,26 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      nspin_ig=input%nspin
   end if
 
-  ! Keep the natural occupations
-  
-  nl_copy=f_malloc((/0.to.3,1.to.at%astruct%nat/),id='nl_copy')
-  do iat=1,at%astruct%nat
-     nl_copy(:,iat)=at%aoig(iat)%nl
-  end do
+!!!!  ! Keep the natural occupations
+!!!!  allocate(aoig_default(at%astruct%nat))
+!!!!  do iat=1,at%astruct%nat
+!!!!      aoig_default(iat)=aoig_data_null()
+!!!!  end do
+!!!!  
+!!!!  nl_default=f_malloc((/0.to.3,1.to.at%astruct%nat/),id='nl_default')
+!!!!  do iat=1,at%astruct%nat
+!!!!     itype = at%astruct%iatype(iat)
+!!!!     !nz = at%nzatom(itype)
+!!!!     !nelpsp = at%nelpsp(itype)
+!!!!     !ipol = at%astruct%input_polarization(iat)
+!!!!     !write(*,*) 'iat, itype, nz, nelpsp, ipol', iat, itype, nz, nelpsp, ipol
+!!!!     aoig_default(iat) = aoig_set(at%nzatom(itype), at%nelpsp(itype), &
+!!!!                         at%astruct%input_polarization(iat), input%nspin)
+!!!!     !write(*,*) 'nz, nelpsp, pol, nspin', at%nzatom(itype), at%nelpsp(itype), at%astruct%input_polarization(iat), input%nspin
+!!!!     nl_default(:,iat)=aoig_default(iat)%nl(:)
+!!!!     !write(*,*) 'iat, nl_default', iat, nl_default(:,iat)
+!!!!     !write(*,*) 'iat, nl', iat, at%aoig(iat)%nl(:)
+!!!!  end do
 
 !!$  allocate(aocc(32,at%astruct%nat),stat=istat)
 !!$  call memocc(istat,aocc,'aocc',subname)
@@ -114,7 +150,9 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       jj=at%aoig(iat)%nao
       if (jj < ii) then
          call f_err_throw('The number of basis functions asked per type'//&
+              ' ('//trim(adjustl(yaml_toa(ii,fmt='(i0)')))//')'//&
               ' is exceeding the number of IG atomic orbitals'//&
+              ' ('//trim(adjustl(yaml_toa(jj,fmt='(i0)')))//')'//&
               ', modify the electronic configuration of input atom '//&
               trim(at%astruct%atomnames(at%astruct%iatype(iat))),&
               err_name='BIGDFT_INPUT_VARIABLES_ERROR')
@@ -402,8 +440,36 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 !!
 !!  ! #######################################################################
 
+  if (iproc==0) call yaml_comment('Set the confinement prefactors',hfill='~')
+  prefactor_inguess = f_malloc(at%astruct%ntypes,id='prefactor_inguess')
+  if (iproc==0) call yaml_sequence_open('Confinement prefactor for atomic orbitals')
+  do itype=1,at%astruct%ntypes
+      tt = input%lin%potentialPrefac_ao(itype)
+      if(iproc==0) call yaml_sequence(advance='no')
+      if(iproc==0) call yaml_mapping_open(flow=.true.)
+      atomname=trim(at%astruct%atomnames(itype))
+      if(iproc==0) call yaml_map('atom type',atomname)
+      if (tt<0.d0) then
+          ! Take the default value, based on the cutoff radius
+          prefac = 20.d0/input%lin%locrad_type(itype,1)**4
+          if(iproc==0) call yaml_map('value',prefac,fmt='(es8.2)')
+          if(iproc==0) call yaml_map('origin','automatic')
+      else
+          ! Take the specified value
+          prefac = tt
+          if(iproc==0) call yaml_map('value',prefac,fmt='(es8.2)')
+          if(iproc==0) call yaml_map('origin','file')
+      end if
+      prefactor_inguess(itype)=prefac
+      if(iproc==0) call yaml_mapping_close()
+  end do
+  if(iproc==0) call yaml_sequence_close()
+
+  !call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
+  !     tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,2,mapping,input%lin%potentialPrefac_ao)
   call inputguess_gaussian_orbitals(iproc,nproc,at,rxyz,nvirt,nspin_ig,&
-       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,2,mapping,input%lin%potentialPrefac_ao)
+       tmb%orbs,orbs_gauss,norbsc_arr,locrad,G,psigau,eks,2,mapping,prefactor_inguess)
+  call f_free(prefactor_inguess)
 
   !!call inputguess_gaussian_orbitals_forLinear(iproc,nproc,tmb%orbs%norb,at,rxyz,nvirt,nspin_ig,&
   !!     tmb%lzd%nlr,norbsPerAt,mapping, &
@@ -469,14 +535,25 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
 
   !Put the Density kernel to identity for now
   !call to_zero(tmb%linmat%denskern%nvctr, tmb%linmat%denskern%matrix_compr(1))
-  call f_zero(tmb%linmat%l%nvctr*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
+  call f_zero(tmb%linmat%l%nvctrp_tg*input%nspin, tmb%linmat%kernel_%matrix_compr(1))
+
+
   do iorb=1,tmb%orbs%norb
      !ii=matrixindex_in_compressed(tmb%linmat%denskern,iorb,iorb)
      ii=matrixindex_in_compressed(tmb%linmat%l,iorb,iorb)
+     ind=mod(ii-1,tmb%linmat%l%nvctr)+1 !spin-independent index
+     !!if (ii<tmb%linmat%l%istartend_local(1)) cycle
+     !!if (ii>tmb%linmat%l%istartend_local(2)) exit
+     if (ind<=tmb%linmat%l%isvctrp_tg) cycle
+     if (ind>tmb%linmat%l%isvctrp_tg+tmb%linmat%l%nvctrp_tg) cycle
+     ispin = (ii-1)/tmb%linmat%l%nvctr
+     ispinshift = ispin*tmb%linmat%l%nvctrp_tg
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(inversemapping(iorb))
      !tmb%linmat%denskern%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
-     tmb%linmat%kernel_%matrix_compr(ii)=1.d0*tmb%orbs%occup(iorb)
+     tmb%linmat%kernel_%matrix_compr(ind+ispinshift-tmb%linmat%l%isvctrp_tg)=1.d0*tmb%orbs%occup(iorb)
   end do
+
+  call timing(iproc,'lin_inputguess','OF')
 
   !Calculate the density in the new scheme
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -548,7 +625,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!        !end if
   !!    end do
   !!end do
-  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
 
   !write(9000+iproc,*) denspot%rhov
   !read(9000+iproc,*) denspot%rhov(1:denspot%dpbox%ndimpot*input%nspin)
@@ -651,72 +728,101 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       !end do
       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, 1.d0, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
            tmb%linmat%s, tmb%linmat%l, &
-           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed, &
-           tmb%foe_obj)
+           tmb%collcom, tmb%orthpar, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
             
  else
      ! Iterative orthonomalization
-     !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
-     if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
-     maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
-     minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
-     type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
-     minorbs_type(1:at%astruct%ntypes)=0
-     iortho=0
-     ortho_loop: do
-         finished=.true.
-         type_covered=.false.
-         do iat=1,at%astruct%nat
-             itype=at%astruct%iatype(iat)
-             if (type_covered(itype)) cycle
-             type_covered(itype)=.true.
-             !jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
-             !     5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
-             jj=nl_copy(0,iat)+3*nl_copy(1,iat)+5*nl_copy(2,iat)+7*nl_copy(3,iat)
-             maxorbs_type(itype)=jj
-             !should not enter in the conditional below due to the raise of the exception above
-             if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
-                 finished=.false.
-                 increase_count: do inl=1,4
-                    if (nl_copy(inl,iat)==0) then
-                       nl_copy(inl,iat)=1
-                       call f_err_throw('InputguessLinear: Should not be here',&
-                            err_name='BIGDFT_RUNTIME_ERROR')
-                       exit increase_count
-                    end if
-                 end do increase_count
-!!$                 if (ceiling(aocc(1,iat))==0) then
-!!$                     aocc(1,iat)=1.d0
-!!$                 else if (ceiling(aocc(3,iat))==0) then
-!!$                     aocc(3,iat)=1.d0
-!!$                 else if (ceiling(aocc(7,iat))==0) then
-!!$                     aocc(7,iat)=1.d0
-!!$                 else if (ceiling(aocc(13,iat))==0) then
-!!$                     aocc(13,iat)=1.d0
-!!$                 end if
-             end if
-         end do
-         if (iortho>0) then
-             call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
-                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
-                  tmb%linmat%l, tmb%collcom, tmb%orthpar, &
-                  tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-         end if
-         call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
-              tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
-              tmb%linmat%l, tmb%collcom, tmb%orthpar, &
-              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
-         if (finished) exit ortho_loop
-         iortho=iortho+1
-         minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
-     end do ortho_loop
-     call f_free(maxorbs_type)
-     call f_free(minorbs_type)
-     call f_free(type_covered)
+     call iterative_orthonormalization(iproc, nproc, 2, -1, at, input%nspin, input%lin%norbsPerType, tmb)
+!!!!     !!if(iproc==0) write(*,*) 'calling generalized orthonormalization'
+!!!!     if (iproc==0) call yaml_map('orthonormalization of input guess','generalized')
+!!!!     maxorbs_type = f_malloc(at%astruct%ntypes,id='maxorbs_type')
+!!!!     minorbs_type = f_malloc(at%astruct%ntypes,id='minorbs_type')
+!!!!     type_covered = f_malloc(at%astruct%ntypes,id='type_covered')
+!!!!     minorbs_type(1:at%astruct%ntypes)=0
+!!!!     iortho=0
+!!!!     ortho_loop: do
+!!!!         finished=.true.
+!!!!         type_covered=.false.
+!!!!         do iat=1,at%astruct%nat
+!!!!             itype=at%astruct%iatype(iat)
+!!!!             if (type_covered(itype)) cycle
+!!!!             type_covered(itype)=.true.
+!!!!             !jj=1*ceiling(aocc(1,iat))+3*ceiling(aocc(3,iat))+&
+!!!!             !     5*ceiling(aocc(7,iat))+7*ceiling(aocc(13,iat))
+!!!!             jj=nl_default(0,iat)+3*nl_default(1,iat)+5*nl_default(2,iat)+7*nl_default(3,iat)
+!!!!             maxorbs_type(itype)=jj
+!!!!             !should not enter in the conditional below due to the raise of the exception above
+!!!!             if (jj<input%lin%norbsPerType(at%astruct%iatype(iat))) then
+!!!!                 finished=.false.
+!!!!                 increase_count: do inl=1,4
+!!!!                    if (nl_default(inl,iat)==0) then
+!!!!                       nl_default(inl,iat)=1
+!!!!                       !call f_err_throw('InputguessLinear: Should not be here',&
+!!!!                       !     err_name='BIGDFT_RUNTIME_ERROR')
+!!!!                       exit increase_count
+!!!!                    end if
+!!!!                 end do increase_count
+!!!!!!$                 if (ceiling(aocc(1,iat))==0) then
+!!!!!!$                     aocc(1,iat)=1.d0
+!!!!!!$                 else if (ceiling(aocc(3,iat))==0) then
+!!!!!!$                     aocc(3,iat)=1.d0
+!!!!!!$                 else if (ceiling(aocc(7,iat))==0) then
+!!!!!!$                     aocc(7,iat)=1.d0
+!!!!!!$                 else if (ceiling(aocc(13,iat))==0) then
+!!!!!!$                     aocc(13,iat)=1.d0
+!!!!!!$                 end if
+!!!!             end if
+!!!!         end do
+!!!!         if (iortho>0) then
+!!!!             !!call yaml_sequence_open('Gram-Schmidt for the following orbitals:')
+!!!!             !!do itype=1,at%astruct%ntypes
+!!!!             !!    call yaml_sequence(advance='no')
+!!!!             !!    call yaml_mapping_open(flow=.true.)
+!!!!             !!    call yaml_map('atom type',adjustl(trim(at%astruct%atomnames(itype))))
+!!!!             !!    call yaml_map('first orbital',minorbs_type(itype))
+!!!!             !!    call yaml_map('last orbital',maxorbs_type(itype))
+!!!!             !!    call yaml_mapping_close()
+!!!!             !!    !call yaml_map(adjustl(trim(at%astruct%atomnames(itype))),(/minorbs_type(itype),maxorbs_type(itype)/))
+!!!!             !!end do
+!!!!             !!call yaml_sequence_close()
+!!!!             call gramschmidt_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+!!!!                  tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+!!!!                  tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+!!!!                  tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+!!!!         end if
+!!!!         !!if (iproc==0) then
+!!!!         !!    call yaml_sequence_open('Loewdin for the following orbitals:')
+!!!!         !!    do itype=1,at%astruct%ntypes
+!!!!         !!        call yaml_sequence(advance='no')
+!!!!         !!        call yaml_mapping_open(flow=.true.)
+!!!!         !!        call yaml_map('atom type',adjustl(trim(at%astruct%atomnames(itype))))
+!!!!         !!        call yaml_map('first orbital',minorbs_type(itype))
+!!!!         !!        call yaml_map('last orbital',maxorbs_type(itype))
+!!!!         !!        call yaml_mapping_close()
+!!!!         !!        !call yaml_map(adjustl(trim(at%astruct%atomnames(itype))),(/minorbs_type(itype),maxorbs_type(itype)/))
+!!!!         !!    end do
+!!!!         !!    call yaml_sequence_close()
+!!!!         !!end if
+!!!!         !write(*,*) 'call orthonormalize_subset, methTransformOverlap', methTransformOverlap
+!!!!         call orthonormalize_subset(iproc, nproc, -1, tmb%npsidim_orbs, &                                  
+!!!!              tmb%orbs, at, minorbs_type, maxorbs_type, tmb%lzd, tmb%linmat%s, &
+!!!!              tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+!!!!              tmb%psi, tmb%psit_c, tmb%psit_f, tmb%can_use_transposed)
+!!!!         if (finished) exit ortho_loop
+!!!!         iortho=iortho+1
+!!!!         minorbs_type(1:at%astruct%ntypes)=maxorbs_type(1:at%astruct%ntypes)+1
+!!!!     end do ortho_loop
+!!!!     call f_free(maxorbs_type)
+!!!!     call f_free(minorbs_type)
+!!!!     call f_free(type_covered)
 
  end if
 
- call f_free(nl_copy)
+!!!! call f_free(nl_default)
+!!!!
+!!!! deallocate(aoig_default)
+
+
  !!!!! adding some noise
  !!Write(*,*) 'warning: add some noise!'
  !!do istat=1,size(tmb%psi)
@@ -737,6 +843,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
  !!call mpi_finalize(istat)
  !!stop
 
+ energs_work = work_mpiaccumulate_null()
+ energs_work%ncount = 4
+ call allocate_work_mpiaccumulate(energs_work)
+
  if (input%experimental_mode) then
      ! NEW: TRACE MINIMIZATION WITH ORTHONORMALIZATION ####################################
      ortho_on=.true.
@@ -745,6 +855,8 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      ldiis%alphaDIIS=input%lin%alphaDIIS
      energs%eexctX=0.d0 !temporary fix
      trace_old=0.d0 !initialization
+     call set_confdatarr(input, at, tmb%orbs, tmb%orbs%onwhichatom, input%lin%potentialPrefac_lowaccuracy, &
+          input%lin%locrad_lowaccuracy, 'Confinement prefactor for extended input guess', .false., tmb%confdatarr)
      if (iproc==0) then
          !call yaml_mapping_close()
          call yaml_comment('Extended input guess for experimental mode',hfill='-')
@@ -753,14 +865,38 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
                                            'it_supfun'//trim(adjustl(yaml_toa(0,fmt='(i3.3)'))))
      end if
      order_taylor=input%lin%order_taylor ! since this is intent(inout)
+     !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+     call allocate_precond_arrays(tmb%orbs, tmb%lzd, tmb%confdatarr, precond_convol_workarrays, precond_workarrays)
+     wt_philarge = work_transpose_null()
+     wt_hpsinoprecond = work_transpose_null()
+     wt_hphi = work_transpose_null()
+     wt_phi = work_transpose_null()
+     call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_philarge)
+     call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hpsinoprecond)
+     call allocate_work_transpose(nproc, tmb%ham_descr%collcom, wt_hphi)
+     call allocate_work_transpose(nproc, tmb%collcom, wt_phi)
+     fnrm_work = work_mpiaccumulate_null()
+     fnrm_work%ncount = 1
+     call allocate_work_mpiaccumulate(fnrm_work)
      call getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trace,trace_old,fnrm_tmb,&
-         info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs, &
-         input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
-         50,&
-         ratio_deltas,ortho_on,input%lin%extra_states,0,1.d-3,input%experimental_mode,input%lin%early_stop,&
-         input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
-         can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
-         input%purification_quickreturn, input%correction_co_contra)
+          info_basis_functions,nlpsp,input%lin%scf_mode,ldiis,input%SIC,tmb,energs,&
+          input%lin%iterative_orthogonalization,input%lin%norbsPerType,&
+          input%lin%nItPrecond,TARGET_FUNCTION_IS_TRACE,input%lin%correctionOrthoconstraint,&
+          input%lin%nit_extendedIG,&
+          ratio_deltas,ortho_on,input%lin%extra_states,0,input%lin%convCrit_extendedIG,&
+          input%experimental_mode,input%lin%early_stop,&
+          input%lin%gnrm_dynamic, input%lin%min_gnrm_for_dynamic, &
+          can_use_ham, order_taylor, input%lin%max_inversion_error, input%kappa_conv, input%method_updatekernel,&
+          input%purification_quickreturn, input%correction_co_contra, &
+          precond_convol_workarrays, precond_workarrays, &
+          wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm_work, energs_work, input%lin%fragment_calculation)
+     call deallocate_work_mpiaccumulate(fnrm_work)
+     call deallocate_precond_arrays(tmb%orbs, tmb%lzd, precond_convol_workarrays, precond_workarrays)
+     call deallocate_work_transpose(wt_philarge)
+     call deallocate_work_transpose(wt_hpsinoprecond)
+     call deallocate_work_transpose(wt_hphi)
+     call deallocate_work_transpose(wt_phi)
+     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
      reduce_conf=.true.
      call yaml_sequence_close()
      call yaml_mapping_close()
@@ -805,17 +941,18 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   !!end do
 
   order_taylor=input%lin%order_taylor ! since this is intent(inout)
+  !!call extract_taskgroup_inplace(tmb%linmat%l, tmb%linmat%kernel_)
+
   if (input%lin%scf_mode==LINEAR_FOE) then
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
   else
-
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
 
       !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)
@@ -825,8 +962,10 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,kswfn%orbs,mom_vec_fake)
       end if
-
   end if
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
+
+  call deallocate_work_mpiaccumulate(energs_work)
 
 
   call communicate_basis_for_density_collective(iproc, nproc, tmb%lzd, max(tmb%npsidim_orbs,tmb%npsidim_comp), &
@@ -840,9 +979,15 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
     call write_energies(0,0,energs,0.d0,0.d0,'',.true.)
   end if
 
+  !!tmparr = sparsematrix_malloc(tmb%linmat%l,iaction=SPARSE_FULL,id='tmparr')
+  !!call vcopy(tmb%linmat%l%nvctr, tmb%linmat%kernel_%matrix_compr(1), 1, tmparr(1), 1)
+  !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
   call sumrho_for_TMBs(iproc, nproc, tmb%Lzd%hgrids(1), tmb%Lzd%hgrids(2), tmb%Lzd%hgrids(3), &
        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, denspot%dpbox%ndimrhopot, &
        denspot%rhov, rho_negative)
+  !!call vcopy(tmb%linmat%l%nvctr, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
+  !!call f_free(tmparr)
+
   if (rho_negative) then
       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
       !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
@@ -897,7 +1042,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       pnrm=pnrm*sqrt(real(denspot%mix%nspden,kind=8))
   end if
   if (iproc==0) call yaml_newline()
-  call updatePotential(input%nspin,denspot,energs%eh,energs%exc,energs%evxc)
+  call updatePotential(input%nspin,denspot,energs)!%eh,energs%exc,energs%evxc)
   if(iproc==0) call yaml_mapping_close()
   ! Mix the potential.
   if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then

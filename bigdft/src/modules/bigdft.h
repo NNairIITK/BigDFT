@@ -221,12 +221,12 @@ struct _BigDFT_Inputs
   gchar *dir_output;
   
   /* DFT file variables. */
-  int ixc, ncharge, nspin, mpol, ncong,
+  int ixc, nspin, mpol, ncong,
     dispersion, inputPsiId, output_wf_format, output_grid, ncongt, norbv, nvirt,
     nplot, disableSym;
   int last_run;
   guint itermax, nrepmax, idsx;
-  double crmult, frmult, gnrm_cv, rbuf;
+  double crmult, frmult, gnrm_cv, rbuf, qcharge;
   double h[3], elecfield[3];
 
   /* MIX file variables. */
@@ -301,11 +301,12 @@ struct _BigDFT_Goutput
   double strten[6];
 
   /* Private. */
-  f90_DFT_global_output_pointer data;
+  f90_state_properties_pointer data;
   f90_energy_terms_pointer energs;
 };
 /********************************/
 BigDFT_Goutput* bigdft_goutput_new        (guint nat);
+BigDFT_Goutput* bigdft_goutput_new_from_fortran(long fadd);
 void            bigdft_goutput_unref      (BigDFT_Goutput *energs);
 void            bigdft_goutput_emit_energs(BigDFT_Goutput *energs, guint istep,
                                            BigDFT_EnergsIds kind);
@@ -376,6 +377,8 @@ struct _BigDFT_Run
 BigDFT_Run*     bigdft_run_new();
 BigDFT_Run*     bigdft_run_new_from_files  (const gchar *radical, const gchar *posinp);
 BigDFT_Run*     bigdft_run_new_from_dict   (BigDFT_Dict *dict);
+BigDFT_Run*     bigdft_run_new_from_fortran(long fadd);
+
 void            bigdft_run_unref           (BigDFT_Run *run);
 void            bigdft_run_update          (BigDFT_Run *run, BigDFT_Dict *dict);
 gboolean        bigdft_run_dump            (BigDFT_Run *run, const gchar *filename,
@@ -387,65 +390,6 @@ BigDFT_Atoms*   bigdft_run_get_atoms       (BigDFT_Run *run);
 BigDFT_Inputs*  bigdft_run_get_inputs      (BigDFT_Run *run);
 /*********************************/
 
-/*******************************/
-/* BigDFT_Image data structure */
-/*******************************/
-typedef enum
-  {
-    BIGDFT_IMAGE_STEEPEST_DESCENT,
-    BIGDFT_IMAGE_FLETCHER_REEVES,
-    BIGDFT_IMAGE_POLAK_RIBIERE,
-    BIGDFT_IMAGE_QUICK_MIN,
-    BIGDFT_IMAGE_DAMPED_VERLET,
-    BIGDFT_IMAGE_SIM_ANNEALING
-  } BigDFT_ImageAlgo;
-
-#ifdef GLIB_MAJOR_VERSION
-#define BIGDFT_IMAGE_TYPE    (bigdft_image_get_type())
-#define BIGDFT_IMAGE(obj)                                               \
-  (G_TYPE_CHECK_INSTANCE_CAST(obj, BIGDFT_IMAGE_TYPE, BigDFT_Image))
-typedef struct _BigDFT_ImageClass BigDFT_ImageClass;
-struct _BigDFT_ImageClass
-{
-  GObjectClass parent;
-};
-GType bigdft_image_get_type(void);
-#else
-#define BIGDFT_IMAGE_TYPE    (999)
-#define BIGDFT_IMAGE(obj)    ((BigDFT_Image*)obj)
-#endif
-typedef struct _BigDFT_Image BigDFT_Image;
-struct _BigDFT_Image
-{
-  GObject parent;
-  gboolean dispose_has_image;
-
-  /* Bind attributes. */
-  BigDFT_Run *run;
-  BigDFT_Goutput *outs;
-  double error, F;
-  guint id;
-
-  /* Private. */
-  f90_run_image_pointer data;
-};
-/*********************************/
-/* BigDFT_Image* bigdft_image_new       (BigDFT_Atoms *atoms, BigDFT_Inputs *ins, */
-/*                                       BigDFT_Restart *rst, BigDFT_ImageAlgo algo); */
-void          bigdft_image_unref     (BigDFT_Image *image);
-void          bigdft_image_update_pos(BigDFT_Image *image, guint iteration,
-                                      const BigDFT_Image *imgm1, const BigDFT_Image *imgp1,
-                                      double k_before, double k_after,
-                                      gboolean climbing);
-gboolean      bigdft_image_update_pos_from_file(BigDFT_Image *image, guint iteration,
-                                                const gchar *filem1, const gchar *filep1,
-                                                double k_before, double k_after, gboolean climbing);
-void          bigdft_image_calculate (BigDFT_Image *image, guint iteration, guint id);
-BigDFT_Run*   bigdft_image_get_run(BigDFT_Image *image);
-BigDFT_Goutput* bigdft_image_get_outs(BigDFT_Image *image);
-
-GArray* bigdft_image_set_distribute(gboolean *update, guint nimages, guint ngroup);
-/*********************************/
 
 
 

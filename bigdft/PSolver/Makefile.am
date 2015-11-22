@@ -1,5 +1,7 @@
-SUBDIRS = src \
-	tests
+SUBDIRS = src
+if HAVE_PYYAML
+SUBDIRS += tests
+endif
 
 EXTRA_DIST = COPYING \
 	README
