@@ -150,7 +150,7 @@ subroutine razero_li(n,x)
   integer(kind=8), intent(in) :: n
   double precision, dimension(n), intent(out) :: x
   !Local variables
-  integer :: i
+  integer(kind=8) :: i
   !$ logical :: omp_in_parallel,do_omp
   !$ do_omp = n > 1024
   !$ if (do_omp) do_omp= .not. omp_in_parallel()

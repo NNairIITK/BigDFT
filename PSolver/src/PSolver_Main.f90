@@ -567,7 +567,6 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    eh=energies%hartree+energies%eVextra
    if (present(stress_tensor)) stress_tensor=energies%strten
 
-return
 !!!>
 !!!>   call f_routine(id='H_potential')
 !!!>   

@@ -1478,7 +1478,7 @@ FF_LENOSKY-bfgs:
   etot: 1.5e-10
   maxval: 1.0e-10
   fnrm2: 1.01e-10
-  Energy: 1.48e-10
+  Energy: 2.07e-10
   Keys to ignore:
   - WARNINGS
 

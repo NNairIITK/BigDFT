@@ -129,6 +129,7 @@ subroutine test_dynamic_memory()
    call yaml_map('Associated',(/associated(ptr1),associated(ptr2)/))
 
    call f_purge_database(int(size(i1_ptr),f_long),kind(i1_ptr),f_loc(i1_ptr))
+   deallocate(i1_ptr) !this has to be addded if the database is only to be purged
    i1_ptr=f_malloc_ptr(0,id='i1_ptr')
 
    ptr1=>i1_ptr

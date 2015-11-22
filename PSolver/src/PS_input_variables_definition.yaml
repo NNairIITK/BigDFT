@@ -25,7 +25,7 @@
 ##
 ## DO NOT USE the character ':' and "" in the COMMENT of DESCRIPTION
 ############################################
- #geometry parameters
+ #geometry parameters, to be provided as a single structure
  #ndims: 100
  #hgrids: 0.3
  #BC: free
@@ -122,7 +122,8 @@
     default: 0.6
     CONDITION: 
       MASTER_KEY: gps_algorithm
-      WHEN: PI
+      WHEN: [PI]
+    PROFILE_FROM: gps_algorithm
   input_guess: 
     COMMENT: Triggers the input guess procedure of gps_algorithm
     default: No
@@ -145,7 +146,7 @@
       CUDA: CUFFT-based solver
     default: none
   keep_gpu_memory: 
-    COMMENT: Do not deallocate GPU mamory at each call of the (G)PS routine
+    COMMENT: Do not deallocate GPU memory at each call of the (G)PS routine
     default: Yes
     CONDITION: 
       MASTER_KEY: accel
@@ -154,7 +155,7 @@
     COMMENT: Size of the taskgroups of the Poisson Solver
     default: 0
   global_data: 
-    COMMENT: Assum that charge density and Electrostatic potential are given by global arrays
+    COMMENT: Charge density and Electrostatic potential are given by global arrays
     default: No
   verbose: 
     COMMENT: Verbosity switch

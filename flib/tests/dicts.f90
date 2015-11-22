@@ -490,6 +490,14 @@ subroutine test_dictionaries1()
       dict_tmp=>dict_next(dict_tmp)
    end do
 
+!!! [newiter]
+   nullify(dict_tmp)
+   do while(iterating(dict_tmp,on=dictA))
+      call yaml_map('Iterating in dictA, again',.true.)
+      call yaml_map('Key of dictA, again',dict_key(dict_tmp))
+      call yaml_map('Value of dictA, again',dict_value(dict_tmp))
+   end do
+!!! [newiter]
    call dict_free(dictA)
 
    !fill a list and iterate over it

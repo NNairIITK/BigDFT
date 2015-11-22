@@ -180,7 +180,7 @@ module yaml_output
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
-  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa
+  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa,dump_dict_impl
 
   !for internal f_lib usage
   public :: yaml_output_errors
@@ -2382,5 +2382,22 @@ contains
 
   end function yaml_walltime_toa
 
+  !> to be used for debugging
+  subroutine dump_dict_impl(dict)
+    implicit none
+    type(dictionary), pointer :: dict
+    if (.not. associated(dict)) call yaml_map('Dictionary associated',.false.)
+    call yaml_mapping_open('Dictionary associated')
+    call yaml_map('Associations, child, parent, next, previous',[associated(dict%child),associated(dict%parent),&
+         associated(dict%next),associated(dict%previous)])
+    call yaml_mapping_open('Data structure')
+    call yaml_map('Item',dict%data%item)
+    call yaml_map('Nitems',dict%data%nitems)
+    call yaml_map('Nelems',dict%data%nelems)
+    call yaml_map('Key',dict%data%key)
+    call yaml_map('Value',dict%data%value)
+    call yaml_mapping_close()
+    call yaml_mapping_close()
+  end subroutine dump_dict_impl
 
 end module yaml_output

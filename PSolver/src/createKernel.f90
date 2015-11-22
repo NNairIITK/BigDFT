@@ -139,7 +139,6 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      end if
   end if
 
-
   !import the mpi_environment if present
   if (present(mpi_env)) then
      call copy_mpi_environment(src=mpi_env,dest=kernel%mpi_env)

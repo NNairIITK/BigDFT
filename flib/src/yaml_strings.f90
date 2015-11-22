@@ -45,8 +45,12 @@ module yaml_strings
   end interface
 
   interface operator(.eqv.)
-     module procedure case_insensitive_equiv
+     module procedure string_equivalence
   end interface operator(.eqv.)
+
+  interface operator(.neqv.)
+     module procedure string_inequivalence
+  end interface operator(.neqv.)
 
   interface operator(//)
      module procedure string_and_integer,string_and_double,string_and_long,string_and_msg,msg_and_string
@@ -72,7 +76,7 @@ module yaml_strings
   public :: yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
-  public :: operator(.eqv.),operator(+),operator(//),operator(**),assignment(=)
+  public :: operator(.eqv.),operator(.neqv.),operator(+),operator(//),operator(**),assignment(=)
 
 contains
 
@@ -636,6 +640,26 @@ contains
     !Value by defaut
     if (ierror /= 0) var = huge(1.d0) 
   END SUBROUTINE read_fraction_string
+
+  pure function string_inequivalence(a,b) result(notok)
+    implicit none
+    character(len=*), intent(in) :: a,b
+    logical :: notok
+    notok = .not. string_equivalence(a,b)
+  end function string_inequivalence
+
+  pure function string_equivalence(a,b) result(ok)
+    implicit none
+    character(len=*), intent(in) :: a,b
+    logical :: ok
+    !local variables
+    integer :: ln
+    !to be equivalent the two strings must have already the same length
+    ln= len_trim(adjustl(a))
+    ok= ln == len_trim(adjustl(b))
+    if (.not. ok .or. ln ==0) return
+    ok=case_insensitive_equiv(trim(adjustl(a)),trim(adjustl(b)))
+  end function string_equivalence
 
   !> Compare two strings (case-insensitive). Blanks are relevant!
   pure function case_insensitive_equiv(stra,strb)
