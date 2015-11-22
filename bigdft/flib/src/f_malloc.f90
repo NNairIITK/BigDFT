@@ -1,11 +1,13 @@
 !> @file
 !! Manage dynamic memory allocation control structures
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Module used to manage memory allocations control structures.
 !! This module has to be intended as a submodule of dynamic_memory module
 module module_f_malloc
@@ -19,8 +21,7 @@ module module_f_malloc
   private
 
   integer, parameter, public :: f_kind=f_long
-  !>global parameter of the module telling if the profile has to be activated
-  !! this parameter can be modified only by dynamic memory module
+                                      !! this parameter can be modified only by dynamic memory module
   integer(f_integer), parameter, public :: f_malloc_namelen=32          !< length of the character variables
   integer, parameter :: max_rank=7          !< maximum rank in fortran
 
@@ -305,14 +306,14 @@ contains
     m%ptr=.true.
   end subroutine nullify_malloc_information_str_ptr
 
-  !>f95-compliant routine to remap pointer bounds, as suggested from (as of Sep. 2015) 
+  !> f95-compliant routine to remap pointer bounds, as suggested from (as of Sep. 2015) 
   !! https://en.wikipedia.org/wiki/Fortran_95_language_features#Pointers_as_dynamic_aliases
-  !! What has to be verified is if compiler perform workarrays constructions
+  !! What has to be verified if compiler perform workarrays constructions
   subroutine remap_bounds_d(lb,lu,heap,ptr)
     implicit none
     integer(f_kind), intent(in) :: lb,lu
     real(f_double), dimension(lb:lu), intent(in), target :: heap
-    real(f_double),dimension(:), pointer, intent(out) :: ptr
+    real(f_double), dimension(:), pointer, intent(out) :: ptr
     ptr => heap
   end subroutine remap_bounds_d
 

@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.8a.1],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.8a.2],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -279,7 +279,7 @@ dnl test for the present of ambertools compiler (experimental)
 AC_PATH_PROG([NAB], [nab])
 AC_SUBST(NAB)
 AC_ARG_WITH(ambertools, AS_HELP_STRING([--with-ambertools],
-            [Give the path of the ambertools libraries (example = /home/<username>/lib/). Don't use the -L before the path(es), just give the plain path.]),
+            [Give the path of the ambertools libraries (example = /home/<username>/lib/). Do not use the -L before the path(es), just give the plain path.]),
             ac_ambertools_dir=$withval, ac_ambertools_dir=)
 ac_use_amber="no"
 AM_CONDITIONAL(HAVE_AMBERTOOLS, test x"$ac_ambertools_dir" != "x")
@@ -781,6 +781,7 @@ AC_ARG_ENABLE(devel-doc,
                              [compile documentation for developers using Doxygen.]),
               ac_devel_doc=$enableval, ac_devel_doc="no")
 AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
+
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],

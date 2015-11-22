@@ -100,10 +100,12 @@ subroutine calc_rhocore_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
         if (j3 >= i3s .and. j3 <= i3s+n3d-1) then
            do i2=isy,iey
               y=real(i2,kind=8)*hyh-ry
+              !call ind_positions(pery,i2,n2,j2,goy)
               call ind_positions_new(pery,i2,n2i,j2,goy)
               if (goy) then
                  do i1=isx,iex
                     x=real(i1,kind=8)*hxh-rx
+                    !call ind_positions(perx,i1,n1,j1,gox)
                     call ind_positions_new(perx,i1,n1i,j1,gox)
                     if (gox) then
                        r2=x**2+y**2+z**2

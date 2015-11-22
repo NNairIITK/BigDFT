@@ -3539,10 +3539,11 @@ end if
       fpulay=0.d0
       call calculate_forces(iproc,nproc,denspot%pkernel%mpi_env%nproc,KSwfn%Lzd%Glr,at,KSwfn%orbs,nlpsp,rxyz,& 
            KSwfn%Lzd%hgrids(1),KSwfn%Lzd%hgrids(2),KSwfn%Lzd%hgrids(3),&
-           denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
-           denspot%dpbox%nrhodim,.false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
+           denspot%dpbox,&
+           denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,denspot%dpbox%nrhodim,&
+           .false.,denspot%dpbox%ngatherarr,denspot%rho_work,&
            denspot%pot_work,denspot%V_XC,size(KSwfn%psi),KSwfn%psi,fion,fdisp,fxyz,&
-           input%calculate_strten,ewaldstr,hstrten,xcstr,strten,fnoise,pressure,denspot%psoffset,1,tmb,fpulay)
+           input%calculate_strten,ewaldstr,hstrten,xcstr,strten,pressure,denspot%psoffset,1,tmb,fpulay)
       call clean_forces(iproc,at%astruct,rxyz,fxyz,fnoise)
       if (iproc == 0) call write_forces(at%astruct,fxyz)
 
@@ -3582,7 +3583,8 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   !Local variables
-  integer :: ifrag, jfrag, ifrag_ref, jfrag_ref, iat, isfat, jsfat
+  real(gp), parameter :: W_tol=1.e-3_gp
+  integer :: ifrag, jfrag, ifrag_ref, jfrag_ref, iat, isfat, jsfat,itoo_big
   real(kind=gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new
   real(kind=gp) :: null_axe, error
   type(fragment_transformation) :: frag_trans
@@ -3601,6 +3603,7 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
      end if
 
      jsfat=0
+     itoo_big=0
      do jfrag=1,input_frag%nfrag
         jfrag_ref=input_frag%frag_index(jfrag)
         isfat=0
@@ -3653,7 +3656,7 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
            end do
 
            call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans,error)
-
+           if (error > W_tol) call f_increment(itoo_big)
            call f_free(rxyz_ref)
            call f_free(rxyz_new)
 
@@ -3672,8 +3675,8 @@ subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,
      end do
 
      close(99)
-
-   end if
+     if (itoo_big > 0) call yaml_warning('Found (again) '//itoo_big//' warning of high Wahba cost functions')
+  end if
 
 end subroutine output_fragment_rotations
 

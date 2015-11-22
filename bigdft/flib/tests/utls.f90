@@ -1,7 +1,9 @@
 !> @file
 !! Routine to tests f_utils module
+!! @example utls.f90
+!! Examples using the @ref f_utils objects (units and timers)
 !! @author
-!!    Copyright (C) 2015-2015 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,9 +21,10 @@ subroutine f_utils_test()
   type(f_enumerator) :: f3=f_enumerator('Pizza',3,null())             
   integer :: unt,unt2,u
   !  double precision :: t0
-  integer, parameter :: nstep=3
-  integer :: istep
-  integer(kind=8) :: i0,i1
+  integer(kind=8) :: i0
+  integer, parameter :: nstep=3,n_inc=10**7
+  integer :: istep,icount
+  integer(f_long) :: t0,t1
   real(f_simple), dimension(3) :: r1
   real(f_double), dimension(3) :: r2
   real(f_quadruple), dimension(3) :: r4
@@ -32,7 +35,7 @@ subroutine f_utils_test()
   integer(f_integer), dimension(3) :: i4
   integer(f_long), dimension(3) :: il
   logical(f_byte), dimension(3) :: lb
-  character(len=256) :: path
+  !character(len=256) :: path
   logical, dimension(3) :: l
 
   r4=real(10.0,f_quadruple)
@@ -80,6 +83,13 @@ subroutine f_utils_test()
   call yaml_map('Greetings 3b',f3 .hasattr. 10)
   call yaml_map('Greetings 3c',f3 .hasattr. greetings) 
 
+  !now update the f3 enum
+  call f_enum_update(src=f1,dest=f3)
+  call yaml_map('Greetings 3a-2',f3 .hasattr. 'Greetings') 
+  call yaml_map('Greetings 3b-2',f3 .hasattr. 10)
+  call yaml_map('Greetings 3c-2',f3 .hasattr. greetings) 
+
+
   !wait one second
   !t0=dble(f_time())*1.d-9
   i0=f_time()
@@ -123,6 +133,41 @@ subroutine f_utils_test()
   call f_delete_file('test3')
   call yaml_mapping_close()
   call yaml_map('If this value is 7 then all files have been correctly closed',f_get_free_unit())
+
+  !test the performance of f_increment function, to realize that it should not be used in intensive loops
+  icount=0
+  t0=f_time()
+  do istep=1,n_inc
+     icount=icount+1
+  end do
+  t1=f_time()
+  call yaml_map('Count (ns)',[int(icount,f_long),t1-t0])
+  icount=0
+  t0=f_time()
+  do istep=1,n_inc
+     call f_increment(icount)
+  end do
+  t1=f_time()
+  call yaml_map('Count f_increment (ns)',[int(icount,f_long),t1-t0])
+  t0=f_time()
+  icount=0
+  !$omp parallel do default(private) shared(icount)
+  do istep=1,n_inc
+     icount=icount+1
+  end do
+  !$omp end parallel do
+  t1=f_time()
+  call yaml_map('Count omp (ns)',[int(icount,f_long),t1-t0])
+  t0=f_time()
+  icount=0
+  !$omp parallel do default(private) shared(icount)
+  do istep=1,n_inc
+     call f_increment(icount)
+  end do
+  !$omp end parallel do
+  t1=f_time()
+  call yaml_map('Count f_increment omp (ns)',[int(icount,f_long),t1-t0])
+
 
 !we cannot flush a unit with advance no, we would lose the output
 !!$  !test the counter with advance no
@@ -174,76 +219,85 @@ subroutine f_inputfile_test()
   implicit none
   
   !> input definitions as they can be defined by the developers
-  character(len=*), parameter :: inputdef='                                                         '//f_cr//&
-       '  dft:                                                                                      '//f_cr//&
-       '    DESCRIPTION: Density Functional Theory parameters                                       '//f_cr//&
-       '    hgrids: #a variable with range                                                          '//f_cr//&
-       '      COMMENT: Grid spacing in the three directions (bohr)                                  '//f_cr//&
-       '      DESCRIPTION: |                                                                        '//f_cr//&
-       '       Grid spacing in three directions (Bohr units) of the coarse mesh.  '//f_cr//&
-       '       A scalar can also be given as 0.45.                                                  '//f_cr//&
-       '      RANGE: [0., 2.]                                                                       '//f_cr//&
-       '      default: [0.45, 0.45, 0.45]                                                           '//f_cr//&
-       '      fast: [0.55, 0.55, 0.55]                                                              '//f_cr//&
-       '      accurate: [0.30, 0.30, 0.30]                                                          '//f_cr//&
-       '    ixc: #a variable with several profiles                                                  '//f_cr//&
-       '      COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)                                '//f_cr//&
-       '      DESCRIPTION: Determine the exchange-correlation functional.                           '//f_cr//&
-       '      default: 1                                                                            '//f_cr//&
-       '      #Here follow a number of possibilities for the different XC functionals               '//f_cr//&
-       '      LDA (ABINIT): 1                                                                       '//f_cr//&
-       '      PBE (ABINIT): 11                                                                      '//f_cr//&
-       '      LDA: -20                                                                              '//f_cr//&
-       '      PBE: -101130                                                                          '//f_cr//&
-       '      PBE0: -406                                                                            '//f_cr//&
-       '      B97-D: -170 #to be verified                                                           '//f_cr//&
-       '      B3LYP: -402                                                                           '//f_cr//&
-       '      HF: 100 #Hartree-Fock                                                                 '//f_cr//&
-       '  geopt:                                                                                    '//f_cr//&
-       '    DESCRIPTION: Parameters for the geometry relaxation and molecular dynamics              '//f_cr//&
-       '    method:  # a variable with exclusive                                                    '//f_cr//&
-       '      COMMENT: Geometry optimisation method                                                 '//f_cr//&
-       '      EXCLUSIVE:                                                                            '//f_cr//&
-       '        none:   No geometry optimization                                                    '//f_cr//&
-       '        SDCG:   A combination of Steepest Descent and Conjugate Gradient                    '//f_cr//&
-       '        VSSD:   Variable Stepsize Steepest Descent method                                   '//f_cr//&
-       '        LBFGS:  Limited-memory BFGS                                                         '//f_cr//&
-       '        BFGS:   Broyden-Fletcher-Goldfarb-Shanno                                            '//f_cr//&
-       '        PBFGS:  Same as BFGS with an initial Hessian obtained from a force field            '//f_cr//&
-       '        AB6MD:  Molecular dynamics from ABINIT                                              '//f_cr//&
-       '        DIIS:   Direct inversion of iterative subspace                                      '//f_cr//&
-       '        FIRE:   Fast Inertial Relaxation Engine as described by Bitzek et al.               '//f_cr//&
-       '        NEB:    Nudged Elastic Band                                                         '//f_cr//&
-       '        SBFGS:  SQNM minimizer, keyword deprecated, will be replaced by SQNM in future relea'//f_cr//&
-       '        SQNM:   Stabilized quasi-Newton minimzer                                            '//f_cr//&
-       '      default: none                                                                         '//f_cr//&
-       '    ncount_cluster_x:                                                                       '//f_cr//&
-       '      COMMENT: Maximum number of force evaluations                                          '//f_cr//&
-       '      RANGE: [0, 2000]                                                                      '//f_cr//&
-       '      PROFILE_FROM: method                                                                  '//f_cr//&
-       '      default: 50                                                                           '//f_cr//&
-       '      none: 1                                                                               '//f_cr//&
-       '    betax:                                                                                  '//f_cr//&
-       '      COMMENT: Stepsize for the geometry optimization                                       '//f_cr//&
-       '      CONDITION:                                                                            '//f_cr//&
-       '        MASTER_KEY: method                                                                  '//f_cr//&
-       '        WHEN:                                                                               '//f_cr//&
-       '        - SDCG                                                                              '//f_cr//&
-       '        - VSSD                                                                              '//f_cr//&
-       '        - LBFGS                                                                             '//f_cr//&
-       '        - BFGS                                                                              '//f_cr//&
-       '        - PBFGS                                                                             '//f_cr//&
-       '        - DIIS                                                                              '//f_cr//&
-       '        - FIRE                                                                              '//f_cr//&
-       '        - NEB                                                                               '//f_cr//&
-       '        - SBFGS                                                                             '//f_cr//&
-       '        - SQNM                                                                              '//f_cr//&
-       '        - none                                                                              '//f_cr//&
-       '      PROFILE_FROM: method                                                                  '//f_cr//&
-       '      RANGE: [0., 100.]                                                                     '//f_cr//&
-       '      default: 4.                                                                           '//f_cr//&
-       '      DIIS: 2.                                                                              '//f_cr//&
-       '      NEB: 0.5                                                                              '//f_cr
+  character(len=*), parameter :: inputdef=' '//f_cr//&
+       '  dft:'//f_cr//&
+       '    DESCRIPTION: Density Functional Theory parameters   '//f_cr//&
+       '    hgrids: #a variable with range  '//f_cr//&
+       '      COMMENT: Grid spacing in the three directions (bohr)      '//f_cr//&
+       '      DESCRIPTION: |    '//f_cr//&
+       '       Grid spacing in three directions (Bohr units) of the coarse mesh.'//f_cr//&
+       '       A scalar can also be given as 0.45.  '//f_cr//&
+       '      RANGE: [0., 2.]   '//f_cr//&
+       '      default: [0.45, 0.45, 0.45]   '//f_cr//&
+       '      fast: [0.55, 0.55, 0.55]  '//f_cr//&
+       '      accurate: [0.30, 0.30, 0.30]  '//f_cr//&
+       '    ixc: #a variable with several profiles  '//f_cr//&
+       '      COMMENT: Exchange-correlation parameter (LDA=1,PBE=11)    '//f_cr//&
+       '      DESCRIPTION: Determine the exchange-correlation functional.       '//f_cr//&
+       '      default: 1'//f_cr//&
+       '      EXCLUSIVE: [ 1, 11, -20, -101130, -406, -170, -402, 100 ] '//f_cr//&
+       '      #Here follow a number of possibilities for the different XC functionals       '//f_cr//&
+       '      LDA (ABINIT): 1   '//f_cr//&
+       '      PBE (ABINIT): 11  '//f_cr//&
+       '      LDA: -20  '//f_cr//&
+       '      PBE: -101130      '//f_cr//&
+       '      PBE0: -406'//f_cr//&
+       '      B97-D: -170 #to be verified   '//f_cr//&
+       '      B3LYP: -402       '//f_cr//&
+       '      HF: 100 #Hartree-Fock     '//f_cr//&
+       '    eta:    '//f_cr//&
+       '      COMMENT: Test parameter to understand the condition       '//f_cr//&
+       '      default: 0.5      '//f_cr//&
+       '      B3LYP: 0.4'//f_cr//&
+       '      CONDITION: {MASTER_KEY: ixc, WHEN: [ LDA, B3LYP ]}'//f_cr//&
+       '      PROFILE_FROM: ixc '//f_cr//&
+       '    gps_algorithm:      '//f_cr//&
+       '      COMMENT: Algorithm for the Generalised Poisson Equation   '//f_cr//&
+       '      default: PCG      '//f_cr//&
+       '      EXCLUSIVE:        '//f_cr//&
+       '        PI: Polarization Iteration method           '//f_cr//&
+       '        PCG: Preconditioned Conjugate Gradient      '//f_cr//&
+       '    pi_eta: '//f_cr//&
+       '      COMMENT: Mixing parameter of the PI algorithm '//f_cr//&
+       '      RANGE: [0.0, 1.0]         '//f_cr//&
+       '      default: 0.6              '//f_cr//&
+       '      CONDITION:                '//f_cr//&
+       '        MASTER_KEY: gps_algorithm                   '//f_cr//&
+       '        WHEN: [ PI ]            '//f_cr//&
+       '      PROFILE_FROM: gps_algorithm                   '//f_cr//&
+       '  geopt:    '//f_cr//&
+       '    DESCRIPTION: Parameters for the geometry relaxation and molecular dynamics      '//f_cr//&
+       '    method:  # a variable with exclusive    '//f_cr//&
+       '      COMMENT: Geometry optimisation method '//f_cr//&
+       '      EXCLUSIVE:'//f_cr//&
+       '        none:   No geometry optimization    '//f_cr//&
+       '        SDCG:   A combination of Steepest Descent and Conjugate Gradient'//f_cr//&
+       '        VSSD:   Variable Stepsize Steepest Descent method               '//f_cr//&
+       '        NEB:    Nudged Elastic Band                 '//f_cr//&
+       '        DIIS:   Direct Inversion Iterative Subspace '//f_cr//&
+       '        SBFGS:  SQNM minimizer'//f_cr//&
+       '      default: none             '//f_cr//&
+       '    ncount_cluster_x:           '//f_cr//&
+       '      COMMENT: Maximum number of force evaluations  '//f_cr//&
+       '      RANGE: [0, 2000]          '//f_cr//&
+       '      PROFILE_FROM: method      '//f_cr//&
+       '      default: 50               '//f_cr//&
+       '      none: 1                   '//f_cr//&
+       '    betax:  '//f_cr//&
+       '      COMMENT: Stepsize for the geometry optimization                   '//f_cr//&
+       '      CONDITION:                '//f_cr//&
+       '        MASTER_KEY: method      '//f_cr//&
+       '        WHEN:                   '//f_cr//&
+       '        - SDCG                  '//f_cr//&
+       '        - VSSD                  '//f_cr//&
+       '        - NEB                   '//f_cr//&
+       '        - SBFGS                 '//f_cr//&
+       '        WHEN_NOT: [none ]       '//f_cr//&
+       '      PROFILE_FROM: method      '//f_cr//&
+       '      RANGE: [0., .inf ]        '//f_cr//&
+       '      default: 4.               '//f_cr//&
+       '      DIIS: 2.                  '//f_cr//&
+       '      NEB: 0.5                  '//f_cr
 
   !> dictionary of the input definitions
   type(dictionary), pointer :: inputdefinitions
@@ -251,17 +305,19 @@ subroutine f_inputfile_test()
   type(dictionary), pointer :: dict_profiles
   !> input file
   type(dictionary), pointer :: input
-  !> minuimal input file
+  !> minimal input file
   type(dictionary), pointer :: input_minimal
   type(dictionary), pointer :: as_is,nested
-  character(len=*), parameter :: example1='                                                         '//f_cr//&
-       'dft:             '//f_cr//&
-       ' hgrids: 0.45    '//f_cr//&
-       ' ixc: B3LYP     '//f_cr//&
+  character(len=*), parameter :: example1='                 '//f_cr//&
+       'dft:            '//f_cr//&
+       ' hgrids: 0.45   '//f_cr//&
+       ' ixc:  B3LYP    '//f_cr//&
        ' bidon: 2       '//f_cr//&
-       'geopt:           '//f_cr//&
-       ' method: DIIS   '//f_cr
-  character(len=*), parameter :: profiles='                                                         '//f_cr//&
+       ' gps_algorithm: PI '//f_cr//&
+       'geopt:          '//f_cr//&
+       ' betax: 2.e+40  '//f_cr//&
+       ' method: none   '//f_cr
+  character(len=*), parameter :: profiles='                 '//f_cr//&
        ' simple:  '//f_cr//&
        '   dft:             '//f_cr//&
        '     hgrids: 0.45    '//f_cr//&
@@ -270,6 +326,7 @@ subroutine f_inputfile_test()
        '    geopt: {method: DIIS} '//f_cr
   character(len=*), parameter :: example2='import: [geopt, simple]'
   
+  call yaml_comment('Test of input variables retrieval',hfill=':)')
 
   !first, insert the definitiions of the input file in the dictionary
   call parse_dict(inputdefinitions,inputdef)

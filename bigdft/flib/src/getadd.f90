@@ -1,11 +1,12 @@
 !> @file
 !! Routines to deal with the address of objects or external functions
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
 
 !> Module used by the module to manage the memory allocations
 !! needed to pass to the C routines the correct address

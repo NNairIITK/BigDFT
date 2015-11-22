@@ -17,6 +17,34 @@ module PStypes
   implicit none
 
   private
+
+  character(len=*), parameter :: KERNEL_VARIABLES        = 'kernel'
+  character(len=*), parameter :: SCREENING               = 'screening' 
+  character(len=*), parameter :: ISF_ORDER               = 'isf_order' 
+  character(len=*), parameter :: STRESS_TENSOR           = 'stress_tensor' 
+  character(len=*), parameter :: ENVIRONMENT_VARIABLES   = 'environment'
+  character(len=*), parameter :: CAVITY_KEY              = 'cavity' 
+  character(len=*), parameter :: EPSILON_KEY             = 'epsilon' 
+  character(len=*), parameter :: EDENSMAXMIN             = 'edensmaxmin' 
+  character(len=*), parameter :: DELTA_KEY               = 'delta' 
+  character(len=*), parameter :: CAVITATION              = 'cavitation' 
+  character(len=*), parameter :: GAMMAS_KEY              = 'gammaS' 
+  character(len=*), parameter :: ALPHAS_KEY              = 'alphaS' 
+  character(len=*), parameter :: BETAV_KEY               = 'betaV' 
+  character(len=*), parameter :: GPS_ALGORITHM           = 'gps_algorithm'
+  character(len=*), parameter :: PI_ETA                  = 'pi_eta' 
+  character(len=*), parameter :: INPUT_GUESS             = 'input_guess' 
+  character(len=*), parameter :: FD_ORDER                = 'fd_order' 
+  character(len=*), parameter :: ITERMAX                 = 'itermax' 
+  character(len=*), parameter :: MINRES                  = 'minres' 
+  character(len=*), parameter :: SETUP_VARIABLES         = 'setup'
+  character(len=*), parameter :: ACCEL                   = 'accel' 
+  character(len=*), parameter :: KEEP_GPU_MEMORY         = 'keep_gpu_memory' 
+  character(len=*), parameter :: TASKGROUP_SIZE_KEY      = 'taskgroup_size' 
+  character(len=*), parameter :: GLOBAL_DATA             = 'global_data' 
+  character(len=*), parameter :: VERBOSITY               = 'verbose' 
+  character(len=*), parameter :: OUTPUT                  = 'output' 
+
   
   !>Defines the internal information for application of the FFT between the kernel and the 
   !!density
@@ -74,6 +102,32 @@ module PStypes
      integer(f_address) :: alpha_GPU, beta_GPU, kappa_GPU, beta0_GPU
   end type PS_workarrays
 
+  !>Datatype defining the mode for the running of the Poisson solver
+  type, public :: PSolver_options
+     !> @copydoc poisson_solver::doc::datacode
+     character(len=1) :: datacode
+     !> integer variable setting the verbosity, from silent (0) to high
+     integer :: verbosity_level
+     !> if .true., and the cavity is set to 'sccs' attribute, then the epsilon is updated according to rhov
+     logical :: update_cavity
+     !> if .true. calculate the stress tensor components.
+     !! The stress tensor calculation are so far validated only for orthorhombic cells and vacuum treatments
+     logical :: calculate_strten
+     !> Use the input guess procedure for the solution in the case of a electrostatic medium
+     !! this value is ignored in the case of a vacuum solver
+     logical :: use_input_guess
+     !> Trigger the calculation of the electrostatic contribution only
+     !! if .true., the code only calculates the electrostatic contribution
+     !! and the cavitation terms are neglected
+     !> extract the polarization charge and the dielectric function, to be used for plotting purposes
+     logical :: cavity_info
+     logical :: only_electrostatic
+     !> Total integral on the supercell of the final potential on output
+     !! clearly meaningful only for Fully periodic BC, ignored in the other cases
+     real(gp) :: potential_integral
+  end type PSolver_options
+
+
   !> Defines the fundamental structure for the kernel
   type, public :: coulomb_operator
      !variables with physical meaning
@@ -109,6 +163,7 @@ module PStypes
      real(gp), dimension(3) :: hgrids !<grid spacings in each direction
      real(gp), dimension(3) :: angrad !< angles in radiants between each of the axis
      type(cavity_data) :: cavity !< description of the cavity for the dielectric medium
+     type(PSolver_options) :: opt !<Datatype controlling the operations of the solver
      real(dp), dimension(:), pointer :: kernel !< kernel of the Poisson Solver
      integer, dimension(5) :: plan
      integer, dimension(3) :: geo
@@ -155,35 +210,10 @@ module PStypes
      real(gp), dimension(6) :: strten
   end type PSolver_energies
 
-  !>Datatype defining the mode for the running of the Poisson solver
-  type, public :: PSolver_options
-     !> @copydoc poisson_solver::doc::datacode
-     character(len=1) :: datacode
-     !> integer variable setting the verbosity, from silent (0) to high
-     integer :: verbosity_level
-     !> if .true., and the cavity is set to 'sccs' attribute, then the epsilon is updated according to rhov
-     logical :: update_cavity
-     !> if .true. calculate the stress tensor components.
-     !! The stress tensor calculation are so far validated only for orthorhombic cells and vacuum treatments
-     logical :: calculate_strten
-     !> Use the input guess procedure for the solution in the case of a electrostatic medium
-     !! this value is ignored in the case of a vacuum solver
-     logical :: use_input_guess
-     !> Trigger the calculation of the electrostatic contribution only
-     !! if .true., the code only calculates the electrostatic contribution
-     !! and the cavitation terms are neglected
-     !> extract the polarization charge and the dielectric function, to be used for plotting purposes
-     logical :: cavity_info
-     logical :: only_electrostatic
-     !> Total integral on the supercell of the final potential on output
-     !! clearly meaningful only for Fully periodic BC, ignored in the other cases
-     real(gp) :: potential_integral
-  end type PSolver_options
-
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
   public :: ps_allocate_lowlevel_workarrays,PSolver_options_null
-  public :: release_PS_workarrays,PS_release_lowlevel_workarrays
+  public :: release_PS_workarrays,PS_release_lowlevel_workarrays,PS_set_options,pkernel_init_new
 
 contains
 
@@ -269,12 +299,14 @@ contains
   end subroutine nullify_work_arrays
 
   pure function pkernel_null() result(k)
+    use environment, only : PS_VAC_ENUM
     implicit none
     type(coulomb_operator) :: k
     k%itype_scf=0
     k%geocode='F'
     call nullify_f_enum(k%method)
     k%cavity=cavity_default()
+    k%opt=PSolver_options_null()
     k%mu=0.0_gp
     k%ndims=(/0,0,0/)
     k%hgrids=(/0.0_gp,0.0_gp,0.0_gp/)
@@ -344,7 +376,6 @@ contains
 
   end subroutine free_PS_workarrays
 
-
   subroutine release_PS_workarrays(keepzf,w,use_input_guess)
     implicit none
     integer, intent(in) :: keepzf
@@ -383,6 +414,341 @@ contains
     call release_mpi_environment(kernel%part_mpi)
     call release_mpi_environment(kernel%mpi_env)
   end subroutine pkernel_free
+
+  !> Initialization of the Poisson kernel
+  !! @ingroup PSOLVER
+  function pkernel_init_new(iproc,nproc,dict,geocode,ndims,hgrids,angrad,mpi_env) result(kernel)
+    use yaml_output
+    use dictionaries
+    use numerics
+    use wrapper_MPI
+    use f_enums
+    use environment
+    use f_input_file, only: input_file_dump
+    implicit none
+    integer, intent(in) :: iproc      !< Proc Id
+    integer, intent(in) :: nproc      !< Number of processes
+    type(dictionary), pointer :: dict !< dictionary of the input variables
+    character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
+    integer, dimension(3), intent(in) :: ndims
+    real(gp), dimension(3), intent(in) :: hgrids
+    real(gp), dimension(3), intent(in), optional :: angrad
+    type(mpi_environment), intent(in), optional :: mpi_env
+    type(coulomb_operator) :: kernel
+    !local variables
+    integer :: nthreads,group_size,taskgroup_size
+    !$ integer :: omp_get_max_threads
+
+    !nullification
+    kernel=pkernel_null()
+
+    !geocode and ISF family
+    kernel%geocode=geocode
+    !dimensions and grid spacings
+    kernel%ndims=ndims
+    kernel%hgrids=hgrids
+
+    if (present(angrad)) then
+       kernel%angrad=angrad
+    else
+       kernel%angrad=onehalf* [ pi, pi, pi ]
+    end if
+
+    !new treatment for the kernel input variables
+    kernel%method=PS_VAC_ENUM
+    call PS_input_dict(dict) !complete the dictionary
+
+    
+    call PS_fill_variables(kernel,kernel%opt,dict) !fill the structure with basic results
+
+    kernel%keepzf=1
+
+    !import the mpi_environment if present
+    if (present(mpi_env)) then
+       call copy_mpi_environment(src=mpi_env,dest=kernel%mpi_env)
+    else
+
+       !specialized treatment
+       taskgroup_size=dict//SETUP_VARIABLES//TASKGROUP_SIZE_KEY
+
+       group_size=nproc
+       !if the taskgroup size is not a divisor of nproc do not create taskgroups
+       if (nproc >1 .and. taskgroup_size > 0 .and. taskgroup_size < nproc .and.&
+            mod(nproc,taskgroup_size)==0) then
+          group_size=taskgroup_size
+       end if
+       call mpi_environment_set(kernel%mpi_env,iproc,nproc,mpiworld(),group_size)
+    end if
+
+    !gpu can be used only for one nproc
+    if (nproc > 1) kernel%igpu=0
+
+    !-------------------
+    nthreads=0
+    if (kernel%mpi_env%iproc == 0 .and. kernel%mpi_env%igroup == 0 .and. kernel%opt%verbosity_level==1) then
+       if (kernel%mu==0.0_gp) then 
+          call yaml_comment('Kernel Initialization',hfill='-')
+          call yaml_mapping_open('Poisson Kernel Initialization')
+       else
+          call yaml_mapping_open('Helmholtz Kernel Initialization')
+          call yaml_map('Screening Length (AU)',1.0_gp/kernel%mu,fmt='(g25.17)')
+       end if
+       !we might also perform an input_file dump if needed
+       call input_file_dump(dict)
+       !$ nthreads = omp_get_max_threads()
+       call yaml_map('MPI tasks',kernel%mpi_env%nproc)
+       if (nthreads /=0) call yaml_map('OpenMP threads per MPI task',nthreads)
+       if (kernel%igpu==1) call yaml_map('Kernel copied on GPU',.true.)
+       if (kernel%method /= 'VAC') call yaml_map('Iterative method for Generalised Equation',str(kernel%method))
+       if (kernel%method .hasattr. PS_RIGID_ENUM) call yaml_map('Cavity determination','rigid')
+       if (kernel%method .hasattr. PS_SCCS_ENUM) call yaml_map('Cavity determination','sccs')
+       call yaml_mapping_close() !kernel
+    end if
+
+  end function pkernel_init_new
+
+  !>modifies the options of the poisson solver to switch certain options
+  subroutine PS_set_options(kernel,global_data,calculate_strten,verbose,&
+       update_cavity,use_input_guess,cavity_info,cavitation_terms,&
+       potential_integral)
+    implicit none
+    type(coulomb_operator), intent(inout) :: kernel
+    logical, intent(in), optional :: global_data,calculate_strten,verbose
+    logical, intent(in), optional :: update_cavity,use_input_guess
+    logical, intent(in), optional :: cavity_info,cavitation_terms
+    real(gp), intent(in), optional :: potential_integral
+
+    if (present(global_data     )) then
+       if (global_data) then
+          kernel%opt%datacode='G'
+       else
+          kernel%opt%datacode='D'
+       end if
+    end if
+    if (present(calculate_strten)) kernel%opt%calculate_strten=calculate_strten
+    if (present(verbose         )) then
+       if (verbose) then
+          kernel%opt%verbosity_level=1
+       else
+          kernel%opt%verbosity_level=0
+       end if
+    end if
+    if (present(update_cavity   )) kernel%opt%update_cavity=update_cavity
+    if (present(use_input_guess )) kernel%opt%use_input_guess=use_input_guess
+    if (present(cavity_info     )) kernel%opt%cavity_info=cavity_info
+    if (present(cavitation_terms)) kernel%opt%only_electrostatic=.not. cavitation_terms
+    if (present(potential_integral)) kernel%opt%potential_integral =potential_integral
+
+  end subroutine PS_set_options
+
+
+  !>routine to fill the input variables of the kernel
+  subroutine PS_input_dict(dict)
+    use dictionaries
+    use f_input_file
+    use yaml_parse
+    implicit none
+    !>input dictionary, a copy of the user input, to be filled
+    !!with all the variables on exit
+    type(dictionary), pointer :: dict
+    !local variables
+    !local variables
+    integer(f_integer) :: params_size
+    !integer(kind = 8) :: cbuf_add !< address of c buffer
+    character, dimension(:), allocatable :: params
+    type(dictionary), pointer :: parameters
+    type(dictionary), pointer :: parsed_parameters
+    type(dictionary), pointer :: profiles
+
+    call f_routine(id='PS_input_dict')
+
+    nullify(parameters,parsed_parameters,profiles)
+
+    !alternative filling of parameters from hard-coded source file
+    !call getstaticinputdef(cbuf_add,params_size)
+    call getpsinputdefsize(params_size)
+    !allocate array
+    params=f_malloc_str(1,params_size,id='params')
+    !fill it and parse dictionary
+    call getpsinputdef(params)
+
+    call yaml_parse_from_char_array(parsed_parameters,params)
+    !there is only one document in the input variables specifications
+    parameters=>parsed_parameters//0
+    profiles => parsed_parameters//1
+    call f_free_str(1,params)
+
+    call input_file_complete(parameters,dict,imports=profiles)
+
+    if (associated(parsed_parameters)) then
+       call dict_free(parsed_parameters)
+       nullify(parameters)
+       nullify(profiles)
+    else
+       call dict_free(parameters)
+    end if
+
+    call f_release_routine()
+
+  end subroutine PS_input_dict
+
+  subroutine PS_fill_variables(k,opt,dict)
+    use dictionaries
+    implicit none
+    type(coulomb_operator), intent(inout) :: k
+    type(PSolver_options), intent(inout) :: opt
+    type(dictionary), pointer :: dict
+    !local variables
+    type(dictionary), pointer :: lvl,var
+
+    ! Transfer dict values into input_variables structure.
+    lvl => dict_iter(dict)
+    do while(associated(lvl))
+       var => dict_iter(lvl)
+       do while(associated(var))
+          call PS_input_fill(k,opt,dict_key(lvl),var)
+          var => dict_next(var)
+       end do
+       lvl => dict_next(lvl)
+    end do
+
+  end subroutine PS_fill_variables
+
+  !> Set the dictionary from the input variables
+  subroutine PS_input_fill(k,opt, level, val)
+    use PSbase
+    use environment
+    use yaml_output, only: yaml_warning
+    use dictionaries
+    use numerics
+    implicit none
+    type(coulomb_operator), intent(inout) :: k
+    type(PSolver_options), intent(inout) :: opt
+    type(dictionary), pointer :: val
+    character(len = *), intent(in) :: level
+    !local variables
+    logical :: dummy_l
+    real(gp) :: dummy_d
+    integer, dimension(2) :: dummy_int !<to use as filling for input variables
+    real(gp), dimension(2) :: dummy_gp !< to fill the input variables
+    logical, dimension(2) :: dummy_log !< to fill the input variables
+    character(len=256) :: dummy_char
+    character(len = max_field_length) :: str
+    integer :: i, ipos
+
+    if (index(dict_key(val), "_attributes") > 0) return
+
+    select case(trim(level))
+    case(KERNEL_VARIABLES)
+       select case (trim(dict_key(val)))
+       case(SCREENING)
+          k%mu=val
+       case(ISF_ORDER)
+          k%itype_scf=val
+       case(STRESS_TENSOR)
+          opt%calculate_strten=val
+       case DEFAULT
+          if (k%mpi_env%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+    case (ENVIRONMENT_VARIABLES)
+       select case (trim(dict_key(val)))
+       case (CAVITY_KEY)
+          str=val
+          select case(trim(str))
+          case('vacuum')
+             call f_enum_attr(k%method,PS_NONE_ENUM)
+          case('rigid')
+             call f_enum_attr(k%method,PS_RIGID_ENUM)
+          case('sccs')   
+             call f_enum_attr(k%method,PS_SCCS_ENUM)
+          end select
+       case (EPSILON_KEY)
+          k%cavity%epsilon0=val
+       case (EDENSMAXMIN)
+          dummy_gp=val
+          k%cavity%edensmin=dummy_gp(1)
+          k%cavity%edensmax=dummy_gp(2)
+       case (DELTA_KEY)
+          dummy_d=val
+          ! Divided by 4 because both rigid cavities are 4*delta spread 
+          k%cavity%delta=0.25_gp*dummy_d
+       case (CAVITATION)
+          dummy_l=val
+          opt%only_electrostatic=.not. dummy_l
+       case (GAMMAS_KEY)
+          dummy_d=val
+          k%cavity%gammaS=dummy_d*SurfAU
+       case (ALPHAS_KEY)
+          dummy_d=val
+          k%cavity%alphaS=dummy_d*SurfAU
+       case (BETAV_KEY)
+          dummy_d=val
+          k%cavity%betaV=dummy_d/AU_GPa
+       case (GPS_ALGORITHM)
+          str=val
+          select case(trim(str))
+          case('PI')
+             call f_enum_update(dest=k%method,src=PS_PI_ENUM)
+          case('PCG')
+             call f_enum_update(dest=k%method,src=PS_PCG_ENUM)
+          end select
+       case (PI_ETA)
+          k%PI_eta=val
+       case (INPUT_GUESS)
+          opt%use_input_guess=val
+       case (FD_ORDER)
+          k%nord=val
+       case (ITERMAX)
+          k%max_iter=val
+       case (MINRES)
+          k%minres=val
+       case DEFAULT
+          if (k%mpi_env%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+    case (SETUP_VARIABLES)
+       select case (trim(dict_key(val)))       
+       case (ACCEL)
+          dummy_l=val
+          if (dummy_l) then
+             k%igpu=1
+          else
+             k%igpu=0
+          end if
+       case (KEEP_GPU_MEMORY)
+          dummy_l=val
+          if (dummy_l) then
+             k%keepGPUmemory=1
+          else
+             k%keepGPUmemory=0
+          end if
+       case (TASKGROUP_SIZE_KEY)
+
+       case (GLOBAL_DATA)
+          dummy_l=val
+          if (dummy_l) then
+             opt%datacode='G'
+          else
+             opt%datacode='D'
+          end if
+       case (VERBOSITY)
+          dummy_l=val
+          if (dummy_l) then
+             opt%verbosity_level=1
+          else
+             opt%verbosity_level=0
+          end if
+       case (OUTPUT)
+          !for the moment no treatment, to be added
+       case DEFAULT
+          if (k%mpi_env%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+    case DEFAULT
+    end select
+  END SUBROUTINE PS_input_fill
+
 
   !> allocate the workarrays needed to perform the 
   !! GPS operation
@@ -439,7 +805,7 @@ contains
           if (associated(kernel%w%pot)) then
              call f_zero(kernel%w%pot)
           else
-       kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
+             kernel%w%pot=f_malloc_ptr([kernel%ndims(1),kernel%ndims(2)*kernel%ndims(3)],id='pot')
           end if
        end if
 

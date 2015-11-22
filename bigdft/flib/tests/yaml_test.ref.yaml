@@ -4,8 +4,7 @@
      shorthelp                         : Decide what to test (--help for more info)
      shortname                         : t
      help:
-       Usage:
-         Specify, as a yaml list, the functionalities which have to be tested
+       Usage                           : Specify, as a yaml list, the functionalities which have to be tested
        Allowed values:
        - yaml
        - yaml_extras
@@ -25,8 +24,8 @@
      shortname                         : T
      help:
        Usage:
-         Unused option3, just for testing the command line parser, also the long help lines 
-         have to be tested in order to understand if it works
+         Unused option3, just for testing the command line parser, also the long help lines have to be 
+         understand if it works
      conflicts: [test2, test]
    test_mp:
      default                           : None
@@ -39,14 +38,11 @@
    test2                               : 1
  Multipole list found                  :  No
   #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-  #BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
-  #B
-  #CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-  #CC
-  #DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
-  #DDD
+  #BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+  #CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+  #DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 ---
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Yaml Output Module Test
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Yaml Output Module Test
  Test:
    Short sentence                      :  Yes
    Foo: {one:  1, two:  2}
@@ -105,6 +101,10 @@
   #WARNING: Test warning 1, should not be repeated again
   #WARNING: Test warning 2
   #WARNING: Test warning 1, should not be repeated again
+ Test buffer_string (back=.true.)      : X-----------------------------
+ Position                              :  3
+ Test buffer_string (back=.false.)     : X--X--------------------------
+ Position                              :  4
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Test warning 1
@@ -139,6 +139,31 @@
     #     yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
     #     yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy
     #     yyyyyyyyyyyyyyyyyyyyyyyy
+ Check long sequences:
+ - Length= 0
+ - 
+ - Length=90
+ - aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-
+ - Length=91
+ - aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-
+ - Length=92
+ - aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-
+ - Length=92+label
+ -  &label aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   aaaaaa-
+ - Length=93
+ - aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-
+ - Length=300
+ - aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+   aaaaaaaaaaaaaaaaaaaaaaaaaaa-
+ - bbbbbbbbbbbbbbbbbbbb
+ -           
+ -  &l1      
+ -          a
+ -  &l2     a
 ---
   #----------------------------------------------------------------------- Yaml Invoice Example
  invoice                               :  34843
@@ -784,6 +809,27 @@
      2015-07-03 21:38:20.283
    Process Id:
      0
+ ERR_INVALID_MALLOC:
+   Id                                  : 22
+   Message                             : Invalid specification of f_malloc
+   Action                              : Put coherent data for the memory space allocation
+   Callback Procedure Address          : 5337848
+ Additional Info:
+   Rank specified by f_malloc (2) is not coherent with the one of the array (1)
+ ERR_INVALID_MALLOC:
+   Id                                  : 22
+   Message                             : Invalid specification of f_malloc
+   Action                              : Put coherent data for the memory space allocation
+   Callback Procedure Address          : 5338088
+ Additional Info:
+   Rank specified by f_malloc (1) is not coherent with the one of the array (2)
+ ERR_ALLOCATE:
+   Id                                  : 18
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 5344453
+ Additional Info                       : Allocation problem, error code 5014
  Parsed string:
  -  [elem1, 1.d0, elem2, 3.d0]
  Associated after pop                  :  No
@@ -931,6 +977,8 @@
    - Si: [ 0.2516085125E-05,  0.5826606155E-05,  20.34574212] # [  0.00,  0.00,  40.00 ] 1
    - Si: [ 5.094032326,  5.153107111,  0.3047989908E-01] # [  13.52,  10.13,  0.06 ] 2
    - Si: [ 0.3049344014E-01,  5.153107972,  5.094018600] # [  0.08,  10.13,  10.01 ] 3
+ Test clean_zeroes                     : 20
+ Retest clean_zeroes                   : 20.0
  Real without format                   : 0.2
  Real with format (1pe25.17)           :  5.0E-01
  Real with format (1pe24.16)           :  5.0000000000000000E-01
@@ -941,6 +989,7 @@
  Integer with too little format (i3)   :  10000
  Iostat for format                     :  0
  Float with too little format (f3.2)   :  1.000400024E+03
+ Real as integer (f3.0)                :  10.
  Iostat for format                     :  0
  Double with too little format (f3.2)  :  1000.400000000000
  Float with too little format again (f3.2):  1.044559956E+01

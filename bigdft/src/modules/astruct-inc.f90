@@ -1,12 +1,12 @@
-    !> @file
-    !!  Private Routines for the setting and creation of the astruct structure
-    !!  included in the module module_atoms
-    !! @author
-    !!    Copyright (C) 2007-2013 BigDFT group (TD,LG)
-    !!    This file is distributed under the terms of the
-    !!    GNU General Public License, see ~/COPYING file
-    !!    or http://www.gnu.org/copyleft/gpl.txt .
-    !!    For the list of contributors, see ~/AUTHORS 
+!> @file
+!!  Private Routines for the setting and creation of the astruct structure
+!!  included in the module module_atoms
+!! @author
+!!    Copyright (C) 2007-2013 BigDFT group (TD,LG)
+!!    This file is distributed under the terms of the
+!!    GNU General Public License, see ~/COPYING file
+!!    or http://www.gnu.org/copyleft/gpl.txt .
+!!    For the list of contributors, see ~/AUTHORS 
 
 
     !> Read atomic positions from xyz file and create astruct structure from it

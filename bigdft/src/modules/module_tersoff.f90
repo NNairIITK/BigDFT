@@ -70,10 +70,10 @@ use module_base
         implicit none
         integer, intent(in) :: nat
         integer   :: iat
-	real(gp)   :: etot
-	real(gp)                                   ::rxyzIN(3,nat),fxyz(3,nat), alat(3)
-	real(gp),              dimension(1:2,1:2)  :: R1, R2
-	real(gp),              dimension(1:2,1:2)  :: Cr, Ca, alr, ala, X
+        real(gp)   :: etot
+        real(gp)                                   ::rxyzIN(3,nat),fxyz(3,nat), alat(3)
+        real(gp),              dimension(1:2,1:2)  :: R1, R2
+        real(gp),              dimension(1:2,1:2)  :: Cr, Ca, alr, ala, X
         real(gp),              dimension(1:2)      :: Pmass
 
         integer                                   :: Nmol, Npmax, NNmax

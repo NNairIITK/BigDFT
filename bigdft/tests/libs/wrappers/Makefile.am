@@ -29,8 +29,8 @@ check_wrappers_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir)/src/modules -I$(top_
 check_wrappers_LDADD = -lbigdft-1
 
 EXTRA_DIST = wrappers.out.ref.yaml posinp.ref.yaml pywrappers.out.ref.yaml check_wrappers.py.in
-CLEANFILES = default.* posinp.yaml time.yaml wrappers.out.yaml pywrappers.out.yaml *report.yaml input_minimal.yaml input.yaml
-
+CLEANFILES = default.* posinp.yaml time.yaml wrappers.out.yaml pywrappers.out.yaml *report.yaml input_minimal.yaml input.yaml \
+			 report report_remarks
 if WITH_GOBJECT_INTROSPECTION
 py_report = pywrappers.out.report.yaml
 endif

@@ -15,7 +15,7 @@ program PS_Check
   use Poisson_Solver
   use yaml_output
   use dynamic_memory
-  use dictionaries
+  use dictionaries, dict_set => set
   use time_profiling
   use yaml_strings
   implicit none
@@ -24,7 +24,6 @@ program PS_Check
   logical :: usegpu
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
-  character(len=50) :: chain
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,extra_ref
@@ -43,7 +42,7 @@ program PS_Check
   real(dp), dimension(3) :: hgrids
   type(mpi_environment) :: bigdft_mpi
   character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"
-  type(dictionary), pointer :: options
+  type(dictionary), pointer :: options,dict_input
   external :: gather_timings
 
   call f_lib_initialize() 
@@ -89,6 +88,9 @@ program PS_Check
   geocode=options//'geocode'
   usegpu = options // 'accel'
 
+  call dict_init(dict_input)
+  if (usegpu) call dict_set(dict_input//'setup'//'accel','CUDA')
+  call dict_set(dict_input//'setup'//'taskgroup_size',nproc/2)
 
   call dict_free(options)
   n01=nxyz(1)
@@ -125,8 +127,10 @@ program PS_Check
   ndims=(/n01,n02,n03/)
   hgrids=(/hx,hy,hz/)
 
-  pkernel=pkernel_init(.true.,iproc,nproc,igpu,&
-       geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
+!!$  pkernel=pkernel_init(.true.,iproc,nproc,igpu,&
+!!$       geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
+  pkernel=pkernel_init_new(iproc,nproc,dict_input,geocode,ndims,hgrids)
+  call dict_free(dict_input)
   call pkernel_set(pkernel,verbose=.true.)
 
   !Allocations, considering also spin density

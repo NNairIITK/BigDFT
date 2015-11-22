@@ -1,7 +1,7 @@
 !> @file
 !! Contains routines for the executable splined_saddle (search of saddle point)
 !! @author
-!!    Copyright (C) 2010-2013 BigDFT group (AG)
+!!    Copyright (C) 2010-2015 BigDFT group (AG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -26,7 +26,7 @@ program splined_saddle
   !character(len=60) :: run_id
   !character(len=60) :: filename
   ! atomic coordinates, forces
-  integer :: iconfig,nconfig
+  ! integer :: iconfig,nconfig
   real(gp), dimension(:,:), allocatable :: ratsp,fatsp 
   !integer, dimension(4) :: mpi_info
   type(dictionary), pointer :: run,options
@@ -264,7 +264,7 @@ subroutine givemesaddle(epot_sp,ratsp,fatsp,ifile,nproc,iproc,run_opt,ncount_big
     type(parameterminimization_sp)::parmin_neb,parmin
     real(gp) :: epot_sp,ratsp(3,run_opt%atoms%astruct%nat)
     real(gp) :: fatsp(3,run_opt%atoms%astruct%nat)
-    character(len=20) :: tatonam
+!!$    character(len=20) :: tatonam
     integer::n,nr,infocode,ixyz,i,mm1,mm2,mm3,natoms
     real(kind=8)::fnrm,fnrm1,fnrm2,tt1,tt2,tt3,time1,time2
     type(parametersplinedsaddle)::pnow
@@ -2911,8 +2911,9 @@ subroutine fill_ex_exd(istep,n,np,x,outends,npv,pnow,pold,xt,ft,nproc,iproc,ll_r
     integer::istep,n,np,ip,mp,i,npv,infocode
     real(kind=8)::x(n,0:np),xt(n),ft(n) !n(c) dt
     type(parametersplinedsaddle)::pnow,pold
-    real(kind=8)::t1,tt,time1,time2
+    real(kind=8)::t1,time1,time2
     real(kind=8), allocatable::tang(:)
+!!$    real(kind=8) :: tt
 
     integer::iat,ixyz
     integer, parameter::ndeb1=0 !n(c) ndeb2=0

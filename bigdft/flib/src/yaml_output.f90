@@ -2,7 +2,7 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markup Language -> Y Ain't a Markup Language (Human readable ML)
 !! @author
-!!    Copyright (C) 2011-2013 BigDFT group
+!!    Copyright (C) 2011-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -41,7 +41,7 @@ module yaml_output
   integer :: active_streams=0  !< Number of active streams (stdout always active after init)
   integer :: default_stream=1  !< Id of the default stream
 
-  !parameter of the document
+  !> Parameter of the document
   type :: yaml_stream
      logical :: document_closed=.true.  !< Put the starting of the document if new_document is called
      logical :: pp_allowed=.true.       !< Pretty printing allowed
@@ -158,8 +158,8 @@ module yaml_output
   !! @link yaml_output::yaml_warning @endlink, 
   !! @link yaml_output::yaml_scalar @endlink, 
   !! @link yaml_output::yaml_newline @endlink, 
-  !! @link yaml_output::yaml_toa @endlink, 
-  !! @link yaml_output::yaml_date_and_time_toa @endlink, @link yaml_output::yaml_date_toa @endlink, @link yaml_output::yaml_time_toa @endlink.
+  !! @link yaml_strings::yaml_toa @endlink, 
+  !! @link yaml_strings::yaml_date_and_time_toa @endlink, @link yaml_strings::yaml_date_toa @endlink, @link yaml_strings::yaml_time_toa @endlink.
   !! @n@n
   !! There are also @link yaml_output::yaml_set_stream routine @endlink, @link yaml_output::yaml_set_default_stream @endlink, 
   !!                @link yaml_output::yaml_close_stream @endlink,       @link yaml_output::yaml_swap_stream @endlink, 
@@ -180,7 +180,7 @@ module yaml_output
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
-  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa
+  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa,dump_dict_impl
 
   !for internal f_lib usage
   public :: yaml_output_errors
@@ -328,7 +328,8 @@ contains
     logical :: unit_is_open,set_default,again
     integer :: istream,unt,ierr
     !integer(kind=8) :: recl_file
-    integer :: recl_file,unt_test
+    integer :: recl_file
+!!$    integer :: unt_test
     character(len=15) :: pos
 
     !check that the module has been initialized
@@ -437,7 +438,7 @@ contains
        streams(active_streams)=stream_null()
        streams(active_streams)%unit=6
        stream_units(active_streams)=6
-       streams(active_streams)%max_record_length=92 !leave 95 characters
+       streams(active_streams)%max_record_length=92 !leave 92 characters
        default_stream=active_streams
        again= unt /= 6 
     end if
@@ -449,6 +450,7 @@ contains
        streams(active_streams)=stream_null()
        streams(active_streams)%unit=unt
        stream_units(active_streams)=unt
+       istream = active_streams !for the following instructions
     end if
 
     ! set last opened stream as default stream
@@ -812,10 +814,8 @@ contains
     character(len=*), optional, intent(in) :: hfill   !< If present fill the line with the given character
     integer, optional, intent(in) :: tabbing          !< Number of space for tabbing
     !Local variables
-    integer :: unt,strm,msg_lgt,tb,ipos
-    integer :: lstart,lend,lmsg,lspace,hmax
+    integer :: unt,strm
     character(len=3) :: adv
-    character(len=tot_max_record_length) :: towrite
 
     unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
@@ -1126,13 +1126,13 @@ contains
   !> Write directly a yaml sequence, i.e. en element of a list
   subroutine yaml_sequence(seqvalue,label,advance,unit,padding)
     implicit none
-    integer, optional, intent(in) :: unit               !<@copydoc doc::unit
-    character(len=*), optional, intent(in) :: label     !<@copydoc doc::label
+    integer, optional, intent(in) :: unit               !< @copydoc doc::unit
+    character(len=*), optional, intent(in) :: label     !< @copydoc doc::label
     character(len=*), optional, intent(in) :: seqvalue  !< value of the sequence
-    character(len=*), optional, intent(in) :: advance   !<@copydoc doc::advance
-    integer, intent(in), optional :: padding            !<pad the seqvalue with blanks to have more readable output
+    character(len=*), optional, intent(in) :: advance   !< @copydoc doc::advance
+    integer, intent(in), optional :: padding            !< pad the seqvalue with blanks to have more readable output
     !local variables
-    integer :: msg_lgt,unt,strm,tb,istat,ipos,jpos,kpos
+    integer :: msg_lgt,unt,strm,tb,istat,ipos,event,lstart,lend,lspace,lmsg
     character(len=3) :: adv
     character(len=tot_max_record_length) :: towrite
 
@@ -1149,34 +1149,63 @@ contains
        call buffer_string(towrite,len(towrite),' &',msg_lgt)
        call buffer_string(towrite,len(towrite),trim(label)//' ',msg_lgt)
     end if
-    !put the value
-    if (present(seqvalue)) &
-         call buffer_string(towrite,len(towrite),trim(seqvalue),msg_lgt)
+
+    !Special case if not seqvalue
+    if (.not.present(seqvalue)) then
+       !Check padding
+       if (present(padding)) then
+          tb=padding-msg_lgt
+          if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
+       end if
+       call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM,istat=istat)
+       return
+    end if
 
     if (present(padding)) then
-       tb=padding-len_trim(seqvalue)
+       tb=padding-(len_trim(seqvalue)+msg_lgt)
        if (tb > 0) call buffer_string(towrite,len(towrite),repeat(' ',tb),msg_lgt)
     end if
-    !try to see if the line is too long
-    call dump(streams(strm),towrite(1:msg_lgt),advance=trim(adv),event=SEQUENCE_ELEM,istat=istat)
-    if (istat /=0 .and. .not. streams(strm)%flowrite) then
-       ipos=1
-       jpos=msg_lgt
-       kpos=jpos
-       loop_seq: do
-          call dump(streams(strm),towrite(ipos:kpos),advance=trim(adv),event=SCALAR,istat=istat)
-          if (istat /=0) then
-             !continue searching
-             kpos=index(towrite(ipos:jpos),' ',back=.true.)
-             if (kpos == 0) kpos=jpos-1
-          else
-             ipos=kpos+1
-             jpos=msg_lgt
-             kpos=jpos
+    
+    !Beginning of the sequence
+    lstart=1
+    !Length of the sequence to write (without blank characters)
+    lmsg=len_trim(seqvalue)
+
+    !Split the sequence if too long
+    event=SEQUENCE_ELEM
+    do
+       !Position of the cursor
+       ipos=max(streams(strm)%icursor,streams(strm)%indent)
+
+       !Detect the last character of the sequence
+       lend=len_trim(seqvalue(lstart:))
+       if (lend+msg_lgt+2 > streams(strm)%max_record_length) then
+          !We have an error from buffer_string so we split it!
+          !-1 to be less and -2 for the character '#'
+          lend=streams(strm)%max_record_length-msg_lgt-2
+          !We are looking for the first ' ' from the end
+          lspace=index(seqvalue(lstart:lstart+lend-1),' ',back=.true.)
+          if (lspace /= 0) then
+             lend = lspace
           end if
-          if (ipos > msg_lgt) exit loop_seq
-       end do loop_seq
-    end if
+       end if
+       call buffer_string(towrite,len(towrite),seqvalue(lstart:lstart+lend-1),msg_lgt)
+
+       !Dump the string towrite into the stream
+       call dump(streams(strm),towrite(1:msg_lgt),advance=adv,event=event)
+       !print *, "ee",towrite(1:msg_lgt),"ee"
+       !next line, it will be SCALAR
+       event=SCALAR
+       msg_lgt=0
+
+       !Check if all the sequence is written
+       !So we start from iend+1
+       lstart=lstart+lend
+       if (lstart>lmsg) then
+          exit
+       end if
+    end do
+
   end subroutine yaml_sequence
 
 
@@ -1700,12 +1729,11 @@ contains
              !print *,'towrite', repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt),' end'
              !stop 'ERROR (dump): writing exceeds record size'
           end if
-       else
-          if (extra_line) write(stream%unit,*)
-          !write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
-          write(stream%unit,'(a)',advance=trim(adv))&
-               repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
        end if
+       if (extra_line) write(stream%unit,*)
+       !write(*,fmt='(a,i0,a)',advance="no") '(indent_lgt ',indent_lgt,')'
+       write(stream%unit,'(a)',advance=trim(adv))&
+            repeat(' ',max(indent_lgt,0))//towrite(1:towrite_lgt)
     end if
 
     !if advancing i/o cursor is again one
@@ -2354,5 +2382,22 @@ contains
 
   end function yaml_walltime_toa
 
+  !> to be used for debugging
+  subroutine dump_dict_impl(dict)
+    implicit none
+    type(dictionary), pointer :: dict
+    if (.not. associated(dict)) call yaml_map('Dictionary associated',.false.)
+    call yaml_mapping_open('Dictionary associated')
+    call yaml_map('Associations, child, parent, next, previous',[associated(dict%child),associated(dict%parent),&
+         associated(dict%next),associated(dict%previous)])
+    call yaml_mapping_open('Data structure')
+    call yaml_map('Item',dict%data%item)
+    call yaml_map('Nitems',dict%data%nitems)
+    call yaml_map('Nelems',dict%data%nelems)
+    call yaml_map('Key',dict%data%key)
+    call yaml_map('Value',dict%data%value)
+    call yaml_mapping_close()
+    call yaml_mapping_close()
+  end subroutine dump_dict_impl
 
 end module yaml_output

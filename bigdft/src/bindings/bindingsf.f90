@@ -946,6 +946,7 @@ end subroutine kernel_get_comm
 
 
 subroutine localfields_new(self, denspotd, rhod, dpbox)
+  use module_dpbox
   use module_types
   implicit none
   integer(kind = 8), intent(in) :: self
@@ -961,6 +962,7 @@ END SUBROUTINE localfields_new
 
 
 subroutine localfields_get_data(denspotd, rhod, dpbox)
+  use module_dpbox
   use module_types
   implicit none
   type(DFT_local_fields), intent(in), target :: denspotd
@@ -974,6 +976,7 @@ END SUBROUTINE localfields_get_data
 
 subroutine localfields_free(denspotd, fion, fdisp)
   use module_base
+  use module_dpbox, only: dpbox_free
   use module_types
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use memory_profiling
@@ -1643,6 +1646,7 @@ subroutine run_objects_dump_to_file(iostat, dict, fname, userOnly,ln)
      return
   end if
   !call f_strcpy(src=fname(1:ln),dest=filetmp)
+  filetmp=''
   do iln=1,ln
      filetmp(iln:iln)=fname(iln)
   end do
@@ -1694,6 +1698,7 @@ END SUBROUTINE run_objects_nullify_dict
 
 subroutine run_objects_nullify_volatile(runObj)
   use f_enums
+  use public_enums
   use bigdft_run, only: run_objects
   use module_defs, only: verbose
   use yaml_output, only: yaml_sequence_close
@@ -1702,7 +1707,7 @@ subroutine run_objects_nullify_volatile(runObj)
   type(run_objects), intent(inout) :: runObj
 
   if (associated(runObj%run_mode)) then
-    if (bigdft_mpi%iproc==0 .and. (runObj%run_mode /= 'QM_RUN_MODE') .and. verbose > 0)&
+    if (bigdft_mpi%iproc == 0 .and. runObj%run_mode /= QM_RUN_MODE)&
          call yaml_sequence_close()
   end if
 
