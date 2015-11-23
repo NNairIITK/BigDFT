@@ -58,6 +58,10 @@ Keys to ignore:
  - check_overlap
  - check_sumrho
  - Leaked force
+ - psolver_accel
+ - psolver_groupsize
+ - gps_method
+ - solvent
  #- number of tasks
  #- IDs
  #- start / end
