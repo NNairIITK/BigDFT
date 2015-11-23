@@ -53,7 +53,8 @@ module yaml_strings
   end interface operator(.neqv.)
 
   interface operator(//)
-     module procedure string_and_integer,string_and_double,string_and_long,string_and_msg,msg_and_string
+     module procedure string_and_integer,string_and_double,string_and_simple
+     module procedure string_and_long,string_and_msg,msg_and_string
      module procedure integer_and_string,integer_and_msg,msg_and_msg
   end interface
 
@@ -774,6 +775,17 @@ contains
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
   end function string_and_double
+
+  pure function string_and_simple(a,num) result(c)
+    implicit none
+    real(f_simple), intent(in) :: num
+    character(len=*), intent(in) :: a
+!!$    character(len=len_trim(adjustl(a))+len_trim(yaml_dtoa(num))) :: c
+!!$    c=a//trim(yaml_toa(num))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
+  end function string_and_simple
+
 
   pure function string_and_msg(a,num) result(c)
     implicit none

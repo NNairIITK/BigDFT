@@ -1552,6 +1552,7 @@ contains
          .item. MODE_VARIABLES,&
          .item. PERF_VARIABLES,&  
          .item. DFT_VARIABLES,&   
+         .item. PSOLVER,&   
          .item. KPT_VARIABLES,&   
          .item. GEOPT_VARIABLES,& 
          .item. MD_VARIABLES,& 

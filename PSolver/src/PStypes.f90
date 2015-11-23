@@ -14,6 +14,7 @@ module PStypes
   use PSbase
   use environment, only: cavity_data,cavity_default
   use dynamic_memory
+  use f_input_file, only: ATTRS
   implicit none
 
   private
@@ -44,6 +45,7 @@ module PStypes
   character(len=*), parameter :: GLOBAL_DATA             = 'global_data' 
   character(len=*), parameter :: VERBOSITY               = 'verbose' 
   character(len=*), parameter :: OUTPUT                  = 'output' 
+  character(len=*), parameter :: DICT_COMPLETED          = '__dict_has_been_checked__'//ATTRS
 
   
   !>Defines the internal information for application of the FFT between the kernel and the 
@@ -212,8 +214,8 @@ module PStypes
 
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
-  public :: ps_allocate_lowlevel_workarrays,PSolver_options_null
-  public :: release_PS_workarrays,PS_release_lowlevel_workarrays,PS_set_options,pkernel_init_new
+  public :: ps_allocate_lowlevel_workarrays,PSolver_options_null,PS_input_dict
+  public :: release_PS_workarrays,PS_release_lowlevel_workarrays,PS_set_options,pkernel_init
 
 contains
 
@@ -417,7 +419,7 @@ contains
 
   !> Initialization of the Poisson kernel
   !! @ingroup PSOLVER
-  function pkernel_init_new(iproc,nproc,dict,geocode,ndims,hgrids,angrad,mpi_env) result(kernel)
+  function pkernel_init(iproc,nproc,dict,geocode,ndims,hgrids,angrad,mpi_env) result(kernel)
     use yaml_output
     use dictionaries
     use numerics
@@ -456,9 +458,8 @@ contains
 
     !new treatment for the kernel input variables
     kernel%method=PS_VAC_ENUM
-    call PS_input_dict(dict) !complete the dictionary
+    if (DICT_COMPLETED .notin. dict) call PS_input_dict(dict) !complete the dictionary
 
-    
     call PS_fill_variables(kernel,kernel%opt,dict) !fill the structure with basic results
 
     kernel%keepzf=1
@@ -505,7 +506,7 @@ contains
        call yaml_mapping_close() !kernel
     end if
 
-  end function pkernel_init_new
+  end function pkernel_init
 
   !>modifies the options of the poisson solver to switch certain options
   subroutine PS_set_options(kernel,global_data,calculate_strten,verbose,&
@@ -543,7 +544,7 @@ contains
 
 
   !>routine to fill the input variables of the kernel
-  subroutine PS_input_dict(dict)
+  subroutine PS_input_dict(dict,dict_minimal)
     use dictionaries
     use f_input_file
     use yaml_parse
@@ -551,7 +552,7 @@ contains
     !>input dictionary, a copy of the user input, to be filled
     !!with all the variables on exit
     type(dictionary), pointer :: dict
-    !local variables
+    type(dictionary), pointer, optional :: dict_minimal
     !local variables
     integer(f_integer) :: params_size
     !integer(kind = 8) :: cbuf_add !< address of c buffer
@@ -559,6 +560,7 @@ contains
     type(dictionary), pointer :: parameters
     type(dictionary), pointer :: parsed_parameters
     type(dictionary), pointer :: profiles
+    type(dictionary), pointer :: nested,asis
 
     call f_routine(id='PS_input_dict')
 
@@ -580,6 +582,11 @@ contains
 
     call input_file_complete(parameters,dict,imports=profiles)
 
+    if (present(dict_minimal)) then
+       nullify(nested,asis)
+       call input_file_minimal(parameters,dict,dict_minimal,nested,asis)
+    end if
+
     if (associated(parsed_parameters)) then
        call dict_free(parsed_parameters)
        nullify(parameters)
@@ -587,6 +594,9 @@ contains
     else
        call dict_free(parameters)
     end if
+
+    !write in the dictionary that it has been completed
+    call set(dict//DICT_COMPLETED,.true.)
 
     call f_release_routine()
 
@@ -633,7 +643,7 @@ contains
     real(gp), dimension(2) :: dummy_gp !< to fill the input variables
     logical, dimension(2) :: dummy_log !< to fill the input variables
     character(len=256) :: dummy_char
-    character(len = max_field_length) :: str
+    character(len = max_field_length) :: strn
     integer :: i, ipos
 
     if (index(dict_key(val), "_attributes") > 0) return
@@ -654,8 +664,9 @@ contains
     case (ENVIRONMENT_VARIABLES)
        select case (trim(dict_key(val)))
        case (CAVITY_KEY)
-          str=val
-          select case(trim(str))
+          strn=val
+
+          select case(trim(strn))
           case('vacuum')
              call f_enum_attr(k%method,PS_NONE_ENUM)
           case('rigid')
@@ -686,8 +697,8 @@ contains
           dummy_d=val
           k%cavity%betaV=dummy_d/AU_GPa
        case (GPS_ALGORITHM)
-          str=val
-          select case(trim(str))
+          strn=val
+          select case(trim(strn))
           case('PI')
              call f_enum_update(dest=k%method,src=PS_PI_ENUM)
           case('PCG')

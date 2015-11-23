@@ -370,7 +370,7 @@ program GPS_3D
    end if
 
   !new method
-   pkernel=pkernel_init_new(iproc,nproc,dict_input,geocode,ndims,hgrids)  
+   pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids)  
 !!$  pkernel=pkernel_init(.true.,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,alg=PSol)
   call dict_free(dict_input)
   call pkernel_set(pkernel,verbose=.true.)

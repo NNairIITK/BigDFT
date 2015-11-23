@@ -20,7 +20,7 @@ module f_input_file
   integer :: INPUT_VAR_NOT_IN_RANGE = ERR_UNDEF
   integer :: INPUT_VAR_ILLEGAL = ERR_UNDEF
 
-  character(len = *), parameter :: ATTRS = "_attributes"
+  character(len = *), parameter, public :: ATTRS = "_attributes"
   character(len = *), parameter :: PROF_KEY = "PROFILE_FROM"
   character(len = *), parameter :: USER_KEY = "USER_DEFINED"
 
@@ -235,7 +235,7 @@ contains
 !!$          call f_err_throw(err_id = INPUT_VAR_ILLEGAL, &
 !!$               & err_msg = trim(file) // "/" // trim(key) // " has to be presentd with a master key.")
           !          call f_release_routine()
-          !print *,'XXXXXXXXXXXXx'
+          !print *,trim(key)'XXXXXXXXXXXXx'
           return
        end if
 
@@ -261,7 +261,13 @@ contains
           end do
        end if
        if ( profile_ .notin. ref) profile_ = DEFAULT
-       call dict_copy(dict // key, ref // profile_)
+       !still search if the chosen profile correspons to the value of another profile
+       val = dict_value(ref // profile_)
+       if (val .in. ref) then
+          call dict_copy(dict // key, ref // val)
+       else
+          call dict_copy(dict // key, ref // profile_)
+       end if
     end if
 
     ! Copy the comment.
@@ -280,7 +286,8 @@ contains
       implicit none
       type(dictionary), pointer :: dict, ref
       logical :: set_
-
+      !local variables
+      logical :: l1
       integer :: j
       type(dictionary), pointer :: tmp,tmp0,tmp_not,iter
       character(max_field_length) :: mkey, val_master, val_when
@@ -314,7 +321,8 @@ contains
       !call yaml_map('when',tmp)
       !call yaml_map('whennot',tmp_not)
       !call yaml_map('intmp',[(val_master .in. tmp),(val_master .notin. tmp_not)])
-      set_ = (val_master .in. tmp) .and. (val_master .notin. tmp_not)
+      l1=(val_master .in. tmp) .or. .not. associated(tmp)
+      set_ = l1 .and. (val_master .notin. tmp_not)
       !call yaml_map('set_',set_)
       if (set_) return !still check if the value is coherent with the profile
       tmp0 => inputdef // file // mkey
@@ -869,12 +877,14 @@ contains
        call yaml_comment("Input parameters", hfill = "-")
     end if
     
-    iter => dict_iter(dict)
-    do while(associated(iter))
+!!$    iter => dict_iter(dict)
+!!$    do while(associated(iter))
+    nullify(iter)
+    do while(iterating(iter,on=dict))
        todump=.true.
        if (present(nodump_list)) todump = dict_key(iter) .notin. nodump_list
        if (todump) call input_variable_dump(iter,userOnly_)
-       iter => dict_next(iter)
+       !iter => dict_next(iter)
     end do
 
   end subroutine input_file_dump

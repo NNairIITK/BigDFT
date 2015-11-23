@@ -393,14 +393,14 @@
        By default symmetries are used to update the density in periodic boundary condition calculations, and surface
        boundary conditions also. 
      default: No
-   solvent:
-     COMMENT: Electrostatic environment for Poisson Equation
-     DESCRIPTION: Define the method to set the dielectric function as a function of the position
-     EXCLUSIVE:
-       vacuum: No Solvent method, ordinary Poisson Equation
-       rigid:  Rigid (smoothed) cavity around the atoms, given as superposition of spheres
-       sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
-     default: vacuum
+#   solvent:
+#     COMMENT: Electrostatic environment for Poisson Equation
+#     DESCRIPTION: Define the method to set the dielectric function as a function of the position
+#     EXCLUSIVE:
+#       vacuum: No Solvent method, ordinary Poisson Equation
+#       rigid:  Rigid (smoothed) cavity around the atoms, given as superposition of spheres
+#       sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
+#     default: vacuum
    external_potential:
      COMMENT: Multipole moments of an external potential
      DESCRIPTION: Give the multipole moments up to quadrupoles
@@ -1201,16 +1201,16 @@
    rho_commun:
      COMMENT: Density communication scheme (DBL, RSC, MIX)
      default: DEF
-   psolver_groupsize:
-     COMMENT: Size of Poisson Solver taskgroups (0=nproc)
-     RANGE: [0, 1000000]
-     default: 0
-   psolver_accel:
-     COMMENT: Acceleration of the Poisson Solver (0=none, 1=CUDA)
-     EXCLUSIVE:
-       0: None
-       1: CUDA
-     default: 0
+#   psolver_groupsize:
+#     COMMENT: Size of Poisson Solver taskgroups (0=nproc)
+#     RANGE: [0, 1000000]
+#     default: 0
+#   psolver_accel:
+#     COMMENT: Acceleration of the Poisson Solver (0=none, 1=CUDA)
+#     EXCLUSIVE:
+#       0: None
+#       1: CUDA
+#     default: 0
    unblock_comms:
      COMMENT: Overlap Communications of fields (OFF,DEN,POT)
      EXCLUSIVE:
@@ -1403,13 +1403,13 @@
    wf_extent_analysis:
      COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      default: False
-   gps_method:
-     COMMENT: method for the Generalized Poisson Equation
-     EXCLUSIVE:
-        VAC: Vacuum (ordinary treatment)
-        PI: Polarization Iteration
-        PCG: Preconditioned Conjugate Gradient
-     default: VAC
+#   gps_method:
+#     COMMENT: method for the Generalized Poisson Equation
+#     EXCLUSIVE:
+#        VAC: Vacuum (ordinary treatment)
+#        PI: Polarization Iteration
+#        PCG: Preconditioned Conjugate Gradient
+#     default: VAC
    foe_gap:
      COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
      default: False

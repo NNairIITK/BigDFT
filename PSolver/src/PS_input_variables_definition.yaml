@@ -65,6 +65,7 @@
     CONDITION: 
       MASTER_KEY: cavity
       WHEN_NOT: [none] 
+    PROFILE_FROM: cavity
   edensmaxmin: 
     COMMENT: Extremum values of the charge density, for the definition of the transition region
     default: [ 1.0e-4, 5.0e-3]
@@ -77,6 +78,7 @@
     CONDITION:
       MASTER_KEY: cavity
       WHEN: [rigid]
+    PROFILE_FROM: cavity
   cavitation: 
     COMMENT: triggers the evaluation of the extra cavtitation terms
     default: No
@@ -116,6 +118,7 @@
     CONDITION: 
       MASTER_KEY: cavity
       WHEN_NOT: [none]
+    PROFILE_FROM: cavity
   pi_eta: 
     COMMENT: Mixing parameter of the PI algorithm
     RANGE: [0.0, 1.0]
