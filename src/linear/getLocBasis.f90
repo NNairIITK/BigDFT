@@ -545,11 +545,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%l, tmb%linmat%ovrlp_%matrix_compr, ovrlp_large, 'small_to_large')
           call transform_sparse_matrix(tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_%matrix_compr, ham_large, 'small_to_large')
           !write(*,*) 'iproc, ham_large', iproc, ham_large
-          call pexsi_driver(iproc, nproc, tmb%linmat%m%nfvctr, tmb%linmat%m%nvctr, row_ind, col_ptr, &
+          call pexsi_driver(iproc, nproc, tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, row_ind, col_ptr, &
                'hamiltonian_sparse_PEXSI.bin', 'overlap_sparse_PEXSI.bin', &
                ham_large, ovrlp_large, foe_data_get_real(tmb%foe_obj,"charge",1), pexsi_npoles, &
                pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge, &
-               tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr, energs%ebs)
+               tmb%linmat%kernel_%matrix_compr, energs%ebs)
 
           call f_free(ovrlp_large)
           call f_free(ham_large)

@@ -52,7 +52,7 @@ module pexsi
       !> @date 2014-04-02
       subroutine pexsi_driver(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, Hfile, Sfile, &
                  mat_h, mat_s, charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
-                 nsize_kernel, kernel, energy)
+                 kernel, energy)
       use module_base
       use f_ppexsi_interface
       use yaml_output
@@ -69,9 +69,9 @@ module pexsi
       character(len=*),intent(in) :: Hfile, Sfile
       real(kind=8),dimension(nvctr),intent(in) :: mat_h, mat_s
       real(kind=8),intent(in) :: charge
-      integer,intent(in) :: npoles, nsize_kernel
+      integer,intent(in) :: npoles
       real(kind=8),intent(in) :: mumin, mumax, mu, temperature, tol_charge
-      real(kind=8),dimension(nsize_kernel),intent(out) :: kernel
+      real(kind=8),dimension(nvctr),intent(out) :: kernel
       real(kind=8),intent(out) :: energy
       
       integer(c_int) :: nrows, nnz, nnzLocal, numColLocal
@@ -86,7 +86,7 @@ module pexsi
       real(c_double) :: totalEnergyH, totalEnergyS, totalFreeEnergy
       
       integer(c_int):: nprow, npcol, npSymbFact, outputFileIndex, ic
-      integer :: ierr
+      integer :: ierr, ii
       double precision:: timeSta, timeEnd
       integer(c_int):: info
       integer(c_intptr_t) :: plan
@@ -94,7 +94,7 @@ module pexsi
       real(kind=8),dimension(:),pointer :: mat_h_local, mat_s_local
       integer,dimension(:),pointer :: col_ptr_local, row_ind_local
       
-      integer:: i, j , nfvctr_local, nvctr_local
+      integer:: i, j , nfvctr_local, nvctr_local, isvctr_local, maxproc
       integer:: numColLocalFirst, firstCol
       integer:: irow, jcol
       
@@ -116,238 +116,267 @@ module pexsi
       !Sfile            = "lap2dr.matrix"
       !Hfile            = "hamiltonian_sparse_PEXSI.bin"
       !Sfile            = "overlap_sparse_PEXSI.bin"
-      
-      ! Only use 4 processors in this example
-      nprow = int(2,kind=c_int)
-      npcol = int(2,kind=c_int)
-      
-      ! Split the processors to read matrix
-      if( iproc < nprow * npcol ) then
-      	isProcRead = 1
-      else
-      	isProcRead = 0
-      endif
-      
-      call mpi_comm_split( MPI_COMM_WORLD, isProcRead, iproc, readComm, ierr )
-      
-      
-      if( isProcRead == 1 ) then
-        !call f_read_distsparsematrix_formatted_head( &
-        !  trim(Hfile)//char(0),&
-        !  nrows,&
-        !  nnz,&
-        !  nnzLocal,&
-        !  numColLocal,&
-        !  readComm )
 
-        call distribute_matrix(iproc, nproc, nfvctr, nvctr, col_ptr, row_ind, mat_h, mat_s, &
-             nfvctr_local, nvctr_local, col_ptr_local, row_ind_local, mat_h_local, mat_s_local)
-        !Because they are C integers..?
-        nrows = int(nfvctr,kind=c_int)
-        nnz = int(nvctr,kind=c_int)
-        nnzLocal = int(nvctr_local,kind=c_int)
-        numColLocal = int(nfvctr_local,kind=c_int)
+      ! Determine the number of processes used.
+      ! Ideal number of processes per pole:
+      ii = nproc! / npoles
+      ! Number of processor rows / columns
+      ii = max(1,floor(sqrt(real(ii,kind=8))))
+      nprow = int(ii,kind=c_int)
+      npcol = int(ii,kind=c_int)
+      ! "Highest" MPI task working
+      !maxproc = npoles*nprow*npcol
+      maxproc = nprow*npcol
+
+      if (iproc==0) then
+          write(*,*) 'nproc, npoles, nprow, npcol, maxproc', nproc, npoles, nprow, npcol, maxproc
+      end if
       
-        if( iproc .eq. 0 ) then
-          write(*,*) "Matrix size (local data on proc 0):" 
-          write(*,*) "size = ", nfvctr
-          write(*,*) "nnz  = ", nvctr
-          write(*,*) "nnzLocal = ", nnzLocal
-          write(*,*) "numColLocal = ", numColLocal
-        endif
-        !write(*,*) 'OLD: iproc, nrows, nnz, nnzLocal, numColLocal', iproc, nrows, nnz, nnzLocal, numColLocal
+      
+          !!! Only use 4 processors in this example
+          !!nprow = int(2,kind=c_int)
+          !!npcol = int(2,kind=c_int)
+          
+          ! Split the processors to read matrix
+          if( iproc < maxproc ) then
+          	isProcRead = 1
+          else
+           isProcRead = 0
+          endif
+          
+          call mpi_comm_split( bigdft_mpi%mpi_comm, isProcRead, iproc, readComm, ierr )
+          
+      if (iproc<maxproc) then
+          
+          !if( isProcRead == 1 ) then
+            !call f_read_distsparsematrix_formatted_head( &
+            !  trim(Hfile)//char(0),&
+            !  nrows,&
+            !  nnz,&
+            !  nnzLocal,&
+            !  numColLocal,&
+            !  readComm )
+
+            call distribute_matrix(iproc, maxproc, nfvctr, nvctr, col_ptr, row_ind, mat_h, mat_s, &
+                 nfvctr_local, nvctr_local, isvctr_local, col_ptr_local, row_ind_local, mat_h_local, mat_s_local)
+            !Because they are C integers..?
+            nrows = int(nfvctr,kind=c_int)
+            nnz = int(nvctr,kind=c_int)
+            nnzLocal = int(nvctr_local,kind=c_int)
+            numColLocal = int(nfvctr_local,kind=c_int)
+          
+            if( iproc .eq. 0 ) then
+              write(*,*) "Matrix size (local data on proc 0):" 
+              write(*,*) "size = ", nfvctr
+              write(*,*) "nnz  = ", nvctr
+              write(*,*) "nnzLocal = ", nnzLocal
+              write(*,*) "numColLocal = ", numColLocal
+            endif
+            !write(*,*) 'OLD: iproc, nrows, nnz, nnzLocal, numColLocal', iproc, nrows, nnz, nnzLocal, numColLocal
 
 
-        !write(*,*) 'NEW: iproc, nrows, nnz, nnzLocal, numColLocal', iproc, nfvctr, nvctr, nnzLocal, numColLocal
-        !write(*,*) 'NEW: col_ptr_local',col_ptr_local 
-        !write(*,*) 'NEW: row_ind_local',row_ind_local
-        !write(*,*) 'NEW: mat_h_local',mat_h_local
-        if (iproc==0) write(*,*) 'NEW:  mat_s', mat_s
-        write(*,*) 'NEW: iproc, mat_s_local', iproc, mat_s_local
-      
-        ! Allocate memory
-        allocate( colptrLocal( numColLocal + 1 ) )
-        allocate( rowindLocal( nnzLocal ) )
-        allocate( HnzvalLocal( nnzLocal ) )
-        allocate( SnzvalLocal( nnzLocal ) )
-        allocate( DMnzvalLocal( nnzLocal ) )
-        allocate( EDMnzvalLocal( nnzLocal ) )
-        allocate( FDMnzvalLocal( nnzLocal ) )
-      
-        !call f_read_distsparsematrix_formatted (&
-        !  trim(Hfile)//char(0),&
-        !  nfvctr,&
-        !  nvctr,&
-        !  nnzLocal,&
-        !  numColLocal,&
-        !  colptrLocal,&
-        !  rowindLocal,&
-        !  HnzvalLocal,&
-        !  readComm )
+            !write(*,*) 'NEW: iproc, nrows, nnz, nnzLocal, numColLocal', iproc, nfvctr, nvctr, nnzLocal, numColLocal
+            !write(*,*) 'NEW: col_ptr_local',col_ptr_local 
+            !write(*,*) 'NEW: row_ind_local',row_ind_local
+            !write(*,*) 'NEW: mat_h_local',mat_h_local
+            !if (iproc==0) write(*,*) 'NEW:  mat_s', mat_s
+            !write(*,*) 'NEW: iproc, mat_s_local', iproc, mat_s_local
+          
+            ! Allocate memory
+            allocate( colptrLocal( numColLocal + 1 ) )
+            allocate( rowindLocal( nnzLocal ) )
+            allocate( HnzvalLocal( nnzLocal ) )
+            allocate( SnzvalLocal( nnzLocal ) )
+            allocate( DMnzvalLocal( nnzLocal ) )
+            allocate( EDMnzvalLocal( nnzLocal ) )
+            allocate( FDMnzvalLocal( nnzLocal ) )
+          
+            !call f_read_distsparsematrix_formatted (&
+            !  trim(Hfile)//char(0),&
+            !  nfvctr,&
+            !  nvctr,&
+            !  nnzLocal,&
+            !  numColLocal,&
+            !  colptrLocal,&
+            !  rowindLocal,&
+            !  HnzvalLocal,&
+            !  readComm )
 
-      
-        !call f_read_distsparsematrix_formatted (&
-        !  trim(Sfile)//char(0),&
-        !  nfvctr,&
-        !  nvctr,&
-        !  nnzLocal,&
-        !  numColLocal,&
-        !  colptrLocal,&
-        !  rowindLocal,&
-        !  SnzvalLocal,&
-        !  readComm )
+          
+            !call f_read_distsparsematrix_formatted (&
+            !  trim(Sfile)//char(0),&
+            !  nfvctr,&
+            !  nvctr,&
+            !  nnzLocal,&
+            !  numColLocal,&
+            !  colptrLocal,&
+            !  rowindLocal,&
+            !  SnzvalLocal,&
+            !  readComm )
 
-        do i=1,nfvctr_local+1
-            ic = int(i,kind=c_int)
-            colptrLocal(ic) = int(col_ptr_local(i),kind=c_int)
-        end do
-        do i=1,nvctr_local
-            ic = int(i,kind=c_int)
-            rowIndLocal(ic) = int(row_ind_local(i),kind=c_int)
-            HnzvalLocal(ic) = real(mat_h_local(i),kind=c_double)
-            SnzvalLocal(ic) = real(mat_s_local(i),kind=c_double)
-        end do
+            !write(*,*) 'OLD: colptrLocal',colptrLocal
+            !write(*,*) 'OLD: rowindLocal',rowindLocal
 
-        !write(*,*) 'OLD: colptrLocal',colptrLocal
-        !write(*,*) 'OLD: rowindLocal',rowindLocal
-        !write(*,*) 'OLD: HnzvalLocal',HnzvalLocal
-        write(*,*) 'OLD: iproc, SnzvalLocal',iproc,SnzvalLocal
-      
-      endif
-      
-      ! Step 1. Initialize PEXSI 
-      
-      ! Set the outputFileIndex to be the pole index.
-      ! The first processor for each pole outputs information
-      
-      if( mod( iproc, nprow * npcol ) .eq. 0 ) then
-        outputFileIndex = iproc / (nprow * npcol);
-      else
-        outputFileIndex = -1;
-      endif
-      
-      
-      plan = f_ppexsi_plan_initialize(&
-        MPI_COMM_WORLD,&
-        nprow,&
-        npcol,&
-        outputFileIndex,&
-        info )
-      
-      if( info .ne. 0 ) then
-      	call mpi_finalize( ierr )
-      	call exit(info)
-      endif
-      
-      call f_ppexsi_set_default_options(&
-        options )
-      
-      numElectronExact = real(charge,kind=c_double)
-      options%muMin0   = real(mumin,kind=c_double)
-      options%muMax0   = real(mumax,kind=c_double)
-      options%mu0      = real(mu,kind=c_double)
-      options%deltaE   = real(20d0 ,kind=c_double)
-      options%numPole  = int(npoles,kind=c_int)
-      options%temperature = real(temperature,kind=c_double)
-      options%muPEXSISafeGuard = real(0.2d0,kind=c_double)
-      options%numElectronPEXSITolerance = real(tol_charge,kind=c_double)
-      
-      write(*,*) 'calling f_ppexsi_load_real_symmetric_hs_matrix, iproc',iproc
-      call f_ppexsi_load_real_symmetric_hs_matrix(&
-            plan,&       
+            do i=1,nfvctr_local+1
+                ic = int(i,kind=c_int)
+                colptrLocal(ic) = int(col_ptr_local(i),kind=c_int)
+            end do
+            do i=1,nvctr_local
+                ic = int(i,kind=c_int)
+                rowIndLocal(ic) = int(row_ind_local(i),kind=c_int)
+                HnzvalLocal(ic) = real(mat_h_local(i),kind=c_double)
+                SnzvalLocal(ic) = real(mat_s_local(i),kind=c_double)
+            end do
+
+            !write(*,*) 'OLD: HnzvalLocal',HnzvalLocal
+            !write(*,*) 'OLD: iproc, SnzvalLocal',iproc,SnzvalLocal
+          
+          !endif
+          
+          ! Step 1. Initialize PEXSI 
+          
+          ! Set the outputFileIndex to be the pole index.
+          ! The first processor for each pole outputs information
+          
+          if( mod( iproc, nprow * npcol ) .eq. 0 ) then
+            outputFileIndex = iproc / (nprow * npcol);
+          else
+            outputFileIndex = -1;
+          endif
+          
+          
+          plan = f_ppexsi_plan_initialize(&
+            readComm,&
+            nprow,&
+            npcol,&
+            outputFileIndex,&
+            info )
+          
+          if( info .ne. 0 ) then
+          	call mpi_finalize( ierr )
+          	call exit(info)
+          endif
+          
+          call f_ppexsi_set_default_options(&
+            options )
+          
+          numElectronExact = real(charge,kind=c_double)
+          options%muMin0   = real(mumin,kind=c_double)
+          options%muMax0   = real(mumax,kind=c_double)
+          options%mu0      = real(mu,kind=c_double)
+          options%deltaE   = real(20d0 ,kind=c_double)
+          options%numPole  = int(npoles,kind=c_int)
+          options%temperature = real(temperature,kind=c_double)
+          options%muPEXSISafeGuard = real(0.2d0,kind=c_double)
+          options%numElectronPEXSITolerance = real(tol_charge,kind=c_double)
+          
+          call f_ppexsi_load_real_symmetric_hs_matrix(&
+                plan,&       
+                options,&
+                nrows,&
+                nnz,&
+                nnzLocal,&
+                numColLocal,&
+                colptrLocal,& 
+                rowindLocal,&
+                HnzvalLocal,&
+                int(0,kind=c_int),&
+                SnzvalLocal,&
+                info ) 
+          !write(*,*) 'after f_ppexsi_load_real_symmetric_hs_matrix, info',iproc, info
+          !call mpi_finalize(ierr)
+          !stop
+          
+          if( info .ne. 0 ) then
+          	call mpi_finalize( ierr )
+          	call exit(info)
+          endif
+          
+          
+          if( iproc == 0 ) then
+            write(*,*)  "Finish setting up the matrix."
+          endif
+          
+          ! Step 2. PEXSI Solve
+        
+          !call mpi_finalize(ierr)
+          !stop
+          call f_ppexsi_dft_driver(&
+            plan,&
             options,&
-            nrows,&
-            nnz,&
-            nnzLocal,&
-            numColLocal,&
-            colptrLocal,& 
-            rowindLocal,&
-            HnzvalLocal,&
-            int(0,kind=c_int),&
-            SnzvalLocal,&
-            info ) 
-      write(*,*) 'after f_ppexsi_load_real_symmetric_hs_matrix, iproc',iproc, info
-      !call mpi_finalize(ierr)
-      !stop
-      
-      if( info .ne. 0 ) then
-      	call mpi_finalize( ierr )
-      	call exit(info)
-      endif
-      
-      
-      if( iproc == 0 ) then
-        write(*,*)  "Finish setting up the matrix."
-      endif
-      
-      ! Step 2. PEXSI Solve
-    
-      write(*,*) 'calling f_ppexsi_dft_driver, iproc', iproc
-      !call mpi_finalize(ierr)
-      !stop
-      call f_ppexsi_dft_driver(&
-        plan,&
-        options,&
-        numElectronExact,&
-        muPEXSI,&
-        numElectronPEXSI,&
-        muMinInertia,&
-        muMaxInertia,&
-        numTotalInertiaIter,&
-        numTotalPEXSIIter,&
-        info)
+            numElectronExact,&
+            muPEXSI,&
+            numElectronPEXSI,&
+            muMinInertia,&
+            muMaxInertia,&
+            numTotalInertiaIter,&
+            numTotalPEXSIIter,&
+            info)
 
-      write(*,*) 'after f_ppexsi_dft_driver, iproc', iproc
-      
-      if( info .ne. 0 ) then
-      	call mpi_finalize( ierr )
-      	call exit(info)
-      endif
-      
-      
-      if( iproc == 0 ) then
-        write(*,*)  "Finish DFT driver."
-      endif
-      
-      if( isProcRead == 1 ) then
-        call f_ppexsi_retrieve_real_symmetric_dft_matrix(&
-          plan,&
-          DMnzvalLocal,&
-          EDMnzvalLocal,&
-          FDMnzvalLocal,&
-          totalEnergyH,&
-          totalEnergyS,&
-          totalFreeEnergy,&
-          info)
-      
-        if( iproc == 0 ) then
-          write(*,*) "Output from the main program."
-          write(*,*) "Total energy (H*DM)         = ", totalEnergyH
-          write(*,*) "Total energy (S*EDM)        = ", totalEnergyS
-          write(*,*) "Total free energy           = ", totalFreeEnergy
-        endif
-      endif
-      
-      energy = totalEnergyH
-      
-      
-      ! Step 3. Clean up */
-      
-      call f_ppexsi_plan_finalize( plan, info )
-      
-      call mpi_comm_free( readComm, ierr )
-      !call mpi_finalize( ierr )
-      
-      kernel(:) = DMnzvalLocal
-      
-      if( isProcRead == 1 ) then
-        deallocate( colptrLocal )
-        deallocate( rowindLocal )
-        deallocate( HnzvalLocal )
-        deallocate( DMnzvalLocal )
-        deallocate( EDMnzvalLocal )
-        deallocate( FDMnzvalLocal )
-      endif
+          !write(*,*) 'after f_ppexsi_dft_driver, iproc', iproc
+          
+          if( info .ne. 0 ) then
+          	call mpi_finalize( ierr )
+          	call exit(info)
+          endif
+          
+          
+          if( iproc == 0 ) then
+            write(*,*)  "Finish DFT driver."
+          endif
+          
+          if( isProcRead == 1 ) then
+            call f_ppexsi_retrieve_real_symmetric_dft_matrix(&
+              plan,&
+              DMnzvalLocal,&
+              EDMnzvalLocal,&
+              FDMnzvalLocal,&
+              totalEnergyH,&
+              totalEnergyS,&
+              totalFreeEnergy,&
+              info)
+          
+            if( iproc == 0 ) then
+              write(*,*) "Output from the main program."
+              write(*,*) "Total energy (H*DM)         = ", totalEnergyH
+              write(*,*) "Total energy (S*EDM)        = ", totalEnergyS
+              write(*,*) "Total free energy           = ", totalFreeEnergy
+            endif
+          endif
+          
+          energy = totalEnergyH
+          
+          
+          ! Step 3. Clean up */
+          
+          call f_ppexsi_plan_finalize( plan, info )
+          
+          
+          ! Gather the local copies of the kernel
+          call f_zero(kernel)
+          do i=1,nvctr_local
+              !write(*,*) 'iproc, i, isvctr_local+i-1', iproc, i, isvctr_local+i-1
+              kernel(isvctr_local+i-1) = DMnzvalLocal(i)
+          end do
+          call mpiallred(kernel,mpi_sum,comm=readComm)
+
+          !call mpi_finalize( ierr )
+          
+          if( isProcRead == 1 ) then
+            deallocate( colptrLocal )
+            deallocate( rowindLocal )
+            deallocate( HnzvalLocal )
+            deallocate( DMnzvalLocal )
+            deallocate( EDMnzvalLocal )
+            deallocate( FDMnzvalLocal )
+          endif
+
+      end if
+
+          call mpi_comm_free( readComm, ierr )
+
+      call mpibcast(energy, root=0, comm=bigdft_mpi%mpi_comm) 
+      call mpibcast(kernel, root=0, comm=bigdft_mpi%mpi_comm) 
       
       call f_routine(id='f_driver_ksdft')
       
@@ -356,7 +385,7 @@ module pexsi
 
 
       subroutine distribute_matrix(iproc, nproc, nfvctr, nvctr, col_ptr, row_ind, mat_H, mat_S, &
-                 nfvctr_local, nvctr_local, col_ptr_local, row_ind_local, mat_h_local, mat_s_local)
+                 nfvctr_local, nvctr_local, isvctr_local, col_ptr_local, row_ind_local, mat_h_local, mat_s_local)
         use module_base
         implicit none
 
@@ -371,6 +400,7 @@ module pexsi
         real(kind=8),dimension(nvctr),intent(in) :: mat_s !< values of S
         integer,intent(out) :: nfvctr_local !< number of columns (local)
         integer,intent(out) :: nvctr_local !< number of nonzero elements (local)
+        integer,intent(out) :: isvctr_local !< global index of the first local non-zero element for each MPI task
         integer,dimension(:),pointer,intent(out) :: col_ptr_local !< local part of col_ptr
         integer,dimension(:),pointer,intent(out) :: row_ind_local !< local part of row_ind
         real(kind=8),dimension(:),pointer,intent(out) :: mat_h_local !< local entries of H
@@ -406,9 +436,9 @@ module pexsi
         mat_h_local = f_malloc_ptr(nvctr_local,id='mat_h_local')
         mat_s_local = f_malloc_ptr(nvctr_local,id='mat_s_local')
 
-        ! Local copy of col_ptr
+        ! Local copy of col_ptr, with respect to the first local element
         do i=1,nfvctr_local+1
-            col_ptr_local(i) = col_ptr_tmp(iproc*ncol+i)
+            col_ptr_local(i) = col_ptr_tmp(iproc*ncol+i) - col_ptr_tmp(iproc*ncol+1) + 1
         end do
 
         ! Local copy of row_ind
@@ -418,6 +448,9 @@ module pexsi
             mat_h_local(i) = mat_h(ii+i)
             mat_s_local(i) = mat_s(ii+i)
         end do
+
+        ! Global index of the first local element
+        isvctr_local = col_ptr_tmp(ncol*iproc+1)
 
 
         call f_free(col_ptr_tmp)
