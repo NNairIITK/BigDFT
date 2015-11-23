@@ -320,6 +320,7 @@ orbital_basis.o:  types.o communications_base.o interfaces.o
 orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
 locregs_init.o: types.o communications.o
 forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o transposed_operations.o
+pexsi.o: f_interface.o
 
 # Copy modules in a common include directory.
 all: all-am insmod

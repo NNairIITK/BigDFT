@@ -128,6 +128,8 @@ module module_input_keys
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
      integer :: pexsi_npoles !< number of poles used by PEXSI
+     real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI
+     real(kind=8) :: pexsi_temperature, pexsi_tol_charge !< temperature and tolerance on the number of electrons used by PEXSI
      real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
   end type linearInputParameters
 
@@ -2122,6 +2124,16 @@ contains
           in%lin%coeff_factor = val
        case (PEXSI_NPOLES)
           in%lin%pexsi_npoles = val
+       case (PEXSI_MUMIN)
+          in%lin%pexsi_mumin = val
+       case (PEXSI_MUMAX)
+          in%lin%pexsi_mumax = val
+       case (PEXSI_MU)
+          in%lin%pexsi_mu = val
+       case (PEXSI_TEMPERATURE)
+          in%lin%pexsi_temperature = val
+       case (PEXSI_TOL_CHARGE)
+          in%lin%pexsi_tol_charge = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select

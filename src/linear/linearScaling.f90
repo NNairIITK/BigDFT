@@ -471,7 +471,9 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%purification_quickreturn,&
                      input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor,&
-                     input%lin%pexsi_npoles, convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
+                     input%lin%pexsi_npoles, input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
+                     input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                     convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
                 !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
              end if
           end if
@@ -1419,7 +1421,8 @@ end if
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel,input%lin%coeff_factor, &
-           input%lin%pexsi_npoles)
+           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
+           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1454,7 +1457,8 @@ end if
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor, &
-           input%lin%pexsi_npoles)
+           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
+           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
@@ -2827,14 +2831,18 @@ end if
                       .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                      input%lin%pexsi_npoles, convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
               else
                  call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                       .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                      input%lin%pexsi_npoles, convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
               end if
            else
               if (input%lin%constrained_dft) then
@@ -2843,14 +2851,18 @@ end if
                       .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                      input%lin%pexsi_npoles, convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
               else
                  call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
                       infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,calculate_overlap,invert_overlap_matrix,update_phi,&
                       .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
-                      input%lin%pexsi_npoles, convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
+                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
               end if
            end if
            !do i=1,tmb%linmat%l%nvctr

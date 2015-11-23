@@ -969,7 +969,8 @@ module postprocessing_linear
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
-           input%lin%pexsi_npoles)
+           input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
+           input%lin%pexsi_temperature, input%lin%pexsi_tol_charge)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
     
       if (bigdft_mpi%iproc ==0) then
@@ -1100,7 +1101,8 @@ module postprocessing_linear
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
            input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
-           input%lin%pexsi_npoles, updatekernel=.false.)
+           input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
+           input%lin%pexsi_temperature, input%lin%pexsi_tol_charge, updatekernel=.false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
@@ -1193,7 +1195,8 @@ module postprocessing_linear
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
            input%calculate_KS_residue,input%calculate_gap,energs_work, .false., input%lin%coeff_factor, &
-           input%lin%pexsi_npoles)
+           input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
+           input%lin%pexsi_temperature, input%lin%pexsi_tol_charge)
     
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
@@ -1315,7 +1318,8 @@ module postprocessing_linear
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
            input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, &
-           input%lin%pexsi_npoles, updatekernel=.false.)
+           input%lin%pexsi_npoles, input%lin%pexsi_mumin, input%lin%pexsi_mumax, input%lin%pexsi_mu, &
+           input%lin%pexsi_temperature, input%lin%pexsi_tol_charge, updatekernel=.false.)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
       energyold=energy

@@ -11,7 +11,8 @@
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
     calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
-    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,pexsi_npoles,&
+    calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
+    pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
   use module_base
   use module_types
@@ -37,7 +38,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use locregs_init, only: small_to_large_locreg
   use locreg_operations, only: confpot_data
   use foe_base, only: foe_data_get_real
-  use pexsi, only: f_driver_ksdft
+  use pexsi, only: pexsi_driver
   implicit none
 
   ! Calling arguments
@@ -62,6 +63,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   logical,intent(in) :: remove_coupling_terms
   real(kind=8), intent(in) :: factor
   integer,intent(in) :: pexsi_npoles
+  real(kind=8),intent(in) :: pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge
   type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
   integer, intent(in), optional :: nitdmin ! for dmin only
   real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only
@@ -520,8 +522,9 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       if (scf_mode==LINEAR_PEXSI) then
           call write_pexsi_matrices(nproc, tmb%linmat%m, tmb%linmat%s, tmb%linmat%ham_%matrix_compr, tmb%linmat%ovrlp_%matrix_compr)
           ! AT the moment not working for nspin>1
-          call f_driver_ksdft('hamiltonian_sparse_PEXSI.bin', 'overlap_sparse_PEXSI.bin', &
-               foe_data_get_real(tmb%foe_obj,"charge",1), pexsi_npoles, &
+          call pexsi_driver('hamiltonian_sparse_PEXSI.bin', 'overlap_sparse_PEXSI.bin', &
+               foe_data_get_real(tmb%foe_obj,"charge",1), &
+               pexsi_npoles, pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge, &
                tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr, energs%ebs)
       else if (scf_mode==LINEAR_FOE) then
           call fermi_operator_expansion(iproc, nproc, tmprtr, &

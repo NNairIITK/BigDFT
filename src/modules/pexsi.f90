@@ -2,7 +2,7 @@ module pexsi
 
     private
 
-    public :: f_driver_ksdft
+    public :: pexsi_driver
 
     contains
 
@@ -50,7 +50,8 @@ module pexsi
       !> @file f_driver_ksdft.f90
       !> @brief FORTRAN version of the driver for solving KSDFT.
       !> @date 2014-04-02
-      subroutine f_driver_ksdft(Hfile, Sfile, charge, npoles, nsize_kernel, kernel, energy)
+      subroutine pexsi_driver(Hfile, Sfile, charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
+                 nsize_kernel, kernel, energy)
       use module_base
       use f_ppexsi_interface
       use iso_c_binding
@@ -61,6 +62,7 @@ module pexsi
       character(len=*),intent(in) :: Hfile, Sfile
       real(kind=8),intent(in) :: charge
       integer,intent(in) :: npoles, nsize_kernel
+      real(kind=8),intent(in) :: mumin, mumax, mu, temperature, tol_charge
       real(kind=8),dimension(nsize_kernel),intent(out) :: kernel
       real(kind=8),intent(out) :: energy
       
@@ -196,14 +198,14 @@ module pexsi
         options )
       
       numElectronExact = charge
-      options%muMin0   = -1.5d0
-      options%muMax0   = 1.5d0 
-      options%mu0      = 1.0d0
+      options%muMin0   = mumin
+      options%muMax0   = mumax
+      options%mu0      = mu
       options%deltaE   = 20d0 
       options%numPole  = npoles
-      options%temperature = 0.005d0   ! 3000 K
+      options%temperature = temperature
       options%muPEXSISafeGuard = 0.2d0
-      options%numElectronPEXSITolerance = 1d-3
+      options%numElectronPEXSITolerance = tol_charge
       
       call f_ppexsi_load_real_symmetric_hs_matrix(&
             plan,&       
@@ -295,6 +297,6 @@ module pexsi
       
       call f_routine(id='f_driver_ksdft')
       
-      end subroutine f_driver_ksdft
+      end subroutine pexsi_driver
 
 end module pexsi
