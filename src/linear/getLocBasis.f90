@@ -260,7 +260,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       call delete_coupling_terms(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_%matrix_compr)
   end if
 
-  if (scf_mode/=LINEAR_FOE) then
+  if (scf_mode/=LINEAR_FOE .and. scf_mode/=LINEAR_PEXSI) then
       tmb%linmat%ham_%matrix = sparsematrix_malloc_ptr(tmb%linmat%m, iaction=DENSE_FULL, id='tmb%linmat%ham_%matrix')
       !call yaml_map('Ham1com',tmb%linmat%ham_%matrix_compr)
       !call yaml_map('ovrlpcom',tmb%linmat%ovrlp_%matrix_compr)
@@ -514,7 +514,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       end if
       ! END TEMPORARY #############################################
 
-      if (iproc==0) call yaml_map('method','FOE')
       tmprtr=0.d0
 
       !!if (iproc==0) then
@@ -522,10 +521,11 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !!    call write_sparsematrix('overlap.dat', tmb%linmat%s, tmb%linmat%ovrlp_)
       !!end if
       if (scf_mode==LINEAR_PEXSI) then
+          if (iproc==0) call yaml_map('method','PEXSI')
           !call write_pexsi_matrices(nproc, tmb%linmat%m, tmb%linmat%s, tmb%linmat%ham_%matrix_compr, tmb%linmat%ovrlp_%matrix_compr)
-          row_ind = f_malloc(tmb%linmat%m%nvctr,id='row_ind')
-          col_ptr = f_malloc(tmb%linmat%m%nfvctr,id='col_ptr')
-          call sparsebigdft_to_ccs(tmb%linmat%m%nfvctr, tmb%linmat%m%nvctr, tmb%linmat%m%nseg, tmb%linmat%m%keyg, row_ind, col_ptr)
+          row_ind = f_malloc(tmb%linmat%l%nvctr,id='row_ind')
+          col_ptr = f_malloc(tmb%linmat%l%nfvctr,id='col_ptr')
+          call sparsebigdft_to_ccs(tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, tmb%linmat%l%nseg, tmb%linmat%l%keyg, row_ind, col_ptr)
           ! AT the moment not working for nspin>1
           ovrlp_large = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='ovrlp_large')
           ham_large = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='ham_large')
@@ -546,7 +546,6 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call transform_sparse_matrix(tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_%matrix_compr, ham_large, 'small_to_large')
           !write(*,*) 'iproc, ham_large', iproc, ham_large
           call pexsi_driver(iproc, nproc, tmb%linmat%l%nfvctr, tmb%linmat%l%nvctr, row_ind, col_ptr, &
-               'hamiltonian_sparse_PEXSI.bin', 'overlap_sparse_PEXSI.bin', &
                ham_large, ovrlp_large, foe_data_get_real(tmb%foe_obj,"charge",1), pexsi_npoles, &
                pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge, &
                tmb%linmat%kernel_%matrix_compr, energs%ebs)
@@ -556,6 +555,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call f_free(row_ind)
           call f_free(col_ptr)
       else if (scf_mode==LINEAR_FOE) then
+          if (iproc==0) call yaml_map('method','FOE')
           call fermi_operator_expansion(iproc, nproc, tmprtr, &
                energs%ebs, order_taylor, max_inversion_error, purification_quickreturn, &
                invert_overlap_matrix, 2, FOE_ACCURATE, &

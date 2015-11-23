@@ -30,7 +30,8 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	   O2spin \
 	   expfoegeopt \
 	   igortho \
-       extendedfrags
+       extendedfrags \
+	   pexsi
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \

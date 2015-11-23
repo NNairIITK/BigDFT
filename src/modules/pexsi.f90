@@ -50,7 +50,7 @@ module pexsi
       !> @file f_driver_ksdft.f90
       !> @brief FORTRAN version of the driver for solving KSDFT.
       !> @date 2014-04-02
-      subroutine pexsi_driver(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, Hfile, Sfile, &
+      subroutine pexsi_driver(iproc, nproc, nfvctr, nvctr, row_ind, col_ptr, &
                  mat_h, mat_s, charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
                  kernel, energy)
       use module_base
@@ -66,7 +66,6 @@ module pexsi
       integer,intent(in) :: nvctr ! number of non-zero entries
       integer,dimension(nvctr),intent(in) :: row_ind !< row_ind from the CCS format
       integer,dimension(nfvctr),intent(in) :: col_ptr !< col_ptr from the CCS format
-      character(len=*),intent(in) :: Hfile, Sfile
       real(kind=8),dimension(nvctr),intent(in) :: mat_h, mat_s
       real(kind=8),intent(in) :: charge
       integer,intent(in) :: npoles
@@ -93,6 +92,10 @@ module pexsi
       type(f_ppexsi_options) :: options
       real(kind=8),dimension(:),pointer :: mat_h_local, mat_s_local
       integer,dimension(:),pointer :: col_ptr_local, row_ind_local
+      integer :: nfvctr_local_min, nfvctr_local_max
+      real(kind=8) :: nfvctr_local_avg
+      integer :: nvctr_local_min, nvctr_local_max
+      real(kind=8) :: nvctr_local_avg
       
       integer:: i, j , nfvctr_local, nvctr_local, isvctr_local, maxproc
       integer:: numColLocalFirst, firstCol
@@ -101,16 +104,18 @@ module pexsi
       integer:: readComm
       integer:: isProcRead
       
-      call f_routine(id='f_driver_ksdft')
+      call f_routine(id='pexsi_driver')
+
+      if (iproc==0) call yaml_comment('PEXSI calculation of kernel',hfill='~')
       
       !call mpi_init( ierr )
       !call mpi_comm_rank( MPI_COMM_WORLD, iproc, ierr )
       !call mpi_comm_size( MPI_COMM_WORLD, nproc, ierr )
       
-      if (nproc/=1) then
-          !call f_err_throw('pexsi not yet ready in parallel')
-          call yaml_warning('pexsi not yet ready in parallel')
-      end if
+      !if (nproc/=1) then
+      !    !call f_err_throw('pexsi not yet ready in parallel')
+      !    call yaml_warning('pexsi not yet ready in parallel')
+      !end if
       
       !Hfile            = "lap2dr.matrix"
       !Sfile            = "lap2dr.matrix"
@@ -129,7 +134,12 @@ module pexsi
       maxproc = nprow*npcol
 
       if (iproc==0) then
-          write(*,*) 'nproc, npoles, nprow, npcol, maxproc', nproc, npoles, nprow, npcol, maxproc
+          !write(*,*) 'nproc, npoles, nprow, npcol, maxproc', nproc, npoles, nprow, npcol, maxproc
+          call yaml_mapping_open('PEXSI parallelization')
+          call yaml_map('Total number of cores',nproc)
+          call yaml_map('Number of cores used',maxproc)
+          call yaml_map('Processor grid dimensions',(/nprow,npcol/))
+          call yaml_mapping_close()
       end if
       
       
@@ -164,13 +174,31 @@ module pexsi
             nnz = int(nvctr,kind=c_int)
             nnzLocal = int(nvctr_local,kind=c_int)
             numColLocal = int(nfvctr_local,kind=c_int)
+
+            nfvctr_local_min = nfvctr_local
+            nfvctr_local_max = nfvctr_local
+            call mpiallred(nfvctr_local_min,count=1,op=mpi_min,comm=readComm)
+            call mpiallred(nfvctr_local_max,count=1,op=mpi_max,comm=readComm)
+            nfvctr_local_avg = real(nfvctr,kind=8)/real(maxproc,kind=8)
+            nvctr_local_min = nvctr_local
+            nvctr_local_max = nvctr_local
+            call mpiallred(nvctr_local_min,count=1,op=mpi_min,comm=readComm)
+            call mpiallred(nvctr_local_max,count=1,op=mpi_max,comm=readComm)
+            nvctr_local_avg = real(nvctr,kind=8)/real(maxproc,kind=8)
           
-            if( iproc .eq. 0 ) then
-              write(*,*) "Matrix size (local data on proc 0):" 
-              write(*,*) "size = ", nfvctr
-              write(*,*) "nnz  = ", nvctr
-              write(*,*) "nnzLocal = ", nnzLocal
-              write(*,*) "numColLocal = ", numColLocal
+            if(iproc== 0) then
+              call yaml_mapping_open('Dimensions of the matrices')
+              call yaml_mapping_open('Global')
+              call yaml_map('number of columns',nfvctr)
+              call yaml_map('number of non-zero elements)',nvctr)
+              call yaml_mapping_close()
+              call yaml_mapping_open('Distributed')
+              call yaml_map('number of columns (min/max/avg)', &
+                   (/real(nfvctr_local_min,kind=8),real(nfvctr_local_max,kind=8),nfvctr_local_avg/),fmt='(f7.1)')
+              call yaml_map('number of non-zero elements (min/max/avg)', &
+                   (/real(nvctr_local_min,kind=8),real(nvctr_local_max,kind=8),nvctr_local_avg/),fmt='(f7.1)')
+              call yaml_mapping_close()
+              call yaml_mapping_close()
             endif
             !write(*,*) 'OLD: iproc, nrows, nnz, nnzLocal, numColLocal', iproc, nrows, nnz, nnzLocal, numColLocal
 
@@ -253,8 +281,8 @@ module pexsi
             info )
           
           if( info .ne. 0 ) then
-          	call mpi_finalize( ierr )
-          	call exit(info)
+              call mpi_finalize( ierr )
+              call exit(info)
           endif
           
           call f_ppexsi_set_default_options(&
@@ -293,9 +321,9 @@ module pexsi
           endif
           
           
-          if( iproc == 0 ) then
-            write(*,*)  "Finish setting up the matrix."
-          endif
+          !if( iproc == 0 ) then
+          !  write(*,*)  "Finish setting up the matrix."
+          !endif
           
           ! Step 2. PEXSI Solve
         
@@ -321,9 +349,9 @@ module pexsi
           endif
           
           
-          if( iproc == 0 ) then
-            write(*,*)  "Finish DFT driver."
-          endif
+          !if( iproc == 0 ) then
+          !  write(*,*)  "Finish DFT driver."
+          !endif
           
           if( isProcRead == 1 ) then
             call f_ppexsi_retrieve_real_symmetric_dft_matrix(&
@@ -337,10 +365,11 @@ module pexsi
               info)
           
             if( iproc == 0 ) then
-              write(*,*) "Output from the main program."
-              write(*,*) "Total energy (H*DM)         = ", totalEnergyH
-              write(*,*) "Total energy (S*EDM)        = ", totalEnergyS
-              write(*,*) "Total free energy           = ", totalFreeEnergy
+                call yaml_mapping_open('Energies from PEXSI')
+                call yaml_map('Total energy (H*DM)',totalEnergyH)
+                call yaml_map('Total energy (S*EDM)',totalEnergyS)
+                call yaml_map('Total free energy',totalFreeEnergy)
+                call yaml_mapping_close()
             endif
           endif
           
@@ -371,14 +400,21 @@ module pexsi
             deallocate( FDMnzvalLocal )
           endif
 
+        call f_free_ptr(col_ptr_local)
+        call f_free_ptr(row_ind_local)
+        call f_free_ptr(mat_h_local)
+        call f_free_ptr(mat_s_local)
+
       end if
 
           call mpi_comm_free( readComm, ierr )
 
       call mpibcast(energy, root=0, comm=bigdft_mpi%mpi_comm) 
       call mpibcast(kernel, root=0, comm=bigdft_mpi%mpi_comm) 
+
+      if (iproc==0) call yaml_comment('PEXSI calculation of kernel finished',hfill='~')
       
-      call f_routine(id='f_driver_ksdft')
+      call f_release_routine()
       
       end subroutine pexsi_driver
 

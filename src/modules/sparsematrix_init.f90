@@ -5346,6 +5346,7 @@ contains
     !> Converts the sparse matrix descriptors from BigDFT to those from the CCS format.
     !! It required that each column has at least one non-zero element.
     subroutine sparsebigdft_to_ccs(nfvctr, nvctr, nseg, keyg, row_ind, col_ptr)
+      use module_base
       implicit none
       ! Calling arguments
       integer,intent(in) :: nfvctr !< number of columns/rows
@@ -5362,6 +5363,7 @@ contains
       ! Local variables
       integer :: ii, icol_old, iseg, icol, i
 
+      call f_routine(id='sparsebigdft_to_ccs')
 
       ii = 1
       icol_old = 0
@@ -5377,6 +5379,9 @@ contains
               ii = ii + 1
           end do
       end do
+
+      call f_release_routine()
+
     end subroutine sparsebigdft_to_ccs
 
 
