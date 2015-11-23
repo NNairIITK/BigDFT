@@ -29,7 +29,8 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           extract_taskgroup_inplace, uncompress_matrix_distributed2, gather_matrix_from_taskgroups, &
                           extract_taskgroup, uncompress_matrix2, &
-                          write_sparsematrix, delete_coupling_terms
+                          write_sparsematrix, delete_coupling_terms, transform_sparse_matrix
+  use sparsematrix_init, only: sparsebigdft_to_ccs
   use transposed_operations, only: calculate_overlap_transposed
   use parallel_linalg, only: dsygv_parallel
   use matrix_operations, only: deviation_from_unity_parallel
@@ -75,7 +76,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
 
   ! Local variables 
   integer :: iorb, info, ishift, ispin, ii, jorb, i, ishifts, ishiftm
-  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2, tmparr
+  real(kind=8),dimension(:),allocatable :: hpsit_c, hpsit_f, eval, tmparr1, tmparr2, tmparr, ovrlp_large, ham_large
   real(kind=8),dimension(:,:),allocatable :: ovrlp_fullp, tempmat
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements
   type(confpot_data),dimension(:),allocatable :: confdatarrtmp
@@ -83,6 +84,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   character(len=*),parameter :: subname='get_coeff'
   real(kind=gp) :: tmprtr
   real(kind=8) :: max_deviation, mean_deviation, KSres, max_deviation_p,  mean_deviation_p, maxdiff
+  integer,dimension(:),allocatable :: row_ind, col_ptr
 
   call f_routine(id='get_coeff')
 
@@ -520,12 +522,39 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       !!    call write_sparsematrix('overlap.dat', tmb%linmat%s, tmb%linmat%ovrlp_)
       !!end if
       if (scf_mode==LINEAR_PEXSI) then
-          call write_pexsi_matrices(nproc, tmb%linmat%m, tmb%linmat%s, tmb%linmat%ham_%matrix_compr, tmb%linmat%ovrlp_%matrix_compr)
+          !call write_pexsi_matrices(nproc, tmb%linmat%m, tmb%linmat%s, tmb%linmat%ham_%matrix_compr, tmb%linmat%ovrlp_%matrix_compr)
+          row_ind = f_malloc(tmb%linmat%m%nvctr,id='row_ind')
+          col_ptr = f_malloc(tmb%linmat%m%nfvctr,id='col_ptr')
+          call sparsebigdft_to_ccs(tmb%linmat%m%nfvctr, tmb%linmat%m%nvctr, tmb%linmat%m%nseg, tmb%linmat%m%keyg, row_ind, col_ptr)
           ! AT the moment not working for nspin>1
-          call pexsi_driver('hamiltonian_sparse_PEXSI.bin', 'overlap_sparse_PEXSI.bin', &
-               foe_data_get_real(tmb%foe_obj,"charge",1), &
-               pexsi_npoles, pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge, &
+          ovrlp_large = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='ovrlp_large')
+          ham_large = sparsematrix_malloc(tmb%linmat%l, iaction=SPARSE_FULL, id='ham_large')
+          !!call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%s%nvctr, 0, &
+          !!     tmb%linmat%s%nseg, tmb%linmat%s%keyv, tmb%linmat%s%keyg, tmb%linmat%s%smmm%line_and_column_mm, &
+          !!     tmb%linmat%l%nvctr, 0, tmb%linmat%l%smmm%nseg, &
+          !!     tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+          !!     tmb%linmat%l%smmm%istsegline, 'small_to_large', tmb%linmat%ovrlp_%matrix_compr, ovrlp_large)
+          !!call transform_sparsity_pattern(tmb%linmat%l%nfvctr, tmb%linmat%m%smmm%nvctrp_mm, tmb%linmat%m%smmm%isvctr_mm, &
+          !!     tmb%linmat%m%nseg, tmb%linmat%m%keyv, tmb%linmat%m%keyg, tmb%linmat%m%smmm%line_and_column_mm, &
+          !!     tmb%linmat%l%smmm%nvctrp, tmb%linmat%l%smmm%isvctr, tmb%linmat%l%smmm%nseg, &
+          !!     tmb%linmat%l%smmm%keyv, tmb%linmat%l%smmm%keyg, &
+          !!     tmb%linmat%l%smmm%istsegline, 'small_to_large', tmb%linmat%ham_%matrix_compr, ham_large)
+          if (tmb%linmat%s%ntaskgroup/=1 .or. tmb%linmat%m%ntaskgroup/=1 .or. tmb%linmat%l%ntaskgroup/=1) then
+              call f_err_throw('PEXSI is not yet tested with matrix taskgroups', err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          call transform_sparse_matrix(tmb%linmat%s, tmb%linmat%l, tmb%linmat%ovrlp_%matrix_compr, ovrlp_large, 'small_to_large')
+          call transform_sparse_matrix(tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_%matrix_compr, ham_large, 'small_to_large')
+          !write(*,*) 'iproc, ham_large', iproc, ham_large
+          call pexsi_driver(iproc, nproc, tmb%linmat%m%nfvctr, tmb%linmat%m%nvctr, row_ind, col_ptr, &
+               'hamiltonian_sparse_PEXSI.bin', 'overlap_sparse_PEXSI.bin', &
+               ham_large, ovrlp_large, foe_data_get_real(tmb%foe_obj,"charge",1), pexsi_npoles, &
+               pexsi_mumin, pexsi_mumax, pexsi_mu, pexsi_temperature, pexsi_tol_charge, &
                tmb%linmat%l%nvctrp_tg, tmb%linmat%kernel_%matrix_compr, energs%ebs)
+
+          call f_free(ovrlp_large)
+          call f_free(ham_large)
+          call f_free(row_ind)
+          call f_free(col_ptr)
       else if (scf_mode==LINEAR_FOE) then
           call fermi_operator_expansion(iproc, nproc, tmprtr, &
                energs%ebs, order_taylor, max_inversion_error, purification_quickreturn, &
@@ -3583,7 +3612,7 @@ subroutine write_pexsi_matrices(nproc, smat_h, smat_s, matrix_compr_h, matrix_co
   use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
                                assignment(=), SPARSE_FULL
   use sparsematrix, only: transform_sparsity_pattern
-
+  use yaml_output
   implicit none
 
   ! Calling arguments
@@ -3598,8 +3627,11 @@ subroutine write_pexsi_matrices(nproc, smat_h, smat_s, matrix_compr_h, matrix_co
 
   call f_routine(id='write_pexsi_matrices')
 
+  stop 'not correct'
+
   if (nproc/=1) then
-      call f_err_throw('not yet tested in parallel')
+      !call f_err_throw('not yet tested in parallel')
+      call yaml_warning('not yet tested in parallel')
   end if
 
   matrix_compr_sl = sparsematrix_malloc_ptr(smat_h, iaction=SPARSE_FULL, id='matrix_compr_sl')
