@@ -1960,3 +1960,17 @@ Cavity_H2OfsccsPCG:
  beta: 0.00019
  Keys to ignore:
    - Electronic charge changed by rho compression
+
+pexsi:
+  Energy (Hartree): 2.3e-11
+  Omega: 4.2e-11
+  energy: 3.8e-11
+  EXC: 1.0e-10
+  Keys to ignore:
+    - Calculating wavelets expansion of projectors, found warnings
+    - found warnings
+    - Total number of cores
+    - Number of cores used
+    - Processor grid dimensions
+    - number of columns (min/max/avg)
+    - number of non-zero elements (min/max/avg)
