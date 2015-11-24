@@ -14,6 +14,7 @@ module PStypes
   use PSbase
   use environment, only: cavity_data,cavity_default
   use dynamic_memory
+  use f_input_file, only: ATTRS
   implicit none
 
   private
@@ -40,10 +41,11 @@ module PStypes
   character(len=*), parameter :: SETUP_VARIABLES         = 'setup'
   character(len=*), parameter :: ACCEL                   = 'accel' 
   character(len=*), parameter :: KEEP_GPU_MEMORY         = 'keep_gpu_memory' 
-  character(len=*), parameter :: TASKGROUP_SIZE          = 'taskgroup_size' 
+  character(len=*), parameter :: TASKGROUP_SIZE_KEY      = 'taskgroup_size' 
   character(len=*), parameter :: GLOBAL_DATA             = 'global_data' 
   character(len=*), parameter :: VERBOSITY               = 'verbose' 
   character(len=*), parameter :: OUTPUT                  = 'output' 
+  character(len=*), parameter :: DICT_COMPLETED          = '__dict_has_been_checked__'//ATTRS
 
   
   !>Defines the internal information for application of the FFT between the kernel and the 
@@ -212,8 +214,8 @@ module PStypes
 
   public :: pkernel_null,PSolver_energies_null,pkernel_free,pkernel_allocate_cavity
   public :: pkernel_set_epsilon,PS_allocate_cavity_workarrays,build_cavity_from_rho
-  public :: ps_allocate_lowlevel_workarrays,PSolver_options_null
-  public :: release_PS_workarrays,PS_release_lowlevel_workarrays
+  public :: ps_allocate_lowlevel_workarrays,PSolver_options_null,PS_input_dict
+  public :: release_PS_workarrays,PS_release_lowlevel_workarrays,PS_set_options,pkernel_init
 
 contains
 
@@ -376,7 +378,6 @@ contains
 
   end subroutine free_PS_workarrays
 
-
   subroutine release_PS_workarrays(keepzf,w,use_input_guess)
     implicit none
     integer, intent(in) :: keepzf
@@ -425,6 +426,7 @@ contains
     use wrapper_MPI
     use f_enums
     use environment
+    use f_input_file, only: input_file_dump
     implicit none
     integer, intent(in) :: iproc      !< Proc Id
     integer, intent(in) :: nproc      !< Number of processes
@@ -451,14 +453,13 @@ contains
     if (present(angrad)) then
        kernel%angrad=angrad
     else
-       kernel%angrad= [ twopi, twopi, twopi ]
+       kernel%angrad=onehalf* [ pi, pi, pi ]
     end if
 
     !new treatment for the kernel input variables
-    call PS_input_dict(dict) !complete the dictionary
+    kernel%method=PS_VAC_ENUM
+    if (DICT_COMPLETED .notin. dict) call PS_input_dict(dict) !complete the dictionary
 
-    !we might also perform an input_file dump if needed
-    
     call PS_fill_variables(kernel,kernel%opt,dict) !fill the structure with basic results
 
     kernel%keepzf=1
@@ -467,8 +468,9 @@ contains
     if (present(mpi_env)) then
        call copy_mpi_environment(src=mpi_env,dest=kernel%mpi_env)
     else
+
        !specialized treatment
-       taskgroup_size=dict//SETUP_VARIABLES//TASKGROUP_SIZE
+       taskgroup_size=dict//SETUP_VARIABLES//TASKGROUP_SIZE_KEY
 
        group_size=nproc
        !if the taskgroup size is not a divisor of nproc do not create taskgroups
@@ -492,6 +494,8 @@ contains
           call yaml_mapping_open('Helmholtz Kernel Initialization')
           call yaml_map('Screening Length (AU)',1.0_gp/kernel%mu,fmt='(g25.17)')
        end if
+       !we might also perform an input_file dump if needed
+       call input_file_dump(dict)
        !$ nthreads = omp_get_max_threads()
        call yaml_map('MPI tasks',kernel%mpi_env%nproc)
        if (nthreads /=0) call yaml_map('OpenMP threads per MPI task',nthreads)
@@ -504,9 +508,43 @@ contains
 
   end function pkernel_init
 
+  !>modifies the options of the poisson solver to switch certain options
+  subroutine PS_set_options(kernel,global_data,calculate_strten,verbose,&
+       update_cavity,use_input_guess,cavity_info,cavitation_terms,&
+       potential_integral)
+    implicit none
+    type(coulomb_operator), intent(inout) :: kernel
+    logical, intent(in), optional :: global_data,calculate_strten,verbose
+    logical, intent(in), optional :: update_cavity,use_input_guess
+    logical, intent(in), optional :: cavity_info,cavitation_terms
+    real(gp), intent(in), optional :: potential_integral
+
+    if (present(global_data     )) then
+       if (global_data) then
+          kernel%opt%datacode='G'
+       else
+          kernel%opt%datacode='D'
+       end if
+    end if
+    if (present(calculate_strten)) kernel%opt%calculate_strten=calculate_strten
+    if (present(verbose         )) then
+       if (verbose) then
+          kernel%opt%verbosity_level=1
+       else
+          kernel%opt%verbosity_level=0
+       end if
+    end if
+    if (present(update_cavity   )) kernel%opt%update_cavity=update_cavity
+    if (present(use_input_guess )) kernel%opt%use_input_guess=use_input_guess
+    if (present(cavity_info     )) kernel%opt%cavity_info=cavity_info
+    if (present(cavitation_terms)) kernel%opt%only_electrostatic=.not. cavitation_terms
+    if (present(potential_integral)) kernel%opt%potential_integral =potential_integral
+
+  end subroutine PS_set_options
+
 
   !>routine to fill the input variables of the kernel
-  subroutine PS_input_dict(dict)
+  subroutine PS_input_dict(dict,dict_minimal)
     use dictionaries
     use f_input_file
     use yaml_parse
@@ -514,7 +552,7 @@ contains
     !>input dictionary, a copy of the user input, to be filled
     !!with all the variables on exit
     type(dictionary), pointer :: dict
-    !local variables
+    type(dictionary), pointer, optional :: dict_minimal
     !local variables
     integer(f_integer) :: params_size
     !integer(kind = 8) :: cbuf_add !< address of c buffer
@@ -522,6 +560,7 @@ contains
     type(dictionary), pointer :: parameters
     type(dictionary), pointer :: parsed_parameters
     type(dictionary), pointer :: profiles
+    type(dictionary), pointer :: nested,asis
 
     call f_routine(id='PS_input_dict')
 
@@ -543,6 +582,11 @@ contains
 
     call input_file_complete(parameters,dict,imports=profiles)
 
+    if (present(dict_minimal)) then
+       nullify(nested,asis)
+       call input_file_minimal(parameters,dict,dict_minimal,nested,asis)
+    end if
+
     if (associated(parsed_parameters)) then
        call dict_free(parsed_parameters)
        nullify(parameters)
@@ -550,6 +594,9 @@ contains
     else
        call dict_free(parameters)
     end if
+
+    !write in the dictionary that it has been completed
+    call set(dict//DICT_COMPLETED,.true.)
 
     call f_release_routine()
 
@@ -596,7 +643,7 @@ contains
     real(gp), dimension(2) :: dummy_gp !< to fill the input variables
     logical, dimension(2) :: dummy_log !< to fill the input variables
     character(len=256) :: dummy_char
-    character(len = max_field_length) :: str
+    character(len = max_field_length) :: strn
     integer :: i, ipos
 
     if (index(dict_key(val), "_attributes") > 0) return
@@ -617,8 +664,9 @@ contains
     case (ENVIRONMENT_VARIABLES)
        select case (trim(dict_key(val)))
        case (CAVITY_KEY)
-          str=val
-          select case(trim(str))
+          strn=val
+
+          select case(trim(strn))
           case('vacuum')
              call f_enum_attr(k%method,PS_NONE_ENUM)
           case('rigid')
@@ -649,8 +697,8 @@ contains
           dummy_d=val
           k%cavity%betaV=dummy_d/AU_GPa
        case (GPS_ALGORITHM)
-          str=val
-          select case(trim(str))
+          strn=val
+          select case(trim(strn))
           case('PI')
              call f_enum_update(dest=k%method,src=PS_PI_ENUM)
           case('PCG')
@@ -686,7 +734,7 @@ contains
           else
              k%keepGPUmemory=0
           end if
-       case (TASKGROUP_SIZE)
+       case (TASKGROUP_SIZE_KEY)
 
        case (GLOBAL_DATA)
           dummy_l=val

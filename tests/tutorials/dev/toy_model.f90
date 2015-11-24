@@ -54,7 +54,7 @@ program wvl
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
-  type(dictionary), pointer :: user_inputs,options
+  type(dictionary), pointer :: user_inputs,options,dict
   !temporary variables
   !integer, dimension(4) :: mpi_info
 
@@ -259,9 +259,11 @@ program wvl
   call deallocate_rho_descriptors(rhodsc)
 
   ! Example of calculation of the energy of the local potential of the pseudos.
-  pkernel=pkernel_init(.true.,iproc,nproc,0,&
+  dict => dict_new()
+  pkernel=pkernel_init(iproc,nproc,dict,&
        atoms%astruct%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
-       (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
+       (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/))
+  call dict_free(dict)
   call pkernel_set(pkernel,verbose=.false.)
   !call createKernel(iproc,nproc,atoms%astruct%geocode,&
   !     (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &

@@ -55,7 +55,7 @@ module yaml_parse
   !for internal f_lib usage
   public :: yaml_parse_errors
   public :: yaml_parse_errors_finalize
-  public :: yaml_a_todict,yaml_cl_parse_cmd_line
+  public :: yaml_load,yaml_cl_parse_cmd_line
 
 contains
 
@@ -169,7 +169,7 @@ contains
                err_id=ERROR_YAML_COMMAND_LINE_PARSER)
           return
        end if
-       iter=>yaml_a_todict(trim(conflicts),OPTCONFL)
+       iter=>yaml_load(trim(conflicts),OPTCONFL)
        call dict_update(option,iter)
        call dict_free(iter)
     end if
@@ -392,7 +392,7 @@ contains
            !then parse the value as a yaml_string
            jpos=jpos+1
            if (len_trim(command(ipos+jpos:)) > 0) then
-              dict=>yaml_a_todict(trim(command(ipos+jpos:)),key)
+              dict=>yaml_load(trim(command(ipos+jpos:)),key)
            else
               call f_err_throw('Empty value for key "'//trim(key)//&
                    '"',err_id=ERROR_YAML_COMMAND_LINE_PARSER)
@@ -446,13 +446,13 @@ contains
                  call get_cmd(icommands,command)
                  icommands=icommands+1
                  !then parse the value as a yaml_string
-                 dict=>yaml_a_todict(trim(command),key)
+                 dict=>yaml_load(trim(command),key)
               end if
            else
               !only the first command can be given without option
               if (icommands-1 == 1 .and. len_trim(parser%first_command_key) > 0) then
                  key=parser%first_command_key
-                 dict=>yaml_a_todict(trim(command),key)
+                 dict=>yaml_load(trim(command),key)
               else
                  call f_err_throw('Unrecognized option "'//&
                       trim(command)//'"',&
@@ -778,7 +778,7 @@ contains
 
   end function build_seq
 
-  function yaml_a_todict(string,key) result(dict)
+  function yaml_load(string,key) result(dict)
     use dictionaries
     use yaml_strings, only: f_strcpy
     !use yaml_output !to be removed
@@ -811,7 +811,7 @@ contains
        end select
     end if
     
-  end function yaml_a_todict
+  end function yaml_load
 
   !> Throw an error with YAML_PARSE_ERROR trying to give a better understandable message
   subroutine yaml_parse_error_throw(val)

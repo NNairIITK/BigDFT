@@ -22,7 +22,7 @@ module f_input_file
   integer :: INPUT_VAR_NOT_IN_RANGE = ERR_UNDEF
   integer :: INPUT_VAR_ILLEGAL = ERR_UNDEF
 
-  character(len = *), parameter :: ATTRS = "_attributes"
+  character(len = *), parameter, public :: ATTRS = "_attributes"
   character(len = *), parameter :: PROF_KEY = "PROFILE_FROM"
   character(len = *), parameter :: USER_KEY = "USER_DEFINED"
 
@@ -163,7 +163,7 @@ contains
     character(len = *), intent(in) :: file, key
 
     integer :: i
-    type(dictionary), pointer :: ref
+    type(dictionary), pointer :: ref,iter
     character(len = max_field_length) :: val, profile_
     double precision, dimension(2) :: rg
 !!$    integer :: skeys
@@ -178,7 +178,7 @@ contains
     !if (trim(profile_) == "") profile_(1:max_field_length) = DEFAULT
     call f_strcpy(src=DEFAULT,dest=profile_)
 
-    userDef = (has_key(dict, key))
+    userDef = key .in. dict !(has_key(dict, key))
     if (userDef) then
        ! Key should be present only for some unmet conditions.
        if (.not.set_(dict, ref)) then
@@ -232,24 +232,45 @@ contains
           end if
        end if
     else
+
        ! Key should be present only for some unmet conditions.
        if (.not.set_(dict, ref)) then
 !!$          call f_err_throw(err_id = INPUT_VAR_ILLEGAL, &
 !!$               & err_msg = trim(file) // "/" // trim(key) // " has to be presentd with a master key.")
           !          call f_release_routine()
+          !print *,trim(key)'XXXXXXXXXXXXx'
           return
        end if
+
        ! Hard-coded profile from key.
-       if (has_key(ref, PROF_KEY)) then
-          val = ref // PROF_KEY
-          if (has_key(dict, val)) then
+       if (PROF_KEY .in. ref) then
+          val = ref // PROF_KEY !this retrieve the value of the driver key
+          !if might be a profile
+          if (val .in. dict) then
              profile_ = dict // val
           end if
        end if
 
        ! There is no value in dict, we take it from ref.
-       if (.not. has_key(ref, profile_)) profile_ = DEFAULT
-       call dict_copy(dict // key, ref // profile_)
+       !first check if the provided value is among the profiles of ref
+       if (profile_ .notin. ref) then
+          !it still might be one of the values of the profiles of ref
+          nullify(iter)
+          do while(iterating(iter,on=inputdef // file // val))
+             if (dict_value(iter) .eqv. profile_) then
+                profile_=dict_key(iter)
+                exit
+             end if
+          end do
+       end if
+       if ( profile_ .notin. ref) profile_ = DEFAULT
+       !still search if the chosen profile correspons to the value of another profile
+       val = dict_value(ref // profile_)
+       if (val .in. ref) then
+          call dict_copy(dict // key, ref // val)
+       else
+          call dict_copy(dict // key, ref // profile_)
+       end if
     end if
 
     ! Copy the comment.
@@ -268,8 +289,9 @@ contains
       implicit none
       type(dictionary), pointer :: dict, ref
       logical :: set_
-
-      type(dictionary), pointer :: tmp,tmp0,tmp_not
+      !local variables
+      logical :: l1
+      type(dictionary), pointer :: tmp,tmp0,tmp_not,iter
       character(max_field_length) :: mkey, val_master
 !!$      integer :: j
 !!$      character(max_field_length) :: val_when
@@ -299,8 +321,31 @@ contains
       val_master = dict // mkey
       tmp = tmp0 .get. WHEN
       tmp_not = tmp0 .get. WHEN_NOT
-      set_ = (val_master .in. tmp) .and. (val_master .notin. tmp_not)
-
+      !call yaml_map('val_master',val_master)
+      !call yaml_map('when',tmp)
+      !call yaml_map('whennot',tmp_not)
+      !call yaml_map('intmp',[(val_master .in. tmp),(val_master .notin. tmp_not)])
+      l1=(val_master .in. tmp) .or. .not. associated(tmp)
+      set_ = l1 .and. (val_master .notin. tmp_not)
+      !call yaml_map('set_',set_)
+      if (set_) return !still check if the value is coherent with the profile
+      tmp0 => inputdef // file // mkey
+      nullify(iter)
+      do while(iterating(iter,on=tmp) .and. .not. set_)
+         call f_zero(val_when)
+         !call yaml_map('val',dict_value(iter))
+         !call yaml_map('tmp0',tmp0)
+         val_when = tmp0 .get. dict_value(iter) 
+         set_ = trim(val_master) .eqv. trim(val_when)
+      end do
+      if (.not. set_) return
+      nullify(iter)
+      do while(iterating(iter,on=tmp_not) .and. set_)
+         call f_zero(val_when)
+         !call yaml_map('valnot',dict_value(iter))
+         val_when = tmp0 .get. dict_value(iter) 
+         set_ = .not. (trim(val_master) .eqv. trim(val_when))
+      end do
     end function set_
 
     recursive subroutine validate(dict, key, rg)
@@ -372,8 +417,13 @@ contains
 
     ref_iter => dict_iter(inputdef // file)
     hasUserDef = .false.
+!!$    call yaml_map('inputdef_now',inputdef // file)
     do while(associated(ref_iter))
        if (trim(dict_key(ref_iter)) /= DESCRIPTION) then
+!!$          call yaml_map('ref_iter',dict_key(ref_iter))
+!!$          call yaml_map('ref_iter_val',dict_value(ref_iter))
+!!$          call yaml_map('ref_iter_data',dict_value(ref_iter))
+!!$          call dump_dict_impl(ref_iter)
           call input_keys_set(inputdef,user, dict // file, file, dict_key(ref_iter))
           hasUserDef = (hasUserDef .or. user)
        end if
@@ -831,12 +881,14 @@ contains
        call yaml_comment("Input parameters", hfill = "-")
     end if
     
-    iter => dict_iter(dict)
-    do while(associated(iter))
+!!$    iter => dict_iter(dict)
+!!$    do while(associated(iter))
+    nullify(iter)
+    do while(iterating(iter,on=dict))
        todump=.true.
        if (present(nodump_list)) todump = dict_key(iter) .notin. nodump_list
        if (todump) call input_variable_dump(iter,userOnly_)
-       iter => dict_next(iter)
+       !iter => dict_next(iter)
     end do
 
   end subroutine input_file_dump

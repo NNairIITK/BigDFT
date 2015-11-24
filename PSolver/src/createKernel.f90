@@ -10,7 +10,7 @@
 
 !> Initialization of the Poisson kernel
 !! @ingroup PSOLVER
-function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
+function pkernel_init_old(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      alg,cavity,mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
   use yaml_output
   use yaml_strings, only: f_strcpy
@@ -139,7 +139,6 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      end if
   end if
 
-
   !import the mpi_environment if present
   if (present(mpi_env)) then
      call copy_mpi_environment(src=mpi_env,dest=kernel%mpi_env)
@@ -164,7 +163,7 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      call yaml_mapping_close() !kernel
   end if
 
-end function pkernel_init
+end function pkernel_init_old
 
 
 !> Allocate a pointer which corresponds to the zero-padded FFT slice needed for

@@ -25,7 +25,6 @@ module module_input_keys
 
   !public :: input_keys_init, input_keys_finalize
 
-
   type(dictionary), pointer :: parameters=>null()
   type(dictionary), pointer :: parsed_parameters=>null()
   type(dictionary), pointer :: profiles=>null()
@@ -211,7 +210,10 @@ module module_input_keys
      logical :: disableSym                 !< .true. disable symmetry
      !> boolean to activate the calculation of the stress tensor
      logical :: calculate_strten
-     character(len=8) :: set_epsilon !< method for setting the dielectric constant
+     !character(len=8) :: set_epsilon !< method for setting the dielectric constant
+
+     !> solver parameters
+     type(dictionary), pointer :: PS_dict,PS_dict_seq
 
      !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
@@ -402,8 +404,8 @@ module module_input_keys
      !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      logical :: wf_extent_analysis
 
-     !> Method for the solution of  generalized poisson Equation
-     character(len=4) :: GPS_Method
+!!$     !> Method for the solution of  generalized poisson Equation
+!!$     character(len=4) :: GPS_Method
 
      !> Use the FOE method to calculate the HOMO-LUMO gap at the end
      logical :: foe_gap
@@ -638,6 +640,12 @@ contains
 
     ! extract also the minimal dictionary which is necessary to do this run
     call input_keys_fill_all(dict,dict_minimal)
+
+    !copy the Poisson solver dictionary
+    call dict_copy(src=dict // PSOLVER, dest=in%PS_dict)
+    call dict_copy(src=in%PS_dict, dest=in%PS_dict_seq)
+    !then other treatments for the sequential solver might be added
+
 
     ! Add missing pseudo information.
     projr = dict // PERF_VARIABLES // PROJRAD
@@ -956,11 +964,12 @@ contains
     use public_keys
     use yaml_strings, only: operator(.eqv.)
     use yaml_output
+    use PStypes, only: PS_input_dict
     !use yaml_output
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
     !local variables
-    type(dictionary), pointer :: as_is,nested
+    type(dictionary), pointer :: as_is,nested,dict_ps_min
     character(max_field_length) :: meth!, prof
     real(gp) :: dtmax_, betax_
     logical :: free,dftvar!,user_defined
@@ -984,13 +993,17 @@ contains
     ! Check and complete dictionary.
     call input_keys_init()
 ! call yaml_map('present status',dict)
-    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
 
+    !then we can complete the Poisson solver dictionary
+    call PS_input_dict(dict // PSOLVER,dict_ps_min)
+    
+    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
     as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION)
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
+    if (associated(dict_ps_min)) call set(dict_minimal // PSOLVER,dict_ps_min)
     call dict_free(nested,as_is)
 
 
@@ -1031,11 +1044,6 @@ contains
     dict_tmp=dict .get. ASTRUCT_PROPERTIES
     source=dict_tmp .get. POSINP_SOURCE
 
-!!$    write(source, "(A)") ""
-!!$    if (has_key(dict, ASTRUCT_PROPERTIES)) then
-!!$       if (has_key(dict // ASTRUCT_PROPERTIES, POSINP_SOURCE)) &
-!!$            & source = dict_value(dict // ASTRUCT_PROPERTIES // POSINP_SOURCE)
-!!$    end if
   end subroutine astruct_dict_get_source
 
 
@@ -1581,8 +1589,8 @@ contains
           in%nplot = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
-       case (SOLVENT)
-          in%set_epsilon= val
+!!$       case (SOLVENT)
+!!$          in%set_epsilon= val
 !!$          dummy_char = val
 !!$          select case(trim(dummy_char))
 !!$          case ("vacuum")
@@ -1798,8 +1806,8 @@ contains
        case(WF_EXTENT_ANALYSIS)
           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
           in%wf_extent_analysis = val
-       case (GPS_METHOD)
-          in%GPS_method = val
+!!$       case (GPS_METHOD)
+!!$          in%GPS_method = val
        case (FOE_GAP)
           ! linear scaling: Use the FOE method to calculate the HOMO-LUMO gap at the end
           in%foe_gap = val
@@ -2214,13 +2222,15 @@ contains
     in%dir_output = "data"
     !in%output_wf_format = WF_FORMAT_NONE
     !in%output_denspot_format = output_denspot_FORMAT_CUBE
-    call f_zero(in%set_epsilon)
+    !call f_zero(in%set_epsilon)
     call f_zero(in%dir_output)
     call f_zero(in%naming_id)
     nullify(in%gen_kpt)
     nullify(in%gen_wkpt)
     nullify(in%kptv)
     nullify(in%nkptsv_group)
+    nullify(in%PS_dict)
+    nullify(in%PS_dict_seq)
     call f_zero(in%calculate_strten)
     in%profiling_depth=-1
     in%gen_norb = UNINITIALIZED(0)
@@ -2361,7 +2371,8 @@ contains
 
     !check if freeing is possible
     call f_ref_free(in%refcnt)
-
+    call dict_free(in%PS_dict)
+    call dict_free(in%PS_dict_seq)
     call free_geopt_variables(in)
     call free_kpt_variables(in)
     call f_free_ptr(in%gen_occup)

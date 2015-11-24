@@ -4,7 +4,8 @@
      shorthelp                         : Decide what to test (--help for more info)
      shortname                         : t
      help:
-       Usage                           : Specify, as a yaml list, the functionalities which have to be tested
+       Usage:
+         Specify, as a yaml list, the functionalities which have to be tested
        Allowed values:
        - yaml
        - yaml_extras
@@ -24,8 +25,8 @@
      shortname                         : T
      help:
        Usage:
-         Unused option3, just for testing the command line parser, also the long help lines have to be 
-         understand if it works
+         Unused option3, just for testing the command line parser, also the long help lines 
+         have to be tested in order to understand if it works
      conflicts: [test2, test]
    test_mp:
      default                           : None
@@ -38,11 +39,14 @@
    test2                               : 1
  Multipole list found                  :  No
   #AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-  #BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
-  #CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
-  #DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+  #BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB
+  #B
+  #CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+  #CC
+  #DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+  #DDD
 ---
-  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Yaml Output Module Test
+  #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Yaml Output Module Test
  Test:
    Short sentence                      :  Yes
    Foo: {one:  1, two:  2}
@@ -167,7 +171,7 @@
 ---
   #----------------------------------------------------------------------- Yaml Invoice Example
  invoice                               :  34843
- date                                  :  2015-07-03
+ date                                  :  2015-11-21
  bill-to: &id001
    given                               : Chris
    address:
@@ -192,7 +196,7 @@
   #--------------------------------------------------- Yaml Invoice Example, using dictionaries
  Retrieve the price value              :  2392.0
  invoice                               : 34843
- date                                  :  2015-07-03
+ date                                  :  2015-11-21
  bill-to:
    given                               : Chris
    family                              : Dumars
@@ -224,7 +228,7 @@
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4210256
+   Callback Procedure Address          : 4213104
  Additional Info                       : Extra message added
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
  Print the error ID                    :  28
@@ -236,7 +240,7 @@
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4210256
+   Callback Procedure Address          : 4213104
  Additional Info                       : Extra message added again
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TOTO
  Callback done, errcode                :  28
@@ -284,10 +288,10 @@
  - INPUT_OUTPUT_ERROR:
      Id                                : 9
      Message:
-       Some of intrinsic I/O fortan routines returned an error code
+       Some of intrinsic I/O fortran routines returned an error code.
      Action:
-       Check if you have correct file system permission in i/o library or check the fortan 
-       runtime library
+       Check if you have correct file system permission in I/O library or check the fortran 
+       runtime library.
  - YAML_INVALID:
      Id                                : 10
      Message                           : Generic error of yaml module, invalid operation
@@ -314,7 +318,7 @@
  - ERROR_YAML_COMMAND_LINE_PARSER:
      Id                                : 16
      Message                           : Error in yaml parsing of the command line
-     Action                            : Check the allowed options and their values (--help)
+     Action                            : Check the allowed options and their values (--help).
  - ERR_REFERENCE_COUNTERS:
      Id                                : 17
      Message                           : Error in the usage of the reference counter
@@ -326,47 +330,47 @@
      Message                           : Allocation error
      Action:
        Control the order of the allocation or if the memory limit has been reached
-     Callback Procedure Address        : 4558752
+     Callback Procedure Address        : 4783968
  - ERR_DEALLOCATE:
      Id                                : 19
      Message                           : Deallocation error
      Action:
        Control the order of the allocation or if the memory limit has been reached
-     Callback Procedure Address        : 4558752
+     Callback Procedure Address        : 4783968
  - ERR_MEMLIMIT:
      Id                                : 20
      Message                           : Memory limit reached
      Action:
        Control the size of the arrays needed for this run with bigdft-tool program
-     Callback Procedure Address        : 4558752
+     Callback Procedure Address        : 4783968
  - ERR_INVALID_COPY:
      Id                                : 21
      Message                           : Copy not allowed
      Action:
        A f_memcpy command failed, probably invalid sizes: check sizes of arrays at runtime
-     Callback Procedure Address        : 4558752
+     Callback Procedure Address        : 4783968
  - ERR_INVALID_MALLOC:
      Id                                : 22
      Message                           : Invalid specification of f_malloc
      Action                            : Put coherent data for the memory space allocation
-     Callback Procedure Address        : 4558752
+     Callback Procedure Address        : 4783968
  - ERR_MALLOC_INTERNAL:
      Id                                : 23
      Message                           : Internal error of memory profiler
      Action:
        An invalid operation occurs, submit bug report to developers
-     Callback Procedure Address        : 4558752
+     Callback Procedure Address        : 4783968
  - TIMING_INVALID:
      Id                                : 24
      Message                           : Error in timing routines
-
+ 
      Action                            : Control the running conditions of f_timing routines called
-     Callback Procedure Address        : 4617232
+     Callback Procedure Address        : 5182544
  - INPUT_VAR_NOT_IN_LIST:
      Id                                : 25
      Message                           : given value not in allowed list.
      Action                            : choose a value from the list below.
-     Callback Procedure Address        : 4649328
+     Callback Procedure Address        : 5281184
  - INPUT_VAR_NOT_IN_RANGE:
      Id                                : 26
      Message                           : given value not in allowed range.
@@ -375,7 +379,7 @@
      Id                                : 27
      Message                           : provided variable is not allowed in this context.
      Action                            : correct or remove the input variable.
-     Callback Procedure Address        : 4646048
+     Callback Procedure Address        : 5281168
  - ERR_TOTO:
      Id                                : 28
      Message:
@@ -383,23 +387,23 @@
        purpose to see whether yaml module prints it
      Action:
        For this error, contact the routine developer at mail at univ dot gov
-     Callback Procedure Address        : 4210256
+     Callback Procedure Address        : 4213104
  - ERR_TITI:
      Id                                : 29
      Message                           : test2
-     Callback Procedure Address        : 4210320
-     Callback Procedure Data Address   : 140727423449792
+     Callback Procedure Address        : 4213168
+     Callback Procedure Data Address   : 140720763340560
  - ERR_GRAVE:
      Id                                : 30
      Message                           : test2
-     Callback Procedure Address        : 4335408
+     Callback Procedure Address        : 4484448
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ End of error list
  Additional Info                       : This is the list of the errors
  ERR_TITI:
    Id                                  : 29
    Message                             : test2
-   Callback Procedure Address          : 4210320
-   Callback Procedure Data Address     : 140727423449792
+   Callback Procedure Address          : 4213168
+   Callback Procedure Data Address     : 140720763340560
  Additional Info                       : Now TITI error has been raised
   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! TITI
  Callback done                         :  Yes
@@ -421,7 +425,7 @@
      purpose to see whether yaml module prints it
    Action:
      For this error, contact the routine developer at mail at univ dot gov
-   Callback Procedure Address          : 4210256
+   Callback Procedure Address          : 4213104
  Number of errors(3)                   :  1
  Error check value after try           :  No
 ---
@@ -536,7 +540,7 @@
  Stack2: [1, 2, 3]
  Stack3: [4, AQ, 3g]
  Stack4                                : 12
- Values retrieved from the dict        :  [  1.0000,  2.0000,  3.0000 ]
+ Values retrieved from the dict        :  [  1.00000,  2.0000,  3.0000 ]
  Lenght zero                           :  4
  Dict extracted:
  - 5
@@ -627,6 +631,24 @@
  Iterating in dictA                    :  Yes
  Key of dictA                          : Stack4
  Value of dictA                        : 12
+ Iterating in dictA, again             :  Yes
+ Key of dictA, again                   : Test1
+ Value of dictA, again                 : __dict__
+ Iterating in dictA, again             :  Yes
+ Key of dictA, again                   : Test2
+ Value of dictA, again                 : __dict__
+ Iterating in dictA, again             :  Yes
+ Key of dictA, again                   : Stack
+ Value of dictA, again                 : __list__
+ Iterating in dictA, again             :  Yes
+ Key of dictA, again                   : Stack2
+ Value of dictA, again                 : __list__
+ Iterating in dictA, again             :  Yes
+ Key of dictA, again                   : Stack3
+ Value of dictA, again                 : __list__
+ Iterating in dictA, again             :  Yes
+ Key of dictA, again                   : Stack4
+ Value of dictA, again                 : 12
  Item of dictA                         :  0
  Value of dictA                        : Value1
  Item of dictA                         :  1
@@ -703,13 +725,31 @@
  i2=3:
     8.0
 ---
+ Time for razero                       :  0.201688496
+ Total sum                             :  0
+ Time for initialization               :  0.210876688
+ Total sum                             :  1000000
+ Time for memset                       :  0.21015175
+ Total sum                             :  0
+ Time for setzero                      :  0.184278204
+ Total sum                             :  0
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Routine-Tree creation example
- Address of first element              :  7253504
+  #TESTTESTTESTTESTTESTTESTTESTTESTTESTTESTTESTTESTTEST testing aliasing on pointer sections
+ Ptr1 Lbound                           :  [  1 ]
+ Ptr1 Ubound                           :  [  6 ]
+ Ptr1 Size                             :  6
+ data in original position: [ 0,  0,  0,  0,  0,  3,  3,  3,  3,  3,  3,  0,  0,  0,  0,  0]
+ Predicted address for the starting point of ptr1:  38750084
+ Actual address of first element of ptr1:  38750084
+ address of first element vs address of objects:  [  38749888,  38749888 ]
+ address of first element vs address of objects:  [  38750084,  38750084 ]
+ Address differences                   :  196
+ Address of first element              :  256
  Associated                            :  [  No,  No ]
  Associated                            :  [  Yes,  Yes ]
- Address of first element              :  7253440
- Address of first element, explicit (1):  7253440
- Address of first element, explicit (2):  7253440
+ Address of first element              :  256
+ Address of first element, explicit (1):  256
+ Address of first element, explicit (2):  256
  Associated                            :  [  Yes,  No,  Yes ]
   #debug 1
   #debug 2
@@ -746,90 +786,93 @@
  Associations, second                  :  [  Yes,  No ]
  Associations, third                   :  [  No,  No ]
  String array values: [hello, arr 1, hello, arr 2, hello, arr 3, hello, arr 4]
- loc of address and metadata           :  [  7272512,  7272512,  7272512 ]
+ loc of address and metadata           :  [  38749920,  38749920,  38749920 ]
  String pointer values: [hello, ptr 1, hello, ptr 2, hello, ptr 3, hello, ptr 4]
- loc of address and metadata           :  [  7272512,  7272512,  7272512 ]
+ loc of address and metadata           :  [  38749920,  38749920,  38749920 ]
  Calling sequence of Main program (routines with * are not closed yet):
- - Main_program: [ 4.155E-02,  1, ~*]
+ - Main_program: [ 0.840,  1, ~*]
    Subroutines:
-   - PS_Check: [ 2.172E-02,  1,  52.27%*]
+   - PS_Check: [ 2.201E-02,  1,  2.62%*]
      Subroutines:
-     - Routine D: [ 2.226E-02,  1,  102.47%*]
+     - Routine D: [ 2.315E-02,  1,  105.19%*]
        Subroutines:
-       - Subcase 2: [ 1.418E-02,  1,  63.68%]
+       - SubCase 3: [ 1.426E-02,  1,  61.60%*]
+       - Subcase 2: [ 9.513E-03,  1,  41.09%]
          Subroutines:
-         - SubSubcase1: [ 2.425E-03,  1,  17.10%]
-       - SubCase 3: [ 1.193E-02,  1,  53.58%*]
-       - SubCase 1: [ 2.186E-03,  1,  9.82%]
-     - Routine A: [ 6.725E-04,  1,  3.10%]
-     - Routine 0: [ 6.444E-04,  1,  2.97%]
+         - SubSubcase1: [ 3.178E-03,  1,  33.40%]
+       - SubCase 1: [ 3.112E-03,  1,  13.44%]
+     - Routine A: [ 1.262E-03,  1,  5.74%]
+     - Routine 0: [ 1.216E-03,  1,  5.52%]
  Routine dictionary:
-   7253504:
+   38749888:
      [ weight, SubCase 3,  4,  3]
-   7272512:
+   38817552:
      [ orbital_id, SubCase 3,  28,  4]
  Global dictionary (size 4):
-   7253696:
+   38749376:
      [ density, Routine 0,  48,  1]
-   7253760:
+   38750496:
      [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2015-07-03 21:38:20.283
+     2015-11-21 21:05:51.831
    Process Id:
      0
   #Test for debug
   #End test for debug
   #End test for debug2
  Calling sequence of Main program (routines with * are not closed yet):
- - Main_program: [ 5.962E-02,  1, ~*]
+ - Main_program: [ 0.863,  1, ~*]
    Subroutines:
-   - PS_Check: [ 3.956E-02,  1,  66.36%*]
+   - PS_Check: [ 4.545E-02,  1,  5.27%*]
      Subroutines:
-     - Routine D: [ 3.230E-02,  1,  81.64%]
+     - Routine D: [ 3.421E-02,  1,  75.26%]
        Subroutines:
-       - SubCase 3: [ 1.583E-02,  1,  49.00%]
-       - Subcase 2: [ 1.418E-02,  1,  43.89%]
+       - SubCase 3: [ 2.147E-02,  1,  62.75%]
+       - Subcase 2: [ 9.513E-03,  1,  27.81%]
          Subroutines:
-         - SubSubcase1: [ 2.425E-03,  1,  17.10%]
-       - SubCase 1: [ 2.186E-03,  1,  6.77%]
-     - Routine F: [ 7.530E-03,  1,  19.04%*]
-     - Routine A: [ 6.725E-04,  1,  1.70%]
-     - Routine 0: [ 6.444E-04,  1,  1.63%]
-     - Routine E: [ 3.621E-04,  1,  0.92%]
-     - PS_Check: [ 5.299E-05,  2,  0.13%]
+         - SubSubcase1: [ 3.178E-03,  1,  33.40%]
+       - SubCase 1: [ 3.112E-03,  1,  9.10%]
+     - Routine F: [ 1.157E-02,  1,  25.46%*]
+     - Routine A: [ 1.262E-03,  1,  2.78%]
+     - Routine 0: [ 1.216E-03,  1,  2.67%]
+     - Routine E: [ 6.658E-04,  1,  1.46%]
+     - PS_Check: [ 7.251E-05,  2,  0.16%]
  Routine dictionary:
-   7253696:
+   38817488:
      [ xc_pot, Routine F,  48,  1]
-   7272512:
+   38817408:
      [ rhopot, Routine F,  48,  1]
  Global dictionary (size 3):
-   7253760:
+   38750496:
      [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2015-07-03 21:38:20.283
+     2015-11-21 21:05:51.831
    Process Id:
      0
  ERR_INVALID_MALLOC:
    Id                                  : 22
    Message                             : Invalid specification of f_malloc
    Action                              : Put coherent data for the memory space allocation
-   Callback Procedure Address          : 5337848
+   Callback Procedure Address          : 4783968
  Additional Info:
-   Rank specified by f_malloc (2) is not coherent with the one of the array (1)
+   Rank specified by f_malloc (2,routine_id=Routine F,id=rhopot) is not coherent with the one 
+   of the array (1)
  ERR_INVALID_MALLOC:
    Id                                  : 22
    Message                             : Invalid specification of f_malloc
    Action                              : Put coherent data for the memory space allocation
-   Callback Procedure Address          : 5338088
+   Callback Procedure Address          : 4783968
  Additional Info:
-   Rank specified by f_malloc (1) is not coherent with the one of the array (2)
+   Rank specified by f_malloc (1,routine_id=Routine F,id=cpot) is not coherent with the one of 
+   the array (2)
  ERR_ALLOCATE:
    Id                                  : 18
    Message                             : Allocation error
    Action:
      Control the order of the allocation or if the memory limit has been reached
-   Callback Procedure Address          : 5344453
- Additional Info                       : Allocation problem, error code 5014
+   Callback Procedure Address          : 4783968
+ Additional Info:
+   Allocation problem (routine_id=Routine F,id=cpot), error code  151
  Parsed string:
  -  [elem1, 1.d0, elem2, 3.d0]
  Associated after pop                  :  No
@@ -839,79 +882,95 @@
  - elem2
  - 3.d0
  Calling sequence of Main program (routines with * are not closed yet):
- - Main_program: [ 7.320E-02,  1, ~*]
+ - Main_program: [ 0.903,  1, ~*]
    Subroutines:
-   - PS_Check: [ 5.399E-02,  1,  73.75%*]
+   - PS_Check: [ 8.498E-02,  1,  9.41%*]
      Subroutines:
-     - Routine D: [ 3.230E-02,  1,  59.82%]
+     - Routine F: [ 5.114E-02,  1,  60.18%*]
+     - Routine D: [ 3.421E-02,  1,  40.25%]
        Subroutines:
-       - SubCase 3: [ 1.583E-02,  1,  49.00%]
-       - Subcase 2: [ 1.418E-02,  1,  43.89%]
+       - SubCase 3: [ 2.147E-02,  1,  62.75%]
+       - Subcase 2: [ 9.513E-03,  1,  27.81%]
          Subroutines:
-         - SubSubcase1: [ 2.425E-03,  1,  17.10%]
-       - SubCase 1: [ 2.186E-03,  1,  6.77%]
-     - Routine F: [ 2.232E-02,  1,  41.35%*]
-     - Routine A: [ 6.725E-04,  1,  1.25%]
-     - Routine 0: [ 6.444E-04,  1,  1.19%]
-     - Routine E: [ 3.621E-04,  1,  0.67%]
-     - PS_Check: [ 5.299E-05,  2,  0.10%]
+         - SubSubcase1: [ 3.178E-03,  1,  33.40%]
+       - SubCase 1: [ 3.112E-03,  1,  9.10%]
+     - Routine A: [ 1.262E-03,  1,  1.49%]
+     - Routine 0: [ 1.216E-03,  1,  1.43%]
+     - Routine E: [ 6.658E-04,  1,  0.78%]
+     - PS_Check: [ 7.251E-05,  2,  0.09%]
  Routine dictionary:
-   7253696:
+   38817488:
      [ xc_pot, Routine F,  48,  1]
  Global dictionary (size 3):
-   7253760:
+   38750496:
      [ potential, Routine 0,  24,  1]
    Timestamp of Profile initialization:
-     2015-07-03 21:38:20.283
+     2015-11-21 21:05:51.831
    Process Id:
      0
   #---------------------------------------------------- Entering in OpenMP section if available
  Entering Thread No.                   :  0
- Address of metadata                   :  47238108378360
+ Address of metadata                   :  8686016
  Entering Thread No.                   :  1
- Address of metadata                   :  47238141634232
+ Address of metadata                   :  47340802523008
  Something to use ab                   :  200.0
- Something to use b                    :  400.0
+ Errors found while (de)allocating ab and b:  2
+ ERR_ALLOCATE:
+   Id                                  : 18
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 4783968
+ Additional Info:
+   Allocation problem (routine_id=Routine F,id=b), error code  151
+ ERR_ALLOCATE:
+   Id                                  : 18
+   Message                             : Allocation error
+   Action:
+     Control the order of the allocation or if the memory limit has been reached
+   Callback Procedure Address          : 4783968
+ Additional Info:
+   Allocation problem (routine_id=Routine F,id=b), error code  151
  Calling sequence of Main program (routines with * are not closed yet):
- - Main_program: [ 9.020E-02,  1, ~*]
+ - Main_program: [ 0.926,  1, ~*]
    Subroutines:
-   - PS_Check: [ 6.710E-02,  1,  74.39%]
+   - PS_Check: [ 0.103,  1,  11.10%]
      Subroutines:
-     - Routine F: [ 3.273E-02,  1,  48.78%]
-     - Routine D: [ 3.230E-02,  1,  48.13%]
+     - Routine F: [ 6.496E-02,  1,  63.07%]
+     - Routine D: [ 3.421E-02,  1,  33.21%]
        Subroutines:
-       - SubCase 3: [ 1.583E-02,  1,  49.00%]
-       - Subcase 2: [ 1.418E-02,  1,  43.89%]
+       - SubCase 3: [ 2.147E-02,  1,  62.75%]
+       - Subcase 2: [ 9.513E-03,  1,  27.81%]
          Subroutines:
-         - SubSubcase1: [ 2.425E-03,  1,  17.10%]
-       - SubCase 1: [ 2.186E-03,  1,  6.77%]
-     - Routine A: [ 7.564E-04,  4,  1.13%]
-     - Routine 0: [ 6.444E-04,  1,  0.96%]
-     - Routine E: [ 3.621E-04,  1,  0.54%]
-     - PS_Check: [ 5.299E-05,  2,  0.08%]
+         - SubSubcase1: [ 3.178E-03,  1,  33.40%]
+       - SubCase 1: [ 3.112E-03,  1,  9.10%]
+     - Routine A: [ 1.373E-03,  4,  1.33%]
+     - Routine 0: [ 1.216E-03,  1,  1.18%]
+     - Routine E: [ 6.658E-04,  1,  0.65%]
+     - PS_Check: [ 7.251E-05,  2,  0.07%]
  Global dictionary (size 2):
    Timestamp of Profile initialization:
-     2015-07-03 21:38:20.283
+     2015-11-21 21:05:51.831
    Process Id:
      0
  Summary:
- - Main_program: [ 0.103,  1, ~*]
+ - Main_program: [ 0.945,  1, ~*]
    Subroutines:
-   - PS_Check: [ 6.710E-02,  1,  65.14%]
+   - PS_Check: [ 0.103,  1,  10.88%]
      Subroutines:
-     - Routine F: [ 3.273E-02,  1,  48.78%]
-     - Routine D: [ 3.230E-02,  1,  48.13%]
+     - Routine F: [ 6.496E-02,  1,  63.07%]
+     - Routine D: [ 3.421E-02,  1,  33.21%]
        Subroutines:
-       - SubCase 3: [ 1.583E-02,  1,  49.00%]
-       - Subcase 2: [ 1.418E-02,  1,  43.89%]
+       - SubCase 3: [ 2.147E-02,  1,  62.75%]
+       - Subcase 2: [ 9.513E-03,  1,  27.81%]
          Subroutines:
-         - SubSubcase1: [ 2.425E-03,  1,  17.10%]
-       - SubCase 1: [ 2.186E-03,  1,  6.77%]
-     - Routine A: [ 7.564E-04,  4,  1.13%]
-     - Routine 0: [ 6.444E-04,  1,  0.96%]
-     - Routine E: [ 3.621E-04,  1,  0.54%]
-     - PS_Check: [ 5.299E-05,  2,  0.08%]
- Test for pid                          :  11425
+         - SubSubcase1: [ 3.178E-03,  1,  33.40%]
+       - SubCase 1: [ 3.112E-03,  1,  9.10%]
+     - Routine A: [ 1.373E-03,  4,  1.33%]
+     - Routine 0: [ 1.216E-03,  1,  1.18%]
+     - Routine E: [ 6.658E-04,  1,  0.65%]
+     - PS_Check: [ 7.251E-05,  2,  0.07%]
+ Test for pid                          :  30523
 ---
  test dict_copy:
    original:
@@ -987,13 +1046,13 @@
  Huge with wrong format (1pe24.16)     : -1.7976931348623157E+308
  Iostat for format                     :  0
  Integer with too little format (i3)   :  10000
- Iostat for format                     :  0
+ Iostat for format                     :  63
  Float with too little format (f3.2)   :  1.000400024E+03
  Real as integer (f3.0)                :  10.
- Iostat for format                     :  0
+ Iostat for format                     :  63
  Double with too little format (f3.2)  :  1000.400000000000
  Float with too little format again (f3.2):  1.044559956E+01
- Iostat for format                     :  0
+ Iostat for format                     :  63
  Real with format (es23.16)            :  5.0000000000000000E-01
  Real with format (es24.17)            :  5.00000000000000000E-01
  Real with format (es25.18)            :  5.000000000000000000E-01
@@ -1001,23 +1060,23 @@
  Real with format (es27.20)            :  4.99999999999999777955E-01
  Real with format (es26.19)            :  2.2204460492503130808E-16
  Real with format (es27.20)            : -2.22044604925031308085E-16
- Timings for search: {No. of items:  1, Elapsed time (ns):  1.23}
- Timings for search: {No. of items:  10001, Elapsed time (ns):  1.36}
- Timings for search: {No. of items:  20001, Elapsed time (ns):  1.44}
- Timings for search: {No. of items:  30001, Elapsed time (ns):  1.31}
- Timings for search: {No. of items:  40001, Elapsed time (ns):  1.20}
- Timings for search: {No. of items:  50001, Elapsed time (ns):  1.23}
- Timings for search: {No. of items:  60001, Elapsed time (ns):  1.42}
- Timings for search: {No. of items:  70001, Elapsed time (ns):  1.48}
- Timings for search: {No. of items:  80001, Elapsed time (ns):  1.31}
- Timings for search: {No. of items:  90001, Elapsed time (ns):  1.24}
- Timings for search: {No. of items:  100001, Elapsed time (ns):  1.36}
+ Timings for search: {No. of items:  1, Elapsed time (ns):  3.38}
+ Timings for search: {No. of items:  10001, Elapsed time (ns):  1.92}
+ Timings for search: {No. of items:  20001, Elapsed time (ns):  1.93}
+ Timings for search: {No. of items:  30001, Elapsed time (ns):  1.91}
+ Timings for search: {No. of items:  40001, Elapsed time (ns):  1.90}
+ Timings for search: {No. of items:  50001, Elapsed time (ns):  1.91}
+ Timings for search: {No. of items:  60001, Elapsed time (ns):  1.88}
+ Timings for search: {No. of items:  70001, Elapsed time (ns):  1.89}
+ Timings for search: {No. of items:  80001, Elapsed time (ns):  1.88}
+ Timings for search: {No. of items:  90001, Elapsed time (ns):  1.88}
+ Timings for search: {No. of items:  100001, Elapsed time (ns):  1.91}
  Some value                            :  1111033000
- Timings for search: {No. of items:  1, Elapsed time (mus):  8.08}
- Timings for search: {No. of items:  5001, Elapsed time (mus):  62.50}
- Timings for search: {No. of items:  10001, Elapsed time (mus):  114.95}
- Timings for search: {No. of items:  15001, Elapsed time (mus):  171.16}
- Timings for search: {No. of items:  20001, Elapsed time (mus):  312.03}
+ Timings for search: {No. of items:  1, Elapsed time (mus):  5.21}
+ Timings for search: {No. of items:  5001, Elapsed time (mus):  44.96}
+ Timings for search: {No. of items:  10001, Elapsed time (mus):  83.90}
+ Timings for search: {No. of items:  15001, Elapsed time (mus):  123.25}
+ Timings for search: {No. of items:  20001, Elapsed time (mus):  172.41}
  Other value                           :  2000000.0
  Long Integer kind                     :  8
  Normal Integer kind                   :  4
@@ -1041,8 +1100,11 @@
  Greetings 3a                          :  No
  Greetings 3b                          :  No
  Greetings 3c                          :  No
- Absolute time before pause (since epoch): 45y 194d 19:38:26.857108141
- Time spent after pause (s)            : 00:00:01.000025937
+ Greetings 3a-2                        :  Yes
+ Greetings 3b-2                        :  Yes
+ Greetings 3c-2                        :  Yes
+ Absolute time before pause (since epoch): 45y 335d 20:05:57.715887187
+ Time spent after pause (s)            : 00:00:01.000015615
  First unit which can be opened        :  7
  Opened file in unit                   :  7
  Second unit which can be opened       :  8
@@ -1056,6 +1118,11 @@
    Third file                          :  9
    Third file opened                   :  9
  If this value is 7 then all files have been correctly closed:  7
+ Count (ns)                            :  [  10000000,  41 ]
+ Count f_increment (ns)                :  [  10000000,  19927629 ]
+ Count omp (ns)                        :  [  10000000,  13820 ]
+ Count f_increment omp (ns)            :  [  7368713,  25249214 ]
+  #:):):):):):):):):):):):):):):):):):):):):):):):):):):):):) Test of input variables retrieval
  Initial input variables:
    dft:
      DESCRIPTION                       : Density Functional Theory parameters
@@ -1071,6 +1138,15 @@
        COMMENT                         : Exchange-correlation parameter (LDA=1,PBE=11)
        DESCRIPTION                     : Determine the exchange-correlation functional.
        default                         : 1
+       EXCLUSIVE:
+       - 1
+       - 11
+       - -20
+       - -101130
+       - -406
+       - -170
+       - -402
+       - 100
        LDA (ABINIT)                    : 1
        PBE (ABINIT)                    : 11
        LDA                             : -20
@@ -1079,6 +1155,29 @@
        B97-D                           : -170
        B3LYP                           : -402
        HF                              : 100
+     eta:
+       COMMENT                         : Test parameter to understand the condition
+       default                         : 0.5
+       B3LYP                           : 0.4
+       CONDITION:
+         MASTER_KEY                    : ixc
+         WHEN: [LDA, B3LYP]
+       PROFILE_FROM                    : ixc
+     gps_algorithm:
+       COMMENT                         : Algorithm for the Generalised Poisson Equation
+       default                         : PCG
+       EXCLUSIVE:
+         PI                            : Polarization Iteration method
+         PCG                           : Preconditioned Conjugate Gradient
+     pi_eta:
+       COMMENT                         : Mixing parameter of the PI algorithm
+       RANGE: [0.0, 1.0]
+       default                         : 0.6
+       CONDITION:
+         MASTER_KEY                    : gps_algorithm
+         WHEN:
+         - PI
+       PROFILE_FROM                    : gps_algorithm
    geopt:
      DESCRIPTION:
        Parameters for the geometry relaxation and molecular dynamics
@@ -1086,21 +1185,12 @@
        COMMENT                         : Geometry optimisation method
        EXCLUSIVE:
          none                          : No geometry optimization
-
+ 
          SDCG                          : A combination of Steepest Descent and Conjugate Gradient
          VSSD                          : Variable Stepsize Steepest Descent method
-         LBFGS                         : Limited-memory BFGS
-         BFGS                          : Broyden-Fletcher-Goldfarb-Shanno
-         PBFGS:
-           Same as BFGS with an initial Hessian obtained from a force field
-         AB6MD                         : Molecular dynamics from ABINIT
-         DIIS                          : Direct inversion of iterative subspace
-
-         FIRE                          : Fast Inertial Relaxation Engine as described by Bitzek et al.
          NEB                           : Nudged Elastic Band
-         SBFGS:
-           SQNM minimizer, keyword deprecated, will be replaced by SQNM in future relea
-         SQNM                          : Stabilized quasi-Newton minimzer
+         DIIS                          : Direct Inversion Iterative Subspace
+         SBFGS                         : SQNM minimizer
        default                         : none
      ncount_cluster_x:
        COMMENT                         : Maximum number of force evaluations
@@ -1112,20 +1202,11 @@
        COMMENT                         : Stepsize for the geometry optimization
        CONDITION:
          MASTER_KEY                    : method
-         WHEN:
-         - SDCG
-         - VSSD
-         - LBFGS
-         - BFGS
-         - PBFGS
-         - DIIS
-         - FIRE
-         - NEB
-         - SBFGS
-         - SQNM
+         WHEN: [SDCG, VSSD, NEB, SBFGS]
+         WHEN_NOT:
          - none
        PROFILE_FROM                    : method
-       RANGE: [0., 100.]
+       RANGE: [0., .inf]
        default                         : 4.
        DIIS                            : 2.
        NEB                             : 0.5
@@ -1134,23 +1215,35 @@
      hgrids                            : 0.45
      ixc                               : B3LYP
      bidon                             : 2
+     gps_algorithm                     : PI
    geopt:
-     method                            : DIIS
+     betax                             : 2.e+40
+     method                            : none
   #WARNING: Input file, section "dft"; invalid key "bidon".
  Allowed keys:
  - hgrids
  - ixc
+ - eta
+ - gps_algorithm
+ - pi_eta
  INPUT_VAR_ILLEGAL:
    Id                                  : 27
    Message                             : provided variable is not allowed in this context.
    Action                              : correct or remove the input variable.
-   Callback Procedure Address          : 4646048
+   Callback Procedure Address          : 5281168
  Additional Info:
    An invalid key (bidon) has been found in section "dft". Check above the allowed keys.
+ INPUT_VAR_ILLEGAL:
+   Id                                  : 27
+   Message                             : provided variable is not allowed in this context.
+   Action                              : correct or remove the input variable.
+   Callback Procedure Address          : 5281168
+ Additional Info                       : geopt/betax is not allowed in this context.
  Completed input file:
    dft:
      hgrids                            : 0.45
      ixc                               : -402
+     gps_algorithm                     : PI
      hgrids_attributes:
        COMMENT                         : Grid spacing in the three directions (bohr)
        USER_DEFINED                    : Yes
@@ -1158,44 +1251,63 @@
        COMMENT                         : Exchange-correlation parameter (LDA=1,PBE=11)
        USER_DEFINED                    : Yes
        PROFILE_FROM                    : B3LYP
+     eta                               : 0.4
+     eta_attributes:
+       COMMENT                         : Test parameter to understand the condition
+       PROFILE_FROM                    : B3LYP
+       USER_DEFINED                    : Yes
+     gps_algorithm_attributes:
+       COMMENT                         : Algorithm for the Generalised Poisson Equation
+       USER_DEFINED                    : Yes
+     pi_eta                            : 0.6
+     pi_eta_attributes:
+       COMMENT                         : Mixing parameter of the PI algorithm
+       USER_DEFINED                    : Yes
    geopt:
-     method                            : DIIS
+     betax                             : 2.e+40
+     method                            : none
      method_attributes:
        COMMENT                         : Geometry optimisation method
        USER_DEFINED                    : Yes
-     ncount_cluster_x                  : 50
+     ncount_cluster_x                  : 1
      ncount_cluster_x_attributes:
        COMMENT                         : Maximum number of force evaluations
-       USER_DEFINED                    : Yes
-     betax                             : 2.
-     betax_attributes:
-       COMMENT                         : Stepsize for the geometry optimization
-       PROFILE_FROM                    : DIIS
+       PROFILE_FROM                    : none
        USER_DEFINED                    : Yes
   #--------------------------------------------------------------------------- Input parameters
  dft:
    hgrids                              : 0.45 #   Grid spacing in the three directions (bohr)
    ixc                                 : -402 #   Exchange-correlation parameter (LDA=1,PBE=11)
+   gps_algorithm                       : PI #     Algorithm for the Generalised Poisson Equation
+   eta                                 : 0.4 #    Test parameter to understand the condition
+   pi_eta                              : 0.6 #    Mixing parameter of the PI algorithm
  geopt:
-   method                              : DIIS #   Geometry optimisation method
-   ncount_cluster_x                    : 50 #     Maximum number of force evaluations
-   betax                               : 2. #     Stepsize for the geometry optimization
+   betax                               : 2.e+40
+   method                              : none #   Geometry optimisation method
+   ncount_cluster_x                    : 1 #      Maximum number of force evaluations
   #--------------------------------------------------------------------------- Input parameters
  dft:
    hgrids                              : 0.45 #   Grid spacing in the three directions (bohr)
    ixc                                 : B3LYP #  Exchange-correlation parameter (LDA=1,PBE=11)
+   gps_algorithm                       : PI #     Algorithm for the Generalised Poisson Equation
+   eta                                 : B3LYP #  Test parameter to understand the condition
+   pi_eta                              : 0.6 #    Mixing parameter of the PI algorithm
  geopt:
-   method                              : DIIS #   Geometry optimisation method
-   ncount_cluster_x                    : 50 #     Maximum number of force evaluations
-   betax                               : DIIS #   Stepsize for the geometry optimization
+   betax                               : 2.e+40
+   method                              : none #   Geometry optimisation method
+   ncount_cluster_x                    : none #   Maximum number of force evaluations
  Input minimal:
    dft:
      ixc                               : B3LYP
+     eta                               : B3LYP
+     gps_algorithm                     : PI
    geopt:
-     method                            : DIIS
+     betax                             : 2.e+40
  Completed minimal input file:
    dft:
      ixc                               : -402
+     eta                               : 0.4
+     gps_algorithm                     : PI
      hgrids: [0.45, 0.45, 0.45]
      hgrids_attributes:
        COMMENT                         : Grid spacing in the three directions (bohr)
@@ -1203,18 +1315,25 @@
        COMMENT                         : Exchange-correlation parameter (LDA=1,PBE=11)
        USER_DEFINED                    : Yes
        PROFILE_FROM                    : B3LYP
+     eta_attributes:
+       COMMENT                         : Test parameter to understand the condition
+       USER_DEFINED                    : Yes
+       PROFILE_FROM                    : B3LYP
+     gps_algorithm_attributes:
+       COMMENT                         : Algorithm for the Generalised Poisson Equation
+       USER_DEFINED                    : Yes
+     pi_eta                            : 0.6
+     pi_eta_attributes:
+       COMMENT                         : Mixing parameter of the PI algorithm
    geopt:
-     method                            : DIIS
+     betax                             : 2.e+40
+     method                            : none
      method_attributes:
        COMMENT                         : Geometry optimisation method
-       USER_DEFINED                    : Yes
-     ncount_cluster_x                  : 50
+     ncount_cluster_x                  : 1
      ncount_cluster_x_attributes:
        COMMENT                         : Maximum number of force evaluations
-     betax                             : 2.
-     betax_attributes:
-       COMMENT                         : Stepsize for the geometry optimization
-       PROFILE_FROM                    : DIIS
+       PROFILE_FROM                    : none
  User input file 2:
    import: [geopt, simple]
  Completed input file 2:
@@ -1226,10 +1345,6 @@
      ncount_cluster_x                  : 50
      ncount_cluster_x_attributes:
        COMMENT                         : Maximum number of force evaluations
-     betax                             : 2.
-     betax_attributes:
-       COMMENT                         : Stepsize for the geometry optimization
-       PROFILE_FROM                    : DIIS
    dft:
      hgrids                            : 0.45
      ixc                               : -20
@@ -1240,15 +1355,22 @@
        COMMENT                         : Exchange-correlation parameter (LDA=1,PBE=11)
        USER_DEFINED                    : Yes
        PROFILE_FROM                    : LDA
+     eta                               : 0.5
+     eta_attributes:
+       COMMENT                         : Test parameter to understand the condition
+     gps_algorithm                     : PCG
+     gps_algorithm_attributes:
+       COMMENT                         : Algorithm for the Generalised Poisson Equation
    import: [geopt, simple]
   #--------------------------------------------------------------------------- Input parameters
  geopt:
    method                              : DIIS #   Geometry optimisation method
    ncount_cluster_x                    : 50 #     Maximum number of force evaluations
-   betax                               : 2. #     Stepsize for the geometry optimization
  dft:
    hgrids                              : 0.45 #   Grid spacing in the three directions (bohr)
    ixc                                 : -20 #    Exchange-correlation parameter (LDA=1,PBE=11)
+   eta                                 : 0.5 #    Test parameter to understand the condition
+   gps_algorithm                       : PCG #    Algorithm for the Generalised Poisson Equation
  import: [geopt, simple]
  Input minimal 2:
    dft:
@@ -1256,14 +1378,14 @@
    geopt:
      method                            : DIIS
  Memory Consumption Report:
-   Tot. No. of Allocations             :  94
-   Tot. No. of Deallocations           :  94
+   Tot. No. of Allocations             :  111
+   Tot. No. of Deallocations           :  111
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  0.001
-     for the array                     : weight
-     in the routine                    : Routine A
-     Memory Peak of process            : 18.324 MB
- Walltime since initialization         : 00:00:07.572651013
- Max No. of dictionaries used          :  25255 #( 186 still in use)
+     Peak Value (MB)                   :  3.815
+     for the array                     : i1_ptr
+     in the routine                    : Main_program
+     Memory Peak of process            : 21.344 MB
+ Walltime since initialization         : 00:00:06.935635477
+ Max No. of dictionaries used          :  25255 #( 189 still in use)
  Number of dictionary folders allocated:  3

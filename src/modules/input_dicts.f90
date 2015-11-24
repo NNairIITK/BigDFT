@@ -101,14 +101,22 @@ contains
     type(dictionary), pointer :: dict            !< Input dictionary
     !local variables
     character(len = 100) :: f0
-    type(dictionary), pointer :: vals
+    type(dictionary), pointer :: vals,tmp,tmp0
     
     ! Parse all files.
     call set_inputfile(f0, radical, PERF_VARIABLES)
     nullify(vals)
     call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
-    if (associated(vals)) call set(dict//PERF_VARIABLES, vals)
-
+    if (associated(vals)) then
+       if (PSOLVER .in. vals) then
+          tmp0 => vals // PSOLVER
+          call dict_copy(src=tmp0,dest=tmp)
+          call set(dict // PSOLVER,tmp)
+          call dict_remove(vals,PSOLVER)
+       end if
+       call set(dict//PERF_VARIABLES, vals)
+    end if
+       
     call set_inputfile(f0, radical, DFT_VARIABLES)
     nullify(vals)
     call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
@@ -726,9 +734,12 @@ contains
     call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",dummy_str)
     call set(dict // RHO_COMMUN, dummy_str)
     call input_var("psolver_groupsize",0, "Size of ", dummy_int)
-    call set(dict // PSOLVER_GROUPSIZE, dummy_int)
+    call set(dict // PSOLVER // 'setup' // 'taskgroup_size', dummy_int)
     call input_var("psolver_accel",0, "Acceleration ", dummy_int)
-    call set(dict // PSOLVER_ACCEL, dummy_int)
+    select case(dummy_int)
+    case(1)
+       call set(dict // PSOLVER // 'setup' // 'accel', 'CUDA')
+    end select
     call input_var("unblock_comms", "OFF", "Overlap Com)",dummy_str)
     call set(dict // UNBLOCK_COMMS, dummy_str)
     call input_var("linear", 'OFF', "Linear Input Guess approach",dummy_str)
@@ -1552,6 +1563,7 @@ contains
          .item. MODE_VARIABLES,&
          .item. PERF_VARIABLES,&  
          .item. DFT_VARIABLES,&   
+         .item. PSOLVER,&   
          .item. KPT_VARIABLES,&   
          .item. GEOPT_VARIABLES,& 
          .item. MD_VARIABLES,& 

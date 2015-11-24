@@ -15,7 +15,7 @@ module dynamic_memory_base
   use yaml_strings!, only: yaml_toa,yaml_date_and_time_toa,operator(//),f_string
   use module_f_malloc 
   use f_precisions
-  use yaml_parse, only: yaml_a_todict
+  use yaml_parse, only: yaml_load
   use f_utils, only: f_time,f_zero
   implicit none
 
@@ -605,7 +605,7 @@ contains
           !transform the dict_add in a list
           !retrieve the string associated to the database
           array_info=dict_add
-          dict_add => yaml_a_todict(array_info)
+          dict_add => yaml_load(array_info)
           !then retrieve the array information
           array_id=dict_add//0
           routine_id=dict_add//1
@@ -1027,7 +1027,7 @@ contains
      do while(associated(dict_ptr))
         !can be used if one wants more verbose information
 !!$        array_info=dict_ptr
-!!$        dict_list => yaml_a_todict(array_info)
+!!$        dict_list => yaml_load(array_info)
 !!$        !then retrieve the array information
 !!$        array_id=dict_list//0
 !!$        routine_id=dict_list//1
