@@ -157,7 +157,7 @@ module multipole
       real(gp),dimension(:,:,:),allocatable :: psppar
       logical :: exists, perx, pery, perz
       logical,parameter :: use_iterator = .false.
-      real(kind=8) :: cutoff, rholeaked, hxh, hyh, hzh, rx, ry, rz, qq
+      real(kind=8) :: cutoff, rholeaked, hxh, hyh, hzh, rx, ry, rz, qq, ttl
       integer :: n1i, n2i, n3i
       integer :: nmpx, nmpy, nmpz, ndensity
       real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
@@ -178,7 +178,7 @@ module multipole
           !sigma(1) = 7.d0*hhh**(1.d0/3.d0)
           !sigma(2) = 7.d0*hhh**(1.d0/3.d0)
           sigma(0) = 1.0d0
-          sigma(1) = 1.0d0
+          sigma(1) = 0.8d0
           sigma(2) = 0.3d0
     
           density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
@@ -404,7 +404,7 @@ module multipole
           !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma, nthread, norm_ok) &
           !$omp shared(norm_check, monopole, dipole, quadrupole, density, density_loc, potential_loc) &
           !$omp shared (gaussians1, gaussians2, gaussians3, nelpsp, rmax) &
-          !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ithread) &
+          !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ttl, ithread) &
           !$omp private(rnrm1, rnrm2, rnrm3, rnrm5, qq)
           ithread = 0
           !$ ithread = omp_get_thread_num()
@@ -436,6 +436,7 @@ module multipole
                           rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
                           if (norm_ok(impl)) then
                               ! Use the method based on the Gaussians
+                              ttl = 0.d0
                               do l=0,lmax
                                   !gg = gaussian(sigma(l),rnrm2)
                                   ! Calculate the Gaussian as product of three 1D Gaussians
@@ -444,6 +445,7 @@ module multipole
                                   !gg = gg*sqrt(2.d0*pi_param*sigma(l)**2)**6
                                   norm_check(l,impl) = norm_check(l,impl) + gg*hhh
                                   if (rnrm2<=rmax(impl)**2) then
+                                  !if (.true.) then
                                       if (associated(ep%mpl(impl)%qlm(l)%q)) then
                                           mm = 0
                                           do m=-l,l
@@ -457,8 +459,10 @@ module multipole
                                               else
                                                   qq = ep%mpl(impl)%qlm(l)%q(mm)
                                               end if
+                                              !ttt = qq*&
+                                              !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
                                               ttt = qq*&
-                                                    spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
+                                                    real(2*l+1,kind=8)*solid_harmonic(-2, l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
                                               !ttt = qq*&
                                               !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg*4.d0*pi_param
                                               !ttt = qq*&
@@ -470,38 +474,46 @@ module multipole
                                               !else if (l==2) then
                                               !    ttt = ttt/sqrt(7.d0)
                                               !end if
-                                              ttt = ttt/get_normalization(rmax(impl), l, m)!*(0.5d0*sqrt(1/pi_param))
+                                              !ttt = ttt/get_normalization(rmax(impl), l, m)!*(0.5d0*sqrt(1/pi_param))
+                                              ttt = ttt
                                               !ttt = ttt*get_normalization(rmax(impl), l, m)*4.d0*pi_param!*(0.5d0*sqrt(1/pi_param))
                                               !ttt = ttt*get_normalization(rmax(impl), l, m)!*sqrt(4.d0*pi_param)
                                               !ttt = ttt**2!*get_normalization(rmax(impl), l, m)!*sqrt(4.d0*pi_param)
                                               tt = tt + ttt
-    
-                                              if (l==0) then
-                                                  monopole(impl) = monopole(impl) + ttt*hhh
-                                              else if (l==1) then
-                                                  if (m==-1) then
-                                                      dipole(1,impl) = dipole(1,impl) + ttt*hhh*y
-                                                  else if (m==0) then
-                                                      dipole(2,impl) = dipole(2,impl) + ttt*hhh*z
-                                                  else if (m==1) then
-                                                      dipole(3,impl) = dipole(3,impl) + ttt*hhh*x
-                                                  end if
-                                              else if (l==2) then
-                                                  if (m==-2) then
-                                                      quadrupole(1,impl) = quadrupole(1,impl) + ttt*hhh*x*y
-                                                  else if (m==-1) then
-                                                      quadrupole(2,impl) = quadrupole(2,impl) + ttt*hhh*y*z
-                                                  else if (m==0) then
-                                                      quadrupole(3,impl) = quadrupole(3,impl) + ttt*hhh*(3*z**2-1.d0)
-                                                  else if (m==1) then
-                                                      quadrupole(4,impl) = quadrupole(4,impl) + ttt*hhh*x*z
-                                                  else if (m==2) then
-                                                      quadrupole(5,impl) = quadrupole(5,impl) + ttt*hhh*(x**2-y**2)
-                                                  end if
-                                              end if
+                                              ttl = ttl + ttt
                                           end do
                                       end if
                                   end if
+                              end do
+    
+                              ! Again calculate the multipole values to verify whether they are represented exactly
+                              do l=0,lmax
+                                  do m=-l,l
+                                      if (l==0) then
+                                          monopole(impl) = monopole(impl) + ttl*hhh
+                                      else if (l==1) then
+                                          if (m==-1) then
+                                              dipole(1,impl) = dipole(1,impl) + ttl*hhh*r(2)!/sqrt(r(1)**2+r(2)**2+r(3)**2)
+                                          else if (m==0) then
+                                              dipole(2,impl) = dipole(2,impl) + ttl*hhh*r(3)!/sqrt(r(1)**2+r(2)**2+r(3)**2)
+                                          else if (m==1) then
+                                              dipole(3,impl) = dipole(3,impl) + ttl*hhh*r(1)!/sqrt(r(1)**2+r(2)**2+r(3)**2)
+                                          end if
+                                      else if (l==2) then
+                                          if (m==-2) then
+                                              quadrupole(1,impl) = quadrupole(1,impl) + ttl*hhh*sqrt(3.d0)*r(1)*r(2)
+                                          else if (m==-1) then
+                                              quadrupole(2,impl) = quadrupole(2,impl) + ttl*hhh*sqrt(3.d0)*r(2)*r(3)
+                                          else if (m==0) then
+                                              quadrupole(3,impl) = quadrupole(3,impl) + ttl*hhh*sqrt(0.25d0)*&
+                                                                                        (-r(1)**2-r(2)**2+2.d0*r(3)**2)
+                                          else if (m==1) then
+                                              quadrupole(4,impl) = quadrupole(4,impl) + ttl*hhh*sqrt(3.d0)*r(1)*r(3)
+                                          else if (m==2) then
+                                              quadrupole(5,impl) = quadrupole(5,impl) + ttl*hhh*sqrt(0.75d0)*(r(1)**2-r(2)**2)
+                                          end if
+                                      end if
+                                  end do
                               end do
                               !density_try(i1,i2,i3,ithread) = density_try(i1,i2,i3,ithread) + tt
                               ! If the norm of the Gaussian is close to one, 
@@ -636,13 +648,23 @@ module multipole
                               mm = 0
                               do m=-l,l
                                   mm = mm + 1
+                                  !if (l==0) then
+                                  !    max_error(l) = max(max_error(l), &
+                                  !                    abs(monopole(impl)-(ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8))))
+                                  !else if (l==1) then
+                                  !    max_error(l) = max(max_error(l),abs(dipole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
+                                  !else if (l==2) then
+                                  !    max_error(l) = max(max_error(l),abs(quadrupole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
+                                  !end if
                                   if (l==0) then
                                       max_error(l) = max(max_error(l), &
-                                                      abs(monopole(impl)-(ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8))))
+                                                      abs(monopole(impl)/(ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8))))
                                   else if (l==1) then
-                                      max_error(l) = max(max_error(l),abs(dipole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
+                                      max_error(l) = max(max_error(l),abs(dipole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm)))
+                                      !write(*,*) 'calc, orig', dipole(mm,impl), ep%mpl(impl)%qlm(l)%q(mm)
                                   else if (l==2) then
-                                      max_error(l) = max(max_error(l),abs(quadrupole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
+                                      max_error(l) = max(max_error(l),abs(quadrupole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm)))
+                                      !write(*,*) 'calc, orig', quadrupole(mm,impl),ep%mpl(impl)%qlm(l)%q(mm)
                                   end if
                               end do
                           end if
@@ -2372,5 +2394,77 @@ module multipole
     
             end if
     end subroutine gaussian_density
+
+
+    !> Calculates the real solid harmonic S_lm (possibly multplied by a power or r) for given values of l, m, x, y, z.
+    !! The S_lm are a priori defined without any r, e.g. S_10 = sqrt(3/4pi)z
+    !! r_exponent indicates how the function is multiplied by r: The final result is given by S_lm*r^(r_exponent*l), with the
+    !! definition of the S_lm given above. r_exponent can also be negative, e.g. -1 to yield the "real" spherical harmonics.
+    function solid_harmonic(r_exponent, l, m, x, y, z) result(sh)
+      use module_base, only: pi => pi_param
+      implicit none
+      ! Calling arguments
+      integer,intent(in) :: r_exponent
+      integer,intent(in) :: l, m
+      real(kind=8),intent(in) :: x, y, z
+      real(kind=8) :: sh
+
+      ! Local variables
+      integer,parameter :: l_max=2
+      real(kind=8) :: r, r2
+
+      if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
+      if (l>l_max) call f_err_throw('solid harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
+          err_name='BIGDFT_RUNTIME_ERROR')
+      if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
+
+
+      select case (l)
+      case (0)
+          ! No need for r, as l=0
+          sh = 1.d0
+      case (1)
+          r2 = x**2+y**2+z**2
+          r = sqrt(r2)
+          select case (m)
+          case (-1)
+              sh = y
+          case (0)
+              sh = z
+          case (1)
+              sh = x
+          end select
+          ! Multiply by r^{r_exp*l}
+          sh = sh*r**r_exponent
+      case (2)
+          r2 = x**2+y**2+z**2
+          select case (m)
+          case (-2)
+              sh = sqrt(3.d0)*x*y
+          case (-1)
+              sh = sqrt(3.d0)*y*z
+          case (0)
+              sh = sqrt(0.25d0)*(-x**2-y**2+2*z**2)
+          case (1)
+              sh = sqrt(3.d0)*z*x
+          case (2)
+              sh = sqrt(0.75d0)*(x**2-y**2)
+          end select
+          ! Multiply by r^{r_exp*l}
+          sh = sh*r2**r_exponent
+      end select
+
+      !r2 = x**2+y**2+z**2
+      !r = sqrt(r2)
+      !if (r<1.d-1) then
+      !    sh = 0.d0
+      !end if
+
+      !if (sh>10.d0) then
+      !    r2 = x**2+y**2+z**2
+      !    write(*,*) 'LARGE, value, r', sh, sqrt(r2)
+      !end if
+
+    end function solid_harmonic
 
 end module multipole
