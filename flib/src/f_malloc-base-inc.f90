@@ -10,7 +10,7 @@
   logical, intent(in), optional :: profile
   character(len=*), intent(in), optional :: id,routine_id
   !local variables
-  integer(f_integer) :: lgt
+  !integer(f_integer) :: lgt
 !!$  logical :: within_openmp
 !!$  !$ logical :: omp_in_parallel,omp_get_nested
 !!$  within_openmp=.false.

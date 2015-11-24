@@ -292,9 +292,7 @@ contains
       !local variables
       logical :: l1
       type(dictionary), pointer :: tmp,tmp0,tmp_not,iter
-      character(max_field_length) :: mkey, val_master
-!!$      integer :: j
-!!$      character(max_field_length) :: val_when
+      character(max_field_length) :: mkey, val_master, val_when
 
 !!$      set_ = .true.
 !!$      if (has_key(ref, COND)) then

@@ -355,6 +355,7 @@
     call err_abort(clbk_add,clbk_data_add)
   end subroutine f_err_throw_c
 
+
   subroutine f_err_throw_str(message,err_id,err_name,callback,callback_data) 
     use yaml_strings, only: f_string
     implicit none
@@ -367,7 +368,8 @@
     external :: callback
     optional :: callback
     !local variables
-    integer(kind=8) :: clbk_add,clbk_data_add
+    integer(kind=8) :: clbk_data_add
+!!$    integer(kind=8) :: clbk_add
 
     clbk_data_add=callback_data_add
     if (present(callback_data)) clbk_data_add=callback_data
