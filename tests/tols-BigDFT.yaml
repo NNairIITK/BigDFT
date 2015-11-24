@@ -58,6 +58,10 @@ Keys to ignore:
  - check_overlap
  - check_sumrho
  - Leaked force
+ - psolver_accel
+ - psolver_groupsize
+ - gps_method
+ - solvent
  #- number of tasks
  #- IDs
  #- start / end
@@ -93,11 +97,15 @@ yaml_test:
    - Elapsed time (mus)
    - Test for pid
    - loc of address and metadata
+   - Actual address of first element of ptr1
+   - Predicted address for the starting point of ptr1
+   - address of first element vs address of objects
  Patterns to ignore:
    - errcode
    - Time
    - Global dictionary
    - time
+   - Count
 
 xc:
  nosp: 2.01e-6
@@ -1478,7 +1486,7 @@ FF_LENOSKY-bfgs:
   etot: 1.5e-10
   maxval: 1.0e-10
   fnrm2: 1.01e-10
-  Energy: 1.48e-10
+  Energy: 2.07e-10
   Keys to ignore:
   - WARNINGS
 

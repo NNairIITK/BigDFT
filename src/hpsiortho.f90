@@ -3201,6 +3201,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   use module_interfaces, only: LocalHamiltonianApplication, plot_wf
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
+  use yaml_parse, only: yaml_load
   use locreg_operations
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -3218,6 +3219,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   real(gp) :: eh_fake,eks
   type(energy_terms) :: energs_tmp
   type(coulomb_operator) :: G_Helmholtz
+  type(dictionary), pointer :: dict
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: vpsi,vpsir
 
@@ -3267,10 +3269,12 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
 
      !sequential kernel
 
-
-     G_Helmholtz=pkernel_init(.false.,0,1,0,wfn%Lzd%Llr(ilr)%geocode,&
+     dict => yaml_load('{kernel: {screening:'//sqrt(2.0_gp*abs(eks))//'},'//&
+          'setup : { verbose: No}}')
+     G_Helmholtz=pkernel_init(0,1,dict,wfn%Lzd%Llr(ilr)%geocode,&
           (/wfn%Lzd%Llr(ilr)%d%n1i,wfn%Lzd%Llr(ilr)%d%n2i,wfn%Lzd%Llr(ilr)%d%n3i/),&
-          0.5_gp*wfn%Lzd%hgrids,16,mu0_screening=sqrt(2.0_gp*abs(eks)))
+          0.5_gp*wfn%Lzd%hgrids)
+     call dict_free(dict)
 
      call pkernel_set(G_Helmholtz,verbose=.true.)
 

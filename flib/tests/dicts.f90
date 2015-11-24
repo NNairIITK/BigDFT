@@ -50,9 +50,9 @@ subroutine test_dictionaries0()
 
 !!! [Creation]
   dict1=>dict_new()
+!!! [Creation]
   call f_err_open_try()
   ival=dict1//'Toto'
-!!! [Creation]
 
   call yaml_map('ival not existing, fake value',ival)
 
@@ -490,6 +490,14 @@ subroutine test_dictionaries1()
       dict_tmp=>dict_next(dict_tmp)
    end do
 
+!!! [newiter]
+   nullify(dict_tmp)
+   do while(iterating(dict_tmp,on=dictA))
+      call yaml_map('Iterating in dictA, again',.true.)
+      call yaml_map('Key of dictA, again',dict_key(dict_tmp))
+      call yaml_map('Value of dictA, again',dict_value(dict_tmp))
+   end do
+!!! [newiter]
    call dict_free(dictA)
 
    !fill a list and iterate over it
@@ -651,6 +659,8 @@ subroutine test_dictionaries1()
  subroutine test_copy_merge()
    use dictionaries
    use yaml_output
+   use yaml_parse
+   use yaml_strings
    implicit none
 
    type(dictionary), pointer :: dict, cpy, subd
@@ -669,6 +679,15 @@ subroutine test_dictionaries1()
    call yaml_mapping_open("copy")
    call yaml_dict_dump(cpy)
    call yaml_mapping_close()
+   call dict_free(cpy)
+   call yaml_mapping_close()
+
+   cpy => yaml_load('{__comment__ : Grid shifts, __cond__: '//&
+        '   { __master_key__: kpt_method, __when__ : [ MPGrid ]},'//&
+         '__default__ : ['//0.//','//0.//','// 0.//'] }')
+   call yaml_mapping_open("new method")
+   call yaml_dict_dump(cpy)
+   call yaml_map('dicts are equal',cpy==dict)
    call dict_free(cpy)
    call yaml_mapping_close()
 

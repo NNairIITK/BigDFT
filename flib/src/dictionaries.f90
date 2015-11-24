@@ -131,7 +131,7 @@ module dictionaries
    public :: operator(.is.),operator(.item.)
    public :: operator(.pop.),operator(.notin.)
    public :: operator(==),operator(/=),operator(.in.),operator(.get.)
-   public :: dictionary,max_field_length,dict_get_num
+   public :: dictionary,max_field_length,dict_get_num,iterating
 
 
    interface dict_next_build
@@ -681,6 +681,26 @@ contains
         nullify(dict_next)
      end if
    end function dict_next
+
+   !>function that can be used as iterator on a do while loop
+   !! the example for the usage can be found
+   function iterating(iter,on)
+     implicit none
+     type(dictionary), pointer :: iter,on
+     logical :: iterating
+     !local variables
+     if (.not. associated(on)) then
+        iterating=.false.
+        return
+     end if
+     if (.not. associated(iter)) then
+        iter => dict_iter(on)
+     else
+        iter => dict_next(iter)
+     end if
+     iterating=associated(iter)
+     if (.not. associated(iter)) iter => dict_iter(on) !to prevent infinite loop
+   end function iterating
 
    function dicts_are_not_equal(dict1,dict2) result(notequal)
      use yaml_strings, only: is_atoi,is_atof,is_atol

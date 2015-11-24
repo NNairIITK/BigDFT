@@ -25,11 +25,11 @@
 ##
 ## DO NOT USE the character ':' and "" in the COMMENT of DESCRIPTION
 ############################################
- #geometry parameters
- ndims: 100
- hgrids: 0.3
- BC: free
- angrad: 90.0
+ #geometry parameters, to be provided as a single structure
+ #ndims: 100
+ #hgrids: 0.3
+ #BC: free
+ #angrad: 90.0
  kernel:
   DESCRIPTION: Parameters of  the Coulomb Kernel
   screening: 
@@ -65,6 +65,7 @@
     CONDITION: 
       MASTER_KEY: cavity
       WHEN_NOT: [none] 
+    PROFILE_FROM: cavity
   edensmaxmin: 
     COMMENT: Extremum values of the charge density, for the definition of the transition region
     default: [ 1.0e-4, 5.0e-3]
@@ -77,6 +78,7 @@
     CONDITION:
       MASTER_KEY: cavity
       WHEN: [rigid]
+    PROFILE_FROM: cavity
   cavitation: 
     COMMENT: triggers the evaluation of the extra cavtitation terms
     default: No
@@ -116,13 +118,15 @@
     CONDITION: 
       MASTER_KEY: cavity
       WHEN_NOT: [none]
+    PROFILE_FROM: cavity
   pi_eta: 
     COMMENT: Mixing parameter of the PI algorithm
     RANGE: [0.0, 1.0]
     default: 0.6
     CONDITION: 
       MASTER_KEY: gps_algorithm
-      WHEN: PI
+      WHEN: [PI]
+    PROFILE_FROM: gps_algorithm
   input_guess: 
     COMMENT: Triggers the input guess procedure of gps_algorithm
     default: No
@@ -145,7 +149,7 @@
       CUDA: CUFFT-based solver
     default: none
   keep_gpu_memory: 
-    COMMENT: Do not deallocate GPU mamory at each call of the (G)PS routine
+    COMMENT: Do not deallocate GPU memory at each call of the (G)PS routine
     default: Yes
     CONDITION: 
       MASTER_KEY: accel
@@ -154,11 +158,11 @@
     COMMENT: Size of the taskgroups of the Poisson Solver
     default: 0
   global_data: 
-    COMMENT: Assum that charge density and Electrostatic potential are given by global arrays
+    COMMENT: Charge density and Electrostatic potential are given by global arrays
     default: No
   verbose: 
     COMMENT: Verbosity switch
-    deafult: Yes
+    default: Yes
   output: 
     COMMENT: Quantities to be plotted after the main solver routine
     DESCRIPTION: Might be a list containing kewywords like cavity, potential or density

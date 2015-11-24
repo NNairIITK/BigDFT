@@ -1798,7 +1798,11 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   if (dpbox%n3pi >0 .and. .not. htoobig) then
 
      !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-     cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+     if (at%astruct%nat >0) then
+        cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+     else
+        cutoff=0.0
+     end if
      if (at%multipole_preserving) then
         !We want to have a good accuracy of the last point rloc*10
         cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
@@ -2166,7 +2170,11 @@ subroutine createIonicPotential(iproc,verb,at,rxyz,&
   if (dpbox%n3pi > 0) then
 
      !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-     cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+     if (at%astruct%nat >0) then
+        cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+     else
+        cutoff=0.0
+     end if
      if (at%multipole_preserving) then
         !We want to have a good accuracy of the last point rloc*10
         cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)

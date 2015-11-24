@@ -183,7 +183,7 @@ program memguess
       write(*,'(1x,a)')&
            &   '"matrixpower" <matrix.bin>" ' 
       write(*,'(1x,a)')&
-           & 'caluclate the power of a matrix'
+           & 'calculate the power of a matrix'
       write(*,'(1x,a)')&
            &   '"suggest-cutoff" <posinp.xyz>" ' 
       write(*,'(1x,a)')&
