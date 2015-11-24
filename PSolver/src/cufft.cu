@@ -113,6 +113,16 @@ extern "C" void FC_FUNC_(reset_gpu_data, RESET_GPU_DATA)(int *size, Real* h_data
 
 }
 
+// copy data on the card
+extern "C" void FC_FUNC_(copy_gpu_data, COPY_GPU_DATA)(int *size, Real** dest_data, Real **send_data){
+
+ cudaMemcpy(*dest_data, *send_data, sizeof(Real)*(*size),
+         cudaMemcpyDeviceToDevice);
+ if( cudaGetLastError() != cudaSuccess)
+      printf("transfer error\n");
+
+}
+
 // set device memory
 extern "C" void FC_FUNC_(send_and_pad_data, SEND_AND_PAD_DATA)(Real* h_data, Real **d_data, int* m1, int* m2, int*m3, int* md1, int*md2, int* md3){
 

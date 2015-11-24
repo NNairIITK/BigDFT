@@ -12,6 +12,7 @@
 module overlap_point_to_point
    use module_base
    use iso_c_binding
+   use f_precisions, only: f_address
    implicit none
 
    !By default variables are internal to the module
@@ -601,11 +602,13 @@ module overlap_point_to_point
      subroutine P2P_data(iproc,OP2P,phi)!,psiw)
        implicit none
        integer, intent(in) :: iproc
-
+       
        type(OP2P_data), intent(inout) :: OP2P
  !      real(wp), dimension(OP2P%ndim,norbp), intent(in) :: psir
        type(local_data), intent(inout) :: phi
        !local variables
+       integer(f_address) :: tmpint
+       type(c_ptr) :: tmpaddr
        integer :: igroup,dest,source,count,igr,iobj_local,jshift
        integer :: norbp!,norbp_max
 
@@ -628,8 +631,11 @@ module overlap_point_to_point
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
              else
-!               call mpisend(phi%data_GPU+jshift,count,&
-               call mpisend(phi%data_GPU,count,&
+              ! C pointer arithmetic in Fortran. Dirty.
+              tmpint = TRANSFER(phi%data_GPU, tmpint)
+              tmpint = tmpint + jshift
+              tmpaddr= TRANSFER(tmpint, tmpaddr)
+               call mpisend(tmpaddr,count,&
                   dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate,&
@@ -666,6 +672,8 @@ module overlap_point_to_point
        type(OP2P_data), intent(inout) :: OP2P
        type(local_data), intent(inout) :: phi 
        integer :: norbp!,norbp_max
+       integer(f_address) :: tmpint
+       type(c_ptr) :: tmpaddr
       ! real(wp), dimension(OP2P%ndim,norbp) :: dpsir
 
        !real(wp), dimension(OP2P%ndim,norbp_max,OP2P%ngroup,3), intent(inout) :: dpsiw
@@ -715,12 +723,22 @@ module overlap_point_to_point
              OP2P%nres_comms=OP2P%nres_comms+1
              count=OP2P%ndim*OP2P%nobj_par(dest,igr)
              !here we can swap pointers
-             call f_memcpy(src=OP2P%resw(igroup,3)%ptr,&!dpsiw(1,1,igroup,3),&
+             if(OP2P%gpudirect/=1)then 
+               call f_memcpy(src=OP2P%resw(igroup,3)%ptr,&!dpsiw(1,1,igroup,3),&
                   dest=OP2P%resw(igroup,OP2P%isend_res)%ptr)!dpsiw(1,1,igroup,OP2P%isend_res))
-             call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),&!dpsiw(1,1,igroup,OP2P%isend_res),&
+               call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr(1,1),&!dpsiw(1,1,igroup,OP2P%isend_res),&
                   count,dest=dest,&
                   tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
+              else
+               call copy_gpu_data(OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,OP2P%resw(igroup,3)%ptr_gpu,&
+                     OP2P%ndim* maxval(OP2P%nobj_par(:,OP2P%group_id(igroup))))!dpsiw(1,1,igroup,OP2P%isend_res))
+               call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,&!dpsiw(1,1,igroup,OP2P%isend_res),&
+                  count,dest=dest,&
+                  tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
+                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose,&
+                  type=MPI_DOUBLE_PRECISION)
+              end if
              OP2P%ndatas(RES_,dest,igr)=OP2P%ndatas(RES_,dest,igr)+&
                   OP2P%ndim*OP2P%nobj_par(dest,igr)
           end if
@@ -731,10 +749,18 @@ module overlap_point_to_point
           if (source /= mpirank_null()) then
              OP2P%nres_comms=OP2P%nres_comms+1
              count=OP2P%ndim*OP2P%nobj_par(iproc,igr)
-             call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
+             if(OP2P%gpudirect/=1)then 
+               call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr(1,1),count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
                   source=source,tag=source+nproc+2*nproc*OP2P%istep,&
                   comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
+             else
+               call mpirecv(OP2P%resw(igroup,OP2P%irecv_res)%ptr_gpu,count,&!dpsiw(1,1,igroup,OP2P%irecv_res),count,&
+                  source=source,tag=source+nproc+2*nproc*OP2P%istep,&
+                  comm=OP2P%mpi_comm,&
+                  request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose,&
+                  type=MPI_DOUBLE_PRECISION)
+             end if
              OP2P%ndatas(RES_,iproc,igr)=OP2P%ndatas(RES_,iproc,igr)-count
           end if
        end do
