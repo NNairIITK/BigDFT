@@ -108,11 +108,11 @@ module wrapper_MPI
   end interface mpiget
 
   interface mpisend
-     module procedure mpisend_d0
+     module procedure mpisend_d0, mpisend_gpu
   end interface mpisend
 
   interface mpirecv
-     module procedure mpirecv_d0
+     module procedure mpirecv_d0,mpirecv_gpu
   end interface mpirecv
 
   interface mpiput
@@ -2339,7 +2339,7 @@ contains
 
   end subroutine mpiialltoallv_double
 
-  subroutine mpisend_d0(buf,count,dest,tag,comm,request,simulate,verbose)
+  subroutine mpisend_d0(buf,count,dest,tag,comm,request,simulate,verbose,type)
     use yaml_output
     implicit none
     real(f_double) :: buf !fake intent(in)
@@ -2349,6 +2349,7 @@ contains
     integer, intent(in), optional :: comm
     integer, intent(out), optional :: request !<toggle the isend operation
     logical, intent(in), optional :: simulate,verbose
+    integer, intent(in), optional :: type
     !local variables
     logical :: verb,sim
     integer :: mpi_comm,ierr,tag_
@@ -2376,19 +2377,86 @@ contains
     sim=.false.
     if (present(simulate)) sim=simulate
     if (sim) return
-
-    if (present(request)) then
-       call MPI_ISEND(buf,count,mpitype(buf),dest,tag,mpi_comm,request,ierr)
+    if (present(type)) then
+      if (present(request)) then
+         call MPI_ISEND(buf,count,type,dest,tag,mpi_comm,request,ierr)
+      else
+         call MPI_SEND(buf,count,type,dest,tag,mpi_comm,ierr)
+      end if
     else
-       call MPI_SEND(buf,count,mpitype(buf),dest,tag,mpi_comm,ierr)
-    end if
+      if (present(request)) then
+         call MPI_ISEND(buf,count,mpitype(buf),dest,tag,mpi_comm,request,ierr)
+      else
+         call MPI_SEND(buf,count,mpitype(buf),dest,tag,mpi_comm,ierr)
+      end if
+    end if 
 
     if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)SEND occured',&
             err_id=ERR_MPI_WRAPPERS)
 
   end subroutine mpisend_d0
 
-  subroutine mpirecv_d0(buf,count,source,tag,comm,status,request,simulate,verbose)
+  subroutine mpisend_gpu(buf,count,dest,tag,comm,request,simulate,verbose,type)
+    use yaml_output
+    use iso_c_binding
+    implicit none
+    type(c_ptr) :: buf !fake intent(in)
+    integer, intent(in) :: count
+    integer, intent(in) :: dest
+    integer, intent(in), optional :: tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional :: request !<toggle the isend operation
+    logical, intent(in), optional :: simulate,verbose
+    integer, intent(in) :: type
+    real(f_double),pointer :: a !fake intent(in)
+    !local variables
+    logical :: verb,sim
+    integer :: mpi_comm,ierr,tag_
+    
+    mpi_comm=MPI_COMM_WORLD
+    if (present(comm)) mpi_comm=comm
+    if (present(tag)) then
+       tag_=tag
+    else
+       tag_=mpirank(mpi_comm)
+    end if
+
+    verb=.false.
+    if (present(verbose)) verb=verbose .and. dest /=mpirank_null()
+    
+    if (verb) then
+       call yaml_mapping_open('MPI_(I)SEND')
+       call yaml_map('Elements',count)
+       call yaml_map('Source',mpirank(mpi_comm))
+       call yaml_map('Dest',dest)
+       call yaml_map('Tag',tag_)
+       call yaml_mapping_close()
+    end if
+
+    sim=.false.
+    if (present(simulate)) sim=simulate
+    if (sim) return
+    call c_f_pointer(buf, a)
+!    if (present(type)) then
+      if (present(request)) then
+         call MPI_ISEND(a,count,type,dest,tag,mpi_comm,request,ierr)
+      else
+         call MPI_SEND(a,count,type,dest,tag,mpi_comm,ierr)
+      end if
+!    else
+!      if (present(request)) then
+!         call MPI_ISEND(buf,count,mpitype(buf),dest,tag,mpi_comm,request,ierr)
+!      else
+!         call MPI_SEND(buf,count,mpitype(buf),dest,tag,mpi_comm,ierr)
+!      end if
+!    end if 
+
+    if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)SEND occured',&
+            err_id=ERR_MPI_WRAPPERS)
+
+  end subroutine mpisend_gpu
+
+  subroutine mpirecv_d0(buf,count,source,tag,comm,status,request,simulate,verbose,type)
     use yaml_output
     implicit none
     real(f_double), intent(inout) :: buf !fake intent(out)
@@ -2399,9 +2467,10 @@ contains
     integer, intent(out), optional :: request !<toggle the isend operation
     integer, dimension(MPI_STATUS_SIZE), intent(out), optional :: status !<for the blocking operation
     logical, intent(in), optional :: simulate,verbose
+    integer, intent(in), optional :: type
     !local variables
     logical :: verb,sim
-    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag
+    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag,mpi_type
 
     mpi_comm=MPI_COMM_WORLD
     if (present(comm)) mpi_comm=comm
@@ -2429,13 +2498,18 @@ contains
     if (present(simulate)) sim=simulate
     if (sim) return
 
+    if (present(type)) then
+      mpi_type=type
+    else
+      mpi_type=mpitype(buf)
+    end if 
     if (present(request)) then
-       call MPI_IRECV(buf,count,mpitype(buf),mpi_source,mpi_tag,mpi_comm,request,ierr)
+       call MPI_IRECV(buf,count,mpi_type,mpi_source,mpi_tag,mpi_comm,request,ierr)
     else
        if (present(status)) then
-          call MPI_RECV(buf,count,mpitype(buf),mpi_source,mpi_tag,mpi_comm,status,ierr)
+          call MPI_RECV(buf,count,mpi_type,mpi_source,mpi_tag,mpi_comm,status,ierr)
        else
-          call MPI_RECV(buf,count,mpitype(buf),mpi_source,mpi_tag,mpi_comm,MPI_STATUS_IGNORE,ierr)
+          call MPI_RECV(buf,count,mpi_type,mpi_source,mpi_tag,mpi_comm,MPI_STATUS_IGNORE,ierr)
        end if
     end if
 
@@ -2444,7 +2518,67 @@ contains
 
   end subroutine mpirecv_d0
 
-  
+  subroutine mpirecv_gpu(buf,count,source,tag,comm,status,request,simulate,verbose,type)
+    use yaml_output
+    use iso_c_binding
+    implicit none
+    type(c_ptr) :: buf !fake intent(in)
+    real(f_double),pointer:: a !fake intent(out)
+    integer, intent(in) :: count
+    integer, intent(in), optional :: source
+    integer, intent(in), optional :: tag
+    integer, intent(in), optional :: comm
+    integer, intent(out), optional :: request !<toggle the isend operation
+    integer, dimension(MPI_STATUS_SIZE), intent(out), optional :: status !<for the blocking operation
+    logical, intent(in), optional :: simulate,verbose
+    integer, intent(in) :: type
+    !local variables
+    logical :: verb,sim
+    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag,mpi_type
+
+    mpi_comm=MPI_COMM_WORLD
+    if (present(comm)) mpi_comm=comm
+    mpi_source=MPI_ANY_SOURCE
+    mpi_tag=MPI_ANY_TAG
+    if (present(source)) then
+       mpi_source=source
+       mpi_tag=source
+    end if
+    if (present(tag)) mpi_tag=tag
+    verb=.false.
+    if (present(verbose)) verb=verbose .and. source /= mpirank_null()
+    if (verb) call yaml_comment('Receiving'//count//'elements from'//source//'in'//mpirank(mpi_comm))
+
+    if (verb) then
+       call yaml_mapping_open('MPI_(I)RECV')
+       call yaml_map('Elements',count)
+       call yaml_map('Source',source)
+       call yaml_map('Dest',mpirank(mpi_comm))
+       call yaml_map('Tag',mpi_tag)
+       call yaml_mapping_close()
+    end if
+
+    sim=.false.
+    if (present(simulate)) sim=simulate
+    if (sim) return
+
+
+    mpi_type=type
+    call c_f_pointer(buf, a)
+    if (present(request)) then
+       call MPI_IRECV(a,count,mpi_type,mpi_source,mpi_tag,mpi_comm,request,ierr)
+    else
+       if (present(status)) then
+          call MPI_RECV(a,count,mpi_type,mpi_source,mpi_tag,mpi_comm,status,ierr)
+       else
+          call MPI_RECV(a,count,mpi_type,mpi_source,mpi_tag,mpi_comm,MPI_STATUS_IGNORE,ierr)
+       end if
+    end if
+
+    if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)RECV occured',&
+         err_id=ERR_MPI_WRAPPERS)
+
+  end subroutine mpirecv_gpu
 
   subroutine mpiwaitall(ncount, array_of_requests,array_of_statuses)
     use dictionaries, only: f_err_throw,f_err_define

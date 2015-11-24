@@ -655,7 +655,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             !if (iproc==0) call yaml_map('Orbital repartition',nobj_par)
             call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
 
-            call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
+            call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,pkernel%igpu,.true.)
 
             !allocate work array for the internal exctx calculation
             rp_ij = f_malloc(ndim,id='rp_ij')
@@ -683,7 +683,6 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             !the exact exchange energy is half the Hartree energy (which already has another half)
             energs%eexctX=-xc_exctXfac(xc)*energs%eexctX
             if (iproc == 0) call yaml_map('Exact Exchange Energy',energs%eexctX,fmt='(1pe18.11)')
-
             !call f_memcpy(n=ndim*orbs%norbp,src=vpsi_tmp(1,1),dest=pot(ispot))
             call f_free(nobj_par)
             call f_free(rp_ij)
