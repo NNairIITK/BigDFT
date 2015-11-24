@@ -1458,3 +1458,74 @@ else
 }
 
 
+__global__ void pre_computation_kernel(int nx, int ny, int nz,  Real *rho, Real *data1, int shift1,Real *data2,int shift2, Real hfac) {
+
+ int tj = threadIdx.x;
+ int td = blockDim.x;
+
+ int blockData = (nx*ny*nz)/(gridDim.x*gridDim.y);
+
+ int jj = (blockIdx.y*gridDim.x + blockIdx.x)*blockData;
+
+ for (int k=0; k<blockData/td; k++) {
+     int idx =jj + tj+ k*td;
+     rho[idx] =  hfac*data1[idx+shift1]*data2[idx+shift2];
+ }
+
+}
+
+extern "C" void FC_FUNC_(gpu_pre_computation,GPU_PRE_COMPUTATION)(int* NX_p, int* NY_p, int* NZ_p, Real** rho_GPU, Real** data1_GPU, int* shift1, Real** data2_GPU, int* shift2, Real* hfac){
+//    !$omp parallel do default(shared) private(i)
+//    do i=1,ndim
+//      rp_ij(i)=hfac*phi1%data(i+shift1)*phi2%data(i+shift2)
+//    end do
+//    !$omp end parallel do
+
+   int NX = *NX_p;
+   int NY = *NY_p;
+   int NZ = *NZ_p;
+
+   // scale kernel paramters
+   int nThreads = NX;
+   dim3 nBlocks(NY,NZ,1);
+   pre_computation_kernel <<< nBlocks, nThreads >>> (NX,NY,NZ,*rho_GPU, *data1_GPU,*shift1,*data2_GPU,*shift2,*hfac);
+
+
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
+}
+
+__global__ void post_computation_kernel(int nx, int ny, int nz,  Real *rho, Real *data1, int shift1,Real *data2,int shift2, Real hfac) {
+
+ int tj = threadIdx.x;
+ int td = blockDim.x;
+
+ int blockData = (nx*ny*nz)/(gridDim.x*gridDim.y);
+
+ int jj = (blockIdx.y*gridDim.x + blockIdx.x)*blockData;
+
+ for (int k=0; k<blockData/td; k++) {
+     int idx =jj + tj+ k*td;
+     data1[idx+shift1] = data1[idx+shift1] + hfac*rho[idx]*data2[idx+shift2];
+ }
+
+}
+
+extern "C" void FC_FUNC_(gpu_post_computation,GPU_POST_COMPUTATION)(int* NX_p, int* NY_p, int* NZ_p, Real** rho_GPU, Real** data1_GPU, int* shift1, Real** data2_GPU, int* shift2, Real* hfac){
+//  do i=1,ndim
+//    phi1%res(i+shift1_res)=phi1%res(i+shift1_res)+hfac1*rp_ij(i)*phi2%data(i+shift2)
+//  end do
+   int NX = *NX_p;
+   int NY = *NY_p;
+   int NZ = *NZ_p;
+
+   // scale kernel paramters
+   int nThreads = NX;
+   dim3 nBlocks(NY,NZ,1);
+
+   post_computation_kernel <<< nBlocks, nThreads >>> (NX,NY,NZ,*rho_GPU, *data1_GPU,*shift1,*data2_GPU,*shift2,*hfac);
+
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
+}
+
