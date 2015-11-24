@@ -158,6 +158,7 @@ module multipole
       logical :: exists, perx, pery, perz
       logical,parameter :: use_iterator = .false.
       real(kind=8) :: cutoff, rholeaked, hxh, hyh, hzh, rx, ry, rz, qq, ttl
+      real(kind=8),dimension(3) :: center
       integer :: n1i, n2i, n3i
       integer :: nmpx, nmpy, nmpz, ndensity
       real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
@@ -404,7 +405,7 @@ module multipole
           !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma, nthread, norm_ok) &
           !$omp shared(norm_check, monopole, dipole, quadrupole, density, density_loc, potential_loc) &
           !$omp shared (gaussians1, gaussians2, gaussians3, nelpsp, rmax) &
-          !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ttl, ithread) &
+          !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ttl, ithread, center) &
           !$omp private(rnrm1, rnrm2, rnrm3, rnrm5, qq)
           ithread = 0
           !$ ithread = omp_get_thread_num()
@@ -430,9 +431,14 @@ module multipole
                           ii1 = i1 - 15
                           x = real(ii1,kind=8)*hx + shift(1)
                           tt = 0.d0
+                          center = nearest_gridpoint(ep%mpl(impl)%rxyz, (/hx,hy,hz/))
+                          !write(*,*) 'rxyz, center', ep%mpl(impl)%rxyz, center
                           r(1) = x - ep%mpl(impl)%rxyz(1)
                           r(2) = y - ep%mpl(impl)%rxyz(2)
                           r(3) = z - ep%mpl(impl)%rxyz(3)
+                          !r(1) = x - center(1)
+                          !r(2) = y - center(2)
+                          !r(3) = z - center(3)
                           rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
                           if (norm_ok(impl)) then
                               ! Use the method based on the Gaussians
@@ -2425,6 +2431,7 @@ module multipole
           sh = 1.d0
       case (1)
           r2 = x**2+y**2+z**2
+          !r2 = max(r2,1.d-1)
           r = sqrt(r2)
           select case (m)
           case (-1)
@@ -2438,6 +2445,7 @@ module multipole
           sh = sh*r**r_exponent
       case (2)
           r2 = x**2+y**2+z**2
+          !r2 = max(r2,1.d-1)
           select case (m)
           case (-2)
               sh = sqrt(3.d0)*x*y
@@ -2466,5 +2474,25 @@ module multipole
       !end if
 
     end function solid_harmonic
+
+
+
+    !> Determines the position of the gridpoint which is closest to a given point.
+    function nearest_gridpoint(r, hh) result(ngp)
+      implicit none
+      ! Calling arguments
+      real(kind=8),dimension(3),intent(in) :: r, hh
+      real(kind=8),dimension(3) :: ngp
+      ! Local variables
+      integer :: i, ii
+      real(kind=8) :: tt
+
+      do i=1,3
+          tt = r(i)/hh(i)
+          ii = nint(tt)
+          ngp(i) = real(ii,kind=8)*hh(i)
+      end do
+
+    end function nearest_gridpoint
 
 end module multipole
