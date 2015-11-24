@@ -11,7 +11,7 @@
 !> Modules which contains the defintions for overlap point to point
 module overlap_point_to_point
    use module_base
-   use f_precisions, only: f_address
+   use iso_c_binding
    implicit none
 
    !By default variables are internal to the module
@@ -46,7 +46,7 @@ module overlap_point_to_point
 
    type, public :: OP2P_pointer
       real(wp), dimension(:,:), pointer :: ptr
-      integer(f_address) :: ptr_gpu
+      type(c_ptr):: ptr_gpu
    end type OP2P_pointer
 
    type, public :: local_data
@@ -58,8 +58,8 @@ module overlap_point_to_point
       integer, dimension(:), pointer :: displ_res !<displacements of each of the local results
       real(wp), dimension(:), pointer :: data !< array of local data
       real(wp), dimension(:), pointer :: res !< array of local results
-      integer(f_address) :: data_GPU !< array of local data on GPU
-      integer(f_address) :: res_GPU !< array of local results on GPU
+      type(c_ptr) :: data_GPU !< array of local data on GPU
+      type(c_ptr) :: res_GPU !< array of local results on GPU
    end type local_data
 
    !>structure exposing the local variable to be passed to the calculation routine
@@ -157,9 +157,9 @@ module overlap_point_to_point
        nullify(ld%displ)
        nullify(ld%displ_res)
        nullify(ld%data)
-       ld%data_GPU=0
+       ld%data_GPU=C_NULL_PTR
        nullify(ld%res)
-       ld%res_GPU=0
+       ld%res_GPU=C_NULL_PTR
      end subroutine nullify_local_data
 
      !> type to control the communication scheduling
@@ -238,8 +238,8 @@ module overlap_point_to_point
        integer, intent(in) :: isorb
        real(wp), dimension(ld%nvctr), intent(in), target, optional :: psir
        real(wp), dimension(ld%nvctr_res), intent(in), target, optional :: dpsir
-       integer(f_address), optional :: psir_gpu
-       integer(f_address), optional :: dpsir_gpu
+       type(c_ptr), optional :: psir_gpu
+       type(c_ptr), optional :: dpsir_gpu
        !local variables
        integer :: iorb,ndim,ntot,jorb,i_stat
 
@@ -276,12 +276,12 @@ module overlap_point_to_point
         if (present(psir_gpu)) then
           ld%data_GPU=psir_gpu
        else
-          ld%data_GPU=0
+          ld%data_GPU=C_NULL_PTR
        end if
        if (present(dpsir_gpu)) then
           ld%res_GPU=dpsir_gpu
        else
-          ld%res_GPU=0
+          ld%res_GPU=C_NULL_PTR
        end if
      end subroutine set_local_data
 
@@ -489,7 +489,7 @@ module overlap_point_to_point
                if(OP2P%gpudirect/=1) then 
                   nullify(OP2P%resw(igroup,i)%ptr)
                 else
-                 OP2P%resw(igroup,i)%ptr_gpu=0
+                 OP2P%resw(igroup,i)%ptr_gpu=C_NULL_PTR
                 end if
              end if
           end do
@@ -628,7 +628,8 @@ module overlap_point_to_point
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
              else
-               call mpisend(phi%data_GPU+jshift,count,&
+!               call mpisend(phi%data_GPU+jshift,count,&
+               call mpisend(phi%data_GPU,count,&
                   dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate,&
@@ -884,13 +885,13 @@ module overlap_point_to_point
 !retrieve result from GPU
        if(OP2P%gpudirect == 1) then 
          call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%res,iter%phi_i%res_GPU)
-         if(iter%phi_i%data_GPU/=0) then
+         if(C_ASSOCIATED(iter%phi_i%data_GPU)) then
            call cudafree(iter%phi_i%data_GPU)
-           iter%phi_i%data_GPU=0
+           iter%phi_i%data_GPU=C_NULL_PTR
          end if
-         if(iter%phi_i%res_GPU/=0) then
+         if(C_ASSOCIATED(iter%phi_i%res_GPU )) then
            call cudafree(iter%phi_i%res_GPU)
-           iter%phi_i%res_GPU=0
+           iter%phi_i%res_GPU=C_NULL_PTR
          end if
        end if
        !release iterator
