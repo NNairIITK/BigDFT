@@ -1604,7 +1604,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    call deallocate_gwf(G)
 
    !deallocate gaussian array
-   call f_free(gaucoeffs)
+  call f_free(gaucoeffs)
    call f_free_ptr(gbd_occ)
 
    !add random background to the wavefunctions

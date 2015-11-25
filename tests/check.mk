@@ -144,7 +144,18 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	@name=`basename $@ .out.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
-	if test -n "$$name"; then name="-n "$$name; fi; \
+	if test -n "$$name"; then \
+	   if test ! -f $$name".yaml"; then \
+	      echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 --name=$$name > $@"; \
+	      $(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 --name=$$name; \
+	   fi; \
+	   name="-n "$$name; \
+	else \
+	   if test ! -f "input.yaml"; then \
+	      echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 > $@"; \
+	      $(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1; \
+	   fi; \
+	fi; \
 	if test -f list_posinp; then \
 	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
 	fi; \

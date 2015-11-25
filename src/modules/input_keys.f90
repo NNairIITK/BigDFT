@@ -878,10 +878,10 @@ contains
     if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id)
 
     if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
-       call dict_get_run_properties(dict, input_id = run_id)
-       call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
+       call dict_get_run_properties(dict, input_id = run_id , minimal_file = filename)
+       !       call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
        unt=f_get_free_unit(99971)
-       call yaml_set_stream(unit=unt,filename=trim(outdir)//trim(filename),&
+       call yaml_set_stream(unit=unt,filename=trim(outdir)//trim(filename)//'.yaml',&
             record_length=92,istat=ierr,setdefault=.false.,tabbing=0,position='rewind')
        if (ierr==0) then
           call yaml_comment('Minimal input file',hfill='-',unit=unt)
@@ -890,7 +890,7 @@ contains
           call yaml_dict_dump(dict_minimal,unit=unt)
           call yaml_close_stream(unit=unt)
        else
-          call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
+          call yaml_warning('Failed to create'//trim(filename)//', error code='//trim(yaml_toa(ierr)))
        end if
     end if
     if (associated(dict_minimal)) call dict_free(dict_minimal)
