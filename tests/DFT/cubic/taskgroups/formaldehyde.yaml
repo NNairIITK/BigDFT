@@ -1,0 +1,32 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.4
+   rmult: [5.5, 8.0]
+   ixc: PBE (ABINIT)
+   qcharge: 1
+   nspin: 2
+   mpol: 1
+   disablesym: Yes
+ perf:
+   ef_interpol_det: 0.10E-19
+   check_sumrho: 2
+   check_overlap: 2
+ posinp:
+   units: angstroem
+   positions:
+   - C: [-3.4532955845194892E-005, -3.8232148484609796E-005, -0.5303577807261961]
+   - O: [1.1228993812452827E-005, 8.5017844462657871E-005, 0.6800154136635734]
+     IGSpin: 1
+   - H: [1.1651903732654638E-005, -0.9475362453191792, -1.123760431499252]
+   - H: [1.1652058300087219E-005, 0.9474894596232009, -1.123622235198196]
+   properties:
+     format: xyz
+     source: formaldehyde.xyz
+   forces (Ha/Bohr):
+   - C: [-7.1457087482494648E-007, -4.5793829305025286E-007,  1.637527601433157E-004]
+   - O: [ 2.3093418430633984E-007,  1.4098275801309768E-006, -2.8743230889220154E-004]
+   - H: [ 2.4182632116041802E-007,  1.8444699265443066E-004,  6.0637025301275136E-005]
+   - H: [ 2.4181036935813557E-007, -1.8539888194151141E-004,  6.3042523447610774E-005]
+   energy (Ha): -22.86949734204042

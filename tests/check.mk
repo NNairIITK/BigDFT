@@ -144,6 +144,9 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.out.out: $(abs_top_builddir)/src/bigdft
 	@name=`basename $@ .out.out | $(SED) "s/[^_]*_\?\(.*\)$$/\1/"` ; \
+	if test -f list_posinp; then \
+	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
+	else \
 	if test -n "$$name"; then \
 	   if test ! -f $$name".yaml"; then \
 	      echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 --name=$$name > $@"; \
@@ -156,8 +159,6 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	      $(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1; \
 	   fi; \
 	fi; \
-	if test -f list_posinp; then \
-	   name=`echo '--runs-file=list_posinp --taskgroup-size=1'`; \
 	fi; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	echo "Running $(run_parallel) $(abs_top_builddir)/src/bigdft -l yes $$name > $@" ; \

@@ -167,8 +167,8 @@ contains
 
     if (mpi_env%iproc==0) then
        call yaml_warning('Input files read in the old format. '//&
-            'Use the input_minimal.yaml file to switch to new format. '//&
-            'In future versions this will be deprecated')
+            'Use the <run_id>.yaml file to switch to new format. '//&
+            'It is not anymore possible to use the old format in the bigdft executable')
     end if
 
   end subroutine input_from_old_text_format

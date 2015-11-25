@@ -181,6 +181,7 @@ module module_input_keys
      integer :: ixc         !< XC functional Id
      real(gp):: qcharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
+     integer :: itermax_virt     !< Maximal number of SCF iterations
      integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
@@ -205,6 +206,7 @@ module module_input_keys
      real(gp) :: crmult     !< Coarse radius multiplier
      real(gp) :: frmult     !< Fine radius multiplier
      real(gp) :: gnrm_cv    !< Convergence parameters of orbitals
+     real(gp) :: gnrm_cv_virt !< Convergence parameters of virtual orbitals
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
@@ -1587,6 +1589,10 @@ contains
           in%nvirt = val
        case (NPLOT)
           in%nplot = val
+       case (GNRM_CV_VIRT)
+          in%gnrm_cv_virt = val
+       case (ITERMAX_VIRT)
+          in%itermax_virt = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
 !!$       case (SOLVENT)
@@ -2236,6 +2242,8 @@ contains
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)
     in%gen_norbd = UNINITIALIZED(0)
+    call f_zero(in%gnrm_cv_virt)
+    call f_zero(in%itermax_virt)
     nullify(in%gen_occup)
     ! Default abscalc variables
     call abscalc_input_variables_default(in)

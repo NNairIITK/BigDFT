@@ -33,7 +33,7 @@ def yaml_callback(pattern,dirname,names):
 
 class Pouet:
     """Class used to define options in order to hightlight the YAML output by mean of yaml_hl"""
-    def __init__(self, config="yaml_hl.cfg", input="report"):
+    def __init__(self, config="yaml_hl.cfg", input="report_input"):
         # Define a temporary file
         self.input = input
         self.output = None
