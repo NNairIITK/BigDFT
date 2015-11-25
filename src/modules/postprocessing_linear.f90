@@ -3022,7 +3022,7 @@ module postprocessing_linear
            end do
            call write_multipoles_new(tmb%orbs%norb, atoms%astruct%ntypes, iatype_tmp, &
                 atoms%astruct%atomnames, centers, atoms%astruct%units, &
-                multipoles, rmax, tmb%lzd%hgrids, without_normalization=.true.)
+                multipoles, rmax, tmb%lzd%hgrids, without_normalization=.false.)
            call f_free(centers)
            call f_free(iatype_tmp)
            call yaml_sequence_close()

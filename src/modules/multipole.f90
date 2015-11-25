@@ -163,6 +163,8 @@ module multipole
       integer :: nmpx, nmpy, nmpz, ndensity
       real(dp), dimension(:), allocatable  :: mpx,mpy,mpz
       real(kind=8),dimension(:),allocatable :: rmax
+      !real(kind=8),parameter :: rmin=3.d-1
+      real(kind=8) :: rmin
       !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
       call f_routine(id='potential_from_charge_multipoles')
@@ -171,6 +173,9 @@ module multipole
       multipoles_if: if (ep%nmpl>0) then
 
           hhh = hx*hy*hz
+
+          ! Used for the calculations of the solid harmonics, see description there
+          rmin = 2.0d0*hhh**(1.d0/3.d0)
     
           !sigma(0) = 5.d0*hhh**(1.d0/3.d0) !5.d0*hhh**(1.d0/3.d0)
           !sigma(1) = 4.d0*hhh**(1.d0/3.d0)
@@ -404,9 +409,9 @@ module multipole
           !$omp default(none) &
           !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma, nthread, norm_ok) &
           !$omp shared(norm_check, monopole, dipole, quadrupole, density, density_loc, potential_loc) &
-          !$omp shared (gaussians1, gaussians2, gaussians3, nelpsp, rmax) &
+          !$omp shared (gaussians1, gaussians2, gaussians3, nelpsp, rmax, rmin) &
           !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ttl, ithread, center) &
-          !$omp private(rnrm1, rnrm2, rnrm3, rnrm5, qq)
+          !$omp private(rnrm1, rnrm2, rnrm3, rnrm5, qq, ii)
           ithread = 0
           !$ ithread = omp_get_thread_num()
           if (ithread<0 .or. ithread>nthread-1) then
@@ -467,8 +472,11 @@ module multipole
                                               end if
                                               !ttt = qq*&
                                               !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
+                                              !ttt = qq*&
+                                              !      solid_harmonic(-2, rmin, l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
                                               ttt = qq*&
-                                                    real(2*l+1,kind=8)*solid_harmonic(-2, l, m, r(1), r(2), r(3))*gg!*sqrt(4.d0*pi_param)
+                                                    real(2*l+1,kind=8)*solid_harmonic(-2, rmin, l, m, r(1), r(2), r(3))*&
+                                                    sqrt(4.d0*pi/real(2*l+1,kind=8))*gg!*sqrt(4.d0*pi_param)
                                               !ttt = qq*&
                                               !      spherical_harmonic(-2, rmax(impl), l, m, r(1), r(2), r(3))*gg*4.d0*pi_param
                                               !ttt = qq*&
@@ -496,28 +504,47 @@ module multipole
                               do l=0,lmax
                                   do m=-l,l
                                       if (l==0) then
-                                          monopole(impl) = monopole(impl) + ttl*hhh
+                                          !monopole(impl) = monopole(impl) + ttl*hhh!*sqrt(1.d0/(4.d0*pi))
+                                          !monopole(impl) = monopole(impl) + ttl*hhh*solid_harmonic()
+                                          monopole(impl) = monopole(impl) + ttl*hhh*&
+                                                           solid_harmonic(0,0.d0,l,m,r(1),r(2),r(3))*&
+                                                           sqrt(4.d0*pi/real(2*l+1,kind=8))
                                       else if (l==1) then
                                           if (m==-1) then
-                                              dipole(1,impl) = dipole(1,impl) + ttl*hhh*r(2)!/sqrt(r(1)**2+r(2)**2+r(3)**2)
+                                              !dipole(1,impl) = dipole(1,impl) + ttl*hhh*r(2)*sqrt(3.d0/(4.d0*pi))
+                                              ii = 1
                                           else if (m==0) then
-                                              dipole(2,impl) = dipole(2,impl) + ttl*hhh*r(3)!/sqrt(r(1)**2+r(2)**2+r(3)**2)
+                                              !dipole(2,impl) = dipole(2,impl) + ttl*hhh*r(3)*sqrt(3.d0/(4.d0*pi))
+                                              ii = 2
                                           else if (m==1) then
-                                              dipole(3,impl) = dipole(3,impl) + ttl*hhh*r(1)!/sqrt(r(1)**2+r(2)**2+r(3)**2)
+                                              !dipole(3,impl) = dipole(3,impl) + ttl*hhh*r(1)*sqrt(3.d0/(4.d0*pi))
+                                              ii = 3
                                           end if
+                                          dipole(ii,impl) = dipole(ii,impl) + ttl*hhh*&
+                                                           solid_harmonic(0,0.d0,l,m,r(1),r(2),r(3))*&
+                                                           sqrt(4.d0*pi/real(2*l+1,kind=8))
                                       else if (l==2) then
                                           if (m==-2) then
-                                              quadrupole(1,impl) = quadrupole(1,impl) + ttl*hhh*sqrt(3.d0)*r(1)*r(2)
+                                              !quadrupole(1,impl) = quadrupole(1,impl) + ttl*hhh*r(1)*r(2)*sqrt(15.d0/(4.d0*pi))
+                                              ii = 1
                                           else if (m==-1) then
-                                              quadrupole(2,impl) = quadrupole(2,impl) + ttl*hhh*sqrt(3.d0)*r(2)*r(3)
+                                              !quadrupole(2,impl) = quadrupole(2,impl) + ttl*hhh*r(2)*r(3)*sqrt(15.d0/(4.d0*pi))
+                                              ii = 2
                                           else if (m==0) then
-                                              quadrupole(3,impl) = quadrupole(3,impl) + ttl*hhh*sqrt(0.25d0)*&
-                                                                                        (-r(1)**2-r(2)**2+2.d0*r(3)**2)
+                                              !quadrupole(3,impl) = quadrupole(3,impl) + ttl*hhh*&
+                                              !                     (-r(1)**2-r(2)**2+2.d0*r(3)**2)*sqrt(5.d0/(16.d0*pi))
+                                              ii = 3
                                           else if (m==1) then
-                                              quadrupole(4,impl) = quadrupole(4,impl) + ttl*hhh*sqrt(3.d0)*r(1)*r(3)
+                                              !quadrupole(4,impl) = quadrupole(4,impl) + ttl*hhh*r(1)*r(3)*sqrt(15.d0/(4.d0*pi))
+                                              ii = 4
                                           else if (m==2) then
-                                              quadrupole(5,impl) = quadrupole(5,impl) + ttl*hhh*sqrt(0.75d0)*(r(1)**2-r(2)**2)
+                                              !quadrupole(5,impl) = quadrupole(5,impl) + ttl*hhh*&
+                                              !                     (r(1)**2-r(2)**2)*sqrt(15.d0/(16.d0*pi))
+                                              ii = 5
                                           end if
+                                          quadrupole(ii,impl) = quadrupole(ii,impl) + ttl*hhh*&
+                                                           solid_harmonic(0,0.d0,l,m,r(1),r(2),r(3))*&
+                                                           sqrt(4.d0*pi/real(2*l+1,kind=8))
                                       end if
                                   end do
                               end do
@@ -636,7 +663,8 @@ module multipole
               call yaml_mapping_open('Potential from multipoles')
               call yaml_map('Number of multipole centers',ep%nmpl)
               call yaml_map('Sigma of the Gaussians',sigma)
-              call yaml_map('Threshold for the norm of th Gaussians',norm_threshold)
+              call yaml_map('Threshold for the norm of the Gaussians',norm_threshold)
+              call yaml_map('Minimal radius for divion of the solid harmonics by r^{2l}',rmin)
               call yaml_sequence_open('Details for each multipole')
               do impl=1,ep%nmpl
                   call yaml_sequence(advance='no')
@@ -664,18 +692,20 @@ module multipole
                                   !end if
                                   if (l==0) then
                                       max_error(l) = max(max_error(l), &
-                                                      abs(monopole(impl)/(ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8))))
+                                                      monopole(impl)/(ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8)))
                                   else if (l==1) then
-                                      max_error(l) = max(max_error(l),abs(dipole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm)))
+                                      max_error(l) = max(max_error(l),dipole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm))
                                       !write(*,*) 'calc, orig', dipole(mm,impl), ep%mpl(impl)%qlm(l)%q(mm)
                                   else if (l==2) then
-                                      max_error(l) = max(max_error(l),abs(quadrupole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm)))
+                                      max_error(l) = max(max_error(l),quadrupole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm))
                                       !write(*,*) 'calc, orig', quadrupole(mm,impl),ep%mpl(impl)%qlm(l)%q(mm)
                                   end if
                               end do
+                              ! Convert to percentaged deviation
+                              max_error(l) = 100.d0*(max_error(l)-1.d0)
                           end if
                       end do
-                      call yaml_map('Maximal deviation from the original values',max_error(:),fmt='(1es10.2)')
+                      call yaml_map('Maximal deviation from the original values in percent',max_error(:),fmt='(1f6.1)')
                   else
                       call yaml_map('Method','Analytic expression')
                   end if
@@ -1348,8 +1378,11 @@ module multipole
           real(kind=8),dimension(1) :: rmax
           integer,parameter :: n1i=101, n2i=81, n3i=91
           integer,parameter :: nsi1=0, nsi2=10, nsi3=20
+          !integer,parameter :: n1i=100, n2i=100, n3i=100
+          !integer,parameter :: nsi1=0, nsi2=0, nsi3=0
           real(kind=8),dimension(3) :: locregcenter
           integer :: nr
+          real(kind=8) :: factor_normalization, r2, r
 
           if (iproc==0) then
               call yaml_mapping_open('Unitary test for multipoles')
@@ -1366,6 +1399,10 @@ module multipole
           rmax(1) = min(n1i*0.25d0*lzd%hgrids(1), &
                         n2i*0.25d0*lzd%hgrids(2), &
                         n3i*0.25d0*lzd%hgrids(3))
+          ! Normalized to within a sphere of radius rmax
+          factor_normalization = 3.d0/(4.d0*pi*rmax(1)**3)*0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3)
+          !!! Normalized to within a sphere of radius rmax, however only taking into account the radial part.
+          !!factor_normalization = 3.d0/(rmax(1)**3)*0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3)
           !rmax(1) = 5.d0
           !call yaml_map('rmax for unitary test',rmax(1))
           !write(*,'(a,6i6,3es16.6)') 'n1, n2, n3, ns1, ns2, ns3, locreg',lzd%llr(1)%d%n1i,lzd%llr(1)%d%n2i,lzd%llr(1)%d%n3i,lzd%llr(1)%nsi1,lzd%llr(1)%nsi2,lzd%llr(1)%nsi3, lzd%llr(1)%locregcenter(1), lzd%llr(1)%locregcenter(2), lzd%llr(1)%locregcenter(3)
@@ -1388,39 +1425,44 @@ module multipole
                       !x = ii1*0.5d0*lzd%hgrids(1) - lzd%llr(1)%locregcenter(1)
                       x = ii1*0.5d0*lzd%hgrids(1) - locregcenter(1)
                       !write(*,'(a,2i9,es12.4)') 'X COORD: i1, ii1, x', i1, ii1, x
-                      if (x**2+y**2+z**2>rmax(1)**2) cycle
+                      r2 = x**2+y**2+z**2
+                      if (r2>rmax(1)**2) cycle
+                      r = sqrt(r2)
+                      r = max(0.5d0,r)
                       !ind = (i3-1)*lzd%llr(1)%d%n2i*lzd%llr(1)%d%n1i + (i2-1)*lzd%llr(1)%d%n1i + i1
                       ind = (i3-1)*n2i*n1i + (i2-1)*n1i + i1
                       !write(*,'(a,3es12.4,i9)') 'x, y, z, ind', x, y, z, ind
                       do l=0,lmax
                           do m=-l,l
-                              factor = get_test_factor(l,m)
-                              select case (l)
-                              case (0)
-                                  psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor
-                              case (1)
-                                  select case (m)
-                                  case (-1)
-                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*y
-                                  case ( 0)
-                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*z
-                                  case ( 1)
-                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*x
-                                  end select
-                              case (2)
-                                  select case (m)
-                                  case (-2)
-                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*x*y
-                                  case (-1)
-                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*y*z
-                                  case ( 0)
-                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*(-x**2-y**2+2*z**2)
-                                  case ( 1)
-                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*z*x
-                                  case ( 2)
-                                      psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*(x**2-y**2)
-                                  end select
-                              end select
+                              !factor = get_test_factor(l,m)*factor_normalization*real(2*l+1,kind=8)/r**(2*l)
+                              factor = get_test_factor(l,m)*factor_normalization*sqrt(4.d0*pi*real(2*l+1,kind=8))
+                              psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*solid_harmonic(-2, 1.0d0, l, m , x, y, z)
+                              !select case (l)
+                              !case (0)
+                              !    psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*solid_harmonic(-2, 0.5d0, l, m , x, y, z)
+                              !case (1)
+                              !    select case (m)
+                              !    case (-1)
+                              !        psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*solid_harmonic(-2, 0.5d0, l, m , x, y, z)
+                              !    case ( 0)
+                              !        psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*solid_harmonic(-2, 0.5d0, l, m , x, y, z)
+                              !    case ( 1)
+                              !        psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*solid_harmonic(-2, 0.5d0, l, m , x, y, z)
+                              !    end select
+                              !case (2)
+                              !    select case (m)
+                              !    case (-2)
+                              !        psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*solid_harmonic(-2, 0.3d0, l, m , x, y, z)
+                              !    case (-1)
+                              !        psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*solid_harmonic(-2, 0.3d0, l, m , x, y, z)
+                              !    case ( 0)
+                              !        psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*solid_harmonic(-2, 0.8d0, l, m , x, y, z)
+                              !    case ( 1)
+                              !        psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*solid_harmonic(-2, 0.3d0, l, m , x, y, z)
+                              !    case ( 2)
+                              !        psir_get_fake(ind,1) = psir_get_fake(ind,1) + factor*solid_harmonic(-2, 0.3d0, l, m , x, y, z)
+                              !    end select
+                              !end select
                           end do
                       end do
                       !write(200,*) 'ind, val', ind, psir_get_fake(ind,1)
@@ -1449,7 +1491,7 @@ module multipole
           if (iproc==0) then
               !!call write_multipoles(1, 1, (/1/), (/'testatom'/), multipoles, rmax, lzd%hgrids, without_normalization=.true.)
               call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), 'fake', &
-                   multipoles, rmax, lzd%hgrids, without_normalization=.true.)
+                   multipoles, rmax, lzd%hgrids, without_normalization=.false.)
               call yaml_mapping_close()
           end if
 
@@ -1651,6 +1693,7 @@ module multipole
                   call yaml_map('radius of normalization sphere',(/minval(rmax),maxval(rmax)/))
                   call f_memcpy(src=multipoles, dest=multipoles_tmp)
               else if (i==2) then
+                  stop 'bullshit'
                   call yaml_map('normalized',.false.)
                   do iat=1,nat
                       do l=0,lmax
@@ -2129,17 +2172,21 @@ module multipole
                               !    iiat, iorb, ist, ind, psir2_get(ist+ind)
                               do l=0,lmax
                                   do m=-l,l
-                                      tt = spherical_harmonic(r_exponent, rmax(iiat), l, m, x, y, z)
+                                      !tt = spherical_harmonic(r_exponent, rmax(iiat), l, m, x, y, z)
+                                      tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
+                                      !tt = tt*sqrt(4.d0*pi/real(2*l+1,kind=8))
+                                      tt = tt*sqrt(4.d0*pi/real(2*l+1,kind=8))
+                                      !tt = tt*sqrt(1.d0/real(2*l+1,kind=8))
                                       !tt = factor_normalization*tt
                                       !sphi(i1,i2,i3,m,l,iiorb) = factor_normalization*tt*phi1(i1,i2,i3,iiorb)
                                       !norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
                                       sphi(i1,i2,i3,m,l,iiorb) = tt*phi1(i1,i2,i3,iiorb)
-                                      if (iat==1 .and. abs(x)<1.d0 .and. abs(y)<1.d0) then
-                                          write(*,*) 'with S: l, m, x, y, z, val', &
-                                                      l, m, x, y, z, sphi(i1,i2,i3,m,l,iiorb)*phi2(i1,i2,i3,iiorb)
-                                          write(*,*) 'pure: l, m, x, y, z, val', &
-                                                      l, m, x, y, z, phi2(i1,i2,i3,iiorb)**2
-                                      end if
+                                      !if (iat==1 .and. abs(x)<1.d0 .and. abs(y)<1.d0) then
+                                      !    write(*,*) 'with S: l, m, x, y, z, val', &
+                                      !                l, m, x, y, z, sphi(i1,i2,i3,m,l,iiorb)*phi2(i1,i2,i3,iiorb)
+                                      !    write(*,*) 'pure: l, m, x, y, z, val', &
+                                      !                l, m, x, y, z, phi2(i1,i2,i3,iiorb)**2
+                                      !end if
                                       !sphi(i1,i2,i3,m,l,iiorb) = tt**2*phi1(i1,i2,i3,iiorb)
                                       !sphi(i1,i2,i3,m,l,iiorb) = phi1(i1,i2,i3,iiorb)
                                       !norm(m,l) = norm(m,l) + tt**2
@@ -2211,7 +2258,8 @@ module multipole
                           !     ddot(n1i(iilr)*n2i(iilr)*n3i(iilr), phi1(1,1,1,iorb), 1, phi1(1,1,1,jorb), 1), &
                           !     ddot(n1i(iilr)*n2i(iilr)*n3i(iilr), phi2(1,1,1,iorb), 1, phi2(1,1,1,jorb), 1)
                           !tt = tt/((get_normalization(rmax,0,0))**1)
-                          tt = tt/((get_normalization(rmax(iiat),l,m))**1)
+                          !tt = tt/((get_normalization(rmax(iiat),l,m))**1)
+                          tt = tt
                           multipoles(m,l,iiat) = multipoles(m,l,iiat) + matrix_compr(ind)*tt
                           !multipoles(m,l,iiat) = multipoles(m,l,iiat) + khack(jjorb,iiorb,iat)*tt
                           tt2 = ddot(n1i(iilr)*n2i(iilr)*n3i(iilr), phi1(1,1,1,iorb), 1, phi2(1,1,1,jorb), 1)
@@ -2402,22 +2450,25 @@ module multipole
     end subroutine gaussian_density
 
 
-    !> Calculates the real solid harmonic S_lm (possibly multplied by a power or r) for given values of l, m, x, y, z.
-    !! The S_lm are a priori defined without any r, e.g. S_10 = sqrt(3/4pi)z
+    !> Calculates the solid harmonic S_lm (possibly multplied by a power or r) for given values of l, m, x, y, z.
+    !! They are normalized such that the integral over the angle gives r^2, i.e.
+    !! \int d\Omega S_{lm}*S_{l'm'}/r^{2l} = r^2 \delta_{ll'}\delta_{mm'}
     !! r_exponent indicates how the function is multiplied by r: The final result is given by S_lm*r^(r_exponent*l), with the
     !! definition of the S_lm given above. r_exponent can also be negative, e.g. -1 to yield the "real" spherical harmonics.
-    function solid_harmonic(r_exponent, l, m, x, y, z) result(sh)
+    !! rmin gives the minimal radius that is used for the multiplication by r^(r_exponent*l) (can be used to avoid the divergence
+    !! around r=0)
+    function solid_harmonic(r_exponent, rmin, l, m, x, y, z) result(sh)
       use module_base, only: pi => pi_param
       implicit none
       ! Calling arguments
       integer,intent(in) :: r_exponent
       integer,intent(in) :: l, m
-      real(kind=8),intent(in) :: x, y, z
+      real(kind=8),intent(in) :: rmin, x, y, z
       real(kind=8) :: sh
 
       ! Local variables
       integer,parameter :: l_max=2
-      real(kind=8) :: r, r2
+      real(kind=8) :: r, r2, r2min
 
       if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
       if (l>l_max) call f_err_throw('solid harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
@@ -2428,35 +2479,37 @@ module multipole
       select case (l)
       case (0)
           ! No need for r, as l=0
-          sh = 1.d0
+          sh = sqrt(1.d0/(4.d0*pi))
       case (1)
           r2 = x**2+y**2+z**2
-          !r2 = max(r2,1.d-1)
+          r2min = rmin**2
+          r2 = max(r2,r2min)
           r = sqrt(r2)
           select case (m)
           case (-1)
-              sh = y
+              sh = sqrt(3.d0/(4.d0*pi))*y
           case (0)
-              sh = z
+              sh = sqrt(3.d0/(4.d0*pi))*z
           case (1)
-              sh = x
+              sh = sqrt(3.d0/(4.d0*pi))*x
           end select
           ! Multiply by r^{r_exp*l}
           sh = sh*r**r_exponent
       case (2)
           r2 = x**2+y**2+z**2
-          !r2 = max(r2,1.d-1)
+          r2min = rmin**2
+          r2 = max(r2,r2min)
           select case (m)
           case (-2)
-              sh = sqrt(3.d0)*x*y
+              sh = sqrt(15.d0/(4.d0*pi))*x*y
           case (-1)
-              sh = sqrt(3.d0)*y*z
+              sh = sqrt(15.d0/(4.d0*pi))*y*z
           case (0)
-              sh = sqrt(0.25d0)*(-x**2-y**2+2*z**2)
+              sh = sqrt(5.d0/(16.d0*pi))*(-x**2-y**2+2.d0*z**2)
           case (1)
-              sh = sqrt(3.d0)*z*x
+              sh = sqrt(15.d0/(4.d0*pi))*z*x
           case (2)
-              sh = sqrt(0.75d0)*(x**2-y**2)
+              sh = sqrt(15.d0/(16.d0*pi))*(x**2-y**2)
           end select
           ! Multiply by r^{r_exp*l}
           sh = sh*r2**r_exponent
@@ -2474,6 +2527,72 @@ module multipole
       !end if
 
     end function solid_harmonic
+
+    !!!!!!> Calculates the prefactor of the solid harmonics S_lm  for given values of l, m, x, y, z.
+    !!!!!function prefactor_solid_harmonic(l, m, x, y, z) result(psh)
+    !!!!!  use module_base, only: pi => pi_param
+    !!!!!  implicit none
+    !!!!!  ! Calling arguments
+    !!!!!  integer,intent(in) :: l, m
+    !!!!!  real(kind=8),intent(in) :: x, y, z
+    !!!!!  real(kind=8) :: psh
+
+    !!!!!  ! Local variables
+    !!!!!  integer,parameter :: l_max=2
+
+    !!!!!  if (l<0) call f_err_throw('l must be non-negative',err_name='BIGDFT_RUNTIME_ERROR')
+    !!!!!  if (l>l_max) call f_err_throw('solid harmonics only implemented up to l='//trim(yaml_toa(l_max)),&
+    !!!!!      err_name='BIGDFT_RUNTIME_ERROR')
+    !!!!!  if (abs(m)>l) call f_err_throw('abs(m) must not be larger than l',err_name='BIGDFT_RUNTIME_ERROR')
+
+
+    !!!!!  select case (l)
+    !!!!!  case (0)
+    !!!!!      psh = 1.d0
+    !!!!!  case (1)
+    !!!!!      psh = 1.d0
+    !!!!!      select case (m)
+    !!!!!      case (-1)
+    !!!!!          sh = y
+    !!!!!      case (0)
+    !!!!!          sh = z
+    !!!!!      case (1)
+    !!!!!          sh = x
+    !!!!!      end select
+    !!!!!      ! Multiply by r^{r_exp*l}
+    !!!!!      sh = sh*r**r_exponent
+    !!!!!  case (2)
+    !!!!!      r2 = x**2+y**2+z**2
+    !!!!!      r2min = rmin**2
+    !!!!!      r2 = max(r2,r2min)
+    !!!!!      select case (m)
+    !!!!!      case (-2)
+    !!!!!          sh = sqrt(3.d0)*x*y
+    !!!!!      case (-1)
+    !!!!!          sh = sqrt(3.d0)*y*z
+    !!!!!      case (0)
+    !!!!!          sh = sqrt(0.25d0)*(-x**2-y**2+2*z**2)
+    !!!!!      case (1)
+    !!!!!          sh = sqrt(3.d0)*z*x
+    !!!!!      case (2)
+    !!!!!          sh = sqrt(0.75d0)*(x**2-y**2)
+    !!!!!      end select
+    !!!!!      ! Multiply by r^{r_exp*l}
+    !!!!!      sh = sh*r2**r_exponent
+    !!!!!  end select
+
+    !!!!!  !r2 = x**2+y**2+z**2
+    !!!!!  !r = sqrt(r2)
+    !!!!!  !if (r<1.d-1) then
+    !!!!!  !    sh = 0.d0
+    !!!!!  !end if
+
+    !!!!!  !if (sh>10.d0) then
+    !!!!!  !    r2 = x**2+y**2+z**2
+    !!!!!  !    write(*,*) 'LARGE, value, r', sh, sqrt(r2)
+    !!!!!  !end if
+
+    !!!!!end function solid_harmonic
 
 
 
