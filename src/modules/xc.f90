@@ -459,14 +459,12 @@ contains
              !call f_memcpy(n=npts,dest=vxc_tmp(1,1),src=vxc(1,1))
              !call f_memcpy(n=npts,dest=vxc_tmp(1,2),src=vxc(1,1))
 
-             !the density of nspin==1 is too big by a factor 2 (contains the up and down contribution).
-             rho_tmp=0.5*rho_tmp
+             !!$$the density of nspin==1 is too big by a factor 2 (contains the up and down contribution).
+             !!$$rho_tmp=0.5*rho_tmp
 
              !fill vxc_tmp and dvxci_tmp
              call drivexc(exc,ixc,npts,nspden_tmp,order,rho_tmp,vxc_tmp,&
                   ndvxc_tmp,ngr2_tmp,nd2vxc_tmp,nvxcdgr_tmp, dvxc=dvxci_tmp)
-
-             !write(*,*) '!!!!!!!!!!!here!!!!!!!!!!'
              !write(*,*) 'avant', 106+((106-1)+(25-1)*213)*213, vxc_tmp(106+((106-1)+(25-1)*213)*213,1),&
              !            vxc_tmp(106+((106-1)+(25-1)*213)*213,2)
              !write(*,*) 'avant', 25, vxc_tmp(25,1), vxc_tmp(25,2)

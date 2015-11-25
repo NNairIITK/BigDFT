@@ -125,7 +125,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   ! To summarize, this means that the implementation needs to take into account two parameters:
   !1- Is the full-TDDFT problem solved, or is the TDA applied ?
   !2- What about the spin: spin-averaged or spin-polarized ?
-
+  call f_routine('coupling_matrix_prelim')
 
   if(iproc==0) call yaml_comment('Linear-Response TDDFT calculations',hfill='-')
   !if(iproc==0) write(*,'(1x,a)')"=========================================================="
@@ -464,7 +464,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            !if (iproc==0) write(*,*) jmulti, imulti, Kbig(jmulti, imulti)
            fsumrule_test=fsumrule_test+Kbig(jmulti, imulti)**2
         end do
-        if (iproc==0) write(*,*) jmulti, fsumrule_test
+        !if (iproc==0) write(*,*) jmulti, fsumrule_test
      end do
   else 
      do jmulti = 1, ndipoles
@@ -473,7 +473,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            !if (iproc==0) write(*,*) jmulti, imulti, K(jmulti, imulti)
            fsumrule_test=fsumrule_test+K(jmulti, imulti)**2
         end do
-        if (iproc==0) write(*,*) jmulti, fsumrule_test
+        !if (iproc==0) write(*,*) jmulti, fsumrule_test
      end do
   end if
   !end test
@@ -819,5 +819,7 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
      call f_free(Kaux)
      call f_free(Kbig)
   end if
+
+  call f_release_routine()
 
 END SUBROUTINE coupling_matrix_prelim

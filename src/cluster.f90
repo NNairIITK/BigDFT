@@ -1026,6 +1026,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
         !start the Casida's treatment 
         !if (in%tddft_approach=='TDA') then
+        
         if (in%tddft_approach .ne. 'none') then
 
            !does it make sense to use GPU only for a one-shot sumrho?
@@ -1055,6 +1056,25 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
               denspot%f_XC = f_malloc_ptr((/ 1 , 1 , 1 , in%nspin+1 /),id='denspot%f_XC')
            end if
 
+!!$$!MM test
+!!$$ if (iproc==1) open(unit=201,file='density.dat')
+!!$$ n1m=KSwfn%Lzd%Glr%d%n1i
+!!$$ n2m=KSwfn%Lzd%Glr%d%n2i
+!!$$ n3m=denspot%dpbox%n3p
+!!$$ i1=n1m/2
+!!$$ i2=n2m/2
+!!$$ if (in%nspin==1) then
+!!$$    do i3p=1,n3m
+!!$$       if (iproc==1) write(201,'(E16.9E2,2x)') denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m)
+!!$$    end do
+!!$$ else
+!!$$    do i3p=1,n3m
+!!$$       if (iproc==1) write(201,'(2(E16.9E2,2x))') denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),&
+!!$$                             denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m+n1m*n2m*n3m)
+!!$$    end do
+!!$$ end if
+!!$$ if (iproc==1) close(201)
+!!$$!MM test END
 
 
            call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
@@ -1063,49 +1083,48 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
 
 
-
-!MM test 
-           if (iproc==0) open(unit=201,file='toplot0.dat')
-           if (iproc==2) open(unit=203,file='toplot2.dat')
-           n1m=KSwfn%Lzd%Glr%d%n1i
-           n2m=KSwfn%Lzd%Glr%d%n2i
-           n3m=denspot%dpbox%n3p
-           i1=n1m/2
-           i2=n2m/2
-
-           if (in%nspin==1) then
-
-              do i3p=1,n3m
-                 if (iproc==0) write(201,'(i4,4(2x,E16.9E2))') i3p,&
-                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),&
-                                  denspot%V_XC(i1,i2,i3p,1), &
-                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2)
-                 if (iproc==2) write(203,'(i4,4(2x,E16.9E2))') i3p,&
-                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),&
-                                  denspot%V_XC(i1,i2,i3p,1), &
-                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2)
-              end do
-
-           else if (in%nspin==2) then
-
-              do i3p=1,n3m
-                 if (iproc==0) write(201,'(i4,7(2x,E16.9E2))') i3p,&
-                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),& 
-                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m+n1m*n2m*n3m),&
-                                  denspot%V_XC(i1,i2,i3p,1), denspot%V_XC(i1,i2,i3p,2), &
-                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2), denspot%f_XC(i1,i2,i3p,3)
-                 if (iproc==2) write(203,'(i4,7(2x,E16.9E2))') i3p,&
-                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),& 
-                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m+n1m*n2m*n3m),&
-                                  denspot%V_XC(i1,i2,i3p,1), denspot%V_XC(i1,i2,i3p,2), &
-                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2), denspot%f_XC(i1,i2,i3p,3)
-              end do
-
-           end if
-
-           if (iproc==0) close(unit=201)
-           if (iproc==2) close(unit=203)
-!MM end test 
+!!$$!MM test 
+!!$$           if (iproc==0) open(unit=201,file='toplot0.dat')
+!!$$           if (iproc==2) open(unit=203,file='toplot2.dat')
+!!$$           n1m=KSwfn%Lzd%Glr%d%n1i
+!!$$           n2m=KSwfn%Lzd%Glr%d%n2i
+!!$$           n3m=denspot%dpbox%n3p
+!!$$           i1=n1m/2
+!!$$           i2=n2m/2
+!!$$
+!!$$           if (in%nspin==1) then
+!!$$
+!!$$              do i3p=1,n3m
+!!$$                 if (iproc==0) write(201,'(i4,4(2x,E16.9E2))') i3p,&
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),&
+!!$$                                  denspot%V_XC(i1,i2,i3p,1), &
+!!$$                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2)
+!!$$                 if (iproc==2) write(203,'(i4,4(2x,E16.9E2))') i3p,&
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),&
+!!$$                                  denspot%V_XC(i1,i2,i3p,1), &
+!!$$                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2)
+!!$$              end do
+!!$$
+!!$$           else if (in%nspin==2) then
+!!$$
+!!$$              do i3p=1,n3m
+!!$$                 if (iproc==0) write(201,'(i4,7(2x,E16.9E2))') i3p,&
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),& 
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m+n1m*n2m*n3m),&
+!!$$                                  denspot%V_XC(i1,i2,i3p,1), denspot%V_XC(i1,i2,i3p,2), &
+!!$$                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2), denspot%f_XC(i1,i2,i3p,3)
+!!$$                 if (iproc==2) write(203,'(i4,7(2x,E16.9E2))') i3p,&
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m),& 
+!!$$                                  denspot%rhov(i1+((i2-1)+(i3p-1)*n2m)*n1m+n1m*n2m*n3m),&
+!!$$                                  denspot%V_XC(i1,i2,i3p,1), denspot%V_XC(i1,i2,i3p,2), &
+!!$$                                  denspot%f_XC(i1,i2,i3p,1), denspot%f_XC(i1,i2,i3p,2), denspot%f_XC(i1,i2,i3p,3)
+!!$$              end do
+!!$$
+!!$$           end if
+!!$$
+!!$$           if (iproc==0) close(unit=201)
+!!$$           if (iproc==2) close(unit=203)
+!!$$!MM end test 
 
 
            call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
