@@ -2608,6 +2608,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
           atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,in%lin%kernel_restart_mode==LIN_RESTART_KERNEL,&
           frag_env_mapping)
 
+     !call write_orbital_density(iproc, .true., 1, 'SupFun', &
+     !     tmb%npsidim_orbs, tmb%psi, in, tmb%orbs, KSwfn%lzd, atoms, rxyz, .false., tmb%lzd)
+
      ! normalize tmbs - only really needs doing if we reformatted, but will need to calculate transpose after anyway
      !nullify(tmb%psit_c)                                                                
      !nullify(tmb%psit_f)  
@@ -2864,7 +2867,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call f_free(tmparr)
      if (rho_negative) then
          if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
-         call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .false.)
+         !there's a problem here if we set init to false, as init_foe will then nullify foe_obj without deallocating/reallocating
+         call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.) !.false.)
          call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      end if
 

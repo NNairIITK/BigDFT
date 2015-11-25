@@ -533,7 +533,7 @@ module foe_common
       real(kind=8),dimension(smat_l%smmm%nvctrp,2),intent(in) :: penalty_ev
       logical,intent(in) :: trace_with_overlap, emergency_stop
       type(foe_data),intent(inout) :: foe_obj
-      logical,intent(out) :: restart
+      logical,intent(inout) :: restart
       logical,dimension(2),intent(out) :: eval_bounds_ok
     
       ! Local variables
