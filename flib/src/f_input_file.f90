@@ -6,6 +6,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 module f_input_file
   use dictionaries
   use yaml_strings, only: operator(.eqv.),f_strcpy
@@ -160,12 +162,13 @@ contains
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file, key
 
-    integer :: i, skeys
+    integer :: i
     type(dictionary), pointer :: ref,iter
     character(len = max_field_length) :: val, profile_
-    character(len = max_field_length), dimension(:), allocatable :: keys
     double precision, dimension(2) :: rg
-    logical :: found
+!!$    integer :: skeys
+!!$    logical :: found
+!!$    character(len = max_field_length), dimension(:), allocatable :: keys
 
     !    call f_routine(id='input_keys_set')
 
@@ -288,7 +291,6 @@ contains
       logical :: set_
       !local variables
       logical :: l1
-      integer :: j
       type(dictionary), pointer :: tmp,tmp0,tmp_not,iter
       character(max_field_length) :: mkey, val_master, val_when
 

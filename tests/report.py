@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 05/08/2015
+# Date: 20/11/2015
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -10,10 +10,14 @@ import os
 import re
 import sys
 import yaml
+import yaml_hl
 
 #Regular expressions
 re_discrepancy = re.compile("Max [dD]iscrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
 re_time = re.compile("-- time[ ]+([0-9.]+)")
+
+# path of the script (to find default yaml highlights)
+path = os.path.dirname(sys.argv[0])
 
 def callback(pattern,dirname,names):
     "Return the files given by the pattern"
@@ -27,6 +31,33 @@ def yaml_callback(pattern,dirname,names):
         if fnmatch.fnmatch(name,pattern):
             yaml_files.append(os.path.join(dirname,name))
 
+class Pouet:
+    """Class used to define options in order to hightlight the YAML output by mean of yaml_hl"""
+    def __init__(self, config="yaml_hl.cfg", input="report"):
+        # Define a temporary file
+        self.input = input
+        self.output = None
+        self.style = "ascii"
+        self.config = os.path.join(path, config)
+
+
+# Color options: one for the general text
+options = Pouet()
+# Create style (need to be in __main__)
+Style = yaml_hl.Style
+
+def highlight_iftty(yaml_tree):
+    "Highlight a yaml tree"
+    global options
+    newreport = open(options.input, "w")
+    newreport.write(
+        yaml.dump(yaml_tree, default_flow_style=False, explicit_start=True))
+    newreport.close()
+    hl = yaml_hl.YAMLHighlight(options)
+    if os.isatty(hl.output.fileno()):
+        hl.highlight()
+    else:
+        hl.output.write(hl.input.read().encode('utf-8'))
 
 #List of files
 files = []
@@ -115,7 +146,7 @@ for file in files:
             time = "%8ss" % time[0]
         else:
             time = ""
-        if start == start_fail:
+        if "Failed" in state:
             tofail += 1
         else:
             tosucc += 1
@@ -170,7 +201,7 @@ for file in yaml_files:
         start = start_fail
         state = "Failed: Can not parse file!"
         print "%s%-66s %s%s" % (start,dirfic,state,end)
-    if start == start_fail:
+    if "Failed" in state:
         toyfail += 1
     else:
         toysucc += 1
@@ -190,9 +221,10 @@ print 63*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
 if Exit==0:
     print "Test set (%d tests) succeeded!" % totest
 else:
-    print "Test set failed (%d failed, %d succeeded), check the above report!" % (tofail,tosucc)
     if len(suggestions) > 0:
-        sys.stdout.write(yaml.dump(suggestions, default_flow_style=False, explicit_start=True))
+        highlight_iftty(suggestions)
+        #sys.stdout.write(yaml.dump(suggestions, default_flow_style=False, explicit_start=True))
+    print "Test set failed (%d failed, %d succeeded), check the above report!" % (tofail,tosucc)
 
 #Error code
 sys.exit(Exit)
