@@ -705,9 +705,17 @@ module overlap_point_to_point
                      !dpsiw(1,1,igroup,OP2P%irecv_res),1,&
                      phi%res(1+jshift),1)
                 else
-                   call cublas_DAXPY(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr,1,&
+
+!void CUBLAS_DAXPY (const int *n, const double *alpha, const devptr_t *devPtrx,
+!                   const int *incx, const devptr_t *devPtry, const int *incy)
+                   tmpint = TRANSFER(phi%res_GPU, tmpint)
+                   tmpint = tmpint + jshift
+                   tmpaddr= TRANSFER(tmpint, tmpaddr)
+               print *,"res", tmpaddr, "from", phi%data_GPU, tmpint,jshift
+
+                   call cublas_DAXPY(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr_gpu,1,&
                      !dpsiw(1,1,igroup,OP2P%irecv_res),1,&
-                     LOC(phi%res_GPU)+jshift,1)
+                   tmpaddr,1)
                 end if
              end if
           end do
@@ -851,7 +859,7 @@ module overlap_point_to_point
 !!$       real(wp), dimension(OP2P%ndim,norbp), intent(inout) :: dpsir
 !!$       type(local_data), intent(inout) :: phi_i,phi_j
        !local variables
-       integer :: igroup,igr
+       integer :: igroup,igr,i_stat,norbp
 
        if (iter%event==OP2P_START) OP2P%istep=0 !to be moved at the initialization
 
@@ -866,7 +874,12 @@ module overlap_point_to_point
                 if (OP2P%istep /= 0 .and. OP2P%ranks(SEND_RES,igroup,OP2P%istep) /= mpirank_null()) then
                    !put to zero the sending element
                    !call f_zero(OP2P%ndim*norbp_max,OP2P%resw(1,1,igroup,3))
-                   call f_zero(OP2P%resw(igroup,3)%ptr)
+                   if(OP2P%gpudirect/=1)then
+                     call f_zero(OP2P%resw(igroup,3)%ptr)
+                   else
+                     norbp=sum(OP2P%nobj_par(iproc,:))
+                     call cudamemset(OP2P%resw(igroup,3)%ptr_gpu, 0, OP2P%ndim*norbp,i_stat)
+                   end if
                 end if
              end do
 
