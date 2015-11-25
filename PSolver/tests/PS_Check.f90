@@ -15,7 +15,7 @@ program PS_Check
   use Poisson_Solver
   use yaml_output
   use dynamic_memory
-  use dictionaries
+  use dictionaries, dict_set => set
   use time_profiling
   use yaml_strings
   implicit none
@@ -38,11 +38,11 @@ program PS_Check
   integer :: n_cell,igpu
   integer, dimension(3) :: nxyz
   integer, dimension(3) :: ndims
-  real(wp), dimension(:,:,:,:), pointer :: rhocore
+  real(dp), dimension(:,:,:,:), pointer :: rhocore
   real(dp), dimension(3) :: hgrids
   type(mpi_environment) :: bigdft_mpi
   character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"
-  type(dictionary), pointer :: options
+  type(dictionary), pointer :: options,dict_input
   external :: gather_timings
 
   call f_lib_initialize() 
@@ -88,6 +88,9 @@ program PS_Check
   geocode=options//'geocode'
   usegpu = options // 'accel'
 
+  call dict_init(dict_input)
+  if (usegpu) call dict_set(dict_input//'setup'//'accel','CUDA')
+  call dict_set(dict_input//'setup'//'taskgroup_size',nproc/2)
 
   call dict_free(options)
   n01=nxyz(1)
@@ -124,8 +127,10 @@ program PS_Check
   ndims=(/n01,n02,n03/)
   hgrids=(/hx,hy,hz/)
 
-  pkernel=pkernel_init(.true.,iproc,nproc,igpu,&
-       geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
+!!$  pkernel=pkernel_init(.true.,iproc,nproc,igpu,&
+!!$       geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
+  pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids)
+  call dict_free(dict_input)
   call pkernel_set(pkernel,verbose=.true.)
 
   !Allocations, considering also spin density
@@ -172,7 +177,7 @@ program PS_Check
   !stop
   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) then
      !compare the values of the analytic results (pkernel%mpi_env%nproc == -1 indicates that it is serial)
-     call compare (0,-1,pkernel%mpi_env%mpi_comm,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
+     call compare(0,-1,pkernel%mpi_env%mpi_comm,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
   end if
   !if the latter test pass, we have a reference for all the other calculations
   !build the reference quantities (based on the numerical result, not the analytic)
@@ -225,7 +230,6 @@ program PS_Check
   call f_timing_checkpoint('Parallel',mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
   !call timing(MPI_COMM_WORLD,'Parallel','PR')
 
-  call pkernel_free(pkernel)
 
   if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
        call yaml_map('Monoprocess run','*MPIrun')
@@ -243,7 +247,9 @@ program PS_Check
      potential=extra_ref !use the previoulsy defined reference
      !calculate the Poisson potential in parallel
      !with the global data distribution (also for xc potential)
-     pkernelseq=pkernel_init(.true.,0,1,0,geocode,ndims,hgrids,itype_scf)
+     dict_input=>dict_new('kernel' .is. dict_new('isf_order' .is. itype_scf))
+     pkernelseq=pkernel_init(0,1,dict_input,geocode,ndims,hgrids)
+     call dict_free(dict_input)
      call pkernel_set(pkernelseq,verbose=.true.)
 
 
@@ -286,6 +292,7 @@ program PS_Check
   !call yaml_stream_attributes()
   !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
 
+  call pkernel_free(pkernel)
   call f_release_routine()
   if (iproc==0) then
      call yaml_release_document()
@@ -338,7 +345,7 @@ contains
 
 
     call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,.false.,.false.,&
-         n3d,n3p,n3pi,i3xcsh,i3s)
+         0,n3d,n3p,n3pi,i3xcsh,i3s)
 
     !starting point of the three-dimensional arrays
     if (distcode == 'D') then
@@ -440,7 +447,7 @@ contains
     nullify(rhocore)
 
     call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,n01,n02,n03,.false.,.false.,&
-         n3d,n3p,n3pi,i3xcsh,i3s)
+         0,n3d,n3p,n3pi,i3xcsh,i3s)
 
     !starting point of the three-dimensional arrays
     if (distcode == 'D') then

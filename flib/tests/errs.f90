@@ -12,6 +12,7 @@
 
 !> Routine testing the error handling part of flib
 subroutine test_error_handling()
+  use f_precisions, only: f_loc
   use yaml_output
 !!! [Use]
   use dictionaries

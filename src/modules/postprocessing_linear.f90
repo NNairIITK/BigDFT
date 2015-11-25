@@ -25,7 +25,7 @@ module postprocessing_linear
                ntheta, istheta, theta)
       use module_base
       use module_types
-      use module_interfaces
+      !use module_interfaces
       use communications_base, only: TRANSPOSE_FULL
       use communications, only: transpose_localized
       use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc_ptr, &
@@ -309,31 +309,32 @@ module postprocessing_linear
                    max_error=max_error, mean_error=mean_error)
               !call f_free_ptr(ovrlp%matrix)
 
-
               do ispin=1,smatl%nspin
                   ist = (ispin-1)*smatl%nvctrp_tg + 1
-                  if (norbp>0) then
+                  !not sure where exactly the problem is but this can't be called for only some mpi procs otherwise the code hangs
+                  !if (norbp>0) then
                      call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                           kernel%matrix_compr(ist:), inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:))
-                  end if
-                  if (norbp>0) then
+                  !end if
+
+                  !if (norbp>0) then
                      call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                           inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
-                  end if
+                  !end if
               end do
               call deallocate_matrices(inv_ovrlp(1))
           else if (method==CHARGE_ANALYSIS_MULLIKEN) then
               call transform_sparse_matrix(smats, smatl, ovrlp%matrix_compr, proj_ovrlp_half_compr, 'small_to_large')
               do ispin=1,smatl%nspin
                   ist = (ispin-1)*smatl%nvctrp_tg + 1
-                  if (norbp>0) then
+                  !if (norbp>0) then
                      call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                           kernel%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
-                  end if
+                  !end if
               end do
           end if
           call f_free(proj_ovrlp_half_compr)
-    
+
           charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
 
           ! Maybe this can be improved... not really necessary to gather the entire matrix
@@ -643,6 +644,7 @@ module postprocessing_linear
     subroutine support_function_multipoles(iproc, tmb, atoms, denspot)
       use module_base
       use module_types
+      use locreg_operations
       use yaml_output
       
       ! Calling arguments
@@ -674,7 +676,7 @@ module postprocessing_linear
           iiorb=tmb%orbs%isorb+iorb
           ilr=tmb%orbs%inwhichlocreg(iiorb)
           iat=tmb%orbs%onwhichatom(iiorb)
-          call initialize_work_arrays_sumrho(1,tmb%lzd%Llr(ilr),.true.,w)
+          call initialize_work_arrays_sumrho(1,[tmb%lzd%Llr(ilr)],.true.,w)
           ! Transform the support function to real space
           call daub_to_isf(tmb%lzd%llr(ilr), w, tmb%psi(ist), phir(istr))
           call deallocate_work_arrays_sumrho(w)
@@ -886,7 +888,7 @@ module postprocessing_linear
                energy, energyDiff, energyold)
       use module_base
       use module_types
-      use module_interfaces
+      use module_interfaces, only: get_coeff, write_eigenvalues_data, write_orbital_density
       use communications_base, only: comms_cubic
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v
@@ -894,7 +896,7 @@ module postprocessing_linear
       use sparsematrix, only: gather_matrix_from_taskgroups_inplace, extract_taskgroup_inplace
       use yaml_output
       use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
-      use locreg_operations, only: small_to_large_locreg
+      use locregs_init, only: small_to_large_locreg
       implicit none
       
       ! Calling arguments
@@ -965,7 +967,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work, .false.)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
     
       if (bigdft_mpi%iproc ==0) then
@@ -1052,7 +1054,10 @@ module postprocessing_linear
     
       if (input%write_orbitals==2) then
           call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KSDens', &
-               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz)
+               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .true.)
+      else if (input%write_orbitals==3) then 
+          call write_orbital_density(iproc, .false., mod(input%lin%plotBasisFunctions,10), 'KS', &
+               KSwfn%orbs%npsidim_orbs, phiwork_global, input, KSwfn%orbs, KSwfn%lzd, at, rxyz, .false.)
       end if
     
       if (input%wf_extent_analysis) then
@@ -1092,7 +1097,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., updatekernel=.false.)
+           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, updatekernel=.false.)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
@@ -1114,14 +1119,14 @@ module postprocessing_linear
                energy, energyDiff, energyold, npsidim_global, phiwork_global)
       use module_base
       use module_types
-      use module_interfaces
+      use module_interfaces, only: get_coeff, write_eigenvalues_data
       use communications_base, only: comms_cubic
       use communications_init, only: orbitals_communicators
       use communications, only: transpose_v, untranspose_v
       use sparsematrix_base, only: sparse_matrix
       use yaml_output
       use rhopotential, only: updatepotential, sumrho_for_TMBs, corrections_for_negative_charge
-      use locreg_operations, only: small_to_large_locreg
+      use locregs_init, only: small_to_large_locreg
       implicit none
       
       ! Calling arguments
@@ -1184,7 +1189,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor,input%lin%max_inversion_error,input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,energs_work, .false.)
+           input%calculate_KS_residue,input%calculate_gap,energs_work, .false., input%lin%coeff_factor)
     
       if (bigdft_mpi%iproc ==0) then
          call write_eigenvalues_data(0.1d0,KSwfn%orbs,mom_vec_fake)
@@ -1305,7 +1310,7 @@ module postprocessing_linear
       call get_coeff(iproc, nproc, LINEAR_MIXDENS_SIMPLE, KSwfn%orbs, at, rxyz, denspot, GPU, infoCoeff, &
            energs, nlpsp, input%SIC, tmb, fnrm, .true., .true., .false., .true., 0, 0, 0, 0, &
            order_taylor, input%lin%max_inversion_error, input%purification_quickreturn, &
-           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., updatekernel=.false.)
+           input%calculate_KS_residue, input%calculate_gap, energs_work, .false., input%lin%coeff_factor, updatekernel=.false.)
       energy=energs%ebs-energs%eh+energs%exc-energs%evxc-energs%eexctX+energs%eion+energs%edisp
       energyDiff=energy-energyold
       energyold=energy
@@ -1322,7 +1327,8 @@ module postprocessing_linear
 
     subroutine calculate_theta(nat, rxyz, nphidim, phi, nphirdim, orbs, lzd, theta)
       use module_base
-      use module_types, only: orbitals_data, local_zone_descriptors, workarr_sumrho
+      use module_types, only: orbitals_data, local_zone_descriptors
+      use locreg_operations
       use yaml_output
       implicit none
 
@@ -1352,7 +1358,7 @@ module postprocessing_linear
       do iorb=1,orbs%norbp
           iiorb=orbs%isorb+iorb
           ilr=orbs%inwhichlocreg(iiorb)
-          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
           call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
           call deallocate_work_arrays_sumrho(w)
           !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &
@@ -1521,7 +1527,7 @@ module postprocessing_linear
 
 
     function gaussian(sigma, r) result(g)
-      use module_base, only: pi => pi_param
+      use module_base
       implicit none
       ! Calling arguments
       real(kind=8),intent(in) :: sigma, r
@@ -1535,7 +1541,7 @@ module postprocessing_linear
     !> Calculates the real spherical harmonic for given values of l, m, x, y, z.
     function spherical_harmonic(l, m, x, y, z) result(sh)
       !use module_base, only: pi => pi_param
-      use module_base, pi => pi_param
+      use module_base
       implicit none
       ! Calling arguments
       integer,intent(in) :: l, m
@@ -1593,8 +1599,9 @@ module postprocessing_linear
     subroutine supportfunction_centers(nat, rxyz, nphidim, phi, nphirdim, &
                norb, norbp, isorb, in_which_locreg, lzd, com)
       use module_base
-      use module_types, only: local_zone_descriptors, workarr_sumrho
+      use module_types, only: local_zone_descriptors
       use bounds, only: geocode_buffers
+      use locreg_operations
       use yaml_output
       implicit none
 
@@ -1623,7 +1630,7 @@ module postprocessing_linear
       do iorb=1,norbp
           iiorb=isorb+iorb
           ilr=in_which_locreg(iiorb)
-          call initialize_work_arrays_sumrho(1,lzd%Llr(ilr),.true.,w)
+          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
           call daub_to_isf(lzd%Llr(ilr), w, phi(ist), psir(istr))
           call deallocate_work_arrays_sumrho(w)
           !write(*,'(a,4i8,es16.6)') 'INITIAL: iproc, iiorb, n, istr, ddot', &

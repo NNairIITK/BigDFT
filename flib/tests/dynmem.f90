@@ -18,6 +18,7 @@ subroutine test_dynamic_memory()
    use metadata_interfaces, only: getdp2
    use yaml_strings
    use f_precisions
+   use f_utils, only: f_time,f_zero
    implicit none
 
    type :: dummy_type
@@ -27,24 +28,28 @@ subroutine test_dynamic_memory()
 
    !logical :: fl
    integer :: i
+   complex(kind=8), dimension(:,:), allocatable :: cpot
    real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,xc_pot
    real(kind=8), dimension(:), pointer :: extra_ref
    real(kind=8), dimension(:,:), save, allocatable :: ab
    real(kind=8), dimension(:,:), allocatable :: b
+   integer, dimension(:), pointer :: arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH
+   integer, dimension(:), allocatable :: i_arrA,i_arrB,i_arrC,i_arrD,i_arrE,i_arrF,i_arrG,i_arrH
    integer, dimension(:), allocatable :: i1_all,i1_src
    integer, dimension(:), pointer :: i1_ptr,ptr1
    integer, dimension(:), pointer :: ptr2
 
-   integer,dimension(:,:,:),allocatable :: weight
-   integer,dimension(:,:,:,:),allocatable :: orbital_id
+   integer,dimension(:,:,:), allocatable :: weight
+   integer,dimension(:,:,:,:), allocatable :: orbital_id
    character(len=20), dimension(:), allocatable :: str_arr
    character(len=20), dimension(:), pointer :: str_ptr
 
    type(dummy_type) :: dummy_test
    external :: abort2
    real(kind=8) :: total
-   integer :: ithread
+   integer :: ithread,nt
    integer(kind=8) :: iadd
+   integer(f_long) :: it0,it1
    !$ integer :: ierror
    !$ integer(kind=8) :: lock
    !$ integer, external :: omp_get_thread_num
@@ -52,6 +57,44 @@ subroutine test_dynamic_memory()
    !$omp threadprivate(ab)
 
    ithread=0
+   nt=1000
+   !allocate a bigg array and test time for zeroing
+   !let us chose 400 MB
+   i1_ptr=f_malloc_ptr(10**6,id='i1_ptr')
+   it0=f_time()
+   do i=1,nt
+      call f_zero(i1_ptr)
+   end do
+   it1=f_time()
+   call yaml_map('Time for razero',real(it1-it0,f_double)*1.d-9)
+   call yaml_map('Total sum',sum(abs(i1_ptr)))
+
+   it0=f_time()
+   do i=1,nt
+      i1_ptr=1
+   end do
+   it1=f_time()
+   call yaml_map('Time for initialization',real(it1-it0,f_double)*1.d-9)
+   call yaml_map('Total sum',sum(abs(i1_ptr)))
+
+   it0=f_time()
+   do i=1,nt
+      call memsetzero(i1_ptr,int(kind(i1_ptr)*size(i1_ptr),f_long))
+   end do
+   it1=f_time()
+   call yaml_map('Time for memset',real(it1-it0,f_double)*1.d-9)
+   call yaml_map('Total sum',sum(abs(i1_ptr)))
+
+   it0=f_time()
+   do i=1,nt
+      call setzero(int(kind(i1_ptr)*size(i1_ptr),f_long),i1_ptr)
+   end do
+   it1=f_time()
+   call yaml_map('Time for setzero',real(it1-it0,f_double)*1.d-9)
+   call yaml_map('Total sum',sum(abs(i1_ptr)))
+
+   
+   call f_free_ptr(i1_ptr)
 
    call yaml_comment('Routine-Tree creation example',hfill='~')
    !call dynmem_sandbox()
@@ -86,6 +129,7 @@ subroutine test_dynamic_memory()
    call yaml_map('Associated',(/associated(ptr1),associated(ptr2)/))
 
    call f_purge_database(int(size(i1_ptr),f_long),kind(i1_ptr),f_loc(i1_ptr))
+   deallocate(i1_ptr) !this has to be addded if the database is only to be purged
    i1_ptr=f_malloc_ptr(0,id='i1_ptr')
 
    ptr1=>i1_ptr
@@ -293,14 +337,45 @@ call f_free(weight)
    !XC potential
    xc_pot=f_malloc(3*2,id='xc_pot')
 
-   !   call f_malloc_dump_status()
+   ! call f_malloc_dump_status()
    extra_ref=f_malloc_ptr(0,id='extra_ref')
 
    rhopot=f_malloc(3*2,id='rhopot')
-
-    call f_malloc_dump_status()
-
+   call f_malloc_dump_status()
    call f_free(rhopot)
+
+   !Test errors
+   call f_err_open_try()
+   rhopot=f_malloc( (/30,20/),id='rhopot')
+   call f_dump_last_error()
+   cpot=f_malloc(30,id='cpot')
+   call f_dump_last_error()
+   !Allocate a huge amount of memory
+   cpot=f_malloc(huge(1),id="cpot")
+   call f_dump_last_error()
+   call f_err_close_try()
+
+   !Test multiple freed
+   i_arrA = f_malloc(100,id='i_arrA')
+   i_arrB = f_malloc(100,id='i_arrB')
+   i_arrC = f_malloc(100,id='i_arrC')
+   i_arrD = f_malloc(100,id='i_arrD')
+   i_arrE = f_malloc(100,id='i_arrE')
+   i_arrF = f_malloc(100,id='i_arrF')
+   i_arrG = f_malloc(100,id='i_arrG')
+   i_arrH = f_malloc(100,id='i_arrH')
+   call f_free(i_arrA,i_arrB,i_arrC,i_arrD,i_arrE,i_arrF,i_arrG,i_arrH)
+
+   arrayA = f_malloc_ptr(100,id='arrayA')
+   arrayB = f_malloc_ptr(100,id='arrayB')
+   arrayC = f_malloc_ptr(100,id='arrayC')
+   arrayD = f_malloc_ptr(100,id='arrayD')
+   arrayE = f_malloc_ptr(100,id='arrayE')
+   arrayF = f_malloc_ptr(100,id='arrayF')
+   arrayG = f_malloc_ptr(100,id='arrayG')
+   arrayH = f_malloc_ptr(100,id='arrayH')
+   call f_free_ptr(arrayA,arrayB,arrayC,arrayD,arrayE,arrayF,arrayG,arrayH)
+
 !!$
 !!$   !   call f_free(density,potential,pot_ion,xc_pot,extra_ref)
 
@@ -618,6 +693,43 @@ end subroutine test_dynamic_memory
 !   call f_release_routine()
 ! end subroutine verify_heap_allocation_status
 
+
+subroutine test_pointer_association()
+  use dynamic_memory
+  use f_precisions
+  use yaml_output
+  implicit none
+!!$  type(f_workspace) :: w
+  real(f_double), dimension(:), pointer :: work1
+
+  !example of the allocation
+  !this should provide a pointer with the correct boundaries that will have to point into the same workspace
+  !however this should only work for rank-one pointers
+!!$  work1=f_malloc_ptr(lb.to.lu,id='work1',workspace=w)
+  
+  !then work1 should be used normally
+  call yaml_map('work1 associated',associated(work1))
+  call yaml_mapping_open('Work1 bounds and sizes')
+    call yaml_map('lbounds',lbound(work1))
+    call yaml_map('ubounds',ubound(work1))
+    call yaml_map('size',size(work1))
+  call yaml_mapping_close()
+
+  !and also freed, but with the corresponding workspace.
+  !for example this would not work, as workspace is not accessible
+  !this should crash if workspace is not provided
+  call f_free_ptr(work1) 
+!!$  !then the correct behaviour would be to do
+!!$  call f_free_ptr(work1,workspace=w)
+!!$  !but it might create defragmentation, therefore the best might be to clean the workspace
+!!$  !instaed of treating separately the arrays
+!!$
+!!$  !we are in the case of a workspace aliasing
+!!$  if (associated(m%w)) then
+!!$     call map_workspace(m%w%pos_d,m%lbounds(1),m%ubounds(1),m%w%ptr_d,m%w%sz_d,array)
+!!$  end if
+
+end subroutine test_pointer_association
 
 ! subroutine dynmem_sandbox()
 !   use yaml_output

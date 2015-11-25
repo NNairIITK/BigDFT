@@ -20,7 +20,7 @@ subroutine pulay_correction_new(iproc, nproc, tmb, orbs, at, fpulay)
   use sparsematrix, only: compress_matrix, uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
                           uncompress_matrix2
   use transposed_operations, only: calculate_overlap_transposed, build_linear_combination_transposed
-  use locreg_operations, only: small_to_large_locreg
+  use locregs_init, only: small_to_large_locreg
   implicit none
 
   ! Calling arguments
@@ -212,7 +212,6 @@ end subroutine pulay_correction_new
 subroutine extract_boundary(tmb, phi_delta, numpoints, numpoints_tot)
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output
   implicit none
 
@@ -461,16 +460,15 @@ end subroutine extract_boundary
 subroutine pulay_correction(iproc, nproc, orbs, at, rxyz, nlpsp, SIC, denspot, GPU, tmb, fpulay)
   use module_base
   use module_types
-  use module_interfaces!, except_this_one => pulay_correction
+  use module_interfaces, only: LocalHamiltonianApplication, SynchronizeHamiltonianApplication
   use yaml_output
   use communications_base, only: TRANSPOSE_FULL
   use communications, only: transpose_localized, start_onesided_communication
   use rhopotential, only: full_local_potential
-  use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
-                               matrices_null, allocate_matrices, deallocate_matrices, &
-                               sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
+  use sparsematrix_base
   use sparsematrix, only: gather_matrix_from_taskgroups_inplace
   use transposed_operations, only: calculate_overlap_transposed
+  use locreg_operations, only: confpot_data
   implicit none
 
   ! Calling arguments

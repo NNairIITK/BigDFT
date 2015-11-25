@@ -477,7 +477,7 @@ contains
 
   !> This function returns the key if present otherwise the value of the element if in a list
   !! this is a function indended for internal flib usage which 
-  !! can be used for lists of hash table, as dictionasy type is "polymorph"
+  !! can be used for lists of hash table, as dictionary type is "polymorph"
   pure function name_is(dict,name)
     implicit none
     type(dictionary), pointer, intent(in) :: dict
@@ -571,7 +571,6 @@ contains
 
     !local variables
 !!$    type(dictionary), pointer :: iter
-
 !!$    !eliminate recursion
 !!$    iter => child
 !!$    do while(associated(iter))

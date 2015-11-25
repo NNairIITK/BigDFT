@@ -6,7 +6,7 @@ MPI_INCLUDES = allreduce-inc.f90 allreduce-arr-inc.f90 gather-inc.f90 \
 	gather-inner-inc.f90 maxdiff-arr-inc.f90 maxdiff-inc.f90 \
 	bcast-inc.f90 bcast-decl-inc.f90 bcast-decl-arr-inc.f90 \
 	maxdiff-decl-inc.f90 maxdiff-end-inc.f90 alltoallv-inc.f90 \
-	allgather-inc.f90 scatter-inc.f90
+	allgather-inc.f90 scatter-inc.f90 scatterv-inc.f90 scatterv-decl-inc.f90
 
 if USE_MPI
 #mpi_source =
@@ -30,6 +30,9 @@ mpif.h:
 	echo "integer, parameter :: MPI_TAG_UB=1, MPI_ADDRESS_KIND=8, MPI_INFO_NULL=0" >> mpif.h &&\
 	echo "integer, parameter :: MPI_MODE_NOPRECEDE=0, MPI_MODE_NOSUCCEED=0" >> mpif.h &&\
 	echo "integer, parameter :: MPI_LOCK_EXCLUSIVE=0, MPI_LOCK_SHARED=0" >> mpif.h &&\
+	echo "integer, parameter :: MPI_ANY_SOURCE=0, MPI_ANY_TAG=0" >> mpif.h &&\
+	echo "integer, parameter :: MPI_MODE_NOPUT=0, MPI_MODE_NOSTORE=0, MPI_MODE_NOCHECK=0" >> mpif.h &&\
+	echo "integer, parameter :: MPI_GROUP_NULL=0, MPI_PROC_NULL=0, MPI_WIN_NULL=0" >> mpif.h &&\
 	echo "real(kind=8), external :: mpi_wtime" >> mpif.h
 
 
@@ -54,6 +57,13 @@ OCL_SOURCES =
 else
 OCL_SOURCES = interface_ocl_fake.f90
 endif
+
+# Hack for MIC compilation.
+if USE_MIC
+cublas_fake.o: cublas_fake.f90
+	$(FCCOMPILE) -offload-attribute-target=mic -c -o $@ $<
+endif
+
 libwrappers_a_SOURCES = $(DGEMMSY_SOURCES) $(CUBLAS_SOURCES) $(OCL_SOURCES) \
 	fft/fft2d.f90 \
 	fft/fft3d.f90 \

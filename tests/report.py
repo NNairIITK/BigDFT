@@ -2,7 +2,7 @@
 # -*- coding: us-ascii -*-
 #----------------------------------------------------------------------------
 # Build the final report (read *.report from fldiff.py)
-# Date: 05/08/2015
+# Date: 20/11/2015
 #----------------------------------------------------------------------------
 
 import fnmatch
@@ -10,10 +10,14 @@ import os
 import re
 import sys
 import yaml
+import yaml_hl
 
 #Regular expressions
 re_discrepancy = re.compile("Max [dD]iscrepancy[^:]*:[ ]+([^ ]+)[ ]+\(([^ ]+)")
 re_time = re.compile("-- time[ ]+([0-9.]+)")
+
+# path of the script (to find default yaml highlights)
+path = os.path.dirname(sys.argv[0])
 
 def callback(pattern,dirname,names):
     "Return the files given by the pattern"
@@ -27,6 +31,33 @@ def yaml_callback(pattern,dirname,names):
         if fnmatch.fnmatch(name,pattern):
             yaml_files.append(os.path.join(dirname,name))
 
+class Pouet:
+    """Class used to define options in order to hightlight the YAML output by mean of yaml_hl"""
+    def __init__(self, config="yaml_hl.cfg", input="report"):
+        # Define a temporary file
+        self.input = input
+        self.output = None
+        self.style = "ascii"
+        self.config = os.path.join(path, config)
+
+
+# Color options: one for the general text
+options = Pouet()
+# Create style (need to be in __main__)
+Style = yaml_hl.Style
+
+def highlight_iftty(yaml_tree):
+    "Highlight a yaml tree"
+    global options
+    newreport = open(options.input, "w")
+    newreport.write(
+        yaml.dump(yaml_tree, default_flow_style=False, explicit_start=True))
+    newreport.close()
+    hl = yaml_hl.YAMLHighlight(options)
+    if os.isatty(hl.output.fileno()):
+        hl.highlight()
+    else:
+        hl.output.write(hl.input.read().encode('utf-8'))
 
 #List of files
 files = []
@@ -115,7 +146,7 @@ for file in files:
             time = "%8ss" % time[0]
         else:
             time = ""
-        if start == start_fail:
+        if "Failed" in state:
             tofail += 1
         else:
             tosucc += 1
@@ -127,6 +158,8 @@ for file in files:
             state = "can not parse file.    failed"
             print "%s%-74s%s%s" % (start,dirfic,state,end)
 
+suggestions={}
+sugg_key=None            
 print "Final report for yaml outputs: if succeeded %53s" % "max diff (significant epsilon)"
 for file in yaml_files:
     dirc = os.path.normpath(os.path.dirname(file))
@@ -134,30 +167,41 @@ for file in yaml_files:
     dirfic = ("%-35s %-30s" % (dirc.replace('-test',''),fic.replace('.out',''))).strip()
     documents=[a for a in yaml.load_all(open(file, "r").read(), Loader = yaml.CLoader)]
     #find whether all the tests have passed (look at last part)
+    thedoc=-1
+    if "Test succeeded" in documents[-1]:
+        thedoc=-1
+    elif "Test succeeded" in documents[-2]:
+        thedoc=-2
+        #assume that the second dictionary has only one key (which is loong and tedious to remember)
+        if sugg_key is None:
+            sugg_key=documents[-1].keys()[0]
+            suggestions[sugg_key]={}
+        suggestions[sugg_key].update(documents[-1][sugg_key])
     try:
-        discrepancy=documents[-1]["Test succeeded"]
+        discrepancy=documents[thedoc]["Test succeeded"]
         #test failes
         if not discrepancy:
             Exit = 1
             start = start_fail
             state = "Failed:    %7.1e > %7.1e (%s)" % \
-                    (documents[-1]["Maximum discrepancy"], \
-                     documents[-1]["Maximum tolerance applied"], \
-                     documents[-1]["Failure reason"])
+                    (documents[thedoc]["Maximum discrepancy"], \
+                     documents[thedoc]["Maximum tolerance applied"], \
+                     documents[thedoc]["Failure reason"])
         else:
             start = start_success
             state = "Succeeded: %7.1e (%7.1e) " % \
-                    (documents[-1]["Maximum discrepancy"], \
-                     documents[-1]["Maximum tolerance applied"])
+                    (documents[thedoc]["Maximum discrepancy"], \
+                     documents[thedoc]["Maximum tolerance applied"])
         #Test if time is present
-        time = documents[-1]["Seconds needed for the test"]
+        time = documents[thedoc]["Seconds needed for the test"]
         totime += time
         print "%s%-66s %s%8.2fs%s" % (start,dirfic,state,time,end)
-    except:
+    except Exception,e:
+        print e
         start = start_fail
         state = "Failed: Can not parse file!"
         print "%s%-66s %s%s" % (start,dirfic,state,end)
-    if start == start_fail:
+    if "Failed" in state:
         toyfail += 1
     else:
         toysucc += 1
@@ -177,6 +221,10 @@ print 63*" "+"Time Needed for timed tests:%14s%s" % (p_time,end)
 if Exit==0:
     print "Test set (%d tests) succeeded!" % totest
 else:
+    if len(suggestions) > 0:
+        highlight_iftty(suggestions)
+        #sys.stdout.write(yaml.dump(suggestions, default_flow_style=False, explicit_start=True))
     print "Test set failed (%d failed, %d succeeded), check the above report!" % (tofail,tosucc)
+
 #Error code
 sys.exit(Exit)

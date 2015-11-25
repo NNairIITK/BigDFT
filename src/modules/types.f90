@@ -32,7 +32,7 @@ module module_types
   use m_pawrhoij, only: pawrhoij_type
   use module_input_keys, only: SIC_data,orthon_data,input_variables
   use fragment_base, only: fragmentInputParameters
-
+  use locreg_operations,only: confpot_data
   implicit none
 
   private
@@ -167,36 +167,6 @@ module module_types
   end type local_zone_descriptors
 
 
-  !> Contains the work arrays needed for expressing wavefunction in real space
-  !! with all the BC
-  type, public :: workarr_sumrho
-     integer :: nw1,nw2,nxc,nxf
-     real(wp), dimension(:), pointer :: x_c,x_f,w1,w2
-  end type workarr_sumrho
-
-
-  !> Contains the work arrays needed for hamiltonian application with all the BC
-  type, public :: workarr_locham
-     integer :: nw1,nw2,nxc,nyc,nxf1,nxf2,nxf3,nxf,nyf
-     real(wp), dimension(:), pointer :: w1,w2
-     !for the periodic BC case, these arrays substitute 
-     !psifscf,psifscfk,psig,ww respectively
-     real(wp), dimension(:,:), pointer :: x_c,y_c,x_f1,x_f2,x_f3,x_f,y_f
-  end type workarr_locham
-
-
-  !> Contains the work arrays needed for th preconditioner with all the BC
-  !! Take different pointers depending on the boundary conditions
-  type, public :: workarr_precond
-     integer, dimension(:), pointer :: modul1,modul2,modul3
-     real(wp), dimension(:), pointer :: psifscf,ww,x_f1,x_f2,x_f3,kern_k1,kern_k2,kern_k3
-     real(wp), dimension(:,:), pointer :: af,bf,cf,ef
-     real(wp), dimension(:,:,:), pointer :: xpsig_c,ypsig_c,x_c
-     real(wp), dimension(:,:,:,:), pointer :: xpsig_f,ypsig_f,x_f,y_f
-     real(wp), dimension(:,:,:,:,:), pointer :: z1,z3 ! work array for FFT
-  end type workarr_precond
-
-
   !!> Fermi Operator Expansion parameters
   !type, public :: foe_data
   !  integer :: nseg
@@ -224,28 +194,6 @@ module module_types
       type(matrices) :: ham_, ovrlp_, kernel_
       type(matrices),dimension(3) :: ovrlppowers_
   end type linear_matrices
-
-
-  type, public :: workarrays_quartic_convolutions
-    real(wp), dimension(:,:,:), pointer :: xx_c, xy_c, xz_c
-    real(wp), dimension(:,:,:), pointer :: xx_f1
-    real(wp), dimension(:,:,:), pointer :: xy_f2
-    real(wp), dimension(:,:,:), pointer :: xz_f4
-    real(wp), dimension(:,:,:,:), pointer :: xx_f, xy_f, xz_f
-    real(wp), dimension(:,:,:), pointer :: y_c
-    real(wp), dimension(:,:,:,:), pointer :: y_f
-    ! The following arrays are work arrays within the subroutine
-    real(wp), dimension(:,:), pointer :: aeff0array, beff0array, ceff0array, eeff0array
-    real(wp), dimension(:,:), pointer :: aeff0_2array, beff0_2array, ceff0_2array, eeff0_2array
-    real(wp), dimension(:,:), pointer :: aeff0_2auxarray, beff0_2auxarray, ceff0_2auxarray, eeff0_2auxarray
-    real(wp), dimension(:,:,:), pointer :: xya_c, xyc_c
-    real(wp), dimension(:,:,:), pointer :: xza_c, xzc_c
-    real(wp), dimension(:,:,:), pointer :: yza_c, yzb_c, yzc_c, yze_c
-    real(wp), dimension(:,:,:,:), pointer :: xya_f, xyb_f, xyc_f, xye_f
-    real(wp), dimension(:,:,:,:), pointer :: xza_f, xzb_f, xzc_f, xze_f
-    real(wp), dimension(:,:,:,:), pointer :: yza_f, yzb_f, yzc_f, yze_f
-  end type workarrays_quartic_convolutions
-
 
   type,public :: work_mpiaccumulate
     integer :: ncount
@@ -291,18 +239,6 @@ module module_types
     logical, dimension(:), pointer :: withConfPot          !< Use confinement potentials
     real(kind=8), dimension(:), pointer :: potentialPrefac !< Prefactor for the potentiar : Prefac * f(r) 
   end type precond_data
-
-
-  !> Information for the confining potential to be used in TMB scheme
-  !! The potential is supposed to be defined as prefac*(r-rC)**potorder
-  type, public :: confpot_data
-     integer :: potorder                !< Order of the confining potential
-     integer, dimension(3) :: ioffset   !< Offset for the coordinates of potential lr in global region
-     real(gp) :: prefac                 !< Prefactor
-     real(gp), dimension(3) :: hh       !< Grid spacings in ISF grid
-     real(gp), dimension(3) :: rxyzConf !< Confining potential center in global coordinates
-     real(gp) :: damping                !< Damping factor to be used after the restart
-  end type confpot_data
 
 
   !> Defines the important information needed to reformat a old wavefunctions
@@ -635,8 +571,6 @@ module module_types
  public :: allocate_work_mpiaccumulate, deallocate_work_mpiaccumulate
  public :: nullify_orbitals_data
  public :: SIC_data,orthon_data,input_variables
-!!$ public :: SIC_data_null,input_psi_names,input_set,output_wf_format_help
-!!$ public :: material_acceleration_null,wf_format_names,input_psi_help,basis_params_set_dict,frag_from_dict
 
 
 
@@ -876,79 +810,78 @@ contains
 
   END SUBROUTINE deallocate_Lzd
 
-  !> Nullify a DFT_local_fields structure
-  subroutine nullify_DFT_local_fields(denspot)
-    implicit none
-    type(DFT_local_fields),intent(out) :: denspot
+!!$  !> Nullify a DFT_local_fields structure
+!!$  subroutine nullify_DFT_local_fields(denspot)
+!!$    implicit none
+!!$    type(DFT_local_fields),intent(out) :: denspot
+!!$
+!!$    nullify(denspot%rhov)
+!!$    nullify(denspot%mix)
+!!$    nullify(denspot%rho_psi)
+!!$    nullify(denspot%rho_C)
+!!$    nullify(denspot%V_ext)
+!!$    nullify(denspot%V_XC)
+!!$    nullify(denspot%Vloc_KS)
+!!$    nullify(denspot%f_XC)
+!!$    nullify(denspot%rho_work)
+!!$    nullify(denspot%pot_work)
+!!$    call nullify_rho_descriptors(denspot%rhod)
+!!$    call nullify_denspot_distribution(denspot%dpbox)
+!!$    call nullify_coulomb_operator(denspot%pkernel)
+!!$    call nullify_coulomb_operator(denspot%pkernelseq)
+!!$    
+!!$  end subroutine nullify_DFT_local_fields
+  
 
-    nullify(denspot%rhov)
-    nullify(denspot%mix)
-    nullify(denspot%rho_psi)
-    nullify(denspot%rho_C)
-    nullify(denspot%V_ext)
-    nullify(denspot%V_XC)
-    nullify(denspot%Vloc_KS)
-    nullify(denspot%f_XC)
-    nullify(denspot%rho_work)
-    nullify(denspot%pot_work)
-    call nullify_rho_descriptors(denspot%rhod)
-    !call nullify_denspot_distribution(denspot%dpbox)
-    denspot%dpbox=dpbox_null()
-    call nullify_coulomb_operator(denspot%pkernel)
-    call nullify_coulomb_operator(denspot%pkernelseq)
-    
-  end subroutine nullify_DFT_local_fields
-
-
-  subroutine nullify_coulomb_operator(coul_op)
-    implicit none
-    type(coulomb_operator),intent(out) :: coul_op
-    nullify(coul_op%kernel)
-  end subroutine nullify_coulomb_operator
-
-
-  subroutine copy_coulomb_operator(coul1,coul2)
-    implicit none
-    type(coulomb_operator),intent(in) :: coul1
-    type(coulomb_operator),intent(inout) :: coul2
-
-    if(associated(coul2%kernel)) then
-      call f_free_ptr(coul2%kernel)
-    end if
-    coul2%kernel   =>coul1%kernel
-    coul2%itype_scf= coul1%itype_scf
-    coul2%mu       = coul1%mu
-    coul2%geocode  = coul1%geocode
-    coul2%ndims    = coul1%ndims
-    coul2%hgrids   = coul1%hgrids
-    coul2%angrad   = coul1%angrad
-    coul2%work1_GPU= coul1%work1_GPU
-    coul2%work2_GPU= coul1%work2_GPU
-    coul2%k_GPU    = coul1%k_GPU
-    coul2%plan     = coul1%plan
-    coul2%geo      = coul1%geo
-    coul2%igpu     = coul1%igpu
-    coul2%initCufftPlan=coul1%initCufftPlan
-    coul2%keepGPUmemory=coul1%keepGPUmemory
-  ! mpi_env:
-    coul2%mpi_env%mpi_comm = coul1%mpi_env%mpi_comm
-    coul2%mpi_env%iproc    = coul1%mpi_env%iproc
-    coul2%mpi_env%nproc    = coul1%mpi_env%nproc
-    coul2%mpi_env%igroup   = coul1%mpi_env%igroup
-    coul2%mpi_env%ngroup   = coul1%mpi_env%ngroup
-
-  end subroutine copy_coulomb_operator
-
-
-  subroutine deallocate_coulomb_operator(coul_op)
-    implicit none
-    type(coulomb_operator),intent(inout) :: coul_op
-
-    if(associated(coul_op%kernel)) then
-      call f_free_ptr(coul_op%kernel)
-    end if
-    call nullify_coulomb_operator(coul_op)
-  end subroutine deallocate_coulomb_operator
+!!$  subroutine nullify_coulomb_operator(coul_op)
+!!$    implicit none
+!!$    type(coulomb_operator),intent(out) :: coul_op
+!!$    nullify(coul_op%kernel)
+!!$  end subroutine nullify_coulomb_operator
+!!$
+!!$
+!!$  subroutine copy_coulomb_operator(coul1,coul2)
+!!$    implicit none
+!!$    type(coulomb_operator),intent(in) :: coul1
+!!$    type(coulomb_operator),intent(inout) :: coul2
+!!$
+!!$    if(associated(coul2%kernel)) then
+!!$      call f_free_ptr(coul2%kernel)
+!!$    end if
+!!$    coul2%kernel   =>coul1%kernel
+!!$    coul2%itype_scf= coul1%itype_scf
+!!$    coul2%mu       = coul1%mu
+!!$    coul2%geocode  = coul1%geocode
+!!$    coul2%ndims    = coul1%ndims
+!!$    coul2%hgrids   = coul1%hgrids
+!!$    coul2%angrad   = coul1%angrad
+!!$    coul2%work1_GPU= coul1%work1_GPU
+!!$    coul2%work2_GPU= coul1%work2_GPU
+!!$    coul2%k_GPU    = coul1%k_GPU
+!!$    coul2%plan     = coul1%plan
+!!$    coul2%geo      = coul1%geo
+!!$    coul2%igpu     = coul1%igpu
+!!$    coul2%initCufftPlan=coul1%initCufftPlan
+!!$    coul2%keepGPUmemory=coul1%keepGPUmemory
+!!$  ! mpi_env:
+!!$    coul2%mpi_env%mpi_comm = coul1%mpi_env%mpi_comm
+!!$    coul2%mpi_env%iproc    = coul1%mpi_env%iproc
+!!$    coul2%mpi_env%nproc    = coul1%mpi_env%nproc
+!!$    coul2%mpi_env%igroup   = coul1%mpi_env%igroup
+!!$    coul2%mpi_env%ngroup   = coul1%mpi_env%ngroup
+!!$
+!!$  end subroutine copy_coulomb_operator
+!!$
+!!$
+!!$  subroutine deallocate_coulomb_operator(coul_op)
+!!$    implicit none
+!!$    type(coulomb_operator),intent(inout) :: coul_op
+!!$
+!!$    if(associated(coul_op%kernel)) then
+!!$      call f_free_ptr(coul_op%kernel)
+!!$    end if
+!!$    call nullify_coulomb_operator(coul_op)
+!!$  end subroutine deallocate_coulomb_operator
 
 
   subroutine nullify_rho_descriptors(rhod)

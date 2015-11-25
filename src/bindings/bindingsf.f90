@@ -168,26 +168,22 @@ END SUBROUTINE close_file
 
 
 subroutine deallocate_double_1D(array)
-  use BigDFT_API
+  use dynamic_memory, only: f_free_ptr
   implicit none
 
   double precision, dimension(:), pointer :: array
 
-  if (associated(array)) then
-     call f_free_ptr(array)
-  end if
+  call f_free_ptr(array)
+
 end subroutine deallocate_double_1D
 
 
 subroutine deallocate_double_2D(array)
-  use BigDFT_API
+  use dynamic_memory, only: f_free_ptr
   implicit none
 
   double precision, dimension(:,:), pointer :: array
-
-  if (associated(array)) then
-     call f_free_ptr(array)
-  end if
+  call f_free_ptr(array)
 end subroutine deallocate_double_2D
 
 
@@ -352,7 +348,7 @@ subroutine glr_set_wave_descriptors(iproc,hx,hy,hz,atoms,rxyz,&
       &   crmult,frmult,Glr)
    use module_base, only: gp
    use module_types
-   use module_interfaces, only:createWavefunctionsDescriptors
+   use module_interfaces, only: createWavefunctionsDescriptors
    implicit none
    !Arguments
    type(atoms_data), intent(in) :: atoms
@@ -982,7 +978,7 @@ subroutine localfields_free(denspotd, fion, fdisp)
   use module_base
   use module_dpbox, only: dpbox_free
   use module_types
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use memory_profiling
   implicit none
   type(DFT_local_fields), pointer :: denspotd
@@ -1228,7 +1224,8 @@ end subroutine wf_get_psi_size
 
 subroutine wf_iorbp_to_psi(psir, psi, lr)
   use module_base, only: wp,f_zero
-  use module_types
+  use locregs
+  use locreg_operations
   implicit none
   type(locreg_descriptors), intent(in) :: lr
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f), intent(in) :: psi
@@ -1237,7 +1234,7 @@ subroutine wf_iorbp_to_psi(psir, psi, lr)
   character(len=*), parameter :: subname='wf_orb_to_psi'
   type(workarr_sumrho) :: w
 
-  call initialize_work_arrays_sumrho(1,lr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
   !initialisation
   if (lr%geocode == 'F') then
@@ -1658,8 +1655,9 @@ subroutine run_objects_nullify_volatile(runObj)
   use f_enums
   use public_enums
   use bigdft_run, only: run_objects
-  use module_defs, only: bigdft_mpi
+  use module_defs, only: verbose
   use yaml_output, only: yaml_sequence_close
+  use module_base, only: bigdft_mpi
   implicit none
   type(run_objects), intent(inout) :: runObj
 
@@ -1935,7 +1933,8 @@ END SUBROUTINE dict_init_binding
 
 
 subroutine err_severe_override(callback)
-  use dictionaries, only: f_err_severe_override, f_loc
+  use f_precisions, only: f_loc
+  use dictionaries, only: f_err_severe_override
   implicit none
   external :: callback
   

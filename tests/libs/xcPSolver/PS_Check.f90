@@ -15,7 +15,7 @@ program PS_Check
    use dictionaries
    use module_xc
    use module_interfaces
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use yaml_output
    use module_types, only: TCAT_EXCHANGECORR
    use gaussians, only: initialize_real_space_conversion,finalize_real_space_conversion
@@ -46,7 +46,7 @@ program PS_Check
    real(wp), dimension(:,:,:,:), pointer :: rhocore
    real(dp), dimension(6) :: xcstr
    real(dp), dimension(3) :: hgrids
-   type(dictionary), pointer :: options
+   type(dictionary), pointer :: options,dict
    external :: gather_timings
 
    call f_lib_initialize()
@@ -143,8 +143,10 @@ program PS_Check
       call yaml_mapping_open('Multiprocessor run',label='MPIrun')
    end if
 
-   pkernel=pkernel_init(.true.,iproc,nproc,0,&
-        geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
+   dict => yaml_load('{ kernel: {isf_order: '//itype_scf//'},'//&
+        'setup: {taskgroup_size:'//nproc/2//'}}')
+   pkernel=pkernel_init(iproc,nproc,dict,geocode,ndims,hgrids)
+   call dict_free(dict)
    call pkernel_set(pkernel,verbose=.true.)
 
    !Allocations, considering also spin density
@@ -202,7 +204,7 @@ program PS_Check
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
 !print *,'xc',iproc,pkernel%iproc,pkernel%mpi_env%nproc,pkernel%mpi_comm,MPI_COMM_WORLD
-      call XC_potential(geocode,'G',pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,hx,hy,hz,&
+      call XC_potential(geocode,'G',pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,[hx,hy,hz],&
            rhopot,eexcu,vexcu,ispden,rhocore,xc_pot,xcstr)
 !      print *,'xcend',iproc
       !eexcu=0.0_gp
@@ -280,17 +282,14 @@ program PS_Check
    end if
 
    call timing(MPI_COMM_WORLD,'Parallel','PR')
-   call pkernel_free(pkernel)
 
-   if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
+   if (pkernel%mpi_env%nproc == 1 .and. pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
         call yaml_map('Monoprocess run','*MPIrun')
 
    !do not do the sequential calculation if it has been already done
    if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 .and. pkernel%mpi_env%nproc > 1 ) then
       call yaml_mapping_open('Monoprocess run')
       rhopot=f_malloc(n01*n02*n03*2,id='rhopot')
-!!$      allocate(rhopot(n01*n02*n03*2+ndebug),stat=i_stat)
-!!$      call memocc(i_stat,rhopot,'rhopot',subname)
 
      do ispden = 1, 2 
        if (ixc < 0) then
@@ -306,7 +305,9 @@ program PS_Check
        potential=extra_ref !use the previoulsy defined reference
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
-       pkernelseq=pkernel_init(.true.,0,1,0,geocode,ndims,hgrids,itype_scf)
+       dict => yaml_load('{ kernel: {isf_order: '//itype_scf//'}}')
+       pkernelseq=pkernel_init(0,1,dict,geocode,ndims,hgrids)
+       call dict_free(dict)
        call pkernel_set(pkernelseq,verbose=.true.)
 
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)
@@ -326,39 +327,18 @@ program PS_Check
        call xc_end(xc)    
      enddo
      call f_free(rhopot)
-!!$     i_all=-product(shape(rhopot))*kind(rhopot)
-!!$     deallocate(rhopot,stat=i_stat)
-!!$     call memocc(i_stat,i_all,'rhopot',subname)
 
      call yaml_mapping_close()
    endif
+   call pkernel_free(pkernel)
 
    call timing(MPI_COMM_WORLD,'Serial','PR')
 
    !call f_malloc_dump_status()
 
-!!$   i_all=-product(shape(pkernel))*kind(pkernel)
-!!$   deallocate(pkernel,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'pkernel',subname)
    call f_free(density,potential,pot_ion,xc_pot,extra_ref)
 
    if (mp) call finalize_real_space_conversion()
-
-!!$   i_all=-product(shape(density))*kind(density)
-!!$   deallocate(density,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'density',subname)
-!!$   i_all=-product(shape(potential))*kind(potential)
-!!$   deallocate(potential,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'potential',subname)
-!!$   i_all=-product(shape(pot_ion))*kind(pot_ion)
-!!$   deallocate(pot_ion,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'pot_ion',subname)
-!!$   i_all=-product(shape(xc_pot))*kind(xc_pot)
-!!$   deallocate(xc_pot,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'xc_pot',subname)
-!!$   i_all=-product(shape(extra_ref))*kind(extra_ref)
-!!$   deallocate(extra_ref,stat=i_stat)
-!!$   call memocc(i_stat,i_all,'extra_ref',subname)
 
    call f_timing_stop(mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
    !call timing(MPI_COMM_WORLD,'              ','RE')
@@ -530,7 +510,7 @@ program PS_Check
 
 
      call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,.false.,.false.,&
-     n3d,n3p,n3pi,i3xcsh,i3s)
+      0,n3d,n3p,n3pi,i3xcsh,i3s)
 
      !starting point of the three-dimensional arrays
      if (distcode == 'D') then
@@ -634,7 +614,7 @@ program PS_Check
      nullify(rhocore)
 
      call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc, &
-                          & n01,n02,n03,xc_isgga(xc), (xc%ixc /= 13), n3d,n3p,n3pi,i3xcsh,i3s)
+           & n01,n02,n03,xc_isgga(xc), (xc%ixc /= 13), 0,n3d,n3p,n3pi,i3xcsh,i3s)
 
      !starting point of the three-dimensional arrays
      if (distcode == 'D') then
@@ -728,20 +708,13 @@ program PS_Check
         istxc=istpot
      end if
 
-     call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,hx,hy,hz,&
+      call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,[hx,hy,hz],&
      rhopot,eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
      call H_potential(distcode,pkernel,rhopot,rhopot,ehartree,offset,.false.,quiet='yes') !optional argument
      !compare the values of the analytic results (no dependence on spin)
      call compare(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,nproc,pkernel%mpi_env%mpi_comm,&
           n01,n02,n3p,1,potential(istpot),rhopot(1,1,1,1),&
      'ANACOMPLET ')!//message)
-
-     !!$    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     !!$         rhopot(1,1,1,1),pkernel,test_xc,ehartree,eexcu,vexcu,offset,.false.,nspden,quiet='yes')
-     !!$    
-     !!$    !compare the values of the analytic results (no dependence on spin)
-     !!$    call compare(iproc,nproc,n01,n02,n3p,1,potential(istpot),rhopot(1,1,i3xcsh+1,1),&
-     !!$         'ANACOMPLET '//message)
 
      !compare also the xc_potential
      if (xc%ixc/=0) call compare(pkernel%mpi_env%iproc +pkernel%mpi_env%igroup,nproc,&
@@ -776,7 +749,7 @@ program PS_Check
 !!$         call memocc(i_stat,i_all,'xc_temp',subname)
      end if
 
-     call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,hx,hy,hz,&
+      call XC_potential(geocode,distcode,iproc,nproc,pkernel%mpi_env%mpi_comm,n01,n02,n03,xc,[hx,hy,hz],&
      rhopot(1,1,1,1),eexcu,vexcu,nspden,rhocore,test_xc,xcstr)
 
      call H_potential(distcode,pkernel,rhopot(1,1,1,1),pot_ion(istpoti),ehartree,offset,xc%ixc /= 0,quiet='yes') !optional argument
@@ -796,11 +769,6 @@ program PS_Check
      call compare(pkernel%mpi_env%iproc + pkernel%mpi_env%igroup,-1,pkernel%mpi_env%mpi_comm,n01,n02,nspden*n3p,1,test(istpot),&
      rhopot(1,1,1,1),'COMPLETE   ')!)//message)
 
-     !!$    call PSolver(geocode,distcode,iproc,nproc,n01,n02,n03,ixc,hx,hy,hz,&
-     !!$         rhopot(1,1,1,1),pkernel,pot_ion(istpoti),ehartree,eexcu,vexcu,offset,.true.,nspden,quiet='yes')
-     !!$    !then compare again, but the complete result
-     !!$    call compare(iproc,nproc,n01,n02,nspden*n3p,1,test(istpot),&
-     !!$         rhopot(1,1,i3xcsh+1,1),'COMPLETE   '//message)
      if (pkernel%mpi_env%iproc + pkernel%mpi_env%igroup==0) then
         call yaml_mapping_open('Energy differences')
         call yaml_map('Hartree',ehref-ehartree,fmt="(1pe20.12)")

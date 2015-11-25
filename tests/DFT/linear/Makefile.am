@@ -1,17 +1,23 @@
 # Give here the list of existing tests
-TESTDIRS = Locreg \
-	   base \
+SHORT_TESTDIRS= base \
+	directmin \
+	cdft \
+	rotatesmall \
+	verysparse \
+	periodic \
+	surface \
+	multipoles
+
+LONG_TESTDIRS = $(SHORT_TESTDIRS) \
+	Locreg \
 	   mixpotential \
 	   cleanup \
        onlyhigh \
 	   restartdisk \
-       directmin \
 	   foe \
 	   geopt \
 	   testforces \
 	   fructose \
-       rotatesmall \
-       cdft \
        hybrid-directmin \
        experimentalmode \
 	   linearcubic \
@@ -22,11 +28,7 @@ TESTDIRS = Locreg \
 	   PBE \
 	   geoptconstrained \
 	   O2spin \
-       verysparse \
 	   expfoegeopt \
-	   periodic \
-       surface \
-       multipoles \
 	   igortho \
        extendedfrags
 
@@ -121,8 +123,6 @@ extendedfrags_nofrags.out.post-out:
 	mkdir -p data-write/data-c2
 	cp c.xyz data-write/c1.xyz
 	cp c.xyz data-write/c2.xyz
-	cp c1_env.xyz data-write
-	cp c2_env.xyz data-write
 
 extendedfrags_write.out.post-out: 
 	rm -rf data-read

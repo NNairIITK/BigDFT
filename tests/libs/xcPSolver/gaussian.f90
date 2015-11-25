@@ -14,7 +14,6 @@ program MP_gaussian
   use module_base
   use gaussians
   use yaml_output
-  use yaml_strings
   use gaussdaub
   implicit none
   integer, parameter :: iplot=14,iunit=16 !< File unit for the plots
@@ -26,7 +25,7 @@ program MP_gaussian
   integer :: nw,nwork
   real(gp), dimension(:,:), allocatable :: work
   integer :: i,j,imoms,pow,istep,isigma,unit
-  integer, parameter :: itype_scf = 16,nres=8
+  integer, parameter :: itype_scf = 16,nres=3
   integer :: n_scf,untplot,ml1,mu1
   integer :: istart, iend, i0, npf,ierr
   real(gp) :: pgauss,p0gauss,x0,x00,reference,max_phi,max_lag,scalar,tt,hh,diff
@@ -286,7 +285,7 @@ program MP_gaussian
      !Plot fort.(iunit+1)
      avgmaxmin(2,:,:)=avgmaxmin(2,:,:)-avgmaxmin(3,:,:)
      write(unit,'(104(1pe14.5))') sqrt(0.5_gp/pgauss)/hgrid,avgmaxmin(1:2,1:3:2,:)
-     call yaml_map('maxdiff' // isigma, [ sqrt(0.5_gp/pgauss)/hgrid, max_phi, max_lag ] )
+     call yaml_map('maxdiff' // trim(yaml_toa(isigma)), [ sqrt(0.5_gp/pgauss)/hgrid, max_phi, max_lag ] )
   end do
   call yaml_map('Results (phi)',reshape(avgmaxmin(1:3,1:3:2,:),[6,nmoms+1]),fmt='(1pe14.5)')
   call yaml_map('Results (lag)',reshape(avgmaxmin(1:3,2:3,:),[6,nmoms+1]),fmt='(1pe14.5)')

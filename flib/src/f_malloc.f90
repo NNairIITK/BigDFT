@@ -1,29 +1,45 @@
 !> @file
 !! Manage dynamic memory allocation control structures
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 !> Module used to manage memory allocations control structures.
 !! This module has to be intended as a submodule of dynamic_memory module
 module module_f_malloc
 
   use f_precisions
-  use dictionaries, only: f_loc,f_err_throw,f_err_raise
+  use dictionaries, only: f_err_throw,f_err_raise
   use yaml_strings, only: f_strcpy,operator(+)
 
-  integer, parameter :: f_kind=f_long !< Global parameter of the module telling if the profile has to be activated
+  implicit none
+
+  private
+
+  integer, parameter, public :: f_kind=f_long
                                       !! this parameter can be modified only by dynamic memory module
-  integer(f_integer), parameter :: f_malloc_namelen=32          !< length of the character variables
+  integer(f_integer), parameter, public :: f_malloc_namelen=32          !< length of the character variables
   integer, parameter :: max_rank=7          !< maximum rank in fortran
 
   !to be initialized in the dynamic_memory module
-  integer, save :: ERR_INVALID_MALLOC
+  integer, save, public :: ERR_INVALID_MALLOC
 
   logical, save, public :: f_malloc_default_profiling=.true.
   character(len=f_malloc_namelen), save, public :: f_malloc_routine_name=repeat(' ',f_malloc_namelen)
+
+  type, public:: f_workspace
+     integer(f_long) :: pos_r,pos_d,pos_i,pos_li,pos_l
+     integer(f_integer), dimension(:), pointer :: ptr_i
+     integer(f_long), dimension(:), pointer :: ptr_li
+     real(f_simple), dimension(:), pointer :: ptr_r
+     real(f_double), dimension(:), pointer :: ptr_d
+     logical, dimension(:), pointer :: ptr_l
+  end type f_workspace
+
 
   !> Structure needed to allocate an allocatable array
   type, public :: malloc_information_all
@@ -68,6 +84,7 @@ module module_f_malloc
      integer(f_address) :: srcdata_add          !< physical address of source data
      character(len=f_malloc_namelen) :: array_id      !< label the array
      character(len=f_malloc_namelen) :: routine_id    !< label the routine
+     type(f_workspace), pointer :: w !<workspace structure if the array is a work array
   end type malloc_information_ptr
 
   !> Structure needed to allocate a pointer of string of implicit length (for non-2003 complilers)
@@ -111,6 +128,10 @@ module module_f_malloc
      !> identification of the allocation. Usually called as the name of the allocatable variable
      character(len=1) :: id
   end type doc
+
+  interface f_map_ptr
+     module procedure remap_bounds_d,remap_bounds_r,remap_bounds_l,remap_bounds_i,remap_bounds_li
+  end interface
 
   !> Structure to perform heap allocation. Can be used to allocate allocatable arrays of any intrinsic
   !! type, kind and rank.
@@ -187,7 +208,34 @@ module module_f_malloc
      module procedure f_mallocli0_str_ptr_simple
   end interface
 
+  !> Public routines
+  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,operator(.to.)
+  public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
+  public :: f_map_ptr
+
+
 contains
+
+  pure function workspace_null() result(w)
+    implicit none
+    type(f_workspace) :: w
+    call nullify_workspace(w)
+  end function workspace_null
+  pure subroutine nullify_workspace(w)
+    implicit none
+    type(f_workspace), intent(out) :: w
+    w%pos_r=int(0,f_long)
+    w%pos_d=int(0,f_long)
+    w%pos_i=int(0,f_long)
+    w%pos_li=int(0,f_long)
+    w%pos_l=int(0,f_long)
+    nullify(w%ptr_r)
+    nullify(w%ptr_d)
+    nullify(w%ptr_i)
+    nullify(w%ptr_li)
+    nullify(w%ptr_l)
+  end subroutine nullify_workspace
+
   
   elemental pure function f_array_bounds_intint(nlow,nhigh) result(f_array_bounds)
     implicit none
@@ -240,6 +288,7 @@ contains
     type(malloc_information_ptr), intent(out) :: m
     include 'f_malloc-null-inc.f90'
     m%ptr=.true.
+    nullify(m%w)
   end subroutine nullify_malloc_information_ptr
 
   pure subroutine nullify_malloc_information_str_all(m)
@@ -256,6 +305,50 @@ contains
     m%len=0
     m%ptr=.true.
   end subroutine nullify_malloc_information_str_ptr
+
+  !> f95-compliant routine to remap pointer bounds, as suggested from (as of Sep. 2015) 
+  !! https://en.wikipedia.org/wiki/Fortran_95_language_features#Pointers_as_dynamic_aliases
+  !! What has to be verified if compiler perform workarrays constructions
+  subroutine remap_bounds_d(lb,lu,heap,ptr)
+    implicit none
+    integer(f_kind), intent(in) :: lb,lu
+    real(f_double), dimension(lb:lu), intent(in), target :: heap
+    real(f_double), dimension(:), pointer, intent(out) :: ptr
+    ptr => heap
+  end subroutine remap_bounds_d
+
+  subroutine remap_bounds_r(lb,lu,heap,ptr)
+    implicit none
+    integer(f_kind), intent(in) :: lb,lu
+    real(f_simple), dimension(lb:lu), intent(in), target :: heap
+    real(f_simple), dimension(:), pointer, intent(out) :: ptr
+    ptr => heap
+  end subroutine remap_bounds_r
+
+  subroutine remap_bounds_i(lb,lu,heap,ptr)
+    implicit none
+    integer(f_kind), intent(in) :: lb,lu
+    integer(f_integer), dimension(lb:lu), intent(in), target :: heap
+    integer(f_integer), dimension(:), pointer, intent(out) :: ptr
+    ptr => heap
+  end subroutine remap_bounds_i
+
+  subroutine remap_bounds_li(lb,lu,heap,ptr)
+    implicit none
+    integer(f_kind), intent(in) :: lb,lu
+    integer(f_long), dimension(lb:lu), intent(in), target :: heap
+    integer(f_long), dimension(:), pointer, intent(out) :: ptr
+    ptr => heap
+  end subroutine remap_bounds_li
+
+  subroutine remap_bounds_l(lb,lu,heap,ptr)
+    implicit none
+    integer(f_kind), intent(in) :: lb,lu
+    logical, dimension(lb:lu), intent(in), target :: heap
+    logical, dimension(:), pointer, intent(out) :: ptr
+    ptr => heap
+  end subroutine remap_bounds_l
+
   
 
   !---routines for low-level dynamic memory handling
@@ -372,7 +465,6 @@ contains
     m%len=length
     m%put_to_zero=.true.
   end function f_mallocli0_str_ptr_simple
-
 
   !> For rank-1 arrays, with bounds
   pure function f_malloc_bound(bounds,id,routine_id,profile) result(m)
@@ -595,13 +687,7 @@ contains
     include 'f_malloc-total-inc.f90'
     m%len=length
   end function f_malloci_str
-  !!function f_mallocli_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
-  !!  implicit none
-  !!  type(malloc_information_str_all) :: m
-  !!  integer(kind=4), intent(in) :: length
-  !!  include 'f_mallocli-total-inc.f90'
-  !!  m%len=int(length,kind=4)
-  !!end function f_mallocli_str
+
   !> define the allocation information for  arrays of different rank
   function f_malloci0_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
@@ -611,14 +697,7 @@ contains
     m%len=length
     m%put_to_zero=.true.
   end function f_malloci0_str
-  !!function f_mallocli0_str(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
-  !!  implicit none
-  !!  type(malloc_information_str_all) :: m
-  !!  integer(kind=4), intent(in) :: length
-  !!  include 'f_mallocli-total-inc.f90'
-  !!  m%len=int(length,kind=4)
-  !!  m%put_to_zero=.true.
-  !!end function f_mallocli0_str
+
   !> Define the allocation information for  arrays of different rank
   function f_malloci_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
@@ -627,13 +706,7 @@ contains
     include 'f_malloc-total-inc.f90'
     m%len=length
   end function f_malloci_str_ptr
-  !!function f_mallocli_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
-  !!  implicit none
-  !!  type(malloc_information_str_ptr) :: m
-  !!  integer(kind=4), intent(in) :: length
-  !!  include 'f_mallocli-total-inc.f90'
-  !!  m%len=int(length,kind=4)
-  !!end function f_mallocli_str_ptr
+
   !> Define the allocation information for  arrays of different rank
   function f_malloci0_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
     implicit none
@@ -643,14 +716,6 @@ contains
     m%len=length
     m%put_to_zero=.true.
   end function f_malloci0_str_ptr
-  !!function f_mallocli0_str_ptr(length,sizes,id,routine_id,lbounds,ubounds,profile) result(m)
-  !!  implicit none
-  !!  type(malloc_information_str_ptr) :: m
-  !!  integer(kind=4), intent(in) :: length
-  !!  include 'f_mallocli-total-inc.f90'
-  !!  m%len=int(length,kind=4)
-  !!  m%put_to_zero=.true.
-  !!end function f_mallocli0_str_ptr
 
   function f_malloc_d1(src,lbounds,ubounds,id,routine_id,profile) result(m)
     implicit none

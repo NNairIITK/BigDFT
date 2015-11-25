@@ -2,7 +2,7 @@
 !! Define the modules (yaml_strings and yaml_output) and the methods to write yaml output
 !! yaml: Yet Another Markup Language -> Y Ain't a Markup Language (Human readable ML)
 !! @author
-!!    Copyright (C) 2011-2015 BigDFT group <br>
+!!    Copyright (C) 2011-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -98,6 +98,14 @@ module yaml_output
      module procedure yaml_map_dm,yaml_map_rm,yaml_map_im,yaml_map_lm
   end interface
 
+  interface yaml_warning
+     module procedure yaml_warning_c,yaml_warning_str
+  end interface
+
+  interface yaml_comment
+     module procedure yaml_comment_c,yaml_comment_str
+  end interface
+
  
   !> Fake structure needed to document common arguments of the module
   type, private :: doc
@@ -172,7 +180,7 @@ module yaml_output
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
-  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa
+  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa,dump_dict_impl
 
   !for internal f_lib usage
   public :: yaml_output_errors
@@ -317,13 +325,13 @@ contains
 
     !local variables
     integer, parameter :: NO_ERRORS           = 0
-    logical :: unit_is_open,set_default
+    logical :: unit_is_open,set_default,again
     integer :: istream,unt,ierr
     !integer(kind=8) :: recl_file
     integer :: recl_file
 !!$    integer :: unt_test
     character(len=15) :: pos
-        
+
     !check that the module has been initialized
     call assure_initialization()
 
@@ -415,28 +423,34 @@ contains
        end if
     end do find_stream
 
-    if (.not. set_default .and. active_streams==0) unt=6          
-
-!!$    !if there is no active streams setdefault cannot be false.
-!!$    !at least open the stdout
-!!$    if (.not. set_default .and. active_streams==0) then
-!!$       !this is equivalent to yaml_set_streams(record_length=92)
-!!$       !assign the unit to the new stream
-!!$       active_streams=active_streams+1
-!!$       !initalize the stream
-!!$       streams(active_streams)=stream_null()
-!!$       streams(active_streams)%unit=6
-!!$       stream_units(active_streams)=6
-!!$       streams(active_streams)%max_record_length=92 !leave 95 characters
-!!$    end if
+    !we are here in the first call to set_stream
+    !in the case we are asking not to have the set_default
+    !this means that the default should become the stdout
+!!$    if (.not. set_default .and. active_streams==0) unt=6          
+    !if there is no active streams setdefault cannot be false.
+    !at least open the stdout
+    again=.false.
+    if (.not. set_default .and. active_streams==0) then
+       !this is equivalent to yaml_set_stream(record_length=92)
+       !assign the unit to the new stream
+       active_streams=active_streams+1
+       !initalize the stream
+       streams(active_streams)=stream_null()
+       streams(active_streams)%unit=6
+       stream_units(active_streams)=6
+       streams(active_streams)%max_record_length=92 !leave 92 characters
+       default_stream=active_streams
+       again= unt /= 6 
+    end if
 
     !assign the unit to the new stream
     !initalize the stream if needed
-    if (istream > active_streams) then
+    if (istream > active_streams .or. again) then
        active_streams=active_streams+1
        streams(active_streams)=stream_null()
        streams(active_streams)%unit=unt
        stream_units(active_streams)=unt
+       istream = active_streams !for the following instructions
     end if
 
     ! set last opened stream as default stream
@@ -640,11 +654,9 @@ contains
     !local variables
     integer :: unt,istatus,strm,funt
     type(dictionary), pointer :: iter
-
     unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm,istat=istatus)
-
     !unit 6 cannot be closed
     if (f_err_raise(unt==6,'Stream of unit 6 cannot be closed',&
          err_id=YAML_INVALID)) return
@@ -731,9 +743,26 @@ contains
     module_initialized=.false.
   end subroutine yaml_close_all_streams
 
+  !> Display a warning (yaml comment starting with '\#WARNING: ')
+  subroutine yaml_warning_str(message,level,unit)
+    implicit none
+    type(f_string), intent(in) :: message !< Warning message
+    integer, optional, intent(in) :: level  !< Level of the message (if < Wall then abort)
+    integer, optional, intent(in) :: unit   !< @copydoc doc::unit
+    !local variables
+    integer :: unt,strm
+    unt=DEFAULT_STREAM_ID
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+    if (present(level)) then
+       call yaml_warning_c(message%msg,level,unt)
+    else
+       call yaml_warning_c(message%msg,unit=unt)
+    end if
+  end subroutine yaml_warning_str
 
   !> Display a warning (yaml comment starting with '\#WARNING: ')
-  subroutine yaml_warning(message,level,unit)
+  subroutine yaml_warning_c(message,level,unit)
     implicit none
     character(len=*), intent(in) :: message !< Warning message
     integer, optional, intent(in) :: level  !< Level of the message (if < Wall then abort)
@@ -742,7 +771,7 @@ contains
     integer :: unt,strm
     integer :: idx
     type(dictionary), pointer :: dict_tmp
-
+    dict_tmp => null() !for NAG compiler bug
     unt=DEFAULT_STREAM_ID
     if (present(unit)) unt=unit
     call get_stream(unt,strm)
@@ -771,15 +800,48 @@ contains
        if (level <= streams(strm)%Wall) then
           call dump(streams(strm),' Critical warning level reached, aborting...')
           call yaml_release_document(unit=unt)
-          stop
+          !stop
+          call f_err_throw(' Critical warning level reached, aborting...')
        end if
     end if
-  end subroutine yaml_warning
+  end subroutine yaml_warning_c
 
+  subroutine yaml_comment_str(message,advance,unit,hfill,tabbing)
+    implicit none
+    type(f_string), intent(in) :: message           !< The given comment (without #)
+    character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
+    integer, optional, intent(in) :: unit             !< @copydoc doc::unit
+    character(len=*), optional, intent(in) :: hfill   !< If present fill the line with the given character
+    integer, optional, intent(in) :: tabbing          !< Number of space for tabbing
+    !Local variables
+    integer :: unt,strm
+    character(len=3) :: adv
+
+    unt=DEFAULT_STREAM_ID
+    if (present(unit)) unt=unit
+    call get_stream(unt,strm)
+
+    !comment to be written
+    if (present(advance)) then
+       adv=advance
+    else
+       adv='yes'
+    end if
+
+    if (present(hfill) .and. present(tabbing)) then
+       call yaml_comment_c(message=message%msg,advance=adv,unit=unt,hfill=hfill,tabbing=tabbing)
+    else if (present(hfill)) then
+       call yaml_comment_c(message=message%msg,advance=adv,unit=unt,hfill=hfill)
+    else if (present(tabbing)) then
+       call yaml_comment_c(message=message%msg,advance=adv,unit=unt,tabbing=tabbing)
+    else
+       call yaml_comment_c(message=message%msg,advance=adv,unit=unt)
+    end if
+  end subroutine yaml_comment_str
 
   !> Write a yaml comment (#......).
   !! Split the comment if too long
-  subroutine yaml_comment(message,advance,unit,hfill,tabbing)
+  subroutine yaml_comment_c(message,advance,unit,hfill,tabbing)
     implicit none
     character(len=*), intent(in) :: message           !< The given comment (without #)
     character(len=*), optional, intent(in) :: advance !< @copydoc doc::advance
@@ -858,7 +920,7 @@ contains
        end if
     end do
 
-  end subroutine yaml_comment
+  end subroutine yaml_comment_c
 
 
   !> Write a scalar variable, takes care of indentation only
@@ -1397,7 +1459,6 @@ contains
     call assure_initialization()
 
     if (present(istat)) istat=0
-
     if (unt==DEFAULT_STREAM_ID) then
        !if there are no active streams activate them (to circumvent g95 bug)
        if (active_streams==0) call yaml_set_stream(record_length=92,istat=ierr)
@@ -2321,5 +2382,22 @@ contains
 
   end function yaml_walltime_toa
 
+  !> to be used for debugging
+  subroutine dump_dict_impl(dict)
+    implicit none
+    type(dictionary), pointer :: dict
+    if (.not. associated(dict)) call yaml_map('Dictionary associated',.false.)
+    call yaml_mapping_open('Dictionary associated')
+    call yaml_map('Associations, child, parent, next, previous',[associated(dict%child),associated(dict%parent),&
+         associated(dict%next),associated(dict%previous)])
+    call yaml_mapping_open('Data structure')
+    call yaml_map('Item',dict%data%item)
+    call yaml_map('Nitems',dict%data%nitems)
+    call yaml_map('Nelems',dict%data%nelems)
+    call yaml_map('Key',dict%data%key)
+    call yaml_map('Value',dict%data%value)
+    call yaml_mapping_close()
+    call yaml_mapping_close()
+  end subroutine dump_dict_impl
 
 end module yaml_output

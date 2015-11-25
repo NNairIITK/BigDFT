@@ -12,6 +12,7 @@
 module module_dpbox
 
   use module_base, only: gp,mpi_environment,mpi_environment_null,f_err_throw
+  use bounds, only: ext_buffers
 
   implicit none
 
@@ -127,7 +128,7 @@ contains
 
   !> Free the denspot_distribution structure
   subroutine dpbox_free(dpbox)
-    use module_base, only: f_free_ptr,mpi_environment_free,bigdft_mpi
+    use module_base, only: f_free_ptr,release_mpi_environment,bigdft_mpi
     implicit none
     type(denspot_distribution), intent(inout) :: dpbox
 
@@ -139,9 +140,9 @@ contains
        call f_free_ptr(dpbox%ngatherarr)
     end if
     
-    if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
-       call mpi_environment_free(dpbox%mpi_env)
-    end if
+    !if (dpbox%mpi_env%mpi_comm /= bigdft_mpi%mpi_comm) then
+       call release_mpi_environment(dpbox%mpi_env)
+    !end if
 
     dpbox=dpbox_null()
 
@@ -382,20 +383,20 @@ contains
   end function dpbox_iter_next
 
 
-  !> Calculate the size of the buffers in each direction
-  subroutine ext_buffers(periodic,nl,nr)
-    implicit none
-    logical, intent(in) :: periodic !< Periodic or not
-    integer, intent(out) :: nl,nr   !< Size of left and right buffer
-
-    if (periodic) then
-       nl=0
-       nr=0
-    else
-       nl=14
-       nr=15
-    end if
-  END SUBROUTINE ext_buffers
+!!$  !> Calculate the size of the buffers in each direction
+!!$  subroutine ext_buffers(periodic,nl,nr)
+!!$    implicit none
+!!$    logical, intent(in) :: periodic !< Periodic or not
+!!$    integer, intent(out) :: nl,nr   !< Size of left and right buffer
+!!$
+!!$    if (periodic) then
+!!$       nl=0
+!!$       nr=0
+!!$    else
+!!$       nl=14
+!!$       nr=15
+!!$    end if
+!!$  END SUBROUTINE ext_buffers
 
 
   !> Determine the index in which the potential must be inserted, following the BC

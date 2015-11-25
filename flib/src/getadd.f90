@@ -1,11 +1,12 @@
 !> @file
 !! Routines to deal with the address of objects or external functions
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
 
 !> Module used by the module to manage the memory allocations
 !! needed to pass to the C routines the correct address
@@ -633,7 +634,7 @@ contains
     integer(f_kind) :: i
 
     !if (init .and. ndim_tot>0) call razero(ndim_tot,array(lbound(array,1)))
-    if (init .and. ndim_tot>0) call setzero(int(ndim_extra,f_long)*kind(array),array)
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)=d_nan()
     end do
@@ -648,7 +649,7 @@ contains
     integer(f_kind) :: i
 
     !if (init .and. ndim_tot>0) call razero_complex(ndim_tot,array(lbound(array,1)))
-    if (init .and. ndim_tot>0) call setzero(int(ndim_extra,f_long)*kind(array)*2,array)
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array)*2,array)
     do i=ndim_tot+1,ndim_extra
        array(i)=(1.d0,1.d0)*d_nan()
     end do
@@ -666,7 +667,7 @@ contains
     !equivalence (r_nan1,i_nan)
 
     !if (init .and. ndim_tot>0) call razero_simple(ndim_tot,array(lbound(array,1)))
-    if (init .and. ndim_tot>0) call setzero(int(ndim_extra,f_long)*kind(array),array)
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)=r_nan()
     end do
@@ -699,7 +700,7 @@ contains
     integer(f_kind) :: i
 
     !if (init .and. ndim_tot>0) call razero_integer(ndim_tot,array(lbound(array,1)))
-    if (init .and. ndim_tot>0) call setzero(int(ndim_extra,f_long)*kind(array),array)
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)= 2147483647 !i_nan
     end do
@@ -714,7 +715,7 @@ contains
     integer(f_kind) :: i
 
     !if (init .and. ndim_tot>0) call razero_integerlong(ndim_tot,array(lbound(array,1)))
-    if (init .and. ndim_tot>0) call setzero(int(ndim_extra,f_long)*kind(array),array)
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)=li_nan()
     end do
@@ -758,14 +759,15 @@ contains
     implicit none
     integer(f_long):: li_nan
     !local variables
-    integer(f_long):: linan
+    !integer(f_long):: linan
     integer, dimension(2) :: inan
-    equivalence (linan, inan)
+    !equivalence (linan, inan)
     ! This first assignment is for big-endian machines
     inan(1) = 2147483647
     ! The second assignment is for little-endian machines
     inan(2) = 2147483647
-    li_nan = linan
+    !li_nan = linan
+    li_nan=transfer(inan,li_nan)
   end function li_nan
 
 

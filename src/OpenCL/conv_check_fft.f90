@@ -50,6 +50,7 @@ program conv_check_fft
   !objects for the 3D Poisson solver
   real(kind=8), dimension(:), allocatable :: rhopot,rhopot2
   type(coulomb_operator) :: pkernel,pkernel2
+  type(dictionary), pointer :: dict
  
 !!!  !Use arguments
 !!!  call getarg(1,chain)
@@ -253,7 +254,9 @@ program conv_check_fft
    !Poisson Solver
     write(*,'(a,i6,i6,i6)')'CPU 3D Poisson Solver, dimensions:',n1,n2,n3
    !calculate the kernel in parallel for each processor
-    pkernel = pkernel_init(.false., 0, 1, 0, 'P', (/ n1,n2,n3 /), (/ 0.2d0,0.2d0,0.2d0 /), 16)
+    dict => yaml_load('{setup: {verbose: No}}')
+    pkernel = pkernel_init(0, 1,dict, 'P', (/ n1,n2,n3 /), (/ 0.2d0,0.2d0,0.2d0 /))
+    call dict_free(dict)
     call pkernel_set(pkernel,verbose=.false.)
 
    !call to_zero(size(pkernel),pkernel(1))
@@ -270,7 +273,9 @@ program conv_check_fft
    write(*,'(a,i6,i6,i6)')'GPU 3D Poisson Solver, dimensions:',n1,n2,n3
 
    !transpose the kernel before copying
-   pkernel2 = pkernel_init(.false., 0, 1, 0, 'P', (/ n1,n2,n3 /), (/ 0.2d0,0.2d0,0.2d0 /), 16)
+   dict => yaml_load('{setup: {verbose: No}}')
+   pkernel2 = pkernel_init(0, 1, dict,'P', (/ n1,n2,n3 /), (/ 0.2d0,0.2d0,0.2d0 /))
+   call dict_free(dict)
    call transpose_kernel_forGPU('P',n1,n2,n3,pkernel%kernel,pkernel2%kernel)
    !pkernel2(1:size(pkernel2))=1.0_dp
    call ocl_create_read_write_buffer(context, 2*n1*n2*n3*8, psi_GPU)

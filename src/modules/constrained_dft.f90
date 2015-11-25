@@ -62,7 +62,8 @@ contains
   end subroutine cdft_data_free
 
   subroutine cdft_data_allocate(cdft,ham)
-    use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=)
+    use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc_ptr, &
+         SPARSE_FULL, assignment(=),copy_sparse_matrix
     implicit none
     type(cdft_data), intent(inout) :: cdft
     type(sparse_matrix), intent(in) :: ham
@@ -80,13 +81,14 @@ contains
 
   end subroutine cdft_data_allocate
 
-  subroutine cdft_data_init(cdft,input_frag,ndimrho,transfer_int)
+  subroutine cdft_data_init(cdft,input_frag,ndimrho,transfer_int,cdft_lag_mult_init)
    use fragment_base, only: fragmentInputParameters
     implicit none
     type(cdft_data), intent(inout) :: cdft
     type(fragmentInputParameters), intent(in) :: input_frag
     integer, intent(in) :: ndimrho
     logical, intent(in) :: transfer_int
+    real(kind=8), intent(in) :: cdft_lag_mult_init
 
     integer :: ifrag, icharged
 
@@ -135,10 +137,13 @@ contains
 
     cdft%ndim_dens=ndimrho ! either size of fragment psi (add to fragment structure?), or size of entire simulation cell
 
+    !take input value but fix sign
     if (cdft%charge<0) then
-       cdft%lag_mult=-0.05_gp ! pick some sensible initial value here
+       !cdft%lag_mult=-0.05_gp ! pick some sensible initial value here
+       cdft%lag_mult=-abs(cdft_lag_mult_init)
     else
-       cdft%lag_mult=0.05_gp ! pick some sensible initial value here
+      !cdft%lag_mult=0.05_gp ! pick some sensible initial value here
+       cdft%lag_mult=abs(cdft_lag_mult_init)
     end if
 
     cdft%method='lowdin'

@@ -24,6 +24,7 @@ module io
   public :: read_psig
   public :: read_sparse_matrix
   public :: read_dense_matrix
+  public :: dist_and_shift
 
 
   contains
@@ -34,7 +35,7 @@ module io
       use module_types
       use module_base
       use yaml_output
-      use module_interfaces, except_this_one => writeonewave
+      use module_interfaces, only: open_filename_of_iorb
       implicit none
       integer, intent(in) :: iproc,iformat,npsidim,nelec,nfvctr
       !integer, intent(in) :: norb   !< number of orbitals, not basis functions
@@ -138,12 +139,13 @@ module io
     !> Write all my wavefunctions for fragments
     ! NB spin needs fixing!
     subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff,&
-         dir_output,input_frag,ref_frags,linmat,methTransformOverlap,max_inversion_error,orthpar)
+         dir_output,input_frag,ref_frags,linmat,methTransformOverlap,max_inversion_error,orthpar,num_neighbours)
       use module_types
+      use module_atoms, only: astruct_dump_to_file
       use module_base
       use module_fragments
       use yaml_output
-      use module_interfaces
+      use module_interfaces, only: open_filename_of_iorb
       use sparsematrix_base, only: sparsematrix_malloc_ptr, assignment(=), DENSE_FULL, &
            matrices_null, allocate_matrices, deallocate_matrices
       use sparsematrix, only: uncompress_matrix2
@@ -164,17 +166,23 @@ module io
       integer,intent(inout) :: methTransformOverlap
       real(kind=8),intent(in) :: max_inversion_error
       type(orthon_data),intent(in) :: orthpar
+      integer, intent(in) :: num_neighbours
       !Local variables
-      integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat,onwhichatom_frag,ifr,iatf
-      integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf,ityp,nelec_frag,ifr_ref,ia,ja,io,jo,unitm
-      integer, allocatable, dimension(:,:) :: frag_map
-      real(kind=8), allocatable, dimension(:,:) :: rxyz_frag, coeff_frag, kernel_frag
-      real(kind=8), allocatable, dimension(:) :: eval_frag
+      integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
+      integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf,ityp
+      integer :: onwhichatom_frag,ifr,iatf,ntmb_frag_and_env,nelec_frag,ifr_ref,ia,ja,io,jo,unitm,iatnf
+      integer, allocatable, dimension(:,:) :: map_frag_and_env, frag_map
+      integer, allocatable, dimension(:) :: map_not_frag, ipiv
+      real(kind=8), allocatable, dimension(:,:) :: rxyz_frag, coeff_frag, kernel_frag, rxyz_not_frag
+      real(kind=8), pointer, dimension(:,:) :: rxyz_frag_and_env
+      real(kind=8), allocatable, dimension(:) :: eval_frag, dist
+      real(kind=8), dimension(3) :: frag_centre
       real(kind=4) :: tr0,tr1
       real(kind=8) :: tel
       character(len=256) :: full_filename
       logical, allocatable, dimension(:) :: fragment_written
       logical :: binary
+      logical :: on_frag, perx, pery, perz
 
       type(matrices),dimension(1) :: ovrlp_half_
       real(kind=8) :: mean_error, max_error
@@ -186,7 +194,7 @@ module io
     
       if (iformat == WF_FORMAT_ETSF) then
           stop 'Linear scaling with ETSF writing not implemented yet'
-    !     call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
+      !    call write_waves_etsf(iproc,filename,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wfd,psi)
       else
          call cpu_time(tr0)
          call system_clock(ncount1,ncount_rate,ncount_max)
@@ -211,7 +219,7 @@ module io
                cycle
             end if
             fragment_written(ifrag_ref)=.true.
-    
+
             ! loop over orbitals of this fragment
             !loop_iforb: do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
 
@@ -260,10 +268,13 @@ module io
                   !tmb frag -> atom frag
                   frag_map(iforb,2)=onwhichatom_frag
                   !atom frag -> atom full
-                  frag_map(onwhichatom_frag,3)=iiat
+                  !fill this in after allreduce otherwise might be modifying on more than one mpi
+                  !frag_map(onwhichatom_frag,3)=iiat
 
                   !debug
                   !print*,'iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag,iforb
+                  !write(*,'(A,7(1x,I4))') 'iproc,iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag',&
+                  !     iproc,iiorb,ifrag,ifrag_ref,iiat,onwhichatom_frag,iforb
 
                   shift = 1
                   do jorb = 1, iorbp-1 
@@ -304,7 +315,173 @@ module io
             if (bigdft_mpi%nproc > 1) then
                call mpiallred(frag_map, mpi_sum, comm=bigdft_mpi%mpi_comm)
             end if
-    
+
+            ! reconstruct atom->atom mapping part
+            do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+               !frag_map(iforb,1)=iiorb
+               !frag_map(iforb,2)=onwhichatom_frag
+               iiorb=frag_map(iforb,1)
+               iiat=orbs%onwhichatom(iiorb)
+               onwhichatom_frag=frag_map(iforb,2)
+               frag_map(onwhichatom_frag,3)=iiat
+            end do
+
+            !debug
+            !if (iproc==0) then
+            !   do iorb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+            !      if (iorb<=ref_frags(ifrag_ref)%astruct_frg%nat) then
+            !         write(*,'(A,6(1x,I4),3(1x,F12.6))') 'iproc,ifrag,ifrag_ref',iproc,ifrag,ifrag_ref,frag_map(iorb,:),rxyz(:,frag_map(iorb,3))
+            !      else
+            !         write(*,'(A,6(1x,I4))') 'iproc,ifrag,ifrag_ref',iproc,ifrag,ifrag_ref,frag_map(iorb,:)
+            !      end if
+            !   end do
+            !end if
+
+            ! write environment coordinates 
+            ! want to avoid several MPI ranks writing to the same file
+            ! and since the number of reference frags is expected to be relatively small as well as the file sizes,
+            ! write all files from iproc=0
+            ! make use of frag_map(onwhichatom_frag,3)=iiat (atom frag -> atom full)
+            if (num_neighbours/=0) then
+               !to be improved with iterators
+               rxyz_frag = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_frag')          
+               rxyz_not_frag = f_malloc((/ 3,at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_not_frag')
+               map_not_frag = f_malloc(at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat,id='map_not_frag')
+               iatnf=0
+               do iat=1,at%astruct%nat
+                  on_frag=.false.
+                  do iatf=1,ref_frags(ifrag_ref)%astruct_frg%nat
+                     if (frag_map(iatf,3)==iat) then
+                        on_frag=.true.
+                        rxyz_frag(:,iatf)=rxyz(:,iat)
+                        exit
+                     end if
+                  end do
+                  if (.not. on_frag) then
+                     iatnf=iatnf+1
+                     rxyz_not_frag(:,iatnf) = rxyz(:,iat)
+                     map_not_frag(iatnf)=iat
+                  end if
+               end do
+
+               ! find distances from centre of fragment - not necessarily the best approach but fine if fragment has 1 atom (most likely case)
+               frag_centre=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_frag)
+
+               dist = f_malloc(at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat,id='dist')
+               ipiv = f_malloc(at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat,id='ipiv')
+               ! find distances from this atom BEFORE shifting
+               perx=(at%astruct%geocode /= 'F')
+               pery=(at%astruct%geocode == 'P')
+               perz=(at%astruct%geocode /= 'F')
+
+               ! if coordinates wrap around (in periodic), take this into account
+               ! assume that the fragment and environment are written in free bc
+               ! think about other periodic cases that might need fixing...
+               ! no need to shift wrt centre as this is done when reading in
+               do iat=1,at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat
+                  dist(iat) = dist_and_shift(perx,at%astruct%cell_dim(1),&
+                       frag_centre(1),rxyz_not_frag(1,iat))**2
+                  dist(iat) = dist(iat) + dist_and_shift(pery,at%astruct%cell_dim(2),&
+                       frag_centre(2),rxyz_not_frag(2,iat))**2
+                  dist(iat) = dist(iat) + dist_and_shift(perz,at%astruct%cell_dim(3),&
+                       frag_centre(3),rxyz_not_frag(3,iat))**2
+
+                  dist(iat) = -dsqrt(dist(iat))
+!!$                  write(*,'(A,2(I3,2x),F12.6,3x,2(3(F12.6,1x),2x))') 'ifrag,iat,dist',ifrag,iat,dist(iat),&
+!!$                       at%astruct%cell_dim(:),rxyz_new_all(:,iat)
+
+                  !rxyz_not_frag(:,iat) = rxyz_new_all(:,iat)-frag_trans_frag(ifrag)%rot_center_new
+               end do     
+
+               ! sort atoms into neighbour order
+               call sort_positions(at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat,dist,ipiv)
+
+               rxyz_frag_and_env = f_malloc_ptr((/ 3,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours /),id='rxyz_frag_and_env')
+
+               ! column 1 tmbs->tmbs, column 2 tmbs->atoms, column 3 atoms->atoms (as for frag_map)
+               ! size orbs%norb is overkill but we don't know norb for env yet
+               map_frag_and_env = f_malloc((/orbs%norb,3/),id='map_frag_and_env')
+
+               ! take fragment and closest neighbours (assume that environment atoms were originally the closest)
+               do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+                  rxyz_frag_and_env(:,iat) = rxyz_frag(:,iat)
+                  map_frag_and_env(iat,3) = frag_map(iat,3)
+               end do
+
+               do iat=1,num_neighbours
+                  rxyz_frag_and_env(:,iat+ref_frags(ifrag_ref)%astruct_frg%nat) = rxyz_not_frag(:,ipiv(iat))
+                  map_frag_and_env(iat+ref_frags(ifrag_ref)%astruct_frg%nat,3) = map_not_frag(ipiv(iat))
+               end do
+
+               ! fill in map for tmbs
+               ntmb_frag_and_env = 0
+               do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours
+                  do iorb=1,orbs%norb
+                     if (orbs%onwhichatom(iorb)==map_frag_and_env(iat,3)) then
+                        ntmb_frag_and_env = ntmb_frag_and_env+1
+                        map_frag_and_env(ntmb_frag_and_env,1)=iorb
+                        map_frag_and_env(ntmb_frag_and_env,2)=iat
+                     end if
+                  end do
+               end do
+
+               ! put rxyz_env into astruct_env
+               if (ref_frags(ifrag_ref)%astruct_env%nat==0) then
+                  ! copy some stuff from astruct_frg
+                  ref_frags(ifrag_ref)%astruct_env%inputfile_format = ref_frags(ifrag_ref)%astruct_frg%inputfile_format
+                  ref_frags(ifrag_ref)%astruct_env%units = ref_frags(ifrag_ref)%astruct_frg%units
+                  ref_frags(ifrag_ref)%astruct_env%geocode = ref_frags(ifrag_ref)%astruct_frg%geocode
+
+                  ref_frags(ifrag_ref)%astruct_env%nat = ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours
+                  ! rxyz should be nullified already as nat_env=0
+                  ref_frags(ifrag_ref)%astruct_env%rxyz => rxyz_frag_and_env
+
+                  ! now deal with atom types
+                  ref_frags(ifrag_ref)%astruct_env%ntypes = at%astruct%ntypes
+                  ref_frags(ifrag_ref)%astruct_env%atomnames => at%astruct%atomnames
+
+                  ! can't just point to full version due to atom reordering
+                  ref_frags(ifrag_ref)%astruct_env%iatype = f_malloc_ptr(ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours,&
+                       id='ref_frags(ifrag_ref)%astruct_env%iatype')
+
+                  ! polarization etc is irrelevant
+                  ref_frags(ifrag_ref)%astruct_env%input_polarization &
+                       = f_malloc0_ptr(ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours,&
+                       id='ref_frags(ifrag_ref)%astruct_env%input_polarization')
+                  ref_frags(ifrag_ref)%astruct_env%ifrztyp = f_malloc0_ptr(ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours,&
+                       id='ref_frags(ifrag_ref)%astruct_env%ifrztyp')
+
+                  do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours
+                     ref_frags(ifrag_ref)%astruct_env%iatype(iat) = at%astruct%iatype(map_frag_and_env(iat,3))
+                     ref_frags(ifrag_ref)%astruct_env%input_polarization(iat) = 100
+                     !if (iproc==0) print*,iat,trim(ref_frags(ifrag_ref)%astruct_env%atomnames(ref_frags(ifrag_ref)%astruct_env%iatype(iat)))
+                  end do
+               else
+                  stop 'Error: cannot output environment atoms if frag_env.xyz exists already'
+               end if
+
+               !full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_env'
+               full_filename=trim(dir_output)//trim(input_frag%label(ifrag_ref))//'_env'
+               if (iproc==0) call astruct_dump_to_file(ref_frags(ifrag_ref)%astruct_env,full_filename,'# fragment environment')!,0.0d0,rxyz_not_frag,fmt,unit)
+
+               ! deallocate/nullify here to be safe
+               call f_free_ptr(ref_frags(ifrag_ref)%astruct_env%iatype)
+               call f_free_ptr(ref_frags(ifrag_ref)%astruct_env%input_polarization)
+               call f_free_ptr(ref_frags(ifrag_ref)%astruct_env%ifrztyp)
+               nullify(ref_frags(ifrag_ref)%astruct_env%iatype)
+               nullify(ref_frags(ifrag_ref)%astruct_env%input_polarization)
+               nullify(ref_frags(ifrag_ref)%astruct_env%ifrztyp)
+               nullify(ref_frags(ifrag_ref)%astruct_env%atomnames)
+               nullify(ref_frags(ifrag_ref)%astruct_env%rxyz)
+
+               call f_free(dist)
+               call f_free(ipiv)
+               call f_free(rxyz_frag)
+               call f_free(rxyz_not_frag)
+               call f_free(map_not_frag)
+            end if
+            !end environment printing section
+   
             ! NEED to think about this - just make it diagonal for now? or random?  or truncate so they're not normalized?  or normalize after truncating?
             ! Or maybe don't write coeffs at all but assume we're always doing frag to frag and can use isolated frag coeffs?
     
@@ -464,6 +641,55 @@ module io
 
             call f_free(rxyz_frag)
 
+            ! also output 'environment' kernel
+            if (num_neighbours/=0) then
+               ! FIX SPIN
+               unitm=99
+               binary=(iformat /= WF_FORMAT_PLAIN)
+               if(iproc == 0) then
+                  full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))
+                  call f_open_file(unitm, file=trim(full_filename)//'density_kernel_env.bin',&
+                       binary=binary)
+    
+                  if (.not. binary) then
+                      write(unitm,'(a,3i10,a)') '#  ', ntmb_frag_and_env, &
+                          ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours, linmat%m%nspin, &
+                          '    number of basis functions, number of atoms, number of spins'
+                  else
+                      write(unitm) '#  ', ntmb_frag_and_env, &
+                          ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours, linmat%m%nspin, &
+                          '    number of basis functions, number of atoms, number of spins'
+                  end if
+                  do ia=1,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours
+                      if (.not. binary) then
+                          write(unitm,'(a,3es24.16)') '#  ',rxyz_frag_and_env(1:3,ia)
+                      else
+                          write(unitm) '#  ',rxyz_frag_and_env(1:3,ia)
+                      end if
+                  end do
+ 
+                  ! need to fix spin
+                  !do ispin=1,linmat%m%nspin
+                     do io=1,ntmb_frag_and_env
+                        ia=map_frag_and_env(io,2)
+                        do jo=1,ntmb_frag_and_env
+                           ja=map_frag_and_env(jo,2)
+                           if (.not. binary) then
+                              write(unitm,'(2(i6,1x),e19.12,2(1x,i6))') io,jo,&
+                                   kernel_orthog(map_frag_and_env(io,1),map_frag_and_env(jo,1),1),ia,ja
+                           else
+                              write(unitm) io,jo,kernel_orthog(map_frag_and_env(io,1),map_frag_and_env(jo,1),1),ia,ja
+                           end if
+                        end do
+                     end do
+                  !end do
+                  call f_close(unitm)
+               end if
+               call f_free_ptr(rxyz_frag_and_env)
+               call f_free(map_frag_and_env)
+            end if
+
+
             !pretty sure these should be moved out of fragment loop...
             call f_free_ptr(linmat%kernel_%matrix)
             if (calc_sks) then
@@ -497,6 +723,36 @@ module io
     
     
     END SUBROUTINE writemywaves_linear_fragments
+
+
+    !might not be the best place for it - used above and in restart
+    function dist_and_shift(periodic,alat,A,B)
+      implicit none
+      real(kind=8), intent(in) :: A
+      real(kind=8), intent(inout) :: B
+      real(kind=8) :: dist_and_shift
+      real(kind=8), intent(in) :: alat
+      logical, intent(in) :: periodic
+      !local variables
+      integer :: i
+      real(kind=8) :: shift
+
+      !shift the B vector on its periodic image
+      dist_and_shift = A - B
+      if (periodic) then
+         !periodic image, if distance is bigger than half of the box
+         shift = 0.0d0
+         if (dist_and_shift > 0.5d0*alat) then
+           shift = alat
+         else if (dist_and_shift < -0.5d0*alat) then
+           shift = -alat
+         end if
+         !shift = real(floor(dist_and_shift+0.5d0),kind=8)
+         dist_and_shift = dist_and_shift - shift
+         B = B + shift
+      end if
+
+    end function dist_and_shift
 
 
     subroutine writeonewave_linear(unitwf,useFormattedOutput,iorb,n1,n2,n3,ns1,ns2,ns3,hx,hy,hz,locregCenter,&
@@ -993,7 +1249,7 @@ module io
 
 
     subroutine io_error(error)
-      use module_defs
+      use module_base, only: bigdft_mpi
   
       implicit none
   
@@ -1747,7 +2003,6 @@ module io
       use module_types
       use module_base
       use yaml_output
-      use module_interfaces, except_this_one => writeonewave
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, matrices_null, &
                                    DENSE_FULL, SPARSE_TASKGROUP, assignment(=), &
                                    deallocate_matrices

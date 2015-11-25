@@ -19,11 +19,15 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use locregs, only: deallocate_locreg_descriptors
   use module_dpbox, only: dpbox_free
   use module_types
-  use module_interfaces
+  use module_interfaces, only: IonicEnergyandForces, &
+       & XC_potential, communicate_density, copy_old_wavefunctions, &
+       & createProjectorsArrays, denspot_set_history, &
+       & gaussian_pswf_basis, local_analysis, &
+       & orbitals_descriptors, sumrho, system_initialization
   use gaussians, only: deallocate_gwf
   use module_fragments
   use constrained_dft
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_xc
   use communications_init, only: orbitals_communicators
   use transposed_operations, only: init_matrixindex_in_compressed_fortransposed
@@ -121,6 +125,143 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
   !debug
   !real(kind=8) :: ddot
+  !proprietary interfaces
+  interface
+     subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
+          denspot,denspot0,nlpsp,KSwfn,tmb,energs,inputpsi,input_wf_format,norbv,&
+          lzd_old,psi_old,rxyz_old,tmb_old,ref_frags,cdft,&
+          locregcenters)
+       use module_defs, only: gp,wp
+       use f_enums, only: f_enumerator
+       use module_types
+       use module_fragments
+       use constrained_dft
+       implicit none
+       integer, intent(in) :: iproc, nproc, input_wf_format
+       type(f_enumerator), intent(in) :: inputpsi
+       type(input_variables), intent(in) :: in
+       type(GPU_pointers), intent(inout) :: GPU
+       type(atoms_data), intent(inout) :: atoms
+       real(gp), dimension(3, atoms%astruct%nat), target, intent(in) :: rxyz
+       type(DFT_local_fields), intent(inout) :: denspot
+       type(DFT_wavefunction), intent(inout) :: KSwfn,tmb,tmb_old !<input wavefunction
+       type(energy_terms), intent(inout) :: energs !<energies of the system
+       real(gp), dimension(*), intent(out) :: denspot0 !< Initial density / potential, if needed
+       real(wp), dimension(:), pointer :: psi_old
+       integer, intent(out) :: norbv
+       type(DFT_PSP_projectors), intent(inout) :: nlpsp
+       real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz_old
+       type(local_zone_descriptors),intent(in):: lzd_old
+       type(system_fragment), dimension(:), pointer :: ref_frags
+       type(cdft_data), intent(out) :: cdft
+       real(kind=8),dimension(3,atoms%astruct%nat),intent(in),optional :: locregcenters
+     END SUBROUTINE input_wf
+  end interface
+  interface
+     subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
+          Glr,nlpsp,ncongt,pot,hgrid,rxyz,crmult,frmult,nspin,&
+          psi,output_denspot,ekin_sum,epot_sum,eproj_sum,paw)
+       use module_defs, only: gp,wp,dp
+       use module_types
+       use gaussians, only: gaussian_basis
+       implicit none
+       type(atoms_data), intent(in) :: at
+       type(orbitals_data), intent(in) :: orbs
+       type(locreg_descriptors), intent(in) :: Glr
+       type(DFT_PSP_projectors), intent(inout) :: nlpsp
+       integer, intent(in) :: iproc,nproc,ncongt,nspin
+       logical, intent(in) :: output_denspot
+       real(kind=8), dimension(3), intent(in) :: hgrid
+       real(kind=8), intent(in) :: crmult,frmult,rbuf
+       !real(kind=8), dimension(at%astruct%ntypes,3), intent(in) :: radii_cf
+       real(kind=8), dimension(3,at%astruct%nat), intent(in) :: rxyz
+       real(kind=8), dimension(Glr%d%n1i,Glr%d%n2i,Glr%d%n3i,nspin), intent(in) :: pot
+       real(kind=8), dimension(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,orbs%norbp), intent(in) :: psi
+       real(kind=8), intent(out) :: ekin_sum,epot_sum,eproj_sum
+       type(paw_objects),optional,intent(inout)::paw
+     END SUBROUTINE CalculateTailCorrection
+  end interface
+
+  interface
+     subroutine davidson(iproc,nproc,in,at,&
+          orbs,orbsv,nvirt,Lzd,comms,commsv,&
+          rxyz,rhopot,nlpsp,pkernel,psi,v,dpbox,xc,GPU)
+       use module_defs, only: gp,dp,wp
+       use module_types
+       use communications_base, only: comms_cubic
+       use module_xc
+       use module_dpbox
+       implicit none
+       integer, intent(in) :: iproc,nproc
+       integer, intent(in) :: nvirt
+       type(input_variables), intent(in) :: in
+       type(atoms_data), intent(in) :: at
+       type(DFT_PSP_projectors), intent(inout) :: nlpsp
+       type(local_zone_descriptors), intent(inout) :: Lzd
+       type(orbitals_data), intent(inout) :: orbs
+       type(comms_cubic), intent(in) :: comms, commsv
+       type(denspot_distribution), intent(in) :: dpbox
+       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+       type(coulomb_operator), intent(inout) :: pkernel
+       real(dp), dimension(*), intent(in) :: rhopot
+       type(orbitals_data), intent(inout) :: orbsv
+       type(GPU_pointers), intent(inout) :: GPU
+       type(xc_info), intent(in) :: xc
+       real(wp), dimension(:), pointer :: psi,v!=psivirt(nvctrp,nvirtep*nproc)
+     END SUBROUTINE davidson
+  end interface
+  interface
+     subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,&
+          rhopot,nlpsp,pkernel,dpbox,xc,GPU,KSwfn,VTwfn)
+       use module_defs, only: gp,dp,wp
+       use module_types
+       use module_xc
+       use module_dpbox
+       implicit none
+       integer, intent(in) :: iproc,nproc,nvirt
+       type(input_variables), intent(in) :: in
+       type(atoms_data), intent(in) :: at
+       type(DFT_PSP_projectors), intent(inout) :: nlpsp
+       type(denspot_distribution), intent(in) :: dpbox
+       type(DFT_wavefunction), intent(inout) :: KSwfn,VTwfn
+       real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+       type(coulomb_operator), intent(inout) :: pkernel
+       real(dp), dimension(*), intent(in), target :: rhopot
+       type(GPU_pointers), intent(inout) :: GPU
+       type(xc_info), intent(in) :: xc
+     END SUBROUTINE direct_minimization
+  end interface
+  interface
+     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpsp,GPU,&
+          energs,energy,fpulay,infocode,ref_frags,cdft, &
+          fdisp, fion)
+       use module_defs, only: gp,dp,wp
+       use module_types
+       use module_fragments
+       use constrained_dft
+       implicit none
+       integer,intent(in):: iproc, nproc
+       type(atoms_data),intent(inout):: at
+       type(input_variables),intent(in):: input
+       real(8),dimension(3,at%astruct%nat),intent(inout):: rxyz
+       real(8),dimension(3,at%astruct%nat),intent(out):: fpulay
+       type(DFT_local_fields), intent(inout) :: denspot
+       real(gp), dimension(*), intent(inout) :: rhopotold
+       type(DFT_PSP_projectors),intent(inout):: nlpsp
+       type(GPU_pointers),intent(in out):: GPU
+       type(energy_terms),intent(inout) :: energs
+       real(gp), dimension(:), pointer :: rho,pot
+       real(8),intent(out):: energy
+       type(DFT_wavefunction),intent(inout),target:: tmb
+       type(DFT_wavefunction),intent(inout),target:: KSwfn
+       integer,intent(out):: infocode
+       type(system_fragment), dimension(:), pointer :: ref_frags
+       type(cdft_data), intent(inout) :: cdft
+       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: fdisp, fion
+     END SUBROUTINE linearScaling
+  end interface
+
+
 
   call f_routine(id=subname)
 
@@ -142,7 +283,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   end if
 
   !Time initialization
-  call f_timing_reset(filename=trim(in%dir_output)//'time.yaml',master=iproc==0,&
+  call f_timing_reset(filename=trim(in%dir_output)//'time'+in%naming_id+'.yaml',master=iproc==0,&
        verbose_mode=verbose>2 .and. nproc>1)
   call cpu_time(tcpu0)
   call system_clock(ncount0,ncount_rate,ncount_max)
@@ -485,7 +626,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      call XC_potential(atoms%astruct%geocode,'D',denspot%pkernel%mpi_env%iproc,denspot%pkernel%mpi_env%nproc,&
           denspot%pkernel%mpi_env%mpi_comm,&
           denspot%dpbox%ndims(1),denspot%dpbox%ndims(2),denspot%dpbox%ndims(3),denspot%xc,&
-          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+          denspot%dpbox%hgrids,&
           denspot%rhov,energs%excrhoc,tel,KSwfn%orbs%nspin,denspot%rho_C,denspot%V_XC,xcstr)
      if (iproc==0) call yaml_map('Value for Exc[rhoc]',energs%excrhoc)
      !if (iproc==0) write(*,*)'value for Exc[rhoc]',energs%excrhoc
@@ -592,7 +733,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
       call input_wf(iproc,nproc,in,GPU,atoms,rxyz,denspot,denspot0,nlpsp,KSwfn,tmb,energs,&
            inputpsi,input_wf_format,norbv,lzd_old,psi_old,rxyz_old,tmb_old,ref_frags,cdft)
    end if
-  
+
   nvirt=in%nvirt
   if(in%nvirt > norbv) then
      nvirt = norbv
@@ -638,7 +779,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
      call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
           rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
-          fdisp, fion)
+          fdisp,fion)
 
      ! Clean denspot parts only needed in the SCF loop -- NEW
      call denspot_free_history(denspot)
@@ -859,11 +1000,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      if (iproc == 0) call yaml_map('Writing external potential in file', 'external_potential'//gridformat)
      !if (iproc == 0) write(*,*) 'writing external_potential' // gridformat
      call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
-          atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
+          atoms,rxyz,denspot%pkernel,1,denspot%V_ext)
+!!$     call plot_density(iproc,nproc,trim(in%dir_output)//'external_potential' // gridformat,&
+!!$          atoms,rxyz,denspot%dpbox,1,denspot%V_ext)
      if (iproc == 0) call yaml_map('Writing local potential in file','local_potential'//gridformat)
      !if (iproc == 0) write(*,*) 'writing local_potential' // gridformat
      call plot_density(iproc,nproc,trim(in%dir_output)//'local_potential' // gridformat,&
-          atoms,rxyz,denspot%dpbox,in%nspin,denspot%rhov)
+          atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
   end if
 
   call f_free_ptr(denspot%V_ext)
@@ -909,7 +1052,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 !!$          & inputpsi == INPUT_PSI_MEMORY_LINEAR, &
           fxyz, fnoise, fion, fdisp, fpulay, &
           & strten, pressure, ewaldstr, xcstr, GPU, denspot, atoms, rxyz, nlpsp, &
-          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, in%nspin)
+          & output_denspot, in%dir_output, gridformat, refill_proj, calculate_dipole, in%calculate_strten,in%nspin)
 
      call f_free_ptr(fpulay)
   end if
@@ -1079,7 +1222,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
 
            call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
                 KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%xc,&
-                denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+                denspot%dpbox%hgrids,&
                 denspot%rhov,energs%exc,energs%evxc,in%nspin,denspot%rho_C,denspot%V_XC,xcstr,denspot%f_XC)
            call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
 
@@ -1429,7 +1572,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
      & in)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: denspot_set_history, hpsitopsi, last_orthon, write_energies
   use module_xc, only: XC_NO_HARTREE
   use yaml_output
   use public_enums
@@ -1620,7 +1763,7 @@ subroutine kswfn_optimization_loop(iproc, nproc, opt, &
            end if
 
            opt%iter = opt%iter + 1
-!        if (opt%iter == 2) stop
+        !if (opt%iter == 2) stop
         end do wfn_loop
 
 
@@ -1843,11 +1986,11 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      & fxyz, fnoise, fion, fdisp, fpulay, &
      & strten, pressure, ewaldstr, xcstr, &
      & GPU, denspot, atoms, rxyz, nlpsp, &
-     & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, nspin)
+     & output_denspot, dir_output, gridformat, refill_proj, calculate_dipole, calculate_strten,nspin)
   use module_base
   use module_types
-  use module_interfaces
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use module_interfaces, only: XC_potential, density_and_hpot
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
@@ -1862,7 +2005,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   type(DFT_local_fields), intent(inout) :: denspot
   type(atoms_data), intent(in) :: atoms
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
-  logical, intent(in) :: linear, refill_proj, calculate_dipole
+  logical, intent(in) :: linear, refill_proj, calculate_dipole,calculate_strten
   integer, intent(in) :: iproc, nproc, nspin
   type(f_enumerator), intent(in) :: output_denspot
   character(len = *), intent(in) :: dir_output
@@ -1925,7 +2068,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      ! This seems to be necessary to get the correct value of xcstr.
      call XC_potential(atoms%astruct%geocode,'D',iproc,nproc,bigdft_mpi%mpi_comm,&
           KSwfn%Lzd%Glr%d%n1i,KSwfn%Lzd%Glr%d%n2i,KSwfn%Lzd%Glr%d%n3i,denspot%xc,&
-          denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3),&
+          denspot%dpbox%hgrids,&
           denspot%rhov,exc_fake,evxc_fake,nspin,denspot%rho_C,denspot%V_XC,xcstr)
      !call denspot_set_rhov_status(denspot, CHARGE_DENSITY, -1,iproc,nproc)
      call H_potential('D',denspot%pkernel,denspot%pot_work,denspot%pot_work,ehart_fake,&
@@ -1933,7 +2076,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
   else
      call density_and_hpot(denspot%dpbox,atoms%astruct%sym,KSwfn%orbs,KSwfn%Lzd,&
           denspot%pkernel,denspot%rhod, GPU, denspot%xc, &
-          & KSwfn%psi,denspot%rho_work,denspot%pot_work,hstrten)
+          KSwfn%psi,denspot%rho_work,denspot%pot_work,denspot%rho_ion,hstrten)
   end if
 
   !xc stress, diagonal for the moment
@@ -1955,33 +2098,34 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
      if (iproc == 0) call yaml_map('Writing electronic density in file','electronic_density'//gridformat)
 
      call plot_density(iproc,nproc,trim(dir_output)//'electronic_density' // gridformat,&
-          atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%rho_work)
+          atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%rho_work)
 !---------------------------------------------------
 ! giuseppe fisicaro dilectric cavity
      if (denspot%pkernel%method /= 'VAC') then
         if (iproc == 0) call yaml_map('Writing polarization charge in file','polarization_charge'//gridformat)
 
-        call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
-             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%pol_charge)
+!this one should be plotted otherwise as the array is now deallocated
+!!$        call plot_density(iproc,nproc,trim(dir_output)//'polarization_charge' // gridformat,&
+!!$             atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pkernel%w%rho_pol)
 
-        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
-
-        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
-             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%cavity)
+!!$        if (iproc == 0) call yaml_map('Writing dielectric cavity in file','dielectric_cavity'//gridformat)
+!!$
+!!$        call plot_density(iproc,nproc,trim(dir_output)//'dielectric_cavity' // gridformat,&
+!!$             atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pkernel%eps)
      end if
 !---------------------------------------------------
 
      if (associated(denspot%rho_C) .and. denspot%dpbox%n3d>0) then
         if (iproc == 0) call yaml_map('Writing core density in file','core_density'//gridformat)
         call plot_density(iproc,nproc,trim(dir_output)//'core_density' // gridformat,&
-             atoms,rxyz,denspot%dpbox,1,denspot%rho_C(1,1,i3xcsh_old+1,1))
+             atoms,rxyz,denspot%pkernel,1,denspot%rho_C(1,1,i3xcsh_old+1,1))
      end if
   end if
   !plot also the electrostatic potential
   if (output_denspot == 'DENSPOT') then
      if (iproc == 0) call yaml_map('Writing Hartree potential in file','hartree_potential'//gridformat)
      call plot_density(iproc,nproc,trim(dir_output)//'hartree_potential' // gridformat, &
-          atoms,rxyz,denspot%dpbox,denspot%dpbox%nrhodim,denspot%pot_work)
+          atoms,rxyz,denspot%pkernel,denspot%dpbox%nrhodim,denspot%pot_work)
   end if
 
   !     !plot also the electrostatic potential
@@ -2032,7 +2176,7 @@ subroutine kswfn_post_treatments(iproc, nproc, KSwfn, tmb, linear, &
        denspot%dpbox%i3s+denspot%dpbox%i3xcsh,denspot%dpbox%n3p,&
        denspot%dpbox%nrhodim,refill_proj,denspot%dpbox%ngatherarr,denspot%rho_work,&
        denspot%pot_work,denspot%V_XC,nsize_psi,KSwfn%psi,fion,fdisp,fxyz,&
-       ewaldstr,hstrten,xcstr,strten,pressure,denspot%psoffset,imode,tmb,fpulay)
+       calculate_strten,ewaldstr,hstrten,xcstr,strten,pressure,denspot%psoffset,imode,tmb,fpulay)
 
   call f_free_ptr(denspot%rho_work)
   !call f_free_ptr(denspot%pot_work)

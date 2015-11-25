@@ -11,8 +11,9 @@
 !> Toy program to use BigDFT API
 program wvl
 
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use BigDFT_API
+  use locreg_operations, only: workarr_sumrho,initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
   use bigdft_run
   use dynamic_memory
   use yaml_output
@@ -53,7 +54,7 @@ program wvl
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
-  type(dictionary), pointer :: user_inputs,options
+  type(dictionary), pointer :: user_inputs,options,dict
   !temporary variables
   !integer, dimension(4) :: mpi_info
 
@@ -89,7 +90,7 @@ program wvl
 !!$  !the arguments of this routine should be changed
 !!$  posinp_name='posinp'
 !!$  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, atoms%astruct%rxyz,1,'input',0)
-
+   nullify(rho_ion)
 !  allocate(radii_cf(atoms%astruct%ntypes,3))
   call system_properties(iproc,nproc,inputs,atoms,orbs)!,radii_cf)
   
@@ -110,7 +111,7 @@ program wvl
 
   !grid spacings and box of the density
   call dpbox_set(dpcom,Lzd,xc,iproc,nproc,MPI_COMM_WORLD,inputs%PSolver_groupsize, &
-       & inputs%SIC%approach,atoms%astruct%geocode, inputs%nspin)
+       & inputs%SIC%approach,atoms%astruct%geocode, inputs%nspin,inputs%matacc%PSolver_igpu)
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))
@@ -216,7 +217,7 @@ program wvl
   ! BigDFT cut rho by slices, while here we keep one array for simplicity.
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i))
   call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,rhor(1))
-  call initialize_work_arrays_sumrho(1,Lzd%Glr,.true.,wisf)
+  call initialize_work_arrays_sumrho(1,[Lzd%Glr],.true.,wisf)
   do i = 1, orbs%norbp, 1
      ! Calculate values of psi_i on each grid points.
      call daub_to_isf(Lzd%Glr,wisf, &
@@ -258,15 +259,18 @@ program wvl
   call deallocate_rho_descriptors(rhodsc)
 
   ! Example of calculation of the energy of the local potential of the pseudos.
-  pkernel=pkernel_init(.true.,iproc,nproc,0,&
+  dict => dict_new()
+  pkernel=pkernel_init(iproc,nproc,dict,&
        atoms%astruct%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
-       (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
+       (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/))
+  call dict_free(dict)
   call pkernel_set(pkernel,verbose=.false.)
   !call createKernel(iproc,nproc,atoms%astruct%geocode,&
   !     (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
   !     (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/)&
   !     ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
+  allocate(rho_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
   call createIonicPotential(iproc,(iproc==0),atoms,atoms%astruct%rxyz,&
        & inputs%elecfield, dpcom, pkernel,pot_ion,rho_ion,psoffset)
   !allocate the potential in the full box

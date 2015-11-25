@@ -25,7 +25,8 @@ module f_utils
   integer, public, save :: TCAT_INIT_TO_ZERO
 
   !preprocessed include file with processor-specific values
-  include 'f_utils.inc' !defines recl_kind
+  !defines recl_kind
+  include 'f_utils.inc' 
 
   !> This type can be used to get strings from a file or a dictionary long string.
   type, public :: io_stream
@@ -65,6 +66,10 @@ module f_utils
      module procedure put_to_zero_long3
   end interface f_zero
 
+  interface f_increment
+     module procedure f_inc_i0
+  end interface f_increment
+
   !to be verified if clock_gettime is without side-effect, otherwise the routine cannot be pure
   interface
      pure subroutine nanosec(itime)
@@ -77,7 +82,7 @@ module f_utils
   public :: f_diff,f_file_unit,f_mkdir
   public :: f_utils_errors,f_utils_recl,f_file_exists,f_close,f_zero
   public :: f_get_free_unit,f_delete_file,f_getpid,f_rewind,f_open_file
-  public :: f_iostream_from_file,f_iostream_from_lstring
+  public :: f_iostream_from_file,f_iostream_from_lstring,f_increment
   public :: f_iostream_get_line,f_iostream_release,f_time,f_pause
 
 contains
@@ -487,6 +492,20 @@ contains
     ios%iunit = 0
     nullify(ios%lstring)
   end subroutine f_iostream_release
+  
+  !>increment a integer, to be used in low-performance routines
+  !to improve readability
+  pure elemental subroutine f_inc_i0(i,inc)
+    implicit none
+    integer, intent(inout) :: i
+    integer, intent(in), optional :: inc
+    !local variables
+    integer :: inc_
+
+    inc_=1
+    if (present(inc))inc_=inc
+    i=i+inc_
+  end subroutine f_inc_i0
 
   !>perform a difference of two objects (of similar kind)
   subroutine f_diff_i(n,a_add,b_add,diff)

@@ -88,7 +88,7 @@ use module_base
       integer i,j
       integer Nptot, NNtot
     real(gp) :: rxyz(3,nat)
-      real(gp) pi
+!      real(gp) pi
       real(gp) Xi, Yi, Zi
       real(gp) Xij, Yij, Zij, Rij, Rreij
       real(gp) R1ij, R2ij
@@ -122,7 +122,7 @@ use module_base
       real(gp), ALLOCATABLE, DIMENSION(:,:) :: rel
       integer:: alpha, beta, a
 !        if(.not.allocated(Kinds_tersoff)) stop "Allocate Kinds before calling energyandforces" 
-        pi=dacos(-1.0_gp)
+!        pi=dacos(-1.0_gp)
 
         latvec_bohr(1,1)=cell(1)
         latvec_bohr(2,1)=0.0_gp

@@ -53,7 +53,7 @@ subroutine constrained_davidson(iproc,nproc,in,at,&
   use module_base
   use module_dpbox, only: denspot_distribution
   use module_types
-  use module_interfaces, except_this_one => constrained_davidson
+  use module_interfaces, only: free_full_potential, orthogonalize, write_eigen_objects
   use module_xc
   use yaml_output
   use communications, only: transpose_v, untranspose_v

@@ -25,7 +25,6 @@ module module_input_keys
 
   !public :: input_keys_init, input_keys_finalize
 
-
   type(dictionary), pointer :: parameters=>null()
   type(dictionary), pointer :: parsed_parameters=>null()
   type(dictionary), pointer :: profiles=>null()
@@ -101,7 +100,7 @@ module module_input_keys
      real(kind=8) :: alphaSD, alphaDIIS, evlow, evhigh, ef_interpol_chargediff
      real(kind=8) :: alpha_mix_lowaccuracy, alpha_mix_highaccuracy, reduce_confinement_factor, ef_interpol_det
      integer :: plotBasisFunctions
-     real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix
+     real(kind=8) :: fscale, deltaenergy_multiplier_TMBexit, deltaenergy_multiplier_TMBfix, coeff_factor
      real(kind=8) :: lowaccuracy_conv_crit, convCritMix_lowaccuracy, convCritMix_highaccuracy
      real(kind=8) :: highaccuracy_conv_crit, support_functions_converged, alphaSD_coeff
      real(kind=8) :: convCritDmin_lowaccuracy, convCritDmin_highaccuracy
@@ -118,12 +117,16 @@ module module_input_keys
      integer :: extra_states, order_taylor, mixing_after_inputguess
      !> linear scaling: maximal error of the Taylor approximations to calculate the inverse of the overlap matrix
      real(kind=8) :: max_inversion_error
-    logical :: calculate_onsite_overlap
+     real(kind=8) :: cdft_lag_mult_init !< Initial value for lagrange multiplier
+     real(kind=8) :: cdft_conv_crit     !< Convergence threshold for cdft charge
+     logical :: calculate_onsite_overlap
      integer :: output_mat_format     !< Output Matrices format
      integer :: output_coeff_format   !< Output Coefficients format
      integer :: output_fragments   !< Output fragments/full system/both
+     integer :: frag_num_neighbours   !< number of neighbouring atoms per fragment
      logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
+     real(kind=8) :: kernel_restart_noise !< How much noise to add when restarting kernel (or coefficients) in a restart calculation
   end type linearInputParameters
 
   !> Structure controlling the nature of the accelerations (Convolutions, Poisson Solver)
@@ -154,6 +157,7 @@ module module_input_keys
      character(len=100) :: file_lin   
      character(len=100) :: file_frag   !< Fragments
      character(len=max_field_length) :: dir_output  !< Strings of the directory which contains all data output files
+     character(len=max_field_length) :: naming_id
      !integer :: files                  !< Existing files.
 
      !> Miscellaneous variables
@@ -204,7 +208,12 @@ module module_input_keys
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
-     character(len=8) :: set_epsilon !< method for setting the dielectric constant
+     !> boolean to activate the calculation of the stress tensor
+     logical :: calculate_strten
+     !character(len=8) :: set_epsilon !< method for setting the dielectric constant
+
+     !> solver parameters
+     type(dictionary), pointer :: PS_dict,PS_dict_seq
 
      !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
@@ -273,9 +282,22 @@ module module_input_keys
      character(len=64) :: mm_paramset
      character(len=64) :: mm_paramfile
 
+     !MD input keywords
+     integer :: mdsteps
+     integer :: md_printfrq
+     real(gp) :: temperature
+     real(gp) :: dt
+     logical  :: no_translation
+     logical  :: nhc
+     integer  :: nhnc
+     integer  :: nmultint
+     integer  :: nsuzuki
+     real(gp) :: nosefrq 
+
      ! Performance variables from input.perf
      logical :: debug      !< Debug option (used by memocc)
      integer :: ncache_fft !< Cache size for FFT
+     integer :: profiling_depth
      real(gp) :: projrad   !< Coarse radius of the projectors in units of the maxrad
      real(gp) :: symTol    !< Tolerance for symmetry detection.
      integer :: linear
@@ -376,11 +398,14 @@ module module_input_keys
      !> linear scaling: enable the addaptive ajustment of the number of kernel iterations
      logical :: adjust_kernel_iterations
 
+     !> linear scaling: enable the addaptive ajustment of the kernel convergence threshold according to the support function convergence
+     logical :: adjust_kernel_threshold
+
      !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      logical :: wf_extent_analysis
 
-     !> Method for the solution of  generalized poisson Equation
-     character(len=4) :: GPS_Method
+!!$     !> Method for the solution of  generalized poisson Equation
+!!$     character(len=4) :: GPS_Method
 
      !> Use the FOE method to calculate the HOMO-LUMO gap at the end
      logical :: foe_gap
@@ -398,7 +423,7 @@ module module_input_keys
   public :: inputpsiid_get_policy,inputpsiid_set_policy,set_inputpsiid
   ! Main creation routine
   public :: user_dict_from_files,inputs_from_dict
-  public :: input_keys_dump,input_set,input_keys_fill_all,print_general_parameters
+  public :: input_keys_dump,input_keys_fill_all,print_general_parameters,input_set
 
 
 contains
@@ -555,7 +580,8 @@ contains
   !! contained in the dictionary dict
   !! the dictionary should be completes to fill all the information
   subroutine inputs_from_dict(in, atoms, dict)
-    use module_defs, only: gp,bigdft_mpi,DistProjApply,pi_param
+    use module_defs, only: DistProjApply,pi_param
+    use module_base, only: bigdft_mpi
     use yaml_output
     use dictionaries
     use module_input_dicts
@@ -566,7 +592,7 @@ contains
     !  use input_old_text_format, only: dict_from_frag
     use module_atoms!, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,&
                     ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
-    use yaml_strings, only: f_strcpy
+    use yaml_strings
     use m_ab6_symmetry, only: symmetry_get_n_sym
     use interfaces_42_libpaw
     use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
@@ -574,7 +600,6 @@ contains
     use fragment_base
     use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
-    use yaml_strings, only: yaml_toa
     implicit none
     !Arguments
     type(input_variables), intent(out) :: in
@@ -599,7 +624,8 @@ contains
     call f_routine(id='inputs_from_dict')
 
     ! Atoms case.
-    atoms = atoms_data_null()
+    !atoms = atoms_data_null()
+    call nullify_atoms_data(atoms)
 
     if (.not. has_key(dict, POSINP)) &
          call f_err_throw("missing posinp",err_name='BIGDFT_INPUT_VARIABLES_ERROR')
@@ -614,6 +640,12 @@ contains
 
     ! extract also the minimal dictionary which is necessary to do this run
     call input_keys_fill_all(dict,dict_minimal)
+
+    !copy the Poisson solver dictionary
+    call dict_copy(src=dict // PSOLVER, dest=in%PS_dict)
+    call dict_copy(src=in%PS_dict, dest=in%PS_dict_seq)
+    !then other treatments for the sequential solver might be added
+
 
     ! Add missing pseudo information.
     projr = dict // PERF_VARIABLES // PROJRAD
@@ -663,7 +695,7 @@ contains
     call f_zero(outdir)
     call dict_get_run_properties(dict, naming_id = run_id, posinp_id = posinp_id, input_id = input_id, outdir_id = outdir)
     call f_strcpy(dest = in%dir_output, src = trim(outdir) // "data" // trim(run_id))
-
+    call f_strcpy(dest= in%naming_id, src=trim(run_id))
     call set_cache_size(in%ncache_fft)
 
     !status of the allocation verbosity and profiling
@@ -672,12 +704,12 @@ contains
          dest=filename)
     if (.not. in%debug) then
        if (in%verbosity==3) then
-          call f_malloc_set_status(output_level=1, iproc=bigdft_mpi%iproc,logfile_name=filename)
+          call f_malloc_set_status(output_level=1, iproc=bigdft_mpi%iproc,logfile_name=filename,profiling_depth=in%profiling_depth)
        else
-          call f_malloc_set_status(output_level=0, iproc=bigdft_mpi%iproc)
+          call f_malloc_set_status(output_level=0, iproc=bigdft_mpi%iproc,profiling_depth=in%profiling_depth)
        end if
     else
-       call f_malloc_set_status(output_level=2, iproc=bigdft_mpi%iproc,logfile_name=filename)
+       call f_malloc_set_status(output_level=2, iproc=bigdft_mpi%iproc,logfile_name=filename,profiling_depth=in%profiling_depth)
     end if
 
     call nullifyInputLinparameters(in%lin)
@@ -871,7 +903,7 @@ contains
   !> Check the directory of data (create if not present)
   subroutine check_for_data_writing_directory(iproc,in)
     use yaml_output
-    use module_defs, only: bigdft_mpi
+    use module_base, only: bigdft_mpi
     use f_utils, only: f_zero,f_mkdir
     use wrapper_MPI, only: mpibcast
     use yaml_strings, only: f_strcpy
@@ -932,11 +964,12 @@ contains
     use public_keys
     use yaml_strings, only: operator(.eqv.)
     use yaml_output
+    use PStypes, only: PS_input_dict
     !use yaml_output
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
     !local variables
-    type(dictionary), pointer :: as_is,nested
+    type(dictionary), pointer :: as_is,nested,dict_ps_min
     character(max_field_length) :: meth!, prof
     real(gp) :: dtmax_, betax_
     logical :: free,dftvar!,user_defined
@@ -960,13 +993,17 @@ contains
     ! Check and complete dictionary.
     call input_keys_init()
 ! call yaml_map('present status',dict)
-    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
 
+    !then we can complete the Poisson solver dictionary
+    call PS_input_dict(dict // PSOLVER,dict_ps_min)
+    
+    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
     as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION)
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
+    if (associated(dict_ps_min)) call set(dict_minimal // PSOLVER,dict_ps_min)
     call dict_free(nested,as_is)
 
 
@@ -1007,11 +1044,6 @@ contains
     dict_tmp=dict .get. ASTRUCT_PROPERTIES
     source=dict_tmp .get. POSINP_SOURCE
 
-!!$    write(source, "(A)") ""
-!!$    if (has_key(dict, ASTRUCT_PROPERTIES)) then
-!!$       if (has_key(dict // ASTRUCT_PROPERTIES, POSINP_SOURCE)) &
-!!$            & source = dict_value(dict // ASTRUCT_PROPERTIES // POSINP_SOURCE)
-!!$    end if
   end subroutine astruct_dict_get_source
 
 
@@ -1428,12 +1460,13 @@ contains
 
   !> Set the dictionary from the input variables
   subroutine input_set_dict(in, level, val)
-    use module_defs, only: DistProjApply, GPUblas, gp
+    use module_defs, only: DistProjApply, gp
+    use wrapper_linalg, only: GPUblas
     use public_enums
     use dynamic_memory
     use yaml_output, only: yaml_warning
     use yaml_strings, only: operator(.eqv.),is_atoi
-    use module_defs, only: bigdft_mpi
+    use module_base, only: bigdft_mpi
     implicit none
     type(input_variables), intent(inout) :: in
     type(dictionary), pointer :: val
@@ -1475,6 +1508,8 @@ contains
              in%run_mode=CP2K_RUN_MODE
           case('dftbp')
              in%run_mode=DFTBP_RUN_MODE
+          case('multi')
+             in%run_mode=MULTI_RUN_MODE
           end select
        case(MM_PARAMSET)
           in%mm_paramset=val
@@ -1554,8 +1589,8 @@ contains
           in%nplot = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
-       case (SOLVENT)
-          in%set_epsilon= val
+!!$       case (SOLVENT)
+!!$          in%set_epsilon= val
 !!$          dummy_char = val
 !!$          select case(trim(dummy_char))
 !!$          case ("vacuum")
@@ -1567,6 +1602,8 @@ contains
 !!$          end select
        case (EXTERNAL_POTENTIAL)
           ! Do nothing?
+       case(CALCULATE_STRTEN)
+          in%calculate_strten=val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -1576,6 +1613,8 @@ contains
        select case (trim(dict_key(val)))       
        case (DEBUG)
           in%debug = val
+       case (PROFILING_DEPTH)
+          in%profiling_depth = val
        case (FFTCACHE)
           in%ncache_fft = val
        case (VERBOSITY)
@@ -1759,13 +1798,16 @@ contains
           ! linear scaling: radius enlargement for the Hamiltonian application (in grid points)
           in%hamapp_radius_incr = val
        case (ADJUST_KERNEL_ITERATIONS) 
-          ! linear scaling: enable the addaptive ajustment of the number of kernel iterations
+          ! linear scaling: enable the adaptive ajustment of the number of kernel iterations
           in%adjust_kernel_iterations = val
+       case (ADJUST_KERNEL_THRESHOLD) 
+          ! linear scaling: enable the adaptive ajustment of the kernel convergence threshold
+          in%adjust_kernel_threshold = val
        case(WF_EXTENT_ANALYSIS)
           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
           in%wf_extent_analysis = val
-       case (GPS_METHOD)
-          in%GPS_method = val
+!!$       case (GPS_METHOD)
+!!$          in%GPS_method = val
        case (FOE_GAP)
           ! linear scaling: Use the FOE method to calculate the HOMO-LUMO gap at the end
           in%foe_gap = val
@@ -1844,6 +1886,39 @@ contains
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
+!NNdbg
+    case (MD_VARIABLES)
+       select case (trim(dict_key(val)))
+       case (MDSTEPS)
+          in%mdsteps = val
+       case (PRINT_FREQUENCY)
+          in%md_printfrq = val
+       case (TEMPERATURE)
+          in%temperature = val
+       case (TIMESTEP)
+          in%dt = val
+       case (NO_TRANSLATION) !.true. or .false. ?
+          in%no_translation = val
+       case (THERMOSTAT) !string
+         str = dict_value(val) 
+         if (trim(str).eqv."nose_hoover_chain") then
+           in%nhc=.true.
+         else
+           in%nhc=.false.
+         end if
+       case (NOSE_CHAIN_LENGTH) 
+         in%nhnc = val
+       case (NOSE_MTS_SIZE)
+         in%nmultint = val
+       case (NOSE_YOSHIDA_FACTOR)
+         in%nsuzuki = val
+       case (NOSE_FREQUENCY)
+         in%nosefrq = val
+       case DEFAULT
+          if (bigdft_mpi%iproc==0) &
+               call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
+       end select
+!NNdbg
     case (MIX_VARIABLES)
        ! the MIX variables ------------------------------------------------------
        select case (trim(dict_key(val)))
@@ -1923,6 +1998,14 @@ contains
           in%lin%output_fragments = val
        case (KERNEL_RESTART_MODE)
           in%lin%kernel_restart_mode = val
+       case (KERNEL_RESTART_NOISE)
+          in%lin%kernel_restart_noise = val
+       case (FRAG_NUM_NEIGHBOURS)
+          in%lin%frag_num_neighbours = val
+       case (CDFT_LAG_MULT_INIT)
+          in%lin%cdft_lag_mult_init = val
+       case (CDFT_CONV_CRIT)
+          in%lin%cdft_conv_crit = val
        case (CALC_DIPOLE)
           in%lin%calc_dipole = val
        case (CALC_PULAY)
@@ -2040,6 +2123,8 @@ contains
           in%lin%evhigh = dummy_gp(2)
        case (FSCALE_FOE) 
           in%lin%fscale = val
+       case (COEFF_SCALING_FACTOR) 
+          in%lin%coeff_factor = val
        case DEFAULT
           call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
        end select
@@ -2137,11 +2222,17 @@ contains
     in%dir_output = "data"
     !in%output_wf_format = WF_FORMAT_NONE
     !in%output_denspot_format = output_denspot_FORMAT_CUBE
-    call f_zero(in%set_epsilon)
+    !call f_zero(in%set_epsilon)
+    call f_zero(in%dir_output)
+    call f_zero(in%naming_id)
     nullify(in%gen_kpt)
     nullify(in%gen_wkpt)
     nullify(in%kptv)
     nullify(in%nkptsv_group)
+    nullify(in%PS_dict)
+    nullify(in%PS_dict_seq)
+    call f_zero(in%calculate_strten)
+    in%profiling_depth=-1
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)
     in%gen_norbd = UNINITIALIZED(0)
@@ -2230,6 +2321,23 @@ contains
 
   END SUBROUTINE geopt_input_variables_default
 
+  !> Assign default values for MD variables
+  subroutine md_input_variables_default(in)
+    use module_defs, only: UNINITIALIZED
+    implicit none
+    type(input_variables), intent(inout) :: in
+
+    in%mdsteps=0
+    in%md_printfrq = 1
+    in%temperature = 300.d0
+    in%dt = 20.d0
+    in%no_translation = .false.
+    in%nhc=.false.
+    in%nhnc = 3
+    in%nmultint = 1
+    in%nsuzuki  = 7
+    in%nosefrq  = 3000.d0
+  END SUBROUTINE md_input_variables_default 
 
   !> Assign default values for self-interaction correction variables
   subroutine sic_input_variables_default(in)
@@ -2263,7 +2371,8 @@ contains
 
     !check if freeing is possible
     call f_ref_free(in%refcnt)
-
+    call dict_free(in%PS_dict)
+    call dict_free(in%PS_dict_seq)
     call free_geopt_variables(in)
     call free_kpt_variables(in)
     call f_free_ptr(in%gen_occup)
@@ -2522,7 +2631,6 @@ contains
     use m_ab6_kpoints
     use yaml_output
     use public_keys
-    use yaml_strings, only: operator(.eqv.)
     implicit none
     !Arguments
     integer, intent(in) :: iproc
@@ -2876,6 +2984,24 @@ contains
           call yaml_mapping_close()
        end if
     end if
+    !MD input
+    if (in%mdsteps > 0) then
+       call yaml_comment('Molecular Dynamics Input Parameters',hfill='-')
+       call yaml_mapping_open('Molecular Dynamics Parameters')
+       call yaml_map('Maximum MD steps',in%mdsteps)
+       call yaml_map('Printing Frequency', in%md_printfrq)
+       call yaml_map('Initial Temperature (K)', in%temperature, fmt='(1pe7.1)')
+       call yaml_map('Time step (a.u.)',in%dt,fmt='(1pe7.1)')
+       call yaml_map('Freeze Translation ', in%no_translation)
+       call yaml_map('Nose Hoover Chain Thermostat', in%nhc)
+       if(in%nhc)then
+         call yaml_map('Length of Nose Hoover Chains', in%nhnc)
+         call yaml_map('Multiple Time Step for Nose Hoover Chains', in%nmultint)
+         call yaml_map('Yoshida-Suzuki factor for Nose Hoover Chains', in%nsuzuki)
+         call yaml_map('Frequency of Nose Hoover Chains', in%nosefrq)
+       end if
+       call yaml_mapping_close()
+    end if
 
     !Output for K points
     if (atoms%astruct%geocode /= 'F') then
@@ -3062,15 +3188,15 @@ contains
 
 
   !> Read from all input files and build a dictionary
-  subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
+  recursive subroutine user_dict_from_files(dict,radical,posinp_name, mpi_env)
     use dictionaries_base, only: TYPE_DICT, TYPE_LIST
-    use module_defs, only: mpi_environment
-    use public_keys, only: POSINP,IG_OCCUPATION
+    use wrapper_MPI, only: mpi_environment
+    use public_keys, only: POSINP, IG_OCCUPATION, MODE_VARIABLES, SECTIONS, METHOD_KEY
     use yaml_output
     use yaml_strings, only: f_strcpy
     use f_utils, only: f_file_exists
     use module_input_dicts
-    use input_old_text_format
+    !use input_old_text_format
     use module_atoms, only: astruct_file_merge_to_dict,atoms_file_merge_to_dict
     implicit none
     !Arguments
@@ -3080,7 +3206,7 @@ contains
     type(mpi_environment), intent(in) :: mpi_env    !< MPI Environment
     !Local variables
     logical :: exists
-    type(dictionary), pointer :: at
+    type(dictionary), pointer :: at, iter
     character(len = max_field_length) :: str, fr, rad
 
     call read_input_dict_from_files(trim(radical), mpi_env, dict)
@@ -3176,6 +3302,24 @@ contains
        end if
     end if
 
+    ! Add section files, if any.
+    if (has_key(dict, MODE_VARIABLES)) then
+       str = dict_value(dict // MODE_VARIABLES // METHOD_KEY)
+       if (trim(str) == 'multi' .and. has_key(dict // MODE_VARIABLES, SECTIONS)) then
+          iter => dict_iter(dict // MODE_VARIABLES // SECTIONS)
+          do while (associated(iter))
+             str = dict_value(dict // dict_value(iter))
+             if (trim(str) /= TYPE_DICT .and. trim(str) /= TYPE_LIST .and. trim(str) /= "") then
+                if (len_trim(str) > 5 .and. str(max(1,len_trim(str)-4):len_trim(str)) == ".yaml") then
+                   call user_dict_from_files(dict // dict_value(iter), str(1:len_trim(str)-5), "", mpi_env)
+                else
+                   call user_dict_from_files(dict // dict_value(iter), str, "", mpi_env)
+                end if
+             end if
+             iter => dict_next(iter)
+          end do
+       end if
+    end if
   end subroutine user_dict_from_files
 
 

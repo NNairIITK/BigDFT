@@ -31,7 +31,7 @@ subroutine copy_old_wavefunctions(nproc,orbs,psi,&
   !n(c) nvctrp_old=int((1.d0-eps_mach*tt) + tt)
 
 !  psi_old=&
-!       f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,!&
+!       f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvc_f)*orbs%norbp*orbs%nspinor,!&
 !       id='psi_old')
   psi_old = f_malloc_ptr((wfd_old%nvctr_c+7*wfd_old%nvctr_f)*orbs%norbp*orbs%nspinor,id='psi_old')
 
@@ -267,7 +267,7 @@ subroutine readmywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz_old
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => readmywaves
+  use module_interfaces, only: open_filename_of_iorb
   use public_enums
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3, iformat
@@ -368,7 +368,7 @@ subroutine verify_file_presence(filerad,orbs,iformat,nproc,nforb)
   use module_base
   use module_types
   use public_enums
-  use module_interfaces, except_this_one => verify_file_presence
+  use module_interfaces, only: filename_of_iorb
   implicit none
   integer, intent(in) :: nproc
   character(len=*), intent(in) :: filerad
@@ -520,7 +520,7 @@ end subroutine filename_of_iorb
 subroutine open_filename_of_iorb(unitfile,lbin,filename,orbs,iorb,ispinor,iorb_out,iiorb)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => open_filename_of_iorb
+  use module_interfaces, only: filename_of_iorb
   implicit none
   character(len=*), intent(in) :: filename
   logical, intent(in) :: lbin
@@ -555,7 +555,7 @@ subroutine writemywaves(iproc,filename,iformat,orbs,n1,n2,n3,hx,hy,hz,at,rxyz,wf
   use module_types
   use module_base
   use yaml_output
-  use module_interfaces, except_this_one => writeonewave, except_this_one_A => writemywaves
+  use module_interfaces, only: open_filename_of_iorb
   use public_enums
   implicit none
   integer, intent(in) :: iproc,n1,n2,n3,iformat
@@ -618,7 +618,7 @@ subroutine read_wave_to_isf(lstat, filename, ln, iorbp, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => read_wave_to_isf
+  use module_interfaces, only: readwavetoisf, readwavetoisf_etsf
   use public_enums
   use module_input_keys
   implicit none
@@ -709,7 +709,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   use module_base
   use module_types
   use locregs, only: copy_locreg_descriptors,allocate_wfd,deallocate_wfd
-  use module_interfaces
+  use module_interfaces, only: reformat_one_supportfunction
   use module_fragments
   use communications_base, only: comms_linear_null, deallocate_comms_linear, TRANSPOSE_FULL
   use communications_init, only: init_comms_linear
@@ -1256,7 +1256,7 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
   use module_base
   use module_types
   !use internal_io
-  use module_interfaces
+  use module_interfaces, only: reformat_one_supportfunction
   use yaml_output
   use module_fragments
   use io, only: io_read_descr_linear, io_error, read_psi_compress
@@ -1374,22 +1374,18 @@ subroutine readonewave_linear(unitwf,useFormattedInput,iorb,iproc,n,ns,&
 
 END SUBROUTINE readonewave_linear
 
-
-
-
-
-
 !> Reads wavefunction from file and transforms it properly if hgrid or size of simulation cell
 !! have changed
 subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
-       ref_frags,input_frag,frag_calc,kernel_restart,orblist)
+       ref_frags,input_frag,frag_calc,kernel_restart,frag_env_mapping,orblist)
   use module_base
   use module_types
   use yaml_output
   use module_fragments
   !use internal_io
-  use module_interfaces, except_this_one => readmywaves_linear_new
-  use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error, read_dense_matrix
+  use module_interfaces, only: open_filename_of_iorb, reformat_supportfunctions
+  use io, only: read_coeff_minbasis, io_read_descr_linear, read_psig, io_error, read_dense_matrix, dist_and_shift
+  use locreg_operations, only: lpsi_to_global2
   use public_enums
   implicit none
   integer, intent(in) :: iproc, nproc
@@ -1402,11 +1398,13 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   type(fragmentInputParameters), intent(in) :: input_frag
   type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
   logical, intent(in) :: frag_calc, kernel_restart
+  integer, dimension(:,:,:), pointer :: frag_env_mapping
   integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
   !Local variables
+  real(gp), parameter :: W_tol=1.e-3_gp !< wahba's tolerance
   integer :: ncount1,ncount_rate,ncount_max,ncount2
   integer :: iorb_out,ispinor,ilr,iorb_old
-  integer :: confPotOrder,onwhichatom_tmp,unitwf
+  integer :: confPotOrder,onwhichatom_tmp,unitwf,itoo_big
   real(gp) :: confPotprefac
 !!$ real(gp), dimension(3) :: mol_centre, mol_centre_new
   real(kind=4) :: tr0,tr1
@@ -1415,19 +1413,20 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   logical :: lstat
   character(len=*), parameter :: subname='readmywaves_linear_new'
   ! to eventually be part of the fragment structure?
-  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, ind, num_deg, i, np, c, minperm
+  integer :: ndim_old, iiorb, ifrag, ifrag_ref, isfat, iorbp, iforb, isforb, iiat, iat, ind, num_env, i, np, c, minperm, iorb
   type(local_zone_descriptors) :: lzd_old
   real(wp), dimension(:), pointer :: psi_old
   type(phi_array), dimension(:), pointer :: phi_array_old
   type(fragment_transformation), dimension(:), pointer :: frag_trans_orb, frag_trans_frag
-  real(gp), dimension(:,:), allocatable :: rxyz_ref, rxyz_new, rxyz4_ref, rxyz4_new
-  real(gp), dimension(:,:), allocatable :: rxyz_new_all, rxyz_frg_new, rxyz_ref_sorted, rxyz_ref_sorted_trial
+  real(gp), dimension(:,:), allocatable :: rxyz_new, rxyz4_ref, rxyz4_new
+  real(gp), dimension(:,:), allocatable :: rxyz_new_all, rxyz_frg_new, rxyz_new_trial, rxyz_ref
   real(gp), dimension(:), allocatable :: dist
-  integer, dimension(:), allocatable :: ipiv, array
+  integer, dimension(:), allocatable :: ipiv, array_tmp
   integer, dimension(:,:), allocatable :: permutations
   real(gp), dimension(:,:), allocatable :: rxyz_old !<this is read from the disk and not needed
-  real(gp) :: max_shift, mindist, Werror, minerror, dtol
-  logical :: perx, pery, perz, degen_dist
+  real(gp) :: max_shift, mindist, Werror, minerror, mintheta, dtol
+  logical :: perx, pery, perz, wrong_atom
+  character(len=2) :: atom_ref, atom_trial
 
   logical :: skip, binary
   integer :: itmb, jtmb, jat
@@ -1578,8 +1577,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   nullify(psi_old)
 
   !if several fragments do this, otherwise find 3 nearest neighbours (use sort in time.f90) and send rxyz arrays with 4 atoms
-
-  if (input_frag%nfrag>1) then
+  itoo_big=0
+  fragment_if: if (input_frag%nfrag>1) then
      ! Find fragment transformations for each fragment, then put in frag_trans array for each orb
      allocate(frag_trans_frag(input_frag%nfrag))
 
@@ -1590,17 +1589,22 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         ifrag_ref=input_frag%frag_index(ifrag)
 
         ! check if we need this fragment transformation on this proc
-        skip=.true.
-        do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
-           do iorbp=1,tmb%orbs%norbp
-              iiorb=iorbp+tmb%orbs%isorb
-              ! check if this ref frag orbital corresponds to the orbital we want
-              if (iiorb==iforb+isforb) then
-                 skip=.false.
-                 exit
-              end if
+        ! if this is an environment calculation we need mapping on all mpi, so easier to just calculate all transformations on all procs
+        if (ref_frags(ifrag_ref)%astruct_env%nat/=0) then
+           skip=.false.
+        else
+           skip=.true.
+           do iforb=1,ref_frags(ifrag_ref)%fbasis%forbs%norb
+              do iorbp=1,tmb%orbs%norbp
+                 iiorb=iorbp+tmb%orbs%isorb
+                 ! check if this ref frag orbital corresponds to the orbital we want
+                 if (iiorb==iforb+isforb) then
+                    skip=.false.
+                    exit
+                 end if
+              end do
            end do
-        end do
+        end if
 
         if (skip) then
            isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
@@ -1628,6 +1632,8 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            end do
 
            call find_frag_trans(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_ref,rxyz_new,frag_trans_frag(ifrag),Werror)
+
+           if (Werror > W_tol) call f_increment(itoo_big)
 
            call f_free(rxyz_ref)
            call f_free(rxyz_new)
@@ -1662,8 +1668,6 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
               rxyz_frg_new(:,iat)=rxyz(:,isfat+iat)
            end do
-
-           iiat=tmb%orbs%onwhichatom(iiorb)
 
            !this should just be the fragment centre - fragment xyz comes first in rxyz_env so this should be ok
            frag_trans_frag(ifrag)%rot_center=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,&
@@ -1709,12 +1713,20 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            rxyz_new = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_env%nat /),id='rxyz_new')
 
            ! take fragment and closest neighbours (assume that environment atoms were originally the closest)
+           ! put mapping in column 2 to avoid overwriting later
            do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
               rxyz_new(:,iat)=rxyz_frg_new(:,iat)
+              frag_env_mapping(ifrag,iat,2) = isfat+iat
            end do
 
            do iat=1,ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat
               rxyz_new(:,iat+ref_frags(ifrag_ref)%astruct_frg%nat)=rxyz_new_all(:,ipiv(iat))
+              if (ipiv(iat)<=isfat) then
+                 frag_env_mapping(ifrag,iat+ref_frags(ifrag_ref)%astruct_frg%nat,2) = ipiv(iat)
+              else
+                 frag_env_mapping(ifrag,iat+ref_frags(ifrag_ref)%astruct_frg%nat,2) &
+                      = ipiv(iat)+ref_frags(ifrag_ref)%astruct_frg%nat
+              end if
            end do
 
            call f_free(dist)
@@ -1722,138 +1734,149 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
            call f_free(rxyz_frg_new)
            call f_free(rxyz_new_all)
 
-           !also sort rxyz_ref into distance order, but assume it's not periodic for the moment, might need to come back and generalize this
-           rxyz_ref_sorted = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_env%nat /),id='rxyz_ref_sorted')
-           dist = f_malloc(ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat,id='dist')
-           ipiv = f_malloc(ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat,id='ipiv')
-
-           do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
-              dist(iat-ref_frags(ifrag_ref)%astruct_frg%nat) &
-                   = -dsqrt(rxyz_ref(1,iat)**2 + rxyz_ref(2,iat)**2 + rxyz_ref(3,iat)**2)
-           end do
-
-           !check if we have some degenerate distances, as this will affect whether or not we have made the correct mapping between ref and new
-           degen_dist=.false.
-           dtol=0.0001d0
-           do iat=1,ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat
-              do jat=1,iat-1
-                 if (abs(dist(iat)-dist(jat))<dtol) then
-                    degen_dist=.true.
-                    exit
-                 end if
-              end do
-           end do
-
-           call sort_positions(ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat,dist,ipiv)
-
-           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-              rxyz_ref_sorted(:,iat) = rxyz_ref(:,iat)
-           end do
-
-           do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
-              rxyz_ref_sorted(:,iat) &
-                   = rxyz_ref(:,ref_frags(ifrag_ref)%astruct_frg%nat+ipiv(iat-ref_frags(ifrag_ref)%astruct_frg%nat))
-           end do
+           !# don't sort rxyz_ref - just check Wahba permutations for all atoms
+           !# assuming small number of neighbours so saves generalizing things and makes it easier for mapping env -> full
 
 !!$           do iat=1,ref_frags(ifrag_ref)%astruct_env%nat
 !!$              write(*,'(A,3(I3,2x),2x,2(3(F12.6,1x),2x))') 'ifrag,ifrag_ref,iat,rxyz_ref,rxyz_new',&
 !!$                   ifrag,ifrag_ref,iat,rxyz_ref_sorted(:,iat),rxyz_new(:,iat)
 !!$           end do
-
-           call f_free(rxyz_ref)
-
-           call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_ref_sorted,rxyz_new,frag_trans_frag(ifrag),Werror)
  
            !ADD CHECKING OF ATOM TYPE TO ABOVE SORTING PROCEDURE, for the moment assuming identical atom types
            !if error is above some threshold and we have some degenerate distances
            !then try to find ordering which gives lowest Wahba error
-           if (Werror>0.1d0 .and. degen_dist) then
-              write(*,'(A)') 'Problem matching environment atoms to new coordinates, attempting to find correct order'
-              !try different options - for the moment assume only the first distance is degenerate,
-              !i.e. X,X,X,Y,Z not X,X,Y,Y,Z
-              !come up with something more general later            
+           !also give preference to zero rotation
+           !write(*,'(A)') 'Problem matching environment atoms to new coordinates, attempting to find correct order'
+           !write(*,'(A)') 'Checking for ordering giving a more accurate transformation/no rotation'
+        
+           num_env=ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat
 
-              num_deg=1  
-              do iat=2,ref_frags(ifrag_ref)%astruct_env%nat-ref_frags(ifrag_ref)%astruct_frg%nat
-                 if (abs(dist(ipiv(iat))-dist(ipiv(1)))<dtol) num_deg=num_deg+1
-              end do
+           !assume that we have only a small number of identical distances, or this would become expensive...
+           array_tmp=f_malloc(num_env,id='array_tmp')
+           do i=1,num_env
+              array_tmp(i)=i
+           end do
 
-              !assume that we have only a small number of identical distances, or this would become expensive...
-              array=f_malloc(num_deg,id='array')
-              do i=1,num_deg
-                 array(i)=i
-              end do
+           np=fact(num_env)
+           permutations=f_malloc((/num_env,np/),id='permutations')
+           c=0
+           call reorder(num_env,num_env,c,np,array_tmp,permutations)
 
-              np=fact(num_deg)
-              permutations=f_malloc((/num_deg,np/),id='permutations')
-              c=0
-              call reorder(num_deg,num_deg,c,np,array,permutations)
+           rxyz_new_trial = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_env%nat /),id='rxyz_new_trial')
 
-              rxyz_ref_sorted_trial = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_env%nat /),id='rxyz_ref_sorted')
+           !the fragment part doesn't change
+           do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+              rxyz_new_trial(:,iat) = rxyz_new(:,iat)
+           end do
 
-              !the fragment and non-degenerate parts don't change
-              do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
-                 rxyz_ref_sorted_trial(:,iat) = rxyz_ref_sorted(:,iat)
-              end do
+           minerror=1.d100
+           minperm=-1
+           mintheta=-1
 
-              do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1+num_deg,ref_frags(ifrag_ref)%astruct_env%nat
-                 rxyz_ref_sorted_trial(:,iat) = rxyz_ref_sorted(:,iat)
-              end do
-
-              minerror=Werror
-              minperm=-1
-              !test each permutation
-              do i=1,np
-                 do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_frg%nat+num_deg
-                    rxyz_ref_sorted_trial(:,iat) &
-                         = rxyz_ref_sorted(:,ref_frags(ifrag_ref)%astruct_frg%nat &
-                           + permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,i))
-                 end do
-                 call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_ref_sorted_trial,&
-                      rxyz_new,frag_trans_frag(ifrag),Werror)
-                 !do iat=1,ref_frags(ifrag_ref)%astruct_env%nat
-                 !   write(*,'(A,3(I3,2x),2x,2(3(F12.6,1x),2x))') 'ifrag,ifrag_ref,iat,rxyz_ref,rxyz_new',&
-                 !        ifrag,ifrag_ref,iat,rxyz_ref_sorted_trial(:,iat),rxyz_new(:,iat)
-                 !end do
-                 !print*,'i,perms,error',i,permutations(:,i),Werror
-                 if (Werror < minerror) then
-                    minerror = Werror
-                    minperm = i
+           !test each permutation
+           do i=1,np
+              wrong_atom=.false.
+              !first check that the atom types are coherent - if not reject this transformation
+              do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
+                 atom_ref = trim(ref_frags(ifrag_ref)%astruct_env%atomnames(ref_frags(ifrag_ref)%astruct_env%iatype(iat)))
+                 atom_trial = trim(at%astruct%atomnames(at%astruct%iatype(frag_env_mapping(ifrag,&
+                      permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,i)+ref_frags(ifrag_ref)%astruct_frg%nat,2))))
+                 !write(*,'(a,4(i3,2x),2(a2,2x),3(i3,2x))') 'ifrag,ifrag_ref,i,iat,atom_ref,atom_trial',ifrag,ifrag_ref,i,iat,&
+                 !     trim(atom_ref),trim(atom_trial),&
+                 !      frag_env_mapping(ifrag,iat,2),permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,i),&
+                 !      frag_env_mapping(ifrag,permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,i)+ref_frags(ifrag_ref)%astruct_frg%nat,2)
+                 if (trim(atom_ref)/=trim(atom_trial)) then
+                    wrong_atom=.true.
+                    exit
                  end if
               end do
-              ! use this as final transformation
-              if (minperm/=-1) then
-                 print*,'Found lower value of cost function:',minerror,minperm
-                 do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_frg%nat+num_deg
-                    rxyz_ref_sorted_trial(:,iat) &
-                         = rxyz_ref_sorted(:,ref_frags(ifrag_ref)%astruct_frg%nat &
-                           + permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,minperm))
-                 end do
-                 call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_ref_sorted_trial,&
-                      rxyz_new,frag_trans_frag(ifrag),Werror)
-              end if
+              if (wrong_atom) cycle
 
-              call f_free(rxyz_ref_sorted_trial)
-              call f_free(array)
-              call f_free(permutations)
+              do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
+                 rxyz_new_trial(:,iat) &
+                      = rxyz_new(:,ref_frags(ifrag_ref)%astruct_frg%nat &
+                        + permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,i))
+              end do
+              call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_new_trial,&
+                   rxyz_ref,frag_trans_frag(ifrag),Werror)
+              if (Werror > W_tol) call f_increment(itoo_big)
+
+              !do iat=1,ref_frags(ifrag_ref)%astruct_env%nat
+              !   write(*,'(A,3(I3,2x),2x,2(3(F12.6,1x),2x))') 'ifrag,ifrag_ref,iat,rxyz_new,rxyz_ref',&
+              !        ifrag,ifrag_ref,iat,rxyz_new_trial(:,iat),rxyz_ref(:,iat)
+              !end do
+              !write(*,'(A,I3,2x,3(I3,1x),1x,F12.6)') 'i,perms,error: ',i,permutations(:,i),Werror
+              !prioritize no rotation
+              !could improve logic/efficiency here, i.e. stop checking once below some threshold
+              if ((Werror < minerror .and. (mintheta/=0 .or. minerror-Werror>1e-6)) &
+                 .or. (Werror-minerror<1e-6.and.frag_trans_frag(ifrag)%theta==0.0d0)) then
+                 mintheta = frag_trans_frag(ifrag)%theta
+                 minerror = Werror
+                 minperm = i
+              end if
+           end do
+           ! use this as final transformation
+           if (minperm/=-1) then
+              !LG: commented it out, maybe it might be useful for debugging
+              !write(*,'(A,I3,2x,2(F12.6,2x))') 'Final value of cost function:',&
+              !     minperm,minerror,mintheta/(4.0_gp*atan(1.d0)/180.0_gp)
+              do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
+                 rxyz_new_trial(:,iat) &
+                      = rxyz_new(:,ref_frags(ifrag_ref)%astruct_frg%nat &
+                        + permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,minperm))
+              end do
+              call find_frag_trans(ref_frags(ifrag_ref)%astruct_env%nat,rxyz_new_trial,&
+                   rxyz_ref,frag_trans_frag(ifrag),Werror)
+              if (Werror > W_tol) call f_increment(itoo_big)
+           
+              do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat
+                 frag_env_mapping(ifrag,iat,3) = frag_env_mapping(ifrag,iat,2)
+              end do
+              do iat=ref_frags(ifrag_ref)%astruct_frg%nat+1,ref_frags(ifrag_ref)%astruct_env%nat
+                 frag_env_mapping(ifrag,iat,3) = frag_env_mapping(ifrag,ref_frags(ifrag_ref)%astruct_frg%nat &
+                        + permutations(iat-ref_frags(ifrag_ref)%astruct_frg%nat,minperm),2)
+              end do
+
+              ! fill in 1st and 2nd columns of env_mapping      
+              itmb = 0
+              do iat=1,ref_frags(ifrag_ref)%astruct_env%nat
+                 do iorb=1,tmb%orbs%norb
+                    if (tmb%orbs%onwhichatom(iorb) == frag_env_mapping(ifrag,iat,3)) then
+                       itmb = itmb+1
+                       frag_env_mapping(ifrag,itmb,1) = iorb
+                       frag_env_mapping(ifrag,itmb,2) = iat
+                    end if
+                 end do
+              end do
+              if (itmb /= ref_frags(ifrag_ref)%nbasis_env) stop 'Error with nbasis_env'
+
+              !do iorb=1,ref_frags(ifrag_ref)%nbasis_env
+              !   write(*,'(A,5(1x,I4))') 'mapping: ',ifrag,ifrag_ref,frag_env_mapping(ifrag,iorb,:)
+              !end do
+
+           else
+              stop 'Error finding environment transformation'
            end if
 
-
-           call f_free(dist)
-           call f_free(ipiv)
-           call f_free(rxyz_ref_sorted)
+           call f_free(rxyz_new_trial)
+           call f_free(array_tmp)
+           call f_free(permutations)
+           call f_free(rxyz_ref)
            call f_free(rxyz_new)
 
         end if
 
-!!$        write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),2(F12.6,1x))') 'ifrag,ifrag_ref,rot_axis,theta,error',&
-!!$             ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),Werror
-!!$        write(*,*) ''
-!!$        call yaml_map('Rmat again',frag_trans_frag(ifrag)%Rmat)
+        !write(*,'(A,1x,I3,1x,I3,1x,3(F12.6,1x),2(F12.6,1x))') 'ifrag,ifrag_ref,rot_axis,theta,error',&
+        !     ifrag,ifrag_ref,frag_trans_frag(ifrag)%rot_axis,frag_trans_frag(ifrag)%theta/(4.0_gp*atan(1.d0)/180.0_gp),Werror
+        !write(*,*) ''
 
         isfat=isfat+ref_frags(ifrag_ref)%astruct_frg%nat     
         isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
      end do
+
+     !if (bigdft_mpi%nproc > 1) then
+     !   call mpiallred(frag_env_mapping, mpi_sum, comm=bigdft_mpi%mpi_comm)
+     !end if
 
      allocate(frag_trans_orb(tmb%orbs%norbp))
 
@@ -1950,6 +1973,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
               end do
 
               call find_frag_trans(min(4,ref_frags(ifrag_ref)%astruct_frg%nat),rxyz4_ref,rxyz4_new,frag_trans_orb(iorbp),Werror)
+              if (Werror > W_tol) call f_increment(itoo_big)
 
 !!$              print *,'transformation of the fragment, iforb',iforb
 !!$              write(*,'(A,I3,1x,I3,1x,3(F12.6,1x),F12.6)') 'ifrag,iorb,rot_axis,theta',&
@@ -1970,7 +1994,12 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
      call f_free(rxyz4_ref)
      call f_free(rxyz4_new)
 
-  end if
+  end if fragment_if
+
+  !reduce the number of warnings
+  if (nproc >1) call mpiallred(itoo_big,1,op=MPI_SUM,comm=bigdft_mpi%mpi_comm)
+
+  if (itoo_big > 0 .and. iproc==0) call yaml_warning('Found '//itoo_big//' warning of high Wahba cost functions')
 
   call timing(iproc,'tmbrestart','OF')
   call reformat_supportfunctions(iproc,nproc,&
@@ -1989,36 +2018,46 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   call f_free(rxyz_old)
   call deallocate_local_zone_descriptors(lzd_old)
 
-!!$  ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
-!!$  ind=1
-!!$  gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
-!!$  do iorbp=1,tmb%orbs%norbp
-!!$     iiorb=iorbp+tmb%orbs%isorb
-!!$     ilr = tmb%orbs%inwhichlocreg(iiorb)
-!!$  
-!!$     call f_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-!!$     call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
-!!$          tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
-!!$          1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
-!!$   
-!!$     call plot_wf(trim(dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
-!!$          tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
-!!$     !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
-!!$     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
-!!$   
-!!$     ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
-!!$  end do
-!!$  call f_free(gpsi)
-!!$  ! END DEBUG 
-
+if (.false.) then
+  ! DEBUG - plot in global box - CHECK WITH REFORMAT ETC IN LRs
+  ind=1
+  gpsi=f_malloc(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
+  do iorbp=1,tmb%orbs%norbp
+     iiorb=iorbp+tmb%orbs%isorb
+     ilr = tmb%orbs%inwhichlocreg(iiorb)
+  
+     !call f_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
+     call f_zero(gpsi)
+     call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+          tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+          1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), &
+          tmb%psi(ind:ind+tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f), gpsi)
+     !call Lpsi_to_global2(iproc, tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f, &
+     !     tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f, &
+     !     1, 1, 1, tmb%Lzd%glr, tmb%Lzd%Llr(ilr), tmb%psi(ind), gpsi)
+   
+     !call plot_wf(trim(dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
+     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
+     call plot_wf(.false.,trim(dir_output)//trim(adjustl(yaml_toa(iiorb))),1,at,1.0_dp,tmb%Lzd%glr,&
+          tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,gpsi)
+     !call plot_wf(trim(adjustl(orbname)),1,at,1.0_dp,tmb%Lzd%Llr(ilr),&
+     !     tmb%Lzd%hgrids(1),tmb%Lzd%hgrids(2),tmb%Lzd%hgrids(3),rxyz,tmb%psi)
+   
+     ind = ind + tmb%Lzd%Llr(ilr)%wfd%nvctr_c+7*tmb%Lzd%Llr(ilr)%wfd%nvctr_f
+  end do
+  call f_free(gpsi)
+  ! END DEBUG 
+end if
 
   ! Read the coefficient file for each fragment and assemble total coeffs
   ! coeffs should eventually go into ref_frag array and then point? or be copied to (probably copied as will deallocate frag)
   unitwf=99
   isforb=0
-  do ifrag=1,input_frag%nfrag
+  ! can directly loop over reference fragments here
+  !do ifrag=1,input_frag%nfrag
+  do ifrag_ref=1,input_frag%nfrag_ref
      ! find reference fragment this corresponds to
-     ifrag_ref=input_frag%frag_index(ifrag)
+     !ifrag_ref=input_frag%frag_index(ifrag)
 
      ! read coeffs/kernel
      if (kernel_restart) then
@@ -2030,16 +2069,25 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
              ref_frags(ifrag_ref)%kernel, ref_frags(ifrag_ref)%astruct_frg%nat) 
 
 
-     !!if (iproc==0) then
-     !!   open(32)
-     !!   do itmb=1,tmb%orbs%norb
-     !!      do jtmb=1,tmb%orbs%norb
-     !!         write(32,*) itmb,jtmb,tmb%coeff(itmb,jtmb),ref_frags(ifrag_ref)%kernel(itmb,jtmb,1)
-     !!      end do
-     !!   end do
-     !!   write(32,*) ''
-     !!   close(32)
-     !!end if
+        if (ref_frags(ifrag_ref)%nbasis_env/=0) then
+           full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//'density_kernel_env.bin'
+           !should fragments have some knowledge of spin?
+           !assume kernel is in binary if tmbs are...
+           binary=(iformat == WF_FORMAT_BINARY)
+           call read_dense_matrix(full_filename, binary, tmb%orbs%nspinor, ref_frags(ifrag_ref)%nbasis_env, &
+                ref_frags(ifrag_ref)%kernel_env, ref_frags(ifrag_ref)%astruct_env%nat) 
+        end if
+
+        !!if (iproc==0) then
+        !!   open(32)
+        !!   do itmb=1,tmb%orbs%norb
+        !!      do jtmb=1,tmb%orbs%norb
+        !!         write(32,*) itmb,jtmb,tmb%coeff(itmb,jtmb),ref_frags(ifrag_ref)%kernel(itmb,jtmb,1)
+        !!      end do
+        !!   end do
+        !!   write(32,*) ''
+        !!   close(32)
+        !!end if
 
      else 
         full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_coeff.bin'
@@ -2049,7 +2097,7 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
         call f_close(unitwf)
      end if
 
-     isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
+     !isforb=isforb+ref_frags(ifrag_ref)%fbasis%forbs%norb
   end do
 
 
@@ -2070,34 +2118,6 @@ subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb
   call timing(iproc,'tmbrestart','OF')
 
 contains
-
-  function dist_and_shift(periodic,alat,A,B)
-    implicit none
-    real(kind=8), intent(in) :: A
-    real(kind=8), intent(inout) :: B
-    real(kind=8) :: dist_and_shift
-    real(kind=8), intent(in) :: alat
-    logical, intent(in) :: periodic
-    !local variables
-    integer :: i
-    real(kind=8) :: shift
-
-    !shift the B vector on its periodic image
-    dist_and_shift = A - B
-    if (periodic) then
-       !periodic image, if distance is bigger than half of the box
-       shift = 0.0d0
-       if (dist_and_shift > 0.5d0*alat) then
-         shift = alat
-       else if (dist_and_shift < -0.5d0*alat) then
-         shift = -alat
-       end if
-       !shift = real(floor(dist_and_shift+0.5d0),kind=8)
-       dist_and_shift = dist_and_shift - shift
-       B = B + shift
-    end if
-
-  end function dist_and_shift
 
   recursive subroutine reorder(nf,n,c,np,array_in,permutations)
     implicit none
@@ -2155,7 +2175,7 @@ subroutine initialize_linear_from_file(iproc,nproc,input_frag,astruct,rxyz,orbs,
   use module_defs
   use yaml_output
   use module_fragments
-  use module_interfaces, except_this_one => initialize_linear_from_file
+  use module_interfaces, only: open_filename_of_iorb
   use locregs, only: locreg_null
   use io, only: io_read_descr_linear
   use public_enums
@@ -2482,7 +2502,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   use module_base
   use module_types
   use module_fragments
-  use module_interfaces, except_this_one=>reformat_supportfunctions
+  use module_interfaces, only: reformat_one_supportfunction
   use yaml_output
   use bounds, only: ext_buffers
   implicit none
@@ -2498,7 +2518,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
   logical, intent(in) :: add_derivatives
   character(len=*), intent(in) :: input_dir
   type(fragmentInputParameters), intent(in) :: input_frag
-  type(system_fragment), dimension(:), intent(in) :: ref_frags
+  type(system_fragment), dimension(input_frag%nfrag_ref), intent(in) :: ref_frags
   real(gp),intent(out) :: max_shift
   !Local variables
   character(len=*), parameter :: subname='reformatmywaves'
@@ -2787,7 +2807,7 @@ subroutine reformat_supportfunctions(iproc,nproc,at,rxyz_old,rxyz,add_derivative
 
       end if
 
-  end do
+   end do
 
   ! Get the maximal shift among all tasks
   if (nproc>1) then

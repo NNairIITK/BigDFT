@@ -15,7 +15,8 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
    use module_base
    use module_dpbox, only: denspot_distribution
    use module_types
-   use module_interfaces, except_this_one => direct_minimization
+   use module_interfaces, only: FullHamiltonianApplication, free_full_potential, &
+        & hpsitopsi, last_orthon, orthogonalize, write_eigen_objects, write_energies
    use module_xc
    use yaml_output
    use communications, only: transpose_v, untranspose_v
@@ -396,12 +397,14 @@ subroutine davidson(iproc,nproc,in,at,&
    use module_base
    use module_dpbox, only: denspot_distribution
    use module_types
-   use module_interfaces, except_this_one => davidson
+   use module_interfaces, only: FullHamiltonianApplication, free_full_potential, &
+        & orthogonalize, write_eigen_objects
    use module_xc
    use yaml_output
    use communications_base, only: comms_cubic
    use communications, only: transpose_v, untranspose_v
    use rhopotential, only: full_local_potential
+   use locreg_operations, only: confpot_data
    implicit none
    integer, intent(in) :: iproc,nproc
    integer, intent(in) :: nvirt
@@ -1439,7 +1442,7 @@ END SUBROUTINE update_psivirt
 subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,nspin,psivirt,npsidim)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, only: gaussian_pswf_basis
    use gaussians, only: gaussian_basis, deallocate_gwf, gaussian_overlap
    use communications_base, only: comms_cubic
    use communications, only: transpose_v
@@ -1838,7 +1841,7 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
   use module_base, only: gp,wp
   use locregs, only: locreg_descriptors
   use module_types, only: atoms_data,orbitals_data
-  use module_interfaces
+  use module_interfaces, only: plot_wf
   implicit none
   !>number of eigenfuncitions to be plotted close to the fermi level
   !! in the case of negative nplot, only the occupied orbitals are plotted

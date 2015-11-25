@@ -1,4 +1,16 @@
 ## Process this file with automake to produce Makefile.in
+chks=wrappers.out.report.yaml posinp.report.yaml 
+
+if BUILD_BINDINGS
+SHORT_CHECK = $(chks)
+LONG_CHECK = $(SHORT_CHECK)
+else
+SHORT_CHECK = 
+LONG_CHECK = $(chks)
+endif
+
+include $(srcdir)/../check.mk
+
 
 SUBDIRS =
 
@@ -19,8 +31,6 @@ check_wrappers_LDADD = -lbigdft-1
 EXTRA_DIST = wrappers.out.ref.yaml posinp.ref.yaml
 CLEANFILES = default.* posinp.yaml time.yaml wrappers.out.yaml *report.yaml input_minimal.yaml input.yaml \
 			 report report_remarks
-
-check: wrappers.out.report.yaml posinp.report.yaml
 
 if BUILD_DYNAMIC_LIBS
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
