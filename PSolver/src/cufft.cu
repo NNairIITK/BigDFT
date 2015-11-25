@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "cufft.h"
 #include "cuda.h"
+#include "cublas_v2.h"
 #include "cuda_runtime_api.h"
 #include "config.h"
  
@@ -21,6 +22,34 @@
 
 #define TILE_DIM  8
 
+
+static const char *_cublasGetErrorString(cublasStatus_t error)
+{
+    switch (error)
+    {
+        case CUBLAS_STATUS_SUCCESS:
+            return "CUBLAS_STATUS_SUCCESS";
+        case CUBLAS_STATUS_NOT_INITIALIZED:
+            return "CUBLAS_STATUS_NOT_INITIALIZED";
+        case CUBLAS_STATUS_ALLOC_FAILED:
+            return "CUBLAS_STATUS_ALLOC_FAILED";
+        case CUBLAS_STATUS_INVALID_VALUE:
+            return "CUBLAS_STATUS_INVALID_VALUE";
+        case CUBLAS_STATUS_ARCH_MISMATCH:
+            return "CUBLAS_STATUS_ARCH_MISMATCH";
+        case CUBLAS_STATUS_MAPPING_ERROR:
+            return "CUBLAS_STATUS_MAPPING_ERROR";
+        case CUBLAS_STATUS_EXECUTION_FAILED:
+            return "CUBLAS_STATUS_EXECUTION_FAILED";
+        case CUBLAS_STATUS_INTERNAL_ERROR:
+            return "CUBLAS_STATUS_INTERNAL_ERROR";
+        case CUBLAS_STATUS_NOT_SUPPORTED:
+            return "CUBLAS_STATUS_NOT_SUPPORTED";
+        case CUBLAS_STATUS_LICENSE_ERROR:
+            return "CUBLAS_STATUS_LICENSE_ERROR";
+    }
+    return "<unknown>";
+}
 
 static const char *_cufftGetErrorString(cufftResult error)
 {
@@ -70,7 +99,19 @@ inline void __cufftAssert(cufftResult code, const char *file, const int line, bo
    {
       fprintf(stderr, "cufftAssert : %s %s %d.\n",
       _cufftGetErrorString(code), file, line);
-      if (abort) exit(code);
+      if (abort) exit(-1);
+   }
+}
+
+#define cublasErrchk(ans) { __cublasAssert((ans), __FILE__, __LINE__); }
+
+inline void __cublasAssert(cublasStatus_t code, const char *file, const int line, bool abort=true)
+{
+   if(code !=CUBLAS_STATUS_SUCCESS) 
+   {
+      fprintf(stderr, "cublasAssert : %s %s %d.\n",
+      _cublasGetErrorString(code), file, line);
+      if (abort) exit(-1);
    }
 }
 
@@ -94,33 +135,33 @@ extern "C" void FC_FUNC(cudamemset, CUDAMEMSET) (Real **d_data, int* value, int*
 }
 
 extern "C" void FC_FUNC(cudafree, CUDAFREE) (Real **d_data) {
-
   cudaFree(*d_data);
 }
 
 extern "C" void FC_FUNC(cufftdestroy, CUFFTDESTROY) (cufftHandle *plan) {
-
   cufftDestroy(*plan);
 }
 
 // set device memory
 extern "C" void FC_FUNC_(reset_gpu_data, RESET_GPU_DATA)(int *size, Real* h_data, Real **d_data){
-
- cudaMemcpy(*d_data, h_data, sizeof(Real)*(*size),
+  cudaMemcpy(*d_data, h_data, sizeof(Real)*(*size),
          cudaMemcpyHostToDevice);
- if( cudaGetLastError() != cudaSuccess)
-      printf("transfer error\n");
-
+  gpuErrchk( cudaPeekAtLastError() );
 }
 
 // copy data on the card
 extern "C" void FC_FUNC_(copy_gpu_data, COPY_GPU_DATA)(int *size, Real** dest_data, Real **send_data){
-
- cudaMemcpy(*dest_data, *send_data, sizeof(Real)*(*size),
+  cudaMemcpy(*dest_data, *send_data, sizeof(Real)*(*size),
          cudaMemcpyDeviceToDevice);
- if( cudaGetLastError() != cudaSuccess)
-      printf("transfer error\n");
+  gpuErrchk( cudaPeekAtLastError() );
+}
 
+
+// read device memory
+extern "C" void FC_FUNC_(get_gpu_data, GET_GPU_DATA)(int *size, Real *h_data, Real **d_data) {
+  cudaMemcpy(h_data, *d_data, sizeof(Real)*(*size),
+         cudaMemcpyDeviceToHost);
+  gpuErrchk( cudaPeekAtLastError() );
 }
 
 // set device memory
@@ -180,14 +221,6 @@ if(status != cudaSuccess){fprintf(stderr, "%s\n", cudaGetErrorString(status));}
 
 }
 
-// read device memory
-extern "C" void FC_FUNC_(get_gpu_data, GET_GPU_DATA)(int *size, Real *h_data, Real **d_data) {
-
- cudaMemcpy(h_data, *d_data, sizeof(Real)*(*size),
-         cudaMemcpyDeviceToHost);
- if (cudaGetLastError() != cudaSuccess)
-        printf("transfer back error\n");
-}
 
 
 // determine which method can be used for allocating data on the GPU
@@ -1539,3 +1572,11 @@ extern "C" void FC_FUNC_(gpu_post_computation,GPU_POST_COMPUTATION)(int* NX_p, i
   gpuErrchk( cudaPeekAtLastError() );
 }
 
+
+// set device memory
+extern "C" void FC_FUNC_(poisson_cublas_daxpy, POISSON_CUBLAS_DAXPY)(int *size, const double* alpha, Real** d_x,int* facx, Real ** d_y, int* facy){
+  cublasHandle_t handle;
+  cublasCreate(&handle);
+  cublasErrchk(cublasDaxpy(handle,*size,alpha,*d_x,*facx,*d_y,*facy));
+  cublasDestroy(handle);
+}

@@ -711,9 +711,7 @@ module overlap_point_to_point
                    tmpint = TRANSFER(phi%res_GPU, tmpint)
                    tmpint = tmpint + jshift
                    tmpaddr= TRANSFER(tmpint, tmpaddr)
-               print *,"res", tmpaddr, "from", phi%data_GPU, tmpint,jshift
-
-                   call cublas_DAXPY(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr_gpu,1,&
+                   call poisson_cublas_daxpy(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr_gpu,1,&
                      !dpsiw(1,1,igroup,OP2P%irecv_res),1,&
                    tmpaddr,1)
                 end if
@@ -739,8 +737,8 @@ module overlap_point_to_point
                   tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_res(OP2P%nres_comms),simulate=OP2P%simulate,verbose=OP2P%verbose)
               else
-               call copy_gpu_data(OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,OP2P%resw(igroup,3)%ptr_gpu,&
-                     OP2P%ndim* maxval(OP2P%nobj_par(:,OP2P%group_id(igroup))))!dpsiw(1,1,igroup,OP2P%isend_res))
+               call copy_gpu_data(OP2P%ndim* maxval(OP2P%nobj_par(:,OP2P%group_id(igroup))),&
+                    OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,OP2P%resw(igroup,3)%ptr_gpu)
                call mpisend(OP2P%resw(igroup,OP2P%isend_res)%ptr_gpu,&!dpsiw(1,1,igroup,OP2P%isend_res),&
                   count,dest=dest,&
                   tag=iproc+nproc+2*nproc*OP2P%istep,comm=OP2P%mpi_comm,&
@@ -877,7 +875,7 @@ module overlap_point_to_point
                    if(OP2P%gpudirect/=1)then
                      call f_zero(OP2P%resw(igroup,3)%ptr)
                    else
-                     norbp=sum(OP2P%nobj_par(iproc,:))
+                     norbp=maxval(OP2P%nobj_par(iproc,:))
                      call cudamemset(OP2P%resw(igroup,3)%ptr_gpu, 0, OP2P%ndim*norbp,i_stat)
                    end if
                 end if
@@ -923,7 +921,7 @@ module overlap_point_to_point
        end do step_loop
 !retrieve result from GPU
        if(OP2P%gpudirect == 1) then 
-         call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%res,iter%phi_i%res_GPU)
+         call get_gpu_data(OP2P%ndim*maxval(OP2P%nobj_par(iproc,:)),iter%phi_i%res,iter%phi_i%res_GPU)
          if(C_ASSOCIATED(iter%phi_i%data_GPU)) then
            call cudafree(iter%phi_i%data_GPU)
            iter%phi_i%data_GPU=C_NULL_PTR
