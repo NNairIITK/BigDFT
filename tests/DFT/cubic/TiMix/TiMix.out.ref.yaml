@@ -654,9 +654,6 @@
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - 
-   Do not read the linear input files in the old format. If you use the .yaml format you can 
-   igno
  - PSP generated with a different XC. Input XC is "XC: Perdew, Burke & Ernzerhof"
  - Odd number of electrons, no closed shell system
  - No convergence within the allowed number of minimization steps

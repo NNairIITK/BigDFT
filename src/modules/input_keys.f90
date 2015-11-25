@@ -602,6 +602,7 @@ contains
     use fragment_base
     use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
+    use PStypes, only: SETUP_VARIABLES,VERBOSITY
     implicit none
     !Arguments
     type(input_variables), intent(out) :: in
@@ -647,7 +648,7 @@ contains
     call dict_copy(src=dict // PSOLVER, dest=in%PS_dict)
     call dict_copy(src=in%PS_dict, dest=in%PS_dict_seq)
     !then other treatments for the sequential solver might be added
-
+    call set(in%PS_dict_seq // SETUP_VARIABLES // VERBOSITY, .false.)
 
     ! Add missing pseudo information.
     projr = dict // PERF_VARIABLES // PROJRAD
