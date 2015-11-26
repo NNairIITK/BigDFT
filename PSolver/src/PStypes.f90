@@ -38,12 +38,12 @@ module PStypes
   character(len=*), parameter :: FD_ORDER                = 'fd_order' 
   character(len=*), parameter :: ITERMAX                 = 'itermax' 
   character(len=*), parameter :: MINRES                  = 'minres' 
-  character(len=*), parameter :: SETUP_VARIABLES         = 'setup'
+  character(len=*), parameter, public :: SETUP_VARIABLES         = 'setup'
   character(len=*), parameter :: ACCEL                   = 'accel' 
   character(len=*), parameter :: KEEP_GPU_MEMORY         = 'keep_gpu_memory' 
   character(len=*), parameter :: TASKGROUP_SIZE_KEY      = 'taskgroup_size' 
   character(len=*), parameter :: GLOBAL_DATA             = 'global_data' 
-  character(len=*), parameter :: VERBOSITY               = 'verbose' 
+  character(len=*), parameter, public :: VERBOSITY               = 'verbose' 
   character(len=*), parameter :: OUTPUT                  = 'output' 
   character(len=*), parameter :: DICT_COMPLETED          = '__dict_has_been_checked__'//ATTRS
 

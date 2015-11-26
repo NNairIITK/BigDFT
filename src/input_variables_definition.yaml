@@ -32,9 +32,9 @@
       function/wavelet basis.
       Values are in most cases between 0.3 and 0.6 bohr.
      RANGE: [0., 4.]
-     default: [0.45, 0.45, 0.45]
-     fast: [0.55, 0.55, 0.55]
-     accurate: [0.30, 0.30, 0.30]
+     #default: [0.45, 0.45, 0.45]
+     #fast: [0.55, 0.55, 0.55]
+     #accurate: [0.30, 0.30, 0.30]
    rmult:
      COMMENT: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
      DESCRIPTION: Coarse and fine multiplier as [4.0, 8.0].
@@ -385,6 +385,22 @@
         care of during the Davidson iterations.
      RANGE: [0, 9999]
      default: 0
+   gnrm_cv_virt:
+     COMMENT: convergence criterion gradient for virtual orbitals
+     DESCRIPTION: |
+       Norm of the gradient for virtual orbitals convergence.
+       Calculates the results on the first nvirt orbitals
+     RANGE: [1.e-20, 1.]
+     default: 1.e-4
+     fast: 1.e-3
+     accurate: 1.e-5
+   itermax_virt:
+     COMMENT: Max. iterations of wfn. opt. steps for virtual orbitals
+     DESCRIPTION: |
+       Maximum number of gradient evaluations for a cycle of a wavefunction optimization for
+       virtual orbitals.
+     RANGE: [0, 10000]
+     default: 50
    disablesym:
      COMMENT: Disable the symmetry detection
      DESCRIPTION: |
@@ -1012,7 +1028,7 @@
        The stop criterion on the residue of the potential or the density. Typical values are in
        the order of 1e-10 to 1e-12. 
      RANGE: [0., 10.]
-     default: 1e-4
+     default: 1.e-4
    norbsempty:
      COMMENT: No. of additional bands
      DESCRIPTION: |
