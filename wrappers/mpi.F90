@@ -2440,7 +2440,7 @@ contains
     if (sim) return
     if(present(offset) .and. offset/=0)then
       tmpint = TRANSFER(buf, tmpint)
-      tmpint = tmpint + offset*mpisize(type)
+      tmpint = tmpint + offset*mpitypesize(type)
       tmpaddr= TRANSFER(tmpint, tmpaddr)
       call c_f_pointer(tmpaddr, a)
     else
