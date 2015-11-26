@@ -54,7 +54,8 @@ module pexsi
                  mat_h, mat_s, charge, npoles, mumin, mumax, mu, temperature, tol_charge, &
                  kernel, energy)
       use module_base
-      use f_ppexsi_interface
+      use pexsi_base, only: f_ppexsi_options
+      use pexsi_interfaces
       use yaml_output
       use iso_c_binding
       implicit none

@@ -40,6 +40,16 @@ cp2k_interfacemodCAPmod = CP2K_FAKE MODULE_CP2K
 cp2k_ld =
 endif
 
+if HAVE_PEXSI
+PEXSI_SRC = pexsi_base.f90 pexsi_interfaces.f90 pexsi.f90
+pexsi_ld= @PEXSI_LINKLINE@ @LINALG_LIBS@
+else
+PEXSI_SRC = pexsi_base.f90 pexsi_interfaces_fake.f90 pexsi.f90
+pexsi_ld= 
+endif
+
+
+
 libmodules_a_SOURCES = ab7_mixing.f90 \
 	dpbox.f90 \
 	psp_projectors.f90 \
@@ -100,8 +110,7 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	locregs_init.f90 \
 	sort.f90 \
 	forces_linear.f90 \
-	pexsi.f90 \
-	f_interface.f90 \
+	$(PEXSI_SRC) \
 	$(bindings_headers) \
 	$(LIBXC_MODULE) \
 	$(BLACS) \
@@ -172,7 +181,8 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
     MODULE_DFTBP.@MODULE_EXT@ \
 	ORBITALBASIS.@MODULE_EXT@ \
-	F_PPEXSI_INTERFACE.@MODULE_EXT@ \
+	PEXSI_BASE.@MODULE_EXT@ \
+	PEXSI_INTERFACES.@MODULE_EXT@ \
 	PEXSI.@MODULE_EXT@ \
 	MODULE_CP2K.@MODULE_EXT@
 else
@@ -237,7 +247,8 @@ modules = module_types.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@ \
 	orbitalbasis.@MODULE_EXT@ \
     module_dftbp.@MODULE_EXT@ \
-	f_ppexsi_interface.@MODULE_EXT@ \
+	pexsi_base.@MODULE_EXT@ \
+	pexsi_interfaces.@MODULE_EXT@ \
 	pexsi.@MODULE_EXT@ \
 	module_cp2k.@MODULE_EXT@
 else
@@ -320,7 +331,11 @@ orbital_basis.o:  types.o communications_base.o interfaces.o
 orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
 locregs_init.o: types.o communications.o
 forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o transposed_operations.o
-pexsi.o: f_interface.o
+#pexsi.o also depends on pexsi_interfaces, but it is not known which one...
+pexsi.o: pexsi_base.o
+pexsi_interfaces.o: pexsi_base.o
+pexsi_interfaces_fake.o: pexsi_base.o
+
 
 # Copy modules in a common include directory.
 all: all-am insmod
