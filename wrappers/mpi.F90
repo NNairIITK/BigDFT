@@ -2396,7 +2396,7 @@ contains
 
   end subroutine mpisend_d0
 
-  subroutine mpisend_gpu(buf,count,dest,tag,comm,request,simulate,verbose,type)
+  subroutine mpisend_gpu(buf,count,dest,tag,comm,request,simulate,verbose,type,offset)
     use yaml_output
     use iso_c_binding
     implicit none
@@ -2408,11 +2408,13 @@ contains
     integer, intent(out), optional :: request !<toggle the isend operation
     logical, intent(in), optional :: simulate,verbose
     integer, intent(in) :: type
+    integer, intent(in), optional :: offset
     real(f_double),pointer :: a !fake intent(in)
     !local variables
     logical :: verb,sim
-    integer :: mpi_comm,ierr,tag_
-    
+    integer :: mpi_comm,ierr,tag_,tmpint
+    type(c_ptr) :: tmpaddr
+
     mpi_comm=MPI_COMM_WORLD
     if (present(comm)) mpi_comm=comm
     if (present(tag)) then
@@ -2436,7 +2438,14 @@ contains
     sim=.false.
     if (present(simulate)) sim=simulate
     if (sim) return
-    call c_f_pointer(buf, a)
+    if(present(offset) .and. offset/=0)then
+      tmpint = TRANSFER(buf, tmpint)
+      tmpint = tmpint + offset*mpisize(type)
+      tmpaddr= TRANSFER(tmpint, tmpaddr)
+      call c_f_pointer(tmpaddr, a)
+    else
+      call c_f_pointer(buf, a)
+    end if
 !    if (present(type)) then
       if (present(request)) then
          call MPI_ISEND(a,count,type,dest,tag,mpi_comm,request,ierr)

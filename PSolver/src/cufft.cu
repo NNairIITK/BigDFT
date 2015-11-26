@@ -1574,9 +1574,9 @@ extern "C" void FC_FUNC_(gpu_post_computation,GPU_POST_COMPUTATION)(int* NX_p, i
 
 
 // set device memory
-extern "C" void FC_FUNC_(poisson_cublas_daxpy, POISSON_CUBLAS_DAXPY)(int *size, const double* alpha, Real** d_x,int* facx, Real ** d_y, int* facy){
+extern "C" void FC_FUNC_(poisson_cublas_daxpy, POISSON_CUBLAS_DAXPY)(int *size, const double* alpha, Real** d_x,int* facx, Real ** d_y, int* facy,int* offset_y){
   cublasHandle_t handle;
   cublasCreate(&handle);
-  cublasErrchk(cublasDaxpy(handle,*size,alpha,*d_x,*facx,*d_y,*facy));
+  cublasErrchk(cublasDaxpy(handle,*size,alpha,*d_x,*facx,*d_y+*offset_y*sizeof(Real),*facy));
   cublasDestroy(handle);
 }

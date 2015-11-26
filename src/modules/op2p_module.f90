@@ -631,15 +631,11 @@ module overlap_point_to_point
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate) ! dest==OP2P%iproc_dump
              else
-              ! C pointer arithmetic in Fortran. Dirty.
-              tmpint = TRANSFER(phi%data_GPU, tmpint)
-              tmpint = tmpint + jshift
-              tmpaddr= TRANSFER(tmpint, tmpaddr)
-               call mpisend(tmpaddr,count,&
+               call mpisend(phi%data_GPU,count,&
                   dest=dest,tag=iproc,comm=OP2P%mpi_comm,&
                   request=OP2P%requests_data(OP2P%ndata_comms),&
                   verbose=OP2P%verbose,simulate=OP2P%simulate,&
-                  type=MPI_DOUBLE_PRECISION) ! dest==OP2P%iproc_dump
+                  type=MPI_DOUBLE_PRECISION,offset=jshift) ! dest==OP2P%iproc_dump
              end if 
           end if
 
@@ -708,12 +704,9 @@ module overlap_point_to_point
 
 !void CUBLAS_DAXPY (const int *n, const double *alpha, const devptr_t *devPtrx,
 !                   const int *incx, const devptr_t *devPtry, const int *incy)
-                   tmpint = TRANSFER(phi%res_GPU, tmpint)
-                   tmpint = tmpint + jshift
-                   tmpaddr= TRANSFER(tmpint, tmpaddr)
                    call poisson_cublas_daxpy(OP2P%ndim*OP2P%nobj_par(iproc,igr),1.0_wp,OP2P%resw(igroup,OP2P%irecv_res)%ptr_gpu,1,&
                      !dpsiw(1,1,igroup,OP2P%irecv_res),1,&
-                   tmpaddr,1)
+                   phi%res_GPU,1,jshift)
                 end if
              end if
           end do
@@ -875,7 +868,7 @@ module overlap_point_to_point
                    if(OP2P%gpudirect/=1)then
                      call f_zero(OP2P%resw(igroup,3)%ptr)
                    else
-                     norbp=maxval(OP2P%nobj_par(iproc,:))
+                     norbp=maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))
                      call cudamemset(OP2P%resw(igroup,3)%ptr_gpu, 0, OP2P%ndim*norbp,i_stat)
                    end if
                 end if
@@ -921,7 +914,10 @@ module overlap_point_to_point
        end do step_loop
 !retrieve result from GPU
        if(OP2P%gpudirect == 1) then 
-         call get_gpu_data(OP2P%ndim*maxval(OP2P%nobj_par(iproc,:)),iter%phi_i%res,iter%phi_i%res_GPU)
+print *, "should I copy sum ",sum(OP2P%nobj_par(iproc,:)), "or maxval",  maxval(OP2P%nobj_par(iproc,:))
+         call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%res,iter%phi_i%res_GPU)
+         !call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%data,iter%phi_i%data_GPU)
+          call synchronize()
          if(C_ASSOCIATED(iter%phi_i%data_GPU)) then
            call cudafree(iter%phi_i%data_GPU)
            iter%phi_i%data_GPU=C_NULL_PTR
