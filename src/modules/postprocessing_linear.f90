@@ -2248,10 +2248,10 @@ module postprocessing_linear
                   !end do
     
                   ! Calculate ktilde * proj
-                  write(*,*) 'ktilde'
-                  do i=1,n
-                      write(*,'(10es9.2)') ktilde(i,1:n)
-                  end do
+                  !write(*,*) 'ktilde'
+                  !do i=1,n
+                  !    write(*,'(10es9.2)') ktilde(i,1:n)
+                  !end do
                   !!write(*,*) 'WARNING: COPY KHACK TO KTILDE'
                   !!ktilde = khack(1:7,1:7,kat)
                   call gemm('n', 'n', n, n, n, 1.d0, ktilde(1,1), n, proj(1,1), n, 0.d0, kp(1,1), n)
@@ -2972,7 +2972,7 @@ module postprocessing_linear
                     tmb%lzd%hgrids, tmb%lzd%llr(ilr)%locregcenter, &
                     tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i, &
                     phir(istr), phir_one(istr), &
-                    1, (/1.d0/), multipoles(:,:,iiorb), rmax(iiorb), 102, matrixindex=(/1/))
+                    1, (/1.d0/), 0, multipoles(:,:,iiorb), rmax(iiorb), 102, matrixindex=(/1/))
            end if
            !write(*,*) 'charge_center', charge_center_elec
            ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f

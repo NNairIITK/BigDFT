@@ -165,6 +165,8 @@ module multipole
       real(kind=8),dimension(:),allocatable :: rmax
       !real(kind=8),parameter :: rmin=3.d-1
       real(kind=8) :: rmin
+      integer,dimension(0:lmax) :: error_meaningful
+      character(len=20),dimension(0:lmax) :: output_arr
       !$ integer  :: omp_get_thread_num,omp_get_max_threads
 
       call f_routine(id='potential_from_charge_multipoles')
@@ -370,11 +372,11 @@ module multipole
                  ry = ep%mpl(impl)%rxyz(2) - shift(2)
                  rz = ep%mpl(impl)%rxyz(3) - shift(3)
                  !write(*,*) 'nelpsp(impl)',nelpsp(impl)
-          write(*,*) 'WARNING: GAUSSIAN_DENSITY COMMENTED!!!'
-          !       call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
-          !            rx, ry, rz, &
-          !            psppar(0,0,impl), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
-          !            denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density(is1:,is2:,is3:), rholeaked)
+          !write(*,*) 'WARNING: GAUSSIAN_DENSITY COMMENTED!!!'
+                 call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, &
+                      rx, ry, rz, &
+                      psppar(0,0,impl), nelpsp(impl), at%multipole_preserving, use_iterator, at%mp_isf, &
+                      denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density(is1:,is2:,is3:), rholeaked)
              end if
          end do
           do i3=is3,ie3
@@ -677,6 +679,7 @@ module multipole
                       call yaml_map('Deviation of normaliazation for the Gaussians',&
                           (/tt0,tt1,tt2/),fmt='(1es10.2)')
                       max_error(:) = 0.d0
+                      error_meaningful(:) = 0
                       do l=0,lmax
                           if (associated(ep%mpl(impl)%qlm(l)%q)) then
                               mm = 0
@@ -691,21 +694,53 @@ module multipole
                                   !    max_error(l) = max(max_error(l),abs(quadrupole(mm,impl)-ep%mpl(impl)%qlm(l)%q(mm)))
                                   !end if
                                   if (l==0) then
-                                      max_error(l) = max(max_error(l), &
-                                                      monopole(impl)/(ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8)))
-                                  else if (l==1) then
-                                      max_error(l) = max(max_error(l),dipole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm))
-                                      !write(*,*) 'calc, orig', dipole(mm,impl), ep%mpl(impl)%qlm(l)%q(mm)
-                                  else if (l==2) then
-                                      max_error(l) = max(max_error(l),quadrupole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm))
-                                      !write(*,*) 'calc, orig', quadrupole(mm,impl),ep%mpl(impl)%qlm(l)%q(mm)
+                                      qq = ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8)
+                                  else
+                                      qq = ep%mpl(impl)%qlm(l)%q(mm)
                                   end if
+                                  if (abs(qq)>1.d-8) then
+                                      select case (l)
+                                      case (0)
+                                          max_error(l) = max(max_error(l),monopole(impl)/qq)
+                                      case (1)
+                                          max_error(l) = max(max_error(l),dipole(mm,impl)/qq)
+                                      case (2)
+                                          max_error(l) = max(max_error(l),quadrupole(mm,impl)/qq)
+                                      end select
+                                  else
+                                      error_meaningful(l) = 1
+                                  end if
+                                  !!if (l==0) then
+                                  !!    max_error(l) = max(max_error(l), &
+                                  !!                    monopole(impl)/(ep%mpl(impl)%qlm(l)%q(mm)+real(nelpsp(impl),kind=8)))
+                                  !!else if (l==1) then
+                                  !!    max_error(l) = max(max_error(l),dipole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm))
+                                  !!    !write(*,*) 'calc, orig', dipole(mm,impl), ep%mpl(impl)%qlm(l)%q(mm)
+                                  !!else if (l==2) then
+                                  !!    max_error(l) = max(max_error(l),quadrupole(mm,impl)/ep%mpl(impl)%qlm(l)%q(mm))
+                                  !!    !write(*,*) 'calc, orig', quadrupole(mm,impl),ep%mpl(impl)%qlm(l)%q(mm)
+                                  !!end if
                               end do
                               ! Convert to percentaged deviation
-                              max_error(l) = 100.d0*(max_error(l)-1.d0)
+                              if (error_meaningful(l)==0) then
+                                  max_error(l) = 100.d0*(max_error(l)-1.d0)
+                              end if
+                          else
+                              error_meaningful(l) = 2
                           end if
                       end do
-                      call yaml_map('Maximal deviation from the original values in percent',max_error(:),fmt='(1f6.1)')
+                      do l=0,lmax
+                          select case (error_meaningful(l))
+                          case (0)
+                              output_arr(l) = yaml_toa(max_error(l),fmt='(1f6.1)')
+                          case (1)
+                              output_arr(l) = 'not meaningful'
+                          case (2)
+                              output_arr(l) = 'no mltpole l='//yaml_toa(l)
+                          end select
+                      end do
+                      !call yaml_map('Maximal deviation from the original values in percent',max_error(:),fmt='(1f6.1)')
+                      call yaml_map('Maximal deviation from the original values in percent',output_arr(:))
                   else
                       call yaml_map('Method','Analytic expression')
                   end if
@@ -1327,7 +1362,7 @@ module multipole
            0, at%astruct%iatype, norbsPerType, orbs%inwhichlocreg, orbs%onwhichatom, &
            n1i, n2i, n3i, ns1i, ns2i, ns3i, locrad, lzd%hgrids, locregcenter, &
            nr, psir_get, psir_get, &
-           smatl%nvctr, kernel_ortho, multipoles, rmax, 101, smatl)!, matrixindex)
+           smatl%nvctr, kernel_ortho, 1, multipoles, rmax, 101, smatl)!, matrixindex)
       call f_free(psir_get_fake)
       call f_free(n1i)
       call f_free(n2i)
@@ -1484,7 +1519,7 @@ module multipole
                    (/nsi1/), (/nsi2/), (/nsi3/), rmax, &
                    lzd%hgrids, locregcenter, &
                    nr, psir_get_fake(:,1), psir_get_fake(:,2), &
-                   1, (/1.d0/), multipoles, rmax, 102, matrixindex=(/1/))
+                   1, (/1.d0/), 1, multipoles, rmax, 102, matrixindex=(/1/))
           end if
           !call mpi_barrier(mpi_comm_world,i3)
 
@@ -2005,7 +2040,8 @@ module multipole
                r_exponent, iatype, norbsPerType, inwhichlocreg, onwhichatom, &
                n1i, n2i, n3i, nsi1, nsi2, nsi3, locrad, hgrids, locregcenter, &
                nr, psir1_get, psir2_get, &
-               nvctr, matrix_compr, multipoles, rmax, get_index, smatl, matrixindex)
+               nvctr, matrix_compr, verbosity, &
+               multipoles, rmax, get_index, smatl, matrixindex)
       use locreg_operations, only: workarr_sumrho      
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix_init, only: matrixindex_in_compressed
@@ -2025,6 +2061,7 @@ module multipole
       real(kind=8),dimension(3,norb) :: locregcenter
       real(kind=8),dimension(nr),intent(in) :: psir1_get, psir2_get
       real(kind=8),dimension(nvctr),intent(in) :: matrix_compr
+      integer,intent(in) ::verbosity
       real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(out) :: multipoles
       real(kind=8),dimension(nat),intent(out) :: rmax
       type(sparse_matrix),intent(in),optional :: smatl
@@ -2089,7 +2126,7 @@ module multipole
  khack(1:7,7,4) = (/ -6.15E-09,-6.61E-05,-1.65E-05,-2.95E-08,-2.95E-08, 3.95E-05, 2.00E+00/)
 
 
-      !! Check that rmax does remains within the box.
+      !! Check that rmax remains within the box.
       !if (rmax>=0.5d0*(0.5d0*hgrids(1)*maxval(n1i)+0.5d0*hgrids(2)*maxval(n2i)+0.5d0*hgrids(3)*maxval(n3i))) then
       !    call f_err_throw('The radius for the multipole analysis is too small', err_name='BIGDFT_RUNTIME_ERROR')
       !end if
@@ -2283,10 +2320,10 @@ module multipole
           call mpiallred(rnorm_maxdev, 1, mpi_max, comm=bigdft_mpi%mpi_comm)
           call mpiallred(rmax, mpi_sum, comm=bigdft_mpi%mpi_comm)
       end if
-      if (iproc==0) then
+      if (verbosity>0 .and. iproc==0) then
           call yaml_mapping_open('Calculation of solid harmonics')
-          call yaml_map('radius for normalization',(/minval(rmax),maxval(rmax)/),fmt='(es8.2)')
-          call yaml_map('max deviation from normalization',rnorm_maxdev,fmt='(es8.2)')
+          call yaml_map('Radius of integration sphere',(/minval(rmax),maxval(rmax)/),fmt='(es8.2)')
+          call yaml_map('Maximal deviation from normalization',rnorm_maxdev,fmt='(es8.2)')
           call yaml_mapping_close()
       end if
 
