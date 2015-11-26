@@ -2412,7 +2412,7 @@ contains
     real(f_double),pointer :: a !fake intent(in)
     !local variables
     logical :: verb,sim
-    integer :: mpi_comm,ierr,tag_,tmpint
+    integer :: mpi_comm,ierr,tag_,tmpint,tmpsize
     type(c_ptr) :: tmpaddr
 
     mpi_comm=MPI_COMM_WORLD
@@ -2440,7 +2440,8 @@ contains
     if (sim) return
     if(present(offset) .and. offset/=0)then
       tmpint = TRANSFER(buf, tmpint)
-      tmpint = tmpint + offset*mpisize(type)
+      call mpi_type_size(type, tmpsize, ierr)
+      tmpint = tmpint + offset*tmpsize
       tmpaddr= TRANSFER(tmpint, tmpaddr)
       call c_f_pointer(tmpaddr, a)
     else
