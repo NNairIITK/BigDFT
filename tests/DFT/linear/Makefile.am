@@ -30,8 +30,11 @@ LONG_TESTDIRS = $(SHORT_TESTDIRS) \
 	   O2spin \
 	   expfoegeopt \
 	   igortho \
-       extendedfrags \
-	   pexsi
+       extendedfrags
+
+if HAVE_PEXSI
+  LONG_TESTDIRS += pexsi
+endif
 
 EXTRA_TESTDIRS = reformatcomplete \
     water \

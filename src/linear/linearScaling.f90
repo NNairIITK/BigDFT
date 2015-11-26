@@ -2529,9 +2529,12 @@ end if
           call yaml_mapping_close()
       end if
       call support_function_multipoles(iproc, tmb, at, denspot)
-      multipoles = f_malloc0((/-lmax.to.lmax,0.to.lmax,1.to.tmb%orbs%norb/),id='multipoles')
-      call support_function_gross_multipoles(iproc, tmb, at, denspot, multipoles)
-      call f_free(multipoles)
+
+
+      ! THIS IS COMMENTED FOR THE MOMENT #############################################################3
+      !multipoles = f_malloc0((/-lmax.to.lmax,0.to.lmax,1.to.tmb%orbs%norb/),id='multipoles')
+      !call support_function_gross_multipoles(iproc, tmb, at, denspot, multipoles)
+      !call f_free(multipoles)
 
   end if
 
@@ -2539,50 +2542,50 @@ end if
       !!write(200+iproc,*) tmb%linmat%ovrlp_%matrix_compr
       !!write(210+iproc,*) tmb%linmat%kernel_%matrix_compr
 
-      ! TEST ################################################
-      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
-           denspot%dpbox%ndimrhopot, &
-           denspot%rhov, rho_negative)
-      if (rho_negative) then
-          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
-      end if
-      is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
-      ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
-      is2 = 1
-      ie2 = denspot%dpbox%ndims(2)
-      is1 = 1
-      ie1 = denspot%dpbox%ndims(1)
-      ii = 0
-      do i3=is3,ie3
-          do i2=is2,ie2
-              do i1=is1,ie1
-                  ii = ii + 1
-                  write(190+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
-              end do
-          end do
-      end do
-
-      !write(*,*) 'BEFORE: sum(rhov)',sum(denspot%rhov)
-      !write(*,*) 'BEFORE: sum(V_ext)',sum(denspot%V_ext)
-      call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
-           quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
-      !write(*,*) 'AFTER: sum(rhov)',sum(denspot%rhov)
-      is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
-      ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
-      is2 = 1
-      ie2 = denspot%dpbox%ndims(2)
-      is1 = 1
-      ie1 = denspot%dpbox%ndims(1)
-      ii = 0
-      do i3=is3,ie3
-          do i2=is2,ie2
-              do i1=is1,ie1
-                  ii = ii + 1
-                  write(200+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
-              end do
-          end do
-      end do
+!! UNCOMMENT FOR TESTS      ! TEST ################################################
+!! UNCOMMENT FOR TESTS      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+!! UNCOMMENT FOR TESTS           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
+!! UNCOMMENT FOR TESTS           denspot%dpbox%ndimrhopot, &
+!! UNCOMMENT FOR TESTS           denspot%rhov, rho_negative)
+!! UNCOMMENT FOR TESTS      if (rho_negative) then
+!! UNCOMMENT FOR TESTS          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+!! UNCOMMENT FOR TESTS      end if
+!! UNCOMMENT FOR TESTS      is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
+!! UNCOMMENT FOR TESTS      ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
+!! UNCOMMENT FOR TESTS      is2 = 1
+!! UNCOMMENT FOR TESTS      ie2 = denspot%dpbox%ndims(2)
+!! UNCOMMENT FOR TESTS      is1 = 1
+!! UNCOMMENT FOR TESTS      ie1 = denspot%dpbox%ndims(1)
+!! UNCOMMENT FOR TESTS      ii = 0
+!! UNCOMMENT FOR TESTS      do i3=is3,ie3
+!! UNCOMMENT FOR TESTS          do i2=is2,ie2
+!! UNCOMMENT FOR TESTS              do i1=is1,ie1
+!! UNCOMMENT FOR TESTS                  ii = ii + 1
+!! UNCOMMENT FOR TESTS                  write(190+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
+!! UNCOMMENT FOR TESTS              end do
+!! UNCOMMENT FOR TESTS          end do
+!! UNCOMMENT FOR TESTS      end do
+!! UNCOMMENT FOR TESTS
+!! UNCOMMENT FOR TESTS      !write(*,*) 'BEFORE: sum(rhov)',sum(denspot%rhov)
+!! UNCOMMENT FOR TESTS      !write(*,*) 'BEFORE: sum(V_ext)',sum(denspot%V_ext)
+!! UNCOMMENT FOR TESTS      call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
+!! UNCOMMENT FOR TESTS           quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
+!! UNCOMMENT FOR TESTS      !write(*,*) 'AFTER: sum(rhov)',sum(denspot%rhov)
+!! UNCOMMENT FOR TESTS      is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
+!! UNCOMMENT FOR TESTS      ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
+!! UNCOMMENT FOR TESTS      is2 = 1
+!! UNCOMMENT FOR TESTS      ie2 = denspot%dpbox%ndims(2)
+!! UNCOMMENT FOR TESTS      is1 = 1
+!! UNCOMMENT FOR TESTS      ie1 = denspot%dpbox%ndims(1)
+!! UNCOMMENT FOR TESTS      ii = 0
+!! UNCOMMENT FOR TESTS      do i3=is3,ie3
+!! UNCOMMENT FOR TESTS          do i2=is2,ie2
+!! UNCOMMENT FOR TESTS              do i1=is1,ie1
+!! UNCOMMENT FOR TESTS                  ii = ii + 1
+!! UNCOMMENT FOR TESTS                  write(200+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
+!! UNCOMMENT FOR TESTS              end do
+!! UNCOMMENT FOR TESTS          end do
+!! UNCOMMENT FOR TESTS      end do
 
 
       call multipoles_from_density(iproc, nproc, at, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%orbs, &

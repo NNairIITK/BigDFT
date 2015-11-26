@@ -379,15 +379,15 @@ module multipole
                       denspot%dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, ndensity, density(is1:,is2:,is3:), rholeaked)
              end if
          end do
-          do i3=is3,ie3
-              do i2=is2,ie2
-                  do i1=is1,ie1
-                     !write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-                     write(500+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-                     tt = tt + density(i1,i2,i3)*hhh
-                 end do
-             end do
-         end do
+!! UNCOMMENT FOR TEST          do i3=is3,ie3
+!! UNCOMMENT FOR TEST              do i2=is2,ie2
+!! UNCOMMENT FOR TEST                  do i1=is1,ie1
+!! UNCOMMENT FOR TEST                     !write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+!! UNCOMMENT FOR TEST                     write(500+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+!! UNCOMMENT FOR TEST                     tt = tt + density(i1,i2,i3)*hhh
+!! UNCOMMENT FOR TEST                 end do
+!! UNCOMMENT FOR TEST             end do
+!! UNCOMMENT FOR TEST         end do
     
          call f_free(mpx)
          call f_free(mpy)
@@ -603,18 +603,18 @@ module multipole
           call f_free(gaussians2)
           call f_free(gaussians3)
     
-          tt = 0.d0
-          do i3=is3,ie3
-              do i2=is2,ie2
-                  do i1=is1,ie1
-                      !write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-                      write(400+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-                      tt = tt + density(i1,i2,i3)*hhh
-                  end do
-              end do
-          end do
-          call plot_density(iproc,nproc,'data'//'multipoles'//'.cube',&
-                        at,at%astruct%rxyz,denspot%pkernel,1,density)
+!! UNCOMMENT FOR TEST          tt = 0.d0
+!! UNCOMMENT FOR TEST          do i3=is3,ie3
+!! UNCOMMENT FOR TEST              do i2=is2,ie2
+!! UNCOMMENT FOR TEST                  do i1=is1,ie1
+!! UNCOMMENT FOR TEST                      !write(400+iproc,'(a,3i7,es18.6)') 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+!! UNCOMMENT FOR TEST                      write(400+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+!! UNCOMMENT FOR TEST                      tt = tt + density(i1,i2,i3)*hhh
+!! UNCOMMENT FOR TEST                  end do
+!! UNCOMMENT FOR TEST              end do
+!! UNCOMMENT FOR TEST          end do
+!! UNCOMMENT FOR TEST          call plot_density(iproc,nproc,'data'//'multipoles'//'.cube',&
+!! UNCOMMENT FOR TEST                        at,at%astruct%rxyz,denspot%pkernel,1,density)
 
           !write(*,*) 'DEBUG: tt',tt
           
@@ -787,28 +787,28 @@ module multipole
           call f_free(norm_ok)
     
     
-          ii = 0
-          do i3=is3,ie3
-              ii3 = i3 - 15
-              do i2=is2,ie2
-                  ii2 = i2 - 15
-                  do i1=is1,ie1
-                      ii1 = i1 - 15
-                      ii = ii + 1
-                      write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
-                      !do impl=1,ep%nmpl
-                      !    r(1) = ep%mpl(impl)%rxyz(1) - x
-                      !    r(2) = ep%mpl(impl)%rxyz(2) - y
-                      !    r(3) = ep%mpl(impl)%rxyz(3) - z 
-                      !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
-                      !    rnrm1 = sqrt(rnrm2)
-                      !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
-                      !    density(i1,i2,i3) =+ tt
-                      !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
-                      !end do
-                  end do
-              end do
-          end do
+!! UNCOMMENT FOR TEST          ii = 0
+!! UNCOMMENT FOR TEST          do i3=is3,ie3
+!! UNCOMMENT FOR TEST              ii3 = i3 - 15
+!! UNCOMMENT FOR TEST              do i2=is2,ie2
+!! UNCOMMENT FOR TEST                  ii2 = i2 - 15
+!! UNCOMMENT FOR TEST                  do i1=is1,ie1
+!! UNCOMMENT FOR TEST                      ii1 = i1 - 15
+!! UNCOMMENT FOR TEST                      ii = ii + 1
+!! UNCOMMENT FOR TEST                      write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, density(i1,i2,i3)
+!! UNCOMMENT FOR TEST                      !do impl=1,ep%nmpl
+!! UNCOMMENT FOR TEST                      !    r(1) = ep%mpl(impl)%rxyz(1) - x
+!! UNCOMMENT FOR TEST                      !    r(2) = ep%mpl(impl)%rxyz(2) - y
+!! UNCOMMENT FOR TEST                      !    r(3) = ep%mpl(impl)%rxyz(3) - z 
+!! UNCOMMENT FOR TEST                      !    rnrm2 = r(1)**2 + r(2)**2 + r(3)**2
+!! UNCOMMENT FOR TEST                      !    rnrm1 = sqrt(rnrm2)
+!! UNCOMMENT FOR TEST                      !    tt = spherical_harmonic(l, m, x, y, z)*gaussian(sigma, rnrm1)
+!! UNCOMMENT FOR TEST                      !    density(i1,i2,i3) =+ tt
+!! UNCOMMENT FOR TEST                      !    !write(300+bigdft_mpi%iproc,*) 'i1, i2, i3, val', i1, i2, i3, mp
+!! UNCOMMENT FOR TEST                      !end do
+!! UNCOMMENT FOR TEST                  end do
+!! UNCOMMENT FOR TEST              end do
+!! UNCOMMENT FOR TEST          end do
     
           call f_free(density)
           call f_free(nzatom)
@@ -1526,7 +1526,7 @@ module multipole
           if (iproc==0) then
               !!call write_multipoles(1, 1, (/1/), (/'testatom'/), multipoles, rmax, lzd%hgrids, without_normalization=.true.)
               call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), 'fake', &
-                   multipoles, rmax, lzd%hgrids, without_normalization=.false.)
+                   multipoles, rmax, lzd%hgrids, without_normalization=.false., check_values_=.true.)
               call yaml_mapping_close()
           end if
 
@@ -1592,91 +1592,102 @@ module multipole
     end subroutine kernel_for_orthonormal_basis
 
 
-    subroutine write_multipoles(nat, ntypes, iatype, atomnames, multipoles, rmax, hgrids, without_normalization)
-      use yaml_output
-      implicit none
-      
-      ! Calling arguments
-      integer,intent(in) :: nat, ntypes
-      integer,dimension(nat),intent(in) :: iatype
-      character(len=*),dimension(ntypes),intent(in) :: atomnames
-      real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(in) :: multipoles
-      real(kind=8),dimension(nat),intent(in) :: rmax
-      real(kind=8),dimension(3),intent(in) :: hgrids
-      logical,intent(in) :: without_normalization
-      
-      ! Local variables
-      character(len=20) :: atomname
-      integer :: i, iat, l, m, nit
-      real(kind=8) :: max_error, factor!, get_normalization, get_test_factor
-      real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
+    !!!subroutine write_multipoles(nat, ntypes, iatype, atomnames, multipoles, rmax, hgrids, without_normalization, check_values_)
+    !!!  use yaml_output
+    !!!  implicit none
+    !!!  
+    !!!  ! Calling arguments
+    !!!  integer,intent(in) :: nat, ntypes
+    !!!  integer,dimension(nat),intent(in) :: iatype
+    !!!  character(len=*),dimension(ntypes),intent(in) :: atomnames
+    !!!  real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(in) :: multipoles
+    !!!  real(kind=8),dimension(nat),intent(in) :: rmax
+    !!!  real(kind=8),dimension(3),intent(in) :: hgrids
+    !!!  logical,intent(in) :: without_normalization
+    !!!  logical,intent(in),optional :: check_values_
+    !!!  
+    !!!  ! Local variables
+    !!!  character(len=20) :: atomname
+    !!!  integer :: i, iat, l, m, nit
+    !!!  real(kind=8) :: max_error, factor!, get_normalization, get_test_factor
+    !!!  real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
+    !!!  logical :: check_values
 
-          multipoles_tmp = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.nat/),id='multipoles_tmp')
+    !!!  if (present(check_values_)) then
+    !!!      check_values = check_values_
+    !!!  else
+    !!!      check_values = .false.
+    !!!  end if
 
-          if (without_normalization) then
-              nit = 2
-          else
-              nit = 1
-          end if
+    !!!      multipoles_tmp = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.nat/),id='multipoles_tmp')
 
-          factor = 0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3)
+    !!!      if (without_normalization) then
+    !!!          nit = 2
+    !!!      else
+    !!!          nit = 1
+    !!!      end if
 
-          max_error = 0.d0
-          call yaml_mapping_open('Multipole coefficients')
-          do i=1,nit
-              if (i==1) then
-                  call yaml_map('normalized',.true.)
-                  call yaml_map('radius of normalization sphere',(/minval(rmax),maxval(rmax)/))
-                  call f_memcpy(src=multipoles, dest=multipoles_tmp)
-              else if (i==2) then
-                  call yaml_map('normalized',.false.)
-                  do iat=1,nat
-                      do l=0,lmax
-                          do m=-l,l
-                              !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)/((get_normalization(rmax, l, m)*0.821583836)**2)
-                              !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*((get_normalization(rmax, l, m)*0.106726871))
-                              multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax(iat),l,m)**2*factor
-                              max_error = max(max_error,abs(multipoles_tmp(m,l,iat)-get_test_factor(l,m)))
-                              !write(*,'(a,3i5,2es14.5)') 'iat, l, m, multipoles(m,l,iat), ref', iat, l, m, multipoles(m,l,iat), get_test_factor(l,m)
-                          end do
-                      end do
-                  end do
-              end if
-              call yaml_sequence_open('Values')
-              do iat=1,nat
-                  call yaml_sequence(advance='no')
-                  atomname=atomnames(iatype(iat))
-                  call yaml_sequence_open(trim(atomname))
-                  do l=0,lmax
-                      call yaml_sequence(advance='no')
-                      !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
-                      !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat)*sqrt(4.d0**(2*l+3)),fmt='(1es16.8)')
-                      !do m=-l,l
-                          !multipoles(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax, l, m)
-                          !max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
-                      !end do
-                      call yaml_map('l='//yaml_toa(l),multipoles_tmp(-l:l,l,iat),fmt='(1es16.8)')
-                      call yaml_newline()
-                  end do
-                  !call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-                  call yaml_sequence_close()
-              end do
-              call yaml_sequence_close()
-              if (i==2) then
-                  call yaml_map('max error from original values',max_error)
-              end if
-          end do
-          call yaml_mapping_close()
+    !!!      factor = 0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3)
+
+    !!!      max_error = 0.d0
+    !!!      call yaml_mapping_open('Multipole coefficients')
+    !!!      do i=1,nit
+    !!!          if (i==1) then
+    !!!              call yaml_map('normalized',.true.)
+    !!!              call yaml_map('radius of normalization sphere',(/minval(rmax),maxval(rmax)/))
+    !!!              call f_memcpy(src=multipoles, dest=multipoles_tmp)
+    !!!          else if (i==2) then
+    !!!              call yaml_map('normalized',.false.)
+    !!!              do iat=1,nat
+    !!!                  do l=0,lmax
+    !!!                      do m=-l,l
+    !!!                          !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)/((get_normalization(rmax, l, m)*0.821583836)**2)
+    !!!                          !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*((get_normalization(rmax, l, m)*0.106726871))
+    !!!                          multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax(iat),l,m)**2*factor
+    !!!                          max_error = max(max_error,abs(multipoles_tmp(m,l,iat)-get_test_factor(l,m)))
+    !!!                          !write(*,'(a,3i5,2es14.5)') 'iat, l, m, multipoles(m,l,iat), ref', iat, l, m, multipoles(m,l,iat), get_test_factor(l,m)
+    !!!                      end do
+    !!!                  end do
+    !!!              end do
+    !!!          end if
+    !!!          call yaml_sequence_open('Values')
+    !!!          do iat=1,nat
+    !!!              call yaml_sequence(advance='no')
+    !!!              atomname=atomnames(iatype(iat))
+    !!!              call yaml_sequence_open(trim(atomname))
+    !!!              do l=0,lmax
+    !!!                  call yaml_sequence(advance='no')
+    !!!                  !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
+    !!!                  !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat)*sqrt(4.d0**(2*l+3)),fmt='(1es16.8)')
+    !!!                  if (check_values) then
+    !!!                      max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
+    !!!                  end if
+    !!!                  !do m=-l,l
+    !!!                      !multipoles(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax, l, m)
+    !!!                      !max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
+    !!!                  !end do
+    !!!                  call yaml_map('l='//yaml_toa(l),multipoles_tmp(-l:l,l,iat),fmt='(1es16.8)')
+    !!!                  call yaml_newline()
+    !!!              end do
+    !!!              !call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+    !!!              call yaml_sequence_close()
+    !!!          end do
+    !!!          call yaml_sequence_close()
+    !!!          if (i==2) then
+    !!!              call yaml_map('Maximal error from original values',max_error)
+    !!!          end if
+    !!!      end do
+    !!!      call yaml_mapping_close()
 
 
-          call f_free(multipoles_tmp)
+    !!!      call f_free(multipoles_tmp)
 
-    end subroutine write_multipoles
+    !!!end subroutine write_multipoles
 
 
 
     subroutine write_multipoles_new(nat, ntypes, iatype, atomnames, rxyz, units, &
-               multipoles, rmax, hgrids, without_normalization)
+               multipoles, rmax, hgrids, without_normalization, check_values_)
       use yaml_output
       implicit none
       
@@ -1690,6 +1701,7 @@ module multipole
       real(kind=8),dimension(nat),intent(in) :: rmax
       real(kind=8),dimension(3),intent(in) :: hgrids
       logical,intent(in) :: without_normalization
+      logical,intent(in),optional :: check_values_ !just a quick and dirty solution for the unitary test...
       
       ! Local variables
       character(len=20) :: atomname
@@ -1697,6 +1709,13 @@ module multipole
       integer :: i, iat, l, m, nit
       real(kind=8) :: max_error, factor, convert_units!, get_normalization, get_test_factor
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
+      logical :: check_values
+
+          if (present(check_values_)) then
+              check_values = check_values_
+          else
+              check_values = .false.
+          end if
 
 
           multipoles_tmp = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.nat/),id='multipoles_tmp')
@@ -1756,6 +1775,11 @@ module multipole
                       !call yaml_sequence(advance='no')
                       !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
                       !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat)*sqrt(4.d0**(2*l+3)),fmt='(1es16.8)')
+                      if (check_values) then
+                          do m=-l,l
+                              max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
+                          end do
+                      end if
                       !do m=-l,l
                           !multipoles(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax, l, m)
                           !max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
@@ -1769,7 +1793,7 @@ module multipole
                   call yaml_map('type',trim(function_type))
               end do
               call yaml_sequence_close()
-              if (i==2) then
+              if (check_values) then
                   call yaml_map('max error from original values',max_error)
               end if
           end do
@@ -2227,7 +2251,8 @@ module multipole
                                       !sphi(i1,i2,i3,m,l,iiorb) = tt**2*phi1(i1,i2,i3,iiorb)
                                       !sphi(i1,i2,i3,m,l,iiorb) = phi1(i1,i2,i3,iiorb)
                                       !norm(m,l) = norm(m,l) + tt**2
-                                      norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
+                                      norm(m,l) = norm(m,l) + (tt*factor_normalization)**2*&
+                                          real((2*l+3)*(2*l+1),kind=8)/(4.d0*pi*rmax(iiat)**(2*l+3)) !normalization of a solid harmonic within a sphere of radius rmax... hopefully correct
                                       !if (i1==1 .and. i2==1) write(*,'(a,2i5,3es13.3,3es19.8)') 'l, m, x, y, z, tt, phi, sphi', l, m, x, y, z, tt, phi(i1,i2,i3,iiorb), sphi(i1,i2,i3,iiorb,m,l)
                                   end do
                               end do
@@ -2240,6 +2265,7 @@ module multipole
                   !!end do
                   do l=0,lmax
                       do m=-l,l
+                          !write(*,*) 'l,m,norm(m,l)',l,m,norm(m,l)
                           !norm(m,l) = norm(m,l) + (factor_normalization*tt)**2
                           rnorm_maxdev = max(rnorm_maxdev,abs(1.d0-norm(m,l)))
                       end do
