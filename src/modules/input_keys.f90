@@ -1887,6 +1887,9 @@ contains
          in%nsuzuki = val
        case (NOSE_FREQUENCY)
          in%nosefrq = val
+       case (WAVEFUNCTION_EXTRAPOLATION)
+!          in%nwfn_extrap = val
+          in%wfn_history = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

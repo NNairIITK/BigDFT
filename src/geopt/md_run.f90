@@ -33,6 +33,8 @@ subroutine bomd(run_md,outs,nproc,iproc)
   use module_base
   use bigdft_run
   use yaml_output
+!NNdbg
+   use module_types
   implicit none
 !
   TYPE(run_objects), intent(inout) :: run_md
@@ -61,6 +63,8 @@ subroutine bomd(run_md,outs,nproc,iproc)
 
   character(len=*), parameter :: subname='bomd'
   LOGICAL :: ionode, no_translation
+!NNdbg
+  integer :: norbp, iwfn
 
   call f_routine(id='bomd')
 
@@ -142,11 +146,8 @@ subroutine bomd(run_md,outs,nproc,iproc)
      CALL write_md_energy(istep,Tions,eke,epe,ete)
      call yaml_comment('Starting MD',hfill='*')
      call yaml_map('Number of degrees of freedom',ndof)
-!     call yaml_map('Maximum number of steps (maxsteps)',maxsteps)
-!     call yaml_map('Initial Temperature (T0ions)',T0ions)
   END IF
-
-
+  
   !----------------------------------------------------------------------!
   MD_loop: DO !MD loop starts here
 
@@ -158,6 +159,8 @@ subroutine bomd(run_md,outs,nproc,iproc)
 
      CALL velocity_verlet_pos(dt,natoms,rxyz,vxyz)
      if(no_translation)CALL shift_com(natoms,com,rxyz)
+
+
 
      !> SCF
      CALL bigdft_state(run_md,outs,ierr)
@@ -175,12 +178,8 @@ subroutine bomd(run_md,outs,nproc,iproc)
      END IF
 
      CALL temperature(natoms,3,ndof,amass,vxyz,Tions,eke)
-!     call yaml_map('enose', nhc%enose)
-!     call yaml_map('istep',istep)
-     !print *, "enose =", nhc%enose, "istep=",istep
 
      ete=epe+eke+nhc%enose
-     !    ete=epe+eke
 
      IF (ionode) & 
           CALL write_md_energy(istep,Tions,eke,epe,ete)
@@ -412,4 +411,35 @@ SUBROUTINE shift_com(natoms,com,rxyz)
      END DO
   END DO
 END SUBROUTINE shift_com
+
+SUBROUTINE write_restart_md(natoms,istep,alabel,rxyz,vxyz,nhc)
+  use f_utils
+  use nose_hoover_chains
+  implicit none
+  integer :: istep, natoms
+  real(kind=8) :: rxyz(3,*), vxyz(3,*)
+  character(len=*) :: alabel(*)
+  type(NHC_data), intent(inout) :: nhc
+  !
+  integer :: iat
+  integer :: unt
+  real (kind=8) :: bohr_to_ang=0.529d0
+
+unt=113
+
+!TODO: it is better to sync coordinates, velocities, and their wavefunction
+!information in the same restart folder with user specified frequency in say data1/ , data2/ ...folders?
+  call f_open_file(unt,FILE='md.restart',STATUS='UNKNOWN',position='REWIND',binary=.false.)
+
+  !write coordinates in xyz format for easy editing by the users
+  write(unt,*)natoms
+  write(unt,'(A,I16)')'Step:',istep
+  do iat=1,natoms
+     write(unt,'(A,6e16.8)')alabel(iat),rxyz(1:3,iat)*bohr_to_ang,vxyz(1:3,iat)*bohr_to_ang
+  end do
+
+  call write_nhc_restart(unt,nhc)
+
+  call f_close(unt)
+END SUBROUTINE write_restart_md
 

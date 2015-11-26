@@ -438,6 +438,7 @@ contains
     call input_var(dummy_int,'1',dict // NOSE_MTS_SIZE,comment="")
     call input_var(dummy_int,'7',dict // NOSE_YOSHIDA_FACTOR,comment="")
     call input_var(dummy_real,'3000.0',dict // NOSE_FREQUENCY,comment="")
+    call input_var(dummy_int,"0",dict // WAVEFUNCTION_EXTRAPOLATION, comment = "")
 
     call input_free(.false.)
 
