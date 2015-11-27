@@ -17,13 +17,6 @@ use communications, only: transpose_v, untranspose_v
 use communications_base, only: comms_cubic
 implicit none
 
-!  type, public :: NHC_data
-!     LOGICAL          :: nhchain
-!     INTEGER          :: eta_size, nhnc, nmultint, nsuzuki
-!     REAL (KIND=8)    :: nosefrq, enose
-!     REAL (KIND=8), DIMENSION(:), pointer :: eta, veta, aeta, noseq, dtys
-!  end type NHC_data
-
 CONTAINS
 
 
@@ -154,65 +147,75 @@ call f_free(psi_out2)
 
 END SUBROUTINE rotate_wavefunction
 
-!> Constructing coefficients for wavefunction extrpolation
-!NOTE: not used now; will be developed in the next revision
-SUBROUTINE extrapolation_coeff(iwfn,nwfn,c) 
-integer, intent(in) :: iwfn, nwfn
-real(wp),intent(out):: c(0:nwfn)
+SUBROUTINE extrapolation_coeff(istep,wfn_history,cc)
+  integer :: istep, wfn_history
+  real(wp), dimension(0:5), intent(out) :: cc
 
-real(wp), dimension(2), parameter :: c2 = (/-1.0d0, 2.d0               /)
-real(wp), dimension(3), parameter :: c3 = (/ 0.5d0,-2.d0 , 2.5d0       /)
-real(wp), dimension(4), parameter :: c4 = (/-0.2d0, 1.2d0,-2.8d0, 2.8d0/)
+  real(wp), dimension(2), parameter :: c1 = (/-1.0_wp,2.0_wp/) 
+  real(wp), dimension(3), parameter :: c2 = (/0.5_wp,-2.0_wp,2.5_wp/) 
+  real(wp), dimension(5), parameter :: c4 = (/0.07142857_wp,-0.57142857_wp,1.92857143_wp,-3.42857143_wp,3.00000000_wp/)
 
-SELECT CASE (nwfn)
-CASE(1)
-  c(0)=1.d0
-CASE(2)
-! Psi_n = 2 Psi_n-1 - 1 Psi_n-2
-  if(iwfn==2)then
-    c(0)=c2(1)
-    c(1)=c2(2) 
-  else if(iwfn==1)then
-    c(0)=c2(2)
-    c(1)=c2(1)
-  end if
-CASE(3)
-  if(iwfn==3)then
-    c(0)=c3(1)
-    c(1)=c3(2)
-    c(2)=c3(3)
-  elseif(iwfn==2)then
-    c(0)=c3(2)
-    c(1)=c3(3)
-    c(2)=c3(1)
-  elseif(iwfn==1)then
-    c(0)=c3(3)
-    c(1)=c3(1)
-    c(2)=c3(2)
-  end if
-CASE(4)
-  if(iwfn==4)then
-    c(0)=c4(1)
-    c(1)=c4(2)
-    c(2)=c4(3)
-    c(3)=c4(4)
-  elseif(iwfn==3)then
-    c(0)=c4(2)
-    c(1)=c4(3)
-    c(2)=c4(4)
-    c(3)=c4(1)
-  elseif(iwfn==2)then
-    c(0)=c4(3)
-    c(1)=c4(4)
-    c(2)=c4(1)
-    c(3)=c4(2)
-  elseif(iwfn==1)then
-    c(0)=c4(4)
-    c(1)=c4(1)
-    c(2)=c4(2)
-    c(3)=c4(3)
-  end if
-END SELECT
+  cc(0)=1._wp
+  cc(1:5)=0._wp
+  SELECT CASE (wfn_history)
+  CASE(1)
+    if(istep==1)then
+      cc(0)=c1(1)
+      cc(1)=c1(2)
+    else if(istep==0)then
+      cc(0)=c1(2)
+      cc(1)=c1(1)
+    end if
+  CASE(2)
+    if(istep==2)then
+      cc(0)=c2(1)
+      cc(1)=c2(2)
+      cc(2)=c2(3)
+    else if(istep==0)then
+      cc(0)=c2(3)
+      cc(1)=c2(1)
+      cc(2)=c2(2)
+    else if(istep==1)then
+      cc(0)=c2(2)
+      cc(1)=c2(3)
+      cc(2)=c2(1)
+    end if
+  CASE(4)
+    if(istep==4)then
+      cc(0)=c4(1)
+      cc(1)=c4(2)
+      cc(2)=c4(3)
+      cc(3)=c4(4)
+      cc(4)=c4(5)
+    else if(istep==0)then
+      cc(0)=c4(5)
+      cc(1)=c4(1)
+      cc(2)=c4(2)
+      cc(3)=c4(3)
+      cc(4)=c4(4)
+    else if(istep==1)then
+      cc(0)=c4(4)
+      cc(1)=c4(5)
+      cc(2)=c4(1)
+      cc(3)=c4(2)
+      cc(4)=c4(3)
+    else if(istep==2)then
+      cc(0)=c4(3)
+      cc(1)=c4(4)
+      cc(2)=c4(5)
+      cc(3)=c4(1)
+      cc(4)=c4(2)
+    else if(istep==3)then
+      cc(0)=c4(2)
+      cc(1)=c4(3)
+      cc(2)=c4(4)
+      cc(3)=c4(5)
+      cc(4)=c4(1)
+    end if
+  CASE default
+     call f_err_throw('Wavefunction extrapolation order is not implemented', &
+                       err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+  END SELECT
 
 END SUBROUTINE extrapolation_coeff
 

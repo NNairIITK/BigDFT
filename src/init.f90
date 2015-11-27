@@ -604,7 +604,7 @@ use module_interfaces
 use communications, only: transpose_v
 use communications_base, only: comms_cubic
 !TODO wfn_extap could be a general wfn extrapolation utility routine
-use wfn_extrap, only : myoverlap2, rotate_wavefunction, normalize_wavefunction
+use wfn_extrap
 
   implicit none
   integer, intent(in) :: iproc,nproc,wfn_history
@@ -623,9 +623,9 @@ use wfn_extrap, only : myoverlap2, rotate_wavefunction, normalize_wavefunction
   real(wp), dimension(:,:), allocatable :: psi_istep, psi_nstep
   integer, save :: icall=0
 
-  real(wp), dimension(0:5) :: cc, ccc
-  real(wp), dimension(3), parameter :: c2 = (/0.5_wp,-2.0_wp,2.5_wp/) 
-  real(wp), dimension(5), parameter :: c4 = (/0.07142857_wp,-0.57142857_wp,1.92857143_wp,-3.42857143_wp,3.00000000_wp/)
+  real(wp), dimension(0:5) :: cc
+!  real(wp), dimension(3), parameter :: c2 = (/0.5_wp,-2.0_wp,2.5_wp/) 
+!  real(wp), dimension(5), parameter :: c4 = (/0.07142857_wp,-0.57142857_wp,1.92857143_wp,-3.42857143_wp,3.00000000_wp/)
 
   integer, dimension(:,:), allocatable :: ndim_ovrlp
   real(wp), dimension(:), allocatable :: ovrlp
@@ -644,56 +644,8 @@ use wfn_extrap, only : myoverlap2, rotate_wavefunction, normalize_wavefunction
 
   istep=modulo(istep_history,wfn_history+1)
 
-!TODO tidy this 
-  if(wfn_history==2)then
-    if(istep==2)then
-      cc(0)=c2(1)
-      cc(1)=c2(2)
-      cc(2)=c2(3)
-    else if(istep==0)then
-      cc(0)=c2(3)
-      cc(1)=c2(1)
-      cc(2)=c2(2)
-    else if(istep==1)then
-      cc(0)=c2(2)
-      cc(1)=c2(3)
-      cc(2)=c2(1)
-    end if 
-  else if(wfn_history==4)then
-    if(istep==4)then
-      cc(0)=c4(1)
-      cc(1)=c4(2)
-      cc(2)=c4(3)
-      cc(3)=c4(4)
-      cc(4)=c4(5)
-    else if(istep==0)then
-      cc(0)=c4(5)
-      cc(1)=c4(1)
-      cc(2)=c4(2)
-      cc(3)=c4(3)
-      cc(4)=c4(4)
-    else if(istep==1)then
-      cc(0)=c4(4)
-      cc(1)=c4(5)
-      cc(2)=c4(1)
-      cc(3)=c4(2)
-      cc(4)=c4(3)
-    else if(istep==2)then
-      cc(0)=c4(3)
-      cc(1)=c4(4)
-      cc(2)=c4(5)
-      cc(3)=c4(1)
-      cc(4)=c4(2)
-    else if(istep==3)then
-      cc(0)=c4(2)
-      cc(1)=c4(3)
-      cc(2)=c4(4)
-      cc(3)=c4(5)
-      cc(4)=c4(1)
-    end if 
-  else
-    stop 'error wfn_history only 2 or 4 implemented'
-  end if
+  call extrapolation_coeff(istep,wfn_history,cc)
+
   !check if history has not yet been filled
 !  if (istep_history < wfn_history) then
 !dbg
