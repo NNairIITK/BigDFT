@@ -674,6 +674,15 @@
        WHEN:
        - nose_hoover_chain
      default: 3000.0
+   wavefunction_extrapolation: 
+     COMMENT: Activates the wavefunction extrapolation for MD
+     DESCRIPTION: A value greater than 0 activates wfn extrapolation
+     EXCLUSIVE:
+          0: No wavefunction extrapolation
+          1: Order 1 wavefunction extrapolation
+          2: Order 2 wavefunction extrapolation
+          4: Order 4 wavefunction extrapolation
+     default: 0
 #     
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
