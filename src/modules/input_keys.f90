@@ -1888,7 +1888,6 @@ contains
        case (NOSE_FREQUENCY)
          in%nosefrq = val
        case (WAVEFUNCTION_EXTRAPOLATION)
-!          in%nwfn_extrap = val
           in%wfn_history = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
@@ -2263,7 +2262,8 @@ contains
     in%randdis=0.0_gp
     in%betax=2.0_gp
     in%history = 1
-    in%wfn_history = 1
+!    in%wfn_history = 1
+    in%wfn_history = 0
     in%ionmov = -1
     in%dtion = 0.0_gp
     in%strtarget(:)=0.0_gp

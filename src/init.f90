@@ -2485,7 +2485,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
  
      if(displ.eq.0d0 .or. in%inguess_geopt == 0) then
 !         if (in%wfn_history <= 2) then
-         if (in%wfn_history <= 1) then
+         if (in%wfn_history < 1) then
            call timing(iproc,'restart_wvl   ','ON')
            call input_wf_memory(iproc, atoms, &
                 rxyz_old, lzd_old%hgrids(1), lzd_old%hgrids(2), lzd_old%hgrids(3), &

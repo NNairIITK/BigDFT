@@ -160,7 +160,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
         call copy_local_zone_descriptors(KSwfn%Lzd, lzd_old, subname)
         !if the history is bigger than two, create the workspace to store the wavefunction
 !        if (in%wfn_history > 2) then
-        if (in%wfn_history > 1) then
+        if (in%wfn_history > 0) then
 !           if(iproc==0)print *, "NNdbg: KSwfn%Psi copied to Psi(",in%wfn_history+1,")"
            call old_wavefunction_set(KSwfn%oldpsis(in%wfn_history+1),&
                 atoms%astruct%nat,KSwfn%orbs%norbp*KSwfn%orbs%nspinor,&
