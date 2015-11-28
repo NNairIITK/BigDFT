@@ -51,10 +51,11 @@ program abscalc_main
    do iconfig=0,bigdft_nruns(options)-1!abs(nconfig)
       run => options // 'BigDFT' // iconfig
       !if (modulo(iconfig-1,ngroups)==igroup) then
+!call yaml_map('Run file',run)
       call bigdft_get_run_properties(run,run_id=run_id)
       !run_id =  run // 'name'
          !Welcome screen
-         call run_objects_init(runObj,run)! arr_radical(iconfig),arr_posinp(iconfig))
+         call run_objects_init(runObj,run)
 
          call f_file_exists(trim(run_id)//".abscalc",exists)
          !inquire(file=trim(run_id)//".abscalc",exist=exists)

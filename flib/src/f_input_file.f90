@@ -427,6 +427,7 @@ contains
           call f_err_close_try(exceptions=errs)
           if (associated(errs)) then
              call yaml_map('List of error founds',errs)
+             call dict_free(errs)
              call f_err_throw('Error(s) found in input_keys_fill for the field "'//trim(file)//&
                   '" and the key "'//trim(dict_key(ref_iter))//'", see details in the above message"',&
                   err_id=INPUT_VAR_ILLEGAL)

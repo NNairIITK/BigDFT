@@ -1527,6 +1527,7 @@ FF_LJ-lbfgs:
 FF_LJ-sqnm:
   Geometry: 1.01e-8
   fnrm2: 1.1e-6
+  maxval: 1.01e-7
   Keys to ignore:
   - WARNINGS
   - disablesym
@@ -1868,9 +1869,9 @@ extendedfrags_read:
 
 extendedfrags_readrotated:
  energy: 1.4e-11
- eF: 7.21e-10
+ eF: 2.581e-9
  D eF: 1.1e-8
- guess for new ef: 1.0e-9
+ guess for new ef: 2.51e-9
  D Tr: 1.1e-9
  ebs_check: 1.4e-10
  ebs: 1.4e-10
