@@ -174,7 +174,7 @@ subroutine mkcore_paw_iat(iproc,atoms,ityp,rx,ry,rz,cutoff,hxh,hyh,hzh,&
      n1i,n2i,n3i,i3s,n3d,core_mesh,rhocore, ncmax, ifftsph, rr, rcart, raux)
   use module_defs, only: dp, gp, pi_param
   use module_base, only: bigdft_mpi
-  use module_types, only: denspot_distribution
+  use module_dpbox, only: denspot_distribution
   use module_atoms
   use dynamic_memory
   use dictionaries, only: f_err_raise

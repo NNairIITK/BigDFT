@@ -47,19 +47,20 @@ contains
   !!    or http://www.gnu.org/copyleft/gpl.txt .
   !!    For the list of contributors, see ~/AUTHORS 
   !> Read a field in the ISF basis in the ETSF format
-  subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,rho,&
-       nat,rxyz)
+  subroutine read_etsf(filename,geocode,n1i,n2i,n3i,nspin,hxh,hyh,hzh,ldrho,nrho,rho,&
+       nat,rxyz,iatypes,znucl)
     use PSbase
     implicit none
     character(len=*), intent(in) :: filename
     character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-    integer, intent(in) :: nspin
+    integer, intent(in) :: ldrho,nrho !<dimensions of the rho array
+    integer, intent(out) :: nspin
     integer, intent(out) ::  n1i,n2i,n3i
     real(gp), intent(out) :: hxh,hyh,hzh
-    real(dp), dimension(:,:), pointer :: rho
-    real(gp), dimension(:,:), pointer,  optional :: rxyz
-    integer, intent(out), optional ::  nat
-
+    real(dp), dimension(ldrho,nrho) :: rho
+    real(gp), dimension(:,:), pointer :: rxyz
+    integer, intent(out) ::  nat
+    integer, dimension(:), pointer :: iatypes, znucl
     write(0, "(A)") "Illegal call to read_etsf(), not compiled with ETSF_IO support."
     stop
 
@@ -72,10 +73,10 @@ contains
     hyh=0.0_gp
     hzh=0.0_gp
     rho(1,1)=0.0_gp
-    if (present(nat)) then
+!    if (present(nat)) then
        rxyz(1,1)=0.0_gp
        nat=0
-    end if
+!    end if
   END SUBROUTINE read_etsf
 
 end module IOBoxETSF

@@ -1165,6 +1165,7 @@ END SUBROUTINE system_properties
 subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
   use module_base
   use module_types
+  use module_dpbox, only: denspot_distribution
   use public_enums, only: PSPCODE_PAW
   use m_pawrad,  only : pawrad_type, pawrad_init, pawrad_free
   use yaml_output
@@ -2687,8 +2688,8 @@ end subroutine pawpatch_from_file
 subroutine paw_init(iproc, paw, at, rxyz, d, dpbox, nspinor, npsidim, norb, nkpts)
   !use module_base
   use module_defs, only: gp
-  use module_types, only: atoms_data, paw_objects, nullify_paw_objects, &
-       & denspot_distribution
+  use module_types, only: atoms_data, paw_objects, nullify_paw_objects
+  use module_dpbox, only: denspot_distribution
   use locregs, only: grid_dimensions
   use dynamic_memory
   use m_paw_an, only: paw_an_init

@@ -525,7 +525,8 @@ module module_interfaces
       interface
         subroutine calculate_rhocore(at,rxyz,dpbox,rhocore)
         use module_defs, only: gp,dp,wp
-        use module_types
+        use module_atoms, only: atoms_data
+        use module_dpbox, only: denspot_distribution
         implicit none
         type(atoms_data), intent(in) :: at
         type(denspot_distribution), intent(in) :: dpbox
@@ -1215,6 +1216,7 @@ module module_interfaces
 
         interface
           subroutine denspot_set_history(denspot, iscf, &
+               npulayit)
           use module_types
           implicit none
           type(DFT_local_fields), intent(inout) :: denspot

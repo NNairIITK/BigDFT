@@ -331,7 +331,8 @@ module IObox
               nat_read,rxyz_read, iatypes_read, znucl_read)
       case(ETSF)
          call read_etsf(filename(1:isuffix),geocode,&
-              ndims(1),ndims(2),ndims(3),nspin,hgrids(1),hgrids(2),hgrids(3),ldrho,nrho,rho,&
+              ndims(1),ndims(2),ndims(3),nspin,hgrids(1),hgrids(2),hgrids(3),&
+              ldrho,nrho,rho,&
               nat_read,rxyz_read, iatypes_read, znucl_read)
          if (ldrho < product(ndims) .or. nrho < nspin) &
               call f_err_throw('Severe error, the sizes of the rho array have revealed not to be sufficient. '//&

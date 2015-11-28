@@ -27,9 +27,15 @@ noinst_LIBRARIES = libmain.a
 subs_static_library =
 out_static_library =  \
 	$(top_builddir)/PSolver/src/libPSolver-1.a \
-	$(top_builddir)/wrappers/libwrappers.a \
-	$(top_builddir)/flib/src/libflib-1.a \
+	$(top_builddir)/wrappers/libwrappers.a
+
+if BUILD_FLIB
+out_static_library += $(top_builddir)/flib/src/libflib-1.a
+endif
+
+out_static_library +=  \
 	$(top_builddir)/src/libbigdft-1.a
+
 
 if BUILD_DYNAMIC_LIBS
 spred_dynamic_library = libspred-1.so.@BIGDFT_MINOR_VERSION@.0.@BIGDFT_MICRO_VERSION@
