@@ -67,7 +67,7 @@
 
   <autotools id="bigdft" autogenargs="--without-internal-flib" autogen-sh="autoreconf">
     <!--<branch repo="bigdft" module="bigdft" version="1.7.5"/>-->
-    <branch repo="local" module="bigdft-1.8a.0.tar.gz" version="1.8a.0" checkoutdir="bigdft"/>
+    <branch repo="local" module="bigdft-1.8.0.tar.gz" version="1.8.0" checkoutdir="bigdft"/>
     <dependencies>
       <dep package="flib"/>
       <!--<dep package="psolver"/>-->
@@ -102,8 +102,8 @@
   </makesys>
 
   <autotools id="netcdf" autogenargs="--disable-netcdf-4">
-    <branch repo="unidata" module="netcdf/netcdf-4.3.2.tar.gz"
-            version="4.3.2"/>
+    <branch repo="unidata" module="netcdf/netcdf-4.3.3.tar.gz"
+            version="4.3.3"/>
   </autotools>
 
   <autotools id="netcdff">
