@@ -179,3 +179,4 @@ netcdf-*.tar.*
 netcdf-*/
 netcdf-fortran-*.tar.*
 netcdf-fortran-*/
+GaIn-*/

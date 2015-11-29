@@ -44,6 +44,11 @@
     </dependencies>
   </autotools>
 
+  <autotools id="GaIn">
+    <branch repo="local" module="GaIn-1.0.tar.gz"
+            version="1.0"/>
+  </autotools>
+
   <autotools id="flib" autogenargs="--disable-libpsolver" autogen-sh="autoreconf">
     <branch repo="local" module="bigdft-1.8a.0.tar.gz" version="1.8a.0" checkoutdir="bigdft"/>
     <dependencies>
@@ -74,6 +79,7 @@
       <dep package="libyaml"/>
       <dep package="libxc"/>
       <dep package="libABINIT"/>
+      <dep package="GaIn"/>
       <if condition-set="testing">
         <dep package="PyYAML"/>
       </if>
