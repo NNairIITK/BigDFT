@@ -925,7 +925,7 @@
    mdsteps:
      COMMENT: Number of MD steps
      DESCRIPTION: A value greater than 0 will activate molecular dynamics
-     RANGE: [0, 99999999]
+     RANGE: [0, .inf ]
      default: 0
    print_frequency:
      COMMENT: Printing frequency for energy.dat and Trajectory.xyz files
@@ -966,10 +966,7 @@
      default: 1
    nose_yoshida_factor:
      COMMENT: Yoshida-Suzuki order to integrate the Nose-Hoover Chains equations of motion (integer input)
-     EXCLUSIVE:
-          3: Order 3
-          5: Order 5
-          7: Order 7
+     EXCLUSIVE: [3, 5, 7]
      CONDITION:
        MASTER_KEY: thermostat
        WHEN:
@@ -977,7 +974,7 @@
      default: 7
    nose_frequency: 
      COMMENT: Frequency in (cm^-1) corresponding to the inertia of the thermostat degrees of freedom 
-     RANGE: [1.,100000.0]
+     RANGE: [1., .inf ]
      CONDITION:
        MASTER_KEY: thermostat
        WHEN:
@@ -986,11 +983,7 @@
    wavefunction_extrapolation: 
      COMMENT: Activates the wavefunction extrapolation for MD
      DESCRIPTION: A value greater than 0 activates wfn extrapolation
-     EXCLUSIVE:
-          0: No wavefunction extrapolation
-          1: Order 1 wavefunction extrapolation
-          2: Order 2 wavefunction extrapolation
-          4: Order 4 wavefunction extrapolation
+     EXCLUSIVE: [ 0, 1, 2, 4 ]
      default: 0
 #     
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
@@ -999,8 +992,7 @@
      This file contains all the parameters required to use a density (or potential)
      mixing scheme for the self consistent field loop, which may imply a smearing
      of the occupancies for finite temperature DFT calculations.
-     
-     It is named input.mix.
+     It was the former input.mix.
    iscf:
      COMMENT: Mixing parameters
      DESCRIPTION: |
