@@ -1,0 +1,25 @@
+ dft:
+   hgrids: [0.4, 0.4, 0.4]
+   rmult: [6.0, 8.00]
+   ixc: PBE
+   qcharge: 0
+   nspin: 1 
+   mpol: 0
+   gnrm_cv: 5.e-2
+   nrepmax: 2
+   itermax: 40
+   ncong: 1
+   idsx: 10
+   disablesym: No
+   inputpsiid: 1
+ perf:
+   projrad: 8.000
+   unblock_comms: DEN
+   psp_onfly: No
+   verbosity: 0
+ md:
+     mdsteps: 3
+     timestep: 2.0
+     temperature: 50.0
+     print_frequency: 1
+     wavefunction_extrapolation: 2
