@@ -656,7 +656,7 @@ contains
        var => dict_next(var)
     end do
 
-    ! Update interdependant values.
+    ! Update interdependent values.
     rlocmin = 999._gp
     var => dict_iter(types)
     do while(associated(var))
