@@ -181,6 +181,7 @@ module module_input_keys
      integer :: ixc         !< XC functional Id
      real(gp):: qcharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
+     integer :: itermax_virt     !< Maximal number of SCF iterations
      integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
@@ -205,6 +206,7 @@ module module_input_keys
      real(gp) :: crmult     !< Coarse radius multiplier
      real(gp) :: frmult     !< Fine radius multiplier
      real(gp) :: gnrm_cv    !< Convergence parameters of orbitals
+     real(gp) :: gnrm_cv_virt !< Convergence parameters of virtual orbitals
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
@@ -600,6 +602,7 @@ contains
     use fragment_base
     use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
+    use PStypes, only: SETUP_VARIABLES,VERBOSITY
     implicit none
     !Arguments
     type(input_variables), intent(out) :: in
@@ -645,7 +648,7 @@ contains
     call dict_copy(src=dict // PSOLVER, dest=in%PS_dict)
     call dict_copy(src=in%PS_dict, dest=in%PS_dict_seq)
     !then other treatments for the sequential solver might be added
-
+    call set(in%PS_dict_seq // SETUP_VARIABLES // VERBOSITY, .false.)
 
     ! Add missing pseudo information.
     projr = dict // PERF_VARIABLES // PROJRAD
@@ -878,10 +881,10 @@ contains
     if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id)
 
     if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
-       call dict_get_run_properties(dict, input_id = run_id)
-       call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
+       call dict_get_run_properties(dict, input_id = run_id , minimal_file = filename)
+       !       call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
        unt=f_get_free_unit(99971)
-       call yaml_set_stream(unit=unt,filename=trim(outdir)//trim(filename),&
+       call yaml_set_stream(unit=unt,filename=trim(outdir)//trim(filename)//'.yaml',&
             record_length=92,istat=ierr,setdefault=.false.,tabbing=0,position='rewind')
        if (ierr==0) then
           call yaml_comment('Minimal input file',hfill='-',unit=unt)
@@ -890,7 +893,7 @@ contains
           call yaml_dict_dump(dict_minimal,unit=unt)
           call yaml_close_stream(unit=unt)
        else
-          call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
+          call yaml_warning('Failed to create'//trim(filename)//', error code='//trim(yaml_toa(ierr)))
        end if
     end if
     if (associated(dict_minimal)) call dict_free(dict_minimal)
@@ -1587,6 +1590,10 @@ contains
           in%nvirt = val
        case (NPLOT)
           in%nplot = val
+       case (GNRM_CV_VIRT)
+          in%gnrm_cv_virt = val
+       case (ITERMAX_VIRT)
+          in%itermax_virt = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
 !!$       case (SOLVENT)
@@ -2236,6 +2243,8 @@ contains
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)
     in%gen_norbd = UNINITIALIZED(0)
+    call f_zero(in%gnrm_cv_virt)
+    call f_zero(in%itermax_virt)
     nullify(in%gen_occup)
     ! Default abscalc variables
     call abscalc_input_variables_default(in)

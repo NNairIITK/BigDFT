@@ -669,14 +669,10 @@
  Total Charge considered on the centers:  9.722858062042
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - 
-   Do not read the linear input files in the old format. If you use the .yaml format you can 
-   igno
  - No convergence within the allowed number of minimization steps
  - KS Hamiltonian is not Hermitian in the subspace, diff: 1.08E-02
  - Wavefunctions not converged after cycle  1
  - Self-consistent cycle did not meet convergence criteria
-
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  33.63

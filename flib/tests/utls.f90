@@ -22,7 +22,7 @@ subroutine f_utils_test()
   integer :: unt,unt2,u
   !  double precision :: t0
   integer(kind=8) :: i0
-  integer, parameter :: nstep=3,n_inc=10**7
+  integer, parameter :: nstep=10,n_inc=10**7
   integer :: istep,icount
   integer(f_long) :: t0,t1
   real(f_simple), dimension(3) :: r1
@@ -170,13 +170,13 @@ subroutine f_utils_test()
 
 
 !we cannot flush a unit with advance no, we would lose the output
-!!$  !test the counter with advance no
-!!$  call yaml_mapping_open('Counter test',flow=.true.)
-!!$  do istep=1,nstep
-!!$     call yaml_scalar('#',advance='no')
-!!$     call yaml_flush_document()
-!!$  end do
-!!$  call yaml_mapping_close()
+  !test the counter with advance no
+  call yaml_mapping_open('Progress bar test')
+  do istep=1,nstep
+     call f_pause(1)
+     call f_progress_bar(real(istep,f_double)/real(nstep,f_double)*100.0_f_double)
+  end do
+  call yaml_mapping_close()
   
 
   !create a directory (we should add the test to remove it)

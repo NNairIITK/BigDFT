@@ -190,7 +190,7 @@ subroutine razero_complex_li(n,x)
   integer(kind=8), intent(in) :: n
   double complex, dimension(n), intent(out) :: x
   !Local variables
-  integer :: i
+  integer(kind=8) :: i
   !$ logical :: omp_in_parallel,do_omp
   !$ do_omp = n > 1024
   !$ if (do_omp) do_omp= .not. omp_in_parallel()
@@ -202,7 +202,6 @@ subroutine razero_complex_li(n,x)
   !$omp enddo
   !$omp end parallel
 end subroutine razero_complex_li
-
 
 
 !> Set to zero an array x(n)
@@ -226,13 +225,14 @@ subroutine razero_simple_i(n,x)
   !$omp end parallel
 END SUBROUTINE razero_simple_i
 
+
 subroutine razero_simple_li(n,x)
   implicit none
   !Arguments
   integer(kind=8), intent(in) :: n
   real(kind=4), intent(out) :: x(n)
   !Local variables
-  integer :: i,m
+  integer(kind=8) :: i
   !$ logical :: omp_in_parallel,do_omp
   !$ do_omp = n > 1024
   !$ if (do_omp) do_omp= .not. omp_in_parallel()
@@ -244,7 +244,6 @@ subroutine razero_simple_li(n,x)
   !$omp enddo
   !$omp end parallel
 END SUBROUTINE razero_simple_li
-
 
 
 !> Set to zero an array x(n)
@@ -274,7 +273,7 @@ subroutine razero_integer_li(n,x)
   integer(kind=8), intent(in) :: n
   integer(kind=4), dimension(n), intent(out) :: x
   !Local variables
-  integer :: i,m
+  integer(kind=8) :: i
   !$ logical :: omp_in_parallel,do_omp
   !$ do_omp = n > 1024
   !$ if (do_omp) do_omp= .not. omp_in_parallel()
@@ -316,7 +315,7 @@ subroutine razero_integerlong_li(n,x)
   integer(kind=8), intent(in) :: n
   integer(kind=8), dimension(n), intent(out) :: x
   !Local variables
-  integer :: i,m
+  integer(kind=8) :: i
   !$ logical :: omp_in_parallel,do_omp
   !$ do_omp = n > 1024
   !$ if (do_omp) do_omp= .not. omp_in_parallel()

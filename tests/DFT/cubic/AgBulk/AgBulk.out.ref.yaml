@@ -1607,9 +1607,6 @@
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - 
-   Do not read the linear input files in the old format. If you use the .yaml format you can 
-   igno
  - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  - No convergence within the allowed number of minimization steps
  - Self-consistent cycle did not meet convergence criteria
