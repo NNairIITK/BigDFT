@@ -197,8 +197,6 @@
    Source                              : psppar.Ag
  mode:
    method                              : dft #    Run method of BigDFT call
-   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
-   mm_paramfile                        : none #   name of parameter file
  geopt:
    method                              : none #   Geometry optimisation method
    ncount_cluster_x                    : 1 #      Maximum number of force evaluations
@@ -1566,7 +1564,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.8565E+01, -1.8565E+01, -1.8565E+01 ]
    norm(P)                             :  3.215540E+01
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Stress Tensor calculated              :  Yes
  Stress Tensor:
@@ -1609,9 +1607,6 @@
   #WARNING: Self-consistent cycle did not meet convergence criteria
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - 
-   Do not read the linear input files in the old format. If you use the .yaml format you can 
-   igno
  - Projectors too rough: Consider modifying hgrid and/or the localisation radii.
  - No convergence within the allowed number of minimization steps
  - Self-consistent cycle did not meet convergence criteria

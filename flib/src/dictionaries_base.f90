@@ -1,7 +1,7 @@
 !> @file
 !!  Module defining a dictionary
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -10,7 +10,7 @@
 
 !> Module which defines a dictionary and the pure functions for its basic usage rules (no dependency)
 module dictionaries_base
-
+  use f_precisions
   implicit none
 
   integer, parameter, public :: max_field_length = 256    !< Maximum length of a field
@@ -477,7 +477,7 @@ contains
 
   !> This function returns the key if present otherwise the value of the element if in a list
   !! this is a function indended for internal flib usage which 
-  !! can be used for lists of hash table, as dictionasy type is "polymorph"
+  !! can be used for lists of hash table, as dictionary type is "polymorph"
   pure function name_is(dict,name)
     implicit none
     type(dictionary), pointer, intent(in) :: dict
@@ -563,14 +563,14 @@ contains
   !> Define the same parent(dict) for any of the elements of the linked chain (child)
   recursive subroutine define_parent(dict,child)
     implicit none
+    !Arguments
     type(dictionary), target :: dict
     type(dictionary) :: child
 !!$    type(dictionary), pointer :: dict
 !!$    type(dictionary), pointer :: child
 
     !local variables
-    type(dictionary), pointer :: iter
-
+!!$    type(dictionary), pointer :: iter
 !!$    !eliminate recursion
 !!$    iter => child
 !!$    do while(associated(iter))

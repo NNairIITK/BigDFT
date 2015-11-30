@@ -253,8 +253,6 @@
    tddft_approach                      : none #   Time-Dependent DFT method
  mode:
    method                              : dft #    Run method of BigDFT call
-   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
-   mm_paramfile                        : none #   name of parameter file
  psppar.C:
    Pseudopotential type                : HGH-K
    Atomic number                       : 6
@@ -2772,7 +2770,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.7872E-01, -1.7909E-01, -3.2920E-01 ]
    norm(P)                             :  4.151938E-01
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:

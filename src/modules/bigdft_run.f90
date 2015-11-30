@@ -50,12 +50,15 @@ module bigdft_run
      type(dictionary), pointer :: user_inputs
      !> structure of BigDFT input variables
      type(input_variables), pointer    :: inputs
-     !> datatype describing the atomic system.
+     !> datatype describing the different atomic systems.
      type(atoms_data), pointer         :: atoms
      !> datatype describing the wavefunctions objects
      type(QM_restart_objects), pointer    :: rst
      !> datatype describing extra MM information
      type(MM_restart_objects), pointer :: mm_rst
+     !> Subparts that needs to be executed separately
+     type(run_objects), dimension(:), pointer :: sections
+
   end type run_objects
 
   !> Used to store results of a DFT calculation.
@@ -82,7 +85,7 @@ module bigdft_run
   public :: bigdft_norb,bigdft_get_eval,bigdft_run_id_toa,bigdft_get_rxyz
   public :: bigdft_dot,bigdft_nrm2
   public :: bigdft_get_input_policy
-  public :: bigdft_set_input_policy
+  public :: bigdft_set_input_policy,process_run
 
   !> Input policies
   integer,parameter,public :: INPUT_POLICY_SCRATCH = 10000 !< Start the calculation from scratch
@@ -142,10 +145,11 @@ contains
   !! if the treatment requires some extra allocations, control
   !! that the arrays are present and with the good shape
   !! otherwise allocate them
-  subroutine init_MM_restart_objects(runObj,mm_rst,nat,run_mode)
+  subroutine init_MM_restart_objects(mm_rst,inputs,astruct,run_mode)
     use f_utils
     use dynamic_memory
     use public_enums
+    use module_atoms
     use module_morse_bulk
     use module_tersoff
     use module_BornMayerHugginsTosiFumi
@@ -154,10 +158,10 @@ contains
     use module_cp2k
     use yaml_output
     implicit none
-    type(run_objects), intent(inout) :: runObj
-    type(f_enumerator), intent(in) :: run_mode
-    integer, intent(in) :: nat
     type(MM_restart_objects), intent(inout) :: mm_rst
+    type(input_variables), intent(in) :: inputs
+    type(atomic_structure), intent(in) :: astruct
+    type(f_enumerator), intent(in) :: run_mode
 
     !then check if extra workspaces have to be allocated
     select case(trim(f_str(run_mode)))
@@ -165,84 +169,84 @@ contains
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
-       call init_lj(runObj%inputs%mm_paramset,&
-            runObj%inputs%mm_paramfile,runObj%atoms%astruct%units)
+       call init_lj(inputs%mm_paramset,&
+            inputs%mm_paramfile,astruct%units)
     case('LENOSKY_SI_CLUSTERS_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
-          if (size(mm_rst%rf_extra) == nat) then
+          if (size(mm_rst%rf_extra) == astruct%nat) then
              call f_zero(mm_rst%rf_extra)
           else
              call f_free_ptr(mm_rst%rf_extra)
-             mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+             mm_rst%rf_extra=f_malloc0_ptr([3,astruct%nat],id='rf_extra')
           end if
        else
           call nullify_MM_restart_objects(mm_rst)
           !create reference counter
           mm_rst%refcnt=f_ref_new('mm_rst')
-          mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+          mm_rst%rf_extra=f_malloc0_ptr([3,astruct%nat],id='rf_extra')
        end if
-       call init_lensic(runObj%inputs%mm_paramset,&
-            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode,&
-            runObj%atoms%astruct%units)
+       call init_lensic(inputs%mm_paramset,&
+            inputs%mm_paramfile,astruct%geocode,&
+            astruct%units)
     case('LENOSKY_SI_BULK_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
-          if (size(mm_rst%rf_extra) == nat) then
+          if (size(mm_rst%rf_extra) == astruct%nat) then
              call f_zero(mm_rst%rf_extra)
           else
              call f_free_ptr(mm_rst%rf_extra)
-             mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+             mm_rst%rf_extra=f_malloc0_ptr([3,astruct%nat],id='rf_extra')
           end if
        else
           call nullify_MM_restart_objects(mm_rst)
           !create reference counter
           mm_rst%refcnt=f_ref_new('mm_rst')
-          mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+          mm_rst%rf_extra=f_malloc0_ptr([3,astruct%nat],id='rf_extra')
        end if
     case('MORSE_SLAB_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
-       call init_morse_slab(runObj%inputs%mm_paramset,&
-            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode,&
-            runObj%atoms%astruct%units)
+       call init_morse_slab(inputs%mm_paramset,&
+            inputs%mm_paramfile,astruct%geocode,&
+            astruct%units)
     case('MORSE_BULK_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
-        call init_morse_bulk(runObj%inputs%mm_paramset,&
-             runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
+        call init_morse_bulk(inputs%mm_paramset,&
+             inputs%mm_paramfile,astruct%geocode)
     case('TERSOFF_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
-       call init_tersoff(nat,runObj%atoms%astruct,runObj%inputs%mm_paramset,&
-            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode) 
+       call init_tersoff(astruct%nat,astruct,inputs%mm_paramset,&
+            inputs%mm_paramfile,astruct%geocode) 
     case('BMHTF_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
-       call init_bmhtf(nat,runObj%atoms%astruct,runObj%inputs%mm_paramset,&
-            runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode) 
+       call init_bmhtf(astruct%nat,astruct,inputs%mm_paramset,&
+            inputs%mm_paramfile,astruct%geocode) 
     case('AMBER_RUN_MODE')
        if (associated(mm_rst%rf_extra)) then
-          if (size(mm_rst%rf_extra) == nat) then
+          if (size(mm_rst%rf_extra) == astruct%nat) then
              call f_zero(mm_rst%rf_extra)
           else
              call f_free_ptr(mm_rst%rf_extra)
-             mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+             mm_rst%rf_extra=f_malloc0_ptr([3,astruct%nat],id='rf_extra')
           end if
        else
           call nullify_MM_restart_objects(mm_rst)
           !create reference counter
           mm_rst%refcnt=f_ref_new('mm_rst')
-          mm_rst%rf_extra=f_malloc0_ptr([3,nat],id='rf_extra')
+          mm_rst%rf_extra=f_malloc0_ptr([3,astruct%nat],id='rf_extra')
        endif
        call nab_init()
     case('CP2K_RUN_MODE')
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
        mm_rst%refcnt=f_ref_new('mm_rst')
-       call init_cp2k(runObj%inputs%mm_paramfile,runObj%atoms%astruct%geocode)
+       call init_cp2k(inputs%mm_paramfile,astruct%geocode)
     case default
        call nullify_MM_restart_objects(mm_rst)
        !create reference counter
@@ -434,6 +438,7 @@ contains
   END SUBROUTINE nullify_state_properties
 
 
+  !> Initialized the state_properties structure
   subroutine init_state_properties(outs, nat)
     use module_base
     use dynamic_memory
@@ -447,7 +452,7 @@ contains
     outs%fxyz(:,:) = UNINITIALIZED(1.0_gp)
   END SUBROUTINE init_state_properties
 
-  !>clean the outs object with empty (but meaningful)
+  !> Clean the outs object with empty (but meaningful)
   !! values so that the structure can be used for optimization
   subroutine clean_state_properties(outs)
     use module_types, only: energy_terms_null
@@ -592,6 +597,7 @@ contains
 
   END SUBROUTINE run_objects_associate
 
+
   !> copy the atom position in runObject into a workspace
   !! or retrieve the positions from a file
   subroutine bigdft_get_rxyz(runObj,filename,rxyz_add,rxyz,energy,disableTrans)
@@ -725,6 +731,7 @@ contains
 
   end subroutine bigdft_write_atomic_file
 
+
   !> Import positions for the run object from a given array
   subroutine bigdft_set_rxyz(runObj,rxyz_add,rxyz)
     use dynamic_memory, only: f_memcpy
@@ -759,6 +766,7 @@ contains
     end if
 
   end subroutine bigdft_set_rxyz
+
 
   subroutine state_properties_set_from_dict(outs, dict)
     use dictionaries
@@ -804,6 +812,7 @@ contains
     nullify(runObj%atoms)
     nullify(runObj%rst)
     nullify(runObj%mm_rst)
+    nullify(runObj%sections)
   END SUBROUTINE nullify_run_objects
 
   !> Release run_objects structure as a whole
@@ -813,7 +822,7 @@ contains
   !! sure that it would be illegal to have inputs and atoms living
   !! separately from run_objects
   !! should not give exception as release might be called indefinitely
-  subroutine release_run_objects(runObj)
+  recursive subroutine release_run_objects(runObj)
     use module_base
     use module_atoms, only: deallocate_atoms_data
     use yaml_output, only: yaml_sequence_close
@@ -821,7 +830,7 @@ contains
     implicit none
     type(run_objects), intent(inout) :: runObj
     !local variables
-    integer :: count
+    integer :: count, i
     if (associated(runObj%run_mode)) then
       if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
            call yaml_sequence_close()
@@ -859,6 +868,12 @@ contains
           nullify(runObj%inputs)
        end if
     end if
+    if (associated(runObj%sections)) then
+       do i = 1, size(runObj%sections)
+          call release_run_objects(runObj%sections(i))
+       end do
+       deallocate(runObj%sections)
+    end if
     call nullify_run_objects(runObj)
   end subroutine release_run_objects
 
@@ -872,6 +887,7 @@ contains
     use module_input_keys, only: free_input_variables
     implicit none
     type(run_objects), intent(inout) :: runObj
+    integer :: claim, i
     if (associated(runObj%run_mode)) then
       if (bigdft_mpi%iproc==0 .and. runObj%run_mode /= 'QM_RUN_MODE')&
            call yaml_sequence_close()
@@ -895,6 +911,12 @@ contains
        deallocate(runObj%inputs)
     end if
     call nullify_run_objects(runObj)
+       if (associated(runObj%sections)) then
+          do i = 1, size(runObj%sections)
+             call release_run_objects(runObj%sections(i))
+          end do
+          deallocate(runObj%sections)
+       end if
   END SUBROUTINE free_run_objects
 
 
@@ -902,15 +924,23 @@ contains
   !! in particular this routine identifies the input and the atoms structure
   subroutine set_run_objects(runObj)
     use module_base, only: f_err_throw
-    use module_interfaces, only: inputs_new, atoms_new
-    use module_atoms, only: deallocate_atoms_data
+    use module_interfaces, only: atoms_new, inputs_new
+    use module_atoms, only: deallocate_atoms_data, atomic_structure, astruct_at_from_dict, &
+         & astruct_merge_to_dict, deallocate_atomic_structure
     use module_input_dicts, only: dict_run_validate
     use module_input_keys, only: inputs_from_dict,free_input_variables
     use dynamic_memory
+    use public_keys, only: MODE_VARIABLES, SECTIONS, POSINP !PY_HOOKS
     use yaml_output
+    use dictionaries
     implicit none
     type(run_objects), intent(inout) :: runObj
     character(len=*), parameter :: subname = "run_objects_parse"
+    integer :: ln, i, iat
+    type(dictionary), pointer :: sect
+    logical, dimension(:), allocatable :: mask
+    type(atomic_structure) :: asub
+    character(len = max_field_length) :: mode
 
     call f_routine(id='set_run_objects')
 
@@ -936,7 +966,46 @@ contains
 
     !associate the run_mode
     runObj%run_mode => runObj%inputs%run_mode
+    if (runObj%run_mode == 'MULTI_RUN_MODE' .and. &
+         & has_key(runObj%user_inputs // MODE_VARIABLES, SECTIONS)) then
+       ln = dict_len(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
+       if (ln > 0) then
+          sect => dict_iter(runObj%user_inputs // MODE_VARIABLES // SECTIONS)
+          allocate(runObj%sections(ln))
+          do i = 1, ln
+             call nullify_run_objects(runObj%sections(i))
+             call dict_copy(runObj%sections(i)%user_inputs, runObj%user_inputs // dict_value(sect))
+             ! Generate posinp if necessary.
+             if (POSINP .notin. runObj%sections(i)%user_inputs) then
+                ! Generate the mask from the MODE atomic attribute.
+                mask = f_malloc(runObj%atoms%astruct%nat, id = "mask")
+                do iat = 1, runObj%atoms%astruct%nat
+                   call astruct_at_from_dict(runObj%atoms%astruct%attributes(iat)%d, mode = mode)
+                   mask(iat) = (mode == dict_value(sect))
+                end do
+                call astruct_from_subset(asub, runObj%atoms%astruct, runObj%atoms%astruct%rxyz, mask, .true.)
+                call f_free(mask)
+                call astruct_merge_to_dict(runObj%sections(i)%user_inputs // POSINP, asub, &
+                     & asub%rxyz, "Extracted for mode " // trim(dict_value(sect)))
+                call deallocate_atomic_structure(asub)
+             end if
+             ! Currently the routine is not recursive, we keep two levels, that's all.
+             call dict_run_validate(runObj%sections(i)%user_inputs)
+             call atoms_new(runObj%sections(i)%atoms)
+             call inputs_new(runObj%sections(i)%inputs)
+             call yaml_mapping_open(trim(dict_value(sect)) // " inputs")
+             call inputs_from_dict(runObj%sections(i)%inputs, runObj%sections(i)%atoms, &
+                  & runObj%sections(i)%user_inputs)
+             call yaml_mapping_close()
 
+             sect => dict_next(sect)
+          end do
+       end if
+    end if
+
+!!$    ! Save the python additional code
+!!$    if (PY_HOOKS .in. runObj%user_inputs) then
+!!$       call dict_copy(runObj%py_hooks, runObj%user_inputs // PY_HOOKS)
     call f_release_routine()
 
   END SUBROUTINE set_run_objects
@@ -976,6 +1045,8 @@ contains
     call nullify_run_objects(runObj)
 
     if (present(run_dict)) then
+       !call yaml_map('Test dict',run_dict)
+       !stop
        !here the control of the logfile can be inserted, driven by run_dict and
        ! not anymore by user_inputs
        call create_log_file(run_dict,dict_from_files)
@@ -1020,7 +1091,7 @@ contains
 
           allocate(runObj%mm_rst)
           call nullify_MM_restart_objects(runObj%mm_rst)
-          call init_MM_restart_objects(runObj,runObj%mm_rst,bigdft_nat(runObj),runObj%run_mode)
+          call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
        end if
        ! Start the signaling loop in a thread if necessary.
        if (runObj%inputs%signaling .and. bigdft_mpi%iproc == 0) then
@@ -1040,12 +1111,13 @@ contains
 
   END SUBROUTINE run_objects_init
 
+
   subroutine bigdft_init(options, with_taskgroups)
     use yaml_parse
     use dictionaries
     !use yaml_output, only: yaml_map
     use yaml_strings, only: f_strcpy,yaml_toa
-    use module_defs, only: bigdft_mpi
+    use module_base, only: bigdft_mpi
     use module_input_dicts, only: merge_input_file_to_dict,set_dict_run_file
     use f_utils, only: f_file_exists
     use dynamic_memory
@@ -1203,7 +1275,8 @@ contains
 
   end subroutine bigdft_command_line_options
 
-  !> retrieve the number of runs for a given set of options
+
+  !> Retrieve the number of runs for a given set of options
   !! gives 0 if the option dictionary is invalid
   function bigdft_nruns(options)
     implicit none
@@ -1215,8 +1288,10 @@ contains
     if (bigdft_nruns < 0) bigdft_nruns=0
   end function bigdft_nruns
 
+
   !accessors for external programs
-  !> Get the number of orbitals of the run in rst
+
+  !> Return the number of atoms
   function bigdft_nat(runObj,filename) result(nat)
     use module_atoms, only: atomic_structure,nullify_atomic_structure,&
          set_astruct_from_file,deallocate_atomic_structure
@@ -1228,6 +1303,7 @@ contains
     !local
     type(atomic_structure) :: astruct
 
+    nat=-1
     if (present(runObj) .eqv. present(filename)) then
        call f_err_throw('Error in bigdft_nat: runObj *xor* filename '//&
             'should be present',err_name='BIGDFT_RUNTIME_ERROR')
@@ -1253,6 +1329,8 @@ contains
 
   end function bigdft_nat
 
+
+  !> Get the number of orbitals of the run in rst
   function bigdft_norb(runObj) result(norb)
     implicit none
     type(run_objects), intent(in) :: runObj
@@ -1356,19 +1434,21 @@ contains
 
   end function bigdft_get_cell_ptr
 
-  !=====================================================================
+  
+  !> Do a calculation using runObjs and return outs²
+  !! returns energies in hartree and
+  !! forces in hartree/bohr
+  !! (except for LJ)
+  !! receives distances in Bohr
   subroutine bigdft_state(runObj,outs,infocode)
-    !IMPORTANT:
-    !returns energies in hartree and
-    !forces in hartree/bohr
-    !(except for LJ)
-    !receives distances in Bohr
     use module_lj
     use module_lenosky_si
     use public_enums
     use module_defs
+    use module_base, only: bigdft_mpi,mpibcast,Bohr_Ang,kcalMolAng_HaBohr,&
+         ev_Ha,evang_habohr,Kcalmol_ha
     use dynamic_memory, only: f_memcpy,f_routine,f_release_routine
-    use yaml_strings, only: yaml_toa, operator(+)
+    use yaml_strings
     use yaml_output
     use module_forces, only: clean_forces
     use module_morse_bulk
@@ -1377,6 +1457,7 @@ contains
     use module_cp2k
     use module_dftbp
     use f_enums, enum_int => int
+    use wrapper_linalg, only: vscal
     implicit none
     !parameters
     type(run_objects), intent(inout) :: runObj
@@ -1499,6 +1580,9 @@ contains
              bigdft_get_astruct_ptr(runObj),bigdft_get_geocode(runObj),rxyz_ptr,&
              outs%fxyz,outs%strten,outs%energy,infocode)
        if (bigdft_mpi%iproc==0) call yaml_map('DFTB+ infocode',infocode)
+    case('MULTI_RUN_MODE')
+       call multi_mode_state(runObj,outs,infocode)
+       if (bigdft_mpi%iproc==0) call yaml_map('Multi mode infocode',infocode)
     case default
        call f_err_throw('Following method for evaluation of '//&
             'energies and forces is unknown: '+ enum_int(runObj%run_mode)//&
@@ -1528,6 +1612,57 @@ contains
     call f_release_routine()
 
   end subroutine bigdft_state
+
+
+  !>this routine treats the run_objects and provides the I/O in the outs structure
+  subroutine process_run(id,runObj,outs)
+    use module_base
+    use yaml_output
+    implicit none
+    character(len=*), intent(in) :: id
+    type(run_objects), intent(inout) :: runObj
+    type(state_properties), intent(inout) :: outs
+    !local variables
+    integer :: infocode,ncount_bigdft
+    character(len=60) :: filename
+
+    call f_routine(id='process_run (id="'+id+'")')
+    if(trim(runObj%inputs%geopt_approach)/='SOCK') call bigdft_state(runObj,outs,infocode)
+
+    if (bigdft_mpi%iproc ==0 ) call yaml_map('Energy (Hartree)',outs%energy,fmt='(es24.17)')
+    if (bigdft_mpi%iproc ==0 ) call yaml_map('Force Norm (Hartree/Bohr)',sqrt(sum(outs%fxyz**2)),fmt='(es24.17)')
+    if (runObj%inputs%ncount_cluster_x > 1) then
+       if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+       ! geometry optimization
+       call geopt(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc,ncount_bigdft)
+    end if
+
+    if (runObj%inputs%mdsteps > 0) then
+       if (bigdft_mpi%iproc ==0 ) call yaml_map('Wavefunction Optimization Finished, exit signal',infocode)
+       ! molecular dynamics
+       call md(runObj,outs,bigdft_mpi%nproc,bigdft_mpi%iproc)
+    end if
+
+    !if there is a last run to be performed do it now before stopping
+    if (runObj%inputs%last_run == -1) then
+       runObj%inputs%last_run = 1
+       call bigdft_state(runObj, outs,infocode)
+    end if
+
+    if (runObj%inputs%ncount_cluster_x > 1) then
+       call f_strcpy(src='final_'+id,dest=filename)
+       call bigdft_write_atomic_file(runObj,outs,filename,&
+            'FINAL CONFIGURATION',cwd_path=.true.)
+
+    else
+       call f_strcpy(src='forces_'+id,dest=filename)
+       call bigdft_write_atomic_file(runObj,outs,filename,&
+            'Geometry + metaData forces',cwd_path=.true.)
+
+    end if
+
+    call f_release_routine()
+  end subroutine process_run
 
   !> Routine to use BigDFT as a blackbox
   subroutine quantum_mechanical_state(runObj,outs,infocode)
@@ -1691,7 +1826,6 @@ contains
 
   END SUBROUTINE quantum_mechanical_state
 
-
   !> performs the scalar product between two
   !! set of atomic positions
   !! The results is considered only in non-frozen directions
@@ -1816,7 +1950,7 @@ contains
     energy_ref=energy
 
     !assign the reference
-    functional_ref=functional_definition(iorb_ref,energy)
+    functional_ref=functional_definition(rst%KSwfn%orbs%HLgap,rst%KSwfn%orbs%eval(abs(iorb_ref)),iorb_ref,energy)
 
     if (order == -1) then
        n_order = 1
@@ -1891,7 +2025,7 @@ contains
                   rst%rxyz_old,inputs,rst%GPU,infocode)
 
              !assign the quantity which should be differentiated
-             functional(km)=functional_definition(iorb_ref,energy)
+             functional(km)=functional_definition(rst%KSwfn%orbs%HLgap,rst%KSwfn%orbs%eval(abs(iorb_ref)),iorb_ref,energy)
 
           end do
           ! Build the finite-difference quantity if the calculation has converged properly
@@ -1923,7 +2057,7 @@ contains
     end do
 
     !copy the final value of the energy and of the dfunctional
-    if (.not. experimental_modulebase_var_onlyfion) then !normal case
+    if (.true.) then !.not. experimental_modulebase_var_onlyfion) then !normal case
        call vcopy(3*atoms%astruct%nat,dfunctional(1),1,fxyz(1,1),1)
     else
        call axpy(3*atoms%astruct%nat,2.0_gp*rst%KSwfn%orbs%norb,dfunctional(1),1,fxyz(1,1),1)
@@ -1945,48 +2079,46 @@ contains
     call f_free(rxyz_ref)
     call f_free(fxyz_fake)
 
-  contains
-
-    function functional_definition(iorb_ref,energy)
-      use module_base
-      use module_types
-      implicit none
-      integer, intent(in) :: iorb_ref
-      real(gp), intent(in) :: energy
-      real(gp) :: functional_definition
-      !local variables
-      real(gp) :: mu
-
-      !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
-      !definition which brings to Chemical Potential
-      if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap) .and. iorb_ref< -1) then
-         mu=-abs(rst%KSwfn%orbs%eval(-iorb_ref)+ 0.5_gp*rst%KSwfn%orbs%HLgap)
-      else
-         mu=UNINITIALIZED(1.0_gp)
-      end if
-
-      !assign the reference
-      if (iorb_ref==0) then
-         functional_definition=energy
-      else if (iorb_ref == -1) then
-         if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
-            functional_definition=rst%KSwfn%orbs%HLgap !here we should add the definition which brings to Fukui function
-         else
-            stop ' ERROR (FDforces): gap not defined'
-         end if
-      else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
-         if (rst%KSwfn%orbs%HLgap/=UNINITIALIZED(rst%KSwfn%orbs%HLgap)) then
-            functional_definition=mu!-mu*real(2*orbs%norb,gp)+energy
-         else
-            stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated'
-         end if
-      else
-         functional_definition=rst%KSwfn%orbs%eval(iorb_ref)
-      end if
-
-    end function functional_definition
-
   end subroutine forces_via_finite_differences
+
+  function functional_definition(HLgap,eval,iorb_ref,energy)
+    use module_base, only: gp, UNINITIALIZED
+    implicit none
+    integer, intent(in) :: iorb_ref
+    real(gp), intent(in) :: energy,HLgap,eval !<here the eval is the energy of orbs%eval(abs(iorb_ref))
+    real(gp) :: functional_definition
+    !local variables
+    real(gp) :: mu
+
+    !chemical potential =1/2(e_HOMO+e_LUMO)= e_HOMO + 1/2 GAP (the sign is to be decided - electronegativity?)
+    !definition which brings to Chemical Potential
+    if (HLgap/=UNINITIALIZED(HLgap) .and. iorb_ref< -1) then
+       mu=-abs(eval+ 0.5_gp*HLgap)
+    else
+       mu=UNINITIALIZED(1.0_gp)
+    end if
+
+    !assign the reference
+    if (iorb_ref==0) then
+       functional_definition=energy
+    else if (iorb_ref == -1) then
+       if (HLgap/=UNINITIALIZED(HLgap)) then
+          functional_definition=HLgap !here we should add the definition which brings to Fukui function
+       else
+          stop ' ERROR (FDforces): gap not defined'
+       end if
+    else if(iorb_ref < -1) then      !definition which brings to the neutral fukui function (chemical potential)
+       if (HLgap/=UNINITIALIZED(HLgap)) then
+          functional_definition=mu!-mu*real(2*orbs%norb,gp)+energy
+       else
+          stop ' ERROR (FDforces): gap not defined, chemical potential cannot be calculated'
+       end if
+    else
+       functional_definition=eval
+    end if
+
+  end function functional_definition
+
 
 
   !> Get the current run policy
@@ -2054,7 +2186,6 @@ contains
     integer,parameter :: MODE_CP2K     = 204
     integer,parameter :: MODE_EMPTY    = 205
     integer,parameter :: MODE_RANDOM   = 206
-    integer :: mode
     type(f_enumerator) :: policy_enum
 
 
@@ -2191,7 +2322,7 @@ subroutine run_objects_init_from_run_name(runObj, radical, posinp)
 END SUBROUTINE run_objects_init_from_run_name
 
 subroutine run_objects_update(runObj, dict)
-  use module_base, only: bigdft_mpi,f_int
+  use module_base, only: bigdft_mpi
   use bigdft_run, only: run_objects,init_QM_restart_objects,init_MM_restart_objects,set_run_objects,bigdft_nat
   use dictionaries!, only: dictionary, dict_update,dict_copy,dict_free,dict_iter,dict_next
   use yaml_output
@@ -2224,7 +2355,7 @@ subroutine run_objects_update(runObj, dict)
   !init and update the restart objects
   call init_QM_restart_objects(bigdft_mpi%iproc,runObj%inputs,runObj%atoms,&
        runObj%rst)
-  call init_MM_restart_objects(runObj,runObj%mm_rst,bigdft_nat(runObj),runObj%run_mode)
+  call init_MM_restart_objects(runObj%mm_rst,runObj%inputs,runObj%atoms%astruct,runObj%run_mode)
 END SUBROUTINE run_objects_update
 
 !> this routine should be used in memguess executable also

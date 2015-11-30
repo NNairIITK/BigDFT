@@ -1,7 +1,7 @@
 !> @file
 !!   Program to guess the used memory by BigDFT
 !! @author
-!!   Copyright (C) 2007-2013 BigDFT group (LG)
+!!   Copyright (C) 2007-2015 BigDFT group (LG)
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,6 +13,7 @@
 program memguess
 
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_interfaces
    use module_xc
@@ -31,12 +32,14 @@ program memguess
                                 sparsematrix_malloc_ptr, sparsematrix_malloc0_ptr, DENSE_FULL
    use sparsematrix_init, only: bigdft_to_sparsebigdft, distribute_columns_on_processes_simple
    use sparsematrix, only: uncompress_matrix
-   use postprocessing_linear, only: loewdin_charge_analysis_core
+   !use postprocessing_linear, only: loewdin_charge_analysis_core
    use public_enums
    use module_input_keys, only: print_dft_parameters
+   use IObox
    implicit none
    character(len=*), parameter :: subname='memguess'
    character(len=30) :: tatonam, radical
+   character(len=1) :: geocode
    character(len=2) :: num
    character(len=40) :: comment
    character(len=1024) :: fcomment
@@ -85,7 +88,7 @@ program memguess
    integer :: iproc, isub, jat, icat, info, itype, iiat, jjat, jtype, ios, ival, iat_prev, ii, iitype, ispin
    integer :: nfvctr_s, nseg_s, nvctr_s, nfvctrp_s, isfvctr_s
    integer :: nfvctr_m, nseg_m, nvctr_m, nfvctrp_m, isfvctr_m
-   integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l
+   integer :: nfvctr_l, nseg_l, nvctr_l, nfvctrp_l, isfvctr_l,nspin2
    integer,dimension(:),allocatable :: na, nb, nc, on_which_atom
    integer,dimension(:),pointer :: keyv_s, keyv_m, keyv_l, on_which_atom_s, on_which_atom_m, on_which_atom_l
    integer,dimension(:,:),allocatable :: atoms_ref, imin_list
@@ -115,7 +118,8 @@ program memguess
    !call getarg(1,tatonam)
    call get_command_argument(1, value = tatonam, status = istat)
 
-   write(radical, "(A)") "input"
+   !write(radical, "(A)") "input"
+   call f_zero(radical)
    optimise=.false.
    GPUtest=.false.
    atwf=.false.
@@ -180,7 +184,7 @@ program memguess
       write(*,'(1x,a)')&
            &   '"matrixpower" <matrix.bin>" ' 
       write(*,'(1x,a)')&
-           & 'caluclate the power of a matrix'
+           & 'calculate the power of a matrix'
       write(*,'(1x,a)')&
            &   '"suggest-cutoff" <posinp.xyz>" ' 
       write(*,'(1x,a)')&
@@ -536,18 +540,22 @@ program memguess
    !welcome screen
    !call print_logo()
 
+   !here we can convert the input file into the new format systematically
+   
+
    if (convert) then
       at%astruct%geocode = "P"
       write(*,*) "Read density file..."
-      call read_density(trim(fileFrom), at%astruct%geocode, &
-           & dpbox%ndims(1), dpbox%ndims(2), dpbox%ndims(3), &
-           & nspin, dpbox%hgrids(1), dpbox%hgrids(2), dpbox%hgrids(3), &
-           & rhocoeff, at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
+      call read_field_dimensions(trim(fileFrom),at%astruct%geocode,dpbox%ndims,nspin)
+      rhocoeff=f_malloc_ptr([dpbox%ndims(1),dpbox%ndims(2),dpbox%ndims(3),nspin],id='rhocoeff')
+      call read_field(trim(fileFrom), at%astruct%geocode,dpbox%ndims, &
+           dpbox%hgrids,nspin2,product(dpbox%ndims),nspin,rhocoeff,at%astruct%nat, at%astruct%rxyz, at%astruct%iatype, at%nzatom)
       at%astruct%ntypes = size(at%nzatom)
       write(*,*) "Write new density file..."
       dpbox%ngatherarr = f_malloc_ptr((/ 0.to.0, 1.to.2 /),id='dpbox%ngatherarr')
 
       call plot_density(0,1,trim(fileTo),at,at%astruct%rxyz,dpbox,nspin,rhocoeff)
+      call f_free_ptr(rhocoeff)
       write(*,*) "Done"
       stop
    end if
@@ -712,15 +720,32 @@ program memguess
        !write(*,*) 'ntmb',ntmb
        !write(*,*) 'coeff_ptr',coeff_ptr
 
+
+       !call f_open_file(iunit01, file=overlap_file, binary=.false.)
+       !call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
+       call read_sparse_matrix(trim(overlap_file), nspin, geocode, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+            matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
+            at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
+       !!call read_sparse_matrix(trim(ham_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+       !!     matrix_compr, on_which_atom=on_which_atom_s)
+       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+       call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_s, nfvctrp_s, isfvctr_s, &
+            on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
+       ovrlp_mat = matrices_null()
+       ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
+       call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
+       call f_free_ptr(matrix_compr)
+       !call f_close(iunit01)
+
        !call f_open_file(iunit01, file=ham_file, binary=.false.)
        !call read_linear_matrix_dense(iunit01, ntmb, nat, ham, on_which_atom=on_which_atom)
        !call read_sparse_matrix(trim(ham_file), nspin, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
        !     matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
        !     at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_m)
-       call read_sparse_matrix(trim(ham_file), nspin, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
+       call read_sparse_matrix(trim(ham_file), nspin, geocode, nfvctr_m, nseg_m, nvctr_m, keyv_m, keyg_m, &
             matrix_compr, on_which_atom=on_which_atom_m)
        call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_m, nfvctrp_m, isfvctr_m)
-       call bigdft_to_sparsebigdft(iproc, nproc, nspin, nfvctr_m, nfvctrp_m, isfvctr_m, &
+       call bigdft_to_sparsebigdft(iproc, nproc, at%astruct%nat, nspin, geocode, nfvctr_m, nfvctrp_m, isfvctr_m, &
             on_which_atom_m, nvctr_m, nseg_m, keyg_m, smat_m)
        ham_mat = matrices_null()
        ham_mat%matrix = sparsematrix_malloc0_ptr(smat_m,iaction=DENSE_FULL,id='smat_m%matrix')
@@ -728,21 +753,6 @@ program memguess
        call f_free_ptr(matrix_compr)
        !call f_close(iunit01)
 
-       !call f_open_file(iunit01, file=overlap_file, binary=.false.)
-       !call read_linear_matrix_dense(iunit01, ntmb, nat, overlap)
-       call read_sparse_matrix(trim(overlap_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
-            matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
-            at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
-       !!call read_sparse_matrix(trim(ham_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
-       !!     matrix_compr, on_which_atom=on_which_atom_s)
-       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
-       call bigdft_to_sparsebigdft(iproc, nproc, nspin, nfvctr_s, nfvctrp_s, isfvctr_s, &
-            on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
-       ovrlp_mat = matrices_null()
-       ovrlp_mat%matrix = sparsematrix_malloc0_ptr(smat_s,iaction=DENSE_FULL,id='smat_s%matrix')
-       call uncompress_matrix(iproc, smat_s, matrix_compr, ovrlp_mat%matrix)
-       call f_free_ptr(matrix_compr)
-       !call f_close(iunit01)
 
        !!!write(*,*) 'trim(kernel_file)',trim(kernel_file)
        !!call read_sparse_matrix(trim(kernel_file), nspin, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
@@ -1245,49 +1255,51 @@ program memguess
        stop
    end if
 
-   if (charge_analysis) then
-!!$       call mpi_initialized(mpi_initd, ierror)
-!!$       if (mpi_initd) then
-!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
-!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
-!!$       else
-!!$           iproc = 0
-!!$           nproc = 1
-!!$       end if
-      iproc=mpirank()
-      nproc=mpisize()
-
-       !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
-
-       call read_sparse_matrix(trim(overlap_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
-            matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
-            at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
-       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
-       call bigdft_to_sparsebigdft(iproc, nproc, nspin, nfvctr_s, nfvctrp_s, isfvctr_s, &
-            on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
-       ovrlp_mat = matrices_null()
-       ovrlp_mat%matrix_compr = sparsematrix_malloc_ptr(smat_s, iaction=SPARSE_FULL, id='ovrlp%matrix_compr')
-       call vcopy(smat_s%nvctr*smat_s%nspin, matrix_compr(1), 1, ovrlp_mat%matrix_compr(1), 1)
-       call f_free_ptr(matrix_compr)
-
-       call read_sparse_matrix(trim(kernel_file), nspin, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
-            matrix_compr, on_which_atom=on_which_atom_l)
-       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
-       call bigdft_to_sparsebigdft(iproc, nproc, nspin, nfvctr_l, nfvctrp_l, isfvctr_l, &
-            on_which_atom_l, nvctr_l, nseg_l, keyg_l, smat_l)
-       kernel_mat = matrices_null()
-       kernel_mat%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='kernel_mat%matrix_compr')
-       call vcopy(smat_l%nvctr*smat_l%nspin, matrix_compr(1), 1, kernel_mat%matrix_compr(1), 1)
-       call f_free_ptr(matrix_compr)
-
-       call loewdin_charge_analysis_core(iproc, nproc, smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
-            smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=1020, blocksize=-8, &
-            smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
-       stop
-   end if
+  ! The charge analysis is now done in utilities
+!!   if (charge_analysis) then
+!!!!$       call mpi_initialized(mpi_initd, ierror)
+!!!!$       if (mpi_initd) then
+!!!!$           call mpi_comm_rank(mpi_comm_world, iproc, ierror)
+!!!!$           call mpi_comm_size(mpi_comm_world, nproc, ierror)
+!!!!$       else
+!!!!$           iproc = 0
+!!!!$           nproc = 1
+!!!!$       end if
+!!      iproc=mpirank()
+!!      nproc=mpisize()
+!!
+!!       !call set_astruct_from_file(trim(posinp_file),0,at%astruct,fcomment,energy,fxyz)
+!!
+!!       call read_sparse_matrix(trim(overlap_file), nspin, nfvctr_s, nseg_s, nvctr_s, keyv_s, keyg_s, &
+!!            matrix_compr, at%astruct%nat, at%astruct%ntypes, at%nzatom, at%nelpsp, &
+!!            at%astruct%atomnames, at%astruct%iatype, at%astruct%rxyz,  on_which_atom=on_which_atom_s)
+!!       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_s, nfvctrp_s, isfvctr_s)
+!!       call bigdft_to_sparsebigdft(iproc, nproc, nspin, nfvctr_s, nfvctrp_s, isfvctr_s, &
+!!            on_which_atom_s, nvctr_s, nseg_s, keyg_s, smat_s)
+!!       ovrlp_mat = matrices_null()
+!!       ovrlp_mat%matrix_compr = sparsematrix_malloc_ptr(smat_s, iaction=SPARSE_FULL, id='ovrlp%matrix_compr')
+!!       call vcopy(smat_s%nvctr*smat_s%nspin, matrix_compr(1), 1, ovrlp_mat%matrix_compr(1), 1)
+!!       call f_free_ptr(matrix_compr)
+!!
+!!       call read_sparse_matrix(trim(kernel_file), nspin, nfvctr_l, nseg_l, nvctr_l, keyv_l, keyg_l, &
+!!            matrix_compr, on_which_atom=on_which_atom_l)
+!!       call distribute_columns_on_processes_simple(iproc, nproc, nfvctr_l, nfvctrp_l, isfvctr_l)
+!!       call bigdft_to_sparsebigdft(iproc, nproc, nspin, nfvctr_l, nfvctrp_l, isfvctr_l, &
+!!            on_which_atom_l, nvctr_l, nseg_l, keyg_l, smat_l)
+!!       kernel_mat = matrices_null()
+!!       kernel_mat%matrix_compr = sparsematrix_malloc_ptr(smat_l, iaction=SPARSE_FULL, id='kernel_mat%matrix_compr')
+!!       call vcopy(smat_l%nvctr*smat_l%nspin, matrix_compr(1), 1, kernel_mat%matrix_compr(1), 1)
+!!       call f_free_ptr(matrix_compr)
+!!
+!!       call loewdin_charge_analysis_core(iproc, nproc, smat_s%nfvctr, smat_s%nfvctrp, smat_s%isfvctr, &
+!!            smat_s%nfvctr_par, smat_s%isfvctr_par, meth_overlap=1020, blocksize=-8, &
+!!            smats=smat_s, smatl=smat_l, atoms=at, kernel=kernel_mat, ovrlp=ovrlp_mat)
+!!       stop
+!!   end if
 
    nullify(run)
-   call bigdft_set_run_properties(run, run_id = trim(radical), run_from_files = .true., log_to_disk = logfile)
+   call bigdft_set_run_properties(run, run_id = trim(radical), &
+        run_from_files = .true., log_to_disk = logfile, minimal_file=trim(radical))
 
    call run_objects_init(runObj, run)
    call dict_free(run)
@@ -1304,7 +1316,7 @@ program memguess
       write(*,'(1x,a)')'Writing optimised positions in file posopt.[xyz,ascii]...'
       write(comment,'(a)')'POSITIONS IN OPTIMIZED CELL '
 
-      call astruct_dump_to_file(at%astruct,'posopt',trim(comment))
+      call astruct_dump_to_file(runObj%atoms%astruct,'posopt',trim(comment))
 
 !!$      call write_atomic_file('posopt',0.d0,runObj%atoms%astruct%rxyz,&
 !!$           runObj%atoms%astruct%ixyz_int,runObj%atoms,trim(comment))
@@ -1747,12 +1759,12 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
      nspin,ixc,ncong,Lzd,hx,hy,hz,rxyz,ntimes)
    use module_base
    use module_types
-   use module_interfaces
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use module_interfaces, only: gaussian_pswf_basis
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use gaussians, only: gaussian_basis, deallocate_gwf
    use module_xc
    use module_input_keys
-
+   use locreg_operations, only: confpot_data
    implicit none
    integer, intent(in) :: iproc,nproc,nspin,ncong,ixc,ntimes
    real(gp), intent(in) :: hx,hy,hz
@@ -1837,7 +1849,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    !normally nproc=1
    do jproc=0,nproc-1
       call PS_dim4allocation(at%astruct%geocode,'D',jproc,nproc,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i,xc_isgga(xc),(ixc/=13),&
-         &   n3d,n3p,n3pi,i3xcsh,i3s)
+         &   0,n3d,n3p,n3pi,i3xcsh,i3s)
       nscatterarr(jproc,1)=n3d
       nscatterarr(jproc,2)=n3p
       nscatterarr(jproc,3)=i3s+i3xcsh-1
@@ -1959,7 +1971,7 @@ subroutine compare_cpu_gpu_hamiltonian(iproc,nproc,matacc,at,orbs,&
    do j=1,ntimes
       pottmp = f_malloc_ptr(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin),id='pottmp')
       call vcopy(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i*(nspin),pot(1,1,1,1),1,pottmp(1),1)
-      call local_hamiltonian(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
+      call local_hamiltonian_old(iproc,nproc,orbs%npsidim_orbs,orbs,Lzd,hx,hy,hz,0,confdatarr,pottmp,psi,hpsi, &
            fake_pkernelSIC,xc,0.0_gp,ekin_sum,epot_sum,eSIC_DC)
       call f_free_ptr(pottmp)
    end do
@@ -2169,7 +2181,7 @@ END SUBROUTINE compare_data_and_gflops
 subroutine take_psi_from_file(filename,in_frag,hx,hy,hz,lr,at,rxyz,orbs,psi,iorbp,ispinor,ref_frags)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, only: initialize_linear_from_file
    use module_fragments
    use locreg_operations, only: lpsi_to_global2
    use module_input_keys, only: wave_format_from_filename

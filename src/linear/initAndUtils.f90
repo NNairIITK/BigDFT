@@ -7,76 +7,6 @@
 !!   or http://www.gnu.org/copyleft/gpl.txt .
 !!   For the list of contributors, see ~/AUTHORS 
 
-! lzd%llr already allocated, locregcenter and locrad already filled - could tidy this!
-subroutine initLocregs(iproc, nproc, lzd, hx, hy, hz, astruct, orbs, Glr, locregShape, lborbs)
-  use module_base
-  use module_types
-  use module_atoms, only: atomic_structure
-  use module_interfaces, exceptThisOne => initLocregs
-  use locregs_init, only: determine_locregsphere_parallel
-  implicit none
-  
-  ! Calling arguments
-  integer, intent(in) :: iproc, nproc
-  type(local_zone_descriptors), intent(inout) :: lzd
-  real(kind=8), intent(in) :: hx, hy, hz
-  type(atomic_structure), intent(in) :: astruct
-  type(orbitals_data), intent(in) :: orbs
-  type(locreg_descriptors), intent(in) :: Glr
-  character(len=1), intent(in) :: locregShape
-  type(orbitals_data),optional,intent(in) :: lborbs
-  
-  ! Local variables
-  integer :: jorb, jjorb, jlr
-  character(len=*), parameter :: subname='initLocregs'
-  logical,dimension(:), allocatable :: calculateBounds
-
-  call f_routine(id=subname)
-
-  
-  calculateBounds = f_malloc(lzd%nlr,id='calculateBounds')
-  calculateBounds=.false.
-  
-  do jorb=1,orbs%norbp
-     jjorb=orbs%isorb+jorb
-     jlr=orbs%inWhichLocreg(jjorb)
-     calculateBounds(jlr)=.true.
-  end do
-
-  if(present(lborbs)) then
-     do jorb=1,lborbs%norbp
-        jjorb=lborbs%isorb+jorb
-        jlr=lborbs%inWhichLocreg(jjorb)
-        calculateBounds(jlr)=.true.
-     end do
-  end if
-  
-  if(locregShape=='c') then
-      stop 'locregShape c is deprecated'
-  else if(locregShape=='s') then
-      call determine_locregSphere_parallel(iproc, nproc, lzd%nlr, hx, hy, hz, &
-           astruct, orbs, Glr, lzd%Llr, calculateBounds)
-  end if
-  
-  call f_free(calculateBounds)
-  
-  !DEBUG
-  !do ilr=1,lin%nlr
-  !    if(iproc==0) write(*,'(1x,a,i0)') '>>>>>>> zone ', ilr
-  !    if(iproc==0) write(*,'(3x,a,4i10)') 'nseg_c, nseg_f, nvctr_c, nvctr_f', lin%Llr(ilr)%wfd%nseg_c, lin%Llr(ilr)%wfd%nseg_f, lin%Llr(ilr)%wfd%nvctr_c, lin%Llr(ilr)%wfd%nvctr_f
-  !    if(iproc==0) write(*,'(3x,a,3i8)') 'lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i', lin%Llr(ilr)%d%n1i, lin%Llr(ilr)%d%n2i, lin%Llr(ilr)%d%n3i
-  !    if(iproc==0) write(*,'(a,6i8)') 'lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3',&
-  !    lin%Llr(ilr)%d%nfl1,lin%Llr(ilr)%d%nfu1,lin%Llr(ilr)%d%nfl2,lin%Llr(ilr)%d%nfu2,lin%Llr(ilr)%d%nfl3,lin%Llr(ilr)%d%nfu3
-  !end do
-  !END DEBUG
-  
-  lzd%linear=.true.
-
-  call f_release_routine()
-
-end subroutine initLocregs
-
-
 
 subroutine init_foe(iproc, nproc, input, orbs_KS, foe_obj, reset)
   use module_base
@@ -158,7 +88,7 @@ subroutine check_linear_and_create_Lzd(iproc,nproc,linType,Lzd,atoms,orbs,nspin,
   use ao_inguess, only: atomic_info
   use locregs, only: locreg_null,copy_locreg_descriptors
   use public_enums
-  use locregs_init, only: determine_locreg_parallel
+  use locregs_init, only: determine_locreg_parallel, check_linear_inputguess
   implicit none
 
   integer, intent(in) :: iproc,nproc,nspin
@@ -293,7 +223,7 @@ subroutine create_LzdLIG(iproc,nproc,nspin,linearmode,hx,hy,hz,Glr,atoms,orbs,rx
   use ao_inguess, only: atomic_info
   use locregs, only: locreg_null,copy_locreg_descriptors
   use public_enums
-  use locregs_init, only: determine_locreg_parallel
+  use locregs_init, only: determine_locreg_parallel, check_linear_inputguess
   use psp_projectors, only: update_nlpsp
   implicit none
 
@@ -454,7 +384,7 @@ subroutine init_orbitals_data_for_linear(iproc, nproc, nspinor, input, astruct, 
            norb_par_ref, norbu_par_ref, norbd_par_ref)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => init_orbitals_data_for_linear
+  use module_interfaces, only: assignToLocreg2, orbitals_descriptors
   use public_enums
   implicit none
   
@@ -584,7 +514,6 @@ end subroutine init_orbitals_data_for_linear
 subroutine lzd_init_llr(iproc, nproc, input, astruct, rxyz, orbs, lzd)
   use module_base
   use module_types
-  use module_interfaces
   use locregs, only: locreg_null
   implicit none
   
@@ -659,12 +588,12 @@ subroutine update_locreg(iproc, nproc, nlr, locrad, locrad_kernel, locrad_mult, 
            orbs_KS, orbs, lzd, npsidim_orbs, npsidim_comp, lbcomgp, lbcollcom, lfoe, lbcollcom_sr)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => update_locreg
   use communications_base, only: p2pComms, comms_linear_null, p2pComms_null, allocate_p2pComms_buffer
   use communications_init, only: init_comms_linear, init_comms_linear_sumrho, &
                                  initialize_communication_potential
   use foe_base, only: foe_data, foe_data_null
   use locregs, only: locreg_null,copy_locreg_descriptors
+  use locregs_init, only: initLocregs
   implicit none
   
   ! Calling arguments
@@ -828,7 +757,6 @@ end subroutine deallocate_auxiliary_basis_function
 subroutine destroy_new_locregs(iproc, nproc, tmb)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => destroy_new_locregs
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   implicit none
@@ -856,7 +784,6 @@ end subroutine destroy_new_locregs
 subroutine destroy_DFT_wavefunction(wfn)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => destroy_DFT_wavefunction
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use sparsematrix_base, only: deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use foe_base, only: foe_data_deallocate
@@ -980,7 +907,7 @@ end subroutine update_wavefunctions_size
 subroutine create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,input, at, rxyz, lowaccur_converged)
   use module_base
   use module_types
-  use module_interfaces
+  use module_interfaces, only: allocate_auxiliary_basis_function, update_locreg
   use psp_projectors, only: update_nlpsp
   implicit none
 
@@ -1090,9 +1017,9 @@ subroutine set_optimization_variables(input, at, lorbs, nlr, onwhichatom, confda
      convcrit_dmin, nitdmin, conv_crit_TMB)
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output
   use public_enums
+  use locreg_operations, only: confpot_data
   implicit none
   
   ! Calling arguments
@@ -1251,8 +1178,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
                                init_matrix_taskgroups, check_local_matrix_extents
   use foe_base, only: foe_data_deallocate
   use public_enums
-  use locreg_operations, only: small_to_large_locreg
-  use module_interfaces
+  use locregs_init, only: small_to_large_locreg
+  use module_interfaces, only: deallocate_auxiliary_basis_function, update_locreg
   implicit none
   
   ! Calling argument
@@ -1455,27 +1382,30 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      iirow(2) = 1
      iicol(1) = tmb%linmat%s%nfvctr
      iicol(2) = 1
-     call check_local_matrix_extents(iproc, nproc, tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
+          tmb%collcom, tmb%collcom_sr, tmb%linmat%s, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
-     call check_local_matrix_extents(iproc, nproc, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
+     call check_local_matrix_extents(iproc, nproc, at%astruct%nat, &
+          tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, irow, icol)
      iirow(1) = min(irow(1),iirow(1))
      iirow(2) = max(irow(2),iirow(2))
      iicol(1) = min(icol(1),iicol(1))
      iicol(2) = max(icol(2),iicol(2))
 
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
           tmb%collcom, tmb%collcom_sr, tmb%linmat%s, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
           tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m, iirow, iicol)
-     call init_matrix_taskgroups(iproc, nproc, input%enable_matrix_taskgroups, &
+     call init_matrix_taskgroups(iproc, nproc, at%astruct%nat, input%enable_matrix_taskgroups, &
           tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l, iirow, iicol)
 
 
@@ -1483,8 +1413,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      nullify(tmb%linmat%ks_e)
      if (input%lin%scf_mode/=LINEAR_FOE .or. input%lin%pulay_correction .or.  input%lin%new_pulay_correction .or. &
          (mod(input%lin%plotBasisFunctions,10) /= WF_FORMAT_NONE) .or. input%lin%diag_end) then
-         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, input, input%lin%extra_states, &
-              tmb%linmat%ks, tmb%linmat%ks_e)
+         call init_sparse_matrix_for_KSorbs(iproc, nproc, KSwfn%orbs, input, at%astruct%geocode, &
+              input%lin%extra_states, tmb%linmat%ks, tmb%linmat%ks_e)
      end if
 
 
@@ -1563,9 +1493,9 @@ subroutine set_variables_for_hybrid(iproc, nlr, input, at, orbs, lowaccur_conver
            conv_crit_TMB)
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output
   use public_enums
+  use locreg_operations, only: confpot_data
   implicit none
 
   ! Calling arguments
@@ -1647,7 +1577,6 @@ end subroutine set_variables_for_hybrid
 subroutine increase_FOE_cutoff(iproc, nproc, lzd, astruct, input, orbs_KS, orbs, foe_obj, init)
   use module_base
   use module_types
-  use module_interfaces
   use yaml_output
   use foe_base, only: foe_data
   implicit none
@@ -1704,6 +1633,7 @@ subroutine set_confdatarr(input, at, lorbs, onwhichatom, potential_prefac, locra
   use module_base
   use module_types
   use yaml_output
+  use locreg_operations, only: confpot_data
   implicit none
   
   ! Calling arguments

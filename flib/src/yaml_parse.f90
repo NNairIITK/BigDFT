@@ -55,7 +55,7 @@ module yaml_parse
   !for internal f_lib usage
   public :: yaml_parse_errors
   public :: yaml_parse_errors_finalize
-  public :: yaml_a_todict,yaml_cl_parse_cmd_line
+  public :: yaml_load,yaml_cl_parse_cmd_line
 
 contains
 
@@ -122,7 +122,7 @@ contains
     type(dictionary), pointer :: option,iter
 
     if (trim(name) == 'help') then
-       call f_err_throw('The "help" option is reserved',err_id=ERROR_YAML_COMMAND_LINE_PARSER)
+       call f_err_throw('The "help" option is reserved.',err_id=ERROR_YAML_COMMAND_LINE_PARSER)
        return
     end if
 
@@ -135,7 +135,7 @@ contains
     option => dict_new(OPTDEFAULT .is. default, OPTSHELP .is. help_string)
     if (present(shortname)) then
        if (shortname == 'h') then
-          call f_err_throw('Option shortname "h" is reserved for shorthelp',&
+          call f_err_throw('Option shortname "h" is reserved for shorthelp.',&
                err_id=ERROR_YAML_COMMAND_LINE_PARSER)
           return
        end if
@@ -165,11 +165,11 @@ contains
        if (trim(default) /= "None") then
           call f_err_throw('Error in defining "'//&
                trim(name)//&
-               '"; a conflicting option must have "None" as its default value',&
+               '"; a conflicting option must have "None" as its default value.',&
                err_id=ERROR_YAML_COMMAND_LINE_PARSER)
           return
        end if
-       iter=>yaml_a_todict(trim(conflicts),OPTCONFL)
+       iter=>yaml_load(trim(conflicts),OPTCONFL)
        call dict_update(option,iter)
        call dict_free(iter)
     end if
@@ -186,17 +186,17 @@ contains
        !check if this has already been initialized
        if (len_trim(parser%first_command_key) /= 0) then
           call f_err_throw('Option "'//trim(parser%first_command_key)//&
-               '" has already been set as first_option',&
+               '" has already been set as first_option.',&
                err_id=ERROR_YAML_COMMAND_LINE_PARSER)
           return
        end if
        call f_strcpy(src=name,dest=parser%first_command_key)
     end if
 
-
   end subroutine yaml_cl_parse_option
 
-  !> fill the parsed dictionary with default values
+
+  !> Fill the parsed dictionary with default values
   subroutine yaml_cl_parse_init(parser)
     use dictionaries
     implicit none
@@ -321,7 +321,7 @@ contains
           if (trim(dict_value(conf)) .in. parser%args) then
              call f_err_throw('The option "'//trim(dict_key(dict))//&
                   '" conflicts with the presence of "'//&
-                  trim(dict_value(conf))//'"',&
+                  trim(dict_value(conf))//'".',&
                   err_id=ERROR_YAML_COMMAND_LINE_PARSER)
           end if
           conf => dict_next(conf)
@@ -334,9 +334,10 @@ contains
        nullify(args) 
        call dict_copy(src=parser%args,dest=args)
     end if
+
     contains
 
-      !> parse the input command and returns the dictionary which is associated to it
+      !> Parse the input command and returns the dictionary which is associated to it
       subroutine parse_command(dict)
         implicit none
         !> value of the key of the parser as it has been defined in the parser dictionary
@@ -361,7 +362,7 @@ contains
            !the help key is a particular case
            if (trim(command(ipos:)) == 'help') then
               if (icommands-1 /=1 .or. ncommands > 1) then
-                 call f_err_throw('"help" keyword is only accepted as unique command',&
+                 call f_err_throw('"help" keyword is only accepted as unique command.',&
                       err_id=ERROR_YAML_COMMAND_LINE_PARSER)
                  return
               end if
@@ -385,13 +386,13 @@ contains
            !check if the key is among the known values
            if (key .notin. parser%options) then
               call f_err_throw('The key "'//trim(key)//&
-                   '" is not among the known values',err_id=ERROR_YAML_COMMAND_LINE_PARSER)
+                   '" is not among the known values.',err_id=ERROR_YAML_COMMAND_LINE_PARSER)
            end if
 
            !then parse the value as a yaml_string
            jpos=jpos+1
            if (len_trim(command(ipos+jpos:)) > 0) then
-              dict=>yaml_a_todict(trim(command(ipos+jpos:)),key)
+              dict=>yaml_load(trim(command(ipos+jpos:)),key)
            else
               call f_err_throw('Empty value for key "'//trim(key)//&
                    '"',err_id=ERROR_YAML_COMMAND_LINE_PARSER)
@@ -406,13 +407,13 @@ contains
               if (len_trim(command(ipos+1:)) > 0) then
                  call f_err_throw('Short command line option '//&
                       trim(command(ipos-1:))//&
-                      ' has to be on one letter only',&
+                      ' has to be on one letter only.',&
                       err_id=ERROR_YAML_COMMAND_LINE_PARSER)
                  return
               end if
               if (short_key == 'h') then
                  if (icommands-1 /=1 .or. ncommands > 1) then
-                    call f_err_throw('"-h" option is only accepted as unique one',&
+                    call f_err_throw('"-h" option is only accepted as unique one.',&
                          err_id=ERROR_YAML_COMMAND_LINE_PARSER)
                     return
                  end if
@@ -445,13 +446,13 @@ contains
                  call get_cmd(icommands,command)
                  icommands=icommands+1
                  !then parse the value as a yaml_string
-                 dict=>yaml_a_todict(trim(command),key)
+                 dict=>yaml_load(trim(command),key)
               end if
            else
               !only the first command can be given without option
               if (icommands-1 == 1 .and. len_trim(parser%first_command_key) > 0) then
                  key=parser%first_command_key
-                 dict=>yaml_a_todict(trim(command),key)
+                 dict=>yaml_load(trim(command),key)
               else
                  call f_err_throw('Unrecognized option "'//&
                       trim(command)//'"',&
@@ -462,9 +463,10 @@ contains
         end if
       end subroutine parse_command
 
-    end subroutine yaml_cl_parse_cmd_line
+  end subroutine yaml_cl_parse_cmd_line
 
-  !> retrieve the command a a string
+
+  !> Retrieve the command as a string
   subroutine get_cmd(icommands,command)
     use yaml_strings
     use dictionaries, only: f_err_throw
@@ -507,7 +509,7 @@ contains
 
     call f_err_define(err_name='ERROR_YAML_COMMAND_LINE_PARSER',&
          err_msg='Error in yaml parsing of the command line',&
-         err_action='Check the allowed options and their values (--help)',&
+         err_action='Check the allowed options and their values (--help).',&
          err_id=ERROR_YAML_COMMAND_LINE_PARSER)
 
   end subroutine yaml_parse_errors
@@ -776,7 +778,7 @@ contains
 
   end function build_seq
 
-  function yaml_a_todict(string,key) result(dict)
+  function yaml_load(string,key) result(dict)
     use dictionaries
     use yaml_strings, only: f_strcpy
     !use yaml_output !to be removed
@@ -809,7 +811,7 @@ contains
        end select
     end if
     
-  end function yaml_a_todict
+  end function yaml_load
 
   !> Throw an error with YAML_PARSE_ERROR trying to give a better understandable message
   subroutine yaml_parse_error_throw(val)

@@ -1,7 +1,7 @@
 !> @file
 !! Test of the libxc library
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,6 +13,7 @@ program test_xc
 
   use module_base
   use module_xc
+  use yaml_output
 
   implicit none
 
@@ -32,13 +33,18 @@ program test_xc
   real(dp) :: exc_(2, n_funcs), dt_(n_funcs),tt(2)
   real(dp) :: exc(2, n_funcs), dt(n_funcs)
 
+  !Initialize f_lib
   call f_lib_initialize()
-  call mpiinit()
-  iproc=mpirank()
-  nproc=mpisize()
+  
+  !Initialize MPI environment
   !call MPI_INIT(ierr)
   !call MPI_COMM_RANK(MPI_COMM_WORLD,iproc,ierr)
   !call MPI_COMM_SIZE(MPI_COMM_WORLD,nproc,ierr)
+  call mpiinit()
+  iproc=mpirank()
+  nproc=mpisize()
+
+  call f_malloc_set_status(iproc=iproc)
   exc_ = 0.d0
   dt_  = 0.d0
   do ifunc = 1, 1!,n_funcs, 1
@@ -67,21 +73,31 @@ program test_xc
   end if
 
   if (iproc == 0) then
+     call yaml_sequence_open('Test XC')
      ixc_prev = 1
      do ifunc = 1, 1!n_funcs, 1
-        if (ixc_prev * funcs(ifunc) > 0 .or. (ixc_prev < 0 .and. funcs(ifunc) > 0)) &
-             & write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
-        write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F10.5,1x,A)") &
-             & "ixc = ", funcs(ifunc), "nosp = ", exc(1, ifunc), "|", "scol = ", &
-             & exc(2, ifunc), "time = ", dt(ifunc), "s"
+        !if (ixc_prev * funcs(ifunc) > 0 .or. (ixc_prev < 0 .and. funcs(ifunc) > 0)) &
+        !     & write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
+        !write(*,"(1x,A,I7,3x,A,F17.8,1x,A,1x,A,F17.8,3x,A,F10.5,1x,A)") &
+        !     & "ixc = ", funcs(ifunc), "nosp = ", exc(1, ifunc), "|", "scol = ", &
+        !     & exc(2, ifunc), "time = ", dt(ifunc), "s"
+        call yaml_sequence(advance='no')
+        call yaml_mapping_open(flow=.true.)
+        call yaml_map('ixc',funcs(ifunc))
+        call yaml_map('nosp',exc(1,ifunc),fmt='(f17.8)')
+        call yaml_map('scol',exc(2,ifunc),fmt='(f17.8)')
+        call yaml_map('time',dt(ifunc),fmt='(f10.5)')
+        call yaml_mapping_close()
         ixc_prev = funcs(ifunc)
      end do
-     write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
+     call yaml_sequence_close()
+     !write(*,"(1x,A,A,A)") repeat("-", 41), "+", repeat("-", 44)
   end if
 
-  call mpifinalize()
   !call MPI_FINALIZE(ierr)
+  call mpifinalize()
   call f_lib_finalize()
+
 contains
 
   subroutine test(ixc, excs, dt, option)

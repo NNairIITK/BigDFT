@@ -1,12 +1,15 @@
 !>  @file
 !!  forces module
 !! @author
-!!    Copyright (C) 2015 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
+
 module module_forces
+
     implicit none
 
     private
@@ -14,7 +17,10 @@ module module_forces
     public :: clean_forces
     public :: clean_forces_base
 
+
 contains
+
+
 subroutine clean_forces(iproc,astruct,rxyz,fxyz,fnoise,run_mode)
     use module_base
     use f_utils                                                        
@@ -32,7 +38,6 @@ subroutine clean_forces(iproc,astruct,rxyz,fxyz,fnoise,run_mode)
     type(f_enumerator), intent(in),optional :: run_mode
     !local variables
     logical :: QM_clean
-    real(gp) :: maxdiff
     QM_clean=.true.
     if(present(run_mode))then
        QM_clean= run_mode =='QM_RUN_MODE'
@@ -61,6 +66,7 @@ subroutine clean_forces(iproc,astruct,rxyz,fxyz,fnoise,run_mode)
 
 end subroutine clean_forces
 
+
 subroutine clean_forces_base(astruct,fxyz)
   use module_base
   use module_atoms
@@ -69,14 +75,15 @@ subroutine clean_forces_base(astruct,fxyz)
   type(atomic_structure), intent(in) :: astruct
   real(gp), dimension(3,astruct%nat), intent(inout) :: fxyz
   !internal
-  integer :: iat,ixyz,ijk(3)
+  integer :: iat,ixyz
+  integer, dimension(3) :: ijk
   integer :: n_bloc1, n_bloc2                 !< Number of atoms allowed to move only as blocs.
   real(gp), dimension(3) :: f_bloc1, f_bloc2  !< Sum, then average of the forces in blocs.
   real(gp), dimension(3) :: u
   real(gp) :: scal
-  !Clean the forces for blocked atoms
-  !Modification by FL: atom possibly frozen in moving blocs.
-  !@todo Need a better handling of the given constraints
+  !!Clean the forces for blocked atoms
+  !!Modification by FL: atom possibly frozen in moving blocs.
+  !!@todo Need a better handling of the given constraints
   f_bloc1 = 0.0_gp
   f_bloc2 = 0.0_gp
   n_bloc1 = 0
@@ -131,18 +138,21 @@ subroutine clean_forces_base(astruct,fxyz)
   end if if_atoms_in_blocs
   !--- End of "Modification by FL: atom possibly frozen in moving blocs".
 end subroutine clean_forces_base
+
+
 subroutine clean_forces_dft(iproc,astruct,rxyz,fxyz,fnoise)
   use module_base
   use module_atoms
   use yaml_output
   implicit none
+  !Arguments
   integer, intent(in) :: iproc
   type(atomic_structure), intent(in) :: astruct
   real(gp), dimension(3,astruct%nat), intent(in) :: rxyz
   real(gp), dimension(3,astruct%nat), intent(inout) :: fxyz
   real(gp), intent(out) :: fnoise
   !local variables
-  integer :: iat,ixyz
+  integer :: iat
   real(gp) :: sumx,sumy,sumz
   !my variables
   real(gp):: fmax1,t1,t2,t3,fnrm1
@@ -215,7 +225,6 @@ subroutine clean_forces_dft(iproc,astruct,rxyz,fxyz,fnoise)
   end if
 
   call clean_forces_base(astruct,fxyz)
-  
   
   !the noise of the forces is the norm of the translational force
 !  fnoise=real(astruct%nat,gp)**2*(sumx**2+sumy**2+sumz**2)

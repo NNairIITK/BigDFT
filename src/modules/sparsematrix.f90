@@ -1,11 +1,12 @@
 !> @file
 !!  File defining the structures to deal with the sparse matrices
 !! @author
-!!    Copyright (C) 2014-2014 BigDFT group
+!!    Copyright (C) 2014-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
 
 !> Module to deal with the sparse matrices
 module sparsematrix
@@ -16,7 +17,6 @@ module sparsematrix
   implicit none
 
   private
-
 
 
   !> Public routines
@@ -59,10 +59,11 @@ module sparsematrix
       real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(out) :: outmat
     
       ! Local variables
-      integer :: iseg, j, jj, irow, jcol, jjj, ierr, ishift, ispin
+      integer :: iseg, j, jj, ishift, ispin
+      !integer,dimension(2) :: irowcol
+      !integer :: ierr, irow, jcol, jjj
       real(kind=8),dimension(:,:,:),pointer :: inm
       real(kind=8),dimension(:),pointer :: outm
-      integer,dimension(2) :: irowcol
 
       !if (present(outmat)) then
       !    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
@@ -88,7 +89,8 @@ module sparsematrix
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
              !OpenMP broken on Vesta
-             !$omp parallel default(none) private(iseg,j,jj,irowcol) &
+             !!! !$omp parallel default(none) private(irowcol) &
+             !$omp parallel default(none) private(iseg,j,jj) &
              !$omp shared(sparsemat,inm,outm,ishift,ispin)
              !$omp do
              do iseg=1,sparsemat%nseg
@@ -173,10 +175,11 @@ module sparsematrix
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(inout) :: outmat
       
       ! Local variables
-      integer :: iseg, i, ii, irow, jcol, iii, ierr, ishift, ispin
+      integer :: iseg, i, ii, ishift, ispin
+      !integer, dimension(2) :: irowcol
+      !integer ::  jcol, irow, iii, ierr
       real(kind=8),dimension(:),pointer :: inm
       real(kind=8),dimension(:,:,:),pointer :: outm
-      integer,dimension(2) :: irowcol
 
       !!if (present(outmat)) then
       !!    if (sparsemat%parallel_compression/=0 .and. bigdft_mpi%nproc>1) then
@@ -204,7 +207,8 @@ module sparsematrix
          do ispin=1,sparsemat%nspin
              ishift=(ispin-1)*sparsemat%nvctr
              !openmp broken on vesta
-             !$omp parallel default(none) private(iseg,i,ii,irowcol) shared(sparsemat,inm,outm,ispin,ishift)
+             !!! !$omp parallel default(none) private(irowcol)
+             !$omp parallel default(none) private(iseg,i,ii) shared(sparsemat,inm,outm,ispin,ishift)
              !$omp do
              do iseg=1,sparsemat%nseg
                  ii=sparsemat%keyv(iseg)
@@ -470,7 +474,7 @@ module sparsematrix
                   ! if yes, determine start end end of overlapping segment (in uncompressed form)
                   iostart=max(isstart,ilstart)
                   ioend=min(isend,ilend)
-                  ilength=ioend-iostart+1
+                  ilength=int(ioend-iostart+1,kind=4)
     
                   ! offset with respect to the starting point of the segment
                   isoffset = int(iostart - &
@@ -602,7 +606,8 @@ module sparsematrix
      ! Local variables
      integer :: isegstart, isegend, iseg, ii, jorb, iiorb, jjorb, nfvctrp, isfvctr, nvctrp, ierr, isvctr
      integer :: ncount, itg, iitg, ist_send, ist_recv
-     integer :: window, sizeof, jproc_send, iorb, jproc, info
+     integer :: jproc_send, iorb, jproc
+     !integer :: window
      integer,dimension(:),pointer :: isvctr_par, nvctr_par
      integer,dimension(:),allocatable :: request, windows
      real(kind=8),dimension(:),pointer :: matrix_local
@@ -1058,7 +1063,7 @@ module sparsematrix
      !Local variables
      !character(len=*), parameter :: subname='sparsemm'
      integer :: i,jorb,jjorb,m,mp1,ist,iend, icontiguous, j, iline, icolumn, nblock, iblock, ncount
-     integer :: iorb, ii, ilen, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6, iout
+     integer :: iorb, ii, ilen, iout
      real(kind=8) :: tt0, tt1, tt2, tt3, tt4, tt5, tt6, tt7, ddot
      integer :: n_dense
      real(kind=8),dimension(:,:),allocatable :: a_dense, b_dense, c_dense
@@ -1088,7 +1093,7 @@ module sparsematrix
              ts = mpi_wtime()
          end if
          !$omp parallel default(private) shared(smat, a_seq, b, c)
-         !$omp do !!!schedule(guided)
+         !$omp do schedule(guided)
          do iout=1,smat%smmm%nout
              i=smat%smmm%onedimindices_new(1,iout)
              nblock=smat%smmm%onedimindices_new(4,iout)
@@ -1098,7 +1103,7 @@ module sparsematrix
                  jorb = smat%smmm%consecutive_lookup(1,iblock,iout)
                  jjorb = smat%smmm%consecutive_lookup(2,iblock,iout)
                  ncount = smat%smmm%consecutive_lookup(3,iblock,iout)
-        !         tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
+                 !tt0 = tt0 + ddot(ncount, b(jjorb), 1, a_seq(jorb), 1)
                  !avoid calling ddot from OpenMP region on BG/Q as too expensive
                  tt0=tt0+my_dot(ncount,b(jjorb:jjorb+ncount-1),a_seq(jorb:jorb+ncount-1))
              end do
@@ -1355,8 +1360,9 @@ module sparsematrix
       type(matrices),intent(in) :: mat
     
       ! Local variables
-      integer :: iseg, i, ii, iorb, jorb
-      integer,dimension(2) :: irowcol
+      !integer, dimension(2) :: irowcol
+      integer :: iseg, i, ii
+      !integer :: iorb, jorb
     
       !!call yaml_sequence_open(trim(message))
       !!do iseg=1,smat%nseg
@@ -1406,6 +1412,7 @@ module sparsematrix
     end subroutine write_matrix_compressed
 
 
+     !integer :: mp1, jjorb0, jjorb1, jjorb2, jjorb3, jjorb4, jjorb5, jjorb6
 
    function check_symmetry(norb, smat)
      use module_base
@@ -1419,7 +1426,7 @@ module sparsematrix
      ! Local variables
      integer :: i, iseg, ii, jorb, iorb
      logical,dimension(:,:),allocatable :: lgrid
-     integer,dimension(2) :: irowcol
+     !integer,dimension(2) :: irowcol
    
      lgrid=f_malloc((/norb,norb/),id='lgrid')
      lgrid=.false.
@@ -1524,10 +1531,12 @@ module sparsematrix
       type(matrices),intent(in) :: mat
     
       ! Local variables
-      integer :: iseg, i, j, ii, icol, imat
-      integer,dimension(:),allocatable :: col_ptr, row_ind, elements_per_column
-      logical,dimension(:,:),allocatable :: matg
-      logical :: column_started, first_in_column_set
+      integer :: iseg, i, ii, icol, imat
+      integer, dimension(:), allocatable :: col_ptr, row_ind
+     ! logical, dimension(:,:), allocatable :: matg
+      logical :: first_in_column_set
+      !integer :: j
+      !logical :: column_started
       real(kind=8),dimension(:),allocatable :: val
       integer,parameter :: iunit=234, iunit2=235
       character(len=10) :: num
@@ -1881,6 +1890,7 @@ module sparsematrix
       real(kind=8),dimension(:),allocatable :: recvbuf
     
       if (nproc>1) then
+         call f_routine(id='synchronize_matrix_taskgroups')
           request = f_malloc(smat%ntaskgroupp,id='request')
           ncount = 0
           do itg=1,smat%ntaskgroupp
@@ -1899,14 +1909,14 @@ module sparsematrix
                   ncount = smat%taskgroup_startend(2,1,iitg)-smat%taskgroup_startend(1,1,iitg)+1
                   !!call mpi_iallreduce(mat%matrix_compr(ist_send), recvbuf(ist_recv), ncount, &
                   !!     mpi_double_precision, mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg), ierr)
-                  if (nproc>1) then
+                  if (smat%mpi_groups(iitg)%nproc>1) then
                       call mpiiallred(mat%matrix_compr(ishift+ist_send), recvbuf(ist_recv), ncount, &
                            mpi_sum, smat%mpi_groups(iitg)%mpi_comm, request(itg))
                   else
                       call vcopy(ncount, mat%matrix_compr(ishift+ist_send), 1, recvbuf(ist_recv), 1)
                   end if
               end do
-              if (nproc>1) then
+              if (smat%mpi_groups(iitg)%nproc > 1) then
                   call mpiwaitall(smat%ntaskgroupp, request)
               end if
               ncount = 0
@@ -1921,6 +1931,7 @@ module sparsematrix
           end do
           call f_free(request)
           call f_free(recvbuf)
+          call f_release_routine()
       end if
     end subroutine synchronize_matrix_taskgroups
 

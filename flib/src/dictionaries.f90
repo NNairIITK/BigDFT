@@ -1,7 +1,7 @@
 !> @file
 !!  Module defining a dictionary
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,6 +12,7 @@
 module dictionaries
    use exception_callbacks
    use dictionaries_base
+   use f_precisions, only: f_address,f_loc
    use yaml_strings, only: read_fraction_string,yaml_toa,f_strcpy
    implicit none
 
@@ -22,6 +23,7 @@ module dictionaries
       character(len=max_field_length) :: val=' '
       type(dictionary), pointer :: dict => null()
    end type list_container
+
    !> Public to be used in dict_new() constructor.
    type, public :: dictionary_container
       character(len=max_field_length) :: key=' '
@@ -37,7 +39,7 @@ module dictionaries
    integer, save, public :: DICT_INVALID_LIST
    integer, save, public :: DICT_INVALID
 
-   !control the error enviromnment (see error_handling.f90)
+   !> Control the error enviromnment (see error_handling.f90)
    logical :: try_environment=.false.
 
    interface operator(.index.)
@@ -118,8 +120,6 @@ module dictionaries
       module procedure dict_new,dict_new_elems
    end interface
 
-   integer(kind=8), external :: f_loc
-
    !> Public routines
    public :: operator(//),operator(.index.),assignment(=)
    public :: set,dict_init,dict_free,append,prepend,add
@@ -131,7 +131,8 @@ module dictionaries
    public :: operator(.is.),operator(.item.)
    public :: operator(.pop.),operator(.notin.)
    public :: operator(==),operator(/=),operator(.in.),operator(.get.)
-   public :: dictionary,max_field_length,dict_get_num
+   public :: dictionary,max_field_length,dict_get_num,iterating
+
 
    interface dict_next_build
       module procedure dict_next_build_list
@@ -164,6 +165,14 @@ module dictionaries
 
    type(error_stack), pointer :: error_pipelines=>null() !< Stack of errors for try clause
  
+   interface f_err_throw
+      module procedure f_err_throw_c,f_err_throw_str
+   end interface
+
+   interface f_err_raise
+      module procedure f_err_raise,f_err_raise_str
+   end interface
+
 
    !> Public variables of the error handling module
    public :: f_err_initialize,f_err_finalize
@@ -177,7 +186,7 @@ module dictionaries
    public :: f_err_set_callback,f_err_unset_callback
    public :: f_err_open_try,f_err_close_try
    public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
-   public :: f_loc,f_get_past_error,f_get_no_of_errors
+   public :: f_get_past_error,f_get_no_of_errors
 
    !for internal f_lib usage
    public :: dictionaries_errors,TYPE_DICT,TYPE_LIST
@@ -335,7 +344,7 @@ contains
        character(len=*), intent(in) :: key
        logical, intent(in) :: dst
        !local variables
-       type(dictionary), pointer :: dict_first !<in case of first occurrence
+!!$       type(dictionary), pointer :: dict_first !<in case of first occurrence
        type(dictionary), pointer :: iter !to iterate over the dictionaries
        logical :: key_found
        type(dictionary), pointer :: dict_update      !< iterator for list renumbering
@@ -402,48 +411,48 @@ contains
 !!$   !>extract the dictionary from its present context
 !!$   !! in the case of a list renumber the items
 !!$   !! return an object which is ready to be freed
-   function dict_extract(dict) result(dict_first)
-     implicit none
-     type(dictionary), pointer, intent(inout) :: dict
-     type(dictionary), pointer :: dict_first
-     !local variables
-     type(dictionary), pointer :: dict_update
-
-     !normal association initially
-     dict_first => dict
-     !then check if there are brothers which have to be linked
-     if (associated(dict%next)) then
-        !this is valid if we are not at the first element
-        if (associated(dict%previous)) then
-           call define_brother(dict%previous,dict%next) !dict%next%previous => dict%previous
-           dict%previous%next => dict%next
-        else
-           nullify(dict%next%previous)
-           !the next should now become me
-           dict => dict%next
-        end if
-        !in case we were in a list, renumber the other brothers
-        ! Update data%item for all next.
-        if (dict_first%data%item >= 0) then
-           dict_update => dict_first%next
-           do while( associated(dict_update) )
-              dict_update%data%item = dict_update%data%item - 1
-              dict_update => dict_update%next
-           end do
-        end if
-     else
-        nullify(dict)
-     end if
-     !never follow the brothers, the extracted dictionary is 
-     !intended to be alone
-     nullify(dict_first%next,dict_first%previous)
-     dict_first%data%item=-1
-     !the extraction should provide the child in the case of 
-     !a dict value or otherwise a dictionary with only a value
-     !in the case of a scalar value
-     
-
-   end function dict_extract
+!!$   function dict_extract(dict) result(dict_first)
+!!$     implicit none
+!!$     type(dictionary), pointer, intent(inout) :: dict
+!!$     type(dictionary), pointer :: dict_first
+!!$     !local variables
+!!$     type(dictionary), pointer :: dict_update
+!!$ 
+!!$     !normal association initially
+!!$     dict_first => dict
+!!$     !then check if there are brothers which have to be linked
+!!$     if (associated(dict%next)) then
+!!$        !this is valid if we are not at the first element
+!!$        if (associated(dict%previous)) then
+!!$           call define_brother(dict%previous,dict%next) !dict%next%previous => dict%previous
+!!$           dict%previous%next => dict%next
+!!$        else
+!!$           nullify(dict%next%previous)
+!!$           !the next should now become me
+!!$           dict => dict%next
+!!$        end if
+!!$        !in case we were in a list, renumber the other brothers
+!!$        ! Update data%item for all next.
+!!$        if (dict_first%data%item >= 0) then
+!!$           dict_update => dict_first%next
+!!$           do while( associated(dict_update) )
+!!$              dict_update%data%item = dict_update%data%item - 1
+!!$              dict_update => dict_update%next
+!!$           end do
+!!$        end if
+!!$     else
+!!$        nullify(dict)
+!!$     end if
+!!$     !never follow the brothers, the extracted dictionary is 
+!!$     !intended to be alone
+!!$     nullify(dict_first%next,dict_first%previous)
+!!$     dict_first%data%item=-1
+!!$     !the extraction should provide the child in the case of 
+!!$     !a dict value or otherwise a dictionary with only a value
+!!$     !in the case of a scalar value
+!!$     
+!!$ 
+!!$   end function dict_extract
 
    !> Add to a list
    subroutine add_char(dict,val, last_item_ptr)
@@ -568,7 +577,7 @@ contains
 
 
    !> Defines a new dictionary from a key and a value
-   !pure 
+   !! pure 
    function dict_cont_new_with_value(key, val) result(cont)
      implicit none
      character(len = *), intent(in) :: val
@@ -672,6 +681,26 @@ contains
         nullify(dict_next)
      end if
    end function dict_next
+
+   !>function that can be used as iterator on a do while loop
+   !! the example for the usage can be found
+   function iterating(iter,on)
+     implicit none
+     type(dictionary), pointer :: iter,on
+     logical :: iterating
+     !local variables
+     if (.not. associated(on)) then
+        iterating=.false.
+        return
+     end if
+     if (.not. associated(iter)) then
+        iter => dict_iter(on)
+     else
+        iter => dict_next(iter)
+     end if
+     iterating=associated(iter)
+     if (.not. associated(iter)) iter => dict_iter(on) !to prevent infinite loop
+   end function iterating
 
    function dicts_are_not_equal(dict1,dict2) result(notequal)
      use yaml_strings, only: is_atoi,is_atof,is_atol
@@ -844,7 +873,7 @@ contains
        integer, intent(in) :: item
        logical, intent(in) :: dst
        !local variables
-       type(dictionary), pointer :: dict_first !<in case of first occurrence
+!!$       type(dictionary), pointer :: dict_first !<in case of first occurrence
        type(dictionary), pointer :: iter !to iterate over the dictionaries
        logical :: item_found
        type(dictionary), pointer :: dict_update      !< iterator for list renumbering
@@ -1092,7 +1121,7 @@ contains
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: brother
      !local variables
-     type(dictionary), pointer :: iter
+!!$     type(dictionary), pointer :: iter
 
      if (.not. associated(dict)) then
         !this should be verifyed by passing a dictionary which is not in the beginning
@@ -1140,7 +1169,8 @@ contains
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: brother
      !local variables
-     type(dictionary), pointer :: dict_tmp,iter
+     type(dictionary), pointer :: dict_tmp
+!!$     type(dictionary), pointer :: iter
 
      if (.not. associated(brother)) return
 
@@ -1475,6 +1505,7 @@ contains
 
    !> Set and get routines for different types
    subroutine get_real(rval,dict)
+     use yaml_strings
      implicit none
      real(kind=4), intent(out) :: rval
      type(dictionary), intent(in) :: dict
@@ -1488,7 +1519,16 @@ contains
      !look at conversion
      call read_fraction_string(val, dval, ierror)
      rval = real(dval)
-
+     if (ierror /=0) then
+        !first check if we are not dealing with infinities
+        if (trim(val) .eqv. '.inf') then
+           rval=huge(rval)
+           ierror=0
+        else if (trim(val) .eqv. '-.inf') then
+           rval=-huge(rval)
+           ierror=0
+        end if
+     end if
      if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
 
    end subroutine get_real
@@ -1517,6 +1557,8 @@ contains
 
    !> Set and get routines for different types
    subroutine get_double(dval,dict)
+     use yaml_strings
+     implicit none
      real(kind=8), intent(out) :: dval
      type(dictionary), intent(in) :: dict
      !local variables
@@ -1527,6 +1569,14 @@ contains
      val=dict
      !look at conversion
      call read_fraction_string(val, dval, ierror)
+     !first check if we are not dealing with infinities
+     if (trim(val) .eqv. '.inf') then
+        dval=huge(dval)
+        ierror=0
+     else if (trim(val) .eqv. '-.inf') then
+        dval=-huge(dval)
+        ierror=0
+     end if
 
      if (f_err_raise(ierror/=0,'Value '//val,err_id=DICT_CONVERSION_ERROR)) return
 
@@ -1739,7 +1789,7 @@ contains
          character(max_field_length), dimension(:), allocatable :: keys
          character(len = max_field_length) :: val
          !local variables
-         type(dictionary), pointer :: iter
+!!$         type(dictionary), pointer :: iter
 
          if (dict_len(ref) > 0) then
             ! List case.

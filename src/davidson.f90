@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to do diagonalisation with Davidson algorithm
 !! @author
-!!    Copyright (C) 2007-2013 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,8 +13,10 @@
 subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
      pkernel,dpcom,xc,GPU,KSwfn,VTwfn)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
-   use module_interfaces, except_this_one => direct_minimization
+   use module_interfaces, only: FullHamiltonianApplication, free_full_potential, &
+        & hpsitopsi, last_orthon, orthogonalize, write_eigen_objects, write_energies
    use module_xc
    use yaml_output
    use communications, only: transpose_v, untranspose_v
@@ -226,7 +228,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
 
    if (iproc == 0) call yaml_sequence_open('Optimization of virtual orbitals')
 
-   wfn_loop: do iter=1,in%itermax+100
+   wfn_loop: do iter=1,in%itermax_virt
 
       if (iproc == 0 .and. verbose > 0) then 
          call yaml_comment('iter=' // trim(yaml_toa(iter)),hfill='-')
@@ -235,7 +237,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
          !write( *,'(1x,a,i0)') repeat('~',76 - int(log(real(iter))/log(10.))) // ' iter= ', iter
       endif
       !control whether the minimisation iterations ended
-      endloop= gnrm <= in%gnrm_cv .or. iter == in%itermax+100
+      endloop= gnrm <= in%gnrm_cv_virt .or. iter == in%itermax_virt
 
       !control how many times the DIIS has switched into SD
       if (VTwfn%diis%idsx /= idsx_actual_before) ndiis_sd_sw=ndiis_sd_sw+1
@@ -302,7 +304,7 @@ subroutine direct_minimization(iproc,nproc,in,at,nvirt,rxyz,rhopot,nlpsp, &
 
    if (iproc == 0) then
       call yaml_sequence_close() !wfn iterations
-      if (iter == in%itermax+100) then
+      if (iter == in%itermax_virt) then
          call yaml_warning('No convergence within the allowed number of minimization steps')
       else if (verbose > 1) then
          call yaml_map('Minimization iterations required',iter)
@@ -393,13 +395,16 @@ subroutine davidson(iproc,nproc,in,at,&
      & orbs,orbsv,nvirt,Lzd,comms,commsv,&
      & rxyz,rhopot,nlpsp,pkernel,psi,v,dpcom,xc,GPU)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
-   use module_interfaces, except_this_one => davidson
+   use module_interfaces, only: FullHamiltonianApplication, free_full_potential, &
+        & orthogonalize, write_eigen_objects
    use module_xc
    use yaml_output
    use communications_base, only: comms_cubic
    use communications, only: transpose_v, untranspose_v
    use rhopotential, only: full_local_potential
+   use locreg_operations, only: confpot_data
    implicit none
    integer, intent(in) :: iproc,nproc
    integer, intent(in) :: nvirt
@@ -782,12 +787,11 @@ subroutine davidson(iproc,nproc,in,at,&
       if (iproc == 0) then
          call yaml_mapping_open('Gradient Norm',flow=.true.)
          call yaml_map('Value',gnrm,fmt='(1pe12.5)')
-         call yaml_map('Exit criterion',in%gnrm_cv,fmt='(1pe9.2)')
+         call yaml_map('Exit criterion',in%gnrm_cv_virt,fmt='(1pe9.2)')
          call yaml_mapping_close()
-         !write(*,'(1x,a,2(1x,1pe12.5))') "|gradient|=gnrm and exit criterion ",gnrm,in%gnrm_cv
       end if
 
-      if(gnrm < in%gnrm_cv) then
+      if(gnrm < in%gnrm_cv_virt) then
          call f_free(g)
          exit davidson_loop! iteration loop
       end if
@@ -1114,7 +1118,7 @@ subroutine davidson(iproc,nproc,in,at,&
             if (nspin ==1) then
                do iorb=1,orbsv%norb
                   !show the eigenvalue in full form only if it has reached convergence
-                  if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                  if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv_virt) then
                      prteigu=print_precise
                   else
                      prteigu=print_rough
@@ -1126,12 +1130,12 @@ subroutine davidson(iproc,nproc,in,at,&
                end do
             else if (nspin == 2) then
                do iorb=1,min(orbsv%norbu,orbsv%norbd) !they should be equal
-                  if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv) then
+                  if (sqrt(e(iorb,ikpt,2)) <= in%gnrm_cv_virt) then
                      prteigu=print_precise
                   else
                      prteigu=print_rough
                   end if
-                  if (sqrt(e(iorb+orbsv%norbu,ikpt,2)) <= in%gnrm_cv) then
+                  if (sqrt(e(iorb+orbsv%norbu,ikpt,2)) <= in%gnrm_cv_virt) then
                      prteigd=print_precise
                   else
                      prteigd=print_rough
@@ -1186,9 +1190,9 @@ subroutine davidson(iproc,nproc,in,at,&
       !if(iproc==0 .and. verbose > 1) write(*,'(1x,a)')"done. "
       call timing(iproc,'Davidson      ','ON')
       iter=iter+1
-      if(iter>in%itermax+100)then !an input variable should be put
+      if(iter>in%itermax_virt)then !an input variable should be put
          if(iproc==0) call yaml_warning( &
-            &   'No convergence within the allowed number of minimization steps (itermax + 100)')
+            &   'No convergence within the allowed number of minimization steps')
          exit davidson_loop
       end if
 
@@ -1209,7 +1213,7 @@ subroutine davidson(iproc,nproc,in,at,&
    end if
 
 
-   if(iter <=in%itermax+100) then
+   if(iter <=in%itermax_virt) then
       if(iproc==0) call yaml_map('Iteration for Davidson convergence',iter-1)
       !if(iproc==0) write(*,'(1x,a,i3,a)') "Davidson's method: Convergence after ",iter-1,' iterations.'
    end if
@@ -1437,7 +1441,7 @@ END SUBROUTINE update_psivirt
 subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,nspin,psivirt,npsidim)
    use module_base
    use module_types
-   use module_interfaces
+   use module_interfaces, only: gaussian_pswf_basis
    use gaussians, only: gaussian_basis, deallocate_gwf, gaussian_overlap
    use communications_base, only: comms_cubic
    use communications, only: transpose_v
@@ -1599,7 +1603,7 @@ subroutine psivirt_from_gaussians(iproc,nproc,at,orbs,Lzd,comms,rxyz,hx,hy,hz,ns
    call deallocate_gwf(G)
 
    !deallocate gaussian array
-   call f_free(gaucoeffs)
+  call f_free(gaucoeffs)
    call f_free_ptr(gbd_occ)
 
    !add random background to the wavefunctions
@@ -1838,7 +1842,7 @@ subroutine dump_eigenfunctions(dir_output,nplot,at,hgrids,lr,orbs,orbsv,rxyz,psi
   use module_base, only: gp,wp
   use locregs, only: locreg_descriptors
   use module_types, only: atoms_data,orbitals_data
-  use module_interfaces
+  use module_interfaces, only: plot_wf
   implicit none
   !>number of eigenfuncitions to be plotted close to the fermi level
   !! in the case of negative nplot, only the occupied orbitals are plotted

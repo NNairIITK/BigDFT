@@ -1,7 +1,7 @@
 /** @file 
      Header for the BigDFT bindings.
     @author
-     Copyright (C) 2011-2013 BigDFT group (DC)
+     Copyright (C) 2011-2015 BigDFT group (DC)
      This file is distributed under the terms of the
      GNU General Public License, see ~/COPYING file
      or http://www.gnu.org/copyleft/gpl.txt .

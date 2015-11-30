@@ -1,8 +1,10 @@
 !> @file
 !! Test the error handling part of flib
+!! @example errs.f90
+!! This is an example how to use the error handling.
 !! @author
-!!    Copyright (C) 2013-2014 BigDFT group
-!!    This file is distributed oneder the terms of the
+!!    Copyright (C) 2013-2014 BigDFT group <br>
+!!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
@@ -10,8 +12,11 @@
 
 !> Routine testing the error handling part of flib
 subroutine test_error_handling()
+  use f_precisions, only: f_loc
   use yaml_output
-  use dictionaries!error_handling
+!!! [Use]
+  use dictionaries
+!!! [Use]
   implicit none
   !local variables
   integer :: ival,ierr,ERR_TOTO,ERR_TITI,ERR_GRAVE
@@ -21,13 +26,9 @@ subroutine test_error_handling()
 
   call yaml_comment('Error Handling Module Test',hfill='~')
    
-!!$  print *,'address',f_loc(abort1)
-!!$  print *,'address',f_loc(ival)
-
-  
-!!$!  call f_err_set_callback(abort1)
   call f_err_severe_override(abort2)
-  
+ 
+!!! [Error Define]
   call f_err_define(err_name='ERR_TOTO',&
        err_msg='This is the error message for the error of kind 1 and it is written extensively'//&
        ' on purpose to see whether yaml module prints it',&
@@ -39,6 +40,7 @@ subroutine test_error_handling()
 
   call f_err_define(err_name='ERR_GRAVE',err_msg='test2',err_id=ERR_GRAVE,&
        callback=f_err_severe)
+!!! [Error Define]
   call yaml_map("Raising the TOTO error, errcode",ERR_TOTO) 
 
   if (f_err_raise(.true.,'Extra message added',err_id=ERR_TOTO)) continue ! return

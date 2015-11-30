@@ -1074,7 +1074,7 @@ contains
   END SUBROUTINE vdwcorrection_calculate_energy
 
 
-  !< This subroutine calculates the dispersion correction to the total energy.i
+  !> This subroutine calculates the dispersion correction to the total energy.
   !! @author
   !! Written by Quintin Hill in 2007, with some modifications in 2008
   !! Modified for BigDFT in March/April 2009 by Quintin Hill.

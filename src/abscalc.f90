@@ -51,10 +51,11 @@ program abscalc_main
    do iconfig=0,bigdft_nruns(options)-1!abs(nconfig)
       run => options // 'BigDFT' // iconfig
       !if (modulo(iconfig-1,ngroups)==igroup) then
+!call yaml_map('Run file',run)
       call bigdft_get_run_properties(run,run_id=run_id)
       !run_id =  run // 'name'
          !Welcome screen
-         call run_objects_init(runObj,run)! arr_radical(iconfig),arr_posinp(iconfig))
+         call run_objects_init(runObj,run)
 
          call f_file_exists(trim(run_id)//".abscalc",exists)
          !inquire(file=trim(run_id)//".abscalc",exist=exists)
@@ -98,7 +99,6 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    use module_base
    use locregs, only: deallocate_locreg_descriptors
    use module_types, only: input_variables,atoms_data
-   use module_interfaces
    use bigdft_run
    use module_atoms, only: astruct_dump_to_file
    implicit none
@@ -111,8 +111,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: fxyz
    !local variables
    character(len=*), parameter :: subname='call_abscalc'
-   character(len=40) :: comment
-   integer :: ierr
+   !integer :: ierr
    real(gp) :: hx_old, hy_old, hz_old
 
    !put a barrier for all the processes
@@ -154,9 +153,11 @@ END SUBROUTINE call_abscalc
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      KSwfn,hx_old,hy_old,hz_old,in,GPU,infocode)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
-   use module_interfaces
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use module_interfaces, only: IonicEnergyandForces, createProjectorsArrays, &
+        & createWavefunctionsDescriptors, orbitals_descriptors
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use module_xc
    use module_abscalc
    use m_ab6_symmetry
@@ -173,6 +174,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    use psp_projectors_base, only: free_DFT_PSP_projectors
    use public_enums, only: LINEAR_PARTITION_NONE
    use module_input_keys, only: print_dft_parameters
+   use IObox
    implicit none
    integer, intent(in) :: nproc,iproc
    real(gp), intent(inout) :: hx_old,hy_old,hz_old
@@ -274,14 +276,50 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    real(gp) :: potmodified_maxr, potmodified_shift
 
    type(atoms_data) :: atoms_clone
-   integer :: ndeg,nsp, nspinor !n(c) noncoll
+   integer :: ndeg,nsp, nspinor ,nspin2!n(c) noncoll
    integer, parameter :: nelecmax=32,lmax=4 !n(c) nmax=6
    integer, parameter :: noccmax=2
+   integer, dimension(3) :: ndims
+   real(gp), dimension(3) :: hgrids
 
    !! to apply pc_projector
    type(pcproj_data_type) ::PPD
    !! to apply paw projectors
    type(PAWproj_data_type) ::PAWD
+
+   interface
+      subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpbox,&
+           orbs,nvirt,comms,Lzd,hx,hy,hz,rxyz,rhopot,rhocore,pot_ion,&
+           nlpsp,pkernel,ixc,psi,G,&
+           nspin,potshortcut,symObj,GPU,input)
+        use module_defs, only: gp,dp,wp
+        use module_types
+        use communications_base, only: comms_cubic
+        use module_dpbox
+        implicit none
+        !Arguments
+        integer, intent(in) :: iproc,nproc,ixc
+        integer, intent(inout) :: nspin,nvirt
+        real(gp), intent(in) :: hx,hy,hz
+        type(atoms_data), intent(inout) :: at
+        type(rho_descriptors),intent(in) :: rhod
+        type(denspot_distribution), intent(in) :: dpbox
+        type(orbitals_data), intent(inout) :: orbs
+        type(DFT_PSP_projectors), intent(inout) :: nlpsp
+        type(local_zone_descriptors), intent(inout) :: Lzd
+        type(comms_cubic), intent(in) :: comms
+        type(GPU_pointers), intent(inout) :: GPU
+        type(input_variables):: input
+        type(symmetry_data), intent(in) :: symObj
+        real(gp), dimension(3,at%astruct%nat), intent(in) :: rxyz
+        real(dp), dimension(*), intent(inout) :: rhopot,pot_ion
+        type(gaussian_basis), intent(out) :: G !basis for davidson IG
+        real(wp), dimension(:), pointer :: psi
+        real(wp), dimension(:,:,:,:), pointer :: rhocore
+        type(coulomb_operator), intent(inout) :: pkernel
+        integer, intent(in) ::potshortcut
+      END SUBROUTINE extract_potential_for_spectra
+   end interface
 
    energs= energy_terms_null()
    if (in%potshortcut==0) then
@@ -414,13 +452,13 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    !calculate the partitioning of the orbitals between the different processors
    !memory estimation
    call MemoryEstimator(nproc,idsx,KSwfn%Lzd%Glr,&
-        &   orbs%norb,orbs%nspinor,orbs%nkpts,nlpsp%nprojel,&
-        &   in%nspin,in%itrpmax,in%iscf,mem)
+        orbs%norb,orbs%nspinor,orbs%nkpts,nlpsp%nprojel,&
+        in%nspin,in%itrpmax,in%iscf,mem)
    if (iproc==0 .and. verbose > 0) call print_memory_estimation(mem)
 
    !complete dpbox initialization
    call dpbox_set(dpcom,KSwfn%Lzd,xc,iproc,nproc,MPI_COMM_WORLD,in%PSolver_groupsize, &
-        & in%SIC%approach,atoms%astruct%geocode,nspin)
+        in%SIC%approach,atoms%astruct%geocode,nspin,in%matacc%PSolver_igpu)
 
   call density_descriptors(iproc,nproc,xc,in%nspin,in%crmult,in%frmult,atoms,&
        dpcom,in%rho_commun,rxyz,rhodsc)
@@ -454,9 +492,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    rho_ion = f_malloc(1,id='rho_ion')
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-   ndegree_ip=16 !default value
-   pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
-        atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
+   !ndegree_ip=16 !default value
+   !pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
+   !     atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
+   pkernel=pkernel_init(iproc,nproc,in%PS_dict,&
+        atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids)
+
    call pkernel_set(pkernel,verbose=(verbose > 1))
    !call createKernel(iproc,nproc,atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&
    !     (verbose > 1))
@@ -493,10 +534,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call IonicEnergyandForces(iproc,nproc,dpcom,atoms,in%elecfield,rxyz,&
         energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
-        n1,n2,n3,pot_ion,pkernel,psoffset)
+        pot_ion,pkernel,psoffset)
 
-   call createIonicPotential(atoms%astruct%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
-        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,rho_ion,psoffset)
+   call createIonicPotential(iproc, (iproc == 0), atoms,rxyz, &
+        in%elecfield,dpcom,pkernel,pot_ion,rho_ion,psoffset)
 
 
    !Allocate Charge density, Potential in real space
@@ -717,14 +758,18 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
             if(exists) then
 
-               nullify(pot_bB);
-               call read_cube(trim(filename),atoms%astruct%geocode,n1i_bB,n2i_bB,n3i_bB, &
-                  &   nspin , hx_old ,hy_old ,hz_old ,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
+               nullify(pot_bB)
+               call read_field_dimensions(trim(filename),atoms%astruct%geocode,ndims,nspin)
+               pot_bB=f_malloc_ptr([ndims(1),ndims(2),ndims(3),nspin],id='pot_bB')
+               call read_field(trim(filename),atoms%astruct%geocode,ndims,hgrids,&
+                    nspin2,product(ndims),nspin,pot_bB, nat_b2B, rxyz_b2B, iatype_b2B, znucl_b2B)
          !call read_density_cube_old(trim(filename), n1i_bB,n2i_bB,n3i_bB, 1 , hx_old ,hy_old ,hz_old , nat_b2B, rxyz_b2B, pot_bB )
-               hx_old=hx_old*2
-               hy_old=hy_old*2
-               hz_old=hz_old*2
-
+               hx_old=2*hgrids(1)
+               hy_old=2*hgrids(2)
+               hz_old=2*hgrids(3)
+               n1i_bB=ndims(1)
+               n2i_bB=ndims(2)
+               n3i_bB=ndims(3)
 
                if( (atoms%astruct%nat/nat_b2B)*nat_b2B /=  atoms%astruct%nat ) then
                   if(iproc==0) write(*,*)  "   b2B_xanes cube  is not compatible with actual positions" 
@@ -742,9 +787,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
             rhopottmp = f_malloc_ptr((/ max(n1i_bB, n1i), max(n2i_bB, n2i), max(n3i_bB, n3i), in%nspin /),id='rhopottmp')
 
-
             rhotarget=0.0_gp
-
 
             itype=16
             nd=2**20
@@ -1433,11 +1476,12 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      nlpsp,pkernel,ixc,psi,G,&
      nspin,potshortcut,symObj,GPU,input)
    use module_base
-   use module_interfaces, except_this_one => extract_potential_for_spectra
+   use module_interfaces, only: XC_potential, communicate_density, inputguess_gaussian_orbitals, sumrho
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_xc
    use gaussians, only: gaussian_basis, deallocate_gwf
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use communications_base, only: comms_cubic, deallocate_comms
    use communications_init, only: orbitals_communicators
    use psp_projectors, only: update_nlpsp
@@ -1578,7 +1622,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      !this wrapper can be inserted inside the poisson solver 
      call PSolverNC(at%astruct%geocode,'D',iproc,nproc,Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,&
           dpcom%nscatterarr(iproc,1),& !this is n3d
-          xc,hxh,hyh,hzh,&
+          xc,[hxh,hyh,hzh],&
           rhopot,pkernel%kernel,pot_ion,ehart,eexcu,vexcu,0.d0,.true.,4)
   else
      !Allocate XC potential
@@ -1589,7 +1633,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      end if
 
      call XC_potential(at%astruct%geocode,'D',iproc,nproc,MPI_COMM_WORLD,&
-          Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,xc,hxh,hyh,hzh,&
+          Lzde%Glr%d%n1i,Lzde%Glr%d%n2i,Lzde%Glr%d%n3i,xc,[hxh,hyh,hzh],&
           rhopot,eexcu,vexcu,nspin,rhocore,potxc,xcstr)
      if( iand(potshortcut,4)==0) then
         call H_potential('D',pkernel,rhopot,pot_ion,ehart,0.0_dp,.true.)

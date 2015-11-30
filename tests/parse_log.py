@@ -145,7 +145,18 @@ def parse_arguments():
                     help="set the output file (default: /dev/null)", metavar='FILE')
   parser.add_option('-t', '--timedata', dest='timedata',default=False,action="store_true",
                     help="BigDFT time.yaml file, a quick report is dumped on screen if this option is given", metavar='FILE')
+  parser.add_option('-n', '--name', dest='name',default=None,
+                    help="Give a name to the set of the plot represented", metavar='FILE')
+  parser.add_option('-p', '--plot', dest='plottype',default='Seconds',
+                    help="Decide the starting point for the plotting", metavar='FILE')
+  parser.add_option('-s', '--static', dest='static',default=False,action="store_true",
+                    help="Show the plot statically for screenshot use", metavar='FILE')
+  parser.add_option('-f', '--fontsize', dest='fontsize',default=15,
+                    help="Determine fontsize of the bar chart plot", metavar='FILE')
+  parser.add_option('-k', '--remove-key', dest='nokey',default=False,action="store_true",
+                    help="Remove the visualisation of the key from the main plot", metavar='FILE')
 
+  
   #Return the parsing
   return parser
 
@@ -205,13 +216,13 @@ class polar_axis():
                           width=self.width,
                           bottom=self.step*self.bot,picker=True)
     self.names=data["names"]
-
+    
     ilev=0
     #maxlev=max(self.bot)
     for r,bar,ilev in zip(self.radii, self.bars,self.theta):
        #print ilev,'hello',float(ilev)/float(N),maxlev
        #bar.set_facecolor( pylab.cm.jet(float(ilev)/maxlev))
-       bar.set_facecolor( pylab.cm.jet(float(ilev)/(2*pylab.np.pi)))
+       bar.set_facecolor(pylab.cm.jet(float(ilev)/(2*pylab.np.pi)))
        bar.set_alpha(0.5)
        ilev+=1
 
@@ -289,7 +300,7 @@ class polar_axis():
     self.fig.canvas.draw()
       
 class BigDFTiming:
-  def __init__(self,filenames):
+  def __init__(self,filenames,args):
     #here a try-catch section should be added for multiple documents
     #if (len(filename) > 1
     self.log=[]
@@ -315,49 +326,65 @@ class BigDFTiming:
     self.axbars = None
     self.newfigs =[]
     self.radio = None
+    self.toggle_unbalancing = False
     self.quitButton = None
+    self.plot_start=args.plottype
+    self.static = args.static
+    self.fontsize=args.fontsize
+    self.nokey=args.nokey
     for doc in self.log:
         self.routines.append(doc.get("Routines timing and number of calls"))
         self.hostnames.append(doc.get("Hostnames"))
         scf=doc.get("WFN_OPT")
         if scf is not None:
             self.scf.append(scf)
-            mpit=doc.get("CPU parallelism")
-            if mpit is not None:
-                self.ids.append(mpit["MPI tasks"])
+            if "Run name" in doc:
+                self.ids.append(doc["Run name"])
             else:
-                self.ids.append("Unknown")
+                mpit=doc.get("CPU parallelism")
+                if mpit is not None:
+                    self.ids.append(mpit["MPI tasks"])
+                else:
+                    self.ids.append("Unknown")
     self.classes=["Communications","Convolutions","BLAS-LAPACK","Linear Algebra",
             "Other","PS Computation","Potential",
             "Flib LowLevel","Initialization"]
 
-  def bars_data(self,vals='Percent'):
+  def bars_data(self,vals=None,title='Time bar chart'):
     """Extract the data for plotting the different categories in bar chart"""
     import numpy as np
     import matplotlib.pyplot as plt
     from pylab import cm as cm
     from matplotlib.widgets import Button,RadioButtons
-    self.vals=vals
+    if vals is None:
+      self.vals=self.plot_start
+    else:
+      self.vals=vals
     if self.barfig is None:
       self.barfig, self.axbars = plt.subplots()
+      if self.static: self.barfig.patch.set_facecolor("white")
     dict_list=self.scf
     self.plts=[]
-    self.draw_barplot(self.axbars,self.collect_categories(dict_list,vals),vals)
-    if self.vals == 'Percent': self.axbars.set_yticks(np.arange(0,100,10))
-    if self.radio is None:
-      self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.1, 0.11], axisbg='lightgoldenrodyellow'), ('Percent', 'Seconds'))
+    self.draw_barplot(self.axbars,self.collect_categories(dict_list,self.vals),self.vals,title=title,nokey=self.nokey)
+    active=0
+    if self.vals == 'Percent':
+      self.axbars.set_yticks(np.arange(0,100,10))
+      active=1
+    if self.radio is None and not self.static:
+      self.radio = RadioButtons(plt.axes([0.0, 0.75, 0.08, 0.11], axisbg='lightgoldenrodyellow'), ('Seconds', 'Percent'),active=1)
       self.radio.on_clicked(self.replot)
 
-    if self.quitButton is None:
+    if self.quitButton is None and not self.static:
       self.quitButton = Button(plt.axes([0.0, 0.0, 0.1, 0.075]), 'Quit')
       self.quitButton.on_clicked(self.onclick_quitButton)
       self.barfig.canvas.mpl_connect('pick_event',self.onclick_ev)
+      self.barfig.canvas.mpl_connect('key_press_event',self.onkey_ev)
 
   def find_items(self,category,dict_list):
     """For a given category find the items which has them"""
     import numpy as np
     items={}
-    for idoc in range(len(dict_list)):
+    for idoc in range( len(dict_list) ):
         for cat in dict_list[idoc]["Categories"]:
             dicat=dict_list[idoc]["Categories"][cat]
             if dicat["Class"] == category:
@@ -389,17 +416,37 @@ class BigDFTiming:
         print 'EXCEPTION FOUND',e
         print "category",cat,"not present everywhere"
     return catsdats
-    
+
+  def onkey_ev(self,event):
+    number=event.key
+    if number == 'u' or number == 'U':
+      self.toggle_unbalancing = not self.toggle_unbalancing
+      print 'Unbalancing',self.toggle_unbalancing
+    try:
+      number=int(number)
+      if not self.toggle_unbalancing:
+        if self.routines[number] is not None:
+          toplt=self.routines[number]
+          data=dump_timing_level(toplt)
+          plt=polar_axis(data)
+          plt.show()
+      else:
+        if self.scf[number] is not None:
+          self.load_unbalancing(self.scf[number]["Classes"],self.hostnames[number])
+          plt.show()
+    except:
+      print 'not present or out of range'
+
   def onclick_ev(self,event):
     import matplotlib.pyplot as plt
     thisline = event.artist
     xdata, ydata = thisline.get_xy()
-    print 'data',xdata,ydata
+    #print 'data',xdata,ydata
     #find the category which has been identified
     y0data=0.0
     for cat in self.values_legend:
       y0data+=self.scf[xdata]["Classes"][cat][self.iprc]
-      print 'cat,y0data',cat,y0data,ydata
+      #print 'cat,y0data',cat,y0data,ydata
       if y0data > ydata:
         category=cat
         break
@@ -416,7 +463,7 @@ class BigDFTiming:
     self.newfigs.append((newfig,newax))
   
     
-  def draw_barplot(self,axbars,data,vals,title='Time bar chart'):
+  def draw_barplot(self,axbars,data,vals,title='Time bar chart',static=False,nokey=False):
     import numpy as np
     import matplotlib.pyplot as plt
     from pylab import cm as cm
@@ -436,12 +483,13 @@ class BigDFTiming:
       bot+=dat
       icol+=1.0
     drawn_classes=np.array(self.values_legend)
-    axbars.set_title(title)
-    axbars.set_ylabel(vals)
+    axbars.set_title(title,fontsize=self.fontsize*1.2)
+    axbars.set_ylabel(vals,fontsize=self.fontsize)
     axbars.set_xticks(ind+width/2.)
-    axbars.set_xticklabels(np.array(self.ids))
-    self.leg = axbars.legend(loc='upper right')
-    self.leg.get_frame().set_alpha(0.4)  
+    axbars.set_xticklabels(np.array(self.ids),size=self.fontsize)
+    if not nokey:
+      self.leg = axbars.legend(loc='upper right',fontsize=self.fontsize)
+      self.leg.get_frame().set_alpha(0.4)  
           
   def onclick_quitButton(self,event):
     print "Good bye!"
@@ -450,8 +498,9 @@ class BigDFTiming:
     pylab.close(self.barfig)
     
   def replot(self,label):
+    title=self.axbars.get_title()
     self.axbars.cla()
-    self.bars_data(vals=label)
+    self.bars_data(vals=label,title=title)
     self.barfig.canvas.draw()
     for figax in self.newfigs:
       ax=figax[1]
@@ -460,6 +509,7 @@ class BigDFTiming:
       ax.cla()
       self.draw_barplot(ax,self.find_items(category,self.scf),self.vals,title=category)
       fi.canvas.draw()
+
 
   def func(self,label):
     print 'label,cid',label,self.cid
@@ -477,9 +527,10 @@ class BigDFTiming:
         ipiv.append(i)
     return ipiv
 
-  def load_unbalancing(self,dict):
+  def load_unbalancing(self,dict,hosts):
     """Extract the data for plotting the hostname balancings between different categories in bar chart"""
-    import pylab
+    import matplotlib.pyplot as plt
+    import numpy as np
     width=0.50
     plts=[]
     key_legend=[]
@@ -487,18 +538,20 @@ class BigDFTiming:
     icol=1.0
     print "dict",dict
     #open a new figure
-    pylab.figure()
+    newfig=plt.figure()
+    newax=newfig.add_subplot(111)
     for cat in self.classes:
       try:
-        dat=pylab.np.array([dict[cat][0]])
+        dat=np.array([dict[cat][0]])
         print 'data',dat
-        unb=pylab.np.array(dict[cat][2:])
+        unb=np.array(dict[cat][2:])
         print 'unbalancing',unb
         unb2=self.find_unbalanced(unb)
         print 'unbalanced objects',cat
-        if self.hostnames is not None and (cat=='Convolutions' or cat =='Communications'):
-          print 'vals',[ [i,unb[i],self.hostnames[i]] for i in unb2]
-        ind=pylab.np.arange(len(unb))
+        if hosts is not None and (cat=='Convolutions' or cat =='Communications'):
+          print 'unb2',unb2,len(unb),len(hosts)
+          print 'vals',[ [i,unb[i],hosts[i]] for i in unb2]
+        ind=np.arange(len(unb))
         plt=pylab.bar(ind,unb,width,color=pylab.cm.jet(icol/len(self.classes)))
         plts.append(plt)
         key_legend.append(plt[0])
@@ -511,17 +564,19 @@ class BigDFTiming:
         print "cat",cat,"not found"
 
     if len(ind) > 2:
-      if self.hostnames is not None:
-        tmp=pylab.np.array(self.hostnames)
+      if hosts is not None:
+        tmp=np.array(hosts)
       else:
         tmp=None
     else:
-      tmp=pylab.np.array(["max","min"])
+      tmp=np.array(["max","min"])
     pylab.ylabel('Load Unbalancing wrt average')
     pylab.title('Work Load of different classes')
-    if tmp is not None: pylab.xticks(ind+width/2., tmp)
+    if tmp is not None: pylab.xticks(ind+width/2., tmp,rotation=90,verticalalignment='bottom')
     pylab.yticks(pylab.np.arange(0,2,0.25))
     pylab.legend(pylab.np.array(key_legend), pylab.np.array(values_legend))
+    newfig.show()
+    self.newfigs.append((newfig,newax))
 
 
 if __name__ == "__main__":
@@ -534,15 +589,19 @@ if __name__ == "__main__":
 if args.timedata:
   import pylab
   print 'args of time',args.timedata,argcl
+  if args.name is not None:
+    title=args.name
+  else:
+    title='Time bar chart'
   #in the case of more than one file to analyse
   #or in the case of more than one yaml document per file
   #just load the bars data script
   
   #load the first yaml document
-  bt=BigDFTiming(argcl)
+  bt=BigDFTiming(argcl,args)
   print "hosts",bt.hostnames
   if bt.scf is not None:
-    bt.bars_data() #timing["WFN_OPT"]["Classes"])
+    bt.bars_data(title=title) #timing["WFN_OPT"]["Classes"])
     
   if bt.scf[0] is not None and False:
     bt.load_unbalancing(bt.scf[0]["Classes"]) #timing["WFN_OPT"]["Classes"])

@@ -7,6 +7,7 @@
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
 program exercise
+  use dictionaries
    use Poisson_Solver
    implicit none
    character(len=1) :: solvertype,afunc
@@ -19,6 +20,7 @@ program exercise
    real(kind=8), dimension(:), allocatable :: fake_arr
    real(kind=8), dimension(:,:,:), allocatable :: psi,rhopot,rhoF,rhoS,potF,potS
    type(coulomb_operator) :: kernel
+   type(dictionary), pointer :: dict
    
    !Use arguments
    call getarg(1,chain)
@@ -121,8 +123,10 @@ program exercise
    !offset=0.d0!3.053506154731705d0*n1*n2*n3*hgrid**3
    
    call cpu_time(t0)
-   kernel=pkernel_init(.true.,0,1,0,&
-        solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order)
+   dict=>dict_new('kernel' .is. dict_new('isf_order' .is. isf_order))
+   kernel=pkernel_init(0,1,dict,&
+        solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/))
+   call dict_free(dict)
    call pkernel_set(kernel,verbose=.true.)
 
    !call createKernel(0,1,solvertype,(/n1,n2,n3/),(/hgrid,hgrid,hgrid/),isf_order,kernel,.true.)

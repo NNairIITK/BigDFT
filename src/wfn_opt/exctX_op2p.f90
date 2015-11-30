@@ -69,7 +69,7 @@ contains
      dpsir_i,dpsir_j)
     use module_base
     use module_types
-    use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+    use Poisson_Solver, except_dp => dp, except_gp => gp
     implicit none
     logical, intent(in) :: remote_result
     integer, intent(in) :: istep,iproc,igroup,isorb,jsorb,iorbs,jorbs,norbi,norbj
@@ -113,7 +113,7 @@ contains
                    rp_ij(i)=hfac*psir_i(i+(iorb-1)*ndim)*psir_j(i+(jorb-1)*ndim)
                 end do
              end if
-             ncalls=ncalls+1                    
+             ncalls=ncalls+1
 
              call H_potential('D',pkernel,rp_ij,rp_ij,ehart,0.0_dp,.false.,&
                   quiet='YES')
@@ -256,6 +256,102 @@ contains
 
 end module module_exctx_op2p
 
+subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,remote_result,&
+     nloc_i,nloc_j,isloc_i,isloc_j,&
+     phi_i,phi_j,eexctX,rp_ij)
+  use module_defs, only: wp
+  use overlap_point_to_point
+  use Poisson_Solver
+  implicit none
+  logical, intent(in) :: remote_result
+  integer, intent(in) :: istep !<step of the calculation
+  integer, intent(in) :: norb
+  integer, intent(in) :: nloc_i,nloc_j !<number of local elements to  be treated
+  integer, intent(in) :: isloc_i !<starting point of the elements for phi_i
+  integer, intent(in) :: isloc_j !<starting point of the elements for phi_j
+  real(gp), intent(in) :: factor !<overall factor to treat the data
+  real(gp), dimension(norb), intent(in) :: occup,spinsgn !<to treat the data
+  type(coulomb_operator), intent(inout) :: pkernel
+  type(local_data), intent(inout) :: phi_i,phi_j
+  real(gp), intent(inout) :: eexctX
+  real(wp), dimension(product(pkernel%ndims)), intent(out) :: rp_ij
+  !local variables
+  integer :: iorb,jorb,ndim,iorb_glb,jorb_glb,ishift,jshift,ishift_res,jshift_res,i
+  real(gp) :: hfac,hfaci,hfacj,hfac2,ehart
+!loop over all the orbitals
+!for the first step do only the upper triangular part
+  !do iorb=iorbs,iorbs+norbi-1
+!!$  do ind=1,nloc_i
+!!$     iorb=
+  ndim=product(pkernel%ndims)
+  hfac=1.0_gp/product(pkernel%hgrids)
+  do iorb=isloc_i,nloc_i+isloc_i-1
+  do jorb=isloc_j,nloc_j+isloc_j-1
+     !aliasing
+     jorb_glb=phi_j%id_glb(jorb)
+     iorb_glb=phi_i%id_glb(iorb)
+     hfaci=-factor*occup(jorb_glb)
+     hfacj=-factor*occup(iorb_glb)
+     ishift=phi_i%displ(iorb)
+     jshift=phi_j%displ(jorb)
+     ishift_res=phi_i%displ_res(iorb)
+     jshift_res=phi_j%displ_res(jorb)
+     !first cross-check whether the spin indices are the same
+     if (spinsgn(iorb_glb) /= spinsgn(jorb_glb)) then
+        print *,'temporary',iorb,iorb_glb,jorb,jorb_glb
+        stop
+     end if
+     !do it only for upper triangular results 
+     if (istep /= 0 .or. jorb_glb >= iorb_glb) then
+        !$omp parallel do default(shared) private(i)
+        do i=1,ndim
+           rp_ij(i)=hfac*phi_i%data(i+ishift)*phi_j%data(i+jshift)
+        end do
+        !$omp end parallel do
+!!$        ncalls=ncalls+1
+!!$        !Poisson solver in sequential
+!!$        if (iproc == iprocref .and. verbose > 1) then
+!!$           call yaml_comment('Exact exchange calculation: ' // trim(yaml_toa( &
+!!$                nint(real(ncalls,gp)/real(ncalltot,gp)*100.0_gp),fmt='(i3)')) //'%')
+!!$        end if
+
+        call H_potential('D',pkernel,rp_ij,rp_ij,ehart,0.0_dp,.false.,&
+             quiet='YES')
+
+        !this factor is only valid with one k-point
+        !can be easily generalised to the k-point case
+        hfac2=factor*occup(iorb_glb)*occup(jorb_glb)
+
+        !exact exchange energy
+        if (iorb_glb == jorb_glb) then
+           eexctX=eexctX+hfac2*real(ehart,gp)
+        else
+           !if the result has to be sent away
+           if (remote_result .or. istep==0) then
+              eexctX=eexctX+2.0_gp*hfac2*real(ehart,gp)
+           else !otherwise other processors are already calculating it
+              eexctX=eexctX+hfac2*real(ehart,gp)
+           end if
+        end if
+        !accumulate the results for each of the wavefunctions concerned
+        !$omp parallel do default(shared) private(i)
+        do i=1,ndim
+           phi_i%res(i+ishift_res)=phi_i%res(i+ishift_res)+hfaci*rp_ij(i)*phi_j%data(i+jshift)
+        end do
+        !$omp end parallel do
+
+        if ((iorb_glb /= jorb_glb .and. istep==0) .or. remote_result) then
+           !$omp parallel do default(shared) private(i)
+           do i=1,ndim
+              phi_j%res(i+jshift_res)=phi_j%res(i+jshift_res)+hfacj*rp_ij(i)*phi_i%data(i+ishift)
+           end do
+        end if
+        !write(100+iproc,*)iorb+isorb,jorb+jsorb,igrpr(igroup)
+     end if
+  end do
+  end do
+
+end subroutine internal_calculation_exctx
 
 !> Routine which applies the op2p module to calculate the exact exchange
 !! Defines the interface module in the same file
@@ -264,6 +360,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   use module_types
   use module_xc
   use module_exctx_op2p
+  use locreg_operations
   implicit none
   integer, intent(in) :: iproc,nproc
   type(xc_info), intent(in) :: xc
@@ -272,7 +369,8 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   real(wp), dimension(lr%wfd%nvctr_c+7*lr%wfd%nvctr_f,orbs%nspinor,orbs%norbp), intent(in) :: psi !> wavefunctions in wavelet form
   type(coulomb_operator), intent(inout) :: pkernel !> Poisson Solver kernel, sequential in this case
   real(gp), intent(out) :: eexctX !> exact exchange energy
-  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir !>Fock operator applied on the real-space wavefunctions
+  !>Fock operator applied on the real-space wavefunctions
+  real(wp), dimension(lr%d%n1i*lr%d%n2i*lr%d%n3i,orbs%norbp), intent(out) :: dpsir
   !local variables
   character(len=*), parameter :: subname='exact_exchange_potential_op2p'
   integer :: iorb
@@ -281,7 +379,7 @@ subroutine exact_exchange_potential_op2p(iproc,nproc,xc,lr,orbs,pkernel,psi,dpsi
   type(OP2P_descriptors) :: OP2P
   real(wp), dimension(:,:), allocatable :: psir
 
-  call initialize_work_arrays_sumrho(1,lr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
   psir = f_malloc((/ lr%d%n1i*lr%d%n2i*lr%d%n3i, orbs%norbp /),id='psir')
 
   call f_zero(dpsir)

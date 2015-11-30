@@ -741,7 +741,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.9561E-03, -1.9561E-03, -1.4085E-03 ]
    norm(P)                             :  3.104197E-03
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  5.94804902E-05, y:  5.94804902E-05, z:  2.21333589E-04, 
                     total:  2.36779254E-04}
@@ -753,9 +753,6 @@
  -  {N: [-1.058791184068E-22, -1.058791184068E-22, -1.873015273261E-01]} # 0002
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - 
-   Do not read the linear input files in the old format. If you use the .yaml format you can 
-   igno
  - PSP generated with a different XC. Input XC is "Hartree-Fock Exchange only"
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

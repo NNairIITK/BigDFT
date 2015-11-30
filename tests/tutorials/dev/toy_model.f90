@@ -11,18 +11,21 @@
 !> Toy program to use BigDFT API
 program wvl
 
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use BigDFT_API
+  use locreg_operations, only: workarr_sumrho,initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
   use bigdft_run
   use dynamic_memory
   use yaml_output
   use module_input_dicts
   use module_input_keys
   use module_atoms, only: deallocate_atoms_data
+  use module_dpbox, only: denspot_distribution,dpbox_free
   use communications_base, only: deallocate_comms
   use communications_init, only: orbitals_communicators
   use communications, only: transpose_v, untranspose_v
   use rhopotential, only: full_local_potential
+  use module_razero
   implicit none
 
   type(input_variables)             :: inputs
@@ -38,7 +41,7 @@ program wvl
   type(rho_descriptors)                :: rhodsc
   type(denspot_distribution)           :: dpcom
   type(GPU_pointers)                   :: GPU
-  integer :: i, j, ierr, iproc, nproc ,nconfig
+  integer :: i, j, ierr, iproc, nproc 
   real(dp) :: nrm, epot_sum
   real(gp) :: psoffset
 !  real(gp), allocatable :: radii_cf(:,:)
@@ -51,10 +54,9 @@ program wvl
   integer, dimension(:,:,:), allocatable :: irrzon
   real(dp), dimension(:,:,:), allocatable :: phnons
   type(coulomb_operator) :: pkernel
-  type(dictionary), pointer :: user_inputs,options
+  type(dictionary), pointer :: user_inputs,options,dict
   !temporary variables
   !integer, dimension(4) :: mpi_info
-  character(len=60) :: run_id
 
   call f_lib_initialize()
   nullify(options)
@@ -68,7 +70,7 @@ program wvl
    call user_dict_from_files(user_inputs, 'input', 'posinp', bigdft_mpi)
    call inputs_from_dict(inputs, atoms, user_inputs)
    if (iproc == 0) then
-      call print_general_parameters(inputs,atoms,'input','posinp')
+      call print_general_parameters(inputs,atoms,'input')
    end if
    call dict_free(user_inputs)
    GPU%OCLconv = .false.
@@ -88,7 +90,7 @@ program wvl
 !!$  !the arguments of this routine should be changed
 !!$  posinp_name='posinp'
 !!$  call read_input_variables(iproc,nproc,posinp_name,inputs, atoms, atoms%astruct%rxyz,1,'input',0)
-
+   nullify(rho_ion)
 !  allocate(radii_cf(atoms%astruct%ntypes,3))
   call system_properties(iproc,nproc,inputs,atoms,orbs)!,radii_cf)
   
@@ -109,7 +111,7 @@ program wvl
 
   !grid spacings and box of the density
   call dpbox_set(dpcom,Lzd,xc,iproc,nproc,MPI_COMM_WORLD,inputs%PSolver_groupsize, &
-       & inputs%SIC%approach,atoms%astruct%geocode, inputs%nspin)
+       & inputs%SIC%approach,atoms%astruct%geocode, inputs%nspin,inputs%matacc%PSolver_igpu)
 
   ! Read wavefunctions from disk and store them in psi.
   allocate(orbs%eval(orbs%norb*orbs%nkpts))
@@ -211,11 +213,11 @@ program wvl
   ! Wavefunctions can be expressed in interpolating scaling functions, 
   !  in this representation, point coefficients are values on points.
   allocate(psir(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i))
-  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,psir)
+  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,psir(1))
   ! BigDFT cut rho by slices, while here we keep one array for simplicity.
   allocate(rhor(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * Lzd%Glr%d%n3i))
-  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,rhor)
-  call initialize_work_arrays_sumrho(1,Lzd%Glr,.true.,wisf)
+  call razero(Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,rhor(1))
+  call initialize_work_arrays_sumrho(1,[Lzd%Glr],.true.,wisf)
   do i = 1, orbs%norbp, 1
      ! Calculate values of psi_i on each grid points.
      call daub_to_isf(Lzd%Glr,wisf, &
@@ -257,9 +259,11 @@ program wvl
   call deallocate_rho_descriptors(rhodsc)
 
   ! Example of calculation of the energy of the local potential of the pseudos.
-  pkernel=pkernel_init(.true.,iproc,nproc,0,&
+  dict => dict_new()
+  pkernel=pkernel_init(iproc,nproc,dict,&
        atoms%astruct%geocode,(/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/),&
-       (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/),16)
+       (/inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp/))
+  call dict_free(dict)
   call pkernel_set(pkernel,verbose=.false.)
   !call createKernel(iproc,nproc,atoms%astruct%geocode,&
   !     (/Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i/), &
@@ -267,11 +271,8 @@ program wvl
   !     ,16,pkernel,.false.)
   allocate(pot_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
   allocate(rho_ion(Lzd%Glr%d%n1i * Lzd%Glr%d%n2i * dpcom%n3p))
-  call createIonicPotential(atoms%astruct%geocode,iproc,nproc,(iproc==0),atoms,atoms%astruct%rxyz,&
-       & inputs%hx / 2._gp,inputs%hy / 2._gp,inputs%hz / 2._gp, &
-       & inputs%elecfield,Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3, &
-       & dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,Lzd%Glr%d%n1i,Lzd%Glr%d%n2i,Lzd%Glr%d%n3i, &
-       & pkernel,pot_ion,rho_ion,psoffset)
+  call createIonicPotential(iproc,(iproc==0),atoms,atoms%astruct%rxyz,&
+       & inputs%elecfield, dpcom, pkernel,pot_ion,rho_ion,psoffset)
   !allocate the potential in the full box
   call full_local_potential(iproc,nproc,orbs,Lzd,0,dpcom,xc,pot_ion,potential)
 !!$  call full_local_potential(iproc,nproc,Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*n3p, &

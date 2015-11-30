@@ -9,7 +9,7 @@ dnl  - PACKAGE_TARNAME, the name used for the tarball ;
 dnl  - PACKAGE_VERSION, the version ;
 dnl  - PACKAGE_STRING, the name + the version ;
 dnl  - PACKAGE_BUGREPORT, the mail.
-AC_INIT([BigDFT - DFT over wavelets],[1.7.7],[Damien.Caliste@cea.fr],[bigdft])
+AC_INIT([BigDFT - DFT over wavelets],[1.8a.2],[Damien.Caliste@cea.fr],[bigdft])
 
 dnl All temporary building files are put in this directory.
 dnl his must be called before AM_INIT_AUTOMAKE
@@ -205,7 +205,7 @@ fi
 
 dnl Enable or not MPI.
 ac_use_mpi="yes"
-AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Don't use MPI (enabled by default).]),
+AC_ARG_ENABLE(mpi, AS_HELP_STRING([--disable-mpi], [Do not use MPI (enabled by default).]),
               ac_use_mpi=$enableval, ac_use_mpi="yes")
 if test "$ac_use_mpi" = "yes"; then
   dnl We set all flags by hand
@@ -340,7 +340,7 @@ end
 
   else
     AC_MSG_WARN([MPI is not working and has been disabled.])
-    AC_MSG_WARN([  If you don't want to see this warning,])
+    AC_MSG_WARN([  If you do not want to see this warning,])
     AC_MSG_WARN([  set --disable-mpi in the configure line.])
     ac_use_mpi="warn"
     MPI_LIBS=
@@ -431,7 +431,7 @@ dnl test for the present of ambertools compiler (experimental)
 AC_PATH_PROG([NAB], [nab])
 AC_SUBST(NAB)
 AC_ARG_WITH(ambertools, AS_HELP_STRING([--with-ambertools],
-            [Give the path of the ambertools libraries (example = /home/<username>/lib/). Don't use the -L before the path(es), just give the plain path.]),
+            [Give the path of the ambertools libraries (example = /home/<username>/lib/). Do not use the -L before the path(es), just give the plain path.]),
             ac_ambertools_dir=$withval, ac_ambertools_dir=)
 ac_use_amber="no"
 AM_CONDITIONAL(HAVE_AMBERTOOLS, test x"$ac_ambertools_dir" != "x")
@@ -1135,6 +1135,7 @@ AC_ARG_ENABLE(devel-doc,
                              [compile documentation for developers using Doxygen.]),
               ac_devel_doc=$enableval, ac_devel_doc="no")
 AM_CONDITIONAL(BUILD_DEVDOC, test x"$ac_have_doxygen" = x"yes" -a x"$ac_devel_doc" = x"yes")
+
 dnl default installation directories
 AC_ARG_WITH(moduledir,
             AS_HELP_STRING([--with-moduledir],
@@ -1171,19 +1172,23 @@ src/bigdft-tool
 src/Makefile
 src/modules/Makefile
 src/modules/bigdft_cst.h
-src/modules/configure.inc
 src/modules/configure.c
-src/convolutions/Makefile
+src/orbitals/Makefile
+src/orbitals/configure.inc
 src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile
 src/convolutions-c/Makefile
 src/bindings/Makefile
-src/art/Makefile
-src/mhgps_files/Makefile
-src/global_files/Makefile
+src/geopt/Makefile
 src/tools/Makefile
 src/tools/bader/Makefile
+spred/Makefile
+spred/src/Makefile
+spred/src/art/Makefile
+spred/src/mhgps_files/Makefile
+spred/src/global_files/Makefile
+spred/tests/Makefile
 utils/Makefile
 utils/PSPfiles/Makefile
 pseudo/Makefile

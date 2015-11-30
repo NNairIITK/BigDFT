@@ -3,7 +3,7 @@
 !!  In the spirit of this module each error message is handled separately.
 !!  The user of this module is able to define the stopping routine, the new error and the error codes.
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -156,6 +156,49 @@
 
   end function f_err_check
 
+  function f_err_raise_str(condition,err_msg,err_id,err_name,callback,callback_data) result(f_err_raise)
+    use yaml_strings, only: yaml_toa,f_string
+    !use yaml_output, only: yaml_dict_dump,yaml_map
+    implicit none
+    logical, intent(in) :: condition             !< the condition which raise the error
+    integer, intent(in), optional :: err_id                !< the code of the error to be raised.
+    !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name     !< error name
+    type(f_string), intent(in) :: err_msg      !< error message
+    integer(kind=8), intent(in), optional :: callback_data !< ??? not really sure
+    external :: callback                                   !< action to be performed ???
+    optional :: callback
+    logical :: f_err_raise
+    !local variables
+    !    integer :: new_errcode
+    integer(kind=8) :: clbk_data_add
+
+    f_err_raise=condition
+    !once the error has been identified add it to the present errors and call callback function if needed
+    if (f_err_raise) then
+       clbk_data_add=callback_data_add
+       if (present(callback_data)) clbk_data_add=callback_data
+
+       if (present(callback)) then
+          if (present(err_id)) then
+             call f_err_throw(err_msg%msg,err_id=err_id,callback=callback,callback_data=clbk_data_add)
+          else if (present(err_name)) then
+             call f_err_throw(err_msg%msg,err_name=err_name,callback=callback,callback_data=clbk_data_add) 
+          else
+             call f_err_throw(err_msg%msg,callback=callback,callback_data=clbk_data_add)
+          end if
+       else
+          if (present(err_id)) then
+             call f_err_throw(err_msg%msg,err_id=err_id,callback_data=clbk_data_add)
+          else if (present(err_name)) then
+             call f_err_throw(err_msg%msg,err_name=err_name,callback_data=clbk_data_add)
+          else
+             call f_err_throw(err_msg%msg,callback_data=clbk_data_add)
+          end if
+       end if
+    end if
+  end function f_err_raise_str
+
 
   !> This routine should be generalized to allow the possiblity of addin customized message at the 
   !! raise of the error. Also customized callback should be allowed
@@ -220,7 +263,9 @@
 
 
   !> Raise the error indicated
-  subroutine f_err_throw(err_msg,err_id,err_name,callback,callback_data)
+  !! @warning:  This routine might formally call itself, i.e. it uses methods that might raise exceptions
+  !! it is developer's responsibility to avoid deadlocks
+  recursive subroutine f_err_throw_c(err_msg,err_id,err_name,callback,callback_data) 
     use yaml_strings, only: yaml_toa
     implicit none
     integer, intent(in), optional :: err_id                    !< The code of the error to be raised.
@@ -308,7 +353,45 @@
        end if
     end if
     call err_abort(clbk_add,clbk_data_add)
-  end subroutine f_err_throw
+  end subroutine f_err_throw_c
+
+
+  subroutine f_err_throw_str(message,err_id,err_name,callback,callback_data) 
+    use yaml_strings, only: f_string
+    implicit none
+    integer, intent(in), optional :: err_id                    !< The code of the error to be raised.
+    !! it should already have been defined by f_err_define
+    character(len=*), intent(in), optional :: err_name         !< error name
+    type(f_string), intent(in) :: message         !< error message
+    !type(dictionary), pointer, optional :: err_dict           !< Add a dictionary instead of a message
+    integer(kind=8), intent(in), optional :: callback_data     !< ??? not really sure
+    external :: callback
+    optional :: callback
+    !local variables
+    integer(kind=8) :: clbk_data_add
+!!$    integer(kind=8) :: clbk_add
+
+    clbk_data_add=callback_data_add
+    if (present(callback_data)) clbk_data_add=callback_data
+
+    if (present(callback)) then
+       if (present(err_id)) then
+          call f_err_throw_c(message%msg,err_id=err_id,callback=callback,callback_data=clbk_data_add)
+       else if (present(err_name)) then
+          call f_err_throw_c(message%msg,err_name=err_name,callback=callback,callback_data=clbk_data_add) 
+       else
+          call f_err_throw_c(message%msg,callback=callback,callback_data=clbk_data_add)
+       end if
+    else
+       if (present(err_id)) then
+          call f_err_throw_c(message%msg,err_id=err_id,callback_data=clbk_data_add)
+       else if (present(err_name)) then
+          call f_err_throw_c(message%msg,err_name=err_name,callback_data=clbk_data_add)
+       else
+          call f_err_throw_c(message%msg,callback_data=clbk_data_add)
+       end if
+    end if
+  end subroutine f_err_throw_str
 
 
   !> Get the error ierror as a dictionary
@@ -397,6 +480,17 @@
   end function f_get_last_error
 
 
+  !> get all the errors that are present on the error pipe
+  subroutine f_get_errors(dict)
+    implicit none
+    type(dictionary), pointer, intent(out) :: dict !<output dictionary containing the result
+    !local variables
+    integer :: nerr
+    nullify(dict)
+    call dict_copy(src=dict_present_error,dest=dict)
+
+  end subroutine f_get_errors
+
   !> Clean the dictionary of present errors
    subroutine f_err_clean()
     implicit none
@@ -458,9 +552,18 @@
   !! the errors are cleaned. To recover an error in a try environment 
   !! the correct behaviour is to perform f_err_check before calling 
   !! f_err_close_try
-  subroutine f_err_close_try()
+  subroutine f_err_close_try(exceptions)
     implicit none
+    type(dictionary), pointer, intent(out), optional :: exceptions !<retrieve the exceptions
+    !local variables
     type(error_stack), pointer :: stack
+
+    !retrieve the exceptions if needed
+    if (present(exceptions)) then
+       nullify(exceptions)
+       if (f_err_check()) call f_get_errors(exceptions)
+    end if
+
     !call f_err_unset_callback()
     if (associated(error_pipelines%previous)) then
       nullify(dict_present_error)

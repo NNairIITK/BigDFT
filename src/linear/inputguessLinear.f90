@@ -16,10 +16,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
      rxyz, nlpsp, GPU, orbs, kswfn, tmb, denspot, rhopotold, energs, &
      locregcenters)
   use module_base
-  use module_interfaces, exceptThisOne => inputguessConfinement
+  use module_interfaces, only: allocate_precond_arrays, deallocate_precond_arrays, &
+       & getLocalizedBasis, get_coeff, inputguess_gaussian_orbitals, sumrho, &
+       & write_eigenvalues_data, write_energies
   use module_types
   use gaussians, only: gaussian_basis, deallocate_gwf, nullify_gaussian_basis
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
   use sparsematrix_base, only: sparse_matrix, sparse_matrix_null, deallocate_sparse_matrix, &
                                sparsematrix_malloc, assignment(=), SPARSE_FULL
@@ -31,6 +33,7 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
   use public_enums
   use ao_inguess, only: aoig_data, aoig_data_null, aoig_set
   use orthonormalization, only: orthonormalizeLocalized, iterative_orthonormalization
+  use locreg_operations
   implicit none
   !Arguments
   integer, intent(in) :: iproc,nproc
@@ -944,12 +947,12 @@ subroutine inputguessConfinement(iproc, nproc, at, input, hx, hy, hz, &
       call get_coeff(iproc,nproc,LINEAR_FOE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work, .false.)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
   else
       call get_coeff(iproc,nproc,LINEAR_MIXDENS_SIMPLE,orbs,at,rxyz,denspot,GPU,infoCoeff,energs,nlpsp,&
            input%SIC,tmb,fnrm,.true.,.true.,.false.,.true.,0,0,0,0,order_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap, energs_work, .false.)
+           input%calculate_KS_residue,input%calculate_gap, energs_work, .false., input%lin%coeff_factor)
 
       !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
       ! Keep the ocupations for the moment.. maybe to be activated later (with a better if statement)

@@ -183,8 +183,6 @@
    Source                              : psppar.Si
  mode:
    method                              : dft #    Run method of BigDFT call
-   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
-   mm_paramfile                        : none #   name of parameter file
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -795,7 +793,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -9.654E+01, -9.6540E+01, -9.6540E+01 ]
    norm(P)                             :  1.672115E+02
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
  Stress Tensor calculated              :  Yes
  Stress Tensor:
@@ -833,7 +831,7 @@
    -  [ -4.11980755658E-09, -4.119805653192E-09, -3.559199076434E-04 ]
    Pressure:
      Ha/Bohr^3                         : -3.55919907643335E-04
-     GPa                               : -10.47152348287200
+     GPa                               : -10.4715
      PV (Ha)                           : -0.38450569840529
   #------------ Iterative subspace diagonalization of virtual orbitals (Direct Minimization)
  Generation of input wavefunction data for atom: Si
@@ -1112,9 +1110,6 @@
  - e_virtual                           :  2.89452257306639E-01 # 0003
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - 
-   Do not read the linear input files in the old format. If you use the .yaml format you can 
-   igno
  - A bigger number of virtual orbitals may be needed for better convergence
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

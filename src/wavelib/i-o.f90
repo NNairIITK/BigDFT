@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to reformat wavefunctions
 !! @author
-!!    Copyright (C) 2010-2013 BigDFT group 
+!!    Copyright (C) 2010-2015 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -387,13 +387,13 @@ subroutine readonewave(unitwf,useFormattedInput,iorb,iproc,n1,n2,n3,&
 
 END SUBROUTINE readonewave
 
-
 subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
      & n1, n2, n3, nspinor, psiscf)
   use module_base
-  use module_types
+!  use module_types
   use io, only: io_open, io_read_descr, io_warning, read_psi_compress, io_gcoordtolocreg
-
+  use locregs
+  use locreg_operations
   implicit none
 
   character(len = *), intent(in) :: filename
@@ -457,7 +457,7 @@ subroutine readwavetoisf(lstat, filename, formatted, hx, hy, hz, &
 
   psiscf = f_malloc_ptr((/ lr%d%n1i, lr%d%n2i, lr%d%n3i, nspinor  /),id='psiscf')
 
-  call initialize_work_arrays_sumrho(1,lr,.true.,w)
+  call initialize_work_arrays_sumrho(1,[lr],.true.,w)
 
   ! Magic-filter to isf
   call daub_to_isf(lr, w, psi, psiscf(1,1,1,ispinor))
@@ -695,7 +695,8 @@ subroutine writeonewave(unitwf,useFormattedOutput,iorb,n1,n2,n3,hx,hy,hz,nat,rxy
      enddo
   enddo
 
-  if (verbose >= 2) call yaml_comment(trim(yaml_toa(iorb)) //'th wavefunction written')
+  if (bigdft_mpi%iproc == 0 .and. verbose >= 2) &
+     & call yaml_comment(trim(yaml_toa(iorb)) //'th wavefunction written')
   !if (verbose >= 2) write(*,'(1x,i0,a)') iorb,'th wavefunction written'
 
 END SUBROUTINE writeonewave
@@ -709,6 +710,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
   use module_fragments
   use reformatting
   use yaml_output
+  use locreg_operations
   implicit none
   integer, dimension(3), intent(in) :: n,n_old
   real(gp), dimension(3), intent(in) :: hgrids,hgrids_old
@@ -919,7 +921,7 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
      call f_free(psig)
      call f_free(ww)
   else
-     call initialize_work_arrays_sumrho(1,llr,.true.,w)
+     call initialize_work_arrays_sumrho(1,[llr],.true.,w)
      call f_zero(psi)
 !!$     write(*,*) 'iproc,norm psirnew ',dnrm2(llr%d%n1i*llr%d%n2i*llr%d%n3i,psir,1),llr%d%n1i,llr%d%n2i,llr%d%n3i
      call isf_to_daub(llr,w,psir,psi)
@@ -956,8 +958,9 @@ subroutine reformat_one_supportfunction(llr,llr_old,geocode,hgrids_old,n_old,psi
       real(gp), dimension(3,3), intent(in) :: rmat !< rotation matrix
       integer, dimension(3) :: irp
       !local variables
-      integer :: i,isgn
+      integer :: i
       integer, dimension(3) :: ib1,ib3
+!!$      integer :: isgn
 !!$      real(gp), dimension(3) :: rrow
 
       !determine ideal sequence for rotation, for important rows

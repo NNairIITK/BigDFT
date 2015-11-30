@@ -399,8 +399,9 @@
    Size of workspaces                  :  65648
    Maximum size of masking arrays for a projector:  2034
    Cumulative size of masking arrays   :  2034
- NLCC, Calculate core density for atom : O
- Analytic core charge                  :  0.886280
+ Analytic core charges for atom species:
+   O                                   :  0.8862805
+ Total core charge                     :  0.8862805
  Total core charge on the grid (To be compared with analytic one):  0.8862805
  Communication checks:
    Transpositions                      :  Yes
@@ -586,7 +587,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -1.4852E-04, -5.9273E-05, -5.9273E-05 ]
    norm(P)                             :  1.705382E-04
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate NLCC forces                 :  Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x:  1.69112672E-06, y:  2.61899878E-07, z:  2.61899309E-07, 

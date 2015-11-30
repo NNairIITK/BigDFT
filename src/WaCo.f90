@@ -13,8 +13,8 @@ program WaCo
 
    use module_base
    use module_types
-   use module_interfaces, except_this_one => writeonewave
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use module_interfaces
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    use yaml_output
    use module_input_dicts
    use module_atoms, only: deallocate_atoms_data
@@ -26,6 +26,8 @@ program WaCo
    use public_enums, only: LINEAR_PARTITION_NONE, WF_FORMAT_BINARY, WF_FORMAT_ETSF, WF_FORMAT_NONE
    use module_input_keys, only: user_dict_from_files, inputs_from_dict, free_input_variables
    use locregs_init, only: determine_locregsphere_parallel
+   use locreg_operations, only: psi_to_locreg2,workarr_sumrho,&
+        initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
    implicit none
    character :: filetype*4,outputype*4
    type(locreg_descriptors) :: Glr
@@ -876,7 +878,7 @@ program WaCo
 
      wann = f_malloc(Glr%wfd%nvctr_c+7*Glr%wfd%nvctr_f,id='wann')
      wannr = f_malloc(Glr%d%n1i*Glr%d%n2i*Glr%d%n3i,id='wannr')
-     call initialize_work_arrays_sumrho(1,Glr,.true.,w)
+     call initialize_work_arrays_sumrho(1,[Glr],.true.,w)
 
 
      ! Separate plotwann
@@ -1770,7 +1772,6 @@ end subroutine write_wannier_cube
 
 subroutine scalar_kmeans_diffIG(iproc,nIG,crit,nel,vect,string,nbuf,buf)
   use BigDFT_API
-  use module_interfaces
   use yaml_output
   implicit none
   integer, intent(in) :: nel,nIG,iproc
@@ -1915,8 +1916,7 @@ end subroutine init_random_seed
 
 subroutine stereographic_projection(mode,natom, rxyz, refpos, CM, rad, proj, normal, dcp)
    use BigDFT_API
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
-   use module_interfaces
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    implicit none
    integer, intent(in) :: mode        ! 0= atomic projection, 1=wannier projection
    integer, intent(in) :: natom
@@ -2155,7 +2155,6 @@ end do
 end subroutine shift_stereographic_projection
 
 subroutine build_stereographic_graph_facets(natoms,nsurf, mcenters,maxbond,rxyz,ncenters,Zatoms,nfacets,facets,vertex)
-   use module_interfaces
    use module_defs, only: gp,dp
    use module_types
    implicit none
@@ -2522,7 +2521,6 @@ end subroutine read_eigenvalues
 
 subroutine read_amn_header(filename,nproj,nband,nkpt)
 use module_types
-use module_interfaces
 implicit none
 character(len=*),intent(in) :: filename
 integer, intent(out) :: nproj,nband,nkpt
@@ -2547,7 +2545,6 @@ end subroutine read_amn_header
 subroutine read_amn(filename,amn,nproj,nband,nkpt)
   use module_defs, only :gp
 use module_types
-use module_interfaces
 implicit none
 character(len=*),intent(in) :: filename
 integer, intent(in) :: nproj, nband, nkpt
@@ -2651,7 +2648,6 @@ END SUBROUTINE read_proj
 subroutine character_list(nwann,nproj,tmatrix,plotwann,wann_list,l,mr)
    use BigDFT_API
    use module_types
-   use module_interfaces
    implicit none
    ! I/O variables
    integer, intent(in) :: nwann, nproj,plotwann
