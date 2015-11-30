@@ -185,32 +185,6 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 	$(run_parallel) $(abs_top_builddir)/src/frequencies -l yes > $@
 	name=`basename $@ .freq.out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
-%.NEB.out: $(abs_top_builddir)/src/NEB NEB_include.sh NEB_driver.sh
-	rm -f neb.it*
-	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_serial) $(abs_top_builddir)/src/NEB | tee $@
-	cat neb.NEB.0*/log.yaml | grep -v "Unable to read mpd.hosts" > log.yaml
-	echo "---" >> log.yaml
-	grep ":" NEB.NEB.out | grep -v "<BigDFT>" >> log.yaml
-	grep -v ":" NEB.NEB.out > tmp-neb.out
-	mv tmp-neb.out NEB.NEB.out
-	rm -rf neb.NEB.0*
-	rm -f gen_output_file velocities_file
-	name=`basename $@ .out` ; \
-	$(MAKE) -f ../Makefile $$name".post-out"
-%.splsad.out: $(abs_top_builddir)/src/splsad
-	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1
-	$(run_parallel) $(abs_top_builddir)/src/splsad -l yes > $@
-	name=`basename $@ .out` ; \
-	$(MAKE) -f ../Makefile $$name".post-out"
-%.minhop.out: $(abs_top_builddir)/src/global
-	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1
-	$(run_parallel) $(abs_top_builddir)/src/global -l yes > $@
-#	mv log-mdinput.yaml log.yaml
-	name=`basename $@ .out` ; \
-	$(MAKE) -f ../Makefile $$name".post-out"
 %.xabs.out: $(abs_top_builddir)/src/abscalc
 	@name=`basename $@ .xabs.out` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
