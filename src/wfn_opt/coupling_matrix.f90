@@ -215,8 +215,11 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
   !Now we can start to build the partial densities and the corresponding partial potentials.
   !loop_i is a loop over a multiindex, the same as the one used above to find the number of allowed transitions.
   !The multindex is organised as I=a+(i-1)*norbv.
+  !!$$if (iproc==0) call yaml_comment('Before computation of all the different coupling matrix elements')
   ik=0
+  !!$$if (iproc==0) call yaml_sequence_open('Sequential building of the coupling matrix element')
   loop_i: do imulti=1,orbsvirt%norb*orbsocc%norb
+     !!$$if (iproc==0) call yaml_comment(trim(yaml_toa(imulti,fmt='(i8.8)')))
      !Calculate the orbital index
      iorbi=(imulti-1)/orbsvirt%norb+1 !occ. state index
      iorba=imulti-(iorbi-1)*orbsvirt%norb !virt. state index
@@ -263,23 +266,29 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
            end do !loop over x
         end do !loop over y
      end do !loop over z
+     !!$$if (iproc==0) call yaml_comment('dipole moment computed')
 
      !Calculate the Hartree potential corresponding to the partial density
      if (dofH) then
         !Copy the partial density onto the partial potential space to pass it to PSolver
         call vcopy(lr%d%n1i*lr%d%n2i*n3p,rho_ias(1,1,1,ik),1,v_ias(1,1,1),1)
+        !!$$if (iproc==0) call yaml_comment('vcopy done')
         !Partial potential term for each partial density
 !        if (iproc == 0 .and. verbose > 1) then
 !           write(*,*)'Poisson Solver application: orbitals (virt,occ):',iorba,iorbi
 !        end if
+
+        !!! For large hgrids, the code freezes during the H_potential
         call H_potential('D',pkernel,v_ias(1,1,1),rho_ias,ehart,0.0_dp,.false.,&
              quiet='YES')
 !        if (iproc ==0) write(*,*) 'ehart',ehart*2.0_gp
      end if
+     !!$$if (iproc==0) call yaml_comment('Hartree part computed for imulti')
 
      !After the Poisson Solver we can calculate the lower triangular part of K (and Kaux if nspin=1)
      jk=0
      loop_j: do jmulti=1,imulti
+        !!$$if (iproc==0) call yaml_comment(trim(yaml_toa(jmulti,fmt='(i4.4)')))
         !Calculate the orbital indexes for the second transition of the coupling matrix element.
         !We use the same multi index as above for the first transtion.
         jorbi=(jmulti-1)/orbsvirt%norb+1 !index of the occupied state
@@ -369,6 +378,9 @@ subroutine coupling_matrix_prelim(iproc,nproc,geocode,tddft_approach,nspin,lr,or
 
      end do loop_j
   end do loop_i
+  !!$$if (iproc==0) call yaml_sequence_close()
+
+  !!$$if (iproc==0) call yaml_comment('Computation of all the different coupling matrix elements done')
 
   !If more than one processor, then perform the MPI_all_reduce of K (and of Kaux if nspin=1) and of dipoles.
   if (nproc > 1) then
