@@ -1165,7 +1165,7 @@ DIIShistory:
  Pulay forces (Ha/Bohr): 7.8e-09
  Max deviation from unity in reorthonormalize_coeff: 1.1e-9
  Energy (Hartree): 1.3e-10
- Force Norm (Hartree/Bohr): 1.14e-10
+ Force Norm (Hartree/Bohr): 1.79e-10
 
 sparsity:
  Total charge: 1.1e-10
@@ -1317,7 +1317,7 @@ O2spin_diag:
  multiplicator for the confinement: 1.4e-6
  D: 1.1e-9
  kappa: 1.1e-4
- Force Norm (Hartree/Bohr): 1.91e-8
+ Force Norm (Hartree/Bohr): 3.09e-8
 
 O2spin_foe:
  Atomic Forces (Ha/Bohr): 1.5e-8

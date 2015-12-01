@@ -595,6 +595,212 @@ subroutine input_wf_cp2k(iproc, nproc, nspin, atoms, rxyz, Lzd, &
 
 END SUBROUTINE input_wf_cp2k
 
+subroutine input_wf_memory_history_2(iproc,nproc,orbs,atoms,comms,wfn_history,istep_history, &
+                                     oldpsis,rxyz,Lzd,psi)
+use module_base
+use module_types
+use yaml_output
+use bigdft_run
+use module_interfaces
+use communications, only: transpose_v
+use communications_base, only: comms_cubic
+!TODO wfn_extap could be a general wfn extrapolation utility routine
+use wfn_extrap
+
+  implicit none
+  integer, intent(in) :: iproc,nproc,wfn_history
+  type(atoms_data), intent(in) :: atoms
+  real(gp), dimension(3, atoms%astruct%nat), intent(in) :: rxyz
+  type(local_zone_descriptors),intent(in) :: lzd
+  type(comms_cubic), intent(in) :: comms
+  type(orbitals_data), intent(in) :: orbs
+  type(old_wavefunction), dimension(0:wfn_history+1), intent(inout) :: oldpsis
+  integer, intent(inout) :: istep_history
+  real(wp), dimension(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f,orbs%nspinor*orbs%norbp), intent(out) :: psi
+
+  !local variables
+  character(len=*), parameter :: subname='input_wf_memory_history'
+  logical, parameter :: debug_flag=.true.
+  integer :: istep,jstep,nvctr
+  real(wp), dimension(:,:), allocatable :: psi_istep, psi_nstep
+  integer, save :: icall=0
+
+  real(wp), dimension(0:5) :: cc
+!  real(wp), dimension(3), parameter :: c2 = (/0.5_wp,-2.0_wp,2.5_wp/) 
+!  real(wp), dimension(5), parameter :: c4 = (/0.07142857_wp,-0.57142857_wp,1.92857143_wp,-3.42857143_wp,3.00000000_wp/)
+
+  integer, dimension(:,:), allocatable :: ndim_ovrlp
+  real(wp), dimension(:), allocatable :: ovrlp
+  integer,dimension(:),allocatable:: norbArr
+  
+  integer :: nspin,ispin
+  integer :: ii
+
+  call f_routine(id='input_wf_memory_history_2')
+
+  if(iproc==0 .and. debug_flag)print *, "NNdbg: ***** history is called *****"
+
+  !  print *, "NNdbg: Est. SIZE of Psi: =",(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, " iproc=", iproc
+  !  print *, "NNdbg: Act. SIZE of Psi: =",size(psi), " iproc=",iproc
+
+  !set the coefficients
+  !  if(iproc==0)print *, "NNdbg: icall = ", icall
+
+  istep=modulo(istep_history,wfn_history+1)
+
+  call extrapolation_coeff(istep,wfn_history,cc)
+
+  !check if history has not yet been filled
+  !  if (istep_history < wfn_history) then
+  !dbg
+  !     if(iproc==0)print *, "NNdbg: istep_history:", istep_history, " < wfn_history:", wfn_history
+  !dbg
+  call old_wavefunction_set(oldpsis(istep),&
+       atoms%astruct%nat,orbs%norbp*orbs%nspinor,&
+       oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
+       oldpsis(wfn_history+1)%psi)
+  !dbg
+  if(iproc==0 .and. debug_flag)print *, "NNdbg: oldpsis(",wfn_history+1,") to oldpsis(",istep,")"
+  if(iproc==0 .and. debug_flag)print *, "NNdbg: ....checking","oldpsis(",istep,")"
+  !     call myoverlap(iproc,nproc,oldpsis(istep_history)%Lzd,orbs,comms,oldpsis(istep_history)%psi, &
+  !                                                                      oldpsis(istep_history)%psi)
+  !dbg 
+  !check if it is the first restart
+  if (istep_history == 0) then
+     if(iproc==0 .and. debug_flag)print *, "NNdbg: istep_history ==0; copying oldpsis(1..to wfn_history+1)"
+     do istep=1,wfn_history
+        if(iproc==0)print *,    ".... ..istep=", istep,istep_history,"wfn_history =",wfn_history
+        call old_wavefunction_set(oldpsis(istep),&
+             atoms%astruct%nat,orbs%norbp*orbs%nspinor,&
+             oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
+             oldpsis(wfn_history+1)%psi)
+        !                if(iproc==0)print *, "NNdbg: ....checking","oldpsis(",istep_history,")"
+        !                call myoverlap(iproc,nproc,oldpsis(istep)%Lzd,orbs,comms,oldpsis(istep)%psi, &
+        !                                                                         oldpsis(istep)%psi)
+     end do
+  end if
+  !  end if
+
+  psi_nstep = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f, orbs%nspinor*orbs%norbp /),id='psi_nstep')
+
+  !first reformat the previous SCF step
+  istep=wfn_history+1
+  if(iproc.eq.0 .and. debug_flag)print *, "NNdbg, Reformatting the prev. SCF wfn(wfn_history+1)"
+  call reformatmywaves(iproc,orbs,atoms,&
+       oldpsis(istep)%Lzd%hgrids(1),oldpsis(istep)%Lzd%hgrids(2),oldpsis(istep)%Lzd%hgrids(3),&
+       oldpsis(istep)%Lzd%Glr%d%n1,oldpsis(istep)%Lzd%Glr%d%n2,oldpsis(istep)%Lzd%Glr%d%n3,&
+       oldpsis(istep)%rxyz,oldpsis(istep)%Lzd%Glr%wfd,&
+       oldpsis(istep)%psi,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+       Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,rxyz,Lzd%Glr%wfd,psi_nstep(1,1))
+
+  !       if(iproc==0)print *, "NNdbg: ....checking"," reformatted prev. SCF wfn"
+  !       call myoverlap(iproc,nproc,oldpsis(istep)%Lzd,orbs,comms,psi_nstep(1,1), &
+  !                                                                 psi_nstep(1,1))
+
+  !  do ii=1,5
+  !    if(iproc==0)print *, "NNdbg. psi_nstep(",ii,") =",psi_nstep(ii,1)
+  !  end do
+
+  nvctr=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+  !  if(psi_nstep(1,1).gt.0._wp)call vscal(nvctr,-1.0_wp,psi_nstep(1,1),1)
+
+  if(istep_history<wfn_history)then
+
+     if(iproc==0)print *, "NNdbg: ....istep_history <= wfn_history; doing vcopy"
+
+     nvctr=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+
+     !NNdbg the following can be avoided (as psi is already psi_nstep)
+     call vcopy(nvctr,psi_nstep(1,1),1,psi(1,1),1)
+
+     if (iproc==0)call yaml_map('Previous SCF wfn copied',.true.)   
+
+     !     call myoverlap(iproc,nproc,Lzd,orbs,comms,psi(1,1), &
+     !                                                  psi(1,1))
+     call exit_routine()
+     return
+  end if
+
+  !Setup the overlap matrix
+  nspin=1
+  if(orbs%norbd>0)nspin=2
+  ndim_ovrlp = f_malloc((/ 1.to.nspin, 0.to.orbs%nkpts /),id='ndim_ovrlp')
+  call dimension_ovrlp(nspin,orbs,ndim_ovrlp)
+  norbArr = f_malloc(nspin,id='norbArr')
+  do ispin=1,nspin
+     if(ispin==1) norbArr(ispin)=orbs%norbu
+     if(ispin==2) norbArr(ispin)=orbs%norbd
+  end do
+  ! Allocate overlap matrix
+  ovrlp = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='ovrlp')
+
+
+  !number of componenets
+  nvctr=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
+
+  !wavefunction of history jstep
+  psi_istep = f_malloc((/ Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f, orbs%nspinor*orbs%norbp /),id='psi_tmp')
+
+  !put to zero the wavefunction
+  call f_zero(psi)
+  !
+  !  call myoverlap(iproc,nproc,lzd,orbs,comms,psi_tmp,psi_tmp)
+  !
+  do jstep=0,wfn_history
+     call reformatmywaves(iproc,orbs,atoms,&
+          oldpsis(jstep)%Lzd%hgrids(1),oldpsis(jstep)%Lzd%hgrids(2),oldpsis(jstep)%Lzd%hgrids(3),&
+          oldpsis(jstep)%Lzd%Glr%d%n1,oldpsis(jstep)%Lzd%Glr%d%n2,oldpsis(jstep)%Lzd%Glr%d%n3,&
+          oldpsis(jstep)%rxyz,oldpsis(jstep)%Lzd%Glr%wfd,&
+          oldpsis(jstep)%psi,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
+          Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,rxyz,Lzd%Glr%wfd,psi_istep(1,1))
+     if(iproc.eq.0 .and. debug_flag)print *, "NNdbg reformat is done for oldpsis(",jstep,")"
+     !dbg
+     !     if(iproc.eq.0)print *, "NNdbg checking the reformatted oldpsis(",jstep,")"
+     !     call myoverlap(iproc,nproc,Lzd,orbs,comms,psi_istep(1,1),psi_istep(1,1))
+     !dbg
+
+     call myoverlap2(iproc,nproc,lzd,orbs,comms,nspin,norbArr,ndim_ovrlp,psi_istep(1,1),psi_nstep(1,1),ovrlp) 
+     if(iproc.eq.0 .and. debug_flag)print *, "NNdbg; overlap is computed for <Psi(",jstep,")|Psi(",wfn_history+1,")>"
+
+     !if(orbs%norbp>0)
+     if(iproc.eq.0)print *, "Considering Psi(",jstep,") ; cc(",jstep,")=",cc(jstep)
+     call rotate_wavefunction(orbs,comms,lzd,nproc,iproc,nspin,norbArr, &
+          ndim_ovrlp,ovrlp,cc(jstep),psi_istep(1,1),psi(1,1))
+     !     if(iproc.eq.0)print *, "Overlap of Psi (partial) for oldpsis(:",jstep,")"
+     !     call myoverlap(iproc,nproc,Lzd,orbs,comms,psi(1,1),psi(1,1))
+     if(iproc.eq.0 .and. debug_flag)print *, "NNdbg wavefunction Psi(",jstep,") is rotated and added to Psi"
+  end do
+
+  if(iproc.eq.0 .and. debug_flag)print *, "NNdbg Normalizing the final orbital"
+  call normalize_wavefunction(orbs,comms,lzd,nproc,iproc,psi(1,1))
+
+  !  if(iproc.eq.0)print *, "NNdbg Checking the final orbital"
+  !  call myoverlap(iproc,nproc,Lzd,orbs,comms,psi(1,1),psi(1,1))
+
+  call f_free(psi_istep)
+
+  call f_free(ndim_ovrlp)
+  call f_free(norbArr)
+  call f_free(ovrlp)
+
+  call exit_routine()
+
+contains
+
+  subroutine exit_routine()
+    implicit none
+
+    call f_free(psi_nstep)
+
+    !increase the iteration step
+    istep_history=istep_history+1
+    if (iproc==0)call yaml_map('Initial Guess from Wfn Extrapol.',.true.)   
+
+    call f_release_routine()
+  end subroutine exit_routine
+
+end subroutine input_wf_memory_history_2
+
 
 subroutine input_wf_memory_history(iproc,orbs,atoms,wfn_history,istep_history,oldpsis,rxyz,Lzd,psi)
   use module_base
@@ -2462,7 +2668,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      perx=(atoms%astruct%geocode /= 'F')
      pery=(atoms%astruct%geocode == 'P')
      perz=(atoms%astruct%geocode /= 'F')
- 
+
      tx=0.0_gp
      ty=0.0_gp
      tz=0.0_gp
@@ -2475,7 +2681,8 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      displ=sqrt(tx+ty+tz)
  
      if(displ.eq.0d0 .or. in%inguess_geopt == 0) then
-        if (in%wfn_history <= 2) then
+!         if (in%wfn_history <= 2) then
+         if (in%wfn_history < 1) then
            call timing(iproc,'restart_wvl   ','ON')
            call input_wf_memory(iproc, atoms, &
                 rxyz_old, lzd_old%hgrids(1), lzd_old%hgrids(2), lzd_old%hgrids(3), &
@@ -2483,22 +2690,23 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
                 rxyz,KSwfn%Lzd, KSwfn%psi, KSwfn%orbs)
               call timing(iproc,'restart_wvl   ','OF')
         else
-           call input_wf_memory_history(iproc,KSwfn%orbs,atoms,in%wfn_history,&
-                Kswfn%istep_history,KSwfn%oldpsis,rxyz,Kswfn%Lzd,KSwfn%psi)
-        end if
+!            call input_wf_memory_history(iproc,KSwfn%orbs,atoms,in%wfn_history,&
+!                 Kswfn%istep_history,KSwfn%oldpsis,rxyz,Kswfn%Lzd,KSwfn%psi)
+            call input_wf_memory_history_2(iproc,nproc,KSwfn%orbs,atoms,KSwfn%comms,in%wfn_history,&
+                 Kswfn%istep_history,KSwfn%oldpsis,rxyz,Kswfn%Lzd,KSwfn%psi)
+         end if
      else if(in%inguess_geopt == 1) then
-        call timing(iproc,'restart_rsp   ','ON')
-        call input_wf_memory_new(nproc, iproc, atoms, &
-             rxyz_old, lzd_old%hgrids(1), lzd_old%hgrids(2), lzd_old%hgrids(3), &
-             psi_old,lzd_old, &
-             rxyz,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
-        call timing(iproc,'restart_rsp   ','OF')
+          call timing(iproc,'restart_rsp   ','ON')
+          call input_wf_memory_new(nproc, iproc, atoms, &
+               rxyz_old, lzd_old%hgrids(1), lzd_old%hgrids(2), lzd_old%hgrids(3), &
+               psi_old,lzd_old, &
+               rxyz,KSwfn%psi, KSwfn%orbs,KSwfn%lzd)
+          call timing(iproc,'restart_rsp   ','OF')
      else
         !stop 'Wrong value of inguess_geopt in input.perf'
         call f_err_throw('Wrong value of inguess_geopt in input.perf', &
              err_name='BIGDFT_RUNTIME_ERROR')
      end if
-
      if (in%iscf > SCF_KIND_DIRECT_MINIMIZATION) &
            call evaltoocc(iproc,nproc,.false.,in%Tel,KSwfn%orbs,in%occopt)
 

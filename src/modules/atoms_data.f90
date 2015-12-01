@@ -926,7 +926,8 @@ contains
 
     !> Write an atomic file
     !! Yaml output included
-    subroutine astruct_dump_to_file(astruct,filename,comment,energy,rxyz,forces,fmt,unit)
+    subroutine astruct_dump_to_file(astruct,filename,comment,energy,rxyz,forces,&
+         fmt,unit,position)
       use module_base
       use yaml_output
       use yaml_strings, only: f_strcpy
@@ -943,9 +944,12 @@ contains
       integer, intent(in), optional :: unit
       !> force the format of the output
       !! the default is otherwise used as defined in inputfile_format
-      character(len=256), intent(in), optional :: fmt
+      character(len=*), intent(in), optional :: fmt
+      !> position of the file at opening. Default is "rewind"
+      character(len=*), intent(in), optional :: position
 
       !local variables
+      character(len=6) :: pos
       character(len = 15) :: arFile
       integer :: iunit
       character(len = 1024) :: fname
@@ -965,6 +969,8 @@ contains
       if (present(fmt)) call f_strcpy(src=fmt,dest=formt)
       iunit=f_get_free_unit(9)
       if (present(unit)) iunit=unit
+      pos='rewind'
+      if (present(position)) call f_strcpy(src=position,dest=pos)
 
       if (trim(filename) == "stdout") then
          iunit = 6
@@ -973,10 +979,10 @@ contains
          write(fname,"(A)") trim(filename)//'.'//trim(formt)
          if (formt == 'yaml') then
             call yaml_set_stream(unit = iunit, filename = trim(fname), &
-                 & record_length = 92, tabbing = 0, setdefault = .false.)
+                 & record_length = 92, tabbing = 0, setdefault = .false.,position=pos)
          else
             call yaml_set_stream(unit = iunit, filename = trim(fname), &
-                 & record_length = 4096, tabbing = 0, setdefault = .false.)
+                 & record_length = 4096, tabbing = 0, setdefault = .false.,position=pos)
          end if
       end if
 
