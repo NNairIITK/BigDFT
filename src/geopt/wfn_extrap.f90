@@ -246,7 +246,7 @@ real(wp), dimension((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orb
 real(wp), dimension(:) , pointer :: phit,psit,work_array
 
 !real(gp) :: rxyz(3,atoms%astruct%nat)
-
+logical, parameter :: debug_flag=.false.
 integer, save :: icall = 0
 integer :: ispin, nspin, jwfn, nsize
 !real(gp) :: c(nwfn)
@@ -289,16 +289,16 @@ call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,phi(1),&
 ! Allocate overlap matrix
 ovrlp = f_malloc(ndim_ovrlp(nspin, orbs%nkpts),id='ovrlp')
 
-if(iproc.eq.0)print *, "!!!!NNdbg: calling my getoverlap!!!!",iproc
+if(iproc.eq.0 .and. debug_flag)print *, "!!!!NNdbg: calling my getoverlap!!!!",iproc
 
 call Overlap_PhiPsi(iproc,nproc,nspin,norbArr(1),orbs,comms,&
      phit,psit,ndim_ovrlp,ovrlp,norbArr,1,1)
 
-if(iproc.eq.0)then
+if(iproc.eq.0 .and. debug_flag)then
   print *, "!!!!NNdbg: my overlap", ovrlp(1:ndim_ovrlp(nspin,orbs%nkpts))
 end if
 
-if(iproc.eq.0)print *, "done getoverlap",iproc
+if(iproc.eq.0 .and. debug_flag)print *, "done getoverlap",iproc
 
 
 !deallocate(psi_istep)
@@ -332,6 +332,7 @@ subroutine Overlap_PsiPsi(iproc,nproc,nspin,norbIn,orbs,comms,&
   integer,dimension(nspin),intent(in):: norbTot
 
   ! Local variables
+  logical, parameter :: debug_flag=.false.
   integer:: ispsi,ikptp,ikpt,ispin,nspinor,ncomp,norbs,nvctrp,norb
 
 
@@ -405,7 +406,7 @@ subroutine Overlap_PsiPsi(iproc,nproc,nspin,norbIn,orbs,comms,&
      call mpiallred(ovrlp,MPI_SUM,comm=bigdft_mpi%mpi_comm)
   end if
 !NNdbg
-  if(iproc.eq.0)print *, "overlap-inside", ovrlp(1:ndim_ovrlp(nspin,orbs%nkpts))
+  if(iproc.eq.0  .and. debug_flag)print *, "overlap-inside", ovrlp(1:ndim_ovrlp(nspin,orbs%nkpts))
 !  print *, "NNdbg: getOverlap done", iproc
 !NNdbg
 
@@ -513,6 +514,8 @@ real(wp), dimension((Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orb
 integer :: nspin
 integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
 real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)),intent(out):: ovrlp
+!local variables
+logical, parameter :: debug_flag=.false.
 integer,dimension(orbs%nspin)        :: norbArr
 
 real(wp), dimension(:) , pointer :: psit,phit,work_array
@@ -534,7 +537,7 @@ call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,phi(1),&
 call Overlap_PhiPsi(iproc,nproc,nspin,norbArr(1),orbs,comms,&
      phit,psit,ndim_ovrlp,ovrlp,norbArr,1,1)
 
-if(iproc==0)then
+if(iproc==0 .and. debug_flag)then
   print *, "!!!!NNdbg: overlap", ovrlp(1:ndim_ovrlp(nspin,orbs%nkpts))
 end if
 

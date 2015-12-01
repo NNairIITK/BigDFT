@@ -620,6 +620,7 @@ use wfn_extrap
 
   !local variables
   character(len=*), parameter :: subname='input_wf_memory_history'
+  logical, parameter :: debug_flag=.false.
   integer :: istep,jstep,nvctr
   real(wp), dimension(:,:), allocatable :: psi_istep, psi_nstep
   integer, save :: icall=0
@@ -635,7 +636,7 @@ use wfn_extrap
   integer :: nspin,ispin
   integer :: ii
 
-  if(iproc==0)print *, "NNdbg: ***** history is called *****"
+  if(iproc==0 .and. debug_flag)print *, "NNdbg: ***** history is called *****"
 
 !  print *, "NNdbg: Est. SIZE of Psi: =",(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp, " iproc=", iproc
 !  print *, "NNdbg: Act. SIZE of Psi: =",size(psi), " iproc=",iproc
@@ -657,14 +658,14 @@ use wfn_extrap
           oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
           oldpsis(wfn_history+1)%psi)
 !dbg
-     if(iproc==0)print *, "NNdbg: oldpsis(",wfn_history+1,") to oldpsis(",istep,")"
-     if(iproc==0)print *, "NNdbg: ....checking","oldpsis(",istep,")"
+     if(iproc==0 .and. debug_flag)print *, "NNdbg: oldpsis(",wfn_history+1,") to oldpsis(",istep,")"
+     if(iproc==0 .and. debug_flag)print *, "NNdbg: ....checking","oldpsis(",istep,")"
 !     call myoverlap(iproc,nproc,oldpsis(istep_history)%Lzd,orbs,comms,oldpsis(istep_history)%psi, &
 !                                                                      oldpsis(istep_history)%psi)
 !dbg 
      !check if it is the first restart
      if (istep_history == 0) then
-        if(iproc==0)print *, "NNdbg: istep_history ==0; copying oldpsis(1..to wfn_history+1)"
+        if(iproc==0 .and. debug_flag)print *, "NNdbg: istep_history ==0; copying oldpsis(1..to wfn_history+1)"
         do istep=1,wfn_history
                if(iproc==0)print *,    ".... ..istep=", istep,istep_history,"wfn_history =",wfn_history
                 call old_wavefunction_set(oldpsis(istep),&
@@ -752,14 +753,14 @@ call f_zero(psi)
           oldpsis(jstep)%rxyz,oldpsis(jstep)%Lzd%Glr%wfd,&
           oldpsis(jstep)%psi,Lzd%hgrids(1),Lzd%hgrids(2),Lzd%hgrids(3),&
           Lzd%Glr%d%n1,Lzd%Glr%d%n2,Lzd%Glr%d%n3,rxyz,Lzd%Glr%wfd,psi_istep(1,1))
-     if(iproc.eq.0)print *, "NNdbg reformat is done for oldpsis(",jstep,")"
+     if(iproc.eq.0 .and. debug_flag)print *, "NNdbg reformat is done for oldpsis(",jstep,")"
 !dbg
 !     if(iproc.eq.0)print *, "NNdbg checking the reformatted oldpsis(",jstep,")"
 !     call myoverlap(iproc,nproc,Lzd,orbs,comms,psi_istep(1,1),psi_istep(1,1))
 !dbg
 
      call myoverlap2(iproc,nproc,lzd,orbs,comms,nspin,norbArr,ndim_ovrlp,psi_istep(1,1),psi_nstep(1,1),ovrlp) 
-     if(iproc.eq.0)print *, "NNdbg; overlap is computed for <Psi(",jstep,")|Psi(",wfn_history+1,")>"
+     if(iproc.eq.0 .and. debug_flag)print *, "NNdbg; overlap is computed for <Psi(",jstep,")|Psi(",wfn_history+1,")>"
 
   !if(orbs%norbp>0)
      if(iproc.eq.0)print *, "Considering Psi(",jstep,") ; cc(",jstep,")=",cc(jstep)
@@ -767,10 +768,10 @@ call f_zero(psi)
                                               ndim_ovrlp,ovrlp,cc(jstep),psi_istep(1,1),psi(1,1))
 !     if(iproc.eq.0)print *, "Overlap of Psi (partial) for oldpsis(:",jstep,")"
 !     call myoverlap(iproc,nproc,Lzd,orbs,comms,psi(1,1),psi(1,1))
-     if(iproc.eq.0)print *, "NNdbg wavefunction Psi(",jstep,") is rotated and added to Psi"
+     if(iproc.eq.0 .and. debug_flag)print *, "NNdbg wavefunction Psi(",jstep,") is rotated and added to Psi"
  end do
 
-  if(iproc.eq.0)print *, "NNdbg Normalizing the final orbital"
+ if(iproc.eq.0 .and. debug_flag)print *, "NNdbg Normalizing the final orbital"
   call normalize_wavefunction(orbs,comms,lzd,nproc,iproc,psi(1,1))
 
 !  if(iproc.eq.0)print *, "NNdbg Checking the final orbital"
