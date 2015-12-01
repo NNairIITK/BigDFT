@@ -7,13 +7,17 @@
    ixc: PBE
    gnrm_cv: accurate
    itermax: 2
-   solvent: sccs
+#   solvent: sccs
+ psolver:
+   environment:
+     cavity: sccs
+     itermax: 5
  perf:
    projrad: 8.000
    rho_commun: MIX
    verbosity: 1
    psp_onfly: No
-   gps_method: PCG
+#   gps_method: PCG
  posinp:
    units: angstroem
    positions:

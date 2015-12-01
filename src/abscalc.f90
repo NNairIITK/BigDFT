@@ -51,10 +51,11 @@ program abscalc_main
    do iconfig=0,bigdft_nruns(options)-1!abs(nconfig)
       run => options // 'BigDFT' // iconfig
       !if (modulo(iconfig-1,ngroups)==igroup) then
+!call yaml_map('Run file',run)
       call bigdft_get_run_properties(run,run_id=run_id)
       !run_id =  run // 'name'
          !Welcome screen
-         call run_objects_init(runObj,run)! arr_radical(iconfig),arr_posinp(iconfig))
+         call run_objects_init(runObj,run)
 
          call f_file_exists(trim(run_id)//".abscalc",exists)
          !inquire(file=trim(run_id)//".abscalc",exist=exists)
@@ -491,9 +492,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    rho_ion = f_malloc(1,id='rho_ion')
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-   ndegree_ip=16 !default value
-   pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
-        atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
+   !ndegree_ip=16 !default value
+   !pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
+   !     atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
+   pkernel=pkernel_init(iproc,nproc,in%PS_dict,&
+        atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids)
+
    call pkernel_set(pkernel,verbose=(verbose > 1))
    !call createKernel(iproc,nproc,atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&
    !     (verbose > 1))

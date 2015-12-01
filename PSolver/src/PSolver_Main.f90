@@ -10,22 +10,22 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-!!!>!> Calculate the Hartree potential by solving the Poisson equation 
-!!!>!! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$@f
-!!!>!! from a given @f$\rho@f$, 
-!!!>!! for different boundary conditions an for different data distributions.
-!!!>!! Following the boundary conditions, it applies the Poisson Kernel previously calculated.
-!!!>!!    
-!!!>!! @warning
-!!!>!!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
-!!!>!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
-!!!>!!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
-!!!>!!    Moreover, for the cases with the exchange and correlation the density must be initialised
-!!!>!!    to 10^-20 and not to zero.
-!!!>!!
-!!!>!! @todo
-!!!>!!    Wire boundary condition is missing
-subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
+!> Calculate the Hartree potential by solving the Poisson equation 
+!! @f$\nabla^2 V(x,y,z)=-4 \pi \rho(x,y,z)$@f
+!! from a given @f$\rho@f$, 
+!! for different boundary conditions an for different data distributions.
+!! Following the boundary conditions, it applies the Poisson Kernel previously calculated.
+!!    
+!! @warning
+!!    The dimensions of the arrays must be compatible with geocode, datacode, nproc, 
+!!    ixc and iproc. Since the arguments of these routines are indicated with the *, it
+!!    is IMPERATIVE to use the PS_dim4allocation routine for calculation arrays sizes.
+!!    Moreover, for the cases with the exchange and correlation the density must be initialised
+!!    to 10^-20 and not to zero.
+!!
+!! @todo
+!!    Wire boundary condition is missing
+subroutine Electrostatic_Solver(kernel,rhov,energies,pot_ion,rho_ion)
   use FDder
   implicit none
   !> kernel of the coulomb operator, it also contains metadata about the parallelisation scheme
@@ -36,10 +36,8 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
   !! the case of rho-dependent cavity when the suitable variable of the options datatype is set. 
   !!The latter correction term is useful to define a KS DFT potential for the definition of the Hamiltonian out of 
   !!the Electrostatic environment defined from rho
-  !! the last dimension is either kernel%ndims(3) or kernel%grid%n3p, depending if options%datacode is 'G' or 'D' respectively
+  !! the last dimension is either kernel%ndims(3) or kernel%grid%n3p, depending if kernel%opt%datacode is 'G' or 'D' respectively
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),*), intent(inout) :: rhov
-  !>Datatype controlling the operations of the solver.
-  type(PSolver_options), intent(in) :: options
   !> Datatype containing the energies and th stress tensor.
   !! the components are filled accordin to the coulomb operator set ans the options given to the solver.
   type(PSolver_energies), intent(out) :: energies
@@ -64,7 +62,7 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
 
    energies=PSolver_energies_null()
 
-   select case(options%datacode)
+   select case(kernel%opt%datacode)
    case('G')
       !starting address of rhopot in the case of global i/o
       i3start=kernel%grid%istart*kernel%ndims(1)*kernel%ndims(2)+1
@@ -81,7 +79,7 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
       i23s=1
       i3s=1
    case default
-      call f_err_throw('datacode ("'//options%datacode//&
+      call f_err_throw('datacode ("'//kernel%opt%datacode//&
            '") not admitted in PSolver')
    end select
 
@@ -98,7 +96,7 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
 
 
 
-  select case(options%verbosity_level)
+  select case(kernel%opt%verbosity_level)
   case(0)
      !call f_strcpy(quiet,'YES')
      wrtmsg=.false.
@@ -112,10 +110,10 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
   !decide what to do 
   sum_pi=present(pot_ion) .and. n23 > 0
   sum_ri=present(rho_ion) .and. n23 > 0
-  build_c=(kernel%method .hasattr. PS_SCCS_ENUM) .and. options%update_cavity 
+  build_c=(kernel%method .hasattr. PS_SCCS_ENUM) .and. kernel%opt%update_cavity 
   is_vextra=sum_pi .or. build_c
-  plot_cavity=options%cavity_info .and. (kernel%method /= PS_VAC_ENUM)
-  cudasolver= (kernel%igpu==1 .and. .not. options%calculate_strten)
+  plot_cavity=kernel%opt%cavity_info .and. (kernel%method /= PS_VAC_ENUM)
+  cudasolver= (kernel%igpu==1 .and. .not. kernel%opt%calculate_strten)
 
   !check of the input variables, if needed
 !!$  if (kernel%method /= PS_VAC_ENUM .and. .not. present(rho_ion)) then
@@ -161,7 +159,7 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
      depsdrho=f_malloc([n1,n23],id='depsdrho')
      dsurfdrho=f_malloc([n1,n23],id='dsurfdrho')
      !useless for datacode= G 
-     if (options%datacode == 'D') then
+     if (kernel%opt%datacode == 'D') then
         call PS_gather(rhov(1,1,i3s),kernel,dest=rhopot_full)
      else
         call f_memcpy(n=product(kernel%ndims),src=rhov(1,1,1),dest=rhopot_full(1,1,1))
@@ -202,17 +200,17 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
   end if
   
   !the allocation of the rho array is maybe not needed
-  call PS_allocate_lowlevel_workarrays(cudasolver,options%use_input_guess,&
+  call PS_allocate_lowlevel_workarrays(cudasolver,kernel%opt%use_input_guess,&
        rhov(1,1,i3s),kernel)
 
   !call the Generalized Poisson Solver
-  call Parallel_GPS(kernel,cudasolver,options%potential_integral,energies%strten,&
-       wrtmsg,rhov(1,1,i3s),options%use_input_guess)
+  call Parallel_GPS(kernel,cudasolver,kernel%opt%potential_integral,energies%strten,&
+       wrtmsg,rhov(1,1,i3s),kernel%opt%use_input_guess)
 
   !this part is not important now, to be fixed later
 !!$  if (plot_cavity) then
 !!$     if (kernel%method == PS_PCG_ENUM) then
-!!$        if (options%datacode == 'D') then 
+!!$        if (kernel%opt%datacode == 'D') then 
 !!$           call PS_gather(src=rhov,dest=rhopot_full,kernel=kernel)
 !!$           call polarization_charge(kernel%geocode,kernel%ndims,kernel%hgrids,kernel%nord,&
 !!$                rhopot_full,pot,nabla_pot,rho_pol)
@@ -231,7 +229,7 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
 !!$  !--------------------------------------
 
 
-  call PS_release_lowlevel_workarrays(options%cavity_info,options%use_input_guess,&
+  call PS_release_lowlevel_workarrays(kernel%opt%cavity_info,kernel%opt%use_input_guess,&
        rhov(1,1,i3s),kernel)
 
   !the external ionic potential is referenced if present
@@ -269,7 +267,7 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
         call nabla_u_square(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
              kernel%w%pot,nabla2_rhopot,kernel%nord,kernel%hgrids)
         call add_Vextra(n1,n23,nabla2_rhopot(1,1,i3sd2),&
-             depsdrho,dsurfdrho,kernel%cavity,options%only_electrostatic,&
+             depsdrho,dsurfdrho,kernel%cavity,kernel%opt%only_electrostatic,&
              sum_pi,pot_ion_eff,vextra_eff)
        end if
 
@@ -290,7 +288,7 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
         call nabla_u_square(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
              rhopot_full,nabla2_rhopot,kernel%nord,kernel%hgrids)
         call add_Vextra(n1,n23,nabla2_rhopot(1,1,i3sd2),&
-             depsdrho,dsurfdrho,kernel%cavity,options%only_electrostatic,&
+             depsdrho,dsurfdrho,kernel%cavity,kernel%opt%only_electrostatic,&
              sum_pi,pot_ion_eff,vextra_eff)
         call f_free(rhopot_full)
      end if
@@ -312,10 +310,10 @@ subroutine Electrostatic_Solver(kernel,rhov,options,energies,pot_ion,rho_ion)
   end if
   nullify(vextra_eff,pot_ion_eff)
 
-  call release_PS_workarrays(kernel%keepzf,kernel%w,options%use_input_guess)
+  call release_PS_workarrays(kernel%keepzf,kernel%w,kernel%opt%use_input_guess)
   
   !gather the full result in the case of datacode = G
-  if (options%datacode == 'G') call PS_gather(rhov,kernel)
+  if (kernel%opt%datacode == 'G') call PS_gather(rhov,kernel)
 
   !evaluating the total ehartree + e_static if needed
   !also cavitation energy can be given
@@ -526,7 +524,7 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    !local variables
    character(len=*), parameter :: subname='H_potential'
    real(dp), parameter :: max_ratioex = 1.0e10_dp,eps0=78.36d0 !to be inserted in pkernel
-   logical :: wrtmsg,cudasolver
+   logical :: wrtmsg,cudasolver,global,verb
    integer :: m1,m2,m3,md1,md2,md3,n1,n2,n3,nd1,nd2,nd3
    integer :: ierr,ind,ind2,ind3,indp,ind2p,ind3p,i
    integer :: i1,i2,i3,j2,istart,iend,i3start,jend,jproc,i3xcsh
@@ -539,40 +537,36 @@ subroutine H_potential(datacode,kernel,rhopot,pot_ion,eh,offset,sumpion,&
    real(dp), dimension(:,:), allocatable :: rho,rhopol,q,p,z,depsdrho,dsurfdrho
    real(dp), dimension(:,:,:), allocatable :: work_full,pot_full
    !integer, dimension(:,:), allocatable :: gather_arr
-   type(PSolver_options) :: options
    type(PSolver_energies) :: energies
 
-   options=PSolver_options_null()
-   !use H_potential as a wrapper to electrostatic solver
-   options%datacode=datacode
-   options%calculate_strten=present(stress_tensor)
-   options%potential_integral=offset
-   options%cavity_info=.false.
-   options%update_cavity= kernel%method .hasattr. PS_SCCS_ENUM
-   options%only_electrostatic=.true.
-   options%use_input_guess=.false.
-   !override the verbosity for the cavity treatment for the moment
-   options%verbosity_level=1
+   kernel%opt=PSolver_options_null()
+   global=.false.
+   global=datacode=='G'
+   verb=.true.
    if (present(quiet)) then
       if ((quiet .eqv. 'yes') .and. kernel%method == PS_VAC_ENUM) &
-           options%verbosity_level=0
+           verb=.false.
    end if
 
+   call PS_set_options(kernel,global_data=global,&
+        calculate_strten=present(stress_tensor),verbose=verb,&
+        update_cavity=kernel%method .hasattr. PS_SCCS_ENUM,&
+        potential_integral=offset)
+   
    if (sumpion .and. present(rho_ion) .and. kernel%method /= PS_VAC_ENUM) then
-      call Electrostatic_Solver(kernel,rhopot,options,energies,pot_ion,rho_ion)
+      call Electrostatic_Solver(kernel,rhopot,energies,pot_ion,rho_ion)
    else if (sumpion) then
-      call Electrostatic_Solver(kernel,rhopot,options,energies,pot_ion)
+      call Electrostatic_Solver(kernel,rhopot,energies,pot_ion)
    else if (present(rho_ion)) then
-      call Electrostatic_Solver(kernel,rhopot,options,energies,rho_ion=rho_ion)
+      call Electrostatic_Solver(kernel,rhopot,energies,rho_ion=rho_ion)
    else
-      call Electrostatic_Solver(kernel,rhopot,options,energies)
+      call Electrostatic_Solver(kernel,rhopot,energies)
    end if
 
    !retrieve the energy and stress
    eh=energies%hartree+energies%eVextra
    if (present(stress_tensor)) stress_tensor=energies%strten
 
-return
 !!!>
 !!!>   call f_routine(id='H_potential')
 !!!>   

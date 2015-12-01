@@ -141,7 +141,7 @@ module io
     subroutine writemywaves_linear_fragments(iproc,filename,iformat,npsidim,Lzd,orbs,nelec,at,rxyz,psi,coeff,&
          dir_output,input_frag,ref_frags,linmat,methTransformOverlap,max_inversion_error,orthpar,num_neighbours)
       use module_types
-      use module_atoms, only: astruct_dump_to_file
+      use module_atoms, only: astruct_dump_to_file, deallocate_atomic_structure, nullify_atomic_structure
       use module_base
       use module_fragments
       use yaml_output
@@ -169,20 +169,23 @@ module io
       integer, intent(in) :: num_neighbours
       !Local variables
       integer :: ncount1,ncount_rate,ncount_max,iorb,ncount2,iorb_out,ispinor,ilr,shift,ii,iat
-      integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf,ityp
+      integer :: jorb,jlr,isforb,isfat,ifrag,ifrag_ref,iforb,iiorb,iorbp,iiat,unitwf,ityp,iatt
       integer :: onwhichatom_frag,ifr,iatf,ntmb_frag_and_env,nelec_frag,ifr_ref,ia,ja,io,jo,unitm,iatnf
-      integer, allocatable, dimension(:,:) :: map_frag_and_env, frag_map
-      integer, allocatable, dimension(:) :: map_not_frag, ipiv
+      integer :: num_neighbours_tot, num_after, num_before, jat
+      integer, allocatable, dimension(:,:) :: map_frag_and_env, frag_map   
+      integer, allocatable, dimension(:) :: map_not_frag, ipiv, num_neighbours_type, atype_not_frag
       real(kind=8), allocatable, dimension(:,:) :: rxyz_frag, coeff_frag, kernel_frag, rxyz_not_frag
       real(kind=8), pointer, dimension(:,:) :: rxyz_frag_and_env
       real(kind=8), allocatable, dimension(:) :: eval_frag, dist
       real(kind=8), dimension(3) :: frag_centre
       real(kind=4) :: tr0,tr1
       real(kind=8) :: tel
+      real(kind=8), parameter :: tol=1.d-3
       character(len=256) :: full_filename
       logical, allocatable, dimension(:) :: fragment_written
       logical :: binary
       logical :: on_frag, perx, pery, perz
+      !logical, parameter :: write_overlap=.true. ! want this to include rotation taking into account environment?  also do some check after restart? - not sure this is possible
 
       type(matrices),dimension(1) :: ovrlp_half_
       real(kind=8) :: mean_error, max_error
@@ -344,9 +347,15 @@ module io
             ! make use of frag_map(onwhichatom_frag,3)=iiat (atom frag -> atom full)
             if (num_neighbours/=0) then
                !to be improved with iterators
-               rxyz_frag = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_frag')          
+               rxyz_frag = f_malloc((/ 3,ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_frag') 
                rxyz_not_frag = f_malloc((/ 3,at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat /),id='rxyz_not_frag')
                map_not_frag = f_malloc(at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat,id='map_not_frag')
+
+               ! we actually want num_neighbours of each atom type (if possible)
+               ! figure out how many atoms that actually is by counting how many of each type are not in fragment
+               atype_not_frag=f_malloc0(at%astruct%ntypes,id='atype_not_frag')
+               num_neighbours_type=f_malloc(at%astruct%ntypes,id='num_neighbours_type')
+               
                iatnf=0
                do iat=1,at%astruct%nat
                   on_frag=.false.
@@ -361,8 +370,17 @@ module io
                      iatnf=iatnf+1
                      rxyz_not_frag(:,iatnf) = rxyz(:,iat)
                      map_not_frag(iatnf)=iat
+                     atype_not_frag(at%astruct%iatype(iat)) = atype_not_frag(at%astruct%iatype(iat)) + 1
                   end if
                end do
+
+               num_neighbours_tot=0
+               do ityp=1,at%astruct%ntypes
+                  num_neighbours_type(ityp) = min(atype_not_frag(ityp),num_neighbours)
+                  num_neighbours_tot = num_neighbours_tot + num_neighbours_type(ityp)
+                  !write(*,'(a,6(i3,2x))') 'type',ifrag,ifrag_ref,ityp,at%astruct%ntypes,num_neighbours_type(ityp),num_neighbours_tot
+               end do
+               call f_free(atype_not_frag)
 
                ! find distances from centre of fragment - not necessarily the best approach but fine if fragment has 1 atom (most likely case)
                frag_centre=frag_center(ref_frags(ifrag_ref)%astruct_frg%nat,rxyz_frag)
@@ -396,7 +414,8 @@ module io
                ! sort atoms into neighbour order
                call sort_positions(at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat,dist,ipiv)
 
-               rxyz_frag_and_env = f_malloc_ptr((/ 3,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours /),id='rxyz_frag_and_env')
+               rxyz_frag_and_env = f_malloc_ptr((/ 3,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours_tot /),&
+                    id='rxyz_frag_and_env')
 
                ! column 1 tmbs->tmbs, column 2 tmbs->atoms, column 3 atoms->atoms (as for frag_map)
                ! size orbs%norb is overkill but we don't know norb for env yet
@@ -408,14 +427,67 @@ module io
                   map_frag_and_env(iat,3) = frag_map(iat,3)
                end do
 
-               do iat=1,num_neighbours
-                  rxyz_frag_and_env(:,iat+ref_frags(ifrag_ref)%astruct_frg%nat) = rxyz_not_frag(:,ipiv(iat))
-                  map_frag_and_env(iat+ref_frags(ifrag_ref)%astruct_frg%nat,3) = map_not_frag(ipiv(iat))
+               iatf=0
+               do ityp=1,at%astruct%ntypes
+                  iatt=0
+                  if (num_neighbours_type(ityp)==0) cycle
+                  do iat=1,at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat
+                     if (at%astruct%iatype(map_not_frag(ipiv(iat)))/=ityp) cycle
+                     iatf=iatf+1
+                     iatt=iatt+1
+                     rxyz_frag_and_env(:,iatf+ref_frags(ifrag_ref)%astruct_frg%nat) = rxyz_not_frag(:,ipiv(iat))
+                     map_frag_and_env(iatf+ref_frags(ifrag_ref)%astruct_frg%nat,3) = map_not_frag(ipiv(iat))
+                     !print*,'iatt',ityp,iatt,num_neighbours_type(ityp),iatf,iat
+                     if (iatt==num_neighbours_type(ityp)) exit
+                  end do
+
+                  !never cut off a shell - either include all at that distance or none (depending on if at least at minimum?)
+                  ! - check distances of next point to see...
+                  num_after=0
+                  do jat=iat+1,at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat
+                     if (at%astruct%iatype(map_not_frag(ipiv(jat)))/=ityp) cycle
+                     if (abs(dist(ipiv(jat))-dist(ipiv(iat))) < tol) then
+                        num_after=num_after+1
+                     else
+                        exit
+                     end if
+                  end do
+                  if (num_after==0) cycle
+                  !also check before
+                  num_before=0
+                  do jat=iat-1,1,-1
+                     if (at%astruct%iatype(map_not_frag(ipiv(jat)))/=ityp) cycle
+                     if (abs(dist(ipiv(jat))-dist(ipiv(iat))) < tol) then
+                        num_before=num_before+1
+                     else
+                        exit
+                     end if
+                  end do
+                  !get rid of them (assuming we will still have at least one neighbour of this type left)
+                  if (num_neighbours_type(ityp)>num_before+1) then
+                     num_neighbours_type(ityp)=num_neighbours_type(ityp)-num_before-1
+                     num_neighbours_tot=num_neighbours_tot-num_before-1
+                     iatf=iatf-num_before-1
+                  !add neighbours until shell is complete
+                  else
+                     num_neighbours_type(ityp)=num_neighbours_type(ityp)+num_after
+                     num_neighbours_tot=num_neighbours_tot+num_after
+                     do jat=iat+1,at%astruct%nat-ref_frags(ifrag_ref)%astruct_frg%nat
+                        if (at%astruct%iatype(map_not_frag(ipiv(jat)))/=ityp) cycle
+                        iatf=iatf+1
+                        iatt=iatt+1
+                        rxyz_frag_and_env(:,iatf+ref_frags(ifrag_ref)%astruct_frg%nat) = rxyz_not_frag(:,ipiv(jat))
+                        map_frag_and_env(iatf+ref_frags(ifrag_ref)%astruct_frg%nat,3) = map_not_frag(ipiv(jat))
+                        if (iatt==num_neighbours_type(ityp)) exit 
+                     end do
+                  end if
                end do
+               if (iatf/=num_neighbours_tot) stop 'Error num_neighbours_tot/=iatf in write_linear_fragments'
+               call f_free(num_neighbours_type)
 
                ! fill in map for tmbs
                ntmb_frag_and_env = 0
-               do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours
+               do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours_tot
                   do iorb=1,orbs%norb
                      if (orbs%onwhichatom(iorb)==map_frag_and_env(iat,3)) then
                         ntmb_frag_and_env = ntmb_frag_and_env+1
@@ -425,14 +497,19 @@ module io
                   end do
                end do
 
-               ! put rxyz_env into astruct_env
-               if (ref_frags(ifrag_ref)%astruct_env%nat==0) then
+               ! put rxyz_env into astruct_env - first delete pre-existing structure
+               if (ref_frags(ifrag_ref)%astruct_env%nat/=0) then
+                  call deallocate_atomic_structure(ref_frags(ifrag_ref)%astruct_env)
+                  call nullify_atomic_structure(ref_frags(ifrag_ref)%astruct_env)
+               end if
+
+               !if (ref_frags(ifrag_ref)%astruct_env%nat==0) then
                   ! copy some stuff from astruct_frg
                   ref_frags(ifrag_ref)%astruct_env%inputfile_format = ref_frags(ifrag_ref)%astruct_frg%inputfile_format
                   ref_frags(ifrag_ref)%astruct_env%units = ref_frags(ifrag_ref)%astruct_frg%units
                   ref_frags(ifrag_ref)%astruct_env%geocode = ref_frags(ifrag_ref)%astruct_frg%geocode
 
-                  ref_frags(ifrag_ref)%astruct_env%nat = ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours
+                  ref_frags(ifrag_ref)%astruct_env%nat = ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours_tot
                   ! rxyz should be nullified already as nat_env=0
                   ref_frags(ifrag_ref)%astruct_env%rxyz => rxyz_frag_and_env
 
@@ -441,28 +518,33 @@ module io
                   ref_frags(ifrag_ref)%astruct_env%atomnames => at%astruct%atomnames
 
                   ! can't just point to full version due to atom reordering
-                  ref_frags(ifrag_ref)%astruct_env%iatype = f_malloc_ptr(ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours,&
+                  ref_frags(ifrag_ref)%astruct_env%iatype = f_malloc_ptr(ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours_tot,&
                        id='ref_frags(ifrag_ref)%astruct_env%iatype')
 
                   ! polarization etc is irrelevant
                   ref_frags(ifrag_ref)%astruct_env%input_polarization &
-                       = f_malloc0_ptr(ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours,&
+                       = f_malloc0_ptr(ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours_tot,&
                        id='ref_frags(ifrag_ref)%astruct_env%input_polarization')
-                  ref_frags(ifrag_ref)%astruct_env%ifrztyp = f_malloc0_ptr(ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours,&
+                  ref_frags(ifrag_ref)%astruct_env%ifrztyp = f_malloc0_ptr(ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours_tot,&
                        id='ref_frags(ifrag_ref)%astruct_env%ifrztyp')
 
-                  do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours
+                  do iat=1,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours_tot
                      ref_frags(ifrag_ref)%astruct_env%iatype(iat) = at%astruct%iatype(map_frag_and_env(iat,3))
                      ref_frags(ifrag_ref)%astruct_env%input_polarization(iat) = 100
                      !if (iproc==0) print*,iat,trim(ref_frags(ifrag_ref)%astruct_env%atomnames(ref_frags(ifrag_ref)%astruct_env%iatype(iat)))
                   end do
-               else
-                  stop 'Error: cannot output environment atoms if frag_env.xyz exists already'
-               end if
+               !else
+               !   stop 'Error: cannot output environment atoms if frag_env.xyz exists already'
+               !end if
 
                !full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_env'
                full_filename=trim(dir_output)//trim(input_frag%label(ifrag_ref))//'_env'
-               if (iproc==0) call astruct_dump_to_file(ref_frags(ifrag_ref)%astruct_env,full_filename,'# fragment environment')!,0.0d0,rxyz_not_frag,fmt,unit)
+               if (iproc==0) then
+                  !open file to make sure we overwrite rather than append
+                  open(99,file=trim(full_filename)//'.xyz',status='replace')
+                  call astruct_dump_to_file(ref_frags(ifrag_ref)%astruct_env,full_filename,'# fragment environment',unit=99)
+                  close(99)
+               end if
 
                ! deallocate/nullify here to be safe
                call f_free_ptr(ref_frags(ifrag_ref)%astruct_env%iatype)
@@ -642,7 +724,7 @@ module io
             call f_free(rxyz_frag)
 
             ! also output 'environment' kernel
-            if (num_neighbours/=0) then
+            if (num_neighbours_tot/=0) then
                ! FIX SPIN
                unitm=99
                binary=(iformat /= WF_FORMAT_PLAIN)
@@ -653,14 +735,14 @@ module io
     
                   if (.not. binary) then
                       write(unitm,'(a,3i10,a)') '#  ', ntmb_frag_and_env, &
-                          ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours, linmat%m%nspin, &
+                          ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours_tot, linmat%m%nspin, &
                           '    number of basis functions, number of atoms, number of spins'
                   else
                       write(unitm) '#  ', ntmb_frag_and_env, &
-                          ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours, linmat%m%nspin, &
+                          ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours_tot, linmat%m%nspin, &
                           '    number of basis functions, number of atoms, number of spins'
                   end if
-                  do ia=1,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours
+                  do ia=1,ref_frags(ifrag_ref)%astruct_frg%nat+num_neighbours_tot
                       if (.not. binary) then
                           write(unitm,'(a,3es24.16)') '#  ',rxyz_frag_and_env(1:3,ia)
                       else

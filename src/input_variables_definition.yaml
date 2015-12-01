@@ -33,8 +33,8 @@
       Values are in most cases between 0.3 and 0.6 bohr.
      RANGE: [0., 4.]
      default: [0.45, 0.45, 0.45]
-     fast: [0.55, 0.55, 0.55]
-     accurate: [0.30, 0.30, 0.30]
+     #fast: [0.55, 0.55, 0.55]
+     #accurate: [0.30, 0.30, 0.30]
    rmult:
      COMMENT: c(f)rmult*radii_cf(:,1(2))=coarse(fine) atom-based radius
      DESCRIPTION: Coarse and fine multiplier as [4.0, 8.0].
@@ -385,6 +385,22 @@
         care of during the Davidson iterations.
      RANGE: [0, 9999]
      default: 0
+   gnrm_cv_virt:
+     COMMENT: convergence criterion gradient for virtual orbitals
+     DESCRIPTION: |
+       Norm of the gradient for virtual orbitals convergence.
+       Calculates the results on the first nvirt orbitals
+     RANGE: [1.e-20, 1.]
+     default: 1.e-4
+     fast: 1.e-3
+     accurate: 1.e-5
+   itermax_virt:
+     COMMENT: Max. iterations of wfn. opt. steps for virtual orbitals
+     DESCRIPTION: |
+       Maximum number of gradient evaluations for a cycle of a wavefunction optimization for
+       virtual orbitals.
+     RANGE: [0, 10000]
+     default: 50
    disablesym:
      COMMENT: Disable the symmetry detection
      DESCRIPTION: |
@@ -393,14 +409,14 @@
        By default symmetries are used to update the density in periodic boundary condition calculations, and surface
        boundary conditions also. 
      default: No
-   solvent:
-     COMMENT: Electrostatic environment for Poisson Equation
-     DESCRIPTION: Define the method to set the dielectric function as a function of the position
-     EXCLUSIVE:
-       vacuum: No Solvent method, ordinary Poisson Equation
-       rigid:  Rigid (smoothed) cavity around the atoms, given as superposition of spheres
-       sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
-     default: vacuum
+#   solvent:
+#     COMMENT: Electrostatic environment for Poisson Equation
+#     DESCRIPTION: Define the method to set the dielectric function as a function of the position
+#     EXCLUSIVE:
+#       vacuum: No Solvent method, ordinary Poisson Equation
+#       rigid:  Rigid (smoothed) cavity around the atoms, given as superposition of spheres
+#       sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
+#     default: vacuum
    external_potential:
      COMMENT: Multipole moments of an external potential
      DESCRIPTION: Give the multipole moments up to quadrupoles
@@ -417,7 +433,7 @@
      COMMENT: K-point sampling method
      EXCLUSIVE:
        auto:   Based on kptrlen
-       MPGrid: Monkhorst-Pack
+       mpgrid: Monkhorst-Pack
        manual: Based on raw coordinates
      default:  manual
    kptrlen:
@@ -433,7 +449,7 @@
      CONDITION:
        MASTER_KEY: method
        WHEN:
-       - MPGrid
+       - mpgrid
      RANGE: [1, 10000]
      default: [1, 1, 1]
    shiftk:
@@ -441,7 +457,7 @@
      CONDITION:
        MASTER_KEY: method
        WHEN:
-       - MPGrid
+       - mpgrid
      default: [[0., 0., 0.]]
    kpt:
      COMMENT: Kpt coordinates
@@ -909,7 +925,7 @@
    mdsteps:
      COMMENT: Number of MD steps
      DESCRIPTION: A value greater than 0 will activate molecular dynamics
-     RANGE: [0, 99999999]
+     RANGE: [0, .inf ]
      default: 0
    print_frequency:
      COMMENT: Printing frequency for energy.dat and Trajectory.xyz files
@@ -950,10 +966,7 @@
      default: 1
    nose_yoshida_factor:
      COMMENT: Yoshida-Suzuki order to integrate the Nose-Hoover Chains equations of motion (integer input)
-     EXCLUSIVE:
-          3: Order 3
-          5: Order 5
-          7: Order 7
+     EXCLUSIVE: [3, 5, 7]
      CONDITION:
        MASTER_KEY: thermostat
        WHEN:
@@ -961,12 +974,17 @@
      default: 7
    nose_frequency: 
      COMMENT: Frequency in (cm^-1) corresponding to the inertia of the thermostat degrees of freedom 
-     RANGE: [1.,100000.0]
+     RANGE: [1., .inf ]
      CONDITION:
        MASTER_KEY: thermostat
        WHEN:
        - nose_hoover_chain
      default: 3000.0
+   wavefunction_extrapolation: 
+     COMMENT: Activates the wavefunction extrapolation for MD
+     DESCRIPTION: A value greater than 0 activates wfn extrapolation
+     EXCLUSIVE: [ 0, 1, 2, 4 ]
+     default: 0
 #     
 #Mixing parameters (do diagonalisation scheme instead of direct minimisation one)
  mix:
@@ -974,8 +992,7 @@
      This file contains all the parameters required to use a density (or potential)
      mixing scheme for the self consistent field loop, which may imply a smearing
      of the occupancies for finite temperature DFT calculations.
-     
-     It is named input.mix.
+     It was the former input.mix.
    iscf:
      COMMENT: Mixing parameters
      DESCRIPTION: |
@@ -1012,7 +1029,7 @@
        The stop criterion on the residue of the potential or the density. Typical values are in
        the order of 1e-10 to 1e-12. 
      RANGE: [0., 10.]
-     default: 1e-4
+     default: 1.e-4
    norbsempty:
      COMMENT: No. of additional bands
      DESCRIPTION: |
@@ -1202,16 +1219,16 @@
    rho_commun:
      COMMENT: Density communication scheme (DBL, RSC, MIX)
      default: DEF
-   psolver_groupsize:
-     COMMENT: Size of Poisson Solver taskgroups (0=nproc)
-     RANGE: [0, 1000000]
-     default: 0
-   psolver_accel:
-     COMMENT: Acceleration of the Poisson Solver (0=none, 1=CUDA)
-     EXCLUSIVE:
-       0: None
-       1: CUDA
-     default: 0
+#   psolver_groupsize:
+#     COMMENT: Size of Poisson Solver taskgroups (0=nproc)
+#     RANGE: [0, 1000000]
+#     default: 0
+#   psolver_accel:
+#     COMMENT: Acceleration of the Poisson Solver (0=none, 1=CUDA)
+#     EXCLUSIVE:
+#       0: None
+#       1: CUDA
+#     default: 0
    unblock_comms:
      COMMENT: Overlap Communications of fields (OFF,DEN,POT)
      EXCLUSIVE:
@@ -1404,13 +1421,13 @@
    wf_extent_analysis:
      COMMENT: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      default: False
-   gps_method:
-     COMMENT: method for the Generalized Poisson Equation
-     EXCLUSIVE:
-        VAC: Vacuum (ordinary treatment)
-        PI: Polarization Iteration
-        PCG: Preconditioned Conjugate Gradient
-     default: VAC
+#   gps_method:
+#     COMMENT: method for the Generalized Poisson Equation
+#     EXCLUSIVE:
+#        VAC: Vacuum (ordinary treatment)
+#        PI: Polarization Iteration
+#        PCG: Preconditioned Conjugate Gradient
+#     default: VAC
    foe_gap:
      COMMENT: Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
      default: False

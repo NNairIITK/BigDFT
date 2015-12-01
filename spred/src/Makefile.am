@@ -70,7 +70,7 @@ else
 cp2k_ld =
 endif
 
-AM_FCFLAGS = -I. -I$(top_builddir)/includes -I$(srcdir)/wavelib \
+AM_FCFLAGS = -I. -I$(top_builddir)/includes \
 	@LIBABINIT_INCLUDE@ @LIBXC_INCLUDE@ \
 	@LIBETSFIO_INCLUDE@ @LIBSGPU_INCLUDE@ \
 	@MPI_INCLUDE@
