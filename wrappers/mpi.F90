@@ -2399,6 +2399,7 @@ contains
   subroutine mpisend_gpu(buf,count,dest,tag,comm,request,simulate,verbose,type,offset)
     use yaml_output
     use iso_c_binding
+    use f_precisions, only: f_address
     implicit none
     type(c_ptr) :: buf !fake intent(in)
     integer, intent(in) :: count
@@ -2412,7 +2413,8 @@ contains
     real(f_double),pointer :: a !fake intent(in)
     !local variables
     logical :: verb,sim
-    integer :: mpi_comm,ierr,tag_,tmpint,tmpsize
+    integer :: mpi_comm,ierr,tag_,tmpsize
+    integer(f_address) tmpint
     type(c_ptr) :: tmpaddr
 
     mpi_comm=MPI_COMM_WORLD

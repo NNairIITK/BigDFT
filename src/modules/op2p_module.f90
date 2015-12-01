@@ -569,7 +569,6 @@ module overlap_point_to_point
        if(OP2P%gpudirect==1) then
          ! initialize GPU arrays that will hold the data for all the computation
          call cudamalloc(OP2P%ndim*norbp,iter%phi_i%data_GPU, i_stat)
-
          if (i_stat /= 0) print *,'error cudamalloc data_GPU',i_stat
          call reset_gpu_data(OP2P%ndim*norbp,data,iter%phi_i%data_GPU)
 
@@ -914,7 +913,6 @@ module overlap_point_to_point
        end do step_loop
 !retrieve result from GPU
        if(OP2P%gpudirect == 1) then 
-print *, "should I copy sum ",sum(OP2P%nobj_par(iproc,:)), "or maxval",  maxval(OP2P%nobj_par(iproc,:))
          call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%res,iter%phi_i%res_GPU)
          !call get_gpu_data(OP2P%ndim*sum(OP2P%nobj_par(iproc,:)),iter%phi_i%data,iter%phi_i%data_GPU)
           call synchronize()
