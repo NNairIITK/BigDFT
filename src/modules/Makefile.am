@@ -53,6 +53,7 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	private_api.f90 \
 	xc.f90 \
 	module_lj.f90 \
+	module_tdpot.f90 \
 	module_morse_bulk.f90 \
 	module_lenosky_si.f90 \
 	module_tersoff.f90 \
@@ -226,6 +227,7 @@ modules = module_types.@MODULE_EXT@ \
 	forces_linear.@MODULE_EXT@ \
 	sort.@MODULE_EXT@ \
 	module_lj.@MODULE_EXT@ \
+	module_tdpot.@MODULE_EXT@ \
 	f90sockets.@MODULE_EXT@ \
 	module_morse_bulk.@MODULE_EXT@ \
 	module_tersoff.@MODULE_EXT@ \
@@ -291,6 +293,7 @@ bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_
 		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
 #ab7_mixing.o: defs.o
 #module_lj.o: base.o defs.o
+#module_tdpot.o: base.o defs.o
 #module_cp2k.o: base.o defs.o
 #module_morse_bulk.o: base.o
 module_dftbp.o: types.o 

@@ -1489,6 +1489,8 @@ contains
        case(METHOD_KEY)
           str=val
           select case(trim(str))
+          case('tdpot')
+             in%run_mode=TDPOT_RUN_MODE
           case('lj')
              in%run_mode=LENNARD_JONES_RUN_MODE
           case('dft')

@@ -326,8 +326,12 @@ program mhgps
                          (real(builtin_rand(idum),gp)-0.5_gp)
                     minmode(2,iat)=2.0_gp*&
                          (real(builtin_rand(idum),gp)-0.5_gp)
+                    if(bigdft_nat(runObj)>1)then!for 2Dpot
                     minmode(3,iat)=2.0_gp*&
                          (real(builtin_rand(idum),gp)-0.5_gp)
+                    else
+                    minmode(3,iat)=0.0_gp
+                    endif
                  enddo
                  if(mhgpsst%iproc==0)then
                  call write_mode(runObj,outs,&
