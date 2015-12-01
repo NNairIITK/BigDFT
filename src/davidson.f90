@@ -1192,7 +1192,7 @@ subroutine davidson(iproc,nproc,in,at,&
       iter=iter+1
       if(iter>in%itermax_virt)then !an input variable should be put
          if(iproc==0) call yaml_warning( &
-            &   'No convergence within the allowed number of minimization steps (itermax + 100)')
+            &   'No convergence within the allowed number of minimization steps')
          exit davidson_loop
       end if
 

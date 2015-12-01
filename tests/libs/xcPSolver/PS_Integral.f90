@@ -524,7 +524,7 @@ stop
         !compare the gaussians together
 !        n_range=200
         if (i==1) call discretize_gaussian(n_range,1.d0,pgauss(j),0.1_gp,&
-             hgrid,'gaussian'+j)
+             hgrid,'gaussian'+yaml_toa(j))
      end do
 
 !stop

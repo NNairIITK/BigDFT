@@ -388,7 +388,6 @@ contains
   END SUBROUTINE input_keys_set
 
   subroutine input_keys_fill(inputdef,dict, file,check)
-    use dictionaries
     use dynamic_memory
     use yaml_output
     implicit none
@@ -402,7 +401,7 @@ contains
     !Local variables
     !integer :: i
     logical :: user, hasUserDef,docheck
-    type(dictionary), pointer :: ref,ref_iter
+    type(dictionary), pointer :: ref,ref_iter,errs
     !character(len=max_field_length), dimension(:), allocatable :: keys
 
     docheck=.true.
@@ -422,7 +421,17 @@ contains
 !!$          call yaml_map('ref_iter_val',dict_value(ref_iter))
 !!$          call yaml_map('ref_iter_data',dict_value(ref_iter))
 !!$          call dump_dict_impl(ref_iter)
+          !open a try-catch section to understand where the error is, if any
+          call f_err_open_try()
           call input_keys_set(inputdef,user, dict // file, file, dict_key(ref_iter))
+          call f_err_close_try(exceptions=errs)
+          if (associated(errs)) then
+             call yaml_map('List of error founds',errs)
+             call dict_free(errs)
+             call f_err_throw('Error(s) found in input_keys_fill for the field "'//trim(file)//&
+                  '" and the key "'//trim(dict_key(ref_iter))//'", see details in the above message"',&
+                  err_id=INPUT_VAR_ILLEGAL)
+          end if
           hasUserDef = (hasUserDef .or. user)
        end if
        ref_iter=> dict_next(ref_iter)

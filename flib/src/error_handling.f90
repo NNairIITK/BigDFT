@@ -480,6 +480,16 @@
   end function f_get_last_error
 
 
+  !> Get all the errors that are present on the error pipe
+  subroutine f_get_errors(dict)
+    implicit none
+    type(dictionary), pointer, intent(out) :: dict !<output dictionary containing the result
+    nullify(dict)
+    call dict_copy(src=dict_present_error,dest=dict)
+
+  end subroutine f_get_errors
+
+
   !> Clean the dictionary of present errors
    subroutine f_err_clean()
     implicit none
@@ -541,9 +551,18 @@
   !! the errors are cleaned. To recover an error in a try environment 
   !! the correct behaviour is to perform f_err_check before calling 
   !! f_err_close_try
-  subroutine f_err_close_try()
+  subroutine f_err_close_try(exceptions)
     implicit none
+    type(dictionary), pointer, intent(out), optional :: exceptions !<retrieve the exceptions
+    !local variables
     type(error_stack), pointer :: stack
+
+    !retrieve the exceptions if needed
+    if (present(exceptions)) then
+       nullify(exceptions)
+       if (f_err_check()) call f_get_errors(exceptions)
+    end if
+
     !call f_err_unset_callback()
     if (associated(error_pipelines%previous)) then
       nullify(dict_present_error)

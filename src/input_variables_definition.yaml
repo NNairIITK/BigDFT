@@ -32,7 +32,7 @@
       function/wavelet basis.
       Values are in most cases between 0.3 and 0.6 bohr.
      RANGE: [0., 4.]
-     #default: [0.45, 0.45, 0.45]
+     default: [0.45, 0.45, 0.45]
      #fast: [0.55, 0.55, 0.55]
      #accurate: [0.30, 0.30, 0.30]
    rmult:
