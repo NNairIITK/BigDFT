@@ -304,6 +304,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
            call old_wavefunction_set(KSwfn%oldpsis(in%wfn_history+1),&
                 atoms%astruct%nat,KSwfn%orbs%norbp*KSwfn%orbs%nspinor,&
                 KSwfn%Lzd,rxyz_old,KSwfn%psi)
+           call f_free_ptr(KSwfn%psi)
         else
            call copy_old_wavefunctions(nproc,KSwfn%orbs,&
                 KSwfn%psi,lzd_old%Glr%wfd,psi_old)

@@ -31,8 +31,10 @@ program BigDFT
 
   !case with parser information
   !this key will contain the runs which are associated to the current BigDFT instance
-  run => dict_iter(options .get. 'BigDFT')
-  do while(associated(run))
+  !run => dict_iter(options .get. 'BigDFT')
+  !do while(associated(run))
+  nullify(run)
+  do while(iterating(run,on=options .get. 'BigDFT'))
      call run_objects_init(runObj,run)
      call init_state_properties(outs,bigdft_nat(runObj))
 

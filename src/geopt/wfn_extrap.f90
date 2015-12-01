@@ -515,7 +515,7 @@ integer :: nspin
 integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
 real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)),intent(out):: ovrlp
 !local variables
-logical, parameter :: debug_flag=.false.
+logical, parameter :: debug_flag=.true.
 integer,dimension(orbs%nspin)        :: norbArr
 
 real(wp), dimension(:) , pointer :: psit,phit,work_array
@@ -524,8 +524,8 @@ integer :: ispin, jwfn, nsize
 
 !allocate transposed principal wavefunction
 work_array =f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='work_array')
-psit = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='psit')
-phit = f_malloc_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='phit')
+psit = f_malloc0_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='psit')
+phit = f_malloc0_ptr(max(orbs%npsidim_orbs,orbs%npsidim_comp),id='phit')
 call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,psi(1),&
           &   work_array(1),out_add=psit(1))
 call transpose_v(iproc,nproc,orbs,lzd%glr%wfd,comms,phi(1),&
