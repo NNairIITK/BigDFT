@@ -390,8 +390,8 @@ subroutine atomic_dot(astruct,x,y,scpr)
   real(gp), intent(out) :: scpr
   !local variables
   integer :: iat,i
-  real(gp) :: scpr1,scpr2,scpr3
-  real(gp) :: alphax,alphay,alphaz
+!!$  real(gp) :: scpr1,scpr2,scpr3
+!!$  real(gp) :: alphax,alphay,alphaz
 
   scpr=0.0_gp
 

@@ -14,9 +14,10 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      nrhotot,Lzd,hxh,hyh,hzh,xc,nspin,orbs,mapping,psi,rho)
   use module_base
   use module_types
-  use module_interfaces, exceptThisOne => local_partial_densityLinear
+  use module_interfaces, only: partial_density_free
   use module_xc
-  use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+  use Poisson_Solver, except_dp => dp, except_gp => gp
+  use locreg_operations
   implicit none
   logical, intent(in) :: rsflag
   integer, intent(in) :: nproc
@@ -73,7 +74,7 @@ subroutine local_partial_densityLinear(nproc,rsflag,nscatterarr,&
      Lnscatterarr(:,2) = Lzd%Llr(ilr)%d%n3i 
 
 
-     call initialize_work_arrays_sumrho(1,Lzd%Llr(ilr),.true.,w)
+     call initialize_work_arrays_sumrho(1,[Lzd%Llr(ilr)],.true.,w)
      rho_p = f_malloc0(Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i*nspinn,id='rho_p')
      psir = f_malloc((/ Lzd%Llr(ilr)%d%n1i*Lzd%Llr(ilr)%d%n2i*Lzd%Llr(ilr)%d%n3i, npsir /),id='psir')
   

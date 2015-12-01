@@ -1,7 +1,9 @@
 !> @file
 !! Test yaml_output module
+!! @example yaml_test.f90
+!! Extensive tests about yaml output generations
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group
 !!    This file is distributed oneder the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -37,9 +39,6 @@ program yaml_test
    
    type(dictionary), pointer :: dict_tmp,run,dict_mp
    type(yaml_cl_parse) :: parser
-   integer :: ilist, imp
-   character(len=2) :: key
-   real(kind=8),dimension(3) :: rxyz
 
    call f_lib_initialize()
    !test output level
@@ -218,6 +217,11 @@ program yaml_test
    !prepare the finalization of the library
    call f_lib_finalize()
 
+  call f_lib_initialize()
+  !Finalize without report
+  call f_lib_finalize_noreport()
+
+
 end program yaml_test
 
 subroutine yaml_parse_file_and_string()
@@ -308,7 +312,7 @@ subroutine check_multipoles(parser)
        call yaml_sequence_open('Values')
        do ilist=0,nmplist-1
           call yaml_sequence()
-          call yaml_map('Size of element'//ilist,dict_size(dict_mp//ilist))
+          call yaml_map('Size of element'//trim(yaml_toa(ilist)),dict_size(dict_mp//ilist))
           !retrieve atomic positions, compulsory
           iter => dict_mp//ilist
           if ('r' .notin. iter) call f_err_throw('For the item .. the r should  be present')

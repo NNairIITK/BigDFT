@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to check the accuracy of the gaussian expansion
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group (LG)
+!!    Copyright (C) 2007-2015 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,6 +14,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   use module_types
   use yaml_output
   implicit none
+  !Arguments
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -67,7 +68,7 @@ END SUBROUTINE check_gaussian_expansion
 subroutine parse_cp2k_files(iproc,basisfile,orbitalfile,nat,ntypes,orbs,iatype,rxyz,&
      CP2K,wfn_cp2k)
   use module_base
-  use module_types
+  use module_types, only: orbitals_data, gaussian_basis
   use gaussians
   use yaml_output
   implicit none
@@ -552,6 +553,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   use module_base
   use module_types
   use yaml_output
+  !use wrapper_MPI, only: mpireduce to be written yet
   implicit none
   integer, intent(in) :: iproc,nproc
   type(local_zone_descriptors), intent(in) :: Lzd
@@ -618,6 +620,7 @@ subroutine gaussians_to_wavelets_new(iproc,nproc,Lzd,orbs,G,wfn_gau,psi)
   !calculate the deviation from 1 of the orbital norm
   if (nproc > 1) then
      call MPI_REDUCE(tt,normdev,1,mpidtypd,MPI_MAX,0,bigdft_mpi%mpi_comm,ierr)
+     !call mpireduce(sendbuf=tt,recvbuf=normdev,count=1,op=MPI_MAX,comm=bigdft_mpi%mpi_comm)
   else
      normdev=tt
   end if

@@ -16,7 +16,7 @@ subroutine CalculateTailCorrection(iproc,nproc,at,rbuf,orbs,&
   use module_base
   use module_types
   use yaml_output
-  use module_interfaces, except_this_one => CalculateTailCorrection
+  use module_interfaces, only: applyprojectorsonthefly, orbitals_descriptors
   use gaussians, only: gaussian_basis
   use psp_projectors_base, only: deallocate_workarrays_projectors, allocate_workarrays_projectors
   use public_enums
@@ -758,7 +758,7 @@ subroutine applylocpotkinone(n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf, &
   ! Input: pot,psi
   ! Output: hpsi,epot,ekin
   use module_base
-  use module_interfaces
+  use module_interfaces, only: apply_potential
   implicit none
   integer, intent(in) :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,nbuf,nw1,nw2
   integer, intent(in) :: nseg_c,nseg_f,nvctr_c,nvctr_f,nspinor,npot

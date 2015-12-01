@@ -42,3 +42,4 @@
 !!!  !call MPI_BCAST(dirname,len(dirname),MPI_CHARACTER,0,bigdft_mpi%mpi_comm,ierrr)
 !!!  in%dir_output=dirname
 !!!END SUBROUTINE create_dir_output
+

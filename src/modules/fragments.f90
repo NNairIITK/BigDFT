@@ -1,7 +1,7 @@
 !> @file
 !!  Module to handle the fragments of a system
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -19,7 +19,6 @@ module module_fragments
   implicit none
 
   private
-
 
   !> information about the basis set metadata shared between cubic and ASF approaches
   type, public :: minimal_orbitals_data
@@ -52,14 +51,18 @@ module module_fragments
 
   !> Defines the minimal information to identify a system building block
   type, public :: system_fragment
-     integer :: nat_env !< environment atoms which complete fragment specifications
-     real(gp), dimension(:,:), pointer :: rxyz_env !< position of atoms in environment (AU), external reference frame
+     !integer :: nat_env !< environment atoms which complete fragment specifications
+     !real(gp), dimension(:,:), pointer :: rxyz_env !< position of atoms in environment (AU), external reference frame
      type(atomic_structure) :: astruct_frg !< Number of atoms, positions, atom type etc for fragment
+     type(atomic_structure) :: astruct_env !< Number of atoms, positions, atom type etc for fragment environment (includes fragment)
+     integer :: nbasis_env !< Number of tmbs for environment (includes fragment)
+     !integer, dimension(:,:), pointer :: env_mapping !< contains mapping information between fragment environment and full system
      type(fragment_basis) :: fbasis !< fragment basis, associated only if coherent with positions, pointer - do we really want this to be a pointer?
      ! add coeffs and or kernel
      integer :: nelec
      real(gp), dimension(:,:), pointer :: coeff
-     real(gp), dimension(:,:), pointer :: kernel
+     real(gp), dimension(:,:,:), pointer :: kernel
+     real(gp), dimension(:,:,:), pointer :: kernel_env
      real(gp), dimension(:), pointer :: eval
   end type system_fragment
 
@@ -77,16 +80,17 @@ module module_fragments
 
   !public operator(*)
 
-  public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null, rotate_vector,fragmentInputParameters
+  public :: fragment_null, fragment_free, init_fragments, minimal_orbitals_data_null, rotate_vector, fragmentInputParameters
   public :: frag_center, find_frag_trans, calculate_fragment_density,fragment_transformation_identity
+
 
 contains
 
-  ! nned to check somewhere if fragment linking is consistent - initialize linear from file?!
-  ! initializes reference fragments (already nullified), if it isn't a fragment calculation sets to appropriate dummy values
-  ! ignoring environment for now
+
+  !> Need to check somewhere if fragment linking is consistent - initialize linear from file?!
+  !! initializes reference fragments (already nullified), if it isn't a fragment calculation sets to appropriate dummy values
+  !! ignoring environment for now
   subroutine init_fragments(in,orbs,astruct,ref_frags)
-    use module_types
     implicit none
     type(input_variables), intent(in) :: in
     type(orbitals_data), intent(in) :: orbs ! orbitals of full system, needed to set 'dummy' values
@@ -123,6 +127,7 @@ contains
   
         ! astruct - fill in other bits later
         ref_frags(1)%astruct_frg%nat=astruct%nat
+        ref_frags(1)%astruct_env%nat=0
 
      end if
 
@@ -133,13 +138,15 @@ contains
 
   !> Initializes all of fragment except lzd using the fragment posinp and tmb files
   subroutine init_fragment_from_file(frag,frag_name,input,astruct) ! switch this to pure if possible
-    use module_types
     !use module_interfaces
     implicit none
     type(system_fragment), intent(inout) :: frag
     character(len=*), intent(in) :: frag_name
     type(input_variables), intent(in) :: input
     type(atomic_structure), intent(in) :: astruct ! atomic structure of full system
+    
+    logical :: env_exists
+    integer :: iat, ityp, jtyp
 
     call f_routine(id='init_fragment_from_file')
 
@@ -148,6 +155,36 @@ contains
 
     ! read fragment positions
     call set_astruct_from_file(frag_name(1:len(frag_name)),bigdft_mpi%iproc,frag%astruct_frg)
+
+    ! first check if an environment file exists
+    inquire(FILE = frag_name(1:len(frag_name))//'_env.xyz', EXIST = env_exists)
+
+    if (env_exists) then
+
+       call set_astruct_from_file(frag_name(1:len(frag_name))//'_env',bigdft_mpi%iproc,frag%astruct_env)
+       ! check that this contains at least 1 environment atom
+       if (frag%astruct_env%nat < frag%astruct_frg%nat+1) then
+          stop 'Fragment environment file missing some atoms'
+       end if
+
+       ! calculate nbasis_env here:
+       frag%nbasis_env=0
+       do iat=1,frag%astruct_env%nat
+          ityp=frag%astruct_env%iatype(iat)
+          do jtyp=1,astruct%ntypes
+             if (astruct%atomnames(jtyp)==frag%astruct_env%atomnames(ityp)) exit
+          end do
+          if (jtyp==astruct%ntypes+1) then
+             print*, 'Error in fragment_init_orbitals, atom type ',frag%astruct_env%atomnames(ityp),&
+                  ' does not exist in full structure'
+             stop
+          end if
+          frag%nbasis_env=frag%nbasis_env+input%lin%norbsPerType(jtyp)
+       end do
+
+    else
+       frag%astruct_env%nat=0
+    end if
 
     ! iproc, nproc, nspinor not needed yet, add in later
     call init_minimal_orbitals_data(bigdft_mpi%iproc, bigdft_mpi%nproc, 1, input, frag%astruct_frg, &
@@ -173,9 +210,8 @@ contains
   end subroutine init_fragment_from_file
 
 
-  ! sanity check on fragment definitions
+  !> Sanity check on fragment definitions
   subroutine check_fragments(input,ref_frags,astruct)
-    use module_types
     implicit none
     type(input_variables), intent(in) :: input
     type(atomic_structure), intent(in) :: astruct ! atomic structure of full system, needed to check fragments are sensible
@@ -220,17 +256,16 @@ contains
   end subroutine check_fragments
 
 
-    !type, public :: minimal_orbitals_data
-    !   integer :: norb          !< Total number of orbitals per k point
-    !   integer :: norbp         !< Total number of orbitals for the given processors
-    !   integer :: isorb         !< Total number of orbitals for the given processors
-    !   integer, dimension(:), pointer :: inwhichlocreg,onwhichatom !< associate the basis centers
-    !   integer, dimension(:), pointer :: isorb_par,ispot
-    !   integer, dimension(:,:), pointer :: norb_par
-  !> just initializing norb for now, come back and do the rest later
+  !type, public :: minimal_orbitals_data
+  !   integer :: norb          !< Total number of orbitals per k point
+  !   integer :: norbp         !< Total number of orbitals for the given processors
+  !   integer :: isorb         !< Total number of orbitals for the given processors
+  !   integer, dimension(:), pointer :: inwhichlocreg,onwhichatom !< associate the basis centers
+  !   integer, dimension(:), pointer :: isorb_par,ispot
+  !   integer, dimension(:,:), pointer :: norb_par
+  !> Just initializing norb for now, come back and do the rest later
   subroutine init_minimal_orbitals_data(iproc, nproc, nspinor, input, astruct, forbs, astruct_full)
     use module_base
-    use module_types
     implicit none
   
     ! Calling arguments
@@ -326,9 +361,8 @@ contains
   end subroutine init_minimal_orbitals_data
 
 
-  ! point minimal orbs structure to a given full orbs structure
+  !> Point minimal orbs structure to a given full orbs structure
   subroutine orbs_to_min_orbs_point(orbs,forbs)
-    use module_types
     implicit none
     ! Calling arguments
     type(orbitals_data),intent(in):: orbs
@@ -367,9 +401,9 @@ contains
 
   end subroutine orbs_to_min_orbs_point
 
+
   subroutine calculate_fragment_density(frag,ndimrho,tmb,iorb_start,charge,atoms,rxyz,denspot)
-    use module_types
-    use locreg_operations, only: Lpsi_to_global2
+    use locreg_operations, only: Lpsi_to_global2,workarr_sumrho,initialize_work_arrays_sumrho,deallocate_work_arrays_sumrho
     implicit none
     type(system_fragment), intent(inout) :: frag
     integer, intent(in) :: ndimrho ! add to fragment structure?
@@ -425,7 +459,7 @@ contains
 
     gpsi=f_malloc0(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,id='gpsi')
     !call f_zero(tmb%Lzd%glr%wfd%nvctr_c+7*tmb%Lzd%glr%wfd%nvctr_f,gpsi)
-    call initialize_work_arrays_sumrho(1,tmb%lzd%glr,.true.,w)
+    call initialize_work_arrays_sumrho(1,[tmb%lzd%glr],.true.,w)
     psir=f_malloc(tmb%lzd%glr%d%n1i*tmb%lzd%glr%d%n2i*tmb%lzd%glr%d%n3i*frag%fbasis%forbs%norb,id='psir')
 
     do iiorb=1,tmb%orbs%norb
@@ -543,17 +577,22 @@ contains
     implicit none
     type(system_fragment) :: frag
 
-    frag%nat_env=0
-    nullify(frag%rxyz_env)
+    !frag%nat_env=0
+    !nullify(frag%rxyz_env)
     frag%nelec=0
+    frag%nbasis_env=0
     nullify(frag%coeff)
     nullify(frag%kernel)
+    nullify(frag%kernel_env)
     nullify(frag%eval)
+    !nullify(frag%env_mapping)
     call nullify_atomic_structure(frag%astruct_frg)
+    call nullify_atomic_structure(frag%astruct_env)
     ! nullify fragment basis
     call nullify_fragment_basis(frag%fbasis)
 
   end function fragment_null
+
 
   pure function fragment_basis_null() result(basis)
     implicit none
@@ -574,8 +613,9 @@ contains
     nullify(basis%phi)
     nullify(basis%density)
   end subroutine nullify_fragment_basis
+  
 
-  !> this routine is dangerous as it frees orbs, when forbs points to it
+  !> This routine is dangerous as it frees orbs, when forbs points to it
   !! either garbage collectors or other techniques should be considered
   subroutine minimal_orbitals_data_free(forbs)
     implicit none
@@ -589,6 +629,7 @@ contains
     forbs=minimal_orbitals_data_null()
   end subroutine minimal_orbitals_data_free
 
+
   subroutine fragment_basis_free(basis)
     implicit none
     type(fragment_basis), intent(inout) :: basis
@@ -600,22 +641,28 @@ contains
     basis=fragment_basis_null()
   end subroutine fragment_basis_free
 
+
   subroutine fragment_free(frag)
     implicit none
     type(system_fragment), intent(inout) :: frag
 
     call deallocate_atomic_structure(frag%astruct_frg)
     frag%astruct_frg=atomic_structure_null()
+    call deallocate_atomic_structure(frag%astruct_env)
+    frag%astruct_env=atomic_structure_null()
     call minimal_orbitals_data_free(frag%fbasis%forbs)
     frag%fbasis%forbs = minimal_orbitals_data_null()
-    call f_free_ptr(frag%rxyz_env)
+    !call f_free_ptr(frag%rxyz_env)
     call f_free_ptr(frag%coeff)
     call f_free_ptr(frag%kernel)
+    call f_free_ptr(frag%kernel_env)
     call f_free_ptr(frag%eval)
+    !call f_free_ptr(frag%env_mapping)
     call fragment_basis_free(frag%fbasis)
     frag=fragment_null()
 
   end subroutine fragment_free
+
 
   subroutine fragment_allocate(frag)
     implicit none
@@ -623,17 +670,21 @@ contains
 
     call f_routine(id='fragment_allocate')
 
-    frag%rxyz_env=f_malloc_ptr((/3,min(1,frag%nat_env)/),id='frag%rxyz_env')
+    !frag%rxyz_env=f_malloc_ptr((/3,min(1,frag%nat_env)/),id='frag%rxyz_env')
     frag%coeff=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='frag%coeff')
-    frag%kernel=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb/),id='frag%kernel')
+    frag%kernel=f_malloc_ptr((/frag%fbasis%forbs%norb,frag%fbasis%forbs%norb,1/),id='frag%kernel') !NEED SPIN HERE
+    frag%kernel_env=f_malloc_ptr((/frag%nbasis_env,frag%nbasis_env,1/),id='frag%kernel_env') !NEED SPIN HERE
     frag%eval=f_malloc_ptr(frag%fbasis%forbs%norb,id='frag%eval')
+    !frag%env_mapping=f_malloc0_ptr((/frag%nbasis_env,3/),id='frag%env_mapping')
 
     call f_release_routine()
 
   end subroutine fragment_allocate
 
-  !>defines a identity transformation
+
+  !> Defines an identity transformation
   function fragment_transformation_identity() result(ft)
+    implicit none
     type(fragment_transformation) :: ft
     ft%rot_center_new= 0.0_gp 
     ft%rot_center    = 0.0_gp 
@@ -681,10 +732,9 @@ contains
   !end function transform_fragment
 
 
-
   !> Express the coordinates of a vector into a rotated reference frame
   pure function rotate_vector(newz,theta,vec) result(vecn)
-     use module_base
+    !use module_base
      implicit none
      real(gp), intent(in) :: theta
      real(gp), dimension(3), intent(in) :: newz,vec
@@ -709,6 +759,7 @@ contains
 
   end function rotate_vector
 
+
   !pure function transform_fragment_basis(trans,basis) result(basis_new)
   !  implicit none
   !  type(fragment_transformation), intent(in) :: trans
@@ -728,17 +779,18 @@ contains
 
   !end function transform_fragment_basis
 
-  subroutine find_frag_trans(nat,rxyz_ref,rxyz_new,frag_trans)
+  subroutine find_frag_trans(nat,rxyz_ref,rxyz_new,frag_trans,J)
     use module_base
     use yaml_output
     implicit none
     integer, intent(in) :: nat !< fragment size
     real(gp), dimension(3,nat), intent(in) :: rxyz_ref,rxyz_new !<coordinates measured wrt rot_center
     type(fragment_transformation), intent(inout) :: frag_trans
+    real(gp), intent(out) :: J !< Wahba cost function, i.e. error in transformation
     !local variables
     integer, parameter :: lwork=7*3
     integer :: info,iat!,i_stat,i
-    real(gp) :: dets,J
+    real(gp) :: dets, J0
     real(gp), dimension(3) :: SM_arr !< array of SVD and M array
     real(gp), dimension(lwork) :: work !< array of SVD and M array
     real(gp), dimension(3,nat) :: J_arr !< matrix for calculating Wahba's cost function
@@ -805,17 +857,44 @@ contains
        J=J+J_arr(1,iat)**2+J_arr(2,iat)**2+J_arr(3,iat)**2
     end do
 
-    !here yaml output
-    if (J>1.0e-3) then
-       write(*,'(a,2es18.8)') "Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
-    end if
+!!$    !here yaml output
+!!$    !make it optional whether to print the warning from here or leave it to external function
+!!$    if (J>1.0e-3) then
+!!$       write(*,'(a,2es18.8)') "Error, Wahba's cost function is too big",J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
+!!$    end if
 
     !check the pertinence of the suggested rotation
     !if (abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp)) print*,'frag_trans%theta=',frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp)
     !if  (f_err_raise(abs(frag_trans%theta) > 60.d0*(4.0_gp*atan(1.d0)/180.0_gp),'Angle frag_trans%theta not optimal (frag_trans%theta= '//&
     !      yaml_toa(frag_trans%theta)//' )')) return
 
+    !check if we could achieve same error without a rotation
+    ! - want to avoid unecessary rotation by e.g. 180 degrees
+    if (frag_trans%theta/=0.0d0) then
+       J0=0.0_gp
+       do iat=1,nat
+          J0=J0+(rxyz_new(1,iat)-rxyz_ref(1,iat))**2+(rxyz_new(2,iat)-rxyz_ref(2,iat))**2+(rxyz_new(3,iat)-rxyz_ref(3,iat))**2
+       end do
+
+       !replace with no rotation
+       if (J0<J .or. J0-J<1e-6) then
+          write(*,'(a,6(es12.4,2x))') 'replacing suggested transformation with zero transformation ',&
+               J0,J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis
+          frag_trans%Rmat=0.0d0
+          frag_trans%Rmat(1,1)=1.0d0
+          frag_trans%Rmat(2,2)=1.0d0
+          frag_trans%Rmat(3,3)=1.0d0
+          frag_trans%theta=0.0d0
+          frag_trans%rot_axis=axis_from_r(R_mat)
+          J=J0
+       !else 
+       !   write(*,'(a,6(es12.4,2x))') 'NOT replacing suggested transformation with zero transformation ',&
+       !        J0,J,frag_trans%theta/(4.0_gp*atan(1.d0)/180.0_gp),frag_trans%rot_axis
+       end if
+     end if
+
   end subroutine find_frag_trans
+
 
   pure function theta_from_r(R_mat) result(theta)
     implicit none
@@ -836,6 +915,7 @@ contains
     end if
 
   end function theta_from_r
+
 
   function axis_from_r(R_mat) result(rot_axis)
     implicit none
@@ -880,6 +960,7 @@ contains
 
   end function axis_from_r
 
+
   pure function frag_center(nat,rxyz) result(cen)
     implicit none
     integer, intent(in) :: nat 
@@ -900,7 +981,8 @@ contains
     
   end function frag_center
 
-  !>determinant of a 3x3 matrix
+  
+  !> Determinant of a 3x3 matrix
   pure function det_33(a) result(det)
     implicit none
     real(gp), dimension(3,3), intent(in) :: a
@@ -913,15 +995,3 @@ contains
 
 
 end module module_fragments
-
-
-
-
-
-
-
-
-
-
-
-

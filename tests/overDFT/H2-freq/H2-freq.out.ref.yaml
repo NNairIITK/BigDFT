@@ -2246,7 +2246,7 @@
  (F) Frequencies (THz)                 :  [  125.99,  5.60,  5.60, -0.00, -0.00, -0.00 ]
  (F) Zero-point energy (cm-1 and Hartree):  [  2.1013236759E+03,  9.5743351422E-03 ]
  (F) Considered Temperature (Kelvin)   :  300.0
- (F) Vibrational entropy               :  4.5058944906E-02
+ (F) Vibrational entropy               :  4.5058926058E-02
  (F) Vibrational Energy (cm-1 and Hartree):  [  2.1013236834E+03,  9.5743351760E-03 ]
  (F) Total Energy (Hartree)            :  9.5743351760E-03
  Memory Consumption Report:
@@ -2550,7 +2550,7 @@
  (F) Frequencies (THz)                 :  [  125.99,  5.60,  5.60, -0.00, -0.00, -0.00 ]
  (F) Zero-point energy (cm-1 and Hartree):  [  2.1013236759E+03,  9.5743351422E-03 ]
  (F) Considered Temperature (Kelvin)   :  300.0
- (F) Vibrational entropy               :  4.5058944906E-02
+ (F) Vibrational entropy               :  4.5058926058E-02
  (F) Vibrational Energy (cm-1 and Hartree):  [  2.1013236834E+03,  9.5743351760E-03 ]
  (F) Total Energy (Hartree)            : -1.1273429753E+00
  Memory Consumption Report:

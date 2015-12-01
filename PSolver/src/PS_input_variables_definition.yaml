@@ -1,0 +1,287 @@
+## Definitions of the input variables
+##inputvar: #name of the variable as declared in the code
+## DESCRIPTION: Extended description of the variable to be used for documentation
+## COMMENT: This is the description of the variable as will appear in the logfile
+## RANGE: [from,to] #always put two numbers (also .inf can be put)
+## EXCLUSIVE: #here follows a mapping of allowed values (either RANGE or EXCLUSIVE)
+##  Value1:  comments of value1
+##  Value2:  comment of value2
+## CONDITION: #here the conditions for which the variable makes sense are written
+##   MASTER_KEY: foo #this means that inputvar makes sense only if foo is specified
+##   WHEN: #provide a list of allowed values of foo for which inputvar is meaningful
+##     - fooval1
+##     - fooval2   
+## PROFILE_FROM: foo #inputvar inherit the profile from the one specified by foo variable
+###then the profiles follows, which gives to the variables the allowed name
+## default: value of the default, written as a string 
+## profile1: value1 # if the user specifies inputvar: profile1 then inputvars will be value1
+## profile2: value2
+##
+## DO NOT USE the character ':' and "" in the COMMENT of DESCRIPTION
+############################################
+# Density Functional Theory parameters
+ dft:
+   DESCRIPTION: Density Functional Theory parameters
+   solvent:
+     COMMENT: Electrostatic environment for Poisson Equation
+     DESCRIPTION: Define the method to set the dielectric function as a function of the position
+     EXCLUSIVE:
+       vacuum: No Solvent method, ordinary Poisson Equation
+       rigid:  Rigid (smoothed) cavity around the atoms, given as superposition of spheres
+       sccs: Self-Consistent Continuum Solvation (accordig to the model of Andreussi et. al JCP 136, 064102 (2012)
+     default: vacuum
+   calculate_strten:
+     COMMENT: Boolean to activate the calculation of the stress tensor. Might be set to No for performance reasons
+     DESCRIPTION: In some cases, for example when doing MD for fixed volume systems, il might be useful to disable the 
+                    calculation of the stress tensor, to save computational time.
+     default: Yes
+#overall run setup
+ mode:
+   method:
+     COMMENT: Run method of BigDFT call
+     EXCLUSIVE:
+       dft: Density Functional Theory (BigDFT)
+       lj: Lennard-Jones force field
+       lensic: Lenosky Force Field for Si clusters
+       lensib: Lenosky Force Field for Si bulk
+       amber: AMBER Force Fields Package (requires AMBERtools)
+       morse_bulk: Morse bulk
+       morse_slab: Morse slab
+       tersoff: Tersoff potential for C and Si
+       bmhtf: Born Mayer Huggins Tosi Fumi Potential
+       cp2k: CP2K
+       dftbp: DFTP+
+       multi: Mixed approach where parts of the system are treated with different methods
+     default: dft
+#Performance parameters
+ perf:
+   debug:
+     COMMENT: Debug option
+     DESCRIPTION: |
+       The debug mode is enable mainly for memory profiling.
+     default: No
+   fftcache:
+     COMMENT: Cache size for the FFT
+     DESCRIPTION: |
+       Specify the cache size for FFT in kBytes.
+     default: 8192
+   accel:
+     COMMENT: Acceleration (hardware)
+     DESCRIPTION: |
+       Specify the use of CUDA (resp. OCL) versions of various subroutines. For CUDA,
+       a GPU.config file is needed.
+     EXCLUSIVE:
+       NO:      No material acceleration
+       CUDAGPU: CUDA
+       OCLGPU:  OpenCL on GPU
+       OCLCPU:  OpenCL on CPU
+       OCLACC:  ???
+     default:   NO
+   psolver_groupsize:
+     COMMENT: Size of Poisson Solver taskgroups (0=nproc)
+     RANGE: [0, 1000000]
+     default: 0
+   psolver_accel:
+     COMMENT: Acceleration of the Poisson Solver (0=none, 1=CUDA)
+     EXCLUSIVE:
+       0: None
+       1: CUDA
+     default: 0
+--- #here starts the document of possible profiles, that have to be evoked with the 'import' keyword
+linear_accurate:
+  COMMENT: appropriate input parameters for a high accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if highly accurate energy differences are required
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 2
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
+    #check_sumrho: 1
+    #calculate_KS_residue: No
+    #check_matrix_compression: No
+  lin_general:
+    hybrid: Yes
+    taylor_order: 1015
+    max_inversion_error: 5.0e-8
+  lin_basis:
+    nit: 8
+    idsx: 8
+    gnrm_cv: 1.e-3
+    gnrm_dyn: 1.e-4
+    deltae_cv: 5.e-5
+    min_gnrm_for_dynamic: 2.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.0e-12
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: 4
+    idsx: 6
+    alphamix: 0.1
+    rpnrm_cv: [1.e-12,1.e-12]
+    linear_method: FOE
+linear_moderate:
+  COMMENT: appropriate input parameters for a moderate accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if accurate forces are required, but there is no need for extremely accurate energies
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 2
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
+  lin_general:
+    hybrid: Yes
+    taylor_order: 10
+  lin_basis:
+    nit: [10,10]
+    gnrm_cv: [2.e-3,2.e-3]
+    gnrm_dyn: 2.e-4
+    deltae_cv: 5.e-5
+    min_gnrm_for_dynamic: 4.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-11
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [3,3]
+    idsx: [6,6]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-11,1.e-11]
+    linear_method: FOE
+linear_fast:
+  COMMENT: appropriate input parameters for a low accuracy linear scaling calculation
+  DESCRIPTION: This profile should be chosen if speed is more important than accuracy
+  dft:
+    hgrids: accurate
+    ixc: PBE
+  perf:
+    ef_interpol_chargediff: 1.0
+    experimental_mode: Yes
+    method_updatekernel: 2
+    purification_quickreturn: Yes
+    correction_co_contra: Yes
+  lin_general:
+    hybrid: Yes
+    taylor_order: 10
+  lin_basis:
+    nit: [10,10]
+    gnrm_cv: [4.e-3,4.e-3]
+    gnrm_dyn: 4.e-4
+    deltae_cv: 5.e-5
+    min_gnrm_for_dynamic: 8.e-3
+    alpha_diis: 0.5
+    alpha_sd: 0.5
+    nstep_prec: 6
+    fix_basis: 1.e-10
+    correction_orthoconstraint: 0
+  lin_kernel:
+    nit: [10,10]
+    idsx: [6,0]
+    alphamix: [0.2,0.2]
+    rpnrm_cv: [1.e-10,1.e-10]
+    linear_method: FOE
+structural:
+  COMMENT: for geopt
+  dft:
+    hgrids: fast
+    ixc: PBE
+  geopt:
+    method: FIRE
+mixing:
+  COMMENT: to be used for metallic systems
+  dft:
+   gnrm_cv: 1.e-6
+   nrepmax: 1
+   itermax: 3
+   ncong: 5
+   idsx: 0
+  mix:
+   iscf: 17
+   itrpmax: 200
+   rpnrm_cv: 1.E-12
+   norbsempty: 120
+   tel: 0.01
+   alphamix: 0.8
+   alphadiis: 1.d0
+linear:
+ COMMENT: linear parameters sufficient for PDoS, charge analysis, MD
+ dft:
+   gnrm_cv: accurate
+   itermax: 50
+   nrepmax: 10
+   ncong: 5
+   idsx: 6
+   disablesym: Yes
+   inputpsiid: linear
+ perf:
+   ef_interpol_chargediff: 1.0
+   check_sumrho: 1
+   check_overlap: 1
+   experimental_mode: Yes
+   calculate_KS_residue: No
+   method_updatekernel: 2
+   purification_quickreturn: Yes
+   check_matrix_compression: No
+   correction_co_contra: Yes
+   store_index: No
+   mixing_after_inputguess: 1
+   kappa_conv: 0.1
+   FOE_restart: 1
+   hamapp_radius_incr: 6
+ lin_general:
+   hybrid: Yes
+   nit: 50
+   taylor_order: 1020
+   max_inversion_error: 5.0e-8
+   rpnrm_cv: 1.0e-11
+   output_mat: 1
+   output_coeff: 1
+ lin_basis:
+   nit: 8
+   idsx: 8
+   gnrm_cv: 2.0e-3
+   deltae_cv: 1.0e-4
+   min_gnrm_for_dynamic: 4.0e-3
+   alpha_diis: 0.5
+   alpha_sd: 0.5
+   nstep_prec: 6
+   fix_basis: 1.0e-12
+   correction_orthoconstraint: 0
+   gnrm_ig: 1.e-1
+ lin_kernel:
+   nstep: 10
+   nit: 6
+   idsx_coeff: [6, 0]
+   idsx: 6
+   alphamix: 0.1
+   linear_method: FOE
+   eval_range_foe: [-1.0, 1.0]
+   fscale_foe: 5.0E-002
+ lin_basis_params:
+   #ao_confinement: -1.0
+   #confinement: -1.0
+   rloc_kernel: 9.0
+   rloc_kernel_foe: 10.5
+   H:  {nbasis: 1, rloc: 4.5}
+   C:  {nbasis: 4, rloc: 5.0}
+   N:  {nbasis: 4, rloc: 5.0}
+   O:  {nbasis: 4, rloc: 5.0}
+   P:  {nbasis: 4, rloc: 5.5}
+   Cl: {nbasis: 4, rloc: 5.5}
+   K:  {nbasis: 1, rloc: 7.0}
+md:
+  COMMENT: Molecular dynamics Input file for H2O molecules
+  geopt:
+    method: AB6MD
+    ionmov: 8
+    dtion: 20.0
+    noseinert: 30.0

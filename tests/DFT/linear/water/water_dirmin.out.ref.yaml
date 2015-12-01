@@ -253,8 +253,6 @@
    tddft_approach                      : none #   Time-Dependent DFT method
  mode:
    method                              : dft #    Run method of BigDFT call
-   mm_paramset                         : default # Name of the hard-coded parameter set. Must be compatible to the chosen force field.
-   mm_paramfile                        : none #   name of parameter file
  psppar.O:
    Pseudopotential type                : HGH-K
    Atomic number                       : 8
@@ -369,7 +367,6 @@
    - H: [-2.7850745382360119E-002,  3.3431278862820495E-003, -1.222014110402421E-002]
    - H: [-2.7733291538944972E-002,  4.9832930564964045E-002, -8.0030878956443091E-002]
    - H: [-7.0858776945101953E-002,  1.2108273228047618E-002, -7.4889421372466587E-003]
-   energy (Ha)                         : 0.0
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./data-dirmin/
   #----------------------------------------- Input Atomic System (file: __not_a_value__.xyz)
@@ -2170,7 +2167,7 @@
    BC                                  : Free
    Box                                 :  [  167,  159,  169 ]
    MPI tasks                           :  8
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -3677,7 +3674,7 @@
    BC                                  : Free
    Box                                 :  [  167,  159,  169 ]
    MPI tasks                           :  8
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
@@ -5122,7 +5119,7 @@
    BC                                  : Free
    Box                                 :  [  167,  159,  167 ]
    MPI tasks                           :  8
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate Non Local forces            :  Yes
   #----------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:

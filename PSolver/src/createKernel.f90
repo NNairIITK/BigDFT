@@ -14,10 +14,10 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
      alg,cavity,mu0_screening,angrad,mpi_env,taskgroup_size) result(kernel)
   use yaml_output
   use yaml_strings, only: f_strcpy
-  use dictionaries, only: f_loc
+  use f_precisions, only: f_loc
   implicit none
-  logical, intent(in) :: verb       !< verbosity
-  integer, intent(in) :: itype_scf
+  logical, intent(in) :: verb       !< Verbosity
+  integer, intent(in) :: itype_scf  !< Type of interpolating scaling function
   integer, intent(in) :: iproc      !< Proc Id
   integer, intent(in) :: nproc      !< Number of processes
   integer, intent(in) :: igpu
@@ -75,13 +75,13 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
         kernel%nord=16 
         !here the parameters can be specified from command line
         kernel%max_iter=50
-        kernel%minres=1.0e-12_dp!1.0e-4_dp!1.0e-12_dp
+        kernel%minres=1.0e-6_dp!
         kernel%PI_eta=0.6_dp
      case('PCG')
         kernel%method=PS_PCG_ENUM
-        kernel%nord=16 
+        kernel%nord=16
         kernel%max_iter=50
-        kernel%minres=1.0e-12_dp!1.0e-4_dp!1.0e-12_dp
+        kernel%minres=1.0e-6_dp! 
      case default
         call f_err_throw('Error, kernel algorithm '//trim(alg)//&
              'not valid')
@@ -117,8 +117,9 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   !gpu acceleration
   kernel%igpu=igpu  
 
-  kernel%initCufftPlan = 0
+  kernel%initCufftPlan = 1
   kernel%keepGPUmemory = 1
+  kernel%keepzf = 1
 
   if (iproc == 0 .and. verb) then 
      if (mu0t==0.0_gp) then 
@@ -132,13 +133,14 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   
   !import the mpi_environment if present
   if (present(mpi_env)) then
-     kernel%mpi_env=mpi_env
+     call copy_mpi_environment(src=mpi_env,dest=kernel%mpi_env)
+     !ernel%mpi_env=mpi_env
   else
      call mpi_environment_set(kernel%mpi_env,iproc,nproc,MPI_COMM_WORLD,group_size)
   end if
 
   !gpu can be used only for one nproc
-  !if (kernel%nproc > 1) kernel%igpu=0
+  if (nproc > 1) kernel%igpu=0
 
   !-------------------
   nthreads=0
@@ -154,55 +156,6 @@ function pkernel_init(verb,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,&
   end if
 
 end function pkernel_init
-
-
-!> Free memory used by the kernel operation
-!! @ingroup PSOLVER
-subroutine pkernel_free(kernel)
-  use dynamic_memory
-  implicit none
-  type(coulomb_operator), intent(inout) :: kernel
-  integer :: i_stat
-  call f_free_ptr(kernel%kernel)
-  call f_free_ptr(kernel%dlogeps)
-  call f_free_ptr(kernel%oneoeps)
-  call f_free_ptr(kernel%corr)
-  call f_free_ptr(kernel%epsinnersccs)
-  call f_free_ptr(kernel%counts)
-  call f_free_ptr(kernel%displs)
-
-  !free GPU data
-  if (kernel%igpu == 1) then
-    if (kernel%mpi_env%iproc == 0) then
-     if (kernel%keepGPUmemory == 1) then
-       call cudafree(kernel%work1_GPU)
-       call cudafree(kernel%work2_GPU)
-    call cudafree(kernel%z_GPU)
-    call cudafree(kernel%r_GPU)
-    call cudafree(kernel%oneoeps_GPU)
-    call cudafree(kernel%p_GPU)
-    call cudafree(kernel%q_GPU)
-    call cudafree(kernel%x_GPU)
-    call cudafree(kernel%corr_GPU)
-    call cudafree(kernel%alpha_GPU)
-    call cudafree(kernel%beta_GPU)
-    call cudafree(kernel%beta0_GPU)
-    call cudafree(kernel%kappa_GPU)
-     endif
-     call cudafree(kernel%k_GPU)
-     if (kernel%initCufftPlan == 1) then
-       call cufftDestroy(kernel%plan(1))
-       call cufftDestroy(kernel%plan(2))
-       call cufftDestroy(kernel%plan(3))
-       call cufftDestroy(kernel%plan(4))
-     endif
-    endif
-  end if
-
-  !cannot yet free the communicators of the poisson kernel
-  !lack of garbage collector
-
-end subroutine pkernel_free
 
 
 !> Allocate a pointer which corresponds to the zero-padded FFT slice needed for
@@ -227,7 +180,7 @@ end subroutine pkernel_free
 !!    the nd1,nd2,nd3 arguments to the PS_dim4allocation routine, then eliminating the pointer
 !!    declaration.
 !! @ingroup PSOLVER
-subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !optional arguments
+subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,nproc_node,verbose) !optional arguments
   use yaml_output
   use dynamic_memory
   use time_profiling, only: f_timing
@@ -252,6 +205,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   real(dp), dimension(:,:,:), intent(in), optional :: corr
   real(dp) :: alpha
   logical, intent(in), optional :: verbose 
+  !global number of processes running on the node, for GPU memory estimation
+  integer(kind=8), optional :: iproc_node 
+  integer(kind=8), optional :: nproc_node 
   !local variables
   logical :: dump,wrtmsg
   character(len=*), parameter :: subname='createKernel'
@@ -260,12 +216,12 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
   real(kind=8) :: alphat,betat,gammat,mu0t,pi
   real(kind=8), dimension(:), allocatable :: pkernel2
   integer :: i1,i2,i3,j1,j2,j3,ind,indt,switch_alg,size2,sizek,kernelnproc,size3
-  integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23
+  integer :: n3pr1,n3pr2,istart,jend,i23,i3s,n23,displ,gpuPCGRed
+  integer(kind=8) :: myiproc_node, mynproc_node
   integer,dimension(3) :: n
-
   !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','ON')
   call f_timing(TCAT_PSOLV_KERNEL,'ON')
-
+  call f_routine(id='pkernel_set')
   pi=4.0_dp*atan(1.0_dp)
   wrtmsg=.true.
   if (present(verbose)) wrtmsg=verbose
@@ -300,9 +256,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
         call yaml_map('Boundary Conditions','Periodic')
      end if
      call P_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,.false.)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,.false.)
 
-     if (kernel%igpu == 2) then
+     if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
        kernel%kernel = f_malloc_ptr(nd1*nd2*nd3/kernelnproc,id='kernel%kernel')
@@ -361,9 +317,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
      end if
      !Build the Kernel
      call S_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu,.false.)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
      
-     if (kernel%igpu == 2) then
+     if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
        kernel%kernel = f_malloc_ptr(nd1*nd2*nd3/kernelnproc,id='kernel%kernel')
@@ -433,9 +389,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 !     print *,'debug',kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),kernel%hgrids(1),kernel%hgrids(2),kernel%hgrids(3)
      !Build the Kernel
      call F_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),m1,m2,m3,n1,n2,n3,&
-          md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu,.false.)
+          md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
  
-     if (kernel%igpu == 2) then
+     if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
        !allocate(kernel%kernel(nd1*nd2*nd3/kernelnproc+ndebug),stat=i_stat)
@@ -496,9 +452,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
         call yaml_map('Boundary Conditions','Wire')
      end if
      call W_FFT_dimensions(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernelnproc,kernel%igpu,.false.)
+          m1,m2,m3,n1,n2,n3,md1,md2,md3,nd1,nd2,nd3,kernel%mpi_env%nproc,kernel%igpu,.false.)
 
-     if (kernel%igpu == 2) then
+     if (kernel%igpu > 0) then
        kernel%kernel = f_malloc_ptr((n1/2+1)*n2*n3/kernelnproc,id='kernel%kernel')
      else
        kernel%kernel = f_malloc_ptr(nd1*nd2*(nd3/kernelnproc),id='kernel%kernel')
@@ -623,54 +579,75 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
   end if
 
+  if(kernel%keepzf == 1) then
+    if(kernel%igpu /= 1) then
+    !  kernel%w%zf = f_malloc_ptr([md1, md3, md2/kernel%mpi_env%nproc],id='zf')
+    !else 
+      kernel%w%zf = f_malloc_ptr([md1, md3, 2*md2/kernel%mpi_env%nproc],id='zf')
+    end if
+  end if 
+
+  kernel%gpuPCGRed=0
   if (kernel%igpu >0) then
+    if(trim(str(kernel%method))=='PCG') kernel%gpuPCGRed=1
+    n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
+    n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
+    n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
+    if(.not. present(iproc_node)) then
+        myiproc_node=0
+    else
+        myiproc_node=iproc_node
+    end if
+    if(.not. present(nproc_node)) then 
+        mynproc_node=1
+    else
+        mynproc_node=nproc_node
+    end if
+    call cuda_estimate_memory_needs(kernel, n, myiproc_node, mynproc_node) 
+
 
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
     size3=n1*n2*n3
+  if (kernel%gpuPCGRed==1) then
+    if (kernel%keepGPUmemory == 1) then
+      call cudamalloc(size3,kernel%w%z_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc z_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%w%r_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc r_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%w%oneoeps_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc oneoeps_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%w%p_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc p_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%w%q_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc q_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%w%x_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc x_GPU (GPU out of memory ?) ')
+      call cudamalloc(size3,kernel%w%corr_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc corr_GPU (GPU out of memory ?) ')
+      call cudamalloc(sizeof(alpha),kernel%w%alpha_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc alpha_GPU (GPU out of memory ?) ')
+      call cudamalloc(sizeof(alpha),kernel%w%beta_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc beta_GPU (GPU out of memory ?) ')
+      call cudamalloc(sizeof(alpha),kernel%w%beta0_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc beta0_GPU (GPU out of memory ?) ')
+      call cudamalloc(sizeof(alpha),kernel%w%kappa_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc kappa_GPU (GPU out of memory ?) ')
+    end if 
+  end if
 
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then
       if (kernel%keepGPUmemory == 1) then
-        call cudamalloc(size2,kernel%work1_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size2,kernel%work2_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%z_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%r_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%oneoeps_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%p_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%q_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%x_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(size3,kernel%corr_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-
-
-        call cudamalloc(sizeof(alpha),kernel%alpha_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(sizeof(alpha),kernel%beta_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(sizeof(alpha),kernel%beta0_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-        call cudamalloc(sizeof(alpha),kernel%kappa_GPU,i_stat)
-        if (i_stat /= 0) print *,'error cudamalloc',i_stat
-
-        call cudamemset(kernel%p_GPU, 0, size3,i_stat)
-        if (i_stat /= 0) print *,'error cudamemset p',i_stat
-        call cudamemset(kernel%q_GPU, 0, size3,i_stat)
-        if (i_stat /= 0) print *,'error cudamemset q',i_stat
-        call cudamemset(kernel%x_GPU, 0, size3,i_stat)
-        if (i_stat /= 0) print *,'error cudamemset x',i_stat
-
+        call cudamalloc(size2,kernel%w%work1_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc work1_GPU (GPU out of memory ?) ')
+        call cudamalloc(size2,kernel%w%work2_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc work2_GPU (GPU out of memory ?) ')
+        call cudamalloc(size3,kernel%w%rho_GPU,i_stat)
+        if (i_stat /= 0) call f_err_throw('error cudamalloc rho_GPU (GPU out of memory ?) ')
       endif
-      call cudamalloc(sizek,kernel%k_GPU,i_stat)
-      if (i_stat /= 0) print *,'error cudamalloc',i_stat
+      call cudamalloc(sizek,kernel%w%k_GPU,i_stat)
+      if (i_stat /= 0) call f_err_throw('error cudamalloc k_GPU (GPU out of memory ?) ')
     endif
 
     pkernel2 = f_malloc((n1/2+1)*n2*n3,id='pkernel2')
@@ -698,13 +675,11 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,verbose) !opt
 
    if (kernel%mpi_env%iproc == 0) then
     if (kernel%igpu == 1) then 
-      call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%k_GPU)
+      call reset_gpu_data((n1/2+1)*n2*n3,pkernel2,kernel%w%k_GPU)
 
       if (dump) call yaml_map('Kernel Copied on GPU',.true.)
 
-      n(1)=n1!kernel%ndims(1)*(2-kernel%geo(1))
-      n(2)=n3!kernel%ndims(2)*(2-kernel%geo(2))
-      n(3)=n2!kernel%ndims(3)*(2-kernel%geo(3))
+
 
       if (kernel%initCufftPlan == 1) then
         call cuda_3d_psolver_general_plan(n,kernel%plan,switch_alg,kernel%geo)
@@ -775,9 +750,34 @@ end if
      kernel%displs(jproc)=kernel%grid%m1*kernel%grid%m3*istart
   end do
 
+  ! multi-gpu poisson distribution
+  if (kernel%igpu>0 .and. kernel%mpi_env%iproc ==0) then
+    displ=0
+    kernel%rhocounts=f_malloc_ptr([0.to.kernel%mpi_env%nproc-1], id='rhocounts')
+    kernel%rhodispls=f_malloc_ptr([0.to.kernel%mpi_env%nproc-1], id='rhodispls')
+    do jproc=0,kernel%mpi_env%nproc-1
+      kernel%rhodispls(jproc)=displ
+      istart=jproc*( kernel%grid%md2/kernel%mpi_env%nproc)
+      jend=min((jproc+1)* kernel%grid%md2/kernel%mpi_env%nproc,kernel%grid%m2)
+      if (istart <= kernel%grid%m2-1) then
+         kernel%rhocounts(jproc)=(jend-istart)*kernel%grid%md3*kernel%grid%md1
+      else
+         kernel%rhocounts(jproc)=0
+      end if
+      displ=displ+kernel%rhocounts(jproc)
+    end do
+  end if
+
+  !allocate cavity if needed
+  n1=kernel%ndims(1)
+  n23=kernel%ndims(2)*kernel%grid%n3p
+  call PS_allocate_cavity_workarrays(n1,n23,kernel%ndims,&
+       kernel%method,kernel%w)
+
+  !>>>>set the treatment of the cavity
   select case(trim(str(kernel%method)))
   case('PCG')
-  if (present(eps)) then
+     if (present(eps)) then
      if (present(oneosqrteps)) then
         call pkernel_set_epsilon(kernel,eps=eps,oneosqrteps=oneosqrteps)
      else if (present(corr)) then
@@ -806,243 +806,111 @@ end if
      end if
   end select
 
+  call f_release_routine()
   call f_timing(TCAT_PSOLV_KERNEL,'OF')
-  !call timing(kernel%mpi_env%iproc+kernel%mpi_env%igroup*kernel%mpi_env%nproc,'PSolvKernel   ','OF')
 
 END SUBROUTINE pkernel_set
 
 
-!> set the epsilon in the pkernel structure as a function of the seteps variable.
-!! This routine has to be called each time the dielectric function has to be set
-subroutine pkernel_set_epsilon(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr)
-  implicit none
-  !> Poisson Solver kernel
+subroutine cuda_estimate_memory_needs(kernel, n,iproc_node, nproc_node)
+  use iso_c_binding  
+!  use module_base
+implicit none
   type(coulomb_operator), intent(inout) :: kernel
-  !> dielectric function. Needed for non VAC methods, given in full dimensions
-  real(dp), dimension(:,:,:), intent(in), optional :: eps
-  !> logarithmic derivative of epsilon. Needed for PCG method.
-  !! if absent, it will be calculated from the array of epsilon
-  real(dp), dimension(:,:,:,:), intent(in), optional :: dlogeps
-  !> inverse of epsilon. Needed for PI method.
-  !! if absent, it will be calculated from the array of epsilon
-  real(dp), dimension(:,:,:), intent(in), optional :: oneoeps
-  !> inverse square root of epsilon. Needed for PCG method.
-  !! if absent, it will be calculated from the array of epsilon
-  real(dp), dimension(:,:,:), intent(in), optional :: oneosqrteps
-  !> correction term of the Generalized Laplacian
-  !! if absent, it will be calculated from the array of epsilon
-  real(dp), dimension(:,:,:), intent(in), optional :: corr
-  !local variables
-  integer :: n1,n23,i3s,i23,i3,i2,i1
-  real(kind=8) :: pi
-  real(dp), dimension(:,:,:), allocatable :: de2,ddeps
-  real(dp), dimension(:,:,:,:), allocatable :: deps
+  integer,dimension(3), intent(in) :: n
+  integer(kind=C_SIZE_T) :: maxPlanSize, freeGPUSize, totalGPUSize
+  integer(kind=8) :: size2,sizek,size3,NX,NY,NZ,iproc_node,nproc_node
+  integer(kind=8) :: kernelSize, PCGRedSize, plansSize
+  real(dp) alpha
 
-  pi=4.0_dp*atan(1.0_dp)
-  if (present(corr)) then
-     !check the dimensions (for the moment no parallelism)
-     if (any(shape(corr) /= kernel%ndims)) &
-          call f_err_throw('Error in the dimensions of the array corr,'//&
-          trim(yaml_toa(shape(corr))))
-  end if
-  if (present(eps)) then
-     !check the dimensions (for the moment no parallelism)
-     if (any(shape(eps) /= kernel%ndims)) &
-          call f_err_throw('Error in the dimensions of the array epsilon,'//&
-          trim(yaml_toa(shape(eps))))
-  end if
-  if (present(oneoeps)) then
-     !check the dimensions (for the moment no parallelism)
-     if (any(shape(oneoeps) /= kernel%ndims)) &
-          call f_err_throw('Error in the dimensions of the array oneoeps,'//&
-          trim(yaml_toa(shape(oneoeps))))
-  end if
-  if (present(oneosqrteps)) then
-     !check the dimensions (for the moment no parallelism)
-     if (any(shape(oneosqrteps) /= kernel%ndims)) &
-          call f_err_throw('Error in the dimensions of the array oneosqrteps,'//&
-          trim(yaml_toa(shape(oneosqrteps))))
-  end if
-  if (present(dlogeps)) then
-     !check the dimensions (for the moment no parallelism)
-     if (any(shape(dlogeps) /= &
-          [3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)])) &
-          call f_err_throw('Error in the dimensions of the array dlogeps,'//&
-          trim(yaml_toa(shape(dlogeps))))
-  end if
+  kernelSize=0
+  PCGRedSize=0
+  plansSize=0
+  maxPlanSize=0
+  freeGPUSize=0
+  totalGPUSize=0
 
-  !store the arrays needed for the method
-  !the stored arrays are of rank two to collapse indices for
-  !omp parallelism
-  n1=kernel%ndims(1)
-  n23=kernel%ndims(2)*kernel%grid%n3p
-  !starting point in third direction
-  i3s=kernel%grid%istart+1
-  if (kernel%grid%n3p==0) i3s=1
-  select case(trim(str(kernel%method)))
-  case('PCG')
-     if (present(corr)) then
-        kernel%corr=f_malloc_ptr([n1,n23],id='corr')
-        call f_memcpy(n=n1*n23,src=corr(1,1,i3s),dest=kernel%corr)
-     else if (present(eps)) then
-        kernel%corr=f_malloc_ptr([n1,n23],id='corr')
-!!$        !allocate arrays
-        deps=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='deps')
-        de2 =f_malloc(kernel%ndims,id='de2')
-        ddeps=f_malloc(kernel%ndims,id='ddeps')
+ !estimate with CUDA the free memory size, and the size of the plans
+ call cuda_estimate_memory_needs_cu(kernel%mpi_env%iproc,n,&
+    kernel%geo,plansSize,maxPlanSize,freeGPUSize, totalGPUSize )
 
-        call fssnord3DmatNabla3varde2_LG(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-             eps,deps,de2,kernel%nord,kernel%hgrids)
+   size2=2*n(1)*n(2)*n(3)*sizeof(alpha)
+   sizek=(n(1)/2+1)*n(2)*n(3)*sizeof(alpha)
+   size3=n(1)*n(2)*n(3)*sizeof(alpha)
 
-        call fssnord3DmatDiv3var_LG(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-             deps,ddeps,kernel%nord,kernel%hgrids)
+!only the first MPI process of the group needs the GPU for apply_kernel
+ if(kernel%mpi_env%iproc==0) then
+   kernelSize =2*size2+size3+sizek
+ end if
 
-        i23=1
-        do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
-           do i2=1,kernel%ndims(2)
-              do i1=1,kernel%ndims(1)
-                 kernel%corr(i1,i23)=(-0.125d0/pi)*&
-                      (0.5d0*de2(i1,i2,i3)/eps(i1,i2,i3)-ddeps(i1,i2,i3))
-              end do
-              i23=i23+1
-           end do
-        end do
-        call f_free(deps)
-        call f_free(ddeps)
-        call f_free(de2)
+!all processes can use the GPU for apply_reductions
+ if((kernel%gpuPCGRed)==1) then
+   !add a 10% margin, because we use a little bit more
+   PCGRedSize=(7*size3+4*sizeof(alpha))*1.1
+   !print *,"PCG reductions size : %lu\n", PCGRedSize
+ end if
 
-     else
-        call f_err_throw('For method "PCG" the arrays corr or epsilon should be present')   
+
+!print *,"free mem",freeGPUSize,", total",totalGPUSize,". Trying Total : ",kernelSize+plansSize+PCGRedSize,&
+!" with kernel ",kernelSize," plans ",plansSize, "maxplan",&
+!maxPlanSize, "and red ",PCGRedSize, "nprocs/node", nproc_node
+
+ if(freeGPUSize<nproc_node*(kernelSize+maxPlanSize)) then
+     if(kernel%mpi_env%iproc==0)then
+       call f_err_throw('Not Enough memory on the card to allocate GPU kernels, free Memory :' // &
+       trim(yaml_toa(freeGPUSize)) // ", total Memory :"// trim(yaml_toa(totalGPUSize)) //& 
+       ", minimum needed memory :"// trim(yaml_toa(nproc_node*(kernelSize+maxPlanSize))) )
      end if
-     if (present(oneosqrteps)) then
-        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
-        call f_memcpy(n=n1*n23,src=oneosqrteps(1,1,i3s),&
-             dest=kernel%oneoeps)
-     else if (present(eps)) then
-        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
-        i23=1
-        do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
-           do i2=1,kernel%ndims(2)
-              do i1=1,kernel%ndims(1)
-                 kernel%oneoeps(i1,i23)=1.0_dp/sqrt(eps(i1,i2,i3))
-              end do
-              i23=i23+1
-           end do
-        end do
-     else
-        call f_err_throw('For method "PCG" the arrays oneosqrteps or epsilon should be present')   
-     end if
-  case('PI')
-     if (present(dlogeps)) then
-        !kernel%dlogeps=f_malloc_ptr(src=dlogeps,id='dlogeps')
-        kernel%dlogeps=f_malloc_ptr(shape(dlogeps),id='dlogeps')
-        call f_memcpy(src=dlogeps,dest=kernel%dlogeps)
-     else if (present(eps)) then
-        kernel%dlogeps=f_malloc_ptr([3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],&
-             id='dlogeps')
-        !allocate arrays
-        deps=f_malloc([kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3],id='deps')
-        call fssnord3DmatNabla3var_LG(kernel%geocode,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),&
-             eps,deps,kernel%nord,kernel%hgrids)
-        do i3=1,kernel%ndims(3)
-           do i2=1,kernel%ndims(2)
-              do i1=1,kernel%ndims(1)
-                 !switch and create the logarithmic derivative of epsilon
-                 kernel%dlogeps(1,i1,i2,i3)=deps(i1,i2,i3,1)/eps(i1,i2,i3)
-                 kernel%dlogeps(2,i1,i2,i3)=deps(i1,i2,i3,2)/eps(i1,i2,i3)
-                 kernel%dlogeps(3,i1,i2,i3)=deps(i1,i2,i3,3)/eps(i1,i2,i3)
-              end do
-           end do
-        end do
-        call f_free(deps)
-     else
-        call f_err_throw('For method "PI" the arrays dlogeps or epsilon should be present')
-     end if
+ else if(freeGPUSize <nproc_node*(kernelSize+plansSize)) then
+     if(kernel%mpi_env%iproc==0) &
+       call yaml_warning( "WARNING: not enough free memory for cufftPlans on GPU, performance will be degraded")
+     kernel%initCufftPlan=0
+     kernel%gpuPCGRed=0
+ else if((kernel%gpuPCGRed == 1) .and. (freeGPUSize < nproc_node*(kernelSize+plansSize+PCGRedSize))) then
+     if(kernel%mpi_env%iproc==0) &
+      call yaml_warning( "WARNING: not enough free memory for GPU PCG reductions, performance will be degraded")
+     kernel%gpuPCGRed=0;
+ else
+     !call yaml_comment("Memory on the GPU is sufficient for" // trim(yaml_toa(nproc_node)) // " processes/node")
+     kernel%initCufftPlan=1;
+ end if
 
-     if (present(oneoeps)) then
-        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
-        call f_memcpy(n=n1*n23,src=oneoeps(1,1,i3s),&
-             dest=kernel%oneoeps)
-     else if (present(eps)) then
-        kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
-        i23=1
-        do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
-           do i2=1,kernel%ndims(2)
-              do i1=1,kernel%ndims(1)
-                 kernel%oneoeps(i1,i23)=1.0_dp/eps(i1,i2,i3)
-              end do
-              i23=i23+1
-           end do
-        end do
-     else
-        call f_err_throw('For method "PI" the arrays oneoeps or epsilon should be present')
-     end if
-  end select
+call mpibarrier()
 
-end subroutine pkernel_set_epsilon
-
-!> create the memory space needed to store the arrays for the 
-!! description of the cavity
-subroutine pkernel_allocate_cavity(kernel,vacuum)
-  implicit none
-  type(coulomb_operator), intent(inout) :: kernel
-  logical, intent(in), optional :: vacuum !<if .true. the cavity is allocated as no cavity exists, i.e. only vacuum
-  !local variables
-  integer :: n1,n23,i1,i23
-
-  n1=kernel%ndims(1)
-  n23=kernel%ndims(2)*kernel%grid%n3p
-  select case(trim(str(kernel%method)))
-  case('PCG')
-     kernel%corr=f_malloc_ptr([n1,n23],id='corr')
-     kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneosqrteps')
-     kernel%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
-  case('PI')
-     kernel%dlogeps=f_malloc_ptr([3,kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)],&
-          id='dlogeps')
-     kernel%oneoeps=f_malloc_ptr([n1,n23],id='oneoeps')
-     kernel%epsinnersccs=f_malloc_ptr([n1,n23],id='epsinnersccs')
-  end select
-  if (present(vacuum)) then
-     if (vacuum) then
-        select case(trim(str(kernel%method)))
-        case('PCG')
-           call f_zero(kernel%corr)
-        case('PI')
-           call f_zero(kernel%dlogeps)
-        end select
-        call f_zero(kernel%epsinnersccs)
-        do i23=1,n23
-           do i1=1,n1
-              kernel%oneoeps(i1,i23)=1.0_dp
-           end do
-        end do
-     end if
-  end if
-
-end subroutine pkernel_allocate_cavity
+end subroutine cuda_estimate_memory_needs
 
 !>put in depsdrho array the extra potential
-subroutine sccs_extra_potential(kernel,pot,depsdrho)
+subroutine sccs_extra_potential(kernel,pot,depsdrho,dsurfdrho,eps0)
+  use FDder
+  use yaml_output
   implicit none
   type(coulomb_operator), intent(in) :: kernel
   !>complete potential, needed to calculate the derivative
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: pot
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(inout) :: depsdrho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: dsurfdrho
+  real(dp), intent(in) :: eps0
   !local variables
-  integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03
-  real(dp) :: d2
-  real(dp), dimension(:,:,:,:), allocatable :: nabla_pot
+  integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03,unt
+  real(dp) :: d2,x,pi,gammaSau,alphaSau,betaVau
+  real(dp), dimension(:,:,:,:), allocatable :: nabla2_pot
+  !real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)) :: pot2,depsdrho1,depsdrho2
 
+  gammaSau=kernel%cavity%gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  alphaSau=kernel%cavity%alphaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  betaVau=kernel%cavity%betaV/2.942191219d4 ! in atomic unit
+  pi = 4.d0*datan(1.d0)
   n01=kernel%ndims(1)
   n02=kernel%ndims(2)
   n03=kernel%ndims(3)
   !starting point in third direction
   i3s=kernel%grid%istart+1
 
-  nabla_pot=f_malloc([n01,n02,n03,3],id='nabla_pot')
+  nabla2_pot=f_malloc([n01,n02,n03,3],id='nabla_pot')
   !calculate derivative of the potential
-  call fssnord3DmatNabla3var_LG(kernel%geocode,n01,n02,n03,pot,nabla_pot,kernel%nord,kernel%hgrids)
+  !call nabla_u_square(kernel%geocode,n01,n02,n03,pot,nabla2_pot,kernel%nord,kernel%hgrids)
+  call nabla_u(kernel%geocode,n01,n02,n03,pot,nabla2_pot,kernel%nord,kernel%hgrids)
+
   i23=1
   do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
      do i2=1,n02
@@ -1050,30 +918,83 @@ subroutine sccs_extra_potential(kernel,pot,depsdrho)
            !this section has to be inserted into a optimized calculation of the derivative
            d2=0.0_dp
            do i=1,3
-              d2 = d2+nabla_pot(i1,i2,i3,i)**2
+              d2 = d2+nabla2_pot(i1,i2,i3,i)**2
            end do
-           depsdrho(i1,i23)=depsdrho(i1,i23)*d2
+!!$           !depsdrho1(i1,i2,i3)=depsdrho(i1,i23)
+!!$           d2=nabla2_pot(i1,i2,i3)
+           depsdrho(i1,i23)=-0.125d0*depsdrho(i1,i23)*d2/pi!&
+                            !+(alphaSau+gammaSau)*dsurfdrho(i1,i23)&
+                            !+betaVau*depsdrho(i1,i23)/(1.d0-eps0)
+           !depsdrho(i1,i23)=depsdrho(i1,i23)*d2
         end do
         i23=i23+1
      end do
   end do
  
-  call f_free(nabla_pot)
+  call f_free(nabla2_pot)
 
-  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
+  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) then
        call yaml_map('Extra SCF potential calculated',.true.)
+  end if
 
 end subroutine sccs_extra_potential
+
+!>put in pol_charge array the polarization charge
+subroutine polarization_charge(kernel,pot,rho)
+  use FDder
+  implicit none
+  type(coulomb_operator), intent(inout) :: kernel
+  !>complete potential, needed to calculate the derivative
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: pot
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(in) :: rho
+  !local variables
+  integer :: i3,i3s,i2,i1,i23,i,n01,n02,n03
+  real(dp) :: d2,pi
+  real(dp), dimension(:,:,:,:), allocatable :: nabla_pot
+  real(dp), dimension(:,:,:), allocatable :: lapla_pot
+
+  pi=4.0_dp*atan(1.0_dp)
+  n01=kernel%ndims(1)
+  n02=kernel%ndims(2)
+  n03=kernel%ndims(3)
+  !starting point in third direction
+  i3s=kernel%grid%istart+1
+
+  nabla_pot=f_malloc([n01,n02,n03,3],id='nabla_pot')
+  lapla_pot=f_malloc([n01,n02,n03],id='lapla_pot')
+  !calculate derivative of the potential
+
+  call nabla_u(kernel%geocode,n01,n02,n03,pot,nabla_pot,kernel%nord,kernel%hgrids)
+  call div_u_i(kernel%geocode,n01,n02,n03,nabla_pot,lapla_pot,kernel%nord,kernel%hgrids)
+  i23=1
+  do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
+     do i2=1,n02
+        do i1=1,n01
+           !this section has to be inserted into a optimized calculation of the
+           !derivative
+           kernel%w%rho_pol(i1,i23)=(-0.25_dp/pi)*lapla_pot(i1,i2,i3)-rho(i1,i23)
+        end do
+        i23=i23+1
+     end do
+  end do
+
+  call f_free(nabla_pot)
+  call f_free(lapla_pot)
+
+  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
+       call yaml_map('Polarization charge calculated',.true.)
+
+end subroutine polarization_charge
 
 !>build the needed arrays of the cavity from a given density
 !!according to the SCF cavity definition given by Andreussi et al. JCP 136, 064102 (2012)
 !! @warning: for the moment the density is supposed to be not distributed as the 
 !! derivatives are calculated sequentially
-subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
+subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho,dsurfdrho)
   use numerics, only: safe_exp
   use f_utils
   use yaml_output
-
+  use FDder
   implicit none
   !> Poisson Solver kernel
   real(dp), intent(in) :: eps0
@@ -1084,17 +1005,30 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   !> functional derivative of the sc epsilon with respect to 
   !! the electronic density, in distributed memory
   real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: depsdrho
-
-  
+  !> functional derivative of the surface integral with respect to 
+  !! the electronic density, in distributed memory
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: dsurfdrho
   !local variables
-  logical, parameter :: dumpeps=.false.  !.true.
-  real(kind=8), parameter :: edensmax = 0.0050d0
+  logical, parameter :: dumpeps=.true.  !.true.
+  real(kind=8), parameter :: edensmax = 0.005d0 !0.0050d0
   real(kind=8), parameter :: edensmin = 0.0001d0
   real(kind=8), parameter :: innervalue = 0.9d0
   integer :: n01,n02,n03,i,i1,i2,i3,i23,i3s,unt
   real(dp) :: oneoeps0,oneosqrteps0,pi,coeff,coeff1,fact1,fact2,fact3,r,t,d2,dtx,dd,x,y,z
-  real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr,epsinner
+  real(dp) :: de,dde,ddtx,d,c1,c2
+  real(dp), dimension(:,:,:), allocatable :: ddt_edens,epscurr,epsinner,depsdrho1,cc
   real(dp), dimension(:,:,:,:), allocatable :: nabla_edens
+  real(dp), parameter :: gammaS = 72.d0 ![dyn/cm]
+  real(dp), parameter :: alphaS = -22.0d0 ![dyn/cm]
+  real(dp), parameter :: betaV = -0.35d0 ![GPa]
+  real(dp) :: gammaSau, alphaSau,betaVau,epsm1,rho,logepspr,surf,zeta
+  real(gp) :: IntSur,IntVol,noeleene,Cavene,Repene,Disene
+
+  gammaSau=kernel%cavity%gammaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  alphaSau=kernel%cavity%alphaS*5.291772109217d-9/8.238722514d-3 ! in atomic unit
+  betaVau=kernel%cavity%betaV/2.942191219d4 ! in atomic unit
+  IntSur=0.d0
+  IntVol=0.d0
 
   n01=kernel%ndims(1)
   n02=kernel%ndims(2)
@@ -1106,13 +1040,15 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   nabla_edens=f_malloc([n01,n02,n03,3],id='nabla_edens')
   ddt_edens=f_malloc(kernel%ndims,id='ddt_edens')
   epsinner=f_malloc(kernel%ndims,id='epsinner')
+  depsdrho1=f_malloc(kernel%ndims,id='depsdrho1')
+  cc=f_malloc(kernel%ndims,id='cc')
   if (dumpeps) epscurr=f_malloc(kernel%ndims,id='epscurr')
 
   !build the gradients and the laplacian of the density
   !density gradient in du
-  call fssnord3DmatNabla3var_LG(kernel%geocode,n01,n02,n03,edens,nabla_edens,kernel%nord,kernel%hgrids)
+  call nabla_u(kernel%geocode,n01,n02,n03,edens,nabla_edens,kernel%nord,kernel%hgrids)
   !density laplacian in d2u
-  call fssnord3DmatDiv3var_LG(kernel%geocode,n01,n02,n03,nabla_edens,ddt_edens,kernel%nord,kernel%hgrids)
+  call div_u_i(kernel%geocode,n01,n02,n03,nabla_edens,ddt_edens,kernel%nord,kernel%hgrids,cc)
 
   pi = 4.d0*datan(1.d0)
   oneoeps0=1.d0/eps0
@@ -1121,6 +1057,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   fact2=(dlog(eps0))/(2.d0*pi)
   fact3=(dlog(eps0))/(dlog(edensmax)-dlog(edensmin))
 
+  epsm1=(kernel%cavity%epsilon0-1.0_gp)
   if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) &
        call yaml_map('Rebuilding the cavity for method',trim(str(kernel%method)))
 
@@ -1134,55 +1071,87 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
         !do i3=1,n03
         do i2=1,n02
            do i1=1,n01
-             if (kernel%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+              if (kernel%w%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
                  !eps(i1,i2,i3)=1.d0
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
-                 kernel%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
-!!$                 do i=1,3
-!!$                    dlogeps(i,i1,i2,i3)=0.d0
-!!$                 end do
-                 kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
+                 kernel%w%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
+                 kernel%w%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
-             else
-
-              if (dabs(edens(i1,i2,i3)).gt.edensmax) then
-                 !eps(i1,i2,i3)=1.d0
-                 if (dumpeps) epscurr(i1,i2,i3)=1.d0
-                 kernel%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
-!!$                 do i=1,3
-!!$                    dlogeps(i,i1,i2,i3)=0.d0
-!!$                 end do
-                 kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
-                 depsdrho(i1,i23)=0.d0
-              else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
-                 !eps(i1,i2,i3)=eps0
-                 if (dumpeps) epscurr(i1,i2,i3)=eps0
-                 kernel%oneoeps(i1,i23)=oneosqrteps0 !oneosqrteps(i1,i2,i3)
-!!$                 do i=1,3
-!!$                    dlogeps(i,i1,i2,i3)=0.d0
-!!$                 end do
-                 kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
-                 depsdrho(i1,i23)=0.d0
+ !                depsdrho1(i1,i2,i3)=0.d0
+                 dsurfdrho(i1,i23)=0.d0
               else
-                 r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
-                 t=fact2*(r-sin(r))
-                 !eps(i1,i2,i3)=exp(t)
-                 if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
-                 kernel%oneoeps(i1,i23)=safe_exp(-0.5d0*t) !oneosqrteps(i1,i2,i3)
-                 coeff=fact3*(1.d0-cos(r))
-                 dtx=-coeff/dabs(edens(i1,i2,i3))
-                 depsdrho(i1,i23)=-safe_exp(t)*0.125d0/pi*dtx
-                 d2=0.d0
-                 do i=1,3
-                    !dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,isp,i)
-                    d2 = d2+nabla_edens(i1,i2,i3,i)**2
-                 end do
-                 dd = ddt_edens(i1,i2,i3)
-                 coeff1=(0.5d0*(coeff**2)+fact3*fact1*sin(r)+coeff)/((edens(i1,i2,i3))**2)
-                 kernel%corr(i1,i23)=(0.125d0/pi)*safe_exp(t)*(coeff1*d2+dtx*dd) !corr(i1,i2,i3)
-              end if
+                rho=edens(i1,i2,i3)
+                d2=0.0_dp
+                do i=1,3
+                   d2 = d2+nabla_edens(i1,i2,i3,i)**2
+                end do
+                d=sqrt(d2)
+                dd = ddt_edens(i1,i2,i3)
+                de=epsprime(rho,kernel%cavity)
+                if (dumpeps) epscurr(i1,i2,i3)=eps(rho,kernel%cavity)
+                depsdrho(i1,i23)=de
+                kernel%w%oneoeps(i1,i23)=oneosqrteps(rho,kernel%cavity)
+                kernel%w%corr(i1,i23)=corr_term(rho,d2,dd,kernel%cavity)
+!!$                !c1=(cc(i1,i2,i3)/d2-dd)/d
+!!$                dsurfdrho(i1,i23)=surf_term(rho,d2,dd,cc(i1,i2,i3),kernel%cavity)/epsm1
+!!$                !evaluate surfaces and volume integrals
+                IntSur=IntSur + de*d/epsm1
+                IntVol=IntVol + (kernel%cavity%epsilon0-eps(rho,kernel%cavity))/epsm1
+!!$
+!!$
+!!$                 if (dabs(edens(i1,i2,i3)).gt.edensmax) then
+!!$                    !eps(i1,i2,i3)=1.d0
+!!$                    if (dumpeps) epscurr(i1,i2,i3)=1.d0
+!!$!                    kernel%oneoeps(i1,i23)=1.d0 !oneosqrteps(i1,i2,i3)
+!!$!                    kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
+!!$!                    depsdrho(i1,i23)=0.d0
+!!$!                    depsdrho1(i1,i2,i3)=0.d0
+!!$!                    dsurfdrho(i1,i23)=0.d0
+!!$                 else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
+!!$                    !eps(i1,i2,i3)=eps0
+!!$                    if (dumpeps) epscurr(i1,i2,i3)=eps0
+!!$!                    kernel%oneoeps(i1,i23)=oneosqrteps0 !oneosqrteps(i1,i2,i3)
+!!$!                    kernel%corr(i1,i23)=0.d0 !corr(i1,i2,i3)
+!!$!                    depsdrho(i1,i23)=0.d0
+!!$!                    depsdrho1(i1,i2,i3)=0.d0
+!!$                    dsurfdrho(i1,i23)=0.d0
+!!$                 else
+!!$                    r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
+!!$                    t=fact2*(r-sin(r))
+!!$                    !eps(i1,i2,i3)=exp(t)
+!!$                    if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
+!!$
+!!$!                    kernel%oneoeps(i1,i23)=safe_exp(-0.5d0*t) !oneosqrteps(i1,i2,i3)
+!!$!zeta=2.0_gp*pi*log(kernel%cavity%edensmax/rho)/log(kernel%cavity%edensmax/kernel%cavity%edensmin)
+!!$!print *,t,(zeta-sin(zeta))/(2.d0*pi)*log(eps0)
+!!$!print *,r,zeta,(zeta-sin(zeta))/(2.d0*pi)
+!!$!print *,safe_exp((zeta-sin(zeta))/(2.d0*pi)*log(eps0)),eps0,safe_exp((zeta-sin(zeta))/(2.d0*pi))
+!!$!print *,safe_exp(t),eps(rho,kernel%cavity)
+!!$! print *,oneosqrteps(rho,kernel%cavity),safe_exp(-0.5d0*t),oneosqrteps(rho,kernel%cavity)-safe_exp(-0.5d0*t) !wrong
+!!$                    coeff=fact3*(1.d0-cos(r))
+!!$                    dtx=-coeff/dabs(edens(i1,i2,i3))  !first derivative of t wrt rho
+!!$                    de=safe_exp(t)*dtx ! derivative of epsilon wrt rho
+!!$!                    depsdrho(i1,i23)=de
+!!$!                    depsdrho1(i1,i2,i3)=de
+!!$                    ddtx=fact3*(1.d0-cos(r)+fact1*sin(r))/((edens(i1,i2,i3))**2) !second derivative of t wrt rho
+!!$                    dde=de*dtx+safe_exp(t)*ddtx
+!!$                    d2=0.d0
+!!$                    do i=1,3
+!!$                       !dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,isp,i)
+!!$                       d2 = d2+nabla_edens(i1,i2,i3,i)**2
+!!$                    end do
+!!$                    d=dsqrt(d2)
+!!$                    dd = ddt_edens(i1,i2,i3)
+!!$                    coeff1=(0.5d0*(coeff**2)+fact3*fact1*sin(r)+coeff)/((edens(i1,i2,i3))**2)
+!!$!                    kernel%corr(i1,i23)=(0.125d0/pi)*safe_exp(t)*(coeff1*d2+dtx*dd) !corr(i1,i2,i3)
+!!$                    c1=(cc(i1,i2,i3)/d2-dd)/d
+!!$                    dsurfdrho(i1,i23)=(de*c1)/(eps0-1.d0)
+!!$                    !dsurfdrho(i1,i23)=(de*c1+dde*c2)/(eps0-1.d0)
+!!$!                    IntSur=IntSur + de*d
+!!$!                    IntVol=IntVol + (eps0-safe_exp(t))/(eps0-1.d0)
+!!$                 end if
 
-             end if
+              end if
            end do
            i23=i23+1
         end do
@@ -1194,34 +1163,69 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
      do i3=i3s,i3s+kernel%grid%n3p-1!kernel%ndims(3)
         do i2=1,n02
            do i1=1,n01
-             epsinner(i1,i2,i3)=kernel%epsinnersccs(i1,i23)
-             if (kernel%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
+             epsinner(i1,i2,i3)=kernel%w%epsinnersccs(i1,i23)
+             if (kernel%w%epsinnersccs(i1,i23).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
                  !eps(i1,i2,i3)=1.d0
                  if (dumpeps) epscurr(i1,i2,i3)=1.d0
-                 kernel%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
+                 kernel%w%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
                  depsdrho(i1,i23)=0.d0
+                 dsurfdrho(i1,i23)=0.d0
              else
+                rho=edens(i1,i2,i3)
+                d2=0.0_dp
+                do i=1,3
+                   !dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,isp,i)
+                   d2 = d2+nabla_edens(i1,i2,i3,i)**2
+                end do
+                d=sqrt(d2)
+                dd = ddt_edens(i1,i2,i3)
+                de=epsprime(rho,kernel%cavity)
+                if (dumpeps) epscurr(i1,i2,i3)=eps(rho,kernel%cavity)
+                depsdrho(i1,i23)=de
+                kernel%w%oneoeps(i1,i23)=oneoeps(rho,kernel%cavity) !in pi
+                !c1=(cc(i1,i2,i3)/d2-dd)/d
+                dsurfdrho(i1,i23)=surf_term(rho,d2,dd,cc(i1,i2,i3),kernel%cavity)/epsm1
+                
+                !evaluate surfaces and volume integrals
+                IntSur=IntSur + de*d/epsm1
+                IntVol=IntVol + (kernel%cavity%epsilon0-eps(rho,kernel%cavity))/epsm1
 
-              if (dabs(edens(i1,i2,i3)).gt.edensmax) then
-                 !eps(i1,i2,i3)=1.d0
-                 if (dumpeps) epscurr(i1,i2,i3)=1.d0
-                 kernel%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
-                 depsdrho(i1,i23)=0.d0
-              else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
-                 !eps(i1,i2,i3)=eps0
-                 if (dumpeps) epscurr(i1,i2,i3)=eps0
-                 kernel%oneoeps(i1,i23)=oneoeps0 !oneoeps(i1,i2,i3)
-                 depsdrho(i1,i23)=0.d0
-              else
-                 r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
-                 t=fact2*(r-sin(r))
-                 coeff=fact3*(1.d0-cos(r))
-                 dtx=-coeff/dabs(edens(i1,i2,i3))
-                 depsdrho(i1,i23)=-safe_exp(t)*0.125d0/pi*dtx
-                 !eps(i1,i2,i3)=dexp(t)
-                 if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
-                 kernel%oneoeps(i1,i23)=safe_exp(-t) !oneoeps(i1,i2,i3)
-              end if
+
+!!$              if (dabs(edens(i1,i2,i3)).gt.edensmax) then
+!!$                 !eps(i1,i2,i3)=1.d0
+!!$                 if (dumpeps) epscurr(i1,i2,i3)=1.d0
+!!$                 kernel%oneoeps(i1,i23)=1.d0 !oneoeps(i1,i2,i3)
+!!$                 depsdrho(i1,i23)=0.d0
+!!$                 dsurfdrho(i1,i23)=0.d0
+!!$              else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
+!!$                 !eps(i1,i2,i3)=eps0
+!!$                 if (dumpeps) epscurr(i1,i2,i3)=eps0
+!!$                 kernel%oneoeps(i1,i23)=oneoeps0 !oneoeps(i1,i2,i3)
+!!$                 depsdrho(i1,i23)=0.d0
+!!$                 dsurfdrho(i1,i23)=0.d0
+!!$              else
+!!$                 r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
+!!$                 t=fact2*(r-sin(r))
+!!$                 coeff=fact3*(1.d0-cos(r))
+!!$                 dtx=-coeff/dabs(edens(i1,i2,i3))
+!!$                 de=safe_exp(t)*dtx ! derivative of epsilon wrt rho
+!!$                 depsdrho(i1,i23)=de
+!!$                 !eps(i1,i2,i3)=dexp(t)
+!!$                 if (dumpeps) epscurr(i1,i2,i3)=safe_exp(t)
+!!$                 kernel%oneoeps(i1,i23)=safe_exp(-t) !oneoeps(i1,i2,i3)
+!!$                 d2=0.d0
+!!$                 do i=1,3
+!!$                    !dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,isp,i)
+!!$                    d2 = d2+nabla_edens(i1,i2,i3,i)**2
+!!$                 end do
+!!$                 d=dsqrt(d2)
+!!$                 dd = ddt_edens(i1,i2,i3)
+!!$                 c1=(cc(i1,i2,i3)/d2-dd)/d
+!!$                 dsurfdrho(i1,i23)=(de*c1)/(eps0-1.d0)
+!!$                 !dsurfdrho(i1,i23)=(de*c1+dde*c2)/(eps0-1.d0)
+!!$                 IntSur=IntSur + de*d
+!!$                 IntVol=IntVol + (eps0-safe_exp(t))/(eps0-1.d0)
+!!$              end if
 
              end if
            end do
@@ -1235,26 +1239,30 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
            do i1=1,n01
              if (epsinner(i1,i2,i3).gt.innervalue) then ! Check for inner sccs cavity value to fix as vacuum
               do i=1,3
-               kernel%dlogeps(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
+               kernel%w%dlogeps(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
               end do
              else
+                logepspr=logepsprime(edens(i1,i2,i3),kernel%cavity)
+                do i=1,3
+                   kernel%w%dlogeps(i,i1,i2,i3)=nabla_edens(i1,i2,i3,i)*logepspr
+                end do
 
-              if (dabs(edens(i1,i2,i3)).gt.edensmax) then
-                 do i=1,3
-                    kernel%dlogeps(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
-                 end do
-              else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
-                 do i=1,3
-                    kernel%dlogeps(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
-                 end do
-              else
-                 r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
-                 coeff=fact3*(1.d0-cos(r))
-                 dtx=-coeff/dabs(edens(i1,i2,i3))
-                 do i=1,3
-                    kernel%dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,i) !dlogeps(i,i1,i2,i3)
-                 end do
-              end if
+!!$              if (dabs(edens(i1,i2,i3)).gt.edensmax) then
+!!$                 do i=1,3
+!!$                    kernel%dlogeps(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
+!!$                 end do
+!!$              else if (dabs(edens(i1,i2,i3)).lt.edensmin) then
+!!$                 do i=1,3
+!!$                    kernel%dlogeps(i,i1,i2,i3)=0.d0 !dlogeps(i,i1,i2,i3)
+!!$                 end do
+!!$              else
+!!$                 r=fact1*(log(edensmax)-log(dabs(edens(i1,i2,i3))))
+!!$                 coeff=fact3*(1.d0-cos(r))
+!!$                 dtx=-coeff/dabs(edens(i1,i2,i3))
+!!$                 do i=1,3
+!!$                    kernel%dlogeps(i,i1,i2,i3)=dtx*nabla_edens(i1,i2,i3,i) !dlogeps(i,i1,i2,i3)
+!!$                 end do
+!!$              end if
 
              end if
            end do
@@ -1262,6 +1270,23 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
      end do
 
   end select
+
+  IntSur=IntSur*kernel%hgrids(1)*kernel%hgrids(2)*kernel%hgrids(3)!/(eps0-1.d0)
+  IntVol=IntVol*kernel%hgrids(1)*kernel%hgrids(2)*kernel%hgrids(3)
+
+  Cavene= gammaSau*IntSur*627.509469d0
+  Repene= alphaSau*IntSur*627.509469d0
+  Disene=  betaVau*IntVol*627.509469d0
+  noeleene=Cavene+Repene+Disene
+
+  if (kernel%mpi_env%iproc==0 .and. kernel%mpi_env%igroup==0) then
+     call yaml_map('Surface integral',IntSur)
+     call yaml_map('Volume integral',IntVol)
+     call yaml_map('Cavity energy',Cavene)
+     call yaml_map('Repulsion energy',Repene)
+     call yaml_map('Dispersion energy',Disene)
+     call yaml_map('Total non-electrostatic energy',noeleene)
+  end if
 
   if (dumpeps) then
 
@@ -1279,7 +1304,7 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
      call f_open_file(unt,file='epsilon_line_sccs_x.dat')
      do i1=1,n01
         x=i1*kernel%hgrids(1)
-        write(unt,'(1x,I8,3(1x,e22.15))')i1,x,epscurr(i1,n02/2,n03/2),edens(i1,n02/2,n03/2)
+        write(unt,'(1x,I8,4(1x,e22.15))')i1,x,epscurr(i1,n02/2,n03/2),edens(i1,n02/2,n03/2),depsdrho1(i1,n02/2,n03/2)
      end do
      call f_close(unt)
 
@@ -1306,9 +1331,55 @@ subroutine pkernel_build_epsilon(kernel,edens,eps0,depsdrho)
   call f_free(ddt_edens)
   call f_free(nabla_edens)
   call f_free(epsinner)
+  call f_free(depsdrho1)
+  call f_free(cc)
 
 end subroutine pkernel_build_epsilon
-  
+
+!>new version of the pkernel_build epsilon Routine, 
+!! with explicit workarrays. This version is supposed not to allocate 
+!! any array
+subroutine rebuild_cavity_from_rho(rho_full,nabla_rho,nabla2_rho,delta_rho,cc_rho,depsdrho,dsurfdrho,&
+     kernel,IntSur,IntVol)
+  use FDder
+  implicit none
+  type(coulomb_operator), intent(inout) :: kernel
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(in) :: rho_full
+  real(gp), intent(out) :: IntSur,IntVol
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out) :: delta_rho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3)), intent(out) :: cc_rho,nabla2_rho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2),kernel%ndims(3),3), intent(out) :: nabla_rho
+  real(dp), dimension(kernel%ndims(1),kernel%ndims(2)*kernel%grid%n3p), intent(out) :: depsdrho,dsurfdrho
+  !local variables
+  integer :: n01,n02,n03,i3s
+
+  n01=kernel%ndims(1)
+  n02=kernel%ndims(2)
+  n03=kernel%ndims(3)
+
+  !calculate the derivatives of the density
+  !build the gradients and the laplacian of the density
+  !density gradient in du
+  !call nabla_u(kernel%geocode,n01,n02,n03,rho_full,nabla_rho,kernel%nord,kernel%hgrids)
+  call nabla_u_and_square(kernel%geocode,n01,n02,n03,rho_full,nabla_rho,nabla2_rho,&
+       kernel%nord,kernel%hgrids)
+  !density laplacian in delta_rho
+  call div_u_i(kernel%geocode,n01,n02,n03,nabla_rho,delta_rho,kernel%nord,kernel%hgrids,cc_rho)
+
+  !aliasing for the starting point
+  i3s=kernel%grid%istart+1
+  if (kernel%grid%n3p == 0 ) i3s=1
+  call build_cavity_from_rho(rho_full(1,1,i3s),nabla2_rho(1,1,i3s),delta_rho(1,1,i3s),cc_rho(1,1,i3s),&
+       kernel,depsdrho,dsurfdrho,IntSur,IntVol)
+
+  if (kernel%method=='PI') then
+     !form the inner cavity with a gathering
+     call PS_gather(src=kernel%w%epsinnersccs,dest=delta_rho,kernel=kernel)
+     call dlepsdrho_sccs(kernel%ndims,rho_full,nabla_rho,delta_rho,kernel%w%dlogeps,kernel%cavity)
+  end if
+    
+end subroutine rebuild_cavity_from_rho
+
 subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mpi,n3pr1,n3pr2)
   use wrapper_mpi
   use yaml_output
@@ -1350,697 +1421,3 @@ subroutine inplane_partitioning(mpi_env,mdz,n2wires,n3planes,part_mpi,inplane_mp
 
 end subroutine inplane_partitioning
 
-!>This routine computes 'nord' order accurate first derivatives 
-!! on a equally spaced grid with coefficients from 'Mathematica' program.
-!! 
-!! input:
-!! ngrid       = number of points in the grid, 
-!! u(ngrid)    = function values at the grid points
-!! 
-!! output:
-!! du(ngrid)   = first derivative values at the grid points
-subroutine fssnord3DmatNabla3varde2_LG(geocode,n01,n02,n03,u,du,du2,nord,hgrids)
-  implicit none
-
-
-  !c..declare the pass
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: n01,n02,n03,nord
-  real(kind=8), dimension(3), intent(in) :: hgrids
-  real(kind=8), dimension(n01,n02,n03) :: u
-  real(kind=8), dimension(n01,n02,n03,3) :: du
-  real(kind=8), dimension(n01,n02,n03) :: du2
-
-  !c..local variables
-  integer :: n,m,n_cell
-  integer :: i,j,ib,i1,i2,i3,ii
-  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-  real(kind=8) :: hx,hy,hz
-  logical :: perx,pery,perz
-
-  n = nord+1
-  m = nord/2
-  hx = hgrids(1)!acell/real(n01,kind=8)
-  hy = hgrids(2)!acell/real(n02,kind=8)
-  hz = hgrids(3)!acell/real(n03,kind=8)
-  n_cell = max(n01,n02,n03)
-
-  !buffers associated to the geocode
-  !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
-  pery=(geocode == 'P')
-  perz=(geocode /= 'F')
-
-  ! Beware that n_cell has to be > than n.
-  if (n_cell.lt.n) then
-     call f_err_throw('Ngrid in has to be setted > than n=nord + 1')
-     !stop
-  end if
-
-  ! Setting of 'nord' order accurate first derivative coefficient from 'Matematica'.
-  !Only nord=2,4,6,8,16
-
-  select case(nord)
-  case(2,4,6,8,16)
-     !O.K.
-  case default
-     write(*,*)'Only nord-order 2,4,6,8,16 accurate first derivative'
-     stop
-  end select
-
-  do i=-m,m
-     do j=-m,m
-        c1D(i,j)=0.d0
-     end do
-  end do
-
-  include 'FiniteDiffCorff.inc'
-
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
-
-           du(i1,i2,i3,1) = 0.0d0
-           du2(i1,i2,i3) = 0.0d0
-
-           if (i1.le.m) then
-            if (perx) then
-             do j=-m,m
-              ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-m-1)*u(j+m+1,i2,i3)/hx
-             end do
-            end if
-           else if (i1.gt.n01-m) then
-            if (perx) then
-             do j=-m,m
-              ii=modulo(i1 + j - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)/hx
-             end do
-            end if
-           else
-              do j=-m,m
-                 du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(i1 + j,i2,i3)/hx
-              end do
-           end if
-
-           du2(i1,i2,i3) = du(i1,i2,i3,1)*du(i1,i2,i3,1)
-           du(i1,i2,i3,2) = 0.0d0
-
-           if (i2.le.m) then
-            if (pery) then
-             do j=-m,m
-              ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-m-1)*u(i1,j+m+1,i3)/hy
-             end do
-            end if
-           else if (i2.gt.n02-m) then
-            if (pery) then
-             do j=-m,m
-              ii=modulo(i2 + j - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)/hy
-             end do
-            end if
-           else
-              do j=-m,m
-                 du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,i2 + j,i3)/hy
-              end do
-           end if
-
-           du2(i1,i2,i3) = du2(i1,i2,i3) + du(i1,i2,i3,2)*du(i1,i2,i3,2)
-
-           du(i1,i2,i3,3) = 0.0d0
-
-           if (i3.le.m) then
-            if (perz) then
-             do j=-m,m
-              ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-m-1)*u(i1,i2,j+m+1)/hz
-             end do
-            end if
-           else if (i3.gt.n03-m) then
-            if (perz) then
-             do j=-m,m
-              ii=modulo(i3 + j - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)/hz
-             end do
-            end if
-           else
-              do j=-m,m
-                 du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,i3 + j)/hz
-              end do
-           end if
-
-           du2(i1,i2,i3) = du2(i1,i2,i3) + du(i1,i2,i3,3)*du(i1,i2,i3,3)
-
-        end do
-     end do
-  end do
-
-end subroutine fssnord3DmatNabla3varde2_LG
-
-!>this routine computes 'nord' order accurate first derivatives 
-!!on a equally spaced grid with coefficients from 'Matematica' program.
-!!
-!!input:
-!!ngrid       = number of points in the grid, 
-!!u(ngrid)    = function values at the grid points
-!!
-!!output:
-!!du(ngrid)   = first derivative values at the grid points
-!!
-!!declare the pass
-subroutine fssnord3DmatDiv3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
-  implicit none
-
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: n01,n02,n03,nord
-  real(kind=8), dimension(3), intent(in) :: hgrids
-  real(kind=8), dimension(n01,n02,n03,3) :: u
-  real(kind=8), dimension(n01,n02,n03) :: du
-
-  !c..local variables
-  integer :: n,m,n_cell
-  integer :: i,j,ib,i1,i2,i3,ii
-  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-  real(kind=8) :: hx,hy,hz,d1,d2,d3
-  real(kind=8), parameter :: zero = 0.d0! 1.0d-11
-  logical :: perx,pery,perz
-
-  n = nord+1
-  m = nord/2
-  hx = hgrids(1)!acell/real(n01,kind=8)
-  hy = hgrids(2)!acell/real(n02,kind=8)
-  hz = hgrids(3)!acell/real(n03,kind=8)
-  n_cell = max(n01,n02,n03)
-
-  !buffers associated to the geocode
-  !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
-  pery=(geocode == 'P')
-  perz=(geocode /= 'F')
-
-  ! Beware that n_cell has to be > than n.
-  if (n_cell.lt.n) then
-     write(*,*)'ngrid in has to be setted > than n=nord + 1'
-     stop
-  end if
-
-  ! Setting of 'nord' order accurate first derivative coefficient from 'Matematica'.
-  !Only nord=2,4,6,8,16
-
-  select case(nord)
-  case(2,4,6,8,16)
-     !O.K.
-  case default
-     write(*,*)'Only nord-order 2,4,6,8,16 accurate first derivative'
-     stop
-  end select
-
-  do i=-m,m
-     do j=-m,m
-        c1D(i,j)=0.d0
-     end do
-  end do
-
-  include 'FiniteDiffCorff.inc'
-
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
-
-           du(i1,i2,i3) = 0.0d0
-
-           d1 = 0.d0
-           if (i1.le.m) then
-              if (perx) then
-               do j=-m,m
-                ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-                d1 = d1 + c1D(j,0)*u(ii,i2,i3,1)!/hx
-               end do
-              else
-               do j=-m,m
-                 d1 = d1 + c1D(j,i1-m-1)*u(j+m+1,i2,i3,1)!/hx
-               end do
-              end if
-           else if (i1.gt.n01-m) then
-              if (perx) then
-               do j=-m,m
-                ii=modulo(i1 + j - 1, n01 ) + 1
-                d1 = d1 + c1D(j,0)*u(ii,i2,i3,1)!/hx
-               end do
-              else
-               do j=-m,m
-                 d1 = d1 + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3,1)!/hx
-               end do
-              end if
-           else
-              do j=-m,m
-                 d1 = d1 + c1D(j,0)*u(i1 + j,i2,i3,1)!/hx
-              end do
-           end if
-           d1=d1/hx
-
-           d2 = 0.d0
-           if (i2.le.m) then
-              if (pery) then
-               do j=-m,m
-                ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-                d2 = d2 + c1D(j,0)*u(i1,ii,i3,2)!/hy
-               end do
-              else
-               do j=-m,m
-                 d2 = d2 + c1D(j,i2-m-1)*u(i1,j+m+1,i3,2)!/hy
-               end do
-              end if
-           else if (i2.gt.n02-m) then
-              if (pery) then
-               do j=-m,m
-                ii=modulo(i2 + j - 1, n02 ) + 1
-                d2 = d2 + c1D(j,0)*u(i1,ii,i3,2)!/hy
-               end do
-              else
-               do j=-m,m
-                 d2 = d2 + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3,2)!/hy
-               end do
-              end if
-           else
-              do j=-m,m
-                 d2 = d2 + c1D(j,0)*u(i1,i2 + j,i3,2)!/hy
-              end do
-           end if
-           d2=d2/hy
-
-           d3 = 0.d0
-           if (i3.le.m) then
-              if (perz) then
-               do j=-m,m
-                ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-                d3 = d3 + c1D(j,0)*u(i1,i2,ii,3)!/hz
-               end do
-              else
-               do j=-m,m
-                 d3 = d3 + c1D(j,i3-m-1)*u(i1,i2,j+m+1,3)!/hz
-               end do
-              end if
-           else if (i3.gt.n03-m) then
-              if (perz) then
-               do j=-m,m
-                ii=modulo(i3 + j - 1, n03 ) + 1
-                d3 = d3 + c1D(j,0)*u(i1,i2,ii,3)!/hz
-               end do
-              else
-               do j=-m,m
-                d3 = d3 + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m,3)!/hz
-               end do
-              end if
-           else
-              do j=-m,m
-                 d3 = d3 + c1D(j,0)*u(i1,i2,i3 + j,3)!/hz
-              end do
-           end if
-           d3=d3/hz
-
-           du(i1,i2,i3) = d1+d2+d3
-
-        end do
-     end do
-  end do
-
-end subroutine fssnord3DmatDiv3var_LG
-
-subroutine fssnord3DmatNabla3var_LG(geocode,n01,n02,n03,u,du,nord,hgrids)
-  implicit none
-
-  !c..this routine computes 'nord' order accurate first derivatives 
-  !c..on a equally spaced grid with coefficients from 'Matematica' program.
-
-  !c..input:
-  !c..ngrid       = number of points in the grid, 
-  !c..u(ngrid)    = function values at the grid points
-
-  !c..output:
-  !c..du(ngrid)   = first derivative values at the grid points
-
-  !c..declare the pass
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: n01,n02,n03,nord
-  real(kind=8), dimension(3), intent(in) :: hgrids
-  real(kind=8), dimension(n01,n02,n03) :: u
-  real(kind=8), dimension(n01,n02,n03,3) :: du
-
-  !c..local variables
-  integer :: n,m,n_cell,ii
-  integer :: i,j,ib,i1,i2,i3
-  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D
-  real(kind=8) :: hx,hy,hz
-  logical :: perx,pery,perz
-
-  n = nord+1
-  m = nord/2
-  hx = hgrids(1)!acell/real(n01,kind=8)
-  hy = hgrids(2)!acell/real(n02,kind=8)
-  hz = hgrids(3)!acell/real(n03,kind=8)
-  n_cell = max(n01,n02,n03)
-
-  !buffers associated to the geocode
-  !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
-  pery=(geocode == 'P')
-  perz=(geocode /= 'F')
-
-
-  ! Beware that n_cell has to be > than n.
-  if (n_cell.lt.n) then
-     write(*,*)'ngrid in has to be setted > than n=nord + 1'
-     stop
-  end if
-
-  ! Setting of 'nord' order accurate first derivative coefficient from 'Matematica'.
-  !Only nord=2,4,6,8,16
-
-  select case(nord)
-  case(2,4,6,8,16)
-     !O.K.
-  case default
-     write(*,*)'Only nord-order 2,4,6,8,16 accurate first derivative'
-     stop
-  end select
-
-  do i=-m,m
-     do j=-m,m
-        c1D(i,j)=0.d0
-     end do
-  end do
-
-  include 'FiniteDiffCorff.inc'
-
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
-
-           du(i1,i2,i3,1) = 0.0d0
-
-           if (i1.le.m) then
-            if (perx) then
-             do j=-m,m
-              ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-m-1)*u(j+m+1,i2,i3)/hx
-             end do
-            end if
-           else if (i1.gt.n01-m) then
-            if (perx) then
-             do j=-m,m
-              ii=modulo(i1 + j - 1, n01 ) + 1
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(ii,i2,i3)/hx
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)/hx
-             end do
-            end if
-           else
-            do j=-m,m
-             du(i1,i2,i3,1) = du(i1,i2,i3,1) + c1D(j,0)*u(i1 + j,i2,i3)/hx
-            end do
-           end if
-
-           du(i1,i2,i3,2) = 0.0d0
-
-           if (i2.le.m) then
-            if (pery) then
-             do j=-m,m
-              ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-m-1)*u(i1,j+m+1,i3)/hy
-             end do
-            end if
-           else if (i2.gt.n02-m) then
-            if (pery) then
-             do j=-m,m
-              ii=modulo(i2 + j - 1, n02 ) + 1
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,ii,i3)/hy
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)/hy
-             end do
-            end if
-           else
-            do j=-m,m
-             du(i1,i2,i3,2) = du(i1,i2,i3,2) + c1D(j,0)*u(i1,i2 + j,i3)/hy
-            end do
-           end if
-
-           du(i1,i2,i3,3) = 0.0d0
-
-           if (i3.le.m) then
-            if (perz) then
-             do j=-m,m
-              ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-m-1)*u(i1,i2,j+m+1)/hz
-             end do
-            end if
-           else if (i3.gt.n03-m) then
-            if (perz) then
-             do j=-m,m
-              ii=modulo(i3 + j - 1, n03 ) + 1
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,ii)/hz
-             end do
-            else
-             do j=-m,m
-              du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)/hz
-             end do
-            end if
-           else
-            do j=-m,m
-             du(i1,i2,i3,3) = du(i1,i2,i3,3) + c1D(j,0)*u(i1,i2,i3 + j)/hz
-            end do
-           end if
-
-        end do
-     end do
-  end do
-
-end subroutine fssnord3DmatNabla3var_LG
-
-!> Like fssnord3DmatNabla but corrected such that the index goes at the beginning
-!! Multiplies also times (nabla epsilon)/(4pi*epsilon)= nabla (log(epsilon))/(4*pi)
-subroutine fssnord3DmatNabla_LG(geocode,n01,n02,n03,u,nord,hgrids,eta,dlogeps,rhopol,rhores2)
-  !use module_defs, only: pi_param
-  implicit none
-
-  !c..this routine computes 'nord' order accurate first derivatives 
-  !c..on a equally spaced grid with coefficients from 'Matematica' program.
-
-  !c..input:
-  !c..ngrid       = number of points in the grid, 
-  !c..u(ngrid)    = function values at the grid points
-
-  !c..output:
-  !c..du(ngrid)   = first derivative values at the grid points
-
-  !c..declare the pass
-
-  character(len=1), intent(in) :: geocode !< @copydoc poisson_solver::doc::geocode
-  integer, intent(in) :: n01,n02,n03,nord
-  real(kind=8), intent(in) :: eta
-  real(kind=8), dimension(3), intent(in) :: hgrids
-  real(kind=8), dimension(n01,n02,n03), intent(in) :: u
-  real(kind=8), dimension(3,n01,n02,n03), intent(in) :: dlogeps
-  real(kind=8), dimension(n01,n02,n03), intent(inout) :: rhopol
-  real(kind=8), intent(out) :: rhores2
-
-  !c..local variables
-  integer :: n,m,n_cell
-  integer :: i,j,ib,i1,i2,i3,isp,i1_max,i2_max,ii
-  !real(kind=8), parameter :: oneo4pi=0.25d0/pi_param
-  real(kind=8), dimension(-nord/2:nord/2,-nord/2:nord/2) :: c1D,c1DF
-  real(kind=8) :: hx,hy,hz,max_diff,fact,dx,dy,dz,res,rho
-  real(kind=8) :: oneo4pi,rpoints
-  logical :: perx,pery,perz
-
-  oneo4pi=1.0d0/(16.d0*atan(1.d0))
-
-  n = nord+1
-  m = nord/2
-  hx = hgrids(1)!acell/real(n01,kind=8)
-  hy = hgrids(2)!acell/real(n02,kind=8)
-  hz = hgrids(3)!acell/real(n03,kind=8)
-  n_cell = max(n01,n02,n03)
-  rpoints=product(real([n01,n02,n03],dp))
-
-  !buffers associated to the geocode
-  !conditions for periodicity in the three directions
-  perx=(geocode /= 'F')
-  pery=(geocode == 'P')
-  perz=(geocode /= 'F')
-
-  ! Beware that n_cell has to be > than n.
-  if (n_cell.lt.n) then
-     write(*,*)'ngrid in has to be setted > than n=nord + 1'
-     stop
-  end if
-
-  ! Setting of 'nord' order accurate first derivative coefficient from 'Matematica'.
-  !Only nord=2,4,6,8,16
-  if (all(nord /=[2,4,6,8,16])) then
-     write(*,*)'Only nord-order 2,4,6,8,16 accurate first derivative'
-     stop
-  end if
-
-  do i=-m,m
-     do j=-m,m
-        c1D(i,j)=0.d0
-        c1DF(i,j)=0.d0
-     end do
-  end do
-
-  include 'FiniteDiffCorff.inc'
-
-  rhores2=0.d0
-  do i3=1,n03
-     do i2=1,n02
-        do i1=1,n01
-
-           dx=0.d0
-
-           if (i1.le.m) then
-              if (perx) then
-               do j=-m,m
-                ii=modulo(i1 + j + n01 - 1, n01 ) + 1
-                dx = dx + c1D(j,0)*u(ii,i2,i3)
-               end do
-              else
-               do j=-m,m
-                dx = dx + c1D(j,i1-m-1)*u(j+m+1,i2,i3)
-               end do
-              end if
-           else if (i1.gt.n01-m) then
-              if (perx) then
-               do j=-m,m
-                ii=modulo(i1 + j - 1, n01 ) + 1
-                dx = dx + c1D(j,0)*u(ii,i2,i3)
-               end do
-              else
-               do j=-m,m
-                dx = dx + c1D(j,i1-n01+m)*u(n01 + j - m,i2,i3)
-               end do
-              end if
-           else
-              do j=-m,m
-                 dx = dx + c1D(j,0)*u(i1 + j,i2,i3)
-              end do
-           end if
-           dx=dx/hx
-
-           dy = 0.0d0
-           if (i2.le.m) then
-              if (pery) then
-               do j=-m,m
-                ii=modulo(i2 + j + n02 - 1, n02 ) + 1
-                dy = dy + c1D(j,0)*u(i1,ii,i3)
-               end do
-              else
-               do j=-m,m
-                dy = dy + c1D(j,i2-m-1)*u(i1,j+m+1,i3)
-               end do
-              end if
-           else if (i2.gt.n02-m) then
-              if (pery) then
-               do j=-m,m
-                ii=modulo(i2 + j - 1, n02 ) + 1
-                dy = dy + c1D(j,0)*u(i1,ii,i3)
-               end do
-              else
-               do j=-m,m
-                dy = dy + c1D(j,i2-n02+m)*u(i1,n02 + j - m,i3)
-               end do
-              end if
-           else
-              do j=-m,m
-                 dy = dy + c1D(j,0)*u(i1,i2 + j,i3)
-              end do
-           end if
-           dy=dy/hy
-
-           dz = 0.0d0
-           if (i3.le.m) then
-              if (perz) then
-               do j=-m,m
-                ii=modulo(i3 + j + n03 - 1, n03 ) + 1
-                dz = dz + c1D(j,0)*u(i1,i2,ii)
-               end do
-              else
-               do j=-m,m
-                dz = dz + c1D(j,i3-m-1)*u(i1,i2,j+m+1)
-               end do
-              end if
-           else if (i3.gt.n03-m) then
-              if (perz) then
-               do j=-m,m
-                ii=modulo(i3 + j - 1, n03 ) + 1
-                dz = dz + c1D(j,0)*u(i1,i2,ii)
-               end do
-              else
-               do j=-m,m
-                dz = dz + c1D(j,i3-n03+m)*u(i1,i2,n03 + j - m)
-               end do
-              end if
-           else
-              do j=-m,m
-                 dz = dz + c1D(j,0)*u(i1,i2,i3 + j)
-              end do
-           end if
-           dz=dz/hz
-
-           !retrieve the previous treatment
-           res = dlogeps(1,i1,i2,i3)*dx + &
-                dlogeps(2,i1,i2,i3)*dy + dlogeps(3,i1,i2,i3)*dz
-           res = res*oneo4pi
-           rho=rhopol(i1,i2,i3)
-           res=res-rho
-           res=eta*res
-           rhores2=rhores2+res*res
-           rhopol(i1,i2,i3)=res+rho
-
-        end do
-     end do
-  end do
-!  rhores2=rhores2/rpoints
-
-end subroutine fssnord3DmatNabla_LG

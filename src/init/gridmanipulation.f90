@@ -277,7 +277,7 @@ END SUBROUTINE system_size
 !! allow the fft for the preconditioner and for Poisson Solver
 subroutine correct_grid(a,h,n)
    use module_base
-   use Poisson_Solver, except_dp => dp, except_gp => gp, except_wp => wp
+   use Poisson_Solver, except_dp => dp, except_gp => gp
    implicit none
    real(gp), intent(in) :: a
    integer, intent(inout) :: n

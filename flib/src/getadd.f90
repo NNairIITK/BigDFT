@@ -11,6 +11,9 @@
 !! needed to pass to the C routines the correct address
 !! in order to take the address of the metadata
 module metadata_interfaces
+  !use module_razero
+  use f_precisions
+  use module_f_malloc, only: f_kind
   implicit none
 
   private
@@ -20,223 +23,259 @@ module metadata_interfaces
 
   interface
      subroutine geti1(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        integer, dimension(:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine geti1
 
      subroutine geti2(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        integer, dimension(:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine geti2
 
      subroutine geti3(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        integer, dimension(:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine geti3
 
      subroutine geti4(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        integer, dimension(:,:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine geti4
 
      ! long integer arrays
      subroutine getil1(array,iadd)
+       use f_precisions, only: f_address,f_long
        implicit none
-       integer(kind=8), dimension(:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_long), dimension(:), allocatable, intent(in) :: array
+       integer(f_address), intent(out) :: iadd
      end subroutine getil1
 
      subroutine getil2(array,iadd)
+       use f_precisions, only: f_address,f_long
        implicit none
-       integer(kind=8), dimension(:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_long), dimension(:,:), allocatable, intent(in) :: array
+       integer(f_address), intent(out) :: iadd
      end subroutine getil2
 
      !character templates, not the length is added
      subroutine getc1(length,array,iadd)
+       use f_precisions, only: f_address
        implicit none
        integer, intent(in) :: length
        character(len=length), dimension(:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getc1
 
      subroutine getl1(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        logical, dimension(:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getl1
 
      subroutine getl2(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        logical, dimension(:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getl2
 
      subroutine getl3(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        logical, dimension(:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getl3
 
      subroutine getr1(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        real, dimension(:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getr1
 
      subroutine getr2(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        real, dimension(:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getr2
 
      subroutine getr3(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        real, dimension(:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getr3
 
      subroutine getr4(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        real, dimension(:,:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getr4
 
      subroutine getdp1(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp1
 
      subroutine getdp2(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp2
 
      subroutine getdp3(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp3
 
      subroutine getdp4(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp4
 
      subroutine getdp5(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:,:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp5
 
      subroutine getdp6(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:,:,:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp6
 
      subroutine getdp7(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:,:,:,:,:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp7
 
      subroutine getz2(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double complex, dimension(:,:), allocatable, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getz2
 
      subroutine getdp1ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp1ptr
 
      subroutine getdp2ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp2ptr
 
      subroutine getdp3ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp3ptr
 
      subroutine getdp4ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:,:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp4ptr
 
      subroutine getdp5ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:,:,:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp5ptr
 
      subroutine getdp6ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double precision, dimension(:,:,:,:,:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getdp6ptr
 
      subroutine geti1ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        integer, dimension(:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine geti1ptr
 
      subroutine geti2ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        integer, dimension(:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine geti2ptr
 
      subroutine geti3ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        integer, dimension(:,:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine geti3ptr
 
      subroutine geti4ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        integer, dimension(:,:,:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine geti4ptr
 
      subroutine getl2ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        logical, dimension(:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getl2ptr
 
      subroutine getl3ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        logical, dimension(:,:,:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getl3ptr
 
      subroutine getc1ptr(length,array,iadd)
+       use f_precisions, only: f_address
        implicit none
        integer, intent(in) :: length
        character(len=length), dimension(:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getc1ptr
 
      subroutine getz1ptr(array,iadd)
+       use f_precisions, only: f_address
        implicit none
        double complex, dimension(:), pointer, intent(in) :: array
-       integer(kind=8), intent(out) :: iadd
+       integer(f_address), intent(out) :: iadd
      end subroutine getz1ptr
 
 
@@ -288,8 +327,8 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
-    integer(kind=4), dimension(shp(1)+ndebug), intent(out) :: array
+    integer(f_kind), dimension(1), intent(in) :: shp
+    integer(f_integer), dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,shp(1),shp(1)+ndebug)
 
@@ -299,8 +338,8 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
-    integer(kind=4), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
+    integer(f_kind), dimension(2), intent(in) :: shp
+    integer(f_integer), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
 
@@ -310,8 +349,8 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
-    integer(kind=4), dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
+    integer(f_kind), dimension(3), intent(in) :: shp
+    integer(f_integer), dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
 
@@ -321,8 +360,8 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(4), intent(in) :: shp
-    integer(kind=4), dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
+    integer(f_kind), dimension(4), intent(in) :: shp
+    integer(f_integer), dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
     
     call pad_integer(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
 
@@ -332,7 +371,7 @@ contains
 !!$    implicit none
 !!$    logical, intent(in) :: init_to_zero
 !!$    integer, intent(in) :: ndebug
-!!$    integer, dimension(1), intent(in) :: shp
+!!$    integer(f_kind), dimension(1), intent(in) :: shp
 !!$    integer(kind=8), dimension(shp(1)+ndebug), intent(out) :: array
 !!$    
 !!$    call pad_integerlong(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -343,7 +382,7 @@ contains
 !!$    implicit none
 !!$    logical, intent(in) :: init_to_zero
 !!$    integer, intent(in) :: ndebug
-!!$    integer, dimension(2), intent(in) :: shp
+!!$    integer(f_kind), dimension(2), intent(in) :: shp
 !!$    integer(kind=8), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
 !!$    
 !!$    call pad_integerlong(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -354,7 +393,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(f_kind), dimension(1), intent(in) :: shp
     character(len=*), dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_character(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -365,7 +404,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(f_kind), dimension(1), intent(in) :: shp
     logical, dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_logical(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -376,7 +415,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(f_kind), dimension(2), intent(in) :: shp
     logical, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_logical(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -387,7 +426,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
+    integer(f_kind), dimension(3), intent(in) :: shp
     logical, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
 
     call pad_logical(array,init_to_zero,product(shp),&
@@ -399,7 +438,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(f_kind), dimension(1), intent(in) :: shp
     real, dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_simple(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -410,7 +449,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(f_kind), dimension(2), intent(in) :: shp
     real, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_simple(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -421,7 +460,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
+    integer(f_kind), dimension(3), intent(in) :: shp
     real, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
 
     call pad_simple(array,init_to_zero,product(shp),&
@@ -433,7 +472,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(4), intent(in) :: shp
+    integer(f_kind), dimension(4), intent(in) :: shp
     real, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
 
     call pad_simple(array,init_to_zero,product(shp),&
@@ -446,7 +485,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(f_kind), dimension(1), intent(in) :: shp
     double precision, dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -457,7 +496,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(f_kind), dimension(2), intent(in) :: shp
     double precision, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -468,7 +507,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
+    integer(f_kind), dimension(3), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
@@ -479,7 +518,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(4), intent(in) :: shp
+    integer(f_kind), dimension(4), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
@@ -490,7 +529,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(5), intent(in) :: shp
+    integer(f_kind), dimension(5), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3),shp(4),shp(5)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:4))*(shp(5)+ndebug))
@@ -501,7 +540,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(6), intent(in) :: shp
+    integer(f_kind), dimension(6), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3),shp(4),shp(5),shp(6)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:5))*(shp(6)+ndebug))
@@ -512,7 +551,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(7), intent(in) :: shp
+    integer(f_kind), dimension(7), intent(in) :: shp
     double precision, dimension(shp(1),shp(2),shp(3),shp(4),shp(5),shp(6),shp(7)+ndebug), intent(out) :: array
     
     call pad_double(array,init_to_zero,product(shp),product(shp(1:6))*(shp(7)+ndebug))
@@ -523,7 +562,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(f_kind), dimension(1), intent(in) :: shp
     double complex, dimension(shp(1)+ndebug), intent(out) :: array
     
     call pad_double_complex(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -534,7 +573,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(f_kind), dimension(2), intent(in) :: shp
     double complex, dimension(shp(1),shp(2)+ndebug), intent(out) :: array
     
     call pad_double_complex(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -545,7 +584,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(1), intent(in) :: shp
+    integer(f_kind), dimension(1), intent(in) :: shp
     integer(kind=8), dimension(shp(1)+ndebug), intent(out) :: array
 
     call pad_longinteger(array,init_to_zero,shp(1),shp(1)+ndebug)
@@ -556,7 +595,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(2), intent(in) :: shp
+    integer(f_kind), dimension(2), intent(in) :: shp
     integer(kind=8), dimension(shp(1),shp(2)+ndebug), intent(out) :: array
 
     call pad_longinteger(array,init_to_zero,product(shp),product(shp(1:1))*(shp(2)+ndebug))
@@ -567,7 +606,7 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(3), intent(in) :: shp
+    integer(f_kind), dimension(3), intent(in) :: shp
     integer(kind=8), dimension(shp(1),shp(2),shp(3)+ndebug), intent(out) :: array
 
     call pad_longinteger(array,init_to_zero,product(shp),product(shp(1:2))*(shp(3)+ndebug))
@@ -578,24 +617,23 @@ contains
     implicit none
     logical, intent(in) :: init_to_zero
     integer, intent(in) :: ndebug
-    integer, dimension(4), intent(in) :: shp
+    integer(f_kind), dimension(4), intent(in) :: shp
     integer(kind=8), dimension(shp(1),shp(2),shp(3),shp(4)+ndebug), intent(out) :: array
 
     call pad_longinteger(array,init_to_zero,product(shp),product(shp(1:3))*(shp(4)+ndebug))
 
   end subroutine pad_li4
 
-
-
   subroutine pad_double(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(f_kind), intent(in) :: ndim_tot, ndim_extra
     double precision, dimension(ndim_extra), intent(out) :: array
     !local variables
-    integer :: i
+    integer(f_kind) :: i
 
-    if (init) call razero(ndim_tot,array)
+    !if (init .and. ndim_tot>0) call razero(ndim_tot,array(lbound(array,1)))
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)=d_nan()
     end do
@@ -604,12 +642,13 @@ contains
   subroutine pad_double_complex(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(f_kind), intent(in) :: ndim_tot, ndim_extra
     double complex, dimension(ndim_extra), intent(out) :: array
     !local variables
-    integer :: i
+    integer(f_kind) :: i
 
-    if (init) call razero(2*ndim_tot,array)
+    !if (init .and. ndim_tot>0) call razero_complex(ndim_tot,array(lbound(array,1)))
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array)*2,array)
     do i=ndim_tot+1,ndim_extra
        array(i)=(1.d0,1.d0)*d_nan()
     end do
@@ -618,14 +657,16 @@ contains
   subroutine pad_simple(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(f_kind), intent(in) :: ndim_tot, ndim_extra
     real, dimension(ndim_extra), intent(out) :: array
     !local variables
-    integer :: i,i_nan
-    real :: r_nan1
-    equivalence (r_nan1,i_nan)
+    !integer :: i_nan
+    integer(f_kind) :: i
+    !real :: r_nan1
+    !equivalence (r_nan1,i_nan)
 
-    if (init) call razero_simple(ndim_tot,array)
+    !if (init .and. ndim_tot>0) call razero_simple(ndim_tot,array(lbound(array,1)))
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)=r_nan()
     end do
@@ -634,10 +675,10 @@ contains
   subroutine pad_logical(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(f_kind), intent(in) :: ndim_tot, ndim_extra
     logical, dimension(ndim_extra), intent(out) :: array
     !local variables
-    integer :: i
+    integer(f_kind) :: i
 
     if (init) then
        do i=1,ndim_tot
@@ -652,12 +693,13 @@ contains
   subroutine pad_integer(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
-    integer(kind=4), dimension(ndim_extra), intent(out) :: array
+    integer(f_kind), intent(in) :: ndim_tot, ndim_extra
+    integer(f_integer), dimension(ndim_extra), intent(out) :: array
     !local variables
-    integer :: i
+    integer(f_kind) :: i
 
-    if (init) call razero_integer(ndim_tot,array)
+    !if (init .and. ndim_tot>0) call razero_integer(ndim_tot,array(lbound(array,1)))
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)= 2147483647 !i_nan
     end do
@@ -666,12 +708,13 @@ contains
   subroutine pad_longinteger(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
-    integer(kind=8), dimension(ndim_extra), intent(out) :: array
+    integer(f_kind), intent(in) :: ndim_tot, ndim_extra
+    integer(f_long), dimension(ndim_extra), intent(out) :: array
     !local variables
-    integer :: i
+    integer(f_kind) :: i
 
-    if (init) call razero(ndim_tot,array)
+    !if (init .and. ndim_tot>0) call razero_integerlong(ndim_tot,array(lbound(array,1)))
+    if (init .and. ndim_tot>0) call setzero(int(ndim_tot,f_long)*kind(array),array)
     do i=ndim_tot+1,ndim_extra
        array(i)=li_nan()
     end do
@@ -681,10 +724,10 @@ contains
   subroutine pad_character(array,init,ndim_tot,ndim_extra)
     implicit none
     logical, intent(in) :: init
-    integer, intent(in) :: ndim_tot, ndim_extra
+    integer(f_kind), intent(in) :: ndim_tot, ndim_extra
     character(len=*), dimension(ndim_extra), intent(out) :: array
     !local variables
-    integer :: i
+    integer(f_kind) :: i
 
     if (init) then
        do i=1,ndim_tot
@@ -713,16 +756,17 @@ contains
 
   function li_nan()
     implicit none
-    integer(kind=8):: li_nan
+    integer(f_long):: li_nan
     !local variables
-    integer(kind=8):: linan
+    integer(f_long):: linan
     integer, dimension(2) :: inan
-    equivalence (linan, inan)
+    !equivalence (linan, inan)
     ! This first assignment is for big-endian machines
     inan(1) = 2147483647
     ! The second assignment is for little-endian machines
     inan(2) = 2147483647
-    li_nan = linan
+    !li_nan = linan
+    li_nan=transfer(inan,li_nan)
   end function li_nan
 
 
@@ -784,7 +828,7 @@ contains
 
   function address_toi(address)
     character(len=*), intent(in) ::  address
-    integer(kind=8) :: address_toi
+    integer(f_address) :: address_toi
     !local variables
     integer :: i,l
     integer(kind=8) :: j
@@ -804,7 +848,7 @@ contains
   pure function long_toa(iadd)
     use yaml_strings
     implicit none 
-    integer(kind=8), intent(in) :: iadd
+    integer(f_address), intent(in) :: iadd
     character(len=longsize) :: long_toa
     
     long_toa=adjustl(yaml_toa(iadd,fmt=fmtlong))
@@ -814,37 +858,37 @@ contains
   !loc array functions
   function la_i1(array) result(la)
     implicit none
-    integer(kind=4), dimension(:), intent(in) :: array
+    integer(f_integer), dimension(:), intent(in) :: array
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1))
   end function la_i1
   function la_i2(array) result(la)
     implicit none
-    integer(kind=4), dimension(:,:), intent(in) :: array
+    integer(f_integer), dimension(:,:), intent(in) :: array
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1))
   end function la_i2
   function la_i3(array) result(la)
     implicit none
-    integer(kind=4), dimension(:,:,:), intent(in) :: array
+    integer(f_integer), dimension(:,:,:), intent(in) :: array
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1,1))
   end function la_i3
   function la_i4(array) result(la)
     implicit none
-    integer(kind=4), dimension(:,:,:,:), intent(in) :: array
+    integer(f_integer), dimension(:,:,:,:), intent(in) :: array
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1,1,1))
   end function la_i4
 !!$  function la_il1(array) result(la)
 !!$    implicit none
-!!$    integer(kind=8), dimension(:), intent(in) :: array
+!!$    integer(f_long), dimension(:), intent(in) :: array
 !!$    include 'getadd-c-inc.f90' 
 !!$    la=f_loc(array(1))
 !!$  end function la_il1
 !!$  function la_il2(array) result(la)
 !!$    implicit none
-!!$    integer(kind=8), dimension(:,:), intent(in) :: array
+!!$    integer(f_long), dimension(:,:), intent(in) :: array
 !!$    include 'getadd-c-inc.f90' 
 !!$    la=f_loc(array(1,1))
 !!$  end function la_il2
@@ -959,25 +1003,25 @@ contains
   end function la_c1
   function la_li1(array) result(la)
     implicit none
-    integer(kind=8), dimension(:), intent(in) :: array
+    integer(f_long), dimension(:), intent(in) :: array
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1))
   end function la_li1
   function la_li2(array) result(la)
     implicit none
-    integer(kind=8), dimension(:,:), intent(in) :: array
+    integer(f_long), dimension(:,:), intent(in) :: array
     include 'getadd-c-inc.f90' 
     la=f_loc(array(1,1))
   end function la_li2
   function la_li3(array) result(la)
     implicit none
-    integer(kind=8), dimension(:,:,:), intent(in) :: array
+    integer(f_long), dimension(:,:,:), intent(in) :: array
     include 'getadd-c-inc.f90'
     la=f_loc(array(1,1,1))
   end function la_li3
   function la_li4(array) result(la)
     implicit none
-    integer(kind=8), dimension(:,:,:,:), intent(in) :: array
+    integer(f_long), dimension(:,:,:,:), intent(in) :: array
     include 'getadd-c-inc.f90'
     la=f_loc(array(1,1,1,1))
   end function la_li4
@@ -989,9 +1033,10 @@ end module metadata_interfaces
 
 !> Routine to call an external routine with an integer argument
 subroutine call_external(routine,args)
+  use f_precisions, only: f_address
   implicit none
   external :: routine                  !< Routine to be called
-  integer(kind=8), intent(in) :: args  !< Argument of the called routine
+  integer(f_address), intent(in) :: args  !< Argument of the called routine
 
 
   print *,'calling external, args',args
@@ -1007,29 +1052,19 @@ end subroutine call_external
 !> Call the external routine with no argument
 !! to be generalized to the case where extra arguments are needed
 recursive subroutine call_external_f(routine)!,args)
+  use f_precisions, only: f_address
   implicit none
   external :: routine                  !< Routine to be called
-!  integer(kind=8), intent(in) :: args
-
-
-!  print *,'calling external, args',args
-  
-!  if (args==0) then
-
-     call routine()
-!  else
-!     call routine(args)
-!  end if
-
+  call routine()
 end subroutine call_external_f
-
 
 !> Function which identifies the address of the scalar object
 !! associated to a unknown quantity
 function f_loc(routine)
+  use f_precisions, only: f_address
   implicit none
   external :: routine       !< Object
-  integer(kind=8) :: f_loc  !< Address of the object routine
+  integer(f_address) :: f_loc  !< Address of the object routine
 
   call getlongaddress(routine,f_loc)
 

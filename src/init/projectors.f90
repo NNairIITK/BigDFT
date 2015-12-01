@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to handle projectors
 !! @author
-!!    Copyright (C) 2010-2013 BigDFT group 
+!!    Copyright (C) 2010-2015 BigDFT group 
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -306,6 +306,7 @@ subroutine fill_projectors(lr,hx,hy,hz,at,orbs,rxyz,nlpsp,idir)
 
 END SUBROUTINE fill_projectors
 
+
 !> Create projectors from gaussian decomposition.
 subroutine atom_projector(nl, ityp, iat, atomname, &
      & geocode, idir, lr, hx, hy, hz, kx, ky, kz, &
@@ -315,6 +316,8 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
   use gaussians, only: gaussian_basis_new, gaussian_basis_iter, &
        & gaussian_iter_start, gaussian_iter_next_shell, gaussian_iter_next_gaussian
   use psp_projectors_base, only: DFT_PSP_projectors
+  use yaml_output, only: yaml_warning
+  use yaml_strings, only: yaml_toa
   implicit none
   type(DFT_PSP_projectors), intent(inout) :: nl
   integer, intent(in) :: ityp, iat
@@ -354,6 +357,7 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
      lmax = max(lmax, iterM%l)
      if (iterM%ndoc > 1) use_tmp = .true.
   end do
+
   if (use_tmp) then
      nc = (mbvctr_c+7*mbvctr_f)*(2*lmax-1)*ncplx_k
      proj_tmp = f_malloc(nc, id = 'proj_tmp')
@@ -364,7 +368,7 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
      if (.not. gaussian_iter_next_shell(nl%proj_G, iter)) exit
      nc = (mbvctr_c+7*mbvctr_f) * (2*iter%l-1) * ncplx_k
      if (istart_c + nc > nl%nprojel+1) stop 'istart_c > nprojel+1'
-     ! Loop on contraction, treat the first gaussian separatly for performance reasons.
+     ! Loop on contraction, treat the first gaussian separately for performance reasons.
      if (gaussian_iter_next_gaussian(nl%proj_G, iter, coeff, expo)) &
           & call projector(geocode, iat, idir, iter%l, iter%n, coeff, expo, &
           & nl%pspd(iat)%gau_cut, nl%proj_G%rxyz(1, iat), lr%ns1, lr%ns2, lr%ns3, lr%d%n1, lr%d%n2, lr%d%n3, &
@@ -389,14 +393,11 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
            !print '(a,3(i6),1pe14.7,2(i6))','iat,l,m,scpr',iat,l,m,scpr,idir,istart_c
            if (abs(1.d0-scpr) > 1.d-2) then
               if (abs(1.d0-scpr) > 1.d-1) then
-                 !if (iproc == 0) then
-                 write(*,'(1x,a)')'error found!'
-                 write(*,'(1x,a,i4,a,a6,a,i1,a,i1,a,f6.3)')&
-                      'The norm of the nonlocal PSP for atom n=',iat,&
-                      ' (',trim(atomname),') labeled by l=',iter%l,' m=',iter%n,' is ',scpr
-                 write(*,'(1x,a)')&
-                      'while it is supposed to be about 1.0. Control PSP data or reduce grid spacing.'
-                 !end if
+                 if (bigdft_mpi%iproc == 0) call yaml_warning( &
+                      'Norm of the nonlocal PSP [atom ' // trim(yaml_toa(iat)) // &
+                      ' (' // trim(atomname) // ') l=' // trim(yaml_toa(iter%l)) // &
+                      ' m=' // trim(yaml_toa(iter%n)) // ' is ' // trim(yaml_toa(scpr)) // &
+                      ' while it is supposed to be about 1.0.')
                  !stop commented for the moment
                  !restore the norm of the projector
                  !call wscal_wrap(mbvctr_c,mbvctr_f,1.0_gp/sqrt(scpr),proj(istart_c))
@@ -415,6 +416,7 @@ subroutine atom_projector(nl, ityp, iat, atomname, &
   call f_release_routine()
 
 end subroutine atom_projector
+
 
 subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
      ns1,ns2,ns3,n1,n2,n3,hx,hy,hz,kx,ky,kz,ncplx_k,ncplx_g,&
@@ -441,7 +443,6 @@ subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
   !integer :: nl1_c,nu1_c,nl2_c,nu2_c,nl3_c,nu3_c,nl1_f,nu1_f,nl2_f,nu2_f,nl3_f,nu3_f
   integer :: istart_c,nterm,idir2
   real(gp) :: fpi,fgamma,rx,ry,rz
-  real(dp) :: scpr
   integer, dimension(3) :: nterm_arr
   integer, dimension(nterm_max) :: lx,ly,lz
   integer, dimension(3,nterm_max,3) :: lxyz_arr
@@ -528,9 +529,17 @@ subroutine projector(geocode,iat,idir,l,i,factor,gau_a,rpaw,rxyz,&
 !        endif
 !endif
 !seq : 11 22 33 12 23 13
-if (idir == 4 .or. idir == 9) lx(iterm)=lx(iterm)+1
-if (idir == 5 .or. idir == 7) ly(iterm)=ly(iterm)+1
-if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
+select case(idir)
+case(4,9)
+   lx(iterm)=lx(iterm)+1
+case(5,7)
+   ly(iterm)=ly(iterm)+1
+case(6,8)
+   lz(iterm)=lz(iterm)+1
+end select
+!if (idir == 4 .or. idir == 9) lx(iterm)=lx(iterm)+1
+!if (idir == 5 .or. idir == 7) ly(iterm)=ly(iterm)+1
+!if (idir == 6 .or. idir == 8) lz(iterm)=lz(iterm)+1
 
         end do
      end if
@@ -573,7 +582,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   integer, intent(in) :: nterm,mvctr_c,mvctr_f,mseg_c,mseg_f
   integer, intent(in) :: ncplx_g,ncplx_k,ns1,ns2,ns3,n1,n2,n3
   real(gp), intent(in) :: hx,hy,hz,rx,ry,rz,kx,ky,kz
-  real(gp),intent(in)::gau_cut
+  real(gp), intent(in) :: gau_cut
   integer, dimension(nterm), intent(in) :: lx,ly,lz
   real(gp), dimension(ncplx_g,nterm), intent(in) :: fac_arr
   real(gp), dimension(ncplx_g),intent(in):: gau_a
@@ -593,7 +602,7 @@ subroutine crtproj(geocode,nterm,ns1,ns2,ns3,n1,n2,n3, &
   !real(wp) :: re_cmplx_prod,im_cmplx_prod
   real(gp), dimension(ncplx_g) :: factor
   !real(gp) :: err_norm
-  real(wp), allocatable, dimension(:,:,:) :: work
+  !real(wp), allocatable, dimension(:,:,:) :: work
   real(wp) :: wprojyz, wprojyz11, wprojyz12, wprojyz21, wprojyz22
   !Variables for OpenMP
   !!$ integer :: ithread,nthread,ichunk

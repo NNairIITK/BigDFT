@@ -1,7 +1,7 @@
 !> @file
 !! Manage dynamic memory allocation
 !! @author
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -9,20 +9,20 @@
 
 
 !> Module used to manage memory allocations and de-allocations
-module dynamic_memory
-
+module dynamic_memory_base
   use memory_profiling
   use dictionaries, info_length => max_field_length
-  use yaml_strings, only: yaml_toa,yaml_date_and_time_toa
-  use module_f_malloc
+  use yaml_strings!, only: yaml_toa,yaml_date_and_time_toa,operator(//),f_string
+  use module_f_malloc 
+  use f_precisions
   use yaml_parse, only: yaml_a_todict
-  use f_utils, only: f_time
+  use f_utils, only: f_time,f_zero
   implicit none
 
   private 
 
-  logical, parameter :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
-  logical, parameter :: bigdebug=.false.      !< Experimental parameter to explore the usage of f_routine as a debugger
+  logical :: track_origins=.true.      !< When true keeps track of all the allocation statuses using dictionaries
+  logical, parameter :: bigdebug=.false.!.true.      !< Experimental parameter to explore the usage of f_routine as a debugger
   integer, parameter :: namelen=f_malloc_namelen  !< Length of the character variables
   integer, parameter :: error_string_len=80       !< Length of error string
   integer, parameter :: ndebug=0                  !< Size of debug parameters
@@ -67,6 +67,8 @@ module dynamic_memory
      character(len=256) :: logfile !<file in which reports are written
      integer :: logfile_unit !< unit of the logfile stream
      integer :: output_level !< decide the level of reporting
+     integer :: depth !< present level of depth of the routine
+     integer :: profiling_depth !< maximum value of the profiling level
      !> Dictionaries needed for profiling storage
      type(dictionary), pointer :: dict_global    !<status of the memory at higher level
      type(dictionary), pointer :: dict_routine   !<status of the memory inside the routine
@@ -86,7 +88,6 @@ module dynamic_memory
 
   interface assignment(=)
      module procedure i1_all,i2_all,i3_all,i4_all
-!     module procedure il1_all, il2_all
      module procedure l1_all,l2_all,l3_all
      module procedure d1_all,d2_all,d3_all,d4_all,d5_all,d6_all,d7_all
      module procedure r1_all,r2_all,r3_all,r4_all
@@ -94,7 +95,8 @@ module dynamic_memory
      module procedure li1_all,li2_all,li3_all,li4_all
      module procedure d1_ptr,d2_ptr,d3_ptr,d4_ptr,d5_ptr,d6_ptr
      module procedure i1_ptr,i2_ptr,i3_ptr,i4_ptr
-     module procedure l2_ptr, l3_ptr
+     module procedure l1_ptr, l2_ptr, l3_ptr
+     module procedure li1_ptr
      module procedure z1_ptr
      !strings and pointers for characters
      module procedure c1_all
@@ -103,49 +105,53 @@ module dynamic_memory
 
   interface f_free
      module procedure i1_all_free,i2_all_free,i3_all_free,i4_all_free
-!     module procedure il1_all_free, il2_all_free
+     !     module procedure il1_all_free, il2_all_free
      module procedure i1_all_free_multi
      module procedure l1_all_free,l2_all_free,l3_all_free
      module procedure d1_all_free,d2_all_free,d1_all_free_multi,d3_all_free,d4_all_free,d5_all_free,d6_all_free,d7_all_free
      module procedure r1_all_free,r2_all_free,r3_all_free,r4_all_free
      module procedure z2_all_free
      module procedure li1_all_free,li2_all_free,li3_all_free,li4_all_free
-  end interface
+  end interface f_free
 
   interface f_free_ptr
      module procedure i1_ptr_free,i2_ptr_free,i3_ptr_free,i4_ptr_free
      module procedure i1_ptr_free_multi
      module procedure d1_ptr_free,d2_ptr_free,d3_ptr_free,d4_ptr_free,d5_ptr_free,d6_ptr_free
-     module procedure l2_ptr_free, l3_ptr_free
+     module procedure l1_ptr_free, l2_ptr_free, l3_ptr_free
+     module procedure li1_ptr_free
      module procedure z1_ptr_free
-  end interface
+  end interface f_free_ptr
 
   interface f_memcpy
-     module procedure f_memcpy_i0,f_memcpy_i1
-     module procedure f_memcpy_il1
-     module procedure f_memcpy_i1i2,f_memcpy_i2i1
+     module procedure f_memcpy_i0,f_memcpy_i1,f_memcpy_i2
+     module procedure f_memcpy_i0i1,f_memcpy_i1i2,f_memcpy_i2i1,f_memcpy_i2i0
+     module procedure f_memcpy_li0,f_memcpy_li1
+     module procedure f_memcpy_li0li1,f_memcpy_li1li2,f_memcpy_li2li1,f_memcpy_li2li0
+     module procedure f_memcpy_l1
      module procedure f_memcpy_r0
      module procedure f_memcpy_d0,f_memcpy_d1,f_memcpy_d2,f_memcpy_d0d1
      module procedure f_memcpy_d1d2,f_memcpy_d2d1,f_memcpy_d2d3,f_memcpy_d3,f_memcpy_d4,f_memcpy_d1d0
      module procedure f_memcpy_d0d3,f_memcpy_d0d2,f_memcpy_d3d0,f_memcpy_d2d0,f_memcpy_d3d2
-     module procedure f_memcpy_l0,f_memcpy_c1i1,f_memcpy_i1c1,f_memcpy_c0i1
-     module procedure f_memcpy_li0,f_memcpy_li0li1,f_memcpy_i0i1
+     module procedure f_memcpy_l0
+     module procedure f_memcpy_c1i1,f_memcpy_i1c1,f_memcpy_c0i1
+     module procedure f_memcpy_c1li1,f_memcpy_li1c1,f_memcpy_c0li1
   end interface f_memcpy
 
   interface f_maxdiff
      module procedure f_maxdiff_i0,f_maxdiff_i1
-     module procedure f_maxdiff_i1i2,f_maxdiff_i2i1
+     module procedure f_maxdiff_li0,f_maxdiff_li1
+     module procedure f_maxdiff_i0i1,f_maxdiff_i1i2,f_maxdiff_i2i1
+     module procedure f_maxdiff_li0li1,f_maxdiff_li1li2,f_maxdiff_li2li1
      module procedure f_maxdiff_r0
      module procedure f_maxdiff_d0,f_maxdiff_d1,f_maxdiff_d2
      module procedure f_maxdiff_d0d1,f_maxdiff_d1d2,f_maxdiff_d2d1,f_maxdiff_d2d3
-     module procedure f_maxdiff_l0,f_maxdiff_i0i1
-     module procedure f_maxdiff_c1i1,f_maxdiff_li0li1,f_maxdiff_c0i1
+     module procedure f_maxdiff_l0
+     module procedure f_maxdiff_c1i1,f_maxdiff_c0i1
+     module procedure f_maxdiff_c1li1,f_maxdiff_c0li1
   end interface f_maxdiff
 
-  !> Public routines
-  public :: f_malloc,f_malloc0,f_malloc_ptr,f_malloc0_ptr,f_malloc_dump_status
-  public :: f_malloc_str,f_malloc0_str,f_malloc_str_ptr,f_malloc0_str_ptr
-  public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr
+  public :: f_free,f_free_ptr,f_free_str,f_free_str_ptr,f_malloc_dump_status
   public :: f_routine,f_release_routine,f_malloc_set_status,f_malloc_initialize,f_malloc_finalize
   public :: f_memcpy,f_maxdiff,f_update_database,f_purge_database
   public :: assignment(=),operator(.to.)
@@ -165,10 +171,12 @@ contains
     mem%profile_initialized=.false. 
     mem%routine_opened=.false.      
     mem%profile_routine=.true.
-    mem%present_routine=repeat(' ',namelen)
+    call f_zero(mem%present_routine)!=repeat(' ',namelen)
     mem%logfile=repeat(' ',len(mem%logfile))
     mem%logfile_unit=-1 !< not initialized
     mem%output_level=0
+    mem%depth=0
+    mem%profiling_depth=-1 !<disabled
     !> Dictionaries needed for profiling storage
     nullify(mem%dict_global)
     nullify(mem%dict_routine)
@@ -185,7 +193,7 @@ contains
   !pure 
   subroutine initialize_mem_ctrl(mem)
     implicit none
-    type(mem_ctrl), intent(out) :: mem
+    type(mem_ctrl), intent(inout) :: mem
     mem%profile_initialized=.true.
     !initalize the dictionary with the allocation information
     nullify(mem%dict_routine)
@@ -206,20 +214,87 @@ contains
     f_malloc_default_profiling=profile
   end subroutine set_routine_info
 
+
+  !> routine to associate the rank-1 array to a workspace 
+  subroutine map_workspace_d(pos,lb,lu,work,wsz,ptr)
+    implicit none
+    real(f_double), dimension(:), pointer :: work,wtmp,ptr
+
+!!$    !include file
+!!$    integer(f_long), intent(in) :: lb,lu
+!!$    integer(f_long), intent(inout) :: pos,wsz
+!!$    !local variables
+!!$    integer(f_long) :: szm1
+!!$    szm1=lu-lb
+!!$    !check if the position and the sizes are compatible with the 
+!!$    !allocation of the pointer, otherwise resize the pointer
+!!$    if (wsz > pos+szm1) then
+!!$       wsz=2*wsz
+!!$       wtmp=>work
+!!$       nullify(work)
+!!$       work = f_malloc_ptr(wsz,id='work_d')
+!!$       call f_memcpy(src=wtmp,dest=work)
+!!$       call f_free_ptr(wtmp)
+!!$    end if
+!!$    call f_map_ptr(lb,lu,work(pos:pos+szm1),ptr)
+!!$    !increment the position
+!!$    pos=pos+szm1+1
+!!$    !end of include file
+    include 'f_map-inc.f90'
+  end subroutine map_workspace_d
+
+  !> routine to associate the rank-1 array to a workspace 
+  subroutine map_workspace_r(pos,lb,lu,work,wsz,ptr)
+    implicit none
+    real(f_double), dimension(:), pointer :: work,wtmp,ptr
+    include 'f_map-inc.f90'
+  end subroutine map_workspace_r
+
+  !> routine to associate the rank-1 array to a workspace 
+  subroutine map_workspace_i(pos,lb,lu,work,wsz,ptr)
+    implicit none
+    integer(f_integer), dimension(:), pointer :: work,wtmp,ptr
+    include 'f_map-inc.f90'
+  end subroutine map_workspace_i
+
+  !> routine to associate the rank-1 array to a workspace 
+  subroutine map_workspace_li(pos,lb,lu,work,wsz,ptr)
+    implicit none
+    integer(f_long), dimension(:), pointer :: work,wtmp,ptr
+    include 'f_map-inc.f90'
+  end subroutine map_workspace_li
+
+  !> routine to associate the rank-1 array to a workspace 
+  subroutine map_workspace_l(pos,lb,lu,work,wsz,ptr)
+    implicit none
+    logical, dimension(:), pointer :: work,wtmp,ptr
+    include 'f_map-inc.f90'
+  end subroutine map_workspace_l
+
   !> Copy the contents of an array into another one
   include 'f_memcpy-inc.f90'
+
+  subroutine set_depth(depth)
+    implicit none
+    integer, intent(in) :: depth
+    mems(ictrl)%depth=mems(ictrl)%depth+depth
+    track_origins = &
+         mems(ictrl)%depth <= mems(ictrl)%profiling_depth .or. &
+         mems(ictrl)%profiling_depth ==-1
+  end subroutine set_depth
 
   !> This routine adds the corresponding subprogram name to the dictionary
   !! and prepend the dictionary to the global info dictionary
   !! if it is called more than once for the same name it has no effect
   subroutine f_routine(id,profile)
-    use yaml_output, only: yaml_map,yaml_flush_document !debug
+    use yaml_output, only: yaml_map,yaml_flush_document,yaml_mapping_open
+    use yaml_strings, only: yaml_time_toa
     implicit none
     logical, intent(in), optional :: profile     !< ???
     character(len=*), intent(in), optional :: id !< name of the subprogram
-    
+
     !local variables
-    integer :: lgt,ncalls
+    integer :: lgt,ncalls,unit_dbg
     integer(kind=8) :: itime
 
 
@@ -234,6 +309,8 @@ contains
 
     !profile the profiling
     call f_timer_interrupt(TCAT_ROUTINE_PROFILING)
+
+    call set_depth(1)
 
     !desactivate profile_routine if the mother routine has desactivated it
     if (present(profile)) mems(ictrl)%profile_routine=mems(ictrl)%profile_routine .and. profile
@@ -251,15 +328,15 @@ contains
 !!$      call yaml_mapping_close()
 !!$    call yaml_mapping_close()
     !end debug  
-!test
+    !test
     if (track_origins) then !.true.) then
        if(associated(mems(ictrl)%dict_routine)) then
-!          call yaml_map('adding routine; '//trim(id),&
-!               (/dict_size(mems(ictrl)%dict_global),dict_size(mems(ictrl)%dict_routine)/))
-!          call yaml_map('Dict to add',mems(ictrl)%dict_routine)
+          !          call yaml_map('adding routine; '//trim(id),&
+          !               (/dict_size(mems(ictrl)%dict_global),dict_size(mems(ictrl)%dict_routine)/))
+          !          call yaml_map('Dict to add',mems(ictrl)%dict_routine)
           call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
-!          call yaml_map('verify; '//trim(id),dict_size(mems(ictrl)%dict_global))
-          
+          !          call yaml_map('verify; '//trim(id),dict_size(mems(ictrl)%dict_global))
+
           nullify(mems(ictrl)%dict_routine)
        end if
        !this means that the previous routine has not been closed yet
@@ -281,31 +358,56 @@ contains
           !create a new dictionary
           call set(mems(ictrl)%dict_codepoint//trim(id),&
                dict_new((/no_of_calls .is. yaml_toa(1), t0_time .is. yaml_toa(itime),&
-                             tot_time .is. yaml_toa(0.d0,fmt='(f4.1)'), &
-                             prof_enabled .is. yaml_toa(mems(ictrl)%profile_routine)/)))
+               tot_time .is. yaml_toa(0.d0,fmt='(f4.1)'), &
+               prof_enabled .is. yaml_toa(mems(ictrl)%profile_routine)/)))
        end if
        !then fix the new codepoint from this one
        mems(ictrl)%dict_codepoint=>mems(ictrl)%dict_codepoint//trim(id)
 
        lgt=min(len(id),namelen)
-       mems(ictrl)%present_routine=repeat(' ',namelen)
+       call f_zero(mems(ictrl)%present_routine)
        mems(ictrl)%present_routine(1:lgt)=id(1:lgt)
 
     end if
     call set_routine_info(mems(ictrl)%present_routine,mems(ictrl)%profile_routine)
     if (bigdebug) then
-       call yaml_map('Entering',mems(ictrl)%present_routine)
-       call yaml_flush_document()
+       unit_dbg=bigdebug_stream()
+       call yaml_mapping_open(mems(ictrl)%present_routine,unit=unit_dbg)
+       call yaml_map('Entering',yaml_time_toa(),unit=unit_dbg)
+       call yaml_flush_document(unit=unit_dbg)
     end if
     call f_timer_resume()
   end subroutine f_routine
 
+  function bigdebug_stream() result(unit_dbg)
+    use f_utils, only: f_get_free_unit
+    use yaml_strings, only: operator(+)
+    use yaml_output, only: yaml_stream_connected,yaml_set_stream
+    implicit none
+    integer :: unit_dbg
+    !local variables
+    integer :: istat, iproc
+    character(len=32) :: strm
+    !check if the stream for debugging exist
+    iproc=0
+    iproc= mems(ictrl)%dict_global .get. processid
+    call f_strcpy(dest=strm,src='Routines-'+iproc)
+    call yaml_stream_connected(strm, unit_dbg, istat)
+    !otherwise create it
+    if (istat /=0) then
+       unit_dbg=f_get_free_unit(117)
+       call yaml_set_stream(unit_dbg,filename=strm,position='rewind',setdefault=.false.)
+    end if
+  end function bigdebug_stream
+
   !> Close a previously opened routine
   subroutine f_release_routine()
-    use yaml_output, only: yaml_dict_dump,yaml_map,yaml_flush_document
+    use yaml_output, only: yaml_dict_dump,yaml_map,yaml_flush_document,yaml_mapping_close,&
+         yaml_comment
     use f_utils, only: f_rewind
+    use yaml_strings, only: yaml_time_toa
     implicit none
-    integer :: jproc
+    integer :: jproc,unit_dbg
 
     if (f_err_raise(ictrl == 0,&
          '(f_release_routine): the routine f_malloc_initialize has not been called',&
@@ -314,20 +416,25 @@ contains
     !profile the profiling
     call f_timer_interrupt(TCAT_ROUTINE_PROFILING)
 
+
     if (associated(mems(ictrl)%dict_routine)) then
        call prepend(mems(ictrl)%dict_global,mems(ictrl)%dict_routine)
        nullify(mems(ictrl)%dict_routine)
     end if
     !call yaml_map('Closing routine',trim(dict_key(dict_codepoint)))
     if (bigdebug) then
-       call yaml_map('Exiting',mems(ictrl)%present_routine)
-       call yaml_flush_document()
+       unit_dbg=bigdebug_stream()
+       call yaml_map('Exiting',yaml_time_toa(),unit=unit_dbg,advance='no')
+       call yaml_comment(mems(ictrl)%present_routine,unit=unit_dbg)
+       call yaml_mapping_close(unit=unit_dbg)
+       call yaml_flush_document(unit=unit_dbg)
     end if
-!test
-if (.not. track_origins) then
-call f_timer_resume()
-return
-end if
+    !test
+    if (.not. track_origins) then
+       call set_depth(-1)
+       call f_timer_resume()
+       return
+    end if
     call close_routine(mems(ictrl)%dict_codepoint,.not. mems(ictrl)%routine_opened)!trim(dict_key(dict_codepoint)))
 
 !!$    if (f_err_check()) then
@@ -391,7 +498,7 @@ end if
           call dump_status_line(memstate,mems(ictrl)%logfile_unit,mems(ictrl)%present_routine)
        end if
     end if
-
+    call set_depth(-1)
     call f_timer_resume()
   end subroutine f_release_routine
 
@@ -475,14 +582,15 @@ end if
     if (present(address)) iadd=address
     ilsize=max(int(kind,kind=8)*size,int(0,kind=8))
     !address of first element (not needed for deallocation)
-    if (track_origins .and. iadd/=int(0,kind=8)) then
+    nullify(dict_add)
+    if (track_origins .and. iadd/=int(0,f_address)) then
        !hopefully only address is necessary for the deallocation
 
        !search in the dictionaries the address
        dict_add=>find_key(mems(ictrl)%dict_routine,long_toa(iadd))
        if (.not. associated(dict_add)) then
           dict_add=>find_key(mems(ictrl)%dict_global,long_toa(iadd))
-          if (.not. associated(dict_add)) then
+          if (.not. associated(dict_add) .and. mems(ictrl)%profiling_depth == -1) then
              call f_err_throw('Address '//trim(long_toa(iadd))//&
                   ' not present in dictionary',ERR_INVALID_MALLOC)
              return
@@ -493,29 +601,32 @@ end if
           use_global=.false.
        end if
 
-       !transform the dict_add in a list
-       !retrieve the string associated to the database
-       array_info=dict_add
-       dict_add => yaml_a_todict(array_info)
-       !then retrieve the array information
-       array_id=dict_add//0
-       routine_id=dict_add//1
-       jlsize=dict_add//2
+       if (associated(dict_add)) then
+          !transform the dict_add in a list
+          !retrieve the string associated to the database
+          array_info=dict_add
+          dict_add => yaml_a_todict(array_info)
+          !then retrieve the array information
+          array_id=dict_add//0
+          routine_id=dict_add//1
+          jlsize=dict_add//2
 
-       call dict_free(dict_add)
+          call dict_free(dict_add)
 
-       if (ilsize /= jlsize) then
-          call f_err_throw('Size of array '//trim(array_id)//&
-               ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
-               trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
-          return
+          if (ilsize /= jlsize) then
+             call f_err_throw('Size of array '//trim(array_id)//&
+                  ' ('//trim(yaml_toa(ilsize))//') not coherent with dictionary, found='//&
+                  trim(yaml_toa(jlsize)),ERR_MALLOC_INTERNAL)
+             return
+          end if
+          if (use_global) then
+             call dict_remove(mems(ictrl)%dict_global,long_toa(iadd))
+          else
+             call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
+          end if
        end if
-       if (use_global) then
-          call dict_remove(mems(ictrl)%dict_global,long_toa(iadd))
-       else
-          call dict_remove(mems(ictrl)%dict_routine,long_toa(iadd))
-       end if
-    else
+    end if
+    if (.not. associated(dict_add)) then
        if (present(id)) then
           call f_strcpy(dest=array_id,src=id)
        else
@@ -631,7 +742,7 @@ end if
 
   end subroutine close_routine
 
-  !routine which is called for most of the errors of the module
+  !> Routine which is called for most of the errors of the module
   subroutine f_malloc_callback()
     use yaml_output, only: yaml_warning,yaml_flush_document
     use exception_callbacks, only: severe_callback_add 
@@ -703,7 +814,7 @@ end if
   end subroutine f_malloc_initialize
 
   !> Initialize the library
-  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,iproc)
+  subroutine f_malloc_set_status(memory_limit,output_level,logfile_name,iproc,profiling_depth)
     use yaml_output!, only: yaml_date_and_time_toa
     use f_utils
     use yaml_strings
@@ -714,6 +825,8 @@ end if
     integer, intent(in), optional :: output_level            !< Level of output for memocc
                                                              !! 0 no file, 1 light, 2 full
     integer, intent(in), optional :: iproc                   !< Process Id (used to dump, by default 0)
+    !> innermost profiling level that will be applied to the code
+    integer, intent(in), optional :: profiling_depth
     !local variables
     integer :: unt,jctrl,jproc
 
@@ -795,6 +908,18 @@ end if
     if (present(memory_limit)) call f_set_memory_limit(memory_limit)
        
     if (present(iproc)) call set(mems(ictrl)%dict_global//processid,iproc)
+
+    if (present(profiling_depth)) then
+       !set the limit of the profiling to the maximum
+       !it cannot be lower than the present depth
+       if (profiling_depth < mems(ictrl)%profiling_depth) then
+          call f_err_throw('The profiling_depth level cannot be lowered',&
+               err_id=ERR_INVALID_MALLOC)
+       end if
+       mems(ictrl)%profiling_depth=max(profiling_depth,mems(ictrl)%depth)
+       if (profiling_depth == -1) mems(ictrl)%profiling_depth=-1 !to disab
+    end if
+
   end subroutine f_malloc_set_status
 
   !> Finalize f_malloc (Display status)
@@ -843,6 +968,7 @@ end if
        end if
 
        if (dump_status .and. dict_size(mems(ictrl)%dict_global) /= 2) then
+          call yaml_warning('Heap memory has not be completely freed! See status at finalization to find where.')
           call yaml_map('Size of the global database',dict_size(mems(ictrl)%dict_global))
           !call yaml_map('Raw version',mems(ictrl)%dict_global)
           call yaml_mapping_open('Status of the memory at finalization')
@@ -1099,4 +1225,15 @@ end if
   !---Templates start here
   include 'malloc_templates-inc.f90'
 
+end module dynamic_memory_base
+
+
+module dynamic_memory
+  use module_f_malloc
+  use dynamic_memory_base
+  implicit none
+
+  public 
+
+  private :: ERR_INVALID_MALLOC,f_malloc_namelen
 end module dynamic_memory

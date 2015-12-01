@@ -1,12 +1,11 @@
 !> @file
 !!  Routines which handles the structure DFT_wavefunction related to the Kohn-Sham wavefunctions
 !! @author
-!!    Copyright (C) 2013-2013 BigDFT group
+!!    Copyright (C) 2013-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-
 
 
 subroutine glr_get_psi_size(glr, psisize)
@@ -67,7 +66,8 @@ subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
         ! After handling the signal, iproc 0 broadcasts to other
         ! proc to continue (jproc == -1).
         message = SIGNAL_DONE
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        !call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
      end if
   else
      message = SIGNAL_WAIT
@@ -75,8 +75,9 @@ subroutine kswfn_emit_psi(Wfn, iter, psi_or_hpsi, iproc, nproc)
         if (message == SIGNAL_DONE) then
            exit
         end if
-        call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
-        
+        !call MPI_BCAST(message, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+        call mpibcast(message, 1,comm=bigdft_mpi%mpi_comm)
+
         if (message > 0 .and. iproc == message) then
            ! Will have to send to iproc 0 some of psi.
            call MPI_RECV(data, 2, MPI_INTEGER, 0, 123, bigdft_mpi%mpi_comm, status, ierr)
@@ -106,7 +107,8 @@ subroutine kswfn_mpi_copy(psic, jproc, psiStart, psiSize)
 
   if (jproc == 0) return
 
-  call MPI_BCAST(jproc, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+  !call MPI_BCAST(jproc, 1, MPI_INTEGER, 0, bigdft_mpi%mpi_comm, ierr)
+  call mpibcast(jproc, 1,comm=bigdft_mpi%mpi_comm)
 
   call MPI_SEND((/ psiStart, psiSize /), 2, MPI_INTEGER, jproc, 123, bigdft_mpi%mpi_comm, ierr)
   call MPI_RECV(psic, psiSize, MPI_DOUBLE_PRECISION, jproc, 123, bigdft_mpi%mpi_comm, status, ierr)
@@ -114,6 +116,7 @@ END SUBROUTINE kswfn_mpi_copy
 
 
 subroutine kswfn_init_comm(wfn, dpbox, iproc, nproc, nspin, imethod_overlap)
+  use module_dpbox, only: denspot_distribution
   use module_types
   !use module_interfaces, except_this_one => kswfn_init_comm
   use communications_base, only: comms_linear_null

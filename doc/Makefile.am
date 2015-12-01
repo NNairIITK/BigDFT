@@ -91,6 +91,7 @@ tests.xml:
 	done >> tests.xml ; \
 	echo "</bigdft-tests>" >> tests.xml
 
+
 clean-local:
-	rm -rf *.aux *.log cluster.pdf halFFT.pdf BigDFT-manual.pdf *.toc Doxygen *.stamp doxygen.warnings
+	rm -rf Doxygen lcov* *.aux *.log cluster.pdf halFFT.pdf BigDFT-manual.pdf *.toc Doxygen *.stamp doxygen.warnings
 

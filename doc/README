@@ -7,16 +7,16 @@
 @page DOCUMENTATION Developing the BigDFT documentation and some coding rules
 
 At the beginning of each Fortran file, it is important to add the following lines:
-@code{.f90}
+@verbatim
 !> @file
 !! WHAT THIS FILE SHOULD PROVIDE
 !! @author
-!!    Copyright (C) 2005-2013 BigDFT group
+!!    Copyright (C) 2015-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
-@endcode
+@endverbatim
 
 Then before each routine or module inside the corresponding file, you add some lines of comment as:
 @code{.f90}
@@ -38,7 +38,8 @@ It is better to comment each argument of the routine in the same line of their d
 @endcode
 
 In order to avoid the duplication, we define dummy structure as doc in order to specify the usual name used as
-arguments. Then you can insert as in the following example only @verbatim@copydoc poisson_solver::doc::geocode@endverbatim.
+arguments. Then you can insert as in the following example only 
+@verbatim@copydoc poisson_solver::doc::geocode@endverbatim
 This means that doxygen will insert the documentation of the member geocode of the structure doc from the module
 poisson_solver.
 

@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #ifdef HAVE_TIME_H
 #include <time.h>
 #endif
@@ -123,10 +124,13 @@ void FC_FUNC(getdir, GETDIR)(const char *dir, int *lgDir,
   if (mkdir(path, 0755) != 0)
 #endif
     {
-      free(path);
-      *status = 2;
-      return;
-    }
+      if (errno != EEXIST)
+	{
+           free(path);
+           *status = 2;
+           return;
+        }
+     }
 
   free(path);
   lgCpy = ((*lgDir > *lgOut - 1)?*lgOut - 1:*lgDir);
@@ -191,6 +195,15 @@ void FC_FUNC(getfilecontent, GETFILECONTENT)(void **pt, long *pt_len, const char
   *pt = (void*)buf;
   *pt_len = s;
 }
+
+// Take a Long integer as th enumber of bythes
+void FC_FUNC(memsetzero,MEMSETZERO)(void *buf, long long int *ln)
+{
+  size_t nbytes = *ln;
+
+  memset(buf, 0, nbytes);
+}
+
 
 void FC_FUNC(copycbuffer, COPYCBUFFER)(char *to, void **cbuf, long *ln)
 {

@@ -87,23 +87,27 @@ contains
 
   end subroutine input_file_errors
 
+
   !> Check and complete input file
   subroutine input_file_complete(inputdef,dict,imports,nocheck)
+    use dynamic_memory
     use yaml_output
     implicit none
-    !> dictionary of input definitions
+    !> Dictionary of input definitions
     type(dictionary), pointer :: inputdef
-    !>dictionary of the input files
+    !> Dictionary of the input files
     type(dictionary), pointer :: dict
-    !>list of the keys which should not be checked
+    !> List of the keys which should not be checked
     type(dictionary), pointer, optional :: nocheck
-    !>dictionary of the preloaded input parameters associated to the importing
-    !!for the input file
+    !> Dictionary of the preloaded input parameters associated to the importing
+    !! for the input file
     type(dictionary), pointer, optional :: imports
 
     !local variables
     logical :: localcheck
     type(dictionary), pointer :: dict_tmp,iter,dict_tmp2
+
+    !call f_routine(id='input_file_complete')
 
     !if present imports, the user dictionary has to be saved for overriding
     if (present(imports) .and. (IMPORT_KEY .in. dict)) then
@@ -138,6 +142,8 @@ contains
        call input_keys_fill(inputdef,dict,trim(dict_key(dict_tmp)),check=localcheck)
        dict_tmp => dict_next(dict_tmp)
     end do
+
+    !call f_release_routine()
 
   end subroutine input_file_complete
 
@@ -530,22 +536,25 @@ contains
 
 
   !> This routine is used to create a minimal dictionary which can be used at the place 
-  !! of the one provided as an indication on the understood variables
+  !! of the one provided as an indication on the understood variables in inputdef
   subroutine input_file_minimal(inputdef,dict,minimal,nested,as_is)
+    use dynamic_memory
     use dictionaries
     use yaml_output
     implicit none
-    !> dictionaries of the input definitions
-    type(dictionary), pointer :: inputdef
-    !> user input file
-    type(dictionary), pointer, intent(in) :: dict
-    type(dictionary), pointer, intent(in) :: as_is,nested
-    type(dictionary), pointer, intent(out) :: minimal
-    !> list of keys that remain which require special treatments
-    !local variables
+    !Arguments
+    type(dictionary), pointer :: inputdef             !< Dictionary of the input definitions
+    type(dictionary), pointer, intent(in) :: dict     !< User input file
+    type(dictionary), pointer, intent(in) :: as_is    !< Add keys in as_is and not in inputdef
+    type(dictionary), pointer, intent(in) :: nested   !< Add other keys (extracted by subcategories of nested elements)
+    type(dictionary), pointer, intent(out) :: minimal !< List of keys in dict that remain which require special treatments
+                                                      !! which are also in inputdef (with different values) or in as_is
+    !Local variables
     type(dictionary), pointer :: dict_tmp,min_cat,dict_tmp0
     character(len=max_field_length) :: category,category0
     logical :: cat_found
+
+    !call f_routine(id='input_file_minimal')
 
     nullify(minimal)
 
@@ -608,6 +617,8 @@ contains
        end if
        dict_tmp => dict_next(dict_tmp)
     end do
+
+    !call f_release_routine()
 
   contains
 
@@ -777,7 +788,7 @@ contains
     implicit none
     type(dictionary), pointer :: dict   !< Dictionary to dump
     logical, intent(in), optional :: userOnly
-    !>message to be written as comment in the beginning
+    !> Message to be written as comment in the beginning
     !! do not write anything if present and empty
     character(len=*), intent(in), optional :: msg
     type(dictionary), pointer, optional :: nodump_list !<list containing keys not to dump
@@ -785,10 +796,7 @@ contains
     !local variables
     integer, parameter :: natoms_dump=500
     logical :: userOnly_,todump
-    integer :: i, dlen, skeys,natoms
-    character(max_field_length), dimension(:), allocatable :: keys
-    character(max_field_length) ::  sourcefile
-    type(dictionary), pointer :: tmp,iter
+    type(dictionary), pointer :: iter
 
     userOnly_ = .false.
     if (present(userOnly)) userOnly_ = userOnly

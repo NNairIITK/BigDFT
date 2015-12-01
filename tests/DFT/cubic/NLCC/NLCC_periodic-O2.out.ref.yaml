@@ -399,10 +399,9 @@
    Size of workspaces                  :  59672
    Maximum size of masking arrays for a projector:  2175
    Cumulative size of masking arrays   :  4344
- NLCC, Calculate core density for atom : O
- Analytic core charge                  :  0.886280
- NLCC, Calculate core density for atom : O
- Analytic core charge                  :  0.886280
+ Analytic core charges for atom species:
+   O                                   :  1.7725610
+ Total core charge                     :  1.7725610
  Total core charge on the grid (To be compared with analytic one):  1.7725610
  Communication checks:
    Transpositions                      :  Yes
@@ -666,7 +665,7 @@
  Electric Dipole Moment (Debye):
    P vector                            :  [ -7.9908E+01, -7.9908E+01, -4.1174E+01 ]
    norm(P)                             :  1.202735E+02
- Calculate local forces: {Leaked force:  0.00000E+00}
+ Calculate local forces: Yes
  Calculate NLCC forces                 :  Yes
  Calculate Non Local forces            :  Yes
  Average noise forces: {x: -9.50763591E-08, y: -9.50763566E-08, z: -6.52492223E-06, 
@@ -683,7 +682,7 @@
    -  [ -1.476236168668E-10, -1.475463173351E-10, -2.807111468078E-03 ]
    Pressure:
      Ha/Bohr^3                         : -1.67628608903914E-03
-     GPa                               : -49.3180312998
+     GPa                               : -49.3180
      PV (Ha)                           : -0.30542775938257
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

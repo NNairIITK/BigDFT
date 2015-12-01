@@ -1,41 +1,38 @@
 # Give here the list of existing tests
-TESTDIRS = \
-	C6H6-freq \
-	FF-LENOSKY \
+SHORT_TESTDIRS = FF-LENOSKY \
 	FF-LJ \
+	H2O-slab \
+	H2-freq \
+	MD
+
+if HAVE_ETSF_IO
+SHORT_TESTDIRS += IO-wf-ETSF
+endif
+
+EXTRA_DIST =
+
+#if USE_OCL
+#else
+##Add MINHOP (box too small)
+#  SHORT_TESTDIRS += MINHOP
+#endif
+
+LONG_TESTDIRS = $(SHORT_TESTDIRS) \
+	C6H6-freq \
 	GEOPT-all \
 	GEOPT-BFGS \
 	GEOPT-LBFGS \
 	GEOPT-newIG \
 	NH3 \
-	H2O-slab \
-	H2-freq \
-	NEB \
-	SPLSAD \
 	XabsCheb \
 	XabsLanc \
 	Xabsb2B \
 	BigDFT2Wannier \
-	testforces \
+	testforces\
 	IO-wf
-
-EXTRA_DIST = MH_taskgroups
-
-if HAVE_ETSF_IO
-TESTDIRS += IO-wf-ETSF
-endif
-
-if USE_OCL
-else
-#Add MINHOP (box too small)
-  TESTDIRS += MINHOP
-endif
 
 # Give here the pseudo-potentials used by each test.
 H2-freq.psp: psppar.H
-NEB.psp: psppar.H
-SPLSAD.psp: HGH/psppar.N
-MINHOP.psp: psppar.Si psppar.H
 GEOPT-BFGS.psp: HGH/psppar.Mg
 GEOPT-LBFGS.psp: HGH/psppar.Mg
 XabsCheb.psp: Xabs/psppar.Fe
@@ -58,10 +55,6 @@ H2-freq-test.post-in:
 C6H6-freq-test.post-in: 
 	rm -f frequencies.res
 
-# Additional MINHOP in;
-MINHOP-test.post-in:
-	rm -f posloc* posimed* data/global.mon
-
 # Additional NEB in.
 NEB-test.post-in:
 	if ! test -f NEB_include.sh ; then sed "s;%%abs_top_builddir%%;$(abs_top_builddir);g" NEB_include.sh.in > NEB_include.sh ; fi
@@ -74,11 +67,6 @@ NEB-test.post-clean:
 H2O-slab-test.post-in:
 	cp -f velocities.in velocities.xyz
 	chmod a+w velocities.xyz
-
-# Additional reference for geopt.mon test
-global.mon.out : test.minhop.out
-	cp -f data/global.mon $@
-
 
 # Additional outs
 H2-freq.post-out:
@@ -116,7 +104,6 @@ InputGenPot.xabs.post-out:
 	mv -f local_potentialb2B.cube b2B_xanes.cube
 	cp InputGenPot.xyz b2B_xanes.xyz
 
-
 # Introduce specific targets for export-wavefunctions
 IO-wf_plain.cube: 
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
@@ -144,16 +131,12 @@ IO-wf_ETSF.cube:
 # Define the precision for specific directories.
 %.report: %.ref
 	@case $< in \
-          *.memguess.ref | *.out.ref | *.freq.ref | *.splsad.ref | *.minhop.ref | *.xabs.ref | *.b2w.ref ) mode="--mode=bigdft";; \
-          *.NEB.ref) mode="--mode=neb";; \
+          *.memguess.ref | *.out.ref | *.freq.ref | *.xabs.ref | *.b2w.ref ) mode="--mode=bigdft";; \
           *) mode="";; \
         esac ; \
         case $* in \
           GEOPT-BFGS.out*)  prec="1.e-9" ;; \
           GEOPT-LBFGS.out*) prec="1.e-9" ;; \
-	  NEB*)             prec="5e-5" ;; \
-	  SPLSAD*)          prec="2e-8" ;; \
-	  MINHOP*)          prec="5e-9" ;; \
           *)                prec="1.1e-10" ;; \
         esac ; \
 	python $(abs_top_srcdir)/tests/fldiff.py $$mode --discrepancy=$$prec $*".out" $< | tee $@

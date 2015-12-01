@@ -65,8 +65,10 @@ PS_Check.out.yaml: PS_Check PS_Program PS_Exercise Generalized_PSolver
 	-$(run_parallel) ./PS_Check -n [57,48,63] -g F > PS_Check.out.yaml
 	-$(run_parallel) ./PS_Check -n [64,64,64] -g P >> PS_Check.out.yaml
 	-$(run_parallel) ./PS_Check -n [32,64,48] -g S >> PS_Check.out.yaml
-	-$(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI >> PS_Check.out.yaml
-	-$(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG >> PS_Check.out.yaml
+	-$(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PI 
+	cat log.yaml >> PS_Check.out.yaml
+	-$(run_parallel) ./Generalized_PSolver -n [57,49,63] -m PCG 
+	cat log.yaml >> PS_Check.out.yaml
 	cp PS_Check.out.yaml tmp
 	cat tmp | grep -v 'Unable to read mpd.hosts' > PS_Check.out.yaml
 	rm tmp

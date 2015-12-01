@@ -1,7 +1,7 @@
 !> @file
 !!  Module defining a dictionary
 !! @author Luigi Genovese
-!!    Copyright (C) 2012-2013 BigDFT group
+!!    Copyright (C) 2012-2015 BigDFT group <br>
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,6 +12,7 @@
 module dictionaries
    use exception_callbacks
    use dictionaries_base
+   use f_precisions, only: f_address,f_loc
    use yaml_strings, only: read_fraction_string,yaml_toa,f_strcpy
    implicit none
 
@@ -22,6 +23,7 @@ module dictionaries
       character(len=max_field_length) :: val=' '
       type(dictionary), pointer :: dict => null()
    end type list_container
+
    !> Public to be used in dict_new() constructor.
    type, public :: dictionary_container
       character(len=max_field_length) :: key=' '
@@ -37,7 +39,7 @@ module dictionaries
    integer, save, public :: DICT_INVALID_LIST
    integer, save, public :: DICT_INVALID
 
-   !control the error enviromnment (see error_handling.f90)
+   !> Control the error enviromnment (see error_handling.f90)
    logical :: try_environment=.false.
 
    interface operator(.index.)
@@ -118,8 +120,6 @@ module dictionaries
       module procedure dict_new,dict_new_elems
    end interface
 
-   integer(kind=8), external :: f_loc
-
    !> Public routines
    public :: operator(//),operator(.index.),assignment(=)
    public :: set,dict_init,dict_free,append,prepend,add
@@ -132,6 +132,7 @@ module dictionaries
    public :: operator(.pop.),operator(.notin.)
    public :: operator(==),operator(/=),operator(.in.),operator(.get.)
    public :: dictionary,max_field_length,dict_get_num
+
 
    interface dict_next_build
       module procedure dict_next_build_list
@@ -164,6 +165,14 @@ module dictionaries
 
    type(error_stack), pointer :: error_pipelines=>null() !< Stack of errors for try clause
  
+   interface f_err_throw
+      module procedure f_err_throw_c,f_err_throw_str
+   end interface
+
+   interface f_err_raise
+      module procedure f_err_raise,f_err_raise_str
+   end interface
+
 
    !> Public variables of the error handling module
    public :: f_err_initialize,f_err_finalize
@@ -177,7 +186,7 @@ module dictionaries
    public :: f_err_set_callback,f_err_unset_callback
    public :: f_err_open_try,f_err_close_try
    public :: f_err_severe,f_err_severe_override,f_err_severe_restore,f_err_ignore
-   public :: f_loc,f_get_past_error,f_get_no_of_errors
+   public :: f_get_past_error,f_get_no_of_errors
 
    !for internal f_lib usage
    public :: dictionaries_errors,TYPE_DICT,TYPE_LIST
@@ -335,7 +344,7 @@ contains
        character(len=*), intent(in) :: key
        logical, intent(in) :: dst
        !local variables
-       type(dictionary), pointer :: dict_first !<in case of first occurrence
+!!$       type(dictionary), pointer :: dict_first !<in case of first occurrence
        type(dictionary), pointer :: iter !to iterate over the dictionaries
        logical :: key_found
        type(dictionary), pointer :: dict_update      !< iterator for list renumbering
@@ -844,7 +853,7 @@ contains
        integer, intent(in) :: item
        logical, intent(in) :: dst
        !local variables
-       type(dictionary), pointer :: dict_first !<in case of first occurrence
+!!$       type(dictionary), pointer :: dict_first !<in case of first occurrence
        type(dictionary), pointer :: iter !to iterate over the dictionaries
        logical :: item_found
        type(dictionary), pointer :: dict_update      !< iterator for list renumbering
@@ -1092,7 +1101,7 @@ contains
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: brother
      !local variables
-     type(dictionary), pointer :: iter
+!!$     type(dictionary), pointer :: iter
 
      if (.not. associated(dict)) then
         !this should be verifyed by passing a dictionary which is not in the beginning
@@ -1140,7 +1149,8 @@ contains
      type(dictionary), pointer :: dict
      type(dictionary), pointer :: brother
      !local variables
-     type(dictionary), pointer :: dict_tmp,iter
+     type(dictionary), pointer :: dict_tmp
+!!$     type(dictionary), pointer :: iter
 
      if (.not. associated(brother)) return
 
@@ -1739,7 +1749,7 @@ contains
          character(max_field_length), dimension(:), allocatable :: keys
          character(len = max_field_length) :: val
          !local variables
-         type(dictionary), pointer :: iter
+!!$         type(dictionary), pointer :: iter
 
          if (dict_len(ref) > 0) then
             ! List case.

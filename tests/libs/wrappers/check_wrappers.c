@@ -77,10 +77,9 @@ int main(int argc, const char **argv)
 
   atoms = bigdft_run_get_atoms(run);
 
-  if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "yaml");
+  if (iproc == 0) bigdft_atoms_write(atoms, "posinp", "yaml"); 
 
   bigdft_atoms_unref(atoms);
-
 
 
   /* Test changing a value of input_variables. */
@@ -97,7 +96,7 @@ int main(int argc, const char **argv)
 
   outs = bigdft_run_calculate(run, iproc, nproc);
 
-  bigdft_run_unref(run);
+  bigdft_run_unref(run); 
   bigdft_goutput_unref(outs);
 
   ierr = bigdft_lib_finalize();

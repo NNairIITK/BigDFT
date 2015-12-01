@@ -24,7 +24,6 @@ program PS_Check
   logical :: usegpu
   real(kind=8), parameter :: a_gauss = 1.0d0,a2 = a_gauss**2
   real(kind=8), parameter :: acell = 10.d0
-  character(len=50) :: chain
   character(len=1) :: geocode !< @copydoc poisson_solver::coulomb_operator::geocode
   character(len=MPI_MAX_PROCESSOR_NAME) :: nodename_local
   real(kind=8), dimension(:), allocatable :: density,rhopot,potential,pot_ion,extra_ref
@@ -39,7 +38,7 @@ program PS_Check
   integer :: n_cell,igpu
   integer, dimension(3) :: nxyz
   integer, dimension(3) :: ndims
-  real(wp), dimension(:,:,:,:), pointer :: rhocore
+  real(dp), dimension(:,:,:,:), pointer :: rhocore
   real(dp), dimension(3) :: hgrids
   type(mpi_environment) :: bigdft_mpi
   character(len = *), parameter :: package_version = "PSolver 1.7-dev.25"
@@ -173,7 +172,7 @@ program PS_Check
   !stop
   if (pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0) then
      !compare the values of the analytic results (pkernel%mpi_env%nproc == -1 indicates that it is serial)
-     call compare (0,-1,pkernel%mpi_env%mpi_comm,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
+     call compare(0,-1,pkernel%mpi_env%mpi_comm,n01,n02,n03,1,potential,rhopot,'ANALYTIC')
   end if
   !if the latter test pass, we have a reference for all the other calculations
   !build the reference quantities (based on the numerical result, not the analytic)
@@ -226,7 +225,6 @@ program PS_Check
   call f_timing_checkpoint('Parallel',mpi_comm=MPI_COMM_WORLD,nproc=nproc,gather_routine=gather_timings)
   !call timing(MPI_COMM_WORLD,'Parallel','PR')
 
-  call pkernel_free(pkernel)
 
   if (pkernel%mpi_env%nproc == 1 .and.pkernel%mpi_env%iproc +pkernel%mpi_env%igroup == 0 )&
        call yaml_map('Monoprocess run','*MPIrun')
@@ -287,6 +285,7 @@ program PS_Check
   !call yaml_stream_attributes()
   !&   write( *,'(1x,a,1x,i4,2(1x,f12.2))') 'CPU time/ELAPSED time for root process ', pkernel%iproc,tel,tcpu1-tcpu0
 
+  call pkernel_free(pkernel)
   call f_release_routine()
   if (iproc==0) then
      call yaml_release_document()
@@ -339,7 +338,7 @@ contains
 
 
     call PS_dim4allocation(geocode,distcode,iproc,nproc,n01,n02,n03,.false.,.false.,&
-         n3d,n3p,n3pi,i3xcsh,i3s)
+         0,n3d,n3p,n3pi,i3xcsh,i3s)
 
     !starting point of the three-dimensional arrays
     if (distcode == 'D') then
@@ -441,7 +440,7 @@ contains
     nullify(rhocore)
 
     call PS_dim4allocation(geocode,distcode,pkernel%mpi_env%iproc,pkernel%mpi_env%nproc,n01,n02,n03,.false.,.false.,&
-         n3d,n3p,n3pi,i3xcsh,i3s)
+         0,n3d,n3p,n3pi,i3xcsh,i3s)
 
     !starting point of the three-dimensional arrays
     if (distcode == 'D') then

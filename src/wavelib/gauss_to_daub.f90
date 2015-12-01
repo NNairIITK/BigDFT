@@ -496,6 +496,7 @@ subroutine gauss_to_daub_k(hgrid,kval,ncplx_w,ncplx_g,ncplx_k,&
   !calculate the array sizes;
   !at level 0, positions shifted by i0 
   right_t= ceiling(15.d0*a1)
+  !right_t= max(ceiling(15.d0*a1),i0+m+1)
 
   !print *,'a,right_t',a1,right_t,gau_a,hgrid
 
@@ -642,9 +643,9 @@ contains
        !corrected for avoiding 0**0 problem
        icplx = 1
        if (n_gau == 0) then
-          !$omp parallel default(none) &
-          !$omp shared(leftx,rightx,i0,h,z0,a1,ww,icplx) private(i,x,r,r2,func)
-          !$omp do schedule(static)
+!!$          !$omp parallel default(none) &
+!!$          !$omp shared(leftx,rightx,i0,h,z0,a1,ww,icplx) private(i,x,r,r2,func)
+!!$          !$omp do schedule(static)
           do i=leftx,rightx
              x=real(i-i0*16,gp)*h
              r=x-z0
@@ -655,12 +656,12 @@ contains
              !func=mp_exp(h,i0*16*h+z0,0.5_gp/(a1**2),i,0,.true.)
              ww(i-leftx,1,icplx)=func
           enddo
-          !$omp end do
-          !$omp end parallel
+!!$          !$omp end do
+!!$          !$omp end parallel
        else
-          !$omp parallel default(none) &
-          !$omp shared(leftx,rightx,i0,h,z0,n_gau,a1,ww,icplx) private(i,x,r,coeff,r2,func)
-          !$omp do schedule(static)
+!!$          !$omp parallel default(none) &
+!!$          !$omp shared(leftx,rightx,i0,h,z0,n_gau,a1,ww,icplx) private(i,x,r,coeff,r2,func)
+!!$          !$omp do schedule(static)
           do i=leftx,rightx
              x=real(i-i0*16,gp)*h
              r=x-z0
@@ -673,8 +674,8 @@ contains
              func=coeff*func
              ww(i-leftx,1,icplx)=func
           enddo
-          !$omp end do
-          !$omp end parallel
+!!$          !$omp end do
+!!$          !$omp end parallel
        end if
 
   END SUBROUTINE gauss_to_scf_1
@@ -971,7 +972,7 @@ subroutine gauss_c_to_daub_k(hgrid,kval,ncplx,gau_bf,ncs_s,factor , &
   real(gp)  hcutoff
 
   !local variables
-  real(gp), parameter :: pi=3.141592653589793_gp
+!  real(gp), parameter :: pi=3.141592653589793_gp
   integer :: rightx,leftx,right_t,i0,i,k,length,j,ics, icplx
   real(gp) :: a,z0,h,x,r,coeff,r2,fac
   real(wp) :: func,cval,sval

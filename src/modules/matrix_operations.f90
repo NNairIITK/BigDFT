@@ -27,7 +27,6 @@ module matrix_operations
            !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
         use module_base
         use module_types
-        use module_interfaces
         use sparsematrix_base, only: sparse_matrix, &
                                 sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc0_ptr, &
                                 assignment(=), &
@@ -69,7 +68,7 @@ module matrix_operations
         logical :: ovrlp_allocated, inv_ovrlp_allocated
       
         ! new for sparse taylor
-        integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin, iline, icolumn, ist, j
+        integer :: nout, nseq, ispin, ishift, ishift2, isshift, ilshift, ilshift2, nspin, iline, icolumn, ist, j, iorder_taylor
         integer,dimension(:,:,:),allocatable :: istindexarr
         real(kind=8),dimension(:),pointer :: ovrlpminone_sparse
         real(kind=8),dimension(:),allocatable :: ovrlp_compr_seq, ovrlpminone_sparse_seq, ovrlp_large_compr, tmparr, resmat
@@ -91,7 +90,7 @@ module matrix_operations
       
       
         !!write(*,*) 'iorder',iorder
-      
+
       
         call f_routine(id='overlapPowerGeneral')
         call timing(iproc,'lovrlp^-1     ','ON')
@@ -122,8 +121,8 @@ module matrix_operations
         else
             nspin=ovrlp_smat%nspin
         end if
-      
-      
+
+
         if (iproc==0) then
             call yaml_newline()
             call yaml_mapping_open('calculate S^x')
@@ -297,7 +296,10 @@ module matrix_operations
                 call f_free(Amat21)
       
             else
-                if (iorder>1) then
+                ! we're missing cholesky method here... to avoid going to ridiculously high order Taylor expansion instead subtract 1000
+                iorder_taylor=iorder
+                if (iorder>1000) iorder_taylor=iorder-1000
+                if (iorder_taylor>1) then
                     if (nproc>1) then
                         ovrlpminone => inv_ovrlp_mat(1)%matrix(:,:,:)
                         !ovrlpminonep = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='ovrlpminonep')
@@ -347,7 +349,7 @@ module matrix_operations
                 end if
       
                 ovrlppowerp = sparsematrix_malloc_ptr(ovrlp_smat,iaction=DENSE_PARALLEL,id='ovrlppowerp')
-      
+
       
                 do ispin=1,nspin
       
@@ -374,7 +376,7 @@ module matrix_operations
                     !!    end do
                     !!end do
       
-                    do i=2,iorder
+                    do i=2,iorder_taylor
                         if (norbp>0) call dgemm('n', 'n', ovrlp_smat%nfvctr, norbp, ovrlp_smat%nfvctr, &
                                           1.d0, ovrlpminone(1,1,ispin), &
                                           ovrlp_smat%nfvctr, ovrlppoweroldp(1,1,ispin), ovrlp_smat%nfvctr, &
@@ -394,7 +396,7 @@ module matrix_operations
                         !!    end do
                         !!end do
                         !!if (iproc==0) write(*,'(a,2i8,es16.9)') 'ispin, i, sum(inv_ovrlpp)', ispin, i, sum(inv_ovrlpp)
-                        if (i/=iorder.and.norbp>0) then
+                        if (i/=iorder_taylor.and.norbp>0) then
                             call vcopy(ovrlp_smat%nfvctr*norbp,ovrlppowerp(1,1),1,ovrlppoweroldp(1,1,ispin),1)
                         end if
                     end do
@@ -418,7 +420,7 @@ module matrix_operations
       
                 call f_free_ptr(ovrlppowerp)
       
-                if (iorder>1) then
+                if (iorder_taylor>1) then
                     if(nproc > 1) then
                         nullify(ovrlpminone)
                     else
@@ -426,13 +428,13 @@ module matrix_operations
                     end if
                 end if
       
-                if (iorder>1) then
+                if (iorder_taylor>1) then
                     call f_free_ptr(ovrlppoweroldp)
                 else
                     nullify(inv_ovrlpp)
                 end if
             end if
-      
+
             if (check_accur) then
                 do ispin=1,nspin
                     call check_accur_overlap_minus_one(iproc,nproc,ovrlp_smat%nfvctr,&
@@ -1016,7 +1018,7 @@ module matrix_operations
       
         call timing(iproc,'lovrlp^-1     ','OF')
         call f_release_routine()
-      
+
       
       end subroutine overlapPowerGeneral
 
@@ -1086,7 +1088,6 @@ module matrix_operations
                  smat, max_error, mean_error)
         use module_base
         use module_types
-        use module_interfaces
         use yaml_output
         implicit none
         
@@ -1293,8 +1294,8 @@ module matrix_operations
                max_error=0.5d0*max_error
                mean_error=0.5d0*mean_error
            else
-               max_error=0.d0
-               mean_error=0.d0
+               !still have to call routine so that allreduce is called by all mpi, but avoid explicit out of bounds reference for ovrlp
+               call max_matrix_diff_parallel(iproc, norb, norbp, isorb, tmpp, ovrlp, smat, max_error, mean_error)
            end if
         else if (power==-2) then
            if (norbp>0) then
@@ -1898,7 +1899,7 @@ module matrix_operations
         end do
         !$omp end parallel do
       
-      
+ 
         call f_free(eval)
         inv_ovrlp_halfp=f_malloc_ptr((/norb,norbp/), id='inv_ovrlp_halfp')
         ! ...and now apply the diagonalized overlap matrix to the matrix constructed above.
@@ -1918,7 +1919,7 @@ module matrix_operations
         !!        1.d0, inv_ovrlp_half, norb, tempArr, norb, 0.d0, inv_ovrlp_halfp, norb)
         !!   call vcopy(norb*norbp,inv_ovrlp_halfp(1,1),1,inv_ovrlp_half(1,1),1)
         !!end if
-      
+  
         call f_free_ptr(inv_ovrlp_halfp)
         call f_free(tempArr)
       
@@ -2169,7 +2170,6 @@ module matrix_operations
                  inv_ovrlp_half, inv_ovrlp_half_)
         use module_base
         use module_types
-        use module_interfaces
         use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
                                      allocate_matrices, deallocate_matrices
         use sparsematrix_init, only: matrixindex_in_compressed

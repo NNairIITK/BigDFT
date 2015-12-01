@@ -462,7 +462,7 @@ subroutine mix_rhopot(iproc,nproc,npoints,alphamix,mix,rhopot,istep,&
   character(len = *), parameter :: subname = "mix_rhopot"
   character(len = 500) :: errmess
   integer, allocatable :: user_data(:)
-  real(8) :: ddot !debug
+  !real(8) :: ddot !debug
   integer(kind=8) :: nsize
 
   call f_routine(id='mix_rhopot')
@@ -525,7 +525,6 @@ END SUBROUTINE mix_rhopot
 subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
   use module_base
   use module_types
-  use module_interfaces, except_this_one => psimix
   use yaml_output
   use diis_sd_optimization
   use communications_base, only: comms_cubic
@@ -631,6 +630,7 @@ subroutine psimix(iproc,nproc,ndim_psi,orbs,comms,diis,hpsit,psit)
 END SUBROUTINE psimix
 
 
+!> Perform a diis or sd step
 subroutine diis_or_sd(iproc,idsx,nkptsp,diis)
   use module_base
   use module_types
