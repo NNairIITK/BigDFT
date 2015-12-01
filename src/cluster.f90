@@ -120,7 +120,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   integer :: ilr, nlr, ioffset, linear_iscf
   integer,dimension(2) :: irow, icol, iirow, iicol
   character(len=20) :: comment
-  integer :: i1,i2,i3p,n1m,n2m,n3m !MM
+  !integer :: i1,i2,i3p,n1m,n2m,n3m !MM
 
   integer :: ishift, extra_states, i1, i2, i3, ii
 
