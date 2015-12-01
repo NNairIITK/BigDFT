@@ -121,7 +121,7 @@ module dictionaries
    end interface
 
    interface iterating
-      module procedure iterating_dict, iterating_list_container
+      module procedure iterating_dict!, iterating_list_container
    end interface iterating
 
    !> Public routines
