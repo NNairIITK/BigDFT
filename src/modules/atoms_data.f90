@@ -1593,7 +1593,8 @@ contains
          call get_psp(dict//filename,ityp,atoms%astruct%ntypes,&
               atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &
               atoms%ixcpsp(ityp), atoms%iradii_source(ityp),atoms%psppar(0:,0:,ityp),&
-              atoms%radii_cf(ityp,:),atoms%pawrad,atoms%pawtab,atoms%epsatm)
+              atoms%radii_cf(ityp,:),pawpatch,&
+              atoms%pawrad,atoms%pawtab,atoms%epsatm)
 !!$
 !!$         call psp_set_from_dict(dict // filename, l, &
 !!$              & atoms%nzatom(ityp), atoms%nelpsp(ityp), atoms%npspcode(ityp), &

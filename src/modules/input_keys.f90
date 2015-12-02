@@ -655,10 +655,12 @@ contains
     projr = dict // PERF_VARIABLES // PROJRAD
     cfrmults = dict // DFT_VARIABLES // RMULT
     jxc = dict // DFT_VARIABLES // IXC
-    var => dict_iter(types)
-    do while(associated(var))
+    !var => dict_iter(types)
+    !do while(associated(var))
+    nullify(var)
+    do while(iterating(var,on=types))
        call psp_dict_fill_all(dict, trim(dict_key(var)), jxc, projr, cfrmults(1), cfrmults(2))
-       var => dict_next(var)
+       !var => dict_next(var)
     end do
 
     ! Update interdependant values.

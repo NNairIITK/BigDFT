@@ -40,7 +40,7 @@ module pseudopotentials
   end type PSP_data
 
   public :: psp_set_from_dict,get_psp,psp_dict_fill_all
-  public :: apply_hij_coeff,update_psp_dict,psp_file_merge_to_dict,nlcc_file_merge_to_dict
+  public :: apply_hij_coeff,update_psp_dict,psp_from_stream
 
   contains
 
@@ -301,6 +301,7 @@ module pseudopotentials
       character(len = max_field_length) :: str
       key = 'psppar.' // trim(type)
       exists=key .in. dict
+
       if (exists) then
          if (SOURCE_KEY .in. dict // key) then
             str = dict_value(dict // key // SOURCE_KEY)
@@ -329,7 +330,7 @@ module pseudopotentials
     end subroutine update_psp_dict
 
 
-    subroutine get_psp(dict,ityp,ntypes,nzatom,nelpsp,npspcode,ixcpsp,iradii_source,psppar,radii_cf,&
+    subroutine get_psp(dict,ityp,ntypes,nzatom,nelpsp,npspcode,ixcpsp,iradii_source,psppar,radii_cf,pawpatch,&
          pawrad,pawtab,epsatm)
       use dynamic_memory
       use libxc_functionals, only: libxc_functionals_init, libxc_functionals_end
@@ -337,6 +338,7 @@ module pseudopotentials
       implicit none
       type(dictionary), pointer :: dict
       integer, intent(in) :: ntypes,ityp
+      logical, intent(inout) :: pawpatch
       integer, intent(out) :: nelpsp
       integer, intent(out) :: npspcode    !< PSP codes (see @link psp_projectors::pspcode_hgh @endlink)
       integer, intent(out) :: ixcpsp            !< PSP ixc code
@@ -348,7 +350,7 @@ module pseudopotentials
       type(pawrad_type), dimension(:), pointer :: pawrad  !< PAW radial objects.
       type(pawtab_type), dimension(:), pointer :: pawtab  !< PAW objects for something.
       !local variables
-      logical :: l,pawpatch
+      logical :: l
       integer :: ityp2
       real(gp) :: rloc
       character(len = max_field_length) :: fpaw
