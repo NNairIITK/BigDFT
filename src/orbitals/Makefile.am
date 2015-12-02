@@ -24,6 +24,7 @@ mod_src = defs.f90 base.f90 \
 	locregs.f90 \
 	gaussians.f90 \
 	locreg_operations.f90 \
+	ao_inguess.f90 \
 	pseudopotentials.f90
 
 routines = $(CONV_SOURCES) \
