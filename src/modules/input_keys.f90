@@ -593,7 +593,8 @@ contains
     use module_xc
     !  use input_old_text_format, only: dict_from_frag
     use module_atoms!, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,&
-                    ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
+    ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
+    use pseudopotentials, only: psp_set_from_dict,psp_dict_fill_all
     use yaml_strings
     use m_ab6_symmetry, only: symmetry_get_n_sym
     use interfaces_42_libpaw

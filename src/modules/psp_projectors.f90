@@ -448,6 +448,7 @@ module psp_projectors
   ! replace the routine nl_HGH_application as it does not need allocating arrays anymore
   subroutine hgh_psp_application(hij,ncplx_p,n_p,wfd_p,proj,&
        ncplx_w,n_w,wfd_w,tolr,psi_pack,scpr,pdpsi,hpdpsi,psi,hpsi,eproj)
+    use pseudopotentials, only: apply_hij_coeff
     implicit none
     integer, intent(in) :: ncplx_p !< number of complex components of the projector
     integer, intent(in) :: n_p !< number of elements of the projector
