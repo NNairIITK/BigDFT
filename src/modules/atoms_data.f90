@@ -1325,7 +1325,7 @@ contains
 !!$         if (.not. exists) call nlcc_file_merge_to_dict(dict, key, 'nlcc.' // trim(keys(iat)))
 !!$      end do
 !!$      deallocate(keys)
-!!$      call dict_free(types)
+      call dict_free(types)
     end subroutine atoms_file_merge_to_dict
 
 
