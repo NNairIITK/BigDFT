@@ -94,7 +94,7 @@ gaussians.o: base.o
 locreg_operations.o: locregs.o
 potential.o: locreg_operations.o
 daubisf.o precondLinear.o locregs_basics.o: locreg_operations.o
-ao_inguess.o: $(AO_INCLUDES) 
+ao_inguess.o: $(AO_INCLUDES) base.o 
 pseudopotentials.o: defs.o ao_inguess.o public_keys.o
 $(routines:.f90=.o): defs.o
 

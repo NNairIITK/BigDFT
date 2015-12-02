@@ -65,7 +65,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	fragment_base.f90 \
 	constrained_dft.f90 \
 	diis_module.f90 \
-	ao_inguess.f90 \
 	reformatting.f90 \
 	atoms_data.f90 \
 	communications_base.f90 \
