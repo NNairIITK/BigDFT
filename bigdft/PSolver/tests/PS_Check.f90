@@ -129,7 +129,7 @@ program PS_Check
 
 !!$  pkernel=pkernel_init(.true.,iproc,nproc,igpu,&
 !!$       geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
-  pkernel=pkernel_init_new(iproc,nproc,dict_input,geocode,ndims,hgrids)
+  pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids)
   call dict_free(dict_input)
   call pkernel_set(pkernel,verbose=.true.)
 
@@ -247,7 +247,9 @@ program PS_Check
      potential=extra_ref !use the previoulsy defined reference
      !calculate the Poisson potential in parallel
      !with the global data distribution (also for xc potential)
-     pkernelseq=pkernel_init(.true.,0,1,0,geocode,ndims,hgrids,itype_scf)
+     dict_input=>dict_new('kernel' .is. dict_new('isf_order' .is. itype_scf))
+     pkernelseq=pkernel_init(0,1,dict_input,geocode,ndims,hgrids)
+     call dict_free(dict_input)
      call pkernel_set(pkernelseq,verbose=.true.)
 
 

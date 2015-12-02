@@ -180,7 +180,7 @@ module yaml_output
   public :: yaml_set_default_stream,yaml_close_stream,yaml_swap_stream
   public :: yaml_get_default_stream,yaml_stream_attributes,yaml_close_all_streams
   public :: yaml_dict_dump,yaml_dict_dump_all
-  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa,dump_dict_impl
+  public :: is_atoi,is_atof,is_atol,yaml_walltime_toa,dump_dict_impl,f_progress_bar
 
   !for internal f_lib usage
   public :: yaml_output_errors
@@ -2399,5 +2399,29 @@ contains
     call yaml_mapping_close()
     call yaml_mapping_close()
   end subroutine dump_dict_impl
+
+  !>write the status of the advancment of something
+  subroutine f_progress_bar(percent,unit)
+    use f_precisions
+    implicit none
+    real(f_double), intent(in) :: percent
+    integer, intent(in), optional :: unit
+    !local variables
+    integer :: j,k,unt
+    character(len=18)::bar="#???% |          |"
+
+    unt=DEFAULT_STREAM_ID
+    if (present(unit)) unt=unit
+
+    j=int(percent)/10
+    write(unit=bar(2:4),fmt="(i3)") 10*j
+    do k=1, j
+       bar(7+k:7+k)="*"
+    enddo
+    call yaml_comment(char(13)//bar,advance='no',unit=unt)
+    !write(unit=unt,fmt="(a18)",advance='no')char(13)//bar
+    call f_utils_flush(unt)
+  end subroutine f_progress_bar
+
 
 end module yaml_output

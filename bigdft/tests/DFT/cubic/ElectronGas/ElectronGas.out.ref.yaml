@@ -546,8 +546,6 @@
      PV (Ha)                           :  6.67978219628264E-03
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
- - Input files read in the old format. Use the input_minimal.yaml file to switch to new 
-   format. In future versions this will be deprecated
  - symmetries have been disabled, k points are not irreductible.
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:

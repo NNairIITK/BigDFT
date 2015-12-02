@@ -18,7 +18,8 @@ program PSolver_Program
   use time_profiling
   use dynamic_memory
   use yaml_output
-  use dictionaries, only: f_err_throw
+  use dictionaries
+  use yaml_parse, only: yaml_load
   use yaml_strings
   implicit none
   !include 'mpif.h'
@@ -46,6 +47,7 @@ program PSolver_Program
   character(len=30) :: mode
   real(kind=8), dimension(:,:,:), allocatable :: density,rhopot,potential,pot_ion
   type(coulomb_operator) :: karray
+  type(dictionary), pointer :: dict
   real(kind=8) :: hx,hy,hz,max_diff,eh,exc,vxc,hgrid,diff_parser,offset,mu0
   real(kind=8) :: ehartree,eexcu,vexcu,diff_par,diff_ser,e1
   integer :: n01,n02,n03,itype_scf
@@ -230,8 +232,10 @@ program PSolver_Program
   call f_timing_reset(filename='time.yaml',master=iproc==0)
   !call timing(nproc,'time.prc','IN')
 
-  karray=pkernel_init(.true.,iproc,nproc,0,&
-       geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0_screening=mu0,angrad=(/alpha,beta,gamma/))
+  dict => yaml_load('{kernel: {screening:'//mu0//', isf_order:'//itype_scf//'}}')
+  karray=pkernel_init(iproc,nproc,dict,&
+       geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
+  call dict_free(dict)
   call pkernel_set(karray,verbose=.true.)
 
   !call createKernel(iproc,nproc,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,karray,.true.,mu0,(/alpha,beta,gamma/))
@@ -400,8 +404,10 @@ program PSolver_Program
      call f_timing_reset(filename='time_serial.yaml',master=iproc==0)
      !call timing(0,'             ','IN')
 
-     karray=pkernel_init(.true.,0,1,0,&
-          geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,mu0_screening=mu0,angrad=(/alpha,beta,gamma/))
+     dict => yaml_load('{kernel: {screening:'//mu0//', isf_order:'//itype_scf//'}}')
+     karray=pkernel_init(0,1,dict,&
+          geocode,(/n01,n02,n03/),(/hx,hy,hz/),angrad=(/alpha,beta,gamma/))
+     call dict_free(dict)
 
      call pkernel_set(karray,verbose=.true.)
 

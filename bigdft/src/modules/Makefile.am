@@ -51,6 +51,7 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	module_lenosky_si.f90 \
 	module_tersoff.f90 \
 	module_bornmayerhugginstosifumi.f90 \
+	module_tdpot.f90 \
 	op2p_module.f90 \
 	BigDFT_API.f90 \
 	vdwcorrection.f90 \
@@ -58,7 +59,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	fragment_base.f90 \
 	constrained_dft.f90 \
 	diis_module.f90 \
-	ao_inguess.f90 \
 	reformatting.f90 \
 	atoms_data.f90 \
 	communications_base.f90 \
@@ -122,7 +122,6 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	PSP_PROJECTORS_BASE.@MODULE_EXT@ \
 	MODULE_DPBOX.@MODULE_EXT@ \
-	AO_INGUESS.@MODULE_EXT@ \
 	REFORMATTING.@MODULE_EXT@ \
 	MODULE_ATOMS.@MODULE_EXT@ \
 	COMMUNICATIONS_BASE.@MODULE_EXT@ \
@@ -164,6 +163,7 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_BORNMAYERHUGGINSTOSIFUMI.@MODULE_EXT@\
         MODULE_DFTBP.@MODULE_EXT@ \
 	ORBITALBASIS.@MODULE_EXT@ \
+	MODULE_TDPOT.@MODULE_EXT@ \
 	MODULE_CP2K.@MODULE_EXT@ \
 	SWPOTENTIAL.@MODULE_EXT@
 else
@@ -186,7 +186,6 @@ modules = module_types.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	psp_projectors_base.@MODULE_EXT@ \
 	module_dpbox.@MODULE_EXT@ \
-	ao_inguess.@MODULE_EXT@ \
 	reformatting.@MODULE_EXT@ \
 	module_atoms.@MODULE_EXT@ \
 	communications_base.@MODULE_EXT@ \
@@ -228,16 +227,18 @@ modules = module_types.@MODULE_EXT@ \
 	module_lenosky_si.@MODULE_EXT@ \
 	orbitalbasis.@MODULE_EXT@ \
         module_dftbp.@MODULE_EXT@ \
+	module_tdpot.@MODULE_EXT@ \
 	module_cp2k.@MODULE_EXT@ \
 	swpotential.@MODULE_EXT@
 endif
 
-AO_INCLUDES = eleconf-inc.f90 
+
+
 ATOMS_INCLUDES = astruct-inc.f90
 COMMS_INCLUDES = check_array-inc.f90
 
 EXTRA_DIST = bigdft_cst.h.in \
-	$(AO_INCLUDES) $(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
+	$(ATOMS_INCLUDES) $(COMMS_INCLUDES) $(overrides_DATA)
 CLEANFILES = $(modules)
 
 AM_FCFLAGS = -I. -I$(srcdir) -I$(top_builddir)/includes @MPI_INCLUDE@ @LIBABINIT_INCLUDE@ @LIB_XC_CFLAGS@ @LIB_FLIB_CFLAGS@
@@ -250,12 +251,12 @@ PPFCCOMPILE = $(FC) $(DEFS:-D%=@FCDEFS@%) $(DEFAULT_INCLUDES) $(INCLUDES) \
 $(modules): $(libmodules_a_OBJECTS)
 #multipole_base.o: base.o
 #fragment_base.o: public_keys.o
-ao_inguess.o: $(AO_INCLUDES) 
+
 input.o: fragment_base.o
-input_dicts.o: ao_inguess.o fragment_base.o input.o
-atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o input_dicts.o
+input_dicts.o: fragment_base.o input.o
+atoms_data.o: $(ATOMS_INCLUDES) internal_coordinates.o input_dicts.o
 input_keys.o: multipole_base.o atoms_data.o xc.o input.o fragment_base.o
-types.o: psp_projectors_base.o ao_inguess.o atoms_data.o communications_base.o input_keys.o \
+types.o: psp_projectors_base.o atoms_data.o communications_base.o input_keys.o \
 	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o dpbox.o
 interfaces.o: types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
 #op2p_module.o : base.o
@@ -281,9 +282,10 @@ fermi_level.o: foe_common.o
 gaussdaub.o: psp_projectors_base.o
 #module_sqn.o: base.o
 bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o \
-		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o sw_potential.o
+		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o sw_potential.o module_tdpot.o
 #ab7_mixing.o: defs.o
 #module_lj.o: base.o defs.o
+#module_tdpot.o: base.o defs.o
 #module_cp2k.o: base.o defs.o
 #module_morse_bulk.o: base.o
 module_dftbp.o: types.o 
@@ -304,7 +306,7 @@ ice.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix
 rhopotential.o: types.o interfaces.o xc.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o
 multipole.o: multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
 orbital_basis.o:  types.o communications_base.o interfaces.o
-orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
+orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o matrix_operations.o
 locregs_init.o: types.o communications.o
 forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o transposed_operations.o
 sw_potential.o: atoms_data.o

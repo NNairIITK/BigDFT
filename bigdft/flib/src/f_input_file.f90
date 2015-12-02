@@ -6,6 +6,8 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS
+
+
 module f_input_file
   use dictionaries
   use yaml_strings, only: operator(.eqv.),f_strcpy
@@ -20,7 +22,7 @@ module f_input_file
   integer :: INPUT_VAR_NOT_IN_RANGE = ERR_UNDEF
   integer :: INPUT_VAR_ILLEGAL = ERR_UNDEF
 
-  character(len = *), parameter :: ATTRS = "_attributes"
+  character(len = *), parameter, public :: ATTRS = "_attributes"
   character(len = *), parameter :: PROF_KEY = "PROFILE_FROM"
   character(len = *), parameter :: USER_KEY = "USER_DEFINED"
 
@@ -90,7 +92,7 @@ contains
 
 
   !> Check and complete input file
-  subroutine input_file_complete(inputdef,dict,imports,nocheck)
+  subroutine input_file_complete(inputdef,dict,imports,nocheck,verbose)
     use dynamic_memory
     use yaml_output
     implicit none
@@ -103,9 +105,12 @@ contains
     !> Dictionary of the preloaded input parameters associated to the importing
     !! for the input file
     type(dictionary), pointer, optional :: imports
+    !> variable controlling the verbosity of the output, in particular
+    !! when some errors have been raised in the input variables filling
+    logical, intent(in), optional :: verbose
 
     !local variables
-    logical :: localcheck
+    logical :: localcheck,verb
     type(dictionary), pointer :: dict_tmp,iter,dict_tmp2
 
     !call f_routine(id='input_file_complete')
@@ -136,11 +141,14 @@ contains
           call dict_free(dict_tmp)
        end if
     end if
+    verb=.false.
+    if (present(verbose)) verb=verbose
+
     localcheck=.true.
     dict_tmp => dict_iter(inputdef)
     do while (associated(dict_tmp))
        if (present(nocheck)) localcheck = dict_key(dict_tmp) .notin. nocheck
-       call input_keys_fill(inputdef,dict,trim(dict_key(dict_tmp)),check=localcheck)
+       call input_keys_fill(inputdef,dict,trim(dict_key(dict_tmp)),localcheck,verb)
        dict_tmp => dict_next(dict_tmp)
     end do
 
@@ -160,12 +168,13 @@ contains
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file, key
 
-    integer :: i, skeys
+    integer :: i
     type(dictionary), pointer :: ref,iter
     character(len = max_field_length) :: val, profile_
-    character(len = max_field_length), dimension(:), allocatable :: keys
     double precision, dimension(2) :: rg
-    logical :: found
+!!$    integer :: skeys
+!!$    logical :: found
+!!$    character(len = max_field_length), dimension(:), allocatable :: keys
 
     !    call f_routine(id='input_keys_set')
 
@@ -235,7 +244,7 @@ contains
 !!$          call f_err_throw(err_id = INPUT_VAR_ILLEGAL, &
 !!$               & err_msg = trim(file) // "/" // trim(key) // " has to be presentd with a master key.")
           !          call f_release_routine()
-          !print *,'XXXXXXXXXXXXx'
+          !print *,trim(key)'XXXXXXXXXXXXx'
           return
        end if
 
@@ -261,7 +270,13 @@ contains
           end do
        end if
        if ( profile_ .notin. ref) profile_ = DEFAULT
-       call dict_copy(dict // key, ref // profile_)
+       !still search if the chosen profile correspons to the value of another profile
+       val = dict_value(ref // profile_)
+       if (val .in. ref) then
+          call dict_copy(dict // key, ref // val)
+       else
+          call dict_copy(dict // key, ref // profile_)
+       end if
     end if
 
     ! Copy the comment.
@@ -280,8 +295,8 @@ contains
       implicit none
       type(dictionary), pointer :: dict, ref
       logical :: set_
-
-      integer :: j
+      !local variables
+      logical :: l1
       type(dictionary), pointer :: tmp,tmp0,tmp_not,iter
       character(max_field_length) :: mkey, val_master, val_when
 
@@ -314,7 +329,8 @@ contains
       !call yaml_map('when',tmp)
       !call yaml_map('whennot',tmp_not)
       !call yaml_map('intmp',[(val_master .in. tmp),(val_master .notin. tmp_not)])
-      set_ = (val_master .in. tmp) .and. (val_master .notin. tmp_not)
+      l1=(val_master .in. tmp) .or. .not. associated(tmp)
+      set_ = l1 .and. (val_master .notin. tmp_not)
       !call yaml_map('set_',set_)
       if (set_) return !still check if the value is coherent with the profile
       tmp0 => inputdef // file // mkey
@@ -377,8 +393,7 @@ contains
     end subroutine validate
   END SUBROUTINE input_keys_set
 
-  subroutine input_keys_fill(inputdef,dict, file,check)
-    use dictionaries
+  subroutine input_keys_fill(inputdef,dict, file,check,verbose)
     use dynamic_memory
     use yaml_output
     implicit none
@@ -388,15 +403,14 @@ contains
     !> user input file
     type(dictionary), pointer :: dict
     character(len = *), intent(in) :: file
-    logical, intent(in), optional :: check
+    logical, intent(in) :: check,verbose
     !Local variables
     !integer :: i
     logical :: user, hasUserDef,docheck
-    type(dictionary), pointer :: ref,ref_iter
+    type(dictionary), pointer :: ref,ref_iter,errs
     !character(len=max_field_length), dimension(:), allocatable :: keys
 
-    docheck=.true.
-    if (present(check)) docheck=check
+    docheck=check
 
     !    call f_routine(id='input_keys_fill')
     if (docheck) call input_keys_control(inputdef,dict,file)
@@ -412,7 +426,17 @@ contains
 !!$          call yaml_map('ref_iter_val',dict_value(ref_iter))
 !!$          call yaml_map('ref_iter_data',dict_value(ref_iter))
 !!$          call dump_dict_impl(ref_iter)
+          !open a try-catch section to understand where the error is, if any
+          call f_err_open_try()
           call input_keys_set(inputdef,user, dict // file, file, dict_key(ref_iter))
+          call f_err_close_try(exceptions=errs)
+          if (associated(errs)) then
+             if (verbose) call yaml_map('List of error found',errs)
+             call dict_free(errs)
+             call f_err_throw('Error(s) found in input_keys_fill for the field "'//trim(file)//&
+                  '" and the key "'//trim(dict_key(ref_iter))//'", see details in the above message"',&
+                  err_id=INPUT_VAR_ILLEGAL)
+          end if
           hasUserDef = (hasUserDef .or. user)
        end if
        ref_iter=> dict_next(ref_iter)
@@ -870,12 +894,14 @@ contains
        call yaml_comment("Input parameters", hfill = "-")
     end if
     
-    iter => dict_iter(dict)
-    do while(associated(iter))
+!!$    iter => dict_iter(dict)
+!!$    do while(associated(iter))
+    nullify(iter)
+    do while(iterating(iter,on=dict))
        todump=.true.
        if (present(nodump_list)) todump = dict_key(iter) .notin. nodump_list
        if (todump) call input_variable_dump(iter,userOnly_)
-       iter => dict_next(iter)
+       !iter => dict_next(iter)
     end do
 
   end subroutine input_file_dump

@@ -121,6 +121,11 @@ def compare(data, ref, tols=None, always_fails=False,keyword=[]):
         ret = compare_scl(data, ref, tols, always_fails,keyword)
     return ret
 
+def fetch_val(seq,i):
+    if type(seq) == type([1,2,3]):
+        return seq[i]
+    else:
+        return seq
 
 def compare_seq(seq, ref, tols, always_fails=False,keyword=[]):
     "Sequence comparison routine"
@@ -162,7 +167,13 @@ def compare_seq(seq, ref, tols, always_fails=False,keyword=[]):
                 tols[0] = "NOT SAME LENGTH"
     else:
         tols = []
-        if len(ref) == len(seq):
+        #find if the objects can be compared
+        checkit=False
+        if type(seq) == type([1,2,3]):
+            checkit= len(ref) == len(seq)
+        else:
+            checkit= type(seq) == type(1.0) or type(seq) == type(1)
+        if checkit:
             for i in range(len(ref)):
                 if len(keyword) == 0:
                     ktmp=[[i]]
@@ -170,13 +181,13 @@ def compare_seq(seq, ref, tols, always_fails=False,keyword=[]):
                     ktmp=[ j for j in keyword]
                     ktmp.append([i])
                 if len(tols) == 0:
-                    (failed, newtols) = compare(seq[i], ref[i], always_fails=always_fails,
+                    (failed, newtols) = compare(fetch_val(seq,i), ref[i], always_fails=always_fails,
                                                 keyword=ktmp)#"%s[%d]" % (keyword,i))
                     #  add to the tolerance dictionary a failed result
                     if failed:
                         tols.append(newtols)
                 else:
-                    (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails=always_fails,
+                    (failed, newtols) = compare(fetch_val(seq,i), ref[i], tols[0], always_fails=always_fails,
                                                 keyword=ktmp)#"%s[%d]" % (keyword,i))
                     if failed:
                         tols[0] = newtols

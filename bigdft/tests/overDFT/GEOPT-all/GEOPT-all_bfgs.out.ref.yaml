@@ -529,11 +529,6 @@
    MPI tasks                           :  4
  Calculate local forces: Yes
  Calculate Non Local forces            :  No
-  #-------------------------------- Warnings obtained during the run, check their relevance!
- WARNINGS:
- - 
-   Input files read in the old format.Use the input_minimal.yaml file to switch to new format. 
-   In
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
    CPU time (s)                        :  3.45

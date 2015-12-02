@@ -25,7 +25,6 @@ module module_input_keys
 
   !public :: input_keys_init, input_keys_finalize
 
-
   type(dictionary), pointer :: parameters=>null()
   type(dictionary), pointer :: parsed_parameters=>null()
   type(dictionary), pointer :: profiles=>null()
@@ -182,6 +181,7 @@ module module_input_keys
      integer :: ixc         !< XC functional Id
      real(gp):: qcharge     !< Total charge of the system
      integer :: itermax     !< Maximal number of SCF iterations
+     integer :: itermax_virt     !< Maximal number of SCF iterations
      integer :: itermin     !< Minimum number of SCF iterations !Bastian
      integer :: nrepmax
      integer :: ncong       !< Number of conjugate gradient iterations for the preconditioner
@@ -206,12 +206,16 @@ module module_input_keys
      real(gp) :: crmult     !< Coarse radius multiplier
      real(gp) :: frmult     !< Fine radius multiplier
      real(gp) :: gnrm_cv    !< Convergence parameters of orbitals
+     real(gp) :: gnrm_cv_virt !< Convergence parameters of virtual orbitals
      real(gp) :: rbuf       !< buffer for tail treatment
      real(gp), dimension(3) :: elecfield   !< Electric Field vector
      logical :: disableSym                 !< .true. disable symmetry
      !> boolean to activate the calculation of the stress tensor
      logical :: calculate_strten
-     character(len=8) :: set_epsilon !< method for setting the dielectric constant
+     !character(len=8) :: set_epsilon !< method for setting the dielectric constant
+
+     !> solver parameters
+     type(dictionary), pointer :: PS_dict,PS_dict_seq
 
      !> For absorption calculations
      integer :: iabscalc_type   !< 0 non calc, 1 cheb ,  2 lanc
@@ -407,8 +411,8 @@ module module_input_keys
      !> linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
      logical :: wf_extent_analysis
 
-     !> Method for the solution of  generalized poisson Equation
-     character(len=4) :: GPS_Method
+!!$     !> Method for the solution of  generalized poisson Equation
+!!$     character(len=4) :: GPS_Method
 
      !> Use the FOE method to calculate the HOMO-LUMO gap at the end
      logical :: foe_gap
@@ -594,7 +598,8 @@ contains
     use module_xc
     !  use input_old_text_format, only: dict_from_frag
     use module_atoms!, only: atoms_data,atoms_data_null,atomic_data_set_from_dict,&
-                    ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
+    ! check_atoms_positions,psp_set_from_dict,astruct_set_from_dict
+    use pseudopotentials, only: psp_set_from_dict,psp_dict_fill_all
     use yaml_strings
     use m_ab6_symmetry, only: symmetry_get_n_sym
     use multipole_base, only: external_potential_descriptors, multipoles_from_dict, lmax
@@ -603,6 +608,7 @@ contains
     use f_utils, only: f_get_free_unit
     use wrapper_MPI, only: mpibarrier
     use abi_interfaces_add_libpaw, only : abi_pawinit
+    use PStypes, only: SETUP_VARIABLES,VERBOSITY
     implicit none
     !Arguments
     type(input_variables), intent(out) :: in
@@ -645,6 +651,12 @@ contains
 
     ! extract also the minimal dictionary which is necessary to do this run
     call input_keys_fill_all(dict,dict_minimal)
+
+    !copy the Poisson solver dictionary
+    call dict_copy(src=dict // PSOLVER, dest=in%PS_dict)
+    call dict_copy(src=in%PS_dict, dest=in%PS_dict_seq)
+    !then other treatments for the sequential solver might be added
+    call set(in%PS_dict_seq // SETUP_VARIABLES // VERBOSITY, .false.)
 
     ! Add missing pseudo information.
     projr = dict // PERF_VARIABLES // PROJRAD
@@ -886,10 +898,10 @@ contains
     if (bigdft_mpi%iproc == 0)  call print_general_parameters(in,atoms,input_id)
 
     if (associated(dict_minimal) .and. bigdft_mpi%iproc == 0) then
-       call dict_get_run_properties(dict, input_id = run_id)
-       call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
+       call dict_get_run_properties(dict, input_id = run_id , minimal_file = filename)
+       !       call f_strcpy(src=trim(run_id)//'_minimal.yaml',dest=filename)
        unt=f_get_free_unit(99971)
-       call yaml_set_stream(unit=unt,filename=trim(outdir)//trim(filename),&
+       call yaml_set_stream(unit=unt,filename=trim(outdir)//trim(filename)//'.yaml',&
             record_length=92,istat=ierr,setdefault=.false.,tabbing=0,position='rewind')
        if (ierr==0) then
           call yaml_comment('Minimal input file',hfill='-',unit=unt)
@@ -898,7 +910,7 @@ contains
           call yaml_dict_dump(dict_minimal,unit=unt)
           call yaml_close_stream(unit=unt)
        else
-          call yaml_warning('Failed to create input_minimal.yaml, error code='//trim(yaml_toa(ierr)))
+          call yaml_warning('Failed to create'//trim(filename)//', error code='//trim(yaml_toa(ierr)))
        end if
     end if
     if (associated(dict_minimal)) call dict_free(dict_minimal)
@@ -972,11 +984,12 @@ contains
     use public_keys
     use yaml_strings, only: operator(.eqv.)
     use yaml_output
+    use PStypes, only: PS_input_dict
     !use yaml_output
     implicit none
     type(dictionary), pointer :: dict,dict_minimal
     !local variables
-    type(dictionary), pointer :: as_is,nested
+    type(dictionary), pointer :: as_is,nested,dict_ps_min
     character(max_field_length) :: meth
     real(gp) :: dtmax_, betax_
     logical :: free,dftvar
@@ -1000,13 +1013,17 @@ contains
     ! Check and complete dictionary.
     call input_keys_init()
 ! call yaml_map('present status',dict)
-    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
 
+    !then we can complete the Poisson solver dictionary
+    call PS_input_dict(dict // PSOLVER,dict_ps_min)
+    
+    call input_file_complete(parameters,dict,imports=profiles,nocheck=nested)
 
     !create a shortened dictionary which will be associated to the given run
     !call input_minimal(dict,dict_minimal)
     as_is =>list_new(.item. FRAG_VARIABLES,.item. IG_OCCUPATION, .item. POSINP, .item. OCCUPATION)
     call input_file_minimal(parameters,dict,dict_minimal,nested,as_is)
+    if (associated(dict_ps_min)) call set(dict_minimal // PSOLVER,dict_ps_min)
     call dict_free(nested,as_is)
 
 
@@ -1047,11 +1064,6 @@ contains
     dict_tmp=dict .get. ASTRUCT_PROPERTIES
     source=dict_tmp .get. POSINP_SOURCE
 
-!!$    write(source, "(A)") ""
-!!$    if (has_key(dict, ASTRUCT_PROPERTIES)) then
-!!$       if (has_key(dict // ASTRUCT_PROPERTIES, POSINP_SOURCE)) &
-!!$            & source = dict_value(dict // ASTRUCT_PROPERTIES // POSINP_SOURCE)
-!!$    end if
   end subroutine astruct_dict_get_source
 
 
@@ -1497,6 +1509,8 @@ contains
        case(METHOD_KEY)
           str=val
           select case(trim(str))
+          case('tdpot')
+             in%run_mode=TDPOT_RUN_MODE
           case('lj')
              in%run_mode=LENNARD_JONES_RUN_MODE
           case('dft')
@@ -1603,10 +1617,14 @@ contains
           in%nvirt = val
        case (NPLOT)
           in%nplot = val
+       case (GNRM_CV_VIRT)
+          in%gnrm_cv_virt = val
+       case (ITERMAX_VIRT)
+          in%itermax_virt = val
        case (DISABLE_SYM)
           in%disableSym = val ! Line to disable symmetries.
-       case (SOLVENT)
-          in%set_epsilon= val
+!!$       case (SOLVENT)
+!!$          in%set_epsilon= val
 !!$          dummy_char = val
 !!$          select case(trim(dummy_char))
 !!$          case ("vacuum")
@@ -1822,8 +1840,8 @@ contains
        case(WF_EXTENT_ANALYSIS)
           ! linear scaling: perform an analysis of the extent of the support functions (and possibly KS orbitals)
           in%wf_extent_analysis = val
-       case (GPS_METHOD)
-          in%GPS_method = val
+!!$       case (GPS_METHOD)
+!!$          in%GPS_method = val
        case (FOE_GAP)
           ! linear scaling: Use the FOE method to calculate the HOMO-LUMO gap at the end
           in%foe_gap = val
@@ -1930,6 +1948,8 @@ contains
          in%nsuzuki = val
        case (NOSE_FREQUENCY)
          in%nosefrq = val
+       case (WAVEFUNCTION_EXTRAPOLATION)
+          in%wfn_history = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")
@@ -2238,18 +2258,22 @@ contains
     in%dir_output = "data"
     !in%output_wf_format = WF_FORMAT_NONE
     !in%output_denspot_format = output_denspot_FORMAT_CUBE
-    call f_zero(in%set_epsilon)
+    !call f_zero(in%set_epsilon)
     call f_zero(in%dir_output)
     call f_zero(in%naming_id)
     nullify(in%gen_kpt)
     nullify(in%gen_wkpt)
     nullify(in%kptv)
     nullify(in%nkptsv_group)
+    nullify(in%PS_dict)
+    nullify(in%PS_dict_seq)
     call f_zero(in%calculate_strten)
     in%profiling_depth=-1
     in%gen_norb = UNINITIALIZED(0)
     in%gen_norbu = UNINITIALIZED(0)
     in%gen_norbd = UNINITIALIZED(0)
+    call f_zero(in%gnrm_cv_virt)
+    call f_zero(in%itermax_virt)
     nullify(in%gen_occup)
     ! Default abscalc variables
     call abscalc_input_variables_default(in)
@@ -2320,7 +2344,8 @@ contains
     in%randdis=0.0_gp
     in%betax=2.0_gp
     in%history = 1
-    in%wfn_history = 1
+!    in%wfn_history = 1
+    in%wfn_history = 0
     in%ionmov = -1
     in%dtion = 0.0_gp
     in%strtarget(:)=0.0_gp
@@ -2387,7 +2412,8 @@ contains
 
     !check if freeing is possible
     call f_ref_free(in%refcnt)
-
+    call dict_free(in%PS_dict)
+    call dict_free(in%PS_dict_seq)
     call free_geopt_variables(in)
     call free_kpt_variables(in)
     call f_free_ptr(in%gen_occup)

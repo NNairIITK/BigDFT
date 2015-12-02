@@ -2816,6 +2816,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   use module_atoms
   use module_dpbox
   use bounds, only: ext_buffers
+  use pseudopotentials, only: psp_dict_fill_all
   implicit none
   !Arguments
   integer, intent(in) :: iproc
