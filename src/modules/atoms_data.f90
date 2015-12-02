@@ -1271,7 +1271,7 @@ contains
       use dictionaries
       use yaml_output, only: yaml_warning
       use public_keys, only: POSINP,SOURCE_KEY,PSPXC_KEY
-      use pseudopotentials, only: update_psp_dict
+      use pseudopotentials!, only: update_psp_dict
       implicit none
       type(dictionary), pointer :: dict
       !local variables
@@ -1297,6 +1297,7 @@ contains
 !!$         key = 'psppar.' // trim(keys(iat))
 !!$
 !!$         exists = has_key(dict, key)
+!!$
 !!$         if (exists) then
 !!$            if (has_key(dict // key, SOURCE_KEY)) then
 !!$               str = dict_value(dict // key // SOURCE_KEY)

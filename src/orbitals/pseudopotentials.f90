@@ -40,7 +40,7 @@ module pseudopotentials
   end type PSP_data
 
   public :: psp_set_from_dict,get_psp,psp_dict_fill_all
-  public :: apply_hij_coeff,update_psp_dict
+  public :: apply_hij_coeff,update_psp_dict,psp_file_merge_to_dict,nlcc_file_merge_to_dict
 
   contains
 
@@ -73,6 +73,7 @@ module pseudopotentials
       character(len = max_field_length) :: source_val
 
       call f_routine(id='psp_dict_fill_all')
+
 
       filename = 'psppar.' // atomname
       dict_psp => dict // filename !inquire for the key?
@@ -299,7 +300,8 @@ module pseudopotentials
       character(len=27) :: key
       character(len = max_field_length) :: str
       key = 'psppar.' // trim(type)
-      if (key .in. dict) then
+      exists=key .in. dict
+      if (exists) then
          if (SOURCE_KEY .in. dict // key) then
             str = dict_value(dict // key // SOURCE_KEY)
          else
@@ -314,8 +316,8 @@ module pseudopotentials
             end if
             if (PSPXC_KEY .notin. dict // key) then
                call yaml_warning("Pseudopotential file '" // trim(str) // &
-                    & "' not found. Fallback to file '" // trim(key) // &
-                    & "' or hard-coded pseudopotential.")
+                    "' not found. Fallback to file '" // trim(key) // &
+                    "' or hard-coded pseudopotential.")
             end if
          end if
          exists = PSPXC_KEY .in. dict // key
