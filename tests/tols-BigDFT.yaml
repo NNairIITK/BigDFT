@@ -1788,7 +1788,8 @@ igortho_44:
  net dipole: 1.1e-7
  D: 1.1e-4
  delta: 1.1e-10
- radius for normalization: 1.1e-1
+ #radius for normalization: 1.1e-1
+ Tolerance for the following test: 1.01e-10
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
