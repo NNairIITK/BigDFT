@@ -58,7 +58,7 @@ module gaussians
      real(gp), dimension(:,:), pointer :: rxyz !< Positions of the centers
   end type gaussian_basis_new
 
-  public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0
+  public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0,overlap
   public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf,mp_exp
 
   public :: nullify_gaussian_basis, deallocate_gwf, gaussian_basis_null, gaussian_basis_free
@@ -176,7 +176,6 @@ contains
     integer :: iat, l, i, ishell, iexpo
 
     call f_routine(id='gaussian_basis_from_psp')
-    
     ! Build nshell from psppar.
     do iat = 1, nat
        nshell(iat) = 0
@@ -189,6 +188,7 @@ contains
        end do
     end do
 
+
     call init_gaussian_basis(nat,nshell,rxyz,G)
 
     ! Associate values in shid.
@@ -198,7 +198,7 @@ contains
           do i=1,3 !generic case, also for HGHs (for GTH it will stop at i=2)
              if (psppar(l,i,iatyp(iat)) /= 0.0_gp) then
                 G%shid(DOC_, ishell) = 1
-                G%shid(L_, ishell) = l
+                G%shid(L_, ishell) = l-1
                 G%shid(N_, ishell) = i
                 G%nexpo=G%nexpo+1
                 G%ncoeff=G%ncoeff+2*l-1
@@ -276,7 +276,7 @@ contains
           end do
 
           G%shid(DOC_, ishell) = pawtab(iatyp(iat))%wvl%pngau(i)
-          G%shid(L_, ishell) = l + 1 ! 1 is added due to BigDFT convention
+          G%shid(L_, ishell) = l! + 1 ! 1 is added due to BigDFT convention
           G%shid(N_, ishell) = 1
           G%nexpo  = G%nexpo  + G%shid(DOC_, ishell)
           G%ncoeff = G%ncoeff + 2*G%shid(L_, ishell)-1
@@ -337,7 +337,7 @@ contains
     if (iter%ishell >= iter%nshell) return
 
     iter%ishell = iter%ishell + 1
-    iter%l      = G%shid(L_, iter%ishell_s + iter%ishell)
+    iter%l      = G%shid(L_, iter%ishell_s + iter%ishell)+1
     iter%n      = G%shid(N_, iter%ishell_s + iter%ishell)
     iter%ndoc   = G%shid(DOC_, iter%ishell_s + iter%ishell)
     iter%idoc   = 0

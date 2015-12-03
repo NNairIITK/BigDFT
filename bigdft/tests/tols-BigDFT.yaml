@@ -1581,7 +1581,7 @@ periodic_wateredge:
  Enl: 2.1e-10
  EH: 1.0e-9
  EXC: 1.1e-10
- EvXC: 1.1e-10
+ EvXC: 2.01e-10
  Ekin: 1.1e-9
  energy: 2.9e-10
  Total charge: 1.1e-10
