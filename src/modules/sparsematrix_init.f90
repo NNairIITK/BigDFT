@@ -2559,7 +2559,7 @@ contains
       call check_ortho_inguess(smat,ind_min,ind_max)
 
       ! Now check the submatrix extraction for the projector charge analysis
-      call check_projector_charge_analysis(nat, smat, ind_min, ind_max)
+      call check_projector_charge_analysis(iproc, nproc, nat, smat, ind_min, ind_max)
 
 
       ind_min1 = ind_min
@@ -3733,7 +3733,7 @@ contains
           if (extra_timing) time4=real(tr1-tr0,kind=8)        
 
           ! Now check the submatrix extraction for the projector charge analysis
-          call check_projector_charge_analysis(nat, smat, ind_min, ind_max)
+          call check_projector_charge_analysis(iproc, nproc, nat, smat, ind_min, ind_max)
 
           !!write(*,'(a,3i8)') 'after check_local_matrix_extents: iproc, ind_min, ind_max', iproc, ind_min, ind_max
 
@@ -5036,13 +5036,13 @@ contains
 
 
     !> Copied from projector_for_charge_analysis and extract_matrix
-    subroutine check_projector_charge_analysis(nat, smat, ind_min, ind_max)
+    subroutine check_projector_charge_analysis(iproc, nproc, nat, smat, ind_min, ind_max)
       use module_base, only: bigdft_mpi
       use sparsematrix_base, only: sparse_matrix
       implicit none
 
       ! Calling arguments
-      integer,intent(in) :: nat
+      integer,intent(in) :: iproc, nproc, nat
       type(sparse_matrix),intent(in) :: smat
       integer,intent(inout) :: ind_min, ind_max
 
@@ -5050,13 +5050,13 @@ contains
       logical,dimension(:),allocatable :: neighbor
 
       ! Parallelization over the number of atoms
-      ii = nat/bigdft_mpi%nproc
+      ii = nat/nproc
       natp = ii
-      jj = nat - bigdft_mpi%nproc*natp
-      if (bigdft_mpi%iproc<jj) then
+      jj = nat - nproc*natp
+      if (iproc<jj) then
           natp = natp + 1
       end if
-      isat = (bigdft_mpi%iproc)*ii + min(bigdft_mpi%iproc,jj)
+      isat = (iproc)*ii + min(iproc,jj)
 
 
       neighbor = f_malloc(smat%nfvctr,id='neighbor')
