@@ -1896,7 +1896,7 @@ extendedfrags_read:
 
 extendedfrags_readrotated:
  energy: 1.4e-11
- eF: 2.581e-9
+ eF: 2.6e-9
  D eF: 1.1e-8
  guess for new ef: 2.51e-9
  D Tr: 1.1e-9
