@@ -414,13 +414,13 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      !!tag=0
 
      call kswfn_init_comm(tmb, denspot%dpbox, iproc, nproc, in%nspin, in%imethod_overlap)
-     locreg_centers = f_malloc((/3,tmb%lzd%nlr/),id='locreg_centers')
-     do ilr=1,tmb%lzd%nlr
-         locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
-     end do
+     !!locreg_centers = f_malloc((/3,tmb%lzd%nlr/),id='locreg_centers')
+     !!do ilr=1,tmb%lzd%nlr
+     !!    locreg_centers(1:3,ilr)=tmb%lzd%llr(ilr)%locregcenter(1:3)
+     !!end do
      call init_foe(iproc, nproc, in, KSwfn%orbs, tmb%foe_obj, .true.)
-     call f_free(locreg_centers)
-     call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
+     !!call f_free(locreg_centers)
+     !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.)
 
      call create_large_tmbs(iproc, nproc, KSwfn, tmb, denspot,nlpsp,in, atoms, rxyz, .false.)
 

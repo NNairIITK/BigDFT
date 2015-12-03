@@ -322,19 +322,23 @@ unitary_tests.o: types.o interfaces.o communications_init.o communications.o spa
 matrix_operations.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: types.o
 io.o: types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o matrix_operations.o
-postprocessing_linear.o: types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o
+postprocessing_linear.o: types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o sort.o communications_init.o locregs_init.o multipole_base.o multipole.o io.o
 foe.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 rhopotential.o: types.o interfaces.o xc.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o
-multipole.o: multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
+multipole.o: multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o io.o
 orbital_basis.o:  types.o communications_base.o interfaces.o
 orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
 locregs_init.o: types.o communications.o
 forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o transposed_operations.o
 #pexsi.o also depends on pexsi_interfaces, but it is not known which one...
-pexsi.o: pexsi_base.o
+if HAVE_PEXSI
 pexsi_interfaces.o: pexsi_base.o
+pexsi.o: pexsi_base.o pexsi_interfaces.o
+else
 pexsi_interfaces_fake.o: pexsi_base.o
+pexsi.o: pexsi_base.o pexsi_interfaces_fake.o
+endif
 
 
 # Copy modules in a common include directory.

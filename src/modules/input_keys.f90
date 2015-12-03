@@ -124,7 +124,7 @@ module module_input_keys
      integer :: output_coeff_format   !< Output Coefficients format
      integer :: output_fragments   !< Output fragments/full system/both
      integer :: frag_num_neighbours   !< number of neighbouring atoms per fragment
-     logical :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density
+     integer :: charge_multipoles !< Calculate the multipoles expansion coefficients of the charge density (0:no, >0:yes)
      integer :: kernel_restart_mode !< How to generate the kernel in a restart calculation
      integer :: pexsi_npoles !< number of poles used by PEXSI
      real(kind=8) :: pexsi_mumin, pexsi_mumax, pexsi_mu !< minimal, maximal and first chemical potential for PEXSI

@@ -40,12 +40,12 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use sparsematrix_init, only: matrixindex_in_compressed
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
   use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, support_function_gross_multipoles, &
-                                   build_ks_orbitals, calculate_theta, projector_for_charge_analysis
+                                   build_ks_orbitals, calculate_theta
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
   use locregs_init, only: small_to_large_locreg
   use public_enums
-  use multipole, only: multipoles_from_density
+  use multipole, only: multipoles_from_density, multipole_analysis_driver, projector_for_charge_analysis
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral
   use foe, only: fermi_operator_expansion
@@ -2500,7 +2500,7 @@ end if
       !     rxyz, calculate_centers=.false., multipoles=multipoles)
       call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
-           rxyz, calculate_centers=.false.)
+           rxyz, calculate_centers=.false., write_output=.true.)
       !call f_free(multipoles)
       !call f_free(multipoles_out)
 
@@ -2538,7 +2538,7 @@ end if
 
   end if
 
-  if (input%lin%charge_multipoles) then
+  if (input%lin%charge_multipoles>0) then
       !!write(200+iproc,*) tmb%linmat%ovrlp_%matrix_compr
       !!write(210+iproc,*) tmb%linmat%kernel_%matrix_compr
 
@@ -2588,11 +2588,26 @@ end if
 !! UNCOMMENT FOR TESTS      end do
 
 
-      call multipoles_from_density(iproc, nproc, at, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%orbs, &
-           tmb%npsidim_orbs, tmb%psi, input%lin%norbsPerType, tmb%collcom, tmb%collcom_sr, tmb%orthpar, &
-           tmb%linmat%ovrlp_, tmb%linmat%kernel_, meth_overlap=norder_taylor)
-      !!write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
-      !!write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
+      !if (input%lin%charge_multipoles==1) then
+      !    call multipoles_from_density(iproc, nproc, at, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%orbs, &
+      !         tmb%npsidim_orbs, tmb%psi, input%lin%norbsPerType, tmb%collcom, tmb%collcom_sr, tmb%orthpar, &
+      !         tmb%linmat%ovrlp_, tmb%linmat%kernel_, meth_overlap=norder_taylor)
+      !    !write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
+      !    !write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
+      if (input%lin%charge_multipoles==1) then
+          call multipole_analysis_driver(iproc, nproc, 2, tmb%npsidim_orbs, tmb%psi, &
+               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
+               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%lzd, &
+               tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
+               method='loewdin')
+      else if (input%lin%charge_multipoles==2) then
+          call multipole_analysis_driver(iproc, nproc, 2, tmb%npsidim_orbs, tmb%psi, &
+               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
+               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%lzd, &
+               tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
+               method='projector')
+      end if
+
   end if
 
 

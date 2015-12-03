@@ -59,7 +59,7 @@
    rpnrm_cv: 1.0e-7
    taylor_order: 1020
    max_inversion_error: 5.0e-8
-   charge_multipoles: yes
+   charge_multipoles: 1
  lin_basis:
    nit: 8
    idsx: 8
