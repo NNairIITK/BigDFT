@@ -1240,7 +1240,7 @@ PBE_potmixdiis:
  Total charge: 2.1e-11
  multiplicator for the confinement: 4.3e-8
  Energy (Hartree): 2.2e-9
- Force Norm (Hartree/Bohr): 3.67e-10
+ Force Norm (Hartree/Bohr): 5.4e-10
 
 PBE_densmixdiis:
  Epot: 1.1e-10
@@ -1285,7 +1285,7 @@ geoptconstrained_BFGS:
 geoptconstrained_SDCG:
  eF: 8.7e-8
  guess for new ef: 8.7e-8
- D eF: 1.0e-7
+ D eF: 1.1e-7
  EH: 2.1e-10
  Epot: 1.1e-10
  Ekin: 2.1e-10
@@ -1295,7 +1295,7 @@ geoptconstrained_SDCG:
  D Tr: 1.1e-9
  Omega: 1.7e-10
  D: 1.1e-10
- tr(KS) before purification: 1.53e-11
+ tr(KS) before purification: 1.7e-11
  Clean forces norm (Ha/Bohr): 2.1e-9
  Atomic Forces (Ha/Bohr): 3.4e-9
  Average noise forces: 2.0e-9
@@ -1352,7 +1352,7 @@ O2spin_foe:
  relative diff: 3.6e-11
  fnrm2: 4.19e-8
  Energy (Hartree): 2.4e-10
- Force Norm (Hartree/Bohr): 1.09e-9
+ Force Norm (Hartree/Bohr): 1.3e-9
 
 O2spin_dirmin:
  Atomic Forces (Ha/Bohr): 1.6e-5
@@ -1570,7 +1570,7 @@ periodic_wateredge:
  Enl: 2.1e-10
  EH: 1.0e-9
  EXC: 1.1e-10
- EvXC: 1.1e-10
+ EvXC: 2.1e-10
  Ekin: 1.1e-9
  energy: 2.9e-10
  Total charge: 1.1e-10
@@ -1770,7 +1770,7 @@ igortho_19:
  D: 4.1e-8
  Tr(K): 1.7e-8
  total charge correction: 1.5e-11
- multiplicator for the confinement: 2.6e-11
+ multiplicator for the confinement: 2.8e-11
  radius for normalization: 1.1e-2
  Force Norm (Hartree/Bohr): 2.7e-8
 
@@ -2015,7 +2015,8 @@ pexsi:
 
 counterions:
   EH: 1.1e-10
-  EKS: 2.3e-11
+  EKS: 2.4e-11
   Energy (Hartree): 1.4e-11
   Epot: 1.1e-10
   EvXC: 1.1e-10
+  Ekin: 1.1e-10
