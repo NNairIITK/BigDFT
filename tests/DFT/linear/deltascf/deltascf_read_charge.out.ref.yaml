@@ -1033,6 +1033,7 @@
   #-------------------------------- Warnings obtained during the run, check their relevance!
  WARNINGS:
  - Do not call check_communications in the linear scaling version!
+ - Found  84 warning of high Wahba cost functions
  - The support function localization radii might be too small, got 11 warnings
  - support function optimization not converged
  - density optimization not converged
