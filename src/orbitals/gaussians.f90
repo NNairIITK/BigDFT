@@ -276,7 +276,7 @@ contains
           end do
 
           G%shid(DOC_, ishell) = pawtab(iatyp(iat))%wvl%pngau(i)
-          G%shid(L_, ishell) = l + 1 ! 1 is added due to BigDFT convention
+          G%shid(L_, ishell) = l! + 1 ! 1 is added due to BigDFT convention
           G%shid(N_, ishell) = 1
           G%nexpo  = G%nexpo  + G%shid(DOC_, ishell)
           G%ncoeff = G%ncoeff + 2*G%shid(L_, ishell)-1
@@ -337,7 +337,7 @@ contains
     if (iter%ishell >= iter%nshell) return
 
     iter%ishell = iter%ishell + 1
-    iter%l      = G%shid(L_, iter%ishell_s + iter%ishell)
+    iter%l      = G%shid(L_, iter%ishell_s + iter%ishell)+1
     iter%n      = G%shid(N_, iter%ishell_s + iter%ishell)
     iter%ndoc   = G%shid(DOC_, iter%ishell_s + iter%ishell)
     iter%idoc   = 0
