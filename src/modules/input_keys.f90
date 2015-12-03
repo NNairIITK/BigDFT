@@ -415,6 +415,9 @@ module module_input_keys
      !> Use the FOE method to calculate the HOMO-LUMO gap at the end
      logical :: foe_gap
 
+     !> Calculate the support function multipoles
+     logical :: support_function_multipoles
+
   end type input_variables
 
   interface input_set
@@ -2034,7 +2037,10 @@ contains
        case (CALCULATE_ONSITE_OVERLAP)
           in%lin%calculate_onsite_overlap = val
        case (CHARGE_MULTIPOLES)
-           in%lin%charge_multipoles = val
+          in%lin%charge_multipoles = val
+       case (SUPPORT_FUNCTION_MULTIPOLES)
+          ! linear scaling: Calculate the multipole moments of the support functions
+          in%support_function_multipoles = val
        case DEFAULT
           if (bigdft_mpi%iproc==0) &
                call yaml_warning("unknown input key '" // trim(level) // "/" // trim(dict_key(val)) // "'")

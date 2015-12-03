@@ -1649,6 +1649,9 @@
          0: no calculation
          1: new approach using Loewdin
          2: new approach using projector
+     support_function_multipoles:
+       COMMENT: Calculate the multipole moments of the support functions
+       default: False
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:

@@ -204,6 +204,7 @@ module public_keys
   character(len = *), parameter :: CORRECTION_CO_CONTRA = "correction_co_contra"
   character(len = *), parameter :: GPS_METHOD = "gps_method"
   character(len = *), parameter :: FOE_GAP = "foe_gap"
+  character(len = *), parameter :: SUPPORT_FUNCTION_MULTIPOLES = "support_function_multipoles"
 
   !keys for linear input variables
   !level keys

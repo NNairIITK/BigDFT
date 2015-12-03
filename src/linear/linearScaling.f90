@@ -39,13 +39,14 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_init, only: matrixindex_in_compressed
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
-  use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, support_function_gross_multipoles, &
+  use postprocessing_linear, only: loewdin_charge_analysis, &
                                    build_ks_orbitals, calculate_theta
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
   use locregs_init, only: small_to_large_locreg
   use public_enums
-  use multipole, only: multipoles_from_density, multipole_analysis_driver, projector_for_charge_analysis
+  use multipole, only: multipole_analysis_driver, projector_for_charge_analysis, &
+      support_function_gross_multipoles
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral
   use foe, only: fermi_operator_expansion
@@ -2528,14 +2529,15 @@ end if
       if (iproc==0) then
           call yaml_mapping_close()
       end if
-      call support_function_multipoles(iproc, tmb, at, denspot)
-
+      !!call support_function_multipoles(iproc, tmb, at, denspot)
 
       ! THIS IS COMMENTED FOR THE MOMENT #############################################################3
-      !multipoles = f_malloc0((/-lmax.to.lmax,0.to.lmax,1.to.tmb%orbs%norb/),id='multipoles')
-      !call support_function_gross_multipoles(iproc, tmb, at, denspot, multipoles)
-      !call f_free(multipoles)
 
+  end if
+
+  write(*,*) 'input%support_function_multipoles',input%support_function_multipoles
+  if (input%support_function_multipoles) then
+      call support_function_gross_multipoles(iproc, nproc, tmb, at, denspot, multipoles)
   end if
 
   if (input%lin%charge_multipoles>0) then

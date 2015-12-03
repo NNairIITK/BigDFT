@@ -9,13 +9,14 @@ module multipole
   public :: interaction_multipoles_ions
   public :: potential_from_charge_multipoles
   public :: potential_from_multipoles
-  public :: multipoles_from_density
+!  public :: multipoles_from_density
   public :: ionic_energy_of_external_charges
   public :: multipole_analysis_core !should better be private...
-  public :: write_multipoles_new !should better be private
+ !public :: write_multipoles_new !should better be private
   public :: gaussian_density
   public :: multipole_analysis_driver
   public :: projector_for_charge_analysis
+  public :: support_function_gross_multipoles
 
   contains
 
@@ -1093,425 +1094,425 @@ module multipole
 
 
 
-    !> Calculates the multipole moments for each atom 
-    subroutine multipoles_from_density(iproc, nproc, at, lzd, smats, smatl, orbs, &
-               npsidim, lphi, norbsPerType, collcom, collcom_sr, orthpar, &
-               ovrlp, kernel, meth_overlap, multipoles_out)
-      use module_base
-      use module_types
-      use sparsematrix_base, only: sparsematrix_malloc0, SPARSE_FULL, assignment(=)
-      use sparsematrix_init, only: matrixindex_in_compressed
-      use orthonormalization, only: orthonormalizeLocalized
-      use yaml_output
-      use locreg_operations
-      use bounds, only: geocode_buffers
-      implicit none
-
-      ! Calling arguments
-      integer,intent(in) :: iproc, nproc, npsidim, meth_overlap
-      type(atoms_data),intent(in) :: at
-      type(local_zone_descriptors),intent(in) :: lzd
-      type(sparse_matrix),intent(inout) :: smats, smatl
-      type(orbitals_data),intent(in) :: orbs
-      real(kind=8),dimension(npsidim),intent(in) :: lphi
-      integer,dimension(at%astruct%ntypes),intent(in) :: norbsPerType
-      type(comms_linear),intent(in) :: collcom
-      type(comms_linear),intent(in) :: collcom_sr
-      type(orthon_data),intent(in) :: orthpar
-      type(matrices),intent(in) :: kernel
-      type(matrices),intent(inout) :: ovrlp !in principle also intent(in)
-      real(kind=8),dimension(-lmax:lmax,0:lmax,1:at%astruct%nat),intent(out),optional :: multipoles_out
-
-      ! Local variables
-      integer :: ist, istr, iorb, iiorb, ilr, ii, natp, isat, nr, jproc, iat, n, norb_get, istr_get
-      integer :: window, ioffset, methTransformOverlap, l, m, iiat, ityp, norb_per_atom, i1, i2, i3, ind, jorb, jat
-      integer :: ii1, ii2, ii3, jjorb, i, itype
-      real(kind=8),dimension(:),allocatable :: psir
-      real(kind=8),dimension(:),pointer :: phit_c, phit_f
-      type(workarr_sumrho) :: w
-      integer,dimension(:),allocatable :: nat_par, norb_list
-      real(kind=8),dimension(:),allocatable :: psir_get, locrad, rmax
-      real(kind=8),dimension(:,:),allocatable :: locregcenter, psir_get_fake
-      real(kind=8),dimension(:,:,:,:),allocatable :: phi
-      real(kind=8),dimension(:,:,:,:,:,:),allocatable :: sphi
-      integer,dimension(:,:),allocatable :: comms
-      logical :: can_use_transposed, arr_allocated
-      real(kind=8) :: ddot, x, y, z, tt, rnorm, factor, max_error, q!, get_normalization, get_test_factor
-      !real(kind=8) ,dimension(2,orbs%norb) :: testarr
-      real(kind=8),dimension(:),allocatable :: kernel_ortho, phi_ortho
-      real(kind=8),dimension(:,:),allocatable :: weight_centers
-      integer,dimension(:),allocatable :: n1i, n2i, n3i, ns1i, ns2i, ns3i
-      !real(kind=8),dimension(-lmax:lmax,0:lmax,at%astruct%nat) :: multipoles
-      real(kind=8),dimension(:,:,:),allocatable :: multipoles
-      real(kind=8) :: factor_normalization, hxh, hyh, hzh, weight
-      character(len=20) :: atomname
-      real(kind=8),dimension(-lmax:lmax,0:lmax) :: norm
-      integer :: nl1, nl2, nl3
-      !real(kind=8),parameter :: rmax=5.d0
-      !testarr = 0.d0
-
-      call f_routine(id='multipoles_from_density')
-
-      if (iproc==0) call yaml_comment('Atomic multipole analysis, old approach',hfill='=')
-
-      multipoles = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='multipoles')
-
-
-      call unitary_test()
-
-      if (iproc==0) then
-          call yaml_mapping_open('Multipole analysis')
-      end if
-
-      ! Orthogonalize the support functions
-      can_use_transposed = .false.
-      methTransformOverlap = 1020
-      phit_c = f_malloc_ptr(collcom%ndimind_c,id='phit_c')
-      phit_f = f_malloc_ptr(7*collcom%ndimind_f,id='phit_f')
-      phi_ortho = f_malloc(npsidim,id='phi_ortho')
-      call vcopy(npsidim, lphi(1), 1, phi_ortho(1), 1)
-      if (iproc==0) then
-          call yaml_map('Orthonormalizing support functions',.true.)
-      end if
-      call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
-           1.d-8, npsidim, orbs, lzd, &
-           smats, smatl, collcom, orthpar, &
-           phi_ortho, phit_c, phit_f, &
-           can_use_transposed)
-      call f_free_ptr(phit_c)
-      call f_free_ptr(phit_f)
-
-
-      ! Transform the support functions to real space
-      psir = f_malloc(max(collcom_sr%ndimpsi_c,1),id='psir')
-      ist=1
-      istr=1
-      do iorb=1,orbs%norbp
-          iiorb=orbs%isorb+iorb
-          ilr=orbs%inwhichlocreg(iiorb)
-          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
-          call daub_to_isf(lzd%Llr(ilr), w, phi_ortho(ist), psir(istr))
-          call deallocate_work_arrays_sumrho(w)
-          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
-          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-      end do
-      do i=1,ist-1
-          write(445,*) i, phi_ortho(i)
-      end do
-      do i=1,istr-1
-          write(444,*) i, psir(i)
-      end do
-      call f_free(phi_ortho)
-      if(istr/=collcom_sr%ndimpsi_c+1) then
-          write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
-          stop
-      end if
-
-
-      !! NEW: CALCULATE THE WEIGHT CENTER OF EACH SUPPORT FUNCTION ############################
-      !weight_centers = f_malloc0((/3,orbs%norb/),id='weight_centers')
-      !hxh = 0.5d0*lzd%hgrids(1)
-      !hyh = 0.5d0*lzd%hgrids(2)
-      !hzh = 0.5d0*lzd%hgrids(3)
-
-      !istr = 1
-      !do iorb=1,orbs%norbp
-      !    iiorb=orbs%isorb+iorb
-      !    ilr=orbs%inwhichlocreg(iiorb)
-      !    call geocode_buffers(lzd%Llr(ilr)%geocode, lzd%glr%geocode, nl1, nl2, nl3)
-      !    !write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
-      !    !com(1:3,iorb) = 0.d0
-      !    weight = 0.d0
-      !    do i3=1,lzd%llr(ilr)%d%n3i
-      !        ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
-      !        z = ii3*hzh
-      !        do i2=1,lzd%llr(ilr)%d%n2i
-      !            ii2 = lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
-      !            y = ii2*hyh
-      !            do i1=1,lzd%llr(ilr)%d%n1i
-      !                ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
-      !                x = ii1*hxh
-      !                tt = psir(istr)**2
-      !                weight_centers(1,iiorb) = weight_centers(1,iiorb) + x*tt
-      !                weight_centers(2,iiorb) = weight_centers(2,iiorb) + y*tt
-      !                weight_centers(3,iiorb) = weight_centers(3,iiorb) + z*tt
-      !                weight = weight + tt
-      !                istr = istr + 1
-      !            end do
-      !        end do
-      !    end do
-      !    !call yaml_map('weight',weight)
-      !    weight_centers(1:3,iorb) = weight_centers(1:3,iorb)/weight
-      !end do
-      !call mpiallred(weight_centers, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      !if (iproc==0) then
-      !    do iorb=1,orbs%norb
-      !        write(*,'(a,i4,3es13.4)') 'iorb, weight_centers(1:3,iorb)', iorb, weight_centers(1:3,iorb)
-      !    end do
-      !end if
-      !call f_free(weight_centers)
-      !! ######################################################################################
-
-
-      ! Switch to a partition over the atoms
-      nat_par = f_malloc(0.to.nproc-1,id='nat_par')
-      ii = at%astruct%nat/nproc
-      nat_par(0:nproc-1) = ii
-      ii = at%astruct%nat-nproc*ii
-      nat_par(0:ii-1) = nat_par(0:ii-1) + 1
-      if (sum(nat_par(:))/=at%astruct%nat) then
-          call f_err_throw('wrong partition of the atoms',err_name='BIGDFT_RUNTIME_ERROR')
-      end if
-      natp = nat_par(iproc)
-      if (iproc==0) then
-          isat = 0
-      else
-          isat = sum(nat_par(0:iproc-1))
-      end if
-      call f_free(nat_par)
-      comms = f_malloc((/4,orbs%norb/),id='comms')
-      !write(*,'(a,i5,3x,13i4)') 'iproc, orbs%onwhichatom', iproc, orbs%onwhichatom
-      nr = 0
-      norb_get = 0
-      istr = 1
-      istr_get = 1
-      do iat=isat+1,isat+natp
-          do jproc=0,nproc-1
-              istr = 0
-              do iorb=1,orbs%norb_par(jproc,0)
-                  iiorb = iorb + orbs%isorb_par(jproc)
-                  ilr = orbs%inwhichlocreg(iiorb)
-                  iiat = orbs%onwhichatom(iiorb)
-                  n = lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-                  !write(*,'(a,5i8)') 'iproc, jproc, iiorb, iat', iproc, jproc, iiorb, iat
-                  !if (iat>=isat+1 .and. iat<=isat+natp) then
-                  if (iiat==iat) then
-                      norb_get = norb_get + 1
-                      comms(1,norb_get) = jproc
-                      comms(2,norb_get) = n
-                      comms(3,norb_get) = istr
-                      comms(4,norb_get) = istr_get
-                      nr = nr + n
-                      !write(*,'(a,5i8)') 'iproc, jproc, n, istr, istr_get', iproc, jproc, n, istr, istr_get
-                      istr = istr + n
-                      istr_get = istr_get + n
-                  else
-                      istr = istr + n
-                  end if
-              end do
-          end do
-      end do
-      !write(*,*) 'iproc, nr', iproc, nr
-      !do iorb=1,norb_get
-      !    write(*,'(a,2i7,4i9)') 'iproc, iorb, comm',iproc, iorb, comms(:,iorb)
-      !end do
-      psir_get = f_malloc(nr,id='psir_get')
-      if (nproc>1) then
-          window = mpiwindow(size(psir), psir(1), bigdft_mpi%mpi_comm)
-          do iorb=1,norb_get
-              jproc = comms(1,iorb)
-              n = comms(2,iorb)
-              ioffset = comms(3,iorb)
-              istr = comms(4,iorb)
-              !write(*,'(5(a,i0))') 'task ',iproc,' gets ',n,' elements at position ', &
-              !                     istr,' from position ',ioffset+1,' on task ',jproc
-              call mpiget(psir_get(istr), n, jproc, int(ioffset,kind=mpi_address_kind), window)
-          end do
-          call mpi_fenceandfree(window)
-      else
-          do iorb=1,norb_get
-              n = comms(2,iorb)
-              ioffset = comms(3,iorb)
-              istr = comms(4,iorb)
-              call vcopy(n, psir(ioffset+1), 1, psir_get(istr), 1)
-          end do
-      end if
-      call f_free(psir)
-      call f_free(comms)
-      istr = 1
-      !write(*,*) 'iproc, isat, natp', iproc, isat, natp
-      do iorb=1,orbs%norb
-          ilr = orbs%inwhichlocreg(iorb)
-          iat = orbs%onwhichatom(iorb)
-          if (iat>=isat+1 .and. iat<=isat+natp) then
-              n = lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
-              !write(*,'(a,4i8,es16.6)') 'iproc, iorb, n, istr, ddot', &
-              !    iproc, iorb, n, istr, ddot(n, psir_get(istr), 1, psir_get(istr), 1)
-              !testarr(2,iorb) = ddot(n, psir_get(istr), 1, psir_get(istr), 1)
-              istr = istr + n
-          end if
-      end do
-      !do iorb=1,size(psir_get)
-      !    write(300+iproc,'(a,i7,es16.7)') 'i, psir_get(i)', iorb, psir_get(iorb)
-      !end do
-      !call mpiallred(testarr, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      !if (iproc==0) then
-      !    do iorb=1,orbs%norb
-      !        write(*,*) 'DIFF, iorb, val', iorb, abs(testarr(1,iorb)-testarr(2,iorb))
-      !    end do
-      !end if
-
-
-      ! Calculate the kernel for orthormal support functions
-      kernel_ortho = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='kernel_ortho')
-      call kernel_for_orthonormal_basis(iproc, nproc, orbs%norbp, meth_overlap, smats, smatl, &
-           ovrlp, kernel, kernel_ortho)
-
-
-      ! Apply the spherical harmonics to the suport functions.
-      ! For the support functions on atom A we only need to apply 
-      ! the spherical harmonics centered as well on atom A.
-
-
-
-      !lmax = 1
-      n1i = f_malloc(orbs%norb,id='n1i')
-      n2i = f_malloc(orbs%norb,id='n2i')
-      n3i = f_malloc(orbs%norb,id='n3i')
-      ns1i = f_malloc(orbs%norb,id='ns1i')
-      ns2i = f_malloc(orbs%norb,id='ns2i')
-      ns3i = f_malloc(orbs%norb,id='ns3i')
-      locrad = f_malloc(orbs%norb,id='locrad')
-      locregcenter = f_malloc((/3,orbs%norb/),id='locregcenter')
-      do iorb=1,orbs%norb
-          n1i(iorb) = lzd%llr(iorb)%d%n1i
-          n2i(iorb) = lzd%llr(iorb)%d%n2i
-          n3i(iorb) = lzd%llr(iorb)%d%n3i
-          ns1i(iorb) = lzd%llr(iorb)%nsi1
-          ns2i(iorb) = lzd%llr(iorb)%nsi2
-          ns3i(iorb) = lzd%llr(iorb)%nsi3
-          locrad(iorb) = lzd%llr(iorb)%locrad
-          locregcenter(1:3,iorb) = lzd%llr(iorb)%locregcenter(1:3)
-      end do
-      rmax = f_malloc(at%astruct%nat,id='rmax')
-      call multipole_analysis_core(iproc, nproc, natp, isat, at%astruct%nat, at%astruct%ntypes, orbs%norb, &
-           0, at%astruct%iatype, norbsPerType, orbs%inwhichlocreg, orbs%onwhichatom, &
-           n1i, n2i, n3i, ns1i, ns2i, ns3i, locrad, lzd%hgrids, locregcenter, &
-           nr, psir_get, psir_get, &
-           smatl%nvctr, kernel_ortho, 1, multipoles, rmax, 101, smatl)!, matrixindex)
-      call f_free(psir_get_fake)
-      call f_free(n1i)
-      call f_free(n2i)
-      call f_free(n3i)
-      call f_free(ns1i)
-      call f_free(ns2i)
-      call f_free(ns3i)
-      call f_free(locrad)
-      call f_free(locregcenter)
-
-      ! The monopole term should be the net charge, i.e. add the positive atomic charges
-      do iat=1,at%astruct%nat
-          itype = at%astruct%iatype(iat)
-          q = real(at%nelpsp(itype),kind=8)
-          multipoles(0,0,iat) = multipoles(0,0,iat) + q
-      end do
-
-      if (iproc==0) then
-          !!call write_multipoles(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
-          !!     multipoles, rmax, lzd%hgrids, without_normalization=.false.)
-          call write_multipoles_new(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
-               at%astruct%rxyz, at%astruct%units, multipoles)
-      end if
-      call f_free(rmax)
-      call f_free(psir_get)
-
-      call f_free(kernel_ortho)
-
-      if (iproc==0) then
-          call yaml_mapping_close()
-      end if
-
-
-      if (present(multipoles_out)) then
-          call f_memcpy(src=multipoles,dest=multipoles_out)
-      end if
-      call f_free(multipoles)
-
-      if (iproc==0) then
-          call yaml_comment('Atomic multipole analysis done',hfill='=')
-      end if
-
-      call f_release_routine()
-
-
-
-      contains
-
-
-        subroutine unitary_test()
-          implicit none
-          real(kind=8),dimension(1) :: rmax
-          integer,parameter :: n1i=101, n2i=81, n3i=91
-          integer,parameter :: nsi1=0, nsi2=10, nsi3=20
-          !integer,parameter :: n1i=100, n2i=100, n3i=100
-          !integer,parameter :: nsi1=0, nsi2=0, nsi3=0
-          real(kind=8),dimension(3) :: locregcenter
-          integer :: nr
-          real(kind=8) :: factor_normalization, r2, r
-
-          if (iproc==0) then
-              call yaml_mapping_open('Unitary test for multipoles')
-          end if
-
-          locregcenter(1) = (ceiling(real(n1i,kind=8)/2.d0)+nsi1-14-1)*0.5d0*lzd%hgrids(1)
-          locregcenter(2) = (ceiling(real(n2i,kind=8)/2.d0)+nsi2-14-1)*0.5d0*lzd%hgrids(2)
-          locregcenter(3) = (ceiling(real(n3i,kind=8)/2.d0)+nsi3-14-1)*0.5d0*lzd%hgrids(3)
-
-          !psir_get_fake = f_malloc0((/lzd%llr(1)%d%n1i*lzd%llr(1)%d%n2i*lzd%llr(1)%d%n3i,2/),id='psir_get_fake')
-          nr = n1i*n2i*n3i
-          psir_get_fake = f_malloc0((/nr,2/),id='psir_get_fake')
-          psir_get_fake(:,2) = 1.d0
-          rmax(1) = min(n1i*0.25d0*lzd%hgrids(1), &
-                        n2i*0.25d0*lzd%hgrids(2), &
-                        n3i*0.25d0*lzd%hgrids(3))
-          ! Normalized to within a sphere of radius rmax
-          factor_normalization = 3.d0/(4.d0*pi*rmax(1)**3)*0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3)
-          do i3=1,n3i!lzd%llr(1)%d%n3i
-              ii3 = nsi3 + i3 - 14 - 1
-              z = ii3*0.5d0*lzd%hgrids(3) - locregcenter(3)
-              do i2=1,n2i!lzd%llr(1)%d%n2i
-                  ii2 = nsi2 + i2 - 14 - 1
-                  y = ii2*0.5d0*lzd%hgrids(2) - locregcenter(2)
-                  do i1=1,n1i!lzd%llr(1)%d%n1i
-                      ii1 = nsi1 + i1 - 14 - 1
-                      x = ii1*0.5d0*lzd%hgrids(1) - locregcenter(1)
-                      r2 = x**2+y**2+z**2
-                      if (r2>rmax(1)**2) cycle
-                      r = sqrt(r2)
-                      r = max(0.5d0,r)
-                      ind = (i3-1)*n2i*n1i + (i2-1)*n1i + i1
-                      do l=0,lmax
-                          do m=-l,l
-                              factor = get_test_factor(l,m)*factor_normalization*sqrt(4.d0*pi*real(2*l+1,kind=8))
-                              ! The minus sign is necessary to compensate the fact that the multipole calculation uses itself a minus sign (since it
-                              ! assumes that the charge density (which is a negative quantity) is positive)
-                              psir_get_fake(ind,1) = psir_get_fake(ind,1) - factor*solid_harmonic(-2, 1.0d0, l, m , x, y, z)
-                          end do
-                      end do
-                  end do
-              end do
-          end do
-          ! Only do it for one MPI task
-          if (iproc==0) then
-              call multipole_analysis_core(0, 1, 1, 0, 1, 1, 1, &
-                   0, (/1/), (/1/), (/1/), (/1/), &
-                   (/n1i/), (/n2i/), (/n3i/), &
-                   (/nsi1/), (/nsi2/), (/nsi3/), rmax, &
-                   lzd%hgrids, locregcenter, &
-                   nr, psir_get_fake(:,1), psir_get_fake(:,2), &
-                   1, (/1.d0/), 1, multipoles, rmax, 102, matrixindex=(/1/))
-          end if
-
-          if (iproc==0) then
-              call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), 'fake', &
-                   multipoles, check_values_=.true.)
-              call yaml_mapping_close()
-          end if
-
-        end subroutine unitary_test
-
-
-    end subroutine multipoles_from_density
+!!!!    !> Calculates the multipole moments for each atom 
+!!!!    subroutine multipoles_from_density(iproc, nproc, at, lzd, smats, smatl, orbs, &
+!!!!               npsidim, lphi, norbsPerType, collcom, collcom_sr, orthpar, &
+!!!!               ovrlp, kernel, meth_overlap, multipoles_out)
+!!!!      use module_base
+!!!!      use module_types
+!!!!      use sparsematrix_base, only: sparsematrix_malloc0, SPARSE_FULL, assignment(=)
+!!!!      use sparsematrix_init, only: matrixindex_in_compressed
+!!!!      use orthonormalization, only: orthonormalizeLocalized
+!!!!      use yaml_output
+!!!!      use locreg_operations
+!!!!      use bounds, only: geocode_buffers
+!!!!      implicit none
+!!!!
+!!!!      ! Calling arguments
+!!!!      integer,intent(in) :: iproc, nproc, npsidim, meth_overlap
+!!!!      type(atoms_data),intent(in) :: at
+!!!!      type(local_zone_descriptors),intent(in) :: lzd
+!!!!      type(sparse_matrix),intent(inout) :: smats, smatl
+!!!!      type(orbitals_data),intent(in) :: orbs
+!!!!      real(kind=8),dimension(npsidim),intent(in) :: lphi
+!!!!      integer,dimension(at%astruct%ntypes),intent(in) :: norbsPerType
+!!!!      type(comms_linear),intent(in) :: collcom
+!!!!      type(comms_linear),intent(in) :: collcom_sr
+!!!!      type(orthon_data),intent(in) :: orthpar
+!!!!      type(matrices),intent(in) :: kernel
+!!!!      type(matrices),intent(inout) :: ovrlp !in principle also intent(in)
+!!!!      real(kind=8),dimension(-lmax:lmax,0:lmax,1:at%astruct%nat),intent(out),optional :: multipoles_out
+!!!!
+!!!!      ! Local variables
+!!!!      integer :: ist, istr, iorb, iiorb, ilr, ii, natp, isat, nr, jproc, iat, n, norb_get, istr_get
+!!!!      integer :: window, ioffset, methTransformOverlap, l, m, iiat, ityp, norb_per_atom, i1, i2, i3, ind, jorb, jat
+!!!!      integer :: ii1, ii2, ii3, jjorb, i, itype
+!!!!      real(kind=8),dimension(:),allocatable :: psir
+!!!!      real(kind=8),dimension(:),pointer :: phit_c, phit_f
+!!!!      type(workarr_sumrho) :: w
+!!!!      integer,dimension(:),allocatable :: nat_par, norb_list
+!!!!      real(kind=8),dimension(:),allocatable :: psir_get, locrad, rmax
+!!!!      real(kind=8),dimension(:,:),allocatable :: locregcenter, psir_get_fake
+!!!!      real(kind=8),dimension(:,:,:,:),allocatable :: phi
+!!!!      real(kind=8),dimension(:,:,:,:,:,:),allocatable :: sphi
+!!!!      integer,dimension(:,:),allocatable :: comms
+!!!!      logical :: can_use_transposed, arr_allocated
+!!!!      real(kind=8) :: ddot, x, y, z, tt, rnorm, factor, max_error, q!, get_normalization, get_test_factor
+!!!!      !real(kind=8) ,dimension(2,orbs%norb) :: testarr
+!!!!      real(kind=8),dimension(:),allocatable :: kernel_ortho, phi_ortho
+!!!!      real(kind=8),dimension(:,:),allocatable :: weight_centers
+!!!!      integer,dimension(:),allocatable :: n1i, n2i, n3i, ns1i, ns2i, ns3i
+!!!!      !real(kind=8),dimension(-lmax:lmax,0:lmax,at%astruct%nat) :: multipoles
+!!!!      real(kind=8),dimension(:,:,:),allocatable :: multipoles
+!!!!      real(kind=8) :: factor_normalization, hxh, hyh, hzh, weight
+!!!!      character(len=20) :: atomname
+!!!!      real(kind=8),dimension(-lmax:lmax,0:lmax) :: norm
+!!!!      integer :: nl1, nl2, nl3
+!!!!      !real(kind=8),parameter :: rmax=5.d0
+!!!!      !testarr = 0.d0
+!!!!
+!!!!      call f_routine(id='multipoles_from_density')
+!!!!
+!!!!      if (iproc==0) call yaml_comment('Atomic multipole analysis, old approach',hfill='=')
+!!!!
+!!!!      multipoles = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='multipoles')
+!!!!
+!!!!
+!!!!      call unitary_test()
+!!!!
+!!!!      if (iproc==0) then
+!!!!          call yaml_mapping_open('Multipole analysis')
+!!!!      end if
+!!!!
+!!!!      ! Orthogonalize the support functions
+!!!!      can_use_transposed = .false.
+!!!!      methTransformOverlap = 1020
+!!!!      phit_c = f_malloc_ptr(collcom%ndimind_c,id='phit_c')
+!!!!      phit_f = f_malloc_ptr(7*collcom%ndimind_f,id='phit_f')
+!!!!      phi_ortho = f_malloc(npsidim,id='phi_ortho')
+!!!!      call vcopy(npsidim, lphi(1), 1, phi_ortho(1), 1)
+!!!!      if (iproc==0) then
+!!!!          call yaml_map('Orthonormalizing support functions',.true.)
+!!!!      end if
+!!!!      call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
+!!!!           1.d-8, npsidim, orbs, lzd, &
+!!!!           smats, smatl, collcom, orthpar, &
+!!!!           phi_ortho, phit_c, phit_f, &
+!!!!           can_use_transposed)
+!!!!      call f_free_ptr(phit_c)
+!!!!      call f_free_ptr(phit_f)
+!!!!
+!!!!
+!!!!      ! Transform the support functions to real space
+!!!!      psir = f_malloc(max(collcom_sr%ndimpsi_c,1),id='psir')
+!!!!      ist=1
+!!!!      istr=1
+!!!!      do iorb=1,orbs%norbp
+!!!!          iiorb=orbs%isorb+iorb
+!!!!          ilr=orbs%inwhichlocreg(iiorb)
+!!!!          call initialize_work_arrays_sumrho(1,[lzd%Llr(ilr)],.true.,w)
+!!!!          call daub_to_isf(lzd%Llr(ilr), w, phi_ortho(ist), psir(istr))
+!!!!          call deallocate_work_arrays_sumrho(w)
+!!!!          ist = ist + lzd%Llr(ilr)%wfd%nvctr_c + 7*lzd%Llr(ilr)%wfd%nvctr_f
+!!!!          istr = istr + lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+!!!!      end do
+!!!!      do i=1,ist-1
+!!!!          write(445,*) i, phi_ortho(i)
+!!!!      end do
+!!!!      do i=1,istr-1
+!!!!          write(444,*) i, psir(i)
+!!!!      end do
+!!!!      call f_free(phi_ortho)
+!!!!      if(istr/=collcom_sr%ndimpsi_c+1) then
+!!!!          write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=collcom_sr%ndimpsi_c+1'
+!!!!          stop
+!!!!      end if
+!!!!
+!!!!
+!!!!      !! NEW: CALCULATE THE WEIGHT CENTER OF EACH SUPPORT FUNCTION ############################
+!!!!      !weight_centers = f_malloc0((/3,orbs%norb/),id='weight_centers')
+!!!!      !hxh = 0.5d0*lzd%hgrids(1)
+!!!!      !hyh = 0.5d0*lzd%hgrids(2)
+!!!!      !hzh = 0.5d0*lzd%hgrids(3)
+!!!!
+!!!!      !istr = 1
+!!!!      !do iorb=1,orbs%norbp
+!!!!      !    iiorb=orbs%isorb+iorb
+!!!!      !    ilr=orbs%inwhichlocreg(iiorb)
+!!!!      !    call geocode_buffers(lzd%Llr(ilr)%geocode, lzd%glr%geocode, nl1, nl2, nl3)
+!!!!      !    !write(*,*) 'iorb, iiorb, ilr', iorb, iiorb, ilr
+!!!!      !    !com(1:3,iorb) = 0.d0
+!!!!      !    weight = 0.d0
+!!!!      !    do i3=1,lzd%llr(ilr)%d%n3i
+!!!!      !        ii3 = lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
+!!!!      !        z = ii3*hzh
+!!!!      !        do i2=1,lzd%llr(ilr)%d%n2i
+!!!!      !            ii2 = lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
+!!!!      !            y = ii2*hyh
+!!!!      !            do i1=1,lzd%llr(ilr)%d%n1i
+!!!!      !                ii1 = lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
+!!!!      !                x = ii1*hxh
+!!!!      !                tt = psir(istr)**2
+!!!!      !                weight_centers(1,iiorb) = weight_centers(1,iiorb) + x*tt
+!!!!      !                weight_centers(2,iiorb) = weight_centers(2,iiorb) + y*tt
+!!!!      !                weight_centers(3,iiorb) = weight_centers(3,iiorb) + z*tt
+!!!!      !                weight = weight + tt
+!!!!      !                istr = istr + 1
+!!!!      !            end do
+!!!!      !        end do
+!!!!      !    end do
+!!!!      !    !call yaml_map('weight',weight)
+!!!!      !    weight_centers(1:3,iorb) = weight_centers(1:3,iorb)/weight
+!!!!      !end do
+!!!!      !call mpiallred(weight_centers, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!!!      !if (iproc==0) then
+!!!!      !    do iorb=1,orbs%norb
+!!!!      !        write(*,'(a,i4,3es13.4)') 'iorb, weight_centers(1:3,iorb)', iorb, weight_centers(1:3,iorb)
+!!!!      !    end do
+!!!!      !end if
+!!!!      !call f_free(weight_centers)
+!!!!      !! ######################################################################################
+!!!!
+!!!!
+!!!!      ! Switch to a partition over the atoms
+!!!!      nat_par = f_malloc(0.to.nproc-1,id='nat_par')
+!!!!      ii = at%astruct%nat/nproc
+!!!!      nat_par(0:nproc-1) = ii
+!!!!      ii = at%astruct%nat-nproc*ii
+!!!!      nat_par(0:ii-1) = nat_par(0:ii-1) + 1
+!!!!      if (sum(nat_par(:))/=at%astruct%nat) then
+!!!!          call f_err_throw('wrong partition of the atoms',err_name='BIGDFT_RUNTIME_ERROR')
+!!!!      end if
+!!!!      natp = nat_par(iproc)
+!!!!      if (iproc==0) then
+!!!!          isat = 0
+!!!!      else
+!!!!          isat = sum(nat_par(0:iproc-1))
+!!!!      end if
+!!!!      call f_free(nat_par)
+!!!!      comms = f_malloc((/4,orbs%norb/),id='comms')
+!!!!      !write(*,'(a,i5,3x,13i4)') 'iproc, orbs%onwhichatom', iproc, orbs%onwhichatom
+!!!!      nr = 0
+!!!!      norb_get = 0
+!!!!      istr = 1
+!!!!      istr_get = 1
+!!!!      do iat=isat+1,isat+natp
+!!!!          do jproc=0,nproc-1
+!!!!              istr = 0
+!!!!              do iorb=1,orbs%norb_par(jproc,0)
+!!!!                  iiorb = iorb + orbs%isorb_par(jproc)
+!!!!                  ilr = orbs%inwhichlocreg(iiorb)
+!!!!                  iiat = orbs%onwhichatom(iiorb)
+!!!!                  n = lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+!!!!                  !write(*,'(a,5i8)') 'iproc, jproc, iiorb, iat', iproc, jproc, iiorb, iat
+!!!!                  !if (iat>=isat+1 .and. iat<=isat+natp) then
+!!!!                  if (iiat==iat) then
+!!!!                      norb_get = norb_get + 1
+!!!!                      comms(1,norb_get) = jproc
+!!!!                      comms(2,norb_get) = n
+!!!!                      comms(3,norb_get) = istr
+!!!!                      comms(4,norb_get) = istr_get
+!!!!                      nr = nr + n
+!!!!                      !write(*,'(a,5i8)') 'iproc, jproc, n, istr, istr_get', iproc, jproc, n, istr, istr_get
+!!!!                      istr = istr + n
+!!!!                      istr_get = istr_get + n
+!!!!                  else
+!!!!                      istr = istr + n
+!!!!                  end if
+!!!!              end do
+!!!!          end do
+!!!!      end do
+!!!!      !write(*,*) 'iproc, nr', iproc, nr
+!!!!      !do iorb=1,norb_get
+!!!!      !    write(*,'(a,2i7,4i9)') 'iproc, iorb, comm',iproc, iorb, comms(:,iorb)
+!!!!      !end do
+!!!!      psir_get = f_malloc(nr,id='psir_get')
+!!!!      if (nproc>1) then
+!!!!          window = mpiwindow(size(psir), psir(1), bigdft_mpi%mpi_comm)
+!!!!          do iorb=1,norb_get
+!!!!              jproc = comms(1,iorb)
+!!!!              n = comms(2,iorb)
+!!!!              ioffset = comms(3,iorb)
+!!!!              istr = comms(4,iorb)
+!!!!              !write(*,'(5(a,i0))') 'task ',iproc,' gets ',n,' elements at position ', &
+!!!!              !                     istr,' from position ',ioffset+1,' on task ',jproc
+!!!!              call mpiget(psir_get(istr), n, jproc, int(ioffset,kind=mpi_address_kind), window)
+!!!!          end do
+!!!!          call mpi_fenceandfree(window)
+!!!!      else
+!!!!          do iorb=1,norb_get
+!!!!              n = comms(2,iorb)
+!!!!              ioffset = comms(3,iorb)
+!!!!              istr = comms(4,iorb)
+!!!!              call vcopy(n, psir(ioffset+1), 1, psir_get(istr), 1)
+!!!!          end do
+!!!!      end if
+!!!!      call f_free(psir)
+!!!!      call f_free(comms)
+!!!!      istr = 1
+!!!!      !write(*,*) 'iproc, isat, natp', iproc, isat, natp
+!!!!      do iorb=1,orbs%norb
+!!!!          ilr = orbs%inwhichlocreg(iorb)
+!!!!          iat = orbs%onwhichatom(iorb)
+!!!!          if (iat>=isat+1 .and. iat<=isat+natp) then
+!!!!              n = lzd%Llr(ilr)%d%n1i*lzd%Llr(ilr)%d%n2i*lzd%Llr(ilr)%d%n3i
+!!!!              !write(*,'(a,4i8,es16.6)') 'iproc, iorb, n, istr, ddot', &
+!!!!              !    iproc, iorb, n, istr, ddot(n, psir_get(istr), 1, psir_get(istr), 1)
+!!!!              !testarr(2,iorb) = ddot(n, psir_get(istr), 1, psir_get(istr), 1)
+!!!!              istr = istr + n
+!!!!          end if
+!!!!      end do
+!!!!      !do iorb=1,size(psir_get)
+!!!!      !    write(300+iproc,'(a,i7,es16.7)') 'i, psir_get(i)', iorb, psir_get(iorb)
+!!!!      !end do
+!!!!      !call mpiallred(testarr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+!!!!      !if (iproc==0) then
+!!!!      !    do iorb=1,orbs%norb
+!!!!      !        write(*,*) 'DIFF, iorb, val', iorb, abs(testarr(1,iorb)-testarr(2,iorb))
+!!!!      !    end do
+!!!!      !end if
+!!!!
+!!!!
+!!!!      ! Calculate the kernel for orthormal support functions
+!!!!      kernel_ortho = sparsematrix_malloc0(smatl,iaction=SPARSE_FULL,id='kernel_ortho')
+!!!!      call kernel_for_orthonormal_basis(iproc, nproc, orbs%norbp, meth_overlap, smats, smatl, &
+!!!!           ovrlp, kernel, kernel_ortho)
+!!!!
+!!!!
+!!!!      ! Apply the spherical harmonics to the suport functions.
+!!!!      ! For the support functions on atom A we only need to apply 
+!!!!      ! the spherical harmonics centered as well on atom A.
+!!!!
+!!!!
+!!!!
+!!!!      !lmax = 1
+!!!!      n1i = f_malloc(orbs%norb,id='n1i')
+!!!!      n2i = f_malloc(orbs%norb,id='n2i')
+!!!!      n3i = f_malloc(orbs%norb,id='n3i')
+!!!!      ns1i = f_malloc(orbs%norb,id='ns1i')
+!!!!      ns2i = f_malloc(orbs%norb,id='ns2i')
+!!!!      ns3i = f_malloc(orbs%norb,id='ns3i')
+!!!!      locrad = f_malloc(orbs%norb,id='locrad')
+!!!!      locregcenter = f_malloc((/3,orbs%norb/),id='locregcenter')
+!!!!      do iorb=1,orbs%norb
+!!!!          n1i(iorb) = lzd%llr(iorb)%d%n1i
+!!!!          n2i(iorb) = lzd%llr(iorb)%d%n2i
+!!!!          n3i(iorb) = lzd%llr(iorb)%d%n3i
+!!!!          ns1i(iorb) = lzd%llr(iorb)%nsi1
+!!!!          ns2i(iorb) = lzd%llr(iorb)%nsi2
+!!!!          ns3i(iorb) = lzd%llr(iorb)%nsi3
+!!!!          locrad(iorb) = lzd%llr(iorb)%locrad
+!!!!          locregcenter(1:3,iorb) = lzd%llr(iorb)%locregcenter(1:3)
+!!!!      end do
+!!!!      rmax = f_malloc(at%astruct%nat,id='rmax')
+!!!!      call multipole_analysis_core(iproc, nproc, natp, isat, at%astruct%nat, at%astruct%ntypes, orbs%norb, &
+!!!!           0, at%astruct%iatype, norbsPerType, orbs%inwhichlocreg, orbs%onwhichatom, &
+!!!!           n1i, n2i, n3i, ns1i, ns2i, ns3i, locrad, lzd%hgrids, locregcenter, &
+!!!!           nr, psir_get, psir_get, &
+!!!!           smatl%nvctr, kernel_ortho, 1, multipoles, rmax, 101, smatl)!, matrixindex)
+!!!!      call f_free(psir_get_fake)
+!!!!      call f_free(n1i)
+!!!!      call f_free(n2i)
+!!!!      call f_free(n3i)
+!!!!      call f_free(ns1i)
+!!!!      call f_free(ns2i)
+!!!!      call f_free(ns3i)
+!!!!      call f_free(locrad)
+!!!!      call f_free(locregcenter)
+!!!!
+!!!!      ! The monopole term should be the net charge, i.e. add the positive atomic charges
+!!!!      do iat=1,at%astruct%nat
+!!!!          itype = at%astruct%iatype(iat)
+!!!!          q = real(at%nelpsp(itype),kind=8)
+!!!!          multipoles(0,0,iat) = multipoles(0,0,iat) + q
+!!!!      end do
+!!!!
+!!!!      if (iproc==0) then
+!!!!          !!call write_multipoles(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
+!!!!          !!     multipoles, rmax, lzd%hgrids, without_normalization=.false.)
+!!!!          call write_multipoles_new(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, at%astruct%atomnames, &
+!!!!               at%astruct%rxyz, at%astruct%units, multipoles)
+!!!!      end if
+!!!!      call f_free(rmax)
+!!!!      call f_free(psir_get)
+!!!!
+!!!!      call f_free(kernel_ortho)
+!!!!
+!!!!      if (iproc==0) then
+!!!!          call yaml_mapping_close()
+!!!!      end if
+!!!!
+!!!!
+!!!!      if (present(multipoles_out)) then
+!!!!          call f_memcpy(src=multipoles,dest=multipoles_out)
+!!!!      end if
+!!!!      call f_free(multipoles)
+!!!!
+!!!!      if (iproc==0) then
+!!!!          call yaml_comment('Atomic multipole analysis done',hfill='=')
+!!!!      end if
+!!!!
+!!!!      call f_release_routine()
+!!!!
+!!!!
+!!!!
+!!!!      contains
+!!!!
+!!!!
+!!!!        subroutine unitary_test()
+!!!!          implicit none
+!!!!          real(kind=8),dimension(1) :: rmax
+!!!!          integer,parameter :: n1i=101, n2i=81, n3i=91
+!!!!          integer,parameter :: nsi1=0, nsi2=10, nsi3=20
+!!!!          !integer,parameter :: n1i=100, n2i=100, n3i=100
+!!!!          !integer,parameter :: nsi1=0, nsi2=0, nsi3=0
+!!!!          real(kind=8),dimension(3) :: locregcenter
+!!!!          integer :: nr
+!!!!          real(kind=8) :: factor_normalization, r2, r
+!!!!
+!!!!          if (iproc==0) then
+!!!!              call yaml_mapping_open('Unitary test for multipoles')
+!!!!          end if
+!!!!
+!!!!          locregcenter(1) = (ceiling(real(n1i,kind=8)/2.d0)+nsi1-14-1)*0.5d0*lzd%hgrids(1)
+!!!!          locregcenter(2) = (ceiling(real(n2i,kind=8)/2.d0)+nsi2-14-1)*0.5d0*lzd%hgrids(2)
+!!!!          locregcenter(3) = (ceiling(real(n3i,kind=8)/2.d0)+nsi3-14-1)*0.5d0*lzd%hgrids(3)
+!!!!
+!!!!          !psir_get_fake = f_malloc0((/lzd%llr(1)%d%n1i*lzd%llr(1)%d%n2i*lzd%llr(1)%d%n3i,2/),id='psir_get_fake')
+!!!!          nr = n1i*n2i*n3i
+!!!!          psir_get_fake = f_malloc0((/nr,2/),id='psir_get_fake')
+!!!!          psir_get_fake(:,2) = 1.d0
+!!!!          rmax(1) = min(n1i*0.25d0*lzd%hgrids(1), &
+!!!!                        n2i*0.25d0*lzd%hgrids(2), &
+!!!!                        n3i*0.25d0*lzd%hgrids(3))
+!!!!          ! Normalized to within a sphere of radius rmax
+!!!!          factor_normalization = 3.d0/(4.d0*pi*rmax(1)**3)*0.5d0*lzd%hgrids(1)*0.5d0*lzd%hgrids(2)*0.5d0*lzd%hgrids(3)
+!!!!          do i3=1,n3i!lzd%llr(1)%d%n3i
+!!!!              ii3 = nsi3 + i3 - 14 - 1
+!!!!              z = ii3*0.5d0*lzd%hgrids(3) - locregcenter(3)
+!!!!              do i2=1,n2i!lzd%llr(1)%d%n2i
+!!!!                  ii2 = nsi2 + i2 - 14 - 1
+!!!!                  y = ii2*0.5d0*lzd%hgrids(2) - locregcenter(2)
+!!!!                  do i1=1,n1i!lzd%llr(1)%d%n1i
+!!!!                      ii1 = nsi1 + i1 - 14 - 1
+!!!!                      x = ii1*0.5d0*lzd%hgrids(1) - locregcenter(1)
+!!!!                      r2 = x**2+y**2+z**2
+!!!!                      if (r2>rmax(1)**2) cycle
+!!!!                      r = sqrt(r2)
+!!!!                      r = max(0.5d0,r)
+!!!!                      ind = (i3-1)*n2i*n1i + (i2-1)*n1i + i1
+!!!!                      do l=0,lmax
+!!!!                          do m=-l,l
+!!!!                              factor = get_test_factor(l,m)*factor_normalization*sqrt(4.d0*pi*real(2*l+1,kind=8))
+!!!!                              ! The minus sign is necessary to compensate the fact that the multipole calculation uses itself a minus sign (since it
+!!!!                              ! assumes that the charge density (which is a negative quantity) is positive)
+!!!!                              psir_get_fake(ind,1) = psir_get_fake(ind,1) - factor*solid_harmonic(-2, 1.0d0, l, m , x, y, z)
+!!!!                          end do
+!!!!                      end do
+!!!!                  end do
+!!!!              end do
+!!!!          end do
+!!!!          ! Only do it for one MPI task
+!!!!          if (iproc==0) then
+!!!!              call multipole_analysis_core(0, 1, 1, 0, 1, 1, 1, &
+!!!!                   0, (/1/), (/1/), (/1/), (/1/), &
+!!!!                   (/n1i/), (/n2i/), (/n3i/), &
+!!!!                   (/nsi1/), (/nsi2/), (/nsi3/), rmax, &
+!!!!                   lzd%hgrids, locregcenter, &
+!!!!                   nr, psir_get_fake(:,1), psir_get_fake(:,2), &
+!!!!                   1, (/1.d0/), 1, multipoles, rmax, 102, matrixindex=(/1/))
+!!!!          end if
+!!!!
+!!!!          if (iproc==0) then
+!!!!              call write_multipoles_new(1, 1, (/1/), (/'testatom'/), (/0.d0,0.d0,0.d0/), 'fake', &
+!!!!                   multipoles, check_values_=.true.)
+!!!!              call yaml_mapping_close()
+!!!!          end if
+!!!!
+!!!!        end subroutine unitary_test
+!!!!
+!!!!
+!!!!    end subroutine multipoles_from_density
 
 
 
@@ -1677,42 +1678,33 @@ module multipole
 
 
 
-    subroutine write_multipoles_new(nat, ntypes, iatype, atomnames, rxyz, units, &
-               multipoles, check_values_)
+    subroutine write_multipoles_new(nat, atomnames, rxyz, units, multipoles, &
+               delta_rxyz, scaled)
       use yaml_output
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: nat, ntypes
-      integer,dimension(nat),intent(in) :: iatype
-      character(len=*),dimension(ntypes),intent(in) :: atomnames
+      integer,intent(in) :: nat
+      !integer,dimension(nat),intent(in) :: iatype
+      character(len=*),dimension(nat),intent(in) :: atomnames
       real(kind=8),dimension(3,nat),intent(in) :: rxyz
       character(len=*),intent(in) :: units
       real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(in) :: multipoles
-      logical,intent(in),optional :: check_values_ !just a quick and dirty solution for the unitary test...
+      real(kind=8),dimension(3,nat),intent(in),optional :: delta_rxyz !< can be used to display the difference between the charge center 
+                                                                      !! of a support function and its localization center
+      real(kind=8),dimension(nat),intent(in),optional :: scaled !< can be used to display by how muched the multipoles have been scaled
       
       ! Local variables
       character(len=20) :: atomname
       character(len=9) :: function_type
       integer :: i, iat, l, m, nit
-      real(kind=8) :: max_error, factor, convert_units!, get_normalization, get_test_factor
+      real(kind=8) :: factor, convert_units!, get_normalization, get_test_factor
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
-      logical :: check_values
+      logical :: present_delta_rxyz, present_scaled
 
-          if (present(check_values_)) then
-              check_values = check_values_
-          else
-              check_values = .false.
-          end if
+      present_delta_rxyz = present(delta_rxyz)
+      present_scaled = present(scaled)
 
-
-          multipoles_tmp = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.nat/),id='multipoles_tmp')
-
-          !if (without_normalization) then
-          !    nit = 2
-          !else
-              nit = 1
-          !end if
 
           ! See whether a conversion of the units necessary
           select case (units)
@@ -1725,70 +1717,32 @@ module multipole
               call yaml_warning('units not recognized, no conversion done')
           end select
 
-          !factor = 0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3)
 
-          max_error = 0.d0
           call yaml_mapping_open('Multipole coefficients')
-          do i=1,nit
-              if (i==1) then
-                  call yaml_map('normalized',.true.)
-                  !call yaml_map('radius of normalization sphere',(/minval(rmax),maxval(rmax)/))
-                  call f_memcpy(src=multipoles, dest=multipoles_tmp)
-              else if (i==2) then
-                  stop 'bullshit'
-                  !call yaml_map('normalized',.false.)
-                  !do iat=1,nat
-                  !    do l=0,lmax
-                  !        do m=-l,l
-                  !            !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)/((get_normalization(rmax, l, m)*0.821583836)**2)
-                  !            !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*((get_normalization(rmax, l, m)*0.106726871))
-                  !            multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax(iat),l,m)**2*factor
-                  !            !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*sqrt(factor)
-                  !            !multipoles_tmp(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax(iat),l,m)**1*sqrt(factor)
-                  !            max_error = max(max_error,abs(multipoles_tmp(m,l,iat)-get_test_factor(l,m)))
-                  !            !write(*,'(a,3i5,2es14.5)') 'iat, l, m, multipoles(m,l,iat), ref', iat, l, m, multipoles(m,l,iat), get_test_factor(l,m)
-                  !        end do
-                  !    end do
-                  !end do
+          call yaml_map('units for atomic positions',trim(units))
+          call yaml_sequence_open('Values')
+          do iat=1,nat
+              call yaml_sequence(advance='no')
+              atomname=trim(atomnames(iat))
+              call yaml_map('sym',adjustl(trim(atomname))//' # '//adjustl(trim(yaml_toa(iat,fmt='(i4.4)'))))
+              call yaml_map('r',convert_units*rxyz(1:3,iat))
+              if (present_delta_rxyz) then
+                  call yaml_map('Delta r',convert_units*delta_rxyz(1:3,iat),fmt='(es13.6)')
               end if
-              call yaml_map('units for atomic positions',trim(units))
-              call yaml_sequence_open('Values')
-              do iat=1,nat
-                  call yaml_sequence(advance='no')
-                  atomname=atomnames(iatype(iat))
-                  !call yaml_sequence_open(trim(atomname))
-                  call yaml_map('sym',adjustl(trim(atomname))//' # '//adjustl(trim(yaml_toa(iat,fmt='(i4.4)'))))
-                  call yaml_map('r',convert_units*rxyz(1:3,iat))
-                  do l=0,lmax
-                      !call yaml_sequence(advance='no')
-                      !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat),fmt='(1es16.8)')
-                      !call yaml_map('l='//yaml_toa(l),multipoles(-l:l,l,iat)*sqrt(4.d0**(2*l+3)),fmt='(1es16.8)')
-                      if (check_values) then
-                          do m=-l,l
-                              max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
-                          end do
-                      end if
-                      !do m=-l,l
-                          !multipoles(m,l,iat) = multipoles(m,l,iat)*get_normalization(rmax, l, m)
-                          !max_error = max(max_error,abs(multipoles(m,l,iat)-get_test_factor(l,m)))
-                      !end do
-                      call yaml_map('q'//adjustl(trim(yaml_toa(l))),multipoles_tmp(-l:l,l,iat),fmt='(1es16.8)')
-                      call yaml_newline()
-                  end do
-                  !call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
-                  !call yaml_sequence_close()
-                  function_type = guess_type(multipoles_tmp(:,:,iat))
-                  call yaml_map('type',trim(function_type))
+              do l=0,lmax
+                  call yaml_map('q'//adjustl(trim(yaml_toa(l))),multipoles(-l:l,l,iat),fmt='(1es13.6)')
+                  call yaml_newline()
               end do
-              call yaml_sequence_close()
-              if (check_values) then
-                  call yaml_map('max error from original values',max_error)
+              if (present_scaled) then
+                  call yaml_map('scaling factor',scaled(iat),fmt='(es9.2)')
               end if
+              function_type = guess_type(multipoles(:,:,iat))
+              call yaml_map('type',trim(function_type))
           end do
+          call yaml_sequence_close()
           call yaml_mapping_close()
 
 
-          call f_free(multipoles_tmp)
 
 
           contains
@@ -1808,6 +1762,9 @@ module multipole
               maxvalue2 = 0.d0 !the second largest element
               do il=0,lmax
                   do im=-il,il
+                      if (abs(mp(im,il))>maxvalue2) then
+                          maxvalue2 = abs(mp(im,il))
+                      end if
                       if (abs(mp(im,il))>maxvalue1) then
                           maxvalue2 = maxvalue1
                           maxvalue1 = abs(mp(im,il))
@@ -2824,6 +2781,7 @@ module multipole
       type(matrices) :: multipole_matrix
       logical,dimension(:,:),pointer :: neighborx
       integer,dimension(:),pointer :: nx
+      character(len=20),dimension(:),allocatable :: names
 
       call f_routine(id='multipole_analysis_driver')
 
@@ -2964,9 +2922,15 @@ module multipole
 
       if (iproc==0) then
           call yaml_comment('Final result of the multipole analysis',hfill='~')
-          call write_multipoles_new(at%astruct%nat, at%astruct%ntypes, at%astruct%iatype, &
-               at%astruct%atomnames, at%astruct%rxyz, at%astruct%units, &
-               atomic_multipoles, check_values_=.false.)
+          names = f_malloc_str(len(names),at%astruct%nat,id='names')
+          do iat=1,at%astruct%nat
+              itype = at%astruct%iatype(iat)
+              names(iat) = at%astruct%atomnames(itype)
+          end do
+          call write_multipoles_new(at%astruct%nat, names, &
+               at%astruct%rxyz, at%astruct%units, &
+               atomic_multipoles)
+          call f_free_str(len(names),names)
       end if
 
       call deallocate_matrices(multipole_matrix)
@@ -4495,5 +4459,202 @@ module multipole
        cgp(i) = real(ii,kind=8)*hgrids(i)
    end do
  end function get_closest_gridpoint
+
+
+ !> SM: similar to support_function_multipoles. This one calculates the "gross" multipoles (i.e. without taking into account the "core" contribution)
+ subroutine support_function_gross_multipoles(iproc, nproc, tmb, atoms, denspot, multipoles)
+   use module_base
+   use module_types
+   use locreg_operations
+   use yaml_output
+   use multipole_base, only: lmax
+   use bounds, only: geocode_buffers
+   use sparsematrix_base, only: matrices, matrices_null, sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=), &
+                                deallocate_matrices
+   use sparsematrix_init, only: matrixindex_in_compressed
+   
+   ! Calling arguments
+   integer,intent(in) :: iproc, nproc
+   type(DFT_wavefunction),intent(inout) :: tmb
+   type(atoms_data),intent(in) :: atoms
+   type(DFT_local_fields), intent(inout) :: denspot
+ 
+   integer :: ist, istr, iorb, iiorb, ilr, i, iat, iter, itype
+   integer :: i1, i2, i3, ii1, ii2, ii3, nl1, nl2, nl3, ii, l, m, ind, iat_old
+   real(kind=8),dimension(:),allocatable :: rmax, phi1, phi1r
+   real(kind=8),dimension(:,:),allocatable :: delta_centers
+   real(kind=8),dimension(:,:),allocatable :: charge_center
+   real(kind=8),dimension(:),allocatable :: phir, phir_one
+   real(kind=8) :: hxh, hyh, hzh, tt, x, y, z, weight
+   type(workarr_sumrho) :: w
+   character(len=20) :: atomname
+   character(len=20),dimension(:),allocatable :: names
+   integer,dimension(:),allocatable :: iatype_tmp
+   type(matrices) :: multipole_matrix
+   real(kind=8),dimension(:,:,:),allocatable :: multipoles
+   real(kind=8),dimension(:),allocatable :: scaled
+ 
+   call f_routine(id='support_function_multipoles')
+ 
+   rmax = f_malloc0(tmb%orbs%norb,id='rmax')
+   phir = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir')
+   phir_one = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir_one')
+   phir_one = 1.d0
+ 
+   !call to_zero(3*tmb%orbs%norb, dipole_net(1,1))
+   !call to_zero(9*tmb%orbs%norb, quadropole_net(1,1,1))
+
+
+   charge_center = f_malloc0((/3,tmb%lzd%nlr/),id='charge_center')
+   multipole_matrix = matrices_null()
+   multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='multipole_matrix%matrix_compr')
+
+  ! Set phi1 to 1
+  phi1r = f_malloc(max(tmb%collcom_sr%ndimpsi_c,1),id='phi1r')
+  phi1 = f_malloc0(tmb%npsidim_orbs,id='phi1')
+
+  multipoles = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.tmb%orbs%norb/),id='multipoles')
+
+  scaled = f_malloc0(tmb%orbs%norb,id='scaled')
+
+  phi1r(:) = 1.d0
+
+
+  call f_zero(multipoles)
+ 
+  ist=1
+  istr=1
+  do iorb=1,tmb%orbs%norbp
+      iiorb=tmb%orbs%isorb+iorb
+      ilr=tmb%orbs%inwhichlocreg(iiorb)
+      iat=tmb%orbs%onwhichatom(iiorb)
+      call initialize_work_arrays_sumrho(1,[tmb%lzd%Llr(ilr)],.true.,w)
+      ! Transform the support function to real space
+      call daub_to_isf(tmb%lzd%llr(ilr), w, tmb%psi(ist), phir(istr))
+      call initialize_work_arrays_sumrho(1,[tmb%lzd%llr(ilr)],.false.,w)
+      ! Transform the functions which is constantly one to wavelets
+      call isf_to_daub(tmb%lzd%llr(ilr), w, phi1r(istr), phi1(ist))
+      call deallocate_work_arrays_sumrho(w)
+
+      ! NEW: CALCULATE THE WEIGHT CENTER OF THE SUPPORT FUNCTION ############################
+      hxh = 0.5d0*tmb%lzd%hgrids(1)
+      hyh = 0.5d0*tmb%lzd%hgrids(2)
+      hzh = 0.5d0*tmb%lzd%hgrids(3)
+      ii = istr
+      call geocode_buffers(tmb%lzd%Llr(ilr)%geocode, tmb%lzd%glr%geocode, nl1, nl2, nl3)
+      weight = 0.d0
+      do i3=1,tmb%lzd%llr(ilr)%d%n3i
+          ii3 = tmb%lzd%llr(ilr)%nsi3 + i3 - nl3 - 1
+          z = ii3*hzh
+          do i2=1,tmb%lzd%llr(ilr)%d%n2i
+              ii2 = tmb%lzd%llr(ilr)%nsi2 + i2 - nl2 - 1
+              y = ii2*hyh
+              do i1=1,tmb%lzd%llr(ilr)%d%n1i
+                  ii1 = tmb%lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
+                  x = ii1*hxh
+                  tt = phir(ii)**2
+                  charge_center(1,iorb) = charge_center(1,iorb) + x*tt
+                  charge_center(2,iorb) = charge_center(2,iorb) + y*tt
+                  charge_center(3,iorb) = charge_center(3,iorb) + z*tt
+                  weight = weight + tt
+                  ii = ii + 1
+              end do
+          end do
+      end do
+      charge_center(1:3,iorb) = charge_center(1:3,iorb)/weight
+      write(*,*) 'ilr, charge_center(1:3,iorb), lzd%llr(ilr)%locregcenter(1:3)', &
+                  ilr, charge_center(1:3,iorb), tmb%lzd%llr(ilr)%locregcenter(1:3)
+      ! ######################################################################################
+      ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
+      istr = istr + tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i
+  end do
+
+  if(istr/=tmb%collcom_sr%ndimpsi_c+1) then
+      write(*,'(a,i0,a)') 'ERROR on process ',iproc,' : istr/=tmb%collcom_sr%ndimpsi_c+1'
+      stop
+  end if
+
+  if (nproc>1) then
+      call mpiallred(charge_center, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  end if
+
+
+  do l=0,lmax
+      do m=-l,l
+          call f_zero(multipole_matrix%matrix_compr)
+          ! Calculate the multipole matrix
+          call calculte_multipole_matrix(iproc, nproc, l, m, tmb%npsidim_orbs, phi1, tmb%psi, &
+               max(tmb%collcom_sr%ndimpsi_c,1), tmb%lzd%hgrids, &
+               tmb%orbs, tmb%collcom, tmb%lzd, tmb%linmat%s, charge_center, multipole_matrix)
+          ! Take the diagonal elements
+          do iorb=1,tmb%orbs%norbp
+              iiorb = tmb%orbs%isorb + iorb
+              ind = matrixindex_in_compressed(tmb%linmat%s, iiorb, iiorb)
+              multipoles(m,l,iiorb) = multipole_matrix%matrix_compr(ind)
+          end do
+      end do
+  end do
+
+  ! Normalize the multipoles such that the largest component has the magnitude 1
+  do iorb=1,tmb%orbs%norbp
+      iiorb = tmb%orbs%isorb + iorb
+      tt = maxval(abs(multipoles(:,:,iiorb)))
+      multipoles(:,:,iiorb) = multipoles(:,:,iiorb)/tt
+      scaled(iiorb) = tt
+  end do
+ 
+ 
+  if (bigdft_mpi%nproc>1) then
+      call mpiallred(multipoles, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(scaled, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(rmax, mpi_sum, comm=bigdft_mpi%mpi_comm)
+  end if
+
+ 
+  if (iproc==0) then
+      call yaml_sequence_open('Gross support functions moments')
+      iatype_tmp = f_malloc(tmb%orbs%norb,id='iatype_tmp')
+      delta_centers = f_malloc((/3,tmb%orbs%norb/),id='delta_centers')
+      iat_old = -1
+      names = f_malloc_str(len(names),tmb%orbs%norb,id='names')
+      do iorb=1,tmb%orbs%norb
+          iat = tmb%orbs%onwhichatom(iorb)
+          if (iat/=iat_old) then
+              ii = 1
+          else
+              ii = ii + 1
+          end if
+          iat_old = iat
+          ilr = tmb%orbs%inwhichlocreg(iorb)
+          itype = atoms%astruct%iatype(iat)
+          iatype_tmp(iorb) = itype
+          names(iorb) = trim(atoms%astruct%atomnames(itype))//'-'//adjustl(trim(yaml_toa(ii)))
+          ! delta_centers gives the difference between the charge center and the localization center
+          delta_centers(1:3,iorb) = charge_center(1:3,iorb) - tmb%lzd%llr(ilr)%locregcenter(1:3)
+          write(*,*) 'iorb, delta_centers(1:3,iorb)', iorb, delta_centers(1:3,iorb)
+      end do
+      call write_multipoles_new(tmb%orbs%norb, names, charge_center, &
+           atoms%astruct%units, multipoles, &
+           delta_centers, scaled)
+      call f_free(delta_centers)
+      call f_free(iatype_tmp)
+      call f_free_str(len(names),names)
+      call yaml_sequence_close()
+  end if
+
+ 
+  call f_free(rmax)
+  call f_free(phir)
+  call f_free(phi1r)
+  call f_free(phi1)
+  call f_free(phir_one)
+  call deallocate_matrices(multipole_matrix)
+  call f_free(charge_center)
+  call f_free(multipoles)
+
+  call f_release_routine()
+ 
+ end subroutine support_function_gross_multipoles
+
 
 end module multipole
