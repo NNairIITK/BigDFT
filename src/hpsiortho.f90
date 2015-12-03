@@ -490,6 +490,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    use yaml_output
    use communications_base, only: p2pComms
    use locreg_operations
+   use overlap_point_to_point
    implicit none
    !logical, intent(in) :: onlypot !< if true, only the potential operator is applied
    integer, intent(in) :: PotOrKin
@@ -502,8 +503,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr 
    real(wp), dimension(npsidim_orbs), intent(in) :: psi
    type(confpot_data), dimension(orbs%norbp) :: confdatarr
-   real(wp), dimension(:), pointer :: pot
-   !real(wp), dimension(*) :: pot
+   !real(wp), dimension(:), pointer :: pot
+   real(wp), dimension(*) :: pot
    type(energy_terms), intent(inout) :: energs
    real(wp), target, dimension(max(1,npsidim_orbs)), intent(inout) :: hpsi
    type(GPU_pointers), intent(inout) :: GPU
@@ -518,19 +519,23 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    real(gp),intent(out),optional :: econf
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
-   logical :: exctX,op2p
-   integer :: n3p,ispot,ipotmethod
-   real(gp) :: evsic_tmp, ekin, epot
+   logical :: exctX,op2p_flag
+   integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp
+   real(gp) :: evsic_tmp, ekin, epot,sfac,maxdiff
+   real(f_double) :: tel,trm
    type(coulomb_operator) :: pkernelSIC
    type(ket) :: psi_it
    type(orbital_basis) :: psi_ob
    type(workarr_locham) :: wrk_lh
    type(workarr_sumrho) :: w
+   type(OP2P_data) :: OP2P
+   type(OP2P_iterator) :: iter
+   integer, dimension(:,:), allocatable :: nobj_par
    real(wp), dimension(:,:), allocatable :: vsicpsir
-   real(wp), dimension(:,:), allocatable :: psir
+   real(wp), dimension(:,:), allocatable :: psir,vpsi_tmp
+   real(wp), dimension(:), allocatable :: rp_ij
    real(wp), dimension(:), pointer :: hpsi_ptr
    real(gp) :: eSIC_DCi,fi
-
 
    call f_routine(id='LocalHamiltonianApplication')
 
@@ -542,7 +547,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    !end if
 
    !initialise exact exchange energy 
-   op2p=(energs%eexctX == UNINITIALIZED(1.0_gp))
+   op2p_flag=(energs%eexctX == UNINITIALIZED(1.0_gp))
    energs%eexctX=0.0_gp
    energs%evsic=0.0_gp
    evsic_tmp=0.0_gp
@@ -591,19 +596,18 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
          energs%eexctX = 0._gp
       else
          !here the condition for the scheme should be chosen
-         if (.not. op2p) then
+         if (.not. op2p_flag) then
             call exact_exchange_potential(iproc,nproc,at%astruct%geocode,xc,orbs%nspin,&
                  Lzd%Glr,orbs,ngatherarr(0,1),n3p,&
                  0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
                  pkernel,psi,pot(ispot),energs%eexctX)
          else
-            !the psi should be transformed in real space
+
 !!$            call exact_exchange_potential_round(iproc,nproc,xc,orbs%nspin,Lzd%Glr,orbs,&
 !!$                0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
 !!$                pkernel,psi,pot(ispot),energs%eexctX)
-!!$
 
-
+            !the psi should be transformed in real space, do it within the orbital basis iterators
             psir = f_malloc0([Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, orbs%norbp],id='psir')
             !initialize the orbital basis object, for psi and hpsi
             call orbital_basis_associate(psi_ob,orbs=orbs,phis_wvl=psi,Lzd=Lzd)
@@ -619,10 +623,78 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             end do
             call orbital_basis_release(psi_ob)
 
-            call exact_exchange_potential_round_clean(iproc,nproc,xc,orbs%nspin,&
-                 Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,orbs,&
-                 !0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
-                 pkernel,psir,pot(ispot),energs%eexctX)
+            !starting new approach for the exact exchange
+            !vpsi_tmp = f_malloc0([Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i, orbs%norbp],id='vpsi_tmp')
+            if (orbs%nspin==2) then
+               sfac=1.0_gp
+               ngroup=2
+            else 
+               sfac=0.5_gp
+               ngroup=1
+            end if
+            !construct the OP2P scheme and test it
+            !use temporaryly tyhe nvrct_par array
+            nobj_par = f_malloc0((/ 0.to.nproc-1, 1.to.ngroup /),id='nobj_par')
+            isorb=0
+            do jproc=0,nproc-1
+               norbp=orbs%norb_par(jproc,0)
+               !transition region
+               if (isorb+norbp > orbs%norbu .and. isorb < orbs%norbu) then
+                  nobj_par(jproc,1)=orbs%norbu-isorb
+                  if (ngroup==2) nobj_par(jproc,2)=isorb+norbp-orbs%norbu
+               else if (isorb >= orbs%norbu .and. ngroup==2) then
+                  nobj_par(jproc,2)=norbp
+               else
+                  nobj_par(jproc,1)=norbp
+               end if
+               isorb=isorb+norbp
+            end do
+            ndim=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i
+
+            call f_zero(ndim*orbs%norbp,pot(ispot))
+            !if (iproc==0) call yaml_map('Orbital repartition',nobj_par)
+            call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
+
+            call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
+
+            !allocate work array for the internal exctx calculation
+            rp_ij = f_malloc(ndim,id='rp_ij')
+            energs%eexctX=0.0_gp
+            !initialize the OP2P descriptor for the communication
+            call set_OP2P_iterator(iproc,OP2P,iter,orbs%norbp,psir,pot(ispot))!vpsi_tmp)
+            !main loop
+            if (iproc == 0) call yaml_newline()
+            OP2P_exctx_loop: do
+               call OP2P_communication_step(iproc,OP2P,iter)
+               if (iter%event == OP2P_EXIT) exit OP2P_exctx_loop
+               call internal_calculation_exctx(iter%istep,sfac,pkernel,orbs%norb,orbs%occup,orbs%spinsgn,&
+                    iter%remote_result,iter%nloc_i,iter%nloc_j,iter%isloc_i,iter%isloc_j,&
+                    iter%phi_i,iter%phi_j,energs%eexctX,rp_ij)
+               if (iproc == 0) then
+                  call OP2P_info(iter,OP2P,prc,tel,trm)
+                  call yaml_comment('Exact exchange calculation: '+prc**'(i3)'+&
+                       '%; Time (s): Elapsed='+tel**'(1pg12.2)'&
+                       +', Remaining='+trm**'(1pg12.2)')
+               end if
+            end do OP2P_exctx_loop
+
+            call free_OP2P_data(OP2P)
+            if (nproc>1) call mpiallred(energs%eexctX,1,MPI_SUM,comm=bigdft_mpi%mpi_comm)
+            !the exact exchange energy is half the Hartree energy (which already has another half)
+            energs%eexctX=-xc_exctXfac(xc)*energs%eexctX
+            if (iproc == 0) call yaml_map('Exact Exchange Energy',energs%eexctX,fmt='(1pe18.11)')
+
+            !call f_memcpy(n=ndim*orbs%norbp,src=vpsi_tmp(1,1),dest=pot(ispot))
+            call f_free(nobj_par)
+            call f_free(rp_ij)
+            !call f_free(vpsi_tmp)
+
+
+!!$            call exact_exchange_potential_round_clean(iproc,nproc,xc,orbs%nspin,&
+!!$                 Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i,orbs,&
+!!$                 !0.5_gp*Lzd%hgrids(1),0.5_gp*Lzd%hgrids(2),0.5_gp*Lzd%hgrids(3),&
+!!$                 pkernel,psir,pot(ispot),energs%eexctX)
+
             call f_free(psir)
 
 
@@ -3129,6 +3201,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   use module_interfaces, only: LocalHamiltonianApplication, plot_wf
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use yaml_output
+  use yaml_parse, only: yaml_load
   use locreg_operations
   implicit none
   integer, intent(in) :: iproc,nproc
@@ -3146,6 +3219,7 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
   real(gp) :: eh_fake,eks
   type(energy_terms) :: energs_tmp
   type(coulomb_operator) :: G_Helmholtz
+  type(dictionary), pointer :: dict
   type(workarr_sumrho) :: w
   real(wp), dimension(:), allocatable :: vpsi,vpsir
 
@@ -3195,10 +3269,12 @@ subroutine integral_equation(iproc,nproc,atoms,wfn,ngatherarr,local_potential,GP
 
      !sequential kernel
 
-
-     G_Helmholtz=pkernel_init(.false.,0,1,0,wfn%Lzd%Llr(ilr)%geocode,&
+     dict => yaml_load('{kernel: {screening:'//sqrt(2.0_gp*abs(eks))//'},'//&
+          'setup : { verbose: No}}')
+     G_Helmholtz=pkernel_init(0,1,dict,wfn%Lzd%Llr(ilr)%geocode,&
           (/wfn%Lzd%Llr(ilr)%d%n1i,wfn%Lzd%Llr(ilr)%d%n2i,wfn%Lzd%Llr(ilr)%d%n3i/),&
-          0.5_gp*wfn%Lzd%hgrids,16,mu0_screening=sqrt(2.0_gp*abs(eks)))
+          0.5_gp*wfn%Lzd%hgrids)
+     call dict_free(dict)
 
      call pkernel_set(G_Helmholtz,verbose=.true.)
 

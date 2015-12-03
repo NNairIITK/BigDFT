@@ -1,0 +1,24 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.4
+   ixc: PBE (ABINIT)
+   itermax: 70
+   disablesym: Yes
+ perf:
+   ef_interpol_det: 0.10E-19
+   check_sumrho: 2
+   check_overlap: 2
+ posinp:
+   units: angstroem
+   positions:
+   - B: [2.02360987663269, 2.646419525146484, 2.104965925216675]
+   - B: [1.531988978385925, 1.70799994468689, 3.387978792190552]
+   - B: [0.6516467928886414, 1.70799994468689, 2.033996105194092]
+   - B: [3.091717720031738, 1.70799994468689, 2.969197273254395]
+   - B: [1.667518496513367, 1.70799994468689, 0.7783123254776001]
+   - B: [3.175507545471191, 1.70799994468689, 1.356362104415894]
+   properties:
+     format: ascii
+     source: B6.ascii

@@ -512,7 +512,11 @@ subroutine local_forces(iproc,at,rxyz,hxh,hyh,hzh,&
 !!!  if (iproc == 0 .and. verbose > 1) call yaml_mapping_open('Calculate local forces',flow=.true.)
 
   !Determine the maximal bounds for mpx, mpy, mpz (1D-integral)
-  cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+  if (at%astruct%nat >0) then
+     cutoff=10.0_gp*maxval(at%psppar(0,0,:))
+  else
+     cutoff=0.0
+  end if
   if (at%multipole_preserving) then
      !We want to have a good accuracy of the last point rloc*10
      cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)

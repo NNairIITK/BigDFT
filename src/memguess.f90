@@ -118,7 +118,8 @@ program memguess
    !call getarg(1,tatonam)
    call get_command_argument(1, value = tatonam, status = istat)
 
-   write(radical, "(A)") "input"
+   !write(radical, "(A)") "input"
+   call f_zero(radical)
    optimise=.false.
    GPUtest=.false.
    atwf=.false.
@@ -183,7 +184,7 @@ program memguess
       write(*,'(1x,a)')&
            &   '"matrixpower" <matrix.bin>" ' 
       write(*,'(1x,a)')&
-           & 'caluclate the power of a matrix'
+           & 'calculate the power of a matrix'
       write(*,'(1x,a)')&
            &   '"suggest-cutoff" <posinp.xyz>" ' 
       write(*,'(1x,a)')&
@@ -538,6 +539,9 @@ program memguess
 
    !welcome screen
    !call print_logo()
+
+   !here we can convert the input file into the new format systematically
+   
 
    if (convert) then
       at%astruct%geocode = "P"
@@ -1295,7 +1299,8 @@ program memguess
 !!   end if
 
    nullify(run)
-   call bigdft_set_run_properties(run, run_id = trim(radical), run_from_files = .true., log_to_disk = logfile)
+   call bigdft_set_run_properties(run, run_id = trim(radical), &
+        run_from_files = .true., log_to_disk = logfile, minimal_file=trim(radical))
 
    call run_objects_init(runObj, run)
    call dict_free(run)

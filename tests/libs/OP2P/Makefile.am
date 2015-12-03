@@ -33,6 +33,7 @@ mpi_check_LDADD = -lbigdft-1
 op2p_test_SOURCES = op2p_check.f90
 op2p_test_LDADD = -lbigdft-1
 
+op2p_check.o: $(top_builddir)/src/libbigdft-1.a
 
 op2p_check.out: op2p_check
 	$(run_parallel)	./op2p_check > $@

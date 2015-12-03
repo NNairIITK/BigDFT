@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-SHORT_CHECK = check_lib_plain.report check_lib_binary.report $(etsf_tests) $(bindings_tests)
+SHORT_CHECK = check_lib_plain.report.yaml check_lib_binary.report.yaml $(etsf_tests) $(bindings_tests)
 LONG_CHECK = $(SHORT_CHECK)
 
 include $(srcdir)/../check.mk
@@ -90,12 +90,20 @@ if BUILD_DYNAMIC_LIBS
 LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/src
 endif
 
+if BUILD_LIBYAML
+LD_LIBRARY_PATH := ${LD_LIBRARY_PATH}:$(abs_top_builddir)/yaml-0.1.4/src/.libs
+PYTHONPATH := ${PYTHONPATH}:`ls -d $(abs_top_builddir)/PyYAML-3.10/build/lib.*`
+endif
+
+
 #Check read and write by doing twice run
 write_etsf.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz write.dft 
 	$(MAKE) in
 	@cp write.dft etsf.dft
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
+	@rm -f etsf.yaml
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=etsf
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft etsf > $@
 	@rm -f etsf.dft etsf.kpt etsf.xyz
@@ -107,6 +115,8 @@ write_plain.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
 	sed -i "s/^0 3 0/0 1 0/g" plain.dft
+	@rm -f plain.yaml
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=plain
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft plain > $@
 	@rm -f plain.dft plain.kpt plain.xyz
@@ -118,6 +128,8 @@ write_binary.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xy
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz
 	sed -i "s/^0 3 0/0 2 0/g" binary.dft
+	@rm -f binary.yaml
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=binary
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft binary > $@
 	@rm -f binary.dft binary.kpt binary.xyz
@@ -129,6 +141,8 @@ read_etsf.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz r
 	@cp read.dft etsf.dft
 	@cp input.kpt etsf.kpt
 	@cp posinp.xyz etsf.xyz
+	@rm -f etsf.yaml
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=etsf
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft etsf > $@
 	@rm -f etsf.dft etsf.kpt etsf.xyz
@@ -139,6 +153,8 @@ read_plain.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz 
 	@cp read.dft plain.dft
 	@cp input.kpt plain.kpt
 	@cp posinp.xyz plain.xyz
+	@rm -f plain.yaml
+	$(run_serial) $(top_builddir)/src/bigdft-tool -n 1 --name=plain
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft plain > $@
 	@rm -f plain.dft plain.kpt plain.xyz
@@ -149,6 +165,7 @@ read_binary.out.yaml: $(top_builddir)/src/bigdft $(PPFILES) input.kpt posinp.xyz
 	@cp read.dft binary.dft
 	@cp input.kpt binary.kpt
 	@cp posinp.xyz binary.xyz
+	@rm -f binary.yaml
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	$(run_parallel) $(top_builddir)/src/bigdft binary > $@
 	@rm -f binary.dft binary.kpt binary.xyz
@@ -205,41 +222,65 @@ check_lib_bindings.out.yaml: check_lib_c write_binary.out.yaml
 
 # Write tests.
 write_plain.report.yaml: write_plain.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -t $(top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/write.ref.yaml -d $< -o $@
 
 write_binary.report.yaml: write_binary.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -t $(top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/write_binary.ref.yaml -d $< -o $@
 
 write_etsf.report.yaml: write_etsf.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -t $(top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/write_etsf.ref.yaml -d $< -o $@
 
 # Read tests.
 read_plain.report.yaml: read_plain.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -t $(top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/read_plain.ref.yaml -d $< -o $@
 
 read_binary.report.yaml: read_binary.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -t $(top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/read_binary.ref.yaml -d $< -o $@
 
 read_etsf.report.yaml: read_etsf.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -t $(top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/read_etsf.ref.yaml -d $< -o $@
 
 # Bigdft-tool exportation
 exportwf.report: wf_binary.cube wf_plain.cube
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-9 $^ | tee $@
 
 exportwf_etsf.report: wf_binary.cube wf_etsf.cube
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff.py --discrepancy=2.e-9 $^ | tee $@
 
 # Library in Fortran
 check_lib_plain.report.yaml: check_lib_plain.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -t $(top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/check_lib_plain.ref.yaml -d $< -o $@
 
 check_lib_binary.report.yaml: check_lib_binary.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -t $(top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/check_lib_binary.ref.yaml -d $< -o $@
 
 check_lib_etsf.report.yaml: check_lib_etsf.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -t $(top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/check_lib_etsf.ref.yaml -d $< -o $@
 
 # C bindings
 check_lib_bindings.report.yaml: check_lib_bindings.out.yaml
+	export PYTHONPATH=${PYTHONPATH} ; \
+	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; \
 	python $(top_srcdir)/tests/fldiff_yaml.py -t $(top_srcdir)/tests/tols-BigDFT.yaml -r $(srcdir)/check_lib_bindings.ref.yaml -d $< -o $@

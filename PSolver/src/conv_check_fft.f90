@@ -13,8 +13,7 @@
 
 !> Program test for the convolution in GPU
 program conv_check_fft
-  use module_base
-  use module_types
+  use dictionaries
   use Poisson_Solver
   implicit none
   integer  :: n1,n2,n3 
@@ -48,6 +47,7 @@ program conv_check_fft
   integer, dimension(3) :: geo
   real(kind=8), dimension(3) :: hgriddim
   type(coulomb_operator) :: pkernel,pkernel2
+  type(dictionary), pointer :: dict
 
   write(chain,'(a6)') 'fort.1'
   open(unit=1,file=trim(chain),status='old',iostat=ierror)
@@ -263,7 +263,10 @@ ntimes=1
    ndim(3)=n3
 
    !calculate the kernel in parallel for each processor
-   pkernel=pkernel_init(.true.,0,1,0,'P',ndim,hgriddim,16)
+   !pkernel=pkernel_init(.true.,0,1,0,'P',ndim,hgriddim,16)
+   dict=>dict_new()
+   pkernel=pkernel_init(0,1,dict,'P',ndim,hgriddim)
+   call dict_free(dict)
    call pkernel_set(pkernel,verbose=verbose >1)
    !pkernel%igpu=0
    !call createKernel(0,1,'P',ndim,hgriddim,16,pkernel,(verbose > 1))
@@ -280,7 +283,9 @@ ntimes=1
 
 
    !here the GPU part
-   pkernel2=pkernel_init(.true.,0,1,1,'P',ndim,hgriddim,16)
+   dict => dict_new('setup' .is. dict_new('accel' .is. 'CUDA'))
+   pkernel2=pkernel_init(0,1,dict,'P',ndim,hgriddim)
+   call dict_free(dict)
    call pkernel_set(pkernel2,verbose=verbose >1)
 
    !pkernel2%igpu=1
@@ -312,7 +317,9 @@ ntimes=1
    ndim(2)=n2/2
    ndim(3)=n3/2
 
-   pkernel=pkernel_init(.true.,0,1,0,'F',ndim,hgriddim,16)
+   dict => dict_new()
+   pkernel=pkernel_init(0,1,dict,'F',ndim,hgriddim)
+   call dict_free(dict)
    call pkernel_set(pkernel,verbose=verbose >1)
 
    !pkernel%igpu=0
@@ -330,7 +337,9 @@ print *,'ehartree',ehartree
 
 
    !here the GPU part
-   pkernel2=pkernel_init(.true.,0,1,1,'F',ndim,hgriddim,16)
+   dict => dict_new('setup' .is. dict_new('accel' .is. 'CUDA'))
+   pkernel2=pkernel_init(0,1,dict,'F',ndim,hgriddim)
+   call dict_free(dict)
    call pkernel_set(pkernel2,verbose=verbose >1)
 
    !pkernel2%igpu=1
@@ -364,7 +373,9 @@ print *,'ehartree',ehartree
    ndim(2)=n2/2
    ndim(3)=n3
 
-   pkernel=pkernel_init(.true.,0,1,0,'S',ndim,hgriddim,16)
+   dict => dict_new()
+   pkernel=pkernel_init(0,1,dict,'S',ndim,hgriddim)
+   call dict_free(dict)
    call pkernel_set(pkernel,verbose=verbose >1)
 
    !pkernel%igpu=0
@@ -381,7 +392,9 @@ print *,'ehartree',ehartree
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the GPU part
-   pkernel2=pkernel_init(.true.,0,1,1,'S',ndim,hgriddim,16)
+   dict => dict_new('setup' .is. dict_new('accel' .is. 'CUDA'))
+   pkernel2=pkernel_init(0,1,dict,'S',ndim,hgriddim)
+   call dict_free(dict)
    call pkernel_set(pkernel2,verbose=verbose >1)
 
 !!$   !pkernel2%igpu=1
@@ -413,7 +426,9 @@ print *,'ehartree',ehartree
    ndim(1)=n1/2
    ndim(2)=n2/2
    ndim(3)=n3
-   pkernel=pkernel_init(.true.,0,1,0,'W',ndim,hgriddim,16)
+   dict => dict_new()
+   pkernel=pkernel_init(.true.,0,1,dict,'W',ndim,hgriddim)
+   call dict_free(dict)
    call pkernel_set(pkernel,verbose=verbose >1)
 
 !!$  ! pkernel%igpu=0
@@ -430,7 +445,9 @@ print *,'ehartree',ehartree
         log(real(n2,kind=8))+log(real(n3,kind=8)))/log(real(2,kind=8)),ntimes)
 
    !here the GPU part
-   pkernel2=pkernel_init(.true.,0,1,1,'W',ndim,hgriddim,16)
+   dict => dict_new('setup' .is. dict_new('accel' .is. 'CUDA'))
+   pkernel2=pkernel_init(.true.,0,1,dict,'W',ndim,hgriddim)
+   call dict_free(dict)
    call pkernel_set(pkernel2,verbose=verbose >1)
 
 !!$  ! pkernel2%igpu=1

@@ -6,7 +6,7 @@ Default tolerances:
 #  Energy differences: 2.1e-10
   Exc: 1.e-8
   EVxc: 4.6e-9
-  Some values: &value 3.07e-9 
+  Some values: &value 9.53e-9 
   Maximum discrepancy: 1.e-14
   Value: *value
   beta: 7.4e-10

@@ -68,8 +68,8 @@ MODULE NEB_routines
   CONTAINS
 
     SUBROUTINE read_input(options)
-       use yaml_output
-       use yaml_strings
+      use yaml_output
+      use yaml_strings
       use dictionaries
       use module_input_keys, only: input_keys_fill_all,user_dict_from_files
       use module_input_dicts

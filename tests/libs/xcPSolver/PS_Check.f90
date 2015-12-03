@@ -19,7 +19,7 @@ program PS_Check
    use yaml_output
    use module_types, only: TCAT_EXCHANGECORR
    use gaussians, only: initialize_real_space_conversion,finalize_real_space_conversion
-
+   use yaml_parse, only: yaml_load
    implicit none
    !Parameters
    real(kind=8), parameter :: a_gauss = 1.0d0
@@ -46,7 +46,7 @@ program PS_Check
    real(wp), dimension(:,:,:,:), pointer :: rhocore
    real(dp), dimension(6) :: xcstr
    real(dp), dimension(3) :: hgrids
-   type(dictionary), pointer :: options
+   type(dictionary), pointer :: options,dict
    external :: gather_timings
 
    call f_lib_initialize()
@@ -143,8 +143,10 @@ program PS_Check
       call yaml_mapping_open('Multiprocessor run',label='MPIrun')
    end if
 
-   pkernel=pkernel_init(.true.,iproc,nproc,0,&
-        geocode,ndims,hgrids,itype_scf,taskgroup_size=nproc/2)
+   dict => yaml_load('{ kernel: {isf_order: '//itype_scf//'},'//&
+        'setup: {taskgroup_size:'//nproc/2//'}}')
+   pkernel=pkernel_init(iproc,nproc,dict,geocode,ndims,hgrids)
+   call dict_free(dict)
    call pkernel_set(pkernel,verbose=.true.)
 
    !Allocations, considering also spin density
@@ -303,7 +305,9 @@ program PS_Check
        potential=extra_ref !use the previoulsy defined reference
       !calculate the Poisson potential in parallel
       !with the global data distribution (also for xc potential)
-       pkernelseq=pkernel_init(.true.,0,1,0,geocode,ndims,hgrids,itype_scf)
+       dict => yaml_load('{ kernel: {isf_order: '//itype_scf//'}}')
+       pkernelseq=pkernel_init(0,1,dict,geocode,ndims,hgrids)
+       call dict_free(dict)
        call pkernel_set(pkernelseq,verbose=.true.)
 
 !!$       call createKernel(0,1,geocode,(/n01,n02,n03/),(/hx,hy,hz/),itype_scf,pkernelseq,.true.)

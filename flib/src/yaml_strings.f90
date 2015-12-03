@@ -45,11 +45,16 @@ module yaml_strings
   end interface
 
   interface operator(.eqv.)
-     module procedure case_insensitive_equiv
+     module procedure string_equivalence
   end interface operator(.eqv.)
 
+  interface operator(.neqv.)
+     module procedure string_inequivalence
+  end interface operator(.neqv.)
+
   interface operator(//)
-     module procedure string_and_integer,string_and_double,string_and_long,string_and_msg,msg_and_string
+     module procedure string_and_integer,string_and_double,string_and_simple
+     module procedure string_and_long,string_and_msg,msg_and_string
      module procedure integer_and_string,integer_and_msg,msg_and_msg
   end interface
 
@@ -72,7 +77,7 @@ module yaml_strings
   public :: yaml_toa, buffer_string, align_message, shiftstr,yaml_date_toa
   public :: yaml_date_and_time_toa,yaml_time_toa,is_atoi,is_atof,is_atol,is_atoli
   public :: read_fraction_string,f_strcpy
-  public :: operator(.eqv.),operator(+),operator(//),operator(**),assignment(=)
+  public :: operator(.eqv.),operator(.neqv.),operator(+),operator(//),operator(**),assignment(=)
 
 contains
 
@@ -133,11 +138,10 @@ contains
     implicit none
     character(len=*), intent(out) :: dest
     type(f_string), intent(in) :: src
-    !local variables
-    integer :: i,n
-    call f_strcpy(dest=dest,src=src%msg)
-  end subroutine f_strcpy_str
 
+    call f_strcpy(dest=dest,src=src%msg)
+
+  end subroutine f_strcpy_str
   
 
   !> Add a buffer to a string and increase its length
@@ -637,6 +641,26 @@ contains
     if (ierror /= 0) var = huge(1.d0) 
   END SUBROUTINE read_fraction_string
 
+  pure function string_inequivalence(a,b) result(notok)
+    implicit none
+    character(len=*), intent(in) :: a,b
+    logical :: notok
+    notok = .not. string_equivalence(a,b)
+  end function string_inequivalence
+
+  pure function string_equivalence(a,b) result(ok)
+    implicit none
+    character(len=*), intent(in) :: a,b
+    logical :: ok
+    !local variables
+    integer :: ln
+    !to be equivalent the two strings must have already the same length
+    ln= len_trim(adjustl(a))
+    ok= ln == len_trim(adjustl(b))
+    if (.not. ok .or. ln ==0) return
+    ok=case_insensitive_equiv(trim(adjustl(a)),trim(adjustl(b)))
+  end function string_equivalence
+
   !> Compare two strings (case-insensitive). Blanks are relevant!
   pure function case_insensitive_equiv(stra,strb)
     implicit none
@@ -750,6 +774,17 @@ contains
     type(f_string) :: c
     call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
   end function string_and_double
+
+  pure function string_and_simple(a,num) result(c)
+    implicit none
+    real(f_simple), intent(in) :: num
+    character(len=*), intent(in) :: a
+!!$    character(len=len_trim(adjustl(a))+len_trim(yaml_dtoa(num))) :: c
+!!$    c=a//trim(yaml_toa(num))
+    type(f_string) :: c
+    call f_strcpy(c%msg,trim(adjustl(a))//trim(yaml_toa(num)))
+  end function string_and_simple
+
 
   pure function string_and_msg(a,num) result(c)
     implicit none

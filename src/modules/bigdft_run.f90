@@ -1045,6 +1045,8 @@ contains
     call nullify_run_objects(runObj)
 
     if (present(run_dict)) then
+       !call yaml_map('Test dict',run_dict)
+       !stop
        !here the control of the logfile can be inserted, driven by run_dict and
        ! not anymore by user_inputs
        call create_log_file(run_dict,dict_from_files)
@@ -1710,7 +1712,8 @@ contains
     inputPsiId_orig=runObj%inputs%inputPsiId
     loop_cluster: do
        !allocate history container if it has not been done
-       if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
+!       if (runObj%inputs%wfn_history > 1  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
+       if (runObj%inputs%wfn_history > 0  .and. .not. associated(runObj%rst%KSwfn%oldpsis)) then
           allocate(runObj%rst%KSwfn%oldpsis(0:runObj%inputs%wfn_history+1))
           runObj%rst%KSwfn%istep_history=0
           do istep=0,runObj%inputs%wfn_history+1

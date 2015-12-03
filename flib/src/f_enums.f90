@@ -44,7 +44,7 @@ module f_enums
      module procedure char_enum
   end interface str
 
-  public :: f_enum_attr,operator(.hasattr.),nullify_f_enum
+  public :: f_enum_attr,operator(.hasattr.),nullify_f_enum,f_enum_update
   public :: int,str,f_enumerator_null,operator(==),operator(/=)
 
 contains
@@ -102,6 +102,26 @@ contains
        iter => iter%family
     end do
   end function enum_has_attribute
+
+  !> used in the assignment. Change the basic enumerator but combine hte attributes of the previous one 
+  !! with the attributes of the present one
+  subroutine f_enum_update(dest,src)
+    implicit none
+    type(f_enumerator), intent(in) :: src
+    type(f_enumerator), intent(inout) :: dest
+    !local variables
+    type(f_enumerator), pointer :: iter
+
+    !start first by copying the attributes of the first enumerator
+    iter=>src%family
+    do while(associated(iter))
+       call f_enum_attr(dest,iter)
+       iter => iter%family
+    end do
+    !then scratch the root of the enumerator with src
+    dest%name=src%name
+    dest%id=src%id
+  end subroutine f_enum_update
 
   function enum_has_char(en,family) result(ok)
     implicit none
