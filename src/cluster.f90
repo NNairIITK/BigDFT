@@ -232,7 +232,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      END SUBROUTINE direct_minimization
   end interface
   interface
-     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpsp,GPU,&
+     subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopotold,nlpsp,GPU,&
           energs,energy,fpulay,infocode,ref_frags,cdft, &
           fdisp, fion)
        use module_defs, only: gp,dp,wp
@@ -243,6 +243,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
        integer,intent(in):: iproc, nproc
        type(atoms_data),intent(inout):: at
        type(input_variables),intent(in):: input
+       real(kind=8),dimension(3),intent(in) :: shift
        real(8),dimension(3,at%astruct%nat),intent(inout):: rxyz
        real(8),dimension(3,at%astruct%nat),intent(out):: fpulay
        type(DFT_local_fields), intent(inout) :: denspot
@@ -780,7 +781,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
      ! Allocation of array for Pulay forces (only needed for linear version)
      fpulay = f_malloc_ptr((/ 3, atoms%astruct%nat /),id='fpulay')
 
-     call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,&
+     call linearScaling(iproc,nproc,KSwfn,tmb,atoms,in,shift,&
           rxyz,denspot,denspot0,nlpsp,GPU,energs,energy,fpulay,infocode,ref_frags,cdft,&
           fdisp,fion)
 

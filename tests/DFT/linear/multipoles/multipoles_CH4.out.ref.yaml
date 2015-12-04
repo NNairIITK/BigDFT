@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.2
- Timestamp of this run                 : 2015-12-04 08:06:22.584
+ Timestamp of this run                 : 2015-12-04 13:30:42.817
  Root process Hostname                 : stephan-940X3G
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -38,17 +38,23 @@
  Compilation options:
    Configure arguments:
      " 'FC=/home/stephan/Software/openmpi-1.8.4-gnu/bin/mpif90' 'CC=gcc' 'FCFLAGS=-O2 
-     -Wno-error -fopenmp -m64 
+     -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64 
      -I/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/include' 
      '--with-ext-linalg=-Wl,--no-as-needed 
      -L/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/lib/intel64 -lmkl_gf_lp64 
-     -lmkl_core -lmkl_gnu_thread -ldl -lpthread -lm'"
+     -lmkl_core -lmkl_gnu_thread -ldl -lpthread -lm' 
+     '--with-pexsi=-L/home/stephan/Downloads/PEXSI/pexsi_v0.8.0//src/ -lpexsi_linux 
+     -L/home/stephan/Downloads/PEXSI/DEPENDENCIES/SuperLU_DIST_3.3//lib/ -lsuperlu_dist_3.3 
+     -L/home/stephan/Downloads/PEXSI/DEPENDENCIES/parmetis-4.0.2//build/Linux-x86_64/libparme
+     tis -lparmetis  
+     -L/home/stephan/Downloads/PEXSI/DEPENDENCIES/parmetis-4.0.2//build/Linux-x86_64/libmetis
+      -lmetis -L/home/stephan/Software/openmpi-1.8.4-gnu/lib -lmpi -lmpi_cxx -ldl -lstdc++'"
    Compilers (CC, FC, CXX): [gcc, /home/stephan/Software/openmpi-1.8.4-gnu/bin/mpif90, g++]
    Compiler flags:
      CFLAGS                            : -g -O2
      FCFLAGS:
-       -O2 -Wno-error -fopenmp -m64 
-       -I/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/include
+       -O2 -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp 
+       -m64 -I/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/include
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : CH4
@@ -1841,68 +1847,76 @@
      units for atomic positions        : angstroem
      Values:
      - sym                             : H-1 # 0001
-       r: [ 3.003225819514313,  4.855059095998491,  3.01506170453119]
+       Atom number                     :  3
+       r: [-0.7924765265666872,  0.7924798599174898,  2.385002021453189]
        Delta r                         :  [ -6.335532E-02,  6.335865E-02, -3.721654E-02 ]
-       q0                              :  [  3.182718E-01 ]
-       q1                              :  [  4.688333E-01, -1.981069E-01, -4.675247E-01 ]
-       q2: [-1.000000E+00, -4.102509E-01, -4.729081E-01,  4.093263E-01,  2.611658E-03]
-       scaling factor                  :  1.31E+02
+       q0                              :  [  1.0E+00 ]
+       q1                              :  [  1.447669E-01, -7.824359E-02, -1.395418E-01 ]
+       q2: [ 4.167403E-01,  2.080699E-01,  2.049966E-01, -2.138599E-01,  4.887689E-03]
+       scaling factor                  :  9.93E-01
        type                            : unknown
      - sym                             : H-1 # 0002
-       r: [ 3.505293162635052,  2.977411848408306,  3.01466580665549]
+       Atom number                     :  4
+       r: [-0.2904091834459483, -1.085167387672694,  2.384606123577489]
        Delta r                         :  [ -2.353229E-02, -8.916929E-02, -3.761244E-02 ]
-       q0                              :  [  1.281324E-01 ]
-       q1                              :  [ -2.595437E-01, -2.957278E-01, -6.908388E-02 ]
-       q2: [ 1.938537E-01,  1.000000E+00,  4.270256E-01,  2.669620E-01, -3.364717E-01]
-       scaling factor                  :  1.82E+02
+       q0                              :  [  1.0E+00 ]
+       q1                              :  [ -2.063623E-01, -8.209191E-02, -4.991535E-02 ]
+       q2: [-2.194524E-01, -3.097031E-01,  2.261915E-01, -8.767420E-02,  3.959675E-01]
+       scaling factor                  :  9.91E-01
        type                            : unknown
      - sym                             : C-1 # 0003
-       r: [ 3.794212451302646,  4.060557849980686,  3.417553875973696]
+       Atom number                     :  1
+       r: [-1.4898947783548392E-003, -2.0213861003143302E-003,  2.787494192895696]
        Delta r                         :  [ -1.489895E-03, -2.021386E-03, -2.277497E-03 ]
-       q0                              :  [ -3.16011E-01 ]
-       q1                              :  [  4.383723E-01, -2.211628E-01, -4.386439E-01 ]
-       q2: [ 1.000000E+00,  5.039704E-01,  4.221193E-01, -5.001354E-01,  4.892477E-03]
-       scaling factor                  :  1.48E+02
-       type                            : unknown
+       q0                              :  [ -1.0E+00 ]
+       q1                              :  [ -6.053024E-03,  3.933371E-03, -4.526158E-03 ]
+       q2: [ 3.226252E-04,  2.434060E-03, -3.195383E-02,  5.609810E-03,  6.342839E-04]
+       scaling factor                  :  1.02E+00
+       type                            : s
      - sym                             : C-2 # 0004
-       r: [ 3.760213821413447,  4.026629509753879,  3.453764348750787]
+       Atom number                     :  1
+       r: [-3.5488524667553721E-002, -3.5949726327121637E-002,  2.823704665672786]
        Delta r                         :  [ -3.548852E-02, -3.594973E-02,  3.393298E-02 ]
-       q0                              :  [ -1.328935E-02 ]
-       q1                              :  [ -3.733757E-02, -1.588801E-02,  3.998812E-01 ]
-       q2: [ 1.000000E+00, -5.183392E-02, -1.561561E-01,  5.674286E-01,  2.287798E-01]
-       scaling factor                  :  1.52E+02
-       type                            : unknown
+       q0                              :  [  1.98263E-03 ]
+       q1                              :  [ -2.203256E-05, -3.316610E-03,  1.000000E+00 ]
+       q2: [-1.986773E-01, -3.823528E-05, -6.922037E-02,  2.132693E-01, -1.869534E-01]
+       scaling factor                  :  1.60E+00
+       type                            : p_x
      - sym                             : C-3 # 0005
-       r: [ 3.833058299238145,  4.101029296003181,  3.453622560023503]
+       Atom number                     :  1
+       r: [ 3.7355953157144295E-002,  3.845005992218007E-002,  2.823562876945503]
        Delta r                         :  [  3.735595E-02,  3.845006E-02,  3.379119E-02 ]
-       q0                              :  [  7.354155E-03 ]
-       q1                              :  [  1.0E+00, -3.945798E-03, -4.159305E-03 ]
-       q2: [ 3.527008E-01,  3.092747E-01, -2.942573E-02, -1.449010E-03, -3.610519E-01]
-       scaling factor                  :  7.67E+01
+       q0                              :  [  1.107552E-02 ]
+       q1                              :  [  1.0E+00, -5.745083E-03, -3.140335E-03 ]
+       q2: [ 2.535564E-01,  2.198597E-01,  2.962157E-02, -1.086106E-03, -2.569556E-01]
+       scaling factor                  :  1.59E+00
        type                            : unknown
      - sym                             : C-4 # 0006
-       r: [ 3.796365776598635,  4.063063766114904,  3.342315137514714]
+       Atom number                     :  1
+       r: [ 6.6343051763407168E-004,  4.8453003390415731E-004,  2.712255454436713]
        Delta r                         :  [  6.634305E-04,  4.845300E-04, -7.751624E-02 ]
-       q0                              :  [  4.360109E-03 ]
-       q1                              :  [ -1.023247E-03,  1.000000E+00, -8.661930E-04 ]
-       q2: [ 2.240376E-03,  1.201389E-01, -6.378681E-01,  1.194751E-01, -6.072857E-03]
-       scaling factor                  :  7.88E+01
+       q0                              :  [ -7.471365E-03 ]
+       q1                              :  [ -4.090883E-03,  1.000000E+00, -4.610437E-03 ]
+       q2: [ 1.298227E-03,  2.638192E-02, -3.385087E-01,  2.423211E-02, -9.125755E-03]
+       scaling factor                  :  1.61E+00
        type                            : unknown
      - sym                             : H-1 # 0007
-       r: [ 3.79572079157076,  4.062240120747434,  4.607690057963834]
+       Atom number                     :  2
+       r: [ 1.8445489759452297E-005, -3.3911533356630362E-004,  3.977630374885833]
        Delta r                         :  [  1.844549E-05, -3.391153E-04,  9.273418E-02 ]
-       q0                              :  [  2.605415E-01 ]
-       q1                              :  [ -1.569715E-02,  5.604570E-01, -1.533815E-02 ]
-       q2: [ 1.164180E-03, -6.060143E-02,  1.000000E+00, -5.894262E-02,  6.688046E-04]
-       scaling factor                  :  1.60E+02
+       q0                              :  [  1.0E+00 ]
+       q1                              :  [  2.747244E-03,  2.046442E-01,  5.712111E-03 ]
+       q2: [-4.336483E-03, -4.864343E-03, -5.439368E-01,  1.025512E-04,  1.301772E-03]
+       scaling factor                  :  9.83E-01
        type                            : unknown
      - sym                             : H-1 # 0008
-       r: [ 4.877123125297989,  4.352073253017424,  3.01588894522001]
+       Atom number                     :  5
+       r: [ 1.081420779216989,  0.2894940169364233,  2.385829262142009]
        Delta r                         :  [  8.542268E-02,  2.261713E-02, -3.638930E-02 ]
        q0                              :  [  1.0E+00 ]
        q1                              :  [  5.306113E-02, -7.656881E-02,  1.953956E-01 ]
        q2: [-2.007425E-01,  7.505499E-02,  2.054755E-01,  2.849508E-01, -3.677868E-01]
-       scaling factor                  :  4.76E+01
+       scaling factor                  :  9.91E-01
        type                            : unknown
   #================================================= Atomic multipole analysis, new approach
  Method                                : loewdin
@@ -2000,8 +2014,8 @@
  - set to 1.d-20 instead of 0.d0
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  16.90
-   Elapsed time (s)                    :  10.21
+   CPU time (s)                        :  26.32
+   Elapsed time (s)                    :  16.23
  BigDFT infocode                       :  0
  Average noise forces: {x:  6.39748731E-05, y:  3.81086078E-04, z: -3.18536816E-02, 
                     total:  3.18560253E-02}
@@ -2010,21 +2024,21 @@
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
  -  {C: [ 5.426447429670E-04, -1.345615840523E-03, -2.506903558792E-02]} # 0001
- -  {H: [-2.501487208981E-04,  6.217033763717E-04,  2.462675443155E-03]} # 0002
+ -  {H: [-2.501487208979E-04,  6.217033763715E-04,  2.462675443155E-03]} # 0002
  -  {H: [ 4.864027969181E-03, -5.002682636350E-03,  7.801162504506E-03]} # 0003
  -  {H: [ 1.044075046887E-03,  6.730252254546E-03,  7.304279451767E-03]} # 0004
  -  {H: [-6.200599038137E-03, -1.003657154046E-03,  7.500918188494E-03]} # 0005
  Energy (Hartree)                      : -9.41085519995499098E+00
- Force Norm (Hartree/Bohr)             :  3.06932680680893424E-02
+ Force Norm (Hartree/Bohr)             :  3.06932680680893390E-02
  Memory Consumption Report:
-   Tot. No. of Allocations             :  12296
-   Tot. No. of Deallocations           :  12296
+   Tot. No. of Allocations             :  12297
+   Tot. No. of Deallocations           :  12297
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  165.634
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 202.340 MB
- Walltime since initialization         : 00:00:10.574674213
+     Memory Peak of process            : 209.784 MB
+ Walltime since initialization         : 00:00:16.591529715
  Max No. of dictionaries used          :  8432 #( 877 still in use)
  Number of dictionary folders allocated:  1

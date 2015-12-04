@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.2
- Timestamp of this run                 : 2015-12-04 08:06:45.108
+ Timestamp of this run                 : 2015-12-04 13:31:14.553
  Root process Hostname                 : stephan-940X3G
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -38,17 +38,23 @@
  Compilation options:
    Configure arguments:
      " 'FC=/home/stephan/Software/openmpi-1.8.4-gnu/bin/mpif90' 'CC=gcc' 'FCFLAGS=-O2 
-     -Wno-error -fopenmp -m64 
+     -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64 
      -I/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/include' 
      '--with-ext-linalg=-Wl,--no-as-needed 
      -L/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/lib/intel64 -lmkl_gf_lp64 
-     -lmkl_core -lmkl_gnu_thread -ldl -lpthread -lm'"
+     -lmkl_core -lmkl_gnu_thread -ldl -lpthread -lm' 
+     '--with-pexsi=-L/home/stephan/Downloads/PEXSI/pexsi_v0.8.0//src/ -lpexsi_linux 
+     -L/home/stephan/Downloads/PEXSI/DEPENDENCIES/SuperLU_DIST_3.3//lib/ -lsuperlu_dist_3.3 
+     -L/home/stephan/Downloads/PEXSI/DEPENDENCIES/parmetis-4.0.2//build/Linux-x86_64/libparme
+     tis -lparmetis  
+     -L/home/stephan/Downloads/PEXSI/DEPENDENCIES/parmetis-4.0.2//build/Linux-x86_64/libmetis
+      -lmetis -L/home/stephan/Software/openmpi-1.8.4-gnu/lib -lmpi -lmpi_cxx -ldl -lstdc++'"
    Compilers (CC, FC, CXX): [gcc, /home/stephan/Software/openmpi-1.8.4-gnu/bin/mpif90, g++]
    Compiler flags:
      CFLAGS                            : -g -O2
      FCFLAGS:
-       -O2 -Wno-error -fopenmp -m64 
-       -I/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/include
+       -O2 -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp 
+       -m64 -I/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/include
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : water
@@ -2602,8 +2608,8 @@
  - no improvement of the orbitals, recalculate gradient
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  27.05
-   Elapsed time (s)                    :  16.37
+   CPU time (s)                        :  36.79
+   Elapsed time (s)                    :  21.48
  BigDFT infocode                       :  0
  Average noise forces: {x: -1.81437722E-03, y:  5.37367958E-05, z: -4.28856094E-04, 
                     total:  1.86514608E-03}
@@ -2615,7 +2621,7 @@
  -  {H: [ 3.148889851609E-02,  1.259798681384E-02,  3.356598069816E-03]} # 0002
  -  {H: [ 3.671716507184E-03, -1.481079463112E-03,  1.985124158563E-02]} # 0003
  Energy (Hartree)                      : -1.76585785760784297E+01
- Force Norm (Hartree/Bohr)             :  5.89044305840366392E-02
+ Force Norm (Hartree/Bohr)             :  5.89044305840373469E-02
  Memory Consumption Report:
    Tot. No. of Allocations             :  13345
    Tot. No. of Deallocations           :  13345
@@ -2624,7 +2630,7 @@
      Peak Value (MB)                   :  179.045
      for the array                     : f_i
      in the routine                    : vxcpostprocessing
-     Memory Peak of process            : 216.800 MB
- Walltime since initialization         : 00:00:16.723932195
+     Memory Peak of process            : 225.804 MB
+ Walltime since initialization         : 00:00:21.844792850
  Max No. of dictionaries used          :  7627 #( 877 still in use)
  Number of dictionary folders allocated:  1

@@ -8,7 +8,7 @@
 !!    For the list of contributors, see ~/AUTHORS
 
 
-subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,nlpsp,GPU,&
+subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopotold,nlpsp,GPU,&
            energs,energy,fpulay,infocode,ref_frags,cdft, &
            fdisp, fion)
  
@@ -63,6 +63,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   integer,intent(in) :: iproc, nproc
   type(atoms_data),intent(inout) :: at
   type(input_variables),intent(in) :: input ! need to hack to be inout for geopt changes
+  real(kind=8),dimension(3),intent(in) :: shift
   real(kind=8),dimension(3,at%astruct%nat),intent(inout) :: rxyz
   real(kind=8),dimension(3,at%astruct%nat),intent(out) :: fpulay
   type(DFT_local_fields), intent(inout) :: denspot
@@ -2536,7 +2537,7 @@ end if
   end if
 
   if (input%support_function_multipoles) then
-      call support_function_gross_multipoles(iproc, nproc, tmb, at, denspot, multipoles)
+      call support_function_gross_multipoles(iproc, nproc, tmb, at, shift, denspot)
   end if
 
   if (input%lin%charge_multipoles>0) then

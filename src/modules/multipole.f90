@@ -1679,7 +1679,7 @@ module multipole
 
 
     subroutine write_multipoles_new(nat, atomnames, rxyz, units, multipoles, &
-               delta_rxyz, scaled)
+               delta_rxyz, on_which_atom, scaled)
       use yaml_output
       implicit none
       
@@ -1692,6 +1692,7 @@ module multipole
       real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(in) :: multipoles
       real(kind=8),dimension(3,nat),intent(in),optional :: delta_rxyz !< can be used to display the difference between the charge center 
                                                                       !! of a support function and its localization center
+      integer,dimension(nat),intent(in),optional :: on_which_atom !< can be used to display on which atom a given support function multipole is located
       real(kind=8),dimension(nat),intent(in),optional :: scaled !< can be used to display by how muched the multipoles have been scaled
       
       ! Local variables
@@ -1700,9 +1701,10 @@ module multipole
       integer :: i, iat, l, m, nit
       real(kind=8) :: factor, convert_units!, get_normalization, get_test_factor
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
-      logical :: present_delta_rxyz, present_scaled
+      logical :: present_delta_rxyz, present_on_which_atom, present_scaled
 
       present_delta_rxyz = present(delta_rxyz)
+      present_on_which_atom = present(on_which_atom)
       present_scaled = present(scaled)
 
 
@@ -1725,6 +1727,9 @@ module multipole
               call yaml_sequence(advance='no')
               atomname=trim(atomnames(iat))
               call yaml_map('sym',adjustl(trim(atomname))//' # '//adjustl(trim(yaml_toa(iat,fmt='(i4.4)'))))
+              if (present_on_which_atom) then
+                  call yaml_map('Atom number',on_which_atom(iat))
+              end if
               call yaml_map('r',convert_units*rxyz(1:3,iat))
               if (present_delta_rxyz) then
                   call yaml_map('Delta r',convert_units*delta_rxyz(1:3,iat),fmt='(es13.6)')
@@ -2623,6 +2628,11 @@ module multipole
           ilr=orbs%inwhichlocreg(iiorb)
           call initialize_work_arrays_sumrho(1,[lzd%llr(ilr)],.true.,w)
           call daub_to_isf(lzd%llr(ilr), w, phi2(ist), phi2r(istr))
+          !write(*,*) 'iorb, n, tt', iorb, &
+          !     lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, &
+          !     lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f, &
+          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, phi2r(istr), 1), &
+          !     ddot(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi2(ist), 1, phi2(ist), 1)
           call deallocate_work_arrays_sumrho(w)
           call deallocate_work_arrays_sumrho(w)
           ist = ist + lzd%llr(ilr)%wfd%nvctr_c + 7*lzd%llr(ilr)%wfd%nvctr_f
@@ -2650,6 +2660,13 @@ module multipole
           ilr = orbs%inwhichlocreg(iiorb)
           !rmax = min(lzd%llr(ilr)%d%n1i*0.25d0*hgrids(1),lzd%llr(ilr)%d%n2i*0.25d0*hgrids(2),lzd%llr(ilr)%d%n3i*0.25d0*hgrids(3))
           rmax = min(lzd%llr(ilr)%d%n1*0.5d0*hgrids(1),lzd%llr(ilr)%d%n2*0.5d0*hgrids(2),lzd%llr(ilr)%d%n3*0.5d0*hgrids(3))
+          !write(*,*) 'iorb, ilr, rmax', iorb, ilr, rmax
+          !write(*,*) 'zmin, zmax, locregcenter(3)',  (lzd%llr(ilr)%nsi3+1-14-1)*0.5d0*hgrids(3), &
+          !            (lzd%llr(ilr)%nsi3+lzd%llr(ilr)%d%n3i-14-1)*0.5d0*hgrids(3), locregcenter(3,ilr)
+          !write(*,*) 'ymin, ymax, locregcenter(2)',  (lzd%llr(ilr)%nsi2+1-14-1)*0.5d0*hgrids(2), &
+          !            (lzd%llr(ilr)%nsi2+lzd%llr(ilr)%d%n2i-14-1)*0.5d0*hgrids(2), locregcenter(2,ilr)
+          !write(*,*) 'xmin, xmax, locregcenter(1)',  (lzd%llr(ilr)%nsi1+1-14-1)*0.5d0*hgrids(1), &
+          !            (lzd%llr(ilr)%nsi1+lzd%llr(ilr)%d%n1i-14-1)*0.5d0*hgrids(1), locregcenter(1,ilr)
           norm = 0.d0
           factor_normalization = sqrt(0.5d0*hgrids(1)*0.5d0*hgrids(2)*0.5d0*hgrids(3))
           do i3=1,lzd%llr(ilr)%d%n3i
@@ -2666,7 +2683,7 @@ module multipole
                       tt = solid_harmonic(0, 0.d0, l, m, x, y, z)
                       tt = tt*sqrt(4.d0*pi/real(2*l+1,kind=8))
                       sphi2r(ist+ind) = tt*phi2r(ist+ind)
-                      !write(*,*) 'i1, i1, i2, tt, phi1', i1, i2, i3, tt, phi2r(ist+ind)
+                      !write(*,*) 'iorb, i1, i1, i2, tt, phi2r', iorb, i1, i2, i3, tt, phi2r(ist+ind)
                       norm = norm + (tt*factor_normalization)**2*&
                           real((2*l+3)*(2*l+1),kind=8)/(4.d0*pi*rmax**(2*l+3)) !normalization of a solid harmonic within a sphere of radius rmax... hopefully correct
                       !write(*,*) 'iorb, i1, i2, i3, tt, phi', iorb, i1, i2, i3, tt, phir(ist+ind)
@@ -2690,8 +2707,10 @@ module multipole
           call deallocate_work_arrays_sumrho(w)
           !write(*,*) 'iorb, n, firsts, tt', iorb, &
           !     lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, &
-          !     phir(istr), sphir(istr), &
-          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phir(istr), 1, sphir(istr), 1)
+          !     phi2r(istr), sphi2r(istr), &
+          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, sphi2r(istr), 1), &
+          !     ddot(lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i, phi2r(istr), 1, phi2r(istr), 1), &
+          !     ddot(lzd%llr(ilr)%wfd%nvctr_c+7*lzd%llr(ilr)%wfd%nvctr_f, phi1(ist), 1, sphi2(ist), 1)
           !do i=1,lzd%llr(ilr)%d%n1i*lzd%llr(ilr)%d%n2i*lzd%llr(ilr)%d%n3i
           !    write(*,*) i, phir(istr+i-1), sphir(istr+i-1)
           !end do
@@ -4462,7 +4481,7 @@ module multipole
 
 
  !> SM: similar to support_function_multipoles. This one calculates the "gross" multipoles (i.e. without taking into account the "core" contribution)
- subroutine support_function_gross_multipoles(iproc, nproc, tmb, atoms, denspot, multipoles)
+ subroutine support_function_gross_multipoles(iproc, nproc, tmb, atoms, shift, denspot)
    use module_base
    use module_types
    use locreg_operations
@@ -4477,15 +4496,16 @@ module multipole
    integer,intent(in) :: iproc, nproc
    type(DFT_wavefunction),intent(inout) :: tmb
    type(atoms_data),intent(in) :: atoms
+   real(kind=8),dimension(3),intent(in) :: shift !< global shift of the atomic positions
    type(DFT_local_fields), intent(inout) :: denspot
  
    integer :: ist, istr, iorb, iiorb, ilr, i, iat, iter, itype
    integer :: i1, i2, i3, ii1, ii2, ii3, nl1, nl2, nl3, ii, l, m, ind, iat_old
    real(kind=8),dimension(:),allocatable :: rmax, phi1, phi1r
    real(kind=8),dimension(:,:),allocatable :: delta_centers
-   real(kind=8),dimension(:,:),allocatable :: charge_center
+   real(kind=8),dimension(:,:),allocatable :: center_locreg, center_orb
    real(kind=8),dimension(:),allocatable :: phir, phir_one
-   real(kind=8) :: hxh, hyh, hzh, tt, x, y, z, weight
+   real(kind=8) :: hxh, hyh, hzh, tt, x, y, z, weight, factor
    type(workarr_sumrho) :: w
    character(len=20) :: atomname
    character(len=20),dimension(:),allocatable :: names
@@ -4505,7 +4525,8 @@ module multipole
    !call to_zero(9*tmb%orbs%norb, quadropole_net(1,1,1))
 
 
-   charge_center = f_malloc0((/3,tmb%lzd%nlr/),id='charge_center')
+   center_locreg = f_malloc0((/3,tmb%lzd%nlr/),id='center_locreg')
+   center_orb = f_malloc0((/3,tmb%lzd%nlr/),id='center_orb')
    multipole_matrix = matrices_null()
    multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='multipole_matrix%matrix_compr')
 
@@ -4553,17 +4574,19 @@ module multipole
                   ii1 = tmb%lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
                   x = ii1*hxh
                   tt = phir(ii)**2
-                  charge_center(1,iiorb) = charge_center(1,iiorb) + x*tt
-                  charge_center(2,iiorb) = charge_center(2,iiorb) + y*tt
-                  charge_center(3,iiorb) = charge_center(3,iiorb) + z*tt
+                  center_locreg(1,ilr) = center_locreg(1,ilr) + x*tt
+                  center_locreg(2,ilr) = center_locreg(2,ilr) + y*tt
+                  center_locreg(3,ilr) = center_locreg(3,ilr) + z*tt
                   weight = weight + tt
                   ii = ii + 1
               end do
           end do
       end do
-      charge_center(1:3,iiorb) = charge_center(1:3,iiorb)/weight
-      !write(*,*) 'ilr, charge_center(1:3,iorb), lzd%llr(ilr)%locregcenter(1:3)', &
-      !            ilr, charge_center(1:3,iorb), tmb%lzd%llr(ilr)%locregcenter(1:3)
+      !write(*,*) 'iorb, weight, sum(phir)',iorb, weight, sum(phir)
+      center_locreg(1:3,ilr) = center_locreg(1:3,ilr)/weight
+      center_orb(1:3,iiorb) = center_locreg(1:3,ilr)
+      !write(*,*) 'iorb, ilr, center_locreg(1:3,ilr), lzd%llr(ilr)%locregcenter(1:3)', &
+      !            iorb, ilr, center_locreg(1:3,ilr), tmb%lzd%llr(ilr)%locregcenter(1:3)
       ! ######################################################################################
       ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
       istr = istr + tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i
@@ -4575,9 +4598,11 @@ module multipole
   end if
 
   if (nproc>1) then
-      call mpiallred(charge_center, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(center_locreg, mpi_sum, comm=bigdft_mpi%mpi_comm)
+      call mpiallred(center_orb, mpi_sum, comm=bigdft_mpi%mpi_comm)
   end if
 
+  factor = hxh*hyh*hzh
 
   do l=0,lmax
       do m=-l,l
@@ -4585,12 +4610,14 @@ module multipole
           ! Calculate the multipole matrix
           call calculte_multipole_matrix(iproc, nproc, l, m, tmb%npsidim_orbs, phi1, tmb%psi, &
                max(tmb%collcom_sr%ndimpsi_c,1), tmb%lzd%hgrids, &
-               tmb%orbs, tmb%collcom, tmb%lzd, tmb%linmat%s, charge_center, multipole_matrix)
-          ! Take the diagonal elements
+               tmb%orbs, tmb%collcom, tmb%lzd, tmb%linmat%s, center_locreg, multipole_matrix)
+          !write(*,*) 'multipole_matrix%matrix_compr(1)',multipole_matrix%matrix_compr(1)
+          ! Take the diagonal elements and scale by factor (anyway there is no really physical meaning in the actual numbers)
           do iorb=1,tmb%orbs%norbp
               iiorb = tmb%orbs%isorb + iorb
               ind = matrixindex_in_compressed(tmb%linmat%s, iiorb, iiorb)
-              multipoles(m,l,iiorb) = multipole_matrix%matrix_compr(ind)
+              multipoles(m,l,iiorb) = multipole_matrix%matrix_compr(ind)*factor
+              !write(*,*) 'iorb, multipoles(:,:,iiorb)',iorb, multipoles(:,:,iiorb)
           end do
       end do
   end do
@@ -4599,6 +4626,7 @@ module multipole
   do iorb=1,tmb%orbs%norbp
       iiorb = tmb%orbs%isorb + iorb
       tt = maxval(abs(multipoles(:,:,iiorb)))
+      !write(*,*) 'iorb, tt', iorb, tt
       multipoles(:,:,iiorb) = multipoles(:,:,iiorb)/tt
       scaled(iiorb) = tt
   end do
@@ -4630,12 +4658,16 @@ module multipole
           iatype_tmp(iorb) = itype
           names(iorb) = trim(atoms%astruct%atomnames(itype))//'-'//adjustl(trim(yaml_toa(ii)))
           ! delta_centers gives the difference between the charge center and the localization center
-          delta_centers(1:3,iorb) = charge_center(1:3,iorb) - tmb%lzd%llr(ilr)%locregcenter(1:3)
+          delta_centers(1:3,iorb) = center_locreg(1:3,ilr) - tmb%lzd%llr(ilr)%locregcenter(1:3)
+          !write(*,*) 'iorb, ilr, center_locreg(1:3,ilr) - tmb%lzd%llr(ilr)%locregcenter(1:3)', &
+          !           iorb, ilr, center_locreg(1:3,ilr) - tmb%lzd%llr(ilr)%locregcenter(1:3)
           !write(*,*) 'iorb, delta_centers(1:3,iorb)', iorb, delta_centers(1:3,iorb)
+          ! Undo the global shift of the centers
+          center_orb(1:3,iorb) = center_orb(1:3,iorb) + shift(1:3)
       end do
-      call write_multipoles_new(tmb%orbs%norb, names, charge_center, &
+      call write_multipoles_new(tmb%orbs%norb, names, center_orb, &
            atoms%astruct%units, multipoles, &
-           delta_centers, scaled)
+           delta_centers, tmb%orbs%onwhichatom, scaled)
       call f_free(delta_centers)
       call f_free(iatype_tmp)
       call f_free_str(len(names),names)
@@ -4650,7 +4682,8 @@ module multipole
   call f_free(phi1)
   call f_free(phir_one)
   call deallocate_matrices(multipole_matrix)
-  call f_free(charge_center)
+  call f_free(center_locreg)
+  call f_free(center_orb)
   call f_free(multipoles)
 
   call f_release_routine()

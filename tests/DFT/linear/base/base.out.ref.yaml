@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.2
- Timestamp of this run                 : 2015-12-04 07:50:34.400
+ Timestamp of this run                 : 2015-12-04 13:21:55.689
  Root process Hostname                 : stephan-940X3G
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -38,17 +38,23 @@
  Compilation options:
    Configure arguments:
      " 'FC=/home/stephan/Software/openmpi-1.8.4-gnu/bin/mpif90' 'CC=gcc' 'FCFLAGS=-O2 
-     -Wno-error -fopenmp -m64 
+     -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp -m64 
      -I/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/include' 
      '--with-ext-linalg=-Wl,--no-as-needed 
      -L/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/lib/intel64 -lmkl_gf_lp64 
-     -lmkl_core -lmkl_gnu_thread -ldl -lpthread -lm'"
+     -lmkl_core -lmkl_gnu_thread -ldl -lpthread -lm' 
+     '--with-pexsi=-L/home/stephan/Downloads/PEXSI/pexsi_v0.8.0//src/ -lpexsi_linux 
+     -L/home/stephan/Downloads/PEXSI/DEPENDENCIES/SuperLU_DIST_3.3//lib/ -lsuperlu_dist_3.3 
+     -L/home/stephan/Downloads/PEXSI/DEPENDENCIES/parmetis-4.0.2//build/Linux-x86_64/libparme
+     tis -lparmetis  
+     -L/home/stephan/Downloads/PEXSI/DEPENDENCIES/parmetis-4.0.2//build/Linux-x86_64/libmetis
+      -lmetis -L/home/stephan/Software/openmpi-1.8.4-gnu/lib -lmpi -lmpi_cxx -ldl -lstdc++'"
    Compilers (CC, FC, CXX): [gcc, /home/stephan/Software/openmpi-1.8.4-gnu/bin/mpif90, g++]
    Compiler flags:
      CFLAGS                            : -g -O2
      FCFLAGS:
-       -O2 -Wno-error -fopenmp -m64 
-       -I/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/include
+       -O2 -Wno-error -fbounds-check -fbacktrace -ffpe-trap=invalid,zero,overflow -fopenmp 
+       -m64 -I/home/stephan/Software/intel/composer_xe_2015.2.164/mkl/include
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : null
@@ -698,14 +704,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  6.66E-16,  7.15E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  8.45E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  6.87E-01, Omega:  1.401968212791204E+01, D:  1.40E+01, D best:  1.40E+01, 
+ iter:  1, fnrm:  6.87E-01, Omega:  1.401968212791203E+01, D:  1.40E+01, D best:  1.40E+01, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.22E-15,  3.95E-16 ]]}, 
+ max / mean error:  [  2.44E-15,  5.52E-16 ]]}, 
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: TRACE, Hamiltonian Applied:  Yes, 
@@ -713,14 +719,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  7.35E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  4.83E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  7.53E-01, Omega:  1.329030845851291E+01, D: -7.29E-01, D best: -7.29E-01, 
+ iter:  2, fnrm:  7.53E-01, Omega:  1.329030845851289E+01, D: -7.29E-01, D best: -7.29E-01, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  4.0E-15,  7.67E-16 ]]}, 
+ max / mean error:  [  3.11E-15,  5.35E-16 ]]}, 
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: TRACE, Hamiltonian Applied:  Yes, 
@@ -728,14 +734,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  8.28E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  7.97E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  3.18E-01, Omega:  1.256920970924143E+01, D: -7.21E-01, D best: -7.21E-01, 
+ iter:  3, fnrm:  3.18E-01, Omega:  1.256920970924142E+01, D: -7.21E-01, D best: -7.21E-01, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.11E-15,  5.05E-16 ]]}, 
+ max / mean error:  [  1.48E-15,  4.57E-16 ]]}, 
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 4
  target function: TRACE, Hamiltonian Applied:  Yes, 
@@ -743,14 +749,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  2.22E-16,  5.19E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  7.49E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  4, fnrm:  1.47E-01, Omega:  1.247816049896392E+01, D: -9.10E-02, D best: -9.10E-02, 
+ iter:  4, fnrm:  1.47E-01, Omega:  1.247816049896390E+01, D: -9.10E-02, D best: -9.10E-02, 
  exit criterion: net number of iterations}
    -  &final_supfun001  { #-------------------------------------------------------- iter: 4
  target function: TRACE, 
  Energies: {Ekin:  2.04908629341E+01, Epot: -1.54096611590E+01, Enl:  3.18147850959E+00}, 
- iter:  4, fnrm:  1.47E-01, Omega:  1.247816049896392E+01, D: -9.10E-02, D best: -9.10E-02}
+ iter:  4, fnrm:  1.47E-01, Omega:  1.247816049896390E+01, D: -9.10E-02, D best: -9.10E-02}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.0E-05,  5.60E-05 ], warnings:  0}
@@ -810,7 +816,7 @@
  {e: -8.614351086346E-02, f:  2.0000},  # 00003
  {e: -8.585909281675E-02, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.47E-14, 
- iter:  2, delta:  4.07E-07, energy: -5.34281804257908988E+00, D:  1.493E-01}]
+ iter:  2, delta:  4.07E-07, energy: -5.34281804257909343E+00, D:  1.493E-01}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -836,7 +842,7 @@
  {e: -9.666347690009E-02, f:  2.0000},  # 00003
  {e: -9.633486486753E-02, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.47E-14, 
- iter:  3, delta:  1.97E-07, energy: -5.33943173672484406E+00, D:  3.386E-03}]
+ iter:  3, delta:  1.97E-07, energy: -5.33943173672484583E+00, D:  3.386E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -862,7 +868,7 @@
  {e: -9.907280288355E-02, f:  2.0000},  # 00003
  {e: -9.872627527606E-02, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.47E-14, 
- iter:  4, delta:  9.41E-08, energy: -5.33910938157421633E+00, D:  3.224E-04}]
+ iter:  4, delta:  9.41E-08, energy: -5.33910938157421988E+00, D:  3.224E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -888,15 +894,15 @@
  {e: -1.004733461079E-01, f:  2.0000},  # 00003
  {e: -1.001170014410E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.47E-14, 
- iter:  5, delta:  4.72E-08, energy: -5.33903262391430289E+00, D:  7.676E-05}]
+ iter:  5, delta:  4.72E-08, energy: -5.33903262391429934E+00, D:  7.676E-05}]
    -  &final_kernel001  { #-------------------------------------------------------- iter: 6
  summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.47E-14, 
- iter:  6, delta:  4.72E-08, energy: -5.33903262391430289E+00, D:  7.676E-05}]}
+ iter:  6, delta:  4.72E-08, energy: -5.33903262391429934E+00, D:  7.676E-05}]}
     #================================================================= Summary of both steps
    self consistency summary: &it_sc001
    -  {iter:  1, Omega: TRACE,  #WARNING: support function optimization not converged
  kernel optimization: DIAG,  #WARNING: density optimization not converged
- iter low:  1, delta out:  1.517E-06, energy: -5.33903262391430289E+00, D: -5.339E+00}
+ iter low:  1, delta out:  1.517E-06, energy: -5.33903262391429934E+00, D: -5.339E+00}
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Set the confinement prefactors
  - Confinement prefactor for low accuracy:
    -  {max diff damping:  0.00E+00, damping value:  1.00E+00}
@@ -910,14 +916,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  2.22E-16,  5.19E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  7.49E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.44E-01, Omega:  1.461342581645355E+01, D:  2.04E+00, D best:  2.04E+00, 
+ iter:  1, fnrm:  1.44E-01, Omega:  1.461342581645358E+01, D:  2.04E+00, D best:  2.04E+00, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.44E-15,  5.02E-16 ]]}, 
+ max / mean error:  [  1.78E-15,  4.96E-16 ]]}, 
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 2
  target function: TRACE, Hamiltonian Applied:  Yes, 
@@ -925,14 +931,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  6.66E-16,  7.64E-17 ]]}, 
+ max / mean error:  [  8.88E-16,  8.19E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  8.28E-02, Omega:  1.459587400119677E+01, D: -1.76E-02, D best: -1.76E-02, 
+ iter:  2, fnrm:  8.28E-02, Omega:  1.459587400119679E+01, D: -1.76E-02, D best: -1.76E-02, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.44E-15,  5.41E-16 ]]}, 
+ max / mean error:  [  1.55E-15,  4.92E-16 ]]}, 
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 3
  target function: TRACE, Hamiltonian Applied:  Yes, 
@@ -940,14 +946,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  6.56E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  6.94E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  4.19E-02, Omega:  1.458799546441123E+01, D: -7.88E-03, D best: -7.88E-03, 
+ iter:  3, fnrm:  4.19E-02, Omega:  1.458799546441126E+01, D: -7.88E-03, D best: -7.88E-03, 
  Optimization: {algorithm: DIIS, history length:  5, consecutive failures:  0, 
            total failures:  0}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.55E-15,  4.94E-16 ]]}, 
+ max / mean error:  [  1.33E-15,  3.75E-16 ]]}, 
  Orthogonalization:  Yes}
    -  { #-------------------------------------------------------------------------- iter: 4
  target function: TRACE, Hamiltonian Applied:  Yes, 
@@ -955,14 +961,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  6.22E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  5.73E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  4, fnrm:  1.60E-02, Omega:  1.458628740912321E+01, D: -1.71E-03, D best: -1.71E-03, 
+ iter:  4, fnrm:  1.60E-02, Omega:  1.458628740912324E+01, D: -1.71E-03, D best: -1.71E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun002  { #-------------------------------------------------------- iter: 4
  target function: TRACE, 
  Energies: {Ekin:  2.04554597527E+01, Epot: -1.42237808037E+01, Enl:  3.15531042855E+00}, 
- iter:  4, fnrm:  1.60E-02, Omega:  1.458628740912321E+01, D: -1.71E-03, D best: -1.71E-03}
+ iter:  4, fnrm:  1.60E-02, Omega:  1.458628740912324E+01, D: -1.71E-03, D best: -1.71E-03}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  1.67E-06,  4.42E-06 ], warnings:  0}
@@ -1022,7 +1028,7 @@
  {e: -9.860043976422E-02, f:  2.0000},  # 00003
  {e: -9.843088942294E-02, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.60E-15, 
- iter:  2, delta:  4.58E-08, energy: -5.35013299532930908E+00, D:  1.948E-04}]
+ iter:  2, delta:  4.58E-08, energy: -5.35013299532930731E+00, D:  1.948E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1048,7 +1054,7 @@
  {e: -9.770192859439E-02, f:  2.0000},  # 00003
  {e: -9.748546272313E-02, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.60E-15, 
- iter:  3, delta:  2.08E-08, energy: -5.35012472726818622E+00, D:  8.268E-06}]
+ iter:  3, delta:  2.08E-08, energy: -5.35012472726818800E+00, D:  8.268E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1074,7 +1080,7 @@
  {e: -9.718711969950E-02, f:  2.0000},  # 00003
  {e: -9.694317542235E-02, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.60E-15, 
- iter:  4, delta:  1.06E-08, energy: -5.35012303622128549E+00, D:  1.691E-06}]
+ iter:  4, delta:  1.06E-08, energy: -5.35012303622129082E+00, D:  1.691E-06}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1189,14 +1195,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  5.47E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  7.09E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  1, fnrm:  4.11E-01, Omega: -5.350122531382969E+00, D: -1.99E+01, D best: -1.99E+01, 
  Optimization: {algorithm: SD, mean alpha:  1.000E+00, max alpha:  1.000E+00, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.0E-15,  5.26E-16 ]]}, 
+ max / mean error:  [  2.78E-15,  5.38E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  4.86E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  2.15E-04, 
@@ -1208,14 +1214,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  7.04E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  6.39E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  2.44E-01, Omega: -6.117153211485387E+00, D: -7.67E-01, D best: -7.67E-01, 
+ iter:  2, fnrm:  2.44E-01, Omega: -6.117153211485384E+00, D: -7.67E-01, D best: -7.67E-01, 
  Optimization: {algorithm: SD, mean alpha:  6.000E-01, max alpha:  6.000E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.0E-15,  4.70E-16 ]]}, 
+ max / mean error:  [  2.0E-15,  4.95E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  7.08E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  3.06E-04, 
@@ -1227,14 +1233,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  5.60E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  6.10E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  8.74E-02, Omega: -6.266366875407538E+00, D: -1.49E-01, D best: -1.49E-01, 
+ iter:  3, fnrm:  8.74E-02, Omega: -6.266366875407535E+00, D: -1.49E-01, D best: -1.49E-01, 
  Optimization: {algorithm: SD, mean alpha:  3.600E-01, max alpha:  3.600E-01, 
     consecutive successes:  3}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.0E-15,  4.87E-16 ]]}, 
+ max / mean error:  [  2.33E-15,  4.42E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.91E-04, 
  Mean deviation from unity in reorthonormalize_coeff:  7.76E-05, 
@@ -1246,14 +1252,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  6.66E-16,  9.28E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  6.89E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  4, fnrm:  4.22E-02, Omega: -6.277534381428392E+00, D: -1.12E-02, D best: -1.12E-02, 
+ iter:  4, fnrm:  4.22E-02, Omega: -6.277534381428389E+00, D: -1.12E-02, D best: -1.12E-02, 
  Optimization: {algorithm: SD, mean alpha:  3.960E-01, max alpha:  3.960E-01, 
     consecutive successes:  4}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.05E-15,  5.21E-16 ]]}, 
+ max / mean error:  [  1.12E-15,  4.43E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.33E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  5.05E-06, 
@@ -1265,14 +1271,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  5.85E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  6.50E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  5, fnrm:  2.72E-02, Omega: -6.282708820007958E+00, D: -5.17E-03, D best: -5.17E-03, 
+ iter:  5, fnrm:  2.72E-02, Omega: -6.282708820007965E+00, D: -5.17E-03, D best: -5.17E-03, 
  exit criterion: net number of iterations}
    -  &final_supfun003  { #-------------------------------------------------------- iter: 5
  target function: ENERGY, 
  Energies: {Ekin:  1.93016166297E+01, Epot: -1.68777029865E+01, Enl:  2.62980997175E+00}, 
- iter:  5, fnrm:  2.72E-02, Omega: -6.282708820007958E+00, D: -5.17E-03, D best: -5.17E-03}
+ iter:  5, fnrm:  2.72E-02, Omega: -6.282708820007965E+00, D: -5.17E-03, D best: -5.17E-03}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.46E-03,  5.90E-03 ], warnings:  0}
@@ -1383,7 +1389,7 @@
  {e: -3.179900441905E-01, f:  2.0000},  # 00003
  {e: -3.168529882093E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  2.72E-15, 
- iter:  4, delta:  2.70E-07, energy: -6.22488788206223198E+00, D:  4.171E-03}]
+ iter:  4, delta:  2.70E-07, energy: -6.22488788206223376E+00, D:  4.171E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1431,14 +1437,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  5.85E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  6.50E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  5.84E-02, Omega: -6.223624364913197E+00, D:  5.39E-02, D best:  5.39E-02, 
+ iter:  1, fnrm:  5.84E-02, Omega: -6.223624364913199E+00, D:  5.39E-02, D best:  5.39E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.356E-01, max alpha:  4.356E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.89E-15,  5.52E-16 ]]}, 
+ max / mean error:  [  2.33E-15,  4.54E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  6.18E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  2.60E-05, 
@@ -1450,14 +1456,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  7.35E-17 ]]}, 
+ max / mean error:  [  2.22E-16,  4.83E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  2, fnrm:  3.16E-02, Omega: -6.235255184595358E+00, D: -1.16E-02, D best: -1.16E-02, 
+ iter:  2, fnrm:  3.16E-02, Omega: -6.235255184595360E+00, D: -1.16E-02, D best: -1.16E-02, 
  Optimization: {algorithm: SD, mean alpha:  4.792E-01, max alpha:  4.792E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.44E-15,  5.14E-16 ]]}, 
+ max / mean error:  [  1.77E-15,  4.56E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  4.02E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  1.83E-05, 
@@ -1469,14 +1475,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  5.47E-17 ]]}, 
+ max / mean error:  [  2.22E-16,  3.72E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  1.64E-02, Omega: -6.238097073667769E+00, D: -2.84E-03, D best: -2.84E-03, 
+ iter:  3, fnrm:  1.64E-02, Omega: -6.238097073667770E+00, D: -2.84E-03, D best: -2.84E-03, 
  Optimization: {algorithm: SD, mean alpha:  5.271E-01, max alpha:  5.271E-01, 
     consecutive successes:  3}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.44E-15,  4.99E-16 ]]}, 
+ max / mean error:  [  2.66E-15,  5.31E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.35E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  1.06E-05, 
@@ -1488,14 +1494,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  5.60E-17 ]]}, 
+ max / mean error:  [  3.33E-16,  5.33E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  4, fnrm:  8.16E-03, Omega: -6.238768068172911E+00, D: -6.71E-04, D best: -6.71E-04, 
+ iter:  4, fnrm:  8.16E-03, Omega: -6.238768068172913E+00, D: -6.71E-04, D best: -6.71E-04, 
  Optimization: {algorithm: SD, mean alpha:  5.798E-01, max alpha:  5.798E-01, 
     consecutive successes:  4}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.55E-15,  4.16E-16 ]]}, 
+ max / mean error:  [  1.55E-15,  4.49E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.15E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  5.40E-06, 
@@ -1507,14 +1513,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  5.73E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  6.39E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  5, fnrm:  4.16E-03, Omega: -6.238934066776936E+00, D: -1.66E-04, D best: -1.66E-04, 
+ iter:  5, fnrm:  4.16E-03, Omega: -6.238934066776938E+00, D: -1.66E-04, D best: -1.66E-04, 
  exit criterion: net number of iterations}
    -  &final_supfun004  { #-------------------------------------------------------- iter: 5
  target function: ENERGY, 
  Energies: {Ekin:  1.94420792546E+01, Epot: -1.85905858370E+01, Enl:  2.63651673472E+00}, 
- iter:  5, fnrm:  4.16E-03, Omega: -6.238934066776936E+00, D: -1.66E-04, D best: -1.66E-04}
+ iter:  5, fnrm:  4.16E-03, Omega: -6.238934066776938E+00, D: -1.66E-04, D best: -1.66E-04}
       #Support functions created
    - Check boundary values:
      -  {type: overall, mean / max value:  [  2.24E-03,  5.59E-03 ], warnings:  0}
@@ -1547,7 +1553,7 @@
  {e: -3.307676687542E-01, f:  2.0000},  # 00003
  {e: -3.295360093768E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  4.16E-16, 
- iter:  1, delta:  3.07E-07, energy: -6.23894370541391474E+00, D: -1.507E-02}]
+ iter:  1, delta:  3.07E-07, energy: -6.23894370541392007E+00, D: -1.507E-02}]
    -  #--------------------------------------------------------------------- kernel iter: 2
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1573,7 +1579,7 @@
  {e: -3.165561445337E-01, f:  2.0000},  # 00003
  {e: -3.164515110760E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  4.16E-16, 
- iter:  2, delta:  1.64E-07, energy: -6.23685924755663912E+00, D:  2.084E-03}]
+ iter:  2, delta:  1.64E-07, energy: -6.23685924755663379E+00, D:  2.084E-03}]
    -  #--------------------------------------------------------------------- kernel iter: 3
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1599,7 +1605,7 @@
  {e: -3.103754506995E-01, f:  2.0000},  # 00003
  {e: -3.102182843821E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  4.16E-16, 
- iter:  3, delta:  8.38E-08, energy: -6.23640635210010075E+00, D:  4.529E-04}]
+ iter:  3, delta:  8.38E-08, energy: -6.23640635210010430E+00, D:  4.529E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1625,7 +1631,7 @@
  {e: -3.073687678960E-01, f:  2.0000},  # 00003
  {e: -3.071842872504E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  4.16E-16, 
- iter:  4, delta:  4.21E-08, energy: -6.23629564849028206E+00, D:  1.107E-04}]
+ iter:  4, delta:  4.21E-08, energy: -6.23629564849027673E+00, D:  1.107E-04}]
    -  #--------------------------------------------------------------------- kernel iter: 5
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1673,14 +1679,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  5.73E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  6.39E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  1, fnrm:  1.06E-02, Omega: -6.236261541766735E+00, D:  2.51E-03, D best:  2.51E-03, 
+ iter:  1, fnrm:  1.06E-02, Omega: -6.236261541766732E+00, D:  2.51E-03, D best:  2.51E-03, 
  Optimization: {algorithm: SD, mean alpha:  6.155E-01, max alpha:  6.155E-01, 
     consecutive successes:  1}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.78E-15,  4.10E-16 ]]}, 
+ max / mean error:  [  2.0E-15,  4.82E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.27E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  9.75E-06, 
@@ -1692,14 +1698,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  6.89E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  6.83E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  2, fnrm:  5.91E-03, Omega: -6.236996740907324E+00, D: -7.35E-04, D best: -7.35E-04, 
  Optimization: {algorithm: SD, mean alpha:  3.929E-01, max alpha:  6.770E-01, 
     consecutive successes:  2}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.44E-15,  5.46E-16 ]]}, 
+ max / mean error:  [  2.0E-15,  5.00E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.16E-05, 
  Mean deviation from unity in reorthonormalize_coeff:  4.31E-06, 
@@ -1711,14 +1717,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  6.66E-16,  9.08E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  7.78E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  3, fnrm:  3.28E-03, Omega: -6.237070595748319E+00, D: -7.39E-05, D best: -7.39E-05, 
+ iter:  3, fnrm:  3.28E-03, Omega: -6.237070595748323E+00, D: -7.39E-05, D best: -7.39E-05, 
  Optimization: {algorithm: SD, mean alpha:  4.322E-01, max alpha:  7.447E-01, 
     consecutive successes:  3}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  1.28E-15,  4.40E-16 ]]}, 
+ max / mean error:  [  2.22E-15,  4.53E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  2.31E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  9.09E-07, 
@@ -1730,14 +1736,14 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  8.54E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  8.28E-17 ]]}, 
  Preconditioning:  Yes, 
- iter:  4, fnrm:  2.24E-03, Omega: -6.237107844567900E+00, D: -3.72E-05, D best: -3.72E-05, 
+ iter:  4, fnrm:  2.24E-03, Omega: -6.237107844567904E+00, D: -3.72E-05, D best: -3.72E-05, 
  Optimization: {algorithm: SD, mean alpha:  4.755E-01, max alpha:  8.192E-01, 
     consecutive successes:  4}, 
  calculate S^x: {mode: sparse, powers: {x: -1/2}, order:  0, 
  error estimation: [
- max / mean error:  [  2.89E-15,  4.26E-16 ]]}, 
+ max / mean error:  [  1.78E-15,  4.66E-16 ]]}, 
  Orthogonalization:  Yes, 
  Max deviation from unity in reorthonormalize_coeff:  1.23E-06, 
  Mean deviation from unity in reorthonormalize_coeff:  5.04E-07, 
@@ -1749,7 +1755,7 @@
  Orthoconstraint:  Yes, calculation of S^-1: direct calculation, 
  calculate S^x: {mode: sparse, powers: {x: -1}, order:  0, 
  error estimation: [
- max / mean error:  [  4.44E-16,  5.33E-17 ]]}, 
+ max / mean error:  [  4.44E-16,  6.94E-17 ]]}, 
  Preconditioning:  Yes, 
  iter:  5, fnrm:  1.63E-03, Omega: -6.237127862725112E+00, D: -2.00E-05, D best: -2.00E-05, 
  exit criterion: net number of iterations}
@@ -1841,7 +1847,7 @@
  {e: -3.112016435685E-01, f:  2.0000},  # 00003
  {e: -3.111465112086E-01, f:  2.0000}] # 00004
      summary: [ {kernel method: DIAG, mix entity: DENS, mix hist:  0, conv crit:  1.63E-16, 
- iter:  3, delta:  2.05E-08, energy: -6.23691917305006172E+00, D:  3.702E-05}]
+ iter:  3, delta:  2.05E-08, energy: -6.23691917305005994E+00, D:  3.702E-05}]
    -  #--------------------------------------------------------------------- kernel iter: 4
      Kernel update:
        Hamiltonian application required:  Yes
@@ -1942,7 +1948,7 @@
        x                               : -1/2
      order                             :  0
      error estimation:
-       max / mean error                :  [  1.67E-15,  4.01E-16 ]
+       max / mean error                :  [  2.07E-15,  5.38E-16 ]
    decay length of error function      :  1.000E-02
    decay length multiplicator          :  1.000E+00
    polynomial degree multiplicator     :  3.000E+00
@@ -2022,26 +2028,26 @@
  interpol check: {D eF:  2.220677E-03, D Tr:  5.401544E-01, interpol possible:  Yes}, 
  Search new eF: {det: -4.795E-14, limit:  1.000E-12, method: linear interpolation, 
     guess for new ef: -3.05745433E-01}, 
- iter:  16, Tr(K):  7.000639351E+00, charge diff:  6.393514856E-04}
+ iter:  16, Tr(K):  7.000639351E+00, charge diff:  6.393514805E-04}
    -  { #----------------------------------------------------------------------- it FOE: 17
  bisec/eval bounds:  [ -0.31, -0.31, -1.04,  1.04 ], pol deg:  622, eF: -3.057454332E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.628494E-06, D Tr: -5.569267E-04, interpol possible:  Yes}, 
  Search new eF: {det:  9.884E-19, limit:  1.000E-12, method: linear interpolation, 
     guess for new ef: -3.05745822E-01}, 
- iter:  17, Tr(K):  7.000082425E+00, charge diff:  8.242476877E-05}
+ iter:  17, Tr(K):  7.000082425E+00, charge diff:  8.242476811E-05}
    -  { #----------------------------------------------------------------------- it FOE: 18
  bisec/eval bounds:  [ -0.31, -0.31, -1.04,  1.04 ], pol deg:  622, eF: -3.057458222E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -3.890153E-07, D Tr: -8.244178E-05, interpol possible:  Yes}, 
- Search new eF: {det: -3.367E-26, limit:  1.000E-12, method: linear interpolation, 
+ Search new eF: {det: -3.370E-26, limit:  1.000E-12, method: linear interpolation, 
     guess for new ef: -3.05745822E-01}, 
- iter:  18, Tr(K):  6.999999983E+00, charge diff: -1.701283914E-08}
+ iter:  18, Tr(K):  6.999999983E+00, charge diff: -1.701283292E-08}
    diff from reference kernel          :  1.829E-01
-   ebs                                 : -2.558217588975207
-   ebs_check                           : -2.459210869344794
-   diff                                :  9.9006719630412743E-002
-   relative diff                       :  3.8701445904010728E-002
+   ebs                                 : -2.558217588975206
+   ebs_check                           : -2.459210869344793
+   diff                                :  9.9006719630413631E-002
+   relative diff                       :  3.8701445904011089E-002
    modify fscale                       : decrease
    trace(KS)                           :  6.999999982987161
    need to repeat with sharper decay (new):  Yes
@@ -2103,36 +2109,36 @@
  interpol check: {D eF:  4.104423E-04, D Tr:  1.808420E-01, interpol possible:  Yes}, 
  Search new eF: {det: -3.213E-15, limit:  1.000E-12, method: linear interpolation, 
     guess for new ef: -3.09161163E-01}, 
- iter:  9, Tr(K):  7.023632711E+00, charge diff:  2.363271102E-02}
+ iter:  9, Tr(K):  7.023632711E+00, charge diff:  2.363271103E-02}
    -  { #----------------------------------------------------------------------- it FOE: 10
  bisec/eval bounds:  [ -0.31, -0.31, -1.04,  1.04 ], pol deg:  1244, eF: -3.091611635E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -5.363724E-05, D Tr: -2.252925E-02, interpol possible:  Yes}, 
  Search new eF: {det:  2.549E-19, limit:  1.000E-12, method: linear interpolation, 
     guess for new ef: -3.09163791E-01}, 
- iter:  10, Tr(K):  7.001103456E+00, charge diff:  1.103456395E-03}
+ iter:  10, Tr(K):  7.001103456E+00, charge diff:  1.103456396E-03}
    -  { #----------------------------------------------------------------------- it FOE: 11
  bisec/eval bounds:  [ -0.31, -0.31, -1.04,  1.04 ], pol deg:  1244, eF: -3.091637905E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -2.627089E-06, D Tr: -1.112010E-03, interpol possible:  Yes}, 
  Search new eF: {det: -4.112E-25, limit:  1.000E-12, method: linear interpolation, 
     guess for new ef: -3.09163770E-01}, 
- iter:  11, Tr(K):  6.999991446E+00, charge diff: -8.553976190E-06}
+ iter:  11, Tr(K):  6.999991446E+00, charge diff: -8.553976200E-06}
    -  { #----------------------------------------------------------------------- it FOE: 12
  bisec/eval bounds:  [ -0.31, -0.31, -1.04,  1.04 ], pol deg:  1244, eF: -3.091637703E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF:  2.020850E-08, D Tr:  8.557024E-06, interpol possible:  Yes}, 
- Search new eF: {det:  1.575E-32, limit:  1.000E-12, method: linear interpolation, 
+ Search new eF: {det: -8.553E-32, limit:  1.000E-12, method: linear interpolation, 
     guess for new ef: -3.09163770E-01}, 
- iter:  12, Tr(K):  7.000000003E+00, charge diff:  3.047769148E-09}
+ iter:  12, Tr(K):  7.000000003E+00, charge diff:  3.047750496E-09}
    diff from reference kernel          :  1.826E-01
-   ebs                                 : -2.558225001552449
-   ebs_check                           : -2.459378351261477
-   diff                                :  9.8846650290971727E-002
-   relative diff                       :  3.8638763295248478E-002
+   ebs                                 : -2.558225001552442
+   ebs_check                           : -2.45937835126147
+   diff                                :  9.8846650290972171E-002
+   relative diff                       :  3.8638763295248749E-002
    modify fscale                       : decrease
    fscale reached lower limit; reset to:  5.0000000000000001E-003
-   trace(KS)                           :  7.000000003047769
+   trace(KS)                           :  7.000000003047743
    need to repeat with sharper decay (new):  Yes
    limit reached, exit loop            :  Yes
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
@@ -2145,7 +2151,7 @@
        x                               : -1/2
      order                             :  0
      error estimation:
-       max / mean error                :  [  1.67E-15,  4.01E-16 ]
+       max / mean error                :  [  2.07E-15,  5.38E-16 ]
    decay length of error function      :  1.000E-02
    decay length multiplicator          :  1.000E+00
    polynomial degree multiplicator     :  3.000E+00
@@ -2229,28 +2235,28 @@
  interpol check: {D eF:  2.699093E-05, D Tr:  3.045559E-03, interpol possible:  Yes}, 
  Search new eF: {det:  1.009E-19, limit:  1.000E-12, method: linear interpolation, 
     guess for new ef:  2.04275696E-01}, 
- iter:  16, Tr(K):  9.000002157E+00, charge diff:  2.157066795E-06}
+ iter:  16, Tr(K):  9.000002157E+00, charge diff:  2.157066799E-06}
    -  { #----------------------------------------------------------------------- it FOE: 17
  bisec/eval bounds:  [  0.20,  0.20, -1.04,  1.04 ], pol deg:  622, eF:  2.042756957E-01, 
        polynomials: from memory,    eval/bisection bounds ok:  [  Yes,  Yes,  Yes,  Yes ], 
  interpol check: {D eF: -1.911676E-08, D Tr: -2.157072E-06, interpol possible:  Yes}, 
- Search new eF: {det:  1.565E-27, limit:  1.000E-12, method: linear interpolation, 
+ Search new eF: {det:  1.589E-27, limit:  1.000E-12, method: linear interpolation, 
     guess for new ef:  2.04275696E-01}, 
- iter:  17, Tr(K):  9.000000000E+00, charge diff: -5.487166277E-12}
+ iter:  17, Tr(K):  9.000000000E+00, charge diff: -5.478284493E-12}
    diff from reference kernel          :  1.428E-06
-   ebs                                 : -2.666523179685185
-   ebs_check                           : -2.66652355354972
-   diff                                : -3.738645348860814E-007
-   relative diff                       :  1.4020674477325212E-007
+   ebs                                 : -2.666523179685178
+   ebs_check                           : -2.666523553549714
+   diff                                : -3.7386453666243824E-007
+   relative diff                       :  1.4020674543942215E-007
    modify fscale                       : increase
-   trace(KS)                           :  8.999999999994515
+   trace(KS)                           :  8.999999999994516
    need to repeat with sharper decay (new):  No
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ FOE calculation of kernel finished
  HOMO-LUMO analysis:
-   HOMO energy                         :  [ -0.3091637703455293 ]
+   HOMO energy                         :  [ -0.3091637703455287 ]
    LUMO energy                         :  [  0.2042756957374413 ]
-   HOMO-LUMO gap (Ha)                  :  [  0.5134394660829705 ]
-   HOMO-LUMO gap (eV)                  :  [  13.97139901145013 ]
+   HOMO-LUMO gap (Ha)                  :  [  0.5134394660829701 ]
+   HOMO-LUMO gap (eV)                  :  [  13.97139901145011 ]
  Charge analysis, projector approach:
     #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Calculate projector for multipole analysis
    calculate S^x:
@@ -2263,7 +2269,7 @@
        mult.                           :  20.00
        pol. deg.                       :  20
      error estimation:
-       max / mean error                :  [  4.01E-14,  1.10E-14 ]
+       max / mean error                :  [  4.0E-14,  1.10E-14 ]
    Calculating projector for charge analysis:
      convergence criterion             :  7.9999999999999996E-006
      maximal size of a submatrix       :  13
@@ -2290,7 +2296,7 @@
      -  {alpha:  3.5367E-02, net charge:  1.7026E-04, bisection bounds ok:  [  Yes,  Yes ]}
      -  {alpha:  3.5348E-02, net charge:  2.5048E-06, bisection bounds ok:  [  Yes,  Yes ]}
      number of states to be occupied (without smearing):  6
-     Pseudo Fermi level for occupations:  0.36206663088312
+     Pseudo Fermi level for occupations:  0.3620666308831151
      ordered eigenvalues and occupations:
      -  {eval: -2.3293E-01, atom:  00001, occ:  1.0000} # 00001
      -  {eval: -5.4731E-02, atom:  00004, occ:  1.0000} # 00002
@@ -2314,7 +2320,7 @@
    -  {H:  [ -1.262297563859E+00, -2.622975638594E-01 ]} # 0004
    -  {H:  [ -1.259729586097E+00, -2.597295860965E-01 ]} # 0005
    - total charge                      : -7.99999750E+00
-   - total net charge                  :  2.50477236E-06
+   - total net charge                  :  2.50477237E-06
  Charge analysis, Loewdin approach:
    Method                              : Loewdin
    calculate S^x:
@@ -2323,7 +2329,7 @@
        x                               : 1/2
      order                             :  0
      error estimation:
-       max / mean error                :  [  2.78E-15,  5.61E-16 ]
+       max / mean error                :  [  2.55E-15,  6.11E-16 ]
    Charge analysis (charge / net charge):
    -  {Si:  [ -3.141480918861E+00,  8.585190811389E-01 ]} # 0001
    -  {H:  [ -1.205668069079E+00, -2.056680690792E-01 ]} # 0002
@@ -2331,7 +2337,7 @@
    -  {H:  [ -1.22105277613E+00, -2.210527761299E-01 ]} # 0004
    -  {H:  [ -1.218384289348E+00, -2.183842893479E-01 ]} # 0005
    - total charge                      : -8.00000000E+00
-   - total net charge                  :  3.10862447E-15
+   - total net charge                  :  5.10702591E-15
    output file                         : chargeanalysis.gp
    Multipole analysis (based on the Loewdin charges):
      net dipole                        :  [  2.25914E-02,  3.06377E-02, -6.25433E-03 ]
@@ -2339,114 +2345,127 @@
      -  [ -5.96053E-02,  5.91407E-02, -1.41523E-01 ]
      -  [  5.91407E-02, -1.05978E-02, -7.36530E-02 ]
      -  [ -1.41523E-01, -7.36530E-02,  7.02031E-02 ]
-     - trace of quadropole matrix      :  1.33E-15
+     - trace of quadropole matrix      : -4.44E-16
  Gross support functions moments:
    Multipole coefficients:
      units for atomic positions        : bohr
      Values:
      - sym                             : H-1 # 0001
-       r: [ 11.0781350084262,  11.17832558255717,  7.161582158931593]
+       Atom number                     :  2
+       r: [ 1.798404564750589,  1.719582361597764, -1.562225271335733]
        Delta r                         :  [  4.116022E-02,  4.573671E-02, -4.447668E-02 ]
-       q0                              :  [  1.854349E-01 ]
-       q1                              :  [  3.915E-01, -4.197637E-01,  3.602872E-01 ]
-       q2: [ 8.675227E-01, -1.000000E+00,  9.565958E-02, -9.214037E-01, -6.907276E-02]
-       scaling factor                  :  4.26E+02
+       q0                              :  [  4.821067E-01 ]
+       q1                              :  [  2.489473E-01, -2.717914E-01,  2.270996E-01 ]
+       q2: [-8.441055E-01,  1.000000E+00, -1.765756E-01,  9.172794E-01,  7.740815E-02]
+       scaling factor                  :  2.00E+00
        type                            : unknown
      - sym                             : H-1 # 0002
-       r: [ 7.136457503054809,  8.64694100251022,  7.605516367032888]
+       Atom number                     :  4
+       r: [-2.143272940620808, -0.8118022184491824, -1.118291063234446]
        Delta r                         :  [ -5.77975E-02, -1.849789E-02, -2.924911E-02 ]
-       q0                              :  [  6.989397E-02 ]
-       q1                              :  [  6.439613E-02, -1.619082E-01, -3.126162E-01 ]
-       q2: [-6.541125E-01, -3.453679E-01, -2.736388E-01,  1.000000E+00,  9.622794E-01]
-       scaling factor                  :  9.73E+02
+       q0                              :  [  4.285123E-01 ]
+       q1                              :  [ -1.144094E-01, -1.795783E-01, -3.318050E-01 ]
+       q2: [-6.407037E-01, -3.796306E-01,  2.897519E-01, -1.000000E+00, -8.667236E-01]
+       scaling factor                  :  2.29E+00
        type                            : unknown
      - sym                             : Si-1 # 0003
-       r: [ 9.545637939215528,  9.512957650135965,  8.929545969221596]
+       Atom number                     :  1
+       r: [ 0.2659074955399134,  5.421442917656627E-002,  0.2057385389542681]
        Delta r                         :  [  2.927332E-03,  1.700713E-02, -1.395618E-03 ]
-       q0                              :  [  2.13038E-01 ]
-       q1                              :  [ -3.435153E-01,  3.680779E-01, -3.145672E-01 ]
-       q2: [ 8.589321E-01, -1.000000E+00,  1.225911E-01, -9.257556E-01, -7.679650E-02]
-       scaling factor                  :  4.31E+02
-       type                            : unknown
+       q0                              :  [  1.0E+00 ]
+       q1                              :  [  3.117382E-02, -3.013877E-02,  3.494410E-02 ]
+       q2: [ 8.643998E-04,  1.814983E-02, -6.201881E-02, -3.595918E-02, -8.485745E-03]
+       scaling factor                  :  1.05E+00
+       type                            : s
      - sym                             : Si-2 # 0004
-       r: [ 9.565211922165062,  9.500979836211622,  8.941155565909659]
+       Atom number                     :  1
+       r: [ 0.2854814784894479,  4.2236615252218002E-002,  0.2173481356423199]
        Delta r                         :  [  2.250132E-02,  5.029314E-03,  1.021398E-02 ]
-       q0                              :  [  1.718219E-02 ]
-       q1                              :  [  2.420385E-02,  3.980127E-02, -2.298376E-01 ]
-       q2: [-3.471048E-01, -9.904790E-02,  5.173569E-01, -5.353348E-01, -1.000000E+00]
-       scaling factor                  :  5.07E+02
+       q0                              :  [ -4.349422E-03 ]
+       q1                              :  [  9.566706E-04,  1.571592E-02, -1.000000E+00 ]
+       q2: [-2.853888E-01, -4.721689E-01, -1.124504E-01, -4.049959E-01, -2.722197E-01]
+       scaling factor                  :  1.99E+00
        type                            : unknown
      - sym                             : Si-3 # 0005
-       r: [ 9.531632460836802,  9.49401747950207,  8.928922569383641]
+       Atom number                     :  1
+       r: [ 0.2519020171611892,  3.527425854265509E-002,  0.2051151391163089]
        Delta r                         :  [ -1.107815E-02, -1.933043E-03, -2.019018E-03 ]
-       q0                              :  [ -1.666483E-04 ]
-       q1                              :  [ -1.0E+00,  2.285981E-02, -2.806349E-02 ]
-       q2: [ 3.979993E-01,  1.335712E-01,  3.964853E-01, -5.120323E-01, -7.106246E-02]
-       scaling factor                  :  1.76E+02
+       q0                              :  [  7.075842E-05 ]
+       q1                              :  [ -1.0E+00,  2.296272E-02, -2.796304E-02 ]
+       q2: [ 3.754071E-01,  1.337042E-01,  4.133678E-01, -5.120325E-01, -4.310227E-02]
+       scaling factor                  :  2.01E+00
        type                            : unknown
      - sym                             : Si-4 # 0006
-       r: [ 9.546822422781872,  9.476018866168983,  8.910264621124115]
+       Atom number                     :  1
+       r: [ 0.2670919791062456,  1.7275645209581469E-002,  0.18645719085678]
        Delta r                         :  [  4.111816E-03, -1.993166E-02, -2.067697E-02 ]
-       q0                              :  [  1.401279E-02 ]
-       q1                              :  [  3.394057E-03, -1.000000E+00,  6.583537E-03 ]
-       q2: [-5.323924E-01,  4.628365E-01,  3.311341E-01, -8.756908E-02, -2.205762E-01]
-       scaling factor                  :  1.73E+02
+       q0                              :  [  1.432757E-02 ]
+       q1                              :  [  3.955615E-03, -1.000000E+00,  6.868257E-03 ]
+       q2: [-5.325532E-01,  4.235563E-01,  2.754273E-01, -1.164478E-01, -2.208974E-01]
+       scaling factor                  :  1.97E+00
        type                            : unknown
      - sym                             : Si-5 # 0007
-       r: [ 9.534384660439693,  9.484017040364087,  8.917085181558711]
+       Atom number                     :  1
+       r: [ 0.254654216764072,  2.5273819404684872E-002,  0.1932777512913724]
        Delta r                         :  [ -8.325946E-03, -1.193348E-02, -1.385641E-02 ]
-       q0                              :  [ -3.558014E-04 ]
-       q1                              :  [  6.06632E-02,  2.007007E-01, -2.244328E-01 ]
-       q2: [-7.462294E-03,  1.000000E+00, -3.805687E-02, -3.832290E-02, -3.156703E-03]
-       scaling factor                  :  1.53E+02
+       q0                              :  [ -4.273319E-04 ]
+       q1                              :  [  6.03488E-02,  1.998203E-01, -2.235582E-01 ]
+       q2: [-1.103544E-02,  1.000000E+00, -3.528266E-02, -4.270169E-02, -3.222675E-03]
+       scaling factor                  :  1.75E+00
        type                            : d_yz
      - sym                             : Si-6 # 0008
-       r: [ 9.55291161191114,  9.490162594810183,  8.946286790681917]
+       Atom number                     :  1
+       r: [ 0.2731811682355172,  3.1419373850773979E-002,  0.2224793604145763]
        Delta r                         :  [  1.020101E-02, -5.787928E-03,  1.534520E-02 ]
-       q0                              :  [  3.712338E-03 ]
-       q1                              :  [ -2.267906E-01, -4.649268E-02, -1.671853E-01 ]
-       q2: [-1.334256E-02, -3.505714E-02,  6.965827E-03,  1.000000E+00, -9.543233E-03]
-       scaling factor                  :  1.49E+02
+       q0                              :  [  3.571666E-03 ]
+       q1                              :  [ -2.249423E-01, -4.638535E-02, -1.656103E-01 ]
+       q2: [-7.762805E-03, -2.195431E-02,  6.172833E-03,  1.000000E+00, -1.242869E-02]
+       scaling factor                  :  1.71E+00
        type                            : d_xz
      - sym                             : Si-7 # 0009
-       r: [ 9.53185530829739,  9.515161999684091,  8.936900381921097]
+       Atom number                     :  1
+       r: [ 0.2521248646217771,  5.641877872469081E-002,  0.213092951653767]
        Delta r                         :  [ -1.08553E-02,  1.921148E-02,  5.958794E-03 ]
-       q0                              :  [  4.749375E-03 ]
-       q1                              :  [  1.728564E-01, -2.212588E-01, -1.039811E-01 ]
-       q2: [ 1.000000E+00,  5.794696E-03,  3.986876E-02, -2.209986E-02,  1.433458E-02]
-       scaling factor                  :  1.51E+02
+       q0                              :  [  4.744968E-03 ]
+       q1                              :  [  1.717268E-01, -2.201969E-01, -1.033534E-01 ]
+       q2: [ 1.000000E+00,  1.066618E-02,  5.107495E-02, -1.947623E-02,  2.126665E-02]
+       scaling factor                  :  1.73E+00
        type                            : d_xy
      - sym                             : Si-8 # 0010
-       r: [ 9.534559882968821,  9.50710510018004,  8.937335564322618]
+       Atom number                     :  1
+       r: [ 0.2548294392932053,  4.8361879220633952E-002,  0.2135281340552844]
        Delta r                         :  [ -8.150724E-03,  1.115458E-02,  6.393977E-03 ]
-       q0                              :  [  3.500277E-03 ]
-       q1                              :  [ -5.204296E-03, -1.036140E-01, -1.511292E-01 ]
-       q2: [-3.912346E-02, -1.786423E-02,  2.045182E-02, -3.876527E-02,  1.000000E+00]
-       scaling factor                  :  1.59E+02
+       q0                              :  [  3.575865E-03 ]
+       q1                              :  [ -5.363059E-03, -1.040034E-01, -1.516668E-01 ]
+       q2: [-3.558314E-02, -1.538854E-02,  2.117392E-02, -4.380741E-02,  1.000000E+00]
+       scaling factor                  :  1.80E+00
        type                            : d_x^2-y^2
      - sym                             : Si-9 # 0011
-       r: [ 9.543720968161006,  9.484476305166892,  8.916538952723844]
+       Atom number                     :  1
+       r: [ 0.2639905244853864,  2.5733084207482548E-002,  0.1927315224565085]
        Delta r                         :  [  1.010361E-03, -1.147422E-02, -1.440263E-02 ]
-       q0                              :  [ -2.528202E-03 ]
-       q1                              :  [  1.698707E-01,  8.041527E-02, -3.283877E-02 ]
-       q2: [-1.430787E-03, -2.122969E-02,  1.000000E+00,  2.262056E-02,  1.670394E-02]
-       scaling factor                  :  1.55E+02
+       q0                              :  [ -2.682711E-03 ]
+       q1                              :  [  1.699711E-01,  8.029764E-02, -3.289277E-02 ]
+       q2: [-5.662824E-03, -1.277249E-02,  1.000000E+00,  2.030198E-02,  1.025515E-02]
+       scaling factor                  :  1.77E+00
        type                            : d_z^2
      - sym                             : H-1 # 0012
-       r: [ 11.09836746799845,  7.19149696380068,  9.652361385789984]
+       Atom number                     :  5
+       r: [ 1.818637024322829, -2.26724625715873,  0.9285539555226467]
        Delta r                         :  [  3.725148E-02, -4.951812E-02,  1.667775E-02 ]
-       q0                              :  [  6.828796E-02 ]
-       q1                              :  [ -2.87833E-01, -7.898121E-02,  1.731095E-01 ]
-       q2: [-1.000000E+00,  6.937136E-01, -6.070266E-01, -4.222756E-01, -5.520399E-01]
-       scaling factor                  :  1.01E+03
+       q0                              :  [  3.909672E-01 ]
+       q1                              :  [ -2.77191E-01,  8.906567E-02,  1.840099E-01 ]
+       q2: [ 1.000000E+00,  4.767264E-01,  5.756453E-01, -3.162780E-01,  4.745506E-01]
+       scaling factor                  :  2.54E+00
        type                            : unknown
      - sym                             : H-1 # 0013
-       r: [ 8.864368407105472,  10.97247689330354,  11.30717925030953]
+       Atom number                     :  3
+       r: [-0.415362036570146,  1.513733672344131,  2.583371820042196]
        Delta r                         :  [ -1.120192E-02,  2.963226E-02,  6.323809E-02 ]
-       q0                              :  [  1.623501E-01 ]
-       q1                              :  [  2.974728E-01,  4.853648E-01, -1.398747E-01 ]
-       q2: [-2.895279E-01,  1.000000E+00,  7.367069E-01, -4.559170E-01, -2.502422E-01]
-       scaling factor                  :  5.06E+02
+       q0                              :  [  4.03539E-01 ]
+       q1                              :  [  1.69265E-01,  2.871237E-01, -8.491157E-02 ]
+       q2: [ 2.840708E-01, -1.000000E+00, -6.986884E-01,  4.963891E-01,  2.192955E-01]
+       scaling factor                  :  2.49E+00
        type                            : unknown
   #================================================= Atomic multipole analysis, new approach
  Method                                : loewdin
@@ -2473,7 +2492,7 @@
      x                                 : 1/2
    order                               :  20
    error estimation:
-     max / mean error                  :  [  4.44E-16,  4.60E-17 ]
+     max / mean error                  :  [  2.22E-16,  3.72E-17 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Kernel calculated
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Orthonormalizing the support functions
  calculate S^x:
@@ -2525,11 +2544,11 @@
   #WARNING: commented correction_locrad
   #------------------------------------------------------------------------ Pulay Correction
  Pulay Forces (Ha/Bohr):
- -  {Si: [-8.060233425338E-05, -1.797591306583E-04,  1.558397362135E-04]} # 0001
- -  {H: [-8.097372129161E-04, -8.784984147726E-04,  8.762900925878E-04]} # 0002
- -  {H: [ 4.171899346413E-04, -9.703943772792E-04, -1.413282777613E-03]} # 0003
- -  {H: [ 1.393857323048E-03,  4.203960532124E-04,  7.898282490313E-04]} # 0004
- -  {H: [-1.037659268211E-03,  1.394521097108E-03, -4.266695997319E-04]} # 0005
+ -  {Si: [-8.060233425387E-05, -1.797591306583E-04,  1.558397362140E-04]} # 0001
+ -  {H: [-8.097372129157E-04, -8.784984147725E-04,  8.762900925876E-04]} # 0002
+ -  {H: [ 4.171899346416E-04, -9.703943772797E-04, -1.413282777613E-03]} # 0003
+ -  {H: [ 1.393857323049E-03,  4.203960532128E-04,  7.898282490316E-04]} # 0004
+ -  {H: [-1.037659268212E-03,  1.394521097108E-03, -4.266695997318E-04]} # 0005
  Total charge                          :  7.999999919751E+00
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -2552,31 +2571,31 @@
  - commented correction_locrad
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  82.18
-   Elapsed time (s)                    :  45.01
+   CPU time (s)                        :  131.83
+   Elapsed time (s)                    :  77.94
  BigDFT infocode                       :  0
  Average noise forces: {x: -3.77958060E-04, y:  2.09187344E-05, z:  5.21402622E-04, 
                     total:  6.44321801E-04}
- Clean forces norm (Ha/Bohr): {maxval:  1.067803205144E-03, fnrm2:  2.563305727135E-06}
- Raw forces norm (Ha/Bohr): {maxval:  1.448140631044E-03, fnrm2:  3.757372210748E-06}
+ Clean forces norm (Ha/Bohr): {maxval:  1.067803205145E-03, fnrm2:  2.563305727149E-06}
+ Raw forces norm (Ha/Bohr): {maxval:  1.448140631043E-03, fnrm2:  3.757372210755E-06}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {Si: [ 2.802519540145E-04,  2.629649431711E-04, -4.388470142778E-04]} # 0001
- -  {H: [-9.251317892123E-05,  3.664884249167E-04, -4.308064896878E-04]} # 0002
- -  {H: [-2.861744670121E-04,  3.621299256780E-04,  6.825635645938E-04]} # 0003
- -  {H: [-1.884421782267E-04, -3.716810939960E-05, -1.963111931096E-04]} # 0004
- -  {H: [ 2.868778701457E-04, -9.544151843663E-04,  3.834011324814E-04]} # 0005
+ -  {Si: [ 2.802519540147E-04,  2.629649431716E-04, -4.388470142875E-04]} # 0001
+ -  {H: [-9.251317892114E-05,  3.664884249158E-04, -4.308064896864E-04]} # 0002
+ -  {H: [-2.861744670126E-04,  3.621299256777E-04,  6.825635645979E-04]} # 0003
+ -  {H: [-1.884421782270E-04, -3.716810939938E-05, -1.963111931080E-04]} # 0004
+ -  {H: [ 2.868778701460E-04, -9.544151843657E-04,  3.834011324840E-04]} # 0005
  Energy (Hartree)                      : -6.23690797437095057E+00
- Force Norm (Hartree/Bohr)             :  1.60103270645400517E-03
+ Force Norm (Hartree/Bohr)             :  1.60103270645809760E-03
  Memory Consumption Report:
-   Tot. No. of Allocations             :  21199
-   Tot. No. of Deallocations           :  21199
+   Tot. No. of Allocations             :  21200
+   Tot. No. of Deallocations           :  21200
    Remaining Memory (B)                :  0
    Memory occupation:
-     Peak Value (MB)                   :  418.827
+     Peak Value (MB)                   :  418.828
      for the array                     : w%w2
      in the routine                    : calculte_multipole_matrix
-     Memory Peak of process            : 493.172 MB
- Walltime since initialization         : 00:00:45.376055949
+     Memory Peak of process            : 497.664 MB
+ Walltime since initialization         : 00:01:18.303405497
  Max No. of dictionaries used          :  7761 #( 877 still in use)
  Number of dictionary folders allocated:  1
