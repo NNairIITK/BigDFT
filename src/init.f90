@@ -3074,9 +3074,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call vcopy(tmb%linmat%l%nvctrp_tg, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
      call f_free(tmparr)
      if (rho_negative) then
-         if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+         !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
          !there's a problem here if we set init to false, as init_foe will then nullify foe_obj without deallocating/reallocating
-         call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.) !.false.)
+         !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .false.)
          call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      end if
 
@@ -3171,7 +3171,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
-             energs_work,.false.,in%lin%coeff_factor) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             energs_work,.false.,in%lin%coeff_factor,&
+             in%lin%pexsi_npoles,in%lin%pexsi_mumin,in%lin%pexsi_mumax,in%lin%pexsi_mu,&
+             in%lin%pexsi_temperature,in%lin%pexsi_tol_charge) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         call deallocate_work_mpiaccumulate(energs_work)
 

@@ -3,7 +3,7 @@
   #the run. The code would produce the same output if this file is used as input.
  dft:
    hgrids: 0.55
-   rmult: [5.0, 7.0]
+   rmult: [4.0, 6.0]
    ixc: PBE (ABINIT)
    gnrm_cv: accurate
    nrepmax: accurate
@@ -59,7 +59,7 @@
    rpnrm_cv: 1.0e-7
    taylor_order: 1020
    max_inversion_error: 5.0e-8
-   charge_multipoles: yes
+   charge_multipoles: 1
  lin_basis:
    nit: 8
    idsx: 8

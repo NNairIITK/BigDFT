@@ -1638,9 +1638,18 @@
        COMMENT: calculate the onsite overlap matrix (has only an effect if the matrices are all written to disk)
        default: No
      charge_multipoles:
-       COMMENT: Calculate the atom-centered multipole coefficients of the electronic charge
-       DESCRIPTION: Calculate the multipole expansion coefficients which can then be used to establish a QM/MM coupling
-       default: no
+       COMMENT: Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 new approach Projector
+       DESCRIPTION: | 
+                    Calculate the multipole expansion coefficients of the atomic charge which can then be used to establish a QM/MM coupling.
+                    Possible values are:
+                    * 0 => no calculation
+                    * 1 => new approach using Loewdin
+                    * 2 => new approach using projector
+       default: 0
+       EXCLUSIVE:
+         0: no calculation
+         1: new approach using Loewdin
+         2: new approach using projector
 #Parameters for the localised basis set (or support function) for the linear scaling version
  lin_basis:
      nit:
@@ -1811,10 +1820,12 @@
                      * DIRMIN => direct minimization
                      * DIAG => diagonalization with density mixing
                      * FOE => Fermi Operator Expansion
+                     * PEXSI => PEXSI library
        EXCLUSIVE:
          DIRMIN: direct minimization
          DIAG: diagonalization
          FOE: Fermi Operator Expansion
+         PEXSI: external PEXSI lbrary
        default: DIAG
      mixing_method:
        COMMENT: quantity to be mixed
@@ -1857,6 +1868,36 @@
                     or systems where convergence is unstable.
        default: 1.0
        RANGE: [0.0,1.e1]
+     pexsi_npoles:
+       COMMENT: number of poles used by PEXSI
+       DESCRIPTION: number of poles used by PEXSI to calculate the density kernel from the Hamiltonian and overlap matrices
+       default: 40
+       RANGE: [20,200]
+     pexsi_mumin:
+       COMMENT: initial guess for the lower bound of the chemical potential used by PEXSI
+       DESCRIPTION: initial guesss for the lower bound of the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       default: -1.0
+       RANGE: [-5.0,5.0]
+     pexsi_mumax:
+       COMMENT: initial guess for the upper bound of the chemical potential used by PEXSI
+       DESCRIPTION: initial guesss for the upper bound of the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       default: 1.0
+       RANGE: [-5.0,5.0]
+     pexsi_mu:
+       COMMENT: initial guess for the  chemical potential used by PEXSI
+       DESCRIPTION: initial guesss for the chemical potential (in hartree?) used by PEXSI, will be adjusted automatically later
+       default: 0.5
+       RANGE: [-5.0,5.0]
+     pexsi_temperature:
+       COMMENT: temperature used by PEXSI
+       DESCRIPTION: temperature (in atomic units?) used by PEXSI
+       default: 1.e-3
+       RANGE: [0.0,1.0]
+     pexsi_tol_charge:
+       COMMENT: charge tolerance used PEXSI
+       DESCRIPTION: tolerance on the number of electrons used by PEXSI
+       default: 1.e-3
+       RANGE: [1.e-10,1.0]
 #Parameters to define the localized basis set or support functions (linear scaling version)
  lin_basis_params:
      nbasis:

@@ -39,13 +39,13 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use communications, only: transpose_localized, start_onesided_communication
   use sparsematrix_init, only: matrixindex_in_compressed
   use io, only: writemywaves_linear, writemywaves_linear_fragments, write_linear_matrices, write_linear_coefficients
-  use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, build_ks_orbitals, calculate_theta, &
-                                   projector_for_charge_analysis
+  use postprocessing_linear, only: loewdin_charge_analysis, support_function_multipoles, support_function_gross_multipoles, &
+                                   build_ks_orbitals, calculate_theta
   use rhopotential, only: updatePotential, sumrho_for_TMBs, corrections_for_negative_charge
   use locreg_operations, only: workarrays_quartic_convolutions,workarr_precond
   use locregs_init, only: small_to_large_locreg
   use public_enums
-  use multipole, only: multipoles_from_density
+  use multipole, only: multipoles_from_density, multipole_analysis_driver, projector_for_charge_analysis
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral
   use foe, only: fermi_operator_expansion
@@ -54,6 +54,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   use transposed_operations, only: calculate_overlap_transposed
   use bounds, only: geocode_buffers
   use orthonormalization, only : orthonormalizeLocalized
+  use multipole_base, only: lmax
 
   implicit none
 
@@ -126,7 +127,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
   real(kind=8),dimension(:,:),pointer :: com
   real(kind=8),dimension(:,:),allocatable :: tmat, coeff, ovrlp_full
   real(kind=8),dimension(:),allocatable :: projector_compr
-  real(kind=8),dimension(:,:,:),allocatable :: matrixElements, coeff_all
+  real(kind=8),dimension(:,:,:),allocatable :: matrixElements, coeff_all, multipoles_out, multipoles
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
@@ -470,6 +471,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,rxyz,denspot,rhopotold,n
                      .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
                      input%purification_quickreturn,&
                      input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor,&
+                     input%lin%pexsi_npoles, input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
+                     input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                      convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff)
                 !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
              end if
@@ -1417,7 +1420,9 @@ end if
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel,input%lin%coeff_factor)
+           input%calculate_KS_residue,input%calculate_gap,energs_work,update_kernel,input%lin%coeff_factor, &
+           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu, &
+           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
        !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
 
        !!if (input%lin%scf_mode==LINEAR_FOE) then
@@ -1451,7 +1456,9 @@ end if
            infoCoeff,energs,nlpsp,input%SIC,tmb,pnrm,update_phi,.true.,.false.,&
            .true.,input%lin%extra_states,itout,0,0,norder_taylor,input%lin%max_inversion_error,&
            input%purification_quickreturn,&
-           input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor)
+           input%calculate_KS_residue,input%calculate_gap,energs_work,.false.,input%lin%coeff_factor, &
+           input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,&
+           input%lin%pexsi_temperature,input%lin%pexsi_tol_charge)
       !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%l, tmb%linmat%kernel_)
       !!call scalprod_on_boundary(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
       call pulay_correction_new(iproc, nproc, tmb, kswfn%orbs, at, fpulay)
@@ -2474,9 +2481,29 @@ end if
       !    iat = tmb%linmat%s%on_which_atom(i)
       !    com(1:3,i) = rxyz(1:3,iat)
       !end do
+
+      !!! TEST ##########################################################
+      !!multipoles_out = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='multipoles_out')
+      !!call multipoles_from_density(iproc, nproc, at, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%orbs, &
+      !!     tmb%npsidim_orbs, tmb%psi, input%lin%norbsPerType, tmb%collcom, tmb%collcom_sr, tmb%orthpar, &
+      !!     tmb%linmat%ovrlp_, tmb%linmat%kernel_, meth_overlap=norder_taylor, &
+      !!     multipoles_out=multipoles_out)
+      !!! END TEST ######################################################
+
+      !! Calculate the support function multipoles
+      !multipoles = f_malloc0((/-lmax.to.lmax,0.to.lmax,1.to.tmb%orbs%norb/),id='multipoles')
+      !call support_function_gross_multipoles(iproc, tmb, at, denspot, multipoles)
+
+      !write(*,*) 'call with multipoles'
+      !call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+      !     tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
+      !     rxyz, calculate_centers=.false., multipoles=multipoles)
       call projector_for_charge_analysis(at, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, &
-           rxyz, calculate_centers=.false.)
+           rxyz, calculate_centers=.false., write_output=.true.)
+      !call f_free(multipoles)
+      !call f_free(multipoles_out)
+
       !call f_free_ptr(com)
       if (iproc==0) then
           call yaml_mapping_close()
@@ -2502,59 +2529,85 @@ end if
           call yaml_mapping_close()
       end if
       call support_function_multipoles(iproc, tmb, at, denspot)
+
+
+      ! THIS IS COMMENTED FOR THE MOMENT #############################################################3
+      !multipoles = f_malloc0((/-lmax.to.lmax,0.to.lmax,1.to.tmb%orbs%norb/),id='multipoles')
+      !call support_function_gross_multipoles(iproc, tmb, at, denspot, multipoles)
+      !call f_free(multipoles)
+
   end if
 
-  if (input%lin%charge_multipoles) then
+  if (input%lin%charge_multipoles>0) then
       !!write(200+iproc,*) tmb%linmat%ovrlp_%matrix_compr
       !!write(210+iproc,*) tmb%linmat%kernel_%matrix_compr
 
-      !!! TEST ################################################
-      !!call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
-      !!     tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
-      !!     denspot%dpbox%ndimrhopot, &
-      !!     denspot%rhov, rho_negative)
-      !!if (rho_negative) then
-      !!    call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
-      !!end if
-      !!is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
-      !!ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
-      !!is2 = 1
-      !!ie2 = denspot%dpbox%ndims(2)
-      !!is1 = 1
-      !!ie1 = denspot%dpbox%ndims(1)
-      !!ii = 0
-      !!do i3=is3,ie3
-      !!    do i2=is2,ie2
-      !!        do i1=is1,ie1
-      !!            ii = ii + 1
-      !!            write(190+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
-      !!        end do
-      !!    end do
-      !!end do
-      !!call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.false.,&
-      !!     quiet=denspot%PSquiet,rho_ion=denspot%rho_ion)
-      !!is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
-      !!ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
-      !!is2 = 1
-      !!ie2 = denspot%dpbox%ndims(2)
-      !!is1 = 1
-      !!ie1 = denspot%dpbox%ndims(1)
-      !!ii = 0
-      !!do i3=is3,ie3
-      !!    do i2=is2,ie2
-      !!        do i1=is1,ie1
-      !!            ii = ii + 1
-      !!            write(200+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
-      !!        end do
-      !!    end do
-      !!end do
+!! UNCOMMENT FOR TESTS      ! TEST ################################################
+!! UNCOMMENT FOR TESTS      call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+!! UNCOMMENT FOR TESTS           tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
+!! UNCOMMENT FOR TESTS           denspot%dpbox%ndimrhopot, &
+!! UNCOMMENT FOR TESTS           denspot%rhov, rho_negative)
+!! UNCOMMENT FOR TESTS      if (rho_negative) then
+!! UNCOMMENT FOR TESTS          call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+!! UNCOMMENT FOR TESTS      end if
+!! UNCOMMENT FOR TESTS      is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
+!! UNCOMMENT FOR TESTS      ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
+!! UNCOMMENT FOR TESTS      is2 = 1
+!! UNCOMMENT FOR TESTS      ie2 = denspot%dpbox%ndims(2)
+!! UNCOMMENT FOR TESTS      is1 = 1
+!! UNCOMMENT FOR TESTS      ie1 = denspot%dpbox%ndims(1)
+!! UNCOMMENT FOR TESTS      ii = 0
+!! UNCOMMENT FOR TESTS      do i3=is3,ie3
+!! UNCOMMENT FOR TESTS          do i2=is2,ie2
+!! UNCOMMENT FOR TESTS              do i1=is1,ie1
+!! UNCOMMENT FOR TESTS                  ii = ii + 1
+!! UNCOMMENT FOR TESTS                  write(190+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
+!! UNCOMMENT FOR TESTS              end do
+!! UNCOMMENT FOR TESTS          end do
+!! UNCOMMENT FOR TESTS      end do
+!! UNCOMMENT FOR TESTS
+!! UNCOMMENT FOR TESTS      !write(*,*) 'BEFORE: sum(rhov)',sum(denspot%rhov)
+!! UNCOMMENT FOR TESTS      !write(*,*) 'BEFORE: sum(V_ext)',sum(denspot%V_ext)
+!! UNCOMMENT FOR TESTS      call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
+!! UNCOMMENT FOR TESTS           quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
+!! UNCOMMENT FOR TESTS      !write(*,*) 'AFTER: sum(rhov)',sum(denspot%rhov)
+!! UNCOMMENT FOR TESTS      is3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1
+!! UNCOMMENT FOR TESTS      ie3 = denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2)
+!! UNCOMMENT FOR TESTS      is2 = 1
+!! UNCOMMENT FOR TESTS      ie2 = denspot%dpbox%ndims(2)
+!! UNCOMMENT FOR TESTS      is1 = 1
+!! UNCOMMENT FOR TESTS      ie1 = denspot%dpbox%ndims(1)
+!! UNCOMMENT FOR TESTS      ii = 0
+!! UNCOMMENT FOR TESTS      do i3=is3,ie3
+!! UNCOMMENT FOR TESTS          do i2=is2,ie2
+!! UNCOMMENT FOR TESTS              do i1=is1,ie1
+!! UNCOMMENT FOR TESTS                  ii = ii + 1
+!! UNCOMMENT FOR TESTS                  write(200+iproc,*) 'i1, i2, i3, val', i1, i2, i3, denspot%rhov(ii)
+!! UNCOMMENT FOR TESTS              end do
+!! UNCOMMENT FOR TESTS          end do
+!! UNCOMMENT FOR TESTS      end do
 
 
-      call multipoles_from_density(iproc, nproc, at, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%orbs, &
-           tmb%npsidim_orbs, tmb%psi, input%lin%norbsPerType, tmb%collcom, tmb%collcom_sr, tmb%orthpar, &
-           tmb%linmat%ovrlp_, tmb%linmat%kernel_, meth_overlap=norder_taylor)
-      !!write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
-      !!write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
+      !if (input%lin%charge_multipoles==1) then
+      !    call multipoles_from_density(iproc, nproc, at, tmb%lzd, tmb%linmat%s, tmb%linmat%l, tmb%orbs, &
+      !         tmb%npsidim_orbs, tmb%psi, input%lin%norbsPerType, tmb%collcom, tmb%collcom_sr, tmb%orthpar, &
+      !         tmb%linmat%ovrlp_, tmb%linmat%kernel_, meth_overlap=norder_taylor)
+      !    !write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
+      !    !write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
+      if (input%lin%charge_multipoles==1) then
+          call multipole_analysis_driver(iproc, nproc, 2, tmb%npsidim_orbs, tmb%psi, &
+               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
+               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%lzd, &
+               tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
+               method='loewdin')
+      else if (input%lin%charge_multipoles==2) then
+          call multipole_analysis_driver(iproc, nproc, 2, tmb%npsidim_orbs, tmb%psi, &
+               max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
+               tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%lzd, &
+               tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
+               method='projector')
+      end if
+
   end if
 
 
@@ -2796,6 +2849,8 @@ end if
                       .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
               else
                  call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
@@ -2803,6 +2858,8 @@ end if
                       .false.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
               end if
            else
@@ -2812,6 +2869,8 @@ end if
                       .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder,cdft)
               else
                  call get_coeff(iproc,nproc,input%lin%scf_mode,KSwfn%orbs,at,rxyz,denspot,GPU,&
@@ -2819,6 +2878,8 @@ end if
                       .true.,input%lin%extra_states,itout,it_scc,cdft_it,norder_taylor,input%lin%max_inversion_error,&
                       input%purification_quickreturn,&
                       input%calculate_KS_residue,input%calculate_gap,energs_work,remove_coupling_terms,input%lin%coeff_factor,&
+                      input%lin%pexsi_npoles,input%lin%pexsi_mumin,input%lin%pexsi_mumax,input%lin%pexsi_mu,& 
+                      input%lin%pexsi_temperature,input%lin%pexsi_tol_charge, &
                       convcrit_dmin,nitdmin,input%lin%curvefit_dmin,ldiis_coeff,reorder)
               end if
            end if
@@ -3014,7 +3075,8 @@ end if
            ! update occupations wrt eigenvalues (NB for directmin these aren't guaranteed to be true eigenvalues)
            ! switch off for FOE at the moment
            ! switch off for directmin too, unless we decide to reactivate calculating the expectation values the output is meaningless
-           if (input%lin%scf_mode/=LINEAR_FOE .and. input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
+           if (input%lin%scf_mode/=LINEAR_FOE .and. input%lin%scf_mode/=LINEAR_PEXSI .and. &
+               input%lin%scf_mode/=LINEAR_DIRECT_MINIMIZATION) then
                !call vcopy(kswfn%orbs%norb,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
                ! Copy the spin up eigenvalues (or all in the case of a non-polarized calculation)
                call vcopy(kswfn%orbs%norbu,tmb%orbs%eval(1),1,kswfn%orbs%eval(1),1)
@@ -3270,12 +3332,14 @@ end if
               call yaml_map('kernel method','DMIN')
           else if (input%lin%scf_mode==LINEAR_FOE) then
               call yaml_map('kernel method','FOE')
+          else if (input%lin%scf_mode==LINEAR_PEXSI) then
+              call yaml_map('kernel method','PEXSI')
           else
               call yaml_map('kernel method','DIAG')
           end if
 
           if (input%lin%scf_mode==LINEAR_MIXDENS_SIMPLE .or.  input%lin%scf_mode==LINEAR_FOE &
-              .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
+              .or. input%lin%scf_mode==LINEAR_PEXSI .or. input%lin%scf_mode==LINEAR_DIRECT_MINIMIZATION) then
               call yaml_map('mix entity','DENS')
           else if (input%lin%scf_mode==LINEAR_MIXPOT_SIMPLE) then
               call yaml_map('mix entity','POT')

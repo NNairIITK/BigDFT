@@ -628,10 +628,6 @@
    Tolerance for the following test    :  9.999999999999999988E-15
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
-   Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  1.307966680586581782E-14
-   Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  7.958078640513122082E-13
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  27065,  258 ]
    Tolerances for this check: [ 2.61080003485791835E-07,  1.59872115546022542E-14]
@@ -3677,10 +3673,6 @@
    Tolerance for the following test    :  9.999999999999999988E-15
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
-   Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  1.307966680586581782E-14
-   Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  7.958078640513122082E-13
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  27065,  258 ]
  
@@ -6731,10 +6723,6 @@
    Tolerance for the following test    :  9.999999999999999988E-15
    transposition check, mean error     :  0.000000000000000000E+00
    transposition check, max error      :  0.000000000000000000E+00
-   Tolerance for the following test    :  9.999999999999999799E-13
-   calculation check, error sum        :  1.766079389241573946E-14
-   Tolerance for the following test    :  1.000000000000000036E-10
-   calculation check, error max        :  1.364242052659392357E-12
  Checking Communications of Minimal Basis:
    Number of coarse and fine DoF (MasterMPI task):  [  26550,  254 ]
  
