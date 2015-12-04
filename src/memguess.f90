@@ -906,10 +906,11 @@ program memguess
            end do
            total_occup = total_occup + occup_pdos
            if (ipdos==1) then
-               write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
+               write(iunit02,'(a,i0,a)') "plot f",ipdos,"(x) lc rgb 'red' lt 1 lw 2 w l title 'name'"
            else
-               write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lc rgb 'color' lt 1 lw 2 w l title 'name'"
+               write(iunit02,'(a,i0,a)') "replot f",ipdos,"(x) lc rgb 'red' lt 1 lw 2 w l title 'name'"
            end if
+           write(iunit02,'(a)') "pause -1"
            call yaml_map('sum of PDoS',occup_pdos)
            !!output_pdos='PDoS_'//num//'.dat'
            !!call yaml_map('output file',trim(output_pdos))
