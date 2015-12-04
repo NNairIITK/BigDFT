@@ -620,7 +620,7 @@ use wfn_extrap
 
   !local variables
   character(len=*), parameter :: subname='input_wf_memory_history'
-  logical, parameter :: debug_flag=.true.
+  logical, parameter :: debug_flag=.false.
   integer :: istep,jstep,nvctr
   real(wp), dimension(:,:), allocatable :: psi_istep, psi_nstep
   integer, save :: icall=0
@@ -669,7 +669,7 @@ use wfn_extrap
   if (istep_history == 0) then
      if(iproc==0 .and. debug_flag)print *, "NNdbg: istep_history ==0; copying oldpsis(1..to wfn_history+1)"
      do istep=1,wfn_history
-        if(iproc==0)print *,    ".... ..istep=", istep,istep_history,"wfn_history =",wfn_history
+        if(iproc==0 .and. debug_flag)print *,    ".... ..istep=", istep,istep_history,"wfn_history =",wfn_history
         call old_wavefunction_set(oldpsis(istep),&
              atoms%astruct%nat,orbs%norbp*orbs%nspinor,&
              oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
@@ -706,7 +706,7 @@ use wfn_extrap
 
   if(istep_history<wfn_history)then
 
-     if(iproc==0)print *, "NNdbg: ....istep_history <= wfn_history; doing vcopy"
+     if(iproc==0 .and. debug_flag)print *, "NNdbg: ....istep_history <= wfn_history; doing vcopy"
 
      nvctr=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
 
@@ -763,7 +763,7 @@ use wfn_extrap
      if(iproc.eq.0 .and. debug_flag)print *, "NNdbg; overlap is computed for <Psi(",jstep,")|Psi(",wfn_history+1,")>"
 
      !if(orbs%norbp>0)
-     if(iproc.eq.0)print *, "Considering Psi(",jstep,") ; cc(",jstep,")=",cc(jstep)
+     if(iproc.eq.0 .and. debug_flag)print *, "Considering Psi(",jstep,") ; cc(",jstep,")=",cc(jstep)
      call rotate_wavefunction(orbs,comms,lzd,nproc,iproc,nspin,norbArr, &
           ndim_ovrlp,ovrlp,cc(jstep),psi_istep(1,1),psi(1,1))
      !     if(iproc.eq.0)print *, "Overlap of Psi (partial) for oldpsis(:",jstep,")"

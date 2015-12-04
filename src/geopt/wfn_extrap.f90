@@ -515,7 +515,7 @@ integer :: nspin
 integer,dimension(nspin,0:orbs%nkpts),intent(in):: ndim_ovrlp
 real(wp),dimension(ndim_ovrlp(nspin,orbs%nkpts)),intent(out):: ovrlp
 !local variables
-logical, parameter :: debug_flag=.true.
+logical, parameter :: debug_flag=.false.
 integer,dimension(orbs%nspin)        :: norbArr
 
 real(wp), dimension(:) , pointer :: psit,phit,work_array
