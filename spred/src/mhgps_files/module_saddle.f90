@@ -597,8 +597,8 @@
            fc=fc+1
            write(fn9,'(i9.9)') fc
            write(comment,'(a,1pe10.3,5x,1pe10.3)')&
-           'ATTENTION! Forces below are no forces but tangents to '//&
-           'the guessed reaction path| fnrm, fmax = ',fnrm,fmax
+           'ATTENTION! Forces below are no forces but '//&
+           'the approximate minimum mode| fnrm, fmax = ',fnrm,fmax
            call astruct_dump_to_file(bigdft_get_astruct_ptr(runObj),&
                 mhgpsst%currDir//'/sad'//trim(adjustl(mhgpsst%isadc))//'_posout_'//&
                 fn9,trim(comment),etotp,fsw%rxyz_trans(:,:,fsw%idx_trans(nhist)),&
@@ -1534,6 +1534,7 @@ use module_base
     !functions
     real(gp) :: ddot, dnrm2
 
+    if(nat==1)return
     !shift cm to origin
     cmx=0.0_gp; cmy=0.0_gp; cmz=0.0_gp
     do iat=1,nat
@@ -1704,6 +1705,7 @@ subroutine elim_moment_fs(nat,vxyz)
     !internal
     integer :: iat
     real(gp) :: vxyz(3,nat),sx,sy,sz
+    if(nat==1)return
     sx=0.0_gp ; sy=0.0_gp ; sz=0.0_gp
     do iat=1,nat
         sx=sx+vxyz(1,iat)

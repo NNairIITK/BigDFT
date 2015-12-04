@@ -1115,6 +1115,7 @@
      EXCLUSIVE:
        dft: Density Functional Theory (BigDFT)
        lj: Lennard-Jones force field
+       tdpot: two-dimension test potential
        lensic: Lenosky Force Field for Si clusters
        lensib: Lenosky Force Field for Si bulk
        amber: AMBER Force Fields Package (requires AMBERtools)
