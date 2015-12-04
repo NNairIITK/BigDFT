@@ -4553,17 +4553,17 @@ module multipole
                   ii1 = tmb%lzd%llr(ilr)%nsi1 + i1 - nl1 - 1
                   x = ii1*hxh
                   tt = phir(ii)**2
-                  charge_center(1,iorb) = charge_center(1,iorb) + x*tt
-                  charge_center(2,iorb) = charge_center(2,iorb) + y*tt
-                  charge_center(3,iorb) = charge_center(3,iorb) + z*tt
+                  charge_center(1,iiorb) = charge_center(1,iiorb) + x*tt
+                  charge_center(2,iiorb) = charge_center(2,iiorb) + y*tt
+                  charge_center(3,iiorb) = charge_center(3,iiorb) + z*tt
                   weight = weight + tt
                   ii = ii + 1
               end do
           end do
       end do
-      charge_center(1:3,iorb) = charge_center(1:3,iorb)/weight
-      write(*,*) 'ilr, charge_center(1:3,iorb), lzd%llr(ilr)%locregcenter(1:3)', &
-                  ilr, charge_center(1:3,iorb), tmb%lzd%llr(ilr)%locregcenter(1:3)
+      charge_center(1:3,iiorb) = charge_center(1:3,iiorb)/weight
+      !write(*,*) 'ilr, charge_center(1:3,iorb), lzd%llr(ilr)%locregcenter(1:3)', &
+      !            ilr, charge_center(1:3,iorb), tmb%lzd%llr(ilr)%locregcenter(1:3)
       ! ######################################################################################
       ist = ist + tmb%lzd%Llr(ilr)%wfd%nvctr_c + 7*tmb%lzd%Llr(ilr)%wfd%nvctr_f
       istr = istr + tmb%lzd%Llr(ilr)%d%n1i*tmb%lzd%Llr(ilr)%d%n2i*tmb%lzd%Llr(ilr)%d%n3i
@@ -4631,7 +4631,7 @@ module multipole
           names(iorb) = trim(atoms%astruct%atomnames(itype))//'-'//adjustl(trim(yaml_toa(ii)))
           ! delta_centers gives the difference between the charge center and the localization center
           delta_centers(1:3,iorb) = charge_center(1:3,iorb) - tmb%lzd%llr(ilr)%locregcenter(1:3)
-          write(*,*) 'iorb, delta_centers(1:3,iorb)', iorb, delta_centers(1:3,iorb)
+          !write(*,*) 'iorb, delta_centers(1:3,iorb)', iorb, delta_centers(1:3,iorb)
       end do
       call write_multipoles_new(tmb%orbs%norb, names, charge_center, &
            atoms%astruct%units, multipoles, &
@@ -4639,6 +4639,7 @@ module multipole
       call f_free(delta_centers)
       call f_free(iatype_tmp)
       call f_free_str(len(names),names)
+      call f_free(scaled)
       call yaml_sequence_close()
   end if
 

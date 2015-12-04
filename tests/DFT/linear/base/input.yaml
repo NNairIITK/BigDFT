@@ -27,6 +27,7 @@
    calc_dipole: Yes
    calc_pulay: old
    charge_multipoles: 1
+   support_function_multipoles: yes
  lin_basis:
    idsx: [5, 0]
    gnrm_cv: 4.0000000000000003E-005

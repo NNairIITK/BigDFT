@@ -28,7 +28,7 @@
 
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
  Version Number                        : 1.8a.2
- Timestamp of this run                 : 2015-12-02 09:17:47.722
+ Timestamp of this run                 : 2015-12-04 08:06:33.184
  Root process Hostname                 : stephan-940X3G
  Number of MPI tasks                   :  2
  OpenMP parallelization                :  Yes
@@ -83,7 +83,8 @@
    norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
-   solvent                             : vacuum # Electrostatic environment for Poisson Equation
+   gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
+   itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
    calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
     #                                              performance reasons
  perf:
@@ -113,8 +114,6 @@
    ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
    methortho                           : 0 #      Orthogonalisation
    rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
-   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
-   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
    unblock_comms                       : OFF #    Overlap Communications of fields (OFF,DEN,POT)
    linear                              : OFF #    Linear Input Guess approach
    tolsym                              : 1.0e-8 # Tolerance for symmetry detection
@@ -155,7 +154,6 @@
    adjust_kernel_threshold             : True #   enable the adaptive ajustment of the kernel convergence threshold according to the 
     #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
-   gps_method                          : VAC #    method for the Generalized Poisson Equation
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
  lin_general:
    hybrid                              : Yes #    activate the hybrid mode; if activated, only the low accuracy values will be relevant
@@ -186,6 +184,7 @@
    extra_states                        : 0 #      extra states to optimize (dmin only)
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
+   support_function_multipoles         : False #  Calculate the multipole moments of the support functions
  lin_basis:
    nit                                 : 8 #      maximal number of iterations in the optimization of the support functions
    idsx                                : 8 #      DIIS history for optimization of the support functions (low/high accuracy); 0 -> SD
@@ -287,6 +286,24 @@
      Coarse PSP                        : 0.0
      Source                            : Hard-Coded
    Non Linear Core Correction term     : __not_a_value__
+ psolver:
+   kernel:
+     screening                         : 0 #      mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
+     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -307,10 +324,11 @@
    timestep                            : 20.d0 #  Time step for integration (in a.u.)
    no_translation                      : No #     logical input to set translational correction
    thermostat                          : none #   Activates a thermostat for MD
+   wavefunction_extrapolation          : 0 #      Activates the wavefunction extrapolation for MD
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
-   rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
+   rpnrm_cv                            : 1.e-4 #  Stop criterion on the residue of potential or density
    norbsempty                          : 0 #      No. of additional bands
    tel                                 : 0. #     Electronic temperature
    occopt                              : 1 #      Smearing method
@@ -438,6 +456,24 @@
  High Res. box is treated separately   :  Yes
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
+     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
    MPI tasks                           :  2
    OpenMP threads per MPI task         :  2
  Poisson Kernel Creation:
@@ -2109,23 +2145,20 @@
      max / mean error                  :  [  1.61E-12,  6.18E-13 ]
   #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Final result of the multipole analysis
  Multipole coefficients:
-   normalized                          :  Yes
    units for atomic positions          : bohr
    Values:
    - sym                               : O # 0001
      r: [ 2.065621065394574,  0.7276197830051158,  0.7650374978227975]
-     q0                                :  [ -1.32542605E+00 ]
-     q1: [-7.84645795E-01, -7.46684362E-01, -2.73514100E-01]
-     q2: [ 2.45471650E-01, -1.01643422E+00, -8.69927512E-01,  1.49822251E-01, 
-           1.56031869E+00]
+     q0                                :  [ -1.325426E+00 ]
+     q1                                :  [ -7.846458E-01, -7.466844E-01, -2.735141E-01 ]
+     q2: [ 2.454716E-01, -1.016434E+00, -8.699275E-01,  1.498223E-01,  1.560319E+00]
      type                              : unknown
    - sym                               : H # 0002
      r: [ 0.2609031030233364,  0.4497236554241762,  0.5729218373685834]
-     q0                                :  [  3.27477307E-01 ]
-     q1: [ 3.95178128E-03, -4.02773292E-03,  1.82392721E-01]
-     q2: [ 4.63660823E-02, -4.81866935E-03, -7.23831578E-02,  3.47998138E-02, 
-           1.22023496E-01]
-     type                              : s
+     q0                                :  [  3.274773E-01 ]
+     q1                                :  [  3.951781E-03, -4.027733E-03,  1.823927E-01 ]
+     q2: [ 4.636608E-02, -4.818669E-03, -7.238316E-02,  3.479981E-02,  1.220235E-01]
+     type                              : unknown
   #========================================================== Atomic multipole analysis done
  Total charge                          :  7.999998638836E+00
   #---------------------------------------------------------------------- Forces Calculation
@@ -2149,8 +2182,8 @@
  - The support function localization radii might be too small, got 3 warnings
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  26.42
-   Elapsed time (s)                    :  19.16
+   CPU time (s)                        :  18.72
+   Elapsed time (s)                    :  11.54
  BigDFT infocode                       :  0
  Average noise forces: {x:  7.88066187E-03, y: -3.66029375E-02, z: -3.67989915E-02, 
                     total:  5.24980537E-02}
@@ -2163,14 +2196,14 @@
  Energy (Hartree)                      : -1.73921517682271691E+01
  Force Norm (Hartree/Bohr)             :  7.15703396141133871E-03
  Memory Consumption Report:
-   Tot. No. of Allocations             :  10313
-   Tot. No. of Deallocations           :  10313
+   Tot. No. of Allocations             :  10314
+   Tot. No. of Deallocations           :  10314
    Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  155.228
      for the array                     : wz
      in the routine                    : inputguessConfinement
-     Memory Peak of process            : 194.224 MB
- Walltime since initialization         : 00:00:19.529775625
- Max No. of dictionaries used          :  7503 #( 877 still in use)
+     Memory Peak of process            : 191.072 MB
+ Walltime since initialization         : 00:00:11.896743134
+ Max No. of dictionaries used          :  7606 #( 877 still in use)
  Number of dictionary folders allocated:  1

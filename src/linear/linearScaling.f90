@@ -2535,7 +2535,6 @@ end if
 
   end if
 
-  write(*,*) 'input%support_function_multipoles',input%support_function_multipoles
   if (input%support_function_multipoles) then
       call support_function_gross_multipoles(iproc, nproc, tmb, at, denspot, multipoles)
   end if
