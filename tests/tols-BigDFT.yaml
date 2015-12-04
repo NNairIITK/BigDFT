@@ -1770,7 +1770,7 @@ igortho_19:
  D: 4.1e-8
  Tr(K): 1.7e-8
  total charge correction: 1.5e-11
- multiplicator for the confinement: 2.8e-11
+ multiplicator for the confinement: 2.9e-11
  radius for normalization: 1.1e-2
  Force Norm (Hartree/Bohr): 2.7e-8
 
@@ -1811,7 +1811,7 @@ igortho_44:
  D: 1.1e-4
  delta: 1.1e-10
  radius for normalization: 1.1e-1
- Force Norm (Hartree/Bohr): 7.7e-7
+ Force Norm (Hartree/Bohr): 7.9e-7
  Unitary check of the multipole calculations: 1.0e-2
  Multipole coefficients: 1.6e-6
  Keys to ignore:
