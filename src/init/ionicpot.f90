@@ -2771,6 +2771,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,npot_ion,pot_ion)
   use module_dpbox
   use multipole, only: gaussian_density
   use bounds, only: ext_buffers
+  use pseudopotentials, only: psp_dict_fill_all
   implicit none
   !Arguments
   integer, intent(in) :: iproc, npot_ion

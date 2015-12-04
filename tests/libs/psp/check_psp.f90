@@ -13,7 +13,7 @@ program psp_test
 
   use module_base
   use yaml_output
-
+  use pseudopotentials
   implicit none
 
   character(len = 1024) :: path
