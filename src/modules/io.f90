@@ -632,8 +632,8 @@ module io
 
 
 
-   ! finds environment atoms and fills ref_frag%astruct_env accordingly
-   ! also returns mapping array for fragment and environment
+   !> finds environment atoms and fills ref_frag%astruct_env accordingly
+   !! also returns mapping array for fragment and environment
    subroutine find_neighbours(num_neighbours,at,rxyz,orbs,ref_frag,frag_map,ntmb_frag_and_env,map_frag_and_env)
       use module_fragments
       use module_types

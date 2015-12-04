@@ -1158,7 +1158,7 @@ module module_interfaces
 
         interface
           subroutine readmywaves_linear_new(iproc,nproc,dir_output,filename,iformat,at,tmb,rxyz,&
-               ref_frags,input_frag,frag_calc,kernel_restart,frag_env_mapping,orblist)
+               ref_frags,input_frag,frag_calc,kernel_restart,max_nbasis_env,frag_env_mapping,orblist)
           use module_defs, only: gp,dp,wp
           use module_types
           use module_fragments
@@ -1173,7 +1173,8 @@ module module_interfaces
           type(fragmentInputParameters), intent(in) :: input_frag
           type(system_fragment), dimension(input_frag%nfrag_ref), intent(inout) :: ref_frags
           logical, intent(in) :: frag_calc, kernel_restart
-          integer, dimension(:,:,:), pointer :: frag_env_mapping
+          integer, intent(in) :: max_nbasis_env
+          integer, dimension(input_frag%nfrag,max_nbasis_env,3), intent(inout) :: frag_env_mapping
           integer, dimension(tmb%orbs%norb), intent(in), optional :: orblist
           END SUBROUTINE readmywaves_linear_new
         end interface
