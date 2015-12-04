@@ -28,12 +28,9 @@ module sparsematrix_init
   public :: read_ccs_format
   public :: ccs_to_sparsebigdft
   public :: ccs_values_to_bigdft
-  public :: read_bigdft_format
   public :: bigdft_to_sparsebigdft
-  public :: get_line_and_column
   public :: distribute_columns_on_processes_simple
   public :: redistribute
-  !public :: get_transposed_index
   public :: get_modulo_array
   public :: sparsebigdft_to_ccs
   public :: ccs_to_sparsebigdft_short
@@ -102,7 +99,7 @@ contains
        call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, &
             nnonzero_mult, nonzero_mult)
     end if
-    call init_sparse_matrix(iproc, nproc, nspin, astruct%geocode, orbs%norb, orbs%norbp, orbs%isorb, &
+    call init_sparse_matrix(iproc, nproc, nspin, astruct%geocode, orbs%norb, &
          orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
          orbs%onwhichatom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)
     call f_free_ptr(nonzero)
@@ -1304,7 +1301,7 @@ contains
 
 
     !> Currently assuming square matrices
-    subroutine init_sparse_matrix(iproc, nproc, nspin, geocode, norb, norbp, isorb, norbu, norbup, isorbu, store_index, &
+    subroutine init_sparse_matrix(iproc, nproc, nspin, geocode, norb, norbu, norbup, isorbu, store_index, &
                on_which_atom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, sparsemat, &
                allocate_full, print_info)
       use yaml_output
@@ -1312,7 +1309,7 @@ contains
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: iproc, nproc, nspin, norb, norbp, isorb, norbu, norbup, isorbu, nnonzero, nnonzero_mult
+      integer,intent(in) :: iproc, nproc, nspin, norb, norbu, norbup, isorbu, nnonzero, nnonzero_mult
       character(len=1),intent(in) :: geocode
       logical,intent(in) :: store_index
       integer,dimension(norbu),intent(in) :: on_which_atom
@@ -4179,7 +4176,7 @@ contains
 
       call f_free(mat)
 
-      call init_sparse_matrix(iproc, nproc, 1, 'F', ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
+      call init_sparse_matrix(iproc, nproc, 1, 'F', ncol, ncol, ncolp, iscol, .false., &
            on_which_atom, nnonzero, nonzero, nnonzero, nonzero, smat)
 
       collcom_dummy = comms_linear_null()
@@ -4260,7 +4257,7 @@ contains
       !!    end if
       !!end do
 
-      call init_sparse_matrix(iproc, nproc, nspin, geocode, ncol, ncolp, iscol, ncol, ncolp, iscol, .false., &
+      call init_sparse_matrix(iproc, nproc, nspin, geocode, ncol, ncol, ncolp, iscol, .false., &
            on_which_atom, nvctr, nonzero, nvctr, nonzero, smat)
 
       collcom_dummy = comms_linear_null()
@@ -4352,44 +4349,6 @@ contains
       close(iunit)
     end subroutine read_ccs_format
 
-    subroutine read_bigdft_format(filename, nfvctr, nvctr, nseg, keyv, keyg, val)
-      implicit none
-
-      ! Calling arguments
-      character(len=*),intent(in) :: filename
-      integer,intent(out) :: nfvctr, nvctr, nseg
-      integer,dimension(:),pointer,intent(out) :: keyv
-      integer,dimension(:,:,:),pointer,intent(out) :: keyg
-      real(kind=8),dimension(:),pointer,intent(out) :: val
-
-      ! Local variables
-      integer :: i, iseg
-      logical :: file_exists
-      integer,parameter :: iunit=123
-
-      inquire(file=filename,exist=file_exists)
-      if (file_exists) then
-          open(unit=iunit,file=filename)
-          read(iunit,*) nfvctr
-          read(iunit,*) nseg
-          read(iunit,*) nvctr
-          keyv = f_malloc_ptr(nseg,id='keyv')
-          keyg = f_malloc_ptr((/2,2,nseg/),id='keyg')
-          val = f_malloc_ptr(nvctr,id='val')
-          do iseg=1,nseg
-              read(iunit,*) keyv(iseg)
-          end do
-          do iseg=1,nseg
-              read(iunit,*) keyg(1:2,1:2,iseg)
-          end do
-          do i=1,nvctr
-              read(iunit,*) val(i)
-          end do
-      else
-          stop 'file not present'
-      end if
-      close(iunit)
-    end subroutine read_bigdft_format
 
     subroutine determine_sparsity_pattern(iproc, nproc, orbs, lzd, nnonzero, nonzero)
           use module_types
@@ -4761,7 +4720,7 @@ contains
                   nonzero(2,i)=iiorb
               end do
           end do
-          call init_sparse_matrix(iproc, nproc, input%nspin, geocode, orbs%norb, orbs%norbp, orbs%isorb, &
+          call init_sparse_matrix(iproc, nproc, input%nspin, geocode, orbs%norb, &
                norb, norbp, isorb, input%store_index, &
                orbs%onwhichatom, norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), print_info=.false.)
           call f_free(nonzero)
@@ -4792,7 +4751,7 @@ contains
           !!call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
           !!     norb, norbp, isorb, input%store_index, &
           !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra(ispin), print_info_=.false.)
-          call init_sparse_matrix(iproc, nproc, input%nspin, geocode, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
+          call init_sparse_matrix(iproc, nproc, input%nspin, geocode, orbs_aux%norb, &
                orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
                orbs_aux%onwhichatom, orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu*orbs_aux%norbup, nonzero, &
                smat_extra(ispin), print_info=.false.)

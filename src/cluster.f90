@@ -44,7 +44,7 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use communications_base, only: comms_linear_null
   use unitary_tests, only: check_communication_potential, check_communication_sumrho, &
                            check_communications_locreg
-  use multipole, only: potential_from_charge_multipoles, potential_from_multipoles, interaction_multipoles_ions, &
+  use multipole, only: potential_from_charge_multipoles, interaction_multipoles_ions, &
                        ionic_energy_of_external_charges
   use public_enums
   use module_input_keys, only: SIC_data_null,print_dft_parameters,inputpsiid_set_policy,set_inputpsiid

@@ -20,7 +20,7 @@ module foe
                                    SPARSE_FULL, SPARSE_MATMUL_SMALL, &
                                    SPARSE_MATMUL_LARGE, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
                                    matrices
-      use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+      use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
                               trace_sparse

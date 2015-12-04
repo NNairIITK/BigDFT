@@ -32,7 +32,6 @@ module matrix_operations
                                 assignment(=), &
                                 SPARSE_FULL, DENSE_PARALLEL, SPARSE_MATMUL_LARGE, &
                                 DENSE_MATMUL, DENSE_FULL, SPARSEMM_SEQ, SPARSE_TASKGROUP
-        use sparsematrix_init, only: get_line_and_column
         use sparsematrix, only: compress_matrix, uncompress_matrix, &
                                 transform_sparse_matrix, transform_sparse_matrix_local, &
                                 compress_matrix_distributed_wrapper, &
@@ -1325,7 +1324,7 @@ module matrix_operations
         use module_base
         use module_types
         use sparsematrix_base, only: sparse_matrix
-        use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+        use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
       
         ! Calling arguments
@@ -1545,7 +1544,6 @@ module matrix_operations
       subroutine first_order_taylor_sparse_new(power, smat, ovrlpp, inv_ovrlpp)
       use module_base
       use sparsematrix_base, only: sparse_matrix
-      use sparsematrix_init, only: get_line_and_column
         implicit none
         !!integer,intent(in) :: norb, isorb, norbp, power
         !!real(kind=8),dimension(norb,norbp),intent(in) :: ovrlpp
@@ -2097,7 +2095,7 @@ module matrix_operations
         use module_base
         use module_types
         use sparsematrix_base, only: sparse_matrix
-        use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+        use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
       
         ! Calling arguments
