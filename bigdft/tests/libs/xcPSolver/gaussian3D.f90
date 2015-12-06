@@ -29,11 +29,13 @@ program MP_gaussian
   real(gp), dimension(0:nmoms,2) :: moments
   real(gp), dimension(3,2,0:nmoms) :: avgmaxmin
   real(gp), dimension(:,:,:), allocatable :: fj_phi,fj_coll
-  integer :: nat,ntyp,iat
+  integer :: nat,ntyp,iat,i
+  integer(f_long) :: t0,t1
+  real(gp) :: diff
   type(gaussian_basis_new) :: G
   type(dictionary), pointer :: dict,types
   integer, dimension(:), allocatable :: iatype
-  real(gp), dimension(:,:), allocatable :: rxyz,Sab
+  real(gp), dimension(:,:), allocatable :: rxyz,Sab,S2ab,Tab,T2ab
   real(gp), dimension(:,:,:), allocatable :: psppar
   
 
@@ -52,8 +54,8 @@ program MP_gaussian
 
   !retrieve the parameters of the PSP by default
   call dict_init(dict)
-  call psp_dict_fill_all(dict, 'Zn', 11, 15.d0, 5.d0, 8.d0)!a PSP-rich atom  
-  call psp_dict_fill_all(dict, 'Er', 1, 15.d0, 5.d0, 8.d0)!a PSP-richer atom
+  call psp_dict_fill_all(dict,dict_value( types // 0), 11, 15.d0, 5.d0, 8.d0)!a PSP-rich atom  
+  call psp_dict_fill_all(dict,dict_value( types // 1), 1, 15.d0, 5.d0, 8.d0)!a PSP-richer atom
 
 !  call update_psp_dict(dict,'C') 
 !  call update_psp_dict(dict,'N') 
@@ -62,24 +64,72 @@ program MP_gaussian
   call yaml_map('PSP dictionary',dict)
   
   !then retrieve the psppar components
-  call psp_set_from_dict(dict //"psppar.Zn", psppar=psppar(1:,:,1))
-  call psp_set_from_dict(dict //"psppar.Er", psppar=psppar(1:,:,2))
+  call psp_set_from_dict(dict //("psppar."+dict_value(types//0)), psppar=psppar(1:,:,1))
+  call psp_set_from_dict(dict //("psppar."+dict_value(types//1)), psppar=psppar(1:,:,2))
   
-  call yaml_map('Psppar for Zn',psppar(:,:,1))
-  call yaml_map('Psppar for Er',psppar(:,:,2))
+  call yaml_map('Psppar for '+dict_value(types//0),psppar(:,:,1))
+  call yaml_map('Psppar for '+dict_value(types//1),psppar(:,:,2))
 
   call gaussian_basis_from_psp(nat,iatype,rxyz,psppar,ntyp,G)
 
   Sab=f_malloc([G%ncoeff,G%ncoeff],id='Sab')
-  call yaml_mapping_open('Basis set generated')
+  S2ab=f_malloc([G%ncoeff,G%ncoeff],id='S2ab')
+  Tab=f_malloc([G%ncoeff,G%ncoeff],id='Tab')
+  T2ab=f_malloc([G%ncoeff,G%ncoeff],id='T2ab')
+
+  call yaml_mapping_open('Basis set generated, calculating overlap')
   call yaml_map('Number of basis elements',G%ncoeff)
   !calculate the overlap matrix of the basis
-  call overlap(G,G,Sab)
-  call yaml_map('Overlap matrix',Sab,fmt='(1pg12.5)')
+  t0=f_time()
+  do i=1,1000
+     call overlap(G,G,Sab)
+  end do
+  t1=f_time()
+  call yaml_map('Overlap matrix',Sab,fmt='(1pg12.3)')
+  call yaml_map('Elapsed time',real(t1-t0,f_double)*1.e-9)
+
+  t0=f_time()
+  do i=1,1000
+     call overlap_gain(G,G,S2ab)
+  end do
+  t1=f_time()
+  call yaml_map('Overlap matrix with GaIn library',S2ab,fmt='(1pg12.3)')
+  call yaml_map('Elapsed time',real(t1-t0,f_double)*1.e-9)
+
+  call f_diff(G%ncoeff**2,Sab,S2ab,diff)
+  call yaml_map('Maxdiff of both objects',diff)
+
+  call yaml_mapping_close()
+
+  call yaml_mapping_open('Basis set generated, calculating kinetic term')
+  call yaml_map('Number of basis elements',G%ncoeff)
+  !calculate the overlap matrix of the basis
+  t0=f_time()
+  do i=1,1000
+     call kinetic(G,G,Tab)
+  end do
+  t1=f_time()
+  call yaml_map('Laplacian matrix',Tab,fmt='(1pg12.3)')
+  call yaml_map('Elapsed time',real(t1-t0,f_double)*1.e-9)
+
+  t0=f_time()
+  do i=1,1000
+     call kinetic_gain(G,G,T2ab)
+  end do
+  t1=f_time()
+  call yaml_map('Laplacian matrix with GaIn library',T2ab,fmt='(1pg12.3)')
+  call yaml_map('Elapsed time',real(t1-t0,f_double)*1.e-9)
+
+  call f_diff(G%ncoeff**2,Tab,-0.5d0*T2ab,diff)
+  call yaml_map('Maxdiff of both objects',diff)
+
   call yaml_mapping_close()
 
 
   call f_free(Sab)
+  call f_free(S2ab)
+  call f_free(Tab)
+  call f_free(T2ab)
   call f_free(iatype)
   call f_free(psppar)
   call dict_free(dict,types)

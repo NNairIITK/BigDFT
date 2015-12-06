@@ -582,9 +582,6 @@ module psp_projectors
 
   end subroutine scpr_proj_p_hpsi
 
-    !call to_zero(n_w*n_p,hscpr(1,1))
-    hscpr=0.0_gp
-
   pure subroutine reverse_coefficients(ncplx_p,n_p,ncplx_w,n_w,pdpsi,scpr)
     implicit none
     integer, intent(in) :: ncplx_p,ncplx_w,n_p,n_w

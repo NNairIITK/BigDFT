@@ -40,7 +40,7 @@ end program]], withlibgainmod=yes, withlibgainmod=no)
   if test -n "$ac_libgain_libdir" ; then
     LIBS="$LIBS $ac_libgain_libdir"
   else
-    ac_libgain_libdir="-lxcf90 -lxc"
+    ac_libgain_libdir="-lGaIn"
   fi
   AC_CHECK_LIB(GaIn, cc_coulomb_cc, ac_use_libgain=yes, ac_use_libgain=no, [])
   LIBS=$LIBS_SVG

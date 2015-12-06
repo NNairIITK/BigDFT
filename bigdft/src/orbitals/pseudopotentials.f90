@@ -333,7 +333,8 @@ module pseudopotentials
     subroutine get_psp(dict,ityp,ntypes,nzatom,nelpsp,npspcode,ixcpsp,iradii_source,psppar,radii_cf,pawpatch,&
          pawrad,pawtab,epsatm)
       use dynamic_memory
-      use libxc_functionals, only: libxc_functionals_init, libxc_functionals_end
+      use m_libpaw_libxc, only: libxc_functionals_init, libxc_functionals_end
+      !use libxc_functionals, only: libxc_functionals_init, libxc_functionals_end
       use m_pawtab, only: pawtab_nullify
       implicit none
       type(dictionary), pointer :: dict
@@ -387,8 +388,7 @@ module pseudopotentials
          fpaw = dict // SOURCE_KEY
          call libxc_functionals_init(ixcpsp, 1)
          call paw_from_file(pawrad(ityp), pawtab(ityp), &
-              !& epsatm(ityp), 
-              trim(fpaw), &
+              epsatm(ityp), trim(fpaw), &
               & nzatom, nelpsp, ixcpsp)
          radii_cf(3)= pawtab(ityp)%rpaw !/ frmult + 0.01
          call libxc_functionals_end()
@@ -864,7 +864,7 @@ module pseudopotentials
     !! among wavefunctions and projectors. The coefficients are real therefore 
     !! there is no need to separate scpr in its real and imaginary part before
     pure subroutine apply_hij_coeff(hij,n_w,n_p,scpr,hscpr)
-      use module_base, only: gp
+      use module_base, only: gp,f_zero
       implicit none
       integer, intent(in) :: n_p,n_w
       real(gp), dimension(3,3,4), intent(in) :: hij
@@ -875,6 +875,7 @@ module pseudopotentials
       real(gp), dimension(7,3,4) :: cproj,dproj 
       logical, dimension(3,4) :: cont
 
+      hscpr=0.0_gp
 
       !define the logical array to identify the point from which the block is finished
       do l=1,4

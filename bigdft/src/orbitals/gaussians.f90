@@ -58,12 +58,12 @@ module gaussians
      real(gp), dimension(:,:), pointer :: rxyz !< Positions of the centers
   end type gaussian_basis_new
 
-  public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0,overlap
+  public :: gaudim_check,normalize_shell,gaussian_overlap,kinetic_overlap,gauint0,overlap,kinetic
   public :: initialize_real_space_conversion,finalize_real_space_conversion,scfdotf,mp_exp
 
   public :: nullify_gaussian_basis, deallocate_gwf, gaussian_basis_null, gaussian_basis_free
 
-  public :: gaussian_basis_from_psp, gaussian_basis_from_paw,nullify_gaussian_basis_new
+  public :: gaussian_basis_from_psp, gaussian_basis_from_paw,nullify_gaussian_basis_new,overlap_gain,kinetic_gain
 
   type, public :: gaussian_basis_iter
      integer :: nshell = 0 !< Number of shells to iter on, read only.
@@ -1018,6 +1018,208 @@ contains
 
   END SUBROUTINE overlap
 
+  !> Overlap matrix between two different basis structures
+  subroutine overlap_gain(A,B,ovrlp)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: A,B
+    real(gp), dimension(A%ncoeff,B%ncoeff), intent(out) :: ovrlp 
+    !local variables
+    integer :: ishell,iexpo,icoeff,iat,jat,isat,jsat,jshell
+    integer :: iovrlp,jovrlp,jcoeff,jexpo,itpdA,itpdB,ig1,ig2
+    integer :: ngA,ngB,lA,lB,mA,mB,nA,nB,ntpdshA,ntpdshB,i1,i2
+    real(gp) :: overlp,integral,s1,s2,d1,d2,f,ss
+    integer, dimension(2*L_MAX+1) :: ntpdA,ntpdB
+    integer, dimension(3,NTERM_MAX_OVERLAP) :: powA,powB
+    real(gp), dimension(NTERM_MAX_OVERLAP) :: ftpdA,ftpdB
+    real(gp), dimension(3) :: dr,rA
+    real(f_double), external :: c_overlap_c
+
+    iovrlp=0
+    ishell=0
+    iexpo=1
+    icoeff=1
+
+    !loop on each shell (intensive calculation)
+    do iat=1,A%nat
+       rA(1)=A%rxyz(1,iat)
+       rA(2)=A%rxyz(2,iat)
+       rA(3)=A%rxyz(3,iat)
+       do isat=1,A%nshell(iat)
+          ishell=ishell+1
+          ngA=A%shid(DOC_,ishell)
+          lA=A%shid(L_,ishell)
+          nA=A%shid(N_,ishell)
+          call tensor_product_decomposition(nA,lA,ntpdshA,ntpdA,powA,ftpdA)
+          itpdA=1
+          do mA=1,2*lA+1
+             !here the entire array should be extracted
+             iovrlp=iovrlp+1
+
+             jovrlp=0
+             jshell=0
+             jexpo=1
+             jcoeff=1
+
+             do jat=1,B%nat
+                !here boundary conditions should be considered
+                dr(1)=B%rxyz(1,jat)-rA(1)
+                dr(2)=B%rxyz(2,jat)-rA(2)
+                dr(3)=B%rxyz(3,jat)-rA(3)
+                do jsat=1,B%nshell(jat)
+                   jshell=jshell+1
+                   ngB=B%shid(DOC_,jshell)
+                   lB=B%shid(L_,jshell)
+                   nB=B%shid(N_,jshell)
+                   call tensor_product_decomposition(nB,lB,ntpdshB,ntpdB,powB,ftpdB)
+                   itpdB=1
+                   do mB=1,2*lB+1
+                      jovrlp=jovrlp+1
+                      !if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
+                      !     A%ncoeff /= B%ncoeff ) then
+!!$                      ovrlp(iovrlp,jovrlp)=&
+!!$                           gdot(ngA,A%sd(1,iexpo),ntpdA(mA),powA(1,itpdA),ftpdA(itpdA),&
+!!$                           ngB,B%sd(1,jexpo),ntpdB(mB),powB(1,itpdB),ftpdB(itpdB),dr)
+                      !inline gdot
+                      overlp=0.0_gp
+                      do ig2=0,ngB-1
+                         s2=B%sd(EXPO_,ig2+jexpo)
+                         d2=B%sd(COEFF_,ig2+jexpo)
+                         do ig1=0,ngA-1
+                            s1=A%sd(EXPO_,ig1+iexpo)
+                            d1=A%sd(COEFF_,ig1+iexpo)
+                            integral=0.0_gp
+                            do i2=0,ntpdB(mB)-1
+                               do i1=0,ntpdA(mA)-1
+                                  ss=c_overlap_c(s1,rA,powA(1,i1+itpdA),powA(2,i1+itpdA),powA(3,i1+itpdA),&
+                                       s2,B%rxyz(1,jat),powB(1,i2+itpdB),powB(2,i2+itpdB),powB(3,i2+itpdB))
+                                  integral=integral+ftpdA(i1+itpdA)*ftpdB(i2+itpdB)*ss
+                               end do
+                            end do
+                            overlp=overlp+d1*d2*integral
+                         end do
+                      end do
+                      ovrlp(iovrlp,jovrlp)=overlp
+                      !end if
+                      itpdB=itpdB+ntpdB(mB)
+                   end do
+                   jexpo=jexpo+ngB
+                   jcoeff=jcoeff+2*lB+1
+                end do
+             end do
+             itpdA=itpdA+ntpdA(mA)
+          end do
+          iexpo=iexpo+ngA
+          icoeff=icoeff+2*lA+1
+       end do
+    end do
+
+    call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
+    call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
+
+  END SUBROUTINE overlap_gain
+
+
+  !> Overlap matrix between two different basis structures
+  subroutine kinetic_gain(A,B,ovrlp)
+    implicit none
+    type(gaussian_basis_new), intent(in) :: A,B
+    real(gp), dimension(A%ncoeff,B%ncoeff), intent(out) :: ovrlp 
+    !local variables
+    integer :: ishell,iexpo,icoeff,iat,jat,isat,jsat,jshell
+    integer :: iovrlp,jovrlp,jcoeff,jexpo,itpdA,itpdB,ig1,ig2
+    integer :: ngA,ngB,lA,lB,mA,mB,nA,nB,ntpdshA,ntpdshB,i1,i2
+    real(gp) :: overlp,integral,s1,s2,d1,d2,f,ss
+    integer, dimension(2*L_MAX+1) :: ntpdA,ntpdB
+    integer, dimension(3,NTERM_MAX_OVERLAP) :: powA,powB
+    real(gp), dimension(NTERM_MAX_OVERLAP) :: ftpdA,ftpdB
+    real(gp), dimension(3) :: dr,rA
+    real(f_double), external :: c_laplacian_c
+
+    iovrlp=0
+    ishell=0
+    iexpo=1
+    icoeff=1
+
+    !loop on each shell (intensive calculation)
+    do iat=1,A%nat
+       rA(1)=A%rxyz(1,iat)
+       rA(2)=A%rxyz(2,iat)
+       rA(3)=A%rxyz(3,iat)
+       do isat=1,A%nshell(iat)
+          ishell=ishell+1
+          ngA=A%shid(DOC_,ishell)
+          lA=A%shid(L_,ishell)
+          nA=A%shid(N_,ishell)
+          call tensor_product_decomposition(nA,lA,ntpdshA,ntpdA,powA,ftpdA)
+          itpdA=1
+          do mA=1,2*lA+1
+             !here the entire array should be extracted
+             iovrlp=iovrlp+1
+
+             jovrlp=0
+             jshell=0
+             jexpo=1
+             jcoeff=1
+
+             do jat=1,B%nat
+                !here boundary conditions should be considered
+                dr(1)=B%rxyz(1,jat)-rA(1)
+                dr(2)=B%rxyz(2,jat)-rA(2)
+                dr(3)=B%rxyz(3,jat)-rA(3)
+                do jsat=1,B%nshell(jat)
+                   jshell=jshell+1
+                   ngB=B%shid(DOC_,jshell)
+                   lB=B%shid(L_,jshell)
+                   nB=B%shid(N_,jshell)
+                   call tensor_product_decomposition(nB,lB,ntpdshB,ntpdB,powB,ftpdB)
+                   itpdB=1
+                   do mB=1,2*lB+1
+                      jovrlp=jovrlp+1
+                      !if ((jovrlp >= iovrlp .and. A%ncoeff == B%ncoeff) .or. &
+                      !     A%ncoeff /= B%ncoeff ) then
+!!$                      ovrlp(iovrlp,jovrlp)=&
+!!$                           gdot(ngA,A%sd(1,iexpo),ntpdA(mA),powA(1,itpdA),ftpdA(itpdA),&
+!!$                           ngB,B%sd(1,jexpo),ntpdB(mB),powB(1,itpdB),ftpdB(itpdB),dr)
+                      !inline gdot
+                      overlp=0.0_gp
+                      do ig2=0,ngB-1
+                         s2=B%sd(EXPO_,ig2+jexpo)
+                         d2=B%sd(COEFF_,ig2+jexpo)
+                         do ig1=0,ngA-1
+                            s1=A%sd(EXPO_,ig1+iexpo)
+                            d1=A%sd(COEFF_,ig1+iexpo)
+                            integral=0.0_gp
+                            do i2=0,ntpdB(mB)-1
+                               do i1=0,ntpdA(mA)-1
+                                  ss=c_laplacian_c(s2,B%rxyz(1,jat),powB(1,i2+itpdB),powB(2,i2+itpdB),powB(3,i2+itpdB),&
+                                       s1,rA,powA(1,i1+itpdA),powA(2,i1+itpdA),powA(3,i1+itpdA))
+                                  integral=integral+ftpdA(i1+itpdA)*ftpdB(i2+itpdB)*ss
+                               end do
+                            end do
+                            overlp=overlp+d1*d2*integral
+                         end do
+                      end do
+                      ovrlp(iovrlp,jovrlp)=overlp
+                      !end if
+                      itpdB=itpdB+ntpdB(mB)
+                   end do
+                   jexpo=jexpo+ngB
+                   jcoeff=jcoeff+2*lB+1
+                end do
+             end do
+             itpdA=itpdA+ntpdA(mA)
+          end do
+          iexpo=iexpo+ngA
+          icoeff=icoeff+2*lA+1
+       end do
+    end do
+
+    call gaudim_check(iexpo,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
+    call gaudim_check(jexpo,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
+
+  END SUBROUTINE kinetic_gain
+
+
 
   !> Calculates a dot product between two basis functions
   !! Basis function is identified by its tensor product decompositions and sigmas
@@ -1202,6 +1404,120 @@ contains
     call gaudim_check(jexpo+1,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
 
   END SUBROUTINE kinetic
+!!$
+!!$  !> Overlap matrix between two different basis structures
+!!$  !! laplacian is applied to the first one
+!!$  subroutine kinetic(A,B,ovrlp)
+!!$    implicit none
+!!$    type(gaussian_basis_new), intent(in) :: A,B
+!!$    real(gp), dimension(A%ncoeff,B%ncoeff), intent(out) :: ovrlp
+!!$    !local variables
+!!$    integer :: ishell,iexpo,icoeff,iat,jat,isat,jsat,jshell
+!!$    integer :: iovrlp,jovrlp,jcoeff,jexpo,igA,igB,itpd1,itpd2,i1,i2
+!!$    integer :: ngA,ngB,lA,lB,mA,mB,nA,nB,ntpdshA,ntpdshB
+!!$    real(gp) :: f,integral
+!!$    integer, dimension(2*L_MAX+1) :: ntpdA,ntpdB
+!!$    integer, dimension(3,NTERM_MAX_KINETIC) :: powA
+!!$    real(gp), dimension(NTERM_MAX_KINETIC) :: ftpdA
+!!$    integer, dimension(3,NTERM_MAX_OVERLAP) :: powB
+!!$    real(gp), dimension(NTERM_MAX_OVERLAP) :: ftpdB
+!!$    real(gp), dimension((2*L_MAX+1)*(2*L_MAX+1)) :: shell_overlap
+!!$    real(gp), dimension(3) :: dr,rA
+!!$
+!!$    iovrlp=0
+!!$    ishell=0
+!!$    iexpo=0
+!!$    icoeff=1
+!!$    !loop on each shell (intensive calculation)
+!!$    do iat=1,A%nat
+!!$       rA(1)=A%rxyz(1,iat)
+!!$       rA(2)=A%rxyz(2,iat)
+!!$       rA(3)=A%rxyz(3,iat)
+!!$       do isat=1,A%nshell(iat)
+!!$          ishell=ishell+1
+!!$          ngA=A%shid(DOC_,ishell)
+!!$          lA=A%shid(L_,ishell)
+!!$          nA=A%shid(N_,ishell)
+!!$
+!!$          jovrlp=0
+!!$          jshell=0
+!!$          jexpo=0
+!!$          jcoeff=1
+!!$          do jat=1,B%nat
+!!$             !here boundary conditions should be considered
+!!$             dr(1)=B%rxyz(1,jat)-rA(1)
+!!$             dr(2)=B%rxyz(2,jat)-rA(2)
+!!$             dr(3)=B%rxyz(3,jat)-rA(3)
+!!$             do jsat=1,B%nshell(jat)
+!!$                jshell=jshell+1
+!!$                ngB=B%shid(DOC_,jshell)
+!!$                lB=B%shid(L_,jshell)
+!!$                nB=B%shid(N_,jshell)
+!!$                !calculation of shell decomposition is independent of exponent
+!!$                call tensor_product_decomposition(nB,lB,ntpdshB,ntpdB,powB,ftpdB)
+!!$
+!!$                do mB=1,2*lB+1
+!!$                   do mA=1,2*lA+1
+!!$                      ovrlp(iovrlp+mA,jovrlp+mB)=0.0_gp
+!!$                   end do
+!!$                end do
+!!$                do igA=1,ngA
+!!$                   call tensor_product_decomposition_laplacian(A%sd(EXPO_,igA+iexpo),nA,lA,&
+!!$                        ntpdshA,ntpdA,powA,ftpdA)
+!!$!                   call tensor_product_decomposition(nA,lA,ntpdshA,ntpdA,powA,ftpdA)
+!!$                   do igB=1,ngB
+!!$                      itpd2=0
+!!$                      do mB=1,2*lB+1
+!!$                         itpd1=0
+!!$                         do mA=1,2*lA+1
+!!$                            integral=0.0_gp
+!!$                            do i2=1,ntpdB(mB)
+!!$                               do i1=1,ntpdA(mA)
+!!$                                  f=  govrlp(A%sd(EXPO_,igA+iexpo),B%sd(EXPO_,igB+jexpo),&
+!!$                                       dr(1),powA(1,i1+itpd1),powB(1,i2+itpd2))
+!!$                                  f=f*govrlp(A%sd(EXPO_,igA+iexpo),B%sd(EXPO_,igB+jexpo),&
+!!$                                       dr(2),powA(2,i1+itpd1),powB(2,i2+itpd2))
+!!$                                  f=f*govrlp(A%sd(EXPO_,igA+iexpo),B%sd(EXPO_,igB+jexpo),&
+!!$                                       dr(3),powA(3,i1+itpd1),powB(3,i2+itpd2))
+!!$                                  integral=integral+ftpdA(i1+itpd1)*ftpdB(i2+itpd2)*f
+!!$                               end do
+!!$                            end do
+!!$                            ovrlp(iovrlp+mA,jovrlp+mB)=ovrlp(iovrlp+mA,jovrlp+mB)-0.5_gp*&
+!!$                                 A%sd(COEFF_,igA+iexpo)*B%sd(COEFF_,igB+jexpo)*integral
+!!$                            itpd1=itpd1+ntpdA(mA)
+!!$                         end do
+!!$                         itpd2=itpd2+ntpdB(mB)
+!!$                      end do
+!!$
+!!$!!!$                      call gdot_shell(A%sd(1:,igA+iexpo),lA,ntpdshA,ntpdA,powA,ftpdA,&
+!!$!!!$                           B%sd(1:,igB+jexpo),lB,ntpdshB,ntpdB,powB,ftpdB,dr,&
+!!$!!!$                           shell_overlap)
+!!$                   end do
+!!$                end do
+!!$
+!!$!!!$                !here the entire array should be copied in the right place
+!!$!!!$                do mB=1,2*lB+1
+!!$!!!$                   do mA=1,2*lA+1
+!!$!!!$                      ovrlp(iovrlp+mA,jovrlp+mB)=-0.5_gp*&
+!!$!!!$                           shell_overlap(mA+(mB-1)*(2*lA+1))
+!!$!!!$                   end do
+!!$!!!$                end do
+!!$                jexpo=jexpo+ngB
+!!$                jcoeff=jcoeff+2*lB+1
+!!$                jovrlp=jovrlp+2*lB+1
+!!$             end do
+!!$          end do
+!!$          iexpo=iexpo+ngA
+!!$          icoeff=icoeff+2*lA+1
+!!$          iovrlp=iovrlp+2*lA+1
+!!$       end do
+!!$    end do
+!!$
+!!$    call gaudim_check(iexpo+1,icoeff,ishell,A%nexpo,A%ncoeff,A%nshltot)
+!!$    call gaudim_check(jexpo+1,jcoeff,jshell,B%nexpo,B%ncoeff,B%nshltot)
+!!$
+!!$  END SUBROUTINE kinetic
+  
 
 
   !> Calculates @f$\int e^{-a1*x^2} x^l1 \exp^{-a2*(x-d)^2} (x-d)^l2 dx@f$

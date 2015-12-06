@@ -45,7 +45,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	input.f90 \
 	interfaces.f90 \
 	private_api.f90 \
-	xc.f90 \
 	module_lj.f90 \
 	module_morse_bulk.f90 \
 	module_lenosky_si.f90 \
@@ -171,7 +170,6 @@ modules = module_types.@MODULE_EXT@ \
 	module_mixing.@MODULE_EXT@ \
 	module_interfaces.@MODULE_EXT@ \
 	module_private_api.@MODULE_EXT@ \
-	module_xc.@MODULE_EXT@ \
 	overlap_point_to_point.@MODULE_EXT@ \
 	module_input.@MODULE_EXT@ \
 	gaussdaub.@MODULE_EXT@ \
@@ -255,12 +253,12 @@ $(modules): $(libmodules_a_OBJECTS)
 input.o: fragment_base.o
 input_dicts.o: fragment_base.o input.o
 atoms_data.o: $(ATOMS_INCLUDES) internal_coordinates.o input_dicts.o
-input_keys.o: multipole_base.o atoms_data.o xc.o input.o fragment_base.o
+input_keys.o: multipole_base.o atoms_data.o input.o fragment_base.o
 types.o: psp_projectors_base.o atoms_data.o communications_base.o input_keys.o \
-	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o dpbox.o
-interfaces.o: types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
+	sparsematrix_base.o foe_base.o ab7_mixing.o multipole_base.o dpbox.o
+interfaces.o: types.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
 #op2p_module.o : base.o
-BigDFT_API.o: types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o bigdft_run.o
+BigDFT_API.o: types.o interfaces.o atoms_data.o input_dicts.o psp_projectors.o communications_base.o communications_init.o bigdft_run.o
 vdwcorrection.o: types.o 
 private_api.o: types.o interfaces.o
 diis_module.o: types.o
@@ -272,7 +270,7 @@ psp_projectors.o: locregs_init.o psp_projectors_base.o
 #communications_base.o: base.o
 #dpbox.o: base.o bounds.o
 communications_init.o: types.o communications_base.o
-communications.o: types.o communications_base.o xc.o
+communications.o: types.o communications_base.o
 #sparsematrix_base.o: base.o
 sparsematrix_init.o: types.o interfaces.o sparsematrix_base.o locregs_init.o
 sparsematrix.o: types.o sparsematrix_base.o sparsematrix_init.o
@@ -303,7 +301,7 @@ io.o: types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o matri
 postprocessing_linear.o: types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o sort.o communications_init.o locregs_init.o
 foe.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
-rhopotential.o: types.o interfaces.o xc.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o
+rhopotential.o: types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o
 multipole.o: multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
 orbital_basis.o:  types.o communications_base.o interfaces.o
 orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o matrix_operations.o
