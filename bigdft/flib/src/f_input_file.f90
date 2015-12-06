@@ -663,7 +663,6 @@ contains
        !stop
        dict_tmp => dict_next(dict_tmp)
     end do
-    if (.not. associated(minimal)) call dict_init(minimal)
 
     !then add other information to the minimal dictionary which is associated
     !to specific system parameters

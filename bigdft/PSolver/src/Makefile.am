@@ -77,6 +77,7 @@ modules = POISSON_SOLVER.@MODULE_EXT@ \
 	PSBASE.@MODULE_EXT@ \
 	PSBOX.@MODULE_EXT@ \
 	FDDER.@MODULE_EXT@ \
+	IOBOXETSF.@MODULE_EXT@ \
 	IOBOX.@MODULE_EXT@
 
 else
@@ -86,6 +87,7 @@ modules = poisson_solver.@MODULE_EXT@ \
 	psbase.@MODULE_EXT@ \
 	psbox.@MODULE_EXT@ \
 	fdder.@MODULE_EXT@ \
+	ioboxetsf.@MODULE_EXT@ \
 	iobox.@MODULE_EXT@
 endif
 

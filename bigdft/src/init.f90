@@ -641,7 +641,7 @@ use wfn_extrap
 
   !local variables
   character(len=*), parameter :: subname='input_wf_memory_history'
-  logical, parameter :: debug_flag=.true.
+  logical, parameter :: debug_flag=.false.
   integer :: istep,jstep,nvctr
   real(wp), dimension(:,:), allocatable :: psi_istep, psi_nstep
   integer, save :: icall=0
@@ -690,7 +690,7 @@ use wfn_extrap
   if (istep_history == 0) then
      if(iproc==0 .and. debug_flag)print *, "NNdbg: istep_history ==0; copying oldpsis(1..to wfn_history+1)"
      do istep=1,wfn_history
-        if(iproc==0)print *,    ".... ..istep=", istep,istep_history,"wfn_history =",wfn_history
+        if(iproc==0 .and. debug_flag)print *,    ".... ..istep=", istep,istep_history,"wfn_history =",wfn_history
         call old_wavefunction_set(oldpsis(istep),&
              atoms%astruct%nat,orbs%norbp*orbs%nspinor,&
              oldpsis(wfn_history+1)%Lzd,oldpsis(wfn_history+1)%rxyz,&
@@ -727,7 +727,7 @@ use wfn_extrap
 
   if(istep_history<wfn_history)then
 
-     if(iproc==0)print *, "NNdbg: ....istep_history <= wfn_history; doing vcopy"
+     if(iproc==0 .and. debug_flag)print *, "NNdbg: ....istep_history <= wfn_history; doing vcopy"
 
      nvctr=(Lzd%Glr%wfd%nvctr_c+7*Lzd%Glr%wfd%nvctr_f)*orbs%nspinor*orbs%norbp
 
@@ -784,7 +784,7 @@ use wfn_extrap
      if(iproc.eq.0 .and. debug_flag)print *, "NNdbg; overlap is computed for <Psi(",jstep,")|Psi(",wfn_history+1,")>"
 
      !if(orbs%norbp>0)
-     if(iproc.eq.0)print *, "Considering Psi(",jstep,") ; cc(",jstep,")=",cc(jstep)
+     if(iproc.eq.0 .and. debug_flag)print *, "Considering Psi(",jstep,") ; cc(",jstep,")=",cc(jstep)
      call rotate_wavefunction(orbs,comms,lzd,nproc,iproc,nspin,norbArr, &
           ndim_ovrlp,ovrlp,cc(jstep),psi_istep(1,1),psi(1,1))
      !     if(iproc.eq.0)print *, "Overlap of Psi (partial) for oldpsis(:",jstep,")"
@@ -3191,9 +3191,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
      call vcopy(tmb%linmat%l%nvctrp_tg, tmparr(1), 1, tmb%linmat%kernel_%matrix_compr(1), 1)
      call f_free(tmparr)
      if (rho_negative) then
-         if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
+         !!if (iproc==0) call yaml_warning('Charge density contains negative points, need to increase FOE cutoff')
          !there's a problem here if we set init to false, as init_foe will then nullify foe_obj without deallocating/reallocating
-         call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .true.) !.false.)
+         !!call increase_FOE_cutoff(iproc, nproc, tmb%lzd, atoms%astruct, in, KSwfn%orbs, tmb%orbs, tmb%foe_obj, .false.)
          call clean_rho(iproc, nproc, KSwfn%Lzd%Glr%d%n1i*KSwfn%Lzd%Glr%d%n2i*denspot%dpbox%n3d, denspot%rhov)
      end if
 
@@ -3288,7 +3288,9 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
              infoCoeff,energs,nlpsp,in%SIC,tmb,pnrm,.false.,.true.,.false.,&
              .true.,0,0,0,0,order_taylor,in%lin%max_inversion_error,&
              in%purification_quickreturn,in%calculate_KS_residue,in%calculate_gap, &
-             energs_work,.false.,in%lin%coeff_factor) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
+             energs_work,.false.,in%lin%coeff_factor,&
+             in%lin%pexsi_npoles,in%lin%pexsi_mumin,in%lin%pexsi_mumax,in%lin%pexsi_mu,&
+             in%lin%pexsi_temperature,in%lin%pexsi_tol_charge) !in%lin%extra_states) - assume no extra states as haven't set occs for this yet
 
         call deallocate_work_mpiaccumulate(energs_work)
 

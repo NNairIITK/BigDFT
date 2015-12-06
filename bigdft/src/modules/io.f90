@@ -17,6 +17,7 @@ module io
   public :: writeLinearCoefficients
   public :: write_linear_coefficients
   public :: read_linear_coefficients
+  public :: write_partial_charges
 
   public :: io_error, io_warning, io_open
   public :: io_read_descr, read_psi_compress
@@ -25,6 +26,7 @@ module io
   public :: read_sparse_matrix
   public :: read_dense_matrix
   public :: dist_and_shift
+  public :: write_ccs_matrix
 
 
   contains
@@ -2494,6 +2496,145 @@ module io
       call f_release_routine()
     
     end subroutine read_linear_coefficients
+
+
+
+    subroutine write_ccs_matrix(filename, nfvctr, nvctr, row_ind, col_ptr, mat_compr)
+      use module_base
+      implicit none
+      !Calling arguments
+      character(len=*),intent(in) :: filename
+      integer,intent(in) :: nfvctr !number of rows/columns
+      integer,intent(in) :: nvctr !number of non-zero elements
+      integer,dimension(nvctr),intent(in) :: row_ind
+      integer,dimension(nfvctr),intent(in) :: col_ptr
+      real(kind=8),dimension(nvctr),intent(in) :: mat_compr
+      ! Local variables
+      integer :: i, iunit
+
+      iunit = 99
+      call f_open_file(iunit, file=trim(filename), binary=.false.)
+
+      write(iunit,'(4(i0,1x))') nfvctr, nfvctr, nvctr, 0
+      write(iunit,'(100000(i0,1x))') (col_ptr(i),i=1,nfvctr),nvctr+1
+      write(iunit,'(100000(i0,1x))') (row_ind(i),i=1,nvctr)
+      do i=1,nvctr
+          write(iunit,'(es24.15)') mat_compr(i)
+      end do
+
+      call f_close(iunit)
+
+    end subroutine write_ccs_matrix
+
+
+    subroutine write_partial_charges(atoms, charge_per_atom, write_gnuplot)
+      use module_base
+      use module_types
+      use yaml_output
+      ! Calling arguments
+      type(atoms_data),intent(in) :: atoms
+      real(kind=8),dimension(atoms%astruct%nat),intent(in) :: charge_per_atom
+      logical,intent(in) :: write_gnuplot
+      ! Local variables
+      integer :: iat, itypes, iitype, nntype, intype, iunit
+      real(kind=8) :: total_charge, total_net_charge, frac_charge, range_min, range_max
+      character(len=20) :: atomname, colorname
+      real(kind=8),dimension(2) :: charges
+      character(len=128) :: output
+      character(len=2) :: backslash
+      integer,parameter :: ncolors = 12 !7
+      !character(len=20),dimension(ncolors),parameter :: colors=(/'violet', &
+      !                                                           'blue  ', &
+      !                                                           'cyan  ', &
+      !                                                           'green ', &
+      !                                                           'yellow', &
+      !                                                           'orange', &
+      !                                                           'red   '/)
+      ! Presumably well suited colorschemes from colorbrewer2.org
+      character(len=20),dimension(ncolors),parameter :: colors=(/'#a6cee3', &
+                                                                 '#1f78b4', &
+                                                                 '#b2df8a', &
+                                                                 '#33a02c', &
+                                                                 '#fb9a99', &
+                                                                 '#e31a1c', &
+                                                                 '#fdbf6f', &
+                                                                 '#ff7f00', &
+                                                                 '#cab2d6', &
+                                                                 '#6a3d9a', &
+                                                                 '#ffff99', &
+                                                                 '#b15928'/)
+
+      call yaml_sequence_open('Charge analysis (charge / net charge)')
+      total_charge=0.d0
+      total_net_charge=0.d0
+      do iat=1,atoms%astruct%nat
+          call yaml_sequence(advance='no')
+          call yaml_mapping_open(flow=.true.)
+          atomname=atoms%astruct%atomnames(atoms%astruct%iatype(iat))
+          charges(1)=-charge_per_atom(iat)
+          charges(2)=-(charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8))
+          total_charge = total_charge + charges(1)
+          total_net_charge = total_net_charge + charges(2)
+          call yaml_map(trim(atomname),charges,fmt='(1es20.12)')
+          call yaml_mapping_close(advance='no')
+          call yaml_comment(trim(yaml_toa(iat,fmt='(i4.4)')))
+      end do
+      call yaml_sequence(advance='no')
+      call yaml_map('total charge',total_charge,fmt='(es16.8)')
+      call yaml_sequence(advance='no')
+      call yaml_map('total net charge',total_net_charge,fmt='(es16.8)')
+      call yaml_sequence_close()
+
+      if (write_gnuplot) then
+          output='chargeanalysis.gp'
+          call yaml_map('output file',trim(output))
+          iunit=100
+          call f_open_file(iunit, file=trim(output), binary=.false.)
+          write(iunit,'(a)') '# plot the fractional charge as a normalized sum of Gaussians'
+          write(iunit,'(a)') 'set samples 1000'
+          range_min = minval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) - 0.1d0
+          range_max = maxval(-(charge_per_atom(:)-real(atoms%nelpsp(atoms%astruct%iatype(:)),kind=8))) + 0.1d0
+          write(iunit,'(a,2(es12.5,a))') 'set xrange[',range_min,':',range_max,']'
+          write(iunit,'(a)') 'sigma=0.005'
+          write(backslash,'(a)') '\ '
+          do itypes=1,atoms%astruct%ntypes
+              nntype = 0
+              do iat=1,atoms%astruct%nat
+                  iitype = (atoms%astruct%iatype(iat))
+                  if (iitype==itypes) then
+                      nntype = nntype + 1
+                  end if
+              end do
+              write(iunit,'(a,i0,a,i0,2a)') 'f',itypes,'(x) = 1/',nntype,'.0*( '//trim(backslash)
+              intype = 0
+              do iat=1,atoms%astruct%nat
+                  iitype = (atoms%astruct%iatype(iat))
+                  if (iitype==itypes) then
+                      intype = intype + 1
+                      frac_charge = -(charge_per_atom(iat)-real(atoms%nelpsp(atoms%astruct%iatype(iat)),kind=8))
+                      if (intype<nntype) then
+                          write(iunit,'(a,es16.9,a)') '  1.0*exp(-(x-',frac_charge,')**2/(2*sigma**2)) + '//trim(backslash)
+                      else
+                          write(iunit,'(a,es16.9,a)') '  1.0*exp(-(x-',frac_charge,')**2/(2*sigma**2)))'
+                      end if
+                  end if
+              end do
+              atomname=atoms%astruct%atomnames(itypes)
+              if (itypes<ncolors) then
+                  colorname = colors(itypes)
+              else
+                  colorname = 'color'
+              end if
+              if (itypes==1) then
+                  write(iunit,'(a,i0,5a)') "plot f",itypes,"(x) lc rgb '",trim(colorname), &
+                      "' lt 1 lw 2 w l title '",trim(atomname),"'"
+              else
+                  write(iunit,'(a,i0,5a)') "replot f",itypes,"(x) lc rgb '",trim(colorname), &
+                      "' lt 1 lw 2 w l title '",trim(atomname),"'"
+              end if
+          end do
+      end if
+    end subroutine write_partial_charges
 
 
 end module io

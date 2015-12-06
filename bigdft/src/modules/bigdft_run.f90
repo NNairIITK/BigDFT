@@ -1791,7 +1791,6 @@ contains
 
     if (bigdft_mpi%iproc==0 .and. .not. (runObj%run_mode .hasattr. RUN_MODE_CREATE_DOCUMENT)) &
          call yaml_sequence_open('Initializing '//trim(str(runObj%run_mode)))
-    call f_release_routine()
 
     if(trim(runObj%inputs%geopt_approach)/='SOCK') call bigdft_state(runObj,outs,infocode)
 

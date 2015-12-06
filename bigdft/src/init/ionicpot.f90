@@ -1707,6 +1707,7 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
   !Local variables
   logical :: counterions
   real(dp), dimension(:), allocatable :: counter_ions
+  integer :: ncounter_ions
 
   ! Compute the main ionic potential.
   call createIonicPotential(iproc, verb, atoms, rxyz, &
@@ -1716,12 +1717,15 @@ subroutine createEffectiveIonicPotential(iproc, verb, input, atoms, rxyz, shift,
   inquire(file='posinp_ci.xyz',exist=counterions)
   if (counterions) then
      if (dpbox%n3pi > 0) then
-        counter_ions = f_malloc(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,id='counter_ions')
+        !counter_ions = f_malloc(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,id='counter_ions')
+        ncounter_ions = dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi
      else
-        counter_ions = f_malloc(1,id='counter_ions')
+        !counter_ions = f_malloc(1,id='counter_ions')
+        ncounter_ions = 1
      end if
+     counter_ions = f_malloc(ncounter_ions,id='counter_ions')
 
-     call CounterIonPotential(iproc,input,shift,dpbox,pkernel,counter_ions)
+     call CounterIonPotential(iproc,input,shift,dpbox,pkernel,ncounter_ions,counter_ions)
 
      !sum that to the ionic potential
      call axpy(dpbox%ndims(1)*dpbox%ndims(2)*dpbox%n3pi,1.0_dp,counter_ions(1),1,&
@@ -2803,7 +2807,7 @@ END SUBROUTINE sum_erfcr
 
 
 !> Read and initialize counter-ions potentials (read psp files)
-subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
+subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,npot_ion,pot_ion)
   use module_base
   use module_types
   !use module_interfaces, except_this_one => CounterIonPotential
@@ -2815,23 +2819,24 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   use gaussians, only: initialize_real_space_conversion, finalize_real_space_conversion,mp_exp
   use module_atoms
   use module_dpbox
+  use multipole, only: gaussian_density
   use bounds, only: ext_buffers
   use pseudopotentials, only: psp_dict_fill_all
   implicit none
   !Arguments
-  integer, intent(in) :: iproc
+  integer, intent(in) :: iproc, npot_ion
 !!-  real(gp), intent(in) :: hxh,hyh,hzh
   real(gp), dimension(3), intent(in) :: shift
   type(input_variables), intent(in) :: in
 !!-  type(grid_dimensions), intent(in) :: grid
   type(denspot_distribution), intent(in) :: dpbox
   type(coulomb_operator), intent(inout) :: pkernel
-  real(wp), dimension(*), intent(inout) :: pot_ion
+  real(wp), dimension(npot_ion), intent(inout) :: pot_ion
   !Local variables
   real(gp), parameter :: mp_tiny = 1.e-30_gp
   logical, parameter :: htoobig=.false.,check_potion=.false.,use_iterator=.false.
   logical :: perx,pery,perz,gox,goy,goz
-  integer :: iat,j1,j2,j3,isx,isy,isz,iex,iey,iez
+  integer :: iat,j1,j2,j3,isx,isy,isz,iex,iey,iez,nmpx,nmpy,nmpz
   integer :: i1,i2,i3,ityp,nspin,indj3,indj23,n1i,n2i,n3i
   integer :: ind,nbl1,nbr1,nbl2,nbr2,n3pi,nbl3,nbr3,i3s
   real(kind=8) :: rloc,rlocinv2sq,charge,cutoff,tt,rx,ry,rz,xp
@@ -2860,12 +2865,11 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
   n2i=dpbox%ndims(2)
   n3i=dpbox%ndims(3)
   
-  !initialize the work arrays needed to integrate with isf
-  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   if (iproc.eq.0) then
-     write(*,'(1x,a)')&
-          '--------------------------------------------------- Counter Ionic Potential Creation'
+     !write(*,'(1x,a)')&
+     !     '--------------------------------------------------- Counter Ionic Potential Creation'
+     call yaml_comment('Counter Ionic Potential Creation',hfill='-')
   end if
 
   at = atoms_data_null()
@@ -2887,6 +2891,10 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
 !  radii_cf = f_malloc((/ at%astruct%ntypes, 3 /),id='radii_cf')
 !  radii_cf = at%radii_cf
   if (iproc == 0) call print_atomic_variables(at, max(in%hx,in%hy,in%hz), in%ixc, in%dispersion)
+
+
+  !initialize the work arrays needed to integrate with isf
+  if (at%multipole_preserving) call initialize_real_space_conversion(isf_m=at%mp_isf)
 
   ! Ionic charge (must be calculated for the PS active processes)
   rholeaked=0.d0
@@ -2917,11 +2925,17 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
         cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
      end if
      !Separable function: do 1-D integrals before and store it.
-     mpx = f_malloc( (/ 0 .to. (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) + 1 /),id='mpx')
-     mpy = f_malloc( (/ 0 .to. (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) + 1 /),id='mpy')
-     mpz = f_malloc( (/ 0 .to. (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) + 1 /),id='mpz')
+     nmpx = (ceiling(cutoff/hxh) - floor(-cutoff/hxh)) + 1
+     nmpy = (ceiling(cutoff/hyh) - floor(-cutoff/hyh)) + 1
+     nmpz = (ceiling(cutoff/hzh) - floor(-cutoff/hzh)) + 1
+     mpx = f_malloc( (/ 0 .to. nmpx /),id='mpx')
+     mpy = f_malloc( (/ 0 .to. nmpy /),id='mpy')
+     mpz = f_malloc( (/ 0 .to. nmpz /),id='mpz')
 
      atit = atoms_iter(at%astruct)
+     if (iproc==0) then
+         call yaml_sequence_open('Counter ions')
+     end if
      do while(atoms_iter_next(atit))
        
 !!-     do iat=1,at%astruct%nat
@@ -2934,110 +2948,133 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,pot_ion)
         rx=at%astruct%rxyz(1,atit%iat)-shift(1)
         ry=at%astruct%rxyz(2,atit%iat)-shift(2)
         rz=at%astruct%rxyz(3,atit%iat)-shift(3)
+        write(*,*) 'rx, at%astruct%rxyz(1,atit%iat), shift(1)', rx, at%astruct%rxyz(1,atit%iat), shift(1)
 
         if (iproc == 0) then
-           write(*,'(1x,a,i6,3(1pe14.7))')'counter ion No. ',atit%iat,rx,ry,rz
+           !write(*,'(1x,a,i6,3(1pe14.7))')'counter ion No. ',atit%iat,rx,ry,rz
+           call yaml_sequence(advance='no')
+           call yaml_mapping_open(flow=.true.)
+           call yaml_map(trim(at%astruct%atomnames(at%astruct%iatype(atit%iat))),(/rx,ry,rz/),fmt='(1es20.12)')
+           call yaml_mapping_close(advance='no')
+           call yaml_comment(trim(yaml_toa(atit%iat,fmt='(i4.4)')))
         end if
 
-!!-        rloc=at%psppar(0,0,ityp)
-!!-        charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
-        rloc=at%psppar(0,0,atit%ityp)
-        rlocinv2sq=0.5_gp/rloc**2
-        charge=real(at%nelpsp(atit%ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+        ! SM: COPY FROM HERE... #############################################################
 
-        !cutoff of the range
-        cutoff=10.0_gp*rloc
-        if (at%multipole_preserving) then
-           !We want to have a good accuracy of the last point rloc*10
-           !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
-           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
-        end if
-        
-        if (use_iterator) then
-           nbox(1,1)=floor((rx-cutoff)/hxh)
-           nbox(1,2)=floor((ry-cutoff)/hyh)
-           nbox(1,3)=floor((rz-cutoff)/hzh)
-           nbox(2,1)=ceiling((rx+cutoff)/hxh)
-           nbox(2,2)=ceiling((ry+cutoff)/hyh)
-           nbox(2,3)=ceiling((rz+cutoff)/hzh)
+        call gaussian_density(perx, pery, perz, n1i, n2i, n3i, nbl1, nbl2, nbl3, i3s, n3pi, hxh, hyh, hzh, rx, ry, rz, &
+             at%psppar(0,0,atit%ityp), at%nelpsp(atit%ityp), at%multipole_preserving, use_iterator, at%mp_isf, &
+             dpbox, nmpx, nmpy, nmpz, mpx, mpy, mpz, npot_ion, pot_ion, rholeaked)
 
-           !Separable function: do 1-D integrals before and store it.
-           !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
-           !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
-           !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
-           do i1=nbox(1,1),nbox(2,1)
-              mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
-           end do
-           do i2=nbox(1,2),nbox(2,2)
-              mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
-           end do
-           do i3=nbox(1,3),nbox(2,3)
-              mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
-           end do
-           boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
+!!!!!-        rloc=at%psppar(0,0,ityp)
+!!!!!-        charge=real(at%nelpsp(ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+!!!        rloc=at%psppar(0,0,atit%ityp)
+!!!        rlocinv2sq=0.5_gp/rloc**2
+!!!        charge=real(at%nelpsp(atit%ityp),gp)/(2.0_gp*pi*sqrt(2.0_gp*pi)*rloc**3)
+!!!
+!!!        write(*,*) 'at%nelpsp(atit%ityp),rloc,charge',at%nelpsp(atit%ityp),rloc,charge
+!!!
+!!!        !cutoff of the range
+!!!        cutoff=10.0_gp*rloc
+!!!        if (at%multipole_preserving) then
+!!!           !We want to have a good accuracy of the last point rloc*10
+!!!           !cutoff=cutoff+max(hxh,hyh,hzh)*real(16,kind=gp)
+!!!           cutoff=cutoff+max(hxh,hyh,hzh)*real(at%mp_isf,kind=gp)
+!!!        end if
+!!!        write(*,*) 'cutoff',cutoff
+!!!        
+!!!        if (use_iterator) then
+!!!           nbox(1,1)=floor((rx-cutoff)/hxh)
+!!!           nbox(1,2)=floor((ry-cutoff)/hyh)
+!!!           nbox(1,3)=floor((rz-cutoff)/hzh)
+!!!           nbox(2,1)=ceiling((rx+cutoff)/hxh)
+!!!           nbox(2,2)=ceiling((ry+cutoff)/hyh)
+!!!           nbox(2,3)=ceiling((rz+cutoff)/hzh)
+!!!
+!!!           !Separable function: do 1-D integrals before and store it.
+!!!           !mpx = f_malloc( (/ nbox(1,1).to.nbox(2,1) /),id='mpx')
+!!!           !mpy = f_malloc( (/ nbox(1,2).to.nbox(2,2) /),id='mpy')
+!!!           !mpz = f_malloc( (/ nbox(1,3).to.nbox(2,3) /),id='mpz')
+!!!           do i1=nbox(1,1),nbox(2,1)
+!!!              mpx(i1-nbox(1,1)) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+!!!           end do
+!!!           do i2=nbox(1,2),nbox(2,2)
+!!!              mpy(i2-nbox(1,2)) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+!!!           end do
+!!!           do i3=nbox(1,3),nbox(2,3)
+!!!              mpz(i3-nbox(1,3)) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+!!!           end do
+!!!           boxit = dpbox_iter(dpbox,DPB_POT_ION,nbox)
+!!!
+!!!
+!!!           do while(dpbox_iter_next(boxit))
+!!!              xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
+!!!              pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
+!!!           end do
+!!!
+!!!        else
+!!!           isx=floor((rx-cutoff)/hxh)
+!!!           isy=floor((ry-cutoff)/hyh)
+!!!           isz=floor((rz-cutoff)/hzh)
+!!!
+!!!           iex=ceiling((rx+cutoff)/hxh)
+!!!           iey=ceiling((ry+cutoff)/hyh)
+!!!           iez=ceiling((rz+cutoff)/hzh)
+!!!
+!!!           !Separable function: do 1-D integrals before and store it.
+!!!           !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
+!!!           !mpx = f_malloc( (/ isx.to.iex /),id='mpx')
+!!!           !mpy = f_malloc( (/ isy.to.iey /),id='mpy')
+!!!           !mpz = f_malloc( (/ isz.to.iez /),id='mpz')
+!!!           write(*,*) 'before exps'
+!!!           do i1=isx,iex
+!!!              mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
+!!!           end do
+!!!           do i2=isy,iey
+!!!              mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
+!!!           end do
+!!!           do i3=isz,iez
+!!!              mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
+!!!           end do
+!!!           do i3=isz,iez
+!!!           write(*,*) 'i3',i3
+!!!              zp = mpz(i3-isz)
+!!!              if (abs(zp) < mp_tiny) cycle
+!!!              !call ind_positions(perz,i3,grid%n3,j3,goz) 
+!!!              call ind_positions_new(perz,i3,n3i,j3,goz) 
+!!!              j3=j3+nbl3+1
+!!!              do i2=isy,iey
+!!!                 yp = zp*mpy(i2-isy)
+!!!                 if (abs(yp) < mp_tiny) cycle
+!!!                 !call ind_positions(pery,i2,grid%n2,j2,goy)
+!!!                 call ind_positions_new(pery,i2,n2i,j2,goy)
+!!!                 do i1=isx,iex
+!!!                    xp = yp*mpx(i1-isx)
+!!!                    if (abs(xp) < mp_tiny) cycle
+!!!                    !call ind_positions(perx,i1,grid%n1,j1,gox)
+!!!                    call ind_positions_new(perx,i1,n1i,j1,gox)
+!!!                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
+!!!                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
+!!!                       pot_ion(ind)=pot_ion(ind)-xp*charge
+!!!                    else if (.not. goz ) then
+!!!                       rholeaked=rholeaked+xp*charge
+!!!                    endif
+!!!                 enddo
+!!!              enddo
+!!!           enddo
+!!!
+!!!        end if
+!!!
+!!!        ! SM: TO HERE... #############################################################
 
-
-           do while(dpbox_iter_next(boxit))
-              xp = mpx(boxit%ibox(1)-nbox(1,1)) * mpy(boxit%ibox(2)-nbox(1,2)) * mpz(boxit%ibox(3)-nbox(1,3))
-              pot_ion(boxit%ind) = pot_ion(boxit%ind) - xp*charge
-           end do
-
-        else
-           isx=floor((rx-cutoff)/hxh)
-           isy=floor((ry-cutoff)/hyh)
-           isz=floor((rz-cutoff)/hzh)
-
-           iex=ceiling((rx+cutoff)/hxh)
-           iey=ceiling((ry+cutoff)/hyh)
-           iez=ceiling((rz+cutoff)/hzh)
-
-           !Separable function: do 1-D integrals before and store it.
-           !call mp_calculate(rx,ry,rz,hxh,hyh,hzh,cutoff,rlocinv2sq,at%multipole_preserving,mpx,mpy,mpz)
-           !mpx = f_malloc( (/ isx.to.iex /),id='mpx')
-           !mpy = f_malloc( (/ isy.to.iey /),id='mpy')
-           !mpz = f_malloc( (/ isz.to.iez /),id='mpz')
-           do i1=isx,iex
-              mpx(i1-isx) = mp_exp(hxh,rx,rlocinv2sq,i1,0,at%multipole_preserving)
-           end do
-           do i2=isy,iey
-              mpy(i2-isy) = mp_exp(hyh,ry,rlocinv2sq,i2,0,at%multipole_preserving)
-           end do
-           do i3=isz,iez
-              mpz(i3-isz) = mp_exp(hzh,rz,rlocinv2sq,i3,0,at%multipole_preserving)
-           end do
-           do i3=isz,iez
-              zp = mpz(i3-isz)
-              if (abs(zp) < mp_tiny) cycle
-              !call ind_positions(perz,i3,grid%n3,j3,goz) 
-              call ind_positions_new(perz,i3,n3i,j3,goz) 
-              j3=j3+nbl3+1
-              do i2=isy,iey
-                 yp = zp*mpy(i2-isy)
-                 if (abs(yp) < mp_tiny) cycle
-                 !call ind_positions(pery,i2,grid%n2,j2,goy)
-                 call ind_positions_new(pery,i2,n2i,j2,goy)
-                 do i1=isx,iex
-                    xp = yp*mpx(i1-isx)
-                    if (abs(xp) < mp_tiny) cycle
-                    !call ind_positions(perx,i1,grid%n1,j1,gox)
-                    call ind_positions_new(perx,i1,n1i,j1,gox)
-                    if (j3 >= i3s .and. j3 <= i3s+n3pi-1  .and. goy  .and. gox ) then
-                       ind=j1+1+nbl1+(j2+nbl2)*n1i+(j3-i3s)*n1i*n2i
-                       pot_ion(ind)=pot_ion(ind)-xp*charge
-                    else if (.not. goz ) then
-                       rholeaked=rholeaked+xp*charge
-                    endif
-                 enddo
-              enddo
-           enddo
-
-        end if
-
-
-        !De-allocate for multipole preserving
-        call f_free(mpx,mpy,mpz)
+        !!De-allocate for multipole preserving
+        !call f_free(mpx,mpy,mpz)
 
      end do
+
+     if (iproc==0) then
+         call yaml_sequence_close()
+     end if
+     call f_free(mpx,mpy,mpz)
 
   end if
 

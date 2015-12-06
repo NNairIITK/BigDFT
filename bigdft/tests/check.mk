@@ -184,15 +184,12 @@ $(abs_top_builddir)/src/BigDFT2Wannier: $(abs_top_srcdir)/src/BigDFT2Wannier.f90
 %.xabs.out: $(abs_top_builddir)/src/abscalc
 	@name=`basename $@ .xabs.out` ; \
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	echo "$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 --name=$$name" ;\
-	$(run_serial) $(abs_top_builddir)/src/bigdft-tool --name=$$name -l -n 1 ; \
 	echo "$(run_serial) $(abs_top_builddir)/src/abscalc $$name -l yes > $@"; \
 	$(run_serial) $(abs_top_builddir)/src/abscalc $$name -l yes > $@
 	name=`basename $@ .out` ; \
 	$(MAKE) -f ../Makefile $$name".post-out"
 %.b2w.out: $(abs_top_builddir)/src/BigDFT2Wannier
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
-	$(run_serial) $(abs_top_builddir)/src/bigdft-tool -l -n 1 ;\
 	$(run_parallel) $(abs_top_builddir)/src/bigdft -l yes > $@
 	if test -n "${LD_LIBRARY_PATH}" ; then export LD_LIBRARY_PATH=${LD_LIBRARY_PATH} ; fi ; \
 	$(run_parallel) $(abs_top_builddir)/src/BigDFT2Wannier -l yes > $@

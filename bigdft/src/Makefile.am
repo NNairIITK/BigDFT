@@ -56,7 +56,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 bigdft_dynamic_library =
 bigdft_soname_library =
-bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
+bigdft_library = libbigdft-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 endif
 if BUILD_LIB_BIGDFT
 lib_bigdft = libbigdft-1.a
@@ -111,6 +111,12 @@ else
 ##cp2k_interfacemod = modules/cp2k_fake.f90 modules/module_cp2k.f90
 ##cp2k_interfacemodCAP = MODULES/CP2K_FAKE.F90 MODULES/MODULE_CP2K_FAKE.F90
 cp2k_ld =
+endif
+
+if HAVE_PEXSI
+pexsi_ld= @PEXSI_LINKLINE@ @LINALG_LIBS@
+else
+pexsi_ld =
 endif
 
 if USE_OCL
@@ -249,11 +255,13 @@ tmp-libbigdft/extract.stamp: $(subs_static_library) $(out_static_library)
 	touch extract.stamp
 
 libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
+	echo "libbigdft-1.a: PEXSI FLAGS" $(pexsi_ld)
 	$(AR) $(ARFLAGS) $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
+	echo "PEXSI FLAGS" $(pexsi_ld)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 	@chmod a+x $@
 
 libbigdft-1.so.@BIGDFT_MINOR_VERSION@: $(bigdft_dynamic_library)

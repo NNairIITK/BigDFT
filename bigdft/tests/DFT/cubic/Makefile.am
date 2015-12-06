@@ -46,7 +46,8 @@ LONG_TESTDIRS += $(SHORT_TESTDIRS) \
 	  ElectField \
 	  ElectronGas \
 	  CH4-D3 \
-	  PAW
+	  PAW \
+	  counterions
 
 EXTRA_DIST = 
 

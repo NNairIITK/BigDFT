@@ -25,29 +25,33 @@
    |     |     |     |     |     |         D               T    T
    |     |     |     |     |     |   DDDDDD       F         TTTT
    |_____|_____|_____|_____|_____|______                    www.bigdft.org   "
- 
+
  Reference Paper                       : The Journal of Chemical Physics 129, 014109 (2008)
- Version Number                        : 1.8a.0
- Timestamp of this run                 : 2015-11-26 17:30:10.329
- Root process Hostname                 : maia.cluster.bc2.ch
+ Version Number                        : 1.8a.2
+ Timestamp of this run                 : 2015-12-04 12:18:50.775
+ Root process Hostname                 : athelas
  Number of MPI tasks                   :  2
- OpenMP parallelization                :  No
+ OpenMP parallelization                :  Yes
+ Maximal OpenMP threads per MPI task   :  2
  MPI tasks of root process node        :  2
   #------------------------------------------------------------------ Code compiling options
  Compilation options:
    Configure arguments:
-     " 'CC=icc' 'CXX=icpc' 'FC=mpif90' 'FCFLAGS=-fp-stack-check -check bounds -O0 -C -g 
-     -traceback' 'F77=ifort'"
-   Compilers (CC, FC, CXX)             :  [ icc, mpif90, icpc ]
+     " 'FCFLAGS=-O2 -fopenmp' 
+     '--with-ext-linalg=-L/opt/intel/composer_xe_2013.1.117/compiler/lib/intel64 
+     -L/opt/intel/composer_xe_2013.1.117/mkl/lib/intel64 -lmkl_rt -liomp5 -lm' 
+     '--with-blas=no' '--with-lapack=no' 'CFLAGS=-O2 -fopenmp' 'CC=mpicc.openmpi' 
+     'CXX=mpicxx.openmpi' 'FC=mpif90.openmpi' 'F77=mpif77.openmpi'"
+
+   Compilers (CC, FC, CXX)             :  [ mpicc.openmpi, mpif90.openmpi, mpicxx.openmpi ]
    Compiler flags:
-     CFLAGS                            : -g -O2
- 
-     FCFLAGS                           : -fp-stack-check -check bounds -O0 -C -g -traceback
+     CFLAGS                            : -O2 -fopenmp
+     FCFLAGS                           : -O2 -fopenmp
      CXXFLAGS                          : -g -O2
   #------------------------------------------------------------------------ Input parameters
  radical                               : null
  outdir                                : ./
- logfile                               : No
+ logfile                               : Yes
  run_from_files                        : Yes
  dft:
    hgrids: [0.4, 0.4, 0.4] #                      Grid spacing in the three directions (bohr)
@@ -73,7 +77,8 @@
    norbv                               : 0 #      Davidson subspace dimension (No. virtual orbitals)
    nvirt                               : 0 #      No. of virtual orbs
    nplot                               : 0 #      No. of plotted orbs
-   solvent                             : vacuum # Electrostatic environment for Poisson Equation
+   gnrm_cv_virt                        : 1.e-4 #  convergence criterion gradient for virtual orbitals
+   itermax_virt                        : 50 #     Max. iterations of wfn. opt. steps for virtual orbitals
    external_potential                  : 0.0 #    Multipole moments of an external potential
    calculate_strten                    : Yes #    Boolean to activate the calculation of the stress tensor. Might be set to No for 
     #                                              performance reasons
@@ -83,6 +88,7 @@
    psp_onfly                           : No #     Calculate pseudopotential projectors on the fly
    verbosity                           : 0 #      Verbosity of the output
    debug                               : No #     Debug option
+   profiling_depth                     : -1 #     maximum level of the profiling for the tracking of the routines
    fftcache                            : 8192 #   Cache size for the FFT
    accel                               : NO #     Acceleration (hardware)
    ocl_platform                        : ~ #      Chosen OCL platform
@@ -95,8 +101,6 @@
    ig_tol                              : 1.0e-4 # Input guess Tolerance criterion
    methortho                           : 0 #      Orthogonalisation
    rho_commun                          : DEF #    Density communication scheme (DBL, RSC, MIX)
-   psolver_groupsize                   : 0 #      Size of Poisson Solver taskgroups (0=nproc)
-   psolver_accel                       : 0 #      Acceleration of the Poisson Solver (0=none, 1=CUDA)
    linear                              : OFF #    Linear Input Guess approach
    tolsym                              : 1.0e-8 # Tolerance for symmetry detection
    signaling                           : No #     Expose calculation results on Network
@@ -105,20 +109,21 @@
    inguess_geopt                       : 0 #      Input guess to be used during the optimization
    store_index                         : Yes #    Store indices or recalculate them for linear scaling
    multipole_preserving                : No #     (EXPERIMENTAL) Preserve the multipole moment of the ionic density
-   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scalig function order for the multipole preserving
+   mp_isf                              : 16 #     (EXPERIMENTAL) Interpolating scaling function or lifted dual order for the multipole 
+    #                                              preserving
    pdsyev_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
    pdgemm_blocksize                    : -8 #     SCALAPACK linear scaling blocksize
    maxproc_pdsyev                      : 4 #      SCALAPACK linear scaling max num procs
    maxproc_pdgemm                      : 4 #      SCALAPACK linear scaling max num procs
    ef_interpol_det                     : 1.e-12 # FOE max determinant of cubic interpolation matrix
    ef_interpol_chargediff              : 10. #    FOE max charge difference for interpolation
-   mixing_after_inputguess             : 1 #      Mixing step after linear input gues
+   mixing_after_inputguess             : 1 #      Mixing step after linear input guess
    iterative_orthogonalization         : No #     Iterative_orthogonalization for input guess orbitals
-   check_sumrho                        : 2 #      Enables linear sumrho check
-   check_overlap                       : 2 #      Enables linear overlap check
+   check_sumrho                        : 1 #      Enables linear sumrho check
+   check_overlap                       : 1 #      Enables linear overlap check
    experimental_mode                   : No #     Activate the experimental mode in linear scaling
    write_orbitals                      : 0 #      Linear scaling write KS orbitals for cubic restart (might take lot of disk space!)
-   explicit_locregcenters              : No #     Linear scaling explicitely specify localization centers
+   explicit_locregcenters              : No #     Linear scaling explicitly specify localization centers
    calculate_KS_residue                : Yes #    Linear scaling calculate Kohn-Sham residue
    intermediate_forces                 : No #     Linear scaling calculate intermediate forces
    kappa_conv                          : 0.1 #    Exit kappa for extended input guess (experimental mode)
@@ -141,8 +146,9 @@
    enable_matrix_taskgroups            : True #   enable the matrix taskgroups
    hamapp_radius_incr                  : 8 #      radius enlargement for the Hamiltonian application (in grid points)
    adjust_kernel_iterations            : True #   enable the adaptive ajustment of the number of kernel iterations
+   adjust_kernel_threshold             : True #   enable the adaptive ajustment of the kernel convergence threshold according to the 
+    #                                              support function convergence
    wf_extent_analysis                  : False #  perform an analysis of the extent of the support functions (and possibly KS orbitals)
-   gps_method                          : VAC #    method for the Generalized Poisson Equation
    foe_gap                             : False #  Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
  md:
    mdsteps                             : 3 #      Number of MD steps
@@ -161,20 +167,19 @@
      Rloc                              : 0.3455
      Coefficients (c1 .. c4): [-11.74358701538502, 1.906539679467192, 0.0, 0.0]
    Non Linear Core Correction term:
-     Rcore                             :  0.3451737258622046
-     Core charge                       :  9.020856824201472
+     Rcore                             : 0.3451737258622046
+     Core charge                       : 9.020856824201472
    NonLocal PSP Parameters:
    - Channel (l)                       : 0
      Rloc                              : 0.3680407854708886
      h_ij terms: [10.85890680354861, -0.4297672987148062, 0.0, -2.129011394613137, 0.0, 
                 0.0]
-   PAW patch                           : No
    Source                              : psppar.O
    Radii of active regions (AU):
      Coarse                            : 1.215575721499752
      Fine                              : 0.3455
      Coarse PSP                        : 0.3680407854708886
-     Source                            : Hard-Coded
+     Source                            : PSP File
  psppar.H:
    Pseudopotential type                : HGH-K
    Atomic number                       : 1
@@ -183,14 +188,31 @@
    Local Pseudo Potential (HGH convention):
      Rloc                              : 0.2315018477233373
      Coefficients (c1 .. c4): [-1.954065840548669, -8.359809276223161E-002, 0.0, 0.0]
-   PAW patch                           : No
    Source                              : psppar.H
    Radii of active regions (AU):
      Coarse                            : 1.463418464633951
      Fine                              : 0.2315018477233373
      Coarse PSP                        : 0.0
-     Source                            : Hard-Coded
+     Source                            : PSP File
    Non Linear Core Correction term     : __not_a_value__
+ psolver:
+   kernel:
+     screening                         : 0 #      mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
+     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
  kpt:
    method                              : manual # K-point sampling method
    kpt: #                                         Kpt coordinates
@@ -207,7 +229,7 @@
  mix:
    iscf                                : 0 #      Mixing parameters
    itrpmax                             : 1 #      Maximum number of diagonalisation iterations
-   rpnrm_cv                            : 1e-4 #   Stop criterion on the residue of potential or density
+   rpnrm_cv                            : 1.e-4 #  Stop criterion on the residue of potential or density
    norbsempty                          : 0 #      No. of additional bands
    tel                                 : 0. #     Electronic temperature
    occopt                              : 1 #      Smearing method
@@ -237,13 +259,18 @@
     #                                              fragments only, 2 full system only
    kernel_restart_mode                 : 0 #      method for restarting kernel; 0 kernel, 1 coefficients, 2 random, 3 diagonal, 4 
     #                                              support function weights
+   kernel_restart_noise                : 0.0d0 #  add random noise to kernel or coefficients when restarting
+   frag_num_neighbours                 : 0 #      number of neighbours to output for each fragment
+   cdft_lag_mult_init                  : 0.05d0 # CDFT initial value for Lagrange multiplier
+   cdft_conv_crit                      : 1.e-2 #  CDFT convergence threshold for the constrained charge
    calc_dipole                         : No #     calculate dipole
    calc_pulay: [No, No] #                         calculate Pulay forces (old/new version)
    subspace_diag                       : No #     diagonalization at the end
    extra_states                        : 0 #      extra states to optimize (dmin only)
    calculate_onsite_overlap            : No #     calculate the onsite overlap matrix (has only an effect if the matrices are all 
     #                                              written to disk)
-   charge_multipoles                   : no #     Calculate the atom-centered multipole coefficients of the electronic charge
+   charge_multipoles                   : 0 #      Calculate the atom-centered multipole coefficients; 0 no, 1 old approach Loewdin, 2 
+    #                                              new approach Projector
  lin_basis:
    nit: [4, 5] #                                  maximal number of iterations in the optimization of the 
     #                                              support functions
@@ -284,6 +311,13 @@
    eval_range_foe: [-0.5, 0.5] #                  lower and upper bound of the eigenvalue spectrum, will be adjusted 
     #                                              automatically if chosen unproperly
    fscale_foe                          : 2.e-2 #  decay length of the error function
+   coeff_scaling_factor                : 1.0 #    factor to scale the gradient in direct minimization
+   pexsi_npoles                        : 40 #     number of poles used by PEXSI
+   pexsi_mumin                         : -1.0 #   initial guess for the lower bound of the chemical potential used by PEXSI
+   pexsi_mumax                         : 1.0 #    initial guess for the upper bound of the chemical potential used by PEXSI
+   pexsi_mu                            : 0.5 #    initial guess for the  chemical potential used by PEXSI
+   pexsi_temperature                   : 1.e-3 #  temperature used by PEXSI
+   pexsi_tol_charge                    : 1.e-3 #  charge tolerance used PEXSI
  lin_basis_params:
    nbasis                              : 4 #      number of support functions per atom
    ao_confinement                      : 8.3e-3 # prefactor for the input guess confining potential
@@ -301,10 +335,10 @@
    - H: [0.5396513938903809, 2.943599700927735, 3.205993890762329]
    properties:
      format                            : xyz
-     source                            : posinp
+     source                            : MD-wf-Expl.xyz
   #--------------------------------------------------------------------------------------- |
  Data Writing directory                : ./
-  #----------------------------------------- Input Atomic System (file: __not_a_value__.xyz)
+  #---------------------------------------------- Input Atomic System (file: MD-wf-Expl.xyz)
  Atomic System Properties:
    Number of atomic types              :  2
    Number of atoms                     :  3
@@ -328,7 +362,6 @@
    Initial Temperature (K)             :  5.0E+01
    Time step (a.u.)                    :  2.0E+00
    Freeze Translation                  :  No
-   Wavefunction Extrapolation          :  0
    Nose Hoover Chain Thermostat        :  No
   #------------------- K points description (Reduced and Brillouin zone coordinates, Weight)
  K points:
@@ -373,7 +406,7 @@
      Coarse                            :  1.21558
      Fine                              :  0.34550
      Coarse PSP                        :  0.36804
-     Source                            : Hard-Coded
+     Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.86
    Pseudopotential type                : HGH-K + NLCC
    Local Pseudo Potential (HGH convention):
@@ -398,7 +431,7 @@
      Coarse                            :  1.46342
      Fine                              :  0.23150
      Coarse PSP                        :  0.00000
-     Source                            : Hard-Coded
+     Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.58
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -414,7 +447,7 @@
    - O: [ 5.859462261,  2.953169823,  2.534746647] # [  29.30,  14.77,  12.67 ] 0001
    - H: [ 5.781110764,  2.030719757,  2.332374811] # [  28.91,  10.15,  11.66 ] 0002
    - H: [ 0.5396513939,  2.943599701,  3.205993891] # [  2.70,  14.72,  16.03 ] 0003
-   Rigid Shift Applied (AU)            :  [  0.0000,  0.0000,  0.0000 ]
+   Rigid Shift Applied (AU)            :  [ -0.0000, -0.0000, -0.0000 ]
   #------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3779,  0.3779,  0.3779 ]
  Sizes of the simulation domain:
@@ -427,7 +460,26 @@
  High Res. box is treated separately   :  No
   #------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
+    #---------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
+     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
    MPI tasks                           :  2
+   OpenMP threads per MPI task         :  2
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  900
@@ -478,22 +530,22 @@
      Maximum                           :  3
      Average                           :  3.0
    Deviation from normalization        :  1.99E-04
-   EKS                                 : -1.72685070971545436E+01
+   EKS                                 : -1.72685070971548278E+01
   #------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {
- iter:  1, EKS: -1.74601157212242448E+01, gnrm:  2.39E-01, D: -1.92E-01}
-       -  {
- iter:  2, EKS: -1.75819904703680017E+01, gnrm:  1.16E-01, D: -1.22E-01}
-       -  {
- iter:  3, EKS: -1.76154687269769461E+01, gnrm:  4.98E-02, D: -3.35E-02}
-       -  &FINAL001  {iter:  4, EKS: -1.76197901585888630E+01, gnrm:  4.98E-02, 
-                         D: -4.32E-03, 
+       -  {Overlapping communication of: Density, No. of OMP Threads:  2, 
+ iter:  1, EKS: -1.74601157212236906E+01, gnrm:  2.39E-01, D: -1.92E-01}
+       -  {Overlapping communication of: Density, No. of OMP Threads:  2, 
+ iter:  2, EKS: -1.75819904703679271E+01, gnrm:  1.16E-01, D: -1.22E-01}
+       -  {Overlapping communication of: Density, No. of OMP Threads:  2, 
+ iter:  3, EKS: -1.76154687269769852E+01, gnrm:  4.98E-02, D: -3.35E-02}
+       -  &FINAL001  {Overlapping communication of: Density, No. of OMP Threads:  2, 
+ iter:  4, EKS: -1.76197901585885326E+01, gnrm:  4.98E-02, D: -4.32E-03, 
  }
-       Non-Hermiticity of Hamiltonian in the Subspace:  2.12E-30
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.03E-30
  Last Iteration                        : *FINAL001
   #---------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -509,28 +561,28 @@
  Stress Tensor calculated              :  Yes
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [  2.572157988866E-07, -9.813747181270E-05, -5.161797040755E-04 ]
-   -  [ -9.81374718127E-05, -1.605845327724E-05, -2.239121903192E-04 ]
-   -  [ -5.161797040755E-04, -2.239121903192E-04, -2.053761365485E-06 ]
+   -  [  2.572157994062E-07, -9.813747181270E-05, -5.161797040755E-04 ]
+   -  [ -9.81374718127E-05, -1.605845327658E-05, -2.239121903192E-04 ]
+   -  [ -5.161797040755E-04, -2.239121903192E-04, -2.053761364388E-06 ]
    Pressure:
-     Ha/Bohr^3                         : -5.95166628127782E-06
+     Ha/Bohr^3                         : -5.95166628052091E-06
      GPa                               : -0.175104
-     PV (Ha)                           : -8.67538833028406E-03
+     PV (Ha)                           : -8.67538832918075E-03
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  72.18
-   Elapsed time (s)                    :  72.33
+   CPU time (s)                        :  3.70
+   Elapsed time (s)                    :  1.93
  BigDFT infocode                       :  0
  Average noise forces: {x: -2.62959727E-02, y:  4.12713661E-02, z: -2.00567079E-02, 
                     total:  5.28873839E-02}
- Clean forces norm (Ha/Bohr): {maxval:  8.905994627175E-02, fnrm2:  8.067521509308E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  8.905994627166E-02, fnrm2:  8.067521509292E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-4.076973717030E-02,  7.337713140876E-02, -2.975397699827E-02]} # 0001
- -  {H: [-4.613479496235E-03, -7.351886622026E-03, -5.514303574410E-03]} # 0002
- -  {H: [-1.627441319656E-04,  5.458858194881E-03,  5.290435340770E-04]} # 0003
- Energy (Hartree)                      : -1.76197901585888630E+01
- Force Norm (Hartree/Bohr)             :  8.98193827038912124E-02
+ -  {O: [-4.076973717027E-02,  7.337713140872E-02, -2.975397699814E-02]} # 0001
+ -  {H: [-4.613479496232E-03, -7.351886622017E-03, -5.514303574415E-03]} # 0002
+ -  {H: [-1.627441319751E-04,  5.458858194881E-03,  5.290435340458E-04]} # 0003
+ Energy (Hartree)                      : -1.76197901585885326E+01
+ Force Norm (Hartree/Bohr)             :  8.98193827038026443E-02
  Wavefunction Optimization Finished, exit signal:  0
  (MD): {istep:  0, T:  50.000000, Eke:  0.000713, Epe: -17.619790, Ete: -17.619078}
   #******************************************************************************** Starting MD
@@ -575,7 +627,7 @@
      Coarse                            :  1.21558
      Fine                              :  0.34550
      Coarse PSP                        :  0.36804
-     Source                            : Hard-Coded
+     Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.86
    Pseudopotential type                : HGH-K + NLCC
    Local Pseudo Potential (HGH convention):
@@ -600,7 +652,7 @@
      Coarse                            :  1.46342
      Fine                              :  0.23150
      Coarse PSP                        :  0.00000
-     Source                            : Hard-Coded
+     Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.58
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -616,7 +668,7 @@
    - O: [ 5.859400875,  2.953279736,  2.534904435] # [  29.30,  14.77,  12.67 ] 0001
    - H: [ 5.781437201,  2.030541565,  2.332307852] # [  28.91,  10.15,  11.66 ] 0002
    - H: [ 0.5393821115,  2.943669552,  3.205899111] # [  2.70,  14.72,  16.03 ] 0003
-   Rigid Shift Applied (AU)            :  [  0.0000,  0.0000,  0.0000 ]
+   Rigid Shift Applied (AU)            :  [ -0.0000, -0.0000, -0.0000 ]
   #---------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3779,  0.3779,  0.3779 ]
  Sizes of the simulation domain:
@@ -629,7 +681,26 @@
  High Res. box is treated separately   :  No
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
+    #------------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
+     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
    MPI tasks                           :  2
+   OpenMP threads per MPI task         :  2
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  900
@@ -674,17 +745,9 @@
  Interaction energy multipoles multipoles:  0.0
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
- NNdbg: ***** history is called *****
- NNdbg: oldpsis(           3 ) to oldpsis(           0 )
- NNdbg: ....checkingoldpsis(           0 )
- NNdbg: istep_history ==0; copying oldpsis(1..to wfn_history+1)
- .... ..istep=           1           0 wfn_history =           2
- .... ..istep=           2           0 wfn_history =           2
- NNdbg, Reformatting the prev. SCF wfn(wfn_history+1)
    Reformating wavefunctions           :  Yes
    Reformatting for:
      nvctr_f modified                  :  [  1882,  1880 ]
- NNdbg: ....istep_history <= wfn_history; doing vcopy
    Previous SCF wfn copied             :  Yes
    Initial Guess from Wfn Extrapol.    :  Yes
   #---------------------------------------------------------------------- Self-Consistent Cycle
@@ -692,11 +755,12 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {
- iter:  1, EKS: -1.76197973040219296E+01, gnrm:  2.01E-02}
-       -  &FINAL001  {iter:  2, EKS: -1.76204356131321340E+01, gnrm:  2.01E-02, D: -6.38E-04, 
+       -  {Overlapping communication of: Density, No. of OMP Threads:  2, 
+ iter:  1, EKS: -1.76197973040215423E+01, gnrm:  2.01E-02}
+       -  &FINAL001  {Overlapping communication of: Density, No. of OMP Threads:  2, 
+ iter:  2, EKS: -1.76204356131322264E+01, gnrm:  2.01E-02, D: -6.38E-04, 
  }
-       Non-Hermiticity of Hamiltonian in the Subspace:  6.98E-30
+       Non-Hermiticity of Hamiltonian in the Subspace:  2.75E-31
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -712,26 +776,26 @@
  Stress Tensor calculated              :  Yes
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [ -1.507138811616E-07, -9.824769170870E-05, -5.213113812025E-04 ]
-   -  [ -9.82476917087E-05, -1.152633769039E-05, -2.255752822437E-04 ]
-   -  [ -5.213113812025E-04, -2.255752822437E-04, -2.140641417579E-06 ]
+   -  [ -1.507138804408E-07, -9.824769170869E-05, -5.213113812025E-04 ]
+   -  [ -9.824769170869E-05, -1.152633768959E-05, -2.255752822437E-04 ]
+   -  [ -5.213113812025E-04, -2.255752822437E-04, -2.140641416151E-06 ]
    Pressure:
-     Ha/Bohr^3                         : -4.60589766304211E-06
+     Ha/Bohr^3                         : -4.60589766206170E-06
      GPa                               : -0.135510
-     PV (Ha)                           : -6.71374182422392E-03
+     PV (Ha)                           : -6.71374182279483E-03
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  34.12
-   Elapsed time (s)                    :  34.25
+   CPU time (s)                        :  1.64
+   Elapsed time (s)                    :  0.85
  BigDFT infocode                       :  0
  Average noise forces: {x: -1.13859391E-02, y:  1.79277543E-02, z: -1.31995330E-02, 
                     total:  2.50054325E-02}
- Clean forces norm (Ha/Bohr): {maxval:  4.274709951537E-02, fnrm2:  1.980678894470E-03}
+ Clean forces norm (Ha/Bohr): {maxval:  4.274709951531E-02, fnrm2:  1.980678894465E-03}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-1.646171706116E-02,  3.447014710022E-02, -1.918685350088E-02]} # 0001
- -  {H: [-4.593836869775E-03, -8.437227237483E-03, -5.535675550634E-03]} # 0002
- -  {H: [ 1.334528952988E-03,  5.018861524002E-03,  1.860267326106E-03]} # 0003
+ -  {O: [-1.646171706116E-02,  3.447014710018E-02, -1.918685350082E-02]} # 0001
+ -  {H: [-4.593836869778E-03, -8.437227237501E-03, -5.535675550656E-03]} # 0002
+ -  {H: [ 1.334528953005E-03,  5.018861524003E-03,  1.860267326106E-03]} # 0003
  (MD): {istep:  1, T:  50.548774, Eke:  0.000720, Epe: -17.620436, Ete: -17.619715}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -773,7 +837,7 @@
      Coarse                            :  1.21558
      Fine                              :  0.34550
      Coarse PSP                        :  0.36804
-     Source                            : Hard-Coded
+     Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.86
    Pseudopotential type                : HGH-K + NLCC
    Local Pseudo Potential (HGH convention):
@@ -798,7 +862,7 @@
      Coarse                            :  1.46342
      Fine                              :  0.23150
      Coarse PSP                        :  0.00000
-     Source                            : Hard-Coded
+     Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.58
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -814,7 +878,7 @@
    - O: [ 5.859338294,  2.953392151,  2.535060830] # [  29.30,  14.77,  12.68 ] 0001
    - H: [ 5.781758347,  2.030353653,  2.332234515] # [  28.91,  10.15,  11.66 ] 0002
    - H: [ 0.5391143665,  2.943745185,  3.205806475] # [  2.70,  14.72,  16.03 ] 0003
-   Rigid Shift Applied (AU)            :  [  0.0000,  0.0000,  0.0000 ]
+   Rigid Shift Applied (AU)            :  [ -0.0000, -0.0000, -0.0000 ]
   #---------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3779,  0.3779,  0.3779 ]
  Sizes of the simulation domain:
@@ -827,7 +891,26 @@
  High Res. box is treated separately   :  No
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
+    #------------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
+     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
    MPI tasks                           :  2
+   OpenMP threads per MPI task         :  2
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  900
@@ -872,12 +955,7 @@
  Interaction energy multipoles multipoles:  0.0
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
- NNdbg: ***** history is called *****
- NNdbg: oldpsis(           3 ) to oldpsis(           1 )
- NNdbg: ....checkingoldpsis(           1 )
- NNdbg, Reformatting the prev. SCF wfn(wfn_history+1)
    Reformating Wavefunctions           :  No
- NNdbg: ....istep_history <= wfn_history; doing vcopy
    Previous SCF wfn copied             :  Yes
    Initial Guess from Wfn Extrapol.    :  Yes
   #---------------------------------------------------------------------- Self-Consistent Cycle
@@ -885,11 +963,12 @@
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {
- iter:  1, EKS: -1.76204348734283265E+01, gnrm:  1.03E-02}
-       -  &FINAL001  {iter:  2, EKS: -1.76206178545001286E+01, gnrm:  1.03E-02, D: -1.83E-04, 
+       -  {Overlapping communication of: Density, No. of OMP Threads:  2, 
+ iter:  1, EKS: -1.76204348734287173E+01, gnrm:  1.03E-02}
+       -  &FINAL001  {Overlapping communication of: Density, No. of OMP Threads:  2, 
+ iter:  2, EKS: -1.76206178544998515E+01, gnrm:  1.03E-02, D: -1.83E-04, 
  }
-       Non-Hermiticity of Hamiltonian in the Subspace:  4.16E-29
+       Non-Hermiticity of Hamiltonian in the Subspace:  1.42E-30
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -905,26 +984,26 @@
  Stress Tensor calculated              :  Yes
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [ -4.618153886227E-06, -9.831349243636E-05, -5.262337982251E-04 ]
-   -  [ -9.831349243636E-05, -1.337537977938E-05, -2.272884031187E-04 ]
-   -  [ -5.262337982251E-04, -2.272884031187E-04, -6.379629331871E-06 ]
+   -  [ -4.618153885649E-06, -9.831349243636E-05, -5.262337982252E-04 ]
+   -  [ -9.831349243636E-05, -1.337537977867E-05, -2.272884031187E-04 ]
+   -  [ -5.262337982252E-04, -2.272884031187E-04, -6.379629330660E-06 ]
    Pressure:
-     Ha/Bohr^3                         : -8.12438766582477E-06
+     Ha/Bohr^3                         : -8.12438766499152E-06
      GPa                               : -0.239028
-     PV (Ha)                           : -1.18424344739415E-02
+     PV (Ha)                           : -1.18424344727270E-02
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  31.56
-   Elapsed time (s)                    :  31.66
+   CPU time (s)                        :  1.58
+   Elapsed time (s)                    :  0.81
  BigDFT infocode                       :  0
  Average noise forces: {x: -5.04724803E-03, y:  8.10386842E-03, z: -1.06452503E-02, 
                     total:  1.42992570E-02}
- Clean forces norm (Ha/Bohr): {maxval:  2.341373343223E-02, fnrm2:  6.935965886940E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  2.341373343226E-02, fnrm2:  6.935965886954E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-5.731907530445E-03,  1.699579491744E-02, -1.504962140461E-02]} # 0001
- -  {H: [-4.596486351556E-03, -7.937794665374E-03, -5.450342595485E-03]} # 0002
- -  {H: [ 1.586303858905E-03,  4.978311584914E-03,  2.061849643297E-03]} # 0003
+ -  {O: [-5.731907530435E-03,  1.699579491745E-02, -1.504962140466E-02]} # 0001
+ -  {H: [-4.596486351555E-03, -7.937794665370E-03, -5.450342595484E-03]} # 0002
+ -  {H: [ 1.586303858901E-03,  4.978311584916E-03,  2.061849643275E-03]} # 0003
  (MD): {istep:  2, T:  50.703696, Eke:  0.000723, Epe: -17.620618, Ete: -17.619895}
 ---
   #--------------------------------------------------------------------------- Input parameters
@@ -966,7 +1045,7 @@
      Coarse                            :  1.21558
      Fine                              :  0.34550
      Coarse PSP                        :  0.36804
-     Source                            : Hard-Coded
+     Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.86
    Pseudopotential type                : HGH-K + NLCC
    Local Pseudo Potential (HGH convention):
@@ -991,7 +1070,7 @@
      Coarse                            :  1.46342
      Fine                              :  0.23150
      Coarse PSP                        :  0.00000
-     Source                            : Hard-Coded
+     Source                            : PSP File
    Grid Spacing threshold (AU)         :  0.58
    Pseudopotential type                : HGH-K
    Local Pseudo Potential (HGH convention):
@@ -1007,7 +1086,7 @@
    - O: [ 5.859275298,  2.953505800,  2.535216133] # [  29.30,  14.77,  12.68 ] 0001
    - H: [ 5.782074197,  2.030156596,  2.332154899] # [  28.91,  10.15,  11.66 ] 0002
    - H: [ 0.5388484490,  2.943826554,  3.205716213] # [  2.69,  14.72,  16.03 ] 0003
-   Rigid Shift Applied (AU)            :  [  0.0000,  0.0000,  0.0000 ]
+   Rigid Shift Applied (AU)            :  [ -0.0000, -0.0000, -0.0000 ]
   #---------------------------------------------------------------------------- Grid properties
  Box Grid spacings                     :  [  0.3779,  0.3779,  0.3779 ]
  Sizes of the simulation domain:
@@ -1020,7 +1099,26 @@
  High Res. box is treated separately   :  No
   #---------------------------------------------------------------------- Kernel Initialization
  Poisson Kernel Initialization:
+    #------------------------------------------------------------------------- Input parameters
+   kernel:
+     screening                         : 0 #      mu screening parameter
+     isf_order                         : 16 #     Order of the Interpolating Scaling Function family
+     stress_tensor                     : Yes #    triggers the calculation of the stress tensor
+   environment:
+     cavity                            : none #   Type of the cavity
+     cavitation                        : No #     triggers the evaluation of the extra cavtitation terms
+     input_guess                       : No #     Triggers the input guess procedure of gps_algorithm
+     fd_order                          : 16 #     Order of the Finite-difference derivatives for the GPS solver
+     itermax                           : 50 #     Maximum number of iterations of the GPS outer loop
+     minres                            : 1.e-6 #  Convergence threshold of the loop
+   setup:
+     accel                             : none #   Material Acceleration
+     taskgroup_size                    : 0 #      Size of the taskgroups of the Poisson Solver
+     global_data                       : No #     Charge density and Electrostatic potential are given by global arrays
+     verbose                           : Yes #    Verbosity switch
+     output                            : none #   Quantities to be plotted after the main solver routine
    MPI tasks                           :  2
+   OpenMP threads per MPI task         :  2
  Wavefunctions Descriptors, full simulation domain:
    Coarse resolution grid:
      No. of segments                   :  900
@@ -1054,7 +1152,7 @@
    Transpositions                      :  Yes
    Reverse transpositions              :  Yes
  Value for Exc[rhoc]                   : -0.2513119664226694
- Ion-Ion interaction energy            : -9.06596112165714E-01
+ Ion-Ion interaction energy            : -9.06596112165711E-01
   #------------------------------------------------------------------- Ionic Potential Creation
  Total ionic charge                    : -8.000000000000
  Poisson Solver:
@@ -1065,60 +1163,26 @@
  Interaction energy multipoles multipoles:  0.0
   #---------------------------------------------------------------------- Wavefunctions Restart
  Input Hamiltonian:
- NNdbg: ***** history is called *****
- NNdbg: oldpsis(           3 ) to oldpsis(           2 )
- NNdbg: ....checkingoldpsis(           2 )
- NNdbg, Reformatting the prev. SCF wfn(wfn_history+1)
    Reformating Wavefunctions           :  No
    Reformating wavefunctions           :  Yes
    Reformatting for:
      nvctr_f modified                  :  [  1882,  1880 ]
- NNdbg reformat is done for oldpsis(           0 )
- !!!!NNdbg: overlap  0.999991106349411      -8.965602332747415E-004
-  2.457452617514894E-003 -2.093075239583850E-004  8.968522555645217E-004
-  0.999970264729253       1.451034038742671E-004  4.964841420951299E-004
- -2.440549234983874E-003 -1.473819669899413E-004  0.999963560838480     
- -9.230343351588915E-004  2.061746486438906E-004 -4.972132325248384E-004
-  9.246078569274594E-004  0.999995047860810     
- NNdbg; overlap is computed for <Psi(           0 )|Psi(           3 )>
- Considering Psi(           0 ) ; cc(           0 )=  0.500000000000000     
- NNdbg wavefunction Psi(           0 ) is rotated and added to Psi
    Reformating wavefunctions           :  Yes
    Reformatting for:
-     Molecule was shifted: [ 2.522346292267E-06,  7.997596604567E-07,  5.499512353503E-07]
- NNdbg reformat is done for oldpsis(           1 )
- !!!!NNdbg: overlap  0.999999288618461       4.450550894810571E-004
- -3.534303813951191E-004 -9.501024000948036E-005  4.450719204781633E-004
- -0.999996668486166      -1.228330256408196E-004  2.473254202753298E-004
- -3.531664485574602E-004  1.233933942996937E-004 -0.999994007853716     
- -4.294832347877857E-004  9.466796376305135E-005  2.474737784494082E-004
- -4.296507776011694E-004  0.999997371601208     
- NNdbg; overlap is computed for <Psi(           1 )|Psi(           3 )>
- Considering Psi(           1 ) ; cc(           1 )=  -2.00000000000000     
- NNdbg wavefunction Psi(           1 ) is rotated and added to Psi
+     Molecule was shifted: [ 2.522346292267E-06,  7.997596604567E-07,  5.499512353509E-07]
    Reformating Wavefunctions           :  No
- NNdbg reformat is done for oldpsis(           2 )
- !!!!NNdbg: overlap   1.00000000000001       2.132300412627242E-015
-  2.688279286677808E-016 -1.367178939504221E-016  2.132300412627242E-015
-   1.00000000000000       3.009745230819760E-016 -1.025655255171287E-016
-  2.688279286677808E-016  3.009745230819760E-016  0.999999999999999     
-  5.854691731421724E-017 -1.367178939504221E-016 -1.025655255171287E-016
-  5.854691731421724E-017  0.999999999999997     
- NNdbg; overlap is computed for <Psi(           2 )|Psi(           3 )>
- Considering Psi(           2 ) ; cc(           2 )=   2.50000000000000     
- NNdbg wavefunction Psi(           2 ) is rotated and added to Psi
- NNdbg Normalizing the final orbital
    Initial Guess from Wfn Extrapol.    :  Yes
   #---------------------------------------------------------------------- Self-Consistent Cycle
  Ground State Optimization:
  - Hamiltonian Optimization: &itrp001
    - Subspace Optimization: &itrep001-01
        Wavefunctions Iterations:
-       -  {
- iter:  1, EKS: -1.76206417783592570E+01, gnrm:  5.28E-03}
-       -  &FINAL001  {iter:  2, EKS: -1.76206759969376598E+01, gnrm:  5.28E-03, D: -3.42E-05, 
+       -  {Overlapping communication of: Density, No. of OMP Threads:  2, 
+ iter:  1, EKS: -1.76206417783593672E+01, gnrm:  5.28E-03}
+       -  &FINAL001  {Overlapping communication of: Density, No. of OMP Threads:  2, 
+ iter:  2, EKS: -1.76206759969377202E+01, gnrm:  5.28E-03, D: -3.42E-05, 
  }
-       Non-Hermiticity of Hamiltonian in the Subspace:  3.01E-29
+       Non-Hermiticity of Hamiltonian in the Subspace:  8.76E-30
  Last Iteration                        : *FINAL001
   #------------------------------------------------------------------------- Forces Calculation
  Poisson Solver:
@@ -1134,49 +1198,36 @@
  Stress Tensor calculated              :  Yes
  Stress Tensor:
    Total stress tensor matrix (Ha/Bohr^3):
-   -  [  3.884494798634E-06, -9.778652038351E-05, -5.322321024277E-04 ]
-   -  [ -9.778652038351E-05, -4.744125509690E-06, -2.289833406265E-04 ]
-   -  [ -5.322321024277E-04, -2.289833406265E-04,  2.222776790092E-06 ]
+   -  [  3.884494799349E-06, -9.778652038351E-05, -5.322321024278E-04 ]
+   -  [ -9.778652038351E-05, -4.744125508763E-06, -2.289833406265E-04 ]
+   -  [ -5.322321024278E-04, -2.289833406265E-04,  2.222776791669E-06 ]
    Pressure:
-     Ha/Bohr^3                         :  4.54382026345302E-07
+     Ha/Bohr^3                         :  4.54382027418228E-07
      GPa                               :  1.336838E-02
-     PV (Ha)                           :  6.62325530792449E-04
+     PV (Ha)                           :  6.62325532356390E-04
   #-------------------------------------------------------------------- Timing for root process
  Timings for root process:
-   CPU time (s)                        :  37.01
-   Elapsed time (s)                    :  37.14
+   CPU time (s)                        :  1.71
+   Elapsed time (s)                    :  0.88
  BigDFT infocode                       :  0
  Average noise forces: {x: -3.37857924E-04, y:  8.40527308E-04, z: -4.15447660E-03, 
                     total:  4.25209477E-03}
- Clean forces norm (Ha/Bohr): {maxval:  1.384891698902E-02, fnrm2:  3.605649208502E-04}
+ Clean forces norm (Ha/Bohr): {maxval:  1.384891698909E-02, fnrm2:  3.605649208546E-04}
   #------------------------------------------------------------------------------ Atomic Forces
  Atomic Forces (Ha/Bohr):
- -  {O: [-3.222531605167E-04,  8.047581875235E-03, -5.983894908476E-03]} # 0001
- -  {H: [-4.702849156727E-03, -1.147370673758E-02, -6.166827813224E-03]} # 0002
- -  {H: [ 4.439915227664E-03,  4.881960864956E-03,  4.954958178603E-03]} # 0003
+ -  {O: [-3.222531605709E-04,  8.047581875345E-03, -5.983894908487E-03]} # 0001
+ -  {H: [-4.702849156732E-03, -1.147370673764E-02, -6.166827813240E-03]} # 0002
+ -  {H: [ 4.439915227711E-03,  4.881960864958E-03,  4.954958178644E-03]} # 0003
  (MD): {istep:  3, T:  50.727910, Eke:  0.000723, Epe: -17.620676, Ete: -17.619953}
-  #WARNING: Heap memory has not be completely freed! See status at finalization to find where.
- Size of the global database           :  5
- Status of the memory at finalization:
-   47059009224768:
-     [ KSwfn%psi, input_wf,  642560,  1]
-   47059006652480:
-     [ KSwfn%psi, input_wf,  642560,  1]
-   47059006009408:
-     [ psi, LDiagHam,  642784,  1]
-   Timestamp of Profile initialization:
-     2015-11-26 17:30:09.134
-   Process Id:
-     0
  Memory Consumption Report:
-   Tot. No. of Allocations             :  2182
-   Tot. No. of Deallocations           :  2179
-   Remaining Memory (B)                :  1927904
+   Tot. No. of Allocations             :  2259
+   Tot. No. of Deallocations           :  2259
+   Remaining Memory (B)                :  0
    Memory occupation:
      Peak Value (MB)                   :  72.687
      for the array                     : wz
      in the routine                    : input_wf
-     Memory Peak of process            : 83.820 MB
- Walltime since initialization         : 00:02:57.269037829
- Max No. of dictionaries used          :  3722 #( 876 still in use)
+     Memory Peak of process            : 77.004 MB
+ Walltime since initialization         : 00:00:05.539499922
+ Max No. of dictionaries used          :  4206 #( 877 still in use)
  Number of dictionary folders allocated:  1

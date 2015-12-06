@@ -1343,6 +1343,7 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
   real(gp), intent(in) :: qcharge
   integer, intent(in) :: nspin, mpol, norbsempty, iproc
   !Local variables
+  logical :: int_charge
   integer :: nel, nel_up,nel_dwn,nchg,iat, ityp, ispinsum, ichgsum, ichg, ispol,iabspol!, nspinor
   real(gp) :: qelec
 
@@ -1363,6 +1364,7 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
   if (-qcharge - real(nchg,gp) > 1.e-12_gp) nchg=nchg+1
   nchg=-nchg
 
+  int_charge = real(nint(qelec),gp) == qelec
 
   if(qelec < 0.0_gp ) then
     call f_err_throw('Number of electrons is negative:' // trim(yaml_toa(qelec)) // &
@@ -1377,7 +1379,7 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
      qelec_up=qelec
      qelec_down=0.0_gp
   else 
-     if (mod(nel+mpol,2) /=0) then
+     if (mod(nel+mpol,2) /=0 .and. int_charge) then
           call f_err_throw('The mpol polarization should have the same parity of the (rounded) number of electrons. ' // &
             & '(mpol='+mpol+' and qelec='+qelec+')', &
             & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
@@ -1403,7 +1405,7 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
         iabspol=iabspol+abs(ispol)
      end do
 
-     if (ispinsum /= nel_up-nel_dwn) then
+     if (ispinsum /= nel_up-nel_dwn .and. int_charge) then
         call f_err_throw('Total polarisation for the input guess (found ' // &
              trim(yaml_toa(ispinsum)) // &
              ') must be equal to rounded nel_up-nel_dwn ' // &

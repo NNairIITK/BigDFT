@@ -45,7 +45,7 @@ AM_LDFLAGS = -Wl,-rpath=$(DESTDIR)$(dynlibdir)
 else
 spred_dynamic_library =
 spred_soname_library =
-spred_library = libspred-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
+spred_library = libspred-1.a $(out_static_library) @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 endif
 if BUILD_LIB_BIGDFT
 lib_spred = libspred-1.a
@@ -74,6 +74,12 @@ if HAVE_CP2K
 cp2k_ld= @CP2K_LINKLINE@ @LINALG_LIBS@
 else
 cp2k_ld =
+endif
+
+if HAVE_PEXSI
+pexsi_ld= @PEXSI_LINKLINE@ @LINALG_LIBS@
+else
+pexsi_ld =
 endif
 
 AM_FCFLAGS = -I. -I$(top_builddir)/includes \
@@ -105,7 +111,7 @@ libspred-1.a: $(libmain_a_OBJECTS) tmp-libspred/extract.stamp
 	$(RANLIB) $@
 
 $(spred_dynamic_library): $(libmain_a_OBJECTS) tmp-libspred/extract.stamp
-	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(spred_library) -o $@ $(libmain_a_OBJECTS) tmp-libspred/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld)
+	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(spred_library) -o $@ $(libmain_a_OBJECTS) tmp-libspred/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 	@chmod a+x $@
 
 libspred-1.so.@BIGDFT_MINOR_VERSION@: $(spred_dynamic_library)

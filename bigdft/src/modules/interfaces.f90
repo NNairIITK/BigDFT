@@ -866,6 +866,7 @@ module module_interfaces
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
         calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn,&
         calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
+        pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
       use module_defs, only: gp,dp,wp
       use module_types
@@ -894,6 +895,8 @@ module module_interfaces
       type(work_mpiaccumulate),intent(inout) :: energs_work
       logical,intent(in) :: remove_coupling_terms
       real(kind=8), intent(in) :: factor
+      integer,intent(in) :: pexsi_npoles
+      real(kind=8),intent(in) :: pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge
       type(DIIS_obj),intent(inout),optional :: ldiis_coeff ! for dmin only
       integer, intent(in), optional :: nitdmin ! for dmin only
       real(kind=gp), intent(in), optional :: convcrit_dmin ! for dmin only

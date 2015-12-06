@@ -1,0 +1,25 @@
+  #---------------------------------------------------------------------- Minimal input file
+  #This file indicates the minimal set of input variables which has to be given to perform 
+  #the run. The code would produce the same output if this file is used as input.
+ dft:
+   hgrids: 0.4
+   ixc: LDA
+   gnrm_cv: accurate
+   nrepmax: accurate
+   output_wf: 2
+   rbuf: with tails
+   norbv: 2
+   nvirt: 1
+   gnrm_cv_virt: 1.e-5
+   itermax_virt: 150
+ perf:
+   ef_interpol_det: 0.10E-19
+   check_sumrho: 2
+   check_overlap: 2
+ posinp:
+   positions:
+   - H: [0.0, 0.0, 0.0]
+   - H: [0.0, 0.0, 1.398397922515869]
+   properties:
+     format: xyz
+     source: posinp.xyz
