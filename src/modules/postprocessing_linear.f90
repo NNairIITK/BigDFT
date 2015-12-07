@@ -172,7 +172,7 @@ module postprocessing_linear
       ! Calling arguments
       integer,intent(in) :: method, iproc, nproc, norb, norbp, isorb, meth_overlap, blocksize
       integer,dimension(0:nproc-1),intent(in) :: norb_par, isorb_par
-      type(sparse_matrix),intent(inout) :: smats, smatl
+      type(sparse_matrix),intent(in) :: smats, smatl
       type(atoms_data),intent(in) :: atoms
       type(matrices),intent(inout) :: kernel
       type(matrices),intent(inout) :: ovrlp

@@ -1163,7 +1163,7 @@ module forces_linear
       type(local_zone_descriptors), intent(in) :: lzd
       type(comms_linear),intent(in) :: collcom
       type(sparse_matrix),intent(in) :: lsmat
-      type(sparse_matrix),intent(inout) :: msmat
+      type(sparse_matrix),intent(in) :: msmat
       type(matrices),intent(inout) :: mmat, lmat
       real(gp), intent(in) :: hx,hy,hz
       integer,intent(in) :: npsidim

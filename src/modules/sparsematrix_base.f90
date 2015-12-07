@@ -58,7 +58,7 @@ module sparsematrix_base
       integer,dimension(:,:,:),pointer :: keyg
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_arr!, orb_from_index
       integer,dimension(:,:),pointer :: matrixindex_in_compressed_fortransposed
-      logical :: store_index, can_use_dense
+      logical :: store_index
       type(sparse_matrix_matrix_multiplication) :: smmm
       integer :: ntaskgroup !< total number of MPI taskgroups to which this task belongs
       integer :: ntaskgroupp !< number of MPI taskgroups to which this task belongs
@@ -381,7 +381,6 @@ module sparsematrix_base
       smat_out%nspin = smat_in%nspin
       smat_out%offset_matrixindex_in_compressed_fortransposed = smat_in%offset_matrixindex_in_compressed_fortransposed
       smat_out%store_index = smat_in%store_index
-      smat_out%can_use_dense = smat_in%can_use_dense
       smat_out%ntaskgroup = smat_in%ntaskgroup
       smat_out%ntaskgroupp = smat_in%ntaskgroupp
       smat_out%istartendseg_t(1:2) = smat_in%istartendseg_t(1:2)

@@ -946,7 +946,7 @@ module multipole
 
       ! Calling arguments
       integer :: iproc, nproc, norbp, meth_overlap
-      type(sparse_matrix),intent(inout) :: smats, smatl
+      type(sparse_matrix),intent(in) :: smats, smatl
       type(matrices),intent(in) :: kernel
       type(matrices),intent(inout) :: ovrlp
       real(kind=8),dimension(smatl%nvctr*smatl%nspin),intent(out) :: weight_matrix_compr
@@ -1629,7 +1629,7 @@ module multipole
       type(orbitals_data),intent(in) :: orbs
       type(comms_linear),intent(in) :: collcom
       type(local_zone_descriptors),intent(in) :: lzd
-      type(sparse_matrix),intent(inout) :: smat
+      type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(3,lzd%nlr),intent(in) :: locregcenter
       type(matrices),intent(inout) :: multipole_matrix
 
@@ -1799,9 +1799,9 @@ module multipole
       real(kind=8),dimension(3) :: hgrids
       type(atoms_data),intent(in) :: at
       type(orbitals_data),intent(in) :: orbs
-      type(sparse_matrix),intent(inout) :: smats
+      type(sparse_matrix),intent(in) :: smats
       type(sparse_matrix),intent(in) :: smatm
-      type(sparse_matrix),intent(inout) :: smatl
+      type(sparse_matrix),intent(in) :: smatl
       type(comms_linear),intent(in) :: collcom
       type(local_zone_descriptors),intent(in) :: lzd
       type(orthon_data),intent(in) :: orthpar
@@ -2012,7 +2012,7 @@ module multipole
 
       ! Calling arguments
       type(atoms_data),intent(in) :: at
-      type(sparse_matrix),intent(inout) :: smats, smatl !< should be intent(in)...
+      type(sparse_matrix),intent(in) :: smats, smatl
       type(sparse_matrix),intent(in) :: smatm
       type(matrices),intent(inout) :: ovrlp_ !< should be intent(in)...
       type(matrices),intent(in) :: ham_, kernel_
@@ -3275,7 +3275,7 @@ module multipole
    integer,intent(in) :: iproc, nproc, nphi, nphir
    type(orbitals_data),intent(in) :: orbs
    type(local_zone_descriptors),intent(in) :: lzd
-   type(sparse_matrix),intent(inout) :: smat
+   type(sparse_matrix),intent(in) :: smat
    type(comms_linear),intent(in) :: collcom
    real(kind=8),dimension(3) :: hgrids
    ! Local variables

@@ -298,7 +298,7 @@ psp_projectors.o: locregs_init.o psp_projectors_base.o
 communications_init.o: types.o communications_base.o
 communications.o: types.o communications_base.o xc.o
 #sparsematrix_base.o: base.o
-sparsematrix_init.o: types.o interfaces.o sparsematrix_base.o locregs_init.o
+sparsematrix_init.o: types.o interfaces.o sparsematrix_base.o locregs_init.o communications_base.o
 sparsematrix.o: types.o sparsematrix_base.o sparsematrix_init.o
 #foe_base.o: base.o defs.o
 foe_common.o: foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o

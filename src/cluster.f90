@@ -30,7 +30,6 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
   use Poisson_Solver, except_dp => dp, except_gp => gp
   use module_xc
   use communications_init, only: orbitals_communicators
-  use transposed_operations, only: init_matrixindex_in_compressed_fortransposed
   use communications_base, only: deallocate_comms
   !  use vdwcorrection
   use yaml_output
@@ -39,7 +38,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
                                SPARSE_TASKGROUP, sparsematrix_malloc_ptr, assignment(=), &
                                DENSE_PARALLEL, DENSE_MATMUL, SPARSE_FULL
   use sparsematrix_init, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff, &
-                               init_matrix_taskgroups, check_local_matrix_extents
+                               init_matrix_taskgroups, check_local_matrix_extents, &
+                               init_matrixindex_in_compressed_fortransposed
   use sparsematrix, only: check_matrix_compression
   use communications_base, only: comms_linear_null
   use unitary_tests, only: check_communication_potential, check_communication_sumrho, &

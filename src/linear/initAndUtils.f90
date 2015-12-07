@@ -1172,10 +1172,10 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use yaml_output
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
-  use transposed_operations, only: init_matrixindex_in_compressed_fortransposed
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
   use sparsematrix_init, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff, &
-                               init_matrix_taskgroups, check_local_matrix_extents
+                               init_matrix_taskgroups, check_local_matrix_extents, &
+                               init_matrixindex_in_compressed_fortransposed
   use foe_base, only: foe_data_deallocate
   use public_enums
   use locregs_init, only: small_to_large_locreg

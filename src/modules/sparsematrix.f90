@@ -150,7 +150,7 @@ module sparsematrix
       
       ! Calling arguments
       integer, intent(in) :: iproc
-      type(sparse_matrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(in) :: sparsemat
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),intent(in) :: inmat
       real(kind=8),dimension(sparsemat%nvctrp_tg*sparsemat%nspin),intent(out) :: outmat
 
@@ -170,7 +170,7 @@ module sparsematrix
       
       ! Calling arguments
       integer, intent(in) :: iproc
-      type(sparse_matrix), intent(inout) :: sparsemat
+      type(sparse_matrix), intent(in) :: sparsemat
       real(kind=8),dimension(sparsemat%nvctr*sparsemat%nspin),target,intent(in) :: inmat
       real(kind=8),dimension(sparsemat%nfvctr,sparsemat%nfvctr,sparsemat%nspin),target,intent(inout) :: outmat
       
@@ -256,7 +256,6 @@ module sparsematrix
          !!   &   mpi_double_precision, bigdft_mpi%mpi_comm, ierr)
          !!call f_free_ptr(sparsemat%matrixp)
       end if
-      sparsemat%can_use_dense=.true.  
     
       call timing(iproc,'compressd_mcpy','OF')
     
@@ -268,7 +267,7 @@ module sparsematrix
 
       ! Calling arguments
       integer,intent(in) :: iproc, nproc
-      type(sparse_matrix),intent(inout) :: smat
+      type(sparse_matrix),intent(in) :: smat
       real(kind=8),dimension(smat%nvctrp_tg*smat%nspin),intent(in) :: matrix_compr
       real(kind=8),dimension(smat%nfvctr,smat%nfvctr,smat%nspin),intent(out) :: matrix
 
@@ -286,7 +285,7 @@ module sparsematrix
       use yaml_output
       implicit none
       integer,intent(in) :: iproc
-      type(sparse_matrix),intent(inout) :: sparsemat
+      type(sparse_matrix),intent(in) :: sparsemat
       type(matrices),intent(inout) :: mat
       !Local variables
       character(len=*), parameter :: subname='check_matrix_compression'
