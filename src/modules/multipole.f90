@@ -3475,6 +3475,11 @@ module multipole
    use sparsematrix_base, only: matrices, matrices_null, sparsematrix_malloc_ptr, SPARSE_FULL, assignment(=), &
                                 deallocate_matrices
    use sparsematrix_init, only: matrixindex_in_compressed
+   use orthonormalization, only: orthonormalizelocalized
+
+      use communications_base, only: TRANSPOSE_FULL
+      use transposed_operations, only: calculate_overlap_transposed
+      use communications, only: transpose_localized
    
    ! Calling arguments
    integer,intent(in) :: iproc, nproc
@@ -3484,8 +3489,8 @@ module multipole
    type(DFT_local_fields), intent(inout) :: denspot
  
    integer :: ist, istr, iorb, iiorb, ilr, i, iat, iter, itype
-   integer :: i1, i2, i3, ii1, ii2, ii3, nl1, nl2, nl3, ii, l, m, ind, iat_old
-   real(kind=8),dimension(:),allocatable :: rmax, phi1, phi1r
+   integer :: i1, i2, i3, ii1, ii2, ii3, nl1, nl2, nl3, ii, l, m, ind, iat_old, methTransformOverlap
+   real(kind=8),dimension(:),allocatable :: rmax, phi1, phi1r, phi_ortho
    real(kind=8),dimension(:,:),allocatable :: delta_centers
    real(kind=8),dimension(:,:),allocatable :: center_locreg, center_orb
    real(kind=8),dimension(:),allocatable :: phir, phir_one
@@ -3497,8 +3502,47 @@ module multipole
    type(matrices) :: multipole_matrix
    real(kind=8),dimension(:,:,:),allocatable :: multipoles
    real(kind=8),dimension(:),allocatable :: scaled
+   real(kind=8),dimension(:),pointer :: phit_c, phit_f
+   logical :: can_use_transposed
+   character(len=*),parameter :: no='none', onsite='on-site'
+   character(len=*),parameter :: do_ortho = onsite
  
-   call f_routine(id='support_function_multipoles')
+   call f_routine(id='support_function_gross_multipoles')
+
+   phi_ortho = f_malloc(size(tmb%psi),id='phi_ortho')
+   if (do_ortho == no) then
+       call f_memcpy(src=tmb%psi, dest=phi_ortho)
+   else if (do_ortho == onsite) then
+       phit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='phit_c')
+       phit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='phit_f')
+       methTransformOverlap = -2
+       can_use_transposed = .false.
+       call orthonormalizeLocalized(iproc, nproc, methTransformOverlap, &
+            1.d-8, tmb%npsidim_orbs, tmb%orbs, tmb%lzd, &
+            tmb%linmat%s, tmb%linmat%l, tmb%collcom, tmb%orthpar, &
+            phi_ortho, phit_c, phit_f, &
+            can_use_transposed)
+       !!!@ TEST @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+       !!call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
+       !!     TRANSPOSE_FULL, phi_ortho, phit_c, phit_f, tmb%lzd)
+       !!multipole_matrix = matrices_null()
+       !!multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, SPARSE_FULL, id='multipole_matrix%matrix_compr')
+       !!call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
+       !!     phit_c, phit_c, phit_f, phit_f, tmb%linmat%s, multipole_matrix)
+       !!if (iproc==0) then
+       !!    do i=1,size(multipole_matrix%matrix_compr)
+       !!        write(*,*) 'i, mat', i, multipole_matrix%matrix_compr(i)
+       !!    end do
+       !!end if
+       !!call deallocate_matrices(multipole_matrix)
+       !!!@ END TEST @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+       call f_free_ptr(phit_c)
+       call f_free_ptr(phit_f)
+       ! END TEST ############################################################
+   else
+       call f_err_throw('wrong orthonormalisation method',err_name='BIGDFT_RUNTIME_ERROR')
+   end if
+
  
    rmax = f_malloc0(tmb%orbs%norb,id='rmax')
    phir = f_malloc(tmb%collcom_sr%ndimpsi_c,id='phir')
@@ -3535,7 +3579,7 @@ module multipole
       iat=tmb%orbs%onwhichatom(iiorb)
       call initialize_work_arrays_sumrho(1,[tmb%lzd%Llr(ilr)],.true.,w)
       ! Transform the support function to real space
-      call daub_to_isf(tmb%lzd%llr(ilr), w, tmb%psi(ist), phir(istr))
+      call daub_to_isf(tmb%lzd%llr(ilr), w, phi_ortho(ist), phir(istr))
       call initialize_work_arrays_sumrho(1,[tmb%lzd%llr(ilr)],.false.,w)
       ! Transform the functions which is constantly one to wavelets
       call isf_to_daub(tmb%lzd%llr(ilr), w, phi1r(istr), phi1(ist))
@@ -3592,7 +3636,7 @@ module multipole
       do m=-l,l
           call f_zero(multipole_matrix%matrix_compr)
           ! Calculate the multipole matrix
-          call calculte_multipole_matrix(iproc, nproc, l, m, tmb%npsidim_orbs, phi1, tmb%psi, &
+          call calculte_multipole_matrix(iproc, nproc, l, m, tmb%npsidim_orbs, phi1, phi_ortho, &
                max(tmb%collcom_sr%ndimpsi_c,1), tmb%lzd%hgrids, &
                tmb%orbs, tmb%collcom, tmb%lzd, tmb%linmat%s, center_locreg, multipole_matrix)
           !write(*,*) 'multipole_matrix%matrix_compr(1)',multipole_matrix%matrix_compr(1)
@@ -3625,6 +3669,7 @@ module multipole
  
   if (iproc==0) then
       call yaml_sequence_open('Gross support functions moments')
+      call yamL_map('Orthonormalization',do_ortho)
       iatype_tmp = f_malloc(tmb%orbs%norb,id='iatype_tmp')
       delta_centers = f_malloc((/3,tmb%orbs%norb/),id='delta_centers')
       iat_old = -1
@@ -3669,6 +3714,7 @@ module multipole
   call f_free(center_locreg)
   call f_free(center_orb)
   call f_free(multipoles)
+  call f_free(phi_ortho)
 
   call f_release_routine()
  
