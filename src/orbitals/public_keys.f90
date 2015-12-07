@@ -50,6 +50,7 @@ module public_keys
   character(len = *), parameter :: CHARGE_MULTIPOLES = "charge_multipoles"
   character(len = *), parameter :: CALCULATE_STRTEN = "calculate_strten"
 
+  character(len = *), parameter :: PSOLVER = "psolver"
 
   character(len = *), parameter :: KPT_VARIABLES = "kpt"
   character(len = *), parameter :: KPT_METHOD = "method"
@@ -144,6 +145,7 @@ module public_keys
 
   character(len = *), parameter :: PERF_VARIABLES = "perf"
   character(len = *), parameter :: DEBUG = "debug"
+  character(len = *), parameter :: PROFILING_DEPTH = "profiling_depth"
   character(len = *), parameter :: FFTCACHE = "fftcache"
   character(len = *), parameter :: ACCEL = "accel"
   character(len = *), parameter :: OCL_PLATFORM = "ocl_platform"

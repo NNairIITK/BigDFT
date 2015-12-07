@@ -338,6 +338,9 @@ module io
             !end if
 
             ! write environment coordinates 
+            ! want to avoid several MPI ranks writing to the same file
+            ! and since the number of reference frags is expected to be relatively small as well as the file sizes,
+            ! write all files from iproc=0
             ! make use of frag_map(onwhichatom_frag,3)=iiat (atom frag -> atom full)
             if (num_neighbours/=0) then
                !to be improved with iterators
@@ -459,7 +462,7 @@ module io
 
                !full_filename=trim(dir_output)//trim(input_frag%dirname(ifrag_ref))//trim(filename)//'_env'
                full_filename=trim(dir_output)//trim(input_frag%label(ifrag_ref))//'_env'
-               call astruct_dump_to_file(ref_frags(ifrag_ref)%astruct_env,full_filename,'# fragment environment')!,0.0d0,rxyz_not_frag,fmt,unit)
+               if (iproc==0) call astruct_dump_to_file(ref_frags(ifrag_ref)%astruct_env,full_filename,'# fragment environment')!,0.0d0,rxyz_not_frag,fmt,unit)
 
                ! deallocate/nullify here to be safe
                call f_free_ptr(ref_frags(ifrag_ref)%astruct_env%iatype)
@@ -477,6 +480,7 @@ module io
                call f_free(rxyz_not_frag)
                call f_free(map_not_frag)
             end if
+            !end environment printing section
    
             ! NEED to think about this - just make it diagonal for now? or random?  or truncate so they're not normalized?  or normalize after truncating?
             ! Or maybe don't write coeffs at all but assume we're always doing frag to frag and can use isolated frag coeffs?

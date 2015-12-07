@@ -110,8 +110,7 @@ subroutine call_abscalc(nproc,iproc,runObj,energy,fxyz,infocode)
    real(gp), dimension(3,runObj%atoms%astruct%nat), intent(out) :: fxyz
    !local variables
    character(len=*), parameter :: subname='call_abscalc'
-   character(len=40) :: comment
-   integer :: ierr
+   !integer :: ierr
    real(gp) :: hx_old, hy_old, hz_old
 
    !put a barrier for all the processes
@@ -153,6 +152,7 @@ END SUBROUTINE call_abscalc
 subroutine abscalc(nproc,iproc,atoms,rxyz,&
      KSwfn,hx_old,hy_old,hz_old,in,GPU,infocode)
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_interfaces, only: IonicEnergyandForces, createProjectorsArrays, &
         & createWavefunctionsDescriptors, orbitals_descriptors
@@ -294,6 +294,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
         use module_defs, only: gp,dp,wp
         use module_types
         use communications_base, only: comms_cubic
+        use module_dpbox
         implicit none
         !Arguments
         integer, intent(in) :: iproc,nproc,ixc
@@ -490,9 +491,12 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
    rho_ion = f_malloc(1,id='rho_ion')
 
    !calculation of the Poisson kernel anticipated to reduce memory peak for small systems
-   ndegree_ip=16 !default value
-   pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
-        atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
+   !ndegree_ip=16 !default value
+   !pkernel=pkernel_init(.true.,iproc,nproc,in%matacc%PSolver_igpu,&
+   !     atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip)
+   pkernel=pkernel_init(iproc,nproc,in%PS_dict,&
+        atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids)
+
    call pkernel_set(pkernel,verbose=(verbose > 1))
    !call createKernel(iproc,nproc,atoms%astruct%geocode,dpcom%ndims,dpcom%hgrids,ndegree_ip,pkernel,&
    !     (verbose > 1))
@@ -529,10 +533,10 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
    call IonicEnergyandForces(iproc,nproc,dpcom,atoms,in%elecfield,rxyz,&
         energs%eion,fion,in%dispersion,energs%edisp,fdisp,ewaldstr,&
-        n1,n2,n3,pot_ion,pkernel,psoffset)
+        pot_ion,pkernel,psoffset)
 
-   call createIonicPotential(atoms%astruct%geocode,iproc,nproc, (iproc == 0), atoms,rxyz,hxh,hyh,hzh,&
-        in%elecfield,n1,n2,n3,dpcom%n3pi,dpcom%i3s+dpcom%i3xcsh,n1i,n2i,n3i,pkernel,pot_ion,rho_ion,psoffset)
+   call createIonicPotential(iproc, (iproc == 0), atoms,rxyz, &
+        in%elecfield,dpcom,pkernel,pot_ion,rho_ion,psoffset)
 
 
    !Allocate Charge density, Potential in real space
@@ -782,9 +786,7 @@ subroutine abscalc(nproc,iproc,atoms,rxyz,&
 
             rhopottmp = f_malloc_ptr((/ max(n1i_bB, n1i), max(n2i_bB, n2i), max(n3i_bB, n3i), in%nspin /),id='rhopottmp')
 
-
             rhotarget=0.0_gp
-
 
             itype=16
             nd=2**20
@@ -1474,6 +1476,7 @@ subroutine extract_potential_for_spectra(iproc,nproc,at,rhod,dpcom,&
      nspin,potshortcut,symObj,GPU,input)
    use module_base
    use module_interfaces, only: XC_potential, communicate_density, inputguess_gaussian_orbitals, sumrho
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_xc
    use gaussians, only: gaussian_basis, deallocate_gwf

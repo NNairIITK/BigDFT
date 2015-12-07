@@ -9,7 +9,7 @@ program GPS_3D
    use PSbox
    use yaml_output
    use dynamic_memory
-   use dictionaries
+   use dictionaries, dict_set => set
    use time_profiling
    use f_utils
    use yaml_strings
@@ -71,7 +71,7 @@ program GPS_3D
    real(kind=8), dimension(:,:,:), allocatable :: eps,potential,pot_ion
    integer :: i1,i2,i3,isp,whichone,i,ii,j,info,icurr,ip,isd,i1_max,i2_max,i3_max,n3d,n3p,n3pi,i3xcsh,i3s,n3pr2,n3pr1,ierr
 !   type(mpi_environment) :: bigdft_mpi
-  type(dictionary), pointer :: options
+  type(dictionary), pointer :: options,dict_input
 
   real(kind=8), dimension(:,:,:,:), allocatable :: dlogeps
   !> inverse of epsilon. Needed for PI method.
@@ -100,6 +100,8 @@ program GPS_3D
    logyes= options // 'logfile'
    delta=0.3d0
    delta= options .get. 'deltacav'
+
+
    call dict_free(options)
 
 
@@ -358,8 +360,19 @@ program GPS_3D
 !   rhopot(:,:,:,:) = density(:,:,:,:)
 !  end if
 
+   call dict_init(dict_input)
+
+   if (usegpu) call dict_set(dict_input//'setup'//'accel','CUDA')
+   call dict_set(dict_input//'environment'//'delta',delta)
+   if (trim(PSol) /= 'VAC') then
+      call dict_set(dict_input//'environment'//'cavity','rigid')
+      call dict_set(dict_input//'environment'//'gps_algorithm',PSol)
+   end if
+
   !new method
-  pkernel=pkernel_init(.true.,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,alg=PSol)
+   pkernel=pkernel_init(iproc,nproc,dict_input,geocode,ndims,hgrids)  
+!!$  pkernel=pkernel_init(.true.,iproc,nproc,igpu,geocode,ndims,hgrids,itype_scf,alg=PSol)
+  call dict_free(dict_input)
   call pkernel_set(pkernel,verbose=.true.)
 
   if ( trim(PSol)=='PCG') then
@@ -3672,7 +3685,7 @@ subroutine Polarization_charge(n01,n02,n03,nspden,hx,hy,hz,x,y,acell,eps,nord)
      end do
 
      do i1=1,n01
-      write(24,'(1x,I8,2(1x,e22.15))')i1,y(i1,n02/2,n03/2,1),y(n01/2,i1,n03/2,1)
+      write(24,'(1x,I8,2(1x,e22.15))') i1,y(i1,n02/2,n03/2,1)!,y(n01/2,i1,n03/2,1)
      end do
 
   close(unit=23)
@@ -5701,7 +5714,8 @@ end if
 
 end subroutine SetEpsilon
 
-!> calculates the value of the dielectric function for a smoothed cavity 
+
+!> Calculates the value of the dielectric function for a smoothed cavity 
 !! given a set of centres and radii.
 !! Need the epsilon0 as well as the radius of the cavit and its smoothness
 subroutine Eps_rigid_cavity(ndims,nspden,nord,acell,hgrids,nat,rxyz,radii,epsilon0,delta,eps,dlogeps,oneoeps,oneosqrteps,corr)

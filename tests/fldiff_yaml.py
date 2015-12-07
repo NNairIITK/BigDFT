@@ -5,7 +5,7 @@
 #> @file
 ## Check yaml output for tests
 ## @author
-##    Copyright (C) 2012-2014 BigDFT group
+##    Copyright (C) 2012-2015 BigDFT group
 ##    This file is distributed under the terms of the
 ##    GNU General Public License, see ~/COPYING file
 ##    or http://www.gnu.org/copyleft/gpl.txt .
@@ -49,15 +49,37 @@ import yaml
 def ignore_key(key):
     "Return True if the key has to be ignored."
     ret = key in keys_to_ignore
-    if (not(ret)):
+    if not ret:
         for p in patterns_to_ignore:
             if str(key).find(p) > -1:
                 ret = True
                 exit
     return ret
 
+def combine_dicts(dest,src):
+    res=dest
+    res["Path"].append(src["Path"])
+    for key in src:
+        if key!="Path": 
+            val = src[key]
+            if key in res:
+                try:
+                    valnew = max(val,dest[key])
+                except:
+                    valnew=val
+                res[key]=valnew
+            else:
+                res[key]=val
+    return res
 
-def compare(data, ref, tols=None, always_fails=False, keyword=""):
+def suggestion_for_tolerances(remarks):
+    res={}
+    if "FAILURE" in remarks:
+        for key in remarks["FAILURE"]:
+            res[key]=remarks["FAILURE"][key]["diff"]
+    return res
+
+def compare(data, ref, tols=None, always_fails=False,keyword=[]):
     """Generic document comparison routine
        descend recursively in the dictionary until a scalar is found
        a tolerance value might be passed"""
@@ -90,15 +112,20 @@ def compare(data, ref, tols=None, always_fails=False, keyword=""):
     return ret
 
 
-def compare_seq(seq, ref, tols, always_fails=False,keyword=""):
+def compare_seq(seq, ref, tols, always_fails=False,keyword=[]):
     "Sequence comparison routine"
     global failed_checks, remarks
     if tols is not None:
         if len(ref) == len(seq):
             for i in range(len(ref)):
                 # print 'here',ref[i],seq[i],tols[0]
+                if len(keyword) == 0:
+                    ktmp=[[i]]
+                else:
+                    ktmp=[ j for j in keyword]
+                    ktmp.append([i])
                 (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails, 
-                                            "%s[%d]" % (keyword,i))
+                                            ktmp)#"%s[%d]" % (keyword,i))
                 # Add to the tolerance dictionary a failed result
                 if failed:
                     # and type(tols) == type({}):
@@ -113,7 +140,11 @@ def compare_seq(seq, ref, tols, always_fails=False,keyword=""):
                         tols[0] = max(newtols, tols[0])
         else:
             #print 'compare sequence: problem with length 1'
-            remarks += "%s Compare sequence: problem with length 1\n" % keyword
+            #remarks += "%s Compare sequence: problem with length 1\n" % keyword
+            if "problem with length 1" in remarks:
+                remarks["problem with length 1"].append(keyword)
+            else:
+                remarks["problem with length 1"]=[keyword]
             failed_checks += 1
             if len(tols) == 0:
                 tols.append("NOT SAME LENGTH")
@@ -123,20 +154,29 @@ def compare_seq(seq, ref, tols, always_fails=False,keyword=""):
         tols = []
         if len(ref) == len(seq):
             for i in range(len(ref)):
+                if len(keyword) == 0:
+                    ktmp=[[i]]
+                else:
+                    ktmp=[ j for j in keyword]
+                    ktmp.append([i])
                 if len(tols) == 0:
                     (failed, newtols) = compare(seq[i], ref[i], always_fails=always_fails,
-                                                keyword="%s[%d]" % (keyword,i))
+                                                keyword=ktmp)#"%s[%d]" % (keyword,i))
                     #  add to the tolerance dictionary a failed result
                     if failed:
                         tols.append(newtols)
                 else:
                     (failed, newtols) = compare(seq[i], ref[i], tols[0], always_fails=always_fails,
-                                                keyword="%s[%d]" % (keyword,i))
+                                                keyword=ktmp)#"%s[%d]" % (keyword,i))
                     if failed:
                         tols[0] = newtols
         else:
             #print 'compare sequence: problem with length 2'
-            remarks += '%s Compare sequence: problem with length 2\n' % keyword
+            #remarks += '%s Compare sequence: problem with length 2\n' % keyword
+            if "problem with length 2" in remarks:
+                remarks["problem with length 2"].append(keyword)
+            else:
+                remarks["problem with length 2"]=[keyword]
             failed_checks += 1
             if len(tols) == 0:
                 tols.append("NOT SAME LENGTH")
@@ -145,7 +185,7 @@ def compare_seq(seq, ref, tols, always_fails=False,keyword=""):
     return (len(tols) > 0, tols)
 
 
-def compare_map(map, ref, tols, always_fails=False, keyword=""):
+def compare_map(map, ref, tols, always_fails=False, keyword=[]):
     "Comparison of maps"
     global docmiss, docmiss_it, remarks
     if tols is None:
@@ -154,13 +194,19 @@ def compare_map(map, ref, tols, always_fails=False, keyword=""):
         #Initialize always_fails for each key
         always_f = always_fails
         if not ignore_key(key):
-            if not(key in map):
+            if not isinstance(map,dict) or not (key in map):
                 docmiss += 1
                 docmiss_it.append(key)
                 #print "WARNING!!", key, "not found", ref[key]
-                remarks += "KEY NOT FOUND: %s'%s' with value=%s\n" % (keyword,key,ref[key])
+                #remarks += "KEY NOT FOUND: %s'%s' with value=%s\n" % (keyword,key,ref[key])
+                datatmp={key: ref[key], "Path":keyword}
+                if "KEY NOT FOUND" in remarks:
+                    remarks["KEY NOT FOUND"].append(datatmp)
+                else:
+                    remarks["KEY NOT FOUND"]=[datatmp]
                 always_f = True
-                value = ref[key]
+                #value = ref[key]
+                value = None
             else:
                 value = map[key]
             if isinstance(tols,dict) and key in tols:
@@ -170,7 +216,13 @@ def compare_map(map, ref, tols, always_fails=False, keyword=""):
                 tol = def_tols[key]
             else:
                 tol = None
-            (failed, newtols) = compare(value, ref[key], tol, always_f, keyword="%s'%s'" % (keyword,key))
+            #(failed, newtols) = compare(value, ref[key], tol, always_f, keyword="%s'%s'" % (keyword,key))
+            if len(keyword)==0:
+                ktmp=[key]
+            else:
+                ktmp=[j for j in keyword]
+                ktmp.append(key)
+            (failed, newtols) = compare(value, ref[key], tol, always_f, keyword=ktmp)
             # add to the tolerance dictionary a failed result
             if failed:
                 if isinstance(tols,dict) and key in tols:
@@ -188,7 +240,7 @@ def compare_map(map, ref, tols, always_fails=False, keyword=""):
     return (len(tols) > 0, tols)
 
 
-def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
+def compare_scl(scl, ref, tols, always_fails=False, keyword=[]):
     "Compare the scalars and return the tolerance if the results are ok"
     global failed_checks, discrepancy, biggest_tol, remarks
     failed = always_fails
@@ -197,7 +249,7 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
     # eliminate the character variables
     diff = None
     if isinstance(ref,str):
-        if not(scl == ref):
+        if not (scl == ref):
             ret = (True, tols)
     elif not always_fails:
         # infinity case
@@ -209,9 +261,9 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
                 diff = math.fabs(scl - ref)
                 ret_diff = diff
                 if tols is None:
-                    failed = not(diff <= epsilon)
+                    failed = not (diff <= epsilon)
                 else:
-                    failed = not(diff <= tols)
+                    failed = not (diff <= tols)
             except TypeError:
                 ret_diff = "NOT SAME KIND"
                 diff = 0.
@@ -220,7 +272,7 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
         #  if (discrepancy > 1.85e-6):
         #      print 'test',scl,ref,tols,discrepancy,failed
         #      sys.exit(1)
-        if not(failed):
+        if not failed:
             if tols is None:
                 ret = (always_fails, None)
             else:
@@ -237,10 +289,22 @@ def compare_scl(scl, ref, tols, always_fails=False, keyword=""):
         else:
             diff = math.fabs(scl - ref)
     if failed:
-        if failed_checks < 20:
+        if failed_checks < 20 or True:
             #print 'fldiff_failure: val, ref, tol, diff, bigtol', scl, ref, tols, discrepancy, biggest_tol
-            remarks += 'FAILURE %s:\n  [ val: %s, ref: %s, diff: %s, tol: %s, bigtol: %s]\n' % \
-                    (keyword,str(scl), str(ref), str(diff), str(tols), str(biggest_tol))
+            #remarks += 'FAILURE %s:\n  [ val: %s, ref: %s, diff: %s, tol: %s, bigtol: %s]\n' % \
+            #        (keyword,str(scl), str(ref), str(diff), str(tols), str(biggest_tol))
+            list_tmp={"Path": [keyword], "val":scl, "ref":ref, "diff": diff, "tols":tols,"bigtol":biggest_tol}
+            item=keyword[-1]
+            if type(item) == type([]):
+                item=keyword[-2]
+            if "FAILURE" not in remarks:
+                remarks["FAILURE"]={item: list_tmp}
+            elif item not in remarks["FAILURE"]:
+                remarks["FAILURE"].update({item: list_tmp})
+            else:
+                dict0=remarks["FAILURE"][item]
+                res=combine_dicts(dict0,list_tmp)
+                remarks["FAILURE"][item]=res
             failed_checks += 1
     return ret
 
@@ -258,7 +322,7 @@ def document_report(hostname, tol, biggest_disc, nchecks, leaks, nmiss, miss_it,
         if leaks != 0:
             failure_reason = "Memory Leak"
         elif nmiss > 0:
-            failure_reason = "Information"
+            failure_reason = "Missing Keys"
         elif tol == -1 and "No such file" in message:
             failure_reason = "Missing File"
         elif tol == -1 and "while parsing" in message:
@@ -352,14 +416,19 @@ if __name__ == "__main__":
 # args=parse_arguments()
 # print args.ref,args.data,args.output
 #datas      = [a for a in yaml.load_all(open(args.data, "r"), Loader = yaml.CLoader)]
-references = [a for a in yaml.load_all(
-    open(args.ref, "r").read(), Loader=yaml.CLoader)]
+try:
+    references = [a for a in yaml.load_all(
+        open(args.ref, "r").read(), Loader=yaml.CLoader)]
+except Exception, e:
+    reports = open(args.output, "w")
+    fatal_error(reports, message="In reference file: " + str(e))
+
 try:
     datas = [a for a in yaml.load_all(
         open(args.data, "r").read(), Loader=yaml.CLoader)]
 except Exception, e:
     reports = open(args.output, "w")
-    fatal_error(reports, message=str(e))
+    fatal_error(reports, message="In data file: " + str(e))
 
 if args.tols:
     try:
@@ -462,7 +531,7 @@ for i in range(len(references)):
     docmiss_it = []
     discrepancy = 0.
     reference = references[i]
-    remarks = ""
+    remarks = {} #""
     # this executes the fldiff procedure
     #compare(datas[i], reference, tols)
     try:
@@ -472,7 +541,7 @@ for i in range(len(references)):
         else:
             fatal_error(reports, message='Empty document!')
     except Exception, e:
-        print 'remarks',remarks,str(e)
+        print 'remarks "%s" (%s)' % (remarks,str(e))
         fatal_error(reports, message=str(e))
     try:
         #doctime = data["Timings for root process"]["Elapsed time (s)"]
@@ -495,21 +564,28 @@ for i in range(len(references)):
     newreport = open(options.input, "w")
     if failed_checks > 0 or docleaks > 0:
         failed_documents += 1
-    remarks += "{Document: %d, Failed_checks: %d, Max_Diff: %.2e, Missed_items: %d, Memory_leaks (B): %d, Elapsed Time (s): %.2f}\n" % \
-                     (i, failed_checks, discrepancy, docmiss, docleaks, doctime)
+    #remarks += "{Document: %d, Failed_checks: %d, Max_Diff: %.2e, Missed_items: %d, Memory_leaks (B): %d, Elapsed Time (s): %.2f}\n" % \
+    #                 (i, failed_checks, discrepancy, docmiss, docleaks, doctime)
+    remarks["Report"]={"Document":i,"Failed_checks":failed_checks, "Max_Diff": discrepancy, "Missed_items": docmiss, "Memory_leaks (B)": docleaks,
+                        "Elapsed Time (s)": doctime}
     newreport.write(yaml.dump(document_report(hostname, biggest_tol, discrepancy, failed_checks,
                                               docleaks, docmiss, docmiss_it, doctime),
                           default_flow_style=False, explicit_start=True))
     newreport.close()
     reports.write(open(options.input, "rb").read())
     highlight_iftty(options)
-    if remarks:
+    if len(remarks)>0:
         newreport = open(options_remarks.input, "w")
         if args.label is not None:
             labl=" ("+args.label+")"
         else:
             labl=''
-        newreport.write(yaml.dump({"Remarks"+labl: remarks}, default_style="|", explicit_start=False))
+        #newreport.write(yaml.dump({"Remarks"+labl: remarks}, default_style="|", explicit_start=False))
+        newreport.write(yaml.dump({"Remarks"+labl: remarks}))
+        sugg=suggestion_for_tolerances(remarks)
+        if len(sugg) > 0:
+            newreport.write(yaml.dump({"Suggestion for tolerances (WARNING! Beware of too high values)": {args.label: sugg}},
+                                      default_flow_style=False,explicit_start=True))
         newreport.close()
         reports.write(open(options_remarks.input, "rb").read())
         highlight_iftty(options_remarks)

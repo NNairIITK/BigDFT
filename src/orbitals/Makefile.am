@@ -1,17 +1,6 @@
 # Not To be installed:
 noinst_LIBRARIES = liborbitals.a
 
-# Source code.
-#if USE_CUDA_GPU
-#CUDA_CONV = convolut_common_interface_cuda.f90
-#else
-CUDA_CONV =
-#endif
-if USE_OCL
-OCL_CONV = convolut_common_interface_ocl.f90
-else
-OCL_CONV =
-endif
 if USE_OPTI_CONVOLUT
 CONV_SOURCES = combined_shrink_optim.f90 \
 	combined_grow_optim.f90 \
@@ -36,7 +25,7 @@ mod_src = defs.f90 base.f90 \
 	gaussians.f90 \
 	locreg_operations.f90
 
-routines = $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
+routines = $(CONV_SOURCES) \
 	growshrink.f90 \
 	growshrink_hyb_common.f90 \
 	conv_per_common.f90 \
@@ -49,7 +38,8 @@ routines = $(CUDA_CONV) $(OCL_CONV) $(CONV_SOURCES) \
 	potential.f90 \
 	locregs_basics.f90 \
 	precondLinear.f90 \
-	daubisf.f90
+	daubisf.f90 \
+	bounds.f90
 
 liborbitals_a_SOURCES = $(mod_src) $(routines)
 # convolut_ib_sse.c \ #to be verified, not working yet
@@ -62,6 +52,7 @@ modules = MODULE_BASE.@MODULE_EXT@ \
 	PUBLIC_KEYS.@MODULE_EXT@ \
 	PUBLIC_ENUMS.@MODULE_EXT@ \
 	GAUSSIANS.@MODULE_EXT@ \
+	BOUNDS.@MODULE_EXT@ \
 	LOCREG_OPERATIONS.@MODULE_EXT@ \
 	LOCREGS.@MODULE_EXT@
 else
@@ -70,6 +61,7 @@ modules = module_base.@MODULE_EXT@ \
 	public_keys.@MODULE_EXT@ \
 	public_enums.@MODULE_EXT@ \
 	gaussians.@MODULE_EXT@ \
+	bounds.@MODULE_EXT@ \
 	locreg_operations.@MODULE_EXT@ \
 	locregs.@MODULE_EXT@
 endif
@@ -89,6 +81,7 @@ endif
 #dependencies
 base.o: defs.o public_keys.o
 locregs.o: base.o
+bounds.o: locregs.o
 gaussians.o: base.o
 locreg_operations.o: locregs.o
 potential.o: locreg_operations.o

@@ -89,6 +89,7 @@ subroutine createWavefunctionsDescriptors(iproc,hx,hy,hz,atoms,rxyz,&
 END SUBROUTINE createWavefunctionsDescriptors
 
 
+!> Calculate wavelet descriptors from the the grids
 subroutine wfd_from_grids(logrid_c, logrid_f, calculate_bounds, Glr)
   use module_base
    use locregs
@@ -777,7 +778,7 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
   type(energy_terms),intent(inout):: energs
   type(DFT_PSP_projectors), intent(inout) :: nlpsp
   type(GPU_pointers), intent(inout) :: GPU
-  type(system_fragment), dimension(:), intent(in) :: ref_frags
+  type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
   type(cdft_data), intent(inout) :: cdft
 
   ! Local variables
@@ -892,16 +893,21 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
           ! Copy the coefficients
   if (input%lin%scf_mode/=LINEAR_FOE) then
-      call vcopy(tmb%orbs%norb*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
+      call vcopy(tmb%orbs%norbu*tmb%orbs%norb, tmb_old%coeff(1,1), 1, tmb%coeff(1,1), 1)
   else if (FOE_restart==RESTART_REFORMAT) then
       ! Extract to a dense format, since this is independent of the sparsity pattern
       kernelp = sparsematrix_malloc(tmb%linmat%l, iaction=DENSE_PARALLEL, id='kernelp')
-      call uncompress_matrix_distributed2(iproc, tmb_old%linmat%l, DENSE_PARALLEL, tmb_old%linmat%kernel_%matrix_compr, kernelp)
-      call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, &
-           kernelp, tmb%linmat%kernel_%matrix_compr)
+
+      do ispin=1,tmb%linmat%s%nspin
+         ishift=(ispin-1)*tmb%linmat%l%nvctrp_tg
+         call uncompress_matrix_distributed2(iproc, tmb_old%linmat%l, DENSE_PARALLEL, &
+              tmb_old%linmat%kernel_%matrix_compr(ishift+1:), kernelp)
+         call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%l, DENSE_PARALLEL, &
+              kernelp, tmb%linmat%kernel_%matrix_compr(ishift+1:))
+      end do
       call f_free(kernelp)
   end if
-          !!write(*,*) 'after vcopy, iproc',iproc
+  !!write(*,*) 'after vcopy, iproc',iproc
 
   call f_free_ptr(tmb_old%coeff)
 
@@ -1186,20 +1192,32 @@ subroutine input_memory_linear(iproc, nproc, at, KSwfn, tmb, tmb_old, denspot, i
 
        ! Transform the old overlap matrix to the new sparsity format, by going via the full format.
        ovrlpp = sparsematrix_malloc(tmb%linmat%s, iaction=DENSE_PARALLEL, id='ovrlpp')
-       call uncompress_matrix_distributed2(iproc, tmb_old%linmat%s, DENSE_PARALLEL, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
 
-       ! Allocate the matrix with the new sparsity pattern
-       call f_free_ptr(tmb_old%linmat%ovrlp_%matrix_compr)
-       !tmb_old%linmat%ovrlp_%matrix_compr = f_malloc_ptr(tmb%linmat%s%nvctr,id='tmb_old%linmat%ovrlp_%matrix_compr')
-       !!tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_TASKGROUP, &
-       !!                                                             id='tmb_old%linmat%ovrlp_%matrix_compr')
-
-       !call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
-       !     ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
-       ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+       ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s, &
                                  iaction=SPARSE_TASKGROUP, id='ovrlp_old%matrix_compr')
-       call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
-            ovrlpp, ovrlp_old%matrix_compr)
+
+       do ispin=1,tmb%linmat%s%nspin
+          ishift=(ispin-1)*tmb%linmat%s%nvctrp_tg
+          call uncompress_matrix_distributed2(iproc, tmb_old%linmat%s, DENSE_PARALLEL, &
+               tmb_old%linmat%ovrlp_%matrix_compr(ishift+1:), ovrlpp)
+          !call uncompress_matrix_distributed2(iproc, tmb_old%linmat%s, DENSE_PARALLEL, tmb_old%linmat%ovrlp_%matrix_compr, ovrlpp)
+
+          ! Allocate the matrix with the new sparsity pattern
+          !call f_free_ptr(tmb_old%linmat%ovrlp_%matrix_compr)
+          !tmb_old%linmat%ovrlp_%matrix_compr = f_malloc_ptr(tmb%linmat%s%nvctr,id='tmb_old%linmat%ovrlp_%matrix_compr')
+          !!tmb_old%linmat%ovrlp_%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%s,iaction=SPARSE_TASKGROUP, &
+          !!                                                             id='tmb_old%linmat%ovrlp_%matrix_compr')
+
+          !call compress_matrix_distributed(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
+          !     ovrlpp, tmb_old%linmat%ovrlp_%matrix_compr(tmb%linmat%s%isvctrp_tg+1:))
+
+          !ovrlp_old%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, &
+          !                       iaction=SPARSE_TASKGROUP, id='ovrlp_old%matrix_compr')
+
+          call compress_matrix_distributed_wrapper(iproc, nproc, tmb%linmat%s, DENSE_PARALLEL, &
+               ovrlpp, ovrlp_old%matrix_compr(ishift+1:))
+
+       end do
 
        call f_free(ovrlpp)
        ! Calculate S^1/2, as it can not be taken from memory
@@ -2157,7 +2175,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
        type(energy_terms),intent(inout):: energs
        type(DFT_PSP_projectors), intent(inout) :: nlpsp
        type(GPU_pointers), intent(inout) :: GPU
-       type(system_fragment), dimension(:), intent(in) :: ref_frags
+       type(system_fragment), dimension(input%frag%nfrag_ref), intent(in) :: ref_frags
        type(cdft_data), intent(inout) :: cdft
      end subroutine input_memory_linear
   end interface

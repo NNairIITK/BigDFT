@@ -62,7 +62,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
   integer :: ilr, iilr
   real(kind=8),dimension(:),allocatable :: totaltimes
   real(kind=8),dimension(2) :: time_max, time_average
-  real(kind=8) :: ratio_before, ratio_after
+! real(kind=8) :: ratio_before, ratio_after
   logical :: init_projectors_completely
   call f_routine(id=subname)
 
@@ -96,7 +96,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
               !write(*,'(a,2es16.6)') 'locregcenters(2,iat), dble(lzd%glr%d%n2+1)*lzd%hgrids(2)', locregcenters(2,iat), dble(lzd%glr%d%n2+1)*lzd%hgrids(2)
               !write(*,'(a,2es16.6)') 'locregcenters(3,iat), dble(lzd%glr%d%n3+1)*lzd%hgrids(3)', locregcenters(3,iat), dble(lzd%glr%d%n3+1)*lzd%hgrids(3)
               !write(*,'(a,3es16.6)') 'atoms%astruct%rxyz(1:3,iat)', atoms%astruct%rxyz(1:3,iat)
-              stop 'locregcenter outside of global box!'
+              !stop 'locregcenter outside of global box!'
+              call f_err_throw('locregcenter outside of global box!', err_name='BIGDFT_RUNTIME_ERROR')
           end if
       end do
   end if
@@ -283,26 +284,39 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      call f_free(locrad)
      call f_free(norbsc_arr)
 
+     !Check if orbitals and electrons are present
+     if (orbs%norb*orbs%nkpts == 0) &
+        & call f_err_throw('No electrons in the system! Check your input variables or atomic positions.', &
+        & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
      ! Check the maximum number of orbitals
      if (in%nspin==1 .or. in%nspin==4) then
         if (orbs%norb>norbe) then
-           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
-                &   ') must not be greater than the number of orbitals (',norbe,&
-                &   ') generated from the input guess.'
-           stop
+           !write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals (',orbs%norb,&
+           !     &   ') must not be greater than the number of orbitals (',norbe,&
+           !     &   ') generated from the input guess.'
+           !stop
+           call f_err_throw('The number of orbitals ('+yaml_toa(orbs%norb)// &
+                &   ') must not be greater than the number of orbitals ('+yaml_toa(norbe)// &
+                &   ') generated from the input guess.',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
         end if
      else if (in%nspin == 2) then
         if (orbs%norbu > norbe) then
-           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
-                &   ') must not be greater than the number of orbitals (',norbe,&
-                &   ') generated from the input guess.'
-           stop
+           !write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals up (',orbs%norbu,&
+           !     &   ') must not be greater than the number of orbitals (',norbe,&
+           !     &   ') generated from the input guess.'
+           !stop
+           call f_err_throw('The number of orbitals up ('+yaml_toa(orbs%norbu)// &
+                &   ') must not be greater than the number of orbitals ('+yaml_toa(norbe)// &
+                &   ') generated from the input guess.',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
         end if
         if (orbs%norbd > norbe) then
-           write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
-                &   ') must not be greater than the number of orbitals (',norbe,&
-                &   ') generated from the input guess.'
-           stop
+           !write(*,'(1x,a,i0,a,i0,a)') 'The number of orbitals down (',orbs%norbd,&
+           !     &   ') must not be greater than the number of orbitals (',norbe,&
+           !     &   ') generated from the input guess.'
+           !stop
+           call f_err_throw('The number of orbitals down ('+yaml_toa(orbs%norbd) //&
+                &   ') must not be greater than the number of orbitals ('+yaml_toa(norbe) //&
+                &   ') generated from the input guess.',err_id=BIGDFT_INPUT_VARIABLES_ERROR)
         end if
      end if
   end if
@@ -409,16 +423,12 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
       !if(iproc==0) write(*,*) 'WARNING: do not call check_communications in the linear scaling version!'
   end if
 
-  !Check if orbitals and electrons
-  if (orbs%norb*orbs%nkpts == 0) &
-     & call f_err_throw('No electrons in the system! Check your input variables or atomic positions.', &
-     & err_id=BIGDFT_INPUT_VARIABLES_ERROR)
-
   call f_release_routine()
   !---end of system definition routine
 
 
   contains
+
 
     subroutine init_linear_orbs(linear_partition)
      implicit none
@@ -439,7 +449,8 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
                   norb_par, norbu_par, norbd_par)
          end if
      else
-         stop 'init_linear_orbs: wrong value of linear_partition'
+         !stop 'init_linear_orbs: wrong value of linear_partition'
+         call f_err_throw('init_linear_orbs: wrong value of linear_partition',err_name='BIGDFT_RUNTIME_ERROR')
      end if
 
        ! There are needed for the restart (at least if the atoms have moved...)
@@ -447,8 +458,9 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
        present_onwhichatom_old = present(onwhichatom_old)
        if (present_inwhichlocreg_old .and. .not.present_onwhichatom_old &
            .or. present_onwhichatom_old .and. .not.present_inwhichlocreg_old) then
-           call yaml_warning('inwhichlocreg_old and onwhichatom_old should be present at the same time')
-           stop 
+           call f_err_throw('inwhichlocreg_old and onwhichatom_old should be present at the same time', &
+           & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
+           !stop 
        end if
        if (present_inwhichlocreg_old .and. present_onwhichatom_old) then
            call vcopy(lorbs%norb, onwhichatom_old(1), 1, lorbs%onwhichatom(1), 1)
@@ -456,13 +468,21 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
            !use onwhichatom to build the new inwhichlocreg (because the old inwhichlocreg can be ordered differently)
            ii = 0
            do iat=1, atoms%astruct%nat
-              do iorb=1,lorbs%norb
+              !only want to do this for spin=1!
+              do iorb=1,lorbs%norbu
                  if(iat ==  lorbs%onwhichatom(iorb)) then
                     ii = ii + 1
                     lorbs%inwhichlocreg(iorb)= ii
                  end if
               end do 
            end do
+
+           ! LR: not sure if this is the best way to do this but it seems to work...
+           ! Correction for spin polarized systems. For non polarized systems, norbu=norb and the loop does nothing.
+           do iorb=lorbs%norbu+1,lorbs%norb
+               lorbs%inwhichlocreg(iorb)=lorbs%inwhichlocreg(iorb-lorbs%norbu)+lorbs%norbu
+           end do
+
            !i_all=-product(shape(inwhichlocreg_old))*kind(inwhichlocreg_old)
            !deallocate(inwhichlocreg_old,stat=i_stat)
            !call memocc(i_stat,i_all,'inwhichlocreg_old',subname)
@@ -722,6 +742,7 @@ subroutine system_initialization(iproc,nproc,dump,inputpsi,input_wf_format,dry_r
      !!  integer,dimension(0:nproc-1),intent(out) :: norb_par
      !!  integer :: jjorbtot, jjorb, jproc, jlr, jorb
      !!  real(kind=8) :: tcount
+       !integer :: jlr
 
      !!  call f_zero(norb_par)
      !!  if (norb>=nproc) then
@@ -802,17 +823,23 @@ subroutine system_initKernels(verb, iproc, nproc, geocode, in, denspot)
 
   integer, parameter :: ndegree_ip = 16
 
-  denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
-       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
-       mpi_env=denspot%dpbox%mpi_env,alg=in%GPS_method,cavity=in%set_epsilon)
+!!$  denspot%pkernel=pkernel_init(verb, iproc,nproc,in%matacc%PSolver_igpu,&
+!!$       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+!!$       mpi_env=denspot%dpbox%mpi_env,alg=in%GPS_method,cavity=in%set_epsilon)
+  denspot%pkernel=pkernel_init(iproc,nproc,in%PS_dict,&
+       geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,&
+       mpi_env=denspot%dpbox%mpi_env)
+
   !create the sequential kernel if the exctX parallelisation scheme requires it
   if ((xc_exctXfac(denspot%xc) /= 0.0_gp .and. in%exctxpar=='OP2P' .or. in%SIC%alpha /= 0.0_gp)&
        .and. denspot%dpbox%mpi_env%nproc > 1) then
      !the communicator of this kernel is bigdft_mpi%mpi_comm
      !this might pose problems when using SIC or exact exchange with taskgroups
-     denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
-          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
-          alg=in%GPS_method,cavity=in%set_epsilon)
+!!$     denspot%pkernelseq=pkernel_init(iproc==0 .and. verb,0,1,in%matacc%PSolver_igpu,&
+!!$          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids,ndegree_ip,&
+!!$          alg=in%GPS_method,cavity=in%set_epsilon)
+     denspot%pkernelseq=pkernel_init(0,1,in%PS_dict_seq,&
+          geocode,denspot%dpbox%ndims,denspot%dpbox%hgrids)
   else 
      denspot%pkernelseq = denspot%pkernel
   end if
@@ -861,7 +888,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   !local variables
   real(gp), parameter :: epsilon0=78.36d0 ! Constant dielectric permittivity of water.
   real(gp), parameter :: fact=1.2d0 ! Multiplying factor to enlarge the rigid cavity.
-  integer :: i1,i2,i3,unt,i,i3s,i23
+  integer :: i
+  !integer :: i1,i2,i3,unt,i3s,i23
   real(gp) :: delta,IntSur,IntVol,noeleene,Cavene,Repene,Disene
   type(atoms_iterator) :: it
   real(gp), dimension(:), allocatable :: radii,radii_nofact
@@ -1041,7 +1069,8 @@ subroutine epsilon_cavity(atoms,rxyz,pkernel)
   call f_free(corr)
 end subroutine epsilon_cavity
 
-!> calculate the inner cavity for a sccs run to avoit discontinuity in epsilon
+
+!> Calculate the inner cavity for a sccs run to avoit discontinuity in epsilon
 !! due to near-zero edens near atoms
 subroutine epsinnersccs_cavity(atoms,rxyz,pkernel)
   use dynamic_memory
@@ -1313,7 +1342,8 @@ subroutine psp_from_stream(ios, nzatom, nelpsp, npspcode, &
      call atomic_info(nzatom, nelpsp, symbol = symbol)
      call psp_from_data(symbol, nzatom_, nelpsp_, npspcode_, ixcpsp, &
           & psppar, exists)
-     if (.not.exists) stop "Implement here."
+     !if (.not.exists) stop "Implement here."
+     if (.not.exists) call f_err_throw('Implement here.',err_name='BIGDFT_RUNTIME_ERROR')
 
      ! PAW format using libPAW.
      call pawpsp_read_header_2(ios%iunit,pspversion,basis_size,lmn_size)
@@ -1505,7 +1535,9 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
      & atoms, qcharge, nspin, mpol, norbsempty)
   use module_atoms, only: atoms_data
   use ao_inguess, only: charge_and_spol
-  use module_base, only: gp, f_err_throw,yaml_toa
+  use module_defs, only: gp
+  use dictionaries, only: f_err_throw
+  use yaml_strings
   use yaml_output, only: yaml_warning, yaml_comment
   use dynamic_memory
   !use ao_inguess, only : count_atomic_shells
@@ -1553,7 +1585,7 @@ subroutine read_n_orbitals(iproc, qelec_up, qelec_down, norbe, &
   else 
      if (mod(nel+mpol,2) /=0) then
           call f_err_throw('The mpol polarization should have the same parity of the (rounded) number of electrons. ' // &
-            & '(mpol=' // trim(yaml_toa(mpol)) // ' and qelec=' // trim(yaml_toa(qelec)) // ')', &
+            & '(mpol='+mpol+' and qelec='+qelec+')', &
             & err_name='BIGDFT_INPUT_VARIABLES_ERROR')
 
      end if
@@ -2107,7 +2139,9 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
            exit find_isproc
         end if
      end do find_isproc
-     if (isproc == UNINITIALIZED(1)) stop 'ERROR(check_kpt_distributions): isproc cannot be found'
+     !if (isproc == UNINITIALIZED(1)) stop 'ERROR(check_kpt_distributions): isproc cannot be found'
+     if (isproc == UNINITIALIZED(1)) call f_err_throw( &
+        & 'isproc cannot be found',err_name='BIGDFT_RUNTIME_ERROR')
      ieproc=UNINITIALIZED(1)
      find_ieproc : do kproc=nproc-1,0,-1
         if (ncomp_par(kproc,ikpt) > 0) then
@@ -2115,7 +2149,9 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
            exit find_ieproc
         end if
      end do find_ieproc
-     if (ieproc == UNINITIALIZED(1)) stop 'ERROR(check_kpt_distributions): ieproc cannot be found'
+     !if (ieproc == UNINITIALIZED(1)) stop 'ERROR(check_kpt_distributions): ieproc cannot be found'
+     if (ieproc == UNINITIALIZED(1)) call f_err_throw( &
+        & 'ieproc cannot be found', err_name='BIGDFT_RUNTIME_ERROR')
 
      norbs=0
      ncomps=0
@@ -2181,7 +2217,7 @@ subroutine check_kpt_distributions(nproc,nkpts,norb,ncomp,norb_par,ncomp_par,inf
 
 END SUBROUTINE check_kpt_distributions
 
-!>routine which associates to any of the processor a given number of objects
+!> Routine which associates to any of the processor a given number of objects
 !! depending of the number of processors and k-points
 subroutine parallel_repartition_with_kpoints(nproc,nkpts,nobj,nobj_par)
   use module_base

@@ -1,7 +1,7 @@
 !> @file
 !!  Routines to check the accuracy of the gaussian expansion
 !! @author
-!!    Copyright (C) 2007-2011 BigDFT group (LG)
+!!    Copyright (C) 2007-2015 BigDFT group (LG)
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -14,6 +14,7 @@ subroutine check_gaussian_expansion(iproc,nproc,orbs,Lzd,psi,G,coeffs)
   use module_types
   use yaml_output
   implicit none
+  !Arguments
   integer, intent(in) :: iproc,nproc
   type(orbitals_data), intent(in) :: orbs
   type(local_zone_descriptors), intent(in) :: Lzd

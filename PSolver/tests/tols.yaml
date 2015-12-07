@@ -6,11 +6,11 @@ Default tolerances:
 #  Energy differences: 2.1e-10
   Exc: 1.e-8
   EVxc: 4.6e-9
-  Some values: &value 1.01e-9 
+  Some values: &value 9.53e-9 
   Maximum discrepancy: 1.e-14
   Value: *value
   beta: 7.4e-10
-  ratio: 1.21e-6
+  ratio: 1.3e-6
   res: 1.94e-8
   alpha: 5.e-1 #normal for CG
   Total Charge: 6.5e-15

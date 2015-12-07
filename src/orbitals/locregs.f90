@@ -1,7 +1,7 @@
 !> @file
-!! Datatypes and associated methods relative to the localization regions
+!! Datatypes and associated methods relative to the localization regions (mesh grid)
 !! @author
-!!    Copyright (C) 2007-2014 BigDFT group
+!!    Copyright (C) 2007-2015 BigDFT group
 !!    This file is distributed under the terms of the
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
@@ -12,14 +12,20 @@
 module locregs
   use module_base
   implicit none
+
   private 
 
   !> Bounds for coarse and fine grids for kinetic operations
   !! Useful only for isolated systems AND in CPU
   type, public :: kinetic_bounds
-     integer, dimension(:,:,:), pointer :: ibyz_c,ibxz_c,ibxy_c
-     integer, dimension(:,:,:), pointer :: ibyz_f,ibxz_f,ibxy_f
+     integer, dimension(:,:,:), pointer :: ibyz_c !< coarse (2,0:n2,0:n3)
+     integer, dimension(:,:,:), pointer :: ibxz_c !< coarse (2,0:n1,0:n3)
+     integer, dimension(:,:,:), pointer :: ibxy_c !< coarse (2,0:n1,0:n2)
+     integer, dimension(:,:,:), pointer :: ibyz_f !< fine (2,0:n2,0:n3)
+     integer, dimension(:,:,:), pointer :: ibxz_f !< fine (2,0:n1,0:n3)
+     integer, dimension(:,:,:), pointer :: ibxy_f !< fine (2,0:n1,0:n2)
   end type kinetic_bounds
+
 
   !> Bounds to compress the wavefunctions
   !! Useful only for isolated systems AND in CPU
@@ -28,12 +34,14 @@ module locregs
      integer, dimension(:,:,:), pointer :: ibxy_ff,ibzzx_f,ibyyzz_f
   end type shrink_bounds
 
+
   !> Bounds to uncompress the wavefunctions
   !! Useful only for isolated systems AND in CPU
   type, public :: grow_bounds
      integer, dimension(:,:,:), pointer :: ibzxx_c,ibxxyy_c
      integer, dimension(:,:,:), pointer :: ibyz_ff,ibzxx_f,ibxxyy_f
   end type grow_bounds
+
 
   !> Bounds for convolutions operations
   !! Useful only for isolated systems AND in CPU
@@ -44,6 +52,7 @@ module locregs
      integer, dimension(:,:,:), pointer :: ibyyzz_r !< real space border
   end type convolutions_bounds
 
+
   !> Used for lookup table for compressed wavefunctions
   type, public :: wavefunctions_descriptors
      integer :: nvctr_c,nvctr_f,nseg_c,nseg_f
@@ -52,27 +61,32 @@ module locregs
      integer, dimension(:), pointer :: keyvloc,keyvglob
   end type wavefunctions_descriptors
 
+
   !> Grid dimensions in old different wavelet basis
   type, public :: grid_dimensions
-     integer :: n1,n2,n3,nfl1,nfu1,nfl2,nfu2,nfl3,nfu3,n1i,n2i,n3i
+     integer :: n1,n2,n3                      !< Coarse grid dimensions
+     integer :: nfl1,nfu1,nfl2,nfu2,nfl3,nfu3 !< Lower and upper indices of fine grid in 3D 
+     integer :: n1i,n2i,n3i                   !< ISF grid dimension (roughly 2*n+buffer)
   end type grid_dimensions
+
 
   !> Contains the information needed for describing completely a wavefunction localisation region
   type, public :: locreg_descriptors
-     character(len=1) :: geocode                !< @copydoc poisson_solver::doc::geocode
-     logical :: hybrid_on                       !< Interesting for global, periodic, localisation regions
-     integer :: ns1,ns2,ns3                     !< Starting point of the localisation region in global coordinates
-     integer :: nsi1,nsi2,nsi3                  !< Starting point of locreg for interpolating grid
-     integer :: Localnorb                       !< Number of orbitals contained in locreg
-     integer, dimension(3) :: outofzone         !< Vector of points outside of the zone outside Glr for periodic systems
+     character(len=1) :: geocode            !< @copydoc poisson_solver::doc::geocode
+     logical :: hybrid_on                   !< Interesting for global, periodic, localisation regions
+     integer :: ns1,ns2,ns3                 !< Starting point of the localisation region in global coordinates
+     integer :: nsi1,nsi2,nsi3              !< Starting point of locreg for interpolating grid
+     integer :: Localnorb                   !< Number of orbitals contained in locreg
+     integer, dimension(3) :: outofzone     !< Vector of points outside of the zone outside Glr for periodic systems
      real(gp), dimension(3) :: locregCenter !< Center of the locreg 
      real(gp) :: locrad                     !< Cutoff radius of the localization region
      real(gp) :: locrad_kernel              !< Cutoff radius of the localization region (kernel)
      real(gp) :: locrad_mult                !< Cutoff radius of the localization region for the sparse matrix multiplications
-     type(grid_dimensions) :: d
+     type(grid_dimensions) :: d             !< Grid dimensions in old different wavelet basis
      type(wavefunctions_descriptors) :: wfd
      type(convolutions_bounds) :: bounds
   end type locreg_descriptors
+
 
   public :: nullify_locreg_descriptors,locreg_null
   public :: deallocate_locreg_descriptors,deallocate_wfd
@@ -92,14 +106,17 @@ module locregs
     module procedure get_extent_of_overlap_long
   end interface get_extent_of_overlap
 
+
 contains
   
+
   !constructors
   pure function convolutions_bounds_null() result(bounds)
     implicit none
     type(convolutions_bounds) :: bounds
     call nullify_convolutions_bounds(bounds)
   end function convolutions_bounds_null
+
   pure subroutine nullify_convolutions_bounds(bounds)
     implicit none
     type(convolutions_bounds), intent(out) :: bounds
@@ -114,6 +131,7 @@ contains
     type(kinetic_bounds) :: kb
     call nullify_kinetic_bounds(kb)
   end function kinetic_bounds_null
+
   pure subroutine nullify_kinetic_bounds(kb)
     implicit none
     type(kinetic_bounds), intent(out) :: kb
@@ -130,6 +148,7 @@ contains
     type(shrink_bounds) :: sb
     call nullify_shrink_bounds(sb)
   end function shrink_bounds_null
+
   pure subroutine nullify_shrink_bounds(sb)
     implicit none
     type(shrink_bounds), intent(out) :: sb
@@ -145,6 +164,7 @@ contains
     type(grow_bounds) :: gb
     call nullify_grow_bounds(gb)
   end function grow_bounds_null
+
   pure subroutine nullify_grow_bounds(gb)
     implicit none
     type(grow_bounds), intent(out) :: gb
@@ -176,6 +196,7 @@ contains
     type(wavefunctions_descriptors) :: wfd
     call nullify_wfd(wfd)
   end function wfd_null
+
   pure subroutine nullify_wfd(wfd)
     implicit none
     type(wavefunctions_descriptors), intent(out) :: wfd
@@ -194,6 +215,7 @@ contains
     type(locreg_descriptors) :: lr
     call nullify_locreg_descriptors(lr)
   end function locreg_null
+
   pure subroutine nullify_locreg_descriptors(lr)
     implicit none
     type(locreg_descriptors), intent(out) :: lr
@@ -214,7 +236,7 @@ contains
     lr%locrad=0 
   end subroutine nullify_locreg_descriptors
 
-  !initializations
+  !> Initializations
   subroutine allocate_wfd(wfd)
     use module_base
     implicit none
@@ -729,8 +751,8 @@ contains
       if (nlen(2)<0) then
          call f_err_throw('nlen(2)<0: i1='//  i1//&
               ', i2='//i2//&
-              (', j1='//j1//&
-              ', j2='//j2)//&
+              ', j1='//j1//&
+              ', j2='//j2//&
               ', ks='//ks(2)//&
               ', ke='//ke(2)&
               ,err_name='BIGDFT_RUNTIME_ERROR')
@@ -825,8 +847,8 @@ contains
       if (nlen(1)<0) then
           call f_err_throw('nlen(1)<0: i1='//  i1//&
                &', i2='//i2//&
-               &(', j1='//j1//&
-               &', j2='//j2)//&
+               &', j1='//j1//&
+               &', j2='//j2//&
                &', ks='//ks(1)//&
                &', ke='//ke(1)&
                ,err_name='BIGDFT_RUNTIME_ERROR')
@@ -835,8 +857,8 @@ contains
       if (nlen(2)<0) then
           call f_err_throw('nlen(2)<0: i1='//  i1//&
                &', i2='//i2//&
-               &(', j1='//j1//&
-               &', j2='//j2)//&
+               &', j1='//j1//&
+               &', j2='//j2//&
                &', ks='//ks(2)//&
                &', ke='//ke(2)&
                ,err_name='BIGDFT_RUNTIME_ERROR')

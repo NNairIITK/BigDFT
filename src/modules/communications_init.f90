@@ -36,7 +36,7 @@ module communications_init
       
       ! Local variables
       integer :: iorb, iiorb, ilr, istartp_seg_c, iendp_seg_c, istartp_seg_f, iendp_seg_f, i3, ii3, jj3min, jj3max, jj3
-      integer :: ipt, nvalp_c, nvalp_f, i3s, n3p, ii, i, jjproc, jproc, ii3min, ii3max, np, n1p1, iseg, j0, j1, ierr
+      integer :: ipt, nvalp_c, nvalp_f, i3s, n3p, ii, i, jjproc, jproc, ii3min, ii3max, np, n1p1, iseg, j0, j1
       integer :: j3start, j3end
       real(kind=8),dimension(:,:,:),allocatable :: weightppp_c, weightppp_f
       real(kind=8) :: weight_c_tot, weight_f_tot, weightp_c, weightp_f, tt
@@ -288,6 +288,7 @@ module communications_init
                weight_c_tot_check, weight_f_tot_check)
       use module_base
       use module_types
+      use yaml_output, only: yaml_map
       use locregs, only: get_extent_of_overlap
       implicit none
       
@@ -304,13 +305,14 @@ module communications_init
       
       ! Local variables
       integer :: iorb, iiorb, i0, i1, i2, i3, ii, iseg, ilr, istart, iend, i, j0, j1, ii1, ii2, ii3, n1p1, np
-      integer :: i3e, ii3s, ii3e, is, ie, size_of_double, ierr, info, window, jproc, ncount, k, n, js, je, imin, imax
-      integer :: request_c, request_f, jj3, isize
-      real(kind=8),dimension(:),allocatable :: reducearr
+      integer :: i3e, ii3s, ii3e, is, ie, jproc, ncount
+      integer :: imax,imin,isize,je,jj3,js,k,n
+      !integer :: ierr, request_c, request_f, size_of_double, info, window
+      real(kind=8), dimension(:) ,allocatable :: reducearr
       !real(kind=8),dimension(:,:,:),allocatable :: weightloc
-      integer,dimension(:,:),allocatable :: i3startend
-      real(kind=8) :: tt
-      integer,dimension(2) :: ks, ke, nlen
+      integer, dimension(:,:), allocatable :: i3startend
+      !real(kind=8) :: tt
+      integer, dimension(2) :: ks, ke, nlen
       logical :: communicate
     
       call f_routine(id='get_weights')
@@ -379,7 +381,7 @@ module communications_init
           isize = isize + lzd%llr(ilr)%wfd%nvctr_c
           ii3s = lzd%llr(ilr)%ns3
           ii3e = ii3s + lzd%llr(ilr)%d%n3
-          !!write(*,'(a,6i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e', iproc, iorb, ii3s, ii3e, i3s, i3e
+          !write(*,'(a,12i8)') 'init: iproc, iorb, ii3s, ii3e, i3s, i3e, ilr, ns1, ns2, ns3, owa', iproc, iorb, ii3s, ii3e, i3s, i3e,ilr,lzd%nlr,lzd%llr(ilr)%ns1,lzd%llr(ilr)%ns2,lzd%llr(ilr)%ns3,orbs%onwhichatom(iorb)
           !if (ii3s+1>i3e .or. ii3e+1<i3s) cycle !+1 since ns3 starts at 0, but is3 at 1
 
           !n1p1=lzd%llr(ilr)%d%n1+1
@@ -445,8 +447,10 @@ module communications_init
       ! First a local check, then reduction for later
       weight_c_tot_check = sum(weightloc_c)
       if (nint(weight_c_tot_check)/=isize) then
-          write(*,'(a,2i12)') 'weight_c_tot_check, isize', nint(weight_c_tot_check), isize
-          stop 'weight_c_tot_check/=isize'
+         !write(*,'(a,2i12)') 'weight_c_tot_check, isize', nint(weight_c_tot_check), isize
+         !stop 'weight_c_tot_check/=isize'
+         call yaml_map('weight_c_tot_check, isize:', (/ nint(weight_c_tot_check), isize /) )
+         call f_err_throw('weight_c_tot_check/=isize',err_name='BIGDFT_RUNTIME_ERROR')
       end if
 
       if (nproc>1) then
@@ -907,7 +911,7 @@ module communications_init
       integer :: jproc, i1, i2, i3, ii, istart, iend, j0, j1, ii_c, ii_f, n1p1, np, jjproc, jjjproc
       !!$$integer :: ii2, iiseg, jprocdone
       integer :: i, iseg, i0, iitot, ii3, ierr
-      real(kind=8) :: tt, tt2, weight_c_ideal, weight_f_ideal, ttt, weight_prev
+      real(kind=8) :: tt, weight_c_ideal, weight_f_ideal, weight_prev
       real(kind=8),dimension(:,:),allocatable :: weights_c_startend, weights_f_startend
       character(len=*),parameter :: subname='assign_weight_to_process'
       integer,dimension(:),allocatable :: points_per_process, nval_c, nval_f
@@ -1044,7 +1048,7 @@ module communications_init
           !write(*,*) 'n3p, sum(weightppp_c(:,:,1:n3p))', n3p, sum(weightppp_c(:,:,1:n3p))
 
           tt = weight_prev
-          ! number of gris points handled by processes 0..iproc-1
+          ! number of grid points handled by processes 0..iproc-1
           iitot = sum(points_per_process(0:iproc-1)) !total number of grid points up to iproc-1
           !!write(*,'(a,i7,f14.1,2i9)') 'start: iproc, tt, iitot, jjproc', iproc, tt, iitot, jjproc
           !!write(*,'(a,i5,100f12.1)') 'iproc, weights_c_startend', iproc, weights_c_startend
@@ -1222,7 +1226,6 @@ module communications_init
           weights_f_startend(1,jproc+1)=dble(floor(tt,kind=8))+1.d0
       end do
       weights_f_startend(2,nproc-1)=weight_tot_f
-    
 
 
 
@@ -1417,10 +1420,7 @@ module communications_init
           !@END NEW #############################
 
 
-
       end if
-    
-    
     
     
       call f_free(weights_c_startend)
@@ -1931,7 +1931,7 @@ module communications_init
       integer,dimension(0:nproc-1),intent(out) :: nsendcounts_f, nsenddspls_f, nrecvcounts_f, nrecvdspls_f
       
       ! Local variables
-      integer :: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ierr, ilr, j0, j1, i0, i, ind, n1p1, np
+      integer :: iorb, iiorb, i1, i2, i3, ii, jproc, jproctarget, ilr, j0, j1, i0, i, ind, n1p1, np
       integer :: ii1, ii2, ii3, iseg, istart, iend, jj3
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
       character(len=*),     parameter :: subname='determine_communication_arrays'
@@ -2044,7 +2044,7 @@ module communications_init
           stop
       end if
       !write(*,'(a,2i10)') 'sum(nsendcounts_c), 7*sum(nsendcounts_f)', sum(nsendcounts_c), 7*sum(nsendcounts_f)
-      
+
       ! now nsenddspls
       nsenddspls_c(0)=0
       do jproc=1,nproc-1
@@ -2124,7 +2124,7 @@ module communications_init
       integer,dimension(nptsp_f),intent(out):: norb_per_gridpoint_f
       
       ! Local variables
-      integer :: ii, i1, i2, i3, iipt, iseg, jj, j0, j1, iitot, i, istart, iend, i0
+      integer :: ii, i1, i2, i3, iipt, iseg, jj, j0, j1, iitot, i, i0
       integer :: icheck_c,icheck_f,iiorb_c,iiorb_f, npgp_c,npgp_f,np,n1p1, jj3
       integer :: window, i3min_c, i3max_c, i3min_f, i3max_f, size_of_double, ierr, jproc, is, ie, info, ncount
       integer,dimension(:),allocatable :: i3s_par, n3_par
@@ -2381,12 +2381,11 @@ module communications_init
       integer,dimension(ndimind_f),intent(out) :: indexrecvorbital_f, iextract_f, iexpand_f
       
       ! Local variables
-      integer :: i, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, ierr, iseg, iitot, ilr, n1p1, np
+      integer :: i, iorb, iiorb, i1, i2, i3, ind, jproc, jproctarget, ii, iseg, iitot, ilr, n1p1, np
       integer :: i3min_c, i3max_c, i3min_f, i3max_f, jj3
       integer :: istart, iend, indglob, ii1, ii2, ii3, j1, i0, j0, ipt
       integer,dimension(:),allocatable :: nsend_c,nsend_f, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start_c, gridpoint_start_f, gridpoint_start_tmp_c, gridpoint_start_tmp_f
-      real(kind=8),dimension(:,:,:),allocatable :: weight_c, weight_f
       integer,dimension(:),allocatable :: indexsendorbital_c, indexsendbuf_c, indexrecvbuf_c
       integer,dimension(:),allocatable :: indexsendorbital_f, indexsendbuf_f, indexrecvbuf_f
       character(len=*),parameter :: subname='get_switch_indices'
@@ -3123,7 +3122,7 @@ module communications_init
       integer,intent(out) :: nptsp
     
       ! Local variables
-      integer :: jproc, i1, i2, i3, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc_out, iii, ierr
+      integer :: jproc, i1, i2, i3, iorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc_out, ierr
       integer,dimension(:),allocatable :: recvcounts, displs
       real(kind=8),dimension(:,:),allocatable :: slicearr
       real(kind=8), dimension(:,:),allocatable :: weights_startend
@@ -3385,6 +3384,7 @@ module communications_init
     
       ! Local variables
       integer :: iorb, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, jproc, i3, i2, i1, ii, ierr, ii0, j1, j2, j3
+      !integer :: ierr
       integer,dimension(:),allocatable :: nsendcounts_tmp, nsenddspls_tmp, nrecvcounts_tmp, nrecvdspls_tmp
       character(len=*),parameter :: subname='determine_communication_arrays_sumrho'
       integer(kind=8) :: ind, ii2, ii3
@@ -3522,6 +3522,7 @@ module communications_init
     
       ! Local variables
       integer :: jproc, iitot, iiorb, ilr, is1, ie1, is2, ie2, is3, ie3, i3, i2, i1, ind, ierr, ii, j1, j2, j3
+      ! integer :: ierr
       integer :: iorb, i, ipt, itotadd
       integer,dimension(:),allocatable :: nsend, indexsendorbital, indexsendorbital2, indexrecvorbital2
       integer,dimension(:),allocatable :: gridpoint_start, gridpoint_start_tmp
@@ -4048,9 +4049,10 @@ module communications_init
       integer:: is1, ie1, is2, ie2, is3, ie3, ilr, ii, iorb, iiorb, jproc, kproc, istsource, is, ie, iie3j
       integer:: ioverlap, is3j, ie3j, is3k, ie3k, mpidest, istdest, ioffsetx, ioffsety, ioffsetz, iel
       integer :: is3min, ie3max, tag, ncount, ierr, nmaxoverlap, nlen, iseg, j3, ileny, ioffset, isegx
+      !integer :: nmaxoverlap
       logical :: datatype_defined
       character(len=*),parameter:: subname='initialize_communication_potential'
-      integer,dimension(6) :: ise
+      !integer,dimension(6) :: ise
       integer,dimension(2) :: blocklengthsx, blocklengthsy, types, xyblock_type, nblocksy
       integer(kind=mpi_address_kind),dimension(2) :: displacementsx, displacementsy
       integer(kind=mpi_address_kind) :: lb, extent
@@ -4528,7 +4530,9 @@ module communications_init
           !!if (iproc==0) write(*,*) 'ie3max,comgp%ise(6,jproc)', ie3max,comgp%ise(6,jproc)
           !if (comgp%ise(5,jproc)/=is3min) stop 'ERROR 1'
           !if (comgp%ise(6,jproc)/=ie3max) stop 'ERROR 2'
-          if(ioverlap/=comgp%noverlaps) stop 'ioverlap/=comgp%noverlaps'
+          !if(ioverlap/=comgp%noverlaps) stop 'ioverlap/=comgp%noverlaps'
+          if (ioverlap/=comgp%noverlaps) call f_err_throw( &
+             'initialize_communication_potential: ioverlap /= comgp%noverlaps! ', err_name='BIGDFT_RUNTIME_ERROR')
     
       !else nproc_if ! monoproc
 
@@ -4573,7 +4577,6 @@ module communications_init
     subroutine orbitals_communicators(iproc,nproc,lr,orbs,comms,basedist)
       use module_base
       use module_types
-      use yaml_strings, only: yaml_toa
       implicit none
       integer, intent(in) :: iproc,nproc
       type(locreg_descriptors), intent(in) :: lr

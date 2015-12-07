@@ -27,12 +27,25 @@ endif
 psolver_noinst =
 endif
 
+# C objects
+c_level = PS_input_variables_fetch.c
+
+PS_input_variables_fetch.o: PS_input_variables_definition-inc.h
+#build the fortran include file with the stream of input variables into a local string
+#the sed command below will transform the entire yaml document into a c string, to be passed to fortran
+PS_input_variables_definition-inc.h: PS_input_variables_definition.yaml
+	$(SED) -e "s/^/\"/;s/$$/\\\n\"/" $< > $@
+
+
+
 if HAVE_ETSF_IO
 etsf_files = i-o-etsf.f90
 else
 etsf_files = i-o-etsf_fake.f90
 endif
 
+
+fdder_file=FDder.f90
 
 # Code source.
 if USE_CUDA_GPU
@@ -50,8 +63,9 @@ libPSolver_1_a_SOURCES = Build_Kernel.f90 \
 	PStypes.f90 \
 	PSbox.f90 \
 	PSbase.f90 \
-	FDder.f90 \
+	$(fdder_file) \
 	IObox.f90 \
+	$(c_level) \
 	$(etsf_files)
 
 # Modules.
@@ -107,6 +121,7 @@ EXTRA_DIST = \
 	configure.inc.in\
 	FiniteDiffCorff.inc\
 	FiniteDiffCorff_2der.inc\
+	PS_input_variables_definition.yaml \
 	$(SOURCES_MOD)
 
 # Build targets.

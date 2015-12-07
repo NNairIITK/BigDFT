@@ -15,6 +15,8 @@
    mixing_after_inputguess: 2
    correction_co_contra: no
    purification_quickreturn: no
+   check_sumrho: 2
+   check_overlap: 2
  lin_general:
    nit: [2, 1]
    rpnrm_cv: 9.9999999999999994E-012

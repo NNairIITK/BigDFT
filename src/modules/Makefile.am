@@ -41,6 +41,7 @@ cp2k_ld =
 endif
 
 libmodules_a_SOURCES = ab7_mixing.f90 \
+	dpbox.f90 \
 	psp_projectors.f90 \
 	psp_projectors_base.f90 \
 	input_keys.f90 \
@@ -96,7 +97,6 @@ libmodules_a_SOURCES = ab7_mixing.f90 \
 	multipole_base.f90 \
 	multipole.f90 \
 	orthonormalization.f90 \
-	bounds.f90 \
 	locregs_init.f90 \
 	sort.f90 \
 	forces_linear.f90 \
@@ -127,6 +127,7 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	MODULE_INPUT_DICTS.@MODULE_EXT@ \
 	PSP_PROJECTORS.@MODULE_EXT@ \
 	PSP_PROJECTORS_BASE.@MODULE_EXT@ \
+	MODULE_DPBOX.@MODULE_EXT@ \
 	AO_INGUESS.@MODULE_EXT@ \
 	REFORMATTING.@MODULE_EXT@ \
 	MODULE_ATOMS.@MODULE_EXT@ \
@@ -158,7 +159,6 @@ modules = MODULE_TYPES.@MODULE_EXT@ \
 	FRAGMENT_BASE.@MODULE_EXT@ \
 	MULTIPOLE.@MODULE_EXT@ \
 	ORTHONORMALIZATION.@MODULE_EXT@ \
-	BOUNDS.@MODULE_EXT@ \
 	LOCREGS_INIT.@MODULE_EXT@ \
 	SORT.@MODULE_EXT@ \
 	FORCES_LINEAR.@MODULE_EXT@ \
@@ -190,6 +190,7 @@ modules = module_types.@MODULE_EXT@ \
 	module_input_dicts.@MODULE_EXT@ \
 	psp_projectors.@MODULE_EXT@ \
 	psp_projectors_base.@MODULE_EXT@ \
+	module_dpbox.@MODULE_EXT@ \
 	ao_inguess.@MODULE_EXT@ \
 	reformatting.@MODULE_EXT@ \
 	module_atoms.@MODULE_EXT@ \
@@ -221,7 +222,6 @@ modules = module_types.@MODULE_EXT@ \
 	fragment_base.@MODULE_EXT@ \
 	multipole.@MODULE_EXT@ \
 	orthonormalization.@MODULE_EXT@ \
-	bounds.@MODULE_EXT@ \
 	locregs_init.@MODULE_EXT@ \
 	forces_linear.@MODULE_EXT@ \
 	sort.@MODULE_EXT@ \
@@ -263,7 +263,7 @@ input_dicts.o: ao_inguess.o fragment_base.o input.o
 atoms_data.o: $(ATOMS_INCLUDES) ao_inguess.o internal_coordinates.o input_dicts.o
 input_keys.o: multipole_base.o atoms_data.o xc.o input.o fragment_base.o
 types.o: psp_projectors_base.o ao_inguess.o atoms_data.o communications_base.o input_keys.o \
-	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o
+	sparsematrix_base.o xc.o foe_base.o ab7_mixing.o multipole_base.o dpbox.o
 interfaces.o: types.o xc.o fragments.o diis_module.o constrained_dft.o sparsematrix_base.o foe_base.o input_keys.o
 #op2p_module.o : base.o
 BigDFT_API.o: types.o interfaces.o xc.o atoms_data.o input_dicts.o ao_inguess.o psp_projectors.o communications_base.o communications_init.o
@@ -276,6 +276,7 @@ constrained_dft.o: input_keys.o sparsematrix_base.o
 psp_projectors.o: locregs_init.o psp_projectors_base.o
 #reformatting.o: base.o
 #communications_base.o: base.o
+#dpbox.o: base.o bounds.o
 communications_init.o: types.o communications_base.o
 communications.o: types.o communications_base.o xc.o
 #sparsematrix_base.o: base.o
@@ -286,7 +287,8 @@ foe_common.o: foe_base.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o
 fermi_level.o: foe_common.o
 gaussdaub.o: psp_projectors_base.o
 #module_sqn.o: base.o
-bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
+bigdft_run.o: types.o input_dicts.o interfaces.o module_forces.o module_lenosky_si.o module_lj.o module_morse_bulk.o \
+		module_tersoff.o module_bornmayerhugginstosifumi.o module_cp2k.o module_dftbp.o sparsematrix_init.o
 #ab7_mixing.o: defs.o
 #module_lj.o: base.o defs.o
 #module_cp2k.o: base.o defs.o
@@ -303,15 +305,14 @@ unitary_tests.o: types.o interfaces.o communications_init.o communications.o spa
 matrix_operations.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o parallel_linalg.o ice.o
 parallel_linalg.o: types.o
 io.o: types.o interfaces.o sparsematrix_base.o sparsematrix.o input_keys.o matrix_operations.o
-postprocessing_linear.o: types.o interfaces.o bounds.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o sort.o communications_init.o locregs_init.o
+postprocessing_linear.o: types.o interfaces.o communications_base.o communications.o sparsematrix_base.o sparsematrix.o transposed_operations.o matrix_operations.o rhopotential.o sort.o communications_init.o locregs_init.o
 foe.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o matrix_operations.o
 ice.o: types.o interfaces.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o foe_base.o foe_common.o fermi_level.o chebyshev.o
 rhopotential.o: types.o interfaces.o xc.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o
 multipole.o: multipole_base.o types.o interfaces.o sparsematrix_base.o sparsematrix_init.o matrix_operations.o orthonormalization.o
 orbital_basis.o:  types.o communications_base.o interfaces.o
 orthonormalization.o: types.o communications_base.o communications.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o transposed_operations.o atoms_data.o ao_inguess.o matrix_operations.o
-bounds.o: types.o
-locregs_init.o: types.o communications.o bounds.o
+locregs_init.o: types.o communications.o
 forces_linear.o: types.o sparsematrix_base.o sparsematrix_init.o sparsematrix.o psp_projectors.o transposed_operations.o
 
 # Copy modules in a common include directory.

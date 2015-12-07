@@ -1,7 +1,7 @@
 !> @file
 !!   Program to guess the used memory by BigDFT
 !! @author
-!!   Copyright (C) 2007-2013 BigDFT group (LG)
+!!   Copyright (C) 2007-2015 BigDFT group (LG)
 !!   This file is distributed under the terms of the
 !!   GNU General Public License, see ~/COPYING file
 !!   or http://www.gnu.org/copyleft/gpl.txt .
@@ -13,6 +13,7 @@
 program memguess
 
    use module_base
+   use module_dpbox, only: denspot_distribution
    use module_types
    use module_interfaces
    use module_xc
@@ -182,7 +183,7 @@ program memguess
       write(*,'(1x,a)')&
            &   '"matrixpower" <matrix.bin>" ' 
       write(*,'(1x,a)')&
-           & 'caluclate the power of a matrix'
+           & 'calculate the power of a matrix'
       write(*,'(1x,a)')&
            &   '"suggest-cutoff" <posinp.xyz>" ' 
       write(*,'(1x,a)')&

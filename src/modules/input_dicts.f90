@@ -6,6 +6,7 @@
 !!    GNU General Public License, see ~/COPYING file
 !!    or http://www.gnu.org/copyleft/gpl.txt .
 !!    For the list of contributors, see ~/AUTHORS 
+
 !> Module reading the old format (before 1.7) for the input
 module input_old_text_format
   use yaml_strings, only: operator(.eqv.)
@@ -88,6 +89,7 @@ contains
     end do
   end subroutine output_wf_format_help
 
+    !Arguments
   subroutine input_from_old_text_format(radical,mpi_env,dict)
     use public_keys
     use wrapper_MPI
@@ -99,14 +101,22 @@ contains
     type(dictionary), pointer :: dict            !< Input dictionary
     !local variables
     character(len = 100) :: f0
-    type(dictionary), pointer :: vals
+    type(dictionary), pointer :: vals,tmp,tmp0
     
     ! Parse all files.
     call set_inputfile(f0, radical, PERF_VARIABLES)
     nullify(vals)
     call read_perf_from_text_format(mpi_env%iproc,vals, trim(f0))
-    if (associated(vals)) call set(dict//PERF_VARIABLES, vals)
-
+    if (associated(vals)) then
+       if (PSOLVER .in. vals) then
+          tmp0 => vals // PSOLVER
+          call dict_copy(src=tmp0,dest=tmp)
+          call set(dict // PSOLVER,tmp)
+          call dict_remove(vals,PSOLVER)
+       end if
+       call set(dict//PERF_VARIABLES, vals)
+    end if
+       
     call set_inputfile(f0, radical, DFT_VARIABLES)
     nullify(vals)
     call read_dft_from_text_format(mpi_env%iproc,vals, trim(f0))
@@ -151,7 +161,7 @@ contains
     if (associated(vals)) call set(dict//GEOPT_VARIABLES, vals)
 
     if (mpi_env%iproc==0) then
-       call yaml_warning('Input files read in the old format.'//&
+       call yaml_warning('Input files read in the old format. '//&
             'Use the input_minimal.yaml file to switch to new format. '//&
             'In future versions this will be deprecated')
     end if
@@ -594,7 +604,6 @@ contains
 
     !if the file does exist, we fill up the dictionary.
     call input_var(dummy_str, 'manual',dict//KPT_METHOD, comment='K-point sampling method')
-    !call set(dict//KPT_METHOD, trim(dummy_str))
 
     if (trim(dummy_str) .eqv.  'auto') then
        call input_var(dummy_real,'0.0',dict//KPTRLEN, comment='Equivalent length of K-space resolution (Bohr)')
@@ -604,9 +613,6 @@ contains
        call input_var(dummy_int3(1),'1',dict//NGKPT//0)
        call input_var(dummy_int3(2),'1',dict//NGKPT//1)
        call input_var(dummy_int3(3),'1',dict//NGKPT//2, comment='No. of Monkhorst-Pack grid points')
-       !call set(dict//NGKPT//0, dummy_int3(1))
-       !call set(dict//NGKPT//1, dummy_int3(2))
-       !call set(dict//NGKPT//2, dummy_int3(3))
        !shift
        !no dict here
        call input_var(dummy_int,'1',ranges=(/1,8/),comment='No. of different shifts')
@@ -615,9 +621,6 @@ contains
           call input_var(dummy_real3(1),'0.',dict//SHIFTK//(i-1)//0)
           call input_var(dummy_real3(2),'0.',dict//SHIFTK//(i-1)//1)
           call input_var(dummy_real3(3),'0.',dict//SHIFTK//(i-1)//2,comment=' ')
-          !call set(dict//SHIFTK//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
-          !call set(dict//SHIFTK//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
-          !call set(dict//SHIFTK//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
        end do
     else if (trim(dummy_str) .eqv. 'manual') then
        call input_var(dummy_int,'1',ranges=(/1,10000/),&
@@ -626,11 +629,8 @@ contains
           call input_var(dummy_real3(1),'0.',dict//KPT//(i-1)//0)
           call input_var(dummy_real3(2),'0.',dict//KPT//(i-1)//1)
           call input_var(dummy_real3(3),'0.',dict//KPT//(i-1)//2)
-          !call set(dict//KPT//(i-1)//0, dummy_real3(1), fmt = "(F6.4)")
-          !call set(dict//KPT//(i-1)//1, dummy_real3(2), fmt = "(F6.4)")
-          !call set(dict//KPT//(i-1)//2, dummy_real3(3), fmt = "(F6.4)")
+
           call input_var(dummy_real,'1.',dict//WKPT//(i-1),comment='K-pt coords, K-pt weigth')
-          !call set(dict//WKPT//(i-1), dummy_real, fmt = "(F6.4)")
        end do
     end if
 
@@ -654,16 +654,10 @@ contains
        call input_var(dummy_real3(1),'0.',dict//KPTV//0//0)
        call input_var(dummy_real3(2),'0.',dict//KPTV//0//1)
        call input_var(dummy_real3(3),'0.',dict//KPTV//0//2,comment=' ')
-!       call set(dict//KPTV//0//0, dummy_real3(1))
-!       call set(dict//KPTV//0//1, dummy_real3(2))
-!       call set(dict//KPTV//0//2, dummy_real3(3))
        do i=1,nseg
           call input_var(dummy_real3(1),'0.5',dict//KPTV//(i-1)//0)
           call input_var(dummy_real3(2),'0.5',dict//KPTV//(i-1)//1)
           call input_var(dummy_real3(3),'0.5',dict//KPTV//(i-1)//2,comment=' ')
-          !call set(dict//KPTV//(i-1)//0, dummy_real3(1))
-          !call set(dict//KPTV//(i-1)//1, dummy_real3(2))
-          !call set(dict//KPTV//(i-1)//2, dummy_real3(3))
        end do
 
        !read an optional line to see if there is a file associated
@@ -740,9 +734,12 @@ contains
     call input_var("rho_commun", "DEF","Density communication scheme (DBL, RSC, MIX)",dummy_str)
     call set(dict // RHO_COMMUN, dummy_str)
     call input_var("psolver_groupsize",0, "Size of ", dummy_int)
-    call set(dict // PSOLVER_GROUPSIZE, dummy_int)
+    call set(dict // PSOLVER // 'setup' // 'taskgroup_size', dummy_int)
     call input_var("psolver_accel",0, "Acceleration ", dummy_int)
-    call set(dict // PSOLVER_ACCEL, dummy_int)
+    select case(dummy_int)
+    case(1)
+       call set(dict // PSOLVER // 'setup' // 'accel', 'CUDA')
+    end select
     call input_var("unblock_comms", "OFF", "Overlap Com)",dummy_str)
     call set(dict // UNBLOCK_COMMS, dummy_str)
     call input_var("linear", 'OFF', "Linear Input Guess approach",dummy_str)
@@ -1430,8 +1427,8 @@ contains
           call set(run // RADICAL_NAME, trim(run_id))
        else
           call set(run // RADICAL_NAME, LOGFILE) !this is if the logfile is then reused as input file
-          call set(run // INPUT_NAME, " ")
-          call set(run // POSINP, " ")
+          !call set(run // INPUT_NAME, " ")
+          !call set(run // POSINP, " ")
        end if
     end if
     if (present(input_id)) call set(run // INPUT_NAME, trim(input_id))
@@ -1499,6 +1496,8 @@ contains
        if (len_trim(naming_id) == 0) then
           !naming_id = trim(run_id_toa())
           call f_strcpy(src=trim(run_id_toa()),dest=naming_id)
+          !if it is still empty then use the logfile
+          !if (len_trim(naming_id)==0) call f_strcpy(naming_id,LOGFILE)
        else
           call f_strcpy(src="-" // trim(naming_id),dest=naming_id)
           !naming_id = "-" // trim(naming_id)
@@ -1564,6 +1563,7 @@ contains
          .item. MODE_VARIABLES,&
          .item. PERF_VARIABLES,&  
          .item. DFT_VARIABLES,&   
+         .item. PSOLVER,&   
          .item. KPT_VARIABLES,&   
          .item. GEOPT_VARIABLES,& 
          .item. MD_VARIABLES,& 
@@ -1700,7 +1700,7 @@ contains
        if (log_to_disk) then
           ! Get Create log file name.
           call dict_get_run_properties(dict, naming_id = run_name)
-          logfilename = "log"//trim(adjustl(run_name))//".yaml"
+          logfilename = "log"//trim(run_name)//".yaml"
           path = trim(writing_directory)//trim(logfilename)
           call yaml_map('<BigDFT> log of the run will be written in logfile',path,unit=6)
           ! Check if logfile is already connected.

@@ -1746,6 +1746,20 @@ neleconf(7,0)=1.d-18
      neleconf(6,1)=6
      amu=222.0d0
 
+  case(92*1000+14)
+     ! -----------------------         128
+     ! U          86           14     Symbol, Z, Zion
+     symbol = "U"
+     rcov=3.38d0
+     rprb=6.77d0
+     ehomo=-0.130948d0
+     neleconf(5,3)=3
+     neleconf(6,0)=2 
+     neleconf(6,1)=6
+     neleconf(6,2)=1
+     neleconf(7,0)=2
+     amu=238.0d0
+
   case default
      call f_err_throw("Electronic configuration "//&
           trim(yaml_toa([nzatom,nvalelec]))//" not found!",&

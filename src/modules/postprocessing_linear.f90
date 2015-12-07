@@ -309,31 +309,32 @@ module postprocessing_linear
                    max_error=max_error, mean_error=mean_error)
               !call f_free_ptr(ovrlp%matrix)
 
-
               do ispin=1,smatl%nspin
                   ist = (ispin-1)*smatl%nvctrp_tg + 1
-                  if (norbp>0) then
+                  !not sure where exactly the problem is but this can't be called for only some mpi procs otherwise the code hangs
+                  !if (norbp>0) then
                      call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                           kernel%matrix_compr(ist:), inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:))
-                  end if
-                  if (norbp>0) then
+                  !end if
+
+                  !if (norbp>0) then
                      call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                           inv_ovrlp(1)%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
-                  end if
+                  !end if
               end do
               call deallocate_matrices(inv_ovrlp(1))
           else if (method==CHARGE_ANALYSIS_MULLIKEN) then
               call transform_sparse_matrix(smats, smatl, ovrlp%matrix_compr, proj_ovrlp_half_compr, 'small_to_large')
               do ispin=1,smatl%nspin
                   ist = (ispin-1)*smatl%nvctrp_tg + 1
-                  if (norbp>0) then
+                  !if (norbp>0) then
                      call matrix_matrix_mult_wrapper(iproc, nproc, smatl, &
                           kernel%matrix_compr(ist:), proj_ovrlp_half_compr(ist:), weight_matrix_compr_tg(ist:))
-                  end if
+                  !end if
               end do
           end if
           call f_free(proj_ovrlp_half_compr)
-    
+
           charge_per_atom = f_malloc0(atoms%astruct%nat,id='charge_per_atom')
 
           ! Maybe this can be improved... not really necessary to gather the entire matrix

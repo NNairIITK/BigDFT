@@ -1597,7 +1597,7 @@ subroutine improveOrbitals(iproc, nproc, tmb, nspin, ldiis, alpha, gradient, exp
       ldiis%mis=mod(ldiis%is,ldiis%isx)+1
       ldiis%is=ldiis%is+1
       if(ldiis%alphaDIIS/=1.d0) then
-          call dscal(max(tmb%npsidim_orbs,tmb%npsidim_comp), ldiis%alphaDIIS, gradient, 1)
+          if (tmb%orbs%norbp>0) call dscal(max(tmb%npsidim_orbs,tmb%npsidim_comp), ldiis%alphaDIIS, gradient, 1)
       end if
       call optimizeDIIS(iproc, nproc, max(tmb%npsidim_orbs,tmb%npsidim_comp), tmb%orbs, nspin, tmb%lzd, gradient, tmb%psi, ldiis, &
            experimental_mode)
