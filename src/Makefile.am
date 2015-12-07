@@ -14,6 +14,7 @@ dynlib_DATA         = $(bigdft_dynamic_library)
 # ---------------
 SUBDIRS = \
 	orbitals \
+	sparsematrix \
 	modules \
 	xcPSolver \
 	$(sub_dirs_libconfig) \
@@ -38,6 +39,7 @@ subs_static_library = \
 	modules/libmodules.a \
 	CUDA/libCUDA.a \
 	orbitals/liborbitals.a \
+	sparsematrix/libsparsematrix.a \
 	geopt/libgeopt.a \
 	xcPSolver/libxcPSolver.a \
 	OpenCL/libOpenCL.a \

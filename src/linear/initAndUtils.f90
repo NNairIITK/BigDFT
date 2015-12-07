@@ -1173,8 +1173,8 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
   use communications_base, only: deallocate_comms_linear, deallocate_p2pComms
   use communications, only: synchronize_onesided_communication
   use sparsematrix_base, only: sparse_matrix_null, deallocate_sparse_matrix, allocate_matrices, deallocate_matrices
-  use sparsematrix_init, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff, &
-                               init_matrix_taskgroups, check_local_matrix_extents, &
+  use sparsematrix_wrappers, only: init_sparse_matrix_wrapper, init_sparse_matrix_for_KSorbs, check_kernel_cutoff
+  use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
                                init_matrixindex_in_compressed_fortransposed
   use foe_base, only: foe_data_deallocate
   use public_enums
@@ -1349,7 +1349,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           matname='tmb%linmat%ham_', mat=tmb%linmat%ham_)
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ham)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%m)
 
      call init_sparse_matrix_wrapper(iproc, nproc, input%nspin, tmb%orbs, tmb%lzd, at%astruct, &
@@ -1358,7 +1358,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
           matname='tmb%linmat%ovrlp_', mat=tmb%linmat%ovrlp_)
      !call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%ovrlp)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%s)
 
      call check_kernel_cutoff(iproc, tmb%orbs, at, input%hamapp_radius_incr, tmb%lzd)
@@ -1372,7 +1372,7 @@ subroutine adjust_locregs_and_confinement(iproc, nproc, hx, hy, hz, at, input, &
      end do
      !!call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
      !!     tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%denskern_large)
-     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+     call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
           tmb%collcom, tmb%ham_descr%collcom, tmb%collcom_sr, tmb%linmat%l)
 
      !tmb%linmat%inv_ovrlp_large=sparse_matrix_null()

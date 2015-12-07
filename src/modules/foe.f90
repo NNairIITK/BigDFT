@@ -598,10 +598,10 @@ module foe
               call calculate_trace_distributed_new(fermi_check_new, sumn_check)
     
               !@NEW ##########################
-              sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+              sumn = trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
                      ovrlp_%matrix_compr(isshift+1:), &
                      kernel_%matrix_compr(ilshift+1:), ispin)
-              sumn_check = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+              sumn_check = trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
                            ovrlp_%matrix_compr(isshift+1:), &
                            fermi_check_compr, ispin)
               !@ENDNEW #######################
@@ -713,7 +713,7 @@ module foe
             
             
               ! Calculate trace(KS).
-              sumn = trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+              sumn = trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
                      ovrlp_%matrix_compr(isshift+1:), &
                      kernel_%matrix_compr(ilshift+1:), ispin)
     

@@ -2788,7 +2788,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
 
   !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+  tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
         tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
         tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
   if (iproc==0) then
@@ -2924,7 +2924,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           call compress_matrix2(iproc,tmb%linmat%l, &
                inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
           !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-          tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+          tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
                 tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
                 tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
           if (tmb%linmat%l%nspin==2) then
@@ -2969,7 +2969,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       call compress_matrix2(iproc,tmb%linmat%l, &
            inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-      tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+      tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
             tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
             tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
       if (tmb%linmat%l%nspin==2) then
@@ -3034,7 +3034,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call compress_matrix2(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
 
   !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+  tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
         tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
         tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
   if (iproc==0) then
