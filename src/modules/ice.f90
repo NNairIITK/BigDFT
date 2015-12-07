@@ -18,7 +18,7 @@ module ice
                                    sparsematrix_malloc0_ptr, assignment(=), &
                                    SPARSE_TASKGROUP, SPARSE_MATMUL_SMALL, &
                                    matrices
-      use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+      use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed_wrapper, &
                               transform_sparsity_pattern
       use foe_base, only: foe_data, foe_data_set_int, foe_data_get_int, foe_data_set_real, foe_data_get_real, &

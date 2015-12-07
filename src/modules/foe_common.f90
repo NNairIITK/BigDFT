@@ -520,7 +520,7 @@ module foe_common
                emergency_stop, foe_obj, restart, eval_bounds_ok)
       use module_base
       use sparsematrix_base, only: sparse_matrix, matrices
-      use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+      use sparsematrix_init, only: matrixindex_in_compressed
       use yaml_output
       implicit none
     

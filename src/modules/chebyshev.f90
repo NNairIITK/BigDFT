@@ -28,7 +28,7 @@ module chebyshev
       use module_types
       use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
                                    SPARSE_MATMUL_LARGE, SPARSEMM_SEQ,sparsematrix_malloc0
-      use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+      use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: sequential_acces_matrix_fast, sequential_acces_matrix_fast2, &
                               compress_matrix_distributed_wrapper, sparsemm_new
       implicit none
@@ -255,7 +255,6 @@ module chebyshev
     subroutine axbyz_kernel_vectors_new(smat, a, x_compr, b, y_compr, z_compr)
       use module_base
       use module_types
-      use sparsematrix_init, only: get_line_and_column
       implicit none
     
       ! Calling arguments
@@ -330,7 +329,6 @@ module chebyshev
       use module_base
       !use module_types
       use sparsematrix_base, only: sparse_matrix
-      use sparsematrix_init, only: get_line_and_column
       use sparsematrix, only: transform_sparsity_pattern
       implicit none
     

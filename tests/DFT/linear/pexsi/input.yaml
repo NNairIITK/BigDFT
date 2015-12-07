@@ -40,6 +40,7 @@
    #output_wf: 1
    #output_mat: 1
    #output_coeff: 1
+   support_function_multipoles: yes
  lin_basis:
    idsx: 8
    gnrm_cv: 2.0e-3

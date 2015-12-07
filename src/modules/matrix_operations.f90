@@ -19,7 +19,7 @@ module matrix_operations
       !> S^-1 exact only works for symmetric matrices
       !! BOTH sparse matrices must be present together and inv_ovrlp should be nullified pointer, NOT inv_ovrlp_smat%matrix
       !! when sparse matrices present, check is performed to see whether %matrix is allocated so that its allocated status remains unchanged
-      !! contents of %matrix not guaranteed to be correct though - inv_ovrlp_smat%can_use_dense set accordingly
+      !! contents of %matrix not guaranteed to be correct though
       !! power: -2 -> S^-1/2, 2 -> S^1/2, 1 -> S^-1
       subroutine overlapPowerGeneral(iproc, nproc, iorder, ncalc, power, blocksize, imode, &
                  ovrlp_smat, inv_ovrlp_smat, ovrlp_mat, inv_ovrlp_mat, check_accur, &
@@ -32,7 +32,6 @@ module matrix_operations
                                 assignment(=), &
                                 SPARSE_FULL, DENSE_PARALLEL, SPARSE_MATMUL_LARGE, &
                                 DENSE_MATMUL, DENSE_FULL, SPARSEMM_SEQ, SPARSE_TASKGROUP
-        use sparsematrix_init, only: get_line_and_column
         use sparsematrix, only: compress_matrix, uncompress_matrix, &
                                 transform_sparse_matrix, transform_sparse_matrix_local, &
                                 compress_matrix_distributed_wrapper, &
@@ -50,7 +49,7 @@ module matrix_operations
         integer,intent(in) :: iproc, nproc, iorder, blocksize, ncalc
         integer,dimension(ncalc),intent(in) :: power
         integer,intent(in) :: imode
-        type(sparse_matrix),intent(inout) :: ovrlp_smat, inv_ovrlp_smat
+        type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
         type(matrices),intent(inout) :: ovrlp_mat
         type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp_mat
         logical,intent(in) :: check_accur
@@ -1325,7 +1324,7 @@ module matrix_operations
         use module_base
         use module_types
         use sparsematrix_base, only: sparse_matrix
-        use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+        use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
       
         ! Calling arguments
@@ -1545,7 +1544,6 @@ module matrix_operations
       subroutine first_order_taylor_sparse_new(power, smat, ovrlpp, inv_ovrlpp)
       use module_base
       use sparsematrix_base, only: sparse_matrix
-      use sparsematrix_init, only: get_line_and_column
         implicit none
         !!integer,intent(in) :: norb, isorb, norbp, power
         !!real(kind=8),dimension(norb,norbp),intent(in) :: ovrlpp
@@ -2097,7 +2095,7 @@ module matrix_operations
         use module_base
         use module_types
         use sparsematrix_base, only: sparse_matrix
-        use sparsematrix_init, only: matrixindex_in_compressed, get_line_and_column
+        use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
       
         ! Calling arguments
@@ -2179,9 +2177,9 @@ module matrix_operations
         ! Calling arguments
         integer,intent(in) :: iproc, nproc, meth_overlap
         type(orbitals_data),intent(in) :: orbs
-        type(sparse_matrix),intent(inout) :: ovrlp
+        type(sparse_matrix),intent(in) :: ovrlp
         type(matrices),intent(inout) :: ovrlp_mat
-        type(sparse_matrix),intent(inout) :: inv_ovrlp_half
+        type(sparse_matrix),intent(in) :: inv_ovrlp_half
         type(matrices),intent(inout) :: inv_ovrlp_half_
       
         ! Local variables

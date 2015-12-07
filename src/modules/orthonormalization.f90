@@ -37,8 +37,8 @@ module orthonormalization
       real(kind=8),intent(in) :: max_inversion_error
       type(orbitals_data),intent(in) :: orbs
       type(local_zone_descriptors),intent(in) :: lzd
-      type(sparse_matrix),intent(inout) :: ovrlp
-      type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+      type(sparse_matrix),intent(in) :: ovrlp
+      type(sparse_matrix),intent(in) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
       type(comms_linear),intent(in) :: collcom
       type(orthon_data),intent(in) :: orthpar
       real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
@@ -261,8 +261,8 @@ module orthonormalization
       type(atoms_data),intent(in) :: at
       integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
       type(local_zone_descriptors),intent(in) :: lzd
-      type(sparse_matrix),intent(inout) :: ovrlp
-      type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+      type(sparse_matrix),intent(in) :: ovrlp
+      type(sparse_matrix),intent(in) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
       type(comms_linear),intent(in) :: collcom
       type(orthon_data),intent(in) :: orthpar
       real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
@@ -497,7 +497,7 @@ module orthonormalization
       integer,intent(in) :: correction_orthoconstraint
       real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(in) :: lphi
       real(kind=8),dimension(max(npsidim_comp,npsidim_orbs)),intent(inout) :: lhphi
-      type(sparse_matrix),intent(inout) :: lagmat
+      type(sparse_matrix),intent(in) :: lagmat
       type(matrices),intent(out) :: lagmat_
       real(kind=8),dimension(collcom%ndimind_c),intent(inout) :: hpsit_c
       real(kind=8),dimension(7*collcom%ndimind_f),intent(inout) :: hpsit_f
@@ -762,7 +762,7 @@ module orthonormalization
     
       integer, intent(in) :: iproc, nproc, norbu, norb
       type(orbitals_data), intent(in) :: basis_orbs
-      type(sparse_matrix),intent(inout) :: basis_overlap
+      type(sparse_matrix),intent(in) :: basis_overlap
       type(matrices),intent(inout) :: basis_overlap_mat
       real(kind=8),dimension(basis_overlap%nfvctr,basis_orbs%norb),intent(inout) :: coeff
     
@@ -945,8 +945,8 @@ module orthonormalization
       type(atoms_data),intent(in) :: at
       integer,dimension(at%astruct%ntypes),intent(in) :: minorbs_type, maxorbs_type
       type(local_zone_descriptors),intent(in) :: lzd
-      type(sparse_matrix),intent(inout) :: ovrlp
-      type(sparse_matrix),intent(inout) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
+      type(sparse_matrix),intent(in) :: ovrlp
+      type(sparse_matrix),intent(in) :: inv_ovrlp_half ! technically inv_ovrlp structure, but same pattern
       type(comms_linear),intent(in) :: collcom
       type(orthon_data),intent(in) :: orthpar
       real(kind=8),dimension(npsidim_orbs), intent(inout) :: lphi
