@@ -1813,7 +1813,7 @@ igortho_44:
  delta: 1.1e-10
  #radius for normalization: 1.1e-1
  Tolerance for the following test: 1.01e-10
- Force Norm (Hartree/Bohr): 7.7e-7
+ Force Norm (Hartree/Bohr): 7.93e-7
  Unitary check of the multipole calculations: 1.0e-2
  Multipole coefficients: 1.6e-6
  Keys to ignore:
