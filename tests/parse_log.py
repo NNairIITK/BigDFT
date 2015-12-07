@@ -39,12 +39,22 @@ def clean_logfile(logfile_lines,to_remove):
       valid_line=line.split('#')[0]
       spaces='nospace'
       #control that the string between the key and the semicolon is only spaces
-      #print "here",remove_it,remove_it in valid_line and ":" in valid_line
       if remove_it in valid_line and ":" in valid_line:
-        valid_line= valid_line[valid_line.find(remove_it)+len(remove_it):]
+        #print "here",remove_it,remove_it in valid_line and ":" in valid_line,valid_line
+        starting_point=valid_line.find(remove_it)
+        tmp_buf=valid_line[:starting_point]
+        #find the closest comma to the staring point, if exists
+        tmp_buf=tmp_buf[::-1]
+        starting_comma=tmp_buf.find(',')
+        if starting_comma <0: st=0
+        tmp_buf=tmp_buf[st:]
+        tmp_buf=tmp_buf[::-1]
+        tmp_buf=tmp_buf.strip(' ')
+        #print "there",tmp_buf,'starting',starting_point,len(tmp_buf)
+        valid_line= valid_line[starting_point+len(remove_it):]
         spaces= valid_line[1:valid_line.find(':')]
         #if remove_it+':' in line.split('#')[0]:
-      if len(spaces.strip(' ')) == 0: #this means that the key has been found
+      if len(spaces.strip(' ')) == 0 and len(tmp_buf)==0: #this means that the key has been found
          #creates a new Yaml document starting from the line
          #treat the rest of the line following the key to be removed
          header=''.join(line.split(':')[1:])
@@ -633,8 +643,8 @@ else:
   #standard list which removes long items from the logfile
   to_remove= ["Atomic positions within the cell (Atomic and Grid Units)",
               "Atomic Forces (Ha/Bohr)",
-              "Orbitals",
-              "Energies",
+              #"Orbitals",
+              #"Energies",
               "Properties of atoms in the system"]
   #to_remove=[]
 
@@ -667,6 +677,8 @@ print "Number of valid documents:",len(extracted_result)
 for it in extracted_result:
   print it
 
+
+  
 iterations = range(len(extracted_result))
 energies = [en for [f, en] in extracted_result]
 energy_min=min(energies)
@@ -674,9 +686,9 @@ energies = [en-energy_min for en in energies]
 forces = [f for [f, en] in extracted_result]
 
 import matplotlib.pyplot as plt
-plt.plot(iterations, energies, '.-',label='E - min(E)')
-plt.plot(iterations, forces, '.-',label='max F')
-plt.yscale('log')
+#plt.plot(iterations, energies, '.-',label='E - min(E)')
+plt.plot(energies, forces, '.-',label='Energy')
+#plt.yscale('log')
 plt.legend(loc='lower left')
 plt.show()
   

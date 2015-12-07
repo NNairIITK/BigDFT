@@ -1616,6 +1616,7 @@ surface_boronnitride:
  Total charge: 1.0e-10
  Total ionic charge: 4.2e-11
  Clean forces norm (Ha/Bohr): 1.3e-11
+ fnrm2: 1.2e-11
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
   - found warnings
@@ -1770,9 +1771,9 @@ igortho_19:
  D: 4.1e-8
  Tr(K): 1.7e-8
  total charge correction: 1.5e-11
- multiplicator for the confinement: 2.9e-11
+ multiplicator for the confinement: 3.13e-11
  radius for normalization: 1.1e-2
- Force Norm (Hartree/Bohr): 2.7e-8
+ Force Norm (Hartree/Bohr): 3.76e-8
 
 igortho_44:
  Atomic Forces (Ha/Bohr): 8.2e-7
@@ -1810,7 +1811,8 @@ igortho_44:
  net dipole: 1.1e-7
  D: 1.1e-4
  delta: 1.1e-10
- radius for normalization: 1.1e-1
+ #radius for normalization: 1.1e-1
+ Tolerance for the following test: 1.01e-10
  Force Norm (Hartree/Bohr): 7.9e-7
  Unitary check of the multipole calculations: 1.0e-2
  Multipole coefficients: 1.6e-6
@@ -1896,9 +1898,9 @@ extendedfrags_read:
 
 extendedfrags_readrotated:
  energy: 1.4e-11
- eF: 2.6e-9
+ eF: 2.62e-9
  D eF: 1.1e-8
- guess for new ef: 2.51e-9
+ guess for new ef: 2.61e-9
  D Tr: 1.1e-9
  ebs_check: 1.4e-10
  ebs: 1.4e-10

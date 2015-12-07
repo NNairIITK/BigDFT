@@ -2898,6 +2898,7 @@ subroutine CounterIonPotential(iproc,in,shift,dpbox,pkernel,npot_ion,pot_ion)
         rx=at%astruct%rxyz(1,atit%iat)-shift(1)
         ry=at%astruct%rxyz(2,atit%iat)-shift(2)
         rz=at%astruct%rxyz(3,atit%iat)-shift(3)
+        write(*,*) 'rx, at%astruct%rxyz(1,atit%iat), shift(1)', rx, at%astruct%rxyz(1,atit%iat), shift(1)
 
         if (iproc == 0) then
            !write(*,'(1x,a,i6,3(1pe14.7))')'counter ion No. ',atit%iat,rx,ry,rz
