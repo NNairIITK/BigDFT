@@ -248,12 +248,10 @@ tmp-libbigdft/extract.stamp: $(subs_static_library) $(out_static_library)
 	touch extract.stamp
 
 libbigdft-1.a: $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	echo "libbigdft-1.a: PEXSI FLAGS" $(pexsi_ld)
 	$(AR) $(ARFLAGS) $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o
 	$(RANLIB) $@
 
 $(bigdft_dynamic_library): $(libmain_a_OBJECTS) tmp-libbigdft/extract.stamp
-	echo "PEXSI FLAGS" $(pexsi_ld)
 	$(FC) $(FCFLAGS) -shared $(LDFLAGS) -Wl,-soname=$(bigdft_library) -o $@ $(libmain_a_OBJECTS) tmp-libbigdft/*.o @LIBS_SHORT_DEPS@ $(amber_ld) $(cp2k_ld) $(pexsi_ld)
 	@chmod a+x $@
 
