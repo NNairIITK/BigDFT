@@ -25,6 +25,7 @@ module io
   public :: read_sparse_matrix
   public :: read_dense_matrix
   public :: dist_and_shift
+  public :: find_neighbours
 
 
   contains

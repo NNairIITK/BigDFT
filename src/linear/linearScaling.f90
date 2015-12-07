@@ -2634,6 +2634,10 @@ end if
            input%lin%output_mat_format,tmb,at,rxyz,norder_taylor, &
            input%lin%calculate_onsite_overlap, write_SminusonehalfH=.true.)
       call timing(iproc,'write_matrices','OF')
+
+  !!temporary at the moment - to eventually be moved to more appropriate location
+  !!call tmb_overlap_onsite_rotate(iproc, nproc, input, at, tmb, rxyz)
+
   end if
   ! Write the KS coefficients
   if (mod(input%lin%output_coeff_format,10) /= WF_FORMAT_NONE) then
@@ -3564,7 +3568,7 @@ end subroutine linearScaling
 
 
 
-
+!note that this isn't 'correct' for fake fragment case
 subroutine output_fragment_rotations(iproc,nat,rxyz,iformat,filename,input_frag,ref_frags)
   use module_base
   use module_types
