@@ -275,16 +275,16 @@ subroutine exctx_pre_computation(iorb, jorb, rp_ij, phi1, phi2, pkernel)
   shift2=phi2%displ(jorb)
   ndim=product(pkernel%ndims)
   if(pkernel%igpu==1) then
-      call cudamalloc(ndim,myrho_GPU,i_stat)
-      if (i_stat /= 0) call f_err_throw('error cudamalloc myrho_GPU (GPU out of memory ?) ')
+   !   call cudamalloc(ndim,myrho_GPU,i_stat)
+    !  if (i_stat /= 0) call f_err_throw('error cudamalloc myrho_GPU (GPU out of memory ?) ')
     !first attempt : send data each time, to remove later.
-    call reset_gpu_data(ndim,rp_ij,myrho_GPU)
+    !call reset_gpu_data(ndim,rp_ij,myrho_GPU)
     call gpu_pre_computation(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),&
-            myrho_GPU, phi1%data_GPU,shift1,phi2%data_GPU,shift2,hfac)
-    call get_gpu_data(ndim,rp_ij,myrho_GPU)
+            pkernel%w%rho_GPU, phi1%data_GPU,shift1,phi2%data_GPU,shift2,hfac)
+    !call get_gpu_data(ndim,rp_ij,myrho_GPU)
 
-      call cudafree(myrho_GPU)
-myrho_GPU=0
+    !  call cudafree(myrho_GPU)
+!myrho_GPU=0
 
    ! end if
   else
@@ -325,16 +325,16 @@ subroutine exctx_post_computation(orb1, orb2, rp_ij, phi1, phi2, pkernel, norb, 
   ndim=product(pkernel%ndims)
 
   if(pkernel%igpu==1) then
-      call cudamalloc(ndim,myrho_GPU,i_stat)
-      if (i_stat /= 0) call f_err_throw('error cudamalloc myrho_GPU (GPU out of memory ?) ')
+      !call cudamalloc(ndim,myrho_GPU,i_stat)
+    !  if (i_stat /= 0) call f_err_throw('error cudamalloc myrho_GPU (GPU out of memory ?) ')
 
     !first attempt : send data each time, to remove later.
-    call reset_gpu_data(ndim,rp_ij,myrho_GPU)
+   ! call reset_gpu_data(ndim,rp_ij,myrho_GPU)
 
     call gpu_post_computation(pkernel%ndims(1),pkernel%ndims(2),pkernel%ndims(3),&
-            myrho_GPU, phi1%res_GPU,shift1_res,phi2%data_GPU,shift2,hfac1)
+           pkernel%w%rho_GPU, phi1%res_GPU,shift1_res,phi2%data_GPU,shift2,hfac1)
 
-      call cudafree(myrho_GPU)
+     ! call cudafree(myrho_GPU)
 myrho_GPU=0
   else
   !$omp parallel do default(shared) private(i)
@@ -391,6 +391,9 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
      end if
      !do it only for upper triangular results 
      if (istep /= 0 .or. jorb_glb >= iorb_glb) then
+          if(pkernel%igpu==1 .and. istep ==1) then
+          call reset_gpu_data(ndim,rp_ij,pkernel%w%rho_GPU)
+        end if 
 
         call exctx_pre_computation(iorb, jorb,rp_ij,phi_i,phi_j,pkernel)
 !!$        ncalls=ncalls+1
@@ -428,6 +431,11 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
      end if
   end do
   end do
+
+  if(pkernel%igpu==1) then
+    call get_gpu_data(ndim,rp_ij,pkernel%w%rho_GPU)
+ end if
+
 end subroutine internal_calculation_exctx
 
 !> Routine which applies the op2p module to calculate the exact exchange

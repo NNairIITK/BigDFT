@@ -654,7 +654,7 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             call f_zero(ndim*orbs%norbp,pot(ispot))
             !if (iproc==0) call yaml_map('Orbital repartition',nobj_par)
             call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
-
+            if(pkernel%igpu==1) pkernel%stay_on_gpu=1
             call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,pkernel%igpu,.true.)
 
             !allocate work array for the internal exctx calculation

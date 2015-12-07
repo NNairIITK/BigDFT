@@ -136,8 +136,10 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
      else
 
         !fill the GPU memory
+        if(kernel%stay_on_gpu /= 1) then
         call reset_gpu_data( kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
                             rho, kernel%w%rho_GPU)
+        end if 
 
         call pad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
                     kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
@@ -162,8 +164,10 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
         call unpad_data( kernel%w%rho_GPU, kernel%w%work1_GPU, kernel%grid%m1,&
                     kernel%grid%n3p,kernel%grid%m3, kernel%grid%md1,&
                     kernel%grid%md2,kernel%grid%md3);
+        if(kernel%stay_on_gpu /= 1) then
         call get_gpu_data(kernel%grid%m1*kernel%grid%n3p*kernel%grid%m3,&
                         rho,kernel%w%rho_GPU)
+        end if
     end if
 
      if (kernel%keepGPUmemory == 0) then
@@ -213,7 +217,7 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
   if(gpu) then 
 
      !in VAC case, rho and zf are already on the card and untouched
-     if(trim(str(kernel%method))/='VAC') then
+     if( kernel%stay_on_gpu /= 1 .and. trim(str(kernel%method))/='VAC') then
         call reset_gpu_data(m1*m2*m3p,rho,kernel%w%rho_GPU)
         call reset_gpu_data(m1*m2*m3p,zf,kernel%w%work1_GPU)
      end if
@@ -229,8 +233,9 @@ subroutine finalize_hartree_results(sumpion,gpu,kernel,pot_ion,m1,m2,m3p,&
           m3p,m2, md1, md3p,md2);
 
      call finalize_reduction_kernel(sumpion,m1,m2*m3p,md1,md2*md3p, kernel%w%work2_GPU, kernel%w%rho_GPU, kernel%w%pot_ion_GPU, eh)
-
+        if(kernel%stay_on_gpu /= 1) then
      call get_gpu_data(m1*m2*m3p,pot,kernel%w%rho_GPU)
+      end if
 
   else
      !recollect the final data
