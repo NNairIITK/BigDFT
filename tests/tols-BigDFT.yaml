@@ -700,8 +700,8 @@ fructose:
  ebs_check: 1.1e-8
  net quadropole: 1.1e-10
  Energy (Hartree): 1.3e-10
- Charge analysis (charge / net charge): 5.96e-10
- Pseudo Fermi level for occupations: 3.7e-10
+ Charge analysis (charge / net charge): 7.6e-10
+ Pseudo Fermi level for occupations: 4.3e-10
  net charge: 1.0e-8
  Keys to ignore:
   - Calculating wavelets expansion of projectors, found warnings
@@ -1725,7 +1725,7 @@ multipoles_CH4:
  diff from reference kernel: 1.1e-9
  diff: 8.9e-10
  number of corrected points: 24.0
- eval: 1.0e-8
+ eval: 1.1e-8
  Unitary check of the multipole calculations: 9.1e-2
 
 Xabsb2B.xabs.ref.yaml:
@@ -1861,7 +1861,7 @@ igortho_94:
  delta: 4.1e-11
  radius for normalization: 1.1e-2
  multiplicator for the confinement: 3.97e-11
- Force Norm (Hartree/Bohr): 3.1e-8
+ Force Norm (Hartree/Bohr): 3.7e-8
 
 extendedfrags_nofrags:
  eF: 1.6e-9
@@ -2006,6 +2006,7 @@ pexsi:
   Omega: 4.2e-11
   energy: 3.8e-11
   EXC: 1.0e-10
+  Total charge: 1.1e-10
   Keys to ignore:
     - Calculating wavelets expansion of projectors, found warnings
     - found warnings
@@ -2018,7 +2019,7 @@ pexsi:
 counterions:
   EH: 1.1e-10
   EKS: 2.4e-11
-  Energy (Hartree): 1.4e-11
+  Energy (Hartree): 1.5e-11
   Epot: 1.1e-10
   EvXC: 1.1e-10
   Ekin: 1.1e-10

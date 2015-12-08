@@ -1776,7 +1776,7 @@ module io
       real(kind=8),dimension(3,nat),intent(in) :: rxyz
       integer,dimension(ntypes),intent(in) :: nzatom, nelpsp
       character(len=*),dimension(ntypes),intent(in) :: atomnames
-      type(sparse_matrix),intent(inout) :: smat
+      type(sparse_matrix),intent(in) :: smat
       type(matrices),intent(inout) :: mat
       character(len=*),intent(in) :: filename
       logical, intent(in) :: binary

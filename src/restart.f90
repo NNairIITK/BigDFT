@@ -719,9 +719,10 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
                                matrices_null, sparse_matrix_null, &
                                deallocate_matrices, deallocate_sparse_matrix, &
                                assignment(=), sparsematrix_malloc_ptr, SPARSE_TASKGROUP
-  use sparsematrix_init, only: init_sparse_matrix_wrapper, init_matrix_taskgroups, check_local_matrix_extents
-  use transposed_operations, only: calculate_overlap_transposed, normalize_transposed, &
-                                   init_matrixindex_in_compressed_fortransposed
+  use sparsematrix_wrappers, only: init_sparse_matrix_wrapper
+  use sparsematrix_init, only: init_matrix_taskgroups, check_local_matrix_extents, &
+                               init_matrixindex_in_compressed_fortransposed
+  use transposed_operations, only: calculate_overlap_transposed, normalize_transposed
   implicit none
 
   ! Calling arguments
@@ -916,7 +917,7 @@ subroutine tmb_overlap_onsite(iproc, nproc, imethod_overlap, at, tmb, rxyz)
   smat_tmp = sparse_matrix_null()
   call init_sparse_matrix_wrapper(iproc, nproc, tmb%linmat%s%nspin, tmb%orbs, &
        lzd_tmp, at%astruct, .false., imode=2, smat=smat_tmp)
-  call init_matrixindex_in_compressed_fortransposed(iproc, nproc, tmb%orbs, &
+  call init_matrixindex_in_compressed_fortransposed(iproc, nproc, &
        collcom_tmp, collcom_tmp, collcom_tmp, smat_tmp)
   iirow(1) = smat_tmp%nfvctr
   iirow(2) = 1

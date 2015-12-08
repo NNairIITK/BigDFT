@@ -2196,8 +2196,8 @@ subroutine reorthonormalize_coeff(iproc, nproc, norb, blocksize_dsyev, blocksize
   integer, intent(in) :: iproc, nproc, norb
   integer, intent(in) :: blocksize_dsyev, blocksize_pdgemm, inversion_method
   type(orbitals_data), intent(in) :: basis_orbs   !number of basis functions
-  type(sparse_matrix),intent(inout) :: basis_overlap
-  type(sparse_matrix),dimension(basis_overlap%nspin),intent(inout) :: KS_overlap
+  type(sparse_matrix),intent(in) :: basis_overlap
+  type(sparse_matrix),dimension(basis_overlap%nspin),intent(in) :: KS_overlap
   type(matrices),intent(inout) :: basis_overlap_mat
   real(kind=8),dimension(basis_overlap%nfvctr,norb),intent(inout) :: coeff
   type(orbitals_data), intent(in) :: orbs   !Kohn-Sham orbitals that will be orthonormalized and their parallel distribution
@@ -2788,7 +2788,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
 
 
   !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+  tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
         tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
         tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
   if (iproc==0) then
@@ -2924,7 +2924,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
           call compress_matrix2(iproc,tmb%linmat%l, &
                inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
           !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-          tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+          tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
                 tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
                 tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
           if (tmb%linmat%l%nspin==2) then
@@ -2969,7 +2969,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
       call compress_matrix2(iproc,tmb%linmat%l, &
            inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
       !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-      tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+      tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
             tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
             tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
       if (tmb%linmat%l%nspin==2) then
@@ -3034,7 +3034,7 @@ subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt
   call compress_matrix2(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
 
   !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-  tr_KS=trace_sparse(iproc, nproc, tmb%orbs, tmb%linmat%s, tmb%linmat%l, &
+  tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
         tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
         tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
   if (iproc==0) then

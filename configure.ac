@@ -1188,6 +1188,7 @@ src/modules/bigdft_cst.h
 src/modules/configure.c
 src/orbitals/Makefile
 src/orbitals/configure.inc
+src/sparsematrix/Makefile
 src/xcPSolver/Makefile
 src/CUDA/Makefile
 src/OpenCL/Makefile

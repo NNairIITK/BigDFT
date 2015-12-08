@@ -1079,7 +1079,7 @@ subroutine calculate_kernel_and_energy(iproc,nproc,denskern,ham,denskern_mat,ham
   implicit none
   integer, intent(in) :: iproc, nproc
   type(sparse_matrix), intent(in) :: ham
-  type(sparse_matrix), intent(inout) :: denskern
+  type(sparse_matrix), intent(in) :: denskern
   type(matrices),intent(in) :: ham_mat
   type(matrices),intent(out) :: denskern_mat
   logical, intent(in) :: calculate_kernel
