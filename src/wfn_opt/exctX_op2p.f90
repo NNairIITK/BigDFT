@@ -274,7 +274,7 @@ subroutine exctx_pre_computation(iorb, jorb, rp_ij, phi1, phi2, pkernel)
   shift1=phi1%displ(iorb)
   shift2=phi2%displ(jorb)
   ndim=product(pkernel%ndims)
-  if(pkernel%igpu==1) then
+  if(pkernel%igpu==1 .and. pkernel%stay_on_gpu==1) then
    !   call cudamalloc(ndim,myrho_GPU,i_stat)
     !  if (i_stat /= 0) call f_err_throw('error cudamalloc myrho_GPU (GPU out of memory ?) ')
     !first attempt : send data each time, to remove later.
@@ -324,7 +324,7 @@ subroutine exctx_post_computation(orb1, orb2, rp_ij, phi1, phi2, pkernel, norb, 
   hfac1=-factor*occup(orb2_glb)
   ndim=product(pkernel%ndims)
 
-  if(pkernel%igpu==1) then
+  if(pkernel%igpu==1 .and. pkernel%stay_on_gpu==1) then
       !call cudamalloc(ndim,myrho_GPU,i_stat)
     !  if (i_stat /= 0) call f_err_throw('error cudamalloc myrho_GPU (GPU out of memory ?) ')
 
@@ -372,7 +372,11 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
   !do iorb=iorbs,iorbs+norbi-1
 !!$  do ind=1,nloc_i
 !!$     iorb=
+
   ndim=product(pkernel%ndims)
+!  if(pkernel%igpu==1 .and. pkernel%stay_on_gpu == 1 .and. istep ==0) then
+!    call reset_gpu_data(ndim,rp_ij,pkernel%w%rho_GPU)
+!  end if 
   do iorb=isloc_i,nloc_i+isloc_i-1
   do jorb=isloc_j,nloc_j+isloc_j-1
      !aliasing
@@ -391,9 +395,9 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
      end if
      !do it only for upper triangular results 
      if (istep /= 0 .or. jorb_glb >= iorb_glb) then
-          if(pkernel%igpu==1 .and. istep ==1) then
-          call reset_gpu_data(ndim,rp_ij,pkernel%w%rho_GPU)
-        end if 
+!        if(pkernel%igpu==1 .and. pkernel%stay_on_gpu /= 1 .and. istep ==0) then
+!          call reset_gpu_data(ndim,rp_ij,pkernel%w%rho_GPU)
+!        end if 
 
         call exctx_pre_computation(iorb, jorb,rp_ij,phi_i,phi_j,pkernel)
 !!$        ncalls=ncalls+1
@@ -432,7 +436,7 @@ subroutine internal_calculation_exctx(istep,factor,pkernel,norb,occup,spinsgn,re
   end do
   end do
 
-  if(pkernel%igpu==1) then
+  if(pkernel%igpu==1 .and. pkernel%stay_on_gpu /= 1) then
     call get_gpu_data(ndim,rp_ij,pkernel%w%rho_GPU)
  end if
 

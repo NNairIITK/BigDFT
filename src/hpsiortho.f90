@@ -519,8 +519,8 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
    real(gp),intent(out),optional :: econf
    !local variables
    character(len=*), parameter :: subname='HamiltonianApplication'
-   logical :: exctX,op2p_flag
-   integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp
+   logical :: exctX,op2p_flag, symmetric
+   integer :: n3p,ispot,ipotmethod,ngroup,prc,nspin,isorb,jproc,ndim,norbp,igpu
    real(gp) :: evsic_tmp, ekin, epot,sfac,maxdiff
    real(f_double) :: tel,trm
    type(coulomb_operator) :: pkernelSIC
@@ -651,12 +651,18 @@ subroutine LocalHamiltonianApplication(iproc,nproc,at,npsidim_orbs,orbs,&
             end do
             ndim=Lzd%Glr%d%n1i*Lzd%Glr%d%n2i*Lzd%Glr%d%n3i
 
+            symmetric=.true.
             call f_zero(ndim*orbs%norbp,pot(ispot))
             !if (iproc==0) call yaml_map('Orbital repartition',nobj_par)
-            call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,.true.)
-            if(pkernel%igpu==1) pkernel%stay_on_gpu=1
-            call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,pkernel%igpu,.true.)
-
+            call OP2P_unitary_test(bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,symmetric)
+            if(pkernel%igpu==1 .and. pkernel%initCufftPlan==0) then 
+              igpu=0
+              if (iproc==0) call yaml_warning("not enough memory to allocate cuFFT plans on the GPU - no GPUDirect either")
+            else
+              igpu=pkernel%igpu
+            end if
+            call initialize_OP2P_data(OP2P,bigdft_mpi%mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
+            if(igpu==1 .and. OP2P%gpudirect==1) pkernel%stay_on_gpu=1
             !allocate work array for the internal exctx calculation
             rp_ij = f_malloc(ndim,id='rp_ij')
             energs%eexctX=0.0_gp

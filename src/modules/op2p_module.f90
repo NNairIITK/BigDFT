@@ -297,10 +297,61 @@ module overlap_point_to_point
 
      end subroutine free_local_data
 
+     subroutine cuda_estimate_memory_needs_gpudirect(iproc, nproc, OP2P, symmetric)
+       use iso_c_binding  
+       use yaml_output
+       implicit none
+       integer(kind=C_SIZE_T) :: freeGPUSize, totalGPUSize, gpudirectresSize,gpudirectdataSize,phimemSize
+       logical, intent(inout) :: symmetric
+       integer, intent(in) :: iproc, nproc
+       integer :: i, igroup, iproc_node, nproc_node
+       type(OP2P_data), intent(inout) :: OP2P
+       real(dp) alpha
+       freeGPUSize=0
+       totalGPUSize=0
+       gpudirectdataSize=0
+       gpudirectresSize=0
+       phimemSize=0
+
+       call cuda_get_mem_info(freeGPUSize,totalGPUSize)
+       call processor_id_per_node(iproc,nproc,iproc_node,nproc_node)
+
+         do i=1,2
+            do igroup=1,OP2P%ngroupp
+                gpudirectdataSize=gpudirectdataSize+OP2P%ndim*maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))*sizeof(alpha)
+            end do
+         end do
+
+         allocate(OP2P%resw(OP2P%ngroupp,3))
+         do i=1,3
+            do igroup=1,OP2P%ngroupp
+               if (symmetric) then
+                   gpudirectresSize=gpudirectresSize+OP2P%ndim*maxval(OP2P%nobj_par(:,OP2P%group_id(igroup)))*sizeof(alpha)
+               end if
+            end do
+         end do
+
+       phimemSize=OP2P%ndim*sum(OP2P%nobj_par(iproc,:))*2*sizeof(alpha)
+
+       if((nproc_node * (phimemSize+gpudirectdataSize+gpudirectresSize) )< freeGPUSize) then
+         OP2P%gpudirect=1
+       else if ((nproc_node * (phimemSize+gpudirectdataSize))<freeGPUSize) then
+         if (iproc==0) call yaml_warning("insufficient GPU memory : don't store and exchange results'//&
+        ' (double the computation amount)")
+         symmetric = .false.
+         OP2P%gpudirect=1
+       else
+         if (iproc==0) call yaml_warning("insufficient GPU memory : using non gpudirect version ")
+         OP2P%gpudirect=0
+       end if
+    !  end if
+    call mpibarrier()
+     end subroutine  cuda_estimate_memory_needs_gpudirect
+
      subroutine initialize_OP2P_data(OP2P,mpi_comm,iproc,nproc,ngroup,ndim,nobj_par,igpu,symmetric)
        implicit none
        !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
-       logical, intent(in) :: symmetric
+       logical, intent(inout) :: symmetric
        integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim,igpu
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
        type(OP2P_data), intent(out) :: OP2P
@@ -315,8 +366,8 @@ module overlap_point_to_point
        OP2P%ngroup=ngroup
        OP2P%ndim=ndim
        OP2P%mpi_comm=mpi_comm
-!TODO : add check of cuda_aware MPI implementation here
-       OP2P%gpudirect=igpu
+
+       
 
        OP2P%nobj_par=f_malloc_ptr([0.to.nproc-1,1.to.ngroup],id='nobj_par')
        call f_memcpy(src=nobj_par,dest=OP2P%nobj_par)
@@ -366,6 +417,8 @@ module overlap_point_to_point
              icountmax=icount
           end if
        end do
+
+       if(igpu/=0) call cuda_estimate_memory_needs_gpudirect(iproc, nproc, OP2P, symmetric)
 
        !decide the strategy for the communication
        if (symmetric) then
@@ -457,6 +510,7 @@ module overlap_point_to_point
 
        !real communication
        OP2P%iproc_dump=mpirank_null()-1! =no debug verbosity
+
 
        allocate(OP2P%dataw(OP2P%ngroupp,2))
        do i=1,2
@@ -953,7 +1007,7 @@ module overlap_point_to_point
        use yaml_output, only: yaml_map
        implicit none
        !>flag indicating the symmetricity of the operation. This reflects in the communication scheduling
-       logical, intent(in) :: symmetric
+       logical, intent(inout) :: symmetric
        integer, intent(in) :: mpi_comm,iproc,nproc,ngroup,ndim
        integer, dimension(0:nproc-1,ngroup), intent(in) :: nobj_par
        !local variables
