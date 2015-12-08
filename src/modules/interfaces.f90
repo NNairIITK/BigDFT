@@ -196,8 +196,8 @@ module module_interfaces
        integer, dimension(0:nproc-1,2), intent(in) :: ngatherarr
        real(wp), dimension(orbs%npsidim_orbs), intent(in) :: psi
        type(confpot_data), dimension(orbs%norbp) :: confdatarr
-       !real(wp), dimension(:), pointer :: pot
-       real(wp), dimension(*) :: pot
+       real(wp), dimension(:), pointer :: pot
+       !real(wp), dimension(*) :: pot
        type(energy_terms), intent(inout) :: energs
        real(wp), target, dimension(max(1,orbs%npsidim_orbs)), intent(inout) :: hpsi
        type(GPU_pointers), intent(inout) :: GPU
