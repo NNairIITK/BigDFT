@@ -35,6 +35,8 @@ module multipole_base
   public :: multipoles_from_dict
   public :: external_potential_descriptors_null
   public :: deallocate_external_potential_descriptors
+  public :: multipole_set_null
+  public :: multipole_null
 
   contains
 

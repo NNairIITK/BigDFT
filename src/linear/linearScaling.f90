@@ -46,7 +46,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use locregs_init, only: small_to_large_locreg
   use public_enums
   use multipole, only: multipole_analysis_driver, projector_for_charge_analysis, &
-      support_function_gross_multipoles
+      support_function_gross_multipoles, potential_from_charge_multipoles
   use transposed_operations, only: calculate_overlap_transposed
   use matrix_operations, only: overlapPowerGeneral
   use foe, only: fermi_operator_expansion
@@ -55,7 +55,7 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   use transposed_operations, only: calculate_overlap_transposed
   use bounds, only: geocode_buffers
   use orthonormalization, only : orthonormalizeLocalized
-  use multipole_base, only: lmax
+  use multipole_base, only: lmax, external_potential_descriptors, deallocate_external_potential_descriptors
 
   implicit none
 
@@ -131,6 +131,8 @@ subroutine linearScaling(iproc,nproc,KSwfn,tmb,at,input,shift,rxyz,denspot,rhopo
   real(kind=8),dimension(:),allocatable :: projector_compr
   real(kind=8),dimension(:,:,:),allocatable :: matrixElements, coeff_all, multipoles_out
   real(kind=8),dimension(:,:,:),pointer :: multipoles
+  real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
+  type(external_potential_descriptors) :: ep
 
   real(8),dimension(:),allocatable :: rho_tmp, tmparr
   real(8) :: tt, ddot, max_error, mean_error, r2, occ, tot_occ, ef, ef_low, ef_up, q, fac
@@ -2597,30 +2599,48 @@ end if
       !         tmb%linmat%ovrlp_, tmb%linmat%kernel_, meth_overlap=norder_taylor)
       !    !write(300+iproc,*) tmb%linmat%ovrlp_%matrix_compr
       !    !write(310+iproc,*) tmb%linmat%kernel_%matrix_compr
-      multipoles = f_malloc_ptr((/-2.to.2,0.to.2,1.to.at%astruct%nat/),id='multipoles')
+      multipoles = f_malloc_ptr((/-lmax.to.lmax,0.to.lmax,1.to.at%astruct%nat/),id='multipoles')
       if (input%lin%charge_multipoles==1) then
-          call multipole_analysis_driver(iproc, nproc, 2, tmb%npsidim_orbs, tmb%psi, &
+          call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
                max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
                tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%lzd, &
                tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method='loewdin', atomic_multipoles_=multipoles)
+               method='loewdin', ep=ep )
       else if (input%lin%charge_multipoles==2) then
-          call multipole_analysis_driver(iproc, nproc, 2, tmb%npsidim_orbs, tmb%psi, &
+          call multipole_analysis_driver(iproc, nproc, lmax, tmb%npsidim_orbs, tmb%psi, &
                max(tmb%collcom_sr%ndimpsi_c,1), at, tmb%lzd%hgrids, &
                tmb%orbs, tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%collcom, tmb%lzd, &
                tmb%orthpar, tmb%linmat%ovrlp_, tmb%linmat%ham_, tmb%linmat%kernel_, rxyz, &
-               method='projector', atomic_multipoles_=multipoles)
+               method='projector', ep=ep)
       end if
+      !!!# TEST ######################################################################################################
+      !!test_pot = f_malloc0((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3),2/),id='test_pot')
+      !!write(*,*) 'after f_malloc0'
+      !!call dcopy(size(denspot%V_ext,1)*size(denspot%V_ext,2)*size(denspot%V_ext,3), &
+      !!     denspot%rhov(1), 1, test_pot(1,1,1,1), 1)
+      !!write(*,*) 'after dcopy'
+      !!call axpy(size(denspot%V_ext,1)*size(denspot%V_ext,2)*size(denspot%V_ext,3), &
+      !!     1.d0, denspot%V_ext(1,1,1,1), 1, test_pot(1,1,1,1), 1)
+      !!write(*,*) 'after axpy'
+      !!call dcopy(size(denspot%V_ext,1)*size(denspot%V_ext,2)*size(denspot%V_ext,3), &
+      !!     denspot%rhov(1), 1, test_pot(1,1,1,2), 1)
+      !!call potential_from_charge_multipoles(iproc, nproc, at, denspot, ep, 1, &
+      !!     denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+      !!     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
+      !!     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
+      !!     denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, test_pot(:,:,:,2))
+      !!write(*,*) 'after potential_from_charge_multipoles'
+      !!do i3=1,size(denspot%V_ext,3)
+      !!    do i2=1,size(denspot%V_ext,2)
+      !!        do i1=1,size(denspot%V_ext,1)
+      !!            write(800,*) 'i1, i2, i3, vals', i1, i2, i3, test_pot(i1,i2,i3,1), test_pot(i1,i2,i3,2)
+      !!        end do
+      !!    end do
+      !!end do
+      !!call f_free(test_pot)
+      !!!# TEST ######################################################################################################
       call f_free_ptr(multipoles)
-      !!# TEST ######################################################################################################
-      !test_pot = f_malloc0((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3),2/),id='test_pot')
-      !call potential_from_charge_multipoles(iproc, nproc, atoms, denspot, in%ep, 1, denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
-      !     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
-      !     denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
-      !     denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, test_pot(:,:,:,2)
-      !!# TEST ######################################################################################################
-
-
+      call deallocate_external_potential_descriptors(ep)
   end if
 
 
