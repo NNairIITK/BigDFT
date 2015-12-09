@@ -1782,7 +1782,7 @@ module multipole
 
     subroutine multipole_analysis_driver(iproc, nproc, ll, nphi, lphi, nphir, at, hgrids, &
                orbs, smats, smatm, smatl, collcom, lzd, orthpar, ovrlp, ham, kernel, rxyz, &
-               method)
+               method, atomic_multipoles_)
       use module_base
       use module_types, only: orbitals_data, comms_linear, local_zone_descriptors, orthon_data
       use sparsematrix_base, only: sparse_matrix, matrices, SPARSE_FULL, sparsematrix_malloc0, assignment(=), &
@@ -1811,6 +1811,7 @@ module multipole
       real(kind=8),dimension(nphi),intent(in) :: lphi
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
       character(len=*),intent(in) :: method
+      real(kind=8),dimension(:,:,:),pointer,intent(inout),optional :: atomic_multipoles_
 
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
@@ -1819,15 +1820,18 @@ module multipole
       real(kind=8),dimension(:),pointer :: phit_c, phit_f
       real(kind=8),dimension(:),allocatable :: phi_ortho, Qmat, kernel_ortho, multipole_matrix_large
       real(kind=8),dimension(:,:),allocatable :: Qmat_tilde, kp, locregcenter
-      real(kind=8),dimension(:,:,:),allocatable :: atomic_multipoles
+      real(kind=8),dimension(:,:,:),pointer :: atomic_multipoles
       real(kind=8),dimension(:,:),pointer :: projx
       real(kind=8) :: q, tt
       type(matrices) :: multipole_matrix
       logical,dimension(:,:),pointer :: neighborx
       integer,dimension(:),pointer :: nx
       character(len=20),dimension(:),allocatable :: names
+      logical :: present_atomic_multipoles_
 
       call f_routine(id='multipole_analysis_driver')
+
+      present_atomic_multipoles_ = present(atomic_multipoles_)
 
       if (iproc==0) then
           call yaml_comment('Atomic multipole analysis, new approach',hfill='=')
@@ -1875,7 +1879,30 @@ module multipole
 
 
       Qmat = sparsematrix_malloc(smatl,iaction=SPARSE_FULL,id='Qmat')
-      atomic_multipoles = f_malloc0((/-ll.to.ll,0.to.ll,1.to.at%astruct%nat/),id='atomic_multipoles')
+      if (present_atomic_multipoles_) then
+          ! Check the dimensions
+          if (lbound(atomic_multipoles_,1)/=-ll) then
+              call f_err_throw('wrong lbound (1st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (ubound(atomic_multipoles_,2)/=ll) then
+              call f_err_throw('wrong ubound (1st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (lbound(atomic_multipoles_,2)/=0) then
+              call f_err_throw('wrong lbound (2st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (ubound(atomic_multipoles_,2)/=ll) then
+              call f_err_throw('wrong ubound (2st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (lbound(atomic_multipoles_,3)/=1) then
+              call f_err_throw('wrong lbound (3st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          if (ubound(atomic_multipoles_,3)/=at%astruct%nat) then
+              call f_err_throw('wrong ubound (3st dim) of atomic_multipoles',err_name='BIGDFT_RUNTIME_ERROR')
+          end if
+          atomic_multipoles => atomic_multipoles_
+      else
+          atomic_multipoles = f_malloc0_ptr((/-ll.to.ll,0.to.ll,1.to.at%astruct%nat/),id='atomic_multipoles')
+      end if
 
       multipole_matrix = matrices_null()
       multipole_matrix%matrix_compr = sparsematrix_malloc_ptr(smats, SPARSE_FULL, id='multipole_matrix%matrix_compr')
@@ -1976,7 +2003,11 @@ module multipole
           call f_free_ptr(nx)
           call f_free_ptr(neighborx)
       end if
-      call f_free(atomic_multipoles)
+      if (present_atomic_multipoles_) then
+          nullify(atomic_multipoles)
+      else
+          call f_free_ptr(atomic_multipoles)
+      end if
       call f_free(multipole_matrix_large)
 
       if (iproc==0) then
