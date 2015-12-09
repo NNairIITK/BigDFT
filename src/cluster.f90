@@ -1013,6 +1013,8 @@ subroutine cluster(nproc,iproc,atoms,rxyz,energy,energs,fxyz,strten,fnoise,press
           atoms,rxyz,denspot%pkernel,in%nspin,denspot%rhov)
   end if
 
+
+
   call f_free_ptr(denspot%V_ext)
 
   !variables substitution for the PSolver part

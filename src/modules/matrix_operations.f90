@@ -11,6 +11,7 @@ module matrix_operations
     public :: deviation_from_unity_parallel
     public :: overlap_power_minus_one_half_parallel
     public :: check_taylor_order
+    public :: calculate_S_minus_one_half_onsite
 
 
     contains
@@ -2461,6 +2462,83 @@ module matrix_operations
       end if
     
     end subroutine check_taylor_order
+
+
+    !< Calculate "local versions" of S^{-1/2}, i.e. take only the small subblocks of all support functions
+    !! on one atom and calculate S^{-1/2} for this subblock. The remaining parts of teh matrix are empty.
+    subroutine calculate_S_minus_one_half_onsite(iproc, nproc, norb, onwhichatom, smats, smatl, ovrlp_, inv_ovrlp_)
+      use module_base
+      use sparsematrix_base, only: sparse_matrix, matrices
+      use sparsematrix_init, only: matrixindex_in_compressed
+      implicit none
+
+      ! Calling arguments
+      integer,intent(in) :: iproc, nproc, norb
+      integer,dimension(norb),intent(in) :: onwhichatom
+      type(sparse_matrix),intent(in) :: smats, smatl
+      type(matrices),intent(inout) :: ovrlp_, inv_ovrlp_
+
+      ! Local variables
+      integer :: nat, natp, isat, ii, iorb, iiat, n, jorb, jjat, ind, korb
+      real(kind=8),dimension(:,:),allocatable :: matrix
+
+      call f_routine(id='calculate_S_minus_one_half_onsite')
+
+      ! Parallelize over the atoms
+      nat = maxval(onwhichatom)
+      if (iproc<nat) then
+          natp = nat/nproc
+          ii = nat-nproc*natp
+          if (iproc<ii) then
+              natp = natp + 1
+              isat = iproc*natp
+          else
+              isat = ii*(natp+1) + (iproc-ii)*natp
+          end if
+      else
+          natp = 0
+          isat = nat
+      end if
+
+
+      call f_zero(inv_ovrlp_%matrix_compr)
+
+      iorb = 1
+      do
+          iiat = onwhichatom(iorb)
+          n = 0
+          !write(*,*) 'iproc, iorb, iiat', iproc, iorb, iiat
+          if (iiat>=isat+1 .and. iiat<=isat+natp) then
+              do jorb=iorb,norb
+                  jjat = onwhichatom(jorb)
+                  if (jjat/=iiat) exit
+                  n = n + 1
+              end do
+              matrix = f_malloc((/n,n/),id='matrix')
+              do jorb=iorb,iorb+n-1
+                  do korb=iorb,iorb+n-1
+                      ind = matrixindex_in_compressed(smats, korb, jorb)
+                      matrix(korb-iorb+1,jorb-iorb+1) = ovrlp_%matrix_compr(ind)
+                  end do
+              end do
+              call  overlap_plus_minus_one_half_exact(1,n,-1,.false.,matrix,smats)
+              do jorb=iorb,iorb+n-1
+                  do korb=iorb,iorb+n-1
+                      ind = matrixindex_in_compressed(smatl, korb, jorb)
+                      inv_ovrlp_%matrix_compr(ind) = matrix(korb-iorb+1,jorb-iorb+1)
+                  end do
+              end do
+              call f_free(matrix)
+          end if
+          iorb = iorb + max(n,1)
+          if (iorb>norb) exit
+      end do
+
+      call mpiallred(inv_ovrlp_%matrix_compr, mpi_sum, comm=bigdft_mpi%mpi_comm)
+
+      call f_release_routine()
+
+    end subroutine calculate_S_minus_one_half_onsite
 
 
 end module matrix_operations
