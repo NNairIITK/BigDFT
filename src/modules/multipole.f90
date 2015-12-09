@@ -3510,8 +3510,9 @@ module multipole
    call f_routine(id='support_function_gross_multipoles')
 
    phi_ortho = f_malloc(size(tmb%psi),id='phi_ortho')
+   call f_memcpy(src=tmb%psi, dest=phi_ortho)
    if (do_ortho == no) then
-       call f_memcpy(src=tmb%psi, dest=phi_ortho)
+       ! Do nothing
    else if (do_ortho == onsite) then
        phit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='phit_c')
        phit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='phit_f')
