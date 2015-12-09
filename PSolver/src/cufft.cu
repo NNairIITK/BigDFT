@@ -1464,7 +1464,7 @@ void apply_reduction(int n,
   cudaMemcpy(result, d_odata, sizeof(Real), cudaMemcpyDeviceToHost);
   gpuErrchk( cudaPeekAtLastError() );
   cudaFree(d_odata);
-  //cudaDeviceSynchronize();
+  cudaDeviceSynchronize();
 }
 
 //these will be called from fortran, and apply the reduction with the right subkernels
@@ -1536,8 +1536,8 @@ extern "C" void FC_FUNC_(gpu_pre_computation,GPU_PRE_COMPUTATION)(int* NX_p, int
    int nThreads = NX;
    dim3 nBlocks(NY,NZ,1);
    pre_computation_kernel <<< nBlocks, nThreads >>> (NX,NY,NZ,*rho_GPU, *data1_GPU,*shift1,*data2_GPU,*shift2,*hfac);
-  //cudaDeviceSynchronize();
-  //gpuErrchk( cudaPeekAtLastError() );
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
 }
 
 __global__ void post_computation_kernel(int nx, int ny, int nz,  Real *rho, Real *data1, int shift1,Real *data2,int shift2, Real hfac) {
@@ -1570,8 +1570,8 @@ extern "C" void FC_FUNC_(gpu_post_computation,GPU_POST_COMPUTATION)(int* NX_p, i
 
    post_computation_kernel <<< nBlocks, nThreads >>> (NX,NY,NZ,*rho_GPU, *data1_GPU,*shift1,*data2_GPU,*shift2,*hfac);
 
-//  cudaDeviceSynchronize();
-//  gpuErrchk( cudaPeekAtLastError() );
+  cudaDeviceSynchronize();
+  gpuErrchk( cudaPeekAtLastError() );
 }
 
 

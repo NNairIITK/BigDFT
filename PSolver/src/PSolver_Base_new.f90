@@ -76,7 +76,7 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
     end if
 
   else !GPU case
-
+     call f_timing(TCAT_PSOLV_COMPUT,'ON')
      n(1)=kernel%grid%n1!kernel%ndims(1)*(2-kernel%geo(1))
      n(2)=kernel%grid%n3!kernel%ndims(2)*(2-kernel%geo(2))
      n(3)=kernel%grid%n2!kernel%ndims(3)*(2-kernel%geo(3))
@@ -174,7 +174,8 @@ subroutine apply_kernel(gpu,kernel,rho,offset,strten,zf,updaterho)
         call cudafree(kernel%w%work1_GPU)
         call cudafree(kernel%w%work2_GPU)
      endif
-
+     call synchronize()
+     call f_timing(TCAT_PSOLV_COMPUT,'OF')
   endif
 
   call f_release_routine()

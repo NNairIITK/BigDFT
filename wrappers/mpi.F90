@@ -44,8 +44,11 @@ module wrapper_MPI
   integer, public, save :: TCAT_ALLGATHERV   = TIMING_UNINITIALIZED
   integer, public, save :: TCAT_ALLGATHER    = TIMING_UNINITIALIZED
   integer, public, save :: TCAT_GATHER       = TIMING_UNINITIALIZED
-  integer, public, save :: TCAT_SCATTER     =TIMING_UNINITIALIZED
-  integer, public, save :: TCAT_FENCE     =TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_SCATTER      = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_FENCE        = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_SEND         = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_RECV         = TIMING_UNINITIALIZED
+  integer, public, save :: TCAT_WAIT         = TIMING_UNINITIALIZED
   
   !> Error codes
   integer, public, save :: ERR_MPI_WRAPPERS
@@ -779,7 +782,15 @@ contains
     call f_timing_category('Fence',tgrp_mpi_name,&
          'Fence, waiting for a RMA operation to end',&
          TCAT_FENCE)
-
+    call f_timing_category('Send',tgrp_mpi_name,&
+         'Time spent in MPI_Send or MPI_Isend',&
+         TCAT_SEND)
+    call f_timing_category('Recv',tgrp_mpi_name,&
+         'Time spent in MPI_Recv or MPI_Irecv',&
+         TCAT_RECV)
+    call f_timing_category('Wait',tgrp_mpi_name,&
+         'Time spent in MPI_Wait or MPI_Waitall',&
+         TCAT_WAIT)
     call f_err_define(err_name='ERR_MPI_WRAPPERS',err_msg='Error of MPI library',&
          err_id=ERR_MPI_WRAPPERS,&
          err_action='Some MPI library returned an error code, inspect runtime behaviour')
@@ -2352,7 +2363,7 @@ contains
     integer, intent(in), optional :: type
     !local variables
     logical :: verb,sim
-    integer :: mpi_comm,ierr,tag_
+    integer :: mpi_comm,ierr,tag_,tcat
     
     mpi_comm=MPI_COMM_WORLD
     if (present(comm)) mpi_comm=comm
@@ -2377,6 +2388,11 @@ contains
     sim=.false.
     if (present(simulate)) sim=simulate
     if (sim) return
+
+    tcat=TCAT_SEND
+    ! Synchronize the communication
+    call f_timer_interrupt(tcat)
+
     if (present(type)) then
       if (present(request)) then
          call MPI_ISEND(buf,count,type,dest,tag,mpi_comm,request,ierr)
@@ -2390,7 +2406,7 @@ contains
          call MPI_SEND(buf,count,mpitype(buf),dest,tag,mpi_comm,ierr)
       end if
     end if 
-
+    call f_timer_resume()
     if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)SEND occured',&
             err_id=ERR_MPI_WRAPPERS)
 
@@ -2413,7 +2429,7 @@ contains
     real(f_double),pointer :: a !fake intent(in)
     !local variables
     logical :: verb,sim
-    integer :: mpi_comm,ierr,tag_,tmpsize
+    integer :: mpi_comm,ierr,tag_,tmpsize,tcat
     integer(f_address) tmpint
     type(c_ptr) :: tmpaddr
 
@@ -2440,6 +2456,11 @@ contains
     sim=.false.
     if (present(simulate)) sim=simulate
     if (sim) return
+
+    tcat=TCAT_SEND
+    ! Synchronize the communication
+    call f_timer_interrupt(tcat)
+
     if(present(offset) .and. offset/=0)then
       tmpint = TRANSFER(buf, tmpint)
       call mpi_type_size(type, tmpsize, ierr)
@@ -2449,19 +2470,12 @@ contains
     else
       call c_f_pointer(buf, a)
     end if
-!    if (present(type)) then
-      if (present(request)) then
-         call MPI_ISEND(a,count,type,dest,tag,mpi_comm,request,ierr)
-      else
-         call MPI_SEND(a,count,type,dest,tag,mpi_comm,ierr)
-      end if
-!    else
-!      if (present(request)) then
-!         call MPI_ISEND(buf,count,mpitype(buf),dest,tag,mpi_comm,request,ierr)
-!      else
-!         call MPI_SEND(buf,count,mpitype(buf),dest,tag,mpi_comm,ierr)
-!      end if
-!    end if 
+    if (present(request)) then
+       call MPI_ISEND(a,count,type,dest,tag,mpi_comm,request,ierr)
+    else
+       call MPI_SEND(a,count,type,dest,tag,mpi_comm,ierr)
+    end if
+    call f_timer_resume()
 
     if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)SEND occured',&
             err_id=ERR_MPI_WRAPPERS)
@@ -2482,7 +2496,7 @@ contains
     integer, intent(in), optional :: type
     !local variables
     logical :: verb,sim
-    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag,mpi_type
+    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag,mpi_type,tcat
 
     mpi_comm=MPI_COMM_WORLD
     if (present(comm)) mpi_comm=comm
@@ -2510,6 +2524,10 @@ contains
     if (present(simulate)) sim=simulate
     if (sim) return
 
+    tcat=TCAT_RECV
+    ! Synchronize the communication
+    call f_timer_interrupt(tcat)
+
     if (present(type)) then
       mpi_type=type
     else
@@ -2524,7 +2542,7 @@ contains
           call MPI_RECV(buf,count,mpi_type,mpi_source,mpi_tag,mpi_comm,MPI_STATUS_IGNORE,ierr)
        end if
     end if
-
+    call f_timer_resume()
     if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)RECV occured',&
          err_id=ERR_MPI_WRAPPERS)
 
@@ -2546,7 +2564,7 @@ contains
     integer, intent(in) :: type
     !local variables
     logical :: verb,sim
-    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag,mpi_type
+    integer :: mpi_comm,ierr,mpistatus,mpi_source,mpi_tag,mpi_type,tcat
 
     mpi_comm=MPI_COMM_WORLD
     if (present(comm)) mpi_comm=comm
@@ -2574,6 +2592,9 @@ contains
     if (present(simulate)) sim=simulate
     if (sim) return
 
+    tcat=TCAT_RECV
+    ! Synchronize the communication
+    call f_timer_interrupt(tcat)
 
     mpi_type=type
     call c_f_pointer(buf, a)
@@ -2586,7 +2607,7 @@ contains
           call MPI_RECV(a,count,mpi_type,mpi_source,mpi_tag,mpi_comm,MPI_STATUS_IGNORE,ierr)
        end if
     end if
-
+    call f_timer_resume()
     if (ierr/=0) call f_err_throw('An error in calling to MPI_(I)RECV occured',&
          err_id=ERR_MPI_WRAPPERS)
 
@@ -2600,16 +2621,19 @@ contains
     integer, dimension(ncount),intent(in) :: array_of_requests
     integer, dimension(MPI_STATUS_SIZE,ncount), intent(out), optional :: array_of_statuses
     ! Local variables
-    integer :: ierr
+    integer :: ierr,tcat
 
     !no wait if no requests
     if (ncount==0) return
-
+    tcat=TCAT_WAIT
+    ! Synchronize the communication
+    call f_timer_interrupt(tcat)
     if (present(array_of_statuses)) then
        call mpi_waitall(ncount, array_of_requests,array_of_statuses, ierr)
     else
        call mpi_waitall(ncount, array_of_requests, MPI_STATUSES_IGNORE, ierr)
     end if
+    call f_timer_resume()
     if (ierr/=0) then
        call f_err_throw('An error in calling to MPI_WAITALL occured',&
             err_id=ERR_MPI_WRAPPERS)
@@ -2625,10 +2649,14 @@ contains
     ! Local variables
     integer,intent(in) :: request
     ! Local variables
-    integer :: ierr
+    integer :: ierr,tcat
 
     if (request /= MPI_REQUEST_NULL) then
+       tcat=TCAT_WAIT
+       ! Synchronize the communication
+       call f_timer_interrupt(tcat)
        call mpi_wait(request, MPI_STATUSES_IGNORE, ierr)
+       call f_timer_resume()
        if (ierr/=0) then
           call f_err_throw('An error in calling to MPI_WAIT occured',&
                err_id=ERR_MPI_WRAPPERS)
