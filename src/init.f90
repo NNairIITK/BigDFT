@@ -2814,7 +2814,7 @@ subroutine input_wf(iproc,nproc,in,GPU,atoms,rxyz,&
 
      call readmywaves_linear_new(iproc,nproc,trim(in%dir_output),'minBasis',input_wf_format,&
           atoms,tmb,rxyz,ref_frags,in%frag,in%lin%fragment_calculation,in%lin%kernel_restart_mode==LIN_RESTART_KERNEL,&
-          frag_env_mapping)
+          max_nbasis_env,frag_env_mapping)
 
      !call write_orbital_density(iproc, .true., 1, 'SupFun', &
      !     tmb%npsidim_orbs, tmb%psi, in, tmb%orbs, KSwfn%lzd, atoms, rxyz, .false., tmb%lzd)
