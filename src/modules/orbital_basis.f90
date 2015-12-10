@@ -126,7 +126,11 @@ contains
     !start orbital
     it%iorbp=0
     !start kpoint
-    it%ikpt=ob%orbs%iokpt(1)-1
+    if (ob%orbs%norbp>0) then
+       it%ikpt=ob%orbs%iokpt(1)-1
+    else
+       it%ikpt=-1
+    end if
     !end kpoint
     it%ikpt_max=maxval(ob%orbs%iokpt)
 
@@ -850,11 +854,23 @@ contains
 
     !let us now probe the behaviour of the iterator with respect to the
     !kpoints only
-    ikpt=ob%orbs%iokpt(1)
+    if (ob%orbs%norbp >0)ikpt=ob%orbs%iokpt(1)
     ispsi_k=1
     totreat=.true.
     it=orbital_basis_iterator(ob)
     loop_kpt: do
+       !specialized treatment
+       if (ob%orbs%norbp ==0) then
+          increase=ket_next_kpt(it)
+          increase=ket_next(it,ikpt=it%ikpt)
+          if (increase) then
+             call f_err_throw(&
+               'Error for iterator, still valid at the end of the zero number of kpt iterations, ikpt='+ikpt,&
+               err_name='BIGDFT_RUNTIME_ERROR')
+             return
+          end if
+          exit loop_kpt
+       end if
        call orbs_in_kpt(ikpt,ob%orbs,isorb,ieorb,nsp)
 
        increase=ket_next_kpt(it)
