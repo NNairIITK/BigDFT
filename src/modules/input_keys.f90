@@ -361,9 +361,6 @@ module module_input_keys
      !> linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
      integer :: method_updatekernel
 
-     !> linear scaling: quick return in purification
-     logical :: purification_quickreturn
-
      !> linear scaling: dynamic adjustment of the decay length of the FOE error function
      logical :: adjust_FOE_temperature
 
@@ -1776,9 +1773,6 @@ contains
        case (METHOD_UPDATEKERNEL)
           ! linear scaling: how to update the density kernel during the support function optimization (0: purification, 1: FOE)
           in%method_updatekernel = val
-       case (PURIFICATION_QUICKRETURN)
-          ! linear scaling: quick return in purification
-          in%purification_quickreturn = val
        case (ADJUST_foe_TEMPERATURE)
           ! linear scaling: dynamic adjustment of the decay length of the FOE error function
           in%adjust_FOE_temperature = val

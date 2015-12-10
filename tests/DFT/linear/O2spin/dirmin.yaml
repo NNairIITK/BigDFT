@@ -17,7 +17,6 @@
    ef_interpol_det: 1.e-10
    ef_interpol_chargediff: 1.0
    method_updatekernel: 2
-   purification_quickreturn: Yes
    check_matrix_compression: No
    correction_co_contra: Yes
    adjust_kernel_iterations: No

@@ -10,7 +10,7 @@
 
 subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
     energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
-    calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn, &
+    calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
     calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
     pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
     convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft,updatekernel)
@@ -58,7 +58,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
   type(SIC_data),intent(in) :: SIC
   type(DFT_wavefunction),intent(inout) :: tmb
   logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
-  logical,intent(in):: communicate_phi_for_lsumrho, purification_quickreturn
+  logical,intent(in):: communicate_phi_for_lsumrho
   logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
   type(work_mpiaccumulate),intent(inout) :: energs_work
   logical,intent(in) :: remove_coupling_terms
@@ -557,11 +557,12 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
       else if (scf_mode==LINEAR_FOE) then
           if (iproc==0) call yaml_map('method','FOE')
           call fermi_operator_expansion(iproc, nproc, tmprtr, &
-               energs%ebs, order_taylor, max_inversion_error, purification_quickreturn, &
+               energs%ebs, order_taylor, max_inversion_error, &
                invert_overlap_matrix, 2, FOE_ACCURATE, &
                trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
                //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
-               tmb, tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%kernel_, tmb%foe_obj)
+               tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
+               tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
       end if
 
       ! Eigenvalues not available, therefore take -.5d0
@@ -637,7 +638,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
     correction_orthoconstraint,nit_basis,&
     ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
     gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-    purification_quickreturn, correction_co_contra, &
+    correction_co_contra, &
     precond_convol_workarrays, precond_workarrays, &
     wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
     cdft, input_frag, ref_frags)
@@ -698,7 +699,7 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   integer, intent(in) :: extra_states
   integer,intent(in) :: itout
   real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
-  logical,intent(in) :: experimental_mode, purification_quickreturn
+  logical,intent(in) :: experimental_mode
   logical,intent(out) :: can_use_ham
   integer,intent(in) :: method_updatekernel
   logical,intent(in) :: correction_co_contra
@@ -876,21 +877,21 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
   ncharge=nint(charge)
   even=(mod(ncharge,2)==0)
 
-  ! Purify the initial kernel (only when necessary and if there is an even number of electrons)
-  if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even .and. &
-      (scf_mode==LINEAR_FOE .or. scf_mode==LINEAR_PEXSI)) then
-      if (iproc==0) then
-          call yaml_sequence(advance='no')
-          call yaml_mapping_open(flow=.true.)
-          call yaml_map('Initial kernel purification',.true.)
-      end if
-      overlap_calculated=.true.
-      do ispin=1,tmb%linmat%l%nspin
-          call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, &
-               max_inversion_error, purification_quickreturn, ispin)
-      end do
-      if (iproc==0) call yaml_mapping_close()
-  end if
+  !!! Purify the initial kernel (only when necessary and if there is an even number of electrons)
+  !!if (target_function/=TARGET_FUNCTION_IS_TRACE .and. even .and. &
+  !!    (scf_mode==LINEAR_FOE .or. scf_mode==LINEAR_PEXSI)) then
+  !!    if (iproc==0) then
+  !!        call yaml_sequence(advance='no')
+  !!        call yaml_mapping_open(flow=.true.)
+  !!        call yaml_map('Initial kernel purification',.true.)
+  !!    end if
+  !!    overlap_calculated=.true.
+  !!    do ispin=1,tmb%linmat%l%nspin
+  !!        call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, order_taylor, &
+  !!             max_inversion_error, purification_quickreturn, ispin)
+  !!    end do
+  !!    if (iproc==0) call yaml_mapping_close()
+  !!end if
 
   if (itout==0) then
       nkappa_history=0
@@ -1061,10 +1062,11 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
                   call renormalize_kernel(iproc, nproc, order_taylor, max_inversion_error, tmb, tmb%linmat%ovrlp_, ovrlp_old)
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   call fermi_operator_expansion(iproc, nproc, 0.d0, &
-                       energs%ebs, order_taylor, max_inversion_error, purification_quickreturn, &
+                       energs%ebs, order_taylor, max_inversion_error, &
                        .true., 0, FOE_FAST, &
                        trim(adjustl(yaml_toa(1,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(-10,fmt='(i3.3)'))), &
-                       tmb, tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%kernel_, tmb%foe_obj)
+                       tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
+                       tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), tmb%linmat%kernel_, tmb%foe_obj)
               end if
               if (iproc==0) call yaml_sequence_close()
           end if
@@ -1416,14 +1418,15 @@ subroutine getLocalizedBasis(iproc,nproc,at,orbs,rxyz,denspot,GPU,trH,trH_old,&
               if (iproc==0) call yaml_map('reconstruct kernel',.true.)
           else if (experimental_mode .and. .not.complete_reset) then
               if (method_updatekernel==UPDATE_BY_PURIFICATION) then
-                  if (iproc==0) then
-                      call yaml_map('purify kernel',.true.)
-                      call yaml_newline()
-                  end if
-                  do ispin=1,tmb%linmat%l%nspin
-                      call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, &
-                           order_taylor, max_inversion_error, purification_quickreturn, ispin)
-                  end do
+                  call f_err_throw('kernel update by purification is deprecated',err_name='BIGDFT_RUNTIME_ERROR')
+                  !if (iproc==0) then
+                  !    call yaml_map('purify kernel',.true.)
+                  !    call yaml_newline()
+                  !end if
+                  !do ispin=1,tmb%linmat%l%nspin
+                  !    call purify_kernel(iproc, nproc, tmb, overlap_calculated, 1, 30, &
+                  !         order_taylor, max_inversion_error, purification_quickreturn, ispin)
+                  !end do
               else if (method_updatekernel==UPDATE_BY_FOE) then
                   if (iproc==0) then
                       call yaml_map('purify kernel',.false.)
@@ -2675,408 +2678,6 @@ end subroutine estimate_energy_change
 
 
 
-subroutine purify_kernel(iproc, nproc, tmb, overlap_calculated, it_shift, it_opt, order_taylor, &
-           max_inversion_error, purification_quickreturn, ispin)
-  use module_base
-  use module_types
-  use yaml_output
-  use communications_base, only: TRANSPOSE_FULL
-  use communications, only: transpose_localized
-  use sparsematrix_base, only: sparsematrix_malloc_ptr, DENSE_FULL, assignment(=), matrices, &
-                               matrices_null, allocate_matrices, deallocate_matrices
-  use sparsematrix, only: uncompress_matrix, gather_matrix_from_taskgroups_inplace, &
-                          uncompress_matrix2, compress_matrix2, trace_sparse
-  use foe_base, only: foe_data_get_real
-  use transposed_operations, only: calculate_overlap_transposed
-  use matrix_operations, only: overlapPowerGeneral, check_taylor_order
-  implicit none
-
-  ! Calling arguments
-  integer,intent(in) :: iproc, nproc
-  integer,intent(inout) :: order_taylor
-  real(kind=8),intent(in) :: max_inversion_error
-  type(DFT_wavefunction),intent(inout):: tmb
-  logical,intent(inout):: overlap_calculated
-  integer,intent(in) :: it_shift, it_opt
-  logical,intent(in) :: purification_quickreturn
-  integer,intent(in) :: ispin
-
-  ! Local variables
-  integer :: it, iorb, jorb, jsegstart, jsegend, jseg, jjorb, iiorb !info, lwork, 
-  integer :: ishift, isshift, ilshift
-  real(kind=8) :: alpha, shift
-  real(kind=8),dimension(:,:),allocatable :: ks, ksk, ksksk, kernel_prime
-  !real(kind=8),dimension(:),allocatable :: eval, work
-  character(len=*),parameter :: subname='purify_kernel'
-  real(kind=8) :: diff, tr_KS, chargediff, max_error, mean_error
-  !logical :: overlap_associated, inv_ovrlp_associated
-  real(kind=8),dimension(2) :: bisec_bounds
-  logical,dimension(2) :: bisec_bounds_ok
-  !real(kind=8),dimension(:,:),pointer :: ovrlp_onehalf, ovrlp_minusonehalf
-  type(matrices),dimension(1) :: ovrlppowers_
-  type(matrices),dimension(1) :: ovrlp_onehalf_
-
-
-
-  if (purification_quickreturn) then
-      if (iproc==0) call yaml_warning('quick return in purification')
-      if (iproc==0) call yaml_newline()
-      return
-  end if
-
-  call f_routine(id='purify_kernel')
-
-  isshift=(ispin-1)*tmb%linmat%s%nvctrp_tg
-  ilshift=(ispin-1)*tmb%linmat%l%nvctrp_tg
-
-  ovrlp_onehalf_(1) = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlp_onehalf_', mat=ovrlp_onehalf_(1))
-  ovrlppowers_(1) = matrices_null()
-  call allocate_matrices(tmb%linmat%l, allocate_full=.true., matname='ovrlppowers_', mat=ovrlppowers_(1))
-
-
-  ! Calculate the overlap matrix between the TMBs.
-  if(.not. overlap_calculated) then
-     if(.not.tmb%can_use_transposed) then
-         !!if(associated(tmb%psit_c)) then
-         !!    call f_free_ptr(tmb%psit_c)
-         !!end if
-         !!if(associated(tmb%psit_f)) then
-         !!    call f_free_ptr(tmb%psit_f)
-         !!end if
-         !!tmb%psit_c = f_malloc_ptr(sum(tmb%collcom%nrecvcounts_c),id='tmb%psit_c')
-         !!tmb%psit_f = f_malloc_ptr(7*sum(tmb%collcom%nrecvcounts_f),id='tmb%psit_f')
-         call transpose_localized(iproc, nproc, tmb%npsidim_orbs, tmb%orbs, tmb%collcom, &
-              TRANSPOSE_FULL, tmb%psi, tmb%psit_c, tmb%psit_f, tmb%lzd)
-         tmb%can_use_transposed=.true.
-     end if
-     !call timing(iproc,'renormCoefComp','OF')
-
-     call calculate_overlap_transposed(iproc, nproc, tmb%orbs, tmb%collcom, &
-          tmb%psit_c, tmb%psit_c, tmb%psit_f, tmb%psit_f, tmb%linmat%s, tmb%linmat%ovrlp_)
-     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, tmb%linmat%s, tmb%linmat%ovrlp_)
-
-     !call timing(iproc,'renormCoefComp','ON')
-     overlap_calculated=.true.
-  end if
-
-
-  tmb%linmat%ovrlp_%matrix = sparsematrix_malloc_ptr(tmb%linmat%s, iaction=DENSE_FULL, id='tmb%linmat%ovrlp_%matrix')
-  tmb%linmat%kernel_%matrix = sparsematrix_malloc_ptr(tmb%linmat%l,iaction=DENSE_FULL,id='tmb%linmat%kernel_%matrix')
-  call uncompress_matrix2(iproc, nproc, tmb%linmat%s, &
-       tmb%linmat%ovrlp_%matrix_compr, tmb%linmat%ovrlp_%matrix)
-  call uncompress_matrix2(iproc, nproc, tmb%linmat%l, &
-       tmb%linmat%kernel_%matrix_compr, tmb%linmat%kernel_%matrix)
-
-  ks=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),id='ks')
-  ksk=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctrp/),id='ksk')
-  ksksk=f_malloc((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),id='ksksk')
-  kernel_prime=f_malloc([tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr],id='kernel_prime')
-
-  !ovrlp_onehalf=f_malloc_ptr((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),id='ovrlp_onehalf')
-  !ovrlp_minusonehalf=f_malloc_ptr((/tmb%linmat%l%nfvctr,tmb%linmat%l%nfvctr/),id='ovrlp_minusonehalf')
-
-
-
-
-  call timing(iproc,'purify_kernel ','ON') 
-
-  if (tmb%linmat%l%nspin==1) then
-      call dscal(tmb%linmat%l%nfvctr**2, 0.5d0, tmb%linmat%kernel_%matrix, 1)
-  end if
-
-
-
-  !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-  tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
-        tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
-        tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
-  if (iproc==0) then
-      call yaml_map('tr(KS) before purification',tr_KS)
-      call yaml_newline
-  end if
-
-
-  alpha=1.d-4
-  chargediff=0.d0
-  
-  !!if (.not.associated(tmb%linmat%inv_ovrlp_large%matrix_compr)) then
-  !!    inv_ovrlp_associated=.false.
-  !!    !!allocate(tmb%linmat%inv_ovrlp_large%matrix_compr(tmb%linmat%inv_ovrlp_large%nvctr),stat=istat)
-  !!    !!call memocc(istat,tmb%linmat%inv_ovrlp_large%matrix_compr,'tmb%linmat%inv_ovrlp_large%matrix_compr',subname)
-  !!    tmb%linmat%inv_ovrlp_large%matrix_compr=f_malloc_ptr(tmb%linmat%inv_ovrlp_large%nvctr,&
-  !!        id='tmb%linmat%inv_ovrlp_large%matrix_compr')
-  !!else
-  !!    inv_ovrlp_associated=.true.
-  !!end if
-
-  if (it_shift>1) then
-      call calculate_overlap_onehalf()
-      call f_zero(kernel_prime)
-      if (tmb%linmat%l%nfvctrp>0) then
-          !SM: need to fix the spin here
-          call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-                     1.d0, tmb%linmat%kernel_%matrix, tmb%linmat%l%nfvctr, &
-                     ovrlp_onehalf_(1)%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
-                     0.d0, ksksk, tmb%linmat%l%nfvctr) 
-          call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-                     1.d0, ovrlp_onehalf_(1)%matrix, tmb%linmat%l%nfvctr, &
-                     ksksk, tmb%linmat%l%nfvctr, &
-                     0.d0, kernel_prime(1,tmb%linmat%l%isfvctr+1), tmb%linmat%l%nfvctr) 
-      end if
-
-      if (nproc > 1) then
-          call mpiallred(kernel_prime, mpi_sum, comm=bigdft_mpi%mpi_comm)
-      end if
-  end if
-
-
-  shift=0.d0
-  bisec_bounds=0.d0
-  bisec_bounds_ok=.false.
-
-
-  shift_loop: do ishift=1,it_shift
-
-  if (iproc==0) call yaml_newline()
-  if (iproc==0) call yaml_map('shift of eigenvalues',shift,fmt='(es10.3)')
-
-  if (iproc==0) call yaml_sequence_open('purification process')
-
-      ! shift the eigenvalues of the density kernel, using ks as temporary variable
-      if (shift/=0.d0) then
-          if (ishift==1) stop 'eigenvalue shift not allowed for first iteration'
-          do iorb=1,tmb%linmat%l%nfvctr
-              do jorb=1,tmb%linmat%l%nfvctr
-                  if (jorb==iorb) then
-                      ks(jorb,iorb)=kernel_prime(jorb,iorb)+shift
-                  else
-                      ks(jorb,iorb)=kernel_prime(jorb,iorb)
-                  end if
-              end do
-          end do
-          !SM: need to fix the spin here
-          call f_zero(tmb%linmat%l%nfvctr**2, tmb%linmat%kernel_%matrix(1,1,1))
-          if (tmb%linmat%l%nfvctrp>0) then
-              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-                         1.d0, ks, tmb%linmat%l%nfvctr, &
-                         ovrlppowers_(1)%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
-                         0.d0, ksksk, tmb%linmat%l%nfvctr) 
-              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-                         1.d0, ovrlppowers_(1)%matrix, tmb%linmat%l%nfvctr, &
-                         ksksk, tmb%linmat%l%nfvctr, &
-                         0.d0, tmb%linmat%kernel_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr) 
-          end if
-    
-
-          if (nproc > 1) then
-             !SM: need to fix the spin here
-             call mpiallred(tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr**2, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          end if
-      end if
-
-
-      do it=1,it_opt
-
-          call f_zero(tmb%linmat%l%nfvctr**2, ks(1,1))
-          if (tmb%linmat%l%nfvctrp>0) then
-              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-                         1.d0, tmb%linmat%kernel_%matrix(1,1,1), tmb%linmat%l%nfvctr, &
-                         tmb%linmat%ovrlp_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
-                         0.d0, ks(1,tmb%linmat%l%isfvctr+1), tmb%linmat%l%nfvctr) 
-          end if
-
-          if (nproc > 1) then
-              call mpiallred(ks, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          end if
-
-          if (tmb%linmat%l%nfvctrp>0) then
-              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-                         1.d0, ks(1,1), tmb%linmat%l%nfvctr, &
-                         tmb%linmat%kernel_%matrix(1,tmb%linmat%l%isfvctr+1,1), tmb%linmat%l%nfvctr, &
-                         0.d0, ksk(1,1), tmb%linmat%l%nfvctr)
-          end if
-          if (tmb%linmat%l%nfvctrp>0) then
-              call dgemm('n', 'n', tmb%linmat%l%nfvctr, tmb%linmat%l%nfvctrp, tmb%linmat%l%nfvctr, &
-                         1.d0, ks(1,1), tmb%linmat%l%nfvctr, &
-                         ksk(1,1), tmb%linmat%l%nfvctr, 0.d0, ksksk(1,1), tmb%linmat%l%nfvctr)
-          end if
-
-
-          diff=0.d0
-          do iorb=tmb%linmat%l%isfvctr+1,tmb%linmat%l%isfvctr+tmb%linmat%l%nfvctrp
-              iiorb=iorb-tmb%linmat%l%isfvctr
-              jsegstart=tmb%linmat%l%istsegline(iorb)
-              if (iorb<tmb%linmat%l%nfvctr) then
-                  jsegend=tmb%linmat%l%istsegline(iorb+1)-1
-              else
-                  jsegend=tmb%linmat%l%nseg
-              end if
-              do jseg=jsegstart,jsegend
-                  ! A segment is always on one line, therefore no double loop
-                  do jorb=tmb%linmat%l%keyg(1,1,jseg),tmb%linmat%l%keyg(2,1,jseg)
-                      jjorb=jorb
-                      diff = diff + (ksk(jjorb,iiorb)-tmb%linmat%kernel_%matrix(jjorb,iorb,1))**2
-                  end do
-              end do
-          end do
-
-          call compress_matrix2(iproc,tmb%linmat%l, &
-               inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
-          !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-          tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
-                tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
-                tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
-          if (tmb%linmat%l%nspin==2) then
-              chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
-          else if (tmb%linmat%l%nspin==1) then
-              chargediff=2.d0*tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
-          end if
-
-          if (nproc > 1) then
-              call mpiallred(diff, 1, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          end if
-
-          diff=sqrt(diff)
-          if (iproc==0) then
-              call yaml_newline()
-              call yaml_sequence(advance='no')
-              call yaml_mapping_open(flow=.true.)
-              call yaml_map('iter',it)
-              call yaml_map('diff from idempotency',diff,fmt='(es9.3)')
-              call yaml_map('charge diff',chargediff,fmt='(es10.3)')
-              !call yaml_map('alpha',alpha,fmt='(es8.2)')
-              call yaml_mapping_close()
-          end if
-
-          call f_zero(tmb%linmat%l%nfvctr**2, tmb%linmat%kernel_%matrix(1,1,1))
-          do iorb=1,tmb%linmat%l%nfvctrp
-              iiorb=iorb+tmb%linmat%l%isfvctr
-              do jorb=1,tmb%linmat%l%nfvctr
-                  tmb%linmat%kernel_%matrix(jorb,iiorb,1) = 3.d0*ksk(jorb,iorb) - 2.d0*ksksk(jorb,iorb)
-              end do
-          end do
-
-          if (nproc > 1) then
-              call mpiallred(tmb%linmat%kernel_%matrix(1,1,1), &
-                   tmb%linmat%l%nfvctr**2, mpi_sum, comm=bigdft_mpi%mpi_comm)
-          end if
-
-          if (diff<1.d-10) exit
-
-      end do
-
-      call compress_matrix2(iproc,tmb%linmat%l, &
-           inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
-      !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-      tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
-            tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
-            tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
-      if (tmb%linmat%l%nspin==2) then
-          chargediff=tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
-      else if (tmb%linmat%l%nspin==1) then
-          chargediff=2.d0*tr_KS-foe_data_get_real(tmb%foe_obj,"charge",ispin)
-      end if
-
-      if (iproc==0) call yaml_sequence_close
-
-      if (abs(chargediff)<1.d-6) exit shift_loop
-
-      if (chargediff>0) then
-          ! make this the new upper bound for the bisection
-          bisec_bounds(2)=shift
-          ! choose new shift, based on whether the lower bound is known or not
-          if (bisec_bounds_ok(1)) then
-              shift=0.5d0*(bisec_bounds(1)+bisec_bounds(2))
-          else
-              shift=bisec_bounds(2)-0.01d0
-          end if
-          bisec_bounds_ok(2)=.true.
-      end if
-      if (chargediff<0) then
-          ! make this the new lower bound for the bisection
-          bisec_bounds(1)=shift
-          ! choose new shift, based on whether the upper bound is known or not
-          if (bisec_bounds_ok(2)) then
-              shift=0.5d0*(bisec_bounds(1)+bisec_bounds(2))
-          else
-              shift=bisec_bounds(1)+0.01d0
-          end if
-          bisec_bounds_ok(1)=.true.
-      end if
-
-
-
-  end do shift_loop
-
-
-  !if (iproc==0) call yaml_sequence_close
-
-  if (tmb%linmat%l%nspin==1) then
-      call dscal(tmb%linmat%l%nfvctr**2, 2.0d0, tmb%linmat%kernel_%matrix, 1)
-  end if
-
-  call timing(iproc,'purify_kernel ','OF') 
-
-  call f_free(ks)
-  call f_free(ksk)
-  call f_free(ksksk)
-  call f_free(kernel_prime)
-
-  !call f_free_ptr(ovrlp_onehalf)
-  !call f_free_ptr(ovrlp_minusonehalf)
-
-  !if (.not.inv_ovrlp_associated) then
-  !    call f_free_ptr(tmb%linmat%inv_ovrlp_large%matrix_compr)
-  !end if
-
-
-  call compress_matrix2(iproc, tmb%linmat%l, inmat=tmb%linmat%kernel_%matrix, outmat=tmb%linmat%kernel_%matrix_compr)
-
-  !!tmb%linmat%ovrlp_%matrix_compr = tmb%linmat%ovrlp%matrix_compr
-  tr_KS=trace_sparse(iproc, nproc, tmb%linmat%s, tmb%linmat%l, &
-        tmb%linmat%ovrlp_%matrix_compr(isshift+1:), &
-        tmb%linmat%kernel_%matrix_compr(ilshift+1:), ispin)
-  if (iproc==0) then
-      call yaml_newline()
-      call yaml_map('tr(KS) after purification',tr_KS)
-  end if
-
-
-  call f_free_ptr(tmb%linmat%ovrlp_%matrix)
-  call f_free_ptr(tmb%linmat%kernel_%matrix)
-
-  call deallocate_matrices(ovrlp_onehalf_(1))
-  call deallocate_matrices(ovrlppowers_(1))
-
-  call f_release_routine()
-
-
-
-      contains
-
-        subroutine calculate_overlap_onehalf()
-          ! Taylor approximation of S^1/2 and S^-1/2 up to higher order
-
-          call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/2/), -1, &
-               imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlp_onehalf_, check_accur=.true., &
-               max_error=max_error, mean_error=mean_error)
-          call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-          call overlapPowerGeneral(iproc, nproc, order_taylor, 1, (/-2/), -1, &
-               imode=2, ovrlp_smat=tmb%linmat%s, inv_ovrlp_smat=tmb%linmat%l, &
-               ovrlp_mat=tmb%linmat%ovrlp_, inv_ovrlp_mat=ovrlppowers_, check_accur=.true., &
-               max_error=max_error, mean_error=mean_error)
-          call check_taylor_order(mean_error, max_inversion_error, order_taylor)
-          !if (iproc==0) then
-          !    call yaml_map('max error of S^-1/2',max_error,fmt='(es9.2)')
-          !    call yaml_map('mean error of S^-1/2',mean_error,fmt='(es9.2)')
-          !end if
-      end subroutine calculate_overlap_onehalf
-
-end subroutine purify_kernel
-
-
 
 subroutine get_KS_residue(iproc, nproc, tmb, KSorbs, hpsit_c, hpsit_f, KSres)
   use module_base
@@ -3550,9 +3151,10 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
       call fermi_operator_expansion(iproc, nproc, 0.d0, &
-           ebs, norder_taylor, input%lin%max_inversion_error, .true., &
+           ebs, norder_taylor, input%lin%max_inversion_error, &
            .true., 2, FOE_ACCURATE, &
-           'HOMO', tmb,  tmb%linmat%ham_, tmb%linmat%ovrlp_, kernel(1), foe_obj)
+           'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
       do ispin=1,input%nspin
           e_homo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
       end do
@@ -3571,9 +3173,10 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
       call fermi_operator_expansion(iproc, nproc, 0.d0, &
-           ebs, norder_taylor, input%lin%max_inversion_error, .true., &
+           ebs, norder_taylor, input%lin%max_inversion_error, &
            .true., 2, FOE_ACCURATE, &
-           'LUMO', tmb, tmb%linmat%ham_, tmb%linmat%ovrlp_, kernel(2), foe_obj)
+           'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
+           tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
       do ispin=1,input%nspin
           e_lumo(ispin) = foe_data_get_real(foe_obj,"ef",ispin)
       end do

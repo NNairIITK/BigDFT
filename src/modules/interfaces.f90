@@ -789,7 +789,7 @@ module module_interfaces
           correction_orthoconstraint,nit_basis,&
           ratio_deltas,ortho_on,extra_states,itout,conv_crit,experimental_mode,early_stop,&
           gnrm_dynamic, min_gnrm_for_dynamic, can_use_ham, order_taylor, max_inversion_error, kappa_conv, method_updatekernel,&
-          purification_quickreturn, correction_co_contra, &
+          correction_co_contra, &
           precond_convol_workarrays, precond_workarrays, &
           wt_philarge, wt_hpsinoprecond, wt_hphi, wt_phi, fnrm, energs_work, frag_calc, &
           cdft, input_frag, ref_frags)
@@ -828,7 +828,7 @@ module module_interfaces
         integer, intent(in) :: extra_states
         integer,intent(in) :: itout
         real(kind=8),intent(in) :: conv_crit, early_stop, gnrm_dynamic, min_gnrm_for_dynamic, kappa_conv
-        logical,intent(in) :: experimental_mode, purification_quickreturn
+        logical,intent(in) :: experimental_mode
         logical,intent(out) :: can_use_ham
         integer,intent(in) :: method_updatekernel
         logical,intent(in) :: correction_co_contra
@@ -847,7 +847,7 @@ module module_interfaces
     interface
       subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
         energs,nlpsp,SIC,tmb,fnrm,calculate_overlap_matrix,invert_overlap_matrix,communicate_phi_for_lsumrho,&
-        calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,purification_quickreturn,&
+        calculate_ham,extra_states,itout,it_scc,it_cdft,order_taylor,max_inversion_error,&
         calculate_KS_residue,calculate_gap,energs_work,remove_coupling_terms,factor,&
         pexsi_npoles,pexsi_mumin,pexsi_mumax,pexsi_mu,pexsi_temperature, pexsi_tol_charge,&
         convcrit_dmin,nitdmin,curvefit_dmin,ldiis_coeff,reorder,cdft, updatekernel)
@@ -873,7 +873,7 @@ module module_interfaces
       type(SIC_data),intent(in) :: SIC
       type(DFT_wavefunction),intent(inout) :: tmb
       logical,intent(in):: calculate_overlap_matrix, invert_overlap_matrix
-      logical,intent(in):: communicate_phi_for_lsumrho, purification_quickreturn
+      logical,intent(in):: communicate_phi_for_lsumrho
       logical,intent(in) :: calculate_ham, calculate_KS_residue, calculate_gap
       type(work_mpiaccumulate),intent(inout) :: energs_work
       logical,intent(in) :: remove_coupling_terms

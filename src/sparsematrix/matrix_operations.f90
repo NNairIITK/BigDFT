@@ -27,8 +27,7 @@ module matrix_operations
                  max_error, mean_error, nspinx)
            !!foe_nseg, foe_kernel_nsegline, foe_istsegline, foe_keyg)
         use module_base
-        use module_types
-        use sparsematrix_base, only: sparse_matrix, &
+        use sparsematrix_base, only: sparse_matrix, matrices, &
                                 sparsematrix_malloc_ptr, sparsematrix_malloc, sparsematrix_malloc0, sparsematrix_malloc0_ptr, &
                                 assignment(=), &
                                 SPARSE_FULL, DENSE_PARALLEL, SPARSE_MATMUL_LARGE, &
@@ -1087,7 +1086,7 @@ module matrix_operations
                  norb, ovrlp_matrix, inv_ovrlp_matrix, check_accur, &
                  smat, max_error, mean_error)
         use module_base
-        use module_types
+        use sparsematrix_base, only: sparse_matrix
         use yaml_output
         implicit none
         
@@ -1323,7 +1322,6 @@ module matrix_operations
 
       subroutine deviation_from_unity_parallel_new(iproc, nproc, norb, norbp, isorb, ovrlp, smat, max_deviation, mean_deviation)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
@@ -1467,7 +1465,6 @@ module matrix_operations
 
       subroutine matrix_minus_identity_sparse(norb, smat, ovrlp_compr, ovrlpminone_compr)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         implicit none
 
@@ -1675,7 +1672,6 @@ module matrix_operations
 
       subroutine overlap_plus_minus_one_half_exact(nproc,norb,blocksize,plusminus,inv_ovrlp_half,smat)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use parallel_linalg, only: dgemm_parallel, dsyev_parallel
         implicit none
@@ -1929,7 +1925,6 @@ module matrix_operations
 
       subroutine deviation_from_unity_parallel(iproc, nproc, norb, norbp, isorb, ovrlp, smat, max_deviation, mean_deviation)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
@@ -1994,7 +1989,6 @@ module matrix_operations
 
       subroutine max_matrix_diff(iproc, norb, mat1, mat2, smat, max_deviation, mean_deviation)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
@@ -2035,7 +2029,6 @@ module matrix_operations
       subroutine max_matrix_diff_parallel(iproc, norb, norbp, isorb, mat1, mat2, &
                  smat, max_deviation, mean_deviation)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
@@ -2094,7 +2087,6 @@ module matrix_operations
       subroutine max_matrix_diff_parallel_new(iproc, norb, norbp, isorb, mat1, mat2, &
                  smat, max_deviation, mean_deviation)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix
         use sparsematrix_init, only: matrixindex_in_compressed
         implicit none
@@ -2165,10 +2157,9 @@ module matrix_operations
       end subroutine max_matrix_diff_parallel_new
 
 
-      subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, orbs, ovrlp, ovrlp_mat, &
+      subroutine overlap_power_minus_one_half_parallel(iproc, nproc, meth_overlap, ovrlp, ovrlp_mat, &
                  inv_ovrlp_half, inv_ovrlp_half_)
         use module_base
-        use module_types
         use sparsematrix_base, only: sparse_matrix, matrices, matrices_null, &
                                      allocate_matrices, deallocate_matrices
         use sparsematrix_init, only: matrixindex_in_compressed
@@ -2177,7 +2168,6 @@ module matrix_operations
       
         ! Calling arguments
         integer,intent(in) :: iproc, nproc, meth_overlap
-        type(orbitals_data),intent(in) :: orbs
         type(sparse_matrix),intent(in) :: ovrlp
         type(matrices),intent(inout) :: ovrlp_mat
         type(sparse_matrix),intent(in) :: inv_ovrlp_half

@@ -25,7 +25,6 @@ module chebyshev
                invovrlp_compr, calculate_SHS, nsize_polynomial, ncalc, fermi_new, penalty_ev_new, chebyshev_polynomials, &
                emergency_stop)
       use module_base
-      use module_types
       use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=), &
                                    SPARSE_MATMUL_LARGE, SPARSEMM_SEQ,sparsematrix_malloc0
       use sparsematrix_init, only: matrixindex_in_compressed
@@ -254,7 +253,7 @@ module chebyshev
     ! Performs z = a*x + b*y
     subroutine axbyz_kernel_vectors_new(smat, a, x_compr, b, y_compr, z_compr)
       use module_base
-      use module_types
+      use sparsematrix_base, only: sparse_matrix
       implicit none
     
       ! Calling arguments
@@ -288,7 +287,6 @@ module chebyshev
     subroutine chebyshev_fast(iproc, nproc, nsize_polynomial, npl, &
                norb, norbp, fermi, chebyshev_polynomials, ncalc, cc, kernel_compressed)
       use module_base
-      use module_types
       use sparsematrix_base, only: sparse_matrix, sparsematrix_malloc, assignment(=),&
            SPARSE_FULL,sparsematrix_malloc0
       implicit none
@@ -327,7 +325,6 @@ module chebyshev
     subroutine compress_polynomial_vector_new(iproc, nproc, nsize_polynomial, norb, norbp, &
                fermi, vector_compr, vector_compressed)
       use module_base
-      !use module_types
       use sparsematrix_base, only: sparse_matrix
       use sparsematrix, only: transform_sparsity_pattern
       implicit none

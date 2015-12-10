@@ -532,7 +532,7 @@ rotate_read2:
  energy: 7.4e-11
  Omega: 7.1e-11
  Epot: 1.1e-9
- Energy (Hartree): 3.3e-11
+ Energy (Hartree): 3.4e-11
  
 rotate_write:
  EvXC: 1.1e-10
@@ -619,7 +619,7 @@ molecule_dmin:
  eBS: 7.2e-9
  e: 1.4e-10
  Average noise forces: 4.1e-11
- Energy (Hartree): 6.0e-11
+ Energy (Hartree): 6.9e-11
 
 molecule_foe:
  Enl: 6.6e-9
@@ -799,6 +799,7 @@ water_mixpot:
  EXC: 1.1e-10
  EH: 1.1e-9
  Epot: 1.1e-09
+ Ekin: 1.0e-9
  max alpha: 1.1e-4
  mean alpha: 1.1e-4
  energy: 1.8e-10
@@ -1099,11 +1100,11 @@ reformat_read:
  Clean forces norm (Ha/Bohr): 2.9e-9
  etot: 3.5e-9
  Ion-Ion interaction energy: 4.3e-9
- Raw forces norm (Ha/Bohr): 3.6e-9
+ Raw forces norm (Ha/Bohr): 3.7e-9
  e: 5.3e-10
  Positions: 3.5e-09
- Energy (Hartree): 3.5e-11
- Force Norm (Hartree/Bohr): 1.2e-11
+ Energy (Hartree): 3.6e-11
+ Force Norm (Hartree/Bohr): 1.6e-11
  Total charge: 3.0e-11
 
 reformat_write:
@@ -1118,7 +1119,7 @@ reformat_write:
  Clean forces norm (Ha/Bohr): 3.1e-10
  e: 1.3e-11
  EvXC: 1.1e-10
- Energy (Hartree): 2.8e-11
+ Energy (Hartree): 3.2e-11
  Atomic Forces (Ha/Bohr): 1.2e-11
  Force Norm (Hartree/Bohr): 1.8e-11
 

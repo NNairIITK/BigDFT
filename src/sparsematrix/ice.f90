@@ -12,12 +12,11 @@ module ice
     subroutine inverse_chebyshev_expansion(iproc, nproc, norder_polynomial, &
                ovrlp_smat, inv_ovrlp_smat, ncalc, ex, ovrlp_mat, inv_ovrlp)
       use module_base
-      use module_types
       use yaml_output
       use sparsematrix_base, only: sparsematrix_malloc_ptr, sparsematrix_malloc, &
                                    sparsematrix_malloc0_ptr, assignment(=), &
                                    SPARSE_TASKGROUP, SPARSE_MATMUL_SMALL, &
-                                   matrices
+                                   matrices, sparse_matrix
       use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: compress_matrix, uncompress_matrix, compress_matrix_distributed_wrapper, &
                               transform_sparsity_pattern

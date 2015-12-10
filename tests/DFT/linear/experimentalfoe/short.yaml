@@ -17,10 +17,9 @@
    write_orbitals: 2
    kappa_conv: 0.7
    evbounds_nsatur: 100
-   method_updatekernel: 1
+   method_updatekernel: 2
    calculate_gap: Yes
    correction_co_contra: Yes
-   purification_quickreturn: no
  lin_general:
    hybrid: Yes
    nit: 20

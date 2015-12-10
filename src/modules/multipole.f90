@@ -187,6 +187,9 @@ module multipole
           sigma(0) = 1.0d0
           sigma(1) = 0.8d0
           sigma(2) = 0.6d0
+          !sigma(0) = 0.3d0
+          !sigma(1) = 0.5d0
+          !sigma(2) = 0.9d0
     
           density = f_malloc0((/is1.to.ie1,is2.to.ie2,is3.to.ie3/),id='density')
           
@@ -1982,7 +1985,7 @@ module multipole
               ep%mpl(impl)%sym = trim(names(impl))
               do l=0,lmax
                   ep%mpl(impl)%qlm(l) = multipole_null()
-                  !if (l>=2) cycle
+                  !if (l>=3) cycle
                   ep%mpl(impl)%qlm(l)%q = f_malloc_ptr(2*l+1,id='q')
                   mm = 0
                   do m=-l,l

@@ -18,7 +18,6 @@
    check_sumrho: 1
    calculate_KS_residue: No
    method_updatekernel: 2
-   purification_quickreturn: Yes
    check_matrix_compression: No
    correction_co_contra: Yes
    foe_gap: yes

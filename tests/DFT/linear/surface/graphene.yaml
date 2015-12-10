@@ -16,7 +16,6 @@
    calculate_KS_residue: No
    kappa_conv: 0.9
    method_updatekernel: 2
-   purification_quickreturn: Yes
    correction_co_contra: Yes
    hamapp_radius_incr: 6
  lin_general:
