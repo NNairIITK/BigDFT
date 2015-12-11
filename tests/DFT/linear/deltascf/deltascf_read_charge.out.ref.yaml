@@ -85,7 +85,6 @@
  perf:
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    mixing_after_inputguess             : 2 #      Mixing step after linear input gues
-   purification_quickreturn            : no #     linear scaling quick return in purification
    correction_co_contra                : no #     linear scaling correction covariant / contravariant gradient
    debug                               : No #     Debug option
    fftcache                            : 8192 #   Cache size for the FFT

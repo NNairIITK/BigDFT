@@ -91,7 +91,6 @@
     #                                              performance reasons
  perf:
    correction_co_contra                : no #     linear scaling correction covariant / contravariant gradient
-   purification_quickreturn            : no #     linear scaling quick return in purification
    coeff_weight_analysis               : yes #    linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    debug                               : No #     Debug option

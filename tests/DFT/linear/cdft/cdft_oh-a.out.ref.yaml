@@ -79,7 +79,6 @@
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    adjust_kernel_iterations            : No #     enable the adaptive ajustment of the number of kernel iterations
    correction_co_contra                : no #     linear scaling correction covariant / contravariant gradient
-   purification_quickreturn            : no #     linear scaling quick return in purification
    check_overlap                       : 2 #      Enables linear overlap check
    check_sumrho                        : 2 #      Enables linear sumrho check
    debug                               : No #     Debug option

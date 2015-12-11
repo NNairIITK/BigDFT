@@ -87,7 +87,6 @@
    mixing_after_inputguess             : 2 #      Mixing step after linear input gues
    foe_gap                             : Yes #    Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
    correction_co_contra                : no #     linear scaling correction covariant / contravariant gradient
-   purification_quickreturn            : no #     linear scaling quick return in purification
    debug                               : No #     Debug option
    fftcache                            : 8192 #   Cache size for the FFT
    accel                               : NO #     Acceleration (hardware)

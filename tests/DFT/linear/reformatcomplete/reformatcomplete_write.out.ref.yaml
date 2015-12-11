@@ -91,7 +91,6 @@
     #                                              performance reasons
  perf:
    correction_co_contra                : no #     linear scaling correction covariant / contravariant gradient
-   purification_quickreturn            : no #     linear scaling quick return in purification
    debug                               : No #     Debug option
    profiling_depth                     : -1 #     maximum level of the profiling for the tracking of the routines
    fftcache                            : 8192 #   Cache size for the FFT

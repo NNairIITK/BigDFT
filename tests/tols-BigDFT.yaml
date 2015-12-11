@@ -638,9 +638,9 @@ molecule_foe:
  Tr(K): 1.1e-07
  D Tr: 1.1e-7
  tr(KS) before purification: 5.1e-10
- ebs_check: 9.4e-10
- ebs: 9.3e-10
- Energy (Hartree): 5.1e-11
+ ebs_check: 3.3e-9
+ ebs: 3.3e-9
+ Energy (Hartree): 6.2e-11
  diff: 1.7e-11
 
 hybrid-directmin:
