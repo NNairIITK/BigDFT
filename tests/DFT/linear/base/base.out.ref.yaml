@@ -96,7 +96,6 @@
    mixing_after_inputguess             : 2 #      Mixing step after linear input guess
    foe_gap                             : yes #    Use the FOE method to calculate the HOMO-LUMO gap at the end of a calculation
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
-   purification_quickreturn            : no #     linear scaling quick return in purification
    loewdin_charge_analysis             : yes #    linear scaling perform a Loewdin charge analysis at the end of the calculation
    check_overlap                       : 2 #      Enables linear overlap check
    check_sumrho                        : 2 #      Enables linear sumrho check

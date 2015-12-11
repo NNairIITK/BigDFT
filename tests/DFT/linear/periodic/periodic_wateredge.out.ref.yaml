@@ -84,7 +84,6 @@
    kappa_conv                          : 0.8 #    Exit kappa for extended input guess (experimental mode)
    method_updatekernel                 : 2 #      linear scaling update density kernel during the sup. func. optimization (0 
     #                                              purification, 1 FOE, 2 renormalization)
-   purification_quickreturn            : Yes #    linear scaling quick return in purification
    correction_co_contra                : Yes #    linear scaling correction covariant / contravariant gradient
    hamapp_radius_incr                  : 6 #      radius enlargement for the Hamiltonian application (in grid points)
    debug                               : No #     Debug option

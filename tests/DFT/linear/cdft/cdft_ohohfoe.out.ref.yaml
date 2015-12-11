@@ -79,7 +79,6 @@
    ef_interpol_det                     : 0.10E-19 # FOE max determinant of cubic interpolation matrix
    adjust_kernel_iterations            : No #     enable the adaptive ajustment of the number of kernel iterations
    correction_co_contra                : No #     linear scaling correction covariant / contravariant gradient
-   purification_quickreturn            : Yes #    linear scaling quick return in purification
    coeff_weight_analysis               : No #     linear scaling perform a Loewdin charge analysis of the coefficients for fragment 
     #                                              calculations
    FOE_restart                         : 1 #      Restart method to be used for the FOE method
