@@ -558,7 +558,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           if (iproc==0) call yaml_map('method','FOE')
           call fermi_operator_expansion(iproc, nproc, tmprtr, &
                energs%ebs, order_taylor, max_inversion_error, &
-               invert_overlap_matrix, 2, FOE_ACCURATE, &
+               invert_overlap_matrix, 2, &
                trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
                //'-'//trim(adjustl(yaml_toa(it_scc,fmt='(i3.3)'))), &
                tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, tmb%linmat%ham_, &
@@ -3112,7 +3112,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       norder_taylor = input%lin%order_taylor
       call fermi_operator_expansion(iproc, nproc, 0.d0, &
            ebs, norder_taylor, input%lin%max_inversion_error, &
-           .true., 2, FOE_ACCURATE, &
+           .true., 2, &
            'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(1), foe_obj)
       do ispin=1,input%nspin
@@ -3134,7 +3134,7 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       norder_taylor = input%lin%order_taylor
       call fermi_operator_expansion(iproc, nproc, 0.d0, &
            ebs, norder_taylor, input%lin%max_inversion_error, &
-           .true., 2, FOE_ACCURATE, &
+           .true., 2, &
            'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
            tmb%linmat%ham_, tmb%linmat%ovrlp_, tmb%linmat%ovrlppowers_(2), kernel(2), foe_obj)
       do ispin=1,input%nspin

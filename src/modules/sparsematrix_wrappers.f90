@@ -73,7 +73,7 @@ module sparsematrix_wrappers
          call determine_sparsity_pattern_distance(orbs, lzd, astruct, lzd%llr(:)%locrad_mult, &
               nnonzero_mult, nonzero_mult)
       end if
-      call init_sparse_matrix(iproc, nproc, nspin, astruct%geocode, orbs%norb, &
+      call init_sparse_matrix(iproc, nproc, nspin, astruct%geocode, &
            orbs%norbu, orbs%norbup, orbs%isorbu, store_index, &
            orbs%onwhichatom, nnonzero, nonzero, nnonzero_mult, nonzero_mult, smat)
       call f_free_ptr(nonzero)
@@ -340,7 +340,7 @@ module sparsematrix_wrappers
                   nonzero(2,i)=iiorb
               end do
           end do
-          call init_sparse_matrix(iproc, nproc, input%nspin, geocode, orbs%norb, &
+          call init_sparse_matrix(iproc, nproc, input%nspin, geocode, &
                norb, norbp, isorb, input%store_index, &
                orbs%onwhichatom, norb*norbp, nonzero, norb*norbp, nonzero, smat(ispin), print_info=.false.)
           call f_free(nonzero)
@@ -371,7 +371,7 @@ module sparsematrix_wrappers
           !!call init_sparse_matrix(iproc, nproc, input%nspin, orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, &
           !!     norb, norbp, isorb, input%store_index, &
           !!     orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu, nonzero, smat_extra(ispin), print_info_=.false.)
-          call init_sparse_matrix(iproc, nproc, input%nspin, geocode, orbs_aux%norb, &
+          call init_sparse_matrix(iproc, nproc, input%nspin, geocode, &
                orbs_aux%norb, orbs_aux%norbp, orbs_aux%isorb, input%store_index, &
                orbs_aux%onwhichatom, orbs_aux%norbu*orbs_aux%norbup, nonzero, orbs_aux%norbu*orbs_aux%norbup, nonzero, &
                smat_extra(ispin), print_info=.false.)

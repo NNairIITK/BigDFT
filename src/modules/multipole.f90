@@ -2157,33 +2157,6 @@ module multipole
            ovrlp_onehalf_(1)%matrix_compr, tmpmat1, kerneltilde)
 
 
-      ! Determine the periodicity...
-      perx=(smats%geocode /= 'F')
-      pery=(smats%geocode == 'P')
-      perz=(smats%geocode /= 'F')
-      if (perx) then
-          is1 = -1
-          ie1 = 1
-      else
-          is1 = 0
-          ie1 = 0
-      end if
-      if (pery) then
-          is2 = -1
-          ie2 = 1
-      else
-          is2 = 0
-          ie2 = 0
-      end if
-      if (perz) then
-          is3 = -1
-          ie3 = 1
-      else
-          is3 = 0
-          ie3 = 0
-      end if
-
-
 
       ! Parallelization over the number of atoms
       ii = at%astruct%nat/bigdft_mpi%nproc
@@ -2401,7 +2374,7 @@ module multipole
 
               ! Add the penalty term
               if (mode=='old') then
-                  call add_penalty_term(smats%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
+                  call add_penalty_term(at%astruct%geocode, smats%nfvctr, neighbor(1:,kat), rxyz(1:,kkat), &
                        at%astruct%cell_dim, com, alpha, n, ovrlp, ham)
               else if (mode=='new') then
                   multipoles_fake = f_malloc((/-lmax.to.lmax,0.to.lmax,1.to.smats%nfvctr/),id='multipoles_fake')
@@ -2410,13 +2383,13 @@ module multipole
                   if (ialpha==1) then
                       if (present(multipoles)) then
                           write(*,*) 'call with multipoles'
-                          call add_penalty_term_new(smats%geocode, at%astruct%nat, smats%nfvctr, &
+                          call add_penalty_term_new(at%astruct%geocode, at%astruct%nat, smats%nfvctr, &
                                neighbor(1:,kat), rxyz(1:,kkat), smats%on_which_atom, &
                                multipoles, at%astruct%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1:n,1:n,kat))
                       else
                           write(*,*) 'call with multipoles_fake'
-                          call add_penalty_term_new(smats%geocode, at%astruct%nat, smats%nfvctr, &
+                          call add_penalty_term_new(at%astruct%geocode, at%astruct%nat, smats%nfvctr, &
                                neighbor(1:,kat), rxyz(1:,kkat), smats%on_which_atom, &
                                multipoles_fake, at%astruct%cell_dim, com, alpha, n, ham, &
                                nmax, penalty_matrices(1:n,1:n,kat))
