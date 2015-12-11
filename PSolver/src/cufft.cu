@@ -81,7 +81,7 @@ static const char *_cufftGetErrorString(cufftResult error)
 
 
 cudaStream_t stream1=NULL;
-
+cublasHandle_t handle1=NULL;
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -126,17 +126,20 @@ extern "C" void synchronize_() {
 
 // create stream for kernel
 extern "C" void FC_FUNC(cudacreatestream, CUDACREATESTREAM) (int* ierr) {
-
   *ierr = cudaStreamCreate(&stream1);
-  //errors should be treated in the fortran part
 }
 
+extern "C" void FC_FUNC(cudadestroystream, CUDADESTROYSTREAM) (int* ierr) {
+  *ierr = cudaStreamDestroy(stream1);
+}
 
 // create stream for kernel
-extern "C" void FC_FUNC(cudadestroystream, CUDADESTROYSTREAM) (int* ierr) {
+extern "C" void FC_FUNC(cudacreatecublashandle, CUDACREATECUBLASHANDLE) () {
+  cublasErrchk(cublasCreate(&handle1));
+}
 
-  *ierr = cudaStreamDestroy(stream1);
-  //errors should be treated in the fortran part
+extern "C" void FC_FUNC(cudadestroycublashandle, CUDADESTROYCUBLASHANDLE) () {
+  cublasErrchk(cublasDestroy(handle1));
 }
 
 
@@ -1628,10 +1631,8 @@ extern "C" void FC_FUNC_(gpu_accumulate_eexctx,GPU_ACCUMULATE_EEXCTX)(Real** eha
 
 // set device memory
 extern "C" void FC_FUNC_(poisson_cublas_daxpy, POISSON_CUBLAS_DAXPY)(int *size, const double* alpha, Real** d_x,int* facx, Real ** d_y, int* facy,int* offset_y){
-  cublasHandle_t handle;
-  cublasErrchk(cublasCreate(&handle));
-  cublasSetStream(handle, stream1);
-  cublasErrchk(cublasDaxpy(handle,*size,alpha,*d_x,*facx,*d_y+*offset_y,*facy));
-  cublasErrchk(cublasDestroy(handle));
-  gpuErrchk( cudaPeekAtLastError() );
+
+  cublasSetStream(handle1, stream1);
+  cublasErrchk(cublasDaxpy(handle1,*size,alpha,*d_x,*facx,*d_y+*offset_y,*facy));
+//  gpuErrchk( cudaPeekAtLastError() );
 }

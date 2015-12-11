@@ -636,7 +636,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
   end if
    if (kernel%mpi_env%iproc == 0) then
      if (kernel%igpu == 1) then
-      call cudacreatestream()
+      call cudacreatestream(i_stat)      
+      if (i_stat /= 0) call f_err_throw('error creating stream ')
+      call cudacreatecublashandle()
       if (kernel%keepGPUmemory == 1) then
         call cudamalloc(size2,kernel%w%work1_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc work1_GPU (GPU out of memory ?) ')

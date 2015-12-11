@@ -304,7 +304,10 @@ contains
   end function pkernel_null
 
   subroutine free_PS_workarrays(iproc,igpu,keepzf,gpuPCGred,keepGPUmemory,w)
+  use dictionaries, only: f_err_throw
+  implicit none
     integer, intent(in) :: keepzf,gpuPCGred,keepGPUmemory,igpu,iproc
+    integer :: i_stat
     type(PS_workarrays), intent(inout) :: w
     call f_free_ptr(w%eps)
     call f_free_ptr(w%dlogeps)
@@ -339,7 +342,9 @@ contains
     end if
     if (igpu == 1) then
        if (iproc == 0) then
-	  call cudadestroystream()
+         call cudadestroystream(i_stat)
+         if (i_stat /= 0) call f_err_throw('error freeing stream ')
+         call cudadestroycublashandle()
           if (keepGPUmemory == 1) then
              call cudafree(w%work1_GPU)
              call cudafree(w%work2_GPU)
