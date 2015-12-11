@@ -2008,6 +2008,10 @@ pexsi:
   Omega: 4.2e-11
   energy: 3.8e-11
   EXC: 1.0e-10
+  Enl: 1.1e-10
+  Total energy (H*DM): 1.6e-11
+  Total energy (S*EDM): 1.6e-11
+  Total free energy: 1.6e-11
   Total charge: 1.1e-10
   Keys to ignore:
     - Calculating wavelets expansion of projectors, found warnings
