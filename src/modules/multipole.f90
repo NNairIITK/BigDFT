@@ -156,7 +156,7 @@ module multipole
       real(gp),dimension(:,:,:),allocatable :: psppar
       logical :: exists, perx, pery, perz
       logical,parameter :: use_iterator = .false.
-      real(kind=8) :: cutoff, rholeaked, hxh, hyh, hzh, rx, ry, rz, qq, ttl
+      real(kind=8) :: cutoff, rholeaked, hxh, hyh, hzh, rx, ry, rz, qq, ttl, sig
       real(kind=8),dimension(3) :: center
       integer :: n1i, n2i, n3i
       integer :: nmpx, nmpy, nmpz, ndensity
@@ -203,9 +203,9 @@ module multipole
           gaussians3 = f_malloc((/0.to.lmax,1.to.ep%nmpl,is3.to.ie3/),id='gaussians3')
     
           !$omp parallel default(none) &
-          !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, ep, sigma) &
+          !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, shift, ep) &
           !$omp shared(gaussians1, gaussians2, gaussians3) &
-          !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l,impl)
+          !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, tt, l,impl, sig)
           !$omp do
           do i3=is3,ie3
               ii3 = i3 - 15
@@ -214,7 +214,8 @@ module multipole
                   tt = z - ep%mpl(impl)%rxyz(3)
                   tt = tt**2
                   do l=0,lmax
-                      gaussians3(l,impl,i3) = gaussian(sigma(l),tt)
+                      sig = ep%mpl(impl)%sigma(l)
+                      gaussians3(l,impl,i3) = gaussian(sig,tt)
                   end do
               end do
           end do
@@ -227,8 +228,9 @@ module multipole
                   tt = y - ep%mpl(impl)%rxyz(2)
                   tt = tt**2
                   do l=0,lmax
+                      sig = ep%mpl(impl)%sigma(l)
                       ! Undo the normalization for this Gaussian
-                      gaussians2(l,impl,i2) = gaussian(sigma(l),tt)*sqrt(2.d0*pi_param*sigma(l)**2)**3
+                      gaussians2(l,impl,i2) = gaussian(sig,tt)*sqrt(2.d0*pi_param*sig**2)**3
                   end do
               end do
           end do
@@ -241,8 +243,9 @@ module multipole
                   tt = x - ep%mpl(impl)%rxyz(1)
                   tt = tt**2
                   do l=0,lmax
+                      sig = ep%mpl(impl)%sigma(l)
                       ! Undo the normalization for this Gaussian
-                      gaussians1(l,impl,i1) = gaussian(sigma(l),tt)*sqrt(2.d0*pi_param*sigma(l)**2)**3
+                      gaussians1(l,impl,i1) = gaussian(sig,tt)*sqrt(2.d0*pi_param*sig**2)**3
                   end do
               end do
           end do
@@ -414,11 +417,11 @@ module multipole
           quadrupole = 0.d0
           !$omp parallel &
           !$omp default(none) &
-          !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, sigma, nthread, norm_ok) &
+          !$omp shared(is1, ie1, is2, ie2, is3, ie3, hx, hy, hz, hhh, ep, shift, nthread, norm_ok) &
           !$omp shared(norm_check, monopole, dipole, quadrupole, density, density_loc, potential_loc) &
           !$omp shared (gaussians1, gaussians2, gaussians3, nelpsp, rmax, rmin) &
           !$omp private(i1, i2, i3, ii1, ii2, ii3, x, y, z, impl, r, l, gg, m, mm, tt, ttt, ttl, ithread, center) &
-          !$omp private(rnrm1, rnrm2, rnrm3, rnrm5, qq, ii)
+          !$omp private(rnrm1, rnrm2, rnrm3, rnrm5, qq, ii, sig)
           ithread = 0
           !$ ithread = omp_get_thread_num()
           if (ithread<0 .or. ithread>nthread-1) then
@@ -460,12 +463,13 @@ module multipole
                                   ! Calculate the Gaussian as product of three 1D Gaussians
                                   gg = gaussians1(l,impl,i1)*gaussians2(l,impl,i2)*gaussians3(l,impl,i3)
                                   ! Additional modification to avoid divergence
+                                  sig = ep%mpl(impl)%sigma(l)
                                   if (l==1) then
                                       !gg = gg*rnrm2/(3.d0*sigma(l)**2)
-                                      gg = gg/(3.d0*sigma(l)**2)
+                                      gg = gg/(3.d0*sig**2)
                                   else if (l==2) then
                                       !gg = gg*rnrm2**2/(15.d0*sigma(l)**4)
-                                      gg = gg/(15.d0*sigma(l)**4)
+                                      gg = gg/(15.d0*sig**4)
                                   end if
                                   !gg = gaussian(sigma(l),r(1)**2)*gaussian(sigma(l),r(2)**2)*gaussian(sigma(l),r(3)**2)
                                   !gg = gg*sqrt(2.d0*pi_param*sigma(l)**2)**6
@@ -1005,29 +1009,26 @@ module multipole
 
 
 
-    subroutine write_multipoles_new(nat, atomnames, rxyz, units, multipoles, &
-               delta_rxyz, on_which_atom, scaled)
+    subroutine write_multipoles_new(ep, units, delta_rxyz, on_which_atom, scaled)
       use yaml_output
       implicit none
       
       ! Calling arguments
-      integer,intent(in) :: nat
       !integer,dimension(nat),intent(in) :: iatype
-      character(len=*),dimension(nat),intent(in) :: atomnames
-      real(kind=8),dimension(3,nat),intent(in) :: rxyz
+      type(external_potential_descriptors),intent(in) :: ep
       character(len=*),intent(in) :: units
-      real(kind=8),dimension(-lmax:lmax,0:lmax,nat),intent(in) :: multipoles
-      real(kind=8),dimension(3,nat),intent(in),optional :: delta_rxyz !< can be used to display the difference between the charge center 
+      real(kind=8),dimension(3,ep%nmpl),intent(in),optional :: delta_rxyz !< can be used to display the difference between the charge center 
                                                                       !! of a support function and its localization center
-      integer,dimension(nat),intent(in),optional :: on_which_atom !< can be used to display on which atom a given support function multipole is located
-      real(kind=8),dimension(nat),intent(in),optional :: scaled !< can be used to display by how muched the multipoles have been scaled
+      integer,dimension(ep%nmpl),intent(in),optional :: on_which_atom !< can be used to display on which atom a given support function multipole is located
+      real(kind=8),dimension(ep%nmpl),intent(in),optional :: scaled !< can be used to display by how muched the multipoles have been scaled
       
       ! Local variables
       character(len=20) :: atomname
       character(len=9) :: function_type
-      integer :: i, iat, l, m, nit
+      integer :: i, impl, l, m, nit
       real(kind=8) :: factor, convert_units!, get_normalization, get_test_factor
       real(kind=8),dimension(:,:,:),allocatable :: multipoles_tmp
+      real(kind=8),dimension(-lmax:lmax,0:lmax) :: multipoles
       logical :: present_delta_rxyz, present_on_which_atom, present_scaled
 
       present_delta_rxyz = present(delta_rxyz)
@@ -1035,7 +1036,7 @@ module multipole
       present_scaled = present(scaled)
 
 
-          ! See whether a conversion of the units necessary
+          ! See whether a conversion of the units is necessary
           select case (units)
           case ('angstroem','angstroemd0')
               convert_units = 0.52917721092_gp
@@ -1050,25 +1051,25 @@ module multipole
           call yaml_mapping_open('Multipole coefficients')
           call yaml_map('units for atomic positions',trim(units))
           call yaml_sequence_open('Values')
-          do iat=1,nat
+          do impl=1,ep%nmpl
               call yaml_sequence(advance='no')
-              atomname=trim(atomnames(iat))
-              call yaml_map('sym',adjustl(trim(atomname))//' # '//adjustl(trim(yaml_toa(iat,fmt='(i4.4)'))))
+              call yaml_map('sym',adjustl(trim(ep%mpl(impl)%sym))//' # '//adjustl(trim(yaml_toa(impl,fmt='(i4.4)'))))
               if (present_on_which_atom) then
-                  call yaml_map('Atom number',on_which_atom(iat))
+                  call yaml_map('Atom number',on_which_atom(impl))
               end if
-              call yaml_map('r',convert_units*rxyz(1:3,iat))
+              call yaml_map('r',convert_units*ep%mpl(impl)%rxyz)
               if (present_delta_rxyz) then
-                  call yaml_map('Delta r',convert_units*delta_rxyz(1:3,iat),fmt='(es13.6)')
+                  call yaml_map('Delta r',convert_units*delta_rxyz(1:3,impl),fmt='(es13.6)')
               end if
               do l=0,lmax
-                  call yaml_map('q'//adjustl(trim(yaml_toa(l))),multipoles(-l:l,l,iat),fmt='(1es13.6)')
+                  call yaml_map('q'//adjustl(trim(yaml_toa(l))),ep%mpl(impl)%qlm(l)%q(:),fmt='(1es13.6)')
+                  multipoles(:,l) = ep%mpl(impl)%qlm(l)%q(:)
                   call yaml_newline()
               end do
               if (present_scaled) then
-                  call yaml_map('scaling factor',scaled(iat),fmt='(es9.2)')
+                  call yaml_map('scaling factor',scaled(impl),fmt='(es9.2)')
               end if
-              function_type = guess_type(multipoles(:,:,iat))
+              function_type = guess_type(multipoles)
               call yaml_map('type',trim(function_type))
           end do
           call yaml_sequence_close()
@@ -1815,7 +1816,7 @@ module multipole
       real(kind=8),dimension(nphi),intent(in) :: lphi
       real(kind=8),dimension(3,at%astruct%nat),intent(in) :: rxyz
       character(len=*),intent(in) :: method
-      type(external_potential_descriptors),intent(out),optional :: ep
+      type(external_potential_descriptors),intent(out) :: ep
 
       ! Local variables
       integer :: methTransformOverlap, iat, ind, ispin, ishift, iorb, iiorb, l, m, itype, natpx, isatx, nmaxx, kat, n, i, kkat
@@ -1966,34 +1967,31 @@ module multipole
           itype = at%astruct%iatype(iat)
           names(iat) = at%astruct%atomnames(itype)
       end do
-      if (iproc==0) then
-          call yaml_comment('Final result of the multipole analysis',hfill='~')
-          call write_multipoles_new(at%astruct%nat, names, &
-               at%astruct%rxyz, at%astruct%units, &
-               atomic_multipoles)
-      end if
 
 
-      if (present(ep)) then
-          ep = external_potential_descriptors_null()
-          ep%nmpl = at%astruct%nat
-          allocate(ep%mpl(ep%nmpl))
-          do impl=1,ep%nmpl
-              ep%mpl(impl) = multipole_set_null()
-              allocate(ep%mpl(impl)%qlm(0:lmax))
-              ep%mpl(impl)%rxyz = at%astruct%rxyz(1:3,impl)
-              ep%mpl(impl)%sym = trim(names(impl))
-              do l=0,lmax
-                  ep%mpl(impl)%qlm(l) = multipole_null()
-                  !if (l>=3) cycle
-                  ep%mpl(impl)%qlm(l)%q = f_malloc_ptr(2*l+1,id='q')
-                  mm = 0
-                  do m=-l,l
-                      mm = mm + 1
-                      ep%mpl(impl)%qlm(l)%q(mm) = atomic_multipoles(m,l,impl)
-                  end do
+      ep = external_potential_descriptors_null()
+      ep%nmpl = at%astruct%nat
+      allocate(ep%mpl(ep%nmpl))
+      do impl=1,ep%nmpl
+          ep%mpl(impl) = multipole_set_null()
+          allocate(ep%mpl(impl)%qlm(0:lmax))
+          ep%mpl(impl)%rxyz = at%astruct%rxyz(1:3,impl)
+          ep%mpl(impl)%sym = trim(names(impl))
+          do l=0,lmax
+              ep%mpl(impl)%qlm(l) = multipole_null()
+              !if (l>=3) cycle
+              ep%mpl(impl)%qlm(l)%q = f_malloc_ptr(2*l+1,id='q')
+              mm = 0
+              do m=-l,l
+                  mm = mm + 1
+                  ep%mpl(impl)%qlm(l)%q(mm) = atomic_multipoles(m,l,impl)
               end do
           end do
+      end do
+
+      if (iproc==0) then
+          call yaml_comment('Final result of the multipole analysis',hfill='~')
+          call write_multipoles_new(ep, at%astruct%units)
       end if
 
 
@@ -3481,9 +3479,11 @@ module multipole
    use sparsematrix_init, only: matrixindex_in_compressed
    use orthonormalization, only: orthonormalizelocalized
 
-      use communications_base, only: TRANSPOSE_FULL
-      use transposed_operations, only: calculate_overlap_transposed
-      use communications, only: transpose_localized
+   use communications_base, only: TRANSPOSE_FULL
+   use transposed_operations, only: calculate_overlap_transposed
+   use communications, only: transpose_localized
+   use multipole_base, only: external_potential_descriptors, external_potential_descriptors_null, &
+                             multipole_set_null, multipole_null, deallocate_external_potential_descriptors
    
    ! Calling arguments
    integer,intent(in) :: iproc, nproc
@@ -3492,7 +3492,7 @@ module multipole
    real(kind=8),dimension(3),intent(in) :: shift !< global shift of the atomic positions
    type(DFT_local_fields), intent(inout) :: denspot
  
-   integer :: ist, istr, iorb, iiorb, ilr, i, iat, iter, itype
+   integer :: ist, istr, iorb, iiorb, ilr, i, iat, iter, itype, mm
    integer :: i1, i2, i3, ii1, ii2, ii3, nl1, nl2, nl3, ii, l, m, ind, iat_old, methTransformOverlap
    real(kind=8),dimension(:),allocatable :: rmax, phi1, phi1r, phi_ortho
    real(kind=8),dimension(:,:),allocatable :: delta_centers
@@ -3508,6 +3508,7 @@ module multipole
    real(kind=8),dimension(:),allocatable :: scaled
    real(kind=8),dimension(:),pointer :: phit_c, phit_f
    logical :: can_use_transposed
+   type(external_potential_descriptors) :: ep
    character(len=*),parameter :: no='none', onsite='on-site'
    character(len=*),parameter :: do_ortho = onsite
  
@@ -3679,6 +3680,11 @@ module multipole
       delta_centers = f_malloc((/3,tmb%orbs%norb/),id='delta_centers')
       iat_old = -1
       names = f_malloc_str(len(names),tmb%orbs%norb,id='names')
+
+      ep = external_potential_descriptors_null()
+      ep%nmpl = tmb%orbs%norb
+      allocate(ep%mpl(ep%nmpl))
+
       do iorb=1,tmb%orbs%norb
           iat = tmb%orbs%onwhichatom(iorb)
           if (iat/=iat_old) then
@@ -3698,10 +3704,25 @@ module multipole
           !write(*,*) 'iorb, delta_centers(1:3,iorb)', iorb, delta_centers(1:3,iorb)
           ! Undo the global shift of the centers
           center_orb(1:3,iorb) = center_orb(1:3,iorb) + shift(1:3)
+
+          ep%mpl(iorb) = multipole_set_null()
+          allocate(ep%mpl(iorb)%qlm(0:lmax))
+          ep%mpl(iorb)%rxyz = center_orb(1:3,iorb)
+          ep%mpl(iorb)%sym = trim(names(iorb))
+          do l=0,lmax
+              ep%mpl(iorb)%qlm(l) = multipole_null()
+              !if (l>=3) cycle
+              ep%mpl(iorb)%qlm(l)%q = f_malloc_ptr(2*l+1,id='q')
+              mm = 0
+              do m=-l,l
+                  mm = mm + 1
+                  ep%mpl(iorb)%qlm(l)%q(mm) = multipoles(m,l,iorb)
+              end do
+          end do
       end do
-      call write_multipoles_new(tmb%orbs%norb, names, center_orb, &
-           atoms%astruct%units, multipoles, &
+      call write_multipoles_new(ep, atoms%astruct%units, &
            delta_centers, tmb%orbs%onwhichatom, scaled)
+      call deallocate_external_potential_descriptors(ep)
       call f_free(delta_centers)
       call f_free(iatype_tmp)
       call f_free_str(len(names),names)
@@ -3724,6 +3745,62 @@ module multipole
   call f_release_routine()
  
  end subroutine support_function_gross_multipoles
+
+
+ subroutine get_optimal_sigmas(iproc, nproc, KSwfn, tmb, at, input, ep, shift, denspot)
+   use module_base
+   use module_types, only: DFT_wavefunction, input_variables, DFT_local_fields
+   use module_atoms, only: atoms_data
+   use Poisson_Solver, only: H_potential
+   implicit none
+   ! Calling arguments
+   integer,intent(in) :: iproc, nproc
+   type(DFT_wavefunction),intent(in) :: KSwfn, tmb
+   type(atoms_data),intent(in) :: at
+   type(input_variables),intent(in) :: input
+   type(external_potential_descriptors),intent(in) :: ep
+   real(kind=8),dimension(3),intent(in) :: shift
+   type(DFT_local_fields),intent(inout) :: denspot
+   ! Local variables
+   real(kind=8),dimension(:,:,:,:),allocatable :: test_pot
+   logical :: rho_negative
+   real(kind=8) :: ehart_ps
+   integer,parameter :: nsigma=10
+   integer :: i1, i2, i3, isigma
+
+   test_pot = f_malloc0((/size(denspot%V_ext,1),size(denspot%V_ext,2),size(denspot%V_ext,3),2/),id='test_pot')
+
+   ! Calculate the correct electrostatic potential, i.e. electronic plus ionic part
+   call sumrho_for_TMBs(iproc, nproc, KSwfn%Lzd%hgrids(1), KSwfn%Lzd%hgrids(2), KSwfn%Lzd%hgrids(3), &
+        tmb%collcom_sr, tmb%linmat%l, tmb%linmat%kernel_, &
+        denspot%dpbox%ndimrhopot, &
+        denspot%rhov, rho_negative)
+   if (rho_negative) then
+       call corrections_for_negative_charge(iproc, nproc, KSwfn, at, input, tmb, denspot)
+   end if
+   call H_potential('D',denspot%pkernel,denspot%rhov,denspot%V_ext,ehart_ps,0.0_dp,.true.,&
+        quiet=denspot%PSquiet)!,rho_ion=denspot%rho_ion)
+   call dcopy(size(denspot%V_ext,1)*size(denspot%V_ext,2)*size(denspot%V_ext,3), &
+        denspot%rhov(1), 1, test_pot(1,1,1,1), 1)
+
+   do isigma=1,nsigma
+       call dcopy(size(denspot%V_ext,1)*size(denspot%V_ext,2)*size(denspot%V_ext,3), &
+            denspot%V_ext(1,1,1,1), 1, test_pot(1,1,1,2), 1)
+       call potential_from_charge_multipoles(iproc, nproc, at, denspot, ep, 1, &
+            denspot%dpbox%ndims(1), 1, denspot%dpbox%ndims(2), &
+            denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+1, &
+            denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,3)+denspot%dpbox%nscatterarr(denspot%dpbox%mpi_env%iproc,2), &
+            denspot%dpbox%hgrids(1),denspot%dpbox%hgrids(2),denspot%dpbox%hgrids(3), shift, test_pot(:,:,:,2))
+       do i3=1,size(denspot%V_ext,3)
+           do i2=1,size(denspot%V_ext,2)
+               do i1=1,size(denspot%V_ext,1)
+                   write(800,*) 'i1, i2, i3, vals', i1, i2, i3, test_pot(i1,i2,i3,1), test_pot(i1,i2,i3,2)
+               end do
+           end do
+       end do
+   end do
+   call f_free(test_pot)
+ end subroutine get_optimal_sigmas
 
 
 end module multipole
