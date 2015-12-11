@@ -605,7 +605,6 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
     end if
     call cuda_estimate_memory_needs(kernel, n, myiproc_node, mynproc_node) 
 
-
     size2=2*n1*n2*n3
     sizek=(n1/2+1)*n2*n3
     size3=n1*n2*n3
@@ -635,9 +634,9 @@ subroutine pkernel_set(kernel,eps,dlogeps,oneoeps,oneosqrteps,corr,iproc_node,np
       if (i_stat /= 0) call f_err_throw('error cudamalloc kappa_GPU (GPU out of memory ?) ')
     end if 
   end if
-
    if (kernel%mpi_env%iproc == 0) then
-    if (kernel%igpu == 1) then
+     if (kernel%igpu == 1) then
+      call cudacreatestream()
       if (kernel%keepGPUmemory == 1) then
         call cudamalloc(size2,kernel%w%work1_GPU,i_stat)
       if (i_stat /= 0) call f_err_throw('error cudamalloc work1_GPU (GPU out of memory ?) ')

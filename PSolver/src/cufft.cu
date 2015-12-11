@@ -80,6 +80,8 @@ static const char *_cufftGetErrorString(cufftResult error)
 }
 
 
+cudaStream_t stream1=NULL;
+
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -118,8 +120,25 @@ inline void __cublasAssert(cublasStatus_t code, const char *file, const int line
 // synchronize blocks
 extern "C" void synchronize_() {
  
-  cudaThreadSynchronize();
+  cudaDeviceSynchronize();
 }
+
+
+// create stream for kernel
+extern "C" void FC_FUNC(cudacreatestream, CUDACREATESTREAM) (int* ierr) {
+
+  *ierr = cudaStreamCreate(&stream1);
+  //errors should be treated in the fortran part
+}
+
+
+// create stream for kernel
+extern "C" void FC_FUNC(cudadestroystream, CUDADESTROYSTREAM) (int* ierr) {
+
+  *ierr = cudaStreamDestroy(stream1);
+  //errors should be treated in the fortran part
+}
+
 
 // allocate device memory
 extern "C" void FC_FUNC(cudamalloc, CUDAMALLOC) (int *size, Real **d_data,int *ierr) {
@@ -131,7 +150,7 @@ extern "C" void FC_FUNC(cudamalloc, CUDAMALLOC) (int *size, Real **d_data,int *i
 // allocate device memory
 extern "C" void FC_FUNC(cudamemset, CUDAMEMSET) (Real **d_data, int* value, int* size,int *ierr) {
 
-  *ierr = cudaMemset((void*)*d_data, *value, sizeof(Real)*(*size));
+  *ierr = cudaMemsetAsync((void*)*d_data, *value, sizeof(Real)*(*size),stream1);
 }
 
 extern "C" void FC_FUNC(cudafree, CUDAFREE) (Real **d_data) {
@@ -144,30 +163,30 @@ extern "C" void FC_FUNC(cufftdestroy, CUFFTDESTROY) (cufftHandle *plan) {
 
 // set device memory
 extern "C" void FC_FUNC_(reset_gpu_data, RESET_GPU_DATA)(int *size, Real* h_data, Real **d_data){
-  cudaMemcpy(*d_data, h_data, sizeof(Real)*(*size),
-         cudaMemcpyHostToDevice);
+  cudaMemcpyAsync(*d_data, h_data, sizeof(Real)*(*size),
+         cudaMemcpyHostToDevice,stream1);
   gpuErrchk( cudaPeekAtLastError() );
 }
 
 // copy data on the card
 extern "C" void FC_FUNC_(copy_gpu_data, COPY_GPU_DATA)(int *size, Real** dest_data, Real **send_data){
-  cudaMemcpy(*dest_data, *send_data, sizeof(Real)*(*size),
-         cudaMemcpyDeviceToDevice);
+  cudaMemcpyAsync(*dest_data, *send_data, sizeof(Real)*(*size),
+         cudaMemcpyDeviceToDevice,stream1);
   gpuErrchk( cudaPeekAtLastError() );
 }
 
 
 // read device memory
 extern "C" void FC_FUNC_(get_gpu_data, GET_GPU_DATA)(int *size, Real *h_data, Real **d_data) {
-  cudaMemcpy(h_data, *d_data, sizeof(Real)*(*size),
-         cudaMemcpyDeviceToHost);
+  cudaMemcpyAsync(h_data, *d_data, sizeof(Real)*(*size),
+         cudaMemcpyDeviceToHost,stream1);
   gpuErrchk( cudaPeekAtLastError() );
 }
 
 // set device memory
 extern "C" void FC_FUNC_(send_and_pad_data, SEND_AND_PAD_DATA)(Real* h_data, Real **d_data, int* m1, int* m2, int*m3, int* md1, int*md2, int* md3){
 
-cudaMemset(*d_data, 0, *md1**md2**md3*sizeof(Real));
+cudaMemsetAsync(*d_data, 0, *md1**md2**md3*sizeof(Real),stream1);
 cudaMemcpy3DParms cpyParms = {0};
 
 cpyParms.srcPtr = make_cudaPitchedPtr(h_data, ((size_t)*m1)*sizeof(Real), ((size_t)*m2), ((size_t)*m3));
@@ -177,7 +196,7 @@ cpyParms.dstPtr = make_cudaPitchedPtr(*d_data, ((size_t)*md1)*sizeof(Real), ((si
 cpyParms.extent = make_cudaExtent( ((size_t)*m1)*sizeof(Real),  ((size_t)*m3),  ((size_t)*m2));;
 cpyParms.kind = cudaMemcpyHostToDevice;
 
-cudaError_t status = cudaMemcpy3D(&cpyParms);
+cudaError_t status = cudaMemcpy3DAsync(&cpyParms,stream1);
 
 if(status != cudaSuccess){fprintf(stderr, "%s\n", cudaGetErrorString(status));}
 
@@ -186,7 +205,7 @@ if(status != cudaSuccess){fprintf(stderr, "%s\n", cudaGetErrorString(status));}
 // set device memory
 extern "C" void FC_FUNC_(pad_data, PAD_DATA)(Real** h_data, Real **d_data, int* m1, int* m2, int*m3, int* md1, int*md2, int* md3){
 
-cudaMemset(*d_data, 0, *md1**md2**md3*sizeof(Real));
+cudaMemsetAsync(*d_data, 0, *md1**md2**md3*sizeof(Real),stream1);
 cudaMemcpy3DParms cpyParms = {0};
 
 cpyParms.srcPtr = make_cudaPitchedPtr(*h_data, ((size_t)*m1)*sizeof(Real), ((size_t)*m2), ((size_t)*m3));
@@ -196,7 +215,7 @@ cpyParms.dstPtr = make_cudaPitchedPtr(*d_data, ((size_t)*md1)*sizeof(Real), ((si
 cpyParms.extent = make_cudaExtent( ((size_t)*m1)*sizeof(Real),  ((size_t)*m3),  ((size_t)*m2));;
 cpyParms.kind = cudaMemcpyDeviceToDevice;
 
-cudaError_t status = cudaMemcpy3D(&cpyParms);
+cudaError_t status = cudaMemcpy3DAsync(&cpyParms,stream1);
 
 if(status != cudaSuccess){fprintf(stderr, "%s\n", cudaGetErrorString(status));}
 
@@ -215,7 +234,7 @@ cpyParms.srcPtr = make_cudaPitchedPtr(*d_data, ((size_t)*md1)*sizeof(Real), ((si
 cpyParms.extent = make_cudaExtent( ((size_t)*m1)*sizeof(Real),  ((size_t)*m3),  ((size_t)*m2));;
 cpyParms.kind = cudaMemcpyDeviceToDevice;
 
-cudaError_t status = cudaMemcpy3D(&cpyParms);
+cudaError_t status = cudaMemcpy3DAsync(&cpyParms,stream1);
 
 if(status != cudaSuccess){fprintf(stderr, "%s\n", cudaGetErrorString(status));}
 
@@ -532,7 +551,7 @@ extern "C" void cuda_1d_plan_(int *NX_p, int *Nbatch_p,
  cufftErrchk(cufftPlanMany(plan,  1, n1d,
               NULL, 1, NX,
               NULL, 1, NX, Transform, Nbatch));
-
+ cufftSetStream(*plan, stream1);
  //cufftPlan1d(plan, NX, Transform, Nbatch );
 
 }
@@ -565,6 +584,7 @@ extern "C" void cuda_2d_plan_(int *NX_p, int *NY_p, int *Nbatch_p,
  cufftErrchk(cufftPlanMany(plan,  1, n1d,
               NULL, 1, NX*NY,
               NULL, 1, NX*NY, Transform, Nbatch));
+ cufftSetStream(*plan, stream1);
 
 }
 
@@ -591,6 +611,7 @@ extern "C" void cuda_3d_plan_(int *NX_p, int *NY_p, int *NZ_p,
  cufftErrchk(cufftPlanMany(plan, 3, n,
               NULL, 1, NX*NY*NZ,
               NULL, 1, NX*NY*NZ, Transform, 1));
+ cufftSetStream(*plan, stream1);
 }
 
 extern "C" void cuda_3d_forward_(cufftHandle *plan,
@@ -627,10 +648,12 @@ extern "C" void cuda_3d_psolver_cufft3d_plan_(int *NX_p, int *NY_p, int *NZ_p,
  cufftErrchk(cufftPlanMany(plan, 3, n,
               NULL, 1, NX*NY*NZ,
               NULL, 1, NX*NY*NZ, CUFFT_D2Z, 1));
+ cufftSetStream(*plan, stream1);
 
  cufftErrchk(cufftPlanMany(plan1, 3, n,
               NULL, 1, NX*NY*NZ,
               NULL, 1, NX*NY*NZ, CUFFT_Z2D, 1));
+ cufftSetStream(*plan1, stream1);
 
 }
 
@@ -669,14 +692,14 @@ extern "C" void cuda_3d_psolver_cufft3d_(int *NX_p, int *NY_p, int *NZ_p,cufftHa
    if (geo1==0 && geo2==0 && geo3==0) {
     src = *d_data;
     dst = *d_data2;
-    zero <<< nblocks, nthreads >>> (NX,NY,NZ, (Real*)dst);
-    copy_0 <<< nblocks, nthreads  >>> (NX,NY,NZ, (Real*)src, (Real*)dst);
+    zero <<< nblocks, nthreads, 0, stream1 >>> (NX,NY,NZ, (Real*)dst);
+    copy_0 <<< nblocks, nthreads, 0, stream1  >>> (NX,NY,NZ, (Real*)src, (Real*)dst);
    }
    else {
     if (geo1==0) {
      src = *d_data;
      dst = *d_data2;
-     spread<<<nblocks_s, NX>>>((Real*)src, NX/2, (Real*)dst, NX);
+     spread<<<nblocks_s, NX, 0, stream1>>>((Real*)src, NX/2, (Real*)dst, NX);
     }
     if (geo2==0) {
       if (geo1==0) {
@@ -688,12 +711,12 @@ extern "C" void cuda_3d_psolver_cufft3d_(int *NX_p, int *NY_p, int *NZ_p,cufftHa
       }
       nblocks_s.x=ysize;
       nblocks_s.y=zsize;
-      spread_y_r<<<nblocks_s, NX>>>((Real*)src, (Real*)dst);
+      spread_y_r<<<nblocks_s, NX, 0, stream1>>>((Real*)src, (Real*)dst);
     }
     if (geo3==0) {
       nblocks_s.x=NY;
       nblocks_s.y=zsize;
-      spread_z<<<nblocks_s, NX>>>((Real*)dst, (Real*)src);
+      spread_z<<<nblocks_s, NX, 0, stream1>>>((Real*)dst, (Real*)src);
     }
    }
 
@@ -703,19 +726,19 @@ extern "C" void cuda_3d_psolver_cufft3d_(int *NX_p, int *NY_p, int *NZ_p,cufftHa
 
    // multiply with kernel
 
-   multiply_kernel <<< nBlocks, nThreads >>> (NX/2+1,NY,NZ,src,*d_kernel,scal);
+   multiply_kernel <<< nBlocks, nThreads, 0, stream1 >>> (NX/2+1,NY,NZ,src,*d_kernel,scal);
 
    // Inverse FFT
 
    cufftErrchk( cufftExecZ2D(*plan1, src, (Real*)dst));
 
    if (geo1==0 && geo2==0 && geo3==0)
-     copy <<< nblocks, nthreads >>> (NX,NY,NZ, (Real*)dst, (Real*)src);
+     copy <<< nblocks, nthreads, 0, stream1 >>> (NX,NY,NZ, (Real*)dst, (Real*)src);
    else { 
     if (geo2==0) {
        nblocks_s.x=ysize;
        nblocks_s.y=zsize;
-       spread_y_i_r<<<nblocks_s, NX>>>((Real*)dst, (Real*)src);
+       spread_y_i_r<<<nblocks_s, NX, 0, stream1>>>((Real*)dst, (Real*)src);
     }
     if (geo1==0) {
        if (geo2==0) {
@@ -725,7 +748,7 @@ extern "C" void cuda_3d_psolver_cufft3d_(int *NX_p, int *NY_p, int *NZ_p,cufftHa
        }
       nblocks_s.x=zsize;
       nblocks_s.y=ysize; 
-      spread_i<<<nblocks_s, NX/2>>>((Real*)dst, NX/2, (Real*)src, NX);
+      spread_i<<<nblocks_s, NX/2, 0, stream1>>>((Real*)dst, NX/2, (Real*)src, NX);
     }
    }
 }
@@ -753,20 +776,24 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general_plan, CUDA_3D_PSOLVER_GENERAL_P
  cufftErrchk(cufftPlanMany(plan,  1, n1d,
               NULL, 1, NX,
               NULL, 1, NX, CUFFT_D2Z, ysize*zsize));
+ cufftSetStream(*plan, stream1);
 
  cufftErrchk(cufftPlanMany(plan+1,  1, n1d,
               NULL, 1, NX,
               NULL, 1, NX, CUFFT_Z2D, ysize*zsize));
+ cufftSetStream(*(plan+1), stream1);
 
  n1d[0] = NY;
  cufftErrchk(cufftPlanMany(plan+2,  1, n1d,
               NULL, 1, NY,
               NULL, 1, NY, Transform, (NX/2+1)*zsize));
+ cufftSetStream(*(plan+2), stream1);
 
  n1d[0] = NZ;
  cufftErrchk(cufftPlanMany(plan+3,  1, n1d,
               NULL, 1, NZ,
               NULL, 1, NZ, Transform, (NX/2+1)*NY));
+ cufftSetStream(*(plan+3), stream1);
 
  *switch_alg = 0;
 
@@ -829,15 +856,15 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    if (geo1==0) {
      src = *d_data;
      dst = *d_data2;
-     spread<<<nblocks, NX>>>((Real*)src, NX/2, (Real*)dst, NX);
+     spread<<<nblocks, NX, 0, stream1>>>((Real*)src, NX/2, (Real*)dst, NX);
    }
 
    cufftErrchk(cufftExecD2Z(plan[0], (Real*)dst, src));
 
    if (geo2==0) {
-     transpose_spread <<< grid, threads >>>(src, dst,NX/2+1,ysize*zsize,NY/2);
+     transpose_spread <<< grid, threads, 0, stream1 >>>(src, dst,NX/2+1,ysize*zsize,NY/2);
    } else {
-     transpose <<< grid, threads >>>(src, dst,NX/2+1,ysize*zsize);
+     transpose <<< grid, threads, 0, stream1 >>>(src, dst,NX/2+1,ysize*zsize);
    }
 
    // Y transform
@@ -849,9 +876,9 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    grid.y = ((NX/2+1)*zsize+TILE_DIM-1)/TILE_DIM;
 
    if (geo3==0) {
-     transpose_spread <<< grid, threads >>>(src,dst,NY,(NX/2+1)*NZ/2,NZ/2);
+     transpose_spread <<< grid, threads, 0, stream1 >>>(src,dst,NY,(NX/2+1)*NZ/2,NZ/2);
    } else {
-     transpose <<< grid, threads >>>(src, dst,NY,(NX/2+1)*NZ);
+     transpose <<< grid, threads, 0, stream1 >>>(src, dst,NY,(NX/2+1)*NZ);
    }
 
    cufftErrchk(TransformExec(plan[3], dst, src, CUFFT_FORWARD));
@@ -860,7 +887,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    if (geo3==0) {
       nblocks.x=zsize;
       nblocks.y=NX;
-      spread_y<<<nblocks, NY>>>(src, dst);
+      spread_y<<<nblocks, NY, 0, stream1>>>(src, dst);
    }
 
    for(int k=0; k<NX; ++k){
@@ -875,7 +902,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
 
   // multiply with kernel
 
-  multiply_kernel <<< nBlocks, nThreads >>> (NX/2+1,NY,NZ,src,*d_kernel,scal);
+  multiply_kernel <<< nBlocks, nThreads, 0, stream1>>> (NX/2+1,NY,NZ,src,*d_kernel,scal);
 
   // inverse transform
 
@@ -887,9 +914,9 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    grid.y = (NY+TILE_DIM-1)/TILE_DIM;
 
    if (geo3==0) {
-     transpose_spread_i <<< grid, threads >>>(dst, src,NZ/2*(NX/2+1),NY,NZ/2);
+     transpose_spread_i <<< grid, threads, 0, stream1 >>>(dst, src,NZ/2*(NX/2+1),NY,NZ/2);
    } else {
-     transpose <<< grid, threads >>>(dst, src,NZ*(NX/2+1),NY);
+     transpose <<< grid, threads, 0, stream1 >>>(dst, src,NZ*(NX/2+1),NY);
    }
 
   }
@@ -905,7 +932,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    dst -= NX*NY*NZ;
 
    if (geo3==0)
-      spread_y_i<<<nblocks, NY>>>(dst, src);
+      spread_y_i<<<nblocks, NY, 0, stream1>>>(dst, src);
   }
 
   // Y transform
@@ -916,9 +943,9 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    grid.y = (NX/2+1+TILE_DIM-1)/TILE_DIM;
 
    if (geo2==0) {
-      transpose_spread_i <<< grid, threads >>>(dst, src,ysize*zsize,NX/2+1, NY/2);
+      transpose_spread_i <<< grid, threads, 0, stream1 >>>(dst, src,ysize*zsize,NX/2+1, NY/2);
    } else
-      transpose <<< grid, threads >>>(dst, src,ysize*zsize,NX/2+1);
+      transpose <<< grid, threads, 0, stream1 >>>(dst, src,ysize*zsize,NX/2+1);
 
    // X transform
 
@@ -927,7 +954,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_general, CUDA_3D_PSOLVER_GENERAL)(int *
    nblocks.x=zsize;
    nblocks.y=ysize;
    if (geo1==0) {
-      spread_i<<<nblocks, NX/2>>>((Real*)dst,NX/2, (Real*)src, NX);
+      spread_i<<<nblocks, NX/2, 0, stream1>>>((Real*)dst,NX/2, (Real*)src, NX);
    }
 }
 
@@ -971,21 +998,22 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
  cufftErrchk(cufftPlanMany(&plan,  1, n1d,
               NULL, 1, NX,
               NULL, 1, NX, CUFFT_D2Z, ysize*zsize));
+ cufftSetStream(plan, stream1);
 
  // X transform 
 
    if (geo1==0) {
      src = *d_data;
      dst = *d_data2;
-     spread<<<nblocks, NX>>>((Real*)src, NX/2, (Real*)dst, NX);
+     spread<<<nblocks, NX, 0, stream1>>>((Real*)src, NX/2, (Real*)dst, NX);
    }
 
    cufftErrchk(cufftExecD2Z(plan, (Real*)dst, src));
 
    if (geo2==0) {
-     transpose_spread <<< grid, threads >>>(src, dst,NX/2+1,ysize*zsize,NY/2);
+     transpose_spread <<< grid, threads, 0, stream1 >>>(src, dst,NX/2+1,ysize*zsize,NY/2);
    } else {
-     transpose <<< grid, threads >>>(src, dst,NX/2+1,ysize*zsize);
+     transpose <<< grid, threads, 0, stream1 >>>(src, dst,NX/2+1,ysize*zsize);
    }
 
    cufftDestroy(plan);
@@ -994,6 +1022,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    cufftErrchk(cufftPlanMany(&plan,  1, n1d,
               NULL, 1, NY,
               NULL, 1, NY, Transform, (NX/2+1)*zsize));
+   cufftSetStream(plan, stream1);
 
    // Y transform
    cufftErrchk(TransformExec(plan, dst, src, CUFFT_FORWARD));
@@ -1003,9 +1032,9 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    grid.y = ((NX/2+1)*zsize+TILE_DIM-1)/TILE_DIM;
 
    if (geo3==0) {
-     transpose_spread <<< grid, threads >>>(src, dst,NY,(NX/2+1)*NZ/2,NZ/2);
+     transpose_spread <<< grid, threads, 0, stream1 >>>(src, dst,NY,(NX/2+1)*NZ/2,NZ/2);
    } else {
-     transpose <<< grid, threads >>>(src, dst,NY,(NX/2+1)*NZ);
+     transpose <<< grid, threads, 0, stream1 >>>(src, dst,NY,(NX/2+1)*NZ);
    }
 
    cufftDestroy(plan);
@@ -1013,12 +1042,13 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    cufftErrchk(cufftPlanMany(&plan,  1, n1d,
               NULL, 1, NZ,
               NULL, 1, NZ, Transform, (NX/2+1)*NY));
+   cufftSetStream(plan, stream1);
 
    cufftErrchk(TransformExec(plan, dst, src, CUFFT_FORWARD));
 
   // multiply with kernel
 
-  multiply_kernel <<< nBlocks, nThreads >>> (NX/2+1,NY,NZ,src,*d_kernel,scal);
+  multiply_kernel <<< nBlocks, nThreads, 0, stream1 >>> (NX/2+1,NY,NZ,src,*d_kernel,scal);
 
   // inverse transform
 
@@ -1029,9 +1059,9 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    grid.y = (NY+TILE_DIM-1)/TILE_DIM;
 
    if (geo3==0) {
-     transpose_spread_i <<< grid, threads >>>(dst, src,NZ/2*(NX/2+1),NY,NZ/2);
+     transpose_spread_i <<< grid, threads, 0, stream1 >>>(dst, src,NZ/2*(NX/2+1),NY,NZ/2);
    } else {
-     transpose <<< grid, threads >>>(dst, src,NZ*(NX/2+1),NY);
+     transpose <<< grid, threads, 0, stream1 >>>(dst, src,NZ*(NX/2+1),NY);
    }
 
   // Y transform
@@ -1041,6 +1071,7 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    cufftErrchk(cufftPlanMany(&plan,  1, n1d,
               NULL, 1, NY,
               NULL, 1, NY, Transform, (NX/2+1)*zsize));
+   cufftSetStream(plan, stream1);
 
    cufftErrchk(TransformExec(plan, src, dst,CUFFT_INVERSE));
 
@@ -1048,9 +1079,9 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    grid.y = (NX/2+1+TILE_DIM-1)/TILE_DIM;
 
    if (geo2==0) {
-      transpose_spread_i <<< grid, threads >>>(dst,src,ysize*zsize,NX/2+1, NY/2);
+      transpose_spread_i <<< grid, threads, 0, stream1 >>>(dst,src,ysize*zsize,NX/2+1, NY/2);
    } else
-      transpose <<< grid, threads >>>(dst, src,ysize*zsize,NX/2+1);
+      transpose <<< grid, threads, 0, stream1 >>>(dst, src,ysize*zsize,NX/2+1);
 
    // X transform
 
@@ -1059,13 +1090,14 @@ extern "C" void FC_FUNC_(cuda_3d_psolver_plangeneral, CUDA_3D_PSOLVER_PLANGENERA
    cufftErrchk(cufftPlanMany(&plan,  1, n1d,
               NULL, 1, NX,
               NULL, 1, NX, CUFFT_Z2D, ysize*zsize));
+   cufftSetStream(plan, stream1);
 
    cufftErrchk(cufftExecZ2D(plan, src, (Real*)dst));
 
    nblocks.x=zsize;
    nblocks.y=ysize;
    if (geo1==0) {
-      spread_i<<<nblocks, NX/2>>>((Real*)dst,NX/2, (Real*)src, NX);
+      spread_i<<<nblocks, NX/2, 0, stream1>>>((Real*)dst,NX/2, (Real*)src, NX);
    }
 
    cufftDestroy(plan);
@@ -1305,35 +1337,35 @@ void reduce_step(int s, int threads, int blocks, int reduceOnly,  Real* p_GPU, R
         switch (threads)
         {
             case 512:
-                reduce_kernel<512, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<512, true, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 256:
-                reduce_kernel<256, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<256, true, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
 
             case 128:
-                reduce_kernel<128, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<128, true, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 64:
-                reduce_kernel<64, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<64, true, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 32:
-                reduce_kernel<32, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<32, true, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 16:
-                reduce_kernel<16, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<16, true, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  8:
-                reduce_kernel<8, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<8, true, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  4:
-                reduce_kernel<4, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<4, true, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  2:
-                reduce_kernel<2, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<2, true, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  1:
-                reduce_kernel<1, true, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<1, true, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
         }
     }
@@ -1342,34 +1374,34 @@ void reduce_step(int s, int threads, int blocks, int reduceOnly,  Real* p_GPU, R
         switch (threads)
         {
             case 512:
-                reduce_kernel<512, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<512, false, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 256:
-                reduce_kernel<256, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<256, false, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 128:
-                reduce_kernel<128, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<128, false, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 64:
-                reduce_kernel<64, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<64, false, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 32:
-                reduce_kernel<32, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<32, false, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case 16:
-                reduce_kernel<16, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<16, false, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  8:
-                reduce_kernel<8, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<8, false, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  4:
-                reduce_kernel<4, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<4, false, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  2:
-                reduce_kernel<2, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<2, false, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
             case  1:
-                reduce_kernel<1, false, op1, op2><<< dimGrid, dimBlock, smemSize >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
+                reduce_kernel<1, false, op1, op2><<< dimGrid, dimBlock, smemSize, stream1 >>>(s, reduceOnly,  p_GPU, q_GPU, r_GPU, x_GPU, z_GPU, corr_GPU, oneoeps_GPU, alpha_GPU, beta_GPU, beta0_GPU, kappa_GPU, d_odata);
                 break;
         }
     }
@@ -1460,11 +1492,11 @@ void apply_reduction(int n,
         s = (s + (threads*2-1)) / (threads*2);
     }
   if(retrieve != 0){
-    cudaMemcpy(result, d_odata, sizeof(Real), cudaMemcpyDeviceToHost);
+    cudaMemcpyAsync(result, d_odata, sizeof(Real), cudaMemcpyDeviceToHost,stream1);
   }else{
   gpuErrchk( cudaPeekAtLastError() );
     //for this one the value will be kept on the card, accumulation will be performed later
-    cudaMemcpy(*(Real**)result, d_odata, sizeof(Real), cudaMemcpyDeviceToDevice);
+    cudaMemcpyAsync(*(Real**)result, d_odata, sizeof(Real), cudaMemcpyDeviceToDevice,stream1);
   }
   gpuErrchk( cudaPeekAtLastError() );
 //  cudaFree(d_odata);
@@ -1538,7 +1570,7 @@ extern "C" void FC_FUNC_(gpu_pre_computation,GPU_PRE_COMPUTATION)(int* NX_p, int
    // scale kernel paramters
    int nThreads = NX;
    dim3 nBlocks(NY,NZ,1);
-   pre_computation_kernel <<< nBlocks, nThreads >>> (NX,NY,NZ,*rho_GPU, *data1_GPU,*shift1,*data2_GPU,*shift2,*hfac);
+   pre_computation_kernel <<< nBlocks, nThreads, 0, stream1 >>> (NX,NY,NZ,*rho_GPU, *data1_GPU,*shift1,*data2_GPU,*shift2,*hfac);
  // cudaDeviceSynchronize();
  // gpuErrchk( cudaPeekAtLastError() );
 }
@@ -1571,7 +1603,7 @@ extern "C" void FC_FUNC_(gpu_post_computation,GPU_POST_COMPUTATION)(int* NX_p, i
    int nThreads = NX;
    dim3 nBlocks(NY,NZ,1);
 
-   post_computation_kernel <<< nBlocks, nThreads >>> (NX,NY,NZ,*rho_GPU, *data1_GPU,*shift1,*data2_GPU,*shift2,*hfac);
+   post_computation_kernel <<< nBlocks, nThreads, 0, stream1 >>> (NX,NY,NZ,*rho_GPU, *data1_GPU,*shift1,*data2_GPU,*shift2,*hfac);
 
 //  cudaDeviceSynchronize();
  // gpuErrchk( cudaPeekAtLastError() );
@@ -1587,7 +1619,7 @@ __global__ void accumulate_eexctX_kernel(Real* ehart_GPU, Real* eexctX_GPU, Real
 
 extern "C" void FC_FUNC_(gpu_accumulate_eexctx,GPU_ACCUMULATE_EEXCTX)(Real** ehart_GPU, Real** eexctX_GPU, Real* hfac){
 
-   accumulate_eexctX_kernel <<< 1, 1 >>> (*ehart_GPU, *eexctX_GPU,*hfac);
+   accumulate_eexctX_kernel <<< 1, 1, 0, stream1 >>> (*ehart_GPU, *eexctX_GPU,*hfac);
 
 //  cudaDeviceSynchronize();
  // gpuErrchk( cudaPeekAtLastError() );
@@ -1598,6 +1630,7 @@ extern "C" void FC_FUNC_(gpu_accumulate_eexctx,GPU_ACCUMULATE_EEXCTX)(Real** eha
 extern "C" void FC_FUNC_(poisson_cublas_daxpy, POISSON_CUBLAS_DAXPY)(int *size, const double* alpha, Real** d_x,int* facx, Real ** d_y, int* facy,int* offset_y){
   cublasHandle_t handle;
   cublasErrchk(cublasCreate(&handle));
+  cublasSetStream(handle, stream1);
   cublasErrchk(cublasDaxpy(handle,*size,alpha,*d_x,*facx,*d_y+*offset_y,*facy));
   cublasErrchk(cublasDestroy(handle));
   gpuErrchk( cudaPeekAtLastError() );

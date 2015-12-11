@@ -339,6 +339,7 @@ contains
     end if
     if (igpu == 1) then
        if (iproc == 0) then
+	  call cudadestroystream()
           if (keepGPUmemory == 1) then
              call cudafree(w%work1_GPU)
              call cudafree(w%work2_GPU)
