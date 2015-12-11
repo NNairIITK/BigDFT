@@ -31,7 +31,7 @@ module ice
       ! Calling arguments
       integer,intent(in) :: iproc, nproc, norder_polynomial, ncalc
       type(sparse_matrix),intent(in) :: ovrlp_smat, inv_ovrlp_smat
-      integer,dimension(ncalc) :: ex
+      real(kind=8),dimension(ncalc),intent(in) :: ex
       type(matrices),intent(in) :: ovrlp_mat
       type(matrices),dimension(ncalc),intent(inout) :: inv_ovrlp
     
@@ -104,7 +104,6 @@ module ice
          call foe_data_set_int(foe_obj,"evboundsshrink_nsatur",10)
          call foe_data_set_real(foe_obj,"fscale_lowerbound",1.d-2)
          call foe_data_set_real(foe_obj,"fscale_upperbound",0.d0)
-         call foe_data_set_logical(foe_obj,"adjust_FOE_temperature",.false.)
     !@ ################################################
     
     

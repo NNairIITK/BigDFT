@@ -1357,9 +1357,6 @@
    evboundsshrink_nsatur:
      COMMENT: maximal number of unsuccessful eigenvalue bounds shrinkings
      default: 4
-   adjust_FOE_temperature:
-     COMMENT: linear scaling dynamic adjustment of the decay length of the FOE error function
-     default: Yes
    calculate_gap:
      COMMENT: linear scaling calculate the HOMO LUMO gap
      default: No

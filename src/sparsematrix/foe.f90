@@ -9,7 +9,7 @@ module foe
 
   contains
 
-    subroutine fermi_operator_expansion(iproc, nproc, tmprtr, &
+    subroutine fermi_operator_expansion(iproc, nproc, &
                ebs, order_taylor, max_inversion_error, &
                calculate_minusonehalf, foe_verbosity, &
                label, smats, smatm, smatl, ham_, ovrlp_, ovrlp_minus_one_half_, kernel_, foe_obj)
@@ -19,7 +19,6 @@ module foe
                                    SPARSE_FULL, SPARSE_MATMUL_SMALL, &
                                    SPARSE_MATMUL_LARGE, SPARSEMM_SEQ, SPARSE_TASKGROUP, &
                                    matrices, sparse_matrix
-      use sparsematrix_init, only: matrixindex_in_compressed
       use sparsematrix, only: compress_matrix, uncompress_matrix, &
                               transform_sparsity_pattern, compress_matrix_distributed_wrapper, &
                               trace_sparse
@@ -36,7 +35,6 @@ module foe
       integer,intent(in) :: iproc, nproc
       integer,intent(inout) :: order_taylor
       real(kind=8),intent(in) :: max_inversion_error
-      real(kind=8),intent(in) :: tmprtr
       real(kind=8),intent(out) :: ebs
       logical,intent(in) :: calculate_minusonehalf
       integer,intent(in) :: foe_verbosity
@@ -314,7 +312,7 @@ module foe
             
                       call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl, cc(1,1,1), &
-                           foe_data_get_real(foe_obj,"ef",ispin), fscale, tmprtr)
+                           foe_data_get_real(foe_obj,"ef",ispin), fscale, foe_data_get_real(foe_obj,"tmprtr"))
                       call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), cc(1,1,1), cc(1,2,1), npl)
                       call chebft2(foe_data_get_real(foe_obj,"evlow",ispin), &
@@ -324,7 +322,7 @@ module foe
         
                       call chebft(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), npl_check, cc_check(1,1,1), &
-                           foe_data_get_real(foe_obj,"ef",ispin), fscale_check, tmprtr)
+                           foe_data_get_real(foe_obj,"ef",ispin), fscale_check, foe_data_get_real(foe_obj,"tmprtr"))
                       call chder(foe_data_get_real(foe_obj,"evlow",ispin), &
                            foe_data_get_real(foe_obj,"evhigh",ispin), &
                            cc_check(1,1,1), cc_check(1,2,1), npl_check)
@@ -629,46 +627,44 @@ module foe
                   call yaml_map('relative diff',diff)
               end if
         
-              if (foe_data_get_logical(foe_obj,"adjust_FOE_temperature") .and. foe_verbosity>=1) then
-                  if (diff<5.d-5) then
-                      ! can decrease polynomial degree
-                      !!call foe_data_set_real(foe_obj,"fscale", 1.25d0*foe_data_get_real(foe_obj,"fscale"))
-                      if (iproc==0) call yaml_map('modify fscale','increase')
-                      !fscale_new=min(fscale_new,1.25d0*foe_data_get_real(foe_obj,"fscale"))
-                      fscale_new=1.25d0*fscale_new
-                      degree_sufficient=.true.
-                  else if (diff>=5.d-5 .and. diff < 1.d-4) then
-                      ! polynomial degree seems to be appropriate
-                      degree_sufficient=.true.
-                      if (iproc==0) call yaml_map('modify fscale','No')
-                      !fscale_new=min(fscale_new,foe_data_get_real(foe_obj,"fscale"))
-                      fscale_new=fscale_new
-                  else
-                      ! polynomial degree too small, increase and recalculate
-                      ! the kernel
-                      degree_sufficient=.false.
-                      !!call foe_data_set_real(foe_obj,"fscale", 0.5*foe_data_get_real(foe_obj,"fscale"))
-                      if (iproc==0) call yaml_map('modify fscale','decrease')
-                      !fscale_new=min(fscale_new,0.5d0*foe_data_get_real(foe_obj,"fscale"))
-                      fscale_new=0.5d0*fscale_new
-                  end if
-                  !if (foe_data_get_real(foe_obj,"fscale")<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
-                  if (fscale_new<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
-                      !call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_lowerbound"))
-                      fscale_new=foe_data_get_real(foe_obj,"fscale_lowerbound")
-                      if (iproc==0) call yaml_map('fscale reached lower limit; reset to', &
-                          foe_data_get_real(foe_obj,"fscale_lowerbound"))
-                      reached_limit=.true.
-                  !else if (foe_data_get_real(foe_obj,"fscale")>foe_data_get_real(foe_obj,"fscale_upperbound")) then
-                  else if (fscale_new>foe_data_get_real(foe_obj,"fscale_upperbound")) then
-                      !call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_upperbound"))
-                      fscale_new=foe_data_get_real(foe_obj,"fscale_upperbound")
-                      if (iproc==0) call yaml_map('fscale reached upper limit; reset to', &
-                          foe_data_get_real(foe_obj,"fscale_upperbound"))
-                      reached_limit=.true.
-                  else
-                      reached_limit=.false.
-                  end if
+              if (diff<5.d-5) then
+                  ! can decrease polynomial degree
+                  !!call foe_data_set_real(foe_obj,"fscale", 1.25d0*foe_data_get_real(foe_obj,"fscale"))
+                  if (iproc==0) call yaml_map('modify fscale','increase')
+                  !fscale_new=min(fscale_new,1.25d0*foe_data_get_real(foe_obj,"fscale"))
+                  fscale_new=1.25d0*fscale_new
+                  degree_sufficient=.true.
+              else if (diff>=5.d-5 .and. diff < 1.d-4) then
+                  ! polynomial degree seems to be appropriate
+                  degree_sufficient=.true.
+                  if (iproc==0) call yaml_map('modify fscale','No')
+                  !fscale_new=min(fscale_new,foe_data_get_real(foe_obj,"fscale"))
+                  fscale_new=fscale_new
+              else
+                  ! polynomial degree too small, increase and recalculate
+                  ! the kernel
+                  degree_sufficient=.false.
+                  !!call foe_data_set_real(foe_obj,"fscale", 0.5*foe_data_get_real(foe_obj,"fscale"))
+                  if (iproc==0) call yaml_map('modify fscale','decrease')
+                  !fscale_new=min(fscale_new,0.5d0*foe_data_get_real(foe_obj,"fscale"))
+                  fscale_new=0.5d0*fscale_new
+              end if
+              !if (foe_data_get_real(foe_obj,"fscale")<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
+              if (fscale_new<foe_data_get_real(foe_obj,"fscale_lowerbound")) then
+                  !call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_lowerbound"))
+                  fscale_new=foe_data_get_real(foe_obj,"fscale_lowerbound")
+                  if (iproc==0) call yaml_map('fscale reached lower limit; reset to', &
+                      foe_data_get_real(foe_obj,"fscale_lowerbound"))
+                  reached_limit=.true.
+              !else if (foe_data_get_real(foe_obj,"fscale")>foe_data_get_real(foe_obj,"fscale_upperbound")) then
+              else if (fscale_new>foe_data_get_real(foe_obj,"fscale_upperbound")) then
+                  !call foe_data_set_real(foe_obj,"fscale",foe_data_get_real(foe_obj,"fscale_upperbound"))
+                  fscale_new=foe_data_get_real(foe_obj,"fscale_upperbound")
+                  if (iproc==0) call yaml_map('fscale reached upper limit; reset to', &
+                      foe_data_get_real(foe_obj,"fscale_upperbound"))
+                  reached_limit=.true.
+              else
+                  reached_limit=.false.
               end if
             
         
@@ -719,7 +715,7 @@ module foe
               if (iproc==0) call yaml_map('trace(KS)',sumn)
         
         
-              if (foe_verbosity>=1 .and. iproc==0) then
+              if (iproc==0) then
                   call yaml_map('need to repeat with sharper decay (new)',.not.degree_sufficient)
               end if
               if (degree_sufficient) exit temp_loop
@@ -739,9 +735,7 @@ module foe
       end do spin_loop
     
     
-      if (foe_data_get_logical(foe_obj,"adjust_FOE_temperature") .and. foe_verbosity>=1) then
-          call foe_data_set_real(foe_obj,"fscale",fscale_new)
-      end if
+      call foe_data_set_real(foe_obj,"fscale",fscale_new)
     
       degree_sufficient=.true.
     

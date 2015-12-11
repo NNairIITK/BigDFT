@@ -556,7 +556,7 @@ subroutine get_coeff(iproc,nproc,scf_mode,orbs,at,rxyz,denspot,GPU,infoCoeff,&
           call f_free(col_ptr)
       else if (scf_mode==LINEAR_FOE) then
           if (iproc==0) call yaml_map('method','FOE')
-          call fermi_operator_expansion(iproc, nproc, tmprtr, &
+          call fermi_operator_expansion(iproc, nproc, &
                energs%ebs, order_taylor, max_inversion_error, &
                invert_overlap_matrix, 2, &
                trim(adjustl(yaml_toa(itout,fmt='(i3.3)')))//'-'//trim(adjustl(yaml_toa(it_cdft,fmt='(i3.3)')))&
@@ -3104,13 +3104,13 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       kernel(1) = matrices_null()
       kernel(1)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
       foe_obj = foe_data_null()
-      call init_foe(iproc, nproc, input, orbs_KS, foe_obj, .true.)
+      call init_foe(iproc, nproc, input, orbs_KS, 0.d0, foe_obj, .true.)
       do ispin=1,input%nspin
           call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",ispin)-dq,ispin)
       end do
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
-      call fermi_operator_expansion(iproc, nproc, 0.d0, &
+      call fermi_operator_expansion(iproc, nproc, &
            ebs, norder_taylor, input%lin%max_inversion_error, &
            .true., 2, &
            'HOMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &
@@ -3126,13 +3126,13 @@ subroutine calculate_gap_FOE(iproc, nproc, input, orbs_KS, tmb)
       kernel(2) = matrices_null()
       kernel(2)%matrix_compr = sparsematrix_malloc_ptr(tmb%linmat%l, iaction=SPARSE_TASKGROUP, id='kernel%matrix_compr')
       foe_obj = foe_data_null()
-      call init_foe(iproc, nproc, input, orbs_KS, foe_obj, .true.)
+      call init_foe(iproc, nproc, input, orbs_KS, 0.d0, foe_obj, .true.)
       do ispin=1,input%nspin
           call foe_data_set_real(foe_obj,"charge",foe_data_get_real(foe_obj,"charge",ispin)+dq,ispin)
       end do
       call foe_data_set_real(foe_obj,"fscale",1.d-2)
       norder_taylor = input%lin%order_taylor
-      call fermi_operator_expansion(iproc, nproc, 0.d0, &
+      call fermi_operator_expansion(iproc, nproc, &
            ebs, norder_taylor, input%lin%max_inversion_error, &
            .true., 2, &
            'LUMO', tmb%linmat%s, tmb%linmat%m, tmb%linmat%l, &

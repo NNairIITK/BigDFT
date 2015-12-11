@@ -86,6 +86,7 @@ module matrix_operations
         real(kind=8),dimension(:),allocatable :: ovrlp_largep_new, invovrlpp_new
         real(kind=8),dimension(:),allocatable :: Amat12p_new, Amat21p_new
         real(kind=8),dimension(:),pointer :: Amat11p_new, Amat22p_new
+        real(kind=8),dimension(:),allocatable :: rpower
       
       
         !!write(*,*) 'iorder',iorder
@@ -855,8 +856,22 @@ module matrix_operations
                     !!tmpmat = sparsematrix_malloc(ovrlp_smat,iaction=SPARSE_FULL,id='tmpmat')
                     !!call vcopy(ovrlp_smat%nvctr, ovrlp_mat%matrix_compr(1), 1, tmpmat(1), 1)
                     !!call gather_matrix_from_taskgroups_inplace(iproc, nproc, ovrlp_smat, ovrlp_mat)
+                    rpower = f_malloc(ncalc,id='rpower')
+                    do icalc=1,ncalc
+                        select case (power(icalc))
+                        case (-2)
+                            rpower(icalc) = -0.5d0
+                        case (2)
+                            rpower(icalc) = 0.5d0
+                        case (1)
+                            rpower(icalc) = -1.d0
+                        case default
+                            stop 'wrong value of power(icalc)'
+                        end select
+                    end do
                     call inverse_chebyshev_expansion(iproc, nproc, iorder-1000, &
-                         ovrlp_smat, inv_ovrlp_smat, ncalc, power, ovrlp_mat, inv_ovrlp_mat)
+                         ovrlp_smat, inv_ovrlp_smat, ncalc, rpower, ovrlp_mat, inv_ovrlp_mat)
+                    call f_free(rpower)
                     !!call vcopy(ovrlp_smat%nvctr, tmpmat(1), 1, ovrlp_mat%matrix_compr(1), 1)
                     !!call f_free(tmpmat)
                     ! #####################################

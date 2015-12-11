@@ -833,9 +833,6 @@ contains
     call input_var("evboundsshrink_nsatur", 4, "maximal number of unsuccessful eigenvalue bounds shrinkings", dummy_int)
     call set(dict // EVBOUNDSSHRINK_NSATUR, dummy_int)
 
-    call input_var("adjust_FOE_temperature", .true., "dynamic adjustment of FOE error function decay length", dummy_bool)
-    call set(dict // ADJUST_FOE_TEMPERATURE, dummy_bool)
-
     call input_var("calculate_gap", .false., "calculate the HOMO LUMO gap", dummy_bool)
     call set(dict // CALCULATE_GAP, dummy_bool)
 
