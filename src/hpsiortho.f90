@@ -1,5 +1,6 @@
 !> @file
 !!  Application of the Hamiltonian + orthonormalize constraints
+
 !! @author
 !!    Copyright (C) 2007-2013 CEA
 !!    This file is distributed under the terms of the

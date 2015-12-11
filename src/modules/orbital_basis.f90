@@ -83,7 +83,6 @@ contains
     nullify(ob%phis_wvl)
   end subroutine nullify_orbital_basis
 
-  
   !>this subroutine is not reinitializing each component of the
   !! iterator as some of them has to be set by the 'next' functions
   pure subroutine nullify_ket(k)
@@ -211,7 +210,6 @@ contains
     it%iorbp=0
 
   end function ket_next_kpt
-
 
   function ket_is_valid(it) result(ok)
     implicit none
